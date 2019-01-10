@@ -1,5 +1,5 @@
 use ctxt::VM;
-use gc::{fill_region, Address, K, Region};
+use gc::{fill_region, Address, Region, K};
 use threads::THREAD;
 
 pub const TLAB_SIZE: usize = 32 * K;

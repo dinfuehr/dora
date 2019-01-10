@@ -1,0 +1,12 @@
+//= vm-args "--gc=swiper --max-heap-size=32M"
+//= error oom
+
+fun main() {
+    var x = Vec::<Array<int> >();
+    var i = 0;
+
+    while i < 100_000 {
+        x.push(Array::<int>(32 * 1024));
+        i = i + 1;
+    }
+}

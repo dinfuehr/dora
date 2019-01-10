@@ -1,54 +1,40 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
+use parking_lot::Mutex;
 
-use ctxt::VM;
 use gc::swiper::card::CardTable;
+use gc::swiper::controller::SharedHeapConfig;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
-use gc::{arena, gen_aligned};
-use gc::{fill_region, Address, Region};
+use gc::{arena, gen_aligned, Address, Region, GEN_SIZE};
 use mem;
 use object::offset_of_array_data;
 
 pub struct OldGen {
     total: Region,
-
-    top: AtomicUsize,
-    limit: AtomicUsize,
+    alloc: Mutex<OldAlloc>,
 
     crossing_map: CrossingMap,
     card_table: CardTable,
+    config: SharedHeapConfig,
 }
 
 impl OldGen {
     pub fn new(
         start: Address,
         end: Address,
-        committed_size: usize,
         crossing_map: CrossingMap,
         card_table: CardTable,
+        config: SharedHeapConfig,
     ) -> OldGen {
-        let limit = start.offset(committed_size);
-
         let old = OldGen {
             total: Region::new(start, end),
-
-            top: AtomicUsize::new(start.to_usize()),
-            limit: AtomicUsize::new(limit.to_usize()),
+            alloc: Mutex::new(OldAlloc::new(start)),
 
             crossing_map: crossing_map,
             card_table: card_table,
+            config: config,
         };
 
-        old.commit();
-
         old
-    }
-
-    fn commit(&self) {
-        let start = self.total.start;
-        let size = self.limit.load(Ordering::Relaxed) - start.to_usize();
-
-        arena::commit(start, size, false);
     }
 
     pub fn total(&self) -> Region {
@@ -60,16 +46,13 @@ impl OldGen {
     }
 
     pub fn committed(&self) -> Region {
-        let start = self.total.start;
-        let limit = self.limit.load(Ordering::Relaxed).into();
-        Region::new(start, limit)
+        let alloc = self.alloc.lock();
+        Region::new(self.total.start, alloc.limit)
     }
 
     pub fn committed_size(&self) -> usize {
-        let start = self.total.start;
-        let limit = self.limit.load(Ordering::Relaxed);
-
-        limit - start.to_usize()
+        let alloc = self.alloc.lock();
+        alloc.limit.offset_from(self.total.start)
     }
 
     pub fn active_size(&self) -> usize {
@@ -77,74 +60,84 @@ impl OldGen {
     }
 
     pub fn top(&self) -> Address {
-        self.top.load(Ordering::Relaxed).into()
+        let alloc = self.alloc.lock();
+
+        alloc.top
     }
 
-    pub fn align_to_card(&self, vm: &VM) -> Address {
-        let ctop = self.top();
-        let ntop = mem::align_usize(ctop.to_usize(), CARD_SIZE).into();
-        fill_region(vm, ctop, ntop);
+    pub fn limit(&self) -> Address {
+        let alloc = self.alloc.lock();
 
-        self.update_top(ntop);
-        self.update_crossing(ctop, ntop, false);
-
-        ntop
+        alloc.limit
     }
 
     pub fn update_top(&self, top: Address) {
-        self.top.store(top.to_usize(), Ordering::SeqCst);
+        assert!(self.total.valid_top(top));
+        let mut alloc = self.alloc.lock();
+
+        alloc.top = top;
     }
 
     pub fn set_committed_size(&self, new_size: usize) {
         assert!(gen_aligned(new_size));
 
-        let old_committed = self.limit.load(Ordering::Relaxed);
-        let new_committed = self.total.start.offset(new_size).to_usize();
-        assert!(new_committed <= self.total.end.to_usize());
-        assert!(self.top().to_usize() <= new_committed);
+        let mut alloc = self.alloc.lock();
 
-        if old_committed == new_committed {
-            return;
-        }
-
-        let updated = self
-            .limit
-            .compare_and_swap(old_committed, new_committed, Ordering::SeqCst);
-        assert!(updated == old_committed);
+        let old_committed = alloc.limit;
+        let new_committed = self.total.start.offset(new_size);
+        assert!(new_committed <= self.total.end);
+        assert!(alloc.top <= new_committed);
 
         if old_committed < new_committed {
-            let size = new_committed - old_committed;
+            let size = new_committed.offset_from(old_committed);
             arena::commit(old_committed.into(), size, false);
         } else if old_committed > new_committed {
-            let size = old_committed - new_committed;
+            let size = old_committed.offset_from(new_committed);
             arena::forget(new_committed.into(), size);
         }
+
+        alloc.limit = new_committed;
     }
 
     pub fn bump_alloc(&self, size: usize, array_ref: bool) -> Address {
-        let mut old = self.top.load(Ordering::Relaxed);
-        let mut new;
+        let mut alloc = self.alloc.lock();
+        let obj_start = alloc.top;
+        let obj_end = obj_start.offset(size);
 
-        loop {
-            new = old + size;
-
-            if new > self.limit.load(Ordering::Relaxed) {
-                return Address::null();
-            }
-
-            let res = self
-                .top
-                .compare_exchange_weak(old, new, Ordering::SeqCst, Ordering::Relaxed);
-
-            match res {
-                Ok(_) => break,
-                Err(x) => old = x,
-            }
+        if obj_end <= alloc.limit {
+            alloc.top = obj_end;
+            self.update_crossing(obj_start, obj_end, array_ref);
+            return obj_start;
         }
 
-        self.update_crossing(old.into(), new.into(), array_ref);
+        let mut config = self.config.lock();
 
-        old.into()
+        if !config.grow_old(GEN_SIZE) {
+            return Address::null();
+        }
+
+        assert!(size < GEN_SIZE);
+        arena::commit(alloc.limit, GEN_SIZE, false);
+
+        alloc.top = obj_end;
+        alloc.limit = obj_end.offset(size);
+        self.update_crossing(obj_start, obj_end, array_ref);
+
+        obj_start
+    }
+
+    pub fn grow(&self) -> Address {
+        let mut alloc = self.alloc.lock();
+        let mut config = self.config.lock();
+
+        if !config.grow_old(GEN_SIZE) {
+            return alloc.limit;
+        }
+
+        arena::commit(alloc.limit, GEN_SIZE, false);
+        alloc.limit = alloc.limit.offset(GEN_SIZE);
+
+        alloc.limit
     }
 
     pub fn update_crossing(&self, old: Address, new: Address, array_ref: bool) {
@@ -217,5 +210,19 @@ impl OldGen {
 
     pub fn valid_top(&self, addr: Address) -> bool {
         self.total.valid_top(addr)
+    }
+}
+
+struct OldAlloc {
+    top: Address,
+    limit: Address,
+}
+
+impl OldAlloc {
+    fn new(start: Address) -> OldAlloc {
+        OldAlloc {
+            top: start,
+            limit: start,
+        }
     }
 }

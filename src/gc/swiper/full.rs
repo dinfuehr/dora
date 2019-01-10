@@ -5,7 +5,6 @@ use ctxt::VM;
 use gc::root::Slot;
 use gc::space::Space;
 use gc::swiper::card::CardTable;
-use gc::swiper::controller;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::large::LargeSpace;
 use gc::swiper::marking;
@@ -13,7 +12,7 @@ use gc::swiper::old::OldGen;
 use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
 use gc::swiper::GcStats;
-use gc::{formatted_size, Address, GcReason, Region};
+use gc::{align_gen, formatted_size, Address, GcReason, Region};
 use object::Obj;
 use timer::Timer;
 
@@ -58,7 +57,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         max_heap_size: usize,
         stats: &'a GcStats,
     ) -> FullCollector<'a, 'ast> {
-        let old_committed = old.committed();
+        let old_total = old.total();
 
         FullCollector {
             vm: vm,
@@ -71,8 +70,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             crossing_map: crossing_map,
             perm_space: perm_space,
 
-            fwd: old_committed.start,
-            fwd_end: old_committed.end,
+            fwd: old_total.start,
+            fwd_end: old_total.end,
             init_old_top: Address::null(),
 
             reason: reason,
@@ -153,16 +152,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         }
 
         self.reset_cards();
-
-        if self.vm.args.flag_gc_young_ratio.is_none() {
-            controller::resize_gens_after_full(
-                self.min_heap_size,
-                self.max_heap_size,
-                self.young,
-                self.old,
-                self.vm.args.flag_gc_verbose,
-            );
-        }
 
         timer.stop_with(|time_pause| {
             let new_size = self.heap_size();
@@ -246,6 +235,13 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 object.header_mut().set_fwdptr_non_atomic(fwd);
             }
         });
+
+        let old_start = self.old.total().start;
+        let init_old_size = self.init_old_top.offset_from(old_start);
+        let new_old_size = self.fwd.offset_from(old_start);
+
+        let old_size = align_gen(cmp::max(init_old_size, new_old_size));
+        self.old.set_committed_size(old_size);
     }
 
     fn update_references(&mut self) {
@@ -334,8 +330,13 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     }
 
     fn reset_cards(&mut self) {
-        let start = self.old.total().start;
+        let old_total = self.old.total();
+        let start = old_total.start;
         let end = cmp::max(self.fwd, self.init_old_top);
+
+        debug_assert!(old_total.valid_top(self.fwd));
+        debug_assert!(old_total.valid_top(self.init_old_top));
+
         self.card_table.reset_region(start, end);
     }
 

@@ -5,15 +5,14 @@ use std::sync::Arc;
 use ctxt::VM;
 use gc::root::Slot;
 use gc::swiper::card::{CardEntry, CardTable};
-use gc::swiper::controller;
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use gc::swiper::large::LargeSpace;
 use gc::swiper::marking::Terminator;
 use gc::swiper::old::OldGen;
 use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
-use gc::swiper::{GcStats, LARGE_OBJECT_SIZE};
 use gc::swiper::{CardIdx, CARD_SIZE};
+use gc::swiper::{GcStats, LARGE_OBJECT_SIZE};
 use gc::tlab::{TLAB_OBJECT_SIZE, TLAB_SIZE};
 use gc::{fill_region, formatted_size, Address, GcReason, Region};
 use mem;
@@ -39,7 +38,9 @@ pub struct MinorCollector<'a, 'ast: 'a> {
 
     young_top: Address,
     young_limit: Address,
-    old_end: Address,
+    init_old_top: Address,
+    old_top: Address,
+    old_limit: Address,
 
     promotion_failed: bool,
     promoted_size: usize,
@@ -84,7 +85,9 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
 
             young_top: Address::null(),
             young_limit: Address::null(),
-            old_end: Address::null(),
+            init_old_top: Address::null(),
+            old_top: Address::null(),
+            old_limit: Address::null(),
 
             promotion_failed: false,
             promoted_size: 0,
@@ -117,7 +120,10 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         let to_committed = self.young.to_committed();
         self.young_top = to_committed.start;
         self.young_limit = to_committed.end;
-        self.old_end = self.old.top();
+
+        self.old_top = self.old.top();
+        self.init_old_top = self.old_top;
+        self.old_limit = self.old.limit();
 
         self.young.unprotect_to();
 
@@ -149,8 +155,6 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
             println!("Minor GC: Phase 3 (traverse) finished.");
         }
 
-        let mut force_full = false;
-
         if self.promotion_failed {
             // oh no: promotion failed, we need a subsequent full GC
             self.remove_forwarding_pointers();
@@ -162,16 +166,6 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
 
             assert!(self.young.eden_active().size() == 0);
             assert!(self.young.to_active().size() == 0);
-
-            if self.vm.args.flag_gc_young_ratio.is_none() {
-                force_full = controller::resize_gens_after_minor(
-                    self.min_heap_size,
-                    self.max_heap_size,
-                    self.young,
-                    self.old,
-                    self.vm.args.flag_gc_verbose,
-                );
-            }
         }
 
         timer.stop_with(|time_pause| {
@@ -211,7 +205,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
             );
         });
 
-        force_full || self.promotion_failed
+        self.promotion_failed
     }
 
     fn heap_size(&self) -> usize {
@@ -304,22 +298,23 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
 
     fn trace_gray_objects_seq(&mut self) {
         let mut young_scan = self.young.to_committed().start;
-        let mut old_scan = self.old_end;
+        let mut old_scan = self.init_old_top;
 
         // visit all fields in gray (=copied) objects
         // there can be gray objects in old & young gen
-        while young_scan < self.young_top || old_scan < self.old.top() {
+        while young_scan < self.young_top || old_scan < self.old_top {
             while young_scan < self.young_top {
                 young_scan = self.trace_young_object(young_scan);
             }
 
-            while old_scan < self.old.top() {
+            while old_scan < self.old_top {
                 old_scan = self.trace_old_object(old_scan);
             }
         }
 
         assert!(young_scan == self.young_top);
-        assert!(old_scan == self.old.top());
+        assert!(old_scan == self.old_top);
+        self.old.update_top(self.old_top);
     }
 
     fn trace_gray_objects_par(&mut self) {
@@ -343,7 +338,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         let vm = self.vm;
 
         // align old generation to card boundary
-        let old_top = Arc::new(Mutex::new(self.old.top()));
+        let old_top = Arc::new(Mutex::new(self.old_top));
         let old_limit = self.old.committed().end;
 
         let young_top = Arc::new(Mutex::new(self.young_top));
@@ -488,7 +483,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
     // copy all references from old- into young-generation.
     fn copy_dirty_cards(&mut self) {
         self.card_table
-            .visit_dirty_in_old(self.old_end, |card_idx| {
+            .visit_dirty_in_old(self.init_old_top, |card_idx| {
                 let crossing_entry = self.crossing_map.get(card_idx);
                 let card_start = self.card_table.to_address(card_idx);
 
@@ -548,8 +543,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         let card_start = self.card_table.to_address(card);
         let card_end = card_start.offset(CARD_SIZE);
 
-        let old_end: Address = self.old.top();
-        let mut end = cmp::min(card_end, old_end);
+        let mut end = cmp::min(card_end, self.old_top);
 
         loop {
             ptr = self.copy_range(ptr, end, &mut ref_to_young_gen);
@@ -561,8 +555,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
                 break;
             }
 
-            let old_end = self.old.top();
-            let next_end = cmp::min(card_end, old_end);
+            let next_end = cmp::min(card_end, self.old_top);
 
             if end != next_end {
                 end = next_end;
@@ -659,7 +652,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
     }
 
     fn promote_object(&mut self, obj: &mut Obj, obj_size: usize) -> Address {
-        let copy_addr = self.old.bump_alloc(obj_size, obj.is_array_ref());
+        let copy_addr = self.alloc_old(obj_size, obj.is_array_ref());
 
         // if there isn't enough space in old gen keep it in the
         // young generation for now. A full collection will be forced later and
@@ -680,6 +673,31 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         obj.header_mut().vtblptr_forward(copy_addr);
 
         copy_addr
+    }
+
+    fn alloc_old(&mut self, size: usize, array_ref: bool) -> Address {
+        let obj_start = self.alloc_old_in_lab(size, array_ref);
+
+        if obj_start.is_non_null() {
+            return obj_start;
+        }
+
+        self.old_limit = self.old.grow();
+        self.alloc_old_in_lab(size, array_ref)
+    }
+
+    fn alloc_old_in_lab(&mut self, size: usize, array_ref: bool) -> Address {
+        let obj_start = self.old_top;
+        let obj_end = self.old_top.offset(size);
+
+        if obj_end <= self.old_limit {
+            self.old_top = obj_end;
+            self.old.update_crossing(obj_start, obj_end, array_ref);
+
+            obj_start
+        } else {
+            Address::null()
+        }
     }
 
     fn remove_forwarding_pointers(&mut self) {
@@ -785,7 +803,7 @@ impl SpaceAlloc {
         }
     }
 
-    fn alloc_lab(&mut self, lab: &mut Lab) -> bool {
+    fn alloc_lab_young(&mut self, lab: &mut Lab) -> bool {
         if self.failed {
             lab.reset(Address::null(), Address::null());
             return false;
@@ -809,7 +827,40 @@ impl SpaceAlloc {
         }
     }
 
-    fn alloc_obj(&mut self, size: usize) -> Address {
+    fn alloc_lab_old(&mut self, lab: &mut Lab, old: &OldGen) -> bool {
+        if self.failed {
+            lab.reset(Address::null(), Address::null());
+            return false;
+        }
+
+        let mut top = self.top.lock();
+
+        let lab_start = *top;
+        let lab_end = lab_start.offset(CLAB_SIZE);
+
+        if lab_end <= self.limit {
+            *top = lab_end;
+            lab.reset(lab_start, lab_end);
+
+            return true;
+        }
+
+        self.limit = old.grow();
+
+        if lab_end <= self.limit {
+            *top = lab_end;
+            lab.reset(lab_start, lab_end);
+
+            true
+        } else {
+            self.failed = true;
+            lab.reset(Address::null(), Address::null());
+
+            false
+        }
+    }
+
+    fn alloc_obj_young(&mut self, size: usize) -> Address {
         if self.failed {
             return Address::null();
         }
@@ -825,6 +876,34 @@ impl SpaceAlloc {
             obj_start
         } else {
             self.failed = true;
+            Address::null()
+        }
+    }
+
+    fn alloc_obj_old(&mut self, size: usize, old: &OldGen) -> Address {
+        if self.failed {
+            return Address::null();
+        }
+
+        let mut top = self.top.lock();
+
+        let obj_start = *top;
+        let obj_end = obj_start.offset(size);
+
+        if obj_end <= self.limit {
+            *top = obj_end;
+            return obj_start;
+        }
+
+        self.limit = old.grow();
+
+        if obj_end <= self.limit {
+            *top = obj_end;
+
+            obj_start
+        } else {
+            self.failed = true;
+
             Address::null()
         }
     }
@@ -978,7 +1057,7 @@ where
 
         debug_assert!(size <= CLAB_SIZE);
         self.young_lab.make_iterable_young(self.vm);
-        if !self.young_alloc.alloc_lab(&mut self.young_lab) {
+        if !self.young_alloc.alloc_lab_young(&mut self.young_lab) {
             return Address::null();
         }
 
@@ -987,7 +1066,7 @@ where
 
     fn alloc_young_medium(&mut self, size: usize) -> Address {
         debug_assert!(CLAB_OBJECT_SIZE <= size && size < LARGE_OBJECT_SIZE);
-        self.young_alloc.alloc_obj(size)
+        self.young_alloc.alloc_obj_young(size)
     }
 
     fn alloc_old(&mut self, size: usize, array_ref: bool) -> Address {
@@ -1009,7 +1088,7 @@ where
         }
 
         self.old_lab.make_iterable_old(self.vm, self.old);
-        if !self.old_alloc.alloc_lab(&mut self.old_lab) {
+        if !self.old_alloc.alloc_lab_old(&mut self.old_lab, self.old) {
             return Address::null();
         }
 
@@ -1018,7 +1097,7 @@ where
 
     fn alloc_old_medium(&mut self, size: usize, array_ref: bool) -> Address {
         debug_assert!(CLAB_OBJECT_SIZE <= size && size < LARGE_OBJECT_SIZE);
-        let object_start = self.old_alloc.alloc_obj(size);
+        let object_start = self.old_alloc.alloc_obj_old(size, self.old);
 
         if object_start.is_non_null() {
             let old = object_start;

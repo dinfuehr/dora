@@ -1,12 +1,9 @@
-use std::cmp::max;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use gc::bump::BumpAllocator;
-use gc::{align_space, arena, gen_aligned, space_aligned};
+use gc::{arena, gen_aligned};
 use gc::{Address, Region};
 use os::{self, ProtType};
-
-const SEMI_RATIO: usize = 3;
 
 pub struct YoungGen {
     // bounds of eden & semi-spaces
@@ -20,21 +17,16 @@ pub struct YoungGen {
 }
 
 impl YoungGen {
-    pub fn new(total: Region, committed_size: usize, protect: bool) -> YoungGen {
-        let semi_total_size = align_space(total.size() / SEMI_RATIO);
-        let eden_total_size = total.size() - semi_total_size;
+    pub fn new(total: Region, eden_size: usize, semi_size: usize, protect: bool) -> YoungGen {
+        let eden_total_size = total.size() / 2;
 
         let eden_total = total.start.region_start(eden_total_size);
         let semi_total = Region::new(eden_total.end, total.end);
-        assert!(semi_total.size() == semi_total_size);
-
-        let semi_committed = align_space(committed_size / SEMI_RATIO);
-        let eden_committed = committed_size - semi_committed;
 
         let young = YoungGen {
             total: total,
-            eden: Eden::new(eden_total, eden_committed),
-            semi: SemiSpace::new(semi_total, semi_committed, protect),
+            eden: Eden::new(eden_total, eden_size),
+            semi: SemiSpace::new(semi_total, semi_size, protect),
         };
 
         young.commit();
@@ -146,25 +138,16 @@ impl YoungGen {
         return self.semi.bump_alloc(size);
     }
 
-    pub fn set_committed_size(&self, size: usize) {
-        assert!(gen_aligned(size));
-        assert!(size <= self.total.size());
+    pub fn set_committed_size(&self, eden_size: usize, semi_size: usize) {
+        assert!(gen_aligned(eden_size));
+        assert!(gen_aligned(semi_size));
 
-        let semi_target_size = align_space(size / SEMI_RATIO);
-
-        // semi-space can't be smaller than current size of from-space though
-        let from_active = self.semi.from_active().size();
-        let semi_minimum_size = align_space(from_active * 2);
-
-        let semi_committed = max(semi_minimum_size, semi_target_size);
-        let eden_committed = size - semi_committed;
-
-        self.semi.set_committed_size(semi_committed);
-        self.eden.set_committed_size(eden_committed);
+        self.eden.set_committed_size(eden_size);
+        self.semi.set_committed_size(semi_size);
     }
 
-    pub fn committed_size(&self) -> usize {
-        self.semi.committed_size() + self.eden.committed_size()
+    pub fn committed_size(&self) -> (usize, usize) {
+        (self.eden.committed_size(), self.semi.committed_size())
     }
 }
 
@@ -233,17 +216,15 @@ struct SemiSpace {
 }
 
 impl SemiSpace {
-    fn new(total: Region, committed_size: usize, protect: bool) -> SemiSpace {
-        let committed_semi_size = committed_size / 2;
+    fn new(total: Region, committed_semi_size: usize, protect: bool) -> SemiSpace {
+        let total_semi_size = total.size() / 2;
+        assert!(committed_semi_size <= total_semi_size);
 
-        let semi_size = total.size() / 2;
-        assert!(committed_semi_size <= semi_size);
-
-        let first = total.start.region_start(semi_size);
+        let first = total.start.region_start(total_semi_size);
         let second = Region::new(first.end, total.end);
         assert!(first.size() == second.size());
 
-        let limit = total.start.offset(committed_semi_size);
+        let limit = first.start.offset(committed_semi_size);
 
         SemiSpace {
             total: total.clone(),
@@ -253,7 +234,7 @@ impl SemiSpace {
 
             from_index: AtomicUsize::new(1),
             protect: protect,
-            alloc: BumpAllocator::new(total.start, limit),
+            alloc: BumpAllocator::new(first.start, limit),
             age_marker: AtomicUsize::new(first.start.to_usize()),
         }
     }
@@ -445,7 +426,7 @@ impl Block {
     }
 
     fn set_committed_size(&self, new_size: usize) {
-        assert!(space_aligned(new_size));
+        assert!(gen_aligned(new_size));
 
         let old_committed = self.committed.load(Ordering::Relaxed);
         let new_committed = self.start.offset(new_size).to_usize();

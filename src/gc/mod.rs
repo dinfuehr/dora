@@ -30,12 +30,8 @@ const CHUNK_SIZE: usize = 8 * K;
 pub const DEFAULT_CODE_SPACE_LIMIT: usize = 128 * K;
 pub const DEFAULT_PERM_SPACE_LIMIT: usize = 64 * K;
 
-// every space (eden/from/to/old) is aligned to at least this size
-const SPACE_ALIGNMENT_BITS: usize = 17;
-const SPACE_SIZE: usize = 1 << SPACE_ALIGNMENT_BITS;
-
 // young/old gen are aligned to at least this size
-const GEN_ALIGNMENT_BITS: usize = 19;
+const GEN_ALIGNMENT_BITS: usize = 17;
 const GEN_SIZE: usize = 1 << GEN_ALIGNMENT_BITS;
 
 pub struct Gc {
@@ -313,6 +309,11 @@ impl Region {
     pub fn size(&self) -> usize {
         self.end.to_usize() - self.start.to_usize()
     }
+
+    #[inline(always)]
+    pub fn empty(&self) -> bool {
+        self.start == self.end
+    }
 }
 
 impl fmt::Display for Region {
@@ -351,19 +352,6 @@ impl fmt::Display for FormattedSize {
 
 fn formatted_size(size: usize) -> FormattedSize {
     FormattedSize { size }
-}
-
-/// round the given value up to the nearest multiple of a space
-pub fn align_space(val: usize) -> usize {
-    let align = SPACE_ALIGNMENT_BITS;
-    // we know that page size is power of 2, hence
-    // we can use shifts instead of expensive division
-    ((val + (1 << align) - 1) >> align) << align
-}
-
-/// returns true if given size is space aligned
-pub fn space_aligned(size: usize) -> bool {
-    (size & (SPACE_ALIGNMENT_BITS - 1)) == 0
 }
 
 /// round the given value up to the nearest multiple of a generation

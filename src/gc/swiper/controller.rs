@@ -1,91 +1,106 @@
-use std::cmp::{max, min};
+use parking_lot::Mutex;
+use std::sync::Arc;
 
+use gc::formatted_size;
+use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
-use gc::{align_gen, formatted_size, M};
-use gc::{GEN_ALIGNMENT_BITS, GEN_SIZE};
+use gc::swiper::CollectionKind;
 
-pub fn resize_gens_after_minor(
-    _min_heap_size: usize,
-    max_heap_size: usize,
-    young: &YoungGen,
-    old: &OldGen,
-    verbose: bool,
-) -> bool {
-    let old_size = align_gen(old.active_size());
-    assert!(young.eden_active().size() == 0);
+pub fn choose_collection_kind(config: &SharedHeapConfig, young: &YoungGen) -> CollectionKind {
+    let (eden_size, semi_size) = young.committed_size();
+    let young_size = eden_size + semi_size;
 
-    let (young_size, old_size) = compute_young_size(max_heap_size, old_size);
-    assert!(young_size <= young.committed_size());
+    let rest = {
+        let config = config.lock();
+        config.old_limit - config.old_size
+    };
 
-    if verbose {
-        println!(
-            "GC: Resize after Minor GC (young committed {}->{}, old committed {}->{})",
-            formatted_size(young.committed_size()),
-            formatted_size(young_size),
-            formatted_size(old.committed_size()),
-            formatted_size(old_size),
-        );
+    if rest < young_size {
+        CollectionKind::Full
+    } else {
+        CollectionKind::Minor
     }
-
-    young.set_committed_size(young_size);
-    old.set_committed_size(old_size);
-
-    // force full GC when young collection becomes too small
-    young_size < MIN_YOUNG_SIZE
 }
 
-pub fn resize_gens_after_full(
-    _min_heap_size: usize,
+pub fn resize_gens(
     max_heap_size: usize,
+    config: &SharedHeapConfig,
     young: &YoungGen,
     old: &OldGen,
+    large: &LargeSpace,
     verbose: bool,
 ) {
-    let old_size = align_gen(old.active_size());
-    assert!(young.active_size() == 0);
+    let mut config = config.lock();
 
-    let (young_size, old_size) = compute_young_size(max_heap_size, old_size);
+    assert!(young.eden_active().empty());
+    let (eden_size, semi_size) = young.committed_size();
+    let young_size = eden_size + semi_size;
+
+    let old_size = old.committed_size() + large.committed_size();
+    config.old_size = old_size;
+
+    let max_old_limit = max_heap_size - young_size;
+    let old_old_limit = config.old_limit;
+    config.old_limit = max_old_limit;
 
     if verbose {
         println!(
-            "GC: Resize after Full GC (young committed {}->{}, old committed {}->{})",
-            formatted_size(young.committed_size()),
-            formatted_size(young_size),
-            formatted_size(old.committed_size()),
-            formatted_size(old_size),
+            "GC: Resize Old {} -> {}",
+            formatted_size(old_old_limit),
+            formatted_size(config.old_limit)
         );
     }
 
-    young.set_committed_size(young_size);
-    old.set_committed_size(old_size);
+    young.set_committed_size(eden_size, semi_size);
 }
 
-const MAX_YOUNG_SIZE: usize = 256 * M;
-const MIN_YOUNG_SIZE: usize = 32 * M;
+pub struct HeapConfig {
+    eden_size: usize,
+    semi_size: usize,
+    old_size: usize,
+    old_limit: usize,
+}
 
-// calculate young generation size from old generation and heap size.
-pub fn compute_young_size(heap_size: usize, init_old_size: usize) -> (usize, usize) {
-    assert!(init_old_size <= heap_size);
-    let init_old_size = align_gen(init_old_size);
-    let rest = heap_size - init_old_size;
-
-    if rest < GEN_SIZE {
-        panic!("Error: Heap too big! No space left for minimal young gen.");
+impl HeapConfig {
+    pub fn new(
+        eden_size: usize,
+        semi_size: usize,
+        old_size: usize,
+        old_limit: usize,
+    ) -> HeapConfig {
+        HeapConfig {
+            eden_size: eden_size,
+            semi_size: semi_size,
+            old_size: old_size,
+            old_limit: old_limit,
+        }
     }
 
-    // use young gen size of half of rest
-    let current_max_young_size = (rest >> (GEN_ALIGNMENT_BITS + 1)) << GEN_ALIGNMENT_BITS;
+    pub fn eden_size(&self) -> usize {
+        self.eden_size
+    }
 
-    // but not bigger than general maximum young size
-    let young_size = min(current_max_young_size, MAX_YOUNG_SIZE);
+    pub fn set_eden_size(&mut self, size: usize) {
+        self.eden_size = size;
+    }
 
-    // at least size of 512K
-    let young_size = max(young_size, GEN_SIZE);
+    pub fn semi_size(&self) -> usize {
+        self.semi_size
+    }
 
-    let old_size = heap_size - young_size;
+    pub fn set_semi_size(&mut self, size: usize) {
+        self.semi_size = size;
+    }
 
-    assert!(young_size > 0 && old_size > 0 && old_size + young_size <= heap_size);
-
-    (young_size, old_size)
+    pub fn grow_old(&mut self, size: usize) -> bool {
+        if self.old_size + size <= self.old_limit {
+            self.old_size += size;
+            true
+        } else {
+            false
+        }
+    }
 }
+
+pub type SharedHeapConfig = Arc<Mutex<HeapConfig>>;

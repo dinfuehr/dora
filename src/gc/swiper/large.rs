@@ -2,6 +2,7 @@ use parking_lot::Mutex;
 use std::mem::size_of;
 
 use gc::arena;
+use gc::swiper::controller::SharedHeapConfig;
 use gc::swiper::LARGE_OBJECT_SIZE;
 use gc::{Address, Region};
 use mem;
@@ -9,13 +10,15 @@ use mem;
 pub struct LargeSpace {
     total: Region,
     space: Mutex<LargeSpaceProtected>,
+    config: SharedHeapConfig,
 }
 
 impl LargeSpace {
-    pub fn new(start: Address, end: Address) -> LargeSpace {
+    pub fn new(start: Address, end: Address, config: SharedHeapConfig) -> LargeSpace {
         LargeSpace {
             total: Region::new(start, end),
             space: Mutex::new(LargeSpaceProtected::new(start, end)),
+            config: config,
         }
     }
 
@@ -24,6 +27,12 @@ impl LargeSpace {
         let size = mem::page_align(size_of::<LargeAlloc>() + size);
 
         let mut space = self.space.lock();
+        let mut config = self.config.lock();
+
+        if !config.grow_old(size) {
+            return Address::null();
+        }
+
         space.alloc(size)
     }
 
@@ -50,6 +59,11 @@ impl LargeSpace {
         let mut space = self.space.lock();
         space.remove_objects(f);
     }
+
+    pub fn committed_size(&self) -> usize {
+        let space = self.space.lock();
+        space.committed_size()
+    }
 }
 
 struct LargeAlloc {
@@ -61,6 +75,7 @@ struct LargeAlloc {
 struct LargeSpaceProtected {
     elements: Vec<Range>,
     head: Address,
+    committed_size: usize,
 }
 
 impl LargeSpaceProtected {
@@ -68,7 +83,12 @@ impl LargeSpaceProtected {
         LargeSpaceProtected {
             elements: vec![Range::new(start, end)],
             head: Address::null(),
+            committed_size: 0,
         }
+    }
+
+    fn committed_size(&self) -> usize {
+        self.committed_size
     }
 
     fn alloc(&mut self, size: usize) -> Address {
@@ -88,6 +108,7 @@ impl LargeSpaceProtected {
 
                 arena::commit(addr, size, false);
                 self.append_large_alloc(addr, size);
+                self.committed_size += size;
 
                 return addr.offset(size_of::<LargeAlloc>());
             }
@@ -100,6 +121,7 @@ impl LargeSpaceProtected {
         debug_assert!(mem::is_page_aligned(size));
         arena::forget(ptr, size);
         self.elements.push(Range::new(ptr, ptr.offset(size)));
+        self.committed_size -= size;
     }
 
     fn merge(&mut self) {

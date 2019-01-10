@@ -1,11 +1,12 @@
 use parking_lot::Mutex;
 use scoped_threadpool::Pool;
+use std::sync::Arc;
 
 use ctxt::VM;
 use driver::cmd::Args;
 use gc::root::{get_rootset, Slot};
 use gc::swiper::card::CardTable;
-use gc::swiper::controller::compute_young_size;
+use gc::swiper::controller::{choose_collection_kind, resize_gens, HeapConfig, SharedHeapConfig};
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::full::FullCollector;
 use gc::swiper::large::LargeSpace;
@@ -16,7 +17,7 @@ use gc::swiper::young::YoungGen;
 use gc::tlab;
 use gc::Collector;
 use gc::{arena, GcReason};
-use gc::{formatted_size, Address, K, Region};
+use gc::{formatted_size, Address, Region, K, M};
 use mem;
 
 pub mod card;
@@ -66,6 +67,7 @@ pub struct Swiper {
     threadpool: Mutex<Pool>,
 
     stats: GcStats,
+    config: SharedHeapConfig,
 }
 
 impl Swiper {
@@ -73,7 +75,7 @@ impl Swiper {
         let min_heap_size = args.min_heap_size();
         let max_heap_size = args.max_heap_size();
 
-        let (young_size, old_size) = compute_young_size(max_heap_size, 0);
+        let (eden_size, semi_size) = (12 * M, 8 * M);
 
         // determine size for card table
         let card_size = mem::page_align((4 * max_heap_size) >> CARD_SIZE_BITS);
@@ -119,6 +121,11 @@ impl Swiper {
         let old_start = young_end;
         let old_end = old_start.offset(max_heap_size);
 
+        let init_old_size = max_heap_size;
+        let young_size = eden_size + semi_size;
+        let config = HeapConfig::new(eden_size, semi_size, 0, init_old_size - young_size);
+        let config = Arc::new(Mutex::new(config));
+
         // determine large object space
         let large_start = old_end;
         let large_end = large_start.offset(2 * max_heap_size);
@@ -131,22 +138,22 @@ impl Swiper {
             max_heap_size,
         );
         let crossing_map = CrossingMap::new(crossing_start, crossing_end, max_heap_size);
-        let young = YoungGen::new(young, young_size, args.flag_gc_verify);
+        let young = YoungGen::new(young, eden_size, semi_size, args.flag_gc_verify);
         let old = OldGen::new(
             old_start,
             old_end,
-            old_size,
             crossing_map.clone(),
             card_table.clone(),
+            config.clone(),
         );
-        let large = LargeSpace::new(large_start, large_end);
+        let large = LargeSpace::new(large_start, large_end, config.clone());
 
         if args.flag_gc_verbose {
             println!(
-                "GC: heap info: {}, old {}, young {}, card {}, crossing {}",
+                "GC: heap info: {}, eden {}, semi {}, card {}, crossing {}",
                 formatted_size(max_heap_size),
-                formatted_size(old_size),
-                formatted_size(young_size),
+                formatted_size(eden_size),
+                formatted_size(semi_size),
                 formatted_size(card_size),
                 formatted_size(crossing_size)
             );
@@ -164,6 +171,7 @@ impl Swiper {
 
             card_table: card_table,
             crossing_map: crossing_map,
+            config: config,
 
             card_table_offset: card_table_offset,
 
@@ -175,13 +183,66 @@ impl Swiper {
         }
     }
 
-    fn minor_collect_inner(&self, vm: &VM, reason: GcReason) -> bool {
+    fn perform_collection_and_choose(&self, vm: &VM, reason: GcReason) -> CollectionKind {
+        let kind = choose_collection_kind(&self.config, &self.young);
+        self.perform_collection(vm, kind, reason)
+    }
+
+    fn perform_collection(&self, vm: &VM, kind: CollectionKind, reason: GcReason) -> CollectionKind {
+        let kind = match kind {
+            CollectionKind::Minor => {
+                let promotion_failed = self.minor_collect(vm, reason);
+
+                if promotion_failed {
+                    self.full_collect(vm, GcReason::PromotionFailure);
+                    CollectionKind::Full
+                } else {
+                    CollectionKind::Minor
+                }
+            }
+
+            CollectionKind::Full => {
+                self.full_collect(vm, reason);
+                CollectionKind::Full
+            }
+        };
+
+        resize_gens(
+            self.max_heap_size,
+            &self.config,
+            &self.young,
+            &self.old,
+            &self.large,
+            vm.args.flag_gc_verbose,
+        );
+
+        kind
+    }
+
+    fn minor_collect(&self, vm: &VM, reason: GcReason) -> bool {
         // make heap iterable
         tlab::make_iterable(vm);
         let rootset = get_rootset(vm);
 
         self.verify(vm, VerifierPhase::PreMinor, "pre-minor", &rootset, false);
-        let promotion_failed = self.minor_collect(vm, reason, &rootset);
+        let promotion_failed = {
+            let mut pool = self.threadpool.lock();
+            let mut collector = MinorCollector::new(
+                vm,
+                &self.young,
+                &self.old,
+                &self.large,
+                &self.card_table,
+                &self.crossing_map,
+                &rootset,
+                reason,
+                self.min_heap_size,
+                self.max_heap_size,
+                &self.stats,
+                &mut pool,
+            );
+            collector.collect()
+        };
         self.verify(
             vm,
             VerifierPhase::PostMinor,
@@ -191,25 +252,6 @@ impl Swiper {
         );
 
         promotion_failed
-    }
-
-    fn minor_collect(&self, vm: &VM, reason: GcReason, rootset: &[Slot]) -> bool {
-        let mut pool = self.threadpool.lock();
-        let mut collector = MinorCollector::new(
-            vm,
-            &self.young,
-            &self.old,
-            &self.large,
-            &self.card_table,
-            &self.crossing_map,
-            rootset,
-            reason,
-            self.min_heap_size,
-            self.max_heap_size,
-            &self.stats,
-            &mut pool,
-        );
-        collector.collect()
     }
 
     fn full_collect(&self, vm: &VM, reason: GcReason) {
@@ -226,24 +268,26 @@ impl Swiper {
             reason == GcReason::PromotionFailure,
         );
 
-        let mut pool = self.threadpool.lock();
-        let mut collector = FullCollector::new(
-            vm,
-            self.heap.clone(),
-            &self.young,
-            &self.old,
-            &self.large,
-            &self.card_table,
-            &self.crossing_map,
-            &vm.gc.perm_space,
-            &rootset,
-            reason,
-            &mut pool,
-            self.min_heap_size,
-            self.max_heap_size,
-            &self.stats,
-        );
-        collector.collect();
+        {
+            let mut pool = self.threadpool.lock();
+            let mut collector = FullCollector::new(
+                vm,
+                self.heap.clone(),
+                &self.young,
+                &self.old,
+                &self.large,
+                &self.card_table,
+                &self.crossing_map,
+                &vm.gc.perm_space,
+                &rootset,
+                reason,
+                &mut pool,
+                self.min_heap_size,
+                self.max_heap_size,
+                &self.stats,
+            );
+            collector.collect();
+        }
 
         self.verify(vm, VerifierPhase::PostFull, "post-full", &rootset, false);
     }
@@ -292,18 +336,7 @@ impl Collector for Swiper {
             return Some(ptr.region_start(size));
         }
 
-        let promotion_failed = self.minor_collect_inner(vm, GcReason::AllocationFailure);
-
-        if promotion_failed {
-            self.full_collect(vm, GcReason::PromotionFailure);
-            let ptr = self.young.bump_alloc(size);
-
-            return if ptr.is_null() {
-                None
-            } else {
-                Some(ptr.region_start(size))
-            };
-        }
+        self.perform_collection_and_choose(vm, GcReason::AllocationFailure);
 
         let ptr = self.young.bump_alloc(size);
 
@@ -311,7 +344,7 @@ impl Collector for Swiper {
             return Some(ptr.region_start(size));
         }
 
-        self.full_collect(vm, GcReason::AllocationFailure);
+        self.perform_collection(vm, CollectionKind::Full, GcReason::AllocationFailure);
         let ptr = self.young.bump_alloc(size);
 
         return if ptr.is_null() {
@@ -328,11 +361,7 @@ impl Collector for Swiper {
             return ptr;
         }
 
-        let promotion_failed = self.minor_collect_inner(vm, GcReason::AllocationFailure);
-
-        if promotion_failed {
-            self.full_collect(vm, GcReason::PromotionFailure);
-        }
+        self.perform_collection_and_choose(vm, GcReason::AllocationFailure);
 
         let ptr = self.young.bump_alloc(size);
 
@@ -350,18 +379,17 @@ impl Collector for Swiper {
             return ptr;
         }
 
-        self.full_collect(vm, GcReason::AllocationFailure);
+        self.perform_collection(vm, CollectionKind::Full, GcReason::AllocationFailure);
 
         self.large.alloc(size)
     }
 
     fn collect(&self, vm: &VM, reason: GcReason) {
-        self.full_collect(vm, reason);
+        self.perform_collection(vm, CollectionKind::Full, reason);
     }
 
     fn minor_collect(&self, vm: &VM, reason: GcReason) {
-        tlab::make_iterable(vm);
-        self.minor_collect_inner(vm, reason);
+        self.perform_collection(vm, CollectionKind::Minor, reason);
     }
 
     fn needs_write_barrier(&self) -> bool {
@@ -413,6 +441,11 @@ impl From<usize> for CardIdx {
 
 fn on_different_cards(curr: Address, next: Address) -> bool {
     (curr.to_usize() >> CARD_SIZE_BITS) != (next.to_usize() >> CARD_SIZE_BITS)
+}
+
+pub enum CollectionKind {
+    Minor,
+    Full,
 }
 
 pub struct GcStats {

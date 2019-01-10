@@ -286,12 +286,12 @@ impl BytecodeGen {
         self.code.push(Bytecode::Return);
     }
 
-    fn visit_stmt_break(&mut self, stmt: &StmtBreakType) {
+    fn visit_stmt_break(&mut self, _stmt: &StmtBreakType) {
         let Label(end) = self.loops.pop().unwrap().end;
         self.code.push(Bytecode::Jump(Label(end)));
     }
 
-    fn visit_stmt_continue(&mut self, stmt: &StmtContinueType) {
+    fn visit_stmt_continue(&mut self, _stmt: &StmtContinueType) {
         let Label(cond) = self.loops.last().unwrap().cond;
         self.code.push(Bytecode::Jump(Label(cond)));
     }
