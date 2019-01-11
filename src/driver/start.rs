@@ -6,11 +6,11 @@ use ctxt::{exception_get_and_clear, Fct, FctId};
 use dora_parser::ast::{self, Ast};
 use dora_parser::error::msg::Msg;
 
+use boots::bytecodegen::BytecodeGen;
 use dora_parser::interner::Interner;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::reader::Reader;
 use driver::cmd;
-use boots::bytecodegen::BytecodeGen;
 use object;
 use os;
 use timer::Timer;

@@ -209,7 +209,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
     }
 
     fn heap_size(&self) -> usize {
-        self.young.active_size() + self.old.active_size()
+        self.young.active_size() + self.old.active_size() + self.large.committed_size()
     }
 
     fn visit_roots(&mut self) {

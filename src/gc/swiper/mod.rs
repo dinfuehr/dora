@@ -188,7 +188,12 @@ impl Swiper {
         self.perform_collection(vm, kind, reason)
     }
 
-    fn perform_collection(&self, vm: &VM, kind: CollectionKind, reason: GcReason) -> CollectionKind {
+    fn perform_collection(
+        &self,
+        vm: &VM,
+        kind: CollectionKind,
+        reason: GcReason,
+    ) -> CollectionKind {
         let kind = match kind {
             CollectionKind::Minor => {
                 let promotion_failed = self.minor_collect(vm, reason);

@@ -27,8 +27,8 @@ pub struct FullCollector<'a, 'ast: 'a> {
     crossing_map: &'a CrossingMap,
     perm_space: &'a Space,
 
-    fwd: Address,
-    fwd_end: Address,
+    old_top: Address,
+    old_limit: Address,
     init_old_top: Address,
 
     reason: GcReason,
@@ -70,8 +70,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             crossing_map: crossing_map,
             perm_space: perm_space,
 
-            fwd: old_total.start,
-            fwd_end: old_total.end,
+            old_top: old_total.start,
+            old_limit: old_total.end,
             init_old_top: Address::null(),
 
             reason: reason,
@@ -153,6 +153,10 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
         self.reset_cards();
 
+        let old_start = self.old.total().start;
+        let old_size = align_gen(self.old_top.offset_from(old_start));
+        self.old.set_committed_size(old_size);
+
         timer.stop_with(|time_pause| {
             let new_size = self.heap_size();
             let garbage = init_size - new_size;
@@ -186,7 +190,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     }
 
     fn heap_size(&self) -> usize {
-        self.young.active_size() + self.old.active_size()
+        self.young.active_size() + self.old.active_size() + self.large_space.committed_size()
     }
 
     fn mark_live(&mut self) {
@@ -238,7 +242,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
         let old_start = self.old.total().start;
         let init_old_size = self.init_old_top.offset_from(old_start);
-        let new_old_size = self.fwd.offset_from(old_start);
+        let new_old_size = self.old_top.offset_from(old_start);
 
         let old_size = align_gen(cmp::max(init_old_size, new_old_size));
         self.old.set_committed_size(old_size);
@@ -299,8 +303,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.young.clear();
         self.young.protect_to();
 
-        assert!(self.old.valid_top(self.fwd));
-        self.old.update_top(self.fwd);
+        assert!(self.old.valid_top(self.old_top));
+        self.old.update_top(self.old_top);
     }
 
     fn update_large_objects(&mut self) {
@@ -332,9 +336,9 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     fn reset_cards(&mut self) {
         let old_total = self.old.total();
         let start = old_total.start;
-        let end = cmp::max(self.fwd, self.init_old_top);
+        let end = cmp::max(self.old_top, self.init_old_top);
 
-        debug_assert!(old_total.valid_top(self.fwd));
+        debug_assert!(old_total.valid_top(self.old_top));
         debug_assert!(old_total.valid_top(self.init_old_top));
 
         self.card_table.reset_region(start, end);
@@ -401,11 +405,11 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     }
 
     fn allocate(&mut self, object_size: usize) -> Address {
-        let addr = self.fwd;
-        let next = self.fwd.offset(object_size);
+        let addr = self.old_top;
+        let next = self.old_top.offset(object_size);
 
-        if next <= self.fwd_end {
-            self.fwd = next;
+        if next <= self.old_limit {
+            self.old_top = next;
             return addr;
         }
 
