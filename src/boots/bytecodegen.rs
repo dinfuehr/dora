@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 
-use dora_parser::ast::*;
+use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
+use dora_parser::ast::*;
 use dora_parser::interner::Name;
-use dora_parser::ast::visit::Visitor;
 
-#[derive(PartialEq,Debug)]
+#[derive(PartialEq, Debug)]
 pub struct Register(usize);
-#[derive(PartialEq,Debug,Eq,Hash)]
+#[derive(PartialEq, Debug, Eq, Hash)]
 pub struct Label(usize);
 
 macro_rules! hashmap {
@@ -24,7 +24,6 @@ pub struct Context {
 }
 
 impl Context {
-
     pub fn new() -> Context {
         Context {
             var_map: HashMap::new(),
@@ -35,7 +34,7 @@ impl Context {
         self.var_map.insert(var, reg);
     }
 
-    pub fn get_reg(&self,var: Name) -> Option<&Register> {
+    pub fn get_reg(&self, var: Name) -> Option<&Register> {
         let reg = self.var_map.get(&var);
         reg
     }
@@ -43,10 +42,10 @@ impl Context {
 
 pub struct LoopLabels {
     cond: Label,
-    end: Label
+    end: Label,
 }
 
-#[derive(PartialEq,Debug)]
+#[derive(PartialEq, Debug)]
 pub enum Bytecode {
     Add(Register),
     BitwiseAnd(Register),
@@ -86,7 +85,7 @@ pub struct BytecodeGen {
 
 impl<'ast> visit::Visitor<'ast> for BytecodeGen {
     fn visit_fct(&mut self, f: &'ast Function) {
-        if  !f.has_optimize {
+        if !f.has_optimize {
             return;
         }
 
@@ -127,62 +126,61 @@ impl BytecodeGen {
         let mut btidx = 0;
         for btcode in self.code.iter() {
             match btcode {
-                Bytecode::Add(Register(register)) =>
-                    println!("{}: Add {}", btidx, register),
-                Bytecode::BitwiseAnd(Register(register)) =>
-                    println!("{}: BitwiseAnd {}", btidx, register),
-                Bytecode::BitwiseOr(Register(register)) =>
-                    println!("{}: BitwiseOr {}", btidx, register),
-                Bytecode::BitwiseXor(Register(register)) =>
-                    println!("{}: BitwiseXor {}", btidx, register),
-                Bytecode::Div(Register(register)) =>
-                    println!("{}: Div {}", btidx, register),
-                Bytecode::Ldar(Register(register)) =>
-                    println!("{}: Ldar {}", btidx, register),
-                Bytecode::LdaInt(value) =>
-                    println!("{}: LdaInt {}", btidx, value),
-                Bytecode::LdaZero =>
-                    println!("{}: LdaZero", btidx),
-                Bytecode::LogicalNot =>
-                    println!("{}: LogicalNot", btidx),
-                Bytecode::Star(Register(register)) =>
-                    println!("{}: Star {}", btidx, register),
-                Bytecode::JumpIfFalse(label) =>
-                    println!("{}: JumpIfFalse {}", btidx, self.labels.get(label).unwrap()),
-                Bytecode::Jump(label) =>
-                    println!("{}: Jump {}", btidx, self.labels.get(label).unwrap()),
-                Bytecode::Mod(Register(register)) =>
-                    println!("{}: Mod {}", btidx, register),
-                Bytecode::Mul(Register(register)) =>
-                    println!("{}: Mul {}", btidx, register),
-                Bytecode::Neg =>
-                    println!("{}: Neg", btidx),
-                Bytecode::ShiftLeft(Register(register)) =>
-                    println!("{}: ShiftLeft {}", btidx, register),
-                Bytecode::ShiftRight(Register(register)) =>
-                    println!("{}: ShiftRight {}", btidx, register),
-                Bytecode::Sub(Register(register)) =>
-                    println!("{}: Sub {}", btidx, register),
-                Bytecode::Return =>
-                    println!("{}: Return", btidx),
-                Bytecode::ReturnVoid =>
-                    println!("{}: ReturnVoid", btidx),
-                Bytecode::TestEqual(Register(register)) =>
-                    println!("{}: TestEqual {}", btidx, register),
-                Bytecode::TestGreatherThan(Register(register)) =>
-                    println!("{}: TestGreaterThan {}", btidx, register),
-                Bytecode::TestGreatherThanOrEqual(Register(register)) =>
-                    println!("{}: TestGreatherThanOrEqual {}", btidx, register),
-                Bytecode::TestLessThan(Register(register)) =>
-                    println!("{}: TestLessThan {}", btidx, register),
-                Bytecode::TestLessThanOrEqual(Register(register)) =>
-                    println!("{}: TestLessThanOrEqual {}", btidx, register),
-                Bytecode::TestNotEqual(Register(register)) =>
-                    println!("{}: TestNotEqual {}", btidx, register),
+                Bytecode::Add(Register(register)) => println!("{}: Add {}", btidx, register),
+                Bytecode::BitwiseAnd(Register(register)) => {
+                    println!("{}: BitwiseAnd {}", btidx, register)
+                }
+                Bytecode::BitwiseOr(Register(register)) => {
+                    println!("{}: BitwiseOr {}", btidx, register)
+                }
+                Bytecode::BitwiseXor(Register(register)) => {
+                    println!("{}: BitwiseXor {}", btidx, register)
+                }
+                Bytecode::Div(Register(register)) => println!("{}: Div {}", btidx, register),
+                Bytecode::Ldar(Register(register)) => println!("{}: Ldar {}", btidx, register),
+                Bytecode::LdaInt(value) => println!("{}: LdaInt {}", btidx, value),
+                Bytecode::LdaZero => println!("{}: LdaZero", btidx),
+                Bytecode::LogicalNot => println!("{}: LogicalNot", btidx),
+                Bytecode::Star(Register(register)) => println!("{}: Star {}", btidx, register),
+                Bytecode::JumpIfFalse(label) => {
+                    println!("{}: JumpIfFalse {}", btidx, self.labels.get(label).unwrap())
+                }
+                Bytecode::Jump(label) => {
+                    println!("{}: Jump {}", btidx, self.labels.get(label).unwrap())
+                }
+                Bytecode::Mod(Register(register)) => println!("{}: Mod {}", btidx, register),
+                Bytecode::Mul(Register(register)) => println!("{}: Mul {}", btidx, register),
+                Bytecode::Neg => println!("{}: Neg", btidx),
+                Bytecode::ShiftLeft(Register(register)) => {
+                    println!("{}: ShiftLeft {}", btidx, register)
+                }
+                Bytecode::ShiftRight(Register(register)) => {
+                    println!("{}: ShiftRight {}", btidx, register)
+                }
+                Bytecode::Sub(Register(register)) => println!("{}: Sub {}", btidx, register),
+                Bytecode::Return => println!("{}: Return", btidx),
+                Bytecode::ReturnVoid => println!("{}: ReturnVoid", btidx),
+                Bytecode::TestEqual(Register(register)) => {
+                    println!("{}: TestEqual {}", btidx, register)
+                }
+                Bytecode::TestGreatherThan(Register(register)) => {
+                    println!("{}: TestGreaterThan {}", btidx, register)
+                }
+                Bytecode::TestGreatherThanOrEqual(Register(register)) => {
+                    println!("{}: TestGreatherThanOrEqual {}", btidx, register)
+                }
+                Bytecode::TestLessThan(Register(register)) => {
+                    println!("{}: TestLessThan {}", btidx, register)
+                }
+                Bytecode::TestLessThanOrEqual(Register(register)) => {
+                    println!("{}: TestLessThanOrEqual {}", btidx, register)
+                }
+                Bytecode::TestNotEqual(Register(register)) => {
+                    println!("{}: TestNotEqual {}", btidx, register)
+                }
             }
             btidx = btidx + 1;
         }
-
     }
 
     pub fn get_reg(&self, var: Name) -> Option<&Register> {
@@ -220,7 +218,10 @@ impl BytecodeGen {
         let reg = self.regs;
         let varid = stmt.name;
         self.regs += 1;
-        self.ctxs.last_mut().unwrap().new_var(varid as Name, Register(reg));
+        self.ctxs
+            .last_mut()
+            .unwrap()
+            .new_var(varid as Name, Register(reg));
 
         if let Some(ref expr) = stmt.expr {
             self.visit_expr(expr);
@@ -233,7 +234,10 @@ impl BytecodeGen {
     fn visit_stmt_while(&mut self, stmt: &StmtWhileType) {
         let cond_lbl = self.labels.len();
         let end_lbl = cond_lbl + 1;
-        self.loops.push(LoopLabels{ cond: Label(cond_lbl), end: Label(end_lbl)});
+        self.loops.push(LoopLabels {
+            cond: Label(cond_lbl),
+            end: Label(end_lbl),
+        });
 
         self.labels.insert(Label(cond_lbl), self.code.len());
         self.labels.insert(Label(end_lbl), 0); // Just a place holder
@@ -251,7 +255,7 @@ impl BytecodeGen {
         let end_lbl = else_lbl + 1;
 
         self.labels.insert(Label(else_lbl), 0); // Just a place holder
-        self.labels.insert(Label(end_lbl), 0);  // Just a place holder
+        self.labels.insert(Label(end_lbl), 0); // Just a place holder
 
         self.visit_expr(&stmt.cond);
         self.code.push(Bytecode::JumpIfFalse(Label(else_lbl)));
@@ -259,8 +263,10 @@ impl BytecodeGen {
         self.code.push(Bytecode::Jump(Label(end_lbl)));
         self.labels.insert(Label(else_lbl), self.code.len());
         match &stmt.else_block {
-            Some(else_block) => { self.visit_stmt(&else_block); },
-            _ => {},
+            Some(else_block) => {
+                self.visit_stmt(&else_block);
+            }
+            _ => {}
         }
         self.labels.insert(Label(end_lbl), self.code.len());
     }
@@ -334,9 +340,9 @@ impl BytecodeGen {
     fn visit_expr_un(&mut self, expr: &ExprUnType) {
         self.visit_expr(&expr.opnd);
         match expr.op {
-            UnOp::Plus => { },
-            UnOp::Neg => { self.code.push(Bytecode::Neg)},
-            UnOp::Not => { self.code.push(Bytecode::LogicalNot) },
+            UnOp::Plus => {}
+            UnOp::Neg => self.code.push(Bytecode::Neg),
+            UnOp::Not => self.code.push(Bytecode::LogicalNot),
         }
     }
 
@@ -347,36 +353,33 @@ impl BytecodeGen {
         self.code.push(Bytecode::Star(Register(rhs_reg)));
         self.visit_expr(&expr.lhs);
         match expr.op {
-            BinOp::Add => { self.code.push(Bytecode::Add(Register(rhs_reg))) },
-            BinOp::Sub => { self.code.push(Bytecode::Sub(Register(rhs_reg))) },
-            BinOp::Mul => { self.code.push(Bytecode::Mul(Register(rhs_reg))) },
-            BinOp::Div => { self.code.push(Bytecode::Div(Register(rhs_reg))) },
-            BinOp::Mod => { self.code.push(Bytecode::Mod(Register(rhs_reg))) },
-            BinOp::BitOr => { self.code.push(Bytecode::BitwiseOr(Register(rhs_reg))) },
-            BinOp::BitAnd => { self.code.push(Bytecode::BitwiseAnd(Register(rhs_reg))) },
-            BinOp::BitXor => { self.code.push(Bytecode::BitwiseXor(Register(rhs_reg))) },
-            BinOp::ShiftL => { self.code.push(Bytecode::ShiftLeft(Register(rhs_reg))) },
-            BinOp::ShiftR => { self.code.push(Bytecode::ShiftRight(Register(rhs_reg))) },
+            BinOp::Add => self.code.push(Bytecode::Add(Register(rhs_reg))),
+            BinOp::Sub => self.code.push(Bytecode::Sub(Register(rhs_reg))),
+            BinOp::Mul => self.code.push(Bytecode::Mul(Register(rhs_reg))),
+            BinOp::Div => self.code.push(Bytecode::Div(Register(rhs_reg))),
+            BinOp::Mod => self.code.push(Bytecode::Mod(Register(rhs_reg))),
+            BinOp::BitOr => self.code.push(Bytecode::BitwiseOr(Register(rhs_reg))),
+            BinOp::BitAnd => self.code.push(Bytecode::BitwiseAnd(Register(rhs_reg))),
+            BinOp::BitXor => self.code.push(Bytecode::BitwiseXor(Register(rhs_reg))),
+            BinOp::ShiftL => self.code.push(Bytecode::ShiftLeft(Register(rhs_reg))),
+            BinOp::ShiftR => self.code.push(Bytecode::ShiftRight(Register(rhs_reg))),
             // BinOp::Or => { },
             // BinOp::And => { },
             // BinOp::UnShiftR => { },
             BinOp::Cmp(op) => {
                 match op {
-                    CmpOp::Eq => {
-                        self.code.push(Bytecode::TestEqual(Register(rhs_reg))) },
-                    CmpOp::Ne => {
-                        self.code.push(Bytecode::TestNotEqual(Register(rhs_reg))) },
-                    CmpOp::Lt => {
-                        self.code.push(Bytecode::TestLessThan(Register(rhs_reg))) },
-                    CmpOp::Le => {
-                        self.code.push(
-                            Bytecode::TestLessThanOrEqual(Register(rhs_reg))) },
-                    CmpOp::Gt => {
-                        self.code.push(
-                            Bytecode::TestGreatherThan(Register(rhs_reg))) },
-                    CmpOp::Ge => {
-                        self.code.push(
-                            Bytecode::TestGreatherThanOrEqual(Register(rhs_reg))) },
+                    CmpOp::Eq => self.code.push(Bytecode::TestEqual(Register(rhs_reg))),
+                    CmpOp::Ne => self.code.push(Bytecode::TestNotEqual(Register(rhs_reg))),
+                    CmpOp::Lt => self.code.push(Bytecode::TestLessThan(Register(rhs_reg))),
+                    CmpOp::Le => self
+                        .code
+                        .push(Bytecode::TestLessThanOrEqual(Register(rhs_reg))),
+                    CmpOp::Gt => self
+                        .code
+                        .push(Bytecode::TestGreatherThan(Register(rhs_reg))),
+                    CmpOp::Ge => self
+                        .code
+                        .push(Bytecode::TestGreatherThanOrEqual(Register(rhs_reg))),
                     // CmpOp::Is => { },
                     // CmpOp::IsNot => { },
                     _ => unimplemented!(),
@@ -393,7 +396,7 @@ impl BytecodeGen {
             ExprIdent(ref assign) => {
                 let Register(reg) = *self.get_reg(assign.name).unwrap();
                 self.code.push(Bytecode::Star(Register(reg)));
-            },
+            }
             _ => unimplemented!(),
         }
     }
@@ -402,16 +405,15 @@ impl BytecodeGen {
         let Register(reg) = *self.get_reg(ident.name).unwrap();
         self.code.push(Bytecode::Ldar(Register(reg)));
     }
-
 }
 
 #[cfg(test)]
 mod tests {
-    use boots::bytecodegen::*;
     use boots::bytecodegen::Bytecode::*;
-    use dora_parser::parser::{NodeIdGenerator, Parser};
+    use boots::bytecodegen::*;
     use dora_parser::interner::Interner;
     use dora_parser::lexer::reader::Reader;
+    use dora_parser::parser::{NodeIdGenerator, Parser};
 
     fn parse(code: &'static str) -> (Ast, Interner) {
         let id_generator = NodeIdGenerator::new();
@@ -436,68 +438,82 @@ mod tests {
 
     #[test]
     fn gen_add() {
-        let (ast, _) = parse("
-            optimize fun f() {1 + 2;}");
+        let (ast, _) = parse(
+            "
+            optimize fun f() {1 + 2;}",
+        );
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
             Add(Register(0)),
-            ReturnVoid];
+            ReturnVoid,
+        ];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_sub() {
-        let (ast, _) = parse("
-            optimize fun f() {1 - 2;}");
+        let (ast, _) = parse(
+            "
+            optimize fun f() {1 - 2;}",
+        );
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
             Sub(Register(0)),
-            ReturnVoid];
+            ReturnVoid,
+        ];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_div() {
-        let (ast, _) = parse("
-            optimize fun f() {1 / 2;}");
+        let (ast, _) = parse(
+            "
+            optimize fun f() {1 / 2;}",
+        );
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
             Div(Register(0)),
-            ReturnVoid];
+            ReturnVoid,
+        ];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_mul() {
-        let (ast, _) = parse("
-            optimize fun f() {1 * 2;}");
+        let (ast, _) = parse(
+            "
+            optimize fun f() {1 * 2;}",
+        );
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
             Mul(Register(0)),
-            ReturnVoid];
+            ReturnVoid,
+        ];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_stmt_var_noinit() {
-        let (ast, _) = parse("
-            optimize fun f() { let x; }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { let x; }",
+        );
         let mut bytecodegen = BytecodeGen::new();
         let mut expected = Vec::new();
         expected.push(Bytecode::LdaZero);
@@ -505,33 +521,34 @@ mod tests {
         expected.push(Bytecode::ReturnVoid);
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
-
     }
 
-     #[test]
+    #[test]
     fn gen_stmt_var_init() {
-        let (ast, _) = parse("
-            optimize fun f() { let x = 1; }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { let x = 1; }",
+        );
         let mut bytecodegen = BytecodeGen::new();
-        let expected = vec![
-            LdaInt(1),
-            Star(Register(0)),
-            ReturnVoid];
+        let expected = vec![LdaInt(1), Star(Register(0)), ReturnVoid];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_stmt_while() {
-        let (ast, _) = parse("
-            optimize fun f() { while 1 { 0; } }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { while 1 { 0; } }",
+        );
         let mut bytecodegen = BytecodeGen::new();
         let code = vec![
             LdaInt(1),
             JumpIfFalse(Label(1)),
             LdaZero,
             Jump(Label(0)),
-            ReturnVoid];
+            ReturnVoid,
+        ];
         let labels = hashmap![Label(0) => 0, Label(1) => 4];
         bytecodegen.gen(&ast);
         assert_eq!(code, bytecodegen.code);
@@ -540,15 +557,18 @@ mod tests {
 
     #[test]
     fn gen_stmt_if() {
-        let (ast, _) = parse("
-            optimize fun f() { if 0 { 1; } }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { if 0 { 1; } }",
+        );
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
             LdaZero,
             JumpIfFalse(Label(0)),
             LdaInt(1),
             Jump(Label(1)),
-            ReturnVoid];
+            ReturnVoid,
+        ];
         let labels = hashmap![Label(0) => 4, Label(1) => 4];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
@@ -557,8 +577,10 @@ mod tests {
 
     #[test]
     fn gen_stmt_if_else() {
-        let (ast, _) = parse("
-            optimize fun f() { if 0 { 1; } else { 2; } }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { if 0 { 1; } else { 2; } }",
+        );
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
             LdaZero,
@@ -566,7 +588,8 @@ mod tests {
             LdaInt(1),
             Jump(Label(1)),
             LdaInt(2),
-            ReturnVoid];
+            ReturnVoid,
+        ];
         let labels = hashmap![Label(0) => 4, Label(1) => 5];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
@@ -575,15 +598,18 @@ mod tests {
 
     #[test]
     fn gen_stmt_break() {
-        let (ast, _) = parse("
-            optimize fun f() { while 1 { break; } }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { while 1 { break; } }",
+        );
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
             LdaInt(1),
             JumpIfFalse(Label(1)),
             Jump(Label(1)),
             Jump(Label(0)),
-            ReturnVoid];
+            ReturnVoid,
+        ];
         let labels = hashmap![Label(0) => 0, Label(1) => 4];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
@@ -592,15 +618,18 @@ mod tests {
 
     #[test]
     fn gen_stmt_continue() {
-        let (ast, _) = parse("
-            optimize fun f() { while 1 { continue; } }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { while 1 { continue; } }",
+        );
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
             LdaInt(1),
             JumpIfFalse(Label(1)),
             Jump(Label(0)),
             Jump(Label(0)),
-            ReturnVoid];
+            ReturnVoid,
+        ];
         let labels = hashmap![Label(0) => 0, Label(1) => 4];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
@@ -609,279 +638,330 @@ mod tests {
 
     #[test]
     fn gen_expr_lit_int() {
-        let (ast, _) = parse("
-            optimize fun f() { 1; }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { 1; }",
+        );
         let mut bytecodegen = BytecodeGen::new();
-        let expected = vec![ LdaInt(1), ReturnVoid];
+        let expected = vec![LdaInt(1), ReturnVoid];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_expr_lit_zero() {
-        let (ast, _) = parse("
-            optimize fun f() { 0; }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { 0; }",
+        );
         let mut bytecodegen = BytecodeGen::new();
-        let expected = vec![ LdaZero, ReturnVoid];
+        let expected = vec![LdaZero, ReturnVoid];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_expr_puls() {
-        let (ast, _) = parse("
-            optimize fun f() { +1; }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { +1; }",
+        );
         let mut bytecodegen = BytecodeGen::new();
-        let expected = vec![ LdaInt(1), ReturnVoid];
+        let expected = vec![LdaInt(1), ReturnVoid];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_expr_neg() {
-        let (ast, _) = parse("
-            optimize fun f() { -1; }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { -1; }",
+        );
         let mut bytecodegen = BytecodeGen::new();
-        let expected = vec![ LdaInt(1), Neg, ReturnVoid];
+        let expected = vec![LdaInt(1), Neg, ReturnVoid];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_expr_not() {
-        let (ast, _) = parse("
-            optimize fun f() { !1; }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { !1; }",
+        );
         let mut bytecodegen = BytecodeGen::new();
-        let expected = vec![ LdaInt(1), LogicalNot, ReturnVoid];
+        let expected = vec![LdaInt(1), LogicalNot, ReturnVoid];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_expr_mod() {
-        let (ast, _) = parse("
-            optimize fun f() { 1 % 2; }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { 1 % 2; }",
+        );
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
             Mod(Register(0)),
-            ReturnVoid];
+            ReturnVoid,
+        ];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_expr_bit_or() {
-        let (ast, _) = parse("
-            optimize fun f() { 1 | 2; }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { 1 | 2; }",
+        );
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
             BitwiseOr(Register(0)),
-            ReturnVoid];
+            ReturnVoid,
+        ];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_expr_bit_and() {
-        let (ast, _) = parse("
-            optimize fun f() { 1 & 2; }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { 1 & 2; }",
+        );
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
             BitwiseAnd(Register(0)),
-            ReturnVoid];
+            ReturnVoid,
+        ];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_expr_bit_xor() {
-        let (ast, _) = parse("
-            optimize fun f() { 1 ^ 2; }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { 1 ^ 2; }",
+        );
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
             BitwiseXor(Register(0)),
-            ReturnVoid];
+            ReturnVoid,
+        ];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_expr_bit_shiftl() {
-        let (ast, _) = parse("
-            optimize fun f() { 1 << 2; }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { 1 << 2; }",
+        );
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
             ShiftLeft(Register(0)),
-            ReturnVoid];
+            ReturnVoid,
+        ];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_expr_bit_shiftr() {
-        let (ast, _) = parse("
-            optimize fun f() { 1 >> 2; }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { 1 >> 2; }",
+        );
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
             ShiftRight(Register(0)),
-            ReturnVoid];
+            ReturnVoid,
+        ];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_expr_test_equal() {
-        let (ast, _) = parse("
-            optimize fun f() { 1 == 2; }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { 1 == 2; }",
+        );
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
             TestEqual(Register(0)),
-            ReturnVoid];
+            ReturnVoid,
+        ];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_expr_test_notequal() {
-        let (ast, _) = parse("
-            optimize fun f() { 1 != 2; }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { 1 != 2; }",
+        );
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
             TestNotEqual(Register(0)),
-            ReturnVoid];
+            ReturnVoid,
+        ];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_expr_test_lessthan() {
-        let (ast, _) = parse("
-            optimize fun f() { 1 < 2; }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { 1 < 2; }",
+        );
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
             TestLessThan(Register(0)),
-            ReturnVoid];
+            ReturnVoid,
+        ];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_expr_test_lessthanequal() {
-        let (ast, _) = parse("
-            optimize fun f() { 1 <= 2; }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { 1 <= 2; }",
+        );
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
             TestLessThanOrEqual(Register(0)),
-            ReturnVoid];
+            ReturnVoid,
+        ];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_expr_test_greaterthan() {
-        let (ast, _) = parse("
-            optimize fun f() { 1 > 2; }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { 1 > 2; }",
+        );
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
             TestGreatherThan(Register(0)),
-            ReturnVoid];
+            ReturnVoid,
+        ];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_expr_test_greaterthanequall() {
-        let (ast, _) = parse("
-            optimize fun f() { 1 >= 2; }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { 1 >= 2; }",
+        );
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
             TestGreatherThanOrEqual(Register(0)),
-            ReturnVoid];
+            ReturnVoid,
+        ];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_expr_ident() {
-        let (ast, _) = parse("
-            optimize fun f() { let x = 1; x; }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { let x = 1; x; }",
+        );
         let mut bytecodegen = BytecodeGen::new();
-        let expected = vec![
-            LdaInt(1),
-            Star(Register(0)),
-            Ldar(Register(0)),
-            ReturnVoid];
+        let expected = vec![LdaInt(1), Star(Register(0)), Ldar(Register(0)), ReturnVoid];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_expr_assign() {
-        let (ast, _) = parse("
-            optimize fun f() { var x = 1; x = 2; }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { var x = 1; x = 2; }",
+        );
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
             LdaInt(1),
             Star(Register(0)),
             LdaInt(2),
             Star(Register(0)),
-            ReturnVoid];
+            ReturnVoid,
+        ];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_expr_return() {
-        let (ast, _) = parse("
-            optimize fun f() { return 1; }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { return 1; }",
+        );
         let mut bytecodegen = BytecodeGen::new();
-        let expected = vec![ LdaInt(1), Return ];
+        let expected = vec![LdaInt(1), Return];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_expr_returnvoid() {
-        let (ast, _) = parse("
-            optimize fun f() { }");
+        let (ast, _) = parse(
+            "
+            optimize fun f() { }",
+        );
         let mut bytecodegen = BytecodeGen::new();
-        let expected = vec![ ReturnVoid ];
+        let expected = vec![ReturnVoid];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
     }
