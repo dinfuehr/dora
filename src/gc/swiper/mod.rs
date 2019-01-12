@@ -194,12 +194,15 @@ impl Swiper {
         kind: CollectionKind,
         reason: GcReason,
     ) -> CollectionKind {
+        tlab::make_iterable(vm);
+        let rootset = get_rootset(vm);
+
         let kind = match kind {
             CollectionKind::Minor => {
-                let promotion_failed = self.minor_collect(vm, reason);
+                let promotion_failed = self.minor_collect(vm, reason, &rootset);
 
                 if promotion_failed {
-                    self.full_collect(vm, GcReason::PromotionFailure);
+                    self.full_collect(vm, GcReason::PromotionFailure, &rootset);
                     CollectionKind::Full
                 } else {
                     CollectionKind::Minor
@@ -207,7 +210,7 @@ impl Swiper {
             }
 
             CollectionKind::Full => {
-                self.full_collect(vm, reason);
+                self.full_collect(vm, reason, &rootset);
                 CollectionKind::Full
             }
         };
@@ -224,30 +227,26 @@ impl Swiper {
         kind
     }
 
-    fn minor_collect(&self, vm: &VM, reason: GcReason) -> bool {
-        // make heap iterable
-        tlab::make_iterable(vm);
-        let rootset = get_rootset(vm);
-
+    fn minor_collect(&self, vm: &VM, reason: GcReason, rootset: &[Slot]) -> bool {
         self.verify(vm, VerifierPhase::PreMinor, "pre-minor", &rootset, false);
-        let promotion_failed = {
-            let mut pool = self.threadpool.lock();
-            let mut collector = MinorCollector::new(
-                vm,
-                &self.young,
-                &self.old,
-                &self.large,
-                &self.card_table,
-                &self.crossing_map,
-                &rootset,
-                reason,
-                self.min_heap_size,
-                self.max_heap_size,
-                &self.stats,
-                &mut pool,
-            );
-            collector.collect()
-        };
+
+        let mut pool = self.threadpool.lock();
+        let mut collector = MinorCollector::new(
+            vm,
+            &self.young,
+            &self.old,
+            &self.large,
+            &self.card_table,
+            &self.crossing_map,
+            &rootset,
+            reason,
+            self.min_heap_size,
+            self.max_heap_size,
+            &self.stats,
+            &mut pool,
+        );
+        let promotion_failed = collector.collect();
+
         self.verify(
             vm,
             VerifierPhase::PostMinor,
@@ -259,12 +258,7 @@ impl Swiper {
         promotion_failed
     }
 
-    fn full_collect(&self, vm: &VM, reason: GcReason) {
-        // make heap iterable
-        tlab::make_iterable(vm);
-
-        let rootset = get_rootset(vm);
-
+    fn full_collect(&self, vm: &VM, reason: GcReason, rootset: &[Slot]) {
         self.verify(
             vm,
             VerifierPhase::PreFull,
@@ -273,26 +267,24 @@ impl Swiper {
             reason == GcReason::PromotionFailure,
         );
 
-        {
-            let mut pool = self.threadpool.lock();
-            let mut collector = FullCollector::new(
-                vm,
-                self.heap.clone(),
-                &self.young,
-                &self.old,
-                &self.large,
-                &self.card_table,
-                &self.crossing_map,
-                &vm.gc.perm_space,
-                &rootset,
-                reason,
-                &mut pool,
-                self.min_heap_size,
-                self.max_heap_size,
-                &self.stats,
-            );
-            collector.collect();
-        }
+        let mut pool = self.threadpool.lock();
+        let mut collector = FullCollector::new(
+            vm,
+            self.heap.clone(),
+            &self.young,
+            &self.old,
+            &self.large,
+            &self.card_table,
+            &self.crossing_map,
+            &vm.gc.perm_space,
+            &rootset,
+            reason,
+            &mut pool,
+            self.min_heap_size,
+            self.max_heap_size,
+            &self.stats,
+        );
+        collector.collect();
 
         self.verify(vm, VerifierPhase::PostFull, "post-full", &rootset, false);
     }
