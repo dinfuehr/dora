@@ -44,7 +44,8 @@ pub fn init(config: &mut HeapConfig, args: &Args) {
     };
     let young_size = max(young_size, GEN_SIZE);
 
-    let semi_size = align_gen(young_size / INIT_SEMI_RATIO);
+    let semi_ratio = args.flag_gc_semi_ratio.unwrap_or(INIT_SEMI_RATIO);
+    let semi_size = align_gen(young_size / semi_ratio);
     let semi_size = max(semi_size, GEN_SIZE);
     let eden_size = young_size - semi_size;
 

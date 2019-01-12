@@ -50,6 +50,7 @@ Options:
     --gc-worker=<num>       Number of GC worker threads.
     --gc=<name>             Switch GC. Possible values: zero, copy, swiper (default).
     --gc-young-ratio=<num>  Use fixed ratio between young and old generation.
+    --gc-semi-ratio=<num>   Use fixed ratio of semi space in young generation.
 
     --disable-tlab          Disable tlab allocation.
 
@@ -88,6 +89,7 @@ pub struct Args {
     pub flag_gc_verify: bool,
     pub flag_gc_worker: usize,
     pub flag_gc_young_ratio: Option<usize>,
+    pub flag_gc_semi_ratio: Option<usize>,
     pub flag_gc: Option<CollectorName>,
     pub flag_min_heap_size: Option<MemSize>,
     pub flag_max_heap_size: Option<MemSize>,
@@ -175,6 +177,7 @@ impl Default for Args {
             flag_gc_verify: false,
             flag_gc_worker: 0,
             flag_gc_young_ratio: None,
+            flag_gc_semi_ratio: None,
             flag_gc: None,
             flag_min_heap_size: None,
             flag_max_heap_size: None,
