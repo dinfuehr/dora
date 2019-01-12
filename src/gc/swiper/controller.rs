@@ -6,7 +6,7 @@ use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
 use gc::swiper::CollectionKind;
-use gc::{formatted_size, GEN_SIZE, M};
+use gc::{align_gen, formatted_size, GEN_SIZE, M};
 use timer;
 
 pub fn choose_collection_kind(config: &SharedHeapConfig, young: &YoungGen) -> CollectionKind {
@@ -34,10 +34,12 @@ const INIT_SEMI_RATIO: usize = 3;
 pub fn init(config: &mut HeapConfig) {
     assert!(config.min_heap_size <= config.max_heap_size);
 
-    let young_size = min(MAX_YOUNG_SIZE, config.max_heap_size / INIT_YOUNG_RATIO);
+    let young_size = align_gen(config.max_heap_size / INIT_YOUNG_RATIO);
+    let young_size = min(MAX_YOUNG_SIZE, young_size);
     let young_size = max(young_size, GEN_SIZE);
 
-    let semi_size = max(young_size / INIT_SEMI_RATIO, GEN_SIZE);
+    let semi_size = align_gen(young_size / INIT_SEMI_RATIO);
+    let semi_size = max(semi_size, GEN_SIZE);
     let eden_size = young_size - semi_size;
 
     config.eden_size = eden_size;
