@@ -52,7 +52,8 @@ pub fn init(config: &mut HeapConfig) {
         0
     };
 
-    let old_limit = min(max_old_limit, config.max_heap_size / INIT_HEAP_SIZE_RATIO);
+    let old_limit = align_gen(config.max_heap_size / INIT_HEAP_SIZE_RATIO);
+    let old_limit = min(old_limit, max_old_limit);
     let old_limit = max(old_limit, min_old_limit);
 
     config.old_size = 0;
