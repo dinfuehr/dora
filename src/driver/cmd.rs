@@ -1,9 +1,10 @@
 use num_cpus;
-use std::cmp::min;
+use std::cmp::{max, min};
 use std::default::Default;
 use std::ops::Deref;
 
 use docopt::Docopt;
+use gc::M;
 use rustc_serialize;
 
 use gc::{DEFAULT_CODE_SPACE_LIMIT, DEFAULT_PERM_SPACE_LIMIT};
@@ -100,15 +101,22 @@ pub struct Args {
 
 impl Args {
     pub fn min_heap_size(&self) -> usize {
-        self.flag_min_heap_size
+        let min_heap_size = self
+            .flag_min_heap_size
             .map(|s| *s)
-            .unwrap_or(32 * 1024 * 1024)
+            .unwrap_or(32 * 1024 * 1024);
+        let max_heap_size = self.max_heap_size();
+
+        min(min_heap_size, max_heap_size)
     }
 
     pub fn max_heap_size(&self) -> usize {
-        self.flag_max_heap_size
+        let max_heap_size = self
+            .flag_max_heap_size
             .map(|s| *s)
-            .unwrap_or(128 * 1024 * 1024)
+            .unwrap_or(128 * 1024 * 1024);
+
+        max(max_heap_size, 1 * M)
     }
 
     pub fn code_size(&self) -> usize {

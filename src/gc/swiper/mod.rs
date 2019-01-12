@@ -18,7 +18,7 @@ use gc::swiper::young::YoungGen;
 use gc::tlab;
 use gc::Collector;
 use gc::{arena, GcReason};
-use gc::{formatted_size, Address, Region, K, M};
+use gc::{formatted_size, Address, Region, K};
 use mem;
 
 pub mod card;
@@ -71,10 +71,12 @@ pub struct Swiper {
 
 impl Swiper {
     pub fn new(args: &Args) -> Swiper {
-        let min_heap_size = args.min_heap_size();
         let max_heap_size = args.max_heap_size();
+        let min_heap_size = args.min_heap_size();
 
-        let (eden_size, semi_size) = (12 * M, 8 * M);
+        let mut config = HeapConfig::new(min_heap_size, max_heap_size);
+
+        controller::init(&mut config);
 
         // determine size for card table
         let card_size = mem::page_align((4 * max_heap_size) >> CARD_SIZE_BITS);
@@ -120,10 +122,8 @@ impl Swiper {
         let old_start = young_end;
         let old_end = old_start.offset(max_heap_size);
 
-        let init_old_size = max_heap_size;
-        let young_size = eden_size + semi_size;
-        let config = HeapConfig::new(eden_size, semi_size, 0, init_old_size - young_size);
-        let config = Arc::new(Mutex::new(config));
+        let eden_size = config.eden_size;
+        let semi_size = config.semi_size;
 
         // determine large object space
         let large_start = old_end;
@@ -138,6 +138,8 @@ impl Swiper {
         );
         let crossing_map = CrossingMap::new(crossing_start, crossing_end, max_heap_size);
         let young = YoungGen::new(young, eden_size, semi_size, args.flag_gc_verify);
+
+        let config = Arc::new(Mutex::new(config));
         let old = OldGen::new(
             old_start,
             old_end,
@@ -216,7 +218,6 @@ impl Swiper {
         };
 
         controller::stop(
-            self.max_heap_size,
             &self.config,
             kind,
             &self.young,

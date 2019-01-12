@@ -1,11 +1,12 @@
 use parking_lot::Mutex;
+use std::cmp::{max, min};
 use std::sync::Arc;
 
-use gc::formatted_size;
 use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
 use gc::swiper::CollectionKind;
+use gc::{formatted_size, GEN_SIZE, M};
 use timer;
 
 pub fn choose_collection_kind(config: &SharedHeapConfig, young: &YoungGen) -> CollectionKind {
@@ -24,6 +25,38 @@ pub fn choose_collection_kind(config: &SharedHeapConfig, young: &YoungGen) -> Co
     }
 }
 
+const MAX_YOUNG_SIZE: usize = 20 * M;
+
+const INIT_HEAP_SIZE_RATIO: usize = 2;
+const INIT_YOUNG_RATIO: usize = 4;
+const INIT_SEMI_RATIO: usize = 3;
+
+pub fn init(config: &mut HeapConfig) {
+    assert!(config.min_heap_size <= config.max_heap_size);
+
+    let young_size = min(MAX_YOUNG_SIZE, config.max_heap_size / INIT_YOUNG_RATIO);
+    let young_size = max(young_size, GEN_SIZE);
+
+    let semi_size = max(young_size / INIT_SEMI_RATIO, GEN_SIZE);
+    let eden_size = young_size - semi_size;
+
+    config.eden_size = eden_size;
+    config.semi_size = semi_size;
+
+    let max_old_limit = config.max_heap_size - young_size;
+    let min_old_limit = if config.min_heap_size > young_size {
+        config.min_heap_size - young_size
+    } else {
+        0
+    };
+
+    let old_limit = min(max_old_limit, config.max_heap_size / INIT_HEAP_SIZE_RATIO);
+    let old_limit = max(old_limit, min_old_limit);
+
+    config.old_size = 0;
+    config.old_limit = old_limit;
+}
+
 pub fn start(config: &SharedHeapConfig, young: &YoungGen, old: &OldGen, large: &LargeSpace) {
     let mut config = config.lock();
 
@@ -33,7 +66,6 @@ pub fn start(config: &SharedHeapConfig, young: &YoungGen, old: &OldGen, large: &
 }
 
 pub fn stop(
-    max_heap_size: usize,
     config: &SharedHeapConfig,
     kind: CollectionKind,
     young: &YoungGen,
@@ -56,7 +88,7 @@ pub fn stop(
     let old_size = old.committed_size() + large.committed_size();
     config.old_size = old_size;
 
-    let max_old_limit = max_heap_size - young_size;
+    let max_old_limit = config.max_heap_size - young_size;
     config.old_limit = max_old_limit;
 
     match kind {
@@ -118,10 +150,13 @@ fn memory_size(young: &YoungGen, old: &OldGen, large: &LargeSpace) -> usize {
 }
 
 pub struct HeapConfig {
-    eden_size: usize,
-    semi_size: usize,
-    old_size: usize,
-    old_limit: usize,
+    min_heap_size: usize,
+    max_heap_size: usize,
+
+    pub eden_size: usize,
+    pub semi_size: usize,
+    pub old_size: usize,
+    pub old_limit: usize,
 
     gc_start: u64,
     gc_duration: f32,
@@ -141,17 +176,17 @@ pub struct HeapConfig {
 }
 
 impl HeapConfig {
-    pub fn new(
-        eden_size: usize,
-        semi_size: usize,
-        old_size: usize,
-        old_limit: usize,
-    ) -> HeapConfig {
+    pub fn new(min_heap_size: usize, max_heap_size: usize) -> HeapConfig {
+        assert!(min_heap_size <= max_heap_size);
+
         HeapConfig {
-            eden_size: eden_size,
-            semi_size: semi_size,
-            old_size: old_size,
-            old_limit: old_limit,
+            min_heap_size: min_heap_size,
+            max_heap_size: max_heap_size,
+
+            eden_size: 0,
+            semi_size: 0,
+            old_size: 0,
+            old_limit: 0,
 
             gc_start: 0,
             gc_duration: 0f32,
@@ -169,22 +204,6 @@ impl HeapConfig {
             total_full_collections: 0,
             total_full_pause: 0f32,
         }
-    }
-
-    pub fn eden_size(&self) -> usize {
-        self.eden_size
-    }
-
-    pub fn set_eden_size(&mut self, size: usize) {
-        self.eden_size = size;
-    }
-
-    pub fn semi_size(&self) -> usize {
-        self.semi_size
-    }
-
-    pub fn set_semi_size(&mut self, size: usize) {
-        self.semi_size = size;
     }
 
     pub fn grow_old(&mut self, size: usize) -> bool {
