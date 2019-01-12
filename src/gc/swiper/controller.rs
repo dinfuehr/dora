@@ -44,7 +44,7 @@ pub fn stop(
     let mut config = config.lock();
 
     let gc_end = timer::timestamp();
-    let gc_duration = gc_end - config.gc_start;
+    config.gc_duration = timer::in_ms(gc_end - config.gc_start);
 
     config.end_object_size = object_size(young, old, large);
     config.end_memory_size = memory_size(young, old, large);
@@ -62,25 +62,47 @@ pub fn stop(
     match kind {
         CollectionKind::Minor => {
             config.total_minor_collections += 1;
-            config.total_minor_pause += timer::in_ms(gc_duration);
+            config.total_minor_pause += config.gc_duration;
         }
 
         CollectionKind::Full => {
             config.total_full_collections += 1;
-            config.total_full_pause += timer::in_ms(gc_duration);
+            config.total_full_pause += config.gc_duration;
         }
     }
 
     if verbose {
-        println!(
-            "GC: {} {}/{} -> {}/{}; {:.2} ms",
-            kind,
-            formatted_size(config.start_object_size),
-            formatted_size(config.start_memory_size),
-            formatted_size(config.end_object_size),
-            formatted_size(config.end_memory_size),
-            timer::in_ms(gc_duration),
-        );
+        print(&*config, kind);
+    }
+}
+
+fn print(config: &HeapConfig, kind: CollectionKind) {
+    match kind {
+        CollectionKind::Minor => {
+            println!(
+                "GC: {} {}/{} -> {}/{}; {:.2} ms; {} promoted; {} copied",
+                kind,
+                formatted_size(config.start_object_size),
+                formatted_size(config.start_memory_size),
+                formatted_size(config.end_object_size),
+                formatted_size(config.end_memory_size),
+                config.gc_duration,
+                formatted_size(config.minor_promoted),
+                formatted_size(config.minor_copied),
+            );
+        }
+
+        CollectionKind::Full => {
+            println!(
+                "GC: {} {}/{} -> {}/{}; {:.2} ms",
+                kind,
+                formatted_size(config.start_object_size),
+                formatted_size(config.start_memory_size),
+                formatted_size(config.end_object_size),
+                formatted_size(config.end_memory_size),
+                config.gc_duration,
+            );
+        }
     }
 }
 
@@ -102,11 +124,15 @@ pub struct HeapConfig {
     old_limit: usize,
 
     gc_start: u64,
+    gc_duration: f32,
 
     start_object_size: usize,
     start_memory_size: usize,
     end_object_size: usize,
     end_memory_size: usize,
+
+    pub minor_promoted: usize,
+    pub minor_copied: usize,
 
     pub total_minor_collections: usize,
     pub total_minor_pause: f32,
@@ -128,10 +154,15 @@ impl HeapConfig {
             old_limit: old_limit,
 
             gc_start: 0,
+            gc_duration: 0f32,
+
             start_object_size: 0,
             start_memory_size: 0,
             end_object_size: 0,
             end_memory_size: 0,
+
+            minor_promoted: 0,
+            minor_copied: 0,
 
             total_minor_collections: 0,
             total_minor_pause: 0f32,

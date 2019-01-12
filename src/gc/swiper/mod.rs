@@ -244,6 +244,7 @@ impl Swiper {
             self.min_heap_size,
             self.max_heap_size,
             &mut pool,
+            &self.config,
         );
         let promotion_failed = collector.collect();
 

@@ -5,6 +5,7 @@ use std::sync::Arc;
 use ctxt::VM;
 use gc::root::Slot;
 use gc::swiper::card::{CardEntry, CardTable};
+use gc::swiper::controller::SharedHeapConfig;
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use gc::swiper::large::LargeSpace;
 use gc::swiper::marking::Terminator;
@@ -53,6 +54,7 @@ pub struct MinorCollector<'a, 'ast: 'a> {
     threadpool: &'a mut Pool,
     number_workers: usize,
     worklist: Vec<Address>,
+    config: &'a SharedHeapConfig,
 }
 
 impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
@@ -68,6 +70,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         min_heap_size: usize,
         max_heap_size: usize,
         threadpool: &'a mut Pool,
+        config: &'a SharedHeapConfig,
     ) -> MinorCollector<'a, 'ast> {
         MinorCollector {
             vm: vm,
@@ -100,6 +103,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
             threadpool: threadpool,
 
             worklist: Vec::new(),
+            config: config,
         }
     }
 
@@ -143,14 +147,20 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
             // oh no: promotion failed, we need a subsequent full GC
             self.remove_forwarding_pointers();
             self.young.swap_semi_and_keep_to_space(self.young_top);
-        } else {
-            self.young.clear_eden();
-            self.young.swap_semi(self.young_top);
-            self.young.protect_to();
 
-            assert!(self.young.eden_active().size() == 0);
-            assert!(self.young.to_active().size() == 0);
+            return true;
         }
+
+        self.young.clear_eden();
+        self.young.swap_semi(self.young_top);
+        self.young.protect_to();
+
+        assert!(self.young.eden_active().size() == 0);
+        assert!(self.young.to_active().size() == 0);
+
+        let mut config = self.config.lock();
+        config.minor_promoted = self.promoted_size;
+        config.minor_copied = self.young.from_active().size();
 
         self.promotion_failed
     }
