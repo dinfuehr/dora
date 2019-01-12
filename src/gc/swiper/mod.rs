@@ -76,7 +76,7 @@ impl Swiper {
 
         let mut config = HeapConfig::new(min_heap_size, max_heap_size);
 
-        controller::init(&mut config);
+        controller::init(&mut config, args);
 
         // determine size for card table
         let card_size = mem::page_align((4 * max_heap_size) >> CARD_SIZE_BITS);

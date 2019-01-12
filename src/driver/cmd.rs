@@ -138,6 +138,11 @@ impl Args {
             min(num_cpus::get(), 8)
         }
     }
+
+    pub fn young_ratio(&self) -> Option<usize> {
+        self.flag_gc_young_ratio
+            .map(|young_ratio| max(young_ratio, 1))
+    }
 }
 
 impl Default for Args {

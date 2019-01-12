@@ -2,6 +2,7 @@ use parking_lot::Mutex;
 use std::cmp::{max, min};
 use std::sync::Arc;
 
+use driver::cmd::Args;
 use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
@@ -31,11 +32,16 @@ const INIT_HEAP_SIZE_RATIO: usize = 2;
 const INIT_YOUNG_RATIO: usize = 4;
 const INIT_SEMI_RATIO: usize = 3;
 
-pub fn init(config: &mut HeapConfig) {
+pub fn init(config: &mut HeapConfig, args: &Args) {
     assert!(config.min_heap_size <= config.max_heap_size);
 
-    let young_size = align_gen(config.max_heap_size / INIT_YOUNG_RATIO);
-    let young_size = min(MAX_YOUNG_SIZE, young_size);
+    let young_size = if let Some(young_ratio) = args.flag_gc_young_ratio {
+        assert!(young_ratio >= 1);
+        align_gen(config.max_heap_size / young_ratio)
+    } else {
+        let young_size = align_gen(config.max_heap_size / INIT_YOUNG_RATIO);
+        min(MAX_YOUNG_SIZE, young_size)
+    };
     let young_size = max(young_size, GEN_SIZE);
 
     let semi_size = align_gen(young_size / INIT_SEMI_RATIO);
