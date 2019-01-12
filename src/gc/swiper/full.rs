@@ -11,10 +11,8 @@ use gc::swiper::marking;
 use gc::swiper::old::OldGen;
 use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
-use gc::swiper::GcStats;
-use gc::{align_gen, formatted_size, Address, GcReason, Region};
+use gc::{align_gen, Address, GcReason, Region};
 use object::Obj;
-use timer::Timer;
 
 pub struct FullCollector<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
@@ -36,8 +34,6 @@ pub struct FullCollector<'a, 'ast: 'a> {
 
     min_heap_size: usize,
     max_heap_size: usize,
-
-    stats: &'a GcStats,
 }
 
 impl<'a, 'ast> FullCollector<'a, 'ast> {
@@ -55,7 +51,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         threadpool: &'a mut Pool,
         min_heap_size: usize,
         max_heap_size: usize,
-        stats: &'a GcStats,
     ) -> FullCollector<'a, 'ast> {
         let old_total = old.total();
 
@@ -79,16 +74,11 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
             min_heap_size: min_heap_size,
             max_heap_size: max_heap_size,
-
-            stats: stats,
         }
     }
 
     pub fn collect(&mut self) {
-        let active = self.vm.args.flag_gc_verbose;
         let dev_verbose = self.vm.args.flag_gc_dev_verbose;
-        let timer = Timer::new(active);
-        let init_size = self.heap_size();
         self.init_old_top = self.old.active().end;
 
         if dev_verbose {
@@ -100,46 +90,41 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             );
             println!("Full GC: Phase 1 (marking)");
         }
-        let time_mark = Timer::ms(active, || {
-            if self.vm.args.flag_gc_parallel_marking {
-                marking::start(
-                    self.rootset,
-                    self.heap.clone(),
-                    self.perm_space.total(),
-                    self.threadpool,
-                );
-            } else {
-                self.mark_live();
-            }
-        });
+
+        if self.vm.args.flag_gc_parallel_marking {
+            marking::start(
+                self.rootset,
+                self.heap.clone(),
+                self.perm_space.total(),
+                self.threadpool,
+            );
+        } else {
+            self.mark_live();
+        }
 
         if dev_verbose {
             println!("Full GC: Phase 2 (forward)");
         }
-        let time_forward = Timer::ms(active, || {
-            self.compute_forward();
-        });
+
+        self.compute_forward();
 
         if dev_verbose {
             println!("Full GC: Phase 3 (update refs)");
         }
-        let time_updateref = Timer::ms(active, || {
-            self.update_references();
-        });
+
+        self.update_references();
 
         if dev_verbose {
             println!("Full GC: Phase 4 (relocate)");
         }
-        let time_relocate = Timer::ms(active, || {
-            self.relocate();
-        });
+
+        self.relocate();
 
         if dev_verbose {
             println!("Full GC: Phase 5 (large objects)");
         }
-        let time_large = Timer::ms(active, || {
-            self.update_large_objects();
-        });
+
+        self.update_large_objects();
 
         if dev_verbose {
             println!("Full GC: Phase 5 (large objects) finished.");
@@ -156,41 +141,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         let old_start = self.old.total().start;
         let old_size = align_gen(self.old_top.offset_from(old_start));
         self.old.set_committed_size(old_size);
-
-        timer.stop_with(|time_pause| {
-            let new_size = self.heap_size();
-            let garbage = init_size - new_size;
-            let garbage_ratio = if init_size == 0 {
-                0f64
-            } else {
-                (garbage as f64 / init_size as f64) * 100f64
-            };
-
-            self.stats.update(|stats| {
-                stats.incr_full_collections();
-                stats.incr_full_runtime(time_pause);
-            });
-
-            println!(
-                "GC: Full GC ({:.1} ms, {}->{} size, {}/{:.0}% garbage); \
-                 mark={:.1}ms forward={:.1}ms updateref={:.1}ms relocate={:.1}ms large={:.1}ms; ({})",
-                time_pause,
-                formatted_size(init_size),
-                formatted_size(new_size),
-                formatted_size(garbage),
-                garbage_ratio,
-                time_mark,
-                time_forward,
-                time_updateref,
-                time_relocate,
-                time_large,
-                self.reason,
-            );
-        });
-    }
-
-    fn heap_size(&self) -> usize {
-        self.young.active_size() + self.old.active_size() + self.large_space.committed_size()
     }
 
     fn mark_live(&mut self) {

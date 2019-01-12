@@ -1,12 +1,13 @@
 use parking_lot::Mutex;
 use scoped_threadpool::Pool;
+use std::fmt;
 use std::sync::Arc;
 
 use ctxt::VM;
 use driver::cmd::Args;
 use gc::root::{get_rootset, Slot};
 use gc::swiper::card::CardTable;
-use gc::swiper::controller::{choose_collection_kind, resize_gens, HeapConfig, SharedHeapConfig};
+use gc::swiper::controller::{HeapConfig, SharedHeapConfig};
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::full::FullCollector;
 use gc::swiper::large::LargeSpace;
@@ -65,8 +66,6 @@ pub struct Swiper {
     max_heap_size: usize,
 
     threadpool: Mutex<Pool>,
-
-    stats: GcStats,
     config: SharedHeapConfig,
 }
 
@@ -179,12 +178,11 @@ impl Swiper {
             max_heap_size: max_heap_size,
 
             threadpool: Mutex::new(Pool::new(nworkers as u32)),
-            stats: GcStats::new(),
         }
     }
 
     fn perform_collection_and_choose(&self, vm: &VM, reason: GcReason) -> CollectionKind {
-        let kind = choose_collection_kind(&self.config, &self.young);
+        let kind = controller::choose_collection_kind(&self.config, &self.young);
         self.perform_collection(vm, kind, reason)
     }
 
@@ -194,6 +192,8 @@ impl Swiper {
         kind: CollectionKind,
         reason: GcReason,
     ) -> CollectionKind {
+        controller::start(&self.config, &self.young, &self.old, &self.large);
+
         tlab::make_iterable(vm);
         let rootset = get_rootset(vm);
 
@@ -215,9 +215,10 @@ impl Swiper {
             }
         };
 
-        resize_gens(
+        controller::stop(
             self.max_heap_size,
             &self.config,
+            kind,
             &self.young,
             &self.old,
             &self.large,
@@ -242,7 +243,6 @@ impl Swiper {
             reason,
             self.min_heap_size,
             self.max_heap_size,
-            &self.stats,
             &mut pool,
         );
         let promotion_failed = collector.collect();
@@ -282,7 +282,6 @@ impl Swiper {
             &mut pool,
             self.min_heap_size,
             self.max_heap_size,
-            &self.stats,
         );
         collector.collect();
 
@@ -398,22 +397,21 @@ impl Collector for Swiper {
     }
 
     fn dump_summary(&self, runtime: f32) {
-        self.stats.update(|stats| {
-            let total_gc = stats.minor_runtime() + stats.full_runtime();
-            let gc_percentage = ((total_gc / runtime) * 100.0).round();
-            let mutator_percentage = 100.0 - gc_percentage;
+        let config = self.config.lock();
+        let total_gc = config.total_minor_pause + config.total_full_pause;
+        let gc_percentage = ((total_gc / runtime) * 100.0).round();
+        let mutator_percentage = 100.0 - gc_percentage;
 
-            println!(
-                "GC summary: {:.1}ms minor ({}), {:.1}ms full ({}), {:.1}ms runtime ({}% mutator, {}% GC)",
-                stats.minor_runtime(),
-                stats.minor_collections(),
-                stats.full_runtime(),
-                stats.full_collections(),
-                runtime,
-                mutator_percentage,
-                gc_percentage,
-            );
-        })
+        println!(
+            "GC summary: {:.1}ms minor ({}), {:.1}ms full ({}), {:.1}ms runtime ({}% mutator, {}% GC)",
+            config.total_minor_pause,
+            config.total_minor_collections,
+            config.total_full_pause,
+            config.total_full_collections,
+            runtime,
+            mutator_percentage,
+            gc_percentage,
+        );
     }
 }
 
@@ -440,84 +438,19 @@ fn on_different_cards(curr: Address, next: Address) -> bool {
     (curr.to_usize() >> CARD_SIZE_BITS) != (next.to_usize() >> CARD_SIZE_BITS)
 }
 
+#[derive(Copy, Clone)]
 pub enum CollectionKind {
     Minor,
     Full,
 }
 
-pub struct GcStats {
-    stats: Mutex<GcStatsProtected>,
-}
+impl fmt::Display for CollectionKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match self {
+            CollectionKind::Minor => "Minor",
+            CollectionKind::Full => "Full",
+        };
 
-impl GcStats {
-    fn new() -> GcStats {
-        GcStats {
-            stats: Mutex::new(GcStatsProtected::new()),
-        }
-    }
-
-    fn update<F>(&self, fct: F)
-    where
-        F: FnOnce(&mut GcStatsProtected),
-    {
-        let mut stats = self.stats.lock();
-        fct(&mut *stats);
-    }
-}
-
-struct GcStatsProtected {
-    // number of minor GCs
-    minor_collections: usize,
-
-    // total runtime of minor GCs
-    minor_runtime: f32,
-
-    // number of full GCs
-    full_collections: usize,
-
-    // total runtime of full GCs
-    full_runtime: f32,
-}
-
-impl GcStatsProtected {
-    fn new() -> GcStatsProtected {
-        GcStatsProtected {
-            minor_collections: 0,
-            minor_runtime: 0.0,
-            full_collections: 0,
-            full_runtime: 0.0,
-        }
-    }
-
-    fn incr_minor_collections(&mut self) {
-        self.minor_collections += 1;
-    }
-
-    fn minor_collections(&self) -> usize {
-        self.minor_collections
-    }
-
-    fn incr_minor_runtime(&mut self, time: f32) {
-        self.minor_runtime += time;
-    }
-
-    fn minor_runtime(&self) -> f32 {
-        self.minor_runtime
-    }
-
-    fn incr_full_collections(&mut self) {
-        self.full_collections += 1;
-    }
-
-    fn full_collections(&self) -> usize {
-        self.full_collections
-    }
-
-    fn incr_full_runtime(&mut self, time: f32) {
-        self.full_runtime += time;
-    }
-
-    fn full_runtime(&self) -> f32 {
-        self.full_runtime
+        write!(f, "{}", name)
     }
 }

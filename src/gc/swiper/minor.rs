@@ -11,13 +11,11 @@ use gc::swiper::marking::Terminator;
 use gc::swiper::old::OldGen;
 use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
-use gc::swiper::{CardIdx, CARD_SIZE};
-use gc::swiper::{GcStats, LARGE_OBJECT_SIZE};
+use gc::swiper::{CardIdx, CARD_SIZE, LARGE_OBJECT_SIZE};
 use gc::tlab::{TLAB_OBJECT_SIZE, TLAB_SIZE};
-use gc::{fill_region, formatted_size, Address, GcReason, Region};
+use gc::{fill_region, Address, GcReason, Region};
 use mem;
 use object::Obj;
-use timer::Timer;
 
 use crossbeam_deque::{self as deque, Pop, Steal, Stealer, Worker};
 use rand::distributions::{Distribution, Uniform};
@@ -51,8 +49,6 @@ pub struct MinorCollector<'a, 'ast: 'a> {
     min_heap_size: usize,
     max_heap_size: usize,
 
-    stats: &'a GcStats,
-
     parallel: bool,
     threadpool: &'a mut Pool,
     number_workers: usize,
@@ -71,7 +67,6 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         reason: GcReason,
         min_heap_size: usize,
         max_heap_size: usize,
-        stats: &'a GcStats,
         threadpool: &'a mut Pool,
     ) -> MinorCollector<'a, 'ast> {
         MinorCollector {
@@ -100,8 +95,6 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
             min_heap_size: min_heap_size,
             max_heap_size: max_heap_size,
 
-            stats: stats,
-
             parallel: vm.args.flag_gc_parallel_minor,
             number_workers: threadpool.thread_count() as usize,
             threadpool: threadpool,
@@ -111,12 +104,6 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
     }
 
     pub fn collect(&mut self) -> bool {
-        let active = self.vm.args.flag_gc_verbose;
-        let timer = Timer::new(active);
-
-        let init_size = self.heap_size();
-        let young_init_size = self.young.active_size();
-
         let to_committed = self.young.to_committed();
         self.young_top = to_committed.start;
         self.young_limit = to_committed.end;
@@ -132,27 +119,24 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         if dev_verbose {
             println!("Minor GC: Phase 1 (roots)");
         }
-        let time_roots = Timer::ms(active, || {
-            self.visit_roots();
-        });
+
+        self.visit_roots();
 
         if dev_verbose {
             println!("Minor GC: Phase 2 (dirty cards)");
         }
-        let time_dirty_cards = Timer::ms(active, || {
-            self.copy_dirty_cards();
-            self.visit_large_objects();
-        });
+
+        self.copy_dirty_cards();
+        self.visit_large_objects();
 
         if dev_verbose {
             println!("Minor GC: Phase 3 (traverse)");
         }
-        let time_traverse = Timer::ms(active, || {
-            self.trace_objects();
-        });
+
+        self.trace_objects();
 
         if dev_verbose {
-            println!("Minor GC: Phase 3 (traverse) finished.");
+            println!("Minor GC: Phase 3 (traverse) finished");
         }
 
         if self.promotion_failed {
@@ -168,48 +152,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
             assert!(self.young.to_active().size() == 0);
         }
 
-        timer.stop_with(|time_pause| {
-            let new_size = self.heap_size();
-            let young_new_size = self.young.active_size();
-            let garbage = saturating_sub(
-                saturating_sub(young_init_size, young_new_size),
-                self.promoted_size,
-            );
-            let garbage_ratio = if young_init_size == 0 {
-                0f64
-            } else {
-                (garbage as f64 / young_init_size as f64) * 100f64
-            };
-
-            self.stats.update(|stats| {
-                stats.incr_minor_collections();
-                stats.incr_minor_runtime(time_pause);
-            });
-
-            println!(
-                "GC: Minor GC ({:.1} ms, {}->{}, young {}->{}, \
-                 {} promoted, {}/{:.0}% garbage); \
-                 root={:.1}ms dirty_cards={:.1}ms traverse={:.1}ms; ({})",
-                time_pause,
-                formatted_size(init_size),
-                formatted_size(new_size),
-                formatted_size(young_init_size),
-                formatted_size(young_new_size),
-                formatted_size(self.promoted_size),
-                formatted_size(garbage),
-                garbage_ratio,
-                time_roots,
-                time_dirty_cards,
-                time_traverse,
-                self.reason,
-            );
-        });
-
         self.promotion_failed
-    }
-
-    fn heap_size(&self) -> usize {
-        self.young.active_size() + self.old.active_size() + self.large.committed_size()
     }
 
     fn visit_roots(&mut self) {
