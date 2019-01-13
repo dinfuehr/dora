@@ -1,25 +1,29 @@
+use std::sync::Arc;
+
 use baseline::map::CodeDescriptor;
 use ctxt::VM;
 use exception::DoraToNativeInfo;
 use gc::Address;
+use threads::DoraThread;
 
-pub fn get_rootset(vm: &VM) -> Vec<Slot> {
+pub fn get_rootset(vm: &VM, threads: &[Arc<DoraThread>]) -> Vec<Slot> {
     let mut rootset = Vec::new();
 
-    determine_rootset_from_stack(&mut rootset, vm);
+    determine_rootset_from_stack(&mut rootset, vm, threads);
+    determine_rootset_from_handles(&mut rootset, threads);
+
     determine_rootset_from_globals(&mut rootset, vm);
-    determine_rootset_from_handles(&mut rootset, vm);
 
     rootset
 }
 
-fn determine_rootset_from_handles(rootset: &mut Vec<Slot>, vm: &VM) {
-    vm.threads.each(|thread| {
+fn determine_rootset_from_handles(rootset: &mut Vec<Slot>, threads: &[Arc<DoraThread>]) {
+    for thread in threads {
         for rooted in thread.handles.iter() {
             let slot = Slot::at(Address::from_ptr(rooted.raw()));
             rootset.push(slot);
         }
-    })
+    }
 }
 
 fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
@@ -35,11 +39,11 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
     }
 }
 
-fn determine_rootset_from_stack(rootset: &mut Vec<Slot>, vm: &VM) {
-    vm.threads.each(|thread| {
+fn determine_rootset_from_stack(rootset: &mut Vec<Slot>, vm: &VM, threads: &[Arc<DoraThread>]) {
+    for thread in threads {
         let dtn = Address::from_ptr(thread.dtn());
         determine_rootset_from_stack_for_thread(rootset, vm, dtn);
-    })
+    }
 }
 
 fn determine_rootset_from_stack_for_thread(rootset: &mut Vec<Slot>, vm: &VM, dtn: Address) {

@@ -114,7 +114,7 @@ impl Gc {
         }
 
         // if there is not enough space, make heap iterable by filling tlab with unused objects
-        tlab::make_iterable(vm);
+        tlab::make_iterable_current(vm);
 
         // allocate new tlab
         if let Some(tlab) = self

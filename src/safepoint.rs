@@ -141,12 +141,10 @@ impl Safepoint {
     }
 }
 
-pub fn stop_the_world<F, R>(f: F) -> R
+pub fn stop_the_world<F, R>(vm: &VM, f: F) -> R
 where
-    F: FnOnce() -> R,
+    F: FnOnce(&[Arc<DoraThread>]) -> R,
 {
-    let vm = get_vm();
-
     // lock threads from starting or exiting
     let threads = vm.threads.threads.lock();
 
@@ -158,9 +156,9 @@ where
     }
 
     vm.polling_page.arm();
-    pause_threads(vm, &*threads);
+    // pause_threads(vm, &*threads);
 
-    let ret = f();
+    let ret = f(&*threads);
 
     vm.polling_page.unarm();
 

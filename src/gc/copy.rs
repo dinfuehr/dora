@@ -79,10 +79,9 @@ impl Collector for CopyCollector {
     }
 
     fn collect(&self, vm: &VM, reason: GcReason) {
-        // make heap iterable
-        tlab::make_iterable(vm);
-
-        let rootset = get_rootset(vm);
+        let threads = vm.threads.threads.lock();
+        tlab::make_iterable_all(vm, &*threads);
+        let rootset = get_rootset(vm, &*threads);
         self.copy_collect(vm, &rootset, reason);
     }
 

@@ -20,6 +20,7 @@ use gc::Collector;
 use gc::{arena, GcReason};
 use gc::{formatted_size, Address, Region, K};
 use mem;
+use safepoint;
 
 pub mod card;
 mod controller;
@@ -194,39 +195,41 @@ impl Swiper {
         kind: CollectionKind,
         reason: GcReason,
     ) -> CollectionKind {
-        controller::start(&self.config, &self.young, &self.old, &self.large);
+        safepoint::stop_the_world(vm, |threads| {
+            controller::start(&self.config, &self.young, &self.old, &self.large);
 
-        tlab::make_iterable(vm);
-        let rootset = get_rootset(vm);
+            tlab::make_iterable_all(vm, threads);
+            let rootset = get_rootset(vm, threads);
 
-        let kind = match kind {
-            CollectionKind::Minor => {
-                let promotion_failed = self.minor_collect(vm, reason, &rootset);
+            let kind = match kind {
+                CollectionKind::Minor => {
+                    let promotion_failed = self.minor_collect(vm, reason, &rootset);
 
-                if promotion_failed {
-                    self.full_collect(vm, GcReason::PromotionFailure, &rootset);
-                    CollectionKind::Full
-                } else {
-                    CollectionKind::Minor
+                    if promotion_failed {
+                        self.full_collect(vm, GcReason::PromotionFailure, &rootset);
+                        CollectionKind::Full
+                    } else {
+                        CollectionKind::Minor
+                    }
                 }
-            }
 
-            CollectionKind::Full => {
-                self.full_collect(vm, reason, &rootset);
-                CollectionKind::Full
-            }
-        };
+                CollectionKind::Full => {
+                    self.full_collect(vm, reason, &rootset);
+                    CollectionKind::Full
+                }
+            };
 
-        controller::stop(
-            &self.config,
-            kind,
-            &self.young,
-            &self.old,
-            &self.large,
-            vm.args.flag_gc_verbose,
-        );
+            controller::stop(
+                &self.config,
+                kind,
+                &self.young,
+                &self.old,
+                &self.large,
+                vm.args.flag_gc_verbose,
+            );
 
-        kind
+            kind
+        })
     }
 
     fn minor_collect(&self, vm: &VM, reason: GcReason, rootset: &[Slot]) -> bool {

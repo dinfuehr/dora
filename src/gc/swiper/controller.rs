@@ -57,7 +57,11 @@ pub fn init(config: &mut HeapConfig, args: &Args) {
     config.old_limit = old_limit;
 }
 
-pub fn choose_collection_kind(config: &SharedHeapConfig, args: &Args, young: &YoungGen) -> CollectionKind {
+pub fn choose_collection_kind(
+    config: &SharedHeapConfig,
+    args: &Args,
+    young: &YoungGen,
+) -> CollectionKind {
     let (eden_size, semi_size) = young.committed_size();
     let young_size = eden_size + semi_size;
 
