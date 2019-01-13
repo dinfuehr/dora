@@ -102,8 +102,11 @@ pub fn stop(
     let old_size = old.committed_size() + large.committed_size();
     config.old_size = old_size;
 
-    let max_old_limit = config.max_heap_size - young_size;
-    config.old_limit = max_old_limit;
+    let old_limit = config.max_heap_size - young_size;
+    let old_limit = max(old_limit, old_size);
+    config.old_limit = old_limit;
+
+    assert!(young_size + old_limit <= config.max_heap_size);
 
     match kind {
         CollectionKind::Minor => {
