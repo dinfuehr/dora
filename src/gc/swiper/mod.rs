@@ -184,7 +184,7 @@ impl Swiper {
     }
 
     fn perform_collection_and_choose(&self, vm: &VM, reason: GcReason) -> CollectionKind {
-        let kind = controller::choose_collection_kind(&self.config, &self.young);
+        let kind = controller::choose_collection_kind(&self.config, &vm.args, &self.young);
         self.perform_collection(vm, kind, reason)
     }
 

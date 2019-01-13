@@ -8,23 +8,9 @@ use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
 use gc::swiper::CollectionKind;
 use gc::{align_gen, formatted_size, GEN_SIZE, M};
+use os::signal::Trap;
+use stdlib;
 use timer;
-
-pub fn choose_collection_kind(config: &SharedHeapConfig, young: &YoungGen) -> CollectionKind {
-    let (eden_size, semi_size) = young.committed_size();
-    let young_size = eden_size + semi_size;
-
-    let rest = {
-        let config = config.lock();
-        config.old_limit - config.old_size
-    };
-
-    if rest < young_size {
-        CollectionKind::Full
-    } else {
-        CollectionKind::Minor
-    }
-}
 
 const MAX_YOUNG_SIZE: usize = 20 * M;
 
@@ -71,6 +57,30 @@ pub fn init(config: &mut HeapConfig, args: &Args) {
     config.old_limit = old_limit;
 }
 
+pub fn choose_collection_kind(config: &SharedHeapConfig, args: &Args, young: &YoungGen) -> CollectionKind {
+    let (eden_size, semi_size) = young.committed_size();
+    let young_size = eden_size + semi_size;
+
+    let rest = {
+        let config = config.lock();
+        config.old_limit - config.old_size
+    };
+
+    if args.flag_gc_young_ratio.is_some() {
+        // With a large young generation with e.g. 1/2 or 1/3 of the
+        // maximum heap size, we would do full collections most of the time.
+        // Therefore always perform a minor collection. If objects cannot be promoted,
+        // a full collection is performed automatically.
+        return CollectionKind::Minor;
+    }
+
+    if rest < young_size {
+        CollectionKind::Full
+    } else {
+        CollectionKind::Minor
+    }
+}
+
 pub fn start(config: &SharedHeapConfig, young: &YoungGen, old: &OldGen, large: &LargeSpace) {
     let mut config = config.lock();
 
@@ -105,6 +115,10 @@ pub fn stop(
     let old_limit = config.max_heap_size - young_size;
     let old_limit = max(old_limit, old_size);
     config.old_limit = old_limit;
+
+    if young_size + old_limit > config.max_heap_size {
+        stdlib::trap(Trap::OOM.int());
+    }
 
     assert!(young_size + old_limit <= config.max_heap_size);
 

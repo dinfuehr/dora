@@ -158,6 +158,7 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, vm: &VM, pc: usize) -> boo
 
         Some(CodeDescriptor::TrapThunk) => true,
         Some(CodeDescriptor::ThrowThunk) => true,
+        Some(CodeDescriptor::AllocThunk) => true,
         Some(CodeDescriptor::DoraEntry) => false,
 
         _ => {

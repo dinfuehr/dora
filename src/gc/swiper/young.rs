@@ -219,6 +219,7 @@ impl SemiSpace {
     fn new(total: Region, committed_semi_size: usize, protect: bool) -> SemiSpace {
         let total_semi_size = total.size() / 2;
         assert!(committed_semi_size <= total_semi_size);
+        assert!(gen_aligned(committed_semi_size));
 
         let first = total.start.region_start(total_semi_size);
         let second = Region::new(first.end, total.end);
@@ -229,8 +230,8 @@ impl SemiSpace {
         SemiSpace {
             total: total.clone(),
 
-            first: Block::new(first.clone(), committed_semi_size),
-            second: Block::new(second, committed_semi_size),
+            first: Block::new(first.clone(), committed_semi_size / 2),
+            second: Block::new(second, committed_semi_size / 2),
 
             from_index: AtomicUsize::new(1),
             protect: protect,
