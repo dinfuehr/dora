@@ -58,13 +58,3 @@ pub fn make_iterable_current(vm: &VM) {
         thread.tld.tlab_initialize(n, n);
     });
 }
-
-pub fn make_iterable_region(vm: &VM, start: Address, end: Address) {
-    THREAD.with(|thread| {
-        let thread = thread.borrow();
-        fill_region(vm, start, end);
-
-        let n = Address::null();
-        thread.tld.tlab_initialize(n, n);
-    });
-}
