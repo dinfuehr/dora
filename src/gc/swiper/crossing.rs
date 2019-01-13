@@ -13,10 +13,10 @@ use gc::Address;
 //     no references in this card
 //
 // 64 < v <= 128: [1-64] LeadingRefs
-//     there are v references before first object
+//     there are (v-64) references before first object
 //
-// 128 < v: [1] ArrayStart
-//     object starts v words before this card
+// 128 < v <= 130: [1-2] ArrayStart
+//     object starts (v-128) words before this card
 //     used only for object arrays when array starts in the card before
 //     and some non-reference content is in the next card
 

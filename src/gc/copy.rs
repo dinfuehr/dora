@@ -126,7 +126,7 @@ impl CopyCollector {
         }
 
         while scan < top {
-            let object: &mut Obj = unsafe { &mut *scan.to_mut_ptr() };
+            let object: &mut Obj = scan.to_mut_obj();
 
             object.visit_reference_fields(|field| {
                 let field_ptr = field.get();
