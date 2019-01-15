@@ -1,0 +1,98 @@
+fun main() {
+
+}
+
+class TreeNode(var left: TreeNode, var right: TreeNode, var value: int)
+
+const MEG: int = 1_000_000;
+const INSIGNIFICANT: int = 999;
+const BYTES_PER_WORD: int = 8;
+const BYTES_PER_NODE: int = 40;
+const WORDS_DEAD: int = 100;
+
+const treeHeight: int = 14;
+const treeSize: long = heightToBytes(treeHeight);
+
+fun height(t: TreeNode) -> int {
+    if t === nil {
+        return 0;
+    } else {
+        return 1 + max(height(t.left), height(t.right));
+    }
+}
+
+fun shortestPath(t: TreeNode) {
+    if === nil {
+        return 0;
+    } else {
+        return 1 + min(shortestPath(t.left), shortestPath(t.right));
+    }
+}
+
+fun heightToNodes(h: int) -> long {
+    if (h == 0) {
+        return 0;
+    }
+
+    var n: long = 1L;
+
+    while h > 1 {
+        n = n + n;
+        h = h - 1;
+    }
+
+    return n + n -1;
+}
+
+fun heightToBytes(h: int) -> long {
+    return BYTES_PER_NODE.toLong() * heightToNodes(h);
+}
+
+fun makeTree(h: int) -> TreeNode {
+    if h == 0 {
+        return nil;
+    }
+
+    let res = TreeNode(nil, nil, 0);
+    nodes++;
+    res.left = makeTree(h-1);
+    res.right = makeTree(h-1);
+    res.val = h;
+    return res;
+}
+
+fun init() {
+    let ntrees = (size * MEG) / treeSize;
+    trees = Array::<TreeNode>(ntrees);
+
+    println("Allocating " + ntrees.toString() + " trees.");
+    println("  (" + (ntrees * treeSize).toString() + " bytes)");
+
+    var i = 0;
+
+    while i < ntrees {
+        trees[i] = makeTree(treeHeight);
+        i = i + 1;
+    }
+
+    println("  (" + nodes + " nodes)");
+}
+
+fun checkTrees() {
+    let ntrees = trees.len();
+
+    var i = 0;
+
+    while i < ntrees {
+        let t = trees[i];
+
+        let h1 = height(t);
+        let h2 = shortestPath(t);
+
+        if (h1 != treeHeight) || (h2 != treeHeight) {
+            println("**** BUG: " + h1.toString() + " " + h2.toString());
+        }
+
+        i = i + 1;
+    }
+}
