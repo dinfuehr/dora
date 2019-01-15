@@ -194,7 +194,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
                 self.copy_refs(card_start, refs, &mut ref_to_young_gen);
             }
 
-            self.update_card(card_idx, ref_to_young_gen);
+            self.clean_card_if_no_young_refs(card_idx, ref_to_young_gen);
         }
     }
 
@@ -219,7 +219,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
             }
         });
 
-        self.update_card(card_idx, ref_to_young_gen);
+        self.clean_card_if_no_young_refs(card_idx, ref_to_young_gen);
     }
 
     fn trace_gray_objects(&mut self) {
@@ -373,32 +373,13 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         ptr
     }
 
-    fn copy_old_card(&mut self, card: CardIdx, mut ptr: Address, mut ref_to_young_gen: bool) {
+    fn copy_old_card(&mut self, card: CardIdx, ptr: Address, mut ref_to_young_gen: bool) {
         let card_start = self.card_table.to_address(card);
         let card_end = card_start.offset(CARD_SIZE);
+        let end = cmp::min(card_end, self.init_old_top);
 
-        let mut end = cmp::min(card_end, self.old_top);
-
-        loop {
-            ptr = self.copy_range(ptr, end, &mut ref_to_young_gen);
-
-            // if we are in the last card of the old generation, promoted objects
-            // will increase `end` towards `card_end`. Those newly promoted objects
-            // need also be handled.
-            if end == card_end {
-                break;
-            }
-
-            let next_end = cmp::min(card_end, self.old_top);
-
-            if end != next_end {
-                end = next_end;
-            } else {
-                break;
-            }
-        }
-
-        self.update_card(card, ref_to_young_gen);
+        self.copy_range(ptr, end, &mut ref_to_young_gen);
+        self.clean_card_if_no_young_refs(card, ref_to_young_gen);
     }
 
     fn copy_range(
@@ -435,7 +416,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         end
     }
 
-    fn update_card(&mut self, card_idx: CardIdx, ref_to_young_gen: bool) {
+    fn clean_card_if_no_young_refs(&mut self, card_idx: CardIdx, ref_to_young_gen: bool) {
         // if there are no references to the young generation in this card,
         // set the card to clean.
         if !ref_to_young_gen {
