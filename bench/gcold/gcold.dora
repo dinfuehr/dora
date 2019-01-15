@@ -1,7 +1,3 @@
-fun main() {
-
-}
-
 class TreeNode(var left: TreeNode, var right: TreeNode, var value: int)
 
 const MEG: int = 1_000_000;
@@ -12,6 +8,16 @@ const WORDS_DEAD: int = 100;
 
 const treeHeight: int = 14;
 const treeSize: long = heightToBytes(treeHeight);
+
+var youngBytes: long = 0L;
+var nodes: long = 0L;
+var actuallyMut: long = 0L;
+var mutatorSum: long = 0L;
+var aexport: Array<int> = nil;
+
+var trees: Array<TreeNode> = nil;
+var where: int = 0;
+var rnd: Random = new Random();
 
 fun height(t: TreeNode) -> int {
     if t === nil {
@@ -95,4 +101,204 @@ fun checkTrees() {
 
         i = i + 1;
     }
+}
+
+fun replaceTreeWork(full: TreeNode, partial: TreeNode, dir: bool) {
+    let canGoLeft = full.left !== nil && full.left.value > partial.value;
+    let canGoRight = full.right !== nil && full.right.value > partial.value;
+
+    if canGoLeft && canGoRight {
+        if dir {
+            replaceTreeWork(full.left, partial, !dir);
+        } else {
+            replaceTreeWork(full.right, partial, !dir);
+        }
+    } else if !canGoLeft && !canGoRight {
+        if dir {
+            full.left = partial;
+        } else {
+            full.right = partial;
+        }
+    } else if !canGoLeft {
+        full.left = partial;
+    } else {
+        full.right = partial;
+    }
+}
+
+fun replaceTree(full: TreeNode, partial: TreeNode) {
+    let dir = (partial.value % 2) == 0;
+    actuallyMut++;
+    replaceTreeWork(full, partial, dir);
+}
+
+fun oldGenAlloc(n: long) {
+    let full = (n / treeSize);
+    let partial = n % treeSize;
+
+    var i = 0;
+    while i < full {
+        trees[where] = makeTree(treeHeight);
+        where = where + 1;
+
+        if where == trees.len() {
+            where = 0;
+        }
+
+        i = i + 1;
+    }
+
+    while partial > INSIGNIFICANT {
+        let h = bytesToHeight(partial);
+        let newTree = makeTree(h);
+        replaceTree(trees[where], newTree);
+        where = where + 1;
+
+        if where == trees.len() {
+            where = 0;
+        }
+
+        partial = partial - heightToBytes(h);
+    }
+}
+
+fun oldGenSwapSubtrees() {
+    let index1 = rnd.nextInt(trees.len());
+    let index2 = rnd.nextInt(trees.len());
+    let depth = rnd.nextInt(treeHeight);
+    let path = rnd.nextInt();
+
+    let tn1 = trees[index1];
+    let tn2 = trees[index2];
+
+    var i = 0;
+
+    while i < depth {
+        if (path & 1) == 0 {
+            tn1 = tn1.left;
+            tn2 = tn2.left;
+        } else {
+            tn1 = tn1.right;
+            tn2 = tn2.right;
+        }
+
+        path = path >> 1;
+    }
+
+    if (path & 1) == 0 {
+        let tmp = tn1.left;
+        tn1.left = tn2.left;
+        tn2.left = tmp;
+    } else {
+        tmp = tn1.right;
+        tn1.right = tn2.right;
+        tn2.right = tmp;
+    }
+    actuallyMut += 2;
+}
+
+fun oldGenMut(n: long) {
+    var i = 0L;
+
+    while i < n/2L {
+        oldGenSwapSubtrees();
+        i = i + 1L;
+    }
+}
+
+fun doMutWork(n: long) {
+    let sum = 0;
+    let limit = workUnits * n / 10L;
+
+    var k = 0;
+
+    while k < limit {
+        sum = sum + 1;
+        k = k + 1;
+    }
+
+    mutatorSum = mutatorSum + sum;
+}
+
+fun doYoungGenAlloc(n: long, nwords: int) {
+    let nbytes = nwords * BYTES_PER_WORD;
+    let allocated = 0L;
+
+    while allocated < n {
+        let aexport = Array::<int>(nwords);
+        allocated = allocated + nbytes;
+    }
+
+    youngBytes = youngBytes + allocated;
+}
+
+fun doStep(n: long) {
+    let mutations = actuallyMut;
+
+    doYoungGenAlloc(n, WORDS_DEAD);
+    doMutWork(n);
+    oldGenAlloc(n / promoteRate);
+    oldGenMut(max(0L, (mutations + ptrMutateRate) - actuallyMut));
+}
+
+fun main() {
+    if argc() != 5 {
+        println("Usage: java GCOld <size> <work> <ratio> <mutation> <steps>");
+        println("  where <size> is the live storage in megabytes");
+        println("        <work> is the mutator work per step (arbitrary units)");
+        println("        <ratio> is the ratio of short-lived to long-lived allocation");
+        println("        <mutation> is the mutations per step");
+        println("        <steps> is the number of steps");
+        return;
+    }
+
+    size = argv(0).parseInt();
+    workUnits = argv(1).parseInt();
+    promoteRate = argv(2).parseInt();
+    ptrMutRate = argv(3).parseInt();
+    steps = argv(4).parseInt();
+
+    println("GCOld: version " + version);
+    println(size.toString() + " megabytes of live storage");
+    println(workUnits.toString() + " work units per step");
+    println("promotion ratio is 1:" + promoteRate.toString());
+    println("pointer mutation rate is " + ptrMutRate.toString());
+    println(steps.toString() + " steps");
+
+    init();
+    checkTrees();
+    youngBytes = 0;
+    nodes = 0;
+
+    println("Initialization complete...");
+
+    let start = currentTimeMillis();
+
+    var step = 0;
+
+    while step < steps {
+        doStep(MEG);
+        step = step + 1;
+    }
+
+    let end = currentTimeMillis();
+    float secs = (end - start).toFloat() / 1000.0F;
+
+    checkTrees();
+
+    println("\nTook " + secs.toString() + " Mb of young gen garabge"
+            + " (= " + (steps.toFloat() / secs) + " Mb/sec)");
+    println("    (actually allocated "
+            + (youngBytes.toFloat() / MEG) + " megabytes");
+    let promoted = steps.toFloat() / promoteRate.toFloat();
+    println("Promoted " + promoted.toString()
+            + " Mb (= " + (promoted / secs).toString() + " Mb/sec)");
+    println("    (actually promoted " + ((nodes * BYTES_PER_NODE).toFloat()/MEG).toString() + " megabytes)");
+
+    if ptrMutRate != 0 {
+        println("Mutated " + actuallyMut.toString() +
+                " pointers (=" + (actuallyMut/secs).toString() + " ptrs/sec)");
+    }
+
+    println("Checksum = " + (mutatorSum + aexport.len()).toString());
 }
