@@ -13,6 +13,7 @@ use gc::swiper::full::FullCollector;
 use gc::swiper::large::LargeSpace;
 use gc::swiper::minor::MinorCollector;
 use gc::swiper::old::OldGen;
+use gc::swiper::pminor::ParallelMinorCollector;
 use gc::swiper::verify::{Verifier, VerifierPhase};
 use gc::swiper::young::YoungGen;
 use gc::tlab;
@@ -31,6 +32,7 @@ mod marking;
 mod minor;
 pub mod old;
 mod paged_old;
+mod pminor;
 mod verify;
 pub mod young;
 
@@ -235,22 +237,45 @@ impl Swiper {
     fn minor_collect(&self, vm: &VM, reason: GcReason, rootset: &[Slot]) -> bool {
         self.verify(vm, VerifierPhase::PreMinor, "pre-minor", &rootset, false);
 
-        let mut pool = self.threadpool.lock();
-        let mut collector = MinorCollector::new(
-            vm,
-            &self.young,
-            &self.old,
-            &self.large,
-            &self.card_table,
-            &self.crossing_map,
-            &rootset,
-            reason,
-            self.min_heap_size,
-            self.max_heap_size,
-            &mut pool,
-            &self.config,
-        );
-        let promotion_failed = collector.collect();
+
+        let promotion_failed;
+        
+        if vm.args.flag_gc_parallel_minor {
+            let mut pool = self.threadpool.lock();
+            let mut collector = ParallelMinorCollector::new(
+                vm,
+                &self.young,
+                &self.old,
+                &self.large,
+                &self.card_table,
+                &self.crossing_map,
+                &rootset,
+                reason,
+                self.min_heap_size,
+                self.max_heap_size,
+                &mut pool,
+                &self.config,
+            );
+
+            promotion_failed = collector.collect();
+
+        } else {
+            let mut collector = MinorCollector::new(
+                vm,
+                &self.young,
+                &self.old,
+                &self.large,
+                &self.card_table,
+                &self.crossing_map,
+                &rootset,
+                reason,
+                self.min_heap_size,
+                self.max_heap_size,
+                &self.config,
+            );
+
+            promotion_failed = collector.collect();
+        }
 
         self.verify(
             vm,

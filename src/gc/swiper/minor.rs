@@ -1,6 +1,4 @@
-use parking_lot::Mutex;
 use std::cmp;
-use std::sync::Arc;
 
 use ctxt::VM;
 use gc::root::Slot;
@@ -8,20 +6,13 @@ use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::controller::SharedHeapConfig;
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use gc::swiper::large::LargeSpace;
-use gc::swiper::marking::Terminator;
-use gc::swiper::old::OldGen;
 use gc::swiper::on_different_cards;
+use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
-use gc::swiper::{CardIdx, CARD_SIZE, LARGE_OBJECT_SIZE};
-use gc::tlab::{TLAB_OBJECT_SIZE, TLAB_SIZE};
-use gc::{fill_region, Address, GcReason, Region};
+use gc::swiper::{CardIdx, CARD_SIZE};
+use gc::{Address, GcReason, Region};
 use mem;
 use object::Obj;
-
-use crossbeam_deque::{self as deque, Pop, Steal, Stealer, Worker};
-use rand::distributions::{Distribution, Uniform};
-use rand::thread_rng;
-use scoped_threadpool::Pool;
 
 pub struct MinorCollector<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
@@ -50,10 +41,6 @@ pub struct MinorCollector<'a, 'ast: 'a> {
     min_heap_size: usize,
     max_heap_size: usize,
 
-    parallel: bool,
-    threadpool: &'a mut Pool,
-    number_workers: usize,
-    worklist: Vec<Address>,
     config: &'a SharedHeapConfig,
 }
 
@@ -69,7 +56,6 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         reason: GcReason,
         min_heap_size: usize,
         max_heap_size: usize,
-        threadpool: &'a mut Pool,
         config: &'a SharedHeapConfig,
     ) -> MinorCollector<'a, 'ast> {
         MinorCollector {
@@ -98,11 +84,6 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
             min_heap_size: min_heap_size,
             max_heap_size: max_heap_size,
 
-            parallel: vm.args.flag_gc_parallel_minor,
-            number_workers: threadpool.thread_count() as usize,
-            threadpool: threadpool,
-
-            worklist: Vec::new(),
             config: config,
         }
     }
@@ -137,7 +118,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
             println!("Minor GC: Phase 3 (traverse)");
         }
 
-        self.trace_objects();
+        self.trace_gray_objects();
 
         if dev_verbose {
             println!("Minor GC: Phase 3 (traverse) finished");
@@ -241,15 +222,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         self.update_card(card_idx, ref_to_young_gen);
     }
 
-    fn trace_objects(&mut self) {
-        if self.parallel {
-            self.trace_gray_objects_par();
-        } else {
-            self.trace_gray_objects_seq();
-        }
-    }
-
-    fn trace_gray_objects_seq(&mut self) {
+    fn trace_gray_objects(&mut self) {
         let mut young_scan = self.young.to_committed().start;
         let mut old_scan = self.init_old_top;
 
@@ -268,98 +241,6 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         assert!(young_scan == self.young_top);
         assert!(old_scan == self.old_top);
         self.old.update_top(self.old_top);
-    }
-
-    fn trace_gray_objects_par(&mut self) {
-        let mut workers = Vec::with_capacity(self.number_workers);
-        let mut stealers = Vec::with_capacity(self.number_workers);
-
-        for _ in 0..self.number_workers {
-            let (w, s) = deque::lifo();
-            workers.push(w);
-            stealers.push(s);
-        }
-
-        let worklist = std::mem::replace(&mut self.worklist, Vec::new());
-
-        for (id, object) in worklist.into_iter().enumerate() {
-            workers[id % self.number_workers].push(object);
-        }
-
-        let terminator = Arc::new(Terminator::new(self.number_workers));
-        let young_region = self.young.total();
-        let vm = self.vm;
-
-        // align old generation to card boundary
-        let old_top = Arc::new(Mutex::new(self.old_top));
-        let old_limit = self.old.committed().end;
-
-        let young_top = Arc::new(Mutex::new(self.young_top));
-        let young_limit = self.young_limit;
-
-        let card_table = self.card_table;
-        let crossing_map = self.crossing_map;
-        let young = self.young;
-        let old = self.old;
-
-        let promoted_size = Arc::new(Mutex::new(self.promoted_size));
-        let promotion_failed = Arc::new(Mutex::new(self.promotion_failed));
-
-        self.threadpool.scoped(|scoped| {
-            for (task_id, worker) in workers.into_iter().enumerate() {
-                let stealers = stealers.clone();
-                let terminator = terminator.clone();
-                let young_region = young_region.clone();
-                let old_top = old_top.clone();
-                let young_top = young_top.clone();
-                let promoted_size = promoted_size.clone();
-                let promotion_failed = promotion_failed.clone();
-
-                scoped.execute(move || {
-                    let mut task = CopyTask {
-                        task_id: task_id,
-                        local: Vec::new(),
-                        worker: worker,
-                        stealers: stealers,
-                        terminator: terminator,
-
-                        vm: vm,
-                        young: young,
-                        old: old,
-                        young_region: young_region,
-                        card_table: card_table,
-                        crossing_map: crossing_map,
-
-                        from_active: young.from_active(),
-                        eden_active: young.eden_active(),
-
-                        promoted_size: 0,
-                        traced: 0,
-
-                        old_lab: Lab::new(),
-                        old_alloc: SpaceAlloc::new(old_top, old_limit),
-
-                        young_lab: Lab::new(),
-                        young_alloc: SpaceAlloc::new(young_top, young_limit),
-                    };
-
-                    task.run();
-
-                    *promoted_size.lock() += task.promoted_size;
-
-                    if task.promotion_failed() {
-                        let mut promotion_failed = promotion_failed.lock();
-                        *promotion_failed = true;
-                    }
-                });
-            }
-        });
-
-        self.young_top = *young_top.lock();
-        self.old.update_top(*old_top.lock());
-
-        self.promoted_size = *promoted_size.lock();
-        self.promotion_failed = *promotion_failed.lock();
     }
 
     fn trace_young_object(&mut self, addr: Address) -> Address {
@@ -590,11 +471,6 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
 
         assert!(next_young_top <= self.young_limit);
 
-        // When doing parallel minor collection, keep track of all objects to process in worklist.
-        if self.parallel {
-            self.worklist.push(copy_addr);
-        }
-
         self.young_top = next_young_top;
         debug_assert!(self.young.to_committed().valid_top(self.young_top));
 
@@ -613,11 +489,6 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         if copy_addr.is_null() {
             self.promotion_failed = true;
             return obj.address();
-        }
-
-        // When doing parallel minor collection, keep track of all objects to process in worklist.
-        if self.parallel {
-            self.worklist.push(copy_addr);
         }
 
         obj.copy_to(copy_addr, obj_size);
@@ -677,570 +548,5 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         }
 
         assert!(scan == region.end);
-    }
-}
-
-fn saturating_sub(lhs: usize, rhs: usize) -> usize {
-    if lhs > rhs {
-        lhs - rhs
-    } else {
-        0
-    }
-}
-
-struct Lab {
-    top: Address,
-    limit: Address,
-}
-
-impl Lab {
-    fn new() -> Lab {
-        Lab {
-            top: Address::null(),
-            limit: Address::null(),
-        }
-    }
-
-    fn reset(&mut self, top: Address, limit: Address) {
-        self.top = top;
-        self.limit = limit;
-    }
-
-    fn make_iterable_young(&mut self, vm: &VM) {
-        fill_region(vm, self.top, self.limit);
-
-        self.top = Address::null();
-        self.limit = Address::null();
-    }
-
-    fn make_iterable_old(&mut self, vm: &VM, old: &OldGen) {
-        fill_region(vm, self.top, self.limit);
-        if self.limit.is_non_null() {
-            old.update_crossing(self.top, self.limit, false);
-        }
-
-        self.top = Address::null();
-        self.limit = Address::null();
-    }
-
-    fn alloc(&mut self, size: usize) -> Address {
-        let object_start = self.top;
-        let object_end = object_start.offset(size);
-
-        if object_end <= self.limit {
-            self.top = object_end;
-            object_start
-        } else {
-            Address::null()
-        }
-    }
-
-    fn undo_alloc(&mut self, size: usize) {
-        self.top = (self.top.to_usize() - size).into();
-        debug_assert!(self.limit.offset_from(self.top) <= CLAB_SIZE);
-    }
-}
-
-struct SpaceAlloc {
-    top: Arc<Mutex<Address>>,
-    limit: Address,
-    failed: bool,
-}
-
-impl SpaceAlloc {
-    fn new(top: Arc<Mutex<Address>>, limit: Address) -> SpaceAlloc {
-        SpaceAlloc {
-            top: top,
-            limit: limit,
-            failed: false,
-        }
-    }
-
-    fn alloc_lab_young(&mut self, lab: &mut Lab) -> bool {
-        if self.failed {
-            lab.reset(Address::null(), Address::null());
-            return false;
-        }
-
-        let mut top = self.top.lock();
-
-        let lab_start = *top;
-        let lab_end = lab_start.offset(CLAB_SIZE);
-
-        if lab_end <= self.limit {
-            *top = lab_end;
-            lab.reset(lab_start, lab_end);
-
-            true
-        } else {
-            self.failed = true;
-            lab.reset(Address::null(), Address::null());
-
-            false
-        }
-    }
-
-    fn alloc_lab_old(&mut self, lab: &mut Lab, old: &OldGen) -> bool {
-        if self.failed {
-            lab.reset(Address::null(), Address::null());
-            return false;
-        }
-
-        let mut top = self.top.lock();
-
-        let lab_start = *top;
-        let lab_end = lab_start.offset(CLAB_SIZE);
-
-        if lab_end <= self.limit {
-            *top = lab_end;
-            lab.reset(lab_start, lab_end);
-
-            return true;
-        }
-
-        self.limit = old.grow();
-
-        if lab_end <= self.limit {
-            *top = lab_end;
-            lab.reset(lab_start, lab_end);
-
-            true
-        } else {
-            self.failed = true;
-            lab.reset(Address::null(), Address::null());
-
-            false
-        }
-    }
-
-    fn alloc_obj_young(&mut self, size: usize) -> Address {
-        if self.failed {
-            return Address::null();
-        }
-
-        let mut top = self.top.lock();
-
-        let obj_start = *top;
-        let obj_end = obj_start.offset(size);
-
-        if obj_end <= self.limit {
-            *top = obj_end;
-
-            obj_start
-        } else {
-            self.failed = true;
-            Address::null()
-        }
-    }
-
-    fn alloc_obj_old(&mut self, size: usize, old: &OldGen) -> Address {
-        if self.failed {
-            return Address::null();
-        }
-
-        let mut top = self.top.lock();
-
-        let obj_start = *top;
-        let obj_end = obj_start.offset(size);
-
-        if obj_end <= self.limit {
-            *top = obj_end;
-            return obj_start;
-        }
-
-        self.limit = old.grow();
-
-        if obj_end <= self.limit {
-            *top = obj_end;
-
-            obj_start
-        } else {
-            self.failed = true;
-
-            Address::null()
-        }
-    }
-}
-
-const CLAB_SIZE: usize = TLAB_SIZE;
-const CLAB_OBJECT_SIZE: usize = TLAB_OBJECT_SIZE;
-
-const LOCAL_MAXIMUM: usize = 64;
-
-struct CopyTask<'a, 'ast: 'a> {
-    task_id: usize,
-    local: Vec<Address>,
-    worker: Worker<Address>,
-    stealers: Vec<Stealer<Address>>,
-    terminator: Arc<Terminator>,
-
-    vm: &'a VM<'ast>,
-    young: &'a YoungGen,
-    old: &'a OldGen,
-    card_table: &'a CardTable,
-    crossing_map: &'a CrossingMap,
-
-    young_region: Region,
-    from_active: Region,
-    eden_active: Region,
-
-    promoted_size: usize,
-    traced: usize,
-
-    old_lab: Lab,
-    old_alloc: SpaceAlloc,
-
-    young_lab: Lab,
-    young_alloc: SpaceAlloc,
-}
-
-impl<'a, 'ast> CopyTask<'a, 'ast>
-where
-    'ast: 'a,
-{
-    fn run(&mut self) {
-        loop {
-            let object_addr = if let Some(object_addr) = self.pop() {
-                object_addr
-            } else if self.terminator.try_terminate() {
-                break;
-            } else {
-                continue;
-            };
-
-            if self.young_region.contains(object_addr) {
-                self.trace_young_object(object_addr);
-            } else {
-                self.trace_old_object(object_addr);
-            }
-        }
-
-        self.young_lab.make_iterable_young(self.vm);
-        self.old_lab.make_iterable_old(self.vm, self.old);
-    }
-
-    fn promotion_failed(&self) -> bool {
-        self.old_alloc.failed
-    }
-
-    fn trace_young_object(&mut self, object_addr: Address) {
-        let object = object_addr.to_mut_obj();
-
-        object.visit_reference_fields(|slot| {
-            let object_addr = slot.get();
-
-            if self.young_region.contains(object_addr) {
-                slot.set(self.copy(object_addr));
-            }
-        });
-    }
-
-    fn trace_old_object(&mut self, object_addr: Address) {
-        let object = object_addr.to_mut_obj();
-
-        if object.is_array_ref() {
-            let mut ref_to_young_gen = false;
-            let mut last = object_addr;
-
-            object.visit_reference_fields(|slot| {
-                let field_ptr = slot.get();
-
-                if on_different_cards(last, slot.address()) && ref_to_young_gen {
-                    let card_idx = self.card_table.card_idx(last);
-                    self.card_table.set(card_idx, CardEntry::Dirty);
-                    ref_to_young_gen = false;
-                }
-
-                if self.young.contains(field_ptr) {
-                    let copied_addr = self.copy(field_ptr);
-                    slot.set(copied_addr);
-
-                    if self.young.contains(copied_addr) {
-                        ref_to_young_gen = true;
-                    }
-                }
-
-                last = slot.address();
-            });
-
-            if ref_to_young_gen {
-                let card_idx = self.card_table.card_idx(last);
-                self.card_table.set(card_idx, CardEntry::Dirty);
-            }
-        } else {
-            let mut ref_to_young_gen = false;
-
-            object.visit_reference_fields(|slot| {
-                let field_ptr = slot.get();
-
-                if self.young.contains(field_ptr) {
-                    let copied_addr = self.copy(field_ptr);
-                    slot.set(copied_addr);
-
-                    if self.young.contains(copied_addr) {
-                        ref_to_young_gen = true;
-                    }
-                }
-            });
-
-            if ref_to_young_gen {
-                let card_idx = self.card_table.card_idx(object_addr);
-                self.card_table.set(card_idx, CardEntry::Dirty);
-            }
-        }
-    }
-
-    fn alloc_young(&mut self, size: usize) -> Address {
-        if size < CLAB_OBJECT_SIZE {
-            self.alloc_young_small(size)
-        } else {
-            self.alloc_young_medium(size)
-        }
-    }
-
-    fn alloc_young_small(&mut self, size: usize) -> Address {
-        debug_assert!(size < CLAB_OBJECT_SIZE);
-        let object_start = self.young_lab.alloc(size);
-
-        if object_start.is_non_null() {
-            return object_start;
-        } else if self.young_alloc.failed {
-            return Address::null();
-        }
-
-        debug_assert!(size <= CLAB_SIZE);
-        self.young_lab.make_iterable_young(self.vm);
-        if !self.young_alloc.alloc_lab_young(&mut self.young_lab) {
-            return Address::null();
-        }
-
-        self.young_lab.alloc(size)
-    }
-
-    fn alloc_young_medium(&mut self, size: usize) -> Address {
-        debug_assert!(CLAB_OBJECT_SIZE <= size && size < LARGE_OBJECT_SIZE);
-        self.young_alloc.alloc_obj_young(size)
-    }
-
-    fn alloc_old(&mut self, size: usize, array_ref: bool) -> Address {
-        if size < CLAB_OBJECT_SIZE {
-            self.alloc_old_small(size, array_ref)
-        } else {
-            self.alloc_old_medium(size, array_ref)
-        }
-    }
-
-    fn alloc_old_small(&mut self, size: usize, array_ref: bool) -> Address {
-        debug_assert!(size < CLAB_OBJECT_SIZE);
-        let object_start = self.alloc_object_in_old_lab(size, array_ref);
-
-        if object_start.is_non_null() {
-            return object_start;
-        } else if self.old_alloc.failed {
-            return Address::null();
-        }
-
-        self.old_lab.make_iterable_old(self.vm, self.old);
-        if !self.old_alloc.alloc_lab_old(&mut self.old_lab, self.old) {
-            return Address::null();
-        }
-
-        self.alloc_object_in_old_lab(size, array_ref)
-    }
-
-    fn alloc_old_medium(&mut self, size: usize, array_ref: bool) -> Address {
-        debug_assert!(CLAB_OBJECT_SIZE <= size && size < LARGE_OBJECT_SIZE);
-        let object_start = self.old_alloc.alloc_obj_old(size, self.old);
-
-        if object_start.is_non_null() {
-            let old = object_start;
-            let new = old.offset(size);
-            self.old.update_crossing(old, new, array_ref);
-            object_start
-        } else {
-            Address::null()
-        }
-    }
-
-    fn alloc_object_in_old_lab(&mut self, size: usize, array_ref: bool) -> Address {
-        let object_start = self.old_lab.alloc(size);
-
-        if object_start.is_non_null() {
-            let old = object_start;
-            let new = old.offset(size);
-            self.old.update_crossing(old, new, array_ref);
-            object_start
-        } else {
-            Address::null()
-        }
-    }
-
-    fn copy(&mut self, obj_addr: Address) -> Address {
-        let obj = obj_addr.to_mut_obj();
-
-        // Check if object was already copied
-        let vtblptr = match obj.header().vtblptr_forwarded_atomic() {
-            Ok(fwd_addr) => {
-                return fwd_addr;
-            }
-
-            Err(vtblptr) => vtblptr,
-        };
-
-        // As soon as promotion of an object failed, objects are not copied anymore.
-        if self.old_alloc.failed {
-            return obj_addr;
-        }
-
-        let obj_size = obj.size();
-        debug_assert!(
-            self.from_active.contains(obj_addr) || self.eden_active.contains(obj_addr),
-            "copy objects only from from-space."
-        );
-
-        // If object is old enough we copy it into the old generation
-        if self.young.should_be_promoted(obj_addr) {
-            return self.promote_object(vtblptr, obj, obj_size);
-        }
-
-        // Try to allocate memory in to-space.
-        let copy_addr = self.alloc_young(obj_size);
-
-        // Couldn't allocate object in young generation, try to promote
-        // object into old generation instead.
-        if copy_addr.is_null() {
-            return self.promote_object(vtblptr, obj, obj_size);
-        }
-
-        obj.copy_to(copy_addr, obj_size);
-        let res = obj.header_mut().vtblptr_forward_atomic(vtblptr, copy_addr);
-
-        match res {
-            Ok(()) => {
-                self.push(copy_addr);
-                copy_addr
-            }
-
-            Err(fwdptr) => {
-                self.young_lab.undo_alloc(obj_size);
-                fwdptr
-            }
-        }
-    }
-
-    fn promote_object(&mut self, vtblptr: Address, obj: &mut Obj, obj_size: usize) -> Address {
-        let copy_addr = self.alloc_old(obj_size, obj.is_array_ref());
-
-        // if there isn't enough space in old gen keep it in the
-        // young generation for now. A full collection will be forced later and
-        // cleans this up.
-        if copy_addr.is_null() {
-            let res = obj.header_mut().vtblptr_forward_failure_atomic(vtblptr);
-
-            return match res {
-                Ok(()) => obj.address(),
-                Err(fwdptr) => fwdptr,
-            };
-        }
-
-        obj.copy_to(copy_addr, obj_size);
-        let res = obj.header_mut().vtblptr_forward_atomic(vtblptr, copy_addr);
-
-        match res {
-            Ok(()) => {
-                self.promoted_size += obj_size;
-                self.push(copy_addr);
-
-                copy_addr
-            }
-
-            Err(fwdptr) => {
-                self.old_lab.undo_alloc(obj_size);
-
-                fwdptr
-            }
-        }
-    }
-
-    fn push(&mut self, addr: Address) {
-        if self.local.len() < LOCAL_MAXIMUM {
-            self.local.push(addr);
-            self.defensive_push();
-        } else {
-            self.worker.push(addr);
-        }
-    }
-
-    fn defensive_push(&mut self) {
-        self.traced += 1;
-
-        if self.traced > 256 {
-            if self.local.len() > 4 {
-                let target_len = self.local.len() / 2;
-
-                while self.local.len() > target_len {
-                    let val = self.local.pop().unwrap();
-                    self.worker.push(val);
-                }
-            }
-
-            self.traced = 0;
-        }
-    }
-
-    fn pop(&mut self) -> Option<Address> {
-        self.pop_local()
-            .or_else(|| self.pop_worker())
-            .or_else(|| self.steal())
-    }
-
-    fn pop_local(&mut self) -> Option<Address> {
-        if self.local.is_empty() {
-            return None;
-        }
-
-        let obj = self.local.pop().expect("should be non-empty");
-        Some(obj)
-    }
-
-    fn pop_worker(&mut self) -> Option<Address> {
-        loop {
-            match self.worker.pop() {
-                Pop::Empty => break,
-                Pop::Data(address) => return Some(address),
-                Pop::Retry => continue,
-            }
-        }
-
-        None
-    }
-
-    fn steal(&self) -> Option<Address> {
-        if self.stealers.len() == 1 {
-            return None;
-        }
-
-        let mut rng = thread_rng();
-        let range = Uniform::new(0, self.stealers.len());
-
-        for _ in 0..2 * self.stealers.len() {
-            let mut stealer_id = self.task_id;
-
-            while stealer_id == self.task_id {
-                stealer_id = range.sample(&mut rng);
-            }
-
-            let stealer = &self.stealers[stealer_id];
-
-            loop {
-                match stealer.steal() {
-                    Steal::Empty => break,
-                    Steal::Data(address) => return Some(address),
-                    Steal::Retry => continue,
-                }
-            }
-        }
-
-        None
     }
 }
