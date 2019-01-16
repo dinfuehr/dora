@@ -247,7 +247,7 @@ fun doYoungGenAlloc(n: long, nwords: int) {
     var allocated = 0L;
 
     while allocated < n {
-        let aexport = Array::<int>(nwords);
+        aexport = Array::<int>(nwords);
         allocated = allocated + nbytes.toLong();
     }
 

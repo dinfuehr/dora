@@ -237,9 +237,8 @@ impl Swiper {
     fn minor_collect(&self, vm: &VM, reason: GcReason, rootset: &[Slot]) -> bool {
         self.verify(vm, VerifierPhase::PreMinor, "pre-minor", &rootset, false);
 
-
         let promotion_failed;
-        
+
         if vm.args.flag_gc_parallel_minor {
             let mut pool = self.threadpool.lock();
             let mut collector = ParallelMinorCollector::new(
@@ -258,7 +257,6 @@ impl Swiper {
             );
 
             promotion_failed = collector.collect();
-
         } else {
             let mut collector = MinorCollector::new(
                 vm,

@@ -704,18 +704,21 @@ where
 
             IdentType::Global(gid) => {
                 let glob = self.vm.globals.idx(gid);
-                let glob = glob.lock();
-                let dest = result_reg(glob.ty.mode());
+                let (address_value, ty) = {
+                    let glob = glob.lock();
+                    (glob.address_value, glob.ty)
+                };
+
+                let dest = result_reg(ty.mode());
                 self.emit_expr(&e.rhs, dest);
 
-                let disp = self.asm.add_addr(glob.address_value.to_ptr());
+                let disp = self.asm.add_addr(address_value.to_ptr());
                 let pos = self.asm.pos() as i32;
 
                 self.asm.emit_comment(Comment::StoreGlobal(gid));
                 self.asm.load_constpool(REG_TMP1, disp + pos);
 
-                self.asm
-                    .store_mem(glob.ty.mode(), Mem::Base(REG_TMP1, 0), dest);
+                self.asm.store_mem(ty.mode(), Mem::Base(REG_TMP1, 0), dest);
             }
 
             IdentType::Field(ty, fieldid) => {

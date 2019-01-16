@@ -1808,7 +1808,6 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                 if let Some(cls_id) = obj.cls_id(self.ctxt) {
                     let name = self.name.expect("name not set");
                     self.find_method(cls_id, name, false)
-
                 } else {
                     None
                 }
