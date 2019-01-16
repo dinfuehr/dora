@@ -1805,12 +1805,12 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             LookupKind::Callee(fct_id) => Some(fct_id),
 
             LookupKind::Method(obj) => {
-                if obj == BuiltinType::Nil {
-                    None
-                } else {
-                    let cls_id = obj.cls_id(self.ctxt).expect("cls_id not found for object");
+                if let Some(cls_id) = obj.cls_id(self.ctxt) {
                     let name = self.name.expect("name not set");
                     self.find_method(cls_id, name, false)
+
+                } else {
+                    None
                 }
             }
 

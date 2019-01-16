@@ -322,6 +322,10 @@ class Random {
     self.seed = seed;
   }
 
+  fun nextIntWithBound(bound: int) -> int {
+    return 0;
+  }
+
   fun nextInt() -> int {
     return 0;
   }

@@ -1,13 +1,13 @@
 class TreeNode(var left: TreeNode, var right: TreeNode, var value: int)
 
 const MEG: int = 1_000_000;
-const INSIGNIFICANT: int = 999;
+const INSIGNIFICANT: long = 999L;
 const BYTES_PER_WORD: int = 8;
 const BYTES_PER_NODE: int = 40;
 const WORDS_DEAD: int = 100;
 
 const treeHeight: int = 14;
-const treeSize: long = heightToBytes(treeHeight);
+var treeSize: long;
 
 var youngBytes: long;
 var nodes: long;
@@ -33,7 +33,7 @@ fun height(t: TreeNode) -> int {
     }
 }
 
-fun shortestPath(t: TreeNode) {
+fun shortestPath(t: TreeNode) -> int {
     if t === nil {
         return 0;
     } else {
@@ -41,9 +41,9 @@ fun shortestPath(t: TreeNode) {
     }
 }
 
-fun heightToNodes(h: int) -> long {
+fun heightToNodes(var h: int) -> long {
     if (h == 0) {
-        return 0;
+        return 0L;
     }
 
     var n: long = 1L;
@@ -53,7 +53,7 @@ fun heightToNodes(h: int) -> long {
         h = h - 1;
     }
 
-    return n + n -1;
+    return n + n - 1L;
 }
 
 fun heightToBytes(h: int) -> long {
@@ -64,7 +64,7 @@ fun nodesToHeight(nnodes: long) -> int {
     var h = 1;
     var n = 1L;
 
-    while n + n - 1 <= nnodes {
+    while n + n - 1L <= nnodes {
         n = n + n;
         h = h + 1;
     }
@@ -72,7 +72,7 @@ fun nodesToHeight(nnodes: long) -> int {
     return h - 1;
 }
 
-fun bytesToHeight(bytes: long) {
+fun bytesToHeight(bytes: long) -> int {
     return nodesToHeight(bytes / BYTES_PER_NODE.toLong());
 }
 
@@ -85,16 +85,16 @@ fun makeTree(h: int) -> TreeNode {
     nodes = nodes + 1L;
     res.left = makeTree(h-1);
     res.right = makeTree(h-1);
-    res.val = h;
+    res.value = h;
     return res;
 }
 
 fun inititialize() {
-    let ntrees = (size * MEG) / treeSize;
+    let ntrees = ((size * MEG).toLong() / treeSize).toInt();
     trees = Array::<TreeNode>(ntrees);
 
     println("Allocating " + ntrees.toString() + " trees.");
-    println("  (" + (ntrees * treeSize).toString() + " bytes)");
+    println("  (" + (ntrees.toLong() * treeSize).toString() + " bytes)");
 
     var i = 0;
 
@@ -103,7 +103,7 @@ fun inititialize() {
         i = i + 1;
     }
 
-    println("  (" + nodes + " nodes)");
+    println("  (" + nodes.toString() + " nodes)");
 }
 
 fun checkTrees() {
@@ -150,13 +150,13 @@ fun replaceTreeWork(full: TreeNode, partial: TreeNode, dir: bool) {
 
 fun replaceTree(full: TreeNode, partial: TreeNode) {
     let dir = (partial.value % 2) == 0;
-    actuallyMut = actuallyMut + 1;
+    actuallyMut = actuallyMut + 1L;
     replaceTreeWork(full, partial, dir);
 }
 
 fun oldGenAlloc(n: long) {
-    let full = (n / treeSize);
-    let partial = n % treeSize;
+    let full = (n / treeSize).toInt();
+    var partial = n % treeSize;
 
     var i = 0;
     while i < full {
@@ -185,13 +185,13 @@ fun oldGenAlloc(n: long) {
 }
 
 fun oldGenSwapSubtrees() {
-    let index1 = rnd.nextInt(trees.len());
-    let index2 = rnd.nextInt(trees.len());
-    let depth = rnd.nextInt(treeHeight);
-    let path = rnd.nextInt();
+    let index1 = rnd.nextIntWithBound(trees.len());
+    let index2 = rnd.nextIntWithBound(trees.len());
+    let depth = rnd.nextIntWithBound(treeHeight);
+    var path = rnd.nextInt();
 
-    let tn1 = trees[index1];
-    let tn2 = trees[index2];
+    var tn1 = trees[index1];
+    var tn2 = trees[index2];
 
     var i = 0;
 
@@ -216,7 +216,7 @@ fun oldGenSwapSubtrees() {
         tn1.right = tn2.right;
         tn2.right = tmp;
     }
-    actuallyMut = actuallyMut + 2;
+    actuallyMut = actuallyMut + 2L;
 }
 
 fun oldGenMut(n: long) {
@@ -229,26 +229,26 @@ fun oldGenMut(n: long) {
 }
 
 fun doMutWork(n: long) {
-    let sum = 0;
-    let limit = workUnits * n / 10L;
+    var sum = 0;
+    let limit = workUnits.toLong() * n / 10L;
 
-    var k = 0;
+    var k = 0L;
 
     while k < limit {
         sum = sum + 1;
-        k = k + 1;
+        k = k + 1L;
     }
 
-    mutatorSum = mutatorSum + sum;
+    mutatorSum = mutatorSum + sum.toLong();
 }
 
 fun doYoungGenAlloc(n: long, nwords: int) {
     let nbytes = nwords * BYTES_PER_WORD;
-    let allocated = 0L;
+    var allocated = 0L;
 
     while allocated < n {
         let aexport = Array::<int>(nwords);
-        allocated = allocated + nbytes;
+        allocated = allocated + nbytes.toLong();
     }
 
     youngBytes = youngBytes + allocated;
@@ -259,8 +259,8 @@ fun doStep(n: long) {
 
     doYoungGenAlloc(n, WORDS_DEAD);
     doMutWork(n);
-    oldGenAlloc(n / promoteRate);
-    oldGenMut(long::max(0L, (mutations + ptrMutRate) - actuallyMut));
+    oldGenAlloc(n / promoteRate.toLong());
+    oldGenMut(long::max(0L, (mutations + ptrMutRate.toLong()) - actuallyMut));
 }
 
 fun main() {
@@ -273,6 +273,8 @@ fun main() {
         println("        <steps> is the number of steps");
         return;
     }
+
+    treeSize = heightToBytes(treeHeight);
 
     size = argv(0).parseInt();
     workUnits = argv(1).parseInt();
@@ -289,8 +291,8 @@ fun main() {
 
     inititialize();
     checkTrees();
-    youngBytes = 0;
-    nodes = 0;
+    youngBytes = 0L;
+    nodes = 0L;
 
     println("Initialization complete...");
 
@@ -299,7 +301,7 @@ fun main() {
     var step = 0;
 
     while step < steps {
-        doStep(MEG);
+        doStep(MEG.toLong());
         step = step + 1;
     }
 
@@ -309,18 +311,18 @@ fun main() {
     checkTrees();
 
     println("\nTook " + secs.toString() + " Mb of young gen garabge"
-            + " (= " + (steps.toFloat() / secs) + " Mb/sec)");
+            + " (= " + (steps.toFloat() / secs).toString() + " Mb/sec)");
     println("    (actually allocated "
-            + (youngBytes.toFloat() / MEG) + " megabytes");
+            + (youngBytes.toFloat() / MEG.toFloat()).toString() + " megabytes");
     let promoted = steps.toFloat() / promoteRate.toFloat();
     println("Promoted " + promoted.toString()
             + " Mb (= " + (promoted / secs).toString() + " Mb/sec)");
-    println("    (actually promoted " + ((nodes * BYTES_PER_NODE).toFloat()/MEG).toString() + " megabytes)");
+    println("    (actually promoted " + ((nodes * BYTES_PER_NODE.toLong()).toFloat() / MEG.toFloat()).toString() + " megabytes)");
 
     if ptrMutRate != 0 {
         println("Mutated " + actuallyMut.toString() +
-                " pointers (=" + (actuallyMut/secs).toString() + " ptrs/sec)");
+                " pointers (=" + (actuallyMut.toFloat() / secs).toString() + " ptrs/sec)");
     }
 
-    println("Checksum = " + (mutatorSum + aexport.len()).toString());
+    println("Checksum = " + (mutatorSum + aexport.len().toLong()).toString());
 }
