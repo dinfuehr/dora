@@ -205,6 +205,22 @@ internal class long {
   static fun min_value() -> long {
     return -9223372036854775808L;
   }
+
+  static fun min(lhs: long, rhs: long) -> long {
+    if lhs < rhs {
+      return lhs;
+    } else {
+      return rhs;
+    }
+  }
+
+  static fun max(lhs: long, rhs: long) -> long {
+    if lhs < rhs {
+      return rhs;
+    } else {
+      return lhs;
+    }
+  }
 }
 
 internal class float {

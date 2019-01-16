@@ -9,29 +9,35 @@ const WORDS_DEAD: int = 100;
 const treeHeight: int = 14;
 const treeSize: long = heightToBytes(treeHeight);
 
-var youngBytes: long = 0L;
-var nodes: long = 0L;
-var actuallyMut: long = 0L;
-var mutatorSum: long = 0L;
-var aexport: Array<int> = nil;
+var youngBytes: long;
+var nodes: long;
+var actuallyMut: long;
+var mutatorSum: long;
+var aexport: Array<int>;
 
-var trees: Array<TreeNode> = nil;
-var where: int = 0;
-var rnd: Random = new Random();
+var trees: Array<TreeNode>;
+var where: int;
+var rnd: Random;
+
+var size: int;
+var workUnits: int;
+var promoteRate: int;
+var ptrMutRate: int;
+var steps: int;
 
 fun height(t: TreeNode) -> int {
     if t === nil {
         return 0;
     } else {
-        return 1 + max(height(t.left), height(t.right));
+        return 1 + int::max(height(t.left), height(t.right));
     }
 }
 
 fun shortestPath(t: TreeNode) {
-    if === nil {
+    if t === nil {
         return 0;
     } else {
-        return 1 + min(shortestPath(t.left), shortestPath(t.right));
+        return 1 + int::min(shortestPath(t.left), shortestPath(t.right));
     }
 }
 
@@ -54,20 +60,36 @@ fun heightToBytes(h: int) -> long {
     return BYTES_PER_NODE.toLong() * heightToNodes(h);
 }
 
+fun nodesToHeight(nnodes: long) -> int {
+    var h = 1;
+    var n = 1L;
+
+    while n + n - 1 <= nnodes {
+        n = n + n;
+        h = h + 1;
+    }
+
+    return h - 1;
+}
+
+fun bytesToHeight(bytes: long) {
+    return nodesToHeight(bytes / BYTES_PER_NODE.toLong());
+}
+
 fun makeTree(h: int) -> TreeNode {
     if h == 0 {
         return nil;
     }
 
     let res = TreeNode(nil, nil, 0);
-    nodes++;
+    nodes = nodes + 1L;
     res.left = makeTree(h-1);
     res.right = makeTree(h-1);
     res.val = h;
     return res;
 }
 
-fun init() {
+fun inititialize() {
     let ntrees = (size * MEG) / treeSize;
     trees = Array::<TreeNode>(ntrees);
 
@@ -128,7 +150,7 @@ fun replaceTreeWork(full: TreeNode, partial: TreeNode, dir: bool) {
 
 fun replaceTree(full: TreeNode, partial: TreeNode) {
     let dir = (partial.value % 2) == 0;
-    actuallyMut++;
+    actuallyMut = actuallyMut + 1;
     replaceTreeWork(full, partial, dir);
 }
 
@@ -190,11 +212,11 @@ fun oldGenSwapSubtrees() {
         tn1.left = tn2.left;
         tn2.left = tmp;
     } else {
-        tmp = tn1.right;
+        let tmp = tn1.right;
         tn1.right = tn2.right;
         tn2.right = tmp;
     }
-    actuallyMut += 2;
+    actuallyMut = actuallyMut + 2;
 }
 
 fun oldGenMut(n: long) {
@@ -238,7 +260,7 @@ fun doStep(n: long) {
     doYoungGenAlloc(n, WORDS_DEAD);
     doMutWork(n);
     oldGenAlloc(n / promoteRate);
-    oldGenMut(max(0L, (mutations + ptrMutateRate) - actuallyMut));
+    oldGenMut(long::max(0L, (mutations + ptrMutRate) - actuallyMut));
 }
 
 fun main() {
@@ -258,21 +280,21 @@ fun main() {
     ptrMutRate = argv(3).parseInt();
     steps = argv(4).parseInt();
 
-    println("GCOld: version " + version);
+    println("GCOld: version 1.0");
     println(size.toString() + " megabytes of live storage");
     println(workUnits.toString() + " work units per step");
     println("promotion ratio is 1:" + promoteRate.toString());
     println("pointer mutation rate is " + ptrMutRate.toString());
     println(steps.toString() + " steps");
 
-    init();
+    inititialize();
     checkTrees();
     youngBytes = 0;
     nodes = 0;
 
     println("Initialization complete...");
 
-    let start = currentTimeMillis();
+    let start = timestamp();
 
     var step = 0;
 
@@ -281,8 +303,8 @@ fun main() {
         step = step + 1;
     }
 
-    let end = currentTimeMillis();
-    float secs = (end - start).toFloat() / 1000.0F;
+    let end = timestamp();
+    let secs = (end - start).toFloat() / 1000.0F;
 
     checkTrees();
 

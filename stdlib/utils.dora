@@ -175,143 +175,154 @@ class Queue<T> {
 }
 
 fun isValidUtf8(data: Array<byte>) -> bool {
-    var i = 0;
+  var i = 0;
 
-    while i < data.len() {
-        let by = data[i].toInt();
-        var codePoint = 0;
-        var nextBytes = 0;
-        var min = 0;
-        var max = 0;
+  while i < data.len() {
+    let by = data[i].toInt();
+    var codePoint = 0;
+    var nextBytes = 0;
+    var min = 0;
+    var max = 0;
 
-        if by & 0x80 == 0 {
-             nextBytes = 0;
-             i = i + 1;
-             continue;
+    if by & 0x80 == 0 {
+      nextBytes = 0;
+      i = i + 1;
+      continue;
 
-        } else if by & 0xC0 == 0x80 {
-             return false;
+    } else if by & 0xC0 == 0x80 {
+      return false;
 
-        } else if by & 0xE0 == 0xC0 {
-             codePoint = by & 0x1F;
-             nextBytes = 1;
-             min = 0x80;
-             max = 0x7FF;
+    } else if by & 0xE0 == 0xC0 {
+      codePoint = by & 0x1F;
+      nextBytes = 1;
+      min = 0x80;
+      max = 0x7FF;
 
-        } else if by & 0xF0 == 0xE0 {
-             codePoint = by & 0xF;
-             nextBytes = 2;
-             min = 0x800;
-             max = 0xFFFF;
+    } else if by & 0xF0 == 0xE0 {
+      codePoint = by & 0xF;
+      nextBytes = 2;
+      min = 0x800;
+      max = 0xFFFF;
 
-        } else if by & 0xF8 == 0xF0 {
-             codePoint = by & 0x7;
-             nextBytes = 3;
-             min = 0x10000;
-             max = 0x10FFFF;
-        }
-
-        while nextBytes > 0 {
-             nextBytes = nextBytes - 1;
-             i = i + 1;
-
-             if i >= data.len() {
-                  return false;
-             }
-
-             let by = data[i].toInt();
-
-             if by & 0xC0 != 0x80 {
-                 return false;
-             }
-
-             codePoint = (codePoint << 6) | (by & 0x3F);
-        }
-
-        if codePoint < min || codePoint > max {
-            return false;
-        }
-
-        i = i + 1;
+    } else if by & 0xF8 == 0xF0 {
+      codePoint = by & 0x7;
+      nextBytes = 3;
+      min = 0x10000;
+      max = 0x10FFFF;
     }
 
-    return true;
+    while nextBytes > 0 {
+      nextBytes = nextBytes - 1;
+      i = i + 1;
+
+      if i >= data.len() {
+        return false;
+      }
+
+      let by = data[i].toInt();
+
+      if by & 0xC0 != 0x80 {
+        return false;
+      }
+
+      codePoint = (codePoint << 6) | (by & 0x3F);
+    }
+
+    if codePoint < min || codePoint > max {
+      return false;
+    }
+
+    i = i + 1;
+  }
+
+  return true;
 }
 
 class StringBuf(var buf: Array<byte>, var length: int) {
-    init(): self(Array::<byte>(0), 0) {
+  init(): self(Array::<byte>(0), 0) {
 
+  }
+
+  fun len() -> int {
+    return self.length;
+  }
+
+  fun capacity() -> int {
+    return self.buf.len();
+  }
+
+  // reserve `elements` bytes
+  // (capacity - length >= elements)
+  fun reserve(elements: int) {
+    if self.capacity() - self.len() >= elements {
+      return;
     }
 
-    fun len() -> int {
-        return self.length;
+    let newcap = self.newCapacity(elements);
+    let newbuf = Array::<byte>(newcap);
+    var i = 0;
+
+    while i < self.buf.len() {
+      newbuf[i] = self.buf[i];
+      i = i + 1;
     }
 
-    fun capacity() -> int {
-        return self.buf.len();
+    self.buf = newbuf;
+  }
+
+  fun newCapacity(reserve: int) -> int {
+    var len = self.length;
+
+    if len == 0 {
+      len = 4;
     }
 
-    // reserve `elements` bytes
-    // (capacity - length >= elements)
-    fun reserve(elements: int) {
-        if self.capacity() - self.len() >= elements {
-            return;
-        }
+    let c1 = (len + reserve + 7) & !8;
+    let c2 = len * 2;
 
-        let newcap = self.newCapacity(elements);
-        let newbuf = Array::<byte>(newcap);
-        var i = 0;
+    if c1 > c2 {
+      return c1;
+    } else if c2 - c1 > 32 {
+      return c1;
+    } else {
+      return c2;
+    }
+  }
 
-        while i < self.buf.len() {
-            newbuf[i] = self.buf[i];
-            i = i + 1;
-        }
+  fun appendChar(ch: char) -> StringBuf {
+    let chLen = ch.lenUtf8();
+    self.reserve(chLen);
+    ch.encodeUtf8(self.buf, self.length);
+    self.length = self.length + chLen;
+    return self;
+  }
 
-        self.buf = newbuf;
+  fun appendString(value: Str) -> StringBuf {
+    self.reserve(value.len());
+    var i = 0;
+
+    while i < value.len() {
+      self.buf[self.length + i] = value.getByte(i);
+      i = i + 1;
     }
 
-    fun newCapacity(reserve: int) -> int {
-        var len = self.length;
+    self.length = self.length + value.len();
+    return self;
+  }
 
-        if len == 0 {
-            len = 4;
-        }
+  fun toString() -> Str {
+    return try! Str::fromBytesPart(self.buf, 0, self.len());
+  }
+}
 
-        let c1 = (len + reserve + 7) & !8;
-        let c2 = len * 2;
+class Random {
+  var seed: long = 0L;
 
-        if c1 > c2 {
-            return c1;
-        } else if c2 - c1 > 32 {
-            return c1;
-        } else {
-            return c2;
-        }
-    }
+  init(seed: long) {
+    self.seed = seed;
+  }
 
-    fun appendChar(ch: char) -> StringBuf {
-        let chLen = ch.lenUtf8();
-        self.reserve(chLen);
-        ch.encodeUtf8(self.buf, self.length);
-        self.length = self.length + chLen;
-        return self;
-    }
-
-    fun appendString(value: Str) -> StringBuf {
-        self.reserve(value.len());
-        var i = 0;
-
-        while i < value.len() {
-            self.buf[self.length + i] = value.getByte(i);
-            i = i + 1;
-        }
-
-        self.length = self.length + value.len();
-
-        return self;
-    }
-
-    fun toString() -> Str {
-        return try! Str::fromBytesPart(self.buf, 0, self.len());
-    }
+  fun nextInt() -> int {
+    return 0;
+  }
 }
