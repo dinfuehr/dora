@@ -11,12 +11,34 @@ class Random {
 
   fun nextIntWithBound(bound: int) -> int {
     assert(bound > 0);
-    return 0;
+    let bound_minus_1 = bound - 1;
+
+    if (bound & bound_minus_1) == 0 {
+      let num = self.nextInt31().toLong();
+      return ((bound.toLong() * num) >>> 31L).toInt();
+    }
+
+    var mod = 0;
+
+    loop {
+      let num = self.nextInt31();
+      mod = num % bound;
+
+      if num - mod + bound_minus_1 >= 0 {
+        break;
+      }
+    }
+
+    return mod;
   }
 
   fun nextInt() -> int {
     self.seed = (self.seed * RANDOM_MULTIPLIER + RANDOM_INCREMENT) & RANDOM_MASK;
     return (self.seed >>> 16L).toInt();
+  }
+
+  fun nextInt31() -> int {
+    return self.nextInt() & 0x7F_FF_FF_FF;
   }
 
   fun nextLong() -> long {

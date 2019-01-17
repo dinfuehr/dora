@@ -205,6 +205,7 @@ fun oldGenSwapSubtrees() {
         }
 
         path = path >> 1;
+        i = i + 1;
     }
 
     if (path & 1) == 0 {
