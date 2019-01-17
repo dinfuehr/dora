@@ -160,8 +160,9 @@ fn init_global_addresses<'ast>(ctxt: &SemContext<'ast>) {
         let ty_size = glob.ty.size(ctxt);
         let ty_align = glob.ty.align(ctxt);
 
-        offsets.push(mem::align_i32(size, ty_align));
-        size += ty_size;
+        let offset = mem::align_i32(size, ty_align);
+        offsets.push(offset);
+        size = offset + ty_size;
     }
 
     let ptr = ctxt.gc.alloc_perm(size as usize);
