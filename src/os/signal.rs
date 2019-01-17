@@ -172,9 +172,11 @@ impl Trap {
     }
 }
 
+#[repr(C)]
 struct siginfo_t {
     pub si_signo: libc::c_int,
     pub si_errno: libc::c_int,
     pub si_code: libc::c_int,
+    pub _pad: libc::c_int,
     pub si_addr: *const libc::c_void,
 }
