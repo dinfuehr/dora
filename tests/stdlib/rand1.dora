@@ -1,0 +1,8 @@
+fun main() {
+    let rnd = Random(0L);
+
+    assert(rnd.nextInt() == -1155484576);
+    assert(rnd.nextInt() == -723955400);
+    assert(rnd.nextInt() == 1033096058);
+    assert(rnd.nextInt() == -1690734402);
+}

@@ -1,0 +1,28 @@
+const RANDOM_MULTIPLIER: long = 25214903917L;
+const RANDOM_INCREMENT: long = 11L;
+const RANDOM_MASK: long = 0xFF_FF_FF_FF_FF_FFL;
+
+class Random {
+  var seed: long = 0L;
+
+  init(seed: long) {
+    self.seed = (seed ^ RANDOM_MULTIPLIER) & RANDOM_MASK;
+  }
+
+  fun nextIntWithBound(bound: int) -> int {
+    assert(bound > 0);
+    return 0;
+  }
+
+  fun nextInt() -> int {
+    self.seed = (self.seed * RANDOM_MULTIPLIER + RANDOM_INCREMENT) & RANDOM_MASK;
+    return (self.seed >>> 16L).toInt();
+  }
+
+  fun nextLong() -> long {
+    let w1 = self.nextInt();
+    let w2 = self.nextInt();
+
+    return (w1.toLong() << 32L) | w2.toLong();
+  }
+}

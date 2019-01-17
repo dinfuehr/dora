@@ -314,19 +314,3 @@ class StringBuf(var buf: Array<byte>, var length: int) {
     return try! Str::fromBytesPart(self.buf, 0, self.len());
   }
 }
-
-class Random {
-  var seed: long = 0L;
-
-  init(seed: long) {
-    self.seed = seed;
-  }
-
-  fun nextIntWithBound(bound: int) -> int {
-    return 0;
-  }
-
-  fun nextInt() -> int {
-    return 0;
-  }
-}

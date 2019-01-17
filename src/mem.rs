@@ -78,13 +78,19 @@ pub fn align_i32(value: i32, align: i32) -> i32 {
 }
 
 /// rounds the given value `val` up to the nearest multiple
-/// of `align`
+/// of `align`.
 pub fn align_usize(value: usize, align: usize) -> usize {
     if align == 0 {
         return value;
     }
 
     ((value + align - 1) / align) * align
+}
+
+/// returns 'true' if th given `value` is already aligned
+/// to `align`.
+pub fn is_aligned(value: usize, align: usize) -> bool {
+    align_usize(value, align) == value
 }
 
 /// returns true if value fits into u8 (unsigned 8bits).

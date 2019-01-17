@@ -264,6 +264,8 @@ fun doStep(n: long) {
 }
 
 fun main() {
+    rnd = Random(1234567890L);
+
     if argc() != 5 {
         println("Usage: java GCOld <size> <work> <ratio> <mutation> <steps>");
         println("  where <size> is the live storage in megabytes");

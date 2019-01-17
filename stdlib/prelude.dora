@@ -11,7 +11,7 @@ fun unimplemented() {
 
 internal fun print(text: Str);
 internal fun println(text: Str);
-internal fun address_of(object: Object) -> long;
+internal fun addressOf(object: Object) -> long;
 internal fun assert(val: bool);
 internal fun debug();
 internal fun argc() -> int;

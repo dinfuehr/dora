@@ -28,6 +28,7 @@ use ctxt::{CallSite, Fct, FctId, FctParent, FctSrc, VarId};
 use driver::cmd::AsmSyntax;
 use gc::Address;
 use masm::*;
+use mem;
 use os;
 use os::signal::Trap;
 use semck::always_returns;
@@ -118,6 +119,9 @@ pub fn generate_fct<'ast>(
     let fct_ptr = jit_fct.fct_ptr();
     let ptr_start = jit_fct.ptr_start();
     let ptr_end = jit_fct.ptr_end();
+
+    debug_assert!(mem::is_aligned(ptr_start.to_usize(), 16));
+    debug_assert!(mem::is_aligned(fct_ptr.to_usize(), 16));
 
     let jit_fct_id = {
         let mut jit_fcts = vm.jit_fcts.lock();

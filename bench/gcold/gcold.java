@@ -80,7 +80,7 @@ public class gcold {
 
   private static TreeNode[] trees;
   private static int where = 0;               // roving index into trees
-  private static Random rnd = new Random();
+  private static Random rnd = new Random(1234567890L);
 
   // Returns the height of the given tree.
 
