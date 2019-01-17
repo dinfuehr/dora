@@ -309,11 +309,12 @@ fun main() {
     }
 
     let end = timestamp();
-    let secs = (end - start).toFloat() / 1000.0F;
+    let secs = (end - start).toFloat() / 1000.0F / 1000.0F / 1000.0F;
 
     checkTrees();
 
-    println("\nTook " + secs.toString() + " Mb of young gen garabge"
+    println("\nTook " + secs.toString() + " sec in steady state.");
+    println("Allocated " + steps.toString() + " Mb of young gen garabge"
             + " (= " + (steps.toFloat() / secs).toString() + " Mb/sec)");
     println("    (actually allocated "
             + (youngBytes.toFloat() / MEG.toFloat()).toString() + " megabytes");
