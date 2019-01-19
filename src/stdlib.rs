@@ -227,6 +227,13 @@ pub extern "C" fn str_parse_int(val: Ref<Str>) -> i32 {
     val.parse::<i32>().unwrap_or(0)
 }
 
+pub extern "C" fn str_parse_long(val: Ref<Str>) -> i64 {
+    let slice = val.content();
+    let val = str::from_utf8(slice).unwrap();
+
+    val.parse::<i64>().unwrap_or(0)
+}
+
 pub extern "C" fn load_function(name: Ref<Str>) -> usize {
     let name = name.to_cstring();
 

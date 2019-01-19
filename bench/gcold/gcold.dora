@@ -325,7 +325,7 @@ fun main() {
 
     if ptrMutRate != 0 {
         println("Mutated " + actuallyMut.toString() +
-                " pointers (=" + (actuallyMut.toFloat() / secs).toString() + " ptrs/sec)");
+                " pointers (= " + (actuallyMut.toFloat() / secs).toString() + " ptrs/sec)");
     }
 
     println("Checksum = " + (mutatorSum + aexport.len().toLong()).toString());

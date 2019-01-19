@@ -1,0 +1,210 @@
+open abstract class Node {
+    var birthday: int;
+    var value: int;
+    var left: Node;
+    var right: Node;
+
+    init() {}
+
+    init(birthday: int, value: int) {
+        self.birthday = birthday;
+        self.value = value;
+    }
+
+    static fun splay(var tree: Node, node: Node) -> Node {
+        if tree === nil {
+            return tree;
+        }
+
+        node.left = nil;
+        node.right = nil;
+
+        var l: Node = nil;
+        var r: Node = nil;
+
+        loop {
+            if node.value <= tree.value {
+                if tree.left === nil {
+                    break;
+                }
+
+                if node.value <= tree.left.value {
+                    let y = tree.left;
+                    tree.left = y.right;
+                    y.right = tree;
+                    tree = y;
+                    if tree.left === nil {
+                        break;
+                    }
+                }
+
+                r.left = tree;
+                r = tree;
+                tree = tree.left;
+
+            } else if node.value > tree.value {
+                if tree.right === nil {
+                    break;
+                }
+
+                if node.value > tree.right.value {
+                    let y = tree.right;
+                    tree.right = y.left;
+                    y.left = tree;
+                    tree = y;
+                    if tree.right === nil {
+                        break;
+                    }
+                }
+
+                l.right = tree;
+                l = tree;
+                tree = tree.right;
+
+            } else {
+                break;
+            }
+        }
+
+        l.right = tree.left;
+        r.left = tree.right;
+        tree.left = node.right;
+        tree.right = node.left;
+        return tree;
+    }
+
+    static fun insert(var tree: Node, node: Node) -> Node {
+        if tree === nil {
+            return node;
+        }
+
+        tree = Node::splay(tree, node);
+
+        if node.value <= tree.value {
+            node.left = tree.left;
+            node.right = tree;
+            tree.left = nil;
+        } else {
+            node.right = tree.right;
+            node.left = tree;
+            tree.right = nil;
+        }
+
+        return nil;
+    }
+
+    static fun trunc(date: int, tree: Node, depth: int) {
+        if tree === nil {
+            return;
+        }
+
+        if tree.left !== nil {
+            if depth == 0 {
+                tree.left = nil;
+            } else {
+                Node::trunc(date, tree.left, depth-1);
+            }
+        }
+
+        if tree.right !== nil {
+            if depth == 0 {
+                tree.right = nil;
+            } else {
+                Node::trunc(date, tree.right, depth-1);
+            }
+        }
+    }
+
+    fun printAge(date: int) {
+        println((date - self.birthday).toString());
+    }
+
+    fun printAges(date: int) {
+        self.printAge(date);
+
+        if self.left !== nil {
+            self.left.printAges(date);
+        }
+
+        if self.right !== nil {
+            self.right.printAges(date);
+        }
+    }
+
+    fun printTree(date: int, prefix: Str) {
+        print(prefix);
+        print("age: " + (date - self.birthday).toString());
+        println(" value: " + self.value.toString());
+
+        if self.left !== nil {
+            self.left.printTree(date, prefix + "  ");
+        }
+
+        if self.right !== nil {
+            self.right.printTree(date, prefix + "  ");
+        }
+    }
+}
+
+class NodeA: Node {}
+class NodeB: Node { let x1: long = 0L; }
+class NodeC: Node { let x1: long = 0L; let x2: long = 0L; }
+class NodeD: Node { let x1: double = 0.0; let x2: double = 0.0; let x3: double = 0.0; }
+
+class Node40: Node {}
+class Node48: Node { let x1: long = 0L; }
+class Node56: Node { let x1: long = 0L; let x2: long = 0L; }
+class Node64: Node { let x1: long = 0L; let x2: long = 0L; let x3: long = 0L; }
+class Node72: Node { let x1: long = 0L; let x2: long = 0L; let x3: long = 0L; let x4: long = 0L; }
+class Node80: Node { let x1: long = 0L; let x2: long = 0L; let x3: long = 0L; let x4: long = 0L; let x5: long = 0L; }
+
+fun main() {
+    if argc() < 4 {
+        println("usage: spluc <seed> <max-size> <iterations> <trunc-depth> [<iterations> <trunc-depth>]");
+        return;
+    }
+
+    let rnd = Random(argv(0).parseLong());
+    let max_size = argv(0).parseInt();
+    var date = 0;
+
+    var tree: Node = NodeA();
+    tree.birthday = date;
+    date = date + 1;
+    tree.value = rnd.nextIntWithBound(max_size);
+
+    var j = 2;
+
+    while j + 2 <= argc() {
+        let n = argv(j).parseInt();
+        let depth = argv(j+1).parseInt();
+
+        var i = 0;
+        while i < n {
+            let value = rnd.nextIntWithBound(4);
+            var node: Node = nil;
+
+            if value == 0 {
+                node = NodeA();
+            } else if value == 1 {
+                node = NodeB();
+            } else if value == 2 {
+                node = NodeC();
+            } else {
+                assert(value == 3);
+                node = NodeD();
+            }
+
+            node.birthday = date;
+            date = date + 1;
+            node.value = rnd.nextIntWithBound(max_size);
+
+            tree = Node::insert(tree, node);
+            Node::trunc(date, tree, depth);
+
+            i = i + 1;
+        }
+
+        j = j + 2;
+    }
+}

@@ -23,6 +23,7 @@ internal class Str {
 
   internal fun len() -> int;
   internal fun parseInt() -> int;
+  internal fun parseLong() -> long;
   internal fun plus(rhs: Str) -> Str;
 
   internal fun getByte(idx: int) -> byte;
