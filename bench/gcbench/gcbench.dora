@@ -1,0 +1,117 @@
+class Node {
+    var i: int;
+    var j: int;
+    var left: Node;
+    var right: Node;
+
+    init() {}
+    init(left: Node, right: Node) {
+        self.left = left;
+        self.right = right;
+    }
+}
+
+const kStretchTreeDepth: int = 18;    // about 16M
+const kLongLivedTreeDepth: int = 16;  // about 4M
+const kArraySize: int = 500000;       // about 4M
+const kMinTreeDepth: int = 4;
+const kMaxTreeDepth: int = 16;
+
+fun treeSize (i: int) -> int {
+    return (1 << (1 + 1)) - 1;
+}
+
+fun numIters(i: int) -> int {
+    return 2 * treeSize(kStretchTreeDepth) / treeSize(i);
+}
+
+fun populate(var iDepth: int, thisNode: Node) {
+    if iDepth <= 0 {
+        return;
+    } else {
+        iDepth = iDepth - 1;
+        thisNode.left = Node();
+        thisNode.right = Node();
+        populate(iDepth, thisNode.left);
+        populate(iDepth, thisNode.right);
+    }
+}
+
+fun makeTree(iDepth: int) -> Node {
+    if iDepth <= 0 {
+        return Node();
+    } else {
+        return Node(makeTree(iDepth-1), makeTree(iDepth-1));
+    }
+}
+
+fun timeConstruction(depth: int) {
+    let iNumIters = numIters(depth);
+    println("Creating " + iNumIters.toString() + " trees of depth " + depth.toString());
+    let start = timestamp();
+
+    var i = 0;
+
+    while i < iNumIters {
+        let tempTree = Node();
+        populate(depth, tempTree);
+        i = i + 1;
+    }
+
+    let finish = timestamp();
+    let msecs = (finish - start).toFloat() / 1000.0F / 1000.0F;
+    println("\tTop down construction took " + msecs.toString() + "ms");
+
+    let start = finish;
+
+    var i = 0;
+
+    while i < iNumIters {
+        let tempTree = makeTree(depth);
+        i = i + 1;
+    }
+
+    let finish = timestamp();
+    let msecs = (finish - start).toFloat() / 1000.0F / 1000.0F;
+    println("\tBottom up construction took " + msecs.toString() + "ms");
+}
+
+fun printDiagnostics() {
+
+}
+
+fun main() {
+    println("Stretching memory with a binary tree of depth " + kStretchTreeDepth.toString());
+    printDiagnostics();
+    let start = timestamp();
+
+    makeTree(kStretchTreeDepth);
+
+    println("Creating a long-lived binary tree of depth " + kLongLivedTreeDepth.toString());
+    let longLivedTree = Node();
+    populate(kLongLivedTreeDepth, longLivedTree);
+
+    println("Creating a long-lived array of " + kArraySize.toString() + " doubles");
+    let array = Array::<double>(kArraySize);
+
+    var i = 0;
+
+    while i < kArraySize / 2 {
+        array[i] = 1.0/i.toDouble();
+        i = i + 1;
+    }
+    printDiagnostics();
+
+    var d = kMinTreeDepth;
+
+    while d <= kMaxTreeDepth {
+        timeConstruction(d);
+        d = d + 2;
+    }
+
+    assert(longLivedTree !== nil && array[1000] == 1.0/1000.0);
+    let finish = timestamp();
+    let elapsed = (finish - start).toFloat() / 1000.0F / 1000.0F;
+    printDiagnostics();
+    println("Completed in " + elapsed.toString() + "ms.");
+}
