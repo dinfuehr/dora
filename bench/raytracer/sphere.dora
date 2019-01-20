@@ -1,0 +1,68 @@
+class Sphere: Primitive {
+    var c: Vec3;
+    var r: double;
+    var r2: double;
+    var v: Vec3;
+    var b: Vec3;
+
+    init(center: Vec3, radius: double) {
+        self.c = center;
+        self.r = radius;
+        self.r2 = self.r * self.r;
+        self.v = Vec3();
+        self.b = Vec3();
+    }
+
+    fun intersect(ry: Ray) -> Isect {
+        v.sub2(c, ry.P);
+        let b = Vec::dot(v, ry.D);
+        let disc = b*b - Vec::dot(v, v) + r2;
+        if disc < 0.0 {
+            return nil;
+        }
+
+        let disc = disc.sqrt();
+        let t = 0.0;
+        
+        if b - disc < 1.0e-6 {
+            t = b + disc;
+        } else {
+            t = b - disc;
+        }
+
+        if t < 1.0e-6 {
+            return nil;
+        }
+
+        let ip = Isect();
+        ip.t = t;
+
+        if Vec::dot(v, v) > r2 + 1.0e-6 {
+            ip.enter = 1;
+        } else {
+            ip.enter = 0;
+        }
+
+        ip.prim = self;
+        ip.surf = surf;
+        return ip;
+    }
+
+    fun normal(p: Vec3) -> Vec3 {
+        let r = Vec::sub(p, self.c);
+        r.normalize();
+        return r;
+    }
+
+    fun toString() {
+        return "Sphere {" + c.toString() + "," + r.toString() + "}";
+    }
+
+    fun getCenter() -> Vec3 {
+        return self.c;
+    }
+
+    fun setCenter(c: Vec3) {
+        self.c = c;
+    }
+}

@@ -1,0 +1,6 @@
+class Isect {
+    var t: double;
+    var enter: int;
+    var prim: Primitive;
+    var surf: Surface;
+}

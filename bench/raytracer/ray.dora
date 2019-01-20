@@ -1,0 +1,27 @@
+class Ray {
+    var P: Vec3;
+    var D: Vec3;
+
+    init(pnt: Vec3, dir: Vec3) {
+        self.P = Vec3(pnt.x, pnt.y, pnt.z);
+        self.D = Vec3(dir.x, dir.y, dir.z);
+        self.D.normalize();
+    }
+
+    init() {
+        self.P = Vec3();
+        self.D = Vec3();
+    }
+
+    fun point(t: double) {
+        return Vec3(
+            self.P.x + self.D.x * t,
+            self.P.y + self.D.y * t,
+            self.P.z + self.D.z * t,
+        )
+    }
+
+    fun toString() -> Str {
+        return "{" + self.P.toString() + " -> " + self.D.toString() + "}";
+    }
+}

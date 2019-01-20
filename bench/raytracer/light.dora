@@ -1,0 +1,11 @@
+class Light {
+    var pos: Vec3;
+    var brightness: double;
+
+    init() {}
+
+    init(x: double, y: double, z: double, brightness: double) {
+        self.pos = Vec3(x, y, z);
+        self.brightness = brightness;
+    }
+}

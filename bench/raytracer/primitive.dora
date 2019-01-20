@@ -1,0 +1,17 @@
+open abstract class Primitive {
+    var surf: Surface;
+
+    init() {
+        self.surf = Surface();
+    }
+
+    fun setColor(r: double, g: double, b: double) {
+        self.surf.color = Vec3(r, g, b);
+    }
+
+    abstract fun normal(pnt: Vec3) -> Vec3;
+    abstract fun intersect(ry: Ray) -> Isect;
+    abstract fun toString() -> Str;
+    abstract fun getCenter() -> Vec3;
+    abstract fun setCenter(c: Vec3);
+}

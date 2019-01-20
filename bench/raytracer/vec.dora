@@ -1,0 +1,106 @@
+class Vec3 {
+    var x: double;
+    var y: double;
+    var z: double;
+
+    init() {
+        self.x = 0.0;
+        self.y = 0.0;
+        self.z = 0.0;
+    }
+
+    init(x: double, y: double, z: double) {
+        self.x = x;
+        self.y = y;
+        self.z = z;
+    }
+
+    init(a: Vec3) {
+        self.x = a.x;
+        self.y = a.y;
+        self.z = a.z;
+    }
+
+    fun add(a: Vec) {
+        self.x = self.x + a.x;
+        self.y = self.y + a.y;
+        self.z = self.z + a.z;
+    }
+
+    static adds(s: double, a: Vec3, b: Vec3) -> Vec {
+        return Vec3(s * a.x + b.x, s * a.y + b.y, s * a.z + b.z);
+    }
+
+    fun adds(s: double, a: Vec3) {
+        self.x = self.x + s * b.x;
+        self.y = self.y + s * b.y;
+        self.z = self.z + s * b.z;
+    }
+
+    fun sub(a: Vec3, b: Vec3) {
+        return Vec3(a.x - b.x, a.y - b.y, a.z - b.z);
+    }
+
+    fun sub2(a: Vec3, b: Vec3) {
+        self.x = a.x - b.x;
+        self.y = a.y - b.y;
+        self.z = a.z - b.z;
+    }
+
+    static fun mult(a: Vec3, b: Vec3) -> Vec3 {
+        return Vec3(a.x * b.x, a.y * b.y, a.z * b.z);
+    }
+
+    static fun cross(a: Vec3, b: Vec3) -> Vec3 {
+        return Vec3(a.y * b.z - a.z * b.y,
+                    a.z * b.x - a.x * b.z,
+                    a.x * b.y - a.y * b.x);
+    }
+
+    static fun dot(a: Vec3, b: Vec3) -> double {
+        return a.x * b.x + a.y * b.y + a.z * b.z;
+    }
+
+    static fun com(a: double, av: Vec3, b: double, bv: Vec3) -> Vec3 {
+        return Vec3(
+            a * av.x + b * bv.x,
+            a * av.y + b * bv.y,
+            a * av.z + b * bv.z,
+        );
+    }
+
+    fun comb2(a: double, av: Vec3, b: double, bv: Vec3) {
+        self.x = a * av.x + b * bv.x;
+        self.y = a * av.y + b * bv.y;
+        self.z = a * av.z + b * bv.z;
+    }
+
+    fun scale(t: double) {
+        self.x = self.x * t;
+        self.y = self.y * t;
+        self.z = self.z * t;
+    }
+
+    fun negate() {
+        self.x = -self.x;
+        self.y = -self.y;
+        self.z = -self.z;
+    }
+
+    fun normalize() {
+        let len = (x*x + y*y + z*z).sqrt();
+
+        if len > 0.0 {
+            self.x = self.x / len;
+            self.y = self.y / len;
+            self.z = self.z / len;
+        }
+
+        return len;
+    }
+
+    fun toString() -> Str {
+        return "<" + x.toString() + "," + y.toString() + "," +
+               z.toString() + ">";
+    }
+}

@@ -1,0 +1,17 @@
+class View {
+    var from: Vec3;
+    var at: Vec3;
+    var up: Vec3;
+    var dist: double;
+    var angle: double;
+    var aspect: double;
+
+    init(from: Vec3, at: Vec3, up: Vec3, dist: double, angle: double, aspect: double) {
+        self.from = from;
+        self.at = at;
+        self.up = up;
+        self.dist = dist;
+        self.angle = angle;
+        self.aspect = aspect;
+    }
+}

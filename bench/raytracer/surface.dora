@@ -1,0 +1,21 @@
+class Surface {
+    var color: Vec3;
+    var kd: double;
+    var ks: double;
+    var shine: double;
+    var kt: double;
+    var ior: double;
+
+    init() {
+        self.color = Vec3(1.0, 0.0, 0.0);
+        self.kd = 1.0;
+        self.ks = 0.0;
+        self.shine = 0.0;
+        self.kt = 0.0;
+        self.ior = 1.0;
+    }
+
+    fun toString() {
+        return "Surface { color=" + color.toString() + " }";
+    }
+}

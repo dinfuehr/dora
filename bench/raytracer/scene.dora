@@ -1,0 +1,46 @@
+class Scene {
+    let lights: Vec<Light>;
+    let objects: Vec<Primitive>;
+    var view: View;
+
+    init() {
+        self.lights = Vec::<Light>();
+        self.objects = Vec::<Primitive>();
+    }
+
+    fun addLight(l: Light) {
+        self.lights.push(l);
+    }
+
+    fun addObject(object: Primitive) {
+        self.objects.push(object);
+    }
+
+    fun setView(view: View) {
+        self.view = view;
+    }
+
+    fun getView() -> View {
+        return self.view;
+    }
+
+    fun getLight(number: int) -> Light {
+        return self.lights[number];
+    }
+
+    fun getObject(number: int) -> Primitive {
+        return self.objects[number];
+    }
+
+    fun getLights() -> int {
+        return self.lights.len();
+    }
+
+    fun getObjects() -> int {
+        return self.objects.len();
+    }
+
+    fun setObject(object: Primitive, pos: int) {
+        self.objects[pos] = object;
+    }
+}
