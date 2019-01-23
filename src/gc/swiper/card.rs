@@ -91,7 +91,7 @@ impl CardTable {
         assert!(end >= self.old_and_large.start && end <= self.old_end);
         let (start_card_idx, end_card_idx) = self.card_indices(self.old_and_large.start, end);
 
-        for card_idx in start_card_idx..end_card_idx {
+        for card_idx in start_card_idx..=end_card_idx {
             if self.get(card_idx.into()).is_dirty() {
                 f(card_idx.into());
             }
@@ -162,8 +162,6 @@ impl CardTable {
         assert!(end >= start);
 
         let card_start = self.card_idx(start);
-
-        let end = mem::align_usize(end.to_usize(), CARD_SIZE).into();
         let card_end = self.card_idx(end);
 
         (card_start.to_usize(), card_end.to_usize())

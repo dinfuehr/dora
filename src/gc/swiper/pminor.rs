@@ -173,7 +173,7 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         let object_end = object_start.offset(object.size() as usize);
         let (start_card_idx, end_card_idx) = self.card_table.card_indices(object_start, object_end);
 
-        for card_idx in start_card_idx..end_card_idx {
+        for card_idx in start_card_idx..=end_card_idx {
             let card_idx = card_idx.into();
 
             if self.card_table.get(card_idx).is_clean() {
