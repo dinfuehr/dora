@@ -6,7 +6,7 @@ use std::ops::{Deref, DerefMut};
 use std::ptr::NonNull;
 use std::{self, fmt, ptr, slice};
 
-use class::ClassDef;
+use class::{ClassDef, ClassSize};
 
 pub const DISPLAY_SIZE: usize = 6;
 
@@ -166,6 +166,15 @@ impl VTable {
         unsafe {
             let ptr = NonNull::new_unchecked(self.subtype_overflow as *const _ as *mut u8);
             heap.dealloc(ptr, lay);
+        }
+    }
+
+    pub fn is_array_ref(&self) -> bool {
+        let cls = self.class();
+
+        match cls.size {
+            ClassSize::ObjArray => true,
+            _ => false,
         }
     }
 }

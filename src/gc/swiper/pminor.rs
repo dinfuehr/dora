@@ -17,6 +17,7 @@ use gc::tlab::{TLAB_OBJECT_SIZE, TLAB_SIZE};
 use gc::{fill_region, Address, GcReason, Region};
 use mem;
 use object::Obj;
+use vtable::VTable;
 
 use crossbeam_deque::{self as deque, Pop, Steal, Stealer, Worker};
 use rand::distributions::{Distribution, Uniform};
@@ -116,7 +117,17 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
 
         self.young.unprotect_to();
 
+        let dev_verbose = self.vm.args.flag_gc_dev_verbose;
+
+        if dev_verbose {
+            println!("Minor GC: Worker threads started");
+        }
+
         self.run_threads();
+
+        if dev_verbose {
+            println!("Minor GC: Worker threads finished");
+        }
 
         if self.promotion_failed {
             // oh no: promotion failed, we need a subsequent full GC
@@ -184,6 +195,10 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         let promotion_failed = Mutex::new(self.promotion_failed);
         let promotion_failed = &promotion_failed;
 
+        let next_stride = Mutex::new(0);
+        let next_stride = &next_stride;
+        let strides = 4 * self.number_workers;
+
         self.threadpool.scoped(|scoped| {
             for (task_id, worker) in workers.into_iter().enumerate() {
                 let stealers = stealers.clone();
@@ -216,6 +231,9 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
 
                         from_active: young.from_active(),
                         eden_active: young.eden_active(),
+
+                        next_stride: next_stride,
+                        strides: strides,
 
                         promoted_size: 0,
                         traced: 0,
@@ -470,6 +488,9 @@ struct CopyTask<'a, 'ast: 'a> {
     init_old_top: Address,
     barrier: &'a Barrier,
 
+    next_stride: &'a Mutex<usize>,
+    strides: usize,
+
     young_region: Region,
     from_active: Region,
     eden_active: Region,
@@ -517,14 +538,36 @@ where
     }
 
     fn visit_dirty_cards_in_old(&mut self) {
+        loop {
+            if let Some(stride) = self.next_stride() {
+                self.visit_dirty_cards_in_stride(stride);
+            } else {
+                break;
+            }
+        }
+    }
+
+    fn next_stride(&mut self) -> Option<usize> {
+        let mut next_stride = self.next_stride.lock();
+        let stride = *next_stride;
+
+        if stride >= self.strides {
+            return None;
+        }
+
+        *next_stride += 1;
+        Some(stride)
+    }
+
+    fn visit_dirty_cards_in_stride(&mut self, stride: usize) {
         let (start_card_idx, end_card_idx) = self
             .card_table
             .card_indices(self.old.total().start, self.init_old_top);
-        let dirty_cards_for_thread = (start_card_idx..=end_card_idx)
-            .skip(self.task_id)
-            .step_by(self.number_workers);
+        let dirty_cards_in_stride = (start_card_idx..=end_card_idx)
+            .skip(stride)
+            .step_by(self.strides);
 
-        for card_idx in dirty_cards_for_thread {
+        for card_idx in dirty_cards_in_stride {
             let card_idx: CardIdx = card_idx.into();
 
             if self.card_table.get(card_idx).is_dirty() {
@@ -903,6 +946,7 @@ where
         }
 
         let obj_size = obj.size_for_vtblptr(vtblptr);
+
         debug_assert!(
             self.from_active.contains(obj_addr) || self.eden_active.contains(obj_addr),
             "copy objects only from from-space."
@@ -939,7 +983,8 @@ where
     }
 
     fn promote_object(&mut self, vtblptr: Address, obj: &mut Obj, obj_size: usize) -> Address {
-        let copy_addr = self.alloc_old(obj_size, obj.is_array_ref());
+        let array_ref = unsafe { &*vtblptr.to_mut_ptr::<VTable>() }.is_array_ref();
+        let copy_addr = self.alloc_old(obj_size, array_ref);
 
         // if there isn't enough space in old gen keep it in the
         // young generation for now. A full collection will be forced later and

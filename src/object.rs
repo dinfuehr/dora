@@ -238,12 +238,7 @@ impl Obj {
     }
 
     pub fn is_array_ref(&self) -> bool {
-        let cls = self.header().vtbl().class();
-
-        match cls.size {
-            ClassSize::ObjArray => true,
-            _ => false,
-        }
+        self.header().vtbl().is_array_ref()
     }
 
     pub fn size_for_vtblptr(&self, vtblptr: Address) -> usize {
