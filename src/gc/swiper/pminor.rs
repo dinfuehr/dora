@@ -119,26 +119,20 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         let dev_verbose = self.vm.args.flag_gc_dev_verbose;
 
         if dev_verbose {
-            println!("Minor GC: Phase 1 (roots)");
-        }
-
-        self.visit_roots();
-
-        if dev_verbose {
-            println!("Minor GC: Phase 2 (dirty cards)");
+            println!("Minor GC: Phase 1 (dirty cards)");
         }
 
         self.copy_dirty_cards();
         self.visit_large_objects();
 
         if dev_verbose {
-            println!("Minor GC: Phase 3 (traverse)");
+            println!("Minor GC: Phase 2 (traverse)");
         }
 
         self.trace_gray_objects();
 
         if dev_verbose {
-            println!("Minor GC: Phase 3 (traverse) finished");
+            println!("Minor GC: Phase 2 (traverse) finished");
         }
 
         if self.promotion_failed {
@@ -161,17 +155,6 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         config.minor_copied = self.young.from_active().size();
 
         self.promotion_failed
-    }
-
-    fn visit_roots(&mut self) {
-        // detect all references from roots into young generation
-        for &root in self.rootset {
-            let root_ptr = root.get();
-
-            if self.young.contains(root_ptr) {
-                root.set(self.copy(root_ptr));
-            }
-        }
     }
 
     fn visit_large_objects(&mut self) {
@@ -270,7 +253,9 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         let crossing_map = self.crossing_map;
         let young = self.young;
         let old = self.old;
+        let rootset = self.rootset;
 
+        let number_workers = self.number_workers;
         let promoted_size = Arc::new(Mutex::new(self.promoted_size));
         let promotion_failed = Arc::new(Mutex::new(self.promotion_failed));
 
@@ -290,6 +275,7 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
                         local: Vec::new(),
                         worker: worker,
                         stealers: stealers,
+                        number_workers: number_workers,
                         terminator: terminator,
 
                         vm: vm,
@@ -298,6 +284,7 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
                         young_region: young_region,
                         card_table: card_table,
                         crossing_map: crossing_map,
+                        rootset: rootset,
 
                         from_active: young.from_active(),
                         eden_active: young.eden_active(),
@@ -747,6 +734,7 @@ struct CopyTask<'a, 'ast: 'a> {
     local: Vec<Address>,
     worker: Worker<Address>,
     stealers: Vec<Stealer<Address>>,
+    number_workers: usize,
     terminator: Arc<Terminator>,
 
     vm: &'a VM<'ast>,
@@ -754,6 +742,7 @@ struct CopyTask<'a, 'ast: 'a> {
     old: &'a OldGen,
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
+    rootset: &'a [Slot],
 
     young_region: Region,
     from_active: Region,
@@ -774,6 +763,27 @@ where
     'ast: 'a,
 {
     fn run(&mut self) {
+        self.visit_roots();
+        self.visit_dirty_cards();
+        self.trace_gray_objects();
+    }
+
+    fn visit_roots(&mut self) {
+        let rootset_for_thread = self.rootset.iter().skip(self.task_id).step_by(self.number_workers);
+        for root in rootset_for_thread {
+            let object_addr = root.get();
+
+            if self.young_region.contains(object_addr) {
+                root.set(self.copy(object_addr));
+            }
+        }
+    }
+
+    fn visit_dirty_cards(&mut self) {
+        // implement me
+    }
+
+    fn trace_gray_objects(&mut self) {
         loop {
             let object_addr = if let Some(object_addr) = self.pop() {
                 object_addr
