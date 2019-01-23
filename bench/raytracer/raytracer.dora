@@ -1,0 +1,49 @@
+const alpha: int = 255<24;
+
+class RayTracer {
+    var scene: Scence;
+    var lights: Array<Light>;
+    var prim: Array<Primitive>;
+    var view: View;
+    var tRay: Ray;
+    var L: Vec3;
+    var inter: Isect;
+    var height: int;
+    var width: int;
+    var datasizes: Array<int>;
+    var checksum: long;
+    var size: int;
+    var numobjects: int;
+    
+    fun createScene() -> Scene {
+
+    }
+
+    fun setScene(scene: Scene) {
+
+    }
+
+    fun render(interval: Interval) {
+
+    }
+
+    fun intersect(r: Ray, maxt: double) -> bool {
+
+    }
+
+    fun Shadow(r: Ray, tmax: double) -> int {
+
+    }
+
+    fun SpecularDirection(i: Vec3, n: Vec3) -> Vec3 {
+
+    }
+
+    fun shade(level: int, weight: double, p: Vec3, n: Vec3, i: Vec3, hit: Isect) {
+
+    }
+
+    fun trace(level: int, weight: double, r: Ray) {
+        
+    }
+}
