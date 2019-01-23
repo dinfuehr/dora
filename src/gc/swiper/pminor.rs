@@ -769,7 +769,11 @@ where
     }
 
     fn visit_roots(&mut self) {
-        let rootset_for_thread = self.rootset.iter().skip(self.task_id).step_by(self.number_workers);
+        let rootset_for_thread = self
+            .rootset
+            .iter()
+            .skip(self.task_id)
+            .step_by(self.number_workers);
         for root in rootset_for_thread {
             let object_addr = root.get();
 
