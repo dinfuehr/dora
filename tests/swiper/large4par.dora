@@ -1,0 +1,2 @@
+//= file tests/swiper/large4.dora
+//= vm-args "--gc=swiper --gc-verify --gc-parallel-minor --gc-worker=2"

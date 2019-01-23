@@ -1,6 +1,6 @@
 use parking_lot::Mutex;
 use std::cmp;
-use std::sync::Arc;
+use std::sync::{Arc, Barrier};
 
 use ctxt::VM;
 use gc::root::Slot;
@@ -116,24 +116,7 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
 
         self.young.unprotect_to();
 
-        let dev_verbose = self.vm.args.flag_gc_dev_verbose;
-
-        if dev_verbose {
-            println!("Minor GC: Phase 1 (dirty cards)");
-        }
-
-        self.copy_dirty_cards();
-        self.visit_large_objects();
-
-        if dev_verbose {
-            println!("Minor GC: Phase 2 (traverse)");
-        }
-
         self.run_threads();
-
-        if dev_verbose {
-            println!("Minor GC: Phase 2 (traverse) finished");
-        }
 
         if self.promotion_failed {
             // oh no: promotion failed, we need a subsequent full GC
@@ -155,82 +138,6 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         config.minor_copied = self.young.from_active().size();
 
         self.promotion_failed
-    }
-
-    fn visit_roots(&mut self) {
-        // detect all references from roots into young generation
-        for &root in self.rootset {
-            let root_ptr = root.get();
-
-            if self.young.contains(root_ptr) {
-                root.set(self.copy(root_ptr));
-            }
-        }
-    }
-
-    fn visit_large_objects(&mut self) {
-        self.large.visit_objects(|addr| {
-            let object = addr.to_mut_obj();
-
-            if object.is_array_ref() {
-                self.visit_large_object_array(object, addr);
-            } else {
-                self.visit_large_object(object, addr);
-            }
-        })
-    }
-
-    fn visit_large_object_array(&mut self, object: &mut Obj, object_start: Address) {
-        let object_end = object_start.offset(object.size() as usize);
-        let (start_card_idx, end_card_idx) = self.card_table.card_indices(object_start, object_end);
-
-        for card_idx in start_card_idx..=end_card_idx {
-            let card_idx = card_idx.into();
-
-            if self.card_table.get(card_idx).is_clean() {
-                continue;
-            }
-
-            let card_start = self.card_table.to_address(card_idx);
-            let card_end = card_start.offset(CARD_SIZE);
-            let end = cmp::min(card_end, object_end);
-
-            let mut ref_to_young_gen = false;
-
-            if card_idx.to_usize() == start_card_idx {
-                self.copy_range(object_start, end, &mut ref_to_young_gen);
-            } else {
-                // all but the first card are full with references
-                let refs = end.offset_from(card_start) / mem::ptr_width_usize();
-                self.copy_refs(card_start, refs, &mut ref_to_young_gen);
-            }
-
-            self.clean_card_if_no_young_refs(card_idx, ref_to_young_gen);
-        }
-    }
-
-    fn visit_large_object(&mut self, object: &mut Obj, object_start: Address) {
-        let card_idx = self.card_table.card_idx(object_start);
-        let mut ref_to_young_gen = false;
-
-        if self.card_table.get(card_idx).is_clean() {
-            return;
-        }
-
-        object.visit_reference_fields(|field| {
-            let field_ptr = field.get();
-
-            if self.young.contains(field_ptr) {
-                let copied_addr = self.copy(field_ptr);
-                field.set(copied_addr);
-
-                if self.young.contains(copied_addr) {
-                    ref_to_young_gen = true;
-                }
-            }
-        });
-
-        self.clean_card_if_no_young_refs(card_idx, ref_to_young_gen);
     }
 
     fn run_threads(&mut self) {
@@ -265,10 +172,17 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         let crossing_map = self.crossing_map;
         let young = self.young;
         let old = self.old;
+        let large = self.large;
         let rootset = self.rootset;
+        let init_old_top = self.init_old_top;
+        let barrier = Barrier::new(self.number_workers);
+        let barrier = &barrier;
 
-        let promoted_size = Arc::new(Mutex::new(self.promoted_size));
-        let promotion_failed = Arc::new(Mutex::new(self.promotion_failed));
+        let promoted_size = Mutex::new(self.promoted_size);
+        let promoted_size = &promoted_size;
+
+        let promotion_failed = Mutex::new(self.promotion_failed);
+        let promotion_failed = &promotion_failed;
 
         self.threadpool.scoped(|scoped| {
             for (task_id, worker) in workers.into_iter().enumerate() {
@@ -292,10 +206,13 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
                         vm: vm,
                         young: young,
                         old: old,
+                        large: large,
                         young_region: young_region,
                         card_table: card_table,
                         crossing_map: crossing_map,
                         rootset: rootset,
+                        init_old_top: init_old_top,
+                        barrier: barrier,
 
                         from_active: young.from_active(),
                         eden_active: young.eden_active(),
@@ -329,203 +246,6 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         self.promotion_failed = *promotion_failed.lock();
     }
 
-    // copy all references from old- into young-generation.
-    fn copy_dirty_cards(&mut self) {
-        self.card_table
-            .visit_dirty_in_old(self.init_old_top, |card_idx| {
-                let crossing_entry = self.crossing_map.get(card_idx);
-                let card_start = self.card_table.to_address(card_idx);
-
-                match crossing_entry {
-                    CrossingEntry::NoRefs => panic!("card dirty without any refs"),
-                    CrossingEntry::LeadingRefs(refs) => {
-                        let mut ref_to_young_gen = false;
-
-                        // copy references at start of card
-                        let first_object =
-                            self.copy_refs(card_start, refs as usize, &mut ref_to_young_gen);
-
-                        // copy all objects from this card
-                        self.copy_old_card(card_idx, first_object, ref_to_young_gen);
-                    }
-
-                    CrossingEntry::FirstObject(offset) => {
-                        let ptr = card_start.offset(offset as usize * mem::ptr_width_usize());
-
-                        // copy all objects from this card
-                        self.copy_old_card(card_idx, ptr, false);
-                    }
-
-                    CrossingEntry::ArrayStart(offset) => {
-                        assert!(offset == 1);
-                        let ptr =
-                            card_start.to_usize() - (offset as usize * mem::ptr_width_usize());
-
-                        // copy all objects from this card
-                        self.copy_old_card(card_idx, ptr.into(), false);
-                    }
-                }
-            });
-    }
-
-    fn copy_refs(&mut self, mut ptr: Address, refs: usize, ref_to_young_gen: &mut bool) -> Address {
-        for _ in 0..refs {
-            let slot = Slot::at(ptr);
-            let dir_ptr = slot.get();
-
-            if self.young.contains(dir_ptr) {
-                let copied_obj = self.copy(dir_ptr);
-                slot.set(copied_obj);
-
-                if self.young.contains(copied_obj) {
-                    *ref_to_young_gen = true;
-                }
-            }
-
-            ptr = ptr.offset(mem::ptr_width_usize());
-        }
-
-        ptr
-    }
-
-    fn copy_old_card(&mut self, card: CardIdx, ptr: Address, mut ref_to_young_gen: bool) {
-        let card_start = self.card_table.to_address(card);
-        let card_end = card_start.offset(CARD_SIZE);
-        let end = cmp::min(card_end, self.init_old_top);
-
-        self.copy_range(ptr, end, &mut ref_to_young_gen);
-        self.clean_card_if_no_young_refs(card, ref_to_young_gen);
-    }
-
-    fn copy_range(
-        &mut self,
-        mut ptr: Address,
-        end: Address,
-        ref_to_young_gen: &mut bool,
-    ) -> Address {
-        while ptr < end {
-            let object = ptr.to_mut_obj();
-
-            if object.header().vtblptr().is_null() {
-                ptr = ptr.add_ptr(1);
-                continue;
-            }
-
-            object.visit_reference_fields_within(end, |field| {
-                let field_ptr = field.get();
-
-                if self.young.contains(field_ptr) {
-                    let copied_obj = self.copy(field_ptr);
-                    field.set(copied_obj);
-
-                    // determine if copied object is still in young generation
-                    if self.young.contains(copied_obj) {
-                        *ref_to_young_gen = true;
-                    }
-                }
-            });
-
-            ptr = ptr.offset(object.size());
-        }
-
-        end
-    }
-
-    fn clean_card_if_no_young_refs(&mut self, card_idx: CardIdx, ref_to_young_gen: bool) {
-        // if there are no references to the young generation in this card,
-        // set the card to clean.
-        if !ref_to_young_gen {
-            self.card_table.set(card_idx, CardEntry::Clean);
-        }
-    }
-
-    fn copy(&mut self, obj_addr: Address) -> Address {
-        let obj = obj_addr.to_mut_obj();
-
-        if let Some(fwd) = obj.header().vtblptr_forwarded() {
-            return fwd;
-        }
-
-        // As soon as promotion of an object failed, objects are not copied anymore.
-        if self.promotion_failed {
-            return obj_addr;
-        }
-
-        let obj_size = obj.size();
-        debug_assert!(
-            self.from_active.contains(obj_addr) || self.eden_active.contains(obj_addr),
-            "copy objects only from from-space."
-        );
-
-        let copy_addr = self.young_top;
-        let next_young_top = copy_addr.offset(obj_size);
-
-        // if object is old enough we copy it into the old generation
-        if self.young.should_be_promoted(obj_addr) || next_young_top > self.young_limit {
-            return self.promote_object(obj, obj_size);
-        }
-
-        assert!(next_young_top <= self.young_limit);
-
-        // When doing parallel minor collection, keep track of all objects to process in worklist.
-        self.worklist.push(copy_addr);
-
-        self.young_top = next_young_top;
-        debug_assert!(self.young.to_committed().valid_top(self.young_top));
-
-        obj.copy_to(copy_addr, obj_size);
-        obj.header_mut().vtblptr_forward(copy_addr);
-
-        copy_addr
-    }
-
-    fn promote_object(&mut self, obj: &mut Obj, obj_size: usize) -> Address {
-        let copy_addr = self.alloc_old(obj_size, obj.is_array_ref());
-
-        // if there isn't enough space in old gen keep it in the
-        // young generation for now. A full collection will be forced later and
-        // cleans this up.
-        if copy_addr.is_null() {
-            self.promotion_failed = true;
-            return obj.address();
-        }
-
-        // When doing parallel minor collection, keep track of all objects to process in worklist.
-        self.worklist.push(copy_addr);
-
-        obj.copy_to(copy_addr, obj_size);
-        self.promoted_size += obj_size;
-
-        obj.header_mut().vtblptr_forward(copy_addr);
-
-        copy_addr
-    }
-
-    fn alloc_old(&mut self, size: usize, array_ref: bool) -> Address {
-        let obj_start = self.alloc_old_in_lab(size, array_ref);
-
-        if obj_start.is_non_null() {
-            return obj_start;
-        }
-
-        self.old_limit = self.old.grow();
-        self.alloc_old_in_lab(size, array_ref)
-    }
-
-    fn alloc_old_in_lab(&mut self, size: usize, array_ref: bool) -> Address {
-        let obj_start = self.old_top;
-        let obj_end = self.old_top.offset(size);
-
-        if obj_end <= self.old_limit {
-            self.old_top = obj_end;
-            self.old.update_crossing(obj_start, obj_end, array_ref);
-
-            obj_start
-        } else {
-            Address::null()
-        }
-    }
-
     fn remove_forwarding_pointers(&mut self) {
         let region = self.eden_active.clone();
         self.remove_forwarding_pointers_in_region(region);
@@ -550,14 +270,6 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         }
 
         assert!(scan == region.end);
-    }
-}
-
-fn saturating_sub(lhs: usize, rhs: usize) -> usize {
-    if lhs > rhs {
-        lhs - rhs
-    } else {
-        0
     }
 }
 
@@ -751,9 +463,12 @@ struct CopyTask<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
     young: &'a YoungGen,
     old: &'a OldGen,
+    large: &'a LargeSpace,
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
     rootset: &'a [Slot],
+    init_old_top: Address,
+    barrier: &'a Barrier,
 
     young_region: Region,
     from_active: Region,
@@ -775,6 +490,7 @@ where
 {
     fn run(&mut self) {
         self.visit_roots();
+        self.visit_dirty_cards();
         self.trace_gray_objects();
     }
 
@@ -795,7 +511,204 @@ where
         }
     }
 
+    fn visit_dirty_cards(&mut self) {
+        self.visit_dirty_cards_in_large();
+        self.visit_dirty_cards_in_old();
+    }
+
+    fn visit_dirty_cards_in_old(&mut self) {
+        let (start_card_idx, end_card_idx) = self
+            .card_table
+            .card_indices(self.old.total().start, self.init_old_top);
+        let dirty_cards_for_thread = (start_card_idx..=end_card_idx)
+            .skip(self.task_id)
+            .step_by(self.number_workers);
+
+        for card_idx in dirty_cards_for_thread {
+            let card_idx: CardIdx = card_idx.into();
+
+            if self.card_table.get(card_idx).is_dirty() {
+                self.visit_dirty_card(card_idx);
+            }
+        }
+    }
+
+    fn visit_dirty_cards_in_large(&mut self) {
+        if self.task_id != 0 {
+            return;
+        }
+
+        self.large.visit_objects(|addr| {
+            let object = addr.to_mut_obj();
+
+            if object.is_array_ref() {
+                self.visit_large_object_array(object, addr);
+            } else {
+                self.visit_large_object(object, addr);
+            }
+        })
+    }
+
+    fn visit_large_object_array(&mut self, object: &mut Obj, object_start: Address) {
+        let object_end = object_start.offset(object.size() as usize);
+        let (start_card_idx, end_card_idx) = self.card_table.card_indices(object_start, object_end);
+
+        for card_idx in start_card_idx..=end_card_idx {
+            let card_idx = card_idx.into();
+
+            if self.card_table.get(card_idx).is_clean() {
+                continue;
+            }
+
+            let card_start = self.card_table.to_address(card_idx);
+            let card_end = card_start.offset(CARD_SIZE);
+            let end = cmp::min(card_end, object_end);
+
+            let mut ref_to_young_gen = false;
+
+            if card_idx.to_usize() == start_card_idx {
+                self.copy_range(object_start, end, &mut ref_to_young_gen);
+            } else {
+                // all but the first card are full with references
+                let refs = end.offset_from(card_start) / mem::ptr_width_usize();
+                self.copy_refs(card_start, refs, &mut ref_to_young_gen);
+            }
+
+            self.clean_card_if_no_young_refs(card_idx, ref_to_young_gen);
+        }
+    }
+
+    fn visit_large_object(&mut self, object: &mut Obj, object_start: Address) {
+        let card_idx = self.card_table.card_idx(object_start);
+        let mut ref_to_young_gen = false;
+
+        if self.card_table.get(card_idx).is_clean() {
+            return;
+        }
+
+        object.visit_reference_fields(|field| {
+            let field_ptr = field.get();
+
+            if self.young.contains(field_ptr) {
+                let copied_addr = self.copy(field_ptr);
+                field.set(copied_addr);
+
+                if self.young.contains(copied_addr) {
+                    ref_to_young_gen = true;
+                }
+            }
+        });
+
+        self.clean_card_if_no_young_refs(card_idx, ref_to_young_gen);
+    }
+
+    fn visit_dirty_card(&mut self, card_idx: CardIdx) {
+        let crossing_entry = self.crossing_map.get(card_idx);
+        let card_start = self.card_table.to_address(card_idx);
+
+        match crossing_entry {
+            CrossingEntry::NoRefs => panic!("card dirty without any refs"),
+            CrossingEntry::LeadingRefs(refs) => {
+                let mut ref_to_young_gen = false;
+
+                // copy references at start of card
+                let first_object = self.copy_refs(card_start, refs as usize, &mut ref_to_young_gen);
+
+                // copy all objects from this card
+                self.copy_old_card(card_idx, first_object, ref_to_young_gen);
+            }
+
+            CrossingEntry::FirstObject(offset) => {
+                let ptr = card_start.offset(offset as usize * mem::ptr_width_usize());
+
+                // copy all objects from this card
+                self.copy_old_card(card_idx, ptr, false);
+            }
+
+            CrossingEntry::ArrayStart(offset) => {
+                assert!(offset == 1);
+                let ptr = card_start.to_usize() - (offset as usize * mem::ptr_width_usize());
+
+                // copy all objects from this card
+                self.copy_old_card(card_idx, ptr.into(), false);
+            }
+        }
+    }
+
+    fn copy_refs(&mut self, mut ptr: Address, refs: usize, ref_to_young_gen: &mut bool) -> Address {
+        for _ in 0..refs {
+            let slot = Slot::at(ptr);
+            let dir_ptr = slot.get();
+
+            if self.young.contains(dir_ptr) {
+                let copied_obj = self.copy(dir_ptr);
+                slot.set(copied_obj);
+
+                if self.young.contains(copied_obj) {
+                    *ref_to_young_gen = true;
+                }
+            }
+
+            ptr = ptr.offset(mem::ptr_width_usize());
+        }
+
+        ptr
+    }
+
+    fn copy_old_card(&mut self, card: CardIdx, ptr: Address, mut ref_to_young_gen: bool) {
+        let card_start = self.card_table.to_address(card);
+        let card_end = card_start.offset(CARD_SIZE);
+        let end = cmp::min(card_end, self.init_old_top);
+
+        self.copy_range(ptr, end, &mut ref_to_young_gen);
+        self.clean_card_if_no_young_refs(card, ref_to_young_gen);
+    }
+
+    fn copy_range(
+        &mut self,
+        mut ptr: Address,
+        end: Address,
+        ref_to_young_gen: &mut bool,
+    ) -> Address {
+        while ptr < end {
+            let object = ptr.to_mut_obj();
+
+            if object.header().vtblptr().is_null() {
+                ptr = ptr.add_ptr(1);
+                continue;
+            }
+
+            object.visit_reference_fields_within(end, |field| {
+                let field_ptr = field.get();
+
+                if self.young.contains(field_ptr) {
+                    let copied_obj = self.copy(field_ptr);
+                    field.set(copied_obj);
+
+                    // determine if copied object is still in young generation
+                    if self.young.contains(copied_obj) {
+                        *ref_to_young_gen = true;
+                    }
+                }
+            });
+
+            ptr = ptr.offset(object.size());
+        }
+
+        end
+    }
+
+    fn clean_card_if_no_young_refs(&mut self, card_idx: CardIdx, ref_to_young_gen: bool) {
+        // if there are no references to the young generation in this card,
+        // set the card to clean.
+        if !ref_to_young_gen {
+            self.card_table.set(card_idx, CardEntry::Clean);
+        }
+    }
+
     fn trace_gray_objects(&mut self) {
+        self.barrier.wait();
+
         loop {
             let object_addr = if let Some(object_addr) = self.pop() {
                 object_addr
