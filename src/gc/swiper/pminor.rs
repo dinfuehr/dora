@@ -119,26 +119,20 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         let dev_verbose = self.vm.args.flag_gc_dev_verbose;
 
         if dev_verbose {
-            println!("Minor GC: Phase 1 (roots)");
-        }
-
-        self.visit_roots();
-
-        if dev_verbose {
-            println!("Minor GC: Phase 2 (dirty cards)");
+            println!("Minor GC: Phase 1 (dirty cards)");
         }
 
         self.copy_dirty_cards();
         self.visit_large_objects();
 
         if dev_verbose {
-            println!("Minor GC: Phase 3 (traverse)");
+            println!("Minor GC: Phase 2 (traverse)");
         }
 
-        self.trace_gray_objects();
+        self.run_threads();
 
         if dev_verbose {
-            println!("Minor GC: Phase 3 (traverse) finished");
+            println!("Minor GC: Phase 2 (traverse) finished");
         }
 
         if self.promotion_failed {
@@ -239,7 +233,7 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         self.clean_card_if_no_young_refs(card_idx, ref_to_young_gen);
     }
 
-    fn trace_gray_objects(&mut self) {
+    fn run_threads(&mut self) {
         let mut workers = Vec::with_capacity(self.number_workers);
         let mut stealers = Vec::with_capacity(self.number_workers);
 
@@ -256,6 +250,7 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         }
 
         let terminator = Arc::new(Terminator::new(self.number_workers));
+        let number_workers = self.number_workers;
         let young_region = self.young.total();
         let vm = self.vm;
 
@@ -270,6 +265,7 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         let crossing_map = self.crossing_map;
         let young = self.young;
         let old = self.old;
+        let rootset = self.rootset;
 
         let promoted_size = Arc::new(Mutex::new(self.promoted_size));
         let promotion_failed = Arc::new(Mutex::new(self.promotion_failed));
@@ -291,6 +287,7 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
                         worker: worker,
                         stealers: stealers,
                         terminator: terminator,
+                        number_workers: number_workers,
 
                         vm: vm,
                         young: young,
@@ -298,6 +295,7 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
                         young_region: young_region,
                         card_table: card_table,
                         crossing_map: crossing_map,
+                        rootset: rootset,
 
                         from_active: young.from_active(),
                         eden_active: young.eden_active(),
@@ -748,12 +746,14 @@ struct CopyTask<'a, 'ast: 'a> {
     worker: Worker<Address>,
     stealers: Vec<Stealer<Address>>,
     terminator: Arc<Terminator>,
+    number_workers: usize,
 
     vm: &'a VM<'ast>,
     young: &'a YoungGen,
     old: &'a OldGen,
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
+    rootset: &'a [Slot],
 
     young_region: Region,
     from_active: Region,
@@ -774,6 +774,28 @@ where
     'ast: 'a,
 {
     fn run(&mut self) {
+        self.visit_roots();
+        self.trace_gray_objects();
+    }
+
+    fn visit_roots(&mut self) {
+        let rootset_for_thread = self
+            .rootset
+            .iter()
+            .skip(self.task_id)
+            .step_by(self.number_workers);
+
+        for root in rootset_for_thread {
+            let object_address = root.get();
+
+            if self.young.contains(object_address) {
+                let dest = self.copy(object_address);
+                root.set(dest);
+            }
+        }
+    }
+
+    fn trace_gray_objects(&mut self) {
         loop {
             let object_addr = if let Some(object_addr) = self.pop() {
                 object_addr
@@ -967,7 +989,7 @@ where
             return obj_addr;
         }
 
-        let obj_size = obj.size();
+        let obj_size = obj.size_for_vtblptr(vtblptr);
         debug_assert!(
             self.from_active.contains(obj_addr) || self.eden_active.contains(obj_addr),
             "copy objects only from from-space."

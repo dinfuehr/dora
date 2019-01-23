@@ -246,8 +246,9 @@ impl Obj {
         }
     }
 
-    pub fn size(&self) -> usize {
-        let cls = self.header().vtbl().class();
+    pub fn size_for_vtblptr(&self, vtblptr: Address) -> usize {
+        let vtbl = unsafe { &*vtblptr.to_mut_ptr::<VTable>() };
+        let cls = vtbl.class();
 
         match cls.size {
             ClassSize::Fixed(size) => size as usize,
@@ -263,6 +264,10 @@ impl Obj {
                 mem::align_usize(handle.size(), mem::ptr_width() as usize)
             }
         }
+    }
+
+    pub fn size(&self) -> usize {
+        self.size_for_vtblptr(self.header().vtblptr())
     }
 
     pub fn visit_reference_fields<F>(&mut self, mut f: F)
