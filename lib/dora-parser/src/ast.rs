@@ -500,6 +500,7 @@ pub struct Function {
     pub has_override: bool,
     pub has_final: bool,
     pub has_optimize: bool,
+    pub has_cannonModifier: bool,
     pub is_pub: bool,
     pub is_static: bool,
     pub is_abstract: bool,
@@ -559,6 +560,7 @@ pub enum Modifier {
     Final,
     Internal,
     Optimize,
+    CannonModifier,
     Pub,
     Static,
 }
@@ -572,6 +574,7 @@ impl Modifier {
             Modifier::Final => "final",
             Modifier::Internal => "internal",
             Modifier::Optimize => "optimize",
+            Modifier::CannonModifier => "cannonModifier",
             Modifier::Pub => "pub",
             Modifier::Static => "static",
         }

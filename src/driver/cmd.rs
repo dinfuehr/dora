@@ -55,6 +55,8 @@ Options:
     --gc-young-appel        Use Appel dynamic resizing of young generation.
     --gc-semi-ratio=<num>   Use fixed ratio of semi space in young generation.
 
+    --bc=<name>             Switch Baseline Compiler. Possible values: cannon, standard [default: standard].
+
     --disable-tlab          Disable tlab allocation.
     --disable-barrier       Disable barriers.
 
@@ -97,6 +99,7 @@ pub struct Args {
     flag_gc_young_size: Option<MemSize>,
     pub flag_gc_semi_ratio: Option<usize>,
     pub flag_gc: Option<CollectorName>,
+    pub flag_bc: Option<BaselineName>,
     pub flag_min_heap_size: Option<MemSize>,
     pub flag_max_heap_size: Option<MemSize>,
     pub flag_code_size: Option<MemSize>,
@@ -193,6 +196,7 @@ impl Default for Args {
             flag_gc_young_size: None,
             flag_gc_semi_ratio: None,
             flag_gc: None,
+            flag_bv: None,
             flag_min_heap_size: None,
             flag_max_heap_size: None,
             flag_code_size: None,
@@ -214,6 +218,12 @@ pub enum CollectorName {
     Sweep,
     Swiper,
     SweepSwiper,
+}
+
+#[derive(Copy, Clone, Debug, RustcDecodable)]
+pub enum BaselineName {
+    Cannon,
+    Standard,
 }
 
 #[derive(Copy, Clone, Debug, RustcDecodable)]

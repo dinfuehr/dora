@@ -86,7 +86,7 @@ impl<'a> Parser<'a> {
 
         match self.token.kind {
             TokenKind::Fun => {
-                self.restrict_modifiers(&modifiers, &[Modifier::Internal, Modifier::Optimize])?;
+                self.restrict_modifiers(&modifiers, &[Modifier::Internal, Modifier::Optimize, Modifier::CannonModifier])?;
                 let fct = self.parse_function(&modifiers)?;
                 elements.push(ElemFunction(fct));
             }
@@ -484,6 +484,7 @@ impl<'a> Parser<'a> {
                 TokenKind::Pub => Modifier::Pub,
                 TokenKind::Static => Modifier::Static,
                 TokenKind::Optimize => Modifier::Optimize,
+                TokenKind::CannonModifier => Modifier::CannonModifier,
                 _ => {
                     break;
                 }
@@ -519,6 +520,77 @@ impl<'a> Parser<'a> {
         }
 
         Ok(())
+    }
+
+    fn parse_ctor(&mut self, cls: &Class, modifiers: &Modifiers) -> Result<Function, MsgWithPos> {
+        let pos = self.expect_token(TokenKind::Init)?.position;
+        let params = self.parse_function_params()?;
+        let delegation = self.parse_delegation()?;
+        let mut block = self.parse_function_block()?;
+        let builder = Builder::new(self.id_generator);
+
+        if let Some(delegation) = delegation {
+            let expr = Expr::create_delegation(self.generate_id(),
+                                               delegation.pos,
+                                               delegation.ty,
+                                               delegation.args);
+
+            let mut bblock = builder.build_block();
+            bblock.add_expr(Box::new(expr));
+            bblock.add_stmt(block.unwrap());
+            block = Some(bblock.build());
+        }
+
+        Ok(Function {
+               id: self.generate_id(),
+               pos: pos,
+               name: cls.name,
+               method: true,
+               has_open: false,
+               has_override: false,
+               has_final: false,
+               has_optimize: false,
+               has_cannonModifier: false,
+               is_pub: true,
+               is_static: false,
+               is_abstract: false,
+               internal: modifiers.contains(Modifier::Internal),
+               ctor: CtorType::Secondary,
+               params: params,
+               throws: false,
+               return_type: None,
+               block: block,
+               type_params: None,
+           })
+    }
+
+    fn parse_delegation(&mut self) -> Result<Option<Delegation>, MsgWithPos> {
+        if !self.token.is(TokenKind::Colon) {
+            return Ok(None);
+        }
+
+        self.expect_token(TokenKind::Colon)?;
+        let pos = self.token.position;
+
+        let ty = if self.token.is(TokenKind::This) {
+            DelegationType::This
+        } else if self.token.is(TokenKind::Super) {
+            DelegationType::Super
+        } else {
+            let name = self.token.name();
+            return Err(MsgWithPos::new(pos, Msg::ThisOrSuperExpected(name)));
+        };
+
+        self.advance_token()?;
+        self.expect_token(TokenKind::LParen)?;
+
+        let args = self.parse_comma_list(TokenKind::RParen, |p| p.parse_expression())?;
+
+        Ok(Some(Delegation {
+                    pos: pos,
+                    ty: ty,
+                    args: args,
+                }))
     }
 
     fn parse_field(&mut self) -> Result<Field, MsgWithPos> {
@@ -576,6 +648,7 @@ impl<'a> Parser<'a> {
                has_override: modifiers.contains(Modifier::Override),
                has_final: modifiers.contains(Modifier::Final),
                has_optimize: modifiers.contains(Modifier::Optimize),
+               has_cannonModifier: modifiers.contains(Modifier::CannonModifier),
                is_pub: modifiers.contains(Modifier::Pub),
                is_static: modifiers.contains(Modifier::Static),
                internal: modifiers.contains(Modifier::Internal),

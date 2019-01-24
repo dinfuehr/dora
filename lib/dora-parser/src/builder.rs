@@ -154,6 +154,7 @@ impl<'a> BuilderFct<'a> {
             has_override: false,
             has_final: false,
             has_optimize: false,
+            has_cannonModifier: false,
             is_pub: self.is_public,
             is_static: false,
             is_abstract: false,
