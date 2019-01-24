@@ -44,6 +44,11 @@ impl LargeSpace {
         self.total.contains(addr)
     }
 
+    pub fn head(&self) -> Address {
+        let space = self.space.lock();
+        space.head
+    }
+
     pub fn visit_objects<F>(&self, f: F)
     where
         F: FnMut(Address),
@@ -66,10 +71,21 @@ impl LargeSpace {
     }
 }
 
-struct LargeAlloc {
-    prev: Address,
-    next: Address,
-    size: usize,
+pub struct LargeAlloc {
+    pub prev: Address,
+    pub next: Address,
+    pub size: usize,
+}
+
+impl LargeAlloc {
+    pub fn from_address(addr: Address) -> &'static mut LargeAlloc {
+        unsafe { &mut *addr.to_mut_ptr::<LargeAlloc>() }
+    }
+
+    pub fn object_address(&self) -> Address {
+        let addr = Address::from_ptr(self as *const _);
+        addr.offset(size_of::<LargeAlloc>())
+    }
 }
 
 struct LargeSpaceProtected {
@@ -155,11 +171,11 @@ impl LargeSpaceProtected {
 
     fn append_large_alloc(&mut self, addr: Address, size: usize) {
         if !self.head.is_null() {
-            let old_head = unsafe { &mut *self.head.to_mut_ptr::<LargeAlloc>() };
+            let old_head = LargeAlloc::from_address(self.head);
             old_head.prev = addr;
         }
 
-        let new_head = unsafe { &mut *addr.to_mut_ptr::<LargeAlloc>() };
+        let new_head = LargeAlloc::from_address(addr);
         new_head.next = self.head;
         new_head.prev = Address::null();
         new_head.size = size;
@@ -174,8 +190,8 @@ impl LargeSpaceProtected {
         let mut addr = self.head;
 
         while !addr.is_null() {
-            let large_alloc = unsafe { &mut *addr.to_mut_ptr::<LargeAlloc>() };
-            f(addr.offset(size_of::<LargeAlloc>()));
+            let large_alloc = LargeAlloc::from_address(addr);
+            f(large_alloc.object_address());
             addr = large_alloc.next;
         }
     }
@@ -189,9 +205,9 @@ impl LargeSpaceProtected {
         let mut freed = false;
 
         while !addr.is_null() {
-            let large_alloc = unsafe { &mut *addr.to_mut_ptr::<LargeAlloc>() };
+            let large_alloc = LargeAlloc::from_address(addr);
             let next = large_alloc.next;
-            let keep = f(addr.offset(size_of::<LargeAlloc>()));
+            let keep = f(large_alloc.object_address());
 
             if keep {
                 if prev.is_null() {
@@ -199,7 +215,7 @@ impl LargeSpaceProtected {
                     self.head = addr;
                 } else {
                     // Change predecessor
-                    let prev_large_alloc = unsafe { &mut *prev.to_mut_ptr::<LargeAlloc>() };
+                    let prev_large_alloc = LargeAlloc::from_address(prev);
                     prev_large_alloc.next = addr;
                 }
 
@@ -219,7 +235,7 @@ impl LargeSpaceProtected {
             self.head = Address::null();
         } else {
             // Set next to null for last allocation
-            let prev_large_alloc = unsafe { &mut *prev.to_mut_ptr::<LargeAlloc>() };
+            let prev_large_alloc = LargeAlloc::from_address(prev);
             prev_large_alloc.next = Address::null();
         }
 

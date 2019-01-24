@@ -7,7 +7,7 @@ use gc::root::Slot;
 use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::controller::SharedHeapConfig;
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
-use gc::swiper::large::LargeSpace;
+use gc::swiper::large::{LargeAlloc, LargeSpace};
 use gc::swiper::marking::Terminator;
 use gc::swiper::old::OldGen;
 use gc::swiper::on_different_cards;
@@ -199,6 +199,10 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         let next_stride = &next_stride;
         let strides = 4 * self.number_workers;
 
+        let head = self.large.head();
+        let next_large = Mutex::new(head);
+        let next_large = &next_large;
+
         self.threadpool.scoped(|scoped| {
             for (task_id, worker) in workers.into_iter().enumerate() {
                 let stealers = stealers.clone();
@@ -234,6 +238,7 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
 
                         next_stride: next_stride,
                         strides: strides,
+                        next_large: next_large,
 
                         promoted_size: 0,
                         traced: 0,
@@ -490,6 +495,7 @@ struct CopyTask<'a, 'ast: 'a> {
 
     next_stride: &'a Mutex<usize>,
     strides: usize,
+    next_large: &'a Mutex<Address>,
 
     young_region: Region,
     from_active: Region,
@@ -577,19 +583,34 @@ where
     }
 
     fn visit_dirty_cards_in_large(&mut self) {
-        if self.task_id != 0 {
-            return;
+        loop {
+            if let Some(addr) = self.next_large() {
+                let object = addr.to_mut_obj();
+
+                if object.is_array_ref() {
+                    self.visit_large_object_array(object, addr);
+                } else {
+                    self.visit_large_object(object, addr);
+                }
+            } else {
+                break;
+            }
+        }
+    }
+
+    fn next_large(&mut self) -> Option<Address> {
+        let mut next_large = self.next_large.lock();
+
+        if next_large.is_null() {
+            return None;
         }
 
-        self.large.visit_objects(|addr| {
-            let object = addr.to_mut_obj();
+        let large_alloc = LargeAlloc::from_address(*next_large);
+        let object = large_alloc.object_address();
 
-            if object.is_array_ref() {
-                self.visit_large_object_array(object, addr);
-            } else {
-                self.visit_large_object(object, addr);
-            }
-        })
+        *next_large = large_alloc.next;
+
+        Some(object)
     }
 
     fn visit_large_object_array(&mut self, object: &mut Obj, object_start: Address) {
