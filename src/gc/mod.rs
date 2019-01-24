@@ -3,6 +3,7 @@ use std::fmt;
 
 use ctxt::VM;
 use driver::cmd::{Args, CollectorName};
+use gc::compact::MarkCompactCollector;
 use gc::copy::CopyCollector;
 use gc::space::{Space, SpaceConfig};
 use gc::swiper::Swiper;
@@ -14,6 +15,7 @@ use vtable::VTable;
 
 pub mod arena;
 pub mod bump;
+pub mod compact;
 pub mod copy;
 pub mod root;
 pub mod space;
@@ -61,6 +63,7 @@ impl Gc {
 
         let collector: Box<Collector + Sync> = match collector_name {
             CollectorName::Zero => box ZeroCollector::new(args),
+            CollectorName::Compact => box MarkCompactCollector::new(args),
             CollectorName::Copy => box CopyCollector::new(args),
             CollectorName::Swiper => box Swiper::new(args),
         };

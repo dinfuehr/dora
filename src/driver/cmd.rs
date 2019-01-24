@@ -194,6 +194,7 @@ impl Default for Args {
 #[derive(Copy, Clone, Debug, RustcDecodable)]
 pub enum CollectorName {
     Zero,
+    Compact,
     Copy,
     Swiper,
 }
