@@ -539,8 +539,8 @@ where
     }
 
     fn visit_dirty_cards(&mut self) {
-        self.visit_dirty_cards_in_large();
         self.visit_dirty_cards_in_old();
+        self.visit_dirty_cards_in_large();
     }
 
     fn visit_dirty_cards_in_old(&mut self) {
