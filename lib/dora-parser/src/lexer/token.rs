@@ -61,7 +61,6 @@ pub enum TokenKind {
     Open,
     Override,
     Optimize,
-    CannonModifier,
 
     // Operators
     Add,
@@ -180,7 +179,6 @@ impl TokenKind {
             TokenKind::Open => "open",
             TokenKind::Override => "override",
             TokenKind::Optimize => "optimize",
-            TokenKind::CannonModifier => "cannonModifier",
 
             // Operators
             TokenKind::Add => "+",
