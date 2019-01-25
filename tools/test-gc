@@ -8,7 +8,7 @@ for type in "" "--release"; do
   cargo run $type -- --max-heap-size=512M --gc-young-ratio=4 --gc-verify bench/binarytrees/binarytrees.dora 21
 
   # test alternative collectors
-  cargo run $type -- --max-heap-size=512M --gc=copy bench/binarytrees/binarytrees.dora 21
+  cargo run $type -- --max-heap-size=1G --gc=copy bench/binarytrees/binarytrees.dora 21
   cargo run $type -- --max-heap-size=512M --gc=compact bench/binarytrees/binarytrees.dora 21
 
   # test parallel minor collection
