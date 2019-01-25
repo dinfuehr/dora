@@ -196,7 +196,7 @@ impl Default for Args {
             flag_gc_young_size: None,
             flag_gc_semi_ratio: None,
             flag_gc: None,
-            flag_bv: None,
+            flag_bc: None,
             flag_min_heap_size: None,
             flag_max_heap_size: None,
             flag_code_size: None,
