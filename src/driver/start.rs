@@ -7,6 +7,7 @@ use dora_parser::ast::{self, Ast};
 use dora_parser::error::msg::Msg;
 
 use crate::driver::cmd;
+use crate::driver::cmd::{BaselineName};
 use crate::object;
 use crate::os;
 use crate::timer::Timer;
@@ -32,6 +33,11 @@ pub fn start(content: Option<&str>) -> i32 {
     if args.flag_version {
         println!("dora v0.01b");
         return 0;
+    }
+
+    match args.flag_bc.unwrap_or(BaselineName::Standard) {
+        BaselineName::Cannon => panic!("unimplemented feature"),
+        _ => (),
     }
 
     let mut interner = Interner::new();
