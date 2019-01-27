@@ -24,15 +24,107 @@ class TestExpectation
                 :position,
                 :code,
                 :message,
-                :args,
-                :vm_args,
-                :output,
-                :file
+                :output
 
   def initialize(opts = {})
     fail = opts.fetch(:fail, false)
 
     self.fail = fail
+  end
+end
+
+class TestCase
+  attr_accessor :file,
+                :test_file,
+                :vm_args,
+                :args,
+                :target,
+                :expectation,
+                :optional_runs,
+                :results
+
+  def initialize(file, opts = {})
+    self.expectation = opts.fetch(:expectation, TestExpectation.new(fail: false))
+    self.file = self.test_file = file
+    self.optional_runs = {nil => ''}
+    self.results = {}
+    self.args = self.vm_args = ""
+    self.target = $release ? "release" : "debug"
+  end
+
+  def run()
+    if self.expectation == :ignore
+      self.results = :ignore 
+      return {:ignore => 1}
+    end
+
+    self.optional_runs.each_pair { |optional_run, run_vm_args| self.results[optional_run] = run_test(run_vm_args) }
+    result = {}
+    return {
+      :passed => self.results.values().count(true), 
+      :failed => self.results.values().count{|x| x != true} }
+    
+  end
+
+  def print_results() 
+    if self.results == :ignore
+      puts "#{self.file} ... ignore"
+      return
+    end
+
+    self.results.each_pair do |run_name, run_result|
+      print "[#{run_name}]" if run_name != nil
+      print "#{self.file} "
+      print "... "
+
+      if run_result == true
+        print "ok"
+      else
+        print "failed"
+        print " (#{run_result})" if run_result != false 
+      end
+      puts
+    end
+  end
+
+  private
+  def run_test(optional_vm_args)
+    temp_out = Tempfile.new("dora-test-runner")
+    out_args = ">#{temp_out.path} 2>&1"
+
+    system("target/#{target}/dora #{vm_args} #{optional_vm_args} #{test_file} #{args} #{out_args}")
+
+    process = $?
+    exit_code = process.exitstatus
+  
+    temp_out_content = IO.read(temp_out.path)
+    temp_out.close
+
+    position, message = read_error_message(temp_out_content)
+
+    return check_test_run_result(exit_code, position, message, temp_out_content)
+  end
+
+  def check_test_run_result(exit_code, position, message, content)
+    if self.expectation.fail
+      return "expected failure (test exited with 0)" if exit_code == 0
+      return "expected failure (#{self.expectation.code} expected but test returned #{exit_code})" if 
+        self.expectation.code && exit_code != self.expectation.code
+  
+      return "position does not match (#{position.inspect} != #{self.expectation.position.inspect})" if
+        self.expectation.position && position != expectation.position
+      return "message does not match (#{message.inspect} != #{self.expectation.message.inspect})" if
+        self.expectation.message && message != self.expectation.message
+  
+    elsif exit_code != 0
+      return "expected success (0 expected but test returned #{exit_code})"
+  
+    end
+  
+    return "output does not match (#{self.expectation.output.inspect} != #{content.inspect})" if
+      self.expectation.output && self.expectation.output != content
+  
+    true
   end
 end
 
@@ -100,27 +192,18 @@ def run_tests
         file = mutex.synchronize { worklist.pop }
         break unless file
 
-        file = Pathname.new(file)
-        res = run_test(file)
+        test_case = parse_test_file(Pathname.new(file))
+        test_result = test_case.run()
+
+        test_result.each_pair do |key, value|
+          passed += value if key == :passed
+          ignore += value if key == :ignore
+          failed += value if key == :failed
+        end
 
         mutex.synchronize do
-          print "#{file} ... "
+          test_case.print_results
 
-          if res == true
-            puts "ok"
-            passed += 1
-
-          elsif res == :ignore
-            puts "ignore"
-            ignore += 1
-
-          else
-            print "failed"
-            print " (#{res})" if res != false
-            puts
-
-            failed += 1
-          end
         end
       end
     end
@@ -149,52 +232,6 @@ end
 
 def test_name(num)
   num == 1 ? "test" : "tests"
-end
-
-def run_test(file)
-  expectation = test_case_expectation(file)
-  return :ignore if expectation == :ignore
-
-  temp_out = Tempfile.new('dora-test-runner')
-
-  args = ""
-  args = expectation.args.join(" ") if expectation.args
-
-  vm_args = ""
-  vm_args = expectation.vm_args.join(" ") if expectation.vm_args
-
-  target = $release ? "release" : "debug"
-  testfile = expectation.file || file
-
-  out_args = ">#{temp_out.path} 2>&1"
-
-  system("target/#{target}/dora #{vm_args} #{testfile} #{args} #{out_args}")
-  process = $?
-  exit_code = process.exitstatus
-
-  temp_out_content = IO.read(temp_out.path)
-  temp_out.close
-
-  if expectation.fail
-    return "expected failure (test exited with 0)" if exit_code == 0
-    return "expected failure (#{expectation.code} expected but test returned #{exit_code})" if
-      expectation.code && exit_code != expectation.code
-
-    position, message = read_error_message(temp_out_content)
-    return "position does not match (#{position.inspect} != #{expectation.position.inspect})" if
-      expectation.position && position != expectation.position
-    return "message does not match (#{message.inspect} != #{expectation.message.inspect})" if
-      expectation.message && message != expectation.message
-
-  elsif exit_code != 0
-    return "expected success (0 expected but test returned #{exit_code})"
-
-  end
-
-  return "output does not match (#{expectation.output.inspect} != #{temp_out_content.inspect})" if
-    expectation.output && expectation.output != temp_out_content
-
-  true
 end
 
 def read_error_message(content)
@@ -274,8 +311,8 @@ def read_cmdline(text)
   args
 end
 
-def test_case_expectation(file)
-  exp = TestExpectation.new(fail: false)
+def parse_test_file(file)
+  test_case = TestCase.new(file)
 
   for line in File.read(file).lines
     line = line.strip
@@ -287,22 +324,22 @@ def test_case_expectation(file)
 
       case arguments[0]
       when "error"
-        exp.fail = true
+        test_case.expectation.fail = true
 
         next if arguments.size == 1
 
         case arguments[1]
-        when "at" then exp.position = arguments[2]
-        when "code" then exp.code = arguments[2].to_i
-        when "message" then exp.message = arguments[2].to_s
-        when "div0" then exp.code = 101
-        when "assert" then exp.code = 102
-        when "array" then exp.code = 103
-        when "nil" then exp.code = 104
-        when "exception" then exp.code = 105
-        when "cast" then exp.code = 106
-        when "unexpected" then exp.code = 107
-        when "oom" then exp.code = 108
+        when "at" then test_case.expectation.position = arguments[2]
+        when "code" then test_case.expectation.code = arguments[2].to_i
+        when "message" then test_case.expectation.message = arguments[2].to_s
+        when "div0" then test_case.expectation.code = 101
+        when "assert" then test_case.expectation.code = 102
+        when "array" then test_case.expectation.code = 103
+        when "nil" then test_case.expectation.code = 104
+        when "exception" then test_case.expectation.code = 105
+        when "cast" then test_case.expectation.code = 106
+        when "unexpected" then test_case.expectation.code = 107
+        when "oom" then test_case.expectation.code = 108
         when "fail"
           # do nothing
         else
@@ -310,22 +347,27 @@ def test_case_expectation(file)
         end
 
       when "file"
-        exp.file = arguments[1]
+        test_case.test_file = arguments[1]
 
-      when "ignore" then return :ignore
+      when "ignore" 
+        test_case.expectation = :ignore
+        return test_case
 
       when "output"
         case arguments[1]
-        when "file" then exp.output = IO.read(file.sub(".dora", ".result"))
+        when "file" then test_case.expectation.output = IO.read(file.sub(".dora", ".result"))
         else
-          exp.output = arguments[1]
+          test_case.expectation.output = arguments[1]
         end
 
       when "args"
-        exp.args = arguments[1..-1]
+        test_case.args = arguments[1..-1].join(" ")
 
       when "vm-args"
-        exp.vm_args = arguments[1..-1]
+        test_case.vm_args = arguments[1..-1].join(" ")
+
+      when "cannon"
+        test_case.optional_runs['cannon'] = '--bc=cannon'
 
       else
         raise "unkown expectation in #{file}: #{line}"
@@ -334,7 +376,7 @@ def test_case_expectation(file)
     end
   end
 
-  exp
+  test_case
 end
 
 exit run_tests ? 0 : 1
