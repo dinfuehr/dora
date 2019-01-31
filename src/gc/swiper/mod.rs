@@ -13,6 +13,7 @@ use gc::swiper::full::FullCollector;
 use gc::swiper::large::LargeSpace;
 use gc::swiper::minor::MinorCollector;
 use gc::swiper::old::OldGen;
+use gc::swiper::pfull::ParallelFullCollector;
 use gc::swiper::pminor::ParallelMinorCollector;
 use gc::swiper::verify::{Verifier, VerifierPhase};
 use gc::swiper::young::YoungGen;
@@ -32,6 +33,7 @@ mod marking;
 mod minor;
 pub mod old;
 mod paged_old;
+mod pfull;
 mod pminor;
 mod verify;
 pub mod young;
@@ -246,7 +248,7 @@ impl Swiper {
                 &self.large,
                 &self.card_table,
                 &self.crossing_map,
-                &rootset,
+                rootset,
                 reason,
                 self.min_heap_size,
                 self.max_heap_size,
@@ -263,7 +265,7 @@ impl Swiper {
                 &self.large,
                 &self.card_table,
                 &self.crossing_map,
-                &rootset,
+                rootset,
                 reason,
                 self.min_heap_size,
                 self.max_heap_size,
@@ -293,23 +295,42 @@ impl Swiper {
             reason == GcReason::PromotionFailure,
         );
 
-        let mut pool = self.threadpool.lock();
-        let mut collector = FullCollector::new(
-            vm,
-            self.heap.clone(),
-            &self.young,
-            &self.old,
-            &self.large,
-            &self.card_table,
-            &self.crossing_map,
-            &vm.gc.perm_space,
-            &rootset,
-            reason,
-            &mut pool,
-            self.min_heap_size,
-            self.max_heap_size,
-        );
-        collector.collect();
+        if vm.args.flag_gc_parallel_full {
+            let mut pool = self.threadpool.lock();
+            let mut collector = ParallelFullCollector::new(
+                vm,
+                self.heap.clone(),
+                &self.young,
+                &self.old,
+                &self.large,
+                &self.card_table,
+                &self.crossing_map,
+                &vm.gc.perm_space,
+                rootset,
+                reason,
+                &mut pool,
+                self.min_heap_size,
+                self.max_heap_size,
+            );
+            collector.collect();
+
+        } else {
+            let mut collector = FullCollector::new(
+                vm,
+                self.heap.clone(),
+                &self.young,
+                &self.old,
+                &self.large,
+                &self.card_table,
+                &self.crossing_map,
+                &vm.gc.perm_space,
+                rootset,
+                reason,
+                self.min_heap_size,
+                self.max_heap_size,
+            );
+            collector.collect();
+        }
 
         self.verify(vm, VerifierPhase::PostFull, "post-full", &rootset, false);
     }
