@@ -313,7 +313,6 @@ impl Swiper {
                 self.max_heap_size,
             );
             collector.collect();
-
         } else {
             let mut collector = FullCollector::new(
                 vm,

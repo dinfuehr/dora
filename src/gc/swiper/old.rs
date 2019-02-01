@@ -42,51 +42,72 @@ impl OldGen {
     }
 
     pub fn active(&self) -> Region {
-        Region::new(self.total.start, self.top())
+        let protected = self.protected.lock();
+        assert!(protected.regions.len() == 1);
+        let region = protected.regions.first().unwrap();
+
+        Region::new(region.start, region.top)
     }
 
     pub fn committed(&self) -> Region {
         let protected = self.protected.lock();
-        Region::new(self.total.start, protected.limit)
+        assert!(protected.regions.len() == 1);
+        let region = protected.regions.first().unwrap();
+
+        Region::new(region.start, region.end)
     }
 
     pub fn committed_size(&self) -> usize {
         let protected = self.protected.lock();
-        protected.limit.offset_from(self.total.start)
+
+        protected.size
     }
 
     pub fn active_size(&self) -> usize {
-        self.top().offset_from(self.total.start)
+        let protected = self.protected.lock();
+        let mut size = 0;
+
+        for old_region in &protected.regions {
+            size += old_region.active_size();
+        }
+
+        size
     }
 
     pub fn top(&self) -> Address {
         let protected = self.protected.lock();
+        assert!(protected.regions.len() == 1);
 
-        protected.top
+        protected.regions.first().unwrap().top
     }
 
     pub fn limit(&self) -> Address {
         let protected = self.protected.lock();
+        assert!(protected.regions.len() == 1);
 
-        protected.limit
+        protected.regions.first().unwrap().end
     }
 
     pub fn update_top(&self, top: Address) {
         assert!(self.total.valid_top(top));
         let mut protected = self.protected.lock();
+        assert!(protected.regions.len() == 1);
 
-        protected.top = top;
+        let region = protected.regions.first_mut().unwrap();
+        region.top = top;
     }
 
     pub fn set_committed_size(&self, new_size: usize) {
         assert!(gen_aligned(new_size));
 
         let mut protected = self.protected.lock();
+        assert!(protected.regions.len() == 1);
+        let region = protected.regions.first_mut().unwrap();
 
-        let old_committed = protected.limit;
+        let old_committed = region.end;
         let new_committed = self.total.start.offset(new_size);
         assert!(new_committed <= self.total.end);
-        assert!(protected.top <= new_committed);
+        assert!(region.top <= new_committed);
 
         if old_committed < new_committed {
             let size = new_committed.offset_from(old_committed);
@@ -96,21 +117,26 @@ impl OldGen {
             arena::forget(new_committed.into(), size);
         }
 
-        protected.limit = new_committed;
+        region.end = new_committed;
     }
 
     pub fn grow(&self) -> Address {
-        let mut alloc = self.protected.lock();
+        let mut protected = self.protected.lock();
+        assert!(protected.regions.len() == 1);
+
         let mut config = self.config.lock();
 
         if !config.grow_old(GEN_SIZE) {
-            return alloc.limit;
+            return protected.regions.first().unwrap().start;
         }
 
-        arena::commit(alloc.limit, GEN_SIZE, false);
-        alloc.limit = alloc.limit.offset(GEN_SIZE);
+        protected.size += GEN_SIZE;
 
-        alloc.limit
+        let region = protected.regions.first_mut().unwrap();
+        arena::commit(region.end, GEN_SIZE, false);
+        region.end = region.end.offset(GEN_SIZE);
+
+        region.end
     }
 
     pub fn update_crossing(&self, old: Address, new: Address, array_ref: bool) {
@@ -187,15 +213,39 @@ impl OldGen {
 }
 
 struct OldProtected {
-    top: Address,
-    limit: Address,
+    size: usize,
+    regions: Vec<OldRegion>,
 }
 
 impl OldProtected {
     fn new(start: Address) -> OldProtected {
         OldProtected {
-            top: start,
-            limit: start,
+            size: 0,
+            regions: vec![OldRegion::new(start)],
         }
+    }
+}
+
+struct OldRegion {
+    start: Address,
+    top: Address,
+    end: Address,
+}
+
+impl OldRegion {
+    fn new(start: Address) -> OldRegion {
+        OldRegion {
+            start: start,
+            top: start,
+            end: start,
+        }
+    }
+
+    fn size(&self) -> usize {
+        self.end.offset_from(self.start)
+    }
+
+    fn active_size(&self) -> usize {
+        self.top.offset_from(self.start)
     }
 }
