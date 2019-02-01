@@ -10,7 +10,7 @@ use object::offset_of_array_data;
 
 pub struct OldGen {
     total: Region,
-    alloc: Mutex<OldAlloc>,
+    protected: Mutex<OldProtected>,
 
     crossing_map: CrossingMap,
     card_table: CardTable,
@@ -27,7 +27,7 @@ impl OldGen {
     ) -> OldGen {
         let old = OldGen {
             total: Region::new(start, end),
-            alloc: Mutex::new(OldAlloc::new(start)),
+            protected: Mutex::new(OldProtected::new(start)),
 
             crossing_map: crossing_map,
             card_table: card_table,
@@ -46,13 +46,13 @@ impl OldGen {
     }
 
     pub fn committed(&self) -> Region {
-        let alloc = self.alloc.lock();
-        Region::new(self.total.start, alloc.limit)
+        let protected = self.protected.lock();
+        Region::new(self.total.start, protected.limit)
     }
 
     pub fn committed_size(&self) -> usize {
-        let alloc = self.alloc.lock();
-        alloc.limit.offset_from(self.total.start)
+        let protected = self.protected.lock();
+        protected.limit.offset_from(self.total.start)
     }
 
     pub fn active_size(&self) -> usize {
@@ -60,33 +60,33 @@ impl OldGen {
     }
 
     pub fn top(&self) -> Address {
-        let alloc = self.alloc.lock();
+        let protected = self.protected.lock();
 
-        alloc.top
+        protected.top
     }
 
     pub fn limit(&self) -> Address {
-        let alloc = self.alloc.lock();
+        let protected = self.protected.lock();
 
-        alloc.limit
+        protected.limit
     }
 
     pub fn update_top(&self, top: Address) {
         assert!(self.total.valid_top(top));
-        let mut alloc = self.alloc.lock();
+        let mut protected = self.protected.lock();
 
-        alloc.top = top;
+        protected.top = top;
     }
 
     pub fn set_committed_size(&self, new_size: usize) {
         assert!(gen_aligned(new_size));
 
-        let mut alloc = self.alloc.lock();
+        let mut protected = self.protected.lock();
 
-        let old_committed = alloc.limit;
+        let old_committed = protected.limit;
         let new_committed = self.total.start.offset(new_size);
         assert!(new_committed <= self.total.end);
-        assert!(alloc.top <= new_committed);
+        assert!(protected.top <= new_committed);
 
         if old_committed < new_committed {
             let size = new_committed.offset_from(old_committed);
@@ -96,38 +96,11 @@ impl OldGen {
             arena::forget(new_committed.into(), size);
         }
 
-        alloc.limit = new_committed;
-    }
-
-    pub fn bump_alloc(&self, size: usize, array_ref: bool) -> Address {
-        let mut alloc = self.alloc.lock();
-        let obj_start = alloc.top;
-        let obj_end = obj_start.offset(size);
-
-        if obj_end <= alloc.limit {
-            alloc.top = obj_end;
-            self.update_crossing(obj_start, obj_end, array_ref);
-            return obj_start;
-        }
-
-        let mut config = self.config.lock();
-
-        if !config.grow_old(GEN_SIZE) {
-            return Address::null();
-        }
-
-        assert!(size < GEN_SIZE);
-        arena::commit(alloc.limit, GEN_SIZE, false);
-
-        alloc.top = obj_end;
-        alloc.limit = obj_end.offset(size);
-        self.update_crossing(obj_start, obj_end, array_ref);
-
-        obj_start
+        protected.limit = new_committed;
     }
 
     pub fn grow(&self) -> Address {
-        let mut alloc = self.alloc.lock();
+        let mut alloc = self.protected.lock();
         let mut config = self.config.lock();
 
         if !config.grow_old(GEN_SIZE) {
@@ -213,14 +186,14 @@ impl OldGen {
     }
 }
 
-struct OldAlloc {
+struct OldProtected {
     top: Address,
     limit: Address,
 }
 
-impl OldAlloc {
-    fn new(start: Address) -> OldAlloc {
-        OldAlloc {
+impl OldProtected {
+    fn new(start: Address) -> OldProtected {
+        OldProtected {
             top: start,
             limit: start,
         }

@@ -397,7 +397,7 @@ impl Collector for Swiper {
         };
     }
 
-    fn alloc_normal(&self, vm: &VM, size: usize, array_ref: bool) -> Address {
+    fn alloc_normal(&self, vm: &VM, size: usize, _array_ref: bool) -> Address {
         let ptr = self.young.bump_alloc(size);
 
         if !ptr.is_null() {
@@ -406,13 +406,7 @@ impl Collector for Swiper {
 
         self.perform_collection_and_choose(vm, GcReason::AllocationFailure);
 
-        let ptr = self.young.bump_alloc(size);
-
-        if !ptr.is_null() {
-            return ptr;
-        }
-
-        self.old.bump_alloc(size, array_ref)
+        self.young.bump_alloc(size)
     }
 
     fn alloc_large(&self, vm: &VM, size: usize, _: bool) -> Address {
