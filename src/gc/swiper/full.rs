@@ -74,15 +74,9 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
     pub fn collect(&mut self) {
         let dev_verbose = self.vm.args.flag_gc_dev_verbose;
-        self.init_old_top = self.old.active().end;
+        self.init_old_top = self.old.top();
 
         if dev_verbose {
-            println!(
-                "Full GC: init: eden={} from={} old={}",
-                self.young.eden_active(),
-                self.young.from_active(),
-                self.old.active()
-            );
             println!("Full GC: Phase 1 (marking)");
         }
 
@@ -114,12 +108,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
         if dev_verbose {
             println!("Full GC: Phase 5 (large objects) finished.");
-            println!(
-                "Full GC: final: eden={} from={} old={}",
-                self.young.eden_active(),
-                self.young.from_active(),
-                self.old.active()
-            );
         }
 
         self.reset_cards();

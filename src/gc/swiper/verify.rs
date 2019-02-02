@@ -136,9 +136,14 @@ impl<'a> Verifier<'a> {
     fn verify_old(&mut self) {
         self.in_old = true;
         let old_regions = self.old_protected.regions.clone();
+        let mut last = self.old.total().start;
         for old_region in old_regions {
+            let region_total = old_region.total_region();
+            assert_eq!(region_total.start, last);
             self.verify_objects(old_region.active_region(), "old gen");
+            last = region_total.end;
         }
+        assert_eq!(self.old.total().end, last);
         self.in_old = false;
     }
 
@@ -397,11 +402,15 @@ impl<'a> Verifier<'a> {
             self.to_active.size(),
         );
         {
-            println!("OLD total: {} (size 0x{:x})", self.old.total(), self.old.total().size());
+            println!(
+                "OLD total: {} (size 0x{:x})",
+                self.old.total(),
+                self.old.total().size()
+            );
             for old_region in &self.old_protected.regions {
                 println!(
                     "OLD region: {}; active: {} (size 0x{:x})",
-                    old_region.total_region(),
+                    old_region.committed_region(),
                     old_region.active_region(),
                     old_region.active_size(),
                 );

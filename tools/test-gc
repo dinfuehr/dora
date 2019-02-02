@@ -18,11 +18,11 @@ for type in "" "--release"; do
   cargo run $type -- --max-heap-size=512M --gc-worker=4 --gc-young-ratio=4 --gc-verify --gc-parallel-minor bench/binarytrees/binarytrees.dora 21
 
   # test parallel marking
-  if [[ ! -z "$MEMORY_LIMITED" ]]; then
-    cargo run $type -- --max-heap-size=4G --gc-worker=4 --gc-verify --gc-parallel-full tests/swiper/marking1.dora
-    cargo run $type -- --max-heap-size=4G --gc-worker=4 --gc-verify --gc-parallel-full tests/swiper/marking2.dora
-  fi
+  # if [[ ! -z "$MEMORY_LIMITED" ]]; then
+  #   cargo run $type -- --max-heap-size=4G --gc-worker=4 --gc-verify --gc-parallel-full tests/swiper/marking1.dora
+  #   cargo run $type -- --max-heap-size=4G --gc-worker=4 --gc-verify --gc-parallel-full tests/swiper/marking2.dora
+  # fi
 
-  cargo run $type -- --gc-verify --gc-parallel-full tests/swiper/marking3.dora
+  # cargo run $type -- --gc-verify --gc-parallel-full tests/swiper/marking3.dora
 done
 

@@ -173,9 +173,6 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         let vm = self.vm;
 
         // align old generation to card boundary
-        let old_top = Arc::new(Mutex::new(self.old_top));
-        let old_limit = self.old.committed().end;
-
         let young_top = Arc::new(Mutex::new(self.young_top));
         let young_limit = self.young_limit;
 
@@ -208,7 +205,6 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
                 let stealers = stealers.clone();
                 let terminator = terminator.clone();
                 let young_region = young_region.clone();
-                let old_top = old_top.clone();
                 let young_top = young_top.clone();
                 let promoted_size = promoted_size.clone();
                 let promotion_failed = promotion_failed.clone();
@@ -244,7 +240,7 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
                         traced: 0,
 
                         old_lab: Lab::new(),
-                        old_alloc: SpaceAlloc::new(old_top, old_limit),
+                        old_alloc_failed: false,
 
                         young_lab: Lab::new(),
                         young_alloc: SpaceAlloc::new(young_top, young_limit),
@@ -263,7 +259,6 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         });
 
         self.young_top = *young_top.lock();
-        self.old.update_top(*old_top.lock());
 
         self.promoted_size = *promoted_size.lock();
         self.promotion_failed = *promotion_failed.lock();
@@ -394,22 +389,10 @@ impl SpaceAlloc {
             return false;
         }
 
-        let mut top = self.top.lock();
+        let lab_start = old.alloc(CLAB_SIZE);
 
-        let lab_start = *top;
-        let lab_end = lab_start.offset(CLAB_SIZE);
-
-        if lab_end <= self.limit {
-            *top = lab_end;
-            lab.reset(lab_start, lab_end);
-
-            return true;
-        }
-
-        self.limit = old.grow();
-
-        if lab_end <= self.limit {
-            *top = lab_end;
+        if lab_start.is_non_null() {
+            let lab_end = lab_start.offset(CLAB_SIZE);
             lab.reset(lab_start, lab_end);
 
             true
@@ -446,27 +429,13 @@ impl SpaceAlloc {
             return Address::null();
         }
 
-        let mut top = self.top.lock();
+        let obj_start = old.alloc(size);
 
-        let obj_start = *top;
-        let obj_end = obj_start.offset(size);
-
-        if obj_end <= self.limit {
-            *top = obj_end;
-            return obj_start;
-        }
-
-        self.limit = old.grow();
-
-        if obj_end <= self.limit {
-            *top = obj_end;
-
-            obj_start
-        } else {
+        if obj_start.is_null() {
             self.failed = true;
-
-            Address::null()
         }
+
+        obj_start
     }
 }
 
@@ -505,7 +474,7 @@ struct CopyTask<'a, 'ast: 'a> {
     traced: usize,
 
     old_lab: Lab,
-    old_alloc: SpaceAlloc,
+    old_alloc_failed: bool,
 
     young_lab: Lab,
     young_alloc: SpaceAlloc,
@@ -794,7 +763,7 @@ where
     }
 
     fn promotion_failed(&self) -> bool {
-        self.old_alloc.failed
+        self.old_alloc_failed
     }
 
     fn trace_young_object(&mut self, object_addr: Address) {
@@ -910,12 +879,12 @@ where
 
         if object_start.is_non_null() {
             return object_start;
-        } else if self.old_alloc.failed {
+        } else if self.old_alloc_failed {
             return Address::null();
         }
 
         self.old_lab.make_iterable_old(self.vm, self.old);
-        if !self.old_alloc.alloc_lab_old(&mut self.old_lab, self.old) {
+        if !self.alloc_old_lab() {
             return Address::null();
         }
 
@@ -924,7 +893,12 @@ where
 
     fn alloc_old_medium(&mut self, size: usize, array_ref: bool) -> Address {
         debug_assert!(CLAB_OBJECT_SIZE <= size && size < LARGE_OBJECT_SIZE);
-        let object_start = self.old_alloc.alloc_obj_old(size, self.old);
+
+        if self.old_alloc_failed {
+            return Address::null();
+        }
+
+        let object_start = self.old.alloc(size);
 
         if object_start.is_non_null() {
             let old = object_start;
@@ -932,7 +906,27 @@ where
             self.old.update_crossing(old, new, array_ref);
             object_start
         } else {
+            self.old_alloc_failed = true;
             Address::null()
+        }
+    }
+
+    fn alloc_old_lab(&mut self) -> bool {
+        if self.old_alloc_failed {
+            return false;
+        }
+
+        let lab_start = self.old.alloc(CLAB_SIZE);
+
+        if lab_start.is_non_null() {
+            let lab_end = lab_start.offset(CLAB_SIZE);
+            self.old_lab.reset(lab_start, lab_end);
+
+            true
+        } else {
+            self.old_alloc_failed = true;
+
+            false
         }
     }
 
@@ -962,7 +956,7 @@ where
         };
 
         // As soon as promotion of an object failed, objects are not copied anymore.
-        if self.old_alloc.failed {
+        if self.old_alloc_failed {
             return obj_addr;
         }
 
