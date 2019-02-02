@@ -42,20 +42,6 @@ impl OldGen {
         self.total.clone()
     }
 
-    pub fn active(&self) -> Region {
-        let protected = self.protected.lock();
-        let region = protected.single_region();
-
-        Region::new(region.start, region.alloc_top)
-    }
-
-    pub fn committed(&self) -> Region {
-        let protected = self.protected.lock();
-        let region = protected.single_region();
-
-        Region::new(region.start, region.alloc_limit)
-    }
-
     pub fn committed_size(&self) -> usize {
         let protected = self.protected.lock();
 
@@ -308,6 +294,14 @@ impl OldRegion {
             alloc_top: region.start,
             alloc_limit: region.start,
         }
+    }
+
+    pub fn start(&self) -> Address {
+        self.start
+    }
+
+    pub fn top(&self) -> Address {
+        self.alloc_top
     }
 
     pub fn size(&self) -> usize {

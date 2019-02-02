@@ -25,6 +25,7 @@ pub struct FullCollector<'a, 'ast: 'a> {
 
     old_top: Address,
     old_limit: Address,
+    old_committed: Region,
     init_old_top: Address,
 
     reason: GcReason,
@@ -63,6 +64,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
             old_top: old_total.start,
             old_limit: old_total.end,
+            old_committed: Default::default(),
             init_old_top: Address::null(),
 
             reason: reason,
@@ -170,6 +172,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
         let old_size = align_gen(cmp::max(init_old_size, new_old_size));
         self.old.set_committed_size(old_size);
+        self.old_committed = old_start.region_start(old_size);
     }
 
     fn update_references(&mut self) {
@@ -203,11 +206,11 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             if object.header().is_marked_non_atomic() {
                 // get new location
                 let dest = object.header().fwdptr_non_atomic();
-                debug_assert!(full.old.committed().contains(dest));
+                debug_assert!(full.old_committed.contains(dest));
 
                 // determine location after relocated object
                 let next_dest = dest.offset(object_size);
-                debug_assert!(full.old.committed().valid_top(next_dest));
+                debug_assert!(full.old_committed.valid_top(next_dest));
 
                 if address != dest {
                     object.copy_to(dest, object_size);
@@ -290,8 +293,14 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     where
         F: FnMut(&mut FullCollector, &mut Obj, Address, usize),
     {
-        let used_region = self.old.active();
-        self.walk_region(used_region.start, used_region.end, &mut fct);
+        let old_regions = {
+            let protected = self.old.protected();
+            protected.regions.clone()
+        };
+
+        for old_region in old_regions {
+            self.walk_region(old_region.start(), old_region.top(), &mut fct);
+        }
 
         let used_region = self.young.eden_active();
         self.walk_region(used_region.start, used_region.end, &mut fct);

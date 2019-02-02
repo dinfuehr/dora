@@ -319,6 +319,15 @@ impl Region {
     }
 }
 
+impl Default for Region {
+    fn default() -> Region {
+        Region {
+            start: Address::null(),
+            end: Address::null(),
+        }
+    }
+}
+
 impl fmt::Display for Region {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}-{}", self.start, self.end)
