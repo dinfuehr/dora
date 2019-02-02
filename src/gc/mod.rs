@@ -6,7 +6,7 @@ use driver::cmd::{Args, CollectorName};
 use gc::compact::MarkCompactCollector;
 use gc::copy::CopyCollector;
 use gc::space::{Space, SpaceConfig};
-use gc::swiper::Swiper;
+use gc::swiper::{CARD_SIZE, Swiper};
 use gc::tlab::TLAB_OBJECT_SIZE;
 use gc::zero::ZeroCollector;
 use mem;
@@ -255,6 +255,11 @@ impl Address {
     #[inline(always)]
     pub fn is_non_null(self) -> bool {
         self.0 != 0
+    }
+
+    #[inline(always)]
+    pub fn is_card_aligned(self) -> bool {
+        (self.to_usize() & (CARD_SIZE - 1)) == 0
     }
 }
 

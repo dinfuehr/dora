@@ -61,86 +61,32 @@ impl OldGen {
 
     pub fn top(&self) -> Address {
         let protected = self.protected.lock();
-        let region = protected.single_region();
-
-        region.alloc_top
+        protected.top()
     }
 
     pub fn limit(&self) -> Address {
         let protected = self.protected.lock();
-        let region = protected.single_region();
-
-        region.alloc_limit
+        protected.limit()
     }
 
     pub fn update_top(&self, top: Address) {
-        assert!(self.total.valid_top(top));
         let mut protected = self.protected.lock();
-        let region = protected.single_region_mut();
-
-        region.alloc_top = top;
+        protected.update_top(top);
     }
 
     pub fn set_committed_size(&self, new_size: usize) {
-        assert!(gen_aligned(new_size));
-
         let mut protected = self.protected.lock();
-        let region = protected.single_region_mut();
-
-        let old_committed = region.alloc_limit;
-        let new_committed = self.total.start.offset(new_size);
-        assert!(new_committed <= self.total.end);
-        assert!(new_committed <= region.end);
-        assert!(region.alloc_top <= new_committed);
-
-        if old_committed < new_committed {
-            let size = new_committed.offset_from(old_committed);
-            arena::commit(old_committed.into(), size, false);
-        } else if old_committed > new_committed {
-            let size = old_committed.offset_from(new_committed);
-            arena::forget(new_committed.into(), size);
-        }
-
-        region.alloc_limit = new_committed;
+        protected.set_committed_size(new_size);
     }
 
     pub fn grow(&self) -> Address {
         let mut protected = self.protected.lock();
-        let mut config = self.config.lock();
-
-        let new_alloc_limit = protected.single_region().alloc_limit.offset(GEN_SIZE);
-
-        if !config.grow_old(GEN_SIZE) || !self.total.valid_top(new_alloc_limit) {
-            return protected.single_region().alloc_limit;
-        }
-
-        protected.size += GEN_SIZE;
-
-        let region = protected.single_region_mut();
-        arena::commit(region.alloc_limit, GEN_SIZE, false);
-        region.alloc_limit = new_alloc_limit;
-
-        region.alloc_limit
+        protected.grow(&self.config)
     }
 
     pub fn alloc(&self, size: usize) -> Address {
         let mut protected = self.protected.lock();
-        let ptr = protected.alloc(size);
-
-        if ptr.is_non_null() {
-            return ptr;
-        }
-
-        {
-            let mut config = self.config.lock();
-
-            if !config.grow_old(GEN_SIZE) {
-                return Address::null();
-            }
-        }
-
-        protected.extend(GEN_SIZE);
-        protected.alloc(size)
+        protected.alloc(&self.config, size)
     }
 
     pub fn update_crossing(&self, old: Address, new: Address, array_ref: bool) {
@@ -237,6 +183,60 @@ impl OldGenProtected {
         false
     }
 
+    pub fn top(&self) -> Address {
+        self.single_region().alloc_top
+    }
+
+    pub fn limit(&self) -> Address {
+        self.single_region().alloc_limit
+    }
+
+    pub fn update_top(&mut self, top: Address) {
+        assert!(self.total.valid_top(top));
+        let region = self.single_region_mut();
+        region.alloc_top = top;
+    }
+
+    pub fn set_committed_size(&mut self, new_size: usize) {
+        assert!(gen_aligned(new_size));
+        let total = self.total.clone();
+        let region = self.single_region_mut();
+
+        let old_committed = region.alloc_limit;
+        let new_committed = total.start.offset(new_size);
+        assert!(new_committed <= total.end);
+        assert!(new_committed <= region.end);
+        assert!(region.alloc_top <= new_committed);
+
+        if old_committed < new_committed {
+            let size = new_committed.offset_from(old_committed);
+            arena::commit(old_committed.into(), size, false);
+        } else if old_committed > new_committed {
+            let size = old_committed.offset_from(new_committed);
+            arena::forget(new_committed.into(), size);
+        }
+
+        region.alloc_limit = new_committed;
+    }
+
+    pub fn grow(&mut self, config: &SharedHeapConfig) -> Address {
+        let mut config = config.lock();
+
+        let new_alloc_limit = self.single_region().alloc_limit.offset(GEN_SIZE);
+
+        if !config.grow_old(GEN_SIZE) || !self.total.valid_top(new_alloc_limit) {
+            return self.single_region().alloc_limit;
+        }
+
+        self.size += GEN_SIZE;
+
+        let region = self.single_region_mut();
+        arena::commit(region.alloc_limit, GEN_SIZE, false);
+        region.alloc_limit = new_alloc_limit;
+
+        region.alloc_limit
+    }
+
     fn single_region(&self) -> &OldRegion {
         assert!(self.regions.len() == 1);
         self.regions.first().unwrap()
@@ -247,7 +247,29 @@ impl OldGenProtected {
         self.regions.first_mut().unwrap()
     }
 
-    fn alloc(&mut self, size: usize) -> Address {
+    pub fn alloc(&mut self, config: &SharedHeapConfig, size: usize) -> Address {
+        let ptr = self.pure_alloc(size);
+
+        if ptr.is_non_null() {
+            return ptr;
+        }
+
+        {
+            let mut config = config.lock();
+
+            if !config.grow_old(GEN_SIZE) {
+                return Address::null();
+            }
+        }
+
+        if !self.extend(GEN_SIZE) {
+            return Address::null();
+        }
+
+        self.pure_alloc(size)
+    }
+
+    fn pure_alloc(&mut self, size: usize) -> Address {
         for old_region in &mut self.regions {
             let new_alloc_top = old_region.alloc_top.offset(size);
 

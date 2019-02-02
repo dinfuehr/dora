@@ -39,7 +39,6 @@ pub struct ParallelMinorCollector<'a, 'ast: 'a> {
     young_top: Address,
     young_limit: Address,
     init_old_top: Address,
-    old_top: Address,
 
     promotion_failed: bool,
     promoted_size: usize,
@@ -83,7 +82,6 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
             young_top: Address::null(),
             young_limit: Address::null(),
             init_old_top: Address::null(),
-            old_top: Address::null(),
 
             promotion_failed: false,
             promoted_size: 0,
@@ -109,8 +107,7 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         self.young_top = to_committed.start;
         self.young_limit = to_committed.end;
 
-        self.old_top = self.old.top();
-        self.init_old_top = self.old_top;
+        self.init_old_top = self.old.top();
 
         self.young.unprotect_to();
 

@@ -1,3 +1,4 @@
+use parking_lot::MutexGuard;
 use std::cmp;
 
 use ctxt::VM;
@@ -6,7 +7,7 @@ use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::controller::SharedHeapConfig;
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use gc::swiper::large::LargeSpace;
-use gc::swiper::old::OldGen;
+use gc::swiper::old::{OldGen, OldGenProtected};
 use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
 use gc::swiper::{CardIdx, CARD_SIZE};
@@ -19,6 +20,7 @@ pub struct MinorCollector<'a, 'ast: 'a> {
 
     young: &'a YoungGen,
     old: &'a OldGen,
+    old_protected: MutexGuard<'a, OldGenProtected>,
     large: &'a LargeSpace,
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
@@ -28,9 +30,7 @@ pub struct MinorCollector<'a, 'ast: 'a> {
 
     young_top: Address,
     young_limit: Address,
-    init_old_top: Address,
-    old_top: Address,
-    old_limit: Address,
+    init_old_top: Vec<Address>,
 
     promotion_failed: bool,
     promoted_size: usize,
@@ -62,6 +62,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
             vm: vm,
             young: young,
             old: old,
+            old_protected: old.protected(),
             large: large,
             rootset: rootset,
             card_table: card_table,
@@ -69,9 +70,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
 
             young_top: Address::null(),
             young_limit: Address::null(),
-            init_old_top: Address::null(),
-            old_top: Address::null(),
-            old_limit: Address::null(),
+            init_old_top: Vec::new(),
 
             promotion_failed: false,
             promoted_size: 0,
@@ -93,10 +92,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         self.young_top = to_committed.start;
         self.young_limit = to_committed.end;
 
-        self.old_top = self.old.top();
-        self.init_old_top = self.old_top;
-        self.old_limit = self.old.limit();
-
+        self.init_old_top = self.old_protected.regions.iter().map(|r| r.top()).collect();
         self.young.unprotect_to();
 
         let dev_verbose = self.vm.args.flag_gc_dev_verbose;
@@ -111,8 +107,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
             println!("Minor GC: Phase 2 (dirty cards)");
         }
 
-        self.copy_dirty_cards();
-        self.visit_large_objects();
+        self.visit_dirty_cards();
 
         if dev_verbose {
             println!("Minor GC: Phase 3 (traverse)");
@@ -157,7 +152,12 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         }
     }
 
-    fn visit_large_objects(&mut self) {
+    fn visit_dirty_cards(&mut self) {
+        self.visit_dirty_cards_in_old();
+        self.visit_dirty_cards_in_large();
+    }
+
+    fn visit_dirty_cards_in_large(&mut self) {
         self.large.visit_objects(|addr| {
             let object = addr.to_mut_obj();
 
@@ -224,23 +224,30 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
 
     fn trace_gray_objects(&mut self) {
         let mut young_scan = self.young.to_committed().start;
-        let mut old_scan = self.init_old_top;
+        let mut old_scan = self.init_old_top.clone();
+
+        let mut work_done = true;
 
         // visit all fields in gray (=copied) objects
         // there can be gray objects in old & young gen
-        while young_scan < self.young_top || old_scan < self.old_top {
+        while work_done {
+            work_done = false;
+
             while young_scan < self.young_top {
                 young_scan = self.trace_young_object(young_scan);
+                work_done = true;
+
             }
 
-            while old_scan < self.old_top {
-                old_scan = self.trace_old_object(old_scan);
+            for (id, scan) in old_scan.iter_mut().enumerate() {
+                while *scan < self.old_protected.regions[id].top() {
+                    *scan = self.trace_old_object(*scan);
+                    work_done = true;
+                }
             }
         }
 
         assert!(young_scan == self.young_top);
-        assert!(old_scan == self.old_top);
-        self.old.update_top(self.old_top);
     }
 
     fn trace_young_object(&mut self, addr: Address) -> Address {
@@ -314,10 +321,19 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         object_start.offset(object.size())
     }
 
+    fn visit_dirty_cards_in_old(&mut self) {
+        let old_regions = self.old_protected.regions.iter().map(|r| r.start()).collect::<Vec<_>>();
+
+        for (id, old_region_start) in old_regions.into_iter().enumerate() {
+            let init_old_top = self.init_old_top[id];
+            self.visit_dirty_cards_in_old_region(old_region_start, init_old_top);
+        }
+    }
+
     // copy all references from old- into young-generation.
-    fn copy_dirty_cards(&mut self) {
+    fn visit_dirty_cards_in_old_region(&mut self, start: Address, end: Address) {
         self.card_table
-            .visit_dirty_in_old(self.init_old_top, |card_idx| {
+            .visit_dirty_in_old(start, end, |card_idx| {
                 let crossing_entry = self.crossing_map.get(card_idx);
                 let card_start = self.card_table.to_address(card_idx);
 
@@ -331,14 +347,14 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
                             self.copy_refs(card_start, refs as usize, &mut ref_to_young_gen);
 
                         // copy all objects from this card
-                        self.copy_old_card(card_idx, first_object, ref_to_young_gen);
+                        self.copy_old_card(card_idx, first_object, end, ref_to_young_gen);
                     }
 
                     CrossingEntry::FirstObject(offset) => {
                         let ptr = card_start.offset(offset as usize * mem::ptr_width_usize());
 
                         // copy all objects from this card
-                        self.copy_old_card(card_idx, ptr, false);
+                        self.copy_old_card(card_idx, ptr, end, false);
                     }
 
                     CrossingEntry::ArrayStart(offset) => {
@@ -347,7 +363,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
                             card_start.to_usize() - (offset as usize * mem::ptr_width_usize());
 
                         // copy all objects from this card
-                        self.copy_old_card(card_idx, ptr.into(), false);
+                        self.copy_old_card(card_idx, ptr.into(), end, false);
                     }
                 }
             });
@@ -373,10 +389,10 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         ptr
     }
 
-    fn copy_old_card(&mut self, card: CardIdx, ptr: Address, mut ref_to_young_gen: bool) {
+    fn copy_old_card(&mut self, card: CardIdx, ptr: Address, end: Address, mut ref_to_young_gen: bool) {
         let card_start = self.card_table.to_address(card);
         let card_end = card_start.offset(CARD_SIZE);
-        let end = cmp::min(card_end, self.init_old_top);
+        let end = cmp::min(card_end, end);
 
         self.copy_range(ptr, end, &mut ref_to_young_gen);
         self.clean_card_if_no_young_refs(card, ref_to_young_gen);
@@ -481,28 +497,15 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
     }
 
     fn alloc_old(&mut self, size: usize, array_ref: bool) -> Address {
-        let obj_start = self.alloc_old_in_lab(size, array_ref);
+        let obj_start = self.old_protected.alloc(self.config, size);
 
         if obj_start.is_non_null() {
+            let obj_end = obj_start.offset(size);
+            self.old.update_crossing(obj_start, obj_end, array_ref);
             return obj_start;
         }
 
-        self.old_limit = self.old.grow();
-        self.alloc_old_in_lab(size, array_ref)
-    }
-
-    fn alloc_old_in_lab(&mut self, size: usize, array_ref: bool) -> Address {
-        let obj_start = self.old_top;
-        let obj_end = self.old_top.offset(size);
-
-        if obj_end <= self.old_limit {
-            self.old_top = obj_end;
-            self.old.update_crossing(obj_start, obj_end, array_ref);
-
-            obj_start
-        } else {
-            Address::null()
-        }
+        Address::null()
     }
 
     fn remove_forwarding_pointers(&mut self) {

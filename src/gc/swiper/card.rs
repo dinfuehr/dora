@@ -84,12 +84,13 @@ impl CardTable {
     }
 
     // visits all dirty cards in region
-    pub fn visit_dirty_in_old<F>(&self, end: Address, mut f: F)
+    pub fn visit_dirty_in_old<F>(&self, start: Address, end: Address, mut f: F)
     where
         F: FnMut(CardIdx),
     {
         assert!(end >= self.old_and_large.start && end <= self.old_end);
-        let (start_card_idx, end_card_idx) = self.card_indices(self.old_and_large.start, end);
+        assert!(start.is_card_aligned());
+        let (start_card_idx, end_card_idx) = self.card_indices(start, end);
 
         for card_idx in start_card_idx..=end_card_idx {
             if self.get(card_idx.into()).is_dirty() {
