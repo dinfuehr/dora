@@ -1,10 +1,12 @@
+use parking_lot::MutexGuard;
+
 use ctxt::get_vm;
 use gc::root::Slot;
 use gc::space::Space;
 use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use gc::swiper::large::LargeSpace;
-use gc::swiper::old::OldGen;
+use gc::swiper::old::{OldGen, OldGenProtected};
 use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
 use gc::swiper::CARD_SIZE;
@@ -49,6 +51,7 @@ impl VerifierPhase {
 pub struct Verifier<'a> {
     young: &'a YoungGen,
     old: &'a OldGen,
+    old_protected: MutexGuard<'a, OldGenProtected>,
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
     rootset: &'a [Slot],
@@ -59,7 +62,6 @@ pub struct Verifier<'a> {
     in_old: bool,
     in_large: bool,
 
-    old_active: Region,
     young_total: Region,
     eden_active: Region,
     from_active: Region,
@@ -83,9 +85,12 @@ impl<'a> Verifier<'a> {
         phase: VerifierPhase,
         promotion_failed: bool,
     ) -> Verifier<'a> {
+        let old_protected = old.protected();
+
         Verifier {
             young: young,
             old: old,
+            old_protected: old_protected,
             card_table: card_table,
             crossing_map: crossing_map,
             rootset: rootset,
@@ -99,7 +104,6 @@ impl<'a> Verifier<'a> {
             eden_active: young.eden_active(),
             from_active: young.from_active(),
             to_active: young.to_active(),
-            old_active: old.active(),
             young_total: young.total(),
             reserved_area: reserved_area,
 
@@ -130,9 +134,11 @@ impl<'a> Verifier<'a> {
     }
 
     fn verify_old(&mut self) {
-        let region = self.old_active.clone();
         self.in_old = true;
-        self.verify_objects(region, "old gen");
+        let old_regions = self.old_protected.regions.clone();
+        for old_region in old_regions {
+            self.verify_objects(old_region.active_region(), "old gen");
+        }
         self.in_old = false;
     }
 
@@ -342,7 +348,7 @@ impl<'a> Verifier<'a> {
             return;
         }
 
-        if self.old_active.contains(reference)
+        if self.old_protected.contains_slow(reference)
             || self.eden_active.contains(reference)
             || self.from_active.contains(reference)
             || self.perm_space.contains(reference)
@@ -390,12 +396,18 @@ impl<'a> Verifier<'a> {
             self.to_active,
             self.to_active.size(),
         );
-        println!(
-            "OLD: {}; active: {} (size 0x{:x})",
-            self.old.total(),
-            self.old_active,
-            self.old_active.size(),
-        );
+        {
+            println!("OLD total: {} (size 0x{:x})", self.old.total(), self.old.total().size());
+            for old_region in &self.old_protected.regions {
+                println!(
+                    "OLD region: {}; active: {} (size 0x{:x})",
+                    old_region.total_region(),
+                    old_region.active_region(),
+                    old_region.active_size(),
+                );
+            }
+        }
+
         println!(
             "LRG: {}-{}",
             self.large.total().start,

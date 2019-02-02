@@ -1,4 +1,4 @@
-use parking_lot::Mutex;
+use parking_lot::{Mutex, MutexGuard};
 
 use gc::swiper::card::CardTable;
 use gc::swiper::controller::SharedHeapConfig;
@@ -10,7 +10,7 @@ use object::offset_of_array_data;
 
 pub struct OldGen {
     total: Region,
-    protected: Mutex<OldProtected>,
+    protected: Mutex<OldGenProtected>,
 
     crossing_map: CrossingMap,
     card_table: CardTable,
@@ -27,7 +27,7 @@ impl OldGen {
     ) -> OldGen {
         let old = OldGen {
             total: Region::new(start, end),
-            protected: Mutex::new(OldProtected::new(start)),
+            protected: Mutex::new(OldGenProtected::new(start)),
 
             crossing_map: crossing_map,
             card_table: card_table,
@@ -203,30 +203,37 @@ impl OldGen {
         }
     }
 
-    pub fn contains(&self, addr: Address) -> bool {
-        self.total.contains(addr)
-    }
-
-    pub fn valid_top(&self, addr: Address) -> bool {
-        self.total.valid_top(addr)
+    pub fn protected(&self) -> MutexGuard<OldGenProtected> {
+        self.protected.lock()
     }
 }
 
-struct OldProtected {
-    size: usize,
-    regions: Vec<OldRegion>,
+pub struct OldGenProtected {
+    pub size: usize,
+    pub regions: Vec<OldRegion>,
 }
 
-impl OldProtected {
-    fn new(start: Address) -> OldProtected {
-        OldProtected {
+impl OldGenProtected {
+    fn new(start: Address) -> OldGenProtected {
+        OldGenProtected {
             size: 0,
             regions: vec![OldRegion::new(start)],
         }
     }
+
+    pub fn contains_slow(&self, addr: Address) -> bool {
+        for old_region in &self.regions {
+            if old_region.start <= addr && addr < old_region.top {
+                return true;
+            }
+        }
+
+        false
+    }
 }
 
-struct OldRegion {
+#[derive(Clone)]
+pub struct OldRegion {
     start: Address,
     top: Address,
     end: Address,
@@ -241,11 +248,19 @@ impl OldRegion {
         }
     }
 
-    fn size(&self) -> usize {
+    pub fn size(&self) -> usize {
         self.end.offset_from(self.start)
     }
 
-    fn active_size(&self) -> usize {
+    pub fn active_size(&self) -> usize {
         self.top.offset_from(self.start)
+    }
+
+    pub fn active_region(&self) -> Region {
+        Region::new(self.start, self.top)
+    }
+
+    pub fn total_region(&self) -> Region {
+        Region::new(self.start, self.end)
     }
 }

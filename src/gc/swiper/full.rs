@@ -239,7 +239,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.young.clear();
         self.young.protect_to();
 
-        assert!(self.old.valid_top(self.old_top));
         self.old.update_top(self.old_top);
     }
 
