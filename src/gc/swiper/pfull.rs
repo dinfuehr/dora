@@ -24,7 +24,7 @@ pub struct ParallelFullCollector<'a, 'ast: 'a> {
 
     old_top: Address,
     old_limit: Address,
-    init_old_top: Address,
+    init_old_top: Vec<Address>,
 
     reason: GcReason,
     threadpool: &'a mut Pool,
@@ -64,7 +64,7 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
 
             old_top: old_total.start,
             old_limit: old_total.end,
-            init_old_top: Address::null(),
+            init_old_top: Vec::new(),
 
             reason: reason,
             threadpool: threadpool,
@@ -76,7 +76,10 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
 
     pub fn collect(&mut self) {
         let dev_verbose = self.vm.args.flag_gc_dev_verbose;
-        self.init_old_top = self.old.top();
+        self.init_old_top = {
+            let protected = self.old.protected();
+            protected.regions.iter().map(|r| r.top()).collect()
+        };
 
         if dev_verbose {
             println!("Full GC: Phase 1 (marking)");

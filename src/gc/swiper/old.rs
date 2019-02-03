@@ -6,7 +6,7 @@ use gc::swiper::card::CardTable;
 use gc::swiper::controller::SharedHeapConfig;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
-use gc::{arena, gen_aligned, Address, Region, GEN_SIZE};
+use gc::{arena, Address, Region, GEN_SIZE};
 use mem;
 use object::offset_of_array_data;
 
@@ -63,26 +63,6 @@ impl OldGen {
         }
 
         size
-    }
-
-    pub fn top(&self) -> Address {
-        let protected = self.protected.lock();
-        protected.top()
-    }
-
-    pub fn limit(&self) -> Address {
-        let protected = self.protected.lock();
-        protected.limit()
-    }
-
-    pub fn update_top(&self, top: Address) {
-        let mut protected = self.protected.lock();
-        protected.update_top(top);
-    }
-
-    pub fn set_committed_size(&self, new_size: usize) {
-        let mut protected = self.protected.lock();
-        protected.set_committed_size(new_size);
     }
 
     pub fn alloc(&self, size: usize) -> Address {
@@ -184,20 +164,6 @@ impl OldGenProtected {
         false
     }
 
-    pub fn top(&self) -> Address {
-        self.single_region().alloc_top
-    }
-
-    pub fn limit(&self) -> Address {
-        self.single_region().alloc_limit
-    }
-
-    pub fn update_top(&mut self, top: Address) {
-        assert!(self.total.valid_top(top));
-        let region = self.single_region_mut();
-        region.alloc_top = top;
-    }
-
     pub fn commit_single_region(&mut self, top: Address) {
         let limit = top.align_gen();
         assert!(self.total.valid_top(limit));
@@ -257,28 +223,6 @@ impl OldGenProtected {
                 arena::forget(start, size);
             }
         }
-    }
-
-    pub fn set_committed_size(&mut self, new_size: usize) {
-        assert!(gen_aligned(new_size));
-        let total = self.total.clone();
-        let region = self.single_region_mut();
-
-        let old_committed = region.alloc_limit;
-        let new_committed = total.start.offset(new_size);
-        assert!(new_committed <= total.end);
-        assert!(new_committed <= region.end);
-        assert!(region.alloc_top <= new_committed);
-
-        if old_committed < new_committed {
-            let size = new_committed.offset_from(old_committed);
-            arena::commit(old_committed.into(), size, false);
-        } else if old_committed > new_committed {
-            let size = old_committed.offset_from(new_committed);
-            arena::forget(new_committed.into(), size);
-        }
-
-        region.alloc_limit = new_committed;
     }
 
     fn single_region(&self) -> &OldRegion {

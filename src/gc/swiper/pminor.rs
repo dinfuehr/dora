@@ -38,7 +38,7 @@ pub struct ParallelMinorCollector<'a, 'ast: 'a> {
 
     young_top: Address,
     young_limit: Address,
-    init_old_top: Address,
+    init_old_top: Vec<Address>,
 
     promotion_failed: bool,
     promoted_size: usize,
@@ -81,7 +81,7 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
 
             young_top: Address::null(),
             young_limit: Address::null(),
-            init_old_top: Address::null(),
+            init_old_top: Vec::new(),
 
             promotion_failed: false,
             promoted_size: 0,
@@ -107,7 +107,10 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         self.young_top = to_committed.start;
         self.young_limit = to_committed.end;
 
-        self.init_old_top = self.old.top();
+        self.init_old_top = {
+            let protected = self.old.protected();
+            protected.regions.iter().map(|r| r.top()).collect()
+        };
 
         self.young.unprotect_to();
 
@@ -176,7 +179,7 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         let old = self.old;
         let large = self.large;
         let rootset = self.rootset;
-        let init_old_top = self.init_old_top;
+        let init_old_top = &self.init_old_top;
         let barrier = Barrier::new(self.number_workers);
         let barrier = &barrier;
 
@@ -453,7 +456,7 @@ struct CopyTask<'a, 'ast: 'a> {
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
     rootset: &'a [Slot],
-    init_old_top: Address,
+    init_old_top: &'a [Address],
     barrier: &'a Barrier,
 
     next_stride: &'a Mutex<usize>,
@@ -529,9 +532,10 @@ where
     }
 
     fn visit_dirty_cards_in_stride(&mut self, stride: usize) {
+        let init_old_top = *self.init_old_top.first().unwrap();
         let (start_card_idx, end_card_idx) = self
             .card_table
-            .card_indices(self.old.total().start, self.init_old_top);
+            .card_indices(self.old.total().start, init_old_top);
         let dirty_cards_in_stride = (start_card_idx..=end_card_idx)
             .skip(stride)
             .step_by(self.strides);
@@ -685,7 +689,8 @@ where
     fn copy_old_card(&mut self, card: CardIdx, ptr: Address, mut ref_to_young_gen: bool) {
         let card_start = self.card_table.to_address(card);
         let card_end = card_start.offset(CARD_SIZE);
-        let end = cmp::min(card_end, self.init_old_top);
+        let init_old_top = *self.init_old_top.first().unwrap();
+        let end = cmp::min(card_end, init_old_top);
 
         self.copy_range(ptr, end, &mut ref_to_young_gen);
         self.clean_card_if_no_young_refs(card, ref_to_young_gen);
