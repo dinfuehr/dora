@@ -225,16 +225,6 @@ impl OldGenProtected {
         }
     }
 
-    fn single_region(&self) -> &OldRegion {
-        assert!(self.regions.len() == 1);
-        self.regions.first().unwrap()
-    }
-
-    fn single_region_mut(&mut self) -> &mut OldRegion {
-        assert!(self.regions.len() == 1);
-        self.regions.first_mut().unwrap()
-    }
-
     pub fn alloc(&mut self, config: &SharedHeapConfig, size: usize) -> Address {
         let ptr = self.pure_alloc(size);
 
