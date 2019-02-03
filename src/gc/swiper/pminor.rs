@@ -180,6 +180,15 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         let large = self.large;
         let rootset = self.rootset;
         let init_old_top = &self.init_old_top;
+        let old_region_start = {
+            let protected = self.old.protected();
+            protected
+                .regions
+                .iter()
+                .map(|r| r.start())
+                .collect::<Vec<_>>()
+        };
+        let old_region_start = &old_region_start;
         let barrier = Barrier::new(self.number_workers);
         let barrier = &barrier;
 
@@ -224,6 +233,7 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
                         crossing_map: crossing_map,
                         rootset: rootset,
                         init_old_top: init_old_top,
+                        old_region_start: old_region_start,
                         barrier: barrier,
 
                         from_active: young.from_active(),
@@ -457,6 +467,7 @@ struct CopyTask<'a, 'ast: 'a> {
     crossing_map: &'a CrossingMap,
     rootset: &'a [Slot],
     init_old_top: &'a [Address],
+    old_region_start: &'a [Address],
     barrier: &'a Barrier,
 
     next_stride: &'a Mutex<usize>,
@@ -532,19 +543,18 @@ where
     }
 
     fn visit_dirty_cards_in_stride(&mut self, stride: usize) {
-        let init_old_top = *self.init_old_top.first().unwrap();
-        let (start_card_idx, end_card_idx) = self
-            .card_table
-            .card_indices(self.old.total().start, init_old_top);
-        let dirty_cards_in_stride = (start_card_idx..=end_card_idx)
-            .skip(stride)
-            .step_by(self.strides);
+        for (&start, &top) in self.old_region_start.iter().zip(self.init_old_top) {
+            let (start_card_idx, end_card_idx) = self.card_table.card_indices(start, top);
+            let dirty_cards_in_stride = (start_card_idx..=end_card_idx)
+                .skip(stride)
+                .step_by(self.strides);
 
-        for card_idx in dirty_cards_in_stride {
-            let card_idx: CardIdx = card_idx.into();
+            for card_idx in dirty_cards_in_stride {
+                let card_idx: CardIdx = card_idx.into();
 
-            if self.card_table.get(card_idx).is_dirty() {
-                self.visit_dirty_card(card_idx);
+                if self.card_table.get(card_idx).is_dirty() {
+                    self.visit_dirty_card(card_idx, top);
+                }
             }
         }
     }
@@ -633,7 +643,7 @@ where
         self.clean_card_if_no_young_refs(card_idx, ref_to_young_gen);
     }
 
-    fn visit_dirty_card(&mut self, card_idx: CardIdx) {
+    fn visit_dirty_card(&mut self, card_idx: CardIdx, end: Address) {
         let crossing_entry = self.crossing_map.get(card_idx);
         let card_start = self.card_table.to_address(card_idx);
 
@@ -646,14 +656,14 @@ where
                 let first_object = self.copy_refs(card_start, refs as usize, &mut ref_to_young_gen);
 
                 // copy all objects from this card
-                self.copy_old_card(card_idx, first_object, ref_to_young_gen);
+                self.copy_old_card(card_idx, first_object, end, ref_to_young_gen);
             }
 
             CrossingEntry::FirstObject(offset) => {
                 let ptr = card_start.offset(offset as usize * mem::ptr_width_usize());
 
                 // copy all objects from this card
-                self.copy_old_card(card_idx, ptr, false);
+                self.copy_old_card(card_idx, ptr, end, false);
             }
 
             CrossingEntry::ArrayStart(offset) => {
@@ -661,7 +671,7 @@ where
                 let ptr = card_start.to_usize() - (offset as usize * mem::ptr_width_usize());
 
                 // copy all objects from this card
-                self.copy_old_card(card_idx, ptr.into(), false);
+                self.copy_old_card(card_idx, ptr.into(), end, false);
             }
         }
     }
@@ -686,11 +696,16 @@ where
         ptr
     }
 
-    fn copy_old_card(&mut self, card: CardIdx, ptr: Address, mut ref_to_young_gen: bool) {
+    fn copy_old_card(
+        &mut self,
+        card: CardIdx,
+        ptr: Address,
+        end: Address,
+        mut ref_to_young_gen: bool,
+    ) {
         let card_start = self.card_table.to_address(card);
         let card_end = card_start.offset(CARD_SIZE);
-        let init_old_top = *self.init_old_top.first().unwrap();
-        let end = cmp::min(card_end, init_old_top);
+        let end = cmp::min(card_end, end);
 
         self.copy_range(ptr, end, &mut ref_to_young_gen);
         self.clean_card_if_no_young_refs(card, ref_to_young_gen);
