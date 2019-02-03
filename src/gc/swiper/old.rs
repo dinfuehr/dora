@@ -79,11 +79,6 @@ impl OldGen {
         protected.set_committed_size(new_size);
     }
 
-    pub fn grow(&self) -> Address {
-        let mut protected = self.protected.lock();
-        protected.grow(&self.config)
-    }
-
     pub fn alloc(&self, size: usize) -> Address {
         let mut protected = self.protected.lock();
         protected.alloc(&self.config, size)
@@ -217,24 +212,6 @@ impl OldGenProtected {
         }
 
         region.alloc_limit = new_committed;
-    }
-
-    pub fn grow(&mut self, config: &SharedHeapConfig) -> Address {
-        let mut config = config.lock();
-
-        let new_alloc_limit = self.single_region().alloc_limit.offset(GEN_SIZE);
-
-        if !config.grow_old(GEN_SIZE) || !self.total.valid_top(new_alloc_limit) {
-            return self.single_region().alloc_limit;
-        }
-
-        self.size += GEN_SIZE;
-
-        let region = self.single_region_mut();
-        arena::commit(region.alloc_limit, GEN_SIZE, false);
-        region.alloc_limit = new_alloc_limit;
-
-        region.alloc_limit
     }
 
     fn single_region(&self) -> &OldRegion {
