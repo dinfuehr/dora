@@ -261,6 +261,16 @@ impl Address {
     pub fn is_card_aligned(self) -> bool {
         (self.to_usize() & (CARD_SIZE - 1)) == 0
     }
+
+    #[inline(always)]
+    pub fn align_gen(self) -> Address {
+        align_gen(self.to_usize()).into()
+    }
+
+    #[inline(always)]
+    pub fn is_gen_aligned(self) -> bool {
+        gen_aligned(self.to_usize())
+    }
 }
 
 impl fmt::Display for Address {

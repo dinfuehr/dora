@@ -1,4 +1,6 @@
 use parking_lot::{Mutex, MutexGuard};
+use std::cmp::{min, max};
+use std::mem::replace;
 
 use gc::swiper::card::CardTable;
 use gc::swiper::controller::SharedHeapConfig;
@@ -40,6 +42,10 @@ impl OldGen {
 
     pub fn total(&self) -> Region {
         self.total.clone()
+    }
+
+    pub fn total_start(&self) -> Address {
+        self.total.start
     }
 
     pub fn committed_size(&self) -> usize {
@@ -190,6 +196,65 @@ impl OldGenProtected {
         assert!(self.total.valid_top(top));
         let region = self.single_region_mut();
         region.alloc_top = top;
+    }
+
+    pub fn commit_single_region(&mut self, top: Address) {
+        let limit = top.align_gen();
+        assert!(self.total.valid_top(limit));
+
+        let mut last = self.total.start;
+
+        for region in &self.regions {
+            let start = last;
+            let end = min(region.start, limit);
+            let size = end.offset_from(start);
+
+            if size > 0 { arena::commit(start, size, false); }
+
+            if end == limit {
+                return;
+            }
+
+            last = region.alloc_limit;
+        }
+
+        let start = last;
+        let end = limit;
+
+        if end <= start {
+            return;
+        }
+
+        let size = end.offset_from(start);
+        arena::commit(start, size, false);
+    }
+
+    pub fn update_single_region(&mut self, top: Address) {
+        let limit = top.align_gen();
+        assert!(self.total.valid_top(limit));
+
+        let region = OldRegion {
+            start: self.total.start,
+            end: self.total.end,
+
+            alloc_top: top,
+            alloc_limit: limit,
+        };
+
+        let regions = replace(&mut self.regions, vec![region]);
+
+        for region in regions {
+            if limit >= region.alloc_limit {
+                continue;
+            }
+
+            let start = max(region.start, limit);
+            let size = region.alloc_limit.offset_from(start);
+
+            if size > 0 {
+                arena::forget(start, size);
+            }
+        }
     }
 
     pub fn set_committed_size(&mut self, new_size: usize) {

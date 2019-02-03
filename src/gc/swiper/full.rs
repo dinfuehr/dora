@@ -10,7 +10,7 @@ use gc::swiper::large::LargeSpace;
 use gc::swiper::old::{OldGen, OldGenProtected};
 use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
-use gc::{align_gen, Address, GcReason, Region};
+use gc::{Address, GcReason, Region};
 use object::Obj;
 
 pub struct FullCollector<'a, 'ast: 'a> {
@@ -28,7 +28,7 @@ pub struct FullCollector<'a, 'ast: 'a> {
     old_top: Address,
     old_limit: Address,
     old_committed: Region,
-    init_old_top: Address,
+    init_old_top: Vec<Address>,
 
     reason: GcReason,
 
@@ -68,7 +68,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             old_top: old_total.start,
             old_limit: old_total.end,
             old_committed: Default::default(),
-            init_old_top: Address::null(),
+            init_old_top: Vec::new(),
 
             reason: reason,
 
@@ -79,7 +79,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
     pub fn collect(&mut self) {
         let dev_verbose = self.vm.args.flag_gc_dev_verbose;
-        self.init_old_top = self.old_protected.top();
+        self.init_old_top = self.old_protected.regions.iter().map(|r| r.top()).collect();
 
         if dev_verbose {
             println!("Full GC: Phase 1 (marking)");
@@ -116,10 +116,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         }
 
         self.reset_cards();
-
-        let old_start = self.old.total().start;
-        let old_size = align_gen(self.old_top.offset_from(old_start));
-        self.old_protected.set_committed_size(old_size);
     }
 
     fn mark_live(&mut self) {
@@ -169,13 +165,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             }
         });
 
-        let old_start = self.old.total().start;
-        let init_old_size = self.init_old_top.offset_from(old_start);
-        let new_old_size = self.old_top.offset_from(old_start);
-
-        let old_size = align_gen(cmp::max(init_old_size, new_old_size));
-        self.old_protected.set_committed_size(old_size);
-        self.old_committed = old_start.region_start(old_size);
+        self.old_protected.commit_single_region(self.old_top);
+        self.old_committed = Region::new(self.old.total_start(), self.old_top);
     }
 
     fn update_references(&mut self) {
@@ -233,7 +224,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.young.clear();
         self.young.protect_to();
 
-        self.old_protected.update_top(self.old_top);
+        self.old_protected.update_single_region(self.old_top);
     }
 
     fn update_large_objects(&mut self) {
@@ -265,10 +256,11 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     fn reset_cards(&mut self) {
         let old_total = self.old.total();
         let start = old_total.start;
-        let end = cmp::max(self.old_top, self.init_old_top);
+        let init_old_top = *self.init_old_top.first().unwrap();
+        let end = cmp::max(self.old_top, init_old_top);
 
         debug_assert!(old_total.valid_top(self.old_top));
-        debug_assert!(old_total.valid_top(self.init_old_top));
+        debug_assert!(old_total.valid_top(init_old_top));
 
         self.card_table.reset_region(start, end);
     }
