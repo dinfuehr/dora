@@ -28,9 +28,12 @@ pub struct ParallelFullCollector<'a, 'ast: 'a> {
 
     reason: GcReason,
     threadpool: &'a mut Pool,
+    number_workers: usize,
 
     min_heap_size: usize,
     max_heap_size: usize,
+
+    units: Vec<Region>,
 }
 
 impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
@@ -50,6 +53,7 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
         max_heap_size: usize,
     ) -> ParallelFullCollector<'a, 'ast> {
         let old_total = old.total();
+        let number_workers = threadpool.thread_count() as usize;
 
         ParallelFullCollector {
             vm: vm,
@@ -68,9 +72,12 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
 
             reason: reason,
             threadpool: threadpool,
+            number_workers: number_workers,
 
             min_heap_size: min_heap_size,
             max_heap_size: max_heap_size,
+
+            units: Vec::new(),
         }
     }
 
@@ -126,6 +133,30 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
     }
 
     fn compute_forward(&mut self) {
+        unimplemented!();
+    }
+
+    fn compute_units(&mut self) {
+        let active = self.old.active_size();
+        let unit_size = active / (4 * self.number_workers);
+
+        let protected = self.old.protected();
+
+        for old_region in &protected.regions {
+            self.units_for_old_region(old_region.active_region(), unit_size);
+        }
+
+        let eden = self.young.eden_active();
+        self.units.push(eden);
+
+        let from = self.young.from_active();
+        self.units.push(from);
+
+        let to = self.young.to_active();
+        self.units.push(to);
+    }
+
+    fn units_for_old_region(&mut self, _region: Region, _unit_size: usize) {
         unimplemented!();
     }
 
