@@ -116,6 +116,11 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         }
 
         self.reset_cards();
+
+        self.young.clear();
+        self.young.protect_to();
+
+        self.old_protected.update_single_region(self.old_top);
     }
 
     fn mark_live(&mut self) {
@@ -220,11 +225,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 }
             }
         });
-
-        self.young.clear();
-        self.young.protect_to();
-
-        self.old_protected.update_single_region(self.old_top);
     }
 
     fn update_large_objects(&mut self) {
@@ -254,15 +254,17 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     }
 
     fn reset_cards(&mut self) {
-        let old_total = self.old.total();
-        let start = old_total.start;
-        let init_old_top = *self.init_old_top.first().unwrap();
-        let end = cmp::max(self.old_top, init_old_top);
+        let regions = self
+            .old_protected
+            .regions
+            .iter()
+            .map(|r| (r.start(), r.top()))
+            .collect::<Vec<_>>();
 
-        debug_assert!(old_total.valid_top(self.old_top));
-        debug_assert!(old_total.valid_top(init_old_top));
-
-        self.card_table.reset_region(start, end);
+        for ((start, top), init_top) in regions.into_iter().zip(&self.init_old_top) {
+            let top = cmp::max(top, *init_top);
+            self.card_table.reset_region(start, top);
+        }
     }
 
     fn forward_reference(&mut self, slot: Slot) {

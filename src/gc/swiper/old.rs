@@ -1,5 +1,5 @@
 use parking_lot::{Mutex, MutexGuard};
-use std::cmp::{min, max};
+use std::cmp::{max, min};
 use std::mem::replace;
 
 use gc::swiper::card::CardTable;
@@ -209,7 +209,9 @@ impl OldGenProtected {
             let end = min(region.start, limit);
             let size = end.offset_from(start);
 
-            if size > 0 { arena::commit(start, size, false); }
+            if size > 0 {
+                arena::commit(start, size, false);
+            }
 
             if end == limit {
                 return;
