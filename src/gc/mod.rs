@@ -6,7 +6,7 @@ use driver::cmd::{Args, CollectorName};
 use gc::compact::MarkCompactCollector;
 use gc::copy::CopyCollector;
 use gc::space::{Space, SpaceConfig};
-use gc::swiper::{CARD_SIZE, Swiper};
+use gc::swiper::{Swiper, CARD_SIZE};
 use gc::tlab::TLAB_OBJECT_SIZE;
 use gc::zero::ZeroCollector;
 use mem;

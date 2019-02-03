@@ -1,3 +1,4 @@
+use parking_lot::MutexGuard;
 use std::cmp;
 
 use ctxt::VM;
@@ -6,7 +7,7 @@ use gc::space::Space;
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::large::LargeSpace;
-use gc::swiper::old::OldGen;
+use gc::swiper::old::{OldGen, OldGenProtected};
 use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
 use gc::{align_gen, Address, GcReason, Region};
@@ -17,6 +18,7 @@ pub struct FullCollector<'a, 'ast: 'a> {
     heap: Region,
     young: &'a YoungGen,
     old: &'a OldGen,
+    old_protected: MutexGuard<'a, OldGenProtected>,
     large_space: &'a LargeSpace,
     rootset: &'a [Slot],
     card_table: &'a CardTable,
@@ -56,6 +58,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             heap: heap,
             young: young,
             old: old,
+            old_protected: old.protected(),
             large_space: large_space,
             rootset: rootset,
             card_table: card_table,
@@ -76,7 +79,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
     pub fn collect(&mut self) {
         let dev_verbose = self.vm.args.flag_gc_dev_verbose;
-        self.init_old_top = self.old.top();
+        self.init_old_top = self.old_protected.top();
 
         if dev_verbose {
             println!("Full GC: Phase 1 (marking)");
@@ -116,7 +119,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
         let old_start = self.old.total().start;
         let old_size = align_gen(self.old_top.offset_from(old_start));
-        self.old.set_committed_size(old_size);
+        self.old_protected.set_committed_size(old_size);
     }
 
     fn mark_live(&mut self) {
@@ -171,7 +174,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         let new_old_size = self.old_top.offset_from(old_start);
 
         let old_size = align_gen(cmp::max(init_old_size, new_old_size));
-        self.old.set_committed_size(old_size);
+        self.old_protected.set_committed_size(old_size);
         self.old_committed = old_start.region_start(old_size);
     }
 
@@ -230,7 +233,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.young.clear();
         self.young.protect_to();
 
-        self.old.update_top(self.old_top);
+        self.old_protected.update_top(self.old_top);
     }
 
     fn update_large_objects(&mut self) {
@@ -293,13 +296,15 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     where
         F: FnMut(&mut FullCollector, &mut Obj, Address, usize),
     {
-        let old_regions = {
-            let protected = self.old.protected();
-            protected.regions.clone()
-        };
+        let old_regions = self
+            .old_protected
+            .regions
+            .iter()
+            .map(|r| r.active_region())
+            .collect::<Vec<_>>();
 
         for old_region in old_regions {
-            self.walk_region(old_region.start(), old_region.top(), &mut fct);
+            self.walk_region(old_region.start, old_region.end, &mut fct);
         }
 
         let used_region = self.young.eden_active();
