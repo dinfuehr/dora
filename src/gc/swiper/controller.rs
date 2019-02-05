@@ -92,6 +92,14 @@ pub fn choose_collection_kind(
         return CollectionKind::Minor;
     }
 
+    if args.young_appel() {
+        return if rest < M {
+            CollectionKind::Full
+        } else {
+            CollectionKind::Minor
+        };
+    }
+
     if rest < young_size {
         CollectionKind::Full
     } else {
