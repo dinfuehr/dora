@@ -21,13 +21,18 @@ const INIT_SEMI_RATIO: usize = 3;
 pub fn init(config: &mut HeapConfig, args: &Args) {
     assert!(config.min_heap_size <= config.max_heap_size);
 
-    let young_size = if let Some(young_ratio) = args.flag_gc_young_ratio {
+    let young_size = if let Some(young_ratio) = args.young_ratio() {
         assert!(young_ratio >= 1);
         align_gen(config.max_heap_size / young_ratio)
+
+    } else if let Some(young_size) = args.young_size() {
+        min(align_gen(young_size), config.max_heap_size - GEN_SIZE)
+
     } else {
         let young_size = align_gen(config.max_heap_size / INIT_YOUNG_RATIO);
         min(MAX_YOUNG_SIZE, young_size)
     };
+
     let young_size = max(young_size, GEN_SIZE);
 
     let semi_ratio = args.flag_gc_semi_ratio.unwrap_or(INIT_SEMI_RATIO);
@@ -70,7 +75,7 @@ pub fn choose_collection_kind(
         config.old_limit - config.old_size
     };
 
-    if args.flag_gc_young_ratio.is_some() {
+    if args.young_ratio().is_some() {
         // With a large young generation with e.g. 1/2 or 1/3 of the
         // maximum heap size, we would do full collections most of the time.
         // Therefore always perform a minor collection. If objects cannot be promoted,

@@ -50,6 +50,7 @@ Options:
     --gc-worker=<num>       Number of GC worker threads.
     --gc=<name>             Switch GC. Possible values: zero, copy, swiper (default).
     --gc-young-ratio=<num>  Use fixed ratio between young and old generation.
+    --gc-young-size=<SIZE>  Use fixed size for young generation.
     --gc-semi-ratio=<num>   Use fixed ratio of semi space in young generation.
 
     --disable-tlab          Disable tlab allocation.
@@ -89,6 +90,7 @@ pub struct Args {
     pub flag_gc_verify: bool,
     pub flag_gc_worker: usize,
     pub flag_gc_young_ratio: Option<usize>,
+    pub flag_gc_young_size: Option<usize>,
     pub flag_gc_semi_ratio: Option<usize>,
     pub flag_gc: Option<CollectorName>,
     pub flag_min_heap_size: Option<MemSize>,
@@ -106,7 +108,7 @@ impl Args {
         let min_heap_size = self
             .flag_min_heap_size
             .map(|s| *s)
-            .unwrap_or(32 * 1024 * 1024);
+            .unwrap_or(32 * M);
         let max_heap_size = self.max_heap_size();
 
         min(min_heap_size, max_heap_size)
@@ -116,7 +118,7 @@ impl Args {
         let max_heap_size = self
             .flag_max_heap_size
             .map(|s| *s)
-            .unwrap_or(128 * 1024 * 1024);
+            .unwrap_or(128 * M);
 
         max(max_heap_size, 1 * M)
     }
@@ -144,6 +146,10 @@ impl Args {
     pub fn young_ratio(&self) -> Option<usize> {
         self.flag_gc_young_ratio
             .map(|young_ratio| max(young_ratio, 1))
+    }
+
+    pub fn young_size(&self) -> Option<usize> {
+        self.flag_gc_young_size
     }
 }
 
@@ -177,6 +183,7 @@ impl Default for Args {
             flag_gc_verify: false,
             flag_gc_worker: 0,
             flag_gc_young_ratio: None,
+            flag_gc_young_size: None,
             flag_gc_semi_ratio: None,
             flag_gc: None,
             flag_min_heap_size: None,

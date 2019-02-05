@@ -20,7 +20,7 @@ use gc::swiper::young::YoungGen;
 use gc::tlab;
 use gc::Collector;
 use gc::{arena, GcReason};
-use gc::{formatted_size, Address, Region, K};
+use gc::{align_gen, formatted_size, Address, Region, K};
 use mem;
 use safepoint;
 
@@ -76,8 +76,8 @@ pub struct Swiper {
 
 impl Swiper {
     pub fn new(args: &Args) -> Swiper {
-        let max_heap_size = args.max_heap_size();
-        let min_heap_size = args.min_heap_size();
+        let max_heap_size = align_gen(args.max_heap_size());
+        let min_heap_size = align_gen(args.min_heap_size());
 
         let mut config = HeapConfig::new(min_heap_size, max_heap_size);
 
