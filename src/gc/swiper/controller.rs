@@ -93,7 +93,7 @@ pub fn choose_collection_kind(
     }
 
     if args.young_appel() {
-        return if young_size < 4 * M {
+        return if young_size < M {
             CollectionKind::Full
         } else {
             CollectionKind::Minor
