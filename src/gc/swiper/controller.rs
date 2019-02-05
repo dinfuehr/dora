@@ -7,7 +7,7 @@ use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
 use gc::swiper::CollectionKind;
-use gc::{align_gen, formatted_size, GEN_SIZE, M};
+use gc::{align_gen, formatted_size, GcReason, GEN_SIZE, M};
 use mem;
 use os::signal::Trap;
 use stdlib;
@@ -93,7 +93,7 @@ pub fn choose_collection_kind(
     }
 
     if args.young_appel() {
-        return if rest < M {
+        return if young_size < 4 * M {
             CollectionKind::Full
         } else {
             CollectionKind::Minor
@@ -122,14 +122,12 @@ pub fn stop(
     old: &OldGen,
     large: &LargeSpace,
     args: &Args,
+    reason: GcReason,
 ) {
     let mut config = config.lock();
 
     let gc_end = timer::timestamp();
     config.gc_duration = timer::in_ms(gc_end - config.gc_start);
-
-    config.end_object_size = object_size(young, old, large);
-    config.end_memory_size = memory_size(young, old, large);
 
     assert!(young.eden_active().empty());
     let (eden_size, semi_size) = young.committed_size();
@@ -139,8 +137,7 @@ pub fn stop(
     config.old_size = old_size;
 
     if args.young_appel() {
-        config.old_limit = align_gen((config.old_size as f64 * 1.1) as usize);
-        let max_young_size = config.max_heap_size - config.old_limit;
+        let max_young_size = config.max_heap_size - config.old_size;
         let target_young_size = align_gen(max_young_size / 2);
 
         assert_eq!(young.eden_active().size(), 0);
@@ -152,6 +149,7 @@ pub fn stop(
         young_size = eden_size + semi_size;
 
         young.set_committed_size(eden_size, semi_size);
+        config.old_limit = config.max_heap_size - young_size;
     } else {
         let old_limit = config.max_heap_size - young_size;
         let old_limit = max(old_limit, old_size);
@@ -161,6 +159,9 @@ pub fn stop(
     if young_size + config.old_limit > config.max_heap_size {
         stdlib::trap(Trap::OOM.int());
     }
+
+    config.end_object_size = object_size(young, old, large);
+    config.end_memory_size = memory_size(young, old, large);
 
     assert!(young_size + config.old_limit <= config.max_heap_size);
 
@@ -177,16 +178,17 @@ pub fn stop(
     }
 
     if args.flag_gc_verbose {
-        print(&*config, kind);
+        print(&*config, kind, reason);
     }
 }
 
-fn print(config: &HeapConfig, kind: CollectionKind) {
+fn print(config: &HeapConfig, kind: CollectionKind, reason: GcReason) {
     match kind {
         CollectionKind::Minor => {
             println!(
-                "GC: {} {}/{} -> {}/{}; {:.2} ms; {} promoted; {} copied",
+                "GC: {} ({}) {}/{} -> {}/{}; {:.2} ms; {} promoted; {} copied",
                 kind,
+                reason,
                 formatted_size(config.start_object_size),
                 formatted_size(config.start_memory_size),
                 formatted_size(config.end_object_size),
@@ -199,8 +201,9 @@ fn print(config: &HeapConfig, kind: CollectionKind) {
 
         CollectionKind::Full => {
             println!(
-                "GC: {} {}/{} -> {}/{}; {:.2} ms",
+                "GC: {} ({}) {}/{} -> {}/{}; {:.2} ms",
                 kind,
+                reason,
                 formatted_size(config.start_object_size),
                 formatted_size(config.start_memory_size),
                 formatted_size(config.end_object_size),

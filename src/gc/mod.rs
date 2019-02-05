@@ -404,7 +404,7 @@ pub fn gen_aligned(size: usize) -> bool {
     (size & (GEN_SIZE - 1)) == 0
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum GcReason {
     PromotionFailure,
     AllocationFailure,

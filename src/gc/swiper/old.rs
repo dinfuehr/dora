@@ -229,6 +229,9 @@ impl OldGenProtected {
                 arena::forget(start, size);
             }
         }
+
+        self.size = limit.offset_from(self.total.start);
+        self.alloc_region = 0;
     }
 
     pub fn alloc(&mut self, config: &SharedHeapConfig, size: usize) -> Address {
@@ -274,11 +277,13 @@ impl OldGenProtected {
         let alloc_region = self.alloc_region;
 
         if self.regions[alloc_region].extend(size) {
+            self.size += size;
             return true;
         }
 
         for (idx, old_region) in &mut self.regions.iter_mut().enumerate() {
             if old_region.extend(size) {
+                self.size += size;
                 self.alloc_region = idx;
                 return true;
             }

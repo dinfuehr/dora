@@ -197,7 +197,7 @@ impl Swiper {
         &self,
         vm: &VM,
         kind: CollectionKind,
-        reason: GcReason,
+        mut reason: GcReason,
     ) -> CollectionKind {
         safepoint::stop_the_world(vm, |threads| {
             controller::start(&self.config, &self.young, &self.old, &self.large);
@@ -210,7 +210,8 @@ impl Swiper {
                     let promotion_failed = self.minor_collect(vm, reason, &rootset);
 
                     if promotion_failed {
-                        self.full_collect(vm, GcReason::PromotionFailure, &rootset);
+                        reason = GcReason::PromotionFailure;
+                        self.full_collect(vm, reason, &rootset);
                         CollectionKind::Full
                     } else {
                         CollectionKind::Minor
@@ -230,6 +231,7 @@ impl Swiper {
                 &self.old,
                 &self.large,
                 &vm.args,
+                reason,
             );
 
             kind
