@@ -19,8 +19,8 @@ use gc::swiper::verify::{Verifier, VerifierPhase};
 use gc::swiper::young::YoungGen;
 use gc::tlab;
 use gc::Collector;
-use gc::{arena, GcReason};
 use gc::{align_gen, formatted_size, Address, Region, K};
+use gc::{arena, GcReason};
 use mem;
 use safepoint;
 
@@ -229,7 +229,7 @@ impl Swiper {
                 &self.young,
                 &self.old,
                 &self.large,
-                vm.args.flag_gc_verbose,
+                &vm.args,
             );
 
             kind

@@ -1,8 +1,8 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use gc::bump::BumpAllocator;
-use gc::{arena, gen_aligned};
-use gc::{Address, Region};
+use gc::{arena, gen_aligned, Address, Region};
+use mem;
 use os::{self, ProtType};
 
 pub struct YoungGen {
@@ -427,7 +427,7 @@ impl Block {
     }
 
     fn set_committed_size(&self, new_size: usize) {
-        assert!(gen_aligned(new_size));
+        assert!(mem::is_page_aligned(new_size));
 
         let old_committed = self.committed.load(Ordering::Relaxed);
         let new_committed = self.start.offset(new_size).to_usize();

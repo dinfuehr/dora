@@ -8,6 +8,7 @@ use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
 use gc::swiper::CollectionKind;
 use gc::{align_gen, formatted_size, GEN_SIZE, M};
+use mem;
 use os::signal::Trap;
 use stdlib;
 use timer;
@@ -24,25 +25,18 @@ pub fn init(config: &mut HeapConfig, args: &Args) {
     let young_size = if let Some(young_ratio) = args.young_ratio() {
         assert!(young_ratio >= 1);
         align_gen(config.max_heap_size / young_ratio)
-
     } else if let Some(young_size) = args.young_size() {
         min(align_gen(young_size), config.max_heap_size - GEN_SIZE)
-
+    } else if args.young_appel() {
+        let max_heap_size = (config.max_heap_size as f64 * 0.9) as usize;
+        align_gen(max_heap_size / 2)
     } else {
         let young_size = align_gen(config.max_heap_size / INIT_YOUNG_RATIO);
         min(MAX_YOUNG_SIZE, young_size)
     };
 
     let young_size = max(young_size, GEN_SIZE);
-
-    let semi_ratio = args.flag_gc_semi_ratio.unwrap_or(INIT_SEMI_RATIO);
-    let semi_size = if semi_ratio == 0 {
-        0
-    } else {
-        align_gen(young_size / semi_ratio)
-    };
-    let semi_size = max(semi_size, GEN_SIZE);
-    let eden_size = young_size - semi_size;
+    let (eden_size, semi_size) = calculate_young_size(args, young_size, 0);
 
     config.eden_size = eden_size;
     config.semi_size = semi_size;
@@ -60,6 +54,21 @@ pub fn init(config: &mut HeapConfig, args: &Args) {
 
     config.old_size = 0;
     config.old_limit = old_limit;
+}
+
+fn calculate_young_size(args: &Args, young_size: usize, min_semi_size: usize) -> (usize, usize) {
+    let semi_ratio = args.flag_gc_semi_ratio.unwrap_or(INIT_SEMI_RATIO);
+    let semi_size = if semi_ratio == 0 {
+        0
+    } else {
+        align_gen(young_size / semi_ratio)
+    };
+
+    let semi_size = max(semi_size, min_semi_size);
+    let semi_size = max(semi_size, GEN_SIZE);
+    let eden_size = young_size - semi_size;
+
+    (eden_size, semi_size)
 }
 
 pub fn choose_collection_kind(
@@ -104,7 +113,7 @@ pub fn stop(
     young: &YoungGen,
     old: &OldGen,
     large: &LargeSpace,
-    verbose: bool,
+    args: &Args,
 ) {
     let mut config = config.lock();
 
@@ -116,20 +125,36 @@ pub fn stop(
 
     assert!(young.eden_active().empty());
     let (eden_size, semi_size) = young.committed_size();
-    let young_size = eden_size + semi_size;
+    let mut young_size = eden_size + semi_size;
 
     let old_size = old.committed_size() + large.committed_size();
     config.old_size = old_size;
 
-    let old_limit = config.max_heap_size - young_size;
-    let old_limit = max(old_limit, old_size);
-    config.old_limit = old_limit;
+    if args.young_appel() {
+        config.old_limit = align_gen((config.old_size as f64 * 1.1) as usize);
+        let max_young_size = config.max_heap_size - config.old_limit;
+        let target_young_size = align_gen(max_young_size / 2);
 
-    if young_size + old_limit > config.max_heap_size {
+        assert_eq!(young.eden_active().size(), 0);
+        assert_eq!(young.to_active().size(), 0);
+        let from_size = young.from_active().size();
+        let min_semi_size = align_gen(mem::page_align(from_size) * 2);
+
+        let (eden_size, semi_size) = calculate_young_size(args, target_young_size, min_semi_size);
+        young_size = eden_size + semi_size;
+
+        young.set_committed_size(eden_size, semi_size);
+    } else {
+        let old_limit = config.max_heap_size - young_size;
+        let old_limit = max(old_limit, old_size);
+        config.old_limit = old_limit;
+    }
+
+    if young_size + config.old_limit > config.max_heap_size {
         stdlib::trap(Trap::OOM.int());
     }
 
-    assert!(young_size + old_limit <= config.max_heap_size);
+    assert!(young_size + config.old_limit <= config.max_heap_size);
 
     match kind {
         CollectionKind::Minor => {
@@ -143,7 +168,7 @@ pub fn stop(
         }
     }
 
-    if verbose {
+    if args.flag_gc_verbose {
         print(&*config, kind);
     }
 }
