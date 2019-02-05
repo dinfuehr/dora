@@ -88,7 +88,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.mark_live();
 
         if dev_verbose {
-            println!("Full GC: Phase 2 (forward)");
+            println!("Full GC: Phase 2 (compute forward)");
         }
 
         self.compute_forward();
