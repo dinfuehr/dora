@@ -208,8 +208,13 @@ impl Address {
     }
 
     #[inline(always)]
-    pub fn add_ptr(self, ptr: usize) -> Address {
-        Address(self.0 + ptr * mem::ptr_width_usize())
+    pub fn add_ptr(self, words: usize) -> Address {
+        Address(self.0 + words * mem::ptr_width_usize())
+    }
+
+    #[inline(always)]
+    pub fn sub_ptr(self, words: usize) -> Address {
+        Address(self.0 - words * mem::ptr_width_usize())
     }
 
     #[inline(always)]
@@ -260,6 +265,11 @@ impl Address {
     #[inline(always)]
     pub fn is_card_aligned(self) -> bool {
         (self.to_usize() & (CARD_SIZE - 1)) == 0
+    }
+
+    #[inline(always)]
+    pub fn align_card(self) -> Address {
+        mem::align_usize(self.to_usize(), CARD_SIZE).into()
     }
 
     #[inline(always)]

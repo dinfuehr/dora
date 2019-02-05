@@ -180,7 +180,7 @@ impl<'a> Verifier<'a> {
                 let next = curr.add_ptr(1);
 
                 if self.in_old && on_different_cards(curr, next) {
-                    self.verify_card(curr);
+                    self.verify_card(curr, region.start);
                     self.verify_crossing(curr, next, false);
                 }
 
@@ -189,9 +189,9 @@ impl<'a> Verifier<'a> {
             }
 
             let next = if object.is_array_ref() {
-                self.verify_array_ref(object, curr, name)
+                self.verify_array_ref(object, curr, region.start, name)
             } else {
-                self.verify_object(object, curr, name)
+                self.verify_object(object, curr, region.start, name)
             };
 
             curr = next;
@@ -200,16 +200,22 @@ impl<'a> Verifier<'a> {
         assert!(curr == region.end, "object doesn't end at region end");
 
         if (self.in_old || self.in_large) && !self.card_table.is_aligned(curr) {
-            self.verify_card(curr);
+            self.verify_card(curr, region.start);
         }
     }
 
-    fn verify_array_ref(&mut self, object: &mut Obj, mut curr: Address, name: &str) -> Address {
+    fn verify_array_ref(
+        &mut self,
+        object: &mut Obj,
+        mut curr: Address,
+        start: Address,
+        name: &str,
+    ) -> Address {
         let object_address = curr;
 
         object.visit_reference_fields(|element| {
             if (self.in_old || self.in_large) && on_different_cards(curr, element.address()) {
-                self.verify_card(curr);
+                self.verify_card(curr, start);
                 curr = element.address();
             }
 
@@ -225,7 +231,13 @@ impl<'a> Verifier<'a> {
         next
     }
 
-    fn verify_object(&mut self, object: &mut Obj, curr: Address, name: &str) -> Address {
+    fn verify_object(
+        &mut self,
+        object: &mut Obj,
+        curr: Address,
+        start: Address,
+        name: &str,
+    ) -> Address {
         object.visit_reference_fields(|child| {
             self.verify_reference(child, curr, name);
         });
@@ -233,7 +245,7 @@ impl<'a> Verifier<'a> {
         let next = curr.offset(object.size());
 
         if (self.in_old || self.in_large) && on_different_cards(curr, next) {
-            self.verify_card(curr);
+            self.verify_card(curr, start);
             if self.in_old {
                 self.verify_crossing(curr, next, false);
             }
@@ -242,7 +254,7 @@ impl<'a> Verifier<'a> {
         next
     }
 
-    fn verify_card(&mut self, curr: Address) {
+    fn verify_card(&mut self, curr: Address, start: Address) {
         let curr_card = self.card_table.card_idx(curr);
 
         let card_entry = self.card_table.get(curr_card);
@@ -257,6 +269,18 @@ impl<'a> Verifier<'a> {
         // actually contain any references into the young generation. But it should never
         // be clean when there are actual references into the young generation.
         if self.phase.is_pre() && expected_card_entry == CardEntry::Clean {
+            self.refs_to_young_gen = 0;
+            return;
+        }
+
+        // The first card in an old region can't be cleaned if it is not card aligned.
+        // Therefore this card could be dirty when it should actually be clean, but this is
+        // allowed. Nevertheless it shouldn't be clean when it actually contains references
+        // into the young generation.
+        if curr_card == self.card_table.card_idx(start)
+            && !start.is_card_aligned()
+            && expected_card_entry == CardEntry::Clean
+        {
             self.refs_to_young_gen = 0;
             return;
         }

@@ -59,13 +59,6 @@ impl CrossingMap {
     fn set(&self, card: CardIdx, val: u8) {
         let card = self.index_from_card_idx(card);
 
-        if card == self.cards_in_heap {
-            // The card for old.total.end needs to be
-            // CrossingEntry::FirstObject(0) when used.
-            assert_eq!(val, 0);
-            return;
-        }
-
         unsafe {
             *self.start.offset(card).to_mut_ptr::<u8>() = val;
         }
@@ -73,10 +66,6 @@ impl CrossingMap {
 
     pub fn get(&self, card: CardIdx) -> CrossingEntry {
         let card = self.index_from_card_idx(card);
-
-        if card == self.cards_in_heap {
-            return CrossingEntry::FirstObject(0);
-        }
 
         let val = unsafe { *self.start.offset(card).to_ptr::<u8>() };
 
@@ -92,9 +81,10 @@ impl CrossingMap {
         }
     }
 
+    #[inline(always)]
     fn index_from_card_idx(&self, card: CardIdx) -> usize {
         let card = card.to_usize();
-        assert!(card <= self.cards_in_heap);
+        assert!(card < self.cards_in_heap);
         card
     }
 }

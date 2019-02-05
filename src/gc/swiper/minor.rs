@@ -12,8 +12,7 @@ use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
 use gc::swiper::{CardIdx, CARD_SIZE};
 use gc::{Address, GcReason, Region};
-use mem;
-use object::Obj;
+use object::{offset_of_array_data, Obj};
 
 pub struct MinorCollector<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
@@ -171,9 +170,11 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
 
     fn visit_large_object_array(&mut self, object: &mut Obj, object_start: Address) {
         let object_end = object_start.offset(object.size() as usize);
-        let (start_card_idx, end_card_idx) = self.card_table.card_indices(object_start, object_end);
+        let (start_card_idx, end_card_idx) = self
+            .card_table
+            .card_indices(object_start, object_end.align_card());
 
-        for card_idx in start_card_idx..=end_card_idx {
+        for card_idx in start_card_idx..end_card_idx {
             let card_idx = card_idx.into();
 
             if self.card_table.get(card_idx).is_clean() {
@@ -182,18 +183,13 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
 
             let card_start = self.card_table.to_address(card_idx);
             let card_end = card_start.offset(CARD_SIZE);
-            let end = cmp::min(card_end, object_end);
+
+            let ref_start = object_start.offset(offset_of_array_data() as usize);
+            let ref_start = cmp::max(ref_start, card_start);
+            let ref_end = cmp::min(card_end, object_end);
 
             let mut ref_to_young_gen = false;
-
-            if card_idx.to_usize() == start_card_idx {
-                self.copy_range(object_start, end, &mut ref_to_young_gen);
-            } else {
-                // all but the first card are full with references
-                let refs = end.offset_from(card_start) / mem::ptr_width_usize();
-                self.copy_refs(card_start, refs, &mut ref_to_young_gen);
-            }
-
+            self.copy_refs(ref_start, ref_end, &mut ref_to_young_gen);
             self.clean_card_if_no_young_refs(card_idx, ref_to_young_gen);
         }
     }
@@ -328,9 +324,9 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
             .map(|r| r.start())
             .collect::<Vec<_>>();
 
-        for (id, old_region_start) in old_regions.into_iter().enumerate() {
-            let init_old_top = self.init_old_top[id];
-            self.visit_dirty_cards_in_old_region(old_region_start, init_old_top);
+        for (id, start) in old_regions.into_iter().enumerate() {
+            let end = self.init_old_top[id];
+            self.visit_dirty_cards_in_old_region(start, end);
         }
     }
 
@@ -344,40 +340,43 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
                 CrossingEntry::NoRefs => panic!("card dirty without any refs"),
                 CrossingEntry::LeadingRefs(refs) => {
                     let mut ref_to_young_gen = false;
+                    let first_object = card_start.add_ptr(refs as usize);
 
                     // copy references at start of card
-                    let first_object =
-                        self.copy_refs(card_start, refs as usize, &mut ref_to_young_gen);
+                    let ref_start = cmp::max(card_start, start);
+                    let ref_end = cmp::min(first_object, end);
+                    self.copy_refs(ref_start, ref_end, &mut ref_to_young_gen);
 
                     // copy all objects from this card
-                    self.copy_old_card(card_idx, first_object, end, ref_to_young_gen);
+                    self.copy_old_card(card_idx, first_object, start, end, ref_to_young_gen);
                 }
 
                 CrossingEntry::FirstObject(offset) => {
-                    let ptr = card_start.offset(offset as usize * mem::ptr_width_usize());
+                    let first_object = card_start.add_ptr(offset as usize);
 
                     // copy all objects from this card
-                    self.copy_old_card(card_idx, ptr, end, false);
+                    self.copy_old_card(card_idx, first_object, start, end, false);
                 }
 
                 CrossingEntry::ArrayStart(offset) => {
-                    assert!(offset == 1);
-                    let ptr = card_start.to_usize() - (offset as usize * mem::ptr_width_usize());
+                    let first_object = card_start.sub_ptr(offset as usize);
 
                     // copy all objects from this card
-                    self.copy_old_card(card_idx, ptr.into(), end, false);
+                    self.copy_old_card(card_idx, first_object.into(), start, end, false);
                 }
             }
         });
     }
 
-    fn copy_refs(&mut self, mut ptr: Address, refs: usize, ref_to_young_gen: &mut bool) -> Address {
-        for _ in 0..refs {
-            let slot = Slot::at(ptr);
-            let dir_ptr = slot.get();
+    fn copy_refs(&mut self, start: Address, end: Address, ref_to_young_gen: &mut bool) {
+        let mut ptr = start;
 
-            if self.young.contains(dir_ptr) {
-                let copied_obj = self.copy(dir_ptr);
+        while ptr < end {
+            let slot = Slot::at(ptr);
+            let obj = slot.get();
+
+            if self.young.contains(obj) {
+                let copied_obj = self.copy(obj);
                 slot.set(copied_obj);
 
                 if self.young.contains(copied_obj) {
@@ -385,25 +384,39 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
                 }
             }
 
-            ptr = ptr.offset(mem::ptr_width_usize());
+            ptr = ptr.add_ptr(1);
         }
-
-        ptr
     }
 
     fn copy_old_card(
         &mut self,
         card: CardIdx,
-        ptr: Address,
+        first_object: Address,
+        start: Address,
         end: Address,
         mut ref_to_young_gen: bool,
     ) {
         let card_start = self.card_table.to_address(card);
         let card_end = card_start.offset(CARD_SIZE);
-        let end = cmp::min(card_end, end);
 
-        self.copy_range(ptr, end, &mut ref_to_young_gen);
-        self.clean_card_if_no_young_refs(card, ref_to_young_gen);
+        let range_start = cmp::max(first_object, start);
+        let range_end = cmp::min(card_end, end);
+
+        self.copy_range(range_start, range_end, &mut ref_to_young_gen);
+
+        if self.is_card_cleaning_allowed(card, start) {
+            self.clean_card_if_no_young_refs(card, ref_to_young_gen);
+        }
+    }
+
+    fn is_card_cleaning_allowed(&self, card: CardIdx, start: Address) -> bool {
+        // no cleaning for first card in region
+        if card != self.card_table.card_idx(start) {
+            return true;
+        }
+
+        // unless the first region is card aligned
+        start.is_card_aligned()
     }
 
     fn copy_range(

@@ -28,6 +28,10 @@ impl OldGen {
         config: SharedHeapConfig,
     ) -> OldGen {
         let total = Region::new(start, end);
+
+        // first object is allocated on old.total.start
+        crossing_map.set_first_object(0.into(), 0);
+
         let old = OldGen {
             total: total.clone(),
             protected: Mutex::new(OldGenProtected::new(total)),
@@ -71,12 +75,11 @@ impl OldGen {
     }
 
     pub fn update_crossing(&self, old: Address, new: Address, array_ref: bool) {
+        debug_assert!(self.total.valid_top(old) && self.total.valid_top(new));
+
         if (old.to_usize() >> CARD_SIZE_BITS) == (new.to_usize() >> CARD_SIZE_BITS) {
             // object does not span multiple cards
-            if (old.to_usize() & (CARD_SIZE - 1)) == 0 {
-                let card = self.card_table.card_idx(old.into());
-                self.crossing_map.set_first_object(card, 0);
-            }
+
         } else if array_ref {
             let new_card_idx = self.card_table.card_idx(new.into());
             let new_card_start = self.card_table.to_address(new_card_idx);
@@ -105,14 +108,13 @@ impl OldGen {
             }
 
             // new_card starts with x references, then next object
-            if new_card_idx.to_usize() >= loop_card_start {
-                let refs_dist = new.offset_from(new_card_start) / mem::ptr_width_usize();
-
-                if refs_dist > 0 {
+            if new_card_idx.to_usize() >= loop_card_start && new < self.total.end {
+                if new == new_card_start {
+                    self.crossing_map.set_first_object(new_card_idx, 0);
+                } else {
+                    let refs_dist = new.offset_from(new_card_start) / mem::ptr_width_usize();
                     self.crossing_map
                         .set_references_at_start(new_card_idx, refs_dist);
-                } else {
-                    self.crossing_map.set_first_object(new_card_idx, 0);
                 }
             }
         } else {
@@ -127,10 +129,12 @@ impl OldGen {
             }
 
             // new_card stores x words of object, then next object
-            self.crossing_map.set_first_object(
-                new_card_idx,
-                new.offset_from(new_card_start) / mem::ptr_width_usize(),
-            );
+            if new < self.total.end {
+                self.crossing_map.set_first_object(
+                    new_card_idx,
+                    new.offset_from(new_card_start) / mem::ptr_width_usize(),
+                );
+            }
         }
     }
 
@@ -143,6 +147,7 @@ pub struct OldGenProtected {
     pub total: Region,
     pub size: usize,
     pub regions: Vec<OldRegion>,
+    pub alloc_region: usize,
 }
 
 impl OldGenProtected {
@@ -151,6 +156,7 @@ impl OldGenProtected {
             total: total.clone(),
             size: 0,
             regions: vec![OldRegion::new(total)],
+            alloc_region: 0,
         }
     }
 
@@ -248,12 +254,15 @@ impl OldGenProtected {
     }
 
     fn pure_alloc(&mut self, size: usize) -> Address {
-        for old_region in &mut self.regions {
-            let new_alloc_top = old_region.alloc_top.offset(size);
+        let alloc_region = self.alloc_region;
 
-            if new_alloc_top <= old_region.alloc_limit {
-                let addr = old_region.alloc_top;
-                old_region.alloc_top = new_alloc_top;
+        if let Some(addr) = self.regions[alloc_region].pure_alloc(size) {
+            return addr;
+        }
+
+        for (idx, old_region) in &mut self.regions.iter_mut().enumerate() {
+            if let Some(addr) = old_region.pure_alloc(size) {
+                self.alloc_region = idx;
                 return addr;
             }
         }
@@ -262,12 +271,15 @@ impl OldGenProtected {
     }
 
     fn extend(&mut self, size: usize) -> bool {
-        for old_region in &mut self.regions {
-            let new_alloc_limit = old_region.alloc_limit.offset(size);
+        let alloc_region = self.alloc_region;
 
-            if new_alloc_limit <= old_region.end {
-                arena::commit(old_region.alloc_limit, size, false);
-                old_region.alloc_limit = new_alloc_limit;
+        if self.regions[alloc_region].extend(size) {
+            return true;
+        }
+
+        for (idx, old_region) in &mut self.regions.iter_mut().enumerate() {
+            if old_region.extend(size) {
+                self.alloc_region = idx;
                 return true;
             }
         }
@@ -322,5 +334,30 @@ impl OldRegion {
 
     pub fn committed_region(&self) -> Region {
         Region::new(self.start, self.alloc_limit)
+    }
+
+    fn pure_alloc(&mut self, size: usize) -> Option<Address> {
+        let new_alloc_top = self.alloc_top.offset(size);
+
+        if new_alloc_top <= self.alloc_limit {
+            let addr = self.alloc_top;
+            self.alloc_top = new_alloc_top;
+            return Some(addr);
+        }
+
+        None
+    }
+
+    fn extend(&mut self, size: usize) -> bool {
+        let new_alloc_limit = self.alloc_limit.offset(size);
+
+        if new_alloc_limit <= self.end {
+            arena::commit(self.alloc_limit, size, false);
+            self.alloc_limit = new_alloc_limit;
+
+            true
+        } else {
+            false
+        }
     }
 }
