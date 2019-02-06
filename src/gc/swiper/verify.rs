@@ -9,7 +9,7 @@ use gc::swiper::large::LargeSpace;
 use gc::swiper::old::{OldGen, OldGenProtected};
 use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
-use gc::swiper::CARD_SIZE;
+use gc::swiper::{CARD_REFS, CARD_SIZE};
 use gc::{Address, Region};
 
 use mem;
@@ -329,9 +329,7 @@ impl<'a> Verifier<'a> {
         let loop_start;
 
         if array_ref {
-            let refs_per_card = (CARD_SIZE / mem::ptr_width_usize()) as u8;
-
-            crossing_middle = CrossingEntry::LeadingRefs(refs_per_card);
+            crossing_middle = CrossingEntry::LeadingRefs(CARD_REFS as u8);
 
             if old.offset(offset_of_array_data() as usize) > old_card_end {
                 let old_next = old_card_idx.to_usize() + 1;

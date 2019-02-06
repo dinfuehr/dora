@@ -1,6 +1,7 @@
 use parking_lot::Mutex;
 use scoped_threadpool::Pool;
 use std::fmt;
+use std::mem::size_of;
 use std::sync::Arc;
 
 use ctxt::VM;
@@ -47,6 +48,7 @@ const YOUNG_RATIO: usize = 2;
 // in minor collections those parts of the heap need to be analyzed
 pub const CARD_SIZE: usize = 512;
 pub const CARD_SIZE_BITS: usize = 9;
+pub const CARD_REFS: usize = CARD_SIZE / size_of::<usize>();
 
 pub const LARGE_OBJECT_SIZE: usize = 16 * K;
 

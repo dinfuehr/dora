@@ -5,7 +5,7 @@ use std::mem::replace;
 use gc::swiper::card::CardTable;
 use gc::swiper::controller::SharedHeapConfig;
 use gc::swiper::crossing::CrossingMap;
-use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
+use gc::swiper::{CARD_REFS, CARD_SIZE, CARD_SIZE_BITS};
 use gc::{arena, Address, Region, GEN_SIZE};
 use mem;
 use object::offset_of_array_data;
@@ -87,7 +87,6 @@ impl OldGen {
             let old_card_idx = self.card_table.card_idx(old);
             let old_card_end = self.card_table.to_address(old_card_idx).offset(CARD_SIZE);
 
-            let refs_per_card = CARD_SIZE / mem::ptr_width_usize();
             let mut loop_card_start = old_card_idx.to_usize() + 1;
 
             // If you allocate an object array just before the card end,
@@ -104,7 +103,7 @@ impl OldGen {
             // all cards between ]old_card; new_card[ are full with references
             for c in loop_card_start..new_card_idx.to_usize() {
                 self.crossing_map
-                    .set_references_at_start(c.into(), refs_per_card);
+                    .set_references_at_start(c.into(), CARD_REFS);
             }
 
             // new_card starts with x references, then next object

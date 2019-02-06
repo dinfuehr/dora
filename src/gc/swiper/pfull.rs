@@ -3,8 +3,9 @@ use scoped_threadpool::Pool;
 use ctxt::VM;
 use gc::root::Slot;
 use gc::space::Space;
+use gc::swiper::{CARD_REFS, CardIdx};
 use gc::swiper::card::CardTable;
-use gc::swiper::crossing::CrossingMap;
+use gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use gc::swiper::large::LargeSpace;
 use gc::swiper::marking;
 use gc::swiper::old::OldGen;
@@ -133,7 +134,9 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
     }
 
     fn compute_forward(&mut self) {
-        unimplemented!();
+        self.compute_units();
+        self.compute_live_bytes();
+        self.compute_regions();
     }
 
     fn compute_units(&mut self) {
@@ -156,7 +159,57 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
         self.units.push(to);
     }
 
-    fn units_for_old_region(&mut self, _region: Region, _unit_size: usize) {
+    fn units_for_old_region(&mut self, region: Region, unit_size: usize) {
+        let mut last = region.start;
+
+        while last < region.end {
+            let end = self.find_object_start(last.offset(unit_size), region.end);
+            self.units.push(Region::new(last, end));
+            last = end;
+        }
+
+        assert_eq!(last, region.end);
+    }
+
+    fn find_object_start(&mut self, ptr: Address, end: Address) -> Address {
+        if ptr >= end {
+            return end;
+        }
+
+        let (card_start, card_end) = self.card_table.card_indices(ptr, end.align_card());
+
+        for card in card_start..card_end {
+            let card: CardIdx = card.into();
+
+            let crossing_entry = self.crossing_map.get(card);
+            let card_start = self.card_table.to_address(card);
+
+            match crossing_entry {
+                CrossingEntry::NoRefs => {}
+                CrossingEntry::LeadingRefs(refs) => {
+                    if (refs as usize) < CARD_REFS {
+                        return card_start.add_ptr(refs as usize);
+                    }
+                }
+
+                CrossingEntry::FirstObject(offset) => {
+                    return card_start.add_ptr(offset as usize);
+                }
+
+                CrossingEntry::ArrayStart(offset) => {
+                    return card_start.sub_ptr(offset as usize);
+                }
+            }
+        }
+
+        end
+    }
+
+    fn compute_live_bytes(&mut self) {
+        unimplemented!();
+    }
+
+    fn compute_regions(&mut self) {
         unimplemented!();
     }
 
