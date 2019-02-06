@@ -3,13 +3,13 @@ use scoped_threadpool::Pool;
 use ctxt::VM;
 use gc::root::Slot;
 use gc::space::Space;
-use gc::swiper::{CARD_REFS, CardIdx};
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use gc::swiper::large::LargeSpace;
 use gc::swiper::marking;
 use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
+use gc::swiper::{CardIdx, CARD_REFS};
 use gc::{Address, GcReason, Region};
 
 pub struct ParallelFullCollector<'a, 'ast: 'a> {

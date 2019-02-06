@@ -1,5 +1,6 @@
 use parking_lot::Mutex;
 use std::cmp;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Barrier};
 
 use ctxt::VM;
@@ -191,13 +192,13 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         let barrier = Barrier::new(self.number_workers);
         let barrier = &barrier;
 
-        let promoted_size = Mutex::new(self.promoted_size);
+        let promoted_size = AtomicUsize::new(self.promoted_size);
         let promoted_size = &promoted_size;
 
-        let promotion_failed = Mutex::new(self.promotion_failed);
+        let promotion_failed = AtomicBool::new(self.promotion_failed);
         let promotion_failed = &promotion_failed;
 
-        let next_stride = Mutex::new(0);
+        let next_stride = AtomicUsize::new(0);
         let next_stride = &next_stride;
         let strides = 4 * self.number_workers;
 
@@ -254,11 +255,12 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
 
                     task.run();
 
-                    *promoted_size.lock() += task.promoted_size;
+                    if task.promoted_size > 0 {
+                        promoted_size.fetch_add(task.promoted_size, Ordering::SeqCst);
+                    }
 
                     if task.promotion_failed() {
-                        let mut promotion_failed = promotion_failed.lock();
-                        *promotion_failed = true;
+                        promotion_failed.store(true, Ordering::SeqCst);
                     }
                 });
             }
@@ -266,8 +268,8 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
 
         self.young_top = *young_top.lock();
 
-        self.promoted_size = *promoted_size.lock();
-        self.promotion_failed = *promotion_failed.lock();
+        self.promoted_size = promoted_size.load(Ordering::SeqCst);
+        self.promotion_failed = promotion_failed.load(Ordering::SeqCst);
     }
 
     fn remove_forwarding_pointers(&mut self) {
@@ -469,7 +471,7 @@ struct CopyTask<'a, 'ast: 'a> {
     old_region_start: &'a [Address],
     barrier: &'a Barrier,
 
-    next_stride: &'a Mutex<usize>,
+    next_stride: &'a AtomicUsize,
     strides: usize,
     next_large: &'a Mutex<Address>,
 
@@ -530,15 +532,13 @@ where
     }
 
     fn next_stride(&mut self) -> Option<usize> {
-        let mut next_stride = self.next_stride.lock();
-        let stride = *next_stride;
+        let stride = self.next_stride.fetch_add(1, Ordering::SeqCst);
 
-        if stride >= self.strides {
-            return None;
+        if stride < self.strides {
+            Some(stride)
+        } else {
+            None
         }
-
-        *next_stride += 1;
-        Some(stride)
     }
 
     fn visit_dirty_cards_in_stride(&mut self, stride: usize) {
