@@ -312,11 +312,11 @@ impl Swiper {
                 &vm.gc.perm_space,
                 rootset,
                 reason,
-                &mut pool,
+                pool.thread_count() as usize,
                 self.min_heap_size,
                 self.max_heap_size,
             );
-            collector.collect();
+            collector.collect(&mut pool);
         } else {
             let mut collector = FullCollector::new(
                 vm,
