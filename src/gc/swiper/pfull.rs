@@ -138,6 +138,7 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
         self.compute_units();
         self.compute_live_bytes(pool);
         self.compute_regions();
+        self.compute_actual_forward(pool);
     }
 
     fn compute_units(&mut self) {
@@ -255,6 +256,10 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
         }
 
         std::mem::replace(&mut self.regions, regions);
+    }
+
+    fn compute_actual_forward(&mut self, _pool: &mut Pool) {
+        unimplemented!();
     }
 
     fn update_references(&mut self) {
