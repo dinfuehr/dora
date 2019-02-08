@@ -8,7 +8,6 @@ use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::large::LargeSpace;
 use gc::swiper::old::{OldGen, OldGenProtected};
-use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
 use gc::{Address, GcReason, Region};
 use object::Obj;
@@ -219,10 +218,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 let dest_obj = dest.to_mut_obj();
                 dest_obj.header_mut().unmark_non_atomic();
 
-                if on_different_cards(dest, next_dest) {
-                    full.old
-                        .update_crossing(dest, next_dest, dest_obj.is_array_ref());
-                }
+                full.old
+                    .update_crossing(dest, next_dest, dest_obj.is_array_ref());
             }
         });
     }
