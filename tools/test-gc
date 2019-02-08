@@ -3,7 +3,6 @@ set -e
 
 for type in "" "--release"; do
   cargo run $type -- --max-heap-size=512M --gc-verify bench/binarytrees/binarytrees.dora 21
-  cargo run $type -- --max-heap-size=512M --gc-young-ratio=2 --gc-verify bench/binarytrees/binarytrees.dora 21
   cargo run $type -- --max-heap-size=512M --gc-young-appel --gc-verify bench/binarytrees/binarytrees.dora 21
 
   # test alternative collectors
@@ -12,7 +11,6 @@ for type in "" "--release"; do
 
   # test parallel minor collection
   cargo run $type -- --max-heap-size=512M --gc-worker=4 --gc-verify --gc-parallel-minor bench/binarytrees/binarytrees.dora 21
-  cargo run $type -- --max-heap-size=512M --gc-worker=4 --gc-young-ratio=2 --gc-verify --gc-parallel-minor bench/binarytrees/binarytrees.dora 21
   cargo run $type -- --max-heap-size=512M --gc-worker=4 --gc-young-appel --gc-verify --gc-parallel-minor bench/binarytrees/binarytrees.dora 21
 
   # test parallel marking
@@ -23,4 +21,3 @@ for type in "" "--release"; do
 
   # cargo run $type -- --gc-verify --gc-parallel-full tests/swiper/marking3.dora
 done
-
