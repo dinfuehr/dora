@@ -23,3 +23,11 @@ git = "https://github.com/ebfe/rust-capstone.git"
 
 [profile.release]
 panic = "abort"
+
+[lib]
+name = "dora"
+path = "src/lib.rs"
+
+[[bin]]
+name = "dora"
+src = "src/main.rs"

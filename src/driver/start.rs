@@ -20,8 +20,15 @@ use semck;
 use semck::specialize::specialize_class_id;
 use ty::BuiltinType;
 
-pub fn start() -> i32 {
-    let args = cmd::parse();
+pub fn start(content: Option<&str>) -> i32 {
+    os::mem::init_page_size();
+    let fuzzing = content.is_some();
+
+    let args = if fuzzing {
+        Default::default()
+    } else {
+        cmd::parse()
+    };
 
     if args.flag_version {
         println!("dora v0.01b");
@@ -33,6 +40,10 @@ pub fn start() -> i32 {
     let mut ast = Ast::new();
 
     if let Err(code) = parse_dir("stdlib", &id_generator, &mut ast, &mut interner).and_then(|_| {
+        if fuzzing {
+            return parse_str(content.unwrap(), &id_generator, &mut ast, &mut interner);
+        }
+
         let path = Path::new(&args.arg_file);
 
         if path.is_file() {
@@ -99,6 +110,8 @@ pub fn start() -> i32 {
 
     vm.threads.detach_current_thread();
     vm.threads.join_all();
+
+    os::unregister_signals();
 
     if vm.args.flag_gc_verbose {
         vm.dump_gc_summary(timer.stop());
@@ -240,6 +253,23 @@ fn parse_file(
             Ok(reader) => reader,
         }
     };
+
+    if let Err(error) = Parser::new(reader, id_generator, ast, interner).parse() {
+        println!("{}", error);
+        println!("1 error found.");
+        return Err(1);
+    }
+
+    Ok(())
+}
+
+fn parse_str(
+    file: &str,
+    id_generator: &NodeIdGenerator,
+    ast: &mut Ast,
+    interner: &mut Interner,
+) -> Result<(), i32> {
+    let reader = Reader::from_string(file);
 
     if let Err(error) = Parser::new(reader, id_generator, ast, interner).parse() {
         println!("{}", error);

@@ -40,6 +40,35 @@ pub fn register_signals() {
     }
 }
 
+#[cfg(target_family = "unix")]
+pub fn unregister_signals() {
+    unsafe {
+        let mut sa: libc::sigaction = std::mem::uninitialized();
+
+        sa.sa_sigaction = libc::SIG_DFL;
+        libc::sigemptyset(&mut sa.sa_mask as *mut libc::sigset_t);
+        sa.sa_flags = 0;
+
+        if libc::sigaction(
+            libc::SIGSEGV,
+            &sa as *const libc::sigaction,
+            0 as *mut libc::sigaction,
+        ) == -1
+        {
+            libc::perror("sigaction for SIGSEGV failed".as_ptr() as *const libc::c_char);
+        }
+
+        if libc::sigaction(
+            libc::SIGILL,
+            &sa as *const libc::sigaction,
+            0 as *mut libc::sigaction,
+        ) == -1
+        {
+            libc::perror("sigaction for SIGILL failed".as_ptr() as *const libc::c_char);
+        }
+    }
+}
+
 #[cfg(target_family = "windows")]
 pub fn register_signals(vm: &VM) {
     use kernel32::AddVectoredExceptionHandler;
