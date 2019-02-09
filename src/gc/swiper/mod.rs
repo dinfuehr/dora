@@ -241,7 +241,14 @@ impl Swiper {
     }
 
     fn minor_collect(&self, vm: &VM, reason: GcReason, rootset: &[Slot]) -> bool {
-        self.verify(vm, VerifierPhase::PreMinor, "pre-minor", &rootset, false);
+        self.verify(
+            vm,
+            VerifierPhase::PreMinor,
+            CollectionKind::Minor,
+            "pre-minor",
+            &rootset,
+            false,
+        );
 
         let promotion_failed = if vm.args.flag_gc_parallel_minor {
             let mut pool = self.threadpool.lock();
@@ -282,6 +289,7 @@ impl Swiper {
         self.verify(
             vm,
             VerifierPhase::PostMinor,
+            CollectionKind::Minor,
             "post-minor",
             &rootset,
             promotion_failed,
@@ -294,6 +302,7 @@ impl Swiper {
         self.verify(
             vm,
             VerifierPhase::PreFull,
+            CollectionKind::Full,
             "pre-full",
             &rootset,
             reason == GcReason::PromotionFailure,
@@ -335,18 +344,26 @@ impl Swiper {
             collector.collect();
         }
 
-        self.verify(vm, VerifierPhase::PostFull, "post-full", &rootset, false);
+        self.verify(
+            vm,
+            VerifierPhase::PostFull,
+            CollectionKind::Full,
+            "post-full",
+            &rootset,
+            false,
+        );
     }
 
     fn verify(
         &self,
         vm: &VM,
         phase: VerifierPhase,
+        kind: CollectionKind,
         _name: &str,
         rootset: &[Slot],
         promotion_failed: bool,
     ) {
-        if vm.args.flag_gc_verify {
+        if vm.args.flag_gc_verify || (kind.is_full() && vm.args.flag_gc_parallel_full) {
             if vm.args.flag_gc_dev_verbose {
                 println!("GC: Verify {}", _name);
             }
@@ -486,6 +503,22 @@ fn on_different_cards(curr: Address, next: Address) -> bool {
 pub enum CollectionKind {
     Minor,
     Full,
+}
+
+impl CollectionKind {
+    fn is_minor(&self) -> bool {
+        match self {
+            CollectionKind::Minor => true,
+            CollectionKind::Full => false,
+        }
+    }
+
+    fn is_full(&self) -> bool {
+        match self {
+            CollectionKind::Minor => false,
+            CollectionKind::Full => true,
+        }
+    }
 }
 
 impl fmt::Display for CollectionKind {

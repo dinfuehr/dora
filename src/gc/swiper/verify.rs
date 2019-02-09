@@ -168,9 +168,9 @@ impl<'a> Verifier<'a> {
         self.refs_to_young_gen = 0;
 
         if self.in_old {
-            // we should start at card start
-            assert!(self.card_table.is_aligned(curr));
-            self.verify_crossing(curr, curr, false);
+            if curr.is_card_aligned() {
+                self.verify_crossing(curr, curr, false);
+            }
         }
 
         while curr < region.end {

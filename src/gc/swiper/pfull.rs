@@ -265,19 +265,21 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
             }
         }
 
-        if start != self.units.len() {
+        if start < self.units.len() {
             let end = self.units.len() - 1;
             self.add_region(start, end, &mut size, &mut regions);
         }
 
+        std::mem::replace(&mut self.regions, regions);
+        let last = self.regions.last_mut().unwrap();
+
         // We realize after computing all regions whether all surviving objects fit into the heap
-        if regions.last_mut().unwrap().object_region.end > self.old_total.end {
+        if last.object_region.end > self.old_total.end {
             panic!("OOM");
         }
 
         // last region can be extended up to the heap end
-        regions.last_mut().unwrap().object_region.end = self.old_total.end;
-        std::mem::replace(&mut self.regions, regions);
+        last.object_region.end = self.old_total.end;
     }
 
     fn add_region(

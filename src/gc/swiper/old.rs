@@ -278,8 +278,8 @@ impl OldGenProtected {
         let mut idx = 0;
 
         for old in &self.regions {
-            let mut start = old.start;
-            let end = old.end;
+            let mut start = old.mapped_start;
+            let end = old.mapped_limit;
 
             while idx < new_regions.len() && start < end {
                 let new = &new_regions[idx];
