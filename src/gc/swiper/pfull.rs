@@ -291,18 +291,12 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
     ) {
         let units = unit_end_idx - unit_start_idx + 1;
 
-        let unit_start = &self.units[unit_start_idx];
-        let unit_end = &self.units[unit_end_idx];
+        let object_start = regions
+            .last()
+            .map(|r| r.object_region.end)
+            .unwrap_or(self.old_total.start);
 
-        let object_start = if unit_start.young {
-            let last_object_end = regions
-                .last()
-                .map(|r| r.object_region.end)
-                .unwrap_or(self.old_total.start);
-            last_object_end
-        } else {
-            unit_start.region.start
-        };
+        let unit_end = &self.units[unit_end_idx];
 
         let object_end = if unit_end.young {
             let mut object_end = Address::null();

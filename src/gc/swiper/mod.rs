@@ -359,13 +359,15 @@ impl Swiper {
         vm: &VM,
         phase: VerifierPhase,
         kind: CollectionKind,
-        _name: &str,
+        name: &str,
         rootset: &[Slot],
         promotion_failed: bool,
     ) {
-        if vm.args.flag_gc_verify || (kind.is_full() && vm.args.flag_gc_parallel_full) {
+        let parallel_full = kind.is_full() && vm.args.flag_gc_parallel_full;
+
+        if vm.args.flag_gc_verify || parallel_full {
             if vm.args.flag_gc_dev_verbose {
-                println!("GC: Verify {}", _name);
+                println!("GC: Verify {}", name);
             }
 
             let perm_space = &vm.gc.perm_space;
@@ -385,7 +387,7 @@ impl Swiper {
             verifier.verify();
 
             if vm.args.flag_gc_dev_verbose {
-                println!("GC: Verify {} finished", _name);
+                println!("GC: Verify {} finished", name);
             }
         }
     }
