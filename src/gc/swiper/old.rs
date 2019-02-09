@@ -210,7 +210,7 @@ impl OldGenProtected {
             let end = new_region.end;
 
             while idx < self.regions.len() {
-                let region = self.regions[idx];
+                let region = &self.regions[idx];
 
                 if region.mapped_start >= end {
                     break;
