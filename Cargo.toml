@@ -30,4 +30,4 @@ path = "src/lib.rs"
 
 [[bin]]
 name = "dora"
-src = "src/main.rs"
+path = "src/main.rs"

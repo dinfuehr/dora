@@ -177,7 +177,7 @@ impl OldGenProtected {
 
         for region in &self.regions {
             let start = last;
-            let end = min(region.start, limit);
+            let end = min(region.mapped_start, limit);
             let size = end.offset_from(start);
 
             if size > 0 {
@@ -188,7 +188,7 @@ impl OldGenProtected {
                 return;
             }
 
-            last = region.alloc_limit;
+            last = region.mapped_limit;
         }
 
         let start = last;
@@ -202,6 +202,44 @@ impl OldGenProtected {
         arena::commit(start, size, false);
     }
 
+    pub fn commit_regions(&mut self, new_regions: &[Region]) {
+        let mut idx = 0;
+
+        for new_region in new_regions {
+            let mut start = new_region.start;
+            let end = new_region.end;
+
+            while idx < self.regions.len() {
+                let region = self.regions[idx];
+
+                if region.mapped_start >= end {
+                    break;
+
+                } else if region.mapped_start <= start {
+                    let mapped = max(region.mapped_limit, start);
+                    start = min(mapped, end);
+                    idx += 1;
+
+                } else {
+                    assert!(region.mapped_start < end);
+                    let commit_end = region.mapped_start;
+
+                    if commit_end > start {
+                        let size = commit_end.offset_from(start);
+                        arena::commit(start, size, false);
+                    }
+
+                    start = commit_end;
+                }
+            }
+
+            if start < end {
+                let size = end.offset_from(start);
+                arena::commit(start, size, false);
+            }
+        }
+    }
+
     pub fn update_single_region(&mut self, top: Address) {
         let limit = top.align_gen();
         assert!(self.total.valid_top(limit));
@@ -211,18 +249,20 @@ impl OldGenProtected {
             end: self.total.end,
 
             alloc_top: top,
-            alloc_limit: limit,
+
+            mapped_start: self.total.start,
+            mapped_limit: limit,
         };
 
         let regions = replace(&mut self.regions, vec![region]);
 
         for region in regions {
-            if limit >= region.alloc_limit {
+            if limit >= region.mapped_limit {
                 continue;
             }
 
-            let start = max(region.start, limit);
-            let size = region.alloc_limit.offset_from(start);
+            let start = max(region.mapped_start, limit);
+            let size = region.mapped_limit.offset_from(start);
 
             if size > 0 {
                 arena::forget(start, size);
@@ -231,6 +271,10 @@ impl OldGenProtected {
 
         self.size = limit.offset_from(self.total.start);
         self.alloc_region = 0;
+    }
+
+    pub fn update_regions(&mut self, _new_regions: Vec<OldRegion>) {
+
     }
 
     pub fn alloc(&mut self, config: &SharedHeapConfig, size: usize) -> Address {
@@ -294,21 +338,40 @@ impl OldGenProtected {
 
 #[derive(Clone)]
 pub struct OldRegion {
+    // First object in this region. NOT necessarily page aligned!
     start: Address,
+
+    // Maximum size of region: this is either the
+    // next region's first object or the end of the old
+    // generation.
     end: Address,
 
+    // Next object in this region is allocated her.
     alloc_top: Address,
-    alloc_limit: Address,
+
+    // Start of allocated memory that belongs to this
+    // region. First object could be stored before
+    // this address, since there cannot be a guarantee
+    // that a region is page aligned.
+    mapped_start: Address,
+
+    // Memory up to this address is allocated, the rest
+    // of the region is unallocated.
+    mapped_limit: Address,
 }
 
 impl OldRegion {
     fn new(region: Region) -> OldRegion {
+        assert!(region.start.is_page_aligned());
+
         OldRegion {
             start: region.start,
             end: region.end,
 
             alloc_top: region.start,
-            alloc_limit: region.start,
+
+            mapped_start: region.start,
+            mapped_limit: region.start,
         }
     }
 
@@ -337,13 +400,13 @@ impl OldRegion {
     }
 
     pub fn committed_region(&self) -> Region {
-        Region::new(self.start, self.alloc_limit)
+        Region::new(self.mapped_start, self.mapped_limit)
     }
 
     fn pure_alloc(&mut self, size: usize) -> Option<Address> {
         let new_alloc_top = self.alloc_top.offset(size);
 
-        if new_alloc_top <= self.alloc_limit {
+        if new_alloc_top <= self.mapped_limit {
             let addr = self.alloc_top;
             self.alloc_top = new_alloc_top;
             return Some(addr);
@@ -353,11 +416,11 @@ impl OldRegion {
     }
 
     fn extend(&mut self, size: usize) -> bool {
-        let new_alloc_limit = self.alloc_limit.offset(size);
+        let new_alloc_limit = self.mapped_limit.offset(size);
 
         if new_alloc_limit <= self.end {
-            arena::commit(self.alloc_limit, size, false);
-            self.alloc_limit = new_alloc_limit;
+            arena::commit(self.mapped_limit, size, false);
+            self.mapped_limit = new_alloc_limit;
 
             true
         } else {

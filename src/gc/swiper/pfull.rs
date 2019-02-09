@@ -130,6 +130,8 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
 
         self.young.clear();
         self.young.protect_to();
+
+        // self.old_protected.update_regions();
     }
 
     fn mark_live(&mut self, pool: &mut Pool) {
@@ -146,6 +148,8 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
         self.compute_live_bytes(pool);
         self.compute_regions();
         self.compute_actual_forward(pool);
+
+        // self.old_protected.commit_regions();
     }
 
     fn compute_units(&mut self) {

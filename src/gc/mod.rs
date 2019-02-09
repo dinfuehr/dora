@@ -281,6 +281,16 @@ impl Address {
     pub fn is_gen_aligned(self) -> bool {
         gen_aligned(self.to_usize())
     }
+
+    #[inline(always)]
+    pub fn align_page(self) -> Address {
+        mem::page_align(self.to_usize()).into()
+    }
+
+    #[inline(always)]
+    pub fn is_page_aligned(self) -> bool {
+        mem::is_page_aligned(self.to_usize())
+    }
 }
 
 impl fmt::Display for Address {
