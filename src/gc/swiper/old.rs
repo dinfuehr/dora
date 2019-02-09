@@ -205,31 +205,36 @@ impl OldGenProtected {
     pub fn commit_regions(&mut self, new_regions: &[Region]) {
         let mut idx = 0;
 
-        for new_region in new_regions {
-            let mut start = new_region.start;
-            let end = new_region.end;
+        for new in new_regions {
+            let mut start = new.start;
+            let end = new.end;
 
             while idx < self.regions.len() {
-                let region = &self.regions[idx];
+                let old = &self.regions[idx];
 
-                if region.mapped_start >= end {
+                // old region after new region
+                if old.mapped_start >= end {
                     break;
 
-                } else if region.mapped_start <= start {
-                    let mapped = max(region.mapped_limit, start);
-                    start = min(mapped, end);
+                // old region before new region
+                } else if old.mapped_limit <= start {
                     idx += 1;
+                    continue;
 
+                // we know now that old and new regions overlap
                 } else {
-                    assert!(region.mapped_start < end);
-                    let commit_end = region.mapped_start;
+                    unimplemented!();
+                    // assert!(old.mapped_start < end);
+                    // let commit_end = old.mapped_start;
 
-                    if commit_end > start {
-                        let size = commit_end.offset_from(start);
-                        arena::commit(start, size, false);
-                    }
+                    // if commit_end > start {
+                    //     let size = commit_end.offset_from(start);
+                    //     arena::commit(start, size, false);
+                    // }
 
-                    start = commit_end;
+                    // start = max(old.mapped_limit, start);
+                    // start = min(start, end);
+                    // idx += 1;
                 }
             }
 
@@ -274,7 +279,7 @@ impl OldGenProtected {
     }
 
     pub fn update_regions(&mut self, _new_regions: Vec<OldRegion>) {
-
+        unimplemented!();
     }
 
     pub fn alloc(&mut self, config: &SharedHeapConfig, size: usize) -> Address {
