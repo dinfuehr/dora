@@ -11,6 +11,7 @@ use gc::tlab::TLAB_OBJECT_SIZE;
 use gc::zero::ZeroCollector;
 use mem;
 use object::{Header, Obj};
+use os;
 use vtable::VTable;
 
 pub mod arena;
@@ -208,6 +209,11 @@ impl Address {
     }
 
     #[inline(always)]
+    pub fn sub(self, offset: usize) -> Address {
+        Address(self.0 - offset)
+    }
+
+    #[inline(always)]
     pub fn add_ptr(self, words: usize) -> Address {
         Address(self.0 + words * mem::ptr_width_usize())
     }
@@ -285,6 +291,11 @@ impl Address {
     #[inline(always)]
     pub fn align_page(self) -> Address {
         mem::page_align(self.to_usize()).into()
+    }
+
+    #[inline(always)]
+    pub fn align_page_down(self) -> Address {
+        Address(self.0 & (os::page_size() as usize - 1))
     }
 
     #[inline(always)]

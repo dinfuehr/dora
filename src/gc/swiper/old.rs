@@ -60,13 +60,7 @@ impl OldGen {
 
     pub fn active_size(&self) -> usize {
         let protected = self.protected.lock();
-        let mut size = 0;
-
-        for old_region in &protected.regions {
-            size += old_region.active_size();
-        }
-
-        size
+        protected.active_size()
     }
 
     pub fn alloc(&self, size: usize) -> Address {
@@ -154,7 +148,7 @@ impl OldGenProtected {
         OldGenProtected {
             total: total.clone(),
             size: 0,
-            regions: vec![OldRegion::new(total)],
+            regions: vec![OldRegion::single(total)],
             alloc_region: 0,
         }
     }
@@ -209,7 +203,7 @@ impl OldGenProtected {
             let mut start = new.start;
             let end = new.end;
 
-            while idx < self.regions.len() {
+            while idx < self.regions.len() && start < end {
                 let old = &self.regions[idx];
 
                 // old region after new region
@@ -222,19 +216,21 @@ impl OldGenProtected {
                     continue;
 
                 // we know now that old and new regions overlap
+                // case: old region starts after new region
+                } else if old.mapped_start >= start {
+                    let commit_end = old.mapped_start;
+
+                    if commit_end > start {
+                        let size = commit_end.offset_from(start);
+                        arena::commit(start, size, false);
+                    }
+
+                    start = old.mapped_limit;
+
+                // case: old region starts before new region
                 } else {
-                    unimplemented!();
-                    // assert!(old.mapped_start < end);
-                    // let commit_end = old.mapped_start;
-
-                    // if commit_end > start {
-                    //     let size = commit_end.offset_from(start);
-                    //     arena::commit(start, size, false);
-                    // }
-
-                    // start = max(old.mapped_limit, start);
-                    // start = min(start, end);
-                    // idx += 1;
+                    assert!(old.mapped_start < start);
+                    start = old.mapped_limit;
                 }
             }
 
@@ -278,8 +274,70 @@ impl OldGenProtected {
         self.alloc_region = 0;
     }
 
-    pub fn update_regions(&mut self, _new_regions: Vec<OldRegion>) {
-        unimplemented!();
+    pub fn update_regions(&mut self, new_regions: Vec<OldRegion>) {
+        let mut idx = 0;
+
+        for old in &self.regions {
+            let mut start = old.start;
+            let end = old.end;
+
+            while idx < new_regions.len() && start < end {
+                let new = &new_regions[idx];
+
+                // new region after old region
+                if new.mapped_start >= end {
+                    break;
+
+                // new region before old region
+                } else if new.mapped_limit <= start {
+                    idx += 1;
+                    continue;
+
+                // we know now that old and new regions overlap
+                // case: new region starts after old region
+                } else if new.mapped_start >= start {
+                    let uncommit_end = new.mapped_start;
+
+                    if uncommit_end > start {
+                        let size = uncommit_end.offset_from(start);
+                        arena::forget(start, size);
+                    }
+
+                    start = new.mapped_limit;
+
+                // case: new region starts before old region
+                } else {
+                    assert!(new.mapped_start < start);
+                    start = new.mapped_limit;
+                }
+            }
+
+            if start < end {
+                let size = end.offset_from(start);
+                arena::forget(start, size);
+            }
+        }
+
+        std::mem::replace(&mut self.regions, new_regions);
+
+        let mut size = 0;
+
+        for region in &self.regions {
+            size += region.committed_region().size();
+        }
+
+        self.size = size;
+        self.alloc_region = 0;
+    }
+
+    pub fn active_size(&self) -> usize {
+        let mut size = 0;
+
+        for old_region in &self.regions {
+            size += old_region.active_size();
+        }
+
+        size
     }
 
     pub fn alloc(&mut self, config: &SharedHeapConfig, size: usize) -> Address {
@@ -351,7 +409,7 @@ pub struct OldRegion {
     // generation.
     end: Address,
 
-    // Next object in this region is allocated her.
+    // Next object in this region is allocated here.
     alloc_top: Address,
 
     // Start of allocated memory that belongs to this
@@ -366,7 +424,7 @@ pub struct OldRegion {
 }
 
 impl OldRegion {
-    fn new(region: Region) -> OldRegion {
+    fn single(region: Region) -> OldRegion {
         assert!(region.start.is_page_aligned());
 
         OldRegion {
@@ -377,6 +435,21 @@ impl OldRegion {
 
             mapped_start: region.start,
             mapped_limit: region.start,
+        }
+    }
+
+    pub fn new(object_region: Region, top: Address, mapped_region: Region) -> OldRegion {
+        assert!(object_region.valid_top(top));
+        assert!(mapped_region.start.is_page_aligned() && mapped_region.end.is_page_aligned());
+
+        OldRegion {
+            start: object_region.start,
+            end: object_region.end,
+
+            alloc_top: top,
+
+            mapped_start: mapped_region.start,
+            mapped_limit: mapped_region.end,
         }
     }
 
