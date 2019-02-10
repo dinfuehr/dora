@@ -7,13 +7,13 @@ use gc::root::Slot;
 use gc::space::Space;
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
+use gc::swiper::full::verify_marking_region;
 use gc::swiper::large::LargeSpace;
 use gc::swiper::marking;
 use gc::swiper::old::{OldGen, OldGenProtected, OldRegion};
 use gc::swiper::young::YoungGen;
-use gc::swiper::{CardIdx, CARD_REFS};
+use gc::swiper::{CardIdx, CARD_REFS, walk_region};
 use gc::{Address, GcReason, Region};
-use object::Obj;
 
 pub struct ParallelFullCollector<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
@@ -98,6 +98,18 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
 
         self.mark_live(pool);
 
+        if true || self.vm.args.flag_gc_verify {
+            if dev_verbose {
+                println!("Full GC: Phase 1 (verify marking start)");
+            }
+
+            self.verify_marking();
+
+            if dev_verbose {
+                println!("Full GC: Phase 1 (verify marking end)");
+            }
+        }
+
         if dev_verbose {
             println!("Full GC: Phase 2 (compute forward)");
         }
@@ -146,6 +158,22 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
             self.perm_space.total(),
             pool,
         );
+    }
+
+    fn verify_marking(&self) {
+        for region in &self.old_protected.regions {
+            let active = region.active_region();
+            verify_marking_region(active, self.heap);
+        }
+
+        let eden = self.young.eden_active();
+        verify_marking_region(eden, self.heap);
+
+        let from = self.young.from_active();
+        verify_marking_region(from, self.heap);
+
+        let to = self.young.to_active();
+        verify_marking_region(to, self.heap);
     }
 
     fn compute_forward(&mut self, pool: &mut Pool) {
@@ -487,28 +515,6 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
             let top = cmp::max(top, *init_top);
             self.card_table.reset_region(start, top);
         }
-    }
-}
-
-fn walk_region<F>(region: Region, mut fct: F)
-where
-    F: FnMut(&mut Obj, Address, usize),
-{
-    let mut scan = region.start;
-
-    while scan < region.end {
-        let object = scan.to_mut_obj();
-
-        if object.header().vtblptr().is_null() {
-            scan = scan.add_ptr(1);
-            continue;
-        }
-
-        let object_size = object.size();
-
-        fct(object, scan, object_size);
-
-        scan = scan.offset(object_size);
     }
 }
 

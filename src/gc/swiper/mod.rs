@@ -23,6 +23,7 @@ use gc::Collector;
 use gc::{align_gen, formatted_size, Address, Region, K};
 use gc::{arena, GcReason};
 use mem;
+use object::Obj;
 use safepoint;
 
 pub mod card;
@@ -531,5 +532,25 @@ impl fmt::Display for CollectionKind {
         };
 
         write!(f, "{}", name)
+    }
+}
+
+pub fn walk_region<F>(region: Region, mut fct: F)
+where
+    F: FnMut(&mut Obj, Address, usize),
+{
+    let mut scan = region.start;
+
+    while scan < region.end {
+        let object = scan.to_mut_obj();
+
+        if object.header().vtblptr().is_null() {
+            scan = scan.add_ptr(1);
+            continue;
+        }
+
+        let object_size = object.size();
+        fct(object, scan, object_size);
+        scan = scan.offset(object_size);
     }
 }
