@@ -29,9 +29,6 @@ impl OldGen {
     ) -> OldGen {
         let total = Region::new(start, end);
 
-        // first object is allocated on old.total.start
-        crossing_map.set_first_object(0.into(), 0);
-
         let old = OldGen {
             total: total.clone(),
             protected: Mutex::new(OldGenProtected::new(total)),

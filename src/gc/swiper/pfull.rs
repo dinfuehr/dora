@@ -7,12 +7,12 @@ use gc::root::Slot;
 use gc::space::Space;
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
-use gc::swiper::full::verify_marking_region;
+use gc::swiper::full::verify_marking;
 use gc::swiper::large::LargeSpace;
 use gc::swiper::marking;
 use gc::swiper::old::{OldGen, OldGenProtected, OldRegion};
 use gc::swiper::young::YoungGen;
-use gc::swiper::{CardIdx, CARD_REFS, walk_region};
+use gc::swiper::{walk_region, CardIdx, CARD_REFS};
 use gc::{Address, GcReason, Region};
 
 pub struct ParallelFullCollector<'a, 'ast: 'a> {
@@ -98,12 +98,17 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
 
         self.mark_live(pool);
 
-        if true || self.vm.args.flag_gc_verify {
+        if self.vm.args.flag_gc_verify {
             if dev_verbose {
                 println!("Full GC: Phase 1 (verify marking start)");
             }
 
-            self.verify_marking();
+            verify_marking(
+                self.young,
+                &*self.old_protected,
+                self.large_space,
+                self.heap,
+            );
 
             if dev_verbose {
                 println!("Full GC: Phase 1 (verify marking end)");
@@ -158,22 +163,6 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
             self.perm_space.total(),
             pool,
         );
-    }
-
-    fn verify_marking(&self) {
-        for region in &self.old_protected.regions {
-            let active = region.active_region();
-            verify_marking_region(active, self.heap);
-        }
-
-        let eden = self.young.eden_active();
-        verify_marking_region(eden, self.heap);
-
-        let from = self.young.from_active();
-        verify_marking_region(from, self.heap);
-
-        let to = self.young.to_active();
-        verify_marking_region(to, self.heap);
     }
 
     fn compute_forward(&mut self, pool: &mut Pool) {

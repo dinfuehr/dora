@@ -150,7 +150,7 @@ impl<'a> Verifier<'a> {
     fn verify_large(&mut self) {
         self.in_large = true;
         self.large.visit_objects(|addr| {
-            let object = unsafe { &mut *addr.to_mut_ptr::<Obj>() };
+            let object = addr.to_obj();
             let region = Region::new(addr, addr.offset(object.size()));
             self.verify_objects(region, "large space");
         });
@@ -167,14 +167,8 @@ impl<'a> Verifier<'a> {
         let mut curr = region.start;
         self.refs_to_young_gen = 0;
 
-        if self.in_old {
-            if curr.is_card_aligned() {
-                self.verify_crossing(curr, curr, false);
-            }
-        }
-
         while curr < region.end {
-            let object = unsafe { &mut *curr.to_mut_ptr::<Obj>() };
+            let object = curr.to_mut_obj();
 
             if object.header().vtblptr().is_null() {
                 let next = curr.add_ptr(1);
@@ -257,12 +251,13 @@ impl<'a> Verifier<'a> {
     fn verify_card(&mut self, curr: Address, start: Address) {
         let curr_card = self.card_table.card_idx(curr);
 
-        let card_entry = self.card_table.get(curr_card);
         let expected_card_entry = if self.refs_to_young_gen > 0 {
             CardEntry::Dirty
         } else {
             CardEntry::Clean
         };
+
+        let actual_card_entry = self.card_table.get(curr_card);
 
         // In the verify-phase before the collection the card's dirty-entry isn't
         // guaranteed to be exact. It could be `dirty` although this card doesn't
@@ -285,8 +280,8 @@ impl<'a> Verifier<'a> {
             return;
         }
 
-        if card_entry != expected_card_entry {
-            let card_text = match card_entry {
+        if actual_card_entry != expected_card_entry {
+            let card_text = match actual_card_entry {
                 CardEntry::Dirty => "dirty",
                 CardEntry::Clean => "clean",
             };
@@ -306,7 +301,7 @@ impl<'a> Verifier<'a> {
             panic!("card table entry wrong.");
         }
 
-        assert!(card_entry == expected_card_entry);
+        assert!(actual_card_entry == expected_card_entry);
 
         self.refs_to_young_gen = 0;
     }

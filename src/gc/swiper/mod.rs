@@ -359,14 +359,12 @@ impl Swiper {
         &self,
         vm: &VM,
         phase: VerifierPhase,
-        kind: CollectionKind,
+        _kind: CollectionKind,
         name: &str,
         rootset: &[Slot],
         promotion_failed: bool,
     ) {
-        let parallel_full = kind.is_full() && vm.args.flag_gc_parallel_full;
-
-        if vm.args.flag_gc_verify || parallel_full {
+        if vm.args.flag_gc_verify {
             if vm.args.flag_gc_dev_verbose {
                 println!("GC: Verify {}", name);
             }

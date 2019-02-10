@@ -8,8 +8,8 @@ use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::large::LargeSpace;
 use gc::swiper::old::{OldGen, OldGenProtected};
-use gc::swiper::young::YoungGen;
 use gc::swiper::walk_region;
+use gc::swiper::young::YoungGen;
 use gc::{Address, GcReason, Region};
 use object::Obj;
 
@@ -92,7 +92,12 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 println!("Full GC: Phase 1 (verify marking start)");
             }
 
-            self.verify_marking();
+            verify_marking(
+                self.young,
+                &*self.old_protected,
+                self.large_space,
+                self.heap,
+            );
 
             if dev_verbose {
                 println!("Full GC: Phase 1 (verify marking end)");
@@ -172,22 +177,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 }
             });
         }
-    }
-
-    fn verify_marking(&self) {
-        for region in &self.old_protected.regions {
-            let active = region.active_region();
-            verify_marking_region(active, self.heap);
-        }
-
-        let eden = self.young.eden_active();
-        verify_marking_region(eden, self.heap);
-
-        let from = self.young.from_active();
-        verify_marking_region(from, self.heap);
-
-        let to = self.young.to_active();
-        verify_marking_region(to, self.heap);
     }
 
     fn compute_forward(&mut self) {
@@ -374,16 +363,47 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     }
 }
 
-pub fn verify_marking_region(region: Region, heap: Region) {
-    walk_region(region, |obj, _address, _size| {
-        if obj.header().is_marked_non_atomic() {
-            obj.visit_reference_fields(|field| {
-                let object_addr = field.get();
+pub fn verify_marking(
+    young: &YoungGen,
+    old_protected: &OldGenProtected,
+    large: &LargeSpace,
+    heap: Region,
+) {
+    for region in &old_protected.regions {
+        let active = region.active_region();
+        verify_marking_region(active, heap);
+    }
 
-                if heap.contains(object_addr) {
-                    assert!(object_addr.to_obj().header().is_marked_non_atomic());
-                }
-            });
-        }
+    let eden = young.eden_active();
+    verify_marking_region(eden, heap);
+
+    let from = young.from_active();
+    verify_marking_region(from, heap);
+
+    let to = young.to_active();
+    verify_marking_region(to, heap);
+
+    large.visit_objects(|obj_address| {
+        verify_marking_object(obj_address, heap);
     });
+}
+
+fn verify_marking_region(region: Region, heap: Region) {
+    walk_region(region, |_obj, obj_address, _size| {
+        verify_marking_object(obj_address, heap);
+    });
+}
+
+fn verify_marking_object(obj_address: Address, heap: Region) {
+    let obj = obj_address.to_mut_obj();
+
+    if obj.header().is_marked_non_atomic() {
+        obj.visit_reference_fields(|field| {
+            let object_addr = field.get();
+
+            if heap.contains(object_addr) {
+                assert!(object_addr.to_obj().header().is_marked_non_atomic());
+            }
+        });
+    }
 }
