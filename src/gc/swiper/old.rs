@@ -483,8 +483,10 @@ impl OldRegion {
 
     fn pure_alloc(&mut self, size: usize) -> Option<Address> {
         let new_alloc_top = self.alloc_top.offset(size);
+        debug_assert!(self.alloc_top <= self.mapped_limit);
+        debug_assert!(self.alloc_top <= self.end);
 
-        if new_alloc_top <= self.mapped_limit {
+        if new_alloc_top <= min(self.mapped_limit, self.end) {
             let addr = self.alloc_top;
             self.alloc_top = new_alloc_top;
             return Some(addr);

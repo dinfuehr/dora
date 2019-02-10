@@ -180,10 +180,40 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
         self.compute_units();
         self.compute_live_bytes(pool);
         self.compute_regions();
+
+        if self.vm.args.flag_gc_verify {
+            self.check_units_disjoint();
+            self.check_regions_disjoint();
+        }
+
         self.compute_actual_forward(pool);
 
         let regions: Vec<_> = self.regions.iter().map(|r| r.mapped_region).collect();
         self.old_protected.commit_regions(&regions);
+    }
+
+    fn check_units_disjoint(&self) {
+        let mut units: Vec<Region> = self.units.iter().map(|u| u.region).collect();
+        units.sort_by(|a, b| a.start.cmp(&b.start));
+
+        let mut last = Address::null();
+
+        for unit in units {
+            assert!(last <= unit.start);
+            last = unit.end;
+        }
+    }
+
+    fn check_regions_disjoint(&self) {
+        let mut last_object = Address::null();
+        let mut last_mapped = Address::null();
+
+        for region in &self.regions {
+            assert!(last_object <= region.object_region.start);
+            assert!(last_mapped <= region.mapped_region.start);
+            last_object = region.object_region.end;
+            last_mapped = region.mapped_region.end;
+        }
     }
 
     fn compute_units(&mut self) {
@@ -197,13 +227,19 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
         }
 
         let eden = self.young.eden_active();
-        self.units.push(Unit::young(eden));
+        if eden.size() > 0 {
+            self.units.push(Unit::young(eden));
+        }
 
         let from = self.young.from_active();
-        self.units.push(Unit::young(from));
+        if from.size() > 0 {
+            self.units.push(Unit::young(from));
+        }
 
         let to = self.young.to_active();
-        self.units.push(Unit::young(to));
+        if to.size() > 0 {
+            self.units.push(Unit::young(to));
+        }
     }
 
     fn units_for_old_region(&mut self, region: Region, unit_size: usize) {
@@ -211,6 +247,8 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
 
         while last < region.end {
             let end = self.find_object_start(last, unit_size, region.end);
+            debug_assert!(end <= region.end);
+
             let region = Region::new(last, end);
             self.units.push(Unit::old(region));
             last = end;
