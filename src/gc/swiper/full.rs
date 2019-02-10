@@ -313,41 +313,27 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             .collect::<Vec<_>>();
 
         for old_region in old_regions {
-            self.walk_region(old_region.start, old_region.end, &mut fct);
+            walk_region(old_region, |obj, addr, size| {
+                fct(self, obj, addr, size);
+            });
         }
 
         let used_region = self.young.eden_active();
-        self.walk_region(used_region.start, used_region.end, &mut fct);
+        walk_region(used_region, |obj, addr, size| {
+            fct(self, obj, addr, size);
+        });
 
         let used_region = self.young.from_active();
-        self.walk_region(used_region.start, used_region.end, &mut fct);
+        walk_region(used_region, |obj, addr, size| {
+            fct(self, obj, addr, size);
+        });
 
         // This is a bit strange at first: to-space might not be empty,
         // after too many survivors in the minor GC of the young gen.
         let used_region = self.young.to_active();
-        self.walk_region(used_region.start, used_region.end, &mut fct);
-    }
-
-    fn walk_region<F>(&mut self, start: Address, end: Address, fct: &mut F)
-    where
-        F: FnMut(&mut FullCollector, &mut Obj, Address, usize),
-    {
-        let mut scan = start;
-
-        while scan < end {
-            let object = scan.to_mut_obj();
-
-            if object.header().vtblptr().is_null() {
-                scan = scan.add_ptr(1);
-                continue;
-            }
-
-            let object_size = object.size();
-
-            fct(self, object, scan, object_size);
-
-            scan = scan.offset(object_size);
-        }
+        walk_region(used_region, |obj, addr, size| {
+            fct(self, obj, addr, size);
+        });
     }
 
     fn allocate(&mut self, object_size: usize) -> Address {
