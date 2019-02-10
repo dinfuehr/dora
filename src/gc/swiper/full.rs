@@ -86,6 +86,18 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
         self.mark_live();
 
+        if self.vm.args.flag_gc_verify {
+            if dev_verbose {
+                println!("Full GC: Phase 1 (verify marking start)");
+            }
+
+            self.verify_marking();
+
+            if dev_verbose {
+                println!("Full GC: Phase 1 (verify marking end)");
+            }
+        }
+
         if dev_verbose {
             println!("Full GC: Phase 2 (compute forward)");
         }
@@ -159,6 +171,22 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 }
             });
         }
+    }
+
+    fn verify_marking(&self) {
+        for region in &self.old_protected.regions {
+            let active = region.active_region();
+            verify_marking_region(active, self.heap);
+        }
+
+        let eden = self.young.eden_active();
+        verify_marking_region(eden, self.heap);
+
+        let from = self.young.from_active();
+        verify_marking_region(from, self.heap);
+
+        let to = self.young.to_active();
+        verify_marking_region(to, self.heap);
     }
 
     fn compute_forward(&mut self) {
@@ -342,5 +370,39 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         }
 
         panic!("FAIL: Not enough space for objects in old generation.");
+    }
+}
+
+fn verify_marking_region(region: Region, heap: Region) {
+    walk_region(region, |obj, _address, _size| {
+        if obj.header().is_marked_non_atomic() {
+            obj.visit_reference_fields(|field| {
+                let object_addr = field.get();
+
+                if heap.contains(object_addr) {
+                    assert!(object_addr.to_obj().header().is_marked_non_atomic());
+                }
+            });
+        }
+    });
+}
+
+fn walk_region<F>(region: Region, mut fct: F)
+where
+    F: FnMut(&mut Obj, Address, usize),
+{
+    let mut scan = region.start;
+
+    while scan < region.end {
+        let object = scan.to_mut_obj();
+
+        if object.header().vtblptr().is_null() {
+            scan = scan.add_ptr(1);
+            continue;
+        }
+
+        let object_size = object.size();
+        fct(object, scan, object_size);
+        scan = scan.offset(object_size);
     }
 }
