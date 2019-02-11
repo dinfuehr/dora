@@ -386,6 +386,11 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
         let mapped_end = object_start.offset(*size).align_page();
         let mapped_region = Region::new(mapped_start, mapped_end);
 
+        if let Some(region) = regions.last_mut() {
+            assert!(region.object_region.end <= object_region.start);
+            region.object_region.end = object_region.start;
+        }
+
         regions.push(CollectRegion::new(
             unit_start_idx,
             units,
