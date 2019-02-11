@@ -295,7 +295,7 @@ impl Address {
 
     #[inline(always)]
     pub fn align_page_down(self) -> Address {
-        Address(self.0 & (os::page_size() as usize - 1))
+        Address(self.0 & !(os::page_size() as usize - 1))
     }
 
     #[inline(always)]

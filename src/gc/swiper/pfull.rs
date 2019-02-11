@@ -148,12 +148,12 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
         self.young.clear();
         self.young.protect_to();
 
-        let region: Vec<_> = self
+        let regions: Vec<_> = self
             .regions
             .iter()
             .map(|r| OldRegion::new(r.object_region, r.top, r.mapped_region))
             .collect();
-        self.old_protected.update_regions(region);
+        self.old_protected.update_regions(regions);
     }
 
     fn mark_live(&mut self, pool: &mut Pool) {
@@ -345,11 +345,16 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
         regions: &mut Vec<CollectRegion>,
     ) {
         let units = unit_end_idx - unit_start_idx + 1;
+        let unit_start = &self.units[unit_start_idx];
 
-        let object_start = regions
-            .last()
-            .map(|r| r.object_region.end)
-            .unwrap_or(self.old_total.start);
+        let object_start = if unit_start.young {
+            regions
+                .last()
+                .map(|r| r.object_region.end)
+                .unwrap_or(self.old_total.start)
+        } else {
+            unit_start.region.start
+        };
 
         let unit_end = &self.units[unit_end_idx];
 

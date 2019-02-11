@@ -91,7 +91,7 @@ pub struct Args {
     pub flag_gc_verify: bool,
     pub flag_gc_worker: usize,
     pub flag_gc_young_ratio: Option<usize>,
-    pub flag_gc_young_size: Option<usize>,
+    pub flag_gc_young_size: Option<MemSize>,
     pub flag_gc_young_appel: bool,
     pub flag_gc_semi_ratio: Option<usize>,
     pub flag_gc: Option<CollectorName>,
@@ -145,7 +145,7 @@ impl Args {
     }
 
     pub fn young_size(&self) -> Option<usize> {
-        self.flag_gc_young_size
+        self.flag_gc_young_size.map(|young_size| *young_size)
     }
 
     pub fn young_appel(&self) -> bool {
