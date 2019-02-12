@@ -254,7 +254,7 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
 
     fn compute_units(&mut self) {
         let active = self.old_protected.active_size();
-        let unit_size = active / (4 * self.number_workers);
+        let unit_size = active / (8 * self.number_workers);
 
         let old_regions = self.old_protected.regions.len();
         for idx in 0..old_regions {
@@ -483,6 +483,10 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
             });
 
             for unit in &self.units {
+                if unit.live == 0 {
+                    continue;
+                }
+
                 let pfull = &self;
 
                 scope.execute(move || {
@@ -534,6 +538,10 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
 
                 scope.execute(move || {
                     for unit in units.iter().skip(region.idx).take(region.units) {
+                        if unit.live == 0 {
+                            continue;
+                        }
+
                         walk_region(unit.region, |object, address, object_size| {
                             if object.header().is_marked_non_atomic() {
                                 // get new location
