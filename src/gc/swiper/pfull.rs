@@ -357,6 +357,10 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
                         }
                     });
 
+                    if live > 0 && garbage_objects > 4 {
+                        fill_region(vm, garbage_start, unit.region.end);
+                    }
+
                     unit.live = live;
                 });
             }
