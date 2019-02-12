@@ -14,7 +14,7 @@ use gc::swiper::marking;
 use gc::swiper::old::{OldGen, OldGenProtected, OldRegion};
 use gc::swiper::young::YoungGen;
 use gc::swiper::{walk_region, CardIdx, CARD_REFS};
-use gc::{Address, GcReason, Region};
+use gc::{fill_region, Address, GcReason, Region};
 use timer::Timer;
 
 pub struct ParallelFullCollector<'a, 'ast: 'a> {
@@ -333,12 +333,27 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
     fn compute_live_bytes(&mut self, pool: &mut Pool) {
         pool.scoped(|scoped| {
             for unit in &mut self.units {
+                let vm = self.vm;
+
                 scoped.execute(move || {
                     let mut live = 0;
+                    let mut garbage_start = unit.region.start;
+                    let mut garbage_objects = 0;
 
-                    walk_region(unit.region, |obj, _address, size| {
+                    walk_region(unit.region, |obj, addr, size| {
                         if obj.header().is_marked_non_atomic() {
+                            if garbage_objects > 4 {
+                                fill_region(vm, garbage_start, addr);
+                            }
+
                             live += size;
+                            garbage_objects = 0;
+                        } else {
+                            if garbage_objects == 0 {
+                                garbage_start = addr;
+                            }
+
+                            garbage_objects += 1;
                         }
                     });
 
