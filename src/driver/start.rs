@@ -98,7 +98,7 @@ pub fn start(content: Option<&str>) -> i32 {
         return 0;
     }
 
-    let timer = Timer::new(vm.args.flag_gc_verbose);
+    let mut timer = Timer::new(vm.args.flag_gc_stats);
 
     vm.threads.attach_current_thread();
 
@@ -113,8 +113,9 @@ pub fn start(content: Option<&str>) -> i32 {
 
     os::unregister_signals();
 
-    if vm.args.flag_gc_verbose {
-        vm.dump_gc_summary(timer.stop());
+    if vm.args.flag_gc_stats {
+        let duration = timer.stop();
+        vm.dump_gc_summary(duration);
     }
 
     code

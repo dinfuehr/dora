@@ -5,6 +5,7 @@ use ctxt::VM;
 use gc::root::Slot;
 use gc::space::Space;
 use gc::swiper::card::CardTable;
+use gc::swiper::controller::FullCollectorPhases;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::large::LargeSpace;
 use gc::swiper::old::{OldGen, OldGenProtected};
@@ -12,6 +13,7 @@ use gc::swiper::walk_region;
 use gc::swiper::young::YoungGen;
 use gc::{Address, GcReason, Region};
 use object::Obj;
+use timer::Timer;
 
 pub struct FullCollector<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
@@ -34,6 +36,8 @@ pub struct FullCollector<'a, 'ast: 'a> {
 
     min_heap_size: usize,
     max_heap_size: usize,
+
+    phases: FullCollectorPhases,
 }
 
 impl<'a, 'ast> FullCollector<'a, 'ast> {
@@ -74,24 +78,38 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
             min_heap_size: min_heap_size,
             max_heap_size: max_heap_size,
+
+            phases: FullCollectorPhases::new(),
         }
+    }
+
+    pub fn phases(&self) -> FullCollectorPhases {
+        self.phases.clone()
     }
 
     pub fn collect(&mut self) {
         let dev_verbose = self.vm.args.flag_gc_dev_verbose;
+        let stats = self.vm.args.flag_gc_stats;
         self.init_old_top = self.old_protected.regions.iter().map(|r| r.top()).collect();
+
+        let mut timer = Timer::new(stats);
+
+        if dev_verbose {
+            println!("Full GC: Start");
+        }
+
+        self.mark_live();
+
+        if stats {
+            let duration = timer.stop();
+            self.phases.marking = duration;
+        }
 
         if dev_verbose {
             println!("Full GC: Phase 1 (marking)");
         }
 
-        self.mark_live();
-
         if self.vm.args.flag_gc_verify {
-            if dev_verbose {
-                println!("Full GC: Phase 1 (verify marking start)");
-            }
-
             verify_marking(
                 self.young,
                 &*self.old_protected,
@@ -99,40 +117,69 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 self.heap,
             );
 
-            if dev_verbose {
-                println!("Full GC: Phase 1 (verify marking end)");
+            if stats {
+                timer.stop();
             }
+
+            if dev_verbose {
+                println!("Full GC: Phase 1b (verify marking)");
+            }
+        }
+
+        self.compute_forward();
+
+        if stats {
+            let duration = timer.stop();
+            self.phases.compute_forward = duration;
         }
 
         if dev_verbose {
             println!("Full GC: Phase 2 (compute forward)");
         }
 
-        self.compute_forward();
+        self.update_references();
+
+        if stats {
+            let duration = timer.stop();
+            self.phases.update_refs = duration;
+        }
 
         if dev_verbose {
             println!("Full GC: Phase 3 (update refs)");
         }
 
-        self.update_references();
+        self.relocate();
+
+        if stats {
+            let duration = timer.stop();
+            self.phases.relocate = duration;
+        }
 
         if dev_verbose {
             println!("Full GC: Phase 4 (relocate)");
         }
 
-        self.relocate();
+        self.update_large_objects();
+
+        if stats {
+            let duration = timer.stop();
+            self.phases.large_objects = duration;
+        }
 
         if dev_verbose {
             println!("Full GC: Phase 5 (large objects)");
         }
 
-        self.update_large_objects();
+        self.reset_cards();
 
-        if dev_verbose {
-            println!("Full GC: Phase 5 (large objects) finished.");
+        if stats {
+            let duration = timer.stop();
+            self.phases.reset_cards = duration;
         }
 
-        self.reset_cards();
+        if dev_verbose {
+            println!("Full GC: Phase 6 (reset cards)");
+        }
 
         self.young.clear();
         self.young.protect_to();

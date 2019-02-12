@@ -15,10 +15,13 @@ impl Timer {
         }
     }
 
-    pub fn stop(&self) -> f32 {
+    pub fn stop(&mut self) -> f32 {
         assert!(self.active);
+        let curr = timestamp();
+        let last = self.timestamp;
+        self.timestamp = curr;
 
-        in_ms(timestamp() - self.timestamp)
+        in_ms(curr - last)
     }
 
     pub fn stop_with<F>(&self, f: F) -> u64

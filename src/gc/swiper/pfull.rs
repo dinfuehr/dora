@@ -6,6 +6,7 @@ use ctxt::VM;
 use gc::root::Slot;
 use gc::space::Space;
 use gc::swiper::card::CardTable;
+use gc::swiper::controller::FullCollectorPhases;
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use gc::swiper::full::verify_marking;
 use gc::swiper::large::LargeSpace;
@@ -14,6 +15,7 @@ use gc::swiper::old::{OldGen, OldGenProtected, OldRegion};
 use gc::swiper::young::YoungGen;
 use gc::swiper::{walk_region, CardIdx, CARD_REFS};
 use gc::{Address, GcReason, Region};
+use timer::Timer;
 
 pub struct ParallelFullCollector<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
@@ -40,6 +42,8 @@ pub struct ParallelFullCollector<'a, 'ast: 'a> {
 
     units: Vec<Unit>,
     regions: Vec<CollectRegion>,
+
+    phases: FullCollectorPhases,
 }
 
 impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
@@ -85,24 +89,38 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
 
             units: Vec::new(),
             regions: Vec::new(),
+
+            phases: FullCollectorPhases::new(),
         }
+    }
+
+    pub fn phases(&self) -> FullCollectorPhases {
+        self.phases.clone()
     }
 
     pub fn collect(&mut self, pool: &mut Pool) {
         let dev_verbose = self.vm.args.flag_gc_dev_verbose;
+        let stats = self.vm.args.flag_gc_stats;
         self.init_old_top = self.old_protected.regions.iter().map(|r| r.top()).collect();
+
+        let mut timer = Timer::new(stats);
+
+        if dev_verbose {
+            println!("Full GC: Start");
+        }
+
+        self.mark_live(pool);
+
+        if stats {
+            let duration = timer.stop();
+            self.phases.marking = duration;
+        }
 
         if dev_verbose {
             println!("Full GC: Phase 1 (marking)");
         }
 
-        self.mark_live(pool);
-
         if self.vm.args.flag_gc_verify {
-            if dev_verbose {
-                println!("Full GC: Phase 1 (verify marking start)");
-            }
-
             verify_marking(
                 self.young,
                 &*self.old_protected,
@@ -110,40 +128,69 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
                 self.heap,
             );
 
-            if dev_verbose {
-                println!("Full GC: Phase 1 (verify marking end)");
+            if stats {
+                timer.stop();
             }
+
+            if dev_verbose {
+                println!("Full GC: Phase 1b (verify marking)");
+            }
+        }
+
+        self.compute_forward(pool);
+
+        if stats {
+            let duration = timer.stop();
+            self.phases.compute_forward = duration;
         }
 
         if dev_verbose {
             println!("Full GC: Phase 2 (compute forward)");
         }
 
-        self.compute_forward(pool);
+        self.update_references(pool);
+
+        if stats {
+            let duration = timer.stop();
+            self.phases.update_refs = duration;
+        }
 
         if dev_verbose {
             println!("Full GC: Phase 3 (update refs)");
         }
 
-        self.update_references(pool);
+        self.relocate(pool);
+
+        if stats {
+            let duration = timer.stop();
+            self.phases.relocate = duration;
+        }
 
         if dev_verbose {
             println!("Full GC: Phase 4 (relocate)");
         }
 
-        self.relocate(pool);
+        self.update_large_objects();
+
+        if stats {
+            let duration = timer.stop();
+            self.phases.large_objects = duration;
+        }
 
         if dev_verbose {
             println!("Full GC: Phase 5 (large objects)");
         }
 
-        self.update_large_objects();
+        self.reset_cards();
 
-        if dev_verbose {
-            println!("Full GC: Phase 5 (large objects) finished.");
+        if stats {
+            let duration = timer.stop();
+            self.phases.reset_cards = duration;
         }
 
-        self.reset_cards();
+        if dev_verbose {
+            println!("Full GC: Phase 6 (reset cards)");
+        }
 
         self.young.clear();
         self.young.protect_to();

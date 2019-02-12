@@ -327,6 +327,11 @@ impl Swiper {
                 self.max_heap_size,
             );
             collector.collect(&mut pool);
+
+            if vm.args.flag_gc_stats {
+                let mut config = self.config.lock();
+                config.add_full(collector.phases());
+            }
         } else {
             let mut collector = FullCollector::new(
                 vm,
@@ -343,6 +348,11 @@ impl Swiper {
                 self.max_heap_size,
             );
             collector.collect();
+
+            if vm.args.flag_gc_stats {
+                let mut config = self.config.lock();
+                config.add_full(collector.phases());
+            }
         }
 
         self.verify(
@@ -474,6 +484,17 @@ impl Collector for Swiper {
             mutator_percentage,
             gc_percentage,
         );
+
+        println!("\nFull:");
+
+        println!("\tMarking:\t{}", config.full_marking());
+        println!("\tCompute Fwd:\t{}", config.full_compute_forward());
+        println!("\tUpdate Refs:\t{}", config.full_update_refs());
+        println!("\tRelocate:\t{}", config.full_relocate());
+        println!("\tLarge Objects:\t{}", config.full_large_objects());
+        println!("\tReset Cards:\t{}", config.full_reset_cards());
+
+        println!("");
     }
 }
 

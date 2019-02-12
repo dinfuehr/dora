@@ -1,5 +1,7 @@
 use parking_lot::Mutex;
 use std::cmp::{max, min};
+use std::f32;
+use std::fmt;
 use std::sync::Arc;
 
 use driver::cmd::Args;
@@ -249,6 +251,8 @@ pub struct HeapConfig {
     pub total_minor_pause: f32,
     pub total_full_collections: usize,
     pub total_full_pause: f32,
+
+    full_phases: Vec<FullCollectorPhases>,
 }
 
 impl HeapConfig {
@@ -279,7 +283,43 @@ impl HeapConfig {
             total_minor_pause: 0f32,
             total_full_collections: 0,
             total_full_pause: 0f32,
+
+            full_phases: Vec::new(),
         }
+    }
+
+    pub fn add_full(&mut self, phases: FullCollectorPhases) {
+        self.full_phases.push(phases);
+    }
+
+    pub fn full_marking(&self) -> Numbers {
+        let values: Vec<_> = self.full_phases.iter().map(|x| x.marking).collect();
+        calculate_numbers(&values)
+    }
+
+    pub fn full_compute_forward(&self) -> Numbers {
+        let values: Vec<_> = self.full_phases.iter().map(|x| x.compute_forward).collect();
+        calculate_numbers(&values)
+    }
+
+    pub fn full_update_refs(&self) -> Numbers {
+        let values: Vec<_> = self.full_phases.iter().map(|x| x.update_refs).collect();
+        calculate_numbers(&values)
+    }
+
+    pub fn full_relocate(&self) -> Numbers {
+        let values: Vec<_> = self.full_phases.iter().map(|x| x.relocate).collect();
+        calculate_numbers(&values)
+    }
+
+    pub fn full_large_objects(&self) -> Numbers {
+        let values: Vec<_> = self.full_phases.iter().map(|x| x.large_objects).collect();
+        calculate_numbers(&values)
+    }
+
+    pub fn full_reset_cards(&self) -> Numbers {
+        let values: Vec<_> = self.full_phases.iter().map(|x| x.reset_cards).collect();
+        calculate_numbers(&values)
     }
 
     pub fn grow_old(&mut self, size: usize) -> bool {
@@ -292,4 +332,76 @@ impl HeapConfig {
     }
 }
 
+pub struct Numbers {
+    pub avg: f32,
+    pub sum: f32,
+    pub min: f32,
+    pub max: f32
+}
+
+impl Numbers {
+    fn zero() -> Numbers {
+        Numbers {
+            avg: 0f32,
+            sum: 0f32,
+            min: 0f32,
+            max: 0f32,
+        }
+    }
+}
+
+impl fmt::Display for Numbers {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "avg={:<8.1} sum={:<8.1} min={:<8.1} max={:<8.1}", self.avg, self.sum, self.min, self.max)
+    }
+}
+
+fn calculate_numbers(data: &[f32]) -> Numbers {
+    if data.len() == 0 {
+        return Numbers::zero();
+    }
+
+    let mut sum = 0f32;
+    let mut xmin = data[0];
+    let mut xmax = data[0];
+
+    for el in data {
+        sum += *el;
+        xmin = f32::min(xmin, *el);
+        xmax = f32::max(xmax, *el);
+    }
+
+    let avg = sum / (data.len() as f32);
+
+    Numbers {
+        avg: avg,
+        sum: sum,
+        min: xmin,
+        max: xmax,
+    }
+}
+
 pub type SharedHeapConfig = Arc<Mutex<HeapConfig>>;
+
+#[derive(Clone)]
+pub struct FullCollectorPhases {
+    pub marking: f32,
+    pub compute_forward: f32,
+    pub update_refs: f32,
+    pub relocate: f32,
+    pub large_objects: f32,
+    pub reset_cards: f32,
+}
+
+impl FullCollectorPhases {
+    pub fn new() -> FullCollectorPhases {
+        FullCollectorPhases {
+            marking: 0f32,
+            compute_forward: 0f32,
+            update_refs: 0f32,
+            relocate: 0f32,
+            large_objects: 0f32,
+            reset_cards: 0f32,
+        }
+    }
+}
