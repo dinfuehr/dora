@@ -457,6 +457,10 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
                     let mut fwd = region.object_region.start;
 
                     for unit in units.iter().skip(region.idx).take(region.units) {
+                        if unit.live == 0 {
+                            continue;
+                        }
+
                         walk_region(unit.region, |obj, _address, size| {
                             if obj.header().is_marked_non_atomic() {
                                 obj.header_mut().set_fwdptr_non_atomic(fwd);
