@@ -336,7 +336,7 @@ pub struct Numbers {
     pub avg: f32,
     pub sum: f32,
     pub min: f32,
-    pub max: f32
+    pub max: f32,
 }
 
 impl Numbers {
@@ -352,7 +352,11 @@ impl Numbers {
 
 impl fmt::Display for Numbers {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "avg={:<8.1} sum={:<8.1} min={:<8.1} max={:<8.1}", self.avg, self.sum, self.min, self.max)
+        write!(
+            f,
+            "avg={:<8.1} sum={:<8.1} min={:<8.1} max={:<8.1}",
+            self.avg, self.sum, self.min, self.max
+        )
     }
 }
 

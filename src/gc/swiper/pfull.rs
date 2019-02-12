@@ -473,26 +473,26 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
 
     fn update_references(&mut self, pool: &mut Pool) {
         pool.scoped(|scope| {
-            for (idx, region) in self.regions.iter().enumerate() {
-                let units = &self.units;
+            let rootset = self.rootset;
+            let pfull = &self;
+
+            scope.execute(move || {
+                for root in rootset {
+                    pfull.forward_reference(*root);
+                }
+            });
+
+            for unit in &self.units {
                 let pfull = &self;
-                let regions = self.regions.len();
-                let rootset = self.rootset;
 
                 scope.execute(move || {
-                    for root in rootset.iter().skip(idx).step_by(regions) {
-                        pfull.forward_reference(*root);
-                    }
-
-                    for unit in units.iter().skip(region.idx).take(region.units) {
-                        walk_region(unit.region, |obj, _address, _size| {
-                            if obj.header().is_marked_non_atomic() {
-                                obj.visit_reference_fields(|field| {
-                                    pfull.forward_reference(field);
-                                });
-                            }
-                        });
-                    }
+                    walk_region(unit.region, |obj, _address, _size| {
+                        if obj.header().is_marked_non_atomic() {
+                            obj.visit_reference_fields(|field| {
+                                pfull.forward_reference(field);
+                            });
+                        }
+                    });
                 });
             }
         });
