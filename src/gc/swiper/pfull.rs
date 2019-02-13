@@ -5,6 +5,7 @@ use std::cmp;
 use ctxt::VM;
 use gc::root::Slot;
 use gc::space::Space;
+use gc::swiper::arena;
 use gc::swiper::card::CardTable;
 use gc::swiper::controller::FullCollectorPhases;
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
@@ -502,7 +503,7 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
                 });
             }
 
-            let head = self.large_space.head();
+            let head = self.large_space.remove_head();
 
             if head.is_null() {
                 return;
@@ -513,11 +514,19 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
             for _ in 0..self.number_workers {
                 let pfull = &self;
                 let card_table = self.card_table;
+                let large = self.large_space;
 
                 scope.execute(move || {
+                    let mut head = Address::null();
+                    let mut tail = Address::null();
+                    let mut free_regions = Vec::new();
+                    let mut freed = 0;
+
                     let mut addr = next(next_large);
 
-                    while let Some(object_start) = addr {
+                    while let Some(large_alloc) = addr {
+                        let large_alloc = LargeAlloc::from_address(large_alloc);
+                        let object_start = large_alloc.object_address();
                         let object = object_start.to_mut_obj();
 
                         // reset cards for object, also do this for dead objects
@@ -529,13 +538,41 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
                             card_table.reset_addr(object_start);
                         }
 
+                        addr = next(next_large);
+
                         if object.header().is_marked_non_atomic() {
                             object.visit_reference_fields(|field| {
                                 pfull.forward_reference(field);
                             });
-                        }
 
-                        addr = next(next_large);
+                            if head.is_null() {
+                                head = large_alloc.address();
+                            }
+
+                            if tail.is_non_null() {
+                                let tail = LargeAlloc::from_address(tail);
+                                tail.next = large_alloc.address();
+                            }
+
+                            large_alloc.prev = tail;
+                            large_alloc.next = Address::null();
+
+                            // unmark object for next collection
+                            object.header_mut().unmark_non_atomic();
+
+                            tail = large_alloc.address();
+                        } else {
+                            let free_start = large_alloc.address();
+                            let free_size = large_alloc.size;
+
+                            arena::forget(free_start, free_size);
+                            free_regions.push(free_start.region_start(free_size));
+                            freed += free_size;
+                        }
+                    }
+
+                    if head.is_non_null() {
+                        large.append_chain(head, tail, freed, free_regions);
                     }
                 });
             }
@@ -546,11 +583,13 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
         let object_addr = slot.get();
 
         if self.heap.contains(object_addr) {
-            debug_assert!(object_addr.to_obj().header().is_marked_non_atomic());
-
             if self.large_space.contains(object_addr) {
                 return;
             }
+
+            // Do not check mark-bit for large objects. Mark-bit clearing for large
+            // objects overlaps with reference forwarding.
+            debug_assert!(object_addr.to_obj().header().is_marked_non_atomic());
 
             let fwd_addr = object_addr.to_obj().header().fwdptr_non_atomic();
             debug_assert!(self.old_total.contains(fwd_addr));
@@ -597,25 +636,6 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
                 });
             }
 
-            let large = self.large_space;
-
-            scope.execute(move || {
-                large.remove_objects(|object_start| {
-                    let object = object_start.to_mut_obj();
-
-                    if !object.header().is_marked_non_atomic() {
-                        // object is unmarked -> free it
-                        return false;
-                    }
-
-                    // unmark object for next collection
-                    object.header_mut().unmark_non_atomic();
-
-                    // keep object
-                    true
-                });
-            });
-
             let regions = self
                 .old_protected
                 .regions
@@ -643,11 +663,9 @@ fn next(next_large: &Mutex<Address>) -> Option<Address> {
     }
 
     let large_alloc = LargeAlloc::from_address(*next_large);
-    let object = large_alloc.object_address();
-
     *next_large = large_alloc.next;
 
-    Some(object)
+    Some(large_alloc.address())
 }
 
 struct Unit {

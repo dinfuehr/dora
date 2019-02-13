@@ -1,4 +1,4 @@
-//= vm-args "--gc=swiper --max-heap-size=32M"
+//= vm-args "--gc=swiper --gc-verify --max-heap-size=32M"
 //= error oom
 
 fun main() {

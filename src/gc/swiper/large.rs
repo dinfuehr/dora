@@ -49,6 +49,32 @@ impl LargeSpace {
         space.head
     }
 
+    pub fn remove_head(&self) -> Address {
+        let mut space = self.space.lock();
+        let head = space.head;
+        space.head = Address::null();
+        head
+    }
+
+    pub fn append_chain(&self, head: Address, tail: Address, freed: usize, mut free_regions: Vec<Region>) {
+        let mut space = self.space.lock();
+
+        let old_head = space.head;
+        space.head = head;
+
+        if old_head.is_non_null() {
+            let old_head = LargeAlloc::from_address(old_head);
+            old_head.prev = tail;
+
+            let tail = LargeAlloc::from_address(tail);
+            tail.next = old_head.address();
+        }
+
+        space.committed_size -= freed;
+        space.elements.append(&mut free_regions);
+        space.merge();
+    }
+
     pub fn visit_objects<F>(&self, f: F)
     where
         F: FnMut(Address),
@@ -78,10 +104,17 @@ pub struct LargeAlloc {
 }
 
 impl LargeAlloc {
+    #[inline(always)]
     pub fn from_address(addr: Address) -> &'static mut LargeAlloc {
         unsafe { &mut *addr.to_mut_ptr::<LargeAlloc>() }
     }
 
+    #[inline(always)]
+    pub fn address(&self) -> Address {
+        Address::from_ptr(self as *const _)
+    }
+
+    #[inline(always)]
     pub fn object_address(&self) -> Address {
         let addr = Address::from_ptr(self as *const _);
         addr.offset(size_of::<LargeAlloc>())
@@ -89,7 +122,7 @@ impl LargeAlloc {
 }
 
 struct LargeSpaceProtected {
-    elements: Vec<Range>,
+    elements: Vec<Region>,
     head: Address,
     committed_size: usize,
 }
@@ -97,7 +130,7 @@ struct LargeSpaceProtected {
 impl LargeSpaceProtected {
     fn new(start: Address, end: Address) -> LargeSpaceProtected {
         LargeSpaceProtected {
-            elements: vec![Range::new(start, end)],
+            elements: vec![Region::new(start, end)],
             head: Address::null(),
             committed_size: 0,
         }
@@ -119,7 +152,7 @@ impl LargeSpaceProtected {
                 if range.size() == size {
                     self.elements.remove(i);
                 } else {
-                    self.elements[i] = Range::new(range.start.offset(size), range.end);
+                    self.elements[i] = Region::new(range.start.offset(size), range.end);
                 }
 
                 arena::commit(addr, size, false);
@@ -136,7 +169,7 @@ impl LargeSpaceProtected {
     fn free(&mut self, ptr: Address, size: usize) {
         debug_assert!(mem::is_page_aligned(size));
         arena::forget(ptr, size);
-        self.elements.push(Range::new(ptr, ptr.offset(size)));
+        self.elements.push(ptr.region_start(size));
         self.committed_size -= size;
     }
 
@@ -242,30 +275,5 @@ impl LargeSpaceProtected {
         if freed {
             self.merge();
         }
-    }
-}
-
-#[derive(Copy, Clone)]
-struct Range {
-    start: Address,
-    end: Address,
-}
-
-impl Range {
-    fn new(start: Address, end: Address) -> Range {
-        assert!(end > start);
-
-        Range {
-            start: start,
-            end: end,
-        }
-    }
-
-    fn contains(&self, ptr: Address) -> bool {
-        self.start <= ptr && ptr < self.end
-    }
-
-    fn size(&self) -> usize {
-        self.end.offset_from(self.start)
     }
 }
