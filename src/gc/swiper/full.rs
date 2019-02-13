@@ -262,7 +262,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
                 // keep object
                 true
-
             } else {
                 // object is unmarked -> free it
                 false

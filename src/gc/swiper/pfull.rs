@@ -372,7 +372,6 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
 
             // last region can be extended up to the heap end
             last.object_region.end = self.old_total.end;
-
         } else {
             unreachable!();
         }

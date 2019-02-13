@@ -56,7 +56,13 @@ impl LargeSpace {
         head
     }
 
-    pub fn append_chain(&self, head: Address, tail: Address, freed: usize, mut free_regions: Vec<Region>) {
+    pub fn append_chain(
+        &self,
+        head: Address,
+        tail: Address,
+        freed: usize,
+        mut free_regions: Vec<Region>,
+    ) {
         let mut space = self.space.lock();
 
         let old_head = space.head;
