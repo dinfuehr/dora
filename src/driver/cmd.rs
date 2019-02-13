@@ -92,9 +92,7 @@ pub struct Args {
     pub flag_gc_dev_verbose: bool,
     pub flag_gc_verify: bool,
     pub flag_gc_worker: usize,
-    pub flag_gc_young_ratio: Option<usize>,
-    pub flag_gc_young_size: Option<MemSize>,
-    pub flag_gc_young_appel: bool,
+    flag_gc_young_size: Option<MemSize>,
     pub flag_gc_semi_ratio: Option<usize>,
     pub flag_gc: Option<CollectorName>,
     pub flag_min_heap_size: Option<MemSize>,
@@ -141,17 +139,12 @@ impl Args {
         }
     }
 
-    pub fn young_ratio(&self) -> Option<usize> {
-        self.flag_gc_young_ratio
-            .map(|young_ratio| max(young_ratio, 1))
-    }
-
     pub fn young_size(&self) -> Option<usize> {
         self.flag_gc_young_size.map(|young_size| *young_size)
     }
 
     pub fn young_appel(&self) -> bool {
-        self.flag_gc_young_appel
+        self.flag_gc_young_size.is_none()
     }
 
     pub fn parallel_minor(&self) -> bool {
@@ -193,9 +186,7 @@ impl Default for Args {
             flag_gc_dev_verbose: false,
             flag_gc_verify: false,
             flag_gc_worker: 0,
-            flag_gc_young_ratio: None,
             flag_gc_young_size: None,
-            flag_gc_young_appel: false,
             flag_gc_semi_ratio: None,
             flag_gc: None,
             flag_min_heap_size: None,

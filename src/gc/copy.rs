@@ -1,12 +1,15 @@
+use parking_lot::Mutex;
+
 use ctxt::VM;
 use driver::cmd::Args;
 use gc::bump::BumpAllocator;
 use gc::root::{get_rootset, Slot};
 use gc::tlab;
-use gc::{formatted_size, Address, Collector, GcReason, Region};
+use gc::{formatted_size, Address, CollectionStats, Collector, GcReason, Region};
 use mem;
 use object::Obj;
 use os::{self, ProtType};
+use safepoint;
 use timer::Timer;
 
 pub struct CopyCollector {
@@ -14,6 +17,7 @@ pub struct CopyCollector {
     separator: Address,
 
     alloc: BumpAllocator,
+    stats: Mutex<CollectionStats>,
 }
 
 impl CopyCollector {
@@ -40,6 +44,7 @@ impl CopyCollector {
             total: heap,
             separator: separator,
             alloc: BumpAllocator::new(heap_start, separator),
+            stats: Mutex::new(CollectionStats::new()),
         }
     }
 }
@@ -79,14 +84,37 @@ impl Collector for CopyCollector {
     }
 
     fn collect(&self, vm: &VM, reason: GcReason) {
-        let threads = vm.threads.threads.lock();
-        tlab::make_iterable_all(vm, &*threads);
-        let rootset = get_rootset(vm, &*threads);
-        self.copy_collect(vm, &rootset, reason);
+        let mut timer = Timer::new(vm.args.flag_gc_stats);
+
+        safepoint::stop_the_world(vm, |threads| {
+            tlab::make_iterable_all(vm, &*threads);
+            let rootset = get_rootset(vm, &*threads);
+            self.copy_collect(vm, &rootset, reason);
+        });
+
+        if vm.args.flag_gc_stats {
+            let duration = timer.stop();
+            let mut stats = self.stats.lock();
+            stats.add(duration);
+        }
     }
 
     fn minor_collect(&self, vm: &VM, reason: GcReason) {
         self.collect(vm, reason);
+    }
+
+    fn dump_summary(&self, runtime: f32) {
+        let stats = self.stats.lock();
+        let (mutator, gc) = stats.percentage(runtime);
+
+        println!(
+            "GC summary: {:.1}ms collection ({}), {:.1}ms runtime ({}% mutator, {}% GC)",
+            stats.pause(),
+            stats.collections(),
+            runtime,
+            mutator,
+            gc,
+        );
     }
 }
 

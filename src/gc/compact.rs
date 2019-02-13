@@ -1,17 +1,21 @@
+use parking_lot::Mutex;
+
 use ctxt::VM;
 use driver::cmd::Args;
 use gc::bump::BumpAllocator;
 use gc::root::{get_rootset, Slot};
 use gc::space::Space;
 use gc::tlab;
-use gc::{formatted_size, Address, Collector, GcReason, Region};
+use gc::{formatted_size, Address, CollectionStats, Collector, GcReason, Region};
 use object::Obj;
 use os;
 use safepoint;
+use timer::Timer;
 
 pub struct MarkCompactCollector {
     heap: Region,
     alloc: BumpAllocator,
+    stats: Mutex<CollectionStats>,
 }
 
 impl MarkCompactCollector {
@@ -34,6 +38,7 @@ impl MarkCompactCollector {
         MarkCompactCollector {
             heap: heap,
             alloc: BumpAllocator::new(heap_start, heap_end),
+            stats: Mutex::new(CollectionStats::new()),
         }
     }
 }
@@ -73,15 +78,37 @@ impl Collector for MarkCompactCollector {
     }
 
     fn collect(&self, vm: &VM, reason: GcReason) {
+        let mut timer = Timer::new(vm.args.flag_gc_stats);
+
         safepoint::stop_the_world(vm, |threads| {
             tlab::make_iterable_all(vm, threads);
             let rootset = get_rootset(vm, threads);
             self.mark_compact(vm, &rootset, reason);
         });
+
+        if vm.args.flag_gc_stats {
+            let duration = timer.stop();
+            let mut stats = self.stats.lock();
+            stats.add(duration);
+        }
     }
 
     fn minor_collect(&self, vm: &VM, reason: GcReason) {
         self.collect(vm, reason);
+    }
+
+    fn dump_summary(&self, runtime: f32) {
+        let stats = self.stats.lock();
+        let (mutator, gc) = stats.percentage(runtime);
+
+        println!(
+            "GC summary: {:.1}ms collection ({}), {:.1}ms runtime ({}% mutator, {}% GC)",
+            stats.pause(),
+            stats.collections(),
+            runtime,
+            mutator,
+            gc,
+        );
     }
 }
 

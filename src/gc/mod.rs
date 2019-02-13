@@ -491,3 +491,37 @@ pub fn fill_region(vm: &VM, start: Address, end: Address) {
         }
     }
 }
+
+struct CollectionStats {
+    collections: usize,
+    pause: f32,
+}
+
+impl CollectionStats {
+    fn new() -> CollectionStats {
+        CollectionStats {
+            collections: 0,
+            pause: 0f32,
+        }
+    }
+
+    fn add(&mut self, pause: f32) {
+        self.collections += 1;
+        self.pause += pause;
+    }
+
+    fn pause(&self) -> f32 {
+        self.pause
+    }
+
+    fn collections(&self) -> usize {
+        self.collections
+    }
+
+    fn percentage(&self, runtime: f32) -> (f32, f32) {
+        let gc_percentage = ((self.pause / runtime) * 100.0).round();
+        let mutator_percentage = 100.0 - gc_percentage;
+
+        (mutator_percentage, gc_percentage)
+    }
+}
