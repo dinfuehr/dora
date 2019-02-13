@@ -11,6 +11,6 @@ for type in "" "--release"; do
   cargo run $type -- --max-heap-size=512M --gc=compact bench/binarytrees/binarytrees.dora 21
 
   # test parallel minor & full collection
-  cargo run $type -- --max-heap-size=512M --gc-worker=4 --gc-verify --gc-parallel-minor --gc-parallel-full bench/binarytrees/binarytrees.dora 21
-  cargo run $type -- --max-heap-size=512M --gc-worker=4 --gc-young-appel --gc-verify --gc-parallel-minor --gc-parallel-full bench/binarytrees/binarytrees.dora 21
+  cargo run $type -- --max-heap-size=512M --gc-worker=4 --gc-verify --gc-parallel bench/binarytrees/binarytrees.dora 21
+  cargo run $type -- --max-heap-size=512M --gc-worker=4 --gc-young-appel --gc-verify --gc-parallel bench/binarytrees/binarytrees.dora 21
 done

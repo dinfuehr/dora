@@ -159,17 +159,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             println!("Full GC: Phase 4 (relocate)");
         }
 
-        self.update_large_objects();
-
-        if stats {
-            let duration = timer.stop();
-            self.phases.large_objects = duration;
-        }
-
-        if dev_verbose {
-            println!("Full GC: Phase 5 (large objects)");
-        }
-
         self.reset_cards();
 
         if stats {
@@ -178,7 +167,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         }
 
         if dev_verbose {
-            println!("Full GC: Phase 6 (reset cards)");
+            println!("Full GC: Phase 5 (reset cards)");
         }
 
         self.young.clear();
@@ -251,13 +240,32 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             self.forward_reference(*root);
         }
 
-        self.large_space.visit_objects(|object_start| {
+        self.large_space.remove_objects(|object_start| {
             let object = object_start.to_mut_obj();
+
+            // reset cards for object, also do this for dead objects
+            // to reset card entries to clean.
+            if object.is_array_ref() {
+                let object_end = object_start.offset(object.size());
+                self.card_table.reset_region(object_start, object_end);
+            } else {
+                self.card_table.reset_addr(object_start);
+            }
 
             if object.header().is_marked_non_atomic() {
                 object.visit_reference_fields(|field| {
                     self.forward_reference(field);
                 });
+
+                // unmark object for next collection
+                object.header_mut().unmark_non_atomic();
+
+                // keep object
+                true
+
+            } else {
+                // object is unmarked -> free it
+                false
             }
         });
     }
@@ -286,32 +294,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 full.old
                     .update_crossing(dest, next_dest, dest_obj.is_array_ref());
             }
-        });
-    }
-
-    fn update_large_objects(&mut self) {
-        self.large_space.remove_objects(|object_start| {
-            let object = object_start.to_mut_obj();
-
-            // reset cards for object, also do this for dead objects
-            // to reset card entries to clean.
-            if object.is_array_ref() {
-                let object_end = object_start.offset(object.size());
-                self.card_table.reset_region(object_start, object_end);
-            } else {
-                self.card_table.reset_addr(object_start);
-            }
-
-            if !object.header().is_marked_non_atomic() {
-                // object is unmarked -> free it
-                return false;
-            }
-
-            // unmark object for next collection
-            object.header_mut().unmark_non_atomic();
-
-            // keep object
-            true
         });
     }
 

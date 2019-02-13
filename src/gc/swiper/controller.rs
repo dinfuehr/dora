@@ -312,11 +312,6 @@ impl HeapConfig {
         calculate_numbers(&values)
     }
 
-    pub fn full_large_objects(&self) -> Numbers {
-        let values: Vec<_> = self.full_phases.iter().map(|x| x.large_objects).collect();
-        calculate_numbers(&values)
-    }
-
     pub fn full_reset_cards(&self) -> Numbers {
         let values: Vec<_> = self.full_phases.iter().map(|x| x.reset_cards).collect();
         calculate_numbers(&values)
@@ -393,7 +388,6 @@ pub struct FullCollectorPhases {
     pub compute_forward: f32,
     pub update_refs: f32,
     pub relocate: f32,
-    pub large_objects: f32,
     pub reset_cards: f32,
 }
 
@@ -404,7 +398,6 @@ impl FullCollectorPhases {
             compute_forward: 0f32,
             update_refs: 0f32,
             relocate: 0f32,
-            large_objects: 0f32,
             reset_cards: 0f32,
         }
     }

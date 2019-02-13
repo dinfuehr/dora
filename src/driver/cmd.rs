@@ -41,8 +41,9 @@ Options:
     --gc-events             Dump GC events.
     --gc-stress             Collect garbage at every allocation.
     --gc-stress-minor       Minor collection at every allocation.
-    --gc-parallel-full      Enable experimental parallel full collection.
-    --gc-parallel-minor     Enable experimental parallel minor collection.
+    --gc-parallel-full      Enable parallel full collection.
+    --gc-parallel-minor     Enable parallel minor collection.
+    --gc-parallel           Enable both parallel minor and full collection.
     --gc-stats              Print GC statistics.
     --gc-verbose            Verbose GC.
     --gc-dev-verbose        Verbose GC for developers.
@@ -83,8 +84,9 @@ pub struct Args {
     pub flag_gc_events: bool,
     pub flag_gc_stress: bool,
     pub flag_gc_stress_minor: bool,
-    pub flag_gc_parallel_full: bool,
-    pub flag_gc_parallel_minor: bool,
+    flag_gc_parallel_full: bool,
+    flag_gc_parallel_minor: bool,
+    flag_gc_parallel: bool,
     pub flag_gc_stats: bool,
     pub flag_gc_verbose: bool,
     pub flag_gc_dev_verbose: bool,
@@ -151,6 +153,14 @@ impl Args {
     pub fn young_appel(&self) -> bool {
         self.flag_gc_young_appel
     }
+
+    pub fn parallel_minor(&self) -> bool {
+        self.flag_gc_parallel_minor || self.flag_gc_parallel
+    }
+
+    pub fn parallel_full(&self) -> bool {
+        self.flag_gc_parallel_full || self.flag_gc_parallel
+    }
 }
 
 impl Default for Args {
@@ -177,6 +187,7 @@ impl Default for Args {
             flag_gc_stress_minor: false,
             flag_gc_parallel_full: false,
             flag_gc_parallel_minor: false,
+            flag_gc_parallel: false,
             flag_gc_stats: false,
             flag_gc_verbose: false,
             flag_gc_dev_verbose: false,

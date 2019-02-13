@@ -1,4 +1,4 @@
-use parking_lot::MutexGuard;
+use parking_lot::{Mutex, MutexGuard};
 use scoped_threadpool::Pool;
 use std::cmp;
 
@@ -9,7 +9,7 @@ use gc::swiper::card::CardTable;
 use gc::swiper::controller::FullCollectorPhases;
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use gc::swiper::full::verify_marking;
-use gc::swiper::large::LargeSpace;
+use gc::swiper::large::{LargeAlloc, LargeSpace};
 use gc::swiper::marking;
 use gc::swiper::old::{OldGen, OldGenProtected, OldRegion};
 use gc::swiper::young::YoungGen;
@@ -159,7 +159,7 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
             println!("Full GC: Phase 3 (update refs)");
         }
 
-        self.relocate(pool);
+        self.relocate_and_reset_cards(pool);
 
         if stats {
             let duration = timer.stop();
@@ -168,28 +168,6 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
 
         if dev_verbose {
             println!("Full GC: Phase 4 (relocate)");
-        }
-
-        self.update_large_objects();
-
-        if stats {
-            let duration = timer.stop();
-            self.phases.large_objects = duration;
-        }
-
-        if dev_verbose {
-            println!("Full GC: Phase 5 (large objects)");
-        }
-
-        self.reset_cards();
-
-        if stats {
-            let duration = timer.stop();
-            self.phases.reset_cards = duration;
-        }
-
-        if dev_verbose {
-            println!("Full GC: Phase 6 (reset cards)");
         }
 
         self.young.clear();
@@ -263,19 +241,13 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
         }
 
         let eden = self.young.eden_active();
-        if eden.size() > 0 {
-            self.units.push(Unit::young(eden));
-        }
+        self.units.push(Unit::young(eden));
 
         let from = self.young.from_active();
-        if from.size() > 0 {
-            self.units.push(Unit::young(from));
-        }
+        self.units.push(Unit::young(from));
 
         let to = self.young.to_active();
-        if to.size() > 0 {
-            self.units.push(Unit::young(to));
-        }
+        self.units.push(Unit::young(to));
     }
 
     fn units_for_old_region(&mut self, region: Region, unit_size: usize) {
@@ -391,16 +363,20 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
             self.add_region(start, end, &mut size, &mut regions);
         }
 
-        std::mem::replace(&mut self.regions, regions);
-        let last = self.regions.last_mut().unwrap();
+        if let Some(last) = regions.last_mut() {
+            // We realize after computing all regions whether all surviving objects fit into the heap
+            if last.object_region.end > self.old_total.end {
+                panic!("OOM");
+            }
 
-        // We realize after computing all regions whether all surviving objects fit into the heap
-        if last.object_region.end > self.old_total.end {
-            panic!("OOM");
+            // last region can be extended up to the heap end
+            last.object_region.end = self.old_total.end;
+
+        } else {
+            unreachable!();
         }
 
-        // last region can be extended up to the heap end
-        last.object_region.end = self.old_total.end;
+        std::mem::replace(&mut self.regions, regions);
     }
 
     fn add_region(
@@ -495,6 +471,9 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
     }
 
     fn update_references(&mut self, pool: &mut Pool) {
+        let next_large = Mutex::new(Address::null());
+        let next_large = &next_large;
+
         pool.scoped(|scope| {
             let rootset = self.rootset;
             let pfull = &self;
@@ -522,14 +501,42 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
                     });
                 });
             }
-        });
 
-        self.large_space.visit_objects(|object_start| {
-            let object = object_start.to_mut_obj();
+            let head = self.large_space.head();
 
-            if object.header().is_marked_non_atomic() {
-                object.visit_reference_fields(|field| {
-                    self.forward_reference(field);
+            if head.is_null() {
+                return;
+            }
+
+            *next_large.lock() = head;
+
+            for _ in 0..self.number_workers {
+                let pfull = &self;
+                let card_table = self.card_table;
+
+                scope.execute(move || {
+                    let mut addr = next(next_large);
+
+                    while let Some(object_start) = addr {
+                        let object = object_start.to_mut_obj();
+
+                        // reset cards for object, also do this for dead objects
+                        // to reset card entries to clean.
+                        if object.is_array_ref() {
+                            let object_end = object_start.offset(object.size());
+                            card_table.reset_region(object_start, object_end);
+                        } else {
+                            card_table.reset_addr(object_start);
+                        }
+
+                        if object.header().is_marked_non_atomic() {
+                            object.visit_reference_fields(|field| {
+                                pfull.forward_reference(field);
+                            });
+                        }
+
+                        addr = next(next_large);
+                    }
                 });
             }
         });
@@ -553,7 +560,7 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
         }
     }
 
-    fn relocate(&mut self, pool: &mut Pool) {
+    fn relocate_and_reset_cards(&mut self, pool: &mut Pool) {
         pool.scoped(|scope| {
             for region in &self.regions {
                 let units = &self.units;
@@ -589,48 +596,58 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
                     }
                 });
             }
+
+            let large = self.large_space;
+
+            scope.execute(move || {
+                large.remove_objects(|object_start| {
+                    let object = object_start.to_mut_obj();
+
+                    if !object.header().is_marked_non_atomic() {
+                        // object is unmarked -> free it
+                        return false;
+                    }
+
+                    // unmark object for next collection
+                    object.header_mut().unmark_non_atomic();
+
+                    // keep object
+                    true
+                });
+            });
+
+            let regions = self
+                .old_protected
+                .regions
+                .iter()
+                .map(|r| (r.start(), r.top()))
+                .collect::<Vec<_>>();
+
+            for ((start, top), init_top) in regions.into_iter().zip(&self.init_old_top) {
+                let card_table = self.card_table;
+
+                scope.execute(move || {
+                    let top = cmp::max(top, *init_top);
+                    card_table.reset_region(start, top);
+                });
+            }
         });
     }
+}
 
-    fn update_large_objects(&mut self) {
-        self.large_space.remove_objects(|object_start| {
-            let object = object_start.to_mut_obj();
+fn next(next_large: &Mutex<Address>) -> Option<Address> {
+    let mut next_large = next_large.lock();
 
-            // reset cards for object, also do this for dead objects
-            // to reset card entries to clean.
-            if object.is_array_ref() {
-                let object_end = object_start.offset(object.size());
-                self.card_table.reset_region(object_start, object_end);
-            } else {
-                self.card_table.reset_addr(object_start);
-            }
-
-            if !object.header().is_marked_non_atomic() {
-                // object is unmarked -> free it
-                return false;
-            }
-
-            // unmark object for next collection
-            object.header_mut().unmark_non_atomic();
-
-            // keep object
-            true
-        });
+    if next_large.is_null() {
+        return None;
     }
 
-    fn reset_cards(&mut self) {
-        let regions = self
-            .old_protected
-            .regions
-            .iter()
-            .map(|r| (r.start(), r.top()))
-            .collect::<Vec<_>>();
+    let large_alloc = LargeAlloc::from_address(*next_large);
+    let object = large_alloc.object_address();
 
-        for ((start, top), init_top) in regions.into_iter().zip(&self.init_old_top) {
-            let top = cmp::max(top, *init_top);
-            self.card_table.reset_region(start, top);
-        }
-    }
+    *next_large = large_alloc.next;
+
+    Some(object)
 }
 
 struct Unit {

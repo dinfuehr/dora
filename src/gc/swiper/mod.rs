@@ -251,7 +251,7 @@ impl Swiper {
             false,
         );
 
-        let promotion_failed = if vm.args.flag_gc_parallel_minor {
+        let promotion_failed = if vm.args.parallel_minor() {
             let mut pool = self.threadpool.lock();
             let mut collector = ParallelMinorCollector::new(
                 vm,
@@ -309,7 +309,7 @@ impl Swiper {
             reason == GcReason::PromotionFailure,
         );
 
-        if vm.args.flag_gc_parallel_full {
+        if vm.args.parallel_full() {
             let mut pool = self.threadpool.lock();
             let mut collector = ParallelFullCollector::new(
                 vm,
@@ -491,7 +491,6 @@ impl Collector for Swiper {
         println!("\tCompute Fwd:\t{}", config.full_compute_forward());
         println!("\tUpdate Refs:\t{}", config.full_update_refs());
         println!("\tRelocate:\t{}", config.full_relocate());
-        println!("\tLarge Objects:\t{}", config.full_large_objects());
         println!("\tReset Cards:\t{}", config.full_reset_cards());
 
         println!("");
