@@ -138,7 +138,7 @@ pub fn stop(
         let (eden_size, semi_size) = calculate_young_size(args, target_young_size, min_semi_size);
         young_size = eden_size + semi_size;
 
-        young.set_committed_size(eden_size, semi_size);
+        young.set_limit(eden_size, semi_size);
         config.old_limit = config.max_heap_size - young_size;
     } else {
         let old_limit = config.max_heap_size - young_size;

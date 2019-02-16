@@ -138,12 +138,12 @@ impl YoungGen {
         return self.semi.bump_alloc(size);
     }
 
-    pub fn set_committed_size(&self, eden_size: usize, semi_size: usize) {
+    pub fn set_limit(&self, eden_size: usize, semi_size: usize) {
         assert!(gen_aligned(eden_size));
         assert!(gen_aligned(semi_size));
 
-        self.eden.set_committed_size(eden_size);
-        self.semi.set_committed_size(semi_size);
+        self.eden.set_limit(eden_size);
+        self.semi.set_limit(semi_size);
     }
 
     pub fn committed_size(&self) -> (usize, usize) {
@@ -196,8 +196,8 @@ impl Eden {
         self.block.bump_alloc(size)
     }
 
-    fn set_committed_size(&self, size: usize) {
-        self.block.set_committed_size(size);
+    fn set_limit(&self, size: usize) {
+        self.block.set_limit(size);
     }
 }
 
@@ -374,9 +374,9 @@ impl SemiSpace {
         self.from_block().bump_alloc(size)
     }
 
-    fn set_committed_size(&self, size: usize) {
-        self.from_block().set_committed_size(size / 2);
-        self.to_block().set_committed_size(size / 2);
+    fn set_limit(&self, size: usize) {
+        self.from_block().set_limit(size / 2);
+        self.to_block().set_limit(size / 2);
     }
 
     fn committed_size(&self) -> usize {
@@ -388,6 +388,7 @@ struct Block {
     start: Address,
     end: Address,
     committed: AtomicUsize,
+    limit: AtomicUsize,
     alloc: BumpAllocator,
 }
 
@@ -400,6 +401,7 @@ impl Block {
             start: region.start,
             end: region.end,
             committed: AtomicUsize::new(committed.to_usize()),
+            limit: AtomicUsize::new(committed.to_usize()),
             alloc: BumpAllocator::new(region.start, committed),
         }
     }
@@ -426,7 +428,7 @@ impl Block {
         committed - self.start.to_usize()
     }
 
-    fn set_committed_size(&self, new_size: usize) {
+    fn set_limit(&self, new_size: usize) {
         assert!(mem::is_page_aligned(new_size));
 
         let old_committed = self.committed.load(Ordering::Relaxed);
@@ -442,6 +444,7 @@ impl Block {
             self.committed
                 .compare_and_swap(old_committed, new_committed, Ordering::SeqCst);
         assert!(updated == old_committed);
+        self.limit.store(new_committed, Ordering::SeqCst);
 
         if old_committed < new_committed {
             let size = new_committed - old_committed;
