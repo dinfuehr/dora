@@ -50,7 +50,6 @@ Options:
     --gc-verify             Verify heap before and after collections.
     --gc-worker=<num>       Number of GC worker threads.
     --gc=<name>             Switch GC. Possible values: zero, copy, swiper (default).
-    --gc-young-ratio=<num>  Use fixed ratio between young and old generation.
     --gc-young-size=<SIZE>  Use fixed size for young generation.
     --gc-young-appel        Use Appel dynamic resizing of young generation.
     --gc-semi-ratio=<num>   Use fixed ratio of semi space in young generation.
