@@ -4,7 +4,7 @@ use std::cmp;
 use ctxt::VM;
 use gc::root::Slot;
 use gc::swiper::card::{CardEntry, CardTable};
-use gc::swiper::controller::SharedHeapConfig;
+use gc::swiper::controller::{MinorCollectorPhases, SharedHeapConfig};
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use gc::swiper::large::LargeSpace;
 use gc::swiper::old::{OldGen, OldGenProtected};
@@ -13,6 +13,7 @@ use gc::swiper::young::YoungGen;
 use gc::swiper::{CardIdx, CARD_SIZE};
 use gc::{Address, GcReason, Region};
 use object::{offset_of_array_data, Obj};
+use timer::Timer;
 
 pub struct MinorCollector<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
@@ -41,6 +42,7 @@ pub struct MinorCollector<'a, 'ast: 'a> {
     max_heap_size: usize,
 
     config: &'a SharedHeapConfig,
+    phases: MinorCollectorPhases,
 }
 
 impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
@@ -83,7 +85,12 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
             max_heap_size: max_heap_size,
 
             config: config,
+            phases: MinorCollectorPhases::new(),
         }
+    }
+
+    pub fn phases(&self) -> MinorCollectorPhases {
+        self.phases.clone()
     }
 
     pub fn collect(&mut self) -> bool {
@@ -95,6 +102,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         self.young.unprotect_to();
 
         let dev_verbose = self.vm.args.flag_gc_dev_verbose;
+        let mut timer = Timer::new(self.vm.args.flag_gc_stats);
 
         if dev_verbose {
             println!("Minor GC: Phase 1 (roots)");
@@ -108,11 +116,21 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
 
         self.visit_dirty_cards();
 
+        if self.vm.args.flag_gc_stats {
+            let duration = timer.stop();
+            self.phases.roots = duration;
+        }
+
         if dev_verbose {
             println!("Minor GC: Phase 3 (traverse)");
         }
 
         self.trace_gray_objects();
+
+        if self.vm.args.flag_gc_stats {
+            let duration = timer.stop();
+            self.phases.tracing = duration;
+        }
 
         if dev_verbose {
             println!("Minor GC: Phase 3 (traverse) finished");

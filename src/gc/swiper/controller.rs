@@ -159,11 +159,19 @@ pub fn stop(
         CollectionKind::Minor => {
             config.total_minor_collections += 1;
             config.total_minor_pause += config.gc_duration;
+
+            if args.flag_gc_stats {
+                config.minor_phases.last_mut().unwrap().total = config.gc_duration;
+            }
         }
 
         CollectionKind::Full => {
             config.total_full_collections += 1;
             config.total_full_pause += config.gc_duration;
+
+            if args.flag_gc_stats {
+                config.full_phases.last_mut().unwrap().total = config.gc_duration;
+            }
         }
     }
 
@@ -241,6 +249,7 @@ pub struct HeapConfig {
     pub total_full_pause: f32,
 
     full_phases: Vec<FullCollectorPhases>,
+    minor_phases: Vec<MinorCollectorPhases>,
 }
 
 impl HeapConfig {
@@ -273,11 +282,16 @@ impl HeapConfig {
             total_full_pause: 0f32,
 
             full_phases: Vec::new(),
+            minor_phases: Vec::new(),
         }
     }
 
     pub fn add_full(&mut self, phases: FullCollectorPhases) {
         self.full_phases.push(phases);
+    }
+
+    pub fn add_minor(&mut self, phases: MinorCollectorPhases) {
+        self.minor_phases.push(phases);
     }
 
     pub fn full_marking(&self) -> Numbers {
@@ -302,6 +316,26 @@ impl HeapConfig {
 
     pub fn full_reset_cards(&self) -> Numbers {
         let values: Vec<_> = self.full_phases.iter().map(|x| x.reset_cards).collect();
+        calculate_numbers(&values)
+    }
+
+    pub fn full_total(&self) -> Numbers {
+        let values: Vec<_> = self.full_phases.iter().map(|x| x.total).collect();
+        calculate_numbers(&values)
+    }
+
+    pub fn minor_roots(&self) -> Numbers {
+        let values: Vec<_> = self.minor_phases.iter().map(|x| x.roots).collect();
+        calculate_numbers(&values)
+    }
+
+    pub fn minor_tracing(&self) -> Numbers {
+        let values: Vec<_> = self.minor_phases.iter().map(|x| x.tracing).collect();
+        calculate_numbers(&values)
+    }
+
+    pub fn minor_total(&self) -> Numbers {
+        let values: Vec<_> = self.minor_phases.iter().map(|x| x.total).collect();
         calculate_numbers(&values)
     }
 
@@ -377,6 +411,7 @@ pub struct FullCollectorPhases {
     pub update_refs: f32,
     pub relocate: f32,
     pub reset_cards: f32,
+    pub total: f32,
 }
 
 impl FullCollectorPhases {
@@ -387,6 +422,24 @@ impl FullCollectorPhases {
             update_refs: 0f32,
             relocate: 0f32,
             reset_cards: 0f32,
+            total: 0f32,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct MinorCollectorPhases {
+    pub roots: f32,
+    pub tracing: f32,
+    pub total: f32,
+}
+
+impl MinorCollectorPhases {
+    pub fn new() -> MinorCollectorPhases {
+        MinorCollectorPhases {
+            roots: 0f32,
+            tracing: 0f32,
+            total: 0f32,
         }
     }
 }

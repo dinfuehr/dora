@@ -268,7 +268,14 @@ impl Swiper {
                 &self.config,
             );
 
-            collector.collect()
+            let promotion_failed = collector.collect();
+
+            if vm.args.flag_gc_stats {
+                let mut config = self.config.lock();
+                config.add_minor(collector.phases());
+            }
+
+            promotion_failed
         } else {
             let mut collector = MinorCollector::new(
                 vm,
@@ -284,7 +291,14 @@ impl Swiper {
                 &self.config,
             );
 
-            collector.collect()
+            let promotion_failed = collector.collect();
+
+            if vm.args.flag_gc_stats {
+                let mut config = self.config.lock();
+                config.add_minor(collector.phases());
+            }
+
+            promotion_failed
         };
 
         self.verify(
@@ -485,6 +499,11 @@ impl Collector for Swiper {
             gc_percentage,
         );
 
+        println!("\nMinor:");
+        println!("\tRoots:\t\t{}", config.minor_roots());
+        println!("\tTracing:\t{}", config.minor_tracing());
+        println!("\tTotal:\t\t{}", config.minor_total());
+
         println!("\nFull:");
 
         println!("\tMarking:\t{}", config.full_marking());
@@ -492,6 +511,7 @@ impl Collector for Swiper {
         println!("\tUpdate Refs:\t{}", config.full_update_refs());
         println!("\tRelocate:\t{}", config.full_relocate());
         println!("\tReset Cards:\t{}", config.full_reset_cards());
+        println!("\tTotal:\t\t{}", config.full_total());
 
         println!("");
     }

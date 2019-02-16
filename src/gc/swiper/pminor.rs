@@ -6,7 +6,7 @@ use std::sync::{Arc, Barrier};
 use ctxt::VM;
 use gc::root::Slot;
 use gc::swiper::card::{CardEntry, CardTable};
-use gc::swiper::controller::SharedHeapConfig;
+use gc::swiper::controller::{MinorCollectorPhases, SharedHeapConfig};
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use gc::swiper::large::{LargeAlloc, LargeSpace};
 use gc::swiper::marking::Terminator;
@@ -100,6 +100,10 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
             worklist: Vec::new(),
             config: config,
         }
+    }
+
+    pub fn phases(&self) -> MinorCollectorPhases {
+        MinorCollectorPhases::new()
     }
 
     pub fn collect(&mut self) -> bool {
