@@ -343,7 +343,7 @@ pub extern "C" fn spawn_thread(obj: Ref<Obj>) {
             })
         };
 
-        // execute the tread object's run-method
+        // execute the thread object's run-method
         let dora_entry_thunk = vm.dora_entry_thunk();
         let fct: extern "C" fn(Address, Address, Ref<Obj>) =
             unsafe { mem::transmute(dora_entry_thunk) };

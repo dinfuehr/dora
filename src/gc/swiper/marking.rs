@@ -3,7 +3,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
-use crossbeam_deque::{self as deque, Pop, Steal, Stealer, Worker};
+use crossbeam_deque::{Steal, Stealer, Worker};
 use rand::distributions::{Distribution, Uniform};
 use rand::thread_rng;
 use scoped_threadpool::Pool;
@@ -17,7 +17,8 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, threadpool: &mut Pool
     let mut stealers = Vec::with_capacity(number_workers);
 
     for _ in 0..number_workers {
-        let (w, s) = deque::lifo();
+        let w = Worker::new_lifo();
+        let s = w.stealer();
         workers.push(w);
         stealers.push(s);
     }
@@ -135,15 +136,7 @@ impl MarkingTask {
     }
 
     fn pop_worker(&mut self) -> Option<Address> {
-        loop {
-            match self.worker.pop() {
-                Pop::Empty => break,
-                Pop::Data(address) => return Some(address),
-                Pop::Retry => continue,
-            }
-        }
-
-        None
+        self.worker.pop()
     }
 
     fn steal(&self) -> Option<Address> {
@@ -164,9 +157,9 @@ impl MarkingTask {
             let stealer = &self.stealers[stealer_id];
 
             loop {
-                match stealer.steal() {
+                match stealer.steal_batch_and_pop(&self.worker) {
                     Steal::Empty => break,
-                    Steal::Data(address) => return Some(address),
+                    Steal::Success(address) => return Some(address),
                     Steal::Retry => continue,
                 }
             }
