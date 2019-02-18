@@ -27,6 +27,10 @@ impl ZeroCollector {
 }
 
 impl Collector for ZeroCollector {
+    fn supports_tlab(&self) -> bool {
+        true
+    }
+
     fn alloc_tlab_area(&self, _ctxt: &VM, size: usize) -> Option<Region> {
         let ptr = self.alloc.bump_alloc(size);
 

@@ -37,6 +37,7 @@ const GEN_SIZE: usize = 1 << GEN_ALIGNMENT_BITS;
 
 pub struct Gc {
     collector: Box<Collector + Sync>,
+    supports_tlab: bool,
 
     code_space: Space,
     perm_space: Space,
@@ -67,8 +68,11 @@ impl Gc {
             CollectorName::Swiper => box Swiper::new(args),
         };
 
+        let supports_tlab = !args.flag_disable_tlab && collector.supports_tlab();
+
         Gc {
             collector: collector,
+            supports_tlab: supports_tlab,
 
             code_space: Space::new(code_config, "code"),
             perm_space: Space::new(perm_config, "perm"),
@@ -100,7 +104,7 @@ impl Gc {
             self.collect(vm, GcReason::Stress);
         }
 
-        if size < TLAB_OBJECT_SIZE && !vm.args.flag_disable_tlab {
+        if size < TLAB_OBJECT_SIZE && self.supports_tlab {
             self.alloc_tlab(vm, size, array_ref)
         } else {
             self.collector.alloc(vm, size, array_ref)
@@ -165,6 +169,9 @@ trait Collector {
     fn needs_write_barrier(&self) -> bool {
         false
     }
+
+    // gives true when collector supports tlab allocation.
+    fn supports_tlab(&self) -> bool;
 
     // only need if write barriers needed
     fn card_table_offset(&self) -> usize {

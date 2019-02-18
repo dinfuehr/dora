@@ -50,6 +50,10 @@ impl CopyCollector {
 }
 
 impl Collector for CopyCollector {
+    fn supports_tlab(&self) -> bool {
+        true
+    }
+
     fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region> {
         let ptr = self.alloc.bump_alloc(size);
 

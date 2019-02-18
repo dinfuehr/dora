@@ -441,6 +441,10 @@ impl Swiper {
 }
 
 impl Collector for Swiper {
+    fn supports_tlab(&self) -> bool {
+        true
+    }
+
     fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region> {
         let ptr = self.young.bump_alloc(size);
 
