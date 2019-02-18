@@ -27,8 +27,6 @@ pub mod zero;
 pub const K: usize = 1024;
 pub const M: usize = K * K;
 
-const LARGE_OBJECT_SIZE: usize = 64 * K;
-
 const CHUNK_SIZE: usize = 8 * K;
 pub const DEFAULT_CODE_SPACE_LIMIT: usize = 128 * K;
 pub const DEFAULT_PERM_SPACE_LIMIT: usize = 64 * K;
@@ -104,10 +102,8 @@ impl Gc {
 
         if size < TLAB_OBJECT_SIZE && !vm.args.flag_disable_tlab {
             self.alloc_tlab(vm, size, array_ref)
-        } else if size < LARGE_OBJECT_SIZE {
-            self.collector.alloc_normal(vm, size, array_ref)
         } else {
-            self.collector.alloc_large(vm, size, array_ref)
+            self.collector.alloc(vm, size, array_ref)
         }
     }
 
@@ -135,7 +131,7 @@ impl Gc {
             object_start
         } else {
             // allocate object
-            self.collector.alloc_normal(vm, size, array_ref)
+            self.collector.alloc(vm, size, array_ref)
         }
     }
 
@@ -155,8 +151,7 @@ impl Gc {
 trait Collector {
     // allocate object of given size
     fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region>;
-    fn alloc_normal(&self, vm: &VM, size: usize, array_ref: bool) -> Address;
-    fn alloc_large(&self, vm: &VM, size: usize, array_ref: bool) -> Address;
+    fn alloc(&self, vm: &VM, size: usize, array_ref: bool) -> Address;
 
     // collect garbage
     fn collect(&self, vm: &VM, reason: GcReason);

@@ -414,6 +414,30 @@ impl Swiper {
             }
         }
     }
+
+    fn alloc_normal(&self, vm: &VM, size: usize, _array_ref: bool) -> Address {
+        let ptr = self.young.bump_alloc(size);
+
+        if !ptr.is_null() {
+            return ptr;
+        }
+
+        self.perform_collection_and_choose(vm, GcReason::AllocationFailure);
+
+        self.young.bump_alloc(size)
+    }
+
+    fn alloc_large(&self, vm: &VM, size: usize, _: bool) -> Address {
+        let ptr = self.large.alloc(size);
+
+        if !ptr.is_null() {
+            return ptr;
+        }
+
+        self.perform_collection(vm, CollectionKind::Full, GcReason::AllocationFailure);
+
+        self.large.alloc(size)
+    }
 }
 
 impl Collector for Swiper {
@@ -442,28 +466,12 @@ impl Collector for Swiper {
         };
     }
 
-    fn alloc_normal(&self, vm: &VM, size: usize, _array_ref: bool) -> Address {
-        let ptr = self.young.bump_alloc(size);
-
-        if !ptr.is_null() {
-            return ptr;
+    fn alloc(&self, vm: &VM, size: usize, array_ref: bool) -> Address {
+        if size < LARGE_OBJECT_SIZE {
+            self.alloc_normal(vm, size, array_ref)
+        } else {
+            self.alloc_large(vm, size, array_ref)
         }
-
-        self.perform_collection_and_choose(vm, GcReason::AllocationFailure);
-
-        self.young.bump_alloc(size)
-    }
-
-    fn alloc_large(&self, vm: &VM, size: usize, _: bool) -> Address {
-        let ptr = self.large.alloc(size);
-
-        if !ptr.is_null() {
-            return ptr;
-        }
-
-        self.perform_collection(vm, CollectionKind::Full, GcReason::AllocationFailure);
-
-        self.large.alloc(size)
     }
 
     fn collect(&self, vm: &VM, reason: GcReason) {

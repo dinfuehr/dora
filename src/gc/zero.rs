@@ -37,11 +37,7 @@ impl Collector for ZeroCollector {
         }
     }
 
-    fn alloc_normal(&self, _ctxt: &VM, size: usize, _array_ref: bool) -> Address {
-        self.alloc.bump_alloc(size)
-    }
-
-    fn alloc_large(&self, _ctxt: &VM, size: usize, _array_ref: bool) -> Address {
+    fn alloc(&self, _ctxt: &VM, size: usize, _array_ref: bool) -> Address {
         self.alloc.bump_alloc(size)
     }
 

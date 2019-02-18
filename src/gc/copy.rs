@@ -68,7 +68,7 @@ impl Collector for CopyCollector {
         };
     }
 
-    fn alloc_normal(&self, vm: &VM, size: usize, _array_ref: bool) -> Address {
+    fn alloc(&self, vm: &VM, size: usize, _array_ref: bool) -> Address {
         let ptr = self.alloc.bump_alloc(size);
 
         if ptr.is_non_null() {
@@ -77,10 +77,6 @@ impl Collector for CopyCollector {
 
         self.collect(vm, GcReason::AllocationFailure);
         self.alloc.bump_alloc(size)
-    }
-
-    fn alloc_large(&self, vm: &VM, size: usize, array_ref: bool) -> Address {
-        self.alloc_normal(vm, size, array_ref)
     }
 
     fn collect(&self, vm: &VM, reason: GcReason) {
