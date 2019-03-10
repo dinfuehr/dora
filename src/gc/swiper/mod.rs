@@ -20,7 +20,7 @@ use gc::swiper::verify::{Verifier, VerifierPhase};
 use gc::swiper::young::YoungGen;
 use gc::tlab;
 use gc::Collector;
-use gc::{align_gen, formatted_size, Address, Region, K};
+use gc::{align_gen, fill_region, formatted_size, Address, Region, K};
 use gc::{arena, GcReason};
 use mem;
 use object::Obj;
@@ -602,5 +602,47 @@ where
         let object_size = object.size();
         fct(object, scan, object_size);
         scan = scan.offset(object_size);
+    }
+}
+
+const MIN_OBJECTS_TO_SKIP: usize = 4;
+
+pub fn walk_region_and_skip_garbage<F>(vm: &VM, region: Region, mut fct: F)
+where
+    F: FnMut(&mut Obj, Address, usize) -> bool,
+{
+    let mut scan = region.start;
+    let mut garbage_start = Address::null();
+    let mut garbage_objects = 0;
+
+    while scan < region.end {
+        let object = scan.to_mut_obj();
+
+        if object.header().vtblptr().is_null() {
+            scan = scan.add_ptr(1);
+            continue;
+        }
+
+        let object_size = object.size();
+        let marked = fct(object, scan, object_size);
+        scan = scan.offset(object_size);
+
+        if marked {
+            if garbage_objects >= MIN_OBJECTS_TO_SKIP {
+                fill_region(vm, garbage_start, object.address());
+            }
+
+            garbage_objects = 0;
+        } else {
+            if garbage_objects == 0 {
+                garbage_start = object.address();
+            }
+
+            garbage_objects += 1;
+        }
+    }
+
+    if garbage_objects >= MIN_OBJECTS_TO_SKIP {
+        fill_region(vm, garbage_start, region.end);
     }
 }

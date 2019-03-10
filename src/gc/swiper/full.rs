@@ -9,7 +9,7 @@ use gc::swiper::controller::FullCollectorPhases;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::large::LargeSpace;
 use gc::swiper::old::{OldGen, OldGenProtected};
-use gc::swiper::walk_region;
+use gc::swiper::{walk_region, walk_region_and_skip_garbage};
 use gc::swiper::young::YoungGen;
 use gc::{Address, GcReason, Region};
 use object::Obj;
@@ -216,10 +216,13 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     }
 
     fn compute_forward(&mut self) {
-        self.walk_old_and_young(|full, object, _address, object_size| {
+        self.walk_old_and_young_and_skip_garbage(|full, object, _address, object_size| {
             if object.header().is_marked_non_atomic() {
                 let fwd = full.allocate(object_size);
                 object.header_mut().set_fwdptr_non_atomic(fwd);
+                true
+            } else {
+                false
             }
         });
 
@@ -361,6 +364,43 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         let used_region = self.young.to_active();
         walk_region(used_region, |obj, addr, size| {
             fct(self, obj, addr, size);
+        });
+    }
+
+    fn walk_old_and_young_and_skip_garbage<F>(&mut self, mut fct: F)
+    where
+        F: FnMut(&mut FullCollector, &mut Obj, Address, usize) -> bool,
+    {
+        let old_regions = self
+            .old_protected
+            .regions
+            .iter()
+            .map(|r| r.active_region())
+            .collect::<Vec<_>>();
+
+        let vm = self.vm;
+
+        for old_region in old_regions {
+            walk_region_and_skip_garbage(vm, old_region, |obj, addr, size| {
+                fct(self, obj, addr, size)
+            });
+        }
+
+        let used_region = self.young.eden_active();
+        walk_region_and_skip_garbage(vm, used_region, |obj, addr, size| {
+            fct(self, obj, addr, size)
+        });
+
+        let used_region = self.young.from_active();
+        walk_region_and_skip_garbage(vm, used_region, |obj, addr, size| {
+            fct(self, obj, addr, size)
+        });
+
+        // This is a bit strange at first: to-space might not be empty,
+        // after too many survivors in the minor GC of the young gen.
+        let used_region = self.young.to_active();
+        walk_region_and_skip_garbage(vm, used_region, |obj, addr, size| {
+            fct(self, obj, addr, size)
         });
     }
 

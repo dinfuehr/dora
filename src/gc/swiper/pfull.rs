@@ -14,8 +14,8 @@ use gc::swiper::large::{LargeAlloc, LargeSpace};
 use gc::swiper::marking;
 use gc::swiper::old::{OldGen, OldGenProtected, OldRegion};
 use gc::swiper::young::YoungGen;
-use gc::swiper::{walk_region, CardIdx, CARD_REFS};
-use gc::{fill_region, Address, GcReason, Region};
+use gc::swiper::{walk_region, walk_region_and_skip_garbage, CardIdx, CARD_REFS};
+use gc::{Address, GcReason, Region};
 use timer::Timer;
 
 pub struct ParallelFullCollector<'a, 'ast: 'a> {
@@ -310,29 +310,15 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
 
                 scoped.execute(move || {
                     let mut live = 0;
-                    let mut garbage_start = unit.region.start;
-                    let mut garbage_objects = 0;
 
-                    walk_region(unit.region, |obj, addr, size| {
+                    walk_region_and_skip_garbage(vm, unit.region, |obj, _addr, size| {
                         if obj.header().is_marked_non_atomic() {
-                            if garbage_objects > 4 {
-                                fill_region(vm, garbage_start, addr);
-                            }
-
                             live += size;
-                            garbage_objects = 0;
+                            true
                         } else {
-                            if garbage_objects == 0 {
-                                garbage_start = addr;
-                            }
-
-                            garbage_objects += 1;
+                            false
                         }
                     });
-
-                    if live > 0 && garbage_objects > 4 {
-                        fill_region(vm, garbage_start, unit.region.end);
-                    }
 
                     unit.live = live;
                 });
