@@ -3,6 +3,7 @@ use std::collections::hash_map::HashMap;
 struct Function {
     blocks: HashMap<Block, BlockData>,
     instructions: HashMap<Inst, InstData>,
+    uses: HashMap<Inst, UseList>,
     params: Vec<Type>,
     entry_block: Option<Block>,
     exit_block: Option<Block>,
@@ -11,6 +12,8 @@ struct Function {
 struct Inst(u32);
 struct Block(u32);
 struct Param(u32);
+
+struct UseList(Vec<Inst>);
 
 struct BlockData {
     predecessors: Vec<Block>,
@@ -36,11 +39,11 @@ enum InstData {
         rhs: Value,
     },
 
-    Branch {
+    Goto {
         target: Block,
     },
 
-    CondBranch {
+    If {
         opnd: Value,
         then_block: Block,
         else_block: Block,
