@@ -4,14 +4,27 @@ struct Function {
     blocks: HashMap<Block, BlockData>,
     instructions: HashMap<Inst, InstData>,
     uses: HashMap<Inst, UseList>,
-    params: Vec<Type>,
     entry_block: Option<Block>,
     exit_block: Option<Block>,
 }
 
+impl Function {
+    fn new() -> Function {
+        Function {
+            blocks: HashMap::new(),
+            instructions: HashMap::new(),
+            uses: HashMap::new(),
+            entry_block: None,
+            exit_block: None,
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Hash)]
 struct Inst(u32);
+
+#[derive(PartialEq, Eq, Hash)]
 struct Block(u32);
-struct Param(u32);
 
 struct UseList(Vec<Inst>);
 
@@ -20,6 +33,17 @@ struct BlockData {
     successors: Vec<Block>,
     first_inst: Option<Inst>,
     last_inst: Option<Inst>,
+}
+
+impl BlockData {
+    fn new() -> BlockData {
+        BlockData {
+            predecessors: Vec::new(),
+            successors: Vec::new(),
+            first_inst: None,
+            last_inst: None,
+        }
+    }
 }
 
 enum CmpOp {
@@ -71,7 +95,7 @@ enum InstData {
 
     Param {
         ty: Type,
-        param: Param,
+        idx: u32,
     },
 
     Deleted,
@@ -91,4 +115,14 @@ enum Type {
     Float32,
     Float64,
     Reference,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Function;
+
+    #[test]
+    fn simple_fn() {
+        let _fct = Function::new();
+    }
 }
