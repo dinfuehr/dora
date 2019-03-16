@@ -29,14 +29,14 @@ enum CmpOp {
 enum InstData {
     Add {
         ty: Type,
-        lhs: Value,
-        rhs: Value,
+        lhs: Inst,
+        rhs: Inst,
     },
 
     Sub {
         ty: Type,
-        lhs: Value,
-        rhs: Value,
+        lhs: Inst,
+        rhs: Inst,
     },
 
     Goto {
@@ -44,7 +44,7 @@ enum InstData {
     },
 
     If {
-        opnd: Value,
+        opnd: Inst,
         then_block: Block,
         else_block: Block,
     },
@@ -52,20 +52,29 @@ enum InstData {
     Cmp {
         ty: Type,
         op: CmpOp,
-        lhs: Value,
-        rhs: Value,
+        lhs: Inst,
+        rhs: Inst,
     },
 
     Ret {
-        opnd: Option<Value>,
+        opnd: Option<Inst>,
+    },
+
+    TrueConst,
+    FalseConst,
+    NilConst,
+    Int8Const(u8),
+    Int32Const(i32),
+    Int64Const(i64),
+    Float32Const(f32),
+    Float64Const(f64),
+
+    Param {
+        ty: Type,
+        param: Param,
     },
 
     Deleted,
-}
-
-enum Value {
-    Inst(Inst),
-    Param(Param),
 }
 
 struct InstLoc {
@@ -75,6 +84,7 @@ struct InstLoc {
 }
 
 enum Type {
+    Bool,
     Int8,
     Int32,
     Int64,
