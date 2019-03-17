@@ -778,24 +778,7 @@ where
         if let Some(intrinsic) = self.intrinsic(e.id) {
             self.emit_intrinsic_bin(&e.lhs, &e.rhs, dest, intrinsic, Some(e.op));
         } else if e.op == BinOp::Cmp(CmpOp::Is) || e.op == BinOp::Cmp(CmpOp::IsNot) {
-            self.emit_expr(&e.lhs, REG_RESULT.into());
-            let offset = self.reserve_temp_for_node(&e.lhs);
-            self.asm
-                .store_mem(MachineMode::Ptr, Mem::Local(offset), REG_RESULT.into());
-
-            self.emit_expr(&e.rhs, REG_TMP1.into());
-            self.asm
-                .load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Local(offset));
-
-            self.asm.cmp_reg(MachineMode::Ptr, REG_RESULT, REG_TMP1);
-
-            let op = match e.op {
-                BinOp::Cmp(CmpOp::Is) => CondCode::Equal,
-                _ => CondCode::NotEqual,
-            };
-
-            self.asm.set(dest.reg(), op);
-            self.free_temp_for_node(&e.lhs, offset);
+            self.emit_bin_is(e, dest.reg());
         } else if e.op == BinOp::Or {
             self.emit_bin_or(e, dest.reg());
         } else if e.op == BinOp::And {
@@ -826,6 +809,48 @@ where
                 _ => {}
             }
         }
+    }
+
+    fn emit_bin_is(&mut self, e: &'ast ExprBinType, dest: Reg) {
+        let builtin_type = self.ty(e.lhs.id());
+        let dest_mode = match builtin_type {
+            BuiltinType::Nil=> MachineMode::Ptr,
+            BuiltinType::Float => MachineMode::Int32,
+            BuiltinType::Double => MachineMode::Int64,
+            _ => builtin_type.mode()
+        };
+        let offset;
+        if builtin_type.is_float() {
+            let src_mode = builtin_type.mode();
+
+            self.emit_expr(&e.lhs, FREG_RESULT.into());
+            self.asm.float_as_int(dest_mode, REG_RESULT, src_mode, FREG_RESULT);
+            offset = self.reserve_temp_for_node(&e.lhs);
+            self.asm
+                .store_mem(dest_mode, Mem::Local(offset), REG_RESULT.into());
+
+            self.emit_expr(&e.rhs, FREG_RESULT.into());
+            self.asm.float_as_int(dest_mode, REG_TMP1, src_mode, FREG_RESULT);
+        } else {
+            self.emit_expr(&e.lhs, REG_RESULT.into());
+            offset = self.reserve_temp_for_node(&e.lhs);
+            self.asm
+                .store_mem(dest_mode, Mem::Local(offset), REG_RESULT.into());
+
+            self.emit_expr(&e.rhs, REG_TMP1.into());
+        }
+
+        self.asm
+            .load_mem(dest_mode, REG_RESULT.into(), Mem::Local(offset));
+        self.asm.cmp_reg(dest_mode, REG_RESULT, REG_TMP1);
+
+        let op = match e.op {
+            BinOp::Cmp(CmpOp::Is) => CondCode::Equal,
+            _ => CondCode::NotEqual,
+        };
+
+        self.asm.set(dest, op);
+        self.free_temp_for_node(&e.lhs, offset);
     }
 
     fn emit_bin_or(&mut self, e: &'ast ExprBinType, dest: Reg) {

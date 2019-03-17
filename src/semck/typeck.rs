@@ -643,22 +643,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     ) {
         match cmp {
             CmpOp::Is | CmpOp::IsNot => {
-                if !lhs_type.reference_type() {
-                    let lhs_type = lhs_type.name(self.ctxt);
-                    self.ctxt
-                        .diag
-                        .lock()
-                        .report(e.pos, Msg::ReferenceTypeExpected(lhs_type));
-                }
-
-                if !rhs_type.reference_type() {
-                    let rhs_type = rhs_type.name(self.ctxt);
-                    self.ctxt
-                        .diag
-                        .lock()
-                        .report(e.pos, Msg::ReferenceTypeExpected(rhs_type));
-                }
-
                 if !(lhs_type.is_nil() || lhs_type.allows(self.ctxt, rhs_type))
                     && !(rhs_type.is_nil() || rhs_type.allows(self.ctxt, lhs_type))
                 {
