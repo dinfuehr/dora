@@ -947,11 +947,17 @@ where
                     self.emit_intrinsic_int_to_float(e, dest.freg(), intrinsic)
                 }
 
+                Intrinsic::LongAsDouble => {
+                    self.emit_intrinsic_int_as_float(e, dest.freg(), intrinsic)
+                }
+
                 Intrinsic::FloatToInt => self.emit_intrinsic_float_to_int(e, dest.reg(), intrinsic),
                 Intrinsic::FloatToLong => {
                     self.emit_intrinsic_float_to_int(e, dest.reg(), intrinsic)
                 }
                 Intrinsic::FloatToDouble => self.emit_intrinsic_float_to_double(e, dest.freg()),
+                Intrinsic::FloatAsInt => self.emit_intrinsic_float_as_int(e, dest.reg(), intrinsic),
+
                 Intrinsic::DoubleToInt => {
                     self.emit_intrinsic_float_to_int(e, dest.reg(), intrinsic)
                 }
@@ -959,6 +965,7 @@ where
                     self.emit_intrinsic_float_to_int(e, dest.reg(), intrinsic)
                 }
                 Intrinsic::DoubleToFloat => self.emit_intrinsic_double_to_float(e, dest.freg()),
+                Intrinsic::DoubleAsLong => self.emit_intrinsic_float_as_int(e, dest.reg(), intrinsic),
 
                 Intrinsic::CharToInt | Intrinsic::IntToChar => {
                     self.emit_expr(e.object.as_ref().unwrap(), dest);
@@ -975,6 +982,10 @@ where
                 }
                 Intrinsic::IntToDouble => {
                     self.emit_intrinsic_int_to_float(e, dest.freg(), intrinsic)
+                }
+
+                Intrinsic::IntAsFloat => {
+                    self.emit_intrinsic_int_as_float(e, dest.freg(), intrinsic)
                 }
 
                 Intrinsic::ByteEq => self.emit_intrinsic_bin_call(e, dest, intrinsic),
@@ -1298,6 +1309,41 @@ where
 
         self.asm
             .float_to_int(dest_mode, dest, src_mode, FREG_RESULT);
+    }
+
+    fn emit_intrinsic_float_as_int(
+        &mut self,
+        e: &'ast ExprCallType,
+        dest: Reg,
+        intrinsic: Intrinsic,
+    ) {
+        self.emit_expr(e.object.as_ref().unwrap(), FREG_RESULT.into());
+
+        let (src_mode, dest_mode) = match intrinsic {
+            Intrinsic::FloatAsInt => (MachineMode::Float32, MachineMode::Int32),
+            Intrinsic::DoubleAsLong => (MachineMode::Float64, MachineMode::Int64),
+            _ => unreachable!(),
+        };
+
+        self.asm
+            .float_as_int(dest_mode, dest, src_mode, FREG_RESULT);
+    }
+
+    fn emit_intrinsic_int_as_float(
+        &mut self,
+        e: &'ast ExprCallType,
+        dest: FReg,
+        intrinsic: Intrinsic,
+    ) {
+        self.emit_expr(e.object.as_ref().unwrap(), REG_RESULT.into());
+
+        let (src_mode, dest_mode) = match intrinsic {
+            Intrinsic::IntAsFloat => (MachineMode::Int32, MachineMode::Float32),
+            Intrinsic::LongAsDouble => (MachineMode::Int64, MachineMode::Float64),
+            _ => unreachable!(),
+        };
+
+        self.asm.int_as_float(dest_mode, dest, src_mode, REG_RESULT);
     }
 
     fn emit_intrinsic_byte_to_int(&mut self, e: &'ast ExprCallType, dest: Reg) {

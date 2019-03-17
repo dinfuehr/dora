@@ -1057,6 +1057,14 @@ pub fn cvttsd2si(buf: &mut MacroAssembler, x64: u8, dest: Reg, src: FReg) {
     sse_float_reg_freg(buf, true, 0x2c, x64, dest, src);
 }
 
+pub fn movd_f2i(buf: &mut MacroAssembler, x64: u8, dest: Reg, src: FReg) {
+    sse_movd_freg_reg(buf, 0x7e, x64, dest, src);
+}
+
+pub fn movd_i2f(buf: &mut MacroAssembler, x64: u8, dest: FReg, src: Reg) {
+    sse_movd_reg_freg(buf, 0x6e, x64, dest, src);
+}
+
 pub fn xorps(buf: &mut MacroAssembler, dest: FReg, src: Mem) {
     sse_float_freg_mem_66(buf, false, 0x57, dest, src);
 }
@@ -1126,6 +1134,30 @@ fn sse_float_reg_freg(buf: &mut MacroAssembler, dbl: bool, op: u8, x64: u8, dest
     emit_op(buf, 0x0f);
     emit_op(buf, op);
     emit_modrm(buf, 0b11, dest.and7(), src.and7());
+}
+
+fn sse_movd_reg_freg(buf: &mut MacroAssembler, op: u8, x64: u8, dest: FReg, src: Reg) {
+    emit_op(buf, 0x66);
+
+    if x64 != 0 || dest.msb() != 0 || src.msb() != 0 {
+        emit_rex(buf, x64, dest.msb(), 0, src.msb());
+    }
+
+    emit_op(buf, 0x0f);
+    emit_op(buf, op);
+    emit_modrm(buf, 0b11, dest.and7(), src.and7());
+}
+
+fn sse_movd_freg_reg(buf: &mut MacroAssembler, op: u8, x64: u8, dest: Reg, src: FReg) {
+    emit_op(buf, 0x66);
+
+    if x64 != 0 || dest.msb() != 0 || src.msb() != 0 {
+        emit_rex(buf, x64, src.msb(), 0, dest.msb());
+    }
+
+    emit_op(buf, 0x0f);
+    emit_op(buf, op);
+    emit_modrm(buf, 0b11, src.and7(), dest.and7());
 }
 
 pub fn pxor(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
@@ -2089,6 +2121,52 @@ mod tests {
         assert_emit!(0xf2, 0x48, 0x0f, 0x2c, 0xc8; cvttsd2si(1, RCX, XMM0));
         assert_emit!(0xf2, 0x4c, 0x0f, 0x2c, 0xfb; cvttsd2si(1, R15, XMM3));
         assert_emit!(0xf2, 0x49, 0x0f, 0x2c, 0xe0; cvttsd2si(1, RSP, XMM8));
+    }
+
+    #[test]
+    fn test_movd_f2i() {
+        assert_emit!(0x66, 0x0F, 0x7E, 0xC7; movd_f2i(0, RDI, XMM0));
+        assert_emit!(0x66, 0x41, 0x0F, 0x7E, 0xC0; movd_f2i(0, R8, XMM0));
+        assert_emit!(0x66, 0x41, 0x0F, 0x7E, 0xF8; movd_f2i(0, R8, XMM7));
+        assert_emit!(0x66, 0x45, 0x0F, 0x7E, 0xC0; movd_f2i(0, R8, XMM8));
+        assert_emit!(0x66, 0x45, 0x0F, 0x7E, 0xF8; movd_f2i(0, R8, XMM15));
+        assert_emit!(0x66, 0x41, 0x0F, 0x7E, 0xC7; movd_f2i(0, R15, XMM0));
+        assert_emit!(0x66, 0x41, 0x0F, 0x7E, 0xFF; movd_f2i(0, R15, XMM7));
+        assert_emit!(0x66, 0x45, 0x0F, 0x7E, 0xC7; movd_f2i(0, R15, XMM8));
+        assert_emit!(0x66, 0x45, 0x0F, 0x7E, 0xFF; movd_f2i(0, R15, XMM15));
+
+        assert_emit!(0x66, 0x48, 0x0F, 0x7E, 0xC7; movd_f2i(1, RDI, XMM0));
+        assert_emit!(0x66, 0x49, 0x0F, 0x7E, 0xC0; movd_f2i(1, R8, XMM0));
+        assert_emit!(0x66, 0x49, 0x0F, 0x7E, 0xF8; movd_f2i(1, R8, XMM7));
+        assert_emit!(0x66, 0x4D, 0x0F, 0x7E, 0xC0; movd_f2i(1, R8, XMM8));
+        assert_emit!(0x66, 0x4D, 0x0F, 0x7E, 0xF8; movd_f2i(1, R8, XMM15));
+        assert_emit!(0x66, 0x49, 0x0F, 0x7E, 0xC7; movd_f2i(1, R15, XMM0));
+        assert_emit!(0x66, 0x49, 0x0F, 0x7E, 0xFF; movd_f2i(1, R15, XMM7));
+        assert_emit!(0x66, 0x4D, 0x0F, 0x7E, 0xC7; movd_f2i(1, R15, XMM8));
+        assert_emit!(0x66, 0x4D, 0x0F, 0x7E, 0xFF; movd_f2i(1, R15, XMM15));
+    }
+
+    #[test]
+    fn test_movd_i2f() {
+        assert_emit!(0x66, 0x0F, 0x6E, 0xC0; movd_i2f(0, XMM0, RAX));
+        assert_emit!(0x66, 0x41, 0x0F, 0x6E, 0xC0; movd_i2f(0, XMM0, R8));
+        assert_emit!(0x66, 0x41, 0x0F, 0x6E, 0xF8; movd_i2f(0, XMM7, R8));
+        assert_emit!(0x66, 0x45, 0x0F, 0x6E, 0xC0; movd_i2f(0, XMM8, R8));
+        assert_emit!(0x66, 0x45, 0x0F, 0x6E, 0xF8; movd_i2f(0, XMM15, R8));
+        assert_emit!(0x66, 0x41, 0x0F, 0x6E, 0xC7; movd_i2f(0, XMM0, R15));
+        assert_emit!(0x66, 0x41, 0x0F, 0x6E, 0xFF; movd_i2f(0, XMM7, R15));
+        assert_emit!(0x66, 0x45, 0x0F, 0x6E, 0xC7; movd_i2f(0, XMM8, R15));
+        assert_emit!(0x66, 0x45, 0x0F, 0x6E, 0xFF; movd_i2f(0, XMM15, R15));
+
+        assert_emit!(0x66, 0x48, 0x0F, 0x6E, 0xC0; movd_i2f(1, XMM0, RAX));
+        assert_emit!(0x66, 0x49, 0x0F, 0x6E, 0xC0; movd_i2f(1, XMM0, R8));
+        assert_emit!(0x66, 0x49, 0x0F, 0x6E, 0xF8; movd_i2f(1, XMM7, R8));
+        assert_emit!(0x66, 0x4D, 0x0F, 0x6E, 0xC0; movd_i2f(1, XMM8, R8));
+        assert_emit!(0x66, 0x4D, 0x0F, 0x6E, 0xF8; movd_i2f(1, XMM15, R8));
+        assert_emit!(0x66, 0x49, 0x0F, 0x6E, 0xC7; movd_i2f(1, XMM0, R15));
+        assert_emit!(0x66, 0x49, 0x0F, 0x6E, 0xFF; movd_i2f(1, XMM7, R15));
+        assert_emit!(0x66, 0x4D, 0x0F, 0x6E, 0xC7; movd_i2f(1, XMM8, R15));
+        assert_emit!(0x66, 0x4D, 0x0F, 0x6E, 0xFF; movd_i2f(1, XMM15, R15));
     }
 
     #[test]

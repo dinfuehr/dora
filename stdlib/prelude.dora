@@ -107,6 +107,8 @@ internal class int {
   internal fun toFloat() -> float;
   internal fun toDouble() -> double;
 
+  internal fun asFloat() -> float;
+
   internal fun equals(rhs: int) -> bool;
   internal fun compareTo(rhs: int) -> int;
 
@@ -177,6 +179,8 @@ internal class long {
   internal fun toFloat() -> float;
   internal fun toDouble() -> double;
 
+  internal fun asDouble() -> double;
+
   internal fun equals(rhs: long) -> bool;
   internal fun compareTo(rhs: long) -> int;
 
@@ -229,6 +233,8 @@ internal class float {
   internal fun toDouble() -> double;
   internal fun toString() -> Str;
 
+  internal fun asInt() -> int;
+
   internal fun equals(rhs: float) -> bool;
   internal fun compareTo(rhs: float) -> int;
 
@@ -249,6 +255,8 @@ internal class double {
   internal fun toLong() -> long;
   internal fun toFloat() -> float;
   internal fun toString() -> Str;
+
+  internal fun asLong() -> long;
 
   internal fun equals(rhs: double) -> bool;
   internal fun compareTo(rhs: double) -> int;

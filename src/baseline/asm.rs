@@ -395,6 +395,26 @@ where
         self.masm.float_to_int(dest_mode, dest, src_mode, src);
     }
 
+    pub fn float_as_int(
+        &mut self,
+        dest_mode: MachineMode,
+        dest: Reg,
+        src_mode: MachineMode,
+        src: FReg,
+    ) {
+        self.masm.float_as_int(dest_mode, dest, src_mode, src);
+    }
+
+    pub fn int_as_float(
+        &mut self,
+        dest_mode: MachineMode,
+        dest: FReg,
+        src_mode: MachineMode,
+        src: Reg,
+    ) {
+        self.masm.int_as_float(dest_mode, dest, src_mode, src);
+    }
+
     pub fn emit_lineno(&mut self, lineno: i32) {
         self.masm.emit_lineno(lineno);
     }

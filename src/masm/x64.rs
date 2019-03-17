@@ -521,6 +521,48 @@ impl MacroAssembler {
         asm::cvtsd2ss(self, dest, src);
     }
 
+    pub fn int_as_float(
+        &mut self,
+        dest_mode: MachineMode,
+        dest: FReg,
+        src_mode: MachineMode,
+        src: Reg,
+    ) {
+        assert!(src_mode.size() == dest_mode.size());
+
+        let x64 = match src_mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unreachable!(),
+        };
+
+        match dest_mode {
+            MachineMode::Float32 | MachineMode::Float64 => asm::movd_i2f(self, x64, dest, src),
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn float_as_int(
+        &mut self,
+        dest_mode: MachineMode,
+        dest: Reg,
+        src_mode: MachineMode,
+        src: FReg,
+    ) {
+        assert!(src_mode.size() == dest_mode.size());
+
+        let x64 = match dest_mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unreachable!(),
+        };
+
+        match src_mode {
+            MachineMode::Float32 | MachineMode::Float64 => asm::movd_f2i(self, x64, dest, src),
+            _ => unreachable!(),
+        }
+    }
+
     pub fn determine_array_size(
         &mut self,
         dest: Reg,
