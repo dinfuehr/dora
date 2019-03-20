@@ -1,9 +1,4 @@
 fun main() {
-    let f1 = Foo(1);
-    let f2 = Foo(2);
-    assert(f1 === f1);
-    assert(f1 !== f2);
-
     let b1 = 1.toByte();
     let b2 = 2.toByte();
     assert(b1 === b1);
@@ -32,6 +27,27 @@ fun main() {
     assert(d1 !== d2);
     assert(0.0 !== -0.0);
     assert(0.0/0.0 === 0.0/0.0);
+
+    let f1 = Foo(1);
+    let f2 = Foo(2);
+    assert(f1 === f1);
+    assert(f1 !== f2);
+
+    assert(bar::<int>(1, 1));
+    assert(!bar::<int>(1, 2));
+
+    assert(bar::<double>(1.0, 1.0));
+    assert(!bar::<double>(1.0, 2.0));
+    assert(!bar::<double>(0.0, (-0.0)));
+    assert(bar::<double>(0.0/0.0, 0.0/0.0));
+
+    assert(bar::<Foo>(f1, f1));
+    assert(!bar::<Foo>(f1, Foo(1)));
+    assert(!bar::<Foo>(f1, f2));
 }
 
 class Foo(i: int) {}
+
+fun bar<T>(a: T, b: T) -> bool {
+    return a === b;
+}
