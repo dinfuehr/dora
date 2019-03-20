@@ -290,6 +290,33 @@ internal class Array<T> {
   internal fun len() -> int;
   internal fun get(idx: int) -> T;
   internal fun set(idx: int, val: T);
+
+  fun contains(value: T /* : Equals*/) -> bool {
+    var i = 0;
+
+    while i < self.len() {
+      let x = self[i];
+      if /*x.equals(value) ||*/ x === value {
+        return true;
+      }
+      i = i + 1;
+    }
+
+    return false;
+  }
+
+  fun has(value: T) -> bool {
+    var i = 0;
+
+    while i < self.len() {
+      if self[i] === value {
+        return true;
+      }
+      i = i + 1;
+    }
+
+    return false;
+  }
 }
 
 fun arraycopy<T>(src: Array<T>, srcPos: int, dest: Array<T>, destPos: int, len: int) {

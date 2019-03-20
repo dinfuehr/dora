@@ -1,0 +1,53 @@
+fun main() {
+    let b1 = 1.toByte();
+    let b2 = 2.toByte();
+    assert(b1 === b1);
+    assert(b1 !== b2);
+
+    let i1 = 1;
+    let i2 = 2;
+    assert(i1 === i1);
+    assert(i1 !== i2);
+
+    let l1 = 1L;
+    let l2 = 2L;
+    assert(l1 === l1);
+    assert(l1 !== l2);
+
+    let f1 = 1.0F;
+    let f2 = 2.0F;
+    assert(f1 === f1);
+    assert(f1 !== f2);
+    assert(0.0F !== -0.0F);
+    assert(0.0F/0.0F === 0.0F/0.0F);
+
+    let d1 = 1.0;
+    let d2 = 2.0;
+    assert(d1 === d1);
+    assert(d1 !== d2);
+    assert(0.0 !== -0.0);
+    assert(0.0/0.0 === 0.0/0.0);
+
+    let f1 = Foo(1);
+    let f2 = Foo(2);
+    assert(f1 === f1);
+    assert(f1 !== f2);
+
+    assert(bar::<int>(1, 1));
+    assert(!bar::<int>(1, 2));
+
+    assert(bar::<double>(1.0, 1.0));
+    assert(!bar::<double>(1.0, 2.0));
+    assert(!bar::<double>(0.0, (-0.0)));
+    assert(bar::<double>(0.0/0.0, 0.0/0.0));
+
+    assert(bar::<Foo>(f1, f1));
+    assert(!bar::<Foo>(f1, Foo(1)));
+    assert(!bar::<Foo>(f1, f2));
+}
+
+class Foo(i: int) {}
+
+fun bar<T>(a: T, b: T) -> bool {
+    return a === b;
+}

@@ -2,6 +2,8 @@ fun main() {
   let x: Str = nil;
 
   assert(x === nil);
+  assert(!(x !== nil));
+
   assert(nil === x);
   assert(nil === nil);
   assert(!(nil !== nil));
