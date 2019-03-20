@@ -1,0 +1,11 @@
+fun main() -> int {
+  return myadd(1, 2) - 3;
+}
+
+fun myzero() -> int = 0 * (42 - 23);
+
+fun myfour() -> int = return 4;
+
+fun myadd(x: int, y: int) -> int = x + y + myfour() * myzero();
+
+fun mythrow(x: int) -> int = throw "foo";
