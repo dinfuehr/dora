@@ -8,4 +8,4 @@ fun myfour() -> int = return 4;
 
 fun myadd(x: int, y: int) -> int = x + y + myfour() * myzero();
 
-fun mythrow(x: int) -> int = throw "foo";
+fun mythrow(x: int) throws -> int = throw "foo";
