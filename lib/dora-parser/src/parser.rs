@@ -796,10 +796,29 @@ impl<'a> Parser<'a> {
             self.advance_token()?;
 
             Ok(None)
+        } else if self.token.is(TokenKind::Eq) {
+            let expr = self.parse_function_block_expression()?;
+
+            Ok(Some(expr))
         } else {
             let block = self.parse_block()?;
 
             Ok(Some(block))
+        }
+    }
+
+    fn parse_function_block_expression(&mut self) -> Result<Box<Stmt>, MsgWithPos> {
+        self.advance_token()?;
+        let pos = self.token.position;
+
+        match self.token.kind {
+            TokenKind::Throw => self.parse_throw(),
+            TokenKind::Return => self.parse_return(),
+            _ => {
+                let expr = self.parse_expression().ok();
+                self.expect_token(TokenKind::Semicolon)?;
+                Ok(Box::new(Stmt::create_return(self.generate_id(), pos, expr)))
+            }
         }
     }
 
