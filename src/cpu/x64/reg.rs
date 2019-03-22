@@ -1,11 +1,28 @@
 use cpu::{FReg, Reg};
 
 pub const REG_COUNT: usize = 16;
+#[cfg(not(windows))]
 pub static REG_PARAMS: [Reg; 6] = [RDI, RSI, RDX, RCX, R8, R9];
+
+#[cfg(windows)]
+pub static REG_PARAMS: [Reg;4] = [RCX,RDX,R8,R9];
+
+
+#[cfg(not(windows))]
 pub static SCRATCH: [Reg; 3] = [R9, R8, RDI];
 
+#[cfg(windows)]
+pub static SCRATCH: [Reg; 2]  = [R10,R11];
+
 pub const REG_RESULT: Reg = RAX;
+#[cfg(not(windows))]
 pub const REG_TMP1: Reg = R10;
+#[cfg(windows)]
+pub const REG_TMP1: Reg = RBX;
+
+#[cfg(windows)]
+pub const REG_TMP2: Reg = RSI;
+#[cfg(not(windows))]
 pub const REG_TMP2: Reg = R11;
 pub const REG_SP: Reg = RSP;
 pub const REG_FP: Reg = RBP;
@@ -34,7 +51,11 @@ pub const RIP: Reg = Reg(16);
 pub const FREG_RESULT: FReg = XMM0;
 pub const FREG_TMP1: FReg = XMM1;
 
+#[cfg(not(windows))]
 pub static FREG_PARAMS: [FReg; 8] = [XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7];
+
+#[cfg(windows)]
+pub static FREG_PARAMS: [FReg;4] = [XMM0,XMM1,XMM2,XMM3];
 
 pub const XMM0: FReg = FReg(0);
 pub const XMM1: FReg = FReg(1);

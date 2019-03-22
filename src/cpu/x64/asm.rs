@@ -1055,6 +1055,13 @@ pub fn cvttsd2si(buf: &mut MacroAssembler, x64: u8, dest: Reg, src: FReg) {
     sse_float_reg_freg(buf, true, 0x2c, x64, dest, src);
 }
 
+pub fn movd_reg_freg(buf: &mut Assembler, dest: Reg, src: Freg) {
+    sse_reg_freg(buf, 0x66, 0, dest, src);
+}
+
+
+
+
 pub fn xorps(buf: &mut MacroAssembler, dest: FReg, src: Mem) {
     sse_float_freg_mem_66(buf, false, 0x57, dest, src);
 }
@@ -1062,6 +1069,7 @@ pub fn xorps(buf: &mut MacroAssembler, dest: FReg, src: Mem) {
 pub fn xorpd(buf: &mut MacroAssembler, dest: FReg, src: Mem) {
     sse_float_freg_mem_66(buf, true, 0x57, dest, src);
 }
+
 
 fn sse_float_freg_freg(buf: &mut MacroAssembler, dbl: bool, op: u8, dest: FReg, src: FReg) {
     let prefix = if dbl { 0xf2 } else { 0xf3 };
