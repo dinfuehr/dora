@@ -78,8 +78,9 @@ pub enum Msg {
     MisplacedElse,
     IoError,
     ExpectedClassElement(String),
-    RedundantModifier(String),
-    MisplacedModifier(String),
+    MisplacedAnnotation(String),
+    RedundantAnnotation(String),
+    UnknownAnnotation(String),
     InvalidEscapeSequence(char),
     MissingFctBody,
     FctCallExpected,
@@ -251,14 +252,15 @@ impl Msg {
             ExpectedType(ref got) => format!("type expected but got {}.", got),
             ExpectedIdentifier(ref tok) => format!("identifier expected but got {}.", tok),
             ExpectedSomeIdentifier => "identifier expected".into(),
-            MisplacedModifier(ref modifier) => format!("misplaced modifier `{}`.", modifier),
             ExpectedTopLevelElement(ref token) => {
                 format!("expected function or class but got {}.", token)
             }
             ExpectedClassElement(ref token) => {
                 format!("field or method expected but got {}.", token)
             }
-            RedundantModifier(ref token) => format!("redundant modifier {}.", token),
+            MisplacedAnnotation(ref modifier) => format!("misplaced annotation `{}`.", modifier),
+            RedundantAnnotation(ref token) => format!("redundant annotation {}.", token),
+            UnknownAnnotation(ref token) => format!("unknown annotation {}.", token),
             UnknownChar(ch) => format!("unknown character {} (codepoint {}).", ch, ch as usize),
             UnclosedComment => "unclosed comment.".into(),
             InvalidEscapeSequence(ch) => format!("unknown escape sequence `\\{}`.", ch),

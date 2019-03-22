@@ -1,10 +1,10 @@
-open abstract class Node {
+@open @abstract class Node {
     var birthday: Int;
     var value: Int;
     var left: Node;
     var right: Node;
 
-    static fun splay(var tree: Node, node: Node) -> Node {
+    @static fun splay(var tree: Node, node: Node) -> Node {
         if tree === nil {
             return tree;
         }
@@ -70,7 +70,7 @@ open abstract class Node {
         return tree;
     }
 
-    static fun insert(var tree: Node, node: Node) -> Node {
+    @static fun insert(var tree: Node, node: Node) -> Node {
         if tree === nil {
             return node;
         }
@@ -90,7 +90,7 @@ open abstract class Node {
         return node;
     }
 
-    static fun trunc(date: Int, tree: Node, depth: Int) {
+    @static fun trunc(date: Int, tree: Node, depth: Int) {
         if tree === nil {
             return;
         }
@@ -148,7 +148,7 @@ open abstract class Node {
         }
     }
 
-    static fun countNodes(node: Node) -> Int {
+    @static fun countNodes(node: Node) -> Int {
         if node === nil {
             return 0;
         }

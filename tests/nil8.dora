@@ -5,8 +5,8 @@ fun main() {
     a.foo();
 }
 
-open class A {
-    open fun foo() {
+@open class A {
+    @open fun foo() {
         println("A::foo");
     }
 }

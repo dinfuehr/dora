@@ -4,7 +4,7 @@ class Node(left: Node, right: Node) {
     var left: Node = left;
     var right: Node = right;
 
-    static fun leaf() -> Node = Node(nil, nil);
+    @static fun leaf() -> Node = Node(nil, nil);
 }
 
 var stretchTreeDepth: Int;

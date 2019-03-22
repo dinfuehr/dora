@@ -3203,61 +3203,61 @@ mod tests {
 
     #[test]
     fn super_class() {
-        ok("open class A class B: A");
-        ok("open class A class B: A()");
-        ok("open class A(a: Int) class B: A(1)");
+        ok("@open class A class B: A");
+        ok("@open class A class B: A()");
+        ok("@open class A(a: Int) class B: A(1)");
         err(
-            "open class A(a: Int) class B: A(true)",
-            pos(1, 31),
+            "@open class A(a: Int) class B: A(true)",
+            pos(1, 32),
             Msg::UnknownCtor("A".into(), vec!["Bool".into()]),
         );
     }
 
     #[test]
     fn access_super_class_field() {
-        ok("open class A(var a: Int) class B(x: Int): A(x*2)
+        ok("@open class A(var a: Int) class B(x: Int): A(x*2)
             fun foo(b: B) { b.a = b.a + 10; }");
     }
 
     #[test]
     fn check_is() {
-        ok("open class A class B: A
+        ok("@open class A class B: A
             fun f(a: A) -> Bool { return a is B; }");
-        ok("open class A class B: A
+        ok("@open class A class B: A
             fun f(b: B) -> Bool { return b is A; }");
         ok("class A
             fun f(a: A) -> Bool { return a is A; }");
         err(
-            "open class A class B: A
+            "@open class A class B: A
              fun f(a: A) -> Bool { return a is String; }",
             pos(2, 45),
             Msg::TypesIncompatible("A".into(), "String".into()),
         );
         err(
-            "open class A class B: A class C
+            "@open class A class B: A class C
              fun f(a: A) -> Bool { return a is C; }",
             pos(2, 45),
             Msg::TypesIncompatible("A".into(), "C".into()),
         );
 
-        ok("open class A() class B(): A() fun f() -> A { return B(); }");
-        ok("open class A() class B(): A() fun f() { let a: A = B(); }");
+        ok("@open class A() class B(): A() fun f() -> A { return B(); }");
+        ok("@open class A() class B(): A() fun f() { let a: A = B(); }");
     }
 
     #[test]
     fn check_as() {
-        ok("open class A class B: A
+        ok("@open class A class B: A
             fun f(a: A) -> B { return a as B; }");
         ok("class A
             fun f(a: A) -> A { return a as A; }");
         err(
-            "open class A class B: A
+            "@open class A class B: A
              fun f(a: A) -> String { return a as String; }",
             pos(2, 47),
             Msg::TypesIncompatible("A".into(), "String".into()),
         );
         err(
-            "open class A class B: A class C
+            "@open class A class B: A class C
              fun f(a: A) -> C { return a as C; }",
             pos(2, 42),
             Msg::TypesIncompatible("A".into(), "C".into()),
@@ -3266,7 +3266,7 @@ mod tests {
 
     #[test]
     fn check_upcast() {
-        ok("open class A class B: A
+        ok("@open class A class B: A
             fun f(b: B) -> A {
                 let a: A = b;
                 return a;
@@ -3288,7 +3288,7 @@ mod tests {
 
     #[test]
     fn super_delegation() {
-        ok("open class A { fun f() {} }
+        ok("@open class A { fun f() {} }
             class B: A { fun g() {} }
 
             fun foo(b: B) {
@@ -3299,14 +3299,14 @@ mod tests {
 
     #[test]
     fn super_method_call() {
-        ok("open class A { open fun f() -> Int { return 1; } }
-            class B: A { override fun f() -> Int { return super.f() + 1; } }");
+        ok("@open class A { @open fun f() -> Int { return 1; } }
+            class B: A { @override fun f() -> Int { return super.f() + 1; } }");
     }
 
     #[test]
     fn super_as_normal_expression() {
         err(
-            "open class A { }
+            "@open class A { }
             class B: A { fun me() { let x = super; } }",
             pos(2, 45),
             Msg::SuperNeedsMethodCall,
@@ -3643,7 +3643,7 @@ mod tests {
     fn test_invoke_static_method_as_instance_method() {
         err(
             "class A {
-                static fun foo() {}
+                @static fun foo() {}
                 fun test() { self.foo(); }
             }",
             pos(3, 34),
@@ -3656,9 +3656,9 @@ mod tests {
         err(
             "class A {
                 fun foo() {}
-                static fun test() { A::foo(); }
+                @static fun test() { A::foo(); }
             }",
-            pos(3, 37),
+            pos(3, 38),
             Msg::UnknownStaticMethod("A".into(), "foo".into(), vec![]),
         );
     }
@@ -3779,7 +3779,7 @@ mod tests {
             class A[T: Foo]
             fun f() -> A[Foo] { return nil; }");
 
-        ok("open class Foo
+        ok("@open class Foo
             class Bar: Foo
             class A[T: Foo]
             fun f() -> A[Bar] { return nil; }");
@@ -3855,7 +3855,7 @@ mod tests {
             Msg::ParamTypesIncompatible("foo".into(), Vec::new(), vec!["Int".into()]),
         );
 
-        ok("class A { static fun foo() {} }
+        ok("class A { @static fun foo() {} }
             trait Foo { fun foo(a: Int); }
             impl Foo for A { fun foo(a:  Int) {} }
             fun test(a: A) { a.foo(1); }");
@@ -3864,7 +3864,7 @@ mod tests {
     #[test]
     fn test_invoke_abstract_class_ctor() {
         err(
-            "abstract class A
+            "@abstract class A
             fun test() -> A { return A(); }",
             pos(2, 38),
             Msg::NewAbstractClass,

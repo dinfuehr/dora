@@ -1,5 +1,5 @@
 class StringBuf(var buf: Array[Byte], var length: Int) {
-  static fun empty() -> StringBuf = StringBuf(Array[Byte](0), 0);
+  @static fun empty() -> StringBuf = StringBuf(Array[Byte](0), 0);
 
   fun length() -> Int {
     return self.length;

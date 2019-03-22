@@ -345,7 +345,7 @@ mod tests {
     #[test]
     fn allow_same_method_as_static_and_non_static() {
         ok("class Foo {
-                static fun foo() {}
+                @static fun foo() {}
                 fun foo() {}
             }");
     }
@@ -370,8 +370,8 @@ mod tests {
     #[test]
     fn abstract_method_in_non_abstract_class() {
         err(
-            "class A { abstract fun foo(); }",
-            pos(1, 20),
+            "class A { @abstract fun foo(); }",
+            pos(1, 21),
             Msg::AbstractMethodNotInAbstractClass,
         );
     }
@@ -379,8 +379,8 @@ mod tests {
     #[test]
     fn abstract_method_with_implementation() {
         err(
-            "abstract class A { abstract fun foo() {} }",
-            pos(1, 29),
+            "@abstract class A { @abstract fun foo() {} }",
+            pos(1, 31),
             Msg::AbstractMethodWithImplementation,
         );
     }
@@ -388,8 +388,8 @@ mod tests {
     #[test]
     fn abstract_static_method() {
         err(
-            "abstract class A { static abstract fun foo(); }",
-            pos(1, 36),
+            "@abstract class A { @static @abstract fun foo(); }",
+            pos(1, 39),
             Msg::ModifierNotAllowedForStaticMethod("abstract".into()),
         );
     }
@@ -397,8 +397,8 @@ mod tests {
     #[test]
     fn open_static_method() {
         err(
-            "abstract class A { static open fun foo() {} }",
-            pos(1, 32),
+            "@abstract class A { @static @open fun foo() {} }",
+            pos(1, 35),
             Msg::ModifierNotAllowedForStaticMethod("open".into()),
         );
     }
@@ -406,8 +406,8 @@ mod tests {
     #[test]
     fn override_static_method() {
         err(
-            "abstract class A { static override fun foo() {} }",
-            pos(1, 36),
+            "@abstract class A { @static @override fun foo() {} }",
+            pos(1, 39),
             Msg::ModifierNotAllowedForStaticMethod("override".into()),
         );
     }
@@ -415,8 +415,8 @@ mod tests {
     #[test]
     fn final_static_method() {
         err(
-            "abstract class A { final static fun foo() {} }",
-            pos(1, 33),
+            "@abstract class A { @final @static fun foo() {} }",
+            pos(1, 36),
             Msg::ModifierNotAllowedForStaticMethod("final".into()),
         );
     }

@@ -13,5 +13,5 @@ fun isa(b: B) -> Bool {
   return b is A;
 }
 
-open class A {}
+@open class A {}
 class B: A {}

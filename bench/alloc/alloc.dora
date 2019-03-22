@@ -11,7 +11,7 @@ fun main() {
 }
 
 class MyThread() : Thread {
-    override fun run() {
+    @override fun run() {
         allocator();
     }
 }

@@ -351,8 +351,8 @@ mod tests {
     fn class_with_unknown_super_class() {
         err("class B : A {}", pos(1, 11), Msg::UnknownClass("A".into()));
         err(
-            "open class B : A {}",
-            pos(1, 16),
+            "@open class B : A {}",
+            pos(1, 17),
             Msg::UnknownClass("A".into()),
         );
         err(
@@ -364,8 +364,8 @@ mod tests {
 
     #[test]
     fn class_with_open_modifier() {
-        ok("open class A {}");
-        ok("open class A {} class B : A {}");
+        ok("@open class A {}");
+        ok("@open class A {} class B : A {}");
         err(
             "class A {} class B : A {}",
             pos(1, 22),
@@ -488,7 +488,7 @@ mod tests {
     fn test_super_class_with_superfluous_type_params() {
         err(
             "
-            open class A
+            @open class A
             class B: A[Int] {}",
             pos(3, 22),
             Msg::WrongNumberTypeParams(0, 1),

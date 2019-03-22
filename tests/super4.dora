@@ -5,20 +5,20 @@ fun main() {
   assert(c.foo(2) == 5);
 }
 
-open class A {
-  open fun foo(a: Int) -> Int {
+@open class A {
+  @open fun foo(a: Int) -> Int {
     return a;
   }
 }
 
-open class B: A {
-  open override fun foo(a: Int) -> Int {
+@open class B: A {
+  @open @override fun foo(a: Int) -> Int {
     return super.foo(a) * 2;
   }
 }
 
 class C: B {
-  override fun foo(a: Int) -> Int {
+  @override fun foo(a: Int) -> Int {
     return super.foo(a) + 1;
   }
 }

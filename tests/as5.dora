@@ -8,5 +8,5 @@ fun test(a: A) -> Bool {
     return a.x != 0;
 }
 
-open class A
+@open class A
 class B(let x: Int): A

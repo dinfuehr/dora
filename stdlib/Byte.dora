@@ -1,10 +1,10 @@
-internal class Byte {
-  internal fun toInt() -> Int;
-  internal fun toLong() -> Long;
-  internal fun toString() -> String;
+@internal class Byte {
+  @internal fun toInt() -> Int;
+  @internal fun toLong() -> Long;
+  @internal fun toString() -> String;
 
-  internal fun equals(rhs: Byte) -> Bool;
-  internal fun compareTo(rhs: Byte) -> Int;
+  @internal fun equals(rhs: Byte) -> Bool;
+  @internal fun compareTo(rhs: Byte) -> Int;
 
   fun hash() -> Int = self.toInt();
 }

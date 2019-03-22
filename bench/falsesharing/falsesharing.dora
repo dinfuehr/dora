@@ -49,7 +49,7 @@ fun construct(size: Int) -> Array<Foo> {
 }
 
 class MyThread(let thread_idx: Int, let threads: Int, let iters: Int, let objects: Array<Foo>) : Thread {
-    override fun run() {
+    @override fun run() {
 	let size = self.objects.length();
 	let objects_per_thread = size / self.threads;
 	assert(size % self.threads == 0);

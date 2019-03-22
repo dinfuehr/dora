@@ -4,13 +4,13 @@ fun main() {
 }
 
 trait DefaultValue {
-    static fun default() -> Self;
+    @static fun default() -> Self;
 }
 
 class A(let a: Int)
 
 impl DefaultValue for A {
-    static fun default() -> A {
+    @static fun default() -> A {
         return nil;
     }
 }

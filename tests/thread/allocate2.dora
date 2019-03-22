@@ -2,7 +2,7 @@
 //= vm-args "--gc-young-size=64M --max-heap-size=128M"
 
 class MyThread() : Thread {
-    override fun run() {
+    @override fun run() {
         allocator();
         println("done");
     }

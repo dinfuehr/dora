@@ -19,6 +19,6 @@ fun main() {
 }
 
 class X(let a: Int, let b: Int, let c: Int) {
-  static fun one(a: Int) -> X = X(a, 0, 0);
-  static fun two(a: Int, b: Int) -> X = X(a, b, 0);
+  @static fun one(a: Int) -> X = X(a, 0, 0);
+  @static fun two(a: Int, b: Int) -> X = X(a, b, 0);
 }

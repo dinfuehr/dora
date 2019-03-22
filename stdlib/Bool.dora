@@ -1,5 +1,5 @@
-internal class Bool {
-  internal fun toInt() -> Int;
+@internal class Bool {
+  @internal fun toInt() -> Int;
 
   fun hash() -> Int = self.toInt();
 
@@ -11,6 +11,6 @@ internal class Bool {
     }
   }
 
-  internal fun equals(rhs: Bool) -> Bool;
-  internal fun not() -> Bool;
+  @internal fun equals(rhs: Bool) -> Bool;
+  @internal fun not() -> Bool;
 }

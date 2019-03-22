@@ -10,5 +10,5 @@ class X(a: Int, b: Int) {
     var a: Int = a;
     var b: Int = b;
 
-    static fun empty() -> X = X(3, 1);
+    @static fun empty() -> X = X(3, 1);
 }

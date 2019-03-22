@@ -9,6 +9,6 @@ class A(x1: Int): B(x1*2) {
   let x: Int = x1;
 }
 
-open class B(y1: Int) {
+@open class B(y1: Int) {
   let y: Int = y1;
 }

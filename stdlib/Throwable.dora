@@ -1,4 +1,4 @@
-open abstract class Throwable(let msg: String) {
+@open @abstract class Throwable(let msg: String) {
   var backtrace: Array[Int] = nil;
   var elements: Array[StackTraceElement] = nil;
 
@@ -30,10 +30,10 @@ open abstract class Throwable(let msg: String) {
     return self.msg;
   }
 
-  abstract fun printStackTrace();
+  @abstract fun printStackTrace();
 
-  internal fun retrieveStackTrace();
-  internal fun getStackTraceElement(idx: Int) -> StackTraceElement;
+  @internal fun retrieveStackTrace();
+  @internal fun getStackTraceElement(idx: Int) -> StackTraceElement;
 }
 
 class StackTraceElement(let name: String, let line: Int) {

@@ -1,27 +1,27 @@
-internal fun fatalError(msg: String);
-internal fun abort();
-internal fun exit(status: Int);
+@internal fun fatalError(msg: String);
+@internal fun abort();
+@internal fun exit(status: Int);
 fun unreachable() {
   fatalError("unreachable code");
 }
 
 fun unimplemented() = fatalError("not yet implemented");
 
-internal fun print(text: String);
-internal fun println(text: String);
-internal fun addressOf(object: Object) -> Long;
-internal fun assert(val: Bool);
-internal fun debug();
-internal fun argc() -> Int;
-internal fun argv(idx: Int) -> String;
-internal fun forceCollect();
-internal fun forceMinorCollect();
+@internal fun print(text: String);
+@internal fun println(text: String);
+@internal fun addressOf(object: Object) -> Long;
+@internal fun assert(val: Bool);
+@internal fun debug();
+@internal fun argc() -> Int;
+@internal fun argv(idx: Int) -> String;
+@internal fun forceCollect();
+@internal fun forceMinorCollect();
 
-internal fun call(fct: String);
-internal fun throwFromNative(val: Bool) throws;
-internal fun throwFromNativeButNotThrows(val: Bool);
+@internal fun call(fct: String);
+@internal fun throwFromNative(val: Bool) throws;
+@internal fun throwFromNativeButNotThrows(val: Bool);
 
-internal fun timestamp() -> Long;
+@internal fun timestamp() -> Long;
 
 class Object
 
@@ -112,17 +112,17 @@ fun isValidUtf8(data: Array[Byte]) -> Bool {
   return true;
 }
 
-internal fun defaultValue[T]() -> T;
+@internal fun defaultValue[T]() -> T;
 
-internal fun loadFunction(name: String) -> Long;
-internal fun call0(fct: Long) -> Long;
-internal fun call1(fct: Long, arg0: Long) -> Long;
-internal fun call2(fct: Long, arg0: Long, arg1: Long) -> Long;
-internal fun call3(fct: Long, arg0: Long, arg1: Long, arg2: Long) -> Long;
+@internal fun loadFunction(name: String) -> Long;
+@internal fun call0(fct: Long) -> Long;
+@internal fun call1(fct: Long, arg0: Long) -> Long;
+@internal fun call2(fct: Long, arg0: Long, arg1: Long) -> Long;
+@internal fun call3(fct: Long, arg0: Long, arg1: Long, arg2: Long) -> Long;
 
-internal fun native_malloc(size: Long) -> Long;
-internal fun native_free(address: Long);
-internal fun set_uint8(address: Long, val: Byte);
+@internal fun native_malloc(size: Long) -> Long;
+@internal fun native_free(address: Long);
+@internal fun set_uint8(address: Long, val: Byte);
 
 fun native_string(val: String) -> Long {
   var i = 0;
@@ -144,7 +144,7 @@ fun getpid() -> Int = call0(loadFunction("getpid")).toInt();
 
 fun getppid() -> Int = call0(loadFunction("getppid")).toInt();
 
-internal fun sleep(seconds: Int);
+@internal fun sleep(seconds: Int);
 
 class IntRange(let lower: Int, let upper: Int) {
   fun makeIterator() -> IntRangeIter {

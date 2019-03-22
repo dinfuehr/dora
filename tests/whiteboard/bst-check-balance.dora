@@ -1,5 +1,5 @@
 class Node(let val: Int, var left: Node, var right: Node) {
-  static fun val(val: Int) -> Node = Node(val, nil, nil);
+  @static fun val(val: Int) -> Node = Node(val, nil, nil);
 }
 
 fun main() {

@@ -27,7 +27,7 @@ class Vec3 {
         self.z = self.z + a.z;
     }
 
-    static adds(s: Double, a: Vec3, b: Vec3) -> Vec {
+    @static adds(s: Double, a: Vec3, b: Vec3) -> Vec {
         return Vec3(s * a.x + b.x, s * a.y + b.y, s * a.z + b.z);
     }
 
@@ -47,21 +47,21 @@ class Vec3 {
         self.z = a.z - b.z;
     }
 
-    static fun mult(a: Vec3, b: Vec3) -> Vec3 {
+    @static fun mult(a: Vec3, b: Vec3) -> Vec3 {
         return Vec3(a.x * b.x, a.y * b.y, a.z * b.z);
     }
 
-    static fun cross(a: Vec3, b: Vec3) -> Vec3 {
+    @static fun cross(a: Vec3, b: Vec3) -> Vec3 {
         return Vec3(a.y * b.z - a.z * b.y,
                     a.z * b.x - a.x * b.z,
                     a.x * b.y - a.y * b.x);
     }
 
-    static fun dot(a: Vec3, b: Vec3) -> Double {
+    @static fun dot(a: Vec3, b: Vec3) -> Double {
         return a.x * b.x + a.y * b.y + a.z * b.z;
     }
 
-    static fun com(a: Double, av: Vec3, b: Double, bv: Vec3) -> Vec3 {
+    @static fun com(a: Double, av: Vec3, b: Double, bv: Vec3) -> Vec3 {
         return Vec3(
             a * av.x + b * bv.x,
             a * av.y + b * bv.y,

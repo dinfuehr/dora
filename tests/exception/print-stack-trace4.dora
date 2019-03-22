@@ -14,8 +14,8 @@ class SubException(msg: String, t: Int) : Exception(msg + " " + t.toString()) {
     self.exception = SubException(msg, t-1);
   }
 
-  // currently needed, because of error when a abstract function is overloaded in base class
-  override fun printStackTrace() {
+  // currently needed, because of error when an @abstract function is overloaded in base class
+  @override fun printStackTrace() {
     super.printStackTrace();
   }
 

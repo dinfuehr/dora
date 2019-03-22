@@ -5,5 +5,5 @@ fun main() {
     assert(y.b == 101);
 }
 
-open class X(let a: Int)
+@open class X(let a: Int)
 class Y(let b: Int, a: Int): X(a) {}

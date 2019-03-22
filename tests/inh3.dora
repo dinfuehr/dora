@@ -7,6 +7,6 @@ fun main() {
 }
 
 class A(let x: Data, d: Data): B(d)
-open class B(let y: Data)
+@open class B(let y: Data)
 
 class Data(let data: Int)
