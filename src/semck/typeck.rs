@@ -102,7 +102,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.ctxt
                     .diag
                     .lock()
-                    .report(s.pos, Msg::VarNeedsTypeInfo(tyname));
+                    .report_without_path(s.pos, Msg::VarNeedsTypeInfo(tyname));
 
                 return;
             }
@@ -118,7 +118,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let defined_type = defined_type.name(self.ctxt);
                 let expr_type = expr_type.name(self.ctxt);
                 let msg = Msg::AssignType(name, defined_type, expr_type);
-                self.ctxt.diag.lock().report(s.pos, msg);
+                self.ctxt.diag.lock().report_without_path(s.pos, msg);
             }
 
         // let variable binding needs to be assigned
@@ -126,7 +126,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.ctxt
                 .diag
                 .lock()
-                .report(s.pos, Msg::LetMissingInitialization);
+                .report_without_path(s.pos, Msg::LetMissingInitialization);
         }
     }
 
@@ -200,7 +200,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             } else {
                 let ret = make_iterator_ret.name(self.ctxt);
                 let msg = Msg::MakeIteratorReturnType(ret);
-                self.ctxt.diag.lock().report(s.expr.pos(), msg);
+                self.ctxt.diag.lock().report_without_path(s.expr.pos(), msg);
             }
         }
 
@@ -213,7 +213,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         if self.expr_type != BuiltinType::Bool {
             let expr_type = self.expr_type.name(self.ctxt);
             let msg = Msg::WhileCondType(expr_type);
-            self.ctxt.diag.lock().report(s.pos, msg);
+            self.ctxt.diag.lock().report_without_path(s.pos, msg);
         }
 
         self.visit_stmt(&s.block);
@@ -225,7 +225,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         if self.expr_type != BuiltinType::Bool && !self.expr_type.is_error() {
             let expr_type = self.expr_type.name(self.ctxt);
             let msg = Msg::IfCondType(expr_type);
-            self.ctxt.diag.lock().report(s.pos, msg);
+            self.ctxt.diag.lock().report_without_path(s.pos, msg);
         }
 
         self.visit_stmt(&s.then_block);
@@ -260,7 +260,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 Msg::ReturnType(fct_type, expr_type)
             };
 
-            self.ctxt.diag.lock().report(s.pos, msg);
+            self.ctxt.diag.lock().report_without_path(s.pos, msg);
         }
     }
 
@@ -269,13 +269,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let ty = self.expr_type;
 
         if ty.is_nil() {
-            self.ctxt.diag.lock().report(s.pos, Msg::ThrowNil);
+            self.ctxt.diag.lock().report_without_path(s.pos, Msg::ThrowNil);
         } else if !ty.reference_type() {
             let tyname = ty.name(self.ctxt);
             self.ctxt
                 .diag
                 .lock()
-                .report(s.pos, Msg::ReferenceTypeExpected(tyname));
+                .report_without_path(s.pos, Msg::ReferenceTypeExpected(tyname));
         }
     }
 
@@ -283,7 +283,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.visit_expr(&s.expr);
 
         if !s.expr.is_call() {
-            self.ctxt.diag.lock().report(s.pos, Msg::FctCallExpected);
+            self.ctxt.diag.lock().report_without_path(s.pos, Msg::FctCallExpected);
         }
     }
 
@@ -407,14 +407,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 match ident_type {
                     &IdentType::Var(varid) => {
                         if !self.src.vars[varid].reassignable {
-                            self.ctxt.diag.lock().report(e.pos, Msg::LetReassigned);
+                            self.ctxt.diag.lock().report_without_path(e.pos, Msg::LetReassigned);
                         }
                     }
 
                     &IdentType::Global(gid) => {
                         let glob = self.ctxt.globals.idx(gid);
                         if !glob.lock().reassignable {
-                            self.ctxt.diag.lock().report(e.pos, Msg::LetReassigned);
+                            self.ctxt.diag.lock().report_without_path(e.pos, Msg::LetReassigned);
                         }
                     }
 
@@ -424,7 +424,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         let cls = cls.read();
 
                         if !self.fct.ctor.is() && !cls.fields[fieldid].reassignable {
-                            self.ctxt.diag.lock().report(e.pos, Msg::LetReassigned);
+                            self.ctxt.diag.lock().report_without_path(e.pos, Msg::LetReassigned);
                         }
                     }
 
@@ -433,7 +433,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     }
 
                     &IdentType::Const(_) => {
-                        self.ctxt.diag.lock().report(e.pos, Msg::AssignmentToConst);
+                        self.ctxt.diag.lock().report_without_path(e.pos, Msg::AssignmentToConst);
                     }
                 }
 
@@ -458,11 +458,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         Msg::AssignField(name, field_type, lhs_type, rhs_type)
                     };
 
-                    self.ctxt.diag.lock().report(e.pos, msg);
+                    self.ctxt.diag.lock().report_without_path(e.pos, msg);
                 }
             }
         } else {
-            self.ctxt.diag.lock().report(e.pos, Msg::LvalueExpected);
+            self.ctxt.diag.lock().report_without_path(e.pos, Msg::LvalueExpected);
         }
 
         self.src.set_ty(e.id, BuiltinType::Error);
@@ -502,7 +502,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 Msg::UnknownMethod(type_name, name, param_names)
             };
 
-            self.ctxt.diag.lock().report(pos, msg);
+            self.ctxt.diag.lock().report_without_path(pos, msg);
         }
 
         result
@@ -550,7 +550,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let ty = ty.name(self.ctxt);
             let msg = Msg::UnOpType(op.as_str().into(), ty);
 
-            self.ctxt.diag.lock().report(e.pos, msg);
+            self.ctxt.diag.lock().report_without_path(e.pos, msg);
         }
 
         self.src.set_ty(e.id, BuiltinType::Error);
@@ -627,7 +627,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let rhs_type = rhs_type.name(self.ctxt);
             let msg = Msg::BinOpType(op.as_str().into(), lhs_type, rhs_type);
 
-            self.ctxt.diag.lock().report(e.pos, msg);
+            self.ctxt.diag.lock().report_without_path(e.pos, msg);
 
             self.src.set_ty(e.id, BuiltinType::Error);
             self.expr_type = BuiltinType::Error;
@@ -651,7 +651,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     self.ctxt
                         .diag
                         .lock()
-                        .report(e.pos, Msg::TypesIncompatible(lhs_type, rhs_type));
+                        .report_without_path(e.pos, Msg::TypesIncompatible(lhs_type, rhs_type));
                 }
 
                 self.src.set_ty(e.id, BuiltinType::Bool);
@@ -685,7 +685,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let rhs_type = rhs_type.name(self.ctxt);
             let msg = Msg::BinOpType(op, lhs_type, rhs_type);
 
-            self.ctxt.diag.lock().report(e.pos, msg);
+            self.ctxt.diag.lock().report_without_path(e.pos, msg);
         }
     }
 
@@ -758,7 +758,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                     if throws {
                         let msg = Msg::ThrowingCallWithoutTry;
-                        self.ctxt.diag.lock().report(e.pos, msg);
+                        self.ctxt.diag.lock().report_without_path(e.pos, msg);
                     }
                 }
             } else {
@@ -800,7 +800,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 _ => {
                     let name = self.ctxt.interner.str(e.path[0]).to_string();
                     let msg = Msg::ClassExpected(name);
-                    self.ctxt.diag.lock().report(e.pos, msg);
+                    self.ctxt.diag.lock().report_without_path(e.pos, msg);
 
                     self.expr_type = BuiltinType::Error;
                     return;
@@ -829,7 +829,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                     if cls.is_abstract {
                         let msg = Msg::NewAbstractClass;
-                        self.ctxt.diag.lock().report(e.pos, msg);
+                        self.ctxt.diag.lock().report_without_path(e.pos, msg);
                     }
 
                     lookup.found_ret().unwrap()
@@ -873,7 +873,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             if throws {
                 let msg = Msg::ThrowingCallWithoutTry;
-                self.ctxt.diag.lock().report(e.pos, msg);
+                self.ctxt.diag.lock().report_without_path(e.pos, msg);
             }
         }
     }
@@ -895,7 +895,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         if e.ty.is_super() && owner.primary_ctor && self.fct.ctor.is_secondary() {
             let name = self.ctxt.interner.str(owner.name).to_string();
             let msg = Msg::NoSuperDelegationWithPrimaryCtor(name);
-            self.ctxt.diag.lock().report(e.pos, msg);
+            self.ctxt.diag.lock().report_without_path(e.pos, msg);
 
             return;
         }
@@ -904,7 +904,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         if e.ty.is_super() && owner.parent_class.is_none() {
             let name = self.ctxt.interner.str(owner.name).to_string();
             let msg = Msg::NoSuperClass(name);
-            self.ctxt.diag.lock().report(e.pos, msg);
+            self.ctxt.diag.lock().report_without_path(e.pos, msg);
 
             return;
         }
@@ -942,7 +942,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let name = self.ctxt.interner.str(cls.name).to_string();
         let arg_types = arg_types.iter().map(|t| t.name(self.ctxt)).collect();
         let msg = Msg::UnknownCtor(name, arg_types);
-        self.ctxt.diag.lock().report(e.pos, msg);
+        self.ctxt.diag.lock().report_without_path(e.pos, msg);
     }
 
     fn super_type(&self, pos: Position) -> BuiltinType {
@@ -958,7 +958,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
 
         let msg = Msg::SuperUnavailable;
-        self.ctxt.diag.lock().report(pos, msg);
+        self.ctxt.diag.lock().report_without_path(pos, msg);
 
         BuiltinType::Error
     }
@@ -1008,7 +1008,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                 if fct.throws && !in_try {
                     let msg = Msg::ThrowingCallWithoutTry;
-                    self.ctxt.diag.lock().report(e.pos, msg);
+                    self.ctxt.diag.lock().report_without_path(e.pos, msg);
                 }
 
                 self.src.set_ty(e.id, return_type);
@@ -1025,7 +1025,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             .collect::<Vec<String>>();
         let msg = Msg::UnknownMethod(type_name, name, param_names);
 
-        self.ctxt.diag.lock().report(e.pos, msg);
+        self.ctxt.diag.lock().report_without_path(e.pos, msg);
 
         self.src.set_ty(e.id, BuiltinType::Unit);
         self.expr_type = BuiltinType::Unit;
@@ -1073,7 +1073,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let field_name = self.ctxt.interner.str(e.name).to_string();
         let expr_name = ty.name(self.ctxt);
         let msg = Msg::UnknownField(field_name, expr_name);
-        self.ctxt.diag.lock().report(e.pos, msg);
+        self.ctxt.diag.lock().report_without_path(e.pos, msg);
 
         self.src.set_ty(e.id, BuiltinType::Error);
         self.expr_type = BuiltinType::Error;
@@ -1100,7 +1100,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             _ => {
                 let msg = Msg::ThisUnavailable;
-                self.ctxt.diag.lock().report(e.pos, msg);
+                self.ctxt.diag.lock().report_without_path(e.pos, msg);
                 self.src.set_ty(e.id, BuiltinType::Unit);
                 self.expr_type = BuiltinType::Unit;
             }
@@ -1109,7 +1109,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_super(&mut self, e: &'ast ExprSuperType) {
         let msg = Msg::SuperNeedsMethodCall;
-        self.ctxt.diag.lock().report(e.pos, msg);
+        self.ctxt.diag.lock().report_without_path(e.pos, msg);
         self.src.set_ty(e.id, BuiltinType::Unit);
         self.expr_type = BuiltinType::Unit;
     }
@@ -1171,7 +1171,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let throws = fct.throws;
 
                 if !throws {
-                    self.ctxt.diag.lock().report(e.pos, Msg::TryCallNonThrowing);
+                    self.ctxt.diag.lock().report_without_path(e.pos, Msg::TryCallNonThrowing);
                 }
             }
 
@@ -1185,7 +1185,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         let e_type = e_type.name(self.ctxt);
                         let alt_type = alt_type.name(self.ctxt);
                         let msg = Msg::TypesIncompatible(e_type, alt_type);
-                        self.ctxt.diag.lock().report(e.pos, msg);
+                        self.ctxt.diag.lock().report_without_path(e.pos, msg);
                     }
                 }
 
@@ -1195,7 +1195,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             self.expr_type = e_type;
         } else {
-            self.ctxt.diag.lock().report(e.pos, Msg::TryNeedsCall);
+            self.ctxt.diag.lock().report_without_path(e.pos, Msg::TryNeedsCall);
 
             self.expr_type = BuiltinType::Unit;
             self.src.set_ty(e.id, BuiltinType::Unit);
@@ -1234,7 +1234,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.ctxt
                 .diag
                 .lock()
-                .report(e.pos, Msg::ReferenceTypeExpected(name));
+                .report_without_path(e.pos, Msg::ReferenceTypeExpected(name));
             return;
         }
 
@@ -1252,7 +1252,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let object_type = object_type.name(self.ctxt);
             let check_type = check_type.name(self.ctxt);
             let msg = Msg::TypesIncompatible(object_type, check_type);
-            self.ctxt.diag.lock().report(e.pos, msg);
+            self.ctxt.diag.lock().report_without_path(e.pos, msg);
         }
 
         self.src.map_convs.insert(
@@ -1289,11 +1289,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     let fty = field.ty.name(self.ctxt);
                     let vty = vty.name(self.ctxt);
                     let msg = Msg::AssignField(fname, struc_name.clone(), fty, vty);
-                    self.ctxt.diag.lock().report(e.pos, msg);
+                    self.ctxt.diag.lock().report_without_path(e.pos, msg);
                 }
             } else {
                 let fname = self.ctxt.interner.str(field.name).to_string();
-                self.ctxt.diag.lock().report(
+                self.ctxt.diag.lock().report_without_path(
                     e.pos,
                     Msg::StructFieldNotInitialized(struc_name.clone(), fname),
                 );
@@ -1305,7 +1305,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.ctxt
                 .diag
                 .lock()
-                .report(e.pos, Msg::UnknownStructField(struc_name.clone(), fname));
+                .report_without_path(e.pos, Msg::UnknownStructField(struc_name.clone(), fname));
         }
 
         let list_id = self.ctxt.lists.lock().insert(TypeParams::empty());
@@ -1551,7 +1551,7 @@ fn check_lit_int<'ast>(
         if (negative && val > max) || (!negative && val >= max) {
             ctxt.diag
                 .lock()
-                .report(e.pos, Msg::NumberOverflow(ty_name.into()));
+                .report_without_path(e.pos, Msg::NumberOverflow(ty_name.into()));
         }
     } else {
         let max = match e.suffix {
@@ -1563,7 +1563,7 @@ fn check_lit_int<'ast>(
         if val > max {
             ctxt.diag
                 .lock()
-                .report(e.pos, Msg::NumberOverflow(ty_name.into()));
+                .report_without_path(e.pos, Msg::NumberOverflow(ty_name.into()));
         }
     }
 
@@ -1605,7 +1605,7 @@ fn check_lit_float<'ast>(
 
         ctxt.diag
             .lock()
-            .report(e.pos, Msg::NumberOverflow(ty.into()));
+            .report_without_path(e.pos, Msg::NumberOverflow(ty.into()));
     }
 
     (ty, value)
@@ -1653,7 +1653,7 @@ impl<'a, 'ast> ConstCheck<'a, 'ast> {
                     let ty = ty.name(self.ctxt);
                     let msg = Msg::UnOpType(expr.op.as_str().into(), ty);
 
-                    self.ctxt.diag.lock().report(expr.pos, msg);
+                    self.ctxt.diag.lock().report_without_path(expr.pos, msg);
                 }
 
                 return (ty, val);
@@ -1661,7 +1661,7 @@ impl<'a, 'ast> ConstCheck<'a, 'ast> {
 
             _ => {
                 let msg = Msg::ConstValueExpected;
-                self.ctxt.diag.lock().report(expr.pos(), msg);
+                self.ctxt.diag.lock().report_without_path(expr.pos(), msg);
                 return (BuiltinType::Error, ConstValue::None);
             }
         };
@@ -1671,7 +1671,7 @@ impl<'a, 'ast> ConstCheck<'a, 'ast> {
             let const_ty = self.xconst.ty.name(self.ctxt);
             let ty = ty.name(self.ctxt);
             let msg = Msg::AssignType(name, const_ty, ty);
-            self.ctxt.diag.lock().report(expr.pos(), msg);
+            self.ctxt.diag.lock().report_without_path(expr.pos(), msg);
         }
 
         (ty, lit)
@@ -1853,7 +1853,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             self.ctxt
                 .diag
                 .lock()
-                .report(self.pos.expect("pos not set"), msg);
+                .report_without_path(self.pos.expect("pos not set"), msg);
             return false;
         };
 
@@ -1913,7 +1913,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             self.ctxt
                 .diag
                 .lock()
-                .report(self.pos.expect("pos not set"), msg);
+                .report_without_path(self.pos.expect("pos not set"), msg);
             return false;
         }
 
@@ -2007,7 +2007,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             self.ctxt
                 .diag
                 .lock()
-                .report(self.pos.expect("pos not set"), msg);
+                .report_without_path(self.pos.expect("pos not set"), msg);
             return false;
         }
 
@@ -2108,7 +2108,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         self.ctxt
             .diag
             .lock()
-            .report(self.pos.expect("pos not set"), msg);
+            .report_without_path(self.pos.expect("pos not set"), msg);
     }
 
     fn fail_trait_bound(&self, trait_id: TraitId, ty: BuiltinType) {
@@ -2119,7 +2119,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         self.ctxt
             .diag
             .lock()
-            .report(self.pos.expect("pos not set"), msg);
+            .report_without_path(self.pos.expect("pos not set"), msg);
     }
 
     fn found_fct_id(&self) -> Option<FctId> {

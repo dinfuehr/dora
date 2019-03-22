@@ -288,7 +288,7 @@ fn find_main<'ast>(vm: &VM<'ast>) -> Option<FctId> {
         None => {
             vm.diag
                 .lock()
-                .report(Position::new(1, 1), Msg::MainNotFound);
+                .report_without_path(Position::new(1, 1), Msg::MainNotFound);
             return None;
         }
     };
@@ -300,7 +300,7 @@ fn find_main<'ast>(vm: &VM<'ast>) -> Option<FctId> {
     if (ret != BuiltinType::Unit && ret != BuiltinType::Int) || fct.params_without_self().len() > 0
     {
         let pos = fct.ast.pos;
-        vm.diag.lock().report(pos, Msg::WrongMainDefinition);
+        vm.diag.lock().report_without_path(pos, Msg::WrongMainDefinition);
         return None;
     }
 

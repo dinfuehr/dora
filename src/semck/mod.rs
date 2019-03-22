@@ -119,11 +119,11 @@ fn internalck<'ast>(ctxt: &SemContext<'ast>) {
         }
 
         if fct.internal && !fct.internal_resolved {
-            ctxt.diag.lock().report(fct.pos, Msg::UnresolvedInternal);
+            ctxt.diag.lock().report_without_path(fct.pos, Msg::UnresolvedInternal);
         }
 
         if fct.kind.is_definition() && !fct.in_trait() {
-            ctxt.diag.lock().report(fct.pos, Msg::MissingFctBody);
+            ctxt.diag.lock().report_without_path(fct.pos, Msg::MissingFctBody);
         }
     }
 
@@ -131,7 +131,7 @@ fn internalck<'ast>(ctxt: &SemContext<'ast>) {
         let cls = cls.read();
 
         if cls.internal && !cls.internal_resolved {
-            ctxt.diag.lock().report(cls.pos, Msg::UnresolvedInternal);
+            ctxt.diag.lock().report_without_path(cls.pos, Msg::UnresolvedInternal);
         }
 
         for method in &cls.methods {
@@ -139,11 +139,11 @@ fn internalck<'ast>(ctxt: &SemContext<'ast>) {
             let method = method.read();
 
             if method.internal && !method.internal_resolved {
-                ctxt.diag.lock().report(method.pos, Msg::UnresolvedInternal);
+                ctxt.diag.lock().report_without_path(method.pos, Msg::UnresolvedInternal);
             }
 
             if method.kind.is_definition() && !method.is_abstract {
-                ctxt.diag.lock().report(method.pos, Msg::MissingFctBody);
+                ctxt.diag.lock().report_without_path(method.pos, Msg::MissingFctBody);
             }
         }
     }
@@ -207,7 +207,7 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                                     cls.type_params.len(),
                                     type_params.len(),
                                 );
-                                ctxt.diag.lock().report(basic.pos, msg);
+                                ctxt.diag.lock().report_without_path(basic.pos, msg);
                                 return None;
                             }
 
@@ -220,7 +220,7 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                                         let cls = cls.name(ctxt);
 
                                         let msg = Msg::ClassBoundNotSatisfied(name, cls);
-                                        ctxt.diag.lock().report(basic.pos, msg);
+                                        ctxt.diag.lock().report_without_path(basic.pos, msg);
                                     }
                                 }
 
@@ -239,7 +239,7 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                                         let name = ty.name(ctxt);
                                         let trait_name = ctxt.interner.str(bound.name).to_string();
                                         let msg = Msg::TraitBoundNotSatisfied(name, trait_name);
-                                        ctxt.diag.lock().report(bound.pos, msg);
+                                        ctxt.diag.lock().report_without_path(bound.pos, msg);
                                     }
                                 }
                             }
@@ -259,7 +259,7 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                     SymTrait(trait_id) => {
                         if basic.params.len() > 0 {
                             let msg = Msg::NoTypeParamsExpected;
-                            ctxt.diag.lock().report(basic.pos, msg);
+                            ctxt.diag.lock().report_without_path(basic.pos, msg);
                         }
 
                         return Some(BuiltinType::Trait(trait_id));
@@ -268,7 +268,7 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                     SymStruct(struct_id) => {
                         if basic.params.len() > 0 {
                             let msg = Msg::NoTypeParamsExpected;
-                            ctxt.diag.lock().report(basic.pos, msg);
+                            ctxt.diag.lock().report_without_path(basic.pos, msg);
                         }
 
                         let list_id = ctxt.lists.lock().insert(TypeParams::empty());
@@ -278,7 +278,7 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                     SymClassTypeParam(cls_id, type_param_id) => {
                         if basic.params.len() > 0 {
                             let msg = Msg::NoTypeParamsExpected;
-                            ctxt.diag.lock().report(basic.pos, msg);
+                            ctxt.diag.lock().report_without_path(basic.pos, msg);
                         }
 
                         return Some(BuiltinType::ClassTypeParam(cls_id, type_param_id));
@@ -287,7 +287,7 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                     SymFctTypeParam(fct_id, type_param_id) => {
                         if basic.params.len() > 0 {
                             let msg = Msg::NoTypeParamsExpected;
-                            ctxt.diag.lock().report(basic.pos, msg);
+                            ctxt.diag.lock().report_without_path(basic.pos, msg);
                         }
 
                         return Some(BuiltinType::FctTypeParam(fct_id, type_param_id));
@@ -296,13 +296,13 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                     _ => {
                         let name = ctxt.interner.str(basic.name).to_string();
                         let msg = Msg::ExpectedType(name);
-                        ctxt.diag.lock().report(basic.pos, msg);
+                        ctxt.diag.lock().report_without_path(basic.pos, msg);
                     }
                 }
             } else {
                 let name = ctxt.interner.str(basic.name).to_string();
                 let msg = Msg::UnknownType(name);
-                ctxt.diag.lock().report(basic.pos, msg);
+                ctxt.diag.lock().report_without_path(basic.pos, msg);
             }
         }
 
@@ -333,7 +333,7 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
             return Some(ty);
         }
 
-        _ => ctxt.diag.lock().report_unimplemented(t.pos()),
+        _ => ctxt.diag.lock().report_unimplemented("unknown file".to_string(), t.pos()),
     }
 
     None

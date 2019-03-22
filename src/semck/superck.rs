@@ -28,7 +28,7 @@ fn cycle_detection<'ast>(ctxt: &mut SemContext<'ast>) {
             let p = parent.unwrap();
 
             if !map.insert(p) {
-                ctxt.diag.lock().report(cls.pos, Msg::CycleInHierarchy);
+                ctxt.diag.lock().report_without_path(cls.pos, Msg::CycleInHierarchy);
                 break;
             }
 
@@ -173,7 +173,7 @@ fn check_fct_modifier<'ast>(ctxt: &SemContext<'ast>, cls: &Class, fct: &mut Fct<
         let name = ctxt.interner.str(fct.name).to_string();
         ctxt.diag
             .lock()
-            .report(fct.pos(), Msg::SuperfluousOpen(name));
+            .report_without_path(fct.pos(), Msg::SuperfluousOpen(name));
         return;
     }
 
@@ -182,7 +182,7 @@ fn check_fct_modifier<'ast>(ctxt: &SemContext<'ast>, cls: &Class, fct: &mut Fct<
             let name = ctxt.interner.str(fct.name).to_string();
             ctxt.diag
                 .lock()
-                .report(fct.pos(), Msg::SuperfluousOverride(name));
+                .report_without_path(fct.pos(), Msg::SuperfluousOverride(name));
             return;
         }
 
@@ -203,21 +203,21 @@ fn check_fct_modifier<'ast>(ctxt: &SemContext<'ast>, cls: &Class, fct: &mut Fct<
             let name = ctxt.interner.str(fct.name).to_string();
             ctxt.diag
                 .lock()
-                .report(fct.pos(), Msg::MissingOverride(name));
+                .report_without_path(fct.pos(), Msg::MissingOverride(name));
         }
 
         if !(super_method.has_open || super_method.has_override) || super_method.has_final {
             let name = ctxt.interner.str(fct.name).to_string();
             ctxt.diag
                 .lock()
-                .report(fct.pos(), Msg::MethodNotOverridable(name));
+                .report_without_path(fct.pos(), Msg::MethodNotOverridable(name));
         }
 
         if super_method.throws != fct.throws {
             let name = ctxt.interner.str(fct.name).to_string();
             ctxt.diag
                 .lock()
-                .report(fct.pos(), Msg::ThrowsDifference(name));
+                .report_without_path(fct.pos(), Msg::ThrowsDifference(name));
         }
 
         if super_method.return_type != fct.return_type {
@@ -226,7 +226,7 @@ fn check_fct_modifier<'ast>(ctxt: &SemContext<'ast>, cls: &Class, fct: &mut Fct<
             let sup = super_method.return_type.name(ctxt);
             ctxt.diag
                 .lock()
-                .report(pos, Msg::ReturnTypeMismatch(fct, sup));
+                .report_without_path(pos, Msg::ReturnTypeMismatch(fct, sup));
         }
 
         fct.overrides = Some(super_method.id);
@@ -235,7 +235,7 @@ fn check_fct_modifier<'ast>(ctxt: &SemContext<'ast>, cls: &Class, fct: &mut Fct<
             let name = ctxt.interner.str(fct.name).to_string();
             ctxt.diag
                 .lock()
-                .report(fct.pos(), Msg::SuperfluousOverride(name));
+                .report_without_path(fct.pos(), Msg::SuperfluousOverride(name));
         }
     }
 }

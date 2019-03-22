@@ -376,7 +376,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
 }
 
 fn report(ctxt: &SemContext, pos: Position, msg: Msg) {
-    ctxt.diag.lock().report(pos, msg);
+    ctxt.diag.lock().report_without_path(pos, msg);
 }
 
 fn str(ctxt: &SemContext, name: Name) -> String {

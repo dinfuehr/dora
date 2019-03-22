@@ -63,7 +63,7 @@ pub fn check_abstract<'ast>(
 
             ctxt.diag
                 .lock()
-                .report(cls.pos, Msg::MissingAbstractOverride(cls_name, mtd_name));
+                .report_without_path(cls.pos, Msg::MissingAbstractOverride(cls_name, mtd_name));
         }
     }
 }
