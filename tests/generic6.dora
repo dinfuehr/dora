@@ -1,7 +1,7 @@
 fun main() {
     foo::<int>(1);
     foo::<float>(3F);
-    foo::<Str>("hello");
+    foo::<String>("hello");
 }
 
 fun foo<T>(val: T) {}

@@ -16,9 +16,9 @@ pub fn internal_classes<'ast>(ctxt: &mut SemContext<'ast>) {
     ctxt.vips.double_class = internal_class(ctxt, "double", Some(BuiltinType::Double));
 
     ctxt.vips.object_class = internal_class(ctxt, "Object", None);
-    ctxt.vips.str_class = internal_class(ctxt, "Str", None);
+    ctxt.vips.string_class = internal_class(ctxt, "String", None);
 
-    let cls = ctxt.classes.idx(ctxt.vips.str_class);
+    let cls = ctxt.classes.idx(ctxt.vips.string_class);
     let mut cls = cls.write();
     cls.is_str = true;
 
@@ -208,7 +208,7 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     intrinsic_method(ctxt, clsid, "equals", Intrinsic::BoolEq);
     intrinsic_method(ctxt, clsid, "not", Intrinsic::BoolNot);
 
-    let clsid = ctxt.vips.str_class;
+    let clsid = ctxt.vips.string_class;
     native_method(ctxt, clsid, "compareTo", stdlib::strcmp as *const u8);
     native_method(ctxt, clsid, "parseInt", stdlib::str_parse_int as *const u8);
     native_method(
@@ -231,7 +231,7 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     native_method(
         ctxt,
         clsid,
-        "fromStrPartOrNull",
+        "fromStringPartOrNull",
         stdlib::str_from_bytes as *const u8,
     );
 

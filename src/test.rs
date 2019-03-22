@@ -34,7 +34,7 @@ where
     let mut ast = Ast::new();
     let args: Args = Default::default();
 
-    for file in &["stdlib/prelude.dora", "stdlib/str.dora", "stdlib/test.dora"] {
+    for file in &["stdlib/prelude.dora", "stdlib/string.dora", "stdlib/test.dora"] {
         let reader = Reader::from_file(file).unwrap();
         let mut parser = Parser::new(reader, &id_generator, &mut ast, &mut interner);
         parser.parse().unwrap()

@@ -1,5 +1,5 @@
-internal class Str {
-  fun equals(rhs: Str) -> bool {
+internal class String {
+  fun equals(rhs: String) -> bool {
     var i = 0;
 
     if self.len() != rhs.len() {
@@ -19,31 +19,21 @@ internal class Str {
     return true;
   }
 
-  internal fun compareTo(rhs: Str) -> int;
+  internal fun compareTo(rhs: String) -> int;
 
   internal fun len() -> int;
   internal fun parseInt() -> int;
   internal fun parseLong() -> long;
-  internal fun plus(rhs: Str) -> Str;
+  internal fun plus(rhs: String) -> String;
 
   internal fun getByte(idx: int) -> byte;
-  internal fun clone() -> Str;
+  internal fun clone() -> String;
 
-  internal static fun fromBytesPartOrNull(val: Array<byte>, offset: int, len: int) -> Str;
-  internal static fun fromStrPartOrNull(val: Str, offset: int, len: int) -> Str;
+  internal static fun fromBytesPartOrNull(val: Array<byte>, offset: int, len: int) -> String;
+  internal static fun fromStringPartOrNull(val: String, offset: int, len: int) -> String;
 
-  static fun fromBytesPart(val: Array<byte>, offset: int, len: int) throws -> Str {
-    let str = Str::fromBytesPartOrNull(val, offset, len);
-
-    if str === nil {
-      throw "invalid utf-8 encoding.";
-    }
-
-    return str;
-  }
-
-  static fun fromBytes(val: Array<byte>) throws -> Str {
-    let str = Str::fromBytesPartOrNull(val, 0, val.len());
+  static fun fromBytesPart(val: Array<byte>, offset: int, len: int) throws -> String {
+    let str = String::fromBytesPartOrNull(val, offset, len);
 
     if str === nil {
       throw "invalid utf-8 encoding.";
@@ -52,8 +42,8 @@ internal class Str {
     return str;
   }
 
-  static fun fromStrPart(val: Str, offset: int, len: int) throws -> Str {
-    let str = Str::fromStrPartOrNull(val, offset, len);
+  static fun fromBytes(val: Array<byte>) throws -> String {
+    let str = String::fromBytesPartOrNull(val, 0, val.len());
 
     if str === nil {
       throw "invalid utf-8 encoding.";
@@ -62,7 +52,17 @@ internal class Str {
     return str;
   }
 
-  static fun fromStr(val: Str) -> Str {
+  static fun fromStringPart(val: String, offset: int, len: int) throws -> String {
+    let str = String::fromStringPartOrNull(val, offset, len);
+
+    if str === nil {
+      throw "invalid utf-8 encoding.";
+    }
+
+    return str;
+  }
+
+  static fun fromString(val: String) -> String {
     return val.clone();
   }
 
@@ -70,12 +70,12 @@ internal class Str {
       return self.len() == 0;
   }
 
-  fun codePoints() -> StrCodePointIterator {
-    return StrCodePointIterator(self, 0);
+  fun codePoints() -> StringCodePointIterator {
+    return StringCodePointIterator(self, 0);
   }
 }
 
-class StrCodePointIterator(let value: Str, var ind: int) {
+class StringCodePointIterator(let value: String, var ind: int) {
     fun hasNext() -> bool {
         return self.ind < self.value.len();
     }
@@ -130,7 +130,7 @@ class StrCodePointIterator(let value: Str, var ind: int) {
         return i;
     }
 
-    fun toString() -> Str {
-        return try! Str::fromStrPart(self.value, self.ind, self.value.len() - self.ind);
+    fun toString() -> String {
+        return try! String::fromStringPart(self.value, self.ind, self.value.len() - self.ind);
     }
 }

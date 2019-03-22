@@ -21,7 +21,7 @@ class Ray {
         )
     }
 
-    fun toString() -> Str {
+    fun toString() -> String {
         return "{" + self.P.toString() + " -> " + self.D.toString() + "}";
     }
 }

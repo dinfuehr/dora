@@ -1,4 +1,4 @@
 fun main() {
-    let x = Array::<Str>(1);
+    let x = Array::<String>(1);
     x[0] = nil;
 }

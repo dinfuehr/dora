@@ -233,7 +233,7 @@ fn create_specialized_class(
 
         let super_id = cls
             .parent_class
-            .expect("Array & Str should have super class");
+            .expect("Array & String should have super class");
         let id = specialize_class_id(ctxt, super_id);
         parent_id = Some(id);
     } else {

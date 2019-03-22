@@ -1,4 +1,4 @@
-class File(let name: Str) {
+class File(let name: String) {
   fun delete() throws {
     let ptr = native_string(self.name);
     let fct = loadFunction("unlink");

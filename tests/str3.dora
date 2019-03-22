@@ -3,6 +3,6 @@ fun main() {
   assert(!eq("aa"));
 }
 
-fun eq(a: Str) -> bool {
+fun eq(a: String) -> bool {
   return "ab" == a + "b";
 }

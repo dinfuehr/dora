@@ -20,7 +20,7 @@ fun main() {
   let x = defaultValue::<double>();
   assert(x == 0.0);
 
-  let x = defaultValue::<Str>();
+  let x = defaultValue::<String>();
   assert(x === nil);
 
   let x = defaultValue::<Array<int> >();

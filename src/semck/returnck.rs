@@ -186,18 +186,18 @@ mod tests {
 
     #[test]
     fn do_returns() {
-        ok("fun f() -> int { do { return 1; } catch x: Str { return 2; } }");
-        ok("fun f() -> int { do { } catch x: Str { return 2; } return 1; }");
-        ok("fun f() -> int { do { return 2; } catch x: Str { } return 1; }");
-        ok("fun f() -> int { do { } catch x: Str { } return 1; }");
-        ok("fun f() -> int { do { } catch x: Str { } finally { return 1; } }");
+        ok("fun f() -> int { do { return 1; } catch x: String { return 2; } }");
+        ok("fun f() -> int { do { } catch x: String { return 2; } return 1; }");
+        ok("fun f() -> int { do { return 2; } catch x: String { } return 1; }");
+        ok("fun f() -> int { do { } catch x: String { } return 1; }");
+        ok("fun f() -> int { do { } catch x: String { } finally { return 1; } }");
         err(
-            "fun f() -> int { do { return 1; } catch x: Str { } }",
-            pos(1, 48),
+            "fun f() -> int { do { return 1; } catch x: String { } }",
+            pos(1, 51),
             Msg::NoReturnValue,
         );
         err(
-            "fun f() -> int { do { } catch x: Str { return 1; } }",
+            "fun f() -> int { do { } catch x: String { return 1; } }",
             pos(1, 21),
             Msg::NoReturnValue,
         );

@@ -130,7 +130,7 @@ impl<'ast> SemContext<'ast> {
                 float_class: empty_class_id,
                 double_class: empty_class_id,
                 object_class: empty_class_id,
-                str_class: empty_class_id,
+                string_class: empty_class_id,
 
                 array_class: empty_class_id,
 
@@ -556,7 +556,7 @@ pub struct KnownElements {
     pub float_class: ClassId,
     pub double_class: ClassId,
     pub object_class: ClassId,
-    pub str_class: ClassId,
+    pub string_class: ClassId,
     pub array_class: ClassId,
 
     pub testing_class: ClassId,
@@ -598,7 +598,7 @@ impl KnownElements {
         if let Some(cls_id) = *str_class_def {
             cls_id
         } else {
-            let cls_id = specialize_class_id(ctxt, self.str_class);
+            let cls_id = specialize_class_id(ctxt, self.string_class);
             *str_class_def = Some(cls_id);
             cls_id
         }

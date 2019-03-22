@@ -3,7 +3,7 @@
 fun main() {
   do {
     try foo();
-  } catch x: Str {
+  } catch x: String {
     println(x);
   }
 }

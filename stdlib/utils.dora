@@ -297,7 +297,7 @@ class StringBuf(var buf: Array<byte>, var length: int) {
     return self;
   }
 
-  fun appendString(value: Str) -> StringBuf {
+  fun appendString(value: String) -> StringBuf {
     self.reserve(value.len());
     var i = 0;
 
@@ -310,7 +310,7 @@ class StringBuf(var buf: Array<byte>, var length: int) {
     return self;
   }
 
-  fun toString() -> Str {
-    return try! Str::fromBytesPart(self.buf, 0, self.len());
+  fun toString() -> String {
+    return try! String::fromBytesPart(self.buf, 0, self.len());
   }
 }

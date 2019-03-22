@@ -1,13 +1,13 @@
 //= output "hello1"
 
 fun main() {
-  let a = A::<Str>(foo(1));
+  let a = A::<String>(foo(1));
   forceCollect();
   print(a.x);
 }
 
 class A<T>(let x: T)
 
-fun foo(a: int) -> Str {
+fun foo(a: int) -> String {
   return "hello" + a.toString();
 }

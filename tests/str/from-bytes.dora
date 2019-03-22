@@ -15,7 +15,7 @@ fun test_multiple_ascii_chars() {
     bytes[1] = 'b'.toInt().toByte();
     bytes[2] = 'c'.toInt().toByte();
 
-    let val = try! Str::fromBytes(bytes);
+    let val = try! String::fromBytes(bytes);
     assert(val == "abc");
 }
 
@@ -23,7 +23,7 @@ fun test_1byte() {
     let bytes = Array::<byte>(1);
     bytes[0] = 0x24Y;
 
-    try! Str::fromBytes(bytes);
+    try! String::fromBytes(bytes);
 }
 
 fun test_2bytes() {
@@ -31,7 +31,7 @@ fun test_2bytes() {
     bytes[0] = 0xC2Y;
     bytes[1] = 0xA2Y;
 
-    try! Str::fromBytes(bytes);
+    try! String::fromBytes(bytes);
 }
 
 fun test_3bytes() {
@@ -40,7 +40,7 @@ fun test_3bytes() {
     bytes[1] = 0x82Y;
     bytes[2] = 0xACY;
 
-    try! Str::fromBytes(bytes);
+    try! String::fromBytes(bytes);
 }
 
 fun test_4bytes() {
@@ -50,7 +50,7 @@ fun test_4bytes() {
     bytes[2] = 0x8DY;
     bytes[3] = 0x88Y;
 
-    try! Str::fromBytes(bytes);
+    try! String::fromBytes(bytes);
 }
 
 fun test_invalid() {
@@ -58,9 +58,9 @@ fun test_invalid() {
     bytes[0] = 0x80Y;
 
     do {
-        try Str::fromBytes(bytes);
+        try String::fromBytes(bytes);
         assert(false);
-    } catch x: Str {
+    } catch x: String {
         assert(true);
     }
 }

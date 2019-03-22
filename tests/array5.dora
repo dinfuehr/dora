@@ -7,7 +7,7 @@ fun main() {
 }
 
 class A {
-  fun get(index: Str) -> int {
+  fun get(index: String) -> int {
     return 1;
   }
 }

@@ -2,7 +2,7 @@ fun main() {
     let a = A::<int>();
     consume(a.x);
 
-    let b = A::<Str>();
+    let b = A::<String>();
     consume2(b.x);
 }
 
@@ -18,6 +18,6 @@ fun consume(x: Array<int>) {
     assert(x[9] == 0);
 }
 
-fun consume2(x: Array<Str>) {
+fun consume2(x: Array<String>) {
     assert(x[9] === nil);
 }

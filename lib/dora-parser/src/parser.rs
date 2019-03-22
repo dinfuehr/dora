@@ -2539,7 +2539,7 @@ mod tests {
     fn parse_method() {
         let (prog, interner) = parse("class Foo {
             fun zero() -> int { return 0; }
-            fun id(a: Str) -> Str { return a; }
+            fun id(a: String) -> String { return a; }
         }");
 
         let cls = prog.cls0();
@@ -2568,7 +2568,7 @@ mod tests {
             .to_basic()
             .unwrap()
             .name;
-        assert_eq!("Str", *interner.str(rt2));
+        assert_eq!("String", *interner.str(rt2));
     }
 
     #[test]
@@ -2748,7 +2748,7 @@ mod tests {
 
     #[test]
     fn parse_do() {
-        let stmt = parse_stmt("do { 1; } catch e: Str { 2; }
+        let stmt = parse_stmt("do { 1; } catch e: String { 2; }
                                           catch e: IntArray { 3; } finally { 4; }");
         let try = stmt.to_do().unwrap();
 
@@ -2833,7 +2833,7 @@ mod tests {
 
     #[test]
     fn parse_is_expr() {
-        let (expr, _) = parse_expr("a is Str");
+        let (expr, _) = parse_expr("a is String");
         let expr = expr.to_conv().unwrap();
         assert_eq!(true, expr.object.is_ident());
         assert_eq!(true, expr.is);
@@ -2841,7 +2841,7 @@ mod tests {
 
     #[test]
     fn parse_as_expr() {
-        let (expr, _) = parse_expr("a as Str");
+        let (expr, _) = parse_expr("a as String");
         let expr = expr.to_conv().unwrap();
         assert_eq!(true, expr.object.is_ident());
         assert_eq!(false, expr.is);
