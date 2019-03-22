@@ -358,18 +358,18 @@ where
     }
 
     fn emit_array(&mut self, e: &'ast ExprArrayType, dest: ExprStore) {
-        if let Some(intrinsic) = self.intrinsic(e.id) {
-            match intrinsic {
-                Intrinsic::GenericArrayGet => {
+        if let Some(builtin) = self.builtin(e.id) {
+            match builtin {
+                Builtin::GenericArrayGet => {
                     let ty = self.ty(e.id);
                     self.emit_array_get(e.pos, ty.mode(), &e.object, &e.index, dest);
                 }
 
-                Intrinsic::StrGet => {
+                Builtin::StrGet => {
                     self.emit_array_get(e.pos, MachineMode::Int8, &e.object, &e.index, dest)
                 }
 
-                _ => panic!("unexpected intrinsic {:?}", intrinsic),
+                _ => panic!("unexpected builtin {:?}", builtin),
             }
         } else {
             self.emit_call_site_id(e.id, e.pos, dest);
@@ -419,8 +419,8 @@ where
         }
     }
 
-    fn intrinsic(&self, id: NodeId) -> Option<Intrinsic> {
-        self.jit_info.map_intrinsics.get(id).map(|&intr| intr)
+    fn builtin(&self, id: NodeId) -> Option<Builtin> {
+        self.jit_info.map_builtins.get(id).map(|&builtin| builtin)
     }
 
     fn emit_self(&mut self, dest: Reg) {
@@ -592,19 +592,19 @@ where
     }
 
     fn emit_un(&mut self, e: &'ast ExprUnType, dest: ExprStore) {
-        if let Some(intrinsic) = self.intrinsic(e.id) {
+        if let Some(builtin) = self.builtin(e.id) {
             self.emit_expr(&e.opnd, dest);
 
-            match intrinsic {
-                Intrinsic::IntPlus
-                | Intrinsic::LongPlus
-                | Intrinsic::FloatPlus
-                | Intrinsic::DoublePlus => {}
+            match builtin {
+                Builtin::IntPlus
+                | Builtin::LongPlus
+                | Builtin::FloatPlus
+                | Builtin::DoublePlus => {}
 
-                Intrinsic::IntNeg | Intrinsic::LongNeg => {
+                Builtin::IntNeg | Builtin::LongNeg => {
                     let dest = dest.reg();
 
-                    let mode = if intrinsic == Intrinsic::IntNeg {
+                    let mode = if builtin == Builtin::IntNeg {
                         MachineMode::Int32
                     } else {
                         MachineMode::Int64
@@ -613,10 +613,10 @@ where
                     self.asm.int_neg(mode, dest, dest);
                 }
 
-                Intrinsic::FloatNeg | Intrinsic::DoubleNeg => {
+                Builtin::FloatNeg | Builtin::DoubleNeg => {
                     let dest = dest.freg();
 
-                    let mode = if intrinsic == Intrinsic::FloatNeg {
+                    let mode = if builtin == Builtin::FloatNeg {
                         MachineMode::Float32
                     } else {
                         MachineMode::Float64
@@ -625,15 +625,15 @@ where
                     self.asm.float_neg(mode, dest, dest);
                 }
 
-                Intrinsic::ByteNot => {
+                Builtin::ByteNot => {
                     let dest = dest.reg();
                     self.asm.int_not(MachineMode::Int8, dest, dest)
                 }
 
-                Intrinsic::IntNot | Intrinsic::LongNot => {
+                Builtin::IntNot | Builtin::LongNot => {
                     let dest = dest.reg();
 
-                    let mode = if intrinsic == Intrinsic::IntNot {
+                    let mode = if builtin == Builtin::IntNot {
                         MachineMode::Int32
                     } else {
                         MachineMode::Int64
@@ -642,12 +642,12 @@ where
                     self.asm.int_not(mode, dest, dest);
                 }
 
-                Intrinsic::BoolNot => {
+                Builtin::BoolNot => {
                     let dest = dest.reg();
                     self.asm.bool_not(dest, dest)
                 }
 
-                _ => panic!("unexpected intrinsic {:?}", intrinsic),
+                _ => panic!("unexpected builtin {:?}", builtin),
             }
         } else {
             self.emit_call_site_id(e.id, e.pos, dest);
@@ -658,9 +658,9 @@ where
         if e.lhs.is_array() {
             let array = e.lhs.to_array().unwrap();
 
-            if let Some(intrinsic) = self.intrinsic(e.id) {
-                match intrinsic {
-                    Intrinsic::GenericArraySet => {
+            if let Some(builtin) = self.builtin(e.id) {
+                match builtin {
+                    Builtin::GenericArraySet => {
                         let ty = self.ty(array.id);
                         self.emit_array_set(
                             e.pos,
@@ -672,7 +672,7 @@ where
                         )
                     }
 
-                    Intrinsic::StrSet => self.emit_array_set(
+                    Builtin::StrSet => self.emit_array_set(
                         e.pos,
                         BuiltinType::Byte,
                         MachineMode::Int8,
@@ -681,7 +681,7 @@ where
                         &e.rhs,
                     ),
 
-                    _ => panic!("unexpected intrinsic {:?}", intrinsic),
+                    _ => panic!("unexpected builtin {:?}", builtin),
                 }
             } else {
                 self.emit_call_site_id(e.id, e.pos, REG_RESULT.into());
@@ -775,8 +775,8 @@ where
     }
 
     fn emit_bin(&mut self, e: &'ast ExprBinType, dest: ExprStore) {
-        if let Some(intrinsic) = self.intrinsic(e.id) {
-            self.emit_intrinsic_bin(&e.lhs, &e.rhs, dest, intrinsic, Some(e.op));
+        if let Some(builtin) = self.builtin(e.id) {
+            self.emit_intrinsic_bin(&e.lhs, &e.rhs, dest, builtin, Some(e.op));
         } else if e.op == BinOp::Cmp(CmpOp::Is) || e.op == BinOp::Cmp(CmpOp::IsNot) {
             self.emit_bin_is(e, dest.reg());
         } else if e.op == BinOp::Or {
@@ -939,15 +939,15 @@ where
     }
 
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: ExprStore) {
-        if let Some(intrinsic) = self.intrinsic(e.id) {
-            match intrinsic {
-                Intrinsic::GenericArrayLen => self.emit_intrinsic_len(e, dest.reg()),
-                Intrinsic::Assert => self.emit_intrinsic_assert(e, dest.reg()),
-                Intrinsic::Debug => self.emit_intrinsic_debug(),
-                Intrinsic::Shl => self.emit_intrinsic_shl(e, dest.reg()),
-                Intrinsic::SetUint8 => self.emit_set_uint8(e, dest.reg()),
-                Intrinsic::StrLen => self.emit_intrinsic_len(e, dest.reg()),
-                Intrinsic::StrGet => self.emit_array_get(
+        if let Some(builtin) = self.builtin(e.id) {
+            match builtin {
+                Builtin::GenericArrayLen => self.emit_intrinsic_len(e, dest.reg()),
+                Builtin::Assert => self.emit_intrinsic_assert(e, dest.reg()),
+                Builtin::Debug => self.emit_intrinsic_debug(),
+                Builtin::Shl => self.emit_intrinsic_shl(e, dest.reg()),
+                Builtin::SetUint8 => self.emit_set_uint8(e, dest.reg()),
+                Builtin::StrLen => self.emit_intrinsic_len(e, dest.reg()),
+                Builtin::StrGet => self.emit_array_get(
                     e.pos,
                     MachineMode::Int8,
                     e.object.as_ref().unwrap(),
@@ -955,122 +955,122 @@ where
                     dest,
                 ),
 
-                Intrinsic::BoolToInt | Intrinsic::ByteToInt => {
+                Builtin::BoolToInt | Builtin::ByteToInt => {
                     self.emit_intrinsic_byte_to_int(e, dest.reg())
                 }
-                Intrinsic::BoolToLong | Intrinsic::ByteToLong => {
+                Builtin::BoolToLong | Builtin::ByteToLong => {
                     self.emit_intrinsic_byte_to_long(e, dest.reg())
                 }
-                Intrinsic::LongToByte => self.emit_intrinsic_long_to_byte(e, dest.reg()),
-                Intrinsic::LongToChar | Intrinsic::LongToInt => {
+                Builtin::LongToByte => self.emit_intrinsic_long_to_byte(e, dest.reg()),
+                Builtin::LongToChar | Builtin::LongToInt => {
                     self.emit_intrinsic_long_to_int(e, dest.reg())
                 }
-                Intrinsic::LongToFloat => {
-                    self.emit_intrinsic_int_to_float(e, dest.freg(), intrinsic)
+                Builtin::LongToFloat => {
+                    self.emit_intrinsic_int_to_float(e, dest.freg(), builtin)
                 }
-                Intrinsic::LongToDouble => {
-                    self.emit_intrinsic_int_to_float(e, dest.freg(), intrinsic)
-                }
-
-                Intrinsic::LongAsDouble => {
-                    self.emit_intrinsic_int_as_float(e, dest.freg(), intrinsic)
+                Builtin::LongToDouble => {
+                    self.emit_intrinsic_int_to_float(e, dest.freg(), builtin)
                 }
 
-                Intrinsic::FloatToInt => self.emit_intrinsic_float_to_int(e, dest.reg(), intrinsic),
-                Intrinsic::FloatToLong => {
-                    self.emit_intrinsic_float_to_int(e, dest.reg(), intrinsic)
+                Builtin::LongAsDouble => {
+                    self.emit_intrinsic_int_as_float(e, dest.freg(), builtin)
                 }
-                Intrinsic::FloatToDouble => self.emit_intrinsic_float_to_double(e, dest.freg()),
-                Intrinsic::FloatAsInt => self.emit_intrinsic_float_as_int(e, dest.reg(), intrinsic),
 
-                Intrinsic::DoubleToInt => {
-                    self.emit_intrinsic_float_to_int(e, dest.reg(), intrinsic)
+                Builtin::FloatToInt => self.emit_intrinsic_float_to_int(e, dest.reg(), builtin),
+                Builtin::FloatToLong => {
+                    self.emit_intrinsic_float_to_int(e, dest.reg(), builtin)
                 }
-                Intrinsic::DoubleToLong => {
-                    self.emit_intrinsic_float_to_int(e, dest.reg(), intrinsic)
-                }
-                Intrinsic::DoubleToFloat => self.emit_intrinsic_double_to_float(e, dest.freg()),
-                Intrinsic::DoubleAsLong => self.emit_intrinsic_float_as_int(e, dest.reg(), intrinsic),
+                Builtin::FloatToDouble => self.emit_intrinsic_float_to_double(e, dest.freg()),
+                Builtin::FloatAsInt => self.emit_intrinsic_float_as_int(e, dest.reg(), builtin),
 
-                Intrinsic::CharToInt | Intrinsic::IntToChar => {
+                Builtin::DoubleToInt => {
+                    self.emit_intrinsic_float_to_int(e, dest.reg(), builtin)
+                }
+                Builtin::DoubleToLong => {
+                    self.emit_intrinsic_float_to_int(e, dest.reg(), builtin)
+                }
+                Builtin::DoubleToFloat => self.emit_intrinsic_double_to_float(e, dest.freg()),
+                Builtin::DoubleAsLong => self.emit_intrinsic_float_as_int(e, dest.reg(), builtin),
+
+                Builtin::CharToInt | Builtin::IntToChar => {
                     self.emit_expr(e.object.as_ref().unwrap(), dest);
                 }
 
-                Intrinsic::CharToLong => self.emit_intrinsic_int_to_long(e, dest.reg()),
-                Intrinsic::CharEq => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::CharCmp => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Builtin::CharToLong => self.emit_intrinsic_int_to_long(e, dest.reg()),
+                Builtin::CharEq => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::CharCmp => self.emit_intrinsic_bin_call(e, dest, builtin),
 
-                Intrinsic::IntToByte => self.emit_intrinsic_int_to_byte(e, dest.reg()),
-                Intrinsic::IntToLong => self.emit_intrinsic_int_to_long(e, dest.reg()),
-                Intrinsic::IntToFloat => {
-                    self.emit_intrinsic_int_to_float(e, dest.freg(), intrinsic)
+                Builtin::IntToByte => self.emit_intrinsic_int_to_byte(e, dest.reg()),
+                Builtin::IntToLong => self.emit_intrinsic_int_to_long(e, dest.reg()),
+                Builtin::IntToFloat => {
+                    self.emit_intrinsic_int_to_float(e, dest.freg(), builtin)
                 }
-                Intrinsic::IntToDouble => {
-                    self.emit_intrinsic_int_to_float(e, dest.freg(), intrinsic)
-                }
-
-                Intrinsic::IntAsFloat => {
-                    self.emit_intrinsic_int_as_float(e, dest.freg(), intrinsic)
+                Builtin::IntToDouble => {
+                    self.emit_intrinsic_int_to_float(e, dest.freg(), builtin)
                 }
 
-                Intrinsic::ByteEq => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::ByteCmp => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::ByteNot => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Builtin::IntAsFloat => {
+                    self.emit_intrinsic_int_as_float(e, dest.freg(), builtin)
+                }
 
-                Intrinsic::BoolEq => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::BoolNot => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Builtin::ByteEq => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::ByteCmp => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::ByteNot => self.emit_intrinsic_bin_call(e, dest, builtin),
 
-                Intrinsic::IntEq => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::IntCmp => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Builtin::BoolEq => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::BoolNot => self.emit_intrinsic_bin_call(e, dest, builtin),
 
-                Intrinsic::IntAdd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::IntSub => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::IntMul => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::IntDiv => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::IntMod => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Builtin::IntEq => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::IntCmp => self.emit_intrinsic_bin_call(e, dest, builtin),
 
-                Intrinsic::IntOr => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::IntAnd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::IntXor => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Builtin::IntAdd => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::IntSub => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::IntMul => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::IntDiv => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::IntMod => self.emit_intrinsic_bin_call(e, dest, builtin),
 
-                Intrinsic::IntShl => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::IntSar => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::IntShr => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Builtin::IntOr => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::IntAnd => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::IntXor => self.emit_intrinsic_bin_call(e, dest, builtin),
 
-                Intrinsic::LongEq => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::LongCmp => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Builtin::IntShl => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::IntSar => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::IntShr => self.emit_intrinsic_bin_call(e, dest, builtin),
 
-                Intrinsic::LongAdd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::LongSub => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::LongMul => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::LongDiv => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::LongMod => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Builtin::LongEq => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::LongCmp => self.emit_intrinsic_bin_call(e, dest, builtin),
 
-                Intrinsic::LongOr => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::LongAnd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::LongXor => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Builtin::LongAdd => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::LongSub => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::LongMul => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::LongDiv => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::LongMod => self.emit_intrinsic_bin_call(e, dest, builtin),
 
-                Intrinsic::LongShl => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::LongSar => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::LongShr => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Builtin::LongOr => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::LongAnd => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::LongXor => self.emit_intrinsic_bin_call(e, dest, builtin),
 
-                Intrinsic::FloatAdd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::FloatSub => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::FloatMul => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::FloatDiv => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::FloatIsNan => self.emit_intrinsic_is_nan(e, dest.reg(), intrinsic),
-                Intrinsic::FloatSqrt => self.emit_intrinsic_sqrt(e, dest.freg(), intrinsic),
+                Builtin::LongShl => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::LongSar => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::LongShr => self.emit_intrinsic_bin_call(e, dest, builtin),
 
-                Intrinsic::DoubleAdd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::DoubleSub => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::DoubleMul => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::DoubleDiv => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::DoubleIsNan => self.emit_intrinsic_is_nan(e, dest.reg(), intrinsic),
-                Intrinsic::DoubleSqrt => self.emit_intrinsic_sqrt(e, dest.freg(), intrinsic),
+                Builtin::FloatAdd => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::FloatSub => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::FloatMul => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::FloatDiv => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::FloatIsNan => self.emit_intrinsic_is_nan(e, dest.reg(), builtin),
+                Builtin::FloatSqrt => self.emit_intrinsic_sqrt(e, dest.freg(), builtin),
 
-                Intrinsic::DefaultValue => self.emit_intrinsic_default_value(e, dest),
+                Builtin::DoubleAdd => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::DoubleSub => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::DoubleMul => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::DoubleDiv => self.emit_intrinsic_bin_call(e, dest, builtin),
+                Builtin::DoubleIsNan => self.emit_intrinsic_is_nan(e, dest.reg(), builtin),
+                Builtin::DoubleSqrt => self.emit_intrinsic_sqrt(e, dest.freg(), builtin),
 
-                _ => panic!("unknown intrinsic {:?}", intrinsic),
+                Builtin::DefaultValue => self.emit_intrinsic_default_value(e, dest),
+
+                _ => panic!("unknown builtin {:?}", builtin),
             }
         } else {
             self.emit_call_site_id(e.id, e.pos, dest);
@@ -1093,12 +1093,12 @@ where
         }
     }
 
-    fn emit_intrinsic_sqrt(&mut self, e: &'ast ExprCallType, dest: FReg, intrinsic: Intrinsic) {
+    fn emit_intrinsic_sqrt(&mut self, e: &'ast ExprCallType, dest: FReg, builtin: Builtin) {
         self.emit_expr(e.object.as_ref().unwrap(), dest.into());
 
-        let mode = match intrinsic {
-            Intrinsic::FloatSqrt => MachineMode::Float32,
-            Intrinsic::DoubleSqrt => MachineMode::Float64,
+        let mode = match builtin {
+            Builtin::FloatSqrt => MachineMode::Float32,
+            Builtin::DoubleSqrt => MachineMode::Float64,
             _ => unreachable!(),
         };
 
@@ -1218,12 +1218,12 @@ where
             .store_mem(MachineMode::Int8, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
     }
 
-    fn emit_intrinsic_is_nan(&mut self, e: &'ast ExprCallType, dest: Reg, intrinsic: Intrinsic) {
+    fn emit_intrinsic_is_nan(&mut self, e: &'ast ExprCallType, dest: Reg, builtin: Builtin) {
         self.emit_expr(&e.object.as_ref().unwrap(), FREG_RESULT.into());
 
-        let mode = match intrinsic {
-            Intrinsic::FloatIsNan => MachineMode::Float32,
-            Intrinsic::DoubleIsNan => MachineMode::Float64,
+        let mode = match builtin {
+            Builtin::FloatIsNan => MachineMode::Float32,
+            Builtin::DoubleIsNan => MachineMode::Float64,
             _ => unreachable!(),
         };
 
@@ -1301,15 +1301,15 @@ where
         &mut self,
         e: &'ast ExprCallType,
         dest: FReg,
-        intrinsic: Intrinsic,
+        builtin: Builtin,
     ) {
         self.emit_expr(e.object.as_ref().unwrap(), REG_RESULT.into());
 
-        let (src_mode, dest_mode) = match intrinsic {
-            Intrinsic::IntToFloat => (MachineMode::Int32, MachineMode::Float32),
-            Intrinsic::IntToDouble => (MachineMode::Int32, MachineMode::Float64),
-            Intrinsic::LongToFloat => (MachineMode::Int64, MachineMode::Float32),
-            Intrinsic::LongToDouble => (MachineMode::Int64, MachineMode::Float64),
+        let (src_mode, dest_mode) = match builtin {
+            Builtin::IntToFloat => (MachineMode::Int32, MachineMode::Float32),
+            Builtin::IntToDouble => (MachineMode::Int32, MachineMode::Float64),
+            Builtin::LongToFloat => (MachineMode::Int64, MachineMode::Float32),
+            Builtin::LongToDouble => (MachineMode::Int64, MachineMode::Float64),
             _ => unreachable!(),
         };
 
@@ -1320,15 +1320,15 @@ where
         &mut self,
         e: &'ast ExprCallType,
         dest: Reg,
-        intrinsic: Intrinsic,
+        builtin: Builtin,
     ) {
         self.emit_expr(e.object.as_ref().unwrap(), FREG_RESULT.into());
 
-        let (src_mode, dest_mode) = match intrinsic {
-            Intrinsic::FloatToInt => (MachineMode::Float32, MachineMode::Int32),
-            Intrinsic::FloatToLong => (MachineMode::Float32, MachineMode::Int64),
-            Intrinsic::DoubleToInt => (MachineMode::Float64, MachineMode::Int32),
-            Intrinsic::DoubleToLong => (MachineMode::Float64, MachineMode::Int64),
+        let (src_mode, dest_mode) = match builtin {
+            Builtin::FloatToInt => (MachineMode::Float32, MachineMode::Int32),
+            Builtin::FloatToLong => (MachineMode::Float32, MachineMode::Int64),
+            Builtin::DoubleToInt => (MachineMode::Float64, MachineMode::Int32),
+            Builtin::DoubleToLong => (MachineMode::Float64, MachineMode::Int64),
             _ => unreachable!(),
         };
 
@@ -1340,13 +1340,13 @@ where
         &mut self,
         e: &'ast ExprCallType,
         dest: Reg,
-        intrinsic: Intrinsic,
+        builtin: Builtin,
     ) {
         self.emit_expr(e.object.as_ref().unwrap(), FREG_RESULT.into());
 
-        let (src_mode, dest_mode) = match intrinsic {
-            Intrinsic::FloatAsInt => (MachineMode::Float32, MachineMode::Int32),
-            Intrinsic::DoubleAsLong => (MachineMode::Float64, MachineMode::Int64),
+        let (src_mode, dest_mode) = match builtin {
+            Builtin::FloatAsInt => (MachineMode::Float32, MachineMode::Int32),
+            Builtin::DoubleAsLong => (MachineMode::Float64, MachineMode::Int64),
             _ => unreachable!(),
         };
 
@@ -1358,13 +1358,13 @@ where
         &mut self,
         e: &'ast ExprCallType,
         dest: FReg,
-        intrinsic: Intrinsic,
+        builtin: Builtin,
     ) {
         self.emit_expr(e.object.as_ref().unwrap(), REG_RESULT.into());
 
-        let (src_mode, dest_mode) = match intrinsic {
-            Intrinsic::IntAsFloat => (MachineMode::Int32, MachineMode::Float32),
-            Intrinsic::LongAsDouble => (MachineMode::Int64, MachineMode::Float64),
+        let (src_mode, dest_mode) = match builtin {
+            Builtin::IntAsFloat => (MachineMode::Int32, MachineMode::Float32),
+            Builtin::LongAsDouble => (MachineMode::Int64, MachineMode::Float64),
             _ => unreachable!(),
         };
 
@@ -1381,11 +1381,11 @@ where
         self.asm.extend_byte(MachineMode::Int64, dest, dest);
     }
 
-    fn emit_intrinsic_bin_call(&mut self, e: &'ast ExprCallType, dest: ExprStore, intr: Intrinsic) {
+    fn emit_intrinsic_bin_call(&mut self, e: &'ast ExprCallType, dest: ExprStore, builtin: Builtin) {
         let lhs = e.object.as_ref().unwrap();
         let rhs = &e.args[0];
 
-        self.emit_intrinsic_bin(lhs, rhs, dest, intr, None);
+        self.emit_intrinsic_bin(lhs, rhs, dest, builtin, None);
     }
 
     fn emit_intrinsic_bin(
@@ -1393,7 +1393,7 @@ where
         lhs: &'ast Expr,
         rhs: &'ast Expr,
         dest: ExprStore,
-        intr: Intrinsic,
+        builtin: Builtin,
         op: Option<BinOp>,
     ) {
         let mode = self.ty(lhs.id()).mode();
@@ -1417,12 +1417,12 @@ where
             let lhs_reg = lhs_reg.freg();
             let rhs_reg = rhs_reg.freg();
 
-            self.emit_intrinsic_float(dest, lhs_reg, rhs_reg, intr, op);
+            self.emit_intrinsic_float(dest, lhs_reg, rhs_reg, builtin, op);
         } else {
             let lhs_reg = lhs_reg.reg();
             let rhs_reg = rhs_reg.reg();
 
-            self.emit_intrinsic_int(dest.reg(), lhs_reg, rhs_reg, intr, op);
+            self.emit_intrinsic_int(dest.reg(), lhs_reg, rhs_reg, builtin, op);
         }
 
         self.free_temp_for_node(lhs, offset);
@@ -1433,16 +1433,16 @@ where
         dest: Reg,
         lhs: Reg,
         rhs: Reg,
-        intr: Intrinsic,
+        builtin: Builtin,
         op: Option<BinOp>,
     ) {
-        match intr {
-            Intrinsic::ByteEq
-            | Intrinsic::BoolEq
-            | Intrinsic::CharEq
-            | Intrinsic::IntEq
-            | Intrinsic::LongEq => {
-                let mode = if intr == Intrinsic::LongEq {
+        match builtin {
+            Builtin::ByteEq
+            | Builtin::BoolEq
+            | Builtin::CharEq
+            | Builtin::IntEq
+            | Builtin::LongEq => {
+                let mode = if builtin == Builtin::LongEq {
                     MachineMode::Int64
                 } else {
                     MachineMode::Int32
@@ -1457,8 +1457,8 @@ where
                 self.asm.set(dest, cond_code);
             }
 
-            Intrinsic::ByteCmp | Intrinsic::CharCmp | Intrinsic::IntCmp | Intrinsic::LongCmp => {
-                let mode = if intr == Intrinsic::LongCmp {
+            Builtin::ByteCmp | Builtin::CharCmp | Builtin::IntCmp | Builtin::LongCmp => {
+                let mode = if builtin == Builtin::LongCmp {
                     MachineMode::Int64
                 } else {
                     MachineMode::Int32
@@ -1474,35 +1474,35 @@ where
                 }
             }
 
-            Intrinsic::IntAdd => self.asm.int_add(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntSub => self.asm.int_sub(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntMul => self.asm.int_mul(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntDiv => self.asm.int_div(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntMod => self.asm.int_mod(MachineMode::Int32, dest, lhs, rhs),
+            Builtin::IntAdd => self.asm.int_add(MachineMode::Int32, dest, lhs, rhs),
+            Builtin::IntSub => self.asm.int_sub(MachineMode::Int32, dest, lhs, rhs),
+            Builtin::IntMul => self.asm.int_mul(MachineMode::Int32, dest, lhs, rhs),
+            Builtin::IntDiv => self.asm.int_div(MachineMode::Int32, dest, lhs, rhs),
+            Builtin::IntMod => self.asm.int_mod(MachineMode::Int32, dest, lhs, rhs),
 
-            Intrinsic::IntOr => self.asm.int_or(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntAnd => self.asm.int_and(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntXor => self.asm.int_xor(MachineMode::Int32, dest, lhs, rhs),
+            Builtin::IntOr => self.asm.int_or(MachineMode::Int32, dest, lhs, rhs),
+            Builtin::IntAnd => self.asm.int_and(MachineMode::Int32, dest, lhs, rhs),
+            Builtin::IntXor => self.asm.int_xor(MachineMode::Int32, dest, lhs, rhs),
 
-            Intrinsic::IntShl => self.asm.int_shl(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntSar => self.asm.int_sar(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntShr => self.asm.int_shr(MachineMode::Int32, dest, lhs, rhs),
+            Builtin::IntShl => self.asm.int_shl(MachineMode::Int32, dest, lhs, rhs),
+            Builtin::IntSar => self.asm.int_sar(MachineMode::Int32, dest, lhs, rhs),
+            Builtin::IntShr => self.asm.int_shr(MachineMode::Int32, dest, lhs, rhs),
 
-            Intrinsic::LongAdd => self.asm.int_add(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongSub => self.asm.int_sub(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongMul => self.asm.int_mul(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongDiv => self.asm.int_div(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongMod => self.asm.int_mod(MachineMode::Int64, dest, lhs, rhs),
+            Builtin::LongAdd => self.asm.int_add(MachineMode::Int64, dest, lhs, rhs),
+            Builtin::LongSub => self.asm.int_sub(MachineMode::Int64, dest, lhs, rhs),
+            Builtin::LongMul => self.asm.int_mul(MachineMode::Int64, dest, lhs, rhs),
+            Builtin::LongDiv => self.asm.int_div(MachineMode::Int64, dest, lhs, rhs),
+            Builtin::LongMod => self.asm.int_mod(MachineMode::Int64, dest, lhs, rhs),
 
-            Intrinsic::LongOr => self.asm.int_or(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongAnd => self.asm.int_and(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongXor => self.asm.int_xor(MachineMode::Int64, dest, lhs, rhs),
+            Builtin::LongOr => self.asm.int_or(MachineMode::Int64, dest, lhs, rhs),
+            Builtin::LongAnd => self.asm.int_and(MachineMode::Int64, dest, lhs, rhs),
+            Builtin::LongXor => self.asm.int_xor(MachineMode::Int64, dest, lhs, rhs),
 
-            Intrinsic::LongShl => self.asm.int_shl(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongSar => self.asm.int_sar(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongShr => self.asm.int_shr(MachineMode::Int64, dest, lhs, rhs),
+            Builtin::LongShl => self.asm.int_shl(MachineMode::Int64, dest, lhs, rhs),
+            Builtin::LongSar => self.asm.int_sar(MachineMode::Int64, dest, lhs, rhs),
+            Builtin::LongShr => self.asm.int_shr(MachineMode::Int64, dest, lhs, rhs),
 
-            _ => panic!("unexpected intrinsic {:?}", intr),
+            _ => panic!("unexpected builtin {:?}", builtin),
         }
     }
 
@@ -1511,14 +1511,14 @@ where
         dest: ExprStore,
         lhs: FReg,
         rhs: FReg,
-        intr: Intrinsic,
+        builtin: Builtin,
         op: Option<BinOp>,
     ) {
         use ty::MachineMode::{Float32, Float64};
 
-        match intr {
-            Intrinsic::FloatEq | Intrinsic::DoubleEq => {
-                let mode = if intr == Intrinsic::DoubleEq {
+        match builtin {
+            Builtin::FloatEq | Builtin::DoubleEq => {
+                let mode = if builtin == Builtin::DoubleEq {
                     Float64
                 } else {
                     Float32
@@ -1532,8 +1532,8 @@ where
                 self.asm.float_cmp(mode, dest.reg(), lhs, rhs, cond_code);
             }
 
-            Intrinsic::FloatCmp | Intrinsic::DoubleCmp => {
-                let mode = if intr == Intrinsic::DoubleCmp {
+            Builtin::FloatCmp | Builtin::DoubleCmp => {
+                let mode = if builtin == Builtin::DoubleCmp {
                     Float64
                 } else {
                     Float32
@@ -1548,17 +1548,17 @@ where
                 }
             }
 
-            Intrinsic::FloatAdd => self.asm.float_add(Float32, dest.freg(), lhs, rhs),
-            Intrinsic::FloatSub => self.asm.float_sub(Float32, dest.freg(), lhs, rhs),
-            Intrinsic::FloatMul => self.asm.float_mul(Float32, dest.freg(), lhs, rhs),
-            Intrinsic::FloatDiv => self.asm.float_div(Float32, dest.freg(), lhs, rhs),
+            Builtin::FloatAdd => self.asm.float_add(Float32, dest.freg(), lhs, rhs),
+            Builtin::FloatSub => self.asm.float_sub(Float32, dest.freg(), lhs, rhs),
+            Builtin::FloatMul => self.asm.float_mul(Float32, dest.freg(), lhs, rhs),
+            Builtin::FloatDiv => self.asm.float_div(Float32, dest.freg(), lhs, rhs),
 
-            Intrinsic::DoubleAdd => self.asm.float_add(Float64, dest.freg(), lhs, rhs),
-            Intrinsic::DoubleSub => self.asm.float_sub(Float64, dest.freg(), lhs, rhs),
-            Intrinsic::DoubleMul => self.asm.float_mul(Float64, dest.freg(), lhs, rhs),
-            Intrinsic::DoubleDiv => self.asm.float_div(Float64, dest.freg(), lhs, rhs),
+            Builtin::DoubleAdd => self.asm.float_add(Float64, dest.freg(), lhs, rhs),
+            Builtin::DoubleSub => self.asm.float_sub(Float64, dest.freg(), lhs, rhs),
+            Builtin::DoubleMul => self.asm.float_mul(Float64, dest.freg(), lhs, rhs),
+            Builtin::DoubleDiv => self.asm.float_div(Float64, dest.freg(), lhs, rhs),
 
-            _ => panic!("unexpected intrinsic {:?}", intr),
+            _ => panic!("unexpected builtin {:?}", builtin),
         }
     }
 

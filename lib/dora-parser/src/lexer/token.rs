@@ -62,6 +62,7 @@ pub enum TokenKind {
 
     // Modifiers
     Abstract,
+    Native,
     Open,
     Override,
     Optimize,
@@ -91,7 +92,6 @@ pub enum TokenKind {
     Caret,
     And,
     Or,
-    Internal,
 
     Eq,
     EqEq,
@@ -184,6 +184,7 @@ impl TokenKind {
 
             // Modifiers
             TokenKind::Abstract => "abstract",
+            TokenKind::Native => "native",
             TokenKind::Open => "open",
             TokenKind::Override => "override",
             TokenKind::Optimize => "optimize",
@@ -213,7 +214,6 @@ impl TokenKind {
             TokenKind::Caret => "^",
             TokenKind::And => "&&",
             TokenKind::Or => "||",
-            TokenKind::Internal => "internal",
 
             TokenKind::Eq => "=",
             TokenKind::EqEq => "==",

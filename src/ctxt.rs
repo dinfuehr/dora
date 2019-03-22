@@ -865,7 +865,7 @@ pub enum FctKind {
     Source(RwLock<FctSrc>),
     Definition,
     Native(Address),
-    Builtin(Intrinsic),
+    Builtin(Builtin),
 }
 
 impl FctKind {
@@ -876,7 +876,7 @@ impl FctKind {
         }
     }
 
-    pub fn is_intrinsic(&self) -> bool {
+    pub fn is_builtin(&self) -> bool {
         match *self {
             FctKind::Builtin(_) => true,
             _ => false,
@@ -892,7 +892,7 @@ impl FctKind {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Intrinsic {
+pub enum Builtin {
     GenericArrayCtorEmpty,
     GenericArrayCtorElem,
     GenericArrayLen,

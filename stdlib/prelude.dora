@@ -1,6 +1,6 @@
-internal fun fatalError(msg: String);
-internal fun abort();
-internal fun exit(status: int);
+native fun fatalError(msg: String);
+native fun abort();
+native fun exit(status: int);
 fun unreachable() {
   fatalError("unreachable code");
 }
@@ -9,24 +9,24 @@ fun unimplemented() {
   fatalError("not yet implemented");
 }
 
-internal fun print(text: String);
-internal fun println(text: String);
-internal fun addressOf(object: Object) -> long;
-internal fun assert(val: bool);
-internal fun debug();
-internal fun argc() -> int;
-internal fun argv(idx: int) -> String;
-internal fun forceCollect();
-internal fun forceMinorCollect();
+native fun print(text: String);
+native fun println(text: String);
+native fun addressOf(object: Object) -> long;
+native fun assert(val: bool);
+native fun debug();
+native fun argc() -> int;
+native fun argv(idx: int) -> String;
+native fun forceCollect();
+native fun forceMinorCollect();
 
-internal fun call(fct: String);
-internal fun throwFromNative(val: bool) throws;
-internal fun throwFromNativeButNotThrows(val: bool);
+native fun call(fct: String);
+native fun throwFromNative(val: bool) throws;
+native fun throwFromNativeButNotThrows(val: bool);
 
-internal fun timestamp() -> long;
+native fun timestamp() -> long;
 
-internal class bool {
-  internal fun toInt() -> int;
+native class bool {
+  native fun toInt() -> int;
   fun toString() -> String {
     if self {
       return "true";
@@ -35,26 +35,26 @@ internal class bool {
     }
   }
 
-  internal fun equals(rhs: bool) -> bool;
-  internal fun not() -> bool;
+  native fun equals(rhs: bool) -> bool;
+  native fun not() -> bool;
 }
 
-internal class byte {
-  internal fun toInt() -> int;
-  internal fun toLong() -> long;
-  internal fun toString() -> String;
+native class byte {
+  native fun toInt() -> int;
+  native fun toLong() -> long;
+  native fun toString() -> String;
 
-  internal fun equals(rhs: byte) -> bool;
-  internal fun compareTo(rhs: byte) -> int;
+  native fun equals(rhs: byte) -> bool;
+  native fun compareTo(rhs: byte) -> int;
 }
 
-internal class char {
-  internal fun toInt() -> int;
-  internal fun toLong() -> long;
-  internal fun toString() -> String;
+native class char {
+  native fun toInt() -> int;
+  native fun toLong() -> long;
+  native fun toString() -> String;
 
-  internal fun equals(rhs: char) -> bool;
-  internal fun compareTo(rhs: char) -> int;
+  native fun equals(rhs: char) -> bool;
+  native fun compareTo(rhs: char) -> int;
 
   fun encodeUtf8(bytes: Array<byte>, offset: int) {
     let val = self.toInt();
@@ -91,8 +91,8 @@ internal class char {
   }
 }
 
-internal class int {
-  internal fun toByte() -> byte;
+native class int {
+  native fun toByte() -> byte;
   fun toChar() throws -> char {
     if self >= 0 && self <= 0x10FFFF && (self < 0xD800 || self > 0xDFFF) {
       return self.toCharUnchecked();
@@ -100,35 +100,35 @@ internal class int {
       throw "invalid code point";
     }
   }
-  internal fun toCharUnchecked() -> char;
-  internal fun toLong() -> long;
-  internal fun toString() -> String;
+  native fun toCharUnchecked() -> char;
+  native fun toLong() -> long;
+  native fun toString() -> String;
 
-  internal fun toFloat() -> float;
-  internal fun toDouble() -> double;
+  native fun toFloat() -> float;
+  native fun toDouble() -> double;
 
-  internal fun asFloat() -> float;
+  native fun asFloat() -> float;
 
-  internal fun equals(rhs: int) -> bool;
-  internal fun compareTo(rhs: int) -> int;
+  native fun equals(rhs: int) -> bool;
+  native fun compareTo(rhs: int) -> int;
 
-  internal fun plus(rhs: int) -> int;
-  internal fun minus(rhs: int) -> int;
-  internal fun times(rhs: int) -> int;
-  internal fun div(rhs: int) -> int;
-  internal fun mod(rhs: int) -> int;
+  native fun plus(rhs: int) -> int;
+  native fun minus(rhs: int) -> int;
+  native fun times(rhs: int) -> int;
+  native fun div(rhs: int) -> int;
+  native fun mod(rhs: int) -> int;
 
-  internal fun bitwiseOr(rhs: int) -> int;
-  internal fun bitwiseAnd(rhs: int) -> int;
-  internal fun bitwiseXor(rhs: int) -> int;
+  native fun bitwiseOr(rhs: int) -> int;
+  native fun bitwiseAnd(rhs: int) -> int;
+  native fun bitwiseXor(rhs: int) -> int;
 
-  internal fun shiftLeft(rhs: int) -> int;
-  internal fun shiftRight(rhs: int) -> int;
-  internal fun unsignedShiftRight(rhs: int) -> int;
+  native fun shiftLeft(rhs: int) -> int;
+  native fun shiftRight(rhs: int) -> int;
+  native fun unsignedShiftRight(rhs: int) -> int;
 
-  internal fun unaryPlus() -> int;
-  internal fun unaryMinus() -> int;
-  internal fun not() -> int;
+  native fun unaryPlus() -> int;
+  native fun unaryMinus() -> int;
+  native fun not() -> int;
 
   fun abs() -> int {
     if self >= 0 {
@@ -163,8 +163,8 @@ internal class int {
   }
 }
 
-internal class long {
-  internal fun toByte() -> byte;
+native class long {
+  native fun toByte() -> byte;
   fun toChar() throws -> char {
     if self >= 0L && self <= 0x10FFFFL && (self < 0xD800L || self > 0xDFFFL) {
       return self.toCharUnchecked();
@@ -172,35 +172,35 @@ internal class long {
       throw "invalid code point";
     }
   }
-  internal fun toCharUnchecked() -> char;
-  internal fun toInt() -> int;
-  internal fun toString() -> String;
+  native fun toCharUnchecked() -> char;
+  native fun toInt() -> int;
+  native fun toString() -> String;
 
-  internal fun toFloat() -> float;
-  internal fun toDouble() -> double;
+  native fun toFloat() -> float;
+  native fun toDouble() -> double;
 
-  internal fun asDouble() -> double;
+  native fun asDouble() -> double;
 
-  internal fun equals(rhs: long) -> bool;
-  internal fun compareTo(rhs: long) -> int;
+  native fun equals(rhs: long) -> bool;
+  native fun compareTo(rhs: long) -> int;
 
-  internal fun plus(rhs: long) -> long;
-  internal fun minus(rhs: long) -> long;
-  internal fun times(rhs: long) -> long;
-  internal fun div(rhs: long) -> long;
-  internal fun mod(rhs: long) -> long;
+  native fun plus(rhs: long) -> long;
+  native fun minus(rhs: long) -> long;
+  native fun times(rhs: long) -> long;
+  native fun div(rhs: long) -> long;
+  native fun mod(rhs: long) -> long;
 
-  internal fun bitwiseOr(rhs: long) -> long;
-  internal fun bitwiseAnd(rhs: long) -> long;
-  internal fun bitwiseXor(rhs: long) -> long;
+  native fun bitwiseOr(rhs: long) -> long;
+  native fun bitwiseAnd(rhs: long) -> long;
+  native fun bitwiseXor(rhs: long) -> long;
 
-  internal fun shiftLeft(rhs: long) -> long;
-  internal fun shiftRight(rhs: long) -> long;
-  internal fun unsignedShiftRight(rhs: long) -> long;
+  native fun shiftLeft(rhs: long) -> long;
+  native fun shiftRight(rhs: long) -> long;
+  native fun unsignedShiftRight(rhs: long) -> long;
 
-  internal fun unaryPlus() -> long;
-  internal fun unaryMinus() -> long;
-  internal fun not() -> long;
+  native fun unaryPlus() -> long;
+  native fun unaryMinus() -> long;
+  native fun not() -> long;
 
   static fun max_value() -> long {
     return 9223372036854775807L;
@@ -227,55 +227,55 @@ internal class long {
   }
 }
 
-internal class float {
-  internal fun toInt() -> int;
-  internal fun toLong() -> long;
-  internal fun toDouble() -> double;
-  internal fun toString() -> String;
+native class float {
+  native fun toInt() -> int;
+  native fun toLong() -> long;
+  native fun toDouble() -> double;
+  native fun toString() -> String;
 
-  internal fun asInt() -> int;
+  native fun asInt() -> int;
 
-  internal fun equals(rhs: float) -> bool;
-  internal fun compareTo(rhs: float) -> int;
+  native fun equals(rhs: float) -> bool;
+  native fun compareTo(rhs: float) -> int;
 
-  internal fun plus(rhs: float) -> float;
-  internal fun minus(rhs: float) -> float;
-  internal fun times(rhs: float) -> float;
-  internal fun div(rhs: float) -> float;
+  native fun plus(rhs: float) -> float;
+  native fun minus(rhs: float) -> float;
+  native fun times(rhs: float) -> float;
+  native fun div(rhs: float) -> float;
 
-  internal fun unaryPlus() -> float;
-  internal fun unaryMinus() -> float;
+  native fun unaryPlus() -> float;
+  native fun unaryMinus() -> float;
 
-  internal fun isNan() -> bool;
-  internal fun sqrt() -> float;
+  native fun isNan() -> bool;
+  native fun sqrt() -> float;
 }
 
-internal class double {
-  internal fun toInt() -> int;
-  internal fun toLong() -> long;
-  internal fun toFloat() -> float;
-  internal fun toString() -> String;
+native class double {
+  native fun toInt() -> int;
+  native fun toLong() -> long;
+  native fun toFloat() -> float;
+  native fun toString() -> String;
 
-  internal fun asLong() -> long;
+  native fun asLong() -> long;
 
-  internal fun equals(rhs: double) -> bool;
-  internal fun compareTo(rhs: double) -> int;
+  native fun equals(rhs: double) -> bool;
+  native fun compareTo(rhs: double) -> int;
 
-  internal fun plus(rhs: double) -> double;
-  internal fun minus(rhs: double) -> double;
-  internal fun times(rhs: double) -> double;
-  internal fun div(rhs: double) -> double;
+  native fun plus(rhs: double) -> double;
+  native fun minus(rhs: double) -> double;
+  native fun times(rhs: double) -> double;
+  native fun div(rhs: double) -> double;
 
-  internal fun unaryPlus() -> double;
-  internal fun unaryMinus() -> double;
+  native fun unaryPlus() -> double;
+  native fun unaryMinus() -> double;
 
-  internal fun isNan() -> bool;
-  internal fun sqrt() -> double;
+  native fun isNan() -> bool;
+  native fun sqrt() -> double;
 }
 
 class Object
 
-internal class Array<T> {
+native class Array<T> {
   init() {}
   init(len: int) {}
   init(len: int, value: T) {
@@ -287,9 +287,9 @@ internal class Array<T> {
     }
   }
 
-  internal fun len() -> int;
-  internal fun get(idx: int) -> T;
-  internal fun set(idx: int, val: T);
+  native fun len() -> int;
+  native fun get(idx: int) -> T;
+  native fun set(idx: int, val: T);
 
   fun contains(value: T /* : Equals*/) -> bool {
     var i = 0;
@@ -333,7 +333,7 @@ trait Equals {
 }
 
 impl Equals for int {
-  internal fun equals(other: int) -> bool;
+  native fun equals(other: int) -> bool;
 }
 
 trait Comparable {
@@ -341,7 +341,7 @@ trait Comparable {
 }
 
 impl Comparable for int {
-  internal fun compareTo(other: int) -> int;
+  native fun compareTo(other: int) -> int;
 }
 
 fun bubbleSort<T: Comparable>(array: Array<T>) {
@@ -368,17 +368,17 @@ fun bubbleSort<T: Comparable>(array: Array<T>) {
 
 }
 
-internal fun defaultValue<T>() -> T;
+native fun defaultValue<T>() -> T;
 
-internal fun loadFunction(name: String) -> long;
-internal fun call0(fct: long) -> long;
-internal fun call1(fct: long, arg0: long) -> long;
-internal fun call2(fct: long, arg0: long, arg1: long) -> long;
-internal fun call3(fct: long, arg0: long, arg1: long, arg2: long) -> long;
+native fun loadFunction(name: String) -> long;
+native fun call0(fct: long) -> long;
+native fun call1(fct: long, arg0: long) -> long;
+native fun call2(fct: long, arg0: long, arg1: long) -> long;
+native fun call3(fct: long, arg0: long, arg1: long, arg2: long) -> long;
 
-internal fun native_malloc(size: long) -> long;
-internal fun native_free(address: long);
-internal fun set_uint8(address: long, val: byte);
+native fun native_malloc(size: long) -> long;
+native fun native_free(address: long);
+native fun set_uint8(address: long, val: byte);
 
 fun native_string(val: String) -> long {
   var i = 0;
@@ -406,7 +406,7 @@ fun getppid() -> int {
   return call0(fct).toInt();
 }
 
-internal fun sleep(seconds: int);
+native fun sleep(seconds: int);
 
 class Exception {
   var msg: String = nil;
@@ -461,8 +461,8 @@ class Exception {
     }
   }
 
-  internal fun retrieveStackTrace();
-  internal fun getStackTraceElement(idx: int) -> StackTraceElement;
+  native fun retrieveStackTrace();
+  native fun getStackTraceElement(idx: int) -> StackTraceElement;
 }
 
 class StackTraceElement(let name: String, let line: int) {
@@ -503,7 +503,7 @@ impl Iterator for IntRangeIter {
 }
 
 open abstract class Thread {
-  internal fun start();
+  native fun start();
 
   abstract fun run();
 }

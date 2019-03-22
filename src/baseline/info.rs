@@ -5,7 +5,7 @@ use class::TypeParams;
 use cpu::*;
 use ctxt::VM;
 use ctxt::{
-    Arg, CallSite, CallType, Fct, FctId, FctKind, FctParent, FctSrc, Intrinsic, NodeMap, Store,
+    Arg, CallSite, CallType, Fct, FctId, FctKind, FctParent, FctSrc, Builtin, NodeMap, Store,
     TraitId, VarId,
 };
 use dora_parser::ast::visit::*;
@@ -64,7 +64,7 @@ pub struct JitInfo<'ast> {
     pub map_offsets: NodeMap<i32>,
     pub map_var_offsets: HashMap<VarId, i32>,
     pub map_var_types: HashMap<VarId, BuiltinType>,
-    pub map_intrinsics: NodeMap<Intrinsic>,
+    pub map_builtins: NodeMap<Builtin>,
     pub map_fors: NodeMap<ForInfo<'ast>>,
 }
 
@@ -107,7 +107,7 @@ impl<'ast> JitInfo<'ast> {
             map_offsets: NodeMap::new(),
             map_var_offsets: HashMap::new(),
             map_var_types: HashMap::new(),
-            map_intrinsics: NodeMap::new(),
+            map_builtins: NodeMap::new(),
             map_fors: NodeMap::new(),
         }
     }
@@ -343,12 +343,12 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn expr_array(&mut self, expr: &'ast ExprArrayType) {
-        if let Some(intrinsic) = self.get_intrinsic(expr.id) {
+        if let Some(builtin) = self.get_builtin(expr.id) {
             self.visit_expr(&expr.object);
             self.visit_expr(&expr.index);
 
             self.reserve_temp_for_node(&expr.object);
-            self.jit_info.map_intrinsics.insert(expr.id, intrinsic);
+            self.jit_info.map_builtins.insert(expr.id, builtin);
         } else {
             let args = vec![
                 Arg::Expr(&expr.object, BuiltinType::Unit, 0),
@@ -376,7 +376,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         }
     }
 
-    fn get_intrinsic(&self, id: NodeId) -> Option<Intrinsic> {
+    fn get_builtin(&self, id: NodeId) -> Option<Builtin> {
         let fid = self.src.map_calls.get(id).unwrap().fct_id();
 
         // the function we compile right now is never an intrinsic
@@ -394,9 +394,9 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn expr_call(&mut self, expr: &'ast ExprCallType) {
-        if let Some(intrinsic) = self.get_intrinsic(expr.id) {
+        if let Some(builtin) = self.get_builtin(expr.id) {
             self.reserve_args(expr);
-            self.jit_info.map_intrinsics.insert(expr.id, intrinsic);
+            self.jit_info.map_builtins.insert(expr.id, builtin);
             return;
         }
 
@@ -456,9 +456,9 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let callee = self.vm.fcts.idx(callee_id);
         let callee = callee.read();
 
-        if let FctKind::Builtin(intrinsic) = callee.kind {
+        if let FctKind::Builtin(builtin) = callee.kind {
             self.reserve_args(expr);
-            self.jit_info.map_intrinsics.insert(expr.id, intrinsic);
+            self.jit_info.map_builtins.insert(expr.id, builtin);
             return;
         }
 
@@ -681,7 +681,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             assert!(e.lhs.is_array());
             let array = e.lhs.to_array().unwrap();
 
-            if let Some(intrinsic) = self.get_intrinsic(e.id) {
+            if let Some(builtin) = self.get_builtin(e.id) {
                 self.visit_expr(&array.object);
                 self.visit_expr(&array.index);
                 self.visit_expr(&e.rhs);
@@ -692,7 +692,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 let element_type = self.ty(array.id);
                 self.reserve_temp_for_node_with_type(e.rhs.id(), element_type);
 
-                self.jit_info.map_intrinsics.insert(e.id, intrinsic);
+                self.jit_info.map_builtins.insert(e.id, builtin);
             } else {
                 let args = vec![
                     Arg::Expr(&array.object, BuiltinType::Unit, 0),
@@ -719,12 +719,12 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.visit_expr(&expr.rhs);
 
         // no temporaries needed
-        } else if let Some(intrinsic) = self.get_intrinsic(expr.id) {
+        } else if let Some(builtin) = self.get_builtin(expr.id) {
             self.visit_expr(&expr.lhs);
             self.visit_expr(&expr.rhs);
 
             self.reserve_temp_for_node(&expr.lhs);
-            self.jit_info.map_intrinsics.insert(expr.id, intrinsic);
+            self.jit_info.map_builtins.insert(expr.id, builtin);
         } else {
             let args = vec![
                 Arg::Expr(&expr.lhs, lhs_ty, 0),
@@ -737,10 +737,10 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn expr_un(&mut self, expr: &'ast ExprUnType) {
-        if let Some(intrinsic) = self.get_intrinsic(expr.id) {
+        if let Some(builtin) = self.get_builtin(expr.id) {
             // no temporaries needed
             self.visit_expr(&expr.opnd);
-            self.jit_info.map_intrinsics.insert(expr.id, intrinsic);
+            self.jit_info.map_builtins.insert(expr.id, builtin);
         } else {
             let args = vec![Arg::Expr(&expr.opnd, BuiltinType::Unit, 0)];
 

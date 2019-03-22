@@ -1,4 +1,4 @@
-internal class String {
+native class String {
   fun equals(rhs: String) -> bool {
     var i = 0;
 
@@ -19,18 +19,18 @@ internal class String {
     return true;
   }
 
-  internal fun compareTo(rhs: String) -> int;
+  native fun compareTo(rhs: String) -> int;
 
-  internal fun len() -> int;
-  internal fun parseInt() -> int;
-  internal fun parseLong() -> long;
-  internal fun plus(rhs: String) -> String;
+  native fun len() -> int;
+  native fun parseInt() -> int;
+  native fun parseLong() -> long;
+  native fun plus(rhs: String) -> String;
 
-  internal fun getByte(idx: int) -> byte;
-  internal fun clone() -> String;
+  native fun getByte(idx: int) -> byte;
+  native fun clone() -> String;
 
-  internal static fun fromBytesPartOrNull(val: Array<byte>, offset: int, len: int) -> String;
-  internal static fun fromStringPartOrNull(val: String, offset: int, len: int) -> String;
+  native static fun fromBytesPartOrNull(val: Array<byte>, offset: int, len: int) -> String;
+  native static fun fromStringPartOrNull(val: String, offset: int, len: int) -> String;
 
   static fun fromBytesPart(val: Array<byte>, offset: int, len: int) throws -> String {
     let str = String::fromBytesPartOrNull(val, offset, len);

@@ -86,14 +86,14 @@ impl<'a> Parser<'a> {
 
         match self.token.kind {
             TokenKind::Fun => {
-                self.restrict_modifiers(&modifiers, &[Modifier::Internal, Modifier::Optimize])?;
+                self.restrict_modifiers(&modifiers, &[Modifier::Builtin, Modifier::Optimize])?;
                 let fct = self.parse_function(&modifiers)?;
                 elements.push(ElemFunction(fct));
             }
 
             TokenKind::Class => {
                 self.restrict_modifiers(&modifiers,
-                                        &[Modifier::Abstract, Modifier::Open, Modifier::Internal])?;
+                                        &[Modifier::Abstract, Modifier::Open, Modifier::Builtin])?;
                 let class = self.parse_class(&modifiers)?;
                 elements.push(ElemClass(class));
             }
@@ -166,7 +166,7 @@ impl<'a> Parser<'a> {
 
         while !self.token.is(TokenKind::RBrace) {
             let modifiers = self.parse_modifiers()?;
-            let mods = &[Modifier::Static, Modifier::Internal];
+            let mods = &[Modifier::Static, Modifier::Builtin];
             self.restrict_modifiers(&modifiers, mods)?;
 
             methods.push(self.parse_function(&modifiers)?);
@@ -277,7 +277,7 @@ impl<'a> Parser<'a> {
 
     fn parse_class(&mut self, modifiers: &Modifiers) -> Result<Class, MsgWithPos> {
         let has_open = modifiers.contains(Modifier::Open);
-        let internal = modifiers.contains(Modifier::Internal);
+        let builtin = modifiers.contains(Modifier::Builtin);
         let is_abstract = modifiers.contains(Modifier::Abstract);
 
         let pos = self.expect_token(TokenKind::Class)?.position;
@@ -289,7 +289,7 @@ impl<'a> Parser<'a> {
             name: ident,
             pos: pos,
             has_open: has_open,
-            internal: internal,
+            internal: builtin,
             is_abstract: is_abstract,
             primary_ctor: false,
             parent_class: None,
@@ -477,7 +477,7 @@ impl<'a> Parser<'a> {
             match self.token.kind {
                 TokenKind::Fun => {
                     let mods = &[Modifier::Abstract,
-                                 Modifier::Internal,
+                                 Modifier::Builtin,
                                  Modifier::Open,
                                  Modifier::Override,
                                  Modifier::Final,
@@ -490,7 +490,7 @@ impl<'a> Parser<'a> {
                 }
 
                 TokenKind::Init => {
-                    let mods = &[Modifier::Internal];
+                    let mods = &[Modifier::Builtin];
                     self.restrict_modifiers(&modifiers, mods)?;
 
                     let ctor = self.parse_ctor(cls, &modifiers)?;
@@ -524,7 +524,7 @@ impl<'a> Parser<'a> {
                 TokenKind::Open => Modifier::Open,
                 TokenKind::Override => Modifier::Override,
                 TokenKind::Final => Modifier::Final,
-                TokenKind::Internal => Modifier::Internal,
+                TokenKind::Native => Modifier::Builtin,
                 TokenKind::Pub => Modifier::Pub,
                 TokenKind::Static => Modifier::Static,
                 TokenKind::Optimize => Modifier::Optimize,
@@ -596,7 +596,7 @@ impl<'a> Parser<'a> {
                is_pub: true,
                is_static: false,
                is_abstract: false,
-               internal: modifiers.contains(Modifier::Internal),
+               internal: modifiers.contains(Modifier::Builtin),
                ctor: CtorType::Secondary,
                params: params,
                throws: false,
@@ -693,7 +693,7 @@ impl<'a> Parser<'a> {
                has_optimize: modifiers.contains(Modifier::Optimize),
                is_pub: modifiers.contains(Modifier::Pub),
                is_static: modifiers.contains(Modifier::Static),
-               internal: modifiers.contains(Modifier::Internal),
+               internal: modifiers.contains(Modifier::Builtin),
                is_abstract: modifiers.contains(Modifier::Abstract),
                ctor: CtorType::None,
                params: params,
@@ -2848,8 +2848,8 @@ mod tests {
     }
 
     #[test]
-    fn parse_internal() {
-        let (prog, _) = parse("internal fun foo();");
+    fn parse_native() {
+        let (prog, _) = parse("native fun foo();");
         let fct = prog.fct0();
         assert!(fct.internal);
     }
@@ -2862,8 +2862,8 @@ mod tests {
     }
 
     #[test]
-    fn parse_internal_class() {
-        let (prog, _) = parse("internal class Foo {}");
+    fn parse_native_class() {
+        let (prog, _) = parse("native class Foo {}");
         let cls = prog.cls0();
         assert!(cls.internal);
     }

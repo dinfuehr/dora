@@ -54,8 +54,8 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
     );
     return_on_error!(ctxt);
 
-    // define internal classes
-    prelude::internal_classes(ctxt);
+    // define internal classes and traits
+    prelude::internal_types(ctxt);
 
     // checks class/struct/trait definitions/bodies
     clsdefck::check(ctxt, &map_cls_defs);
@@ -83,7 +83,7 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
     implck::check(ctxt);
     return_on_error!(ctxt);
 
-    // define internal functions
+    // define native and builtin functions
     prelude::internal_functions(ctxt);
 
     // check types of expressions in functions
@@ -103,14 +103,14 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
     abstractck::check(ctxt);
 
     // check for internal functions or classes
-    internalck(ctxt);
+    check_internal(ctxt);
     return_on_error!(ctxt);
 
     // initialize addresses for global variables
     init_global_addresses(ctxt);
 }
 
-fn internalck<'ast>(ctxt: &SemContext<'ast>) {
+fn check_internal<'ast>(ctxt: &SemContext<'ast>) {
     for fct in ctxt.fcts.iter() {
         let fct = fct.read();
 
