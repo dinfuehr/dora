@@ -1339,7 +1339,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprLitInt(ref expr) => self.check_expr_lit_int(expr),
             ExprLitFloat(ref expr) => self.check_expr_lit_float(expr),
             ExprLitStr(ExprLitStrType { id, .. }) => {
-                let str_ty = self.ctxt.cls(self.ctxt.vips.str_class);
+                let str_ty = self.ctxt.cls(self.ctxt.vips.string_class);
                 self.src.set_ty(id, str_ty);
                 self.expr_type = str_ty;
             }
@@ -2239,14 +2239,14 @@ mod tests {
 
     #[test]
     fn type_method_len() {
-        ok("fun f(a: Str) -> int { return a.len(); }");
-        ok("fun f(a: Str) -> int { return \"abc\".len(); }");
+        ok("fun f(a: String) -> int { return a.len(); }");
+        ok("fun f(a: String) -> int { return \"abc\".len(); }");
     }
 
     #[test]
     fn type_object_field() {
         ok("class Foo(let a:int) fun f(x: Foo) -> int { return x.a; }");
-        ok("class Foo(let a:Str) fun f(x: Foo) -> Str { return x.a; }");
+        ok("class Foo(let a:String) fun f(x: Foo) -> String { return x.a; }");
         err(
             "class Foo(let a:int) fun f(x: Foo) -> bool { return x.a; }",
             pos(1, 46),
@@ -2298,9 +2298,9 @@ mod tests {
                  fun bar() -> int { return 0; }
              }
 
-             fun f(x: Foo) -> Str { return x.bar(); }",
-            pos(5, 37),
-            Msg::ReturnType("Str".into(), "int".into()),
+             fun f(x: Foo) -> String { return x.bar(); }",
+            pos(5, 40),
+            Msg::ReturnType("String".into(), "int".into()),
         );
     }
 
@@ -2336,7 +2336,7 @@ mod tests {
         err(
             "class Foo {
                 fun bar(a: int) {}
-                fun bar(a: Str) {}
+                fun bar(a: String) {}
             }",
             pos(3, 17),
             Msg::MethodExists("Foo".into(), "bar".into(), pos(2, 17)),
@@ -2444,7 +2444,7 @@ mod tests {
     fn type_var_wrong_type_defined() {
         ok("fun f() { let a : int = 1; }");
         ok("fun f() { let a : bool = false; }");
-        ok("fun f() { let a : Str = \"f\"; }");
+        ok("fun f() { let a : String = \"f\"; }");
 
         err(
             "fun f() { let a : int = true; }",
@@ -2539,8 +2539,8 @@ mod tests {
     fn type_bin_op() {
         ok("fun f(a: int) { a+a; a-a; a*a; a/a; a%a; }");
         ok("fun f(a: int) { a<a; a<=a; a==a; a!=a; a>a; a>=a; }");
-        ok("fun f(a: Str) { a<a; a<=a; a==a; a!=a; a>a; a>=a; }");
-        ok("fun f(a: Str) { a===a; a!==a; a+a; }");
+        ok("fun f(a: String) { a<a; a<=a; a==a; a!=a; a>a; a>=a; }");
+        ok("fun f(a: String) { a===a; a!==a; a+a; }");
         ok("class Foo fun f(a: Foo) { a===a; a!==a; }");
         ok("fun f(a: int) { a|a; a&a; a^a; }");
         ok("fun f(a: bool) { a||a; a&&a; }");
@@ -2576,19 +2576,19 @@ mod tests {
             Msg::BinOpType("&&".into(), "int".into(), "int".into()),
         );
         err(
-            "fun f(a: Str) { a-a; }",
-            pos(1, 18),
-            Msg::BinOpType("-".into(), "Str".into(), "Str".into()),
+            "fun f(a: String) { a-a; }",
+            pos(1, 21),
+            Msg::BinOpType("-".into(), "String".into(), "String".into()),
         );
         err(
-            "fun f(a: Str) { a*a; }",
-            pos(1, 18),
-            Msg::BinOpType("*".into(), "Str".into(), "Str".into()),
+            "fun f(a: String) { a*a; }",
+            pos(1, 21),
+            Msg::BinOpType("*".into(), "String".into(), "String".into()),
         );
         err(
-            "fun f(a: Str) { a%a; }",
-            pos(1, 18),
-            Msg::BinOpType("%".into(), "Str".into(), "Str".into()),
+            "fun f(a: String) { a%a; }",
+            pos(1, 21),
+            Msg::BinOpType("%".into(), "String".into(), "String".into()),
         );
     }
 
@@ -2641,7 +2641,7 @@ mod tests {
 
     #[test]
     fn type_return_nil() {
-        ok("fun foo() -> Str { return nil; }");
+        ok("fun foo() -> String { return nil; }");
         ok("class Foo fun foo() -> Foo { return nil; }");
         err(
             "fun foo() -> int { return nil; }",
@@ -2652,7 +2652,7 @@ mod tests {
 
     #[test]
     fn type_nil_as_argument() {
-        ok("fun foo(a: Str) {} fun test() { foo(nil); }");
+        ok("fun foo(a: String) {} fun test() { foo(nil); }");
         err(
             "fun foo(a: int) {} fun test() { foo(nil); }",
             pos(1, 33),
@@ -2662,7 +2662,7 @@ mod tests {
 
     #[test]
     fn type_nil_for_ctor() {
-        ok("class Foo(let a: Str) fun test() { Foo(nil); }");
+        ok("class Foo(let a: String) fun test() { Foo(nil); }");
         err(
             "class Foo(let a: int) fun test() { Foo(nil); }",
             pos(1, 36),
@@ -2672,7 +2672,7 @@ mod tests {
 
     #[test]
     fn type_nil_for_local_variable() {
-        ok("fun f() { let x: Str = nil; }");
+        ok("fun f() { let x: String = nil; }");
         err(
             "fun f() { let x: int = nil; }",
             pos(1, 11),
@@ -2682,7 +2682,7 @@ mod tests {
 
     #[test]
     fn type_nil_for_field() {
-        ok("class Foo(var a: Str) fun f() { Foo(nil).a = nil; }");
+        ok("class Foo(var a: String) fun f() { Foo(nil).a = nil; }");
         err(
             "class Foo(var a: int) fun f() { Foo(1).a = nil; }",
             pos(1, 42),
@@ -2702,7 +2702,7 @@ mod tests {
     #[test]
     fn type_nil_as_method_argument() {
         ok("class Foo {
-            fun f(a: Str) {}
+            fun f(a: String) {}
         } fun f() { Foo().f(nil); }");
     }
 
@@ -2710,9 +2710,9 @@ mod tests {
     fn type_array() {
         ok("fun f(a: Array<int>) -> int { return a[1]; }");
         err(
-            "fun f(a: Array<int>) -> Str { return a[1]; }",
-            pos(1, 31),
-            Msg::ReturnType("Str".into(), "int".into()),
+            "fun f(a: Array<int>) -> String { return a[1]; }",
+            pos(1, 34),
+            Msg::ReturnType("String".into(), "int".into()),
         );
     }
 
@@ -2729,7 +2729,7 @@ mod tests {
             Msg::UnknownMethod(
                 "Array<int>".into(),
                 "set".into(),
-                vec!["int".into(), "Str".into()],
+                vec!["int".into(), "String".into()],
             ),
         );
     }
@@ -2762,7 +2762,7 @@ mod tests {
 
     #[test]
     fn type_catch_variable() {
-        ok("fun f() { do {} catch a: Str { print(a); } }");
+        ok("fun f() { do {} catch a: String { print(a); } }");
         ok("fun f() { var x = 0; do {} catch a: Array<int> { x=a.len(); } }");
     }
 
@@ -2898,9 +2898,9 @@ mod tests {
             fun f(a: A) -> bool { return a is A; }");
         err(
             "open class A class B: A
-             fun f(a: A) -> bool { return a is Str; }",
+             fun f(a: A) -> bool { return a is String; }",
             pos(2, 45),
-            Msg::TypesIncompatible("A".into(), "Str".into()),
+            Msg::TypesIncompatible("A".into(), "String".into()),
         );
         err(
             "open class A class B: A class C
@@ -2921,9 +2921,9 @@ mod tests {
             fun f(a: A) -> A { return a as A; }");
         err(
             "open class A class B: A
-             fun f(a: A) -> Str { return a as Str; }",
-            pos(2, 44),
-            Msg::TypesIncompatible("A".into(), "Str".into()),
+             fun f(a: A) -> String { return a as String; }",
+            pos(2, 47),
+            Msg::TypesIncompatible("A".into(), "String".into()),
         );
         err(
             "open class A class B: A class C
@@ -2948,7 +2948,7 @@ mod tests {
 
     #[test]
     fn check_cmp_is() {
-        ok("fun f(x: Str) {
+        ok("fun f(x: String) {
                 let a = nil === x;
                 let b = x === nil;
                 let c = nil === nil;
@@ -3045,7 +3045,7 @@ mod tests {
             "fun one() throws -> int { return 1; }
              fun me() -> int { return try one() else \"bla\"; }",
             pos(2, 39),
-            Msg::TypesIncompatible("int".into(), "Str".into()),
+            Msg::TypesIncompatible("int".into(), "String".into()),
         );
         err(
             "fun one() throws -> int { return 1; }
@@ -3343,7 +3343,7 @@ mod tests {
             Msg::WrongNumberTypeParams(1, 0),
         );
         ok("fun f<T>() {} fun g() { f::<int>(); }");
-        ok("fun f<T1, T2>() {} fun g() { f::<int, Str>(); }");
+        ok("fun f<T1, T2>() {} fun g() { f::<int, String>(); }");
     }
 
     #[test]
@@ -3357,9 +3357,9 @@ mod tests {
 
         err(
             "const one: int = 1;
-            fun f() { let x: Str = one; }",
+            fun f() { let x: String = one; }",
             pos(2, 23),
-            Msg::AssignType("x".into(), "Str".into(), "int".into()),
+            Msg::AssignType("x".into(), "String".into(), "int".into()),
         );
     }
 

@@ -99,7 +99,7 @@ class Vec3 {
         return len;
     }
 
-    fun toString() -> Str {
+    fun toString() -> String {
         return "<" + x.toString() + "," + y.toString() + "," +
                z.toString() + ">";
     }

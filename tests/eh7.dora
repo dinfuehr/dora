@@ -11,7 +11,7 @@ fun main() {
     println("unreachable");
     a = 4;
 
-  } catch x: Str {
+  } catch x: String {
     a = 5;
     println(x);
   }

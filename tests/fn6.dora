@@ -28,8 +28,8 @@ fun f(a: int, b: int, c: int, d: int,
    assert(h == 8);
 }
 
-fun g(a: Str, b: Str, c: Str, d: Str,
-     e: Str, f: Str, g: Str, h: Str) {
+fun g(a: String, b: String, c: String, d: String,
+     e: String, f: String, g: String, h: String) {
    assert(a == "a");
    assert(b == "b");
    assert(c == "c");

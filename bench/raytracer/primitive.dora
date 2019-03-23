@@ -11,7 +11,7 @@ open abstract class Primitive {
 
     abstract fun normal(pnt: Vec3) -> Vec3;
     abstract fun intersect(ry: Ray) -> Isect;
-    abstract fun toString() -> Str;
+    abstract fun toString() -> String;
     abstract fun getCenter() -> Vec3;
     abstract fun setCenter(c: Vec3);
 }

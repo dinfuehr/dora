@@ -31,11 +31,11 @@ fun main() {
   assert(x.len() == 4);
   assert(double_array_len(x) == 4);
 
-  let x = Array::<Str>();
+  let x = Array::<String>();
   assert(x.len() == 0);
   assert(str_array_len(x) == 0);
 
-  let x = Array::<Str>(3, "hello");
+  let x = Array::<String>(3, "hello");
   assert(x.len() == 3);
   assert(str_array_len(x) == 3);
 
@@ -64,7 +64,7 @@ fun double_array_len(x: Array<double>) -> int {
   return x.len();
 }
 
-fun str_array_len(x: Array<Str>) -> int {
+fun str_array_len(x: Array<String>) -> int {
   return x.len();
 }
 

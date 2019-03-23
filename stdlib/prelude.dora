@@ -1,4 +1,4 @@
-internal fun fatalError(msg: Str);
+internal fun fatalError(msg: String);
 internal fun abort();
 internal fun exit(status: int);
 fun unreachable() {
@@ -9,17 +9,17 @@ fun unimplemented() {
   fatalError("not yet implemented");
 }
 
-internal fun print(text: Str);
-internal fun println(text: Str);
+internal fun print(text: String);
+internal fun println(text: String);
 internal fun addressOf(object: Object) -> long;
 internal fun assert(val: bool);
 internal fun debug();
 internal fun argc() -> int;
-internal fun argv(idx: int) -> Str;
+internal fun argv(idx: int) -> String;
 internal fun forceCollect();
 internal fun forceMinorCollect();
 
-internal fun call(fct: Str);
+internal fun call(fct: String);
 internal fun throwFromNative(val: bool) throws;
 internal fun throwFromNativeButNotThrows(val: bool);
 
@@ -27,7 +27,7 @@ internal fun timestamp() -> long;
 
 internal class bool {
   internal fun toInt() -> int;
-  fun toString() -> Str {
+  fun toString() -> String {
     if self {
       return "true";
     } else {
@@ -42,7 +42,7 @@ internal class bool {
 internal class byte {
   internal fun toInt() -> int;
   internal fun toLong() -> long;
-  internal fun toString() -> Str;
+  internal fun toString() -> String;
 
   internal fun equals(rhs: byte) -> bool;
   internal fun compareTo(rhs: byte) -> int;
@@ -51,7 +51,7 @@ internal class byte {
 internal class char {
   internal fun toInt() -> int;
   internal fun toLong() -> long;
-  internal fun toString() -> Str;
+  internal fun toString() -> String;
 
   internal fun equals(rhs: char) -> bool;
   internal fun compareTo(rhs: char) -> int;
@@ -102,7 +102,7 @@ internal class int {
   }
   internal fun toCharUnchecked() -> char;
   internal fun toLong() -> long;
-  internal fun toString() -> Str;
+  internal fun toString() -> String;
 
   internal fun toFloat() -> float;
   internal fun toDouble() -> double;
@@ -174,7 +174,7 @@ internal class long {
   }
   internal fun toCharUnchecked() -> char;
   internal fun toInt() -> int;
-  internal fun toString() -> Str;
+  internal fun toString() -> String;
 
   internal fun toFloat() -> float;
   internal fun toDouble() -> double;
@@ -231,7 +231,7 @@ internal class float {
   internal fun toInt() -> int;
   internal fun toLong() -> long;
   internal fun toDouble() -> double;
-  internal fun toString() -> Str;
+  internal fun toString() -> String;
 
   internal fun asInt() -> int;
 
@@ -254,7 +254,7 @@ internal class double {
   internal fun toInt() -> int;
   internal fun toLong() -> long;
   internal fun toFloat() -> float;
-  internal fun toString() -> Str;
+  internal fun toString() -> String;
 
   internal fun asLong() -> long;
 
@@ -370,7 +370,7 @@ fun bubbleSort<T: Comparable>(array: Array<T>) {
 
 internal fun defaultValue<T>() -> T;
 
-internal fun loadFunction(name: Str) -> long;
+internal fun loadFunction(name: String) -> long;
 internal fun call0(fct: long) -> long;
 internal fun call1(fct: long, arg0: long) -> long;
 internal fun call2(fct: long, arg0: long, arg1: long) -> long;
@@ -380,7 +380,7 @@ internal fun native_malloc(size: long) -> long;
 internal fun native_free(address: long);
 internal fun set_uint8(address: long, val: byte);
 
-fun native_string(val: Str) -> long {
+fun native_string(val: String) -> long {
   var i = 0;
   let len = val.len();
 
@@ -409,11 +409,11 @@ fun getppid() -> int {
 internal fun sleep(seconds: int);
 
 class Exception {
-  var msg: Str = nil;
+  var msg: String = nil;
   var backtrace: Array<int> = nil;
   var elements: Array<StackTraceElement> = nil;
 
-  init(msg: Str) {
+  init(msg: String) {
     self.retrieveStackTrace();
     self.msg = msg;
   }
@@ -465,8 +465,8 @@ class Exception {
   internal fun getStackTraceElement(idx: int) -> StackTraceElement;
 }
 
-class StackTraceElement(let name: Str, let line: int) {
-  fun toString() -> Str {
+class StackTraceElement(let name: String, let line: int) {
+  fun toString() -> String {
     return self.name + ": " + self.line.toString();
   }
 }

@@ -1,6 +1,6 @@
 //= error nil
 
 fun main() {
-  let x: Str = nil;
+  let x: String = nil;
   assert(x.len() == 0);
 }

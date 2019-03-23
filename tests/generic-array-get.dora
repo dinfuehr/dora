@@ -15,7 +15,7 @@ fun main() {
   assert(x[0] == 2.0);
   assert(double_array_get(x, 3) == 2.0);
 
-  let x = Array::<Str>(3, "hello");
+  let x = Array::<String>(3, "hello");
   assert(x[0] == "hello");
   assert(str_array_get(x, 2) == "hello");
 
@@ -46,7 +46,7 @@ fun double_array_get(x: Array<double>, idx: int) -> double {
   return x[idx];
 }
 
-fun str_array_get(x: Array<Str>, idx: int) -> Str {
+fun str_array_get(x: Array<String>, idx: int) -> String {
   return x[idx];
 }
 

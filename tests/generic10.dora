@@ -3,7 +3,7 @@ fun main() {
     assert(bar.x.fst == 11);
     assert(bar.x.snd == 10);
 
-    let bar = Bar::<Str>("hello");
+    let bar = Bar::<String>("hello");
     assert(bar.x.fst == "hello");
     assert(bar.x.snd == 10);
 }

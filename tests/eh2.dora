@@ -3,7 +3,7 @@ fun main() {
 
   do {
     a = 2;
-  } catch x: Str {
+  } catch x: String {
     a = 3;
   } finally {
     a = 4;

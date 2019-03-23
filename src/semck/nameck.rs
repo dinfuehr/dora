@@ -410,7 +410,7 @@ mod tests {
     #[test]
     fn shadow_type_with_param() {
         err(
-            "fun test(bool: Str) {}",
+            "fun test(bool: String) {}",
             pos(1, 10),
             Msg::ShadowClass("bool".into()),
         );
@@ -419,9 +419,9 @@ mod tests {
     #[test]
     fn shadow_type_with_var() {
         err(
-            "fun test() { let Str = 3; }",
+            "fun test() { let String = 3; }",
             pos(1, 14),
-            Msg::ShadowClass("Str".into()),
+            Msg::ShadowClass("String".into()),
         );
     }
 
@@ -443,7 +443,7 @@ mod tests {
     #[test]
     fn shadow_param() {
         err(
-            "fun f(a: int, b: int, a: Str) {}",
+            "fun f(a: int, b: int, a: String) {}",
             pos(1, 23),
             Msg::ShadowParam("a".into()),
         );
@@ -451,7 +451,7 @@ mod tests {
 
     #[test]
     fn multiple_params() {
-        ok("fun f(a: int, b: int, c:Str) {}");
+        ok("fun f(a: int, b: int, c:String) {}");
     }
 
     #[test]

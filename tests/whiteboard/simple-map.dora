@@ -1,5 +1,5 @@
 fun main() {
-    let m = SlowMap::<int, Str>();
+    let m = SlowMap::<int, String>();
     assert(m.insert(1, "hello"));
     assert(m.insert(2, "world"));
 

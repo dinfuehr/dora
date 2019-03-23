@@ -2,7 +2,7 @@ fun main() {
   let foo = Foo::<int>(10);
   assert(foo.x == 10);
 
-  let foo = Foo::<Str>("hey");
+  let foo = Foo::<String>("hey");
   assert(foo.x == "hey");
 }
 

@@ -19,7 +19,7 @@ fun main() {
   assert(x[0] == 2.0);
   assert(x[1] == 1.0);
 
-  let x = Array::<Str>(2, "hello");
+  let x = Array::<String>(2, "hello");
   str_array_set(x, 1, "abc");
   assert(x[0] == "hello");
   assert(x[1] == "abc");
@@ -46,7 +46,7 @@ fun double_array_set(x: Array<double>, idx: int, val: double) {
   x[idx] = val;
 }
 
-fun str_array_set(x: Array<Str>, idx: int, val: Str) {
+fun str_array_set(x: Array<String>, idx: int, val: String) {
   x[idx] = val;
 }
 

@@ -106,7 +106,7 @@ class Benchmark {
     }
 }
 
-fun generatePayloadTree(depth: int, tag: Str) -> PayloadNode {
+fun generatePayloadTree(depth: int, tag: String) -> PayloadNode {
     if depth == 0 {
         let arr = Array::<int>(10);
         var i = 0;

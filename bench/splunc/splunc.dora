@@ -131,7 +131,7 @@ open abstract class Node {
         }
     }
 
-    fun printTree(date: int, prefix: Str) {
+    fun printTree(date: int, prefix: String) {
         print(prefix);
         print("age: " + (date - self.birthday).toString());
         println(" value: " + self.value.toString());

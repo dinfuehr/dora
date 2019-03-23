@@ -254,7 +254,7 @@ mod tests {
     //     assert_eq!(Header::size() + 8, class_size("class Foo(let a: long)"));
     //     assert_eq!(Header::size() + mem::ptr_width(), class_size("class Foo(let a: bool)"));
     //     assert_eq!(Header::size() + mem::ptr_width(),
-    //                class_size("class Foo(let a: Str)"));
+    //                class_size("class Foo(let a: String)"));
     // }
 
     // fn class_size(code: &'static str) -> i32 {
@@ -268,10 +268,10 @@ mod tests {
     // }
 
     // #[test]
-    // fn test_internal_class_size() {
+    // fn test_intrinsic_class_size() {
     //     ok_with_test("", |ctxt| {
     //         assert_eq!(0, class_size_name(ctxt, "Array"));
-    //         assert_eq!(0, class_size_name(ctxt, "Str"));
+    //         assert_eq!(0, class_size_name(ctxt, "String"));
     //         assert_eq!(1, class_size_name(ctxt, "bool"));
     //         assert_eq!(4, class_size_name(ctxt, "int"));
     //         assert_eq!(1, class_size_name(ctxt, "byte"));
@@ -291,7 +291,7 @@ mod tests {
     // fn test_super_size() {
     //     ok_with_test("open class A { var a: int; }
     //         open class B: A { var b1: int; var b2: int; }
-    //         class C: B { var c: Str; }",
+    //         class C: B { var c: String; }",
     //                  |ctxt| {
     //         check_class(ctxt, "A", mem::ptr_width(), Some("Object"));
     //         check_field(ctxt, "A", "a", Header::size());
