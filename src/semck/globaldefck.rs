@@ -43,7 +43,7 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDefCheck<'a, 'ast> {
             self.ctxt
                 .diag
                 .lock()
-                .report(g.pos, Msg::GlobalInitializerNotSupported);
+                .report_without_path(g.pos, Msg::GlobalInitializerNotSupported);
         }
     }
 }

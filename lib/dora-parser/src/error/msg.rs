@@ -369,22 +369,31 @@ impl Msg {
 
 #[derive(Clone, Debug)]
 pub struct MsgWithPos {
-    pub msg: Msg,
+    pub path: String,
     pub pos: Position,
+    pub msg: Msg,
 }
 
 impl MsgWithPos {
-    pub fn new(pos: Position, msg: Msg) -> MsgWithPos {
-        MsgWithPos { pos: pos, msg: msg }
+    pub fn new(path: String, pos: Position, msg: Msg,) -> MsgWithPos {
+        MsgWithPos { path, pos, msg }
     }
 
     pub fn message(&self) -> String {
-        format!("error at {}: {}", self.pos, self.msg.message())
+        if self.path.is_empty() {
+            format!("error at {}: {}", self.pos, self.msg.message())
+        } else {
+            format!("error in {} at {}: {}", self.path, self.pos, self.msg.message())
+        }
+    }
+
+    pub fn without_path(pos: Position, msg: Msg,) -> MsgWithPos {
+        MsgWithPos { path: "".to_string(), pos, msg }
     }
 }
 
 impl fmt::Display for MsgWithPos {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "error at {}: {}", self.pos, self.msg.message())
+        write!(f, "{}", self.message())
     }
 }

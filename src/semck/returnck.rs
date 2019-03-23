@@ -52,7 +52,7 @@ impl<'a, 'ast> Visitor<'ast> for ReturnCheck<'a, 'ast> {
 
             // only report error for functions that do not just return ()
             if return_type != BuiltinType::Unit {
-                self.ctxt.diag.lock().report(pos, Msg::NoReturnValue);
+                self.ctxt.diag.lock().report_without_path(pos, Msg::NoReturnValue);
             }
         } else {
             // otherwise the function is always finished with a return statement

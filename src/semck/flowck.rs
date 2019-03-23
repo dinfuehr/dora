@@ -52,7 +52,7 @@ impl<'a, 'ast> FlowCheck<'a, 'ast> {
 
     fn handle_flow(&mut self, s: &'ast Stmt) {
         if !self.in_loop {
-            self.ctxt.diag.lock().report(s.pos(), Msg::OutsideLoop);
+            self.ctxt.diag.lock().report_without_path(s.pos(), Msg::OutsideLoop);
         }
     }
 }

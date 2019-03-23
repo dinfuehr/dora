@@ -71,7 +71,7 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
 }
 
 fn report(ctxt: &SemContext, pos: Position, msg: Msg) {
-    ctxt.diag.lock().report(pos, msg);
+    ctxt.diag.lock().report_without_path(pos, msg);
 }
 
 #[cfg(test)]

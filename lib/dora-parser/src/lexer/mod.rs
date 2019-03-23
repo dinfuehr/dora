@@ -31,8 +31,8 @@ impl Lexer {
         }
     }
 
-    pub fn filename(&self) -> &str {
-        self.reader.filename()
+    pub fn path(&self) -> &str {
+        self.reader.path()
     }
 
     pub fn read_token(&mut self) -> Result<Token, MsgWithPos> {
@@ -70,7 +70,7 @@ impl Lexer {
             } else {
                 let ch = ch.unwrap();
 
-                return Err(MsgWithPos::new(pos, Msg::UnknownChar(ch)));
+                return Err(MsgWithPos::new(self.reader.path().to_string(), pos, Msg::UnknownChar(ch)));
             }
         }
     }
@@ -100,7 +100,7 @@ impl Lexer {
         }
 
         if self.cur().is_none() {
-            return Err(MsgWithPos::new(pos, Msg::UnclosedComment));
+            return Err(MsgWithPos::new(self.reader.path().to_string(), pos, Msg::UnclosedComment));
         }
 
         self.read_char();
@@ -160,7 +160,7 @@ impl Lexer {
             let ttype = TokenKind::LitChar(ch);
             Ok(Token::new(ttype, pos))
         } else {
-            Err(MsgWithPos::new(pos, Msg::UnclosedChar))
+            Err(MsgWithPos::new(self.reader.path().to_string(), pos, Msg::UnclosedChar))
         }
     }
 
@@ -172,7 +172,7 @@ impl Lexer {
                 let ch = if let Some(ch) = self.cur() {
                     ch
                 } else {
-                    return Err(MsgWithPos::new(pos, unclosed));
+                    return Err(MsgWithPos::new(self.reader.path().to_string(), pos, unclosed));
                 };
 
                 self.read_char();
@@ -187,7 +187,7 @@ impl Lexer {
                     '0' => Ok('\0'),
                     _ => {
                         let msg = Msg::InvalidEscapeSequence(ch);
-                        Err(MsgWithPos::new(pos, msg))
+                        Err(MsgWithPos::new(self.reader.path().to_string(), pos, msg))
                     }
                 }
 
@@ -196,7 +196,7 @@ impl Lexer {
             }
 
         } else {
-            Err(MsgWithPos::new(pos, unclosed))
+            Err(MsgWithPos::new(self.reader.path().to_string(), pos, unclosed))
         }
     }
 
@@ -218,7 +218,7 @@ impl Lexer {
             Ok(Token::new(ttype, pos))
 
         } else {
-            Err(MsgWithPos::new(pos, Msg::UnclosedString))
+            Err(MsgWithPos::new(self.reader.path().to_string(), pos, Msg::UnclosedString))
         }
     }
 
@@ -352,7 +352,7 @@ impl Lexer {
             }
 
             _ => {
-                return Err(MsgWithPos::new(tok.position, Msg::UnknownChar(ch)));
+                return Err(MsgWithPos::new(self.reader.path().to_string(), tok.position, Msg::UnknownChar(ch)));
             }
         };
 

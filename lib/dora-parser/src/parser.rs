@@ -68,7 +68,7 @@ impl<'a> Parser<'a> {
         self.ast
             .files
             .push(File {
-                      path: self.lexer.filename().to_string(),
+                      path: self.lexer.path().to_string(),
                       elements: elements,
                   });
 
@@ -129,7 +129,7 @@ impl<'a> Parser<'a> {
 
             _ => {
                 let msg = Msg::ExpectedTopLevelElement(self.token.name());
-                return Err(MsgWithPos::new(self.token.position, msg));
+                return Err(MsgWithPos::new(self.lexer.path().to_string(), self.token.position, msg));
             }
         }
 
@@ -505,7 +505,8 @@ impl<'a> Parser<'a> {
                 }
 
                 _ => {
-                    return Err(MsgWithPos::new(self.token.position,
+                    return Err(MsgWithPos::new(self.lexer.path().to_string(),
+                                               self.token.position,
                                                Msg::ExpectedClassElement(self.token.name())))
                 }
             }
@@ -533,7 +534,8 @@ impl<'a> Parser<'a> {
             };
 
             if modifiers.contains(modifier) {
-                return Err(MsgWithPos::new(self.token.position,
+                return Err(MsgWithPos::new(self.lexer.path().to_string(),
+                                           self.token.position,
                                            Msg::RedundantModifier(self.token.name())));
             }
 
@@ -554,7 +556,8 @@ impl<'a> Parser<'a> {
                           -> Result<(), MsgWithPos> {
         for modifier in modifiers.iter() {
             if !restrict.contains(&modifier.value) {
-                return Err(MsgWithPos::new(modifier.pos,
+                return Err(MsgWithPos::new(self.lexer.path().to_string(),
+                                           modifier.pos,
                                            Msg::MisplacedModifier(modifier.value.name().into())));
             }
         }
@@ -617,7 +620,7 @@ impl<'a> Parser<'a> {
             DelegationType::Super
         } else {
             let name = self.token.name();
-            return Err(MsgWithPos::new(pos, Msg::ThisOrSuperExpected(name)));
+            return Err(MsgWithPos::new(self.lexer.path().to_string(), pos, Msg::ThisOrSuperExpected(name)));
         };
 
         self.advance_token()?;
@@ -735,7 +738,8 @@ impl<'a> Parser<'a> {
 
         while !self.token.is(stop.clone()) && !self.token.is_eof() {
             if !comma {
-                return Err(MsgWithPos::new(self.token.position,
+                return Err(MsgWithPos::new(self.lexer.path().to_string(),
+                                           self.token.position,
                                            Msg::ExpectedToken(TokenKind::Comma.name().into(),
                                                               self.token.name())));
             }
@@ -862,7 +866,7 @@ impl<'a> Parser<'a> {
                 }
             }
 
-            _ => Err(MsgWithPos::new(self.token.position, Msg::ExpectedType(self.token.name()))),
+            _ => Err(MsgWithPos::new(self.lexer.path().to_string(), self.token.position, Msg::ExpectedType(self.token.name()))),
         }
     }
 
@@ -876,7 +880,7 @@ impl<'a> Parser<'a> {
             TokenKind::Break => self.parse_break(),
             TokenKind::Continue => self.parse_continue(),
             TokenKind::Return => self.parse_return(),
-            TokenKind::Else => Err(MsgWithPos::new(self.token.position, Msg::MisplacedElse)),
+            TokenKind::Else => Err(MsgWithPos::new(self.lexer.path().to_string(), self.token.position, Msg::MisplacedElse)),
             TokenKind::Throw => self.parse_throw(),
             TokenKind::Defer => self.parse_defer(),
             TokenKind::Do => self.parse_do(),
@@ -1274,7 +1278,8 @@ impl<'a> Parser<'a> {
             TokenKind::TryForce | TokenKind::TryOpt => self.parse_try_op(),
             TokenKind::BitOr | TokenKind::Or => self.parse_lambda(),
             _ => {
-                Err(MsgWithPos::new(self.token.position,
+                Err(MsgWithPos::new(self.lexer.path().to_string(),
+                                    self.token.position,
                                     Msg::ExpectedFactor(self.token.name().clone())))
             }
         }
@@ -1426,7 +1431,9 @@ impl<'a> Parser<'a> {
                         IntSuffix::Long => "long",
                     };
 
-                    Err(MsgWithPos::new(pos, Msg::NumberOverflow(bits.into())))
+                    Err(MsgWithPos::new(self.lexer.path().to_string(),
+                                        pos,
+                                        Msg::NumberOverflow(bits.into())))
                 }
             }
         } else {
@@ -1527,7 +1534,7 @@ impl<'a> Parser<'a> {
             Ok(interned)
 
         } else {
-            Err(MsgWithPos::new(tok.position, Msg::ExpectedIdentifier(tok.name())))
+            Err(MsgWithPos::new(self.lexer.path().to_string(), tok.position, Msg::ExpectedIdentifier(tok.name())))
         }
     }
 
@@ -1541,7 +1548,8 @@ impl<'a> Parser<'a> {
 
             Ok(token)
         } else {
-            Err(MsgWithPos::new(self.token.position,
+            Err(MsgWithPos::new(self.lexer.path().to_string(),
+                                self.token.position,
                                 Msg::ExpectedToken(kind.name().into(), self.token.name())))
         }
     }

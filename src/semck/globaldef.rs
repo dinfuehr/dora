@@ -267,7 +267,7 @@ fn report(ctxt: &SemContext, name: Name, pos: Position, sym: Sym) {
         _ => unimplemented!(),
     };
 
-    ctxt.diag.lock().report(pos, msg);
+    ctxt.diag.lock().report_without_path(pos, msg);
 }
 
 #[cfg(test)]

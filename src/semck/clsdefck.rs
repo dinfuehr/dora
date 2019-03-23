@@ -77,7 +77,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                     if !names.insert(type_param.name) {
                         let name = self.ctxt.interner.str(type_param.name).to_string();
                         let msg = Msg::TypeParamNameNotUnique(name);
-                        self.ctxt.diag.lock().report(type_param.pos, msg);
+                        self.ctxt.diag.lock().report_without_path(type_param.pos, msg);
                     }
 
                     params.push(BuiltinType::ClassTypeParam(cls.id, type_param_id.into()));
@@ -91,14 +91,14 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                                     cls.type_params[type_param_id].class_bound = Some(cls_id);
                                 } else {
                                     let msg = Msg::MultipleClassBounds;
-                                    self.ctxt.diag.lock().report(type_param.pos, msg);
+                                    self.ctxt.diag.lock().report_without_path(type_param.pos, msg);
                                 }
                             }
 
                             Some(BuiltinType::Trait(trait_id)) => {
                                 if !cls.type_params[type_param_id].trait_bounds.insert(trait_id) {
                                     let msg = Msg::DuplicateTraitBound;
-                                    self.ctxt.diag.lock().report(type_param.pos, msg);
+                                    self.ctxt.diag.lock().report_without_path(type_param.pos, msg);
                                 }
                             }
 
@@ -108,7 +108,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
 
                             _ => {
                                 let msg = Msg::BoundExpected;
-                                self.ctxt.diag.lock().report(bound.pos(), msg);
+                                self.ctxt.diag.lock().report_without_path(bound.pos(), msg);
                             }
                         }
                     }
@@ -122,7 +122,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                 cls.ty = BuiltinType::Class(cls.id, list_id);
             } else {
                 let msg = Msg::TypeParamsExpected;
-                self.ctxt.diag.lock().report(c.pos, msg);
+                self.ctxt.diag.lock().report_without_path(c.pos, msg);
             }
         }
 
@@ -143,7 +143,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                         cls.parent_class = Some(clsid);
                     } else {
                         let msg = Msg::UnderivableType(name);
-                        self.ctxt.diag.lock().report(parent_class.pos, msg);
+                        self.ctxt.diag.lock().report_without_path(parent_class.pos, msg);
                     }
 
                     let number_type_params = parent_class
@@ -157,13 +157,13 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                             super_cls.type_params.len(),
                             number_type_params,
                         );
-                        self.ctxt.diag.lock().report(parent_class.pos, msg);
+                        self.ctxt.diag.lock().report_without_path(parent_class.pos, msg);
                     }
                 }
 
                 _ => {
                     let msg = Msg::UnknownClass(name);
-                    self.ctxt.diag.lock().report(parent_class.pos, msg);
+                    self.ctxt.diag.lock().report_without_path(parent_class.pos, msg);
                 }
             };
         } else {
@@ -189,7 +189,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
             self.ctxt
                 .diag
                 .lock()
-                .report(f.pos, Msg::LetMissingInitialization);
+                .report_without_path(f.pos, Msg::LetMissingInitialization);
         }
     }
 
@@ -286,7 +286,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
 }
 
 fn report(ctxt: &SemContext, pos: Position, msg: Msg) {
-    ctxt.diag.lock().report(pos, msg);
+    ctxt.diag.lock().report_without_path(pos, msg);
 }
 
 #[cfg(test)]

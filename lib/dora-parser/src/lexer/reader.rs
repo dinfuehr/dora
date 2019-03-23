@@ -41,7 +41,7 @@ impl Reader {
         self.tabwidth = width;
     }
 
-    pub fn filename(&self) -> &str {
+    pub fn path(&self) -> &str {
         &self.filename
     }
 

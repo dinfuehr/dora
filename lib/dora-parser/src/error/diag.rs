@@ -16,13 +16,17 @@ impl Diagnostic {
         &self.errors
     }
 
-    pub fn report(&mut self, pos: Position, msg: Msg) {
-        self.errors.push(MsgWithPos::new(pos, msg));
+    pub fn report_without_path(&mut self, pos: Position, msg: Msg) {
+        self.errors.push(MsgWithPos::without_path(pos, msg));
     }
 
-    pub fn report_unimplemented(&mut self, pos: Position) {
+    pub fn report(&mut self, file: String, pos: Position, msg: Msg) {
+        self.errors.push(MsgWithPos::new(file, pos, msg));
+    }
+
+    pub fn report_unimplemented(&mut self, file: String, pos: Position) {
         self.errors
-            .push(MsgWithPos::new(pos, Msg::Unimplemented));
+            .push(MsgWithPos::new(file, pos, Msg::Unimplemented));
     }
 
     pub fn has_errors(&self) -> bool {
