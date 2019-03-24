@@ -12,6 +12,9 @@ pub enum BuiltinType {
     // couldn't determine type because of error
     Error,
 
+    // bottom type, used for functions that never return
+    Nothing,
+
     // type with only one value: ()
     Unit,
 
@@ -185,6 +188,7 @@ impl BuiltinType {
     pub fn name(&self, vm: &VM) -> String {
         match *self {
             BuiltinType::Error => "<error>".into(),
+            BuiltinType::Nothing => "Nothing".into(),
             BuiltinType::Unit => "()".into(),
             BuiltinType::Byte => "byte".into(),
             BuiltinType::Char => "char".into(),
@@ -270,7 +274,8 @@ impl BuiltinType {
             // allow all types for Error, there is already an error,
             // don't report too many messages for the same error
             BuiltinType::Error => true,
-
+            // nothing is a subtype of everything
+            BuiltinType::Nothing => true,
             BuiltinType::Unit
             | BuiltinType::Bool
             | BuiltinType::Byte
@@ -310,6 +315,7 @@ impl BuiltinType {
     pub fn size(&self, vm: &VM) -> i32 {
         match *self {
             BuiltinType::Error => panic!("no size for error."),
+            BuiltinType::Nothing => panic!("no size for nothing."),
             BuiltinType::Unit => 0,
             BuiltinType::Bool => 1,
             BuiltinType::Byte => 1,
@@ -341,6 +347,7 @@ impl BuiltinType {
     pub fn align(&self, vm: &VM) -> i32 {
         match *self {
             BuiltinType::Error => panic!("no alignment for error."),
+            BuiltinType::Nothing => panic!("no alignment for nothing."),
             BuiltinType::Unit => 0,
             BuiltinType::Bool => 1,
             BuiltinType::Byte => 1,
@@ -372,6 +379,7 @@ impl BuiltinType {
     pub fn mode(&self) -> MachineMode {
         match *self {
             BuiltinType::Error => panic!("no machine mode for error."),
+            BuiltinType::Nothing => panic!("no machine mode for nothing."),
             BuiltinType::Unit => panic!("no machine mode for ()."),
             BuiltinType::Bool => MachineMode::Int8,
             BuiltinType::Byte => MachineMode::Int8,

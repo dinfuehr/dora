@@ -15,6 +15,8 @@ pub fn internal_classes<'ast>(ctxt: &mut SemContext<'ast>) {
     ctxt.vips.float_class = internal_class(ctxt, "float", Some(BuiltinType::Float));
     ctxt.vips.double_class = internal_class(ctxt, "double", Some(BuiltinType::Double));
 
+    ctxt.vips.nothing_class = internal_class(ctxt, "Nothing", Some(BuiltinType::Nothing));
+
     ctxt.vips.object_class = internal_class(ctxt, "Object", None);
     ctxt.vips.string_class = internal_class(ctxt, "String", None);
 

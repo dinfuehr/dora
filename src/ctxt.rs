@@ -129,6 +129,7 @@ impl<'ast> SemContext<'ast> {
                 long_class: empty_class_id,
                 float_class: empty_class_id,
                 double_class: empty_class_id,
+                nothing_class: empty_class_id,
                 object_class: empty_class_id,
                 string_class: empty_class_id,
 
@@ -555,6 +556,7 @@ pub struct KnownElements {
     pub long_class: ClassId,
     pub float_class: ClassId,
     pub double_class: ClassId,
+    pub nothing_class: ClassId,
     pub object_class: ClassId,
     pub string_class: ClassId,
     pub array_class: ClassId,

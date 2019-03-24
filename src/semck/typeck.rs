@@ -1420,6 +1420,7 @@ fn arg_allows(
 ) -> bool {
     match def {
         BuiltinType::Error => panic!("error shouldn't occur in fct definition."),
+        BuiltinType::Nothing => false,
         BuiltinType::Unit
         | BuiltinType::Bool
         | BuiltinType::Byte
