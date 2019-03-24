@@ -13,4 +13,4 @@ fun nested() -> Foo {
   return z;
 }
 
-class Foo(let value: int, let next: Foo)
+class Foo(let value: Int, let next: Foo)

@@ -7,7 +7,7 @@ trait DefaultValue {
     static fun default() -> Self;
 }
 
-class A(let a: int)
+class A(let a: Int)
 
 impl DefaultValue for A {
     static fun default() -> A {

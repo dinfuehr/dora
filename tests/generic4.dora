@@ -12,6 +12,6 @@ class A<T>(let x: T) {
     }
 }
 
-fun foo(a: int) -> String {
+fun foo(a: Int) -> String {
   return "hello" + a.toString();
 }

@@ -7,4 +7,4 @@ fun main() {
   assert(x[4].x == 2);
 }
 
-class Foo(let x: int)
+class Foo(let x: Int)

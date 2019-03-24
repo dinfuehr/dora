@@ -2,15 +2,15 @@ fun main() {
     Mandelbrot(argv(0).parseInt()).compute();
 }
 
-const BUFFER_SIZE: int = 8192;
+const BUFFER_SIZE: Int = 8192;
 
-class Mandelbrot(let size: int) {
-    let fac: double = 2.0 / size.toDouble();
-    var shift: int;
-    let buf: Array<byte> = Array::<byte>(BUFFER_SIZE);
-    var bufLen: int;
+class Mandelbrot(let size: Int) {
+    let fac: Double = 2.0 / size.toDouble();
+    var shift: Int;
+    let buf: Array<Byte> = Array::<Byte>(BUFFER_SIZE);
+    var bufLen: Int;
 
-    init(size: int): self(size) {
+    init(size: Int): self(size) {
         if size % 8 == 0 {
             shift = 0;
         } else {
@@ -33,7 +33,7 @@ class Mandelbrot(let size: int) {
         write(self.buf, 0, self.bufLen);
     }
 
-    fun computeRow(y: int) {
+    fun computeRow(y: Int) {
         var bits = 0;
         let Ci = (y.toDouble() * self.fac - 1.0);
         let bufLocal = buf;
@@ -99,6 +99,6 @@ class Mandelbrot(let size: int) {
     }
 }
 
-fun write(buf: Array<byte>, offset: int, len: int) {
+fun write(buf: Array<Byte>, offset: Int, len: Int) {
     unimplemented();
 }

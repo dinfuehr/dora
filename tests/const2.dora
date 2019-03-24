@@ -1,8 +1,8 @@
-const i: int = -1;
-const l: long = -(-2L);
-const no: bool = false;
-const f: float = -3.0F;
-const d: double = -(-4.0);
+const i: Int = -1;
+const l: Long = -(-2L);
+const no: Bool = false;
+const f: Float = -3.0F;
+const d: Double = -(-4.0);
 
 fun main() {
     assert(i == -1);

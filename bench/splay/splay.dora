@@ -2,15 +2,15 @@ fun main() {
 
 }
 
-const splayTreeSize: int = 8000;
-const splayTreeModifications: int = 80;
-const splayTreePayloadDepth: int = 5;
+const splayTreeSize: Int = 8000;
+const splayTreeModifications: Int = 80;
+const splayTreePayloadDepth: Int = 5;
 
 class Benchmark {
     var splayTree: SplayTree;
-    var splaySamples: int;
-    var splaySampleTimeStart: long = 0L;
-    var splaySumOfSquaredPauses: long = 0L;
+    var splaySamples: Int;
+    var splaySampleTimeStart: Long = 0L;
+    var splaySumOfSquaredPauses: Long = 0L;
 
     fun setup() {
         self.splayTree = SplayTree();
@@ -28,7 +28,7 @@ class Benchmark {
         }
     }
 
-    fun updateStats(time: long) {
+    fun updateStats(time: Long) {
         let pause = time - self.splaySampleTimeStart;
         self.splaySampleTimeStart = time;
         self.splaySamples = self.splaySamples + 1;
@@ -77,8 +77,8 @@ class Benchmark {
         self.updateStats(timestamp());
     }
 
-    fun insertNewNode() -> int {
-        var key: int = 0;
+    fun insertNewNode() -> Int {
+        var key: Int = 0;
 
         loop {
             key = self.generateKey();
@@ -94,7 +94,7 @@ class Benchmark {
         return key;
     }
 
-    fun generateKey() -> int {
+    fun generateKey() -> Int {
         return 0;
     }
 
@@ -106,9 +106,9 @@ class Benchmark {
     }
 }
 
-fun generatePayloadTree(depth: int, tag: String) -> PayloadNode {
+fun generatePayloadTree(depth: Int, tag: String) -> PayloadNode {
     if depth == 0 {
-        let arr = Array::<int>(10);
+        let arr = Array::<Int>(10);
         var i = 0;
 
         while i < 10 {
@@ -131,11 +131,11 @@ fun generatePayloadTree(depth: int, tag: String) -> PayloadNode {
 class SplayTree {
     var root: SplayNode;
 
-    fun isEmpty() -> bool {
+    fun isEmpty() -> Bool {
         return self.root === nil;
     }
 
-    fun insert(key: int, value: PayloadNode) {
+    fun insert(key: Int, value: PayloadNode) {
         if self.isEmpty() {
             self.root = SplayNode(key, value);
             return;
@@ -163,7 +163,7 @@ class SplayTree {
         self.root = node;
     }
 
-    fun remove(key: int) -> SplayNode {
+    fun remove(key: Int) -> SplayNode {
         if self.isEmpty() {
             return nil;
         }
@@ -188,7 +188,7 @@ class SplayTree {
         return removed;
     }
 
-    fun find(key: int) -> SplayNode {
+    fun find(key: Int) -> SplayNode {
         if self.isEmpty() {
             return nil;
         }
@@ -220,7 +220,7 @@ class SplayTree {
         return current;
     }
 
-    fun findGreatestLessThan(key: int) -> SplayNode {
+    fun findGreatestLessThan(key: Int) -> SplayNode {
         if self.isEmpty() {
             return nil;
         }
@@ -236,13 +236,13 @@ class SplayTree {
         }
     }
 
-    fun exportKeys() -> Vec<int> {
-        let keys = Vec::<int>();
+    fun exportKeys() -> Vec<Int> {
+        let keys = Vec::<Int>();
         exportKeysTraverse(keys, self.root);
         return keys;
     }
 
-    fun splay(key: int) {
+    fun splay(key: Int) {
         if self.isEmpty() {
             return;
         }
@@ -310,7 +310,7 @@ class SplayTree {
     }
 }
 
-fun exportKeysTraverse(list: Vec<int>, node: SplayNode) {
+fun exportKeysTraverse(list: Vec<Int>, node: SplayNode) {
     var current = node;
 
     while current !== nil {
@@ -323,9 +323,9 @@ fun exportKeysTraverse(list: Vec<int>, node: SplayNode) {
     }
 }
 
-class SplayNode(var key: int, var value: PayloadNode) {
+class SplayNode(var key: Int, var value: PayloadNode) {
     var left: SplayNode;
     var right: SplayNode;
 }
 
-class PayloadNode(let array: Array<int>, let text: Str, let left: PayloadNode, let right: PayloadNode)
+class PayloadNode(let array: Array<Int>, let text: Str, let left: PayloadNode, let right: PayloadNode)

@@ -5,7 +5,7 @@ open abstract class Primitive {
         self.surf = Surface();
     }
 
-    fun setColor(r: double, g: double, b: double) {
+    fun setColor(r: Double, g: Double, b: Double) {
         self.surf.color = Vec3(r, g, b);
     }
 

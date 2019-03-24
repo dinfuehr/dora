@@ -9,6 +9,6 @@ fun main() {
     assert(!(x < y));
 }
 
-fun id(val: long) -> long {
+fun id(val: Long) -> Long {
     return val;
 }

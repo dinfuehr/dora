@@ -1,5 +1,5 @@
 fun main() {
-  assert(0 == len(Array::<int>()));
+  assert(0 == len(Array::<Int>()));
 }
 
-fun len(a: Array<int>) -> int { return a.len(); }
+fun len(a: Array<Int>) -> Int { return a.len(); }

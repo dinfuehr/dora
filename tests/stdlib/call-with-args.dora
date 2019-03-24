@@ -4,6 +4,6 @@ fun main() {
     call("foo");
 }
 
-fun foo(a: int) {
+fun foo(a: Int) {
     println(a.toString());
 }

@@ -321,8 +321,8 @@ mod tests {
     fn test_class_definition() {
         ok("class Foo");
         ok("class Foo()");
-        ok("class Foo(let a: int)");
-        ok("class Foo(let a: int, let b:int)");
+        ok("class Foo(let a: Int)");
+        ok("class Foo(let a: Int, let b:Int)");
         ok("class Foo(let a: Foo)");
         ok("class Foo(let a: Bar) class Bar");
         err(
@@ -331,7 +331,7 @@ mod tests {
             Msg::UnknownType("Unknown".into()),
         );
         err(
-            "class Foo(let a: int, let a: int)",
+            "class Foo(let a: Int, let a: Int)",
             pos(1, 27),
             Msg::ShadowField("a".to_string()),
         );
@@ -346,9 +346,9 @@ mod tests {
             Msg::UnknownClass("A".into()),
         );
         err(
-            "class B : int {}",
+            "class B : Int {}",
             pos(1, 11),
-            Msg::UnderivableType("int".into()),
+            Msg::UnderivableType("Int".into()),
         );
     }
 
@@ -365,42 +365,42 @@ mod tests {
 
     #[test]
     fn non_field_ctor_arguments() {
-        ok("class Foo(a: int, b: int)");
-        ok("class Foo(let a: int, b: int)");
-        ok("class Foo(a: int, var b: int)");
+        ok("class Foo(a: Int, b: Int)");
+        ok("class Foo(let a: Int, b: Int)");
+        ok("class Foo(a: Int, var b: Int)");
         err(
-            "class Foo(a: int, a: int)",
+            "class Foo(a: Int, a: Int)",
             pos(1, 1),
             Msg::ShadowParam("a".into()),
         );
         err(
-            "class Foo(a: int, let a: int)",
+            "class Foo(a: Int, let a: Int)",
             pos(1, 1),
             Msg::ShadowParam("a".into()),
         );
         err(
-            "class Foo(let a: int, a: int)",
+            "class Foo(let a: Int, a: Int)",
             pos(1, 1),
             Msg::ShadowParam("a".into()),
         );
         err(
-            "class Foo(a: int) fun f(x: Foo) { x.a = 1; }",
+            "class Foo(a: Int) fun f(x: Foo) { x.a = 1; }",
             pos(1, 36),
             Msg::UnknownField("a".into(), "Foo".into()),
         );
 
-        ok("class Foo(a: int) fun foo() -> Foo { return Foo(1); } ");
+        ok("class Foo(a: Int) fun foo() -> Foo { return Foo(1); } ");
     }
 
     #[test]
     fn field_defined_twice() {
         err(
-            "class Foo { var a: int; var a: int; }",
+            "class Foo { var a: Int; var a: Int; }",
             pos(1, 25),
             Msg::ShadowField("a".into()),
         );
         err(
-            "class Foo(let a: int) { var a: int; }",
+            "class Foo(let a: Int) { var a: Int; }",
             pos(1, 25),
             Msg::ShadowField("a".into()),
         );
@@ -409,7 +409,7 @@ mod tests {
     #[test]
     fn let_field_without_initialization() {
         err(
-            "class Foo { let a: int; }",
+            "class Foo { let a: Int; }",
             pos(1, 13),
             Msg::LetMissingInitialization,
         );
@@ -418,7 +418,7 @@ mod tests {
     #[test]
     fn field_self_assignment() {
         err(
-            "class Foo(a: int) { var b: int = b; }",
+            "class Foo(a: Int) { var b: Int = b; }",
             pos(1, 34),
             Msg::UnknownIdentifier("b".into()),
         );
@@ -479,7 +479,7 @@ mod tests {
         err(
             "
             open class A
-            class B: A<int> {}",
+            class B: A<Int> {}",
             pos(3, 22),
             Msg::WrongNumberTypeParams(0, 1),
         );

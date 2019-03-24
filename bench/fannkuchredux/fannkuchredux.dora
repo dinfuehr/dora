@@ -4,10 +4,10 @@ fun main() {
   println("Pfannkuchen ("+n.toString()+") = " + fannkuch(n).toString());
 }
 
-fun fannkuch(n: int) -> int {
-  let perm = Array::<int>(n, 0);
-  let perm1 = Array::<int>(n, 0);
-  let count = Array::<int>(n, 0);
+fun fannkuch(n: Int) -> Int {
+  let perm = Array::<Int>(n, 0);
+  let perm1 = Array::<Int>(n, 0);
+  let count = Array::<Int>(n, 0);
   var maxFlipsCount = 0;
   var permCount = 0;
   var checksum = 0;
@@ -89,7 +89,7 @@ fun fannkuch(n: int) -> int {
   return -1;
 }
 
-fun max(a: int, b: int) -> int {
+fun max(a: Int, b: Int) -> Int {
   if a < b {
     return b;
   } else {

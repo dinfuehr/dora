@@ -6,10 +6,10 @@ fun main() {
 }
 
 class X {
-    var x : int = 1;
-    var y : int;
+    var x : Int = 1;
+    var y : Int;
 
-    init(py: int) {
+    init(py: Int) {
         self.y = py;
     }
 }

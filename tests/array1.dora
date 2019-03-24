@@ -2,4 +2,4 @@ fun main() {
   foo(nil);
 }
 
-fun foo(a: Array<int>) {}
+fun foo(a: Array<Int>) {}

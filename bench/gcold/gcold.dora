@@ -1,31 +1,31 @@
-class TreeNode(var left: TreeNode, var right: TreeNode, var value: int)
+class TreeNode(var left: TreeNode, var right: TreeNode, var value: Int)
 
-const MEG: int = 1_000_000;
-const INSIGNIFICANT: long = 999L;
-const BYTES_PER_WORD: int = 8;
-const BYTES_PER_NODE: int = 40;
-const WORDS_DEAD: int = 100;
+const MEG: Int = 1_000_000;
+const INSIGNIFICANT: Long = 999L;
+const BYTES_PER_WORD: Int = 8;
+const BYTES_PER_NODE: Int = 40;
+const WORDS_DEAD: Int = 100;
 
-const treeHeight: int = 14;
-var treeSize: long;
+const treeHeight: Int = 14;
+var treeSize: Long;
 
-var youngBytes: long;
-var nodes: long;
-var actuallyMut: long;
-var mutatorSum: long;
-var aexport: Array<int>;
+var youngBytes: Long;
+var nodes: Long;
+var actuallyMut: Long;
+var mutatorSum: Long;
+var aexport: Array<Int>;
 
 var trees: Array<TreeNode>;
-var where: int;
+var where: Int;
 var rnd: Random;
 
-var size: int;
-var workUnits: int;
-var promoteRate: int;
-var ptrMutRate: int;
-var steps: int;
+var size: Int;
+var workUnits: Int;
+var promoteRate: Int;
+var ptrMutRate: Int;
+var steps: Int;
 
-fun height(t: TreeNode) -> int {
+fun height(t: TreeNode) -> Int {
     if t === nil {
         return 0;
     } else {
@@ -33,7 +33,7 @@ fun height(t: TreeNode) -> int {
     }
 }
 
-fun shortestPath(t: TreeNode) -> int {
+fun shortestPath(t: TreeNode) -> Int {
     if t === nil {
         return 0;
     } else {
@@ -41,12 +41,12 @@ fun shortestPath(t: TreeNode) -> int {
     }
 }
 
-fun heightToNodes(var h: int) -> long {
+fun heightToNodes(var h: Int) -> Long {
     if (h == 0) {
         return 0L;
     }
 
-    var n: long = 1L;
+    var n: Long = 1L;
 
     while h > 1 {
         n = n + n;
@@ -56,11 +56,11 @@ fun heightToNodes(var h: int) -> long {
     return n + n - 1L;
 }
 
-fun heightToBytes(h: int) -> long {
+fun heightToBytes(h: Int) -> Long {
     return BYTES_PER_NODE.toLong() * heightToNodes(h);
 }
 
-fun nodesToHeight(nnodes: long) -> int {
+fun nodesToHeight(nnodes: Long) -> Int {
     var h = 1;
     var n = 1L;
 
@@ -72,11 +72,11 @@ fun nodesToHeight(nnodes: long) -> int {
     return h - 1;
 }
 
-fun bytesToHeight(bytes: long) -> int {
+fun bytesToHeight(bytes: Long) -> Int {
     return nodesToHeight(bytes / BYTES_PER_NODE.toLong());
 }
 
-fun makeTree(h: int) -> TreeNode {
+fun makeTree(h: Int) -> TreeNode {
     if h == 0 {
         return nil;
     }
@@ -125,7 +125,7 @@ fun checkTrees() {
     }
 }
 
-fun replaceTreeWork(full: TreeNode, partial: TreeNode, dir: bool) {
+fun replaceTreeWork(full: TreeNode, partial: TreeNode, dir: Bool) {
     let canGoLeft = full.left !== nil && full.left.value > partial.value;
     let canGoRight = full.right !== nil && full.right.value > partial.value;
 
@@ -154,7 +154,7 @@ fun replaceTree(full: TreeNode, partial: TreeNode) {
     replaceTreeWork(full, partial, dir);
 }
 
-fun oldGenAlloc(n: long) {
+fun oldGenAlloc(n: Long) {
     let full = (n / treeSize).toInt();
     var partial = n % treeSize;
 
@@ -220,7 +220,7 @@ fun oldGenSwapSubtrees() {
     actuallyMut = actuallyMut + 2L;
 }
 
-fun oldGenMut(n: long) {
+fun oldGenMut(n: Long) {
     var i = 0L;
 
     while i < n/2L {
@@ -229,7 +229,7 @@ fun oldGenMut(n: long) {
     }
 }
 
-fun doMutWork(n: long) {
+fun doMutWork(n: Long) {
     var sum = 0;
     let limit = workUnits.toLong() * n / 10L;
 
@@ -243,19 +243,19 @@ fun doMutWork(n: long) {
     mutatorSum = mutatorSum + sum.toLong();
 }
 
-fun doYoungGenAlloc(n: long, nwords: int) {
+fun doYoungGenAlloc(n: Long, nwords: Int) {
     let nbytes = nwords * BYTES_PER_WORD;
     var allocated = 0L;
 
     while allocated < n {
-        aexport = Array::<int>(nwords);
+        aexport = Array::<Int>(nwords);
         allocated = allocated + nbytes.toLong();
     }
 
     youngBytes = youngBytes + allocated;
 }
 
-fun doStep(n: long) {
+fun doStep(n: Long) {
     let mutations = actuallyMut;
 
     doYoungGenAlloc(n, WORDS_DEAD);

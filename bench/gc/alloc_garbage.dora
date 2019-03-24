@@ -8,4 +8,4 @@ fun main() {
   }
 }
 
-class Foo(let a: int)
+class Foo(let a: Int)

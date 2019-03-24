@@ -1,4 +1,4 @@
-var x: double;
+var x: Double;
 
 fun main() {
     assert(getx() == 0.0);
@@ -10,6 +10,6 @@ fun main() {
     assert(getx() == 10.0);
 }
 
-fun getx() -> double {
+fun getx() -> Double {
     return x * 2.0;
 }

@@ -339,7 +339,7 @@ mod tests {
             Msg::SuperfluousOverride("f".into()),
         );
         err(
-            "open class B { fun f(a: int) {} } class A: B { override fun f() {} }",
+            "open class B { fun f(a: Int) {} } class A: B { override fun f() {} }",
             pos(1, 57),
             Msg::MethodNotOverridable("f".into()),
         );
@@ -374,7 +374,7 @@ mod tests {
     fn test_overload_method_in_super_class() {
         errors(
             "open class A { fun f() {} }
-            class B: A { fun f(a: int) {} }",
+            class B: A { fun f(a: Int) {} }",
             &[
                 (pos(2, 26), Msg::MissingOverride("f".into())),
                 (pos(2, 26), Msg::MethodNotOverridable("f".into())),
@@ -382,16 +382,16 @@ mod tests {
         );
 
         ok("open class A { static fun f() {} }
-            class B: A { static fun f(a: int) {} }");
+            class B: A { static fun f(a: Int) {} }");
     }
 
     #[test]
     fn test_override_with_wrong_return_type() {
         err(
             "open class A { open fun f() {} }
-             class B: A { override fun f() -> int { return 1; } }",
+             class B: A { override fun f() -> Int { return 1; } }",
             pos(2, 36),
-            Msg::ReturnTypeMismatch("int".into(), "()".into()),
+            Msg::ReturnTypeMismatch("Int".into(), "()".into()),
         );
     }
 

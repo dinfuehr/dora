@@ -6,6 +6,6 @@ fun main() {
     print(val.toString());
 }
 
-fun foo() throws -> int {
+fun foo() throws -> Int {
     throw "bla";
 }

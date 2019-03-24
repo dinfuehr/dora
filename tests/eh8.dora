@@ -1,8 +1,8 @@
 fun main() {
   do {
-    throw Array::<int>(5, 1);
+    throw Array::<Int>(5, 1);
 
-  } catch x: Array<int> {
+  } catch x: Array<Int> {
     forceCollect();
     assert(x.len() == 5);
   }

@@ -1,5 +1,5 @@
 fun main() {
-    let x: long = 1L;
+    let x: Long = 1L;
     let y = 2L;
     let z = x.plus(y);
 }

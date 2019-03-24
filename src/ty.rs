@@ -16,6 +16,8 @@ pub enum BuiltinType {
     Unit,
 
     // value types
+    Bool,
+
     Char,
     Byte,
     Int,
@@ -23,8 +25,6 @@ pub enum BuiltinType {
 
     Float,
     Double,
-
-    Bool,
 
     // type Nil, only used in typeck until final type is known
     Nil,
@@ -186,13 +186,13 @@ impl BuiltinType {
         match *self {
             BuiltinType::Error => "<error>".into(),
             BuiltinType::Unit => "()".into(),
-            BuiltinType::Byte => "byte".into(),
-            BuiltinType::Char => "char".into(),
-            BuiltinType::Int => "int".into(),
-            BuiltinType::Long => "long".into(),
-            BuiltinType::Float => "float".into(),
-            BuiltinType::Double => "float".into(),
-            BuiltinType::Bool => "bool".into(),
+            BuiltinType::Byte => "Byte".into(),
+            BuiltinType::Char => "Char".into(),
+            BuiltinType::Int => "Int".into(),
+            BuiltinType::Long => "Long".into(),
+            BuiltinType::Float => "Float".into(),
+            BuiltinType::Double => "Double".into(),
+            BuiltinType::Bool => "Bool".into(),
             BuiltinType::Nil => "nil".into(),
             BuiltinType::Ptr => panic!("type Ptr only for internal use."),
             BuiltinType::This => "Self".into(),

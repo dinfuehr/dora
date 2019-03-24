@@ -13,4 +13,4 @@ fun create() -> A {
     return A(10);
 }
 
-class A(let val: int)
+class A(let val: Int)

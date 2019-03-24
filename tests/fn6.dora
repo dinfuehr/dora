@@ -16,8 +16,8 @@ fun main() {
   assert(x.h == 8);
 }
 
-fun f(a: int, b: int, c: int, d: int,
-     e: int, f: int, g: int, h: int) {
+fun f(a: Int, b: Int, c: Int, d: Int,
+     e: Int, f: Int, g: Int, h: Int) {
    assert(a == 1);
    assert(b == 2);
    assert(c == 3);
@@ -41,8 +41,8 @@ fun g(a: String, b: String, c: String, d: String,
 }
 
 class Foo1 {
-  fun f(a: int, b: int, c: int, d: int,
-       e: int, f: int, g: int, h: int) {
+  fun f(a: Int, b: Int, c: Int, d: Int,
+       e: Int, f: Int, g: Int, h: Int) {
     assert(a == 1);
     assert(b == 2);
     assert(c == 3);
@@ -54,5 +54,5 @@ class Foo1 {
   }
 }
 
-class Foo2(let a: int, let b: int, let c: int, let d: int,
-           let e: int, let f: int, let g: int, let h: int)
+class Foo2(let a: Int, let b: Int, let c: Int, let d: Int,
+           let e: Int, let f: Int, let g: Int, let h: Int)

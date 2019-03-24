@@ -8,4 +8,4 @@ fun initialize(x: Foo) {
     x.x = 1;
 }
 
-class Foo(var x: int)
+class Foo(var x: Int)

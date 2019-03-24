@@ -1,7 +1,7 @@
-fun main() -> int {
+fun main() -> Int {
   return myzero();
 }
 
-fun myzero() -> int {
+fun myzero() -> Int {
   return 0;
 }

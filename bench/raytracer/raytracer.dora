@@ -1,4 +1,4 @@
-const alpha: int = 255<24;
+const alpha: Int = 255<24;
 
 class RayTracer {
     var scene: Scence;
@@ -8,12 +8,12 @@ class RayTracer {
     var tRay: Ray;
     var L: Vec3;
     var inter: Isect;
-    var height: int;
-    var width: int;
-    var datasizes: Array<int>;
-    var checksum: long;
-    var size: int;
-    var numobjects: int;
+    var height: Int;
+    var width: Int;
+    var datasizes: Array<Int>;
+    var checksum: Long;
+    var size: Int;
+    var numobjects: Int;
     
     fun createScene() -> Scene {
 
@@ -27,11 +27,11 @@ class RayTracer {
 
     }
 
-    fun intersect(r: Ray, maxt: double) -> bool {
+    fun intersect(r: Ray, maxt: Double) -> Bool {
 
     }
 
-    fun Shadow(r: Ray, tmax: double) -> int {
+    fun Shadow(r: Ray, tmax: Double) -> Int {
 
     }
 
@@ -39,11 +39,11 @@ class RayTracer {
 
     }
 
-    fun shade(level: int, weight: double, p: Vec3, n: Vec3, i: Vec3, hit: Isect) {
+    fun shade(level: Int, weight: Double, p: Vec3, n: Vec3, i: Vec3, hit: Isect) {
 
     }
 
-    fun trace(level: int, weight: double, r: Ray) {
+    fun trace(level: Int, weight: Double, r: Ray) {
         
     }
 }

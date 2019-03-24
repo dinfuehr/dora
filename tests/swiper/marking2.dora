@@ -16,4 +16,4 @@ fun main() {
     forceCollect();
 }
 
-class Foo(var val: int, var next: Foo)
+class Foo(var val: Int, var next: Foo)

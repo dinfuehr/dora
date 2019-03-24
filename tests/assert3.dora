@@ -4,14 +4,14 @@ fun main() {
   f(false);
 }
 
-fun f(a: bool) {
+fun f(a: Bool) {
     g(a);
 }
 
-fun g(a: bool) {
+fun g(a: Bool) {
     h(a);
 }
 
-fun h(a: bool) {
+fun h(a: Bool) {
     assert(a);
 }

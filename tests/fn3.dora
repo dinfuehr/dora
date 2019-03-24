@@ -1,5 +1,5 @@
 //= error code 2
 
-fun main() -> int {
+fun main() -> Int {
   return 2;
 }

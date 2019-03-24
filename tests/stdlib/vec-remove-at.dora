@@ -1,5 +1,5 @@
 fun main() {
-    let x = Vec::<int>();
+    let x = Vec::<Int>();
 
     x.push(1);
     x.push(2);

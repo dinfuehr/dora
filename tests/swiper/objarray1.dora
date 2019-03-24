@@ -14,4 +14,4 @@ fun main() {
   assert(z[511].a == 3);
 }
 
-class Foo(let a: int)
+class Foo(let a: Int)

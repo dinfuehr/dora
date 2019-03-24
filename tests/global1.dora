@@ -1,8 +1,8 @@
 //= output "x = 0\ny = 0\nz = 0\n"
 
-var x: int;
-var y: int;
-var z: int;
+var x: Int;
+var y: Int;
+var z: Int;
 
 fun main() {
     println("x = " + x.toString());

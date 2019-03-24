@@ -2,10 +2,10 @@ fun main() {
   assert(f() == 6);
 }
 
-fun f() -> int {
+fun f() -> Int {
   do {
     return 6;
-  } catch e: Array<int> {
+  } catch e: Array<Int> {
     return 4;
   }
 }

@@ -404,15 +404,15 @@ mod tests {
 
     #[test]
     fn shadow_type_with_function() {
-        err("fun int() {}", pos(1, 1), Msg::ShadowClass("int".into()));
+        err("fun Int() {}", pos(1, 1), Msg::ShadowClass("Int".into()));
     }
 
     #[test]
     fn shadow_type_with_param() {
         err(
-            "fun test(bool: String) {}",
+            "fun test(Bool: String) {}",
             pos(1, 10),
-            Msg::ShadowClass("bool".into()),
+            Msg::ShadowClass("Bool".into()),
         );
     }
 
@@ -443,7 +443,7 @@ mod tests {
     #[test]
     fn shadow_param() {
         err(
-            "fun f(a: int, b: int, a: String) {}",
+            "fun f(a: Int, b: Int, a: String) {}",
             pos(1, 23),
             Msg::ShadowParam("a".into()),
         );
@@ -451,7 +451,7 @@ mod tests {
 
     #[test]
     fn multiple_params() {
-        ok("fun f(a: int, b: int, c:String) {}");
+        ok("fun f(a: Int, b: Int, c:String) {}");
     }
 
     #[test]
@@ -493,12 +493,12 @@ mod tests {
     #[test]
     fn variable_outside_of_scope() {
         err(
-            "fun f() -> int { { let a = 1; } return a; }",
+            "fun f() -> Int { { let a = 1; } return a; }",
             pos(1, 40),
             Msg::UnknownIdentifier("a".into()),
         );
 
-        ok("fun f() -> int { let a = 1; { let a = 2; } return a; }");
+        ok("fun f() -> Int { let a = 1; { let a = 2; } return a; }");
     }
 
     #[test]
@@ -519,8 +519,8 @@ mod tests {
 
     #[test]
     fn const_value() {
-        ok("const one: int = 1;
-            fun f() -> int { return one; }");
+        ok("const one: Int = 1;
+            fun f() -> Int { return one; }");
     }
 
     #[test]

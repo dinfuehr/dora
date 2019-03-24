@@ -1,5 +1,5 @@
-class Node(let val: int, var left: Node, var right: Node) {
-  init(val: int) : self(val, nil, nil) { }
+class Node(let val: Int, var left: Node, var right: Node) {
+  init(val: Int) : self(val, nil, nil) { }
 }
 
 fun main() {
@@ -20,7 +20,7 @@ fun main() {
   println(isBalanced(root).toString());
 }
 
-fun dumpTree(root: Node, depth: int) {
+fun dumpTree(root: Node, depth: Int) {
   if root === nil {
     if depth == 0 {
       println("nil");
@@ -43,11 +43,11 @@ fun dumpTree(root: Node, depth: int) {
   dumpTree(root.left, depth+1);
 }
 
-fun isBalanced(root: Node) -> bool {
+fun isBalanced(root: Node) -> Bool {
   return height(root) >= 0;
 }
 
-fun height(node: Node) -> int {
+fun height(node: Node) -> Int {
   if node === nil {
     return 0;
   }
@@ -64,7 +64,7 @@ fun height(node: Node) -> int {
   }
 }
 
-fun max(left: int, right: int) -> int {
+fun max(left: Int, right: Int) -> Int {
   if left >= right {
     return left;
   } else {

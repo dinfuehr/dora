@@ -10,4 +10,4 @@ fun main() {
   assert(x.next.a == 2);
 }
 
-class Foo(let a: int, var next: Foo)
+class Foo(let a: Int, var next: Foo)

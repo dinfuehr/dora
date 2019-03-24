@@ -1,8 +1,8 @@
 //= output "x = 1\ny = 2\nz = 3\n"
 
-var x: int;
-var y: int;
-var z: int;
+var x: Int;
+var y: Int;
+var z: Int;
 
 fun main() {
     init_globals();

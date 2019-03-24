@@ -33,21 +33,21 @@ fun main() {
     assert(f1 === f1);
     assert(f1 !== f2);
 
-    assert(bar::<int>(1, 1));
-    assert(!bar::<int>(1, 2));
+    assert(bar::<Int>(1, 1));
+    assert(!bar::<Int>(1, 2));
 
-    assert(bar::<double>(1.0, 1.0));
-    assert(!bar::<double>(1.0, 2.0));
-    assert(!bar::<double>(0.0, (-0.0)));
-    assert(bar::<double>(0.0/0.0, 0.0/0.0));
+    assert(bar::<Double>(1.0, 1.0));
+    assert(!bar::<Double>(1.0, 2.0));
+    assert(!bar::<Double>(0.0, (-0.0)));
+    assert(bar::<Double>(0.0/0.0, 0.0/0.0));
 
     assert(bar::<Foo>(f1, f1));
     assert(!bar::<Foo>(f1, Foo(1)));
     assert(!bar::<Foo>(f1, f2));
 }
 
-class Foo(i: int) {}
+class Foo(i: Int) {}
 
-fun bar<T>(a: T, b: T) -> bool {
+fun bar<T>(a: T, b: T) -> Bool {
     return a === b;
 }

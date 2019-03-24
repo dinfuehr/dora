@@ -919,7 +919,7 @@ mod tests {
     fn test_tempsize_for_fct_call() {
         info(
             "fun f() { g(1,2,3,4,5,6); }
-              fun g(a:int, b:int, c:int, d:int, e:int, f:int) {}",
+              fun g(a:Int, b:Int, c:Int, d:Int, e:Int, f:Int) {}",
             |_, jit_info| {
                 assert_eq!(24, jit_info.tempsize);
             },
@@ -927,7 +927,7 @@ mod tests {
 
         info(
             "fun f() { g(1,2,3,4,5,6,7,8); }
-              fun g(a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int) {}",
+              fun g(a:Int, b:Int, c:Int, d:Int, e:Int, f:Int, g:Int, h:Int) {}",
             |_, jit_info| {
                 assert_eq!(32, jit_info.tempsize);
             },
@@ -935,7 +935,7 @@ mod tests {
 
         info(
             "fun f() { g(1,2,3,4,5,6,7,8)+(1+2); }
-              fun g(a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int) -> int {
+              fun g(a:Int, b:Int, c:Int, d:Int, e:Int, f:Int, g:Int, h:Int) -> Int {
                   return 0;
               }",
             |_, jit_info| {
@@ -957,7 +957,7 @@ mod tests {
 
     #[test]
     fn test_param_offset() {
-        info("fun f(a: bool, b: int) { let c = 1; }", |fct, jit_info| {
+        info("fun f(a: Bool, b: Int) { let c = 1; }", |fct, jit_info| {
             assert_eq!(12, jit_info.localsize);
 
             for (var, offset) in fct.vars.iter().zip(&[-1, -8, -12]) {
@@ -970,9 +970,9 @@ mod tests {
     #[cfg(target_arch = "x86_64")]
     fn test_params_over_6_offset() {
         info(
-            "fun f(a: int, b: int, c: int, d: int,
-                   e: int, f: int, g: int, h: int) {
-                  let i : int = 1;
+            "fun f(a: Int, b: Int, c: Int, d: Int,
+                   e: Int, f: Int, g: Int, h: Int) {
+                  let i : Int = 1;
               }",
             |fct, jit_info| {
                 assert_eq!(28, jit_info.localsize);
@@ -989,10 +989,10 @@ mod tests {
     #[cfg(target_arch = "aarch64")]
     fn test_params_over_8_offset() {
         info(
-            "fun f(a: int, b: int, c: int, d: int,
-                   e: int, f: int, g: int, h: int,
-                   i: int, j: int) {
-                  let k : int = 1;
+            "fun f(a: Int, b: Int, c: Int, d: Int,
+                   e: Int, f: Int, g: Int, h: Int,
+                   i: Int, j: Int) {
+                  let k : Int = 1;
               }",
             |fct, jit_info| {
                 assert_eq!(36, jit_info.localsize);

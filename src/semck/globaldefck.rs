@@ -56,7 +56,7 @@ mod tests {
     #[test]
     fn check_initializer() {
         err(
-            "let a: int = 0;",
+            "let a: Int = 0;",
             pos(1, 1),
             Msg::GlobalInitializerNotSupported,
         );

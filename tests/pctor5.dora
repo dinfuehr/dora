@@ -4,7 +4,7 @@ fun main() {
     let y = Y(1);
 }
 
-open class X(let a: int)
-class Y(let b: int, a: int): X(a) {
-    init(a: int) : super(a) {}
+open class X(let a: Int)
+class Y(let b: Int, a: Int): X(a) {
+    init(a: Int) : super(a) {}
 }

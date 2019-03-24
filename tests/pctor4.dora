@@ -2,5 +2,5 @@
 
 fun main() {}
 
-open class X(let a: int)
-class Y(let b: int, a: int): X {}
+open class X(let a: Int)
+class Y(let b: Int, a: Int): X {}

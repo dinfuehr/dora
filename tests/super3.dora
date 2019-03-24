@@ -6,7 +6,7 @@ fun main() {
 }
 
 open class A {
-  open fun foo(a: int) -> int {
+  open fun foo(a: Int) -> Int {
     return a;
   }
 }
@@ -14,7 +14,7 @@ open class A {
 open class B: A {}
 
 class C: B {
-  override fun foo(a: int) -> int {
+  override fun foo(a: Int) -> Int {
     return super.foo(a) + 1;
   }
 }

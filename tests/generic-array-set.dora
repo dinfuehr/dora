@@ -1,20 +1,20 @@
 fun main() {
-  let x = Array::<int>(2, 100);
+  let x = Array::<Int>(2, 100);
   int_array_set(x, 1, 200);
   assert(x[0] == 100);
   assert(x[1] == 200);
 
-  let x = Array::<long>(2, 200L);
+  let x = Array::<Long>(2, 200L);
   long_array_set(x, 1, 100L);
   assert(x[0] == 200L);
   assert(x[1] == 100L);
 
-  let x = Array::<float>(2, 1.0F);
+  let x = Array::<Float>(2, 1.0F);
   float_array_set(x, 1, 2.0F);
   assert(x[0] == 1.0F);
   assert(x[1] == 2.0F);
 
-  let x = Array::<double>(2, 2.0);
+  let x = Array::<Double>(2, 2.0);
   double_array_set(x, 1, 1.0);
   assert(x[0] == 2.0);
   assert(x[1] == 1.0);
@@ -30,28 +30,28 @@ fun main() {
   assert(x[1].y == 2);
 }
 
-fun int_array_set(x: Array<int>, idx: int, val: int) {
+fun int_array_set(x: Array<Int>, idx: Int, val: Int) {
   x[idx] = val;
 }
 
-fun long_array_set(x: Array<long>, idx: int, val: long) {
+fun long_array_set(x: Array<Long>, idx: Int, val: Long) {
   x[idx] = val;
 }
 
-fun float_array_set(x: Array<float>, idx: int, val: float) {
+fun float_array_set(x: Array<Float>, idx: Int, val: Float) {
   x[idx] = val;
 }
 
-fun double_array_set(x: Array<double>, idx: int, val: double) {
+fun double_array_set(x: Array<Double>, idx: Int, val: Double) {
   x[idx] = val;
 }
 
-fun str_array_set(x: Array<String>, idx: int, val: String) {
+fun str_array_set(x: Array<String>, idx: Int, val: String) {
   x[idx] = val;
 }
 
-fun foo_array_set(x: Array<Foo>, idx: int, val: Foo) {
+fun foo_array_set(x: Array<Foo>, idx: Int, val: Foo) {
   x[idx] = val;
 }
 
-class Foo(let y: int)
+class Foo(let y: Int)

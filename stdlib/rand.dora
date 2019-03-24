@@ -1,15 +1,15 @@
-const RANDOM_MULTIPLIER: long = 25214903917L;
-const RANDOM_INCREMENT: long = 11L;
-const RANDOM_MASK: long = 0xFF_FF_FF_FF_FF_FFL;
+const RANDOM_MULTIPLIER: Long = 25214903917L;
+const RANDOM_INCREMENT: Long = 11L;
+const RANDOM_MASK: Long = 0xFF_FF_FF_FF_FF_FFL;
 
 class Random {
-  var seed: long = 0L;
+  var seed: Long = 0L;
 
-  init(seed: long) {
+  init(seed: Long) {
     self.seed = (seed ^ RANDOM_MULTIPLIER) & RANDOM_MASK;
   }
 
-  fun nextIntWithBound(bound: int) -> int {
+  fun nextIntWithBound(bound: Int) -> Int {
     assert(bound > 0);
     let bound_minus_1 = bound - 1;
 
@@ -32,16 +32,16 @@ class Random {
     return mod;
   }
 
-  fun nextInt() -> int {
+  fun nextInt() -> Int {
     self.seed = (self.seed * RANDOM_MULTIPLIER + RANDOM_INCREMENT) & RANDOM_MASK;
     return (self.seed >>> 16L).toInt();
   }
 
-  fun nextInt31() -> int {
+  fun nextInt31() -> Int {
     return self.nextInt() & 0x7F_FF_FF_FF;
   }
 
-  fun nextLong() -> long {
+  fun nextLong() -> Long {
     let w1 = self.nextInt();
     let w2 = self.nextInt();
 
