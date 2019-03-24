@@ -722,7 +722,7 @@ pub struct Fct<'ast> {
     pub overrides: Option<FctId>,
     pub param_types: Vec<BuiltinType>,
     pub return_type: BuiltinType,
-    pub ctor: ast::CtorType,
+    pub is_constructor: bool,
 
     pub vtable_index: Option<u32>,
     pub impl_for: Option<FctId>,

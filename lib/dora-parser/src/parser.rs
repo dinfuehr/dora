@@ -291,16 +291,17 @@ impl<'a> Parser<'a> {
             has_open: has_open,
             internal: internal,
             is_abstract: is_abstract,
-            primary_ctor: false,
+            has_constructor: false,
             parent_class: None,
-            ctors: Vec::new(),
+            constructor: None,
             fields: Vec::new(),
             methods: Vec::new(),
+            initializers: Vec::new(),
             type_params: type_params,
         };
 
         self.in_class = true;
-        let ctor_params = self.parse_primary_ctor(&mut cls)?;
+        let ctor_params = self.parse_constructor(&mut cls)?;
 
         cls.parent_class = if self.token.is(TokenKind::Colon) {
             self.advance_token()?;
@@ -316,20 +317,7 @@ impl<'a> Parser<'a> {
         };
 
         self.parse_class_body(&mut cls)?;
-
-        // add initializers to all ctors only if no primary ctor was added
-        if ctor_params.len() == 0 {
-            self.add_field_initializers_to_ctors(&mut cls);
-        }
-
-        // do not generate ctors for internal classes
-        // add ctor if either there are primary ctor params or no ctors exist yet
-        if !cls.internal && (ctor_params.len() > 0 || cls.ctors.is_empty()) {
-            let ctor = self.generate_primary_ctor(&mut cls, ctor_params);
-            cls.ctors.push(ctor);
-            cls.primary_ctor = true;
-        }
-
+        cls.constructor = Some(self.generate_constructor(&mut cls, ctor_params));
         self.in_class = false;
 
         Ok(cls)
@@ -377,30 +365,6 @@ impl<'a> Parser<'a> {
            })
     }
 
-    fn add_field_initializers_to_ctors(&mut self, cls: &mut Class) {
-        let builder = Builder::new(self.id_generator);
-
-        for ctor in &mut cls.ctors {
-            let mut block = builder.build_block();
-
-            for field in &cls.fields {
-                if let Some(ref expr) = field.expr {
-                    let this = builder.build_this();
-                    let lhs = builder.build_field(this, field.name);
-                    let ass = builder.build_assign(lhs, expr.clone());
-
-                    block.add_expr(ass);
-                }
-            }
-
-            if block.len() > 0 && ctor.block.is_some() {
-                let old_block = mem::replace(&mut ctor.block, None);
-                block.add_stmt(old_block.unwrap());
-                ctor.block = Some(block.build());
-            }
-        }
-    }
-
     fn parse_parent_class_params(&mut self) -> Result<Vec<Box<Expr>>, MsgWithPos> {
         if !self.token.is(TokenKind::LParen) {
             return Ok(Vec::new());
@@ -413,21 +377,22 @@ impl<'a> Parser<'a> {
         Ok(params)
     }
 
-    fn parse_primary_ctor(&mut self, cls: &mut Class) -> Result<Vec<PrimaryCtorParam>, MsgWithPos> {
+    fn parse_constructor(&mut self, cls: &mut Class) -> Result<Vec<ConstructorParam>, MsgWithPos> {
         if !self.token.is(TokenKind::LParen) {
             return Ok(Vec::new());
         }
 
         self.expect_token(TokenKind::LParen)?;
+        cls.has_constructor = true;
 
-        let params = self.parse_comma_list(TokenKind::RParen, |p| p.parse_primary_ctor_param(cls))?;
+        let params = self.parse_comma_list(TokenKind::RParen, |p| p.parse_constructor_param(cls))?;
 
         Ok(params)
     }
 
-    fn parse_primary_ctor_param(&mut self,
-                                cls: &mut Class)
-                                -> Result<PrimaryCtorParam, MsgWithPos> {
+    fn parse_constructor_param(&mut self,
+                               cls: &mut Class)
+                               -> Result<ConstructorParam, MsgWithPos> {
         let field = self.token.is(TokenKind::Var) || self.token.is(TokenKind::Let);
         let reassignable = self.token.is(TokenKind::Var);
 
@@ -455,7 +420,7 @@ impl<'a> Parser<'a> {
                       })
         }
 
-        Ok(PrimaryCtorParam {
+        Ok(ConstructorParam {
                name: name,
                pos: pos,
                data_type: data_type,
@@ -489,14 +454,6 @@ impl<'a> Parser<'a> {
                     cls.methods.push(fct);
                 }
 
-                TokenKind::Init => {
-                    let mods = &[Modifier::Internal];
-                    self.restrict_modifiers(&modifiers, mods)?;
-
-                    let ctor = self.parse_ctor(cls, &modifiers)?;
-                    cls.ctors.push(ctor);
-                }
-
                 TokenKind::Var | TokenKind::Let => {
                     self.ban_modifiers(&modifiers)?;
 
@@ -505,9 +462,8 @@ impl<'a> Parser<'a> {
                 }
 
                 _ => {
-                    return Err(MsgWithPos::new(self.lexer.path().to_string(),
-                                               self.token.position,
-                                               Msg::ExpectedClassElement(self.token.name())))
+                    let initializer = self.parse_statement()?;
+                    cls.initializers.push(initializer);
                 }
             }
         }
@@ -563,76 +519,6 @@ impl<'a> Parser<'a> {
         }
 
         Ok(())
-    }
-
-    fn parse_ctor(&mut self, cls: &Class, modifiers: &Modifiers) -> Result<Function, MsgWithPos> {
-        let pos = self.expect_token(TokenKind::Init)?.position;
-        let params = self.parse_function_params()?;
-        let delegation = self.parse_delegation()?;
-        let mut block = self.parse_function_block()?;
-        let builder = Builder::new(self.id_generator);
-
-        if let Some(delegation) = delegation {
-            let expr = Expr::create_delegation(self.generate_id(),
-                                               delegation.pos,
-                                               delegation.ty,
-                                               delegation.args);
-
-            let mut bblock = builder.build_block();
-            bblock.add_expr(Box::new(expr));
-            bblock.add_stmt(block.unwrap());
-            block = Some(bblock.build());
-        }
-
-        Ok(Function {
-               id: self.generate_id(),
-               pos: pos,
-               name: cls.name,
-               method: true,
-               has_open: false,
-               has_override: false,
-               has_final: false,
-               has_optimize: false,
-               is_pub: true,
-               is_static: false,
-               is_abstract: false,
-               internal: modifiers.contains(Modifier::Internal),
-               ctor: CtorType::Secondary,
-               params: params,
-               throws: false,
-               return_type: None,
-               block: block,
-               type_params: None,
-           })
-    }
-
-    fn parse_delegation(&mut self) -> Result<Option<Delegation>, MsgWithPos> {
-        if !self.token.is(TokenKind::Colon) {
-            return Ok(None);
-        }
-
-        self.expect_token(TokenKind::Colon)?;
-        let pos = self.token.position;
-
-        let ty = if self.token.is(TokenKind::This) {
-            DelegationType::This
-        } else if self.token.is(TokenKind::Super) {
-            DelegationType::Super
-        } else {
-            let name = self.token.name();
-            return Err(MsgWithPos::new(self.lexer.path().to_string(), pos, Msg::ThisOrSuperExpected(name)));
-        };
-
-        self.advance_token()?;
-        self.expect_token(TokenKind::LParen)?;
-
-        let args = self.parse_comma_list(TokenKind::RParen, |p| p.parse_expression())?;
-
-        Ok(Some(Delegation {
-                    pos: pos,
-                    ty: ty,
-                    args: args,
-                }))
     }
 
     fn parse_field(&mut self) -> Result<Field, MsgWithPos> {
@@ -695,7 +581,7 @@ impl<'a> Parser<'a> {
                is_static: modifiers.contains(Modifier::Static),
                internal: modifiers.contains(Modifier::Internal),
                is_abstract: modifiers.contains(Modifier::Abstract),
-               ctor: CtorType::None,
+               is_constructor: false,
                params: params,
                throws: throws,
                return_type: return_type,
@@ -1560,10 +1446,10 @@ impl<'a> Parser<'a> {
         Ok(mem::replace(&mut self.token, tok))
     }
 
-    fn generate_primary_ctor(&mut self,
-                             cls: &mut Class,
-                             ctor_params: Vec<PrimaryCtorParam>)
-                             -> Function {
+    fn generate_constructor(&mut self,
+                            cls: &mut Class,
+                            ctor_params: Vec<ConstructorParam>)
+                            -> Function {
         let builder = Builder::new(self.id_generator);
         let mut block = builder.build_block();
 
@@ -1593,6 +1479,8 @@ impl<'a> Parser<'a> {
             block.add_expr(ass);
         }
 
+        block.add_stmts(mem::replace(&mut cls.initializers, Vec::new()));
+
         let mut fct = builder.build_fct(cls.name);
 
         for field in &ctor_params {
@@ -1601,7 +1489,7 @@ impl<'a> Parser<'a> {
 
         fct.is_method(true)
             .is_public(true)
-            .ctor(CtorType::Primary)
+            .constructor(true)
             .block(block.build());
 
         fct.build()
@@ -2625,11 +2513,12 @@ mod tests {
     fn parse_class_with_param() {
         let (prog, _) = parse("class Foo(a: int)");
         let class = prog.cls0();
+        let ctor = class.constructor.clone().unwrap();
 
         assert_eq!(0, class.fields.len());
-        assert_eq!(1, class.ctors.len());
-        assert_eq!(1, class.ctors[0].params.len());
-        assert_eq!(false, class.ctors[0].params[0].reassignable);
+        assert_eq!(true, class.has_constructor);
+        assert_eq!(1, ctor.params.len());
+        assert_eq!(false, ctor.params[0].reassignable);
     }
 
     #[test]
@@ -2639,20 +2528,21 @@ mod tests {
 
         assert_eq!(1, class.fields.len());
         assert_eq!(true, class.fields[0].reassignable);
-        assert_eq!(1, class.ctors.len());
-        assert_eq!(1, class.ctors[0].params.len());
+        assert_eq!(true, class.has_constructor);
+        assert_eq!(1, class.constructor.clone().unwrap().params.len());
     }
 
     #[test]
     fn parse_class_with_param_let() {
         let (prog, _) = parse("class Foo(let a: int)");
         let class = prog.cls0();
+        let ctor = class.constructor.clone().unwrap();
 
         assert_eq!(1, class.fields.len());
         assert_eq!(false, class.fields[0].reassignable);
-        assert_eq!(1, class.ctors.len());
-        assert_eq!(1, class.ctors[0].params.len());
-        assert_eq!(false, class.ctors[0].params[0].reassignable);
+        assert_eq!(true, class.has_constructor);
+        assert_eq!(1, ctor.params.len());
+        assert_eq!(false, ctor.params[0].reassignable);
     }
 
     #[test]
@@ -2661,7 +2551,7 @@ mod tests {
         let class = prog.cls0();
 
         assert_eq!(0, class.fields.len());
-        assert_eq!(2, class.ctors[0].params.len());
+        assert_eq!(2, class.constructor.clone().unwrap().params.len());
     }
 
     #[test]
@@ -2866,69 +2756,6 @@ mod tests {
         let (prog, _) = parse("internal class Foo {}");
         let cls = prog.cls0();
         assert!(cls.internal);
-    }
-
-    #[test]
-    fn parse_ctor() {
-        let (prog, _) = parse("class X { init() {} }");
-        let cls = prog.cls0();
-        assert_eq!(1, cls.ctors.len());
-        assert_eq!(0, cls.ctors[0].params.len());
-    }
-
-    #[test]
-    fn parse_ctor_with_params() {
-        let (prog, _) = parse("class X { init(a: int, b: int) {} }");
-        let cls = prog.cls0();
-        assert_eq!(1, cls.ctors.len());
-        assert_eq!(2, cls.ctors[0].params.len());
-    }
-
-    #[test]
-    fn parse_ctor_with_this_delegation() {
-        let (prog, _) = parse("class X(a: int) { init(a: int, b: int): self(a) {} }");
-        let cls = prog.cls0();
-        assert_eq!(2, cls.ctors.len());
-
-        let block = cls.ctors[0]
-            .block
-            .as_ref()
-            .unwrap()
-            .to_block()
-            .unwrap();
-        let delegation = block.stmts[0]
-            .to_expr()
-            .unwrap()
-            .expr
-            .to_delegation()
-            .unwrap();
-
-        assert_eq!(DelegationType::This, delegation.ty);
-        assert_eq!(1, delegation.args.len());
-    }
-
-    #[test]
-    fn parse_ctor_with_super_delegation() {
-        let (prog, _) = parse("class Y(a: int)
-                               class X: Y { init(a: int, b: int): super(a) {} }");
-        let cls = prog.cls(1);
-        assert_eq!(1, cls.ctors.len());
-
-        let block = cls.ctors[0]
-            .block
-            .as_ref()
-            .unwrap()
-            .to_block()
-            .unwrap();
-        let delegation = block.stmts[0]
-            .to_expr()
-            .unwrap()
-            .expr
-            .to_delegation()
-            .unwrap();
-
-        assert_eq!(DelegationType::Super, delegation.ty);
-        assert_eq!(1, delegation.args.len());
     }
 
     #[test]

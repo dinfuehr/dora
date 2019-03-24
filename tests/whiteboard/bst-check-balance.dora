@@ -1,20 +1,20 @@
 class Node(let val: Int, var left: Node, var right: Node) {
-  init(val: Int) : self(val, nil, nil) { }
+  static fun val(val: Int) -> Node = Node(val, nil, nil);
 }
 
 fun main() {
   let root = Node(5,
                   Node(10,
-                       Node(20),
-                       Node(25)),
+                       Node::val(20),
+                       Node::val(25)),
                   Node(15,
-                       Node(30),
-                       Node(35)));
+                       Node::val(30),
+                       Node::val(35)));
 
   dumpTree(root, 0);
   println(isBalanced(root).toString());
 
-  root.right.right.right = Node(40, nil, Node(45));
+  root.right.right.right = Node(40, nil, Node::val(45));
 
   dumpTree(root, 0);
   println(isBalanced(root).toString());

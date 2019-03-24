@@ -11,13 +11,7 @@ class File(let name: String) {
   }
 }
 
-class FileDescriptor {
-  var fd: Int;
-
-  init(fd: Int) {
-    self.fd = fd;
-  }
-
+class FileDescriptor(var fd: Int) {
   fun read() -> Byte {
     // TODO
     return 0Y;

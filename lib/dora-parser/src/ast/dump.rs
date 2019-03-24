@@ -173,8 +173,8 @@ impl<'a> AstDumper<'a> {
                          d.dump_field(field);
                      });
 
-            dump!(d, "ctor");
-            for ctor in &cls.ctors {
+            dump!(d, "constructor");
+            if let Some(ctor) = &cls.constructor {
                 d.indent(|d| d.dump_fct(ctor));
             }
 

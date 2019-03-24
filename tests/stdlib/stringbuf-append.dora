@@ -1,5 +1,5 @@
 fun main() {
-    let buf = StringBuf();
+    let buf = StringBuf::empty();
     buf.appendChar('a');
     buf.appendChar('b');
     buf.appendChar('c');

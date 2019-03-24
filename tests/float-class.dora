@@ -3,10 +3,6 @@ fun main() {
     assert(f.x * 2.0 == 2.0);
 }
 
-class Foo {
-    var x: Double;
-
-    init(x: Double) {
-        self.x = x;
-    }
+class Foo(x: Double) {
+    var x: Double = x;
 }

@@ -1,31 +1,31 @@
 fun main() {
-  let x = Array::<Int>(5, 100);
+  let x = arrayFill::<Int>(5, 100);
   assert(x[0] == 100);
   assert(int_array_get(x, 4) == 100);
 
-  let x = Array::<Long>(7, 200L);
+  let x = arrayFill::<Long>(7, 200L);
   assert(x[6] == 200L);
   assert(long_array_get(x, 0) == 200L);
 
-  let x = Array::<Float>(6, 1.0F);
+  let x = arrayFill::<Float>(6, 1.0F);
   assert(x[0] == 1.0F);
   assert(float_array_get(x, 5) == 1.0F);
 
-  let x = Array::<Double>(4, 2.0);
+  let x = arrayFill::<Double>(4, 2.0);
   assert(x[0] == 2.0);
   assert(double_array_get(x, 3) == 2.0);
 
-  let x = Array::<String>(3, "hello");
+  let x = arrayFill::<String>(3, "hello");
   assert(x[0] == "hello");
   assert(str_array_get(x, 2) == "hello");
 
-  let x = Array::<Foo>(1, Foo(1));
+  let x = arrayFill::<Foo>(1, Foo(1));
   assert(x[0] !== nil);
   assert(x[0].y == 1);
   assert(foo_array_get(x, 0) !== nil);
   assert(foo_array_get(x, 0).y == 1);
 
-  let x = Array::<Foo>(2, nil);
+  let x = arrayFill::<Foo>(2, nil);
   assert(x[0] === nil);
   assert(foo_array_get(x, 0) === nil);
 }

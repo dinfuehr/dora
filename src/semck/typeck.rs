@@ -423,7 +423,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         let cls = self.ctxt.classes.idx(clsid);
                         let cls = cls.read();
 
-                        if !self.fct.ctor.is() && !cls.fields[fieldid].reassignable {
+                        if !self.fct.is_constructor && !cls.fields[fieldid].reassignable {
                             self.ctxt.diag.lock().report_without_path(e.pos, Msg::LetReassigned);
                         }
                     }
@@ -891,24 +891,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let owner = self.ctxt.classes.idx(self.fct.cls_id());
         let owner = owner.read();
 
-        // init(..) : super(..) is not allowed for classes with primary ctor
-        if e.ty.is_super() && owner.primary_ctor && self.fct.ctor.is_secondary() {
-            let name = self.ctxt.interner.str(owner.name).to_string();
-            let msg = Msg::NoSuperDelegationWithPrimaryCtor(name);
-            self.ctxt.diag.lock().report_without_path(e.pos, msg);
-
-            return;
-        }
-
-        // init(..) : super(..) not allowed for classes without base class
-        if e.ty.is_super() && owner.parent_class.is_none() {
-            let name = self.ctxt.interner.str(owner.name).to_string();
-            let msg = Msg::NoSuperClass(name);
-            self.ctxt.diag.lock().report_without_path(e.pos, msg);
-
-            return;
-        }
-
         let cls_id = if e.ty.is_super() {
             owner.parent_class.unwrap()
         } else {
@@ -918,7 +900,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let cls = self.ctxt.classes.idx(cls_id);
         let cls = cls.read();
 
-        for &ctor_id in &cls.ctors {
+        if let Some(ctor_id) = cls.constructor {
             let ctor = self.ctxt.fcts.idx(ctor_id);
             let ctor = ctor.read();
 
@@ -1945,7 +1927,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         let type_params = self.cls_tps.as_ref().unwrap();
         let args = self.args.unwrap();
 
-        for &ctor_id in &cls.ctors {
+        if let Some(ctor_id) = cls.constructor {
             let ctor = self.ctxt.fcts.idx(ctor_id);
             let ctor = ctor.read();
 
@@ -2737,7 +2719,7 @@ mod tests {
     #[test]
     fn type_throw() {
         ok("fun f() { throw \"abc\"; }");
-        ok("fun f() { throw Array::<Int>(); }");
+        ok("fun f() { throw Array::<Int>(0); }");
         err(
             "fun f() { throw 1; }",
             pos(1, 11),
@@ -2841,7 +2823,7 @@ mod tests {
                do {
                  throw \"test\";
                } catch x: Array<Int> {
-                 x = Array::<Int>();
+                 x = Array::<Int>(0);
                }
              }",
             pos(5, 20),
@@ -2909,8 +2891,8 @@ mod tests {
             Msg::TypesIncompatible("A".into(), "C".into()),
         );
 
-        ok("open class A class B: A fun f() -> A { return B(); }");
-        ok("open class A class B: A fun f() { let a: A = B(); }");
+        ok("open class A() class B(): A() fun f() -> A { return B(); }");
+        ok("open class A() class B(): A() fun f() { let a: A = B(); }");
     }
 
     #[test]
@@ -3030,7 +3012,7 @@ mod tests {
     #[test]
     fn try_method_non_throwing() {
         err(
-            "class Foo { fun one() -> Int { return 1; } }
+            "class Foo() { fun one() -> Int { return 1; } }
              fun me() -> Int { return try Foo().one(); }",
             pos(2, 39),
             Msg::TryCallNonThrowing,
@@ -3639,7 +3621,7 @@ mod tests {
 
         err(
             "
-            class Foo { fun makeIterator() -> Bool { return true; } }
+            class Foo() { fun makeIterator() -> Bool { return true; } }
             fun f() { for i in Foo() {} }",
             pos(3, 32),
             Msg::MakeIteratorReturnType("Bool".into()),

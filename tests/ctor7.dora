@@ -1,5 +1,0 @@
-fun main() {}
-
-class X {
-    init(a: Int) : super() {}
-}

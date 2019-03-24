@@ -578,7 +578,6 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("as", TokenKind::As);
     keywords.insert("internal", TokenKind::Internal);
     keywords.insert("optimize", TokenKind::Optimize);
-    keywords.insert("init", TokenKind::Init);
     keywords.insert("pub", TokenKind::Pub);
     keywords.insert("static", TokenKind::Static);
     keywords.insert("spawn", TokenKind::Spawn);

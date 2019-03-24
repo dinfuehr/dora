@@ -1,7 +1,7 @@
 //= output "xyz"
 
-class X {
-    init(msg: String) { print(msg); }
+class X(msg: String) {
+    print(msg);
 }
 
 fun main() {
