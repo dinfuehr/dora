@@ -5,11 +5,11 @@ fun main() {
 }
 
 class SomeTest {
-    fun unaryPlus() -> float {
+    fun unaryPlus() -> Float {
         return 1.0F;
     }
 
-    fun unaryMinus() -> float {
+    fun unaryMinus() -> Float {
         return 2.0F;
     }
 }

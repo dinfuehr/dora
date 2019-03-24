@@ -3,10 +3,10 @@ fun main() {
     assert(!test(B(0)));
 }
 
-fun test(a: A) -> bool {
+fun test(a: A) -> Bool {
     let a = a as B;
     return a.x != 0;
 }
 
 open class A
-class B(let x: int): A
+class B(let x: Int): A

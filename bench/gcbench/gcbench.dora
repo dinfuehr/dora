@@ -1,6 +1,6 @@
 class Node {
-    var i: int;
-    var j: int;
+    var i: Int;
+    var j: Int;
     var left: Node;
     var right: Node;
 
@@ -11,21 +11,21 @@ class Node {
     }
 }
 
-const kStretchTreeDepth: int = 18;    // about 16M
-const kLongLivedTreeDepth: int = 16;  // about 4M
-const kArraySize: int = 500000;       // about 4M
-const kMinTreeDepth: int = 4;
-const kMaxTreeDepth: int = 16;
+const kStretchTreeDepth: Int = 18;    // about 16M
+const kLongLivedTreeDepth: Int = 16;  // about 4M
+const kArraySize: Int = 500000;       // about 4M
+const kMinTreeDepth: Int = 4;
+const kMaxTreeDepth: Int = 16;
 
-fun treeSize (i: int) -> int {
+fun treeSize (i: Int) -> Int {
     return (1 << (1 + 1)) - 1;
 }
 
-fun numIters(i: int) -> int {
+fun numIters(i: Int) -> Int {
     return 2 * treeSize(kStretchTreeDepth) / treeSize(i);
 }
 
-fun populate(var iDepth: int, thisNode: Node) {
+fun populate(var iDepth: Int, thisNode: Node) {
     if iDepth <= 0 {
         return;
     } else {
@@ -37,7 +37,7 @@ fun populate(var iDepth: int, thisNode: Node) {
     }
 }
 
-fun makeTree(iDepth: int) -> Node {
+fun makeTree(iDepth: Int) -> Node {
     if iDepth <= 0 {
         return Node();
     } else {
@@ -45,7 +45,7 @@ fun makeTree(iDepth: int) -> Node {
     }
 }
 
-fun timeConstruction(depth: int) {
+fun timeConstruction(depth: Int) {
     let iNumIters = numIters(depth);
     println("Creating " + iNumIters.toString() + " trees of depth " + depth.toString());
     let start = timestamp();
@@ -92,7 +92,7 @@ fun main() {
     populate(kLongLivedTreeDepth, longLivedTree);
 
     println("Creating a long-lived array of " + kArraySize.toString() + " doubles");
-    let array = Array::<double>(kArraySize);
+    let array = Array::<Double>(kArraySize);
 
     var i = 0;
 

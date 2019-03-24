@@ -1,4 +1,4 @@
 fun main() {
-  let array = Array::<int>(5, 2);
+  let array = Array::<Int>(5, 2);
   assert(2 == array[0]);
 }

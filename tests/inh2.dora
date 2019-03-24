@@ -5,10 +5,10 @@ fun main() {
   assert(a.y == 20);
 }
 
-class A(x1: int): B(x1*2) {
-  let x: int = x1;
+class A(x1: Int): B(x1*2) {
+  let x: Int = x1;
 }
 
-open class B(y1: int) {
-  let y: int = y1;
+open class B(y1: Int) {
+  let y: Int = y1;
 }

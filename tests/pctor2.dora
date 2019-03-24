@@ -6,10 +6,10 @@ fun main() {
     assert(bar.a == 125);
 }
 
-class Foo(x: int) {
-    let a: int = x+1;
+class Foo(x: Int) {
+    let a: Int = x+1;
 }
 
-class Bar(x: int) {
-    var a: int = x+1;
+class Bar(x: Int) {
+    var a: Int = x+1;
 }

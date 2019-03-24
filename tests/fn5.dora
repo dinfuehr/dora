@@ -3,6 +3,6 @@ fun main() {
   assert(result == 1);
 }
 
-fun myzero() -> int {
+fun myzero() -> Int {
   return 0;
 }

@@ -4,5 +4,5 @@ fun main() {
   assert(a.y == 20);
 }
 
-class A(let x: int): B(x*2)
-open class B(let y: int)
+class A(let x: Int): B(x*2)
+open class B(let y: Int)

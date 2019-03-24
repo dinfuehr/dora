@@ -22,8 +22,8 @@ fun main() {
     assert(buffer[4] == 0Y);
 }
 
-fun write(ch: char) -> Array<byte> {
-    let buffer = Array::<byte>(5);
+fun write(ch: Char) -> Array<Byte> {
+    let buffer = Array::<Byte>(5);
     ch.encodeUtf8(buffer, 0);
     return buffer;
 }

@@ -11,4 +11,4 @@ fun main() {
   }
 }
 
-class Foo(let a: int, let next: Foo)
+class Foo(let a: Int, let next: Foo)

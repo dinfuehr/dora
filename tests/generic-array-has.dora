@@ -1,9 +1,9 @@
 fun main() {
-  let ais = Array::<int>(100, 2);
+  let ais = Array::<Int>(100, 2);
   ais[99] = 23;
   assert(ais.has(23));
 
-  let ads = Array::<double>(100, 2.0);
+  let ads = Array::<Double>(100, 2.0);
   ads[99] = 0.0/0.0;
   assert(ads.has(0.0/0.0));
 }

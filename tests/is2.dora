@@ -11,7 +11,7 @@ fun main() {
   assert(!isl7(nil));
 }
 
-fun isl7(a: L1) -> bool {
+fun isl7(a: L1) -> Bool {
   return a is L7;
 }
 

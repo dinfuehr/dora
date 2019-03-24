@@ -6,10 +6,10 @@ fun main() {
     assert(y == 1D);
 }
 
-fun fone() -> float {
+fun fone() -> Float {
     return 1F;
 }
 
-fun done() -> double {
+fun done() -> Double {
     return 1D;
 }

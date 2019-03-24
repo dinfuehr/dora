@@ -5,4 +5,4 @@ fun main() {
     println(root.value.toString());
 }
 
-class Foo(let value: int)
+class Foo(let value: Int)

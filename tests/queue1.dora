@@ -1,5 +1,5 @@
 fun main() {
-    let q = Queue::<int>();
+    let q = Queue::<Int>();
     assert(q.len() == 0);
     assert(q.isEmpty());
     q.enqueue(1);

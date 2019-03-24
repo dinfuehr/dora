@@ -4,10 +4,10 @@ fun main() {
   assert(f() == 3);
 }
 
-fun f() -> int {
+fun f() -> Int {
   do {
     print("hello ");
-  } catch e: Array<int> {
+  } catch e: Array<Int> {
     return 4;
   } finally {
     println("world!");

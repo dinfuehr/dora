@@ -1,16 +1,16 @@
 fun main() {
-    let array = Array::<float>();
+    let array = Array::<Float>();
     assert(0 == array.len());
 
-    let array = Array::<float>(10, 2F);
+    let array = Array::<Float>(10, 2F);
     assert(10 == array.len());
     assert(2F == array[0]);
     assert(2F == array[9]);
 
-    let array = Array::<double>();
+    let array = Array::<Double>();
     assert(0 == array.len());
 
-    let array = Array::<double>(12, 3D);
+    let array = Array::<Double>(12, 3D);
     assert(12 == array.len());
     assert(3D == array[0]);
     assert(3D == array[11]);

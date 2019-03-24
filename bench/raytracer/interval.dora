@@ -1,13 +1,13 @@
 class Interval {
-    let number: int;
-    let width: int;
-    let height: int;
-    let yfrom: int;
-    let yto: int;
-    let total: int;
-    let threadid: int;
+    let number: Int;
+    let width: Int;
+    let height: Int;
+    let yfrom: Int;
+    let yto: Int;
+    let total: Int;
+    let threadid: Int;
 
-    init(number: int, width: int, height: int, yfrom: int, yto: int, total: int, threadid: int) {
+    init(number: Int, width: Int, height: Int, yfrom: Int, yto: Int, total: Int, threadid: Int) {
         self.number = number;
         self.width = width;
         self.height = height;

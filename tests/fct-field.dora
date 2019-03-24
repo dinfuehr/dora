@@ -14,4 +14,4 @@ fun id(x: Foo) -> Foo {
   return x;
 }
 
-class Foo(let y: int)
+class Foo(let y: Int)

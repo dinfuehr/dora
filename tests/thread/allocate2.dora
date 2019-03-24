@@ -34,4 +34,4 @@ fun allocator() {
     }
 }
 
-class Foo(let key: int, let prev: Foo)
+class Foo(let key: Int, let prev: Foo)

@@ -317,19 +317,19 @@ mod tests {
 
     #[test]
     fn test_const() {
-        ok("const foo: int = 0;");
+        ok("const foo: Int = 0;");
         err(
-            "const foo: int = 0; fun foo() {}",
+            "const foo: Int = 0; fun foo() {}",
             pos(1, 21),
             Msg::ShadowConst("foo".into()),
         );
         err(
-            "const foo: int = 0; class foo {}",
+            "const foo: Int = 0; class foo {}",
             pos(1, 21),
             Msg::ShadowConst("foo".into()),
         );
         err(
-            "const foo: int = 0; struct foo {}",
+            "const foo: Int = 0; struct foo {}",
             pos(1, 21),
             Msg::ShadowConst("foo".into()),
         );

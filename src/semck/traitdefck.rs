@@ -94,7 +94,7 @@ mod tests {
     #[test]
     fn trait_method_with_body() {
         err(
-            "trait Foo { fun foo() -> int { return 1; } }",
+            "trait Foo { fun foo() -> Int { return 1; } }",
             pos(1, 13),
             Msg::TraitMethodWithBody,
         );
@@ -103,10 +103,10 @@ mod tests {
     #[test]
     fn trait_definitions() {
         ok("trait Foo {}");
-        ok("trait Foo { fun toBool() -> bool; }");
+        ok("trait Foo { fun toBool() -> Bool; }");
         ok("trait Foo {
-                fun toFloat() -> float;
-                fun toDouble() -> double;
+                fun toFloat() -> Float;
+                fun toDouble() -> Double;
             }");
 
         err(
@@ -115,7 +115,7 @@ mod tests {
             Msg::UnknownType("Unknown".into()),
         );
         err(
-            "trait Foo { fun foo(); fun foo() -> int; }",
+            "trait Foo { fun foo(); fun foo() -> Int; }",
             pos(1, 24),
             Msg::MethodExists("Foo".into(), "foo".into(), pos(1, 13)),
         );
@@ -131,7 +131,7 @@ mod tests {
     fn trait_with_self() {
         err(
             "trait Foo {
-            fun foo() -> int;
+            fun foo() -> Int;
             fun foo() -> Self;
         }",
             pos(3, 13),

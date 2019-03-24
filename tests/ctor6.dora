@@ -3,5 +3,5 @@
 fun main() {}
 
 class X {
-    init(a: int) : self(a, a) {}
+    init(a: Int) : self(a, a) {}
 }

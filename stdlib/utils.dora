@@ -1,8 +1,8 @@
 class Vec<T> {
   var array: Array<T> = nil;
-  var length: int = 0;
+  var length: Int = 0;
 
-  fun get(idx: int) -> T {
+  fun get(idx: Int) -> T {
     if idx < 0 || idx >= self.length {
       fatalError("index out of bounds for vector");
     }
@@ -10,7 +10,7 @@ class Vec<T> {
     return self.array[idx];
   }
 
-  fun set(idx: int, val: T) {
+  fun set(idx: Int, val: T) {
     if idx < 0 || idx >= self.length {
       fatalError("index out of bounds for vector");
     }
@@ -66,7 +66,7 @@ class Vec<T> {
     }
   }
 
-  fun removeAt(var ind: int) -> T {
+  fun removeAt(var ind: Int) -> T {
     assert(ind < self.length);
     let temp = self[ind];
     let len = self.length;
@@ -82,11 +82,11 @@ class Vec<T> {
     return temp;
   }
 
-  fun len() -> int {
+  fun len() -> Int {
     return self.length;
   }
 
-  fun capacity() -> int {
+  fun capacity() -> Int {
     if self.array === nil {
       return 0;
     } else {
@@ -109,8 +109,8 @@ fun removeItem<T: Equals>(vec: Vec<T>, elem: T) {
 
 class Queue<T> {
   var elements: Array<T> = Array::<T>(4);
-  var front: int = 0;
-  var count: int = 0;
+  var front: Int = 0;
+  var count: Int = 0;
 
   pub fun enqueue(value: T) {
     if self.count == self.elements.len() {
@@ -145,7 +145,7 @@ class Queue<T> {
     return value;
   }
 
-  fun moveFront() -> int {
+  fun moveFront() -> Int {
     self.front = self.front + 1;
 
     if self.front == self.elements.len() {
@@ -155,7 +155,7 @@ class Queue<T> {
     return self.front;
   }
 
-  fun getEnd() -> int {
+  fun getEnd() -> Int {
     let end = self.front + self.count;
     
     if end < self.elements.len() {
@@ -165,16 +165,16 @@ class Queue<T> {
     }
   }
 
-  pub fun len() -> int {
+  pub fun len() -> Int {
     return self.count;
   }
 
-  pub fun isEmpty() -> bool {
+  pub fun isEmpty() -> Bool {
     return self.count == 0;
   }
 }
 
-fun isValidUtf8(data: Array<byte>) -> bool {
+fun isValidUtf8(data: Array<Byte>) -> Bool {
   var i = 0;
 
   while i < data.len() {
@@ -238,28 +238,28 @@ fun isValidUtf8(data: Array<byte>) -> bool {
   return true;
 }
 
-class StringBuf(var buf: Array<byte>, var length: int) {
-  init(): self(Array::<byte>(0), 0) {
+class StringBuf(var buf: Array<Byte>, var length: Int) {
+  init(): self(Array::<Byte>(0), 0) {
 
   }
 
-  fun len() -> int {
+  fun len() -> Int {
     return self.length;
   }
 
-  fun capacity() -> int {
+  fun capacity() -> Int {
     return self.buf.len();
   }
 
   // reserve `elements` bytes
   // (capacity - length >= elements)
-  fun reserve(elements: int) {
+  fun reserve(elements: Int) {
     if self.capacity() - self.len() >= elements {
       return;
     }
 
     let newcap = self.newCapacity(elements);
-    let newbuf = Array::<byte>(newcap);
+    let newbuf = Array::<Byte>(newcap);
     var i = 0;
 
     while i < self.buf.len() {
@@ -270,7 +270,7 @@ class StringBuf(var buf: Array<byte>, var length: int) {
     self.buf = newbuf;
   }
 
-  fun newCapacity(reserve: int) -> int {
+  fun newCapacity(reserve: Int) -> Int {
     var len = self.length;
 
     if len == 0 {
@@ -289,7 +289,7 @@ class StringBuf(var buf: Array<byte>, var length: int) {
     }
   }
 
-  fun appendChar(ch: char) -> StringBuf {
+  fun appendChar(ch: Char) -> StringBuf {
     let chLen = ch.lenUtf8();
     self.reserve(chLen);
     ch.encodeUtf8(self.buf, self.length);

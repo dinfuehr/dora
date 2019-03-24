@@ -41,7 +41,7 @@ class NBodySystem {
         bodies[0].offsetMomentum(px, py, pz);
     }
 
-    fun advance(dt: double) {
+    fun advance(dt: Double) {
         var i = 0;
 
         while i < self.bodies.len() {
@@ -84,7 +84,7 @@ class NBodySystem {
         }
    }
 
-   fun energy() -> double {
+   fun energy() -> Double {
       var dx = 0.0;
       var dy = 0.0;
       var dz = 0.0;
@@ -122,18 +122,18 @@ class NBodySystem {
    }
 }
 
-const PI: double = 3.141592653589793;
-var SOLAR_MASS: double;
-const DAYS_PER_YEAR: double = 365.24;
+const PI: Double = 3.141592653589793;
+var SOLAR_MASS: Double;
+const DAYS_PER_YEAR: Double = 365.24;
 
 class Body {
-    var x: double;
-    var y: double;
-    var z: double;
-    var vx: double;
-    var vy: double;
-    var vz: double;
-    var mass: double;
+    var x: Double;
+    var y: Double;
+    var z: Double;
+    var vx: Double;
+    var vy: Double;
+    var vz: Double;
+    var mass: Double;
 
     static fun jupiter() -> Body {
         let p = Body();
@@ -189,7 +189,7 @@ class Body {
       return p;
    }
 
-   fun offsetMomentum(px: double, py: double, pz: double) -> Body {
+   fun offsetMomentum(px: Double, py: Double, pz: Double) -> Body {
       self.vx = -px / SOLAR_MASS;
       self.vy = -py / SOLAR_MASS;
       self.vz = -pz / SOLAR_MASS;

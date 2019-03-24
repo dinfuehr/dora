@@ -1,5 +1,5 @@
 fun main() {
-    let x = SomeTest::<int>(1);
+    let x = SomeTest::<Int>(1);
     assert(+x == 1);
     assert(-x == 1);
 }

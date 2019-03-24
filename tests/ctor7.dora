@@ -1,5 +1,5 @@
 fun main() {}
 
 class X {
-    init(a: int) : super() {}
+    init(a: Int) : super() {}
 }

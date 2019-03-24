@@ -14,4 +14,4 @@ fun main() {
   assert(x.next.next.next.next.next === nil);
 }
 
-class Foo(let a: int, var next: Foo)
+class Foo(let a: Int, var next: Foo)

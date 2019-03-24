@@ -4,9 +4,9 @@ fun main() {
 }
 
 class Foo {
-    var x: double;
+    var x: Double;
 
-    init(x: double) {
+    init(x: Double) {
         self.x = x;
     }
 }

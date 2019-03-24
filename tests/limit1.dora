@@ -1,7 +1,7 @@
 fun main() {
-    assert(-2147483648 == int::min_value());
-    assert(2147483647 == int::max_value());
+    assert(-2147483648 == Int::min_value());
+    assert(2147483647 == Int::max_value());
 
-    assert(-9223372036854775808L == long::min_value());
-    assert(9223372036854775807L == long::max_value());
+    assert(-9223372036854775808L == Long::min_value());
+    assert(9223372036854775807L == Long::max_value());
 }

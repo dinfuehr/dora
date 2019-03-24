@@ -58,6 +58,6 @@ mod tests {
             Msg::UnknownType("Foo".into()),
         );
 
-        ok("const x: int = 0;");
+        ok("const x: Int = 0;");
     }
 }

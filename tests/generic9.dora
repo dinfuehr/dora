@@ -1,5 +1,5 @@
 fun main() {
-    let a = A::<int>();
+    let a = A::<Int>();
     consume(a.x);
 
     let b = A::<String>();
@@ -14,7 +14,7 @@ class A<T> {
     }
 }
 
-fun consume(x: Array<int>) {
+fun consume(x: Array<Int>) {
     assert(x[9] == 0);
 }
 

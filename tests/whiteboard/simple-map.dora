@@ -1,5 +1,5 @@
 fun main() {
-    let m = SlowMap::<int, String>();
+    let m = SlowMap::<Int, String>();
     assert(m.insert(1, "hello"));
     assert(m.insert(2, "world"));
 
@@ -14,7 +14,7 @@ fun main() {
 class SlowMap<K: Equals, V> {
     var entries: Vec<SlowMapEntry<K, V> > = Vec::<SlowMapEntry<K, V> >();
 
-    fun insert(key: K, val: V) -> bool {
+    fun insert(key: K, val: V) -> Bool {
         var i = 0;
         var len = self.entries.len();
 

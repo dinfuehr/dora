@@ -6,14 +6,15 @@ use stdlib;
 use ty::BuiltinType;
 
 pub fn internal_classes<'ast>(ctxt: &mut SemContext<'ast>) {
-    ctxt.vips.bool_class = internal_class(ctxt, "bool", Some(BuiltinType::Bool));
-    ctxt.vips.byte_class = internal_class(ctxt, "byte", Some(BuiltinType::Byte));
-    ctxt.vips.char_class = internal_class(ctxt, "char", Some(BuiltinType::Char));
-    ctxt.vips.int_class = internal_class(ctxt, "int", Some(BuiltinType::Int));
-    ctxt.vips.long_class = internal_class(ctxt, "long", Some(BuiltinType::Long));
+    ctxt.vips.bool_class = internal_class(ctxt, "Bool", Some(BuiltinType::Bool));
 
-    ctxt.vips.float_class = internal_class(ctxt, "float", Some(BuiltinType::Float));
-    ctxt.vips.double_class = internal_class(ctxt, "double", Some(BuiltinType::Double));
+    ctxt.vips.byte_class = internal_class(ctxt, "Byte", Some(BuiltinType::Byte));
+    ctxt.vips.char_class = internal_class(ctxt, "Char", Some(BuiltinType::Char));
+    ctxt.vips.int_class = internal_class(ctxt, "Int", Some(BuiltinType::Int));
+    ctxt.vips.long_class = internal_class(ctxt, "Long", Some(BuiltinType::Long));
+
+    ctxt.vips.float_class = internal_class(ctxt, "Float", Some(BuiltinType::Float));
+    ctxt.vips.double_class = internal_class(ctxt, "Double", Some(BuiltinType::Double));
 
     ctxt.vips.object_class = internal_class(ctxt, "Object", None);
     ctxt.vips.string_class = internal_class(ctxt, "String", None);

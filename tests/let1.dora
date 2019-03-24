@@ -4,8 +4,8 @@ fun main() {
   assert(x.x == 2);
 }
 
-class X(something: int) {
-  let x: int = something;
+class X(something: Int) {
+  let x: Int = something;
 
   init() : self(1) {
     self.x = 2;

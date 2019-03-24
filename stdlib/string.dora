@@ -1,5 +1,5 @@
 internal class String {
-  fun equals(rhs: String) -> bool {
+  fun equals(rhs: String) -> Bool {
     var i = 0;
 
     if self.len() != rhs.len() {
@@ -19,20 +19,20 @@ internal class String {
     return true;
   }
 
-  internal fun compareTo(rhs: String) -> int;
+  internal fun compareTo(rhs: String) -> Int;
 
-  internal fun len() -> int;
-  internal fun parseInt() -> int;
-  internal fun parseLong() -> long;
+  internal fun len() -> Int;
+  internal fun parseInt() -> Int;
+  internal fun parseLong() -> Long;
   internal fun plus(rhs: String) -> String;
 
-  internal fun getByte(idx: int) -> byte;
+  internal fun getByte(idx: Int) -> Byte;
   internal fun clone() -> String;
 
-  internal static fun fromBytesPartOrNull(val: Array<byte>, offset: int, len: int) -> String;
-  internal static fun fromStringPartOrNull(val: String, offset: int, len: int) -> String;
+  internal static fun fromBytesPartOrNull(val: Array<Byte>, offset: Int, len: Int) -> String;
+  internal static fun fromStringPartOrNull(val: String, offset: Int, len: Int) -> String;
 
-  static fun fromBytesPart(val: Array<byte>, offset: int, len: int) throws -> String {
+  static fun fromBytesPart(val: Array<Byte>, offset: Int, len: Int) throws -> String {
     let str = String::fromBytesPartOrNull(val, offset, len);
 
     if str === nil {
@@ -42,7 +42,7 @@ internal class String {
     return str;
   }
 
-  static fun fromBytes(val: Array<byte>) throws -> String {
+  static fun fromBytes(val: Array<Byte>) throws -> String {
     let str = String::fromBytesPartOrNull(val, 0, val.len());
 
     if str === nil {
@@ -52,7 +52,7 @@ internal class String {
     return str;
   }
 
-  static fun fromStringPart(val: String, offset: int, len: int) throws -> String {
+  static fun fromStringPart(val: String, offset: Int, len: Int) throws -> String {
     let str = String::fromStringPartOrNull(val, offset, len);
 
     if str === nil {
@@ -66,7 +66,7 @@ internal class String {
     return val.clone();
   }
 
-  fun isEmpty() -> bool {
+  fun isEmpty() -> Bool {
       return self.len() == 0;
   }
 
@@ -75,12 +75,12 @@ internal class String {
   }
 }
 
-class StringCodePointIterator(let value: String, var ind: int) {
-    fun hasNext() -> bool {
+class StringCodePointIterator(let value: String, var ind: Int) {
+    fun hasNext() -> Bool {
         return self.ind < self.value.len();
     }
 
-    fun next() -> char {
+    fun next() -> Char {
         var ch = self.value.getByte(self.ind);
 
         if ch <= 0x7FY {
@@ -119,7 +119,7 @@ class StringCodePointIterator(let value: String, var ind: int) {
         return '\0';
     }
 
-    fun len() -> int {
+    fun len() -> Int {
         var i = 0;
 
         while self.hasNext() {

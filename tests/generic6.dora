@@ -1,6 +1,6 @@
 fun main() {
-    foo::<int>(1);
-    foo::<float>(3F);
+    foo::<Int>(1);
+    foo::<Float>(3F);
     foo::<String>("hello");
 }
 

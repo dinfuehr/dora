@@ -1,6 +1,6 @@
 //= output "done\n"
 
-class MyThread(var executed: bool) : Thread {
+class MyThread(var executed: Bool) : Thread {
     override fun run() {
         self.f();
     }

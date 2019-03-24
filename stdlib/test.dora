@@ -1,5 +1,5 @@
 class Testing {
-    var failed: bool = false;
+    var failed: Bool = false;
 
     fun fail() {
         self.failed = true;

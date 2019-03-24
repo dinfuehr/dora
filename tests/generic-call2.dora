@@ -1,17 +1,17 @@
 //= output "world\n"
 
 trait Foo {
-    fun bar() -> int;
+    fun bar() -> Int;
 }
 
-fun foo<T: Foo>(t: T) -> int {
+fun foo<T: Foo>(t: T) -> Int {
     return t.bar();
 }
 
 class X
 
 impl Foo for X {
-    fun bar() -> int {
+    fun bar() -> Int {
         println("world");
 
         return 4;

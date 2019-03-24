@@ -7,13 +7,13 @@ fun main() {
 }
 
 class A {
-  fun get(index: String) -> int {
+  fun get(index: String) -> Int {
     return 1;
   }
 }
 
 class B {
-  fun get(index: bool) -> bool {
+  fun get(index: Bool) -> Bool {
     return index;
   }
 }

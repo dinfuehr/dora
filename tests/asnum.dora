@@ -19,17 +19,17 @@ fun main() {
     assert(1.4E-45F == 1.asFloat());
     assert(4.2E-45F == 3.asFloat());
     assert((-1).asFloat().isNan());
-    assert((-0.0F) == int::min_value().asFloat());
-    assert(int::max_value().asFloat().isNan());
+    assert((-0.0F) == Int::min_value().asFloat());
+    assert(Int::max_value().asFloat().isNan());
 
     assert(0.0 == 0L.asDouble());
     assert(4.9E-324 == 1L.asDouble());
     assert(1.5E-323 == 3L.asDouble());
     assert((-1L).asDouble().isNan());
-    assert(int::min_value().toLong().asDouble().isNan());
-    assert(int::max_value().toLong().asDouble() == 1.060997895E-314);
-    assert((-0.0) == long::min_value().asDouble());
-    assert(long::max_value().asDouble().isNan());
+    assert(Int::min_value().toLong().asDouble().isNan());
+    assert(Int::max_value().toLong().asDouble() == 1.060997895E-314);
+    assert((-0.0) == Long::min_value().asDouble());
+    assert(Long::max_value().asDouble().isNan());
 
     let x = 123456789;
     assert(x == x.asFloat().asInt());

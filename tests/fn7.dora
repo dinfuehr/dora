@@ -2,6 +2,6 @@ fun main() {
   assert(f(1) == 2);
 }
 
-fun f(a: int) -> int {
+fun f(a: Int) -> Int {
   return a + 1;
 }

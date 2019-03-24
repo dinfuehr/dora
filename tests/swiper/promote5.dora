@@ -1,6 +1,6 @@
 //= vm-args "--gc=swiper --gc-verify"
 
-class Foo(let x: int)
+class Foo(let x: Int)
 
 fun main() {
     let x = Array::<Foo>(64);

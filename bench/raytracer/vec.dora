@@ -1,7 +1,7 @@
 class Vec3 {
-    var x: double;
-    var y: double;
-    var z: double;
+    var x: Double;
+    var y: Double;
+    var z: Double;
 
     init() {
         self.x = 0.0;
@@ -9,7 +9,7 @@ class Vec3 {
         self.z = 0.0;
     }
 
-    init(x: double, y: double, z: double) {
+    init(x: Double, y: Double, z: Double) {
         self.x = x;
         self.y = y;
         self.z = z;
@@ -27,11 +27,11 @@ class Vec3 {
         self.z = self.z + a.z;
     }
 
-    static adds(s: double, a: Vec3, b: Vec3) -> Vec {
+    static adds(s: Double, a: Vec3, b: Vec3) -> Vec {
         return Vec3(s * a.x + b.x, s * a.y + b.y, s * a.z + b.z);
     }
 
-    fun adds(s: double, a: Vec3) {
+    fun adds(s: Double, a: Vec3) {
         self.x = self.x + s * b.x;
         self.y = self.y + s * b.y;
         self.z = self.z + s * b.z;
@@ -57,11 +57,11 @@ class Vec3 {
                     a.x * b.y - a.y * b.x);
     }
 
-    static fun dot(a: Vec3, b: Vec3) -> double {
+    static fun dot(a: Vec3, b: Vec3) -> Double {
         return a.x * b.x + a.y * b.y + a.z * b.z;
     }
 
-    static fun com(a: double, av: Vec3, b: double, bv: Vec3) -> Vec3 {
+    static fun com(a: Double, av: Vec3, b: Double, bv: Vec3) -> Vec3 {
         return Vec3(
             a * av.x + b * bv.x,
             a * av.y + b * bv.y,
@@ -69,13 +69,13 @@ class Vec3 {
         );
     }
 
-    fun comb2(a: double, av: Vec3, b: double, bv: Vec3) {
+    fun comb2(a: Double, av: Vec3, b: Double, bv: Vec3) {
         self.x = a * av.x + b * bv.x;
         self.y = a * av.y + b * bv.y;
         self.z = a * av.z + b * bv.z;
     }
 
-    fun scale(t: double) {
+    fun scale(t: Double) {
         self.x = self.x * t;
         self.y = self.y * t;
         self.z = self.z * t;

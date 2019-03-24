@@ -12,26 +12,26 @@ class File(let name: String) {
 }
 
 class FileDescriptor {
-  var fd: int;
+  var fd: Int;
 
-  init(fd: int) {
+  init(fd: Int) {
     self.fd = fd;
   }
 
-  fun read() -> byte {
+  fun read() -> Byte {
     // TODO
     return 0Y;
   }
 
-  fun readBytes(array: Array<byte>, off: int, len: int) {
+  fun readBytes(array: Array<Byte>, off: Int, len: Int) {
     // TODO
   }
 
-  fun write(val: byte) {
+  fun write(val: Byte) {
     // TODO
   }
 
-  fun writeBytes(array: Array<byte>, off: int, len: int) {
+  fun writeBytes(array: Array<Byte>, off: Int, len: Int) {
     // TODO
   }
 }

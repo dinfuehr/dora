@@ -1,6 +1,6 @@
 //= error array
 
 fun main() {
-  let array = Array::<int>();
+  let array = Array::<Int>();
   array[0];
 }

@@ -128,10 +128,10 @@ mod tests {
         err(
             "
             trait Foo {
-                fun foo() -> int;
+                fun foo() -> Int;
             }
             class Bar {}
-            impl Foo for Bar { fun foo() -> int;}",
+            impl Foo for Bar { fun foo() -> Int;}",
             pos(6, 32),
             Msg::MissingFctBody,
         );
@@ -142,12 +142,12 @@ mod tests {
         err(
             "
             trait Foo {
-                fun foo() -> int;
+                fun foo() -> Int;
             }
             class Bar {}
             impl Foo for Bar {
-                fun foo() -> int { return 0; }
-                fun foo() -> int { return 1; }
+                fun foo() -> Int { return 0; }
+                fun foo() -> Int { return 1; }
             }",
             pos(8, 17),
             Msg::MethodExists("Foo".into(), "foo".into(), pos(7, 17)),
@@ -175,8 +175,8 @@ mod tests {
     #[test]
     fn impl_definitions() {
         ok("trait Foo {} class A {} impl Foo for A {}");
-        ok("trait Foo { fun toBool() -> bool; }
+        ok("trait Foo { fun toBool() -> Bool; }
             class A {}
-            impl Foo for A { fun toBool() -> bool { return false; } }");
+            impl Foo for A { fun toBool() -> Bool { return false; } }");
     }
 }

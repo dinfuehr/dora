@@ -7,10 +7,10 @@ fun main() {
 }
 
 class X {
-    var ma: int;
-    var mb: int;
+    var ma: Int;
+    var mb: Int;
     
-    init(a: int, b: int) {
+    init(a: Int, b: Int) {
         self.ma = a;
         self.mb = b;
     }

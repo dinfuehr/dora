@@ -18,7 +18,7 @@ fun main() {
   assert(x.c == 3);
 }
 
-class X(let a: int, let b: int, let c: int) {
-  init(a: int) : self(a, 0, 0) {}
-  init(a: int, b: int) : self(a, b, 0) {}
+class X(let a: Int, let b: Int, let c: Int) {
+  init(a: Int) : self(a, 0, 0) {}
+  init(a: Int, b: Int) : self(a, b, 0) {}
 }

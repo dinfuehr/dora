@@ -9,4 +9,4 @@ fun main() {
 
 }
 
-class A(let a: int)
+class A(let a: Int)

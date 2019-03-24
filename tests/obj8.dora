@@ -5,6 +5,6 @@ fun main() {
   assert(2 == f.b);
 }
 
-class Foo(let a: int, x: int) {
-  let b: int = x;
+class Foo(let a: Int, x: Int) {
+  let b: Int = x;
 }

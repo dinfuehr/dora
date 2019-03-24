@@ -4,7 +4,7 @@ fun main() {
     assert(bar.value == 101);
 }
 
-class Bar(let value: int)
+class Bar(let value: Int)
 
 fun foo() {
     let bar2 = Bar(102);

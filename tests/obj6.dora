@@ -9,9 +9,9 @@ fun main() {
   assert(101 == a1);
 }
 
-class Foo(var a: int) {
-  fun a1() -> int { return self.a; }
-  fun a2() -> int { return self.a; }
+class Foo(var a: Int) {
+  fun a1() -> Int { return self.a; }
+  fun a2() -> Int { return self.a; }
 
-  fun setA(a: int) { self.a = a; }
+  fun setA(a: Int) { self.a = a; }
 }

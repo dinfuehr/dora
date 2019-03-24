@@ -10,11 +10,11 @@ fun main() {
     }
 }
 
-fun sieve(limit: int) -> Vec<int> {
-    let primes = Vec::<int>();
+fun sieve(limit: Int) -> Vec<Int> {
+    let primes = Vec::<Int>();
 
     if limit >= 2 {
-        let numbers = Array::<bool>(limit+1, true);
+        let numbers = Array::<Bool>(limit+1, true);
         let sqrtLimit = limit.toDouble().sqrt().toInt();
 
         var factor = 2;
