@@ -4,6 +4,7 @@ struct Function {
     blocks: HashMap<Block, BlockData>,
     instructions: HashMap<Inst, InstData>,
     uses: HashMap<Inst, UseList>,
+    users: HashMap<Inst, UserList>,
     entry_block: Option<Block>,
     exit_block: Option<Block>,
 }
@@ -14,6 +15,7 @@ impl Function {
             blocks: HashMap::new(),
             instructions: HashMap::new(),
             uses: HashMap::new(),
+            users: HashMap::new(),
             entry_block: None,
             exit_block: None,
         }
@@ -27,6 +29,7 @@ struct Inst(u32);
 struct Block(u32);
 
 struct UseList(Vec<Inst>);
+struct UserList(Vec<Inst>);
 
 struct BlockData {
     predecessors: Vec<Block>,
