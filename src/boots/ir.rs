@@ -1,8 +1,10 @@
 use std::collections::hash_map::HashMap;
+use std::marker::PhantomData;
+use std::ops::{Index, IndexMut};
 
 struct Function {
-    blocks: HashMap<Block, BlockData>,
-    instructions: HashMap<Inst, InstData>,
+    blocks: VecMap<Block, BlockData>,
+    instructions: VecMap<Inst, InstData>,
     uses: HashMap<Inst, UseList>,
     users: HashMap<Inst, UserList>,
     entry_block: Option<Block>,
@@ -12,21 +14,45 @@ struct Function {
 impl Function {
     fn new() -> Function {
         Function {
-            blocks: HashMap::new(),
-            instructions: HashMap::new(),
+            blocks: VecMap::new(),
+            instructions: VecMap::new(),
             uses: HashMap::new(),
             users: HashMap::new(),
             entry_block: None,
             exit_block: None,
         }
     }
+
+    fn make_block(&mut self) -> Block {
+        self.blocks.push(BlockData::new())
+    }
 }
 
 #[derive(PartialEq, Eq, Hash)]
 struct Inst(u32);
 
+impl VecKey for Inst {
+    fn new(value: usize) -> Inst {
+        Inst(value as u32)
+    }
+
+    fn index(&self) -> usize {
+        self.0 as usize
+    }
+}
+
 #[derive(PartialEq, Eq, Hash)]
 struct Block(u32);
+
+impl VecKey for Block {
+    fn new(value: usize) -> Block {
+        Block(value as u32)
+    }
+
+    fn index(&self) -> usize {
+        self.0 as usize
+    }
+}
 
 struct UseList(Vec<Inst>);
 struct UserList(Vec<Inst>);
@@ -120,12 +146,54 @@ enum Type {
     Reference,
 }
 
+struct VecMap<K, V> where K: VecKey {
+    data: Vec<V>,
+    unused: PhantomData<K>,
+}
+
+impl<K, V> VecMap<K, V> where K: VecKey {
+    fn new() -> VecMap<K, V> {
+        VecMap {
+            data: Vec::new(),
+            unused: PhantomData,
+        }
+    }
+
+    fn push(&mut self, value: V) -> K {
+        let idx = self.data.len();
+        self.data.push(value);
+        K::new(idx)
+    }
+}
+
+impl<K, V> Index<K> for VecMap<K, V> where K: VecKey
+{
+    type Output = V;
+
+    fn index(&self, k: K) -> &V {
+        &self.data[k.index()]
+    }
+}
+
+impl<K, V> IndexMut<K> for VecMap<K, V> where K: VecKey
+{
+    fn index_mut(&mut self, k: K) -> &mut V {
+        &mut self.data[k.index()]
+    }
+}
+
+trait VecKey {
+    fn new(value: usize) -> Self;
+    fn index(&self) -> usize;
+}
+
 #[cfg(test)]
 mod tests {
     use super::Function;
 
     #[test]
     fn simple_fn() {
-        let _fct = Function::new();
+        let mut fct = Function::new();
+        let _blk = fct.make_block();
     }
 }
