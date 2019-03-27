@@ -1,2 +1,4 @@
 pub mod bytecodegen;
-mod ir;
+mod cfg;
+mod dfg;
+mod function;

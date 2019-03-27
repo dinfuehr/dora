@@ -1,35 +1,34 @@
-use std::collections::hash_map::HashMap;
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
 
+use boots::cfg::ControlFlowGraph;
+use boots::dfg::DataFlowGraph;
+
 struct Function {
-    blocks: VecMap<Block, BlockData>,
-    instructions: VecMap<Inst, InstData>,
-    uses: HashMap<Inst, UseList>,
-    users: HashMap<Inst, UserList>,
-    entry_block: Option<Block>,
-    exit_block: Option<Block>,
+    next_block: usize,
+    dfg: DataFlowGraph,
+    cfg: ControlFlowGraph,
+
 }
 
 impl Function {
     fn new() -> Function {
         Function {
-            blocks: VecMap::new(),
-            instructions: VecMap::new(),
-            uses: HashMap::new(),
-            users: HashMap::new(),
-            entry_block: None,
-            exit_block: None,
+            next_block: 0,
+            dfg: DataFlowGraph::new(),
+            cfg: ControlFlowGraph::new(),
         }
     }
 
     fn make_block(&mut self) -> Block {
-        self.blocks.push(BlockData::new())
+        let block = self.next_block;
+        self.next_block += 1;
+        Block::new(block)
     }
 }
 
 #[derive(PartialEq, Eq, Hash)]
-struct Inst(u32);
+pub struct Inst(u32);
 
 impl VecKey for Inst {
     fn new(value: usize) -> Inst {
@@ -42,7 +41,7 @@ impl VecKey for Inst {
 }
 
 #[derive(PartialEq, Eq, Hash)]
-struct Block(u32);
+pub struct Block(u32);
 
 impl VecKey for Block {
     fn new(value: usize) -> Block {
@@ -54,32 +53,24 @@ impl VecKey for Block {
     }
 }
 
-struct UseList(Vec<Inst>);
-struct UserList(Vec<Inst>);
+pub struct UserList(Vec<Inst>);
 
-struct BlockData {
-    predecessors: Vec<Block>,
-    successors: Vec<Block>,
-    first_inst: Option<Inst>,
-    last_inst: Option<Inst>,
-}
-
-impl BlockData {
-    fn new() -> BlockData {
-        BlockData {
-            predecessors: Vec::new(),
-            successors: Vec::new(),
-            first_inst: None,
-            last_inst: None,
-        }
+impl UserList {
+    pub fn new() -> UserList {
+        UserList(Vec::new())
     }
 }
 
 enum CmpOp {
-    Lt, Le, Eq, Ne, Gt, Ge,
+    Lt,
+    Le,
+    Eq,
+    Ne,
+    Gt,
+    Ge,
 }
 
-enum InstData {
+pub enum InstData {
     Add {
         ty: Type,
         lhs: Inst,
@@ -124,16 +115,10 @@ enum InstData {
 
     Param {
         ty: Type,
-        idx: u32,
+        idx: u32,   
     },
 
     Deleted,
-}
-
-struct InstLoc {
-    block: Option<Block>,
-    prev: Option<Inst>,
-    next: Option<Inst>,
 }
 
 enum Type {
@@ -146,27 +131,35 @@ enum Type {
     Reference,
 }
 
-struct VecMap<K, V> where K: VecKey {
+pub struct VecMap<K, V>
+where
+    K: VecKey,
+{
     data: Vec<V>,
     unused: PhantomData<K>,
 }
 
-impl<K, V> VecMap<K, V> where K: VecKey {
-    fn new() -> VecMap<K, V> {
+impl<K, V> VecMap<K, V>
+where
+    K: VecKey,
+{
+    pub fn new() -> VecMap<K, V> {
         VecMap {
             data: Vec::new(),
             unused: PhantomData,
         }
     }
 
-    fn push(&mut self, value: V) -> K {
+    pub fn push(&mut self, value: V) -> K {
         let idx = self.data.len();
         self.data.push(value);
         K::new(idx)
     }
 }
 
-impl<K, V> Index<K> for VecMap<K, V> where K: VecKey
+impl<K, V> Index<K> for VecMap<K, V>
+where
+    K: VecKey,
 {
     type Output = V;
 
@@ -175,14 +168,16 @@ impl<K, V> Index<K> for VecMap<K, V> where K: VecKey
     }
 }
 
-impl<K, V> IndexMut<K> for VecMap<K, V> where K: VecKey
+impl<K, V> IndexMut<K> for VecMap<K, V>
+where
+    K: VecKey,
 {
     fn index_mut(&mut self, k: K) -> &mut V {
         &mut self.data[k.index()]
     }
 }
 
-trait VecKey {
+pub trait VecKey {
     fn new(value: usize) -> Self;
     fn index(&self) -> usize;
 }
