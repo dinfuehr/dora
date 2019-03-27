@@ -119,11 +119,15 @@ fn internalck<'ast>(ctxt: &SemContext<'ast>) {
         }
 
         if fct.internal && !fct.internal_resolved {
-            ctxt.diag.lock().report_without_path(fct.pos, Msg::UnresolvedInternal);
+            ctxt.diag
+                .lock()
+                .report_without_path(fct.pos, Msg::UnresolvedInternal);
         }
 
         if fct.kind.is_definition() && !fct.in_trait() {
-            ctxt.diag.lock().report_without_path(fct.pos, Msg::MissingFctBody);
+            ctxt.diag
+                .lock()
+                .report_without_path(fct.pos, Msg::MissingFctBody);
         }
     }
 
@@ -131,7 +135,9 @@ fn internalck<'ast>(ctxt: &SemContext<'ast>) {
         let cls = cls.read();
 
         if cls.internal && !cls.internal_resolved {
-            ctxt.diag.lock().report_without_path(cls.pos, Msg::UnresolvedInternal);
+            ctxt.diag
+                .lock()
+                .report_without_path(cls.pos, Msg::UnresolvedInternal);
         }
 
         for method in &cls.methods {
@@ -139,11 +145,15 @@ fn internalck<'ast>(ctxt: &SemContext<'ast>) {
             let method = method.read();
 
             if method.internal && !method.internal_resolved {
-                ctxt.diag.lock().report_without_path(method.pos, Msg::UnresolvedInternal);
+                ctxt.diag
+                    .lock()
+                    .report_without_path(method.pos, Msg::UnresolvedInternal);
             }
 
             if method.kind.is_definition() && !method.is_abstract {
-                ctxt.diag.lock().report_without_path(method.pos, Msg::MissingFctBody);
+                ctxt.diag
+                    .lock()
+                    .report_without_path(method.pos, Msg::MissingFctBody);
             }
         }
     }
@@ -333,7 +343,10 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
             return Some(ty);
         }
 
-        _ => ctxt.diag.lock().report_unimplemented("unknown file".to_string(), t.pos()),
+        _ => ctxt
+            .diag
+            .lock()
+            .report_unimplemented("unknown file".to_string(), t.pos()),
     }
 
     None

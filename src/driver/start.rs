@@ -300,7 +300,9 @@ fn find_main<'ast>(vm: &VM<'ast>) -> Option<FctId> {
     if (ret != BuiltinType::Unit && ret != BuiltinType::Int) || fct.params_without_self().len() > 0
     {
         let pos = fct.ast.pos;
-        vm.diag.lock().report_without_path(pos, Msg::WrongMainDefinition);
+        vm.diag
+            .lock()
+            .report_without_path(pos, Msg::WrongMainDefinition);
         return None;
     }
 

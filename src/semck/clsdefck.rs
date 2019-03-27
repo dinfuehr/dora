@@ -77,7 +77,10 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                     if !names.insert(type_param.name) {
                         let name = self.ctxt.interner.str(type_param.name).to_string();
                         let msg = Msg::TypeParamNameNotUnique(name);
-                        self.ctxt.diag.lock().report_without_path(type_param.pos, msg);
+                        self.ctxt
+                            .diag
+                            .lock()
+                            .report_without_path(type_param.pos, msg);
                     }
 
                     params.push(BuiltinType::ClassTypeParam(cls.id, type_param_id.into()));
@@ -91,14 +94,20 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                                     cls.type_params[type_param_id].class_bound = Some(cls_id);
                                 } else {
                                     let msg = Msg::MultipleClassBounds;
-                                    self.ctxt.diag.lock().report_without_path(type_param.pos, msg);
+                                    self.ctxt
+                                        .diag
+                                        .lock()
+                                        .report_without_path(type_param.pos, msg);
                                 }
                             }
 
                             Some(BuiltinType::Trait(trait_id)) => {
                                 if !cls.type_params[type_param_id].trait_bounds.insert(trait_id) {
                                     let msg = Msg::DuplicateTraitBound;
-                                    self.ctxt.diag.lock().report_without_path(type_param.pos, msg);
+                                    self.ctxt
+                                        .diag
+                                        .lock()
+                                        .report_without_path(type_param.pos, msg);
                                 }
                             }
 
@@ -143,7 +152,10 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                         cls.parent_class = Some(clsid);
                     } else {
                         let msg = Msg::UnderivableType(name);
-                        self.ctxt.diag.lock().report_without_path(parent_class.pos, msg);
+                        self.ctxt
+                            .diag
+                            .lock()
+                            .report_without_path(parent_class.pos, msg);
                     }
 
                     let number_type_params = parent_class
@@ -157,13 +169,19 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                             super_cls.type_params.len(),
                             number_type_params,
                         );
-                        self.ctxt.diag.lock().report_without_path(parent_class.pos, msg);
+                        self.ctxt
+                            .diag
+                            .lock()
+                            .report_without_path(parent_class.pos, msg);
                     }
                 }
 
                 _ => {
                     let msg = Msg::UnknownClass(name);
-                    self.ctxt.diag.lock().report_without_path(parent_class.pos, msg);
+                    self.ctxt
+                        .diag
+                        .lock()
+                        .report_without_path(parent_class.pos, msg);
                 }
             };
         } else {

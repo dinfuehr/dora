@@ -141,7 +141,9 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
             let ty = semck::read_type(ctxt, ret).unwrap_or(BuiltinType::Unit);
 
             if ty == BuiltinType::This && !fct.in_trait() {
-                ctxt.diag.lock().report_without_path(ret.pos(), Msg::SelfTypeUnavailable);
+                ctxt.diag
+                    .lock()
+                    .report_without_path(ret.pos(), Msg::SelfTypeUnavailable);
             }
 
             fct.return_type = ty;
@@ -300,10 +302,10 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
 
                     if !ty.reference_type() {
                         let ty = ty.name(self.ctxt);
-                        self.ctxt
-                            .diag
-                            .lock()
-                            .report_without_path(catch.data_type.pos(), Msg::ReferenceTypeExpected(ty));
+                        self.ctxt.diag.lock().report_without_path(
+                            catch.data_type.pos(),
+                            Msg::ReferenceTypeExpected(ty),
+                        );
                     }
                 }
 

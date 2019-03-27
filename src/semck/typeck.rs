@@ -269,7 +269,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let ty = self.expr_type;
 
         if ty.is_nil() {
-            self.ctxt.diag.lock().report_without_path(s.pos, Msg::ThrowNil);
+            self.ctxt
+                .diag
+                .lock()
+                .report_without_path(s.pos, Msg::ThrowNil);
         } else if !ty.reference_type() {
             let tyname = ty.name(self.ctxt);
             self.ctxt
@@ -283,7 +286,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.visit_expr(&s.expr);
 
         if !s.expr.is_call() {
-            self.ctxt.diag.lock().report_without_path(s.pos, Msg::FctCallExpected);
+            self.ctxt
+                .diag
+                .lock()
+                .report_without_path(s.pos, Msg::FctCallExpected);
         }
     }
 
@@ -407,14 +413,20 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 match ident_type {
                     &IdentType::Var(varid) => {
                         if !self.src.vars[varid].reassignable {
-                            self.ctxt.diag.lock().report_without_path(e.pos, Msg::LetReassigned);
+                            self.ctxt
+                                .diag
+                                .lock()
+                                .report_without_path(e.pos, Msg::LetReassigned);
                         }
                     }
 
                     &IdentType::Global(gid) => {
                         let glob = self.ctxt.globals.idx(gid);
                         if !glob.lock().reassignable {
-                            self.ctxt.diag.lock().report_without_path(e.pos, Msg::LetReassigned);
+                            self.ctxt
+                                .diag
+                                .lock()
+                                .report_without_path(e.pos, Msg::LetReassigned);
                         }
                     }
 
@@ -424,7 +436,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         let cls = cls.read();
 
                         if !self.fct.is_constructor && !cls.fields[fieldid].reassignable {
-                            self.ctxt.diag.lock().report_without_path(e.pos, Msg::LetReassigned);
+                            self.ctxt
+                                .diag
+                                .lock()
+                                .report_without_path(e.pos, Msg::LetReassigned);
                         }
                     }
 
@@ -433,7 +448,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     }
 
                     &IdentType::Const(_) => {
-                        self.ctxt.diag.lock().report_without_path(e.pos, Msg::AssignmentToConst);
+                        self.ctxt
+                            .diag
+                            .lock()
+                            .report_without_path(e.pos, Msg::AssignmentToConst);
                     }
                 }
 
@@ -462,7 +480,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 }
             }
         } else {
-            self.ctxt.diag.lock().report_without_path(e.pos, Msg::LvalueExpected);
+            self.ctxt
+                .diag
+                .lock()
+                .report_without_path(e.pos, Msg::LvalueExpected);
         }
 
         self.src.set_ty(e.id, BuiltinType::Error);
@@ -1153,7 +1174,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let throws = fct.throws;
 
                 if !throws {
-                    self.ctxt.diag.lock().report_without_path(e.pos, Msg::TryCallNonThrowing);
+                    self.ctxt
+                        .diag
+                        .lock()
+                        .report_without_path(e.pos, Msg::TryCallNonThrowing);
                 }
             }
 
@@ -1177,7 +1201,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             self.expr_type = e_type;
         } else {
-            self.ctxt.diag.lock().report_without_path(e.pos, Msg::TryNeedsCall);
+            self.ctxt
+                .diag
+                .lock()
+                .report_without_path(e.pos, Msg::TryNeedsCall);
 
             self.expr_type = BuiltinType::Unit;
             self.src.set_ty(e.id, BuiltinType::Unit);

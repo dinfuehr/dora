@@ -814,23 +814,25 @@ where
     fn emit_bin_is(&mut self, e: &'ast ExprBinType, dest: Reg) {
         let builtin_type = self.ty(e.lhs.id());
         let dest_mode = match builtin_type {
-            BuiltinType::Nil=> MachineMode::Ptr,
+            BuiltinType::Nil => MachineMode::Ptr,
             BuiltinType::Float => MachineMode::Int32,
             BuiltinType::Double => MachineMode::Int64,
-            _ => builtin_type.mode()
+            _ => builtin_type.mode(),
         };
         let offset;
         if builtin_type.is_float() {
             let src_mode = builtin_type.mode();
 
             self.emit_expr(&e.lhs, FREG_RESULT.into());
-            self.asm.float_as_int(dest_mode, REG_RESULT, src_mode, FREG_RESULT);
+            self.asm
+                .float_as_int(dest_mode, REG_RESULT, src_mode, FREG_RESULT);
             offset = self.reserve_temp_for_node(&e.lhs);
             self.asm
                 .store_mem(dest_mode, Mem::Local(offset), REG_RESULT.into());
 
             self.emit_expr(&e.rhs, FREG_RESULT.into());
-            self.asm.float_as_int(dest_mode, REG_TMP1, src_mode, FREG_RESULT);
+            self.asm
+                .float_as_int(dest_mode, REG_TMP1, src_mode, FREG_RESULT);
         } else {
             self.emit_expr(&e.lhs, REG_RESULT.into());
             offset = self.reserve_temp_for_node(&e.lhs);
@@ -990,7 +992,9 @@ where
                     self.emit_intrinsic_float_to_int(e, dest.reg(), intrinsic)
                 }
                 Intrinsic::DoubleToFloat => self.emit_intrinsic_double_to_float(e, dest.freg()),
-                Intrinsic::DoubleAsLong => self.emit_intrinsic_float_as_int(e, dest.reg(), intrinsic),
+                Intrinsic::DoubleAsLong => {
+                    self.emit_intrinsic_float_as_int(e, dest.reg(), intrinsic)
+                }
 
                 Intrinsic::CharToInt | Intrinsic::IntToChar => {
                     self.emit_expr(e.object.as_ref().unwrap(), dest);

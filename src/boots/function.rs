@@ -8,7 +8,6 @@ struct Function {
     next_block: usize,
     dfg: DataFlowGraph,
     cfg: ControlFlowGraph,
-
 }
 
 impl Function {
@@ -115,7 +114,7 @@ pub enum InstData {
 
     Param {
         ty: Type,
-        idx: u32,   
+        idx: u32,
     },
 
     Deleted,

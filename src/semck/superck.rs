@@ -28,7 +28,9 @@ fn cycle_detection<'ast>(ctxt: &mut SemContext<'ast>) {
             let p = parent.unwrap();
 
             if !map.insert(p) {
-                ctxt.diag.lock().report_without_path(cls.pos, Msg::CycleInHierarchy);
+                ctxt.diag
+                    .lock()
+                    .report_without_path(cls.pos, Msg::CycleInHierarchy);
                 break;
             }
 
