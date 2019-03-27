@@ -1,49 +1,49 @@
 fun main() {
-  let x = Array::<Int>();
+  let x = arrayEmpty::<Int>();
   assert(x.len() == 0);
   assert(int_array_len(x) == 0);
 
-  let x = Array::<Int>(5, 100);
+  let x = arrayFill::<Int>(5, 100);
   assert(x.len() == 5);
   assert(int_array_len(x) == 5);
 
-  let x = Array::<Long>();
+  let x = arrayEmpty::<Long>();
   assert(x.len() == 0);
   assert(long_array_len(x) == 0);
 
-  let x = Array::<Long>(7, 100L);
+  let x = arrayFill::<Long>(7, 100L);
   assert(x.len() == 7);
   assert(long_array_len(x) == 7);
 
-  let x = Array::<Float>();
+  let x = arrayEmpty::<Float>();
   assert(x.len() == 0);
   assert(float_array_len(x) == 0);
 
-  let x = Array::<Float>(6, 1.0F);
+  let x = arrayFill::<Float>(6, 1.0F);
   assert(x.len() == 6);
   assert(float_array_len(x) == 6);
 
-  let x = Array::<Double>();
+  let x = arrayEmpty::<Double>();
   assert(x.len() == 0);
   assert(double_array_len(x) == 0);
 
-  let x = Array::<Double>(4, 1.0);
+  let x = arrayFill::<Double>(4, 1.0);
   assert(x.len() == 4);
   assert(double_array_len(x) == 4);
 
-  let x = Array::<String>();
+  let x = arrayEmpty::<String>();
   assert(x.len() == 0);
   assert(str_array_len(x) == 0);
 
-  let x = Array::<String>(3, "hello");
+  let x = arrayFill::<String>(3, "hello");
   assert(x.len() == 3);
   assert(str_array_len(x) == 3);
 
-  let x = Array::<Foo>();
+  let x = arrayEmpty::<Foo>();
   assert(x.len() == 0);
   assert(foo_array_len(x) == 0);
 
-  let x = Array::<Foo>(1, Foo());
+  let x = arrayFill::<Foo>(1, Foo());
   assert(x.len() == 1);
   assert(foo_array_len(x) == 1);
 }

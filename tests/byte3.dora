@@ -1,8 +1,8 @@
 fun main() {
-    let ba = Array::<Byte>();
+    let ba = arrayEmpty::<Byte>();
     assert(ba.len() == 0);
 
-    let ba = Array::<Byte>(10, 2Y);
+    let ba = arrayFill::<Byte>(10, 2Y);
     assert(ba.len() == 10);
 
     ba[0] = 10Y;

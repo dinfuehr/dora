@@ -1,0 +1,16 @@
+//= output "78"
+
+class X(j: Int) {
+  var i: Int;
+  {
+    let x = 2;
+    let y = 3;
+    self.i = x * y + j;
+  }
+  print(self.i.toString());
+}
+
+fun main() {
+  X(1);
+  X(2);
+}

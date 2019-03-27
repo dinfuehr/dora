@@ -66,7 +66,7 @@ impl<'x, 'ast> Visitor<'ast> for TraitCheck<'x, 'ast> {
             internal_resolved: false,
             overrides: None,
             throws: f.throws,
-            ctor: ast::CtorType::None,
+            is_constructor: false,
             vtable_index: None,
             initialized: false,
             impl_for: None,

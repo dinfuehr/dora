@@ -1,22 +1,14 @@
 fun main() {
     let x1 = X(1, 3);
-    let x2 = X();
+    let x2 = X::empty();
 
     assert(x1.ma == x2.mb);
     assert(x1.mb == x2.ma);
 }
 
-class X {
-    var ma: Int;
-    var mb: Int;
-    
-    init(a: Int, b: Int) {
-        self.ma = a;
-        self.mb = b;
-    }
+class X(a: Int, b: Int) {
+    var ma: Int = a;
+    var mb: Int = b;
 
-    init() {
-        self.ma = 3;
-        self.mb = 1;
-    }
+    static fun empty() -> X = X(3, 1);
 }

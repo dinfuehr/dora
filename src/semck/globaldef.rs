@@ -151,9 +151,9 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
                 is_abstract: c.is_abstract,
                 internal: c.internal,
                 internal_resolved: false,
-                primary_ctor: c.primary_ctor,
+                has_constructor: c.has_constructor,
 
-                ctors: Vec::new(),
+                constructor: None,
                 fields: Vec::new(),
                 methods: Vec::new(),
 
@@ -239,7 +239,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             internal_resolved: false,
             overrides: None,
             throws: f.throws,
-            ctor: CtorType::None,
+            is_constructor: false,
             vtable_index: None,
             initialized: false,
             impl_for: None,

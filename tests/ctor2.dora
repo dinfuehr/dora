@@ -1,11 +1,7 @@
-class X {
-    var ma : Int;
-    var mb : Int;
+class X(a: Int, b: Int) {
+    var ma : Int = a;
+    var mb : Int = b;
 
-    init(a: Int, b: Int) {
-        self.ma = a;
-        self.mb = b;
-    }
 }
 
 fun main() {

@@ -1,5 +1,5 @@
 fun main() {
-  let x = X();
+  let x = X::empty();
 
   assert(x.x == 2);
 }
@@ -7,7 +7,5 @@ fun main() {
 class X(something: Int) {
   let x: Int = something;
 
-  init() : self(1) {
-    self.x = 2;
-  }
+  static fun empty() -> X = X(2);
 }

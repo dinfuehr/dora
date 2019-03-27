@@ -92,7 +92,7 @@ fun main() {
     populate(kLongLivedTreeDepth, longLivedTree);
 
     println("Creating a long-lived array of " + kArraySize.toString() + " doubles");
-    let array = Array::<Double>(kArraySize);
+    let array = arrayFill::<Double>(kArraySize);
 
     var i = 0;
 

@@ -2,12 +2,8 @@ const RANDOM_MULTIPLIER: Long = 25214903917L;
 const RANDOM_INCREMENT: Long = 11L;
 const RANDOM_MASK: Long = 0xFF_FF_FF_FF_FF_FFL;
 
-class Random {
-  var seed: Long = 0L;
-
-  init(seed: Long) {
-    self.seed = (seed ^ RANDOM_MULTIPLIER) & RANDOM_MASK;
-  }
+class Random(var seed: Long) {
+  self.seed = (seed ^ RANDOM_MULTIPLIER) & RANDOM_MASK;
 
   fun nextIntWithBound(bound: Int) -> Int {
     assert(bound > 0);

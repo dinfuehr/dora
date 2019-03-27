@@ -1,0 +1,14 @@
+//= error
+
+class X(msg: String) {
+  if self.msg == "abc" {
+    print("abc!");
+  } else {
+    print(self.msg);
+  }
+}
+
+fun main() {
+  X("abc");
+  X("xyz");
+}

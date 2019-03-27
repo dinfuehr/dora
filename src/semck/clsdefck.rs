@@ -220,7 +220,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
             internal_resolved: false,
             overrides: None,
             throws: f.throws,
-            ctor: f.ctor,
+            is_constructor: f.is_constructor,
             vtable_index: None,
             initialized: false,
             impl_for: None,
@@ -233,7 +233,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
 
         let cls = self.ctxt.classes.idx(self.cls_id.unwrap());
         let mut cls = cls.write();
-        cls.ctors.push(fctid);
+        cls.constructor = Some(fctid);
     }
 
     fn visit_method(&mut self, f: &'ast ast::Function) {
@@ -268,7 +268,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
             internal_resolved: false,
             overrides: None,
             throws: f.throws,
-            ctor: ast::CtorType::None,
+            is_constructor: false,
             vtable_index: None,
             initialized: false,
             impl_for: None,

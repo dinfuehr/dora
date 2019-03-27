@@ -7,11 +7,7 @@ fun main() {
 }
 
 class A<T> {
-    var x: Array<T> = nil;
-
-    init() {
-        self.x = Array::<T>(10);
-    }
+    var x: Array<T> = Array::<T>(10);
 }
 
 fun consume(x: Array<Int>) {

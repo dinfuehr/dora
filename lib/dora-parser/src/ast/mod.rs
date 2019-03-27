@@ -435,11 +435,12 @@ pub struct Class {
     pub has_open: bool,
     pub is_abstract: bool,
     pub internal: bool,
-    pub primary_ctor: bool,
+    pub has_constructor: bool,
 
-    pub ctors: Vec<Function>,
+    pub constructor: Option<Function>,
     pub fields: Vec<Field>,
     pub methods: Vec<Function>,
+    pub initializers: Vec<Box<Stmt>>,
     pub type_params: Option<Vec<TypeParam>>,
 }
 
@@ -451,7 +452,7 @@ pub struct TypeParam {
 }
 
 #[derive(Clone, Debug)]
-pub struct PrimaryCtorParam {
+pub struct ConstructorParam {
     pub name: Name,
     pub pos: Position,
     pub data_type: Type,
@@ -503,7 +504,7 @@ pub struct Function {
     pub is_static: bool,
     pub is_abstract: bool,
     pub internal: bool,
-    pub ctor: CtorType,
+    pub is_constructor: bool,
 
     pub params: Vec<Param>,
     pub throws: bool,
@@ -516,36 +517,6 @@ pub struct Function {
 impl Function {
     pub fn block(&self) -> &Stmt {
         self.block.as_ref().unwrap()
-    }
-}
-
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub enum CtorType {
-    None,
-    Primary,
-    Secondary,
-}
-
-impl CtorType {
-    pub fn is(&self) -> bool {
-        match *self {
-            CtorType::Primary | CtorType::Secondary => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_primary(&self) -> bool {
-        match *self {
-            CtorType::Primary => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_secondary(&self) -> bool {
-        match *self {
-            CtorType::Secondary => true,
-            _ => false,
-        }
     }
 }
 

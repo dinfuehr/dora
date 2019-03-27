@@ -275,17 +275,20 @@ internal class Double {
 
 class Object
 
-internal class Array<T> {
-  init() {}
-  init(len: Int) {}
-  init(len: Int, value: T) {
-    var i = 0;
+fun arrayEmpty<T>() -> Array<T> = Array::<T>(0);
 
-    while i < len {
-      self[i] = value;
+fun arrayFill<T>(len: Int, value: T) -> Array<T> {
+  let array = Array::<T>(len);
+  var i = 0;
+
+  while i < len {
+    array[i] = value;
       i = i + 1;
-    }
   }
+  return array;
+}
+
+internal class Array<T>(len: Int) {
 
   internal fun len() -> Int;
   internal fun get(idx: Int) -> T;
@@ -408,19 +411,12 @@ fun getppid() -> Int {
 
 internal fun sleep(seconds: Int);
 
-class Exception {
-  var msg: String = nil;
+class Exception(msg: String) {
+  var msg: String = msg;
   var backtrace: Array<Int> = nil;
   var elements: Array<StackTraceElement> = nil;
 
-  init(msg: String) {
-    self.retrieveStackTrace();
-    self.msg = msg;
-  }
-
-  init() {
-    self.retrieveStackTrace();
-  }
+  self.retrieveStackTrace();
 
   fun getStackTrace() -> Array<StackTraceElement> {
     if self.elements !== nil {
@@ -428,7 +424,7 @@ class Exception {
     }
 
     if self.backtrace === nil {
-      self.elements = Array::<StackTraceElement>();
+      self.elements = arrayEmpty::<StackTraceElement>();
       return self.elements;
     }
 

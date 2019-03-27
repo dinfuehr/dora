@@ -53,9 +53,9 @@ pub struct Class {
     pub is_abstract: bool,
     pub internal: bool,
     pub internal_resolved: bool,
-    pub primary_ctor: bool,
+    pub has_constructor: bool,
 
-    pub ctors: Vec<FctId>,
+    pub constructor: Option<FctId>,
     pub fields: Vec<Field>,
     pub methods: Vec<FctId>,
 

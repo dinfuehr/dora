@@ -14,7 +14,7 @@ fun sieve(limit: Int) -> Vec<Int> {
     let primes = Vec::<Int>();
 
     if limit >= 2 {
-        let numbers = Array::<Bool>(limit+1, true);
+        let numbers = arrayFill::<Bool>(limit+1, true);
         let sqrtLimit = limit.toDouble().sqrt().toInt();
 
         var factor = 2;

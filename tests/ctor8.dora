@@ -1,11 +1,11 @@
 fun main() {
-  let x = X(1);
+  let x = X::one(1);
 
   assert(x.a == 1);
   assert(x.b == 0);
   assert(x.c == 0);
 
-  let x = X(1, 2);
+  let x = X::two(1, 2);
 
   assert(x.a == 1);
   assert(x.b == 2);
@@ -19,6 +19,6 @@ fun main() {
 }
 
 class X(let a: Int, let b: Int, let c: Int) {
-  init(a: Int) : self(a, 0, 0) {}
-  init(a: Int, b: Int) : self(a, b, 0) {}
+  static fun one(a: Int) -> X = X(a, 0, 0);
+  static fun two(a: Int, b: Int) -> X = X(a, b, 0);
 }

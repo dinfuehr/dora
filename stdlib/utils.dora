@@ -239,9 +239,7 @@ fun isValidUtf8(data: Array<Byte>) -> Bool {
 }
 
 class StringBuf(var buf: Array<Byte>, var length: Int) {
-  init(): self(Array::<Byte>(0), 0) {
-
-  }
+  static fun empty() -> StringBuf = StringBuf(Array::<Byte>(0), 0);
 
   fun len() -> Int {
     return self.length;

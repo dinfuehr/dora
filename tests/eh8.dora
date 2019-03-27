@@ -1,6 +1,6 @@
 fun main() {
   do {
-    throw Array::<Int>(5, 1);
+    throw arrayFill::<Int>(5, 1);
 
   } catch x: Array<Int> {
     forceCollect();

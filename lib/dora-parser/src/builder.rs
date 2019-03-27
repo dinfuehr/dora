@@ -83,7 +83,7 @@ pub struct BuilderFct<'a> {
     name: Name,
     is_method: bool,
     is_public: bool,
-    ctor: CtorType,
+    is_constructor: bool,
     return_type: Option<Type>,
     params: Vec<Param>,
     block: Option<Box<Stmt>>,
@@ -96,7 +96,7 @@ impl<'a> BuilderFct<'a> {
             name: name,
             is_method: false,
             is_public: false,
-            ctor: CtorType::None,
+            is_constructor: false,
             return_type: None,
             params: Vec::new(),
             block: None,
@@ -134,8 +134,8 @@ impl<'a> BuilderFct<'a> {
         self
     }
 
-    pub fn ctor(&mut self, ctor: CtorType) -> &mut BuilderFct<'a> {
-        self.ctor = ctor;
+    pub fn constructor(&mut self, constructor: bool) -> &mut BuilderFct<'a> {
+        self.is_constructor = constructor;
         self
     }
 
@@ -158,7 +158,7 @@ impl<'a> BuilderFct<'a> {
             is_static: false,
             is_abstract: false,
             internal: false,
-            ctor: self.ctor,
+            is_constructor: self.is_constructor,
             params: self.params,
             throws: false,
             return_type: self.return_type,

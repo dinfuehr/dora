@@ -1,10 +1,10 @@
 //= output "abxy\n"
 
 fun main() {
-    let x = Array::<String>();
+    let x = arrayEmpty::<String>();
     assert(x.len() == 0);
 
-    let x = Array::<String>(10, nil);
+    let x = arrayFill::<String>(10, nil);
     assert(x.len() == 10);
 
     x[0] = "a" + "b";
