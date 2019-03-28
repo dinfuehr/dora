@@ -35,9 +35,29 @@ where
     let args: Args = Default::default();
 
     for file in &[
+        "stdlib/Bool.dora",
+        "stdlib/Byte.dora",
+        "stdlib/Char.dora",
+        "stdlib/Int.dora",
+        "stdlib/Long.dora",
+        "stdlib/Float.dora",
+        "stdlib/Double.dora",
+
+        "stdlib/Array.dora",
+        "stdlib/String.dora",
+
+        "stdlib/Exception.dora",
+
+        "stdlib/Thread.dora",
+
+        "stdlib/Equals.dora",
+        "stdlib/Comparable.dora",
+        "stdlib/Sortable.dora",
+        "stdlib/Hash.dora",
+        "stdlib/Default.dora",
+
         "stdlib/prelude.dora",
-        "stdlib/string.dora",
-        "stdlib/test.dora",
+        "stdlib/Testing.dora",
     ] {
         let reader = Reader::from_file(file).unwrap();
         let mut parser = Parser::new(reader, &id_generator, &mut ast, &mut interner);

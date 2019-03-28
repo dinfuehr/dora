@@ -1,0 +1,74 @@
+class StringBuf(var buf: Array<Byte>, var length: Int) {
+  static fun empty() -> StringBuf = StringBuf(Array::<Byte>(0), 0);
+
+  fun len() -> Int {
+    return self.length;
+  }
+
+  fun capacity() -> Int {
+    return self.buf.len();
+  }
+
+  // reserve `elements` bytes
+  // (capacity - length >= elements)
+  fun reserve(elements: Int) {
+    if self.capacity() - self.len() >= elements {
+      return;
+    }
+
+    let newcap = self.newCapacity(elements);
+    let newbuf = Array::<Byte>(newcap);
+    var i = 0;
+
+    while i < self.buf.len() {
+      newbuf[i] = self.buf[i];
+      i = i + 1;
+    }
+
+    self.buf = newbuf;
+  }
+
+  fun newCapacity(reserve: Int) -> Int {
+    var len = self.length;
+
+    if len == 0 {
+      len = 4;
+    }
+
+    let c1 = (len + reserve + 7) & !8;
+    let c2 = len * 2;
+
+    if c1 > c2 {
+      return c1;
+    } else if c2 - c1 > 32 {
+      return c1;
+    } else {
+      return c2;
+    }
+  }
+
+  fun appendChar(ch: Char) -> StringBuf {
+    let chLen = ch.lenUtf8();
+    self.reserve(chLen);
+    ch.encodeUtf8(self.buf, self.length);
+    self.length = self.length + chLen;
+    return self;
+  }
+
+  fun appendString(value: String) -> StringBuf {
+    self.reserve(value.len());
+    var i = 0;
+
+    while i < value.len() {
+      self.buf[self.length + i] = value.getByte(i);
+      i = i + 1;
+    }
+
+    self.length = self.length + value.len();
+    return self;
+  }
+
+  fun toString() -> String {
+    return try! String::fromBytesPart(self.buf, 0, self.len());
+  }
+}

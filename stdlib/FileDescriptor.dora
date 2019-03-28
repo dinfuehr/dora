@@ -1,16 +1,3 @@
-class File(let name: String) {
-  fun delete() throws {
-    let ptr = native_string(self.name);
-    let fct = loadFunction("unlink");
-    let res = call1(fct, ptr);
-    native_free(ptr);
-
-    if res != 0L {
-      throw Exception("could not delete file");
-    }
-  }
-}
-
 class FileDescriptor(var fd: Int) {
   fun read() -> Byte {
     // TODO

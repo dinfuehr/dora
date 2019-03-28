@@ -1,0 +1,108 @@
+class Vec<T> {
+  var array: Array<T> = nil;
+  var length: Int = 0;
+
+  fun get(idx: Int) -> T {
+    if idx < 0 || idx >= self.length {
+      fatalError("index out of bounds for vector");
+    }
+
+    return self.array[idx];
+  }
+
+  fun set(idx: Int, val: T) {
+    if idx < 0 || idx >= self.length {
+      fatalError("index out of bounds for vector");
+    }
+
+    self.array[idx] = val;
+  }
+
+  fun push(val: T) {
+    var newcap = self.capacity();
+
+    if self.length == newcap {
+      if newcap == 0 {
+        newcap = 4;
+      } else {
+        newcap = newcap * 2;
+      }
+
+      let newarray = Array::<T>(newcap);
+      arraycopy::<T>(self.array, 0, newarray, 0, self.length);
+      self.array = newarray;
+    }
+
+    self.array[self.length] = val;
+    self.length = self.length + 1;
+  }
+
+  fun pop() -> T {
+    if self.length == 0 {
+      fatalError("no element left to pop");
+    }
+
+    let newlength = self.length - 1;
+    let temp = self.array[newlength];
+
+    // set popped element to nil so that GC can collect object
+    // not necessary for primitive types
+    self.array[newlength] = defaultValue::<T>();
+
+    self.length = newlength;
+
+    return temp;
+  }
+
+  fun trimToLen() {
+    if self.length != self.capacity() {
+      if self.length == 0 {
+        self.array = nil;
+      } else {
+        let newarray = Array::<T>(self.length);
+        arraycopy::<T>(self.array, 0, newarray, 0, self.length);
+        self.array = newarray;
+      }
+    }
+  }
+
+  fun removeAt(var ind: Int) -> T {
+    assert(ind < self.length);
+    let temp = self[ind];
+    let len = self.length;
+
+    while ind < len - 1 {
+      self[ind] = self[ind+1];
+      ind = ind + 1;
+    }
+
+    self[ind] = defaultValue::<T>();
+    self.length = ind;
+
+    return temp;
+  }
+
+  fun len() -> Int {
+    return self.length;
+  }
+
+  fun capacity() -> Int {
+    if self.array === nil {
+      return 0;
+    } else {
+      return self.array.len();
+    }
+  }
+}
+
+fun removeItem<T: Equals>(vec: Vec<T>, elem: T) {
+  var i = 0;
+
+  while i < vec.len() {
+    if vec[i].equals(elem) {
+      vec.removeAt(i);
+    } else {
+      i = i + 1;
+    }
+  }
+}

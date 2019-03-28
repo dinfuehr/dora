@@ -1,0 +1,66 @@
+class Queue<T> {
+  var elements: Array<T> = Array::<T>(4);
+  var front: Int = 0;
+  var count: Int = 0;
+
+  pub fun enqueue(value: T) {
+    if self.count == self.elements.len() {
+      // copy into larger array
+      let newelements = Array::<T>(self.elements.len() * 2);
+      let len = self.elements.len() - self.front;
+      arraycopy::<T>(self.elements, self.front, newelements, 0, len);
+
+      if len < self.count {
+        arraycopy::<T>(self.elements, 0, newelements, len, self.count - len);
+      }
+
+      self.front = 0;
+      // self.count stays the same
+      self.elements = newelements;
+    }
+
+    let end = self.getEnd();
+    self.elements[end] = value;
+    self.count = self.count + 1;
+  }
+
+  pub fun dequeue() -> T {
+    assert(self.count > 0);
+
+    let value = self.elements[self.front];
+    self.elements[self.front] = defaultValue::<T>();
+
+    self.moveFront();
+    self.count = self.count - 1;
+
+    return value;
+  }
+
+  fun moveFront() -> Int {
+    self.front = self.front + 1;
+
+    if self.front == self.elements.len() {
+      self.front = 0;
+    }
+
+    return self.front;
+  }
+
+  fun getEnd() -> Int {
+    let end = self.front + self.count;
+
+    if end < self.elements.len() {
+      return end;
+    } else {
+      return end - self.elements.len();
+    }
+  }
+
+  pub fun len() -> Int {
+    return self.count;
+  }
+
+  pub fun isEmpty() -> Bool {
+    return self.count == 0;
+  }
+}
