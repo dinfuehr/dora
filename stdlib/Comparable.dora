@@ -1,0 +1,7 @@
+trait Comparable {
+  fun compareTo(other: Self) -> Int;
+}
+
+impl Comparable for Int {
+  internal fun compareTo(other: Int) -> Int;
+}

@@ -1,0 +1,22 @@
+internal class Float {
+  internal fun toInt() -> Int;
+  internal fun toLong() -> Long;
+  internal fun toDouble() -> Double;
+  internal fun toString() -> String;
+
+  internal fun asInt() -> Int;
+
+  internal fun equals(rhs: Float) -> Bool;
+  internal fun compareTo(rhs: Float) -> Int;
+
+  internal fun plus(rhs: Float) -> Float;
+  internal fun minus(rhs: Float) -> Float;
+  internal fun times(rhs: Float) -> Float;
+  internal fun div(rhs: Float) -> Float;
+
+  internal fun unaryPlus() -> Float;
+  internal fun unaryMinus() -> Float;
+
+  internal fun isNan() -> Bool;
+  internal fun sqrt() -> Float;
+}

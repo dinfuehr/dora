@@ -1,0 +1,3 @@
+trait Default {
+  static fun default() -> Self;
+}

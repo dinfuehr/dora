@@ -1,0 +1,3 @@
+trait Hash {
+  fun hash() -> Int;
+}

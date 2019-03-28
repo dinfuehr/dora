@@ -1,0 +1,55 @@
+class Exception(msg: String) {
+  var msg: String = msg;
+  var backtrace: Array<Int> = nil;
+  var elements: Array<StackTraceElement> = nil;
+
+  self.retrieveStackTrace();
+
+  fun getStackTrace() -> Array<StackTraceElement> {
+    if self.elements !== nil {
+      return self.elements;
+    }
+
+    if self.backtrace === nil {
+      self.elements = arrayEmpty::<StackTraceElement>();
+      return self.elements;
+    }
+
+    var i = 0;
+    let len = self.backtrace.len() / 2;
+    self.elements = Array::<StackTraceElement>(len);
+
+    while i < len {
+      self.elements[i] = self.getStackTraceElement(i);
+      i = i + 1;
+    }
+
+    return self.elements;
+  }
+
+  fun printStackTrace() {
+    if self.msg !== nil {
+      println("Exception: " + self.msg);
+    } else {
+      println("Exception");
+    }
+
+    let x = self.getStackTrace();
+
+    var i = 0;
+
+    while i < x.len() {
+      println(i.toString() + ": " + x[i].toString());
+      i = i + 1;
+    }
+  }
+
+  internal fun retrieveStackTrace();
+  internal fun getStackTraceElement(idx: Int) -> StackTraceElement;
+}
+
+class StackTraceElement(let name: String, let line: Int) {
+  fun toString() -> String {
+    return self.name + ": " + self.line.toString();
+  }
+}

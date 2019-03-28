@@ -1,0 +1,71 @@
+internal class Int {
+  internal fun toByte() -> Byte;
+  fun toChar() throws -> Char {
+    if self >= 0 && self <= 0x10FFFF && (self < 0xD800 || self > 0xDFFF) {
+      return self.toCharUnchecked();
+    } else {
+      throw "invalid code point";
+    }
+  }
+  internal fun toCharUnchecked() -> Char;
+  internal fun toLong() -> Long;
+  internal fun toString() -> String;
+
+  internal fun toFloat() -> Float;
+  internal fun toDouble() -> Double;
+
+  internal fun asFloat() -> Float;
+
+  internal fun equals(rhs: Int) -> Bool;
+  internal fun compareTo(rhs: Int) -> Int;
+
+  internal fun plus(rhs: Int) -> Int;
+  internal fun minus(rhs: Int) -> Int;
+  internal fun times(rhs: Int) -> Int;
+  internal fun div(rhs: Int) -> Int;
+  internal fun mod(rhs: Int) -> Int;
+
+  internal fun bitwiseOr(rhs: Int) -> Int;
+  internal fun bitwiseAnd(rhs: Int) -> Int;
+  internal fun bitwiseXor(rhs: Int) -> Int;
+
+  internal fun shiftLeft(rhs: Int) -> Int;
+  internal fun shiftRight(rhs: Int) -> Int;
+  internal fun unsignedShiftRight(rhs: Int) -> Int;
+
+  internal fun unaryPlus() -> Int;
+  internal fun unaryMinus() -> Int;
+  internal fun not() -> Int;
+
+  fun abs() -> Int {
+    if self >= 0 {
+      return self;
+    } else {
+      return -self;
+    }
+  }
+
+  static fun min(lhs: Int, rhs: Int) -> Int {
+    if lhs < rhs {
+      return lhs;
+    } else {
+      return rhs;
+    }
+  }
+
+  static fun max(lhs: Int, rhs: Int) -> Int {
+    if lhs < rhs {
+      return rhs;
+    } else {
+      return lhs;
+    }
+  }
+
+  static fun max_value() -> Int {
+    return 2147483647;
+  }
+
+  static fun min_value() -> Int {
+    return -2147483648;
+  }
+}

@@ -1,0 +1,7 @@
+trait Equals {
+  fun equals(other: Self) -> Bool;
+}
+
+impl Equals for Int {
+  internal fun equals(other: Int) -> Bool;
+}

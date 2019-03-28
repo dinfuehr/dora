@@ -1,4 +1,4 @@
-//= output "caught\nException\n0: throwFromNative(Bool): 23\n1: main(): 5\nafter\nend\n"
+//= output "caught\nException\n0: throwFromNative(Bool): 21\n1: main(): 5\nafter\nend\n"
 
 fun main() {
   do {

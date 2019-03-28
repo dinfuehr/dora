@@ -1,0 +1,22 @@
+internal class Double {
+  internal fun toInt() -> Int;
+  internal fun toLong() -> Long;
+  internal fun toFloat() -> Float;
+  internal fun toString() -> String;
+
+  internal fun asLong() -> Long;
+
+  internal fun equals(rhs: Double) -> Bool;
+  internal fun compareTo(rhs: Double) -> Int;
+
+  internal fun plus(rhs: Double) -> Double;
+  internal fun minus(rhs: Double) -> Double;
+  internal fun times(rhs: Double) -> Double;
+  internal fun div(rhs: Double) -> Double;
+
+  internal fun unaryPlus() -> Double;
+  internal fun unaryMinus() -> Double;
+
+  internal fun isNan() -> Bool;
+  internal fun sqrt() -> Double;
+}

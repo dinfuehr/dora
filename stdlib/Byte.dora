@@ -1,0 +1,8 @@
+internal class Byte {
+  internal fun toInt() -> Int;
+  internal fun toLong() -> Long;
+  internal fun toString() -> String;
+
+  internal fun equals(rhs: Byte) -> Bool;
+  internal fun compareTo(rhs: Byte) -> Int;
+}

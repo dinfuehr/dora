@@ -1,0 +1,33 @@
+internal class Array<T>(len: Int) {
+
+  internal fun len() -> Int;
+  internal fun get(idx: Int) -> T;
+  internal fun set(idx: Int, val: T);
+
+  fun contains(value: T /* : Equals*/) -> Bool {
+    var i = 0;
+
+    while i < self.len() {
+      let x = self[i];
+      if /*x.equals(value) ||*/ x === value {
+        return true;
+      }
+      i = i + 1;
+    }
+
+    return false;
+  }
+
+  fun has(value: T) -> Bool {
+    var i = 0;
+
+    while i < self.len() {
+      if self[i] === value {
+        return true;
+      }
+      i = i + 1;
+    }
+
+    return false;
+  }
+}
