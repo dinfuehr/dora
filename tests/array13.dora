@@ -1,6 +1,6 @@
 fun main() {
     let x = Array::<Int>(100);
-    assert(x.len() == 100);
+    assert(x.length() == 100);
     assert(x[0] == 0);
     assert(x[99] == 0);
 }

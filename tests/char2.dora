@@ -1,6 +1,6 @@
 fun main() {
     let x = arrayEmpty::<Char>();
-    assert(x.len() == 0);
+    assert(x.length() == 0);
 
     let x = arrayFill::<Char>(10, '\0');
     assert(x[0] == '\0');

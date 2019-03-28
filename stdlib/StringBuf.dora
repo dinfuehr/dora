@@ -1,18 +1,18 @@
 class StringBuf(var buf: Array<Byte>, var length: Int) {
   static fun empty() -> StringBuf = StringBuf(Array::<Byte>(0), 0);
 
-  fun len() -> Int {
+  fun length() -> Int {
     return self.length;
   }
 
   fun capacity() -> Int {
-    return self.buf.len();
+    return self.buf.length();
   }
 
   // reserve `elements` bytes
   // (capacity - length >= elements)
   fun reserve(elements: Int) {
-    if self.capacity() - self.len() >= elements {
+    if self.capacity() - self.length() >= elements {
       return;
     }
 
@@ -20,7 +20,7 @@ class StringBuf(var buf: Array<Byte>, var length: Int) {
     let newbuf = Array::<Byte>(newcap);
     var i = 0;
 
-    while i < self.buf.len() {
+    while i < self.buf.length() {
       newbuf[i] = self.buf[i];
       i = i + 1;
     }
@@ -56,19 +56,17 @@ class StringBuf(var buf: Array<Byte>, var length: Int) {
   }
 
   fun appendString(value: String) -> StringBuf {
-    self.reserve(value.len());
+    self.reserve(value.length());
     var i = 0;
 
-    while i < value.len() {
+    while i < value.length() {
       self.buf[self.length + i] = value.getByte(i);
       i = i + 1;
     }
 
-    self.length = self.length + value.len();
+    self.length = self.length + value.length();
     return self;
   }
 
-  fun toString() -> String {
-    return try! String::fromBytesPart(self.buf, 0, self.len());
-  }
+  fun toString() -> String = try! String::fromBytesPart(self.buf, 0, self.length());
 }

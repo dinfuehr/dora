@@ -33,11 +33,11 @@ class Scene {
     }
 
     fun getLights() -> Int {
-        return self.lights.len();
+        return self.lights.length();
     }
 
     fun getObjects() -> Int {
-        return self.objects.len();
+        return self.objects.length();
     }
 
     fun setObject(object: Primitive, pos: Int) {

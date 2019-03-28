@@ -2248,8 +2248,8 @@ mod tests {
 
     #[test]
     fn type_method_len() {
-        ok("fun f(a: String) -> Int { return a.len(); }");
-        ok("fun f(a: String) -> Int { return \"abc\".len(); }");
+        ok("fun f(a: String) -> Int { return a.length(); }");
+        ok("fun f(a: String) -> Int { return \"abc\".length(); }");
     }
 
     #[test]
@@ -2772,7 +2772,7 @@ mod tests {
     #[test]
     fn type_catch_variable() {
         ok("fun f() { do {} catch a: String { print(a); } }");
-        ok("fun f() { var x = 0; do {} catch a: Array<Int> { x=a.len(); } }");
+        ok("fun f() { var x = 0; do {} catch a: Array<Int> { x=a.length(); } }");
     }
 
     #[test]

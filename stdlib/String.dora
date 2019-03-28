@@ -2,11 +2,11 @@ internal class String {
   fun equals(rhs: String) -> Bool {
     var i = 0;
 
-    if self.len() != rhs.len() {
+    if self.length() != rhs.length() {
         return false;
     }
 
-    let len = self.len();
+    let len = self.length();
 
     while i < len {
         if self.getByte(i) != rhs.getByte(i) {
@@ -21,7 +21,7 @@ internal class String {
 
   internal fun compareTo(rhs: String) -> Int;
 
-  internal fun len() -> Int;
+  internal fun length() -> Int;
   internal fun parseInt() -> Int;
   internal fun parseLong() -> Long;
   internal fun plus(rhs: String) -> String;
@@ -43,7 +43,7 @@ internal class String {
   }
 
   static fun fromBytes(val: Array<Byte>) throws -> String {
-    let str = String::fromBytesPartOrNull(val, 0, val.len());
+    let str = String::fromBytesPartOrNull(val, 0, val.length());
 
     if str === nil {
       throw "invalid utf-8 encoding.";
@@ -62,23 +62,15 @@ internal class String {
     return str;
   }
 
-  static fun fromString(val: String) -> String {
-    return val.clone();
-  }
+  static fun fromString(val: String) -> String = val.clone();
 
-  fun isEmpty() -> Bool {
-      return self.len() == 0;
-  }
+  fun isEmpty() -> Bool = self.length() == 0;
 
-  fun codePoints() -> StringCodePointIterator {
-    return StringCodePointIterator(self, 0);
-  }
+  fun codePoints() -> StringCodePointIterator = StringCodePointIterator(self, 0);
 }
 
 class StringCodePointIterator(let value: String, var ind: Int) {
-    fun hasNext() -> Bool {
-        return self.ind < self.value.len();
-    }
+    fun hasNext() -> Bool = self.ind < self.value.length();
 
     fun next() -> Char {
         var ch = self.value.getByte(self.ind);
@@ -119,7 +111,7 @@ class StringCodePointIterator(let value: String, var ind: Int) {
         return '\0';
     }
 
-    fun len() -> Int {
+    fun length() -> Int {
         var i = 0;
 
         while self.hasNext() {
@@ -130,7 +122,6 @@ class StringCodePointIterator(let value: String, var ind: Int) {
         return i;
     }
 
-    fun toString() -> String {
-        return try! String::fromStringPart(self.value, self.ind, self.value.len() - self.ind);
-    }
+    fun toString() -> String =
+        try! String::fromStringPart(self.value, self.ind, self.value.length() - self.ind);
 }

@@ -1,20 +1,20 @@
 fun main() {
     let vec = Vec::<Int>();
-    assert(vec.len() == 0);
+    assert(vec.length() == 0);
     assert(vec.capacity() == 0);
 
     vec.push(1);
     vec.push(2);
     vec.push(3);
-    assert(vec.len() == 3);
+    assert(vec.length() == 3);
     assert(vec.capacity() == 4);
 
     vec.push(4);
-    assert(vec.len() == 4);
+    assert(vec.length() == 4);
     assert(vec.capacity() == 4);
 
     vec.push(5);
-    assert(vec.len() == 5);
+    assert(vec.length() == 5);
     assert(vec.capacity() == 8);
     assert(vec[0] == 1);
     assert(vec[1] == 2);
@@ -29,7 +29,7 @@ fun main() {
     assert(vec[1] == 2);
 
     vec.trimToLen();
-    assert(vec.len() == 5);
+    assert(vec.length() == 5);
     assert(vec.capacity() == 5);
 
     assert(vec[0] == 3);

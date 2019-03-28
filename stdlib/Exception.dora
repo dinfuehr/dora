@@ -16,7 +16,7 @@ class Exception(msg: String) {
     }
 
     var i = 0;
-    let len = self.backtrace.len() / 2;
+    let len = self.backtrace.length() / 2;
     self.elements = Array::<StackTraceElement>(len);
 
     while i < len {
@@ -38,7 +38,7 @@ class Exception(msg: String) {
 
     var i = 0;
 
-    while i < x.len() {
+    while i < x.length() {
       println(i.toString() + ": " + x[i].toString());
       i = i + 1;
     }
@@ -49,7 +49,5 @@ class Exception(msg: String) {
 }
 
 class StackTraceElement(let name: String, let line: Int) {
-  fun toString() -> String {
-    return self.name + ": " + self.line.toString();
-  }
+  fun toString() -> String = self.name + ": " + self.line.toString();
 }

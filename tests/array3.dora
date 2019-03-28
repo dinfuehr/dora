@@ -2,4 +2,4 @@ fun main() {
   assert(1 == len(arrayFill::<Int>(1, 0)));
 }
 
-fun len(a: Array<Int>) -> Int { return a.len(); }
+fun len(a: Array<Int>) -> Int { return a.length(); }
