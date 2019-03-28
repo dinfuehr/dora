@@ -1,9 +1,9 @@
 fun main() {
     let ba = Array::<Long>(0);
-    assert(ba.len() == 0);
+    assert(ba.length() == 0);
 
     let ba = arrayFill::<Long>(10, 2L);
-    assert(ba.len() == 10);
+    assert(ba.length() == 10);
 
     ba[0] = 10L;
     ba[1] = 11L;

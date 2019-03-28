@@ -48,7 +48,7 @@ fun arraycopy<T>(src: Array<T>, srcPos: Int, dest: Array<T>, destPos: Int, len: 
 }
 
 fun bubbleSort<T: Comparable>(array: Array<T>) {
-  let len = array.len();
+  let len = array.length();
   var swapped = true;
 
   while swapped {
@@ -73,7 +73,7 @@ fun bubbleSort<T: Comparable>(array: Array<T>) {
 fun isValidUtf8(data: Array<Byte>) -> Bool {
   var i = 0;
 
-  while i < data.len() {
+  while i < data.length() {
     let by = data[i].toInt();
     var codePoint = 0;
     var nextBytes = 0;
@@ -111,7 +111,7 @@ fun isValidUtf8(data: Array<Byte>) -> Bool {
       nextBytes = nextBytes - 1;
       i = i + 1;
 
-      if i >= data.len() {
+      if i >= data.length() {
         return false;
       }
 
@@ -148,7 +148,7 @@ internal fun set_uint8(address: Long, val: Byte);
 
 fun native_string(val: String) -> Long {
   var i = 0;
-  let len = val.len();
+  let len = val.length();
 
   let ptr = native_malloc(len.toLong()+1L);
 

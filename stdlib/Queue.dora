@@ -4,10 +4,10 @@ class Queue<T> {
   var count: Int = 0;
 
   pub fun enqueue(value: T) {
-    if self.count == self.elements.len() {
+    if self.count == self.elements.length() {
       // copy into larger array
-      let newelements = Array::<T>(self.elements.len() * 2);
-      let len = self.elements.len() - self.front;
+      let newelements = Array::<T>(self.elements.length() * 2);
+      let len = self.elements.length() - self.front;
       arraycopy::<T>(self.elements, self.front, newelements, 0, len);
 
       if len < self.count {
@@ -39,7 +39,7 @@ class Queue<T> {
   fun moveFront() -> Int {
     self.front = self.front + 1;
 
-    if self.front == self.elements.len() {
+    if self.front == self.elements.length() {
       self.front = 0;
     }
 
@@ -49,14 +49,14 @@ class Queue<T> {
   fun getEnd() -> Int {
     let end = self.front + self.count;
 
-    if end < self.elements.len() {
+    if end < self.elements.length() {
       return end;
     } else {
-      return end - self.elements.len();
+      return end - self.elements.length();
     }
   }
 
-  pub fun len() -> Int {
+  pub fun length() -> Int {
     return self.count;
   }
 

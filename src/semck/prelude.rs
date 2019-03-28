@@ -220,7 +220,7 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     );
     native_method(ctxt, clsid, "plus", stdlib::strcat as *const u8);
 
-    intrinsic_method(ctxt, clsid, "len", Intrinsic::StrLen);
+    intrinsic_method(ctxt, clsid, "length", Intrinsic::StrLen);
     intrinsic_method(ctxt, clsid, "getByte", Intrinsic::StrGet);
     native_method(ctxt, clsid, "clone", stdlib::str_clone as *const u8);
     native_method(
@@ -291,7 +291,7 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     intrinsic_method(ctxt, clsid, "sqrt", Intrinsic::DoubleSqrt);
 
     let clsid = ctxt.vips.array_class;
-    intrinsic_method(ctxt, clsid, "len", Intrinsic::GenericArrayLen);
+    intrinsic_method(ctxt, clsid, "length", Intrinsic::GenericArrayLen);
     intrinsic_method(ctxt, clsid, "get", Intrinsic::GenericArrayGet);
     intrinsic_method(ctxt, clsid, "set", Intrinsic::GenericArraySet);
 

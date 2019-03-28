@@ -107,7 +107,7 @@ fun inititialize() {
 }
 
 fun checkTrees() {
-    let ntrees = trees.len();
+    let ntrees = trees.length();
 
     var i = 0;
 
@@ -163,7 +163,7 @@ fun oldGenAlloc(n: Long) {
         trees[where] = makeTree(treeHeight);
         where = where + 1;
 
-        if where == trees.len() {
+        if where == trees.length() {
             where = 0;
         }
 
@@ -176,7 +176,7 @@ fun oldGenAlloc(n: Long) {
         replaceTree(trees[where], newTree);
         where = where + 1;
 
-        if where == trees.len() {
+        if where == trees.length() {
             where = 0;
         }
 
@@ -185,8 +185,8 @@ fun oldGenAlloc(n: Long) {
 }
 
 fun oldGenSwapSubtrees() {
-    let index1 = rnd.nextIntWithBound(trees.len());
-    let index2 = rnd.nextIntWithBound(trees.len());
+    let index1 = rnd.nextIntWithBound(trees.length());
+    let index2 = rnd.nextIntWithBound(trees.length());
     let depth = rnd.nextIntWithBound(treeHeight);
     var path = rnd.nextInt();
 
@@ -328,5 +328,5 @@ fun main() {
                 " pointers (= " + (actuallyMut.toFloat() / secs).toString() + " ptrs/sec)");
     }
 
-    println("Checksum = " + (mutatorSum + aexport.len().toLong()).toString());
+    println("Checksum = " + (mutatorSum + aexport.length().toLong()).toString());
 }

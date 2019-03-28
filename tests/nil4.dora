@@ -2,5 +2,5 @@
 
 fun main() {
   let x: String = nil;
-  assert(x.len() == 0);
+  assert(x.length() == 0);
 }

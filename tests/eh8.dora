@@ -4,6 +4,6 @@ fun main() {
 
   } catch x: Array<Int> {
     forceCollect();
-    assert(x.len() == 5);
+    assert(x.length() == 5);
   }
 }

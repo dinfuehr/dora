@@ -3,7 +3,7 @@
 fun main() {
     let a = Array::<Foo>(1_000_000);
     var i = 0;
-    while i < a.len() {
+    while i < a.length() {
         a[i] = Foo();
         i = i + 1;
     }

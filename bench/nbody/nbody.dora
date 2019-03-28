@@ -30,7 +30,7 @@ class NBodySystem {
 
         var i = 0;
 
-        while i < bodies.len() {
+        while i < bodies.length() {
             px = px + bodies[i].vx * bodies[i].mass;
             py = py + bodies[i].vy * bodies[i].mass;
             pz = pz + bodies[i].vz * bodies[i].mass;
@@ -44,11 +44,11 @@ class NBodySystem {
     fun advance(dt: Double) {
         var i = 0;
 
-        while i < self.bodies.len() {
+        while i < self.bodies.length() {
             let iBody = self.bodies[i];
             var j = i + 1;
 
-            while j < self.bodies.len() {
+            while j < self.bodies.length() {
                 let dx = iBody.x - bodies[j].x;
                 let dy = iBody.y - bodies[j].y;
                 let dz = iBody.z - bodies[j].z;
@@ -73,7 +73,7 @@ class NBodySystem {
 
         var i = 0;
 
-        while i < self.bodies.len() {
+        while i < self.bodies.length() {
             let body = self.bodies[i];
 
             body.x = body.x + dt * body.vx;
@@ -93,7 +93,7 @@ class NBodySystem {
 
       var i = 0;
 
-      while i < self.bodies.len() {
+      while i < self.bodies.length() {
          let iBody = bodies[i];
          e = e + 0.5 * iBody.mass *
             ( iBody.vx * iBody.vx
@@ -102,7 +102,7 @@ class NBodySystem {
 
         var j = i+1;
 
-        while j < self.bodies.len() {
+        while j < self.bodies.length() {
             let jBody = bodies[j];
 
             dx = iBody.x - jBody.x;

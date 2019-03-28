@@ -82,7 +82,7 @@ class Vec<T> {
     return temp;
   }
 
-  fun len() -> Int {
+  fun length() -> Int {
     return self.length;
   }
 
@@ -90,7 +90,7 @@ class Vec<T> {
     if self.array === nil {
       return 0;
     } else {
-      return self.array.len();
+      return self.array.length();
     }
   }
 }
@@ -98,7 +98,7 @@ class Vec<T> {
 fun removeItem<T: Equals>(vec: Vec<T>, elem: T) {
   var i = 0;
 
-  while i < vec.len() {
+  while i < vec.length() {
     if vec[i].equals(elem) {
       vec.removeAt(i);
     } else {

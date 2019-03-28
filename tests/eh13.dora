@@ -4,7 +4,7 @@ fun main() {
   do {
     try foo();
   } catch x: Array<Bar> {
-    assert(x.len() == 5);
+    assert(x.length() == 5);
     println("DONE");
   }
 }
