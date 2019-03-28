@@ -1,0 +1,7 @@
+/* total order */
+trait Sortable {
+  fun sortsAs(other: Self) -> Int;
+  // fun sortsBefore(other: Self) -> Int;
+  // fun sortsAfter (other: Self) -> Int;
+  // fun sortsSame  (other: Self) -> Int;
+}
