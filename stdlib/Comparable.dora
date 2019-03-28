@@ -1,5 +1,10 @@
+/* partial order */
 trait Comparable {
   fun compareTo(other: Self) -> Int;
+  // fun <  (other: Self) -> Int;
+  // fun <= (other: Self) -> Int;
+  // fun >  (other: Self) -> Int;
+  // fun >= (other: Self) -> Int;
 }
 
 impl Comparable for Int {
