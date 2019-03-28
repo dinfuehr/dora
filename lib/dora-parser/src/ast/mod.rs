@@ -111,6 +111,7 @@ pub enum Elem {
     ElemStruct(Struct),
     ElemTrait(Trait),
     ElemImpl(Impl),
+    ElemModule(Module),
     ElemGlobal(Global),
     ElemConst(Const),
 }
@@ -123,6 +124,7 @@ impl Elem {
             &ElemStruct(ref s) => s.id,
             &ElemTrait(ref t) => t.id,
             &ElemImpl(ref i) => i.id,
+            &ElemModule(ref m) => m.id,
             &ElemGlobal(ref g) => g.id,
             &ElemConst(ref c) => c.id,
         }
@@ -442,6 +444,18 @@ pub struct Class {
     pub methods: Vec<Function>,
     pub initializers: Vec<Box<Stmt>>,
     pub type_params: Option<Vec<TypeParam>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Module {
+    pub id: NodeId,
+    pub name: Name,
+    pub pos: Position,
+
+    pub constructor: Option<Function>,
+    pub fields: Vec<Field>,
+    pub methods: Vec<Function>,
+    pub initializers: Vec<Box<Stmt>>,
 }
 
 #[derive(Clone, Debug)]

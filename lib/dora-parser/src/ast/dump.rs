@@ -72,6 +72,7 @@ impl<'a> AstDumper<'a> {
                 ElemStruct(ref struc) => self.dump_struct(struc),
                 ElemTrait(ref xtrait) => self.dump_trait(xtrait),
                 ElemImpl(ref ximpl) => self.dump_impl(ximpl),
+                ElemModule(ref module) => self.dump_module(module),
                 ElemGlobal(ref global) => self.dump_global(global),
                 ElemConst(ref xconst) => self.dump_const(xconst),
             }
@@ -120,6 +121,27 @@ impl<'a> AstDumper<'a> {
         self.indent(|d| for mtd in &ximpl.methods {
                         d.dump_fct(mtd);
                     });
+    }
+
+    fn dump_module(&mut self, module: &Module) {
+        dump!(self,
+              "module {} @ {} {}",
+              self.str(module.name),
+              module.pos,
+              module.id);
+
+        self.indent(|d| {
+            dump!(d, "fields");
+
+            d.indent(|d| for field in &module.fields {
+                d.dump_field(field);
+            });
+
+            dump!(d, "methods");
+            d.indent(|d| for mtd in &module.methods {
+                d.dump_fct(mtd);
+            });
+        });
     }
 
     fn dump_struct(&mut self, struc: &Struct) {

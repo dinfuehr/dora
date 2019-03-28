@@ -16,7 +16,6 @@ pub enum TokenKind {
     RQuote,
 
     // Keywords
-    Class,
     This,
     CapitalThis,
     Super,
@@ -48,12 +47,14 @@ pub enum TokenKind {
     Static,
     Spawn,
 
+    Class,
     Enum,
     Type,
     Alias,
     Struct,
     Trait,
     Impl,
+    Module,
     Const,
 
     Underscore,
@@ -137,7 +138,6 @@ impl TokenKind {
             TokenKind::RQuote => ">",
 
             // Keywords
-            TokenKind::Class => "class",
             TokenKind::This => "self",
             TokenKind::CapitalThis => "Self",
             TokenKind::Super => "super",
@@ -169,12 +169,14 @@ impl TokenKind {
             TokenKind::Static => "static",
             TokenKind::Spawn => "spawn",
 
+            TokenKind::Class => "class",
             TokenKind::Enum => "enum",
             TokenKind::Type => "type",
             TokenKind::Alias => "alias",
             TokenKind::Struct => "struct",
             TokenKind::Trait => "trait",
             TokenKind::Impl => "impl",
+            TokenKind::Module => "module",
             TokenKind::Const => "const",
 
             TokenKind::Underscore => "_",

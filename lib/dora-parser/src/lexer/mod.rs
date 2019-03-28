@@ -538,7 +538,6 @@ fn is_identifier(ch: Option<char>) -> bool {
 fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     let mut keywords = HashMap::new();
 
-    keywords.insert("class", TokenKind::Class);
     keywords.insert("self", TokenKind::This);
     keywords.insert("Self", TokenKind::CapitalThis);
     keywords.insert("super", TokenKind::Super);
@@ -550,7 +549,6 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("else", TokenKind::Else);
     keywords.insert("for", TokenKind::For);
     keywords.insert("in", TokenKind::In);
-    keywords.insert("impl", TokenKind::Impl);
     keywords.insert("loop", TokenKind::Loop);
     keywords.insert("break", TokenKind::Break);
     keywords.insert("continue", TokenKind::Continue);
@@ -558,11 +556,16 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("true", TokenKind::True);
     keywords.insert("false", TokenKind::False);
     keywords.insert("nil", TokenKind::Nil);
+
+    keywords.insert("class", TokenKind::Class);
+    keywords.insert("struct", TokenKind::Struct);
+    keywords.insert("trait", TokenKind::Trait);
+    keywords.insert("impl", TokenKind::Impl);
+    keywords.insert("module", TokenKind::Module);
     keywords.insert("enum", TokenKind::Enum);
     keywords.insert("type", TokenKind::Type);
     keywords.insert("alias", TokenKind::Alias);
-    keywords.insert("struct", TokenKind::Struct);
-    keywords.insert("trait", TokenKind::Trait);
+
     keywords.insert("throws", TokenKind::Throws);
     keywords.insert("throw", TokenKind::Throw);
     keywords.insert("try", TokenKind::Try);
@@ -944,13 +947,14 @@ mod tests {
         assert_tok(&mut reader, TokenKind::Return, 1, 21);
         assert_tok(&mut reader, TokenKind::Nil, 1, 28);
 
-        let mut reader = Lexer::from_str("type struct enum alias trait const");
+        let mut reader = Lexer::from_str("type struct enum alias trait const module");
         assert_tok(&mut reader, TokenKind::Type, 1, 1);
         assert_tok(&mut reader, TokenKind::Struct, 1, 6);
         assert_tok(&mut reader, TokenKind::Enum, 1, 13);
         assert_tok(&mut reader, TokenKind::Alias, 1, 18);
         assert_tok(&mut reader, TokenKind::Trait, 1, 24);
         assert_tok(&mut reader, TokenKind::Const, 1, 30);
+        assert_tok(&mut reader, TokenKind::Module, 1, 36);
 
         let mut reader = Lexer::from_str("pub static for in impl Self spawn");
         assert_tok(&mut reader, TokenKind::Pub, 1, 1);

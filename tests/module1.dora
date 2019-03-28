@@ -1,0 +1,13 @@
+/*
+module Foo {
+  let x: Int = 1;
+  var y: String = "f";
+  fun z() -> Double = 1.0;
+}
+*/
+
+fun main() -> Int {
+  //println(y);
+  //return x;
+  return 1;
+}

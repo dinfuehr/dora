@@ -62,6 +62,7 @@ impl<'a> Parser<'a> {
         let mut elements = vec![];
 
         while !self.token.is_eof() {
+            // self.parse_optional_module_path();
             self.parse_top_level_element(&mut elements)?;
         }
 
@@ -114,6 +115,12 @@ impl<'a> Parser<'a> {
                 self.ban_modifiers(&modifiers)?;
                 let ximpl = self.parse_impl()?;
                 elements.push(ElemImpl(ximpl));
+            }
+
+            TokenKind::Module => {
+                self.ban_modifiers(&modifiers)?;
+                let module = self.parse_module()?;
+                elements.push(ElemModule(module));
             }
 
             TokenKind::Let | TokenKind::Var => {
@@ -323,6 +330,30 @@ impl<'a> Parser<'a> {
         Ok(cls)
     }
 
+    fn parse_module(&mut self) -> Result<Module, MsgWithPos> {
+
+        let pos = self.expect_token(TokenKind::Module)?.position;
+        let ident = self.expect_identifier()?;
+
+        let mut module = Module {
+            id: self.generate_id(),
+            name: ident,
+            pos: pos,
+            constructor: None,
+            fields: Vec::new(),
+            methods: Vec::new(),
+            initializers: Vec::new(),
+        };
+
+        self.in_class = true;
+
+        self.parse_module_body(&mut module)?;
+        //module.constructor = Some(self.generate_constructor(&mut module, ctor_params));
+        self.in_class = false;
+
+        Ok(module)
+    }
+
     fn parse_type_params(&mut self) -> Result<Option<Vec<TypeParam>>, MsgWithPos> {
         if self.token.is(TokenKind::Lt) {
             self.advance_token()?;
@@ -464,6 +495,44 @@ impl<'a> Parser<'a> {
                 _ => {
                     let initializer = self.parse_statement()?;
                     cls.initializers.push(initializer);
+                }
+            }
+        }
+
+        self.advance_token()?;
+        Ok(())
+    }
+
+    fn parse_module_body(&mut self, cls: &mut Module) -> Result<(), MsgWithPos> {
+        if !self.token.is(TokenKind::LBrace) {
+            return Ok(());
+        }
+
+        self.advance_token()?;
+
+        while !self.token.is(TokenKind::RBrace) {
+            let modifiers = self.parse_modifiers()?;
+
+            match self.token.kind {
+                TokenKind::Fun => {
+                    let mods = &[Modifier::Internal, Modifier::Override, Modifier::Pub];
+                    self.restrict_modifiers(&modifiers, mods)?;
+
+                    let fct = self.parse_function(&modifiers)?;
+                    cls.methods.push(fct);
+                }
+
+                TokenKind::Var | TokenKind::Let => {
+                    self.ban_modifiers(&modifiers)?;
+
+                    let field = self.parse_field()?;
+                    cls.fields.push(field);
+                }
+
+                _ => {
+                    return Err(MsgWithPos::new(self.lexer.path().to_string(),
+                                               self.token.position,
+                                               Msg::ExpectedClassElement(self.token.name())))
                 }
             }
         }
