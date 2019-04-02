@@ -25,29 +25,7 @@ internal fun timestamp() -> Long;
 
 class Object
 
-fun arrayEmpty<T>() -> Array<T> = Array::<T>(0);
-
-fun arrayFill<T>(len: Int, value: T) -> Array<T> {
-  let array = Array::<T>(len);
-  var i = 0;
-
-  while i < len {
-    array[i] = value;
-      i = i + 1;
-  }
-  return array;
-}
-
-fun arraycopy<T>(src: Array<T>, srcPos: Int, dest: Array<T>, destPos: Int, len: Int) {
-  var i = 0;
-
-  while i < len {
-    dest[destPos+i] = src[srcPos+i];
-    i = i + 1;
-  }
-}
-
-fun bubbleSort<T: Comparable>(array: Array<T>) {
+fun bubbleSort[T: Comparable](array: Array[T]) {
   let len = array.length();
   var swapped = true;
 
@@ -57,10 +35,10 @@ fun bubbleSort<T: Comparable>(array: Array<T>) {
     var i = 1;
 
     while i < len {
-      if array[i-1].compareTo(array[i]) > 0 {
-        let temp = array[i-1];
-        array[i-1] = array[i];
-        array[i] = temp;
+      if array.get(i-1).compareTo(array.get(i)) > 0 {
+        let temp = array.get(i-1);
+        array.set(i-1, array.get(i));
+        array.set(i, temp);
 
         swapped = true;
       }
@@ -70,11 +48,11 @@ fun bubbleSort<T: Comparable>(array: Array<T>) {
   }
 }
 
-fun isValidUtf8(data: Array<Byte>) -> Bool {
+fun isValidUtf8(data: Array[Byte]) -> Bool {
   var i = 0;
 
   while i < data.length() {
-    let by = data[i].toInt();
+    let by = data.get(i).toInt();
     var codePoint = 0;
     var nextBytes = 0;
     var min = 0;
@@ -115,7 +93,7 @@ fun isValidUtf8(data: Array<Byte>) -> Bool {
         return false;
       }
 
-      let by = data[i].toInt();
+      let by = data.get(i).toInt();
 
       if by & 0xC0 != 0x80 {
         return false;
@@ -134,7 +112,7 @@ fun isValidUtf8(data: Array<Byte>) -> Bool {
   return true;
 }
 
-internal fun defaultValue<T>() -> T;
+internal fun defaultValue[T]() -> T;
 
 internal fun loadFunction(name: String) -> Long;
 internal fun call0(fct: Long) -> Long;

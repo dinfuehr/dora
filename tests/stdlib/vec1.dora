@@ -1,5 +1,5 @@
 fun main() {
-    let vec = Vec::<Int>();
+    let vec = Vec[Int]();
     assert(vec.length() == 0);
     assert(vec.capacity() == 0);
 
@@ -16,25 +16,25 @@ fun main() {
     vec.push(5);
     assert(vec.length() == 5);
     assert(vec.capacity() == 8);
-    assert(vec[0] == 1);
-    assert(vec[1] == 2);
-    assert(vec[2] == 3);
-    assert(vec[3] == 4);
-    assert(vec[4] == 5);
+    assert(vec.get(0) == 1);
+    assert(vec.get(1) == 2);
+    assert(vec.get(2) == 3);
+    assert(vec.get(3) == 4);
+    assert(vec.get(4) == 5);
 
-    vec[0] = vec[0] + 2;
-    vec[1] = vec[0] - 1;
+    vec.set(0, vec.get(0) + 2);
+    vec.set(1, vec.get(0) - 1);
 
-    assert(vec[0] == 3);
-    assert(vec[1] == 2);
+    assert(vec.get(0) == 3);
+    assert(vec.get(1) == 2);
 
     vec.trimToLen();
     assert(vec.length() == 5);
     assert(vec.capacity() == 5);
 
-    assert(vec[0] == 3);
-    assert(vec[1] == 2);
-    assert(vec[2] == 3);
-    assert(vec[3] == 4);
-    assert(vec[4] == 5);
+    assert(vec.get(0) == 3);
+    assert(vec.get(1) == 2);
+    assert(vec.get(2) == 3);
+    assert(vec.get(3) == 4);
+    assert(vec.get(4) == 5);
 }

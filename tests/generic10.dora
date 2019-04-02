@@ -1,15 +1,15 @@
 fun main() {
-    let bar = Bar::<Int>(11);
+    let bar = Bar[Int](11);
     assert(bar.x.fst == 11);
     assert(bar.x.snd == 10);
 
-    let bar = Bar::<String>("hello");
+    let bar = Bar[String]("hello");
     assert(bar.x.fst == "hello");
     assert(bar.x.snd == 10);
 }
 
-class Bar<T>(val: T) {
-    let x: Pair<T, Int> = Pair::<T, Int>(val, 10);
+class Bar[T](val: T) {
+    let x: Pair[T, Int] = Pair[T, Int](val, 10);
 }
 
-class Pair<A, B>(let fst: A, let snd: B)
+class Pair[A, B](let fst: A, let snd: B)

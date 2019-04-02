@@ -1230,7 +1230,6 @@ pub enum Expr {
     ExprSelf(ExprSelfType),
     ExprSuper(ExprSuperType),
     ExprNil(ExprNilType),
-    ExprArray(ExprArrayType),
     ExprConv(ExprConvType),
     ExprTry(ExprTryType),
     ExprLambda(ExprLambdaType),
@@ -1283,15 +1282,6 @@ impl Expr {
                            data_type: data_type,
                            is: is,
                        })
-    }
-
-    pub fn create_array(id: NodeId, pos: Position, object: Box<Expr>, index: Box<Expr>) -> Expr {
-        Expr::ExprArray(ExprArrayType {
-                            id: id,
-                            pos: pos,
-                            object: object,
-                            index: index,
-                        })
     }
 
     pub fn create_lit_char(id: NodeId, pos: Position, value: char) -> Expr {
@@ -1674,20 +1664,6 @@ impl Expr {
         }
     }
 
-    pub fn to_array(&self) -> Option<&ExprArrayType> {
-        match *self {
-            Expr::ExprArray(ref val) => Some(val),
-            _ => None,
-        }
-    }
-
-    pub fn is_array(&self) -> bool {
-        match *self {
-            Expr::ExprArray(_) => true,
-            _ => false,
-        }
-    }
-
     pub fn to_delegation(&self) -> Option<&ExprDelegationType> {
         match *self {
             Expr::ExprDelegation(ref val) => Some(val),
@@ -1793,7 +1769,6 @@ impl Expr {
             Expr::ExprSelf(ref val) => val.pos,
             Expr::ExprSuper(ref val) => val.pos,
             Expr::ExprNil(ref val) => val.pos,
-            Expr::ExprArray(ref val) => val.pos,
             Expr::ExprConv(ref val) => val.pos,
             Expr::ExprTry(ref val) => val.pos,
             Expr::ExprLambda(ref val) => val.pos,
@@ -1821,7 +1796,6 @@ impl Expr {
             Expr::ExprSelf(ref val) => val.id,
             Expr::ExprSuper(ref val) => val.id,
             Expr::ExprNil(ref val) => val.id,
-            Expr::ExprArray(ref val) => val.id,
             Expr::ExprConv(ref val) => val.id,
             Expr::ExprTry(ref val) => val.id,
             Expr::ExprLambda(ref val) => val.id,
@@ -1947,15 +1921,6 @@ pub struct ExprBinType {
     pub op: BinOp,
     pub lhs: Box<Expr>,
     pub rhs: Box<Expr>,
-}
-
-#[derive(Clone, Debug)]
-pub struct ExprArrayType {
-    pub id: NodeId,
-    pub pos: Position,
-
-    pub object: Box<Expr>,
-    pub index: Box<Expr>,
 }
 
 #[derive(Clone, Debug)]

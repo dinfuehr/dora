@@ -1,5 +1,5 @@
-class Vec<T> {
-  var array: Array<T> = nil;
+class Vec[T] {
+  var array: Array[T] = nil;
   var length: Int = 0;
 
   fun get(idx: Int) -> T {
@@ -7,7 +7,7 @@ class Vec<T> {
       fatalError("index out of bounds for vector");
     }
 
-    return self.array[idx];
+    return self.array.get(idx);
   }
 
   fun set(idx: Int, val: T) {
@@ -15,7 +15,7 @@ class Vec<T> {
       fatalError("index out of bounds for vector");
     }
 
-    self.array[idx] = val;
+    self.array.set(idx, val);
   }
 
   fun push(val: T) {
@@ -28,12 +28,12 @@ class Vec<T> {
         newcap = newcap * 2;
       }
 
-      let newarray = Array::<T>(newcap);
-      arraycopy::<T>(self.array, 0, newarray, 0, self.length);
+      let newarray = Array[T](newcap);
+      arrayCopy[T](self.array, 0, newarray, 0, self.length);
       self.array = newarray;
     }
 
-    self.array[self.length] = val;
+    self.array.set(self.length, val);
     self.length = self.length + 1;
   }
 
@@ -43,11 +43,11 @@ class Vec<T> {
     }
 
     let newlength = self.length - 1;
-    let temp = self.array[newlength];
+    let temp = self.array.get(newlength);
 
     // set popped element to nil so that GC can collect object
     // not necessary for primitive types
-    self.array[newlength] = defaultValue::<T>();
+    self.array.set(newlength, defaultValue[T]());
 
     self.length = newlength;
 
@@ -59,8 +59,8 @@ class Vec<T> {
       if self.length == 0 {
         self.array = nil;
       } else {
-        let newarray = Array::<T>(self.length);
-        arraycopy::<T>(self.array, 0, newarray, 0, self.length);
+        let newarray = Array[T](self.length);
+        arrayCopy[T](self.array, 0, newarray, 0, self.length);
         self.array = newarray;
       }
     }
@@ -68,15 +68,15 @@ class Vec<T> {
 
   fun removeAt(var ind: Int) -> T {
     assert(ind < self.length);
-    let temp = self[ind];
+    let temp = self.get(ind);
     let len = self.length;
 
     while ind < len - 1 {
-      self[ind] = self[ind+1];
+      self.set(ind, self.get(ind+1));
       ind = ind + 1;
     }
 
-    self[ind] = defaultValue::<T>();
+    self.set(ind, defaultValue[T]());
     self.length = ind;
 
     return temp;
@@ -95,11 +95,11 @@ class Vec<T> {
   }
 }
 
-fun removeItem<T: Equals>(vec: Vec<T>, elem: T) {
+fun removeItem[T: Equals](vec: Vec[T], elem: T) {
   var i = 0;
 
   while i < vec.length() {
-    if vec[i].equals(elem) {
+    if vec.get(i).equals(elem) {
       vec.removeAt(i);
     } else {
       i = i + 1;

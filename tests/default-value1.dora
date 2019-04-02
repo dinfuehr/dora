@@ -1,31 +1,31 @@
 fun main() {
-  let x = defaultValue::<Bool>();
+  let x = defaultValue[Bool]();
   assert(x == false);
 
-  let x = defaultValue::<Byte>();
+  let x = defaultValue[Byte]();
   assert(x == 0Y);
 
-  let x = defaultValue::<Char>();
+  let x = defaultValue[Char]();
   assert(x == '\0');
 
-  let x = defaultValue::<Int>();
+  let x = defaultValue[Int]();
   assert(x == 0);
 
-  let x = defaultValue::<Long>();
+  let x = defaultValue[Long]();
   assert(x == 0L);
 
-  let x = defaultValue::<Float>();
+  let x = defaultValue[Float]();
   assert(x == 0.0F);
 
-  let x = defaultValue::<Double>();
+  let x = defaultValue[Double]();
   assert(x == 0.0);
 
-  let x = defaultValue::<String>();
+  let x = defaultValue[String]();
   assert(x === nil);
 
-  let x = defaultValue::<Array<Int> >();
+  let x = defaultValue[Array[Int] ]();
   assert(x === nil);
 
-  let x = defaultValue::<Array<Float> >();
+  let x = defaultValue[Array[Float] ]();
   assert(x === nil);
 }

@@ -324,9 +324,9 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_type_params(&mut self) -> Result<Option<Vec<TypeParam>>, MsgWithPos> {
-        if self.token.is(TokenKind::Lt) {
+        if self.token.is(TokenKind::LBracket) {
             self.advance_token()?;
-            let params = self.parse_comma_list(TokenKind::Gt, |p| p.parse_type_param())?;
+            let params = self.parse_comma_list(TokenKind::RBracket, |p| p.parse_type_param())?;
 
             Ok(Some(params))
         } else {
@@ -561,7 +561,6 @@ impl<'a> Parser<'a> {
     fn parse_function(&mut self, modifiers: &Modifiers) -> Result<Function, MsgWithPos> {
         let pos = self.expect_token(TokenKind::Fun)?.position;
         let ident = self.expect_identifier()?;
-
         let type_params = self.parse_type_params()?;
         let params = self.parse_function_params()?;
         let throws = self.parse_throws()?;
@@ -724,9 +723,9 @@ impl<'a> Parser<'a> {
                 let pos = self.token.position;
                 let name = self.expect_identifier()?;
 
-                let params = if self.token.is(TokenKind::Lt) {
+                let params = if self.token.is(TokenKind::LBracket) {
                     self.advance_token()?;
-                    self.parse_comma_list(TokenKind::Gt, |p| Ok(Box::new(p.parse_type()?)))?
+                    self.parse_comma_list(TokenKind::RBracket, |p| Ok(Box::new(p.parse_type()?)))?
                 } else {
                     Vec::new()
                 };
@@ -1081,11 +1080,9 @@ impl<'a> Parser<'a> {
                     let tok = self.advance_token()?;
                     let ident = self.expect_identifier()?;
 
-                    let type_params = if self.token.is(TokenKind::Sep) {
+                    let type_params = if self.token.is(TokenKind::LBracket) {
                         self.advance_token()?;
-                        self.expect_token(TokenKind::Lt)?;
-
-                        Some(self.parse_comma_list(TokenKind::Gt, |p| p.parse_type())?)
+                        Some(self.parse_comma_list(TokenKind::RBracket, |p| p.parse_type())?)
                     } else {
                         None
                     };
@@ -1094,17 +1091,10 @@ impl<'a> Parser<'a> {
                         self.parse_call(tok.position, Some(left), Path::new(ident), type_params)?
 
                     } else {
+                        //println!("ident {:?}, pos {}", self.interner.str(ident), tok.position);
                         assert!(type_params.is_none());
                         Box::new(Expr::create_field(self.generate_id(), tok.position, left, ident))
                     }
-                }
-
-                TokenKind::LBracket => {
-                    let tok = self.advance_token()?;
-                    let index = self.parse_expression()?;
-                    self.expect_token(TokenKind::RBracket)?;
-
-                    Box::new(Expr::create_array(self.generate_id(), tok.position, left, index))
                 }
 
                 TokenKind::LParen => {
@@ -1193,17 +1183,15 @@ impl<'a> Parser<'a> {
         while self.token.is(TokenKind::Sep) {
             self.advance_token()?;
 
-            if self.token.is(TokenKind::Lt) {
-                self.expect_token(TokenKind::Lt)?;
+            let ident = self.expect_identifier()?;
+            path.push(ident);
+        }
 
-                let params = self.parse_comma_list(TokenKind::Gt, |p| p.parse_type())?;
-                type_params = Some(params);
-                break;
+        if self.token.is(TokenKind::LBracket) {
+            self.advance_token()?;
 
-            } else {
-                let ident = self.expect_identifier()?;
-                path.push(ident);
-            }
+            let params = self.parse_comma_list(TokenKind::RBracket, |p| p.parse_type())?;
+            type_params = Some(params);
         }
 
         // is this a function call?
@@ -2365,7 +2353,7 @@ mod tests {
 
     #[test]
     fn parse_type_basic_with_params() {
-        let (ty, interner) = parse_type("Foo<A, B>");
+        let (ty, interner) = parse_type("Foo[A, B]");
         let basic = ty.to_basic().unwrap();
 
         assert_eq!(2, basic.params.len());
@@ -2605,12 +2593,12 @@ mod tests {
         assert_eq!(2, call.args.len());
     }
 
-    #[test]
+    #[ignore] #[test]
     fn parse_array_index() {
-        let (expr, interner) = parse_expr("a[b]");
-        let expr = expr.to_array().unwrap();
-        assert_eq!("a", *interner.str(expr.object.to_ident().unwrap().name));
-        assert_eq!("b", *interner.str(expr.index.to_ident().unwrap().name));
+        let (expr, interner) = parse_expr("a(b)");
+        let expr = expr.to_call().unwrap();
+        assert_eq!("a", *interner.str(expr.clone().object.unwrap().to_ident().unwrap().name));
+        assert_eq!("b", *interner.str(expr.args[0].to_ident().unwrap().name));
     }
 
     #[test]
@@ -2903,14 +2891,14 @@ mod tests {
 
     #[test]
     fn parse_class_type_params() {
-        let (prog, interner) = parse("class Foo<T>");
+        let (prog, interner) = parse("class Foo[T]");
         let cls = prog.cls0();
 
         let type_params = cls.type_params.as_ref().unwrap();
         assert_eq!(1, type_params.len());
         assert_eq!("T", *interner.str(type_params[0].name));
 
-        let (prog, interner) = parse("class Foo<X>");
+        let (prog, interner) = parse("class Foo[X]");
         let cls = prog.cls0();
 
         let type_params = cls.type_params.as_ref().unwrap();
@@ -2920,7 +2908,7 @@ mod tests {
 
     #[test]
     fn parse_multiple_class_type_params() {
-        let (prog, interner) = parse("class Foo<A, B>");
+        let (prog, interner) = parse("class Foo[A, B]");
         let cls = prog.cls0();
 
         let type_params = cls.type_params.as_ref().unwrap();
@@ -3025,17 +3013,17 @@ mod tests {
 
     #[test]
     fn parse_fct_call_with_type_param() {
-        let (expr, _) = parse_expr("Array::<int>()");
+        let (expr, _) = parse_expr("Array[Int]()");
         let ident = expr.to_call().unwrap();
 
         assert_eq!(1, ident.type_params.as_ref().unwrap().len());
 
-        let (expr, _) = parse_expr("Foo::<int, long>()");
+        let (expr, _) = parse_expr("Foo[Int, Long]()");
         let ident = expr.to_call().unwrap();
 
         assert_eq!(2, ident.type_params.as_ref().unwrap().len());
 
-        let (expr, _) = parse_expr("Bar::<>()");
+        let (expr, _) = parse_expr("Bar[]()");
         let ident = expr.to_call().unwrap();
 
         assert_eq!(0, ident.type_params.as_ref().unwrap().len());
@@ -3070,7 +3058,7 @@ mod tests {
 
     #[test]
     fn parse_fct_with_type_params() {
-        let (prog, _) = parse("fun f<T>() {}");
+        let (prog, _) = parse("fun f[T]() {}");
         let fct = prog.fct0();
 
         assert_eq!(1, fct.type_params.as_ref().unwrap().len());
@@ -3086,7 +3074,7 @@ mod tests {
 
     #[test]
     fn parse_generic_with_bound() {
-        let (prog, _) = parse("class A<T: Foo>");
+        let (prog, _) = parse("class A[T: Foo]");
         let cls = prog.cls0();
 
         let type_param = &cls.type_params.as_ref().unwrap()[0];
@@ -3095,7 +3083,7 @@ mod tests {
 
     #[test]
     fn parse_generic_with_multiple_bounds() {
-        let (prog, _) = parse("class A<T: Foo + Bar>");
+        let (prog, _) = parse("class A[T: Foo + Bar]");
         let cls = prog.cls0();
 
         let type_param = &cls.type_params.as_ref().unwrap()[0];
@@ -3104,7 +3092,7 @@ mod tests {
 
     #[test]
     fn parse_generic_super_class() {
-        let (prog, _) = parse("class A: B<SomeType, SomeOtherType>");
+        let (prog, _) = parse("class A: B[SomeType, SomeOtherType]");
         let cls = prog.cls0();
 
         let parent = cls.parent_class.as_ref().unwrap();

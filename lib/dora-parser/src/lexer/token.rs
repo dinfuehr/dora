@@ -12,9 +12,6 @@ pub enum TokenKind {
     Identifier(String),
     End,
 
-    LQuote,
-    RQuote,
-
     // Keywords
     Class,
     This,
@@ -132,9 +129,6 @@ impl TokenKind {
 
             TokenKind::Identifier(_) => "identifier",
             TokenKind::End => "<<EOF>>",
-
-            TokenKind::LQuote => "<",
-            TokenKind::RQuote => ">",
 
             // Keywords
             TokenKind::Class => "class",

@@ -10,7 +10,6 @@ use crate::ctxt::{
 };
 use dora_parser::error::msg::Msg;
 
-use crate::semck::specialize::specialize_type;
 use crate::sym::Sym::{self, SymClass};
 use crate::ty::BuiltinType;
 use dora_parser::ast::visit::Visitor;
@@ -360,64 +359,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_assign(&mut self, e: &'ast ExprAssignType) {
-        if e.lhs.is_array() {
-            let array = e.lhs.to_array().unwrap();
-
-            self.visit_expr(&array.object);
-            let object_type = self.expr_type;
-
-            self.visit_expr(&array.index);
-            let index_type = self.expr_type;
-
-            self.visit_expr(&e.rhs);
-            let value_type = self.expr_type;
-
-            if object_type.is_error() {
-                self.src.set_ty(e.id, BuiltinType::Error);
-                self.expr_type = BuiltinType::Error;
-
-                return;
-            }
-
-            let name = self.ctxt.interner.intern("set");
-            let args = vec![index_type, value_type];
-            let ret_type = Some(BuiltinType::Unit);
-
-            if let Some((_, fct_id, return_type)) = self.find_method(
-                e.pos,
-                object_type,
-                false,
-                name,
-                &args,
-                &TypeParams::empty(),
-                ret_type,
-            ) {
-                let call_type = CallType::Method(object_type, fct_id, TypeParams::empty());
-                self.src
-                    .map_calls
-                    .insert_or_replace(e.id, Arc::new(call_type));
-
-                let fct = self.ctxt.fcts.idx(fct_id);
-                let fct = fct.read();
-
-                let element_type = fct.params_without_self()[1];
-                let object_type_params = object_type.type_params(self.ctxt);
-                let element_type = specialize_type(
-                    self.ctxt,
-                    element_type,
-                    &object_type_params,
-                    &TypeParams::empty(),
-                );
-                self.src.set_ty(array.id, element_type);
-
-                self.src.set_ty(e.id, return_type);
-                self.expr_type = return_type;
-                return;
-            } else {
-                self.src.set_ty(e.id, BuiltinType::Error);
-                self.expr_type = BuiltinType::Error;
-            }
-        } else if e.lhs.is_field() {
+        if e.lhs.is_field() {
             self.check_expr_assign_field(e);
         } else if e.lhs.is_ident() {
             let lhs_type;
@@ -606,6 +548,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         );
 
         if result.is_none() {
+            println!("find_method failed!: {:?}", self.ctxt.interner.str(name));
             let type_name = object_type.name(self.ctxt);
             let name = self.ctxt.interner.str(name).to_string();
             let param_names = args
@@ -1619,45 +1562,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.expr_type = BuiltinType::Nil;
     }
 
-    fn check_expr_array(&mut self, e: &'ast ExprArrayType) {
-        self.visit_expr(&e.object);
-        let object_type = self.expr_type;
-
-        self.visit_expr(&e.index);
-        let index_type = self.expr_type;
-
-        if object_type.is_error() {
-            self.src.set_ty(e.id, BuiltinType::Error);
-            self.expr_type = BuiltinType::Error;
-
-            return;
-        }
-
-        let name = self.ctxt.interner.intern("get");
-        let args = vec![index_type];
-
-        if let Some((_, fct_id, return_type)) = self.find_method(
-            e.pos,
-            object_type,
-            false,
-            name,
-            &args,
-            &TypeParams::empty(),
-            None,
-        ) {
-            let call_type = CallType::Method(object_type, fct_id, TypeParams::empty());
-            self.src
-                .map_calls
-                .insert_or_replace(e.id, Arc::new(call_type));
-
-            self.src.set_ty(e.id, return_type);
-            self.expr_type = return_type;
-        } else {
-            self.src.set_ty(e.id, BuiltinType::Error);
-            self.expr_type = BuiltinType::Error;
-        }
-    }
-
     fn check_expr_try(&mut self, e: &'ast ExprTryType) {
         if let Some(call) = e.expr.to_call() {
             self.check_expr_call(call, true);
@@ -1866,7 +1770,6 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprSelf(ref expr) => self.check_expr_this(expr),
             ExprSuper(ref expr) => self.check_expr_super(expr),
             ExprNil(ref expr) => self.check_expr_nil(expr),
-            ExprArray(ref expr) => self.check_expr_array(expr),
             ExprConv(ref expr) => self.check_expr_conv(expr),
             ExprTry(ref expr) => self.check_expr_try(expr),
             ExprLambda(ref expr) => self.check_expr_lambda(expr),
@@ -3216,9 +3119,9 @@ mod tests {
 
     #[test]
     fn type_array() {
-        ok("fun f(a: Array<Int>) -> Int { return a[1]; }");
+        ok("fun f(a: Array[Int]) -> Int { return a.get(1); }");
         err(
-            "fun f(a: Array<Int>) -> String { return a[1]; }",
+            "fun f(a: Array[Int]) -> String { return a.get(1); }",
             pos(1, 34),
             Msg::ReturnType("String".into(), "Int".into()),
         );
@@ -3227,16 +3130,16 @@ mod tests {
     #[test]
     fn type_array_assign() {
         err(
-            "fun f(a: Array<Int>) -> Int { return a[3] = 4; }",
+            "fun f(a: Array[Int]) -> Int { return a.set(3, 4); }",
             pos(1, 31),
             Msg::ReturnType("Int".into(), "()".into()),
         );
         err(
-            "fun f(a: Array<Int>) { a[3] = \"b\"; }",
-            pos(1, 29),
-            Msg::UnknownMethod(
-                "Array<Int>".into(),
+            "fun f(a: Array[Int]) { a.set(3, \"b\"); }",
+            pos(1, 25),
+            Msg::ParamTypesIncompatible(
                 "set".into(),
+                vec!["Int".into(), "T".into()],
                 vec!["Int".into(), "String".into()],
             ),
         );
@@ -3245,7 +3148,7 @@ mod tests {
     #[test]
     fn type_throw() {
         ok("fun f() { throw \"abc\"; }");
-        ok("fun f() { throw Array::<Int>(0); }");
+        ok("fun f() { throw Array[Int](0); }");
         err(
             "fun f() { throw 1; }",
             pos(1, 11),
@@ -3271,7 +3174,7 @@ mod tests {
     #[test]
     fn type_catch_variable() {
         ok("fun f() { do {} catch a: String { print(a); } }");
-        ok("fun f() { var x = 0; do {} catch a: Array<Int> { x=a.length(); } }");
+        ok("fun f() { var x = 0; do {} catch a: Array[Int] { x=a.length(); } }");
     }
 
     #[test]
@@ -3291,24 +3194,24 @@ mod tests {
     #[test]
     fn try_check_blocks() {
         err(
-            "fun f() { do {} catch a: Array<Int> {} a.len(); }",
+            "fun f() { do {} catch a: Array[Int] {} a.len(); }",
             pos(1, 40),
             Msg::UnknownIdentifier("a".into()),
         );
         err(
-            "fun f() { do {} catch a: Array<Int> {} finally { a.len(); } }",
+            "fun f() { do {} catch a: Array[Int] {} finally { a.len(); } }",
             pos(1, 50),
             Msg::UnknownIdentifier("a".into()),
         );
         err(
-            "fun f() { do { return a; } catch a: Array<Int> {} }",
+            "fun f() { do { return a; } catch a: Array[Int] {} }",
             pos(1, 23),
             Msg::UnknownIdentifier("a".into()),
         );
         err(
-            "fun f() { do { } catch a: Array<Int> { return a; } }",
+            "fun f() { do { } catch a: Array[Int] { return a; } }",
             pos(1, 40),
-            Msg::ReturnType("()".into(), "Array<Int>".into()),
+            Msg::ReturnType("()".into(), "Array[Int]".into()),
         );
     }
 
@@ -3348,8 +3251,8 @@ mod tests {
             "fun f() {
                do {
                  throw \"test\";
-               } catch x: Array<Int> {
-                 x = Array::<Int>(0);
+               } catch x: Array[Int] {
+                 x = Array[Int](0);
                }
              }",
             pos(5, 20),
@@ -3789,16 +3692,16 @@ mod tests {
     #[test]
     fn test_generic_arguments_mismatch() {
         err(
-            "class A<T>
+            "class A[T]
             fun foo() {
-                let a = A::<Int, Int>();
+                let a = A[Int, Int]();
             }",
             pos(3, 25),
             Msg::WrongNumberTypeParams(1, 2),
         );
 
         err(
-            "class A<T>
+            "class A[T]
             fun foo() {
                 let a = A();
             }",
@@ -3809,7 +3712,7 @@ mod tests {
         err(
             "class A
             fun foo() {
-                let a = A::<Int>();
+                let a = A[Int]();
             }",
             pos(3, 25),
             Msg::WrongNumberTypeParams(0, 1),
@@ -3843,17 +3746,17 @@ mod tests {
     #[test]
     fn test_fct_with_type_params() {
         err(
-            "fun f() {} fun g() { f::<Int>(); }",
+            "fun f() {} fun g() { f[Int](); }",
             pos(1, 22),
             Msg::WrongNumberTypeParams(0, 1),
         );
         err(
-            "fun f<T>() {} fun g() { f(); }",
+            "fun f[T]() {} fun g() { f(); }",
             pos(1, 25),
             Msg::WrongNumberTypeParams(1, 0),
         );
-        ok("fun f<T>() {} fun g() { f::<Int>(); }");
-        ok("fun f<T1, T2>() {} fun g() { f::<Int, String>(); }");
+        ok("fun f[T]() {} fun g() { f[Int](); }");
+        ok("fun f[T1, T2]() {} fun g() { f[Int, String](); }");
     }
 
     #[test]
@@ -3953,27 +3856,27 @@ mod tests {
     #[test]
     fn test_generic_class_bounds() {
         ok("class Foo
-            class A<T: Foo>
-            fun f() -> A<Foo> { return nil; }");
+            class A[T: Foo]
+            fun f() -> A[Foo] { return nil; }");
 
         ok("open class Foo
             class Bar: Foo
-            class A<T: Foo>
-            fun f() -> A<Bar> { return nil; }");
+            class A[T: Foo]
+            fun f() -> A[Bar] { return nil; }");
 
         err(
             "class Foo
             class Bar
-            class A<T: Foo>
-            fun f() -> A<Bar> { return nil; }",
+            class A[T: Foo]
+            fun f() -> A[Bar] { return nil; }",
             pos(4, 24),
             Msg::ClassBoundNotSatisfied("Bar".into(), "Foo".into()),
         );
 
         err(
             "class Foo
-            fun f<T: Foo>() {}
-            fun t() { f::<Int>(); }",
+            fun f[T: Foo]() {}
+            fun t() { f[Int](); }",
             pos(3, 23),
             Msg::ClassBoundNotSatisfied("Int".into(), "Foo".into()),
         );
@@ -3984,22 +3887,22 @@ mod tests {
         ok("trait Foo {}
             class X
             impl Foo for X {}
-            class A<T: Foo>
-            fun f() -> A<X> { return nil; }");
+            class A[T: Foo]
+            fun f() -> A[X] { return nil; }");
 
         err(
             "trait Foo {}
             class X
-            class A<T: Foo>
-            fun f() -> A<X> { return nil; }",
+            class A[T: Foo]
+            fun f() -> A[X] { return nil; }",
             pos(1, 1),
             Msg::TraitBoundNotSatisfied("X".into(), "Foo".into()),
         );
 
         err(
             "trait Foo {}
-            fun f<T: Foo>() {}
-            fun t() { f::<Int>(); }",
+            fun f[T: Foo]() {}
+            fun t() { f[Int](); }",
             pos(3, 23),
             Msg::TraitBoundNotSatisfied("Int".into(), "Foo".into()),
         );
@@ -4008,7 +3911,7 @@ mod tests {
     #[test]
     fn test_operator_on_generic_type() {
         err(
-            "fun f<T>(a: T, b: T) { a + b; }",
+            "fun f[T](a: T, b: T) { a + b; }",
             pos(1, 26),
             Msg::BinOpType("+".into(), "T".into(), "T".into()),
         );
@@ -4080,21 +3983,21 @@ mod tests {
     #[test]
     fn generic_trait_method_call() {
         ok("trait Foo { fun bar(); }
-            fun f<T: Foo>(t: T) { t.bar(); }");
+            fun f[T: Foo](t: T) { t.bar(); }");
         ok("trait Foo { fun bar(); }
-            class A<T: Foo>(let t: T) {
+            class A[T: Foo](let t: T) {
                 fun baz() { self.t.bar(); }
             }");
 
         err(
             "trait Foo { fun bar() throws; }
-            fun f<T: Foo>(t: T) { t.bar(); }",
+            fun f[T: Foo](t: T) { t.bar(); }",
             pos(2, 36),
             Msg::ThrowingCallWithoutTry,
         );
         err(
             "trait Foo { fun bar() throws; }
-            class A<T: Foo>(let t: T) {
+            class A[T: Foo](let t: T) {
                 fun baz() { self.t.bar(); }
             }",
             pos(3, 35),
@@ -4103,13 +4006,13 @@ mod tests {
 
         err(
             "trait Foo { fun bar(); }
-            fun f<T: Foo>(t: T) { try t.bar(); }",
+            fun f[T: Foo](t: T) { try t.bar(); }",
             pos(2, 35),
             Msg::TryCallNonThrowing,
         );
         err(
             "trait Foo { fun bar(); }
-            class A<T: Foo>(let t: T) {
+            class A[T: Foo](let t: T) {
                 fun baz() { try self.t.bar(); }
             }",
             pos(3, 29),
@@ -4120,7 +4023,7 @@ mod tests {
     #[test]
     fn test_generic_ctor_without_type_params() {
         err(
-            "class Foo<A, B>()
+            "class Foo[A, B]()
             fun test() { Foo(); }",
             pos(2, 26),
             Msg::WrongNumberTypeParams(2, 0),
@@ -4130,8 +4033,8 @@ mod tests {
     #[test]
     fn test_generic_argument_with_trait_bound() {
         err(
-            "fun f<X: Comparable>(x: X) {}
-            fun g<T>(t: T) { f::<T>(t); }",
+            "fun f[X: Comparable](x: X) {}
+            fun g[T](t: T) { f[T](t); }",
             pos(2, 30),
             Msg::TraitBoundNotSatisfied("T".into(), "Comparable".into()),
         );
@@ -4214,13 +4117,13 @@ mod tests {
     fn test_ctor_with_type_param() {
         err(
             "
-            class Foo<T> {
+            class Foo[T] {
                 fun foo(a: Int) {
-                    Bar::<T>(a);
+                    Bar[T](a);
                 }
             }
 
-            class Bar<T>(a: T)
+            class Bar[T](a: T)
             ",
             pos(4, 21),
             Msg::UnknownCtor("Bar".into(), vec!["Int".into()]),
@@ -4239,6 +4142,7 @@ mod tests {
     #[test]
     fn test_assign_fct() {
         err(
+            // fixme: that gets me 2 errors: once on column 26, once on column 30
             "fun foo() {} fun bar() { foo = 1; }",
             pos(1, 30),
             Msg::FctReassigned,

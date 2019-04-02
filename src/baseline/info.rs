@@ -200,7 +200,6 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
         match *e {
             ExprCall(ref expr) => self.expr_call(expr),
             ExprDelegation(ref expr) => self.expr_delegation(expr),
-            ExprArray(ref expr) => self.expr_array(expr),
             ExprAssign(ref expr) => self.expr_assign(expr),
             ExprBin(ref expr) => self.expr_bin(expr),
             ExprUn(ref expr) => self.expr_un(expr),
@@ -341,23 +340,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.localsize = mem::align_i32(self.localsize + ty_size, ty_size);
 
         -self.localsize
-    }
-
-    fn expr_array(&mut self, expr: &'ast ExprArrayType) {
-        if let Some(intrinsic) = self.get_intrinsic(expr.id) {
-            self.visit_expr(&expr.object);
-            self.visit_expr(&expr.index);
-
-            self.reserve_temp_for_node(&expr.object);
-            self.jit_info.map_intrinsics.insert(expr.id, intrinsic);
-        } else {
-            let args = vec![
-                Arg::Expr(&expr.object, BuiltinType::Unit, 0),
-                Arg::Expr(&expr.index, BuiltinType::Unit, 0),
-            ];
-
-            self.universal_call(expr.id, args, None);
-        }
     }
 
     fn expr_conv(&mut self, e: &'ast ExprConvType) {
@@ -671,7 +653,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             if field {
                 self.reserve_temp_for_node_with_type(lhs.id, BuiltinType::Ptr);
             }
-        } else if e.lhs.is_field() {
+        } else {
+            // e.lhs is a field
             let lhs = e.lhs.to_field().unwrap();
 
             self.visit_expr(&lhs.object);
@@ -679,31 +662,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
             self.reserve_temp_for_node(&lhs.object);
             self.reserve_temp_for_node(&e.rhs);
-        } else {
-            assert!(e.lhs.is_array());
-            let array = e.lhs.to_array().unwrap();
-
-            if let Some(intrinsic) = self.get_intrinsic(e.id) {
-                self.visit_expr(&array.object);
-                self.visit_expr(&array.index);
-                self.visit_expr(&e.rhs);
-
-                self.reserve_temp_for_node(&array.object);
-                self.reserve_temp_for_node(&array.index);
-
-                let element_type = self.ty(array.id);
-                self.reserve_temp_for_node_with_type(e.rhs.id(), element_type);
-
-                self.jit_info.map_intrinsics.insert(e.id, intrinsic);
-            } else {
-                let args = vec![
-                    Arg::Expr(&array.object, BuiltinType::Unit, 0),
-                    Arg::Expr(&array.index, BuiltinType::Unit, 0),
-                    Arg::Expr(&e.rhs, BuiltinType::Unit, 0),
-                ];
-
-                self.universal_call(e.id, args, None);
-            }
         }
     }
 

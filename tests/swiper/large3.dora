@@ -3,16 +3,16 @@
 class Foo(let x: Int)
 
 fun main() {
-    let x = Array::<Foo>(16 * 1024);
+    let x = Array[Foo](16 * 1024);
     forceCollect();
-    assert(x[0] === nil);
+    assert(x.get(0) === nil);
 
-    x[0] = Foo(1);
+    x.set(0, Foo(1));
     forceMinorCollect();
-    assert(x[0].x == 1);
+    assert(x.get(0).x == 1);
 
-    x[16 * 1024 - 1] = Foo(2);
+    x.set(16 * 1024 - 1, Foo(2));
     forceMinorCollect();
-    assert(x[0].x == 1);
-    assert(x[16 * 1024 - 1].x == 2);
+    assert(x.get(0).x == 1);
+    assert(x.get(16 * 1024 - 1).x == 2);
 }

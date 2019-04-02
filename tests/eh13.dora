@@ -3,7 +3,7 @@
 fun main() {
   do {
     try foo();
-  } catch x: Array<Bar> {
+  } catch x: Array[Bar] {
     assert(x.length() == 5);
     println("DONE");
   }
@@ -11,8 +11,8 @@ fun main() {
 
 fun foo() throws {
   do {
-    throw arrayFill::<Bar>(5, nil);
-  } catch x: Array<Foo> {
+    throw arrayFill[Bar](5, nil);
+  } catch x: Array[Foo] {
     fatalError("should not be caught");
   }
 }

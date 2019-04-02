@@ -1,10 +1,10 @@
 fun main() {
-    let x = SomeTest::<Int>(1);
+    let x = SomeTest[Int](1);
     assert(x+0 == 1);
     assert(x-0 == 1);
 }
 
-class SomeTest<T>(let x: T) {
+class SomeTest[T](let x: T) {
     fun plus(y: Int) -> T {
         return self.x;
     }

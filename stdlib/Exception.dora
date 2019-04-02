@@ -1,26 +1,26 @@
 class Exception(msg: String) {
   var msg: String = msg;
-  var backtrace: Array<Int> = nil;
-  var elements: Array<StackTraceElement> = nil;
+  var backtrace: Array[Int] = nil;
+  var elements: Array[StackTraceElement] = nil;
 
   self.retrieveStackTrace();
 
-  fun getStackTrace() -> Array<StackTraceElement> {
+  fun getStackTrace() -> Array[StackTraceElement] {
     if self.elements !== nil {
       return self.elements;
     }
 
     if self.backtrace === nil {
-      self.elements = arrayEmpty::<StackTraceElement>();
+      self.elements = arrayEmpty[StackTraceElement]();
       return self.elements;
     }
 
     var i = 0;
     let len = self.backtrace.length() / 2;
-    self.elements = Array::<StackTraceElement>(len);
+    self.elements = Array[StackTraceElement](len);
 
     while i < len {
-      self.elements[i] = self.getStackTraceElement(i);
+      self.elements.set(i, self.getStackTraceElement(i));
       i = i + 1;
     }
 
@@ -39,7 +39,7 @@ class Exception(msg: String) {
     var i = 0;
 
     while i < x.length() {
-      println(i.toString() + ": " + x[i].toString());
+      println(i.toString() + ": " + x.get(i).toString());
       i = i + 1;
     }
   }

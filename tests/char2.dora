@@ -1,19 +1,21 @@
 fun main() {
-    let x = arrayEmpty::<Char>();
+    let x = arrayEmpty[Char]();
     assert(x.length() == 0);
 
-    let x = arrayFill::<Char>(10, '\0');
-    assert(x[0] == '\0');
-    assert(x[9] == '\0');
+    let x = arrayFill[Char](10, '\0');
+    assert(x.get(0) == '\0');
+    assert(x.get(9) == '\0');
 
-    x[0] = 'a';
-    x[1] = 'b';
-    x[2] = 'c';
-    x[3] = 'd';
-    x[9] = 'z';
+    x.set(0, 'a');
+    x.set(1, 'b');
+    x.set(2, 'c');
+    x.set(3, 'd');
+    x.set(9, 'z');
 
-    assert(x[3] == 'd');
-    assert(x[4] == '\0');
-    assert(x[8] == '\0');
-    assert(x[9] == 'z');
+    println(x.get(3).toString());
+
+    assert(x.get(3) == 'd');
+    assert(x.get(4) == '\0');
+    assert(x.get(8) == '\0');
+    assert(x.get(9) == 'z');
 }

@@ -1,6 +1,6 @@
 fun main() {
-  let array = arrayFill::<Int>(5, 1);
-  array[0] = 2;
-  assert(array[0] == 2);
-  assert(array[1] == 1);
+  let array = arrayFill[Int](5, 1);
+  array.set(0, 2);
+  assert(array.get(0) == 2);
+  assert(array.get(1) == 1);
 }

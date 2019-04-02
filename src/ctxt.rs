@@ -840,7 +840,7 @@ impl<'ast> Fct<'ast> {
         repr.push_str(&ctxt.interner.str(self.name));
 
         if self.type_params.len() > 0 {
-            repr.push_str("<");
+            repr.push('[');
 
             repr.push_str(
                 &self
@@ -850,7 +850,7 @@ impl<'ast> Fct<'ast> {
                     .collect::<Vec<_>>()
                     .join(", "),
             );
-            repr.push_str(">");
+            repr.push(']');
         }
 
         repr.push_str("(");

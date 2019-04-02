@@ -10,10 +10,10 @@ fun main() {
 }
 
 fun test_multiple_ascii_chars() {
-    let bytes = Array::<Byte>(3);
-    bytes[0] = 'a'.toInt().toByte();
-    bytes[1] = 'b'.toInt().toByte();
-    bytes[2] = 'c'.toInt().toByte();
+    let bytes = Array[Byte](3);
+    bytes.set(0, 'a'.toInt().toByte());
+    bytes.set(1, 'b'.toInt().toByte());
+    bytes.set(2, 'c'.toInt().toByte());
 
     let val = try! String::fromBytes(bytes);
     let it = val.codePoints();
@@ -28,8 +28,8 @@ fun test_multiple_ascii_chars() {
 }
 
 fun test_1byte() {
-    let bytes = Array::<Byte>(1);
-    bytes[0] = 0x24Y;
+    let bytes = Array[Byte](1);
+    bytes.set(0, 0x24Y);
 
     let val = try! String::fromBytes(bytes);
     let it = val.codePoints();
@@ -40,9 +40,9 @@ fun test_1byte() {
 }
 
 fun test_2bytes() {
-    let bytes = Array::<Byte>(2);
-    bytes[0] = 0xC2Y;
-    bytes[1] = 0xA2Y;
+    let bytes = Array[Byte](2);
+    bytes.set(0, 0xC2Y);
+    bytes.set(1, 0xA2Y);
 
     let val = try! String::fromBytes(bytes);
     let it = val.codePoints();
@@ -53,10 +53,10 @@ fun test_2bytes() {
 }
 
 fun test_3bytes() {
-    let bytes = Array::<Byte>(3);
-    bytes[0] = 0xE2Y;
-    bytes[1] = 0x82Y;
-    bytes[2] = 0xACY;
+    let bytes = Array[Byte](3);
+    bytes.set(0, 0xE2Y);
+    bytes.set(1, 0x82Y);
+    bytes.set(2, 0xACY);
 
     let val = try! String::fromBytes(bytes);
     let it = val.codePoints();
@@ -67,11 +67,11 @@ fun test_3bytes() {
 }
 
 fun test_4bytes() {
-    let bytes = Array::<Byte>(4);
-    bytes[0] = 0xF0Y;
-    bytes[1] = 0x90Y;
-    bytes[2] = 0x8DY;
-    bytes[3] = 0x88Y;
+    let bytes = Array[Byte](4);
+    bytes.set(0, 0xF0Y);
+    bytes.set(1, 0x90Y);
+    bytes.set(2, 0x8DY);
+    bytes.set(3, 0x88Y);
 
     let val = try! String::fromBytes(bytes);
     let it = val.codePoints();
@@ -82,8 +82,8 @@ fun test_4bytes() {
 }
 
 fun test_invalid() {
-    let bytes = Array::<Byte>(1);
-    bytes[0] = 0x80Y;
+    let bytes = Array[Byte](1);
+    bytes.set(0, 0x80Y);
 
     do {
         try String::fromBytes(bytes);

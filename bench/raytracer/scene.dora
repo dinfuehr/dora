@@ -1,11 +1,11 @@
 class Scene {
-    let lights: Vec<Light>;
-    let objects: Vec<Primitive>;
+    let lights: Vec[Light];
+    let objects: Vec[Primitive];
     var view: View;
 
     init() {
-        self.lights = Vec::<Light>();
-        self.objects = Vec::<Primitive>();
+        self.lights = Vec[Light]();
+        self.objects = Vec[Primitive]();
     }
 
     fun addLight(l: Light) {

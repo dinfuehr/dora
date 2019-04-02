@@ -1,5 +1,5 @@
 fun main() {
-    let q = Queue::<Int>();
+    let q = Queue[Int]();
 
     for i in range(0, 100) {
         q.enqueue(i);

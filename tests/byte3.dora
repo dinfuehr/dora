@@ -1,16 +1,16 @@
 fun main() {
-    let ba = arrayEmpty::<Byte>();
+    let ba = arrayEmpty[Byte]();
     assert(ba.length() == 0);
 
-    let ba = arrayFill::<Byte>(10, 2Y);
+    let ba = arrayFill[Byte](10, 2Y);
     assert(ba.length() == 10);
 
-    ba[0] = 10Y;
-    ba[1] = 11Y;
-    ba[2] = 12Y;
+    ba.set(0, 10Y);
+    ba.set(1, 11Y);
+    ba.set(2, 12Y);
 
-    assert(10Y == ba[0]);
-    assert(11Y == ba[1]);
-    assert(12Y == ba[2]);
-    assert(2Y == ba[9]);
+    assert(10Y == ba.get(0));
+    assert(11Y == ba.get(1));
+    assert(12Y == ba.get(2));
+    assert(2Y == ba.get(9));
 }

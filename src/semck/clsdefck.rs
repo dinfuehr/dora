@@ -445,39 +445,39 @@ mod tests {
 
     #[test]
     fn test_generic_class() {
-        ok("class A<T>");
-        ok("class A<X, Y>");
+        ok("class A[T]");
+        ok("class A[X, Y]");
         err(
-            "class A<T, T>",
+            "class A[T, T]",
             pos(1, 12),
             Msg::TypeParamNameNotUnique("T".into()),
         );
-        err("class A<>", pos(1, 1), Msg::TypeParamsExpected);
+        err("class A[]", pos(1, 1), Msg::TypeParamsExpected);
     }
 
     #[test]
     fn test_generic_argument() {
-        ok("class A<T>(val: T)");
-        ok("class A<T>(var val: T)");
-        ok("class A<T>(let val: T)");
+        ok("class A[T](val: T)");
+        ok("class A[T](var val: T)");
+        ok("class A[T](let val: T)");
     }
 
     #[test]
     fn test_generic_bound() {
         err(
-            "class A<T: Foo>",
+            "class A[T: Foo]",
             pos(1, 12),
             Msg::UnknownType("Foo".into()),
         );
-        ok("class Foo class A<T: Foo>");
-        ok("trait Foo {} class A<T: Foo>");
+        ok("class Foo class A[T: Foo]");
+        ok("trait Foo {} class A[T: Foo]");
     }
 
     #[test]
     fn test_generic_multiple_class_bounds() {
         err(
             "class Foo class Bar
-            class A<T: Foo + Bar>",
+            class A[T: Foo + Bar]",
             pos(2, 21),
             Msg::MultipleClassBounds,
         );
@@ -487,7 +487,7 @@ mod tests {
     fn test_duplicate_trait_bound() {
         err(
             "trait Foo {}
-            class A<T: Foo + Foo>",
+            class A[T: Foo + Foo]",
             pos(2, 21),
             Msg::DuplicateTraitBound,
         );
@@ -498,7 +498,7 @@ mod tests {
         err(
             "
             open class A
-            class B: A<Int> {}",
+            class B: A[Int] {}",
             pos(3, 22),
             Msg::WrongNumberTypeParams(0, 1),
         );

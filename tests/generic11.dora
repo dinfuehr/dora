@@ -1,8 +1,8 @@
 fun main() {
-  assert(Foo::id::<Int>(1) == 1);
-  assert(Foo::id::<String>("hello") == "hel" + "lo");
+  assert(Foo::id[Int](1) == 1);
+  assert(Foo::id[String]("hello") == "hel" + "lo");
 }
 
 class Foo {
-  static fun id<T>(val: T) -> T = val;
+  static fun id[T](val: T) -> T = val;
 }

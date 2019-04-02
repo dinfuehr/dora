@@ -1,8 +1,8 @@
 //= output "1"
 
 fun main() {
-    let a = A::<Int>(1);
+    let a = A[Int](1);
     print(a.x.toString());
 }
 
-class A<T>(let x: T)
+class A[T](let x: T)

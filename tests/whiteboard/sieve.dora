@@ -5,26 +5,26 @@ fun main() {
     var i = 0;
 
     while i < primes.length() {
-        println(primes[i].toString());
+        println(primes.get(i).toString());
         i = i + 1;
     }
 }
 
-fun sieve(limit: Int) -> Vec<Int> {
-    let primes = Vec::<Int>();
+fun sieve(limit: Int) -> Vec[Int] {
+    let primes = Vec[Int]();
 
     if limit >= 2 {
-        let numbers = arrayFill::<Bool>(limit+1, true);
+        let numbers = arrayFill[Bool](limit+1, true);
         let sqrtLimit = limit.toDouble().sqrt().toInt();
 
         var factor = 2;
 
         while factor <= sqrtLimit {
-            if numbers[factor] {
+            if numbers.get(factor) {
                 var multiple = factor * factor;
 
                 while multiple <= limit {
-                    numbers[multiple] = false;
+                    numbers.set(multiple, false);
                     multiple = multiple + factor;
                 }
             }
@@ -35,7 +35,7 @@ fun sieve(limit: Int) -> Vec<Int> {
         var i = 0;
 
         while i <= limit {
-            if i >= 2 && numbers[i] {
+            if i >= 2 && numbers.get(i) {
                 primes.push(i);
             }
 

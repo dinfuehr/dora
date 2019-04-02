@@ -1,22 +1,22 @@
 //= output "abxy\n"
 
 fun main() {
-    let x = arrayEmpty::<String>();
+    let x = arrayEmpty[String]();
     assert(x.length() == 0);
 
-    let x = arrayFill::<String>(10, nil);
+    let x = arrayFill[String](10, nil);
     assert(x.length() == 10);
 
-    x[0] = "a" + "b";
-    x[1] = "x" + "y";
+    x.set(0, "a" + "b");
+    x.set(1, "x" + "y");
 
     forceCollect();
 
-    print(x[0]);
-    println(x[1]);
+    print(x.get(0));
+    println(x.get(1));
 
-    assert(x[0] == "ab");
-    assert(x[1] == "xy");
-    assert(x[2] === nil);
-    assert(x[9] === nil);
+    assert(x.get(0) == "ab");
+    assert(x.get(1) == "xy");
+    assert(x.get(2) === nil);
+    assert(x.get(9) === nil);
 }

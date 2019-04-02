@@ -4,7 +4,7 @@ class FileDescriptor(var fd: Int) {
     return 0Y;
   }
 
-  fun readBytes(array: Array<Byte>, off: Int, len: Int) {
+  fun readBytes(array: Array[Byte], off: Int, len: Int) {
     // TODO
   }
 
@@ -12,7 +12,7 @@ class FileDescriptor(var fd: Int) {
     // TODO
   }
 
-  fun writeBytes(array: Array<Byte>, off: Int, len: Int) {
+  fun writeBytes(array: Array[Byte], off: Int, len: Int) {
     // TODO
   }
 }

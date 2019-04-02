@@ -5,11 +5,11 @@ const STEP: Int = 5;
 const REMOVED: Int = 20;
 
 fun main() {
-    var x = Vec::<Array<Int> >();
+    var x = Vec[Array[Int] ]();
     var i = 0;
 
     while i < SIZE {
-        x.push(Array::<Int>(32 * 1024));
+        x.push(Array[Int](32 * 1024));
         i = i + 1;
     }
 
@@ -18,7 +18,7 @@ fun main() {
     i = 0;
 
     while i < SIZE {
-        x[i] = nil;
+        x.set(i, nil);
         i = i + STEP;
     }
 
@@ -28,7 +28,7 @@ fun main() {
     var nils = 0;
 
     while i < SIZE {
-        if x[i] === nil {
+        if x.get(i) === nil {
             nils = nils + 1;
         }
 

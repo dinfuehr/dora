@@ -1,12 +1,12 @@
 fun main() {
-    let a = A::<Int>();
+    let a = A[Int]();
     consume(a.x);
 }
 
-class A<T> {
-    let x: Array<T> = nil;
+class A[T] {
+    let x: Array[T] = nil;
 }
 
-fun consume(x: Array<Int>) {
+fun consume(x: Array[Int]) {
     assert(x === nil);
 }

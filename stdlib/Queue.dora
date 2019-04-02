@@ -1,17 +1,17 @@
-class Queue<T> {
-  var elements: Array<T> = Array::<T>(4);
+class Queue[T] {
+  var elements: Array[T] = Array[T](4);
   var front: Int = 0;
   var count: Int = 0;
 
   pub fun enqueue(value: T) {
     if self.count == self.elements.length() {
       // copy into larger array
-      let newelements = Array::<T>(self.elements.length() * 2);
+      let newelements = Array[T](self.elements.length() * 2);
       let len = self.elements.length() - self.front;
-      arraycopy::<T>(self.elements, self.front, newelements, 0, len);
+      arrayCopy[T](self.elements, self.front, newelements, 0, len);
 
       if len < self.count {
-        arraycopy::<T>(self.elements, 0, newelements, len, self.count - len);
+        arrayCopy[T](self.elements, 0, newelements, len, self.count - len);
       }
 
       self.front = 0;
@@ -20,15 +20,15 @@ class Queue<T> {
     }
 
     let end = self.getEnd();
-    self.elements[end] = value;
+    self.elements.set(end, value);
     self.count = self.count + 1;
   }
 
   pub fun dequeue() -> T {
     assert(self.count > 0);
 
-    let value = self.elements[self.front];
-    self.elements[self.front] = defaultValue::<T>();
+    let value = self.elements.get(self.front);
+    self.elements.set(self.front, defaultValue[T]());
 
     self.moveFront();
     self.count = self.count - 1;

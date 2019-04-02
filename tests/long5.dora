@@ -1,16 +1,16 @@
 fun main() {
-    let ba = Array::<Long>(0);
+    let ba = Array[Long](0);
     assert(ba.length() == 0);
 
-    let ba = arrayFill::<Long>(10, 2L);
+    let ba = arrayFill[Long](10, 2L);
     assert(ba.length() == 10);
 
-    ba[0] = 10L;
-    ba[1] = 11L;
-    ba[2] = 12L;
+    ba.set(0, 10L);
+    ba.set(1, 11L);
+    ba.set(2, 12L);
 
-    assert(10L == ba[0]);
-    assert(11L == ba[1]);
-    assert(12L == ba[2]);
-    assert(2L == ba[9]);
+    assert(10L == ba.get(0));
+    assert(11L == ba.get(1));
+    assert(12L == ba.get(2));
+    assert(2L == ba.get(9));
 }

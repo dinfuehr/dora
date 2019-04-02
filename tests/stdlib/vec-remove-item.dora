@@ -1,13 +1,13 @@
 fun main() {
-    let vec = Vec::<Int>();
+    let vec = Vec[Int]();
     vec.push(1);
     vec.push(2);
     vec.push(3);
     vec.push(1);
     assert(vec.length() == 4);
 
-    removeItem::<Int>(vec, 1);
+    removeItem[Int](vec, 1);
     assert(vec.length() == 2);
-    assert(vec[0] == 2);
-    assert(vec[1] == 3);
+    assert(vec.get(0) == 2);
+    assert(vec.get(1) == 3);
 }

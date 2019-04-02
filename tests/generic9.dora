@@ -1,19 +1,19 @@
 fun main() {
-    let a = A::<Int>();
+    let a = A[Int]();
     consume(a.x);
 
-    let b = A::<String>();
+    let b = A[String]();
     consume2(b.x);
 }
 
-class A<T> {
-    var x: Array<T> = Array::<T>(10);
+class A[T] {
+    var x: Array[T] = Array[T](10);
 }
 
-fun consume(x: Array<Int>) {
-    assert(x[9] == 0);
+fun consume(x: Array[Int]) {
+    assert(x.get(9) == 0);
 }
 
-fun consume2(x: Array<String>) {
-    assert(x[9] === nil);
+fun consume2(x: Array[String]) {
+    assert(x.get(9) === nil);
 }

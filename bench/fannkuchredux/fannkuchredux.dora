@@ -5,16 +5,16 @@ fun main() {
 }
 
 fun fannkuch(n: Int) -> Int {
-  let perm = arrayFill::<Int>(n, 0);
-  let perm1 = arrayFill::<Int>(n, 0);
-  let count = arrayFill::<Int>(n, 0);
+  let perm = arrayFill[Int](n, 0);
+  let perm1 = arrayFill[Int](n, 0);
+  let count = arrayFill[Int](n, 0);
   var maxFlipsCount = 0;
   var permCount = 0;
   var checksum = 0;
 
   var i = 0;
   while i < n {
-    perm1[i] = i;
+    perm1.set(i, i);
     i = i + 1;
   }
 
@@ -22,33 +22,33 @@ fun fannkuch(n: Int) -> Int {
 
   while true {
     while r != 1 {
-      count[r-1] = r;
+      count.set(r-1, r);
       r = r - 1;
     }
 
     var i = 0;
     while i < n {
-      perm[i] = perm1[i];
+      perm.set(i, perm1.get(i));
       i = i + 1;
     }
 
     var flipsCount = 0;
-    var k = perm[0];
+    var k = perm.get(0);
 
     while k != 0 {
       let k2 = (k+1) / 2;
 
       var i = 0;
       while i < k2 {
-        let temp = perm[i];
-        perm[i] = perm[k-i];
-        perm[k-i] = temp;
+        let temp = perm.get(i);
+        perm.set(i, perm.get(k-i));
+        perm.set(k-i, temp);
 
         i = i + 1;
       }
 
       flipsCount = flipsCount + 1;
-      k = perm[0];
+      k = perm.get(0);
     }
 
     maxFlipsCount = max(maxFlipsCount, flipsCount);
@@ -65,20 +65,20 @@ fun fannkuch(n: Int) -> Int {
         return maxFlipsCount;
       }
 
-      let perm0 = perm1[0];
+      let perm0 = perm1.get(0);
       var i = 0;
 
       while i < r {
         let j = i + 1;
-        perm1[i] = perm1[j];
+        perm1.set(i, perm1.get(j));
         i = j;
       }
 
-      perm1[r] = perm0;
+      perm1.set(r, perm0);
 
-      count[r] = count[r] - 1;
+      count.set(r, count.get(r) - 1);
 
-      if count[r] > 0 { break; }
+      if count.get(r) > 0 { break; }
 
       r = r + 1;
     }

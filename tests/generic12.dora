@@ -1,15 +1,15 @@
 fun main() {
-  let foo = Foo::<Int>(10);
+  let foo = Foo[Int](10);
   assert(foo.x == 10);
 
-  let foo = Foo::<String>("hey");
+  let foo = Foo[String]("hey");
   assert(foo.x == "hey");
 }
 
-class Foo<T>(let x: T) {
+class Foo[T](let x: T) {
   fun getx() -> T {
-    return id::<T>(self.x);
+    return id[T](self.x);
   }
 }
 
-fun id<T>(val: T) -> T { return val; }
+fun id[T](val: T) -> T { return val; }

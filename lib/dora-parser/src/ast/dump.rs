@@ -409,7 +409,6 @@ impl<'a> AstDumper<'a> {
             ExprUn(ref un) => self.dump_expr_un(un),
             ExprBin(ref bin) => self.dump_expr_bin(bin),
             ExprField(ref field) => self.dump_expr_field(field),
-            ExprArray(ref array) => self.dump_expr_array(array),
             ExprLitChar(ref lit) => self.dump_expr_lit_char(lit),
             ExprLitInt(ref lit) => self.dump_expr_lit_int(lit),
             ExprLitFloat(ref lit) => self.dump_expr_lit_float(lit),
@@ -519,12 +518,6 @@ impl<'a> AstDumper<'a> {
         self.indent(|d| d.dump_expr(&expr.rhs));
         dump!(self, "binary {:?} @ {} {}", expr.op, expr.pos, expr.id);
         self.indent(|d| d.dump_expr(&expr.lhs));
-    }
-
-    fn dump_expr_array(&mut self, expr: &ExprArrayType) {
-        self.indent(|d| d.dump_expr(&expr.object));
-        dump!(self, "[] @ {} {}", expr.pos, expr.id);
-        self.indent(|d| d.dump_expr(&expr.index));
     }
 
     fn dump_expr_lambda(&mut self, expr: &ExprLambdaType) {

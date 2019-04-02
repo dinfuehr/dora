@@ -1,29 +1,29 @@
 fun main() {
     let buffer = write('$');
-    assert(buffer[0] == 0x24Y);
-    assert(buffer[1] == 0Y);
+    assert(buffer.get(0) == 0x24Y);
+    assert(buffer.get(1) == 0Y);
 
     let buffer = write('¢');
-    assert(buffer[0] == 0xC2Y);
-    assert(buffer[1] == 0xA2Y);
-    assert(buffer[2] == 0Y);
+    assert(buffer.get(0) == 0xC2Y);
+    assert(buffer.get(1) == 0xA2Y);
+    assert(buffer.get(2) == 0Y);
 
     let buffer = write('€');
-    assert(buffer[0] == 0xE2Y);
-    assert(buffer[1] == 0x82Y);
-    assert(buffer[2] == 0xACY);
-    assert(buffer[3] == 0Y);
+    assert(buffer.get(0) == 0xE2Y);
+    assert(buffer.get(1) == 0x82Y);
+    assert(buffer.get(2) == 0xACY);
+    assert(buffer.get(3) == 0Y);
 
     let buffer = write('𐍈');
-    assert(buffer[0] == 0xF0Y);
-    assert(buffer[1] == 0x90Y);
-    assert(buffer[2] == 0x8DY);
-    assert(buffer[3] == 0x88Y);
-    assert(buffer[4] == 0Y);
+    assert(buffer.get(0) == 0xF0Y);
+    assert(buffer.get(1) == 0x90Y);
+    assert(buffer.get(2) == 0x8DY);
+    assert(buffer.get(3) == 0x88Y);
+    assert(buffer.get(4) == 0Y);
 }
 
-fun write(ch: Char) -> Array<Byte> {
-    let buffer = Array::<Byte>(5);
+fun write(ch: Char) -> Array[Byte] {
+    let buffer = Array[Byte](5);
     ch.encodeUtf8(buffer, 0);
     return buffer;
 }
