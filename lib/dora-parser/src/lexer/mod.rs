@@ -538,7 +538,6 @@ fn is_identifier(ch: Option<char>) -> bool {
 fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     let mut keywords = HashMap::new();
 
-    keywords.insert("class", TokenKind::Class);
     keywords.insert("self", TokenKind::This);
     keywords.insert("Self", TokenKind::CapitalThis);
     keywords.insert("super", TokenKind::Super);
@@ -558,6 +557,8 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("true", TokenKind::True);
     keywords.insert("false", TokenKind::False);
     keywords.insert("nil", TokenKind::Nil);
+    keywords.insert("class", TokenKind::Class);
+    keywords.insert("module", TokenKind::Module);
     keywords.insert("enum", TokenKind::Enum);
     keywords.insert("type", TokenKind::Type);
     keywords.insert("alias", TokenKind::Alias);

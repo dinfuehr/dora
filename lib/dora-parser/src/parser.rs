@@ -61,6 +61,11 @@ impl<'a> Parser<'a> {
         self.init()?;
         let mut elements = vec![];
 
+        let mut module_decl = None;
+        if self.token.is(TokenKind::Module) {
+             module_decl = Some(self.parse_module_decl()?);
+        }
+
         while !self.token.is_eof() {
             self.parse_top_level_element(&mut elements)?;
         }
@@ -69,6 +74,7 @@ impl<'a> Parser<'a> {
             .files
             .push(File {
                       path: self.lexer.path().to_string(),
+                      module_decl: module_decl,
                       elements: elements,
                   });
 
@@ -79,6 +85,20 @@ impl<'a> Parser<'a> {
         self.advance_token()?;
 
         Ok(())
+    }
+
+    fn parse_module_decl(&mut self) -> Result<ModuleDecl, MsgWithPos> {
+        let pos = self.expect_token(TokenKind::Module)?.position;
+
+        let path = self.parse_list(TokenKind::Semicolon, TokenKind::Sep, |p| p.expect_identifier())?;
+
+        let module_decl = ModuleDecl {
+            id: self.generate_id(),
+            pos: pos,
+            path,
+        };
+
+        Ok(module_decl)
     }
 
     fn parse_top_level_element(&mut self, elements: &mut Vec<Elem>) -> Result<(), MsgWithPos> {
@@ -619,22 +639,32 @@ impl<'a> Parser<'a> {
                               -> Result<Vec<R>, MsgWithPos>
         where F: FnMut(&mut Parser) -> Result<R, MsgWithPos>
     {
+        self.parse_list(stop, TokenKind::Comma, parse)
+    }
+
+    fn parse_list<F, R>(&mut self,
+                              stop: TokenKind,
+                              sep: TokenKind,
+                              mut parse: F)
+                              -> Result<Vec<R>, MsgWithPos>
+        where F: FnMut(&mut Parser) -> Result<R, MsgWithPos>
+    {
         let mut data = vec![];
-        let mut comma = true;
+        let mut sep_found = true;
 
         while !self.token.is(stop.clone()) && !self.token.is_eof() {
-            if !comma {
+            if !sep_found {
                 return Err(MsgWithPos::new(self.lexer.path().to_string(),
                                            self.token.position,
-                                           Msg::ExpectedToken(TokenKind::Comma.name().into(),
+                                           Msg::ExpectedToken(sep.name().into(),
                                                               self.token.name())));
             }
 
             let entry = parse(self)?;
             data.push(entry);
 
-            comma = self.token.is(TokenKind::Comma);
-            if comma {
+            sep_found = self.token.kind == sep;
+            if sep_found {
                 self.advance_token()?;
             }
         }
@@ -2475,6 +2505,25 @@ mod tests {
 
         let mtd2 = &cls.methods[1];
         assert_eq!(false, mtd2.is_abstract);
+    }
+
+    #[test]
+    fn parse_module_decl() {
+        let (prog, interner) = parse("");
+        assert_eq!(true, prog.files.last().unwrap().clone().module_decl.is_none());
+
+
+        let (prog, interner) = parse("module foo::bar;");
+        let module_decl = prog.files.last().unwrap().clone().module_decl.unwrap();
+
+        assert_eq!(Position::new(1, 1), module_decl.pos);
+        assert_eq!("[foo, bar]", format!("{:?}", module_decl.path.iter().map(|n| interner.str(*n)).collect::<Vec<_>>()));
+
+        let (prog, interner) = parse("module foo;");
+        let module_decl = prog.files.last().unwrap().clone().module_decl.unwrap();
+
+        assert_eq!(Position::new(1, 1), module_decl.pos);
+        assert_eq!("[foo]", format!("{:?}", module_decl.path.iter().map(|n| interner.str(*n)).collect::<Vec<_>>()));
     }
 
     #[test]

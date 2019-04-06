@@ -92,6 +92,7 @@ impl Ast {
 #[derive(Clone, Debug)]
 pub struct File {
     pub path: String,
+    pub module_decl: Option<ModuleDecl>,
     pub elements: Vec<Elem>,
 }
 
@@ -442,6 +443,13 @@ pub struct Class {
     pub methods: Vec<Function>,
     pub initializers: Vec<Box<Stmt>>,
     pub type_params: Option<Vec<TypeParam>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ModuleDecl {
+    pub id: NodeId,
+    pub pos: Position,
+    pub path: Vec<Name>,
 }
 
 #[derive(Clone, Debug)]
