@@ -7,6 +7,30 @@ trait Comparable {
   // fun >= (other: Self) -> Int;
 }
 
+impl Comparable for Bool {
+  fun compareTo(other: Bool) -> Int = self.compareTo(other);
+}
+
+impl Comparable for Byte {
+  fun compareTo(other: Byte) -> Int = self.compareTo(other);
+}
+
 impl Comparable for Int {
-  internal fun compareTo(other: Int) -> Int;
+  fun compareTo(other: Int) -> Int = self.compareTo(other);
+}
+
+impl Comparable for Long {
+  fun compareTo(other: Long) -> Int = self.compareTo(other);
+}
+
+impl Comparable for Float {
+  fun compareTo(other: Float) -> Int = self.compareTo(other);
+}
+
+impl Comparable for Double {
+  fun compareTo(other: Double) -> Int = self.compareTo(other);
+}
+
+impl Comparable for String {
+  fun compareTo(other: String) -> Int = self.compareTo(other);
 }

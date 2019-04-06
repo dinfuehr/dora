@@ -34,8 +34,6 @@ pub fn internal_classes<'ast>(ctxt: &mut SemContext<'ast>) {
     ctxt.vips.exception_class = internal_class(ctxt, "Exception", None);
     ctxt.vips.stack_trace_element_class = internal_class(ctxt, "StackTraceElement", None);
 
-    ctxt.vips.comparable_trait = find_trait(ctxt, "Comparable");
-    ctxt.vips.equals_trait = find_trait(ctxt, "Equals");
     *ctxt.vips.iterator_trait.lock() = Some(find_trait(ctxt, "Iterator"));
 }
 
@@ -164,12 +162,6 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     intrinsic_method(ctxt, clsid, "unaryPlus", Intrinsic::IntPlus);
     intrinsic_method(ctxt, clsid, "unaryMinus", Intrinsic::IntNeg);
     intrinsic_method(ctxt, clsid, "not", Intrinsic::IntNot);
-
-    let trait_id = ctxt.vips.equals_trait;
-    intrinsic_impl(ctxt, clsid, trait_id, "equals", Intrinsic::IntEq);
-
-    let trait_id = ctxt.vips.comparable_trait;
-    intrinsic_impl(ctxt, clsid, trait_id, "compareTo", Intrinsic::IntCmp);
 
     let clsid = ctxt.vips.long_class;
     native_method(ctxt, clsid, "toString", stdlib::long_to_string as *const u8);

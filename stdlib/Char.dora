@@ -6,6 +6,8 @@ internal class Char {
   internal fun equals(rhs: Char) -> Bool;
   internal fun compareTo(rhs: Char) -> Int;
 
+  fun hash() -> Int = self.toInt();
+
   fun encodeUtf8(bytes: Array<Byte>, offset: Int) {
     let val = self.toInt();
 

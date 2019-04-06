@@ -1,5 +1,8 @@
 internal class Bool {
   internal fun toInt() -> Int;
+
+  fun hash() -> Int = self.toInt();
+
   fun toString() -> String {
     if self {
       return "true";

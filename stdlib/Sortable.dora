@@ -5,3 +5,34 @@ trait Sortable {
   // fun sortsAfter (other: Self) -> Int;
   // fun sortsSame  (other: Self) -> Int;
 }
+
+impl Sortable for Bool {
+  fun sortsAs(other: Bool) -> Int = self.compareTo(other);
+}
+
+impl Sortable for Byte {
+  fun sortsAs(other: Byte) -> Int = self.compareTo(other);
+}
+
+impl Sortable for Int {
+  fun sortsAs(other: Int) -> Int = self.compareTo(other);
+}
+
+impl Sortable for Long {
+  fun sortsAs(other: Long) -> Int = self.compareTo(other);
+}
+
+// requires intrinsics
+/*
+impl Sortable for Float {
+  fun sortsAs(other: Float) -> Int;
+}
+
+impl Sortable for Double {
+  fun sortsAs(other: Double) -> Int;
+}
+*/
+
+impl Sortable for String {
+  fun sortsAs(other: String) -> Int = self.compareTo(other);
+}

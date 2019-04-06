@@ -1,0 +1,31 @@
+trait Identity {
+  fun identicalTo(other: Self) -> Bool;
+}
+
+impl Identity for Bool {
+  fun identicalTo(other: Bool) -> Bool = self === other;
+}
+
+impl Identity for Byte {
+  fun identicalTo(other: Byte) -> Bool = self === other;
+}
+
+impl Identity for Int {
+  fun identicalTo(other: Int) -> Bool = self === other;
+}
+
+impl Identity for Long {
+  fun identicalTo(other: Long) -> Bool = self === other;
+}
+
+impl Identity for Float {
+  fun identicalTo(other: Float) -> Bool = self === other;
+}
+
+impl Identity for Double {
+  fun identicalTo(other: Double) -> Bool = self === other;
+}
+
+impl Identity for String {
+  fun identicalTo(other: String) -> Bool = self === other;
+}

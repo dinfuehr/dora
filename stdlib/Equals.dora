@@ -2,6 +2,30 @@ trait Equals {
   fun equals(other: Self) -> Bool;
 }
 
+impl Equals for Bool {
+  fun equals(other: Bool) -> Bool = self == other;
+}
+
+impl Equals for Byte {
+  fun equals(other: Byte) -> Bool = self == other;
+}
+
 impl Equals for Int {
-  internal fun equals(other: Int) -> Bool;
+  fun equals(other: Int) -> Bool = self == other;
+}
+
+impl Equals for Long {
+  fun equals(other: Long) -> Bool = self == other;
+}
+
+impl Equals for Float {
+  fun equals(other: Float) -> Bool = self == other;
+}
+
+impl Equals for Double {
+  fun equals(other: Double) -> Bool = self == other;
+}
+
+impl Equals for String {
+  fun equals(other: String) -> Bool = self == other;
 }
