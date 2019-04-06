@@ -37,6 +37,8 @@ internal class Long {
   internal fun unaryMinus() -> Long;
   internal fun not() -> Long;
 
+  fun hash() -> Int = self.toInt();
+
   static fun max_value() -> Long {
     return 9223372036854775807L;
   }

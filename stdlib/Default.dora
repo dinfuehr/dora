@@ -1,3 +1,31 @@
 trait Default {
-  static fun default() -> Self;
+  static fun default() -> Self; // should be `let` instead of `fun`
+}
+
+impl Default for Bool {
+  static fun default() -> Bool = false;
+}
+
+impl Default for Byte {
+  static fun default() -> Byte = 0Y;
+}
+
+impl Default for Int {
+  static fun default() -> Int = 0;
+}
+
+impl Default for Long {
+  static fun default() -> Long = 0L;
+}
+
+impl Default for Float {
+  static fun default() -> Float = 0.0F;
+}
+
+impl Default for Double {
+  static fun default() -> Double = 0.0;
+}
+
+impl Default for String {
+  static fun default() -> String = "";
 }

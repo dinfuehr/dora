@@ -37,6 +37,8 @@ internal class Int {
   internal fun unaryMinus() -> Int;
   internal fun not() -> Int;
 
+  fun hash() -> Int = self;
+
   fun abs() -> Int {
     if self >= 0 {
       return self;

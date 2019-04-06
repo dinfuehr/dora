@@ -5,4 +5,6 @@ internal class Byte {
 
   internal fun equals(rhs: Byte) -> Bool;
   internal fun compareTo(rhs: Byte) -> Int;
+
+  fun hash() -> Int = self.toInt();
 }
