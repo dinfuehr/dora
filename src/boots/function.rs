@@ -60,7 +60,7 @@ impl UserList {
     }
 }
 
-enum CmpOp {
+pub enum CmpOp {
     Lt,
     Le,
     Eq,
@@ -120,7 +120,7 @@ pub enum InstData {
     Deleted,
 }
 
-enum Type {
+pub enum Type {
     Bool,
     Int8,
     Int32,
