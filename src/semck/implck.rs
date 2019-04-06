@@ -100,7 +100,7 @@ mod tests {
             trait Foo {
                 fun bar();
             }
-            class A
+            class A()
             impl Foo for A {}",
             pos(6, 13),
             Msg::MethodMissingFromTrait("Foo".into(), "bar".into(), vec![]),
@@ -113,7 +113,7 @@ mod tests {
                 fun foo() -> Self;
             }
 
-            class A
+            class A()
 
             impl Foo for A {
                 fun foo() -> A { return A(); }

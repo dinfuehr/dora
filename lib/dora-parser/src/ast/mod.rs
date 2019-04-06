@@ -435,13 +435,16 @@ pub struct Class {
     pub has_open: bool,
     pub is_abstract: bool,
     pub internal: bool,
-    pub has_constructor: bool,
 
     pub constructor: Option<Function>,
     pub fields: Vec<Field>,
     pub methods: Vec<Function>,
     pub initializers: Vec<Box<Stmt>>,
     pub type_params: Option<Vec<TypeParam>>,
+}
+
+impl Class {
+    pub fn has_constructor(&self) -> bool { self.constructor.is_some() }
 }
 
 #[derive(Clone, Debug)]
@@ -466,17 +469,6 @@ pub struct ParentClass {
     pub pos: Position,
     pub type_params: Option<Vec<TypeParam>>,
     pub params: Vec<Box<Expr>>,
-}
-
-impl ParentClass {
-    pub fn new(name: Name, pos: Position, type_params: Option<Vec<TypeParam>>, params: Vec<Box<Expr>>) -> ParentClass {
-        ParentClass {
-            name: name,
-            pos: pos,
-            type_params: type_params,
-            params: params,
-        }
-    }
 }
 
 #[derive(Clone, Debug)]

@@ -291,7 +291,6 @@ impl<'a> Parser<'a> {
             has_open: has_open,
             internal: internal,
             is_abstract: is_abstract,
-            has_constructor: false,
             parent_class: None,
             constructor: None,
             fields: Vec::new(),
@@ -311,13 +310,16 @@ impl<'a> Parser<'a> {
             let type_params = self.parse_type_params()?;
             let params = self.parse_parent_class_params()?;
 
-            Some(ParentClass::new(name, pos, type_params, params))
+            Some(ParentClass { name, pos, type_params, params })
         } else {
             None
         };
 
         self.parse_class_body(&mut cls)?;
-        cls.constructor = Some(self.generate_constructor(&mut cls, ctor_params));
+        if let Some(ctor_params) = ctor_params {
+            cls.constructor = Some(self.generate_constructor(&mut cls, ctor_params));
+        }
+
         self.in_class = false;
 
         Ok(cls)
@@ -377,17 +379,16 @@ impl<'a> Parser<'a> {
         Ok(params)
     }
 
-    fn parse_constructor(&mut self, cls: &mut Class) -> Result<Vec<ConstructorParam>, MsgWithPos> {
+    fn parse_constructor(&mut self, cls: &mut Class) -> Result<Option<Vec<ConstructorParam>>, MsgWithPos> {
         if !self.token.is(TokenKind::LParen) {
-            return Ok(Vec::new());
+            return Ok(None);
         }
 
         self.expect_token(TokenKind::LParen)?;
-        cls.has_constructor = true;
 
         let params = self.parse_comma_list(TokenKind::RParen, |p| p.parse_constructor_param(cls))?;
 
-        Ok(params)
+        Ok(Some(params))
     }
 
     fn parse_constructor_param(&mut self,
@@ -2516,7 +2517,7 @@ mod tests {
         let ctor = class.constructor.clone().unwrap();
 
         assert_eq!(0, class.fields.len());
-        assert_eq!(true, class.has_constructor);
+        assert_eq!(true, class.has_constructor());
         assert_eq!(1, ctor.params.len());
         assert_eq!(false, ctor.params[0].reassignable);
     }
@@ -2528,7 +2529,7 @@ mod tests {
 
         assert_eq!(1, class.fields.len());
         assert_eq!(true, class.fields[0].reassignable);
-        assert_eq!(true, class.has_constructor);
+        assert_eq!(true, class.has_constructor());
         assert_eq!(1, class.constructor.clone().unwrap().params.len());
     }
 
@@ -2540,7 +2541,7 @@ mod tests {
 
         assert_eq!(1, class.fields.len());
         assert_eq!(false, class.fields[0].reassignable);
-        assert_eq!(true, class.has_constructor);
+        assert_eq!(true, class.has_constructor());
         assert_eq!(1, ctor.params.len());
         assert_eq!(false, ctor.params[0].reassignable);
     }

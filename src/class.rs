@@ -53,7 +53,6 @@ pub struct Class {
     pub is_abstract: bool,
     pub internal: bool,
     pub internal_resolved: bool,
-    pub has_constructor: bool,
 
     pub constructor: Option<FctId>,
     pub fields: Vec<Field>,
@@ -73,6 +72,8 @@ pub struct Class {
 }
 
 impl Class {
+    pub fn has_constructor(&self) -> bool { self.constructor.is_some() }
+
     pub fn is_generic(&self) -> bool {
         self.type_params.len() > 0
     }

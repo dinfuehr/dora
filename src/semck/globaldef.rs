@@ -151,7 +151,6 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
                 is_abstract: c.is_abstract,
                 internal: c.internal,
                 internal_resolved: false,
-                has_constructor: c.has_constructor,
 
                 constructor: None,
                 fields: Vec::new(),

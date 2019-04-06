@@ -1825,6 +1825,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         } else {
             let name = match kind {
                 LookupKind::Ctor(cls_id) => {
+                    println!("cstr!");
                     let cls = self.ctxt.classes.idx(cls_id);
                     let cls = cls.read();
                     cls.name
@@ -2401,11 +2402,11 @@ mod tests {
 
     #[test]
     fn type_ctor() {
-        ok("class Foo fun f() -> Foo { return Foo(); }");
+        ok("class Foo() fun f() -> Foo { return Foo(); }");
         ok("class Foo(let a: Int) fun f() -> Foo { return Foo(1); }");
         err(
-            "class Foo fun f() -> Foo { return 1; }",
-            pos(1, 28),
+            "class Foo() fun f() -> Foo { return 1; }",
+            pos(1, 30),
             Msg::ReturnType("Foo".into(), "Int".into()),
         );
     }
@@ -2710,7 +2711,7 @@ mod tests {
 
     #[test]
     fn type_nil_as_method_argument() {
-        ok("class Foo {
+        ok("class Foo() {
             fun f(a: String) {}
         } fun f() { Foo().f(nil); }");
     }
@@ -2882,11 +2883,11 @@ mod tests {
     #[test]
     fn super_class() {
         ok("open class A class B: A");
-        ok("open class A class B: A()");
+        ok("open class A() class B: A()");
         ok("open class A(a: Int) class B: A(1)");
         err(
             "open class A(a: Int) class B: A(true)",
-            pos(1, 31),
+            pos(1, 33),
             Msg::UnknownCtor("A".into(), vec!["Bool".into()]),
         );
     }
@@ -3022,14 +3023,14 @@ mod tests {
 
     #[test]
     fn try_method() {
-        ok("class Foo { fun one() throws -> Int { return 1; } }
+        ok("class Foo() { fun one() throws -> Int { return 1; } }
             fun me() -> Int { return try Foo().one(); }");
     }
 
     #[test]
     fn throws_method_without_try() {
         err(
-            "class Foo { fun one() throws -> Int { return 1; } }
+            "class Foo() { fun one() throws -> Int { return 1; } }
              fun me() -> Int { return Foo().one(); }",
             pos(2, 44),
             Msg::ThrowingCallWithoutTry,
@@ -3095,82 +3096,82 @@ mod tests {
 
     #[test]
     fn overload_plus() {
-        ok("class A { fun plus(rhs: A) -> Int { return 0; } }
+        ok("class A() { fun plus(rhs: A) -> Int { return 0; } }
             fun f() -> Int { return A() + A(); }");
     }
 
     #[test]
     fn overload_minus() {
-        ok("class A { fun minus(rhs: A) -> Int { return 0; } }
+        ok("class A() { fun minus(rhs: A) -> Int { return 0; } }
             fun f() -> Int { return A() - A(); }");
     }
 
     #[test]
     fn overload_times() {
-        ok("class A { fun times(rhs: A) -> Int { return 0; } }
+        ok("class A() { fun times(rhs: A) -> Int { return 0; } }
             fun f() -> Int { return A() * A(); }");
     }
 
     #[test]
     fn overload_div() {
-        ok("class A { fun div(rhs: A) -> Int { return 0; } }
+        ok("class A() { fun div(rhs: A) -> Int { return 0; } }
             fun f() -> Int { return A() / A(); }");
     }
 
     #[test]
     fn overload_mod() {
-        ok("class A { fun mod(rhs: A) -> Int { return 0; } }
+        ok("class A() { fun mod(rhs: A) -> Int { return 0; } }
             fun f() -> Int { return A() % A(); }");
     }
 
     #[test]
     fn overload_bitwise_or() {
-        ok("class A { fun bitwiseOr(rhs: A) -> Int { return 0; } }
+        ok("class A() { fun bitwiseOr(rhs: A) -> Int { return 0; } }
             fun f() -> Int { return A() | A(); }");
     }
 
     #[test]
     fn overload_bitwise_and() {
-        ok("class A { fun bitwiseAnd(rhs: A) -> Int { return 0; } }
+        ok("class A() { fun bitwiseAnd(rhs: A) -> Int { return 0; } }
             fun f() -> Int { return A() & A(); }");
     }
 
     #[test]
     fn overload_bitwise_xor() {
-        ok("class A { fun bitwiseXor(rhs: A) -> Int { return 0; } }
+        ok("class A() { fun bitwiseXor(rhs: A) -> Int { return 0; } }
             fun f() -> Int { return A() ^ A(); }");
     }
 
     #[test]
     fn overload_shl() {
-        ok("class A { fun shiftLeft(rhs: A) -> Int { return 0; } }
+        ok("class A() { fun shiftLeft(rhs: A) -> Int { return 0; } }
             fun f() -> Int { return A() << A(); }");
     }
 
     #[test]
     fn overload_sar() {
-        ok("class A { fun shiftRight(rhs: A) -> Int { return 0; } }
+        ok("class A() { fun shiftRight(rhs: A) -> Int { return 0; } }
             fun f() -> Int { return A() >> A(); }");
     }
 
     #[test]
     fn overload_shr() {
         ok(
-            "class A { fun unsignedShiftRight(rhs: A) -> Int { return 0; } }
+            "class A() { fun unsignedShiftRight(rhs: A) -> Int { return 0; } }
             fun f() -> Int { return A() >>> A(); }",
         );
     }
 
     #[test]
     fn overload_equals() {
-        ok("class A { fun equals(rhs: A) -> Bool { return true; } }
+        ok("class A() { fun equals(rhs: A) -> Bool { return true; } }
             fun f1() -> Bool { return A() == A(); }
             fun f2() -> Bool { return A() != A(); }");
     }
 
     #[test]
     fn overload_compare_to() {
-        ok("class A { fun compareTo(rhs: A) -> Int { return 0; } }
+        ok("class A() { fun compareTo(rhs: A) -> Int { return 0; } }
             fun f1() -> Bool { return A() < A(); }
             fun f2() -> Bool { return A() <= A(); }
             fun f3() -> Bool { return A() > A(); }
@@ -3290,7 +3291,7 @@ mod tests {
     #[test]
     fn test_generic_arguments_mismatch() {
         err(
-            "class A<T>
+            "class A<T>()
             fun foo() {
                 let a = A::<Int, Int>();
             }",
@@ -3542,7 +3543,7 @@ mod tests {
     #[test]
     fn test_invoke_abstract_class_ctor() {
         err(
-            "abstract class A
+            "abstract class A()
             fun test() -> A { return A(); }",
             pos(2, 38),
             Msg::NewAbstractClass,
@@ -3655,8 +3656,8 @@ mod tests {
         );
 
         ok(
-            "class Foo { fun makeIterator() -> FooIter { return FooIter(); } }
-            class FooIter
+            "class Foo() { fun makeIterator() -> FooIter { return FooIter(); } }
+            class FooIter()
             impl Iterator for FooIter {
                 fun hasNext() -> Bool { return false; }
                 fun next() -> Int { return 0; }
