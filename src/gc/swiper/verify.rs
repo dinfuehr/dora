@@ -124,12 +124,12 @@ impl<'a> Verifier<'a> {
         self.verify_objects(region, "young gen (eden)");
 
         let region = self.from_active.clone();
+        if !self.promotion_failed {
+            assert!(region.empty(), "from-space should be empty.");
+        }
         self.verify_objects(region, "young gen (from)");
 
         let region = self.to_active.clone();
-        if !self.promotion_failed {
-            assert!(region.size() == 0, "to-space should be empty.");
-        }
         self.verify_objects(region, "young gen (to)");
     }
 
@@ -372,10 +372,10 @@ impl<'a> Verifier<'a> {
 
         if self.old_protected.contains_slow(reference)
             || self.eden_active.contains(reference)
-            || self.from_active.contains(reference)
+            || self.to_active.contains(reference)
             || self.perm_space.contains(reference)
             || self.large.contains(reference)
-            || (self.to_active.contains(reference) && self.promotion_failed)
+            || (self.from_active.contains(reference) && self.promotion_failed)
         {
             let object = reference.to_obj();
 

@@ -171,7 +171,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         }
 
         self.young.clear();
-        self.young.protect_to();
+        self.young.protect_from();
 
         self.old_protected.update_single_region(self.old_top);
     }
@@ -354,13 +354,13 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             fct(self, obj, addr, size);
         });
 
+        // This is a bit strange at first: from-space might not be empty,
+        // after too many survivors in the minor GC of the young gen.
         let used_region = self.young.from_active();
         walk_region(used_region, |obj, addr, size| {
             fct(self, obj, addr, size);
         });
 
-        // This is a bit strange at first: to-space might not be empty,
-        // after too many survivors in the minor GC of the young gen.
         let used_region = self.young.to_active();
         walk_region(used_region, |obj, addr, size| {
             fct(self, obj, addr, size);
@@ -391,13 +391,13 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             fct(self, obj, addr, size)
         });
 
+        // This is a bit strange at first: from-space might not be empty,
+        // after too many survivors in the minor GC of the young gen.
         let used_region = self.young.from_active();
         walk_region_and_skip_garbage(vm, used_region, |obj, addr, size| {
             fct(self, obj, addr, size)
         });
 
-        // This is a bit strange at first: to-space might not be empty,
-        // after too many survivors in the minor GC of the young gen.
         let used_region = self.young.to_active();
         walk_region_and_skip_garbage(vm, used_region, |obj, addr, size| {
             fct(self, obj, addr, size)

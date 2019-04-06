@@ -86,7 +86,7 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
             promotion_failed: false,
             promoted_size: 0,
 
-            from_active: young.from_active(),
+            from_active: Default::default(),
             eden_active: young.eden_active(),
 
             reason: reason,
@@ -107,16 +107,19 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
     }
 
     pub fn collect(&mut self) -> bool {
-        let to_committed = self.young.to_committed();
-        self.young_top = to_committed.start;
-        self.young_limit = to_committed.end;
-
         self.init_old_top = {
             let protected = self.old.protected();
             protected.regions.iter().map(|r| r.top()).collect()
         };
 
-        self.young.unprotect_to();
+        self.young.unprotect_from();
+        self.young.swap_semi();
+
+        let to_committed = self.young.to_committed();
+        self.young_top = to_committed.start;
+        self.young_limit = to_committed.end;
+
+        self.from_active = self.young.from_active();
 
         let dev_verbose = self.vm.args.flag_gc_dev_verbose;
 
@@ -133,17 +136,15 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         if self.promotion_failed {
             // oh no: promotion failed, we need a subsequent full GC
             self.remove_forwarding_pointers();
-            self.young.swap_semi_and_keep_to_space(self.young_top);
+            self.young.minor_fail(self.young_top);
 
             return true;
         }
 
-        self.young.clear_eden();
-        self.young.swap_semi(self.young_top);
-        self.young.protect_to();
+        self.young.minor_success(self.young_top);
 
-        assert!(self.young.eden_active().size() == 0);
-        assert!(self.young.to_active().size() == 0);
+        assert!(self.young.eden_active().empty());
+        assert!(self.young.from_active().empty());
 
         let mut config = self.config.lock();
         config.minor_promoted = self.promoted_size;

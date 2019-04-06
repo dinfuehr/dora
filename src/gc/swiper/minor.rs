@@ -76,7 +76,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
             promotion_failed: false,
             promoted_size: 0,
 
-            from_active: young.from_active(),
+            from_active: Default::default(),
             eden_active: young.eden_active(),
 
             reason: reason,
@@ -94,15 +94,19 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
     }
 
     pub fn collect(&mut self) -> bool {
+        self.init_old_top = self.old_protected.regions.iter().map(|r| r.top()).collect();
+
+        let dev_verbose = self.vm.args.flag_gc_dev_verbose;
+        let mut timer = Timer::new(self.vm.args.flag_gc_stats);
+
+        self.young.unprotect_from();
+        self.young.swap_semi();
+
         let to_committed = self.young.to_committed();
         self.young_top = to_committed.start;
         self.young_limit = to_committed.end;
 
-        self.init_old_top = self.old_protected.regions.iter().map(|r| r.top()).collect();
-        self.young.unprotect_to();
-
-        let dev_verbose = self.vm.args.flag_gc_dev_verbose;
-        let mut timer = Timer::new(self.vm.args.flag_gc_stats);
+        self.from_active = self.young.from_active();
 
         if dev_verbose {
             println!("Minor GC: Phase 1 (roots)");
@@ -139,17 +143,15 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         if self.promotion_failed {
             // oh no: promotion failed, we need a subsequent full GC
             self.remove_forwarding_pointers();
-            self.young.swap_semi_and_keep_to_space(self.young_top);
+            self.young.minor_fail(self.young_top);
 
             return true;
         }
 
-        self.young.clear_eden();
-        self.young.swap_semi(self.young_top);
-        self.young.protect_to();
+        self.young.minor_success(self.young_top);
 
-        assert!(self.young.eden_active().size() == 0);
-        assert!(self.young.to_active().size() == 0);
+        assert!(self.young.eden_active().empty());
+        assert!(self.young.from_active().empty());
 
         let mut config = self.config.lock();
         config.minor_promoted = self.promoted_size;
@@ -494,7 +496,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         let obj_size = obj.size();
         debug_assert!(
             self.from_active.contains(obj_addr) || self.eden_active.contains(obj_addr),
-            "copy objects only from from-space."
+            "copy objects only from eden or from-space."
         );
 
         let copy_addr = self.young_top;

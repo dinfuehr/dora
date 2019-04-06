@@ -30,7 +30,7 @@ impl YoungGen {
         };
 
         young.commit();
-        young.protect_to();
+        young.protect_from();
 
         young
     }
@@ -92,30 +92,41 @@ impl YoungGen {
         self.eden.reset_top();
         self.semi.clear_from();
         self.semi.clear_to();
+
+        let to_block = self.semi.to_block();
+        self.semi.set_age_marker(to_block.start);
     }
 
     pub fn active_size(&self) -> usize {
         self.eden.active().size() + self.semi.from_block().active().size()
     }
 
-    pub fn unprotect_to(&self) {
-        self.semi.unprotect_to();
+    pub fn unprotect_from(&self) {
+        self.semi.unprotect_from();
     }
 
-    pub fn protect_to(&self) {
-        self.semi.protect_to();
+    pub fn protect_from(&self) {
+        self.semi.protect_from();
     }
 
     pub fn clear_eden(&self) {
         self.eden.reset_top();
     }
 
-    pub fn swap_semi(&self, top: Address) {
-        self.semi.swap(top);
+    pub fn swap_semi(&self) {
+        self.semi.swap();
     }
 
-    pub fn swap_semi_and_keep_to_space(&self, top: Address) {
-        self.semi.swap_and_keep_to_space(top);
+    pub fn minor_fail(&self, top: Address) {
+        self.semi.to_block().set_top(top);
+    }
+
+    pub fn minor_success(&self, top: Address) {
+        self.eden.reset_top();
+        self.semi.clear_from();
+        self.semi.protect_from();
+        self.semi.to_block().set_top(top);
+        self.semi.set_age_marker(top);
     }
 
     pub fn should_be_promoted(&self, addr: Address) -> bool {
@@ -233,7 +244,7 @@ impl SemiSpace {
             first: Block::new(first.clone(), committed_semi_size / 2),
             second: Block::new(second, committed_semi_size / 2),
 
-            from_index: AtomicUsize::new(1),
+            from_index: AtomicUsize::new(2),
             protect: protect,
             alloc: BumpAllocator::new(first.start, limit),
             age_marker: AtomicUsize::new(first.start.to_usize()),
@@ -289,32 +300,31 @@ impl SemiSpace {
         self.to_block().active()
     }
 
-    // Make to-space writable.
-    fn unprotect_to(&self) {
+    // Make from-space writable.
+    fn unprotect_from(&self) {
         // make memory writable again, so that we
-        // can copy objects to the to-space.
+        // can copy objects to the from-space.
         // Since this has some overhead, do it only in debug builds.
-
         if cfg!(debug_assertions) || self.protect {
-            let to_space = self.to_committed();
+            let from_space = self.from_committed();
 
             os::mprotect(
-                to_space.start.to_ptr::<u8>(),
-                to_space.size(),
+                from_space.start.to_ptr::<u8>(),
+                from_space.size(),
                 ProtType::Writable,
             );
         }
     }
 
-    // Make to-space inaccessible.
-    fn protect_to(&self) {
+    // Make from-space inaccessible.
+    fn protect_from(&self) {
         // Make from-space unaccessible both from read/write.
         // Since this has some overhead, do it only in debug builds.
         if cfg!(debug_assertions) || self.protect {
-            let to_space = self.to_committed();
+            let from_space = self.from_committed();
             os::mprotect(
-                to_space.start.to_ptr::<u8>(),
-                to_space.size(),
+                from_space.start.to_ptr::<u8>(),
+                from_space.size(),
                 ProtType::None,
             );
         }
@@ -322,11 +332,7 @@ impl SemiSpace {
 
     // Free all objects in from-semi-space.
     fn clear_from(&self) {
-        let from_space = self.from_block();
-
-        self.age_marker
-            .store(from_space.start.to_usize(), Ordering::Relaxed);
-        from_space.reset_top();
+        self.from_block().reset_top();
     }
 
     // Free all objects in to-semi-space.
@@ -334,22 +340,17 @@ impl SemiSpace {
         self.to_block().reset_top();
     }
 
-    // Switch from- & to-semi-space. Mark to-space as empty.
-    fn swap(&self, top: Address) {
-        // current from-space is now empty
-        self.from_block().reset_top();
-
-        self.swap_and_keep_to_space(top);
+    // Switch from- & to-semi-space.
+    fn swap(&self) {
+        self.swap_from_index();
     }
 
-    // Switch from- & to-semi-space. Do not mark to-space as empty.
-    fn swap_and_keep_to_space(&self, top: Address) {
-        // swap from_index
-        self.swap_from_index();
-
-        // new from-space is already used up to `top`.
-        self.from_block().set_top(top);
+    fn set_age_marker(&self, top: Address) {
         self.age_marker.store(top.to_usize(), Ordering::Relaxed);
+    }
+
+    fn age_marker(&self) -> Address {
+        self.age_marker.load(Ordering::Relaxed).into()
     }
 
     fn swap_from_index(&self) {
@@ -366,12 +367,14 @@ impl SemiSpace {
     }
 
     fn should_be_promoted(&self, addr: Address) -> bool {
+        let age_marker = self.age_marker();
         debug_assert!(self.from_active().contains(addr));
-        return addr.to_usize() < self.age_marker.load(Ordering::Relaxed);
+        debug_assert!(self.from_active().valid_top(age_marker));
+        return addr < age_marker;
     }
 
     fn bump_alloc(&self, size: usize) -> Address {
-        self.from_block().bump_alloc(size)
+        self.to_block().bump_alloc(size)
     }
 
     fn set_limit(&self, size: usize) {

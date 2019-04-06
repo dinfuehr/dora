@@ -172,7 +172,7 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
         }
 
         self.young.clear();
-        self.young.protect_to();
+        self.young.protect_from();
 
         let regions: Vec<_> = self
             .regions

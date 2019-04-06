@@ -130,10 +130,10 @@ pub fn stop(
         let max_young_size = config.max_heap_size - config.old_size;
         let target_young_size = align_gen(max_young_size / 2);
 
-        assert_eq!(young.eden_active().size(), 0);
-        assert_eq!(young.to_active().size(), 0);
-        let from_size = young.from_active().size();
-        let min_semi_size = align_gen(mem::page_align(from_size) * 2);
+        assert!(young.eden_active().empty());
+        assert!(young.from_active().empty());
+        let to_size = young.to_active().size();
+        let min_semi_size = align_gen(mem::page_align(to_size) * 2);
 
         let (eden_size, semi_size) = calculate_young_size(args, target_young_size, min_semi_size);
         young_size = eden_size + semi_size;
