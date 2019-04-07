@@ -42,20 +42,15 @@ where
         "stdlib/Long.dora",
         "stdlib/Float.dora",
         "stdlib/Double.dora",
-
         "stdlib/Array.dora",
         "stdlib/String.dora",
-
         "stdlib/Exception.dora",
-
         "stdlib/Thread.dora",
-
         "stdlib/Equals.dora",
         "stdlib/Comparable.dora",
         "stdlib/Sortable.dora",
         "stdlib/Hash.dora",
         "stdlib/Default.dora",
-
         "stdlib/prelude.dora",
         "stdlib/Testing.dora",
     ] {
