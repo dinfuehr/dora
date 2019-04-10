@@ -4,7 +4,6 @@ use dora_parser::interner::Name;
 
 #[cfg(target_os = "linux")]
 pub fn register_with_perf(jit_fct: &JitBaselineFct, vm: &VM, name: Name) {
-    use libc;
     use std::fs::OpenOptions;
     use std::io::prelude::*;
 
