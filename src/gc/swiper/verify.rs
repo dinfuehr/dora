@@ -165,6 +165,7 @@ impl<'a> Verifier<'a> {
 
     fn verify_objects(&mut self, region: Region, name: &str) {
         let mut curr = region.start;
+        let mut last_null = false;
         self.refs_to_young_gen = 0;
 
         while curr < region.end {
@@ -178,8 +179,13 @@ impl<'a> Verifier<'a> {
                     self.verify_crossing(curr, next, false);
                 }
 
+                assert!(!last_null, "there should not be nulls directly after each other");
+
                 curr = next;
+                last_null = true;
                 continue;
+            } else {
+                last_null = false;
             }
 
             let next = if object.is_array_ref() {
