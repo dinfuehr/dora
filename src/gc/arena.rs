@@ -2,8 +2,11 @@ use std::ptr;
 
 use gc::Address;
 use mem;
+use os::page_size;
 
 pub fn reserve(size: usize) -> Address {
+    debug_assert!(mem::is_page_aligned(size));
+
     let ptr = unsafe {
         libc::mmap(
             ptr::null_mut(),
@@ -22,8 +25,31 @@ pub fn reserve(size: usize) -> Address {
     Address::from_ptr(ptr)
 }
 
+pub fn reserve_align(size: usize, align: usize) -> Address {
+    debug_assert!(mem::is_page_aligned(size));
+    debug_assert!(mem::is_page_aligned(align));
+
+    let align_minus_page = align - page_size() as usize;
+
+    let unaligned = reserve(size + align_minus_page);
+    let aligned: Address = mem::align_usize(unaligned.to_usize(), align).into();
+
+    let gap_start = aligned.offset_from(unaligned);
+    let gap_end = align_minus_page - gap_start;
+
+    if gap_start > 0 {
+        uncommit(unaligned, gap_start);
+    }
+
+    if gap_end > 0 {
+        uncommit(aligned.offset(size), gap_end);
+    }
+
+    aligned
+}
+
 pub fn commit(ptr: Address, size: usize, executable: bool) {
-    debug_assert!(mem::is_page_aligned(ptr.to_usize()));
+    debug_assert!(ptr.is_page_aligned());
     debug_assert!(mem::is_page_aligned(size));
 
     let mut prot = libc::PROT_READ | libc::PROT_WRITE;
@@ -49,6 +75,9 @@ pub fn commit(ptr: Address, size: usize, executable: bool) {
 }
 
 pub fn uncommit(ptr: Address, size: usize) {
+    debug_assert!(ptr.is_page_aligned());
+    debug_assert!(mem::is_page_aligned(size));
+
     let val = unsafe {
         libc::mmap(
             ptr.to_mut_ptr(),
@@ -66,6 +95,9 @@ pub fn uncommit(ptr: Address, size: usize) {
 }
 
 pub fn forget(ptr: Address, size: usize) {
+    debug_assert!(ptr.is_page_aligned());
+    debug_assert!(mem::is_page_aligned(size));
+
     let res = unsafe { libc::madvise(ptr.to_mut_ptr(), size, libc::MADV_DONTNEED) };
 
     if res != 0 {

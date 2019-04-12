@@ -21,7 +21,7 @@ use gc::swiper::young::YoungGen;
 use gc::tlab;
 use gc::Collector;
 use gc::{align_gen, fill_region, formatted_size, Address, Region, K};
-use gc::{arena, GcReason};
+use gc::{arena, GcReason, GEN_SIZE};
 use mem;
 use object::Obj;
 use safepoint;
@@ -96,11 +96,11 @@ impl Swiper {
         let reserve_size = max_heap_size * 4 + card_size + crossing_size;
 
         // reserve full memory
-        let ptr = arena::reserve(reserve_size);
+        let heap_start = arena::reserve_align(reserve_size, GEN_SIZE);
+        assert!(heap_start.is_gen_aligned());
 
         // heap is young/old generation & large space
-        let heap_start = ptr;
-        let heap_end = ptr.offset(4 * max_heap_size);
+        let heap_end = heap_start.offset(4 * max_heap_size);
 
         // reserved area also contains card table & crossing map
         let reserved_area = heap_start.region_start(reserve_size);
