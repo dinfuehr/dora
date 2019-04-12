@@ -338,39 +338,35 @@ impl OldGenProtected {
 
     pub fn update_regions(&mut self, new_regions: Vec<OldRegion>) {
         let mut idx = 0;
+        let mut start = self.total.start;
 
         for old in &self.regions {
-            let mut start = old.mapped_start;
+            start = max(old.mapped_start, start);
             let end = old.mapped_limit;
 
             while idx < new_regions.len() && start < end {
                 let new = &new_regions[idx];
 
-                // new region after old region
+                // old region fully before new region
                 if new.mapped_start >= end {
                     break;
 
-                // new region before old region
+                // new region fully before old region
                 } else if new.mapped_limit <= start {
                     idx += 1;
                     continue;
 
                 // we know now that old and new regions overlap
-                // case: new region starts after old region
-                } else if new.mapped_start >= start {
-                    let uncommit_end = new.mapped_start;
-
-                    if uncommit_end > start {
-                        let size = uncommit_end.offset_from(start);
+                } else {
+                    // old region starts before new region
+                    // memory needs to be forgotten
+                    if start < new.mapped_start {
+                        let size = new.mapped_start.offset_from(start);
                         arena::forget(start, size);
                     }
 
                     start = new.mapped_limit;
-
-                // case: new region starts before old region
-                } else {
-                    assert!(new.mapped_start < start);
-                    start = new.mapped_limit;
+                    idx += 1;
                 }
             }
 
