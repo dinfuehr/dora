@@ -193,7 +193,10 @@ impl<'a> Verifier<'a> {
                     self.verify_crossing(curr, next, false);
                 }
 
-                assert!(!last_null, "there should not be nulls directly after each other");
+                assert!(
+                    !last_null,
+                    "there should not be nulls directly after each other"
+                );
 
                 curr = next;
                 last_null = true;
