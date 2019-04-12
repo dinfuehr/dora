@@ -1,14 +1,10 @@
-class Node {
+class Node(left: Node, right: Node) {
     var i: Int;
     var j: Int;
-    var left: Node;
-    var right: Node;
+    var left: Node = left;
+    var right: Node = right;
 
-    init() {}
-    init(left: Node, right: Node) {
-        self.left = left;
-        self.right = right;
-    }
+    static fun leaf() -> Node = Node(nil, nil);
 }
 
 const kStretchTreeDepth: Int = 18;    // about 16M
@@ -30,8 +26,8 @@ fun populate(var iDepth: Int, thisNode: Node) {
         return;
     } else {
         iDepth = iDepth - 1;
-        thisNode.left = Node();
-        thisNode.right = Node();
+        thisNode.left = Node::leaf();
+        thisNode.right = Node::leaf();
         populate(iDepth, thisNode.left);
         populate(iDepth, thisNode.right);
     }
@@ -39,7 +35,7 @@ fun populate(var iDepth: Int, thisNode: Node) {
 
 fun makeTree(iDepth: Int) -> Node {
     if iDepth <= 0 {
-        return Node();
+        return Node::leaf();
     } else {
         return Node(makeTree(iDepth-1), makeTree(iDepth-1));
     }
@@ -53,7 +49,7 @@ fun timeConstruction(depth: Int) {
     var i = 0;
 
     while i < iNumIters {
-        let tempTree = Node();
+        let tempTree = Node::leaf();
         populate(depth, tempTree);
         i = i + 1;
     }
@@ -88,11 +84,11 @@ fun main() {
     makeTree(kStretchTreeDepth);
 
     println("Creating a long-lived binary tree of depth " + kLongLivedTreeDepth.toString());
-    let longLivedTree = Node();
+    let longLivedTree = Node::leaf();
     populate(kLongLivedTreeDepth, longLivedTree);
 
     println("Creating a long-lived array of " + kArraySize.toString() + " doubles");
-    let array = arrayFill::<Double>(kArraySize);
+    let array = arrayFill::<Double>(kArraySize, 0.0);
 
     var i = 0;
 
