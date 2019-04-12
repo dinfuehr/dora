@@ -1,4 +1,5 @@
 use parking_lot::MutexGuard;
+use std::fmt;
 
 use ctxt::get_vm;
 use gc::root::Slot;
@@ -45,6 +46,19 @@ impl VerifierPhase {
             VerifierPhase::PreFull => true,
             _ => false,
         }
+    }
+}
+
+impl fmt::Display for VerifierPhase {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let text = match self {
+            VerifierPhase::PreMinor => "pre minor",
+            VerifierPhase::PostMinor => "pre full",
+            VerifierPhase::PreFull => "pre full",
+            VerifierPhase::PostFull => "post full",
+        };
+
+        write!(f, "{}", text)
     }
 }
 
@@ -450,18 +464,31 @@ impl<'a> Verifier<'a> {
             self.reserved_area.start, self.reserved_area.end
         );
         println!(
-            "found invalid reference to {} in {} (at {}, in object {}).",
+            "found invalid reference to {} in {} (at {}, in object {}) during {} phase.",
             reference,
             name,
             slot.address(),
-            container_obj
+            container_obj,
+            self.phase,
         );
 
         if self.young.contains(reference)
-            && !self.from_active.contains(reference)
+            && !self.to_active.contains(reference)
             && !self.eden_active.contains(reference)
         {
             println!("reference points into young generation but not into the active semi-space.");
+
+            if self.young.eden_total().contains(reference) {
+                println!("\treference points into eden-space");
+            }
+
+            if self.young.from_total().contains(reference) {
+                println!("\treference points into from-space");
+            }
+
+            if self.young.to_total().contains(reference) {
+                println!("\treference points into to-space");
+            }
         }
 
         println!("try print object size and class:");
