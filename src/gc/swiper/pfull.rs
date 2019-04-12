@@ -201,10 +201,24 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
             self.check_regions_disjoint();
         }
 
+        let regions: Vec<_> = self.regions.iter().map(|r| r.mapped_region).collect();
+
+        if !self.fits_into_heap(&regions) {
+            // panic!("OOM: committed size would be larger than heap size.");
+        }
+
         self.compute_actual_forward(pool);
 
-        let regions: Vec<_> = self.regions.iter().map(|r| r.mapped_region).collect();
         self.old_protected.commit_regions(&regions);
+    }
+
+    fn fits_into_heap(&mut self, regions: &[Region]) -> bool {
+        let (eden_size, semi_size) = self.young.committed_size();
+        let young_size = eden_size + semi_size;
+        let old_size = self.old_protected.with_regions(regions);
+        let large_size = self.large_space.committed_size();
+
+        (young_size + old_size + large_size) <= self.max_heap_size
     }
 
     fn check_units_disjoint(&self) {

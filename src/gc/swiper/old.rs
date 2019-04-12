@@ -212,41 +212,87 @@ impl OldGenProtected {
         }
     }
 
-    pub fn commit_regions(&mut self, new_regions: &[Region]) {
+    pub fn with_regions(&mut self, new_regions: &[Region]) -> usize {
         let mut idx = 0;
+        let mut committed = 0;
+        let mut start = self.total.start;
 
         for new in new_regions {
-            let mut start = new.start;
+            start = max(new.start, start);
             let end = new.end;
 
             while idx < self.regions.len() && start < end {
                 let old = &self.regions[idx];
 
-                // old region after new region
+                // old region fully after new region
                 if old.mapped_start >= end {
                     break;
 
-                // old region before new region
+                // old region fully before new region
+                } else if old.mapped_limit <= start {
+                    committed += old.mapped_size();
+                    idx += 1;
+                    continue;
+
+                // we know now that old and new regions overlap
+                } else {
+                    // new region starts before old region
+                    // memory needs to be committed
+                    if start < old.mapped_start {
+                        committed += old.mapped_start.offset_from(start);
+                    }
+
+                    committed += old.mapped_size();
+                    start = old.mapped_limit;
+                    idx += 1;
+                }
+            }
+
+            if start < end {
+                committed += end.offset_from(start);
+            }
+        }
+
+        while idx < self.regions.len() {
+            let old = &self.regions[idx];
+            committed += old.mapped_size();
+            idx += 1;
+        }
+
+        committed
+    }
+
+    pub fn commit_regions(&mut self, new_regions: &[Region]) {
+        let mut idx = 0;
+        let mut start = self.total.start;
+
+        for new in new_regions {
+            start = max(new.start, start);
+            let end = new.end;
+
+            while idx < self.regions.len() && start < end {
+                let old = &self.regions[idx];
+
+                // new region fully before new region
+                if old.mapped_start >= end {
+                    break;
+
+                // old region fully before new region
                 } else if old.mapped_limit <= start {
                     idx += 1;
                     continue;
 
                 // we know now that old and new regions overlap
-                // case: old region starts after new region
-                } else if old.mapped_start >= start {
-                    let commit_end = old.mapped_start;
-
-                    if commit_end > start {
-                        let size = commit_end.offset_from(start);
+                } else {
+                    // new region starts before old region
+                    // memory needs to be committed
+                    if start < old.mapped_start {
+                        let size = old.mapped_start.offset_from(start);
                         arena::commit(start, size, false);
                     }
 
                     start = old.mapped_limit;
-
-                // case: old region starts before new region
-                } else {
-                    assert!(old.mapped_start < start);
-                    start = old.mapped_limit;
+                    idx += 1;
                 }
             }
 
@@ -495,6 +541,10 @@ impl OldRegion {
 
     pub fn committed_region(&self) -> Region {
         Region::new(self.mapped_start, self.mapped_limit)
+    }
+
+    fn mapped_size(&self) -> usize {
+        self.mapped_limit.offset_from(self.mapped_start)
     }
 
     fn pure_alloc(&mut self, size: usize) -> Option<Address> {

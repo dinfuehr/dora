@@ -227,7 +227,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         });
 
         if !self.fits_into_heap() {
-            panic!("OOM: committed size would be larger than heap size.");
+            // panic!("OOM: committed size would be larger than heap size.");
         }
 
         self.old_protected.commit_single_region(self.old_top);
