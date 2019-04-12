@@ -29,7 +29,7 @@ fun height(t: TreeNode) -> Int {
     if t === nil {
         return 0;
     } else {
-        return 1 + int::max(height(t.left), height(t.right));
+        return 1 + Int::max(height(t.left), height(t.right));
     }
 }
 
@@ -37,7 +37,7 @@ fun shortestPath(t: TreeNode) -> Int {
     if t === nil {
         return 0;
     } else {
-        return 1 + int::min(shortestPath(t.left), shortestPath(t.right));
+        return 1 + Int::min(shortestPath(t.left), shortestPath(t.right));
     }
 }
 
@@ -261,7 +261,7 @@ fun doStep(n: Long) {
     doYoungGenAlloc(n, WORDS_DEAD);
     doMutWork(n);
     oldGenAlloc(n / promoteRate.toLong());
-    oldGenMut(long::max(0L, (mutations + ptrMutRate.toLong()) - actuallyMut));
+    oldGenMut(Long::max(0L, (mutations + ptrMutRate.toLong()) - actuallyMut));
 }
 
 fun main() {
@@ -274,7 +274,7 @@ fun main() {
         println("        <ratio> is the ratio of short-lived to long-lived allocation");
         println("        <mutation> is the mutations per step");
         println("        <steps> is the number of steps");
-        return;
+        exit(1);
     }
 
     treeSize = heightToBytes(treeHeight);
