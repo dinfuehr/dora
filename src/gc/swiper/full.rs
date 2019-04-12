@@ -226,8 +226,21 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             }
         });
 
+        if !self.fits_into_heap() {
+            panic!("OOM: committed size would be larger than heap size.");
+        }
+
         self.old_protected.commit_single_region(self.old_top);
         self.old_committed = Region::new(self.old.total_start(), self.old_top);
+    }
+
+    fn fits_into_heap(&mut self) -> bool {
+        let (eden_size, semi_size) = self.young.committed_size();
+        let young_size = eden_size + semi_size;
+        let old_size = self.old_protected.with_single_region(self.old_top);
+        let large_size = self.large_space.committed_size();
+
+        (young_size + old_size + large_size) <= self.max_heap_size
     }
 
     fn update_references(&mut self) {

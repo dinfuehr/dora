@@ -160,37 +160,56 @@ impl OldGenProtected {
         false
     }
 
+    pub fn with_single_region(&mut self, top: Address) -> usize {
+        let limit = top.align_gen();
+        assert!(self.total.valid_top(limit));
+
+        let mut last_mapped = self.total.start;
+        let mut committed = 0;
+
+        for region in &self.regions {
+            let mapping_end = min(region.mapped_start, limit);
+
+            if mapping_end > last_mapped {
+                committed += mapping_end.offset_from(last_mapped);
+            }
+
+            committed += region.mapped_limit.offset_from(region.mapped_start);
+            last_mapped = region.mapped_limit;
+        }
+
+        if limit > last_mapped {
+            committed += limit.offset_from(last_mapped);
+        }
+
+        committed
+    }
+
     pub fn commit_single_region(&mut self, top: Address) {
         let limit = top.align_gen();
         assert!(self.total.valid_top(limit));
 
-        let mut last = self.total.start;
+        let mut last_mapped = self.total.start;
 
         for region in &self.regions {
-            let start = last;
-            let end = min(region.mapped_start, limit);
-            let size = end.offset_from(start);
+            let mapping_end = min(region.mapped_start, limit);
 
-            if size > 0 {
-                arena::commit(start, size, false);
+            if mapping_end > last_mapped {
+                let size = mapping_end.offset_from(last_mapped);
+                arena::commit(last_mapped, size, false);
             }
 
-            if end == limit {
+            if mapping_end == limit {
                 return;
             }
 
-            last = region.mapped_limit;
+            last_mapped = region.mapped_limit;
         }
 
-        let start = last;
-        let end = limit;
-
-        if end <= start {
-            return;
+        if limit > last_mapped {
+            let size = limit.offset_from(last_mapped);
+            arena::commit(last_mapped, size, false);
         }
-
-        let size = end.offset_from(start);
-        arena::commit(start, size, false);
     }
 
     pub fn commit_regions(&mut self, new_regions: &[Region]) {
