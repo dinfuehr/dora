@@ -246,9 +246,13 @@ impl LargeSpaceProtected {
         while !addr.is_null() {
             let large_alloc = LargeAlloc::from_address(addr);
             let next = large_alloc.next;
-            let keep = f(large_alloc.object_address());
+            let remove = f(large_alloc.object_address());
 
-            if keep {
+            if remove {
+                freed = true;
+                let size = large_alloc.size;
+                self.free(addr, size);
+            } else {
                 if prev.is_null() {
                     // Our new head
                     self.head = addr;
@@ -260,10 +264,6 @@ impl LargeSpaceProtected {
 
                 large_alloc.prev = prev;
                 prev = addr;
-            } else {
-                freed = true;
-                let size = large_alloc.size;
-                self.free(addr, size);
             }
 
             addr = next;

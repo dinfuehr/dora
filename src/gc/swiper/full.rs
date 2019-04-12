@@ -264,10 +264,10 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 object.header_mut().unmark_non_atomic();
 
                 // keep object
-                true
+                false
             } else {
                 // object is unmarked -> free it
-                false
+                true
             }
         });
     }
