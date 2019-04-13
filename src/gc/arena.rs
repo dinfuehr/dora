@@ -103,4 +103,10 @@ pub fn forget(ptr: Address, size: usize) {
     if res != 0 {
         panic!("forgetting memory with madvise() failed");
     }
+
+    let res = unsafe { libc::mprotect(ptr.to_mut_ptr(), size, libc::PROT_NONE) };
+
+    if res != 0 {
+        panic!("forgetting memory with mprotect() failed");
+    }
 }
