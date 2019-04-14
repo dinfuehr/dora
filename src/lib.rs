@@ -17,6 +17,7 @@ extern crate libc;
 extern crate num_cpus;
 extern crate parking_lot;
 extern crate rand;
+extern crate regex;
 extern crate rustc_serialize;
 extern crate scoped_threadpool;
 extern crate time;

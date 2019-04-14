@@ -365,6 +365,21 @@ impl Region {
     pub fn empty(&self) -> bool {
         self.start == self.end
     }
+
+    #[inline(always)]
+    pub fn disjunct(&self, other: &Region) -> bool {
+        self.end <= other.start || self.start >= other.end
+    }
+
+    #[inline(always)]
+    pub fn overlaps(&self, other: &Region) -> bool {
+        !self.disjunct(other)
+    }
+
+    #[inline(always)]
+    pub fn fully_contains(&self, other: &Region) -> bool {
+        self.contains(other.start) && self.valid_top(other.end)
+    }
 }
 
 impl Default for Region {

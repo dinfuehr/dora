@@ -148,6 +148,8 @@ impl<'a> Verifier<'a> {
     }
 
     fn verify_old(&mut self) {
+        self.verify_mapped_regions();
+
         self.in_old = true;
         let old_regions = self.old_protected.regions.clone();
         let mut last = self.old.total().start;
@@ -159,6 +161,16 @@ impl<'a> Verifier<'a> {
         }
         assert_eq!(self.old.total().end, last);
         self.in_old = false;
+    }
+
+    fn verify_mapped_regions(&mut self) {
+        let regions = self
+            .old_protected
+            .regions
+            .iter()
+            .map(|r| r.committed_region())
+            .collect::<Vec<_>>();
+        verify_mapped_regions(self.old.total(), &regions);
     }
 
     fn verify_large(&mut self) {
@@ -503,4 +515,118 @@ impl<'a> Verifier<'a> {
 
         panic!("reference neither pointing into young nor old generation.");
     }
+}
+
+pub fn verify_mapped_regions(total: Region, regions: &[Region]) {
+    memory::verify_mapped_regions(total, regions);
+}
+
+#[cfg(target_os = "linux")]
+mod memory {
+    use regex::Regex;
+    use std::cmp;
+    use std::fs::File;
+    use std::io::{BufRead, BufReader};
+
+    use gc::{Address, Region};
+
+    pub fn verify_mapped_regions(total: Region, regions: &[Region]) {
+        let mappings = read_memory_mappings(total);
+
+        verify_regions_are_writable(&mappings, regions);
+        verify_non_accessible_mappings(&mappings, regions);
+    }
+
+    fn verify_regions_are_writable(mappings: &[MemoryMapping], regions: &[Region]) {
+        for region in regions {
+            if region.empty() {
+                continue;
+            }
+
+            let mut found = false;
+
+            for mapping in mappings {
+                if !mapping.region.fully_contains(region) {
+                    continue;
+                }
+
+                found = true;
+                assert!(mapping.readable && mapping.writable && !mapping.executable);
+                break;
+            }
+
+            assert!(found, "memory region is NOT writable");
+        }
+    }
+
+    fn verify_non_accessible_mappings(mappings: &[MemoryMapping], regions: &[Region]) {
+        for mapping in mappings {
+            if mapping.readable {
+                continue;
+            }
+
+            assert!(!mapping.writable && !mapping.executable);
+
+            for region in regions {
+                assert!(!mapping.region.overlaps(region));
+            }
+        }
+    }
+
+    struct MemoryMapping {
+        region: Region,
+        readable: bool,
+        writable: bool,
+        executable: bool,
+    }
+
+    fn read_memory_mappings(total: Region) -> Vec<MemoryMapping> {
+        let f = File::open("/proc/self/maps").expect("opening /proc/self/maps failed");
+        let file = BufReader::new(&f);
+
+        let re = Regex::new(r"^([0-9a-f]+)-([0-9a-f]+) ([r\-])([w\-])([x\-])").unwrap();
+
+        let mut mappings = Vec::new();
+
+        for line in file.lines() {
+            let l = line.unwrap();
+            if let Some(matches) = re.captures(&l) {
+                let start = matches.get(1).unwrap().as_str();
+                let start = usize::from_str_radix(start, 16).unwrap();
+                let start: Address = start.into();
+
+                let end = matches.get(2).unwrap().as_str();
+                let end = usize::from_str_radix(end, 16).unwrap();
+                let end: Address = end.into();
+
+                let readable = matches.get(3).unwrap().as_str() == "r";
+                let writable = matches.get(4).unwrap().as_str() == "w";
+                let executable = matches.get(5).unwrap().as_str() == "x";
+
+                assert!(start <= end);
+
+                if end <= total.start || start >= total.end {
+                    continue;
+                }
+
+                let start = cmp::max(start, total.start);
+                let end = cmp::min(end, total.end);
+                let region = Region::new(start, end);
+
+                mappings.push(MemoryMapping {
+                    region: region,
+                    readable: readable,
+                    writable: writable,
+                    executable: executable,
+                });
+            }
+        }
+
+        mappings
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+mod memory {
+    pub fn verify_memory_mappings() {}
 }

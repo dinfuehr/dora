@@ -13,6 +13,7 @@ dora-parser = { path = "lib/dora-parser" }
 threadpool = "*"
 crossbeam-deque = "*"
 rand = "*"
+regex = "*"
 scoped_threadpool = "*"
 parking_lot = "*"
 fixedbitset = "*"
