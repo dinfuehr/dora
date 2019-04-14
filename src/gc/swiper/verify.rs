@@ -628,5 +628,6 @@ mod memory {
 
 #[cfg(not(target_os = "linux"))]
 mod memory {
-    pub fn verify_memory_mappings() {}
+    use gc::Region;
+    pub fn verify_mapped_regions(_total: Region, _regions: &[Region]) {}
 }
