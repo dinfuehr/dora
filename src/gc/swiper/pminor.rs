@@ -1,7 +1,7 @@
 use parking_lot::Mutex;
 use std::cmp;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::{Arc, Barrier};
+use std::sync::Barrier;
 
 use ctxt::VM;
 use gc::root::Slot;
@@ -170,13 +170,13 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
             workers[id % self.number_workers].push(object);
         }
 
-        let terminator = Arc::new(Terminator::new(self.number_workers));
+        let terminator = Terminator::new(self.number_workers);
         let number_workers = self.number_workers;
         let young_region = self.young.total();
         let vm = self.vm;
 
         // align old generation to card boundary
-        let young_top = Arc::new(Mutex::new(self.young_top));
+        let young_top = Mutex::new(self.young_top);
         let young_limit = self.young_limit;
 
         let card_table = self.card_table;
@@ -214,10 +214,10 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
 
         self.threadpool.scoped(|scoped| {
             for (task_id, worker) in workers.into_iter().enumerate() {
-                let stealers = stealers.clone();
-                let terminator = terminator.clone();
+                let stealers = &stealers;
+                let terminator = &terminator;
                 let young_region = young_region.clone();
-                let young_top = young_top.clone();
+                let young_top = &young_top;
                 let promoted_size = promoted_size.clone();
                 let promotion_failed = promotion_failed.clone();
 
@@ -358,14 +358,14 @@ impl Lab {
     }
 }
 
-struct SpaceAlloc {
-    top: Arc<Mutex<Address>>,
+struct SpaceAlloc<'a> {
+    top: &'a Mutex<Address>,
     limit: Address,
     failed: bool,
 }
 
-impl SpaceAlloc {
-    fn new(top: Arc<Mutex<Address>>, limit: Address) -> SpaceAlloc {
+impl<'a> SpaceAlloc<'a> {
+    fn new(top: &'a Mutex<Address>, limit: Address) -> SpaceAlloc<'a> {
         SpaceAlloc {
             top: top,
             limit: limit,
@@ -462,8 +462,8 @@ struct CopyTask<'a, 'ast: 'a> {
     task_id: usize,
     local: Vec<Address>,
     worker: Worker<Address>,
-    stealers: Vec<Stealer<Address>>,
-    terminator: Arc<Terminator>,
+    stealers: &'a [Stealer<Address>],
+    terminator: &'a Terminator,
     number_workers: usize,
 
     vm: &'a VM<'ast>,
@@ -492,7 +492,7 @@ struct CopyTask<'a, 'ast: 'a> {
     old_alloc_failed: bool,
 
     young_lab: Lab,
-    young_alloc: SpaceAlloc,
+    young_alloc: SpaceAlloc<'a>,
 }
 
 impl<'a, 'ast> CopyTask<'a, 'ast>

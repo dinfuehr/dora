@@ -1,5 +1,4 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
@@ -39,7 +38,7 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, threadpool: &mut Pool
         }
     }
 
-    let terminator = Arc::new(Terminator::new(number_workers));
+    let terminator = Terminator::new(number_workers);
 
     threadpool.scoped(|scoped| {
         for (task_id, worker) in workers.into_iter().enumerate() {
@@ -47,8 +46,8 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, threadpool: &mut Pool
             let perm_region = perm.clone();
 
             let injector = &injector;
-            let stealers = stealers.clone();
-            let terminator = terminator.clone();
+            let stealers = &stealers;
+            let terminator = &terminator;
 
             scoped.execute(move || {
                 let mut task = MarkingTask {
@@ -116,8 +115,8 @@ struct MarkingTask<'a> {
     local: Segment,
     worker: Worker<Address>,
     injector: &'a Injector<Address>,
-    stealers: Vec<Stealer<Address>>,
-    terminator: Arc<Terminator>,
+    stealers: &'a [Stealer<Address>],
+    terminator: &'a Terminator,
     heap_region: Region,
     perm_region: Region,
     marked: usize,
