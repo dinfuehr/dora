@@ -3,7 +3,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
-use crossbeam_deque::{Steal, Stealer, Worker};
+use crossbeam_deque::{Injector, Steal, Stealer, Worker};
 use rand::distributions::{Distribution, Uniform};
 use rand::thread_rng;
 use scoped_threadpool::Pool;
@@ -15,6 +15,7 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, threadpool: &mut Pool
     let number_workers = threadpool.thread_count() as usize;
     let mut workers = Vec::with_capacity(number_workers);
     let mut stealers = Vec::with_capacity(number_workers);
+    let injector = Injector::new();
 
     for _ in 0..number_workers {
         let w = Worker::new_lifo();
@@ -31,7 +32,7 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, threadpool: &mut Pool
 
             if !root_obj.header().is_marked_non_atomic() {
                 root_obj.header_mut().mark_non_atomic();
-                workers[0].push(root_ptr);
+                injector.push(root_ptr);
             }
         } else {
             debug_assert!(root_ptr.is_null() || perm.contains(root_ptr));
@@ -45,6 +46,7 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, threadpool: &mut Pool
             let heap_region = heap.clone();
             let perm_region = perm.clone();
 
+            let injector = &injector;
             let stealers = stealers.clone();
             let terminator = terminator.clone();
 
@@ -53,6 +55,7 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, threadpool: &mut Pool
                     task_id: task_id,
                     local: Segment::new(),
                     worker: worker,
+                    injector: injector,
                     stealers: stealers,
                     terminator: terminator,
                     heap_region: heap_region,
@@ -108,10 +111,11 @@ impl Terminator {
     }
 }
 
-struct MarkingTask {
+struct MarkingTask<'a> {
     task_id: usize,
     local: Segment,
     worker: Worker<Address>,
+    injector: &'a Injector<Address>,
     stealers: Vec<Stealer<Address>>,
     terminator: Arc<Terminator>,
     heap_region: Region,
@@ -119,10 +123,11 @@ struct MarkingTask {
     marked: usize,
 }
 
-impl MarkingTask {
+impl<'a> MarkingTask<'a> {
     fn pop(&mut self) -> Option<Address> {
         self.pop_local()
             .or_else(|| self.pop_worker())
+            .or_else(|| self.pop_global())
             .or_else(|| self.steal())
     }
 
@@ -137,6 +142,20 @@ impl MarkingTask {
 
     fn pop_worker(&mut self) -> Option<Address> {
         self.worker.pop()
+    }
+
+    fn pop_global(&mut self) -> Option<Address> {
+        loop {
+            let result = self.injector.steal_batch_and_pop(&mut self.worker);
+
+            match result {
+                Steal::Empty => break,
+                Steal::Success(value) => return Some(value),
+                Steal::Retry => continue,
+            }
+        }
+
+        None
     }
 
     fn steal(&self) -> Option<Address> {
@@ -214,7 +233,7 @@ impl MarkingTask {
 
                 while self.local.len() > target_len {
                     let val = self.local.pop().unwrap();
-                    self.worker.push(val);
+                    self.injector.push(val);
                 }
             }
 
