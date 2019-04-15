@@ -19,7 +19,7 @@ use gc::{fill_region, Address, GcReason, Region};
 use object::{offset_of_array_data, Obj};
 use vtable::VTable;
 
-use crossbeam_deque::{Steal, Stealer, Worker};
+use crossbeam_deque::{Injector, Steal, Stealer, Worker};
 use rand::distributions::{Distribution, Uniform};
 use rand::thread_rng;
 use scoped_threadpool::Pool;
@@ -156,6 +156,7 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
     fn run_threads(&mut self) {
         let mut workers = Vec::with_capacity(self.number_workers);
         let mut stealers = Vec::with_capacity(self.number_workers);
+        let injector = Injector::new();
 
         for _ in 0..self.number_workers {
             let w = Worker::new_lifo();
@@ -166,8 +167,8 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
 
         let worklist = std::mem::replace(&mut self.worklist, Vec::new());
 
-        for (id, object) in worklist.into_iter().enumerate() {
-            workers[id % self.number_workers].push(object);
+        for object in worklist {
+            injector.push(object);
         }
 
         let terminator = Terminator::new(self.number_workers);
@@ -214,6 +215,7 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
 
         self.threadpool.scoped(|scoped| {
             for (task_id, worker) in workers.into_iter().enumerate() {
+                let injector = &injector;
                 let stealers = &stealers;
                 let terminator = &terminator;
                 let young_region = young_region.clone();
@@ -226,6 +228,7 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
                         task_id: task_id,
                         local: Vec::new(),
                         worker: worker,
+                        injector: injector,
                         stealers: stealers,
                         terminator: terminator,
                         number_workers: number_workers,
@@ -462,6 +465,7 @@ struct CopyTask<'a, 'ast: 'a> {
     task_id: usize,
     local: Vec<Address>,
     worker: Worker<Address>,
+    injector: &'a Injector<Address>,
     stealers: &'a [Stealer<Address>],
     terminator: &'a Terminator,
     number_workers: usize,
@@ -1085,7 +1089,7 @@ where
 
                 while self.local.len() > target_len {
                     let val = self.local.pop().unwrap();
-                    self.worker.push(val);
+                    self.injector.push(val);
                 }
             }
 
@@ -1096,6 +1100,7 @@ where
     fn pop(&mut self) -> Option<Address> {
         self.pop_local()
             .or_else(|| self.pop_worker())
+            .or_else(|| self.pop_global())
             .or_else(|| self.steal())
     }
 
@@ -1110,6 +1115,20 @@ where
 
     fn pop_worker(&mut self) -> Option<Address> {
         self.worker.pop()
+    }
+
+    fn pop_global(&mut self) -> Option<Address> {
+        loop {
+            let result = self.injector.steal_batch_and_pop(&mut self.worker);
+
+            match result {
+                Steal::Empty => break,
+                Steal::Success(value) => return Some(value),
+                Steal::Retry => continue,
+            }
+        }
+
+        None
     }
 
     fn steal(&self) -> Option<Address> {
