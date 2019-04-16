@@ -65,6 +65,11 @@ impl OldGen {
         protected.alloc(&self.config, size)
     }
 
+    pub fn contains_slow(&self, addr: Address) -> bool {
+        let protected = self.protected.lock();
+        protected.contains_slow(addr)
+    }
+
     pub fn update_crossing(&self, old: Address, new: Address, array_ref: bool) {
         debug_assert!(self.total.valid_top(old) && self.total.valid_top(new));
 

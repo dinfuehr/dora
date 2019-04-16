@@ -177,6 +177,12 @@ pub extern "C" fn str_from_bytes(val: Ref<ByteArray>, offset: usize, len: usize)
     Str::from_str(vm, val, offset, len)
 }
 
+pub extern "C" fn gc_verify_refs(obj: Ref<Obj>, value: Ref<Obj>) {
+    let vm = get_vm();
+    vm.gc.verify_ref(vm, obj.address());
+    vm.gc.verify_ref(vm, value.address());
+}
+
 pub extern "C" fn gc_alloc(size: usize, array_ref: bool) -> *mut Obj {
     let vm = get_vm();
     vm.gc.alloc(vm, size, array_ref).to_mut_ptr()

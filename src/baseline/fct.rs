@@ -73,6 +73,7 @@ pub enum JitDescriptor {
     ThrowThunk,
     TrapThunk,
     AllocThunk,
+    VerifyThunk,
     NativeThunk(FctId),
     DoraEntry,
 }

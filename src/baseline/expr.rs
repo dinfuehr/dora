@@ -743,7 +743,17 @@ where
                     .store_mem(MachineMode::Ptr, Mem::Local(temp_offset), REG_RESULT.into());
 
                 let reg = result_reg(field.ty.mode());
+                let verify_refs = self.vm.args.flag_gc_verify_write && field.ty.reference_type();
+                let temp_value_offset = if verify_refs {
+                    self.reserve_temp_for_node(&e.rhs)
+                } else {
+                    0
+                };
                 self.emit_expr(&e.rhs, reg);
+                if verify_refs {
+                    self.asm
+                        .store_mem(field.ty.mode(), Mem::Local(temp_value_offset), reg);
+                }
                 self.asm
                     .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(temp_offset));
 
@@ -761,6 +771,24 @@ where
                     write_barrier,
                     card_table_offset,
                 );
+
+                if verify_refs {
+                    let gcpoint = self.create_gcpoint();
+                    self.asm.load_mem(
+                        MachineMode::Ptr,
+                        REG_PARAMS[0].into(),
+                        Mem::Local(temp_offset),
+                    );
+                    self.asm.load_mem(
+                        MachineMode::Ptr,
+                        REG_PARAMS[1].into(),
+                        Mem::Local(temp_value_offset),
+                    );
+                    self.asm
+                        .verify_refs(REG_PARAMS[0], REG_PARAMS[1], e.pos, gcpoint);
+                    self.free_temp_for_node(&e.rhs, temp_value_offset);
+                }
+
                 self.free_temp_for_node(temp, temp_offset);
             }
 

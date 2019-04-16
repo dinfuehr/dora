@@ -527,6 +527,16 @@ impl Collector for Swiper {
 
         println!("");
     }
+
+    fn verify_ref(&self, vm: &VM, reference: Address) {
+        let found = self.young.eden_active().contains(reference)
+            || self.young.to_active().contains(reference)
+            || vm.gc.perm_space.contains(reference)
+            || self.large.contains(reference)
+            || self.old.contains_slow(reference);
+
+        assert!(found, "write barrier found invalid reference");
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]

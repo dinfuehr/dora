@@ -39,6 +39,7 @@ impl NativeThunks {
 pub enum InternalFctDescriptor {
     NativeThunk(FctId),
     AllocThunk,
+    VerifyThunk,
     TrapThunk,
 }
 
@@ -68,6 +69,7 @@ pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>, fct: InternalFct, dbg: bool) -> 
     let code_desc = match fct_desc {
         InternalFctDescriptor::NativeThunk(_) => CodeDescriptor::NativeThunk(jit_fct_id),
         InternalFctDescriptor::TrapThunk => CodeDescriptor::TrapThunk,
+        InternalFctDescriptor::VerifyThunk => CodeDescriptor::VerifyThunk,
         InternalFctDescriptor::AllocThunk => CodeDescriptor::AllocThunk,
     };
 
@@ -163,6 +165,7 @@ where
         let desc = match self.fct.desc {
             InternalFctDescriptor::NativeThunk(fid) => JitDescriptor::NativeThunk(fid),
             InternalFctDescriptor::AllocThunk => JitDescriptor::AllocThunk,
+            InternalFctDescriptor::VerifyThunk => JitDescriptor::VerifyThunk,
             InternalFctDescriptor::TrapThunk => JitDescriptor::TrapThunk,
         };
 

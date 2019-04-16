@@ -150,6 +150,14 @@ impl Gc {
     pub fn dump_summary(&self, runtime: f32) {
         self.collector.dump_summary(runtime);
     }
+
+    pub fn verify_ref(&self, vm: &VM, reference: Address) {
+        if reference.is_null() {
+            return;
+        }
+
+        self.collector.verify_ref(vm, reference);
+    }
 }
 
 trait Collector {
@@ -180,6 +188,11 @@ trait Collector {
 
     // prints GC summary: minor/full collections, etc.
     fn dump_summary(&self, _runtime: f32) {
+        // do nothing
+    }
+
+    // verify reference
+    fn verify_ref(&self, _vm: &VM, _addr: Address) {
         // do nothing
     }
 }

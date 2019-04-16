@@ -536,6 +536,26 @@ where
         self.masm.test_if_nil_bailout(pos, dest, Trap::OOM);
     }
 
+    pub fn verify_refs(&mut self, obj: Reg, value: Reg, pos: Position, gcpoint: GcPoint) {
+        if REG_PARAMS[0] != obj {
+            self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], obj);
+        }
+
+        if REG_PARAMS[1] != value {
+            self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[1], value);
+        }
+
+        let internal_fct = InternalFct {
+            ptr: Address::from_ptr(stdlib::gc_verify_refs as *const u8),
+            args: &[BuiltinType::Ptr, BuiltinType::Ptr],
+            return_type: BuiltinType::Unit,
+            throws: false,
+            desc: InternalFctDescriptor::VerifyThunk,
+        };
+
+        self.native_call(internal_fct, pos, gcpoint, REG_RESULT.into());
+    }
+
     pub fn tlab_allocate(
         &mut self,
         dest: Reg,

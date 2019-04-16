@@ -677,6 +677,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.visit_expr(&e.rhs);
 
             self.reserve_temp_for_node(&lhs.object);
+            self.reserve_temp_for_node(&e.rhs);
         } else {
             assert!(e.lhs.is_array());
             let array = e.lhs.to_array().unwrap();
@@ -773,7 +774,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn reserve_temp_for_type(&mut self, ty: BuiltinType) -> i32 {
-        let ty_size = ty.size(self.vm);
+        let ty_size = if ty.is_nil() {
+            BuiltinType::Ptr.size(self.vm)
+        } else {
+            ty.size(self.vm)
+        };
         self.cur_tempsize = mem::align_i32(self.cur_tempsize + ty_size, ty_size);
 
         self.cur_tempsize

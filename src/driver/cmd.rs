@@ -48,6 +48,7 @@ Options:
     --gc-verbose            Verbose GC.
     --gc-dev-verbose        Verbose GC for developers.
     --gc-verify             Verify heap before and after collections.
+    --gc-verify-write       Verify references when storing in the heap.
     --gc-worker=<num>       Number of GC worker threads.
     --gc=<name>             Switch GC. Possible values: zero, copy, swiper (default).
     --gc-young-size=<SIZE>  Use fixed size for young generation.
@@ -90,6 +91,7 @@ pub struct Args {
     pub flag_gc_verbose: bool,
     pub flag_gc_dev_verbose: bool,
     pub flag_gc_verify: bool,
+    pub flag_gc_verify_write: bool,
     pub flag_gc_worker: usize,
     flag_gc_young_size: Option<MemSize>,
     pub flag_gc_semi_ratio: Option<usize>,
@@ -184,6 +186,7 @@ impl Default for Args {
             flag_gc_verbose: false,
             flag_gc_dev_verbose: false,
             flag_gc_verify: false,
+            flag_gc_verify_write: false,
             flag_gc_worker: 0,
             flag_gc_young_size: None,
             flag_gc_semi_ratio: None,

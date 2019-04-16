@@ -34,6 +34,7 @@ impl CodeMap {
                 &CodeDescriptor::ThrowThunk => println!("throw_thunk"),
                 &CodeDescriptor::TrapThunk => println!("trap_thunk"),
                 &CodeDescriptor::AllocThunk => println!("alloc_thunk"),
+                &CodeDescriptor::VerifyThunk => println!("verify_thunk"),
                 &CodeDescriptor::NativeThunk(jit_fct_id) => {
                     let jit_fct = vm.jit_fcts.idx(jit_fct_id);
                     let fct = vm.fcts.idx(jit_fct.fct_id());
@@ -67,6 +68,7 @@ pub enum CodeDescriptor {
     ThrowThunk,
     TrapThunk,
     AllocThunk,
+    VerifyThunk,
     NativeThunk(JitFctId),
     DoraEntry,
 }
