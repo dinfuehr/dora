@@ -533,7 +533,7 @@ impl Collector for Swiper {
             || self.young.to_active().contains(reference)
             || vm.gc.perm_space.contains(reference)
             || self.large.contains(reference)
-            || (self.old.total.contains(reference) && self.old.contains_slow(reference));
+            || (self.old.total().contains(reference) && self.old.contains_slow(reference));
 
         assert!(found, "write barrier found invalid reference");
     }
