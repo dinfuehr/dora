@@ -12,7 +12,7 @@ use gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use gc::swiper::full::verify_marking;
 use gc::swiper::large::{LargeAlloc, LargeSpace};
 use gc::swiper::marking;
-use gc::swiper::old::{OldGen, OldGenProtected, OldRegion};
+use gc::swiper::old::{OldGen, OldGenProtected, OldGenRegion};
 use gc::swiper::verify::verify_mapped_regions;
 use gc::swiper::young::YoungGen;
 use gc::swiper::{walk_region, walk_region_and_skip_garbage, CardIdx, CARD_REFS};
@@ -169,7 +169,7 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
         let regions: Vec<_> = self
             .regions
             .iter()
-            .map(|r| OldRegion::new(r.object_region, r.top, r.mapped_region))
+            .map(|r| OldGenRegion::new(r.object_region, r.top, r.mapped_region))
             .collect();
         self.old_protected.update_regions(regions);
     }

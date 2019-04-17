@@ -141,7 +141,7 @@ impl OldGen {
 pub struct OldGenProtected {
     pub total: Region,
     pub size: usize,
-    pub regions: Vec<OldRegion>,
+    pub regions: Vec<OldGenRegion>,
     pub alloc_region: usize,
 }
 
@@ -150,7 +150,7 @@ impl OldGenProtected {
         OldGenProtected {
             total: total.clone(),
             size: 0,
-            regions: vec![OldRegion::single(total)],
+            regions: vec![OldGenRegion::single(total)],
             alloc_region: 0,
         }
     }
@@ -312,7 +312,7 @@ impl OldGenProtected {
         let limit = top.align_gen();
         assert!(self.total.valid_top(limit));
 
-        let region = OldRegion {
+        let region = OldGenRegion {
             start: self.total.start,
             end: self.total.end,
 
@@ -341,7 +341,7 @@ impl OldGenProtected {
         self.alloc_region = 0;
     }
 
-    pub fn update_regions(&mut self, new_regions: Vec<OldRegion>) {
+    pub fn update_regions(&mut self, new_regions: Vec<OldGenRegion>) {
         let mut idx = 0;
         let mut start = self.total.start;
 
@@ -463,7 +463,7 @@ impl OldGenProtected {
 }
 
 #[derive(Clone)]
-pub struct OldRegion {
+pub struct OldGenRegion {
     // First object in this region. NOT necessarily page aligned!
     start: Address,
 
@@ -486,11 +486,11 @@ pub struct OldRegion {
     mapped_limit: Address,
 }
 
-impl OldRegion {
-    fn single(region: Region) -> OldRegion {
+impl OldGenRegion {
+    fn single(region: Region) -> OldGenRegion {
         assert!(region.start.is_page_aligned());
 
-        OldRegion {
+        OldGenRegion {
             start: region.start,
             end: region.end,
 
@@ -501,11 +501,11 @@ impl OldRegion {
         }
     }
 
-    pub fn new(object_region: Region, top: Address, mapped_region: Region) -> OldRegion {
+    pub fn new(object_region: Region, top: Address, mapped_region: Region) -> OldGenRegion {
         assert!(object_region.valid_top(top));
         assert!(mapped_region.start.is_page_aligned() && mapped_region.end.is_page_aligned());
 
-        OldRegion {
+        OldGenRegion {
             start: object_region.start,
             end: object_region.end,
 
