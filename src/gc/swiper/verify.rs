@@ -41,6 +41,13 @@ impl VerifierPhase {
         }
     }
 
+    fn is_post_full(self) -> bool {
+        match self {
+            VerifierPhase::PostFull => true,
+            _ => false,
+        }
+    }
+
     fn is_pre_full(self) -> bool {
         match self {
             VerifierPhase::PreFull => true,
@@ -202,6 +209,12 @@ impl<'a> Verifier<'a> {
                     !self.in_large,
                     "large object space should not have null filler"
                 );
+
+                assert!(
+                    !self.phase.is_post_full(),
+                    "there should not be null fillers after full collection"
+                );
+
                 let next = curr.add_ptr(1);
 
                 if self.in_old && on_different_cards(curr, next) {

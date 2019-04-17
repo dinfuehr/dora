@@ -463,27 +463,29 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
 
     fn compute_actual_forward(&mut self, pool: &mut Pool) {
         pool.scoped(|scope| {
-            for region in &mut self.regions {
-                let units = &self.units;
+            for region in &self.regions {
+                let mut fwd = region.object_region.start;
 
-                scope.execute(move || {
-                    let mut fwd = region.object_region.start;
-
-                    for unit in units.iter().skip(region.idx).take(region.units) {
-                        if unit.live == 0 {
-                            continue;
-                        }
-
-                        walk_region(unit.region, |obj, _address, size| {
-                            if obj.header().is_marked_non_atomic() {
-                                obj.header_mut().set_fwdptr_non_atomic(fwd);
-                                fwd = fwd.offset(size);
-                            }
-                        });
+                for unit in self.units.iter().skip(region.idx).take(region.units) {
+                    if unit.live == 0 {
+                        continue;
                     }
 
-                    assert_eq!(region.top, fwd);
-                });
+                    let mut unit_fwd = fwd;
+
+                    scope.execute(move || {
+                        walk_region(unit.region, |obj, _address, size| {
+                            if obj.header().is_marked_non_atomic() {
+                                obj.header_mut().set_fwdptr_non_atomic(unit_fwd);
+                                unit_fwd = unit_fwd.offset(size);
+                            }
+                        });
+                    });
+
+                    fwd = fwd.offset(unit.live);
+                }
+
+                assert_eq!(region.top, fwd);
             }
         });
     }
