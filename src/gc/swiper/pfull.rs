@@ -32,9 +32,6 @@ pub struct ParallelFullCollector<'a, 'ast: 'a> {
     perm_space: &'a Space,
 
     old_total: Region,
-    old_top: Address,
-    old_limit: Address,
-    init_old_top: Vec<Address>,
 
     reason: GcReason,
     number_workers: usize,
@@ -64,8 +61,6 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
         min_heap_size: usize,
         max_heap_size: usize,
     ) -> ParallelFullCollector<'a, 'ast> {
-        let old_total = old.total();
-
         ParallelFullCollector {
             vm: vm,
             heap: heap,
@@ -79,9 +74,6 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
             perm_space: perm_space,
 
             old_total: old.total(),
-            old_top: old_total.start,
-            old_limit: old_total.end,
-            init_old_top: Vec::new(),
 
             reason: reason,
             number_workers: number_workers,
@@ -103,7 +95,6 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
     pub fn collect(&mut self, pool: &mut Pool) {
         let dev_verbose = self.vm.args.flag_gc_dev_verbose;
         let stats = self.vm.args.flag_gc_stats;
-        self.init_old_top = self.old_protected.regions.iter().map(|r| r.top()).collect();
 
         let mut timer = Timer::new(stats);
 
@@ -662,12 +653,11 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
                 .map(|r| (r.start(), r.top()))
                 .collect::<Vec<_>>();
 
-            for ((start, top), init_top) in regions.into_iter().zip(&self.init_old_top) {
+            for (start, end) in regions {
                 let card_table = self.card_table;
 
                 scope.execute(move || {
-                    let top = cmp::max(top, *init_top);
-                    card_table.reset_region(start, top);
+                    card_table.reset_region(start, end);
                 });
             }
         });

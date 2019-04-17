@@ -309,6 +309,10 @@ impl<'a> Verifier<'a> {
         let curr_card = self.card_table.card_idx(curr);
 
         let expected_card_entry = if self.refs_to_young_gen > 0 {
+            // full collections promote everything into old gen
+            // young gen should be empty!
+            assert!(!self.phase.is_post_full());
+
             CardEntry::Dirty
         } else {
             CardEntry::Clean

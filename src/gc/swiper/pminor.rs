@@ -400,27 +400,6 @@ impl<'a> SpaceAlloc<'a> {
         }
     }
 
-    fn alloc_lab_old(&mut self, lab: &mut Lab, old: &OldGen) -> bool {
-        if self.failed {
-            lab.reset(Address::null(), Address::null());
-            return false;
-        }
-
-        let lab_start = old.alloc(CLAB_SIZE);
-
-        if lab_start.is_non_null() {
-            let lab_end = lab_start.offset(CLAB_SIZE);
-            lab.reset(lab_start, lab_end);
-
-            true
-        } else {
-            self.failed = true;
-            lab.reset(Address::null(), Address::null());
-
-            false
-        }
-    }
-
     fn alloc_obj_young(&mut self, size: usize) -> Address {
         if self.failed {
             return Address::null();
@@ -439,20 +418,6 @@ impl<'a> SpaceAlloc<'a> {
             self.failed = true;
             Address::null()
         }
-    }
-
-    fn alloc_obj_old(&mut self, size: usize, old: &OldGen) -> Address {
-        if self.failed {
-            return Address::null();
-        }
-
-        let obj_start = old.alloc(size);
-
-        if obj_start.is_null() {
-            self.failed = true;
-        }
-
-        obj_start
     }
 }
 
@@ -548,18 +513,21 @@ where
     }
 
     fn visit_dirty_cards_in_stride(&mut self, stride: usize) {
-        for (&start, &end) in self.old_region_start.iter().zip(self.init_old_top) {
-            let (start_card_idx, end_card_idx) =
-                self.card_table.card_indices(start, end.align_card());
-            let dirty_cards_in_stride = (start_card_idx..end_card_idx)
+        assert_eq!(self.old_region_start.len(), self.init_old_top.len());
+
+        for (&region_start, &region_end) in self.old_region_start.iter().zip(self.init_old_top) {
+            let (start_card_idx, end_card_idx) = self
+                .card_table
+                .card_indices(region_start, region_end.align_card());
+            let cards_in_stride = (start_card_idx..end_card_idx)
                 .skip(stride)
                 .step_by(self.strides);
 
-            for card_idx in dirty_cards_in_stride {
+            for card_idx in cards_in_stride {
                 let card_idx: CardIdx = card_idx.into();
 
                 if self.card_table.get(card_idx).is_dirty() {
-                    self.visit_dirty_card(card_idx, start, end);
+                    self.visit_dirty_card(card_idx, region_start, region_end);
                 }
             }
         }
@@ -646,7 +614,7 @@ where
         self.clean_card_if_no_young_refs(card_idx, ref_to_young_gen);
     }
 
-    fn visit_dirty_card(&mut self, card_idx: CardIdx, start: Address, end: Address) {
+    fn visit_dirty_card(&mut self, card_idx: CardIdx, region_start: Address, region_end: Address) {
         let crossing_entry = self.crossing_map.get(card_idx);
         let card_start = self.card_table.to_address(card_idx);
 
@@ -657,26 +625,32 @@ where
                 let first_object = card_start.add_ptr(refs as usize);
 
                 // copy references at start of card
-                let ref_start = cmp::max(card_start, start);
-                let ref_end = cmp::min(first_object, end);
+                let ref_start = cmp::max(card_start, region_start);
+                let ref_end = cmp::min(first_object, region_end);
                 self.copy_refs(ref_start, ref_end, &mut ref_to_young_gen);
 
                 // copy all objects from this card
-                self.copy_old_card(card_idx, first_object, start, end, ref_to_young_gen);
+                self.copy_old_card(
+                    card_idx,
+                    first_object,
+                    region_start,
+                    region_end,
+                    ref_to_young_gen,
+                );
             }
 
             CrossingEntry::FirstObject(offset) => {
                 let first_object = card_start.add_ptr(offset as usize);
 
                 // copy all objects from this card
-                self.copy_old_card(card_idx, first_object, start, end, false);
+                self.copy_old_card(card_idx, first_object, region_start, region_end, false);
             }
 
             CrossingEntry::ArrayStart(offset) => {
                 let first_object = card_start.sub_ptr(offset as usize);
 
                 // copy all objects from this card
-                self.copy_old_card(card_idx, first_object, start, end, false);
+                self.copy_old_card(card_idx, first_object, region_start, region_end, false);
             }
         }
     }
@@ -705,31 +679,31 @@ where
         &mut self,
         card: CardIdx,
         first_object: Address,
-        start: Address,
-        end: Address,
+        region_start: Address,
+        region_end: Address,
         mut ref_to_young_gen: bool,
     ) {
         let card_start = self.card_table.to_address(card);
         let card_end = card_start.offset(CARD_SIZE);
 
-        let range_start = cmp::max(first_object, start);
-        let range_end = cmp::min(card_end, end);
+        let range_start = cmp::max(first_object, region_start);
+        let range_end = cmp::min(card_end, region_end);
 
         self.copy_range(range_start, range_end, &mut ref_to_young_gen);
 
-        if self.is_card_cleaning_allowed(card, start) {
+        if self.is_card_cleaning_allowed(card, region_start) {
             self.clean_card_if_no_young_refs(card, ref_to_young_gen);
         }
     }
 
-    fn is_card_cleaning_allowed(&self, card: CardIdx, start: Address) -> bool {
+    fn is_card_cleaning_allowed(&self, card: CardIdx, region_start: Address) -> bool {
         // no cleaning for first card in region
-        if card != self.card_table.card_idx(start) {
+        if card != self.card_table.card_idx(region_start) {
             return true;
         }
 
         // unless the first region is card aligned
-        start.is_card_aligned()
+        region_start.is_card_aligned()
     }
 
     fn copy_range(
