@@ -532,12 +532,8 @@ where
     }
 
     fn visit_dirty_cards_in_old(&mut self) {
-        loop {
-            if let Some(stride) = self.next_stride() {
-                self.visit_dirty_cards_in_stride(stride);
-            } else {
-                break;
-            }
+        while let Some(stride) = self.next_stride() {
+            self.visit_dirty_cards_in_stride(stride);
         }
     }
 

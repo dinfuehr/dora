@@ -198,6 +198,7 @@ impl<'a> Verifier<'a> {
             let object = curr.to_mut_obj();
 
             if object.header().vtblptr().is_null() {
+                assert!(!self.in_large, "large object space should not have null filler");
                 let next = curr.add_ptr(1);
 
                 if self.in_old && on_different_cards(curr, next) {
@@ -217,13 +218,13 @@ impl<'a> Verifier<'a> {
                 last_null = false;
             }
 
-            let next = if object.is_array_ref() {
-                self.verify_array_ref(object, curr, region.start, name)
+            if object.is_array_ref() {
+                self.verify_array_ref(object, curr, region.start, name);
             } else {
-                self.verify_object(object, curr, region.start, name)
-            };
+                self.verify_object(object, curr, region.start, name);
+            }
 
-            curr = next;
+            curr = curr.offset(object.size());
         }
 
         assert!(curr == region.end, "object doesn't end at region end");
@@ -231,20 +232,24 @@ impl<'a> Verifier<'a> {
         if (self.in_old || self.in_large) && !self.card_table.is_aligned(curr) {
             self.verify_card(curr, region.start);
         }
+
+        if self.in_old || self.in_large {
+            assert!(self.refs_to_young_gen == 0, "variable should be cleared");
+        }
     }
 
     fn verify_array_ref(
         &mut self,
         object: &mut Obj,
-        mut curr: Address,
-        start: Address,
+        object_address: Address,
+        region_start: Address,
         name: &str,
-    ) -> Address {
-        let object_address = curr;
+    ) {
+        let mut curr = object_address;
 
         object.visit_reference_fields(|element| {
             if (self.in_old || self.in_large) && on_different_cards(curr, element.address()) {
-                self.verify_card(curr, start);
+                self.verify_card(curr, region_start);
                 curr = element.address();
             }
 
@@ -253,37 +258,38 @@ impl<'a> Verifier<'a> {
 
         let next = object_address.offset(object.size());
 
+        if (self.in_old || self.in_large) && on_different_cards(curr, next) {
+            self.verify_card(curr, region_start);
+        }
+
         if self.in_old && on_different_cards(object_address, next) {
             self.verify_crossing(object_address, next, true);
         }
-
-        next
     }
 
     fn verify_object(
         &mut self,
         object: &mut Obj,
-        curr: Address,
-        start: Address,
+        object_address: Address,
+        region_start: Address,
         name: &str,
-    ) -> Address {
+    ) {
         object.visit_reference_fields(|child| {
-            self.verify_reference(child, curr, name);
+            self.verify_reference(child, object_address, name);
         });
 
-        let next = curr.offset(object.size());
+        let next = object_address.offset(object.size());
 
-        if (self.in_old || self.in_large) && on_different_cards(curr, next) {
-            self.verify_card(curr, start);
-            if self.in_old {
-                self.verify_crossing(curr, next, false);
-            }
+        if (self.in_old || self.in_large) && on_different_cards(object_address, next) {
+            self.verify_card(object_address, region_start);
         }
 
-        next
+        if self.in_old && on_different_cards(object_address, next) {
+            self.verify_crossing(object_address, next, false);
+        }
     }
 
-    fn verify_card(&mut self, curr: Address, start: Address) {
+    fn verify_card(&mut self, curr: Address, region_start: Address) {
         let curr_card = self.card_table.card_idx(curr);
 
         let expected_card_entry = if self.refs_to_young_gen > 0 {
@@ -298,7 +304,7 @@ impl<'a> Verifier<'a> {
         // guaranteed to be exact. It could be `dirty` although this card doesn't
         // actually contain any references into the young generation. But it should never
         // be clean when there are actual references into the young generation.
-        if self.phase.is_pre() && expected_card_entry == CardEntry::Clean {
+        if self.phase.is_pre() && expected_card_entry.is_clean() {
             self.refs_to_young_gen = 0;
             return;
         }
@@ -307,9 +313,9 @@ impl<'a> Verifier<'a> {
         // Therefore this card could be dirty when it should actually be clean, but this is
         // allowed. Nevertheless it shouldn't be clean when it actually contains references
         // into the young generation.
-        if curr_card == self.card_table.card_idx(start)
-            && !start.is_card_aligned()
-            && expected_card_entry == CardEntry::Clean
+        if curr_card == self.card_table.card_idx(region_start)
+            && !region_start.is_card_aligned()
+            && expected_card_entry.is_clean()
         {
             self.refs_to_young_gen = 0;
             return;
