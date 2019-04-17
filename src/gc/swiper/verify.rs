@@ -198,7 +198,10 @@ impl<'a> Verifier<'a> {
             let object = curr.to_mut_obj();
 
             if object.header().vtblptr().is_null() {
-                assert!(!self.in_large, "large object space should not have null filler");
+                assert!(
+                    !self.in_large,
+                    "large object space should not have null filler"
+                );
                 let next = curr.add_ptr(1);
 
                 if self.in_old && on_different_cards(curr, next) {
@@ -362,7 +365,7 @@ impl<'a> Verifier<'a> {
         let offset_words = (offset / mem::ptr_width_usize()) as u8;
 
         let crossing_middle;
-        let loop_start;
+        let middle_start;
 
         if array_ref {
             crossing_middle = CrossingEntry::LeadingRefs(CARD_REFS as u8);
@@ -371,14 +374,17 @@ impl<'a> Verifier<'a> {
                 let old_next = old_card_idx.to_usize() + 1;
                 let crossing = self.crossing_map.get(old_next.into());
                 let diff_words = old_card_end.offset_from(old) / mem::ptr_width_usize();
-                assert!(crossing == CrossingEntry::ArrayStart(diff_words as u8));
+                assert!(
+                    crossing == CrossingEntry::ArrayStart(diff_words as u8),
+                    "array start crossing not correct."
+                );
 
-                loop_start = old_card_idx.to_usize() + 2;
+                middle_start = old_card_idx.to_usize() + 2;
             } else {
-                loop_start = old_card_idx.to_usize() + 1;
+                middle_start = old_card_idx.to_usize() + 1;
             }
 
-            if new_card_idx.to_usize() >= loop_start {
+            if new_card_idx.to_usize() >= middle_start {
                 let crossing = self.crossing_map.get(new_card_idx);
                 let expected = if offset_words > 0 {
                     CrossingEntry::LeadingRefs(offset_words)
@@ -389,14 +395,14 @@ impl<'a> Verifier<'a> {
             }
         } else {
             crossing_middle = CrossingEntry::NoRefs;
-            loop_start = old_card_idx.to_usize() + 1;
+            middle_start = old_card_idx.to_usize() + 1;
 
             let crossing = self.crossing_map.get(new_card_idx);
             let expected = CrossingEntry::FirstObject(offset_words);
             assert!(crossing == expected, "crossing at end not correct.");
         }
 
-        for c in loop_start..new_card_idx.to_usize() {
+        for c in middle_start..new_card_idx.to_usize() {
             assert!(
                 self.crossing_map.get(c.into()) == crossing_middle,
                 "middle crossing not correct."
