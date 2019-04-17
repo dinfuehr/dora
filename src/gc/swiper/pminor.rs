@@ -829,7 +829,6 @@ where
             *top = lab_end;
 
             lab_start
-
         } else {
             self.copy_failed = true;
 

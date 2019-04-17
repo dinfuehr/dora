@@ -169,7 +169,7 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
         let regions: Vec<_> = self
             .regions
             .iter()
-            .map(|r| OldGenRegion::new(r.object_region, r.top, r.mapped_region))
+            .map(|r| OldGenRegion::new(r.object, r.top, r.mapped, r.limit))
             .collect();
         self.old_protected.update_regions(regions);
     }
@@ -193,7 +193,7 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
             self.check_regions_disjoint();
         }
 
-        let regions: Vec<_> = self.regions.iter().map(|r| r.mapped_region).collect();
+        let regions: Vec<_> = self.regions.iter().map(|r| r.mapped).collect();
 
         if !self.fits_into_heap(&regions) {
             // panic!("OOM: committed size would be larger than heap size.");
@@ -245,12 +245,20 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
     fn check_regions_disjoint(&self) {
         let mut last_object = Address::null();
         let mut last_mapped = Address::null();
+        let mut last_limit = Address::null();
 
         for region in &self.regions {
-            assert!(last_object <= region.object_region.start);
-            assert!(last_mapped <= region.mapped_region.start);
-            last_object = region.object_region.end;
-            last_mapped = region.mapped_region.end;
+            assert!(last_limit.is_null() || last_limit == region.mapped.start);
+            assert!(last_object <= region.object.start);
+            assert!(last_mapped <= region.mapped.start);
+            assert!(region.limit.is_non_null());
+            last_object = region.object.end;
+            last_mapped = region.mapped.end;
+            last_limit = Address::null();
+        }
+
+        if let Some(last) = self.regions.last() {
+            assert_eq!(self.old_total.end, last.limit);
         }
     }
 
@@ -375,12 +383,13 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
 
         if let Some(last) = regions.last_mut() {
             // We realize after computing all regions whether all surviving objects fit into the heap
-            if last.object_region.end > self.old_total.end {
+            if last.object.end > self.old_total.end {
                 panic!("OOM");
             }
 
             // last region can be extended up to the heap end
-            last.object_region.end = self.old_total.end;
+            last.object.end = self.old_total.end;
+            last.limit = self.old_total.end;
         } else {
             unreachable!();
         }
@@ -401,7 +410,7 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
         let object_start = if unit_start.young {
             regions
                 .last()
-                .map(|r| r.object_region.end)
+                .map(|r| r.object.end)
                 .unwrap_or(self.old_total.start)
         } else {
             unit_start.region.start
@@ -430,7 +439,7 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
 
         let last_mapped = regions
             .last()
-            .map(|r| r.mapped_region.end)
+            .map(|r| r.mapped.end)
             .unwrap_or(self.old_total.start);
 
         let mapped_start = cmp::max(object_start.align_page_down(), last_mapped);
@@ -438,8 +447,9 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
         let mapped_region = Region::new(mapped_start, mapped_end);
 
         if let Some(region) = regions.last_mut() {
-            assert!(region.object_region.end <= object_region.start);
-            region.object_region.end = object_region.start;
+            assert!(region.object.end <= object_region.start);
+            region.object.end = object_region.start;
+            region.limit = mapped_start;
         }
 
         regions.push(CollectRegion::new(
@@ -455,7 +465,7 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
     fn compute_actual_forward(&mut self, pool: &mut Pool) {
         pool.scoped(|scope| {
             for region in &self.regions {
-                let mut fwd = region.object_region.start;
+                let mut fwd = region.object.start;
 
                 for unit in self.units.iter().skip(region.idx).take(region.units) {
                     if unit.live == 0 {
@@ -709,26 +719,28 @@ struct CollectRegion {
     idx: usize,
     units: usize,
 
-    object_region: Region,
+    object: Region,
     top: Address,
-    mapped_region: Region,
+    mapped: Region,
+    limit: Address,
 }
 
 impl CollectRegion {
     fn new(
         idx: usize,
         units: usize,
-        object_region: Region,
+        object: Region,
         top: Address,
-        mapped_region: Region,
+        mapped: Region,
     ) -> CollectRegion {
         CollectRegion {
             idx: idx,
             units: units,
 
-            object_region: object_region,
+            object: object,
             top: top,
-            mapped_region: mapped_region,
+            mapped: mapped,
+            limit: Address::null(),
         }
     }
 }
