@@ -252,6 +252,7 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
             assert!(last_object <= region.object.start);
             assert!(last_mapped <= region.mapped.start);
             assert!(region.limit.is_non_null());
+            assert!(region.mapped.end >= region.top);
             last_object = region.object.end;
             last_mapped = region.mapped.end;
             last_limit = Address::null();
@@ -435,28 +436,27 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
             unit_end.region.end
         };
 
-        let object_region = Region::new(object_start, object_end);
-
         let last_mapped = regions
             .last()
             .map(|r| r.mapped.end)
             .unwrap_or(self.old_total.start);
 
         let mapped_start = cmp::max(object_start.align_page_down(), last_mapped);
-        let mapped_end = object_start.offset(*size).align_page();
+        let object_top = object_start.offset(*size);
+        let mapped_end = object_top.align_page();
         let mapped_region = Region::new(mapped_start, mapped_end);
 
         if let Some(region) = regions.last_mut() {
-            assert!(region.object.end <= object_region.start);
-            region.object.end = object_region.start;
+            assert!(region.object.end <= object_start);
+            region.object.end = object_start;
             region.limit = mapped_start;
         }
 
         regions.push(CollectRegion::new(
             unit_start_idx,
             units,
-            object_region,
-            object_start.offset(*size),
+            Region::new(object_start, object_end),
+            object_top,
             mapped_region,
         ));
         *size = 0;
