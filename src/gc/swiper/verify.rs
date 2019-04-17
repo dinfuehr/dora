@@ -53,7 +53,7 @@ impl fmt::Display for VerifierPhase {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let text = match self {
             VerifierPhase::PreMinor => "pre minor",
-            VerifierPhase::PostMinor => "pre full",
+            VerifierPhase::PostMinor => "post minor",
             VerifierPhase::PreFull => "pre full",
             VerifierPhase::PostFull => "post full",
         };
@@ -487,6 +487,13 @@ impl<'a> Verifier<'a> {
             self.phase,
         );
 
+        if container_obj.is_non_null() {
+            let object = container_obj.to_obj();
+            let cls = object.header().vtbl().class();
+            let size = object.size();
+            println!("\tsource object of {} (size={})", cls.name(get_vm()), size);
+        }
+
         if self.young.contains(reference)
             && !self.to_active.contains(reference)
             && !self.eden_active.contains(reference)
@@ -506,7 +513,7 @@ impl<'a> Verifier<'a> {
             }
         }
 
-        println!("try print object size and class:");
+        println!("try print target object size and class:");
 
         let object = reference.to_obj();
         println!("\tsize {}", object.size());
