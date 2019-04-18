@@ -64,8 +64,11 @@ impl CardTable {
         let start_idx = self.card_idx(start).to_usize();
         let end_idx = self.card_idx(end.align_card()).to_usize();
 
-        for card_idx in start_idx..end_idx {
-            self.set(card_idx.into(), CardEntry::Clean);
+        let start = self.start.offset(start_idx);
+        let size = end_idx - start_idx;
+
+        unsafe {
+            ptr::write_bytes(start.to_mut_ptr::<u8>(), 1, size);
         }
     }
 
