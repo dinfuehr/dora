@@ -88,7 +88,7 @@ impl CardTable {
         F: FnMut(CardIdx),
     {
         assert!(end >= self.old_and_large.start && end <= self.old_end);
-        let (start_card_idx, end_card_idx) = self.card_indices(start, end.align_card());
+        let (start_card_idx, end_card_idx) = self.card_indices(start, end);
 
         for card_idx in start_card_idx..end_card_idx {
             if self.get(card_idx.into()).is_dirty() {
@@ -161,7 +161,7 @@ impl CardTable {
         assert!(end >= start);
 
         let card_start = self.card_idx(start);
-        let card_end = self.card_idx(end);
+        let card_end = self.card_idx(end.align_card());
 
         (card_start.to_usize(), card_end.to_usize())
     }

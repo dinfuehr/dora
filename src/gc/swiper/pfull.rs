@@ -305,7 +305,7 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
             return end;
         }
 
-        let (card_start, card_end) = self.card_table.card_indices(ptr, end.align_card());
+        let (card_start, card_end) = self.card_table.card_indices(ptr, end);
         let card_start = cmp::max(card_start, self.card_table.card_idx(last).to_usize() + 1);
 
         for card in card_start..card_end {

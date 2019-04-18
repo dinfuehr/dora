@@ -192,7 +192,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         let object_end = object_start.offset(object.size() as usize);
         let (start_card_idx, end_card_idx) = self
             .card_table
-            .card_indices(object_start, object_end.align_card());
+            .card_indices(object_start, object_end);
 
         for card_idx in start_card_idx..end_card_idx {
             let card_idx = card_idx.into();
