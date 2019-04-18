@@ -218,7 +218,7 @@ impl<'a> Verifier<'a> {
                 let next = curr.add_ptr(1);
 
                 if self.in_old && on_different_cards(curr, next) {
-                    self.verify_card(curr, region.start);
+                    self.verify_card(curr, region);
                     self.verify_crossing(curr, next, false);
                 }
 
@@ -235,9 +235,9 @@ impl<'a> Verifier<'a> {
             }
 
             if object.is_array_ref() {
-                self.verify_array_ref(object, curr, region.start, name);
+                self.verify_array_ref(object, curr, region, name);
             } else {
-                self.verify_object(object, curr, region.start, name);
+                self.verify_object(object, curr, region, name);
             }
 
             curr = curr.offset(object.size());
@@ -246,7 +246,7 @@ impl<'a> Verifier<'a> {
         assert!(curr == region.end, "object doesn't end at region end");
 
         if (self.in_old || self.in_large) && !self.card_table.is_aligned(curr) {
-            self.verify_card(curr, region.start);
+            self.verify_card(curr, region);
         }
 
         if self.in_old || self.in_large {
@@ -258,14 +258,14 @@ impl<'a> Verifier<'a> {
         &mut self,
         object: &mut Obj,
         object_address: Address,
-        region_start: Address,
+        region: Region,
         name: &str,
     ) {
         let mut curr = object_address;
 
         object.visit_reference_fields(|element| {
             if (self.in_old || self.in_large) && on_different_cards(curr, element.address()) {
-                self.verify_card(curr, region_start);
+                self.verify_card(curr, region);
                 curr = element.address();
             }
 
@@ -275,7 +275,7 @@ impl<'a> Verifier<'a> {
         let next = object_address.offset(object.size());
 
         if (self.in_old || self.in_large) && on_different_cards(curr, next) {
-            self.verify_card(curr, region_start);
+            self.verify_card(curr, region);
         }
 
         if self.in_old && on_different_cards(object_address, next) {
@@ -287,7 +287,7 @@ impl<'a> Verifier<'a> {
         &mut self,
         object: &mut Obj,
         object_address: Address,
-        region_start: Address,
+        region: Region,
         name: &str,
     ) {
         object.visit_reference_fields(|child| {
@@ -297,7 +297,7 @@ impl<'a> Verifier<'a> {
         let next = object_address.offset(object.size());
 
         if (self.in_old || self.in_large) && on_different_cards(object_address, next) {
-            self.verify_card(object_address, region_start);
+            self.verify_card(object_address, region);
         }
 
         if self.in_old && on_different_cards(object_address, next) {
@@ -305,7 +305,7 @@ impl<'a> Verifier<'a> {
         }
     }
 
-    fn verify_card(&mut self, curr: Address, region_start: Address) {
+    fn verify_card(&mut self, curr: Address, region: Region) {
         let curr_card = self.card_table.card_idx(curr);
 
         let expected_card_entry = if self.refs_to_young_gen > 0 {
@@ -333,10 +333,20 @@ impl<'a> Verifier<'a> {
         // Therefore this card could be dirty when it should actually be clean, but this is
         // allowed. Nevertheless it shouldn't be clean when it actually contains references
         // into the young generation.
-        if curr_card == self.card_table.card_idx(region_start)
-            && !region_start.is_card_aligned()
+        if curr_card == self.card_table.card_idx(region.start)
+            && !region.start.is_card_aligned()
             && expected_card_entry.is_clean()
         {
+            self.refs_to_young_gen = 0;
+            return;
+        }
+
+        // The last card in an old region can't be cleaned as well.
+        // Therefore this card could be dirty when it should actually be clean.
+        // However, it shouldn't be clean when it actually contains references into
+        // the young generation.
+        if curr_card == self.card_table.card_idx(region.end) && expected_card_entry.is_clean() {
+            assert!(!region.end.is_card_aligned());
             self.refs_to_young_gen = 0;
             return;
         }

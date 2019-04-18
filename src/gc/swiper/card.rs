@@ -4,8 +4,6 @@ use gc::swiper::CardIdx;
 use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
 use gc::{Address, Region};
 
-use mem;
-
 #[derive(Clone)]
 pub struct CardTable {
     // card table boundaries for old gen (not young gen)
@@ -64,9 +62,7 @@ impl CardTable {
     // reset cards for memory region to 1 (not dirty)
     pub fn reset_region(&self, start: Address, end: Address) {
         let start_idx = self.card_idx(start).to_usize();
-
-        let end = mem::align_usize(end.to_usize(), CARD_SIZE).into();
-        let end_idx = self.card_idx(end).to_usize();
+        let end_idx = self.card_idx(end.align_card()).to_usize();
 
         for card_idx in start_idx..end_idx {
             self.set(card_idx.into(), CardEntry::Clean);
