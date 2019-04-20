@@ -346,13 +346,14 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
 
         for (id, start) in old_regions.into_iter().enumerate() {
             let end = self.init_old_top[id];
-            self.visit_dirty_cards_in_old_region(start, end);
+            let region = Region::new(start, end);
+            self.visit_dirty_cards_in_old_region(region);
         }
     }
 
     // copy all references from old- into young-generation.
-    fn visit_dirty_cards_in_old_region(&mut self, start: Address, end: Address) {
-        self.card_table.visit_dirty_in_old(start, end, |card_idx| {
+    fn visit_dirty_cards_in_old_region(&mut self, region: Region) {
+        self.card_table.visit_dirty_in_old(region.start, region.end, |card_idx| {
             let crossing_entry = self.crossing_map.get(card_idx);
             let card_start = self.card_table.to_address(card_idx);
 
@@ -363,26 +364,26 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
                     let first_object = card_start.add_ptr(refs as usize);
 
                     // copy references at start of card
-                    let ref_start = cmp::max(card_start, start);
-                    let ref_end = cmp::min(first_object, end);
+                    let ref_start = cmp::max(card_start, region.start);
+                    let ref_end = cmp::min(first_object, region.end);
                     self.copy_refs(ref_start, ref_end, &mut ref_to_young_gen);
 
                     // copy all objects from this card
-                    self.copy_old_card(card_idx, first_object, start, end, ref_to_young_gen);
+                    self.copy_old_card(card_idx, first_object, region, ref_to_young_gen);
                 }
 
                 CrossingEntry::FirstObject(offset) => {
                     let first_object = card_start.add_ptr(offset as usize);
 
                     // copy all objects from this card
-                    self.copy_old_card(card_idx, first_object, start, end, false);
+                    self.copy_old_card(card_idx, first_object, region, false);
                 }
 
                 CrossingEntry::ArrayStart(offset) => {
                     let first_object = card_start.sub_ptr(offset as usize);
 
                     // copy all objects from this card
-                    self.copy_old_card(card_idx, first_object.into(), start, end, false);
+                    self.copy_old_card(card_idx, first_object.into(), region, false);
                 }
             }
         });
@@ -412,31 +413,37 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         &mut self,
         card: CardIdx,
         first_object: Address,
-        start: Address,
-        end: Address,
+        region: Region,
         mut ref_to_young_gen: bool,
     ) {
         let card_start = self.card_table.to_address(card);
         let card_end = card_start.offset(CARD_SIZE);
 
-        let range_start = cmp::max(first_object, start);
-        let range_end = cmp::min(card_end, end);
+        let range_start = cmp::max(first_object, region.start);
+        let range_end = cmp::min(card_end, region.end);
 
         self.copy_range(range_start, range_end, &mut ref_to_young_gen);
 
-        if self.is_card_cleaning_allowed(card, start) {
+        if self.is_card_cleaning_allowed(card, region) {
             self.clean_card_if_no_young_refs(card, ref_to_young_gen);
         }
     }
 
-    fn is_card_cleaning_allowed(&self, card: CardIdx, start: Address) -> bool {
+    fn is_card_cleaning_allowed(&self, card: CardIdx, region: Region) -> bool {
         // no cleaning for first card in region
-        if card != self.card_table.card_idx(start) {
-            return true;
-        }
+        if card == self.card_table.card_idx(region.start) {
+            // unless the first region is card aligned
+            region.start.is_card_aligned()
 
-        // unless the first region is card aligned
-        start.is_card_aligned()
+        // no cleaning for last card in region
+        } else if card == self.card_table.card_idx(region.end) {
+            // if region.end is card aligned, we shouldn't encounter
+            // this card for the current region.
+            assert!(!region.end.is_card_aligned());
+            false
+        } else {
+            true
+        }
     }
 
     fn copy_range(
