@@ -205,8 +205,11 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         let promotion_failed = AtomicBool::new(self.promotion_failed);
         let promotion_failed = &promotion_failed;
 
-        let next_stride = AtomicUsize::new(0);
-        let next_stride = &next_stride;
+        let next_root_stride = AtomicUsize::new(0);
+        let next_root_stride = &next_root_stride;
+
+        let next_card_stride = AtomicUsize::new(0);
+        let next_card_stride = &next_card_stride;
         let strides = 4 * self.number_workers;
 
         let head = self.large.head();
@@ -248,7 +251,8 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
                         from_active: young.from_active(),
                         eden_active: young.eden_active(),
 
-                        next_stride: next_stride,
+                        next_card_stride: next_card_stride,
+                        next_root_stride: next_root_stride,
                         strides: strides,
                         next_large: next_large,
 
@@ -388,7 +392,8 @@ struct CopyTask<'a, 'ast: 'a> {
     old_region_start: &'a [Address],
     barrier: &'a Barrier,
 
-    next_stride: &'a AtomicUsize,
+    next_root_stride: &'a AtomicUsize,
+    next_card_stride: &'a AtomicUsize,
     strides: usize,
     next_large: &'a Mutex<Address>,
 
@@ -419,13 +424,29 @@ where
     }
 
     fn visit_roots(&mut self) {
-        let rootset_for_thread = self
+        while let Some(stride) = self.next_root_stride() {
+            self.visit_roots_in_stride(stride);
+        }
+    }
+
+    fn next_root_stride(&mut self) -> Option<usize> {
+        let stride = self.next_root_stride.fetch_add(1, Ordering::SeqCst);
+
+        if stride < self.strides {
+            Some(stride)
+        } else {
+            None
+        }
+    }
+
+    fn visit_roots_in_stride(&mut self, stride: usize) {
+        let roots_in_stride = self
             .rootset
             .iter()
-            .skip(self.task_id)
-            .step_by(self.number_workers);
+            .skip(stride)
+            .step_by(self.strides);
 
-        for root in rootset_for_thread {
+        for root in roots_in_stride {
             let object_address = root.get();
 
             if self.young.contains(object_address) {
@@ -441,13 +462,13 @@ where
     }
 
     fn visit_dirty_cards_in_old(&mut self) {
-        while let Some(stride) = self.next_stride() {
+        while let Some(stride) = self.next_card_stride() {
             self.visit_dirty_cards_in_stride(stride);
         }
     }
 
-    fn next_stride(&mut self) -> Option<usize> {
-        let stride = self.next_stride.fetch_add(1, Ordering::SeqCst);
+    fn next_card_stride(&mut self) -> Option<usize> {
+        let stride = self.next_card_stride.fetch_add(1, Ordering::SeqCst);
 
         if stride < self.strides {
             Some(stride)
