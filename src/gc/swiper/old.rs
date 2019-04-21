@@ -136,6 +136,11 @@ impl OldGen {
     pub fn protected(&self) -> MutexGuard<OldGenProtected> {
         self.protected.lock()
     }
+
+    pub fn dump_regions(&self) {
+        let protected = self.protected.lock();
+        protected.dump_regions();
+    }
 }
 
 pub struct OldGenProtected {
@@ -157,7 +162,7 @@ impl OldGenProtected {
 
     pub fn contains_slow(&self, addr: Address) -> bool {
         for old_region in &self.regions {
-            if old_region.object.start <= addr && addr < old_region.top {
+            if old_region.total.start <= addr && addr < old_region.top {
                 return true;
             }
         }
@@ -173,14 +178,14 @@ impl OldGenProtected {
         let mut committed = 0;
 
         for region in &self.regions {
-            let mapping_end = min(region.mapped.start, limit);
+            let mapping_end = min(region.mapping_start(), limit);
 
             if mapping_end > last_mapped {
                 committed += mapping_end.offset_from(last_mapped);
             }
 
-            committed += region.mapped.end.offset_from(region.mapped.start);
-            last_mapped = region.mapped.end;
+            committed += region.mapping_end().offset_from(region.mapping_start());
+            last_mapped = region.mapping_end();
         }
 
         if limit > last_mapped {
@@ -197,7 +202,7 @@ impl OldGenProtected {
         let mut last_mapped = self.total.start;
 
         for region in &self.regions {
-            let mapping_end = min(region.mapped.start, limit);
+            let mapping_end = min(region.mapping_start(), limit);
 
             if mapping_end > last_mapped {
                 let size = mapping_end.offset_from(last_mapped);
@@ -208,7 +213,7 @@ impl OldGenProtected {
                 return;
             }
 
-            last_mapped = region.mapped.end;
+            last_mapped = region.mapping_end();
         }
 
         if limit > last_mapped {
@@ -230,12 +235,12 @@ impl OldGenProtected {
                 let old = &self.regions[idx];
 
                 // old region fully after new region
-                if old.mapped.start >= end {
+                if old.mapping_start() >= end {
                     break;
 
                 // old region fully before new region
-                } else if old.mapped.end <= start {
-                    committed += old.mapped.size();
+                } else if old.mapping_end() <= start {
+                    committed += old.mapping_size();
                     idx += 1;
                     continue;
 
@@ -243,12 +248,12 @@ impl OldGenProtected {
                 } else {
                     // new region starts before old region
                     // memory needs to be committed
-                    if start < old.mapped.start {
-                        committed += old.mapped.start.offset_from(start);
+                    if start < old.mapping_start() {
+                        committed += old.mapping_start().offset_from(start);
                     }
 
-                    committed += old.mapped.size();
-                    start = old.mapped.end;
+                    committed += old.mapping_size();
+                    start = old.mapping_end();
                     idx += 1;
                 }
             }
@@ -260,7 +265,7 @@ impl OldGenProtected {
 
         while idx < self.regions.len() {
             let old = &self.regions[idx];
-            committed += old.mapped.size();
+            committed += old.mapping_size();
             idx += 1;
         }
 
@@ -279,11 +284,11 @@ impl OldGenProtected {
                 let old = &self.regions[idx];
 
                 // new region fully before new region
-                if old.mapped.start >= end {
+                if old.mapping_start() >= end {
                     break;
 
                 // old region fully before new region
-                } else if old.mapped.end <= start {
+                } else if old.mapping_end() <= start {
                     idx += 1;
                     continue;
 
@@ -291,12 +296,12 @@ impl OldGenProtected {
                 } else {
                     // new region starts before old region
                     // memory needs to be committed
-                    if start < old.mapped.start {
-                        let size = old.mapped.start.offset_from(start);
+                    if start < old.mapping_start() {
+                        let size = old.mapping_start().offset_from(start);
                         arena::commit(start, size, false);
                     }
 
-                    start = old.mapped.end;
+                    start = old.mapping_end();
                     idx += 1;
                 }
             }
@@ -313,21 +318,21 @@ impl OldGenProtected {
         assert!(self.total.valid_top(limit));
 
         let region = OldGenRegion {
-            object: self.total.clone(),
+            total: self.total.clone(),
+            total_mapping: self.total.clone(),
             top: top,
-            mapped: Region::new(self.total.start, limit),
-            limit: self.total.end,
+            mapping_top: limit,
         };
 
         let regions = replace(&mut self.regions, vec![region]);
 
         for region in regions {
-            if limit >= region.mapped.end {
+            if limit >= region.mapping_end() {
                 continue;
             }
 
-            let start = max(region.mapped.start, limit);
-            let size = region.mapped.end.offset_from(start);
+            let start = max(region.mapping_start(), limit);
+            let size = region.mapping_end().offset_from(start);
 
             if size > 0 {
                 arena::discard(start, size);
@@ -343,18 +348,18 @@ impl OldGenProtected {
         let mut start = self.total.start;
 
         for old in &self.regions {
-            start = max(old.mapped.start, start);
-            let end = old.mapped.end;
+            start = max(old.mapping_start(), start);
+            let end = old.mapping_end();
 
             while idx < new_regions.len() && start < end {
                 let new = &new_regions[idx];
 
                 // old region fully before new region
-                if new.mapped.start >= end {
+                if new.mapping_start() >= end {
                     break;
 
                 // new region fully before old region
-                } else if new.mapped.end <= start {
+                } else if new.mapping_end() <= start {
                     idx += 1;
                     continue;
 
@@ -362,12 +367,12 @@ impl OldGenProtected {
                 } else {
                     // old region starts before new region
                     // memory needs to be forgotten
-                    if start < new.mapped.start {
-                        let size = new.mapped.start.offset_from(start);
+                    if start < new.mapping_start() {
+                        let size = new.mapping_start().offset_from(start);
                         arena::discard(start, size);
                     }
 
-                    start = new.mapped.end;
+                    start = new.mapping_end();
                     idx += 1;
                 }
             }
@@ -457,28 +462,34 @@ impl OldGenProtected {
 
         false
     }
+
+    pub fn dump_regions(&self) {
+        println!("OLD gen: {}", self.total);
+        for (idx, region) in self.regions.iter().enumerate() {
+            println!(
+                "  OLD region {}: total={} committed={} active={}",
+                idx,
+                region.total_region(),
+                region.committed_region(),
+                region.active_region()
+            );
+        }
+    }
 }
 
 #[derive(Clone)]
 pub struct OldGenRegion {
-    // First object in this region. NOT necessarily page aligned!
-    // Maximum size of region: this is either the
-    // next region's first object or the end of the old
-    // generation.
-    object: Region,
+    // Region boundaries. NOT necessarily page aligned!
+    total: Region,
+
+    // Maximum boundaries of mappings. Page aligned.
+    total_mapping: Region,
 
     // Next object in this region is allocated here.
     top: Address,
 
-    // Allocated memory that belongs to this
-    // region. First object could be stored before
-    // this address, since there cannot be a guarantee
-    // that a region is page aligned.
-    mapped: Region,
-
-    // maximum for extending memory mapping.
-    // page aligned.
-    limit: Address,
+    // Memory is mapped until here
+    mapping_top: Address,
 }
 
 impl OldGenRegion {
@@ -486,28 +497,32 @@ impl OldGenRegion {
         assert!(region.start.is_page_aligned());
 
         OldGenRegion {
-            object: region.clone(),
+            total: region.clone(),
             top: region.start,
-            mapped: Region::new(region.start, region.start),
-            limit: region.end,
+            total_mapping: region.clone(),
+            mapping_top: region.start,
         }
     }
 
-    pub fn new(object: Region, top: Address, mapped: Region, limit: Address) -> OldGenRegion {
-        assert!(object.valid_top(top));
-        assert!(mapped.start.is_page_aligned() && mapped.end.is_page_aligned());
-        assert!(limit.is_page_aligned());
+    pub fn new(
+        total: Region,
+        top: Address,
+        total_mapping: Region,
+        mapping_top: Address,
+    ) -> OldGenRegion {
+        assert!(total.valid_top(top));
+        assert!(total_mapping.valid_top(mapping_top));
 
         OldGenRegion {
-            object: object.clone(),
+            total: total,
+            total_mapping: total_mapping,
             top: top,
-            mapped: mapped,
-            limit: limit,
+            mapping_top: mapping_top,
         }
     }
 
     pub fn start(&self) -> Address {
-        self.object.start
+        self.total.start
     }
 
     pub fn top(&self) -> Address {
@@ -515,31 +530,43 @@ impl OldGenRegion {
     }
 
     pub fn size(&self) -> usize {
-        self.object.size()
+        self.total.size()
     }
 
     pub fn active_size(&self) -> usize {
-        self.top.offset_from(self.object.start)
+        self.top.offset_from(self.total.start)
     }
 
     pub fn active_region(&self) -> Region {
-        Region::new(self.object.start, self.top)
+        Region::new(self.total.start, self.top)
     }
 
     pub fn total_region(&self) -> Region {
-        self.object.clone()
+        self.total.clone()
     }
 
     pub fn committed_region(&self) -> Region {
-        self.mapped.clone()
+        Region::new(self.mapping_start(), self.mapping_end())
+    }
+
+    fn mapping_start(&self) -> Address {
+        self.total_mapping.start
+    }
+
+    fn mapping_end(&self) -> Address {
+        self.mapping_top
+    }
+
+    fn mapping_size(&self) -> usize {
+        self.mapping_end().offset_from(self.mapping_start())
     }
 
     fn pure_alloc(&mut self, size: usize) -> Option<Address> {
         let new_top = self.top.offset(size);
-        debug_assert!(self.top <= self.mapped.end);
-        debug_assert!(self.top <= self.object.end);
+        debug_assert!(self.top <= self.mapping_top);
+        debug_assert!(self.top <= self.total.end);
 
-        if new_top <= min(self.mapped.end, self.object.end) {
+        if new_top <= min(self.mapping_top, self.total.end) {
             let addr = self.top;
             self.top = new_top;
             return Some(addr);
@@ -549,11 +576,11 @@ impl OldGenRegion {
     }
 
     fn extend(&mut self, size: usize) -> bool {
-        let new_mapped = self.mapped.end.offset(size);
+        let new_mapping_top = self.mapping_top.offset(size);
 
-        if new_mapped <= self.limit {
-            arena::commit(self.mapped.end, size, false);
-            self.mapped.end = new_mapped;
+        if new_mapping_top <= self.total_mapping.end {
+            arena::commit(self.mapping_top, size, false);
+            self.mapping_top = new_mapping_top;
 
             true
         } else {

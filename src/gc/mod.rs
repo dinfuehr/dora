@@ -197,7 +197,7 @@ trait Collector {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Address(usize);
 
 impl Address {
@@ -325,6 +325,12 @@ impl fmt::Display for Address {
     }
 }
 
+impl fmt::Debug for Address {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "0x{:x}", self.to_usize())
+    }
+}
+
 impl PartialOrd for Address {
     fn partial_cmp(&self, other: &Address) -> Option<Ordering> {
         Some(self.cmp(other))
@@ -443,11 +449,15 @@ fn formatted_size(size: usize) -> FormattedSize {
 }
 
 /// round the given value up to the nearest multiple of a generation
-pub fn align_gen(val: usize) -> usize {
+pub fn align_gen(value: usize) -> usize {
     let align = GEN_ALIGNMENT_BITS;
     // we know that page size is power of 2, hence
     // we can use shifts instead of expensive division
-    ((val + (1 << align) - 1) >> align) << align
+    ((value + (1 << align) - 1) >> align) << align
+}
+
+pub fn align_gen_down(value: usize) -> usize {
+    value & !(GEN_SIZE - 1)
 }
 
 /// returns true if given size is gen aligned

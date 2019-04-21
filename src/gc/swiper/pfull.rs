@@ -17,6 +17,8 @@ use gc::swiper::verify::verify_mapped_regions;
 use gc::swiper::young::YoungGen;
 use gc::swiper::{walk_region, walk_region_and_skip_garbage, CardIdx, CARD_REFS};
 use gc::{Address, GcReason, Region};
+use os::signal::Trap;
+use stdlib;
 use timer::Timer;
 
 pub struct ParallelFullCollector<'a, 'ast: 'a> {
@@ -40,6 +42,7 @@ pub struct ParallelFullCollector<'a, 'ast: 'a> {
     max_heap_size: usize,
 
     units: Vec<Unit>,
+    young_units: Vec<Unit>,
     regions: Vec<CollectRegion>,
 
     phases: FullCollectorPhases,
@@ -82,6 +85,7 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
             max_heap_size: max_heap_size,
 
             units: Vec::new(),
+            young_units: Vec::new(),
             regions: Vec::new(),
 
             phases: FullCollectorPhases::new(),
@@ -166,12 +170,59 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
         self.young.clear();
         self.young.protect_from();
 
-        let regions: Vec<_> = self
-            .regions
-            .iter()
-            .map(|r| OldGenRegion::new(r.object, r.top, r.mapped, r.limit))
-            .collect();
+        let regions = self.compute_old_regions();
         self.old_protected.update_regions(regions);
+    }
+
+    fn compute_old_regions(&mut self) -> Vec<OldGenRegion> {
+        let mut old_regions = Vec::new();
+        let even_regions = (0..self.regions.len()).step_by(2);
+
+        for idx in even_regions {
+            let r = &self.regions[idx];
+            assert!(r.slide_start);
+
+            let mut total = r.object();
+            let top = r.object_end();
+
+            let mut total_mapping = r.mapping;
+            let mapping_top = r.mapping.end;
+
+            if idx > 0 {
+                let prev = &self.regions[idx - 1];
+                assert!(!prev.slide_start);
+                assert!(prev.object_end() == total.start);
+                total.start = prev.object_start();
+
+                assert!(total_mapping.start == prev.mapping.end);
+                total_mapping.start = prev.mapping.start;
+            }
+
+            if idx + 1 < self.regions.len() {
+                let next = &self.regions[idx + 1];
+                assert!(!next.slide_start);
+                total.end = next.object_start();
+                total_mapping.end = next.mapping.start;
+            } else {
+                total.end = self.old_total.end;
+                total_mapping.end = self.old_total.end;
+            }
+
+            old_regions.push(OldGenRegion::new(total, top, total_mapping, mapping_top));
+        }
+
+        if self.regions.len() % 2 == 0 {
+            if let Some(last) = self.regions.last() {
+                let total = Region::new(last.young_start(), self.old_total.end);
+                let top = last.compact.end;
+                let total_mapping = Region::new(last.mapping.start, self.old_total.end);
+                let mapping_top = last.mapping.end;
+
+                old_regions.push(OldGenRegion::new(total, top, total_mapping, mapping_top));
+            }
+        }
+
+        old_regions
     }
 
     fn mark_live(&mut self, pool: &mut Pool) {
@@ -186,17 +237,18 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
     fn compute_forward(&mut self, pool: &mut Pool) {
         self.compute_units();
         self.compute_live_bytes(pool);
-        self.compute_regions();
+        self.compute_collect_regions();
+        self.place_young_units();
 
         if self.vm.args.flag_gc_verify {
             self.check_units_disjoint();
             self.check_regions_disjoint();
         }
 
-        let regions: Vec<_> = self.regions.iter().map(|r| r.mapped).collect();
+        let regions: Vec<Region> = self.regions.iter().map(|r| r.mapping).collect();
 
         if !self.fits_into_heap(&regions) {
-            // panic!("OOM: committed size would be larger than heap size.");
+            stdlib::trap(Trap::OOM.int());
         }
 
         self.compute_actual_forward(pool);
@@ -224,42 +276,40 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
     fn fits_into_heap(&mut self, regions: &[Region]) -> bool {
         let (eden_size, semi_size) = self.young.committed_size();
         let young_size = eden_size + semi_size;
-        let old_size = self.old_protected.with_regions(regions);
+        let old_size: usize = regions.iter().map(|r| r.size()).sum();
         let large_size = self.large_space.committed_size();
 
         (young_size + old_size + large_size) <= self.max_heap_size
     }
 
     fn check_units_disjoint(&self) {
-        let mut units: Vec<Region> = self.units.iter().map(|u| u.region).collect();
-        units.sort_by(|a, b| a.start.cmp(&b.start));
+        let mut last = self.old_total.start;
 
-        let mut last = Address::null();
-
-        for unit in units {
-            assert!(last <= unit.start);
-            last = unit.end;
+        for unit in &self.units {
+            assert!(last <= unit.region.start);
+            last = unit.region.end;
         }
     }
 
     fn check_regions_disjoint(&self) {
-        let mut last_object = Address::null();
-        let mut last_mapped = Address::null();
-        let mut last_limit = Address::null();
+        let mut last_region = 0;
+        let mut last_mapping_end = self.old_total.start;
+        let mut last_span_end = self.old_total.start;
 
         for region in &self.regions {
-            assert!(last_limit.is_null() || last_limit == region.mapped.start);
-            assert!(last_object <= region.object.start);
-            assert!(last_mapped <= region.mapped.start);
-            assert!(region.limit.is_non_null());
-            assert!(region.mapped.end >= region.top);
-            last_object = region.object.end;
-            last_mapped = region.mapped.end;
-            last_limit = Address::null();
+            assert!(last_region == region.start_idx);
+            assert!(last_mapping_end <= region.mapping.start);
+            assert_eq!(last_span_end, region.span.start);
+            assert!(region.span.fully_contains(&region.object()));
+
+            last_region = region.start_idx + region.units;
+            last_mapping_end = region.mapping.end;
+            last_span_end = region.span.end;
         }
 
         if let Some(last) = self.regions.last() {
-            assert_eq!(self.old_total.end, last.limit);
+            assert_eq!(self.units.len(), last.start_idx + last.units);
+            assert_eq!(last_span_end, self.old_total.end);
         }
     }
 
@@ -274,13 +324,13 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
         }
 
         let eden = self.young.eden_active();
-        self.units.push(Unit::young(eden));
+        self.young_units.push(Unit::young(eden));
 
         let from = self.young.from_active();
-        self.units.push(Unit::young(from));
+        self.young_units.push(Unit::young(from));
 
         let to = self.young.to_active();
-        self.units.push(Unit::young(to));
+        self.young_units.push(Unit::young(to));
     }
 
     fn units_for_old_region(&mut self, region: Region, unit_size: usize) {
@@ -337,60 +387,76 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
 
     fn compute_live_bytes(&mut self, pool: &mut Pool) {
         pool.scoped(|scoped| {
+            let vm = self.vm;
+
             for unit in &mut self.units {
-                let vm = self.vm;
-
                 scoped.execute(move || {
-                    let mut live = 0;
+                    compute_live_bytes_in_unit(vm, unit);
+                });
+            }
 
-                    walk_region_and_skip_garbage(vm, unit.region, |obj, _addr, size| {
-                        if obj.header().is_marked_non_atomic() {
-                            live += size;
-                            true
-                        } else {
-                            false
-                        }
-                    });
-
-                    unit.live = live;
+            for unit in &mut self.young_units {
+                scoped.execute(move || {
+                    compute_live_bytes_in_unit(vm, unit);
                 });
             }
         });
     }
 
-    fn compute_regions(&mut self) {
+    fn compute_collect_regions(&mut self) {
         let live: usize = self.units.iter().map(|u| u.live).sum();
         let number_regions = self.number_workers;
 
         let region_size = ((live as f64 / number_regions as f64) * 0.90f64) as usize;
-        let mut regions = Vec::with_capacity(number_regions);
 
+        let mut regions = Vec::new();
         let mut start = 0;
         let mut size = 0;
+        let mut last_span_end = self.old_total.start;
+        let mut last_mapping_end = self.old_total.start;
 
         for (id, unit) in self.units.iter().enumerate() {
             size += unit.live;
 
             if size > region_size {
-                self.add_region(start, id, &mut size, &mut regions);
+                self.add_collect_region(
+                    start,
+                    id,
+                    &mut size,
+                    &mut last_span_end,
+                    &mut last_mapping_end,
+                    &mut regions,
+                );
                 start = id + 1;
             }
         }
 
         if start < self.units.len() {
             let end = self.units.len() - 1;
-            self.add_region(start, end, &mut size, &mut regions);
+            self.add_collect_region(
+                start,
+                end,
+                &mut size,
+                &mut last_span_end,
+                &mut last_mapping_end,
+                &mut regions,
+            );
+        }
+
+        if regions.is_empty() {
+            let object = self.old_total;
+            let empty = Region::new(self.old_total.start, self.old_total.start);
+            let compact = empty;
+            let mapping = empty;
+            regions.push(CollectRegion::new(0, 0, true, object, compact, mapping));
         }
 
         if let Some(last) = regions.last_mut() {
-            // We realize after computing all regions whether all surviving objects fit into the heap
-            if last.object.end > self.old_total.end {
+            if last.compact.end > self.old_total.end {
                 panic!("OOM");
             }
 
-            // last region can be extended up to the heap end
-            last.object.end = self.old_total.end;
-            last.limit = self.old_total.end;
+            last.span.end = self.old_total.end;
         } else {
             unreachable!();
         }
@@ -398,95 +464,160 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
         std::mem::replace(&mut self.regions, regions);
     }
 
-    fn add_region(
+    fn place_young_units(&mut self) {
+        let young_units = std::mem::replace(&mut self.young_units, Vec::new());
+
+        for unit in young_units {
+            self.place_young_unit(unit);
+        }
+    }
+
+    fn place_young_unit(&mut self, unit: Unit) {
+        let live = unit.live;
+
+        if live == 0 {
+            return;
+        }
+
+        for region_idx in 0..self.regions.len() {
+            let slide_start;
+            let young_start;
+            let young_end;
+            let span_start;
+            let span_end;
+
+            let mapping_limit;
+
+            {
+                let region = &self.regions[region_idx];
+                slide_start = region.slide_start;
+                young_start = region.young_start();
+                young_end = region.young_end();
+                span_start = region.span.start;
+                span_end = region.span.end;
+
+                mapping_limit = if slide_start {
+                    if region_idx + 1 < self.regions.len() {
+                        let next = &self.regions[region_idx + 1];
+                        next.mapping.start
+                    } else {
+                        self.old_total.end
+                    }
+                } else {
+                    if region_idx > 0 {
+                        let prev = &self.regions[region_idx - 1];
+                        prev.mapping.end
+                    } else {
+                        self.old_total.start
+                    }
+                };
+            }
+
+            if slide_start {
+                let new = young_end.offset(live);
+
+                if new <= span_end {
+                    let region = &mut self.regions[region_idx];
+                    region.young_units.push(unit);
+                    region.young_live += live;
+                    region.mapping.end = cmp::min(new.align_page(), mapping_limit);
+                    assert!(region.span.fully_contains(&region.object()));
+                    return;
+                }
+            } else {
+                let new = young_start.sub(live);
+
+                if new >= span_start {
+                    let region = &mut self.regions[region_idx];
+                    region.young_units.push(unit);
+                    region.young_live += live;
+                    region.mapping.start = cmp::max(new.align_page_down(), mapping_limit);
+                    assert!(region.span.fully_contains(&region.object()));
+                    return;
+                }
+            }
+        }
+
+        panic!("OOM: no space for young found!");
+    }
+
+    fn add_collect_region(
         &self,
         unit_start_idx: usize,
         unit_end_idx: usize,
         size: &mut usize,
+        last_span_end: &mut Address,
+        last_mapping_end: &mut Address,
         regions: &mut Vec<CollectRegion>,
     ) {
-        let units = unit_end_idx - unit_start_idx + 1;
-        let unit_start = &self.units[unit_start_idx];
-
-        let object_start = if unit_start.young {
-            regions
-                .last()
-                .map(|r| r.object.end)
-                .unwrap_or(self.old_total.start)
-        } else {
-            unit_start.region.start
-        };
+        let slide_start = regions.len() % 2 == 0;
+        let span_start = *last_span_end;
 
         let unit_end = &self.units[unit_end_idx];
+        let span_end = unit_end.region.end;
 
-        let object_end = if unit_end.young {
-            let mut object_end = Address::null();
-
-            for unit_idx in unit_end_idx..=unit_start_idx {
-                let unit = &self.units[unit_idx];
-
-                if !unit.young {
-                    object_end = unit.region.end;
-                    break;
-                }
-            }
-
-            cmp::max(object_start.offset(*size), object_end)
+        let (compact_start, compact_end) = if slide_start {
+            (span_start, span_start.offset(*size))
         } else {
-            unit_end.region.end
+            (span_end.sub(*size), span_end)
         };
 
-        let last_mapped = regions
-            .last()
-            .map(|r| r.mapped.end)
-            .unwrap_or(self.old_total.start);
+        let mapping_start = cmp::max(compact_start.align_page_down(), *last_mapping_end);
+        let mapping_end = cmp::max(compact_end.align_page(), mapping_start);
 
-        let mapped_start = cmp::max(object_start.align_page_down(), last_mapped);
-        let object_top = object_start.offset(*size);
-        let mapped_end = object_top.align_page();
-        let mapped_region = Region::new(mapped_start, mapped_end);
-
-        if let Some(region) = regions.last_mut() {
-            assert!(region.object.end <= object_start);
-            region.object.end = object_start;
-            region.limit = mapped_start;
-        }
+        let span = Region::new(span_start, span_end);
+        let compact = Region::new(compact_start, compact_end);
+        let mapping = Region::new(mapping_start, mapping_end);
 
         regions.push(CollectRegion::new(
             unit_start_idx,
-            units,
-            Region::new(object_start, object_end),
-            object_top,
-            mapped_region,
+            unit_end_idx - unit_start_idx + 1,
+            slide_start,
+            span,
+            compact,
+            mapping.clone(),
         ));
+
         *size = 0;
+        *last_span_end = span.end;
+        *last_mapping_end = mapping.end;
     }
 
     fn compute_actual_forward(&mut self, pool: &mut Pool) {
         pool.scoped(|scope| {
+            let pfull = &self;
+
             for region in &self.regions {
-                let mut fwd = region.object.start;
-
-                for unit in self.units.iter().skip(region.idx).take(region.units) {
-                    if unit.live == 0 {
-                        continue;
-                    }
-
-                    let mut unit_fwd = fwd;
-
+                let mut fwd = region.compact.start;
+                for unit in &self.units[region.start_idx..region.start_idx + region.units] {
                     scope.execute(move || {
-                        walk_region(unit.region, |obj, _address, size| {
-                            if obj.header().is_marked_non_atomic() {
-                                obj.header_mut().set_fwdptr_non_atomic(unit_fwd);
-                                unit_fwd = unit_fwd.offset(size);
-                            }
-                        });
+                        pfull.compute_forward_unit(unit, fwd);
                     });
-
                     fwd = fwd.offset(unit.live);
                 }
+                assert_eq!(fwd, region.compact.end);
 
-                assert_eq!(region.top, fwd);
+                let mut fwd = region.young_start();
+                for unit in &region.young_units {
+                    scope.execute(move || {
+                        pfull.compute_forward_unit(unit, fwd);
+                    });
+                    fwd = fwd.offset(unit.live);
+                }
+                assert_eq!(fwd, region.young_end());
+            }
+        });
+    }
+
+    fn compute_forward_unit(&self, unit: &Unit, mut fwd: Address) {
+        if unit.live == 0 {
+            return;
+        }
+
+        walk_region(unit.region, |obj, _address, size| {
+            if obj.header().is_marked_non_atomic() {
+                obj.header_mut().set_fwdptr_non_atomic(fwd);
+                fwd = fwd.offset(size);
             }
         });
     }
@@ -506,21 +637,17 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
             });
 
             for unit in &self.units {
-                if unit.live == 0 {
-                    continue;
-                }
-
-                let pfull = &self;
-
                 scope.execute(move || {
-                    walk_region(unit.region, |obj, _address, _size| {
-                        if obj.header().is_marked_non_atomic() {
-                            obj.visit_reference_fields(|field| {
-                                pfull.forward_reference(field);
-                            });
-                        }
-                    });
+                    pfull.update_references_unit(unit);
                 });
+            }
+
+            for region in &self.regions {
+                for unit in &region.young_units {
+                    scope.execute(move || {
+                        pfull.update_references_unit(unit);
+                    });
+                }
             }
 
             let head = self.large_space.remove_head();
@@ -599,6 +726,16 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
         });
     }
 
+    fn update_references_unit(&self, unit: &Unit) {
+        walk_region(unit.region, |obj, _address, _size| {
+            if obj.header().is_marked_non_atomic() {
+                obj.visit_reference_fields(|field| {
+                    self.forward_reference(field);
+                });
+            }
+        });
+    }
+
     fn forward_reference(&self, slot: Slot) {
         let object_addr = slot.get();
 
@@ -626,32 +763,35 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
                 let pfull = &self;
 
                 scope.execute(move || {
-                    for unit in units.iter().skip(region.idx).take(region.units) {
-                        if unit.live == 0 {
-                            continue;
+                    let units_in_region = &units[region.start_idx..region.start_idx + region.units];
+
+                    if region.slide_start {
+                        for unit in units_in_region {
+                            pfull.relocate_unit(unit);
                         }
-
-                        walk_region(unit.region, |object, address, object_size| {
-                            if object.header().is_marked_non_atomic() {
-                                // get new location
-                                let dest = object.header().fwdptr_non_atomic();
-
-                                // determine location after relocated object
-                                let next_dest = dest.offset(object_size);
-
-                                if address != dest {
-                                    object.copy_to(dest, object_size);
-                                }
-
-                                // unmark object for next collection
-                                let dest_obj = dest.to_mut_obj();
-                                dest_obj.header_mut().unmark_non_atomic();
-
-                                pfull
-                                    .old
-                                    .update_crossing(dest, next_dest, dest_obj.is_array_ref());
+                    } else {
+                        for unit in units_in_region.iter().rev() {
+                            if unit.live == 0 {
+                                continue;
                             }
-                        });
+
+                            let mut objects = Vec::new();
+
+                            walk_region(unit.region, |object, address, _| {
+                                if object.header().is_marked_non_atomic() {
+                                    objects.push(address);
+                                }
+                            });
+
+                            while let Some(object) = objects.pop() {
+                                let size = object.to_obj().size() as usize;
+                                pfull.relocate_object(object, size);
+                            }
+                        }
+                    }
+
+                    for unit in &region.young_units {
+                        pfull.relocate_unit(unit);
                     }
                 });
             }
@@ -672,6 +812,54 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
             }
         });
     }
+
+    fn relocate_unit(&self, unit: &Unit) {
+        if unit.live == 0 {
+            return;
+        }
+
+        walk_region(unit.region, |_, object, size| {
+            self.relocate_object(object, size);
+        });
+    }
+
+    fn relocate_object(&self, address: Address, object_size: usize) {
+        let object = address.to_obj();
+
+        if object.header().is_marked_non_atomic() {
+            // get new location
+            let dest = object.header().fwdptr_non_atomic();
+
+            // determine location after relocated object
+            let next_dest = dest.offset(object_size);
+
+            if address != dest {
+                object.copy_to(dest, object_size);
+            }
+
+            // unmark object for next collection
+            let dest_obj = dest.to_mut_obj();
+            dest_obj.header_mut().unmark_non_atomic();
+
+            self.old
+                .update_crossing(dest, next_dest, dest_obj.is_array_ref());
+        }
+    }
+}
+
+fn compute_live_bytes_in_unit(vm: &VM, unit: &mut Unit) {
+    let mut live = 0;
+
+    walk_region_and_skip_garbage(vm, unit.region, |obj, _addr, size| {
+        if obj.header().is_marked_non_atomic() {
+            live += size;
+            true
+        } else {
+            false
+        }
+    });
+
+    unit.live = live;
 }
 
 fn next(next_large: &Mutex<Address>) -> Option<Address> {
@@ -687,6 +875,7 @@ fn next(next_large: &Mutex<Address>) -> Option<Address> {
     Some(large_alloc.address())
 }
 
+#[derive(Clone)]
 struct Unit {
     region: Region,
     live: usize,
@@ -716,31 +905,86 @@ impl Unit {
 }
 
 struct CollectRegion {
-    idx: usize,
+    start_idx: usize,
     units: usize,
 
-    object: Region,
-    top: Address,
-    mapped: Region,
-    limit: Address,
+    young_units: Vec<Unit>,
+    young_live: usize,
+
+    // true when objects should be relocated to start of region and
+    // false when objects should be relocated towards end.
+    slide_start: bool,
+
+    // Maximum span of this region. The region
+    // is not allowed to become bigger than that: otherwise
+    // data from other regions would be overwritten.
+    span: Region,
+
+    // compaction region
+    compact: Region,
+
+    // Page boundaries around the compacted area
+    mapping: Region,
 }
 
 impl CollectRegion {
     fn new(
-        idx: usize,
+        start_idx: usize,
         units: usize,
-        object: Region,
-        top: Address,
-        mapped: Region,
+        slide_start: bool,
+        span: Region,
+        compact: Region,
+        mapping: Region,
     ) -> CollectRegion {
         CollectRegion {
-            idx: idx,
+            start_idx: start_idx,
             units: units,
-
-            object: object,
-            top: top,
-            mapped: mapped,
-            limit: Address::null(),
+            young_units: Vec::new(),
+            young_live: 0,
+            slide_start: slide_start,
+            span: span,
+            compact: compact,
+            mapping: mapping,
         }
+    }
+
+    fn object(&self) -> Region {
+        Region::new(self.object_start(), self.object_end())
+    }
+
+    fn object_start(&self) -> Address {
+        if self.slide_start {
+            self.compact.start
+        } else {
+            self.young_start()
+        }
+    }
+
+    fn object_end(&self) -> Address {
+        if self.slide_start {
+            self.young_end()
+        } else {
+            self.compact.end
+        }
+    }
+
+    fn young_start(&self) -> Address {
+        if self.slide_start {
+            self.compact.end
+        } else {
+            self.compact.start.sub(self.young_live)
+        }
+    }
+
+    fn young_end(&self) -> Address {
+        if self.slide_start {
+            self.compact.end.offset(self.young_live)
+        } else {
+            self.compact.start
+        }
+    }
+
+    fn live(&self) -> usize {
+        self.compact.size()
     }
 }

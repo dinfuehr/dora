@@ -13,6 +13,8 @@ use gc::swiper::young::YoungGen;
 use gc::swiper::{walk_region, walk_region_and_skip_garbage};
 use gc::{Address, GcReason, Region};
 use object::Obj;
+use os::signal::Trap;
+use stdlib;
 use timer::Timer;
 
 pub struct FullCollector<'a, 'ast: 'a> {
@@ -227,7 +229,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         });
 
         if !self.fits_into_heap() {
-            // panic!("OOM: committed size would be larger than heap size.");
+            stdlib::trap(Trap::OOM.int());
         }
 
         self.old_protected.commit_single_region(self.old_top);
@@ -237,7 +239,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     fn fits_into_heap(&mut self) -> bool {
         let (eden_size, semi_size) = self.young.committed_size();
         let young_size = eden_size + semi_size;
-        let old_size = self.old_protected.with_single_region(self.old_top);
+        let old_size = self.old_top.align_gen().offset_from(self.old.total_start());
         let large_size = self.large_space.committed_size();
 
         (young_size + old_size + large_size) <= self.max_heap_size
