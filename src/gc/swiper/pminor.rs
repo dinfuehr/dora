@@ -440,11 +440,7 @@ where
     }
 
     fn visit_roots_in_stride(&mut self, stride: usize) {
-        let roots_in_stride = self
-            .rootset
-            .iter()
-            .skip(stride)
-            .step_by(self.strides);
+        let roots_in_stride = self.rootset.iter().skip(stride).step_by(self.strides);
 
         for root in roots_in_stride {
             let object_address = root.get();
@@ -482,9 +478,8 @@ where
 
         for (&region_start, &region_end) in self.old_region_start.iter().zip(self.init_old_top) {
             let region = Region::new(region_start, region_end);
-            let (start_card_idx, end_card_idx) = self
-                .card_table
-                .card_indices(region.start, region.end);
+            let (start_card_idx, end_card_idx) =
+                self.card_table.card_indices(region.start, region.end);
             let cards_in_stride = (start_card_idx..end_card_idx)
                 .skip(stride)
                 .step_by(self.strides);
@@ -532,9 +527,7 @@ where
 
     fn visit_large_object_array(&mut self, object: &mut Obj, object_start: Address) {
         let object_end = object_start.offset(object.size() as usize);
-        let (start_card_idx, end_card_idx) = self
-            .card_table
-            .card_indices(object_start, object_end);
+        let (start_card_idx, end_card_idx) = self.card_table.card_indices(object_start, object_end);
 
         for card_idx in start_card_idx..end_card_idx {
             let card_idx = card_idx.into();

@@ -190,9 +190,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
 
     fn visit_large_object_array(&mut self, object: &mut Obj, object_start: Address) {
         let object_end = object_start.offset(object.size() as usize);
-        let (start_card_idx, end_card_idx) = self
-            .card_table
-            .card_indices(object_start, object_end);
+        let (start_card_idx, end_card_idx) = self.card_table.card_indices(object_start, object_end);
 
         for card_idx in start_card_idx..end_card_idx {
             let card_idx = card_idx.into();
@@ -353,40 +351,41 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
 
     // copy all references from old- into young-generation.
     fn visit_dirty_cards_in_old_region(&mut self, region: Region) {
-        self.card_table.visit_dirty_in_old(region.start, region.end, |card_idx| {
-            let crossing_entry = self.crossing_map.get(card_idx);
-            let card_start = self.card_table.to_address(card_idx);
+        self.card_table
+            .visit_dirty_in_old(region.start, region.end, |card_idx| {
+                let crossing_entry = self.crossing_map.get(card_idx);
+                let card_start = self.card_table.to_address(card_idx);
 
-            match crossing_entry {
-                CrossingEntry::NoRefs => panic!("card dirty without any refs"),
-                CrossingEntry::LeadingRefs(refs) => {
-                    let mut ref_to_young_gen = false;
-                    let first_object = card_start.add_ptr(refs as usize);
+                match crossing_entry {
+                    CrossingEntry::NoRefs => panic!("card dirty without any refs"),
+                    CrossingEntry::LeadingRefs(refs) => {
+                        let mut ref_to_young_gen = false;
+                        let first_object = card_start.add_ptr(refs as usize);
 
-                    // copy references at start of card
-                    let ref_start = cmp::max(card_start, region.start);
-                    let ref_end = cmp::min(first_object, region.end);
-                    self.copy_refs(ref_start, ref_end, &mut ref_to_young_gen);
+                        // copy references at start of card
+                        let ref_start = cmp::max(card_start, region.start);
+                        let ref_end = cmp::min(first_object, region.end);
+                        self.copy_refs(ref_start, ref_end, &mut ref_to_young_gen);
 
-                    // copy all objects from this card
-                    self.copy_old_card(card_idx, first_object, region, ref_to_young_gen);
+                        // copy all objects from this card
+                        self.copy_old_card(card_idx, first_object, region, ref_to_young_gen);
+                    }
+
+                    CrossingEntry::FirstObject(offset) => {
+                        let first_object = card_start.add_ptr(offset as usize);
+
+                        // copy all objects from this card
+                        self.copy_old_card(card_idx, first_object, region, false);
+                    }
+
+                    CrossingEntry::ArrayStart(offset) => {
+                        let first_object = card_start.sub_ptr(offset as usize);
+
+                        // copy all objects from this card
+                        self.copy_old_card(card_idx, first_object.into(), region, false);
+                    }
                 }
-
-                CrossingEntry::FirstObject(offset) => {
-                    let first_object = card_start.add_ptr(offset as usize);
-
-                    // copy all objects from this card
-                    self.copy_old_card(card_idx, first_object, region, false);
-                }
-
-                CrossingEntry::ArrayStart(offset) => {
-                    let first_object = card_start.sub_ptr(offset as usize);
-
-                    // copy all objects from this card
-                    self.copy_old_card(card_idx, first_object.into(), region, false);
-                }
-            }
-        });
+            });
     }
 
     fn copy_refs(&mut self, start: Address, end: Address, ref_to_young_gen: &mut bool) {
