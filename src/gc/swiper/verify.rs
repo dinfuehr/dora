@@ -361,13 +361,19 @@ impl<'a> Verifier<'a> {
             let card_end = card_start.offset(CARD_SIZE);
 
             println!(
-                "CARD: {} ({}-{}) is marked {} but has {} reference(s).",
+                "CARD: {} ({}-{}) is marked {} but has {} reference(s) in phase {}.",
                 curr_card.to_usize(),
                 card_start,
                 card_end,
                 card_text,
-                self.refs_to_young_gen
+                self.refs_to_young_gen,
+                self.phase,
             );
+
+            println!("CARD is in region {}", region);
+            println!("");
+
+            self.dump_spaces();
 
             panic!("card table entry wrong.");
         }
@@ -466,6 +472,54 @@ impl<'a> Verifier<'a> {
             return;
         }
 
+        self.dump_spaces();
+
+        println!(
+            "found invalid reference to {} in {} (at {}, in object {}) during {} phase.",
+            reference,
+            name,
+            slot.address(),
+            container_obj,
+            self.phase,
+        );
+
+        if container_obj.is_non_null() {
+            let object = container_obj.to_obj();
+            let cls = object.header().vtbl().class();
+            let size = object.size();
+            println!("\tsource object of {} (size={})", cls.name(get_vm()), size);
+        }
+
+        if self.young.contains(reference)
+            && !self.to_active.contains(reference)
+            && !self.eden_active.contains(reference)
+        {
+            println!("reference points into young generation but not into the active semi-space.");
+
+            if self.young.eden_total().contains(reference) {
+                println!("\treference points into eden-space");
+            }
+
+            if self.young.from_total().contains(reference) {
+                println!("\treference points into from-space");
+            }
+
+            if self.young.to_total().contains(reference) {
+                println!("\treference points into to-space");
+            }
+        }
+
+        println!("try print target object size and class:");
+
+        let object = reference.to_obj();
+        println!("\tsize {}", object.size());
+        let cls = object.header().vtbl().class();
+        println!("\tclass {}", cls.name(get_vm()));
+
+        panic!("reference neither pointing into young nor old generation.");
+    }
+
+    fn dump_spaces(&self) {
         let perm_region = self.perm_space.used_region();
 
         println!(
@@ -517,49 +571,6 @@ impl<'a> Verifier<'a> {
             "TTL: {}-{}",
             self.reserved_area.start, self.reserved_area.end
         );
-        println!(
-            "found invalid reference to {} in {} (at {}, in object {}) during {} phase.",
-            reference,
-            name,
-            slot.address(),
-            container_obj,
-            self.phase,
-        );
-
-        if container_obj.is_non_null() {
-            let object = container_obj.to_obj();
-            let cls = object.header().vtbl().class();
-            let size = object.size();
-            println!("\tsource object of {} (size={})", cls.name(get_vm()), size);
-        }
-
-        if self.young.contains(reference)
-            && !self.to_active.contains(reference)
-            && !self.eden_active.contains(reference)
-        {
-            println!("reference points into young generation but not into the active semi-space.");
-
-            if self.young.eden_total().contains(reference) {
-                println!("\treference points into eden-space");
-            }
-
-            if self.young.from_total().contains(reference) {
-                println!("\treference points into from-space");
-            }
-
-            if self.young.to_total().contains(reference) {
-                println!("\treference points into to-space");
-            }
-        }
-
-        println!("try print target object size and class:");
-
-        let object = reference.to_obj();
-        println!("\tsize {}", object.size());
-        let cls = object.header().vtbl().class();
-        println!("\tclass {}", cls.name(get_vm()));
-
-        panic!("reference neither pointing into young nor old generation.");
     }
 }
 
