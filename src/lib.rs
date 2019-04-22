@@ -6,6 +6,7 @@
 #![feature(allocator_api)]
 
 extern crate alloc;
+extern crate backtrace;
 extern crate byteorder;
 extern crate capstone;
 extern crate core;

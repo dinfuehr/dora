@@ -132,9 +132,52 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
         let code_map = vm.code_map.lock();
         code_map.dump(vm);
 
+        dump_last_frame(es.pc);
+        dump_backtrace();
+
         unsafe {
             libc::_exit(1);
         }
+    }
+}
+
+fn dump_backtrace() {
+    let mut frame_idx = 0;
+    backtrace::trace(|frame| {
+        let ip = frame.ip();
+        println!("frame #{}: 0x{:x}", frame_idx, ip as usize);
+
+        backtrace::resolve(ip, |symbol| {
+            dump_symbol(symbol);
+        });
+
+        frame_idx += 1;
+        true
+    });
+}
+
+fn dump_last_frame(pc: usize) {
+    println!("last frame:");
+    backtrace::resolve(pc as *mut libc::c_void, |symbol| {
+        dump_symbol(symbol);
+    });
+}
+
+fn dump_symbol(symbol: &backtrace::Symbol) {
+    if let Some(name) = symbol.name() {
+        println!("\tname: {}", name);
+    }
+
+    if let Some(addr) = symbol.addr() {
+        println!("\taddr: 0x{:x}", addr as usize);
+    }
+
+    if let Some(filename) = symbol.filename() {
+        println!("\tfilename: {}", filename.display());
+    }
+
+    if let Some(lineno) = symbol.lineno() {
+        println!("\tlineno: {}", lineno);
     }
 }
 

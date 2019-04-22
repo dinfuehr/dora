@@ -18,6 +18,7 @@ scoped_threadpool = "*"
 parking_lot = "*"
 fixedbitset = "*"
 num_cpus = "*"
+backtrace = "*"
 
 [dependencies.capstone]
 git = "https://github.com/ebfe/rust-capstone.git"
