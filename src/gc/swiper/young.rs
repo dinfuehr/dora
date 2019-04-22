@@ -454,7 +454,7 @@ impl Block {
             arena::commit(old_committed.into(), size, false);
         } else if old_committed > new_committed {
             let size = old_committed - new_committed;
-            arena::forget(new_committed.into(), size);
+            arena::discard(new_committed.into(), size);
         }
 
         self.alloc.reset_limit(new_committed.into());

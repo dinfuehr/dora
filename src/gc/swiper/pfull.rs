@@ -585,7 +585,7 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
                             let free_start = large_alloc.address();
                             let free_size = large_alloc.size;
 
-                            arena::forget(free_start, free_size);
+                            arena::discard(free_start, free_size);
                             free_regions.push(free_start.region_start(free_size));
                             freed += free_size;
                         }

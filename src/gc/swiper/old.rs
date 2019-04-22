@@ -330,7 +330,7 @@ impl OldGenProtected {
             let size = region.mapped.end.offset_from(start);
 
             if size > 0 {
-                arena::forget(start, size);
+                arena::discard(start, size);
             }
         }
 
@@ -364,7 +364,7 @@ impl OldGenProtected {
                     // memory needs to be forgotten
                     if start < new.mapped.start {
                         let size = new.mapped.start.offset_from(start);
-                        arena::forget(start, size);
+                        arena::discard(start, size);
                     }
 
                     start = new.mapped.end;
@@ -374,7 +374,7 @@ impl OldGenProtected {
 
             if start < end {
                 let size = end.offset_from(start);
-                arena::forget(start, size);
+                arena::discard(start, size);
             }
         }
 

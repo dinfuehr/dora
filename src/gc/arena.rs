@@ -94,19 +94,19 @@ pub fn uncommit(ptr: Address, size: usize) {
     }
 }
 
-pub fn forget(ptr: Address, size: usize) {
+pub fn discard(ptr: Address, size: usize) {
     debug_assert!(ptr.is_page_aligned());
     debug_assert!(mem::is_page_aligned(size));
 
     let res = unsafe { libc::madvise(ptr.to_mut_ptr(), size, libc::MADV_DONTNEED) };
 
     if res != 0 {
-        panic!("forgetting memory with madvise() failed");
+        panic!("discarding memory with madvise() failed");
     }
 
     let res = unsafe { libc::mprotect(ptr.to_mut_ptr(), size, libc::PROT_NONE) };
 
     if res != 0 {
-        panic!("forgetting memory with mprotect() failed");
+        panic!("discarding memory with mprotect() failed");
     }
 }
