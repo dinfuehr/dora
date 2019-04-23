@@ -83,7 +83,7 @@ impl Terminator {
 
     pub fn try_terminate(&self) -> bool {
         if self.const_nworkers == 1 {
-            return;
+            return true;
         }
 
         self.decrease_workers();
