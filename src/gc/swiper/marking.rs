@@ -69,17 +69,23 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, threadpool: &mut Pool
 }
 
 pub struct Terminator {
+    const_nworkers: usize,
     nworkers: AtomicUsize,
 }
 
 impl Terminator {
     pub fn new(number_workers: usize) -> Terminator {
         Terminator {
+            const_nworkers: number_workers,
             nworkers: AtomicUsize::new(number_workers),
         }
     }
 
     pub fn try_terminate(&self) -> bool {
+        if self.const_nworkers == 1 {
+            return;
+        }
+
         self.decrease_workers();
         thread::sleep(Duration::from_micros(1));
         self.zero_or_increase_workers()
