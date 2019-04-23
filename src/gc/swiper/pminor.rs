@@ -574,6 +574,13 @@ where
     }
 
     fn visit_dirty_card(&mut self, card_idx: CardIdx, region: Region) {
+        if card_idx == self.card_table.card_idx(region.start) {
+            let first_object = region.start;
+            let ref_to_young_gen = false;
+            self.copy_old_card(card_idx, first_object, region, ref_to_young_gen);
+            return;
+        }
+
         let crossing_entry = self.crossing_map.get(card_idx);
         let card_start = self.card_table.to_address(card_idx);
 

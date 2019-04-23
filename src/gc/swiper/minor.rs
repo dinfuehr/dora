@@ -353,6 +353,13 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
     fn visit_dirty_cards_in_old_region(&mut self, region: Region) {
         self.card_table
             .visit_dirty_in_old(region.start, region.end, |card_idx| {
+                if card_idx == self.card_table.card_idx(region.start) {
+                    let first_object = region.start;
+                    let ref_to_young_gen = false;
+                    self.copy_old_card(card_idx, first_object, region, ref_to_young_gen);
+                    return;
+                }
+
                 let crossing_entry = self.crossing_map.get(card_idx);
                 let card_start = self.card_table.to_address(card_idx);
 
