@@ -249,7 +249,16 @@ impl Swiper {
             "pre-minor",
             &rootset,
             false,
+            Vec::new(),
         );
+
+        let init_old_top = self
+            .old
+            .protected()
+            .regions
+            .iter()
+            .map(|r| r.top())
+            .collect::<Vec<_>>();
 
         let promotion_failed = if vm.args.parallel_minor() {
             let mut pool = self.threadpool.lock();
@@ -308,6 +317,7 @@ impl Swiper {
             "post-minor",
             &rootset,
             promotion_failed,
+            init_old_top,
         );
 
         promotion_failed
@@ -321,6 +331,7 @@ impl Swiper {
             "pre-full",
             &rootset,
             reason == GcReason::PromotionFailure,
+            Vec::new(),
         );
 
         if vm.args.parallel_full() {
@@ -376,6 +387,7 @@ impl Swiper {
             "post-full",
             &rootset,
             false,
+            Vec::new(),
         );
     }
 
@@ -387,6 +399,7 @@ impl Swiper {
         name: &str,
         rootset: &[Slot],
         promotion_failed: bool,
+        init_old_top: Vec<Address>,
     ) {
         if vm.args.flag_gc_verify {
             if vm.args.flag_gc_dev_verbose {
@@ -406,6 +419,7 @@ impl Swiper {
                 self.reserved_area.clone(),
                 phase,
                 promotion_failed,
+                init_old_top,
             );
             verifier.verify();
 

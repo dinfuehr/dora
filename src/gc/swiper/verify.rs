@@ -88,6 +88,7 @@ pub struct Verifier<'a> {
     from_active: Region,
     to_active: Region,
     reserved_area: Region,
+    init_old_top: Vec<Address>,
 
     phase: VerifierPhase,
     promotion_failed: bool,
@@ -105,6 +106,7 @@ impl<'a> Verifier<'a> {
         reserved_area: Region,
         phase: VerifierPhase,
         promotion_failed: bool,
+        init_old_top: Vec<Address>,
     ) -> Verifier<'a> {
         let old_protected = old.protected();
 
@@ -130,6 +132,7 @@ impl<'a> Verifier<'a> {
 
             phase: phase,
             promotion_failed: promotion_failed,
+            init_old_top: init_old_top,
         }
     }
 
@@ -349,6 +352,20 @@ impl<'a> Verifier<'a> {
             assert!(!region.end.is_card_aligned());
             self.refs_to_young_gen = 0;
             return;
+        }
+
+        // The last card of a region is not cleared, promoting objects during the minor
+        // collection phase can move this card back in the heap.
+        if self.phase.is_post_minor()
+            && expected_card_entry.is_clean()
+            && actual_card_entry.is_dirty()
+        {
+            for &init_old_top in &self.init_old_top {
+                if curr_card == self.card_table.card_idx(init_old_top) {
+                    self.refs_to_young_gen = 0;
+                    return;
+                }
+            }
         }
 
         if actual_card_entry != expected_card_entry {
