@@ -1,0 +1,28 @@
+fun main() {
+    let threads = argv(0).parseInt();
+
+    var i = 0;
+
+    while i < threads {
+        let thread = MyThread();
+        thread.start();
+        i = i + 1;
+    }
+}
+
+class MyThread() : Thread {
+    override fun run() {
+        allocator();
+    }
+}
+
+fun allocator() {
+    var i = 0;
+
+    while i < 20_000_000 {
+        Foo();
+        i = i + 1;
+    }
+}
+
+class Foo

@@ -7,18 +7,18 @@ class Node(left: Node, right: Node) {
     static fun leaf() -> Node = Node(nil, nil);
 }
 
-const kStretchTreeDepth: Int = 18;    // about 16M
-const kLongLivedTreeDepth: Int = 16;  // about 4M
-const kArraySize: Int = 500000;       // about 4M
+var stretchTreeDepth: Int;
+var longLivedTreeDepth: Int;
+const kArraySize: Int = 500000;
 const kMinTreeDepth: Int = 4;
 const kMaxTreeDepth: Int = 16;
 
 fun treeSize (i: Int) -> Int {
-    return (1 << (1 + 1)) - 1;
+    return (1 << (i + 1)) - 1;
 }
 
 fun numIters(i: Int) -> Int {
-    return 2 * treeSize(kStretchTreeDepth) / treeSize(i);
+    return 4 * treeSize(stretchTreeDepth) / treeSize(i);
 }
 
 fun populate(var iDepth: Int, thisNode: Node) {
@@ -72,20 +72,25 @@ fun timeConstruction(depth: Int) {
     println("\tBottom up construction took " + msecs.toString() + "ms");
 }
 
-fun printDiagnostics() {
-
-}
-
 fun main() {
-    println("Stretching memory with a binary tree of depth " + kStretchTreeDepth.toString());
-    printDiagnostics();
+    if argc() != 1 {
+        println("usage: gcbench <depth>");
+        exit(1);
+    }
+
+    let depth = argv(0).parseInt();
+
+    stretchTreeDepth = depth+1;
+    longLivedTreeDepth = depth;
+
+    println("Stretching memory with a binary tree of depth " + stretchTreeDepth.toString());
     let start = timestamp();
 
-    makeTree(kStretchTreeDepth);
+    makeTree(stretchTreeDepth);
 
-    println("Creating a long-lived binary tree of depth " + kLongLivedTreeDepth.toString());
+    println("Creating a long-lived binary tree of depth " + longLivedTreeDepth.toString());
     let longLivedTree = Node::leaf();
-    populate(kLongLivedTreeDepth, longLivedTree);
+    populate(longLivedTreeDepth, longLivedTree);
 
     println("Creating a long-lived array of " + kArraySize.toString() + " doubles");
     let array = arrayFill::<Double>(kArraySize, 0.0);
@@ -96,11 +101,10 @@ fun main() {
         array[i] = 1.0/i.toDouble();
         i = i + 1;
     }
-    printDiagnostics();
 
     var d = kMinTreeDepth;
 
-    while d <= kMaxTreeDepth {
+    while d <= depth {
         timeConstruction(d);
         d = d + 2;
     }
@@ -108,6 +112,5 @@ fun main() {
     assert(longLivedTree !== nil && array[1000] == 1.0/1000.0);
     let finish = timestamp();
     let elapsed = (finish - start).toFloat() / 1000.0F / 1000.0F;
-    printDiagnostics();
     println("Completed in " + elapsed.toString() + "ms.");
 }

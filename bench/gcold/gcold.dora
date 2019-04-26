@@ -89,7 +89,7 @@ fun makeTree(h: Int) -> TreeNode {
     return res;
 }
 
-fun inititialize() {
+fun initialize() {
     let ntrees = ((size * MEG).toLong() / treeSize).toInt();
     trees = Array::<TreeNode>(ntrees);
 
@@ -248,7 +248,7 @@ fun doYoungGenAlloc(n: Long, nwords: Int) {
     var allocated = 0L;
 
     while allocated < n {
-        aexport = Array::<Int>(nwords);
+        aexport = Array::<Long>(nwords);
         allocated = allocated + nbytes.toLong();
     }
 
@@ -292,7 +292,7 @@ fun main() {
     println("pointer mutation rate is " + ptrMutRate.toString());
     println(steps.toString() + " steps");
 
-    inititialize();
+    initialize();
     checkTrees();
     youngBytes = 0L;
     nodes = 0L;
@@ -317,7 +317,7 @@ fun main() {
     println("Allocated " + steps.toString() + " Mb of young gen garabge"
             + " (= " + (steps.toFloat() / secs).toString() + " Mb/sec)");
     println("    (actually allocated "
-            + (youngBytes.toFloat() / MEG.toFloat()).toString() + " megabytes");
+            + (youngBytes.toFloat() / MEG.toFloat()).toString() + " megabytes)");
     let promoted = steps.toFloat() / promoteRate.toFloat();
     println("Promoted " + promoted.toString()
             + " Mb (= " + (promoted / secs).toString() + " Mb/sec)");

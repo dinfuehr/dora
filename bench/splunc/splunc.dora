@@ -4,13 +4,6 @@ open abstract class Node {
     var left: Node;
     var right: Node;
 
-    init() {}
-
-    init(birthday: Int, value: Int) {
-        self.birthday = birthday;
-        self.value = value;
-    }
-
     static fun splay(var tree: Node, node: Node) -> Node {
         if tree === nil {
             return tree;
@@ -19,8 +12,8 @@ open abstract class Node {
         node.left = nil;
         node.right = nil;
 
-        var l: Node = nil;
-        var r: Node = nil;
+        var l: Node = node;
+        var r: Node = node;
 
         loop {
             if node.value <= tree.value {
@@ -29,6 +22,7 @@ open abstract class Node {
                 }
 
                 if node.value <= tree.left.value {
+                    // rotate right
                     let y = tree.left;
                     tree.left = y.right;
                     y.right = tree;
@@ -38,6 +32,7 @@ open abstract class Node {
                     }
                 }
 
+                // link right
                 r.left = tree;
                 r = tree;
                 tree = tree.left;
@@ -48,6 +43,7 @@ open abstract class Node {
                 }
 
                 if node.value > tree.right.value {
+                    // rotate left
                     let y = tree.right;
                     tree.right = y.left;
                     y.left = tree;
@@ -57,6 +53,7 @@ open abstract class Node {
                     }
                 }
 
+                // link left
                 l.right = tree;
                 l = tree;
                 tree = tree.right;
@@ -84,13 +81,13 @@ open abstract class Node {
             node.left = tree.left;
             node.right = tree;
             tree.left = nil;
-        } else {
+        } else { // if (node.value > true.value)
             node.right = tree.right;
             node.left = tree;
             tree.right = nil;
         }
 
-        return nil;
+        return node;
     }
 
     static fun trunc(date: Int, tree: Node, depth: Int) {
@@ -100,6 +97,9 @@ open abstract class Node {
 
         if tree.left !== nil {
             if depth == 0 {
+                /*if tree.left !== nil {
+                    println("truncate left");
+                }*/
                 tree.left = nil;
             } else {
                 Node::trunc(date, tree.left, depth-1);
@@ -108,6 +108,9 @@ open abstract class Node {
 
         if tree.right !== nil {
             if depth == 0 {
+                /*if tree.right !== nil {
+                    println("truncate right");
+                }*/
                 tree.right = nil;
             } else {
                 Node::trunc(date, tree.right, depth-1);
@@ -144,6 +147,14 @@ open abstract class Node {
             self.right.printTree(date, prefix + "  ");
         }
     }
+
+    static fun countNodes(node: Node) -> Int {
+        if node === nil {
+            return 0;
+        }
+
+        return 1 + Node::countNodes(node.left) + Node::countNodes(node.right);
+    }
 }
 
 class NodeA: Node {}
@@ -160,12 +171,12 @@ class Node80: Node { let x1: Long = 0L; let x2: Long = 0L; let x3: Long = 0L; le
 
 fun main() {
     if argc() < 4 {
-        println("usage: spluc <seed> <max-size> <iterations> <trunc-depth> [<iterations> <trunc-depth>]");
-        return;
+        println("usage: splunc <seed> <max-size> <iterations> <trunc-depth> [<iterations> <trunc-depth>]");
+        exit(1);
     }
 
     let rnd = Random(argv(0).parseLong());
-    let max_size = argv(0).parseInt();
+    let max_size = argv(1).parseInt();
     var date = 0;
 
     var tree: Node = NodeA();
@@ -178,6 +189,9 @@ fun main() {
     while j + 2 <= argc() {
         let n = argv(j).parseInt();
         let depth = argv(j+1).parseInt();
+
+        // println("n = " + n.toString());
+        // println("depth = " + depth.toString());
 
         var i = 0;
         while i < n {
@@ -201,6 +215,8 @@ fun main() {
 
             tree = Node::insert(tree, node);
             Node::trunc(date, tree, depth);
+
+            // println("nodes in tree: " + Node::countNodes(tree).toString());
 
             i = i + 1;
         }

@@ -1,9 +1,29 @@
 fun main() {
+    if argc() != 3 {
+        println("usage: splay <seed> <tree-size> <iterations>");
+        exit(1);
+    }
 
+    rnd = Random(argv(0).parseLong());
+    splayTreeSize = argv(1).parseInt();
+    let iterations = argv(2).parseInt();
+
+    let bench = Benchmark();
+    bench.setup();
+
+    var i = 0;
+    while i < iterations {
+        bench.run();
+        i = i + 1;
+    }
+
+    bench.tearDown();
 }
 
-const splayTreeSize: Int = 8000;
-const splayTreeModifications: Int = 80;
+var rnd: Random;
+
+var splayTreeSize: Int;
+const splayTreeModifications: Int = 1000;
 const splayTreePayloadDepth: Int = 5;
 
 class Benchmark {
@@ -83,7 +103,7 @@ class Benchmark {
         loop {
             key = self.generateKey();
 
-            if self.splayTree.find(key) !== nil {
+            if self.splayTree.find(key) === nil {
                 break;
             }
         }
@@ -95,7 +115,7 @@ class Benchmark {
     }
 
     fun generateKey() -> Int {
-        return 0;
+        return rnd.nextInt();
     }
 
     fun rms() {
@@ -328,4 +348,4 @@ class SplayNode(var key: Int, var value: PayloadNode) {
     var right: SplayNode;
 }
 
-class PayloadNode(let array: Array<Int>, let text: Str, let left: PayloadNode, let right: PayloadNode)
+class PayloadNode(let array: Array<Int>, let text: String, let left: PayloadNode, let right: PayloadNode)

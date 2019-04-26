@@ -1,0 +1,3 @@
+//= file bench/splay/splay.dora
+//= args 123 8000 10
+//= vm-args "--gc=swiper --max-heap-size=128M"
