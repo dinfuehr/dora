@@ -286,9 +286,17 @@ impl HeapConfig {
         calculate_numbers(&values)
     }
 
+    pub fn full_marking_all(&self) -> AllNumbers {
+        AllNumbers(self.full_phases.iter().map(|x| x.marking).collect())
+    }
+
     pub fn full_compute_forward(&self) -> Numbers {
         let values: Vec<_> = self.full_phases.iter().map(|x| x.compute_forward).collect();
         calculate_numbers(&values)
+    }
+
+    pub fn full_compute_forward_all(&self) -> AllNumbers {
+        AllNumbers(self.full_phases.iter().map(|x| x.compute_forward).collect())
     }
 
     pub fn full_update_refs(&self) -> Numbers {
@@ -296,9 +304,17 @@ impl HeapConfig {
         calculate_numbers(&values)
     }
 
+    pub fn full_update_refs_all(&self) -> AllNumbers {
+        AllNumbers(self.full_phases.iter().map(|x| x.update_refs).collect())
+    }
+
     pub fn full_relocate(&self) -> Numbers {
         let values: Vec<_> = self.full_phases.iter().map(|x| x.relocate).collect();
         calculate_numbers(&values)
+    }
+
+    pub fn full_relocate_all(&self) -> AllNumbers {
+        AllNumbers(self.full_phases.iter().map(|x| x.relocate).collect())
     }
 
     pub fn full_reset_cards(&self) -> Numbers {
@@ -306,9 +322,17 @@ impl HeapConfig {
         calculate_numbers(&values)
     }
 
+    pub fn full_reset_cards_all(&self) -> AllNumbers {
+        AllNumbers(self.full_phases.iter().map(|x| x.reset_cards).collect())
+    }
+
     pub fn full_total(&self) -> Numbers {
         let values: Vec<_> = self.full_phases.iter().map(|x| x.total).collect();
         calculate_numbers(&values)
+    }
+
+    pub fn full_total_all(&self) -> AllNumbers {
+        AllNumbers(self.full_phases.iter().map(|x| x.total).collect())
     }
 
     pub fn minor_roots(&self) -> Numbers {
@@ -316,14 +340,26 @@ impl HeapConfig {
         calculate_numbers(&values)
     }
 
+    pub fn minor_roots_all(&self) -> AllNumbers {
+        AllNumbers(self.minor_phases.iter().map(|x| x.roots).collect())
+    }
+
     pub fn minor_tracing(&self) -> Numbers {
         let values: Vec<_> = self.minor_phases.iter().map(|x| x.tracing).collect();
         calculate_numbers(&values)
     }
 
+    pub fn minor_tracing_all(&self) -> AllNumbers {
+        AllNumbers(self.minor_phases.iter().map(|x| x.tracing).collect())
+    }
+
     pub fn minor_total(&self) -> Numbers {
         let values: Vec<_> = self.minor_phases.iter().map(|x| x.total).collect();
         calculate_numbers(&values)
+    }
+
+    pub fn minor_total_all(&self) -> AllNumbers {
+        AllNumbers(self.minor_phases.iter().map(|x| x.total).collect())
     }
 
     pub fn grow_old(&mut self, size: usize) -> bool {
@@ -333,6 +369,23 @@ impl HeapConfig {
         } else {
             false
         }
+    }
+}
+
+pub struct AllNumbers(Vec<f32>);
+
+impl fmt::Display for AllNumbers {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[")?;
+        let mut first = true;
+        for num in &self.0 {
+            if !first {
+                write!(f, ",")?;
+            }
+            write!(f, "{:.1}", num)?;
+            first = false;
+        }
+        write!(f, "]")
     }
 }
 

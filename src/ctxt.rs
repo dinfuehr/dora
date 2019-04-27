@@ -24,6 +24,7 @@ use dora_parser::lexer::position::Position;
 use exception::DoraToNativeInfo;
 use gc::{Address, Gc};
 use object::{Ref, Testing};
+use os::perf::counters::PerfCounters;
 use safepoint::{PollingPage, Safepoint};
 use semck::specialize::{specialize_class_id, specialize_class_id_params};
 use stdlib;
@@ -102,6 +103,7 @@ pub struct SemContext<'ast> {
     pub throw_thunk: Mutex<Address>,
     pub threads: Threads,
     pub safepoint: Safepoint,
+    pub perf_counters: PerfCounters,
 }
 
 impl<'ast> SemContext<'ast> {
@@ -109,6 +111,7 @@ impl<'ast> SemContext<'ast> {
         let empty_class_id: ClassId = 0.into();
         let empty_trait_id: TraitId = 0.into();
         let gc = Gc::new(&args);
+        let perf_counters = PerfCounters::new(args.flag_gc_counters);
 
         let ctxt = Box::new(SemContext {
             args: args,
@@ -165,6 +168,7 @@ impl<'ast> SemContext<'ast> {
             throw_thunk: Mutex::new(Address::null()),
             threads: Threads::new(),
             safepoint: Safepoint::new(),
+            perf_counters: perf_counters,
         });
 
         set_vm(&ctxt);

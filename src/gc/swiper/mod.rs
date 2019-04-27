@@ -203,6 +203,7 @@ impl Swiper {
         mut reason: GcReason,
     ) -> CollectionKind {
         safepoint::stop_the_world(vm, |threads| {
+            vm.perf_counters.stop();
             controller::start(&self.config, &self.young, &self.old, &self.large);
 
             tlab::make_iterable_all(vm, threads);
@@ -236,6 +237,7 @@ impl Swiper {
                 &vm.args,
                 reason,
             );
+            vm.perf_counters.start();
 
             kind
         })
@@ -514,6 +516,28 @@ impl Collector for Swiper {
         let gc_percentage = ((total_gc / runtime) * 100.0).round();
         let mutator = runtime - total_gc;
         let mutator_percentage = 100.0 - gc_percentage;
+
+        println!("GC stats: total={:.1}", runtime);
+        println!("GC stats: mutator={:.1}", mutator);
+        println!("GC stats: collection={:.1}", total_gc);
+        println!("GC stats: collection-minor={:.1}", config.total_minor_pause);
+        println!("GC stats: collection-full={:.1}", config.total_full_pause);
+
+
+        println!("");
+        println!("GC stats: full-collections={:.1}", config.total_full_collections);
+        println!("GC stats: full-total={}", config.full_total_all());
+        println!("GC stats: full-marking={}", config.full_marking_all());
+        println!("GC stats: full-compute-forward={}", config.full_compute_forward_all());
+        println!("GC stats: full-update-refs={}", config.full_update_refs_all());
+        println!("GC stats: full-relocate={}", config.full_relocate_all());
+        println!("GC stats: full-reset-cards={}", config.full_reset_cards_all());
+        println!("");
+        println!("GC stats: minor-collections={:.1}", config.total_minor_collections);
+        println!("GC stats: minor-total={}", config.minor_total_all());
+        println!("GC stats: minor-roots={}", config.minor_roots_all());
+        println!("GC stats: minor-tracing={}", config.minor_tracing_all());
+        println!("");
 
         println!(
             "GC summary: {:.1}ms minor ({}), {:.1}ms full ({}), {:.1}ms collection, {:.1}ms mutator, {:.1}ms total ({}% mutator, {}% GC)",

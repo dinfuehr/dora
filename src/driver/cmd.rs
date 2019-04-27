@@ -45,6 +45,7 @@ Options:
     --gc-parallel-minor     Enable parallel minor collection.
     --gc-parallel           Enable both parallel minor and full collection.
     --gc-stats              Print GC statistics.
+    --gc-counters           Print GC performance counters.
     --gc-verbose            Verbose GC.
     --gc-dev-verbose        Verbose GC for developers.
     --gc-verify             Verify heap before and after collections.
@@ -88,6 +89,7 @@ pub struct Args {
     flag_gc_parallel_minor: bool,
     flag_gc_parallel: bool,
     pub flag_gc_stats: bool,
+    pub flag_gc_counters: bool,
     pub flag_gc_verbose: bool,
     pub flag_gc_dev_verbose: bool,
     pub flag_gc_verify: bool,
@@ -183,6 +185,7 @@ impl Default for Args {
             flag_gc_parallel_minor: false,
             flag_gc_parallel: false,
             flag_gc_stats: false,
+            flag_gc_counters: false,
             flag_gc_verbose: false,
             flag_gc_dev_verbose: false,
             flag_gc_verify: false,

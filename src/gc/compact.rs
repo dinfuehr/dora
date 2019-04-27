@@ -81,9 +81,11 @@ impl Collector for MarkCompactCollector {
         let mut timer = Timer::new(vm.args.flag_gc_stats);
 
         safepoint::stop_the_world(vm, |threads| {
+            vm.perf_counters.stop();
             tlab::make_iterable_all(vm, threads);
             let rootset = get_rootset(vm, threads);
             self.mark_compact(vm, &rootset, reason);
+            vm.perf_counters.start();
         });
 
         if vm.args.flag_gc_stats {
@@ -100,6 +102,10 @@ impl Collector for MarkCompactCollector {
     fn dump_summary(&self, runtime: f32) {
         let stats = self.stats.lock();
         let (mutator, gc) = stats.percentage(runtime);
+
+        println!("GC stats: total={:.1}", runtime);
+        println!("GC stats: mutator={:.1}", stats.mutator(runtime));
+        println!("GC stats: collection={:.1}", stats.pause());
 
         println!(
             "GC summary: {:.1}ms collection ({}), {:.1}ms mutator, {:.1}ms total ({}% mutator, {}% GC)",
