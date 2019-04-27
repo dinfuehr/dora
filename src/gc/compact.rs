@@ -102,9 +102,10 @@ impl Collector for MarkCompactCollector {
         let (mutator, gc) = stats.percentage(runtime);
 
         println!(
-            "GC summary: {:.1}ms collection ({}), {:.1}ms runtime ({}% mutator, {}% GC)",
+            "GC summary: {:.1}ms collection ({}), {:.1}ms mutator, {:.1}ms total ({}% mutator, {}% GC)",
             stats.pause(),
             stats.collections(),
+            stats.mutator(runtime),
             runtime,
             mutator,
             gc,

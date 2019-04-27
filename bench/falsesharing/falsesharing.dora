@@ -1,0 +1,78 @@
+fun main() {
+    if argc() != 2 {
+        println("usage: falsesharing <threads> <iterations>");
+    }
+
+    let threads = argv(0).parseInt();
+    let iterations = argv(1).parseInt();
+    let objects = construct(8096);
+    forceCollect();
+
+    var i = 0;
+
+    while i < threads {
+        let thread = MyThread(i, threads, iterations, objects);
+        thread.start();
+        i = i + 1;
+    }
+}
+
+fun construct(size: Int) -> Array<Foo> {
+    let objects = Array::<Foo>(size);
+
+    var i = 0;
+
+    while i < objects.length() {
+        objects[i] = Foo(nil, nil);
+        i = i + 1;
+    }
+
+    i = 0;
+
+    while i < objects.length() {
+        if i == 0 {
+             objects[0].left = objects[size-1];
+	} else {
+	     objects[i].left = objects[i-1];
+	}
+
+	if i == size-1 {
+              objects[i].right = objects[0];
+	} else {
+              objects[i].right = objects[i+1];
+	}
+
+	i = i + 1;
+    }
+
+    return objects;
+}
+
+class MyThread(let thread_idx: Int, let threads: Int, let iters: Int, let objects: Array<Foo>) : Thread {
+    override fun run() {
+	let size = self.objects.length();
+	let objects_per_thread = size / self.threads;
+	assert(size % self.threads == 0);
+	let start_idx = self.thread_idx  * objects_per_thread;
+	let end_idx = start_idx + objects_per_thread;
+
+	var i = 0;
+	var idx = start_idx;
+	let iters = self.iters;
+	while i < iters {
+	    if idx == end_idx {
+	    	idx = start_idx;
+	    }
+	    let o = self.objects[idx];
+	    let tmp = o.left;
+	    o.left = o.right;
+	    o.right = tmp;
+	    idx = idx+1;
+	    i = i+1;
+	}
+
+    }
+}
+
+class Foo(var left: Foo, var right: Foo)
+

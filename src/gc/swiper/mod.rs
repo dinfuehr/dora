@@ -512,14 +512,17 @@ impl Collector for Swiper {
         let config = self.config.lock();
         let total_gc = config.total_minor_pause + config.total_full_pause;
         let gc_percentage = ((total_gc / runtime) * 100.0).round();
+        let mutator = runtime - total_gc;
         let mutator_percentage = 100.0 - gc_percentage;
 
         println!(
-            "GC summary: {:.1}ms minor ({}), {:.1}ms full ({}), {:.1}ms runtime ({}% mutator, {}% GC)",
+            "GC summary: {:.1}ms minor ({}), {:.1}ms full ({}), {:.1}ms collection, {:.1}ms mutator, {:.1}ms total ({}% mutator, {}% GC)",
             config.total_minor_pause,
             config.total_minor_collections,
             config.total_full_pause,
             config.total_full_collections,
+            total_gc,
+            mutator,
             runtime,
             mutator_percentage,
             gc_percentage,

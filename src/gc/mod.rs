@@ -554,6 +554,10 @@ impl CollectionStats {
         self.pause
     }
 
+    fn mutator(&self, runtime: f32) -> f32 {
+        runtime - self.pause
+    }
+
     fn collections(&self) -> usize {
         self.collections
     }
