@@ -68,6 +68,7 @@ pub struct Swiper {
     crossing_map: CrossingMap,
 
     card_table_offset: usize,
+    emit_write_barrier: bool,
 
     // minimum & maximum heap size
     min_heap_size: usize,
@@ -170,6 +171,8 @@ impl Swiper {
 
         let nworkers = args.gc_workers();
 
+        let emit_write_barrier = !args.flag_disable_barrier;
+
         Swiper {
             heap: Region::new(heap_start, heap_end),
             reserved_area: reserved_area,
@@ -183,6 +186,7 @@ impl Swiper {
             config: config,
 
             card_table_offset: card_table_offset,
+            emit_write_barrier: emit_write_barrier,
 
             min_heap_size: min_heap_size,
             max_heap_size: max_heap_size,
@@ -503,7 +507,7 @@ impl Collector for Swiper {
     }
 
     fn needs_write_barrier(&self) -> bool {
-        return true;
+        return self.emit_write_barrier;
     }
 
     fn card_table_offset(&self) -> usize {

@@ -57,6 +57,7 @@ Options:
     --gc-semi-ratio=<num>   Use fixed ratio of semi space in young generation.
 
     --disable-tlab          Disable tlab allocation.
+    --disable-barrier       Disable barriers.
 
     --min-heap-size=<SIZE>  Set minimum heap size.
     --max-heap-size=<SIZE>  Set maximum heap size.
@@ -104,6 +105,7 @@ pub struct Args {
     pub flag_perm_size: Option<MemSize>,
     pub flag_check: bool,
     pub flag_disable_tlab: bool,
+    pub flag_disable_barrier: bool,
 
     pub cmd_test: bool,
 }
@@ -200,6 +202,7 @@ impl Default for Args {
             flag_perm_size: None,
             flag_check: false,
             flag_disable_tlab: false,
+            flag_disable_barrier: false,
 
             cmd_test: false,
         }
