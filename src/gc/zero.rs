@@ -52,4 +52,19 @@ impl Collector for ZeroCollector {
     fn minor_collect(&self, _: &VM, _: GcReason) {
         // do nothing
     }
+
+    fn dump_summary(&self, runtime: f32) {
+        let mutator = runtime;
+        let gc = 0.0f32;
+
+        println!("GC stats: total={:.1}", runtime);
+        println!("GC stats: mutator={:.1}", mutator);
+        println!("GC stats: collection={:.1}", gc);
+
+        println!(
+            "GC summary: 0ms collection (0), {:.1}ms mutator, {:.1}ms total (100% mutator, 0% GC)",
+            mutator,
+            runtime,
+        );
+    }
 }

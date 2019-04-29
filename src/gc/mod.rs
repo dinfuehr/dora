@@ -187,9 +187,7 @@ trait Collector {
     }
 
     // prints GC summary: minor/full collections, etc.
-    fn dump_summary(&self, _runtime: f32) {
-        // do nothing
-    }
+    fn dump_summary(&self, _runtime: f32);
 
     // verify reference
     fn verify_ref(&self, _vm: &VM, _addr: Address) {
