@@ -527,17 +527,31 @@ impl Collector for Swiper {
         println!("GC stats: collection-minor={:.1}", config.total_minor_pause);
         println!("GC stats: collection-full={:.1}", config.total_full_pause);
 
-
         println!("");
-        println!("GC stats: full-collections={:.1}", config.total_full_collections);
+        println!(
+            "GC stats: full-collections={:.1}",
+            config.total_full_collections
+        );
         println!("GC stats: full-total={}", config.full_total_all());
         println!("GC stats: full-marking={}", config.full_marking_all());
-        println!("GC stats: full-compute-forward={}", config.full_compute_forward_all());
-        println!("GC stats: full-update-refs={}", config.full_update_refs_all());
+        println!(
+            "GC stats: full-compute-forward={}",
+            config.full_compute_forward_all()
+        );
+        println!(
+            "GC stats: full-update-refs={}",
+            config.full_update_refs_all()
+        );
         println!("GC stats: full-relocate={}", config.full_relocate_all());
-        println!("GC stats: full-reset-cards={}", config.full_reset_cards_all());
+        println!(
+            "GC stats: full-reset-cards={}",
+            config.full_reset_cards_all()
+        );
         println!("");
-        println!("GC stats: minor-collections={:.1}", config.total_minor_collections);
+        println!(
+            "GC stats: minor-collections={:.1}",
+            config.total_minor_collections
+        );
         println!("GC stats: minor-total={}", config.minor_total_all());
         println!("GC stats: minor-roots={}", config.minor_roots_all());
         println!("GC stats: minor-tracing={}", config.minor_tracing_all());

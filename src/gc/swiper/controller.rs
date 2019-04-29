@@ -9,7 +9,7 @@ use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
 use gc::swiper::CollectionKind;
-use gc::{align_gen, align_gen_down, formatted_size, GcReason, GEN_SIZE, M};
+use gc::{align_gen, align_gen_down, formatted_size, AllNumbers, GcReason, GEN_SIZE, M};
 use mem;
 use os::signal::Trap;
 use stdlib;
@@ -369,23 +369,6 @@ impl HeapConfig {
         } else {
             false
         }
-    }
-}
-
-pub struct AllNumbers(Vec<f32>);
-
-impl fmt::Display for AllNumbers {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "[")?;
-        let mut first = true;
-        for num in &self.0 {
-            if !first {
-                write!(f, ",")?;
-            }
-            write!(f, "{:.1}", num)?;
-            first = false;
-        }
-        write!(f, "]")
     }
 }
 

@@ -48,15 +48,14 @@ impl PerfValues {
 
 #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
 pub mod counters {
+    use super::PerfValues;
     use parking_lot::Mutex;
     use perfcnt::linux::{CacheId, CacheOpId, CacheOpResultId, PerfCounterBuilderLinux};
     use perfcnt::{AbstractPerfCounter, PerfCounter};
-    use super::PerfValues;
 
     pub struct PerfCounters {
         counters: Option<Mutex<Counters>>,
     }
-
 
     struct Counters {
         total: PerfValues,

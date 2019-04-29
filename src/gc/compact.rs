@@ -107,6 +107,10 @@ impl Collector for MarkCompactCollector {
         println!("GC stats: mutator={:.1}", stats.mutator(runtime));
         println!("GC stats: collection={:.1}", stats.pause());
 
+        println!("");
+        println!("GC stats: collection-count={}", stats.collections());
+        println!("GC stats: collection-pauses={}", stats.pauses());
+
         println!(
             "GC summary: {:.1}ms collection ({}), {:.1}ms mutator, {:.1}ms total ({}% mutator, {}% GC)",
             stats.pause(),
