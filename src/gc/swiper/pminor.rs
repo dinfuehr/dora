@@ -17,6 +17,7 @@ use gc::swiper::{CardIdx, CARD_SIZE, LARGE_OBJECT_SIZE};
 use gc::tlab::{TLAB_OBJECT_SIZE, TLAB_SIZE};
 use gc::{fill_region, Address, GcReason, Region};
 use object::{offset_of_array_data, Obj};
+use timer::Timer;
 use vtable::VTable;
 
 use crossbeam_deque::{Injector, Steal, Stealer, Worker};
@@ -53,6 +54,7 @@ pub struct ParallelMinorCollector<'a, 'ast: 'a> {
     number_workers: usize,
     worklist: Vec<Address>,
     config: &'a SharedHeapConfig,
+    phases: MinorCollectorPhases,
 }
 
 impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
@@ -99,11 +101,12 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
 
             worklist: Vec::new(),
             config: config,
+            phases: MinorCollectorPhases::new(),
         }
     }
 
     pub fn phases(&self) -> MinorCollectorPhases {
-        MinorCollectorPhases::new()
+        self.phases.clone()
     }
 
     pub fn collect(&mut self) -> bool {
@@ -157,6 +160,9 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         let mut workers = Vec::with_capacity(self.number_workers);
         let mut stealers = Vec::with_capacity(self.number_workers);
         let injector = Injector::new();
+
+        let stats = self.vm.args.flag_gc_stats;
+        let mut timer = Timer::new(stats);
 
         for _ in 0..self.number_workers {
             let w = Worker::new_lifo();
@@ -216,6 +222,13 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         let next_large = Mutex::new(head);
         let next_large = &next_large;
 
+        let prot_timer: Option<Mutex<(Timer, f32)>> = if stats {
+            Some(Mutex::new((timer, 0.0f32)))
+        } else {
+            None
+        };
+        let prot_timer = &prot_timer;
+
         self.threadpool.scoped(|scoped| {
             for (task_id, worker) in workers.into_iter().enumerate() {
                 let injector = &injector;
@@ -266,6 +279,8 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
                         young_top: young_top,
                         young_limit: young_limit,
                         copy_failed: false,
+
+                        timer: prot_timer,
                     };
 
                     task.run();
@@ -280,6 +295,13 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
                 });
             }
         });
+
+        if let Some(ref mutex) = prot_timer {
+            let mut mutex = mutex.lock();
+            let (ref mut timer, duration_roots) = *mutex;
+            self.phases.roots = duration_roots;
+            self.phases.tracing = timer.stop();
+        }
 
         self.young_top = *young_top.lock();
 
@@ -411,6 +433,8 @@ struct CopyTask<'a, 'ast: 'a> {
     young_top: &'a Mutex<Address>,
     young_limit: Address,
     copy_failed: bool,
+
+    timer: &'a Option<Mutex<(Timer, f32)>>,
 }
 
 impl<'a, 'ast> CopyTask<'a, 'ast>
@@ -420,7 +444,22 @@ where
     fn run(&mut self) {
         self.visit_roots();
         self.visit_dirty_cards();
+
+        self.barrier();
+
         self.trace_gray_objects();
+    }
+
+    fn barrier(&mut self) {
+        self.barrier.wait();
+
+        if self.task_id == 0 {
+            if let Some(ref mutex) = self.timer {
+                let mut mutex = mutex.lock();
+                let (ref mut timer, ref mut duration_roots) = *mutex;
+                *duration_roots = timer.stop();
+            }
+        }
     }
 
     fn visit_roots(&mut self) {
@@ -715,8 +754,6 @@ where
     }
 
     fn trace_gray_objects(&mut self) {
-        self.barrier.wait();
-
         loop {
             let object_addr = if let Some(object_addr) = self.pop() {
                 object_addr
