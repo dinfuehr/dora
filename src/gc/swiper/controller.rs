@@ -15,8 +15,6 @@ use os::signal::Trap;
 use stdlib;
 use timer;
 
-const MAX_YOUNG_SIZE: usize = 20 * M;
-
 const INIT_HEAP_SIZE_RATIO: usize = 2;
 const INIT_YOUNG_RATIO: usize = 4;
 const INIT_SEMI_RATIO: usize = 3;
