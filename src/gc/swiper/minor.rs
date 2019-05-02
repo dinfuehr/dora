@@ -107,6 +107,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         self.young_limit = to_committed.end;
 
         self.from_active = self.young.from_active();
+        let init_young_size = self.young.eden_active().size() + self.young.from_active().size();
 
         if dev_verbose {
             println!("Minor GC: Phase 1 (roots)");
@@ -155,7 +156,9 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
 
         let mut config = self.config.lock();
         config.minor_promoted = self.promoted_size;
-        config.minor_copied = self.young.from_active().size();
+        let copied_size = self.young.to_active().size();
+        config.minor_copied = copied_size;
+        config.minor_dead = init_young_size - self.promoted_size - copied_size;
 
         self.promotion_failed
     }

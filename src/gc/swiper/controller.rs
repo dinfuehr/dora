@@ -169,7 +169,7 @@ fn print(config: &HeapConfig, kind: CollectionKind, reason: GcReason) {
     match kind {
         CollectionKind::Minor => {
             println!(
-                "GC: {} ({}) {}/{} -> {}/{}; {:.2} ms; {} promoted; {} copied",
+                "GC: {} ({}) {}/{} -> {}/{}; {:.2} ms; {} promoted; {} copied; {} garbage",
                 kind,
                 reason,
                 formatted_size(config.start_object_size),
@@ -179,6 +179,7 @@ fn print(config: &HeapConfig, kind: CollectionKind, reason: GcReason) {
                 config.gc_duration,
                 formatted_size(config.minor_promoted),
                 formatted_size(config.minor_copied),
+                formatted_size(config.minor_dead),
             );
         }
 
@@ -227,6 +228,7 @@ pub struct HeapConfig {
 
     pub minor_promoted: usize,
     pub minor_copied: usize,
+    pub minor_dead: usize,
 
     pub total_minor_collections: usize,
     pub total_minor_pause: f32,
@@ -260,6 +262,7 @@ impl HeapConfig {
 
             minor_promoted: 0,
             minor_copied: 0,
+            minor_dead: 0,
 
             total_minor_collections: 0,
             total_minor_pause: 0f32,
