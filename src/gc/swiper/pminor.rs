@@ -4,12 +4,12 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Barrier;
 
 use ctxt::VM;
+use gc::pmarking::Terminator;
 use gc::root::Slot;
 use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::controller::{MinorCollectorPhases, SharedHeapConfig};
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use gc::swiper::large::{LargeAlloc, LargeSpace};
-use gc::swiper::marking::Terminator;
 use gc::swiper::old::OldGen;
 use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;

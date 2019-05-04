@@ -3,6 +3,7 @@ use scoped_threadpool::Pool;
 use std::cmp;
 
 use ctxt::VM;
+use gc::pmarking;
 use gc::root::Slot;
 use gc::space::Space;
 use gc::swiper::arena;
@@ -11,7 +12,6 @@ use gc::swiper::controller::FullCollectorPhases;
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use gc::swiper::full::verify_marking;
 use gc::swiper::large::{LargeAlloc, LargeSpace};
-use gc::swiper::marking;
 use gc::swiper::old::{OldGen, OldGenProtected, OldGenRegion};
 use gc::swiper::verify::verify_mapped_regions;
 use gc::swiper::young::YoungGen;
@@ -226,7 +226,7 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
     }
 
     fn mark_live(&mut self, pool: &mut Pool) {
-        marking::start(
+        pmarking::start(
             self.rootset,
             self.heap.clone(),
             self.perm_space.total(),
