@@ -1,4 +1,5 @@
 use parking_lot::Mutex;
+use std::mem;
 
 use ctxt::VM;
 use driver::cmd::Args;
@@ -6,7 +7,7 @@ use gc::marking;
 use gc::root::{get_rootset, Slot};
 use gc::space::Space;
 use gc::tlab;
-use gc::{fill_region, formatted_size, Address, CollectionStats, Collector, GcReason, Region};
+use gc::{fill_region, formatted_size, Address, CollectionStats, Collector, GcReason, Region, K};
 use os;
 use safepoint;
 use timer::Timer;
@@ -34,14 +35,9 @@ impl SweepCollector {
             println!("GC: {} {}", heap, formatted_size(heap_size));
         }
 
-        let alloc = SweepAllocator {
-            top: heap_start,
-            limit: heap_end,
-        };
-
         SweepCollector {
             heap: heap,
-            alloc: Mutex::new(alloc),
+            alloc: Mutex::new(SweepAllocator::new(heap)),
             stats: Mutex::new(CollectionStats::new()),
         }
     }
@@ -52,12 +48,33 @@ impl Collector for SweepCollector {
         true
     }
 
-    fn alloc_tlab_area(&self, _vm: &VM, _size: usize) -> Option<Region> {
-        unimplemented!()
+    fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region> {
+        let ptr = self.inner_alloc(vm, size);
+
+        if ptr.is_non_null() {
+            return Some(ptr.region_start(size));
+        }
+
+        self.collect(vm, GcReason::AllocationFailure);
+
+        let ptr = self.inner_alloc(vm, size);
+
+        return if ptr.is_null() {
+            None
+        } else {
+            Some(ptr.region_start(size))
+        };
     }
 
-    fn alloc(&self, _vm: &VM, _size: usize, _array_ref: bool) -> Address {
-        unimplemented!()
+    fn alloc(&self, vm: &VM, size: usize, _array_ref: bool) -> Address {
+        let ptr = self.inner_alloc(vm, size);
+
+        if ptr.is_non_null() {
+            return ptr;
+        }
+
+        self.collect(vm, GcReason::AllocationFailure);
+        self.inner_alloc(vm, size)
     }
 
     fn collect(&self, vm: &VM, reason: GcReason) {
@@ -113,6 +130,11 @@ impl Drop for SweepCollector {
 }
 
 impl SweepCollector {
+    fn inner_alloc(&self, vm: &VM, size: usize) -> Address {
+        let mut alloc = self.alloc.lock();
+        alloc.allocate(vm, size)
+    }
+
     fn mark_sweep(&self, vm: &VM, rootset: &[Slot], reason: GcReason) {
         let start = self.heap.start;
         let top = self.alloc.lock().top;
@@ -124,9 +146,13 @@ impl SweepCollector {
 
             rootset: rootset,
             reason: reason,
+            free_list: FreeList::new(),
         };
 
         collector.collect();
+
+        let mut alloc = self.alloc.lock();
+        alloc.free_list = mem::replace(&mut collector.free_list, FreeList::new());
     }
 }
 
@@ -137,6 +163,7 @@ struct MarkSweep<'a, 'ast: 'a> {
 
     rootset: &'a [Slot],
     reason: GcReason,
+    free_list: FreeList,
 }
 
 impl<'a, 'ast> MarkSweep<'a, 'ast> {
@@ -189,10 +216,217 @@ impl<'a, 'ast> MarkSweep<'a, 'ast> {
         }
 
         fill_region(self.vm, start, end);
+
+        let size = end.offset_from(start);
+        self.free_list.add(start, size);
     }
 }
 
 struct SweepAllocator {
     top: Address,
     limit: Address,
+    free_list: FreeList,
+}
+
+impl SweepAllocator {
+    fn new(heap: Region) -> SweepAllocator {
+        SweepAllocator {
+            top: heap.start,
+            limit: heap.end,
+            free_list: FreeList::new(),
+        }
+    }
+
+    fn allocate(&mut self, vm: &VM, size: usize) -> Address {
+        let object = self.top;
+        let next_top = object.offset(size);
+
+        if next_top <= self.limit {
+            self.top = next_top;
+            return object;
+        }
+
+        let free_space = self.free_list.alloc(size);
+
+        if free_space.is_non_null() {
+            let object = free_space.addr();
+            let free_size = free_space.size();
+            assert!(size <= free_size);
+
+            let free_start = object.offset(size);
+            let free_end = object.offset(free_size);
+            let new_free_size = free_end.offset_from(free_start);
+
+            fill_region(vm, free_start, free_end);
+            self.free_list.add(free_start, new_free_size);
+            return object;
+        }
+
+        Address::null()
+    }
+}
+
+pub const SIZE_CLASSES: usize = 6;
+
+pub const SIZE_CLASS_SMALLEST: SizeClass = SizeClass(0);
+pub const SIZE_SMALLEST: usize = 16;
+
+pub const SIZE_CLASS_TINY: SizeClass = SizeClass(1);
+pub const SIZE_TINY: usize = 32;
+
+pub const SIZE_CLASS_SMALL: SizeClass = SizeClass(2);
+pub const SIZE_SMALL: usize = 128;
+
+pub const SIZE_CLASS_MEDIUM: SizeClass = SizeClass(3);
+pub const SIZE_MEDIUM: usize = 2 * K;
+
+pub const SIZE_CLASS_LARGE: SizeClass = SizeClass(4);
+pub const SIZE_LARGE: usize = 8 * K;
+
+pub const SIZE_CLASS_HUGE: SizeClass = SizeClass(5);
+pub const SIZE_HUGE: usize = 32 * K;
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub struct SizeClass(usize);
+
+pub const SIZES: [usize; SIZE_CLASSES] = [
+    SIZE_SMALLEST,
+    SIZE_TINY,
+    SIZE_SMALL,
+    SIZE_MEDIUM,
+    SIZE_LARGE,
+    SIZE_HUGE,
+];
+
+impl SizeClass {
+    fn from_size(size: usize) -> SizeClass {
+        assert!(size >= SIZE_SMALLEST);
+
+        if size <= SIZE_SMALLEST {
+            SIZE_CLASS_SMALLEST
+        } else if size <= SIZE_TINY {
+            SIZE_CLASS_TINY
+        } else if size <= SIZE_SMALL {
+            SIZE_CLASS_SMALL
+        } else if size <= SIZE_MEDIUM {
+            SIZE_CLASS_MEDIUM
+        } else if size <= SIZE_LARGE {
+            SIZE_CLASS_LARGE
+        } else {
+            SIZE_CLASS_HUGE
+        }
+    }
+
+    fn idx(self) -> usize {
+        self.0
+    }
+
+    fn size(self) -> usize {
+        SIZES[self.0]
+    }
+}
+
+struct FreeList {
+    classes: Vec<FreeListClass>,
+}
+
+impl FreeList {
+    fn new() -> FreeList {
+        let mut classes = Vec::with_capacity(SIZE_CLASSES);
+
+        for _ in 0..SIZE_CLASSES {
+            classes.push(FreeListClass::new());
+        }
+
+        FreeList { classes: classes }
+    }
+
+    fn add(&mut self, addr: Address, size: usize) {
+        if size < SIZE_SMALLEST {
+            return;
+        }
+
+        debug_assert!(size >= SIZE_SMALLEST);
+        let szclass = SizeClass::from_size(size);
+        self.classes[szclass.idx()].add(FreeSpace(addr));
+    }
+
+    fn alloc(&mut self, size: usize) -> FreeSpace {
+        let szclass = SizeClass::from_size(size).idx();
+        let last = SIZE_CLASS_HUGE.idx();
+
+        for class in szclass..last {
+            let result = self.classes[class].first();
+
+            if result.addr().is_non_null() {
+                return result;
+            }
+        }
+
+        self.classes[SIZE_CLASS_HUGE.idx()].find(size)
+    }
+}
+
+struct FreeListClass(Vec<FreeSpace>);
+
+impl FreeListClass {
+    fn new() -> FreeListClass {
+        FreeListClass(Vec::new())
+    }
+
+    fn add(&mut self, addr: FreeSpace) {
+        self.0.push(addr);
+    }
+
+    fn first(&mut self) -> FreeSpace {
+        if let Some(space) = self.0.pop() {
+            space
+        } else {
+            FreeSpace::null()
+        }
+    }
+
+    fn find(&mut self, minimum_size: usize) -> FreeSpace {
+        let len = self.0.len();
+        for idx in 0..len {
+            let curr = self.0[idx];
+            if curr.size() >= minimum_size {
+                self.0.remove(idx);
+                return curr;
+            }
+        }
+
+        FreeSpace::null()
+    }
+}
+
+#[derive(Copy, Clone)]
+struct FreeSpace(Address);
+
+impl FreeSpace {
+    #[inline(always)]
+    fn null() -> FreeSpace {
+        FreeSpace(Address::null())
+    }
+
+    #[inline(always)]
+    fn is_null(self) -> bool {
+        self.addr().is_null()
+    }
+
+    #[inline(always)]
+    fn is_non_null(self) -> bool {
+        self.addr().is_non_null()
+    }
+
+    #[inline(always)]
+    fn addr(self) -> Address {
+        self.0
+    }
+
+    #[inline(always)]
+    fn size(self) -> usize {
+        let obj = self.addr().to_obj();
+        obj.size() as usize
+    }
 }
