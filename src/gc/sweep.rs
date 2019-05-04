@@ -6,7 +6,7 @@ use gc::marking;
 use gc::root::{get_rootset, Slot};
 use gc::space::Space;
 use gc::tlab;
-use gc::{formatted_size, Address, CollectionStats, Collector, GcReason, Region};
+use gc::{fill_region, formatted_size, Address, CollectionStats, Collector, GcReason, Region};
 use os;
 use safepoint;
 use timer::Timer;
@@ -154,6 +154,7 @@ impl<'a, 'ast> MarkSweep<'a, 'ast> {
         let end = self.heap.end;
 
         let mut scan = start;
+        let mut garbage_start = Address::null();
 
         while scan < end {
             let object = scan.to_mut_obj();
@@ -166,13 +167,28 @@ impl<'a, 'ast> MarkSweep<'a, 'ast> {
             let object_size = object.size();
 
             if object.header().is_marked_non_atomic() {
+                self.free(garbage_start, scan);
+                garbage_start = Address::null();
                 object.header_mut().unmark_non_atomic();
+            } else if garbage_start.is_non_null() {
+                // more garbage, do nothing
             } else {
-                unimplemented!();
+                // start garbage, last object was live
+                garbage_start = scan;
             }
 
             scan = scan.offset(object_size);
         }
+
+        self.free(garbage_start, end);
+    }
+
+    fn free(&mut self, start: Address, end: Address) {
+        if start.is_null() {
+            return;
+        }
+
+        fill_region(self.vm, start, end);
     }
 }
 
