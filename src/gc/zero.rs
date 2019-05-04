@@ -63,8 +63,7 @@ impl Collector for ZeroCollector {
 
         println!(
             "GC summary: 0ms collection (0), {:.1}ms mutator, {:.1}ms total (100% mutator, 0% GC)",
-            mutator,
-            runtime,
+            mutator, runtime,
         );
     }
 }

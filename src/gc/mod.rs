@@ -6,6 +6,7 @@ use driver::cmd::{Args, CollectorName};
 use gc::compact::MarkCompactCollector;
 use gc::copy::CopyCollector;
 use gc::space::{Space, SpaceConfig};
+use gc::sweep::SweepCollector;
 use gc::swiper::{Swiper, CARD_SIZE};
 use gc::tlab::TLAB_OBJECT_SIZE;
 use gc::zero::ZeroCollector;
@@ -20,6 +21,7 @@ pub mod compact;
 pub mod copy;
 pub mod root;
 pub mod space;
+pub mod sweep;
 pub mod swiper;
 pub mod tlab;
 pub mod zero;
@@ -65,6 +67,7 @@ impl Gc {
             CollectorName::Zero => box ZeroCollector::new(args),
             CollectorName::Compact => box MarkCompactCollector::new(args),
             CollectorName::Copy => box CopyCollector::new(args),
+            CollectorName::Sweep => box SweepCollector::new(args),
             CollectorName::Swiper => box Swiper::new(args),
         };
 

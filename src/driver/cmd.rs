@@ -214,6 +214,7 @@ pub enum CollectorName {
     Zero,
     Compact,
     Copy,
+    Sweep,
     Swiper,
 }
 
