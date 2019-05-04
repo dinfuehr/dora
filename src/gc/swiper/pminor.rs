@@ -162,7 +162,7 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         let injector = Injector::new();
 
         let stats = self.vm.args.flag_gc_stats;
-        let mut timer = Timer::new(stats);
+        let timer = Timer::new(stats);
 
         for _ in 0..self.number_workers {
             let w = Worker::new_lifo();
