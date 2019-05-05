@@ -207,6 +207,7 @@ impl<'a, 'ast> MarkSweep<'a, 'ast> {
             scan = scan.offset(object_size);
         }
 
+        assert!(scan == end);
         self.free(garbage_start, end);
     }
 
@@ -299,7 +300,7 @@ pub const SIZES: [usize; SIZE_CLASSES] = [
 ];
 
 impl SizeClass {
-    fn from_size(size: usize) -> SizeClass {
+    fn next_up(size: usize) -> SizeClass {
         assert!(size >= SIZE_SMALLEST);
 
         if size <= SIZE_SMALLEST {
@@ -311,6 +312,24 @@ impl SizeClass {
         } else if size <= SIZE_MEDIUM {
             SIZE_CLASS_MEDIUM
         } else if size <= SIZE_LARGE {
+            SIZE_CLASS_LARGE
+        } else {
+            SIZE_CLASS_HUGE
+        }
+    }
+
+    fn next_down(size: usize) -> SizeClass {
+        assert!(size >= SIZE_SMALLEST);
+
+        if size < SIZE_TINY {
+            SIZE_CLASS_SMALLEST
+        } else if size < SIZE_SMALL {
+            SIZE_CLASS_TINY
+        } else if size < SIZE_MEDIUM {
+            SIZE_CLASS_SMALL
+        } else if size < SIZE_LARGE {
+            SIZE_CLASS_MEDIUM
+        } else if size < SIZE_HUGE {
             SIZE_CLASS_LARGE
         } else {
             SIZE_CLASS_HUGE
@@ -347,18 +366,23 @@ impl FreeList {
         }
 
         debug_assert!(size >= SIZE_SMALLEST);
-        let szclass = SizeClass::from_size(size);
+        let szclass = SizeClass::next_down(size);
         self.classes[szclass.idx()].add(FreeSpace(addr));
     }
 
     fn alloc(&mut self, size: usize) -> FreeSpace {
-        let szclass = SizeClass::from_size(size).idx();
+        let szclass = SizeClass::next_up(size).idx();
         let last = SIZE_CLASS_HUGE.idx();
 
         for class in szclass..last {
             let result = self.classes[class].first();
 
-            if result.addr().is_non_null() {
+            if result.is_non_null() {
+                if result.size() < size {
+                    let class = SizeClass(class);
+                    println!("class={} class.size={} actual={} expected={}", class.0, class.size(), result.size(), size);
+                }
+                assert!(result.size() >= size);
                 return result;
             }
         }
