@@ -116,7 +116,7 @@ impl Gc {
         }
     }
 
-    fn alloc_tlab(&self, vm: &VM, size: usize, array_ref: bool) -> Address {
+    fn alloc_tlab(&self, vm: &VM, size: usize, _array_ref: bool) -> Address {
         // try to allocate in current tlab
         if let Some(addr) = tlab::allocate(size) {
             return addr;
@@ -128,7 +128,7 @@ impl Gc {
         // allocate new tlab
         if let Some(tlab) = self
             .collector
-            .alloc_tlab_area(vm, tlab::calculate_size(size))
+            .alloc_tlab_area(vm, tlab::calculate_size())
         {
             let object_start = tlab.start;
             let tlab = Region::new(tlab.start.offset(size), tlab.end);
@@ -139,8 +139,8 @@ impl Gc {
             // object is allocated before TLAB
             object_start
         } else {
-            // allocate object
-            self.collector.alloc(vm, size, array_ref)
+            // fail with OOM if TLAB can't be allocated
+            Address::null()
         }
     }
 

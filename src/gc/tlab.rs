@@ -13,10 +13,8 @@ pub fn initialize(tlab: Region) {
     });
 }
 
-pub fn calculate_size(additional: usize) -> usize {
-    assert!(additional < TLAB_OBJECT_SIZE);
-
-    TLAB_SIZE + additional
+pub fn calculate_size() -> usize {
+    TLAB_SIZE
 }
 
 pub fn allocate(size: usize) -> Option<Address> {
