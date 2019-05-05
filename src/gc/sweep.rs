@@ -59,11 +59,11 @@ impl Collector for SweepCollector {
 
         let ptr = self.inner_alloc(vm, size);
 
-        return if ptr.is_null() {
+        if ptr.is_null() {
             None
         } else {
             Some(ptr.region_start(size))
-        };
+        }
     }
 
     fn alloc(&self, vm: &VM, size: usize, _array_ref: bool) -> Address {
@@ -391,19 +391,23 @@ impl FreeList {
     }
 }
 
-struct FreeListClass(Vec<FreeSpace>);
+struct FreeListClass {
+    spaces: Vec<FreeSpace>,
+}
 
 impl FreeListClass {
     fn new() -> FreeListClass {
-        FreeListClass(Vec::new())
+        FreeListClass {
+            spaces: Vec::new(),
+        }
     }
 
     fn add(&mut self, addr: FreeSpace) {
-        self.0.push(addr);
+        self.spaces.push(addr);
     }
 
     fn first(&mut self) -> FreeSpace {
-        if let Some(space) = self.0.pop() {
+        if let Some(space) = self.spaces.pop() {
             space
         } else {
             FreeSpace::null()
@@ -411,11 +415,11 @@ impl FreeListClass {
     }
 
     fn find(&mut self, minimum_size: usize) -> FreeSpace {
-        let len = self.0.len();
+        let len = self.spaces.len();
         for idx in 0..len {
-            let curr = self.0[idx];
+            let curr = self.spaces[idx];
             if curr.size() >= minimum_size {
-                self.0.remove(idx);
+                self.spaces.remove(idx);
                 return curr;
             }
         }

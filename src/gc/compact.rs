@@ -60,11 +60,11 @@ impl Collector for MarkCompactCollector {
 
         let ptr = self.alloc.bump_alloc(size);
 
-        return if ptr.is_null() {
+        if ptr.is_null() {
             None
         } else {
             Some(ptr.region_start(size))
-        };
+        }
     }
 
     fn alloc(&self, vm: &VM, size: usize, _array_ref: bool) -> Address {
