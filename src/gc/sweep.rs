@@ -380,7 +380,13 @@ impl FreeList {
             if result.is_non_null() {
                 if result.size() < size {
                     let class = SizeClass(class);
-                    println!("class={} class.size={} actual={} expected={}", class.0, class.size(), result.size(), size);
+                    println!(
+                        "class={} class.size={} actual={} expected={}",
+                        class.0,
+                        class.size(),
+                        result.size(),
+                        size
+                    );
                 }
                 assert!(result.size() >= size);
                 return result;
@@ -397,9 +403,7 @@ struct FreeListClass {
 
 impl FreeListClass {
     fn new() -> FreeListClass {
-        FreeListClass {
-            spaces: Vec::new(),
-        }
+        FreeListClass { spaces: Vec::new() }
     }
 
     fn add(&mut self, addr: FreeSpace) {

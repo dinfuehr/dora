@@ -126,10 +126,7 @@ impl Gc {
         tlab::make_iterable_current(vm);
 
         // allocate new tlab
-        if let Some(tlab) = self
-            .collector
-            .alloc_tlab_area(vm, tlab::calculate_size())
-        {
+        if let Some(tlab) = self.collector.alloc_tlab_area(vm, tlab::calculate_size()) {
             let object_start = tlab.start;
             let tlab = Region::new(tlab.start.offset(size), tlab.end);
 

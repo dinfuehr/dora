@@ -52,6 +52,15 @@ impl VecKey for Block {
     }
 }
 
+pub struct BlockData {
+    params: u32,
+}
+
+pub enum Value {
+    Inst(Inst),
+    Arg(u32),
+}
+
 pub struct UserList(Vec<Inst>);
 
 impl UserList {
@@ -72,14 +81,14 @@ pub enum CmpOp {
 pub enum InstData {
     Add {
         ty: Type,
-        lhs: Inst,
-        rhs: Inst,
+        lhs: Value,
+        rhs: Value,
     },
 
     Sub {
         ty: Type,
-        lhs: Inst,
-        rhs: Inst,
+        lhs: Value,
+        rhs: Value,
     },
 
     Goto {
@@ -87,7 +96,7 @@ pub enum InstData {
     },
 
     If {
-        opnd: Inst,
+        opnd: Value,
         then_block: Block,
         else_block: Block,
     },
@@ -95,12 +104,12 @@ pub enum InstData {
     Cmp {
         ty: Type,
         op: CmpOp,
-        lhs: Inst,
-        rhs: Inst,
+        lhs: Value,
+        rhs: Value,
     },
 
     Ret {
-        opnd: Option<Inst>,
+        opnd: Option<Value>,
     },
 
     TrueConst,
