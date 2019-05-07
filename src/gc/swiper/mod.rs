@@ -33,9 +33,9 @@ mod full;
 mod large;
 mod minor;
 pub mod old;
-mod paged_old;
 mod pfull;
 mod pminor;
+mod split_old;
 mod verify;
 pub mod young;
 
