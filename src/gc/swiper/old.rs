@@ -5,10 +5,7 @@ use std::mem::replace;
 use gc::swiper::card::CardTable;
 use gc::swiper::controller::SharedHeapConfig;
 use gc::swiper::crossing::CrossingMap;
-use gc::swiper::{CARD_REFS, CARD_SIZE, CARD_SIZE_BITS};
 use gc::{arena, Address, Region, GEN_SIZE};
-use mem;
-use object::offset_of_array_data;
 
 pub struct OldGen {
     total: Region,
@@ -70,67 +67,8 @@ impl OldGen {
         protected.contains_slow(addr)
     }
 
-    pub fn update_crossing(&self, old: Address, new: Address, array_ref: bool) {
-        debug_assert!(self.total.valid_top(old) && self.total.valid_top(new));
-
-        if (old.to_usize() >> CARD_SIZE_BITS) == (new.to_usize() >> CARD_SIZE_BITS) {
-            // object does not span multiple cards
-
-        } else if array_ref {
-            let new_card_idx = self.card_table.card_idx(new.into());
-            let new_card_start = self.card_table.to_address(new_card_idx);
-
-            let old_card_idx = self.card_table.card_idx(old);
-            let old_card_end = self.card_table.to_address(old_card_idx).offset(CARD_SIZE);
-
-            let mut loop_card_start = old_card_idx.to_usize() + 1;
-
-            // If you allocate an object array just before the card end,
-            // it could happen that the card starts with part of the header
-            // or the length-field.
-            if old.offset(offset_of_array_data() as usize) > old_card_end {
-                let diff = old_card_end.offset_from(old) / mem::ptr_width_usize();
-                self.crossing_map
-                    .set_array_start(loop_card_start.into(), diff);
-
-                loop_card_start += 1;
-            }
-
-            // all cards between ]old_card; new_card[ are full with references
-            for c in loop_card_start..new_card_idx.to_usize() {
-                self.crossing_map
-                    .set_references_at_start(c.into(), CARD_REFS);
-            }
-
-            // new_card starts with x references, then next object
-            if new_card_idx.to_usize() >= loop_card_start && new < self.total.end {
-                if new == new_card_start {
-                    self.crossing_map.set_first_object(new_card_idx, 0);
-                } else {
-                    let refs_dist = new.offset_from(new_card_start) / mem::ptr_width_usize();
-                    self.crossing_map
-                        .set_references_at_start(new_card_idx, refs_dist);
-                }
-            }
-        } else {
-            let new_card_idx = self.card_table.card_idx(new.into());
-            let new_card_start = self.card_table.to_address(new_card_idx);
-
-            let old_card_idx = self.card_table.card_idx(old.into());
-
-            // all cards between ]old_card; new_card[ are set to NoRefs
-            for c in old_card_idx.to_usize() + 1..new_card_idx.to_usize() {
-                self.crossing_map.set_no_references(c.into());
-            }
-
-            // new_card stores x words of object, then next object
-            if new < self.total.end {
-                self.crossing_map.set_first_object(
-                    new_card_idx,
-                    new.offset_from(new_card_start) / mem::ptr_width_usize(),
-                );
-            }
-        }
+    pub fn update_crossing(&self, object_start: Address, object_end: Address, array_ref: bool) {
+        self.crossing_map.update(self.total.clone(), object_start, object_end, array_ref);
     }
 
     pub fn protected(&self) -> MutexGuard<OldGenProtected> {

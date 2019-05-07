@@ -1,6 +1,8 @@
 use gc::swiper::CardIdx;
-use gc::swiper::CARD_SIZE;
-use gc::Address;
+use gc::swiper::{CARD_REFS, CARD_SIZE, CARD_SIZE_BITS};
+use gc::{Address, Region};
+use mem;
+use object::offset_of_array_data;
 
 // see GC Handbook 11.8: Crossing Maps
 // meaning of byte value
@@ -87,6 +89,74 @@ impl CrossingMap {
         assert!(card < self.cards_in_heap);
         card
     }
+
+    pub fn update(&self, old_total: Region, object_start: Address, object_end: Address, array_ref: bool) {
+        debug_assert!(old_total.valid_top(object_start) && old_total.valid_top(object_end));
+
+        if (object_start.to_usize() >> CARD_SIZE_BITS) == (object_end.to_usize() >> CARD_SIZE_BITS) {
+            // object does not span multiple cards
+
+        } else if array_ref {
+            let end_card_idx = card_idx(object_end, old_total.start);
+            let end_card_addr = card_address(end_card_idx, old_total.start);
+
+            let start_card_idx = card_idx(object_start, old_total.start);
+            let start_card_end = card_address(start_card_idx, old_total.start).offset(CARD_SIZE);
+
+            let mut loop_card_start = start_card_idx + 1;
+
+            // If you allocate an object array just before the card end,
+            // it could happen that the card starts with part of the header
+            // or the length-field.
+            if object_start.offset(offset_of_array_data() as usize) > start_card_end {
+                let diff = start_card_end.offset_from(object_start) / mem::ptr_width_usize();
+                self.set_array_start(loop_card_start.into(), diff);
+
+                loop_card_start += 1;
+            }
+
+            // all cards between ]start_card; end_card[ are full with references
+            for c in loop_card_start..end_card_idx {
+                self.set_references_at_start(c.into(), CARD_REFS);
+            }
+
+            // end_card starts with x references, then next object
+            if end_card_idx >= loop_card_start && object_end < old_total.end {
+                if object_end == end_card_addr {
+                    self.set_first_object(end_card_idx.into(), 0);
+                } else {
+                    let refs_dist = object_end.offset_from(end_card_addr) / mem::ptr_width_usize();
+                    self.set_references_at_start(end_card_idx.into(), refs_dist);
+                }
+            }
+        } else {
+            let end_card_idx = card_idx(object_end, old_total.start);
+            let end_card_addr = card_address(end_card_idx, old_total.start);
+
+            let start_card_idx = card_idx(object_start, old_total.start);
+
+            // all cards between ]start_card; end_card[ are set to NoRefs
+            for c in start_card_idx + 1..end_card_idx {
+                self.set_no_references(c.into());
+            }
+
+            // end_card stores x words of object, then next object
+            if object_end < old_total.end {
+                self.set_first_object(
+                    end_card_idx.into(),
+                    object_end.offset_from(end_card_addr) / mem::ptr_width_usize(),
+                );
+            }
+        }
+    }
+}
+
+fn card_idx(address: Address, start: Address) -> usize {
+    address.offset_from(start) >> CARD_SIZE_BITS
+}
+
+fn card_address(card: usize, start: Address) -> Address {
+    start.offset(card << CARD_SIZE_BITS)
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
