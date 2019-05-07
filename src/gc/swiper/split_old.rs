@@ -1,9 +1,10 @@
+use parking_lot::Mutex;
 use fixedbitset::FixedBitSet;
 
 use gc::swiper::card::CardTable;
 use gc::swiper::controller::SharedHeapConfig;
 use gc::swiper::crossing::CrossingMap;
-use gc::{Address, Region};
+use gc::{arena, Address, Region};
 
 // experimental implementation of an Old generation consisting of chunks
 // goal is to reduce work for full GCs
@@ -13,11 +14,7 @@ struct SplitOldGen {
 
     chunks: Vec<Chunk>,
 
-    // all used chunks
-    used_chunks: ChunkSet,
-
-    // completely free chunks (no live objects)
-    free_chunks: ChunkSet,
+    prot: Mutex<SplitOldGenProtected>,
 
     crossing_map: CrossingMap,
     card_table: CardTable,
@@ -44,23 +41,65 @@ impl SplitOldGen {
             chunks.push(Chunk::new(chunk_start));
         }
 
+        let prot = Mutex::new(SplitOldGenProtected {
+            used_chunks: ChunkSet::empty(num_chunks),
+            free_chunks: ChunkSet::full(num_chunks),
+        });
+
         SplitOldGen {
             total: total,
             chunks: chunks,
-            used_chunks: ChunkSet::empty(num_chunks),
-            free_chunks: ChunkSet::full(num_chunks),
+            prot: prot,
             crossing_map: crossing_map,
             card_table: card_table,
             config: config,
         }
     }
+
+    fn add_chunk(&self) -> bool {
+        {
+            let mut config = self.config.lock();
+            if !config.grow_old(CHUNK_SIZE) {
+                return false;
+            }
+        }
+
+        let mut prot = self.prot.lock();
+
+        if let Some(chunk) = prot.free_chunks.pick_leftmost() {
+            prot.used_chunks.add(chunk);
+            arena::commit(chunk_addr(chunk, self.total.start), CHUNK_SIZE, false);
+            return true;
+        }
+
+        false
+    }
+}
+
+fn chunk_addr(chunk: ChunkId, start: Address) -> Address {
+    start.offset(chunk.to_usize() * CHUNK_SIZE)
+}
+
+struct SplitOldGenProtected {
+    // all used chunks
+    used_chunks: ChunkSet,
+
+    // completely free chunks (no live objects)
+    free_chunks: ChunkSet,
 }
 
 // Choose 128K as chunk size for now
 const CHUNK_SIZE_BITS: usize = 17;
 const CHUNK_SIZE: usize = 1 << CHUNK_SIZE_BITS;
 
+#[derive(Copy, Clone)]
 struct ChunkId(usize);
+
+impl ChunkId {
+    fn to_usize(self) -> usize {
+        self.0
+    }
+}
 
 struct Chunk {
     // chunk boundaries
@@ -95,24 +134,57 @@ struct ChunkSet {
 }
 
 impl ChunkSet {
-    fn empty(chunks: usize) -> ChunkSet {
-        assert!(chunks > 0);
+    fn empty(num_chunks: usize) -> ChunkSet {
+        assert!(num_chunks > 0);
 
         ChunkSet {
             leftmost: usize::max_value(),
             rightmost: usize::max_value(),
-            chunks: FixedBitSet::with_capacity(chunks),
+            chunks: FixedBitSet::with_capacity(num_chunks),
         }
     }
 
-    fn full(chunks: usize) -> ChunkSet {
-        assert!(chunks > 0);
+    fn full(num_chunks: usize) -> ChunkSet {
+        assert!(num_chunks > 0);
+        let mut chunks = FixedBitSet::with_capacity(num_chunks);
+        chunks.insert_range(..);
 
         ChunkSet {
             leftmost: 0,
-            rightmost: chunks - 1,
-            chunks: FixedBitSet::with_capacity(chunks),
+            rightmost: num_chunks - 1,
+            chunks: chunks,
         }
+    }
+
+    fn add(&mut self, chunk: ChunkId) {
+        self.chunks.insert(chunk.to_usize());
+    }
+
+    fn pick_leftmost(&mut self) -> Option<ChunkId> {
+        if self.leftmost == usize::max_value() {
+            return None;
+        }
+
+        let chunk = ChunkId(self.leftmost);
+        debug_assert!(self.chunks[self.leftmost]);
+        self.chunks.set(self.leftmost, false);
+
+        if self.leftmost == self.rightmost {
+            self.leftmost = usize::max_value();
+            self.rightmost = usize::max_value();
+        } else {
+            for i in self.leftmost+1..self.rightmost {
+                if self.chunks[i] {
+                    self.leftmost = i;
+                    return Some(chunk);
+                }
+            }
+
+            debug_assert!(self.chunks[self.rightmost]);
+            self.leftmost = self.rightmost;
+        }
+
+        Some(chunk)
     }
 }
 
