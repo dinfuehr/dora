@@ -216,6 +216,7 @@ pub enum CollectorName {
     Copy,
     Sweep,
     Swiper,
+    SweepSwiper,
 }
 
 #[derive(Copy, Clone, Debug, RustcDecodable)]

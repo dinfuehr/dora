@@ -8,6 +8,7 @@ use gc::copy::CopyCollector;
 use gc::space::{Space, SpaceConfig};
 use gc::sweep::SweepCollector;
 use gc::swiper::{Swiper, CARD_SIZE};
+use gc::swiper::sweep::SweepSwiper;
 use gc::tlab::TLAB_OBJECT_SIZE;
 use gc::zero::ZeroCollector;
 use mem;
@@ -71,6 +72,7 @@ impl Gc {
             CollectorName::Copy => box CopyCollector::new(args),
             CollectorName::Sweep => box SweepCollector::new(args),
             CollectorName::Swiper => box Swiper::new(args),
+            CollectorName::SweepSwiper => box SweepSwiper::new(args),
         };
 
         let supports_tlab = !args.flag_disable_tlab && collector.supports_tlab();

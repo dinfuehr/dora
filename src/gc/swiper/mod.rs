@@ -35,7 +35,7 @@ mod minor;
 pub mod old;
 mod pfull;
 mod pminor;
-mod split_old;
+pub mod sweep;
 mod verify;
 pub mod young;
 
