@@ -220,7 +220,7 @@ impl SweepSwiper {
     ) -> CollectionKind {
         safepoint::stop_the_world(vm, |threads| {
             vm.perf_counters.stop();
-            // controller::start(&self.config, &self.young, &self.old, &self.large);
+            controller::start(&self.config, &self.young, &self.old, &self.large);
 
             tlab::make_iterable_all(vm, threads);
             let rootset = get_rootset(vm, threads);
@@ -244,15 +244,15 @@ impl SweepSwiper {
                 }
             };
 
-            // controller::stop(
-            //     &self.config,
-            //     kind,
-            //     &self.young,
-            //     &self.old,
-            //     &self.large,
-            //     &vm.args,
-            //     reason,
-            // );
+            controller::stop(
+                &self.config,
+                kind,
+                &self.young,
+                &self.old,
+                &self.large,
+                &vm.args,
+                reason,
+            );
             vm.perf_counters.start();
 
             kind

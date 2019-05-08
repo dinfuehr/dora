@@ -6,7 +6,6 @@ use std::sync::Arc;
 
 use driver::cmd::Args;
 use gc::swiper::large::LargeSpace;
-use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
 use gc::swiper::{CollectionKind, CommonOldGen};
 use gc::{align_gen, align_gen_down, formatted_size, AllNumbers, GcReason, GEN_SIZE, M};
@@ -82,7 +81,7 @@ pub fn choose_collection_kind(
     };
 }
 
-pub fn start(config: &SharedHeapConfig, young: &YoungGen, old: &OldGen, large: &LargeSpace) {
+pub fn start(config: &SharedHeapConfig, young: &YoungGen, old: &CommonOldGen, large: &LargeSpace) {
     let mut config = config.lock();
 
     config.gc_start = timer::timestamp();
@@ -94,7 +93,7 @@ pub fn stop(
     config: &SharedHeapConfig,
     kind: CollectionKind,
     young: &YoungGen,
-    old: &OldGen,
+    old: &CommonOldGen,
     large: &LargeSpace,
     args: &Args,
     reason: GcReason,
@@ -198,11 +197,11 @@ fn print(config: &HeapConfig, kind: CollectionKind, reason: GcReason) {
     }
 }
 
-fn object_size(young: &YoungGen, old: &OldGen, large: &LargeSpace) -> usize {
+fn object_size(young: &YoungGen, old: &CommonOldGen, large: &LargeSpace) -> usize {
     young.active_size() + old.active_size() + large.committed_size()
 }
 
-fn memory_size(young: &YoungGen, old: &OldGen, large: &LargeSpace) -> usize {
+fn memory_size(young: &YoungGen, old: &CommonOldGen, large: &LargeSpace) -> usize {
     let (eden_size, semi_size) = young.committed_size();
     let young_size = eden_size + semi_size;
 
