@@ -371,6 +371,11 @@ impl HeapConfig {
             false
         }
     }
+
+    pub fn shrink_old(&mut self, size: usize) {
+        assert!(self.old_size >= size);
+        self.old_size -= size;
+    }
 }
 
 pub struct Numbers {

@@ -7,6 +7,10 @@ use gc::swiper::controller::SharedHeapConfig;
 use gc::swiper::crossing::CrossingMap;
 use gc::{arena, Address, Region};
 
+// Choose 128K as chunk size for now
+const CHUNK_SIZE_BITS: usize = 17;
+const CHUNK_SIZE: usize = 1 << CHUNK_SIZE_BITS;
+
 // experimental implementation of an Old generation consisting of chunks
 // goal is to reduce work for full GCs
 struct SplitOldGen {
@@ -75,6 +79,20 @@ impl SplitOldGen {
 
         false
     }
+
+    fn free_chunk(&self, chunk: ChunkId) {
+        let mut prot = self.prot.lock();
+
+        assert!(prot.used_chunks.remove(chunk));
+        prot.free_chunks.add(chunk);
+
+        arena::discard(chunk_addr(chunk, self.total.start), CHUNK_SIZE);
+
+        {
+            let mut config = self.config.lock();
+            config.shrink_old(CHUNK_SIZE);
+        }
+    }
 }
 
 fn chunk_addr(chunk: ChunkId, start: Address) -> Address {
@@ -89,11 +107,7 @@ struct SplitOldGenProtected {
     free_chunks: ChunkSet,
 }
 
-// Choose 128K as chunk size for now
-const CHUNK_SIZE_BITS: usize = 17;
-const CHUNK_SIZE: usize = 1 << CHUNK_SIZE_BITS;
-
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 struct ChunkId(usize);
 
 impl ChunkId {
@@ -173,12 +187,16 @@ impl ChunkSet {
         }
     }
 
+    fn count(&self) -> usize {
+        self.chunks.count_ones(..)
+    }
+
     fn add(&mut self, chunk: ChunkId) {
         self.chunks.insert(chunk.to_usize());
 
         if let Some(bounds) = self.bounds {
             let (leftmost, rightmost) = bounds.tuple();
-            let leftmost = cmp::max(leftmost, chunk.to_usize());
+            let leftmost = cmp::min(leftmost, chunk.to_usize());
             let rightmost = cmp::max(rightmost, chunk.to_usize());
             self.bounds = Some(ChunkSetBounds::new(leftmost, rightmost));
         } else {
@@ -187,20 +205,21 @@ impl ChunkSet {
         }
     }
 
-    fn remove_leftmost(&mut self) -> Option<ChunkId> {
-        if let Some(bounds) = self.bounds {
-            let (leftmost, rightmost) = bounds.tuple();
-            let chunk = ChunkId(leftmost);
-            debug_assert!(self.chunks[leftmost]);
-            self.chunks.set(leftmost, false);
+    fn remove(&mut self, chunk: ChunkId) -> bool {
+        let chunk = chunk.to_usize();
+
+        if self.chunks[chunk] {
+            self.chunks.set(chunk, false);
+
+            let (leftmost, rightmost) = self.bounds.expect("bounds are empty").tuple();
 
             if leftmost == rightmost {
                 self.bounds = None;
             } else {
-                for i in leftmost + 1..rightmost {
+                for i in leftmost+1..rightmost {
                     if self.chunks[i] {
                         self.bounds = Some(ChunkSetBounds::new(i, rightmost));
-                        return Some(chunk);
+                        return true;
                     }
                 }
 
@@ -208,7 +227,17 @@ impl ChunkSet {
                 self.bounds = Some(ChunkSetBounds::new(rightmost, rightmost));
             }
 
-            Some(chunk)
+            true
+        } else {
+            false
+        }
+    }
+
+    fn remove_leftmost(&mut self) -> Option<ChunkId> {
+        if let Some(bounds) = self.bounds {
+            let leftmost = ChunkId(bounds.leftmost);
+            assert!(self.remove(leftmost));
+            Some(leftmost)
         } else {
             None
         }
@@ -223,5 +252,32 @@ enum ChunkState {
 impl Address {
     fn is_chunk_aligned(self) -> bool {
         (self.to_usize() & (CHUNK_SIZE - 1)) == 0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ChunkId, ChunkSet};
+
+    #[test]
+    fn test_empty() {
+        let e = ChunkSet::empty(4);
+        assert_eq!(e.count(), 0);
+    }
+
+    #[test]
+    fn test_full() {
+        let e = ChunkSet::full(4);
+        assert_eq!(e.count(), 4);
+    }
+
+    #[test]
+    fn test_add_and_remove() {
+        let mut e = ChunkSet::empty(4);
+        e.add(ChunkId(1));
+        e.add(ChunkId(3));
+        assert!(e.remove(ChunkId(1)));
+        assert_eq!(e.remove_leftmost(), Some(ChunkId(3)));
+        assert_eq!(e.count(), 0);
     }
 }
