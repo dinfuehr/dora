@@ -68,7 +68,8 @@ impl OldGen {
     }
 
     pub fn update_crossing(&self, object_start: Address, object_end: Address, array_ref: bool) {
-        self.crossing_map.update(self.total.clone(), object_start, object_end, array_ref);
+        self.crossing_map
+            .update(self.total.clone(), object_start, object_end, array_ref);
     }
 
     pub fn protected(&self) -> MutexGuard<OldGenProtected> {

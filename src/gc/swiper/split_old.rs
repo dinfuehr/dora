@@ -1,5 +1,6 @@
-use parking_lot::Mutex;
 use fixedbitset::FixedBitSet;
+use parking_lot::Mutex;
+use std::cmp;
 
 use gc::swiper::card::CardTable;
 use gc::swiper::controller::SharedHeapConfig;
@@ -66,7 +67,7 @@ impl SplitOldGen {
 
         let mut prot = self.prot.lock();
 
-        if let Some(chunk) = prot.free_chunks.pick_leftmost() {
+        if let Some(chunk) = prot.free_chunks.remove_leftmost() {
             prot.used_chunks.add(chunk);
             arena::commit(chunk_addr(chunk, self.total.start), CHUNK_SIZE, false);
             return true;
@@ -128,9 +129,27 @@ impl Chunk {
 
 // An array of chunks
 struct ChunkSet {
+    bounds: Option<ChunkSetBounds>,
+    chunks: FixedBitSet,
+}
+
+#[derive(Copy, Clone)]
+struct ChunkSetBounds {
     leftmost: usize,
     rightmost: usize,
-    chunks: FixedBitSet,
+}
+
+impl ChunkSetBounds {
+    fn new(leftmost: usize, rightmost: usize) -> ChunkSetBounds {
+        ChunkSetBounds {
+            leftmost: leftmost,
+            rightmost: rightmost,
+        }
+    }
+
+    fn tuple(&self) -> (usize, usize) {
+        (self.leftmost, self.rightmost)
+    }
 }
 
 impl ChunkSet {
@@ -138,8 +157,7 @@ impl ChunkSet {
         assert!(num_chunks > 0);
 
         ChunkSet {
-            leftmost: usize::max_value(),
-            rightmost: usize::max_value(),
+            bounds: None,
             chunks: FixedBitSet::with_capacity(num_chunks),
         }
     }
@@ -150,41 +168,50 @@ impl ChunkSet {
         chunks.insert_range(..);
 
         ChunkSet {
-            leftmost: 0,
-            rightmost: num_chunks - 1,
+            bounds: Some(ChunkSetBounds::new(0, num_chunks - 1)),
             chunks: chunks,
         }
     }
 
     fn add(&mut self, chunk: ChunkId) {
         self.chunks.insert(chunk.to_usize());
+
+        if let Some(bounds) = self.bounds {
+            let (leftmost, rightmost) = bounds.tuple();
+            let leftmost = cmp::max(leftmost, chunk.to_usize());
+            let rightmost = cmp::max(rightmost, chunk.to_usize());
+            self.bounds = Some(ChunkSetBounds::new(leftmost, rightmost));
+        } else {
+            let chunk = chunk.to_usize();
+            self.bounds = Some(ChunkSetBounds::new(chunk, chunk));
+        }
     }
 
-    fn pick_leftmost(&mut self) -> Option<ChunkId> {
-        if self.leftmost == usize::max_value() {
-            return None;
-        }
+    fn remove_leftmost(&mut self) -> Option<ChunkId> {
+        if let Some(bounds) = self.bounds {
+            let (leftmost, rightmost) = bounds.tuple();
+            let chunk = ChunkId(leftmost);
+            debug_assert!(self.chunks[leftmost]);
+            self.chunks.set(leftmost, false);
 
-        let chunk = ChunkId(self.leftmost);
-        debug_assert!(self.chunks[self.leftmost]);
-        self.chunks.set(self.leftmost, false);
-
-        if self.leftmost == self.rightmost {
-            self.leftmost = usize::max_value();
-            self.rightmost = usize::max_value();
-        } else {
-            for i in self.leftmost+1..self.rightmost {
-                if self.chunks[i] {
-                    self.leftmost = i;
-                    return Some(chunk);
+            if leftmost == rightmost {
+                self.bounds = None;
+            } else {
+                for i in leftmost + 1..rightmost {
+                    if self.chunks[i] {
+                        self.bounds = Some(ChunkSetBounds::new(i, rightmost));
+                        return Some(chunk);
+                    }
                 }
+
+                debug_assert!(self.chunks[rightmost]);
+                self.bounds = Some(ChunkSetBounds::new(rightmost, rightmost));
             }
 
-            debug_assert!(self.chunks[self.rightmost]);
-            self.leftmost = self.rightmost;
+            Some(chunk)
+        } else {
+            None
         }
-
-        Some(chunk)
     }
 }
 

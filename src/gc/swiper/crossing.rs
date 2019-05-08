@@ -90,10 +90,17 @@ impl CrossingMap {
         card
     }
 
-    pub fn update(&self, old_total: Region, object_start: Address, object_end: Address, array_ref: bool) {
+    pub fn update(
+        &self,
+        old_total: Region,
+        object_start: Address,
+        object_end: Address,
+        array_ref: bool,
+    ) {
         debug_assert!(old_total.valid_top(object_start) && old_total.valid_top(object_end));
 
-        if (object_start.to_usize() >> CARD_SIZE_BITS) == (object_end.to_usize() >> CARD_SIZE_BITS) {
+        if (object_start.to_usize() >> CARD_SIZE_BITS) == (object_end.to_usize() >> CARD_SIZE_BITS)
+        {
             // object does not span multiple cards
 
         } else if array_ref {
