@@ -69,24 +69,26 @@ impl SplitOldGen {
             }
         }
 
-        let mut prot = self.prot.lock();
+        {
+            let mut prot = self.prot.lock();
 
-        if let Some(chunk) = prot.free_chunks.remove_leftmost() {
-            prot.used_chunks.add(chunk);
-            arena::commit(chunk_addr(chunk, self.total.start), CHUNK_SIZE, false);
-            return true;
+            if let Some(chunk) = prot.free_chunks.remove_leftmost() {
+                prot.used_chunks.add(chunk);
+                arena::commit(chunk_addr(chunk, self.total.start), CHUNK_SIZE, false);
+                return true;
+            }
         }
 
         false
     }
 
     fn free_chunk(&self, chunk: ChunkId) {
-        let mut prot = self.prot.lock();
-
-        assert!(prot.used_chunks.remove(chunk));
-        prot.free_chunks.add(chunk);
-
-        arena::discard(chunk_addr(chunk, self.total.start), CHUNK_SIZE);
+        {
+            let mut prot = self.prot.lock();
+            assert!(prot.used_chunks.remove(chunk));
+            prot.free_chunks.add(chunk);
+            arena::discard(chunk_addr(chunk, self.total.start), CHUNK_SIZE);
+        }
 
         {
             let mut config = self.config.lock();
