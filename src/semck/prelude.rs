@@ -1,9 +1,14 @@
-use class::ClassId;
+use parking_lot::RwLock;
+use std::sync::Arc;
+
+use class::{ClassDef, ClassDefId, ClassId, ClassSize, TypeParams};
 use ctxt::{FctKind, Intrinsic, SemContext, TraitId};
 use exception;
 use gc::Address;
+use object::Header;
 use stdlib;
 use ty::BuiltinType;
+use vtable::VTableBox;
 
 pub fn internal_classes<'ast>(ctxt: &mut SemContext<'ast>) {
     ctxt.vips.bool_class = internal_class(ctxt, "Bool", Some(BuiltinType::Bool));
@@ -35,6 +40,62 @@ pub fn internal_classes<'ast>(ctxt: &mut SemContext<'ast>) {
     ctxt.vips.stack_trace_element_class = internal_class(ctxt, "StackTraceElement", None);
 
     *ctxt.vips.iterator_trait.lock() = Some(find_trait(ctxt, "Iterator"));
+
+    internal_free_classes(ctxt);
+}
+
+fn internal_free_classes<'ast>(ctxt: &mut SemContext<'ast>) {
+    let free_object: ClassDefId;
+    let free_array: ClassDefId;
+
+    {
+        let mut class_defs = ctxt.class_defs.lock();
+        let next = class_defs.len();
+
+        free_object = next.into();
+        free_array = (next + 1).into();
+
+        class_defs.push(Arc::new(RwLock::new(ClassDef {
+            id: free_object,
+            cls_id: None,
+            type_params: TypeParams::empty(),
+            parent_id: None,
+            size: ClassSize::Fixed(Header::size()),
+            fields: Vec::new(),
+            ref_fields: Vec::new(),
+            vtable: None,
+        })));
+
+        class_defs.push(Arc::new(RwLock::new(ClassDef {
+            id: free_array,
+            cls_id: None,
+            type_params: TypeParams::empty(),
+            parent_id: None,
+            size: ClassSize::FreeArray,
+            fields: Vec::new(),
+            ref_fields: Vec::new(),
+            vtable: None,
+        })));
+
+        {
+            let free_object_class_def = &class_defs[free_object.to_usize()];
+            let mut free_object_class_def = free_object_class_def.write();
+            let clsptr = (&*free_object_class_def) as *const ClassDef as *mut ClassDef;
+            let vtable = VTableBox::new(clsptr, &[]);
+            free_object_class_def.vtable = Some(vtable);
+        }
+
+        {
+            let free_array_class_def = &class_defs[free_array.to_usize()];
+            let mut free_array_class_def = free_array_class_def.write();
+            let clsptr = (&*free_array_class_def) as *const ClassDef as *mut ClassDef;
+            let vtable = VTableBox::new(clsptr, &[]);
+            free_array_class_def.vtable = Some(vtable);
+        }
+    }
+
+    ctxt.vips.free_object_class_def = free_object;
+    ctxt.vips.free_array_class_def = free_array;
 }
 
 fn internal_class<'ast>(

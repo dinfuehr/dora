@@ -535,6 +535,41 @@ pub fn fill_region(vm: &VM, start: Address, end: Address) {
     }
 }
 
+pub fn fill_region_with_free(vm: &VM, start: Address, end: Address, next: Address) {
+    if start == end || end.offset_from(start) == mem::ptr_width_usize() {
+        panic!("region is too small for FreeObject.");
+    } else if end.offset_from(start) == Header::size() as usize {
+        // fill with FreeObject
+        let cls_id = vm.vips.free_object_class_def;
+        let cls = vm.class_defs.idx(cls_id);
+        let cls = cls.read();
+        let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
+
+        unsafe {
+            *start.to_mut_ptr::<usize>() = vtable as usize;
+            *start.add_ptr(1).to_mut_ptr::<usize>() = next.to_usize();
+        }
+    } else {
+        // fill with FreeArray
+        let cls_id = vm.vips.free_array_class_def;
+        let cls = vm.class_defs.idx(cls_id);
+        let cls = cls.read();
+        let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
+
+        // determine of header+length in bytes
+        let header_size = Header::size() as usize + mem::ptr_width_usize();
+
+        // calculate array length
+        let length: usize = end.offset_from(start.offset(header_size)) / mem::ptr_width_usize();
+
+        unsafe {
+            *start.to_mut_ptr::<usize>() = vtable as usize;
+            *start.add_ptr(1).to_mut_ptr::<usize>() = next.to_usize();
+            *start.add_ptr(2).to_mut_ptr::<usize>() = length;
+        }
+    }
+}
+
 struct CollectionStats {
     collections: usize,
     total_pause: f32,

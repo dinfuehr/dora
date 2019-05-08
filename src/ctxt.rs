@@ -109,6 +109,7 @@ pub struct SemContext<'ast> {
 impl<'ast> SemContext<'ast> {
     pub fn new(args: Args, ast: &'ast ast::Ast, interner: Interner) -> Box<SemContext<'ast>> {
         let empty_class_id: ClassId = 0.into();
+        let empty_class_def_id: ClassDefId = 0.into();
         let empty_trait_id: TraitId = 0.into();
         let gc = Gc::new(&args);
         let perf_counters = PerfCounters::new(args.flag_gc_counters);
@@ -150,6 +151,9 @@ impl<'ast> SemContext<'ast> {
                 obj_class_def: Mutex::new(None),
                 ste_class_def: Mutex::new(None),
                 ex_class_def: Mutex::new(None),
+
+                free_object_class_def: empty_class_def_id,
+                free_array_class_def: empty_class_def_id,
             },
             gc: gc,
             ast: ast,
@@ -576,6 +580,9 @@ pub struct KnownElements {
     obj_class_def: Mutex<Option<ClassDefId>>,
     ste_class_def: Mutex<Option<ClassDefId>>,
     ex_class_def: Mutex<Option<ClassDefId>>,
+
+    pub free_object_class_def: ClassDefId,
+    pub free_array_class_def: ClassDefId,
 }
 
 impl KnownElements {

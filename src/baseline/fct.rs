@@ -362,7 +362,8 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
                 let cls_def = cls_def.read();
                 let cname = cls_def.name(self.vm);
 
-                let cls = self.vm.classes.idx(cls_def.cls_id);
+                let cls_id = cls_def.cls_id.expect("no corresponding class");
+                let cls = self.vm.classes.idx(cls_id);
                 let cls = cls.read();
                 let field = &cls.fields[fid];
                 let fname = field.name;
@@ -376,7 +377,8 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
                 let cls_def = cls_def.read();
                 let cname = cls_def.name(self.vm);
 
-                let cls = self.vm.classes.idx(cls_def.cls_id);
+                let cls_id = cls_def.cls_id.expect("no corresponding class");
+                let cls = self.vm.classes.idx(cls_id);
                 let cls = cls.read();
                 let field = &cls.fields[fid];
                 let fname = field.name;

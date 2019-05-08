@@ -1,4 +1,5 @@
-use gc::{Address, K};
+use ctxt::VM;
+use gc::{fill_region, fill_region_with_free, Address, K};
 
 pub const SIZE_CLASSES: usize = 6;
 
@@ -93,14 +94,18 @@ impl FreeList {
         FreeList { classes: classes }
     }
 
-    pub fn add(&mut self, addr: Address, size: usize) {
+    pub fn add(&mut self, vm: &VM, addr: Address, size: usize) {
         if size < SIZE_SMALLEST {
+            fill_region(vm, addr, addr.offset(size));
             return;
         }
 
         debug_assert!(size >= SIZE_SMALLEST);
         let szclass = SizeClass::next_down(size);
-        self.classes[szclass.idx()].add(FreeSpace(addr));
+
+        let free_class = &mut self.classes[szclass.idx()];
+        fill_region_with_free(vm, addr, addr.offset(size), free_class.head.addr());
+        free_class.head = FreeSpace(addr);
     }
 
     pub fn alloc(&mut self, size: usize) -> FreeSpace {
@@ -111,16 +116,6 @@ impl FreeList {
             let result = self.classes[class].first();
 
             if result.is_non_null() {
-                if result.size() < size {
-                    let class = SizeClass(class);
-                    println!(
-                        "class={} class.size={} actual={} expected={}",
-                        class.0,
-                        class.size(),
-                        result.size(),
-                        size
-                    );
-                }
                 assert!(result.size() >= size);
                 return result;
             }
@@ -131,34 +126,48 @@ impl FreeList {
 }
 
 struct FreeListClass {
-    spaces: Vec<FreeSpace>,
+    head: FreeSpace,
 }
 
 impl FreeListClass {
     fn new() -> FreeListClass {
-        FreeListClass { spaces: Vec::new() }
+        FreeListClass {
+            head: FreeSpace::null(),
+        }
     }
 
     fn add(&mut self, addr: FreeSpace) {
-        self.spaces.push(addr);
+        addr.set_next(self.head);
+        self.head = addr;
     }
 
     fn first(&mut self) -> FreeSpace {
-        if let Some(space) = self.spaces.pop() {
-            space
+        if self.head.is_non_null() {
+            let ret = self.head;
+            self.head = ret.next();
+            ret
         } else {
             FreeSpace::null()
         }
     }
 
     fn find(&mut self, minimum_size: usize) -> FreeSpace {
-        let len = self.spaces.len();
-        for idx in 0..len {
-            let curr = self.spaces[idx];
+        let mut curr = self.head;
+        let mut prev = FreeSpace::null();
+
+        while curr.is_non_null() {
             if curr.size() >= minimum_size {
-                self.spaces.remove(idx);
+                if prev.is_null() {
+                    self.head = curr.next();
+                } else {
+                    prev.set_next(curr.next());
+                }
+
                 return curr;
             }
+
+            prev = curr;
+            curr = curr.next();
         }
 
         FreeSpace::null()
@@ -187,6 +196,19 @@ impl FreeSpace {
     #[inline(always)]
     pub fn addr(self) -> Address {
         self.0
+    }
+
+    #[inline(always)]
+    pub fn next(self) -> FreeSpace {
+        assert!(self.is_non_null());
+        let next = unsafe { *self.addr().add_ptr(1).to_mut_ptr::<Address>() };
+        FreeSpace(next)
+    }
+
+    #[inline(always)]
+    pub fn set_next(&self, next: FreeSpace) {
+        assert!(self.is_non_null());
+        unsafe { *self.addr().add_ptr(1).to_mut_ptr::<Address>() = next.addr() }
     }
 
     #[inline(always)]

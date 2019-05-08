@@ -324,6 +324,7 @@ pub extern "C" fn spawn_thread(obj: Ref<Obj>) {
 
         let main = {
             let cls_id = obj.header().vtbl().class().cls_id;
+            let cls_id = cls_id.expect("no corresponding class");
             let cls = vm.classes.idx(cls_id);
             let cls = cls.read();
             let name = vm.interner.intern("run");

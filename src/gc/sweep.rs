@@ -7,7 +7,9 @@ use gc::marking;
 use gc::root::{get_rootset, Slot};
 use gc::space::Space;
 use gc::tlab;
-use gc::{fill_region, formatted_size, Address, CollectionStats, Collector, GcReason, Region};
+use gc::{
+    fill_region_with_free, formatted_size, Address, CollectionStats, Collector, GcReason, Region,
+};
 use os;
 use safepoint;
 use timer::Timer;
@@ -168,8 +170,23 @@ struct MarkSweep<'a, 'ast: 'a> {
 
 impl<'a, 'ast> MarkSweep<'a, 'ast> {
     fn collect(&mut self) {
+        let dev_verbose = self.vm.args.flag_gc_dev_verbose;
+
+        if dev_verbose {
+            println!("Sweep GC: Phase 1 (marking)");
+        }
+
         self.mark();
+
+        if dev_verbose {
+            println!("Sweep GC: Phase 2 (sweep)");
+        }
+
         self.sweep();
+
+        if dev_verbose {
+            println!("Sweep GC: Stop");
+        }
     }
 
     fn mark(&mut self) {
@@ -194,7 +211,7 @@ impl<'a, 'ast> MarkSweep<'a, 'ast> {
             let object_size = object.size();
 
             if object.header().is_marked_non_atomic() {
-                self.free(garbage_start, scan);
+                self.add_freelist(garbage_start, scan);
                 garbage_start = Address::null();
                 object.header_mut().unmark_non_atomic();
             } else if garbage_start.is_non_null() {
@@ -208,18 +225,16 @@ impl<'a, 'ast> MarkSweep<'a, 'ast> {
         }
 
         assert!(scan == end);
-        self.free(garbage_start, end);
+        self.add_freelist(garbage_start, end);
     }
 
-    fn free(&mut self, start: Address, end: Address) {
+    fn add_freelist(&mut self, start: Address, end: Address) {
         if start.is_null() {
             return;
         }
 
-        fill_region(self.vm, start, end);
-
         let size = end.offset_from(start);
-        self.free_list.add(start, size);
+        self.free_list.add(self.vm, start, size);
     }
 }
 
@@ -258,8 +273,8 @@ impl SweepAllocator {
             let free_end = object.offset(free_size);
             let new_free_size = free_end.offset_from(free_start);
 
-            fill_region(vm, free_start, free_end);
-            self.free_list.add(free_start, new_free_size);
+            fill_region_with_free(vm, free_start, free_end, Address::null());
+            self.free_list.add(vm, free_start, new_free_size);
             return object;
         }
 

@@ -217,7 +217,7 @@ fn patch_vtable_call(
 ) -> Address {
     let obj = unsafe { &mut *receiver.to_mut_ptr::<Obj>() };
     let vtable = obj.header().vtbl();
-    let cls_id = vtable.class().cls_id;
+    let cls_id = vtable.class().cls_id.expect("no corresponding class");
     let cls = vm.classes.idx(cls_id);
     let cls = cls.read();
 

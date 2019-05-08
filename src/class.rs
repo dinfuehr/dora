@@ -290,6 +290,12 @@ impl IndexMut<FieldId> for Vec<Field> {
 #[derive(Copy, Clone, Debug)]
 pub struct ClassDefId(usize);
 
+impl ClassDefId {
+    pub fn to_usize(self) -> usize {
+        self.0
+    }
+}
+
 impl From<usize> for ClassDefId {
     fn from(data: usize) -> ClassDefId {
         ClassDefId(data)
@@ -307,13 +313,14 @@ pub enum ClassSize {
     Fixed(i32),
     Array(i32),
     ObjArray,
+    FreeArray,
     Str,
 }
 
 #[derive(Debug)]
 pub struct ClassDef {
     pub id: ClassDefId,
-    pub cls_id: ClassId,
+    pub cls_id: Option<ClassId>,
     pub type_params: TypeParams,
     pub parent_id: Option<ClassDefId>,
     pub fields: Vec<FieldDef>,
@@ -324,21 +331,25 @@ pub struct ClassDef {
 
 impl ClassDef {
     pub fn name(&self, vm: &VM) -> String {
-        let cls = vm.classes.idx(self.cls_id);
-        let cls = cls.read();
-        let name = vm.interner.str(cls.name);
+        if let Some(cls_id) = self.cls_id {
+            let cls = vm.classes.idx(cls_id);
+            let cls = cls.read();
+            let name = vm.interner.str(cls.name);
 
-        let params = if self.type_params.len() > 0 {
-            self.type_params
-                .iter()
-                .map(|p| p.name(vm))
-                .collect::<Vec<_>>()
-                .join(", ")
+            let params = if self.type_params.len() > 0 {
+                self.type_params
+                    .iter()
+                    .map(|p| p.name(vm))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            } else {
+                return name.to_string();
+            };
+
+            format!("{}<{}>", name, params)
         } else {
-            return name.to_string();
-        };
-
-        format!("{}<{}>", name, params)
+            "<Unknown>".into()
+        }
     }
 }
 

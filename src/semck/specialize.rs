@@ -200,7 +200,7 @@ fn create_specialized_class(
 
         class_defs.push(Arc::new(RwLock::new(ClassDef {
             id: id,
-            cls_id: cls.id,
+            cls_id: Some(cls.id),
             type_params: type_params.clone(),
             parent_id: None,
             size: ClassSize::Fixed(0),

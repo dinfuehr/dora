@@ -1856,6 +1856,8 @@ where
                 store_length = true;
                 alloc_size = AllocationSize::Fixed(size);
             }
+
+            ClassSize::FreeArray => unreachable!(),
         }
 
         let array_ref = match cls.size {
@@ -1925,6 +1927,7 @@ where
                     ClassSize::ObjArray => mem::ptr_width(),
                     ClassSize::Str => 1,
                     ClassSize::Fixed(_) => unreachable!(),
+                    ClassSize::FreeArray => unreachable!(),
                 };
 
                 self.asm
