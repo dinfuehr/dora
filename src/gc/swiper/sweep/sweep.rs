@@ -31,17 +31,20 @@ impl<'a, 'ast> FullSweepCollector<'a, 'ast> {
     pub fn new(
         vm: &'a VM<'ast>,
         heap: Region,
+
         young: &'a YoungGen,
         old: &'a OldGen,
         large_space: &'a LargeSpace,
         card_table: &'a CardTable,
         crossing_map: &'a CrossingMap,
         perm_space: &'a Space,
+
         rootset: &'a [Slot],
         reason: GcReason,
+
         min_heap_size: usize,
         max_heap_size: usize,
-    ) -> FullSweepCollector<'a, 'ast>  {
+    ) -> FullSweepCollector<'a, 'ast> {
         FullSweepCollector {
             vm: vm,
             heap: heap,
