@@ -6,6 +6,7 @@ type="--release"
 # test serial minor & full collection
 cargo run $type -- --max-heap-size=512M --gc-verify bench/binarytrees/binarytrees.dora 21
 cargo run $type -- --max-heap-size=512M --gc-young-size=20M --gc-verify bench/binarytrees/binarytrees.dora 21
+
 cargo run $type -- --max-heap-size=512M --gc-verify bench/gcold/gcold.dora 300 10 3 1000 3000
 cargo run $type -- --max-heap-size=512M --gc-young-size=20M --gc-verify bench/gcold/gcold.dora 300 10 3 1000 3000
 
@@ -14,8 +15,12 @@ cargo run $type -- --max-heap-size=1G --gc=copy bench/binarytrees/binarytrees.do
 cargo run $type -- --max-heap-size=512M --gc=compact bench/binarytrees/binarytrees.dora 21
 cargo run $type -- --max-heap-size=512M --gc=sweep bench/binarytrees/binarytrees.dora 21
 
+cargo run $type -- --max-heap-size=1G --gc=copy bench/gcold/gcold.dora 300 10 3 1000 3000
+cargo run $type -- --max-heap-size=512M --gc=compact bench/gcold/gcold.dora 300 10 3 1000 3000
+
 # test parallel minor & full collection
 cargo run $type -- --max-heap-size=512M --gc-worker=4 --gc-verify --gc-parallel bench/binarytrees/binarytrees.dora 21
 cargo run $type -- --max-heap-size=512M --gc-worker=4 --gc-young-size=20M --gc-verify --gc-parallel bench/binarytrees/binarytrees.dora 21
+
 cargo run $type -- --max-heap-size=512M --gc-verify --gc-parallel bench/gcold/gcold.dora 300 10 3 1000 3000
 cargo run $type -- --max-heap-size=512M --gc-young-size=20M --gc-verify --gc-parallel bench/gcold/gcold.dora 300 10 3 1000 3000
