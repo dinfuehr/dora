@@ -506,7 +506,7 @@ impl Collector for Swiper {
     }
 
     fn needs_write_barrier(&self) -> bool {
-        return self.emit_write_barrier;
+        self.emit_write_barrier
     }
 
     fn card_table_offset(&self) -> usize {

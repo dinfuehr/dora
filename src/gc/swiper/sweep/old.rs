@@ -13,27 +13,27 @@ const CHUNK_SIZE: usize = 1 << CHUNK_SIZE_BITS;
 
 // experimental implementation of an Old generation consisting of chunks
 // goal is to reduce work for full GCs
-struct SplitOldGen {
+pub struct OldGen {
     // total size of old generation
     total: Region,
 
     chunks: Vec<Chunk>,
 
-    prot: Mutex<SplitOldGenProtected>,
+    prot: Mutex<OldGenProtected>,
 
     crossing_map: CrossingMap,
     card_table: CardTable,
     config: SharedHeapConfig,
 }
 
-impl SplitOldGen {
-    fn new(
+impl OldGen {
+    pub fn new(
         start: Address,
         end: Address,
         crossing_map: CrossingMap,
         card_table: CardTable,
         config: SharedHeapConfig,
-    ) -> SplitOldGen {
+    ) -> OldGen {
         assert!(start.is_chunk_aligned());
 
         let total = Region::new(start, end);
@@ -46,12 +46,12 @@ impl SplitOldGen {
             chunks.push(Chunk::new(chunk_start));
         }
 
-        let prot = Mutex::new(SplitOldGenProtected {
+        let prot = Mutex::new(OldGenProtected {
             used_chunks: ChunkSet::empty(num_chunks),
             free_chunks: ChunkSet::full(num_chunks),
         });
 
-        SplitOldGen {
+        OldGen {
             total: total,
             chunks: chunks,
             prot: prot,
@@ -101,7 +101,7 @@ fn chunk_addr(chunk: ChunkId, start: Address) -> Address {
     start.offset(chunk.to_usize() * CHUNK_SIZE)
 }
 
-struct SplitOldGenProtected {
+struct OldGenProtected {
     // all used chunks
     used_chunks: ChunkSet,
 
@@ -218,7 +218,7 @@ impl ChunkSet {
             if leftmost == rightmost {
                 self.bounds = None;
             } else {
-                for i in leftmost+1..rightmost {
+                for i in leftmost + 1..rightmost {
                     if self.chunks[i] {
                         self.bounds = Some(ChunkSetBounds::new(i, rightmost));
                         return true;
