@@ -5,6 +5,7 @@ use std::mem::replace;
 use gc::swiper::card::CardTable;
 use gc::swiper::controller::SharedHeapConfig;
 use gc::swiper::crossing::CrossingMap;
+use gc::swiper::CommonOldGen;
 use gc::{arena, Address, Region, GEN_SIZE};
 
 pub struct OldGen {
@@ -46,17 +47,6 @@ impl OldGen {
         self.total.start
     }
 
-    pub fn committed_size(&self) -> usize {
-        let protected = self.protected.lock();
-
-        protected.size
-    }
-
-    pub fn active_size(&self) -> usize {
-        let protected = self.protected.lock();
-        protected.active_size()
-    }
-
     pub fn alloc(&self, size: usize) -> Address {
         let mut protected = self.protected.lock();
         protected.alloc(&self.config, size)
@@ -79,6 +69,18 @@ impl OldGen {
     pub fn dump_regions(&self) {
         let protected = self.protected.lock();
         protected.dump_regions();
+    }
+}
+
+impl CommonOldGen for OldGen {
+    fn active_size(&self) -> usize {
+        let protected = self.protected.lock();
+        protected.active_size()
+    }
+
+    fn committed_size(&self) -> usize {
+        let protected = self.protected.lock();
+        protected.size
     }
 }
 

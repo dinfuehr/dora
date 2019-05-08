@@ -10,11 +10,11 @@ use gc::root::{get_rootset, Slot};
 use gc::swiper::card::CardTable;
 use gc::swiper::controller::{HeapConfig, SharedHeapConfig};
 use gc::swiper::crossing::CrossingMap;
-use gc::swiper::full::FullCollector;
+use gc::swiper::compact::FullCollector;
 use gc::swiper::large::LargeSpace;
 use gc::swiper::minor::MinorCollector;
 use gc::swiper::old::OldGen;
-use gc::swiper::pfull::ParallelFullCollector;
+use gc::swiper::pcompact::ParallelFullCollector;
 use gc::swiper::pminor::ParallelMinorCollector;
 use gc::swiper::verify::{Verifier, VerifierPhase};
 use gc::swiper::young::YoungGen;
@@ -27,13 +27,13 @@ use object::Obj;
 use safepoint;
 
 pub mod card;
+mod compact;
 mod controller;
 mod crossing;
-mod full;
 mod large;
 mod minor;
 pub mod old;
-mod pfull;
+mod pcompact;
 mod pminor;
 pub mod sweep;
 mod verify;
@@ -713,4 +713,9 @@ where
     if garbage_objects >= MIN_OBJECTS_TO_SKIP {
         fill_region(vm, garbage_start, region.end);
     }
+}
+
+pub trait CommonOldGen {
+    fn active_size(&self) -> usize;
+    fn committed_size(&self) -> usize;
 }

@@ -8,7 +8,7 @@ use driver::cmd::Args;
 use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
-use gc::swiper::CollectionKind;
+use gc::swiper::{CollectionKind, CommonOldGen};
 use gc::{align_gen, align_gen_down, formatted_size, AllNumbers, GcReason, GEN_SIZE, M};
 use mem;
 use os::signal::Trap;

@@ -5,6 +5,7 @@ use std::cmp;
 use gc::swiper::card::CardTable;
 use gc::swiper::controller::SharedHeapConfig;
 use gc::swiper::crossing::CrossingMap;
+use gc::swiper::CommonOldGen;
 use gc::{arena, Address, Region};
 
 // Choose 128K as chunk size for now
@@ -94,6 +95,16 @@ impl OldGen {
             let mut config = self.config.lock();
             config.shrink_old(CHUNK_SIZE);
         }
+    }
+}
+
+impl CommonOldGen for OldGen {
+    fn active_size(&self) -> usize {
+        unimplemented!()
+    }
+
+    fn committed_size(&self) -> usize {
+        unimplemented!()
     }
 }
 
