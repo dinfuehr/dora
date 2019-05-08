@@ -20,6 +20,7 @@ use mem;
 use safepoint;
 
 mod old;
+mod sweep;
 
 pub struct SweepSwiper {
     // contiguous memory for young/old generation and large space

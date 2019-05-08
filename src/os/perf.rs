@@ -144,7 +144,7 @@ pub mod counters {
 
         pub fn get(&self) -> PerfValues {
             if let Some(mutex) = &self.counters {
-                let mut counters = mutex.lock();
+                let counters = mutex.lock();
                 counters.total.clone()
             } else {
                 PerfValues::new()
