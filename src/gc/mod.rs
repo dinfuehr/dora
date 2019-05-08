@@ -20,6 +20,7 @@ pub mod arena;
 pub mod bump;
 pub mod compact;
 pub mod copy;
+pub mod freelist;
 pub mod marking;
 pub mod pmarking;
 pub mod root;

@@ -1,5 +1,5 @@
 use fixedbitset::FixedBitSet;
-use parking_lot::Mutex;
+use parking_lot::{Mutex, MutexGuard};
 use std::cmp;
 
 use gc::swiper::card::CardTable;
@@ -96,6 +96,10 @@ impl OldGen {
             config.shrink_old(CHUNK_SIZE);
         }
     }
+
+    pub fn protected(&self) -> MutexGuard<OldGenProtected> {
+        self.prot.lock()
+    }
 }
 
 impl CommonOldGen for OldGen {
@@ -112,7 +116,7 @@ fn chunk_addr(chunk: ChunkId, start: Address) -> Address {
     start.offset(chunk.to_usize() * CHUNK_SIZE)
 }
 
-struct OldGenProtected {
+pub struct OldGenProtected {
     // all used chunks
     used_chunks: ChunkSet,
 

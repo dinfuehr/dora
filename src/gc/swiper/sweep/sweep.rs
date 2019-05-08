@@ -1,3 +1,5 @@
+use parking_lot::MutexGuard;
+
 use ctxt::VM;
 use gc::marking;
 use gc::root::Slot;
@@ -5,7 +7,7 @@ use gc::space::Space;
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::large::LargeSpace;
-use gc::swiper::old::OldGen;
+use gc::swiper::old::{OldGen, OldGenProtected};
 use gc::swiper::young::YoungGen;
 use gc::{GcReason, Region};
 
@@ -15,6 +17,7 @@ pub struct FullSweepCollector<'a, 'ast: 'a> {
 
     young: &'a YoungGen,
     old: &'a OldGen,
+    old_prot: MutexGuard<'a, OldGenProtected>,
     large_space: &'a LargeSpace,
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
@@ -51,6 +54,7 @@ impl<'a, 'ast> FullSweepCollector<'a, 'ast> {
 
             young: young,
             old: old,
+            old_prot: old.protected(),
             large_space: large_space,
             card_table: card_table,
             crossing_map: crossing_map,
