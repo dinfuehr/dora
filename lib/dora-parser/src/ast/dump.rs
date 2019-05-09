@@ -419,6 +419,9 @@ impl<'a> AstDumper<'a> {
             ExprIdent(ref ident) => self.dump_expr_ident(ident),
             ExprAssign(ref assign) => self.dump_expr_assign(assign),
             ExprCall(ref call) => self.dump_expr_call(call),
+            ExprCall2(ref call) => self.dump_expr_call2(call),
+            ExprTypeParam(ref expr) => self.dump_expr_type_param(expr),
+            ExprPath(ref path) => self.dump_expr_path(path),
             ExprDelegation(ref call) => self.dump_expr_delegation(call),
             ExprSelf(ref selfie) => self.dump_expr_self(selfie),
             ExprSuper(ref expr) => self.dump_expr_super(expr),
@@ -544,6 +547,12 @@ impl<'a> AstDumper<'a> {
         self.indent(|d| d.dump_expr(&expr.lhs));
     }
 
+    fn dump_expr_path(&mut self, expr: &ExprPathType) {
+        self.indent(|d| d.dump_expr(&expr.rhs));
+        dump!(self, "path (::) @ {} {}", expr.pos, expr.id);
+        self.indent(|d| d.dump_expr(&expr.lhs));
+    }
+
     fn dump_expr_call(&mut self, expr: &ExprCallType) {
         dump!(self,
               "call {} @ {} {}",
@@ -559,6 +568,38 @@ impl<'a> AstDumper<'a> {
 
             for arg in &expr.args {
                 d.dump_expr(arg);
+            }
+        });
+    }
+
+    fn dump_expr_call2(&mut self, expr: &ExprCall2Type) {
+        dump!(self,
+              "call @ {} {}",
+              expr.pos,
+              expr.id);
+
+        self.indent(|d| {
+            dump!(d, "callee");
+            d.indent(|d| d.dump_expr(&expr.callee));
+
+            for arg in &expr.args {
+                d.dump_expr(arg);
+            }
+        });
+    }
+
+    fn dump_expr_type_param(&mut self, expr: &ExprTypeParamType) {
+        dump!(self,
+              "type param @ {} {}",
+              expr.pos,
+              expr.id);
+
+        self.indent(|d| {
+            dump!(d, "callee");
+            d.indent(|d| d.dump_expr(&expr.callee));
+
+            for arg in &expr.args {
+                d.dump_type(arg);
             }
         });
     }

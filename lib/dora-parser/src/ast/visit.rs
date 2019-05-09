@@ -315,6 +315,27 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
             }
         }
 
+        ExprCall2(ref call) => {
+            v.visit_expr(&call.callee);
+
+            for arg in &call.args {
+                v.visit_expr(arg);
+            }
+        }
+
+        ExprTypeParam(ref expr) => {
+            v.visit_expr(&expr.callee);
+
+            for arg in &expr.args {
+                v.visit_type(arg);
+            }
+        }
+
+        ExprPath(ref path) => {
+            v.visit_expr(&path.lhs);
+            v.visit_expr(&path.rhs);
+        }
+
         ExprDelegation(ref call) => {
             for arg in &call.args {
                 v.visit_expr(arg);

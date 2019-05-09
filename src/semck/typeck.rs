@@ -346,6 +346,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.src.set_ty(e.id, xconst.ty);
                 self.expr_type = xconst.ty;
             }
+
+            IdentType::Fct(_) => {
+                self.ctxt
+                    .diag
+                    .lock()
+                    .report_without_path(e.pos, Msg::FctUsedAsIdentifier);
+
+                self.src.set_ty(e.id, BuiltinType::Error);
+                self.expr_type = BuiltinType::Error;
+            }
         }
     }
 
@@ -402,12 +412,17 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.src.set_ty(e.id, BuiltinType::Error);
                 self.expr_type = BuiltinType::Error;
             }
-        } else if e.lhs.is_field() || e.lhs.is_ident() {
-            self.visit_expr(&e.lhs);
-            let lhs_type = self.expr_type;
+        } else if e.lhs.is_field() {
+            self.check_expr_assign_field(e);
+
+        } else if e.lhs.is_ident() {
+            let lhs_type;
 
             self.visit_expr(&e.rhs);
             let rhs_type = self.expr_type;
+
+            self.src.set_ty(e.id, BuiltinType::Unit);
+            self.expr_type = BuiltinType::Unit;
 
             if let Some(ident_type) = self.src.map_idents.get(e.lhs.id()) {
                 match ident_type {
@@ -418,29 +433,26 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                                 .lock()
                                 .report_without_path(e.pos, Msg::LetReassigned);
                         }
+
+                        lhs_type = self.src.vars[varid].ty;
                     }
 
                     &IdentType::Global(gid) => {
                         let glob = self.ctxt.globals.idx(gid);
-                        if !glob.lock().reassignable {
+                        let glob = glob.lock();
+
+                        if !glob.reassignable {
                             self.ctxt
                                 .diag
                                 .lock()
                                 .report_without_path(e.pos, Msg::LetReassigned);
                         }
+
+                        lhs_type = glob.ty;
                     }
 
-                    &IdentType::Field(ty, fieldid) => {
-                        let clsid = ty.cls_id(self.ctxt).unwrap();
-                        let cls = self.ctxt.classes.idx(clsid);
-                        let cls = cls.read();
-
-                        if !self.fct.is_constructor && !cls.fields[fieldid].reassignable {
-                            self.ctxt
-                                .diag
-                                .lock()
-                                .report_without_path(e.pos, Msg::LetReassigned);
-                        }
+                    &IdentType::Field(_, _) => {
+                        unreachable!();
                     }
 
                     &IdentType::Struct(_) => {
@@ -452,32 +464,34 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                             .diag
                             .lock()
                             .report_without_path(e.pos, Msg::AssignmentToConst);
+
+                        return;
+                    }
+
+                    &IdentType::Fct(_) => {
+                        self.ctxt
+                            .diag
+                            .lock()
+                            .report_without_path(e.pos, Msg::FctReassigned);
+
+                        return;
                     }
                 }
 
                 if !lhs_type.allows(self.ctxt, rhs_type) {
-                    let msg = if e.lhs.is_ident() {
-                        let ident = e.lhs.to_ident().unwrap();
-                        let name = self.ctxt.interner.str(ident.name).to_string();
-                        let lhs_type = lhs_type.name(self.ctxt);
-                        let rhs_type = rhs_type.name(self.ctxt);
+                    let ident = e.lhs.to_ident().unwrap();
+                    let name = self.ctxt.interner.str(ident.name).to_string();
+                    let lhs_type = lhs_type.name(self.ctxt);
+                    let rhs_type = rhs_type.name(self.ctxt);
 
-                        Msg::AssignType(name, lhs_type, rhs_type)
-                    } else {
-                        let field = e.lhs.to_field().unwrap();
-                        let name = self.ctxt.interner.str(field.name).to_string();
+                    self.src.set_ty(e.id, BuiltinType::Unit);
+                    self.expr_type = BuiltinType::Unit;
 
-                        let field_type = self.src.ty(field.object.id());
-                        let field_type = field_type.name(self.ctxt);
-
-                        let lhs_type = lhs_type.name(self.ctxt);
-                        let rhs_type = rhs_type.name(self.ctxt);
-
-                        Msg::AssignField(name, field_type, lhs_type, rhs_type)
-                    };
-
+                    let msg = Msg::AssignType(name, lhs_type, rhs_type);
                     self.ctxt.diag.lock().report_without_path(e.pos, msg);
                 }
+
+                return;
             }
         } else {
             self.ctxt
@@ -488,6 +502,78 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         self.src.set_ty(e.id, BuiltinType::Error);
         self.expr_type = BuiltinType::Error;
+    }
+
+    fn check_expr_assign_field(&mut self, e: &'ast ExprAssignType) {
+        let field_expr = e.lhs.to_field().unwrap();
+        let name = field_expr.name;
+
+        self.visit_expr(&field_expr.object);
+        let object_type = self.expr_type;
+
+        self.visit_expr(&e.rhs);
+        let rhs_type = self.expr_type;
+
+        let cls_id = object_type.cls_id(self.ctxt);
+
+        if let Some(cls_id) = cls_id {
+            let cls = self.ctxt.classes.idx(cls_id);
+            let cls = cls.read();
+
+            if let Some((cls_id, field_id)) = cls.find_field(self.ctxt, name) {
+                let ty = match object_type {
+                    BuiltinType::Class(_, list_id) => BuiltinType::Class(cls_id, list_id),
+
+                    _ => unreachable!(),
+                };
+
+                let cls = self.ctxt.classes.idx(cls_id);
+                let cls = cls.read();
+                let ident_type = IdentType::Field(ty, field_id);
+                self.src.map_idents.insert_or_replace(e.lhs.id(), ident_type);
+
+                let field = &cls.fields[field_id];
+                let class_type_params = ty.type_params(self.ctxt);
+                let fty = replace_type_param(
+                    self.ctxt,
+                    field.ty,
+                    &class_type_params,
+                    &TypeParams::empty(),
+                );
+
+                if !self.fct.is_constructor && !field.reassignable {
+                    self.ctxt
+                        .diag
+                        .lock()
+                        .report_without_path(e.pos, Msg::LetReassigned);
+                }
+
+                if !fty.allows(self.ctxt, rhs_type) && !rhs_type.is_error() {
+                    let field = e.lhs.to_field().unwrap();
+                    let name = self.ctxt.interner.str(field.name).to_string();
+
+                    let object_type = object_type.name(self.ctxt);
+                    let lhs_type = fty.name(self.ctxt);
+                    let rhs_type = rhs_type.name(self.ctxt);
+
+                    let msg = Msg::AssignField(name, object_type, lhs_type, rhs_type);
+                    self.ctxt.diag.lock().report_without_path(e.pos, msg);
+                }
+
+                self.src.set_ty(e.id, BuiltinType::Unit);
+                self.expr_type = BuiltinType::Unit;
+                return;
+            }
+        }
+
+        // field not found, report error
+        let field_name = self.ctxt.interner.str(name).to_string();
+        let expr_name = object_type.name(self.ctxt);
+        let msg = Msg::UnknownField(field_name, expr_name);
+        self.ctxt.diag.lock().report_without_path(field_expr.pos, msg);
+
+        self.src.set_ty(e.id, BuiltinType::Unit);
+        self.expr_type = BuiltinType::Unit;
     }
 
     fn find_method(
@@ -897,6 +983,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.ctxt.diag.lock().report_without_path(e.pos, msg);
             }
         }
+    }
+
+    fn check_expr_call2(&mut self, _e: &'ast ExprCall2Type, _in_try: bool) {
+        unimplemented!();
     }
 
     fn check_expr_delegation(&mut self, e: &'ast ExprDelegationType) {
@@ -1362,6 +1452,9 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprUn(ref expr) => self.check_expr_un(expr),
             ExprBin(ref expr) => self.check_expr_bin(expr),
             ExprCall(ref expr) => self.check_expr_call(expr, false),
+            ExprCall2(ref expr) => self.check_expr_call2(expr, false),
+            ExprTypeParam(_) => unimplemented!(),
+            ExprPath(_) => unimplemented!(),
             ExprDelegation(ref expr) => self.check_expr_delegation(expr),
             ExprField(ref expr) => self.check_expr_field(expr),
             ExprSelf(ref expr) => self.check_expr_this(expr),
@@ -3726,5 +3819,15 @@ mod tests {
             pos(4, 21),
             Msg::UnknownCtor("Bar".into(), vec!["Int".into()]),
         );
+    }
+
+    #[test]
+    fn test_fct_used_as_identifier() {
+        err("fun foo() {} fun bar() { foo; }", pos(1, 26), Msg::FctUsedAsIdentifier);
+    }
+
+    #[test]
+    fn test_assign_fct() {
+        err("fun foo() {} fun bar() { foo = 1; }", pos(1, 30), Msg::FctReassigned);
     }
 }

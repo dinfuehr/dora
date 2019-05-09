@@ -1221,6 +1221,9 @@ pub enum Expr {
     ExprLitStruct(ExprLitStructType),
     ExprIdent(ExprIdentType),
     ExprCall(ExprCallType),
+    ExprCall2(ExprCall2Type),
+    ExprTypeParam(ExprTypeParamType),
+    ExprPath(ExprPathType),
     ExprDelegation(ExprDelegationType),
     ExprAssign(ExprAssignType),
     ExprField(ExprFieldType),
@@ -1387,6 +1390,45 @@ impl Expr {
                            args: args,
                            object: object,
                            type_params: type_params,
+                       })
+    }
+
+    pub fn create_call2(id: NodeId,
+                       pos: Position,
+                       callee: Box<Expr>,
+                       args: Vec<Box<Expr>>)
+                       -> Expr {
+        Expr::ExprCall2(ExprCall2Type {
+                           id: id,
+                           pos: pos,
+                           callee: callee,
+                           args: args,
+                       })
+    }
+
+    pub fn create_type_param(id: NodeId,
+                       pos: Position,
+                       callee: Box<Expr>,
+                       args: Vec<Type>)
+                       -> Expr {
+        Expr::ExprTypeParam(ExprTypeParamType {
+                           id: id,
+                           pos: pos,
+                           callee: callee,
+                           args: args,
+                       })
+    }
+
+    pub fn create_path(id: NodeId,
+                       pos: Position,
+                       lhs: Box<Expr>,
+                       rhs: Box<Expr>)
+                       -> Expr {
+        Expr::ExprPath(ExprPathType {
+                           id: id,
+                           pos: pos,
+                           lhs: lhs,
+                           rhs: rhs,
                        })
     }
 
@@ -1715,6 +1757,9 @@ impl Expr {
             Expr::ExprIdent(ref val) => val.pos,
             Expr::ExprAssign(ref val) => val.pos,
             Expr::ExprCall(ref val) => val.pos,
+            Expr::ExprCall2(ref val) => val.pos,
+            Expr::ExprTypeParam(ref val) => val.pos,
+            Expr::ExprPath(ref val) => val.pos,
             Expr::ExprDelegation(ref val) => val.pos,
             Expr::ExprField(ref val) => val.pos,
             Expr::ExprSelf(ref val) => val.pos,
@@ -1740,6 +1785,9 @@ impl Expr {
             Expr::ExprIdent(ref val) => val.id,
             Expr::ExprAssign(ref val) => val.id,
             Expr::ExprCall(ref val) => val.id,
+            Expr::ExprCall2(ref val) => val.id,
+            Expr::ExprTypeParam(ref val) => val.id,
+            Expr::ExprPath(ref val) => val.id,
             Expr::ExprDelegation(ref val) => val.id,
             Expr::ExprField(ref val) => val.id,
             Expr::ExprSelf(ref val) => val.id,
@@ -2003,7 +2051,34 @@ pub struct ExprCallType {
 }
 
 #[derive(Clone, Debug)]
+pub struct ExprCall2Type {
+    pub id: NodeId,
+    pub pos: Position,
+
+    pub callee: Box<Expr>,
+    pub args: Vec<Box<Expr>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ExprTypeParamType {
+    pub id: NodeId,
+    pub pos: Position,
+
+    pub callee: Box<Expr>,
+    pub args: Vec<Type>,
+}
+
+#[derive(Clone, Debug)]
 pub struct ExprAssignType {
+    pub id: NodeId,
+    pub pos: Position,
+
+    pub lhs: Box<Expr>,
+    pub rhs: Box<Expr>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ExprPathType {
     pub id: NodeId,
     pub pos: Position,
 

@@ -1184,6 +1184,7 @@ pub enum IdentType {
     Field(BuiltinType, FieldId),
     Struct(StructId),
     Const(ConstId),
+    Fct(FctId),
 }
 
 impl IdentType {

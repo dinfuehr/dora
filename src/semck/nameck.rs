@@ -249,6 +249,11 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                 return;
             }
 
+            Some(SymFct(id)) => {
+                self.src.map_idents.insert(ident.id, IdentType::Fct(id));
+                return;
+            }
+
             None | Some(_) => {
                 // do nothing
             }

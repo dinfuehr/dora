@@ -51,6 +51,8 @@ pub enum Msg {
     CatchOrFinallyExpected,
     LetMissingInitialization,
     LetReassigned,
+    FctReassigned,
+    FctUsedAsIdentifier,
     UnderivableType(String),
     CycleInHierarchy,
     SuperfluousOverride(String),
@@ -227,6 +229,8 @@ impl Msg {
             CatchOrFinallyExpected => "`try` without `catch` or `finally`.".into(),
             LetMissingInitialization => "`let` binding is missing initialization.".into(),
             LetReassigned => "`let` binding cannot be reassigned.".into(),
+            FctReassigned => "function cannot be reassigned.".into(),
+            FctUsedAsIdentifier => "function cannot be used as identifier.".into(),
             UnderivableType(ref name) => format!("type `{}` cannot be used as super class.", name),
             CycleInHierarchy => "cycle in type hierarchy detected.".into(),
             SuperfluousOverride(_) => {

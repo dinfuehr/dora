@@ -143,6 +143,9 @@ where
             ExprAssign(ref expr) => self.emit_assign(expr),
             ExprBin(ref expr) => self.emit_bin(expr, dest),
             ExprCall(ref expr) => self.emit_call(expr, dest),
+            ExprCall2(_) => unimplemented!(),
+            ExprTypeParam(_) => unimplemented!(),
+            ExprPath(_) => unimplemented!(),
             ExprDelegation(ref expr) => self.emit_delegation(expr, dest),
             ExprField(ref expr) => self.emit_field(expr, dest),
             ExprSelf(_) => self.emit_self(dest.reg()),
@@ -552,6 +555,8 @@ where
             IdentType::Const(const_id) => {
                 self.emit_const(const_id, dest);
             }
+
+            IdentType::Fct(_) => unreachable!(),
         }
     }
 
@@ -797,6 +802,10 @@ where
             }
 
             IdentType::Const(_) => {
+                unreachable!();
+            }
+
+            IdentType::Fct(_) => {
                 unreachable!();
             }
         }
