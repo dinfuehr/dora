@@ -1,4 +1,4 @@
-use bytecode::generate::{BytecodeIdx, Label, Register};
+use bytecode::generate::{BytecodeIdx, Register};
 
 #[derive(PartialEq, Debug)]
 pub enum Bytecode {
@@ -12,10 +12,8 @@ pub enum Bytecode {
     LdaZero,
     LogicalNot,
     Star(Register),
-    JumpIfFalse(Label),
-    Jump(Label),
-    JumpIfFalseBytecodeIdx(BytecodeIdx),
-    JumpBytecodeIdx(BytecodeIdx),
+    JumpIfFalse(BytecodeIdx),
+    Jump(BytecodeIdx),
     Mod(Register),
     Mul(Register),
     Neg,
