@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt;
 
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::Expr::*;
@@ -6,17 +7,19 @@ use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 use dora_parser::interner::Name;
 
-#[derive(PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Register(usize);
-#[derive(PartialEq, Debug, Eq, Hash)]
+
+#[derive(Copy, Clone, PartialEq, Debug, Eq, Hash)]
 pub struct Label(usize);
 
-macro_rules! hashmap {
-    ($( $key: expr => $val: expr ),*) => {{
-         let mut map = ::std::collections::HashMap::new();
-         $( map.insert($key, $val); )*
-         map
-    }}
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct BytecodeIdx(usize);
+
+impl fmt::Display for BytecodeIdx {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "bc#{}", self.0)
+    }
 }
 
 pub struct Context {
@@ -43,6 +46,15 @@ impl Context {
 pub struct LoopLabels {
     cond: Label,
     end: Label,
+}
+
+impl LoopLabels {
+    fn new(cond: Label, end: Label) -> LoopLabels {
+        LoopLabels {
+            cond: cond,
+            end: end,
+        }
+    }
 }
 
 #[derive(PartialEq, Debug)]
@@ -79,7 +91,7 @@ pub struct BytecodeGen {
     code: Vec<Bytecode>,
     ctxs: Vec<Context>,
     loops: Vec<LoopLabels>,
-    labels: HashMap<Label, usize>,
+    labels: Vec<Option<BytecodeIdx>>,
     regs: usize,
 }
 
@@ -112,14 +124,35 @@ impl BytecodeGen {
         BytecodeGen {
             code: Vec::new(),
             ctxs: Vec::new(),
+            labels: Vec::new(),
             loops: Vec::new(),
-            labels: HashMap::new(),
             regs: 0,
         }
     }
 
     pub fn gen(&mut self, ast: &Ast) {
         self.visit_ast(ast);
+    }
+
+    fn create_label(&mut self) -> Label {
+        self.labels.push(None);
+        Label(self.labels.len()-1)
+    }
+
+    fn define_label(&mut self) -> Label {
+        let dest = BytecodeIdx(self.code.len());
+        self.labels.push(Some(dest));
+        Label(self.labels.len()-1)
+    }
+
+    fn bind_label(&mut self, lbl: Label) {
+        assert!(self.labels[lbl.0].is_none(), "bind label twice");
+        let dest = BytecodeIdx(self.code.len());
+        self.labels[lbl.0] = Some(dest);
+    }
+
+    fn dest_label(&self, lbl: Label) -> BytecodeIdx {
+        self.labels[lbl.0].expect("label wasn't bound")
     }
 
     pub fn dump(&self) {
@@ -143,10 +176,12 @@ impl BytecodeGen {
                 Bytecode::LogicalNot => println!("{}: LogicalNot", btidx),
                 Bytecode::Star(Register(register)) => println!("{}: Star {}", btidx, register),
                 Bytecode::JumpIfFalse(label) => {
-                    println!("{}: JumpIfFalse {}", btidx, self.labels.get(label).unwrap())
+                    let dest = self.dest_label(*label);
+                    println!("{}: JumpIfFalse {}", btidx, dest)
                 }
                 Bytecode::Jump(label) => {
-                    println!("{}: Jump {}", btidx, self.labels.get(label).unwrap())
+                    let dest = self.dest_label(*label);
+                    println!("{}: Jump {}", btidx, dest)
                 }
                 Bytecode::Mod(Register(register)) => println!("{}: Mod {}", btidx, register),
                 Bytecode::Mul(Register(register)) => println!("{}: Mul {}", btidx, register),
@@ -204,7 +239,7 @@ impl BytecodeGen {
             StmtIf(ref stmt) => self.visit_stmt_if(stmt),
             StmtVar(ref stmt) => self.visit_stmt_var(stmt),
             StmtWhile(ref stmt) => self.visit_stmt_while(stmt),
-            // StmtLoop(ref stmt) => {},
+            StmtLoop(ref stmt) => self.visit_stmt_loop(stmt),
             // StmtThrow(ref stmt) => {},
             // StmtDefer(ref stmt) => {},
             // StmtDo(ref stmt) => {},
@@ -232,43 +267,48 @@ impl BytecodeGen {
     }
 
     fn visit_stmt_while(&mut self, stmt: &StmtWhileType) {
-        let cond_lbl = self.labels.len();
-        let end_lbl = cond_lbl + 1;
-        self.loops.push(LoopLabels {
-            cond: Label(cond_lbl),
-            end: Label(end_lbl),
-        });
-
-        self.labels.insert(Label(cond_lbl), self.code.len());
-        self.labels.insert(Label(end_lbl), 0); // Just a place holder
-
+        let cond_lbl = self.define_label();
+        let end_lbl = self.create_label();
         self.visit_expr(&stmt.cond);
-        self.code.push(Bytecode::JumpIfFalse(Label(end_lbl)));
+        self.code.push(Bytecode::JumpIfFalse(end_lbl));
+        self.loops.push(LoopLabels::new(cond_lbl, end_lbl));
         self.visit_stmt(&stmt.block);
-        self.code.push(Bytecode::Jump(Label(cond_lbl)));
-        self.labels.insert(Label(end_lbl), self.code.len());
         self.loops.pop();
+        self.code.push(Bytecode::Jump(cond_lbl));
+        self.bind_label(end_lbl);
+    }
+
+    fn visit_stmt_loop(&mut self, stmt: &StmtLoopType) {
+        let start_lbl = self.define_label();
+        let end_lbl = self.create_label();
+        self.loops.push(LoopLabels::new(start_lbl, end_lbl));
+        self.visit_stmt(&stmt.block);
+        self.loops.pop();
+        self.code.push(Bytecode::Jump(start_lbl));
+        self.bind_label(end_lbl);
     }
 
     fn visit_stmt_if(&mut self, stmt: &StmtIfType) {
-        let else_lbl = self.labels.len();
-        let end_lbl = else_lbl + 1;
+        if let Some(ref else_block) = stmt.else_block {
+            let else_lbl = self.create_label();
+            let end_lbl = self.create_label();
 
-        self.labels.insert(Label(else_lbl), 0); // Just a place holder
-        self.labels.insert(Label(end_lbl), 0); // Just a place holder
+            self.visit_expr(&stmt.cond);
+            self.code.push(Bytecode::JumpIfFalse(else_lbl));
 
-        self.visit_expr(&stmt.cond);
-        self.code.push(Bytecode::JumpIfFalse(Label(else_lbl)));
-        self.visit_stmt(&stmt.then_block);
-        self.code.push(Bytecode::Jump(Label(end_lbl)));
-        self.labels.insert(Label(else_lbl), self.code.len());
-        match &stmt.else_block {
-            Some(else_block) => {
-                self.visit_stmt(&else_block);
-            }
-            _ => {}
+            self.visit_stmt(&stmt.then_block);
+            self.code.push(Bytecode::Jump(end_lbl));
+
+            self.bind_label(else_lbl);
+            self.visit_stmt(&else_block);
+            self.bind_label(end_lbl);
+        } else {
+            let end_lbl = self.create_label();
+            self.visit_expr(&stmt.cond);
+            self.code.push(Bytecode::JumpIfFalse(end_lbl));
+            self.visit_stmt(&stmt.then_block);
+            self.bind_label(end_lbl);
         }
-        self.labels.insert(Label(end_lbl), self.code.len());
     }
 
     fn visit_stmt_expr(&mut self, stmt: &StmtExprType) {
@@ -293,13 +333,13 @@ impl BytecodeGen {
     }
 
     fn visit_stmt_break(&mut self, _stmt: &StmtBreakType) {
-        let Label(end) = self.loops.pop().unwrap().end;
-        self.code.push(Bytecode::Jump(Label(end)));
+        let end = self.loops.pop().unwrap().end;
+        self.code.push(Bytecode::Jump(end));
     }
 
     fn visit_stmt_continue(&mut self, _stmt: &StmtContinueType) {
-        let Label(cond) = self.loops.last().unwrap().cond;
-        self.code.push(Bytecode::Jump(Label(cond)));
+        let cond = self.loops.last().unwrap().cond;
+        self.code.push(Bytecode::Jump(cond));
     }
 
     // TODO - implement other expressions
@@ -549,7 +589,7 @@ mod tests {
             Jump(Label(0)),
             ReturnVoid,
         ];
-        let labels = hashmap![Label(0) => 0, Label(1) => 4];
+        let labels = vec![Some(BytecodeIdx(0)), Some(BytecodeIdx(4))];
         bytecodegen.gen(&ast);
         assert_eq!(code, bytecodegen.code);
         assert_eq!(labels, bytecodegen.labels);
@@ -566,10 +606,9 @@ mod tests {
             LdaZero,
             JumpIfFalse(Label(0)),
             LdaInt(1),
-            Jump(Label(1)),
             ReturnVoid,
         ];
-        let labels = hashmap![Label(0) => 4, Label(1) => 4];
+        let labels = vec![Some(BytecodeIdx(3))];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
         assert_eq!(labels, bytecodegen.labels);
@@ -590,7 +629,7 @@ mod tests {
             LdaInt(2),
             ReturnVoid,
         ];
-        let labels = hashmap![Label(0) => 4, Label(1) => 5];
+        let labels = vec![Some(BytecodeIdx(4)), Some(BytecodeIdx(5))];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
         assert_eq!(labels, bytecodegen.labels);
@@ -610,7 +649,7 @@ mod tests {
             Jump(Label(0)),
             ReturnVoid,
         ];
-        let labels = hashmap![Label(0) => 0, Label(1) => 4];
+        let labels = vec![Some(BytecodeIdx(0)), Some(BytecodeIdx(4))];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
         assert_eq!(labels, bytecodegen.labels);
@@ -630,7 +669,7 @@ mod tests {
             Jump(Label(0)),
             ReturnVoid,
         ];
-        let labels = hashmap![Label(0) => 0, Label(1) => 4];
+        let labels = vec![Some(BytecodeIdx(0)), Some(BytecodeIdx(4))];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
         assert_eq!(labels, bytecodegen.labels);
