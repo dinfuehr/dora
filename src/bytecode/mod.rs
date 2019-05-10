@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::fmt;
 
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::Expr::*;
@@ -7,20 +6,9 @@ use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 use dora_parser::interner::Name;
 
-#[derive(Copy, Clone, PartialEq, Debug)]
-pub struct Register(usize);
+use bytecode::generate::{Bytecode, BytecodeIdx, Label, Register};
 
-#[derive(Copy, Clone, PartialEq, Debug, Eq, Hash)]
-pub struct Label(usize);
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct BytecodeIdx(usize);
-
-impl fmt::Display for BytecodeIdx {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "bc#{}", self.0)
-    }
-}
+mod generate;
 
 pub struct Context {
     var_map: HashMap<Name, Register>,
@@ -55,36 +43,6 @@ impl LoopLabels {
             end: end,
         }
     }
-}
-
-#[derive(PartialEq, Debug)]
-pub enum Bytecode {
-    Add(Register),
-    BitwiseAnd(Register),
-    BitwiseOr(Register),
-    BitwiseXor(Register),
-    Div(Register),
-    Ldar(Register),
-    LdaInt(u64),
-    LdaZero,
-    LogicalNot,
-    Star(Register),
-    JumpIfFalse(Label),
-    Jump(Label),
-    Mod(Register),
-    Mul(Register),
-    Neg,
-    ShiftLeft(Register),
-    ShiftRight(Register),
-    Sub(Register),
-    Return,
-    ReturnVoid,
-    TestEqual(Register),
-    TestGreatherThan(Register),
-    TestGreatherThanOrEqual(Register),
-    TestLessThan(Register),
-    TestLessThanOrEqual(Register),
-    TestNotEqual(Register),
 }
 
 pub struct BytecodeGen {
@@ -136,13 +94,13 @@ impl BytecodeGen {
 
     fn create_label(&mut self) -> Label {
         self.labels.push(None);
-        Label(self.labels.len()-1)
+        Label(self.labels.len() - 1)
     }
 
     fn define_label(&mut self) -> Label {
         let dest = BytecodeIdx(self.code.len());
         self.labels.push(Some(dest));
-        Label(self.labels.len()-1)
+        Label(self.labels.len() - 1)
     }
 
     fn bind_label(&mut self, lbl: Label) {
@@ -183,6 +141,12 @@ impl BytecodeGen {
                     let dest = self.dest_label(*label);
                     println!("{}: Jump {}", btidx, dest)
                 }
+                Bytecode::JumpIfFalseBytecodeIdx(dest) => {
+                    println!("{}: JumpIfFalse bc#{}", btidx, dest)
+                }
+                Bytecode::JumpBytecodeIdx(dest) => {
+                    println!("{}: Jump bc#{}", btidx, dest)
+                }
                 Bytecode::Mod(Register(register)) => println!("{}: Mod {}", btidx, register),
                 Bytecode::Mul(Register(register)) => println!("{}: Mul {}", btidx, register),
                 Bytecode::Neg => println!("{}: Neg", btidx),
@@ -191,6 +155,9 @@ impl BytecodeGen {
                 }
                 Bytecode::ShiftRight(Register(register)) => {
                     println!("{}: ShiftRight {}", btidx, register)
+                }
+                Bytecode::ArithShiftRight(Register(register)) => {
+                    println!("{}: ArithShiftRight {}", btidx, register)
                 }
                 Bytecode::Sub(Register(register)) => println!("{}: Sub {}", btidx, register),
                 Bytecode::Return => println!("{}: Return", btidx),
@@ -603,12 +570,7 @@ mod tests {
             optimize fun f() { if 0 { 1; } }",
         );
         let mut bytecodegen = BytecodeGen::new();
-        let expected = vec![
-            LdaZero,
-            JumpIfFalse(Label(0)),
-            LdaInt(1),
-            ReturnVoid,
-        ];
+        let expected = vec![LdaZero, JumpIfFalse(Label(0)), LdaInt(1), ReturnVoid];
         let labels = vec![Some(BytecodeIdx(3))];
         bytecodegen.gen(&ast);
         assert_eq!(expected, bytecodegen.code);
