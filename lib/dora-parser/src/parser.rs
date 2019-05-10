@@ -1107,6 +1107,13 @@ impl<'a> Parser<'a> {
                     Box::new(Expr::create_array(self.generate_id(), tok.position, left, index))
                 }
 
+                TokenKind::LParen => {
+                    let tok = self.advance_token()?;
+                    let args = self.parse_comma_list(TokenKind::RParen, |p| p.parse_expression())?;
+
+                    Box::new(Expr::create_call2(self.generate_id(), tok.position, left, args))
+                }
+
                 TokenKind::Sep => {
                     let tok = self.advance_token()?;
                     let rhs = self.parse_expression()?;

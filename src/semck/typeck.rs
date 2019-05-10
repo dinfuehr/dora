@@ -18,7 +18,7 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntBase, IntSuffix};
 use semck::specialize::specialize_type;
-use sym::Sym::SymClass;
+use sym::Sym::{self, SymClass};
 use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
@@ -414,7 +414,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
         } else if e.lhs.is_field() {
             self.check_expr_assign_field(e);
-
         } else if e.lhs.is_ident() {
             let lhs_type;
 
@@ -530,7 +529,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let cls = self.ctxt.classes.idx(cls_id);
                 let cls = cls.read();
                 let ident_type = IdentType::Field(ty, field_id);
-                self.src.map_idents.insert_or_replace(e.lhs.id(), ident_type);
+                self.src
+                    .map_idents
+                    .insert_or_replace(e.lhs.id(), ident_type);
 
                 let field = &cls.fields[field_id];
                 let class_type_params = ty.type_params(self.ctxt);
@@ -570,7 +571,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let field_name = self.ctxt.interner.str(name).to_string();
         let expr_name = object_type.name(self.ctxt);
         let msg = Msg::UnknownField(field_name, expr_name);
-        self.ctxt.diag.lock().report_without_path(field_expr.pos, msg);
+        self.ctxt
+            .diag
+            .lock()
+            .report_without_path(field_expr.pos, msg);
 
         self.src.set_ty(e.id, BuiltinType::Unit);
         self.expr_type = BuiltinType::Unit;
@@ -985,8 +989,396 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_expr_call2(&mut self, _e: &'ast ExprCall2Type, _in_try: bool) {
-        unimplemented!();
+    fn check_expr_call2(&mut self, e: &'ast ExprCall2Type, in_try: bool) {
+        let callee: &Expr;
+        let type_params: TypeParams;
+
+        if let Some(type_param_expr) = e.callee.to_type_param() {
+            callee = &type_param_expr.callee;
+
+            if type_param_expr.args.is_empty() {
+                let msg = Msg::TypeParamsExpected;
+                self.ctxt
+                    .diag
+                    .lock()
+                    .report_without_path(e.callee.pos(), msg);
+            }
+
+            let types: Vec<BuiltinType> = type_param_expr
+                .args
+                .iter()
+                .map(|p| self.src.ty(p.id()))
+                .collect();
+            type_params = TypeParams::from(types);
+        } else {
+            callee = &e.callee;
+            type_params = TypeParams::empty();
+        }
+
+        let arg_types: Vec<BuiltinType> = e
+            .args
+            .iter()
+            .map(|arg| {
+                self.visit_expr(arg);
+                self.expr_type
+            })
+            .collect();
+
+        if let Some(ident_expr) = callee.to_ident() {
+            let name = ident_expr.name;
+            self.check_expr_call_ident(e, name, type_params, &arg_types);
+        } else if let Some(_field_expr) = callee.to_field() {
+            self.check_expr_call_field(e, type_params, &arg_types, in_try);
+        } else if let Some(_path_expr) = callee.to_path() {
+            self.check_expr_call_path(e, type_params, &arg_types);
+        } else {
+            unimplemented!();
+        }
+    }
+
+    fn check_expr_call_ident(
+        &mut self,
+        e: &'ast ExprCall2Type,
+        name: Name,
+        type_params: TypeParams,
+        arg_types: &[BuiltinType],
+    ) {
+        let mut found = false;
+
+        if let Some(sym) = self.ctxt.sym.lock().get(name) {
+            match sym {
+                Sym::SymFct(fct_id) => {
+                    let call_type = CallType::Fct(fct_id, TypeParams::empty(), TypeParams::empty());
+                    self.src
+                        .map_calls
+                        .insert(e.callee.id(), Arc::new(call_type));
+
+                    let mut lookup = MethodLookup::new(self.ctxt)
+                        .pos(e.pos)
+                        .callee(fct_id)
+                        .args(&arg_types)
+                        .fct_type_params(&type_params);
+
+                    let ty = if lookup.find() {
+                        let call_type =
+                            CallType::Fct(fct_id, TypeParams::empty(), type_params.clone());
+                        self.src.map_calls.replace(e.id, Arc::new(call_type));
+
+                        lookup.found_ret().unwrap()
+                    } else {
+                        BuiltinType::Error
+                    };
+
+                    self.src.set_ty(e.id, ty);
+                    self.expr_type = ty;
+
+                    found = true;
+                }
+
+                Sym::SymVar(var_id) => {
+                    let ty = self.src.vars[var_id].ty;
+
+                    if ty.is_error() {
+                        self.src.set_ty(e.id, BuiltinType::Error);
+                        self.expr_type = BuiltinType::Error;
+
+                        return;
+                    }
+
+                    let name = self.ctxt.interner.intern("get");
+
+                    if let Some((_, fct_id, return_type)) = self.find_method(
+                        e.pos,
+                        ty,
+                        false,
+                        name,
+                        arg_types,
+                        &TypeParams::empty(),
+                        None,
+                    ) {
+                        let call_type = CallType::Method(ty, fct_id, TypeParams::empty());
+                        self.src
+                            .map_calls
+                            .insert_or_replace(e.id, Arc::new(call_type));
+
+                        self.src.set_ty(e.id, return_type);
+                        self.expr_type = return_type;
+                    } else {
+                        self.src.set_ty(e.id, BuiltinType::Error);
+                        self.expr_type = BuiltinType::Error;
+                    }
+
+                    found = true;
+                }
+
+                Sym::SymClass(cls_id) => {
+                    let call_type = CallType::CtorNew(cls_id, FctId(0), TypeParams::empty());
+                    self.src.map_calls.insert(e.id, Arc::new(call_type));
+
+                    let mut lookup = MethodLookup::new(self.ctxt)
+                        .pos(e.pos)
+                        .ctor(cls_id)
+                        .args(arg_types)
+                        .cls_type_params(&type_params);
+
+                    let ty = if lookup.find() {
+                        let fct_id = lookup.found_fct_id().unwrap();
+                        let cls_id = lookup.found_cls_id().unwrap();
+                        let cls = self.ctxt.classes.idx(cls_id);
+                        let cls = cls.read();
+
+                        let call_type = CallType::CtorNew(cls_id, fct_id, type_params.clone());
+                        self.src.map_calls.replace(e.id, Arc::new(call_type));
+
+                        if cls.is_abstract {
+                            let msg = Msg::NewAbstractClass;
+                            self.ctxt.diag.lock().report_without_path(e.pos, msg);
+                        }
+
+                        lookup.found_ret().unwrap()
+                    } else {
+                        BuiltinType::Error
+                    };
+
+                    self.src.set_ty(e.id, ty);
+                    self.expr_type = ty;
+
+                    found = true;
+                }
+
+                _ => {}
+            }
+        }
+
+        if !found {
+            let name = self.ctxt.interner.str(name).to_string();
+            let msg = Msg::UnknownFunction(name);
+            self.ctxt.diag.lock().report_without_path(e.pos, msg);
+        }
+    }
+
+    fn check_expr_call_field(
+        &mut self,
+        e: &'ast ExprCall2Type,
+        _type_params: TypeParams,
+        arg_types: &[BuiltinType],
+        in_try: bool,
+    ) {
+        let field_expr = e.callee.to_field().unwrap();
+
+        let name = field_expr.name;
+        let object_type = if field_expr.object.is_super() {
+            self.super_type(field_expr.object.pos())
+        } else {
+            self.visit_expr(&field_expr.object);
+            self.expr_type
+        };
+
+        if object_type.is_type_param() {
+            self.check_expr_call_generic(e, object_type, name, arg_types, in_try);
+        }
+
+        if object_type.is_error() {
+            self.src.set_ty(e.id, BuiltinType::Error);
+            self.expr_type = BuiltinType::Error;
+            return;
+        }
+
+        let mut lookup = MethodLookup::new(self.ctxt)
+            .method(object_type)
+            .pos(e.pos)
+            .name(name)
+            .args(arg_types);
+
+        if lookup.find() {
+            let fct_id = lookup.found_fct_id().unwrap();
+            let return_type = lookup.found_ret().unwrap();
+
+            let call_type = CallType::Method(object_type, fct_id, TypeParams::empty());
+            self.src
+                .map_calls
+                .insert_or_replace(e.id, Arc::new(call_type));
+            self.src.set_ty(e.id, return_type);
+            self.expr_type = return_type;
+
+            if !in_try {
+                let fct = self.ctxt.fcts.idx(fct_id);
+                let fct = fct.read();
+                let throws = fct.throws;
+
+                if throws {
+                    let msg = Msg::ThrowingCallWithoutTry;
+                    self.ctxt.diag.lock().report_without_path(e.pos, msg);
+                }
+            }
+        } else {
+            self.src.set_ty(e.id, BuiltinType::Error);
+            self.expr_type = BuiltinType::Error;
+        }
+    }
+
+    fn check_expr_call_generic(
+        &mut self,
+        e: &'ast ExprCall2Type,
+        object_type: BuiltinType,
+        name: Name,
+        arg_types: &[BuiltinType],
+        in_try: bool,
+    ) {
+        match object_type {
+            BuiltinType::FctTypeParam(_, tpid) => {
+                let tp = &self.fct.type_params[tpid.idx()];
+                self.check_expr_call_generic_type_param(
+                    e,
+                    object_type,
+                    tp,
+                    name,
+                    arg_types,
+                    in_try,
+                );
+            }
+
+            BuiltinType::ClassTypeParam(cls_id, tpid) => {
+                let cls = self.ctxt.classes.idx(cls_id);
+                let cls = cls.read();
+                let tp = &cls.type_params[tpid.idx()];
+                self.check_expr_call_generic_type_param(
+                    e,
+                    object_type,
+                    tp,
+                    name,
+                    arg_types,
+                    in_try,
+                );
+            }
+
+            _ => unreachable!(),
+        }
+    }
+
+    fn check_expr_call_generic_type_param(
+        &mut self,
+        e: &'ast ExprCall2Type,
+        object_type: BuiltinType,
+        tp: &ctxt::TypeParam,
+        name: Name,
+        args: &[BuiltinType],
+        in_try: bool,
+    ) {
+        for &trait_id in &tp.trait_bounds {
+            let trai = self.ctxt.traits[trait_id].read();
+
+            if let Some(fid) = trai.find_method(self.ctxt, false, name, None, args) {
+                let call_type = CallType::Method(object_type, fid, TypeParams::empty());
+                self.src.map_calls.insert(e.id, Arc::new(call_type));
+
+                let fct = self.ctxt.fcts.idx(fid);
+                let fct = fct.read();
+                let return_type = fct.return_type;
+
+                if fct.throws && !in_try {
+                    let msg = Msg::ThrowingCallWithoutTry;
+                    self.ctxt.diag.lock().report_without_path(e.pos, msg);
+                }
+
+                self.src.set_ty(e.id, return_type);
+                self.expr_type = return_type;
+                return;
+            }
+        }
+
+        let type_name = object_type.name(self.ctxt);
+        let name = self.ctxt.interner.str(name).to_string();
+        let param_names = args
+            .iter()
+            .map(|a| a.name(self.ctxt))
+            .collect::<Vec<String>>();
+        let msg = Msg::UnknownMethod(type_name, name, param_names);
+
+        self.ctxt.diag.lock().report_without_path(e.pos, msg);
+
+        self.src.set_ty(e.id, BuiltinType::Error);
+        self.expr_type = BuiltinType::Error;
+    }
+
+    fn check_expr_call_path(
+        &mut self,
+        e: &'ast ExprCall2Type,
+        type_params: TypeParams,
+        arg_types: &[BuiltinType],
+    ) {
+        let path = e.callee.to_path().unwrap();
+        let class_expr = &path.lhs;
+        let method_name_expr = &path.rhs;
+
+        let class;
+        let method_name;
+
+        if let Some(class_expr) = class_expr.to_ident() {
+            class = class_expr.name;
+        } else {
+            let msg = Msg::ExpectedSomeIdentifier;
+            self.ctxt
+                .diag
+                .lock()
+                .report_without_path(class_expr.pos(), msg);
+
+            self.src.set_ty(e.id, BuiltinType::Error);
+            self.expr_type = BuiltinType::Error;
+            return;
+        }
+
+        if let Some(method_name_expr) = method_name_expr.to_ident() {
+            method_name = method_name_expr.name;
+        } else {
+            let msg = Msg::ExpectedSomeIdentifier;
+            self.ctxt
+                .diag
+                .lock()
+                .report_without_path(method_name_expr.pos(), msg);
+
+            self.src.set_ty(e.id, BuiltinType::Error);
+            self.expr_type = BuiltinType::Error;
+            return;
+        }
+
+        match self.ctxt.sym.lock().get(class) {
+            Some(SymClass(cls_id)) => {
+                let mut lookup = MethodLookup::new(self.ctxt)
+                    .pos(e.pos)
+                    .static_method(cls_id)
+                    .name(method_name)
+                    .args(arg_types)
+                    .fct_type_params(&type_params);
+
+                if lookup.find() {
+                    let fct_id = lookup.found_fct_id().unwrap();
+                    let call_type = Arc::new(CallType::Fct(
+                        fct_id,
+                        TypeParams::empty(),
+                        type_params.clone(),
+                    ));
+                    self.src.map_calls.insert(e.id, call_type.clone());
+                    let ty = lookup.found_ret().unwrap();
+                    self.src.set_ty(e.id, ty);
+                    self.expr_type = ty;
+                } else {
+                    self.src.set_ty(e.id, BuiltinType::Error);
+                    self.expr_type = BuiltinType::Error;
+                }
+
+                return;
+            }
+
+            _ => {}
+        }
+
+        let name = self.ctxt.interner.str(class).to_string();
+        let msg = Msg::ClassExpected(name);
+        self.ctxt.diag.lock().report_without_path(e.pos, msg);
+
+        self.src.set_ty(e.id, BuiltinType::Error);
+        self.expr_type = BuiltinType::Error;
     }
 
     fn check_expr_delegation(&mut self, e: &'ast ExprDelegationType) {
@@ -1122,6 +1514,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         self.src.set_ty(e.id, BuiltinType::Unit);
         self.expr_type = BuiltinType::Unit;
+    }
+
+    fn check_expr_path(&mut self, _e: &'ast ExprPathType) {
+        unimplemented!();
+    }
+
+    fn check_expr_type_param(&mut self, _e: &'ast ExprTypeParamType) {
+        unimplemented!();
     }
 
     fn check_expr_field(&mut self, e: &'ast ExprFieldType) {
@@ -1453,8 +1853,8 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprBin(ref expr) => self.check_expr_bin(expr),
             ExprCall(ref expr) => self.check_expr_call(expr, false),
             ExprCall2(ref expr) => self.check_expr_call2(expr, false),
-            ExprTypeParam(_) => unimplemented!(),
-            ExprPath(_) => unimplemented!(),
+            ExprTypeParam(ref expr) => self.check_expr_type_param(expr),
+            ExprPath(ref expr) => self.check_expr_path(expr),
             ExprDelegation(ref expr) => self.check_expr_delegation(expr),
             ExprField(ref expr) => self.check_expr_field(expr),
             ExprSelf(ref expr) => self.check_expr_this(expr),
@@ -3823,11 +4223,19 @@ mod tests {
 
     #[test]
     fn test_fct_used_as_identifier() {
-        err("fun foo() {} fun bar() { foo; }", pos(1, 26), Msg::FctUsedAsIdentifier);
+        err(
+            "fun foo() {} fun bar() { foo; }",
+            pos(1, 26),
+            Msg::FctUsedAsIdentifier,
+        );
     }
 
     #[test]
     fn test_assign_fct() {
-        err("fun foo() {} fun bar() { foo = 1; }", pos(1, 30), Msg::FctReassigned);
+        err(
+            "fun foo() {} fun bar() { foo = 1; }",
+            pos(1, 30),
+            Msg::FctReassigned,
+        );
     }
 }

@@ -1548,6 +1548,34 @@ impl Expr {
         }
     }
 
+    pub fn to_path(&self) -> Option<&ExprPathType> {
+        match *self {
+            Expr::ExprPath(ref val) => Some(val),
+            _ => None,
+        }
+    }
+
+    pub fn is_path(&self) -> bool {
+        match *self {
+            Expr::ExprPath(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_type_param(&self) -> Option<&ExprTypeParamType> {
+        match *self {
+            Expr::ExprTypeParam(ref val) => Some(val),
+            _ => None,
+        }
+    }
+
+    pub fn is_type_param(&self) -> bool {
+        match *self {
+            Expr::ExprTypeParam(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn to_lit_char(&self) -> Option<&ExprLitCharType> {
         match *self {
             Expr::ExprLitChar(ref val) => Some(val),
