@@ -1,6 +1,8 @@
 use std::fmt;
 use std::mem;
 
+use bytecode::opcode::Bytecode;
+
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Register(pub usize);
 
@@ -26,43 +28,22 @@ impl fmt::Display for BytecodeIdx {
     }
 }
 
-#[derive(PartialEq, Debug)]
-pub enum Bytecode {
-    Add(Register),
-    BitwiseAnd(Register),
-    BitwiseOr(Register),
-    BitwiseXor(Register),
-    Div(Register),
-    Ldar(Register),
-    LdaInt(u64),
-    LdaZero,
-    LogicalNot,
-    Star(Register),
-    JumpIfFalse(Label),
-    Jump(Label),
-    JumpIfFalseBytecodeIdx(BytecodeIdx),
-    JumpBytecodeIdx(BytecodeIdx),
-    Mod(Register),
-    Mul(Register),
-    Neg,
-    ShiftLeft(Register),
-    ShiftRight(Register),
-    ArithShiftRight(Register),
-    Sub(Register),
-    Return,
-    ReturnVoid,
-    TestEqual(Register),
-    TestGreatherThan(Register),
-    TestGreatherThanOrEqual(Register),
-    TestLessThan(Register),
-    TestLessThanOrEqual(Register),
-    TestNotEqual(Register),
+#[derive(Copy, Clone)]
+pub enum BytecodeType {
+    Bool,
+    Byte,
+    Int,
+    Long,
+    Float,
+    Double,
+    Ref,
 }
 
 pub struct BytecodeGenerator {
     code: Vec<Bytecode>,
     labels: Vec<Option<BytecodeIdx>>,
-    unresolved: Vec<(BytecodeIdx, Label)>,
+    unresolved_jumps: Vec<(BytecodeIdx, Label)>,
+    registers: Vec<BytecodeType>,
     next_register: usize,
 }
 
@@ -71,7 +52,8 @@ impl BytecodeGenerator {
         BytecodeGenerator {
             code: Vec::new(),
             labels: Vec::new(),
-            unresolved: Vec::new(),
+            unresolved_jumps: Vec::new(),
+            registers: Vec::new(),
             next_register: 0,
         }
     }
@@ -145,7 +127,7 @@ impl BytecodeGenerator {
         if let Some(idx) = self.dest_label(lbl) {
             self.code.push(Bytecode::JumpIfFalseBytecodeIdx(idx));
         } else {
-            self.unresolved.push((self.pc(), lbl));
+            self.unresolved_jumps.push((self.pc(), lbl));
             self.code.push(Bytecode::JumpIfFalseBytecodeIdx(BytecodeIdx::invalid()));
         }
     }
@@ -154,7 +136,7 @@ impl BytecodeGenerator {
         if let Some(idx) = self.dest_label(lbl) {
             self.code.push(Bytecode::JumpBytecodeIdx(idx));
         } else {
-            self.unresolved.push((self.pc(), lbl));
+            self.unresolved_jumps.push((self.pc(), lbl));
             self.code.push(Bytecode::JumpBytecodeIdx(BytecodeIdx::invalid()));
         }
     }
@@ -220,9 +202,9 @@ impl BytecodeGenerator {
     }
 
     fn resolve_forward_jumps(&mut self) {
-        let unresolved_lbls = mem::replace(&mut self.unresolved, Vec::new());
+        let unresolved_jumps = mem::replace(&mut self.unresolved_jumps, Vec::new());
 
-        for (idx, lbl) in unresolved_lbls {
+        for (idx, lbl) in unresolved_jumps {
             let lbl_dest = self.dest_label(lbl).expect("label unresolved");
             let op = &mut self.code[idx.0];
 

@@ -6,9 +6,11 @@ use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 use dora_parser::interner::Name;
 
-use bytecode::generate::{Bytecode, BytecodeIdx, Label, Register};
+use bytecode::opcode::Bytecode;
+use bytecode::generate::{BytecodeIdx, Label, Register};
 
 mod generate;
+mod opcode;
 
 pub struct Context {
     var_map: HashMap<Name, Register>,
