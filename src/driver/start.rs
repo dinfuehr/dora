@@ -6,7 +6,6 @@ use ctxt::{exception_get_and_clear, Fct, FctId};
 use dora_parser::ast::{self, Ast};
 use dora_parser::error::msg::Msg;
 
-use boots::bytecodegen::BytecodeGen;
 use dora_parser::interner::Interner;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::reader::Reader;
@@ -60,11 +59,6 @@ pub fn start(content: Option<&str>) -> i32 {
 
     if args.flag_emit_ast {
         ast::dump::dump(&ast, &interner);
-    }
-
-    {
-        let mut bytecodegen = BytecodeGen::new();
-        bytecodegen.gen(&ast);
     }
 
     let mut vm = VM::new(args, &ast, interner);

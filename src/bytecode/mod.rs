@@ -449,11 +449,12 @@ impl BytecodeGen {
 
 #[cfg(test)]
 mod tests {
-    use boots::bytecodegen::Bytecode::*;
-    use boots::bytecodegen::*;
     use dora_parser::interner::Interner;
     use dora_parser::lexer::reader::Reader;
     use dora_parser::parser::{NodeIdGenerator, Parser};
+
+    use bytecode::Bytecode::*;
+    use bytecode::*;
 
     fn parse(code: &'static str) -> (Ast, Interner) {
         let id_generator = NodeIdGenerator::new();
