@@ -1,4 +1,5 @@
 use std::fmt;
+use std::mem;
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Register(pub usize);
@@ -12,6 +13,10 @@ pub struct BytecodeIdx(pub usize);
 impl BytecodeIdx {
     fn invalid() -> BytecodeIdx {
         BytecodeIdx(usize::max_value())
+    }
+
+    fn is_invalid(&self) -> bool {
+        self.0 == usize::max_value()
     }
 }
 
@@ -57,7 +62,8 @@ pub enum Bytecode {
 pub struct BytecodeGenerator {
     code: Vec<Bytecode>,
     labels: Vec<Option<BytecodeIdx>>,
-    unresolved: Vec<BytecodeIdx>,
+    unresolved: Vec<(BytecodeIdx, Label)>,
+    next_register: usize,
 }
 
 impl BytecodeGenerator {
@@ -66,6 +72,7 @@ impl BytecodeGenerator {
             code: Vec::new(),
             labels: Vec::new(),
             unresolved: Vec::new(),
+            next_register: 0,
         }
     }
 
@@ -138,7 +145,7 @@ impl BytecodeGenerator {
         if let Some(idx) = self.dest_label(lbl) {
             self.code.push(Bytecode::JumpIfFalseBytecodeIdx(idx));
         } else {
-            self.unresolved.push(self.pc());
+            self.unresolved.push((self.pc(), lbl));
             self.code.push(Bytecode::JumpIfFalseBytecodeIdx(BytecodeIdx::invalid()));
         }
     }
@@ -147,7 +154,7 @@ impl BytecodeGenerator {
         if let Some(idx) = self.dest_label(lbl) {
             self.code.push(Bytecode::JumpBytecodeIdx(idx));
         } else {
-            self.unresolved.push(self.pc());
+            self.unresolved.push((self.pc(), lbl));
             self.code.push(Bytecode::JumpBytecodeIdx(BytecodeIdx::invalid()));
         }
     }
@@ -210,5 +217,28 @@ impl BytecodeGenerator {
 
     pub fn emit_test_le(&mut self, src: Register) {
         self.code.push(Bytecode::TestLessThanOrEqual(src));
+    }
+
+    fn resolve_forward_jumps(&mut self) {
+        let unresolved_lbls = mem::replace(&mut self.unresolved, Vec::new());
+
+        for (idx, lbl) in unresolved_lbls {
+            let lbl_dest = self.dest_label(lbl).expect("label unresolved");
+            let op = &mut self.code[idx.0];
+
+            match op {
+                Bytecode::JumpIfFalseBytecodeIdx(ref mut dest) => {
+                    assert!(dest.is_invalid());
+                    *dest = lbl_dest;
+                }
+
+                Bytecode::JumpBytecodeIdx(ref mut dest) => {
+                    assert!(dest.is_invalid());
+                    *dest = lbl_dest;
+                }
+
+                _ => unreachable!(),
+            }
+        }
     }
 }
