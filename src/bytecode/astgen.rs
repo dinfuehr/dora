@@ -6,7 +6,7 @@ use dora_parser::ast::*;
 
 use bytecode::generate::{BytecodeFunction, BytecodeGenerator, BytecodeType, Label, Register};
 use class::TypeParams;
-use ctxt::{Fct, FctId, FctSrc, IdentType, VarId, VM};
+use ctxt::{Fct, FctId, FctKind, FctSrc, IdentType, Intrinsic, VarId, VM};
 
 pub struct LoopLabels {
     cond: Label,
@@ -77,7 +77,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     pub fn generate(mut self) -> BytecodeFunction {
         if self.fct.has_self() {
             let var_id = self.src.var_self().id;
-            let reg = self.gen.add_register(BytecodeType::Ref);
+            let reg = self.gen.add_register(BytecodeType::Ptr);
             self.var_registers.insert(var_id, reg);
         }
 
@@ -256,38 +256,100 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.visit_expr(&expr.opnd);
         match expr.op {
             UnOp::Plus => {}
-            UnOp::Neg => self.gen.emit_neg(),
-            UnOp::Not => self.gen.emit_logical_not(),
+            UnOp::Neg => self.gen.emit_neg_int(),
+            UnOp::Not => self.gen.emit_not_bool(),
         }
     }
 
-    fn visit_expr_bin(&mut self, expr: &ExprBinType) {
-        self.visit_expr(&expr.rhs);
-        let rhs_reg = self.gen.add_register(BytecodeType::Int);
-        self.gen.emit_star(rhs_reg);
-        self.visit_expr(&expr.lhs);
-        match expr.op {
-            BinOp::Add => self.gen.emit_add_int(rhs_reg),
-            BinOp::Sub => self.gen.emit_sub(rhs_reg),
-            BinOp::Mul => self.gen.emit_mul(rhs_reg),
-            BinOp::Div => self.gen.emit_div(rhs_reg),
-            BinOp::Mod => self.gen.emit_mod(rhs_reg),
-            BinOp::BitOr => self.gen.emit_bitwise_or(rhs_reg),
-            BinOp::BitAnd => self.gen.emit_bitwise_and(rhs_reg),
-            BinOp::BitXor => self.gen.emit_bitwise_xor(rhs_reg),
-            BinOp::ShiftL => self.gen.emit_shift_left(rhs_reg),
-            BinOp::LogicalShiftR => self.gen.emit_shift_right(rhs_reg),
-            BinOp::ArithShiftR => self.gen.emit_arith_shift_right(rhs_reg),
-            // BinOp::Or => { },
-            // BinOp::And => { },
-            BinOp::Cmp(op) => match op {
-                CmpOp::Eq => self.gen.emit_test_eq(rhs_reg),
-                CmpOp::Ne => self.gen.emit_test_ne(rhs_reg),
-                CmpOp::Lt => self.gen.emit_test_lt(rhs_reg),
-                CmpOp::Le => self.gen.emit_test_le(rhs_reg),
-                CmpOp::Gt => self.gen.emit_test_gt(rhs_reg),
-                CmpOp::Ge => self.gen.emit_test_ge(rhs_reg),
-                _ => unimplemented!(),
+    fn visit_expr_bin(&mut self, e: &ExprBinType) {
+        if e.op == BinOp::Cmp(CmpOp::Is) || e.op == BinOp::Cmp(CmpOp::IsNot) {
+            self.emit_bin_is(e);
+        } else if e.op == BinOp::Or {
+            self.emit_bin_or(e);
+        } else if e.op == BinOp::And {
+            self.emit_bin_and(e);
+        } else if let Some(intrinsic) = self.get_intrinsic(e.id) {
+            self.emit_intrinsic_bin(&e.lhs, &e.rhs, intrinsic, e.op);
+        } else {
+            unimplemented!();
+        }
+    }
+
+    fn emit_bin_is(&mut self, e: &ExprBinType) {
+        self.visit_expr(&e.lhs);
+        let reg = self.gen.add_register(BytecodeType::Ptr);
+        self.gen.emit_star(reg);
+        self.visit_expr(&e.rhs);
+
+        if e.op == BinOp::Cmp(CmpOp::Is) {
+            self.gen.emit_test_eq_ptr(reg);
+        } else {
+            self.gen.emit_test_ne_ptr(reg);
+        }
+    }
+
+    fn emit_bin_or(&mut self, e: &ExprBinType) {
+        let end_lbl = self.gen.create_label();
+        self.visit_expr(&e.lhs);
+        self.gen.emit_jump_if_true(end_lbl);
+        self.visit_expr(&e.rhs);
+        self.gen.bind_label(end_lbl);
+    }
+
+    fn emit_bin_and(&mut self, e: &ExprBinType) {
+        let end_lbl = self.gen.create_label();
+        self.visit_expr(&e.lhs);
+        self.gen.emit_jump_if_false(end_lbl);
+        self.visit_expr(&e.rhs);
+        self.gen.bind_label(end_lbl);
+    }
+
+    fn emit_intrinsic_bin(&mut self, lhs: &Expr, rhs: &Expr, intrinsic: Intrinsic, op: BinOp) {
+        let ty = match intrinsic {
+            Intrinsic::IntAdd
+            | Intrinsic::IntSub
+            | Intrinsic::IntMul
+            | Intrinsic::IntDiv
+            | Intrinsic::IntMod
+            | Intrinsic::IntOr
+            | Intrinsic::IntAnd
+            | Intrinsic::IntXor
+            | Intrinsic::IntShl
+            | Intrinsic::IntShr
+            | Intrinsic::IntSar
+            | Intrinsic::IntEq
+            | Intrinsic::IntCmp => BytecodeType::Int,
+            _ => unimplemented!(),
+        };
+
+        self.visit_expr(rhs);
+        let reg = self.gen.add_register(ty);
+        self.gen.emit_star(reg);
+        self.visit_expr(lhs);
+
+        match intrinsic {
+            Intrinsic::IntAdd => self.gen.emit_add_int(reg),
+            Intrinsic::IntSub => self.gen.emit_sub_int(reg),
+            Intrinsic::IntMul => self.gen.emit_mul_int(reg),
+            Intrinsic::IntDiv => self.gen.emit_div_int(reg),
+            Intrinsic::IntMod => self.gen.emit_mod_int(reg),
+            Intrinsic::IntOr => self.gen.emit_or_int(reg),
+            Intrinsic::IntAnd => self.gen.emit_and_int(reg),
+            Intrinsic::IntXor => self.gen.emit_xor_int(reg),
+            Intrinsic::IntShl => self.gen.emit_shl_int(reg),
+            Intrinsic::IntShr => self.gen.emit_shr_int(reg),
+            Intrinsic::IntSar => self.gen.emit_sar_int(reg),
+            Intrinsic::IntEq => match op {
+                BinOp::Cmp(CmpOp::Eq) => self.gen.emit_test_eq_int(reg),
+                BinOp::Cmp(CmpOp::Ne) => self.gen.emit_test_ne_int(reg),
+                _ => unreachable!(),
+            },
+            Intrinsic::IntCmp => match op {
+                BinOp::Cmp(CmpOp::Lt) => self.gen.emit_test_lt_int(reg),
+                BinOp::Cmp(CmpOp::Le) => self.gen.emit_test_le_int(reg),
+                BinOp::Cmp(CmpOp::Gt) => self.gen.emit_test_gt_int(reg),
+                BinOp::Cmp(CmpOp::Ge) => self.gen.emit_test_ge_int(reg),
+                _ => unreachable!(),
             },
             _ => unimplemented!(),
         }
@@ -324,7 +386,27 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn var_reg(&self, var_id: VarId) -> Register {
-        *self.var_registers.get(&var_id).expect("no register for var found")
+        *self
+            .var_registers
+            .get(&var_id)
+            .expect("no register for var found")
+    }
+
+    fn get_intrinsic(&self, id: NodeId) -> Option<Intrinsic> {
+        let fid = self.src.map_calls.get(id).unwrap().fct_id();
+
+        // the function we compile right now is never an intrinsic
+        if self.fct.id == fid {
+            return None;
+        }
+
+        let fct = self.vm.fcts.idx(fid);
+        let fct = fct.read();
+
+        match fct.kind {
+            FctKind::Builtin(intr) => Some(intr),
+            _ => None,
+        }
     }
 }
 
@@ -352,7 +434,7 @@ mod tests {
             Star(Register(0)),
             LdaInt(1),
             AddInt(Register(0)),
-            Return,
+            Ret,
         ];
         assert_eq!(expected, fct.code());
     }
@@ -360,9 +442,39 @@ mod tests {
     #[test]
     fn gen_id_int() {
         let fct = code("fun f(a: Int) -> Int { return a; }");
+        let expected = vec![Ldar(Register(0)), Ret];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_id_ptr() {
+        let fct = code("fun f(a: Object) -> Object { return a; }");
+        let expected = vec![Ldar(Register(0)), Ret];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_ptr_is() {
+        let fct = code("fun f(a: Object, b: Object) -> Bool { return a === b; }");
         let expected = vec![
             Ldar(Register(0)),
-            Return,
+            Star(Register(2)),
+            Ldar(Register(1)),
+            TestEqPtr(Register(2)),
+            Ret,
+        ];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_ptr_is_not() {
+        let fct = code("fun f(a: Object, b: Object) -> Bool { return a !== b; }");
+        let expected = vec![
+            Ldar(Register(0)),
+            Star(Register(2)),
+            Ldar(Register(1)),
+            TestNePtr(Register(2)),
+            Ret,
         ];
         assert_eq!(expected, fct.code());
     }
@@ -374,8 +486,8 @@ mod tests {
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
-            Sub(Register(0)),
-            Return,
+            SubInt(Register(0)),
+            Ret,
         ];
         assert_eq!(expected, fct.code());
     }
@@ -387,8 +499,8 @@ mod tests {
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
-            Div(Register(0)),
-            Return,
+            DivInt(Register(0)),
+            Ret,
         ];
         assert_eq!(expected, fct.code());
     }
@@ -400,8 +512,8 @@ mod tests {
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
-            Mul(Register(0)),
-            Return,
+            MulInt(Register(0)),
+            Ret,
         ];
         assert_eq!(expected, fct.code());
     }
@@ -409,7 +521,7 @@ mod tests {
     #[test]
     fn gen_stmt_var_init() {
         let fct = code("fun f() { let x = 1; }");
-        let expected = vec![LdaInt(1), Star(Register(0)), ReturnVoid];
+        let expected = vec![LdaInt(1), Star(Register(0)), RetVoid];
         assert_eq!(expected, fct.code());
     }
 
@@ -421,7 +533,7 @@ mod tests {
             JumpIfFalse(BytecodeIdx(4)),
             LdaZero,
             Jump(BytecodeIdx(0)),
-            ReturnVoid,
+            RetVoid,
         ];
         assert_eq!(code, fct.code());
     }
@@ -429,7 +541,7 @@ mod tests {
     #[test]
     fn gen_stmt_if() {
         let fct = code("fun f() { if true { 1; } }");
-        let expected = vec![LdaTrue, JumpIfFalse(BytecodeIdx(3)), LdaInt(1), ReturnVoid];
+        let expected = vec![LdaTrue, JumpIfFalse(BytecodeIdx(3)), LdaInt(1), RetVoid];
         assert_eq!(expected, fct.code());
     }
 
@@ -442,7 +554,7 @@ mod tests {
             LdaInt(1),
             Jump(BytecodeIdx(5)),
             LdaInt(2),
-            ReturnVoid,
+            RetVoid,
         ];
         assert_eq!(expected, fct.code());
     }
@@ -455,7 +567,7 @@ mod tests {
             JumpIfFalse(BytecodeIdx(4)),
             Jump(BytecodeIdx(4)),
             Jump(BytecodeIdx(0)),
-            ReturnVoid,
+            RetVoid,
         ];
         assert_eq!(expected, fct.code());
     }
@@ -468,7 +580,7 @@ mod tests {
             JumpIfFalse(BytecodeIdx(4)),
             Jump(BytecodeIdx(0)),
             Jump(BytecodeIdx(0)),
-            ReturnVoid,
+            RetVoid,
         ];
         assert_eq!(expected, fct.code());
     }
@@ -476,35 +588,59 @@ mod tests {
     #[test]
     fn gen_expr_lit_int() {
         let fct = code("fun f() { 1; }");
-        let expected = vec![LdaInt(1), ReturnVoid];
+        let expected = vec![LdaInt(1), RetVoid];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
     fn gen_expr_lit_zero() {
         let fct = code("fun f() { 0; }");
-        let expected = vec![LdaZero, ReturnVoid];
+        let expected = vec![LdaZero, RetVoid];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_expr_or() {
+        let fct = code("fun f(a: Bool, b: Bool) -> Bool { return a || b; }");
+        let expected = vec![
+            Ldar(Register(0)),
+            JumpIfTrue(BytecodeIdx(3)),
+            Ldar(Register(1)),
+            Ret,
+        ];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_expr_and() {
+        let fct = code("fun f(a: Bool, b: Bool) -> Bool { return a && b; }");
+        let expected = vec![
+            Ldar(Register(0)),
+            JumpIfFalse(BytecodeIdx(3)),
+            Ldar(Register(1)),
+            Ret,
+        ];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
     fn gen_expr_plus() {
         let fct = code("fun f() { +1; }");
-        let expected = vec![LdaInt(1), ReturnVoid];
+        let expected = vec![LdaInt(1), RetVoid];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
     fn gen_expr_neg() {
         let fct = code("fun f() -> Int { return -1; }");
-        let expected = vec![LdaInt(1), Neg, Return];
+        let expected = vec![LdaInt(1), NegInt, Ret];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
     fn gen_expr_not() {
         let fct = code("fun f() -> Bool { return !true; }");
-        let expected = vec![LdaTrue, LogicalNot, Return];
+        let expected = vec![LdaTrue, NotBool, Ret];
         assert_eq!(expected, fct.code());
     }
 
@@ -515,8 +651,8 @@ mod tests {
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
-            Mod(Register(0)),
-            Return,
+            ModInt(Register(0)),
+            Ret,
         ];
         assert_eq!(expected, fct.code());
     }
@@ -528,8 +664,8 @@ mod tests {
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
-            BitwiseOr(Register(0)),
-            Return,
+            OrInt(Register(0)),
+            Ret,
         ];
         assert_eq!(expected, fct.code());
     }
@@ -541,8 +677,8 @@ mod tests {
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
-            BitwiseAnd(Register(0)),
-            Return,
+            AndInt(Register(0)),
+            Ret,
         ];
         assert_eq!(expected, fct.code());
     }
@@ -554,8 +690,8 @@ mod tests {
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
-            BitwiseXor(Register(0)),
-            Return,
+            XorInt(Register(0)),
+            Ret,
         ];
         assert_eq!(expected, fct.code());
     }
@@ -567,8 +703,8 @@ mod tests {
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
-            ShiftLeft(Register(0)),
-            Return,
+            ShlInt(Register(0)),
+            Ret,
         ];
         assert_eq!(expected, fct.code());
     }
@@ -580,8 +716,8 @@ mod tests {
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
-            ShiftRight(Register(0)),
-            Return,
+            ShrInt(Register(0)),
+            Ret,
         ];
         assert_eq!(expected, fct.code());
     }
@@ -593,8 +729,8 @@ mod tests {
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
-            ArithShiftRight(Register(0)),
-            Return,
+            SarInt(Register(0)),
+            Ret,
         ];
         assert_eq!(expected, fct.code());
     }
@@ -606,8 +742,8 @@ mod tests {
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
-            TestEqual(Register(0)),
-            Return,
+            TestEqInt(Register(0)),
+            Ret,
         ];
         assert_eq!(expected, fct.code());
     }
@@ -619,8 +755,8 @@ mod tests {
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
-            TestNotEqual(Register(0)),
-            Return,
+            TestNeInt(Register(0)),
+            Ret,
         ];
         assert_eq!(expected, fct.code());
     }
@@ -632,8 +768,8 @@ mod tests {
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
-            TestLessThan(Register(0)),
-            Return,
+            TestLtInt(Register(0)),
+            Ret,
         ];
         assert_eq!(expected, fct.code());
     }
@@ -645,8 +781,8 @@ mod tests {
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
-            TestLessThanOrEqual(Register(0)),
-            Return,
+            TestLeInt(Register(0)),
+            Ret,
         ];
         assert_eq!(expected, fct.code());
     }
@@ -658,8 +794,8 @@ mod tests {
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
-            TestGreatherThan(Register(0)),
-            Return,
+            TestGtInt(Register(0)),
+            Ret,
         ];
         assert_eq!(expected, fct.code());
     }
@@ -671,8 +807,8 @@ mod tests {
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
-            TestGreatherThanOrEqual(Register(0)),
-            Return,
+            TestGeInt(Register(0)),
+            Ret,
         ];
         assert_eq!(expected, fct.code());
     }
@@ -680,7 +816,7 @@ mod tests {
     #[test]
     fn gen_expr_ident() {
         let fct = code("fun f() -> Int { let x = 1; return x; }");
-        let expected = vec![LdaInt(1), Star(Register(0)), Ldar(Register(0)), Return];
+        let expected = vec![LdaInt(1), Star(Register(0)), Ldar(Register(0)), Ret];
         assert_eq!(expected, fct.code());
     }
 
@@ -692,7 +828,7 @@ mod tests {
             Star(Register(0)),
             LdaInt(2),
             Star(Register(0)),
-            ReturnVoid,
+            RetVoid,
         ];
         assert_eq!(expected, fct.code());
     }
@@ -700,14 +836,14 @@ mod tests {
     #[test]
     fn gen_expr_return() {
         let fct = code("fun f() -> Int { return 1; }");
-        let expected = vec![LdaInt(1), Return];
+        let expected = vec![LdaInt(1), Ret];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
     fn gen_expr_returnvoid() {
         let fct = code("fun f() { }");
-        let expected = vec![ReturnVoid];
+        let expected = vec![RetVoid];
         assert_eq!(expected, fct.code());
     }
 }
