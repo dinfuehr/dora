@@ -364,6 +364,7 @@ mod tests {
     use dora_parser::lexer::reader::Reader;
     use dora_parser::parser::{NodeIdGenerator, Parser};
 
+    use bytecode::generate::BytecodeIdx;
     use bytecode::opcode::Bytecode::*;
     use bytecode::*;
     use test;
