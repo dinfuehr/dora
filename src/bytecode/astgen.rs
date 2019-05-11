@@ -311,7 +311,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.gen.emit_star(Register(rhs_reg));
         self.visit_expr(&expr.lhs);
         match expr.op {
-            BinOp::Add => self.gen.emit_add(Register(rhs_reg)),
+            BinOp::Add => self.gen.emit_add_int(Register(rhs_reg)),
             BinOp::Sub => self.gen.emit_sub(Register(rhs_reg)),
             BinOp::Mul => self.gen.emit_mul(Register(rhs_reg)),
             BinOp::Div => self.gen.emit_div(Register(rhs_reg)),
@@ -372,13 +372,13 @@ mod tests {
     }
 
     #[test]
-    fn gen_add() {
+    fn gen_add_int() {
         let fct = code("fun f() -> Int { return 1 + 2; }");
         let expected = vec![
             LdaInt(2),
             Star(Register(0)),
             LdaInt(1),
-            Add(Register(0)),
+            AddInt(Register(0)),
             Return,
         ];
         assert_eq!(expected, fct.code());

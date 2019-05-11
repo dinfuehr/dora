@@ -2,7 +2,10 @@ use bytecode::generate::{BytecodeIdx, Register};
 
 #[derive(PartialEq, Debug)]
 pub enum Bytecode {
-    Add(Register),
+    AddInt(Register),
+    AddLong(Register),
+    AddFloat(Register),
+    AddDouble(Register),
     BitwiseAnd(Register),
     BitwiseOr(Register),
     BitwiseXor(Register),

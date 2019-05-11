@@ -83,8 +83,20 @@ impl BytecodeGenerator {
         BytecodeIdx(self.code.len())
     }
 
-    pub fn emit_add(&mut self, src: Register) {
-        self.code.push(Bytecode::Add(src));
+    pub fn emit_add_int(&mut self, src: Register) {
+        self.code.push(Bytecode::AddInt(src));
+    }
+
+    pub fn emit_add_long(&mut self, src: Register) {
+        self.code.push(Bytecode::AddLong(src));
+    }
+
+    pub fn emit_add_float(&mut self, src: Register) {
+        self.code.push(Bytecode::AddFloat(src));
+    }
+
+    pub fn emit_add_double(&mut self, src: Register) {
+        self.code.push(Bytecode::AddDouble(src));
     }
 
     pub fn emit_bitwise_and(&mut self, src: Register) {
@@ -257,7 +269,10 @@ impl BytecodeFunction {
         let mut btidx = 0;
         for btcode in self.code.iter() {
             match btcode {
-                Bytecode::Add(Register(register)) => println!("{}: Add {}", btidx, register),
+                Bytecode::AddInt(Register(register)) => println!("{}: AddInt {}", btidx, register),
+                Bytecode::AddLong(Register(register)) => println!("{}: AddLong {}", btidx, register),
+                Bytecode::AddFloat(Register(register)) => println!("{}: AddFloat {}", btidx, register),
+                Bytecode::AddDouble(Register(register)) => println!("{}: AddDouble {}", btidx, register),
                 Bytecode::BitwiseAnd(Register(register)) => {
                     println!("{}: BitwiseAnd {}", btidx, register)
                 }
