@@ -354,6 +354,14 @@ impl BytecodeFunction {
                 Bytecode::TestGeInt(register) => println!("{}: TestGe {}", btidx, register),
                 Bytecode::TestLtInt(register) => println!("{}: TestLt {}", btidx, register),
                 Bytecode::TestLeInt(register) => println!("{}: TestLe {}", btidx, register),
+                Bytecode::MovBool(_, _) => unimplemented!(),
+                Bytecode::MovByte(_, _) => unimplemented!(),
+                Bytecode::MovChar(_, _) => unimplemented!(),
+                Bytecode::MovInt(_, _) => unimplemented!(),
+                Bytecode::MovLong(_, _) => unimplemented!(),
+                Bytecode::MovFloat(_, _) => unimplemented!(),
+                Bytecode::MovDouble(_, _) => unimplemented!(),
+                Bytecode::MovPtr(_, _) => unimplemented!(),
             }
             btidx = btidx + 1;
         }

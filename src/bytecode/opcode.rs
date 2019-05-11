@@ -21,6 +21,15 @@ pub enum Bytecode {
     ShrInt(Register),
     SarInt(Register),
 
+    MovBool(Register, Register),
+    MovByte(Register, Register),
+    MovChar(Register, Register),
+    MovInt(Register, Register),
+    MovLong(Register, Register),
+    MovFloat(Register, Register),
+    MovDouble(Register, Register),
+    MovPtr(Register, Register),
+
     Ldar(Register),
     LdaInt(u64),
     LdaZero,
