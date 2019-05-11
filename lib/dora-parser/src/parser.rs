@@ -1153,8 +1153,8 @@ impl<'a> Parser<'a> {
             TokenKind::Div => BinOp::Div,
             TokenKind::Mod => BinOp::Mod,
             TokenKind::LtLt => BinOp::ShiftL,
-            TokenKind::GtGt => BinOp::ShiftR,
-            TokenKind::GtGtGt => BinOp::UnShiftR,
+            TokenKind::GtGt => BinOp::ArithShiftR,
+            TokenKind::GtGtGt => BinOp::LogicalShiftR,
             _ => panic!("unimplemented token {:?}", tok),
         };
 
@@ -2031,7 +2031,7 @@ mod tests {
         let (expr, _) = parse_expr("a>>4");
 
         let bin = expr.to_bin().unwrap();
-        assert_eq!(BinOp::ShiftR, bin.op);
+        assert_eq!(BinOp::ArithShiftR, bin.op);
     }
 
     #[test]
@@ -2039,7 +2039,7 @@ mod tests {
         let (expr, _) = parse_expr("a>>>4");
 
         let bin = expr.to_bin().unwrap();
-        assert_eq!(BinOp::UnShiftR, bin.op);
+        assert_eq!(BinOp::LogicalShiftR, bin.op);
     }
 
     #[test]

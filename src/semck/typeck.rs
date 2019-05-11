@@ -687,8 +687,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             BinOp::BitAnd => self.check_expr_bin_method(e, e.op, "bitwiseAnd", lhs_type, rhs_type),
             BinOp::BitXor => self.check_expr_bin_method(e, e.op, "bitwiseXor", lhs_type, rhs_type),
             BinOp::ShiftL => self.check_expr_bin_method(e, e.op, "shiftLeft", lhs_type, rhs_type),
-            BinOp::ShiftR => self.check_expr_bin_method(e, e.op, "shiftRight", lhs_type, rhs_type),
-            BinOp::UnShiftR => {
+            BinOp::ArithShiftR => self.check_expr_bin_method(e, e.op, "shiftRight", lhs_type, rhs_type),
+            BinOp::LogicalShiftR => {
                 self.check_expr_bin_method(e, e.op, "unsignedShiftRight", lhs_type, rhs_type)
             }
         }

@@ -115,6 +115,14 @@ impl BytecodeGenerator {
         self.code.push(Bytecode::LdaZero);
     }
 
+    pub fn emit_lda_true(&mut self) {
+        self.code.push(Bytecode::LdaTrue);
+    }
+
+    pub fn emit_lda_false(&mut self) {
+        self.code.push(Bytecode::LdaFalse);
+    }
+
     pub fn emit_logical_not(&mut self) {
         self.code.push(Bytecode::LogicalNot);
     }
@@ -262,6 +270,8 @@ impl BytecodeFunction {
                 Bytecode::Ldar(Register(register)) => println!("{}: Ldar {}", btidx, register),
                 Bytecode::LdaInt(value) => println!("{}: LdaInt {}", btidx, value),
                 Bytecode::LdaZero => println!("{}: LdaZero", btidx),
+                Bytecode::LdaTrue => println!("{}: LdaTrue", btidx),
+                Bytecode::LdaFalse => println!("{}: LdaFalse", btidx),
                 Bytecode::LogicalNot => println!("{}: LogicalNot", btidx),
                 Bytecode::Star(Register(register)) => println!("{}: Star {}", btidx, register),
                 Bytecode::JumpIfFalse(dest) => {

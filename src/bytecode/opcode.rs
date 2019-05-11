@@ -10,6 +10,8 @@ pub enum Bytecode {
     Ldar(Register),
     LdaInt(u64),
     LdaZero,
+    LdaTrue,
+    LdaFalse,
     LogicalNot,
     Star(Register),
     JumpIfFalse(BytecodeIdx),
