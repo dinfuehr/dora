@@ -8,6 +8,12 @@ use ty::BuiltinType;
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Register(pub usize);
 
+impl fmt::Display for Register {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "r{}", self.0)
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Debug, Eq, Hash)]
 pub struct Label(pub usize);
 
@@ -313,69 +319,41 @@ impl BytecodeFunction {
         let mut btidx = 0;
         for btcode in self.code.iter() {
             match btcode {
-                Bytecode::AddInt(Register(register)) => println!("{}: AddInt {}", btidx, register),
-                Bytecode::AddLong(Register(register)) => {
-                    println!("{}: AddLong {}", btidx, register)
-                }
-                Bytecode::AddFloat(Register(register)) => {
-                    println!("{}: AddFloat {}", btidx, register)
-                }
-                Bytecode::AddDouble(Register(register)) => {
-                    println!("{}: AddDouble {}", btidx, register)
-                }
-                Bytecode::AndInt(Register(register)) => println!("{}: AndInt {}", btidx, register),
-                Bytecode::OrInt(Register(register)) => println!("{}: OrInt {}", btidx, register),
-                Bytecode::XorInt(Register(register)) => println!("{}: XorInt {}", btidx, register),
-                Bytecode::DivInt(Register(register)) => println!("{}: Div {}", btidx, register),
-                Bytecode::Ldar(Register(register)) => println!("{}: Ldar {}", btidx, register),
+                Bytecode::AddInt(register) => println!("{}: AddInt {}", btidx, register),
+                Bytecode::AddLong(register) => println!("{}: AddLong {}", btidx, register),
+                Bytecode::AddFloat(register) => println!("{}: AddFloat {}", btidx, register),
+                Bytecode::AddDouble(register) => println!("{}: AddDouble {}", btidx, register),
+                Bytecode::AndInt(register) => println!("{}: AndInt {}", btidx, register),
+                Bytecode::OrInt(register) => println!("{}: OrInt {}", btidx, register),
+                Bytecode::XorInt(register) => println!("{}: XorInt {}", btidx, register),
+                Bytecode::DivInt(register) => println!("{}: Div {}", btidx, register),
+                Bytecode::Ldar(register) => println!("{}: Ldar {}", btidx, register),
                 Bytecode::LdaInt(value) => println!("{}: LdaInt {}", btidx, value),
                 Bytecode::LdaZero => println!("{}: LdaZero", btidx),
                 Bytecode::LdaTrue => println!("{}: LdaTrue", btidx),
                 Bytecode::LdaFalse => println!("{}: LdaFalse", btidx),
                 Bytecode::NotBool => println!("{}: LogicalNot", btidx),
-                Bytecode::Star(Register(register)) => println!("{}: Star {}", btidx, register),
+                Bytecode::Star(register) => println!("{}: Star {}", btidx, register),
                 Bytecode::JumpIfFalse(dest) => println!("{}: JumpIfFalse bc#{}", btidx, dest),
                 Bytecode::JumpIfTrue(dest) => println!("{}: JumpIfTrue bc#{}", btidx, dest),
                 Bytecode::Jump(dest) => println!("{}: Jump bc#{}", btidx, dest),
-                Bytecode::ModInt(Register(register)) => println!("{}: Mod {}", btidx, register),
-                Bytecode::MulInt(Register(register)) => println!("{}: Mul {}", btidx, register),
+                Bytecode::ModInt(register) => println!("{}: Mod {}", btidx, register),
+                Bytecode::MulInt(register) => println!("{}: Mul {}", btidx, register),
                 Bytecode::NegInt => println!("{}: Neg", btidx),
-                Bytecode::ShlInt(Register(register)) => {
-                    println!("{}: ShiftLeft {}", btidx, register)
-                }
-                Bytecode::ShrInt(Register(register)) => {
-                    println!("{}: ShiftRight {}", btidx, register)
-                }
-                Bytecode::SarInt(Register(register)) => {
-                    println!("{}: ArithShiftRight {}", btidx, register)
-                }
-                Bytecode::SubInt(Register(register)) => println!("{}: Sub {}", btidx, register),
+                Bytecode::ShlInt(register) => println!("{}: ShiftLeft {}", btidx, register),
+                Bytecode::ShrInt(register) => println!("{}: ShiftRight {}", btidx, register),
+                Bytecode::SarInt(register) => println!("{}: ArithShiftRight {}", btidx, register),
+                Bytecode::SubInt(register) => println!("{}: Sub {}", btidx, register),
                 Bytecode::Ret => println!("{}: Return", btidx),
                 Bytecode::RetVoid => println!("{}: ReturnVoid", btidx),
-                Bytecode::TestEqInt(Register(register)) => {
-                    println!("{}: TestEqInt {}", btidx, register)
-                }
-                Bytecode::TestEqPtr(Register(register)) => {
-                    println!("{}: TestEqPtr {}", btidx, register)
-                }
-                Bytecode::TestNeInt(Register(register)) => {
-                    println!("{}: TestNeInt {}", btidx, register)
-                }
-                Bytecode::TestNePtr(Register(register)) => {
-                    println!("{}: TestNePtr {}", btidx, register)
-                }
-                Bytecode::TestGtInt(Register(register)) => {
-                    println!("{}: TestGt {}", btidx, register)
-                }
-                Bytecode::TestGeInt(Register(register)) => {
-                    println!("{}: TestGe {}", btidx, register)
-                }
-                Bytecode::TestLtInt(Register(register)) => {
-                    println!("{}: TestLt {}", btidx, register)
-                }
-                Bytecode::TestLeInt(Register(register)) => {
-                    println!("{}: TestLe {}", btidx, register)
-                }
+                Bytecode::TestEqInt(register) => println!("{}: TestEqInt {}", btidx, register),
+                Bytecode::TestEqPtr(register) => println!("{}: TestEqPtr {}", btidx, register),
+                Bytecode::TestNeInt(register) => println!("{}: TestNeInt {}", btidx, register),
+                Bytecode::TestNePtr(register) => println!("{}: TestNePtr {}", btidx, register),
+                Bytecode::TestGtInt(register) => println!("{}: TestGt {}", btidx, register),
+                Bytecode::TestGeInt(register) => println!("{}: TestGe {}", btidx, register),
+                Bytecode::TestLtInt(register) => println!("{}: TestLt {}", btidx, register),
+                Bytecode::TestLeInt(register) => println!("{}: TestLe {}", btidx, register),
             }
             btidx = btidx + 1;
         }
