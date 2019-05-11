@@ -1,35 +1,12 @@
 use std::collections::HashMap;
 
-use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
-use dora_parser::interner::Name;
 
-use bytecode::generate::{BytecodeFunction, BytecodeGenerator, Label, Register};
+use bytecode::generate::{BytecodeFunction, BytecodeGenerator, BytecodeType, Label, Register};
 use class::TypeParams;
-use ctxt::{Fct, FctId, FctSrc, VM};
-
-pub struct Context {
-    var_map: HashMap<Name, Register>,
-}
-
-impl Context {
-    pub fn new() -> Context {
-        Context {
-            var_map: HashMap::new(),
-        }
-    }
-
-    pub fn new_var(&mut self, var: Name, reg: Register) {
-        self.var_map.insert(var, reg);
-    }
-
-    pub fn get_reg(&self, var: Name) -> Option<&Register> {
-        let reg = self.var_map.get(&var);
-        reg
-    }
-}
+use ctxt::{Fct, FctId, FctSrc, IdentType, VarId, VM};
 
 pub struct LoopLabels {
     cond: Label,
@@ -76,10 +53,8 @@ pub fn generate_fct<'ast>(
         fct_type_params: fct_type_params,
 
         gen: BytecodeGenerator::new(),
-
-        ctxs: Vec::new(),
         loops: Vec::new(),
-        regs: 0,
+        var_registers: HashMap::new(),
     };
     ast_bytecode_generator.generate()
 }
@@ -94,46 +69,35 @@ pub struct AstBytecodeGen<'a, 'ast: 'a> {
     fct_type_params: &'a TypeParams,
 
     gen: BytecodeGenerator,
-
-    ctxs: Vec<Context>,
     loops: Vec<LoopLabels>,
-    regs: usize,
-}
-
-impl<'ast> visit::Visitor<'ast> for AstBytecodeGen<'_, 'ast> {
-    fn visit_fct(&mut self, f: &'ast Function) {
-        for p in &f.params {
-            self.visit_param(p);
-        }
-
-        if let Some(ref ty) = f.return_type {
-            self.visit_type(ty);
-        }
-
-        if let Some(ref block) = f.block {
-            self.visit_stmt(block);
-        }
-
-        if f.return_type.is_none() {
-            self.gen.emit_ret_void();
-        }
-    }
+    var_registers: HashMap<VarId, Register>,
 }
 
 impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     pub fn generate(mut self) -> BytecodeFunction {
-        self.visit_fct(self.ast);
-        self.gen.generate()
-    }
-
-    pub fn get_reg(&self, var: Name) -> Option<&Register> {
-        for ctx in self.ctxs.iter() {
-            let opt = ctx.get_reg(var);
-            if opt.is_some() {
-                return opt;
-            }
+        if self.fct.has_self() {
+            let var_id = self.src.var_self().id;
+            let reg = self.gen.add_register(BytecodeType::Ref);
+            self.var_registers.insert(var_id, reg);
         }
-        None
+
+        for param in &self.ast.params {
+            let var_id = *self.src.map_vars.get(param.id).unwrap();
+            let var = &self.src.vars[var_id];
+            let ty: BytecodeType = var.ty.into();
+            let reg = self.gen.add_register(ty);
+            self.var_registers.insert(var_id, reg);
+        }
+
+        if let Some(ref block) = self.ast.block {
+            self.visit_stmt(block);
+        }
+
+        if self.fct.return_type.is_unit() {
+            self.gen.emit_ret_void();
+        }
+
+        self.gen.generate()
     }
 
     // TODO - implement other statements
@@ -158,20 +122,17 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn visit_stmt_var(&mut self, stmt: &StmtVarType) {
-        let reg = self.regs;
-        let varid = stmt.name;
-        self.regs += 1;
-        self.ctxs
-            .last_mut()
-            .unwrap()
-            .new_var(varid as Name, Register(reg));
+        let var_id = *self.src.map_vars.get(stmt.id).unwrap();
+        let ty = self.src.vars[var_id].ty;
+        let ty: BytecodeType = ty.into();
+        let var_reg = self.gen.add_register(ty);
+
+        self.var_registers.insert(var_id, var_reg);
 
         if let Some(ref expr) = stmt.expr {
             self.visit_expr(expr);
-        } else {
-            self.gen.emit_lda_zero();
-        };
-        self.gen.emit_star(Register(reg));
+            self.gen.emit_star(var_reg);
+        }
     }
 
     fn visit_stmt_while(&mut self, stmt: &StmtWhileType) {
@@ -224,13 +185,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn visit_block(&mut self, block: &StmtBlockType) {
-        let regs = self.regs;
-        self.ctxs.push(Context::new());
         for stmt in &block.stmts {
             self.visit_stmt(stmt);
         }
-        self.ctxs.pop();
-        self.regs = regs;
     }
 
     fn visit_stmt_return(&mut self, ret: &StmtReturnType) {
@@ -306,60 +263,76 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     fn visit_expr_bin(&mut self, expr: &ExprBinType) {
         self.visit_expr(&expr.rhs);
-        let rhs_reg = self.regs;
-        self.regs += 1;
-        self.gen.emit_star(Register(rhs_reg));
+        let rhs_reg = self.gen.add_register(BytecodeType::Int);
+        self.gen.emit_star(rhs_reg);
         self.visit_expr(&expr.lhs);
         match expr.op {
-            BinOp::Add => self.gen.emit_add_int(Register(rhs_reg)),
-            BinOp::Sub => self.gen.emit_sub(Register(rhs_reg)),
-            BinOp::Mul => self.gen.emit_mul(Register(rhs_reg)),
-            BinOp::Div => self.gen.emit_div(Register(rhs_reg)),
-            BinOp::Mod => self.gen.emit_mod(Register(rhs_reg)),
-            BinOp::BitOr => self.gen.emit_bitwise_or(Register(rhs_reg)),
-            BinOp::BitAnd => self.gen.emit_bitwise_and(Register(rhs_reg)),
-            BinOp::BitXor => self.gen.emit_bitwise_xor(Register(rhs_reg)),
-            BinOp::ShiftL => self.gen.emit_shift_left(Register(rhs_reg)),
-            BinOp::LogicalShiftR => self.gen.emit_shift_right(Register(rhs_reg)),
-            BinOp::ArithShiftR => self.gen.emit_arith_shift_right(Register(rhs_reg)),
+            BinOp::Add => self.gen.emit_add_int(rhs_reg),
+            BinOp::Sub => self.gen.emit_sub(rhs_reg),
+            BinOp::Mul => self.gen.emit_mul(rhs_reg),
+            BinOp::Div => self.gen.emit_div(rhs_reg),
+            BinOp::Mod => self.gen.emit_mod(rhs_reg),
+            BinOp::BitOr => self.gen.emit_bitwise_or(rhs_reg),
+            BinOp::BitAnd => self.gen.emit_bitwise_and(rhs_reg),
+            BinOp::BitXor => self.gen.emit_bitwise_xor(rhs_reg),
+            BinOp::ShiftL => self.gen.emit_shift_left(rhs_reg),
+            BinOp::LogicalShiftR => self.gen.emit_shift_right(rhs_reg),
+            BinOp::ArithShiftR => self.gen.emit_arith_shift_right(rhs_reg),
             // BinOp::Or => { },
             // BinOp::And => { },
             BinOp::Cmp(op) => match op {
-                CmpOp::Eq => self.gen.emit_test_eq(Register(rhs_reg)),
-                CmpOp::Ne => self.gen.emit_test_ne(Register(rhs_reg)),
-                CmpOp::Lt => self.gen.emit_test_lt(Register(rhs_reg)),
-                CmpOp::Le => self.gen.emit_test_le(Register(rhs_reg)),
-                CmpOp::Gt => self.gen.emit_test_gt(Register(rhs_reg)),
-                CmpOp::Ge => self.gen.emit_test_ge(Register(rhs_reg)),
+                CmpOp::Eq => self.gen.emit_test_eq(rhs_reg),
+                CmpOp::Ne => self.gen.emit_test_ne(rhs_reg),
+                CmpOp::Lt => self.gen.emit_test_lt(rhs_reg),
+                CmpOp::Le => self.gen.emit_test_le(rhs_reg),
+                CmpOp::Gt => self.gen.emit_test_gt(rhs_reg),
+                CmpOp::Ge => self.gen.emit_test_ge(rhs_reg),
                 _ => unimplemented!(),
             },
             _ => unimplemented!(),
         }
-        self.regs -= 1;
     }
 
-    fn visit_expr_assign(&mut self, expr: &ExprAssignType) {
-        self.visit_expr(&expr.rhs);
-        match *expr.lhs {
-            ExprIdent(ref assign) => {
-                let Register(reg) = *self.get_reg(assign.name).unwrap();
-                self.gen.emit_star(Register(reg));
+    fn visit_expr_assign(&mut self, e: &ExprAssignType) {
+        if e.lhs.is_ident() {
+            let ident_type = *self.src.map_idents.get(e.lhs.id()).unwrap();
+            match ident_type {
+                IdentType::Var(var_id) => {
+                    let var_reg = self.var_reg(var_id);
+                    self.visit_expr(&e.rhs);
+                    self.gen.emit_star(var_reg);
+                }
+
+                _ => unimplemented!(),
             }
-            _ => unimplemented!(),
+        } else {
+            unimplemented!();
         }
     }
 
     fn visit_expr_ident(&mut self, ident: &ExprIdentType) {
-        let Register(reg) = *self.get_reg(ident.name).unwrap();
-        self.gen.emit_ldar(Register(reg));
+        let ident_type = *self.src.map_idents.get(ident.id).unwrap();
+
+        match ident_type {
+            IdentType::Var(var_id) => {
+                let reg = self.var_reg(var_id);
+                self.gen.emit_ldar(reg);
+            }
+
+            _ => unimplemented!(),
+        }
+    }
+
+    fn var_reg(&self, var_id: VarId) -> Register {
+        *self.var_registers.get(&var_id).expect("no register for var found")
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use bytecode::generate::{BytecodeIdx, BytecodeFunction, Register};
-    use bytecode::opcode::Bytecode::*;
     use bytecode::astgen;
+    use bytecode::generate::{BytecodeFunction, BytecodeIdx, Register};
+    use bytecode::opcode::Bytecode::*;
     use class::TypeParams;
     use test;
 
@@ -379,6 +352,16 @@ mod tests {
             Star(Register(0)),
             LdaInt(1),
             AddInt(Register(0)),
+            Return,
+        ];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_id_int() {
+        let fct = code("fun f(a: Int) -> Int { return a; }");
+        let expected = vec![
+            Ldar(Register(0)),
             Return,
         ];
         assert_eq!(expected, fct.code());

@@ -1,7 +1,9 @@
+use std::convert::From;
 use std::fmt;
 use std::mem;
 
 use bytecode::opcode::Bytecode;
+use ty::BuiltinType;
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Register(pub usize);
@@ -32,6 +34,7 @@ impl fmt::Display for BytecodeIdx {
 pub enum BytecodeType {
     Bool,
     Byte,
+    Char,
     Int,
     Long,
     Float,
@@ -39,12 +42,27 @@ pub enum BytecodeType {
     Ref,
 }
 
+impl From<BuiltinType> for BytecodeType {
+    fn from(ty: BuiltinType) -> Self {
+        match ty {
+            BuiltinType::Bool => BytecodeType::Bool,
+            BuiltinType::Byte => BytecodeType::Byte,
+            BuiltinType::Char => BytecodeType::Char,
+            BuiltinType::Int => BytecodeType::Int,
+            BuiltinType::Long => BytecodeType::Long,
+            BuiltinType::Float => BytecodeType::Float,
+            BuiltinType::Double => BytecodeType::Double,
+            BuiltinType::Class(_, _) => BytecodeType::Ref,
+            _ => panic!("BuiltinType cannot converted to BytecodeType"),
+        }
+    }
+}
+
 pub struct BytecodeGenerator {
     code: Vec<Bytecode>,
     labels: Vec<Option<BytecodeIdx>>,
     unresolved_jumps: Vec<(BytecodeIdx, Label)>,
     registers: Vec<BytecodeType>,
-    next_register: usize,
 }
 
 impl BytecodeGenerator {
@@ -54,8 +72,12 @@ impl BytecodeGenerator {
             labels: Vec::new(),
             unresolved_jumps: Vec::new(),
             registers: Vec::new(),
-            next_register: 0,
         }
+    }
+
+    pub fn add_register(&mut self, ty: BytecodeType) -> Register {
+        self.registers.push(ty);
+        Register(self.registers.len() - 1)
     }
 
     pub fn create_label(&mut self) -> Label {
@@ -270,9 +292,15 @@ impl BytecodeFunction {
         for btcode in self.code.iter() {
             match btcode {
                 Bytecode::AddInt(Register(register)) => println!("{}: AddInt {}", btidx, register),
-                Bytecode::AddLong(Register(register)) => println!("{}: AddLong {}", btidx, register),
-                Bytecode::AddFloat(Register(register)) => println!("{}: AddFloat {}", btidx, register),
-                Bytecode::AddDouble(Register(register)) => println!("{}: AddDouble {}", btidx, register),
+                Bytecode::AddLong(Register(register)) => {
+                    println!("{}: AddLong {}", btidx, register)
+                }
+                Bytecode::AddFloat(Register(register)) => {
+                    println!("{}: AddFloat {}", btidx, register)
+                }
+                Bytecode::AddDouble(Register(register)) => {
+                    println!("{}: AddDouble {}", btidx, register)
+                }
                 Bytecode::BitwiseAnd(Register(register)) => {
                     println!("{}: BitwiseAnd {}", btidx, register)
                 }
