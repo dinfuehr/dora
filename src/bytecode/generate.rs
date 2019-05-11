@@ -136,7 +136,8 @@ impl BytecodeGenerator {
             self.code.push(Bytecode::JumpIfFalse(idx));
         } else {
             self.unresolved_jumps.push((self.pc(), lbl));
-            self.code.push(Bytecode::JumpIfFalse(BytecodeIdx::invalid()));
+            self.code
+                .push(Bytecode::JumpIfFalse(BytecodeIdx::invalid()));
         }
     }
 
@@ -274,12 +275,8 @@ impl BytecodeFunction {
                 Bytecode::LdaFalse => println!("{}: LdaFalse", btidx),
                 Bytecode::LogicalNot => println!("{}: LogicalNot", btidx),
                 Bytecode::Star(Register(register)) => println!("{}: Star {}", btidx, register),
-                Bytecode::JumpIfFalse(dest) => {
-                    println!("{}: JumpIfFalse bc#{}", btidx, dest)
-                }
-                Bytecode::Jump(dest) => {
-                    println!("{}: Jump bc#{}", btidx, dest)
-                }
+                Bytecode::JumpIfFalse(dest) => println!("{}: JumpIfFalse bc#{}", btidx, dest),
+                Bytecode::Jump(dest) => println!("{}: Jump bc#{}", btidx, dest),
                 Bytecode::Mod(Register(register)) => println!("{}: Mod {}", btidx, register),
                 Bytecode::Mul(Register(register)) => println!("{}: Mul {}", btidx, register),
                 Bytecode::Neg => println!("{}: Neg", btidx),
@@ -317,5 +314,4 @@ impl BytecodeFunction {
             btidx = btidx + 1;
         }
     }
-
 }

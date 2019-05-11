@@ -6,7 +6,7 @@ use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 use dora_parser::interner::Name;
 
-use bytecode::generate::{BytecodeFunction, BytecodeGenerator, BytecodeIdx, Label, Register};
+use bytecode::generate::{BytecodeFunction, BytecodeGenerator, Label, Register};
 use class::TypeParams;
 use ctxt::{Fct, FctId, FctSrc, VM};
 
@@ -63,25 +63,47 @@ pub fn generate<'ast>(
 }
 
 pub fn generate_fct<'ast>(
-    _vm: &VM<'ast>,
+    vm: &VM<'ast>,
     fct: &Fct<'ast>,
-    _src: &mut FctSrc,
-    _cls_type_params: &TypeParams,
-    _fct_type_params: &TypeParams,
+    src: &mut FctSrc,
+    cls_type_params: &TypeParams,
+    fct_type_params: &TypeParams,
 ) -> BytecodeFunction {
-    let ast_bytecode_generator = AstBytecodeGenerator::new();
-    ast_bytecode_generator.generate(fct.ast)
+    let ast_bytecode_generator = AstBytecodeGenerator {
+        vm: vm,
+        fct: fct,
+        ast: fct.ast,
+        src: src,
+
+        cls_type_params: cls_type_params,
+        fct_type_params: fct_type_params,
+
+        gen: BytecodeGenerator::new(),
+
+        ctxs: Vec::new(),
+        loops: Vec::new(),
+        regs: 0,
+    };
+    ast_bytecode_generator.generate()
 }
 
-pub struct AstBytecodeGenerator {
+pub struct AstBytecodeGenerator<'a, 'ast: 'a> {
+    vm: &'a VM<'ast>,
+    fct: &'a Fct<'ast>,
+    ast: &'ast Function,
+    src: &'a mut FctSrc,
+
+    cls_type_params: &'a TypeParams,
+    fct_type_params: &'a TypeParams,
+
+    gen: BytecodeGenerator,
+
     ctxs: Vec<Context>,
     loops: Vec<LoopLabels>,
-    labels: Vec<Option<BytecodeIdx>>,
     regs: usize,
-    gen: BytecodeGenerator,
 }
 
-impl<'ast> visit::Visitor<'ast> for AstBytecodeGenerator {
+impl<'ast> visit::Visitor<'ast> for AstBytecodeGenerator<'_, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
         for p in &f.params {
             self.visit_param(p);
@@ -101,19 +123,9 @@ impl<'ast> visit::Visitor<'ast> for AstBytecodeGenerator {
     }
 }
 
-impl AstBytecodeGenerator {
-    pub fn new() -> AstBytecodeGenerator {
-        AstBytecodeGenerator {
-            ctxs: Vec::new(),
-            labels: Vec::new(),
-            loops: Vec::new(),
-            regs: 0,
-            gen: BytecodeGenerator::new(),
-        }
-    }
-
-    pub fn generate(mut self, ast: &Function) -> BytecodeFunction {
-        self.visit_fct(ast);
+impl<'a, 'ast> AstBytecodeGenerator<'a, 'ast> {
+    pub fn generate(mut self) -> BytecodeFunction {
+        self.visit_fct(self.ast);
         self.gen.generate()
     }
 
@@ -315,20 +327,15 @@ impl AstBytecodeGenerator {
             BinOp::ArithShiftR => self.gen.emit_arith_shift_right(Register(rhs_reg)),
             // BinOp::Or => { },
             // BinOp::And => { },
-            BinOp::Cmp(op) => {
-                match op {
-                    CmpOp::Eq => self.gen.emit_test_eq(Register(rhs_reg)),
-                    CmpOp::Ne => self.gen.emit_test_ne(Register(rhs_reg)),
-                    CmpOp::Lt => self.gen.emit_test_lt(Register(rhs_reg)),
-                    CmpOp::Le => self
-                        .gen.emit_test_le(Register(rhs_reg)),
-                    CmpOp::Gt => self
-                        .gen.emit_test_gt(Register(rhs_reg)),
-                    CmpOp::Ge => self
-                        .gen.emit_test_ge(Register(rhs_reg)),
-                    _ => unimplemented!(),
-                }
-            }
+            BinOp::Cmp(op) => match op {
+                CmpOp::Eq => self.gen.emit_test_eq(Register(rhs_reg)),
+                CmpOp::Ne => self.gen.emit_test_ne(Register(rhs_reg)),
+                CmpOp::Lt => self.gen.emit_test_lt(Register(rhs_reg)),
+                CmpOp::Le => self.gen.emit_test_le(Register(rhs_reg)),
+                CmpOp::Gt => self.gen.emit_test_gt(Register(rhs_reg)),
+                CmpOp::Ge => self.gen.emit_test_ge(Register(rhs_reg)),
+                _ => unimplemented!(),
+            },
             _ => unimplemented!(),
         }
         self.regs -= 1;
@@ -457,12 +464,7 @@ mod tests {
     #[test]
     fn gen_stmt_if() {
         let fct = code("fun f() { if true { 1; } }");
-        let expected = vec![
-            LdaTrue,
-            JumpIfFalse(BytecodeIdx(3)),
-            LdaInt(1),
-            ReturnVoid
-        ];
+        let expected = vec![LdaTrue, JumpIfFalse(BytecodeIdx(3)), LdaInt(1), ReturnVoid];
         assert_eq!(expected, fct.code());
     }
 
@@ -537,11 +539,7 @@ mod tests {
     #[test]
     fn gen_expr_not() {
         let fct = code("fun f() -> Bool { return !true; }");
-        let expected = vec![
-            LdaTrue,
-            LogicalNot,
-            Return
-        ];
+        let expected = vec![LdaTrue, LogicalNot, Return];
         assert_eq!(expected, fct.code());
     }
 
@@ -717,12 +715,7 @@ mod tests {
     #[test]
     fn gen_expr_ident() {
         let fct = code("fun f() -> Int { let x = 1; return x; }");
-        let expected = vec![
-            LdaInt(1),
-            Star(Register(0)),
-            Ldar(Register(0)),
-            Return
-        ];
+        let expected = vec![LdaInt(1), Star(Register(0)), Ldar(Register(0)), Return];
         assert_eq!(expected, fct.code());
     }
 
@@ -742,19 +735,14 @@ mod tests {
     #[test]
     fn gen_expr_return() {
         let fct = code("fun f() -> Int { return 1; }");
-        let expected = vec![
-            LdaInt(1),
-            Return
-        ];
+        let expected = vec![LdaInt(1), Return];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
     fn gen_expr_returnvoid() {
         let fct = code("fun f() { }");
-        let expected = vec![
-            ReturnVoid
-        ];
+        let expected = vec![ReturnVoid];
         assert_eq!(expected, fct.code());
     }
 }
