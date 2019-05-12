@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
+use dora_parser::lexer::token::IntSuffix;
 
 use bytecode::generate::{BytecodeFunction, BytecodeGenerator, BytecodeType, Label, Register};
 use class::TypeParams;
@@ -258,12 +259,28 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn visit_expr_lit_int(&mut self, lit: &ExprLitIntType) -> Register {
-        let dest = self.gen.add_register(BytecodeType::Int);
+        let ty = match lit.suffix {
+            IntSuffix::Byte => BytecodeType::Byte,
+            IntSuffix::Int => BytecodeType::Int,
+            IntSuffix::Long => BytecodeType::Long,
+        };
+
+        let dest = self.gen.add_register(ty);
 
         if lit.value == 0 {
-            self.gen.emit_const_zero_int(dest);
+            match ty {
+                BytecodeType::Byte => self.gen.emit_const_zero_byte(dest),
+                BytecodeType::Int => self.gen.emit_const_zero_int(dest),
+                BytecodeType::Long => self.gen.emit_const_zero_long(dest),
+                _ => unreachable!(),
+            }
         } else {
-            self.gen.emit_const_int(dest, lit.value as u32);
+            match ty {
+                BytecodeType::Byte => self.gen.emit_const_byte(dest, lit.value as u8),
+                BytecodeType::Int => self.gen.emit_const_int(dest, lit.value as u32),
+                BytecodeType::Long => self.gen.emit_const_long(dest, lit.value),
+                _ => unreachable!(),
+            }
         }
 
         dest
@@ -489,11 +506,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
             BuiltinType::Class(cls_id, list_id) => {
                 let params = self.vm.lists.lock().get(list_id);
-
                 let params: Vec<_> = params.iter().map(|t| self.specialize_type(t)).collect();
-
                 let list_id = self.vm.lists.lock().insert(params.into());
-
                 BuiltinType::Class(cls_id, list_id)
             }
 
@@ -672,15 +686,43 @@ mod tests {
 
     #[test]
     fn gen_expr_lit_int() {
-        let fct = code("fun f() { 1; }");
-        let expected = vec![ConstInt(r(0), 1), RetVoid];
+        let fct = code("fun f() -> Int { return 1; }");
+        let expected = vec![ConstInt(r(0), 1), RetInt(r(0))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
-    fn gen_expr_lit_zero() {
-        let fct = code("fun f() { 0; }");
-        let expected = vec![ConstZeroInt(r(0)), RetVoid];
+    fn gen_expr_lit_byte() {
+        let fct = code("fun f() -> Byte { return 1Y; }");
+        let expected = vec![ConstByte(r(0), 1), RetByte(r(0))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_expr_lit_long() {
+        let fct = code("fun f() -> Long { return 1L; }");
+        let expected = vec![ConstLong(r(0), 1), RetLong(r(0))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_expr_lit_byte_zero() {
+        let fct = code("fun f() -> Byte { return 0Y; }");
+        let expected = vec![ConstZeroByte(r(0)), RetByte(r(0))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_expr_lit_int_zero() {
+        let fct = code("fun f() -> Int { return 0; }");
+        let expected = vec![ConstZeroInt(r(0)), RetInt(r(0))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_expr_lit_long_zero() {
+        let fct = code("fun f() -> Long { return 0L; }");
+        let expected = vec![ConstZeroLong(r(0)), RetLong(r(0))];
         assert_eq!(expected, fct.code());
     }
 

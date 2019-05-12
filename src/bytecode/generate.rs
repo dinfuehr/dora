@@ -153,12 +153,28 @@ impl BytecodeGenerator {
         self.code.push(Bytecode::DivInt(dest, lhs, rhs));
     }
 
+    pub fn emit_const_byte(&mut self, dest: Register, value: u8) {
+        self.code.push(Bytecode::ConstByte(dest, value));
+    }
+
     pub fn emit_const_int(&mut self, dest: Register, value: u32) {
         self.code.push(Bytecode::ConstInt(dest, value));
     }
 
+    pub fn emit_const_long(&mut self, dest: Register, value: u64) {
+        self.code.push(Bytecode::ConstLong(dest, value));
+    }
+
+    pub fn emit_const_zero_byte(&mut self, dest: Register) {
+        self.code.push(Bytecode::ConstZeroByte(dest));
+    }
+
     pub fn emit_const_zero_int(&mut self, dest: Register) {
         self.code.push(Bytecode::ConstZeroInt(dest));
+    }
+
+    pub fn emit_const_zero_long(&mut self, dest: Register) {
+        self.code.push(Bytecode::ConstZeroLong(dest));
     }
 
     pub fn emit_const_true(&mut self, dest: Register) {
@@ -412,8 +428,12 @@ impl BytecodeFunction {
                 }
                 Bytecode::ConstTrue(dest) => println!("{}: {} <- true", btidx, dest),
                 Bytecode::ConstFalse(dest) => println!("{}: {} <- false", btidx, dest),
+                Bytecode::ConstZeroByte(dest) => println!("{}: {} <-byte 0", btidx, dest),
                 Bytecode::ConstZeroInt(dest) => println!("{}: {} <-int 0", btidx, dest),
+                Bytecode::ConstZeroLong(dest) => println!("{}: {} <-long 0", btidx, dest),
+                Bytecode::ConstByte(dest, val) => println!("{}: {} <-byte {}", btidx, dest, val),
                 Bytecode::ConstInt(dest, val) => println!("{}: {} <-int {}", btidx, dest, val),
+                Bytecode::ConstLong(dest, val) => println!("{}: {} <-long {}", btidx, dest, val),
                 Bytecode::NotBool(dest, src) => println!("{}: {} <-bool {}", btidx, dest, src),
                 Bytecode::JumpIfFalse(opnd, target) => {
                     println!("{}: if {}=false goto {}", btidx, opnd, target)

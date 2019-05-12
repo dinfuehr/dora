@@ -33,8 +33,12 @@ pub enum Bytecode {
 
     ConstTrue(Register),
     ConstFalse(Register),
+    ConstZeroByte(Register),
     ConstZeroInt(Register),
+    ConstZeroLong(Register),
+    ConstByte(Register, u8),
     ConstInt(Register, u32),
+    ConstLong(Register, u64),
 
     TestEqPtr(Register, Register, Register),
     TestNePtr(Register, Register, Register),
