@@ -77,6 +77,17 @@ impl Class {
         self.type_params.len() > 0
     }
 
+    #[cfg(test)]
+    pub fn field_by_name(&self, name: Name) -> FieldId {
+        for field in &self.fields {
+            if field.name == name {
+                return field.id;
+            }
+        }
+
+        panic!("field not found!")
+    }
+
     pub fn long_name(&self, vm: &VM) -> String {
         let name = vm.interner.str(self.name);
 
@@ -287,7 +298,7 @@ impl IndexMut<FieldId> for Vec<Field> {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct ClassDefId(usize);
 
 impl ClassDefId {

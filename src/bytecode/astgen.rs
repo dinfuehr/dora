@@ -8,6 +8,7 @@ use dora_parser::lexer::token::IntSuffix;
 use bytecode::generate::{BytecodeFunction, BytecodeGenerator, BytecodeType, Label, Register};
 use class::TypeParams;
 use ctxt::{Fct, FctId, FctKind, FctParent, FctSrc, IdentType, Intrinsic, VarId, VM};
+use semck::specialize::specialize_class_ty;
 use ty::BuiltinType;
 
 pub struct LoopLabels {
@@ -236,7 +237,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         match *expr {
             ExprUn(ref un) => self.visit_expr_un(un),
             ExprBin(ref bin) => self.visit_expr_bin(bin),
-            // ExprField(ref field) => {},
+            ExprField(ref field) => self.visit_expr_field(field),
             // ExprArray(ref array) => {},
             // ExprLitChar(ref lit) => {},
             ExprLitInt(ref lit) => self.visit_expr_lit_int(lit),
@@ -256,6 +257,40 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             // ExprLambda(ref expr) => {},
             _ => unimplemented!(),
         }
+    }
+
+    fn visit_expr_field(&mut self, e: &ExprFieldType) -> Register {
+        let (class, field_id) = {
+            let ident_type = self.src.map_idents.get(e.id).unwrap();
+
+            match ident_type {
+                &IdentType::Field(class, field) => (class, field),
+                _ => unreachable!(),
+            }
+        };
+
+        let class = self.specialize_type(class);
+        let cls_id = specialize_class_ty(self.vm, class);
+        let cls = self.vm.class_defs.idx(cls_id);
+        let cls = cls.read();
+        let field = &cls.fields[field_id.idx()];
+        let ty: BytecodeType = field.ty.into();
+
+        let dest = self.gen.add_register(ty);
+        let obj = self.visit_expr(&e.object);
+
+        match ty {
+            BytecodeType::Byte => self.gen.emit_load_field_byte(dest, obj, cls_id, field_id),
+            BytecodeType::Bool => self.gen.emit_load_field_bool(dest, obj, cls_id, field_id),
+            BytecodeType::Char => self.gen.emit_load_field_char(dest, obj, cls_id, field_id),
+            BytecodeType::Int => self.gen.emit_load_field_int(dest, obj, cls_id, field_id),
+            BytecodeType::Long => self.gen.emit_load_field_long(dest, obj, cls_id, field_id),
+            BytecodeType::Float => self.gen.emit_load_field_float(dest, obj, cls_id, field_id),
+            BytecodeType::Double => self.gen.emit_load_field_double(dest, obj, cls_id, field_id),
+            BytecodeType::Ptr => self.gen.emit_load_field_ptr(dest, obj, cls_id, field_id),
+        }
+
+        dest
     }
 
     fn visit_expr_lit_int(&mut self, lit: &ExprLitIntType) -> Register {
@@ -541,6 +576,7 @@ mod tests {
     use bytecode::generate::{BytecodeFunction, BytecodeIdx, Register};
     use bytecode::opcode::Bytecode::*;
     use class::TypeParams;
+    use ctxt::VM;
     use test;
 
     fn code(code: &'static str) -> BytecodeFunction {
@@ -549,6 +585,115 @@ mod tests {
             let tp = TypeParams::empty();
             astgen::generate(vm, fct_id, &tp, &tp)
         })
+    }
+
+    fn gen<F>(code: &'static str, testfct: F)
+    where
+        F: FnOnce(&VM, BytecodeFunction),
+    {
+        test::parse(code, |vm| {
+            let fct_id = vm.fct_by_name("f").expect("no function `f`.");
+            let tp = TypeParams::empty();
+            let fct = astgen::generate(vm, fct_id, &tp, &tp);
+
+            testfct(vm, fct);
+        })
+    }
+
+    #[test]
+    fn gen_load_field_byte() {
+        gen(
+            "class Foo(let bar: Byte) fun f(a: Foo) -> Byte { return a.bar; }",
+            |vm, fct| {
+                let (cls, field) = vm.field_by_name("Foo", "bar");
+                let expected = vec![LoadFieldByte(r(1), r(0), cls, field), RetByte(r(1))];
+                assert_eq!(expected, fct.code());
+            },
+        );
+    }
+
+    #[test]
+    fn gen_load_field_bool() {
+        gen(
+            "class Foo(let bar: Bool) fun f(a: Foo) -> Bool { return a.bar; }",
+            |vm, fct| {
+                let (cls, field) = vm.field_by_name("Foo", "bar");
+                let expected = vec![LoadFieldBool(r(1), r(0), cls, field), RetBool(r(1))];
+                assert_eq!(expected, fct.code());
+            },
+        );
+    }
+
+    #[test]
+    fn gen_load_field_char() {
+        gen(
+            "class Foo(let bar: Char) fun f(a: Foo) -> Char { return a.bar; }",
+            |vm, fct| {
+                let (cls, field) = vm.field_by_name("Foo", "bar");
+                let expected = vec![LoadFieldChar(r(1), r(0), cls, field), RetChar(r(1))];
+                assert_eq!(expected, fct.code());
+            },
+        );
+    }
+
+    #[test]
+    fn gen_load_field_int() {
+        gen(
+            "class Foo(let bar: Int) fun f(a: Foo) -> Int { return a.bar; }",
+            |vm, fct| {
+                let (cls, field) = vm.field_by_name("Foo", "bar");
+                let expected = vec![LoadFieldInt(r(1), r(0), cls, field), RetInt(r(1))];
+                assert_eq!(expected, fct.code());
+            },
+        );
+    }
+
+    #[test]
+    fn gen_load_field_long() {
+        gen(
+            "class Foo(let bar: Long) fun f(a: Foo) -> Long { return a.bar; }",
+            |vm, fct| {
+                let (cls, field) = vm.field_by_name("Foo", "bar");
+                let expected = vec![LoadFieldLong(r(1), r(0), cls, field), RetLong(r(1))];
+                assert_eq!(expected, fct.code());
+            },
+        );
+    }
+
+    #[test]
+    fn gen_load_field_float() {
+        gen(
+            "class Foo(let bar: Float) fun f(a: Foo) -> Float { return a.bar; }",
+            |vm, fct| {
+                let (cls, field) = vm.field_by_name("Foo", "bar");
+                let expected = vec![LoadFieldFloat(r(1), r(0), cls, field), RetFloat(r(1))];
+                assert_eq!(expected, fct.code());
+            },
+        );
+    }
+
+    #[test]
+    fn gen_load_field_double() {
+        gen(
+            "class Foo(let bar: Double) fun f(a: Foo) -> Double { return a.bar; }",
+            |vm, fct| {
+                let (cls, field) = vm.field_by_name("Foo", "bar");
+                let expected = vec![LoadFieldDouble(r(1), r(0), cls, field), RetDouble(r(1))];
+                assert_eq!(expected, fct.code());
+            },
+        );
+    }
+
+    #[test]
+    fn gen_load_field_ptr() {
+        gen(
+            "class Foo(let bar: Object) fun f(a: Foo) -> Object { return a.bar; }",
+            |vm, fct| {
+                let (cls, field) = vm.field_by_name("Foo", "bar");
+                let expected = vec![LoadFieldPtr(r(1), r(0), cls, field), RetPtr(r(1))];
+                assert_eq!(expected, fct.code());
+            },
+        );
     }
 
     #[test]

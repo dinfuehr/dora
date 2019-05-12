@@ -3,6 +3,7 @@ use std::fmt;
 use std::mem;
 
 use bytecode::opcode::Bytecode;
+use class::{ClassDefId, FieldId};
 use ty::BuiltinType;
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -151,6 +152,94 @@ impl BytecodeGenerator {
 
     pub fn emit_div_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::DivInt(dest, lhs, rhs));
+    }
+
+    pub fn emit_load_field_bool(
+        &mut self,
+        dest: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.code
+            .push(Bytecode::LoadFieldBool(dest, obj, cls, field));
+    }
+
+    pub fn emit_load_field_byte(
+        &mut self,
+        dest: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.code
+            .push(Bytecode::LoadFieldByte(dest, obj, cls, field));
+    }
+
+    pub fn emit_load_field_char(
+        &mut self,
+        dest: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.code
+            .push(Bytecode::LoadFieldChar(dest, obj, cls, field));
+    }
+
+    pub fn emit_load_field_int(
+        &mut self,
+        dest: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.code
+            .push(Bytecode::LoadFieldInt(dest, obj, cls, field));
+    }
+
+    pub fn emit_load_field_long(
+        &mut self,
+        dest: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.code
+            .push(Bytecode::LoadFieldLong(dest, obj, cls, field));
+    }
+
+    pub fn emit_load_field_float(
+        &mut self,
+        dest: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.code
+            .push(Bytecode::LoadFieldFloat(dest, obj, cls, field));
+    }
+
+    pub fn emit_load_field_double(
+        &mut self,
+        dest: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.code
+            .push(Bytecode::LoadFieldDouble(dest, obj, cls, field));
+    }
+
+    pub fn emit_load_field_ptr(
+        &mut self,
+        dest: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.code
+            .push(Bytecode::LoadFieldPtr(dest, obj, cls, field));
     }
 
     pub fn emit_const_byte(&mut self, dest: Register, value: u8) {
@@ -461,6 +550,31 @@ impl BytecodeFunction {
                 }
                 Bytecode::SubInt(dest, lhs, rhs) => {
                     println!("{}: {} <-int {} - {}", btidx, dest, lhs, rhs)
+                }
+
+                Bytecode::LoadFieldBool(dest, obj, cls, field) => {
+                    println!("{}: {} <-bool {} {:?}.{:?}", btidx, dest, obj, cls, field);
+                }
+                Bytecode::LoadFieldByte(dest, obj, cls, field) => {
+                    println!("{}: {} <-byte {} {:?}.{:?}", btidx, dest, obj, cls, field);
+                }
+                Bytecode::LoadFieldChar(dest, obj, cls, field) => {
+                    println!("{}: {} <-char {} {:?}.{:?}", btidx, dest, obj, cls, field);
+                }
+                Bytecode::LoadFieldInt(dest, obj, cls, field) => {
+                    println!("{}: {} <-int {} {:?}.{:?}", btidx, dest, obj, cls, field);
+                }
+                Bytecode::LoadFieldLong(dest, obj, cls, field) => {
+                    println!("{}: {} <-long {} {:?}.{:?}", btidx, dest, obj, cls, field);
+                }
+                Bytecode::LoadFieldFloat(dest, obj, cls, field) => {
+                    println!("{}: {} <-float {} {:?}.{:?}", btidx, dest, obj, cls, field);
+                }
+                Bytecode::LoadFieldDouble(dest, obj, cls, field) => {
+                    println!("{}: {} <-double {} {:?}.{:?}", btidx, dest, obj, cls, field);
+                }
+                Bytecode::LoadFieldPtr(dest, obj, cls, field) => {
+                    println!("{}: {} <-ptr {} {:?}.{:?}", btidx, dest, obj, cls, field);
                 }
                 Bytecode::RetBool(res) => println!("{}: Ret.Bool {}", btidx, res),
                 Bytecode::RetByte(res) => println!("{}: Ret.Byte {}", btidx, res),

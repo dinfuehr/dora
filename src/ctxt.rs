@@ -262,6 +262,30 @@ impl<'ast> SemContext<'ast> {
     }
 
     #[cfg(test)]
+    pub fn field_by_name(
+        &self,
+        class_name: &'static str,
+        field_name: &'static str,
+    ) -> (ClassDefId, FieldId) {
+        use semck::specialize;
+
+        let class_name = self.interner.intern(class_name);
+        let field_name = self.interner.intern(field_name);
+
+        let cls_id = self
+            .sym
+            .lock()
+            .get_class(class_name)
+            .expect("class not found");
+        let cls = self.classes.idx(cls_id);
+        let cls = cls.read();
+        let field_id = cls.field_by_name(field_name);
+        let cls_id = specialize::specialize_class_ty(self, cls.ty);
+
+        (cls_id, field_id)
+    }
+
+    #[cfg(test)]
     pub fn fct_by_name(&self, name: &str) -> Option<FctId> {
         let name = self.interner.intern(name);
         self.sym.lock().get_fct(name)

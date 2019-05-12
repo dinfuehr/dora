@@ -1,4 +1,5 @@
 use bytecode::generate::{BytecodeIdx, Register};
+use class::{ClassDefId, FieldId};
 
 #[derive(PartialEq, Debug)]
 pub enum Bytecode {
@@ -30,6 +31,15 @@ pub enum Bytecode {
     MovFloat(Register, Register),
     MovDouble(Register, Register),
     MovPtr(Register, Register),
+
+    LoadFieldBool(Register, Register, ClassDefId, FieldId),
+    LoadFieldByte(Register, Register, ClassDefId, FieldId),
+    LoadFieldChar(Register, Register, ClassDefId, FieldId),
+    LoadFieldInt(Register, Register, ClassDefId, FieldId),
+    LoadFieldLong(Register, Register, ClassDefId, FieldId),
+    LoadFieldFloat(Register, Register, ClassDefId, FieldId),
+    LoadFieldDouble(Register, Register, ClassDefId, FieldId),
+    LoadFieldPtr(Register, Register, ClassDefId, FieldId),
 
     ConstTrue(Register),
     ConstFalse(Register),
