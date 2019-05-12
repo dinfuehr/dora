@@ -9,11 +9,11 @@ use ty::BuiltinType;
 pub struct Register(pub usize);
 
 impl Register {
-    fn invalid() -> Register {
+    pub fn invalid() -> Register {
         Register(usize::max_value())
     }
 
-    fn is_invalid(&self) -> bool {
+    pub fn is_invalid(&self) -> bool {
         self.0 == usize::max_value()
     }
 }

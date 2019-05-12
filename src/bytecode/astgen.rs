@@ -212,8 +212,12 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     // TODO - implement other expressions
     fn visit_expr(&mut self, expr: &Expr) {
         match *expr {
-            ExprUn(ref un) => self.visit_expr_un(un),
-            ExprBin(ref bin) => self.visit_expr_bin(bin),
+            ExprUn(ref un) => {
+                self.visit_expr_un(un);
+            }
+            ExprBin(ref bin) => {
+                self.visit_expr_bin(bin);
+            }
             // ExprField(ref field) => {},
             // ExprArray(ref array) => {},
             // ExprLitChar(ref lit) => {},
@@ -229,7 +233,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             ExprIdent(ref ident) => {
                 self.visit_expr_ident(ident);
             }
-            ExprAssign(ref assign) => self.visit_expr_assign(assign),
+            ExprAssign(ref assign) => {
+                self.visit_expr_assign(assign);
+            }
             // ExprCall(ref call) => {},
             // ExprDelegation(ref call) => {},
             // ExprSelf(ref selfie) => {},
@@ -266,25 +272,13 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         dest
     }
 
-    fn visit_expr_un(&mut self, expr: &ExprUnType) -> Register {
+    fn visit_expr_un(&mut self, expr: &ExprUnType) {
         self.visit_expr(&expr.opnd);
 
         match expr.op {
-            UnOp::Plus => Register::invalid(),
-
-            UnOp::Neg => {
-                let dest = self.gen.add_register(BytecodeType::Int);
-                self.gen.emit_neg_int(dest, dest);
-
-                dest
-            }
-
-            UnOp::Not => {
-                let dest = self.gen.add_register(BytecodeType::Bool);
-                self.gen.emit_not_bool(dest, dest);
-
-                dest
-            }
+            UnOp::Plus => {}
+            UnOp::Neg => self.gen.emit_neg_int(),
+            UnOp::Not => self.gen.emit_not_bool(),
         }
     }
 
