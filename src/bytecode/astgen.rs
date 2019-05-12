@@ -6,7 +6,8 @@ use dora_parser::ast::*;
 
 use bytecode::generate::{BytecodeFunction, BytecodeGenerator, BytecodeType, Label, Register};
 use class::TypeParams;
-use ctxt::{Fct, FctId, FctKind, FctSrc, IdentType, Intrinsic, VarId, VM};
+use ctxt::{Fct, FctId, FctKind, FctParent, FctSrc, IdentType, Intrinsic, VarId, VM};
+use ty::BuiltinType;
 
 pub struct LoopLabels {
     cond: Label,
@@ -84,7 +85,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         for param in &self.ast.params {
             let var_id = *self.src.map_vars.get(param.id).unwrap();
             let var = &self.src.vars[var_id];
-            let ty: BytecodeType = var.ty.into();
+            let ty: BytecodeType = self.specialize_type(var.ty).into();
             let reg = self.gen.add_register(ty);
             self.var_registers.insert(var_id, reg);
         }
@@ -123,8 +124,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     fn visit_stmt_var(&mut self, stmt: &StmtVarType) {
         let var_id = *self.src.map_vars.get(stmt.id).unwrap();
-        let ty = self.src.vars[var_id].ty;
-        let ty: BytecodeType = ty.into();
+        let ty: BytecodeType = self.specialize_type(self.src.vars[var_id].ty).into();
         let var_reg = self.gen.add_register(ty);
 
         self.var_registers.insert(var_id, var_reg);
@@ -435,7 +435,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 IdentType::Var(var_id) => {
                     let var_reg = self.var_reg(var_id);
                     let rhs_reg = self.visit_expr(&e.rhs);
-                    let ty: BytecodeType = self.src.vars[var_id].ty.into();
+                    let ty: BytecodeType = self.specialize_type(self.src.vars[var_id].ty).into();
 
                     match ty {
                         BytecodeType::Bool => self.gen.emit_mov_bool(var_reg, rhs_reg),
@@ -473,6 +473,34 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             .var_registers
             .get(&var_id)
             .expect("no register for var found")
+    }
+
+    fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
+        match ty {
+            BuiltinType::ClassTypeParam(cls_id, id) => {
+                assert!(self.fct.parent == FctParent::Class(cls_id));
+                self.cls_type_params[id.idx()]
+            }
+
+            BuiltinType::FctTypeParam(fct_id, id) => {
+                assert!(self.fct.id == fct_id);
+                self.fct_type_params[id.idx()]
+            }
+
+            BuiltinType::Class(cls_id, list_id) => {
+                let params = self.vm.lists.lock().get(list_id);
+
+                let params: Vec<_> = params.iter().map(|t| self.specialize_type(t)).collect();
+
+                let list_id = self.vm.lists.lock().insert(params.into());
+
+                BuiltinType::Class(cls_id, list_id)
+            }
+
+            BuiltinType::Lambda(_) => unimplemented!(),
+
+            _ => ty,
+        }
     }
 
     fn get_intrinsic(&self, id: NodeId) -> Option<Intrinsic> {
