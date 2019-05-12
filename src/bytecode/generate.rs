@@ -121,40 +121,36 @@ impl BytecodeGenerator {
         BytecodeIdx(self.code.len())
     }
 
-    pub fn emit_add_int(&mut self, src: Register) {
-        self.code.push(Bytecode::AddInt(src));
+    pub fn emit_add_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::AddInt(dest, lhs, rhs));
     }
 
-    pub fn emit_add_long(&mut self, src: Register) {
-        self.code.push(Bytecode::AddLong(src));
+    pub fn emit_add_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::AddLong(dest, lhs, rhs));
     }
 
-    pub fn emit_add_float(&mut self, src: Register) {
-        self.code.push(Bytecode::AddFloat(src));
+    pub fn emit_add_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::AddFloat(dest, lhs, rhs));
     }
 
-    pub fn emit_add_double(&mut self, src: Register) {
-        self.code.push(Bytecode::AddDouble(src));
+    pub fn emit_add_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::AddDouble(dest, lhs, rhs));
     }
 
-    pub fn emit_and_int(&mut self, src: Register) {
-        self.code.push(Bytecode::AndInt(src));
+    pub fn emit_and_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::AndInt(dest, lhs, rhs));
     }
 
-    pub fn emit_or_int(&mut self, src: Register) {
-        self.code.push(Bytecode::OrInt(src));
+    pub fn emit_or_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::OrInt(dest, lhs, rhs));
     }
 
-    pub fn emit_xor_int(&mut self, src: Register) {
-        self.code.push(Bytecode::XorInt(src));
+    pub fn emit_xor_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::XorInt(dest, lhs, rhs));
     }
 
-    pub fn emit_div_int(&mut self, src: Register) {
-        self.code.push(Bytecode::DivInt(src));
-    }
-
-    pub fn emit_ldar(&mut self, src: Register) {
-        self.code.push(Bytecode::Ldar(src));
+    pub fn emit_div_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::DivInt(dest, lhs, rhs));
     }
 
     pub fn emit_const_int(&mut self, dest: Register, value: u32) {
@@ -173,30 +169,27 @@ impl BytecodeGenerator {
         self.code.push(Bytecode::ConstFalse(dest));
     }
 
-    pub fn emit_not_bool(&mut self) {
-        self.code.push(Bytecode::NotBool);
+    pub fn emit_not_bool(&mut self, dest: Register, src: Register) {
+        self.code.push(Bytecode::NotBool(dest, src));
     }
 
-    pub fn emit_star(&mut self, dest: Register) {
-        self.code.push(Bytecode::Star(dest));
-    }
-
-    pub fn emit_jump_if_false(&mut self, lbl: Label) {
+    pub fn emit_jump_if_false(&mut self, opnd: Register, lbl: Label) {
         if let Some(idx) = self.dest_label(lbl) {
-            self.code.push(Bytecode::JumpIfFalse(idx));
+            self.code.push(Bytecode::JumpIfFalse(opnd, idx));
         } else {
             self.unresolved_jumps.push((self.pc(), lbl));
             self.code
-                .push(Bytecode::JumpIfFalse(BytecodeIdx::invalid()));
+                .push(Bytecode::JumpIfFalse(opnd, BytecodeIdx::invalid()));
         }
     }
 
-    pub fn emit_jump_if_true(&mut self, lbl: Label) {
+    pub fn emit_jump_if_true(&mut self, opnd: Register, lbl: Label) {
         if let Some(idx) = self.dest_label(lbl) {
-            self.code.push(Bytecode::JumpIfTrue(idx));
+            self.code.push(Bytecode::JumpIfTrue(opnd, idx));
         } else {
             self.unresolved_jumps.push((self.pc(), lbl));
-            self.code.push(Bytecode::JumpIfTrue(BytecodeIdx::invalid()));
+            self.code
+                .push(Bytecode::JumpIfTrue(opnd, BytecodeIdx::invalid()));
         }
     }
 
@@ -209,72 +202,136 @@ impl BytecodeGenerator {
         }
     }
 
-    pub fn emit_mod_int(&mut self, src: Register) {
-        self.code.push(Bytecode::ModInt(src));
+    pub fn emit_mod_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::ModInt(dest, lhs, rhs));
     }
 
-    pub fn emit_mul_int(&mut self, src: Register) {
-        self.code.push(Bytecode::MulInt(src));
+    pub fn emit_mul_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::MulInt(dest, lhs, rhs));
     }
 
-    pub fn emit_neg_int(&mut self) {
-        self.code.push(Bytecode::NegInt);
+    pub fn emit_neg_int(&mut self, dest: Register, src: Register) {
+        self.code.push(Bytecode::NegInt(dest, src));
     }
 
-    pub fn emit_shl_int(&mut self, src: Register) {
-        self.code.push(Bytecode::ShlInt(src));
+    pub fn emit_neg_long(&mut self, dest: Register, src: Register) {
+        self.code.push(Bytecode::NegLong(dest, src));
     }
 
-    pub fn emit_shr_int(&mut self, src: Register) {
-        self.code.push(Bytecode::ShrInt(src));
+    pub fn emit_shl_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::ShlInt(dest, lhs, rhs));
     }
 
-    pub fn emit_sar_int(&mut self, src: Register) {
-        self.code.push(Bytecode::SarInt(src));
+    pub fn emit_shr_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::ShrInt(dest, lhs, rhs));
     }
 
-    pub fn emit_sub_int(&mut self, src: Register) {
-        self.code.push(Bytecode::SubInt(src));
+    pub fn emit_sar_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::SarInt(dest, lhs, rhs));
     }
 
-    pub fn emit_ret(&mut self) {
-        self.code.push(Bytecode::Ret);
+    pub fn emit_sub_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::SubInt(dest, lhs, rhs));
+    }
+
+    pub fn emit_mov_bool(&mut self, dest: Register, src: Register) {
+        self.code.push(Bytecode::MovBool(dest, src));
+    }
+
+    pub fn emit_mov_byte(&mut self, dest: Register, src: Register) {
+        self.code.push(Bytecode::MovByte(dest, src));
+    }
+
+    pub fn emit_mov_char(&mut self, dest: Register, src: Register) {
+        self.code.push(Bytecode::MovChar(dest, src));
+    }
+
+    pub fn emit_mov_int(&mut self, dest: Register, src: Register) {
+        self.code.push(Bytecode::MovInt(dest, src));
+    }
+
+    pub fn emit_mov_long(&mut self, dest: Register, src: Register) {
+        self.code.push(Bytecode::MovLong(dest, src));
+    }
+
+    pub fn emit_mov_float(&mut self, dest: Register, src: Register) {
+        self.code.push(Bytecode::MovFloat(dest, src));
+    }
+
+    pub fn emit_mov_double(&mut self, dest: Register, src: Register) {
+        self.code.push(Bytecode::MovDouble(dest, src));
+    }
+
+    pub fn emit_mov_ptr(&mut self, dest: Register, src: Register) {
+        self.code.push(Bytecode::MovPtr(dest, src));
+    }
+
+    pub fn emit_ret_bool(&mut self, src: Register) {
+        self.code.push(Bytecode::RetBool(src));
+    }
+
+    pub fn emit_ret_byte(&mut self, src: Register) {
+        self.code.push(Bytecode::RetByte(src));
+    }
+
+    pub fn emit_ret_char(&mut self, src: Register) {
+        self.code.push(Bytecode::RetChar(src));
+    }
+
+    pub fn emit_ret_int(&mut self, src: Register) {
+        self.code.push(Bytecode::RetInt(src));
+    }
+
+    pub fn emit_ret_long(&mut self, src: Register) {
+        self.code.push(Bytecode::RetLong(src));
+    }
+
+    pub fn emit_ret_float(&mut self, src: Register) {
+        self.code.push(Bytecode::RetFloat(src));
+    }
+
+    pub fn emit_ret_double(&mut self, src: Register) {
+        self.code.push(Bytecode::RetDouble(src));
+    }
+
+    pub fn emit_ret_ptr(&mut self, src: Register) {
+        self.code.push(Bytecode::RetPtr(src));
     }
 
     pub fn emit_ret_void(&mut self) {
         self.code.push(Bytecode::RetVoid);
     }
 
-    pub fn emit_test_eq_int(&mut self, src: Register) {
-        self.code.push(Bytecode::TestEqInt(src));
+    pub fn emit_test_eq_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::TestEqInt(dest, lhs, rhs));
     }
 
-    pub fn emit_test_eq_ptr(&mut self, src: Register) {
-        self.code.push(Bytecode::TestEqPtr(src));
+    pub fn emit_test_eq_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::TestEqPtr(dest, lhs, rhs));
     }
 
-    pub fn emit_test_ne_int(&mut self, src: Register) {
-        self.code.push(Bytecode::TestNeInt(src));
+    pub fn emit_test_ne_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::TestNeInt(dest, lhs, rhs));
     }
 
-    pub fn emit_test_ne_ptr(&mut self, src: Register) {
-        self.code.push(Bytecode::TestNePtr(src));
+    pub fn emit_test_ne_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::TestNePtr(dest, lhs, rhs));
     }
 
-    pub fn emit_test_gt_int(&mut self, src: Register) {
-        self.code.push(Bytecode::TestGtInt(src));
+    pub fn emit_test_gt_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::TestGtInt(dest, lhs, rhs));
     }
 
-    pub fn emit_test_ge_int(&mut self, src: Register) {
-        self.code.push(Bytecode::TestGeInt(src));
+    pub fn emit_test_ge_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::TestGeInt(dest, lhs, rhs));
     }
 
-    pub fn emit_test_lt_int(&mut self, src: Register) {
-        self.code.push(Bytecode::TestLtInt(src));
+    pub fn emit_test_lt_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::TestLtInt(dest, lhs, rhs));
     }
 
-    pub fn emit_test_le_int(&mut self, src: Register) {
-        self.code.push(Bytecode::TestLeInt(src));
+    pub fn emit_test_le_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::TestLeInt(dest, lhs, rhs));
     }
 
     pub fn generate(mut self) -> BytecodeFunction {
@@ -294,12 +351,12 @@ impl BytecodeGenerator {
             let op = &mut self.code[idx.0];
 
             match op {
-                Bytecode::JumpIfFalse(ref mut dest) => {
+                Bytecode::JumpIfFalse(_, ref mut dest) => {
                     assert!(dest.is_invalid());
                     *dest = lbl_dest;
                 }
 
-                Bytecode::JumpIfTrue(ref mut dest) => {
+                Bytecode::JumpIfTrue(_, ref mut dest) => {
                     assert!(dest.is_invalid());
                     *dest = lbl_dest;
                 }
@@ -329,41 +386,95 @@ impl BytecodeFunction {
         let mut btidx = 0;
         for btcode in self.code.iter() {
             match btcode {
-                Bytecode::AddInt(register) => println!("{}: AddInt {}", btidx, register),
-                Bytecode::AddLong(register) => println!("{}: AddLong {}", btidx, register),
-                Bytecode::AddFloat(register) => println!("{}: AddFloat {}", btidx, register),
-                Bytecode::AddDouble(register) => println!("{}: AddDouble {}", btidx, register),
-                Bytecode::AndInt(register) => println!("{}: AndInt {}", btidx, register),
-                Bytecode::OrInt(register) => println!("{}: OrInt {}", btidx, register),
-                Bytecode::XorInt(register) => println!("{}: XorInt {}", btidx, register),
-                Bytecode::DivInt(register) => println!("{}: Div {}", btidx, register),
-                Bytecode::Ldar(register) => println!("{}: Ldar {}", btidx, register),
+                Bytecode::AddInt(dest, lhs, rhs) => {
+                    println!("{}: {} <-int {} + {}", btidx, dest, lhs, rhs)
+                }
+                Bytecode::AddLong(dest, lhs, rhs) => {
+                    println!("{}: {} <-long {} + {}", btidx, dest, lhs, rhs)
+                }
+                Bytecode::AddFloat(dest, lhs, rhs) => {
+                    println!("{}: {} <-float {} + {}", btidx, dest, lhs, rhs)
+                }
+                Bytecode::AddDouble(dest, lhs, rhs) => {
+                    println!("{}: {} <-double {} + {}", btidx, dest, lhs, rhs)
+                }
+                Bytecode::AndInt(dest, lhs, rhs) => {
+                    println!("{}: {} <-int {} & {}", btidx, dest, lhs, rhs)
+                }
+                Bytecode::OrInt(dest, lhs, rhs) => {
+                    println!("{}: {} <-int {} | {}", btidx, dest, lhs, rhs)
+                }
+                Bytecode::XorInt(dest, lhs, rhs) => {
+                    println!("{}: {} <-int {} ^ {}", btidx, dest, lhs, rhs)
+                }
+                Bytecode::DivInt(dest, lhs, rhs) => {
+                    println!("{}: {} <-int {} / {}", btidx, dest, lhs, rhs)
+                }
                 Bytecode::ConstTrue(dest) => println!("{}: {} <- true", btidx, dest),
                 Bytecode::ConstFalse(dest) => println!("{}: {} <- false", btidx, dest),
                 Bytecode::ConstZeroInt(dest) => println!("{}: {} <-int 0", btidx, dest),
                 Bytecode::ConstInt(dest, val) => println!("{}: {} <-int {}", btidx, dest, val),
-                Bytecode::NotBool => println!("{}: LogicalNot", btidx),
-                Bytecode::Star(register) => println!("{}: Star {}", btidx, register),
-                Bytecode::JumpIfFalse(dest) => println!("{}: JumpIfFalse bc#{}", btidx, dest),
-                Bytecode::JumpIfTrue(dest) => println!("{}: JumpIfTrue bc#{}", btidx, dest),
+                Bytecode::NotBool(dest, src) => println!("{}: {} <-bool {}", btidx, dest, src),
+                Bytecode::JumpIfFalse(opnd, target) => {
+                    println!("{}: if {}=false goto {}", btidx, opnd, target)
+                }
+                Bytecode::JumpIfTrue(opnd, target) => {
+                    println!("{}: if {} goto {}", btidx, opnd, target)
+                }
                 Bytecode::Jump(dest) => println!("{}: Jump bc#{}", btidx, dest),
-                Bytecode::ModInt(register) => println!("{}: Mod {}", btidx, register),
-                Bytecode::MulInt(register) => println!("{}: Mul {}", btidx, register),
-                Bytecode::NegInt => println!("{}: Neg", btidx),
-                Bytecode::ShlInt(register) => println!("{}: ShiftLeft {}", btidx, register),
-                Bytecode::ShrInt(register) => println!("{}: ShiftRight {}", btidx, register),
-                Bytecode::SarInt(register) => println!("{}: ArithShiftRight {}", btidx, register),
-                Bytecode::SubInt(register) => println!("{}: Sub {}", btidx, register),
-                Bytecode::Ret => println!("{}: Return", btidx),
-                Bytecode::RetVoid => println!("{}: ReturnVoid", btidx),
-                Bytecode::TestEqInt(register) => println!("{}: TestEqInt {}", btidx, register),
-                Bytecode::TestEqPtr(register) => println!("{}: TestEqPtr {}", btidx, register),
-                Bytecode::TestNeInt(register) => println!("{}: TestNeInt {}", btidx, register),
-                Bytecode::TestNePtr(register) => println!("{}: TestNePtr {}", btidx, register),
-                Bytecode::TestGtInt(register) => println!("{}: TestGt {}", btidx, register),
-                Bytecode::TestGeInt(register) => println!("{}: TestGe {}", btidx, register),
-                Bytecode::TestLtInt(register) => println!("{}: TestLt {}", btidx, register),
-                Bytecode::TestLeInt(register) => println!("{}: TestLe {}", btidx, register),
+                Bytecode::ModInt(dest, lhs, rhs) => {
+                    println!("{}: {} <-int {} % {}", btidx, dest, lhs, rhs)
+                }
+                Bytecode::MulInt(dest, lhs, rhs) => {
+                    println!("{}: {} <-int {} * {}", btidx, dest, lhs, rhs)
+                }
+                Bytecode::NegInt(dest, src) => println!("{}: {} <-int -{}", btidx, dest, src),
+                Bytecode::NegLong(dest, src) => println!("{}: {} <-long -{}", btidx, dest, src),
+                Bytecode::ShlInt(dest, lhs, rhs) => {
+                    println!("{}: {} <-int {} << {}", btidx, dest, lhs, rhs)
+                }
+                Bytecode::SarInt(dest, lhs, rhs) => {
+                    println!("{}: {} <-int {} >> {}", btidx, dest, lhs, rhs)
+                }
+                Bytecode::ShrInt(dest, lhs, rhs) => {
+                    println!("{}: {} <-int {} >>> {}", btidx, dest, lhs, rhs)
+                }
+                Bytecode::SubInt(dest, lhs, rhs) => {
+                    println!("{}: {} <-int {} - {}", btidx, dest, lhs, rhs)
+                }
+                Bytecode::RetBool(res) => println!("{}: Ret.Bool {}", btidx, res),
+                Bytecode::RetByte(res) => println!("{}: Ret.Byte {}", btidx, res),
+                Bytecode::RetChar(res) => println!("{}: Ret.Char {}", btidx, res),
+                Bytecode::RetInt(res) => println!("{}: Ret.Int {}", btidx, res),
+                Bytecode::RetLong(res) => println!("{}: Ret.Long {}", btidx, res),
+                Bytecode::RetFloat(res) => println!("{}: Ret.Float {}", btidx, res),
+                Bytecode::RetDouble(res) => println!("{}: Ret.Double {}", btidx, res),
+                Bytecode::RetPtr(res) => println!("{}: Ret.Ptr {}", btidx, res),
+                Bytecode::RetVoid => println!("{}: Ret", btidx),
+                Bytecode::TestEqInt(dest, lhs, rhs) => {
+                    println!("{}: {} <- {} =.int {}", btidx, dest, lhs, rhs)
+                }
+                Bytecode::TestEqPtr(dest, lhs, rhs) => {
+                    println!("{}: {} <- {} === {}", btidx, dest, lhs, rhs)
+                }
+                Bytecode::TestNeInt(dest, lhs, rhs) => {
+                    println!("{}: {} <- {} !=.int {}", btidx, dest, lhs, rhs)
+                }
+                Bytecode::TestNePtr(dest, lhs, rhs) => {
+                    println!("{}: {} <- {} !== {}", btidx, dest, lhs, rhs)
+                }
+                Bytecode::TestGtInt(dest, lhs, rhs) => {
+                    println!("{}: {} <- {} >.int {}", btidx, dest, lhs, rhs)
+                }
+                Bytecode::TestGeInt(dest, lhs, rhs) => {
+                    println!("{}: {} <- {} <=.int {}", btidx, dest, lhs, rhs)
+                }
+                Bytecode::TestLtInt(dest, lhs, rhs) => {
+                    println!("{}: {} <- {} >.int {}", btidx, dest, lhs, rhs)
+                }
+                Bytecode::TestLeInt(dest, lhs, rhs) => {
+                    println!("{}: {} <- {} >=.int {}", btidx, dest, lhs, rhs)
+                }
                 Bytecode::MovBool(_, _) => unimplemented!(),
                 Bytecode::MovByte(_, _) => unimplemented!(),
                 Bytecode::MovChar(_, _) => unimplemented!(),
