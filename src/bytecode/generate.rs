@@ -8,6 +8,16 @@ use ty::BuiltinType;
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Register(pub usize);
 
+impl Register {
+    fn invalid() -> Register {
+        Register(usize::max_value())
+    }
+
+    fn is_invalid(&self) -> bool {
+        self.0 == usize::max_value()
+    }
+}
+
 impl fmt::Display for Register {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "r{}", self.0)
@@ -147,20 +157,20 @@ impl BytecodeGenerator {
         self.code.push(Bytecode::Ldar(src));
     }
 
-    pub fn emit_lda_int(&mut self, value: u64) {
-        self.code.push(Bytecode::LdaInt(value));
+    pub fn emit_const_int(&mut self, dest: Register, value: u32) {
+        self.code.push(Bytecode::ConstInt(dest, value));
     }
 
-    pub fn emit_lda_zero(&mut self) {
-        self.code.push(Bytecode::LdaZero);
+    pub fn emit_const_zero_int(&mut self, dest: Register) {
+        self.code.push(Bytecode::ConstZeroInt(dest));
     }
 
-    pub fn emit_lda_true(&mut self) {
-        self.code.push(Bytecode::LdaTrue);
+    pub fn emit_const_true(&mut self, dest: Register) {
+        self.code.push(Bytecode::ConstTrue(dest));
     }
 
-    pub fn emit_lda_false(&mut self) {
-        self.code.push(Bytecode::LdaFalse);
+    pub fn emit_const_false(&mut self, dest: Register) {
+        self.code.push(Bytecode::ConstFalse(dest));
     }
 
     pub fn emit_not_bool(&mut self) {
@@ -328,10 +338,10 @@ impl BytecodeFunction {
                 Bytecode::XorInt(register) => println!("{}: XorInt {}", btidx, register),
                 Bytecode::DivInt(register) => println!("{}: Div {}", btidx, register),
                 Bytecode::Ldar(register) => println!("{}: Ldar {}", btidx, register),
-                Bytecode::LdaInt(value) => println!("{}: LdaInt {}", btidx, value),
-                Bytecode::LdaZero => println!("{}: LdaZero", btidx),
-                Bytecode::LdaTrue => println!("{}: LdaTrue", btidx),
-                Bytecode::LdaFalse => println!("{}: LdaFalse", btidx),
+                Bytecode::ConstTrue(dest) => println!("{}: {} <- true", btidx, dest),
+                Bytecode::ConstFalse(dest) => println!("{}: {} <- false", btidx, dest),
+                Bytecode::ConstZeroInt(dest) => println!("{}: {} <-int 0", btidx, dest),
+                Bytecode::ConstInt(dest, val) => println!("{}: {} <-int {}", btidx, dest, val),
                 Bytecode::NotBool => println!("{}: LogicalNot", btidx),
                 Bytecode::Star(register) => println!("{}: Star {}", btidx, register),
                 Bytecode::JumpIfFalse(dest) => println!("{}: JumpIfFalse bc#{}", btidx, dest),

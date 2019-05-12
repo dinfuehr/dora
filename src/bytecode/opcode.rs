@@ -31,11 +31,12 @@ pub enum Bytecode {
     MovPtr(Register, Register),
 
     Ldar(Register),
-    LdaInt(u64),
-    LdaZero,
-    LdaTrue,
-    LdaFalse,
     Star(Register),
+
+    ConstTrue(Register),
+    ConstFalse(Register),
+    ConstZeroInt(Register),
+    ConstInt(Register, u32),
 
     TestEqInt(Register),
     TestEqPtr(Register),
