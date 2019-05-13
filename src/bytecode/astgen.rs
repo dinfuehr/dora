@@ -501,7 +501,12 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     }
                 }
 
-                _ => unimplemented!(),
+                IdentType::Global(_) => unimplemented!(),
+                IdentType::Field(_, _) => unimplemented!(),
+
+                IdentType::Struct(_) => unimplemented!(),
+                IdentType::Const(_) => unreachable!(),
+                IdentType::Fct(_) => unreachable!(),
             }
         } else {
             unimplemented!();
@@ -515,8 +520,32 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         match ident_type {
             IdentType::Var(var_id) => self.var_reg(var_id),
+            IdentType::Global(gid) => {
+                let glob = self.vm.globals.idx(gid);
+                let glob = glob.lock();
 
-            _ => unimplemented!(),
+                let ty: BytecodeType = glob.ty.into();
+                let dest = self.gen.add_register(ty);
+
+                match ty {
+                    BytecodeType::Bool => self.gen.emit_load_global_bool(dest, gid),
+                    BytecodeType::Byte => self.gen.emit_load_global_byte(dest, gid),
+                    BytecodeType::Char => self.gen.emit_load_global_char(dest, gid),
+                    BytecodeType::Int => self.gen.emit_load_global_int(dest, gid),
+                    BytecodeType::Long => self.gen.emit_load_global_long(dest, gid),
+                    BytecodeType::Float => self.gen.emit_load_global_float(dest, gid),
+                    BytecodeType::Double => self.gen.emit_load_global_double(dest, gid),
+                    BytecodeType::Ptr => self.gen.emit_load_global_ptr(dest, gid),
+                }
+
+                dest
+            }
+
+            IdentType::Field(_, _) => unimplemented!(),
+            IdentType::Struct(_) => unimplemented!(),
+            IdentType::Const(_) => unimplemented!(),
+
+            IdentType::Fct(_) => unreachable!(),
         }
     }
 
@@ -1104,6 +1133,84 @@ mod tests {
         let fct = code("fun f() { }");
         let expected = vec![RetVoid];
         assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_load_global_bool() {
+        gen("var a: Bool; fun f() -> Bool { return a; }", |vm, fct| {
+            let gid = vm.global_by_name("a");
+            let expected = vec![LoadGlobalBool(r(0), gid), RetBool(r(0))];
+            assert_eq!(expected, fct.code());
+        });
+    }
+
+    #[test]
+    fn gen_load_global_byte() {
+        gen("var a: Byte; fun f() -> Byte { return a; }", |vm, fct| {
+            let gid = vm.global_by_name("a");
+            let expected = vec![LoadGlobalByte(r(0), gid), RetByte(r(0))];
+            assert_eq!(expected, fct.code());
+        });
+    }
+
+    #[test]
+    fn gen_load_global_char() {
+        gen("var a: Char; fun f() -> Char { return a; }", |vm, fct| {
+            let gid = vm.global_by_name("a");
+            let expected = vec![LoadGlobalChar(r(0), gid), RetChar(r(0))];
+            assert_eq!(expected, fct.code());
+        });
+    }
+
+    #[test]
+    fn gen_load_global_int() {
+        gen("var a: Int; fun f() -> Int { return a; }", |vm, fct| {
+            let gid = vm.global_by_name("a");
+            let expected = vec![LoadGlobalInt(r(0), gid), RetInt(r(0))];
+            assert_eq!(expected, fct.code());
+        });
+    }
+
+    #[test]
+    fn gen_load_global_long() {
+        gen("var a: Long; fun f() -> Long { return a; }", |vm, fct| {
+            let gid = vm.global_by_name("a");
+            let expected = vec![LoadGlobalLong(r(0), gid), RetLong(r(0))];
+            assert_eq!(expected, fct.code());
+        });
+    }
+
+    #[test]
+    fn gen_load_global_float() {
+        gen("var a: Float; fun f() -> Float { return a; }", |vm, fct| {
+            let gid = vm.global_by_name("a");
+            let expected = vec![LoadGlobalFloat(r(0), gid), RetFloat(r(0))];
+            assert_eq!(expected, fct.code());
+        });
+    }
+
+    #[test]
+    fn gen_load_global_double() {
+        gen(
+            "var a: Double; fun f() -> Double { return a; }",
+            |vm, fct| {
+                let gid = vm.global_by_name("a");
+                let expected = vec![LoadGlobalDouble(r(0), gid), RetDouble(r(0))];
+                assert_eq!(expected, fct.code());
+            },
+        );
+    }
+
+    #[test]
+    fn gen_load_global_ptr() {
+        gen(
+            "var a: Object; fun f() -> Object { return a; }",
+            |vm, fct| {
+                let gid = vm.global_by_name("a");
+                let expected = vec![LoadGlobalPtr(r(0), gid), RetPtr(r(0))];
+                assert_eq!(expected, fct.code());
+            },
+        );
     }
 
     fn r(val: usize) -> Register {

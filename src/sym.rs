@@ -62,6 +62,10 @@ impl SymTable {
         self.get(name).and_then(|n| n.to_trait())
     }
 
+    pub fn get_global(&self, name: Name) -> Option<GlobalId> {
+        self.get(name).and_then(|n| n.to_global())
+    }
+
     pub fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
         self.levels.last_mut().unwrap().insert(name, sym)
     }

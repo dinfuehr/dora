@@ -291,6 +291,12 @@ impl<'ast> SemContext<'ast> {
         self.sym.lock().get_fct(name)
     }
 
+    #[cfg(test)]
+    pub fn global_by_name(&self, name: &str) -> GlobalId {
+        let name = self.interner.intern(name);
+        self.sym.lock().get_global(name).expect("global not found")
+    }
+
     pub fn cls(&self, cls_id: ClassId) -> BuiltinType {
         let list_id = self.lists.lock().insert(TypeParams::empty());
         BuiltinType::Class(cls_id, list_id)

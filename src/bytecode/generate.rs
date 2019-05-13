@@ -4,6 +4,7 @@ use std::mem;
 
 use bytecode::opcode::Bytecode;
 use class::{ClassDefId, FieldId};
+use ctxt::GlobalId;
 use ty::BuiltinType;
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -439,6 +440,38 @@ impl BytecodeGenerator {
         self.code.push(Bytecode::TestLeInt(dest, lhs, rhs));
     }
 
+    pub fn emit_load_global_bool(&mut self, dest: Register, gid: GlobalId) {
+        self.code.push(Bytecode::LoadGlobalBool(dest, gid));
+    }
+
+    pub fn emit_load_global_byte(&mut self, dest: Register, gid: GlobalId) {
+        self.code.push(Bytecode::LoadGlobalByte(dest, gid));
+    }
+
+    pub fn emit_load_global_char(&mut self, dest: Register, gid: GlobalId) {
+        self.code.push(Bytecode::LoadGlobalChar(dest, gid));
+    }
+
+    pub fn emit_load_global_int(&mut self, dest: Register, gid: GlobalId) {
+        self.code.push(Bytecode::LoadGlobalInt(dest, gid));
+    }
+
+    pub fn emit_load_global_long(&mut self, dest: Register, gid: GlobalId) {
+        self.code.push(Bytecode::LoadGlobalLong(dest, gid));
+    }
+
+    pub fn emit_load_global_float(&mut self, dest: Register, gid: GlobalId) {
+        self.code.push(Bytecode::LoadGlobalFloat(dest, gid));
+    }
+
+    pub fn emit_load_global_double(&mut self, dest: Register, gid: GlobalId) {
+        self.code.push(Bytecode::LoadGlobalDouble(dest, gid));
+    }
+
+    pub fn emit_load_global_ptr(&mut self, dest: Register, gid: GlobalId) {
+        self.code.push(Bytecode::LoadGlobalPtr(dest, gid));
+    }
+
     pub fn generate(mut self) -> BytecodeFunction {
         self.resolve_forward_jumps();
 
@@ -609,14 +642,38 @@ impl BytecodeFunction {
                 Bytecode::TestLeInt(dest, lhs, rhs) => {
                     println!("{}: {} <- {} >=.int {}", btidx, dest, lhs, rhs)
                 }
-                Bytecode::MovBool(_, _) => unimplemented!(),
-                Bytecode::MovByte(_, _) => unimplemented!(),
-                Bytecode::MovChar(_, _) => unimplemented!(),
-                Bytecode::MovInt(_, _) => unimplemented!(),
-                Bytecode::MovLong(_, _) => unimplemented!(),
-                Bytecode::MovFloat(_, _) => unimplemented!(),
-                Bytecode::MovDouble(_, _) => unimplemented!(),
-                Bytecode::MovPtr(_, _) => unimplemented!(),
+                Bytecode::LoadGlobalBool(dest, gid) => {
+                    println!("{}: {} <-bool global {:?}", btidx, dest, gid)
+                }
+                Bytecode::LoadGlobalByte(dest, gid) => {
+                    println!("{}: {} <-byte global {:?}", btidx, dest, gid)
+                }
+                Bytecode::LoadGlobalChar(dest, gid) => {
+                    println!("{}: {} <-char global {:?}", btidx, dest, gid)
+                }
+                Bytecode::LoadGlobalInt(dest, gid) => {
+                    println!("{}: {} <-int global {:?}", btidx, dest, gid)
+                }
+                Bytecode::LoadGlobalLong(dest, gid) => {
+                    println!("{}: {} <-long global {:?}", btidx, dest, gid)
+                }
+                Bytecode::LoadGlobalFloat(dest, gid) => {
+                    println!("{}: {} <-float global {:?}", btidx, dest, gid)
+                }
+                Bytecode::LoadGlobalDouble(dest, gid) => {
+                    println!("{}: {} <-double global {:?}", btidx, dest, gid)
+                }
+                Bytecode::LoadGlobalPtr(dest, gid) => {
+                    println!("{}: {} <-ptr global {:?}", btidx, dest, gid)
+                }
+                Bytecode::MovBool(dest, src) => println!("{}: {} <-bool {}", btidx, dest, src),
+                Bytecode::MovByte(dest, src) => println!("{}: {} <-byte {}", btidx, dest, src),
+                Bytecode::MovChar(dest, src) => println!("{}: {} <-char {}", btidx, dest, src),
+                Bytecode::MovInt(dest, src) => println!("{}: {} <-int {}", btidx, dest, src),
+                Bytecode::MovLong(dest, src) => println!("{}: {} <-long {}", btidx, dest, src),
+                Bytecode::MovFloat(dest, src) => println!("{}: {} <-float {}", btidx, dest, src),
+                Bytecode::MovDouble(dest, src) => println!("{}: {} <-double {}", btidx, dest, src),
+                Bytecode::MovPtr(dest, src) => println!("{}: {} <-ptr {}", btidx, dest, src),
             }
             btidx = btidx + 1;
         }

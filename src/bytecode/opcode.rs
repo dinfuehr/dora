@@ -1,5 +1,6 @@
 use bytecode::generate::{BytecodeIdx, Register};
 use class::{ClassDefId, FieldId};
+use ctxt::GlobalId;
 
 #[derive(PartialEq, Debug)]
 pub enum Bytecode {
@@ -40,6 +41,15 @@ pub enum Bytecode {
     LoadFieldFloat(Register, Register, ClassDefId, FieldId),
     LoadFieldDouble(Register, Register, ClassDefId, FieldId),
     LoadFieldPtr(Register, Register, ClassDefId, FieldId),
+
+    LoadGlobalBool(Register, GlobalId),
+    LoadGlobalByte(Register, GlobalId),
+    LoadGlobalChar(Register, GlobalId),
+    LoadGlobalInt(Register, GlobalId),
+    LoadGlobalLong(Register, GlobalId),
+    LoadGlobalFloat(Register, GlobalId),
+    LoadGlobalDouble(Register, GlobalId),
+    LoadGlobalPtr(Register, GlobalId),
 
     ConstTrue(Register),
     ConstFalse(Register),
