@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
-use dora_parser::lexer::token::IntSuffix;
+use dora_parser::lexer::token::{IntSuffix, FloatSuffix};
 
 use bytecode::generate::{BytecodeFunction, BytecodeGenerator, BytecodeType, Label, Register};
 use class::TypeParams;
@@ -230,7 +230,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             // ExprArray(ref array) => {},
             // ExprLitChar(ref lit) => {},
             ExprLitInt(ref lit) => self.visit_expr_lit_int(lit, dest),
-            // ExprLitFloat(ref lit) => {},
+            ExprLitFloat(ref lit) => self.visit_expr_lit_float(lit, dest),
             // ExprLitStr(ref lit) => {},
             // ExprLitStruct(ref lit) => {},
             ExprLitBool(ref lit) => self.visit_expr_lit_bool(lit, dest),
@@ -307,6 +307,35 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 BytecodeType::Byte => self.gen.emit_const_byte(dest, lit.value as u8),
                 BytecodeType::Int => self.gen.emit_const_int(dest, lit.value as u32),
                 BytecodeType::Long => self.gen.emit_const_long(dest, lit.value),
+                _ => unreachable!(),
+            }
+        }
+
+        dest
+    }
+
+    fn visit_expr_lit_float(&mut self, lit: &ExprLitFloatType, dest: DataDest) -> Register {
+        if dest.is_effect() {
+            return Register::invalid();
+        }
+
+        let ty = match lit.suffix {
+            FloatSuffix::Float => BytecodeType::Float,
+            FloatSuffix::Double => BytecodeType::Double,
+        };
+
+        let dest = self.ensure_register(dest, ty);
+
+        if lit.value == 0_f64 {
+            match ty {
+                BytecodeType::Float => self.gen.emit_const_zero_float(dest),
+                BytecodeType::Double => self.gen.emit_const_zero_double(dest),
+                _ => unreachable!(),
+            }
+        } else {
+            match ty {
+                BytecodeType::Float => self.gen.emit_const_float(dest, lit.value as f32),
+                BytecodeType::Double => self.gen.emit_const_double(dest, lit.value),
                 _ => unreachable!(),
             }
         }
@@ -984,6 +1013,20 @@ mod tests {
     }
 
     #[test]
+    fn gen_expr_lit_float() {
+        let fct = code("fun f() -> Float { return 1F; }");
+        let expected = vec![ConstFloat(r(0), 1_f32), RetFloat(r(0))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_expr_lit_double() {
+        let fct = code("fun f() -> Double { return 1D; }");
+        let expected = vec![ConstDouble(r(0), 1_f64), RetDouble(r(0))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
     fn gen_expr_lit_byte_zero() {
         let fct = code("fun f() -> Byte { return 0Y; }");
         let expected = vec![ConstZeroByte(r(0)), RetByte(r(0))];
@@ -1001,6 +1044,20 @@ mod tests {
     fn gen_expr_lit_long_zero() {
         let fct = code("fun f() -> Long { return 0L; }");
         let expected = vec![ConstZeroLong(r(0)), RetLong(r(0))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_expr_lit_float_zero() {
+        let fct = code("fun f() -> Float { return 0F; }");
+        let expected = vec![ConstZeroFloat(r(0)), RetFloat(r(0))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_expr_lit_double_zero() {
+        let fct = code("fun f() -> Double { return 0D; }");
+        let expected = vec![ConstZeroDouble(r(0)), RetDouble(r(0))];
         assert_eq!(expected, fct.code());
     }
 
