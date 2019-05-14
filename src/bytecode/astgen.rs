@@ -132,25 +132,14 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.var_registers.insert(var_id, var_reg);
 
         if let Some(ref expr) = stmt.expr {
-            let expr_reg = self.visit_expr(expr);
-
-            match ty {
-                BytecodeType::Bool => self.gen.emit_mov_bool(var_reg, expr_reg),
-                BytecodeType::Byte => self.gen.emit_mov_byte(var_reg, expr_reg),
-                BytecodeType::Char => self.gen.emit_mov_char(var_reg, expr_reg),
-                BytecodeType::Int => self.gen.emit_mov_int(var_reg, expr_reg),
-                BytecodeType::Long => self.gen.emit_mov_long(var_reg, expr_reg),
-                BytecodeType::Float => self.gen.emit_mov_float(var_reg, expr_reg),
-                BytecodeType::Double => self.gen.emit_mov_double(var_reg, expr_reg),
-                BytecodeType::Ptr => self.gen.emit_mov_ptr(var_reg, expr_reg),
-            }
+            self.visit_expr(expr, DataDest::Reg(var_reg));
         }
     }
 
     fn visit_stmt_while(&mut self, stmt: &StmtWhileType) {
         let cond_lbl = self.gen.define_label();
         let end_lbl = self.gen.create_label();
-        let cond_reg = self.visit_expr(&stmt.cond);
+        let cond_reg = self.visit_expr(&stmt.cond, DataDest::Alloc);
         self.gen.emit_jump_if_false(cond_reg, end_lbl);
         self.loops.push(LoopLabels::new(cond_lbl, end_lbl));
         self.visit_stmt(&stmt.block);
@@ -174,7 +163,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             let else_lbl = self.gen.create_label();
             let end_lbl = self.gen.create_label();
 
-            let cond_reg = self.visit_expr(&stmt.cond);
+            let cond_reg = self.visit_expr(&stmt.cond, DataDest::Alloc);
             self.gen.emit_jump_if_false(cond_reg, else_lbl);
 
             self.visit_stmt(&stmt.then_block);
@@ -185,7 +174,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             self.gen.bind_label(end_lbl);
         } else {
             let end_lbl = self.gen.create_label();
-            let cond_reg = self.visit_expr(&stmt.cond);
+            let cond_reg = self.visit_expr(&stmt.cond, DataDest::Alloc);
             self.gen.emit_jump_if_false(cond_reg, end_lbl);
             self.visit_stmt(&stmt.then_block);
             self.gen.bind_label(end_lbl);
@@ -193,7 +182,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn visit_stmt_expr(&mut self, stmt: &StmtExprType) {
-        self.visit_expr(&stmt.expr);
+        self.visit_expr(&stmt.expr, DataDest::Effect);
     }
 
     fn visit_block(&mut self, block: &StmtBlockType) {
@@ -204,8 +193,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     fn visit_stmt_return(&mut self, ret: &StmtReturnType) {
         if let Some(ref expr) = ret.expr {
-            let return_type: BytecodeType = self.fct.return_type.into();
-            let result_reg = self.visit_expr(expr);
+            let return_type: BytecodeType = self.specialize_type(self.fct.return_type).into();
+            let result_reg = self.visit_expr(expr, DataDest::Alloc);
 
             match return_type {
                 BytecodeType::Bool => self.gen.emit_ret_bool(result_reg),
@@ -233,20 +222,20 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     // TODO - implement other expressions
-    fn visit_expr(&mut self, expr: &Expr) -> Register {
+    fn visit_expr(&mut self, expr: &Expr, dest: DataDest) -> Register {
         match *expr {
-            ExprUn(ref un) => self.visit_expr_un(un),
-            ExprBin(ref bin) => self.visit_expr_bin(bin),
-            ExprField(ref field) => self.visit_expr_field(field),
+            ExprUn(ref un) => self.visit_expr_un(un, dest),
+            ExprBin(ref bin) => self.visit_expr_bin(bin, dest),
+            ExprField(ref field) => self.visit_expr_field(field, dest),
             // ExprArray(ref array) => {},
             // ExprLitChar(ref lit) => {},
-            ExprLitInt(ref lit) => self.visit_expr_lit_int(lit),
+            ExprLitInt(ref lit) => self.visit_expr_lit_int(lit, dest),
             // ExprLitFloat(ref lit) => {},
             // ExprLitStr(ref lit) => {},
             // ExprLitStruct(ref lit) => {},
-            ExprLitBool(ref lit) => self.visit_expr_lit_bool(lit),
-            ExprIdent(ref ident) => self.visit_expr_ident(ident),
-            ExprAssign(ref assign) => self.visit_expr_assign(assign),
+            ExprLitBool(ref lit) => self.visit_expr_lit_bool(lit, dest),
+            ExprIdent(ref ident) => self.visit_expr_ident(ident, dest),
+            ExprAssign(ref assign) => self.visit_expr_assign(assign, dest),
             // ExprCall(ref call) => {},
             // ExprDelegation(ref call) => {},
             // ExprSelf(ref selfie) => {},
@@ -259,7 +248,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
     }
 
-    fn visit_expr_field(&mut self, e: &ExprFieldType) -> Register {
+    fn visit_expr_field(&mut self, e: &ExprFieldType, dest: DataDest) -> Register {
         let (class, field_id) = {
             let ident_type = self.src.map_idents.get(e.id).unwrap();
 
@@ -276,8 +265,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let field = &cls.fields[field_id.idx()];
         let ty: BytecodeType = field.ty.into();
 
-        let dest = self.gen.add_register(ty);
-        let obj = self.visit_expr(&e.object);
+        let dest = self.ensure_register(dest, ty);
+        let obj = self.visit_expr(&e.object, DataDest::Alloc);
 
         match ty {
             BytecodeType::Byte => self.gen.emit_load_field_byte(dest, obj, cls_id, field_id),
@@ -293,14 +282,18 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         dest
     }
 
-    fn visit_expr_lit_int(&mut self, lit: &ExprLitIntType) -> Register {
+    fn visit_expr_lit_int(&mut self, lit: &ExprLitIntType, dest: DataDest) -> Register {
+        if dest.is_effect() {
+            return Register::invalid();
+        }
+
         let ty = match lit.suffix {
             IntSuffix::Byte => BytecodeType::Byte,
             IntSuffix::Int => BytecodeType::Int,
             IntSuffix::Long => BytecodeType::Long,
         };
 
-        let dest = self.gen.add_register(ty);
+        let dest = self.ensure_register(dest, ty);
 
         if lit.value == 0 {
             match ty {
@@ -321,8 +314,12 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         dest
     }
 
-    fn visit_expr_lit_bool(&mut self, lit: &ExprLitBoolType) -> Register {
-        let dest = self.gen.add_register(BytecodeType::Bool);
+    fn visit_expr_lit_bool(&mut self, lit: &ExprLitBoolType, dest: DataDest) -> Register {
+        if dest.is_effect() {
+            return Register::invalid();
+        }
+
+        let dest = self.ensure_register(dest, BytecodeType::Bool);
 
         if lit.value {
             self.gen.emit_const_true(dest);
@@ -333,32 +330,41 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         dest
     }
 
-    fn visit_expr_un(&mut self, expr: &ExprUnType) -> Register {
-        let opnd_reg = self.visit_expr(&expr.opnd);
-
+    fn visit_expr_un(&mut self, expr: &ExprUnType, dest: DataDest) -> Register {
         if let Some(intrinsic) = self.get_intrinsic(expr.id) {
+            if dest.is_effect() {
+                self.visit_expr(&expr.opnd, dest);
+                return Register::invalid();
+            }
+
             match intrinsic {
                 Intrinsic::IntPlus
                 | Intrinsic::LongPlus
                 | Intrinsic::FloatPlus
-                | Intrinsic::DoublePlus => opnd_reg,
+                | Intrinsic::DoublePlus => self.visit_expr(&expr.opnd, dest),
 
                 Intrinsic::IntNeg => {
-                    let dest_reg = self.gen.add_register(BytecodeType::Int);
-                    self.gen.emit_neg_int(dest_reg, opnd_reg);
-                    dest_reg
+                    let dest = self.ensure_register(dest, BytecodeType::Int);
+                    let src = self.visit_expr(&expr.opnd, DataDest::Alloc);
+                    self.gen.emit_neg_int(dest, src);
+
+                    dest
                 }
 
                 Intrinsic::LongNeg => {
-                    let dest_reg = self.gen.add_register(BytecodeType::Long);
-                    self.gen.emit_neg_long(dest_reg, opnd_reg);
-                    dest_reg
+                    let dest = self.ensure_register(dest, BytecodeType::Long);
+                    let src = self.visit_expr(&expr.opnd, DataDest::Alloc);
+                    self.gen.emit_neg_long(dest, src);
+
+                    dest
                 }
 
                 Intrinsic::BoolNot => {
-                    let dest_reg = self.gen.add_register(BytecodeType::Bool);
-                    self.gen.emit_not_bool(dest_reg, opnd_reg);
-                    dest_reg
+                    let dest = self.ensure_register(dest, BytecodeType::Bool);
+                    let src = self.visit_expr(&expr.opnd, DataDest::Alloc);
+                    self.gen.emit_not_bool(dest, src);
+
+                    dest
                 }
 
                 _ => unimplemented!(),
@@ -368,58 +374,87 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
     }
 
-    fn visit_expr_bin(&mut self, e: &ExprBinType) -> Register {
+    fn visit_expr_bin(&mut self, e: &ExprBinType, dest: DataDest) -> Register {
         if e.op == BinOp::Cmp(CmpOp::Is) || e.op == BinOp::Cmp(CmpOp::IsNot) {
-            self.emit_bin_is(e)
+            self.emit_bin_is(e, dest)
         } else if e.op == BinOp::Or {
-            self.emit_bin_or(e)
+            self.emit_bin_or(e, dest)
         } else if e.op == BinOp::And {
-            self.emit_bin_and(e)
+            self.emit_bin_and(e, dest)
         } else if let Some(intrinsic) = self.get_intrinsic(e.id) {
-            self.emit_intrinsic_bin(&e.lhs, &e.rhs, intrinsic, e.op)
+            self.emit_intrinsic_bin(&e.lhs, &e.rhs, intrinsic, e.op, dest)
         } else {
             unimplemented!();
         }
     }
 
-    fn emit_bin_is(&mut self, e: &ExprBinType) -> Register {
-        let dest_reg = self.gen.add_register(BytecodeType::Bool);
-        let lhs_reg = self.visit_expr(&e.lhs);
-        let rhs_reg = self.visit_expr(&e.rhs);
-
-        if e.op == BinOp::Cmp(CmpOp::Is) {
-            self.gen.emit_test_eq_ptr(dest_reg, lhs_reg, rhs_reg);
-        } else {
-            self.gen.emit_test_ne_ptr(dest_reg, lhs_reg, rhs_reg);
+    fn emit_bin_is(&mut self, e: &ExprBinType, dest: DataDest) -> Register {
+        if dest.is_effect() {
+            self.visit_expr(&e.lhs, dest);
+            self.visit_expr(&e.rhs, dest);
+            return Register::invalid();
         }
 
-        dest_reg
+        let dest = self.ensure_register(dest, BytecodeType::Bool);
+
+        let lhs_reg = self.visit_expr(&e.lhs, DataDest::Alloc);
+        let rhs_reg = self.visit_expr(&e.rhs, DataDest::Alloc);
+
+        if e.op == BinOp::Cmp(CmpOp::Is) {
+            self.gen.emit_test_eq_ptr(dest, lhs_reg, rhs_reg);
+        } else {
+            self.gen.emit_test_ne_ptr(dest, lhs_reg, rhs_reg);
+        }
+
+        dest
     }
 
-    fn emit_bin_or(&mut self, e: &ExprBinType) -> Register {
-        let dest_reg = self.gen.add_register(BytecodeType::Bool);
-        let end_lbl = self.gen.create_label();
-        let lhs_reg = self.visit_expr(&e.lhs);
-        self.gen.emit_mov_bool(dest_reg, lhs_reg);
-        self.gen.emit_jump_if_true(dest_reg, end_lbl);
-        let rhs_reg = self.visit_expr(&e.rhs);
-        self.gen.emit_mov_bool(dest_reg, rhs_reg);
-        self.gen.bind_label(end_lbl);
+    fn emit_bin_or(&mut self, e: &ExprBinType, dest: DataDest) -> Register {
+        if dest.is_effect() {
+            let end_lbl = self.gen.create_label();
+            let dest = self.gen.add_register(BytecodeType::Bool);
 
-        dest_reg
+            self.visit_expr(&e.lhs, DataDest::Reg(dest));
+            self.gen.emit_jump_if_true(dest, end_lbl);
+            self.visit_expr(&e.rhs, DataDest::Effect);
+            self.gen.bind_label(end_lbl);
+
+            Register::invalid()
+        } else {
+            let end_lbl = self.gen.create_label();
+            let dest = self.ensure_register(dest, BytecodeType::Bool);
+
+            self.visit_expr(&e.lhs, DataDest::Reg(dest));
+            self.gen.emit_jump_if_true(dest, end_lbl);
+            self.visit_expr(&e.rhs, DataDest::Reg(dest));
+            self.gen.bind_label(end_lbl);
+
+            dest
+        }
     }
 
-    fn emit_bin_and(&mut self, e: &ExprBinType) -> Register {
-        let dest_reg = self.gen.add_register(BytecodeType::Bool);
-        let end_lbl = self.gen.create_label();
-        let lhs_reg = self.visit_expr(&e.lhs);
-        self.gen.emit_mov_bool(dest_reg, lhs_reg);
-        self.gen.emit_jump_if_false(dest_reg, end_lbl);
-        let rhs_reg = self.visit_expr(&e.rhs);
-        self.gen.emit_mov_bool(dest_reg, rhs_reg);
-        self.gen.bind_label(end_lbl);
+    fn emit_bin_and(&mut self, e: &ExprBinType, dest: DataDest) -> Register {
+        if dest.is_effect() {
+            let end_lbl = self.gen.create_label();
+            let dest = self.gen.add_register(BytecodeType::Bool);
 
-        dest_reg
+            self.visit_expr(&e.lhs, DataDest::Reg(dest));
+            self.gen.emit_jump_if_false(dest, end_lbl);
+            self.visit_expr(&e.rhs, DataDest::Effect);
+            self.gen.bind_label(end_lbl);
+
+            Register::invalid()
+        } else {
+            let end_lbl = self.gen.create_label();
+            let dest = self.ensure_register(dest, BytecodeType::Bool);
+
+            self.visit_expr(&e.lhs, DataDest::Reg(dest));
+            self.gen.emit_jump_if_false(dest, end_lbl);
+            self.visit_expr(&e.rhs, DataDest::Reg(dest));
+            self.gen.bind_label(end_lbl);
+
+            dest
+        }
     }
 
     fn emit_intrinsic_bin(
@@ -428,8 +463,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         rhs: &Expr,
         intrinsic: Intrinsic,
         op: BinOp,
+        dest: DataDest,
     ) -> Register {
-        let ty = match intrinsic {
+        let result_type = match intrinsic {
             Intrinsic::IntAdd
             | Intrinsic::IntSub
             | Intrinsic::IntMul
@@ -440,65 +476,61 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             | Intrinsic::IntXor
             | Intrinsic::IntShl
             | Intrinsic::IntShr
-            | Intrinsic::IntSar
-            | Intrinsic::IntEq
-            | Intrinsic::IntCmp => BytecodeType::Int,
+            | Intrinsic::IntSar => BytecodeType::Int,
+            Intrinsic::IntEq | Intrinsic::IntCmp => BytecodeType::Bool,
             _ => unimplemented!(),
         };
 
-        let dest_reg = self.gen.add_register(ty);
-        let lhs_reg = self.visit_expr(lhs);
-        let rhs_reg = self.visit_expr(rhs);
+        if dest.is_effect() {
+            self.visit_expr(lhs, dest);
+            self.visit_expr(rhs, dest);
+            return Register::invalid();
+        }
+
+        let dest = self.ensure_register(dest, result_type);
+
+        let lhs_reg = self.visit_expr(lhs, DataDest::Alloc);
+        let rhs_reg = self.visit_expr(rhs, DataDest::Alloc);
 
         match intrinsic {
-            Intrinsic::IntAdd => self.gen.emit_add_int(dest_reg, lhs_reg, rhs_reg),
-            Intrinsic::IntSub => self.gen.emit_sub_int(dest_reg, lhs_reg, rhs_reg),
-            Intrinsic::IntMul => self.gen.emit_mul_int(dest_reg, lhs_reg, rhs_reg),
-            Intrinsic::IntDiv => self.gen.emit_div_int(dest_reg, lhs_reg, rhs_reg),
-            Intrinsic::IntMod => self.gen.emit_mod_int(dest_reg, lhs_reg, rhs_reg),
-            Intrinsic::IntOr => self.gen.emit_or_int(dest_reg, lhs_reg, rhs_reg),
-            Intrinsic::IntAnd => self.gen.emit_and_int(dest_reg, lhs_reg, rhs_reg),
-            Intrinsic::IntXor => self.gen.emit_xor_int(dest_reg, lhs_reg, rhs_reg),
-            Intrinsic::IntShl => self.gen.emit_shl_int(dest_reg, lhs_reg, rhs_reg),
-            Intrinsic::IntShr => self.gen.emit_shr_int(dest_reg, lhs_reg, rhs_reg),
-            Intrinsic::IntSar => self.gen.emit_sar_int(dest_reg, lhs_reg, rhs_reg),
+            Intrinsic::IntAdd => self.gen.emit_add_int(dest, lhs_reg, rhs_reg),
+            Intrinsic::IntSub => self.gen.emit_sub_int(dest, lhs_reg, rhs_reg),
+            Intrinsic::IntMul => self.gen.emit_mul_int(dest, lhs_reg, rhs_reg),
+            Intrinsic::IntDiv => self.gen.emit_div_int(dest, lhs_reg, rhs_reg),
+            Intrinsic::IntMod => self.gen.emit_mod_int(dest, lhs_reg, rhs_reg),
+            Intrinsic::IntOr => self.gen.emit_or_int(dest, lhs_reg, rhs_reg),
+            Intrinsic::IntAnd => self.gen.emit_and_int(dest, lhs_reg, rhs_reg),
+            Intrinsic::IntXor => self.gen.emit_xor_int(dest, lhs_reg, rhs_reg),
+            Intrinsic::IntShl => self.gen.emit_shl_int(dest, lhs_reg, rhs_reg),
+            Intrinsic::IntShr => self.gen.emit_shr_int(dest, lhs_reg, rhs_reg),
+            Intrinsic::IntSar => self.gen.emit_sar_int(dest, lhs_reg, rhs_reg),
             Intrinsic::IntEq => match op {
-                BinOp::Cmp(CmpOp::Eq) => self.gen.emit_test_eq_int(dest_reg, lhs_reg, rhs_reg),
-                BinOp::Cmp(CmpOp::Ne) => self.gen.emit_test_ne_int(dest_reg, lhs_reg, rhs_reg),
+                BinOp::Cmp(CmpOp::Eq) => self.gen.emit_test_eq_int(dest, lhs_reg, rhs_reg),
+                BinOp::Cmp(CmpOp::Ne) => self.gen.emit_test_ne_int(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             Intrinsic::IntCmp => match op {
-                BinOp::Cmp(CmpOp::Lt) => self.gen.emit_test_lt_int(dest_reg, lhs_reg, rhs_reg),
-                BinOp::Cmp(CmpOp::Le) => self.gen.emit_test_le_int(dest_reg, lhs_reg, rhs_reg),
-                BinOp::Cmp(CmpOp::Gt) => self.gen.emit_test_gt_int(dest_reg, lhs_reg, rhs_reg),
-                BinOp::Cmp(CmpOp::Ge) => self.gen.emit_test_ge_int(dest_reg, lhs_reg, rhs_reg),
+                BinOp::Cmp(CmpOp::Lt) => self.gen.emit_test_lt_int(dest, lhs_reg, rhs_reg),
+                BinOp::Cmp(CmpOp::Le) => self.gen.emit_test_le_int(dest, lhs_reg, rhs_reg),
+                BinOp::Cmp(CmpOp::Gt) => self.gen.emit_test_gt_int(dest, lhs_reg, rhs_reg),
+                BinOp::Cmp(CmpOp::Ge) => self.gen.emit_test_ge_int(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             _ => unimplemented!(),
         }
 
-        dest_reg
+        dest
     }
 
-    fn visit_expr_assign(&mut self, e: &ExprAssignType) -> Register {
+    fn visit_expr_assign(&mut self, e: &ExprAssignType, dest: DataDest) -> Register {
+        assert!(dest.is_effect());
+
         if e.lhs.is_ident() {
             let ident_type = *self.src.map_idents.get(e.lhs.id()).unwrap();
             match ident_type {
                 IdentType::Var(var_id) => {
                     let var_reg = self.var_reg(var_id);
-                    let rhs_reg = self.visit_expr(&e.rhs);
-                    let ty: BytecodeType = self.specialize_type(self.src.vars[var_id].ty).into();
-
-                    match ty {
-                        BytecodeType::Bool => self.gen.emit_mov_bool(var_reg, rhs_reg),
-                        BytecodeType::Byte => self.gen.emit_mov_byte(var_reg, rhs_reg),
-                        BytecodeType::Char => self.gen.emit_mov_char(var_reg, rhs_reg),
-                        BytecodeType::Int => self.gen.emit_mov_int(var_reg, rhs_reg),
-                        BytecodeType::Long => self.gen.emit_mov_long(var_reg, rhs_reg),
-                        BytecodeType::Float => self.gen.emit_mov_float(var_reg, rhs_reg),
-                        BytecodeType::Double => self.gen.emit_mov_double(var_reg, rhs_reg),
-                        BytecodeType::Ptr => self.gen.emit_mov_ptr(var_reg, rhs_reg),
-                    }
+                    self.visit_expr(&e.rhs, DataDest::Reg(var_reg));
                 }
 
                 IdentType::Global(_) => unimplemented!(),
@@ -515,17 +547,50 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         Register::invalid()
     }
 
-    fn visit_expr_ident(&mut self, ident: &ExprIdentType) -> Register {
+    fn visit_expr_ident(&mut self, ident: &ExprIdentType, dest: DataDest) -> Register {
         let ident_type = *self.src.map_idents.get(ident.id).unwrap();
 
         match ident_type {
-            IdentType::Var(var_id) => self.var_reg(var_id),
+            IdentType::Var(var_id) => {
+                if dest.is_effect() {
+                    return Register::invalid();
+                }
+
+                let var_reg = self.var_reg(var_id);
+                let ty: BytecodeType = self.specialize_type(self.src.vars[var_id].ty).into();
+
+                if dest.is_alloc() {
+                    return var_reg;
+                }
+
+                let dest = dest.reg();
+
+                if dest != var_reg {
+                    match ty {
+                        BytecodeType::Bool => self.gen.emit_mov_bool(dest, var_reg),
+                        BytecodeType::Byte => self.gen.emit_mov_byte(dest, var_reg),
+                        BytecodeType::Char => self.gen.emit_mov_char(dest, var_reg),
+                        BytecodeType::Int => self.gen.emit_mov_int(dest, var_reg),
+                        BytecodeType::Long => self.gen.emit_mov_long(dest, var_reg),
+                        BytecodeType::Float => self.gen.emit_mov_float(dest, var_reg),
+                        BytecodeType::Double => self.gen.emit_mov_double(dest, var_reg),
+                        BytecodeType::Ptr => self.gen.emit_mov_ptr(dest, var_reg),
+                    }
+                }
+
+                dest
+            }
+
             IdentType::Global(gid) => {
+                if dest.is_effect() {
+                    return Register::invalid();
+                }
+
                 let glob = self.vm.globals.idx(gid);
                 let glob = glob.lock();
 
                 let ty: BytecodeType = glob.ty.into();
-                let dest = self.gen.add_register(ty);
+                let dest = self.ensure_register(dest, ty);
 
                 match ty {
                     BytecodeType::Bool => self.gen.emit_load_global_bool(dest, gid),
@@ -554,6 +619,13 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             .var_registers
             .get(&var_id)
             .expect("no register for var found")
+    }
+
+    fn ensure_register(&mut self, dest: DataDest, ty: BytecodeType) -> Register {
+        match dest {
+            DataDest::Effect | DataDest::Alloc => self.gen.add_register(ty),
+            DataDest::Reg(reg) => reg,
+        }
     }
 
     fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
@@ -595,6 +667,38 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         match fct.kind {
             FctKind::Builtin(intr) => Some(intr),
             _ => None,
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
+enum DataDest {
+    Effect,
+    Alloc,
+    Reg(Register),
+}
+
+impl DataDest {
+    fn is_effect(&self) -> bool {
+        match self {
+            DataDest::Effect => true,
+            DataDest::Reg(_) => false,
+            DataDest::Alloc => false,
+        }
+    }
+
+    fn is_alloc(&self) -> bool {
+        match self {
+            DataDest::Effect => false,
+            DataDest::Reg(_) => false,
+            DataDest::Alloc => true,
+        }
+    }
+
+    fn reg(&self) -> Register {
+        match self {
+            DataDest::Effect | DataDest::Alloc => panic!("not a register"),
+            DataDest::Reg(reg) => *reg,
         }
     }
 }
@@ -789,7 +893,7 @@ mod tests {
     #[test]
     fn gen_stmt_var_init() {
         let fct = code("fun f() { let x = 1; }");
-        let expected = vec![ConstInt(r(1), 1), MovInt(r(0), r(1)), RetVoid];
+        let expected = vec![ConstInt(r(0), 1), RetVoid];
         assert_eq!(expected, fct.code());
     }
 
@@ -798,8 +902,7 @@ mod tests {
         let fct = code("fun f() { while true { 0; } }");
         let code = vec![
             ConstTrue(r(0)),
-            JumpIfFalse(r(0), bc(4)),
-            ConstZeroInt(r(1)),
+            JumpIfFalse(r(0), bc(3)),
             Jump(bc(0)),
             RetVoid,
         ];
@@ -808,26 +911,27 @@ mod tests {
 
     #[test]
     fn gen_stmt_if() {
-        let fct = code("fun f() { if true { 1; } }");
+        let fct = code("fun f(a: Bool) -> Int { if a { return 1; } return 0; }");
         let expected = vec![
-            ConstTrue(r(0)),
             JumpIfFalse(r(0), bc(3)),
             ConstInt(r(1), 1),
-            RetVoid,
+            RetInt(r(1)),
+            ConstZeroInt(r(2)),
+            RetInt(r(2)),
         ];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
     fn gen_stmt_if_else() {
-        let fct = code("fun f() { if true { 1; } else { 2; } }");
+        let fct = code("fun f(a: Bool) -> Int { if a { return 1; } else { return 2; } }");
         let expected = vec![
-            ConstTrue(r(0)),
             JumpIfFalse(r(0), bc(4)),
             ConstInt(r(1), 1),
-            Jump(bc(5)),
+            RetInt(r(1)),
+            Jump(bc(6)),
             ConstInt(r(2), 2),
-            RetVoid,
+            RetInt(r(2)),
         ];
         assert_eq!(expected, fct.code());
     }
@@ -926,198 +1030,127 @@ mod tests {
 
     #[test]
     fn gen_expr_plus() {
-        let fct = code("fun f() { +1; }");
-        let expected = vec![ConstInt(r(0), 1), RetVoid];
+        let fct = code("fun f(a: Int) -> Int { return +a; }");
+        let expected = vec![RetInt(r(0))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
     fn gen_expr_neg() {
-        let fct = code("fun f() -> Int { return -1; }");
-        let expected = vec![ConstInt(r(0), 1), NegInt(r(1), r(0)), RetInt(r(1))];
+        let fct = code("fun f(a: Int) -> Int { return -a; }");
+        let expected = vec![NegInt(r(1), r(0)), RetInt(r(1))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
     fn gen_expr_not() {
-        let fct = code("fun f() -> Bool { return !true; }");
-        let expected = vec![ConstTrue(r(0)), NotBool(r(1), r(0)), RetBool(r(1))];
+        let fct = code("fun f(a: Bool) -> Bool { return !a; }");
+        let expected = vec![NotBool(r(1), r(0)), RetBool(r(1))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
     fn gen_expr_mod() {
-        let fct = code("fun f() -> Int { return 1 % 2; }");
-        let expected = vec![
-            ConstInt(r(1), 1),
-            ConstInt(r(2), 2),
-            ModInt(r(0), r(1), r(2)),
-            RetInt(r(0)),
-        ];
+        let fct = code("fun f(a: Int, b: Int) -> Int { return a % b; }");
+        let expected = vec![ModInt(r(2), r(0), r(1)), RetInt(r(2))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
     fn gen_expr_bit_or() {
-        let fct = code("fun f() -> Int { return 1 | 2; }");
-        let expected = vec![
-            ConstInt(r(1), 1),
-            ConstInt(r(2), 2),
-            OrInt(r(0), r(1), r(2)),
-            RetInt(r(0)),
-        ];
+        let fct = code("fun f(a: Int, b: Int) -> Int { return a | b; }");
+        let expected = vec![OrInt(r(2), r(0), r(1)), RetInt(r(2))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
     fn gen_expr_bit_and() {
-        let fct = code("fun f() -> Int { return 1 & 2; }");
-        let expected = vec![
-            ConstInt(r(1), 1),
-            ConstInt(r(2), 2),
-            AndInt(r(0), r(1), r(2)),
-            RetInt(r(0)),
-        ];
+        let fct = code("fun f(a: Int, b: Int) -> Int { return a & b; }");
+        let expected = vec![AndInt(r(2), r(0), r(1)), RetInt(r(2))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
     fn gen_expr_bit_xor() {
-        let fct = code("fun f() -> Int { return 1 ^ 2; }");
-        let expected = vec![
-            ConstInt(r(1), 1),
-            ConstInt(r(2), 2),
-            XorInt(r(0), r(1), r(2)),
-            RetInt(r(0)),
-        ];
+        let fct = code("fun f(a: Int, b: Int) -> Int { return a ^ b; }");
+        let expected = vec![XorInt(r(2), r(0), r(1)), RetInt(r(2))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
     fn gen_expr_bit_shiftl() {
-        let fct = code("fun f() -> Int { return 1 << 2; }");
-        let expected = vec![
-            ConstInt(r(1), 1),
-            ConstInt(r(2), 2),
-            ShlInt(r(0), r(1), r(2)),
-            RetInt(r(0)),
-        ];
+        let fct = code("fun f(a: Int, b: Int) -> Int { return a << b; }");
+        let expected = vec![ShlInt(r(2), r(0), r(1)), RetInt(r(2))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
     fn gen_expr_bit_shiftr() {
-        let fct = code("fun f() -> Int { return 1 >>> 2; }");
-        let expected = vec![
-            ConstInt(r(1), 1),
-            ConstInt(r(2), 2),
-            ShrInt(r(0), r(1), r(2)),
-            RetInt(r(0)),
-        ];
+        let fct = code("fun f(a: Int, b: Int) -> Int { return a >>> b; }");
+        let expected = vec![ShrInt(r(2), r(0), r(1)), RetInt(r(2))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
     fn gen_expr_bit_ashiftr() {
-        let fct = code("fun f() -> Int { return 1 >> 2; }");
-        let expected = vec![
-            ConstInt(r(1), 1),
-            ConstInt(r(2), 2),
-            SarInt(r(0), r(1), r(2)),
-            RetInt(r(0)),
-        ];
+        let fct = code("fun f(a: Int, b: Int) -> Int { return a >> b; }");
+        let expected = vec![SarInt(r(2), r(0), r(1)), RetInt(r(2))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
     fn gen_expr_test_equal() {
-        let fct = code("fun f() -> Bool { return 1 == 2; }");
-        let expected = vec![
-            ConstInt(r(1), 1),
-            ConstInt(r(2), 2),
-            TestEqInt(r(0), r(1), r(2)),
-            RetBool(r(0)),
-        ];
+        let fct = code("fun f(a: Int, b: Int) -> Bool { return a == b; }");
+        let expected = vec![TestEqInt(r(2), r(0), r(1)), RetBool(r(2))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
     fn gen_expr_test_notequal() {
-        let fct = code("fun f() -> Bool { return 1 != 2; }");
-        let expected = vec![
-            ConstInt(r(1), 1),
-            ConstInt(r(2), 2),
-            TestNeInt(r(0), r(1), r(2)),
-            RetBool(r(0)),
-        ];
+        let fct = code("fun f(a: Int, b: Int) -> Bool { return a != b; }");
+        let expected = vec![TestNeInt(r(2), r(0), r(1)), RetBool(r(2))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
     fn gen_expr_test_lessthan() {
-        let fct = code("fun f() -> Bool { return 1 < 2; }");
-        let expected = vec![
-            ConstInt(r(1), 1),
-            ConstInt(r(2), 2),
-            TestLtInt(r(0), r(1), r(2)),
-            RetBool(r(0)),
-        ];
+        let fct = code("fun f(a: Int, b: Int) -> Bool { return a < b; }");
+        let expected = vec![TestLtInt(r(2), r(0), r(1)), RetBool(r(2))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
     fn gen_expr_test_lessthanequal() {
-        let fct = code("fun f() -> Bool { return 1 <= 2; }");
-        let expected = vec![
-            ConstInt(r(1), 1),
-            ConstInt(r(2), 2),
-            TestLeInt(r(0), r(1), r(2)),
-            RetBool(r(0)),
-        ];
+        let fct = code("fun f(a: Int, b: Int) -> Bool { return a <= b; }");
+        let expected = vec![TestLeInt(r(2), r(0), r(1)), RetBool(r(2))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
     fn gen_expr_test_greaterthan() {
-        let fct = code("fun f() -> Bool { return 1 > 2; }");
-        let expected = vec![
-            ConstInt(r(1), 1),
-            ConstInt(r(2), 2),
-            TestGtInt(r(0), r(1), r(2)),
-            RetBool(r(0)),
-        ];
+        let fct = code("fun f(a: Int, b: Int) -> Bool { return a > b; }");
+        let expected = vec![TestGtInt(r(2), r(0), r(1)), RetBool(r(2))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
     fn gen_expr_test_greaterthanequal() {
-        let fct = code("fun f() -> Bool { return 1 >= 2; }");
-        let expected = vec![
-            ConstInt(r(1), 1),
-            ConstInt(r(2), 2),
-            TestGeInt(r(0), r(1), r(2)),
-            RetBool(r(0)),
-        ];
+        let fct = code("fun f(a: Int, b: Int) -> Bool { return a >= b; }");
+        let expected = vec![TestGeInt(r(2), r(0), r(1)), RetBool(r(2))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
     fn gen_expr_ident() {
         let fct = code("fun f() -> Int { let x = 1; return x; }");
-        let expected = vec![ConstInt(r(1), 1), MovInt(r(0), r(1)), RetInt(r(0))];
+        let expected = vec![ConstInt(r(0), 1), RetInt(r(0))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
     fn gen_expr_assign() {
         let fct = code("fun f() { var x = 1; x = 2; }");
-        let expected = vec![
-            ConstInt(r(1), 1),
-            MovInt(r(0), r(1)),
-            ConstInt(r(2), 2),
-            MovInt(r(0), r(2)),
-            RetVoid,
-        ];
+        let expected = vec![ConstInt(r(0), 1), ConstInt(r(0), 2), RetVoid];
         assert_eq!(expected, fct.code());
     }
 
