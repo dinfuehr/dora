@@ -18,6 +18,10 @@ impl Register {
     pub fn is_invalid(&self) -> bool {
         self.0 == usize::max_value()
     }
+
+    pub fn offset(&self, value: usize) -> Register {
+        Register(self.0 + value)
+    }
 }
 
 impl fmt::Display for Register {
@@ -96,6 +100,17 @@ impl BytecodeGenerator {
     pub fn add_register(&mut self, ty: BytecodeType) -> Register {
         self.registers.push(ty);
         Register(self.registers.len() - 1)
+    }
+
+    pub fn add_register_chain(&mut self, types: &[BytecodeType]) -> Register {
+        assert!(types.len() > 0);
+        let start = Register(self.registers.len());
+
+        for &ty in types {
+            self.registers.push(ty);
+        }
+
+        start
     }
 
     pub fn create_label(&mut self) -> Label {
@@ -674,6 +689,60 @@ impl BytecodeFunction {
                 Bytecode::MovFloat(dest, src) => println!("{}: {} <-float {}", btidx, dest, src),
                 Bytecode::MovDouble(dest, src) => println!("{}: {} <-double {}", btidx, dest, src),
                 Bytecode::MovPtr(dest, src) => println!("{}: {} <-ptr {}", btidx, dest, src),
+                Bytecode::InvokeFctVoid(fct_id, start, num) => {
+                    println!("{}: fct {:?} {} {}", btidx, fct_id, start, num);
+                }
+                Bytecode::InvokeFctBool(dest, fct_id, start, num) => {
+                    println!(
+                        "{}: {} <-bool fct {:?} {} {}",
+                        btidx, dest, fct_id, start, num
+                    );
+                }
+                Bytecode::InvokeFctByte(dest, fct_id, start, num) => {
+                    println!(
+                        "{}: {} <-byte fct {:?} {} {}",
+                        btidx, dest, fct_id, start, num
+                    );
+                }
+                Bytecode::InvokeFctChar(dest, fct_id, start, num) => {
+                    println!(
+                        "{}: {} <-char fct {:?} {} {}",
+                        btidx, dest, fct_id, start, num
+                    );
+                }
+                Bytecode::InvokeFctInt(dest, fct_id, start, num) => {
+                    println!(
+                        "{}: {} <-int fct {:?} {} {}",
+                        btidx, dest, fct_id, start, num
+                    );
+                }
+                Bytecode::InvokeFctLong(dest, fct_id, start, num) => {
+                    println!(
+                        "{}: {} <-long fct {:?} {} {}",
+                        btidx, dest, fct_id, start, num
+                    );
+                }
+                Bytecode::InvokeFctFloat(dest, fct_id, start, num) => {
+                    println!(
+                        "{}: {} <-float fct {:?} {} {}",
+                        btidx, dest, fct_id, start, num
+                    );
+                }
+                Bytecode::InvokeFctDouble(dest, fct_id, start, num) => {
+                    println!(
+                        "{}: {} <-double fct {:?} {} {}",
+                        btidx, dest, fct_id, start, num
+                    );
+                }
+                Bytecode::InvokeFctPtr(dest, fct_id, start, num) => {
+                    println!(
+                        "{}: {} <-ptr fct {:?} {} {}",
+                        btidx, dest, fct_id, start, num
+                    );
+                }
+                Bytecode::NewObject(dest, cls_id) => {
+                    println!("{}: {} <- new {:?}", btidx, dest, cls_id);
+                }
             }
             btidx = btidx + 1;
         }

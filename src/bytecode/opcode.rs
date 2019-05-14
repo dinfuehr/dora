@@ -1,6 +1,6 @@
 use bytecode::generate::{BytecodeIdx, Register};
 use class::{ClassDefId, FieldId};
-use ctxt::GlobalId;
+use ctxt::{FctId, GlobalId};
 
 #[derive(PartialEq, Debug)]
 pub enum Bytecode {
@@ -73,6 +73,18 @@ pub enum Bytecode {
     JumpIfFalse(Register, BytecodeIdx),
     JumpIfTrue(Register, BytecodeIdx),
     Jump(BytecodeIdx),
+
+    InvokeFctVoid(FctId, Register, usize),
+    InvokeFctBool(Register, FctId, Register, usize),
+    InvokeFctByte(Register, FctId, Register, usize),
+    InvokeFctChar(Register, FctId, Register, usize),
+    InvokeFctInt(Register, FctId, Register, usize),
+    InvokeFctLong(Register, FctId, Register, usize),
+    InvokeFctFloat(Register, FctId, Register, usize),
+    InvokeFctDouble(Register, FctId, Register, usize),
+    InvokeFctPtr(Register, FctId, Register, usize),
+
+    NewObject(Register, ClassDefId),
 
     RetBool(Register),
     RetByte(Register),

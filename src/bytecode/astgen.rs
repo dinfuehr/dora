@@ -1213,6 +1213,27 @@ mod tests {
         );
     }
 
+    // #[test]
+    // fn gen_fct_call_void_with_0_args() {
+    //     gen("fun f() { g(); } fun g() { }", |vm, fct| {
+    //         let fct_id = vm.fct_by_name("g").expect("g not found");
+    //         let expected = vec![InvokeFctVoid(fct_id, r(0), 0), RetVoid];
+    //         assert_eq!(expected, fct.code());
+    //     });
+    // }
+
+    // #[test]
+    // fn gen_fct_call_int_with_0_args() {
+    //     gen(
+    //         "fun f() -> Int { return g(); } fun g() -> Int { return 1; }",
+    //         |vm, fct| {
+    //             let fct_id = vm.fct_by_name("g").expect("g not found");
+    //             let expected = vec![InvokeFctInt(r(0), fct_id, r(0), 0), RetInt(r(0))];
+    //             assert_eq!(expected, fct.code());
+    //         },
+    //     );
+    // }
+
     fn r(val: usize) -> Register {
         Register(val)
     }
