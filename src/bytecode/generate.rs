@@ -278,6 +278,10 @@ impl BytecodeGenerator {
         self.code.push(Bytecode::ConstDouble(dest, value));
     }
 
+    pub fn emit_const_string(&mut self, dest: Register, value: String) {
+        self.code.push(Bytecode::ConstString(dest, value));
+    }
+
     pub fn emit_const_zero_byte(&mut self, dest: Register) {
         self.code.push(Bytecode::ConstZeroByte(dest));
     }
@@ -867,6 +871,7 @@ impl BytecodeFunction {
                 Bytecode::ConstLong(dest, val) => println!("{}: {} <-long {}", btidx, dest, val),
                 Bytecode::ConstFloat(dest, val) => println!("{}: {} <-float {}", btidx, dest, val),
                 Bytecode::ConstDouble(dest, val) => println!("{}: {} <-double {}", btidx, dest, val),
+                Bytecode::ConstString(dest, val) => println!("{}: {} <-string {}", btidx, dest, val),
                 Bytecode::NotBool(dest, src) => println!("{}: {} <-bool {}", btidx, dest, src),
                 Bytecode::JumpIfFalse(opnd, target) => {
                     println!("{}: if {}=false goto {}", btidx, opnd, target)

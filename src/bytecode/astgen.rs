@@ -231,7 +231,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             // ExprLitChar(ref lit) => {},
             ExprLitInt(ref lit) => self.visit_expr_lit_int(lit, dest),
             ExprLitFloat(ref lit) => self.visit_expr_lit_float(lit, dest),
-            // ExprLitStr(ref lit) => {},
+            ExprLitStr(ref lit) => self.visit_expr_lit_string(lit, dest),
             // ExprLitStruct(ref lit) => {},
             ExprLitBool(ref lit) => self.visit_expr_lit_bool(lit, dest),
             ExprIdent(ref ident) => self.visit_expr_ident(ident, dest),
@@ -341,6 +341,19 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
 
         dest
+    }
+
+    fn visit_expr_lit_string(&mut self, lit: &ExprLitStrType, dest: DataDest) -> Register {
+        if dest.is_effect() {
+            return Register::invalid();
+        }
+
+        let dest = self.ensure_register(dest, BytecodeType::Ptr);
+
+        self.gen.emit_const_string(dest, lit.value.clone());
+
+        dest
+
     }
 
     fn visit_expr_lit_bool(&mut self, lit: &ExprLitBoolType, dest: DataDest) -> Register {
@@ -1023,6 +1036,13 @@ mod tests {
     fn gen_expr_lit_double() {
         let fct = code("fun f() -> Double { return 1D; }");
         let expected = vec![ConstDouble(r(0), 1_f64), RetDouble(r(0))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_expr_lit_string() {
+        let fct = code("fun f() -> String { return \"z\"; }");
+        let expected = vec![ConstString(r(0), String::from("z")), RetPtr(r(0))];
         assert_eq!(expected, fct.code());
     }
 
