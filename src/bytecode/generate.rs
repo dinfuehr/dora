@@ -270,6 +270,14 @@ impl BytecodeGenerator {
         self.code.push(Bytecode::ConstLong(dest, value));
     }
 
+    pub fn emit_const_float(&mut self, dest: Register, value: f32) {
+        self.code.push(Bytecode::ConstFloat(dest, value));
+    }
+
+    pub fn emit_const_double(&mut self, dest: Register, value: f64) {
+        self.code.push(Bytecode::ConstDouble(dest, value));
+    }
+
     pub fn emit_const_zero_byte(&mut self, dest: Register) {
         self.code.push(Bytecode::ConstZeroByte(dest));
     }
@@ -280,6 +288,14 @@ impl BytecodeGenerator {
 
     pub fn emit_const_zero_long(&mut self, dest: Register) {
         self.code.push(Bytecode::ConstZeroLong(dest));
+    }
+
+    pub fn emit_const_zero_float(&mut self, dest: Register) {
+        self.code.push(Bytecode::ConstZeroFloat(dest));
+    }
+
+    pub fn emit_const_zero_double(&mut self, dest: Register) {
+        self.code.push(Bytecode::ConstZeroDouble(dest));
     }
 
     pub fn emit_const_true(&mut self, dest: Register) {
@@ -844,9 +860,13 @@ impl BytecodeFunction {
                 Bytecode::ConstZeroByte(dest) => println!("{}: {} <-byte 0", btidx, dest),
                 Bytecode::ConstZeroInt(dest) => println!("{}: {} <-int 0", btidx, dest),
                 Bytecode::ConstZeroLong(dest) => println!("{}: {} <-long 0", btidx, dest),
+                Bytecode::ConstZeroFloat(dest) => println!("{}: {} <-float 0", btidx, dest),
+                Bytecode::ConstZeroDouble(dest) => println!("{}: {} <-double 0", btidx, dest),
                 Bytecode::ConstByte(dest, val) => println!("{}: {} <-byte {}", btidx, dest, val),
                 Bytecode::ConstInt(dest, val) => println!("{}: {} <-int {}", btidx, dest, val),
                 Bytecode::ConstLong(dest, val) => println!("{}: {} <-long {}", btidx, dest, val),
+                Bytecode::ConstFloat(dest, val) => println!("{}: {} <-float {}", btidx, dest, val),
+                Bytecode::ConstDouble(dest, val) => println!("{}: {} <-double {}", btidx, dest, val),
                 Bytecode::NotBool(dest, src) => println!("{}: {} <-bool {}", btidx, dest, src),
                 Bytecode::JumpIfFalse(opnd, target) => {
                     println!("{}: if {}=false goto {}", btidx, opnd, target)
