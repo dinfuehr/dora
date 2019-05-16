@@ -870,8 +870,12 @@ impl BytecodeFunction {
                 Bytecode::ConstInt(dest, val) => println!("{}: {} <-int {}", btidx, dest, val),
                 Bytecode::ConstLong(dest, val) => println!("{}: {} <-long {}", btidx, dest, val),
                 Bytecode::ConstFloat(dest, val) => println!("{}: {} <-float {}", btidx, dest, val),
-                Bytecode::ConstDouble(dest, val) => println!("{}: {} <-double {}", btidx, dest, val),
-                Bytecode::ConstString(dest, val) => println!("{}: {} <-string {}", btidx, dest, val),
+                Bytecode::ConstDouble(dest, val) => {
+                    println!("{}: {} <-double {}", btidx, dest, val)
+                }
+                Bytecode::ConstString(dest, val) => {
+                    println!("{}: {} <-string {}", btidx, dest, val)
+                }
                 Bytecode::NotBool(dest, src) => println!("{}: {} <-bool {}", btidx, dest, src),
                 Bytecode::JumpIfFalse(opnd, target) => {
                     println!("{}: if {}=false goto {}", btidx, opnd, target)

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
-use dora_parser::lexer::token::{IntSuffix, FloatSuffix};
+use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 
 use bytecode::generate::{BytecodeFunction, BytecodeGenerator, BytecodeType, Label, Register};
 use class::TypeParams;
@@ -353,7 +353,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.gen.emit_const_string(dest, lit.value.clone());
 
         dest
-
     }
 
     fn visit_expr_lit_bool(&mut self, lit: &ExprLitBoolType, dest: DataDest) -> Register {
@@ -715,8 +714,14 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
 #[derive(Copy, Clone)]
 enum DataDest {
+    // Do not store result. Only interested in side-effects of
+    // expression.
     Effect,
+
+    // Allocate a new register and store result in it.
     Alloc,
+
+    // Store the result in the given register.
     Reg(Register),
 }
 
