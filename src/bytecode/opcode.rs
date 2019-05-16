@@ -63,7 +63,7 @@ pub enum Bytecode {
     ConstLong(Register, u64),
     ConstFloat(Register, f32),
     ConstDouble(Register, f64),
-    ConstString(Register, String),
+    ConstString(Register, usize),
 
     TestEqPtr(Register, Register, Register),
     TestNePtr(Register, Register, Register),

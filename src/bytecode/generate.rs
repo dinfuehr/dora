@@ -1,3 +1,4 @@
+use std::collections::hash_map::HashMap;
 use std::convert::From;
 use std::fmt;
 use std::mem;
@@ -85,6 +86,8 @@ pub struct BytecodeGenerator {
     labels: Vec<Option<BytecodeIdx>>,
     unresolved_jumps: Vec<(BytecodeIdx, Label)>,
     registers: Vec<BytecodeType>,
+    string_pool_map: HashMap<String, usize>,
+    string_pool: Vec<String>,
 }
 
 impl BytecodeGenerator {
@@ -94,6 +97,8 @@ impl BytecodeGenerator {
             labels: Vec::new(),
             unresolved_jumps: Vec::new(),
             registers: Vec::new(),
+            string_pool_map: HashMap::new(),
+            string_pool: Vec::new(),
         }
     }
 
@@ -278,8 +283,21 @@ impl BytecodeGenerator {
         self.code.push(Bytecode::ConstDouble(dest, value));
     }
 
-    pub fn emit_const_string(&mut self, dest: Register, value: String) {
-        self.code.push(Bytecode::ConstString(dest, value));
+    pub fn add_string(&mut self, value: String) -> usize {
+        match self.string_pool_map.get(&value) {
+            Some(index) => index.clone(),
+            None => {
+                let index = self.string_pool.len();
+                self.string_pool_map
+                    .insert(value.clone(), self.string_pool.len());
+                self.string_pool.push(value.clone());
+                index
+            }
+        }
+    }
+
+    pub fn emit_const_string(&mut self, dest: Register, index: usize) {
+        self.code.push(Bytecode::ConstString(dest, index));
     }
 
     pub fn emit_const_zero_byte(&mut self, dest: Register) {
@@ -789,6 +807,7 @@ impl BytecodeGenerator {
         BytecodeFunction {
             code: self.code,
             registers: self.registers,
+            string_pool: self.string_pool,
         }
     }
 
@@ -824,6 +843,7 @@ impl BytecodeGenerator {
 pub struct BytecodeFunction {
     code: Vec<Bytecode>,
     registers: Vec<BytecodeType>,
+    string_pool: Vec<String>,
 }
 
 impl BytecodeFunction {
@@ -873,8 +893,8 @@ impl BytecodeFunction {
                 Bytecode::ConstDouble(dest, val) => {
                     println!("{}: {} <-double {}", btidx, dest, val)
                 }
-                Bytecode::ConstString(dest, val) => {
-                    println!("{}: {} <-string {}", btidx, dest, val)
+                Bytecode::ConstString(dest, index) => {
+                    println!("{}: {} <-string {}", btidx, dest, index)
                 }
                 Bytecode::NotBool(dest, src) => println!("{}: {} <-bool {}", btidx, dest, src),
                 Bytecode::JumpIfFalse(opnd, target) => {

@@ -350,7 +350,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         let dest = self.ensure_register(dest, BytecodeType::Ptr);
 
-        self.gen.emit_const_string(dest, lit.value.clone());
+        let index = self.gen.add_string(lit.value.clone());
+
+        self.gen.emit_const_string(dest, index);
 
         dest
     }
@@ -1047,7 +1049,28 @@ mod tests {
     #[test]
     fn gen_expr_lit_string() {
         let fct = code("fun f() -> String { return \"z\"; }");
-        let expected = vec![ConstString(r(0), String::from("z")), RetPtr(r(0))];
+        let expected = vec![ConstString(r(0), 0), RetPtr(r(0))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_expr_lit_string_duplicates() {
+        let fct = code("fun f(a: Bool, b: Bool) -> String { if a { if b { return \"z\"; } else { return \"y\"; } } else { if b { return \"z\"; } else { return \"x\"; } } }");
+        let expected = vec![
+            JumpIfFalse(r(0), bc(8)),
+            JumpIfFalse(r(1), bc(5)),
+            ConstString(r(2), 0),
+            RetPtr(r(2)),
+            Jump(bc(7)),
+            ConstString(r(3), 1),
+            RetPtr(r(3)),
+            Jump(bc(14)),
+            JumpIfFalse(r(1), bc(12)),
+            ConstString(r(4), 0),
+            RetPtr(r(4)),
+            Jump(bc(14)),
+            ConstString(r(5), 2),
+            RetPtr(r(5))];
         assert_eq!(expected, fct.code());
     }
 
