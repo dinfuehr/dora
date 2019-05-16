@@ -1328,6 +1328,13 @@ mod tests {
         );
     }
 
+    #[test]
+    fn gen_side_effect() {
+        let fct = code("fun f(a: Int) { 1; 2; 3 * a; \"foo\"; 1.0F; 1.0D; a; }");
+        let expected = vec![RetVoid];
+        assert_eq!(expected, fct.code());
+    }
+
     // #[test]
     // fn gen_fct_call_void_with_0_args() {
     //     gen("fun f() { g(); } fun g() { }", |vm, fct| {
