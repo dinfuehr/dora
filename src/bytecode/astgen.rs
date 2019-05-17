@@ -1516,6 +1516,24 @@ mod tests {
     }
 
     #[test]
+    fn gen_fct_call_void_with_3_args() {
+        gen(
+            "fun f() { g(1, 2, 3); } fun g(a: Int, b: Int, c: Int) { }",
+            |vm, fct| {
+                let fct_id = vm.fct_by_name("g").expect("g not found");
+                let expected = vec![
+                    ConstInt(r(0), 1),
+                    ConstInt(r(1), 2),
+                    ConstInt(r(2), 3),
+                    InvokeStaticVoid(fct_id, r(0), 3),
+                    RetVoid,
+                ];
+                assert_eq!(expected, fct.code());
+            },
+        );
+    }
+
+    #[test]
     fn gen_fct_call_int_with_1_arg() {
         gen(
             "fun f() -> Int { return g(1); } fun g(a: Int) -> Int { return a; }",
@@ -1529,6 +1547,21 @@ mod tests {
                 assert_eq!(expected, fct.code());
             },
         );
+    }
+
+    #[test]
+    fn gen_fct_call_int_with_3_args() {
+        gen("fun f() -> Int { return g(1, 2, 3); } fun g(a: Int, b: Int, c: Int) -> Int { return 1; }", |vm, fct| {
+            let fct_id = vm.fct_by_name("g").expect("g not found");
+            let expected = vec![
+                ConstInt(r(1), 1),
+                ConstInt(r(2), 2),
+                ConstInt(r(3), 3),
+                InvokeStaticInt(r(0), fct_id, r(1), 3),
+                RetInt(r(0)),
+            ];
+            assert_eq!(expected, fct.code());
+        });
     }
 
     fn r(val: usize) -> Register {
