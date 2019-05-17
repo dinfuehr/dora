@@ -81,13 +81,21 @@ impl From<BuiltinType> for BytecodeType {
     }
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct StrConstPoolIdx(pub usize);
+
+impl fmt::Display for StrConstPoolIdx {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "str_idx#{}", self.0)
+    }
+}
+
 pub struct BytecodeGenerator {
     code: Vec<Bytecode>,
     labels: Vec<Option<BytecodeIdx>>,
     unresolved_jumps: Vec<(BytecodeIdx, Label)>,
     registers: Vec<BytecodeType>,
-    string_pool_map: HashMap<String, usize>,
-    string_pool: Vec<String>,
+    string_pool_map: HashMap<String, StrConstPoolIdx>,
 }
 
 impl BytecodeGenerator {
@@ -98,7 +106,6 @@ impl BytecodeGenerator {
             unresolved_jumps: Vec::new(),
             registers: Vec::new(),
             string_pool_map: HashMap::new(),
-            string_pool: Vec::new(),
         }
     }
 
@@ -283,20 +290,19 @@ impl BytecodeGenerator {
         self.code.push(Bytecode::ConstDouble(dest, value));
     }
 
-    pub fn add_string(&mut self, value: String) -> usize {
+    pub fn add_string_const_pool(&mut self, value: String) -> StrConstPoolIdx {
         match self.string_pool_map.get(&value) {
             Some(index) => index.clone(),
             None => {
-                let index = self.string_pool.len();
+                let index = StrConstPoolIdx(self.string_pool_map.len());
                 self.string_pool_map
-                    .insert(value.clone(), self.string_pool.len());
-                self.string_pool.push(value.clone());
+                    .insert(value.clone(), index);
                 index
             }
         }
     }
 
-    pub fn emit_const_string(&mut self, dest: Register, index: usize) {
+    pub fn emit_const_string(&mut self, dest: Register, index: StrConstPoolIdx) {
         self.code.push(Bytecode::ConstString(dest, index));
     }
 
@@ -801,13 +807,23 @@ impl BytecodeGenerator {
             .push(Bytecode::InvokeStaticPtr(dest, fid, start, num));
     }
 
+    fn generate_string_pool(&mut self) -> Vec<String> {
+        let mut pool : Vec<String> = vec![String::new(); self.string_pool_map.len()];
+        for (string_value, StrConstPoolIdx(index)) in self.string_pool_map.iter() {
+            pool[*index] = string_value.to_string();
+        }
+
+        pool
+    }
+
     pub fn generate(mut self) -> BytecodeFunction {
         self.resolve_forward_jumps();
+        let string_pool = self.generate_string_pool();
 
         BytecodeFunction {
             code: self.code,
             registers: self.registers,
-            string_pool: self.string_pool,
+            string_pool: string_pool,
         }
     }
 

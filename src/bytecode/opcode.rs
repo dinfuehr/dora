@@ -1,4 +1,4 @@
-use bytecode::generate::{BytecodeIdx, Register};
+use bytecode::generate::{BytecodeIdx, Register, StrConstPoolIdx};
 use class::{ClassDefId, FieldId};
 use ctxt::{FctId, GlobalId};
 
@@ -63,7 +63,7 @@ pub enum Bytecode {
     ConstLong(Register, u64),
     ConstFloat(Register, f32),
     ConstDouble(Register, f64),
-    ConstString(Register, usize),
+    ConstString(Register, StrConstPoolIdx),
 
     TestEqPtr(Register, Register, Register),
     TestNePtr(Register, Register, Register),

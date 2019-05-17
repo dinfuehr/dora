@@ -350,7 +350,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         let dest = self.ensure_register(dest, BytecodeType::Ptr);
 
-        let index = self.gen.add_string(lit.value.clone());
+        let index = self.gen.add_string_const_pool(lit.value.clone());
 
         self.gen.emit_const_string(dest, index);
 
@@ -755,7 +755,7 @@ impl DataDest {
 #[cfg(test)]
 mod tests {
     use bytecode::astgen;
-    use bytecode::generate::{BytecodeFunction, BytecodeIdx, Register};
+    use bytecode::generate::{BytecodeFunction, BytecodeIdx, Register, StrConstPoolIdx};
     use bytecode::opcode::Bytecode::*;
     use class::TypeParams;
     use ctxt::VM;
@@ -1049,28 +1049,27 @@ mod tests {
     #[test]
     fn gen_expr_lit_string() {
         let fct = code("fun f() -> String { return \"z\"; }");
-        let expected = vec![ConstString(r(0), 0), RetPtr(r(0))];
+        let expected = vec![ConstString(r(0), sp(0)), RetPtr(r(0))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
-    fn gen_expr_lit_string_duplicates() {
-        let fct = code("fun f(a: Bool, b: Bool) -> String { if a { if b { return \"z\"; } else { return \"y\"; } } else { if b { return \"z\"; } else { return \"x\"; } } }");
+    fn gen_expr_lit_string_duplicate() {
+        let fct = code("fun f() { let a = \"z\"; let b = \"z\"; }");
         let expected = vec![
-            JumpIfFalse(r(0), bc(8)),
-            JumpIfFalse(r(1), bc(5)),
-            ConstString(r(2), 0),
-            RetPtr(r(2)),
-            Jump(bc(7)),
-            ConstString(r(3), 1),
-            RetPtr(r(3)),
-            Jump(bc(14)),
-            JumpIfFalse(r(1), bc(12)),
-            ConstString(r(4), 0),
-            RetPtr(r(4)),
-            Jump(bc(14)),
-            ConstString(r(5), 2),
-            RetPtr(r(5))];
+            ConstString(r(0), sp(0)),
+            ConstString(r(1), sp(0)),
+            RetVoid];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_expr_lit_string_multiple() {
+        let fct = code("fun f() { let a = \"z\"; let b = \"y\"; }");
+        let expected = vec![
+            ConstString(r(0), sp(0)),
+            ConstString(r(1), sp(1)),
+            RetVoid];
         assert_eq!(expected, fct.code());
     }
 
@@ -1385,5 +1384,9 @@ mod tests {
 
     fn bc(val: usize) -> BytecodeIdx {
         BytecodeIdx(val)
+    }
+
+    fn sp(val: usize) -> StrConstPoolIdx {
+        StrConstPoolIdx(val)
     }
 }
