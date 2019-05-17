@@ -787,6 +787,10 @@ impl BytecodeGenerator {
             .push(Bytecode::InvokeStaticPtr(dest, fid, start, num));
     }
 
+    pub fn emit_new_object(&mut self, dest: Register, cls_id: ClassDefId) {
+        self.code.push(Bytecode::NewObject(dest, cls_id));
+    }
+
     pub fn generate(mut self) -> BytecodeFunction {
         self.resolve_forward_jumps();
 

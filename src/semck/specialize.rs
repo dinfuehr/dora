@@ -152,24 +152,24 @@ fn create_specialized_struct(
 pub fn specialize_class_id(ctxt: &SemContext, cls_id: ClassId) -> ClassDefId {
     let cls = ctxt.classes.idx(cls_id);
     let cls = cls.read();
-    specialize_class(ctxt, &*cls, TypeParams::empty())
+    specialize_class(ctxt, &*cls, &TypeParams::empty())
 }
 
 pub fn specialize_class_id_params(
     ctxt: &SemContext,
     cls_id: ClassId,
-    type_params: TypeParams,
+    type_params: &TypeParams,
 ) -> ClassDefId {
     let cls = ctxt.classes.idx(cls_id);
     let cls = cls.read();
-    specialize_class(ctxt, &*cls, type_params)
+    specialize_class(ctxt, &*cls, &type_params)
 }
 
 pub fn specialize_class_ty(ctxt: &SemContext, ty: BuiltinType) -> ClassDefId {
     match ty {
         BuiltinType::Class(cls_id, list_id) => {
             let params = ctxt.lists.lock().get(list_id);
-            specialize_class_id_params(ctxt, cls_id, params)
+            specialize_class_id_params(ctxt, cls_id, &params)
         }
 
         _ => unreachable!(),
@@ -179,7 +179,7 @@ pub fn specialize_class_ty(ctxt: &SemContext, ty: BuiltinType) -> ClassDefId {
 pub fn specialize_class(
     ctxt: &SemContext,
     cls: &class::Class,
-    type_params: TypeParams,
+    type_params: &TypeParams,
 ) -> ClassDefId {
     if let Some(&id) = cls.specializations.read().get(&type_params) {
         return id;
@@ -191,7 +191,7 @@ pub fn specialize_class(
 fn create_specialized_class(
     ctxt: &SemContext,
     cls: &class::Class,
-    type_params: TypeParams,
+    type_params: &TypeParams,
 ) -> ClassDefId {
     let id = {
         let mut class_defs = ctxt.class_defs.lock();

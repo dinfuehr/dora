@@ -262,6 +262,14 @@ impl<'ast> SemContext<'ast> {
     }
 
     #[cfg(test)]
+    pub fn cls_def_by_name(&self, name: &'static str) -> ClassDefId {
+        let name = self.interner.intern(name);
+        let cls_id = self.sym.lock().get_class(name).expect("class not found");
+
+        specialize_class_id(self, cls_id)
+    }
+
+    #[cfg(test)]
     pub fn field_by_name(
         &self,
         class_name: &'static str,
@@ -289,6 +297,16 @@ impl<'ast> SemContext<'ast> {
     pub fn fct_by_name(&self, name: &str) -> Option<FctId> {
         let name = self.interner.intern(name);
         self.sym.lock().get_fct(name)
+    }
+
+    #[cfg(test)]
+    pub fn ctor_by_name(&self, name: &str) -> FctId {
+        let name = self.interner.intern(name);
+        let cls_id = self.sym.lock().get_class(name).expect("class not found");
+        let cls = self.classes.idx(cls_id);
+        let cls = cls.read();
+
+        cls.constructor.expect("no ctor found")
     }
 
     #[cfg(test)]
@@ -626,8 +644,8 @@ impl KnownElements {
         if let Some(cls_id) = *int_array_def {
             cls_id
         } else {
-            let type_args = vec![BuiltinType::Int];
-            let cls_id = specialize_class_id_params(ctxt, self.array_class, type_args.into());
+            let type_args: TypeParams = vec![BuiltinType::Int].into();
+            let cls_id = specialize_class_id_params(ctxt, self.array_class, &type_args);
             *int_array_def = Some(cls_id);
             cls_id
         }

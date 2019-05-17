@@ -8,7 +8,7 @@ use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 use bytecode::generate::{BytecodeFunction, BytecodeGenerator, BytecodeType, Label, Register};
 use class::TypeParams;
 use ctxt::{CallType, Fct, FctId, FctKind, FctSrc, IdentType, Intrinsic, VarId, VM};
-use semck::specialize::{specialize_class_ty, specialize_type};
+use semck::specialize::{specialize_class_id_params, specialize_class_ty, specialize_type};
 use ty::BuiltinType;
 
 pub struct LoopLabels {
@@ -330,7 +330,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             Register::zero()
         };
 
-        let arg_start_reg = if callee.has_self() {
+        let arg_start_reg = if let CallType::CtorNew(cls_id, _, tp) = &*call_type {
+            let cls_id = specialize_class_id_params(self.vm, *cls_id, tp);
+            self.gen.emit_new_object(start_reg, cls_id);
+            start_reg.offset(1)
+        } else if callee.has_self() {
             let self_id = self.src.var_self().id;
             let self_reg = self.var_reg(self_id);
 
@@ -346,72 +350,55 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
 
         match *call_type {
-            CallType::Ctor(_, _, _) | CallType::CtorNew(_, _, _) => unimplemented!(),
+            CallType::Ctor(_, _, _) | CallType::CtorNew(_, _, _) => {
+                self.gen
+                    .emit_invoke_direct_void(callee_id, start_reg, num_args);
+            }
 
             CallType::Method(_, _, _) => unimplemented!(),
 
             CallType::Fct(_, _, _) => {
                 if return_type.is_unit() {
                     self.gen
-                        .emit_invoke_static_void(callee_id, arg_start_reg, num_args);
+                        .emit_invoke_static_void(callee_id, start_reg, num_args);
                 } else {
                     let return_type: BytecodeType = return_type.into();
 
                     match return_type.into() {
-                        BytecodeType::Bool => self.gen.emit_invoke_static_bool(
-                            return_reg,
-                            callee_id,
-                            arg_start_reg,
-                            num_args,
-                        ),
-                        BytecodeType::Byte => self.gen.emit_invoke_static_byte(
-                            return_reg,
-                            callee_id,
-                            arg_start_reg,
-                            num_args,
-                        ),
-                        BytecodeType::Char => self.gen.emit_invoke_static_char(
-                            return_reg,
-                            callee_id,
-                            arg_start_reg,
-                            num_args,
-                        ),
-                        BytecodeType::Int => self.gen.emit_invoke_static_int(
-                            return_reg,
-                            callee_id,
-                            arg_start_reg,
-                            num_args,
-                        ),
-                        BytecodeType::Long => self.gen.emit_invoke_static_long(
-                            return_reg,
-                            callee_id,
-                            arg_start_reg,
-                            num_args,
-                        ),
-                        BytecodeType::Float => self.gen.emit_invoke_static_float(
-                            return_reg,
-                            callee_id,
-                            arg_start_reg,
-                            num_args,
-                        ),
-                        BytecodeType::Double => self.gen.emit_invoke_static_double(
-                            return_reg,
-                            callee_id,
-                            arg_start_reg,
-                            num_args,
-                        ),
-                        BytecodeType::Ptr => self.gen.emit_invoke_static_ptr(
-                            return_reg,
-                            callee_id,
-                            arg_start_reg,
-                            num_args,
-                        ),
+                        BytecodeType::Bool => self
+                            .gen
+                            .emit_invoke_static_bool(return_reg, callee_id, start_reg, num_args),
+                        BytecodeType::Byte => self
+                            .gen
+                            .emit_invoke_static_byte(return_reg, callee_id, start_reg, num_args),
+                        BytecodeType::Char => self
+                            .gen
+                            .emit_invoke_static_char(return_reg, callee_id, start_reg, num_args),
+                        BytecodeType::Int => self
+                            .gen
+                            .emit_invoke_static_int(return_reg, callee_id, start_reg, num_args),
+                        BytecodeType::Long => self
+                            .gen
+                            .emit_invoke_static_long(return_reg, callee_id, start_reg, num_args),
+                        BytecodeType::Float => self
+                            .gen
+                            .emit_invoke_static_float(return_reg, callee_id, start_reg, num_args),
+                        BytecodeType::Double => self
+                            .gen
+                            .emit_invoke_static_double(return_reg, callee_id, start_reg, num_args),
+                        BytecodeType::Ptr => self
+                            .gen
+                            .emit_invoke_static_ptr(return_reg, callee_id, start_reg, num_args),
                     }
                 }
             }
         }
 
-        return_reg
+        if call_type.is_ctor_new() {
+            start_reg
+        } else {
+            return_reg
+        }
     }
 
     fn visit_expr_lit_int(&mut self, lit: &ExprLitIntType, dest: DataDest) -> Register {
@@ -1588,6 +1575,43 @@ mod tests {
                     ConstInt(r(3), 3),
                     InvokeStaticInt(r(0), fct_id, r(1), 3),
                     RetInt(r(0)),
+                ];
+                assert_eq!(expected, fct.code());
+            },
+        );
+    }
+
+    #[test]
+    fn gen_new_object() {
+        gen("fun f() -> Object { return Object(); }", |vm, fct| {
+            let cls_id = vm.cls_def_by_name("Object");
+            let ctor_id = vm.ctor_by_name("Object");
+            let expected = vec![
+                NewObject(r(0), cls_id),
+                InvokeDirectVoid(ctor_id, r(0), 1),
+                RetPtr(r(0)),
+            ];
+            assert_eq!(expected, fct.code());
+        });
+    }
+
+    #[test]
+    fn gen_new_object_with_multiple_args() {
+        gen(
+            "
+            class Foo(a: Int, b: Int, c: Int)
+            fun f() -> Foo { return Foo(1, 2, 3); }
+            ",
+            |vm, fct| {
+                let cls_id = vm.cls_def_by_name("Foo");
+                let ctor_id = vm.ctor_by_name("Foo");
+                let expected = vec![
+                    NewObject(r(0), cls_id),
+                    ConstInt(r(1), 1),
+                    ConstInt(r(2), 2),
+                    ConstInt(r(3), 3),
+                    InvokeDirectVoid(ctor_id, r(0), 4),
+                    RetPtr(r(0)),
                 ];
                 assert_eq!(expected, fct.code());
             },
