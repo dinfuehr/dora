@@ -13,6 +13,7 @@ use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 use mem;
+use semck::specialize::specialize_type;
 use ty::BuiltinType;
 
 pub fn generate<'a, 'ast: 'a>(
@@ -805,8 +806,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             },
 
             CallType::Ctor(_, _, ref type_params) | CallType::CtorNew(_, _, ref type_params) => {
-                let empty = TypeParams::empty();
-                specialize_type(self.vm, ty, type_params, &empty)
+                specialize_type(self.vm, ty, type_params, &TypeParams::empty())
             }
         };
 
@@ -814,60 +814,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
-        match ty {
-            BuiltinType::ClassTypeParam(cls_id, id) => {
-                debug_assert!(self.fct.parent == FctParent::Class(cls_id));
-                self.cls_type_params[id.idx()]
-            }
-
-            BuiltinType::FctTypeParam(fct_id, id) => {
-                debug_assert!(self.fct.id == fct_id);
-                self.fct_type_params[id.idx()]
-            }
-
-            BuiltinType::Class(cls_id, list_id) => {
-                let params = self.vm.lists.lock().get(list_id);
-                let params: Vec<_> = params.iter().map(|t| self.specialize_type(t)).collect();
-
-                let list_id = self.vm.lists.lock().insert(params.into());
-
-                BuiltinType::Class(cls_id, list_id)
-            }
-
-            BuiltinType::Lambda(_) => unimplemented!(),
-
-            _ => ty,
-        }
-    }
-}
-
-fn specialize_type(
-    vm: &VM,
-    ty: BuiltinType,
-    cls_type_params: &TypeParams,
-    fct_type_params: &TypeParams,
-) -> BuiltinType {
-    match ty {
-        BuiltinType::ClassTypeParam(_, id) => cls_type_params[id.idx()],
-
-        BuiltinType::FctTypeParam(_, id) => fct_type_params[id.idx()],
-
-        BuiltinType::Class(cls_id, list_id) => {
-            let params = vm.lists.lock().get(list_id);
-
-            let params: Vec<_> = params
-                .iter()
-                .map(|t| specialize_type(vm, t, cls_type_params, fct_type_params))
-                .collect();
-
-            let list_id = vm.lists.lock().insert(params.into());
-
-            BuiltinType::Class(cls_id, list_id)
-        }
-
-        BuiltinType::Lambda(_) => unimplemented!(),
-
-        _ => ty,
+        specialize_type(self.vm, ty, &self.cls_type_params, &self.fct_type_params)
     }
 }
 

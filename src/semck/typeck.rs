@@ -402,7 +402,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                 let element_type = fct.params_without_self()[1];
                 let object_type_params = object_type.type_params(self.ctxt);
-                let element_type = specialize_type(self.ctxt, element_type, &object_type_params);
+                let element_type = specialize_type(
+                    self.ctxt,
+                    element_type,
+                    &object_type_params,
+                    &TypeParams::empty(),
+                );
                 self.src.set_ty(array.id, element_type);
 
                 self.src.set_ty(e.id, return_type);

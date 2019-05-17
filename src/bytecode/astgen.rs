@@ -7,8 +7,8 @@ use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 
 use bytecode::generate::{BytecodeFunction, BytecodeGenerator, BytecodeType, Label, Register};
 use class::TypeParams;
-use ctxt::{Fct, FctId, FctKind, FctParent, FctSrc, IdentType, Intrinsic, VarId, VM};
-use semck::specialize::specialize_class_ty;
+use ctxt::{CallType, Fct, FctId, FctKind, FctSrc, IdentType, Intrinsic, VarId, VM};
+use semck::specialize::{specialize_class_ty, specialize_type};
 use ty::BuiltinType;
 
 pub struct LoopLabels {
@@ -236,7 +236,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             ExprLitBool(ref lit) => self.visit_expr_lit_bool(lit, dest),
             ExprIdent(ref ident) => self.visit_expr_ident(ident, dest),
             ExprAssign(ref assign) => self.visit_expr_assign(assign, dest),
-            // ExprCall(ref call) => {},
+            ExprCall(ref call) => self.visit_expr_call(call, dest),
             // ExprDelegation(ref call) => {},
             // ExprSelf(ref selfie) => {},
             // ExprSuper(ref expr) => {},
@@ -280,6 +280,138 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
 
         dest
+    }
+
+    fn visit_expr_call(&mut self, expr: &ExprCallType, dest: DataDest) -> Register {
+        if let Some(_intrinsic) = self.get_intrinsic(expr.id) {
+            unimplemented!()
+        }
+
+        let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
+        let fct_id = call_type.fct_id();
+
+        let fct = self.vm.fcts.idx(fct_id);
+        let fct = fct.read();
+
+        let callee_id = if fct.kind.is_definition() {
+            unimplemented!()
+        } else {
+            fct_id
+        };
+
+        let callee = self.vm.fcts.idx(callee_id);
+        let callee = callee.read();
+
+        if let FctKind::Builtin(_intrinsic) = callee.kind {
+            unimplemented!()
+        }
+
+        let return_type = if dest.is_effect() {
+            BuiltinType::Unit
+        } else {
+            self.specialize_type_for_call(&call_type, callee.return_type)
+        };
+        let arg_types = callee
+            .params_with_self()
+            .iter()
+            .map(|&arg| self.specialize_type_for_call(&call_type, arg).into())
+            .collect::<Vec<BytecodeType>>();
+        let num_args = arg_types.len();
+
+        let return_reg = if return_type.is_unit() {
+            Register::invalid()
+        } else {
+            self.ensure_register(dest, return_type.into())
+        };
+
+        let start_reg = if num_args > 0 {
+            self.gen.add_register_chain(&arg_types)
+        } else {
+            Register::zero()
+        };
+
+        let arg_start_reg = if callee.has_self() {
+            let self_id = self.src.var_self().id;
+            let self_reg = self.var_reg(self_id);
+
+            self.gen.emit_mov_ptr(start_reg, self_reg);
+            start_reg.offset(1)
+        } else {
+            start_reg
+        };
+
+        for (idx, arg) in expr.args.iter().enumerate() {
+            let arg_reg = arg_start_reg.offset(idx);
+            self.visit_expr(arg, DataDest::Reg(arg_reg));
+        }
+
+        match *call_type {
+            CallType::Ctor(_, _, _) | CallType::CtorNew(_, _, _) => unimplemented!(),
+
+            CallType::Method(_, _, _) => unimplemented!(),
+
+            CallType::Fct(_, _, _) => {
+                if return_type.is_unit() {
+                    self.gen
+                        .emit_invoke_static_void(callee_id, arg_start_reg, num_args);
+                } else {
+                    let return_type: BytecodeType = return_type.into();
+
+                    match return_type.into() {
+                        BytecodeType::Bool => self.gen.emit_invoke_static_bool(
+                            return_reg,
+                            callee_id,
+                            arg_start_reg,
+                            num_args,
+                        ),
+                        BytecodeType::Byte => self.gen.emit_invoke_static_byte(
+                            return_reg,
+                            callee_id,
+                            arg_start_reg,
+                            num_args,
+                        ),
+                        BytecodeType::Char => self.gen.emit_invoke_static_char(
+                            return_reg,
+                            callee_id,
+                            arg_start_reg,
+                            num_args,
+                        ),
+                        BytecodeType::Int => self.gen.emit_invoke_static_int(
+                            return_reg,
+                            callee_id,
+                            arg_start_reg,
+                            num_args,
+                        ),
+                        BytecodeType::Long => self.gen.emit_invoke_static_long(
+                            return_reg,
+                            callee_id,
+                            arg_start_reg,
+                            num_args,
+                        ),
+                        BytecodeType::Float => self.gen.emit_invoke_static_float(
+                            return_reg,
+                            callee_id,
+                            arg_start_reg,
+                            num_args,
+                        ),
+                        BytecodeType::Double => self.gen.emit_invoke_static_double(
+                            return_reg,
+                            callee_id,
+                            arg_start_reg,
+                            num_args,
+                        ),
+                        BytecodeType::Ptr => self.gen.emit_invoke_static_ptr(
+                            return_reg,
+                            callee_id,
+                            arg_start_reg,
+                            num_args,
+                        ),
+                    }
+                }
+            }
+        }
+
+        return_reg
     }
 
     fn visit_expr_lit_int(&mut self, lit: &ExprLitIntType, dest: DataDest) -> Register {
@@ -669,29 +801,31 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
     }
 
+    fn specialize_type_for_call(&self, call_type: &CallType, ty: BuiltinType) -> BuiltinType {
+        let ty = match *call_type {
+            CallType::Fct(_, ref cls_type_params, ref fct_type_params) => {
+                specialize_type(self.vm, ty, cls_type_params, fct_type_params)
+            }
+
+            CallType::Method(cls_ty, _, ref type_params) => match cls_ty {
+                BuiltinType::Class(_, list_id) => {
+                    let params = self.vm.lists.lock().get(list_id);
+                    specialize_type(self.vm, ty, &params, type_params)
+                }
+
+                _ => ty,
+            },
+
+            CallType::Ctor(_, _, ref type_params) | CallType::CtorNew(_, _, ref type_params) => {
+                specialize_type(self.vm, ty, type_params, &TypeParams::empty())
+            }
+        };
+
+        self.specialize_type(ty)
+    }
+
     fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
-        match ty {
-            BuiltinType::ClassTypeParam(cls_id, id) => {
-                assert!(self.fct.parent == FctParent::Class(cls_id));
-                self.cls_type_params[id.idx()]
-            }
-
-            BuiltinType::FctTypeParam(fct_id, id) => {
-                assert!(self.fct.id == fct_id);
-                self.fct_type_params[id.idx()]
-            }
-
-            BuiltinType::Class(cls_id, list_id) => {
-                let params = self.vm.lists.lock().get(list_id);
-                let params: Vec<_> = params.iter().map(|t| self.specialize_type(t)).collect();
-                let list_id = self.vm.lists.lock().insert(params.into());
-                BuiltinType::Class(cls_id, list_id)
-            }
-
-            BuiltinType::Lambda(_) => unimplemented!(),
-
-            _ => ty,
-        }
+        specialize_type(self.vm, ty, self.cls_type_params, self.fct_type_params)
     }
 
     fn get_intrinsic(&self, id: NodeId) -> Option<Intrinsic> {
@@ -1335,26 +1469,67 @@ mod tests {
         assert_eq!(expected, fct.code());
     }
 
-    // #[test]
-    // fn gen_fct_call_void_with_0_args() {
-    //     gen("fun f() { g(); } fun g() { }", |vm, fct| {
-    //         let fct_id = vm.fct_by_name("g").expect("g not found");
-    //         let expected = vec![InvokeFctVoid(fct_id, r(0), 0), RetVoid];
-    //         assert_eq!(expected, fct.code());
-    //     });
-    // }
+    #[test]
+    fn gen_fct_call_void_with_0_args() {
+        gen("fun f() { g(); } fun g() { }", |vm, fct| {
+            let fct_id = vm.fct_by_name("g").expect("g not found");
+            let expected = vec![InvokeStaticVoid(fct_id, r(0), 0), RetVoid];
+            assert_eq!(expected, fct.code());
+        });
+    }
 
-    // #[test]
-    // fn gen_fct_call_int_with_0_args() {
-    //     gen(
-    //         "fun f() -> Int { return g(); } fun g() -> Int { return 1; }",
-    //         |vm, fct| {
-    //             let fct_id = vm.fct_by_name("g").expect("g not found");
-    //             let expected = vec![InvokeFctInt(r(0), fct_id, r(0), 0), RetInt(r(0))];
-    //             assert_eq!(expected, fct.code());
-    //         },
-    //     );
-    // }
+    #[test]
+    fn gen_fct_call_int_with_0_args() {
+        gen(
+            "fun f() -> Int { return g(); } fun g() -> Int { return 1; }",
+            |vm, fct| {
+                let fct_id = vm.fct_by_name("g").expect("g not found");
+                let expected = vec![InvokeStaticInt(r(0), fct_id, r(0), 0), RetInt(r(0))];
+                assert_eq!(expected, fct.code());
+            },
+        );
+    }
+
+    #[test]
+    fn gen_fct_call_int_with_0_args_and_unused_resul() {
+        gen(
+            "fun f() { g(); } fun g() -> Int { return 1; }",
+            |vm, fct| {
+                let fct_id = vm.fct_by_name("g").expect("g not found");
+                let expected = vec![InvokeStaticVoid(fct_id, r(0), 0), RetVoid];
+                assert_eq!(expected, fct.code());
+            },
+        );
+    }
+
+    #[test]
+    fn gen_fct_call_void_with_1_arg() {
+        gen("fun f() { g(1); } fun g(a: Int) { }", |vm, fct| {
+            let fct_id = vm.fct_by_name("g").expect("g not found");
+            let expected = vec![
+                ConstInt(r(0), 1),
+                InvokeStaticVoid(fct_id, r(0), 1),
+                RetVoid,
+            ];
+            assert_eq!(expected, fct.code());
+        });
+    }
+
+    #[test]
+    fn gen_fct_call_int_with_1_arg() {
+        gen(
+            "fun f() -> Int { return g(1); } fun g(a: Int) -> Int { return a; }",
+            |vm, fct| {
+                let fct_id = vm.fct_by_name("g").expect("g not found");
+                let expected = vec![
+                    ConstInt(r(1), 1),
+                    InvokeStaticInt(r(0), fct_id, r(1), 1),
+                    RetInt(r(0)),
+                ];
+                assert_eq!(expected, fct.code());
+            },
+        );
+    }
 
     fn r(val: usize) -> Register {
         Register(val)

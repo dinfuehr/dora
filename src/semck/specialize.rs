@@ -4,49 +4,51 @@ use std::ptr;
 use std::sync::Arc;
 
 use class::{self, ClassDef, ClassDefId, ClassId, ClassSize, FieldDef, TypeParams};
-use ctxt::{SemContext, StructData, StructDef, StructDefId, StructFieldDef, StructId};
+use ctxt::{SemContext, StructData, StructDef, StructDefId, StructFieldDef, StructId, VM};
 use mem;
 use object::Header;
 use ty::BuiltinType;
 use vtable::{VTableBox, DISPLAY_SIZE};
 
-pub fn specialize_type<'ast>(
-    ctxt: &SemContext<'ast>,
+pub fn specialize_type(
+    vm: &VM,
     ty: BuiltinType,
-    type_params: &TypeParams,
+    cls_type_params: &TypeParams,
+    fct_type_params: &TypeParams,
 ) -> BuiltinType {
     match ty {
-        BuiltinType::ClassTypeParam(_, id) => type_params[id.idx()],
+        BuiltinType::ClassTypeParam(_, id) => cls_type_params[id.idx()],
 
-        BuiltinType::FctTypeParam(_, _) => panic!("no fct type params expected"),
+        BuiltinType::FctTypeParam(_, id) => fct_type_params[id.idx()],
 
         BuiltinType::Struct(struct_id, list_id) => {
-            let params = ctxt.lists.lock().get(list_id);
+            let params = vm.lists.lock().get(list_id);
 
             let params: TypeParams = params
                 .iter()
-                .map(|t| specialize_type(ctxt, t, type_params))
+                .map(|t| specialize_type(vm, t, cls_type_params, fct_type_params))
                 .collect::<Vec<_>>()
                 .into();
 
-            let list_id = ctxt.lists.lock().insert(params);
+            let list_id = vm.lists.lock().insert(params);
 
             BuiltinType::Struct(struct_id, list_id)
         }
 
         BuiltinType::Class(cls_id, list_id) => {
-            let params = ctxt.lists.lock().get(list_id);
+            let params = vm.lists.lock().get(list_id);
 
-            let params: TypeParams = params
+            let params: Vec<_> = params
                 .iter()
-                .map(|t| specialize_type(ctxt, t, type_params))
-                .collect::<Vec<_>>()
-                .into();
+                .map(|t| specialize_type(vm, t, cls_type_params, fct_type_params))
+                .collect();
 
-            let list_id = ctxt.lists.lock().insert(params);
+            let list_id = vm.lists.lock().insert(params.into());
 
             BuiltinType::Class(cls_id, list_id)
         }
+
+        BuiltinType::Lambda(_) => unimplemented!(),
 
         _ => ty,
     }
@@ -117,7 +119,7 @@ fn create_specialized_struct(
     let mut ref_fields = Vec::new();
 
     for f in &struc.fields {
-        let ty = specialize_type(ctxt, f.ty, &type_params);
+        let ty = specialize_type(ctxt, f.ty, &type_params, &TypeParams::empty());
         debug_assert!(!ty.contains_type_param(ctxt));
 
         let field_size = ty.size(ctxt);
@@ -259,7 +261,7 @@ fn create_specialized_class(
         };
 
         for f in &cls.fields {
-            let ty = specialize_type(ctxt, f.ty, &type_params);
+            let ty = specialize_type(ctxt, f.ty, &type_params, &TypeParams::empty());
             debug_assert!(!ty.contains_type_param(ctxt));
 
             let field_size = ty.size(ctxt);

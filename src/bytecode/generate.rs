@@ -15,6 +15,10 @@ impl Register {
         Register(usize::max_value())
     }
 
+    pub fn zero() -> Register {
+        Register(0)
+    }
+
     pub fn is_invalid(&self) -> bool {
         self.0 == usize::max_value()
     }
