@@ -1,3 +1,4 @@
+use std::collections::hash_map::HashMap;
 use std::convert::From;
 use std::fmt;
 use std::mem;
@@ -84,11 +85,21 @@ impl From<BuiltinType> for BytecodeType {
     }
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct StrConstPoolIdx(pub usize);
+
+impl fmt::Display for StrConstPoolIdx {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "str_idx#{}", self.0)
+    }
+}
+
 pub struct BytecodeGenerator {
     code: Vec<Bytecode>,
     labels: Vec<Option<BytecodeIdx>>,
     unresolved_jumps: Vec<(BytecodeIdx, Label)>,
     registers: Vec<BytecodeType>,
+    string_pool_map: HashMap<String, StrConstPoolIdx>,
 }
 
 impl BytecodeGenerator {
@@ -98,6 +109,7 @@ impl BytecodeGenerator {
             labels: Vec::new(),
             unresolved_jumps: Vec::new(),
             registers: Vec::new(),
+            string_pool_map: HashMap::new(),
         }
     }
 
@@ -282,8 +294,20 @@ impl BytecodeGenerator {
         self.code.push(Bytecode::ConstDouble(dest, value));
     }
 
-    pub fn emit_const_string(&mut self, dest: Register, value: String) {
-        self.code.push(Bytecode::ConstString(dest, value));
+    pub fn add_string_const_pool(&mut self, value: String) -> StrConstPoolIdx {
+        match self.string_pool_map.get(&value) {
+            Some(index) => index.clone(),
+            None => {
+                let index = StrConstPoolIdx(self.string_pool_map.len());
+                self.string_pool_map
+                    .insert(value.clone(), index);
+                index
+            }
+        }
+    }
+
+    pub fn emit_const_string(&mut self, dest: Register, index: StrConstPoolIdx) {
+        self.code.push(Bytecode::ConstString(dest, index));
     }
 
     pub fn emit_const_zero_byte(&mut self, dest: Register) {
@@ -797,6 +821,7 @@ impl BytecodeGenerator {
         BytecodeFunction {
             code: self.code,
             registers: self.registers,
+            string_pool: generate_string_pool(self.string_pool_map),
         }
     }
 
@@ -829,14 +854,28 @@ impl BytecodeGenerator {
     }
 }
 
+fn generate_string_pool(map: HashMap<String, StrConstPoolIdx>) -> Vec<String> {
+    let mut pool : Vec<String> = vec![String::new(); map.len()];
+    for (string_value, StrConstPoolIdx(index)) in map {
+        pool[index] = string_value;
+    }
+
+    pool
+}
+
 pub struct BytecodeFunction {
     code: Vec<Bytecode>,
     registers: Vec<BytecodeType>,
+    string_pool: Vec<String>,
 }
 
 impl BytecodeFunction {
     pub fn code(&self) -> &[Bytecode] {
         &self.code
+    }
+
+    pub fn string_pool(&self) -> &[String] {
+        &self.string_pool
     }
 
     pub fn dump(&self) {
@@ -881,8 +920,8 @@ impl BytecodeFunction {
                 Bytecode::ConstDouble(dest, val) => {
                     println!("{}: {} <-double {}", btidx, dest, val)
                 }
-                Bytecode::ConstString(dest, val) => {
-                    println!("{}: {} <-string {}", btidx, dest, val)
+                Bytecode::ConstString(dest, index) => {
+                    println!("{}: {} <-string {}", btidx, dest, index)
                 }
                 Bytecode::NotBool(dest, src) => println!("{}: {} <-bool {}", btidx, dest, src),
                 Bytecode::JumpIfFalse(opnd, target) => {

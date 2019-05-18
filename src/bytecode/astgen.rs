@@ -469,7 +469,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         let dest = self.ensure_register(dest, BytecodeType::Ptr);
 
-        self.gen.emit_const_string(dest, lit.value.clone());
+        let index = self.gen.add_string_const_pool(lit.value.clone());
+
+        self.gen.emit_const_string(dest, index);
 
         dest
     }
@@ -874,7 +876,7 @@ impl DataDest {
 #[cfg(test)]
 mod tests {
     use bytecode::astgen;
-    use bytecode::generate::{BytecodeFunction, BytecodeIdx, Register};
+    use bytecode::generate::{BytecodeFunction, BytecodeIdx, Register, StrConstPoolIdx};
     use bytecode::opcode::Bytecode::*;
     use class::TypeParams;
     use ctxt::VM;
@@ -1168,8 +1170,34 @@ mod tests {
     #[test]
     fn gen_expr_lit_string() {
         let fct = code("fun f() -> String { return \"z\"; }");
-        let expected = vec![ConstString(r(0), String::from("z")), RetPtr(r(0))];
+        let expected = vec![ConstString(r(0), sp(0)), RetPtr(r(0))];
+        let expected_string_pool = vec!["z"];
         assert_eq!(expected, fct.code());
+        assert_eq!(expected_string_pool, fct.string_pool());
+    }
+
+    #[test]
+    fn gen_expr_lit_string_duplicate() {
+        let fct = code("fun f() { let a = \"z\"; let b = \"z\"; }");
+        let expected = vec![
+            ConstString(r(0), sp(0)),
+            ConstString(r(1), sp(0)),
+            RetVoid];
+        let expected_string_pool = vec!["z"];
+        assert_eq!(expected, fct.code());
+        assert_eq!(expected_string_pool, fct.string_pool());
+    }
+
+    #[test]
+    fn gen_expr_lit_string_multiple() {
+        let fct = code("fun f() { let a = \"z\"; let b = \"y\"; }");
+        let expected = vec![
+            ConstString(r(0), sp(0)),
+            ConstString(r(1), sp(1)),
+            RetVoid];
+        let expected_string_pool = vec!["z", "y"];
+        assert_eq!(expected, fct.code());
+        assert_eq!(expected_string_pool, fct.string_pool());
     }
 
     #[test]
@@ -1624,5 +1652,9 @@ mod tests {
 
     fn bc(val: usize) -> BytecodeIdx {
         BytecodeIdx(val)
+    }
+
+    fn sp(val: usize) -> StrConstPoolIdx {
+        StrConstPoolIdx(val)
     }
 }
