@@ -228,7 +228,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             ExprBin(ref bin) => self.visit_expr_bin(bin, dest),
             ExprField(ref field) => self.visit_expr_field(field, dest),
             // ExprArray(ref array) => {},
-            // ExprLitChar(ref lit) => {},
+            ExprLitChar(ref lit) => self.visit_expr_lit_char(lit, dest),
             ExprLitInt(ref lit) => self.visit_expr_lit_int(lit, dest),
             ExprLitFloat(ref lit) => self.visit_expr_lit_float(lit, dest),
             ExprLitStr(ref lit) => self.visit_expr_lit_string(lit, dest),
@@ -399,6 +399,18 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         } else {
             return_reg
         }
+    }
+
+    fn visit_expr_lit_char(&mut self, lit: &ExprLitCharType, dest: DataDest) -> Register {
+        if dest.is_effect() {
+            return Register::invalid();
+        }
+
+        let dest = self.ensure_register(dest, BytecodeType::Char);
+
+        self.gen.emit_const_char(dest, lit.value);
+
+        dest
     }
 
     fn visit_expr_lit_int(&mut self, lit: &ExprLitIntType, dest: DataDest) -> Register {
@@ -1129,6 +1141,13 @@ mod tests {
             Jump(bc(0)),
             RetVoid,
         ];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_expr_lit_char() {
+        let fct = code("fun f() -> Char { return '1'; }");
+        let expected = vec![ConstChar(r(0), '1'), RetChar(r(0))];
         assert_eq!(expected, fct.code());
     }
 
