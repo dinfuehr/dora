@@ -866,6 +866,10 @@ impl BytecodeFunction {
         &self.code
     }
 
+    pub fn string_pool(&self) -> &[String] {
+        &self.string_pool
+    }
+
     pub fn dump(&self) {
         let mut btidx = 0;
         for btcode in self.code.iter() {
