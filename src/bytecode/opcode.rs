@@ -58,6 +58,7 @@ pub enum Bytecode {
     ConstZeroLong(Register),
     ConstZeroFloat(Register),
     ConstZeroDouble(Register),
+    ConstChar(Register, char),
     ConstByte(Register, u8),
     ConstInt(Register, u32),
     ConstLong(Register, u64),

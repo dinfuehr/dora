@@ -262,6 +262,10 @@ impl BytecodeGenerator {
             .push(Bytecode::LoadFieldPtr(dest, obj, cls, field));
     }
 
+    pub fn emit_const_char(&mut self, dest: Register, value: char) {
+        self.code.push(Bytecode::ConstChar(dest, value));
+    }
+
     pub fn emit_const_byte(&mut self, dest: Register, value: u8) {
         self.code.push(Bytecode::ConstByte(dest, value));
     }
@@ -874,6 +878,7 @@ impl BytecodeFunction {
                 Bytecode::ConstZeroLong(dest) => println!("{}: {} <-long 0", btidx, dest),
                 Bytecode::ConstZeroFloat(dest) => println!("{}: {} <-float 0", btidx, dest),
                 Bytecode::ConstZeroDouble(dest) => println!("{}: {} <-double 0", btidx, dest),
+                Bytecode::ConstChar(dest, val) => println!("{}: {} <-char {}", btidx, dest, val),
                 Bytecode::ConstByte(dest, val) => println!("{}: {} <-byte {}", btidx, dest, val),
                 Bytecode::ConstInt(dest, val) => println!("{}: {} <-int {}", btidx, dest, val),
                 Bytecode::ConstLong(dest, val) => println!("{}: {} <-long {}", btidx, dest, val),
