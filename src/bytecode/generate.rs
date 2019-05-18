@@ -807,23 +807,13 @@ impl BytecodeGenerator {
             .push(Bytecode::InvokeStaticPtr(dest, fid, start, num));
     }
 
-    fn generate_string_pool(&mut self) -> Vec<String> {
-        let mut pool : Vec<String> = vec![String::new(); self.string_pool_map.len()];
-        for (string_value, StrConstPoolIdx(index)) in self.string_pool_map.iter() {
-            pool[*index] = string_value.to_string();
-        }
-
-        pool
-    }
-
     pub fn generate(mut self) -> BytecodeFunction {
         self.resolve_forward_jumps();
-        let string_pool = self.generate_string_pool();
 
         BytecodeFunction {
             code: self.code,
             registers: self.registers,
-            string_pool: string_pool,
+            string_pool: generate_string_pool(self.string_pool_map),
         }
     }
 
@@ -854,6 +844,15 @@ impl BytecodeGenerator {
             }
         }
     }
+}
+
+fn generate_string_pool(map: HashMap<String, StrConstPoolIdx>) -> Vec<String> {
+    let mut pool : Vec<String> = vec![String::new(); map.len()];
+    for (string_value, StrConstPoolIdx(index)) in map.iter() {
+        pool[*index] = string_value.to_string();
+    }
+
+    pool
 }
 
 pub struct BytecodeFunction {
