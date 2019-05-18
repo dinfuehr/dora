@@ -1050,7 +1050,9 @@ mod tests {
     fn gen_expr_lit_string() {
         let fct = code("fun f() -> String { return \"z\"; }");
         let expected = vec![ConstString(r(0), sp(0)), RetPtr(r(0))];
+        let expected_string_pool = vec!["z"];
         assert_eq!(expected, fct.code());
+        assert_eq!(expected_string_pool, fct.string_pool());
     }
 
     #[test]
@@ -1060,7 +1062,9 @@ mod tests {
             ConstString(r(0), sp(0)),
             ConstString(r(1), sp(0)),
             RetVoid];
+        let expected_string_pool = vec!["z"];
         assert_eq!(expected, fct.code());
+        assert_eq!(expected_string_pool, fct.string_pool());
     }
 
     #[test]
@@ -1070,7 +1074,9 @@ mod tests {
             ConstString(r(0), sp(0)),
             ConstString(r(1), sp(1)),
             RetVoid];
+        let expected_string_pool = vec!["z", "y"];
         assert_eq!(expected, fct.code());
+        assert_eq!(expected_string_pool, fct.string_pool());
     }
 
     #[test]
