@@ -848,8 +848,8 @@ impl BytecodeGenerator {
 
 fn generate_string_pool(map: HashMap<String, StrConstPoolIdx>) -> Vec<String> {
     let mut pool : Vec<String> = vec![String::new(); map.len()];
-    for (string_value, StrConstPoolIdx(index)) in map.iter() {
-        pool[*index] = string_value.to_string();
+    for (string_value, StrConstPoolIdx(index)) in map {
+        pool[index] = string_value;
     }
 
     pool
