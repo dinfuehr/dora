@@ -1,17 +1,27 @@
-use boots::function::{Block, BlockData, Inst, InstData, UserList, VecMap};
+use boots::function::{Block, BlockData, Value, ValueData};
+use boots::inst::{Inst, InstData};
+use boots::utils::VecMap;
 
 pub struct DataFlowGraph {
-    instructions: VecMap<Inst, InstData>,
+    insts: VecMap<Inst, InstData>,
     blocks: VecMap<Block, BlockData>,
-    users: VecMap<Inst, UserList>,
+    values: VecMap<Value, ValueData>,
 }
 
 impl DataFlowGraph {
     pub fn new() -> DataFlowGraph {
         DataFlowGraph {
-            instructions: VecMap::new(),
+            insts: VecMap::new(),
             blocks: VecMap::new(),
-            users: VecMap::new(),
+            values: VecMap::new(),
         }
+    }
+
+    pub fn new_block(&mut self) -> Block {
+        self.blocks.push(BlockData::new())
+    }
+
+    pub fn new_inst(&mut self, inst_data: InstData) -> Inst {
+        self.insts.push(inst_data)
     }
 }

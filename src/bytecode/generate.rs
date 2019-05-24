@@ -303,8 +303,7 @@ impl BytecodeGenerator {
             Some(index) => index.clone(),
             None => {
                 let index = StrConstPoolIdx(self.string_pool_map.len());
-                self.string_pool_map
-                    .insert(value.clone(), index);
+                self.string_pool_map.insert(value.clone(), index);
                 index
             }
         }
@@ -859,7 +858,7 @@ impl BytecodeGenerator {
 }
 
 fn generate_string_pool(map: HashMap<String, StrConstPoolIdx>) -> Vec<String> {
-    let mut pool : Vec<String> = vec![String::new(); map.len()];
+    let mut pool: Vec<String> = vec![String::new(); map.len()];
     for (string_value, StrConstPoolIdx(index)) in map {
         pool[index] = string_value;
     }

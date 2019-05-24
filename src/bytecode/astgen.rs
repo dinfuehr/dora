@@ -1198,10 +1198,7 @@ mod tests {
     #[test]
     fn gen_expr_lit_string_duplicate() {
         let fct = code("fun f() { let a = \"z\"; let b = \"z\"; }");
-        let expected = vec![
-            ConstString(r(0), sp(0)),
-            ConstString(r(1), sp(0)),
-            RetVoid];
+        let expected = vec![ConstString(r(0), sp(0)), ConstString(r(1), sp(0)), RetVoid];
         let expected_string_pool = vec!["z"];
         assert_eq!(expected, fct.code());
         assert_eq!(expected_string_pool, fct.string_pool());
@@ -1210,10 +1207,7 @@ mod tests {
     #[test]
     fn gen_expr_lit_string_multiple() {
         let fct = code("fun f() { let a = \"z\"; let b = \"y\"; }");
-        let expected = vec![
-            ConstString(r(0), sp(0)),
-            ConstString(r(1), sp(1)),
-            RetVoid];
+        let expected = vec![ConstString(r(0), sp(0)), ConstString(r(1), sp(1)), RetVoid];
         let expected_string_pool = vec!["z", "y"];
         assert_eq!(expected, fct.code());
         assert_eq!(expected_string_pool, fct.string_pool());

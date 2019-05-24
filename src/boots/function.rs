@@ -1,8 +1,7 @@
-use std::marker::PhantomData;
-use std::ops::{Index, IndexMut};
-
 use boots::cfg::ControlFlowGraph;
 use boots::dfg::DataFlowGraph;
+use boots::inst::Inst;
+use boots::utils::VecKey;
 
 struct Function {
     next_block: usize,
@@ -27,19 +26,6 @@ impl Function {
 }
 
 #[derive(PartialEq, Eq, Hash)]
-pub struct Inst(u32);
-
-impl VecKey for Inst {
-    fn new(value: usize) -> Inst {
-        Inst(value as u32)
-    }
-
-    fn index(&self) -> usize {
-        self.0 as usize
-    }
-}
-
-#[derive(PartialEq, Eq, Hash)]
 pub struct Block(u32);
 
 impl VecKey for Block {
@@ -53,141 +39,42 @@ impl VecKey for Block {
 }
 
 pub struct BlockData {
-    params: u32,
+    params: Vec<Type>,
 }
 
-pub enum Value {
-    Inst(Inst),
-    Arg(u32),
-}
-
-pub struct UserList(Vec<Inst>);
-
-impl UserList {
-    pub fn new() -> UserList {
-        UserList(Vec::new())
+impl BlockData {
+    pub fn new() -> BlockData {
+        BlockData { params: Vec::new() }
     }
 }
 
-pub enum CmpOp {
-    Lt,
-    Le,
-    Eq,
-    Ne,
-    Gt,
-    Ge,
+#[derive(PartialEq, Eq, Hash)]
+pub struct Value(u32);
+
+impl VecKey for Value {
+    fn new(value: usize) -> Value {
+        Value(value as u32)
+    }
+
+    fn index(&self) -> usize {
+        self.0 as usize
+    }
 }
 
-pub enum InstData {
-    Add {
-        ty: Type,
-        lhs: Value,
-        rhs: Value,
-    },
-
-    Sub {
-        ty: Type,
-        lhs: Value,
-        rhs: Value,
-    },
-
-    Goto {
-        target: Block,
-    },
-
-    If {
-        opnd: Value,
-        then_block: Block,
-        else_block: Block,
-    },
-
-    Cmp {
-        ty: Type,
-        op: CmpOp,
-        lhs: Value,
-        rhs: Value,
-    },
-
-    Ret {
-        opnd: Option<Value>,
-    },
-
-    TrueConst,
-    FalseConst,
-    NilConst,
-    Int8Const(u8),
-    Int32Const(i32),
-    Int64Const(i64),
-    Float32Const(f32),
-    Float64Const(f64),
-
-    Param {
-        ty: Type,
-        idx: u32,
-    },
-
-    Deleted,
+pub enum ValueData {
+    Inst { ty: Type, inst: Inst },
+    Arg { ty: Type, block: Block, arg: u32 },
 }
 
 pub enum Type {
     Bool,
-    Int8,
-    Int32,
-    Int64,
-    Float32,
-    Float64,
-    Reference,
-}
-
-pub struct VecMap<K, V>
-where
-    K: VecKey,
-{
-    data: Vec<V>,
-    unused: PhantomData<K>,
-}
-
-impl<K, V> VecMap<K, V>
-where
-    K: VecKey,
-{
-    pub fn new() -> VecMap<K, V> {
-        VecMap {
-            data: Vec::new(),
-            unused: PhantomData,
-        }
-    }
-
-    pub fn push(&mut self, value: V) -> K {
-        let idx = self.data.len();
-        self.data.push(value);
-        K::new(idx)
-    }
-}
-
-impl<K, V> Index<K> for VecMap<K, V>
-where
-    K: VecKey,
-{
-    type Output = V;
-
-    fn index(&self, k: K) -> &V {
-        &self.data[k.index()]
-    }
-}
-
-impl<K, V> IndexMut<K> for VecMap<K, V>
-where
-    K: VecKey,
-{
-    fn index_mut(&mut self, k: K) -> &mut V {
-        &mut self.data[k.index()]
-    }
-}
-
-pub trait VecKey {
-    fn new(value: usize) -> Self;
-    fn index(&self) -> usize;
+    Byte,
+    Char,
+    Int,
+    Long,
+    Float,
+    Double,
+    Ptr,
 }
 
 #[cfg(test)]
@@ -197,6 +84,6 @@ mod tests {
     #[test]
     fn simple_fn() {
         let mut fct = Function::new();
-        let _blk = fct.make_block();
+        let _b = fct.make_block();
     }
 }
