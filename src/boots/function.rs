@@ -4,7 +4,6 @@ use boots::inst::Inst;
 use boots::utils::VecKey;
 
 struct Function {
-    next_block: usize,
     dfg: DataFlowGraph,
     cfg: ControlFlowGraph,
 }
@@ -12,16 +11,13 @@ struct Function {
 impl Function {
     fn new() -> Function {
         Function {
-            next_block: 0,
             dfg: DataFlowGraph::new(),
             cfg: ControlFlowGraph::new(),
         }
     }
 
     fn make_block(&mut self) -> Block {
-        let block = self.next_block;
-        self.next_block += 1;
-        Block::new(block)
+        self.dfg.make_block()
     }
 }
 

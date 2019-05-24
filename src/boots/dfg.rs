@@ -17,11 +17,11 @@ impl DataFlowGraph {
         }
     }
 
-    pub fn new_block(&mut self) -> Block {
+    pub fn make_block(&mut self) -> Block {
         self.blocks.push(BlockData::new())
     }
 
-    pub fn new_inst(&mut self, inst_data: InstData) -> Inst {
+    pub fn make_inst(&mut self, inst_data: InstData) -> Inst {
         self.insts.push(inst_data)
     }
 }
