@@ -7,7 +7,7 @@ pub struct ControlFlowGraph {
     entry_block: Option<Block>,
     exit_block: Option<Block>,
     blocks: HashMap<Block, BlockNode>,
-    instructions: HashMap<Inst, InstNode>,
+    insts: HashMap<Inst, InstNode>,
 }
 
 impl ControlFlowGraph {
@@ -16,7 +16,7 @@ impl ControlFlowGraph {
             entry_block: None,
             exit_block: None,
             blocks: HashMap::new(),
-            instructions: HashMap::new(),
+            insts: HashMap::new(),
         }
     }
 }

@@ -24,4 +24,8 @@ impl DataFlowGraph {
     pub fn make_inst(&mut self, inst_data: InstData) -> Inst {
         self.insts.push(inst_data)
     }
+
+    pub fn make_value(&mut self, value_data: ValueData) -> Value {
+        self.values.push(value_data)
+    }
 }
