@@ -274,6 +274,10 @@ impl BytecodeGenerator {
             .push(Bytecode::LoadFieldPtr(dest, obj, cls, field));
     }
 
+    pub fn emit_const_nil(&mut self, dest: Register) {
+        self.code.push(Bytecode::ConstNil(dest));
+    }
+
     pub fn emit_const_char(&mut self, dest: Register, value: char) {
         self.code.push(Bytecode::ConstChar(dest, value));
     }
@@ -909,6 +913,7 @@ impl BytecodeFunction {
                 Bytecode::DivInt(dest, lhs, rhs) => {
                     println!("{}: {} <-int {} / {}", btidx, dest, lhs, rhs)
                 }
+                Bytecode::ConstNil(dest) => println!("{}: {} <- nil", btidx, dest),
                 Bytecode::ConstTrue(dest) => println!("{}: {} <- true", btidx, dest),
                 Bytecode::ConstFalse(dest) => println!("{}: {} <- false", btidx, dest),
                 Bytecode::ConstZeroByte(dest) => println!("{}: {} <-byte 0", btidx, dest),

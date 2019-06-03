@@ -51,6 +51,7 @@ pub enum Bytecode {
     LoadGlobalDouble(Register, GlobalId),
     LoadGlobalPtr(Register, GlobalId),
 
+    ConstNil(Register),
     ConstTrue(Register),
     ConstFalse(Register),
     ConstZeroByte(Register),
