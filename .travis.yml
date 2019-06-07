@@ -12,6 +12,9 @@ addons:
 #   - linux
 #   - osx
 
+before_script:
+  - rustup component add --toolchain nightly rustfmt
+
 install:
   - git clone https://github.com/aquynh/capstone
   - (cd capstone && git checkout 3.0.4 && sudo make install)
