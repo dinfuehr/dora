@@ -1,5 +1,3 @@
-extern crate dora;
-
 #[cfg(not(test))]
 use std::process::exit;
 
