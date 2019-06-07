@@ -16,6 +16,7 @@ use dora_parser::lexer::position::Position;
 
 pub fn check<'ast>(
     ctxt: &mut SemContext<'ast>,
+    ast: &'ast Ast,
     map_cls_defs: &mut NodeMap<ClassId>,
     map_struct_defs: &mut NodeMap<StructId>,
     map_trait_defs: &mut NodeMap<TraitId>,
@@ -33,7 +34,7 @@ pub fn check<'ast>(
         map_const_defs: map_const_defs,
     };
 
-    gdef.visit_ast(ctxt.ast);
+    gdef.visit_ast(ast);
 }
 
 struct GlobalDef<'x, 'ast: 'x> {

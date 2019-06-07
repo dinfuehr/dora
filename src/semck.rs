@@ -45,6 +45,7 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
     // this check does not look into fct or class bodies
     globaldef::check(
         ctxt,
+        &ctxt.ast,
         &mut map_cls_defs,
         &mut map_struct_defs,
         &mut map_trait_defs,
@@ -58,12 +59,12 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
     prelude::internal_classes(ctxt);
 
     // checks class/struct/trait definitions/bodies
-    clsdefck::check(ctxt, &map_cls_defs);
-    structdefck::check(ctxt, &map_struct_defs);
-    traitdefck::check(ctxt, &map_trait_defs);
-    impldefck::check(ctxt, &map_impl_defs);
-    globaldefck::check(ctxt, &map_global_defs);
-    constdefck::check(ctxt, &map_const_defs);
+    clsdefck::check(ctxt, &ctxt.ast, &map_cls_defs);
+    structdefck::check(ctxt, &ctxt.ast, &map_struct_defs);
+    traitdefck::check(ctxt, &ctxt.ast, &map_trait_defs);
+    impldefck::check(ctxt, &ctxt.ast, &map_impl_defs);
+    globaldefck::check(ctxt, &ctxt.ast, &map_global_defs);
+    constdefck::check(ctxt, &ctxt.ast, &map_const_defs);
     return_on_error!(ctxt);
 
     // check names/identifiers of local variables

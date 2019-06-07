@@ -3,17 +3,21 @@ use crate::semck;
 use crate::ty::BuiltinType;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::Elem::ElemGlobal;
-use dora_parser::ast::{File, Global};
+use dora_parser::ast::{Ast, File, Global};
 use dora_parser::error::msg::Msg;
 
-pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>, map_global_defs: &NodeMap<GlobalId>) {
+pub fn check<'a, 'ast>(
+    ctxt: &SemContext<'ast>,
+    ast: &'ast Ast,
+    map_global_defs: &NodeMap<GlobalId>,
+) {
     let mut checker = GlobalDefCheck {
         ctxt: ctxt,
         current_type: BuiltinType::Unit,
         map_global_defs: map_global_defs,
     };
 
-    checker.visit_ast(ctxt.ast);
+    checker.visit_ast(ast);
 }
 
 struct GlobalDefCheck<'a, 'ast: 'a> {

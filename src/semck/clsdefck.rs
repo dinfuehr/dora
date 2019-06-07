@@ -6,16 +6,17 @@ use crate::ctxt::{Fct, FctId, FctKind, FctParent, FctSrc, NodeMap, SemContext};
 use crate::semck;
 use crate::sym::Sym;
 use crate::ty::BuiltinType;
-use dora_parser::ast;
+
 use dora_parser::ast::visit::{self, Visitor};
+use dora_parser::ast::{self, Ast};
 use dora_parser::error::msg::Msg;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-pub fn check<'ast>(ctxt: &mut SemContext<'ast>, map_cls_defs: &NodeMap<ClassId>) {
+pub fn check<'ast>(ctxt: &mut SemContext<'ast>, ast: &'ast Ast, map_cls_defs: &NodeMap<ClassId>) {
     let mut clsck = ClsCheck {
         ctxt: ctxt,
-        ast: ctxt.ast,
+        ast: ast,
         cls_id: None,
         map_cls_defs: map_cls_defs,
     };

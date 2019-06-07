@@ -3,15 +3,16 @@ use parking_lot::RwLock;
 use crate::ctxt::{Fct, FctId, FctKind, FctParent, FctSrc, ImplId, NodeMap, SemContext};
 use crate::sym::Sym;
 use crate::ty::BuiltinType;
-use dora_parser::ast;
+
 use dora_parser::ast::visit::{self, Visitor};
+use dora_parser::ast::{self, Ast};
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 
-pub fn check<'ast>(ctxt: &mut SemContext<'ast>, map_impl_defs: &NodeMap<ImplId>) {
+pub fn check<'ast>(ctxt: &mut SemContext<'ast>, ast: &'ast Ast, map_impl_defs: &NodeMap<ImplId>) {
     let mut clsck = ImplCheck {
         ctxt: ctxt,
-        ast: ctxt.ast,
+        ast: ast,
         impl_id: None,
         map_impl_defs: map_impl_defs,
     };
