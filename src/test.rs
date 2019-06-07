@@ -3,10 +3,10 @@ use dora_parser::interner::Interner;
 use dora_parser::lexer::reader::Reader;
 use dora_parser::parser::{NodeIdGenerator, Parser};
 
-use ctxt::VM;
-use driver::cmd::Args;
-use os;
-use semck;
+use crate::ctxt::VM;
+use crate::driver::cmd::Args;
+use crate::os;
+use crate::semck;
 
 pub fn parse<F, T>(code: &'static str, f: F) -> T
 where

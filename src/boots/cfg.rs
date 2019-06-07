@@ -1,7 +1,7 @@
 use std::collections::hash_map::HashMap;
 
-use boots::function::Block;
-use boots::inst::Inst;
+use crate::boots::function::Block;
+use crate::boots::inst::Inst;
 
 pub struct ControlFlowGraph {
     entry_block: Option<Block>,

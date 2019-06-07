@@ -2,10 +2,10 @@ use std::fmt;
 use std::ops::Index;
 use std::slice::Iter;
 
-use ast::Elem::*;
-use lexer::position::Position;
-use lexer::token::{FloatSuffix, IntBase, IntSuffix};
-use interner::{Interner, Name};
+use crate::ast::Elem::*;
+use crate::lexer::position::Position;
+use crate::lexer::token::{FloatSuffix, IntBase, IntSuffix};
+use crate::interner::{Interner, Name};
 
 pub mod visit;
 pub mod dump;

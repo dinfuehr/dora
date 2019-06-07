@@ -1,20 +1,20 @@
 use parking_lot::MutexGuard;
 use std::fmt;
 
-use ctxt::get_vm;
-use gc::root::Slot;
-use gc::space::Space;
-use gc::swiper::card::{CardEntry, CardTable};
-use gc::swiper::crossing::{CrossingEntry, CrossingMap};
-use gc::swiper::large::LargeSpace;
-use gc::swiper::old::{OldGen, OldGenProtected};
-use gc::swiper::on_different_cards;
-use gc::swiper::young::YoungGen;
-use gc::swiper::{CARD_REFS, CARD_SIZE};
-use gc::{Address, Region};
+use crate::ctxt::get_vm;
+use crate::gc::root::Slot;
+use crate::gc::space::Space;
+use crate::gc::swiper::card::{CardEntry, CardTable};
+use crate::gc::swiper::crossing::{CrossingEntry, CrossingMap};
+use crate::gc::swiper::large::LargeSpace;
+use crate::gc::swiper::old::{OldGen, OldGenProtected};
+use crate::gc::swiper::on_different_cards;
+use crate::gc::swiper::young::YoungGen;
+use crate::gc::swiper::{CARD_REFS, CARD_SIZE};
+use crate::gc::{Address, Region};
 
-use mem;
-use object::{offset_of_array_data, Obj};
+use crate::mem;
+use crate::object::{offset_of_array_data, Obj};
 
 #[derive(Copy, Clone)]
 pub enum VerifierPhase {
@@ -602,7 +602,7 @@ mod memory {
     use std::fs::File;
     use std::io::{BufRead, BufReader};
 
-    use gc::{Address, Region};
+    use crate::gc::{Address, Region};
 
     pub fn verify_mapped_regions(total: Region, regions: &[Region]) {
         let mappings = read_memory_mappings(total);

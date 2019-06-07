@@ -1,16 +1,16 @@
 use parking_lot::RwLock;
 use std::collections::HashSet;
 
-use class::*;
-use ctxt::{Fct, FctId, FctKind, FctParent, FctSrc, NodeMap, SemContext};
+use crate::class::*;
+use crate::ctxt::{Fct, FctId, FctKind, FctParent, FctSrc, NodeMap, SemContext};
+use crate::semck;
+use crate::sym::Sym;
+use crate::ty::BuiltinType;
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::error::msg::Msg;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
-use semck;
-use sym::Sym;
-use ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &mut SemContext<'ast>, map_cls_defs: &NodeMap<ClassId>) {
     let mut clsck = ClsCheck {
@@ -309,8 +309,8 @@ fn report(ctxt: &SemContext, pos: Position, msg: Msg) {
 
 #[cfg(test)]
 mod tests {
+    use crate::semck::tests::*;
     use dora_parser::error::msg::Msg;
-    use semck::tests::*;
 
     #[test]
     fn test_multiple_definition() {

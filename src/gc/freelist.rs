@@ -1,5 +1,5 @@
-use ctxt::VM;
-use gc::{fill_region, fill_region_with_free, Address, K};
+use crate::ctxt::VM;
+use crate::gc::{fill_region, fill_region_with_free, Address, K};
 
 pub const SIZE_CLASSES: usize = 6;
 

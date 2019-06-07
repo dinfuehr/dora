@@ -1,10 +1,10 @@
-use ctxt::{NodeMap, SemContext, StructFieldData, StructId};
+use crate::ctxt::{NodeMap, SemContext, StructFieldData, StructId};
+use crate::semck;
+use crate::ty::BuiltinType;
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
-use semck;
-use ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &mut SemContext<'ast>, map_struct_defs: &NodeMap<StructId>) {
     let mut clsck = StructCheck {
@@ -73,8 +73,8 @@ fn report(ctxt: &SemContext, pos: Position, msg: Msg) {
 
 #[cfg(test)]
 mod tests {
+    use crate::semck::tests::*;
     use dora_parser::error::msg::Msg;
-    use semck::tests::*;
 
     #[test]
     fn struct_field() {

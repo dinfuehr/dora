@@ -1,8 +1,8 @@
 use std::sync::atomic::{compiler_fence, Ordering};
 
-use execstate::ExecState;
-use object::{Obj, Ref};
-use os::signal::Trap;
+use crate::execstate::ExecState;
+use crate::object::{Obj, Ref};
+use crate::os::signal::Trap;
 
 pub use self::param::*;
 pub use self::reg::*;

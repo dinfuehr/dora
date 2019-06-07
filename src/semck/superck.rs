@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
-use class::{Class, ClassId};
-use ctxt::{Fct, SemContext};
+use crate::class::{Class, ClassId};
+use crate::ctxt::{Fct, SemContext};
 use dora_parser::error::msg::Msg;
 
 pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
@@ -244,10 +244,10 @@ fn check_fct_modifier<'ast>(ctxt: &SemContext<'ast>, cls: &Class, fct: &mut Fct<
 
 #[cfg(test)]
 mod tests {
-    use ctxt::SemContext;
+    use crate::ctxt::SemContext;
+    use crate::semck::tests::{err, errors, ok, ok_with_test, pos};
     use dora_parser::error::msg::Msg;
     use dora_parser::interner::Name;
-    use semck::tests::{err, errors, ok, ok_with_test, pos};
 
     // #[test]
     // fn test_class_size() {

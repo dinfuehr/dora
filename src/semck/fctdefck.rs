@@ -1,13 +1,13 @@
 use std::collections::HashSet;
 
-use ctxt::{self, Fct, FctId, FctParent, FctSrc, SemContext};
+use crate::ctxt::{self, Fct, FctId, FctParent, FctSrc, SemContext};
+use crate::semck;
+use crate::sym::Sym;
+use crate::ty::BuiltinType;
 use dora_parser::ast::visit::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 use dora_parser::error::msg::Msg;
-use semck;
-use sym::Sym;
-use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
     debug_assert!(ctxt.sym.lock().levels() == 1);
@@ -291,10 +291,10 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
                 }
             }
 
-            StmtDo(ref try) => {
+            StmtDo(ref r#try) => {
                 visit::walk_stmt(self, s);
 
-                for catch in &try.catch_blocks {
+                for catch in &r#try.catch_blocks {
                     let ty = self.src.ty(catch.data_type.id());
 
                     let var = *self.src.map_vars.get(catch.id).unwrap();
@@ -309,11 +309,11 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
                     }
                 }
 
-                if try.catch_blocks.is_empty() && try.finally_block.is_none() {
+                if r#try.catch_blocks.is_empty() && r#try.finally_block.is_none() {
                     self.ctxt
                         .diag
                         .lock()
-                        .report_without_path(try.pos, Msg::CatchOrFinallyExpected);
+                        .report_without_path(r#try.pos, Msg::CatchOrFinallyExpected);
                 }
             }
 
@@ -329,8 +329,8 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
 
 #[cfg(test)]
 mod tests {
+    use crate::semck::tests::*;
     use dora_parser::error::msg::Msg;
-    use semck::tests::*;
 
     #[test]
     fn self_param() {

@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use ctxt::SemContext;
+use crate::ctxt::SemContext;
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 
@@ -76,8 +76,8 @@ fn report(ctxt: &SemContext, pos: Position, msg: Msg) {
 
 #[cfg(test)]
 mod tests {
+    use crate::semck::tests::*;
     use dora_parser::error::msg::Msg;
-    use semck::tests::*;
 
     #[test]
     fn method_not_in_trait() {

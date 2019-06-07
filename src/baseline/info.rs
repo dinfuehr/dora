@@ -1,20 +1,20 @@
 use std::cmp::max;
 use std::collections::HashMap;
 
-use class::TypeParams;
-use cpu::*;
-use ctxt::VM;
-use ctxt::{
+use crate::class::TypeParams;
+use crate::cpu::*;
+use crate::ctxt::VM;
+use crate::ctxt::{
     Arg, CallSite, CallType, Fct, FctId, FctKind, FctParent, FctSrc, Intrinsic, NodeMap, Store,
     TraitId, VarId,
 };
+use crate::mem;
+use crate::semck::specialize::specialize_type;
+use crate::ty::BuiltinType;
 use dora_parser::ast::visit::*;
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
-use mem;
-use semck::specialize::specialize_type;
-use ty::BuiltinType;
 
 pub fn generate<'a, 'ast: 'a>(
     vm: &'a VM<'ast>,
@@ -176,8 +176,8 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
                 self.reserve_stack_for_var(var);
             }
 
-            &StmtDo(ref try) => {
-                self.reserve_stmt_do(try);
+            &StmtDo(ref r#try) => {
+                self.reserve_stmt_do(r#try);
             }
 
             &StmtFor(ref sfor) => {
@@ -227,7 +227,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.jit_info.eh_return_value = self.eh_return_value;
     }
 
-    fn reserve_stmt_do(&mut self, try: &'ast StmtDoType) {
+    fn reserve_stmt_do(&mut self, r#try: &'ast StmtDoType) {
         let ret = self.fct.return_type;
 
         if !ret.is_unit() {
@@ -238,14 +238,14 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         }
 
         // we also need space for catch block parameters
-        for catch in &try.catch_blocks {
+        for catch in &r#try.catch_blocks {
             let var = *self.src.map_vars.get(catch.id).unwrap();
             self.reserve_stack_for_var(var);
         }
 
-        if try.finally_block.is_some() {
+        if r#try.finally_block.is_some() {
             let offset = self.reserve_stack_for_type(BuiltinType::Ptr);
-            self.jit_info.map_offsets.insert(try.id, offset);
+            self.jit_info.map_offsets.insert(r#try.id, offset);
         }
     }
 
@@ -829,9 +829,9 @@ pub struct ForInfo<'ast> {
 mod tests {
     use super::*;
 
-    use ctxt::*;
-    use os;
-    use test;
+    use crate::ctxt::*;
+    use crate::os;
+    use crate::test;
 
     fn info<F>(code: &'static str, f: F)
     where

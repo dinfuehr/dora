@@ -7,32 +7,32 @@ use std::ops::{Index, IndexMut};
 use std::ptr;
 use std::sync::Arc;
 
+use crate::driver::cmd::Args;
 use dora_parser::error::diag::Diagnostic;
-use driver::cmd::Args;
 
-use baseline;
-use baseline::dora_compile;
-use baseline::dora_entry;
-use baseline::dora_native::{self, InternalFct, InternalFctDescriptor, NativeThunks};
-use baseline::dora_throw;
-use baseline::fct::{JitFct, JitFctId};
-use baseline::map::{CodeDescriptor, CodeMap};
-use class::{Class, ClassDef, ClassDefId, ClassId, FieldId, TypeParams};
+use crate::baseline;
+use crate::baseline::dora_compile;
+use crate::baseline::dora_entry;
+use crate::baseline::dora_native::{self, InternalFct, InternalFctDescriptor, NativeThunks};
+use crate::baseline::dora_throw;
+use crate::baseline::fct::{JitFct, JitFctId};
+use crate::baseline::map::{CodeDescriptor, CodeMap};
+use crate::class::{Class, ClassDef, ClassDefId, ClassId, FieldId, TypeParams};
+use crate::exception::DoraToNativeInfo;
+use crate::gc::{Address, Gc};
+use crate::object::{Ref, Testing};
+use crate::os::perf::counters::PerfCounters;
+use crate::safepoint::{PollingPage, Safepoint};
+use crate::semck::specialize::{specialize_class_id, specialize_class_id_params};
+use crate::stdlib;
+use crate::sym::Sym::*;
+use crate::sym::*;
+use crate::threads::{Threads, THREAD};
+use crate::ty::{BuiltinType, LambdaTypes, TypeLists};
+use crate::utils::GrowableVec;
 use dora_parser::ast;
 use dora_parser::interner::*;
 use dora_parser::lexer::position::Position;
-use exception::DoraToNativeInfo;
-use gc::{Address, Gc};
-use object::{Ref, Testing};
-use os::perf::counters::PerfCounters;
-use safepoint::{PollingPage, Safepoint};
-use semck::specialize::{specialize_class_id, specialize_class_id_params};
-use stdlib;
-use sym::Sym::*;
-use sym::*;
-use threads::{Threads, THREAD};
-use ty::{BuiltinType, LambdaTypes, TypeLists};
-use utils::GrowableVec;
 
 pub static mut EXCEPTION_OBJECT: *const u8 = 0 as *const u8;
 
@@ -275,7 +275,7 @@ impl<'ast> SemContext<'ast> {
         class_name: &'static str,
         field_name: &'static str,
     ) -> (ClassDefId, FieldId) {
-        use semck::specialize;
+        use crate::semck::specialize;
 
         let class_name = self.interner.intern(class_name);
         let field_name = self.interner.intern(field_name);

@@ -1,4 +1,4 @@
-use gc::Address;
+use crate::gc::Address;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 pub struct BumpAllocator {

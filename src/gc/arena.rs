@@ -1,8 +1,8 @@
 use std::ptr;
 
-use gc::Address;
-use mem;
-use os::page_size;
+use crate::gc::Address;
+use crate::mem;
+use crate::os::page_size;
 
 pub fn reserve(size: usize) -> Address {
     debug_assert!(mem::is_page_aligned(size));

@@ -1,23 +1,23 @@
 use std::fs;
 use std::path::Path;
 
-use ctxt::VM;
-use ctxt::{exception_get_and_clear, Fct, FctId};
+use crate::ctxt::VM;
+use crate::ctxt::{exception_get_and_clear, Fct, FctId};
 use dora_parser::ast::{self, Ast};
 use dora_parser::error::msg::Msg;
 
+use crate::driver::cmd;
+use crate::object;
+use crate::os;
+use crate::timer::Timer;
 use dora_parser::interner::Interner;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::reader::Reader;
-use driver::cmd;
-use object;
-use os;
-use timer::Timer;
 
+use crate::semck;
+use crate::semck::specialize::specialize_class_id;
+use crate::ty::BuiltinType;
 use dora_parser::parser::{NodeIdGenerator, Parser};
-use semck;
-use semck::specialize::specialize_class_id;
-use ty::BuiltinType;
 
 pub fn start(content: Option<&str>) -> i32 {
     os::mem::init_page_size();

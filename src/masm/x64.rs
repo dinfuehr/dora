@@ -1,21 +1,21 @@
-use baseline::codegen::CondCode;
-use baseline::expr::ExprStore;
-use baseline::fct::BailoutInfo;
-use baseline::fct::GcPoint;
+use crate::baseline::codegen::CondCode;
+use crate::baseline::expr::ExprStore;
+use crate::baseline::fct::BailoutInfo;
+use crate::baseline::fct::GcPoint;
+use crate::class::TypeParams;
+use crate::cpu::*;
+use crate::ctxt::get_vm;
+use crate::ctxt::FctId;
+use crate::gc::swiper::CARD_SIZE_BITS;
+use crate::gc::Address;
+use crate::masm::{Label, MacroAssembler};
+use crate::mem::{fits_i32, ptr_width};
+use crate::object::{offset_of_array_data, offset_of_array_length, Header};
+use crate::os::signal::Trap;
+use crate::ty::MachineMode;
+use crate::vtable::VTable;
 use byteorder::{LittleEndian, WriteBytesExt};
-use class::TypeParams;
-use cpu::*;
-use ctxt::get_vm;
-use ctxt::FctId;
 use dora_parser::lexer::position::Position;
-use gc::swiper::CARD_SIZE_BITS;
-use gc::Address;
-use masm::{Label, MacroAssembler};
-use mem::{fits_i32, ptr_width};
-use object::{offset_of_array_data, offset_of_array_length, Header};
-use os::signal::Trap;
-use ty::MachineMode;
-use vtable::VTable;
 
 impl MacroAssembler {
     pub fn prolog(&mut self, stacksize: i32) {

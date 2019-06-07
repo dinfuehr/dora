@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use class::TypeParams;
-use ctxt::*;
+use crate::class::TypeParams;
+use crate::ctxt::*;
 use dora_parser::error::msg::Msg;
 
 use dora_parser::ast::visit::*;
@@ -11,9 +11,9 @@ use dora_parser::ast::*;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use sym::Sym;
-use sym::Sym::*;
-use ty::BuiltinType;
+use crate::sym::Sym;
+use crate::sym::Sym::*;
+use crate::ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &SemContext<'ast>) {
     for fct in ctxt.fcts.iter() {
@@ -181,10 +181,10 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         self.ctxt.sym.lock().pop_level();
     }
 
-    fn check_stmt_do(&mut self, try: &'ast StmtDoType) {
-        self.visit_stmt(&try.do_block);
+    fn check_stmt_do(&mut self, r#try: &'ast StmtDoType) {
+        self.visit_stmt(&r#try.do_block);
 
-        for catch in &try.catch_blocks {
+        for catch in &r#try.catch_blocks {
             self.ctxt.sym.lock().push_level();
 
             let var_ctxt = Var {
@@ -192,7 +192,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                 name: catch.name,
                 ty: BuiltinType::Unit,
                 reassignable: false,
-                node_id: try.id,
+                node_id: r#try.id,
             };
 
             // variables are not allowed to replace types, other variables
@@ -212,7 +212,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             self.ctxt.sym.lock().pop_level();
         }
 
-        if let Some(ref finally_block) = try.finally_block {
+        if let Some(ref finally_block) = r#try.finally_block {
             self.visit_stmt(&finally_block.block);
         }
     }
@@ -390,8 +390,8 @@ fn str(ctxt: &SemContext, name: Name) -> String {
 
 #[cfg(test)]
 mod tests {
+    use crate::semck::tests::*;
     use dora_parser::error::msg::Msg;
-    use semck::tests::*;
 
     #[test]
     fn multiple_functions() {

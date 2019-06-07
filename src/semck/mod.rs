@@ -1,11 +1,11 @@
-use class::TypeParams;
-use ctxt::{NodeMap, SemContext};
+use crate::class::TypeParams;
+use crate::ctxt::{NodeMap, SemContext};
+use crate::mem;
+use crate::sym::Sym::{SymClass, SymClassTypeParam, SymFctTypeParam, SymStruct, SymTrait};
+use crate::ty::BuiltinType;
 use dora_parser::ast::Type::{TypeBasic, TypeLambda, TypeSelf, TypeTuple};
 use dora_parser::ast::{Stmt, Type};
 use dora_parser::error::msg::Msg;
-use mem;
-use sym::Sym::{SymClass, SymClassTypeParam, SymFctTypeParam, SymStruct, SymTrait};
-use ty::BuiltinType;
 
 mod abstractck;
 mod clsdefck;
@@ -361,10 +361,10 @@ pub fn always_returns(s: &Stmt) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use ctxt::SemContext;
+    use crate::ctxt::SemContext;
+    use crate::test;
     use dora_parser::error::msg::Msg;
     use dora_parser::lexer::position::Position;
-    use test;
 
     pub fn ok(code: &'static str) {
         test::parse_with_errors(code, |ctxt| {

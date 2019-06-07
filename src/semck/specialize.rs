@@ -3,12 +3,12 @@ use std::cmp::max;
 use std::ptr;
 use std::sync::Arc;
 
-use class::{self, ClassDef, ClassDefId, ClassId, ClassSize, FieldDef, TypeParams};
-use ctxt::{SemContext, StructData, StructDef, StructDefId, StructFieldDef, StructId, VM};
-use mem;
-use object::Header;
-use ty::BuiltinType;
-use vtable::{VTableBox, DISPLAY_SIZE};
+use crate::class::{self, ClassDef, ClassDefId, ClassId, ClassSize, FieldDef, TypeParams};
+use crate::ctxt::{SemContext, StructData, StructDef, StructDefId, StructFieldDef, StructId, VM};
+use crate::mem;
+use crate::object::Header;
+use crate::ty::BuiltinType;
+use crate::vtable::{VTableBox, DISPLAY_SIZE};
 
 pub fn specialize_type(
     vm: &VM,

@@ -1,16 +1,16 @@
 use parking_lot::Mutex;
 
-use ctxt::VM;
-use driver::cmd::Args;
-use gc::bump::BumpAllocator;
-use gc::root::{get_rootset, Slot};
-use gc::tlab;
-use gc::{formatted_size, Address, CollectionStats, Collector, GcReason, Region};
-use mem;
-use object::Obj;
-use os::{self, ProtType};
-use safepoint;
-use timer::Timer;
+use crate::ctxt::VM;
+use crate::driver::cmd::Args;
+use crate::gc::bump::BumpAllocator;
+use crate::gc::root::{get_rootset, Slot};
+use crate::gc::tlab;
+use crate::gc::{formatted_size, Address, CollectionStats, Collector, GcReason, Region};
+use crate::mem;
+use crate::object::Obj;
+use crate::os::{self, ProtType};
+use crate::safepoint;
+use crate::timer::Timer;
 
 pub struct CopyCollector {
     total: Region,

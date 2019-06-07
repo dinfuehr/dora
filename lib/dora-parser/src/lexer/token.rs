@@ -1,7 +1,7 @@
 use std::fmt;
 use std::result::Result;
 
-use lexer::position::Position;
+use crate::lexer::position::Position;
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum TokenKind {

@@ -3,11 +3,11 @@ use std::cmp::{max, min};
 use std::default::Default;
 use std::ops::Deref;
 
+use crate::gc::M;
 use docopt::Docopt;
-use gc::M;
 use rustc_serialize;
 
-use gc::{DEFAULT_CODE_SPACE_LIMIT, DEFAULT_PERM_SPACE_LIMIT};
+use crate::gc::{DEFAULT_CODE_SPACE_LIMIT, DEFAULT_PERM_SPACE_LIMIT};
 
 pub fn parse() -> Args {
     Docopt::new(USAGE)

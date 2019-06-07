@@ -1,29 +1,29 @@
-use baseline::asm::BaselineAssembler;
-use baseline::codegen::{
+use crate::baseline::asm::BaselineAssembler;
+use crate::baseline::codegen::{
     self, dump_asm, register_for_mode, should_emit_asm, should_emit_debug, CondCode, Scopes,
     TempOffsets,
 };
-use baseline::dora_native::{self, InternalFct, InternalFctDescriptor};
-use baseline::fct::{CatchType, Comment, GcPoint};
-use baseline::info::JitInfo;
-use class::{ClassDefId, ClassSize, FieldId, TypeParams};
-use cpu::{
+use crate::baseline::dora_native::{self, InternalFct, InternalFctDescriptor};
+use crate::baseline::fct::{CatchType, Comment, GcPoint};
+use crate::baseline::info::JitInfo;
+use crate::class::{ClassDefId, ClassSize, FieldId, TypeParams};
+use crate::cpu::{
     FReg, Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_TMP1, REG_TMP2,
 };
-use ctxt::VM;
-use ctxt::*;
+use crate::ctxt::VM;
+use crate::ctxt::*;
+use crate::driver::cmd::AsmSyntax;
+use crate::gc::Address;
+use crate::mem;
+use crate::object::{Header, Str};
+use crate::os::signal::Trap;
+use crate::semck::specialize::{specialize_class_id, specialize_class_ty};
+use crate::ty::{BuiltinType, MachineMode};
+use crate::vtable::{VTable, DISPLAY_SIZE};
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::*;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
-use driver::cmd::AsmSyntax;
-use gc::Address;
-use mem;
-use object::{Header, Str};
-use os::signal::Trap;
-use semck::specialize::{specialize_class_id, specialize_class_ty};
-use ty::{BuiltinType, MachineMode};
-use vtable::{VTable, DISPLAY_SIZE};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ExprStore {
@@ -1555,7 +1555,7 @@ where
         intr: Intrinsic,
         op: Option<BinOp>,
     ) {
-        use ty::MachineMode::{Float32, Float64};
+        use crate::ty::MachineMode::{Float32, Float64};
 
         match intr {
             Intrinsic::FloatEq | Intrinsic::DoubleEq => {

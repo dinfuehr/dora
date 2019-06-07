@@ -1,4 +1,4 @@
-use cpu::{FReg, Reg};
+use crate::cpu::{FReg, Reg};
 
 pub const REG_COUNT: usize = 16;
 pub static REG_PARAMS: [Reg; 6] = [RDI, RSI, RDX, RCX, R8, R9];

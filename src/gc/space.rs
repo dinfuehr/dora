@@ -1,9 +1,9 @@
 use parking_lot::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use gc::arena;
-use gc::{Address, Region};
-use mem;
+use crate::gc::arena;
+use crate::gc::{Address, Region};
+use crate::mem;
 
 /// Configuration for a space.
 /// This makes it possible to use `Space` both for the

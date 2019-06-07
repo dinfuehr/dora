@@ -3,21 +3,21 @@ use std::collections::HashSet;
 use std::ops::Deref;
 use std::rc::Rc;
 
-use baseline::codegen::CondCode;
-use baseline::expr::ExprStore;
-use baseline::fct::{
+use crate::baseline::codegen::CondCode;
+use crate::baseline::expr::ExprStore;
+use crate::baseline::fct::{
     BailoutInfo, Bailouts, CatchType, Comment, Comments, ExHandler, GcPoint, GcPoints,
     JitBaselineFct, JitDescriptor, LineNumberTable,
 };
+use crate::cpu::{Mem, Reg, SCRATCH};
+use crate::ctxt::VM;
+use crate::dseg::DSeg;
+use crate::mem;
+use crate::object::Header;
+use crate::os::signal::Trap;
+use crate::ty::MachineMode;
 use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
-use cpu::{Mem, Reg, SCRATCH};
-use ctxt::VM;
 use dora_parser::lexer::position::Position;
-use dseg::DSeg;
-use mem;
-use object::Header;
-use os::signal::Trap;
-use ty::MachineMode;
 
 #[cfg(target_arch = "x86_64")]
 pub use self::x64::*;

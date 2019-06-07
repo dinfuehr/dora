@@ -5,13 +5,13 @@ use std::iter::Iterator;
 use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
-use ctxt::VM;
-use ctxt::{FctId, ImplId, TraitId, TypeParam};
+use crate::ctxt::VM;
+use crate::ctxt::{FctId, ImplId, TraitId, TypeParam};
+use crate::ty::BuiltinType;
+use crate::utils::GrowableVec;
+use crate::vtable::VTableBox;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
-use ty::BuiltinType;
-use utils::GrowableVec;
-use vtable::VTableBox;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ClassId(usize);

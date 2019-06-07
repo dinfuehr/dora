@@ -2,11 +2,11 @@ use parking_lot::{Mutex, MutexGuard};
 use std::cmp::{max, min};
 use std::mem::replace;
 
-use gc::swiper::card::CardTable;
-use gc::swiper::controller::SharedHeapConfig;
-use gc::swiper::crossing::CrossingMap;
-use gc::swiper::CommonOldGen;
-use gc::{arena, Address, Region, GEN_SIZE};
+use crate::gc::swiper::card::CardTable;
+use crate::gc::swiper::controller::SharedHeapConfig;
+use crate::gc::swiper::crossing::CrossingMap;
+use crate::gc::swiper::CommonOldGen;
+use crate::gc::{arena, Address, Region, GEN_SIZE};
 
 pub struct OldGen {
     total: Region,

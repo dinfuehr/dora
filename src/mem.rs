@@ -1,7 +1,7 @@
 use std::i32;
 use std::mem::size_of;
 
-use os;
+use crate::os;
 
 /// return pointer width: either 4 or 8
 /// (although only 64bit architectures are supported right now)

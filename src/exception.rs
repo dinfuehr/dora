@@ -1,15 +1,15 @@
 use std::ptr;
 
-use baseline::fct::{CatchType, JitFctId};
-use baseline::map::CodeDescriptor;
-use cpu::fp_from_execstate;
-use ctxt::{get_vm, VM};
-use execstate::ExecState;
-use handle::root;
-use object::{alloc, Array, Exception, IntArray, Obj, Ref, StackTraceElement, Str};
-use os::signal::Trap;
-use stdlib;
-use threads::THREAD;
+use crate::baseline::fct::{CatchType, JitFctId};
+use crate::baseline::map::CodeDescriptor;
+use crate::cpu::fp_from_execstate;
+use crate::ctxt::{get_vm, VM};
+use crate::execstate::ExecState;
+use crate::handle::root;
+use crate::object::{alloc, Array, Exception, IntArray, Obj, Ref, StackTraceElement, Str};
+use crate::os::signal::Trap;
+use crate::stdlib;
+use crate::threads::THREAD;
 
 pub struct Stacktrace {
     elems: Vec<StackElem>,

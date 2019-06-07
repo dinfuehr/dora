@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use class::{ClassId, TypeParamId, TypeParams};
-use ctxt::VM;
-use ctxt::{FctId, StructId, TraitId};
-use mem;
-use semck;
+use crate::class::{ClassId, TypeParamId, TypeParams};
+use crate::ctxt::VM;
+use crate::ctxt::{FctId, StructId, TraitId};
+use crate::mem;
+use crate::semck;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum BuiltinType {
@@ -525,7 +525,7 @@ pub struct LambdaType {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mem;
+    use crate::mem;
 
     #[test]
     fn mode_size() {

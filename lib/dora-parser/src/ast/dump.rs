@@ -1,8 +1,8 @@
-use ast::*;
-use ast::Elem::*;
-use ast::Expr::*;
-use ast::Stmt::*;
-use interner::{Interner, Name, ArcStr};
+use crate::ast::*;
+
+use crate::ast::Expr::*;
+use crate::ast::Stmt::*;
+use crate::interner::{Interner, Name, ArcStr};
 
 macro_rules! dump {
     ($self_:ident, $($message:tt)*) => {{

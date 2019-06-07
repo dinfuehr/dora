@@ -2,6 +2,7 @@
 name = "dora-parser"
 version = "0.1.0"
 authors = ["Dominik Inführ <dominik.infuehr@gmail.com>"]
+edition = "2018"
 
 [dependencies]
 parking_lot = "0.6"

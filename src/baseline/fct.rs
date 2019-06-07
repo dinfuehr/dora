@@ -3,15 +3,15 @@ use std::fmt;
 use std::ptr;
 use std::sync::Arc;
 
-use class::{ClassDef, ClassDefId, FieldId, TypeParams};
-use cpu::flush_icache;
-use ctxt::VM;
-use ctxt::{FctId, FctSrc, GlobalId, VarId};
-use dseg::DSeg;
-use gc::Address;
-use object::{Ref, Str};
-use opt::fct::JitOptFct;
-use utils::GrowableVec;
+use crate::class::{ClassDef, ClassDefId, FieldId, TypeParams};
+use crate::cpu::flush_icache;
+use crate::ctxt::VM;
+use crate::ctxt::{FctId, FctSrc, GlobalId, VarId};
+use crate::dseg::DSeg;
+use crate::gc::Address;
+use crate::object::{Ref, Str};
+use crate::opt::fct::JitOptFct;
+use crate::utils::GrowableVec;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct JitFctId(usize);

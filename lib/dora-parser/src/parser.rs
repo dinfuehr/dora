@@ -1,17 +1,17 @@
 use std::cell::RefCell;
 use std::mem;
 
-use ast::*;
-use ast::Elem::*;
-use builder::Builder;
-use error::msg::*;
+use crate::ast::*;
+use crate::ast::Elem::*;
+use crate::builder::Builder;
+use crate::error::msg::*;
 
-use interner::*;
+use crate::interner::*;
 
-use lexer::*;
-use lexer::token::*;
-use lexer::position::Position;
-use lexer::reader::Reader;
+use crate::lexer::*;
+use crate::lexer::token::*;
+use crate::lexer::position::Position;
+use crate::lexer::reader::Reader;
 
 pub struct Parser<'a> {
     lexer: Lexer,
@@ -203,7 +203,7 @@ impl<'a> Parser<'a> {
 
         self.expect_semicolon()?;
 
-        let builder = Builder::new(self.id_generator);
+        let _builder = Builder::new(self.id_generator);
 
         let global = Global {
             id: self.generate_id(),
@@ -1552,13 +1552,13 @@ impl NodeIdGenerator {
 
 #[cfg(test)]
 mod tests {
-    use ast::*;
-    use interner::*;
+    use crate::ast::*;
+    use crate::interner::*;
 
-    use error::msg::{Msg, MsgWithPos};
-    use lexer::position::Position;
-    use lexer::reader::Reader;
-    use parser::{NodeIdGenerator, Parser};
+    use crate::error::msg::{Msg, MsgWithPos};
+    use crate::lexer::position::Position;
+    use crate::lexer::reader::Reader;
+    use crate::parser::{NodeIdGenerator, Parser};
 
     fn parse_expr(code: &'static str) -> (Box<Expr>, Interner) {
         let id_generator = NodeIdGenerator::new();
@@ -2654,19 +2654,19 @@ mod tests {
     fn parse_do() {
         let stmt = parse_stmt("do { 1; } catch e: String { 2; }
                                           catch e: IntArray { 3; } finally { 4; }");
-        let try = stmt.to_do().unwrap();
+        let r#try = stmt.to_do().unwrap();
 
-        assert_eq!(2, try.catch_blocks.len());
-        assert!(try.finally_block.is_some());
+        assert_eq!(2, r#try.catch_blocks.len());
+        assert!(r#try.finally_block.is_some());
     }
 
     #[test]
     fn parse_do_without_catch() {
         let stmt = parse_stmt("do { 1; }");
-        let try = stmt.to_do().unwrap();
+        let r#try = stmt.to_do().unwrap();
 
-        assert_eq!(0, try.catch_blocks.len());
-        assert!(try.finally_block.is_none());
+        assert_eq!(0, r#try.catch_blocks.len());
+        assert!(r#try.finally_block.is_none());
     }
 
     #[test]
@@ -2775,10 +2775,10 @@ mod tests {
     #[test]
     fn parse_try_function() {
         let (expr, _) = parse_expr("try foo()");
-        let try = expr.to_try().unwrap();
-        let call = try.expr.to_call().unwrap();
+        let r#try = expr.to_try().unwrap();
+        let call = r#try.expr.to_call().unwrap();
 
-        assert!(try.mode.is_normal());
+        assert!(r#try.mode.is_normal());
         assert!(call.object.is_none());
         assert_eq!(0, call.args.len());
     }
@@ -2786,10 +2786,10 @@ mod tests {
     #[test]
     fn parse_try_method() {
         let (expr, _) = parse_expr("try obj.foo()");
-        let try = expr.to_try().unwrap();
-        let call = try.expr.to_call().unwrap();
+        let r#try = expr.to_try().unwrap();
+        let call = r#try.expr.to_call().unwrap();
 
-        assert!(try.mode.is_normal());
+        assert!(r#try.mode.is_normal());
         assert!(call.object.is_some());
         assert_eq!(0, call.args.len());
     }
@@ -2798,34 +2798,34 @@ mod tests {
     fn parse_try_expr() {
         // although `try 1` does not make sense it should parse correctly
         let (expr, _) = parse_expr("try 1");
-        let try = expr.to_try().unwrap();
+        let r#try = expr.to_try().unwrap();
 
-        assert!(try.mode.is_normal());
-        assert!(try.expr.is_lit_int());
+        assert!(r#try.mode.is_normal());
+        assert!(r#try.expr.is_lit_int());
     }
 
     #[test]
     fn parse_try_with_else() {
         let (expr, _) = parse_expr("try foo() else 2");
-        let try = expr.to_try().unwrap();
+        let r#try = expr.to_try().unwrap();
 
-        assert!(try.mode.is_else());
+        assert!(r#try.mode.is_else());
     }
 
     #[test]
     fn parse_try_force() {
         let (expr, _) = parse_expr("try! foo()");
-        let try = expr.to_try().unwrap();
+        let r#try = expr.to_try().unwrap();
 
-        assert!(try.mode.is_force());
+        assert!(r#try.mode.is_force());
     }
 
     #[test]
     fn parse_try_opt() {
         let (expr, _) = parse_expr("try? foo()");
-        let try = expr.to_try().unwrap();
+        let r#try = expr.to_try().unwrap();
 
-        assert!(try.mode.is_opt());
+        assert!(r#try.mode.is_opt());
     }
 
     #[test]

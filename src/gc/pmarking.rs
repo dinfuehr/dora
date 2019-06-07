@@ -7,8 +7,8 @@ use rand::distributions::{Distribution, Uniform};
 use rand::thread_rng;
 use scoped_threadpool::Pool;
 
-use gc::root::Slot;
-use gc::{Address, Region};
+use crate::gc::root::Slot;
+use crate::gc::{Address, Region};
 
 pub fn start(rootset: &[Slot], heap: Region, perm: Region, threadpool: &mut Pool) {
     let number_workers = threadpool.thread_count() as usize;

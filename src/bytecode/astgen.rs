@@ -5,11 +5,13 @@ use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 
-use bytecode::generate::{BytecodeFunction, BytecodeGenerator, BytecodeType, Label, Register};
-use class::TypeParams;
-use ctxt::{CallType, Fct, FctId, FctKind, FctSrc, IdentType, Intrinsic, VarId, VM};
-use semck::specialize::{specialize_class_id_params, specialize_class_ty, specialize_type};
-use ty::BuiltinType;
+use crate::bytecode::generate::{
+    BytecodeFunction, BytecodeGenerator, BytecodeType, Label, Register,
+};
+use crate::class::TypeParams;
+use crate::ctxt::{CallType, Fct, FctId, FctKind, FctSrc, IdentType, Intrinsic, VarId, VM};
+use crate::semck::specialize::{specialize_class_id_params, specialize_class_ty, specialize_type};
+use crate::ty::BuiltinType;
 
 pub struct LoopLabels {
     cond: Label,
@@ -401,7 +403,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
     }
 
-    fn visit_expr_nil(&mut self, nil: &ExprNilType, dest: DataDest) -> Register {
+    fn visit_expr_nil(&mut self, _nil: &ExprNilType, dest: DataDest) -> Register {
         if dest.is_effect() {
             return Register::invalid();
         }
@@ -899,12 +901,12 @@ impl DataDest {
 
 #[cfg(test)]
 mod tests {
-    use bytecode::astgen;
-    use bytecode::generate::{BytecodeFunction, BytecodeIdx, Register, StrConstPoolIdx};
-    use bytecode::opcode::Bytecode::*;
-    use class::TypeParams;
-    use ctxt::VM;
-    use test;
+    use crate::bytecode::astgen;
+    use crate::bytecode::generate::{BytecodeFunction, BytecodeIdx, Register, StrConstPoolIdx};
+    use crate::bytecode::opcode::Bytecode::*;
+    use crate::class::TypeParams;
+    use crate::ctxt::VM;
+    use crate::test;
 
     fn code(code: &'static str) -> BytecodeFunction {
         test::parse(code, |vm| {

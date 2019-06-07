@@ -2,24 +2,24 @@ use parking_lot::{Mutex, MutexGuard};
 use scoped_threadpool::Pool;
 use std::cmp;
 
-use ctxt::VM;
-use gc::pmarking;
-use gc::root::Slot;
-use gc::space::Space;
-use gc::swiper::arena;
-use gc::swiper::card::CardTable;
-use gc::swiper::compact::verify_marking;
-use gc::swiper::controller::FullCollectorPhases;
-use gc::swiper::crossing::{CrossingEntry, CrossingMap};
-use gc::swiper::large::{LargeAlloc, LargeSpace};
-use gc::swiper::old::{OldGen, OldGenProtected, OldGenRegion};
-use gc::swiper::verify::verify_mapped_regions;
-use gc::swiper::young::YoungGen;
-use gc::swiper::{walk_region, walk_region_and_skip_garbage, CardIdx, CARD_REFS};
-use gc::{Address, GcReason, Region};
-use os::signal::Trap;
-use stdlib;
-use timer::Timer;
+use crate::ctxt::VM;
+use crate::gc::pmarking;
+use crate::gc::root::Slot;
+use crate::gc::space::Space;
+use crate::gc::swiper::arena;
+use crate::gc::swiper::card::CardTable;
+use crate::gc::swiper::compact::verify_marking;
+use crate::gc::swiper::controller::FullCollectorPhases;
+use crate::gc::swiper::crossing::{CrossingEntry, CrossingMap};
+use crate::gc::swiper::large::{LargeAlloc, LargeSpace};
+use crate::gc::swiper::old::{OldGen, OldGenProtected, OldGenRegion};
+use crate::gc::swiper::verify::verify_mapped_regions;
+use crate::gc::swiper::young::YoungGen;
+use crate::gc::swiper::{walk_region, walk_region_and_skip_garbage, CardIdx, CARD_REFS};
+use crate::gc::{Address, GcReason, Region};
+use crate::os::signal::Trap;
+use crate::stdlib;
+use crate::timer::Timer;
 
 pub struct ParallelFullCollector<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,

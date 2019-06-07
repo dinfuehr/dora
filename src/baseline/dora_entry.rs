@@ -1,11 +1,11 @@
-use baseline::fct::{JitBaselineFct, JitDescriptor, JitFct};
-use baseline::map::CodeDescriptor;
-use cpu::{Mem, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1};
-use ctxt::VM;
-use gc::Address;
-use masm::MacroAssembler;
-use mem;
-use ty::MachineMode;
+use crate::baseline::fct::{JitBaselineFct, JitDescriptor, JitFct};
+use crate::baseline::map::CodeDescriptor;
+use crate::cpu::{Mem, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1};
+use crate::ctxt::VM;
+use crate::gc::Address;
+use crate::masm::MacroAssembler;
+use crate::mem;
+use crate::ty::MachineMode;
 
 pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>) -> Address {
     let ngen = DoraEntryGen {

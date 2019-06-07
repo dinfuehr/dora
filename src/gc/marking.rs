@@ -1,5 +1,5 @@
-use gc::root::Slot;
-use gc::{Address, Region};
+use crate::gc::root::Slot;
+use crate::gc::{Address, Region};
 
 pub fn start(rootset: &[Slot], heap: Region, perm: Region) {
     let mut marking_stack: Vec<Address> = Vec::new();

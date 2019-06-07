@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use self::Sym::*;
 
-use class::{ClassId, TypeParamId};
-use ctxt::*;
+use crate::class::{ClassId, TypeParamId};
+use crate::ctxt::*;
 use dora_parser::interner::Name;
 
 #[derive(Debug)]

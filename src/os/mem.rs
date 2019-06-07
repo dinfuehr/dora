@@ -2,7 +2,7 @@ pub use self::ProtType::*;
 
 use libc;
 
-use mem;
+use crate::mem;
 use std::ptr;
 
 static mut PAGE_SIZE: u32 = 0;

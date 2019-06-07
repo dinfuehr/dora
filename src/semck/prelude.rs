@@ -1,14 +1,14 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
-use class::{ClassDef, ClassDefId, ClassId, ClassSize, TypeParams};
-use ctxt::{FctKind, Intrinsic, SemContext, TraitId};
-use exception;
-use gc::Address;
-use object::Header;
-use stdlib;
-use ty::BuiltinType;
-use vtable::VTableBox;
+use crate::class::{ClassDef, ClassDefId, ClassId, ClassSize, TypeParams};
+use crate::ctxt::{FctKind, Intrinsic, SemContext, TraitId};
+use crate::exception;
+use crate::gc::Address;
+use crate::object::Header;
+use crate::stdlib;
+use crate::ty::BuiltinType;
+use crate::vtable::VTableBox;
 
 pub fn internal_classes<'ast>(ctxt: &mut SemContext<'ast>) {
     ctxt.vips.bool_class = internal_class(ctxt, "Bool", Some(BuiltinType::Bool));
@@ -469,7 +469,7 @@ fn internal_impl<'ast>(
 
 #[cfg(test)]
 mod tests {
-    use semck::tests::*;
+    use crate::semck::tests::*;
 
     #[test]
     fn builtin_functions() {

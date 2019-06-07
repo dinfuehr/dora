@@ -2,17 +2,17 @@ use parking_lot::{Mutex, RwLock};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use class::{self, ClassId};
-use ctxt;
-use ctxt::*;
+use crate::class::{self, ClassId};
+use crate::ctxt;
+use crate::ctxt::*;
+use crate::gc::Address;
+use crate::sym::Sym::{self, SymClass, SymConst, SymFct, SymGlobal, SymStruct, SymTrait};
+use crate::ty::BuiltinType;
 use dora_parser::ast::visit::*;
 use dora_parser::ast::*;
 use dora_parser::error::msg::Msg;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
-use gc::Address;
-use sym::Sym::{self, SymClass, SymConst, SymFct, SymGlobal, SymStruct, SymTrait};
-use ty::BuiltinType;
 
 pub fn check<'ast>(
     ctxt: &mut SemContext<'ast>,
@@ -272,8 +272,8 @@ fn report(ctxt: &SemContext, name: Name, pos: Position, sym: Sym) {
 
 #[cfg(test)]
 mod tests {
+    use crate::semck::tests::*;
     use dora_parser::error::msg::Msg;
-    use semck::tests::*;
 
     #[test]
     fn test_struct() {

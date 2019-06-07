@@ -1,17 +1,17 @@
 use parking_lot::Mutex;
 
-use ctxt::VM;
-use driver::cmd::Args;
-use gc::bump::BumpAllocator;
-use gc::marking;
-use gc::root::{get_rootset, Slot};
-use gc::space::Space;
-use gc::tlab;
-use gc::{formatted_size, Address, CollectionStats, Collector, GcReason, Region};
-use object::Obj;
-use os;
-use safepoint;
-use timer::Timer;
+use crate::ctxt::VM;
+use crate::driver::cmd::Args;
+use crate::gc::bump::BumpAllocator;
+use crate::gc::marking;
+use crate::gc::root::{get_rootset, Slot};
+use crate::gc::space::Space;
+use crate::gc::tlab;
+use crate::gc::{formatted_size, Address, CollectionStats, Collector, GcReason, Region};
+use crate::object::Obj;
+use crate::os;
+use crate::safepoint;
+use crate::timer::Timer;
 
 pub struct MarkCompactCollector {
     heap: Region,

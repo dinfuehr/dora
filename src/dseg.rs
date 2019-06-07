@@ -1,4 +1,4 @@
-use mem;
+use crate::mem;
 use std;
 
 #[derive(Debug)]

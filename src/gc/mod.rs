@@ -1,20 +1,20 @@
 use std::cmp::{Ord, Ordering, PartialOrd};
 use std::fmt;
 
-use ctxt::VM;
-use driver::cmd::{Args, CollectorName};
-use gc::compact::MarkCompactCollector;
-use gc::copy::CopyCollector;
-use gc::space::{Space, SpaceConfig};
-use gc::sweep::SweepCollector;
-use gc::swiper::sweep::SweepSwiper;
-use gc::swiper::{Swiper, CARD_SIZE};
-use gc::tlab::TLAB_OBJECT_SIZE;
-use gc::zero::ZeroCollector;
-use mem;
-use object::{Header, Obj};
-use os;
-use vtable::VTable;
+use crate::ctxt::VM;
+use crate::driver::cmd::{Args, CollectorName};
+use crate::gc::compact::MarkCompactCollector;
+use crate::gc::copy::CopyCollector;
+use crate::gc::space::{Space, SpaceConfig};
+use crate::gc::sweep::SweepCollector;
+use crate::gc::swiper::sweep::SweepSwiper;
+use crate::gc::swiper::{Swiper, CARD_SIZE};
+use crate::gc::tlab::TLAB_OBJECT_SIZE;
+use crate::gc::zero::ZeroCollector;
+use crate::mem;
+use crate::object::{Header, Obj};
+use crate::os;
+use crate::vtable::VTable;
 
 pub mod arena;
 pub mod bump;
@@ -42,7 +42,7 @@ const GEN_ALIGNMENT_BITS: usize = 17;
 const GEN_SIZE: usize = 1 << GEN_ALIGNMENT_BITS;
 
 pub struct Gc {
-    collector: Box<Collector + Sync>,
+    collector: Box<dyn Collector + Sync>,
     supports_tlab: bool,
 
     code_space: Space,
@@ -67,7 +67,7 @@ impl Gc {
 
         let collector_name = args.flag_gc.unwrap_or(CollectorName::Swiper);
 
-        let collector: Box<Collector + Sync> = match collector_name {
+        let collector: Box<dyn Collector + Sync> = match collector_name {
             CollectorName::Zero => box ZeroCollector::new(args),
             CollectorName::Compact => box MarkCompactCollector::new(args),
             CollectorName::Copy => box CopyCollector::new(args),

@@ -1,9 +1,9 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use gc::bump::BumpAllocator;
-use gc::{arena, gen_aligned, Address, Region};
-use mem;
-use os::{self, ProtType};
+use crate::gc::bump::BumpAllocator;
+use crate::gc::{arena, gen_aligned, Address, Region};
+use crate::mem;
+use crate::os::{self, ProtType};
 
 pub struct YoungGen {
     // bounds of eden & semi-spaces

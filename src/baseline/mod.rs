@@ -1,4 +1,4 @@
-pub use baseline::codegen::{generate, generate_fct};
+pub use crate::baseline::codegen::{generate, generate_fct};
 
 mod asm;
 pub mod codegen;

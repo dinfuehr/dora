@@ -1,12 +1,12 @@
 use libc;
 use std;
 
-use baseline::map::CodeDescriptor;
-use ctxt::{get_vm, VM};
-use exception::stacktrace_from_es;
-use os;
-use os_cpu::*;
-use safepoint;
+use crate::baseline::map::CodeDescriptor;
+use crate::ctxt::{get_vm, VM};
+use crate::exception::stacktrace_from_es;
+use crate::os;
+use crate::os_cpu::*;
+use crate::safepoint;
 
 #[cfg(target_family = "windows")]
 use winapi::winnt::EXCEPTION_POINTERS;

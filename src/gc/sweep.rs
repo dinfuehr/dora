@@ -1,18 +1,18 @@
 use parking_lot::Mutex;
 
-use ctxt::VM;
-use driver::cmd::Args;
-use gc::freelist::FreeList;
-use gc::marking;
-use gc::root::{get_rootset, Slot};
-use gc::space::Space;
-use gc::tlab;
-use gc::{
+use crate::ctxt::VM;
+use crate::driver::cmd::Args;
+use crate::gc::freelist::FreeList;
+use crate::gc::marking;
+use crate::gc::root::{get_rootset, Slot};
+use crate::gc::space::Space;
+use crate::gc::tlab;
+use crate::gc::{
     fill_region_with_free, formatted_size, Address, CollectionStats, Collector, GcReason, Region,
 };
-use os;
-use safepoint;
-use timer::Timer;
+use crate::os;
+use crate::safepoint;
+use crate::timer::Timer;
 
 pub struct SweepCollector {
     heap: Region,

@@ -1,5 +1,5 @@
-use boots::function::{Block, Type, Value};
-use boots::utils::VecKey;
+use crate::boots::function::{Block, Type, Value};
+use crate::boots::utils::VecKey;
 
 #[derive(PartialEq, Eq, Hash)]
 pub struct Inst(u32);

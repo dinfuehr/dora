@@ -6,7 +6,7 @@ use std::ops::{Deref, DerefMut};
 use std::ptr::NonNull;
 use std::{self, fmt, ptr, slice};
 
-use class::{ClassDef, ClassSize};
+use crate::class::{ClassDef, ClassSize};
 
 pub const DISPLAY_SIZE: usize = 6;
 

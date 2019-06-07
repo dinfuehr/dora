@@ -1,9 +1,9 @@
 use libc::SIGSEGV;
 use std;
 
-use cpu;
-use execstate::ExecState;
-use os::signal::Trap;
+use crate::cpu;
+use crate::execstate::ExecState;
+use crate::os::signal::Trap;
 
 pub fn read_execstate(uc: *const u8) -> ExecState {
     let mut es: ExecState = unsafe { std::mem::uninitialized() };

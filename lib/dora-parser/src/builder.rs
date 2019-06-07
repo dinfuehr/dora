@@ -1,9 +1,9 @@
-use ast::*;
-use ast::Elem::*;
-use interner::*;
-use lexer::position::Position;
+use crate::ast::*;
 
-use parser::NodeIdGenerator;
+use crate::interner::*;
+use crate::lexer::position::Position;
+
+use crate::parser::NodeIdGenerator;
 
 pub struct Builder<'a> {
     id_generator: &'a NodeIdGenerator,

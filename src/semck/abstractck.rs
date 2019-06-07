@@ -3,8 +3,8 @@ use std::rc::Rc;
 
 use dora_parser::error::msg::Msg;
 
-use class::{Class, ClassId};
-use ctxt::{FctId, SemContext};
+use crate::class::{Class, ClassId};
+use crate::ctxt::{FctId, SemContext};
 
 pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
     let mut abstract_methods: HashMap<ClassId, Rc<Vec<FctId>>> = HashMap::new();
@@ -118,8 +118,8 @@ fn find_abstract_methods<'ast>(
 
 #[cfg(test)]
 mod tests {
+    use crate::semck::tests::{err, ok, pos};
     use dora_parser::error::msg::Msg;
-    use semck::tests::{err, ok, pos};
 
     #[test]
     fn test_abstract_class_without_abstract_methods() {

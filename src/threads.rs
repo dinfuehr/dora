@@ -3,9 +3,9 @@ use std::cell::RefCell;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 
-use exception::DoraToNativeInfo;
-use gc::{Address, Region};
-use handle::HandleMemory;
+use crate::exception::DoraToNativeInfo;
+use crate::gc::{Address, Region};
+use crate::handle::HandleMemory;
 
 thread_local! {
     pub static THREAD: RefCell<Arc<DoraThread>> = RefCell::new(DoraThread::new());

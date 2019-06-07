@@ -3,10 +3,10 @@ use std::convert::From;
 use std::fmt;
 use std::mem;
 
-use bytecode::opcode::Bytecode;
-use class::{ClassDefId, FieldId};
-use ctxt::{FctId, GlobalId};
-use ty::BuiltinType;
+use crate::bytecode::opcode::Bytecode;
+use crate::class::{ClassDefId, FieldId};
+use crate::ctxt::{FctId, GlobalId};
+use crate::ty::BuiltinType;
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Register(pub usize);

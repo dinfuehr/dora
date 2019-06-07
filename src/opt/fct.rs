@@ -1,5 +1,5 @@
-use ctxt::FctId;
-use gc::Address;
+use crate::ctxt::FctId;
+use crate::gc::Address;
 
 pub struct JitOptFct {
     pub fct_id: FctId,

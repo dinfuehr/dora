@@ -1,4 +1,4 @@
-use ty::BuiltinType;
+use crate::ty::BuiltinType;
 
 // first param offset to rbp is +16,
 // rbp+0 -> saved rbp

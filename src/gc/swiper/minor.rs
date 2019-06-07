@@ -1,19 +1,19 @@
 use parking_lot::MutexGuard;
 use std::cmp;
 
-use ctxt::VM;
-use gc::root::Slot;
-use gc::swiper::card::{CardEntry, CardTable};
-use gc::swiper::controller::{MinorCollectorPhases, SharedHeapConfig};
-use gc::swiper::crossing::{CrossingEntry, CrossingMap};
-use gc::swiper::large::LargeSpace;
-use gc::swiper::old::{OldGen, OldGenProtected};
-use gc::swiper::on_different_cards;
-use gc::swiper::young::YoungGen;
-use gc::swiper::{CardIdx, CARD_SIZE};
-use gc::{Address, GcReason, Region};
-use object::{offset_of_array_data, Obj};
-use timer::Timer;
+use crate::ctxt::VM;
+use crate::gc::root::Slot;
+use crate::gc::swiper::card::{CardEntry, CardTable};
+use crate::gc::swiper::controller::{MinorCollectorPhases, SharedHeapConfig};
+use crate::gc::swiper::crossing::{CrossingEntry, CrossingMap};
+use crate::gc::swiper::large::LargeSpace;
+use crate::gc::swiper::old::{OldGen, OldGenProtected};
+use crate::gc::swiper::on_different_cards;
+use crate::gc::swiper::young::YoungGen;
+use crate::gc::swiper::{CardIdx, CARD_SIZE};
+use crate::gc::{Address, GcReason, Region};
+use crate::object::{offset_of_array_data, Obj};
+use crate::timer::Timer;
 
 pub struct MinorCollector<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,

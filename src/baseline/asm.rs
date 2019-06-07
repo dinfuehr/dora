@@ -2,22 +2,22 @@ use std::mem;
 
 use dora_parser::lexer::position::Position;
 
-use baseline::codegen::CondCode;
-use baseline::dora_native::{InternalFct, InternalFctDescriptor};
-use baseline::expr::{ensure_native_stub, AllocationSize, ExprStore};
-use baseline::fct::{CatchType, Comment, GcPoint, JitBaselineFct, JitDescriptor};
-use baseline::info::JitInfo;
-use class::TypeParams;
-use cpu::{FReg, Mem, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1};
-use ctxt::VM;
-use ctxt::{FctId, VarId};
-use gc::tlab::TLAB_OBJECT_SIZE;
-use gc::Address;
-use masm::{Label, MacroAssembler, ScratchReg};
-use os::signal::Trap;
-use stdlib;
-use threads::ThreadLocalData;
-use ty::{BuiltinType, MachineMode};
+use crate::baseline::codegen::CondCode;
+use crate::baseline::dora_native::{InternalFct, InternalFctDescriptor};
+use crate::baseline::expr::{ensure_native_stub, AllocationSize, ExprStore};
+use crate::baseline::fct::{CatchType, Comment, GcPoint, JitBaselineFct, JitDescriptor};
+use crate::baseline::info::JitInfo;
+use crate::class::TypeParams;
+use crate::cpu::{FReg, Mem, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1};
+use crate::ctxt::VM;
+use crate::ctxt::{FctId, VarId};
+use crate::gc::tlab::TLAB_OBJECT_SIZE;
+use crate::gc::Address;
+use crate::masm::{Label, MacroAssembler, ScratchReg};
+use crate::os::signal::Trap;
+use crate::stdlib;
+use crate::threads::ThreadLocalData;
+use crate::ty::{BuiltinType, MachineMode};
 
 pub struct BaselineAssembler<'a, 'ast: 'a> {
     masm: MacroAssembler,

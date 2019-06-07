@@ -2,7 +2,7 @@
 use std::fmt;
 
 use self::Msg::*;
-use lexer::position::Position;
+use crate::lexer::position::Position;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Msg {

@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::{self, Read, Error};
 
-use lexer::position::Position;
+use crate::lexer::position::Position;
 
 pub struct Reader {
     filename: String,

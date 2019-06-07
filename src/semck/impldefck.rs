@@ -1,12 +1,12 @@
 use parking_lot::RwLock;
 
-use ctxt::{Fct, FctId, FctKind, FctParent, FctSrc, ImplId, NodeMap, SemContext};
+use crate::ctxt::{Fct, FctId, FctKind, FctParent, FctSrc, ImplId, NodeMap, SemContext};
+use crate::sym::Sym;
+use crate::ty::BuiltinType;
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
-use sym::Sym;
-use ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &mut SemContext<'ast>, map_impl_defs: &NodeMap<ImplId>) {
     let mut clsck = ImplCheck {
@@ -120,8 +120,8 @@ fn report(ctxt: &SemContext, pos: Position, msg: Msg) {
 
 #[cfg(test)]
 mod tests {
+    use crate::semck::tests::*;
     use dora_parser::error::msg::Msg;
-    use semck::tests::*;
 
     #[test]
     fn impl_method_without_body() {

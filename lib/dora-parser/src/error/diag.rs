@@ -1,7 +1,7 @@
-use error::msg::Msg;
-use error::msg::MsgWithPos;
+use crate::error::msg::Msg;
+use crate::error::msg::MsgWithPos;
 
-use lexer::position::Position;
+use crate::lexer::position::Position;
 
 pub struct Diagnostic {
     errors: Vec<MsgWithPos>,

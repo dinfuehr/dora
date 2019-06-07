@@ -14,26 +14,26 @@ use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 use dora_parser::lexer::position::Position;
 
-use baseline::asm::BaselineAssembler;
-use baseline::expr::*;
-use baseline::fct::{
+use crate::baseline::asm::BaselineAssembler;
+use crate::baseline::expr::*;
+use crate::baseline::fct::{
     CatchType, Comment, CommentFormat, GcPoint, JitBaselineFct, JitDescriptor, JitFct,
 };
-use baseline::info::{self, JitInfo};
-use baseline::map::CodeDescriptor;
-use class::{ClassDef, TypeParams};
-use cpu::{Mem, FREG_PARAMS, FREG_RESULT, REG_PARAMS, REG_RESULT};
-use ctxt::VM;
-use ctxt::{CallSite, Fct, FctId, FctParent, FctSrc, VarId};
-use driver::cmd::AsmSyntax;
-use gc::Address;
-use masm::*;
-use mem;
-use os;
-use os::signal::Trap;
-use semck::always_returns;
-use semck::specialize::specialize_class_ty;
-use ty::{BuiltinType, MachineMode};
+use crate::baseline::info::{self, JitInfo};
+use crate::baseline::map::CodeDescriptor;
+use crate::class::{ClassDef, TypeParams};
+use crate::cpu::{Mem, FREG_PARAMS, FREG_RESULT, REG_PARAMS, REG_RESULT};
+use crate::ctxt::VM;
+use crate::ctxt::{CallSite, Fct, FctId, FctParent, FctSrc, VarId};
+use crate::driver::cmd::AsmSyntax;
+use crate::gc::Address;
+use crate::masm::*;
+use crate::mem;
+use crate::os;
+use crate::os::signal::Trap;
+use crate::semck::always_returns;
+use crate::semck::specialize::specialize_class_ty;
+use crate::ty::{BuiltinType, MachineMode};
 
 pub fn generate<'ast>(
     vm: &VM<'ast>,
@@ -182,7 +182,7 @@ pub fn dump_asm<'ast>(
         panic!("capstone: syntax couldn't be set");
     }
 
-    let mut w: Box<Write> = if vm.args.flag_emit_asm_file {
+    let mut w: Box<dyn Write> = if vm.args.flag_emit_asm_file {
         let pid = unsafe { libc::getpid() };
         let name = format!("code-{}.asm", pid);
         let file = OpenOptions::new()

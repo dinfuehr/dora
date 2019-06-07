@@ -1,8 +1,8 @@
-use gc::swiper::CardIdx;
-use gc::swiper::{CARD_REFS, CARD_SIZE, CARD_SIZE_BITS};
-use gc::{Address, Region};
-use mem;
-use object::offset_of_array_data;
+use crate::gc::swiper::CardIdx;
+use crate::gc::swiper::{CARD_REFS, CARD_SIZE, CARD_SIZE_BITS};
+use crate::gc::{Address, Region};
+use crate::mem;
+use crate::object::offset_of_array_data;
 
 // see GC Handbook 11.8: Crossing Maps
 // meaning of byte value

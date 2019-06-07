@@ -1,11 +1,11 @@
-use ctxt::{Fct, FctSrc, SemContext};
+use crate::ctxt::{Fct, FctSrc, SemContext};
 use dora_parser::error::msg::Msg;
 
+use crate::ty::BuiltinType;
 use dora_parser::ast::visit::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 use dora_parser::lexer::position::Position;
-use ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &SemContext<'ast>) {
     for fct in ctxt.fcts.iter() {
@@ -87,7 +87,7 @@ pub fn returns_value(s: &Stmt) -> Result<(), Position> {
 }
 
 fn if_returns_value(s: &StmtIfType) -> Result<(), Position> {
-    try!(returns_value(&s.then_block));
+    r#try!(returns_value(&s.then_block));
 
     match s.else_block {
         Some(ref block) => returns_value(block),
@@ -118,10 +118,10 @@ fn do_returns_value(s: &StmtDoType) -> Result<(), Position> {
 
     // if no finally block given or finally does not return,
     // do and all catch-blocks need to return
-    try!(returns_value(&s.do_block));
+    r#try!(returns_value(&s.do_block));
 
     for catch in &s.catch_blocks {
-        try!(returns_value(&catch.block));
+        r#try!(returns_value(&catch.block));
     }
 
     Ok(())
@@ -129,9 +129,9 @@ fn do_returns_value(s: &StmtDoType) -> Result<(), Position> {
 
 #[cfg(test)]
 mod tests {
+    use crate::semck::tests::*;
+    use crate::test::parse;
     use dora_parser::error::msg::Msg;
-    use semck::tests::*;
-    use test::parse;
 
     fn test_always_returns(code: &'static str, value: bool) {
         parse(code, |ctxt| {

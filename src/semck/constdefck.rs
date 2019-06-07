@@ -1,10 +1,10 @@
-use ctxt::{ConstId, NodeMap, SemContext};
+use crate::ctxt::{ConstId, NodeMap, SemContext};
+use crate::semck;
+use crate::ty::BuiltinType;
 use dora_parser::ast;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
-use semck;
-use ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &mut SemContext<'ast>, map_const_defs: &NodeMap<ConstId>) {
     let mut clsck = ConstCheck {
@@ -47,8 +47,8 @@ fn report(ctxt: &SemContext, pos: Position, msg: Msg) {
 
 #[cfg(test)]
 mod tests {
+    use crate::semck::tests::*;
     use dora_parser::error::msg::Msg;
-    use semck::tests::*;
 
     #[test]
     fn const_unknown_type() {

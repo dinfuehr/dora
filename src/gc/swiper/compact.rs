@@ -1,22 +1,22 @@
 use parking_lot::MutexGuard;
 use std::cmp;
 
-use ctxt::VM;
-use gc::marking;
-use gc::root::Slot;
-use gc::space::Space;
-use gc::swiper::card::CardTable;
-use gc::swiper::controller::FullCollectorPhases;
-use gc::swiper::crossing::CrossingMap;
-use gc::swiper::large::LargeSpace;
-use gc::swiper::old::{OldGen, OldGenProtected};
-use gc::swiper::young::YoungGen;
-use gc::swiper::{walk_region, walk_region_and_skip_garbage};
-use gc::{Address, GcReason, Region};
-use object::Obj;
-use os::signal::Trap;
-use stdlib;
-use timer::Timer;
+use crate::ctxt::VM;
+use crate::gc::marking;
+use crate::gc::root::Slot;
+use crate::gc::space::Space;
+use crate::gc::swiper::card::CardTable;
+use crate::gc::swiper::controller::FullCollectorPhases;
+use crate::gc::swiper::crossing::CrossingMap;
+use crate::gc::swiper::large::LargeSpace;
+use crate::gc::swiper::old::{OldGen, OldGenProtected};
+use crate::gc::swiper::young::YoungGen;
+use crate::gc::swiper::{walk_region, walk_region_and_skip_garbage};
+use crate::gc::{Address, GcReason, Region};
+use crate::object::Obj;
+use crate::os::signal::Trap;
+use crate::stdlib;
+use crate::timer::Timer;
 
 pub struct FullCollector<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,

@@ -1,9 +1,9 @@
-use ctxt::{Fct, FctId, FctKind, FctParent, NodeMap, SemContext, TraitId};
+use crate::ctxt::{Fct, FctId, FctKind, FctParent, NodeMap, SemContext, TraitId};
+use crate::ty::BuiltinType;
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
-use ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &mut SemContext<'ast>, map_trait_defs: &NodeMap<TraitId>) {
     let mut clsck = TraitCheck {
@@ -88,8 +88,8 @@ fn report(ctxt: &SemContext, pos: Position, msg: Msg) {
 
 #[cfg(test)]
 mod tests {
+    use crate::semck::tests::*;
     use dora_parser::error::msg::Msg;
-    use semck::tests::*;
 
     #[test]
     fn trait_method_with_body() {

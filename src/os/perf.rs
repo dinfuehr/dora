@@ -1,5 +1,5 @@
-use baseline::fct::JitBaselineFct;
-use ctxt::VM;
+use crate::baseline::fct::JitBaselineFct;
+use crate::ctxt::VM;
 use dora_parser::interner::Name;
 
 #[cfg(target_os = "linux")]

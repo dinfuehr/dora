@@ -1,11 +1,11 @@
 use parking_lot::Mutex;
 use std::mem::size_of;
 
-use gc::arena;
-use gc::swiper::controller::SharedHeapConfig;
-use gc::swiper::LARGE_OBJECT_SIZE;
-use gc::{Address, Region};
-use mem;
+use crate::gc::arena;
+use crate::gc::swiper::controller::SharedHeapConfig;
+use crate::gc::swiper::LARGE_OBJECT_SIZE;
+use crate::gc::{Address, Region};
+use crate::mem;
 
 pub struct LargeSpace {
     total: Region,

@@ -8,16 +8,16 @@ use std::str;
 use std::thread;
 use std::time::Duration;
 
-use class::TypeParams;
-use ctxt::exception_set;
-use ctxt::get_vm;
-use exception::{alloc_exception, stacktrace_from_last_dtn};
-use gc::{Address, GcReason};
-use handle::root;
-use object::{ByteArray, Obj, Ref, Str};
-use os::signal::Trap;
-use sym::Sym::SymFct;
-use threads::{DoraThread, THREAD};
+use crate::class::TypeParams;
+use crate::ctxt::exception_set;
+use crate::ctxt::get_vm;
+use crate::exception::{alloc_exception, stacktrace_from_last_dtn};
+use crate::gc::{Address, GcReason};
+use crate::handle::root;
+use crate::object::{ByteArray, Obj, Ref, Str};
+use crate::os::signal::Trap;
+use crate::sym::Sym::SymFct;
+use crate::threads::{DoraThread, THREAD};
 
 pub extern "C" fn byte_to_string(val: u8) -> Ref<Str> {
     let buffer = val.to_string();
@@ -86,7 +86,7 @@ pub extern "C" fn exit(status: i32) {
 }
 
 pub extern "C" fn timestamp() -> u64 {
-    use timer;
+    use crate::timer;
 
     timer::timestamp()
 }
@@ -309,8 +309,8 @@ pub extern "C" fn trap(trap_id: u32) {
 }
 
 pub extern "C" fn spawn_thread(obj: Ref<Obj>) {
-    use baseline;
-    use exception::DoraToNativeInfo;
+    use crate::baseline;
+    use crate::exception::DoraToNativeInfo;
 
     let vm = get_vm();
     let thread = DoraThread::new();

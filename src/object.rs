@@ -8,13 +8,13 @@ use std::slice;
 use std::str;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use class::{ClassDefId, ClassSize};
-use ctxt::VM;
-use gc::root::Slot;
-use gc::Address;
-use handle::{root, Handle};
-use mem;
-use vtable::VTable;
+use crate::class::{ClassDefId, ClassSize};
+use crate::ctxt::VM;
+use crate::gc::root::Slot;
+use crate::gc::Address;
+use crate::handle::{root, Handle};
+use crate::mem;
+use crate::vtable::VTable;
 
 #[repr(C)]
 pub struct Header {
@@ -752,7 +752,7 @@ pub struct StackTraceElement {
 
 #[cfg(test)]
 mod tests {
-    use object::Header;
+    use crate::object::Header;
 
     #[test]
     fn header_markbit() {

@@ -2,11 +2,11 @@ use fixedbitset::FixedBitSet;
 use parking_lot::{Mutex, MutexGuard};
 use std::cmp;
 
-use gc::swiper::card::CardTable;
-use gc::swiper::controller::SharedHeapConfig;
-use gc::swiper::crossing::CrossingMap;
-use gc::swiper::CommonOldGen;
-use gc::{arena, Address, Region};
+use crate::gc::swiper::card::CardTable;
+use crate::gc::swiper::controller::SharedHeapConfig;
+use crate::gc::swiper::crossing::CrossingMap;
+use crate::gc::swiper::CommonOldGen;
+use crate::gc::{arena, Address, Region};
 
 // Choose 128K as chunk size for now
 const CHUNK_SIZE_BITS: usize = 17;

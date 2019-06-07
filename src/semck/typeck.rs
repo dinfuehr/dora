@@ -2,14 +2,17 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::{f32, f64};
 
-use class::{ClassId, TypeParams};
-use ctxt;
-use ctxt::{
+use crate::class::{ClassId, TypeParams};
+use crate::ctxt;
+use crate::ctxt::{
     CallType, ConstData, ConstValue, ConvInfo, Fct, FctId, FctParent, FctSrc, ForTypeInfo,
     IdentType, SemContext, TraitId,
 };
 use dora_parser::error::msg::Msg;
 
+use crate::semck::specialize::specialize_type;
+use crate::sym::Sym::{self, SymClass};
+use crate::ty::BuiltinType;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
@@ -17,9 +20,6 @@ use dora_parser::ast::*;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntBase, IntSuffix};
-use semck::specialize::specialize_type;
-use sym::Sym::{self, SymClass};
-use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
     for fct in ctxt.fcts.iter() {
@@ -2742,9 +2742,9 @@ fn replace_type_param(
 
 #[cfg(test)]
 mod tests {
-    use ctxt::ConstValue;
+    use crate::ctxt::ConstValue;
+    use crate::semck::tests::*;
     use dora_parser::error::msg::Msg;
-    use semck::tests::*;
 
     #[test]
     fn type_method_len() {

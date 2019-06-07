@@ -1,7 +1,7 @@
-use ctxt::VM;
-use driver::cmd::Args;
-use gc::bump::BumpAllocator;
-use gc::{arena, Address, Collector, GcReason, Region};
+use crate::ctxt::VM;
+use crate::driver::cmd::Args;
+use crate::gc::bump::BumpAllocator;
+use crate::gc::{arena, Address, Collector, GcReason, Region};
 
 pub struct ZeroCollector {
     start: Address,

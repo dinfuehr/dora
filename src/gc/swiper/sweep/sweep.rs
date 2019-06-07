@@ -1,15 +1,15 @@
 use parking_lot::MutexGuard;
 
-use ctxt::VM;
-use gc::marking;
-use gc::root::Slot;
-use gc::space::Space;
-use gc::swiper::card::CardTable;
-use gc::swiper::crossing::CrossingMap;
-use gc::swiper::large::LargeSpace;
-use gc::swiper::old::{OldGen, OldGenProtected};
-use gc::swiper::young::YoungGen;
-use gc::{GcReason, Region};
+use crate::ctxt::VM;
+use crate::gc::marking;
+use crate::gc::root::Slot;
+use crate::gc::space::Space;
+use crate::gc::swiper::card::CardTable;
+use crate::gc::swiper::crossing::CrossingMap;
+use crate::gc::swiper::large::LargeSpace;
+use crate::gc::swiper::old::{OldGen, OldGenProtected};
+use crate::gc::swiper::young::YoungGen;
+use crate::gc::{GcReason, Region};
 
 pub struct FullSweepCollector<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,

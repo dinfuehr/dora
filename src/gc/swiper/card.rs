@@ -1,8 +1,8 @@
 use std::ptr;
 
-use gc::swiper::CardIdx;
-use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
-use gc::{Address, Region};
+use crate::gc::swiper::CardIdx;
+use crate::gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
+use crate::gc::{Address, Region};
 
 #[derive(Clone)]
 pub struct CardTable {

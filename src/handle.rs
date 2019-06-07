@@ -1,8 +1,8 @@
 use parking_lot::{Mutex, MutexGuard};
 use std::ops::{Deref, DerefMut};
 
-use object::{Obj, Ref};
-use threads::THREAD;
+use crate::object::{Obj, Ref};
+use crate::threads::THREAD;
 
 pub const HANDLE_SIZE: usize = 256;
 

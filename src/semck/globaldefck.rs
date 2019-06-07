@@ -1,10 +1,10 @@
-use ctxt::{GlobalId, NodeMap, SemContext};
+use crate::ctxt::{GlobalId, NodeMap, SemContext};
+use crate::semck;
+use crate::ty::BuiltinType;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::Elem::ElemGlobal;
 use dora_parser::ast::{File, Global};
 use dora_parser::error::msg::Msg;
-use semck;
-use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>, map_global_defs: &NodeMap<GlobalId>) {
     let mut checker = GlobalDefCheck {
@@ -50,8 +50,8 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDefCheck<'a, 'ast> {
 
 #[cfg(test)]
 mod tests {
+    use crate::semck::tests::*;
     use dora_parser::error::msg::Msg;
-    use semck::tests::*;
 
     #[test]
     fn check_initializer() {

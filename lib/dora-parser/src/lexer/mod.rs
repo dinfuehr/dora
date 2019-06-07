@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use lexer::position::Position;
-use lexer::reader::Reader;
-use lexer::token::{FloatSuffix, IntSuffix, IntBase, Token, TokenKind};
-use error::msg::{Msg, MsgWithPos};
+use crate::lexer::position::Position;
+use crate::lexer::reader::Reader;
+use crate::lexer::token::{FloatSuffix, IntSuffix, IntBase, Token, TokenKind};
+use crate::error::msg::{Msg, MsgWithPos};
 
 pub mod map;
 pub mod reader;
@@ -50,10 +50,10 @@ impl Lexer {
                 return self.read_number();
 
             } else if self.is_comment_start() {
-                try!(self.read_comment());
+                r#try!(self.read_comment());
 
             } else if self.is_multi_comment_start() {
-                try!(self.read_multi_comment());
+                r#try!(self.read_multi_comment());
 
             } else if is_identifier_start(ch) {
                 return self.read_identifier();
@@ -589,9 +589,9 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use error::msg::Msg;
-    use lexer::reader::Reader;
-    use lexer::token::TokenKind;
+    use crate::error::msg::Msg;
+    use crate::lexer::reader::Reader;
+    use crate::lexer::token::TokenKind;
 
     fn assert_end(reader: &mut Lexer, l: u32, c: u32) {
         assert_tok(reader, TokenKind::End, l, c);

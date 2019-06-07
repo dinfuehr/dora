@@ -1,8 +1,8 @@
-use ast::*;
-use ast::Elem::*;
-use ast::Expr::*;
-use ast::Stmt::*;
-use ast::Type::*;
+use crate::ast::*;
+
+use crate::ast::Expr::*;
+use crate::ast::Stmt::*;
+use crate::ast::Type::*;
 
 pub trait Visitor<'v>: Sized {
     fn visit_ast(&mut self, a: &'v Ast) {

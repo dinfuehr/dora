@@ -1,4 +1,4 @@
-use ctxt::{Fct, FctSrc, SemContext};
+use crate::ctxt::{Fct, FctSrc, SemContext};
 use dora_parser::error::msg::Msg;
 
 use dora_parser::ast::visit::*;
@@ -76,8 +76,8 @@ impl<'a, 'ast> Visitor<'ast> for FlowCheck<'a, 'ast> {
 
 #[cfg(test)]
 mod tests {
+    use crate::semck::tests::*;
     use dora_parser::error::msg::Msg;
-    use semck::tests::*;
 
     #[test]
     fn flowck_break() {

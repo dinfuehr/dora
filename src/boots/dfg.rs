@@ -1,6 +1,6 @@
-use boots::function::{Block, BlockData, Value, ValueData};
-use boots::inst::{Inst, InstData};
-use boots::utils::VecMap;
+use crate::boots::function::{Block, BlockData, Value, ValueData};
+use crate::boots::inst::{Inst, InstData};
+use crate::boots::utils::VecMap;
 
 pub struct DataFlowGraph {
     insts: VecMap<Inst, InstData>,

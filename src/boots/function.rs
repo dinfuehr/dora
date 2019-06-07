@@ -1,7 +1,7 @@
-use boots::cfg::ControlFlowGraph;
-use boots::dfg::DataFlowGraph;
-use boots::inst::Inst;
-use boots::utils::VecKey;
+use crate::boots::cfg::ControlFlowGraph;
+use crate::boots::dfg::DataFlowGraph;
+use crate::boots::inst::Inst;
+use crate::boots::utils::VecKey;
 
 struct Function {
     dfg: DataFlowGraph,
