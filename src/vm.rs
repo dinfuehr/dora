@@ -264,6 +264,27 @@ impl<'ast> VM<'ast> {
     }
 
     #[cfg(test)]
+    pub fn cls_method_by_name(
+        &self,
+        class_name: &'static str,
+        function_name: &'static str,
+        is_static: bool,
+    ) -> Option<FctId> {
+        let class_name = self.interner.intern(class_name);
+        let function_name = self.interner.intern(function_name);
+
+        let cls_id = self
+            .sym
+            .lock()
+            .get_class(class_name)
+            .expect("class not found");
+        let cls = self.classes.idx(cls_id);
+        let cls = cls.read();
+
+        cls.find_method(self, function_name, is_static)
+    }
+
+    #[cfg(test)]
     pub fn cls_def_by_name(&self, name: &'static str) -> ClassDefId {
         let name = self.interner.intern(name);
         let cls_id = self.sym.lock().get_class(name).expect("class not found");

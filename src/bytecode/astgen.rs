@@ -240,7 +240,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             ExprAssign(ref assign) => self.visit_expr_assign(assign, dest),
             ExprCall(ref call) => self.visit_expr_call(call, dest),
             // ExprDelegation(ref call) => {},
-            // ExprSelf(ref selfie) => {},
+            ExprSelf(ref selfie) => self.visit_expr_self(selfie, dest),
             // ExprSuper(ref expr) => {},
             ExprNil(ref nil) => self.visit_expr_nil(nil, dest),
             // ExprConv(ref expr) => {},
@@ -411,6 +411,25 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let dest = self.ensure_register(dest, BytecodeType::Ptr);
 
         self.gen.emit_const_nil(dest);
+
+        dest
+    }
+
+    fn visit_expr_self(&mut self, _selfie: &ExprSelfType, dest: DataDest) -> Register {
+        if dest.is_effect() {
+            return Register::invalid();
+        }
+
+        let var_id = self.src.var_self().id;
+        let var_reg = self.var_reg(var_id);
+
+        if dest.is_alloc() {
+            return var_reg;
+        }
+
+        let dest = dest.reg();
+
+        self.gen.emit_mov_self(dest, var_reg);
 
         dest
     }
@@ -920,6 +939,16 @@ mod tests {
         })
     }
 
+    fn code_method(code: &'static str) -> BytecodeFunction {
+        test::parse(code, |vm| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "f", false)
+                .expect("no function `f` in Class `Foo`.");
+            let tp = TypeParams::empty();
+            astgen::generate(vm, fct_id, &tp, &tp)
+        })
+    }
+
     fn gen<F>(code: &'static str, testfct: F)
     where
         F: FnOnce(&VM, BytecodeFunction),
@@ -1420,6 +1449,13 @@ mod tests {
     fn gen_expr_assign() {
         let fct = code("fun f() { var x = 1; x = 2; }");
         let expected = vec![ConstInt(r(0), 1), ConstInt(r(0), 2), RetVoid];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_expr_self() {
+        let fct = code_method("class Foo() { fun f() -> Foo { return self; } }");
+        let expected = vec![RetPtr(r(0))];
         assert_eq!(expected, fct.code());
     }
 
