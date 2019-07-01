@@ -9,11 +9,21 @@ $ARGS = ARGV.clone
 $release = $ARGS.delete("--release") != nil
 $no_capture = $ARGS.delete("--no-capture") != nil
 $processors = 0
+$filter_run = nil
 
 $ARGS.delete_if do |arg|
   if (m = /\A\-j(\d)+\z/.match(arg))
     $processors = m[1].to_i
     true
+  else
+    false
+  end
+end
+
+$ARGS.delete_if do |arg|
+  if (m = /\A\-bc=(standard|cannon)/.match(arg))
+    $filter_run = m[1]
+    true  
   else
     false
   end
@@ -57,13 +67,28 @@ class TestCase
       self.results = :ignore 
       return {:ignore => 1}
     end
+    self.optional_runs.each_pair { |optional_run, run_vm_args| 
+      if $filter_run != nil
+        if $filter_run == 'standard'
+          if optional_run != nil
+            next
+          end
+        elsif $filter_run != optional_run
+          next
+        end
+      end
+      self.results[optional_run] = run_test(run_vm_args) 
+    }
 
-    self.optional_runs.each_pair { |optional_run, run_vm_args| self.results[optional_run] = run_test(run_vm_args) }
-    result = {}
+    if self.results.empty? 
+      self.results = :ignore
+      return { :ignore => 1 } 
+    end
+
     return {
       :passed => self.results.values().count(true), 
-      :failed => self.results.values().count{|x| x != true} }
-    
+      :failed => self.results.values().count{|x| x != true} 
+    }
   end
 
   def print_results() 
@@ -73,7 +98,7 @@ class TestCase
     end
 
     self.results.each_pair do |run_name, run_result|
-      print "[#{run_name}]" if run_name != nil
+      print "[#{run_name}] " if run_name != nil
       print "#{self.file} "
       print "... "
 
