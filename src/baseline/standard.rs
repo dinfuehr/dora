@@ -5,7 +5,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::baseline::asm::BaselineAssembler;
 use crate::baseline::codegen::{
-    create_gcpoint, register_for_mode, should_emit_debug, CondCode, Scopes, TempOffsets,
+    create_gcpoint, register_for_mode, should_emit_debug, CodeGen, CondCode, Scopes, TempOffsets,
 };
 use crate::baseline::expr::*;
 use crate::baseline::fct::{CatchType, Comment, JitBaselineFct, JitDescriptor};
@@ -21,7 +21,7 @@ use crate::semck::always_returns;
 use crate::semck::specialize::specialize_class_ty;
 use crate::ty::{BuiltinType, MachineMode};
 
-pub struct CodeGen<'a, 'ast: 'a> {
+pub struct StandardCodeGen<'a, 'ast: 'a> {
     pub vm: &'a VM<'ast>,
     pub fct: &'a Fct<'ast>,
     pub ast: &'ast Function,
@@ -59,38 +59,10 @@ pub struct CodeGen<'a, 'ast: 'a> {
     pub fct_type_params: &'a TypeParams,
 }
 
-impl<'a, 'ast> CodeGen<'a, 'ast>
+impl<'a, 'ast> StandardCodeGen<'a, 'ast>
 where
     'ast: 'a,
 {
-    pub fn generate(mut self) -> JitBaselineFct {
-        if should_emit_debug(self.vm, self.fct) {
-            self.asm.debug();
-        }
-
-        self.emit_prolog();
-        self.store_register_params_on_stack();
-        self.visit_fct(self.ast);
-
-        let always_returns = self.src.always_returns;
-
-        if !always_returns {
-            self.emit_epilog();
-        }
-
-        let jit_fct = self.asm.jit(
-            self.jit_info.stacksize(),
-            JitDescriptor::DoraFct(self.fct.id),
-            self.ast.throws,
-        );
-
-        if self.vm.args.flag_enable_perf {
-            os::perf::register_with_perf(&jit_fct, self.vm, self.ast.name);
-        }
-
-        jit_fct
-    }
-
     fn store_register_params_on_stack(&mut self) {
         let mut reg_idx = 0;
         let mut freg_idx = 0;
@@ -317,7 +289,7 @@ where
 
     fn save_label_state<F>(&mut self, lbl_break: Label, lbl_continue: Label, f: F)
     where
-        F: FnOnce(&mut CodeGen<'a, 'ast>),
+        F: FnOnce(&mut StandardCodeGen<'a, 'ast>),
     {
         let old_lbl_break = self.lbl_break;
         let old_lbl_continue = self.lbl_continue;
@@ -650,7 +622,37 @@ where
     }
 }
 
-impl<'a, 'ast> visit::Visitor<'ast> for CodeGen<'a, 'ast> {
+impl<'a, 'ast> CodeGen<'ast> for StandardCodeGen<'a, 'ast> {
+    fn generate(mut self) -> JitBaselineFct {
+        if should_emit_debug(self.vm, self.fct) {
+            self.asm.debug();
+        }
+
+        self.emit_prolog();
+        self.store_register_params_on_stack();
+        self.visit_fct(self.ast);
+
+        let always_returns = self.src.always_returns;
+
+        if !always_returns {
+            self.emit_epilog();
+        }
+
+        let jit_fct = self.asm.jit(
+            self.jit_info.stacksize(),
+            JitDescriptor::DoraFct(self.fct.id),
+            self.ast.throws,
+        );
+
+        if self.vm.args.flag_enable_perf {
+            os::perf::register_with_perf(&jit_fct, self.vm, self.ast.name);
+        }
+
+        jit_fct
+    }
+}
+
+impl<'a, 'ast> visit::Visitor<'ast> for StandardCodeGen<'a, 'ast> {
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         match *s {
             StmtExpr(ref stmt) => self.emit_stmt_expr(stmt),

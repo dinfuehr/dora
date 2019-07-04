@@ -14,7 +14,7 @@ use crate::baseline::expr::*;
 use crate::baseline::fct::{CommentFormat, GcPoint, JitBaselineFct, JitFct};
 use crate::baseline::info::{self, JitInfo};
 use crate::baseline::map::CodeDescriptor;
-use crate::baseline::standard::CodeGen;
+use crate::baseline::standard::StandardCodeGen;
 use crate::class::TypeParams;
 use crate::cpu::{FREG_RESULT, REG_RESULT};
 use crate::ctxt::VM;
@@ -74,7 +74,7 @@ pub fn generate_fct<'ast>(
         cls_type_params,
         fct_type_params,
     );
-    let jit_fct = CodeGen {
+    let jit_fct = StandardCodeGen {
         vm: vm,
         fct: &fct,
         ast: ast,
@@ -406,4 +406,8 @@ fn fct_pattern_match(vm: &VM, fct: &Fct, pattern: &str) -> bool {
     }
 
     false
+}
+
+pub trait CodeGen<'v> {
+    fn generate(self) -> JitBaselineFct;
 }
