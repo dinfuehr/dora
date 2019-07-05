@@ -702,6 +702,6 @@ mod memory {
 
 #[cfg(not(target_os = "linux"))]
 mod memory {
-    use gc::Region;
+    use crate::gc::Region;
     pub fn verify_mapped_regions(_total: Region, _regions: &[Region]) {}
 }
