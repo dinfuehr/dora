@@ -505,7 +505,7 @@ pub struct Function {
     pub is_abstract: bool,
     pub internal: bool,
     pub is_constructor: bool,
-
+    pub is_external: bool,
     pub params: Vec<Param>,
     pub throws: bool,
 
@@ -558,6 +558,7 @@ pub enum Modifier {
     Open,
     Final,
     Internal,
+    Extern,
     Optimize,
     Pub,
     Static,
@@ -574,6 +575,7 @@ impl Modifier {
             Modifier::Optimize => "optimize",
             Modifier::Pub => "pub",
             Modifier::Static => "static",
+            Modifier::Extern => "extern"
         }
     }
 }

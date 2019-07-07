@@ -440,7 +440,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
 
-        let callee_id = if fct.kind.is_definition() {
+        let callee_id = if fct.kind.is_definition() && !fct.is_extern {
             let trait_id = fct.trait_id();
             let object_type = match *call_type {
                 CallType::Method(ty, _, _) => ty,

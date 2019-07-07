@@ -151,6 +151,7 @@ impl<'a> BuilderFct<'a> {
             name: self.name,
             method: self.is_method,
             has_open: false,
+            is_external: false,
             has_override: false,
             has_final: false,
             has_optimize: false,

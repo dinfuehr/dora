@@ -20,7 +20,7 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
         check_abstract(ctxt, &*fct);
         check_static(ctxt, &*fct);
 
-        if !(fct.is_src() || fct.kind.is_definition()) {
+        if !(fct.is_src() || fct.kind.is_definition()) && !fct.is_extern {
             continue;
         }
 
@@ -175,6 +175,9 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
 
         if !fct.is_src() {
             ctxt.sym.lock().pop_level();
+            continue;
+        }
+        if fct.is_extern {
             continue;
         }
 

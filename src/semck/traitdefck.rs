@@ -62,6 +62,7 @@ impl<'x, 'ast> Visitor<'ast> for TraitCheck<'x, 'ast> {
             has_open: f.has_open,
             has_final: f.has_final,
             is_pub: f.is_pub,
+            is_extern: f.is_external,
             is_static: f.is_static,
             is_abstract: false,
             internal: f.internal,

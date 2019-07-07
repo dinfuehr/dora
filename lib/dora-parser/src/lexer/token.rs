@@ -64,7 +64,7 @@ pub enum TokenKind {
     Open,
     Override,
     Optimize,
-
+    Extern,
     // Operators
     Add,
     Sub,
@@ -185,7 +185,7 @@ impl TokenKind {
             TokenKind::Open => "open",
             TokenKind::Override => "override",
             TokenKind::Optimize => "optimize",
-
+            TokenKind::Extern => "extern",
             // Operators
             TokenKind::Add => "+",
             TokenKind::Sub => "-",

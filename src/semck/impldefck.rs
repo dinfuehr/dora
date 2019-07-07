@@ -71,7 +71,7 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
             return;
         }
 
-        if f.block.is_none() && !f.internal {
+        if f.block.is_none() && !f.internal && !f.is_external {
             report(self.ctxt, f.pos, Msg::MissingFctBody);
         }
 
@@ -92,6 +92,7 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
             has_override: f.has_override,
             has_open: f.has_open,
             has_final: f.has_final,
+            is_extern: false,
             is_pub: f.is_pub,
             is_static: f.is_static,
             is_abstract: false,

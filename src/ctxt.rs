@@ -776,6 +776,7 @@ pub struct Fct<'ast> {
     pub is_static: bool,
     pub is_pub: bool,
     pub is_abstract: bool,
+    pub is_extern: bool,
     pub internal: bool,
     pub internal_resolved: bool,
     pub overrides: Option<FctId>,
@@ -923,6 +924,7 @@ impl<'ast> Fct<'ast> {
 pub enum FctKind {
     Source(RwLock<FctSrc>),
     Definition,
+    External(Address),
     Native(Address),
     Builtin(Intrinsic),
 }

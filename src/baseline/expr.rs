@@ -958,6 +958,16 @@ where
 
                     ensure_jit_or_stub_ptr(&mut src, self.vm, cls_type_params, fct_type_params)
                 }
+                FctKind::External(ptr) => {
+                    let external_fct = InternalFct {
+                        ptr: ptr,
+                        args: fct.params_with_self(),
+                        return_type: fct.return_type,
+                        throws: fct.ast.throws,
+                        desc: InternalFctDescriptor::NativeThunk(fid)
+                    };
+                    ensure_native_stub(self.vm, fid, external_fct)
+                }
 
                 FctKind::Native(ptr) => {
                     let internal_fct = InternalFct {

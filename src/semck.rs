@@ -115,6 +115,9 @@ fn internalck<'ast>(ctxt: &SemContext<'ast>) {
     for fct in ctxt.fcts.iter() {
         let fct = fct.read();
 
+        if fct.is_extern {
+            continue;
+        }
         if fct.in_class() {
             continue;
         }
@@ -125,7 +128,8 @@ fn internalck<'ast>(ctxt: &SemContext<'ast>) {
                 .report_without_path(fct.pos, Msg::UnresolvedInternal);
         }
 
-        if fct.kind.is_definition() && !fct.in_trait() {
+
+        if fct.kind.is_definition() && !fct.in_trait()  {
             ctxt.diag
                 .lock()
                 .report_without_path(fct.pos, Msg::MissingFctBody);

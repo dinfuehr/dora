@@ -218,6 +218,8 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
         let kind = if f.block.is_some() {
             FctKind::Source(RwLock::new(FctSrc::new()))
+        } else if f.is_external {
+            FctKind::External(Address::from(crate::baseline::codegen::lookup_with_dlsym(&self.ctxt.interner.str(f.name)) as usize))
         } else {
             FctKind::Definition
         };
@@ -233,6 +235,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             has_override: f.has_override,
             has_open: f.has_open,
             has_final: f.has_final,
+            is_extern: f.is_external,
             is_pub: true,
             is_static: false,
             is_abstract: false,
