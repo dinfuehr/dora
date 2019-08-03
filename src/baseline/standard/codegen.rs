@@ -105,14 +105,22 @@ where
                 let reg = FREG_PARAMS[freg_idx];
 
                 self.asm.emit_comment(Comment::StoreParam(varid));
-                self.asm.var_store(self.jit_info.offset(varid), self.jit_info.ty(varid), reg.into());
+                self.asm.var_store(
+                    self.jit_info.offset(varid),
+                    self.jit_info.ty(varid),
+                    reg.into(),
+                );
 
                 freg_idx += 1;
             } else if !is_float && reg_idx < REG_PARAMS.len() {
                 let reg = REG_PARAMS[reg_idx];
 
                 self.asm.emit_comment(Comment::StoreParam(varid));
-                self.asm.var_store(self.jit_info.offset(varid), self.jit_info.ty(varid), reg.into());
+                self.asm.var_store(
+                    self.jit_info.offset(varid),
+                    self.jit_info.ty(varid),
+                    reg.into(),
+                );
 
                 reg_idx += 1;
             } else {
@@ -244,7 +252,11 @@ where
         let dest = self.emit_call_site(&for_info.next, s.pos);
 
         let for_var_id = *self.src.map_vars.get(s.id).unwrap();
-        self.asm.var_store(self.jit_info.offset(for_var_id), self.jit_info.ty(for_var_id), dest);
+        self.asm.var_store(
+            self.jit_info.offset(for_var_id),
+            self.jit_info.ty(for_var_id),
+            dest,
+        );
 
         self.save_label_state(lbl_end, lbl_start, |this| {
             // execute while body, then jump back to condition
@@ -393,7 +405,8 @@ where
             let value = self.emit_expr(expr);
             initialized = true;
 
-            self.asm.var_store(self.jit_info.offset(var), self.jit_info.ty(var), value);
+            self.asm
+                .var_store(self.jit_info.offset(var), self.jit_info.ty(var), value);
         }
 
         let reference_type = {
@@ -411,7 +424,11 @@ where
         // otherwise the GC  can't know if the stored value is a valid pointer
         if reference_type && !initialized {
             self.asm.load_nil(REG_RESULT);
-            self.asm.var_store(self.jit_info.offset(var), self.jit_info.ty(var), REG_RESULT.into());
+            self.asm.var_store(
+                self.jit_info.offset(var),
+                self.jit_info.ty(var),
+                REG_RESULT.into(),
+            );
         }
     }
 

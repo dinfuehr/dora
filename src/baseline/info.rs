@@ -1,9 +1,6 @@
 use std::collections::HashMap;
 
-use crate::ctxt::{
-     CallSite, Intrinsic, NodeMap, Store,
- VarId,
-};
+use crate::ctxt::{CallSite, Intrinsic, NodeMap, Store, VarId};
 use crate::mem;
 use crate::ty::BuiltinType;
 use dora_parser::ast::*;
@@ -68,7 +65,6 @@ impl<'ast> JitInfo<'ast> {
         }
     }
 }
-
 
 #[derive(Clone)]
 pub struct ForInfo<'ast> {
