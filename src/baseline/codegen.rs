@@ -417,7 +417,7 @@ pub fn should_emit_asm(vm: &VM, fct: &Fct) -> bool {
     }
 }
 
-fn fct_pattern_match(vm: &VM, fct: &Fct, pattern: &str) -> bool {
+pub fn fct_pattern_match(vm: &VM, fct: &Fct, pattern: &str) -> bool {
     if pattern == "all" {
         return true;
     }

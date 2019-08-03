@@ -1,4 +1,5 @@
 use crate::baseline::asm::BaselineAssembler;
+use crate::baseline::codegen::fct_pattern_match;
 use crate::cpu::{Mem, REG_RESULT};
 use dora_parser::ast::*;
 
@@ -99,6 +100,10 @@ impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
             self.fct_type_params,
         );
 
+        if should_emit_bytecode(self.vm, self.fct) {
+            bytecode.dump();
+        }
+
         if should_emit_debug(self.vm, self.fct) {
             self.asm.debug();
         }
@@ -130,5 +135,13 @@ impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
         }
 
         jit_fct
+    }
+}
+
+fn should_emit_bytecode(vm: &VM, fct: &Fct) -> bool {
+    if let Some(ref dbg_names) = vm.args.flag_emit_bytecode {
+        fct_pattern_match(vm, fct, dbg_names)
+    } else {
+        false
     }
 }
