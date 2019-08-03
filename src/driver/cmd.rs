@@ -28,6 +28,7 @@ Options:
     --emit-llvm             Emits initial LLVM IR to stdout.
     --emit-asm=<fct>        Emits assembly code to stdout.
     --emit-asm-file         Emits assembly code into file `dora-<pid>.asm`.
+    --emit-bytecode=<fct>   Emits bytecode to stdout.
     --emit-stubs            Emits generated stubs.
     --emit-debug=<fct>      Emits debug instruction at beginning of functions.
     --emit-debug-compile    Emits debug instruction at beginning of compile thunk.
@@ -74,6 +75,7 @@ pub struct Args {
     pub flag_emit_ast: bool,
     pub flag_emit_asm: Option<String>,
     pub flag_emit_asm_file: bool,
+    pub flag_emit_bytecode: Option<String>,
     pub flag_emit_llvm: bool,
     pub flag_emit_stubs: bool,
     pub flag_enable_perf: bool,
@@ -171,6 +173,7 @@ impl Default for Args {
             flag_emit_ast: false,
             flag_emit_asm: None,
             flag_emit_asm_file: false,
+            flag_emit_bytecode: None,
             flag_emit_llvm: false,
             flag_emit_stubs: false,
             flag_emit_debug: None,
