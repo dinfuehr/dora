@@ -1,12 +1,18 @@
 use crate::baseline::asm::BaselineAssembler;
+use crate::cpu::{Mem, REG_RESULT};
 use dora_parser::ast::*;
 
-use crate::baseline::codegen::{CodeGen, Scopes};
-use crate::baseline::fct::{JitBaselineFct};
+use crate::baseline::codegen::{should_emit_debug, CodeGen, Scopes};
+use crate::baseline::fct::{Comment, JitBaselineFct, JitDescriptor};
 use crate::class::TypeParams;
 use crate::ctxt::VM;
 use crate::ctxt::{Fct, FctSrc};
 use crate::masm::*;
+use crate::os;
+
+use crate::bytecode::astgen::generate;
+use crate::bytecode::generate::{BytecodeFunction, Register};
+use crate::bytecode::opcode::Bytecode;
 
 pub struct CannonCodeGen<'a, 'ast: 'a> {
     pub vm: &'a VM<'ast>,
@@ -48,11 +54,79 @@ pub struct CannonCodeGen<'a, 'ast: 'a> {
 impl<'a, 'ast> CannonCodeGen<'a, 'ast>
 where
     'ast: 'a,
-{   
+{
+    fn emit_prolog(&mut self, bytecode: &BytecodeFunction) {
+        self.asm.prolog(bytecode.stacksize());
+        self.asm.emit_comment(Comment::Lit("prolog end"));
+        self.asm.emit_comment(Comment::Newline);
+    }
+
+    fn emit_epilog(&mut self, bytecode: &BytecodeFunction) {
+        self.asm.emit_comment(Comment::Newline);
+        self.asm.emit_comment(Comment::Lit("epilog"));
+
+        let stacksize = bytecode.stacksize();
+        let polling_page = self.vm.polling_page.addr();
+        self.asm.epilog_with_polling(stacksize, polling_page);
+    }
+
+    fn emit_const_bool(&mut self, bytecode: &BytecodeFunction, dest: &Register) {
+        let index = match *dest {
+            Register(index) => index,
+        };
+        let bytecode_type = match bytecode.registers().get(index) {
+            Some(bytecode_type) => bytecode_type,
+            _ => panic!("register not found"),
+        };
+        let offset = match bytecode.offset().get(index) {
+            Some(offset) => offset,
+            _ => panic!("offset not found"),
+        };
+
+        self.asm.load_true(REG_RESULT);
+        self.asm
+            .store_mem(bytecode_type.mode(), Mem::Local(*offset), REG_RESULT.into());
+    }
 }
 
 impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
     fn generate(mut self) -> JitBaselineFct {
-        panic!("not implemented");
+        let bytecode = generate(
+            self.vm,
+            self.fct.id,
+            self.cls_type_params,
+            self.fct_type_params,
+        );
+
+        if should_emit_debug(self.vm, self.fct) {
+            self.asm.debug();
+        }
+
+        self.emit_prolog(&bytecode);
+        // self.store_register_params_on_stack();
+        for btcode in bytecode.code().iter() {
+            match btcode {
+                Bytecode::ConstTrue(dest) => self.emit_const_bool(&bytecode, dest),
+                _ => panic!("bytecode not implemented"),
+            }
+        }
+
+        let always_returns = self.src.always_returns;
+
+        if !always_returns {
+            self.emit_epilog(&bytecode);
+        }
+
+        let jit_fct = self.asm.jit(
+            bytecode.stacksize(),
+            JitDescriptor::DoraFct(self.fct.id),
+            self.ast.throws,
+        );
+
+        if self.vm.args.flag_enable_perf {
+            os::perf::register_with_perf(&jit_fct, self.vm, self.ast.name);
+        }
+
+        jit_fct
     }
 }

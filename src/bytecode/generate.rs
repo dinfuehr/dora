@@ -3,10 +3,12 @@ use std::convert::From;
 use std::fmt;
 use std::mem;
 
+use crate::mem as cratemem;
+
 use crate::bytecode::opcode::Bytecode;
 use crate::class::{ClassDefId, FieldId};
 use crate::ctxt::{FctId, GlobalId};
-use crate::ty::BuiltinType;
+use crate::ty::{BuiltinType, MachineMode};
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Register(pub usize);
@@ -67,6 +69,34 @@ pub enum BytecodeType {
     Float,
     Double,
     Ptr,
+}
+
+impl BytecodeType {
+    pub fn size(&self) -> i32 {
+        match self {
+            BytecodeType::Bool => 1,
+            BytecodeType::Byte => 1,
+            BytecodeType::Char => 4,
+            BytecodeType::Int => 4,
+            BytecodeType::Long => 8,
+            BytecodeType::Float => 4,
+            BytecodeType::Double => 8,
+            BytecodeType::Ptr => cratemem::ptr_width(),
+        }
+    }
+
+    pub fn mode(&self) -> MachineMode {
+        match self {
+            BytecodeType::Bool => MachineMode::Int8,
+            BytecodeType::Byte => MachineMode::Int8,
+            BytecodeType::Char => MachineMode::Int32,
+            BytecodeType::Int => MachineMode::Int32,
+            BytecodeType::Long => MachineMode::Int64,
+            BytecodeType::Float => MachineMode::Float32,
+            BytecodeType::Double => MachineMode::Float64,
+            BytecodeType::Ptr => MachineMode::Ptr,
+        }
+    }
 }
 
 impl From<BuiltinType> for BytecodeType {
@@ -827,6 +857,7 @@ impl BytecodeGenerator {
 
         BytecodeFunction {
             code: self.code,
+            offset: generate_offset(&self.registers),
             registers: self.registers,
             string_pool: generate_string_pool(self.string_pool_map),
         }
@@ -870,10 +901,22 @@ fn generate_string_pool(map: HashMap<String, StrConstPoolIdx>) -> Vec<String> {
     pool
 }
 
+fn generate_offset(registers: &Vec<BytecodeType>) -> Vec<i32> {
+    let mut offset: Vec<i32> = vec![0; registers.len()];
+    let mut stacksize: i32 = 0;
+    for (index, ty) in registers.iter().enumerate() {
+        offset[index] = cratemem::align_i32(stacksize + ty.size(), ty.size());
+        stacksize = offset[index];
+    }
+
+    offset
+}
+
 pub struct BytecodeFunction {
     code: Vec<Bytecode>,
     registers: Vec<BytecodeType>,
     string_pool: Vec<String>,
+    offset: Vec<i32>,
 }
 
 impl BytecodeFunction {
@@ -883,6 +926,21 @@ impl BytecodeFunction {
 
     pub fn string_pool(&self) -> &[String] {
         &self.string_pool
+    }
+
+    pub fn registers(&self) -> &[BytecodeType] {
+        &self.registers
+    }
+
+    pub fn offset(&self) -> &[i32] {
+        &self.offset
+    }
+
+    pub fn stacksize(&self) -> i32 {
+        match self.offset().last() {
+            None => 0,
+            Some(stacksize) => *stacksize,
+        }
     }
 
     pub fn dump(&self) {
