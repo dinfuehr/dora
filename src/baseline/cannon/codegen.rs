@@ -107,6 +107,7 @@ impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
         for btcode in bytecode.code().iter() {
             match btcode {
                 Bytecode::ConstTrue(dest) => self.emit_const_bool(&bytecode, dest),
+                Bytecode::RetVoid => {}
                 _ => panic!("bytecode not implemented"),
             }
         }
