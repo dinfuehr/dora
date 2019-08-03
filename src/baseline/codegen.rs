@@ -10,16 +10,17 @@ use std::sync::Arc;
 use capstone::{Engine, Error};
 
 use crate::baseline::asm::BaselineAssembler;
+use crate::baseline::cannon::CannonCodeGen;
 use crate::baseline::expr::*;
 use crate::baseline::fct::{CommentFormat, GcPoint, JitBaselineFct, JitFct};
-use crate::baseline::info::{self, JitInfo};
+use crate::baseline::info::JitInfo;
 use crate::baseline::map::CodeDescriptor;
-use crate::baseline::standard::StandardCodeGen;
+use crate::baseline::standard::{self, StandardCodeGen};
 use crate::class::TypeParams;
 use crate::cpu::{FREG_RESULT, REG_RESULT};
 use crate::ctxt::VM;
 use crate::ctxt::{Fct, FctId, FctSrc, VarId};
-use crate::driver::cmd::AsmSyntax;
+use crate::driver::cmd::{AsmSyntax, BaselineName};
 use crate::gc::Address;
 use crate::masm::*;
 use crate::mem;
@@ -65,36 +66,60 @@ pub fn generate_fct<'ast>(
 
     let ast = fct.ast;
 
-    let mut jit_info = JitInfo::new();
-    info::generate(
-        vm,
-        fct,
-        src,
-        &mut jit_info,
-        cls_type_params,
-        fct_type_params,
-    );
-    let jit_fct = StandardCodeGen {
-        vm: vm,
-        fct: &fct,
-        ast: ast,
-        asm: BaselineAssembler::new(vm),
-        scopes: Scopes::new(),
-        src: src,
-        jit_info: jit_info,
+    let jit_fct = match vm.args.flag_bc {
+        Some(BaselineName::Cannon) => CannonCodeGen {
+            vm: vm,
+            fct: &fct,
+            ast: ast,
+            asm: BaselineAssembler::new(vm),
+            scopes: Scopes::new(),
+            src: src,
 
-        lbl_break: None,
-        lbl_continue: None,
+            lbl_break: None,
+            lbl_continue: None,
 
-        active_finallys: Vec::new(),
-        active_upper: None,
-        active_loop: None,
-        lbl_return: None,
+            active_finallys: Vec::new(),
+            active_upper: None,
+            active_loop: None,
+            lbl_return: None,
 
-        cls_type_params: cls_type_params,
-        fct_type_params: fct_type_params,
-    }
-    .generate();
+            cls_type_params: cls_type_params,
+            fct_type_params: fct_type_params,
+        }
+        .generate(),
+        _ => {
+            let mut jit_info = JitInfo::new();
+            standard::info::generate(
+                vm,
+                fct,
+                src,
+                &mut jit_info,
+                cls_type_params,
+                fct_type_params,
+            );
+            StandardCodeGen {
+                vm: vm,
+                fct: &fct,
+                ast: ast,
+                asm: BaselineAssembler::new(vm),
+                scopes: Scopes::new(),
+                src: src,
+                jit_info: jit_info,
+
+                lbl_break: None,
+                lbl_continue: None,
+
+                active_finallys: Vec::new(),
+                active_upper: None,
+                active_loop: None,
+                lbl_return: None,
+
+                cls_type_params: cls_type_params,
+                fct_type_params: fct_type_params,
+            }
+            .generate()
+        }
+    };
 
     if should_emit_asm(vm, &*fct) {
         dump_asm(
