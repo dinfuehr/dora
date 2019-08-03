@@ -10,7 +10,7 @@ use crate::ctxt::{Fct, FctSrc};
 use crate::masm::*;
 use crate::os;
 
-use crate::bytecode::astgen::generate;
+use crate::bytecode::astgen::generate_fct;
 use crate::bytecode::generate::{BytecodeFunction, Register};
 use crate::bytecode::opcode::Bytecode;
 
@@ -91,9 +91,10 @@ where
 
 impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
     fn generate(mut self) -> JitBaselineFct {
-        let bytecode = generate(
+        let bytecode = generate_fct(
             self.vm,
-            self.fct.id,
+            self.fct,
+            self.src,
             self.cls_type_params,
             self.fct_type_params,
         );
