@@ -71,7 +71,7 @@ where
             .epilog_with_polling(bytecode.stacksize(), polling_page);
     }
 
-    fn emit_const_bool(&mut self, bytecode: &BytecodeFunction, dest: &Register) {
+    fn emit_const_bool(&mut self, bytecode: &BytecodeFunction, dest: &Register, bool_const: bool) {
         let index = match *dest {
             Register(index) => index,
         };
@@ -84,7 +84,11 @@ where
             _ => panic!("offset not found"),
         };
 
-        self.asm.load_true(REG_RESULT);
+        if bool_const {
+            self.asm.load_true(REG_RESULT);
+        } else {
+            self.asm.load_false(REG_RESULT);
+        }
         self.asm
             .store_mem(bytecode_type.mode(), Mem::Local(*offset), REG_RESULT.into());
     }
@@ -112,7 +116,8 @@ impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
         // self.store_register_params_on_stack();
         for btcode in bytecode.code().iter() {
             match btcode {
-                Bytecode::ConstTrue(dest) => self.emit_const_bool(&bytecode, dest),
+                Bytecode::ConstTrue(dest) => self.emit_const_bool(&bytecode, dest, true),
+                Bytecode::ConstFalse(dest) => self.emit_const_bool(&bytecode, dest, true),
                 Bytecode::RetVoid => {}
                 _ => panic!("bytecode not implemented"),
             }
