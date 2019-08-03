@@ -939,7 +939,7 @@ impl BytecodeFunction {
     pub fn stacksize(&self) -> i32 {
         match self.offset().last() {
             None => 0,
-            Some(stacksize) => *stacksize,
+            Some(stacksize) => cratemem::align_i32(-(*stacksize), 16),
         }
     }
 

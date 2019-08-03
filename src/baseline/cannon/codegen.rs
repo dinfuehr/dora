@@ -66,9 +66,9 @@ where
         self.asm.emit_comment(Comment::Newline);
         self.asm.emit_comment(Comment::Lit("epilog"));
 
-        let stacksize = bytecode.stacksize();
         let polling_page = self.vm.polling_page.addr();
-        self.asm.epilog_with_polling(stacksize, polling_page);
+        self.asm
+            .epilog_with_polling(bytecode.stacksize(), polling_page);
     }
 
     fn emit_const_bool(&mut self, bytecode: &BytecodeFunction, dest: &Register) {
