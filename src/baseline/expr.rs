@@ -506,7 +506,8 @@ where
         match ident {
             IdentType::Var(varid) => {
                 self.asm.emit_comment(Comment::LoadVar(varid));
-                self.asm.var_load(self.jit_info, varid, dest)
+                self.asm
+                    .var_load(self.jit_info.offset(varid), self.jit_info.ty(varid), dest)
             }
 
             IdentType::Global(gid) => {
@@ -649,7 +650,8 @@ where
                 self.emit_expr(&e.rhs, dest);
 
                 self.asm.emit_comment(Comment::StoreVar(varid));
-                self.asm.var_store(self.jit_info, dest, varid);
+                self.asm
+                    .var_store(self.jit_info.offset(varid), self.jit_info.ty(varid), dest);
             }
 
             IdentType::Global(gid) => {

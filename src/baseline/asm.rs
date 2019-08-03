@@ -6,11 +6,10 @@ use crate::baseline::codegen::CondCode;
 use crate::baseline::dora_native::{InternalFct, InternalFctDescriptor};
 use crate::baseline::expr::{ensure_native_stub, AllocationSize, ExprStore};
 use crate::baseline::fct::{CatchType, Comment, GcPoint, JitBaselineFct, JitDescriptor};
-use crate::baseline::info::JitInfo;
 use crate::class::TypeParams;
 use crate::cpu::{FReg, Mem, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1};
+use crate::ctxt::FctId;
 use crate::ctxt::VM;
-use crate::ctxt::{FctId, VarId};
 use crate::gc::tlab::TLAB_OBJECT_SIZE;
 use crate::gc::Address;
 use crate::masm::{Label, MacroAssembler, ScratchReg};
@@ -419,15 +418,11 @@ where
         self.masm.emit_lineno(lineno);
     }
 
-    pub fn var_store(&mut self, jit_info: &JitInfo, src: ExprStore, var_id: VarId) {
-        let offset = jit_info.offset(var_id);
-        let ty = jit_info.ty(var_id);
+    pub fn var_store(&mut self, offset: i32, ty: BuiltinType, src: ExprStore) {
         self.masm.store_mem(ty.mode(), Mem::Local(offset), src);
     }
 
-    pub fn var_load(&mut self, jit_info: &JitInfo, var_id: VarId, dest: ExprStore) {
-        let offset = jit_info.offset(var_id);
-        let ty = jit_info.ty(var_id);
+    pub fn var_load(&mut self, offset: i32, ty: BuiltinType, dest: ExprStore) {
         self.masm.load_mem(ty.mode(), dest, Mem::Local(offset));
     }
 
