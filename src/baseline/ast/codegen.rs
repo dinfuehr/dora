@@ -21,7 +21,7 @@ use crate::semck::always_returns;
 use crate::semck::specialize::specialize_class_ty;
 use crate::ty::{BuiltinType, MachineMode};
 
-pub struct StandardCodeGen<'a, 'ast: 'a> {
+pub struct AstCodeGen<'a, 'ast: 'a> {
     pub vm: &'a VM<'ast>,
     pub fct: &'a Fct<'ast>,
     pub ast: &'ast Function,
@@ -59,7 +59,7 @@ pub struct StandardCodeGen<'a, 'ast: 'a> {
     pub fct_type_params: &'a TypeParams,
 }
 
-impl<'a, 'ast> StandardCodeGen<'a, 'ast>
+impl<'a, 'ast> AstCodeGen<'a, 'ast>
 where
     'ast: 'a,
 {
@@ -301,7 +301,7 @@ where
 
     fn save_label_state<F>(&mut self, lbl_break: Label, lbl_continue: Label, f: F)
     where
-        F: FnOnce(&mut StandardCodeGen<'a, 'ast>),
+        F: FnOnce(&mut AstCodeGen<'a, 'ast>),
     {
         let old_lbl_break = self.lbl_break;
         let old_lbl_continue = self.lbl_continue;
@@ -639,7 +639,7 @@ where
     }
 }
 
-impl<'a, 'ast> CodeGen<'ast> for StandardCodeGen<'a, 'ast> {
+impl<'a, 'ast> CodeGen<'ast> for AstCodeGen<'a, 'ast> {
     fn generate(mut self) -> JitBaselineFct {
         if should_emit_debug(self.vm, self.fct) {
             self.asm.debug();
@@ -669,7 +669,7 @@ impl<'a, 'ast> CodeGen<'ast> for StandardCodeGen<'a, 'ast> {
     }
 }
 
-impl<'a, 'ast> visit::Visitor<'ast> for StandardCodeGen<'a, 'ast> {
+impl<'a, 'ast> visit::Visitor<'ast> for AstCodeGen<'a, 'ast> {
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         match *s {
             StmtExpr(ref stmt) => self.emit_stmt_expr(stmt),

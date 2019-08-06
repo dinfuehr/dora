@@ -10,12 +10,12 @@ use std::sync::Arc;
 use capstone::{Engine, Error};
 
 use crate::baseline::asm::BaselineAssembler;
+use crate::baseline::ast::{self, AstCodeGen};
 use crate::baseline::cannon::CannonCodeGen;
 use crate::baseline::expr::*;
 use crate::baseline::fct::{CommentFormat, GcPoint, JitBaselineFct, JitFct};
 use crate::baseline::info::JitInfo;
 use crate::baseline::map::CodeDescriptor;
-use crate::baseline::standard::{self, StandardCodeGen};
 use crate::class::TypeParams;
 use crate::cpu::{FREG_RESULT, REG_RESULT};
 use crate::ctxt::VM;
@@ -89,7 +89,7 @@ pub fn generate_fct<'ast>(
         .generate(),
         _ => {
             let mut jit_info = JitInfo::new();
-            standard::info::generate(
+            ast::info::generate(
                 vm,
                 fct,
                 src,
@@ -97,7 +97,7 @@ pub fn generate_fct<'ast>(
                 cls_type_params,
                 fct_type_params,
             );
-            StandardCodeGen {
+            AstCodeGen {
                 vm: vm,
                 fct: &fct,
                 ast: ast,
