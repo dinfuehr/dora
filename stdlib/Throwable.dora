@@ -1,0 +1,41 @@
+open abstract class Throwable(let msg: String) {
+  var backtrace: Array<Int> = nil;
+  var elements: Array<StackTraceElement> = nil;
+
+  self.retrieveStackTrace();
+
+  fun getStackTrace() -> Array<StackTraceElement> {
+    if self.elements !== nil {
+      return self.elements;
+    }
+
+    if self.backtrace === nil {
+      self.elements = arrayEmpty::<StackTraceElement>();
+      return self.elements;
+    }
+
+    var i = 0;
+    let len = self.backtrace.length() / 2;
+    self.elements = Array::<StackTraceElement>(len);
+
+    while i < len {
+      self.elements[i] = self.getStackTraceElement(i);
+      i = i + 1;
+    }
+
+    return self.elements;
+  }
+
+  fun getMessage() -> String {
+    return self.msg;
+  }
+
+  abstract fun printStackTrace();
+
+  internal fun retrieveStackTrace();
+  internal fun getStackTraceElement(idx: Int) -> StackTraceElement;
+}
+
+class StackTraceElement(let name: String, let line: Int) {
+  fun toString() -> String = self.name + ": " + self.line.toString();
+}

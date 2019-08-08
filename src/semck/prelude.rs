@@ -36,6 +36,8 @@ pub fn internal_classes<'ast>(ctxt: &mut SemContext<'ast>) {
 
     ctxt.vips.testing_class = internal_class(ctxt, "Testing", None);
 
+    ctxt.vips.throwable_class = internal_class(ctxt, "Throwable", None);
+    ctxt.vips.error_class = internal_class(ctxt, "Error", None);
     ctxt.vips.exception_class = internal_class(ctxt, "Exception", None);
     ctxt.vips.stack_trace_element_class = internal_class(ctxt, "StackTraceElement", None);
 
@@ -348,7 +350,7 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     intrinsic_method(ctxt, clsid, "get", Intrinsic::GenericArrayGet);
     intrinsic_method(ctxt, clsid, "set", Intrinsic::GenericArraySet);
 
-    let clsid = ctxt.vips.exception_class;
+    let clsid = ctxt.vips.throwable_class;
     native_method(
         ctxt,
         clsid,

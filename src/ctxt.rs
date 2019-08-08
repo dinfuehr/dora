@@ -136,6 +136,8 @@ impl<'ast> SemContext<'ast> {
                 array_class: empty_class_id,
 
                 testing_class: empty_class_id,
+                throwable_class: empty_class_id,
+                error_class: empty_class_id,
                 exception_class: empty_class_id,
                 stack_trace_element_class: empty_class_id,
 
@@ -611,6 +613,8 @@ pub struct KnownElements {
     pub array_class: ClassId,
 
     pub testing_class: ClassId,
+    pub throwable_class: ClassId,
+    pub error_class: ClassId,
     pub exception_class: ClassId,
     pub stack_trace_element_class: ClassId,
 

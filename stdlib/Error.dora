@@ -1,9 +1,9 @@
-class Exception(msg: String): Throwable(msg) {
+class Error(msg: String): Throwable(msg) {
   override fun printStackTrace() {
     if super.getMessage() !== nil {
-      println("Exception: " + super.getMessage());
+      println("Error: " + self.getMessage());
     } else {
-      println("Exception");
+      println("Error");
     }
 
     let x = self.getStackTrace();
@@ -11,7 +11,7 @@ class Exception(msg: String): Throwable(msg) {
     var i = 0;
 
     while i < x.length() {
-      println(i.toString() + ": " + x.get(i).toString());
+      println(i.toString() + ": " + x[i].toString());
       i = i + 1;
     }
   }
