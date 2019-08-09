@@ -339,17 +339,17 @@ def parse_test_file(file)
         next if arguments.size == 1
 
         case arguments[1]
-        when "at" then test_case.expectation.position = arguments[2]
-        when "code" then test_case.expectation.code = arguments[2].to_i
-        when "message" then test_case.expectation.message = arguments[2].to_s
-        when "div0" then test_case.expectation.code = 101
-        when "assert" then test_case.expectation.code = 102
-        when "array" then test_case.expectation.code = 103
-        when "nil" then test_case.expectation.code = 104
-        when "exception" then test_case.expectation.code = 105
-        when "cast" then test_case.expectation.code = 106
-        when "unexpected" then test_case.expectation.code = 107
-        when "oom" then test_case.expectation.code = 108
+        when "at" then exp.position = arguments[2]
+        when "code" then exp.code = arguments[2].to_i
+        when "message" then exp.message = arguments[2].to_s
+        when "div0" then exp.code = 101
+        when "assert" then exp.code = 105
+        when "array" then exp.code = 103
+        when "nil" then exp.code = 104
+        when "exception" then exp.code = 105
+        when "cast" then exp.code = 106
+        when "unexpected" then exp.code = 107
+        when "oom" then exp.code = 108
         when "fail"
           # do nothing
         else
