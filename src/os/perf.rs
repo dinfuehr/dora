@@ -30,4 +30,3 @@ pub fn register_with_perf(jit_fct: &JitBaselineFct, vm: &VM, name: Name) {
 pub fn register_with_perf(_: &JitBaselineFct, _: &VM, _: Name) {
     // nothing to do
 }
-
