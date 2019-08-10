@@ -500,7 +500,6 @@ impl fmt::Display for GcReason {
 pub fn fill_region(vm: &VM, start: Address, end: Address) {
     if start == end {
         // nothing to do
-
     } else if end.offset_from(start) == mem::ptr_width_usize() {
         unsafe {
             *start.to_mut_ptr::<usize>() = 0;

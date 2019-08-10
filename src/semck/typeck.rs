@@ -1753,7 +1753,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             valid = true;
         } else if check_type.subclass_from(self.ctxt, object_type) {
             // normal check
-
         } else {
             let object_type = object_type.name(self.ctxt);
             let check_type = check_type.name(self.ctxt);

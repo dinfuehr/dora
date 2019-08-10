@@ -268,7 +268,6 @@ impl MacroAssembler {
 
         if size_words == 0 {
             // nothing to fill zero
-
         } else if size_words <= 8 {
             let zero = self.get_scratch();
             self.load_int_const(MachineMode::Int32, *zero, 0);

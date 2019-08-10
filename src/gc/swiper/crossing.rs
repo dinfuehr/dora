@@ -102,7 +102,6 @@ impl CrossingMap {
         if (object_start.to_usize() >> CARD_SIZE_BITS) == (object_end.to_usize() >> CARD_SIZE_BITS)
         {
             // object does not span multiple cards
-
         } else if array_ref {
             let end_card_idx = card_idx(object_end, old_total.start);
             let end_card_addr = card_address(end_card_idx, old_total.start);
