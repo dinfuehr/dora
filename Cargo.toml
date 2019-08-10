@@ -20,7 +20,6 @@ parking_lot = "*"
 fixedbitset = "*"
 num_cpus = "*"
 backtrace = "*"
-perfcnt = "0.4.4"
 
 [dependencies.capstone]
 git = "https://github.com/ebfe/rust-capstone.git"

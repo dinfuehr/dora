@@ -87,11 +87,9 @@ impl Collector for CopyCollector {
         let mut timer = Timer::new(vm.args.flag_gc_stats);
 
         safepoint::stop_the_world(vm, |threads| {
-            vm.perf_counters.stop();
             tlab::make_iterable_all(vm, &*threads);
             let rootset = get_rootset(vm, &*threads);
             self.copy_collect(vm, &rootset, reason);
-            vm.perf_counters.start();
         });
 
         if vm.args.flag_gc_stats {

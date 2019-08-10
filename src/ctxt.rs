@@ -21,7 +21,6 @@ use crate::class::{Class, ClassDef, ClassDefId, ClassId, FieldId, TypeParams};
 use crate::exception::DoraToNativeInfo;
 use crate::gc::{Address, Gc};
 use crate::object::{Ref, Testing};
-use crate::os::perf::counters::PerfCounters;
 use crate::safepoint::{PollingPage, Safepoint};
 use crate::semck::specialize::{specialize_class_id, specialize_class_id_params};
 use crate::stdlib;
@@ -103,7 +102,6 @@ pub struct SemContext<'ast> {
     pub throw_thunk: Mutex<Address>,
     pub threads: Threads,
     pub safepoint: Safepoint,
-    pub perf_counters: PerfCounters,
 }
 
 impl<'ast> SemContext<'ast> {
@@ -112,7 +110,6 @@ impl<'ast> SemContext<'ast> {
         let empty_class_def_id: ClassDefId = 0.into();
         let empty_trait_id: TraitId = 0.into();
         let gc = Gc::new(&args);
-        let perf_counters = PerfCounters::new(args.flag_gc_counters);
 
         let ctxt = Box::new(SemContext {
             args: args,
@@ -172,7 +169,6 @@ impl<'ast> SemContext<'ast> {
             throw_thunk: Mutex::new(Address::null()),
             threads: Threads::new(),
             safepoint: Safepoint::new(),
-            perf_counters: perf_counters,
         });
 
         set_vm(&ctxt);

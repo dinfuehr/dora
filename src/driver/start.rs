@@ -95,7 +95,6 @@ pub fn start(content: Option<&str>) -> i32 {
     let mut timer = Timer::new(vm.args.flag_gc_stats);
 
     vm.threads.attach_current_thread();
-    vm.perf_counters.start();
 
     let code = if vm.args.cmd_test {
         run_tests(&vm)
@@ -105,19 +104,12 @@ pub fn start(content: Option<&str>) -> i32 {
 
     vm.threads.detach_current_thread();
     vm.threads.join_all();
-    vm.perf_counters.stop();
 
     os::unregister_signals();
 
     if vm.args.flag_gc_stats {
         let duration = timer.stop();
         vm.dump_gc_summary(duration);
-    }
-
-    if vm.args.flag_gc_counters {
-        let counters = vm.perf_counters.get();
-        println!("GC stats: mutator-l1-dcache-misses={}", counters.l1_misses);
-        println!("GC stats: mutator-dtlb-misses={}", counters.tlb_misses);
     }
 
     code

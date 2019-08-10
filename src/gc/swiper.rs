@@ -206,7 +206,6 @@ impl Swiper {
         mut reason: GcReason,
     ) -> CollectionKind {
         safepoint::stop_the_world(vm, |threads| {
-            vm.perf_counters.stop();
             controller::start(&self.config, &self.young, &self.old, &self.large);
 
             tlab::make_iterable_all(vm, threads);
@@ -240,7 +239,6 @@ impl Swiper {
                 &vm.args,
                 reason,
             );
-            vm.perf_counters.start();
 
             kind
         })
