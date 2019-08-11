@@ -20,15 +20,6 @@ $ARGS.delete_if do |arg|
   end
 end
 
-$ARGS.delete_if do |arg|
-  if (m = /\A\-bc=(standard|cannon)/.match(arg))
-    $filter_run = m[1]
-    true  
-  else
-    false
-  end
-end
-
 class TestExpectation
   attr_accessor :fail,
                 :position,
