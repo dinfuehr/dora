@@ -162,6 +162,10 @@ impl Args {
     pub fn parallel_full(&self) -> bool {
         self.flag_gc_parallel_full || self.flag_gc_parallel
     }
+
+    pub fn bc(&self) -> BaselineName {
+        self.flag_bc.unwrap_or(BaselineName::Standard)
+    }
 }
 
 impl Default for Args {

@@ -66,8 +66,8 @@ pub fn generate_fct<'ast>(
 
     let ast = fct.ast;
 
-    let jit_fct = match vm.args.flag_bc {
-        Some(BaselineName::Cannon) => CannonCodeGen {
+    let jit_fct = match vm.args.bc() {
+        BaselineName::Cannon => CannonCodeGen {
             vm: vm,
             fct: &fct,
             ast: ast,
@@ -87,7 +87,7 @@ pub fn generate_fct<'ast>(
             fct_type_params: fct_type_params,
         }
         .generate(),
-        _ => {
+        BaselineName::Standard => {
             let mut jit_info = JitInfo::new();
             ast::info::generate(
                 vm,
