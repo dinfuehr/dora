@@ -58,7 +58,7 @@ class TestCase
       self.results = :ignore 
       return {:ignore => 1}
     end
-    self.optional_runs.each_pair { |optional_run, run_vm_args| 
+    optional_runs.each_pair do |optional_run, run_vm_args|   
       if $filter_run != nil
         if $filter_run == 'standard'
           if optional_run != nil
@@ -69,7 +69,7 @@ class TestCase
         end
       end
       self.results[optional_run] = run_test(run_vm_args) 
-    }
+    end
 
     if self.results.empty? 
       self.results = :ignore
