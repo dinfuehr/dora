@@ -9,7 +9,6 @@ use crate::class::TypeParams;
 use crate::ctxt::VM;
 use crate::ctxt::{Fct, FctSrc};
 use crate::masm::*;
-use crate::os;
 
 use crate::bytecode::astgen::generate_fct;
 use crate::bytecode::generate::{BytecodeFunction, Register};
@@ -126,10 +125,6 @@ impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
             JitDescriptor::DoraFct(self.fct.id),
             self.ast.throws,
         );
-
-        if self.vm.args.flag_enable_perf {
-            os::perf::register_with_perf(&jit_fct, self.vm, self.ast.name);
-        }
 
         jit_fct
     }

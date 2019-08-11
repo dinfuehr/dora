@@ -24,6 +24,7 @@ use crate::driver::cmd::{AsmSyntax, BaselineName};
 use crate::gc::Address;
 use crate::masm::*;
 use crate::mem;
+use crate::os;
 use crate::ty::MachineMode;
 
 pub fn generate<'ast>(
@@ -120,6 +121,10 @@ pub fn generate_fct<'ast>(
             .generate()
         }
     };
+
+    if vm.args.flag_enable_perf {
+        os::perf::register_with_perf(&jit_fct, vm, ast.name);
+    }
 
     if should_emit_asm(vm, &*fct) {
         dump_asm(

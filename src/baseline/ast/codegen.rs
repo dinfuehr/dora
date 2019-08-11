@@ -16,7 +16,6 @@ use crate::cpu::{Mem, FREG_PARAMS, FREG_RESULT, REG_PARAMS, REG_RESULT};
 use crate::ctxt::VM;
 use crate::ctxt::{CallSite, Fct, FctParent, FctSrc};
 use crate::masm::*;
-use crate::os;
 use crate::os::signal::Trap;
 use crate::semck::always_returns;
 use crate::semck::specialize::specialize_class_ty;
@@ -661,10 +660,6 @@ impl<'a, 'ast> CodeGen<'ast> for AstCodeGen<'a, 'ast> {
             JitDescriptor::DoraFct(self.fct.id),
             self.ast.throws,
         );
-
-        if self.vm.args.flag_enable_perf {
-            os::perf::register_with_perf(&jit_fct, self.vm, self.ast.name);
-        }
 
         jit_fct
     }
