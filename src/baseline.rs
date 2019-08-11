@@ -9,5 +9,4 @@ pub mod dora_entry;
 pub mod dora_native;
 pub mod dora_throw;
 pub mod fct;
-pub mod info;
 pub mod map;

@@ -1,10 +1,11 @@
 use crate::baseline::asm::BaselineAssembler;
-use crate::baseline::codegen::ensure_native_stub;
-use crate::baseline::codegen::register_for_mode;
-use crate::baseline::codegen::{self, AllocationSize, CondCode, ExprStore, Scopes, TempOffsets};
+use crate::baseline::ast::info::JitInfo;
+use crate::baseline::codegen::{
+    self, ensure_native_stub, register_for_mode, AllocationSize, CondCode, ExprStore, Scopes,
+    TempOffsets,
+};
 use crate::baseline::dora_native::{InternalFct, InternalFctDescriptor};
 use crate::baseline::fct::{CatchType, Comment, GcPoint};
-use crate::baseline::info::JitInfo;
 use crate::class::{ClassDefId, ClassSize, FieldId, TypeParams};
 use crate::cpu::{
     FReg, Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_TMP1, REG_TMP2,

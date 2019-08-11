@@ -1,23 +1,20 @@
 use std::cmp::max;
-
-use crate::mem;
-use crate::ty::BuiltinType;
-
-use crate::baseline::info::{ForInfo, JitInfo};
-use crate::class::TypeParams;
-use crate::cpu::*;
-use crate::ctxt::VM;
-use crate::ctxt::{
-    Arg, CallSite, CallType, Fct, FctId, FctKind, FctParent, FctSrc, Intrinsic, Store, TraitId,
-    VarId,
-};
-
-use crate::semck::specialize::specialize_type;
+use std::collections::HashMap;
 
 use dora_parser::ast::visit::*;
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
+
+use crate::class::TypeParams;
+use crate::cpu::*;
+use crate::ctxt::{
+    Arg, CallSite, CallType, Fct, FctId, FctKind, FctParent, FctSrc, Intrinsic, NodeMap, Store,
+    TraitId, VarId, VM,
+};
+use crate::mem;
+use crate::semck::specialize::specialize_type;
+use crate::ty::BuiltinType;
 
 pub fn generate<'a, 'ast: 'a>(
     vm: &'a VM<'ast>,
@@ -54,6 +51,67 @@ pub fn generate<'a, 'ast: 'a>(
     };
 
     ig.generate();
+}
+
+pub struct JitInfo<'ast> {
+    pub tempsize: i32,                // size of temporary variables on stack
+    pub localsize: i32,               // size of local variables on stack
+    pub argsize: i32,                 // size of arguments on stack (need to be on bottom)
+    pub leaf: bool,                   // false if fct calls other functions
+    pub eh_return_value: Option<i32>, // stack slot for return value storage
+
+    pub map_stores: NodeMap<Store>,
+    pub map_csites: NodeMap<CallSite<'ast>>,
+    pub map_offsets: NodeMap<i32>,
+    pub map_var_offsets: HashMap<VarId, i32>,
+    pub map_var_types: HashMap<VarId, BuiltinType>,
+    pub map_intrinsics: NodeMap<Intrinsic>,
+    pub map_fors: NodeMap<ForInfo<'ast>>,
+}
+
+impl<'ast> JitInfo<'ast> {
+    pub fn get_store(&self, id: NodeId) -> Store {
+        match self.map_stores.get(id) {
+            Some(store) => *store,
+            None => Store::Reg,
+        }
+    }
+
+    pub fn stacksize(&self) -> i32 {
+        mem::align_i32(self.tempsize + self.localsize + self.argsize, 16)
+    }
+
+    pub fn offset(&self, var_id: VarId) -> i32 {
+        *self
+            .map_var_offsets
+            .get(&var_id)
+            .expect("no offset found for var")
+    }
+
+    pub fn ty(&self, var_id: VarId) -> BuiltinType {
+        *self
+            .map_var_types
+            .get(&var_id)
+            .expect("no type found for var")
+    }
+
+    pub fn new() -> JitInfo<'ast> {
+        JitInfo {
+            tempsize: 0,
+            localsize: 0,
+            argsize: 0,
+            leaf: false,
+            eh_return_value: None,
+
+            map_stores: NodeMap::new(),
+            map_csites: NodeMap::new(),
+            map_offsets: NodeMap::new(),
+            map_var_offsets: HashMap::new(),
+            map_var_types: HashMap::new(),
+            map_intrinsics: NodeMap::new(),
+            map_fors: NodeMap::new(),
+        }
+    }
 }
 
 struct InfoGenerator<'a, 'ast: 'a> {
@@ -716,6 +774,13 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
         specialize_type(self.vm, ty, &self.cls_type_params, &self.fct_type_params)
     }
+}
+
+#[derive(Clone)]
+pub struct ForInfo<'ast> {
+    pub make_iterator: CallSite<'ast>,
+    pub has_next: CallSite<'ast>,
+    pub next: CallSite<'ast>,
 }
 
 #[cfg(test)]
