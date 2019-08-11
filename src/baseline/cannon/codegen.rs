@@ -114,10 +114,10 @@ impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
 
         self.emit_prolog(&bytecode);
         // self.store_register_params_on_stack();
-        for btcode in bytecode.code().iter() {
+        for btcode in bytecode.code() {
             match btcode {
-                Bytecode::ConstTrue(dest) => self.emit_const_bool(&bytecode, dest, true),
-                Bytecode::ConstFalse(dest) => self.emit_const_bool(&bytecode, dest, true),
+                Bytecode::ConstTrue(dest) => self.emit_const_bool(&bytecode, &dest, true),
+                Bytecode::ConstFalse(dest) => self.emit_const_bool(&bytecode, &dest, true),
                 Bytecode::RetVoid => {}
                 _ => panic!("bytecode not implemented"),
             }
