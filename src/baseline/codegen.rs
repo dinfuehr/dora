@@ -87,7 +87,7 @@ pub fn generate_fct<'ast>(
             fct_type_params: fct_type_params,
         }
         .generate(),
-        BaselineName::Standard => {
+        BaselineName::AstCompiler => {
             let mut jit_info = JitInfo::new();
             generate_info(
                 vm,

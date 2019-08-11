@@ -56,7 +56,7 @@ Options:
     --gc-young-appel        Use Appel dynamic resizing of young generation.
     --gc-semi-ratio=<num>   Use fixed ratio of semi space in young generation.
 
-    --bc=<name>             Switch Baseline Compiler. Possible values: cannon, standard [default: standard].
+    --bc=<name>             Switch Baseline Compiler. Possible values: cannon, astcompiler [default: astcompiler].
 
     --disable-tlab          Disable tlab allocation.
     --disable-barrier       Disable barriers.
@@ -164,7 +164,7 @@ impl Args {
     }
 
     pub fn bc(&self) -> BaselineName {
-        self.flag_bc.unwrap_or(BaselineName::Standard)
+        self.flag_bc.unwrap_or(BaselineName::AstCompiler)
     }
 }
 
@@ -230,7 +230,7 @@ pub enum CollectorName {
 #[derive(Copy, Clone, Debug, RustcDecodable)]
 pub enum BaselineName {
     Cannon,
-    Standard,
+    AstCompiler,
 }
 
 #[derive(Copy, Clone, Debug, RustcDecodable)]
