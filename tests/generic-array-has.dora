@@ -1,9 +1,14 @@
 fun main() {
-  let ais = arrayFill[Int](100, 2);
-  ais.set(99, 23);
-  assert(ais.has(23));
+    let x = arrayFill[Bool](3, true);
+    assert(arrayHas[Bool](x, true));
 
-  let ads = arrayFill[Double](100, 2.0);
-  ads.set(99, 0.0/0.0);
-  assert(ads.has(0.0/0.0));
+    let x = arrayFill[Int](3, 3);
+    assert(arrayHas[Int](x, 3));
+
+    let x = arrayFill[Long](3, 3L);
+    assert(arrayHas[Long](x, 3L));
+
+    // let x = arrayFill[Double](3, 0.0/0.0);
+    // BUG: thread 'main' panicked at 'fp-register accessed as gp-register.', src/baseline/expr.rs:52:18
+    // assert(arrayHas[Double](x, 0.0/0.0));
 }

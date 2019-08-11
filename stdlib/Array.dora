@@ -4,32 +4,39 @@ internal class Array[T](len: Int) {
   internal fun get(idx: Int) -> T;
   internal fun set(idx: Int, val: T);
 
-  fun contains[T /*: Equals*/](value: T) -> Bool {
-    var i = 0;
+}
 
-    while i < self.length() {
-      let x = self.get(i);
-      //if x.equals(value) || x === value { // TypesIncompatible("T", "T")
-      //  return true;
-      //}
-      i = i + 1;
+// The next two functions should be instance functions, but we cannot properly encode the fact that they put additional
+// constraints on the existing class-level `T` of `Array`, not introduce a new function-level `T` on `contains`:
+// fun contains[T : Identity + Equals](value: T) -> Bool /// wrong
+// Some languages use the workaround to define a "fake" new generic parameter that subtypes the old one, like
+// `[S <: T : Identity + Equals]`. I hope that a better solution can be found.
+
+fun arrayContains[T : Identity + Equals](array: Array[T], value: T) -> Bool {
+  var i = 0;
+
+  while i < array.length() {
+    let x = array.get(i);
+    if x.identicalTo(value) || x.equals(value) {
+      return true;
     }
-
-    return false;
+    i = i + 1;
   }
 
-  fun has(value: T) -> Bool {
-    var i = 0;
+  return false;
+}
 
-    while i < self.length() {
-      if self.get(i) === value {
-        return true;
-      }
-      i = i + 1;
+fun arrayHas[T : Identity](array: Array[T], value: T) -> Bool {
+  var i = 0;
+
+  while i < array.length() {
+    if array.get(i).identicalTo(value) {
+      return true;
     }
-
-    return false;
+    i = i + 1;
   }
+
+  return false;
 }
 
 fun arrayEmpty[T]() -> Array[T] = Array[T](0);
