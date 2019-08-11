@@ -211,7 +211,7 @@ impl BuiltinType {
                         .collect::<Vec<_>>()
                         .join(", ");
 
-                    format!("{}<{}>", base, params)
+                    format!("{}[{}]", base, params)
                 }
             }
             BuiltinType::Struct(sid, list_id) => {

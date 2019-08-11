@@ -93,12 +93,12 @@ fun main() {
     populate(longLivedTreeDepth, longLivedTree);
 
     println("Creating a long-lived array of " + kArraySize.toString() + " doubles");
-    let array = arrayFill::<Double>(kArraySize, 0.0);
+    let array = arrayFill[Double](kArraySize, 0.0);
 
     var i = 0;
 
     while i < kArraySize / 2 {
-        array[i] = 1.0/i.toDouble();
+        array.set(i, 1.0/i.toDouble());
         i = i + 1;
     }
 
@@ -109,7 +109,7 @@ fun main() {
         d = d + 2;
     }
 
-    assert(longLivedTree !== nil && array[1000] == 1.0/1000.0);
+    assert(longLivedTree !== nil && array.get(1000) == 1.0/1000.0);
     let finish = timestamp();
     let elapsed = (finish - start).toFloat() / 1000.0F / 1000.0F;
     println("Completed in " + elapsed.toString() + "ms.");

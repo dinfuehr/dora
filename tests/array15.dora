@@ -1,35 +1,35 @@
 fun main() {
 
-    let x = arrayFill::<Bool>(3, true);
-    assert(arrayContains::<Bool>(x, true));
-    assert(arrayHas::<Bool>(x, true));
+    let x = arrayFill[Bool](3, true);
+    assert(arrayContains[Bool](x, true));
+    assert(arrayHas[Bool](x, true));
 
-    let x = arrayFill::<Int>(3, 3);
-    assert(arrayContains::<Int>(x, 3));
-    assert(arrayHas::<Int>(x, 3));
+    let x = arrayFill[Int](3, 3);
+    assert(arrayContains[Int](x, 3));
+    assert(arrayHas[Int](x, 3));
 
-    let x = arrayFill::<Long>(3, 3L);
-    assert(arrayContains::<Long>(x, 3L));
-    assert(arrayHas::<Long>(x, 3L));
+    let x = arrayFill[Long](3, 3L);
+    assert(arrayContains[Long](x, 3L));
+    assert(arrayHas[Long](x, 3L));
 
-    // let x = arrayFill::<Double>(3, 0.0/0.0);
+    // let x = arrayFill[Double](3, 0.0/0.0);
     // BUG: thread 'main' panicked at 'fp-register accessed as gp-register.', src/baseline/expr.rs:52:18
-    //assert(arrayContains::<Double>(x, 0.0/0.0));
-    //assert(arrayHas::<Double>(x, 0.0/0.0));
+    //assert(arrayContains[Double](x, 0.0/0.0));
+    //assert(arrayHas[Double](x, 0.0/0.0));
 
     // “target/debug/dora tests/array15…” terminated by signal SIGSEGV (Address boundary error)
     // hash is not implemented (yet) for String, so this should be a compile-time error, not a crash
-    // hash::<String>("foo");
+    // hash[String]("foo");
 
 }
 
-fun hash<T : Hash>(val: T) -> Int = val.hash();
+fun hash[T : Hash](val: T) -> Int = val.hash();
 
-fun arrayContains<T : Identity + Equals>(array: Array<T>, value: T) -> Bool {
+fun arrayContains[T : Identity + Equals](array: Array[T], value: T) -> Bool {
   var i = 0;
 
   while i < array.length() {
-    let x = array[i];
+    let x = array.get(i);
     if x.identicalTo(value) || x.equals(value) {
       return true;
     }
@@ -39,11 +39,11 @@ fun arrayContains<T : Identity + Equals>(array: Array<T>, value: T) -> Bool {
   return false;
 }
 
-fun arrayHas<T : Identity>(array: Array<T>, value: T) -> Bool {
+fun arrayHas[T : Identity](array: Array[T], value: T) -> Bool {
   var i = 0;
 
   while i < array.length() {
-    if array[i].identicalTo(value) {
+    if array.get(i).identicalTo(value) {
       return true;
     }
     i = i + 1;

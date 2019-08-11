@@ -2,15 +2,15 @@ const alpha: Int = 255<24;
 
 class RayTracer {
     var scene: Scence;
-    var lights: Array<Light>;
-    var prim: Array<Primitive>;
+    var lights: Array[Light];
+    var prim: Array[Primitive];
     var view: View;
     var tRay: Ray;
     var L: Vec3;
     var inter: Isect;
     var height: Int;
     var width: Int;
-    var datasizes: Array<Int>;
+    var datasizes: Array[Int];
     var checksum: Long;
     var size: Int;
     var numobjects: Int;

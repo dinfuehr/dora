@@ -13,9 +13,9 @@ var youngBytes: Long;
 var nodes: Long;
 var actuallyMut: Long;
 var mutatorSum: Long;
-var aexport: Array<Int>;
+var aexport: Array[Int];
 
-var trees: Array<TreeNode>;
+var trees: Array[TreeNode];
 var where: Int;
 var rnd: Random;
 
@@ -91,7 +91,7 @@ fun makeTree(h: Int) -> TreeNode {
 
 fun initialize() {
     let ntrees = ((size * MEG).toLong() / treeSize).toInt();
-    trees = Array::<TreeNode>(ntrees);
+    trees = Array[TreeNode](ntrees);
 
     println("Allocating " + ntrees.toString() + " trees.");
     println("  (" + (ntrees.toLong() * treeSize).toString() + " bytes)");
@@ -99,7 +99,7 @@ fun initialize() {
     var i = 0;
 
     while i < ntrees {
-        trees[i] = makeTree(treeHeight);
+        trees.set(i, makeTree(treeHeight));
         i = i + 1;
     }
 
@@ -112,7 +112,7 @@ fun checkTrees() {
     var i = 0;
 
     while i < ntrees {
-        let t = trees[i];
+        let t = trees.get(i);
 
         let h1 = height(t);
         let h2 = shortestPath(t);
@@ -160,7 +160,7 @@ fun oldGenAlloc(n: Long) {
 
     var i = 0;
     while i < full {
-        trees[where] = makeTree(treeHeight);
+        trees.set(where, makeTree(treeHeight));
         where = where + 1;
 
         if where == trees.length() {
@@ -173,7 +173,7 @@ fun oldGenAlloc(n: Long) {
     while partial > INSIGNIFICANT {
         let h = bytesToHeight(partial);
         let newTree = makeTree(h);
-        replaceTree(trees[where], newTree);
+        replaceTree(trees.get(where), newTree);
         where = where + 1;
 
         if where == trees.length() {
@@ -190,8 +190,8 @@ fun oldGenSwapSubtrees() {
     let depth = rnd.nextIntWithBound(treeHeight);
     var path = rnd.nextInt();
 
-    var tn1 = trees[index1];
-    var tn2 = trees[index2];
+    var tn1 = trees.get(index1);
+    var tn2 = trees.get(index2);
 
     var i = 0;
 
@@ -248,7 +248,7 @@ fun doYoungGenAlloc(n: Long, nwords: Int) {
     var allocated = 0L;
 
     while allocated < n {
-        aexport = Array::<Long>(nwords);
+        aexport = Array[Long](nwords);
         allocated = allocated + nbytes.toLong();
     }
 

@@ -1,7 +1,7 @@
 //= ignore
 
 fun main() {
-    let arr = Vec::<Foo>();
+    let arr = Vec[Foo]();
 
     var i = 0;
     while i < 10 {

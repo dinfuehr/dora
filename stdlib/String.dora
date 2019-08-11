@@ -29,10 +29,10 @@ internal class String {
   internal fun getByte(idx: Int) -> Byte;
   internal fun clone() -> String;
 
-  internal static fun fromBytesPartOrNull(val: Array<Byte>, offset: Int, len: Int) -> String;
+  internal static fun fromBytesPartOrNull(val: Array[Byte], offset: Int, len: Int) -> String;
   internal static fun fromStringPartOrNull(val: String, offset: Int, len: Int) -> String;
 
-  static fun fromBytesPart(val: Array<Byte>, offset: Int, len: Int) throws -> String {
+  static fun fromBytesPart(val: Array[Byte], offset: Int, len: Int) throws -> String {
     let str = String::fromBytesPartOrNull(val, offset, len);
 
     if str === nil {
@@ -42,7 +42,7 @@ internal class String {
     return str;
   }
 
-  static fun fromBytes(val: Array<Byte>) throws -> String {
+  static fun fromBytes(val: Array[Byte]) throws -> String {
     let str = String::fromBytesPartOrNull(val, 0, val.length());
 
     if str === nil {

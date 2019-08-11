@@ -70,7 +70,7 @@ class Benchmark {
         var i = 0;
 
         while i < length - 1 {
-            if keys[i] >= keys[i+1] {
+            if keys.get(i) >= keys.get(i+1) {
                 fatalError("Splay tree not sorted");
             }
 
@@ -128,11 +128,11 @@ class Benchmark {
 
 fun generatePayloadTree(depth: Int, tag: String) -> PayloadNode {
     if depth == 0 {
-        let arr = Array::<Int>(10);
+        let arr = Array[Int](10);
         var i = 0;
 
         while i < 10 {
-            arr[i] = i;
+            arr.set(i, i);
             i = i + 1;
         }
 
@@ -256,8 +256,8 @@ class SplayTree {
         }
     }
 
-    fun exportKeys() -> Vec<Int> {
-        let keys = Vec::<Int>();
+    fun exportKeys() -> Vec[Int] {
+        let keys = Vec[Int]();
         exportKeysTraverse(keys, self.root);
         return keys;
     }
@@ -330,7 +330,7 @@ class SplayTree {
     }
 }
 
-fun exportKeysTraverse(list: Vec<Int>, node: SplayNode) {
+fun exportKeysTraverse(list: Vec[Int], node: SplayNode) {
     var current = node;
 
     while current !== nil {
@@ -348,4 +348,4 @@ class SplayNode(var key: Int, var value: PayloadNode) {
     var right: SplayNode;
 }
 
-class PayloadNode(let array: Array<Int>, let text: String, let left: PayloadNode, let right: PayloadNode)
+class PayloadNode(let array: Array[Int], let text: String, let left: PayloadNode, let right: PayloadNode)

@@ -4,7 +4,7 @@ fun main() {
   let e = a();
 
   // this should test if backtrace in Exception is created the right way
-  // by retrieveStackTrace (as Array<Int>)
+  // by retrieveStackTrace (as Array[Int])
   forceCollect();
 
   e.printStackTrace();

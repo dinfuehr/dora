@@ -3,15 +3,15 @@
 fun main() {
   let x = Foo(100);
   let y = Foo(101);
-  let z = Array::<Foo>(512);
+  let z = Array[Foo](512);
   forceMinorCollect();
   forceMinorCollect();
   // write into old object x reference to young object
-  z[0] = Foo(2);
-  z[511] = Foo(3);
+  z.set(0, Foo(2));
+  z.set(511, Foo(3));
   forceMinorCollect();
-  assert(z[0].a == 2);
-  assert(z[511].a == 3);
+  assert(z.get(0).a == 2);
+  assert(z.get(511).a == 3);
 }
 
 class Foo(let a: Int)

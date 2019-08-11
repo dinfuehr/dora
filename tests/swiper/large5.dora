@@ -2,11 +2,11 @@
 //= error oom
 
 fun main() {
-    var x = Vec::<Array<Int> >();
+    var x = Vec[Array[Int]]();
     var i = 0;
 
     while i < 100_000 {
-        x.push(Array::<Int>(32 * 1024));
+        x.push(Array[Int](32 * 1024));
         i = i + 1;
     }
 }

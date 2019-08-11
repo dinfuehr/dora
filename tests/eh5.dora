@@ -8,7 +8,7 @@ fun f() -> Int {
   do {
     print("hello ");
     return 6;
-  } catch e: Array<Int> {
+  } catch e: Array[Int] {
     return 4;
   } finally {
     println("world!");

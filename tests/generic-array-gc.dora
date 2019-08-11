@@ -1,10 +1,10 @@
 fun main() {
-  let x = arrayFill::<Foo>(5, nil);
-  x[0] = Foo(1);
-  x[4] = Foo(2);
+  let x = arrayFill[Foo](5, nil);
+  x.set(0, Foo(1));
+  x.set(4, Foo(2));
   forceCollect();
-  assert(x[0].x == 1);
-  assert(x[4].x == 2);
+  assert(x.get(0).x == 1);
+  assert(x.get(4).x == 2);
 }
 
 class Foo(let x: Int)

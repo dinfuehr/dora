@@ -1,7 +1,7 @@
 fun main() {
-    assert(1 == foo::<Int>(1));
-    assert(3F == foo::<Float>(3F));
-    assert("hel" + "lo" == foo::<String>("hello"));
+    assert(1 == foo[Int](1));
+    assert(3F == foo[Float](3F));
+    assert("hel" + "lo" == foo[String]("hello"));
 }
 
-fun foo<T>(val: T) -> T { return val; }
+fun foo[T](val: T) -> T { return val; }

@@ -1,5 +1,5 @@
-class StringBuf(var buf: Array<Byte>, var length: Int) {
-  static fun empty() -> StringBuf = StringBuf(Array::<Byte>(0), 0);
+class StringBuf(var buf: Array[Byte], var length: Int) {
+  static fun empty() -> StringBuf = StringBuf(Array[Byte](0), 0);
 
   fun length() -> Int {
     return self.length;
@@ -17,11 +17,11 @@ class StringBuf(var buf: Array<Byte>, var length: Int) {
     }
 
     let newcap = self.newCapacity(elements);
-    let newbuf = Array::<Byte>(newcap);
+    let newbuf = Array[Byte](newcap);
     var i = 0;
 
     while i < self.buf.length() {
-      newbuf[i] = self.buf[i];
+      newbuf.set(i, self.buf.get(i));
       i = i + 1;
     }
 
@@ -60,7 +60,7 @@ class StringBuf(var buf: Array<Byte>, var length: Int) {
     var i = 0;
 
     while i < value.length() {
-      self.buf[self.length + i] = value.getByte(i);
+      self.buf.set(self.length + i, value.getByte(i));
       i = i + 1;
     }
 

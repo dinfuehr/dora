@@ -1,17 +1,17 @@
-internal class Array<T>(len: Int) {
+internal class Array[T](len: Int) {
 
   internal fun length() -> Int;
   internal fun get(idx: Int) -> T;
   internal fun set(idx: Int, val: T);
 
-  fun contains(value: T /* : Equals*/) -> Bool {
+  fun contains[T /*: Equals*/](value: T) -> Bool {
     var i = 0;
 
     while i < self.length() {
-      let x = self[i];
-      if /*x.equals(value) ||*/ x === value {
-        return true;
-      }
+      let x = self.get(i);
+      //if x.equals(value) || x === value { // TypesIncompatible("T", "T")
+      //  return true;
+      //}
       i = i + 1;
     }
 
@@ -22,12 +22,34 @@ internal class Array<T>(len: Int) {
     var i = 0;
 
     while i < self.length() {
-      if self[i] === value {
+      if self.get(i) === value {
         return true;
       }
       i = i + 1;
     }
 
     return false;
+  }
+}
+
+fun arrayEmpty[T]() -> Array[T] = Array[T](0);
+
+fun arrayFill[T](len: Int, value: T) -> Array[T] {
+  let array = Array[T](len);
+  var i = 0;
+
+  while i < len {
+    array.set(i, value);
+      i = i + 1;
+  }
+  return array;
+}
+
+fun arrayCopy[T](src: Array[T], srcPos: Int, dest: Array[T], destPos: Int, len: Int) {
+  var i = 0;
+
+  while i < len {
+    dest.set(destPos+i, src.get(srcPos+i));
+    i = i + 1;
   }
 }

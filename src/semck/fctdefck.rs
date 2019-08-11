@@ -352,19 +352,19 @@ mod tests {
 
     #[test]
     fn fct_with_type_params() {
-        ok("fun f<T>() {}");
-        ok("fun f<X, Y>() {}");
+        ok("fun f[T]() {}");
+        ok("fun f[X, Y]() {}");
         err(
-            "fun f<T, T>() {}",
+            "fun f[T, T]() {}",
             pos(1, 10),
             Msg::TypeParamNameNotUnique("T".into()),
         );
-        err("fun f<>() {}", pos(1, 1), Msg::TypeParamsExpected);
+        err("fun f[]() {}", pos(1, 1), Msg::TypeParamsExpected);
     }
 
     #[test]
     fn fct_with_type_param_in_annotation() {
-        ok("fun f<T>(val: T) {}");
+        ok("fun f[T](val: T) {}");
     }
 
     #[test]
@@ -442,22 +442,22 @@ mod tests {
     #[test]
     fn generic_bounds() {
         err(
-            "fun f<T: Foo>() {}",
+            "fun f[T: Foo]() {}",
             pos(1, 10),
             Msg::UnknownType("Foo".into()),
         );
-        ok("class Foo fun f<T: Foo>() {}");
-        ok("trait Foo {} fun f<T: Foo>() {}");
+        ok("class Foo fun f[T: Foo]() {}");
+        ok("trait Foo {} fun f[T: Foo]() {}");
 
         err(
             "class A class B
-            fun f<T: A + B>() {  }",
+            fun f[T: A + B]() {  }",
             pos(2, 19),
             Msg::MultipleClassBounds,
         );
         err(
             "trait Foo {}
-            fun f<T: Foo + Foo>() {  }",
+            fun f[T: Foo + Foo]() {  }",
             pos(2, 19),
             Msg::DuplicateTraitBound,
         );

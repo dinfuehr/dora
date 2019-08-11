@@ -7,7 +7,7 @@ fun main() {
 fun f() -> Int {
   do {
     print("hello ");
-  } catch e: Array<Int> {
+  } catch e: Array[Int] {
     return 4;
   } finally {
     println("world!");

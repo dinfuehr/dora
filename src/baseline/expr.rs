@@ -151,7 +151,6 @@ where
             ExprSelf(_) => self.emit_self(dest.reg()),
             ExprSuper(_) => self.emit_self(dest.reg()),
             ExprNil(_) => self.emit_nil(dest.reg()),
-            ExprArray(ref expr) => self.emit_array(expr, dest),
             ExprConv(ref expr) => self.emit_conv(expr, dest.reg()),
             ExprTry(ref expr) => self.emit_try(expr, dest),
             ExprLambda(_) => unimplemented!(),
@@ -358,25 +357,6 @@ where
 
         // for is we are finished: dest is null which is boolean false
         // also for as we are finished: dest is null and stays null
-    }
-
-    fn emit_array(&mut self, e: &'ast ExprArrayType, dest: ExprStore) {
-        if let Some(intrinsic) = self.intrinsic(e.id) {
-            match intrinsic {
-                Intrinsic::GenericArrayGet => {
-                    let ty = self.ty(e.id);
-                    self.emit_array_get(e.pos, ty.mode(), &e.object, &e.index, dest);
-                }
-
-                Intrinsic::StrGet => {
-                    self.emit_array_get(e.pos, MachineMode::Int8, &e.object, &e.index, dest)
-                }
-
-                _ => panic!("unexpected intrinsic {:?}", intrinsic),
-            }
-        } else {
-            self.emit_call_site_id(e.id, e.pos, dest);
-        }
     }
 
     fn reserve_temp_for_node(&mut self, expr: &Expr) -> i32 {
@@ -660,41 +640,6 @@ where
     }
 
     fn emit_assign(&mut self, e: &'ast ExprAssignType) {
-        if e.lhs.is_array() {
-            let array = e.lhs.to_array().unwrap();
-
-            if let Some(intrinsic) = self.intrinsic(e.id) {
-                match intrinsic {
-                    Intrinsic::GenericArraySet => {
-                        let ty = self.ty(array.id);
-                        self.emit_array_set(
-                            e.pos,
-                            ty,
-                            ty.mode(),
-                            &array.object,
-                            &array.index,
-                            &e.rhs,
-                        )
-                    }
-
-                    Intrinsic::StrSet => self.emit_array_set(
-                        e.pos,
-                        BuiltinType::Byte,
-                        MachineMode::Int8,
-                        &array.object,
-                        &array.index,
-                        &e.rhs,
-                    ),
-
-                    _ => panic!("unexpected intrinsic {:?}", intrinsic),
-                }
-            } else {
-                self.emit_call_site_id(e.id, e.pos, REG_RESULT.into());
-            }
-
-            return;
-        }
-
         let &ident_type = self.src.map_idents.get(e.lhs.id()).unwrap();
 
         match ident_type {
@@ -981,6 +926,31 @@ where
         if let Some(intrinsic) = self.intrinsic(e.id) {
             match intrinsic {
                 Intrinsic::GenericArrayLen => self.emit_intrinsic_len(e, dest.reg()),
+                Intrinsic::GenericArrayGet => {
+                    let builtin_type = self
+                        .ty(e.object.as_ref().unwrap().id())
+                        .type_params(get_vm())[0];
+                    self.emit_array_get(
+                        e.pos,
+                        builtin_type.mode(),
+                        e.object.as_ref().unwrap(),
+                        &e.args[0],
+                        dest,
+                    )
+                }
+                Intrinsic::GenericArraySet => {
+                    let builtin_type = self
+                        .ty(e.object.as_ref().unwrap().id())
+                        .type_params(get_vm())[0];
+                    self.emit_array_set(
+                        e.pos,
+                        builtin_type,
+                        builtin_type.mode(),
+                        e.object.as_ref().unwrap(),
+                        &e.args[0],
+                        &e.args[1],
+                    )
+                }
                 Intrinsic::Assert => self.emit_intrinsic_assert(e, dest.reg()),
                 Intrinsic::Debug => self.emit_intrinsic_debug(),
                 Intrinsic::Shl => self.emit_intrinsic_shl(e, dest.reg()),

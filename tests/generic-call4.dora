@@ -4,7 +4,7 @@ trait Foo {
     fun bar() -> Int;
 }
 
-class A<T: Foo>(let t: T) {
+class A[T: Foo](let t: T) {
     fun bar() -> Int {
         return self.t.bar();
     }
@@ -20,5 +20,5 @@ impl Foo for X {
 }
 
 fun main() {
-    assert(2 == A::<X>(X()).bar());
+    assert(2 == A[X](X()).bar());
 }

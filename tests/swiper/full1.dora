@@ -1,10 +1,10 @@
 //= vm-args "--max-heap-size=128M --gc-verify"
 
 fun main() {
-    let a = Array::<Foo>(1_000_000);
+    let a = Array[Foo](1_000_000);
     var i = 0;
     while i < a.length() {
-        a[i] = Foo();
+        a.set(i, Foo());
         i = i + 1;
     }
 

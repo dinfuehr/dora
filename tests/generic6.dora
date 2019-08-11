@@ -1,7 +1,7 @@
 fun main() {
-    foo::<Int>(1);
-    foo::<Float>(3F);
-    foo::<String>("hello");
+    foo[Int](1);
+    foo[Float](3F);
+    foo[String]("hello");
 }
 
-fun foo<T>(val: T) {}
+fun foo[T](val: T) {}

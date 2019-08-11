@@ -7,7 +7,7 @@ const BUFFER_SIZE: Int = 8192;
 class Mandelbrot(let size: Int) {
     let fac: Double = 2.0 / size.toDouble();
     var shift: Int;
-    let buf: Array<Byte> = Array::<Byte>(BUFFER_SIZE);
+    let buf: Array[Byte] = Array[Byte](BUFFER_SIZE);
     var bufLen: Int;
 
     init(size: Int): self(size) {
@@ -99,6 +99,6 @@ class Mandelbrot(let size: Int) {
     }
 }
 
-fun write(buf: Array<Byte>, offset: Int, len: Int) {
+fun write(buf: Array[Byte], offset: Int, len: Int) {
     unimplemented();
 }

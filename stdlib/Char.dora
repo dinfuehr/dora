@@ -8,23 +8,23 @@ internal class Char {
 
   fun hash() -> Int = self.toInt();
 
-  fun encodeUtf8(bytes: Array<Byte>, offset: Int) {
+  fun encodeUtf8(bytes: Array[Byte], offset: Int) {
     let val = self.toInt();
 
     if val < 0x80 {
-      bytes[offset] = val.toByte();
+      bytes.set(offset, val.toByte());
     } else if val < 0x800 {
-      bytes[offset] = (0xC0 | ((val >> 6) & 0x1F)).toByte();
-      bytes[offset+1] = (0x80 | (val & 0x3F)).toByte();
+      bytes.set(offset, (0xC0 | ((val >> 6) & 0x1F)).toByte());
+      bytes.set(offset+1, (0x80 | (val & 0x3F)).toByte());
     } else if val < 0x10000 {
-      bytes[offset] = (0xE0 | ((val >> 12) & 0x0F)).toByte();
-      bytes[offset+1] = (0x80 | ((val >> 6) & 0x3F)).toByte();
-      bytes[offset+2] = (0x80 | (val & 0x3F)).toByte();
+      bytes.set(offset, (0xE0 | ((val >> 12) & 0x0F)).toByte());
+      bytes.set(offset+1, (0x80 | ((val >> 6) & 0x3F)).toByte());
+      bytes.set(offset+2, (0x80 | (val & 0x3F)).toByte());
     } else {
-      bytes[offset] = (0xF0 | ((val >> 18) & 0x07)).toByte();
-      bytes[offset+1] = (0x80 | ((val >> 12) & 0x3F)).toByte();
-      bytes[offset+2] = (0x80 | ((val >> 6) & 0x3F)).toByte();
-      bytes[offset+3] = (0x80 | (val & 0x3F)).toByte();
+      bytes.set(offset, (0xF0 | ((val >> 18) & 0x07)).toByte());
+      bytes.set(offset+1, (0x80 | ((val >> 12) & 0x3F)).toByte());
+      bytes.set(offset+2, (0x80 | ((val >> 6) & 0x3F)).toByte());
+      bytes.set(offset+3, (0x80 | (val & 0x3F)).toByte());
     }
   }
 

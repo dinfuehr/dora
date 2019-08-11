@@ -1,12 +1,12 @@
 //= output "hello1"
 
 fun main() {
-  let a = A::<String>(foo(1));
+  let a = A[String](foo(1));
   forceCollect();
   print(a.x);
 }
 
-class A<T>(let x: T)
+class A[T](let x: T)
 
 fun foo(a: Int) -> String {
   return "hello" + a.toString();

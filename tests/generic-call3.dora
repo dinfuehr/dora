@@ -4,7 +4,7 @@ trait Foo {
     fun bar();
 }
 
-class A<T: Foo>(let t: T) {
+class A[T: Foo](let t: T) {
     fun bar() {
         self.t.bar();
     }
@@ -19,5 +19,5 @@ impl Foo for X {
 }
 
 fun main() {
-    A::<X>(X()).bar();
+    A[X](X()).bar();
 }

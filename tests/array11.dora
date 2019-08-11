@@ -4,6 +4,6 @@ fun main() {
     first(nil);
 }
 
-fun first(f: Array<Int>) -> Int {
-    return f[0];
+fun first(f: Array[Int]) -> Int {
+    return f.get(0);
 }
