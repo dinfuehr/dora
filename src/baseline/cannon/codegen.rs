@@ -72,17 +72,9 @@ where
     }
 
     fn emit_const_bool(&mut self, bytecode: &BytecodeFunction, dest: &Register, bool_const: bool) {
-        let index = match *dest {
-            Register(index) => index,
-        };
-        let bytecode_type = match bytecode.registers().get(index) {
-            Some(bytecode_type) => bytecode_type,
-            _ => panic!("register not found"),
-        };
-        let offset = match bytecode.offset().get(index) {
-            Some(offset) => offset,
-            _ => panic!("offset not found"),
-        };
+        let Register(index) = *dest;
+        let bytecode_type = bytecode.registers().get(index).expect("register not found");
+        let offset = bytecode.offset().get(index).expect("offset not found");
 
         if bool_const {
             self.asm.load_true(REG_RESULT);
