@@ -4,10 +4,11 @@ use dora_parser::ast::*;
 use dora_parser::lexer::position::Position;
 
 use crate::baseline::asm::BaselineAssembler;
+use crate::baseline::ast::expr::*;
 use crate::baseline::codegen::{
-    create_gcpoint, register_for_mode, should_emit_debug, CodeGen, CondCode, Scopes, TempOffsets,
+    create_gcpoint, register_for_mode, should_emit_debug, CodeGen, CondCode, ExprStore, Scopes,
+    TempOffsets,
 };
-use crate::baseline::expr::*;
 use crate::baseline::fct::{CatchType, Comment, JitBaselineFct, JitDescriptor};
 use crate::baseline::info::JitInfo;
 use crate::class::{ClassDef, TypeParams};

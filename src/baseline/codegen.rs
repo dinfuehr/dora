@@ -12,12 +12,13 @@ use capstone::{Engine, Error};
 use crate::baseline::asm::BaselineAssembler;
 use crate::baseline::ast::{self, AstCodeGen};
 use crate::baseline::cannon::CannonCodeGen;
-use crate::baseline::expr::*;
+use crate::baseline::dora_native::{self, InternalFct};
 use crate::baseline::fct::{CommentFormat, GcPoint, JitBaselineFct, JitFct};
 use crate::baseline::info::JitInfo;
 use crate::baseline::map::CodeDescriptor;
 use crate::class::TypeParams;
-use crate::cpu::{FREG_RESULT, REG_RESULT};
+use crate::cpu::x64::reg::{FREG_RESULT, REG_RESULT};
+use crate::cpu::{FReg, Reg};
 use crate::ctxt::VM;
 use crate::ctxt::{Fct, FctId, FctSrc, VarId};
 use crate::driver::cmd::{AsmSyntax, BaselineName};
@@ -435,4 +436,90 @@ pub fn fct_pattern_match(vm: &VM, fct: &Fct, pattern: &str) -> bool {
 
 pub trait CodeGen<'v> {
     fn generate(self) -> JitBaselineFct;
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum ExprStore {
+    Reg(Reg),
+    FReg(FReg),
+}
+
+impl ExprStore {
+    pub fn is_reg(&self) -> bool {
+        match self {
+            &ExprStore::Reg(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_freg(&self) -> bool {
+        match self {
+            &ExprStore::FReg(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn reg(&self) -> Reg {
+        match self {
+            &ExprStore::Reg(reg) => reg,
+            _ => panic!("fp-register accessed as gp-register."),
+        }
+    }
+
+    pub fn freg(&self) -> FReg {
+        match self {
+            &ExprStore::FReg(reg) => reg,
+            _ => panic!("gp-register accessed as fp-register."),
+        }
+    }
+}
+
+impl From<Reg> for ExprStore {
+    fn from(reg: Reg) -> ExprStore {
+        ExprStore::Reg(reg)
+    }
+}
+
+impl From<FReg> for ExprStore {
+    fn from(reg: FReg) -> ExprStore {
+        ExprStore::FReg(reg)
+    }
+}
+
+pub enum AllocationSize {
+    Fixed(usize),
+    Dynamic(Reg),
+}
+
+pub fn ensure_native_stub(vm: &VM, fct_id: FctId, internal_fct: InternalFct) -> Address {
+    let mut native_thunks = vm.native_thunks.lock();
+    let ptr = internal_fct.ptr;
+
+    if let Some(jit_fct_id) = native_thunks.find_fct(ptr) {
+        let jit_fct = vm.jit_fcts.idx(jit_fct_id);
+        jit_fct.fct_ptr()
+    } else {
+        let fct = vm.fcts.idx(fct_id);
+        let fct = fct.read();
+        let dbg = should_emit_debug(vm, &*fct);
+
+        let jit_fct_id = dora_native::generate(vm, internal_fct, dbg);
+        let jit_fct = vm.jit_fcts.idx(jit_fct_id);
+        let jit_fct = jit_fct.to_base().expect("baseline expected");
+
+        let fct_start = jit_fct.fct_start;
+
+        if should_emit_asm(vm, &*fct) {
+            dump_asm(
+                vm,
+                &*fct,
+                &jit_fct,
+                None,
+                vm.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att),
+            );
+        }
+
+        native_thunks.insert_fct(ptr, jit_fct_id);
+        fct_start
+    }
 }

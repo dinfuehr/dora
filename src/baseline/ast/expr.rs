@@ -1,9 +1,8 @@
 use crate::baseline::asm::BaselineAssembler;
-use crate::baseline::codegen::{
-    self, dump_asm, register_for_mode, should_emit_asm, should_emit_debug, CondCode, Scopes,
-    TempOffsets,
-};
-use crate::baseline::dora_native::{self, InternalFct, InternalFctDescriptor};
+use crate::baseline::codegen::ensure_native_stub;
+use crate::baseline::codegen::register_for_mode;
+use crate::baseline::codegen::{self, AllocationSize, CondCode, ExprStore, Scopes, TempOffsets};
+use crate::baseline::dora_native::{InternalFct, InternalFctDescriptor};
 use crate::baseline::fct::{CatchType, Comment, GcPoint};
 use crate::baseline::info::JitInfo;
 use crate::class::{ClassDefId, ClassSize, FieldId, TypeParams};
@@ -12,7 +11,6 @@ use crate::cpu::{
 };
 use crate::ctxt::VM;
 use crate::ctxt::*;
-use crate::driver::cmd::AsmSyntax;
 use crate::gc::Address;
 use crate::mem;
 use crate::object::{Header, Str};
@@ -24,54 +22,6 @@ use dora_parser::ast::Expr::*;
 use dora_parser::ast::*;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum ExprStore {
-    Reg(Reg),
-    FReg(FReg),
-}
-
-impl ExprStore {
-    pub fn is_reg(&self) -> bool {
-        match self {
-            &ExprStore::Reg(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_freg(&self) -> bool {
-        match self {
-            &ExprStore::FReg(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn reg(&self) -> Reg {
-        match self {
-            &ExprStore::Reg(reg) => reg,
-            _ => panic!("fp-register accessed as gp-register."),
-        }
-    }
-
-    pub fn freg(&self) -> FReg {
-        match self {
-            &ExprStore::FReg(reg) => reg,
-            _ => panic!("gp-register accessed as fp-register."),
-        }
-    }
-}
-
-impl From<Reg> for ExprStore {
-    fn from(reg: Reg) -> ExprStore {
-        ExprStore::Reg(reg)
-    }
-}
-
-impl From<FReg> for ExprStore {
-    fn from(reg: FReg) -> ExprStore {
-        ExprStore::FReg(reg)
-    }
-}
 
 pub struct ExprGen<'a, 'b, 'ast>
 where
@@ -1993,39 +1943,6 @@ fn check_for_nil(ty: BuiltinType) -> bool {
     }
 }
 
-pub fn ensure_native_stub(vm: &VM, fct_id: FctId, internal_fct: InternalFct) -> Address {
-    let mut native_thunks = vm.native_thunks.lock();
-    let ptr = internal_fct.ptr;
-
-    if let Some(jit_fct_id) = native_thunks.find_fct(ptr) {
-        let jit_fct = vm.jit_fcts.idx(jit_fct_id);
-        jit_fct.fct_ptr()
-    } else {
-        let fct = vm.fcts.idx(fct_id);
-        let fct = fct.read();
-        let dbg = should_emit_debug(vm, &*fct);
-
-        let jit_fct_id = dora_native::generate(vm, internal_fct, dbg);
-        let jit_fct = vm.jit_fcts.idx(jit_fct_id);
-        let jit_fct = jit_fct.to_base().expect("baseline expected");
-
-        let fct_start = jit_fct.fct_start;
-
-        if should_emit_asm(vm, &*fct) {
-            dump_asm(
-                vm,
-                &*fct,
-                &jit_fct,
-                None,
-                vm.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att),
-            );
-        }
-
-        native_thunks.insert_fct(ptr, jit_fct_id);
-        fct_start
-    }
-}
-
 fn ensure_jit_or_stub_ptr<'ast>(
     src: &mut FctSrc,
     vm: &VM,
@@ -2054,9 +1971,4 @@ fn to_cond_code(cmp: CmpOp) -> CondCode {
         CmpOp::Is => CondCode::Equal,
         CmpOp::IsNot => CondCode::NotEqual,
     }
-}
-
-pub enum AllocationSize {
-    Fixed(usize),
-    Dynamic(Reg),
 }

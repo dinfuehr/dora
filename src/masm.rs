@@ -4,7 +4,7 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 use crate::baseline::codegen::CondCode;
-use crate::baseline::expr::ExprStore;
+use crate::baseline::codegen::ExprStore;
 use crate::baseline::fct::{
     BailoutInfo, Bailouts, CatchType, Comment, Comments, ExHandler, GcPoint, GcPoints,
     JitBaselineFct, JitDescriptor, LineNumberTable,

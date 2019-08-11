@@ -2,9 +2,8 @@ use std::mem;
 
 use dora_parser::lexer::position::Position;
 
-use crate::baseline::codegen::CondCode;
+use crate::baseline::codegen::{ensure_native_stub, AllocationSize, CondCode, ExprStore};
 use crate::baseline::dora_native::{InternalFct, InternalFctDescriptor};
-use crate::baseline::expr::{ensure_native_stub, AllocationSize, ExprStore};
 use crate::baseline::fct::{CatchType, Comment, GcPoint, JitBaselineFct, JitDescriptor};
 use crate::class::TypeParams;
 use crate::cpu::{FReg, Mem, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1};
