@@ -70,8 +70,8 @@ where
             .epilog_with_polling(bytecode.stacksize(), polling_page);
     }
 
-    fn emit_const_bool(&mut self, bytecode: &BytecodeFunction, dest: &Register, bool_const: bool) {
-        let Register(index) = *dest;
+    fn emit_const_bool(&mut self, bytecode: &BytecodeFunction, dest: Register, bool_const: bool) {
+        let Register(index) = dest;
         let bytecode_type = bytecode.registers().get(index).expect("register not found");
         let offset = bytecode.offset().get(index).expect("offset not found");
 
@@ -104,11 +104,10 @@ impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
         }
 
         self.emit_prolog(&bytecode);
-        // self.store_register_params_on_stack();
         for btcode in bytecode.code() {
             match btcode {
-                Bytecode::ConstTrue(dest) => self.emit_const_bool(&bytecode, &dest, true),
-                Bytecode::ConstFalse(dest) => self.emit_const_bool(&bytecode, &dest, true),
+                Bytecode::ConstTrue(dest) => self.emit_const_bool(&bytecode, *dest, true),
+                Bytecode::ConstFalse(dest) => self.emit_const_bool(&bytecode, *dest, true),
                 Bytecode::RetVoid => {}
                 _ => panic!("bytecode not implemented"),
             }
