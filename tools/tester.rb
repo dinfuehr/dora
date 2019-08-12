@@ -5,6 +5,11 @@ require 'tempfile'
 require 'thread'
 require 'open3'
 
+$config = {
+  :main => '',
+  :cannon => '--bc=cannon'
+}
+
 $ARGS = ARGV.clone
 $release = $ARGS.delete("--release") != nil
 $no_capture = $ARGS.delete("--no-capture") != nil
@@ -40,13 +45,13 @@ class TestCase
                 :args,
                 :target,
                 :expectation,
-                :optional_runs,
+                :optional_configs,
                 :results
 
   def initialize(file, opts = {})
     self.expectation = opts.fetch(:expectation, TestExpectation.new(fail: false))
     self.file = self.test_file = file
-    self.optional_runs = {:main => ''}
+    self.optional_configs = [:main]
     self.results = {}
     self.args = self.vm_args = ""
     self.target = $release ? "release" : "debug"
@@ -57,8 +62,8 @@ class TestCase
       self.results = :ignore 
       return {:ignore => 1}
     end
-    optional_runs.each_pair do |optional_run, run_vm_args|
-      self.results[optional_run] = run_test(run_vm_args) 
+    optional_configs.each do |optional_config|
+      self.results[optional_config] = run_test($config[optional_config])
     end
 
     if self.results.empty? 
@@ -79,8 +84,7 @@ class TestCase
     end
 
     self.results.each_pair do |run_name, run_result|
-      print "[#{run_name}] " if run_name != :main
-      print "#{self.file} "
+      print "#{self.file}.#{run_name}"
       print "... "
 
       if run_result == true
@@ -373,7 +377,7 @@ def parse_test_file(file)
         test_case.vm_args = arguments[1..-1].join(" ")
 
       when "cannon"
-        test_case.optional_runs['cannon'] = '--bc=cannon'
+        test_case.optional_configs.push(:cannon)
 
       else
         raise "unkown expectation in #{file}: #{line}"
