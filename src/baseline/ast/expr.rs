@@ -996,7 +996,7 @@ where
                 Intrinsic::ByteNot => self.emit_intrinsic_bin_call(e, dest, intrinsic),
 
                 Intrinsic::BoolEq => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::BoolNot => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::BoolNot => self.emit_intrinsic_unary_call(e, dest, intrinsic),
 
                 Intrinsic::IntEq => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::IntCmp => self.emit_intrinsic_bin_call(e, dest, intrinsic),
