@@ -9,7 +9,6 @@ $ARGS = ARGV.clone
 $release = $ARGS.delete("--release") != nil
 $no_capture = $ARGS.delete("--no-capture") != nil
 $processors = 0
-$filter_run = nil
 
 $ARGS.delete_if do |arg|
   if (m = /\A\-j(\d)+\z/.match(arg))
@@ -58,16 +57,7 @@ class TestCase
       self.results = :ignore 
       return {:ignore => 1}
     end
-    optional_runs.each_pair do |optional_run, run_vm_args|   
-      if $filter_run != nil
-        if $filter_run == 'standard'
-          if optional_run != nil
-            next
-          end
-        elsif $filter_run != optional_run
-          next
-        end
-      end
+    optional_runs.each_pair do |optional_run, run_vm_args|
       self.results[optional_run] = run_test(run_vm_args) 
     end
 
