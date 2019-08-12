@@ -203,7 +203,6 @@ where
 
         if s.cond.is_lit_true() {
             // always true => no condition evaluation
-
         } else {
             // execute condition, when condition is false jump to
             // end of while
