@@ -47,7 +47,7 @@ class TestCase
   def initialize(file, opts = {})
     self.expectation = opts.fetch(:expectation, TestExpectation.new(fail: false))
     self.file = self.test_file = file
-    self.optional_runs = {nil => ''}
+    self.optional_runs = {:main => ''}
     self.results = {}
     self.args = self.vm_args = ""
     self.target = $release ? "release" : "debug"
@@ -89,7 +89,7 @@ class TestCase
     end
 
     self.results.each_pair do |run_name, run_result|
-      print "[#{run_name}] " if run_name != nil
+      print "[#{run_name}] " if run_name != :main
       print "#{self.file} "
       print "... "
 
