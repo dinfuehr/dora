@@ -209,9 +209,9 @@ def run_tests
         break unless file
 
         test_case = parse_test_file(Pathname.new(file))
-        test_result = test_case.run()
+        test_results = test_case.run()
 
-        test_result.each_pair do |key, value|
+        test_results.each_pair do |key, value|
           passed += value if key == :passed
           ignore += value if key == :ignore
           failed += value if key == :failed
