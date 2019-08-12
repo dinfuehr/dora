@@ -71,9 +71,8 @@ where
     }
 
     fn emit_const_bool(&mut self, bytecode: &BytecodeFunction, dest: Register, bool_const: bool) {
-        let Register(index) = dest;
-        let bytecode_type = bytecode.registers().get(index).expect("register not found");
-        let offset = bytecode.offset().get(index).expect("offset not found");
+        let bytecode_type = bytecode.register(dest);
+        let offset = bytecode.offset(dest);
 
         if bool_const {
             self.asm.load_true(REG_RESULT);
@@ -81,7 +80,7 @@ where
             self.asm.load_false(REG_RESULT);
         }
         self.asm
-            .store_mem(bytecode_type.mode(), Mem::Local(*offset), REG_RESULT.into());
+            .store_mem(bytecode_type.mode(), Mem::Local(offset), REG_RESULT.into());
     }
 }
 

@@ -932,12 +932,16 @@ impl BytecodeFunction {
         &self.registers
     }
 
-    pub fn offset(&self) -> &[i32] {
-        &self.offset
+    pub fn register(&self, register: Register) -> BytecodeType {
+        *self.registers.get(register.0).expect("register not found")
+    }
+
+    pub fn offset(&self, register: Register) -> i32 {
+        *self.offset.get(register.0).expect("offset not found")
     }
 
     pub fn stacksize(&self) -> i32 {
-        match self.offset().last() {
+        match self.offset.last() {
             None => 0,
             Some(stacksize) => cratemem::align_i32(-(*stacksize), 16),
         }
