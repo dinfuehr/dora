@@ -113,11 +113,7 @@ impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
             }
         }
 
-        let always_returns = self.src.always_returns;
-
-        if !always_returns {
-            self.emit_epilog(&bytecode);
-        }
+        self.emit_epilog(&bytecode);
 
         let jit_fct = self.asm.jit(
             bytecode.stacksize(),
