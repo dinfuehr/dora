@@ -89,7 +89,7 @@ where
             ExprLitBool(ref expr) => self.emit_lit_bool(expr, dest.reg()),
             ExprLitStr(ref expr) => self.emit_lit_str(expr, dest.reg()),
             ExprLitStruct(ref expr) => self.emit_lit_struct(expr, dest),
-            ExprUn(ref expr) => self.emit_un(expr, dest),
+            ExprUn(ref expr) => self.emit_unary_operator(expr, dest),
             ExprIdent(ref expr) => self.emit_ident(expr, dest),
             ExprAssign(ref expr) => self.emit_assign(expr),
             ExprBin(ref expr) => self.emit_bin(expr, dest),
@@ -528,64 +528,78 @@ where
         }
     }
 
-    fn emit_un(&mut self, e: &'ast ExprUnType, dest: ExprStore) {
-        if let Some(intrinsic) = self.intrinsic(e.id) {
-            self.emit_expr(&e.opnd, dest);
+    fn emit_unary(&mut self, e: &'ast Expr, dest: ExprStore, intrinsic: Intrinsic) {
+        self.emit_expr(&e, dest);
 
-            match intrinsic {
-                Intrinsic::IntPlus
-                | Intrinsic::LongPlus
-                | Intrinsic::FloatPlus
-                | Intrinsic::DoublePlus => {}
+        match intrinsic {
+            Intrinsic::IntPlus
+            | Intrinsic::LongPlus
+            | Intrinsic::FloatPlus
+            | Intrinsic::DoublePlus => {}
 
-                Intrinsic::IntNeg | Intrinsic::LongNeg => {
-                    let dest = dest.reg();
+            Intrinsic::IntNeg | Intrinsic::LongNeg => {
+                let dest = dest.reg();
 
-                    let mode = if intrinsic == Intrinsic::IntNeg {
-                        MachineMode::Int32
-                    } else {
-                        MachineMode::Int64
-                    };
+                let mode = if intrinsic == Intrinsic::IntNeg {
+                    MachineMode::Int32
+                } else {
+                    MachineMode::Int64
+                };
 
-                    self.asm.int_neg(mode, dest, dest);
-                }
-
-                Intrinsic::FloatNeg | Intrinsic::DoubleNeg => {
-                    let dest = dest.freg();
-
-                    let mode = if intrinsic == Intrinsic::FloatNeg {
-                        MachineMode::Float32
-                    } else {
-                        MachineMode::Float64
-                    };
-
-                    self.asm.float_neg(mode, dest, dest);
-                }
-
-                Intrinsic::ByteNot => {
-                    let dest = dest.reg();
-                    self.asm.int_not(MachineMode::Int8, dest, dest)
-                }
-
-                Intrinsic::IntNot | Intrinsic::LongNot => {
-                    let dest = dest.reg();
-
-                    let mode = if intrinsic == Intrinsic::IntNot {
-                        MachineMode::Int32
-                    } else {
-                        MachineMode::Int64
-                    };
-
-                    self.asm.int_not(mode, dest, dest);
-                }
-
-                Intrinsic::BoolNot => {
-                    let dest = dest.reg();
-                    self.asm.bool_not(dest, dest)
-                }
-
-                _ => panic!("unexpected intrinsic {:?}", intrinsic),
+                self.asm.int_neg(mode, dest, dest);
             }
+
+            Intrinsic::FloatNeg | Intrinsic::DoubleNeg => {
+                let dest = dest.freg();
+
+                let mode = if intrinsic == Intrinsic::FloatNeg {
+                    MachineMode::Float32
+                } else {
+                    MachineMode::Float64
+                };
+
+                self.asm.float_neg(mode, dest, dest);
+            }
+
+            Intrinsic::ByteNot => {
+                let dest = dest.reg();
+                self.asm.int_not(MachineMode::Int8, dest, dest)
+            }
+
+            Intrinsic::IntNot | Intrinsic::LongNot => {
+                let dest = dest.reg();
+
+                let mode = if intrinsic == Intrinsic::IntNot {
+                    MachineMode::Int32
+                } else {
+                    MachineMode::Int64
+                };
+
+                self.asm.int_not(mode, dest, dest);
+            }
+
+            Intrinsic::BoolNot => {
+                let dest = dest.reg();
+                self.asm.bool_not(dest, dest)
+            }
+
+            _ => panic!("unexpected intrinsic {:?}", intrinsic),
+        }
+    }
+
+    fn emit_intrinsic_unary_call(
+        &mut self,
+        e: &'ast ExprCallType,
+        dest: ExprStore,
+        intr: Intrinsic,
+    ) {
+        let lhs = e.object.as_ref().unwrap();
+        self.emit_unary(lhs, dest, intr);
+    }
+
+    fn emit_unary_operator(&mut self, e: &'ast ExprUnType, dest: ExprStore) {
+        if let Some(intrinsic) = self.intrinsic(e.id) {
+            self.emit_unary(&e.opnd, dest, intrinsic);
         } else {
             self.emit_call_site_id(e.id, e.pos, dest);
         }
@@ -992,10 +1006,13 @@ where
                 Intrinsic::IntMul => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::IntDiv => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::IntMod => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::IntNeg => self.emit_intrinsic_unary_call(e, dest, intrinsic),
+                Intrinsic::IntPlus => self.emit_intrinsic_unary_call(e, dest, intrinsic),
 
                 Intrinsic::IntOr => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::IntAnd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::IntXor => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::IntNot => self.emit_intrinsic_unary_call(e, dest, intrinsic),
 
                 Intrinsic::IntShl => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::IntSar => self.emit_intrinsic_bin_call(e, dest, intrinsic),
@@ -1009,10 +1026,13 @@ where
                 Intrinsic::LongMul => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::LongDiv => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::LongMod => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::LongNeg => self.emit_intrinsic_unary_call(e, dest, intrinsic),
+                Intrinsic::LongPlus => self.emit_intrinsic_unary_call(e, dest, intrinsic),
 
                 Intrinsic::LongOr => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::LongAnd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::LongXor => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::LongNot => self.emit_intrinsic_unary_call(e, dest, intrinsic),
 
                 Intrinsic::LongShl => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::LongSar => self.emit_intrinsic_bin_call(e, dest, intrinsic),
@@ -1022,6 +1042,8 @@ where
                 Intrinsic::FloatSub => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::FloatMul => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::FloatDiv => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::FloatNeg => self.emit_intrinsic_unary_call(e, dest, intrinsic),
+                Intrinsic::FloatPlus => self.emit_intrinsic_unary_call(e, dest, intrinsic),
                 Intrinsic::FloatIsNan => self.emit_intrinsic_is_nan(e, dest.reg(), intrinsic),
                 Intrinsic::FloatSqrt => self.emit_intrinsic_sqrt(e, dest.freg(), intrinsic),
 
@@ -1029,6 +1051,8 @@ where
                 Intrinsic::DoubleSub => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::DoubleMul => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::DoubleDiv => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::DoubleNeg => self.emit_intrinsic_unary_call(e, dest, intrinsic),
+                Intrinsic::DoublePlus => self.emit_intrinsic_unary_call(e, dest, intrinsic),
                 Intrinsic::DoubleIsNan => self.emit_intrinsic_is_nan(e, dest.reg(), intrinsic),
                 Intrinsic::DoubleSqrt => self.emit_intrinsic_sqrt(e, dest.freg(), intrinsic),
 

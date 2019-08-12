@@ -1,0 +1,31 @@
+fun main() {
+  let x = 1.0F.unaryPlus();
+  assert(x == +1.0F);
+
+  let x = 1.0F.unaryMinus();
+  assert(x == -1.0F);
+
+  let x = 1.0F.plus(2.0F);
+  assert(x == 3.0F);
+
+  let x = 1.0F + 2.0F;
+  assert(x == 3.0F);
+
+  let x = 5.0F.minus(2.0F);
+  assert(x == 3.0F);
+
+  let x = 5.0F - 2.0F;
+  assert(x == 3.0F);
+
+  let x = 3.0F.times(4.0F);
+  assert(x == 12.0F);
+
+  let x = 3.0F * 4.0F;
+  assert(x == 12.0F);
+
+  let x = 9.0F.div(8.0F);
+  assert(x == 1.125F);
+
+  let x = 9.0F / 8.0F;
+  assert(x == 1.125F);
+}
