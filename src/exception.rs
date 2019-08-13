@@ -332,30 +332,69 @@ pub fn alloc_exception(vm: &VM, msg: Ref<Str>) -> Ref<Throwable> {
 fn set_exception_backtrace(vm: &VM, obj: Ref<Throwable>, via_retrieve: bool) {
     let stacktrace = stacktrace_from_last_dtn(vm);
     let mut obj = root(obj);
-
     let mut skip = 0;
+
+    let mut skip_retrieve_stack = false;
+    let mut skip_constructor = false;
 
     // ignore every element until first not inside susubclass of Throwable (ctor of Exception)
     if via_retrieve {
         for elem in stacktrace.elems.iter() {
             let jit_fct_id = JitFctId::from(elem.fct_id.idx() as usize);
             let jit_fct = vm.jit_fcts.idx(jit_fct_id);
-            let fct = vm.fcts.idx(jit_fct.fct_id());
+            let fct_id = jit_fct.fct_id();
+            let fct = vm.fcts.idx(fct_id);
             let fct = fct.read();
-            match fct.parent {
-                FctParent::Class(owner_class) => {
-                    if vm
-                        .classes
-                        .idx(owner_class)
-                        .read()
-                        .subclass_from(vm, vm.vips.throwable_class)
-                    {
-                        skip += 1;
-                    }
+
+            if !skip_retrieve_stack {
+                let throwable_cls = vm.classes.idx(vm.vips.throwable_class);
+                let throwable_cls = throwable_cls.read();
+                let retrieve_stacktrace_fct_id = throwable_cls
+                    .find_method(vm, vm.interner.intern("retrieveStackTrace"), false)
+                    .expect("retrieveStackTrace not found in Throwable");
+
+                if retrieve_stacktrace_fct_id == fct_id {
+                    skip += 1;
+                    continue;
+                } else {
+                    skip_retrieve_stack = true;
                 }
-                _ => {}
+            }
+
+            if !skip_constructor {
+                assert!(skip_retrieve_stack);
+                if let FctParent::Class(owner_class) = fct.parent {
+                    if fct.is_constructor {
+                        let throw_object_cls_id = (&obj.header)
+                            .vtbl()
+                            .class()
+                            .cls_id
+                            .expect("no corresponding class");
+
+                        if throw_object_cls_id == owner_class {
+                            skip += 1;
+                            skip_constructor = true;
+                            break;
+                        }
+
+                        let throw_object_cls = vm.classes.idx(throw_object_cls_id);
+                        let throw_object_cls = throw_object_cls.read();;
+
+                        if throw_object_cls.subclass_from(vm, owner_class) {
+                            skip += 1;
+                            continue;
+                        }
+                    } else {
+                        skip_constructor = true;
+                        break;
+                    }
+                } else {
+                    skip_constructor = true;
+                    break;
+                }
             }
         }
+        assert!(skip_constructor);
     }
 
     let len = stacktrace.len() - skip;
