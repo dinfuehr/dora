@@ -1,0 +1,28 @@
+//= output "Exception: SubException 0\n0: SubException.SubException(String, Int): 14\n1: create_exceptions() -> SubException: 8\n2: main(): 4\nException: SubException 1\n0: create_exceptions() -> SubException: 8\n1: main(): 4\n"
+
+fun main() {
+  create_exceptions().printTraces();
+}
+
+fun create_exceptions() -> SubException {
+  return SubException("SubException", 1);
+}
+
+class SubException(msg: String, t: Int) : Exception(msg + " " + t.toString()) {
+  var exception: SubException;
+  if(t > 0) {
+    self.exception = SubException(msg, t-1);
+  }
+
+  // currently needed, because of error when a abstract function is overloaded in base class
+  override fun printStackTrace() {
+    super.printStackTrace();
+  }
+
+  fun printTraces() {
+    if(self.exception !== nil) {
+      self.exception.printTraces();
+    }
+    self.printStackTrace();
+  }
+}
