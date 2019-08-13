@@ -441,7 +441,7 @@ where
         self.emit_lit_str_value(&lit.value, dest);
     }
 
-    fn emit_lit_str_value(&mut self, lit_value: &String, dest: Reg) {
+    fn emit_lit_str_value(&mut self, lit_value: &str, dest: Reg) {
         let handle = Str::from_buffer_in_perm(self.vm, lit_value.as_bytes());
 
         let disp = self.asm.add_addr(handle.raw() as *const u8);
