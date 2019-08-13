@@ -1,4 +1,5 @@
-//= error at 9:10
+//= cannon
+//= error at 10:10
 
 fun main() { }
 

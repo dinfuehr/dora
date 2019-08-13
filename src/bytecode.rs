@@ -1,3 +1,3 @@
-mod astgen;
-mod generate;
-mod opcode;
+pub mod astgen;
+pub mod generate;
+pub mod opcode;

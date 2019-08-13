@@ -28,6 +28,7 @@ Options:
     --emit-llvm             Emits initial LLVM IR to stdout.
     --emit-asm=<fct>        Emits assembly code to stdout.
     --emit-asm-file         Emits assembly code into file `dora-<pid>.asm`.
+    --emit-bytecode=<fct>   Emits bytecode to stdout.
     --emit-stubs            Emits generated stubs.
     --emit-debug=<fct>      Emits debug instruction at beginning of functions.
     --emit-debug-compile    Emits debug instruction at beginning of compile thunk.
@@ -55,6 +56,8 @@ Options:
     --gc-young-appel        Use Appel dynamic resizing of young generation.
     --gc-semi-ratio=<num>   Use fixed ratio of semi space in young generation.
 
+    --bc=<name>             Switch Baseline Compiler. Possible values: cannon, astcompiler [default: astcompiler].
+
     --disable-tlab          Disable tlab allocation.
     --disable-barrier       Disable barriers.
 
@@ -72,6 +75,7 @@ pub struct Args {
     pub flag_emit_ast: bool,
     pub flag_emit_asm: Option<String>,
     pub flag_emit_asm_file: bool,
+    pub flag_emit_bytecode: Option<String>,
     pub flag_emit_llvm: bool,
     pub flag_emit_stubs: bool,
     pub flag_enable_perf: bool,
@@ -97,6 +101,7 @@ pub struct Args {
     flag_gc_young_size: Option<MemSize>,
     pub flag_gc_semi_ratio: Option<usize>,
     pub flag_gc: Option<CollectorName>,
+    pub flag_bc: Option<BaselineName>,
     pub flag_min_heap_size: Option<MemSize>,
     pub flag_max_heap_size: Option<MemSize>,
     pub flag_code_size: Option<MemSize>,
@@ -157,6 +162,10 @@ impl Args {
     pub fn parallel_full(&self) -> bool {
         self.flag_gc_parallel_full || self.flag_gc_parallel
     }
+
+    pub fn bc(&self) -> BaselineName {
+        self.flag_bc.unwrap_or(BaselineName::AstCompiler)
+    }
 }
 
 impl Default for Args {
@@ -168,6 +177,7 @@ impl Default for Args {
             flag_emit_ast: false,
             flag_emit_asm: None,
             flag_emit_asm_file: false,
+            flag_emit_bytecode: None,
             flag_emit_llvm: false,
             flag_emit_stubs: false,
             flag_emit_debug: None,
@@ -193,6 +203,7 @@ impl Default for Args {
             flag_gc_young_size: None,
             flag_gc_semi_ratio: None,
             flag_gc: None,
+            flag_bc: None,
             flag_min_heap_size: None,
             flag_max_heap_size: None,
             flag_code_size: None,
@@ -214,6 +225,12 @@ pub enum CollectorName {
     Sweep,
     Swiper,
     SweepSwiper,
+}
+
+#[derive(Copy, Clone, Debug, RustcDecodable)]
+pub enum BaselineName {
+    Cannon,
+    AstCompiler,
 }
 
 #[derive(Copy, Clone, Debug, RustcDecodable)]

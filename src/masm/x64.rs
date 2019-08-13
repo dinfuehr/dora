@@ -1,5 +1,5 @@
 use crate::baseline::codegen::CondCode;
-use crate::baseline::expr::ExprStore;
+use crate::baseline::codegen::ExprStore;
 use crate::baseline::fct::BailoutInfo;
 use crate::baseline::fct::GcPoint;
 use crate::class::TypeParams;
