@@ -1,4 +1,4 @@
-class Exception(msg: String): Throwable(msg) {
+open class Exception(msg: String): Throwable(msg) {
   override fun printStackTrace() {
     if super.getMessage() !== nil {
       println("Exception: " + super.getMessage());
