@@ -58,6 +58,7 @@ pub struct Class {
     pub constructor: Option<FctId>,
     pub fields: Vec<Field>,
     pub methods: Vec<FctId>,
+    pub virtual_fcts: Vec<FctId>,
 
     pub traits: Vec<TraitId>,
     pub impls: Vec<ImplId>,
@@ -65,7 +66,6 @@ pub struct Class {
     pub type_params: Vec<TypeParam>,
 
     pub specializations: RwLock<HashMap<TypeParams, ClassDefId>>,
-    pub vtable_len: u32,
 
     // true if this class is the generic Array class
     pub is_array: bool,

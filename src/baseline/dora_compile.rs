@@ -221,18 +221,9 @@ fn patch_vtable_call(
     let cls = vm.classes.idx(cls_id);
     let cls = cls.read();
 
-    let mut fct_ptr = Address::null();
-
-    for &fct_id in &cls.methods {
-        let fct = vm.fcts.idx(fct_id);
-        let fct = fct.read();
-
-        if Some(vtable_index) == fct.vtable_index {
-            let empty = TypeParams::empty();
-            fct_ptr = baseline::generate(vm, fct_id, &empty, fct_tps);
-            break;
-        }
-    }
+    let empty = TypeParams::empty();
+    let fct_id = cls.virtual_fcts[vtable_index as usize];
+    let fct_ptr = baseline::generate(vm, fct_id, &empty, fct_tps);
 
     let methodtable = vtable.table_mut();
     methodtable[vtable_index as usize] = fct_ptr.to_usize();

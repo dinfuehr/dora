@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use crate::class::{Class, ClassId};
 use crate::ctxt::{Fct, SemContext};
@@ -42,7 +42,7 @@ fn cycle_detection<'ast>(ctxt: &mut SemContext<'ast>) {
 }
 
 fn determine_vtables<'ast>(ctxt: &SemContext<'ast>) {
-    let mut lens = HashMap::new();
+    let mut lens = HashSet::new();
 
     for cls in ctxt.classes.iter() {
         let mut cls = cls.write();
@@ -50,24 +50,18 @@ fn determine_vtables<'ast>(ctxt: &SemContext<'ast>) {
     }
 }
 
-fn determine_vtable<'ast>(
-    ctxt: &SemContext<'ast>,
-    lens: &mut HashMap<ClassId, u32>,
-    cls: &mut Class,
-) -> u32 {
-    let mut vtable_len = if let Some(parent_cls_id) = cls.parent_class {
-        let parent_vtable_len = lens.get(&parent_cls_id).map(|&len| len);
-
-        if let Some(parent_vtable_len) = parent_vtable_len {
-            parent_vtable_len
-        } else {
-            let parent = ctxt.classes.idx(parent_cls_id);
+fn determine_vtable<'ast>(ctxt: &SemContext<'ast>, lens: &mut HashSet<ClassId>, cls: &mut Class) {
+    if let Some(parent_cls_id) = cls.parent_class {
+        let parent = ctxt.classes.idx(parent_cls_id);
+        if !lens.contains(&parent_cls_id) {
             let mut parent = parent.write();
             determine_vtable(ctxt, lens, &mut *parent)
         }
-    } else {
-        0
-    };
+
+        let parent = parent.read();
+        cls.virtual_fcts
+            .extend_from_slice(parent.virtual_fcts.as_slice());
+    }
 
     for &mid in &cls.methods {
         let fct = ctxt.fcts.idx(mid);
@@ -79,10 +73,13 @@ fn determine_vtable<'ast>(
             let vtable_index = if let Some(overrides) = fct.overrides {
                 let overrides = ctxt.fcts.idx(overrides);
                 let overrides = overrides.read();
-                overrides.vtable_index.unwrap()
+                let vtable_index = overrides.vtable_index.unwrap();
+                cls.virtual_fcts[vtable_index as usize] = mid;
+
+                vtable_index
             } else {
-                let vtable_index = vtable_len;
-                vtable_len += 1;
+                let vtable_index = cls.virtual_fcts.len() as u32;
+                cls.virtual_fcts.push(mid);
 
                 vtable_index
             };
@@ -91,10 +88,7 @@ fn determine_vtable<'ast>(
         }
     }
 
-    cls.vtable_len = vtable_len;
-    lens.insert(cls.id, vtable_len);
-
-    vtable_len
+    lens.insert(cls.id);
 }
 
 // fn determine_struct_sizes<'ast>(ctxt: &SemContext<'ast>) {
@@ -432,14 +426,14 @@ mod tests {
             let cls_id = ctxt.cls_by_name("A");
             let cls = ctxt.classes.idx(cls_id);
             let cls = cls.read();
-            assert_eq!(cls.vtable_len, 0);
+            assert_eq!(cls.virtual_fcts.len(), 0);
         });
 
         ok_with_test("open class A { open fun f() {} }", |ctxt| {
             let cls_id = ctxt.cls_by_name("A");
             let cls = ctxt.classes.idx(cls_id);
             let cls = cls.read();
-            assert_eq!(cls.vtable_len, 1);
+            assert_eq!(cls.virtual_fcts.len(), 1);
         });
 
         ok_with_test(
@@ -450,12 +444,12 @@ mod tests {
                 let cls_id = ctxt.cls_by_name("A");
                 let cls = ctxt.classes.idx(cls_id);
                 let cls = cls.read();
-                assert_eq!(cls.vtable_len, 1);
+                assert_eq!(cls.virtual_fcts.len(), 1);
 
                 let cls_id = ctxt.cls_by_name("B");
                 let cls = ctxt.classes.idx(cls_id);
                 let cls = cls.read();
-                assert_eq!(cls.vtable_len, 2);
+                assert_eq!(cls.virtual_fcts.len(), 2);
             },
         );
     }

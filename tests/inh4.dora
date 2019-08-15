@@ -1,0 +1,26 @@
+fun main() {
+  let b = B();
+  assert(b.printBase() == 2);
+  assert(b.printSpecial() == 1);
+
+  let c = C();
+  assert(c.printBase() == 2);
+  assert(c.printSpecial() == 1);
+}
+
+open abstract class A {
+ abstract fun printSpecial() -> Int;
+ fun printBase() -> Int {
+   return 2;
+ }
+}
+
+open class B : A {
+ override fun printSpecial() -> Int {
+   return 1;
+ }
+}
+
+class C : B {
+
+}

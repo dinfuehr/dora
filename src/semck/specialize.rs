@@ -284,7 +284,7 @@ fn create_specialized_class(
     }
 
     let stub = ctxt.compiler_thunk().to_usize();
-    let vtable_entries = vec![stub; cls.vtable_len as usize];
+    let vtable_entries = vec![stub; cls.virtual_fcts.len()];
 
     let cls_def = ctxt.class_defs.idx(id);
     let mut cls_def = cls_def.write();

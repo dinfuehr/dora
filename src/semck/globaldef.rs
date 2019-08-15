@@ -157,13 +157,13 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
                 constructor: None,
                 fields: Vec::new(),
                 methods: Vec::new(),
+                virtual_fcts: Vec::new(),
 
                 traits: Vec::new(),
                 impls: Vec::new(),
 
                 type_params: Vec::new(),
                 specializations: RwLock::new(HashMap::new()),
-                vtable_len: 0,
 
                 is_array: false,
                 is_str: false,
