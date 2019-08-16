@@ -1,4 +1,10 @@
 fun main() {
+    let x = 1L.unaryPlus();
+    assert(x == +1L);
+
+    let x = 1L.unaryMinus();
+    assert(x == -1L);
+
     let x = 1L.plus(2L);
     assert(x == 3L);
 
@@ -46,6 +52,12 @@ fun main() {
 
     let x = 1L ^ 3L;
     assert(x == 2L);
+
+    let x = 1L.not();
+    assert(x == -2L);
+
+    let x = !1L;
+    assert(x == -2L);
 
     let x = 1L.shiftLeft(1L);
     assert(x == 2L);
