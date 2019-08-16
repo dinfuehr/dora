@@ -99,8 +99,8 @@ where
             ExprPath(_) => unimplemented!(),
             ExprDelegation(ref expr) => self.emit_delegation(expr, dest),
             ExprField(ref expr) => self.emit_field(expr, dest),
-            ExprSelf(_) => self.emit_self(dest.reg()),
-            ExprSuper(_) => self.emit_self(dest.reg()),
+            ExprSelf(_) => self.emit_self(dest),
+            ExprSuper(_) => self.emit_self(dest),
             ExprNil(_) => self.emit_nil(dest.reg()),
             ExprConv(ref expr) => self.emit_conv(expr, dest.reg()),
             ExprTry(ref expr) => self.emit_try(expr, dest),
@@ -357,7 +357,7 @@ where
         self.jit_info.map_intrinsics.get(id).map(|&intr| intr)
     }
 
-    fn emit_self(&mut self, dest: Reg) {
+    fn emit_self(&mut self, dest: ExprStore) {
         let var = self.src.var_self();
 
         self.asm.emit_comment(Comment::LoadSelf(var.id));
@@ -476,7 +476,7 @@ where
             }
 
             IdentType::Field(cls, field) => {
-                self.emit_self(REG_RESULT);
+                self.emit_self(REG_RESULT.into());
                 self.emit_field_access(e.pos, cls, field, REG_RESULT, dest);
             }
 
@@ -650,7 +650,7 @@ where
 
                     &expr_field.object
                 } else {
-                    self.emit_self(REG_RESULT);
+                    self.emit_self(REG_RESULT.into());
 
                     &e.lhs
                 };
@@ -1046,6 +1046,7 @@ where
                 Intrinsic::FloatPlus => self.emit_intrinsic_unary_call(e, dest, intrinsic),
                 Intrinsic::FloatIsNan => self.emit_intrinsic_is_nan(e, dest.reg(), intrinsic),
                 Intrinsic::FloatSqrt => self.emit_intrinsic_sqrt(e, dest.freg(), intrinsic),
+                Intrinsic::FloatEq => self.emit_intrinsic_bin_call(e, dest, intrinsic),
 
                 Intrinsic::DoubleAdd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::DoubleSub => self.emit_intrinsic_bin_call(e, dest, intrinsic),
@@ -1055,6 +1056,7 @@ where
                 Intrinsic::DoublePlus => self.emit_intrinsic_unary_call(e, dest, intrinsic),
                 Intrinsic::DoubleIsNan => self.emit_intrinsic_is_nan(e, dest.reg(), intrinsic),
                 Intrinsic::DoubleSqrt => self.emit_intrinsic_sqrt(e, dest.freg(), intrinsic),
+                Intrinsic::DoubleEq => self.emit_intrinsic_bin_call(e, dest, intrinsic),
 
                 Intrinsic::DefaultValue => self.emit_intrinsic_default_value(e, dest),
 
@@ -1598,7 +1600,7 @@ where
                 }
 
                 Arg::Selfie(_, _) => {
-                    self.emit_self(dest.reg());
+                    self.emit_self(dest);
                 }
 
                 Arg::SelfieNew(ty, _) => {

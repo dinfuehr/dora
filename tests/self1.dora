@@ -1,0 +1,11 @@
+fun main() {
+  assert(0.0 == 0.0);
+  assert(0.0.equals(0.0));
+  assert(0.0 === 0.0);
+  assert(0.0.identicalTo(0.0));
+
+  assert(0.0F == 0.0F);
+  assert(0.0F.equals(0.0F));
+  assert(0.0F === 0.0F);
+  assert(0.0F.identicalTo(0.0F));
+}
