@@ -50,10 +50,10 @@ impl Lexer {
                 return self.read_number();
 
             } else if self.is_comment_start() {
-                r#try!(self.read_comment());
+                self.read_comment()?;
 
             } else if self.is_multi_comment_start() {
-                r#try!(self.read_multi_comment());
+                self.read_multi_comment()?;
 
             } else if is_identifier_start(ch) {
                 return self.read_identifier();
