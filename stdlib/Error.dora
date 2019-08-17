@@ -1,7 +1,7 @@
 open class Error(msg: String): Throwable(msg) {
   override fun printStackTrace() {
     if super.getMessage() !== nil {
-      println("Error: " + self.getMessage());
+      println("Error: " + super.getMessage());
     } else {
       println("Error");
     }
@@ -11,7 +11,7 @@ open class Error(msg: String): Throwable(msg) {
     var i = 0;
 
     while i < x.length() {
-      println(i.toString() + ": " + x[i].toString());
+      println(i.toString() + ": " + x.get(i).toString());
       i = i + 1;
     }
   }
