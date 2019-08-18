@@ -66,7 +66,6 @@ impl<'x, 'ast> Visitor<'ast> for StructCheck<'x, 'ast> {
             pos: f.pos,
             name: f.name,
             ty: ty,
-            offset: 0,
         };
 
         struc.fields.push(field);

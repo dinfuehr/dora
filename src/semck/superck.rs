@@ -238,50 +238,64 @@ fn check_fct_modifier<'ast>(ctxt: &SemContext<'ast>, cls: &Class, fct: &mut Fct<
 
 #[cfg(test)]
 mod tests {
-    use crate::ctxt::SemContext;
+    use crate::class::ClassSize;
+    use crate::ctxt::{SemContext, VM};
+    use crate::mem;
+    use crate::object::Header;
     use crate::semck::tests::{err, errors, ok, ok_with_test, pos};
     use dora_parser::error::msg::Msg;
     use dora_parser::interner::Name;
 
-    // #[test]
-    // fn test_class_size() {
-    //     assert_eq!(Header::size(), class_size("class Foo"));
-    //     assert_eq!(Header::size() + mem::ptr_width(), class_size("class Foo(let a: int)"));
-    //     assert_eq!(Header::size() + 8, class_size("class Foo(let a: long)"));
-    //     assert_eq!(Header::size() + mem::ptr_width(), class_size("class Foo(let a: bool)"));
-    //     assert_eq!(Header::size() + mem::ptr_width(),
-    //                class_size("class Foo(let a: String)"));
-    // }
+    #[test]
+    fn test_class_size() {
+        assert_eq!(
+            ClassSize::Fixed(Header::size()),
+            class_size("class Foo", "Foo")
+        );
+        assert_eq!(
+            ClassSize::Fixed(Header::size() + mem::ptr_width()),
+            class_size("class Foo(let a: Int)", "Foo")
+        );
+        assert_eq!(
+            ClassSize::Fixed(Header::size() + 8),
+            class_size("class Foo(let a: Long)", "Foo")
+        );
+        assert_eq!(
+            ClassSize::Fixed(Header::size() + mem::ptr_width()),
+            class_size("class Foo(let a: Bool)", "Foo")
+        );
+        assert_eq!(
+            ClassSize::Fixed(Header::size() + mem::ptr_width()),
+            class_size("class Foo(let a: String)", "Foo")
+        );
+    }
 
-    // fn class_size(code: &'static str) -> i32 {
-    //     ok_with_test(code, |ctxt| {
-    //         let name = ctxt.interner.intern("Foo");
-    //         let cid = ctxt.sym.borrow().get_class(name).unwrap();
-    //         let cls = ctxt.classes[cid].borrow();
+    fn class_size(code: &'static str, name: &'static str) -> ClassSize {
+        ok_with_test(code, |vm| {
+            let id = vm.cls_def_by_name(name);
+            let cls = vm.class_defs.idx(id);
+            let cls = cls.read();
+            cls.size.clone()
+        })
+    }
 
-    //         cls.size
-    //     })
-    // }
+    #[test]
+    fn test_intrinsic_class_size() {
+        ok_with_test("", |vm| {
+            assert_eq!(ClassSize::Str, class_size_name(vm, "String"));
+            assert_eq!(ClassSize::Fixed(16), class_size_name(vm, "Bool"));
+            assert_eq!(ClassSize::Fixed(16), class_size_name(vm, "Int"));
+            assert_eq!(ClassSize::Fixed(16), class_size_name(vm, "Byte"));
+            assert_eq!(ClassSize::Fixed(16), class_size_name(vm, "Long"));
+        });
+    }
 
-    // #[test]
-    // fn test_intrinsic_class_size() {
-    //     ok_with_test("", |ctxt| {
-    //         assert_eq!(0, class_size_name(ctxt, "Array"));
-    //         assert_eq!(0, class_size_name(ctxt, "String"));
-    //         assert_eq!(1, class_size_name(ctxt, "bool"));
-    //         assert_eq!(4, class_size_name(ctxt, "int"));
-    //         assert_eq!(1, class_size_name(ctxt, "byte"));
-    //         assert_eq!(8, class_size_name(ctxt, "long"));
-    //     });
-    // }
-
-    // fn class_size_name(ctxt: &SemContext, name: &'static str) -> i32 {
-    //     let name = ctxt.interner.intern(name);
-    //     let cid = ctxt.sym.borrow().get_class(name).unwrap();
-    //     let cls = ctxt.classes[cid].borrow();
-
-    //     cls.size
-    // }
+    fn class_size_name(vm: &VM, name: &'static str) -> ClassSize {
+        let id = vm.cls_def_by_name(name);
+        let cls = vm.class_defs.idx(id);
+        let cls = cls.read();
+        cls.size.clone()
+    }
 
     // #[test]
     // fn test_super_size() {

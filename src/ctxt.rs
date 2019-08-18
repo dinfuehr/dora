@@ -595,7 +595,6 @@ pub struct StructFieldData {
     pub pos: Position,
     pub name: Name,
     pub ty: BuiltinType,
-    pub offset: i32,
 }
 
 #[derive(Debug)]
