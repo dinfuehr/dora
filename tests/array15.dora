@@ -12,10 +12,9 @@ fun main() {
     assert(arrayContains[Long](x, 3L));
     assert(arrayHas[Long](x, 3L));
 
-    // let x = arrayFill[Double](3, 0.0/0.0);
-    // BUG: thread 'main' panicked at 'fp-register accessed as gp-register.', src/baseline/expr.rs:52:18
-    //assert(arrayContains[Double](x, 0.0/0.0));
-    //assert(arrayHas[Double](x, 0.0/0.0));
+    let x = arrayFill[Double](3, 0.0/0.0);
+    assert(arrayContains[Double](x, 0.0/0.0));
+    assert(arrayHas[Double](x, 0.0/0.0));
 
     // “target/debug/dora tests/array15…” terminated by signal SIGSEGV (Address boundary error)
     // hash is not implemented (yet) for String, so this should be a compile-time error, not a crash
