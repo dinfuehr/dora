@@ -87,7 +87,7 @@ pub fn returns_value(s: &Stmt) -> Result<(), Position> {
 }
 
 fn if_returns_value(s: &StmtIfType) -> Result<(), Position> {
-    r#try!(returns_value(&s.then_block));
+    returns_value(&s.then_block)?;
 
     match s.else_block {
         Some(ref block) => returns_value(block),
@@ -118,10 +118,10 @@ fn do_returns_value(s: &StmtDoType) -> Result<(), Position> {
 
     // if no finally block given or finally does not return,
     // do and all catch-blocks need to return
-    r#try!(returns_value(&s.do_block));
+    returns_value(&s.do_block)?;
 
     for catch in &s.catch_blocks {
-        r#try!(returns_value(&catch.block));
+        returns_value(&catch.block)?;
     }
 
     Ok(())
