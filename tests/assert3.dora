@@ -1,4 +1,4 @@
-//= error assert
+//= error exception
 
 fun main() {
   f(false);
