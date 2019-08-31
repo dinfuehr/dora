@@ -8,7 +8,6 @@ fun main() {
     let x = arrayFill[Long](3, 3L);
     assert(arrayHas[Long](x, 3L));
 
-    // let x = arrayFill[Double](3, 0.0/0.0);
-    // BUG: thread 'main' panicked at 'fp-register accessed as gp-register.', src/baseline/expr.rs:52:18
-    // assert(arrayHas[Double](x, 0.0/0.0));
+    let x = arrayFill[Double](3, 0.0/0.0);
+    assert(arrayHas[Double](x, 0.0/0.0));
 }
