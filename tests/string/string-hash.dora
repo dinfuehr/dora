@@ -1,9 +1,0 @@
-fun main() {
-
-    // “target/debug/dora tests/array15…” terminated by signal SIGSEGV (Address boundary error)
-    // hash is not implemented (yet) for String, so this should be a compile-time error, not a crash
-    // hash[String]("foo");
-
-}
-
-fun hash[T : Hash](val: T) -> Int = val.hash();

@@ -26,7 +26,3 @@ impl Hash for Float {
 impl Hash for Double {
   fun hash() -> Int = self.hash();
 }
-
-impl Hash for String {
-  fun hash() -> Int = self.hash();
-}
