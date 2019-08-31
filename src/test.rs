@@ -35,6 +35,8 @@ where
     let args: Args = Default::default();
 
     for file in &[
+        "stdlib/Identity.dora",
+        "stdlib/Equals.dora",
         "stdlib/Bool.dora",
         "stdlib/Byte.dora",
         "stdlib/Char.dora",
@@ -46,7 +48,6 @@ where
         "stdlib/String.dora",
         "stdlib/Exception.dora",
         "stdlib/Thread.dora",
-        "stdlib/Equals.dora",
         "stdlib/Comparable.dora",
         "stdlib/Sortable.dora",
         "stdlib/Hash.dora",

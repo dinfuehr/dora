@@ -1,9 +1,0 @@
-fun main() {
-  let ais = arrayFill[Int](100, 2);
-  ais.set(99, 23);
-  assert(ais.has(23));
-
-  let ads = arrayFill[Double](100, 2.0);
-  ads.set(99, 0.0/0.0);
-  assert(ads.has(0.0/0.0));
-}
