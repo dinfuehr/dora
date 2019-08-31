@@ -1,0 +1,31 @@
+trait Stringable {
+  fun toString() -> String;
+}
+
+impl Stringable for Bool {
+  fun toString() -> String = self.toString();
+}
+
+impl Stringable for Byte {
+  fun toString() -> String = self.toString();
+}
+
+impl Stringable for Int {
+  fun toString() -> String = self.toString();
+}
+
+impl Stringable for Long {
+  fun toString() -> String = self.toString();
+}
+
+impl Stringable for Float {
+  fun toString() -> String = self.toString();
+}
+
+impl Stringable for Double {
+  fun toString() -> String = self.toString();
+}
+
+impl Stringable for String {
+  fun toString() -> String = self.toString();
+}
