@@ -380,6 +380,22 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         if let Some(intrinsic) = self.get_intrinsic(expr.id) {
             self.reserve_args(expr);
             self.jit_info.map_intrinsics.insert(expr.id, intrinsic);
+
+            match intrinsic {
+                Intrinsic::Assert => {
+                    let offset = self.reserve_stack_for_type(BuiltinType::Ptr);
+                    let cls_id = self.vm.vips.error_class;
+                    let cls = self.vm.classes.idx(cls_id);
+                    let cls = cls.read();
+                    let selfie_offset = self.reserve_temp_for_type(cls.ty);
+                    let args = vec![
+                        Arg::SelfieNew(cls.ty, selfie_offset),
+                        Arg::Stack(offset, BuiltinType::Ptr, 0),
+                    ];
+                    self.universal_call(expr.id, args, cls.constructor);
+                }
+                _ => {}
+            };
             return;
         }
 

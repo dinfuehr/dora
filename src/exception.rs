@@ -3,10 +3,10 @@ use std::ptr;
 use crate::baseline::fct::{CatchType, JitFctId};
 use crate::baseline::map::CodeDescriptor;
 use crate::cpu::fp_from_execstate;
-use crate::ctxt::{get_vm, VM};
+use crate::ctxt::{get_vm, FctParent, VM};
 use crate::execstate::ExecState;
 use crate::handle::root;
-use crate::object::{alloc, Array, Exception, IntArray, Obj, Ref, StackTraceElement, Str};
+use crate::object::{alloc, Array, IntArray, Obj, Ref, StackTraceElement, Str, Throwable};
 use crate::os::signal::Trap;
 use crate::stdlib;
 use crate::threads::THREAD;
@@ -288,12 +288,12 @@ fn find_handler(
     }
 }
 
-pub extern "C" fn retrieve_stack_trace(obj: Ref<Exception>) {
+pub extern "C" fn retrieve_stack_trace(obj: Ref<Throwable>) {
     let vm = get_vm();
     set_exception_backtrace(vm, obj, true);
 }
 
-pub extern "C" fn stack_element(obj: Ref<Exception>, ind: i32) -> Ref<StackTraceElement> {
+pub extern "C" fn stack_element(obj: Ref<Throwable>, ind: i32) -> Ref<StackTraceElement> {
     let vm = get_vm();
     let obj = root(obj);
     let array = obj.backtrace;
@@ -318,9 +318,9 @@ pub extern "C" fn stack_element(obj: Ref<Exception>, ind: i32) -> Ref<StackTrace
     ste.direct()
 }
 
-pub fn alloc_exception(vm: &VM, msg: Ref<Str>) -> Ref<Exception> {
+pub fn alloc_exception(vm: &VM, msg: Ref<Str>) -> Ref<Throwable> {
     let cls_id = vm.vips.exception(vm);
-    let obj: Ref<Exception> = alloc(vm, cls_id).cast();
+    let obj: Ref<Throwable> = alloc(vm, cls_id).cast();
     let mut obj = root(obj);
 
     obj.msg = msg;
@@ -329,11 +329,74 @@ pub fn alloc_exception(vm: &VM, msg: Ref<Str>) -> Ref<Exception> {
     obj.direct()
 }
 
-fn set_exception_backtrace(vm: &VM, obj: Ref<Exception>, via_retrieve: bool) {
+fn set_exception_backtrace(vm: &VM, obj: Ref<Throwable>, via_retrieve: bool) {
     let stacktrace = stacktrace_from_last_dtn(vm);
     let mut obj = root(obj);
+    let mut skip = 0;
 
-    let skip = if via_retrieve { 2 } else { 0 };
+    let mut skip_retrieve_stack = false;
+    let mut skip_constructor = false;
+
+    // ignore every element until first not inside susubclass of Throwable (ctor of Exception)
+    if via_retrieve {
+        for elem in stacktrace.elems.iter() {
+            let jit_fct_id = JitFctId::from(elem.fct_id.idx() as usize);
+            let jit_fct = vm.jit_fcts.idx(jit_fct_id);
+            let fct_id = jit_fct.fct_id();
+            let fct = vm.fcts.idx(fct_id);
+            let fct = fct.read();
+
+            if !skip_retrieve_stack {
+                let throwable_cls = vm.classes.idx(vm.vips.throwable_class);
+                let throwable_cls = throwable_cls.read();
+                let retrieve_stacktrace_fct_id = throwable_cls
+                    .find_method(vm, vm.interner.intern("retrieveStackTrace"), false)
+                    .expect("retrieveStackTrace not found in Throwable");
+
+                if retrieve_stacktrace_fct_id == fct_id {
+                    skip += 1;
+                    continue;
+                } else {
+                    skip_retrieve_stack = true;
+                }
+            }
+
+            if !skip_constructor {
+                assert!(skip_retrieve_stack);
+                if let FctParent::Class(owner_class) = fct.parent {
+                    if fct.is_constructor {
+                        let throw_object_cls_id = (&obj.header)
+                            .vtbl()
+                            .class()
+                            .cls_id
+                            .expect("no corresponding class");
+
+                        if throw_object_cls_id == owner_class {
+                            skip += 1;
+                            skip_constructor = true;
+                            break;
+                        }
+
+                        let throw_object_cls = vm.classes.idx(throw_object_cls_id);
+                        let throw_object_cls = throw_object_cls.read();;
+
+                        if throw_object_cls.subclass_from(vm, owner_class) {
+                            skip += 1;
+                            continue;
+                        }
+                    } else {
+                        skip_constructor = true;
+                        break;
+                    }
+                } else {
+                    skip_constructor = true;
+                    break;
+                }
+            }
+        }
+        assert!(skip_constructor);
+    }
+
     let len = stacktrace.len() - skip;
 
     let cls_id = vm.vips.int_array(vm);
@@ -341,13 +404,10 @@ fn set_exception_backtrace(vm: &VM, obj: Ref<Exception>, via_retrieve: bool) {
     let mut array = root(array);
     let mut i = 0;
 
-    // ignore first element of stack trace (ctor of Exception)
     for elem in stacktrace.elems.iter().skip(skip) {
         array.set_at(i, elem.lineno);
         array.set_at(i + 1, elem.fct_id.idx() as i32);
-
         i += 2;
     }
-
     obj.backtrace = array.direct();
 }

@@ -343,7 +343,6 @@ def parse_test_file(file)
         when "code" then test_case.expectation.code = arguments[2].to_i
         when "message" then test_case.expectation.message = arguments[2].to_s
         when "div0" then test_case.expectation.code = 101
-        when "assert" then test_case.expectation.code = 102
         when "array" then test_case.expectation.code = 103
         when "nil" then test_case.expectation.code = 104
         when "exception" then test_case.expectation.code = 105

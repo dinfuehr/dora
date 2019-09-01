@@ -438,7 +438,11 @@ where
     }
 
     fn emit_lit_str(&mut self, lit: &'ast ExprLitStrType, dest: Reg) {
-        let handle = Str::from_buffer_in_perm(self.vm, lit.value.as_bytes());
+        self.emit_lit_str_value(&lit.value, dest);
+    }
+
+    fn emit_lit_str_value(&mut self, lit_value: &str, dest: Reg) {
+        let handle = Str::from_buffer_in_perm(self.vm, lit_value.as_bytes());
 
         let disp = self.asm.add_addr(handle.raw() as *const u8);
         let pos = self.asm.pos() as i32;
@@ -1231,13 +1235,26 @@ where
     }
 
     fn emit_intrinsic_assert(&mut self, e: &'ast ExprCallType, _: Reg) {
-        let lbl_div = self.asm.create_label();
+        // throw Error if assertion failed
+        let lbl_assert = self.asm.create_label();
         self.emit_expr(&e.args[0], REG_RESULT.into());
 
         self.asm.emit_comment(Comment::Lit("check assert"));
         self.asm
-            .test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_div);
-        self.asm.emit_bailout(lbl_div, Trap::ASSERT, e.pos);
+            .test_and_jump_if(CondCode::NonZero, REG_RESULT, lbl_assert);
+        let csite = self.jit_info.map_csites.get(e.id).unwrap().clone();
+
+        match csite.args.get(1).unwrap() {
+            Arg::Stack(offset, _, _) => {
+                self.emit_lit_str_value(&"assert failed".to_string(), REG_RESULT);
+                self.asm
+                    .store_mem(MachineMode::Ptr, Mem::Local(*offset), REG_RESULT.into());
+            }
+            _ => panic!("unexpected argument for assert"),
+        };
+        self.emit_call_site(&csite, e.pos, REG_RESULT.into());
+        self.asm.throw(REG_RESULT, e.pos);
+        self.asm.bind_label(lbl_assert)
     }
 
     fn emit_intrinsic_debug(&mut self) {

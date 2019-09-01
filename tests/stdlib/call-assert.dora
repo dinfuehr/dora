@@ -1,5 +1,5 @@
-//= error assert
-//= output "assert failed\n0: foo(): 9\n1: call(String): 20\n2: main(): 5\n"
+//= error exception
+//= output "uncaught exception\n0: foo(): 9\n1: call(String): 20\n2: main(): 5\n"
 
 fun main() {
     call("foo");
