@@ -46,7 +46,9 @@ fn determine_vtables<'ast>(ctxt: &SemContext<'ast>) {
 
     for cls in ctxt.classes.iter() {
         let mut cls = cls.write();
-        determine_vtable(ctxt, &mut lens, &mut *cls);
+        if !lens.contains(&cls.id) {
+            determine_vtable(ctxt, &mut lens, &mut *cls);
+        }
     }
 }
 
