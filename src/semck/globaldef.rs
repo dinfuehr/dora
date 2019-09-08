@@ -15,7 +15,7 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 pub fn check<'ast>(
-    ctxt: &mut VM<'ast>,
+    vm: &mut VM<'ast>,
     ast: &'ast Ast,
     map_cls_defs: &mut NodeMap<ClassId>,
     map_struct_defs: &mut NodeMap<StructId>,
@@ -25,7 +25,7 @@ pub fn check<'ast>(
     map_const_defs: &mut NodeMap<ConstId>,
 ) {
     let mut gdef = GlobalDef {
-        ctxt: ctxt,
+        vm: vm,
         map_cls_defs: map_cls_defs,
         map_struct_defs: map_struct_defs,
         map_trait_defs: map_trait_defs,
@@ -38,7 +38,7 @@ pub fn check<'ast>(
 }
 
 struct GlobalDef<'x, 'ast: 'x> {
-    ctxt: &'x mut VM<'ast>,
+    vm: &'x mut VM<'ast>,
     map_cls_defs: &'x mut NodeMap<ClassId>,
     map_struct_defs: &'x mut NodeMap<StructId>,
     map_trait_defs: &'x mut NodeMap<TraitId>,
@@ -49,7 +49,7 @@ struct GlobalDef<'x, 'ast: 'x> {
 
 impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
     fn visit_trait(&mut self, t: &'ast Trait) {
-        let id: TraitId = (self.ctxt.traits.len() as u32).into();
+        let id: TraitId = (self.vm.traits.len() as u32).into();
         let xtrait = TraitData {
             id: id,
             pos: t.pos,
@@ -57,19 +57,19 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             methods: Vec::new(),
         };
 
-        self.ctxt.traits.push(RwLock::new(xtrait));
+        self.vm.traits.push(RwLock::new(xtrait));
         let sym = SymTrait(id);
 
         self.map_trait_defs.insert(t.id, id);
 
-        if let Some(sym) = self.ctxt.sym.lock().insert(t.name, sym) {
-            report(self.ctxt, t.name, t.pos, sym);
+        if let Some(sym) = self.vm.sym.lock().insert(t.name, sym) {
+            report(self.vm, t.name, t.pos, sym);
         }
     }
 
     fn visit_global(&mut self, g: &'ast Global) {
         let id = {
-            let mut globals = self.ctxt.globals.lock();
+            let mut globals = self.vm.globals.lock();
             let id: GlobalId = (globals.len() as u32).into();
             let global = GlobalData {
                 id: id,
@@ -91,13 +91,13 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         let sym = SymGlobal(id);
         self.map_global_defs.insert(g.id, id);
 
-        if let Some(sym) = self.ctxt.sym.lock().insert(g.name, sym) {
-            report(self.ctxt, g.name, g.pos, sym);
+        if let Some(sym) = self.vm.sym.lock().insert(g.name, sym) {
+            report(self.vm, g.name, g.pos, sym);
         }
     }
 
     fn visit_impl(&mut self, i: &'ast Impl) {
-        let id: ImplId = (self.ctxt.impls.len() as u32).into();
+        let id: ImplId = (self.vm.impls.len() as u32).into();
         let ximpl = ImplData {
             id: id,
             pos: i.pos,
@@ -106,13 +106,13 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             methods: Vec::new(),
         };
 
-        self.ctxt.impls.push(RwLock::new(ximpl));
+        self.vm.impls.push(RwLock::new(ximpl));
         self.map_impl_defs.insert(i.id, id);
     }
 
     fn visit_const(&mut self, c: &'ast Const) {
         let id = {
-            let mut consts = self.ctxt.consts.lock();
+            let mut consts = self.vm.consts.lock();
             let id: ConstId = consts.len().into();
             let xconst = ConstData {
                 id: id,
@@ -132,21 +132,21 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
         let sym = SymConst(id);
 
-        if let Some(sym) = self.ctxt.sym.lock().insert(c.name, sym) {
-            report(self.ctxt, c.name, c.pos, sym);
+        if let Some(sym) = self.vm.sym.lock().insert(c.name, sym) {
+            report(self.vm, c.name, c.pos, sym);
         }
     }
 
     fn visit_class(&mut self, c: &'ast Class) {
         let id = {
-            let mut classes = self.ctxt.classes.lock();
+            let mut classes = self.vm.classes.lock();
 
             let id: ClassId = classes.len().into();
             let mut cls = class::Class {
                 id: id,
                 name: c.name,
                 pos: c.pos,
-                ty: self.ctxt.cls(id),
+                ty: self.vm.cls(id),
                 parent_class: None,
                 has_open: c.has_open,
                 is_abstract: c.is_abstract,
@@ -184,14 +184,14 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
         self.map_cls_defs.insert(c.id, id);
 
-        if let Some(sym) = self.ctxt.sym.lock().insert(c.name, sym) {
-            report(self.ctxt, c.name, c.pos, sym);
+        if let Some(sym) = self.vm.sym.lock().insert(c.name, sym) {
+            report(self.vm, c.name, c.pos, sym);
         }
     }
 
     fn visit_struct(&mut self, s: &'ast Struct) {
         let id = {
-            let mut structs = self.ctxt.structs.lock();
+            let mut structs = self.vm.structs.lock();
             let id: StructId = (structs.len() as u32).into();
             let struc = StructData {
                 id: id,
@@ -210,8 +210,8 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
         self.map_struct_defs.insert(s.id, id);
 
-        if let Some(sym) = self.ctxt.sym.lock().insert(s.name, sym) {
-            report(self.ctxt, s.name, s.pos, sym);
+        if let Some(sym) = self.vm.sym.lock().insert(s.name, sym) {
+            report(self.vm, s.name, s.pos, sym);
         }
     }
 
@@ -249,14 +249,14 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             kind: kind,
         };
 
-        if let Err(sym) = self.ctxt.add_fct_to_sym(fct) {
-            report(self.ctxt, f.name, f.pos, sym);
+        if let Err(sym) = self.vm.add_fct_to_sym(fct) {
+            report(self.vm, f.name, f.pos, sym);
         }
     }
 }
 
-fn report(ctxt: &VM, name: Name, pos: Position, sym: Sym) {
-    let name = ctxt.interner.str(name).to_string();
+fn report(vm: &VM, name: Name, pos: Position, sym: Sym) {
+    let name = vm.interner.str(name).to_string();
 
     let msg = match sym {
         SymClass(_) => Msg::ShadowClass(name),
@@ -268,7 +268,7 @@ fn report(ctxt: &VM, name: Name, pos: Position, sym: Sym) {
         _ => unimplemented!(),
     };
 
-    ctxt.diag.lock().report_without_path(pos, msg);
+    vm.diag.lock().report_without_path(pos, msg);
 }
 
 #[cfg(test)]

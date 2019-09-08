@@ -15,8 +15,8 @@ use crate::sym::Sym;
 use crate::sym::Sym::*;
 use crate::ty::BuiltinType;
 
-pub fn check<'ast>(ctxt: &VM<'ast>) {
-    for fct in ctxt.fcts.iter() {
+pub fn check<'ast>(vm: &VM<'ast>) {
+    for fct in vm.fcts.iter() {
         let fct = fct.read();
 
         if !fct.is_src() {
@@ -28,7 +28,7 @@ pub fn check<'ast>(ctxt: &VM<'ast>) {
         let ast = fct.ast;
 
         let mut nameck = NameCheck {
-            ctxt: ctxt,
+            vm: vm,
             fct: &fct,
             src: &mut src,
             ast: ast,
@@ -39,7 +39,7 @@ pub fn check<'ast>(ctxt: &VM<'ast>) {
 }
 
 struct NameCheck<'a, 'ast: 'a> {
-    ctxt: &'a VM<'ast>,
+    vm: &'a VM<'ast>,
     fct: &'a Fct<'ast>,
     src: &'a mut FctSrc,
     ast: &'ast Function,
@@ -47,7 +47,7 @@ struct NameCheck<'a, 'ast: 'a> {
 
 impl<'a, 'ast> NameCheck<'a, 'ast> {
     fn check(&mut self) {
-        self.ctxt.sym.lock().push_level();
+        self.vm.sym.lock().push_level();
 
         if self.fct.has_self() {
             // add hidden this parameter for ctors and methods
@@ -60,21 +60,21 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
         self.visit_stmt(self.ast.block());
 
-        self.ctxt.sym.lock().pop_level();
+        self.vm.sym.lock().pop_level();
     }
 
     pub fn add_hidden_parameter_self(&mut self) {
         let ty = match self.fct.parent {
             FctParent::Class(cls_id) => {
-                let cls = self.ctxt.classes.idx(cls_id);
+                let cls = self.vm.classes.idx(cls_id);
                 let cls = cls.read();
 
                 cls.ty
             }
 
             FctParent::Impl(impl_id) => {
-                let ximpl = self.ctxt.impls[impl_id].read();
-                let cls = self.ctxt.classes.idx(ximpl.cls_id());
+                let ximpl = self.vm.impls[impl_id].read();
+                let cls = self.vm.classes.idx(ximpl.cls_id());
                 let cls = cls.read();
 
                 cls.ty
@@ -84,7 +84,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         };
 
         let ast_id = self.fct.ast.id;
-        let name = self.ctxt.interner.intern("self");
+        let name = self.vm.interner.intern("self");
 
         let var = Var {
             id: VarId(0),
@@ -106,7 +106,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
         var.id = var_id;
 
-        let result = match self.ctxt.sym.lock().get(name) {
+        let result = match self.vm.sym.lock().get(name) {
             Some(sym) => {
                 if replacable(&sym) {
                     Ok(var_id)
@@ -118,7 +118,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         };
 
         if result.is_ok() {
-            self.ctxt.sym.lock().insert(name, SymVar(var_id));
+            self.vm.sym.lock().insert(name, SymVar(var_id));
         }
 
         self.src.vars.push(var);
@@ -147,8 +147,8 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             }
 
             Err(_) => {
-                let name = str(self.ctxt, var.name);
-                report(self.ctxt, var.pos, Msg::ShadowClass(name));
+                let name = str(self.vm, var.name);
+                report(self.vm, var.pos, Msg::ShadowClass(name));
             }
         }
     }
@@ -156,7 +156,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     fn check_stmt_for(&mut self, for_loop: &'ast StmtForType) {
         self.visit_expr(&for_loop.expr);
 
-        self.ctxt.sym.lock().push_level();
+        self.vm.sym.lock().push_level();
 
         let var_ctxt = Var {
             id: VarId(0),
@@ -172,20 +172,20 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             }
 
             Err(_) => {
-                let name = str(self.ctxt, for_loop.name);
-                report(self.ctxt, for_loop.pos, Msg::ShadowClass(name));
+                let name = str(self.vm, for_loop.name);
+                report(self.vm, for_loop.pos, Msg::ShadowClass(name));
             }
         }
 
         self.visit_stmt(&for_loop.block);
-        self.ctxt.sym.lock().pop_level();
+        self.vm.sym.lock().pop_level();
     }
 
     fn check_stmt_do(&mut self, r#try: &'ast StmtDoType) {
         self.visit_stmt(&r#try.do_block);
 
         for catch in &r#try.catch_blocks {
-            self.ctxt.sym.lock().push_level();
+            self.vm.sym.lock().push_level();
 
             let var_ctxt = Var {
                 id: VarId(0),
@@ -203,13 +203,13 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                 }
 
                 Err(_) => {
-                    let name = str(self.ctxt, catch.name);
-                    report(self.ctxt, catch.pos, Msg::ShadowClass(name));
+                    let name = str(self.vm, catch.name);
+                    report(self.vm, catch.pos, Msg::ShadowClass(name));
                 }
             }
 
             self.visit_stmt(&catch.block);
-            self.ctxt.sym.lock().pop_level();
+            self.vm.sym.lock().pop_level();
         }
 
         if let Some(ref finally_block) = r#try.finally_block {
@@ -218,15 +218,15 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     }
 
     fn check_stmt_block(&mut self, block: &'ast StmtBlockType) {
-        self.ctxt.sym.lock().push_level();
+        self.vm.sym.lock().push_level();
         for stmt in &block.stmts {
             self.visit_stmt(stmt);
         }
-        self.ctxt.sym.lock().pop_level();
+        self.vm.sym.lock().pop_level();
     }
 
     fn check_expr_ident(&mut self, ident: &'ast ExprIdentType) {
-        let sym = self.ctxt.sym.lock().get(ident.name);
+        let sym = self.vm.sym.lock().get(ident.name);
 
         match sym {
             Some(SymVar(id)) => {
@@ -259,8 +259,8 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             }
         }
 
-        let name = self.ctxt.interner.str(ident.name).to_string();
-        report(self.ctxt, ident.pos, Msg::UnknownIdentifier(name));
+        let name = self.vm.interner.str(ident.name).to_string();
+        report(self.vm, ident.pos, Msg::UnknownIdentifier(name));
     }
 
     fn check_expr_call(&mut self, call: &'ast ExprCallType) {
@@ -287,7 +287,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
         let name = call.path.name();
 
-        if let Some(sym) = self.ctxt.sym.lock().get(name) {
+        if let Some(sym) = self.vm.sym.lock().get(name) {
             match sym {
                 SymFct(fct_id) => {
                     let call_type = CallType::Fct(fct_id, TypeParams::empty(), TypeParams::empty());
@@ -306,8 +306,8 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         }
 
         if !found {
-            let name = str(self.ctxt, name);
-            report(self.ctxt, call.pos, Msg::UnknownFunction(name));
+            let name = str(self.vm, name);
+            report(self.vm, call.pos, Msg::UnknownFunction(name));
         }
 
         // also parse function arguments
@@ -317,11 +317,11 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     }
 
     fn check_expr_struct(&mut self, struc: &'ast ExprLitStructType) {
-        if let Some(sid) = self.ctxt.sym.lock().get_struct(struc.path.name()) {
+        if let Some(sid) = self.vm.sym.lock().get_struct(struc.path.name()) {
             self.src.map_idents.insert(struc.id, IdentType::Struct(sid));
         } else {
-            let name = self.ctxt.interner.str(struc.path.name()).to_string();
-            report(self.ctxt, struc.pos, Msg::UnknownStruct(name));
+            let name = self.vm.interner.str(struc.path.name()).to_string();
+            report(self.vm, struc.pos, Msg::UnknownStruct(name));
         }
     }
 }
@@ -344,14 +344,14 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
             }
 
             Err(sym) => {
-                let name = str(self.ctxt, p.name);
+                let name = str(self.vm, p.name);
                 let msg = if sym.is_class() {
                     Msg::ShadowClass(name)
                 } else {
                     Msg::ShadowParam(name)
                 };
 
-                report(self.ctxt, p.pos, msg);
+                report(self.vm, p.pos, msg);
             }
         }
     }
@@ -380,12 +380,12 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
     }
 }
 
-fn report(ctxt: &VM, pos: Position, msg: Msg) {
-    ctxt.diag.lock().report_without_path(pos, msg);
+fn report(vm: &VM, pos: Position, msg: Msg) {
+    vm.diag.lock().report_without_path(pos, msg);
 }
 
-fn str(ctxt: &VM, name: Name) -> String {
-    ctxt.interner.str(name).to_string()
+fn str(vm: &VM, name: Name) -> String {
+    vm.interner.str(name).to_string()
 }
 
 #[cfg(test)]

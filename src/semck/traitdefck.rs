@@ -7,9 +7,9 @@ use dora_parser::ast::{self, Ast};
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 
-pub fn check<'ast>(ctxt: &mut VM<'ast>, ast: &'ast Ast, map_trait_defs: &NodeMap<TraitId>) {
+pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_trait_defs: &NodeMap<TraitId>) {
     let mut clsck = TraitCheck {
-        ctxt: ctxt,
+        vm: vm,
         ast: ast,
         trait_id: None,
         map_trait_defs: map_trait_defs,
@@ -19,7 +19,7 @@ pub fn check<'ast>(ctxt: &mut VM<'ast>, ast: &'ast Ast, map_trait_defs: &NodeMap
 }
 
 struct TraitCheck<'x, 'ast: 'x> {
-    ctxt: &'x mut VM<'ast>,
+    vm: &'x mut VM<'ast>,
     ast: &'ast ast::Ast,
     map_trait_defs: &'x NodeMap<TraitId>,
 
@@ -47,7 +47,7 @@ impl<'x, 'ast> Visitor<'ast> for TraitCheck<'x, 'ast> {
         }
 
         if f.block.is_some() {
-            report(self.ctxt, f.pos, Msg::TraitMethodWithBody);
+            report(self.vm, f.pos, Msg::TraitMethodWithBody);
         }
 
         let fct = Fct {
@@ -77,15 +77,15 @@ impl<'x, 'ast> Visitor<'ast> for TraitCheck<'x, 'ast> {
             kind: FctKind::Definition,
         };
 
-        let fctid = self.ctxt.add_fct(fct);
+        let fctid = self.vm.add_fct(fct);
 
-        let mut xtrait = self.ctxt.traits[self.trait_id.unwrap()].write();
+        let mut xtrait = self.vm.traits[self.trait_id.unwrap()].write();
         xtrait.methods.push(fctid);
     }
 }
 
-fn report(ctxt: &VM, pos: Position, msg: Msg) {
-    ctxt.diag.lock().report_without_path(pos, msg);
+fn report(vm: &VM, pos: Position, msg: Msg) {
+    vm.diag.lock().report_without_path(pos, msg);
 }
 
 #[cfg(test)]

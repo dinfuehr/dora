@@ -7,8 +7,8 @@ use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 use dora_parser::lexer::position::Position;
 
-pub fn check<'ast>(ctxt: &VM<'ast>) {
-    for fct in ctxt.fcts.iter() {
+pub fn check<'ast>(vm: &VM<'ast>) {
+    for fct in vm.fcts.iter() {
         let fct = fct.read();
 
         if !fct.is_src() {
@@ -20,7 +20,7 @@ pub fn check<'ast>(ctxt: &VM<'ast>) {
         let ast = fct.ast;
 
         let mut returnck = ReturnCheck {
-            ctxt: ctxt,
+            vm: vm,
             fct: &fct,
             src: &mut src,
             ast: ast,
@@ -31,7 +31,7 @@ pub fn check<'ast>(ctxt: &VM<'ast>) {
 }
 
 struct ReturnCheck<'a, 'ast: 'a> {
-    ctxt: &'a VM<'ast>,
+    vm: &'a VM<'ast>,
     fct: &'a Fct<'ast>,
     src: &'a mut FctSrc,
     ast: &'ast Function,
@@ -52,7 +52,7 @@ impl<'a, 'ast> Visitor<'ast> for ReturnCheck<'a, 'ast> {
 
             // only report error for functions that do not just return ()
             if return_type != BuiltinType::Unit {
-                self.ctxt
+                self.vm
                     .diag
                     .lock()
                     .report_without_path(pos, Msg::NoReturnValue);
@@ -134,11 +134,11 @@ mod tests {
     use dora_parser::error::msg::Msg;
 
     fn test_always_returns(code: &'static str, value: bool) {
-        parse(code, |ctxt| {
-            let name = ctxt.interner.intern("f");
-            let fct_id = ctxt.sym.lock().get_fct(name).unwrap();
+        parse(code, |vm| {
+            let name = vm.interner.intern("f");
+            let fct_id = vm.sym.lock().get_fct(name).unwrap();
 
-            let fct = ctxt.fcts.idx(fct_id);
+            let fct = vm.fcts.idx(fct_id);
             let fct = fct.read();
             let src = fct.src();
             let src = src.read();

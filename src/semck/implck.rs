@@ -4,11 +4,11 @@ use crate::ctxt::VM;
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 
-pub fn check<'ast>(ctxt: &mut VM<'ast>) {
-    for ximpl in &ctxt.impls {
+pub fn check<'ast>(vm: &mut VM<'ast>) {
+    for ximpl in &vm.impls {
         let ximpl = ximpl.read();
-        let xtrait = ctxt.traits[ximpl.trait_id()].read();
-        let cls = ctxt.classes.idx(ximpl.cls_id());
+        let xtrait = vm.traits[ximpl.trait_id()].read();
+        let cls = vm.classes.idx(ximpl.cls_id());
         let cls = cls.read();
         let cls = cls.ty;
 
@@ -16,11 +16,11 @@ pub fn check<'ast>(ctxt: &mut VM<'ast>) {
         let mut defined = HashSet::new();
 
         for &method_id in &ximpl.methods {
-            let method = ctxt.fcts.idx(method_id);
+            let method = vm.fcts.idx(method_id);
             let mut method = method.write();
 
             if let Some(fid) = xtrait.find_method(
-                ctxt,
+                vm,
                 method.is_static,
                 method.name,
                 Some(cls),
@@ -32,10 +32,10 @@ pub fn check<'ast>(ctxt: &mut VM<'ast>) {
                 let args = method
                     .params_without_self()
                     .iter()
-                    .map(|a| a.name(ctxt))
+                    .map(|a| a.name(vm))
                     .collect::<Vec<String>>();
-                let mtd_name = ctxt.interner.str(method.name).to_string();
-                let trait_name = ctxt.interner.str(xtrait.name).to_string();
+                let mtd_name = vm.interner.str(method.name).to_string();
+                let trait_name = vm.interner.str(xtrait.name).to_string();
 
                 let msg = if method.is_static {
                     Msg::StaticMethodNotInTrait(trait_name, mtd_name, args)
@@ -43,21 +43,21 @@ pub fn check<'ast>(ctxt: &mut VM<'ast>) {
                     Msg::MethodNotInTrait(trait_name, mtd_name, args)
                 };
 
-                report(ctxt, method.pos, msg);
+                report(vm, method.pos, msg);
             }
         }
 
         for &method_id in all.difference(&defined) {
-            let method = ctxt.fcts.idx(method_id);
+            let method = vm.fcts.idx(method_id);
             let method = method.read();
 
             let args = method
                 .params_without_self()
                 .iter()
-                .map(|a| a.name(ctxt))
+                .map(|a| a.name(vm))
                 .collect::<Vec<String>>();
-            let mtd_name = ctxt.interner.str(method.name).to_string();
-            let trait_name = ctxt.interner.str(xtrait.name).to_string();
+            let mtd_name = vm.interner.str(method.name).to_string();
+            let trait_name = vm.interner.str(xtrait.name).to_string();
 
             let msg = if method.is_static {
                 Msg::StaticMethodMissingFromTrait(trait_name, mtd_name, args)
@@ -65,13 +65,13 @@ pub fn check<'ast>(ctxt: &mut VM<'ast>) {
                 Msg::MethodMissingFromTrait(trait_name, mtd_name, args)
             };
 
-            report(ctxt, ximpl.pos, msg);
+            report(vm, ximpl.pos, msg);
         }
     }
 }
 
-fn report(ctxt: &VM, pos: Position, msg: Msg) {
-    ctxt.diag.lock().report_without_path(pos, msg);
+fn report(vm: &VM, pos: Position, msg: Msg) {
+    vm.diag.lock().report_without_path(pos, msg);
 }
 
 #[cfg(test)]

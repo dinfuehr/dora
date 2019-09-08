@@ -60,37 +60,33 @@ pub enum SpecializeFor {
     Class,
 }
 
-pub fn specialize_struct_id(ctxt: &VM, struct_id: StructId) -> StructDefId {
-    let struc = ctxt.structs.idx(struct_id);
+pub fn specialize_struct_id(vm: &VM, struct_id: StructId) -> StructDefId {
+    let struc = vm.structs.idx(struct_id);
     let struc = struc.lock();
-    specialize_struct(ctxt, &*struc, TypeParams::empty())
+    specialize_struct(vm, &*struc, TypeParams::empty())
 }
 
 pub fn specialize_struct_id_params(
-    ctxt: &VM,
+    vm: &VM,
     struct_id: StructId,
     type_params: TypeParams,
 ) -> StructDefId {
-    let struc = ctxt.structs.idx(struct_id);
+    let struc = vm.structs.idx(struct_id);
     let struc = struc.lock();
-    specialize_struct(ctxt, &*struc, type_params)
+    specialize_struct(vm, &*struc, type_params)
 }
 
-pub fn specialize_struct(ctxt: &VM, struc: &StructData, type_params: TypeParams) -> StructDefId {
+pub fn specialize_struct(vm: &VM, struc: &StructData, type_params: TypeParams) -> StructDefId {
     if let Some(&id) = struc.specializations.read().get(&type_params) {
         return id;
     }
 
-    create_specialized_struct(ctxt, struc, type_params)
+    create_specialized_struct(vm, struc, type_params)
 }
 
-fn create_specialized_struct(
-    ctxt: &VM,
-    struc: &StructData,
-    type_params: TypeParams,
-) -> StructDefId {
+fn create_specialized_struct(vm: &VM, struc: &StructData, type_params: TypeParams) -> StructDefId {
     let id = {
-        let mut struct_defs = ctxt.struct_defs.lock();
+        let mut struct_defs = vm.struct_defs.lock();
         let id: StructDefId = struct_defs.len().into();
 
         let old = struc
@@ -115,11 +111,11 @@ fn create_specialized_struct(
     let mut ref_fields = Vec::new();
 
     for f in &struc.fields {
-        let ty = specialize_type(ctxt, f.ty, &type_params, &TypeParams::empty());
-        debug_assert!(!ty.contains_type_param(ctxt));
+        let ty = specialize_type(vm, f.ty, &type_params, &TypeParams::empty());
+        debug_assert!(!ty.contains_type_param(vm));
 
-        let field_size = ty.size(ctxt);
-        let field_align = ty.align(ctxt);
+        let field_size = ty.size(vm);
+        let field_align = ty.align(vm);
 
         let offset = mem::align_i32(size, field_align);
         fields.push(StructFieldDef {
@@ -135,7 +131,7 @@ fn create_specialized_struct(
         }
     }
 
-    let struct_def = ctxt.struct_defs.idx(id);
+    let struct_def = vm.struct_defs.idx(id);
     let mut struct_def = struct_def.lock();
     struct_def.size = size;
     struct_def.align = align;
@@ -145,44 +141,44 @@ fn create_specialized_struct(
     id
 }
 
-pub fn specialize_class_id(ctxt: &VM, cls_id: ClassId) -> ClassDefId {
-    let cls = ctxt.classes.idx(cls_id);
+pub fn specialize_class_id(vm: &VM, cls_id: ClassId) -> ClassDefId {
+    let cls = vm.classes.idx(cls_id);
     let cls = cls.read();
-    specialize_class(ctxt, &*cls, &TypeParams::empty())
+    specialize_class(vm, &*cls, &TypeParams::empty())
 }
 
 pub fn specialize_class_id_params(
-    ctxt: &VM,
+    vm: &VM,
     cls_id: ClassId,
     type_params: &TypeParams,
 ) -> ClassDefId {
-    let cls = ctxt.classes.idx(cls_id);
+    let cls = vm.classes.idx(cls_id);
     let cls = cls.read();
-    specialize_class(ctxt, &*cls, &type_params)
+    specialize_class(vm, &*cls, &type_params)
 }
 
-pub fn specialize_class_ty(ctxt: &VM, ty: BuiltinType) -> ClassDefId {
+pub fn specialize_class_ty(vm: &VM, ty: BuiltinType) -> ClassDefId {
     match ty {
         BuiltinType::Class(cls_id, list_id) => {
-            let params = ctxt.lists.lock().get(list_id);
-            specialize_class_id_params(ctxt, cls_id, &params)
+            let params = vm.lists.lock().get(list_id);
+            specialize_class_id_params(vm, cls_id, &params)
         }
 
         _ => unreachable!(),
     }
 }
 
-pub fn specialize_class(ctxt: &VM, cls: &class::Class, type_params: &TypeParams) -> ClassDefId {
+pub fn specialize_class(vm: &VM, cls: &class::Class, type_params: &TypeParams) -> ClassDefId {
     if let Some(&id) = cls.specializations.read().get(&type_params) {
         return id;
     }
 
-    create_specialized_class(ctxt, cls, type_params)
+    create_specialized_class(vm, cls, type_params)
 }
 
-fn create_specialized_class(ctxt: &VM, cls: &class::Class, type_params: &TypeParams) -> ClassDefId {
+fn create_specialized_class(vm: &VM, cls: &class::Class, type_params: &TypeParams) -> ClassDefId {
     let id = {
-        let mut class_defs = ctxt.class_defs.lock();
+        let mut class_defs = vm.class_defs.lock();
         let id: ClassDefId = class_defs.len().into();
 
         let old = cls.specializations.write().insert(type_params.clone(), id);
@@ -215,7 +211,7 @@ fn create_specialized_class(ctxt: &VM, cls: &class::Class, type_params: &TypePar
             if type_params[0].reference_type() {
                 ClassSize::ObjArray
             } else {
-                ClassSize::Array(type_params[0].size(ctxt))
+                ClassSize::Array(type_params[0].size(vm))
             }
         } else {
             ClassSize::Str
@@ -224,14 +220,14 @@ fn create_specialized_class(ctxt: &VM, cls: &class::Class, type_params: &TypePar
         let super_id = cls
             .parent_class
             .expect("Array & String should have super class");
-        let id = specialize_class_id(ctxt, super_id);
+        let id = specialize_class_id(vm, super_id);
         parent_id = Some(id);
     } else {
         let mut csize;
 
         if let Some(super_id) = cls.parent_class {
-            let id = specialize_class_id(ctxt, super_id);
-            let cls_def = ctxt.class_defs.idx(id);
+            let id = specialize_class_id(vm, super_id);
+            let cls_def = vm.class_defs.idx(id);
             let cls_def = cls_def.read();
 
             fields = Vec::new();
@@ -249,11 +245,11 @@ fn create_specialized_class(ctxt: &VM, cls: &class::Class, type_params: &TypePar
         };
 
         for f in &cls.fields {
-            let ty = specialize_type(ctxt, f.ty, &type_params, &TypeParams::empty());
-            debug_assert!(!ty.contains_type_param(ctxt));
+            let ty = specialize_type(vm, f.ty, &type_params, &TypeParams::empty());
+            debug_assert!(!ty.contains_type_param(vm));
 
-            let field_size = ty.size(ctxt);
-            let field_align = ty.align(ctxt);
+            let field_size = ty.size(vm);
+            let field_align = ty.align(vm);
 
             let offset = mem::align_i32(csize, field_align);
             fields.push(FieldDef {
@@ -271,10 +267,10 @@ fn create_specialized_class(ctxt: &VM, cls: &class::Class, type_params: &TypePar
         size = ClassSize::Fixed(mem::align_i32(csize, mem::ptr_width()));
     }
 
-    let stub = ctxt.compiler_thunk().to_usize();
+    let stub = vm.compiler_thunk().to_usize();
     let vtable_entries = vec![stub; cls.virtual_fcts.len()];
 
-    let cls_def = ctxt.class_defs.idx(id);
+    let cls_def = vm.class_defs.idx(id);
     let mut cls_def = cls_def.write();
     cls_def.size = size;
     cls_def.fields = fields;
@@ -285,12 +281,12 @@ fn create_specialized_class(ctxt: &VM, cls: &class::Class, type_params: &TypePar
     let vtable = VTableBox::new(clsptr, &vtable_entries);
     cls_def.vtable = Some(vtable);
 
-    ensure_display(ctxt, &mut cls_def);
+    ensure_display(vm, &mut cls_def);
 
     id
 }
 
-fn ensure_display<'ast>(ctxt: &VM<'ast>, cls_def: &mut ClassDef) -> usize {
+fn ensure_display<'ast>(vm: &VM<'ast>, cls_def: &mut ClassDef) -> usize {
     let vtable = cls_def.vtable.as_mut().unwrap();
 
     // if subtype_display[0] is set, vtable was already initialized
@@ -299,9 +295,9 @@ fn ensure_display<'ast>(ctxt: &VM<'ast>, cls_def: &mut ClassDef) -> usize {
     }
 
     if let Some(parent_id) = cls_def.parent_id {
-        let parent = ctxt.class_defs.idx(parent_id);
+        let parent = vm.class_defs.idx(parent_id);
         let mut parent = parent.write();
-        let depth = 1 + ensure_display(ctxt, &mut *parent);
+        let depth = 1 + ensure_display(vm, &mut *parent);
 
         let parent_vtable = parent.vtable.as_ref().unwrap();
         let depth_fixed;

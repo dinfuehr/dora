@@ -4,19 +4,19 @@ use crate::class::{Class, ClassId};
 use crate::ctxt::{Fct, VM};
 use dora_parser::error::msg::Msg;
 
-pub fn check<'ast>(ctxt: &mut VM<'ast>) {
-    cycle_detection(ctxt);
+pub fn check<'ast>(vm: &mut VM<'ast>) {
+    cycle_detection(vm);
 
-    if ctxt.diag.lock().has_errors() {
+    if vm.diag.lock().has_errors() {
         return;
     }
 
-    // determine_struct_sizes(ctxt);
-    determine_vtables(ctxt);
+    // determine_struct_sizes(vm);
+    determine_vtables(vm);
 }
 
-fn cycle_detection<'ast>(ctxt: &mut VM<'ast>) {
-    for cls in ctxt.classes.iter() {
+fn cycle_detection<'ast>(vm: &mut VM<'ast>) {
+    for cls in vm.classes.iter() {
         let cls = cls.read();
 
         let mut map: HashSet<ClassId> = HashSet::new();
@@ -28,36 +28,36 @@ fn cycle_detection<'ast>(ctxt: &mut VM<'ast>) {
             let p = parent.unwrap();
 
             if !map.insert(p) {
-                ctxt.diag
+                vm.diag
                     .lock()
                     .report_without_path(cls.pos, Msg::CycleInHierarchy);
                 break;
             }
 
-            let cls = ctxt.classes.idx(p);
+            let cls = vm.classes.idx(p);
             let cls = cls.read();
             parent = cls.parent_class;
         }
     }
 }
 
-fn determine_vtables<'ast>(ctxt: &VM<'ast>) {
+fn determine_vtables<'ast>(vm: &VM<'ast>) {
     let mut lens = HashSet::new();
 
-    for cls in ctxt.classes.iter() {
+    for cls in vm.classes.iter() {
         let mut cls = cls.write();
         if !lens.contains(&cls.id) {
-            determine_vtable(ctxt, &mut lens, &mut *cls);
+            determine_vtable(vm, &mut lens, &mut *cls);
         }
     }
 }
 
-fn determine_vtable<'ast>(ctxt: &VM<'ast>, lens: &mut HashSet<ClassId>, cls: &mut Class) {
+fn determine_vtable<'ast>(vm: &VM<'ast>, lens: &mut HashSet<ClassId>, cls: &mut Class) {
     if let Some(parent_cls_id) = cls.parent_class {
-        let parent = ctxt.classes.idx(parent_cls_id);
+        let parent = vm.classes.idx(parent_cls_id);
         if !lens.contains(&parent_cls_id) {
             let mut parent = parent.write();
-            determine_vtable(ctxt, lens, &mut *parent)
+            determine_vtable(vm, lens, &mut *parent)
         }
 
         let parent = parent.read();
@@ -66,14 +66,14 @@ fn determine_vtable<'ast>(ctxt: &VM<'ast>, lens: &mut HashSet<ClassId>, cls: &mu
     }
 
     for &mid in &cls.methods {
-        let fct = ctxt.fcts.idx(mid);
+        let fct = vm.fcts.idx(mid);
         let mut fct = fct.write();
 
         assert!(fct.vtable_index.is_none());
 
         if fct.is_virtual() {
             let vtable_index = if let Some(overrides) = fct.overrides {
-                let overrides = ctxt.fcts.idx(overrides);
+                let overrides = vm.fcts.idx(overrides);
                 let overrides = overrides.read();
                 let vtable_index = overrides.vtable_index.unwrap();
                 cls.virtual_fcts[vtable_index as usize] = mid;
@@ -93,18 +93,18 @@ fn determine_vtable<'ast>(ctxt: &VM<'ast>, lens: &mut HashSet<ClassId>, cls: &mu
     lens.insert(cls.id);
 }
 
-// fn determine_struct_sizes<'ast>(ctxt: &SemContext<'ast>) {
+// fn determine_struct_sizes<'ast>(vm: &SemContext<'ast>) {
 //     let mut path = Vec::new();
 //     let mut sizes = HashMap::new();
 
-//     for struc in ctxt.structs.iter() {
+//     for struc in vm.structs.iter() {
 //         let mut struc = struc.borrow_mut();
-//         determine_struct_size(ctxt, &mut path, &mut sizes, &mut *struc);
+//         determine_struct_size(vm, &mut path, &mut sizes, &mut *struc);
 //     }
 // }
 
 // fn determine_struct_size<'ast>(
-//     ctxt: &SemContext<'ast>,
+//     vm: &SemContext<'ast>,
 //     path: &mut Vec<StructId>,
 //     sizes: &mut HashMap<StructId, (i32, i32)>,
 //     struc: &mut StructData,
@@ -120,19 +120,19 @@ fn determine_vtable<'ast>(ctxt: &VM<'ast>, lens: &mut HashSet<ClassId>, cls: &mu
 //                 (size, align)
 //             } else {
 //                 if path.iter().find(|&&x| x == id).is_some() {
-//                     ctxt.diag
+//                     vm.diag
 //                         .borrow_mut()
 //                         .report(field.pos, Msg::RecursiveStructure);
 //                     return (0, 0);
 //                 }
 
-//                 let mut struc = ctxt.structs[id].borrow_mut();
-//                 determine_struct_size(ctxt, path, sizes, &mut *struc)
+//                 let mut struc = vm.structs[id].borrow_mut();
+//                 determine_struct_size(vm, path, sizes, &mut *struc)
 //             }
 //         } else {
 //             let ty = field.ty;
 
-//             (ty.size(ctxt), ty.align(ctxt))
+//             (ty.size(vm), ty.align(vm))
 //         };
 
 //         field.offset = mem::align_i32(size, field_align);
@@ -152,24 +152,24 @@ fn determine_vtable<'ast>(ctxt: &VM<'ast>, lens: &mut HashSet<ClassId>, cls: &mu
 //     (size, align)
 // }
 
-pub fn check_override<'ast>(ctxt: &VM<'ast>) {
-    for cls in ctxt.classes.iter() {
+pub fn check_override<'ast>(vm: &VM<'ast>) {
+    for cls in vm.classes.iter() {
         let cls = cls.read();
 
         for &fct_id in &cls.methods {
-            let fct = ctxt.fcts.idx(fct_id);
+            let fct = vm.fcts.idx(fct_id);
             let mut fct = fct.write();
-            check_fct_modifier(ctxt, &*cls, &mut *fct);
+            check_fct_modifier(vm, &*cls, &mut *fct);
         }
     }
 }
 
-fn check_fct_modifier<'ast>(ctxt: &VM<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
+fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
     // catch: class A { open fun f() } (A is not derivable)
     // catch: open final fun f()
     if fct.has_open && (!cls.has_open || fct.has_final) {
-        let name = ctxt.interner.str(fct.name).to_string();
-        ctxt.diag
+        let name = vm.interner.str(fct.name).to_string();
+        vm.diag
             .lock()
             .report_without_path(fct.pos(), Msg::SuperfluousOpen(name));
         return;
@@ -177,8 +177,8 @@ fn check_fct_modifier<'ast>(ctxt: &VM<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
 
     if cls.parent_class.is_none() {
         if fct.has_override {
-            let name = ctxt.interner.str(fct.name).to_string();
-            ctxt.diag
+            let name = vm.interner.str(fct.name).to_string();
+            vm.diag
                 .lock()
                 .report_without_path(fct.pos(), Msg::SuperfluousOverride(name));
             return;
@@ -188,41 +188,41 @@ fn check_fct_modifier<'ast>(ctxt: &VM<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
     }
 
     let parent = cls.parent_class.unwrap();
-    let parent = ctxt.classes.idx(parent);
+    let parent = vm.classes.idx(parent);
     let parent = parent.read();
 
-    let super_method = parent.find_method(ctxt, fct.name, false);
+    let super_method = parent.find_method(vm, fct.name, false);
 
     if let Some(super_method) = super_method {
-        let super_method = ctxt.fcts.idx(super_method);
+        let super_method = vm.fcts.idx(super_method);
         let super_method = super_method.read();
 
         if !fct.has_override {
-            let name = ctxt.interner.str(fct.name).to_string();
-            ctxt.diag
+            let name = vm.interner.str(fct.name).to_string();
+            vm.diag
                 .lock()
                 .report_without_path(fct.pos(), Msg::MissingOverride(name));
         }
 
         if !(super_method.has_open || super_method.has_override) || super_method.has_final {
-            let name = ctxt.interner.str(fct.name).to_string();
-            ctxt.diag
+            let name = vm.interner.str(fct.name).to_string();
+            vm.diag
                 .lock()
                 .report_without_path(fct.pos(), Msg::MethodNotOverridable(name));
         }
 
         if super_method.throws != fct.throws {
-            let name = ctxt.interner.str(fct.name).to_string();
-            ctxt.diag
+            let name = vm.interner.str(fct.name).to_string();
+            vm.diag
                 .lock()
                 .report_without_path(fct.pos(), Msg::ThrowsDifference(name));
         }
 
         if super_method.return_type != fct.return_type {
             let pos = fct.pos();
-            let fct = fct.return_type.name(ctxt);
-            let sup = super_method.return_type.name(ctxt);
-            ctxt.diag
+            let fct = fct.return_type.name(vm);
+            let sup = super_method.return_type.name(vm);
+            vm.diag
                 .lock()
                 .report_without_path(pos, Msg::ReturnTypeMismatch(fct, sup));
         }
@@ -230,8 +230,8 @@ fn check_fct_modifier<'ast>(ctxt: &VM<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
         fct.overrides = Some(super_method.id);
     } else {
         if fct.has_override {
-            let name = ctxt.interner.str(fct.name).to_string();
-            ctxt.diag
+            let name = vm.interner.str(fct.name).to_string();
+            vm.diag
                 .lock()
                 .report_without_path(fct.pos(), Msg::SuperfluousOverride(name));
         }
@@ -304,21 +304,21 @@ mod tests {
     //     ok_with_test("open class A { var a: int; }
     //         open class B: A { var b1: int; var b2: int; }
     //         class C: B { var c: String; }",
-    //                  |ctxt| {
-    //         check_class(ctxt, "A", mem::ptr_width(), Some("Object"));
-    //         check_field(ctxt, "A", "a", Header::size());
-    //         check_class(ctxt, "B", 2 * mem::ptr_width(), Some("A"));
-    //         check_field(ctxt, "B", "b1", Header::size() + 4);
-    //         check_field(ctxt, "B", "b2", Header::size() + 2 * 4);
+    //                  |vm| {
+    //         check_class(vm, "A", mem::ptr_width(), Some("Object"));
+    //         check_field(vm, "A", "a", Header::size());
+    //         check_class(vm, "B", 2 * mem::ptr_width(), Some("A"));
+    //         check_field(vm, "B", "b1", Header::size() + 4);
+    //         check_field(vm, "B", "b2", Header::size() + 2 * 4);
 
     //         // if pointer size is 32-bit, we need 4 words, on
     //         // 64-bit systems we need 3 words
     //         let words = if mem::ptr_width() == 4 { 4 } else { 3 };
-    //         check_class(ctxt, "C", words * mem::ptr_width(), Some("B"));
+    //         check_class(vm, "C", words * mem::ptr_width(), Some("B"));
 
     //         // if pointer size is 32-bit, we do not need padding
     //         let offset = if mem::ptr_width() == 4 { 3 * 4 } else { 4 * 4 };
-    //         check_field(ctxt, "C", "c", Header::size() + offset);
+    //         check_field(vm, "C", "c", Header::size() + offset);
     //     });
     // }
 
@@ -438,16 +438,16 @@ mod tests {
 
     #[test]
     fn test_vtable_index_and_len() {
-        ok_with_test("class A {}", |ctxt| {
-            let cls_id = ctxt.cls_by_name("A");
-            let cls = ctxt.classes.idx(cls_id);
+        ok_with_test("class A {}", |vm| {
+            let cls_id = vm.cls_by_name("A");
+            let cls = vm.classes.idx(cls_id);
             let cls = cls.read();
             assert_eq!(cls.virtual_fcts.len(), 0);
         });
 
-        ok_with_test("open class A { open fun f() {} }", |ctxt| {
-            let cls_id = ctxt.cls_by_name("A");
-            let cls = ctxt.classes.idx(cls_id);
+        ok_with_test("open class A { open fun f() {} }", |vm| {
+            let cls_id = vm.cls_by_name("A");
+            let cls = vm.classes.idx(cls_id);
             let cls = cls.read();
             assert_eq!(cls.virtual_fcts.len(), 1);
         });
@@ -456,14 +456,14 @@ mod tests {
             "open class A { open fun f() {} }
                       open class B: A { override fun f() {}
                                         open fun g() {} }",
-            |ctxt| {
-                let cls_id = ctxt.cls_by_name("A");
-                let cls = ctxt.classes.idx(cls_id);
+            |vm| {
+                let cls_id = vm.cls_by_name("A");
+                let cls = vm.classes.idx(cls_id);
                 let cls = cls.read();
                 assert_eq!(cls.virtual_fcts.len(), 1);
 
-                let cls_id = ctxt.cls_by_name("B");
-                let cls = ctxt.classes.idx(cls_id);
+                let cls_id = vm.cls_by_name("B");
+                let cls = vm.classes.idx(cls_id);
                 let cls = cls.read();
                 assert_eq!(cls.virtual_fcts.len(), 2);
             },
@@ -472,9 +472,9 @@ mod tests {
 
     // #[test]
     // fn test_depth() {
-    //     ok_with_test("class A { } class B { }", |ctxt| {
-    //         assert_eq!(vtable_by_name(ctxt, "A", |f| f.subtype_depth), 1);
-    //         assert_eq!(vtable_by_name(ctxt, "B", |f| f.subtype_depth), 1);
+    //     ok_with_test("class A { } class B { }", |vm| {
+    //         assert_eq!(vtable_by_name(vm, "A", |f| f.subtype_depth), 1);
+    //         assert_eq!(vtable_by_name(vm, "B", |f| f.subtype_depth), 1);
     //     });
     // }
 
@@ -482,45 +482,45 @@ mod tests {
     // fn test_depth_with_multiple_levels() {
     //     ok_with_test("open class A { } open class B: A { }
     //                   class C: B { }",
-    //                  |ctxt| {
-    //         assert_eq!(vtable_by_name(ctxt, "A", |f| f.subtype_depth), 1);
-    //         assert_eq!(vtable_by_name(ctxt, "B", |f| f.subtype_depth), 2);
-    //         assert_eq!(vtable_by_name(ctxt, "C", |f| f.subtype_depth), 3);
+    //                  |vm| {
+    //         assert_eq!(vtable_by_name(vm, "A", |f| f.subtype_depth), 1);
+    //         assert_eq!(vtable_by_name(vm, "B", |f| f.subtype_depth), 2);
+    //         assert_eq!(vtable_by_name(vm, "C", |f| f.subtype_depth), 3);
 
     //         {
-    //             let vtable = vtable_by_name(ctxt, "C", |vtable| {
+    //             let vtable = vtable_by_name(vm, "C", |vtable| {
     //                 assert!(vtable.subtype_display[4].is_null());
     //                 vtable as *const _
     //             });
 
-    //             assert_name(ctxt, vtable_name(vtable), "C");
-    //             assert_name(ctxt, vtable_display_name(vtable, 0), "Object");
-    //             assert_name(ctxt, vtable_display_name(vtable, 1), "A");
-    //             assert_name(ctxt, vtable_display_name(vtable, 2), "B");
-    //             assert_name(ctxt, vtable_display_name(vtable, 3), "C");
+    //             assert_name(vm, vtable_name(vtable), "C");
+    //             assert_name(vm, vtable_display_name(vtable, 0), "Object");
+    //             assert_name(vm, vtable_display_name(vtable, 1), "A");
+    //             assert_name(vm, vtable_display_name(vtable, 2), "B");
+    //             assert_name(vm, vtable_display_name(vtable, 3), "C");
     //         }
 
     //         {
-    //             let vtable = vtable_by_name(ctxt, "B", |vtable| {
+    //             let vtable = vtable_by_name(vm, "B", |vtable| {
     //                 assert!(vtable.subtype_display[3].is_null());
     //                 vtable as *const _
     //             });
 
-    //             assert_name(ctxt, vtable_name(vtable), "B");
-    //             assert_name(ctxt, vtable_display_name(vtable, 0), "Object");
-    //             assert_name(ctxt, vtable_display_name(vtable, 1), "A");
-    //             assert_name(ctxt, vtable_display_name(vtable, 2), "B");
+    //             assert_name(vm, vtable_name(vtable), "B");
+    //             assert_name(vm, vtable_display_name(vtable, 0), "Object");
+    //             assert_name(vm, vtable_display_name(vtable, 1), "A");
+    //             assert_name(vm, vtable_display_name(vtable, 2), "B");
     //         }
 
     //         {
-    //             let vtable = vtable_by_name(ctxt, "A", |vtable| {
+    //             let vtable = vtable_by_name(vm, "A", |vtable| {
     //                 assert!(vtable.subtype_display[2].is_null());
     //                 vtable as *const _
     //             });
 
-    //             assert_name(ctxt, vtable_name(vtable), "A");
-    //             assert_name(ctxt, vtable_display_name(vtable, 0), "Object");
-    //             assert_name(ctxt, vtable_display_name(vtable, 1), "A");
+    //             assert_name(vm, vtable_name(vtable), "A");
+    //             assert_name(vm, vtable_display_name(vtable, 0), "Object");
+    //             assert_name(vm, vtable_display_name(vtable, 1), "A");
     //         }
     //     });
     // }
@@ -537,54 +537,54 @@ mod tests {
     //                     open class L8: L7 { }
     //                     open class L9: L8 { }
     //                     class L10: L9 { }",
-    //                  |ctxt| {
-    //         assert_eq!(vtable_by_name(ctxt, "Object", |f| f.subtype_depth), 0);
-    //         assert_eq!(vtable_by_name(ctxt, "L1", |f| f.subtype_depth), 1);
-    //         assert_eq!(vtable_by_name(ctxt, "L2", |f| f.subtype_depth), 2);
-    //         assert_eq!(vtable_by_name(ctxt, "L3", |f| f.subtype_depth), 3);
-    //         assert_eq!(vtable_by_name(ctxt, "L4", |f| f.subtype_depth), 4);
-    //         assert_eq!(vtable_by_name(ctxt, "L5", |f| f.subtype_depth), 5);
-    //         assert_eq!(vtable_by_name(ctxt, "L6", |f| f.subtype_depth), 6);
-    //         assert_eq!(vtable_by_name(ctxt, "L7", |f| f.subtype_depth), 7);
+    //                  |vm| {
+    //         assert_eq!(vtable_by_name(vm, "Object", |f| f.subtype_depth), 0);
+    //         assert_eq!(vtable_by_name(vm, "L1", |f| f.subtype_depth), 1);
+    //         assert_eq!(vtable_by_name(vm, "L2", |f| f.subtype_depth), 2);
+    //         assert_eq!(vtable_by_name(vm, "L3", |f| f.subtype_depth), 3);
+    //         assert_eq!(vtable_by_name(vm, "L4", |f| f.subtype_depth), 4);
+    //         assert_eq!(vtable_by_name(vm, "L5", |f| f.subtype_depth), 5);
+    //         assert_eq!(vtable_by_name(vm, "L6", |f| f.subtype_depth), 6);
+    //         assert_eq!(vtable_by_name(vm, "L7", |f| f.subtype_depth), 7);
 
-    //         let vtable = vtable_by_name(ctxt, "L7", |vtable| {
+    //         let vtable = vtable_by_name(vm, "L7", |vtable| {
     //             assert!(!vtable.subtype_overflow.is_null());
-    //             assert_eq!(vtable_by_name(ctxt, "L6", |v| v as *const _),
+    //             assert_eq!(vtable_by_name(vm, "L6", |v| v as *const _),
     //                        vtable.get_subtype_overflow(0));
-    //             assert_eq!(vtable_by_name(ctxt, "L7", |v| v as *const _),
+    //             assert_eq!(vtable_by_name(vm, "L7", |v| v as *const _),
     //                        vtable.get_subtype_overflow(1));
 
     //             vtable as *const _
     //         });
 
-    //         assert_name(ctxt, vtable_display_name(vtable, 1), "L1");
-    //         assert_name(ctxt, vtable_display_name(vtable, 2), "L2");
-    //         assert_name(ctxt, vtable_display_name(vtable, 3), "L3");
-    //         assert_name(ctxt, vtable_display_name(vtable, 4), "L4");
-    //         assert_name(ctxt, vtable_display_name(vtable, 5), "L5");
+    //         assert_name(vm, vtable_display_name(vtable, 1), "L1");
+    //         assert_name(vm, vtable_display_name(vtable, 2), "L2");
+    //         assert_name(vm, vtable_display_name(vtable, 3), "L3");
+    //         assert_name(vm, vtable_display_name(vtable, 4), "L4");
+    //         assert_name(vm, vtable_display_name(vtable, 5), "L5");
 
-    //         let vtable = vtable_by_name(ctxt, "L10", |vtable| {
+    //         let vtable = vtable_by_name(vm, "L10", |vtable| {
     //             assert!(!vtable.subtype_overflow.is_null());
-    //             assert_eq!(vtable_by_name(ctxt, "L6", |v| v as *const _),
+    //             assert_eq!(vtable_by_name(vm, "L6", |v| v as *const _),
     //                        vtable.get_subtype_overflow(0));
-    //             assert_eq!(vtable_by_name(ctxt, "L7", |v| v as *const _),
+    //             assert_eq!(vtable_by_name(vm, "L7", |v| v as *const _),
     //                        vtable.get_subtype_overflow(1));
-    //             assert_eq!(vtable_by_name(ctxt, "L8", |v| v as *const _),
+    //             assert_eq!(vtable_by_name(vm, "L8", |v| v as *const _),
     //                        vtable.get_subtype_overflow(2));
-    //             assert_eq!(vtable_by_name(ctxt, "L9", |v| v as *const _),
+    //             assert_eq!(vtable_by_name(vm, "L9", |v| v as *const _),
     //                        vtable.get_subtype_overflow(3));
-    //             assert_eq!(vtable_by_name(ctxt, "L10", |v| v as *const _),
+    //             assert_eq!(vtable_by_name(vm, "L10", |v| v as *const _),
     //                        vtable.get_subtype_overflow(4));
 
     //             vtable as *const _
     //         });
 
-    //         assert_name(ctxt, vtable_display_name(vtable, 0), "Object");
-    //         assert_name(ctxt, vtable_display_name(vtable, 1), "L1");
-    //         assert_name(ctxt, vtable_display_name(vtable, 2), "L2");
-    //         assert_name(ctxt, vtable_display_name(vtable, 3), "L3");
-    //         assert_name(ctxt, vtable_display_name(vtable, 4), "L4");
-    //         assert_name(ctxt, vtable_display_name(vtable, 5), "L5");
+    //         assert_name(vm, vtable_display_name(vtable, 0), "Object");
+    //         assert_name(vm, vtable_display_name(vtable, 1), "L1");
+    //         assert_name(vm, vtable_display_name(vtable, 2), "L2");
+    //         assert_name(vm, vtable_display_name(vtable, 3), "L3");
+    //         assert_name(vm, vtable_display_name(vtable, 4), "L4");
+    //         assert_name(vm, vtable_display_name(vtable, 5), "L5");
     //     });
     // }
 
@@ -594,26 +594,26 @@ mod tests {
     //     let pw = mem::ptr_width();
 
     //     ok_with_test("open class A(let a: A) class B(a: A, let b: B) : A(a)",
-    //                  |ctxt| {
-    //         let cls = cls_by_name(ctxt, "A");
-    //         let cls = ctxt.classes[cls].borrow();
+    //                  |vm| {
+    //         let cls = cls_by_name(vm, "A");
+    //         let cls = vm.classes[cls].borrow();
     //         assert_eq!(vec![header], cls.ref_fields);
 
-    //         let cls = cls_by_name(ctxt, "B");
-    //         let cls = ctxt.classes[cls].borrow();
+    //         let cls = cls_by_name(vm, "B");
+    //         let cls = vm.classes[cls].borrow();
     //         assert_eq!(vec![header, header + pw], cls.ref_fields);
     //     });
 
     //     ok_with_test("class A(let x: Data, d: Data): B(d)
     //                   open class B(let y: Data)
     //                   class Data(let data: int)",
-    //                  |ctxt| {
-    //         let cls = cls_by_name(ctxt, "A");
-    //         let cls = ctxt.classes[cls].borrow();
+    //                  |vm| {
+    //         let cls = cls_by_name(vm, "A");
+    //         let cls = vm.classes[cls].borrow();
     //         assert_eq!(vec![header, header + pw], cls.ref_fields);
 
-    //         let cls = cls_by_name(ctxt, "B");
-    //         let cls = ctxt.classes[cls].borrow();
+    //         let cls = cls_by_name(vm, "B");
+    //         let cls = vm.classes[cls].borrow();
     //         assert_eq!(vec![header], cls.ref_fields);
     //     });
     // }
@@ -624,10 +624,10 @@ mod tests {
     //         "struct Foo { a: int, b: int }
     //                   struct Foo1 { a: bool, b: int, c: bool }
     //                   struct Bar { }",
-    //         |ctxt| {
-    //             assert_eq!(8, ctxt.structs[0].borrow().size);
-    //             assert_eq!(12, ctxt.structs[1].borrow().size);
-    //             assert_eq!(0, ctxt.structs[2].borrow().size);
+    //         |vm| {
+    //             assert_eq!(8, vm.structs[0].borrow().size);
+    //             assert_eq!(12, vm.structs[1].borrow().size);
+    //             assert_eq!(0, vm.structs[2].borrow().size);
     //         },
     //     );
     // }
@@ -637,16 +637,16 @@ mod tests {
     //     ok_with_test(
     //         "struct Foo { a: bool, bar: Bar }
     //                   struct Bar { a: int }",
-    //         |ctxt| {
-    //             assert_eq!(8, ctxt.structs[0].borrow().size);
+    //         |vm| {
+    //             assert_eq!(8, vm.structs[0].borrow().size);
     //         },
     //     );
 
     //     ok_with_test(
     //         "struct Bar { a: int }
     //                   struct Foo { a: bool, bar: Bar }",
-    //         |ctxt| {
-    //             assert_eq!(8, ctxt.structs[1].borrow().size);
+    //         |vm| {
+    //             assert_eq!(8, vm.structs[1].borrow().size);
     //         },
     //     );
 
@@ -662,8 +662,8 @@ mod tests {
     // fn test_class_in_struct() {
     //     ok_with_test("class Foo(a: bool, b: int)
     //                   struct Bar { a: int, foo: Foo }",
-    //                  |ctxt| {
-    //                      assert_eq!(2 * mem::ptr_width(), ctxt.structs[0].borrow().size);
+    //                  |vm| {
+    //                      assert_eq!(2 * mem::ptr_width(), vm.structs[0].borrow().size);
     //                  });
     // }
 
@@ -671,18 +671,18 @@ mod tests {
     // fn test_struct_in_class() {
     //     ok_with_test("class Foo { var bar: Bar; }
     //                   struct Bar { a: int, foo: Foo }",
-    //                  |ctxt| {
-    //                      let cls = cls_by_name(ctxt, "Foo");
-    //                      let cls = ctxt.classes[cls].borrow();
+    //                  |vm| {
+    //                      let cls = cls_by_name(vm, "Foo");
+    //                      let cls = vm.classes[cls].borrow();
     //                      assert_eq!(Header::size() + 2 * mem::ptr_width(), cls.size);
-    //                      assert_eq!(2 * mem::ptr_width(), ctxt.structs[0].borrow().size);
+    //                      assert_eq!(2 * mem::ptr_width(), vm.structs[0].borrow().size);
     //                  });
     // }
 
-    fn assert_name<'a, 'ast>(ctxt: &'a VM<'ast>, a: Name, b: &'static str) {
-        let bname = ctxt.interner.intern(b);
+    fn assert_name<'a, 'ast>(vm: &'a VM<'ast>, a: Name, b: &'static str) {
+        let bname = vm.interner.intern(b);
 
-        println!("{} {}", ctxt.interner.str(a), b);
+        println!("{} {}", vm.interner.str(a), b);
 
         assert_eq!(a, bname);
     }
@@ -702,43 +702,43 @@ mod tests {
     //     }
     // }
 
-    // fn vtable_by_name<'a, 'ast: 'a, F, R>(ctxt: &'a SemContext<'ast>,
+    // fn vtable_by_name<'a, 'ast: 'a, F, R>(vm: &'a SemContext<'ast>,
     //                                       name: &'static str,
     //                                       fct: F)
     //                                       -> R
     //     where F: FnOnce(&VTable) -> R
     // {
-    //     let cid = cls_by_name(ctxt, name);
-    //     let cls = ctxt.classes[cid].borrow();
+    //     let cid = cls_by_name(vm, name);
+    //     let cls = vm.classes[cid].borrow();
     //     let vtable = cls.vtable.as_ref().unwrap();
 
     //     fct(vtable)
     // }
 
-    // fn check_class<'ast>(ctxt: &SemContext<'ast>,
+    // fn check_class<'ast>(vm: &SemContext<'ast>,
     //                      name: &'static str,
     //                      size: i32,
     //                      parent: Option<&'static str>) {
-    //     let name = ctxt.interner.intern(name);
-    //     let cls_id = ctxt.sym.borrow().get_class(name).unwrap();
+    //     let name = vm.interner.intern(name);
+    //     let cls_id = vm.sym.borrow().get_class(name).unwrap();
 
     //     let parent_id = parent
-    //         .map(|name| ctxt.interner.intern(name))
-    //         .map(|name| ctxt.sym.borrow().get_class(name).unwrap());
+    //         .map(|name| vm.interner.intern(name))
+    //         .map(|name| vm.sym.borrow().get_class(name).unwrap());
 
-    //     let cls = ctxt.classes[cls_id].borrow();
+    //     let cls = vm.classes[cls_id].borrow();
     //     assert_eq!(parent_id, cls.parent_class);
     //     assert_eq!(Header::size() + size, cls.size);
     // }
 
-    // fn check_field<'ast>(ctxt: &SemContext<'ast>,
+    // fn check_field<'ast>(vm: &SemContext<'ast>,
     //                      cls_name: &'static str,
     //                      field_name: &'static str,
     //                      offset: i32) {
-    //     let cls_name = ctxt.interner.intern(cls_name);
-    //     let field_name = ctxt.interner.intern(field_name);
-    //     let cls_id = ctxt.sym.borrow().get_class(cls_name).unwrap();
-    //     let cls = ctxt.classes[cls_id].borrow();
+    //     let cls_name = vm.interner.intern(cls_name);
+    //     let field_name = vm.interner.intern(field_name);
+    //     let cls_id = vm.sym.borrow().get_class(cls_name).unwrap();
+    //     let cls = vm.classes[cls_id].borrow();
 
     //     for field in &cls.fields {
     //         if field_name == field.name {

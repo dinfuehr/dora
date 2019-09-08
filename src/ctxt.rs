@@ -112,7 +112,7 @@ impl<'ast> VM<'ast> {
         let empty_trait_id: TraitId = 0.into();
         let gc = Gc::new(&args);
 
-        let ctxt = Box::new(VM {
+        let vm = Box::new(VM {
             args: args,
             consts: GrowableVec::new(),
             structs: GrowableVec::new(),
@@ -176,9 +176,9 @@ impl<'ast> VM<'ast> {
             safepoint: Safepoint::new(),
         });
 
-        set_vm(&ctxt);
+        set_vm(&vm);
 
-        ctxt
+        vm
     }
 
     pub fn run(&self, fct_id: FctId) -> i32 {
@@ -469,9 +469,9 @@ impl ImplData {
         self.class_id.expect("trait_id not initialized yet.")
     }
 
-    pub fn find_implements(&self, ctxt: &VM, fct_id: FctId) -> Option<FctId> {
+    pub fn find_implements(&self, vm: &VM, fct_id: FctId) -> Option<FctId> {
         for &mtd_id in &self.methods {
-            let mtd = ctxt.fcts.idx(mtd_id);
+            let mtd = vm.fcts.idx(mtd_id);
             let mtd = mtd.read();
 
             if mtd.impl_for == Some(fct_id) {
@@ -511,14 +511,14 @@ pub struct TraitData {
 impl TraitData {
     pub fn find_method(
         &self,
-        ctxt: &VM,
+        vm: &VM,
         is_static: bool,
         name: Name,
         replace: Option<BuiltinType>,
         args: &[BuiltinType],
     ) -> Option<FctId> {
         for &method in &self.methods {
-            let method = ctxt.fcts.idx(method);
+            let method = vm.fcts.idx(method);
             let method = method.read();
 
             if method.name == name
@@ -646,62 +646,62 @@ impl KnownElements {
         self.iterator_trait.lock().expect("iterator trait not set")
     }
 
-    pub fn int_array(&self, ctxt: &VM) -> ClassDefId {
+    pub fn int_array(&self, vm: &VM) -> ClassDefId {
         let mut int_array_def = self.int_array_def.lock();
 
         if let Some(cls_id) = *int_array_def {
             cls_id
         } else {
             let type_args: TypeParams = vec![BuiltinType::Int].into();
-            let cls_id = specialize_class_id_params(ctxt, self.array_class, &type_args);
+            let cls_id = specialize_class_id_params(vm, self.array_class, &type_args);
             *int_array_def = Some(cls_id);
             cls_id
         }
     }
 
-    pub fn str(&self, ctxt: &VM) -> ClassDefId {
+    pub fn str(&self, vm: &VM) -> ClassDefId {
         let mut str_class_def = self.str_class_def.lock();
 
         if let Some(cls_id) = *str_class_def {
             cls_id
         } else {
-            let cls_id = specialize_class_id(ctxt, self.string_class);
+            let cls_id = specialize_class_id(vm, self.string_class);
             *str_class_def = Some(cls_id);
             cls_id
         }
     }
 
-    pub fn obj(&self, ctxt: &VM) -> ClassDefId {
+    pub fn obj(&self, vm: &VM) -> ClassDefId {
         let mut obj_class_def = self.obj_class_def.lock();
 
         if let Some(cls_id) = *obj_class_def {
             cls_id
         } else {
-            let cls_id = specialize_class_id(ctxt, self.object_class);
+            let cls_id = specialize_class_id(vm, self.object_class);
             *obj_class_def = Some(cls_id);
             cls_id
         }
     }
 
-    pub fn stack_trace_element(&self, ctxt: &VM) -> ClassDefId {
+    pub fn stack_trace_element(&self, vm: &VM) -> ClassDefId {
         let mut ste_class_def = self.ste_class_def.lock();
 
         if let Some(cls_id) = *ste_class_def {
             cls_id
         } else {
-            let cls_id = specialize_class_id(ctxt, self.stack_trace_element_class);
+            let cls_id = specialize_class_id(vm, self.stack_trace_element_class);
             *ste_class_def = Some(cls_id);
             cls_id
         }
     }
 
-    pub fn exception(&self, ctxt: &VM) -> ClassDefId {
+    pub fn exception(&self, vm: &VM) -> ClassDefId {
         let mut ex_class_def = self.ex_class_def.lock();
 
         if let Some(cls_id) = *ex_class_def {
             cls_id
         } else {
-            let cls_id = specialize_class_id(ctxt, self.exception_class);
+            let cls_id = specialize_class_id(vm, self.exception_class);
             *ex_class_def = Some(cls_id);
             cls_id
         }
@@ -833,14 +833,14 @@ impl<'ast> Fct<'ast> {
         }
     }
 
-    pub fn full_name(&self, ctxt: &VM) -> String {
+    pub fn full_name(&self, vm: &VM) -> String {
         let mut repr = String::new();
 
         if let FctParent::Class(class_id) = self.parent {
-            let cls = ctxt.classes.idx(class_id);
+            let cls = vm.classes.idx(class_id);
             let cls = cls.read();
             let name = cls.name;
-            repr.push_str(&ctxt.interner.str(name));
+            repr.push_str(&vm.interner.str(name));
 
             if self.is_static {
                 repr.push_str("::");
@@ -849,7 +849,7 @@ impl<'ast> Fct<'ast> {
             }
         }
 
-        repr.push_str(&ctxt.interner.str(self.name));
+        repr.push_str(&vm.interner.str(self.name));
 
         if self.type_params.len() > 0 {
             repr.push('[');
@@ -858,7 +858,7 @@ impl<'ast> Fct<'ast> {
                 &self
                     .type_params
                     .iter()
-                    .map(|n| ctxt.interner.str(n.name).to_string())
+                    .map(|n| vm.interner.str(n.name).to_string())
                     .collect::<Vec<_>>()
                     .join(", "),
             );
@@ -872,7 +872,7 @@ impl<'ast> Fct<'ast> {
                 repr.push_str(", ");
             }
 
-            let name = ty.name(ctxt);
+            let name = ty.name(vm);
             repr.push_str(&name);
         }
 
@@ -881,7 +881,7 @@ impl<'ast> Fct<'ast> {
         if self.return_type != BuiltinType::Unit {
             repr.push_str(" -> ");
 
-            let name = self.return_type.name(ctxt);
+            let name = self.return_type.name(vm);
             repr.push_str(&name);
         }
 

@@ -8,9 +8,9 @@ use dora_parser::ast::{self, Ast};
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 
-pub fn check<'ast>(ctxt: &mut VM<'ast>, ast: &'ast Ast, map_struct_defs: &NodeMap<StructId>) {
+pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_struct_defs: &NodeMap<StructId>) {
     let mut clsck = StructCheck {
-        ctxt: ctxt,
+        vm: vm,
         ast: ast,
         struct_id: None,
         map_struct_defs: map_struct_defs,
@@ -20,7 +20,7 @@ pub fn check<'ast>(ctxt: &mut VM<'ast>, ast: &'ast Ast, map_struct_defs: &NodeMa
 }
 
 struct StructCheck<'x, 'ast: 'x> {
-    ctxt: &'x mut VM<'ast>,
+    vm: &'x mut VM<'ast>,
     ast: &'ast ast::Ast,
     map_struct_defs: &'x NodeMap<StructId>,
 
@@ -43,16 +43,16 @@ impl<'x, 'ast> Visitor<'ast> for StructCheck<'x, 'ast> {
     }
 
     fn visit_struct_field(&mut self, f: &'ast ast::StructField) {
-        let ty = semck::read_type(self.ctxt, &f.data_type).unwrap_or(BuiltinType::Unit);
+        let ty = semck::read_type(self.vm, &f.data_type).unwrap_or(BuiltinType::Unit);
         let id = self.struct_id.unwrap();
 
-        let struc = self.ctxt.structs.idx(id);
+        let struc = self.vm.structs.idx(id);
         let mut struc = struc.lock();
 
         for field in &struc.fields {
             if field.name == f.name {
-                let name = self.ctxt.interner.str(f.name).to_string();
-                report(self.ctxt, f.pos, Msg::ShadowField(name));
+                let name = self.vm.interner.str(f.name).to_string();
+                report(self.vm, f.pos, Msg::ShadowField(name));
                 return;
             }
         }
@@ -68,8 +68,8 @@ impl<'x, 'ast> Visitor<'ast> for StructCheck<'x, 'ast> {
     }
 }
 
-fn report(ctxt: &VM, pos: Position, msg: Msg) {
-    ctxt.diag.lock().report_without_path(pos, msg);
+fn report(vm: &VM, pos: Position, msg: Msg) {
+    vm.diag.lock().report_without_path(pos, msg);
 }
 
 #[cfg(test)]

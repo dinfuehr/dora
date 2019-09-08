@@ -6,10 +6,10 @@ use dora_parser::error::msg::Msg;
 use crate::class::{Class, ClassId};
 use crate::ctxt::{FctId, VM};
 
-pub fn check<'ast>(ctxt: &mut VM<'ast>) {
+pub fn check<'ast>(vm: &mut VM<'ast>) {
     let mut abstract_methods: HashMap<ClassId, Rc<Vec<FctId>>> = HashMap::new();
 
-    for cls in ctxt.classes.iter() {
+    for cls in vm.classes.iter() {
         let cls = cls.read();
 
         // we are only interested in non-abstract classes
@@ -20,18 +20,18 @@ pub fn check<'ast>(ctxt: &mut VM<'ast>) {
         }
 
         if let Some(super_cls_id) = cls.parent_class {
-            let super_cls = ctxt.classes.idx(super_cls_id);
+            let super_cls = vm.classes.idx(super_cls_id);
             let super_cls = super_cls.read();
 
             if super_cls.is_abstract {
-                check_abstract(ctxt, &*cls, &*super_cls, &mut abstract_methods);
+                check_abstract(vm, &*cls, &*super_cls, &mut abstract_methods);
             }
         }
     }
 }
 
 pub fn check_abstract<'ast>(
-    ctxt: &VM<'ast>,
+    vm: &VM<'ast>,
     cls: &Class,
     super_cls: &Class,
     abstract_methods: &mut HashMap<ClassId, Rc<Vec<FctId>>>,
@@ -39,11 +39,11 @@ pub fn check_abstract<'ast>(
     assert!(!cls.is_abstract);
     assert!(super_cls.is_abstract);
 
-    let mtds = find_abstract_methods(ctxt, super_cls, abstract_methods);
+    let mtds = find_abstract_methods(vm, super_cls, abstract_methods);
     let mut overrides = HashSet::new();
 
     for &mtd in &cls.methods {
-        let mtd = ctxt.fcts.idx(mtd);
+        let mtd = vm.fcts.idx(mtd);
         let mtd = mtd.read();
 
         if let Some(overrides_mtd) = mtd.overrides {
@@ -53,15 +53,15 @@ pub fn check_abstract<'ast>(
 
     for &mtd in mtds.iter() {
         if !overrides.contains(&mtd) {
-            let mtd = ctxt.fcts.idx(mtd);
+            let mtd = vm.fcts.idx(mtd);
             let mtd = mtd.read();
 
-            let mtd_cls = ctxt.classes.idx(mtd.parent.cls_id());
+            let mtd_cls = vm.classes.idx(mtd.parent.cls_id());
             let mtd_cls = mtd_cls.read();
-            let cls_name = ctxt.interner.str(mtd_cls.name).to_string();
-            let mtd_name = ctxt.interner.str(mtd.name).to_string();
+            let cls_name = vm.interner.str(mtd_cls.name).to_string();
+            let mtd_name = vm.interner.str(mtd.name).to_string();
 
-            ctxt.diag
+            vm.diag
                 .lock()
                 .report_without_path(cls.pos, Msg::MissingAbstractOverride(cls_name, mtd_name));
         }
@@ -69,7 +69,7 @@ pub fn check_abstract<'ast>(
 }
 
 fn find_abstract_methods<'ast>(
-    ctxt: &VM<'ast>,
+    vm: &VM<'ast>,
     cls: &Class,
     abstract_methods: &mut HashMap<ClassId, Rc<Vec<FctId>>>,
 ) -> Rc<Vec<FctId>> {
@@ -83,7 +83,7 @@ fn find_abstract_methods<'ast>(
     let mut overrides = HashSet::new();
 
     for &mtd in &cls.methods {
-        let mtd = ctxt.fcts.idx(mtd);
+        let mtd = vm.fcts.idx(mtd);
         let mtd = mtd.read();
 
         if mtd.is_abstract {
@@ -96,11 +96,11 @@ fn find_abstract_methods<'ast>(
     }
 
     if let Some(super_cls_id) = cls.parent_class {
-        let super_cls = ctxt.classes.idx(super_cls_id);
+        let super_cls = vm.classes.idx(super_cls_id);
         let super_cls = super_cls.read();
 
         if super_cls.is_abstract {
-            let super_abstracts = find_abstract_methods(ctxt, &*super_cls, abstract_methods);
+            let super_abstracts = find_abstract_methods(vm, &*super_cls, abstract_methods);
 
             for &mtd in super_abstracts.iter() {
                 if !overrides.contains(&mtd) {

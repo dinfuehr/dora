@@ -6,9 +6,9 @@ use dora_parser::ast::Elem::ElemGlobal;
 use dora_parser::ast::{Ast, File, Global};
 use dora_parser::error::msg::Msg;
 
-pub fn check<'a, 'ast>(ctxt: &VM<'ast>, ast: &'ast Ast, map_global_defs: &NodeMap<GlobalId>) {
+pub fn check<'a, 'ast>(vm: &VM<'ast>, ast: &'ast Ast, map_global_defs: &NodeMap<GlobalId>) {
     let mut checker = GlobalDefCheck {
-        ctxt: ctxt,
+        vm: vm,
         current_type: BuiltinType::Unit,
         map_global_defs: map_global_defs,
     };
@@ -17,7 +17,7 @@ pub fn check<'a, 'ast>(ctxt: &VM<'ast>, ast: &'ast Ast, map_global_defs: &NodeMa
 }
 
 struct GlobalDefCheck<'a, 'ast: 'a> {
-    ctxt: &'a VM<'ast>,
+    vm: &'a VM<'ast>,
     current_type: BuiltinType,
     map_global_defs: &'a NodeMap<GlobalId>,
 }
@@ -35,12 +35,12 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDefCheck<'a, 'ast> {
     fn visit_global(&mut self, g: &'ast Global) {
         let global_id = *self.map_global_defs.get(g.id).unwrap();
 
-        let ty = semck::read_type(self.ctxt, &g.data_type).unwrap_or(BuiltinType::Unit);
-        let glob = self.ctxt.globals.idx(global_id);
+        let ty = semck::read_type(self.vm, &g.data_type).unwrap_or(BuiltinType::Unit);
+        let glob = self.vm.globals.idx(global_id);
         glob.lock().ty = ty;
 
         if g.expr.is_some() {
-            self.ctxt
+            self.vm
                 .diag
                 .lock()
                 .report_without_path(g.pos, Msg::GlobalInitializerNotSupported);

@@ -31,7 +31,7 @@ impl Collector for ZeroCollector {
         true
     }
 
-    fn alloc_tlab_area(&self, _ctxt: &VM, size: usize) -> Option<Region> {
+    fn alloc_tlab_area(&self, _vm: &VM, size: usize) -> Option<Region> {
         let ptr = self.alloc.bump_alloc(size);
 
         if ptr.is_null() {
@@ -41,7 +41,7 @@ impl Collector for ZeroCollector {
         }
     }
 
-    fn alloc(&self, _ctxt: &VM, size: usize, _array_ref: bool) -> Address {
+    fn alloc(&self, _vm: &VM, size: usize, _array_ref: bool) -> Address {
         self.alloc.bump_alloc(size)
     }
 

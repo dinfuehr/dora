@@ -9,9 +9,9 @@ use dora_parser::ast::{self, Ast};
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 
-pub fn check<'ast>(ctxt: &mut VM<'ast>, ast: &'ast Ast, map_impl_defs: &NodeMap<ImplId>) {
+pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_impl_defs: &NodeMap<ImplId>) {
     let mut clsck = ImplCheck {
-        ctxt: ctxt,
+        vm: vm,
         ast: ast,
         impl_id: None,
         map_impl_defs: map_impl_defs,
@@ -21,7 +21,7 @@ pub fn check<'ast>(ctxt: &mut VM<'ast>, ast: &'ast Ast, map_impl_defs: &NodeMap<
 }
 
 struct ImplCheck<'x, 'ast: 'x> {
-    ctxt: &'x mut VM<'ast>,
+    vm: &'x mut VM<'ast>,
     ast: &'ast ast::Ast,
     map_impl_defs: &'x NodeMap<ImplId>,
 
@@ -40,24 +40,24 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
 
         visit::walk_impl(self, i);
 
-        let mut ximpl = self.ctxt.impls[self.impl_id.unwrap()].write();
+        let mut ximpl = self.vm.impls[self.impl_id.unwrap()].write();
 
-        if let Some(Sym::SymTrait(trait_id)) = self.ctxt.sym.lock().get(i.trait_name) {
+        if let Some(Sym::SymTrait(trait_id)) = self.vm.sym.lock().get(i.trait_name) {
             ximpl.trait_id = Some(trait_id);
         } else {
-            let name = self.ctxt.interner.str(i.trait_name).to_string();
-            report(self.ctxt, i.pos, Msg::ExpectedTrait(name));
+            let name = self.vm.interner.str(i.trait_name).to_string();
+            report(self.vm, i.pos, Msg::ExpectedTrait(name));
         }
 
-        if let Some(Sym::SymClass(class_id)) = self.ctxt.sym.lock().get(i.class_name) {
+        if let Some(Sym::SymClass(class_id)) = self.vm.sym.lock().get(i.class_name) {
             ximpl.class_id = Some(class_id);
         } else {
-            let name = self.ctxt.interner.str(i.class_name).to_string();
-            report(self.ctxt, i.pos, Msg::ExpectedClass(name));
+            let name = self.vm.interner.str(i.class_name).to_string();
+            report(self.vm, i.pos, Msg::ExpectedClass(name));
         }
 
         if ximpl.trait_id.is_some() && ximpl.class_id.is_some() {
-            let cls = self.ctxt.classes.idx(ximpl.cls_id());
+            let cls = self.vm.classes.idx(ximpl.cls_id());
             let mut cls = cls.write();
             cls.traits.push(ximpl.trait_id());
             cls.impls.push(ximpl.id);
@@ -72,7 +72,7 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
         }
 
         if f.block.is_none() && !f.internal {
-            report(self.ctxt, f.pos, Msg::MissingFctBody);
+            report(self.vm, f.pos, Msg::MissingFctBody);
         }
 
         let kind = if f.internal {
@@ -108,15 +108,15 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
             kind: kind,
         };
 
-        let fctid = self.ctxt.add_fct(fct);
+        let fctid = self.vm.add_fct(fct);
 
-        let mut ximpl = self.ctxt.impls[self.impl_id.unwrap()].write();
+        let mut ximpl = self.vm.impls[self.impl_id.unwrap()].write();
         ximpl.methods.push(fctid);
     }
 }
 
-fn report(ctxt: &VM, pos: Position, msg: Msg) {
-    ctxt.diag.lock().report_without_path(pos, msg);
+fn report(vm: &VM, pos: Position, msg: Msg) {
+    vm.diag.lock().report_without_path(pos, msg);
 }
 
 #[cfg(test)]

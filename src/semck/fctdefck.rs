@@ -9,32 +9,32 @@ use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 use dora_parser::error::msg::Msg;
 
-pub fn check<'a, 'ast>(ctxt: &VM<'ast>) {
-    debug_assert!(ctxt.sym.lock().levels() == 1);
+pub fn check<'a, 'ast>(vm: &VM<'ast>) {
+    debug_assert!(vm.sym.lock().levels() == 1);
 
-    for fct in ctxt.fcts.iter() {
+    for fct in vm.fcts.iter() {
         let mut fct = fct.write();
         let ast = fct.ast;
 
         // check modifiers for function
-        check_abstract(ctxt, &*fct);
-        check_static(ctxt, &*fct);
+        check_abstract(vm, &*fct);
+        check_static(vm, &*fct);
 
         if !(fct.is_src() || fct.kind.is_definition()) {
             continue;
         }
 
-        ctxt.sym.lock().push_level();
+        vm.sym.lock().push_level();
 
         match fct.parent {
             FctParent::Class(owner_class) => {
-                let cls = ctxt.classes.idx(owner_class);
+                let cls = vm.classes.idx(owner_class);
                 let cls = cls.read();
                 let mut type_param_id = 0;
 
                 for param in &cls.type_params {
                     let sym = Sym::SymClassTypeParam(cls.id, type_param_id.into());
-                    ctxt.sym.lock().insert(param.name, sym);
+                    vm.sym.lock().insert(param.name, sym);
                     type_param_id += 1;
                 }
 
@@ -44,8 +44,8 @@ pub fn check<'a, 'ast>(ctxt: &VM<'ast>) {
             }
 
             FctParent::Impl(impl_id) => {
-                let ximpl = ctxt.impls[impl_id].read();
-                let cls = ctxt.classes.idx(ximpl.cls_id());
+                let ximpl = vm.impls[impl_id].read();
+                let cls = vm.classes.idx(ximpl.cls_id());
                 let cls = cls.read();
 
                 if fct.has_self() {
@@ -69,15 +69,15 @@ pub fn check<'a, 'ast>(ctxt: &VM<'ast>) {
 
                 for type_param in type_params {
                     if !names.insert(type_param.name) {
-                        let name = ctxt.interner.str(type_param.name).to_string();
+                        let name = vm.interner.str(type_param.name).to_string();
                         let msg = Msg::TypeParamNameNotUnique(name);
-                        ctxt.diag.lock().report_without_path(type_param.pos, msg);
+                        vm.diag.lock().report_without_path(type_param.pos, msg);
                     }
 
                     fct.type_params.push(ctxt::TypeParam::new(type_param.name));
 
                     for bound in &type_param.bounds {
-                        let ty = semck::read_type(ctxt, bound);
+                        let ty = semck::read_type(vm, bound);
 
                         match ty {
                             Some(BuiltinType::Class(cls_id, _)) => {
@@ -85,14 +85,14 @@ pub fn check<'a, 'ast>(ctxt: &VM<'ast>) {
                                     fct.type_params[type_param_id].class_bound = Some(cls_id);
                                 } else {
                                     let msg = Msg::MultipleClassBounds;
-                                    ctxt.diag.lock().report_without_path(type_param.pos, msg);
+                                    vm.diag.lock().report_without_path(type_param.pos, msg);
                                 }
                             }
 
                             Some(BuiltinType::Trait(trait_id)) => {
                                 if !fct.type_params[type_param_id].trait_bounds.insert(trait_id) {
                                     let msg = Msg::DuplicateTraitBound;
-                                    ctxt.diag.lock().report_without_path(type_param.pos, msg);
+                                    vm.diag.lock().report_without_path(type_param.pos, msg);
                                 }
                             }
 
@@ -102,26 +102,26 @@ pub fn check<'a, 'ast>(ctxt: &VM<'ast>) {
 
                             _ => {
                                 let msg = Msg::BoundExpected;
-                                ctxt.diag.lock().report_without_path(bound.pos(), msg);
+                                vm.diag.lock().report_without_path(bound.pos(), msg);
                             }
                         }
                     }
 
                     let sym = Sym::SymFctTypeParam(fct.id, type_param_id.into());
-                    ctxt.sym.lock().insert(type_param.name, sym);
+                    vm.sym.lock().insert(type_param.name, sym);
                     type_param_id += 1;
                 }
             } else {
                 let msg = Msg::TypeParamsExpected;
-                ctxt.diag.lock().report_without_path(fct.pos, msg);
+                vm.diag.lock().report_without_path(fct.pos, msg);
             }
         }
 
         for p in &ast.params {
-            let ty = semck::read_type(ctxt, &p.data_type).unwrap_or(BuiltinType::Unit);
+            let ty = semck::read_type(vm, &p.data_type).unwrap_or(BuiltinType::Unit);
 
             if ty == BuiltinType::This && !fct.in_trait() {
-                ctxt.diag
+                vm.diag
                     .lock()
                     .report_without_path(p.data_type.pos(), Msg::SelfTypeUnavailable);
             }
@@ -138,10 +138,10 @@ pub fn check<'a, 'ast>(ctxt: &VM<'ast>) {
         }
 
         if let Some(ret) = ast.return_type.as_ref() {
-            let ty = semck::read_type(ctxt, ret).unwrap_or(BuiltinType::Unit);
+            let ty = semck::read_type(vm, ret).unwrap_or(BuiltinType::Unit);
 
             if ty == BuiltinType::This && !fct.in_trait() {
-                ctxt.diag
+                vm.diag
                     .lock()
                     .report_without_path(ret.pos(), Msg::SelfTypeUnavailable);
             }
@@ -153,28 +153,28 @@ pub fn check<'a, 'ast>(ctxt: &VM<'ast>) {
 
         match fct.parent {
             FctParent::Class(clsid) => {
-                let cls = ctxt.classes.idx(clsid);
+                let cls = vm.classes.idx(clsid);
                 let cls = cls.read();
-                check_against_methods(ctxt, cls.ty, &*fct, &cls.methods);
+                check_against_methods(vm, cls.ty, &*fct, &cls.methods);
             }
 
             FctParent::Trait(traitid) => {
-                let xtrait = ctxt.traits[traitid].read();
+                let xtrait = vm.traits[traitid].read();
                 let ty = BuiltinType::Trait(traitid);
-                check_against_methods(ctxt, ty, &*fct, &xtrait.methods);
+                check_against_methods(vm, ty, &*fct, &xtrait.methods);
             }
 
             FctParent::Impl(implid) => {
-                let ximpl = ctxt.impls[implid].read();
+                let ximpl = vm.impls[implid].read();
                 let ty = BuiltinType::Trait(ximpl.trait_id());
-                check_against_methods(ctxt, ty, &*fct, &ximpl.methods);
+                check_against_methods(vm, ty, &*fct, &ximpl.methods);
             }
 
             _ => {}
         }
 
         if !fct.is_src() {
-            ctxt.sym.lock().pop_level();
+            vm.sym.lock().pop_level();
             continue;
         }
 
@@ -182,7 +182,7 @@ pub fn check<'a, 'ast>(ctxt: &VM<'ast>) {
         let mut src = src.write();
 
         let mut defck = FctDefCheck {
-            ctxt: ctxt,
+            vm: vm,
             src: &mut src,
             ast: ast,
             current_type: BuiltinType::Unit,
@@ -190,33 +190,33 @@ pub fn check<'a, 'ast>(ctxt: &VM<'ast>) {
 
         defck.check();
 
-        ctxt.sym.lock().pop_level();
+        vm.sym.lock().pop_level();
     }
 
-    debug_assert!(ctxt.sym.lock().levels() == 1);
+    debug_assert!(vm.sym.lock().levels() == 1);
 }
 
-fn check_abstract<'ast>(ctxt: &VM<'ast>, fct: &Fct<'ast>) {
+fn check_abstract<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) {
     if !fct.is_abstract {
         return;
     }
 
     let cls_id = fct.cls_id();
-    let cls = ctxt.classes.idx(cls_id);
+    let cls = vm.classes.idx(cls_id);
     let cls = cls.read();
 
     if !fct.kind.is_definition() {
         let msg = Msg::AbstractMethodWithImplementation;
-        ctxt.diag.lock().report_without_path(fct.pos, msg);
+        vm.diag.lock().report_without_path(fct.pos, msg);
     }
 
     if !cls.is_abstract {
         let msg = Msg::AbstractMethodNotInAbstractClass;
-        ctxt.diag.lock().report_without_path(fct.pos, msg);
+        vm.diag.lock().report_without_path(fct.pos, msg);
     }
 }
 
-fn check_static<'ast>(ctxt: &VM<'ast>, fct: &Fct<'ast>) {
+fn check_static<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) {
     if !fct.is_static {
         return;
     }
@@ -234,32 +234,32 @@ fn check_static<'ast>(ctxt: &VM<'ast>, fct: &Fct<'ast>) {
         };
 
         let msg = Msg::ModifierNotAllowedForStaticMethod(modifier.into());
-        ctxt.diag.lock().report_without_path(fct.pos, msg);
+        vm.diag.lock().report_without_path(fct.pos, msg);
     }
 }
 
-fn check_against_methods(ctxt: &VM, ty: BuiltinType, fct: &Fct, methods: &[FctId]) {
+fn check_against_methods(vm: &VM, ty: BuiltinType, fct: &Fct, methods: &[FctId]) {
     for &method in methods {
         if method == fct.id {
             continue;
         }
 
-        let method = ctxt.fcts.idx(method);
+        let method = vm.fcts.idx(method);
         let method = method.read();
 
         if method.initialized && method.name == fct.name && method.is_static == fct.is_static {
-            let cls_name = ty.name(ctxt);
-            let method_name = ctxt.interner.str(method.name).to_string();
+            let cls_name = ty.name(vm);
+            let method_name = vm.interner.str(method.name).to_string();
 
             let msg = Msg::MethodExists(cls_name, method_name, method.pos);
-            ctxt.diag.lock().report_without_path(fct.ast.pos, msg);
+            vm.diag.lock().report_without_path(fct.ast.pos, msg);
             return;
         }
     }
 }
 
 struct FctDefCheck<'a, 'ast: 'a> {
-    ctxt: &'a VM<'ast>,
+    vm: &'a VM<'ast>,
     src: &'a mut FctSrc,
     ast: &'ast Function,
     current_type: BuiltinType,
@@ -301,8 +301,8 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
                     self.src.vars[var].ty = ty;
 
                     if !ty.reference_type() {
-                        let ty = ty.name(self.ctxt);
-                        self.ctxt.diag.lock().report_without_path(
+                        let ty = ty.name(self.vm);
+                        self.vm.diag.lock().report_without_path(
                             catch.data_type.pos(),
                             Msg::ReferenceTypeExpected(ty),
                         );
@@ -310,7 +310,7 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
                 }
 
                 if r#try.catch_blocks.is_empty() && r#try.finally_block.is_none() {
-                    self.ctxt
+                    self.vm
                         .diag
                         .lock()
                         .report_without_path(r#try.pos, Msg::CatchOrFinallyExpected);
@@ -322,7 +322,7 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
     }
 
     fn visit_type(&mut self, t: &'ast Type) {
-        self.current_type = semck::read_type(self.ctxt, t).unwrap_or(BuiltinType::Unit);
+        self.current_type = semck::read_type(self.vm, t).unwrap_or(BuiltinType::Unit);
         self.src.set_ty(t.id(), self.current_type);
     }
 }

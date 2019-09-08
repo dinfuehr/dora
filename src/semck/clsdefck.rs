@@ -13,9 +13,9 @@ use dora_parser::error::msg::Msg;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-pub fn check<'ast>(ctxt: &mut VM<'ast>, ast: &'ast Ast, map_cls_defs: &NodeMap<ClassId>) {
+pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_cls_defs: &NodeMap<ClassId>) {
     let mut clsck = ClsCheck {
-        ctxt: ctxt,
+        vm: vm,
         ast: ast,
         cls_id: None,
         map_cls_defs: map_cls_defs,
@@ -25,7 +25,7 @@ pub fn check<'ast>(ctxt: &mut VM<'ast>, ast: &'ast Ast, map_cls_defs: &NodeMap<C
 }
 
 struct ClsCheck<'x, 'ast: 'x> {
-    ctxt: &'x mut VM<'ast>,
+    vm: &'x mut VM<'ast>,
     ast: &'ast ast::Ast,
     map_cls_defs: &'x NodeMap<ClassId>,
 
@@ -38,13 +38,13 @@ impl<'x, 'ast> ClsCheck<'x, 'ast> {
     }
 
     fn add_field(&mut self, pos: Position, name: Name, ty: BuiltinType, reassignable: bool) {
-        let cls = self.ctxt.classes.idx(self.cls_id.unwrap());
+        let cls = self.vm.classes.idx(self.cls_id.unwrap());
         let mut cls = cls.write();
 
         for field in &cls.fields {
             if field.name == name {
-                let name = self.ctxt.interner.str(name).to_string();
-                report(self.ctxt, pos, Msg::ShadowField(name));
+                let name = self.vm.interner.str(name).to_string();
+                report(self.vm, pos, Msg::ShadowField(name));
             }
         }
 
@@ -64,30 +64,27 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
     fn visit_class(&mut self, c: &'ast ast::Class) {
         self.cls_id = Some(*self.map_cls_defs.get(c.id).unwrap());
 
-        self.ctxt.sym.lock().push_level();
+        self.vm.sym.lock().push_level();
 
         if let Some(ref type_params) = c.type_params {
             if type_params.len() > 0 {
                 let mut names = HashSet::new();
                 let mut type_param_id = 0;
-                let cls = self.ctxt.classes.idx(self.cls_id.unwrap());
+                let cls = self.vm.classes.idx(self.cls_id.unwrap());
                 let mut cls = cls.write();
                 let mut params = Vec::new();
 
                 for type_param in type_params {
                     if !names.insert(type_param.name) {
-                        let name = self.ctxt.interner.str(type_param.name).to_string();
+                        let name = self.vm.interner.str(type_param.name).to_string();
                         let msg = Msg::TypeParamNameNotUnique(name);
-                        self.ctxt
-                            .diag
-                            .lock()
-                            .report_without_path(type_param.pos, msg);
+                        self.vm.diag.lock().report_without_path(type_param.pos, msg);
                     }
 
                     params.push(BuiltinType::ClassTypeParam(cls.id, type_param_id.into()));
 
                     for bound in &type_param.bounds {
-                        let ty = semck::read_type(self.ctxt, bound);
+                        let ty = semck::read_type(self.vm, bound);
 
                         match ty {
                             Some(BuiltinType::Class(cls_id, _)) => {
@@ -95,20 +92,14 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                                     cls.type_params[type_param_id].class_bound = Some(cls_id);
                                 } else {
                                     let msg = Msg::MultipleClassBounds;
-                                    self.ctxt
-                                        .diag
-                                        .lock()
-                                        .report_without_path(type_param.pos, msg);
+                                    self.vm.diag.lock().report_without_path(type_param.pos, msg);
                                 }
                             }
 
                             Some(BuiltinType::Trait(trait_id)) => {
                                 if !cls.type_params[type_param_id].trait_bounds.insert(trait_id) {
                                     let msg = Msg::DuplicateTraitBound;
-                                    self.ctxt
-                                        .diag
-                                        .lock()
-                                        .report_without_path(type_param.pos, msg);
+                                    self.vm.diag.lock().report_without_path(type_param.pos, msg);
                                 }
                             }
 
@@ -118,42 +109,42 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
 
                             _ => {
                                 let msg = Msg::BoundExpected;
-                                self.ctxt.diag.lock().report_without_path(bound.pos(), msg);
+                                self.vm.diag.lock().report_without_path(bound.pos(), msg);
                             }
                         }
                     }
 
                     let sym = Sym::SymClassTypeParam(cls.id, type_param_id.into());
-                    self.ctxt.sym.lock().insert(type_param.name, sym);
+                    self.vm.sym.lock().insert(type_param.name, sym);
                     type_param_id += 1;
                 }
 
-                let list_id = self.ctxt.lists.lock().insert(params.into());
+                let list_id = self.vm.lists.lock().insert(params.into());
                 cls.ty = BuiltinType::Class(cls.id, list_id);
             } else {
                 let msg = Msg::TypeParamsExpected;
-                self.ctxt.diag.lock().report_without_path(c.pos, msg);
+                self.vm.diag.lock().report_without_path(c.pos, msg);
             }
         }
 
         visit::walk_class(self, c);
 
         if let Some(ref parent_class) = c.parent_class {
-            let name = self.ctxt.interner.str(parent_class.name).to_string();
-            let sym = self.ctxt.sym.lock().get(parent_class.name);
+            let name = self.vm.interner.str(parent_class.name).to_string();
+            let sym = self.vm.sym.lock().get(parent_class.name);
 
             match sym {
                 Some(Sym::SymClass(clsid)) => {
-                    let super_cls = self.ctxt.classes.idx(clsid);
+                    let super_cls = self.vm.classes.idx(clsid);
                     let super_cls = super_cls.read();
 
                     if super_cls.has_open {
-                        let cls = self.ctxt.classes.idx(self.cls_id.unwrap());
+                        let cls = self.vm.classes.idx(self.cls_id.unwrap());
                         let mut cls = cls.write();
                         cls.parent_class = Some(clsid);
                     } else {
                         let msg = Msg::UnderivableType(name);
-                        self.ctxt
+                        self.vm
                             .diag
                             .lock()
                             .report_without_path(parent_class.pos, msg);
@@ -170,7 +161,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                             super_cls.type_params.len(),
                             number_type_params,
                         );
-                        self.ctxt
+                        self.vm
                             .diag
                             .lock()
                             .report_without_path(parent_class.pos, msg);
@@ -179,33 +170,33 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
 
                 _ => {
                     let msg = Msg::UnknownClass(name);
-                    self.ctxt
+                    self.vm
                         .diag
                         .lock()
                         .report_without_path(parent_class.pos, msg);
                 }
             };
         } else {
-            let object_cls = self.ctxt.vips.object_class;
+            let object_cls = self.vm.vips.object_class;
             let cls_id = self.cls_id.unwrap();
 
             if cls_id != object_cls {
-                let cls = self.ctxt.classes.idx(cls_id);
+                let cls = self.vm.classes.idx(cls_id);
                 let mut cls = cls.write();
                 cls.parent_class = Some(object_cls);
             }
         }
 
         self.cls_id = None;
-        self.ctxt.sym.lock().pop_level();
+        self.vm.sym.lock().pop_level();
     }
 
     fn visit_field(&mut self, f: &'ast ast::Field) {
-        let ty = semck::read_type(self.ctxt, &f.data_type).unwrap_or(BuiltinType::Unit);
+        let ty = semck::read_type(self.vm, &f.data_type).unwrap_or(BuiltinType::Unit);
         self.add_field(f.pos, f.name, ty, f.reassignable);
 
         if !f.reassignable && !f.primary_ctor && f.expr.is_none() {
-            self.ctxt
+            self.vm
                 .diag
                 .lock()
                 .report_without_path(f.pos, Msg::LetMissingInitialization);
@@ -248,9 +239,9 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
             kind: kind,
         };
 
-        let fctid = self.ctxt.add_fct(fct);
+        let fctid = self.vm.add_fct(fct);
 
-        let cls = self.ctxt.classes.idx(self.cls_id.unwrap());
+        let cls = self.vm.classes.idx(self.cls_id.unwrap());
         let mut cls = cls.write();
         cls.constructor = Some(fctid);
     }
@@ -296,16 +287,16 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
             kind: kind,
         };
 
-        let fctid = self.ctxt.add_fct(fct);
+        let fctid = self.vm.add_fct(fct);
 
-        let cls = self.ctxt.classes.idx(self.cls_id.unwrap());
+        let cls = self.vm.classes.idx(self.cls_id.unwrap());
         let mut cls = cls.write();
         cls.methods.push(fctid);
     }
 }
 
-fn report(ctxt: &VM, pos: Position, msg: Msg) {
-    ctxt.diag.lock().report_without_path(pos, msg);
+fn report(vm: &VM, pos: Position, msg: Msg) {
+    vm.diag.lock().report_without_path(pos, msg);
 }
 
 #[cfg(test)]

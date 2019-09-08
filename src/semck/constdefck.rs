@@ -7,9 +7,9 @@ use dora_parser::ast::{self, Ast};
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 
-pub fn check<'ast>(ctxt: &mut VM<'ast>, ast: &'ast Ast, map_const_defs: &NodeMap<ConstId>) {
+pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_const_defs: &NodeMap<ConstId>) {
     let mut clsck = ConstCheck {
-        ctxt: ctxt,
+        vm: vm,
         ast: ast,
         const_id: None,
         map_const_defs: map_const_defs,
@@ -19,7 +19,7 @@ pub fn check<'ast>(ctxt: &mut VM<'ast>, ast: &'ast Ast, map_const_defs: &NodeMap
 }
 
 struct ConstCheck<'x, 'ast: 'x> {
-    ctxt: &'x mut VM<'ast>,
+    vm: &'x mut VM<'ast>,
     ast: &'ast ast::Ast,
     map_const_defs: &'x NodeMap<ConstId>,
 
@@ -36,14 +36,14 @@ impl<'x, 'ast> Visitor<'ast> for ConstCheck<'x, 'ast> {
     fn visit_const(&mut self, c: &'ast ast::Const) {
         let const_id = *self.map_const_defs.get(c.id).unwrap();
 
-        let xconst = self.ctxt.consts.idx(const_id);
+        let xconst = self.vm.consts.idx(const_id);
         let mut xconst = xconst.lock();
-        xconst.ty = semck::read_type(self.ctxt, &c.data_type).unwrap_or(BuiltinType::Unit);
+        xconst.ty = semck::read_type(self.vm, &c.data_type).unwrap_or(BuiltinType::Unit);
     }
 }
 
-fn report(ctxt: &VM, pos: Position, msg: Msg) {
-    ctxt.diag.lock().report_without_path(pos, msg);
+fn report(vm: &VM, pos: Position, msg: Msg) {
+    vm.diag.lock().report_without_path(pos, msg);
 }
 
 #[cfg(test)]

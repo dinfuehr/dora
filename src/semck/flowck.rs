@@ -5,8 +5,8 @@ use dora_parser::ast::visit::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 
-pub fn check<'ast>(ctxt: &VM<'ast>) {
-    for fct in ctxt.fcts.iter() {
+pub fn check<'ast>(vm: &VM<'ast>) {
+    for fct in vm.fcts.iter() {
         let fct = fct.read();
 
         if !fct.is_src() {
@@ -18,7 +18,7 @@ pub fn check<'ast>(ctxt: &VM<'ast>) {
         let ast = fct.ast;
 
         let mut flowck = FlowCheck {
-            ctxt: ctxt,
+            vm: vm,
             fct: &fct,
             src: &mut src,
             ast: ast,
@@ -30,7 +30,7 @@ pub fn check<'ast>(ctxt: &VM<'ast>) {
 }
 
 struct FlowCheck<'a, 'ast: 'a> {
-    ctxt: &'a VM<'ast>,
+    vm: &'a VM<'ast>,
     fct: &'a Fct<'ast>,
     src: &'a mut FctSrc,
     ast: &'ast Function,
@@ -52,7 +52,7 @@ impl<'a, 'ast> FlowCheck<'a, 'ast> {
 
     fn handle_flow(&mut self, s: &'ast Stmt) {
         if !self.in_loop {
-            self.ctxt
+            self.vm
                 .diag
                 .lock()
                 .report_without_path(s.pos(), Msg::OutsideLoop);
