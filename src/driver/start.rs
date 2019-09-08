@@ -264,14 +264,21 @@ fn parse_file(filename: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
 
 fn parse_str(file: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
     let reader = Reader::from_string(file);
+    let parser = Parser::new(reader, &vm.id_generator, ast, &mut vm.interner);
 
-    if let Err(error) = Parser::new(reader, &vm.id_generator, ast, &mut vm.interner).parse() {
-        println!("{}", error);
-        println!("1 error found.");
-        return Err(1);
+    match parser.parse() {
+        Ok(file) => {
+            vm.files.push(file);
+            Ok(())
+        }
+
+        Err(error) => {
+            println!("{}", error);
+            println!("1 error found.");
+
+            Err(1)
+        }
     }
-
-    Ok(())
 }
 
 fn find_main<'ast>(vm: &VM<'ast>) -> Option<FctId> {
