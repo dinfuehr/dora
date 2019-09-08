@@ -1,17 +1,17 @@
 use std::cell::RefCell;
 use std::mem;
 
-use crate::ast::*;
 use crate::ast::Elem::*;
+use crate::ast::*;
 use crate::builder::Builder;
 use crate::error::msg::*;
 
 use crate::interner::*;
 
-use crate::lexer::*;
-use crate::lexer::token::*;
 use crate::lexer::position::Position;
 use crate::lexer::reader::Reader;
+use crate::lexer::token::*;
+use crate::lexer::*;
 
 pub struct Parser<'a> {
     lexer: Lexer,
@@ -30,11 +30,12 @@ type ExprResult = Result<Box<Expr>, MsgWithPos>;
 type StmtResult = Result<Box<Stmt>, MsgWithPos>;
 
 impl<'a> Parser<'a> {
-    pub fn new(reader: Reader,
-               id_generator: &'a NodeIdGenerator,
-               ast: &'a mut Ast,
-               interner: &'a mut Interner)
-               -> Parser<'a> {
+    pub fn new(
+        reader: Reader,
+        id_generator: &'a NodeIdGenerator,
+        ast: &'a mut Ast,
+        interner: &'a mut Interner,
+    ) -> Parser<'a> {
         let token = Token::new(TokenKind::End, Position::new(1, 1));
         let lexer = Lexer::new(reader);
 
@@ -65,12 +66,10 @@ impl<'a> Parser<'a> {
             self.parse_top_level_element(&mut elements)?;
         }
 
-        self.ast
-            .files
-            .push(File {
-                      path: self.lexer.path().to_string(),
-                      elements: elements,
-                  });
+        self.ast.files.push(File {
+            path: self.lexer.path().to_string(),
+            elements: elements,
+        });
 
         Ok(())
     }
@@ -92,8 +91,10 @@ impl<'a> Parser<'a> {
             }
 
             TokenKind::Class => {
-                self.restrict_modifiers(&modifiers,
-                                        &[Modifier::Abstract, Modifier::Open, Modifier::Internal])?;
+                self.restrict_modifiers(
+                    &modifiers,
+                    &[Modifier::Abstract, Modifier::Open, Modifier::Internal],
+                )?;
                 let class = self.parse_class(&modifiers)?;
                 elements.push(ElemClass(class));
             }
@@ -129,7 +130,11 @@ impl<'a> Parser<'a> {
 
             _ => {
                 let msg = Msg::ExpectedTopLevelElement(self.token.name());
-                return Err(MsgWithPos::new(self.lexer.path().to_string(), self.token.position, msg));
+                return Err(MsgWithPos::new(
+                    self.lexer.path().to_string(),
+                    self.token.position,
+                    msg,
+                ));
             }
         }
 
@@ -146,12 +151,12 @@ impl<'a> Parser<'a> {
         self.expect_semicolon()?;
 
         Ok(Const {
-               id: self.generate_id(),
-               pos: pos,
-               name: name,
-               data_type: ty,
-               expr: expr,
-           })
+            id: self.generate_id(),
+            pos: pos,
+            name: name,
+            data_type: ty,
+            expr: expr,
+        })
     }
 
     fn parse_impl(&mut self) -> Result<Impl, MsgWithPos> {
@@ -175,12 +180,12 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::RBrace)?;
 
         Ok(Impl {
-               id: self.generate_id(),
-               trait_name: trait_name,
-               class_name: class_name,
-               pos: pos,
-               methods: methods,
-           })
+            id: self.generate_id(),
+            trait_name: trait_name,
+            class_name: class_name,
+            pos: pos,
+            methods: methods,
+        })
     }
 
     fn parse_global(&mut self, elements: &mut Vec<Elem>) -> Result<(), MsgWithPos> {
@@ -238,11 +243,11 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::RBrace)?;
 
         Ok(Trait {
-               id: self.generate_id(),
-               name: ident,
-               pos: pos,
-               methods: methods,
-           })
+            id: self.generate_id(),
+            name: ident,
+            pos: pos,
+            methods: methods,
+        })
     }
 
     fn parse_struct(&mut self) -> Result<Struct, MsgWithPos> {
@@ -253,11 +258,11 @@ impl<'a> Parser<'a> {
         let fields = self.parse_comma_list(TokenKind::RBrace, |p| p.parse_struct_field())?;
 
         Ok(Struct {
-               id: self.generate_id(),
-               name: ident,
-               pos: pos,
-               fields: fields,
-           })
+            id: self.generate_id(),
+            name: ident,
+            pos: pos,
+            fields: fields,
+        })
     }
 
     fn parse_struct_field(&mut self) -> Result<StructField, MsgWithPos> {
@@ -268,11 +273,11 @@ impl<'a> Parser<'a> {
         let ty = self.parse_type()?;
 
         Ok(StructField {
-               id: self.generate_id(),
-               name: ident,
-               pos: pos,
-               data_type: ty,
-           })
+            id: self.generate_id(),
+            name: ident,
+            pos: pos,
+            data_type: ty,
+        })
     }
 
     fn parse_class(&mut self, modifiers: &Modifiers) -> Result<Class, MsgWithPos> {
@@ -359,10 +364,10 @@ impl<'a> Parser<'a> {
         };
 
         Ok(TypeParam {
-               name: name,
-               pos: pos,
-               bounds: bounds,
-           })
+            name: name,
+            pos: pos,
+            bounds: bounds,
+        })
     }
 
     fn parse_parent_class_params(&mut self) -> Result<Vec<Box<Expr>>, MsgWithPos> {
@@ -385,14 +390,13 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::LParen)?;
         cls.has_constructor = true;
 
-        let params = self.parse_comma_list(TokenKind::RParen, |p| p.parse_constructor_param(cls))?;
+        let params =
+            self.parse_comma_list(TokenKind::RParen, |p| p.parse_constructor_param(cls))?;
 
         Ok(params)
     }
 
-    fn parse_constructor_param(&mut self,
-                               cls: &mut Class)
-                               -> Result<ConstructorParam, MsgWithPos> {
+    fn parse_constructor_param(&mut self, cls: &mut Class) -> Result<ConstructorParam, MsgWithPos> {
         let field = self.token.is(TokenKind::Var) || self.token.is(TokenKind::Let);
         let reassignable = self.token.is(TokenKind::Var);
 
@@ -408,25 +412,24 @@ impl<'a> Parser<'a> {
         let data_type = self.parse_type()?;
 
         if field {
-            cls.fields
-                .push(Field {
-                          id: self.generate_id(),
-                          name: name,
-                          pos: pos,
-                          data_type: data_type.clone(),
-                          primary_ctor: true,
-                          expr: None,
-                          reassignable: reassignable,
-                      })
+            cls.fields.push(Field {
+                id: self.generate_id(),
+                name: name,
+                pos: pos,
+                data_type: data_type.clone(),
+                primary_ctor: true,
+                expr: None,
+                reassignable: reassignable,
+            })
         }
 
         Ok(ConstructorParam {
-               name: name,
-               pos: pos,
-               data_type: data_type,
-               field: field,
-               reassignable: reassignable,
-           })
+            name: name,
+            pos: pos,
+            data_type: data_type,
+            field: field,
+            reassignable: reassignable,
+        })
     }
 
     fn parse_class_body(&mut self, cls: &mut Class) -> Result<(), MsgWithPos> {
@@ -441,13 +444,15 @@ impl<'a> Parser<'a> {
 
             match self.token.kind {
                 TokenKind::Fun => {
-                    let mods = &[Modifier::Abstract,
-                                 Modifier::Internal,
-                                 Modifier::Open,
-                                 Modifier::Override,
-                                 Modifier::Final,
-                                 Modifier::Pub,
-                                 Modifier::Static];
+                    let mods = &[
+                        Modifier::Abstract,
+                        Modifier::Internal,
+                        Modifier::Open,
+                        Modifier::Override,
+                        Modifier::Final,
+                        Modifier::Pub,
+                        Modifier::Static,
+                    ];
                     self.restrict_modifiers(&modifiers, mods)?;
 
                     let fct = self.parse_function(&modifiers)?;
@@ -490,9 +495,11 @@ impl<'a> Parser<'a> {
             };
 
             if modifiers.contains(modifier) {
-                return Err(MsgWithPos::new(self.lexer.path().to_string(),
-                                           self.token.position,
-                                           Msg::RedundantModifier(self.token.name())));
+                return Err(MsgWithPos::new(
+                    self.lexer.path().to_string(),
+                    self.token.position,
+                    Msg::RedundantModifier(self.token.name()),
+                ));
             }
 
             let pos = self.advance_token()?.position;
@@ -506,15 +513,18 @@ impl<'a> Parser<'a> {
         self.restrict_modifiers(modifiers, &[])
     }
 
-    fn restrict_modifiers(&mut self,
-                          modifiers: &Modifiers,
-                          restrict: &[Modifier])
-                          -> Result<(), MsgWithPos> {
+    fn restrict_modifiers(
+        &mut self,
+        modifiers: &Modifiers,
+        restrict: &[Modifier],
+    ) -> Result<(), MsgWithPos> {
         for modifier in modifiers.iter() {
             if !restrict.contains(&modifier.value) {
-                return Err(MsgWithPos::new(self.lexer.path().to_string(),
-                                           modifier.pos,
-                                           Msg::MisplacedModifier(modifier.value.name().into())));
+                return Err(MsgWithPos::new(
+                    self.lexer.path().to_string(),
+                    modifier.pos,
+                    Msg::MisplacedModifier(modifier.value.name().into()),
+                ));
             }
         }
 
@@ -540,7 +550,6 @@ impl<'a> Parser<'a> {
         let expr = if self.token.is(TokenKind::Eq) {
             self.expect_token(TokenKind::Eq)?;
             Some(self.parse_expression()?)
-
         } else {
             None
         };
@@ -548,14 +557,14 @@ impl<'a> Parser<'a> {
         self.expect_semicolon()?;
 
         Ok(Field {
-               id: self.generate_id(),
-               name: name,
-               pos: pos,
-               data_type: data_type,
-               primary_ctor: false,
-               expr: expr,
-               reassignable: reassignable,
-           })
+            id: self.generate_id(),
+            name: name,
+            pos: pos,
+            data_type: data_type,
+            primary_ctor: false,
+            expr: expr,
+            reassignable: reassignable,
+        })
     }
 
     fn parse_function(&mut self, modifiers: &Modifiers) -> Result<Function, MsgWithPos> {
@@ -568,25 +577,25 @@ impl<'a> Parser<'a> {
         let block = self.parse_function_block()?;
 
         Ok(Function {
-               id: self.generate_id(),
-               name: ident,
-               pos: pos,
-               method: self.in_class,
-               has_open: modifiers.contains(Modifier::Open),
-               has_override: modifiers.contains(Modifier::Override),
-               has_final: modifiers.contains(Modifier::Final),
-               has_optimize: modifiers.contains(Modifier::Optimize),
-               is_pub: modifiers.contains(Modifier::Pub),
-               is_static: modifiers.contains(Modifier::Static),
-               internal: modifiers.contains(Modifier::Internal),
-               is_abstract: modifiers.contains(Modifier::Abstract),
-               is_constructor: false,
-               params: params,
-               throws: throws,
-               return_type: return_type,
-               block: block,
-               type_params: type_params,
-           })
+            id: self.generate_id(),
+            name: ident,
+            pos: pos,
+            method: self.in_class,
+            has_open: modifiers.contains(Modifier::Open),
+            has_override: modifiers.contains(Modifier::Override),
+            has_final: modifiers.contains(Modifier::Final),
+            has_optimize: modifiers.contains(Modifier::Optimize),
+            is_pub: modifiers.contains(Modifier::Pub),
+            is_static: modifiers.contains(Modifier::Static),
+            internal: modifiers.contains(Modifier::Internal),
+            is_abstract: modifiers.contains(Modifier::Abstract),
+            is_constructor: false,
+            params: params,
+            throws: throws,
+            return_type: return_type,
+            block: block,
+            type_params: type_params,
+        })
     }
 
     fn parse_throws(&mut self) -> Result<bool, MsgWithPos> {
@@ -604,29 +613,32 @@ impl<'a> Parser<'a> {
         self.param_idx = 0;
 
         let params = self.parse_comma_list(TokenKind::RParen, |p| {
-                p.param_idx += 1;
+            p.param_idx += 1;
 
-                p.parse_function_param()
-            })?;
+            p.parse_function_param()
+        })?;
 
         Ok(params)
     }
 
-    fn parse_comma_list<F, R>(&mut self,
-                              stop: TokenKind,
-                              mut parse: F)
-                              -> Result<Vec<R>, MsgWithPos>
-        where F: FnMut(&mut Parser) -> Result<R, MsgWithPos>
+    fn parse_comma_list<F, R>(
+        &mut self,
+        stop: TokenKind,
+        mut parse: F,
+    ) -> Result<Vec<R>, MsgWithPos>
+    where
+        F: FnMut(&mut Parser) -> Result<R, MsgWithPos>,
     {
         let mut data = vec![];
         let mut comma = true;
 
         while !self.token.is(stop.clone()) && !self.token.is_eof() {
             if !comma {
-                return Err(MsgWithPos::new(self.lexer.path().to_string(),
-                                           self.token.position,
-                                           Msg::ExpectedToken(TokenKind::Comma.name().into(),
-                                                              self.token.name())));
+                return Err(MsgWithPos::new(
+                    self.lexer.path().to_string(),
+                    self.token.position,
+                    Msg::ExpectedToken(TokenKind::Comma.name().into(), self.token.name()),
+                ));
             }
 
             let entry = parse(self)?;
@@ -660,13 +672,13 @@ impl<'a> Parser<'a> {
         let data_type = self.parse_type()?;
 
         Ok(Param {
-               id: self.generate_id(),
-               idx: self.param_idx - 1,
-               reassignable: reassignable,
-               name: name,
-               pos: pos,
-               data_type: data_type,
-           })
+            id: self.generate_id(),
+            idx: self.param_idx - 1,
+            reassignable: reassignable,
+            name: name,
+            pos: pos,
+            data_type: data_type,
+        })
     }
 
     fn parse_function_type(&mut self) -> Result<Option<Type>, MsgWithPos> {
@@ -736,22 +748,35 @@ impl<'a> Parser<'a> {
             TokenKind::LParen => {
                 let token = self.advance_token()?;
                 let subtypes = self.parse_comma_list(TokenKind::RParen, |p| {
-                        let ty = p.parse_type()?;
+                    let ty = p.parse_type()?;
 
-                        Ok(Box::new(ty))
-                    })?;
+                    Ok(Box::new(ty))
+                })?;
 
                 if self.token.is(TokenKind::Arrow) {
                     self.advance_token()?;
                     let ret = Box::new(self.parse_type()?);
 
-                    Ok(Type::create_fct(self.generate_id(), token.position, subtypes, ret))
+                    Ok(Type::create_fct(
+                        self.generate_id(),
+                        token.position,
+                        subtypes,
+                        ret,
+                    ))
                 } else {
-                    Ok(Type::create_tuple(self.generate_id(), token.position, subtypes))
+                    Ok(Type::create_tuple(
+                        self.generate_id(),
+                        token.position,
+                        subtypes,
+                    ))
                 }
             }
 
-            _ => Err(MsgWithPos::new(self.lexer.path().to_string(), self.token.position, Msg::ExpectedType(self.token.name()))),
+            _ => Err(MsgWithPos::new(
+                self.lexer.path().to_string(),
+                self.token.position,
+                Msg::ExpectedType(self.token.name()),
+            )),
         }
     }
 
@@ -765,7 +790,11 @@ impl<'a> Parser<'a> {
             TokenKind::Break => self.parse_break(),
             TokenKind::Continue => self.parse_continue(),
             TokenKind::Return => self.parse_return(),
-            TokenKind::Else => Err(MsgWithPos::new(self.lexer.path().to_string(), self.token.position, Msg::MisplacedElse)),
+            TokenKind::Else => Err(MsgWithPos::new(
+                self.lexer.path().to_string(),
+                self.token.position,
+                Msg::MisplacedElse,
+            )),
             TokenKind::Throw => self.parse_throw(),
             TokenKind::Defer => self.parse_defer(),
             TokenKind::Do => self.parse_do(),
@@ -817,11 +846,13 @@ impl<'a> Parser<'a> {
             None
         };
 
-        Ok(Box::new(Stmt::create_do(self.generate_id(),
-                                    pos,
-                                    try_block,
-                                    catch_blocks,
-                                    finally_block)))
+        Ok(Box::new(Stmt::create_do(
+            self.generate_id(),
+            pos,
+            try_block,
+            catch_blocks,
+            finally_block,
+        )))
     }
 
     fn parse_catch(&mut self) -> Result<CatchBlock, MsgWithPos> {
@@ -858,12 +889,14 @@ impl<'a> Parser<'a> {
 
         self.expect_semicolon()?;
 
-        Ok(Box::new(Stmt::create_var(self.generate_id(),
-                                     pos,
-                                     ident,
-                                     reassignable,
-                                     data_type,
-                                     expr)))
+        Ok(Box::new(Stmt::create_var(
+            self.generate_id(),
+            pos,
+            ident,
+            reassignable,
+            data_type,
+            expr,
+        )))
     }
 
     fn parse_var_type(&mut self) -> Result<Option<Type>, MsgWithPos> {
@@ -925,7 +958,13 @@ impl<'a> Parser<'a> {
             None
         };
 
-        Ok(Box::new(Stmt::create_if(self.generate_id(), pos, cond, then_block, else_block)))
+        Ok(Box::new(Stmt::create_if(
+            self.generate_id(),
+            pos,
+            cond,
+            then_block,
+            else_block,
+        )))
     }
 
     fn parse_for(&mut self) -> StmtResult {
@@ -939,7 +978,13 @@ impl<'a> Parser<'a> {
 
         let block = self.parse_block()?;
 
-        Ok(Box::new(Stmt::create_for(self.generate_id(), pos, name, expr, block)))
+        Ok(Box::new(Stmt::create_for(
+            self.generate_id(),
+            pos,
+            name,
+            expr,
+            block,
+        )))
     }
 
     fn parse_while(&mut self) -> StmtResult {
@@ -951,7 +996,12 @@ impl<'a> Parser<'a> {
 
         let block = self.parse_block()?;
 
-        Ok(Box::new(Stmt::create_while(self.generate_id(), pos, expr, block)))
+        Ok(Box::new(Stmt::create_while(
+            self.generate_id(),
+            pos,
+            expr,
+            block,
+        )))
     }
 
     fn parse_loop(&mut self) -> StmtResult {
@@ -1014,8 +1064,12 @@ impl<'a> Parser<'a> {
                 TokenKind::Or => 1,
                 TokenKind::And => 2,
                 TokenKind::Eq => 3,
-                TokenKind::EqEq | TokenKind::Ne | TokenKind::Lt | TokenKind::Le |
-                TokenKind::Gt | TokenKind::Ge => 4,
+                TokenKind::EqEq
+                | TokenKind::Ne
+                | TokenKind::Lt
+                | TokenKind::Le
+                | TokenKind::Gt
+                | TokenKind::Ge => 4,
                 TokenKind::EqEqEq | TokenKind::NeEqEq => 5,
                 TokenKind::BitOr | TokenKind::BitAnd | TokenKind::Caret => 6,
                 TokenKind::LtLt | TokenKind::GtGt | TokenKind::GtGtGt => 7,
@@ -1054,7 +1108,6 @@ impl<'a> Parser<'a> {
     fn parse_unary(&mut self, opts: &ExprParsingOpts) -> ExprResult {
         match self.token.kind {
             TokenKind::Add | TokenKind::Sub | TokenKind::Not => {
-
                 let tok = self.advance_token()?;
                 let op = match tok.kind {
                     TokenKind::Add => UnOp::Plus,
@@ -1064,7 +1117,12 @@ impl<'a> Parser<'a> {
                 };
 
                 let expr = self.parse_primary(opts)?;
-                Ok(Box::new(Expr::create_un(self.generate_id(), tok.position, op, expr)))
+                Ok(Box::new(Expr::create_un(
+                    self.generate_id(),
+                    tok.position,
+                    op,
+                    expr,
+                )))
             }
 
             _ => self.parse_primary(opts),
@@ -1089,26 +1147,41 @@ impl<'a> Parser<'a> {
 
                     if self.token.is(TokenKind::LParen) {
                         self.parse_call(tok.position, Some(left), Path::new(ident), type_params)?
-
                     } else {
                         //println!("ident {:?}, pos {}", self.interner.str(ident), tok.position);
                         assert!(type_params.is_none());
-                        Box::new(Expr::create_field(self.generate_id(), tok.position, left, ident))
+                        Box::new(Expr::create_field(
+                            self.generate_id(),
+                            tok.position,
+                            left,
+                            ident,
+                        ))
                     }
                 }
 
                 TokenKind::LParen => {
                     let tok = self.advance_token()?;
-                    let args = self.parse_comma_list(TokenKind::RParen, |p| p.parse_expression())?;
+                    let args =
+                        self.parse_comma_list(TokenKind::RParen, |p| p.parse_expression())?;
 
-                    Box::new(Expr::create_call2(self.generate_id(), tok.position, left, args))
+                    Box::new(Expr::create_call2(
+                        self.generate_id(),
+                        tok.position,
+                        left,
+                        args,
+                    ))
                 }
 
                 TokenKind::Sep => {
                     let tok = self.advance_token()?;
                     let rhs = self.parse_expression()?;
 
-                    Box::new(Expr::create_path(self.generate_id(), tok.position, left, rhs))
+                    Box::new(Expr::create_path(
+                        self.generate_id(),
+                        tok.position,
+                        left,
+                        rhs,
+                    ))
                 }
 
                 _ => {
@@ -1121,7 +1194,12 @@ impl<'a> Parser<'a> {
     fn create_binary(&mut self, tok: Token, left: Box<Expr>, right: Box<Expr>) -> Box<Expr> {
         let op = match tok.kind {
             TokenKind::Eq => {
-                return Box::new(Expr::create_assign(self.generate_id(), tok.position, left, right));
+                return Box::new(Expr::create_assign(
+                    self.generate_id(),
+                    tok.position,
+                    left,
+                    right,
+                ));
             }
 
             TokenKind::Or => BinOp::Or,
@@ -1148,7 +1226,13 @@ impl<'a> Parser<'a> {
             _ => panic!("unimplemented token {:?}", tok),
         };
 
-        Box::new(Expr::create_bin(self.generate_id(), tok.position, op, left, right))
+        Box::new(Expr::create_bin(
+            self.generate_id(),
+            tok.position,
+            op,
+            left,
+            right,
+        ))
     }
 
     fn parse_factor(&mut self, opts: &ExprParsingOpts) -> ExprResult {
@@ -1167,11 +1251,11 @@ impl<'a> Parser<'a> {
             TokenKind::Try => self.parse_try(),
             TokenKind::TryForce | TokenKind::TryOpt => self.parse_try_op(),
             TokenKind::BitOr | TokenKind::Or => self.parse_lambda(),
-            _ => {
-                Err(MsgWithPos::new(self.lexer.path().to_string(),
-                                    self.token.position,
-                                    Msg::ExpectedFactor(self.token.name().clone())))
-            }
+            _ => Err(MsgWithPos::new(
+                self.lexer.path().to_string(),
+                self.token.position,
+                Msg::ExpectedFactor(self.token.name().clone()),
+            )),
         }
     }
 
@@ -1197,16 +1281,20 @@ impl<'a> Parser<'a> {
         // is this a function call?
         if self.token.is(TokenKind::LParen) {
             self.parse_call(pos, None, Path { path: path }, type_params)
-
         } else if self.token.is(TokenKind::LBrace) && opts.parse_struct_lit {
             assert!(type_params.is_none());
             self.parse_lit_struct(pos, Path { path: path })
 
-            // if not we have a simple identifier
+        // if not we have a simple identifier
         } else {
             assert_eq!(1, path.len());
             let name = path[0];
-            Ok(Box::new(Expr::create_ident(self.generate_id(), pos, name, type_params)))
+            Ok(Box::new(Expr::create_ident(
+                self.generate_id(),
+                pos,
+                name,
+                type_params,
+            )))
         }
     }
 
@@ -1214,7 +1302,12 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::LBrace)?;
         let args = self.parse_comma_list(TokenKind::RBrace, |p| p.parse_lit_struct_arg())?;
 
-        Ok(Box::new(Expr::create_lit_struct(self.generate_id(), pos, path, args)))
+        Ok(Box::new(Expr::create_lit_struct(
+            self.generate_id(),
+            pos,
+            path,
+            args,
+        )))
     }
 
     fn parse_lit_struct_arg(&mut self) -> Result<StructArg, MsgWithPos> {
@@ -1226,24 +1319,32 @@ impl<'a> Parser<'a> {
         let expr = self.parse_expression()?;
 
         Ok(StructArg {
-               id: self.generate_id(),
-               pos: pos,
-               name: name,
-               expr: expr,
-           })
+            id: self.generate_id(),
+            pos: pos,
+            name: name,
+            expr: expr,
+        })
     }
 
-    fn parse_call(&mut self,
-                  pos: Position,
-                  object: Option<Box<Expr>>,
-                  path: Path,
-                  type_params: Option<Vec<Type>>)
-                  -> ExprResult {
+    fn parse_call(
+        &mut self,
+        pos: Position,
+        object: Option<Box<Expr>>,
+        path: Path,
+        type_params: Option<Vec<Type>>,
+    ) -> ExprResult {
         self.expect_token(TokenKind::LParen)?;
 
         let args = self.parse_comma_list(TokenKind::RParen, |p| p.parse_expression())?;
 
-        Ok(Box::new(Expr::create_call(self.generate_id(), pos, path, object, args, type_params)))
+        Ok(Box::new(Expr::create_call(
+            self.generate_id(),
+            pos,
+            path,
+            object,
+            args,
+            type_params,
+        )))
     }
 
     fn parse_parentheses(&mut self) -> ExprResult {
@@ -1264,7 +1365,12 @@ impl<'a> Parser<'a> {
             TryMode::Opt
         };
 
-        Ok(Box::new(Expr::create_try(self.generate_id(), tok.position, exp, mode)))
+        Ok(Box::new(Expr::create_try(
+            self.generate_id(),
+            tok.position,
+            exp,
+            mode,
+        )))
     }
 
     fn parse_try(&mut self) -> ExprResult {
@@ -1280,7 +1386,12 @@ impl<'a> Parser<'a> {
             TryMode::Normal
         };
 
-        Ok(Box::new(Expr::create_try(self.generate_id(), pos, exp, mode)))
+        Ok(Box::new(Expr::create_try(
+            self.generate_id(),
+            pos,
+            exp,
+            mode,
+        )))
     }
 
     fn parse_lit_char(&mut self) -> ExprResult {
@@ -1288,8 +1399,11 @@ impl<'a> Parser<'a> {
         let pos = tok.position;
 
         if let TokenKind::LitChar(val) = tok.kind {
-            Ok(Box::new(Expr::create_lit_char(self.generate_id(), pos, val)))
-
+            Ok(Box::new(Expr::create_lit_char(
+                self.generate_id(),
+                pos,
+                val,
+            )))
         } else {
             unreachable!();
         }
@@ -1300,10 +1414,7 @@ impl<'a> Parser<'a> {
         let pos = tok.position;
 
         if let TokenKind::LitInt(value, base, suffix) = tok.kind {
-            let filtered = value
-                .chars()
-                .filter(|&ch| ch != '_')
-                .collect::<String>();
+            let filtered = value.chars().filter(|&ch| ch != '_').collect::<String>();
             let parsed = u64::from_str_radix(&filtered, base.num());
 
             match parsed {
@@ -1319,9 +1430,11 @@ impl<'a> Parser<'a> {
                         IntSuffix::Long => "long",
                     };
 
-                    Err(MsgWithPos::new(self.lexer.path().to_string(),
-                                        pos,
-                                        Msg::NumberOverflow(bits.into())))
+                    Err(MsgWithPos::new(
+                        self.lexer.path().to_string(),
+                        pos,
+                        Msg::NumberOverflow(bits.into()),
+                    ))
                 }
             }
         } else {
@@ -1334,16 +1447,12 @@ impl<'a> Parser<'a> {
         let pos = tok.position;
 
         if let TokenKind::LitFloat(value, suffix) = tok.kind {
-            let filtered = value
-                .chars()
-                .filter(|&ch| ch != '_')
-                .collect::<String>();
+            let filtered = value.chars().filter(|&ch| ch != '_').collect::<String>();
             let parsed = filtered.parse::<f64>();
 
             if let Ok(num) = parsed {
                 let expr = Expr::create_lit_float(self.generate_id(), pos, num, suffix);
                 return Ok(Box::new(expr));
-
             }
         }
 
@@ -1354,7 +1463,11 @@ impl<'a> Parser<'a> {
         let string = self.advance_token()?;
 
         if let TokenKind::String(value) = string.kind {
-            Ok(Box::new(Expr::create_lit_str(self.generate_id(), string.position, value)))
+            Ok(Box::new(Expr::create_lit_str(
+                self.generate_id(),
+                string.position,
+                value,
+            )))
         } else {
             unreachable!();
         }
@@ -1364,19 +1477,29 @@ impl<'a> Parser<'a> {
         let tok = self.advance_token()?;
         let value = tok.is(TokenKind::True);
 
-        Ok(Box::new(Expr::create_lit_bool(self.generate_id(), tok.position, value)))
+        Ok(Box::new(Expr::create_lit_bool(
+            self.generate_id(),
+            tok.position,
+            value,
+        )))
     }
 
     fn parse_this(&mut self) -> ExprResult {
         let tok = self.advance_token()?;
 
-        Ok(Box::new(Expr::create_this(self.generate_id(), tok.position)))
+        Ok(Box::new(Expr::create_this(
+            self.generate_id(),
+            tok.position,
+        )))
     }
 
     fn parse_super(&mut self) -> ExprResult {
         let tok = self.advance_token()?;
 
-        Ok(Box::new(Expr::create_super(self.generate_id(), tok.position)))
+        Ok(Box::new(Expr::create_super(
+            self.generate_id(),
+            tok.position,
+        )))
     }
 
     fn parse_nil(&mut self) -> ExprResult {
@@ -1391,26 +1514,30 @@ impl<'a> Parser<'a> {
         let params = if tok.kind == TokenKind::Or {
             // nothing to do
             Vec::new()
-
         } else {
             self.param_idx = 0;
             self.parse_comma_list(TokenKind::BitOr, |p| {
-                    p.param_idx += 1;
-                    p.parse_function_param()
-                })?
+                p.param_idx += 1;
+                p.parse_function_param()
+            })?
         };
 
         let ret = if self.token.is(TokenKind::Arrow) {
             self.advance_token()?;
             Some(Box::new(self.parse_type()?))
-
         } else {
             None
         };
 
         let block = self.parse_block()?;
 
-        Ok(Box::new(Expr::create_lambda(self.generate_id(), tok.position, params, ret, block)))
+        Ok(Box::new(Expr::create_lambda(
+            self.generate_id(),
+            tok.position,
+            params,
+            ret,
+            block,
+        )))
     }
 
     fn expect_identifier(&mut self) -> Result<Name, MsgWithPos> {
@@ -1420,9 +1547,12 @@ impl<'a> Parser<'a> {
             let interned = self.interner.intern(value);
 
             Ok(interned)
-
         } else {
-            Err(MsgWithPos::new(self.lexer.path().to_string(), tok.position, Msg::ExpectedIdentifier(tok.name())))
+            Err(MsgWithPos::new(
+                self.lexer.path().to_string(),
+                tok.position,
+                Msg::ExpectedIdentifier(tok.name()),
+            ))
         }
     }
 
@@ -1436,9 +1566,11 @@ impl<'a> Parser<'a> {
 
             Ok(token)
         } else {
-            Err(MsgWithPos::new(self.lexer.path().to_string(),
-                                self.token.position,
-                                Msg::ExpectedToken(kind.name().into(), self.token.name())))
+            Err(MsgWithPos::new(
+                self.lexer.path().to_string(),
+                self.token.position,
+                Msg::ExpectedToken(kind.name().into(), self.token.name()),
+            ))
         }
     }
 
@@ -1448,18 +1580,21 @@ impl<'a> Parser<'a> {
         Ok(mem::replace(&mut self.token, tok))
     }
 
-    fn generate_constructor(&mut self,
-                            cls: &mut Class,
-                            ctor_params: Vec<ConstructorParam>)
-                            -> Function {
+    fn generate_constructor(
+        &mut self,
+        cls: &mut Class,
+        ctor_params: Vec<ConstructorParam>,
+    ) -> Function {
         let builder = Builder::new(self.id_generator);
         let mut block = builder.build_block();
 
         if let Some(ref parent_class) = cls.parent_class {
-            let expr = Expr::create_delegation(self.generate_id(),
-                                               parent_class.pos,
-                                               DelegationType::Super,
-                                               parent_class.params.clone());
+            let expr = Expr::create_delegation(
+                self.generate_id(),
+                parent_class.pos,
+                DelegationType::Super,
+                parent_class.params.clone(),
+            );
 
             block.add_expr(Box::new(expr));
         }
@@ -1504,7 +1639,9 @@ struct ExprParsingOpts {
 
 impl ExprParsingOpts {
     pub fn new() -> ExprParsingOpts {
-        ExprParsingOpts { parse_struct_lit: true }
+        ExprParsingOpts {
+            parse_struct_lit: true,
+        }
     }
 
     pub fn parse_struct_lit(&mut self, val: bool) -> &mut ExprParsingOpts {
@@ -1527,7 +1664,9 @@ pub struct NodeIdGenerator {
 
 impl NodeIdGenerator {
     pub fn new() -> NodeIdGenerator {
-        NodeIdGenerator { value: RefCell::new(1) }
+        NodeIdGenerator {
+            value: RefCell::new(1),
+        }
     }
 
     pub fn next(&self) -> NodeId {
@@ -2112,15 +2251,23 @@ mod tests {
         assert_eq!("b", *interner1.str(p1b.name));
         assert_eq!("b", *interner2.str(p2b.name));
 
-        assert_eq!("int",
-                   *interner1.str(p1a.data_type.to_basic().unwrap().name));
-        assert_eq!("int",
-                   *interner2.str(p2a.data_type.to_basic().unwrap().name));
+        assert_eq!(
+            "int",
+            *interner1.str(p1a.data_type.to_basic().unwrap().name)
+        );
+        assert_eq!(
+            "int",
+            *interner2.str(p2a.data_type.to_basic().unwrap().name)
+        );
 
-        assert_eq!("str",
-                   *interner1.str(p1b.data_type.to_basic().unwrap().name));
-        assert_eq!("str",
-                   *interner2.str(p2b.data_type.to_basic().unwrap().name));
+        assert_eq!(
+            "str",
+            *interner1.str(p1b.data_type.to_basic().unwrap().name)
+        );
+        assert_eq!(
+            "str",
+            *interner2.str(p2b.data_type.to_basic().unwrap().name)
+        );
     }
 
     #[test]
@@ -2320,13 +2467,7 @@ mod tests {
         let stmt = parse_stmt("return 1;");
         let ret = stmt.to_return().unwrap();
 
-        assert_eq!(1,
-                   ret.expr
-                       .as_ref()
-                       .unwrap()
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(1, ret.expr.as_ref().unwrap().to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2427,10 +2568,12 @@ mod tests {
 
     #[test]
     fn parse_method() {
-        let (prog, interner) = parse("class Foo {
+        let (prog, interner) = parse(
+            "class Foo {
             fun zero() -> int { return 0; }
             fun id(a: String) -> String { return a; }
-        }");
+        }",
+        );
 
         let cls = prog.cls0();
         assert_eq!(0, cls.fields.len());
@@ -2440,33 +2583,25 @@ mod tests {
         assert_eq!("zero", *interner.str(mtd1.name));
         assert_eq!(0, mtd1.params.len());
         assert_eq!(true, mtd1.method);
-        let rt1 = mtd1.return_type
-            .as_ref()
-            .unwrap()
-            .to_basic()
-            .unwrap()
-            .name;
+        let rt1 = mtd1.return_type.as_ref().unwrap().to_basic().unwrap().name;
         assert_eq!("int", *interner.str(rt1));
 
         let mtd2 = &cls.methods[1];
         assert_eq!("id", *interner.str(mtd2.name));
         assert_eq!(1, mtd2.params.len());
         assert_eq!(true, mtd2.method);
-        let rt2 = mtd2.return_type
-            .as_ref()
-            .unwrap()
-            .to_basic()
-            .unwrap()
-            .name;
+        let rt2 = mtd2.return_type.as_ref().unwrap().to_basic().unwrap().name;
         assert_eq!("String", *interner.str(rt2));
     }
 
     #[test]
     fn parse_abstract_method() {
-        let (prog, _) = parse("class Foo {
+        let (prog, _) = parse(
+            "class Foo {
             abstract fun zero();
             fun foo();
-        }");
+        }",
+        );
 
         let cls = prog.cls0();
         assert_eq!(0, cls.fields.len());
@@ -2561,10 +2696,12 @@ mod tests {
         let (prog, interner) = parse("class Foo : Bar");
         let class = prog.cls0();
 
-        assert_eq!("Bar",
-                   interner
-                       .str(class.parent_class.as_ref().unwrap().name)
-                       .to_string());
+        assert_eq!(
+            "Bar",
+            interner
+                .str(class.parent_class.as_ref().unwrap().name)
+                .to_string()
+        );
     }
 
     #[test]
@@ -2593,11 +2730,15 @@ mod tests {
         assert_eq!(2, call.args.len());
     }
 
-    #[ignore] #[test]
+    #[ignore]
+    #[test]
     fn parse_array_index() {
         let (expr, interner) = parse_expr("a(b)");
         let expr = expr.to_call().unwrap();
-        assert_eq!("a", *interner.str(expr.clone().object.unwrap().to_ident().unwrap().name));
+        assert_eq!(
+            "a",
+            *interner.str(expr.clone().object.unwrap().to_ident().unwrap().name)
+        );
         assert_eq!("b", *interner.str(expr.args[0].to_ident().unwrap().name));
     }
 
@@ -2640,8 +2781,10 @@ mod tests {
 
     #[test]
     fn parse_do() {
-        let stmt = parse_stmt("do { 1; } catch e: String { 2; }
-                                          catch e: IntArray { 3; } finally { 4; }");
+        let stmt = parse_stmt(
+            "do { 1; } catch e: String { 2; }
+                                          catch e: IntArray { 3; } finally { 4; }",
+        );
         let r#try = stmt.to_do().unwrap();
 
         assert_eq!(2, r#try.catch_blocks.len());
@@ -2685,9 +2828,11 @@ mod tests {
 
     #[test]
     fn parse_override_method() {
-        let (prog, _) = parse("class A { fun f() {}
+        let (prog, _) = parse(
+            "class A { fun f() {}
                                                 override fun g() {}
-                                                open fun h() {} }");
+                                                open fun h() {} }",
+        );
         let cls = prog.cls0();
 
         let m1 = &cls.methods[0];
@@ -2826,9 +2971,11 @@ mod tests {
 
     #[test]
     fn parse_struct_one_field() {
-        let (prog, interner) = parse("struct Bar {
+        let (prog, interner) = parse(
+            "struct Bar {
             f1: Foo1,
-        }");
+        }",
+        );
         let struc = prog.struct0();
         assert_eq!(1, struc.fields.len());
         assert_eq!("Bar", *interner.str(struc.name));
@@ -2839,10 +2986,12 @@ mod tests {
 
     #[test]
     fn parse_struct_multiple_fields() {
-        let (prog, interner) = parse("struct FooBar {
+        let (prog, interner) = parse(
+            "struct FooBar {
             fa: Foo1,
             fb: Foo2,
-        }");
+        }",
+        );
         let struc = prog.struct0();
         assert_eq!(2, struc.fields.len());
         assert_eq!("FooBar", *interner.str(struc.name));
@@ -3036,9 +3185,11 @@ mod tests {
 
     #[test]
     fn parse_static_method() {
-        let (prog, _) = parse("class A {
+        let (prog, _) = parse(
+            "class A {
                 static fun test() {}
-              }");
+              }",
+        );
         let cls = prog.cls0();
         assert_eq!(1, cls.methods.len());
 

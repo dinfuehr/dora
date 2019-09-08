@@ -2,7 +2,7 @@ use std::fs;
 use std::path::Path;
 
 use crate::vm::VM;
-use crate::vm::{exception_get_and_clear, Fct, FctId};
+use crate::vm::{exception_get_and_clear, Fct, FctId, File};
 use dora_parser::ast::{self, Ast};
 use dora_parser::error::msg::Msg;
 
@@ -10,14 +10,13 @@ use crate::driver::cmd;
 use crate::object;
 use crate::os;
 use crate::timer::Timer;
-use dora_parser::interner::Interner;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::reader::Reader;
 
 use crate::semck;
 use crate::semck::specialize::specialize_class_id;
 use crate::ty::BuiltinType;
-use dora_parser::parser::{NodeIdGenerator, Parser};
+use dora_parser::parser::Parser;
 
 pub fn start(content: Option<&str>) -> i32 {
     os::mem::init_page_size();
@@ -103,23 +102,20 @@ pub fn start(content: Option<&str>) -> i32 {
 fn parse_all_files(vm: &mut VM, ast: &mut Ast, content: Option<&str>) -> Result<(), i32> {
     let fuzzing = content.is_some();
 
-    let args = &vm.args;
-    let id_generator = &vm.id_generator;
-    let interner = &mut vm.interner;
-
-    parse_dir("stdlib", id_generator, ast, interner).and_then(|_| {
+    parse_dir("stdlib", vm, ast).and_then(|_| {
         if fuzzing {
-            return parse_str(content.unwrap(), id_generator, ast, interner);
+            return parse_str(content.unwrap(), vm, ast);
         }
 
-        let path = Path::new(&args.arg_file);
+        let arg_file = vm.args.arg_file.clone();
+        let path = Path::new(&arg_file);
 
         if path.is_file() {
-            parse_file(&args.arg_file, id_generator, ast, interner)
+            parse_file(&arg_file, vm, ast)
         } else if path.is_dir() {
-            parse_dir(&args.arg_file, id_generator, ast, interner)
+            parse_dir(&arg_file, vm, ast)
         } else {
-            println!("file or directory `{}` does not exist.", &args.arg_file);
+            println!("file or directory `{}` does not exist.", &arg_file);
             Err(1)
         }
     })
@@ -208,12 +204,7 @@ fn run_main<'ast>(vm: &VM<'ast>, main: FctId) -> i32 {
     }
 }
 
-fn parse_dir(
-    dirname: &str,
-    id_generator: &NodeIdGenerator,
-    ast: &mut Ast,
-    interner: &mut Interner,
-) -> Result<(), i32> {
+fn parse_dir(dirname: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
     let path = Path::new(dirname);
 
     if path.is_dir() {
@@ -221,7 +212,7 @@ fn parse_dir(
             let path = entry.unwrap().path();
 
             if path.is_file() && path.extension().unwrap() == "dora" {
-                parse_file(path.to_str().unwrap(), id_generator, ast, interner)?;
+                parse_file(path.to_str().unwrap(), vm, ast)?;
             }
         }
 
@@ -233,12 +224,7 @@ fn parse_dir(
     }
 }
 
-fn parse_file(
-    filename: &str,
-    id_generator: &NodeIdGenerator,
-    ast: &mut Ast,
-    interner: &mut Interner,
-) -> Result<(), i32> {
+fn parse_file(filename: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
     let reader = if filename == "-" {
         match Reader::from_input() {
             Err(_) => {
@@ -259,7 +245,7 @@ fn parse_file(
         }
     };
 
-    if let Err(error) = Parser::new(reader, id_generator, ast, interner).parse() {
+    if let Err(error) = Parser::new(reader, &vm.id_generator, ast, &mut vm.interner).parse() {
         println!("{}", error);
         println!("1 error found.");
         return Err(1);
@@ -268,15 +254,10 @@ fn parse_file(
     Ok(())
 }
 
-fn parse_str(
-    file: &str,
-    id_generator: &NodeIdGenerator,
-    ast: &mut Ast,
-    interner: &mut Interner,
-) -> Result<(), i32> {
+fn parse_str(file: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
     let reader = Reader::from_string(file);
 
-    if let Err(error) = Parser::new(reader, id_generator, ast, interner).parse() {
+    if let Err(error) = Parser::new(reader, &vm.id_generator, ast, &mut vm.interner).parse() {
         println!("{}", error);
         println!("1 error found.");
         return Err(1);

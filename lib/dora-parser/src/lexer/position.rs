@@ -1,7 +1,7 @@
-use std::fmt::{Formatter, Display, Error};
+use std::fmt::{Display, Error, Formatter};
 use std::result::Result;
 
-#[derive(PartialEq,Eq,Debug,Copy,Clone)]
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub struct Position {
     pub line: u32,
     pub column: u32,
@@ -19,6 +19,17 @@ impl Position {
 impl Display for Position {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         write!(f, "{}:{}", self.line, self.column)
+    }
+}
+
+pub struct Span {
+    pub start: u32,
+    pub end: u32,
+}
+
+impl Span {
+    fn new(s: u32, e: u32) -> Span {
+        Span { start: s, end: e }
     }
 }
 
