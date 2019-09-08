@@ -73,7 +73,6 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             let id: GlobalId = (globals.len() as u32).into();
             let global = GlobalData {
                 id: id,
-                ast: g,
                 pos: g.pos,
                 name: g.name,
                 ty: BuiltinType::Unit,
