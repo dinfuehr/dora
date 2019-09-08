@@ -32,6 +32,7 @@ use crate::utils::GrowableVec;
 use dora_parser::ast;
 use dora_parser::interner::*;
 use dora_parser::lexer::position::Position;
+use dora_parser::parser::NodeIdGenerator;
 
 pub static mut EXCEPTION_OBJECT: *const u8 = 0 as *const u8;
 
@@ -75,6 +76,7 @@ pub struct VM<'ast> {
     pub args: Args,
     pub interner: Interner,
     pub ast: &'ast ast::Ast,
+    pub id_generator: NodeIdGenerator,
     pub files: Vec<File>,
     pub diag: Mutex<Diagnostic>,
     pub sym: Mutex<SymTable>,
@@ -104,7 +106,7 @@ pub struct VM<'ast> {
 }
 
 impl<'ast> VM<'ast> {
-    pub fn new(args: Args, ast: &'ast ast::Ast, interner: Interner) -> Box<VM<'ast>> {
+    pub fn new(args: Args, ast: &'ast ast::Ast) -> Box<VM<'ast>> {
         let empty_class_id: ClassId = 0.into();
         let empty_class_def_id: ClassDefId = 0.into();
         let empty_trait_id: TraitId = 0.into();
@@ -121,7 +123,7 @@ impl<'ast> VM<'ast> {
             traits: Vec::new(),
             impls: Vec::new(),
             globals: GrowableVec::new(),
-            interner: interner,
+            interner: Interner::new(),
             vips: KnownElements {
                 bool_class: empty_class_id,
                 byte_class: empty_class_id,
@@ -156,6 +158,7 @@ impl<'ast> VM<'ast> {
             },
             gc: gc,
             ast: ast,
+            id_generator: NodeIdGenerator::new(),
             diag: Mutex::new(Diagnostic::new()),
             sym: Mutex::new(SymTable::new()),
             fcts: GrowableVec::new(),

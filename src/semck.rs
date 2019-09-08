@@ -26,14 +26,14 @@ mod traitdefck;
 mod typeck;
 
 macro_rules! return_on_error {
-    ($ctxt: ident) => {{
-        if $ctxt.diag.lock().has_errors() {
+    ($vm: ident) => {{
+        if $vm.diag.lock().has_errors() {
             return;
         }
     }};
 }
 
-pub fn check<'ast>(ctxt: &mut VM<'ast>) {
+pub fn check<'ast>(vm: &mut VM<'ast>) {
     let mut map_cls_defs = NodeMap::new(); // get ClassId from ast node
     let mut map_struct_defs = NodeMap::new(); // get StructId from ast node
     let mut map_trait_defs = NodeMap::new(); // get TraitId from ast node
@@ -41,11 +41,11 @@ pub fn check<'ast>(ctxt: &mut VM<'ast>) {
     let mut map_global_defs = NodeMap::new(); // get GlobalId from ast node
     let mut map_const_defs = NodeMap::new(); // get ConstId from ast node
 
-    // add user defined fcts and classes to ctxt
+    // add user defined fcts and classes to vm
     // this check does not look into fct or class bodies
     globaldef::check(
-        ctxt,
-        &ctxt.ast,
+        vm,
+        &vm.ast,
         &mut map_cls_defs,
         &mut map_struct_defs,
         &mut map_trait_defs,
@@ -53,66 +53,66 @@ pub fn check<'ast>(ctxt: &mut VM<'ast>) {
         &mut map_global_defs,
         &mut map_const_defs,
     );
-    return_on_error!(ctxt);
+    return_on_error!(vm);
 
     // define internal classes
-    prelude::internal_classes(ctxt);
+    prelude::internal_classes(vm);
 
     // checks class/struct/trait definitions/bodies
-    clsdefck::check(ctxt, &ctxt.ast, &map_cls_defs);
-    structdefck::check(ctxt, &ctxt.ast, &map_struct_defs);
-    traitdefck::check(ctxt, &ctxt.ast, &map_trait_defs);
-    impldefck::check(ctxt, &ctxt.ast, &map_impl_defs);
-    globaldefck::check(ctxt, &ctxt.ast, &map_global_defs);
-    constdefck::check(ctxt, &ctxt.ast, &map_const_defs);
-    return_on_error!(ctxt);
+    clsdefck::check(vm, &vm.ast, &map_cls_defs);
+    structdefck::check(vm, &vm.ast, &map_struct_defs);
+    traitdefck::check(vm, &vm.ast, &map_trait_defs);
+    impldefck::check(vm, &vm.ast, &map_impl_defs);
+    globaldefck::check(vm, &vm.ast, &map_global_defs);
+    constdefck::check(vm, &vm.ast, &map_const_defs);
+    return_on_error!(vm);
 
     // check names/identifiers of local variables
     // and their usage (variable def/use, function calls) in function bodies
-    nameck::check(ctxt);
-    return_on_error!(ctxt);
+    nameck::check(vm);
+    return_on_error!(vm);
 
     // check type definitions of params,
     // return types and local variables in functions
-    fctdefck::check(ctxt);
-    return_on_error!(ctxt);
+    fctdefck::check(vm);
+    return_on_error!(vm);
 
-    superck::check_override(ctxt);
-    return_on_error!(ctxt);
+    superck::check_override(vm);
+    return_on_error!(vm);
 
     // check impl methods against trait definition
-    implck::check(ctxt);
-    return_on_error!(ctxt);
+    implck::check(vm);
+    return_on_error!(vm);
 
     // define internal functions
-    prelude::internal_functions(ctxt);
+    prelude::internal_functions(vm);
 
     // check types of expressions in functions
-    typeck::check(ctxt);
-    return_on_error!(ctxt);
+    typeck::check(vm);
+    return_on_error!(vm);
 
     // are break and continue used in the right places?
-    flowck::check(ctxt);
+    flowck::check(vm);
 
     // checks if function has a return value
-    returnck::check(ctxt);
+    returnck::check(vm);
 
     // add size of super classes to field offsets
-    superck::check(ctxt);
-    return_on_error!(ctxt);
+    superck::check(vm);
+    return_on_error!(vm);
 
-    abstractck::check(ctxt);
+    abstractck::check(vm);
 
     // check for internal functions or classes
-    internalck(ctxt);
-    return_on_error!(ctxt);
+    internalck(vm);
+    return_on_error!(vm);
 
     // initialize addresses for global variables
-    init_global_addresses(ctxt);
+    init_global_addresses(vm);
 }
 
-fn internalck<'ast>(ctxt: &VM<'ast>) {
-    for fct in ctxt.fcts.iter() {
+fn internalck<'ast>(vm: &VM<'ast>) {
+    for fct in vm.fcts.iter() {
         let fct = fct.read();
 
         if fct.in_class() {
@@ -120,39 +120,39 @@ fn internalck<'ast>(ctxt: &VM<'ast>) {
         }
 
         if fct.internal && !fct.internal_resolved {
-            ctxt.diag
+            vm.diag
                 .lock()
                 .report_without_path(fct.pos, Msg::UnresolvedInternal);
         }
 
         if fct.kind.is_definition() && !fct.in_trait() {
-            ctxt.diag
+            vm.diag
                 .lock()
                 .report_without_path(fct.pos, Msg::MissingFctBody);
         }
     }
 
-    for cls in ctxt.classes.iter() {
+    for cls in vm.classes.iter() {
         let cls = cls.read();
 
         if cls.internal && !cls.internal_resolved {
-            ctxt.diag
+            vm.diag
                 .lock()
                 .report_without_path(cls.pos, Msg::UnresolvedInternal);
         }
 
         for method in &cls.methods {
-            let method = ctxt.fcts.idx(*method);
+            let method = vm.fcts.idx(*method);
             let method = method.read();
 
             if method.internal && !method.internal_resolved {
-                ctxt.diag
+                vm.diag
                     .lock()
                     .report_without_path(method.pos, Msg::UnresolvedInternal);
             }
 
             if method.kind.is_definition() && !method.is_abstract {
-                ctxt.diag
+                vm.diag
                     .lock()
                     .report_without_path(method.pos, Msg::MissingFctBody);
             }
@@ -160,23 +160,23 @@ fn internalck<'ast>(ctxt: &VM<'ast>) {
     }
 }
 
-fn init_global_addresses<'ast>(ctxt: &VM<'ast>) {
-    let globals = ctxt.globals.lock();
+fn init_global_addresses<'ast>(vm: &VM<'ast>) {
+    let globals = vm.globals.lock();
     let mut size = 0;
     let mut offsets = Vec::with_capacity(globals.len());
 
     for glob in globals.iter() {
         let glob = glob.lock();
 
-        let ty_size = glob.ty.size(ctxt);
-        let ty_align = glob.ty.align(ctxt);
+        let ty_size = glob.ty.size(vm);
+        let ty_align = glob.ty.align(vm);
 
         let offset = mem::align_i32(size, ty_align);
         offsets.push(offset);
         size = offset + ty_size;
     }
 
-    let ptr = ctxt.gc.alloc_perm(size as usize);
+    let ptr = vm.gc.alloc_perm(size as usize);
 
     for (ind, glob) in globals.iter().enumerate() {
         let mut glob = glob.lock();
@@ -186,14 +186,14 @@ fn init_global_addresses<'ast>(ctxt: &VM<'ast>) {
     }
 }
 
-pub fn read_type<'ast>(ctxt: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
+pub fn read_type<'ast>(vm: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
     match *t {
         TypeSelf(_) => {
             return Some(BuiltinType::This);
         }
 
         TypeBasic(ref basic) => {
-            let sym = ctxt.sym.lock().get(basic.name);
+            let sym = vm.sym.lock().get(basic.name);
             if let Some(sym) = sym {
                 match sym {
                     SymClass(cls_id) => {
@@ -201,7 +201,7 @@ pub fn read_type<'ast>(ctxt: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
                             let mut type_params = Vec::new();
 
                             for param in &basic.params {
-                                let param = read_type(ctxt, param);
+                                let param = read_type(vm, param);
 
                                 if let Some(param) = param {
                                     type_params.push(param);
@@ -210,7 +210,7 @@ pub fn read_type<'ast>(ctxt: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
                                 }
                             }
 
-                            let cls = ctxt.classes.idx(cls_id);
+                            let cls = vm.classes.idx(cls_id);
                             let cls = cls.read();
 
                             if cls.type_params.len() != type_params.len() {
@@ -218,47 +218,47 @@ pub fn read_type<'ast>(ctxt: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
                                     cls.type_params.len(),
                                     type_params.len(),
                                 );
-                                ctxt.diag.lock().report_without_path(basic.pos, msg);
+                                vm.diag.lock().report_without_path(basic.pos, msg);
                                 return None;
                             }
 
                             for (tp, ty) in cls.type_params.iter().zip(type_params.iter()) {
                                 if let Some(cls_id) = tp.class_bound {
-                                    let cls = ctxt.cls(cls_id);
+                                    let cls = vm.cls(cls_id);
 
-                                    if !ty.subclass_from(ctxt, cls) {
-                                        let name = ty.name(ctxt);
-                                        let cls = cls.name(ctxt);
+                                    if !ty.subclass_from(vm, cls) {
+                                        let name = ty.name(vm);
+                                        let cls = cls.name(vm);
 
                                         let msg = Msg::ClassBoundNotSatisfied(name, cls);
-                                        ctxt.diag.lock().report_without_path(basic.pos, msg);
+                                        vm.diag.lock().report_without_path(basic.pos, msg);
                                     }
                                 }
 
-                                let cls_id = if let Some(cls_id) = ty.cls_id(ctxt) {
+                                let cls_id = if let Some(cls_id) = ty.cls_id(vm) {
                                     cls_id
                                 } else {
                                     continue;
                                 };
 
-                                let cls = ctxt.classes.idx(cls_id);
+                                let cls = vm.classes.idx(cls_id);
                                 let cls = cls.read();
 
                                 for &trait_bound in &tp.trait_bounds {
                                     if !cls.traits.contains(&trait_bound) {
-                                        let bound = ctxt.traits[trait_bound].read();
-                                        let name = ty.name(ctxt);
-                                        let trait_name = ctxt.interner.str(bound.name).to_string();
+                                        let bound = vm.traits[trait_bound].read();
+                                        let name = ty.name(vm);
+                                        let trait_name = vm.interner.str(bound.name).to_string();
                                         let msg = Msg::TraitBoundNotSatisfied(name, trait_name);
-                                        ctxt.diag.lock().report_without_path(bound.pos, msg);
+                                        vm.diag.lock().report_without_path(bound.pos, msg);
                                     }
                                 }
                             }
 
-                            let list_id = ctxt.lists.lock().insert(type_params.into());
+                            let list_id = vm.lists.lock().insert(type_params.into());
                             BuiltinType::Class(cls.id, list_id)
                         } else {
-                            let cls = ctxt.classes.idx(cls_id);
+                            let cls = vm.classes.idx(cls_id);
                             let cls = cls.read();
 
                             cls.ty
@@ -270,7 +270,7 @@ pub fn read_type<'ast>(ctxt: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
                     SymTrait(trait_id) => {
                         if basic.params.len() > 0 {
                             let msg = Msg::NoTypeParamsExpected;
-                            ctxt.diag.lock().report_without_path(basic.pos, msg);
+                            vm.diag.lock().report_without_path(basic.pos, msg);
                         }
 
                         return Some(BuiltinType::Trait(trait_id));
@@ -279,17 +279,17 @@ pub fn read_type<'ast>(ctxt: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
                     SymStruct(struct_id) => {
                         if basic.params.len() > 0 {
                             let msg = Msg::NoTypeParamsExpected;
-                            ctxt.diag.lock().report_without_path(basic.pos, msg);
+                            vm.diag.lock().report_without_path(basic.pos, msg);
                         }
 
-                        let list_id = ctxt.lists.lock().insert(TypeParams::empty());
+                        let list_id = vm.lists.lock().insert(TypeParams::empty());
                         return Some(BuiltinType::Struct(struct_id, list_id));
                     }
 
                     SymClassTypeParam(cls_id, type_param_id) => {
                         if basic.params.len() > 0 {
                             let msg = Msg::NoTypeParamsExpected;
-                            ctxt.diag.lock().report_without_path(basic.pos, msg);
+                            vm.diag.lock().report_without_path(basic.pos, msg);
                         }
 
                         return Some(BuiltinType::ClassTypeParam(cls_id, type_param_id));
@@ -298,22 +298,22 @@ pub fn read_type<'ast>(ctxt: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
                     SymFctTypeParam(fct_id, type_param_id) => {
                         if basic.params.len() > 0 {
                             let msg = Msg::NoTypeParamsExpected;
-                            ctxt.diag.lock().report_without_path(basic.pos, msg);
+                            vm.diag.lock().report_without_path(basic.pos, msg);
                         }
 
                         return Some(BuiltinType::FctTypeParam(fct_id, type_param_id));
                     }
 
                     _ => {
-                        let name = ctxt.interner.str(basic.name).to_string();
+                        let name = vm.interner.str(basic.name).to_string();
                         let msg = Msg::ExpectedType(name);
-                        ctxt.diag.lock().report_without_path(basic.pos, msg);
+                        vm.diag.lock().report_without_path(basic.pos, msg);
                     }
                 }
             } else {
-                let name = ctxt.interner.str(basic.name).to_string();
+                let name = vm.interner.str(basic.name).to_string();
                 let msg = Msg::UnknownType(name);
-                ctxt.diag.lock().report_without_path(basic.pos, msg);
+                vm.diag.lock().report_without_path(basic.pos, msg);
             }
         }
 
@@ -325,26 +325,26 @@ pub fn read_type<'ast>(ctxt: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
             let mut params = vec![];
 
             for param in &lambda.params {
-                if let Some(p) = read_type(ctxt, param) {
+                if let Some(p) = read_type(vm, param) {
                     params.push(p);
                 } else {
                     return None;
                 }
             }
 
-            let ret = if let Some(ret) = read_type(ctxt, &lambda.ret) {
+            let ret = if let Some(ret) = read_type(vm, &lambda.ret) {
                 ret
             } else {
                 return None;
             };
 
-            let ty = ctxt.lambda_types.lock().insert(params, ret);
+            let ty = vm.lambda_types.lock().insert(params, ret);
             let ty = BuiltinType::Lambda(ty);
 
             return Some(ty);
         }
 
-        _ => ctxt
+        _ => vm
             .diag
             .lock()
             .report_unimplemented("unknown file".to_string(), t.pos()),
@@ -368,8 +368,8 @@ mod tests {
     use dora_parser::lexer::position::Position;
 
     pub fn ok(code: &'static str) {
-        test::parse_with_errors(code, |ctxt| {
-            let diag = ctxt.diag.lock();
+        test::parse_with_errors(code, |vm| {
+            let diag = vm.diag.lock();
             let errors = diag.errors();
 
             println!("errors = {:?}", errors);
@@ -386,8 +386,8 @@ mod tests {
     where
         F: FnOnce(&VM) -> R,
     {
-        test::parse_with_errors(code, |ctxt| {
-            let diag = ctxt.diag.lock();
+        test::parse_with_errors(code, |vm| {
+            let diag = vm.diag.lock();
             let errors = diag.errors();
 
             println!("errors = {:?}", errors);
@@ -398,13 +398,13 @@ mod tests {
 
             assert!(!diag.has_errors());
 
-            f(ctxt)
+            f(vm)
         })
     }
 
     pub fn err(code: &'static str, pos: Position, msg: Msg) {
-        test::parse_with_errors(code, |ctxt| {
-            let diag = ctxt.diag.lock();
+        test::parse_with_errors(code, |vm| {
+            let diag = vm.diag.lock();
             let errors = diag.errors();
 
             println!("errors = {:?}", errors);
@@ -416,8 +416,8 @@ mod tests {
     }
 
     pub fn errors(code: &'static str, vec: &[(Position, Msg)]) {
-        test::parse_with_errors(code, |ctxt| {
-            let diag = ctxt.diag.lock();
+        test::parse_with_errors(code, |vm| {
+            let diag = vm.diag.lock();
             let errors = diag.errors();
 
             println!("errors = {:?}", errors);

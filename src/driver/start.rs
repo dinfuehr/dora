@@ -34,34 +34,19 @@ pub fn start(content: Option<&str>) -> i32 {
         return 0;
     }
 
-    let mut interner = Interner::new();
-    let id_generator = NodeIdGenerator::new();
     let mut ast = Ast::new();
+    let empty = Ast::new();
+    let mut vm = VM::new(args, &empty);
 
-    if let Err(code) = parse_dir("stdlib", &id_generator, &mut ast, &mut interner).and_then(|_| {
-        if fuzzing {
-            return parse_str(content.unwrap(), &id_generator, &mut ast, &mut interner);
-        }
-
-        let path = Path::new(&args.arg_file);
-
-        if path.is_file() {
-            parse_file(&args.arg_file, &id_generator, &mut ast, &mut interner)
-        } else if path.is_dir() {
-            parse_dir(&args.arg_file, &id_generator, &mut ast, &mut interner)
-        } else {
-            println!("file or directory `{}` does not exist.", &args.arg_file);
-            Err(1)
-        }
-    }) {
+    if let Err(code) = parse_all_files(&mut vm, &mut ast, content) {
         return code;
     }
 
-    if args.flag_emit_ast {
-        ast::dump::dump(&ast, &interner);
-    }
+    vm.ast = &ast;
 
-    let mut vm = VM::new(args, &ast, interner);
+    if vm.args.flag_emit_ast {
+        ast::dump::dump(&vm.ast, &vm.interner);
+    }
 
     semck::check(&mut vm);
 
@@ -113,6 +98,31 @@ pub fn start(content: Option<&str>) -> i32 {
     }
 
     code
+}
+
+fn parse_all_files(vm: &mut VM, ast: &mut Ast, content: Option<&str>) -> Result<(), i32> {
+    let fuzzing = content.is_some();
+
+    let args = &vm.args;
+    let id_generator = &vm.id_generator;
+    let interner = &mut vm.interner;
+
+    parse_dir("stdlib", id_generator, ast, interner).and_then(|_| {
+        if fuzzing {
+            return parse_str(content.unwrap(), id_generator, ast, interner);
+        }
+
+        let path = Path::new(&args.arg_file);
+
+        if path.is_file() {
+            parse_file(&args.arg_file, id_generator, ast, interner)
+        } else if path.is_dir() {
+            parse_dir(&args.arg_file, id_generator, ast, interner)
+        } else {
+            println!("file or directory `{}` does not exist.", &args.arg_file);
+            Err(1)
+        }
+    })
 }
 
 fn run_tests<'ast>(vm: &VM<'ast>) -> i32 {

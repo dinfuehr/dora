@@ -1,7 +1,6 @@
 use dora_parser::ast::Ast;
-use dora_parser::interner::Interner;
 use dora_parser::lexer::reader::Reader;
-use dora_parser::parser::{NodeIdGenerator, Parser};
+use dora_parser::parser::Parser;
 
 use crate::ctxt::VM;
 use crate::driver::cmd::Args;
@@ -29,10 +28,10 @@ where
 {
     os::mem::init_page_size();
 
-    let id_generator = NodeIdGenerator::new();
-    let mut interner = Interner::new();
     let mut ast = Ast::new();
     let args: Args = Default::default();
+    let empty = Ast::new();
+    let mut vm = VM::new(args, &empty);
 
     for file in &[
         "stdlib/Identity.dora",
@@ -58,17 +57,17 @@ where
         "stdlib/Testing.dora",
     ] {
         let reader = Reader::from_file(file).unwrap();
-        let mut parser = Parser::new(reader, &id_generator, &mut ast, &mut interner);
+        let mut parser = Parser::new(reader, &vm.id_generator, &mut ast, &mut vm.interner);
         parser.parse().unwrap()
     }
 
     {
         let reader = Reader::from_string(code);
-        let mut parser = Parser::new(reader, &id_generator, &mut ast, &mut interner);
+        let mut parser = Parser::new(reader, &vm.id_generator, &mut ast, &mut vm.interner);
         parser.parse().unwrap()
     }
 
-    let mut vm = VM::new(args, &ast, interner);
+    vm.ast = &ast;
 
     semck::check(&mut vm);
 

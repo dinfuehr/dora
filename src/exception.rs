@@ -378,7 +378,7 @@ fn set_exception_backtrace(vm: &VM, obj: Ref<Throwable>, via_retrieve: bool) {
                         }
 
                         let throw_object_cls = vm.classes.idx(throw_object_cls_id);
-                        let throw_object_cls = throw_object_cls.read();;
+                        let throw_object_cls = throw_object_cls.read();
 
                         if throw_object_cls.subclass_from(vm, owner_class) {
                             skip += 1;
