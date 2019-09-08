@@ -45,7 +45,6 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
     // this check does not look into fct or class bodies
     globaldef::check(
         vm,
-        &vm.ast,
         &mut map_cls_defs,
         &mut map_struct_defs,
         &mut map_trait_defs,

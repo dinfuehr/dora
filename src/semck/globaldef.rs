@@ -16,7 +16,6 @@ use dora_parser::lexer::position::Position;
 
 pub fn check<'ast>(
     vm: &mut VM<'ast>,
-    ast: &'ast Ast,
     map_cls_defs: &mut NodeMap<ClassId>,
     map_struct_defs: &mut NodeMap<StructId>,
     map_trait_defs: &mut NodeMap<TraitId>,
@@ -24,6 +23,7 @@ pub fn check<'ast>(
     map_global_defs: &mut NodeMap<GlobalId>,
     map_const_defs: &mut NodeMap<ConstId>,
 ) {
+    let ast = vm.ast;
     let mut gdef = GlobalDef {
         vm: vm,
         map_cls_defs: map_cls_defs,
