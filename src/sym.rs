@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use self::Sym::*;
 
 use crate::class::{ClassId, TypeParamId};
-use crate::ctxt::*;
+use crate::vm::*;
 use dora_parser::interner::Name;
 
 #[derive(Debug)]

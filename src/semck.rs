@@ -1,8 +1,8 @@
 use crate::class::TypeParams;
-use crate::ctxt::{NodeMap, VM};
 use crate::mem;
 use crate::sym::Sym::{SymClass, SymClassTypeParam, SymFctTypeParam, SymStruct, SymTrait};
 use crate::ty::BuiltinType;
+use crate::vm::{NodeMap, VM};
 use dora_parser::ast::Type::{TypeBasic, TypeLambda, TypeSelf, TypeTuple};
 use dora_parser::ast::{Stmt, Type};
 use dora_parser::error::msg::Msg;
@@ -362,8 +362,8 @@ pub fn always_returns(s: &Stmt) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use crate::ctxt::VM;
     use crate::test;
+    use crate::vm::VM;
     use dora_parser::error::msg::Msg;
     use dora_parser::lexer::position::Position;
 

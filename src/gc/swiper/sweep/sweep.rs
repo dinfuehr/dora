@@ -1,6 +1,5 @@
 use parking_lot::MutexGuard;
 
-use crate::ctxt::VM;
 use crate::gc::marking;
 use crate::gc::root::Slot;
 use crate::gc::space::Space;
@@ -10,6 +9,7 @@ use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::{OldGen, OldGenProtected};
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::{GcReason, Region};
+use crate::vm::VM;
 
 pub struct FullSweepCollector<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,

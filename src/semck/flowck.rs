@@ -1,4 +1,4 @@
-use crate::ctxt::{Fct, FctSrc, VM};
+use crate::vm::{Fct, FctSrc, VM};
 use dora_parser::error::msg::Msg;
 
 use dora_parser::ast::visit::*;

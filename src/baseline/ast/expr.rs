@@ -10,14 +10,14 @@ use crate::class::{ClassDefId, ClassSize, FieldId, TypeParams};
 use crate::cpu::{
     FReg, Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_TMP1, REG_TMP2,
 };
-use crate::ctxt::VM;
-use crate::ctxt::*;
 use crate::gc::Address;
 use crate::mem;
 use crate::object::{Header, Str};
 use crate::os::signal::Trap;
 use crate::semck::specialize::{specialize_class_id, specialize_class_ty};
 use crate::ty::{BuiltinType, MachineMode};
+use crate::vm::VM;
+use crate::vm::*;
 use crate::vtable::{VTable, DISPLAY_SIZE};
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::*;

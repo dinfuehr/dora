@@ -9,9 +9,9 @@ use crate::bytecode::generate::{
     BytecodeFunction, BytecodeGenerator, BytecodeType, Label, Register,
 };
 use crate::class::TypeParams;
-use crate::ctxt::{CallType, Fct, FctId, FctKind, FctSrc, IdentType, Intrinsic, VarId, VM};
 use crate::semck::specialize::{specialize_class_id_params, specialize_class_ty, specialize_type};
 use crate::ty::BuiltinType;
+use crate::vm::{CallType, Fct, FctId, FctKind, FctSrc, IdentType, Intrinsic, VarId, VM};
 
 pub struct LoopLabels {
     cond: Label,
@@ -905,8 +905,8 @@ mod tests {
     use crate::bytecode::generate::{BytecodeFunction, BytecodeIdx, Register, StrConstPoolIdx};
     use crate::bytecode::opcode::Bytecode::*;
     use crate::class::TypeParams;
-    use crate::ctxt::VM;
     use crate::test;
+    use crate::vm::VM;
 
     fn code(code: &'static str) -> BytecodeFunction {
         test::parse(code, |vm| {

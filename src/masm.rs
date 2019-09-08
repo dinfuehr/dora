@@ -10,12 +10,12 @@ use crate::baseline::fct::{
     JitBaselineFct, JitDescriptor, LineNumberTable,
 };
 use crate::cpu::{Mem, Reg, SCRATCH};
-use crate::ctxt::VM;
 use crate::dseg::DSeg;
 use crate::mem;
 use crate::object::Header;
 use crate::os::signal::Trap;
 use crate::ty::MachineMode;
+use crate::vm::VM;
 use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
 use dora_parser::lexer::position::Position;
 

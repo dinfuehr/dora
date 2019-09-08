@@ -2,12 +2,12 @@ use parking_lot::RwLock;
 use std::sync::Arc;
 
 use crate::class::{ClassDef, ClassDefId, ClassId, ClassSize, TypeParams};
-use crate::ctxt::{FctKind, Intrinsic, TraitId, VM};
 use crate::exception;
 use crate::gc::Address;
 use crate::object::Header;
 use crate::stdlib;
 use crate::ty::BuiltinType;
+use crate::vm::{FctKind, Intrinsic, TraitId, VM};
 use crate::vtable::VTableBox;
 
 pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {

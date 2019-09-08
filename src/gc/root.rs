@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use crate::baseline::map::CodeDescriptor;
-use crate::ctxt::VM;
 use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
 use crate::threads::DoraThread;
+use crate::vm::VM;
 
 pub fn get_rootset(vm: &VM, threads: &[Arc<DoraThread>]) -> Vec<Slot> {
     let mut rootset = Vec::new();

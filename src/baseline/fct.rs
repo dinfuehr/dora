@@ -5,13 +5,13 @@ use std::sync::Arc;
 
 use crate::class::{ClassDef, ClassDefId, FieldId, TypeParams};
 use crate::cpu::flush_icache;
-use crate::ctxt::VM;
-use crate::ctxt::{FctId, FctSrc, GlobalId, VarId};
 use crate::dseg::DSeg;
 use crate::gc::Address;
 use crate::object::{Ref, Str};
 use crate::opt::fct::JitOptFct;
 use crate::utils::GrowableVec;
+use crate::vm::VM;
+use crate::vm::{FctId, FctSrc, GlobalId, VarId};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct JitFctId(usize);

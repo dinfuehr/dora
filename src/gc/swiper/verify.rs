@@ -1,7 +1,6 @@
 use parking_lot::MutexGuard;
 use std::fmt;
 
-use crate::ctxt::get_vm;
 use crate::gc::root::Slot;
 use crate::gc::space::Space;
 use crate::gc::swiper::card::{CardEntry, CardTable};
@@ -12,6 +11,7 @@ use crate::gc::swiper::on_different_cards;
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{CARD_REFS, CARD_SIZE};
 use crate::gc::{Address, Region};
+use crate::vm::get_vm;
 
 use crate::mem;
 use crate::object::{offset_of_array_data, Obj};

@@ -9,8 +9,6 @@ use std::thread;
 use std::time::Duration;
 
 use crate::class::TypeParams;
-use crate::ctxt::exception_set;
-use crate::ctxt::get_vm;
 use crate::exception::{alloc_exception, stacktrace_from_last_dtn};
 use crate::gc::{Address, GcReason};
 use crate::handle::root;
@@ -18,6 +16,8 @@ use crate::object::{ByteArray, Obj, Ref, Str};
 use crate::os::signal::Trap;
 use crate::sym::Sym::SymFct;
 use crate::threads::{DoraThread, THREAD};
+use crate::vm::exception_set;
+use crate::vm::get_vm;
 
 pub extern "C" fn byte_to_string(val: u8) -> Ref<Str> {
     let buffer = val.to_string();

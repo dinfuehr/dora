@@ -8,7 +8,6 @@ use cpu::asm;
 use cpu::asm::*;
 use cpu::reg::*;
 use cpu::{FReg, Mem, Reg};
-use ctxt::{get_vm, FctId};
 use dora_parser::lexer::position::Position;
 use gc::swiper::CARD_SIZE_BITS;
 use gc::Address;
@@ -17,6 +16,7 @@ use mem::ptr_width;
 use object::{offset_of_array_data, offset_of_array_length, Header};
 use os::signal::Trap;
 use ty::MachineMode;
+use vm::{get_vm, FctId};
 use vtable::VTable;
 
 impl MacroAssembler {

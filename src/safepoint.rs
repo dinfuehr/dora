@@ -5,11 +5,11 @@ use std::sync::atomic::{fence, Ordering};
 use std::sync::Arc;
 
 use crate::cpu::fp_from_execstate;
-use crate::ctxt::{get_vm, VM};
 use crate::execstate::ExecState;
 use crate::gc::Address;
 use crate::os;
 use crate::threads::{DoraThread, ThreadState, THREAD};
+use crate::vm::{get_vm, VM};
 
 pub struct PollingPage {
     addr: Address,

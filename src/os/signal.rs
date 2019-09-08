@@ -2,11 +2,11 @@ use libc;
 use std;
 
 use crate::baseline::map::CodeDescriptor;
-use crate::ctxt::{get_vm, VM};
 use crate::exception::stacktrace_from_es;
 use crate::os;
 use crate::os_cpu::*;
 use crate::safepoint;
+use crate::vm::{get_vm, VM};
 
 #[cfg(target_family = "windows")]
 use winapi::winnt::EXCEPTION_POINTERS;

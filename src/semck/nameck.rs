@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::class::TypeParams;
-use crate::ctxt::*;
+use crate::vm::*;
 use dora_parser::error::msg::Msg;
 
 use dora_parser::ast::visit::*;

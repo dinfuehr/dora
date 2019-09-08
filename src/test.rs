@@ -2,10 +2,10 @@ use dora_parser::ast::Ast;
 use dora_parser::lexer::reader::Reader;
 use dora_parser::parser::Parser;
 
-use crate::ctxt::VM;
 use crate::driver::cmd::Args;
 use crate::os;
 use crate::semck;
+use crate::vm::VM;
 
 pub fn parse<F, T>(code: &'static str, f: F) -> T
 where

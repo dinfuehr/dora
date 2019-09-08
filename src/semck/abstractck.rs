@@ -4,7 +4,7 @@ use std::rc::Rc;
 use dora_parser::error::msg::Msg;
 
 use crate::class::{Class, ClassId};
-use crate::ctxt::{FctId, VM};
+use crate::vm::{FctId, VM};
 
 pub fn check<'ast>(vm: &mut VM<'ast>) {
     let mut abstract_methods: HashMap<ClassId, Rc<Vec<FctId>>> = HashMap::new();

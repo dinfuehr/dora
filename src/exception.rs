@@ -3,13 +3,13 @@ use std::ptr;
 use crate::baseline::fct::{CatchType, JitFctId};
 use crate::baseline::map::CodeDescriptor;
 use crate::cpu::fp_from_execstate;
-use crate::ctxt::{get_vm, FctParent, VM};
 use crate::execstate::ExecState;
 use crate::handle::root;
 use crate::object::{alloc, Array, IntArray, Obj, Ref, StackTraceElement, Str, Throwable};
 use crate::os::signal::Trap;
 use crate::stdlib;
 use crate::threads::THREAD;
+use crate::vm::{get_vm, FctParent, VM};
 
 pub struct Stacktrace {
     elems: Vec<StackElem>,

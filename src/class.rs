@@ -5,10 +5,10 @@ use std::iter::Iterator;
 use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
-use crate::ctxt::VM;
-use crate::ctxt::{FctId, ImplId, TraitId, TypeParam};
 use crate::ty::BuiltinType;
 use crate::utils::GrowableVec;
+use crate::vm::VM;
+use crate::vm::{FctId, ImplId, TraitId, TypeParam};
 use crate::vtable::VTableBox;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;

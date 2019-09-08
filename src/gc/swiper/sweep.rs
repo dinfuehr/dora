@@ -2,7 +2,6 @@ use parking_lot::Mutex;
 use scoped_threadpool::Pool;
 use std::sync::Arc;
 
-use crate::ctxt::VM;
 use crate::driver::cmd::Args;
 use crate::gc::root::{get_rootset, Slot};
 use crate::gc::swiper::card::CardTable;
@@ -18,6 +17,7 @@ use crate::gc::{align_gen, arena, formatted_size, GEN_SIZE};
 use crate::gc::{Address, Collector, GcReason, Region};
 use crate::mem;
 use crate::safepoint;
+use crate::vm::VM;
 
 mod old;
 mod sweep;

@@ -8,13 +8,13 @@ use dora_parser::ast::*;
 
 use crate::class::TypeParams;
 use crate::cpu::*;
-use crate::ctxt::{
-    Arg, CallSite, CallType, Fct, FctId, FctKind, FctParent, FctSrc, Intrinsic, NodeMap, Store,
-    TraitId, VarId, VM,
-};
 use crate::mem;
 use crate::semck::specialize::specialize_type;
 use crate::ty::BuiltinType;
+use crate::vm::{
+    Arg, CallSite, CallType, Fct, FctId, FctKind, FctParent, FctSrc, Intrinsic, NodeMap, Store,
+    TraitId, VarId, VM,
+};
 
 pub fn generate<'a, 'ast: 'a>(
     vm: &'a VM<'ast>,
@@ -803,9 +803,9 @@ pub struct ForInfo<'ast> {
 mod tests {
     use super::*;
 
-    use crate::ctxt::*;
     use crate::os;
     use crate::test;
+    use crate::vm::*;
 
     fn info<F>(code: &'static str, f: F)
     where

@@ -1,7 +1,6 @@
 use parking_lot::MutexGuard;
 use std::cmp;
 
-use crate::ctxt::VM;
 use crate::gc::marking;
 use crate::gc::root::Slot;
 use crate::gc::space::Space;
@@ -17,6 +16,7 @@ use crate::object::Obj;
 use crate::os::signal::Trap;
 use crate::stdlib;
 use crate::timer::Timer;
+use crate::vm::VM;
 
 pub struct FullCollector<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,

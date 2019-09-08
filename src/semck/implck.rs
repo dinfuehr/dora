@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::ctxt::VM;
+use crate::vm::VM;
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 

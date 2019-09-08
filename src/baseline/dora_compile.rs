@@ -6,14 +6,14 @@ use crate::baseline::fct::{BailoutInfo, JitBaselineFct, JitDescriptor, JitFct};
 use crate::baseline::map::CodeDescriptor;
 use crate::class::TypeParams;
 use crate::cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1};
-use crate::ctxt::FctId;
-use crate::ctxt::{get_vm, VM};
 use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
 use crate::masm::MacroAssembler;
 use crate::mem;
 use crate::object::Obj;
 use crate::ty::MachineMode;
+use crate::vm::FctId;
+use crate::vm::{get_vm, VM};
 
 // This code generates the compiler thunk, there should only be one instance
 // of this function be used in Dora. It is necessary for lazy compilation, where

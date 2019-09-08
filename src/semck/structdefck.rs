@@ -1,6 +1,6 @@
-use crate::ctxt::{NodeMap, StructFieldData, StructId, VM};
 use crate::semck;
 use crate::ty::BuiltinType;
+use crate::vm::{NodeMap, StructFieldData, StructId, VM};
 
 use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::ast::{self, Ast};

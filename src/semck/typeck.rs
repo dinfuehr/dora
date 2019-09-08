@@ -3,8 +3,8 @@ use std::sync::Arc;
 use std::{f32, f64};
 
 use crate::class::{ClassId, TypeParams};
-use crate::ctxt;
-use crate::ctxt::{
+use crate::vm;
+use crate::vm::{
     CallType, ConstData, ConstValue, ConvInfo, Fct, FctId, FctParent, FctSrc, ForTypeInfo,
     IdentType, TraitId, VM,
 };
@@ -1199,7 +1199,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         &mut self,
         e: &'ast ExprCall2Type,
         object_type: BuiltinType,
-        tp: &ctxt::TypeParam,
+        tp: &vm::TypeParam,
         name: Name,
         args: &[BuiltinType],
         in_try: bool,
@@ -1417,7 +1417,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         in_try: bool,
         obj: BuiltinType,
         args: &[BuiltinType],
-        tp: &ctxt::TypeParam,
+        tp: &vm::TypeParam,
     ) {
         for &trait_id in &tp.trait_bounds {
             let trai = self.vm.traits[trait_id].read();
@@ -2397,7 +2397,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         self.check_tps(&fct_tps, tps)
     }
 
-    fn check_tps(&self, specified_tps: &[ctxt::TypeParam], tps: &TypeParams) -> bool {
+    fn check_tps(&self, specified_tps: &[vm::TypeParam], tps: &TypeParams) -> bool {
         if specified_tps.len() != tps.len() {
             let msg = Msg::WrongNumberTypeParams(specified_tps.len(), tps.len());
             self.vm
@@ -2438,7 +2438,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         succeeded
     }
 
-    fn check_tp(&self, tp: &ctxt::TypeParam, ty: BuiltinType) -> bool {
+    fn check_tp(&self, tp: &vm::TypeParam, ty: BuiltinType) -> bool {
         let mut succeeded = true;
 
         if let Some(cls_id) = tp.class_bound {
@@ -2465,8 +2465,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
     fn check_tp_against_tp(
         &self,
-        tp: &ctxt::TypeParam,
-        arg: &ctxt::TypeParam,
+        tp: &vm::TypeParam,
+        arg: &vm::TypeParam,
         arg_ty: BuiltinType,
     ) -> bool {
         let mut succeeded = true;
@@ -2629,8 +2629,8 @@ fn replace_type_param(
 
 #[cfg(test)]
 mod tests {
-    use crate::ctxt::ConstValue;
     use crate::semck::tests::*;
+    use crate::vm::ConstValue;
     use dora_parser::error::msg::Msg;
 
     #[test]

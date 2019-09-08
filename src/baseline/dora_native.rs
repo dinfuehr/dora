@@ -6,14 +6,14 @@ use dora_parser::lexer::position::Position;
 use crate::baseline::fct::{JitBaselineFct, JitDescriptor, JitFct, JitFctId};
 use crate::baseline::map::CodeDescriptor;
 use crate::cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD};
-use crate::ctxt::VM;
-use crate::ctxt::{exception_get_and_clear, FctId};
 use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
 use crate::masm::MacroAssembler;
 use crate::mem;
 use crate::threads::THREAD;
 use crate::ty::{BuiltinType, MachineMode};
+use crate::vm::VM;
+use crate::vm::{exception_get_and_clear, FctId};
 
 pub struct NativeThunks {
     map: HashMap<Address, JitFctId>,

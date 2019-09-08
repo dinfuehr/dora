@@ -13,13 +13,13 @@ use crate::baseline::codegen::{
 use crate::baseline::fct::{CatchType, Comment, JitBaselineFct, JitDescriptor};
 use crate::class::{ClassDef, TypeParams};
 use crate::cpu::{Mem, FREG_PARAMS, FREG_RESULT, REG_PARAMS, REG_RESULT};
-use crate::ctxt::VM;
-use crate::ctxt::{CallSite, Fct, FctParent, FctSrc};
 use crate::masm::*;
 use crate::os::signal::Trap;
 use crate::semck::always_returns;
 use crate::semck::specialize::specialize_class_ty;
 use crate::ty::{BuiltinType, MachineMode};
+use crate::vm::VM;
+use crate::vm::{CallSite, Fct, FctParent, FctSrc};
 
 pub struct AstCodeGen<'a, 'ast: 'a> {
     pub vm: &'a VM<'ast>,

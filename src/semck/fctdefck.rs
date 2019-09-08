@@ -1,9 +1,9 @@
 use std::collections::HashSet;
 
-use crate::ctxt::{self, Fct, FctId, FctParent, FctSrc, VM};
 use crate::semck;
 use crate::sym::Sym;
 use crate::ty::BuiltinType;
+use crate::vm::{self, Fct, FctId, FctParent, FctSrc, VM};
 use dora_parser::ast::visit::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
@@ -74,7 +74,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                         vm.diag.lock().report_without_path(type_param.pos, msg);
                     }
 
-                    fct.type_params.push(ctxt::TypeParam::new(type_param.name));
+                    fct.type_params.push(vm::TypeParam::new(type_param.name));
 
                     for bound in &type_param.bounds {
                         let ty = semck::read_type(vm, bound);

@@ -1,6 +1,5 @@
 use parking_lot::Mutex;
 
-use crate::ctxt::VM;
 use crate::driver::cmd::Args;
 use crate::gc::freelist::FreeList;
 use crate::gc::marking;
@@ -13,6 +12,7 @@ use crate::gc::{
 use crate::os;
 use crate::safepoint;
 use crate::timer::Timer;
+use crate::vm::VM;
 
 pub struct SweepCollector {
     heap: Region,

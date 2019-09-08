@@ -1,8 +1,8 @@
 use std::fs;
 use std::path::Path;
 
-use crate::ctxt::VM;
-use crate::ctxt::{exception_get_and_clear, Fct, FctId};
+use crate::vm::VM;
+use crate::vm::{exception_get_and_clear, Fct, FctId};
 use dora_parser::ast::{self, Ast};
 use dora_parser::error::msg::Msg;
 

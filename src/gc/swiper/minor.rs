@@ -1,7 +1,6 @@
 use parking_lot::MutexGuard;
 use std::cmp;
 
-use crate::ctxt::VM;
 use crate::gc::root::Slot;
 use crate::gc::swiper::card::{CardEntry, CardTable};
 use crate::gc::swiper::controller::{MinorCollectorPhases, SharedHeapConfig};
@@ -14,6 +13,7 @@ use crate::gc::swiper::{CardIdx, CARD_SIZE};
 use crate::gc::{Address, GcReason, Region};
 use crate::object::{offset_of_array_data, Obj};
 use crate::timer::Timer;
+use crate::vm::VM;
 
 pub struct MinorCollector<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,

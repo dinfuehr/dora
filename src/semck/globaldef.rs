@@ -3,11 +3,11 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::class::{self, ClassId};
-use crate::ctxt;
-use crate::ctxt::*;
 use crate::gc::Address;
 use crate::sym::Sym::{self, SymClass, SymConst, SymFct, SymGlobal, SymStruct, SymTrait};
 use crate::ty::BuiltinType;
+use crate::vm;
+use crate::vm::*;
 use dora_parser::ast::visit::*;
 use dora_parser::ast::*;
 use dora_parser::error::msg::Msg;
@@ -171,7 +171,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
             if let Some(ref type_params) = c.type_params {
                 for param in type_params {
-                    cls.type_params.push(ctxt::TypeParam::new(param.name));
+                    cls.type_params.push(vm::TypeParam::new(param.name));
                 }
             }
 

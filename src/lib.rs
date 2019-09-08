@@ -23,7 +23,6 @@ mod boots;
 mod bytecode;
 mod class;
 mod cpu;
-mod ctxt;
 mod driver;
 mod dseg;
 mod exception;
@@ -44,6 +43,7 @@ mod threads;
 mod timer;
 mod ty;
 mod utils;
+mod vm;
 mod vtable;
 
 #[cfg(test)]

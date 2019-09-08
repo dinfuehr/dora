@@ -2,10 +2,10 @@ use parking_lot::RwLock;
 use std::collections::HashSet;
 
 use crate::class::*;
-use crate::ctxt::{Fct, FctId, FctKind, FctParent, FctSrc, NodeMap, VM};
 use crate::semck;
 use crate::sym::Sym;
 use crate::ty::BuiltinType;
+use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, NodeMap, VM};
 
 use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::ast::{self, Ast};

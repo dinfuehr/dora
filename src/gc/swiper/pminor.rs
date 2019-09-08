@@ -3,7 +3,6 @@ use std::cmp;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Barrier;
 
-use crate::ctxt::VM;
 use crate::gc::pmarking::Terminator;
 use crate::gc::root::Slot;
 use crate::gc::swiper::card::{CardEntry, CardTable};
@@ -18,6 +17,7 @@ use crate::gc::tlab::{TLAB_OBJECT_SIZE, TLAB_SIZE};
 use crate::gc::{fill_region, Address, GcReason, Region};
 use crate::object::{offset_of_array_data, Obj};
 use crate::timer::Timer;
+use crate::vm::VM;
 use crate::vtable::VTable;
 
 use crossbeam_deque::{Injector, Steal, Stealer, Worker};

@@ -9,11 +9,11 @@ use std::str;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::class::{ClassDefId, ClassSize};
-use crate::ctxt::VM;
 use crate::gc::root::Slot;
 use crate::gc::Address;
 use crate::handle::{root, Handle};
 use crate::mem;
+use crate::vm::VM;
 use crate::vtable::VTable;
 
 #[repr(C)]

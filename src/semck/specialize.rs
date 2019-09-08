@@ -4,10 +4,10 @@ use std::ptr;
 use std::sync::Arc;
 
 use crate::class::{self, ClassDef, ClassDefId, ClassId, ClassSize, FieldDef, TypeParams};
-use crate::ctxt::{StructData, StructDef, StructDefId, StructFieldDef, StructId, VM};
 use crate::mem;
 use crate::object::Header;
 use crate::ty::BuiltinType;
+use crate::vm::{StructData, StructDef, StructDefId, StructFieldDef, StructId, VM};
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
 
 pub fn specialize_type(

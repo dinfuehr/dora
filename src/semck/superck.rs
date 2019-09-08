@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::class::{Class, ClassId};
-use crate::ctxt::{Fct, VM};
+use crate::vm::{Fct, VM};
 use dora_parser::error::msg::Msg;
 
 pub fn check<'ast>(vm: &mut VM<'ast>) {
@@ -241,10 +241,10 @@ fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
 #[cfg(test)]
 mod tests {
     use crate::class::ClassSize;
-    use crate::ctxt::VM;
     use crate::mem;
     use crate::object::Header;
     use crate::semck::tests::{err, errors, ok, ok_with_test, pos};
+    use crate::vm::VM;
     use dora_parser::error::msg::Msg;
     use dora_parser::interner::Name;
 

@@ -1,7 +1,6 @@
 use std::cmp::{Ord, Ordering, PartialOrd};
 use std::fmt;
 
-use crate::ctxt::VM;
 use crate::driver::cmd::{Args, CollectorName};
 use crate::gc::compact::MarkCompactCollector;
 use crate::gc::copy::CopyCollector;
@@ -14,6 +13,7 @@ use crate::gc::zero::ZeroCollector;
 use crate::mem;
 use crate::object::{Header, Obj};
 use crate::os;
+use crate::vm::VM;
 use crate::vtable::VTable;
 
 pub mod arena;

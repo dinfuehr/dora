@@ -1,6 +1,5 @@
 use parking_lot::Mutex;
 
-use crate::ctxt::VM;
 use crate::driver::cmd::Args;
 use crate::gc::bump::BumpAllocator;
 use crate::gc::root::{get_rootset, Slot};
@@ -11,6 +10,7 @@ use crate::object::Obj;
 use crate::os::{self, ProtType};
 use crate::safepoint;
 use crate::timer::Timer;
+use crate::vm::VM;
 
 pub struct CopyCollector {
     total: Region,

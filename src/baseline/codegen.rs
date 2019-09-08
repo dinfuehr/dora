@@ -18,14 +18,14 @@ use crate::baseline::map::CodeDescriptor;
 use crate::class::TypeParams;
 use crate::cpu::x64::reg::{FREG_RESULT, REG_RESULT};
 use crate::cpu::{FReg, Reg};
-use crate::ctxt::VM;
-use crate::ctxt::{Fct, FctId, FctSrc, VarId};
 use crate::driver::cmd::{AsmSyntax, BaselineName};
 use crate::gc::Address;
 use crate::masm::*;
 use crate::mem;
 use crate::os;
 use crate::ty::MachineMode;
+use crate::vm::VM;
+use crate::vm::{Fct, FctId, FctSrc, VarId};
 
 pub fn generate<'ast>(
     vm: &VM<'ast>,

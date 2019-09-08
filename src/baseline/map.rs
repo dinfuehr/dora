@@ -2,8 +2,8 @@ use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
 use crate::baseline::fct::JitFctId;
-use crate::ctxt::VM;
 use crate::gc::Address;
+use crate::vm::VM;
 
 pub struct CodeMap {
     tree: BTreeMap<CodeSpan, CodeDescriptor>,

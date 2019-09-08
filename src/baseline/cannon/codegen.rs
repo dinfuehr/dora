@@ -6,9 +6,9 @@ use dora_parser::ast::*;
 use crate::baseline::codegen::{should_emit_debug, CodeGen, Scopes};
 use crate::baseline::fct::{Comment, JitBaselineFct, JitDescriptor};
 use crate::class::TypeParams;
-use crate::ctxt::VM;
-use crate::ctxt::{Fct, FctSrc};
 use crate::masm::*;
+use crate::vm::VM;
+use crate::vm::{Fct, FctSrc};
 
 use crate::bytecode::astgen::generate_fct;
 use crate::bytecode::generate::{BytecodeFunction, Register};

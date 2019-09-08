@@ -1,6 +1,6 @@
-use crate::ctxt::{GlobalId, NodeMap, VM};
 use crate::semck;
 use crate::ty::BuiltinType;
+use crate::vm::{GlobalId, NodeMap, VM};
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::Elem::ElemGlobal;
 use dora_parser::ast::{Ast, File, Global};

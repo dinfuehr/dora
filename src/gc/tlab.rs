@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use crate::ctxt::VM;
 use crate::gc::{fill_region, Address, Region, K};
 use crate::threads::{DoraThread, THREAD};
+use crate::vm::VM;
 
 pub const TLAB_SIZE: usize = 32 * K;
 pub const TLAB_OBJECT_SIZE: usize = 8 * K;
