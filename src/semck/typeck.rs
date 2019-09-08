@@ -6,7 +6,7 @@ use crate::class::{ClassId, TypeParams};
 use crate::ctxt;
 use crate::ctxt::{
     CallType, ConstData, ConstValue, ConvInfo, Fct, FctId, FctParent, FctSrc, ForTypeInfo,
-    IdentType, SemContext, TraitId,
+    IdentType, TraitId, VM,
 };
 use dora_parser::error::msg::Msg;
 
@@ -20,7 +20,7 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntBase, IntSuffix};
 
-pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
+pub fn check<'a, 'ast>(ctxt: &VM<'ast>) {
     for fct in ctxt.fcts.iter() {
         let fct = fct.read();
 
@@ -62,7 +62,7 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
 }
 
 struct TypeCheck<'a, 'ast: 'a> {
-    ctxt: &'a SemContext<'ast>,
+    ctxt: &'a VM<'ast>,
     fct: &'a Fct<'ast>,
     src: &'a mut FctSrc,
     ast: &'ast Function,
@@ -1799,7 +1799,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
 }
 
 fn args_compatible(
-    ctxt: &SemContext,
+    ctxt: &VM,
     def: &[BuiltinType],
     expr: &[BuiltinType],
     cls_id: Option<ClassId>,
@@ -1821,7 +1821,7 @@ fn args_compatible(
 }
 
 fn arg_allows(
-    ctxt: &SemContext,
+    ctxt: &VM,
     def: BuiltinType,
     arg: BuiltinType,
     global_cls_id: Option<ClassId>,
@@ -1933,7 +1933,7 @@ fn arg_allows(
 }
 
 fn check_lit_int<'ast>(
-    ctxt: &SemContext<'ast>,
+    ctxt: &VM<'ast>,
     e: &'ast ExprLitIntType,
     negative_expr_id: NodeId,
 ) -> (BuiltinType, i64) {
@@ -1988,7 +1988,7 @@ fn check_lit_int<'ast>(
 }
 
 fn check_lit_float<'ast>(
-    ctxt: &SemContext<'ast>,
+    ctxt: &VM<'ast>,
     e: &'ast ExprLitFloatType,
     negative_expr_id: NodeId,
 ) -> (BuiltinType, f64) {
@@ -2023,7 +2023,7 @@ fn check_lit_float<'ast>(
 }
 
 struct ConstCheck<'a, 'ast: 'a> {
-    ctxt: &'a SemContext<'ast>,
+    ctxt: &'a VM<'ast>,
     xconst: &'a ConstData<'ast>,
     negative_expr_id: NodeId,
 }
@@ -2099,7 +2099,7 @@ enum LookupKind {
 }
 
 struct MethodLookup<'a, 'ast: 'a> {
-    ctxt: &'a SemContext<'ast>,
+    ctxt: &'a VM<'ast>,
     kind: Option<LookupKind>,
     name: Option<Name>,
     args: Option<&'a [BuiltinType]>,
@@ -2114,7 +2114,7 @@ struct MethodLookup<'a, 'ast: 'a> {
 }
 
 impl<'a, 'ast> MethodLookup<'a, 'ast> {
-    fn new(ctxt: &'a SemContext<'ast>) -> MethodLookup<'a, 'ast> {
+    fn new(ctxt: &'a VM<'ast>) -> MethodLookup<'a, 'ast> {
         MethodLookup {
             ctxt: ctxt,
             kind: None,
@@ -2547,7 +2547,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 }
 
 fn lookup_method<'ast>(
-    ctxt: &SemContext<'ast>,
+    ctxt: &VM<'ast>,
     object_type: BuiltinType,
     is_static: bool,
     name: Name,
@@ -2610,7 +2610,7 @@ fn lookup_method<'ast>(
 }
 
 fn replace_type_param(
-    ctxt: &SemContext,
+    ctxt: &VM,
     ty: BuiltinType,
     cls_tp: &TypeParams,
     fct_tp: &TypeParams,

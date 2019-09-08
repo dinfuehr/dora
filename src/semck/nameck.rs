@@ -15,7 +15,7 @@ use crate::sym::Sym;
 use crate::sym::Sym::*;
 use crate::ty::BuiltinType;
 
-pub fn check<'ast>(ctxt: &SemContext<'ast>) {
+pub fn check<'ast>(ctxt: &VM<'ast>) {
     for fct in ctxt.fcts.iter() {
         let fct = fct.read();
 
@@ -39,7 +39,7 @@ pub fn check<'ast>(ctxt: &SemContext<'ast>) {
 }
 
 struct NameCheck<'a, 'ast: 'a> {
-    ctxt: &'a SemContext<'ast>,
+    ctxt: &'a VM<'ast>,
     fct: &'a Fct<'ast>,
     src: &'a mut FctSrc,
     ast: &'ast Function,
@@ -380,11 +380,11 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
     }
 }
 
-fn report(ctxt: &SemContext, pos: Position, msg: Msg) {
+fn report(ctxt: &VM, pos: Position, msg: Msg) {
     ctxt.diag.lock().report_without_path(pos, msg);
 }
 
-fn str(ctxt: &SemContext, name: Name) -> String {
+fn str(ctxt: &VM, name: Name) -> String {
     ctxt.interner.str(name).to_string()
 }
 

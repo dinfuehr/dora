@@ -1,5 +1,5 @@
 use crate::class::TypeParams;
-use crate::ctxt::{NodeMap, SemContext};
+use crate::ctxt::{NodeMap, VM};
 use crate::mem;
 use crate::sym::Sym::{SymClass, SymClassTypeParam, SymFctTypeParam, SymStruct, SymTrait};
 use crate::ty::BuiltinType;
@@ -33,7 +33,7 @@ macro_rules! return_on_error {
     }};
 }
 
-pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
+pub fn check<'ast>(ctxt: &mut VM<'ast>) {
     let mut map_cls_defs = NodeMap::new(); // get ClassId from ast node
     let mut map_struct_defs = NodeMap::new(); // get StructId from ast node
     let mut map_trait_defs = NodeMap::new(); // get TraitId from ast node
@@ -111,7 +111,7 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
     init_global_addresses(ctxt);
 }
 
-fn internalck<'ast>(ctxt: &SemContext<'ast>) {
+fn internalck<'ast>(ctxt: &VM<'ast>) {
     for fct in ctxt.fcts.iter() {
         let fct = fct.read();
 
@@ -160,7 +160,7 @@ fn internalck<'ast>(ctxt: &SemContext<'ast>) {
     }
 }
 
-fn init_global_addresses<'ast>(ctxt: &SemContext<'ast>) {
+fn init_global_addresses<'ast>(ctxt: &VM<'ast>) {
     let globals = ctxt.globals.lock();
     let mut size = 0;
     let mut offsets = Vec::with_capacity(globals.len());
@@ -186,7 +186,7 @@ fn init_global_addresses<'ast>(ctxt: &SemContext<'ast>) {
     }
 }
 
-pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<BuiltinType> {
+pub fn read_type<'ast>(ctxt: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
     match *t {
         TypeSelf(_) => {
             return Some(BuiltinType::This);
@@ -362,7 +362,7 @@ pub fn always_returns(s: &Stmt) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use crate::ctxt::SemContext;
+    use crate::ctxt::VM;
     use crate::test;
     use dora_parser::error::msg::Msg;
     use dora_parser::lexer::position::Position;
@@ -384,7 +384,7 @@ mod tests {
 
     pub fn ok_with_test<F, R>(code: &'static str, f: F) -> R
     where
-        F: FnOnce(&SemContext) -> R,
+        F: FnOnce(&VM) -> R,
     {
         test::parse_with_errors(code, |ctxt| {
             let diag = ctxt.diag.lock();

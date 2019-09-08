@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::ctxt::{self, Fct, FctId, FctParent, FctSrc, SemContext};
+use crate::ctxt::{self, Fct, FctId, FctParent, FctSrc, VM};
 use crate::semck;
 use crate::sym::Sym;
 use crate::ty::BuiltinType;
@@ -9,7 +9,7 @@ use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 use dora_parser::error::msg::Msg;
 
-pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
+pub fn check<'a, 'ast>(ctxt: &VM<'ast>) {
     debug_assert!(ctxt.sym.lock().levels() == 1);
 
     for fct in ctxt.fcts.iter() {
@@ -196,7 +196,7 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
     debug_assert!(ctxt.sym.lock().levels() == 1);
 }
 
-fn check_abstract<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) {
+fn check_abstract<'ast>(ctxt: &VM<'ast>, fct: &Fct<'ast>) {
     if !fct.is_abstract {
         return;
     }
@@ -216,7 +216,7 @@ fn check_abstract<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) {
     }
 }
 
-fn check_static<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) {
+fn check_static<'ast>(ctxt: &VM<'ast>, fct: &Fct<'ast>) {
     if !fct.is_static {
         return;
     }
@@ -238,7 +238,7 @@ fn check_static<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) {
     }
 }
 
-fn check_against_methods(ctxt: &SemContext, ty: BuiltinType, fct: &Fct, methods: &[FctId]) {
+fn check_against_methods(ctxt: &VM, ty: BuiltinType, fct: &Fct, methods: &[FctId]) {
     for &method in methods {
         if method == fct.id {
             continue;
@@ -259,7 +259,7 @@ fn check_against_methods(ctxt: &SemContext, ty: BuiltinType, fct: &Fct, methods:
 }
 
 struct FctDefCheck<'a, 'ast: 'a> {
-    ctxt: &'a SemContext<'ast>,
+    ctxt: &'a VM<'ast>,
     src: &'a mut FctSrc,
     ast: &'ast Function,
     current_type: BuiltinType,

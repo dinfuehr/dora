@@ -4,9 +4,9 @@ use std::rc::Rc;
 use dora_parser::error::msg::Msg;
 
 use crate::class::{Class, ClassId};
-use crate::ctxt::{FctId, SemContext};
+use crate::ctxt::{FctId, VM};
 
-pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
+pub fn check<'ast>(ctxt: &mut VM<'ast>) {
     let mut abstract_methods: HashMap<ClassId, Rc<Vec<FctId>>> = HashMap::new();
 
     for cls in ctxt.classes.iter() {
@@ -31,7 +31,7 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
 }
 
 pub fn check_abstract<'ast>(
-    ctxt: &SemContext<'ast>,
+    ctxt: &VM<'ast>,
     cls: &Class,
     super_cls: &Class,
     abstract_methods: &mut HashMap<ClassId, Rc<Vec<FctId>>>,
@@ -69,7 +69,7 @@ pub fn check_abstract<'ast>(
 }
 
 fn find_abstract_methods<'ast>(
-    ctxt: &SemContext<'ast>,
+    ctxt: &VM<'ast>,
     cls: &Class,
     abstract_methods: &mut HashMap<ClassId, Rc<Vec<FctId>>>,
 ) -> Rc<Vec<FctId>> {

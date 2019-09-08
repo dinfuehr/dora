@@ -1,10 +1,10 @@
 use std::collections::HashSet;
 
 use crate::class::{Class, ClassId};
-use crate::ctxt::{Fct, SemContext};
+use crate::ctxt::{Fct, VM};
 use dora_parser::error::msg::Msg;
 
-pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
+pub fn check<'ast>(ctxt: &mut VM<'ast>) {
     cycle_detection(ctxt);
 
     if ctxt.diag.lock().has_errors() {
@@ -15,7 +15,7 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
     determine_vtables(ctxt);
 }
 
-fn cycle_detection<'ast>(ctxt: &mut SemContext<'ast>) {
+fn cycle_detection<'ast>(ctxt: &mut VM<'ast>) {
     for cls in ctxt.classes.iter() {
         let cls = cls.read();
 
@@ -41,7 +41,7 @@ fn cycle_detection<'ast>(ctxt: &mut SemContext<'ast>) {
     }
 }
 
-fn determine_vtables<'ast>(ctxt: &SemContext<'ast>) {
+fn determine_vtables<'ast>(ctxt: &VM<'ast>) {
     let mut lens = HashSet::new();
 
     for cls in ctxt.classes.iter() {
@@ -52,7 +52,7 @@ fn determine_vtables<'ast>(ctxt: &SemContext<'ast>) {
     }
 }
 
-fn determine_vtable<'ast>(ctxt: &SemContext<'ast>, lens: &mut HashSet<ClassId>, cls: &mut Class) {
+fn determine_vtable<'ast>(ctxt: &VM<'ast>, lens: &mut HashSet<ClassId>, cls: &mut Class) {
     if let Some(parent_cls_id) = cls.parent_class {
         let parent = ctxt.classes.idx(parent_cls_id);
         if !lens.contains(&parent_cls_id) {
@@ -152,7 +152,7 @@ fn determine_vtable<'ast>(ctxt: &SemContext<'ast>, lens: &mut HashSet<ClassId>, 
 //     (size, align)
 // }
 
-pub fn check_override<'ast>(ctxt: &SemContext<'ast>) {
+pub fn check_override<'ast>(ctxt: &VM<'ast>) {
     for cls in ctxt.classes.iter() {
         let cls = cls.read();
 
@@ -164,7 +164,7 @@ pub fn check_override<'ast>(ctxt: &SemContext<'ast>) {
     }
 }
 
-fn check_fct_modifier<'ast>(ctxt: &SemContext<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
+fn check_fct_modifier<'ast>(ctxt: &VM<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
     // catch: class A { open fun f() } (A is not derivable)
     // catch: open final fun f()
     if fct.has_open && (!cls.has_open || fct.has_final) {
@@ -241,7 +241,7 @@ fn check_fct_modifier<'ast>(ctxt: &SemContext<'ast>, cls: &Class, fct: &mut Fct<
 #[cfg(test)]
 mod tests {
     use crate::class::ClassSize;
-    use crate::ctxt::{SemContext, VM};
+    use crate::ctxt::VM;
     use crate::mem;
     use crate::object::Header;
     use crate::semck::tests::{err, errors, ok, ok_with_test, pos};
@@ -679,7 +679,7 @@ mod tests {
     //                  });
     // }
 
-    fn assert_name<'a, 'ast>(ctxt: &'a SemContext<'ast>, a: Name, b: &'static str) {
+    fn assert_name<'a, 'ast>(ctxt: &'a VM<'ast>, a: Name, b: &'static str) {
         let bname = ctxt.interner.intern(b);
 
         println!("{} {}", ctxt.interner.str(a), b);

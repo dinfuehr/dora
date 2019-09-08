@@ -4,7 +4,7 @@ use std::ptr;
 use std::sync::Arc;
 
 use crate::class::{self, ClassDef, ClassDefId, ClassId, ClassSize, FieldDef, TypeParams};
-use crate::ctxt::{SemContext, StructData, StructDef, StructDefId, StructFieldDef, StructId, VM};
+use crate::ctxt::{StructData, StructDef, StructDefId, StructFieldDef, StructId, VM};
 use crate::mem;
 use crate::object::Header;
 use crate::ty::BuiltinType;
@@ -60,14 +60,14 @@ pub enum SpecializeFor {
     Class,
 }
 
-pub fn specialize_struct_id(ctxt: &SemContext, struct_id: StructId) -> StructDefId {
+pub fn specialize_struct_id(ctxt: &VM, struct_id: StructId) -> StructDefId {
     let struc = ctxt.structs.idx(struct_id);
     let struc = struc.lock();
     specialize_struct(ctxt, &*struc, TypeParams::empty())
 }
 
 pub fn specialize_struct_id_params(
-    ctxt: &SemContext,
+    ctxt: &VM,
     struct_id: StructId,
     type_params: TypeParams,
 ) -> StructDefId {
@@ -76,11 +76,7 @@ pub fn specialize_struct_id_params(
     specialize_struct(ctxt, &*struc, type_params)
 }
 
-pub fn specialize_struct(
-    ctxt: &SemContext,
-    struc: &StructData,
-    type_params: TypeParams,
-) -> StructDefId {
+pub fn specialize_struct(ctxt: &VM, struc: &StructData, type_params: TypeParams) -> StructDefId {
     if let Some(&id) = struc.specializations.read().get(&type_params) {
         return id;
     }
@@ -89,7 +85,7 @@ pub fn specialize_struct(
 }
 
 fn create_specialized_struct(
-    ctxt: &SemContext,
+    ctxt: &VM,
     struc: &StructData,
     type_params: TypeParams,
 ) -> StructDefId {
@@ -149,14 +145,14 @@ fn create_specialized_struct(
     id
 }
 
-pub fn specialize_class_id(ctxt: &SemContext, cls_id: ClassId) -> ClassDefId {
+pub fn specialize_class_id(ctxt: &VM, cls_id: ClassId) -> ClassDefId {
     let cls = ctxt.classes.idx(cls_id);
     let cls = cls.read();
     specialize_class(ctxt, &*cls, &TypeParams::empty())
 }
 
 pub fn specialize_class_id_params(
-    ctxt: &SemContext,
+    ctxt: &VM,
     cls_id: ClassId,
     type_params: &TypeParams,
 ) -> ClassDefId {
@@ -165,7 +161,7 @@ pub fn specialize_class_id_params(
     specialize_class(ctxt, &*cls, &type_params)
 }
 
-pub fn specialize_class_ty(ctxt: &SemContext, ty: BuiltinType) -> ClassDefId {
+pub fn specialize_class_ty(ctxt: &VM, ty: BuiltinType) -> ClassDefId {
     match ty {
         BuiltinType::Class(cls_id, list_id) => {
             let params = ctxt.lists.lock().get(list_id);
@@ -176,11 +172,7 @@ pub fn specialize_class_ty(ctxt: &SemContext, ty: BuiltinType) -> ClassDefId {
     }
 }
 
-pub fn specialize_class(
-    ctxt: &SemContext,
-    cls: &class::Class,
-    type_params: &TypeParams,
-) -> ClassDefId {
+pub fn specialize_class(ctxt: &VM, cls: &class::Class, type_params: &TypeParams) -> ClassDefId {
     if let Some(&id) = cls.specializations.read().get(&type_params) {
         return id;
     }
@@ -188,11 +180,7 @@ pub fn specialize_class(
     create_specialized_class(ctxt, cls, type_params)
 }
 
-fn create_specialized_class(
-    ctxt: &SemContext,
-    cls: &class::Class,
-    type_params: &TypeParams,
-) -> ClassDefId {
+fn create_specialized_class(ctxt: &VM, cls: &class::Class, type_params: &TypeParams) -> ClassDefId {
     let id = {
         let mut class_defs = ctxt.class_defs.lock();
         let id: ClassDefId = class_defs.len().into();
@@ -302,7 +290,7 @@ fn create_specialized_class(
     id
 }
 
-fn ensure_display<'ast>(ctxt: &SemContext<'ast>, cls_def: &mut ClassDef) -> usize {
+fn ensure_display<'ast>(ctxt: &VM<'ast>, cls_def: &mut ClassDef) -> usize {
     let vtable = cls_def.vtable.as_mut().unwrap();
 
     // if subtype_display[0] is set, vtable was already initialized

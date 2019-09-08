@@ -71,12 +71,11 @@ pub fn set_vm(vm: &VM) {
     }
 }
 
-pub type VM<'ast> = SemContext<'ast>;
-
-pub struct SemContext<'ast> {
+pub struct VM<'ast> {
     pub args: Args,
     pub interner: Interner,
     pub ast: &'ast ast::Ast,
+    pub files: Vec<File>,
     pub diag: Mutex<Diagnostic>,
     pub sym: Mutex<SymTable>,
     pub vips: KnownElements,
@@ -104,19 +103,20 @@ pub struct SemContext<'ast> {
     pub safepoint: Safepoint,
 }
 
-impl<'ast> SemContext<'ast> {
-    pub fn new(args: Args, ast: &'ast ast::Ast, interner: Interner) -> Box<SemContext<'ast>> {
+impl<'ast> VM<'ast> {
+    pub fn new(args: Args, ast: &'ast ast::Ast, interner: Interner) -> Box<VM<'ast>> {
         let empty_class_id: ClassId = 0.into();
         let empty_class_def_id: ClassDefId = 0.into();
         let empty_trait_id: TraitId = 0.into();
         let gc = Gc::new(&args);
 
-        let ctxt = Box::new(SemContext {
+        let ctxt = Box::new(VM {
             args: args,
             consts: GrowableVec::new(),
             structs: GrowableVec::new(),
             struct_defs: GrowableVec::new(),
             classes: GrowableVec::new(),
+            files: Vec::new(),
             class_defs: GrowableVec::new(),
             traits: Vec::new(),
             impls: Vec::new(),
@@ -369,12 +369,18 @@ impl<'ast> SemContext<'ast> {
     }
 }
 
-unsafe impl<'ast> Sync for SemContext<'ast> {}
+unsafe impl<'ast> Sync for VM<'ast> {}
 
 impl<'ast> GrowableVec<RwLock<Fct<'ast>>> {
     pub fn idx(&self, index: FctId) -> Arc<RwLock<Fct<'ast>>> {
         self.idx_usize(index.0)
     }
+}
+
+pub struct File {
+    name: String,
+    content: String,
+    line_ends: Vec<u32>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -460,7 +466,7 @@ impl ImplData {
         self.class_id.expect("trait_id not initialized yet.")
     }
 
-    pub fn find_implements(&self, ctxt: &SemContext, fct_id: FctId) -> Option<FctId> {
+    pub fn find_implements(&self, ctxt: &VM, fct_id: FctId) -> Option<FctId> {
         for &mtd_id in &self.methods {
             let mtd = ctxt.fcts.idx(mtd_id);
             let mtd = mtd.read();
@@ -502,7 +508,7 @@ pub struct TraitData {
 impl TraitData {
     pub fn find_method(
         &self,
-        ctxt: &SemContext,
+        ctxt: &VM,
         is_static: bool,
         name: Name,
         replace: Option<BuiltinType>,
@@ -637,7 +643,7 @@ impl KnownElements {
         self.iterator_trait.lock().expect("iterator trait not set")
     }
 
-    pub fn int_array(&self, ctxt: &SemContext) -> ClassDefId {
+    pub fn int_array(&self, ctxt: &VM) -> ClassDefId {
         let mut int_array_def = self.int_array_def.lock();
 
         if let Some(cls_id) = *int_array_def {
@@ -650,7 +656,7 @@ impl KnownElements {
         }
     }
 
-    pub fn str(&self, ctxt: &SemContext) -> ClassDefId {
+    pub fn str(&self, ctxt: &VM) -> ClassDefId {
         let mut str_class_def = self.str_class_def.lock();
 
         if let Some(cls_id) = *str_class_def {
@@ -662,7 +668,7 @@ impl KnownElements {
         }
     }
 
-    pub fn obj(&self, ctxt: &SemContext) -> ClassDefId {
+    pub fn obj(&self, ctxt: &VM) -> ClassDefId {
         let mut obj_class_def = self.obj_class_def.lock();
 
         if let Some(cls_id) = *obj_class_def {
@@ -674,7 +680,7 @@ impl KnownElements {
         }
     }
 
-    pub fn stack_trace_element(&self, ctxt: &SemContext) -> ClassDefId {
+    pub fn stack_trace_element(&self, ctxt: &VM) -> ClassDefId {
         let mut ste_class_def = self.ste_class_def.lock();
 
         if let Some(cls_id) = *ste_class_def {
@@ -686,7 +692,7 @@ impl KnownElements {
         }
     }
 
-    pub fn exception(&self, ctxt: &SemContext) -> ClassDefId {
+    pub fn exception(&self, ctxt: &VM) -> ClassDefId {
         let mut ex_class_def = self.ex_class_def.lock();
 
         if let Some(cls_id) = *ex_class_def {
@@ -824,7 +830,7 @@ impl<'ast> Fct<'ast> {
         }
     }
 
-    pub fn full_name(&self, ctxt: &SemContext) -> String {
+    pub fn full_name(&self, ctxt: &VM) -> String {
         let mut repr = String::new();
 
         if let FctParent::Class(class_id) = self.parent {

@@ -1,10 +1,10 @@
 use std::collections::HashSet;
 
-use crate::ctxt::SemContext;
+use crate::ctxt::VM;
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 
-pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
+pub fn check<'ast>(ctxt: &mut VM<'ast>) {
     for ximpl in &ctxt.impls {
         let ximpl = ximpl.read();
         let xtrait = ctxt.traits[ximpl.trait_id()].read();
@@ -70,7 +70,7 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
     }
 }
 
-fn report(ctxt: &SemContext, pos: Position, msg: Msg) {
+fn report(ctxt: &VM, pos: Position, msg: Msg) {
     ctxt.diag.lock().report_without_path(pos, msg);
 }
 

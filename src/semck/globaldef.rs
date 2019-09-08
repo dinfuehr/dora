@@ -15,7 +15,7 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 pub fn check<'ast>(
-    ctxt: &mut SemContext<'ast>,
+    ctxt: &mut VM<'ast>,
     ast: &'ast Ast,
     map_cls_defs: &mut NodeMap<ClassId>,
     map_struct_defs: &mut NodeMap<StructId>,
@@ -38,7 +38,7 @@ pub fn check<'ast>(
 }
 
 struct GlobalDef<'x, 'ast: 'x> {
-    ctxt: &'x mut SemContext<'ast>,
+    ctxt: &'x mut VM<'ast>,
     map_cls_defs: &'x mut NodeMap<ClassId>,
     map_struct_defs: &'x mut NodeMap<StructId>,
     map_trait_defs: &'x mut NodeMap<TraitId>,
@@ -255,7 +255,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
     }
 }
 
-fn report(ctxt: &SemContext, name: Name, pos: Position, sym: Sym) {
+fn report(ctxt: &VM, name: Name, pos: Position, sym: Sym) {
     let name = ctxt.interner.str(name).to_string();
 
     let msg = match sym {

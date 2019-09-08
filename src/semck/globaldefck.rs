@@ -1,4 +1,4 @@
-use crate::ctxt::{GlobalId, NodeMap, SemContext};
+use crate::ctxt::{GlobalId, NodeMap, VM};
 use crate::semck;
 use crate::ty::BuiltinType;
 use dora_parser::ast::visit::Visitor;
@@ -6,11 +6,7 @@ use dora_parser::ast::Elem::ElemGlobal;
 use dora_parser::ast::{Ast, File, Global};
 use dora_parser::error::msg::Msg;
 
-pub fn check<'a, 'ast>(
-    ctxt: &SemContext<'ast>,
-    ast: &'ast Ast,
-    map_global_defs: &NodeMap<GlobalId>,
-) {
+pub fn check<'a, 'ast>(ctxt: &VM<'ast>, ast: &'ast Ast, map_global_defs: &NodeMap<GlobalId>) {
     let mut checker = GlobalDefCheck {
         ctxt: ctxt,
         current_type: BuiltinType::Unit,
@@ -21,7 +17,7 @@ pub fn check<'a, 'ast>(
 }
 
 struct GlobalDefCheck<'a, 'ast: 'a> {
-    ctxt: &'a SemContext<'ast>,
+    ctxt: &'a VM<'ast>,
     current_type: BuiltinType,
     map_global_defs: &'a NodeMap<GlobalId>,
 }

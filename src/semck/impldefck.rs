@@ -1,6 +1,6 @@
 use parking_lot::RwLock;
 
-use crate::ctxt::{Fct, FctId, FctKind, FctParent, FctSrc, ImplId, NodeMap, SemContext};
+use crate::ctxt::{Fct, FctId, FctKind, FctParent, FctSrc, ImplId, NodeMap, VM};
 use crate::sym::Sym;
 use crate::ty::BuiltinType;
 
@@ -9,7 +9,7 @@ use dora_parser::ast::{self, Ast};
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 
-pub fn check<'ast>(ctxt: &mut SemContext<'ast>, ast: &'ast Ast, map_impl_defs: &NodeMap<ImplId>) {
+pub fn check<'ast>(ctxt: &mut VM<'ast>, ast: &'ast Ast, map_impl_defs: &NodeMap<ImplId>) {
     let mut clsck = ImplCheck {
         ctxt: ctxt,
         ast: ast,
@@ -21,7 +21,7 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>, ast: &'ast Ast, map_impl_defs: &
 }
 
 struct ImplCheck<'x, 'ast: 'x> {
-    ctxt: &'x mut SemContext<'ast>,
+    ctxt: &'x mut VM<'ast>,
     ast: &'ast ast::Ast,
     map_impl_defs: &'x NodeMap<ImplId>,
 
@@ -115,7 +115,7 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
     }
 }
 
-fn report(ctxt: &SemContext, pos: Position, msg: Msg) {
+fn report(ctxt: &VM, pos: Position, msg: Msg) {
     ctxt.diag.lock().report_without_path(pos, msg);
 }
 

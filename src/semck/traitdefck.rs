@@ -1,4 +1,4 @@
-use crate::ctxt::{Fct, FctId, FctKind, FctParent, NodeMap, SemContext, TraitId};
+use crate::ctxt::{Fct, FctId, FctKind, FctParent, NodeMap, TraitId, VM};
 use crate::ty::BuiltinType;
 
 use dora_parser::ast::visit::{self, Visitor};
@@ -7,7 +7,7 @@ use dora_parser::ast::{self, Ast};
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 
-pub fn check<'ast>(ctxt: &mut SemContext<'ast>, ast: &'ast Ast, map_trait_defs: &NodeMap<TraitId>) {
+pub fn check<'ast>(ctxt: &mut VM<'ast>, ast: &'ast Ast, map_trait_defs: &NodeMap<TraitId>) {
     let mut clsck = TraitCheck {
         ctxt: ctxt,
         ast: ast,
@@ -19,7 +19,7 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>, ast: &'ast Ast, map_trait_defs: 
 }
 
 struct TraitCheck<'x, 'ast: 'x> {
-    ctxt: &'x mut SemContext<'ast>,
+    ctxt: &'x mut VM<'ast>,
     ast: &'ast ast::Ast,
     map_trait_defs: &'x NodeMap<TraitId>,
 
@@ -84,7 +84,7 @@ impl<'x, 'ast> Visitor<'ast> for TraitCheck<'x, 'ast> {
     }
 }
 
-fn report(ctxt: &SemContext, pos: Position, msg: Msg) {
+fn report(ctxt: &VM, pos: Position, msg: Msg) {
     ctxt.diag.lock().report_without_path(pos, msg);
 }
 

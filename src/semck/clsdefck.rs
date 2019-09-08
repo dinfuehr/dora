@@ -2,7 +2,7 @@ use parking_lot::RwLock;
 use std::collections::HashSet;
 
 use crate::class::*;
-use crate::ctxt::{Fct, FctId, FctKind, FctParent, FctSrc, NodeMap, SemContext};
+use crate::ctxt::{Fct, FctId, FctKind, FctParent, FctSrc, NodeMap, VM};
 use crate::semck;
 use crate::sym::Sym;
 use crate::ty::BuiltinType;
@@ -13,7 +13,7 @@ use dora_parser::error::msg::Msg;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-pub fn check<'ast>(ctxt: &mut SemContext<'ast>, ast: &'ast Ast, map_cls_defs: &NodeMap<ClassId>) {
+pub fn check<'ast>(ctxt: &mut VM<'ast>, ast: &'ast Ast, map_cls_defs: &NodeMap<ClassId>) {
     let mut clsck = ClsCheck {
         ctxt: ctxt,
         ast: ast,
@@ -25,7 +25,7 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>, ast: &'ast Ast, map_cls_defs: &N
 }
 
 struct ClsCheck<'x, 'ast: 'x> {
-    ctxt: &'x mut SemContext<'ast>,
+    ctxt: &'x mut VM<'ast>,
     ast: &'ast ast::Ast,
     map_cls_defs: &'x NodeMap<ClassId>,
 
@@ -304,7 +304,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
     }
 }
 
-fn report(ctxt: &SemContext, pos: Position, msg: Msg) {
+fn report(ctxt: &VM, pos: Position, msg: Msg) {
     ctxt.diag.lock().report_without_path(pos, msg);
 }
 

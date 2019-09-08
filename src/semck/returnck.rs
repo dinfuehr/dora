@@ -1,4 +1,4 @@
-use crate::ctxt::{Fct, FctSrc, SemContext};
+use crate::ctxt::{Fct, FctSrc, VM};
 use dora_parser::error::msg::Msg;
 
 use crate::ty::BuiltinType;
@@ -7,7 +7,7 @@ use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 use dora_parser::lexer::position::Position;
 
-pub fn check<'ast>(ctxt: &SemContext<'ast>) {
+pub fn check<'ast>(ctxt: &VM<'ast>) {
     for fct in ctxt.fcts.iter() {
         let fct = fct.read();
 
@@ -31,7 +31,7 @@ pub fn check<'ast>(ctxt: &SemContext<'ast>) {
 }
 
 struct ReturnCheck<'a, 'ast: 'a> {
-    ctxt: &'a SemContext<'ast>,
+    ctxt: &'a VM<'ast>,
     fct: &'a Fct<'ast>,
     src: &'a mut FctSrc,
     ast: &'ast Function,

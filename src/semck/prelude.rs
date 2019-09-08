@@ -2,7 +2,7 @@ use parking_lot::RwLock;
 use std::sync::Arc;
 
 use crate::class::{ClassDef, ClassDefId, ClassId, ClassSize, TypeParams};
-use crate::ctxt::{FctKind, Intrinsic, SemContext, TraitId};
+use crate::ctxt::{FctKind, Intrinsic, TraitId, VM};
 use crate::exception;
 use crate::gc::Address;
 use crate::object::Header;
@@ -10,7 +10,7 @@ use crate::stdlib;
 use crate::ty::BuiltinType;
 use crate::vtable::VTableBox;
 
-pub fn internal_classes<'ast>(ctxt: &mut SemContext<'ast>) {
+pub fn internal_classes<'ast>(ctxt: &mut VM<'ast>) {
     ctxt.vips.bool_class = internal_class(ctxt, "Bool", Some(BuiltinType::Bool));
 
     ctxt.vips.byte_class = internal_class(ctxt, "Byte", Some(BuiltinType::Byte));
@@ -46,7 +46,7 @@ pub fn internal_classes<'ast>(ctxt: &mut SemContext<'ast>) {
     internal_free_classes(ctxt);
 }
 
-fn internal_free_classes<'ast>(ctxt: &mut SemContext<'ast>) {
+fn internal_free_classes<'ast>(ctxt: &mut VM<'ast>) {
     let free_object: ClassDefId;
     let free_array: ClassDefId;
 
@@ -100,11 +100,7 @@ fn internal_free_classes<'ast>(ctxt: &mut SemContext<'ast>) {
     ctxt.vips.free_array_class_def = free_array;
 }
 
-fn internal_class<'ast>(
-    ctxt: &mut SemContext<'ast>,
-    name: &str,
-    ty: Option<BuiltinType>,
-) -> ClassId {
+fn internal_class<'ast>(ctxt: &mut VM<'ast>, name: &str, ty: Option<BuiltinType>) -> ClassId {
     let iname = ctxt.interner.intern(name);
     let clsid = ctxt.sym.lock().get_class(iname);
 
@@ -126,7 +122,7 @@ fn internal_class<'ast>(
     }
 }
 
-fn find_trait<'ast>(ctxt: &mut SemContext<'ast>, name: &str) -> TraitId {
+fn find_trait<'ast>(ctxt: &mut VM<'ast>, name: &str) -> TraitId {
     let iname = ctxt.interner.intern(name);
     let tid = ctxt.sym.lock().get_trait(iname);
 
@@ -137,7 +133,7 @@ fn find_trait<'ast>(ctxt: &mut SemContext<'ast>, name: &str) -> TraitId {
     }
 }
 
-pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
+pub fn internal_functions<'ast>(ctxt: &mut VM<'ast>) {
     native_fct(ctxt, "fatalError", stdlib::fatal_error as *const u8);
     native_fct(ctxt, "abort", stdlib::abort as *const u8);
     native_fct(ctxt, "exit", stdlib::exit as *const u8);
@@ -372,7 +368,7 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     }
 }
 
-fn native_method<'ast>(ctxt: &mut SemContext<'ast>, clsid: ClassId, name: &str, fctptr: *const u8) {
+fn native_method<'ast>(ctxt: &mut VM<'ast>, clsid: ClassId, name: &str, fctptr: *const u8) {
     internal_method(
         ctxt,
         clsid,
@@ -381,16 +377,11 @@ fn native_method<'ast>(ctxt: &mut SemContext<'ast>, clsid: ClassId, name: &str, 
     );
 }
 
-fn intrinsic_method<'ast>(
-    ctxt: &mut SemContext<'ast>,
-    clsid: ClassId,
-    name: &str,
-    intrinsic: Intrinsic,
-) {
+fn intrinsic_method<'ast>(ctxt: &mut VM<'ast>, clsid: ClassId, name: &str, intrinsic: Intrinsic) {
     internal_method(ctxt, clsid, name, FctKind::Builtin(intrinsic));
 }
 
-fn internal_method<'ast>(ctxt: &mut SemContext<'ast>, clsid: ClassId, name: &str, kind: FctKind) {
+fn internal_method<'ast>(ctxt: &mut VM<'ast>, clsid: ClassId, name: &str, kind: FctKind) {
     let cls = ctxt.classes.idx(clsid);
     let cls = cls.read();
     let name = ctxt.interner.intern(name);
@@ -407,15 +398,15 @@ fn internal_method<'ast>(ctxt: &mut SemContext<'ast>, clsid: ClassId, name: &str
     }
 }
 
-fn native_fct<'ast>(ctxt: &mut SemContext<'ast>, name: &str, fctptr: *const u8) {
+fn native_fct<'ast>(ctxt: &mut VM<'ast>, name: &str, fctptr: *const u8) {
     internal_fct(ctxt, name, FctKind::Native(Address::from_ptr(fctptr)));
 }
 
-fn intrinsic_fct<'ast>(ctxt: &mut SemContext<'ast>, name: &str, intrinsic: Intrinsic) {
+fn intrinsic_fct<'ast>(ctxt: &mut VM<'ast>, name: &str, intrinsic: Intrinsic) {
     internal_fct(ctxt, name, FctKind::Builtin(intrinsic));
 }
 
-fn internal_fct<'ast>(ctxt: &mut SemContext<'ast>, name: &str, kind: FctKind) {
+fn internal_fct<'ast>(ctxt: &mut VM<'ast>, name: &str, kind: FctKind) {
     let name = ctxt.interner.intern(name);
     let fctid = ctxt.sym.lock().get_fct(name);
 
@@ -431,7 +422,7 @@ fn internal_fct<'ast>(ctxt: &mut SemContext<'ast>, name: &str, kind: FctKind) {
 }
 
 fn intrinsic_impl<'ast>(
-    ctxt: &mut SemContext<'ast>,
+    ctxt: &mut VM<'ast>,
     clsid: ClassId,
     tid: TraitId,
     name: &str,
@@ -441,7 +432,7 @@ fn intrinsic_impl<'ast>(
 }
 
 fn internal_impl<'ast>(
-    ctxt: &mut SemContext<'ast>,
+    ctxt: &mut VM<'ast>,
     clsid: ClassId,
     tid: TraitId,
     name: &str,
