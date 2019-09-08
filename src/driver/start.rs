@@ -2,7 +2,7 @@ use std::fs;
 use std::path::Path;
 
 use crate::vm::VM;
-use crate::vm::{exception_get_and_clear, Fct, FctId, File};
+use crate::vm::{exception_get_and_clear, Fct, FctId};
 use dora_parser::ast::{self, Ast};
 use dora_parser::error::msg::Msg;
 
@@ -245,13 +245,21 @@ fn parse_file(filename: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
         }
     };
 
-    if let Err(error) = Parser::new(reader, &vm.id_generator, ast, &mut vm.interner).parse() {
-        println!("{}", error);
-        println!("1 error found.");
-        return Err(1);
-    }
+    let parser = Parser::new(reader, &vm.id_generator, ast, &mut vm.interner);
 
-    Ok(())
+    match parser.parse() {
+        Ok(file) => {
+            vm.files.push(file);
+            Ok(())
+        }
+
+        Err(error) => {
+            println!("{}", error);
+            println!("1 error found.");
+
+            Err(1)
+        }
+    }
 }
 
 fn parse_str(file: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {

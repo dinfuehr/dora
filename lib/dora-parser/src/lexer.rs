@@ -9,6 +9,13 @@ pub mod position;
 pub mod reader;
 pub mod token;
 
+#[derive(Debug)]
+pub struct File {
+    pub name: String,
+    pub content: String,
+    pub line_ends: Vec<u32>,
+}
+
 pub struct Lexer {
     reader: Reader,
     keywords: HashMap<&'static str, TokenKind>,
@@ -39,7 +46,7 @@ impl Lexer {
             self.skip_white();
 
             let pos = self.reader.pos();
-            let ch = self.cur();
+            let ch = self.curr();
 
             if let None = ch {
                 return Ok(Token::new(TokenKind::End, pos));
@@ -72,13 +79,13 @@ impl Lexer {
     }
 
     fn skip_white(&mut self) {
-        while is_whitespace(self.cur()) {
+        while is_whitespace(self.curr()) {
             self.read_char();
         }
     }
 
     fn read_comment(&mut self) -> Result<(), MsgWithPos> {
-        while !self.cur().is_none() && !is_newline(self.cur()) {
+        while !self.curr().is_none() && !is_newline(self.curr()) {
             self.read_char();
         }
 
@@ -91,11 +98,11 @@ impl Lexer {
         self.read_char();
         self.read_char();
 
-        while !self.cur().is_none() && !self.is_multi_comment_end() {
+        while !self.curr().is_none() && !self.is_multi_comment_end() {
             self.read_char();
         }
 
-        if self.cur().is_none() {
+        if self.curr().is_none() {
             return Err(MsgWithPos::new(
                 self.reader.path().to_string(),
                 pos,
@@ -113,8 +120,8 @@ impl Lexer {
         let pos = self.reader.pos();
         let mut value = String::new();
 
-        while is_identifier(self.cur()) {
-            let ch = self.cur().unwrap();
+        while is_identifier(self.curr()) {
+            let ch = self.curr().unwrap();
             self.read_char();
             value.push(ch);
         }
@@ -126,7 +133,7 @@ impl Lexer {
             ttype = tok_type;
 
             if ttype == TokenKind::Try {
-                if let Some(ch) = self.cur() {
+                if let Some(ch) = self.curr() {
                     if ch == '!' || ch == '?' {
                         self.read_char();
 
@@ -153,7 +160,7 @@ impl Lexer {
         self.read_char();
         let ch = self.read_escaped_char(pos, Msg::UnclosedChar)?;
 
-        if is_char_quote(self.cur()) {
+        if is_char_quote(self.curr()) {
             self.read_char();
 
             let ttype = TokenKind::LitChar(ch);
@@ -168,11 +175,11 @@ impl Lexer {
     }
 
     fn read_escaped_char(&mut self, pos: Position, unclosed: Msg) -> Result<char, MsgWithPos> {
-        if let Some(ch) = self.cur() {
+        if let Some(ch) = self.curr() {
             self.read_char();
 
             if ch == '\\' {
-                let ch = if let Some(ch) = self.cur() {
+                let ch = if let Some(ch) = self.curr() {
                     ch
                 } else {
                     return Err(MsgWithPos::new(
@@ -215,12 +222,12 @@ impl Lexer {
 
         self.read_char();
 
-        while !self.cur().is_none() && !is_quote(self.cur()) {
+        while !self.curr().is_none() && !is_quote(self.curr()) {
             let ch = self.read_escaped_char(pos, Msg::UnclosedString)?;
             value.push(ch);
         }
 
-        if is_quote(self.cur()) {
+        if is_quote(self.curr()) {
             self.read_char();
 
             let ttype = TokenKind::String(value);
@@ -236,10 +243,10 @@ impl Lexer {
 
     fn read_operator(&mut self) -> Result<Token, MsgWithPos> {
         let mut tok = self.build_token(TokenKind::End);
-        let ch = self.cur().unwrap();
+        let ch = self.curr().unwrap();
         self.read_char();
 
-        let nch = self.cur().unwrap_or('x');
+        let nch = self.curr().unwrap_or('x');
         let nnch = self.next().unwrap_or('x');
 
         tok.kind = match ch {
@@ -374,7 +381,7 @@ impl Lexer {
         let pos = self.reader.pos();
         let mut value = String::new();
 
-        let base = if self.cur() == Some('0') {
+        let base = if self.curr() == Some('0') {
             let next = self.next();
 
             match next {
@@ -400,25 +407,25 @@ impl Lexer {
 
         self.read_digits(&mut value, base);
 
-        if base == IntBase::Dec && self.cur() == Some('.') && is_digit(self.next()) {
+        if base == IntBase::Dec && self.curr() == Some('.') && is_digit(self.next()) {
             self.read_char();
             value.push('.');
 
             self.read_digits(&mut value, IntBase::Dec);
 
-            if self.cur() == Some('e') || self.cur() == Some('E') {
-                value.push(self.cur().unwrap());
+            if self.curr() == Some('e') || self.curr() == Some('E') {
+                value.push(self.curr().unwrap());
                 self.read_char();
 
-                if self.cur() == Some('+') || self.cur() == Some('-') {
-                    value.push(self.cur().unwrap());
+                if self.curr() == Some('+') || self.curr() == Some('-') {
+                    value.push(self.curr().unwrap());
                     self.read_char();
                 }
 
                 self.read_digits(&mut value, IntBase::Dec);
             }
 
-            let suffix = match self.cur() {
+            let suffix = match self.curr() {
                 Some('D') => {
                     self.read_char();
                     FloatSuffix::Double
@@ -436,7 +443,7 @@ impl Lexer {
             return Ok(Token::new(ttype, pos));
         }
 
-        let suffix = match self.cur() {
+        let suffix = match self.curr() {
             Some('L') => {
                 self.read_char();
                 IntSuffix::Long
@@ -469,8 +476,8 @@ impl Lexer {
     }
 
     fn read_digits(&mut self, buffer: &mut String, base: IntBase) {
-        while is_digit_or_underscore(self.cur(), base) {
-            let ch = self.cur().unwrap();
+        while is_digit_or_underscore(self.curr(), base) {
+            let ch = self.curr().unwrap();
             self.read_char();
             buffer.push(ch);
         }
@@ -480,12 +487,12 @@ impl Lexer {
         self.reader.advance();
     }
 
-    fn cur(&self) -> Option<char> {
-        self.reader.cur()
+    fn curr(&self) -> Option<char> {
+        self.reader.curr()
     }
 
     fn next(&self) -> Option<char> {
-        self.reader.next()
+        self.reader.nth(1)
     }
 
     fn build_token(&self, kind: TokenKind) -> Token {
@@ -493,15 +500,19 @@ impl Lexer {
     }
 
     fn is_comment_start(&self) -> bool {
-        self.cur() == Some('/') && self.next() == Some('/')
+        self.curr() == Some('/') && self.next() == Some('/')
     }
 
     fn is_multi_comment_start(&self) -> bool {
-        self.cur() == Some('/') && self.next() == Some('*')
+        self.curr() == Some('/') && self.next() == Some('*')
     }
 
     fn is_multi_comment_end(&self) -> bool {
-        self.cur() == Some('*') && self.next() == Some('/')
+        self.curr() == Some('*') && self.next() == Some('/')
+    }
+
+    pub fn file(self) -> File {
+        self.reader.file()
     }
 }
 

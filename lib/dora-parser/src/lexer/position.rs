@@ -22,14 +22,67 @@ impl Display for Position {
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct Span {
-    pub start: u32,
-    pub end: u32,
+    start: Loc,
+    end: Loc,
 }
 
 impl Span {
-    fn new(s: u32, e: u32) -> Span {
-        Span { start: s, end: e }
+    fn new(start: u32, end: u32) -> Span {
+        Span {
+            start: Loc::new(start),
+            end: Loc::new(end),
+        }
+    }
+
+    fn at(start: u32) -> Span {
+        Span {
+            start: Loc::new(start),
+            end: Loc::invalid(),
+        }
+    }
+
+    fn invalid() -> Span {
+        Span {
+            start: Loc::invalid(),
+            end: Loc::invalid(),
+        }
+    }
+
+    fn start(&self) -> Loc {
+        self.start
+    }
+
+    fn end(&self) -> Loc {
+        self.end
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct Loc(u32);
+
+impl Loc {
+    fn new(pos: u32) -> Loc {
+        assert!(pos < u32::max_value());
+        Loc(pos)
+    }
+
+    fn invalid() -> Loc {
+        Loc(u32::max_value())
+    }
+
+    fn is_valid(&self) -> bool {
+        self.0 != u32::max_value()
+    }
+
+    fn is_invalid(&self) -> bool {
+        !self.is_valid()
+    }
+
+    fn idx(&self) -> u32 {
+        assert!(self.is_valid());
+        self.0
     }
 }
 

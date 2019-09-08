@@ -57,14 +57,14 @@ where
         "stdlib/Testing.dora",
     ] {
         let reader = Reader::from_file(file).unwrap();
-        let mut parser = Parser::new(reader, &vm.id_generator, &mut ast, &mut vm.interner);
-        parser.parse().unwrap()
+        let parser = Parser::new(reader, &vm.id_generator, &mut ast, &mut vm.interner);
+        parser.parse().unwrap();
     }
 
     {
         let reader = Reader::from_string(code);
-        let mut parser = Parser::new(reader, &vm.id_generator, &mut ast, &mut vm.interner);
-        parser.parse().unwrap()
+        let parser = Parser::new(reader, &vm.id_generator, &mut ast, &mut vm.interner);
+        parser.parse().unwrap();
     }
 
     vm.ast = &ast;

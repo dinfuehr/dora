@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::mem;
 
+use crate::ast;
 use crate::ast::Elem::*;
 use crate::ast::*;
 use crate::builder::Builder;
@@ -11,6 +12,7 @@ use crate::interner::*;
 use crate::lexer::position::Position;
 use crate::lexer::reader::Reader;
 use crate::lexer::token::*;
+use crate::lexer::File as LexerFile;
 use crate::lexer::*;
 
 pub struct Parser<'a> {
@@ -20,10 +22,7 @@ pub struct Parser<'a> {
     interner: &'a mut Interner,
     ast: &'a mut Ast,
     param_idx: u32,
-    field_idx: u32,
     in_class: bool,
-
-    next_id: NodeId,
 }
 
 type ExprResult = Result<Box<Expr>, MsgWithPos>;
@@ -45,10 +44,8 @@ impl<'a> Parser<'a> {
             id_generator: id_generator,
             interner: interner,
             param_idx: 0,
-            field_idx: 0,
             in_class: false,
             ast: ast,
-            next_id: NodeId(1),
         };
 
         parser
@@ -58,7 +55,7 @@ impl<'a> Parser<'a> {
         self.id_generator.next()
     }
 
-    pub fn parse(&mut self) -> Result<(), MsgWithPos> {
+    pub fn parse(mut self) -> Result<LexerFile, MsgWithPos> {
         self.init()?;
         let mut elements = vec![];
 
@@ -66,12 +63,14 @@ impl<'a> Parser<'a> {
             self.parse_top_level_element(&mut elements)?;
         }
 
-        self.ast.files.push(File {
-            path: self.lexer.path().to_string(),
+        let file = self.lexer.file();
+
+        self.ast.files.push(ast::File {
+            path: file.name.clone(),
             elements: elements,
         });
 
-        Ok(())
+        Ok(file)
     }
 
     fn init(&mut self) -> Result<(), MsgWithPos> {
@@ -1782,9 +1781,9 @@ mod tests {
         let mut ast = Ast::new();
 
         let reader = Reader::from_string(code);
-        Parser::new(reader, &id_generator, &mut ast, &mut interner)
-            .parse()
-            .unwrap_err()
+        let parser = Parser::new(reader, &id_generator, &mut ast, &mut interner);
+
+        parser.parse().unwrap_err()
     }
 
     #[test]

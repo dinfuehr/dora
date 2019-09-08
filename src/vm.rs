@@ -32,6 +32,7 @@ use crate::utils::GrowableVec;
 use dora_parser::ast;
 use dora_parser::interner::*;
 use dora_parser::lexer::position::Position;
+use dora_parser::lexer::File;
 use dora_parser::parser::NodeIdGenerator;
 
 pub static mut EXCEPTION_OBJECT: *const u8 = 0 as *const u8;
@@ -378,12 +379,6 @@ impl<'ast> GrowableVec<RwLock<Fct<'ast>>> {
     pub fn idx(&self, index: FctId) -> Arc<RwLock<Fct<'ast>>> {
         self.idx_usize(index.0)
     }
-}
-
-pub struct File {
-    name: String,
-    content: String,
-    line_ends: Vec<u32>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]

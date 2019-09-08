@@ -1,19 +1,18 @@
-use std::fs::File;
-use std::io::{self, Read, Error};
+use std::fs;
+use std::io::{self, Error, Read};
 
 use crate::lexer::position::Position;
+use crate::lexer::File;
 
 pub struct Reader {
-    filename: String,
-    src: String,
+    name: String,
+    content: String,
+    line_ends: Vec<u32>,
 
-    pos: usize,
-    next_pos: usize,
+    idx: usize,
+    pos: Position,
 
-    cur: Option<char>,
-    line: usize,
-    col: usize,
-    tabwidth: usize,
+    tabwidth: u32,
 }
 
 impl Reader {
@@ -27,7 +26,7 @@ impl Reader {
     pub fn from_file(filename: &str) -> Result<Reader, Error> {
         let mut src = String::new();
 
-        let mut file = File::open(filename)?;
+        let mut file = fs::File::open(filename)?;
         file.read_to_string(&mut src)?;
 
         Ok(common_init(filename.into(), src))
@@ -37,87 +36,83 @@ impl Reader {
         common_init("<<code>>".into(), src.into())
     }
 
-    pub fn set_tabwidth(&mut self, width: usize) {
-        self.tabwidth = width;
+    pub fn set_tabwidth(&mut self, tabwidth: u32) {
+        self.tabwidth = tabwidth;
     }
 
     pub fn path(&self) -> &str {
-        &self.filename
+        &self.name
     }
 
     pub fn advance(&mut self) -> Option<char> {
-        match self.cur {
+        let curr = self.curr();
+
+        match curr {
             Some('\n') => {
-                self.line += 1;
-                self.col = 1;
+                self.pos = Position::new(self.pos.line + 1, 1);
+                self.line_ends.push(self.idx as u32);
             }
 
             Some('\t') => {
-                let tabdepth = (self.col - 1) / self.tabwidth;
-                self.col = 1 + self.tabwidth * (tabdepth + 1);
+                let tabdepth = (self.pos.column - 1) / self.tabwidth;
+                let col = 1 + self.tabwidth * (tabdepth + 1);
+                self.pos = Position::new(self.pos.line, col);
             }
 
             Some(_) => {
-                self.col += 1;
+                self.pos = Position::new(self.pos.line, self.pos.column + 1);
             }
 
             None => panic!("advancing from eof"),
         }
 
-        self.cur = if self.next_pos < self.src.len() {
-            let ch = self.src[self.next_pos..].chars().next().unwrap();
-            self.pos = self.next_pos;
-            self.next_pos += ch.len_utf8();
+        if let Some(ch) = curr {
+            self.idx += ch.len_utf8();
+        }
 
-            Some(ch)
-
-        } else {
-            None
-        };
-
-        self.cur
+        self.curr()
     }
 
-    pub fn cur(&self) -> Option<char> {
-        self.cur
+    pub fn file(self) -> File {
+        File {
+            name: self.name,
+            content: self.content,
+            line_ends: self.line_ends,
+        }
+    }
+
+    pub fn curr(&self) -> Option<char> {
+        self.nth(0)
+    }
+
+    pub fn nth(&self, offset: usize) -> Option<char> {
+        let pos = self.idx + offset;
+
+        if pos < self.content.len() {
+            self.content[pos..].chars().next()
+        } else {
+            None
+        }
     }
 
     pub fn pos(&self) -> Position {
-        Position {
-            line: self.line as u32,
-            column: self.col as u32,
-        }
-    }
-
-    pub fn next(&self) -> Option<char> {
-        if self.next_pos < self.src.len() {
-            let ch = self.src[self.next_pos..].chars().next().unwrap();
-            Some(ch)
-
-        } else {
-            None
-        }
+        self.pos
     }
 }
 
-fn common_init(name: String, src: String) -> Reader {
-    let mut reader = Reader {
-        filename: name,
-        src: src,
-        pos: 0,
-        next_pos: 0,
+fn common_init(name: String, content: String) -> Reader {
+    let reader = Reader {
+        name: name,
+        content: content,
+        line_ends: Vec::new(),
 
-        cur: Some('\n'),
-        line: 0,
-        col: 0,
+        idx: 0,
+        pos: Position::new(1, 1),
         tabwidth: 4,
     };
 
-    reader.advance();
-
     reader
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -127,19 +122,19 @@ mod tests {
     fn read_from_str() {
         let mut reader = Reader::from_string("abc");
 
-        assert_eq!(Some('a'), reader.cur());
-        assert_eq!(Some('b'), reader.next());
+        assert_eq!(Some('a'), reader.curr());
+        assert_eq!(Some('b'), reader.nth(1));
         reader.advance();
 
-        assert_eq!(Some('b'), reader.cur());
-        assert_eq!(Some('c'), reader.next());
+        assert_eq!(Some('b'), reader.curr());
+        assert_eq!(Some('c'), reader.nth(1));
         reader.advance();
 
-        assert_eq!(Some('c'), reader.cur());
-        assert_eq!(None, reader.next());
+        assert_eq!(Some('c'), reader.curr());
+        assert_eq!(None, reader.nth(1));
         reader.advance();
 
-        assert_eq!(None, reader.cur());
-        assert_eq!(None, reader.next());
+        assert_eq!(None, reader.curr());
+        assert_eq!(None, reader.nth(1));
     }
 }
