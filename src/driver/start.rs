@@ -227,43 +227,33 @@ fn parse_dir(dirname: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
 fn parse_file(filename: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
     let reader = if filename == "-" {
         match Reader::from_input() {
+            Ok(reader) => reader,
+
             Err(_) => {
                 println!("unable to read from stdin.");
                 return Err(1);
             }
-
-            Ok(reader) => reader,
         }
     } else {
         match Reader::from_file(filename) {
+            Ok(reader) => reader,
+
             Err(_) => {
                 println!("unable to read file `{}`", filename);
                 return Err(1);
             }
-
-            Ok(reader) => reader,
         }
     };
 
-    let parser = Parser::new(reader, &vm.id_generator, ast, &mut vm.interner);
-
-    match parser.parse() {
-        Ok(file) => {
-            vm.files.push(file);
-            Ok(())
-        }
-
-        Err(error) => {
-            println!("{}", error);
-            println!("1 error found.");
-
-            Err(1)
-        }
-    }
+    parse_reader(reader, vm, ast)
 }
 
 fn parse_str(file: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
     let reader = Reader::from_string(file);
+    parse_reader(reader, vm, ast)
+}
+
+fn parse_reader(reader: Reader, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
     let parser = Parser::new(reader, &vm.id_generator, ast, &mut vm.interner);
 
     match parser.parse() {
