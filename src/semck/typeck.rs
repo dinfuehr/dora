@@ -54,7 +54,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                 negative_expr_id: NodeId(0),
             };
 
-            constck.check_expr(xconst.expr)
+            constck.check_expr(&xconst.expr)
         };
 
         xconst.value = value;
@@ -1917,11 +1917,7 @@ fn arg_allows(
     }
 }
 
-fn check_lit_int<'ast>(
-    vm: &VM<'ast>,
-    e: &'ast ExprLitIntType,
-    negative_expr_id: NodeId,
-) -> (BuiltinType, i64) {
+fn check_lit_int(vm: &VM, e: &ExprLitIntType, negative_expr_id: NodeId) -> (BuiltinType, i64) {
     let ty = match e.suffix {
         IntSuffix::Byte => BuiltinType::Byte,
         IntSuffix::Int => BuiltinType::Int,
@@ -1972,11 +1968,7 @@ fn check_lit_int<'ast>(
     (ty, val)
 }
 
-fn check_lit_float<'ast>(
-    vm: &VM<'ast>,
-    e: &'ast ExprLitFloatType,
-    negative_expr_id: NodeId,
-) -> (BuiltinType, f64) {
+fn check_lit_float(vm: &VM, e: &ExprLitFloatType, negative_expr_id: NodeId) -> (BuiltinType, f64) {
     let ty = match e.suffix {
         FloatSuffix::Float => BuiltinType::Float,
         FloatSuffix::Double => BuiltinType::Double,
@@ -2009,12 +2001,12 @@ fn check_lit_float<'ast>(
 
 struct ConstCheck<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
-    xconst: &'a ConstData<'ast>,
+    xconst: &'a ConstData,
     negative_expr_id: NodeId,
 }
 
 impl<'a, 'ast> ConstCheck<'a, 'ast> {
-    fn check_expr(&mut self, expr: &'ast Expr) -> (BuiltinType, ConstValue) {
+    fn check_expr(&mut self, expr: &Expr) -> (BuiltinType, ConstValue) {
         let (ty, lit) = match expr {
             &ExprLitChar(ref expr) => (BuiltinType::Char, ConstValue::Char(expr.value)),
             &ExprLitInt(ref expr) => {

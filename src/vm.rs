@@ -82,18 +82,18 @@ pub struct VM<'ast> {
     pub diag: Mutex<Diagnostic>,
     pub sym: Mutex<SymTable>,
     pub vips: KnownElements,
-    pub consts: GrowableVec<Mutex<ConstData<'ast>>>, // stores all const definitions
-    pub structs: GrowableVec<Mutex<StructData>>,     // stores all struct source definitions
-    pub struct_defs: GrowableVec<Mutex<StructDef>>,  // stores all struct definitions
-    pub classes: GrowableVec<RwLock<Class>>,         // stores all class source definitions
-    pub class_defs: GrowableVec<RwLock<ClassDef>>,   // stores all class definitions
-    pub fcts: GrowableVec<RwLock<Fct<'ast>>>,        // stores all function definitions
-    pub jit_fcts: GrowableVec<JitFct>,               // stores all function implementations
-    pub traits: Vec<RwLock<TraitData>>,              // stores all trait definitions
-    pub impls: Vec<RwLock<ImplData>>,                // stores all impl definitions
-    pub code_map: Mutex<CodeMap>,                    // stores all compiled functions
-    pub globals: GrowableVec<Mutex<GlobalData>>,     // stores all global variables
-    pub gc: Gc,                                      // garbage collector
+    pub consts: GrowableVec<Mutex<ConstData>>, // stores all const definitions
+    pub structs: GrowableVec<Mutex<StructData>>, // stores all struct source definitions
+    pub struct_defs: GrowableVec<Mutex<StructDef>>, // stores all struct definitions
+    pub classes: GrowableVec<RwLock<Class>>,   // stores all class source definitions
+    pub class_defs: GrowableVec<RwLock<ClassDef>>, // stores all class definitions
+    pub fcts: GrowableVec<RwLock<Fct<'ast>>>,  // stores all function definitions
+    pub jit_fcts: GrowableVec<JitFct>,         // stores all function implementations
+    pub traits: Vec<RwLock<TraitData>>,        // stores all trait definitions
+    pub impls: Vec<RwLock<ImplData>>,          // stores all impl definitions
+    pub code_map: Mutex<CodeMap>,              // stores all compiled functions
+    pub globals: GrowableVec<Mutex<GlobalData>>, // stores all global variables
+    pub gc: Gc,                                // garbage collector
     pub native_thunks: Mutex<NativeThunks>,
     pub polling_page: PollingPage,
     pub lists: Mutex<TypeLists>,
@@ -1334,19 +1334,19 @@ impl From<usize> for ConstId {
     }
 }
 
-impl<'ast> GrowableVec<Mutex<ConstData<'ast>>> {
-    pub fn idx(&self, index: ConstId) -> Arc<Mutex<ConstData<'ast>>> {
+impl GrowableVec<Mutex<ConstData>> {
+    pub fn idx(&self, index: ConstId) -> Arc<Mutex<ConstData>> {
         self.idx_usize(index.0 as usize)
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct ConstData<'ast> {
+pub struct ConstData {
     pub id: ConstId,
     pub pos: Position,
     pub name: Name,
     pub ty: BuiltinType,
-    pub expr: &'ast ast::Expr,
+    pub expr: Box<ast::Expr>,
     pub value: ConstValue,
 }
 

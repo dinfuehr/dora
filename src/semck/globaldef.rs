@@ -118,7 +118,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
                 pos: c.pos,
                 name: c.name,
                 ty: BuiltinType::Unit,
-                expr: &c.expr,
+                expr: c.expr.clone(),
                 value: ConstValue::None,
             };
 
