@@ -156,7 +156,7 @@ class HashMap[K: Hash + Equals, V] {
         new_map.deleted = BitSet(new_capacity);
         new_map.keys = Array[K](new_capacity);
         new_map.values = Array[V](new_capacity);
-        new_map.size = self.size;
+        new_map.size = 0;
         new_map.capacity = new_capacity;
 
         var idx = 0;
@@ -182,5 +182,9 @@ class HashMap[K: Hash + Equals, V] {
 
     fun isLive(idx: Int) -> Bool {
         return self.inserted.contains(idx) && !self.deleted.contains(idx);
+    }
+
+    fun len() -> Int {
+        return self.size;
     }
 }

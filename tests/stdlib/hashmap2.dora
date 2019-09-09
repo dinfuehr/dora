@@ -8,6 +8,7 @@ fun main() {
         i = i + 1;
     }
 
+    assert(map.len() == 1000);
     assert(!map.contains(-1));
     assert(!map.contains(1000));
 
