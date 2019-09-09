@@ -1,0 +1,21 @@
+fun main() {
+    let map = HashMap[Int, String]();
+
+    var i = 0;
+
+    while i < 1000 {
+        map.insert(i, i.toString());
+        i = i + 1;
+    }
+
+    assert(!map.contains(-1));
+    assert(!map.contains(1000));
+
+    i = 0;
+
+    while i < 1000 {
+        assert(map.get(i) == i.toString());
+        assert(map.contains(i));
+        i = i + 1;
+    }
+}

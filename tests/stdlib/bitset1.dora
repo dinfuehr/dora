@@ -1,5 +1,5 @@
 fun main() {
-    let set = BitSet::with_capacity(64);
+    let set = BitSet(64);
     set.insert(0);
     set.insert(63);
     assert(set.contains(0));

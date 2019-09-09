@@ -1,17 +1,11 @@
-class BitSet {
+class BitSet(capacity: Int) {
     var data: Array[Int] = nil;
     var capacity: Int = 0;
 
-    static fun with_capacity(capacity: Int) -> BitSet {
-        let set = BitSet();
-
-        if capacity > 0 {
-            let entries = (capacity + 31) / 32;
-            set.data = Array[Int](entries);
-            set.capacity = capacity;
-        }
-
-        return set;
+    if capacity > 0 {
+        let entries = (capacity + 31) / 32;
+        self.data = Array[Int](entries);
+        self.capacity = capacity;
     }
 
     fun contains(idx: Int) -> Bool {

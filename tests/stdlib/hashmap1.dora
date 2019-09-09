@@ -1,0 +1,27 @@
+fun main() {
+    let map = HashMap[Int, String]();
+    map.insert(1, "a");
+    map.insert(10000, "b");
+    map.insert(7, "c");
+
+    assert(map.get(1) == "a");
+    assert(map.get(10000) == "b");
+    assert(map.get(7) == "c");
+    assert(map.get(2) === nil);
+
+    assert(map.contains(1));
+    assert(map.contains(10000));
+    assert(map.contains(7));
+    assert(!map.contains(2));
+
+    map.remove(10000);
+
+    assert(map.get(1) == "a");
+    assert(map.get(10000) === nil);
+    assert(map.get(7) == "c");
+    assert(map.get(2) === nil);
+
+    assert(map.contains(1));
+    assert(!map.contains(10000));
+    assert(map.contains(7));
+}
