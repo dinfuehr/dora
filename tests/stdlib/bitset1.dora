@@ -26,4 +26,13 @@ fun main() {
     assert(!set.contains(33));
     assert(!set.contains(62));
     assert(set.contains(63));
+
+    set.remove(0);
+    set.remove(63);
+
+    assert(!set.contains(0));
+    assert(set.contains(1));
+    assert(set.contains(31));
+    assert(set.contains(32));
+    assert(!set.contains(63));
 }

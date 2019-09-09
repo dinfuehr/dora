@@ -39,4 +39,18 @@ class BitSet {
 
         self.data.set(entry_idx, value);
     }
+
+    fun remove(idx: Int) {
+        if idx < 0 || idx >= self.capacity {
+            fatalError("index out of bounds");
+        }
+
+        let entry_idx = idx / 32;
+        var value = self.data.get(entry_idx);
+        let value_idx = idx - entry_idx;
+
+        value = value & !(1 << value_idx);
+
+        self.data.set(entry_idx, value);
+    }
 }
