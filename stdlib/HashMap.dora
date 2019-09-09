@@ -143,6 +143,8 @@ class HashMap[K: Hash + Equals, V] {
             return;
         }
 
+        assert(self.size < new_capacity);
+
         self.rehash(new_capacity);
     }
 
