@@ -1,0 +1,42 @@
+class BitSet {
+    var data: Array[Int] = nil;
+    var capacity: Int = 0;
+
+    static fun with_capacity(capacity: Int) -> BitSet {
+        let set = BitSet();
+
+        if capacity > 0 {
+            let entries = (capacity + 31) / 32;
+            set.data = Array[Int](entries);
+            set.capacity = capacity;
+        }
+
+        return set;
+    }
+
+    fun contains(idx: Int) -> Bool {
+        if idx < 0 || idx >= self.capacity {
+            fatalError("index out of bounds");
+        }
+
+        let entry_idx = idx / 32;
+        let value = self.data.get(entry_idx);
+        let value_idx = idx - entry_idx;
+
+        return value & (1 << value_idx) != 0;
+    }
+
+    fun insert(idx: Int) {
+        if idx < 0 || idx >= self.capacity {
+            fatalError("index out of bounds");
+        }
+
+        let entry_idx = idx / 32;
+        var value = self.data.get(entry_idx);
+        let value_idx = idx - entry_idx;
+
+        value = value | (1 << value_idx);
+
+        self.data.set(entry_idx, value);
+    }
+}

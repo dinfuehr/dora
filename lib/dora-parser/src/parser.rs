@@ -1147,7 +1147,6 @@ impl<'a> Parser<'a> {
                     if self.token.is(TokenKind::LParen) {
                         self.parse_call(tok.position, Some(left), Path::new(ident), type_params)?
                     } else {
-                        //println!("ident {:?}, pos {}", self.interner.str(ident), tok.position);
                         assert!(type_params.is_none());
                         Box::new(Expr::create_field(
                             self.generate_id(),

@@ -1,0 +1,29 @@
+fun main() {
+    let set = BitSet::with_capacity(64);
+    set.insert(0);
+    set.insert(63);
+    assert(set.contains(0));
+    assert(set.contains(63));
+
+    var i = 1;
+    while i < 63 {
+        assert(!set.contains(i));
+        i = i + 1;
+    }
+
+    set.insert(0);
+    set.insert(1);
+    set.insert(31);
+    set.insert(32);
+    set.insert(63);
+
+    assert(set.contains(0));
+    assert(set.contains(1));
+    assert(!set.contains(2));
+    assert(!set.contains(30));
+    assert(set.contains(31));
+    assert(set.contains(32));
+    assert(!set.contains(33));
+    assert(!set.contains(62));
+    assert(set.contains(63));
+}
