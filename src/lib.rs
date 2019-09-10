@@ -42,6 +42,7 @@ mod sym;
 mod threads;
 mod timer;
 mod ty;
+mod typeck;
 mod utils;
 mod vm;
 mod vtable;

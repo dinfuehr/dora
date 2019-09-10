@@ -2,6 +2,7 @@ use crate::class::TypeParams;
 use crate::mem;
 use crate::sym::Sym::{SymClass, SymClassTypeParam, SymFctTypeParam, SymStruct, SymTrait};
 use crate::ty::BuiltinType;
+use crate::typeck;
 use crate::vm::{NodeMap, VM};
 use dora_parser::ast::Type::{TypeBasic, TypeLambda, TypeSelf, TypeTuple};
 use dora_parser::ast::{Stmt, Type};
@@ -23,7 +24,6 @@ pub mod specialize;
 mod structdefck;
 mod superck;
 mod traitdefck;
-mod typeck;
 
 macro_rules! return_on_error {
     ($vm: ident) => {{
@@ -360,7 +360,7 @@ pub fn always_returns(s: &Stmt) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use crate::test;
     use crate::vm::VM;
     use dora_parser::error::msg::Msg;

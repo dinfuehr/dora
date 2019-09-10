@@ -3,15 +3,14 @@ use std::sync::Arc;
 use std::{f32, f64};
 
 use crate::class::{ClassId, TypeParams};
+use crate::sym::Sym::{self, SymClass};
+use crate::ty::BuiltinType;
 use crate::vm;
 use crate::vm::{
-    CallType, ConstData, ConstValue, ConvInfo, Fct, FctId, FctParent, FctSrc, ForTypeInfo,
-    IdentType, TraitId, VM,
+    CallType, ConvInfo, Fct, FctId, FctParent, FctSrc, ForTypeInfo, IdentType, TraitId, VM,
 };
 use dora_parser::error::msg::Msg;
 
-use crate::sym::Sym::{self, SymClass};
-use crate::ty::BuiltinType;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
@@ -20,62 +19,21 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntBase, IntSuffix};
 
-pub fn check<'a, 'ast>(vm: &VM<'ast>) {
-    for fct in vm.fcts.iter() {
-        let fct = fct.read();
-
-        if !fct.is_src() {
-            continue;
-        }
-
-        let src = fct.src();
-        let mut src = src.write();
-        let ast = fct.ast;
-
-        let mut typeck = TypeCheck {
-            vm: vm,
-            fct: &fct,
-            src: &mut src,
-            ast: ast,
-            expr_type: BuiltinType::Unit,
-            negative_expr_id: NodeId(0),
-        };
-
-        typeck.check();
-    }
-
-    for xconst in vm.consts.iter() {
-        let mut xconst = xconst.lock();
-
-        let (_, value) = {
-            let mut constck = ConstCheck {
-                vm: vm,
-                xconst: &*xconst,
-                negative_expr_id: NodeId(0),
-            };
-
-            constck.check_expr(&xconst.expr)
-        };
-
-        xconst.value = value;
-    }
-}
-
-struct TypeCheck<'a, 'ast: 'a> {
-    vm: &'a VM<'ast>,
-    fct: &'a Fct<'ast>,
-    src: &'a mut FctSrc,
-    ast: &'ast Function,
-    expr_type: BuiltinType,
-    negative_expr_id: NodeId,
+pub struct TypeCheck<'a, 'ast: 'a> {
+    pub vm: &'a VM<'ast>,
+    pub fct: &'a Fct<'ast>,
+    pub src: &'a mut FctSrc,
+    pub ast: &'ast Function,
+    pub expr_type: BuiltinType,
+    pub negative_expr_id: NodeId,
 }
 
 impl<'a, 'ast> TypeCheck<'a, 'ast> {
-    fn check(&mut self) {
+    pub fn check(&mut self) {
         self.visit_fct(self.ast);
     }
 
-    fn check_stmt_var(&mut self, s: &'ast StmtVarType) {
+    pub fn check_stmt_var(&mut self, s: &'ast StmtVarType) {
         let var = *self.src.map_vars.get(s.id).unwrap();
 
         let expr_type = s.expr.as_ref().map(|expr| {
@@ -1965,7 +1923,7 @@ fn arg_allows(
     }
 }
 
-fn check_lit_int(vm: &VM, e: &ExprLitIntType, negative_expr_id: NodeId) -> (BuiltinType, i64) {
+pub fn check_lit_int(vm: &VM, e: &ExprLitIntType, negative_expr_id: NodeId) -> (BuiltinType, i64) {
     let ty = match e.suffix {
         IntSuffix::Byte => BuiltinType::Byte,
         IntSuffix::Int => BuiltinType::Int,
@@ -2016,7 +1974,11 @@ fn check_lit_int(vm: &VM, e: &ExprLitIntType, negative_expr_id: NodeId) -> (Buil
     (ty, val)
 }
 
-fn check_lit_float(vm: &VM, e: &ExprLitFloatType, negative_expr_id: NodeId) -> (BuiltinType, f64) {
+pub fn check_lit_float(
+    vm: &VM,
+    e: &ExprLitFloatType,
+    negative_expr_id: NodeId,
+) -> (BuiltinType, f64) {
     let ty = match e.suffix {
         FloatSuffix::Float => BuiltinType::Float,
         FloatSuffix::Double => BuiltinType::Double,
@@ -2045,73 +2007,6 @@ fn check_lit_float(vm: &VM, e: &ExprLitFloatType, negative_expr_id: NodeId) -> (
     }
 
     (ty, value)
-}
-
-struct ConstCheck<'a, 'ast: 'a> {
-    vm: &'a VM<'ast>,
-    xconst: &'a ConstData,
-    negative_expr_id: NodeId,
-}
-
-impl<'a, 'ast> ConstCheck<'a, 'ast> {
-    fn check_expr(&mut self, expr: &Expr) -> (BuiltinType, ConstValue) {
-        let (ty, lit) = match expr {
-            &ExprLitChar(ref expr) => (BuiltinType::Char, ConstValue::Char(expr.value)),
-            &ExprLitInt(ref expr) => {
-                let (ty, val) = check_lit_int(self.vm, expr, self.negative_expr_id);
-                (ty, ConstValue::Int(val))
-            }
-            &ExprLitFloat(ref expr) => {
-                let (ty, val) = check_lit_float(self.vm, expr, self.negative_expr_id);
-                (ty, ConstValue::Float(val))
-            }
-            &ExprLitBool(ref expr) => (BuiltinType::Bool, ConstValue::Bool(expr.value)),
-
-            &ExprUn(ref expr) if expr.op == UnOp::Neg => {
-                if self.negative_expr_id != expr.id {
-                    self.negative_expr_id = expr.opnd.id();
-                }
-
-                let (ty, val) = self.check_expr(&expr.opnd);
-                let name = self.vm.interner.intern("unaryMinus");
-
-                if lookup_method(
-                    self.vm,
-                    ty,
-                    false,
-                    name,
-                    &[],
-                    &TypeParams::empty(),
-                    Some(ty),
-                )
-                .is_none()
-                {
-                    let ty = ty.name(self.vm);
-                    let msg = Msg::UnOpType(expr.op.as_str().into(), ty);
-
-                    self.vm.diag.lock().report_without_path(expr.pos, msg);
-                }
-
-                return (ty, val);
-            }
-
-            _ => {
-                let msg = Msg::ConstValueExpected;
-                self.vm.diag.lock().report_without_path(expr.pos(), msg);
-                return (BuiltinType::Error, ConstValue::None);
-            }
-        };
-
-        if !self.xconst.ty.allows(self.vm, ty) {
-            let name = self.vm.interner.str(self.xconst.name).to_string();
-            let const_ty = self.xconst.ty.name(self.vm);
-            let ty = ty.name(self.vm);
-            let msg = Msg::AssignType(name, const_ty, ty);
-            self.vm.diag.lock().report_without_path(expr.pos(), msg);
-        }
-
-        (ty, lit)
-    }
 }
 
 #[derive(Copy, Clone)]
@@ -2571,7 +2466,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
     }
 }
 
-fn lookup_method<'ast>(
+pub fn lookup_method<'ast>(
     vm: &VM<'ast>,
     object_type: BuiltinType,
     is_static: bool,
