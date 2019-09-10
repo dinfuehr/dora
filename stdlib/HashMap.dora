@@ -187,4 +187,8 @@ class HashMap[K: Hash + Equals, V] {
     fun len() -> Int {
         return self.size;
     }
+
+    fun capacity() -> Int {
+        return self.capacity;
+    }
 }
