@@ -118,6 +118,7 @@ pub enum Msg {
     StructFieldNotInitialized(String, String),
     InvalidLeftSideOfSeparator,
     InvalidUseOfTypeParams,
+    NameOfStaticMethodExpected,
 }
 
 impl Msg {
@@ -357,6 +358,7 @@ impl Msg {
             }
             InvalidLeftSideOfSeparator => "left hand side of separator is not a class.".into(),
             InvalidUseOfTypeParams => "type params need to be used on class or function.".into(),
+            NameOfStaticMethodExpected => "name of static method expected.".into(),
         }
     }
 }

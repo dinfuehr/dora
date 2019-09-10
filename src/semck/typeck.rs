@@ -1467,16 +1467,27 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.visit_expr(&e.lhs);
         let ident_type = self.src.map_idents.get(e.id);
 
-        match ident_type {
-            Some(&IdentType::Class(_cls_id)) => {
-                unimplemented!();
-            }
+        let _cls_id = match ident_type {
+            Some(&IdentType::Class(cls_id)) => cls_id,
 
             _ => {
                 let msg = Msg::InvalidLeftSideOfSeparator;
                 self.vm.diag.lock().report_without_path(e.lhs.pos(), msg);
+                return;
             }
-        }
+        };
+
+        self.visit_expr(&e.rhs);
+
+        let _name = if let Some(ident) = e.rhs.to_ident() {
+            ident.name
+        } else {
+            let msg = Msg::NameOfStaticMethodExpected;
+            self.vm.diag.lock().report_without_path(e.rhs.pos(), msg);
+            return;
+        };
+
+        unimplemented!();
     }
 
     fn check_expr_type_param(&mut self, e: &'ast ExprTypeParamType) {
@@ -1495,6 +1506,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             _ => {
                 let msg = Msg::InvalidUseOfTypeParams;
                 self.vm.diag.lock().report_without_path(e.pos, msg);
+                return;
             }
         }
     }
