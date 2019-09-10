@@ -355,6 +355,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.src.set_ty(e.id, BuiltinType::Error);
                 self.expr_type = BuiltinType::Error;
             }
+
+            IdentType::Class(_) => {
+                unimplemented!();
+            }
         }
     }
 
@@ -421,6 +425,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                             .report_without_path(e.pos, Msg::FctReassigned);
 
                         return;
+                    }
+
+                    &IdentType::Class(_) => {
+                        unimplemented!();
                     }
                 }
 
@@ -1455,12 +1463,40 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.expr_type = BuiltinType::Unit;
     }
 
-    fn check_expr_path(&mut self, _e: &'ast ExprPathType) {
-        unimplemented!();
+    fn check_expr_path(&mut self, e: &'ast ExprPathType) {
+        self.visit_expr(&e.lhs);
+        let ident_type = self.src.map_idents.get(e.id);
+
+        match ident_type {
+            Some(&IdentType::Class(_cls_id)) => {
+                unimplemented!();
+            }
+
+            _ => {
+                let msg = Msg::InvalidLeftSideOfSeparator;
+                self.vm.diag.lock().report_without_path(e.lhs.pos(), msg);
+            }
+        }
     }
 
-    fn check_expr_type_param(&mut self, _e: &'ast ExprTypeParamType) {
-        unimplemented!();
+    fn check_expr_type_param(&mut self, e: &'ast ExprTypeParamType) {
+        self.visit_expr(&e.callee);
+        let ident_type = self.src.map_idents.get(e.id);
+
+        match ident_type {
+            Some(&IdentType::Class(_cls_id)) => {
+                unimplemented!();
+            }
+
+            Some(&IdentType::Fct(_fct_id)) => {
+                unimplemented!();
+            }
+
+            _ => {
+                let msg = Msg::InvalidUseOfTypeParams;
+                self.vm.diag.lock().report_without_path(e.pos, msg);
+            }
+        }
     }
 
     fn check_expr_field(&mut self, e: &'ast ExprFieldType) {

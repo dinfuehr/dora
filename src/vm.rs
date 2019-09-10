@@ -1235,6 +1235,7 @@ pub enum IdentType {
     Struct(StructId),
     Const(ConstId),
     Fct(FctId),
+    Class(ClassId),
 }
 
 impl IdentType {

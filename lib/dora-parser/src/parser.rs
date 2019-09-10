@@ -1170,6 +1170,18 @@ impl<'a> Parser<'a> {
                     ))
                 }
 
+                TokenKind::LBracket => {
+                    let tok = self.advance_token()?;
+                    let types = self.parse_comma_list(TokenKind::RBracket, |p| p.parse_type())?;
+
+                    Box::new(Expr::create_type_param(
+                        self.generate_id(),
+                        tok.position,
+                        left,
+                        types,
+                    ))
+                }
+
                 TokenKind::Sep => {
                     let tok = self.advance_token()?;
                     let rhs = self.parse_expression()?;

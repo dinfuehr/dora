@@ -1,4 +1,3 @@
-
 use std::fmt;
 
 use self::Msg::*;
@@ -117,6 +116,8 @@ pub enum Msg {
     MakeIteratorReturnType(String),
     UnknownStructField(String, String),
     StructFieldNotInitialized(String, String),
+    InvalidLeftSideOfSeparator,
+    InvalidUseOfTypeParams,
 }
 
 impl Msg {
@@ -130,10 +131,10 @@ impl Msg {
             UnknownFunction(ref name) => format!("unknown function `{}`", name),
             UnknownMethod(ref cls, ref name, ref args) => {
                 let args = args.join(", ");
-                format!("no method with definition `{}({})` in class `{}`.",
-                        name,
-                        args,
-                        cls)
+                format!(
+                    "no method with definition `{}({})` in class `{}`.",
+                    name, args, cls
+                )
             }
             UnknownStaticMethod(ref cls, ref name, ref args) => {
                 let args = args.join(", ");
@@ -143,12 +144,10 @@ impl Msg {
                 let args = args.join(", ");
                 format!("no ctor with definition `{}({})`.", name, args)
             }
-            MethodExists(ref cls, ref name, pos) => {
-                format!("method with name `{}` already exists in class `{}` at line {}.",
-                        name,
-                        cls,
-                        pos)
-            }
+            MethodExists(ref cls, ref name, pos) => format!(
+                "method with name `{}` already exists in class `{}` at line {}.",
+                name, cls, pos
+            ),
             IncompatibleWithNil(ref ty) => format!("cannot assign `nil` to type `{}`.", ty),
             UnknownField(ref field, ref ty) => {
                 format!("unknown field `{}` for type `{}`", field, ty)
@@ -162,19 +161,18 @@ impl Msg {
             ShadowField(ref name) => format!("field with name `{}` already exists.", name),
             ShadowGlobal(ref name) => format!("can not shadow global variable `{}`.", name),
             ShadowConst(ref name) => format!("can not shadow const `{}`", name),
-            VarNeedsTypeInfo(ref name) => {
-                format!("variable `{}` needs either type declaration or expression.",
-                        name)
-            }
+            VarNeedsTypeInfo(ref name) => format!(
+                "variable `{}` needs either type declaration or expression.",
+                name
+            ),
             ParamTypesIncompatible(ref name, ref def, ref expr) => {
                 let def = def.join(", ");
                 let expr = expr.join(", ");
 
-                format!("function `{}({})` cannot be called as `{}({})`",
-                        name,
-                        def,
-                        name,
-                        expr)
+                format!(
+                    "function `{}({})` cannot be called as `{}({})`",
+                    name, def, name, expr
+                )
             }
             WhileCondType(ref ty) => {
                 format!("`while` expects condition of type `bool` but got `{}`.", ty)
@@ -182,38 +180,27 @@ impl Msg {
             IfCondType(ref ty) => {
                 format!("`if` expects condition of type `bool` but got `{}`.", ty)
             }
-            ReturnType(ref def, ref expr) => {
-                format!("`return` expects value of type `{}` but got `{}`.",
-                        def,
-                        expr)
-            }
+            ReturnType(ref def, ref expr) => format!(
+                "`return` expects value of type `{}` but got `{}`.",
+                def, expr
+            ),
             LvalueExpected => format!("lvalue expected for assignment"),
-            AssignType(ref name, ref def, ref expr) => {
-                format!("cannot assign `{}` to variable `{}` of type `{}`.",
-                        expr,
-                        name,
-                        def)
-            }
-            AssignField(ref name, ref cls, ref def, ref expr) => {
-                format!("cannot assign `{}` to field `{}`.`{}` of type `{}`.",
-                        expr,
-                        cls,
-                        name,
-                        def)
-            }
-            UnOpType(ref op, ref expr) => {
-                format!("unary operator `{}` can not handle value of type `{} {}`.",
-                        op,
-                        op,
-                        expr)
-            }
-            BinOpType(ref op, ref lhs, ref rhs) => {
-                format!("binary operator `{}` can not handle expression of type `{} {} {}`",
-                        op,
-                        lhs,
-                        op,
-                        rhs)
-            }
+            AssignType(ref name, ref def, ref expr) => format!(
+                "cannot assign `{}` to variable `{}` of type `{}`.",
+                expr, name, def
+            ),
+            AssignField(ref name, ref cls, ref def, ref expr) => format!(
+                "cannot assign `{}` to field `{}`.`{}` of type `{}`.",
+                expr, cls, name, def
+            ),
+            UnOpType(ref op, ref expr) => format!(
+                "unary operator `{}` can not handle value of type `{} {}`.",
+                op, op, expr
+            ),
+            BinOpType(ref op, ref lhs, ref rhs) => format!(
+                "binary operator `{}` can not handle expression of type `{} {} {}`",
+                op, lhs, op, rhs
+            ),
             ConstValueExpected => "constant value expected".into(),
             OutsideLoop => "statement only allowed inside loops".into(),
             NoReturnValue => "function does not return a value in all code paths".into(),
@@ -280,11 +267,11 @@ impl Msg {
             MissingFctBody => "missing function body.".into(),
             FctCallExpected => format!("function call expected"),
             ThisOrSuperExpected(ref val) => format!("`self` or `super` expected but got {}.", val),
-            NoSuperDelegationWithPrimaryCtor(ref name) => {
-                format!("no `super` delegation allowed for ctor in class {}, because class has \
-                         primary ctor.",
-                        name)
-            }
+            NoSuperDelegationWithPrimaryCtor(ref name) => format!(
+                "no `super` delegation allowed for ctor in class {}, because class has \
+                 primary ctor.",
+                name
+            ),
             NoSuperClass(ref name) => format!("class `{}` does not have super class.", name),
             RecursiveStructure => "recursive structure is not allowed.".into(),
             TraitMethodWithBody => "trait method is not allowed to have definition".into(),
@@ -298,34 +285,34 @@ impl Msg {
             StaticMethodNotInTrait(ref trait_name, ref mtd_name, ref args) => {
                 let args = args.join(", ");
 
-                format!("trait `{}` does not define static method `{}({})`.",
-                        trait_name,
-                        mtd_name,
-                        args)
+                format!(
+                    "trait `{}` does not define static method `{}({})`.",
+                    trait_name, mtd_name, args
+                )
             }
             MethodNotInTrait(ref trait_name, ref mtd_name, ref args) => {
                 let args = args.join(", ");
 
-                format!("trait `{}` does not define method `{}({})`.",
-                        trait_name,
-                        mtd_name,
-                        args)
+                format!(
+                    "trait `{}` does not define method `{}({})`.",
+                    trait_name, mtd_name, args
+                )
             }
             StaticMethodMissingFromTrait(ref trait_name, ref mtd_name, ref args) => {
                 let args = args.join(", ");
 
-                format!("trait `{}` defines static method `{}({})` but is missing in `impl`.",
-                        trait_name,
-                        mtd_name,
-                        args)
+                format!(
+                    "trait `{}` defines static method `{}({})` but is missing in `impl`.",
+                    trait_name, mtd_name, args
+                )
             }
             MethodMissingFromTrait(ref trait_name, ref mtd_name, ref args) => {
                 let args = args.join(", ");
 
-                format!("trait `{}` defines method `{}({})` but is missing in `impl`.",
-                        trait_name,
-                        mtd_name,
-                        args)
+                format!(
+                    "trait `{}` defines method `{}({})` but is missing in `impl`.",
+                    trait_name, mtd_name, args
+                )
             }
             WrongNumberTypeParams(exp, actual) => {
                 format!("expected {} type parameters but got {}.", exp, actual)
@@ -348,27 +335,28 @@ impl Msg {
                 "abstract methods only allowed in abstract classes.".into()
             }
             NewAbstractClass => "cannot create object of abstract class.".into(),
-            MissingAbstractOverride(ref cls, ref name) => {
-                format!("missing override of abstract method `{}` in class `{}`.",
-                        cls,
-                        name)
-            }
+            MissingAbstractOverride(ref cls, ref name) => format!(
+                "missing override of abstract method `{}` in class `{}`.",
+                cls, name
+            ),
             ModifierNotAllowedForStaticMethod(ref modifier) => {
                 format!("modifier `{}` not allowed for static method.", modifier)
             }
             GlobalInitializerNotSupported => {
                 "global variables do no support initial assignment for now.".into()
             }
-            MakeIteratorReturnType(ref ty) => {
-                format!("makeIterator() returns `{}` which does not implement Iterator.",
-                        ty)
-            }
+            MakeIteratorReturnType(ref ty) => format!(
+                "makeIterator() returns `{}` which does not implement Iterator.",
+                ty
+            ),
             UnknownStructField(ref struc, ref field) => {
                 format!("struct `{}` does not have field named `{}`.", struc, field)
             }
             StructFieldNotInitialized(ref struc, ref field) => {
                 format!("field `{}` in struct `{}` not initialized.", field, struc)
             }
+            InvalidLeftSideOfSeparator => "left hand side of separator is not a class.".into(),
+            InvalidUseOfTypeParams => "type params need to be used on class or function.".into(),
         }
     }
 }
@@ -381,7 +369,7 @@ pub struct MsgWithPos {
 }
 
 impl MsgWithPos {
-    pub fn new(path: String, pos: Position, msg: Msg,) -> MsgWithPos {
+    pub fn new(path: String, pos: Position, msg: Msg) -> MsgWithPos {
         MsgWithPos { path, pos, msg }
     }
 
@@ -389,12 +377,21 @@ impl MsgWithPos {
         if self.path.is_empty() {
             format!("error at {}: {}", self.pos, self.msg.message())
         } else {
-            format!("error in {} at {}: {}", self.path, self.pos, self.msg.message())
+            format!(
+                "error in {} at {}: {}",
+                self.path,
+                self.pos,
+                self.msg.message()
+            )
         }
     }
 
-    pub fn without_path(pos: Position, msg: Msg,) -> MsgWithPos {
-        MsgWithPos { path: "".to_string(), pos, msg }
+    pub fn without_path(pos: Position, msg: Msg) -> MsgWithPos {
+        MsgWithPos {
+            path: "".to_string(),
+            pos,
+            msg,
+        }
     }
 }
 

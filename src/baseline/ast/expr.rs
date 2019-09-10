@@ -493,6 +493,8 @@ where
             }
 
             IdentType::Fct(_) => unreachable!(),
+
+            IdentType::Class(_) => unreachable!(),
         }
     }
 
@@ -722,6 +724,10 @@ where
             }
 
             IdentType::Fct(_) => {
+                unreachable!();
+            }
+
+            IdentType::Class(_) => {
                 unreachable!();
             }
         }
