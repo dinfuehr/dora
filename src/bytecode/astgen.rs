@@ -714,20 +714,20 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         assert!(dest.is_effect());
 
         if e.lhs.is_ident() {
-            let ident_type = *self.src.map_idents.get(e.lhs.id()).unwrap();
+            let ident_type = self.src.map_idents.get(e.lhs.id()).unwrap();
             match ident_type {
-                IdentType::Var(var_id) => {
+                &IdentType::Var(var_id) => {
                     let var_reg = self.var_reg(var_id);
                     self.visit_expr(&e.rhs, DataDest::Reg(var_reg));
                 }
 
-                IdentType::Global(_) => unimplemented!(),
-                IdentType::Field(_, _) => unimplemented!(),
+                &IdentType::Global(_) => unimplemented!(),
+                &IdentType::Field(_, _) => unimplemented!(),
 
-                IdentType::Struct(_) => unimplemented!(),
-                IdentType::Const(_) => unreachable!(),
-                IdentType::Fct(_) => unreachable!(),
-                IdentType::Class(_) => unimplemented!(),
+                &IdentType::Struct(_) => unimplemented!(),
+                &IdentType::Const(_) => unreachable!(),
+                &IdentType::Fct(_) | &IdentType::FctType(_, _) => unreachable!(),
+                &IdentType::Class(_) | &IdentType::ClassType(_, _) => unimplemented!(),
             }
         } else {
             unimplemented!();
@@ -737,10 +737,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn visit_expr_ident(&mut self, ident: &ExprIdentType, dest: DataDest) -> Register {
-        let ident_type = *self.src.map_idents.get(ident.id).unwrap();
+        let ident_type = self.src.map_idents.get(ident.id).unwrap();
 
         match ident_type {
-            IdentType::Var(var_id) => {
+            &IdentType::Var(var_id) => {
                 if dest.is_effect() {
                     return Register::invalid();
                 }
@@ -770,7 +770,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 dest
             }
 
-            IdentType::Global(gid) => {
+            &IdentType::Global(gid) => {
                 if dest.is_effect() {
                     return Register::invalid();
                 }
@@ -795,12 +795,12 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 dest
             }
 
-            IdentType::Field(_, _) => unimplemented!(),
-            IdentType::Struct(_) => unimplemented!(),
-            IdentType::Const(_) => unimplemented!(),
+            &IdentType::Field(_, _) => unimplemented!(),
+            &IdentType::Struct(_) => unimplemented!(),
+            &IdentType::Const(_) => unimplemented!(),
 
-            IdentType::Fct(_) => unreachable!(),
-            IdentType::Class(_) => unreachable!(),
+            &IdentType::Fct(_) | &IdentType::FctType(_, _) => unreachable!(),
+            &IdentType::Class(_) | &IdentType::ClassType(_, _) => unreachable!(),
         }
     }
 

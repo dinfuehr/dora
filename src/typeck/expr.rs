@@ -263,23 +263,23 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_ident(&mut self, e: &'ast ExprIdentType) {
-        let ident_type = *self.src.map_idents.get(e.id).unwrap();
+        let ident_type = self.src.map_idents.get(e.id).unwrap();
 
         match ident_type {
-            IdentType::Var(varid) => {
+            &IdentType::Var(varid) => {
                 let ty = self.src.vars[varid].ty;
                 self.src.set_ty(e.id, ty);
                 self.expr_type = ty;
             }
 
-            IdentType::Global(globalid) => {
+            &IdentType::Global(globalid) => {
                 let glob = self.vm.globals.idx(globalid);
                 let ty = glob.lock().ty;
                 self.src.set_ty(e.id, ty);
                 self.expr_type = ty;
             }
 
-            IdentType::Field(ty, fieldid) => {
+            &IdentType::Field(ty, fieldid) => {
                 let clsid = ty.cls_id(self.vm).unwrap();
                 let cls = self.vm.classes.idx(clsid);
                 let cls = cls.read();
@@ -289,14 +289,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.expr_type = field.ty;
             }
 
-            IdentType::Struct(sid) => {
+            &IdentType::Struct(sid) => {
                 let list_id = self.vm.lists.lock().insert(TypeParams::empty());
                 let ty = BuiltinType::Struct(sid, list_id);
                 self.src.set_ty(e.id, ty);
                 self.expr_type = ty;
             }
 
-            IdentType::Const(const_id) => {
+            &IdentType::Const(const_id) => {
                 let xconst = self.vm.consts.idx(const_id);
                 let xconst = xconst.lock();
 
@@ -304,7 +304,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.expr_type = xconst.ty;
             }
 
-            IdentType::Fct(_) => {
+            &IdentType::Fct(_) | &IdentType::FctType(_, _) => {
                 self.vm
                     .diag
                     .lock()
@@ -314,7 +314,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.expr_type = BuiltinType::Error;
             }
 
-            IdentType::Class(_) => {
+            &IdentType::Class(_) | &IdentType::ClassType(_, _) => {
                 unimplemented!();
             }
         }
@@ -376,7 +376,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         return;
                     }
 
-                    &IdentType::Fct(_) => {
+                    &IdentType::Fct(_) | &IdentType::FctType(_, _) => {
                         self.vm
                             .diag
                             .lock()
@@ -385,7 +385,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         return;
                     }
 
-                    &IdentType::Class(_) => {
+                    &IdentType::Class(_) | &IdentType::ClassType(_, _) => {
                         unimplemented!();
                     }
                 }

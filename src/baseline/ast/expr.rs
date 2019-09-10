@@ -456,16 +456,16 @@ where
     }
 
     fn emit_ident(&mut self, e: &'ast ExprIdentType, dest: ExprStore) {
-        let &ident = self.src.map_idents.get(e.id).unwrap();
+        let ident = self.src.map_idents.get(e.id).unwrap();
 
         match ident {
-            IdentType::Var(varid) => {
+            &IdentType::Var(varid) => {
                 self.asm.emit_comment(Comment::LoadVar(varid));
                 self.asm
                     .var_load(self.jit_info.offset(varid), self.jit_info.ty(varid), dest)
             }
 
-            IdentType::Global(gid) => {
+            &IdentType::Global(gid) => {
                 let glob = self.vm.globals.idx(gid);
                 let glob = glob.lock();
 
@@ -479,22 +479,22 @@ where
                     .load_mem(glob.ty.mode(), dest, Mem::Base(REG_TMP1, 0));
             }
 
-            IdentType::Field(cls, field) => {
+            &IdentType::Field(cls, field) => {
                 self.emit_self(REG_RESULT.into());
                 self.emit_field_access(e.pos, cls, field, REG_RESULT, dest);
             }
 
-            IdentType::Struct(_) => {
+            &IdentType::Struct(_) => {
                 unimplemented!();
             }
 
-            IdentType::Const(const_id) => {
+            &IdentType::Const(const_id) => {
                 self.emit_const(const_id, dest);
             }
 
-            IdentType::Fct(_) => unreachable!(),
+            &IdentType::Fct(_) | &IdentType::FctType(_, _) => unreachable!(),
 
-            IdentType::Class(_) => unreachable!(),
+            &IdentType::Class(_) | &IdentType::ClassType(_, _) => unreachable!(),
         }
     }
 
@@ -612,10 +612,10 @@ where
     }
 
     fn emit_assign(&mut self, e: &'ast ExprAssignType) {
-        let &ident_type = self.src.map_idents.get(e.lhs.id()).unwrap();
+        let ident_type = self.src.map_idents.get(e.lhs.id()).unwrap();
 
         match ident_type {
-            IdentType::Var(varid) => {
+            &IdentType::Var(varid) => {
                 let ty = self.jit_info.ty(varid);
                 let dest = result_reg(ty.mode());
                 self.emit_expr(&e.rhs, dest);
@@ -625,7 +625,7 @@ where
                     .var_store(self.jit_info.offset(varid), self.jit_info.ty(varid), dest);
             }
 
-            IdentType::Global(gid) => {
+            &IdentType::Global(gid) => {
                 let glob = self.vm.globals.idx(gid);
                 let (address_value, ty) = {
                     let glob = glob.lock();
@@ -644,7 +644,7 @@ where
                 self.asm.store_mem(ty.mode(), Mem::Base(REG_TMP1, 0), dest);
             }
 
-            IdentType::Field(ty, fieldid) => {
+            &IdentType::Field(ty, fieldid) => {
                 let ty = self.specialize_type(ty);
                 let cls_id = specialize_class_ty(self.vm, ty);
                 let cls = self.vm.class_defs.idx(cls_id);
@@ -715,19 +715,19 @@ where
                 self.free_temp_for_node(temp, temp_offset);
             }
 
-            IdentType::Struct(_) => {
+            &IdentType::Struct(_) => {
                 unimplemented!();
             }
 
-            IdentType::Const(_) => {
+            &IdentType::Const(_) => {
                 unreachable!();
             }
 
-            IdentType::Fct(_) => {
+            &IdentType::Fct(_) | &IdentType::FctType(_, _) => {
                 unreachable!();
             }
 
-            IdentType::Class(_) => {
+            &IdentType::Class(_) | &IdentType::ClassType(_, _) => {
                 unreachable!();
             }
         }

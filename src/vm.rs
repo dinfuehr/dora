@@ -1227,7 +1227,7 @@ impl Store {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub enum IdentType {
     Var(VarId),
     Global(GlobalId),
@@ -1235,7 +1235,9 @@ pub enum IdentType {
     Struct(StructId),
     Const(ConstId),
     Fct(FctId),
+    FctType(FctId, TypeParams),
     Class(ClassId),
+    ClassType(ClassId, TypeParams),
 }
 
 impl IdentType {
