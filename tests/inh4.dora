@@ -8,15 +8,15 @@ fun main() {
   assert(c.printSpecial() == 1);
 }
 
-open abstract class A {
- abstract fun printSpecial() -> Int;
+@open @abstract class A {
+ @abstract fun printSpecial() -> Int;
  fun printBase() -> Int {
    return 2;
  }
 }
 
-open class B : A {
- override fun printSpecial() -> Int {
+@open class B : A {
+ @override fun printSpecial() -> Int {
    return 1;
  }
 }

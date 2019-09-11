@@ -1,7 +1,7 @@
 //= output "one\ntwo\n"
 
 class MyThread() : Thread {
-    override fun run() {
+    @override fun run() {
         sleep(2);
         println("two");
     }

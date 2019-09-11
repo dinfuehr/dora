@@ -1,7 +1,7 @@
 //= output "done\n"
 
 class MyThread(var executed: Bool) : Thread {
-    override fun run() {
+    @override fun run() {
         self.f();
     }
 

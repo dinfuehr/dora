@@ -3,6 +3,6 @@ class Barrier {
         self.numThreads = n;
     }
 
-    abstract fun doBarrier(myid: Int);
+    @abstract fun doBarrier(myid: Int);
     var numThreads: Int;
 }

@@ -127,9 +127,9 @@ mod tests {
             trait Foo {}
             class A
             impl Foo for A {
-                static fun bar() {}
+                @static fun bar() {}
             }",
-            pos(5, 24),
+            pos(5, 25),
             Msg::StaticMethodNotInTrait("Foo".into(), "bar".into(), vec![]),
         );
     }
@@ -139,7 +139,7 @@ mod tests {
         err(
             "
             trait Foo {
-                static fun bar();
+                @static fun bar();
             }
             class A
             impl Foo for A {}",

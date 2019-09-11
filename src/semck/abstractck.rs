@@ -123,26 +123,26 @@ mod tests {
 
     #[test]
     fn test_abstract_class_without_abstract_methods() {
-        ok("open abstract class A class B: A");
+        ok("@open @abstract class A class B: A");
     }
 
     #[test]
     fn test_override_abstract_method() {
-        ok("open abstract class A { abstract fun foo(); }
-            class B: A { override fun foo() {} }");
+        ok("@open @abstract class A { @abstract fun foo(); }
+            class B: A { @override fun foo() {} }");
     }
 
     #[test]
     fn test_override_abstract_method_in_super_class() {
-        ok("open abstract class A { abstract fun foo(); }
-            open abstract class B: A { override fun foo() {} }
+        ok("@open @abstract class A { @abstract fun foo(); }
+            @open @abstract class B: A { @override fun foo() {} }
             class C: B { }");
     }
 
     #[test]
     fn test_missing_abstract_override() {
         err(
-            "open abstract class A { abstract fun foo(); }
+            "@open @abstract class A { @abstract fun foo(); }
             class B: A { }",
             pos(2, 13),
             Msg::MissingAbstractOverride("A".into(), "foo".into()),
@@ -152,8 +152,8 @@ mod tests {
     #[test]
     fn test_missing_abstract_override_indirect() {
         err(
-            "open abstract class A { abstract fun foo(); }
-            open abstract class B: A {}
+            "@open @abstract class A { @abstract fun foo(); }
+            @open @abstract class B: A {}
             class C: B { }",
             pos(3, 13),
             Msg::MissingAbstractOverride("A".into(), "foo".into()),

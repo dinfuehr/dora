@@ -165,8 +165,8 @@ pub fn check_override<'ast>(vm: &VM<'ast>) {
 }
 
 fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
-    // catch: class A { open fun f() } (A is not derivable)
-    // catch: open final fun f()
+    // catch: class A { @open fun f() } (A is not derivable)
+    // catch: @open @final fun f()
     if fct.has_open && (!cls.has_open || fct.has_final) {
         let name = vm.interner.str(fct.name).to_string();
         vm.diag
@@ -301,7 +301,7 @@ mod tests {
 
     // #[test]
     // fn test_super_size() {
-    //     ok_with_test("open class A { var a: int; }
+    //     ok_with_test("@open class A { var a: int; }
     //         open class B: A { var b1: int; var b2: int; }
     //         class C: B { var c: String; }",
     //                  |vm| {
@@ -325,10 +325,10 @@ mod tests {
     #[test]
     fn test_cycle() {
         errors(
-            "open class A: B open class B: A",
+            "@open class A: B @open class B: A",
             &[
-                (pos(1, 6), Msg::CycleInHierarchy),
-                (pos(1, 22), Msg::CycleInHierarchy),
+                (pos(1, 7), Msg::CycleInHierarchy),
+                (pos(1, 24), Msg::CycleInHierarchy),
             ],
         );
     }
@@ -336,23 +336,23 @@ mod tests {
     #[test]
     fn test_superfluous_override() {
         err(
-            "class A { override fun f() {} }",
-            pos(1, 20),
+            "class A { @override fun f() {} }",
+            pos(1, 21),
             Msg::SuperfluousOverride("f".into()),
         );
         err(
-            "open class B { } class A: B { override fun f() {} }",
-            pos(1, 40),
+            "@open class B { } class A: B { @override fun f() {} }",
+            pos(1, 42),
             Msg::SuperfluousOverride("f".into()),
         );
         err(
-            "open class B { fun g() {} } class A: B { override fun f() {} }",
-            pos(1, 51),
+            "@open class B { fun g() {} } class A: B { @override fun f() {} }",
+            pos(1, 53),
             Msg::SuperfluousOverride("f".into()),
         );
         err(
-            "open class B { fun f(a: Int) {} } class A: B { override fun f() {} }",
-            pos(1, 57),
+            "@open class B { fun f(a: Int) {} } class A: B { @override fun f() {} }",
+            pos(1, 59),
             Msg::MethodNotOverridable("f".into()),
         );
     }
@@ -360,24 +360,24 @@ mod tests {
     #[test]
     fn test_override() {
         err(
-            "open class A { fun f() {} } class B: A { override fun f() {} }",
-            pos(1, 51),
+            "@open class A { fun f() {} } class B: A { @override fun f() {} }",
+            pos(1, 53),
             Msg::MethodNotOverridable("f".into()),
         );
-        ok("open class A { open fun f() {} } class B: A { override fun f() {} }");
-        ok("open class A { open fun f() {} }
-            open class B: A { override fun f() {} }
-            open class C: B { override fun f() {} }");
+        ok("@open class A { @open fun f() {} } class B: A { @override fun f() {} }");
+        ok("@open class A { @open fun f() {} }
+            @open class B: A { @override fun f() {} }
+            @open class C: B { @override fun f() {} }");
         err(
-            "open class A { open fun f() {} } class B: A { fun f() {} }",
-            pos(1, 47),
+            "@open class A { @open fun f() {} } class B: A { fun f() {} }",
+            pos(1, 49),
             Msg::MissingOverride("f".into()),
         );
         err(
-            "open class A { open fun f() {} }
-             open class B: A { final override fun f() {} }
-             class C: B { override fun f() {} }",
-            pos(3, 36),
+            "@open class A { @open fun f() {} }
+             @open class B: A { @final @override fun f() {} }
+             class C: B { @override fun f() {} }",
+            pos(3, 37),
             Msg::MethodNotOverridable("f".into()),
         );
     }
@@ -385,7 +385,7 @@ mod tests {
     #[test]
     fn test_overload_method_in_super_class() {
         errors(
-            "open class A { fun f() {} }
+            "@open class A { fun f() {} }
             class B: A { fun f(a: Int) {} }",
             &[
                 (pos(2, 26), Msg::MissingOverride("f".into())),
@@ -393,16 +393,16 @@ mod tests {
             ],
         );
 
-        ok("open class A { static fun f() {} }
-            class B: A { static fun f(a: Int) {} }");
+        ok("@open class A { @static fun f() {} }
+            class B: A { @static fun f(a: Int) {} }");
     }
 
     #[test]
     fn test_override_with_wrong_return_type() {
         err(
-            "open class A { open fun f() {} }
-             class B: A { override fun f() -> Int { return 1; } }",
-            pos(2, 36),
+            "@open class A { @open fun f() {} }
+             class B: A { @override fun f() -> Int { return 1; } }",
+            pos(2, 37),
             Msg::ReturnTypeMismatch("Int".into(), "()".into()),
         );
     }
@@ -410,30 +410,30 @@ mod tests {
     #[test]
     fn test_override_with_missing_throws() {
         err(
-            "open class A { open fun f() throws {} }
-             class B: A { override fun f() {} }",
-            pos(2, 36),
+            "@open class A { @open fun f() throws {} }
+             class B: A { @override fun f() {} }",
+            pos(2, 37),
             Msg::ThrowsDifference("f".into()),
         );
     }
 
     #[test]
     fn test_open() {
-        ok("open class A { open fun f() {} }");
+        ok("@open class A { @open fun f() {} }");
     }
 
     #[test]
     fn test_superfluous_open() {
         err(
-            "class A { open fun f() {} }",
-            pos(1, 16),
+            "class A { @open fun f() {} }",
+            pos(1, 17),
             Msg::SuperfluousOpen("f".into()),
         );
     }
 
     #[test]
     fn test_final() {
-        ok("open class A { final fun f() {} }");
+        ok("@open class A { @final fun f() {} }");
     }
 
     #[test]
@@ -445,7 +445,7 @@ mod tests {
             assert_eq!(cls.virtual_fcts.len(), 0);
         });
 
-        ok_with_test("open class A { open fun f() {} }", |vm| {
+        ok_with_test("@open class A { @open fun f() {} }", |vm| {
             let cls_id = vm.cls_by_name("A");
             let cls = vm.classes.idx(cls_id);
             let cls = cls.read();
@@ -453,9 +453,9 @@ mod tests {
         });
 
         ok_with_test(
-            "open class A { open fun f() {} }
-                      open class B: A { override fun f() {}
-                                        open fun g() {} }",
+            "@open class A { @open fun f() {} }
+                      @open class B: A { @override fun f() {}
+                                        @open fun g() {} }",
             |vm| {
                 let cls_id = vm.cls_by_name("A");
                 let cls = vm.classes.idx(cls_id);
@@ -480,7 +480,7 @@ mod tests {
 
     // #[test]
     // fn test_depth_with_multiple_levels() {
-    //     ok_with_test("open class A { } open class B: A { }
+    //     ok_with_test("@open class A { } open class B: A { }
     //                   class C: B { }",
     //                  |vm| {
     //         assert_eq!(vtable_by_name(vm, "A", |f| f.subtype_depth), 1);
@@ -593,7 +593,7 @@ mod tests {
     //     let header = Header::size();
     //     let pw = mem::ptr_width();
 
-    //     ok_with_test("open class A(let a: A) class B(a: A, let b: B) : A(a)",
+    //     ok_with_test("@open class A(let a: A) class B(a: A, let b: B) : A(a)",
     //                  |vm| {
     //         let cls = cls_by_name(vm, "A");
     //         let cls = vm.classes[cls].borrow();
@@ -605,7 +605,7 @@ mod tests {
     //     });
 
     //     ok_with_test("class A(let x: Data, d: Data): B(d)
-    //                   open class B(let y: Data)
+    //                   @open class B(let y: Data)
     //                   class Data(let data: int)",
     //                  |vm| {
     //         let cls = cls_by_name(vm, "A");

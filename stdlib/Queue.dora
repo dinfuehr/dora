@@ -3,7 +3,7 @@ class Queue[T] {
   var front: Int = 0;
   var count: Int = 0;
 
-  pub fun enqueue(value: T) {
+  @pub fun enqueue(value: T) {
     if self.count == self.elements.length() {
       // copy into larger array
       let newelements = Array[T](self.elements.length() * 2);
@@ -24,7 +24,7 @@ class Queue[T] {
     self.count = self.count + 1;
   }
 
-  pub fun dequeue() -> T {
+  @pub fun dequeue() -> T {
     assert(self.count > 0);
 
     let value = self.elements.get(self.front);
@@ -56,11 +56,11 @@ class Queue[T] {
     }
   }
 
-  pub fun length() -> Int {
+  @pub fun length() -> Int {
     return self.count;
   }
 
-  pub fun isEmpty() -> Bool {
+  @pub fun isEmpty() -> Bool {
     return self.count == 0;
   }
 }

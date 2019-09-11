@@ -5,4 +5,4 @@ fun main() {
 }
 
 class A(let x: Int): B(x*2)
-open class B(let y: Int)
+@open class B(let y: Int)

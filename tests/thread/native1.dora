@@ -1,5 +1,5 @@
 class MyThread() : Thread {
-    override fun run() {
+    @override fun run() {
         nativeCalls();
     }
 }

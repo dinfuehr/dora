@@ -7,5 +7,5 @@ fun main() {
 class X(something: Int) {
   let x: Int = something;
 
-  static fun empty() -> X = X(2);
+  @static fun empty() -> X = X(2);
 }

@@ -3,7 +3,7 @@
 
 fun main() { }
 
-open class A { }
+@open class A { }
 
 class B: A {
   fun foo() {

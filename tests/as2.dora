@@ -10,5 +10,5 @@ fun asb(a: A) -> B {
   return a as B;
 }
 
-open class A {}
+@open class A {}
 class B: A {}

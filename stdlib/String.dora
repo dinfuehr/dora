@@ -1,4 +1,4 @@
-internal class String {
+@internal class String {
   fun equals(rhs: String) -> Bool {
     var i = 0;
 
@@ -19,20 +19,20 @@ internal class String {
     return true;
   }
 
-  internal fun compareTo(rhs: String) -> Int;
+  @internal fun compareTo(rhs: String) -> Int;
 
-  internal fun length() -> Int;
-  internal fun parseInt() -> Int;
-  internal fun parseLong() -> Long;
-  internal fun plus(rhs: String) -> String;
+  @internal fun length() -> Int;
+  @internal fun parseInt() -> Int;
+  @internal fun parseLong() -> Long;
+  @internal fun plus(rhs: String) -> String;
 
-  internal fun getByte(idx: Int) -> Byte;
-  internal fun clone() -> String;
+  @internal fun getByte(idx: Int) -> Byte;
+  @internal fun clone() -> String;
 
-  internal static fun fromBytesPartOrNull(val: Array[Byte], offset: Int, len: Int) -> String;
-  internal static fun fromStringPartOrNull(val: String, offset: Int, len: Int) -> String;
+  @internal @static fun fromBytesPartOrNull(val: Array[Byte], offset: Int, len: Int) -> String;
+  @internal @static fun fromStringPartOrNull(val: String, offset: Int, len: Int) -> String;
 
-  static fun fromBytesPart(val: Array[Byte], offset: Int, len: Int) throws -> String {
+  @static fun fromBytesPart(val: Array[Byte], offset: Int, len: Int) throws -> String {
     let str = String::fromBytesPartOrNull(val, offset, len);
 
     if str === nil {
@@ -42,7 +42,7 @@ internal class String {
     return str;
   }
 
-  static fun fromBytes(val: Array[Byte]) throws -> String {
+  @static fun fromBytes(val: Array[Byte]) throws -> String {
     let str = String::fromBytesPartOrNull(val, 0, val.length());
 
     if str === nil {
@@ -52,7 +52,7 @@ internal class String {
     return str;
   }
 
-  static fun fromStringPart(val: String, offset: Int, len: Int) throws -> String {
+  @static fun fromStringPart(val: String, offset: Int, len: Int) throws -> String {
     let str = String::fromStringPartOrNull(val, offset, len);
 
     if str === nil {
@@ -62,7 +62,7 @@ internal class String {
     return str;
   }
 
-  static fun fromString(val: String) -> String = val.clone();
+  @static fun fromString(val: String) -> String = val.clone();
 
   fun isEmpty() -> Bool = self.length() == 0;
 

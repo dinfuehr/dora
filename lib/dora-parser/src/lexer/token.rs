@@ -40,10 +40,8 @@ pub enum TokenKind {
     Do,
     Catch,
     Finally,
-    Final,
-    Pub,
-    Static,
     Spawn,
+    At,
 
     Enum,
     Type,
@@ -55,12 +53,6 @@ pub enum TokenKind {
 
     Underscore,
     Defer,
-
-    // Modifiers
-    Abstract,
-    Open,
-    Override,
-    Optimize,
 
     // Operators
     Add,
@@ -87,7 +79,6 @@ pub enum TokenKind {
     Caret,
     And,
     Or,
-    Internal,
 
     Eq,
     EqEq,
@@ -158,10 +149,8 @@ impl TokenKind {
             TokenKind::Do => "do",
             TokenKind::Catch => "catch",
             TokenKind::Finally => "finally",
-            TokenKind::Final => "final",
-            TokenKind::Pub => "pub",
-            TokenKind::Static => "static",
             TokenKind::Spawn => "spawn",
+            TokenKind::At => "@",
 
             TokenKind::Enum => "enum",
             TokenKind::Type => "type",
@@ -173,12 +162,6 @@ impl TokenKind {
 
             TokenKind::Underscore => "_",
             TokenKind::Defer => "defer",
-
-            // Modifiers
-            TokenKind::Abstract => "abstract",
-            TokenKind::Open => "open",
-            TokenKind::Override => "override",
-            TokenKind::Optimize => "optimize",
 
             // Operators
             TokenKind::Add => "+",
@@ -205,7 +188,6 @@ impl TokenKind {
             TokenKind::Caret => "^",
             TokenKind::And => "&&",
             TokenKind::Or => "||",
-            TokenKind::Internal => "internal",
 
             TokenKind::Eq => "=",
             TokenKind::EqEq => "==",

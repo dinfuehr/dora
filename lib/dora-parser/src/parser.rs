@@ -80,7 +80,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_top_level_element(&mut self, elements: &mut Vec<Elem>) -> Result<(), MsgWithPos> {
-        let modifiers = self.parse_modifiers()?;
+        let modifiers = self.parse_annotations()?;
 
         match self.token.kind {
             TokenKind::Fun => {
@@ -169,7 +169,7 @@ impl<'a> Parser<'a> {
         let mut methods = Vec::new();
 
         while !self.token.is(TokenKind::RBrace) {
-            let modifiers = self.parse_modifiers()?;
+            let modifiers = self.parse_annotations()?;
             let mods = &[Modifier::Static, Modifier::Internal];
             self.restrict_modifiers(&modifiers, mods)?;
 
@@ -232,7 +232,7 @@ impl<'a> Parser<'a> {
         let mut methods = Vec::new();
 
         while !self.token.is(TokenKind::RBrace) {
-            let modifiers = self.parse_modifiers()?;
+            let modifiers = self.parse_annotations()?;
             let mods = &[Modifier::Static];
             self.restrict_modifiers(&modifiers, mods)?;
 
@@ -439,7 +439,7 @@ impl<'a> Parser<'a> {
         self.advance_token()?;
 
         while !self.token.is(TokenKind::RBrace) {
-            let modifiers = self.parse_modifiers()?;
+            let modifiers = self.parse_annotations()?;
 
             match self.token.kind {
                 TokenKind::Fun => {
@@ -476,20 +476,29 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    fn parse_modifiers(&mut self) -> Result<Modifiers, MsgWithPos> {
+    fn parse_annotations(&mut self) -> Result<Modifiers, MsgWithPos> {
         let mut modifiers = Modifiers::new();
         loop {
-            let modifier = match self.token.kind {
-                TokenKind::Abstract => Modifier::Abstract,
-                TokenKind::Open => Modifier::Open,
-                TokenKind::Override => Modifier::Override,
-                TokenKind::Final => Modifier::Final,
-                TokenKind::Internal => Modifier::Internal,
-                TokenKind::Pub => Modifier::Pub,
-                TokenKind::Static => Modifier::Static,
-                TokenKind::Optimize => Modifier::Optimize,
+            if !self.token.is(TokenKind::At) {
+                break;
+            }
+            self.advance_token()?;
+            let ident = self.expect_identifier()?;
+            let modifier = match self.interner.str(ident).as_str() {
+                "abstract" => Modifier::Abstract,
+                "open" => Modifier::Open,
+                "override" => Modifier::Override,
+                "final" => Modifier::Final,
+                "internal" => Modifier::Internal,
+                "pub" => Modifier::Pub,
+                "static" => Modifier::Static,
+                "optimize" => Modifier::Optimize,
                 _ => {
-                    break;
+                    return Err(MsgWithPos::new(
+                        self.lexer.path().to_string(),
+                        self.token.position,
+                        Msg::UnknownAnnotation(self.token.to_string()),
+                    ));
                 }
             };
 
@@ -497,12 +506,11 @@ impl<'a> Parser<'a> {
                 return Err(MsgWithPos::new(
                     self.lexer.path().to_string(),
                     self.token.position,
-                    Msg::RedundantModifier(self.token.name()),
+                    Msg::RedundantAnnotation(self.token.name()),
                 ));
             }
 
-            let pos = self.advance_token()?.position;
-            modifiers.add(modifier, pos);
+            modifiers.add(modifier, self.token.position);
         }
 
         Ok(modifiers)
@@ -522,7 +530,7 @@ impl<'a> Parser<'a> {
                 return Err(MsgWithPos::new(
                     self.lexer.path().to_string(),
                     modifier.pos,
-                    Msg::MisplacedModifier(modifier.value.name().into()),
+                    Msg::MisplacedAnnotation(modifier.value.name().into()),
                 ));
             }
         }
@@ -2608,7 +2616,7 @@ mod tests {
     fn parse_abstract_method() {
         let (prog, _) = parse(
             "class Foo {
-            abstract fun zero();
+            @abstract fun zero();
             fun foo();
         }",
         );
@@ -2638,7 +2646,7 @@ mod tests {
 
     #[test]
     fn parse_class_abstract() {
-        let (prog, interner) = parse("abstract class Foo");
+        let (prog, interner) = parse("@abstract class Foo");
         let class = prog.cls0();
 
         assert_eq!(true, class.is_abstract);
@@ -2647,12 +2655,12 @@ mod tests {
 
     #[test]
     fn parse_class_with_parens_but_no_params() {
-        let (prog, interner) = parse("open class Foo()");
+        let (prog, interner) = parse("@open class Foo()");
         let class = prog.cls0();
 
         assert_eq!(0, class.fields.len());
         assert_eq!(true, class.has_open);
-        assert_eq!(Position::new(1, 6), class.pos);
+        assert_eq!(Position::new(1, 7), class.pos);
         assert_eq!("Foo", *interner.str(class.name));
     }
 
@@ -2716,7 +2724,7 @@ mod tests {
 
     #[test]
     fn parse_class_with_open() {
-        let (prog, _) = parse("open class Foo");
+        let (prog, _) = parse("@open class Foo");
         let class = prog.cls0();
 
         assert_eq!(true, class.has_open);
@@ -2826,7 +2834,7 @@ mod tests {
 
     #[test]
     fn parse_open_method() {
-        let (prog, _) = parse("class A { open fun f() {} fun g() {} }");
+        let (prog, _) = parse("class A { @open fun f() {} fun g() {} }");
         let cls = prog.cls0();
 
         let m1 = &cls.methods[0];
@@ -2840,8 +2848,8 @@ mod tests {
     fn parse_override_method() {
         let (prog, _) = parse(
             "class A { fun f() {}
-                                                override fun g() {}
-                                                open fun h() {} }",
+                                                @override fun g() {}
+                                                @open fun h() {} }",
         );
         let cls = prog.cls0();
 
@@ -2869,7 +2877,7 @@ mod tests {
 
     #[test]
     fn parse_final_method() {
-        let (prog, _) = parse("open class A { final override fun g() {} }");
+        let (prog, _) = parse("@open class A { @final @override fun g() {} }");
         let cls = prog.cls0();
 
         let m1 = &cls.methods[0];
@@ -2896,7 +2904,7 @@ mod tests {
 
     #[test]
     fn parse_internal() {
-        let (prog, _) = parse("internal fun foo();");
+        let (prog, _) = parse("@internal fun foo();");
         let fct = prog.fct0();
         assert!(fct.internal);
     }
@@ -2910,7 +2918,7 @@ mod tests {
 
     #[test]
     fn parse_internal_class() {
-        let (prog, _) = parse("internal class Foo {}");
+        let (prog, _) = parse("@internal class Foo {}");
         let cls = prog.cls0();
         assert!(cls.internal);
     }
@@ -3097,7 +3105,7 @@ mod tests {
 
     #[test]
     fn parse_trait_with_static_function() {
-        let (prog, interner) = parse("trait Foo { static fun empty(); }");
+        let (prog, interner) = parse("trait Foo { @static fun empty(); }");
         let xtrait = prog.trait0();
 
         assert_eq!("Foo", *interner.str(xtrait.name));
@@ -3128,7 +3136,7 @@ mod tests {
 
     #[test]
     fn parse_impl_with_static_function() {
-        let (prog, interner) = parse("impl Bar for B { static fun foo(); }");
+        let (prog, interner) = parse("impl Bar for B { @static fun foo(); }");
         let ximpl = prog.impl0();
 
         assert_eq!("Bar", *interner.str(ximpl.trait_name));
@@ -3197,7 +3205,7 @@ mod tests {
     fn parse_static_method() {
         let (prog, _) = parse(
             "class A {
-                static fun test() {}
+                @static fun test() {}
               }",
         );
         let cls = prog.cls0();

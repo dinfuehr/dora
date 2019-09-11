@@ -363,7 +363,8 @@ impl Lexer {
                 } else {
                     TokenKind::Not
                 }
-            }
+            },
+            '@' => TokenKind::At,
 
             _ => {
                 return Err(MsgWithPos::new(
@@ -542,7 +543,7 @@ fn is_char_quote(ch: Option<char>) -> bool {
 }
 
 fn is_operator(ch: Option<char>) -> bool {
-    ch.map(|ch| "^+-*/%&|,=!~;:.()[]{}<>".contains(ch))
+    ch.map(|ch| "^+-*/%&|,=!~;:.()[]{}<>@".contains(ch))
         .unwrap_or(false)
 }
 
@@ -591,17 +592,9 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("do", TokenKind::Do);
     keywords.insert("catch", TokenKind::Catch);
     keywords.insert("finally", TokenKind::Finally);
-    keywords.insert("abstract", TokenKind::Abstract);
-    keywords.insert("open", TokenKind::Open);
-    keywords.insert("override", TokenKind::Override);
     keywords.insert("defer", TokenKind::Defer);
-    keywords.insert("final", TokenKind::Final);
     keywords.insert("is", TokenKind::Is);
     keywords.insert("as", TokenKind::As);
-    keywords.insert("internal", TokenKind::Internal);
-    keywords.insert("optimize", TokenKind::Optimize);
-    keywords.insert("pub", TokenKind::Pub);
-    keywords.insert("static", TokenKind::Static);
     keywords.insert("spawn", TokenKind::Spawn);
     keywords.insert("const", TokenKind::Const);
 
@@ -1051,25 +1044,20 @@ mod tests {
         assert_tok(&mut reader, TokenKind::Trait, 1, 24);
         assert_tok(&mut reader, TokenKind::Const, 1, 30);
 
-        let mut reader = Lexer::from_str("pub static for in impl Self spawn");
-        assert_tok(&mut reader, TokenKind::Pub, 1, 1);
-        assert_tok(&mut reader, TokenKind::Static, 1, 5);
-        assert_tok(&mut reader, TokenKind::For, 1, 12);
-        assert_tok(&mut reader, TokenKind::In, 1, 16);
-        assert_tok(&mut reader, TokenKind::Impl, 1, 19);
-        assert_tok(&mut reader, TokenKind::CapitalThis, 1, 24);
-        assert_tok(&mut reader, TokenKind::Spawn, 1, 29);
+        let mut reader = Lexer::from_str("for in impl Self spawn");
+        assert_tok(&mut reader, TokenKind::For, 1, 1);
+        assert_tok(&mut reader, TokenKind::In, 1, 5);
+        assert_tok(&mut reader, TokenKind::Impl, 1, 8);
+        assert_tok(&mut reader, TokenKind::CapitalThis, 1, 13);
+        assert_tok(&mut reader, TokenKind::Spawn, 1, 18);
 
-        let mut reader = Lexer::from_str("abstract open override defer");
-        assert_tok(&mut reader, TokenKind::Abstract, 1, 1);
-        assert_tok(&mut reader, TokenKind::Open, 1, 10);
-        assert_tok(&mut reader, TokenKind::Override, 1, 15);
-        assert_tok(&mut reader, TokenKind::Defer, 1, 24);
+        let mut reader = Lexer::from_str("defer");
+        assert_tok(&mut reader, TokenKind::Defer, 1, 1);
     }
 
     #[test]
     fn test_operators() {
-        let mut reader = Lexer::from_str("==+=-*/%~.");
+        let mut reader = Lexer::from_str("==+=-*/%~.@");
         assert_tok(&mut reader, TokenKind::EqEq, 1, 1);
         assert_tok(&mut reader, TokenKind::Add, 1, 3);
         assert_tok(&mut reader, TokenKind::Eq, 1, 4);
@@ -1079,6 +1067,7 @@ mod tests {
         assert_tok(&mut reader, TokenKind::Mod, 1, 8);
         assert_tok(&mut reader, TokenKind::Tilde, 1, 9);
         assert_tok(&mut reader, TokenKind::Dot, 1, 10);
+        assert_tok(&mut reader, TokenKind::At, 1, 11);
 
         let mut reader = Lexer::from_str("<=<>=><");
         assert_tok(&mut reader, TokenKind::Le, 1, 1);

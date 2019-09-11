@@ -13,13 +13,13 @@ fun isl7(a: L1) -> Bool {
   return a is L7;
 }
 
-open class L1 {}
-open class L2: L1 {}
-open class L3: L2 {}
-open class L4: L3 {}
-open class L5: L4 {}
-open class L6: L5 {}
-open class L7: L6 {}
-open class L8: L7 {}
-open class L9: L8 {}
+@open class L1 {}
+@open class L2: L1 {}
+@open class L3: L2 {}
+@open class L4: L3 {}
+@open class L5: L4 {}
+@open class L6: L5 {}
+@open class L7: L6 {}
+@open class L8: L7 {}
+@open class L9: L8 {}
 class L10: L9 {}

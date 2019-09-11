@@ -4,7 +4,7 @@ fun main() {
 }
 
 class Foo {
-    static fun test(a: Int, b: Int) -> Int {
+    @static fun test(a: Int, b: Int) -> Int {
         return a + b;
     }
 }

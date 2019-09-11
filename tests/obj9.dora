@@ -8,5 +8,5 @@ fun main() {
 fun t(o: Object) {}
 
 class A
-open class B
+@open class B
 class C: B

@@ -1,8 +1,8 @@
-internal class Array[T](len: Int) {
+@internal class Array[T](len: Int) {
 
-  internal fun length() -> Int;
-  internal fun get(idx: Int) -> T;
-  internal fun set(idx: Int, val: T);
+  @internal fun length() -> Int;
+  @internal fun get(idx: Int) -> T;
+  @internal fun set(idx: Int, val: T);
 
 }
 

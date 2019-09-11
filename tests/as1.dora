@@ -15,5 +15,5 @@ fun asa(b: B) -> A {
   return b as A;
 }
 
-open class A {}
+@open class A {}
 class B: A {}
