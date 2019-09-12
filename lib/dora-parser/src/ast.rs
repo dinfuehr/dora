@@ -550,6 +550,7 @@ pub enum Modifier {
     Optimize,
     Pub,
     Static,
+    NewCall,
 }
 
 impl Modifier {
@@ -563,6 +564,7 @@ impl Modifier {
             Modifier::Optimize => "optimize",
             Modifier::Pub => "pub",
             Modifier::Static => "static",
+            Modifier::NewCall => "new_call",
         }
     }
 }
@@ -1537,6 +1539,20 @@ impl Expr {
     pub fn is_call(&self) -> bool {
         match *self {
             Expr::ExprCall(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_call2(&self) -> Option<&ExprCall2Type> {
+        match *self {
+            Expr::ExprCall2(ref val) => Some(val),
+            _ => None,
+        }
+    }
+
+    pub fn is_call2(&self) -> bool {
+        match *self {
+            Expr::ExprCall2(_) => true,
             _ => false,
         }
     }

@@ -23,6 +23,7 @@ pub struct Parser<'a> {
     ast: &'a mut Ast,
     param_idx: u32,
     in_class: bool,
+    in_new_call: bool,
 }
 
 type ExprResult = Result<Box<Expr>, MsgWithPos>;
@@ -45,10 +46,15 @@ impl<'a> Parser<'a> {
             interner: interner,
             param_idx: 0,
             in_class: false,
+            in_new_call: false,
             ast: ast,
         };
 
         parser
+    }
+
+    fn enable_new_call(&mut self) {
+        self.in_new_call = true;
     }
 
     fn generate_id(&mut self) -> NodeId {
@@ -84,7 +90,10 @@ impl<'a> Parser<'a> {
 
         match self.token.kind {
             TokenKind::Fun => {
-                self.restrict_modifiers(&modifiers, &[Modifier::Internal, Modifier::Optimize])?;
+                self.restrict_modifiers(
+                    &modifiers,
+                    &[Modifier::Internal, Modifier::Optimize, Modifier::NewCall],
+                )?;
                 let fct = self.parse_function(&modifiers)?;
                 elements.push(ElemFunction(fct));
             }
@@ -493,6 +502,7 @@ impl<'a> Parser<'a> {
                 "pub" => Modifier::Pub,
                 "static" => Modifier::Static,
                 "optimize" => Modifier::Optimize,
+                "new_call" => Modifier::NewCall,
                 _ => {
                     return Err(MsgWithPos::new(
                         self.lexer.path().to_string(),
@@ -575,6 +585,8 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_function(&mut self, modifiers: &Modifiers) -> Result<Function, MsgWithPos> {
+        self.in_new_call = modifiers.contains(Modifier::NewCall);
+
         let pos = self.expect_token(TokenKind::Fun)?.position;
         let ident = self.expect_identifier()?;
         let type_params = self.parse_type_params()?;
@@ -582,6 +594,8 @@ impl<'a> Parser<'a> {
         let throws = self.parse_throws()?;
         let return_type = self.parse_function_type()?;
         let block = self.parse_function_block()?;
+
+        self.in_new_call = false;
 
         Ok(Function {
             id: self.generate_id(),
@@ -1278,6 +1292,17 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_identifier_or_call(&mut self, opts: &ExprParsingOpts) -> ExprResult {
+        if self.in_new_call {
+            let pos = self.token.position;
+            let name = self.expect_identifier()?;
+            return Ok(Box::new(Expr::create_ident(
+                self.generate_id(),
+                pos,
+                name,
+                None,
+            )));
+        }
+
         let pos = self.token.position;
         let mut path = vec![self.expect_identifier()?];
         let mut type_params = None;
@@ -3341,5 +3366,44 @@ mod tests {
     fn parse_for() {
         let stmt = parse_stmt("for i in a+b {}");
         assert!(stmt.is_for());
+    }
+
+    #[test]
+    fn parse_new_call_ident() {
+        let (expr, _interner) = parse_expr_new_call("i");
+        assert!(expr.is_ident());
+    }
+
+    #[test]
+    fn parse_new_call_path() {
+        let (expr, _interner) = parse_expr_new_call("Foo::bar");
+        let path = expr.to_path().unwrap();
+        assert!(path.lhs.is_ident());
+        assert!(path.rhs.is_ident());
+    }
+
+    #[test]
+    fn parse_new_call_call() {
+        let (expr, _interner) = parse_expr_new_call("foo(1,2)");
+        let call = expr.to_call2().unwrap();
+        assert!(call.callee.is_ident());
+        assert_eq!(call.args.len(), 2);
+    }
+
+    fn parse_expr_new_call(code: &'static str) -> (Box<Expr>, Interner) {
+        let id_generator = NodeIdGenerator::new();
+        let mut interner = Interner::new();
+        let mut ast = Ast::new();
+
+        let expr = {
+            let reader = Reader::from_string(code);
+            let mut parser = Parser::new(reader, &id_generator, &mut ast, &mut interner);
+            parser.enable_new_call();
+            assert!(parser.init().is_ok(), true);
+
+            parser.parse_expression().unwrap()
+        };
+
+        (expr, interner)
     }
 }
