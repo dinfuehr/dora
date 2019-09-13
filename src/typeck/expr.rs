@@ -3,7 +3,7 @@ use std::sync::Arc;
 use std::{f32, f64};
 
 use crate::class::{ClassId, TypeParams};
-use crate::sym::Sym::{self, SymClass};
+use crate::sym::Sym::SymClass;
 use crate::ty::BuiltinType;
 use crate::vm;
 use crate::vm::{
@@ -26,6 +26,7 @@ pub struct TypeCheck<'a, 'ast: 'a> {
     pub ast: &'ast Function,
     pub expr_type: BuiltinType,
     pub negative_expr_id: NodeId,
+    pub used_in_calls: HashSet<NodeId>,
 }
 
 impl<'a, 'ast> TypeCheck<'a, 'ast> {
@@ -304,19 +305,23 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.expr_type = xconst.ty;
             }
 
-            &IdentType::Fct(_) | &IdentType::FctType(_, _) => {
-                self.vm
-                    .diag
-                    .lock()
-                    .report_without_path(e.pos, Msg::FctUsedAsIdentifier);
+            &IdentType::Fct(_) => {
+                if !self.used_in_calls.contains(&e.id) {
+                    self.vm
+                        .diag
+                        .lock()
+                        .report_without_path(e.pos, Msg::FctUsedAsIdentifier);
+                }
 
                 self.src.set_ty(e.id, BuiltinType::Error);
                 self.expr_type = BuiltinType::Error;
             }
 
-            &IdentType::Class(_) | &IdentType::ClassType(_, _) => {
+            &IdentType::Class(_) => {
                 unimplemented!();
             }
+
+            &IdentType::FctType(_, _) | &IdentType::ClassType(_, _) => unreachable!(),
         }
     }
 
@@ -897,28 +902,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_expr_call2(&mut self, e: &'ast ExprCall2Type, in_try: bool) {
-        let callee: &Expr;
-        let type_params: TypeParams;
+    fn check_expr_call2(&mut self, e: &'ast ExprCall2Type, _in_try: bool) {
+        self.used_in_calls.insert(e.callee.id());
 
-        if let Some(type_param_expr) = e.callee.to_type_param() {
-            callee = &type_param_expr.callee;
-
-            if type_param_expr.args.is_empty() {
-                let msg = Msg::TypeParamsExpected;
-                self.vm.diag.lock().report_without_path(e.callee.pos(), msg);
-            }
-
-            let types: Vec<BuiltinType> = type_param_expr
-                .args
-                .iter()
-                .map(|p| self.src.ty(p.id()))
-                .collect();
-            type_params = TypeParams::from(types);
-        } else {
-            callee = &e.callee;
-            type_params = TypeParams::empty();
-        }
+        self.visit_expr(&e.callee);
+        let ident_type = self.src.map_idents.get(e.callee.id()).cloned();
 
         let arg_types: Vec<BuiltinType> = e
             .args
@@ -929,25 +917,45 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             })
             .collect();
 
-        if let Some(ident_expr) = callee.to_ident() {
-            let name = ident_expr.name;
-            self.check_expr_call_ident(e, name, type_params, &arg_types);
-        } else if let Some(_field_expr) = callee.to_field() {
-            self.check_expr_call_field(e, type_params, &arg_types, in_try);
-        } else if let Some(_path_expr) = callee.to_path() {
-            self.check_expr_call_path(e, type_params, &arg_types);
-        } else {
-            unimplemented!();
+        match ident_type {
+            Some(IdentType::Fct(fct_id)) => {
+                self.check_expr_call_ident(e, fct_id, TypeParams::empty(), &arg_types);
+            }
+
+            Some(IdentType::FctType(fct_id, type_params)) => {
+                self.check_expr_call_ident(e, fct_id, type_params.clone(), &arg_types);
+            }
+
+            _ => unimplemented!(),
         }
     }
 
     fn check_expr_call_ident(
         &mut self,
         e: &'ast ExprCall2Type,
-        name: Name,
+        fct_id: FctId,
         type_params: TypeParams,
         arg_types: &[BuiltinType],
     ) {
+        let mut lookup = MethodLookup::new(self.vm)
+            .pos(e.pos)
+            .callee(fct_id)
+            .args(&arg_types)
+            .fct_type_params(&type_params);
+
+        let ty = if lookup.find() {
+            let call_type = CallType::Fct(fct_id, TypeParams::empty(), type_params.clone());
+            self.src.map_calls.insert(e.id, Arc::new(call_type));
+
+            lookup.found_ret().unwrap()
+        } else {
+            BuiltinType::Error
+        };
+
+        self.src.set_ty(e.id, ty);
+        self.expr_type = ty;
+
+        /*
         let mut found = false;
 
         if let Some(sym) = self.vm.sym.lock().get(name) {
@@ -958,24 +966,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         .map_calls
                         .insert(e.callee.id(), Arc::new(call_type));
 
-                    let mut lookup = MethodLookup::new(self.vm)
-                        .pos(e.pos)
-                        .callee(fct_id)
-                        .args(&arg_types)
-                        .fct_type_params(&type_params);
 
-                    let ty = if lookup.find() {
-                        let call_type =
-                            CallType::Fct(fct_id, TypeParams::empty(), type_params.clone());
-                        self.src.map_calls.replace(e.id, Arc::new(call_type));
-
-                        lookup.found_ret().unwrap()
-                    } else {
-                        BuiltinType::Error
-                    };
-
-                    self.src.set_ty(e.id, ty);
-                    self.expr_type = ty;
 
                     found = true;
                 }
@@ -1059,7 +1050,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let name = self.vm.interner.str(name).to_string();
             let msg = Msg::UnknownFunction(name);
             self.vm.diag.lock().report_without_path(e.pos, msg);
-        }
+        }*/
     }
 
     fn check_expr_call_field(
@@ -1445,20 +1436,33 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             return;
         };
 
+        if self.used_in_calls.contains(&e.id) {
+            unimplemented!();
+        }
+
         unimplemented!();
     }
 
     fn check_expr_type_param(&mut self, e: &'ast ExprTypeParamType) {
+        if self.used_in_calls.contains(&e.id) {
+            self.used_in_calls.insert(e.callee.id());
+        }
+
         self.visit_expr(&e.callee);
-        let ident_type = self.src.map_idents.get(e.id);
+        let ident_type = self.src.map_idents.get(e.callee.id()).cloned();
+
+        let type_params: Vec<BuiltinType> = e.args.iter().map(|p| self.src.ty(p.id())).collect();
+        let type_params: TypeParams = TypeParams::with(type_params);
 
         match ident_type {
-            Some(&IdentType::Class(_cls_id)) => {
+            Some(IdentType::Class(_cls_id)) => {
                 unimplemented!();
             }
 
-            Some(&IdentType::Fct(_fct_id)) => {
-                unimplemented!();
+            Some(IdentType::Fct(fct_id)) => {
+                self.src
+                    .map_idents
+                    .insert(e.id, IdentType::FctType(fct_id, type_params));
             }
 
             _ => {
@@ -4067,5 +4071,15 @@ mod tests {
             pos(1, 30),
             Msg::FctReassigned,
         );
+    }
+
+    #[test]
+    fn test_new_call_fct() {
+        ok("fun g() {} @new_call fun f() { g(); }")
+    }
+
+    #[test]
+    fn test_new_call_fct_with_type_params() {
+        ok("fun g[T]() {} @new_call fun f() { g[Int](); }")
     }
 }

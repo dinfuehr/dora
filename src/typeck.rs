@@ -1,3 +1,5 @@
+use std::collections::hash_set::HashSet;
+
 use crate::ty::BuiltinType;
 use crate::typeck::constck::ConstCheck;
 use crate::typeck::expr::TypeCheck;
@@ -27,6 +29,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
             ast: ast,
             expr_type: BuiltinType::Unit,
             negative_expr_id: NodeId(0),
+            used_in_calls: HashSet::new(),
         };
 
         typeck.check();
