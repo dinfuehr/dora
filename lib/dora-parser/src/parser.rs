@@ -1159,23 +1159,34 @@ impl<'a> Parser<'a> {
                     let tok = self.advance_token()?;
                     let ident = self.expect_identifier()?;
 
-                    let type_params = if self.token.is(TokenKind::LBracket) {
-                        self.advance_token()?;
-                        Some(self.parse_comma_list(TokenKind::RBracket, |p| p.parse_type())?)
-                    } else {
-                        None
-                    };
+                    if self.in_new_call {
+                        let pos = self.token.position;
 
-                    if self.token.is(TokenKind::LParen) {
-                        self.parse_call(tok.position, Some(left), Path::new(ident), type_params)?
+                        Box::new(Expr::create_ident(self.generate_id(), pos, ident, None))
                     } else {
-                        assert!(type_params.is_none());
-                        Box::new(Expr::create_field(
-                            self.generate_id(),
-                            tok.position,
-                            left,
-                            ident,
-                        ))
+                        let type_params = if self.token.is(TokenKind::LBracket) {
+                            self.advance_token()?;
+                            Some(self.parse_comma_list(TokenKind::RBracket, |p| p.parse_type())?)
+                        } else {
+                            None
+                        };
+
+                        if self.token.is(TokenKind::LParen) {
+                            self.parse_call(
+                                tok.position,
+                                Some(left),
+                                Path::new(ident),
+                                type_params,
+                            )?
+                        } else {
+                            assert!(type_params.is_none());
+                            Box::new(Expr::create_field(
+                                self.generate_id(),
+                                tok.position,
+                                left,
+                                ident,
+                            ))
+                        }
                     }
                 }
 

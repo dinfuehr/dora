@@ -1,10 +1,10 @@
 use std::borrow::Borrow;
 
+use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::fmt;
 use std::ops::Deref;
 use std::sync::Arc;
-use parking_lot::Mutex;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 pub struct Name(pub usize);

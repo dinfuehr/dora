@@ -363,7 +363,7 @@ impl Lexer {
                 } else {
                     TokenKind::Not
                 }
-            },
+            }
             '@' => TokenKind::At,
 
             _ => {

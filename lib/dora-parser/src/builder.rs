@@ -11,7 +11,9 @@ pub struct Builder<'a> {
 
 impl<'a> Builder<'a> {
     pub fn new(id_generator: &'a NodeIdGenerator) -> Builder<'a> {
-        Builder { id_generator: id_generator }
+        Builder {
+            id_generator: id_generator,
+        }
     }
 
     pub fn build_block(&self) -> BuilderBlock<'a> {
@@ -26,42 +28,42 @@ impl<'a> Builder<'a> {
         let id = self.id_generator.next();
 
         Box::new(Expr::ExprSelf(ExprSelfType {
-                                    id: id,
-                                    pos: Position::new(1, 1),
-                                }))
+            id: id,
+            pos: Position::new(1, 1),
+        }))
     }
 
     pub fn build_assign(&self, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {
         let id = self.id_generator.next();
 
         Box::new(Expr::ExprAssign(ExprAssignType {
-                                      id: id,
-                                      pos: Position::new(1, 1),
-                                      lhs: lhs,
-                                      rhs: rhs,
-                                  }))
+            id: id,
+            pos: Position::new(1, 1),
+            lhs: lhs,
+            rhs: rhs,
+        }))
     }
 
     pub fn build_field(&self, object: Box<Expr>, name: Name) -> Box<Expr> {
         let id = self.id_generator.next();
 
         Box::new(Expr::ExprField(ExprFieldType {
-                                     id: id,
-                                     pos: Position::new(1, 1),
-                                     object: object,
-                                     name: name,
-                                 }))
+            id: id,
+            pos: Position::new(1, 1),
+            object: object,
+            name: name,
+        }))
     }
 
     pub fn build_ident(&self, name: Name) -> Box<Expr> {
         let id = self.id_generator.next();
 
         Box::new(Expr::ExprIdent(ExprIdentType {
-                                     id: id,
-                                     pos: Position::new(1, 1),
-                                     name: name,
-                                     type_params: None,
-                                 }))
+            id: id,
+            pos: Position::new(1, 1),
+            name: name,
+            type_params: None,
+        }))
     }
 
     pub fn build_param(&self, idx: u32, name: Name, ty: Type) -> Param {
@@ -199,10 +201,10 @@ impl<'a> BuilderBlock<'a> {
         let id = self.id_generator.next();
 
         let stmt = Box::new(Stmt::StmtExpr(StmtExprType {
-                                               id: id,
-                                               pos: Position::new(1, 1),
-                                               expr: expr,
-                                           }));
+            id: id,
+            pos: Position::new(1, 1),
+            expr: expr,
+        }));
 
         self.stmts.push(stmt);
         self
@@ -212,9 +214,9 @@ impl<'a> BuilderBlock<'a> {
         let id = self.id_generator.next();
 
         Box::new(Stmt::StmtBlock(StmtBlockType {
-                                     id: id,
-                                     pos: Position::new(1, 1),
-                                     stmts: self.stmts,
-                                 }))
+            id: id,
+            pos: Position::new(1, 1),
+            stmts: self.stmts,
+        }))
     }
 }
