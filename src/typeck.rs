@@ -29,7 +29,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
             ast: ast,
             expr_type: BuiltinType::Unit,
             negative_expr_id: NodeId(0),
-            used_in_calls: HashSet::new(),
+            used_in_call: HashSet::new(),
         };
 
         typeck.check();

@@ -26,7 +26,7 @@ pub struct TypeCheck<'a, 'ast: 'a> {
     pub ast: &'ast Function,
     pub expr_type: BuiltinType,
     pub negative_expr_id: NodeId,
-    pub used_in_calls: HashSet<NodeId>,
+    pub used_in_call: HashSet<NodeId>,
 }
 
 impl<'a, 'ast> TypeCheck<'a, 'ast> {
@@ -306,7 +306,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             &IdentType::Fct(_) => {
-                if !self.used_in_calls.contains(&e.id) {
+                if !self.used_in_call.contains(&e.id) {
                     self.vm
                         .diag
                         .lock()
@@ -318,7 +318,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             &IdentType::Class(_) => {
-                if !self.used_in_calls.contains(&e.id) {
+                if !self.used_in_call.contains(&e.id) {
                     self.vm
                         .diag
                         .lock()
@@ -911,7 +911,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_call2(&mut self, e: &'ast ExprCall2Type, in_try: bool) {
-        self.used_in_calls.insert(e.callee.id());
+        self.used_in_call.insert(e.callee.id());
 
         self.visit_expr(&e.callee);
         let ident_type = self.src.map_idents.get(e.callee.id()).cloned();
@@ -1468,7 +1468,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             return;
         };
 
-        if self.used_in_calls.contains(&e.id) {
+        if self.used_in_call.contains(&e.id) {
             unimplemented!();
         }
 
@@ -1476,8 +1476,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_type_param(&mut self, e: &'ast ExprTypeParamType) {
-        if self.used_in_calls.contains(&e.id) {
-            self.used_in_calls.insert(e.callee.id());
+        if self.used_in_call.contains(&e.id) {
+            self.used_in_call.insert(e.callee.id());
         }
 
         self.visit_expr(&e.callee);
@@ -1509,6 +1509,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_dot(&mut self, e: &'ast ExprDotType) {
         self.visit_expr(&e.object);
+
+        if self.used_in_call.contains(&e.id) {
+            unimplemented!();
+        }
 
         let ty = self.expr_type;
 
@@ -4171,4 +4175,13 @@ mod tests {
             Msg::WrongNumberTypeParams(0, 1),
         );
     }
+
+    // #[test]
+    // fn test_new_call_method() {
+    //     err(
+    //         "class X { fun f() {} } @new_call fun f(x: X) { x.f(); }",
+    //         pos(1, 35),
+    //         Msg::WrongNumberTypeParams(0, 1),
+    //     );
+    // }
 }
