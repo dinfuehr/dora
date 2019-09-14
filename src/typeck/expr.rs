@@ -931,11 +931,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             Some(IdentType::FctType(fct_id, type_params)) => {
-                self.check_expr_call_ident(e, fct_id, type_params.clone(), &arg_types);
+                self.check_expr_call_ident(e, fct_id, type_params, &arg_types);
             }
 
             Some(IdentType::Class(cls_id)) => {
                 self.check_expr_call_class(e, cls_id, TypeParams::empty(), &arg_types, in_try);
+            }
+
+            Some(IdentType::ClassType(cls_id, type_params)) => {
+                self.check_expr_call_class(e, cls_id, type_params, &arg_types, in_try);
             }
 
             _ => unimplemented!(),
@@ -1472,8 +1476,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let type_params: TypeParams = TypeParams::with(type_params);
 
         match ident_type {
-            Some(IdentType::Class(_cls_id)) => {
-                unimplemented!();
+            Some(IdentType::Class(cls_id)) => {
+                self.src
+                    .map_idents
+                    .insert(e.id, IdentType::ClassType(cls_id, type_params));
             }
 
             Some(IdentType::Fct(fct_id)) => {
@@ -4112,5 +4118,10 @@ mod tests {
     #[test]
     fn test_new_call_class() {
         ok("class X @new_call fun f() { X(); }")
+    }
+
+    #[test]
+    fn test_new_call_class_with_type_params() {
+        ok("class X[T] @new_call fun f() { X[Int](); }")
     }
 }
