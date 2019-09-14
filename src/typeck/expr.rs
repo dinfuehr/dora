@@ -318,7 +318,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             &IdentType::Class(_) => {
-                unimplemented!();
+                if !self.used_in_calls.contains(&e.id) {
+                    self.vm
+                        .diag
+                        .lock()
+                        .report_without_path(e.pos, Msg::ClsUsedAsIdentifier);
+                }
+
+                self.src.set_ty(e.id, BuiltinType::Error);
+                self.expr_type = BuiltinType::Error;
             }
 
             &IdentType::FctType(_, _) | &IdentType::ClassType(_, _) => unreachable!(),
@@ -902,7 +910,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_expr_call2(&mut self, e: &'ast ExprCall2Type, _in_try: bool) {
+    fn check_expr_call2(&mut self, e: &'ast ExprCall2Type, in_try: bool) {
         self.used_in_calls.insert(e.callee.id());
 
         self.visit_expr(&e.callee);
@@ -924,6 +932,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             Some(IdentType::FctType(fct_id, type_params)) => {
                 self.check_expr_call_ident(e, fct_id, type_params.clone(), &arg_types);
+            }
+
+            Some(IdentType::Class(cls_id)) => {
+                self.check_expr_call_class(e, cls_id, TypeParams::empty(), &arg_types, in_try);
             }
 
             _ => unimplemented!(),
@@ -954,103 +966,108 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         self.src.set_ty(e.id, ty);
         self.expr_type = ty;
+    }
 
-        /*
-        let mut found = false;
+    /*
+    let mut found = false;
 
-        if let Some(sym) = self.vm.sym.lock().get(name) {
-            match sym {
-                Sym::SymFct(fct_id) => {
-                    let call_type = CallType::Fct(fct_id, TypeParams::empty(), TypeParams::empty());
+    if let Some(sym) = self.vm.sym.lock().get(name) {
+        match sym {
+            Sym::SymFct(fct_id) => {
+                let call_type = CallType::Fct(fct_id, TypeParams::empty(), TypeParams::empty());
+                self.src
+                    .map_calls
+                    .insert(e.callee.id(), Arc::new(call_type));
+
+
+
+                found = true;
+            }
+
+            Sym::SymVar(var_id) => {
+                let ty = self.src.vars[var_id].ty;
+
+                if ty.is_error() {
+                    self.src.set_ty(e.id, BuiltinType::Error);
+                    self.expr_type = BuiltinType::Error;
+
+                    return;
+                }
+
+                let name = self.vm.interner.intern("get");
+
+                if let Some((_, fct_id, return_type)) = self.find_method(
+                    e.pos,
+                    ty,
+                    false,
+                    name,
+                    arg_types,
+                    &TypeParams::empty(),
+                    None,
+                ) {
+                    let call_type = CallType::Method(ty, fct_id, TypeParams::empty());
                     self.src
                         .map_calls
-                        .insert(e.callee.id(), Arc::new(call_type));
+                        .insert_or_replace(e.id, Arc::new(call_type));
 
-
-
-                    found = true;
+                    self.src.set_ty(e.id, return_type);
+                    self.expr_type = return_type;
+                } else {
+                    self.src.set_ty(e.id, BuiltinType::Error);
+                    self.expr_type = BuiltinType::Error;
                 }
 
-                Sym::SymVar(var_id) => {
-                    let ty = self.src.vars[var_id].ty;
-
-                    if ty.is_error() {
-                        self.src.set_ty(e.id, BuiltinType::Error);
-                        self.expr_type = BuiltinType::Error;
-
-                        return;
-                    }
-
-                    let name = self.vm.interner.intern("get");
-
-                    if let Some((_, fct_id, return_type)) = self.find_method(
-                        e.pos,
-                        ty,
-                        false,
-                        name,
-                        arg_types,
-                        &TypeParams::empty(),
-                        None,
-                    ) {
-                        let call_type = CallType::Method(ty, fct_id, TypeParams::empty());
-                        self.src
-                            .map_calls
-                            .insert_or_replace(e.id, Arc::new(call_type));
-
-                        self.src.set_ty(e.id, return_type);
-                        self.expr_type = return_type;
-                    } else {
-                        self.src.set_ty(e.id, BuiltinType::Error);
-                        self.expr_type = BuiltinType::Error;
-                    }
-
-                    found = true;
-                }
-
-                Sym::SymClass(cls_id) => {
-                    let call_type = CallType::CtorNew(cls_id, FctId(0), TypeParams::empty());
-                    self.src.map_calls.insert(e.id, Arc::new(call_type));
-
-                    let mut lookup = MethodLookup::new(self.vm)
-                        .pos(e.pos)
-                        .ctor(cls_id)
-                        .args(arg_types)
-                        .cls_type_params(&type_params);
-
-                    let ty = if lookup.find() {
-                        let fct_id = lookup.found_fct_id().unwrap();
-                        let cls_id = lookup.found_cls_id().unwrap();
-                        let cls = self.vm.classes.idx(cls_id);
-                        let cls = cls.read();
-
-                        let call_type = CallType::CtorNew(cls_id, fct_id, type_params.clone());
-                        self.src.map_calls.replace(e.id, Arc::new(call_type));
-
-                        if cls.is_abstract {
-                            let msg = Msg::NewAbstractClass;
-                            self.vm.diag.lock().report_without_path(e.pos, msg);
-                        }
-
-                        lookup.found_ret().unwrap()
-                    } else {
-                        BuiltinType::Error
-                    };
-
-                    self.src.set_ty(e.id, ty);
-                    self.expr_type = ty;
-
-                    found = true;
-                }
-
-                _ => {}
+                found = true;
             }
-        }
 
-        if !found {
-            let name = self.vm.interner.str(name).to_string();
-            let msg = Msg::UnknownFunction(name);
-            self.vm.diag.lock().report_without_path(e.pos, msg);
-        }*/
+            _ => {}
+        }
+    }
+
+    if !found {
+        let name = self.vm.interner.str(name).to_string();
+        let msg = Msg::UnknownFunction(name);
+        self.vm.diag.lock().report_without_path(e.pos, msg);
+    }*/
+
+    fn check_expr_call_class(
+        &mut self,
+        e: &'ast ExprCall2Type,
+        cls_id: ClassId,
+        type_params: TypeParams,
+        arg_types: &[BuiltinType],
+        _in_try: bool,
+    ) {
+        let call_type = CallType::CtorNew(cls_id, FctId(0), TypeParams::empty());
+        self.src.map_calls.insert(e.id, Arc::new(call_type));
+
+        let mut lookup = MethodLookup::new(self.vm)
+            .pos(e.pos)
+            .ctor(cls_id)
+            .args(arg_types)
+            .cls_type_params(&type_params);
+
+        let ty = if lookup.find() {
+            let fct_id = lookup.found_fct_id().unwrap();
+            let cls_id = lookup.found_cls_id().unwrap();
+            let cls = self.vm.classes.idx(cls_id);
+            let cls = cls.read();
+
+            let call_type = CallType::CtorNew(cls_id, fct_id, type_params.clone());
+            self.src.map_calls.replace(e.id, Arc::new(call_type));
+
+            if cls.is_abstract {
+                let msg = Msg::NewAbstractClass;
+                self.vm.diag.lock().report_without_path(e.pos, msg);
+            }
+
+            lookup.found_ret().unwrap()
+        } else {
+            BuiltinType::Error
+        };
+
+        self.src.set_ty(e.id, ty);
+        self.expr_type = ty;
     }
 
     fn check_expr_call_field(
@@ -4064,6 +4081,15 @@ mod tests {
     }
 
     #[test]
+    fn test_cls_used_as_identifier() {
+        err(
+            "class X fun f() { X; }",
+            pos(1, 19),
+            Msg::ClsUsedAsIdentifier,
+        );
+    }
+
+    #[test]
     fn test_assign_fct() {
         err(
             // fixme: that gets me 2 errors: once on column 26, once on column 30
@@ -4081,5 +4107,10 @@ mod tests {
     #[test]
     fn test_new_call_fct_with_type_params() {
         ok("fun g[T]() {} @new_call fun f() { g[Int](); }")
+    }
+
+    #[test]
+    fn test_new_call_class() {
+        ok("class X @new_call fun f() { X(); }")
     }
 }

@@ -231,36 +231,33 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         match sym {
             Some(SymVar(id)) => {
                 self.src.map_idents.insert(ident.id, IdentType::Var(id));
-                return;
             }
 
             Some(SymGlobal(id)) => {
                 self.src.map_idents.insert(ident.id, IdentType::Global(id));
-                return;
             }
 
             Some(SymStruct(id)) => {
                 self.src.map_idents.insert(ident.id, IdentType::Struct(id));
-                return;
             }
 
             Some(SymConst(id)) => {
                 self.src.map_idents.insert(ident.id, IdentType::Const(id));
-                return;
             }
 
             Some(SymFct(id)) => {
                 self.src.map_idents.insert(ident.id, IdentType::Fct(id));
-                return;
             }
 
-            None | Some(_) => {
-                // do nothing
+            Some(SymClass(id)) => {
+                self.src.map_idents.insert(ident.id, IdentType::Class(id));
+            }
+
+            _ => {
+                let name = self.vm.interner.str(ident.name).to_string();
+                report(self.vm, ident.pos, Msg::UnknownIdentifier(name));
             }
         }
-
-        let name = self.vm.interner.str(ident.name).to_string();
-        report(self.vm, ident.pos, Msg::UnknownIdentifier(name));
     }
 
     fn check_expr_call(&mut self, call: &'ast ExprCallType) {

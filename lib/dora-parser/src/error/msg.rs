@@ -52,6 +52,7 @@ pub enum Msg {
     LetReassigned,
     FctReassigned,
     FctUsedAsIdentifier,
+    ClsUsedAsIdentifier,
     UnderivableType(String),
     CycleInHierarchy,
     SuperfluousOverride(String),
@@ -221,6 +222,7 @@ impl Msg {
             LetReassigned => "`let` binding cannot be reassigned.".into(),
             FctReassigned => "function cannot be reassigned.".into(),
             FctUsedAsIdentifier => "function cannot be used as identifier.".into(),
+            ClsUsedAsIdentifier => "class cannot be used as identifier.".into(),
             UnderivableType(ref name) => format!("type `{}` cannot be used as super class.", name),
             CycleInHierarchy => "cycle in type hierarchy detected.".into(),
             SuperfluousOverride(_) => {
