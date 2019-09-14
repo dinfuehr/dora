@@ -4111,8 +4111,26 @@ mod tests {
     }
 
     #[test]
+    fn test_new_call_fct_wrong_params() {
+        err(
+            "fun g() {} @new_call fun f() { g(1); }",
+            pos(1, 33),
+            Msg::ParamTypesIncompatible("g".into(), Vec::new(), vec!["Int".into()]),
+        );
+    }
+
+    #[test]
     fn test_new_call_fct_with_type_params() {
         ok("fun g[T]() {} @new_call fun f() { g[Int](); }")
+    }
+
+    #[test]
+    fn test_new_call_fct_with_wrong_type_params() {
+        err(
+            "fun g() {} @new_call fun f() { g[Int](); }",
+            pos(1, 38),
+            Msg::WrongNumberTypeParams(0, 1),
+        );
     }
 
     #[test]
@@ -4121,7 +4139,25 @@ mod tests {
     }
 
     #[test]
+    fn test_new_call_class_wrong_params() {
+        err(
+            "class X @new_call fun f() { X(1); }",
+            pos(1, 30),
+            Msg::UnknownCtor("X".into(), vec!["Int".into()]),
+        );
+    }
+
+    #[test]
     fn test_new_call_class_with_type_params() {
         ok("class X[T] @new_call fun f() { X[Int](); }")
+    }
+
+    #[test]
+    fn test_new_call_class_with_wrong_type_params() {
+        err(
+            "class X @new_call fun f() { X[Int](); }",
+            pos(1, 35),
+            Msg::WrongNumberTypeParams(0, 1),
+        );
     }
 }
