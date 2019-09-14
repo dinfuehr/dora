@@ -472,7 +472,7 @@ impl<'a> AstDumper<'a> {
         match *expr {
             ExprUn(ref un) => self.dump_expr_un(un),
             ExprBin(ref bin) => self.dump_expr_bin(bin),
-            ExprField(ref field) => self.dump_expr_field(field),
+            ExprDot(ref field) => self.dump_expr_dot(field),
             ExprLitChar(ref lit) => self.dump_expr_lit_char(lit),
             ExprLitInt(ref lit) => self.dump_expr_lit_int(lit),
             ExprLitFloat(ref lit) => self.dump_expr_lit_float(lit),
@@ -599,7 +599,7 @@ impl<'a> AstDumper<'a> {
         self.indent(|d| d.dump_stmt(&expr.block));
     }
 
-    fn dump_expr_field(&mut self, field: &ExprFieldType) {
+    fn dump_expr_dot(&mut self, field: &ExprDotType) {
         dump!(
             self,
             "field {} @ {} {}",

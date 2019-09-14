@@ -1226,7 +1226,7 @@ pub enum Expr {
     ExprPath(ExprPathType),
     ExprDelegation(ExprDelegationType),
     ExprAssign(ExprAssignType),
-    ExprField(ExprFieldType),
+    ExprDot(ExprDotType),
     ExprSelf(ExprSelfType),
     ExprSuper(ExprSuperType),
     ExprNil(ExprNilType),
@@ -1448,8 +1448,8 @@ impl Expr {
         })
     }
 
-    pub fn create_field(id: NodeId, pos: Position, object: Box<Expr>, name: Name) -> Expr {
-        Expr::ExprField(ExprFieldType {
+    pub fn create_dot(id: NodeId, pos: Position, object: Box<Expr>, name: Name) -> Expr {
+        Expr::ExprDot(ExprDotType {
             id: id,
             pos: pos,
             object: object,
@@ -1669,16 +1669,16 @@ impl Expr {
         }
     }
 
-    pub fn to_field(&self) -> Option<&ExprFieldType> {
+    pub fn to_dot(&self) -> Option<&ExprDotType> {
         match *self {
-            Expr::ExprField(ref val) => Some(val),
+            Expr::ExprDot(ref val) => Some(val),
             _ => None,
         }
     }
 
-    pub fn is_field(&self) -> bool {
+    pub fn is_dot(&self) -> bool {
         match *self {
-            Expr::ExprField(_) => true,
+            Expr::ExprDot(_) => true,
             _ => false,
         }
     }
@@ -1784,7 +1784,7 @@ impl Expr {
             Expr::ExprTypeParam(ref val) => val.pos,
             Expr::ExprPath(ref val) => val.pos,
             Expr::ExprDelegation(ref val) => val.pos,
-            Expr::ExprField(ref val) => val.pos,
+            Expr::ExprDot(ref val) => val.pos,
             Expr::ExprSelf(ref val) => val.pos,
             Expr::ExprSuper(ref val) => val.pos,
             Expr::ExprNil(ref val) => val.pos,
@@ -1811,7 +1811,7 @@ impl Expr {
             Expr::ExprTypeParam(ref val) => val.id,
             Expr::ExprPath(ref val) => val.id,
             Expr::ExprDelegation(ref val) => val.id,
-            Expr::ExprField(ref val) => val.id,
+            Expr::ExprDot(ref val) => val.id,
             Expr::ExprSelf(ref val) => val.id,
             Expr::ExprSuper(ref val) => val.id,
             Expr::ExprNil(ref val) => val.id,
@@ -2099,7 +2099,7 @@ pub struct ExprPathType {
 }
 
 #[derive(Clone, Debug)]
-pub struct ExprFieldType {
+pub struct ExprDotType {
     pub id: NodeId,
     pub pos: Position,
 

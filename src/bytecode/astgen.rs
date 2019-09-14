@@ -228,7 +228,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         match *expr {
             ExprUn(ref un) => self.visit_expr_un(un, dest),
             ExprBin(ref bin) => self.visit_expr_bin(bin, dest),
-            ExprField(ref field) => self.visit_expr_field(field, dest),
+            ExprDot(ref field) => self.visit_expr_dot(field, dest),
             // ExprArray(ref array) => {},
             ExprLitChar(ref lit) => self.visit_expr_lit_char(lit, dest),
             ExprLitInt(ref lit) => self.visit_expr_lit_int(lit, dest),
@@ -250,7 +250,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
     }
 
-    fn visit_expr_field(&mut self, e: &ExprFieldType, dest: DataDest) -> Register {
+    fn visit_expr_dot(&mut self, e: &ExprDotType, dest: DataDest) -> Register {
         let (class, field_id) = {
             let ident_type = self.src.map_idents.get(e.id).unwrap();
 

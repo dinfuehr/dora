@@ -334,7 +334,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_assign(&mut self, e: &'ast ExprAssignType) {
-        if e.lhs.is_field() {
+        if e.lhs.is_dot() {
             self.check_expr_assign_field(e);
         } else if e.lhs.is_ident() {
             let lhs_type;
@@ -430,7 +430,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_assign_field(&mut self, e: &'ast ExprAssignType) {
-        let field_expr = e.lhs.to_field().unwrap();
+        let field_expr = e.lhs.to_dot().unwrap();
         let name = field_expr.name;
 
         self.visit_expr(&field_expr.object);
@@ -472,7 +472,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 }
 
                 if !fty.allows(self.vm, rhs_type) && !rhs_type.is_error() {
-                    let field = e.lhs.to_field().unwrap();
+                    let field = e.lhs.to_dot().unwrap();
                     let name = self.vm.interner.str(field.name).to_string();
 
                     let object_type = object_type.name(self.vm);
@@ -935,11 +935,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             Some(IdentType::Class(cls_id)) => {
-                self.check_expr_call_class(e, cls_id, TypeParams::empty(), &arg_types, in_try);
+                self.check_expr_call_ctor(e, cls_id, TypeParams::empty(), &arg_types, in_try);
             }
 
             Some(IdentType::ClassType(cls_id, type_params)) => {
-                self.check_expr_call_class(e, cls_id, type_params, &arg_types, in_try);
+                self.check_expr_call_ctor(e, cls_id, type_params, &arg_types, in_try);
             }
 
             _ => unimplemented!(),
@@ -970,6 +970,17 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         self.src.set_ty(e.id, ty);
         self.expr_type = ty;
+    }
+
+    fn check_expr_call_method(
+        &mut self,
+        _e: &'ast ExprCall2Type,
+        _class_type: BuiltinType,
+        _method_name: Name,
+        _type_params: TypeParams,
+        _arg_types: &[BuiltinType],
+    ) {
+        unimplemented!();
     }
 
     /*
@@ -1034,7 +1045,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.vm.diag.lock().report_without_path(e.pos, msg);
     }*/
 
-    fn check_expr_call_class(
+    fn check_expr_call_ctor(
         &mut self,
         e: &'ast ExprCall2Type,
         cls_id: ClassId,
@@ -1081,7 +1092,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         arg_types: &[BuiltinType],
         in_try: bool,
     ) {
-        let field_expr = e.callee.to_field().unwrap();
+        let field_expr = e.callee.to_dot().unwrap();
 
         let name = field_expr.name;
         let object_type = if field_expr.object.is_super() {
@@ -1496,7 +1507,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_expr_field(&mut self, e: &'ast ExprFieldType) {
+    fn check_expr_dot(&mut self, e: &'ast ExprDotType) {
         self.visit_expr(&e.object);
 
         let ty = self.expr_type;
@@ -1784,7 +1795,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprTypeParam(ref expr) => self.check_expr_type_param(expr),
             ExprPath(ref expr) => self.check_expr_path(expr),
             ExprDelegation(ref expr) => self.check_expr_delegation(expr),
-            ExprField(ref expr) => self.check_expr_field(expr),
+            ExprDot(ref expr) => self.check_expr_dot(expr),
             ExprSelf(ref expr) => self.check_expr_this(expr),
             ExprSuper(ref expr) => self.check_expr_super(expr),
             ExprNil(ref expr) => self.check_expr_nil(expr),

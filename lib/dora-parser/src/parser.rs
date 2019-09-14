@@ -1180,7 +1180,7 @@ impl<'a> Parser<'a> {
                             )?
                         } else {
                             assert!(type_params.is_none());
-                            Box::new(Expr::create_field(
+                            Box::new(Expr::create_dot(
                                 self.generate_id(),
                                 tok.position,
                                 left,
@@ -1655,7 +1655,7 @@ impl<'a> Parser<'a> {
 
         for param in ctor_params.iter().filter(|param| param.field) {
             let this = builder.build_this();
-            let lhs = builder.build_field(this, param.name);
+            let lhs = builder.build_dot(this, param.name);
             let rhs = builder.build_ident(param.name);
             let ass = builder.build_assign(lhs, rhs);
 
@@ -1664,7 +1664,7 @@ impl<'a> Parser<'a> {
 
         for field in cls.fields.iter().filter(|field| field.expr.is_some()) {
             let this = builder.build_this();
-            let lhs = builder.build_field(this, field.name);
+            let lhs = builder.build_dot(this, field.name);
             let ass = builder.build_assign(lhs, field.expr.as_ref().unwrap().clone());
 
             block.add_expr(ass);
@@ -1892,7 +1892,7 @@ mod tests {
     #[test]
     fn parse_field_access() {
         let (expr, interner) = parse_expr("obj.field");
-        let field = expr.to_field().unwrap();
+        let field = expr.to_dot().unwrap();
 
         let ident = field.object.to_ident().unwrap();
         assert_eq!("obj", *interner.str(ident.name));
@@ -1902,7 +1902,7 @@ mod tests {
     #[test]
     fn parse_field_negated() {
         let (expr, _) = parse_expr("-obj.field");
-        assert!(expr.to_un().unwrap().opnd.is_field());
+        assert!(expr.to_un().unwrap().opnd.is_dot());
     }
 
     #[test]

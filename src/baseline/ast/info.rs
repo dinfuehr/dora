@@ -671,7 +671,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             }
         } else {
             // e.lhs is a field
-            let lhs = e.lhs.to_field().unwrap();
+            let lhs = e.lhs.to_dot().unwrap();
 
             self.visit_expr(&lhs.object);
             self.visit_expr(&e.rhs);

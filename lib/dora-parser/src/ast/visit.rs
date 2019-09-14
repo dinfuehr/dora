@@ -337,7 +337,7 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
             }
         }
 
-        ExprField(ref value) => {
+        ExprDot(ref value) => {
             v.visit_expr(&value.object);
         }
 
