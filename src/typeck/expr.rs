@@ -950,6 +950,28 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.check_expr_call_ctor(e, cls_id, type_params, &arg_types, in_try);
             }
 
+            Some(IdentType::Method(object_type, method_name)) => {
+                self.check_expr_call_method(
+                    e,
+                    object_type,
+                    method_name,
+                    TypeParams::empty(),
+                    &arg_types,
+                    in_try,
+                );
+            }
+
+            Some(IdentType::MethodType(object_type, method_name, type_params)) => {
+                self.check_expr_call_method(
+                    e,
+                    object_type,
+                    method_name,
+                    type_params,
+                    &arg_types,
+                    in_try,
+                );
+            }
+
             _ => unimplemented!(),
         }
     }
@@ -982,13 +1004,45 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_call_method(
         &mut self,
-        _e: &'ast ExprCall2Type,
-        _class_type: BuiltinType,
-        _method_name: Name,
-        _type_params: TypeParams,
-        _arg_types: &[BuiltinType],
+        e: &'ast ExprCall2Type,
+        object_type: BuiltinType,
+        method_name: Name,
+        type_params: TypeParams,
+        arg_types: &[BuiltinType],
+        in_try: bool,
     ) {
-        unimplemented!();
+        let mut lookup = MethodLookup::new(self.vm)
+            .method(object_type)
+            .pos(e.pos)
+            .name(method_name)
+            .fct_type_params(&type_params)
+            .args(arg_types);
+
+        if lookup.find() {
+            let fct_id = lookup.found_fct_id().unwrap();
+            let return_type = lookup.found_ret().unwrap();
+
+            let call_type = CallType::Method(object_type, fct_id, type_params.clone());
+            self.src
+                .map_calls
+                .insert_or_replace(e.id, Arc::new(call_type));
+            self.src.set_ty(e.id, return_type);
+            self.expr_type = return_type;
+
+            if !in_try {
+                let fct = self.vm.fcts.idx(fct_id);
+                let fct = fct.read();
+                let throws = fct.throws;
+
+                if throws {
+                    let msg = Msg::ThrowingCallWithoutTry;
+                    self.vm.diag.lock().report_without_path(e.pos, msg);
+                }
+            }
+        } else {
+            self.src.set_ty(e.id, BuiltinType::Error);
+            self.expr_type = BuiltinType::Error;
+        }
     }
 
     /*
@@ -1520,7 +1574,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let object_type = self.expr_type;
 
         if self.used_in_call.contains(&e.id) {
-            self.src.map_idents.insert(e.id, IdentType::Method(object_type, e.name));
+            self.src
+                .map_idents
+                .insert(e.id, IdentType::Method(object_type, e.name));
             return;
         }
 
@@ -4129,7 +4185,11 @@ mod tests {
 
     #[test]
     fn test_assign_class() {
-        err("class X fun foo() { X = 2; }", pos(1, 23), Msg::ClassReassigned);
+        err(
+            "class X fun foo() { X = 2; }",
+            pos(1, 23),
+            Msg::ClassReassigned,
+        );
     }
 
     #[test]
