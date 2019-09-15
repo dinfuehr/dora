@@ -1,6 +1,7 @@
 class HashMap[K: Hash + Equals, V] {
-    var inserted: BitSet = nil;
-    var deleted: BitSet = nil;
+    // BitSet.size == capacity * 2
+    // [bit 0: inserted; bit 1: deleted] * capacity
+    var inserted_and_deleted: BitSet = nil;
     var keys: Array[K] = nil;
     var values: Array[V] = nil;
     var size: Int = 0;
@@ -23,8 +24,8 @@ class HashMap[K: Hash + Equals, V] {
                 }
 
             } else {
-                self.inserted.insert(idx);
-                self.deleted.remove(idx);
+                self.inserted_and_deleted.insert(2 * idx);
+                self.inserted_and_deleted.remove(2 * idx + 1);
 
                 self.keys.set(idx, key);
                 self.values.set(idx, value);
@@ -95,7 +96,7 @@ class HashMap[K: Hash + Equals, V] {
 
                 if current_key.hash() == hash && current_key.equals(key) {
                     let value = self.values.get(idx);
-                    self.deleted.insert(idx);
+                    self.inserted_and_deleted.insert(2 * idx + 1);
 
                     self.keys.set(idx, defaultValue[K]());
                     self.values.set(idx, defaultValue[V]());
@@ -152,8 +153,7 @@ class HashMap[K: Hash + Equals, V] {
         let old_capacity = self.capacity;
 
         let new_map = HashMap[K, V]();
-        new_map.inserted = BitSet(new_capacity);
-        new_map.deleted = BitSet(new_capacity);
+        new_map.inserted_and_deleted = BitSet(2 * new_capacity);
         new_map.keys = Array[K](new_capacity);
         new_map.values = Array[V](new_capacity);
         new_map.size = 0;
@@ -172,8 +172,7 @@ class HashMap[K: Hash + Equals, V] {
             idx = idx + 1;
         }
 
-        self.inserted = new_map.inserted;
-        self.deleted = new_map.deleted;
+        self.inserted_and_deleted = new_map.inserted_and_deleted;
         self.keys = new_map.keys;
         self.values = new_map.values;
         self.size = new_map.size;
@@ -181,7 +180,8 @@ class HashMap[K: Hash + Equals, V] {
     }
 
     fun isLive(idx: Int) -> Bool {
-        return self.inserted.contains(idx) && !self.deleted.contains(idx);
+        return self.inserted_and_deleted.contains(2 * idx) &&
+               !self.inserted_and_deleted.contains(2 * idx + 1);
     }
 
     fun len() -> Int {
