@@ -935,11 +935,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         match ident_type {
             Some(IdentType::Fct(fct_id)) => {
-                self.check_expr_call_ident(e, fct_id, TypeParams::empty(), &arg_types);
+                self.check_expr_call_ident(e, fct_id, TypeParams::empty(), &arg_types, in_try);
             }
 
             Some(IdentType::FctType(fct_id, type_params)) => {
-                self.check_expr_call_ident(e, fct_id, type_params, &arg_types);
+                self.check_expr_call_ident(e, fct_id, type_params, &arg_types, in_try);
             }
 
             Some(IdentType::Class(cls_id)) => {
@@ -982,6 +982,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         fct_id: FctId,
         type_params: TypeParams,
         arg_types: &[BuiltinType],
+        in_try: bool,
     ) {
         let mut lookup = MethodLookup::new(self.vm)
             .pos(e.pos)
@@ -992,6 +993,17 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let ty = if lookup.find() {
             let call_type = CallType::Fct(fct_id, TypeParams::empty(), type_params.clone());
             self.src.map_calls.insert(e.id, Arc::new(call_type));
+
+            if !in_try {
+                let fct = self.vm.fcts.idx(fct_id);
+                let fct = fct.read();
+                let throws = fct.throws;
+
+                if throws {
+                    let msg = Msg::ThrowingCallWithoutTry;
+                    self.vm.diag.lock().report_without_path(e.pos, msg);
+                }
+            }
 
             lookup.found_ret().unwrap()
         } else {
@@ -1660,53 +1672,66 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_try(&mut self, e: &'ast ExprTryType) {
-        if let Some(call) = e.expr.to_call() {
-            self.check_expr_call(call, true);
-            let e_type = self.expr_type;
-            self.src.set_ty(e.id, e_type);
+        let expr_type;
 
-            if let Some(call_type) = self.src.map_calls.get(call.id) {
-                let fct_id = call_type.fct_id();
-                let fct = self.vm.fcts.idx(fct_id);
-                let fct = fct.read();
-                let throws = fct.throws;
-
-                if !throws {
-                    self.vm
-                        .diag
-                        .lock()
-                        .report_without_path(e.pos, Msg::TryCallNonThrowing);
-                }
+        match *e.expr {
+            ExprCall2(ref call) => {
+                self.check_expr_call2(call, true);
+                expr_type = self.expr_type;
             }
 
-            match e.mode {
-                TryMode::Normal => {}
-                TryMode::Else(ref alt_expr) => {
-                    self.visit_expr(alt_expr);
-                    let alt_type = self.expr_type;
-
-                    if !e_type.allows(self.vm, alt_type) {
-                        let e_type = e_type.name(self.vm);
-                        let alt_type = alt_type.name(self.vm);
-                        let msg = Msg::TypesIncompatible(e_type, alt_type);
-                        self.vm.diag.lock().report_without_path(e.pos, msg);
-                    }
-                }
-
-                TryMode::Force => {}
-                TryMode::Opt => panic!("unsupported"),
+            ExprCall(ref call) => {
+                self.check_expr_call(call, true);
+                expr_type = self.expr_type;
             }
 
-            self.expr_type = e_type;
-        } else {
-            self.vm
-                .diag
-                .lock()
-                .report_without_path(e.pos, Msg::TryNeedsCall);
+            _ => {
+                self.vm
+                    .diag
+                    .lock()
+                    .report_without_path(e.pos, Msg::TryNeedsCall);
 
-            self.expr_type = BuiltinType::Unit;
-            self.src.set_ty(e.id, BuiltinType::Unit);
+                self.expr_type = BuiltinType::Unit;
+                self.src.set_ty(e.id, BuiltinType::Unit);
+                return;
+            }
         }
+
+        self.src.set_ty(e.id, expr_type);
+
+        if let Some(call_type) = self.src.map_calls.get(e.expr.id()) {
+            let fct_id = call_type.fct_id();
+            let fct = self.vm.fcts.idx(fct_id);
+            let fct = fct.read();
+            let throws = fct.throws;
+
+            if !throws {
+                self.vm
+                    .diag
+                    .lock()
+                    .report_without_path(e.pos, Msg::TryCallNonThrowing);
+            }
+        }
+
+        match e.mode {
+            TryMode::Normal => {}
+            TryMode::Else(ref alt_expr) => {
+                self.visit_expr(alt_expr);
+                let alt_type = self.expr_type;
+
+                if !expr_type.allows(self.vm, alt_type) {
+                    let expr_type = expr_type.name(self.vm);
+                    let alt_type = alt_type.name(self.vm);
+                    let msg = Msg::TypesIncompatible(expr_type, alt_type);
+                    self.vm.diag.lock().report_without_path(e.pos, msg);
+                }
+            }
+
+            TryMode::Force => {}
+            TryMode::Opt => panic!("unsupported"),
+        }
+
+        self.expr_type = expr_type;
     }
 
     fn check_expr_lambda(&mut self, e: &'ast ExprLambdaType) {
@@ -4194,7 +4219,21 @@ mod tests {
 
     #[test]
     fn test_new_call_fct() {
-        ok("fun g() {} @new_call fun f() { g(); }")
+        ok("fun g() {} @new_call fun f() { g(); }");
+    }
+
+    #[test]
+    fn test_new_call_fct_throws() {
+        ok("fun g() throws {} @new_call fun f() { try g(); }");
+    }
+
+    #[test]
+    fn test_new_call_fct_without_try() {
+        err(
+            "fun g() throws {} @new_call fun f() { g(); }",
+            pos(1, 40),
+            Msg::ThrowingCallWithoutTry,
+        );
     }
 
     #[test]
@@ -4208,7 +4247,7 @@ mod tests {
 
     #[test]
     fn test_new_call_fct_with_type_params() {
-        ok("fun g[T]() {} @new_call fun f() { g[Int](); }")
+        ok("fun g[T]() {} @new_call fun f() { g[Int](); }");
     }
 
     #[test]
@@ -4222,7 +4261,7 @@ mod tests {
 
     #[test]
     fn test_new_call_class() {
-        ok("class X @new_call fun f() { X(); }")
+        ok("class X @new_call fun f() { X(); }");
     }
 
     #[test]
@@ -4236,7 +4275,7 @@ mod tests {
 
     #[test]
     fn test_new_call_class_with_type_params() {
-        ok("class X[T] @new_call fun f() { X[Int](); }")
+        ok("class X[T] @new_call fun f() { X[Int](); }");
     }
 
     #[test]
