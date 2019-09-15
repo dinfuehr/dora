@@ -493,8 +493,8 @@ where
             }
 
             &IdentType::Fct(_) | &IdentType::FctType(_, _) => unreachable!(),
-
             &IdentType::Class(_) | &IdentType::ClassType(_, _) => unreachable!(),
+            &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
         }
     }
 
@@ -723,13 +723,9 @@ where
                 unreachable!();
             }
 
-            &IdentType::Fct(_) | &IdentType::FctType(_, _) => {
-                unreachable!();
-            }
-
-            &IdentType::Class(_) | &IdentType::ClassType(_, _) => {
-                unreachable!();
-            }
+            &IdentType::Fct(_) | &IdentType::FctType(_, _) => unreachable!(),
+            &IdentType::Class(_) | &IdentType::ClassType(_, _) => unreachable!(),
+            &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
         }
     }
 

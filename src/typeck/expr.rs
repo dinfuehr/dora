@@ -330,6 +330,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             &IdentType::FctType(_, _) | &IdentType::ClassType(_, _) => unreachable!(),
+            &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
         }
     }
 
@@ -399,8 +400,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     }
 
                     &IdentType::Class(_) | &IdentType::ClassType(_, _) => {
-                        unimplemented!();
+                        self.vm
+                            .diag
+                            .lock()
+                            .report_without_path(e.pos, Msg::ClassReassigned);
+
+                        return;
                     }
+
+                    &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unimplemented!(),
                 }
 
                 if !lhs_type.allows(self.vm, rhs_type) {
@@ -1509,21 +1517,21 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_dot(&mut self, e: &'ast ExprDotType) {
         self.visit_expr(&e.object);
+        let object_type = self.expr_type;
 
         if self.used_in_call.contains(&e.id) {
-            unimplemented!();
+            self.src.map_idents.insert(e.id, IdentType::Method(object_type, e.name));
+            return;
         }
 
-        let ty = self.expr_type;
-
-        let cls_id = ty.cls_id(self.vm);
+        let cls_id = object_type.cls_id(self.vm);
 
         if let Some(cls_id) = cls_id {
             let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
 
             if let Some((cls_id, field_id)) = cls.find_field(self.vm, e.name) {
-                let ty = match ty {
+                let ty = match object_type {
                     BuiltinType::Class(_, list_id) => BuiltinType::Class(cls_id, list_id),
 
                     _ => unreachable!(),
@@ -1547,7 +1555,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         // field not found, report error
         let field_name = self.vm.interner.str(e.name).to_string();
-        let expr_name = ty.name(self.vm);
+        let expr_name = object_type.name(self.vm);
         let msg = Msg::UnknownField(field_name, expr_name);
         self.vm.diag.lock().report_without_path(e.pos, msg);
 
@@ -4113,11 +4121,15 @@ mod tests {
     #[test]
     fn test_assign_fct() {
         err(
-            // fixme: that gets me 2 errors: once on column 26, once on column 30
             "fun foo() {} fun bar() { foo = 1; }",
             pos(1, 30),
             Msg::FctReassigned,
         );
+    }
+
+    #[test]
+    fn test_assign_class() {
+        err("class X fun foo() { X = 2; }", pos(1, 23), Msg::ClassReassigned);
     }
 
     #[test]

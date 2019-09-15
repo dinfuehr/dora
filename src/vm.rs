@@ -1238,6 +1238,8 @@ pub enum IdentType {
     FctType(FctId, TypeParams),
     Class(ClassId),
     ClassType(ClassId, TypeParams),
+    Method(BuiltinType, Name),
+    MethodType(BuiltinType, Name, TypeParams),
 }
 
 impl IdentType {
