@@ -4032,6 +4032,22 @@ mod tests {
     }
 
     #[test]
+    fn method_call_with_multiple_matching_traits() {
+        err(
+            "class A
+            trait X { fun f(); }
+            trait Y { fun f(); }
+
+            impl X for A { fun f() {} }
+            impl Y for A { fun f() {} }
+
+            fun g(a: A) { a.f(); }",
+            pos(8, 28),
+            Msg::UnknownMethod("A".into(), "f".into(), Vec::new()),
+        );
+    }
+
+    #[test]
     fn generic_trait_method_call() {
         ok("trait Foo { fun bar(); }
             fun f[T: Foo](t: T) { t.bar(); }");
