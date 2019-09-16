@@ -472,10 +472,6 @@ impl BytecodeGenerator {
         self.code.push(Bytecode::MovPtr(dest, src));
     }
 
-    pub fn emit_mov_self(&mut self, dest: Register, src: Register) {
-        self.code.push(Bytecode::MovPtr(dest, src));
-    }
-
     pub fn emit_ret_bool(&mut self, src: Register) {
         self.code.push(Bytecode::RetBool(src));
     }

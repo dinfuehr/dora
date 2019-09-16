@@ -428,9 +428,18 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
 
         let dest = dest.reg();
+        let ty: BytecodeType = self.src.var_self().ty.into();
 
-        self.gen.emit_mov_self(dest, var_reg);
-
+        match ty {
+            BytecodeType::Bool => self.gen.emit_mov_bool(dest, var_reg),
+            BytecodeType::Byte => self.gen.emit_mov_byte(dest, var_reg),
+            BytecodeType::Char => self.gen.emit_mov_char(dest, var_reg),
+            BytecodeType::Double => self.gen.emit_mov_double(dest, var_reg),
+            BytecodeType::Float => self.gen.emit_mov_float(dest, var_reg),
+            BytecodeType::Int => self.gen.emit_mov_int(dest, var_reg),
+            BytecodeType::Long => self.gen.emit_mov_long(dest, var_reg),
+            BytecodeType::Ptr => self.gen.emit_mov_ptr(dest, var_reg),
+        }
         dest
     }
 
