@@ -1160,9 +1160,12 @@ impl<'a> Parser<'a> {
                     let ident = self.expect_identifier()?;
 
                     if self.in_new_call {
-                        let pos = self.token.position;
-
-                        Box::new(Expr::create_ident(self.generate_id(), pos, ident, None))
+                        Box::new(Expr::create_dot(
+                            self.generate_id(),
+                            tok.position,
+                            left,
+                            ident,
+                        ))
                     } else {
                         let type_params = if self.token.is(TokenKind::LBracket) {
                             self.advance_token()?;

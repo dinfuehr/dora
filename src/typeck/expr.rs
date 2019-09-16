@@ -4287,12 +4287,8 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn test_new_call_method() {
-    //     err(
-    //         "class X { fun f() {} } @new_call fun f(x: X) { x.f(); }",
-    //         pos(1, 35),
-    //         Msg::WrongNumberTypeParams(0, 1),
-    //     );
-    // }
+    #[test]
+    fn test_new_call_method() {
+        ok("class X { fun f() {} } @new_call fun f(x: X) { x.f(); }");
+    }
 }
