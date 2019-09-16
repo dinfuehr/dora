@@ -949,10 +949,17 @@ mod tests {
     }
 
     fn code_method(code: &'static str) -> BytecodeFunction {
+        code_method_with_class_name(code, "Foo")
+    }
+
+    fn code_method_with_class_name(
+        code: &'static str,
+        class_name: &'static str,
+    ) -> BytecodeFunction {
         test::parse(code, |vm| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "f", false)
-                .expect("no function `f` in Class `Foo`.");
+                .cls_method_by_name(class_name, "f", false)
+                .unwrap_or_else(|| panic!("no function `f` in Class `{}`.", class_name));
             let tp = TypeParams::empty();
             astgen::generate(vm, fct_id, &tp, &tp)
         })
@@ -1727,6 +1734,90 @@ mod tests {
                 assert_eq!(expected, fct.code());
             },
         );
+    }
+
+    #[test]
+    fn gen_self_for_bool() {
+        let fct = code_method_with_class_name(
+            "trait MyId { fun f() -> Self; }
+            impl MyId for Bool { fun f() -> Bool { return self; } }
+            ",
+            "Bool",
+        );
+        let expected = vec![RetBool(r(0))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_self_for_byte() {
+        let fct = code_method_with_class_name(
+            "trait MyId { fun f() -> Self; }
+            impl MyId for Byte { fun f() -> Byte { return self; } }
+            ",
+            "Byte",
+        );
+        let expected = vec![RetByte(r(0))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_self_for_int() {
+        let fct = code_method_with_class_name(
+            "trait MyId { fun f() -> Self; }
+            impl MyId for Int { fun f() -> Int { return self; } }
+            ",
+            "Int",
+        );
+        let expected = vec![RetInt(r(0))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_self_for_long() {
+        let fct = code_method_with_class_name(
+            "trait MyId { fun f() -> Self; }
+            impl MyId for Long { fun f() -> Long { return self; } }
+            ",
+            "Long",
+        );
+        let expected = vec![RetLong(r(0))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_self_for_float() {
+        let fct = code_method_with_class_name(
+            "trait MyId { fun f() -> Self; }
+            impl MyId for Float { fun f() -> Float { return self; } }
+            ",
+            "Float",
+        );
+        let expected = vec![RetFloat(r(0))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_self_for_double() {
+        let fct = code_method_with_class_name(
+            "trait MyId { fun f() -> Self; }
+            impl MyId for Double { fun f() -> Double { return self; } }
+            ",
+            "Double",
+        );
+        let expected = vec![RetDouble(r(0))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_self_for_string() {
+        let fct = code_method_with_class_name(
+            "trait MyId { fun f() -> Self; }
+            impl MyId for String { fun f() -> String { return self; } }
+            ",
+            "String",
+        );
+        let expected = vec![RetPtr(r(0))];
+        assert_eq!(expected, fct.code());
     }
 
     fn r(val: usize) -> Register {

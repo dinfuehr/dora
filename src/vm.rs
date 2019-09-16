@@ -281,7 +281,12 @@ impl<'ast> VM<'ast> {
         let cls = self.classes.idx(cls_id);
         let cls = cls.read();
 
-        cls.find_method(self, function_name, is_static)
+        let candidates = cls.find_methods(self, function_name, is_static);
+        if candidates.len() == 1 {
+            Some(candidates[0])
+        } else {
+            None
+        }
     }
 
     #[cfg(test)]
