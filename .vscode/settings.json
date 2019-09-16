@@ -1,7 +1,13 @@
 {
     "files.exclude": {
-        "target/**": true,
         "**/*.un~": true,
-        "experiments/raise/target/**": true
+        "experiments/raise/target/**": true,
+        "lib/dora-parser/target/**": true,
+        "target/**": true
+    },
+    "files.watcherExclude": {
+        "experiments/raise/target/**": true,
+        "lib/dora-parser/target/**": true,
+        "target/**": true
     }
 }
