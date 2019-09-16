@@ -4291,4 +4291,22 @@ mod tests {
     fn test_new_call_method() {
         ok("class X { fun f() {} } @new_call fun f(x: X) { x.f(); }");
     }
+
+    #[test]
+    fn test_new_call_method_wrong_params() {
+        err(
+            "class X { fun f() {} } @new_call fun f(x: X) { x.f(1); }",
+            pos(1, 51),
+            Msg::ParamTypesIncompatible("f".into(), Vec::new(), vec!["Int".into()]),
+        );
+    }
+
+    #[test]
+    fn test_new_call_method_without_try() {
+        err(
+            "class X { fun f() throws {} } @new_call fun f(x: X) { x.f(); }",
+            pos(1, 58),
+            Msg::ThrowingCallWithoutTry,
+        );
+    }
 }
