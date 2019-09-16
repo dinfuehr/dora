@@ -117,7 +117,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             StmtVar(ref stmt) => self.visit_stmt_var(stmt),
             StmtWhile(ref stmt) => self.visit_stmt_while(stmt),
             StmtLoop(ref stmt) => self.visit_stmt_loop(stmt),
-            // StmtThrow(ref stmt) => {},
+            StmtThrow(ref stmt) => self.visit_stmt_throw(stmt),
             // StmtDefer(ref stmt) => {},
             // StmtDo(ref stmt) => {},
             // StmtSpawn(ref stmt) => {},
@@ -158,6 +158,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.loops.pop();
         self.gen.emit_jump(start_lbl);
         self.gen.bind_label(end_lbl);
+    }
+
+    fn visit_stmt_throw(&mut self, stmt: &StmtThrowType) {
+        let exception_reg = self.visit_expr(&stmt.expr, DataDest::Alloc);
+        self.gen.emit_throw(exception_reg);
     }
 
     fn visit_stmt_if(&mut self, stmt: &StmtIfType) {
@@ -284,9 +289,57 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         dest
     }
 
+    fn visit_expr_assert(&mut self, expr: &ExprCallType, _dest: DataDest) {
+        let lbl_assert = self.gen.create_label();
+
+        let assert_reg = self.visit_expr(&*expr.args[0], DataDest::Alloc);
+
+        self.gen.emit_jump_if_true(assert_reg, lbl_assert);
+
+        let cls_id = self.vm.vips.error_class;
+        let cls = self.vm.classes.idx(cls_id);
+        let cls = cls.read();
+
+        let fct_id = cls.constructor.expect("constructor is missing");
+        let fct = self.vm.fcts.idx(fct_id);
+        let fct = fct.read();
+
+        let arg_types = fct
+            .params_with_self()
+            .iter()
+            .map(|&arg| {
+                self.specialize_type_for_call(
+                    &CallType::CtorNew(cls_id, fct_id, TypeParams::Empty),
+                    arg,
+                )
+                .into()
+            })
+            .collect::<Vec<BytecodeType>>();
+        let num_args = arg_types.len();
+
+        let start_reg = self.gen.add_register_chain(&arg_types);
+        let cls_id = specialize_class_id_params(self.vm, cls_id, &TypeParams::Empty);
+        self.gen.emit_new_object(start_reg, cls_id);
+        let error_string_reg = start_reg.offset(1);
+        let error_string_index = self.gen.add_string_const_pool("assert failed".to_string());
+        self.gen
+            .emit_const_string(error_string_reg, error_string_index);
+
+        self.gen
+            .emit_invoke_direct_void(fct_id, start_reg, num_args);
+
+        self.gen.emit_throw(start_reg);
+
+        self.gen.bind_label(lbl_assert);
+    }
+
     fn visit_expr_call(&mut self, expr: &ExprCallType, dest: DataDest) -> Register {
-        if let Some(_intrinsic) = self.get_intrinsic(expr.id) {
-            unimplemented!()
+        if let Some(intrinsic) = self.get_intrinsic(expr.id) {
+            match intrinsic {
+                Intrinsic::Assert => self.visit_expr_assert(expr, dest),
+                _ => unimplemented!(),
+            }
+            return Register::invalid();
         }
 
         let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
@@ -1909,6 +1962,54 @@ mod tests {
         );
         let expected = vec![MovPtr(r(1), r(0)), RetVoid];
         assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_assert() {
+        gen(
+            "
+            fun f() { assert(true); }
+            ",
+            |vm, fct| {
+                let cls_id = vm.cls_def_by_name("Error");
+                let ctor_id = vm.ctor_by_name("Error");
+                let expected = vec![
+                    ConstTrue(r(0)),
+                    JumpIfTrue(r(0), bc(6)),
+                    NewObject(r(1), cls_id),
+                    ConstString(r(2), sp(0)),
+                    InvokeDirectVoid(ctor_id, r(1), 2),
+                    Throw(r(1)),
+                    RetVoid,
+                ];
+                let expected_string_pool = vec!["assert failed"];
+                assert_eq!(expected, fct.code());
+                assert_eq!(expected_string_pool, fct.string_pool());
+            },
+        );
+    }
+
+    #[test]
+    fn gen_throw() {
+        gen(
+            "
+            fun f() { throw Exception(\"exception\"); }
+            ",
+            |vm, fct| {
+                let cls_id = vm.cls_def_by_name("Exception");
+                let ctor_id = vm.ctor_by_name("Exception");
+                let expected = vec![
+                    NewObject(r(0), cls_id),
+                    ConstString(r(1), sp(0)),
+                    InvokeDirectVoid(ctor_id, r(0), 2),
+                    Throw(r(0)),
+                    RetVoid,
+                ];
+                let expected_string_pool = vec!["exception"];
+                assert_eq!(expected, fct.code());
+                assert_eq!(expected_string_pool, fct.string_pool());
+            },
+        );
     }
 
     fn r(val: usize) -> Register {

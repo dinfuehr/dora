@@ -848,6 +848,10 @@ impl BytecodeGenerator {
             .push(Bytecode::InvokeStaticPtr(dest, fid, start, num));
     }
 
+    pub fn emit_throw(&mut self, exception: Register) {
+        self.code.push(Bytecode::Throw(exception));
+    }
+
     pub fn emit_new_object(&mut self, dest: Register, cls_id: ClassDefId) {
         self.code.push(Bytecode::NewObject(dest, cls_id));
     }
@@ -1264,6 +1268,9 @@ impl BytecodeFunction {
                         "{}: {} <-ptr invoke static {:?} {} {}",
                         btidx, dest, fct_id, start, num
                     );
+                }
+                Bytecode::Throw(exception) => {
+                    println!("{}: throw {}", btidx, exception);
                 }
                 Bytecode::NewObject(dest, cls_id) => {
                     println!("{}: {} <- new {:?}", btidx, dest, cls_id);

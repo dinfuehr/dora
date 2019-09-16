@@ -113,6 +113,8 @@ pub enum Bytecode {
 
     NewObject(Register, ClassDefId),
 
+    Throw(Register),
+
     RetBool(Register),
     RetByte(Register),
     RetChar(Register),
