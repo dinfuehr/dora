@@ -1476,6 +1476,13 @@ mod tests {
     }
 
     #[test]
+    fn gen_expr_self_assign() {
+        let fct = code_method("class Foo() { fun f() { let x = self; } }");
+        let expected = vec![MovPtr(r(1), r(0)), RetVoid];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
     fn gen_expr_return() {
         let fct = code("fun f() -> Int { return 1; }");
         let expected = vec![ConstInt(r(0), 1), RetInt(r(0))];
@@ -1817,6 +1824,90 @@ mod tests {
             "String",
         );
         let expected = vec![RetPtr(r(0))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_self_assign_for_bool() {
+        let fct = code_method_with_class_name(
+            "trait MyId { fun f(); }
+            impl MyId for Bool { fun f() { let x = self; } }
+            ",
+            "Bool",
+        );
+        let expected = vec![MovBool(r(1), r(0)), RetVoid];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_self_assign_for_byte() {
+        let fct = code_method_with_class_name(
+            "trait MyId { fun f() -> Self; }
+            impl MyId for Byte { fun f() { let x = self; } }
+            ",
+            "Byte",
+        );
+        let expected = vec![MovByte(r(1), r(0)), RetVoid];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_self_assign_for_int() {
+        let fct = code_method_with_class_name(
+            "trait MyId { fun f() -> Self; }
+            impl MyId for Int { fun f() { let x = self; } }
+            ",
+            "Int",
+        );
+        let expected = vec![MovInt(r(1), r(0)), RetVoid];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_self_assign_for_long() {
+        let fct = code_method_with_class_name(
+            "trait MyId { fun f() -> Self; }
+            impl MyId for Long { fun f() { let x = self; } }
+            ",
+            "Long",
+        );
+        let expected = vec![MovLong(r(1), r(0)), RetVoid];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_self_assign_for_float() {
+        let fct = code_method_with_class_name(
+            "trait MyId { fun f() -> Self; }
+            impl MyId for Float { fun f() { let x = self; } }
+            ",
+            "Float",
+        );
+        let expected = vec![MovFloat(r(1), r(0)), RetVoid];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_self_assign_for_double() {
+        let fct = code_method_with_class_name(
+            "trait MyId { fun f() -> Self; }
+            impl MyId for Double { fun f() { let x = self; } }
+            ",
+            "Double",
+        );
+        let expected = vec![MovDouble(r(1), r(0)), RetVoid];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_self_assign_for_string() {
+        let fct = code_method_with_class_name(
+            "trait MyId { fun f() -> Self; }
+            impl MyId for String { fun f() { let x = self; } }
+            ",
+            "String",
+        );
+        let expected = vec![MovPtr(r(1), r(0)), RetVoid];
         assert_eq!(expected, fct.code());
     }
 
