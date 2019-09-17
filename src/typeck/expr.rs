@@ -922,6 +922,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.used_in_call.insert(e.callee.id());
 
         self.visit_expr(&e.callee);
+        let expr_type = self.expr_type;
         let ident_type = self.src.map_idents.get(e.callee.id()).cloned();
 
         let arg_types: Vec<BuiltinType> = e
@@ -972,7 +973,46 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 );
             }
 
-            _ => unimplemented!(),
+            _ => {
+                if expr_type.is_error() {
+                    self.src.set_ty(e.id, expr_type);
+                    self.expr_type = expr_type;
+                    return;
+                }
+
+                self.check_expr_call_expr(e, expr_type, &arg_types, in_try);
+            }
+        }
+    }
+
+    fn check_expr_call_expr(
+        &mut self,
+        e: &'ast ExprCall2Type,
+        expr_type: BuiltinType,
+        arg_types: &[BuiltinType],
+        _in_try: bool,
+    ) {
+        let get = self.vm.interner.intern("get");
+
+        if let Some((_, fct_id, return_type)) = self.find_method(
+            e.pos,
+            expr_type,
+            false,
+            get,
+            arg_types,
+            &TypeParams::empty(),
+            None,
+        ) {
+            let call_type = CallType::Method(expr_type, fct_id, TypeParams::empty());
+            self.src
+                .map_calls
+                .insert_or_replace(e.id, Arc::new(call_type));
+
+            self.src.set_ty(e.id, return_type);
+            self.expr_type = return_type;
+        } else {
+            self.src.set_ty(e.id, BuiltinType::Error);
+            self.expr_type = BuiltinType::Error;
         }
     }
 
@@ -4315,5 +4355,10 @@ mod tests {
             pos(4, 61),
             Msg::MultipleCandidatesForTypeParam("T".into(), "id".into(), Vec::new()),
         );
+    }
+
+    #[test]
+    fn test_array_syntax_get() {
+        ok("@new_call fun f(t: Array[Int]) -> Int { return t(0); }");
     }
 }
