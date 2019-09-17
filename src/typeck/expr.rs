@@ -1023,6 +1023,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         arg_types: &[BuiltinType],
         in_try: bool,
     ) {
+        if object_type.is_type_param() {
+            assert_eq!(type_params.len(), 0);
+            self.check_expr_call_generic(e, object_type, method_name, arg_types, in_try);
+            return;
+        }
+
         let mut lookup = MethodLookup::new(self.vm)
             .method(object_type)
             .pos(e.pos)
@@ -1056,68 +1062,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.expr_type = BuiltinType::Error;
         }
     }
-
-    /*
-    let mut found = false;
-
-    if let Some(sym) = self.vm.sym.lock().get(name) {
-        match sym {
-            Sym::SymFct(fct_id) => {
-                let call_type = CallType::Fct(fct_id, TypeParams::empty(), TypeParams::empty());
-                self.src
-                    .map_calls
-                    .insert(e.callee.id(), Arc::new(call_type));
-
-
-
-                found = true;
-            }
-
-            Sym::SymVar(var_id) => {
-                let ty = self.src.vars[var_id].ty;
-
-                if ty.is_error() {
-                    self.src.set_ty(e.id, BuiltinType::Error);
-                    self.expr_type = BuiltinType::Error;
-
-                    return;
-                }
-
-                let name = self.vm.interner.intern("get");
-
-                if let Some((_, fct_id, return_type)) = self.find_method(
-                    e.pos,
-                    ty,
-                    false,
-                    name,
-                    arg_types,
-                    &TypeParams::empty(),
-                    None,
-                ) {
-                    let call_type = CallType::Method(ty, fct_id, TypeParams::empty());
-                    self.src
-                        .map_calls
-                        .insert_or_replace(e.id, Arc::new(call_type));
-
-                    self.src.set_ty(e.id, return_type);
-                    self.expr_type = return_type;
-                } else {
-                    self.src.set_ty(e.id, BuiltinType::Error);
-                    self.expr_type = BuiltinType::Error;
-                }
-
-                found = true;
-            }
-
-            _ => {}
-        }
-    }
-
-    if !found {
-        let name = self.vm.interner.str(name).to_string();
-        let msg = Msg::UnknownFunction(name);
-        self.vm.diag.lock().report_without_path(e.pos, msg);
-    }*/
 
     fn check_expr_call_ctor(
         &mut self,
@@ -1267,40 +1211,50 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         args: &[BuiltinType],
         in_try: bool,
     ) {
+        let mut found_fcts = Vec::new();
+
         for &trait_id in &tp.trait_bounds {
             let trai = self.vm.traits[trait_id].read();
 
             if let Some(fid) = trai.find_method(self.vm, false, name, None, args) {
-                let call_type = CallType::Method(object_type, fid, TypeParams::empty());
-                self.src.map_calls.insert(e.id, Arc::new(call_type));
-
-                let fct = self.vm.fcts.idx(fid);
-                let fct = fct.read();
-                let return_type = fct.return_type;
-
-                if fct.throws && !in_try {
-                    let msg = Msg::ThrowingCallWithoutTry;
-                    self.vm.diag.lock().report_without_path(e.pos, msg);
-                }
-
-                self.src.set_ty(e.id, return_type);
-                self.expr_type = return_type;
-                return;
+                found_fcts.push(fid);
             }
         }
 
-        let type_name = object_type.name(self.vm);
-        let name = self.vm.interner.str(name).to_string();
-        let param_names = args
-            .iter()
-            .map(|a| a.name(self.vm))
-            .collect::<Vec<String>>();
-        let msg = Msg::UnknownMethod(type_name, name, param_names);
+        if found_fcts.len() == 1 {
+            let fid = found_fcts[0];
+            let call_type = CallType::Method(object_type, fid, TypeParams::empty());
+            self.src.map_calls.insert(e.id, Arc::new(call_type));
 
-        self.vm.diag.lock().report_without_path(e.pos, msg);
+            let fct = self.vm.fcts.idx(fid);
+            let fct = fct.read();
+            let return_type = fct.return_type;
 
-        self.src.set_ty(e.id, BuiltinType::Error);
-        self.expr_type = BuiltinType::Error;
+            if fct.throws && !in_try {
+                let msg = Msg::ThrowingCallWithoutTry;
+                self.vm.diag.lock().report_without_path(e.pos, msg);
+            }
+
+            self.src.set_ty(e.id, return_type);
+            self.expr_type = return_type;
+        } else {
+            let type_name = object_type.name(self.vm);
+            let name = self.vm.interner.str(name).to_string();
+            let param_names = args
+                .iter()
+                .map(|a| a.name(self.vm))
+                .collect::<Vec<String>>();
+            let msg = if found_fcts.len() == 0 {
+                Msg::UnknownMethodForTypeParam(type_name, name, param_names)
+            } else {
+                Msg::MultipleCandidatesForTypeParam(type_name, name, param_names)
+            };
+
+            self.vm.diag.lock().report_without_path(e.pos, msg);
+
+            self.src.set_ty(e.id, BuiltinType::Error);
+            self.expr_type = BuiltinType::Error;
+        }
     }
 
     fn check_expr_call_path(
@@ -4323,6 +4277,32 @@ mod tests {
             "class X { fun f() throws {} } @new_call fun f(x: X) { x.f(); }",
             pos(1, 58),
             Msg::ThrowingCallWithoutTry,
+        );
+    }
+
+    #[test]
+    fn test_new_call_method_generic() {
+        ok("@new_call fun f[T: Hash](t: T) { t.hash(); }");
+    }
+
+    #[test]
+    fn test_new_call_method_generic_error() {
+        err(
+            "@new_call fun f[T](t: T) { t.hash(); }",
+            pos(1, 34),
+            Msg::UnknownMethodForTypeParam("T".into(), "hash".into(), Vec::new()),
+        );
+    }
+
+    #[test]
+    fn test_new_call_method_generic_error_multiple() {
+        err(
+            "
+            trait TraitA { fun id(); }
+            trait TraitB { fun id(); }
+            @new_call fun f[T: TraitA + TraitB](t: T) { t.id(); }",
+            pos(4, 61),
+            Msg::MultipleCandidatesForTypeParam("T".into(), "id".into(), Vec::new()),
         );
     }
 }

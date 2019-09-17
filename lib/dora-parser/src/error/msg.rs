@@ -13,6 +13,8 @@ pub enum Msg {
     UnknownFunction(String),
     UnknownField(String, String),
     UnknownMethod(String, String, Vec<String>),
+    UnknownMethodForTypeParam(String, String, Vec<String>),
+    MultipleCandidatesForTypeParam(String, String, Vec<String>),
     UnknownStaticMethod(String, String, Vec<String>),
     UnknownCtor(String, Vec<String>),
     MethodExists(String, String, Position),
@@ -138,6 +140,20 @@ impl Msg {
                 format!(
                     "no method with definition `{}({})` in class `{}`.",
                     name, args, cls
+                )
+            }
+            UnknownMethodForTypeParam(ref tp, ref name, ref args) => {
+                let args = args.join(", ");
+                format!(
+                    "no method with definition `{}({})` found for type param `{}`.",
+                    name, args, tp
+                )
+            }
+            MultipleCandidatesForTypeParam(ref tp, ref name, ref args) => {
+                let args = args.join(", ");
+                format!(
+                    "multiple candidates with definition `{}({})` found for type param `{}`.",
+                    name, args, tp
                 )
             }
             UnknownStaticMethod(ref cls, ref name, ref args) => {
