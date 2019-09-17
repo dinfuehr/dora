@@ -2116,6 +2116,8 @@ struct MethodLookup<'a, 'ast: 'a> {
     found_fct_id: Option<FctId>,
     found_cls_id: Option<ClassId>,
     found_ret: Option<BuiltinType>,
+
+    found_multiple_functions: bool,
 }
 
 impl<'a, 'ast> MethodLookup<'a, 'ast> {
@@ -2133,6 +2135,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             found_fct_id: None,
             found_cls_id: None,
             found_ret: None,
+
+            found_multiple_functions: false,
         }
     }
 
@@ -2250,7 +2254,12 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                 LookupKind::Callee(_) => unreachable!(),
                 LookupKind::Method(obj) => {
                     let type_name = obj.name(self.vm);
-                    Msg::UnknownMethod(type_name, name, param_names)
+
+                    if self.found_multiple_functions {
+                        Msg::MultipleCandidatesForMethod(type_name, name, param_names)
+                    } else {
+                        Msg::UnknownMethod(type_name, name, param_names)
+                    }
                 }
 
                 LookupKind::Static(cls_id) => {
@@ -2381,11 +2390,13 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         None
     }
 
-    fn find_method(&self, cls_id: ClassId, name: Name, is_static: bool) -> Option<FctId> {
+    fn find_method(&mut self, cls_id: ClassId, name: Name, is_static: bool) -> Option<FctId> {
         let cls = self.vm.classes.idx(cls_id);
         let cls = cls.read();
 
         let candidates = cls.find_methods(self.vm, name, is_static);
+
+        self.found_multiple_functions = candidates.len() > 1;
 
         if candidates.len() == 1 {
             Some(candidates[0])
@@ -3997,7 +4008,7 @@ mod tests {
 
             fun g(a: A) { a.f(); }",
             pos(8, 28),
-            Msg::UnknownMethod("A".into(), "f".into(), Vec::new()),
+            Msg::MultipleCandidatesForMethod("A".into(), "f".into(), Vec::new()),
         );
     }
 
