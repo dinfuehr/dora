@@ -6,7 +6,8 @@ use std::mem;
 use crate::mem as cratemem;
 
 use crate::bytecode::opcode::Bytecode;
-use crate::class::{ClassDefId, FieldId};
+use crate::class::ClassDefId;
+use crate::field::FieldId;
 use crate::ty::{BuiltinType, MachineMode};
 use crate::vm::{FctId, GlobalId};
 

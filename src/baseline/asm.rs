@@ -5,7 +5,6 @@ use dora_parser::lexer::position::Position;
 use crate::baseline::codegen::{ensure_native_stub, AllocationSize, CondCode, ExprStore};
 use crate::baseline::dora_native::{InternalFct, InternalFctDescriptor};
 use crate::baseline::fct::{CatchType, Comment, GcPoint, JitBaselineFct, JitDescriptor};
-use crate::class::TypeParams;
 use crate::cpu::{FReg, Mem, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1};
 use crate::gc::tlab::TLAB_OBJECT_SIZE;
 use crate::gc::Address;
@@ -14,6 +13,7 @@ use crate::os::signal::Trap;
 use crate::stdlib;
 use crate::threads::ThreadLocalData;
 use crate::ty::{BuiltinType, MachineMode};
+use crate::typeparams::TypeParams;
 use crate::vm::FctId;
 use crate::vm::VM;
 

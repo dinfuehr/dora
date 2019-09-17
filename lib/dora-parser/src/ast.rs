@@ -417,6 +417,21 @@ pub struct Class {
 }
 
 #[derive(Clone, Debug)]
+pub struct Module {
+    pub id: NodeId,
+    pub name: Name,
+    pub pos: Position,
+    pub parent_class: Option<ParentClass>,
+    pub internal: bool,
+    pub has_constructor: bool,
+
+    pub constructor: Option<Function>,
+    pub fields: Vec<Field>,
+    pub methods: Vec<Function>,
+    pub initializers: Vec<Box<Stmt>>,
+}
+
+#[derive(Clone, Debug)]
 pub struct TypeParam {
     pub name: Name,
     pub pos: Position,

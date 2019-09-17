@@ -15,7 +15,6 @@ use crate::baseline::cannon::CannonCodeGen;
 use crate::baseline::dora_native::{self, InternalFct};
 use crate::baseline::fct::{CommentFormat, GcPoint, JitBaselineFct, JitFct};
 use crate::baseline::map::CodeDescriptor;
-use crate::class::TypeParams;
 use crate::cpu::x64::reg::{FREG_RESULT, REG_RESULT};
 use crate::cpu::{FReg, Reg};
 use crate::driver::cmd::{AsmSyntax, BaselineName};
@@ -24,6 +23,7 @@ use crate::masm::*;
 use crate::mem;
 use crate::os;
 use crate::ty::MachineMode;
+use crate::typeparams::TypeParams;
 use crate::vm::VM;
 use crate::vm::{Fct, FctId, FctSrc, VarId};
 

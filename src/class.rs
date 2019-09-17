@@ -2,10 +2,11 @@ use parking_lot::RwLock;
 use std::collections::{HashMap, HashSet};
 use std::convert::From;
 use std::iter::Iterator;
-use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
+use crate::field::{Field, FieldId, FieldDef};
 use crate::ty::BuiltinType;
+use crate::typeparams::TypeParams;
 use crate::utils::GrowableVec;
 use crate::vm::VM;
 use crate::vm::{FctId, FileId, ImplId, TraitId, TypeParam};
@@ -273,58 +274,7 @@ impl Class {
     }
 }
 
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct TypeParamId(usize);
 
-impl TypeParamId {
-    pub fn idx(self) -> usize {
-        self.0
-    }
-}
-
-impl From<usize> for TypeParamId {
-    fn from(data: usize) -> TypeParamId {
-        TypeParamId(data)
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct FieldId(usize);
-
-impl FieldId {
-    pub fn idx(self) -> usize {
-        self.0
-    }
-}
-
-impl From<usize> for FieldId {
-    fn from(data: usize) -> FieldId {
-        FieldId(data)
-    }
-}
-
-#[derive(Debug)]
-pub struct Field {
-    pub id: FieldId,
-    pub name: Name,
-    pub ty: BuiltinType,
-    pub offset: i32,
-    pub reassignable: bool,
-}
-
-impl Index<FieldId> for Vec<Field> {
-    type Output = Field;
-
-    fn index(&self, index: FieldId) -> &Field {
-        &self[index.0]
-    }
-}
-
-impl IndexMut<FieldId> for Vec<Field> {
-    fn index_mut(&mut self, index: FieldId) -> &mut Field {
-        &mut self[index.0]
-    }
-}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct ClassDefId(usize);
@@ -389,88 +339,5 @@ impl ClassDef {
         } else {
             "<Unknown>".into()
         }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct FieldDef {
-    pub offset: i32,
-    pub ty: BuiltinType,
-}
-
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub enum TypeParams {
-    Empty,
-    List(Arc<Vec<BuiltinType>>),
-}
-
-impl TypeParams {
-    pub fn empty() -> TypeParams {
-        TypeParams::Empty
-    }
-
-    pub fn with(type_params: Vec<BuiltinType>) -> TypeParams {
-        if type_params.len() == 0 {
-            TypeParams::Empty
-        } else {
-            TypeParams::List(Arc::new(type_params))
-        }
-    }
-
-    pub fn len(&self) -> usize {
-        match self {
-            &TypeParams::Empty => 0,
-            &TypeParams::List(ref params) => params.len(),
-        }
-    }
-
-    pub fn iter(&self) -> TypeParamsIter {
-        TypeParamsIter {
-            params: self,
-            idx: 0,
-        }
-    }
-}
-
-impl Index<usize> for TypeParams {
-    type Output = BuiltinType;
-
-    fn index(&self, idx: usize) -> &BuiltinType {
-        match self {
-            &TypeParams::Empty => panic!("out-of-bounds"),
-            &TypeParams::List(ref params) => &params[idx],
-        }
-    }
-}
-
-pub struct TypeParamsIter<'a> {
-    params: &'a TypeParams,
-    idx: usize,
-}
-
-impl<'a> Iterator for TypeParamsIter<'a> {
-    type Item = BuiltinType;
-
-    fn next(&mut self) -> Option<BuiltinType> {
-        match self.params {
-            &TypeParams::Empty => None,
-
-            &TypeParams::List(ref params) => {
-                if self.idx < params.len() {
-                    let ret = params[self.idx];
-                    self.idx += 1;
-
-                    Some(ret)
-                } else {
-                    None
-                }
-            }
-        }
-    }
-}
-
-impl From<Vec<BuiltinType>> for TypeParams {
-    fn from(val: Vec<BuiltinType>) -> TypeParams {
-        TypeParams::with(val)
     }
 }

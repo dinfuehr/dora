@@ -2,14 +2,14 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::{f32, f64};
 
-use crate::class::{ClassId, TypeParams};
+use crate::class::ClassId;
 use crate::error::msg::SemError;
 use crate::sym::Sym::SymClass;
 use crate::ty::BuiltinType;
 use crate::typeck::lookup::MethodLookup;
+use crate::typeparams::TypeParams;
 use crate::vm::{
-    self, CallType, ConvInfo, Fct, FctId, FctParent, FctSrc, FileId, ForTypeInfo, IdentType, VM,
-};
+    self, CallType, ConvInfo, Fct, FctId, FctParent, FctSrc, FileId, ForTypeInfo, IdentType, VM};
 
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::Expr::*;

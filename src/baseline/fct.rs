@@ -3,12 +3,14 @@ use std::fmt;
 use std::ptr;
 use std::sync::Arc;
 
-use crate::class::{ClassDef, ClassDefId, FieldId, TypeParams};
+use crate::class::{ClassDef, ClassDefId};
 use crate::cpu::flush_icache;
 use crate::dseg::DSeg;
+use crate::field::FieldId;
 use crate::gc::Address;
 use crate::object::{Ref, Str};
 use crate::opt::fct::JitOptFct;
+use crate::typeparams::TypeParams;
 use crate::utils::GrowableVec;
 use crate::vm::VM;
 use crate::vm::{FctId, FctSrc, GlobalId, VarId};

@@ -1,7 +1,7 @@
-use crate::class::TypeParams;
 use crate::error::msg::SemError;
 use crate::ty::BuiltinType;
 use crate::typeck::expr::{check_lit_float, check_lit_int, lookup_method};
+use crate::typeparams::TypeParams;
 use crate::vm::{ConstData, ConstValue, VM};
 
 use dora_parser::ast::Expr::*;

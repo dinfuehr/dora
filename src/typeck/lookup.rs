@@ -1,9 +1,10 @@
 use std::collections::HashSet;
 
-use crate::class::{ClassId, TypeParams};
+use crate::class::ClassId;
 use crate::error::msg::SemError;
 use crate::ty::BuiltinType;
 use crate::typeck::expr::{args_compatible, replace_type_param};
+use crate::typeparams::TypeParams;
 use crate::vm::{FctId, FctParent, FileId, TraitId, TypeParam, VM};
 
 use dora_parser::interner::Name;

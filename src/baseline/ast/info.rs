@@ -6,11 +6,11 @@ use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 
-use crate::class::TypeParams;
 use crate::cpu::*;
 use crate::mem;
 use crate::semck::specialize::specialize_type;
 use crate::ty::BuiltinType;
+use crate::typeparams::TypeParams;
 use crate::vm::{
     Arg, CallSite, CallType, Fct, FctId, FctKind, FctParent, FctSrc, Intrinsic, NodeMap, Store,
     TraitId, VarId, VM,

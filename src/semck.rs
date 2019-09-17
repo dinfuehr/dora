@@ -1,9 +1,9 @@
-use crate::class::TypeParams;
 use crate::error::msg::SemError;
 use crate::mem;
 use crate::sym::Sym::{SymClass, SymClassTypeParam, SymFctTypeParam, SymStruct, SymTrait};
 use crate::ty::BuiltinType;
 use crate::typeck;
+use crate::typeparams::TypeParams;
 use crate::vm::{FileId, NodeMap, VM};
 use dora_parser::ast::Type::{TypeBasic, TypeLambda, TypeSelf, TypeTuple};
 use dora_parser::ast::{Stmt, Type};

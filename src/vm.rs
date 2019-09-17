@@ -14,10 +14,11 @@ use crate::baseline::dora_native::{self, InternalFct, InternalFctDescriptor, Nat
 use crate::baseline::dora_throw;
 use crate::baseline::fct::{JitFct, JitFctId};
 use crate::baseline::map::{CodeDescriptor, CodeMap};
-use crate::class::{Class, ClassDef, ClassDefId, ClassId, FieldId, TypeParams};
+use crate::class::{Class, ClassDef, ClassDefId, ClassId};
 use crate::driver::cmd::Args;
 use crate::error::diag::Diagnostic;
 use crate::exception::DoraToNativeInfo;
+use crate::field::FieldId;
 use crate::gc::{Address, Gc};
 use crate::object::{Ref, Testing};
 use crate::safepoint::{PollingPage, Safepoint};
@@ -27,6 +28,7 @@ use crate::sym::Sym::*;
 use crate::sym::*;
 use crate::threads::{Threads, THREAD};
 use crate::ty::{BuiltinType, LambdaTypes, TypeLists};
+use crate::typeparams::TypeParams;
 use crate::utils::GrowableVec;
 
 use dora_parser::ast;

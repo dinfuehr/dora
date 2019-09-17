@@ -3,6 +3,7 @@ use std::collections::HashSet;
 
 use crate::class::*;
 use crate::error::msg::SemError;
+use crate::field::Field;
 use crate::semck;
 use crate::sym::Sym;
 use crate::ty::BuiltinType;

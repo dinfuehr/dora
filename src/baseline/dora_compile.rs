@@ -4,7 +4,6 @@ use crate::baseline;
 use crate::baseline::dora_native::{finish_native_call, start_native_call};
 use crate::baseline::fct::{BailoutInfo, JitBaselineFct, JitDescriptor, JitFct};
 use crate::baseline::map::CodeDescriptor;
-use crate::class::TypeParams;
 use crate::cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1};
 use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
@@ -12,6 +11,7 @@ use crate::masm::MacroAssembler;
 use crate::mem;
 use crate::object::Obj;
 use crate::ty::MachineMode;
+use crate::typeparams::TypeParams;
 use crate::vm::FctId;
 use crate::vm::{get_vm, VM};
 

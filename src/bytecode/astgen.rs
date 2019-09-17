@@ -8,9 +8,9 @@ use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 use crate::bytecode::generate::{
     BytecodeFunction, BytecodeGenerator, BytecodeType, Label, Register,
 };
-use crate::class::TypeParams;
 use crate::semck::specialize::{specialize_class_id_params, specialize_class_ty, specialize_type};
 use crate::ty::BuiltinType;
+use crate::typeparams::TypeParams;
 use crate::vm::{CallType, Fct, FctId, FctKind, FctSrc, IdentType, Intrinsic, VarId, VM};
 
 pub struct LoopLabels {
@@ -1002,9 +1002,9 @@ mod tests {
     use crate::bytecode::astgen;
     use crate::bytecode::generate::{BytecodeFunction, BytecodeIdx, Register, StrConstPoolIdx};
     use crate::bytecode::opcode::Bytecode::*;
-    use crate::class::TypeParams;
     use crate::test;
     use crate::vm::VM;
+    use crate::typeparams::TypeParams;
 
     fn code(code: &'static str) -> BytecodeFunction {
         test::parse(code, |vm| {
