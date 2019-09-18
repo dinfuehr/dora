@@ -905,8 +905,8 @@ fn generate_offset(registers: &Vec<BytecodeType>) -> Vec<i32> {
     let mut offset: Vec<i32> = vec![0; registers.len()];
     let mut stacksize: i32 = 0;
     for (index, ty) in registers.iter().enumerate() {
-        offset[index] = cratemem::align_i32(stacksize - ty.size(), ty.size());
-        stacksize = offset[index];
+        stacksize = cratemem::align_i32(stacksize + ty.size(), ty.size());
+        offset[index] = -stacksize;
     }
 
     offset
