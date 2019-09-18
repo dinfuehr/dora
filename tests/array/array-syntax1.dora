@@ -2,13 +2,13 @@
 
 fun main() {
     let a = Array[Int](10);
-    array_set(a, 0, 7);
+    array_get(a, 0);
 }
 
-fun array_set(a: Array[Int], idx: Int, value: Int) {
+@new_call fun array_set(a: Array[Int], idx: Int, value: Int) {
     a(idx) = value;
 }
 
-fun array_get(a: Array[Int], idx: Int) -> Int {
+@new_call fun array_get(a: Array[Int], idx: Int) -> Int {
     return a(idx);
 }
