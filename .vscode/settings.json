@@ -6,8 +6,6 @@
         "target/**": true
     },
     "files.watcherExclude": {
-        "experiments/raise/target/**": true,
-        "lib/dora-parser/target/**": true,
-        "target/**": true
+        "**/target/**": true
     }
 }
