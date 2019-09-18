@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::{f32, f64};
 
 use crate::class::{ClassId, TypeParams};
+use crate::semck::specialize::specialize_type;
 use crate::sym::Sym::SymClass;
 use crate::ty::BuiltinType;
 use crate::vm;
@@ -335,7 +336,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_assign(&mut self, e: &'ast ExprAssignType) {
-        if e.lhs.is_dot() {
+        if e.lhs.is_call2() {
+            self.check_expr_assign_call(e);
+        } else if e.lhs.is_dot() {
             self.check_expr_assign_field(e);
         } else if e.lhs.is_ident() {
             let lhs_type;
@@ -437,6 +440,62 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.expr_type = BuiltinType::Error;
     }
 
+    fn check_expr_assign_call(&mut self, e: &'ast ExprAssignType) {
+        let call = e.lhs.to_call2().unwrap();
+
+        self.visit_expr(&call.callee);
+        let expr_type = self.expr_type;
+
+        let mut arg_types: Vec<BuiltinType> = call
+            .args
+            .iter()
+            .map(|arg| {
+                self.visit_expr(arg);
+                self.expr_type
+            })
+            .collect();
+
+        self.visit_expr(&e.rhs);
+        let value_type = self.expr_type;
+
+        let name = self.vm.interner.intern("set");
+        arg_types.push(value_type);
+        let ret_type = Some(BuiltinType::Unit);
+
+        if let Some((_, fct_id, return_type)) = self.find_method(
+            e.pos,
+            expr_type,
+            false,
+            name,
+            &arg_types,
+            &TypeParams::empty(),
+            ret_type,
+        ) {
+            let call_type = CallType::Method(expr_type, fct_id, TypeParams::empty());
+            self.src
+                .map_calls
+                .insert_or_replace(e.id, Arc::new(call_type));
+
+            // let fct = self.vm.fcts.idx(fct_id);
+            // let fct = fct.read();
+            // let element_type = *fct.params_without_self().last().unwrap();
+            // let element_type_params = expr_type.type_params(self.vm);
+            // let element_type = specialize_type(
+            //     self.vm,
+            //     element_type,
+            //     &element_type_params,
+            //     &TypeParams::empty(),
+            // );
+            // self.src.set_ty(call.id, element_type);
+
+            self.src.set_ty(e.id, return_type);
+            self.expr_type = return_type;
+        } else {
+            self.src.set_ty(e.id, BuiltinType::Error);
+            self.expr_type = BuiltinType::Error;
+        }
+    }
+
     fn check_expr_assign_field(&mut self, e: &'ast ExprAssignType) {
         let field_expr = e.lhs.to_dot().unwrap();
         let name = field_expr.name;
@@ -528,7 +587,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         );
 
         if result.is_none() {
-            println!("find_method failed!: {:?}", self.vm.interner.str(name));
             let type_name = object_type.name(self.vm);
             let name = self.vm.interner.str(name).to_string();
             let param_names = args
@@ -4360,5 +4418,36 @@ mod tests {
     #[test]
     fn test_array_syntax_get() {
         ok("@new_call fun f(t: Array[Int]) -> Int { return t(0); }");
+    }
+
+    #[test]
+    fn test_array_syntax_set() {
+        ok("@new_call fun f(t: Array[Int]){ t(0) = 10; }");
+    }
+
+    #[test]
+    fn test_array_syntax_set_wrong_value() {
+        err(
+            "@new_call fun f(t: Array[Int]){ t(0) = true; }",
+            pos(1, 38),
+            Msg::UnknownMethod(
+                "Array[Int]".into(),
+                "set".into(),
+                vec!["Int".into(), "Bool".into()],
+            ),
+        );
+    }
+
+    #[test]
+    fn test_array_syntax_set_wrong_index() {
+        err(
+            "@new_call fun f(t: Array[Int]){ t(\"bla\") = 9; }",
+            pos(1, 42),
+            Msg::UnknownMethod(
+                "Array[Int]".into(),
+                "set".into(),
+                vec!["String".into(), "Int".into()],
+            ),
+        );
     }
 }

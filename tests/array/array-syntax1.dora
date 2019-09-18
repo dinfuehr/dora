@@ -1,0 +1,14 @@
+//= ignore
+
+fun main() {
+    let a = Array[Int](10);
+    array_set(a, 0, 7);
+}
+
+fun array_set(a: Array[Int], idx: Int, value: Int) {
+    a(idx) = value;
+}
+
+fun array_get(a: Array[Int], idx: Int) -> Int {
+    return a(idx);
+}
