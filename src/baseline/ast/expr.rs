@@ -887,7 +887,17 @@ where
 
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: ExprStore) {
         if let Some(intrinsic) = self.intrinsic(e.id) {
-            self.emit_call_intrinsic(e, intrinsic, dest);
+            let mut args: Vec<&'ast Expr> = Vec::with_capacity(3);
+
+            if let Some(object) = e.object.as_ref() {
+                args.push(object);
+            }
+
+            for arg in &e.args {
+                args.push(arg);
+            }
+
+            self.emit_call_intrinsic(e.id, e.pos, &args, intrinsic, dest);
         } else {
             self.emit_call_site_id(e.id, e.pos, dest);
         }
@@ -895,437 +905,177 @@ where
 
     fn emit_call_intrinsic(
         &mut self,
-        e: &'ast ExprCallType,
+        id: NodeId,
+        pos: Position,
+        args: &[&'ast Expr],
         intrinsic: Intrinsic,
         dest: ExprStore,
     ) {
         match intrinsic {
-            Intrinsic::GenericArrayLen => {
-                self.emit_intrinsic_len(e.pos, e.object.as_ref().unwrap(), dest.reg())
-            }
+            Intrinsic::GenericArrayLen => self.emit_intrinsic_len(pos, args[0], dest.reg()),
             Intrinsic::GenericArrayGet => {
-                let builtin_type = self
-                    .ty(e.object.as_ref().unwrap().id())
-                    .type_params(get_vm())[0];
-                self.emit_array_get(
-                    e.pos,
-                    builtin_type.mode(),
-                    e.object.as_ref().unwrap(),
-                    &e.args[0],
-                    dest,
-                )
+                let builtin_type = self.ty(args[0].id()).type_params(get_vm())[0];
+                self.emit_array_get(pos, builtin_type.mode(), args[0], args[1], dest)
             }
             Intrinsic::GenericArraySet => {
-                let builtin_type = self
-                    .ty(e.object.as_ref().unwrap().id())
-                    .type_params(get_vm())[0];
+                let builtin_type = self.ty(args[0].id()).type_params(get_vm())[0];
                 self.emit_array_set(
-                    e.pos,
+                    pos,
                     builtin_type,
                     builtin_type.mode(),
-                    e.object.as_ref().unwrap(),
-                    &e.args[0],
-                    &e.args[1],
+                    args[0],
+                    args[1],
+                    args[2],
                 )
             }
-            Intrinsic::Assert => self.emit_intrinsic_assert(e.pos, e.id, &e.args[0], dest.reg()),
+            Intrinsic::Assert => self.emit_intrinsic_assert(pos, id, args[0], dest.reg()),
             Intrinsic::Debug => self.emit_intrinsic_debug(),
-            Intrinsic::Shl => self.emit_intrinsic_shl(&e.args[0], &e.args[1], dest.reg()),
-            Intrinsic::SetUint8 => self.emit_set_uint8(&e.args[0], &e.args[1], dest.reg()),
-            Intrinsic::StrLen => {
-                self.emit_intrinsic_len(e.pos, e.object.as_ref().unwrap(), dest.reg())
+            Intrinsic::Shl => self.emit_intrinsic_shl(args[0], args[1], dest.reg()),
+            Intrinsic::SetUint8 => self.emit_set_uint8(args[0], args[1], dest.reg()),
+            Intrinsic::StrLen => self.emit_intrinsic_len(pos, args[0], dest.reg()),
+            Intrinsic::StrGet => {
+                self.emit_array_get(pos, MachineMode::Int8, args[0], args[1], dest)
             }
-            Intrinsic::StrGet => self.emit_array_get(
-                e.pos,
-                MachineMode::Int8,
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-            ),
 
             Intrinsic::BoolToInt | Intrinsic::ByteToInt => {
-                self.emit_intrinsic_byte_to_int(e.object.as_ref().unwrap(), dest.reg())
+                self.emit_intrinsic_byte_to_int(args[0], dest.reg())
             }
             Intrinsic::BoolToLong | Intrinsic::ByteToLong => {
-                self.emit_intrinsic_byte_to_long(e.object.as_ref().unwrap(), dest.reg())
+                self.emit_intrinsic_byte_to_long(args[0], dest.reg())
             }
-            Intrinsic::LongToByte => {
-                self.emit_intrinsic_long_to_byte(e.object.as_ref().unwrap(), dest.reg())
-            }
+            Intrinsic::LongToByte => self.emit_intrinsic_long_to_byte(args[0], dest.reg()),
             Intrinsic::LongToChar | Intrinsic::LongToInt => {
-                self.emit_intrinsic_long_to_int(e.object.as_ref().unwrap(), dest.reg())
+                self.emit_intrinsic_long_to_int(args[0], dest.reg())
             }
             Intrinsic::LongToFloat => {
-                self.emit_intrinsic_int_to_float(e.object.as_ref().unwrap(), dest.freg(), intrinsic)
+                self.emit_intrinsic_int_to_float(args[0], dest.freg(), intrinsic)
             }
             Intrinsic::LongToDouble => {
-                self.emit_intrinsic_int_to_float(e.object.as_ref().unwrap(), dest.freg(), intrinsic)
+                self.emit_intrinsic_int_to_float(args[0], dest.freg(), intrinsic)
             }
 
             Intrinsic::LongAsDouble => {
-                self.emit_intrinsic_int_as_float(e.object.as_ref().unwrap(), dest.freg(), intrinsic)
+                self.emit_intrinsic_int_as_float(args[0], dest.freg(), intrinsic)
             }
 
             Intrinsic::FloatToInt => {
-                self.emit_intrinsic_float_to_int(e.object.as_ref().unwrap(), dest.reg(), intrinsic)
+                self.emit_intrinsic_float_to_int(args[0], dest.reg(), intrinsic)
             }
             Intrinsic::FloatToLong => {
-                self.emit_intrinsic_float_to_int(e.object.as_ref().unwrap(), dest.reg(), intrinsic)
+                self.emit_intrinsic_float_to_int(args[0], dest.reg(), intrinsic)
             }
-            Intrinsic::FloatToDouble => {
-                self.emit_intrinsic_float_to_double(e.object.as_ref().unwrap(), dest.freg())
-            }
+            Intrinsic::FloatToDouble => self.emit_intrinsic_float_to_double(args[0], dest.freg()),
             Intrinsic::FloatAsInt => {
-                self.emit_intrinsic_float_as_int(e.object.as_ref().unwrap(), dest.reg(), intrinsic)
+                self.emit_intrinsic_float_as_int(args[0], dest.reg(), intrinsic)
             }
 
             Intrinsic::DoubleToInt => {
-                self.emit_intrinsic_float_to_int(e.object.as_ref().unwrap(), dest.reg(), intrinsic)
+                self.emit_intrinsic_float_to_int(args[0], dest.reg(), intrinsic)
             }
             Intrinsic::DoubleToLong => {
-                self.emit_intrinsic_float_to_int(e.object.as_ref().unwrap(), dest.reg(), intrinsic)
+                self.emit_intrinsic_float_to_int(args[0], dest.reg(), intrinsic)
             }
-            Intrinsic::DoubleToFloat => {
-                self.emit_intrinsic_double_to_float(e.object.as_ref().unwrap(), dest.freg())
-            }
+            Intrinsic::DoubleToFloat => self.emit_intrinsic_double_to_float(args[0], dest.freg()),
             Intrinsic::DoubleAsLong => {
-                self.emit_intrinsic_float_as_int(e.object.as_ref().unwrap(), dest.reg(), intrinsic)
+                self.emit_intrinsic_float_as_int(args[0], dest.reg(), intrinsic)
             }
 
             Intrinsic::CharToInt | Intrinsic::IntToChar => {
-                self.emit_expr(e.object.as_ref().unwrap(), dest);
+                self.emit_expr(args[0], dest);
             }
 
-            Intrinsic::CharToLong => {
-                self.emit_intrinsic_int_to_long(e.object.as_ref().unwrap(), dest.reg())
-            }
-            Intrinsic::CharEq => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::CharCmp => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
+            Intrinsic::CharToLong => self.emit_intrinsic_int_to_long(args[0], dest.reg()),
+            Intrinsic::CharEq => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::CharCmp => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
 
-            Intrinsic::IntToByte => {
-                self.emit_intrinsic_int_to_byte(e.object.as_ref().unwrap(), dest.reg())
-            }
-            Intrinsic::IntToLong => {
-                self.emit_intrinsic_int_to_long(e.object.as_ref().unwrap(), dest.reg())
-            }
+            Intrinsic::IntToByte => self.emit_intrinsic_int_to_byte(args[0], dest.reg()),
+            Intrinsic::IntToLong => self.emit_intrinsic_int_to_long(args[0], dest.reg()),
             Intrinsic::IntToFloat => {
-                self.emit_intrinsic_int_to_float(e.object.as_ref().unwrap(), dest.freg(), intrinsic)
+                self.emit_intrinsic_int_to_float(args[0], dest.freg(), intrinsic)
             }
             Intrinsic::IntToDouble => {
-                self.emit_intrinsic_int_to_float(e.object.as_ref().unwrap(), dest.freg(), intrinsic)
+                self.emit_intrinsic_int_to_float(args[0], dest.freg(), intrinsic)
             }
 
             Intrinsic::IntAsFloat => {
-                self.emit_intrinsic_int_as_float(e.object.as_ref().unwrap(), dest.freg(), intrinsic)
+                self.emit_intrinsic_int_as_float(args[0], dest.freg(), intrinsic)
             }
 
-            Intrinsic::ByteEq => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::ByteCmp => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::ByteNot => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
+            Intrinsic::ByteEq => self.emit_intrinsic_bin_call(args[0], args[0], dest, intrinsic),
+            Intrinsic::ByteCmp => self.emit_intrinsic_bin_call(args[0], args[0], dest, intrinsic),
+            Intrinsic::ByteNot => self.emit_intrinsic_bin_call(args[0], args[0], dest, intrinsic),
 
-            Intrinsic::BoolEq => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::BoolNot => {
-                self.emit_intrinsic_unary(e.object.as_ref().unwrap(), dest, intrinsic)
-            }
+            Intrinsic::BoolEq => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::BoolNot => self.emit_intrinsic_unary(args[0], dest, intrinsic),
 
-            Intrinsic::IntEq => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::IntCmp => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
+            Intrinsic::IntEq => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::IntCmp => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
 
-            Intrinsic::IntAdd => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::IntSub => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::IntMul => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::IntDiv => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::IntMod => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::IntNeg => {
-                self.emit_intrinsic_unary(e.object.as_ref().unwrap(), dest, intrinsic)
-            }
-            Intrinsic::IntPlus => {
-                self.emit_intrinsic_unary(e.object.as_ref().unwrap(), dest, intrinsic)
-            }
+            Intrinsic::IntAdd => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::IntSub => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::IntMul => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::IntDiv => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::IntMod => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::IntNeg => self.emit_intrinsic_unary(args[0], dest, intrinsic),
+            Intrinsic::IntPlus => self.emit_intrinsic_unary(args[0], dest, intrinsic),
 
-            Intrinsic::IntOr => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::IntAnd => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::IntXor => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::IntNot => {
-                self.emit_intrinsic_unary(e.object.as_ref().unwrap(), dest, intrinsic)
-            }
+            Intrinsic::IntOr => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::IntAnd => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::IntXor => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::IntNot => self.emit_intrinsic_unary(args[0], dest, intrinsic),
 
-            Intrinsic::IntShl => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::IntSar => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::IntShr => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
+            Intrinsic::IntShl => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::IntSar => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::IntShr => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
 
-            Intrinsic::LongEq => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::LongCmp => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
+            Intrinsic::LongEq => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::LongCmp => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
 
-            Intrinsic::LongAdd => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::LongSub => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::LongMul => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::LongDiv => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::LongMod => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::LongNeg => {
-                self.emit_intrinsic_unary(e.object.as_ref().unwrap(), dest, intrinsic)
-            }
-            Intrinsic::LongPlus => {
-                self.emit_intrinsic_unary(e.object.as_ref().unwrap(), dest, intrinsic)
-            }
+            Intrinsic::LongAdd => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::LongSub => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::LongMul => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::LongDiv => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::LongMod => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::LongNeg => self.emit_intrinsic_unary(args[0], dest, intrinsic),
+            Intrinsic::LongPlus => self.emit_intrinsic_unary(args[0], dest, intrinsic),
 
-            Intrinsic::LongOr => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::LongAnd => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::LongXor => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::LongNot => {
-                self.emit_intrinsic_unary(e.object.as_ref().unwrap(), dest, intrinsic)
-            }
+            Intrinsic::LongOr => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::LongAnd => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::LongXor => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::LongNot => self.emit_intrinsic_unary(args[0], dest, intrinsic),
 
-            Intrinsic::LongShl => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::LongSar => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::LongShr => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
+            Intrinsic::LongShl => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::LongSar => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::LongShr => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
 
-            Intrinsic::FloatAdd => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::FloatSub => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::FloatMul => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::FloatDiv => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::FloatNeg => {
-                self.emit_intrinsic_unary(e.object.as_ref().unwrap(), dest, intrinsic)
-            }
-            Intrinsic::FloatPlus => {
-                self.emit_intrinsic_unary(e.object.as_ref().unwrap(), dest, intrinsic)
-            }
-            Intrinsic::FloatIsNan => self.emit_intrinsic_is_nan(e, dest.reg(), intrinsic),
-            Intrinsic::FloatSqrt => self.emit_intrinsic_sqrt(e, dest.freg(), intrinsic),
-            Intrinsic::FloatEq => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
+            Intrinsic::FloatAdd => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::FloatSub => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::FloatMul => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::FloatDiv => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::FloatNeg => self.emit_intrinsic_unary(args[0], dest, intrinsic),
+            Intrinsic::FloatPlus => self.emit_intrinsic_unary(args[0], dest, intrinsic),
+            Intrinsic::FloatIsNan => self.emit_intrinsic_is_nan(args[0], dest.reg(), intrinsic),
+            Intrinsic::FloatSqrt => self.emit_intrinsic_sqrt(args[0], dest.freg(), intrinsic),
+            Intrinsic::FloatEq => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
 
-            Intrinsic::DoubleAdd => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::DoubleSub => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::DoubleMul => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::DoubleDiv => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
-            Intrinsic::DoubleNeg => {
-                self.emit_intrinsic_unary(e.object.as_ref().unwrap(), dest, intrinsic)
-            }
-            Intrinsic::DoublePlus => {
-                self.emit_intrinsic_unary(e.object.as_ref().unwrap(), dest, intrinsic)
-            }
-            Intrinsic::DoubleIsNan => self.emit_intrinsic_is_nan(e, dest.reg(), intrinsic),
-            Intrinsic::DoubleSqrt => self.emit_intrinsic_sqrt(e, dest.freg(), intrinsic),
-            Intrinsic::DoubleEq => self.emit_intrinsic_bin_call(
-                e.object.as_ref().unwrap(),
-                &e.args[0],
-                dest,
-                intrinsic,
-            ),
+            Intrinsic::DoubleAdd => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::DoubleSub => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::DoubleMul => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::DoubleDiv => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::DoubleNeg => self.emit_intrinsic_unary(args[0], dest, intrinsic),
+            Intrinsic::DoublePlus => self.emit_intrinsic_unary(args[0], dest, intrinsic),
+            Intrinsic::DoubleIsNan => self.emit_intrinsic_is_nan(args[0], dest.reg(), intrinsic),
+            Intrinsic::DoubleSqrt => self.emit_intrinsic_sqrt(args[0], dest.freg(), intrinsic),
+            Intrinsic::DoubleEq => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
 
-            Intrinsic::DefaultValue => self.emit_intrinsic_default_value(e, dest),
+            Intrinsic::DefaultValue => self.emit_intrinsic_default_value(id, dest),
 
             _ => panic!("unknown intrinsic {:?}", intrinsic),
         }
     }
 
-    fn emit_intrinsic_default_value(&mut self, e: &'ast ExprCallType, dest: ExprStore) {
-        let ty = self.ty(e.id);
+    fn emit_intrinsic_default_value(&mut self, id: NodeId, dest: ExprStore) {
+        let ty = self.ty(id);
 
         match ty {
             BuiltinType::Bool
@@ -1340,8 +1090,8 @@ where
         }
     }
 
-    fn emit_intrinsic_sqrt(&mut self, e: &'ast ExprCallType, dest: FReg, intrinsic: Intrinsic) {
-        self.emit_expr(e.object.as_ref().unwrap(), dest.into());
+    fn emit_intrinsic_sqrt(&mut self, e: &'ast Expr, dest: FReg, intrinsic: Intrinsic) {
+        self.emit_expr(e, dest.into());
 
         let mode = match intrinsic {
             Intrinsic::FloatSqrt => MachineMode::Float32,
@@ -1465,8 +1215,8 @@ where
             .store_mem(MachineMode::Int8, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
     }
 
-    fn emit_intrinsic_is_nan(&mut self, e: &'ast ExprCallType, dest: Reg, intrinsic: Intrinsic) {
-        self.emit_expr(&e.object.as_ref().unwrap(), FREG_RESULT.into());
+    fn emit_intrinsic_is_nan(&mut self, e: &'ast Expr, dest: Reg, intrinsic: Intrinsic) {
+        self.emit_expr(e, FREG_RESULT.into());
 
         let mode = match intrinsic {
             Intrinsic::FloatIsNan => MachineMode::Float32,
