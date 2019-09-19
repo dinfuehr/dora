@@ -1,17 +1,18 @@
 use crate::baseline::asm::BaselineAssembler;
 use crate::baseline::codegen::fct_pattern_match;
-use crate::cpu::{Mem, REG_RESULT};
+use crate::cpu::{Mem, FREG_RESULT, REG_RESULT};
 use dora_parser::ast::*;
 
 use crate::baseline::codegen::{should_emit_debug, CodeGen, Scopes};
 use crate::baseline::fct::{Comment, JitBaselineFct, JitDescriptor};
 use crate::class::TypeParams;
 use crate::masm::*;
+use crate::object::Str;
 use crate::vm::VM;
 use crate::vm::{Fct, FctSrc};
 
 use crate::bytecode::astgen::generate_fct;
-use crate::bytecode::generate::{BytecodeFunction, Register};
+use crate::bytecode::generate::{BytecodeFunction, Register, StrConstPoolIdx};
 use crate::bytecode::opcode::Bytecode;
 
 pub struct CannonCodeGen<'a, 'ast: 'a> {
@@ -82,6 +83,51 @@ where
         self.asm
             .store_mem(bytecode_type.mode(), Mem::Local(offset), REG_RESULT.into());
     }
+
+    fn emit_const_int(&mut self, bytecode: &BytecodeFunction, dest: Register, int_const: i64) {
+        let bytecode_type = bytecode.register(dest);
+        let offset = bytecode.offset(dest);
+
+        self.asm
+            .load_int_const(bytecode_type.mode(), REG_RESULT, int_const);
+
+        self.asm
+            .store_mem(bytecode_type.mode(), Mem::Local(offset), REG_RESULT.into());
+    }
+
+    fn emit_const_float(&mut self, bytecode: &BytecodeFunction, dest: Register, float_const: f64) {
+        let bytecode_type = bytecode.register(dest);
+        let offset = bytecode.offset(dest);
+
+        self.asm
+            .load_float_const(bytecode_type.mode(), FREG_RESULT, float_const);
+
+        self.asm
+            .store_mem(bytecode_type.mode(), Mem::Local(offset), FREG_RESULT.into());
+    }
+
+    fn emit_const_string(
+        &mut self,
+        bytecode: &BytecodeFunction,
+        dest: Register,
+        sp: StrConstPoolIdx,
+    ) {
+        let bytecode_type = bytecode.register(dest);
+        let offset = bytecode.offset(dest);
+
+        let lit_value = bytecode.string(sp);
+
+        let handle = Str::from_buffer_in_perm(self.vm, lit_value.as_bytes());
+        let disp = self.asm.add_addr(handle.raw() as *const u8);
+        let pos = self.asm.pos() as i32;
+
+        self.asm.emit_comment(Comment::LoadString(handle));
+
+        self.asm.load_constpool(REG_RESULT, disp + pos);
+
+        self.asm
+            .store_mem(bytecode_type.mode(), Mem::Local(offset), REG_RESULT.into());
+    }
 }
 
 impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
@@ -107,8 +153,35 @@ impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
             match btcode {
                 Bytecode::ConstTrue(dest) => self.emit_const_bool(&bytecode, *dest, true),
                 Bytecode::ConstFalse(dest) => self.emit_const_bool(&bytecode, *dest, false),
+                Bytecode::ConstZeroByte(dest)
+                | Bytecode::ConstZeroInt(dest)
+                | Bytecode::ConstZeroLong(dest) => self.emit_const_int(&bytecode, *dest, 0),
+                Bytecode::ConstByte(dest, value) => {
+                    self.emit_const_int(&bytecode, *dest, *value as i64)
+                }
+                Bytecode::ConstInt(dest, value) => {
+                    self.emit_const_int(&bytecode, *dest, *value as i64)
+                }
+                Bytecode::ConstLong(dest, value) => {
+                    self.emit_const_int(&bytecode, *dest, *value as i64)
+                }
+                Bytecode::ConstChar(dest, value) => {
+                    self.emit_const_int(&bytecode, *dest, *value as i64)
+                }
+                Bytecode::ConstZeroFloat(dest) | Bytecode::ConstZeroDouble(dest) => {
+                    self.emit_const_float(&bytecode, *dest, 0_f64)
+                }
+                Bytecode::ConstFloat(dest, value) => {
+                    self.emit_const_float(&bytecode, *dest, *value as f64)
+                }
+                Bytecode::ConstDouble(dest, value) => {
+                    self.emit_const_float(&bytecode, *dest, *value)
+                }
+                Bytecode::ConstString(dest, sp) => {
+                    self.emit_const_string(&bytecode, *dest, *sp);
+                }
                 Bytecode::RetVoid => {}
-                _ => panic!("bytecode not implemented"),
+                _ => panic!("bytecode {:?} not implemented", btcode),
             }
         }
 

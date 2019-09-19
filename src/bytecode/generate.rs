@@ -928,6 +928,10 @@ impl BytecodeFunction {
         &self.string_pool
     }
 
+    pub fn string(&self, sp: StrConstPoolIdx) -> &String {
+        self.string_pool().get(sp.0).expect("string not found")
+    }
+
     pub fn registers(&self) -> &[BytecodeType] {
         &self.registers
     }
