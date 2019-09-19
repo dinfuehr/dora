@@ -3,7 +3,6 @@ use std::sync::Arc;
 use std::{f32, f64};
 
 use crate::class::{ClassId, TypeParams};
-use crate::semck::specialize::specialize_type;
 use crate::sym::Sym::SymClass;
 use crate::ty::BuiltinType;
 use crate::vm;
