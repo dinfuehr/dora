@@ -199,6 +199,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
     fn visit_expr(&mut self, e: &'ast Expr) {
         match *e {
             ExprCall(ref expr) => self.expr_call(expr),
+            ExprCall2(ref expr) => self.expr_call2(expr),
             ExprDelegation(ref expr) => self.expr_delegation(expr),
             ExprAssign(ref expr) => self.expr_assign(expr),
             ExprBin(ref expr) => self.expr_bin(expr),
@@ -464,6 +465,94 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.universal_call(expr.id, args, Some(callee_id));
     }
 
+    fn expr_call2(&mut self, expr: &'ast ExprCall2Type) {
+        if let Some(intrinsic) = self.get_intrinsic(expr.id) {
+            self.reserve_args_call2(expr);
+            self.jit_info.map_intrinsics.insert(expr.id, intrinsic);
+
+            match intrinsic {
+                Intrinsic::Assert => {
+                    let offset = self.reserve_stack_for_type(BuiltinType::Ptr);
+                    let cls_id = self.vm.vips.error_class;
+                    let cls = self.vm.classes.idx(cls_id);
+                    let cls = cls.read();
+                    let selfie_offset = self.reserve_temp_for_type(cls.ty);
+                    let args = vec![
+                        Arg::SelfieNew(cls.ty, selfie_offset),
+                        Arg::Stack(offset, BuiltinType::Ptr, 0),
+                    ];
+                    self.universal_call(expr.id, args, cls.constructor);
+                }
+                _ => {}
+            };
+            return;
+        }
+
+        let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
+
+        let mut args = expr
+            .args
+            .iter()
+            .map(|arg| Arg::Expr(arg, BuiltinType::Unit, 0))
+            .collect::<Vec<_>>();
+
+        let fct_id: FctId;
+
+        match *call_type {
+            CallType::Ctor(_, fid, _) | CallType::CtorNew(_, fid, _) => {
+                let ty = self.ty(expr.id);
+                let arg = if call_type.is_ctor() {
+                    Arg::Selfie(ty, 0)
+                } else {
+                    Arg::SelfieNew(ty, 0)
+                };
+
+                args.insert(0, arg);
+
+                fct_id = fid;
+            }
+
+            CallType::Method(_, fid, _) => {
+                let object = expr.object().unwrap();
+                args.insert(0, Arg::Expr(object, BuiltinType::Unit, 0));
+
+                fct_id = fid;
+            }
+
+            CallType::Fct(fid, _, _) => {
+                fct_id = fid;
+            }
+        }
+
+        let fct = self.vm.fcts.idx(fct_id);
+        let fct = fct.read();
+
+        let callee_id = if fct.kind.is_definition() {
+            let trait_id = fct.trait_id();
+            let object_type = match *call_type {
+                CallType::Method(ty, _, _) => ty,
+                _ => unreachable!(),
+            };
+
+            let object_type = self.specialize_type(object_type);
+
+            self.find_trait_impl(fct_id, trait_id, object_type)
+        } else {
+            fct_id
+        };
+
+        let callee = self.vm.fcts.idx(callee_id);
+        let callee = callee.read();
+
+        if let FctKind::Builtin(intrinsic) = callee.kind {
+            self.reserve_args_call2(expr);
+            self.jit_info.map_intrinsics.insert(expr.id, intrinsic);
+            return;
+        }
+
+        self.universal_call(expr.id, args, Some(callee_id));
+    }
+
     fn reserve_args(&mut self, expr: &'ast ExprCallType) {
         for arg in &expr.args {
             self.visit_expr(arg);
@@ -471,6 +560,18 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         }
 
         if let Some(ref object) = expr.object {
+            self.visit_expr(object);
+            self.reserve_temp_for_node(object);
+        }
+    }
+
+    fn reserve_args_call2(&mut self, expr: &'ast ExprCall2Type) {
+        for arg in &expr.args {
+            self.visit_expr(arg);
+            self.reserve_temp_for_node(arg);
+        }
+
+        if let Some(ref object) = expr.object() {
             self.visit_expr(object);
             self.reserve_temp_for_node(object);
         }

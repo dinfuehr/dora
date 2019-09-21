@@ -2071,6 +2071,22 @@ pub struct ExprCall2Type {
     pub args: Vec<Box<Expr>>,
 }
 
+impl ExprCall2Type {
+    pub fn object(&self) -> Option<&Expr> {
+        if let Some(type_param) = self.callee.to_type_param() {
+            if let Some(dot) = type_param.callee.to_dot() {
+                Some(&dot.object)
+            } else {
+                None
+            }
+        } else if let Some(dot) = self.callee.to_dot() {
+            Some(&dot.object)
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct ExprTypeParamType {
     pub id: NodeId,

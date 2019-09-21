@@ -94,7 +94,7 @@ where
             ExprAssign(ref expr) => self.emit_assign(expr),
             ExprBin(ref expr) => self.emit_bin(expr, dest),
             ExprCall(ref expr) => self.emit_call(expr, dest),
-            ExprCall2(_) => unimplemented!(),
+            ExprCall2(ref expr) => self.emit_call2(expr, dest),
             ExprTypeParam(_) => unimplemented!(),
             ExprPath(_) => unimplemented!(),
             ExprDelegation(ref expr) => self.emit_delegation(expr, dest),
@@ -890,6 +890,24 @@ where
             let mut args: Vec<&'ast Expr> = Vec::with_capacity(3);
 
             if let Some(object) = e.object.as_ref() {
+                args.push(object);
+            }
+
+            for arg in &e.args {
+                args.push(arg);
+            }
+
+            self.emit_call_intrinsic(e.id, e.pos, &args, intrinsic, dest);
+        } else {
+            self.emit_call_site_id(e.id, e.pos, dest);
+        }
+    }
+
+    fn emit_call2(&mut self, e: &'ast ExprCall2Type, dest: ExprStore) {
+        if let Some(intrinsic) = self.intrinsic(e.id) {
+            let mut args: Vec<&'ast Expr> = Vec::with_capacity(3);
+
+            if let Some(object) = e.object() {
                 args.push(object);
             }
 
