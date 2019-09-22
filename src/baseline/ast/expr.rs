@@ -602,6 +602,47 @@ where
     }
 
     fn emit_assign(&mut self, e: &'ast ExprAssignType) {
+        let call_type = self.src.map_calls.get(e.id);
+
+        if call_type.is_some() {
+            let call_expr = e.lhs.to_call2().unwrap();
+
+            if let Some(intrinsic) = self.intrinsic(e.id) {
+                let object = &call_expr.callee;
+                let index = &call_expr.args[0];
+                let value = &e.rhs;
+
+                match intrinsic {
+                    Intrinsic::GenericArraySet => {
+                        let element_type = self.ty(object.id()).type_params(self.vm)[0];
+                        self.emit_array_set(
+                            e.pos,
+                            element_type,
+                            element_type.mode(),
+                            object,
+                            index,
+                            value,
+                        )
+                    }
+
+                    Intrinsic::StrSet => self.emit_array_set(
+                        e.pos,
+                        BuiltinType::Byte,
+                        MachineMode::Int8,
+                        object,
+                        index,
+                        value,
+                    ),
+
+                    _ => panic!("unexpected intrinsic {:?}", intrinsic),
+                }
+            } else {
+                self.emit_call_site_id(e.id, e.pos, REG_RESULT.into());
+            }
+
+            return;
+        }
+
         let ident_type = self.src.map_idents.get(e.lhs.id()).unwrap();
 
         match ident_type {
@@ -935,15 +976,15 @@ where
         match intrinsic {
             Intrinsic::GenericArrayLen => self.emit_intrinsic_len(pos, args[0], dest.reg()),
             Intrinsic::GenericArrayGet => {
-                let builtin_type = self.ty(args[0].id()).type_params(self.vm)[0];
-                self.emit_array_get(pos, builtin_type.mode(), args[0], args[1], dest)
+                let element_type = self.ty(args[0].id()).type_params(self.vm)[0];
+                self.emit_array_get(pos, element_type.mode(), args[0], args[1], dest)
             }
             Intrinsic::GenericArraySet => {
-                let builtin_type = self.ty(args[0].id()).type_params(self.vm)[0];
+                let element_type = self.ty(args[0].id()).type_params(self.vm)[0];
                 self.emit_array_set(
                     pos,
-                    builtin_type,
-                    builtin_type.mode(),
+                    element_type,
+                    element_type.mode(),
                     args[0],
                     args[1],
                     args[2],

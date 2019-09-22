@@ -2,8 +2,8 @@ fun main() {
     let a = Array[Int](10);
     assert(array_get(a, 0) == 0);
 
-    // array_set(a, 0, 7);
-    // assert(array_get(a, 0) == 7);
+    array_set(a, 0, 7);
+    assert(array_get(a, 0) == 7);
 }
 
 @new_call fun array_set(a: Array[Int], idx: Int, value: Int) {

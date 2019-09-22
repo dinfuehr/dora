@@ -779,7 +779,37 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn expr_assign(&mut self, e: &'ast ExprAssignType) {
-        if e.lhs.is_ident() {
+        let call_type = self.src.map_calls.get(e.id);
+
+        if call_type.is_some() {
+            let call_expr = e.lhs.to_call2().unwrap();
+
+            let object = &call_expr.callee;
+            let index = &call_expr.args[0];
+            let value = &e.rhs;
+
+            if let Some(intrinsic) = self.get_intrinsic(e.id) {
+                self.visit_expr(object);
+                self.visit_expr(index);
+                self.visit_expr(value);
+
+                self.reserve_temp_for_node(object);
+                self.reserve_temp_for_node(index);
+
+                let element_type = self.ty(object.id()).type_params(self.vm)[0];
+                self.reserve_temp_for_node_with_type(e.rhs.id(), element_type);
+
+                self.jit_info.map_intrinsics.insert(e.id, intrinsic);
+            } else {
+                let args = vec![
+                    Arg::Expr(object, BuiltinType::Unit, 0),
+                    Arg::Expr(index, BuiltinType::Unit, 0),
+                    Arg::Expr(value, BuiltinType::Unit, 0),
+                ];
+
+                self.universal_call(e.id, args, None);
+            }
+        } else if e.lhs.is_ident() {
             self.visit_expr(&e.rhs);
 
             let lhs = e.lhs.to_ident().unwrap();
