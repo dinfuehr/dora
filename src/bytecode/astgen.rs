@@ -358,6 +358,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             }
 
             CallType::Method(_, _, _) => unimplemented!(),
+            CallType::Expr(_, _) => unimplemented!(),
 
             CallType::Fct(_, _, _) => {
                 if return_type.is_unit() {
@@ -865,6 +866,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
             CallType::Ctor(_, _, ref type_params) | CallType::CtorNew(_, _, ref type_params) => {
                 specialize_type(self.vm, ty, type_params, &TypeParams::empty())
+            }
+
+            CallType::Expr(ty, _) => {
+                let type_params = ty.type_params(self.vm);
+                specialize_type(self.vm, ty, &type_params, &TypeParams::empty())
             }
         };
 

@@ -95,8 +95,8 @@ where
             ExprBin(ref expr) => self.emit_bin(expr, dest),
             ExprCall(ref expr) => self.emit_call(expr, dest),
             ExprCall2(ref expr) => self.emit_call2(expr, dest),
-            ExprTypeParam(_) => unimplemented!(),
-            ExprPath(_) => unimplemented!(),
+            ExprTypeParam(_) => unreachable!(),
+            ExprPath(_) => unreachable!(),
             ExprDelegation(ref expr) => self.emit_delegation(expr, dest),
             ExprDot(ref expr) => self.emit_dot(expr, dest),
             ExprSelf(_) => self.emit_self(dest),
@@ -906,9 +906,12 @@ where
     fn emit_call2(&mut self, e: &'ast ExprCall2Type, dest: ExprStore) {
         if let Some(intrinsic) = self.intrinsic(e.id) {
             let mut args: Vec<&'ast Expr> = Vec::with_capacity(3);
+            let call_type = self.src.map_calls.get(e.id).unwrap();
 
-            if let Some(object) = e.object() {
-                args.push(object);
+            if call_type.is_expr() {
+                args.push(&e.callee);
+            } else if call_type.is_method() {
+                args.push(e.object().unwrap());
             }
 
             for arg in &e.args {
@@ -932,11 +935,11 @@ where
         match intrinsic {
             Intrinsic::GenericArrayLen => self.emit_intrinsic_len(pos, args[0], dest.reg()),
             Intrinsic::GenericArrayGet => {
-                let builtin_type = self.ty(args[0].id()).type_params(get_vm())[0];
+                let builtin_type = self.ty(args[0].id()).type_params(self.vm)[0];
                 self.emit_array_get(pos, builtin_type.mode(), args[0], args[1], dest)
             }
             Intrinsic::GenericArraySet => {
-                let builtin_type = self.ty(args[0].id()).type_params(get_vm())[0];
+                let builtin_type = self.ty(args[0].id()).type_params(self.vm)[0];
                 self.emit_array_set(
                     pos,
                     builtin_type,

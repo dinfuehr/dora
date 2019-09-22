@@ -1296,6 +1296,22 @@ impl IdentType {
             _ => false,
         }
     }
+
+    pub fn is_class(&self) -> bool {
+        match *self {
+            IdentType::Class(_) => true,
+            IdentType::ClassType(_, _) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_fct(&self) -> bool {
+        match *self {
+            IdentType::Fct(_) => true,
+            IdentType::FctType(_, _) => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -1312,6 +1328,7 @@ pub enum CallType {
     Method(BuiltinType, FctId, TypeParams),
     CtorNew(ClassId, FctId, TypeParams),
     Ctor(ClassId, FctId, TypeParams),
+    Expr(BuiltinType, FctId),
 }
 
 impl CallType {
@@ -1336,12 +1353,20 @@ impl CallType {
         }
     }
 
+    pub fn is_expr(&self) -> bool {
+        match *self {
+            CallType::Expr(_, _) => true,
+            _ => false,
+        }
+    }
+
     pub fn fct_id(&self) -> FctId {
         match *self {
             CallType::Fct(fctid, _, _) => fctid,
             CallType::Method(_, fctid, _) => fctid,
             CallType::CtorNew(_, fctid, _) => fctid,
             CallType::Ctor(_, fctid, _) => fctid,
+            CallType::Expr(_, fctid) => fctid,
         }
     }
 }

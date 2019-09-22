@@ -206,6 +206,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
             ExprUn(ref expr) => self.expr_un(expr),
             ExprConv(ref expr) => self.expr_conv(expr),
             ExprLitStruct(ref expr) => self.expr_lit_struct(expr),
+            ExprTypeParam(_) => unreachable!(),
 
             _ => visit::walk_expr(self, e),
         }
@@ -434,6 +435,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             CallType::Fct(fid, _, _) => {
                 fct_id = fid;
             }
+
+            CallType::Expr(_, _) => unreachable!(),
         }
 
         let fct = self.vm.fcts.idx(fct_id);
@@ -522,6 +525,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             CallType::Fct(fid, _, _) => {
                 fct_id = fid;
             }
+
+            CallType::Expr(_, _) => unimplemented!(),
         }
 
         let fct = self.vm.fcts.idx(fct_id);
@@ -571,9 +576,15 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.reserve_temp_for_node(arg);
         }
 
-        if let Some(ref object) = expr.object() {
+        let call_type = self.src.map_calls.get(expr.id).unwrap();
+
+        if call_type.is_method() {
+            let object = expr.object().unwrap();
             self.visit_expr(object);
             self.reserve_temp_for_node(object);
+        } else if call_type.is_expr() {
+            self.visit_expr(&expr.callee);
+            self.reserve_temp_for_node(&expr.callee);
         }
     }
 
@@ -717,6 +728,13 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             CallType::Fct(_, ref cls_tps, ref fct_tps) => {
                 cls_type_params = cls_tps.clone();
                 fct_type_params = fct_tps.clone();
+            }
+
+            CallType::Expr(ty, _) => {
+                let ty = self.specialize_type(ty);
+
+                cls_type_params = ty.type_params(self.vm);
+                fct_type_params = TypeParams::empty();
             }
         }
 
@@ -879,6 +897,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
                 _ => ty,
             },
+
+            CallType::Expr(ty, _) => {
+                let type_params = ty.type_params(self.vm);
+                specialize_type(self.vm, ty, &type_params, &TypeParams::empty())
+            }
 
             CallType::Ctor(_, _, ref type_params) | CallType::CtorNew(_, _, ref type_params) => {
                 specialize_type(self.vm, ty, type_params, &TypeParams::empty())

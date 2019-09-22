@@ -470,7 +470,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             &TypeParams::empty(),
             ret_type,
         ) {
-            let call_type = CallType::Method(expr_type, fct_id, TypeParams::empty());
+            let call_type = CallType::Expr(expr_type, fct_id);
             self.src
                 .map_calls
                 .insert_or_replace(e.id, Arc::new(call_type));
@@ -1060,7 +1060,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             &TypeParams::empty(),
             None,
         ) {
-            let call_type = CallType::Method(expr_type, fct_id, TypeParams::empty());
+            let call_type = CallType::Expr(expr_type, fct_id);
             self.src
                 .map_calls
                 .insert_or_replace(e.id, Arc::new(call_type));
