@@ -24,6 +24,7 @@ pub struct Parser<'a> {
     param_idx: u32,
     in_class: bool,
     in_new_call: bool,
+    parse_struct_lit: bool,
 }
 
 type ExprResult = Result<Box<Expr>, MsgWithPos>;
@@ -47,12 +48,14 @@ impl<'a> Parser<'a> {
             param_idx: 0,
             in_class: false,
             in_new_call: false,
+            parse_struct_lit: true,
             ast: ast,
         };
 
         parser
     }
 
+    #[cfg(test)]
     fn enable_new_call(&mut self) {
         self.in_new_call = true;
     }
@@ -958,9 +961,7 @@ impl<'a> Parser<'a> {
     fn parse_if(&mut self) -> StmtResult {
         let pos = self.expect_token(TokenKind::If)?.position;
 
-        let mut opts = ExprParsingOpts::new();
-        opts.parse_struct_lit(false);
-        let cond = self.parse_expression_with_opts(&opts)?;
+        let cond = self.parse_expression_no_struct_lit()?;
 
         let then_block = self.parse_block()?;
 
@@ -993,9 +994,7 @@ impl<'a> Parser<'a> {
         let name = self.expect_identifier()?;
         self.expect_token(TokenKind::In)?;
 
-        let mut opts = ExprParsingOpts::new();
-        opts.parse_struct_lit(false);
-        let expr = self.parse_expression_with_opts(&opts)?;
+        let expr = self.parse_expression_no_struct_lit()?;
 
         let block = self.parse_block()?;
 
@@ -1011,9 +1010,7 @@ impl<'a> Parser<'a> {
     fn parse_while(&mut self) -> StmtResult {
         let pos = self.expect_token(TokenKind::While)?.position;
 
-        let mut opts = ExprParsingOpts::new();
-        opts.parse_struct_lit(false);
-        let expr = self.parse_expression_with_opts(&opts)?;
+        let expr = self.parse_expression_no_struct_lit()?;
 
         let block = self.parse_block()?;
 
@@ -1069,16 +1066,20 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_expression(&mut self) -> ExprResult {
-        let opts = ExprParsingOpts::new();
-        self.parse_binary(0, &opts)
+        self.parse_binary(0)
     }
 
-    fn parse_expression_with_opts(&mut self, opts: &ExprParsingOpts) -> ExprResult {
-        self.parse_binary(0, opts)
+    fn parse_expression_no_struct_lit(&mut self) -> ExprResult {
+        let old = self.parse_struct_lit;
+        self.parse_struct_lit = false;
+        let result = self.parse_binary(0);
+        self.parse_struct_lit = old;
+
+        result
     }
 
-    fn parse_binary(&mut self, precedence: u32, opts: &ExprParsingOpts) -> ExprResult {
-        let mut left = self.parse_unary(opts)?;
+    fn parse_binary(&mut self, precedence: u32) -> ExprResult {
+        let mut left = self.parse_unary()?;
 
         loop {
             let right_precedence = match self.token.kind {
@@ -1119,14 +1120,14 @@ impl<'a> Parser<'a> {
                 }
 
                 _ => {
-                    let right = self.parse_binary(right_precedence, opts)?;
+                    let right = self.parse_binary(right_precedence)?;
                     self.create_binary(tok, left, right)
                 }
             };
         }
     }
 
-    fn parse_unary(&mut self, opts: &ExprParsingOpts) -> ExprResult {
+    fn parse_unary(&mut self) -> ExprResult {
         match self.token.kind {
             TokenKind::Add | TokenKind::Sub | TokenKind::Not => {
                 let tok = self.advance_token()?;
@@ -1137,7 +1138,7 @@ impl<'a> Parser<'a> {
                     _ => unreachable!(),
                 };
 
-                let expr = self.parse_primary(opts)?;
+                let expr = self.parse_primary()?;
                 Ok(Box::new(Expr::create_un(
                     self.generate_id(),
                     tok.position,
@@ -1146,12 +1147,12 @@ impl<'a> Parser<'a> {
                 )))
             }
 
-            _ => self.parse_primary(opts),
+            _ => self.parse_primary(),
         }
     }
 
-    fn parse_primary(&mut self, opts: &ExprParsingOpts) -> ExprResult {
-        let mut left = self.parse_factor(opts)?;
+    fn parse_primary(&mut self) -> ExprResult {
+        let mut left = self.parse_factor()?;
 
         loop {
             left = match self.token.kind {
@@ -1220,7 +1221,7 @@ impl<'a> Parser<'a> {
 
                 TokenKind::Sep => {
                     let tok = self.advance_token()?;
-                    let rhs = self.parse_expression()?;
+                    let rhs = self.parse_factor()?;
 
                     Box::new(Expr::create_path(
                         self.generate_id(),
@@ -1281,14 +1282,14 @@ impl<'a> Parser<'a> {
         ))
     }
 
-    fn parse_factor(&mut self, opts: &ExprParsingOpts) -> ExprResult {
+    fn parse_factor(&mut self) -> ExprResult {
         match self.token.kind {
             TokenKind::LParen => self.parse_parentheses(),
             TokenKind::LitChar(_) => self.parse_lit_char(),
             TokenKind::LitInt(_, _, _) => self.parse_lit_int(),
             TokenKind::LitFloat(_, _) => self.parse_lit_float(),
             TokenKind::String(_) => self.parse_string(),
-            TokenKind::Identifier(_) => self.parse_identifier_or_call(opts),
+            TokenKind::Identifier(_) => self.parse_identifier_or_call(),
             TokenKind::True => self.parse_bool_literal(),
             TokenKind::False => self.parse_bool_literal(),
             TokenKind::Nil => self.parse_nil(),
@@ -1305,7 +1306,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_identifier_or_call(&mut self, opts: &ExprParsingOpts) -> ExprResult {
+    fn parse_identifier_or_call(&mut self) -> ExprResult {
         if self.in_new_call {
             let pos = self.token.position;
             let name = self.expect_identifier()?;
@@ -1338,7 +1339,7 @@ impl<'a> Parser<'a> {
         // is this a function call?
         if self.token.is(TokenKind::LParen) {
             self.parse_call(pos, None, Path { path: path }, type_params)
-        } else if self.token.is(TokenKind::LBrace) && opts.parse_struct_lit {
+        } else if self.token.is(TokenKind::LBrace) && self.parse_struct_lit {
             assert!(type_params.is_none());
             self.parse_lit_struct(pos, Path { path: path })
 
@@ -1687,23 +1688,6 @@ impl<'a> Parser<'a> {
             .block(block.build());
 
         fct.build()
-    }
-}
-
-struct ExprParsingOpts {
-    parse_struct_lit: bool,
-}
-
-impl ExprParsingOpts {
-    pub fn new() -> ExprParsingOpts {
-        ExprParsingOpts {
-            parse_struct_lit: true,
-        }
-    }
-
-    pub fn parse_struct_lit(&mut self, val: bool) -> &mut ExprParsingOpts {
-        self.parse_struct_lit = val;
-        self
     }
 }
 

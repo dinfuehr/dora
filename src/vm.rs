@@ -1266,6 +1266,8 @@ pub enum IdentType {
     ClassType(ClassId, TypeParams),
     Method(BuiltinType, Name),
     MethodType(BuiltinType, Name, TypeParams),
+    StaticMethod(BuiltinType, Name),
+    StaticMethodType(BuiltinType, Name, TypeParams),
 }
 
 impl IdentType {

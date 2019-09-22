@@ -331,6 +331,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             &IdentType::FctType(_, _) | &IdentType::ClassType(_, _) => unreachable!(),
             &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
+            &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => unreachable!(),
         }
     }
 
@@ -410,7 +411,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         return;
                     }
 
-                    &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unimplemented!(),
+                    &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
+                    &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => unreachable!(),
                 }
 
                 if !lhs_type.allows(self.vm, rhs_type) {
@@ -1030,6 +1032,26 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 );
             }
 
+            Some(IdentType::StaticMethod(object_type, method_name)) => self
+                .check_expr_call_static_method(
+                    e,
+                    object_type,
+                    method_name,
+                    TypeParams::empty(),
+                    &arg_types,
+                    in_try,
+                ),
+
+            Some(IdentType::StaticMethodType(object_type, method_name, type_params)) => self
+                .check_expr_call_static_method(
+                    e,
+                    object_type,
+                    method_name,
+                    type_params,
+                    &arg_types,
+                    in_try,
+                ),
+
             _ => {
                 if expr_type.is_error() {
                     self.src.set_ty(e.id, expr_type);
@@ -1109,6 +1131,55 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         self.src.set_ty(e.id, ty);
         self.expr_type = ty;
+    }
+
+    fn check_expr_call_static_method(
+        &mut self,
+        e: &'ast ExprCall2Type,
+        object_type: BuiltinType,
+        method_name: Name,
+        type_params: TypeParams,
+        arg_types: &[BuiltinType],
+        in_try: bool,
+    ) {
+        let cls_id = object_type.cls_id(self.vm).unwrap();
+        let cls_type_params = object_type.type_params(self.vm);
+        assert_eq!(cls_type_params.len(), 0);
+
+        let mut lookup = MethodLookup::new(self.vm)
+            .pos(e.pos)
+            .static_method(cls_id)
+            .name(method_name)
+            .args(arg_types)
+            .fct_type_params(&type_params);
+
+        if lookup.find() {
+            let fct_id = lookup.found_fct_id().unwrap();
+            let return_type = lookup.found_ret().unwrap();
+            let call_type = Arc::new(CallType::Fct(
+                fct_id,
+                TypeParams::empty(),
+                type_params.clone(),
+            ));
+            self.src.map_calls.insert(e.id, call_type.clone());
+
+            self.src.set_ty(e.id, return_type);
+            self.expr_type = return_type;
+
+            if !in_try {
+                let fct = self.vm.fcts.idx(fct_id);
+                let fct = fct.read();
+                let throws = fct.throws;
+
+                if throws {
+                    let msg = Msg::ThrowingCallWithoutTry;
+                    self.vm.diag.lock().report_without_path(e.pos, msg);
+                }
+            }
+        } else {
+            self.src.set_ty(e.id, BuiltinType::Error);
+            self.expr_type = BuiltinType::Error;
+        }
     }
 
     fn check_expr_call_method(
@@ -1570,11 +1641,18 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_path(&mut self, e: &'ast ExprPathType) {
-        self.visit_expr(&e.lhs);
-        let ident_type = self.src.map_idents.get(e.id);
+        let ident_type = self.src.map_idents.get(e.lhs.id());
 
-        let _cls_id = match ident_type {
-            Some(&IdentType::Class(cls_id)) => cls_id,
+        let cls_ty = match ident_type {
+            Some(&IdentType::Class(cls_id)) => {
+                let list = self.vm.lists.lock().insert(TypeParams::empty());
+                BuiltinType::Class(cls_id, list)
+            }
+
+            Some(&IdentType::ClassType(cls_id, ref type_params)) => {
+                let list = self.vm.lists.lock().insert(type_params.clone());
+                BuiltinType::Class(cls_id, list)
+            }
 
             _ => {
                 let msg = Msg::InvalidLeftSideOfSeparator;
@@ -1583,9 +1661,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
         };
 
-        self.visit_expr(&e.rhs);
-
-        let _name = if let Some(ident) = e.rhs.to_ident() {
+        let name = if let Some(ident) = e.rhs.to_ident() {
             ident.name
         } else {
             let msg = Msg::NameOfStaticMethodExpected;
@@ -1594,10 +1670,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         };
 
         if self.used_in_call.contains(&e.id) {
-            unimplemented!();
+            self.src
+                .map_idents
+                .insert(e.id, IdentType::StaticMethod(cls_ty, name));
+            return;
         }
 
-        unimplemented!();
+        self.vm
+            .diag
+            .lock()
+            .report_without_path(e.pos, Msg::FctUsedAsIdentifier);
     }
 
     fn check_expr_type_param(&mut self, e: &'ast ExprTypeParamType) {
@@ -1622,6 +1704,18 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.src
                     .map_idents
                     .insert(e.id, IdentType::FctType(fct_id, type_params));
+            }
+
+            Some(IdentType::Method(ty, name)) => {
+                self.src
+                    .map_idents
+                    .insert(e.id, IdentType::MethodType(ty, name, type_params));
+            }
+
+            Some(IdentType::StaticMethod(cls_ty, name)) => {
+                self.src
+                    .map_idents
+                    .insert(e.id, IdentType::StaticMethodType(cls_ty, name, type_params));
             }
 
             _ => {
@@ -4338,6 +4432,28 @@ mod tests {
     }
 
     #[test]
+    fn test_new_call_static_method() {
+        ok("class Foo { @static fun bar() {} }
+            @new_call fun f() { Foo::bar(); }");
+    }
+
+    #[test]
+    fn test_new_call_static_method_wrong_params() {
+        err(
+            "class Foo { @static fun bar() {} }
+            @new_call fun f() { Foo::bar(1); }",
+            pos(2, 41),
+            Msg::ParamTypesIncompatible("bar".into(), Vec::new(), vec!["Int".into()]),
+        );
+    }
+
+    #[test]
+    fn test_new_call_static_method_type_params() {
+        ok("class Foo { @static fun bar[T]() {} }
+            @new_call fun f() { Foo::bar[Int](); }");
+    }
+
+    #[test]
     fn test_new_call_class() {
         ok("class X @new_call fun f() { X(); }");
     }
@@ -4367,7 +4483,14 @@ mod tests {
 
     #[test]
     fn test_new_call_method() {
-        ok("class X { fun f() {} } @new_call fun f(x: X) { x.f(); }");
+        ok("class X { fun f() {} }
+            @new_call fun f(x: X) { x.f(); }");
+    }
+
+    #[test]
+    fn test_new_call_method_type_param() {
+        ok("class X { fun f[T]() {} }
+            @new_call fun f(x: X) { x.f[Int](); }");
     }
 
     #[test]

@@ -321,6 +321,11 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             report(self.vm, struc.pos, Msg::UnknownStruct(name));
         }
     }
+
+    fn check_expr_path(&mut self, path: &'ast ExprPathType) {
+        self.visit_expr(&path.lhs);
+        // do not check right hand site of path
+    }
 }
 
 impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
@@ -370,6 +375,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
             &ExprIdent(ref ident) => self.check_expr_ident(ident),
             &ExprCall(ref call) => self.check_expr_call(call),
             &ExprLitStruct(ref lit) => self.check_expr_struct(lit),
+            &ExprPath(ref path) => self.check_expr_path(path),
 
             // no need to handle rest of expressions
             _ => visit::walk_expr(self, e),
