@@ -1,0 +1,13 @@
+fun main() {
+    assert(test_call() == 1);
+}
+
+@new_call fun test_call() -> Int {
+    return Foo::bar[Int]();
+}
+
+class Foo {
+    @static fun bar[T]() -> Int {
+        return 1;
+    }
+}

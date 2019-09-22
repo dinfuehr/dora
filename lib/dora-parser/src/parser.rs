@@ -47,7 +47,7 @@ impl<'a> Parser<'a> {
             interner: interner,
             param_idx: 0,
             in_class: false,
-            in_new_call: false,
+            in_new_call: true,
             parse_struct_lit: true,
             ast: ast,
         };
@@ -1066,7 +1066,12 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_expression(&mut self) -> ExprResult {
-        self.parse_binary(0)
+        let old = self.parse_struct_lit;
+        self.parse_struct_lit = true;
+        let result = self.parse_binary(0);
+        self.parse_struct_lit = old;
+
+        result
     }
 
     fn parse_expression_no_struct_lit(&mut self) -> ExprResult {
@@ -2222,8 +2227,8 @@ mod tests {
     fn parse_call_without_params() {
         let (expr, interner) = parse_expr("fname()");
 
-        let call = expr.to_call().unwrap();
-        assert_eq!("fname", *interner.str(call.path.name()));
+        let call = expr.to_call2().unwrap();
+        assert_eq!("fname", *interner.str(call.callee.to_ident().unwrap().name));
         assert_eq!(0, call.args.len());
     }
 
@@ -2231,8 +2236,11 @@ mod tests {
     fn parse_call_with_params() {
         let (expr, interner) = parse_expr("fname2(1,2,3)");
 
-        let call = expr.to_call().unwrap();
-        assert_eq!("fname2", *interner.str(call.path.name()));
+        let call = expr.to_call2().unwrap();
+        assert_eq!(
+            "fname2",
+            *interner.str(call.callee.to_ident().unwrap().name)
+        );
         assert_eq!(3, call.args.len());
 
         for i in 0..3 {
@@ -2756,18 +2764,18 @@ mod tests {
     #[test]
     fn parse_method_invocation() {
         let (expr, _) = parse_expr("a.foo()");
-        let call = expr.to_call().unwrap();
-        assert_eq!(true, call.object.is_some());
+        let call = expr.to_call2().unwrap();
+        assert!(call.callee.is_dot());
         assert_eq!(0, call.args.len());
 
         let (expr, _) = parse_expr("a.foo(1)");
-        let call = expr.to_call().unwrap();
-        assert_eq!(true, call.object.is_some());
+        let call = expr.to_call2().unwrap();
+        assert!(call.callee.is_dot());
         assert_eq!(1, call.args.len());
 
         let (expr, _) = parse_expr("a.foo(1,2)");
-        let call = expr.to_call().unwrap();
-        assert_eq!(true, call.object.is_some());
+        let call = expr.to_call2().unwrap();
+        assert!(call.callee.is_dot());
         assert_eq!(2, call.args.len());
     }
 
@@ -2817,7 +2825,7 @@ mod tests {
         let stmt = parse_stmt("defer foo();");
         let defer = stmt.to_defer().unwrap();
 
-        assert!(defer.expr.is_call());
+        assert!(defer.expr.is_call2());
     }
 
     #[test]
@@ -2950,10 +2958,10 @@ mod tests {
     fn parse_try_function() {
         let (expr, _) = parse_expr("try foo()");
         let r#try = expr.to_try().unwrap();
-        let call = r#try.expr.to_call().unwrap();
+        let call = r#try.expr.to_call2().unwrap();
 
         assert!(r#try.mode.is_normal());
-        assert!(call.object.is_none());
+        assert!(call.callee.is_ident());
         assert_eq!(0, call.args.len());
     }
 
@@ -2961,10 +2969,10 @@ mod tests {
     fn parse_try_method() {
         let (expr, _) = parse_expr("try obj.foo()");
         let r#try = expr.to_try().unwrap();
-        let call = r#try.expr.to_call().unwrap();
+        let call = r#try.expr.to_call2().unwrap();
 
         assert!(r#try.mode.is_normal());
-        assert!(call.object.is_some());
+        assert!(call.callee.is_dot());
         assert_eq!(0, call.args.len());
     }
 
@@ -3042,12 +3050,6 @@ mod tests {
 
         let f2 = &struc.fields[1];
         assert_eq!("fb", *interner.str(f2.name));
-    }
-
-    #[test]
-    fn parse_struct_lit() {
-        let (expr, _) = parse_expr("Foo { a: 1, b: 2 }");
-        assert!(expr.is_lit_struct());
     }
 
     #[test]
@@ -3204,24 +3206,27 @@ mod tests {
     #[test]
     fn parse_fct_call_with_type_param() {
         let (expr, _) = parse_expr("Array[Int]()");
-        let ident = expr.to_call().unwrap();
+        let call = expr.to_call2().unwrap();
+        let type_params = call.callee.to_type_param().unwrap();
 
-        assert_eq!(1, ident.type_params.as_ref().unwrap().len());
+        assert_eq!(1, type_params.args.len());
 
         let (expr, _) = parse_expr("Foo[Int, Long]()");
-        let ident = expr.to_call().unwrap();
+        let call = expr.to_call2().unwrap();
+        let type_params = call.callee.to_type_param().unwrap();
 
-        assert_eq!(2, ident.type_params.as_ref().unwrap().len());
+        assert_eq!(2, type_params.args.len());
 
         let (expr, _) = parse_expr("Bar[]()");
-        let ident = expr.to_call().unwrap();
+        let call = expr.to_call2().unwrap();
+        let type_params = call.callee.to_type_param().unwrap();
 
-        assert_eq!(0, ident.type_params.as_ref().unwrap().len());
+        assert_eq!(0, type_params.args.len());
 
         let (expr, _) = parse_expr("Vec()");
-        let ident = expr.to_call().unwrap();
+        let call = expr.to_call2().unwrap();
 
-        assert!(ident.type_params.is_none());
+        assert!(call.callee.is_ident());
     }
 
     #[test]
@@ -3241,11 +3246,10 @@ mod tests {
     #[test]
     fn parse_call_with_path() {
         let (expr, interner) = parse_expr("Foo::get()");
-        let call = expr.to_call().unwrap();
+        let call = expr.to_call2().unwrap();
 
-        assert_eq!(2, call.path.len());
-        assert_eq!("Foo", *interner.str(call.path[0]));
-        assert_eq!("get", *interner.str(call.path[1]));
+        assert!(call.callee.is_path());
+        assert_eq!(0, call.args.len());
     }
 
     #[test]
