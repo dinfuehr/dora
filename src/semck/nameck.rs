@@ -510,22 +510,6 @@ mod tests {
     }
 
     #[test]
-    fn struct_lit() {
-        err(
-            "fun foo() { let x = Foo { a: 1 }; }",
-            pos(1, 21),
-            Msg::UnknownStruct("Foo".into()),
-        );
-
-        // Struct literal without any field initializers
-        err(
-            "fun foo() { let x = Foo; }",
-            pos(1, 21),
-            Msg::UnknownIdentifier("Foo".into()),
-        );
-    }
-
-    #[test]
     fn const_value() {
         ok("const one: Int = 1;
             fun f() -> Int { return one; }");

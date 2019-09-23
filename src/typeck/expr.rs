@@ -331,9 +331,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             &IdentType::FctType(_, _) | &IdentType::ClassType(_, _) => unreachable!(),
             &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
-            &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => {
-                unreachable!()
-            }
+            &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => unreachable!(),
         }
     }
 
@@ -414,9 +412,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     }
 
                     &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
-                    &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => {
-                        unreachable!()
-                    }
+                    &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => unreachable!(),
                 }
 
                 if !lhs_type.allows(self.vm, rhs_type) {
@@ -3535,7 +3531,7 @@ mod tests {
     #[test]
     fn super_method_call() {
         ok("@open class A { @open fun f() -> Int { return 1; } }
-            class B: A { @override fun f() -> Int { return super.f() + 1; } }");
+            class B: A { @new_call @override fun f() -> Int { return super.f() + 1; } }");
     }
 
     #[test]
@@ -4235,52 +4231,6 @@ mod tests {
                 fun next() -> Int { return 0; }
             }
             fun f() -> Int { for i in Foo() { return i; } return 0; }",
-        );
-    }
-
-    #[test]
-    fn test_struct_field_missing() {
-        err(
-            "
-            struct Foo {
-                a: Int,
-                b: Int,
-            }
-            fun f() {
-                Foo { a: 1 };
-            }",
-            pos(7, 17),
-            Msg::StructFieldNotInitialized("Foo".into(), "b".into()),
-        );
-    }
-
-    #[test]
-    fn test_struct_unknown_field() {
-        err(
-            "
-            struct Foo {
-                a: Int,
-            }
-            fun f() {
-                Foo { a: 1, b: 2 };
-            }",
-            pos(6, 17),
-            Msg::UnknownStructField("Foo".into(), "b".into()),
-        );
-    }
-
-    #[test]
-    fn test_struct_wrong_type() {
-        err(
-            "
-            struct Foo {
-                a: Int,
-            }
-            fun f() {
-                Foo { a: true };
-            }",
-            pos(6, 17),
-            Msg::AssignField("a".into(), "Foo".into(), "Int".into(), "Bool".into()),
         );
     }
 

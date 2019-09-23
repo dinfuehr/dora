@@ -463,6 +463,7 @@ impl<'a> Parser<'a> {
                         Modifier::Final,
                         Modifier::Pub,
                         Modifier::Static,
+                        Modifier::NewCall,
                     ];
                     self.restrict_modifiers(&modifiers, mods)?;
 
@@ -1315,6 +1316,7 @@ impl<'a> Parser<'a> {
         if self.in_new_call {
             let pos = self.token.position;
             let name = self.expect_identifier()?;
+
             return Ok(Box::new(Expr::create_ident(
                 self.generate_id(),
                 pos,
@@ -1344,9 +1346,6 @@ impl<'a> Parser<'a> {
         // is this a function call?
         if self.token.is(TokenKind::LParen) {
             self.parse_call(pos, None, Path { path: path }, type_params)
-        } else if self.token.is(TokenKind::LBrace) && self.parse_struct_lit {
-            assert!(type_params.is_none());
-            self.parse_lit_struct(pos, Path { path: path })
 
         // if not we have a simple identifier
         } else {
@@ -1359,34 +1358,6 @@ impl<'a> Parser<'a> {
                 type_params,
             )))
         }
-    }
-
-    fn parse_lit_struct(&mut self, pos: Position, path: Path) -> ExprResult {
-        self.expect_token(TokenKind::LBrace)?;
-        let args = self.parse_comma_list(TokenKind::RBrace, |p| p.parse_lit_struct_arg())?;
-
-        Ok(Box::new(Expr::create_lit_struct(
-            self.generate_id(),
-            pos,
-            path,
-            args,
-        )))
-    }
-
-    fn parse_lit_struct_arg(&mut self) -> Result<StructArg, MsgWithPos> {
-        let pos = self.token.position;
-        let name = self.expect_identifier()?;
-
-        self.expect_token(TokenKind::Colon)?;
-
-        let expr = self.parse_expression()?;
-
-        Ok(StructArg {
-            id: self.generate_id(),
-            pos: pos,
-            name: name,
-            expr: expr,
-        })
     }
 
     fn parse_call(
@@ -2783,10 +2754,7 @@ mod tests {
     fn parse_array_index() {
         let (expr, interner) = parse_expr_new_call("a(b)");
         let call = expr.to_call2().unwrap();
-        assert_eq!(
-            "a",
-            *interner.str(call.callee.to_ident().unwrap().name)
-        );
+        assert_eq!("a", *interner.str(call.callee.to_ident().unwrap().name));
         assert_eq!(1, call.args.len());
         assert_eq!("b", *interner.str(call.args[0].to_ident().unwrap().name));
     }
