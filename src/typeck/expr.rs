@@ -243,7 +243,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_stmt_defer(&mut self, s: &'ast StmtDeferType) {
         self.visit_expr(&s.expr);
 
-        if !s.expr.is_call() {
+        if !s.expr.is_call() && !s.expr.is_call2() {
             self.vm
                 .diag
                 .lock()

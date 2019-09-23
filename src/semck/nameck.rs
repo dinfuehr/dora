@@ -437,9 +437,9 @@ mod tests {
     fn shadow_function() {
         ok("fun f() { let f = 1; }");
         err(
-            "fun f() { let f = 1; f(); }",
-            pos(1, 23),
-            Msg::UnknownFunction("f".into()),
+            "@new_call fun f() { let f = 1; f(); }",
+            pos(1, 33),
+            Msg::UnknownMethod("Int".into(), "get".into(), Vec::new()),
         );
     }
 
@@ -479,9 +479,9 @@ mod tests {
     #[test]
     fn undefined_function() {
         err(
-            "fun f() { foo(); }",
-            pos(1, 14),
-            Msg::UnknownFunction("foo".into()),
+            "@new_call fun f() { foo(); }",
+            pos(1, 21),
+            Msg::UnknownIdentifier("foo".into()),
         );
     }
 
