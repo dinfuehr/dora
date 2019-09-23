@@ -12,7 +12,7 @@ install:
   - (cd capstone && git checkout 3.0.4 && sudo make install)
 
 before_script:
-  - rustup component add --toolchain rustfmt
+  - rustup component add rustfmt
 
 script:
   - cargo fmt -- --check
