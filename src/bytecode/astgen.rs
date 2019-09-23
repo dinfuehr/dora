@@ -238,7 +238,12 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             ExprLitBool(ref lit) => self.visit_expr_lit_bool(lit, dest),
             ExprIdent(ref ident) => self.visit_expr_ident(ident, dest),
             ExprAssign(ref assign) => self.visit_expr_assign(assign, dest),
-            ExprCall(ref call) => self.visit_expr_call(call, dest),
+            ExprCall(_) => {
+                // This is the old call node, no need to
+                // implement this.
+                unimplemented!();
+            }
+            ExprCall2(ref call) => self.visit_expr_call(call, dest),
             // ExprDelegation(ref call) => {},
             ExprSelf(ref selfie) => self.visit_expr_self(selfie, dest),
             // ExprSuper(ref expr) => {},
@@ -284,7 +289,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         dest
     }
 
-    fn visit_expr_call(&mut self, expr: &ExprCallType, dest: DataDest) -> Register {
+    fn visit_expr_call(&mut self, expr: &ExprCall2Type, dest: DataDest) -> Register {
         if let Some(_intrinsic) = self.get_intrinsic(expr.id) {
             unimplemented!()
         }
@@ -1597,7 +1602,7 @@ mod tests {
     fn gen_fct_call_void_with_0_args() {
         gen(
             "
-            fun f() { g(); }
+            @new_call fun f() { g(); }
             fun g() { }
             ",
             |vm, fct| {
@@ -1612,7 +1617,7 @@ mod tests {
     fn gen_fct_call_int_with_0_args() {
         gen(
             "
-            fun f() -> Int { return g(); }
+            @new_call fun f() -> Int { return g(); }
             fun g() -> Int { return 1; }
             ",
             |vm, fct| {
@@ -1627,7 +1632,7 @@ mod tests {
     fn gen_fct_call_int_with_0_args_and_unused_result() {
         gen(
             "
-            fun f() { g(); }
+            @new_call fun f() { g(); }
             fun g() -> Int { return 1; }
             ",
             |vm, fct| {
@@ -1642,7 +1647,7 @@ mod tests {
     fn gen_fct_call_void_with_1_arg() {
         gen(
             "
-            fun f() { g(1); }
+            @new_call fun f() { g(1); }
             fun g(a: Int) { }
             ",
             |vm, fct| {
@@ -1661,7 +1666,7 @@ mod tests {
     fn gen_fct_call_void_with_3_args() {
         gen(
             "
-            fun f() { g(1, 2, 3); }
+            @new_call fun f() { g(1, 2, 3); }
             fun g(a: Int, b: Int, c: Int) { }
             ",
             |vm, fct| {
@@ -1682,7 +1687,7 @@ mod tests {
     fn gen_fct_call_int_with_1_arg() {
         gen(
             "
-            fun f() -> Int { return g(1); }
+            @new_call fun f() -> Int { return g(1); }
             fun g(a: Int) -> Int { return a; }
             ",
             |vm, fct| {
@@ -1701,7 +1706,7 @@ mod tests {
     fn gen_fct_call_int_with_3_args() {
         gen(
             "
-            fun f() -> Int { return g(1, 2, 3); }
+            @new_call fun f() -> Int { return g(1, 2, 3); }
             fun g(a: Int, b: Int, c: Int) -> Int { return 1; }
             ",
             |vm, fct| {
@@ -1720,16 +1725,19 @@ mod tests {
 
     #[test]
     fn gen_new_object() {
-        gen("fun f() -> Object { return Object(); }", |vm, fct| {
-            let cls_id = vm.cls_def_by_name("Object");
-            let ctor_id = vm.ctor_by_name("Object");
-            let expected = vec![
-                NewObject(r(0), cls_id),
-                InvokeDirectVoid(ctor_id, r(0), 1),
-                RetPtr(r(0)),
-            ];
-            assert_eq!(expected, fct.code());
-        });
+        gen(
+            "@new_call fun f() -> Object { return Object(); }",
+            |vm, fct| {
+                let cls_id = vm.cls_def_by_name("Object");
+                let ctor_id = vm.ctor_by_name("Object");
+                let expected = vec![
+                    NewObject(r(0), cls_id),
+                    InvokeDirectVoid(ctor_id, r(0), 1),
+                    RetPtr(r(0)),
+                ];
+                assert_eq!(expected, fct.code());
+            },
+        );
     }
 
     #[test]
@@ -1737,7 +1745,7 @@ mod tests {
         gen(
             "
             class Foo(a: Int, b: Int, c: Int)
-            fun f() -> Foo { return Foo(1, 2, 3); }
+            @new_call fun f() -> Foo { return Foo(1, 2, 3); }
             ",
             |vm, fct| {
                 let cls_id = vm.cls_def_by_name("Foo");
