@@ -2779,16 +2779,16 @@ mod tests {
         assert_eq!(2, call.args.len());
     }
 
-    #[ignore]
     #[test]
     fn parse_array_index() {
-        let (expr, interner) = parse_expr("a(b)");
-        let expr = expr.to_call().unwrap();
+        let (expr, interner) = parse_expr_new_call("a(b)");
+        let call = expr.to_call2().unwrap();
         assert_eq!(
             "a",
-            *interner.str(expr.clone().object.unwrap().to_ident().unwrap().name)
+            *interner.str(call.callee.to_ident().unwrap().name)
         );
-        assert_eq!("b", *interner.str(expr.args[0].to_ident().unwrap().name));
+        assert_eq!(1, call.args.len());
+        assert_eq!("b", *interner.str(call.args[0].to_ident().unwrap().name));
     }
 
     #[test]
