@@ -1275,66 +1275,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.expr_type = ty;
     }
 
-    fn check_expr_call_field(
-        &mut self,
-        e: &'ast ExprCall2Type,
-        _type_params: TypeParams,
-        arg_types: &[BuiltinType],
-        in_try: bool,
-    ) {
-        let field_expr = e.callee.to_dot().unwrap();
-
-        let name = field_expr.name;
-        let object_type = if field_expr.object.is_super() {
-            self.super_type(field_expr.object.pos())
-        } else {
-            self.visit_expr(&field_expr.object);
-            self.expr_type
-        };
-
-        if object_type.is_type_param() {
-            self.check_expr_call_generic(e, object_type, name, arg_types, in_try);
-        }
-
-        if object_type.is_error() {
-            self.src.set_ty(e.id, BuiltinType::Error);
-            self.expr_type = BuiltinType::Error;
-            return;
-        }
-
-        let mut lookup = MethodLookup::new(self.vm)
-            .method(object_type)
-            .pos(e.pos)
-            .name(name)
-            .args(arg_types);
-
-        if lookup.find() {
-            let fct_id = lookup.found_fct_id().unwrap();
-            let return_type = lookup.found_ret().unwrap();
-
-            let call_type = CallType::Method(object_type, fct_id, TypeParams::empty());
-            self.src
-                .map_calls
-                .insert_or_replace(e.id, Arc::new(call_type));
-            self.src.set_ty(e.id, return_type);
-            self.expr_type = return_type;
-
-            if !in_try {
-                let fct = self.vm.fcts.idx(fct_id);
-                let fct = fct.read();
-                let throws = fct.throws;
-
-                if throws {
-                    let msg = Msg::ThrowingCallWithoutTry;
-                    self.vm.diag.lock().report_without_path(e.pos, msg);
-                }
-            }
-        } else {
-            self.src.set_ty(e.id, BuiltinType::Error);
-            self.expr_type = BuiltinType::Error;
-        }
-    }
-
     fn check_expr_call_generic(
         &mut self,
         e: &'ast ExprCall2Type,
@@ -1731,8 +1671,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_dot(&mut self, e: &'ast ExprDotType) {
-        self.visit_expr(&e.object);
-        let object_type = self.expr_type;
+        let object_type = if e.object.is_super() {
+            self.super_type(e.object.pos())
+        } else {
+            self.visit_expr(&e.object);
+            self.expr_type
+        };
 
         if self.used_in_call.contains(&e.id) {
             self.src
