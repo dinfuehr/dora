@@ -331,7 +331,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             &IdentType::FctType(_, _) | &IdentType::ClassType(_, _) => unreachable!(),
             &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
-            &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => unreachable!(),
+            &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => {
+                unreachable!()
+            }
         }
     }
 
@@ -412,7 +414,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     }
 
                     &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
-                    &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => unreachable!(),
+                    &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => {
+                        unreachable!()
+                    }
                 }
 
                 if !lhs_type.allows(self.vm, rhs_type) {
