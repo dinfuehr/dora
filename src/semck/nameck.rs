@@ -1,6 +1,3 @@
-use std::sync::Arc;
-
-use crate::class::TypeParams;
 use crate::vm::*;
 use dora_parser::error::msg::Msg;
 
@@ -260,59 +257,6 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         }
     }
 
-    fn check_expr_call(&mut self, call: &'ast ExprCallType) {
-        let mut found = false;
-
-        // do not check method calls yet
-        if let Some(ref object) = call.object {
-            self.visit_expr(object);
-
-            for arg in &call.args {
-                self.visit_expr(arg);
-            }
-
-            return;
-        }
-
-        if call.path.len() > 1 {
-            for arg in &call.args {
-                self.visit_expr(arg);
-            }
-
-            return;
-        }
-
-        let name = call.path.name();
-
-        if let Some(sym) = self.vm.sym.lock().get(name) {
-            match sym {
-                SymFct(fct_id) => {
-                    let call_type = CallType::Fct(fct_id, TypeParams::empty(), TypeParams::empty());
-                    self.src.map_calls.insert(call.id, Arc::new(call_type));
-                    found = true;
-                }
-
-                SymClass(cls_id) => {
-                    let call_type = CallType::CtorNew(cls_id, FctId(0), TypeParams::empty());
-                    self.src.map_calls.insert(call.id, Arc::new(call_type));
-                    found = true;
-                }
-
-                _ => {}
-            }
-        }
-
-        if !found {
-            let name = str(self.vm, name);
-            report(self.vm, call.pos, Msg::UnknownFunction(name));
-        }
-
-        // also parse function arguments
-        for arg in &call.args {
-            self.visit_expr(arg);
-        }
-    }
-
     fn check_expr_struct(&mut self, struc: &'ast ExprLitStructType) {
         if let Some(sid) = self.vm.sym.lock().get_struct(struc.path.name()) {
             self.src.map_idents.insert(struc.id, IdentType::Struct(sid));
@@ -373,7 +317,6 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
     fn visit_expr(&mut self, e: &'ast Expr) {
         match e {
             &ExprIdent(ref ident) => self.check_expr_ident(ident),
-            &ExprCall(ref call) => self.check_expr_call(call),
             &ExprLitStruct(ref lit) => self.check_expr_struct(lit),
             &ExprPath(ref path) => self.check_expr_path(path),
 
@@ -437,8 +380,8 @@ mod tests {
     fn shadow_function() {
         ok("fun f() { let f = 1; }");
         err(
-            "@new_call fun f() { let f = 1; f(); }",
-            pos(1, 33),
+            "fun f() { let f = 1; f(); }",
+            pos(1, 23),
             Msg::UnknownMethod("Int".into(), "get".into(), Vec::new()),
         );
     }
@@ -479,8 +422,8 @@ mod tests {
     #[test]
     fn undefined_function() {
         err(
-            "@new_call fun f() { foo(); }",
-            pos(1, 21),
+            "fun f() { foo(); }",
+            pos(1, 11),
             Msg::UnknownIdentifier("foo".into()),
         );
     }

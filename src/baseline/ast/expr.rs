@@ -94,7 +94,6 @@ where
             ExprAssign(ref expr) => self.emit_assign(expr),
             ExprBin(ref expr) => self.emit_bin(expr, dest),
             ExprCall(ref expr) => self.emit_call(expr, dest),
-            ExprCall2(ref expr) => self.emit_call2(expr, dest),
             ExprTypeParam(_) => unreachable!(),
             ExprPath(_) => unreachable!(),
             ExprDelegation(ref expr) => self.emit_delegation(expr, dest),
@@ -608,7 +607,7 @@ where
         let call_type = self.src.map_calls.get(e.id);
 
         if call_type.is_some() {
-            let call_expr = e.lhs.to_call2().unwrap();
+            let call_expr = e.lhs.to_call().unwrap();
 
             if let Some(intrinsic) = self.intrinsic(e.id) {
                 let object = &call_expr.callee;
@@ -933,24 +932,6 @@ where
     }
 
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: ExprStore) {
-        if let Some(intrinsic) = self.intrinsic(e.id) {
-            let mut args: Vec<&'ast Expr> = Vec::with_capacity(3);
-
-            if let Some(object) = e.object.as_ref() {
-                args.push(object);
-            }
-
-            for arg in &e.args {
-                args.push(arg);
-            }
-
-            self.emit_call_intrinsic(e.id, e.pos, &args, intrinsic, dest);
-        } else {
-            self.emit_call_site_id(e.id, e.pos, dest);
-        }
-    }
-
-    fn emit_call2(&mut self, e: &'ast ExprCall2Type, dest: ExprStore) {
         if let Some(intrinsic) = self.intrinsic(e.id) {
             let mut args: Vec<&'ast Expr> = Vec::with_capacity(3);
             let call_type = self.src.map_calls.get(e.id).unwrap();

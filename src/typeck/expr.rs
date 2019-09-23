@@ -243,7 +243,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_stmt_defer(&mut self, s: &'ast StmtDeferType) {
         self.visit_expr(&s.expr);
 
-        if !s.expr.is_call() && !s.expr.is_call2() {
+        if !s.expr.is_call() {
             self.vm
                 .diag
                 .lock()
@@ -338,7 +338,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_assign(&mut self, e: &'ast ExprAssignType) {
-        if e.lhs.is_call2() {
+        if e.lhs.is_call() {
             self.check_expr_assign_call(e);
         } else if e.lhs.is_dot() {
             self.check_expr_assign_field(e);
@@ -446,7 +446,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_assign_call(&mut self, e: &'ast ExprAssignType) {
-        let call = e.lhs.to_call2().unwrap();
+        let call = e.lhs.to_call().unwrap();
 
         self.visit_expr(&call.callee);
         let expr_type = self.expr_type;
@@ -793,195 +793,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_call(&mut self, e: &'ast ExprCallType, in_try: bool) {
-        let object_type = if e.object.is_some() {
-            let object = e.object.as_ref().unwrap();
-
-            let object_type = if object.is_super() {
-                self.super_type(e.pos)
-            } else {
-                self.visit_expr(object);
-                self.expr_type
-            };
-
-            Some(object_type)
-        } else {
-            None
-        };
-
-        let call_types: Vec<BuiltinType> = e
-            .args
-            .iter()
-            .map(|arg| {
-                self.visit_expr(arg);
-                self.expr_type
-            })
-            .collect();
-
-        let type_params: Vec<BuiltinType> = if let Some(ref type_params) = e.type_params {
-            type_params.iter().map(|p| self.src.ty(p.id())).collect()
-        } else {
-            Vec::new()
-        };
-
-        let type_params: TypeParams = TypeParams::with(type_params);
-
-        if let Some(object_type) = object_type {
-            if object_type.is_type_param() {
-                self.check_generic_method_call(e, in_try, object_type, &call_types);
-                return;
-            }
-
-            if object_type.is_error() {
-                self.src.set_ty(e.id, BuiltinType::Error);
-                self.expr_type = BuiltinType::Error;
-                return;
-            }
-
-            let mut lookup = MethodLookup::new(self.vm)
-                .method(object_type)
-                .pos(e.pos)
-                .name(e.path.name())
-                .args(&call_types);
-
-            if lookup.find() {
-                let fct_id = lookup.found_fct_id().unwrap();
-                let return_type = lookup.found_ret().unwrap();
-
-                let call_type = CallType::Method(object_type, fct_id, TypeParams::empty());
-                self.src
-                    .map_calls
-                    .insert_or_replace(e.id, Arc::new(call_type));
-                self.src.set_ty(e.id, return_type);
-                self.expr_type = return_type;
-
-                if !in_try {
-                    let fct = self.vm.fcts.idx(fct_id);
-                    let fct = fct.read();
-                    let throws = fct.throws;
-
-                    if throws {
-                        let msg = Msg::ThrowingCallWithoutTry;
-                        self.vm.diag.lock().report_without_path(e.pos, msg);
-                    }
-                }
-            } else {
-                self.src.set_ty(e.id, BuiltinType::Error);
-                self.expr_type = BuiltinType::Error;
-            }
-
-            return;
-        }
-
-        let call_type = if e.path.len() > 1 {
-            match self.vm.sym.lock().get(e.path[0]) {
-                Some(SymClass(cls_id)) => {
-                    assert_eq!(2, e.path.len());
-
-                    let mut lookup = MethodLookup::new(self.vm)
-                        .pos(e.pos)
-                        .static_method(cls_id)
-                        .name(e.path[1])
-                        .args(&call_types)
-                        .fct_type_params(&type_params);
-
-                    if lookup.find() {
-                        let fct_id = lookup.found_fct_id().unwrap();
-                        let call_type = Arc::new(CallType::Fct(
-                            fct_id,
-                            TypeParams::empty(),
-                            type_params.clone(),
-                        ));
-                        self.src.map_calls.insert(e.id, call_type.clone());
-
-                        call_type
-                    } else {
-                        self.expr_type = BuiltinType::Error;
-                        return;
-                    }
-                }
-
-                _ => {
-                    let name = self.vm.interner.str(e.path[0]).to_string();
-                    let msg = Msg::ClassExpected(name);
-                    self.vm.diag.lock().report_without_path(e.pos, msg);
-
-                    self.expr_type = BuiltinType::Error;
-                    return;
-                }
-            }
-        } else {
-            self.src.map_calls.get(e.id).unwrap().clone()
-        };
-
-        match *call_type {
-            CallType::CtorNew(cls_id, _, _) => {
-                let mut lookup = MethodLookup::new(self.vm)
-                    .pos(e.pos)
-                    .ctor(cls_id)
-                    .args(&call_types)
-                    .cls_type_params(&type_params);
-
-                let ty = if lookup.find() {
-                    let fct_id = lookup.found_fct_id().unwrap();
-                    let cls_id = lookup.found_cls_id().unwrap();
-                    let cls = self.vm.classes.idx(cls_id);
-                    let cls = cls.read();
-
-                    let call_type = CallType::CtorNew(cls_id, fct_id, type_params.clone());
-                    self.src.map_calls.replace(e.id, Arc::new(call_type));
-
-                    if cls.is_abstract {
-                        let msg = Msg::NewAbstractClass;
-                        self.vm.diag.lock().report_without_path(e.pos, msg);
-                    }
-
-                    lookup.found_ret().unwrap()
-                } else {
-                    BuiltinType::Error
-                };
-
-                self.src.set_ty(e.id, ty);
-                self.expr_type = ty;
-            }
-
-            CallType::Fct(callee_id, _, _) => {
-                let mut lookup = MethodLookup::new(self.vm)
-                    .pos(e.pos)
-                    .callee(callee_id)
-                    .args(&call_types)
-                    .fct_type_params(&type_params);
-
-                let ty = if lookup.find() {
-                    let call_type =
-                        CallType::Fct(callee_id, TypeParams::empty(), type_params.clone());
-                    self.src.map_calls.replace(e.id, Arc::new(call_type));
-
-                    lookup.found_ret().unwrap()
-                } else {
-                    BuiltinType::Error
-                };
-
-                self.src.set_ty(e.id, ty);
-                self.expr_type = ty;
-            }
-
-            _ => panic!("invocation of method"),
-        }
-
-        if !in_try {
-            let fct_id = call_type.fct_id();
-            let fct = self.vm.fcts.idx(fct_id);
-            let fct = fct.read();
-            let throws = fct.throws;
-
-            if throws {
-                let msg = Msg::ThrowingCallWithoutTry;
-                self.vm.diag.lock().report_without_path(e.pos, msg);
-            }
-        }
-    }
-
-    fn check_expr_call2(&mut self, e: &'ast ExprCall2Type, in_try: bool) {
         self.used_in_call.insert(e.callee.id());
 
         self.visit_expr(&e.callee);
@@ -1070,7 +881,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_call_expr(
         &mut self,
-        e: &'ast ExprCall2Type,
+        e: &'ast ExprCallType,
         expr_type: BuiltinType,
         arg_types: &[BuiltinType],
         _in_try: bool,
@@ -1101,7 +912,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_call_ident(
         &mut self,
-        e: &'ast ExprCall2Type,
+        e: &'ast ExprCallType,
         fct_id: FctId,
         type_params: TypeParams,
         arg_types: &[BuiltinType],
@@ -1139,7 +950,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_call_static_method(
         &mut self,
-        e: &'ast ExprCall2Type,
+        e: &'ast ExprCallType,
         object_type: BuiltinType,
         method_name: Name,
         type_params: TypeParams,
@@ -1188,7 +999,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_call_method(
         &mut self,
-        e: &'ast ExprCall2Type,
+        e: &'ast ExprCallType,
         object_type: BuiltinType,
         method_name: Name,
         type_params: TypeParams,
@@ -1237,7 +1048,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_call_ctor(
         &mut self,
-        e: &'ast ExprCall2Type,
+        e: &'ast ExprCallType,
         cls_id: ClassId,
         type_params: TypeParams,
         arg_types: &[BuiltinType],
@@ -1277,7 +1088,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_call_generic(
         &mut self,
-        e: &'ast ExprCall2Type,
+        e: &'ast ExprCallType,
         object_type: BuiltinType,
         name: Name,
         arg_types: &[BuiltinType],
@@ -1316,7 +1127,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_call_generic_type_param(
         &mut self,
-        e: &'ast ExprCall2Type,
+        e: &'ast ExprCallType,
         object_type: BuiltinType,
         tp: &vm::TypeParam,
         name: Name,
@@ -1371,7 +1182,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_call_path(
         &mut self,
-        e: &'ast ExprCall2Type,
+        e: &'ast ExprCallType,
         type_params: TypeParams,
         arg_types: &[BuiltinType],
     ) {
@@ -1514,74 +1325,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.vm.diag.lock().report_without_path(pos, msg);
 
         BuiltinType::Error
-    }
-
-    fn check_generic_method_call(
-        &mut self,
-        e: &'ast ExprCallType,
-        in_try: bool,
-        obj: BuiltinType,
-        args: &[BuiltinType],
-    ) {
-        match obj {
-            BuiltinType::FctTypeParam(_, tpid) => {
-                let tp = &self.fct.type_params[tpid.idx()];
-                self.check_generic_method_call_for_type_param(e, in_try, obj, args, tp);
-            }
-
-            BuiltinType::ClassTypeParam(cls_id, tpid) => {
-                let cls = self.vm.classes.idx(cls_id);
-                let cls = cls.read();
-                let tp = &cls.type_params[tpid.idx()];
-                self.check_generic_method_call_for_type_param(e, in_try, obj, args, tp);
-            }
-
-            _ => unreachable!(),
-        }
-    }
-
-    fn check_generic_method_call_for_type_param(
-        &mut self,
-        e: &'ast ExprCallType,
-        in_try: bool,
-        obj: BuiltinType,
-        args: &[BuiltinType],
-        tp: &vm::TypeParam,
-    ) {
-        for &trait_id in &tp.trait_bounds {
-            let trai = self.vm.traits[trait_id].read();
-
-            if let Some(fid) = trai.find_method(self.vm, false, e.path.name(), None, args) {
-                let call_type = CallType::Method(obj, fid, TypeParams::empty());
-                self.src.map_calls.insert(e.id, Arc::new(call_type));
-
-                let fct = self.vm.fcts.idx(fid);
-                let fct = fct.read();
-                let return_type = fct.return_type;
-
-                if fct.throws && !in_try {
-                    let msg = Msg::ThrowingCallWithoutTry;
-                    self.vm.diag.lock().report_without_path(e.pos, msg);
-                }
-
-                self.src.set_ty(e.id, return_type);
-                self.expr_type = return_type;
-                return;
-            }
-        }
-
-        let type_name = obj.name(self.vm);
-        let name = self.vm.interner.str(e.path.name()).to_string();
-        let param_names = args
-            .iter()
-            .map(|a| a.name(self.vm))
-            .collect::<Vec<String>>();
-        let msg = Msg::UnknownMethod(type_name, name, param_names);
-
-        self.vm.diag.lock().report_without_path(e.pos, msg);
-
-        self.src.set_ty(e.id, BuiltinType::Unit);
-        self.expr_type = BuiltinType::Unit;
     }
 
     fn check_expr_path(&mut self, e: &'ast ExprPathType) {
@@ -1768,11 +1511,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let expr_type;
 
         match *e.expr {
-            ExprCall2(ref call) => {
-                self.check_expr_call2(call, true);
-                expr_type = self.expr_type;
-            }
-
             ExprCall(ref call) => {
                 self.check_expr_call(call, true);
                 expr_type = self.expr_type;
@@ -1977,7 +1715,6 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprUn(ref expr) => self.check_expr_un(expr),
             ExprBin(ref expr) => self.check_expr_bin(expr),
             ExprCall(ref expr) => self.check_expr_call(expr, false),
-            ExprCall2(ref expr) => self.check_expr_call2(expr, false),
             ExprTypeParam(ref expr) => self.check_expr_type_param(expr),
             ExprPath(ref expr) => self.check_expr_path(expr),
             ExprDelegation(ref expr) => self.check_expr_delegation(expr),
@@ -3535,7 +3272,7 @@ mod tests {
     #[test]
     fn super_method_call() {
         ok("@open class A { @open fun f() -> Int { return 1; } }
-            class B: A { @new_call @override fun f() -> Int { return super.f() + 1; } }");
+            class B: A { @override fun f() -> Int { return super.f() + 1; } }");
     }
 
     #[test]
@@ -4293,19 +4030,19 @@ mod tests {
 
     #[test]
     fn test_new_call_fct() {
-        ok("fun g() {} @new_call fun f() { g(); }");
+        ok("fun g() {} fun f() { g(); }");
     }
 
     #[test]
     fn test_new_call_fct_throws() {
-        ok("fun g() throws {} @new_call fun f() { try g(); }");
+        ok("fun g() throws {} fun f() { try g(); }");
     }
 
     #[test]
     fn test_new_call_fct_without_try() {
         err(
-            "fun g() throws {} @new_call fun f() { g(); }",
-            pos(1, 40),
+            "fun g() throws {} fun f() { g(); }",
+            pos(1, 30),
             Msg::ThrowingCallWithoutTry,
         );
     }
@@ -4313,22 +4050,22 @@ mod tests {
     #[test]
     fn test_new_call_fct_wrong_params() {
         err(
-            "fun g() {} @new_call fun f() { g(1); }",
-            pos(1, 33),
+            "fun g() {} fun f() { g(1); }",
+            pos(1, 23),
             Msg::ParamTypesIncompatible("g".into(), Vec::new(), vec!["Int".into()]),
         );
     }
 
     #[test]
     fn test_new_call_fct_with_type_params() {
-        ok("fun g[T]() {} @new_call fun f() { g[Int](); }");
+        ok("fun g[T]() {} fun f() { g[Int](); }");
     }
 
     #[test]
     fn test_new_call_fct_with_wrong_type_params() {
         err(
-            "fun g() {} @new_call fun f() { g[Int](); }",
-            pos(1, 38),
+            "fun g() {} fun f() { g[Int](); }",
+            pos(1, 28),
             Msg::WrongNumberTypeParams(0, 1),
         );
     }
@@ -4336,15 +4073,15 @@ mod tests {
     #[test]
     fn test_new_call_static_method() {
         ok("class Foo { @static fun bar() {} }
-            @new_call fun f() { Foo::bar(); }");
+            fun f() { Foo::bar(); }");
     }
 
     #[test]
     fn test_new_call_static_method_wrong_params() {
         err(
             "class Foo { @static fun bar() {} }
-            @new_call fun f() { Foo::bar(1); }",
-            pos(2, 41),
+            fun f() { Foo::bar(1); }",
+            pos(2, 31),
             Msg::ParamTypesIncompatible("bar".into(), Vec::new(), vec!["Int".into()]),
         );
     }
@@ -4352,33 +4089,33 @@ mod tests {
     #[test]
     fn test_new_call_static_method_type_params() {
         ok("class Foo { @static fun bar[T]() {} }
-            @new_call fun f() { Foo::bar[Int](); }");
+            fun f() { Foo::bar[Int](); }");
     }
 
     #[test]
     fn test_new_call_class() {
-        ok("class X @new_call fun f() { X(); }");
+        ok("class X fun f() { X(); }");
     }
 
     #[test]
     fn test_new_call_class_wrong_params() {
         err(
-            "class X @new_call fun f() { X(1); }",
-            pos(1, 30),
+            "class X fun f() { X(1); }",
+            pos(1, 20),
             Msg::UnknownCtor("X".into(), vec!["Int".into()]),
         );
     }
 
     #[test]
     fn test_new_call_class_with_type_params() {
-        ok("class X[T] @new_call fun f() { X[Int](); }");
+        ok("class X[T] fun f() { X[Int](); }");
     }
 
     #[test]
     fn test_new_call_class_with_wrong_type_params() {
         err(
-            "class X @new_call fun f() { X[Int](); }",
-            pos(1, 35),
+            "class X fun f() { X[Int](); }",
+            pos(1, 25),
             Msg::WrongNumberTypeParams(0, 1),
         );
     }
@@ -4386,20 +4123,20 @@ mod tests {
     #[test]
     fn test_new_call_method() {
         ok("class X { fun f() {} }
-            @new_call fun f(x: X) { x.f(); }");
+            fun f(x: X) { x.f(); }");
     }
 
     #[test]
     fn test_new_call_method_type_param() {
         ok("class X { fun f[T]() {} }
-            @new_call fun f(x: X) { x.f[Int](); }");
+            fun f(x: X) { x.f[Int](); }");
     }
 
     #[test]
     fn test_new_call_method_wrong_params() {
         err(
-            "class X { fun f() {} } @new_call fun f(x: X) { x.f(1); }",
-            pos(1, 51),
+            "class X { fun f() {} } fun f(x: X) { x.f(1); }",
+            pos(1, 41),
             Msg::ParamTypesIncompatible("f".into(), Vec::new(), vec!["Int".into()]),
         );
     }
@@ -4407,22 +4144,22 @@ mod tests {
     #[test]
     fn test_new_call_method_without_try() {
         err(
-            "class X { fun f() throws {} } @new_call fun f(x: X) { x.f(); }",
-            pos(1, 58),
+            "class X { fun f() throws {} } fun f(x: X) { x.f(); }",
+            pos(1, 48),
             Msg::ThrowingCallWithoutTry,
         );
     }
 
     #[test]
     fn test_new_call_method_generic() {
-        ok("@new_call fun f[T: Hash](t: T) { t.hash(); }");
+        ok("fun f[T: Hash](t: T) { t.hash(); }");
     }
 
     #[test]
     fn test_new_call_method_generic_error() {
         err(
-            "@new_call fun f[T](t: T) { t.hash(); }",
-            pos(1, 34),
+            "fun f[T](t: T) { t.hash(); }",
+            pos(1, 24),
             Msg::UnknownMethodForTypeParam("T".into(), "hash".into(), Vec::new()),
         );
     }
@@ -4433,27 +4170,27 @@ mod tests {
             "
             trait TraitA { fun id(); }
             trait TraitB { fun id(); }
-            @new_call fun f[T: TraitA + TraitB](t: T) { t.id(); }",
-            pos(4, 61),
+            fun f[T: TraitA + TraitB](t: T) { t.id(); }",
+            pos(4, 51),
             Msg::MultipleCandidatesForTypeParam("T".into(), "id".into(), Vec::new()),
         );
     }
 
     #[test]
     fn test_array_syntax_get() {
-        ok("@new_call fun f(t: Array[Int]) -> Int { return t(0); }");
+        ok("fun f(t: Array[Int]) -> Int { return t(0); }");
     }
 
     #[test]
     fn test_array_syntax_set() {
-        ok("@new_call fun f(t: Array[Int]){ t(0) = 10; }");
+        ok("fun f(t: Array[Int]){ t(0) = 10; }");
     }
 
     #[test]
     fn test_array_syntax_set_wrong_value() {
         err(
-            "@new_call fun f(t: Array[Int]){ t(0) = true; }",
-            pos(1, 38),
+            "fun f(t: Array[Int]){ t(0) = true; }",
+            pos(1, 28),
             Msg::UnknownMethod(
                 "Array[Int]".into(),
                 "set".into(),
@@ -4465,8 +4202,8 @@ mod tests {
     #[test]
     fn test_array_syntax_set_wrong_index() {
         err(
-            "@new_call fun f(t: Array[Int]){ t(\"bla\") = 9; }",
-            pos(1, 42),
+            "fun f(t: Array[Int]){ t(\"bla\") = 9; }",
+            pos(1, 32),
             Msg::UnknownMethod(
                 "Array[Int]".into(),
                 "set".into(),

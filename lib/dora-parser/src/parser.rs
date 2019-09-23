@@ -86,10 +86,7 @@ impl<'a> Parser<'a> {
 
         match self.token.kind {
             TokenKind::Fun => {
-                self.restrict_modifiers(
-                    &modifiers,
-                    &[Modifier::Internal, Modifier::Optimize, Modifier::NewCall],
-                )?;
+                self.restrict_modifiers(&modifiers, &[Modifier::Internal, Modifier::Optimize])?;
                 let fct = self.parse_function(&modifiers)?;
                 elements.push(ElemFunction(fct));
             }
@@ -456,7 +453,6 @@ impl<'a> Parser<'a> {
                         Modifier::Final,
                         Modifier::Pub,
                         Modifier::Static,
-                        Modifier::NewCall,
                     ];
                     self.restrict_modifiers(&modifiers, mods)?;
 
@@ -499,7 +495,6 @@ impl<'a> Parser<'a> {
                 "pub" => Modifier::Pub,
                 "static" => Modifier::Static,
                 "optimize" => Modifier::Optimize,
-                "new_call" => Modifier::NewCall,
                 _ => {
                     return Err(MsgWithPos::new(
                         self.lexer.path().to_string(),
@@ -1168,7 +1163,7 @@ impl<'a> Parser<'a> {
                     let args =
                         self.parse_comma_list(TokenKind::RParen, |p| p.parse_expression())?;
 
-                    Box::new(Expr::create_call2(
+                    Box::new(Expr::create_call(
                         self.generate_id(),
                         tok.position,
                         left,
@@ -1285,27 +1280,6 @@ impl<'a> Parser<'a> {
             name,
             None,
         )));
-    }
-
-    fn parse_call(
-        &mut self,
-        object: Option<Box<Expr>>,
-        path: Path,
-        type_params: Option<Vec<Type>>,
-    ) -> ExprResult {
-        let pos = self.token.position;
-        self.expect_token(TokenKind::LParen)?;
-
-        let args = self.parse_comma_list(TokenKind::RParen, |p| p.parse_expression())?;
-
-        Ok(Box::new(Expr::create_call(
-            self.generate_id(),
-            pos,
-            path,
-            object,
-            args,
-            type_params,
-        )))
     }
 
     fn parse_parentheses(&mut self) -> ExprResult {
@@ -2125,7 +2099,7 @@ mod tests {
     fn parse_call_without_params() {
         let (expr, interner) = parse_expr("fname()");
 
-        let call = expr.to_call2().unwrap();
+        let call = expr.to_call().unwrap();
         assert_eq!("fname", *interner.str(call.callee.to_ident().unwrap().name));
         assert_eq!(0, call.args.len());
     }
@@ -2134,7 +2108,7 @@ mod tests {
     fn parse_call_with_params() {
         let (expr, interner) = parse_expr("fname2(1,2,3)");
 
-        let call = expr.to_call2().unwrap();
+        let call = expr.to_call().unwrap();
         assert_eq!(
             "fname2",
             *interner.str(call.callee.to_ident().unwrap().name)
@@ -2662,25 +2636,25 @@ mod tests {
     #[test]
     fn parse_method_invocation() {
         let (expr, _) = parse_expr("a.foo()");
-        let call = expr.to_call2().unwrap();
+        let call = expr.to_call().unwrap();
         assert!(call.callee.is_dot());
         assert_eq!(0, call.args.len());
 
         let (expr, _) = parse_expr("a.foo(1)");
-        let call = expr.to_call2().unwrap();
+        let call = expr.to_call().unwrap();
         assert!(call.callee.is_dot());
         assert_eq!(1, call.args.len());
 
         let (expr, _) = parse_expr("a.foo(1,2)");
-        let call = expr.to_call2().unwrap();
+        let call = expr.to_call().unwrap();
         assert!(call.callee.is_dot());
         assert_eq!(2, call.args.len());
     }
 
     #[test]
     fn parse_array_index() {
-        let (expr, interner) = parse_expr_new_call("a(b)");
-        let call = expr.to_call2().unwrap();
+        let (expr, interner) = parse_expr("a(b)");
+        let call = expr.to_call().unwrap();
         assert_eq!("a", *interner.str(call.callee.to_ident().unwrap().name));
         assert_eq!(1, call.args.len());
         assert_eq!("b", *interner.str(call.args[0].to_ident().unwrap().name));
@@ -2720,7 +2694,7 @@ mod tests {
         let stmt = parse_stmt("defer foo();");
         let defer = stmt.to_defer().unwrap();
 
-        assert!(defer.expr.is_call2());
+        assert!(defer.expr.is_call());
     }
 
     #[test]
@@ -2853,7 +2827,7 @@ mod tests {
     fn parse_try_function() {
         let (expr, _) = parse_expr("try foo()");
         let r#try = expr.to_try().unwrap();
-        let call = r#try.expr.to_call2().unwrap();
+        let call = r#try.expr.to_call().unwrap();
 
         assert!(r#try.mode.is_normal());
         assert!(call.callee.is_ident());
@@ -2864,7 +2838,7 @@ mod tests {
     fn parse_try_method() {
         let (expr, _) = parse_expr("try obj.foo()");
         let r#try = expr.to_try().unwrap();
-        let call = r#try.expr.to_call2().unwrap();
+        let call = r#try.expr.to_call().unwrap();
 
         assert!(r#try.mode.is_normal());
         assert!(call.callee.is_dot());
@@ -3101,25 +3075,25 @@ mod tests {
     #[test]
     fn parse_fct_call_with_type_param() {
         let (expr, _) = parse_expr("Array[Int]()");
-        let call = expr.to_call2().unwrap();
+        let call = expr.to_call().unwrap();
         let type_params = call.callee.to_type_param().unwrap();
 
         assert_eq!(1, type_params.args.len());
 
         let (expr, _) = parse_expr("Foo[Int, Long]()");
-        let call = expr.to_call2().unwrap();
+        let call = expr.to_call().unwrap();
         let type_params = call.callee.to_type_param().unwrap();
 
         assert_eq!(2, type_params.args.len());
 
         let (expr, _) = parse_expr("Bar[]()");
-        let call = expr.to_call2().unwrap();
+        let call = expr.to_call().unwrap();
         let type_params = call.callee.to_type_param().unwrap();
 
         assert_eq!(0, type_params.args.len());
 
         let (expr, _) = parse_expr("Vec()");
-        let call = expr.to_call2().unwrap();
+        let call = expr.to_call().unwrap();
 
         assert!(call.callee.is_ident());
     }
@@ -3141,7 +3115,7 @@ mod tests {
     #[test]
     fn parse_call_with_path() {
         let (expr, interner) = parse_expr("Foo::get()");
-        let call = expr.to_call2().unwrap();
+        let call = expr.to_call().unwrap();
 
         assert!(call.callee.is_path());
         assert_eq!(0, call.args.len());
@@ -3267,13 +3241,13 @@ mod tests {
 
     #[test]
     fn parse_new_call_ident() {
-        let (expr, _interner) = parse_expr_new_call("i");
+        let (expr, _interner) = parse_expr("i");
         assert!(expr.is_ident());
     }
 
     #[test]
     fn parse_new_call_path() {
-        let (expr, _interner) = parse_expr_new_call("Foo::bar");
+        let (expr, _interner) = parse_expr("Foo::bar");
         let path = expr.to_path().unwrap();
         assert!(path.lhs.is_ident());
         assert!(path.rhs.is_ident());
@@ -3281,25 +3255,9 @@ mod tests {
 
     #[test]
     fn parse_new_call_call() {
-        let (expr, _interner) = parse_expr_new_call("foo(1,2)");
-        let call = expr.to_call2().unwrap();
+        let (expr, _interner) = parse_expr("foo(1,2)");
+        let call = expr.to_call().unwrap();
         assert!(call.callee.is_ident());
         assert_eq!(call.args.len(), 2);
-    }
-
-    fn parse_expr_new_call(code: &'static str) -> (Box<Expr>, Interner) {
-        let id_generator = NodeIdGenerator::new();
-        let mut interner = Interner::new();
-        let mut ast = Ast::new();
-
-        let expr = {
-            let reader = Reader::from_string(code);
-            let mut parser = Parser::new(reader, &id_generator, &mut ast, &mut interner);
-            assert!(parser.init().is_ok(), true);
-
-            parser.parse_expression().unwrap()
-        };
-
-        (expr, interner)
     }
 }

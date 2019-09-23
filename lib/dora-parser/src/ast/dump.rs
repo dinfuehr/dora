@@ -482,7 +482,6 @@ impl<'a> AstDumper<'a> {
             ExprIdent(ref ident) => self.dump_expr_ident(ident),
             ExprAssign(ref assign) => self.dump_expr_assign(assign),
             ExprCall(ref call) => self.dump_expr_call(call),
-            ExprCall2(ref call) => self.dump_expr_call2(call),
             ExprTypeParam(ref expr) => self.dump_expr_type_param(expr),
             ExprPath(ref path) => self.dump_expr_path(path),
             ExprDelegation(ref call) => self.dump_expr_delegation(call),
@@ -623,27 +622,6 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_expr_call(&mut self, expr: &ExprCallType) {
-        dump!(
-            self,
-            "call {} @ {} {}",
-            self.str(expr.path[0]),
-            expr.pos,
-            expr.id
-        );
-
-        self.indent(|d| {
-            if let Some(ref object) = expr.object {
-                dump!(d, "object");
-                d.indent(|d| d.dump_expr(object));
-            }
-
-            for arg in &expr.args {
-                d.dump_expr(arg);
-            }
-        });
-    }
-
-    fn dump_expr_call2(&mut self, expr: &ExprCall2Type) {
         dump!(self, "call @ {} {}", expr.pos, expr.id);
 
         self.indent(|d| {

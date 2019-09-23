@@ -550,7 +550,6 @@ pub enum Modifier {
     Optimize,
     Pub,
     Static,
-    NewCall,
 }
 
 impl Modifier {
@@ -564,7 +563,6 @@ impl Modifier {
             Modifier::Optimize => "optimize",
             Modifier::Pub => "pub",
             Modifier::Static => "static",
-            Modifier::NewCall => "new_call",
         }
     }
 }
@@ -1221,7 +1219,6 @@ pub enum Expr {
     ExprLitStruct(ExprLitStructType),
     ExprIdent(ExprIdentType),
     ExprCall(ExprCallType),
-    ExprCall2(ExprCall2Type),
     ExprTypeParam(ExprTypeParamType),
     ExprPath(ExprPathType),
     ExprDelegation(ExprDelegationType),
@@ -1370,31 +1367,8 @@ impl Expr {
         })
     }
 
-    pub fn create_call(
-        id: NodeId,
-        pos: Position,
-        path: Path,
-        object: Option<Box<Expr>>,
-        args: Vec<Box<Expr>>,
-        type_params: Option<Vec<Type>>,
-    ) -> Expr {
+    pub fn create_call(id: NodeId, pos: Position, callee: Box<Expr>, args: Vec<Box<Expr>>) -> Expr {
         Expr::ExprCall(ExprCallType {
-            id: id,
-            pos: pos,
-            path: path,
-            args: args,
-            object: object,
-            type_params: type_params,
-        })
-    }
-
-    pub fn create_call2(
-        id: NodeId,
-        pos: Position,
-        callee: Box<Expr>,
-        args: Vec<Box<Expr>>,
-    ) -> Expr {
-        Expr::ExprCall2(ExprCall2Type {
             id: id,
             pos: pos,
             callee: callee,
@@ -1539,20 +1513,6 @@ impl Expr {
     pub fn is_call(&self) -> bool {
         match *self {
             Expr::ExprCall(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn to_call2(&self) -> Option<&ExprCall2Type> {
-        match *self {
-            Expr::ExprCall2(ref val) => Some(val),
-            _ => None,
-        }
-    }
-
-    pub fn is_call2(&self) -> bool {
-        match *self {
-            Expr::ExprCall2(_) => true,
             _ => false,
         }
     }
@@ -1780,7 +1740,6 @@ impl Expr {
             Expr::ExprIdent(ref val) => val.pos,
             Expr::ExprAssign(ref val) => val.pos,
             Expr::ExprCall(ref val) => val.pos,
-            Expr::ExprCall2(ref val) => val.pos,
             Expr::ExprTypeParam(ref val) => val.pos,
             Expr::ExprPath(ref val) => val.pos,
             Expr::ExprDelegation(ref val) => val.pos,
@@ -1807,7 +1766,6 @@ impl Expr {
             Expr::ExprIdent(ref val) => val.id,
             Expr::ExprAssign(ref val) => val.id,
             Expr::ExprCall(ref val) => val.id,
-            Expr::ExprCall2(ref val) => val.id,
             Expr::ExprTypeParam(ref val) => val.id,
             Expr::ExprPath(ref val) => val.id,
             Expr::ExprDelegation(ref val) => val.id,
@@ -2056,22 +2014,11 @@ pub struct ExprCallType {
     pub id: NodeId,
     pub pos: Position,
 
-    pub path: Path,
-    pub object: Option<Box<Expr>>,
-    pub args: Vec<Box<Expr>>,
-    pub type_params: Option<Vec<Type>>,
-}
-
-#[derive(Clone, Debug)]
-pub struct ExprCall2Type {
-    pub id: NodeId,
-    pub pos: Position,
-
     pub callee: Box<Expr>,
     pub args: Vec<Box<Expr>>,
 }
 
-impl ExprCall2Type {
+impl ExprCallType {
     pub fn object(&self) -> Option<&Expr> {
         if let Some(type_param) = self.callee.to_type_param() {
             if let Some(dot) = type_param.callee.to_dot() {

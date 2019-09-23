@@ -6,10 +6,10 @@ fun main() {
     assert(array_get(a, 0) == 7);
 }
 
-@new_call fun array_set(a: Array[Int], idx: Int, value: Int) {
+fun array_set(a: Array[Int], idx: Int, value: Int) {
     a(idx) = value;
 }
 
-@new_call fun array_get(a: Array[Int], idx: Int) -> Int {
+fun array_get(a: Array[Int], idx: Int) -> Int {
     return a(idx);
 }

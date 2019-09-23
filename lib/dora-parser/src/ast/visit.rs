@@ -295,22 +295,6 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
         }
 
         ExprCall(ref call) => {
-            if let Some(ref object) = call.object {
-                v.visit_expr(object);
-            }
-
-            if let Some(ref type_params) = call.type_params {
-                for ty in type_params {
-                    v.visit_type(ty);
-                }
-            }
-
-            for arg in &call.args {
-                v.visit_expr(arg);
-            }
-        }
-
-        ExprCall2(ref call) => {
             v.visit_expr(&call.callee);
 
             for arg in &call.args {
