@@ -23,7 +23,6 @@ pub struct Parser<'a> {
     ast: &'a mut Ast,
     param_idx: u32,
     in_class: bool,
-    in_new_call: bool,
     parse_struct_lit: bool,
 }
 
@@ -47,17 +46,11 @@ impl<'a> Parser<'a> {
             interner: interner,
             param_idx: 0,
             in_class: false,
-            in_new_call: true,
             parse_struct_lit: true,
             ast: ast,
         };
 
         parser
-    }
-
-    #[cfg(test)]
-    fn enable_new_call(&mut self) {
-        self.in_new_call = true;
     }
 
     fn generate_id(&mut self) -> NodeId {
@@ -589,8 +582,6 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_function(&mut self, modifiers: &Modifiers) -> Result<Function, MsgWithPos> {
-        self.in_new_call = modifiers.contains(Modifier::NewCall);
-
         let pos = self.expect_token(TokenKind::Fun)?.position;
         let ident = self.expect_identifier()?;
         let type_params = self.parse_type_params()?;
@@ -598,8 +589,6 @@ impl<'a> Parser<'a> {
         let throws = self.parse_throws()?;
         let return_type = self.parse_function_type()?;
         let block = self.parse_function_block()?;
-
-        self.in_new_call = false;
 
         Ok(Function {
             id: self.generate_id(),
@@ -1166,33 +1155,12 @@ impl<'a> Parser<'a> {
                     let tok = self.advance_token()?;
                     let ident = self.expect_identifier()?;
 
-                    if self.in_new_call {
-                        Box::new(Expr::create_dot(
-                            self.generate_id(),
-                            tok.position,
-                            left,
-                            ident,
-                        ))
-                    } else {
-                        let type_params = if self.token.is(TokenKind::LBracket) {
-                            self.advance_token()?;
-                            Some(self.parse_comma_list(TokenKind::RBracket, |p| p.parse_type())?)
-                        } else {
-                            None
-                        };
-
-                        if self.token.is(TokenKind::LParen) {
-                            self.parse_call(Some(left), Path::new(ident), type_params)?
-                        } else {
-                            assert!(type_params.is_none());
-                            Box::new(Expr::create_dot(
-                                self.generate_id(),
-                                tok.position,
-                                left,
-                                ident,
-                            ))
-                        }
-                    }
+                    Box::new(Expr::create_dot(
+                        self.generate_id(),
+                        tok.position,
+                        left,
+                        ident,
+                    ))
                 }
 
                 TokenKind::LParen => {
@@ -1290,7 +1258,7 @@ impl<'a> Parser<'a> {
             TokenKind::LitInt(_, _, _) => self.parse_lit_int(),
             TokenKind::LitFloat(_, _) => self.parse_lit_float(),
             TokenKind::String(_) => self.parse_string(),
-            TokenKind::Identifier(_) => self.parse_identifier_or_call(),
+            TokenKind::Identifier(_) => self.parse_identifier(),
             TokenKind::True => self.parse_bool_literal(),
             TokenKind::False => self.parse_bool_literal(),
             TokenKind::Nil => self.parse_nil(),
@@ -1307,52 +1275,16 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_identifier_or_call(&mut self) -> ExprResult {
-        if self.in_new_call {
-            let pos = self.token.position;
-            let name = self.expect_identifier()?;
-
-            return Ok(Box::new(Expr::create_ident(
-                self.generate_id(),
-                pos,
-                name,
-                None,
-            )));
-        }
-
+    fn parse_identifier(&mut self) -> ExprResult {
         let pos = self.token.position;
-        let mut path = vec![self.expect_identifier()?];
-        let mut type_params = None;
+        let name = self.expect_identifier()?;
 
-        while self.token.is(TokenKind::Sep) {
-            self.advance_token()?;
-
-            let ident = self.expect_identifier()?;
-            path.push(ident);
-        }
-
-        if self.token.is(TokenKind::LBracket) {
-            self.advance_token()?;
-
-            let params = self.parse_comma_list(TokenKind::RBracket, |p| p.parse_type())?;
-            type_params = Some(params);
-        }
-
-        // is this a function call?
-        if self.token.is(TokenKind::LParen) {
-            self.parse_call(None, Path { path: path }, type_params)
-
-        // if not we have a simple identifier
-        } else {
-            assert_eq!(1, path.len());
-            let name = path[0];
-            Ok(Box::new(Expr::create_ident(
-                self.generate_id(),
-                pos,
-                name,
-                type_params,
-            )))
-        }
+        return Ok(Box::new(Expr::create_ident(
+            self.generate_id(),
+            pos,
+            name,
+            None,
+        )));
     }
 
     fn parse_call(
@@ -3363,7 +3295,6 @@ mod tests {
         let expr = {
             let reader = Reader::from_string(code);
             let mut parser = Parser::new(reader, &id_generator, &mut ast, &mut interner);
-            parser.enable_new_call();
             assert!(parser.init().is_ok(), true);
 
             parser.parse_expression().unwrap()
