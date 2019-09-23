@@ -7,7 +7,7 @@ use winapi::winnt::CONTEXT;
 
 pub fn read_execstate(uc: *const u8) -> ExecState {
     unsafe {
-        let mut es: ExecState = std::mem::uninitialized();
+        let mut es: ExecState = Default::default();
 
         let uc = uc as *const CONTEXT;
         let uc = &(*uc);

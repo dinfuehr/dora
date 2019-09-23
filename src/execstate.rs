@@ -1,6 +1,7 @@
 use crate::cpu::REG_COUNT;
 use std::fmt;
 
+#[derive(Default)]
 pub struct ExecState {
     pub pc: usize,
     pub sp: usize,

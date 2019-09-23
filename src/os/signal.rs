@@ -1,5 +1,6 @@
 use libc;
 use std;
+use std::mem::MaybeUninit;
 
 use crate::baseline::map::CodeDescriptor;
 use crate::exception::stacktrace_from_es;
@@ -14,7 +15,7 @@ use winapi::winnt::EXCEPTION_POINTERS;
 #[cfg(target_family = "unix")]
 pub fn register_signals() {
     unsafe {
-        let mut sa: libc::sigaction = std::mem::uninitialized();
+        let mut sa: libc::sigaction = MaybeUninit::zeroed().assume_init();
 
         sa.sa_sigaction = handler as usize;
         libc::sigemptyset(&mut sa.sa_mask as *mut libc::sigset_t);
@@ -43,7 +44,7 @@ pub fn register_signals() {
 #[cfg(target_family = "unix")]
 pub fn unregister_signals() {
     unsafe {
-        let mut sa: libc::sigaction = std::mem::uninitialized();
+        let mut sa: libc::sigaction = MaybeUninit::zeroed().assume_init();
 
         sa.sa_sigaction = libc::SIG_DFL;
         libc::sigemptyset(&mut sa.sa_mask as *mut libc::sigset_t);

@@ -6,7 +6,7 @@ use crate::execstate::ExecState;
 use crate::os::signal::Trap;
 
 pub fn read_execstate(uc: *const u8) -> ExecState {
-    let mut es: ExecState = unsafe { std::mem::uninitialized() };
+    let mut es: ExecState = Default::default();
 
     unsafe {
         let uc = uc as *mut ucontext_t;

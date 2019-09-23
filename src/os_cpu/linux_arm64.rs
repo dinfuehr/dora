@@ -5,7 +5,7 @@ use execstate::ExecState;
 use os::signal::Trap;
 
 pub fn read_execstate(uc: *const u8) -> ExecState {
-    let mut es: ExecState = unsafe { std::mem::uninitialized() };
+    let mut es: ExecState = Default::default();
 
     let uc = uc as *mut ucontext_t;
     let mc = unsafe { &(*uc).uc_mcontext };
