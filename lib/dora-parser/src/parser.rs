@@ -1182,12 +1182,7 @@ impl<'a> Parser<'a> {
                         };
 
                         if self.token.is(TokenKind::LParen) {
-                            self.parse_call(
-                                tok.position,
-                                Some(left),
-                                Path::new(ident),
-                                type_params,
-                            )?
+                            self.parse_call(Some(left), Path::new(ident), type_params)?
                         } else {
                             assert!(type_params.is_none());
                             Box::new(Expr::create_dot(
@@ -1345,7 +1340,7 @@ impl<'a> Parser<'a> {
 
         // is this a function call?
         if self.token.is(TokenKind::LParen) {
-            self.parse_call(pos, None, Path { path: path }, type_params)
+            self.parse_call(None, Path { path: path }, type_params)
 
         // if not we have a simple identifier
         } else {
@@ -1362,11 +1357,11 @@ impl<'a> Parser<'a> {
 
     fn parse_call(
         &mut self,
-        pos: Position,
         object: Option<Box<Expr>>,
         path: Path,
         type_params: Option<Vec<Type>>,
     ) -> ExprResult {
+        let pos = self.token.position;
         self.expect_token(TokenKind::LParen)?;
 
         let args = self.parse_comma_list(TokenKind::RParen, |p| p.parse_expression())?;

@@ -2940,14 +2940,14 @@ mod tests {
              }
 
              fun f(x: Foo) { x.bar(); }",
-            pos(5, 31),
+            pos(5, 35),
             Msg::ParamTypesIncompatible("bar".into(), vec!["Int".into()], Vec::new()),
         );
 
         err(
             "class Foo { }
               fun f(x: Foo) { x.bar(1); }",
-            pos(2, 32),
+            pos(2, 36),
             Msg::UnknownMethod("Foo".into(), "bar".into(), vec!["Int".into()]),
         );
     }
@@ -3182,17 +3182,17 @@ mod tests {
 
         err(
             "fun foo() {}\nfun f() { foo(1); }",
-            pos(2, 11),
+            pos(2, 14),
             Msg::ParamTypesIncompatible("foo".into(), vec![], vec!["Int".into()]),
         );
         err(
             "fun foo(a: Int) {}\nfun f() { foo(true); }",
-            pos(2, 11),
+            pos(2, 14),
             Msg::ParamTypesIncompatible("foo".into(), vec!["Int".into()], vec!["Bool".into()]),
         );
         err(
             "fun foo(a: Int, b: Bool) {}\nfun f() { foo(1, 2); }",
-            pos(2, 11),
+            pos(2, 14),
             Msg::ParamTypesIncompatible(
                 "foo".into(),
                 vec!["Int".into(), "Bool".into()],
@@ -3217,7 +3217,7 @@ mod tests {
         ok("fun foo(a: String) {} fun test() { foo(nil); }");
         err(
             "fun foo(a: Int) {} fun test() { foo(nil); }",
-            pos(1, 33),
+            pos(1, 36),
             Msg::ParamTypesIncompatible("foo".into(), vec!["Int".into()], vec!["nil".into()]),
         );
     }
@@ -3227,7 +3227,7 @@ mod tests {
         ok("class Foo(let a: String) fun test() { Foo(nil); }");
         err(
             "class Foo(let a: Int) fun test() { Foo(nil); }",
-            pos(1, 36),
+            pos(1, 39),
             Msg::UnknownCtor("Foo".into(), vec!["nil".into()]),
         );
     }
@@ -3256,7 +3256,7 @@ mod tests {
     fn type_nil_method() {
         err(
             "fun f() { nil.test(); }",
-            pos(1, 14),
+            pos(1, 19),
             Msg::UnknownMethod("nil".into(), "test".into(), Vec::new()),
         );
     }
@@ -3287,7 +3287,7 @@ mod tests {
         );
         err(
             "fun f(a: Array[Int]) { a.set(3, \"b\"); }",
-            pos(1, 25),
+            pos(1, 29),
             Msg::ParamTypesIncompatible(
                 "set".into(),
                 vec!["Int".into(), "T".into()],
@@ -3315,7 +3315,7 @@ mod tests {
 
         err(
             "fun foo(a: Int) {} fun f() { defer foo();}",
-            pos(1, 36),
+            pos(1, 39),
             Msg::ParamTypesIncompatible("foo".into(), vec!["Int".into()], vec![]),
         );
 
@@ -3558,7 +3558,7 @@ mod tests {
     fn throws_fct_without_try() {
         err(
             "fun one() throws -> Int { return 1; } fun me() -> Int { return one(); }",
-            pos(1, 64),
+            pos(1, 67),
             Msg::ThrowingCallWithoutTry,
         );
     }
@@ -3584,7 +3584,7 @@ mod tests {
         err(
             "class Foo { fun one() throws -> Int { return 1; } }
              fun me() -> Int { return Foo().one(); }",
-            pos(2, 44),
+            pos(2, 48),
             Msg::ThrowingCallWithoutTry,
         );
     }
@@ -3847,7 +3847,7 @@ mod tests {
             fun foo() {
                 let a = A[Int, Int]();
             }",
-            pos(3, 25),
+            pos(3, 36),
             Msg::WrongNumberTypeParams(1, 2),
         );
 
@@ -3856,7 +3856,7 @@ mod tests {
             fun foo() {
                 let a = A();
             }",
-            pos(3, 25),
+            pos(3, 26),
             Msg::WrongNumberTypeParams(1, 0),
         );
 
@@ -3865,7 +3865,7 @@ mod tests {
             fun foo() {
                 let a = A[Int]();
             }",
-            pos(3, 25),
+            pos(3, 31),
             Msg::WrongNumberTypeParams(0, 1),
         );
     }
@@ -3877,7 +3877,7 @@ mod tests {
                 @static fun foo() {}
                 fun test() { self.foo(); }
             }",
-            pos(3, 34),
+            pos(3, 38),
             Msg::UnknownMethod("A".into(), "foo".into(), vec![]),
         );
     }
@@ -3889,7 +3889,7 @@ mod tests {
                 fun foo() {}
                 @static fun test() { A::foo(); }
             }",
-            pos(3, 38),
+            pos(3, 44),
             Msg::UnknownStaticMethod("A".into(), "foo".into(), vec![]),
         );
     }
@@ -3898,12 +3898,12 @@ mod tests {
     fn test_fct_with_type_params() {
         err(
             "fun f() {} fun g() { f[Int](); }",
-            pos(1, 22),
+            pos(1, 28),
             Msg::WrongNumberTypeParams(0, 1),
         );
         err(
             "fun f[T]() {} fun g() { f(); }",
-            pos(1, 25),
+            pos(1, 26),
             Msg::WrongNumberTypeParams(1, 0),
         );
         ok("fun f[T]() {} fun g() { f[Int](); }");
@@ -4028,7 +4028,7 @@ mod tests {
             "class Foo
             fun f[T: Foo]() {}
             fun t() { f[Int](); }",
-            pos(3, 23),
+            pos(3, 29),
             Msg::ClassBoundNotSatisfied("Int".into(), "Foo".into()),
         );
     }
@@ -4054,7 +4054,7 @@ mod tests {
             "trait Foo {}
             fun f[T: Foo]() {}
             fun t() { f[Int](); }",
-            pos(3, 23),
+            pos(3, 29),
             Msg::TraitBoundNotSatisfied("Int".into(), "Foo".into()),
         );
     }
@@ -4082,7 +4082,7 @@ mod tests {
             trait Foo { fun foo(a: Int); }
             impl Foo for A { fun foo(a:  Int) {} }
             fun test(a: A) { a.foo(1); }",
-            pos(4, 31),
+            pos(4, 35),
             Msg::ParamTypesIncompatible("foo".into(), Vec::new(), vec!["Int".into()]),
         );
 
@@ -4097,7 +4097,7 @@ mod tests {
         err(
             "@abstract class A
             fun test() -> A { return A(); }",
-            pos(2, 38),
+            pos(2, 39),
             Msg::NewAbstractClass,
         );
     }
@@ -4142,7 +4142,7 @@ mod tests {
             impl Y for A { fun f() {} }
 
             fun g(a: A) { a.f(); }",
-            pos(8, 28),
+            pos(8, 30),
             Msg::MultipleCandidatesForMethod("A".into(), "f".into(), Vec::new()),
         );
     }
@@ -4159,7 +4159,7 @@ mod tests {
         err(
             "trait Foo { fun bar() throws; }
             fun f[T: Foo](t: T) { t.bar(); }",
-            pos(2, 36),
+            pos(2, 40),
             Msg::ThrowingCallWithoutTry,
         );
         err(
@@ -4167,7 +4167,7 @@ mod tests {
             class A[T: Foo](let t: T) {
                 fun baz() { self.t.bar(); }
             }",
-            pos(3, 35),
+            pos(3, 39),
             Msg::ThrowingCallWithoutTry,
         );
 
@@ -4192,7 +4192,7 @@ mod tests {
         err(
             "class Foo[A, B]()
             fun test() { Foo(); }",
-            pos(2, 26),
+            pos(2, 29),
             Msg::WrongNumberTypeParams(2, 0),
         );
     }
@@ -4202,7 +4202,7 @@ mod tests {
         err(
             "fun f[X: Comparable](x: X) {}
             fun g[T](t: T) { f[T](t); }",
-            pos(2, 30),
+            pos(2, 34),
             Msg::TraitBoundNotSatisfied("T".into(), "Comparable".into()),
         );
     }
@@ -4219,7 +4219,7 @@ mod tests {
             "
             class Foo() { fun makeIterator() -> Bool { return true; } }
             fun f() { for i in Foo() {} }",
-            pos(3, 32),
+            pos(3, 35),
             Msg::MakeIteratorReturnType("Bool".into()),
         );
 
@@ -4246,7 +4246,7 @@ mod tests {
 
             class Bar[T](a: T)
             ",
-            pos(4, 21),
+            pos(4, 27),
             Msg::UnknownCtor("Bar".into(), vec!["Int".into()]),
         );
     }

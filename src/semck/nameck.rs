@@ -438,7 +438,7 @@ mod tests {
         ok("fun f() { let f = 1; }");
         err(
             "fun f() { let f = 1; f(); }",
-            pos(1, 22),
+            pos(1, 23),
             Msg::UnknownFunction("f".into()),
         );
     }
@@ -480,7 +480,7 @@ mod tests {
     fn undefined_function() {
         err(
             "fun f() { foo(); }",
-            pos(1, 11),
+            pos(1, 14),
             Msg::UnknownFunction("foo".into()),
         );
     }
