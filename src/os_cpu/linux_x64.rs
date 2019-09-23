@@ -1,5 +1,4 @@
 use libc::SIGSEGV;
-use std;
 
 use crate::cpu;
 use crate::execstate::ExecState;
