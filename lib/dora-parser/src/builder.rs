@@ -1,7 +1,7 @@
 use crate::ast::*;
 
 use crate::interner::*;
-use crate::lexer::position::Position;
+use crate::lexer::position::{Position, Span};
 
 use crate::parser::NodeIdGenerator;
 
@@ -30,6 +30,7 @@ impl<'a> Builder<'a> {
         Box::new(Expr::ExprSelf(ExprSelfType {
             id: id,
             pos: Position::new(1, 1),
+            span: Span::invalid(),
         }))
     }
 
@@ -39,6 +40,8 @@ impl<'a> Builder<'a> {
         Box::new(Expr::ExprAssign(ExprAssignType {
             id: id,
             pos: Position::new(1, 1),
+            span: Span::invalid(),
+
             lhs: lhs,
             rhs: rhs,
         }))
@@ -50,6 +53,8 @@ impl<'a> Builder<'a> {
         Box::new(Expr::ExprDot(ExprDotType {
             id: id,
             pos: Position::new(1, 1),
+            span: Span::invalid(),
+
             object: object,
             name: name,
         }))
@@ -61,6 +66,8 @@ impl<'a> Builder<'a> {
         Box::new(Expr::ExprIdent(ExprIdentType {
             id: id,
             pos: Position::new(1, 1),
+            span: Span::invalid(),
+
             name: name,
             type_params: None,
         }))

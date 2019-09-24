@@ -3,7 +3,7 @@ use std::slice::Iter;
 
 use crate::ast::Elem::*;
 use crate::interner::{Interner, Name};
-use crate::lexer::position::Position;
+use crate::lexer::position::{Position, Span};
 use crate::lexer::token::{FloatSuffix, IntBase, IntSuffix};
 
 pub mod dump;
@@ -1235,6 +1235,8 @@ impl Expr {
         Expr::ExprUn(ExprUnType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             op: op,
             opnd: opnd,
         })
@@ -1244,6 +1246,8 @@ impl Expr {
         Expr::ExprTry(ExprTryType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             expr: expr,
             mode: mode,
         })
@@ -1259,6 +1263,8 @@ impl Expr {
         Expr::ExprBin(ExprBinType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             op: op,
             lhs: lhs,
             rhs: rhs,
@@ -1275,6 +1281,8 @@ impl Expr {
         Expr::ExprConv(ExprConvType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             object: object,
             data_type: data_type,
             is: is,
@@ -1285,6 +1293,8 @@ impl Expr {
         Expr::ExprLitChar(ExprLitCharType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             value: value,
         })
     }
@@ -1299,6 +1309,8 @@ impl Expr {
         Expr::ExprLitInt(ExprLitIntType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             value: value,
             base: base,
             suffix: suffix,
@@ -1309,6 +1321,8 @@ impl Expr {
         Expr::ExprLitFloat(ExprLitFloatType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             value: value,
             suffix: suffix,
         })
@@ -1318,6 +1332,8 @@ impl Expr {
         Expr::ExprLitStr(ExprLitStrType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             value: value,
         })
     }
@@ -1326,20 +1342,34 @@ impl Expr {
         Expr::ExprLitBool(ExprLitBoolType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             value: value,
         })
     }
 
     pub fn create_this(id: NodeId, pos: Position) -> Expr {
-        Expr::ExprSelf(ExprSelfType { id: id, pos: pos })
+        Expr::ExprSelf(ExprSelfType {
+            id: id,
+            pos: pos,
+            span: Span::invalid(),
+        })
     }
 
     pub fn create_super(id: NodeId, pos: Position) -> Expr {
-        Expr::ExprSuper(ExprSuperType { id: id, pos: pos })
+        Expr::ExprSuper(ExprSuperType {
+            id: id,
+            pos: pos,
+            span: Span::invalid(),
+        })
     }
 
     pub fn create_nil(id: NodeId, pos: Position) -> Expr {
-        Expr::ExprNil(ExprNilType { id: id, pos: pos })
+        Expr::ExprNil(ExprNilType {
+            id: id,
+            pos: pos,
+            span: Span::invalid(),
+        })
     }
 
     pub fn create_ident(
@@ -1351,6 +1381,8 @@ impl Expr {
         Expr::ExprIdent(ExprIdentType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             name: name,
             type_params: type_params,
         })
@@ -1360,6 +1392,8 @@ impl Expr {
         Expr::ExprCall(ExprCallType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             callee: callee,
             args: args,
         })
@@ -1374,6 +1408,8 @@ impl Expr {
         Expr::ExprTypeParam(ExprTypeParamType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             callee: callee,
             args: args,
         })
@@ -1383,6 +1419,8 @@ impl Expr {
         Expr::ExprPath(ExprPathType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             lhs: lhs,
             rhs: rhs,
         })
@@ -1397,6 +1435,8 @@ impl Expr {
         Expr::ExprDelegation(ExprDelegationType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             ty: ty,
             args: args,
         })
@@ -1406,6 +1446,8 @@ impl Expr {
         Expr::ExprAssign(ExprAssignType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             lhs: lhs,
             rhs: rhs,
         })
@@ -1415,6 +1457,8 @@ impl Expr {
         Expr::ExprDot(ExprDotType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             object: object,
             name: name,
         })
@@ -1430,6 +1474,8 @@ impl Expr {
         Expr::ExprLambda(ExprLambdaType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             params: params,
             ret: ret,
             block: block,
@@ -1727,6 +1773,31 @@ impl Expr {
         }
     }
 
+    pub fn span(&self) -> Span {
+        match *self {
+            Expr::ExprUn(ref val) => val.span,
+            Expr::ExprBin(ref val) => val.span,
+            Expr::ExprLitChar(ref val) => val.span,
+            Expr::ExprLitInt(ref val) => val.span,
+            Expr::ExprLitFloat(ref val) => val.span,
+            Expr::ExprLitStr(ref val) => val.span,
+            Expr::ExprLitBool(ref val) => val.span,
+            Expr::ExprIdent(ref val) => val.span,
+            Expr::ExprAssign(ref val) => val.span,
+            Expr::ExprCall(ref val) => val.span,
+            Expr::ExprTypeParam(ref val) => val.span,
+            Expr::ExprPath(ref val) => val.span,
+            Expr::ExprDelegation(ref val) => val.span,
+            Expr::ExprDot(ref val) => val.span,
+            Expr::ExprSelf(ref val) => val.span,
+            Expr::ExprSuper(ref val) => val.span,
+            Expr::ExprNil(ref val) => val.span,
+            Expr::ExprConv(ref val) => val.span,
+            Expr::ExprTry(ref val) => val.span,
+            Expr::ExprLambda(ref val) => val.span,
+        }
+    }
+
     pub fn id(&self) -> NodeId {
         match *self {
             Expr::ExprUn(ref val) => val.id,
@@ -1765,6 +1836,8 @@ pub struct StructArg {
 pub struct ExprConvType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
+
     pub object: Box<Expr>,
     pub is: bool,
     pub data_type: Box<Type>,
@@ -1774,6 +1847,8 @@ pub struct ExprConvType {
 pub struct ExprTryType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
+
     pub expr: Box<Expr>,
     pub mode: TryMode,
 }
@@ -1820,6 +1895,8 @@ impl TryMode {
 pub struct ExprDelegationType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
+
     pub ty: DelegationType, // true for this class, false for super class
     pub args: Vec<Box<Expr>>,
 }
@@ -1850,6 +1927,7 @@ impl DelegationType {
 pub struct ExprUnType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
 
     pub op: UnOp,
     pub opnd: Box<Expr>,
@@ -1859,6 +1937,7 @@ pub struct ExprUnType {
 pub struct ExprBinType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
 
     pub op: BinOp,
     pub lhs: Box<Expr>,
@@ -1869,6 +1948,7 @@ pub struct ExprBinType {
 pub struct ExprLitCharType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
 
     pub value: char,
 }
@@ -1877,6 +1957,7 @@ pub struct ExprLitCharType {
 pub struct ExprLitIntType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
 
     pub value: u64,
     pub base: IntBase,
@@ -1887,6 +1968,7 @@ pub struct ExprLitIntType {
 pub struct ExprLitFloatType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
 
     pub value: f64,
     pub suffix: FloatSuffix,
@@ -1896,6 +1978,7 @@ pub struct ExprLitFloatType {
 pub struct ExprLitStrType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
 
     pub value: String,
 }
@@ -1904,6 +1987,7 @@ pub struct ExprLitStrType {
 pub struct ExprLitBoolType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
 
     pub value: bool,
 }
@@ -1912,24 +1996,28 @@ pub struct ExprLitBoolType {
 pub struct ExprSuperType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug)]
 pub struct ExprSelfType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug)]
 pub struct ExprNilType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug)]
 pub struct ExprIdentType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
 
     pub name: Name,
     pub type_params: Option<Vec<Type>>,
@@ -1939,6 +2027,7 @@ pub struct ExprIdentType {
 pub struct ExprLambdaType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
 
     pub params: Vec<Param>,
     pub ret: Option<Box<Type>>,
@@ -1949,6 +2038,7 @@ pub struct ExprLambdaType {
 pub struct ExprCallType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
 
     pub callee: Box<Expr>,
     pub args: Vec<Box<Expr>>,
@@ -1974,6 +2064,7 @@ impl ExprCallType {
 pub struct ExprTypeParamType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
 
     pub callee: Box<Expr>,
     pub args: Vec<Type>,
@@ -1983,6 +2074,7 @@ pub struct ExprTypeParamType {
 pub struct ExprAssignType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
 
     pub lhs: Box<Expr>,
     pub rhs: Box<Expr>,
@@ -1992,6 +2084,7 @@ pub struct ExprAssignType {
 pub struct ExprPathType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
 
     pub lhs: Box<Expr>,
     pub rhs: Box<Expr>,
@@ -2001,6 +2094,7 @@ pub struct ExprPathType {
 pub struct ExprDotType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
 
     pub object: Box<Expr>,
     pub name: Name,

@@ -22,44 +22,41 @@ impl Display for Position {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Span {
     start: Loc,
-    end: Loc,
+    count: u32,
 }
 
 impl Span {
-    fn new(start: u32, end: u32) -> Span {
+    pub fn new(start: u32, count: u32) -> Span {
         Span {
             start: Loc::new(start),
-            end: Loc::new(end),
+            count: count,
         }
     }
 
-    fn at(start: u32) -> Span {
-        Span {
-            start: Loc::new(start),
-            end: Loc::invalid(),
-        }
-    }
-
-    fn invalid() -> Span {
+    pub fn invalid() -> Span {
         Span {
             start: Loc::invalid(),
-            end: Loc::invalid(),
+            count: 0,
         }
     }
 
-    fn start(&self) -> Loc {
-        self.start
+    pub fn start(&self) -> u32 {
+        self.start.idx()
     }
 
-    fn end(&self) -> Loc {
-        self.end
+    pub fn count(&self) -> u32 {
+        self.count
+    }
+
+    pub fn end(&self) -> u32 {
+        self.start.idx() + self.count
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Loc(u32);
 
 impl Loc {
