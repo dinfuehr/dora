@@ -257,15 +257,6 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         }
     }
 
-    fn check_expr_struct(&mut self, struc: &'ast ExprLitStructType) {
-        if let Some(sid) = self.vm.sym.lock().get_struct(struc.path.name()) {
-            self.src.map_idents.insert(struc.id, IdentType::Struct(sid));
-        } else {
-            let name = self.vm.interner.str(struc.path.name()).to_string();
-            report(self.vm, struc.pos, Msg::UnknownStruct(name));
-        }
-    }
-
     fn check_expr_path(&mut self, path: &'ast ExprPathType) {
         self.visit_expr(&path.lhs);
         // do not check right hand site of path
@@ -317,7 +308,6 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
     fn visit_expr(&mut self, e: &'ast Expr) {
         match e {
             &ExprIdent(ref ident) => self.check_expr_ident(ident),
-            &ExprLitStruct(ref lit) => self.check_expr_struct(lit),
             &ExprPath(ref path) => self.check_expr_path(path),
 
             // no need to handle rest of expressions

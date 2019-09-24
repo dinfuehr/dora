@@ -1,5 +1,4 @@
 use std::fmt;
-use std::ops::Index;
 use std::slice::Iter;
 
 use crate::ast::Elem::*;
@@ -1216,7 +1215,6 @@ pub enum Expr {
     ExprLitFloat(ExprLitFloatType),
     ExprLitStr(ExprLitStrType),
     ExprLitBool(ExprLitBoolType),
-    ExprLitStruct(ExprLitStructType),
     ExprIdent(ExprIdentType),
     ExprCall(ExprCallType),
     ExprTypeParam(ExprTypeParamType),
@@ -1329,15 +1327,6 @@ impl Expr {
             id: id,
             pos: pos,
             value: value,
-        })
-    }
-
-    pub fn create_lit_struct(id: NodeId, pos: Position, path: Path, args: Vec<StructArg>) -> Expr {
-        Expr::ExprLitStruct(ExprLitStructType {
-            id: id,
-            pos: pos,
-            path: path,
-            args: args,
         })
     }
 
@@ -1587,20 +1576,6 @@ impl Expr {
         }
     }
 
-    pub fn to_lit_struct(&self) -> Option<&ExprLitStructType> {
-        match *self {
-            Expr::ExprLitStruct(ref val) => Some(val),
-            _ => None,
-        }
-    }
-
-    pub fn is_lit_struct(&self) -> bool {
-        match *self {
-            Expr::ExprLitStruct(_) => true,
-            _ => false,
-        }
-    }
-
     pub fn to_lit_str(&self) -> Option<&ExprLitStrType> {
         match *self {
             Expr::ExprLitStr(ref val) => Some(val),
@@ -1736,7 +1711,6 @@ impl Expr {
             Expr::ExprLitFloat(ref val) => val.pos,
             Expr::ExprLitStr(ref val) => val.pos,
             Expr::ExprLitBool(ref val) => val.pos,
-            Expr::ExprLitStruct(ref val) => val.pos,
             Expr::ExprIdent(ref val) => val.pos,
             Expr::ExprAssign(ref val) => val.pos,
             Expr::ExprCall(ref val) => val.pos,
@@ -1762,7 +1736,6 @@ impl Expr {
             Expr::ExprLitFloat(ref val) => val.id,
             Expr::ExprLitStr(ref val) => val.id,
             Expr::ExprLitBool(ref val) => val.id,
-            Expr::ExprLitStruct(ref val) => val.id,
             Expr::ExprIdent(ref val) => val.id,
             Expr::ExprAssign(ref val) => val.id,
             Expr::ExprCall(ref val) => val.id,
@@ -1778,14 +1751,6 @@ impl Expr {
             Expr::ExprLambda(ref val) => val.id,
         }
     }
-}
-
-#[derive(Clone, Debug)]
-pub struct ExprLitStructType {
-    pub id: NodeId,
-    pub pos: Position,
-    pub path: Path,
-    pub args: Vec<StructArg>,
 }
 
 #[derive(Clone, Debug)]
@@ -1978,35 +1943,6 @@ pub struct ExprLambdaType {
     pub params: Vec<Param>,
     pub ret: Option<Box<Type>>,
     pub block: Box<Stmt>,
-}
-
-#[derive(Clone, Debug)]
-pub struct Path {
-    pub path: Vec<Name>,
-}
-
-impl Path {
-    pub fn new(name: Name) -> Path {
-        Path { path: vec![name] }
-    }
-
-    pub fn name(&self) -> Name {
-        assert_eq!(1, self.path.len());
-
-        self.path[0]
-    }
-
-    pub fn len(&self) -> usize {
-        self.path.len()
-    }
-}
-
-impl Index<usize> for Path {
-    type Output = Name;
-
-    fn index(&self, idx: usize) -> &Name {
-        &self.path[idx]
-    }
 }
 
 #[derive(Clone, Debug)]

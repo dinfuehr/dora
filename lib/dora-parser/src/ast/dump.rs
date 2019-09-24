@@ -477,7 +477,6 @@ impl<'a> AstDumper<'a> {
             ExprLitInt(ref lit) => self.dump_expr_lit_int(lit),
             ExprLitFloat(ref lit) => self.dump_expr_lit_float(lit),
             ExprLitStr(ref lit) => self.dump_expr_lit_str(lit),
-            ExprLitStruct(ref lit) => self.dump_expr_lit_struct(lit),
             ExprLitBool(ref lit) => self.dump_expr_lit_bool(lit),
             ExprIdent(ref ident) => self.dump_expr_ident(ident),
             ExprAssign(ref assign) => self.dump_expr_assign(assign),
@@ -553,23 +552,6 @@ impl<'a> AstDumper<'a> {
 
     fn dump_expr_lit_bool(&mut self, lit: &ExprLitBoolType) {
         dump!(self, "lit bool {} @ {} {}", lit.value, lit.pos, lit.id);
-    }
-
-    fn dump_expr_lit_struct(&mut self, lit: &ExprLitStructType) {
-        dump!(
-            self,
-            "lit struct {} @ {} {}",
-            self.str(lit.path.name()),
-            lit.pos,
-            lit.id
-        );
-
-        self.indent(|d| {
-            for arg in &lit.args {
-                dump!(d, "{}", d.str(arg.name));
-                d.indent(|d| d.dump_expr(&arg.expr));
-            }
-        });
     }
 
     fn dump_expr_ident(&mut self, ident: &ExprIdentType) {

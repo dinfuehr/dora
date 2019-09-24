@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::{f32, f64};
 
@@ -1628,54 +1628,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.expr_type = if e.is { BuiltinType::Bool } else { check_type };
     }
 
-    fn check_expr_lit_struct(&mut self, e: &'ast ExprLitStructType) {
-        let sid = self.src.map_idents.get(e.id).unwrap().struct_id();
-        let struc = self.vm.structs.idx(sid);
-        let struc = struc.lock();
-
-        let mut initialized: HashMap<Name, BuiltinType> = Default::default();
-
-        for arg in &e.args {
-            self.visit_expr(&arg.expr);
-            initialized.insert(arg.name, self.expr_type);
-        }
-
-        let struc_name = self.vm.interner.str(struc.name).to_string();
-
-        for field in &struc.fields {
-            if let Some(&vty) = initialized.get(&field.name) {
-                initialized.remove(&field.name);
-
-                if !field.ty.allows(self.vm, vty) {
-                    let fname = self.vm.interner.str(field.name).to_string();
-                    let fty = field.ty.name(self.vm);
-                    let vty = vty.name(self.vm);
-                    let msg = Msg::AssignField(fname, struc_name.clone(), fty, vty);
-                    self.vm.diag.lock().report_without_path(e.pos, msg);
-                }
-            } else {
-                let fname = self.vm.interner.str(field.name).to_string();
-                self.vm.diag.lock().report_without_path(
-                    e.pos,
-                    Msg::StructFieldNotInitialized(struc_name.clone(), fname),
-                );
-            }
-        }
-
-        for &fname in initialized.keys() {
-            let fname = self.vm.interner.str(fname).to_string();
-            self.vm
-                .diag
-                .lock()
-                .report_without_path(e.pos, Msg::UnknownStructField(struc_name.clone(), fname));
-        }
-
-        let list_id = self.vm.lists.lock().insert(TypeParams::empty());
-        let ty = BuiltinType::Struct(sid, list_id);
-        self.src.set_ty(e.id, ty);
-        self.expr_type = ty;
-    }
-
     fn check_expr_lit_int(&mut self, e: &'ast ExprLitIntType) {
         let (ty, _) = check_lit_int(self.vm, e, self.negative_expr_id);
 
@@ -1709,7 +1661,6 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
                 self.src.set_ty(id, BuiltinType::Bool);
                 self.expr_type = BuiltinType::Bool;
             }
-            ExprLitStruct(ref expr) => self.check_expr_lit_struct(expr),
             ExprIdent(ref expr) => self.check_expr_ident(expr),
             ExprAssign(ref expr) => self.check_expr_assign(expr),
             ExprUn(ref expr) => self.check_expr_un(expr),
