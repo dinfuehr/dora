@@ -5,7 +5,7 @@ fun main() {
     let a = Array[Foo](10_000_000);
     var i = 0;
     while i < a.length() {
-        a.set(i, Foo());
+        a(i) = Foo();
         i = i + 1;
     }
 

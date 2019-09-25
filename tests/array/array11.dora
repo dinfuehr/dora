@@ -5,5 +5,5 @@ fun main() {
 }
 
 fun first(f: Array[Int]) -> Int {
-    return f.get(0);
+    return f(0);
 }

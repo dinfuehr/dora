@@ -1,16 +1,16 @@
 fun main() {
     let x = Array[Int](5);
-    x.set(0, 5);
-    x.set(1, 1);
-    x.set(2, 4);
-    x.set(3, 2);
-    x.set(4, 8);
+    x(0) = 5;
+    x(1) = 1;
+    x(2) = 4;
+    x(3) = 2;
+    x(4) = 8;
 
     bubbleSort[Int](x);
 
-    assert(x.get(0) == 1);
-    assert(x.get(1) == 2);
-    assert(x.get(2) == 4);
-    assert(x.get(3) == 5);
-    assert(x.get(4) == 8);
+    assert(x(0) == 1);
+    assert(x(1) == 2);
+    assert(x(2) == 4);
+    assert(x(3) == 5);
+    assert(x(4) == 8);
 }

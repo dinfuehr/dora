@@ -2,5 +2,5 @@
 
 fun main() {
   let array = arrayEmpty[Int]();
-  array.get(-1);
+  array(-1);
 }

@@ -2,7 +2,7 @@
 
 fun main() {
     let a = Array[Foo](16 * 1024);
-    a.set(16 * 1024 - 1, Foo());
+    a(16 * 1024 - 1) = Foo();
     forceCollect();
 }
 

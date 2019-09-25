@@ -5,20 +5,20 @@ class Foo(let x: Int)
 fun main() {
     let x = Array[Foo](64);
     forceMinorCollect();
-    assert(x.get(0) === nil);
-    assert(x.get(63) === nil);
+    assert(x(0) === nil);
+    assert(x(63) === nil);
 
-    x.set(0, Foo(1));
+    x(0) = Foo(1);
     forceMinorCollect();
-    assert(x.get(0).x == 1);
-    assert(x.get(63) === nil);
+    assert(x(0).x == 1);
+    assert(x(63) === nil);
 
-    x.set(63, Foo(2));
+    x(63) = Foo(2);
     forceMinorCollect();
-    assert(x.get(0).x == 1);
-    assert(x.get(63).x == 2);
+    assert(x(0).x == 1);
+    assert(x(63).x == 2);
 
     forceMinorCollect();
-    assert(x.get(0).x == 1);
-    assert(x.get(63).x == 2);
+    assert(x(0).x == 1);
+    assert(x(63).x == 2);
 }

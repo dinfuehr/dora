@@ -5,7 +5,7 @@ fun main() {
     var i = 0;
 
     while i < primes.length() {
-        println(primes.get(i).toString());
+        println(primes(i).toString());
         i = i + 1;
     }
 }
@@ -20,11 +20,11 @@ fun sieve(limit: Int) -> Vec[Int] {
         var factor = 2;
 
         while factor <= sqrtLimit {
-            if numbers.get(factor) {
+            if numbers(factor) {
                 var multiple = factor * factor;
 
                 while multiple <= limit {
-                    numbers.set(multiple, false);
+                    numbers(multiple) = false;
                     multiple = multiple + factor;
                 }
             }
@@ -35,7 +35,7 @@ fun sieve(limit: Int) -> Vec[Int] {
         var i = 0;
 
         while i <= limit {
-            if i >= 2 && numbers.get(i) {
+            if i >= 2 && numbers(i) {
                 primes.push(i);
             }
 

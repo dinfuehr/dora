@@ -5,11 +5,11 @@ fun main() {
     let b = Array[Foo](61);
     forceMinorCollect();
     forceMinorCollect();
-    // a.set(5, Foo(2));
-    b.set(5, Foo(1));
+    // a(5) = Foo(2);
+    b(5) = Foo(1);
     forceMinorCollect();
-    // assert(a.get(5).a == 2);
-    assert(b.get(5).a == 1);
+    // assert(a(5).a == 2);
+    assert(b(5).a == 1);
 }
 
 class Foo(let a: Int)

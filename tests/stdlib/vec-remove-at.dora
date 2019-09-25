@@ -6,12 +6,12 @@ fun main() {
     x.push(3);
 
     assert(3 == x.removeAt(2));
-    assert(x.get(0) == 1);
-    assert(x.get(1) == 2);
+    assert(x(0) == 1);
+    assert(x(1) == 2);
     assert(x.length() == 2);
 
     assert(1 == x.removeAt(0));
-    assert(x.get(0) == 2);
+    assert(x(0) == 2);
     assert(x.length() == 1);
 
     assert(2 == x.removeAt(0));

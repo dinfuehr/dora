@@ -4,10 +4,10 @@ fun main() {
 
     let y = arrayFill[Bool](10, true);
     assert(y.length() == 10);
-    assert(y.get(0) == true);
-    assert(y.get(9) == true);
+    assert(y(0) == true);
+    assert(y(9) == true);
 
-    y.set(0, false);
-    assert(y.get(0) == false);
-    assert(y.get(1) == true);
+    y(0) = false;
+    assert(y(0) == false);
+    assert(y(1) == true);
 }

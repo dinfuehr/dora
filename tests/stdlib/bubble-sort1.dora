@@ -1,14 +1,14 @@
 fun main() {
     let x = Array[Int](4);
-    x.set(0, 2);
-    x.set(1, 3);
-    x.set(2, 0);
-    x.set(3, 4);
+    x(0) = 2;
+    x(1) = 3;
+    x(2) = 0;
+    x(3) = 4;
 
     bubbleSort[Int](x);
 
-    assert(x.get(0) == 0);
-    assert(x.get(1) == 2);
-    assert(x.get(2) == 3);
-    assert(x.get(3) == 4);
+    assert(x(0) == 0);
+    assert(x(1) == 2);
+    assert(x(2) == 3);
+    assert(x(3) == 4);
 }

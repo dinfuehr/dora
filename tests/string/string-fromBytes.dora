@@ -11,9 +11,9 @@ fun main() {
 
 fun test_multiple_ascii_chars() {
     let bytes = Array[Byte](3);
-    bytes.set(0, 'a'.toInt().toByte());
-    bytes.set(1, 'b'.toInt().toByte());
-    bytes.set(2, 'c'.toInt().toByte());
+    bytes(0) = 'a'.toInt().toByte();
+    bytes(1) = 'b'.toInt().toByte();
+    bytes(2) = 'c'.toInt().toByte();
 
     let val = try! String::fromBytes(bytes);
     assert(val == "abc");
@@ -21,41 +21,41 @@ fun test_multiple_ascii_chars() {
 
 fun test_1byte() {
     let bytes = Array[Byte](1);
-    bytes.set(0, 0x24Y);
+    bytes(0) = 0x24Y;
 
     try! String::fromBytes(bytes);
 }
 
 fun test_2bytes() {
     let bytes = Array[Byte](2);
-    bytes.set(0, 0xC2Y);
-    bytes.set(1, 0xA2Y);
+    bytes(0) = 0xC2Y;
+    bytes(1) = 0xA2Y;
 
     try! String::fromBytes(bytes);
 }
 
 fun test_3bytes() {
     let bytes = Array[Byte](3);
-    bytes.set(0, 0xE2Y);
-    bytes.set(1, 0x82Y);
-    bytes.set(2, 0xACY);
+    bytes(0) = 0xE2Y;
+    bytes(1) = 0x82Y;
+    bytes(2) = 0xACY;
 
     try! String::fromBytes(bytes);
 }
 
 fun test_4bytes() {
     let bytes = Array[Byte](4);
-    bytes.set(0, 0xF0Y);
-    bytes.set(1, 0x90Y);
-    bytes.set(2, 0x8DY);
-    bytes.set(3, 0x88Y);
+    bytes(0) = 0xF0Y;
+    bytes(1) = 0x90Y;
+    bytes(2) = 0x8DY;
+    bytes(3) = 0x88Y;
 
     try! String::fromBytes(bytes);
 }
 
 fun test_invalid() {
     let bytes = Array[Byte](1);
-    bytes.set(0, 0x80Y);
+    bytes(0) = 0x80Y;
 
     do {
         try String::fromBytes(bytes);

@@ -8,6 +8,6 @@ fun main() {
 
     removeItem[Int](vec, 1);
     assert(vec.length() == 2);
-    assert(vec.get(0) == 2);
-    assert(vec.get(1) == 3);
+    assert(vec(0) == 2);
+    assert(vec(1) == 3);
 }

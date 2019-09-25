@@ -1,57 +1,57 @@
 fun main() {
   let x = arrayFill[Int](5, 100);
-  assert(x.get(0) == 100);
+  assert(x(0) == 100);
   assert(int_array_get(x, 4) == 100);
 
   let x = arrayFill[Long](7, 200L);
-  assert(x.get(6) == 200L);
+  assert(x(6) == 200L);
   assert(long_array_get(x, 0) == 200L);
 
   let x = arrayFill[Float](6, 1.0F);
-  assert(x.get(0) == 1.0F);
+  assert(x(0) == 1.0F);
   assert(float_array_get(x, 5) == 1.0F);
 
   let x = arrayFill[Double](4, 2.0);
-  assert(x.get(0) == 2.0);
+  assert(x(0) == 2.0);
   assert(double_array_get(x, 3) == 2.0);
 
   let x = arrayFill[String](3, "hello");
-  assert(x.get(0) == "hello");
+  assert(x(0) == "hello");
   assert(str_array_get(x, 2) == "hello");
 
   let x = arrayFill[Foo](1, Foo(1));
-  assert(x.get(0) !== nil);
-  assert(x.get(0).y == 1);
+  assert(x(0) !== nil);
+  assert(x(0).y == 1);
   assert(foo_array_get(x, 0) !== nil);
   assert(foo_array_get(x, 0).y == 1);
 
   let x = arrayFill[Foo](2, nil);
-  assert(x.get(0) === nil);
+  assert(x(0) === nil);
   assert(foo_array_get(x, 0) === nil);
 }
 
 fun int_array_get(x: Array[Int], idx: Int) -> Int {
-  return x.get(idx);
+  return x(idx);
 }
 
 fun long_array_get(x: Array[Long], idx: Int) -> Long {
-  return x.get(idx);
+  return x(idx);
 }
 
 fun float_array_get(x: Array[Float], idx: Int) -> Float {
-  return x.get(idx);
+  return x(idx);
 }
 
 fun double_array_get(x: Array[Double], idx: Int) -> Double {
-  return x.get(idx);
+  return x(idx);
 }
 
 fun str_array_get(x: Array[String], idx: Int) -> String {
-  return x.get(idx);
+  return x(idx);
 }
 
 fun foo_array_get(x: Array[Foo], idx: Int) -> Foo {
-  return x.get(idx);
+  return x(idx);
 }
 
 class Foo(let y: Int)

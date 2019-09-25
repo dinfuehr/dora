@@ -18,7 +18,7 @@ fun main() {
     i = 0;
 
     while i < SIZE {
-        x.set(i, nil);
+        x(i) = nil;
         i = i + STEP;
     }
 
@@ -28,7 +28,7 @@ fun main() {
     var nils = 0;
 
     while i < SIZE {
-        if x.get(i) === nil {
+        if x(i) === nil {
             nils = nils + 1;
         }
 

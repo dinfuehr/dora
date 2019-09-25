@@ -3,13 +3,13 @@
 fun main() {
   var x = Array[Foo](128);
   forceMinorCollect();
-  x.set(0, Foo(1));
-  x.set(127, Foo(2));
+  x(0) = Foo(1);
+  x(127) = Foo(2);
   forceMinorCollect();
-  assert(x.get(0).a == 1);
-  assert(x.get(1) === nil);
-  assert(x.get(126) === nil);
-  assert(x.get(127).a == 2);
+  assert(x(0).a == 1);
+  assert(x(1) === nil);
+  assert(x(126) === nil);
+  assert(x(127).a == 2);
 }
 
 class Foo(let a: Int)

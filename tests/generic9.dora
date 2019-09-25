@@ -11,9 +11,9 @@ class A[T] {
 }
 
 fun consume(x: Array[Int]) {
-    assert(x.get(9) == 0);
+    assert(x(9) == 0);
 }
 
 fun consume2(x: Array[String]) {
-    assert(x.get(9) === nil);
+    assert(x(9) === nil);
 }

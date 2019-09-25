@@ -1,57 +1,57 @@
 fun main() {
   let x = arrayFill[Int](2, 100);
   int_array_set(x, 1, 200);
-  assert(x.get(0) == 100);
-  assert(x.get(1) == 200);
+  assert(x(0) == 100);
+  assert(x(1) == 200);
 
   let x = arrayFill[Long](2, 200L);
   long_array_set(x, 1, 100L);
-  assert(x.get(0) == 200L);
-  assert(x.get(1) == 100L);
+  assert(x(0) == 200L);
+  assert(x(1) == 100L);
 
   let x = arrayFill[Float](2, 1.0F);
   float_array_set(x, 1, 2.0F);
-  assert(x.get(0) == 1.0F);
-  assert(x.get(1) == 2.0F);
+  assert(x(0) == 1.0F);
+  assert(x(1) == 2.0F);
 
   let x = arrayFill[Double](2, 2.0);
   double_array_set(x, 1, 1.0);
-  assert(x.get(0) == 2.0);
-  assert(x.get(1) == 1.0);
+  assert(x(0) == 2.0);
+  assert(x(1) == 1.0);
 
   let x = arrayFill[String](2, "hello");
   str_array_set(x, 1, "abc");
-  assert(x.get(0) == "hello");
-  assert(x.get(1) == "abc");
+  assert(x(0) == "hello");
+  assert(x(1) == "abc");
 
   let x = arrayFill[Foo](2, Foo(1));
   foo_array_set(x, 1, Foo(2));
-  assert(x.get(0).y == 1);
-  assert(x.get(1).y == 2);
+  assert(x(0).y == 1);
+  assert(x(1).y == 2);
 }
 
 fun int_array_set(x: Array[Int], idx: Int, val: Int) {
-  x.set(idx, val);
+  x(idx) = val;
 }
 
 fun long_array_set(x: Array[Long], idx: Int, val: Long) {
-  x.set(idx, val);
+  x(idx) = val;
 }
 
 fun float_array_set(x: Array[Float], idx: Int, val: Float) {
-  x.set(idx, val);
+  x(idx) = val;
 }
 
 fun double_array_set(x: Array[Double], idx: Int, val: Double) {
-  x.set(idx, val);
+  x(idx) = val;
 }
 
 fun str_array_set(x: Array[String], idx: Int, val: String) {
-  x.set(idx, val);
+  x(idx) = val;
 }
 
 fun foo_array_set(x: Array[Foo], idx: Int, val: Foo) {
-  x.set(idx, val);
+  x(idx) = val;
 }
 
 class Foo(let y: Int)
