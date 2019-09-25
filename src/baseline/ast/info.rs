@@ -426,7 +426,13 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 fct_id = fid;
             }
 
-            CallType::Expr(_, _) => unimplemented!(),
+            CallType::Expr(_, fid) => {
+                let object = &expr.callee;
+                let ty = self.ty(object.id());
+                args.insert(0, Arg::Expr(object, ty, 0));
+
+                fct_id = fid;
+            }
         }
 
         let fct = self.vm.fcts.idx(fct_id);

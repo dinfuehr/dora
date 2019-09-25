@@ -70,7 +70,7 @@ class Benchmark {
         var i = 0;
 
         while i < length - 1 {
-            if keys.get(i) >= keys.get(i+1) {
+            if keys(i) >= keys(i+1) {
                 fatalError("Splay tree not sorted");
             }
 
@@ -132,7 +132,7 @@ fun generatePayloadTree(depth: Int, tag: String) -> PayloadNode {
         var i = 0;
 
         while i < 10 {
-            arr.set(i, i);
+            arr(i) = i;
             i = i + 1;
         }
 

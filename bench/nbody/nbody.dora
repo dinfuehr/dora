@@ -18,11 +18,11 @@ class NBodySystem {
     let bodies: Array[Body] = Array[Body](5);
 
     init() {
-        bodies.set(0, Body::sun());
-        bodies.set(1, Body::jupiter());
-        bodies.set(2, Body::saturn());
-        bodies.set(3, Body::uranus());
-        bodies.set(4, Body::neptune());
+        bodies(0) = Body::sun();
+        bodies(1) = Body::jupiter();
+        bodies(2) = Body::saturn();
+        bodies(3) = Body::uranus();
+        bodies(4) = Body::neptune();
 
         var px = 0.0;
         var py = 0.0;
@@ -38,14 +38,14 @@ class NBodySystem {
             i = i + 1;
         }
 
-        bodies.get(0).offsetMomentum(px, py, pz);
+        bodies(0).offsetMomentum(px, py, pz);
     }
 
     fun advance(dt: Double) {
         var i = 0;
 
         while i < self.bodies.length() {
-            let iBody = self.bodies.get(i);
+            let iBody = self.bodies(i);
             var j = i + 1;
 
             while j < self.bodies.length() {
@@ -74,7 +74,7 @@ class NBodySystem {
         var i = 0;
 
         while i < self.bodies.length() {
-            let body = self.bodies.get(i);
+            let body = self.bodies(i);
 
             body.x = body.x + dt * body.vx;
             body.y = body.y + dt * body.vy;
@@ -94,7 +94,7 @@ class NBodySystem {
       var i = 0;
 
       while i < self.bodies.length() {
-         let iBody = bodies.get(i);
+         let iBody = bodies(i);
          e = e + 0.5 * iBody.mass *
             ( iBody.vx * iBody.vx
                 + iBody.vy * iBody.vy
@@ -103,7 +103,7 @@ class NBodySystem {
         var j = i+1;
 
         while j < self.bodies.length() {
-            let jBody = bodies.get(j);
+            let jBody = bodies(j);
 
             dx = iBody.x - jBody.x;
             dy = iBody.y - jBody.y;

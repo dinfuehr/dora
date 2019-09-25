@@ -99,7 +99,7 @@ fun initialize() {
     var i = 0;
 
     while i < ntrees {
-        trees.set(i, makeTree(treeHeight));
+        trees(i) = makeTree(treeHeight);
         i = i + 1;
     }
 
@@ -112,7 +112,7 @@ fun checkTrees() {
     var i = 0;
 
     while i < ntrees {
-        let t = trees.get(i);
+        let t = trees(i);
 
         let h1 = height(t);
         let h2 = shortestPath(t);
@@ -160,7 +160,7 @@ fun oldGenAlloc(n: Long) {
 
     var i = 0;
     while i < full {
-        trees.set(where, makeTree(treeHeight));
+        trees(where) = makeTree(treeHeight);
         where = where + 1;
 
         if where == trees.length() {
@@ -173,7 +173,7 @@ fun oldGenAlloc(n: Long) {
     while partial > INSIGNIFICANT {
         let h = bytesToHeight(partial);
         let newTree = makeTree(h);
-        replaceTree(trees.get(where), newTree);
+        replaceTree(trees(where), newTree);
         where = where + 1;
 
         if where == trees.length() {
@@ -190,8 +190,8 @@ fun oldGenSwapSubtrees() {
     let depth = rnd.nextIntWithBound(treeHeight);
     var path = rnd.nextInt();
 
-    var tn1 = trees.get(index1);
-    var tn2 = trees.get(index2);
+    var tn1 = trees(index1);
+    var tn2 = trees(index2);
 
     var i = 0;
 
