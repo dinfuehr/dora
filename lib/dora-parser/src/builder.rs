@@ -210,6 +210,7 @@ impl<'a> BuilderBlock<'a> {
         let stmt = Box::new(Stmt::StmtExpr(StmtExprType {
             id: id,
             pos: Position::new(1, 1),
+            span: Span::invalid(),
             expr: expr,
         }));
 
@@ -223,6 +224,7 @@ impl<'a> BuilderBlock<'a> {
         Box::new(Stmt::StmtBlock(StmtBlockType {
             id: id,
             pos: Position::new(1, 1),
+            span: Span::invalid(),
             stmts: self.stmts,
         }))
     }

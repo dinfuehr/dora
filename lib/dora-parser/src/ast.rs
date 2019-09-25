@@ -606,6 +606,8 @@ impl Stmt {
         Stmt::StmtVar(StmtVarType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             name: name,
             reassignable: reassignable,
             data_type: data_type,
@@ -623,6 +625,8 @@ impl Stmt {
         Stmt::StmtFor(StmtForType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             name: name,
             expr: expr,
             block: block,
@@ -633,6 +637,8 @@ impl Stmt {
         Stmt::StmtWhile(StmtWhileType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             cond: cond,
             block: block,
         })
@@ -642,6 +648,8 @@ impl Stmt {
         Stmt::StmtLoop(StmtLoopType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             block: block,
         })
     }
@@ -656,6 +664,8 @@ impl Stmt {
         Stmt::StmtIf(StmtIfType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             cond: cond,
             then_block: then_block,
             else_block: else_block,
@@ -666,6 +676,8 @@ impl Stmt {
         Stmt::StmtExpr(StmtExprType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             expr: expr,
         })
     }
@@ -674,22 +686,34 @@ impl Stmt {
         Stmt::StmtBlock(StmtBlockType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             stmts: stmts,
         })
     }
 
     pub fn create_break(id: NodeId, pos: Position) -> Stmt {
-        Stmt::StmtBreak(StmtBreakType { id: id, pos: pos })
+        Stmt::StmtBreak(StmtBreakType {
+            id: id,
+            pos: pos,
+            span: Span::invalid(),
+        })
     }
 
     pub fn create_continue(id: NodeId, pos: Position) -> Stmt {
-        Stmt::StmtContinue(StmtContinueType { id: id, pos: pos })
+        Stmt::StmtContinue(StmtContinueType {
+            id: id,
+            pos: pos,
+            span: Span::invalid(),
+        })
     }
 
     pub fn create_return(id: NodeId, pos: Position, expr: Option<Box<Expr>>) -> Stmt {
         Stmt::StmtReturn(StmtReturnType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             expr: expr,
         })
     }
@@ -698,6 +722,8 @@ impl Stmt {
         Stmt::StmtThrow(StmtThrowType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             expr: expr,
         })
     }
@@ -706,6 +732,8 @@ impl Stmt {
         Stmt::StmtDefer(StmtDeferType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             expr: expr,
         })
     }
@@ -720,6 +748,8 @@ impl Stmt {
         Stmt::StmtDo(StmtDoType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             do_block: do_block,
             catch_blocks: catch_blocks,
             finally_block: finally_block,
@@ -730,6 +760,8 @@ impl Stmt {
         Stmt::StmtSpawn(StmtSpawnType {
             id: id,
             pos: pos,
+            span: Span::invalid(),
+
             expr: expr,
         })
     }
@@ -769,6 +801,25 @@ impl Stmt {
             Stmt::StmtDefer(ref stmt) => stmt.pos,
             Stmt::StmtDo(ref stmt) => stmt.pos,
             Stmt::StmtSpawn(ref stmt) => stmt.pos,
+        }
+    }
+
+    pub fn span(&self) -> Span {
+        match *self {
+            Stmt::StmtVar(ref stmt) => stmt.span,
+            Stmt::StmtWhile(ref stmt) => stmt.span,
+            Stmt::StmtFor(ref stmt) => stmt.span,
+            Stmt::StmtLoop(ref stmt) => stmt.span,
+            Stmt::StmtIf(ref stmt) => stmt.span,
+            Stmt::StmtExpr(ref stmt) => stmt.span,
+            Stmt::StmtBlock(ref stmt) => stmt.span,
+            Stmt::StmtBreak(ref stmt) => stmt.span,
+            Stmt::StmtContinue(ref stmt) => stmt.span,
+            Stmt::StmtReturn(ref stmt) => stmt.span,
+            Stmt::StmtThrow(ref stmt) => stmt.span,
+            Stmt::StmtDefer(ref stmt) => stmt.span,
+            Stmt::StmtDo(ref stmt) => stmt.span,
+            Stmt::StmtSpawn(ref stmt) => stmt.span,
         }
     }
 
@@ -973,6 +1024,8 @@ impl Stmt {
 pub struct StmtVarType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
+
     pub name: Name,
     pub reassignable: bool,
 
@@ -984,6 +1037,7 @@ pub struct StmtVarType {
 pub struct StmtForType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
 
     pub name: Name,
     pub expr: Box<Expr>,
@@ -994,6 +1048,7 @@ pub struct StmtForType {
 pub struct StmtWhileType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
 
     pub cond: Box<Expr>,
     pub block: Box<Stmt>,
@@ -1003,6 +1058,8 @@ pub struct StmtWhileType {
 pub struct StmtLoopType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
+
     pub block: Box<Stmt>,
 }
 
@@ -1010,6 +1067,8 @@ pub struct StmtLoopType {
 pub struct StmtIfType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
+
     pub cond: Box<Expr>,
     pub then_block: Box<Stmt>,
     pub else_block: Option<Box<Stmt>>,
@@ -1019,6 +1078,8 @@ pub struct StmtIfType {
 pub struct StmtExprType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
+
     pub expr: Box<Expr>,
 }
 
@@ -1026,6 +1087,8 @@ pub struct StmtExprType {
 pub struct StmtBlockType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
+
     pub stmts: Vec<Box<Stmt>>,
 }
 
@@ -1033,6 +1096,8 @@ pub struct StmtBlockType {
 pub struct StmtReturnType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
+
     pub expr: Option<Box<Expr>>,
 }
 
@@ -1040,18 +1105,22 @@ pub struct StmtReturnType {
 pub struct StmtBreakType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug)]
 pub struct StmtContinueType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug)]
 pub struct StmtThrowType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
+
     pub expr: Box<Expr>,
 }
 
@@ -1059,6 +1128,8 @@ pub struct StmtThrowType {
 pub struct StmtDeferType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
+
     pub expr: Box<Expr>,
 }
 
@@ -1066,6 +1137,8 @@ pub struct StmtDeferType {
 pub struct StmtDoType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
+
     pub do_block: Box<Stmt>,
     pub catch_blocks: Vec<CatchBlock>,
     pub finally_block: Option<FinallyBlock>,
@@ -1075,6 +1148,8 @@ pub struct StmtDoType {
 pub struct StmtSpawnType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
+
     pub expr: Box<Expr>,
 }
 
@@ -1083,6 +1158,8 @@ pub struct CatchBlock {
     pub id: NodeId,
     pub name: Name,
     pub pos: Position,
+    pub span: Span,
+
     pub data_type: Type,
     pub block: Box<Stmt>,
 }
@@ -1099,6 +1176,8 @@ impl CatchBlock {
             id: id,
             name: name,
             pos: pos,
+            span: Span::invalid(),
+
             data_type: data_type,
             block: block,
         }
