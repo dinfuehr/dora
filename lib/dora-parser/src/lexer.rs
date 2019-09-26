@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::error::msg::{Msg, MsgWithPos};
-use crate::lexer::position::Position;
+use crate::lexer::position::{Position, Span};
 use crate::lexer::reader::Reader;
 use crate::lexer::token::{FloatSuffix, IntBase, IntSuffix, Token, TokenKind};
 
@@ -46,10 +46,11 @@ impl Lexer {
             self.skip_white();
 
             let pos = self.reader.pos();
+            let idx = self.reader.idx();
             let ch = self.curr();
 
             if let None = ch {
-                return Ok(Token::new(TokenKind::End, pos));
+                return Ok(Token::new(TokenKind::End, pos, Span::at(idx)));
             }
 
             if is_digit(ch) {
@@ -118,6 +119,7 @@ impl Lexer {
 
     fn read_identifier(&mut self) -> Result<Token, MsgWithPos> {
         let pos = self.reader.pos();
+        let idx = self.reader.idx();
         let mut value = String::new();
 
         while is_identifier(self.curr()) {
@@ -151,11 +153,13 @@ impl Lexer {
             ttype = TokenKind::Identifier(value);
         }
 
-        Ok(Token::new(ttype, pos))
+        let span = self.span_from(idx);
+        Ok(Token::new(ttype, pos, span))
     }
 
     fn read_char_literal(&mut self) -> Result<Token, MsgWithPos> {
         let pos = self.reader.pos();
+        let idx = self.reader.idx();
 
         self.read_char();
         let ch = self.read_escaped_char(pos, Msg::UnclosedChar)?;
@@ -164,7 +168,8 @@ impl Lexer {
             self.read_char();
 
             let ttype = TokenKind::LitChar(ch);
-            Ok(Token::new(ttype, pos))
+            let span = self.span_from(idx);
+            Ok(Token::new(ttype, pos, span))
         } else {
             Err(MsgWithPos::new(
                 self.reader.path().to_string(),
@@ -218,6 +223,7 @@ impl Lexer {
 
     fn read_string(&mut self) -> Result<Token, MsgWithPos> {
         let pos = self.reader.pos();
+        let idx = self.reader.idx();
         let mut value = String::new();
 
         self.read_char();
@@ -231,7 +237,8 @@ impl Lexer {
             self.read_char();
 
             let ttype = TokenKind::String(value);
-            Ok(Token::new(ttype, pos))
+            let span = self.span_from(idx);
+            Ok(Token::new(ttype, pos, span))
         } else {
             Err(MsgWithPos::new(
                 self.reader.path().to_string(),
@@ -242,14 +249,15 @@ impl Lexer {
     }
 
     fn read_operator(&mut self) -> Result<Token, MsgWithPos> {
-        let mut tok = self.build_token(TokenKind::End);
+        let pos = self.reader.pos();
+        let idx = self.reader.idx();
         let ch = self.curr().unwrap();
         self.read_char();
 
         let nch = self.curr().unwrap_or('x');
         let nnch = self.next().unwrap_or('x');
 
-        tok.kind = match ch {
+        let kind = match ch {
             '+' => TokenKind::Add,
             '-' => {
                 if nch == '>' {
@@ -369,17 +377,19 @@ impl Lexer {
             _ => {
                 return Err(MsgWithPos::new(
                     self.reader.path().to_string(),
-                    tok.position,
+                    pos,
                     Msg::UnknownChar(ch),
                 ));
             }
         };
 
-        Ok(tok)
+        let span = self.span_from(idx);
+        Ok(Token::new(kind, pos, span))
     }
 
     fn read_number(&mut self) -> Result<Token, MsgWithPos> {
         let pos = self.reader.pos();
+        let idx = self.reader.idx();
         let mut value = String::new();
 
         let base = if self.curr() == Some('0') {
@@ -441,39 +451,40 @@ impl Lexer {
             };
 
             let ttype = TokenKind::LitFloat(value, suffix);
-            return Ok(Token::new(ttype, pos));
+            let span = self.span_from(idx);
+            return Ok(Token::new(ttype, pos, span));
         }
 
-        let suffix = match self.curr() {
+        let kind = match self.curr() {
             Some('L') => {
                 self.read_char();
-                IntSuffix::Long
+                TokenKind::LitInt(value, base, IntSuffix::Long)
             }
 
             Some('Y') => {
                 self.read_char();
-                IntSuffix::Byte
+                TokenKind::LitInt(value, base, IntSuffix::Byte)
             }
 
             Some('D') if base == IntBase::Dec => {
                 self.read_char();
-
-                let ttype = TokenKind::LitFloat(value, FloatSuffix::Double);
-                return Ok(Token::new(ttype, pos));
+                TokenKind::LitFloat(value, FloatSuffix::Double)
             }
 
             Some('F') if base == IntBase::Dec => {
                 self.read_char();
-
-                let ttype = TokenKind::LitFloat(value, FloatSuffix::Float);
-                return Ok(Token::new(ttype, pos));
+                TokenKind::LitFloat(value, FloatSuffix::Float)
             }
 
-            _ => IntSuffix::Int,
+            _ => TokenKind::LitInt(value, base, IntSuffix::Int),
         };
 
-        let ttype = TokenKind::LitInt(value, base, suffix);
-        Ok(Token::new(ttype, pos))
+        let span = self.span_from(idx);
+        Ok(Token::new(kind, pos, span))
+    }
+
+    fn span_from(&self, start: u32) -> Span {
+        Span::new(start, self.reader.idx() - start)
     }
 
     fn read_digits(&mut self, buffer: &mut String, base: IntBase) {
@@ -494,10 +505,6 @@ impl Lexer {
 
     fn next(&self) -> Option<char> {
         self.reader.nth(1)
-    }
-
-    fn build_token(&self, kind: TokenKind) -> Token {
-        Token::new(kind, self.reader.pos())
     }
 
     fn is_comment_start(&self) -> bool {

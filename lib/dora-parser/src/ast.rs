@@ -214,12 +214,15 @@ pub enum Type {
 pub struct TypeSelfType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug)]
 pub struct TypeTupleType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
+
     pub subtypes: Vec<Box<Type>>,
 }
 
@@ -227,6 +230,8 @@ pub struct TypeTupleType {
 pub struct TypeLambdaType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
+
     pub params: Vec<Box<Type>>,
     pub ret: Box<Type>,
 }
@@ -235,51 +240,58 @@ pub struct TypeLambdaType {
 pub struct TypeBasicType {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
+
     pub name: Name,
     pub params: Vec<Box<Type>>,
 }
 
-#[derive(Clone, Debug)]
-pub struct TypePtrType {
-    pub id: NodeId,
-    pub pos: Position,
-    pub subtype: Box<Type>,
-}
-
-#[derive(Clone, Debug)]
-pub struct TypeArrayType {
-    pub id: NodeId,
-    pub pos: Position,
-    pub subtype: Box<Type>,
-}
-
 impl Type {
-    pub fn create_self(id: NodeId, pos: Position) -> Type {
-        Type::TypeSelf(TypeSelfType { id: id, pos: pos })
+    pub fn create_self(id: NodeId, pos: Position, span: Span) -> Type {
+        Type::TypeSelf(TypeSelfType {
+            id: id,
+            pos: pos,
+            span: span,
+        })
     }
 
-    pub fn create_basic(id: NodeId, pos: Position, name: Name, params: Vec<Box<Type>>) -> Type {
+    pub fn create_basic(
+        id: NodeId,
+        pos: Position,
+        span: Span,
+        name: Name,
+        params: Vec<Box<Type>>,
+    ) -> Type {
         Type::TypeBasic(TypeBasicType {
             id: id,
             pos: pos,
+            span: span,
             name: name,
             params: params,
         })
     }
 
-    pub fn create_fct(id: NodeId, pos: Position, params: Vec<Box<Type>>, ret: Box<Type>) -> Type {
+    pub fn create_fct(
+        id: NodeId,
+        pos: Position,
+        span: Span,
+        params: Vec<Box<Type>>,
+        ret: Box<Type>,
+    ) -> Type {
         Type::TypeLambda(TypeLambdaType {
             id: id,
             pos: pos,
+            span: span,
             params: params,
             ret: ret,
         })
     }
 
-    pub fn create_tuple(id: NodeId, pos: Position, subtypes: Vec<Box<Type>>) -> Type {
+    pub fn create_tuple(id: NodeId, pos: Position, span: Span, subtypes: Vec<Box<Type>>) -> Type {
         Type::TypeTuple(TypeTupleType {
             id: id,
             pos: pos,
+            span: span,
             subtypes: subtypes,
         })
     }
@@ -1297,11 +1309,17 @@ impl Expr {
         })
     }
 
-    pub fn create_try(id: NodeId, pos: Position, expr: Box<Expr>, mode: TryMode) -> Expr {
+    pub fn create_try(
+        id: NodeId,
+        pos: Position,
+        span: Span,
+        expr: Box<Expr>,
+        mode: TryMode,
+    ) -> Expr {
         Expr::ExprTry(ExprTryType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             expr: expr,
             mode: mode,
@@ -1344,7 +1362,7 @@ impl Expr {
         })
     }
 
-    pub fn create_lit_char(id: NodeId, pos: Position, value: char) -> Expr {
+    pub fn create_lit_char(id: NodeId, pos: Position, span: Span, value: char) -> Expr {
         Expr::ExprLitChar(ExprLitCharType {
             id: id,
             pos: pos,
@@ -1357,6 +1375,7 @@ impl Expr {
     pub fn create_lit_int(
         id: NodeId,
         pos: Position,
+        span: Span,
         value: u64,
         base: IntBase,
         suffix: IntSuffix,
@@ -1364,7 +1383,7 @@ impl Expr {
         Expr::ExprLitInt(ExprLitIntType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             value: value,
             base: base,
@@ -1372,32 +1391,37 @@ impl Expr {
         })
     }
 
-    pub fn create_lit_float(id: NodeId, pos: Position, value: f64, suffix: FloatSuffix) -> Expr {
+    pub fn create_lit_float(
+        id: NodeId,
+        pos: Position,
+        span: Span,
+        value: f64,
+        suffix: FloatSuffix,
+    ) -> Expr {
         Expr::ExprLitFloat(ExprLitFloatType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
-
+            span: span,
             value: value,
             suffix: suffix,
         })
     }
 
-    pub fn create_lit_str(id: NodeId, pos: Position, value: String) -> Expr {
+    pub fn create_lit_str(id: NodeId, pos: Position, span: Span, value: String) -> Expr {
         Expr::ExprLitStr(ExprLitStrType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             value: value,
         })
     }
 
-    pub fn create_lit_bool(id: NodeId, pos: Position, value: bool) -> Expr {
+    pub fn create_lit_bool(id: NodeId, pos: Position, span: Span, value: bool) -> Expr {
         Expr::ExprLitBool(ExprLitBoolType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             value: value,
         })

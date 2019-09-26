@@ -72,19 +72,6 @@ impl<'a> Builder<'a> {
             type_params: None,
         }))
     }
-
-    pub fn build_param(&self, idx: u32, name: Name, ty: Type) -> Param {
-        let id = self.id_generator.next();
-
-        Param {
-            id: id,
-            idx: idx,
-            name: name,
-            reassignable: false,
-            pos: Position::new(1, 1),
-            data_type: ty,
-        }
-    }
 }
 
 pub struct BuilderFct<'a> {
@@ -110,11 +97,6 @@ impl<'a> BuilderFct<'a> {
             params: Vec::new(),
             block: None,
         }
-    }
-
-    pub fn return_type(&mut self, ty: Type) -> &mut BuilderFct<'a> {
-        self.return_type = Some(ty);
-        self
     }
 
     pub fn add_param(&mut self, name: Name, ty: Type) -> &mut BuilderFct<'a> {
@@ -190,17 +172,8 @@ impl<'a> BuilderBlock<'a> {
         }
     }
 
-    pub fn len(&self) -> usize {
-        self.stmts.len()
-    }
-
     pub fn add_stmts(&mut self, mut stmts: Vec<Box<Stmt>>) -> &mut BuilderBlock<'a> {
         self.stmts.append(&mut stmts);
-        self
-    }
-
-    pub fn add_stmt(&mut self, stmt: Box<Stmt>) -> &mut BuilderBlock<'a> {
-        self.stmts.push(stmt);
         self
     }
 

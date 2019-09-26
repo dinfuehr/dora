@@ -36,11 +36,22 @@ impl Span {
         }
     }
 
+    pub fn at(start: u32) -> Span {
+        Span {
+            start: Loc::new(start),
+            count: 0,
+        }
+    }
+
     pub fn invalid() -> Span {
         Span {
             start: Loc::invalid(),
             count: 0,
         }
+    }
+
+    pub fn is_valid(&self) -> bool {
+        self.start.is_valid()
     }
 
     pub fn start(&self) -> u32 {
@@ -71,10 +82,6 @@ impl Loc {
 
     fn is_valid(&self) -> bool {
         self.0 != u32::max_value()
-    }
-
-    fn is_invalid(&self) -> bool {
-        !self.is_valid()
     }
 
     fn idx(&self) -> u32 {

@@ -9,7 +9,7 @@ use crate::error::msg::*;
 
 use crate::interner::*;
 
-use crate::lexer::position::Position;
+use crate::lexer::position::{Position, Span};
 use crate::lexer::reader::Reader;
 use crate::lexer::token::*;
 use crate::lexer::File as LexerFile;
@@ -24,6 +24,7 @@ pub struct Parser<'a> {
     param_idx: u32,
     in_class: bool,
     parse_struct_lit: bool,
+    last_end: Option<u32>,
 }
 
 type ExprResult = Result<Box<Expr>, MsgWithPos>;
@@ -36,7 +37,7 @@ impl<'a> Parser<'a> {
         ast: &'a mut Ast,
         interner: &'a mut Interner,
     ) -> Parser<'a> {
-        let token = Token::new(TokenKind::End, Position::new(1, 1));
+        let token = Token::new(TokenKind::End, Position::new(1, 1), Span::invalid());
         let lexer = Lexer::new(reader);
 
         let parser = Parser {
@@ -48,6 +49,7 @@ impl<'a> Parser<'a> {
             in_class: false,
             parse_struct_lit: true,
             ast: ast,
+            last_end: Some(0),
         };
 
         parser
@@ -746,12 +748,14 @@ impl<'a> Parser<'a> {
         match self.token.kind {
             TokenKind::CapitalThis => {
                 let pos = self.token.position;
+                let span = self.token.span;
                 self.advance_token()?;
-                Ok(Type::create_self(self.generate_id(), pos))
+                Ok(Type::create_self(self.generate_id(), pos, span))
             }
 
             TokenKind::Identifier(_) => {
                 let pos = self.token.position;
+                let start = self.token.span.start();
                 let name = self.expect_identifier()?;
 
                 let params = if self.token.is(TokenKind::LBracket) {
@@ -761,10 +765,18 @@ impl<'a> Parser<'a> {
                     Vec::new()
                 };
 
-                Ok(Type::create_basic(self.generate_id(), pos, name, params))
+                let span = self.span_from(start);
+                Ok(Type::create_basic(
+                    self.generate_id(),
+                    pos,
+                    span,
+                    name,
+                    params,
+                ))
             }
 
             TokenKind::LParen => {
+                let start = self.token.span.start();
                 let token = self.advance_token()?;
                 let subtypes = self.parse_comma_list(TokenKind::RParen, |p| {
                     let ty = p.parse_type()?;
@@ -775,17 +787,21 @@ impl<'a> Parser<'a> {
                 if self.token.is(TokenKind::Arrow) {
                     self.advance_token()?;
                     let ret = Box::new(self.parse_type()?);
+                    let span = self.span_from(start);
 
                     Ok(Type::create_fct(
                         self.generate_id(),
                         token.position,
+                        span,
                         subtypes,
                         ret,
                     ))
                 } else {
+                    let span = self.span_from(start);
                     Ok(Type::create_tuple(
                         self.generate_id(),
                         token.position,
+                        span,
                         subtypes,
                     ))
                 }
@@ -1301,6 +1317,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_try_op(&mut self) -> ExprResult {
+        let start = self.token.span.start();
         let tok = self.advance_token()?;
         let exp = self.parse_expression()?;
 
@@ -1310,15 +1327,19 @@ impl<'a> Parser<'a> {
             TryMode::Opt
         };
 
+        let span = self.span_from(start);
+
         Ok(Box::new(Expr::create_try(
             self.generate_id(),
             tok.position,
+            span,
             exp,
             mode,
         )))
     }
 
     fn parse_try(&mut self) -> ExprResult {
+        let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::Try)?.position;
         let exp = self.parse_expression()?;
 
@@ -1331,15 +1352,19 @@ impl<'a> Parser<'a> {
             TryMode::Normal
         };
 
+        let span = self.span_from(start);
+
         Ok(Box::new(Expr::create_try(
             self.generate_id(),
             pos,
+            span,
             exp,
             mode,
         )))
     }
 
     fn parse_lit_char(&mut self) -> ExprResult {
+        let span = self.token.span;
         let tok = self.advance_token()?;
         let pos = tok.position;
 
@@ -1347,6 +1372,7 @@ impl<'a> Parser<'a> {
             Ok(Box::new(Expr::create_lit_char(
                 self.generate_id(),
                 pos,
+                span,
                 val,
             )))
         } else {
@@ -1355,6 +1381,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_lit_int(&mut self) -> ExprResult {
+        let span = self.token.span;
         let tok = self.advance_token()?;
         let pos = tok.position;
 
@@ -1364,7 +1391,8 @@ impl<'a> Parser<'a> {
 
             match parsed {
                 Ok(num) => {
-                    let expr = Expr::create_lit_int(self.generate_id(), pos, num, base, suffix);
+                    let expr =
+                        Expr::create_lit_int(self.generate_id(), pos, span, num, base, suffix);
                     Ok(Box::new(expr))
                 }
 
@@ -1388,6 +1416,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_lit_float(&mut self) -> ExprResult {
+        let span = self.token.span;
         let tok = self.advance_token()?;
         let pos = tok.position;
 
@@ -1396,7 +1425,7 @@ impl<'a> Parser<'a> {
             let parsed = filtered.parse::<f64>();
 
             if let Ok(num) = parsed {
-                let expr = Expr::create_lit_float(self.generate_id(), pos, num, suffix);
+                let expr = Expr::create_lit_float(self.generate_id(), pos, span, num, suffix);
                 return Ok(Box::new(expr));
             }
         }
@@ -1405,12 +1434,14 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_string(&mut self) -> ExprResult {
+        let span = self.token.span;
         let string = self.advance_token()?;
 
         if let TokenKind::String(value) = string.kind {
             Ok(Box::new(Expr::create_lit_str(
                 self.generate_id(),
                 string.position,
+                span,
                 value,
             )))
         } else {
@@ -1419,12 +1450,14 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_bool_literal(&mut self) -> ExprResult {
+        let span = self.token.span;
         let tok = self.advance_token()?;
         let value = tok.is(TokenKind::True);
 
         Ok(Box::new(Expr::create_lit_bool(
             self.generate_id(),
             tok.position,
+            span,
             value,
         )))
     }
@@ -1520,9 +1553,18 @@ impl<'a> Parser<'a> {
     }
 
     fn advance_token(&mut self) -> Result<Token, MsgWithPos> {
+        self.last_end = if self.token.span.is_valid() {
+            Some(self.token.span.end())
+        } else {
+            None
+        };
         let tok = self.lexer.read_token()?;
 
         Ok(mem::replace(&mut self.token, tok))
+    }
+
+    fn span_from(&self, start: u32) -> Span {
+        Span::new(start, self.last_end.unwrap() - start)
     }
 
     fn generate_constructor(
@@ -1610,7 +1652,7 @@ mod tests {
     use crate::ast::*;
     use crate::interner::*;
 
-    use crate::error::msg::{Msg, MsgWithPos};
+    use crate::error::msg::Msg;
     use crate::lexer::position::Position;
     use crate::lexer::reader::Reader;
     use crate::parser::{NodeIdGenerator, Parser};
@@ -1702,17 +1744,6 @@ mod tests {
             .unwrap();
 
         (ast, interner)
-    }
-
-    fn parse_err(code: &'static str) -> MsgWithPos {
-        let id_generator = NodeIdGenerator::new();
-        let mut interner = Interner::new();
-        let mut ast = Ast::new();
-
-        let reader = Reader::from_string(code);
-        let parser = Parser::new(reader, &id_generator, &mut ast, &mut interner);
-
-        parser.parse().unwrap_err()
     }
 
     #[test]
@@ -3133,7 +3164,7 @@ mod tests {
 
     #[test]
     fn parse_call_with_path() {
-        let (expr, interner) = parse_expr("Foo::get()");
+        let (expr, _) = parse_expr("Foo::get()");
         let call = expr.to_call().unwrap();
 
         assert!(call.callee.is_path());

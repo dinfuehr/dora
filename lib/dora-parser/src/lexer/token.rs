@@ -1,7 +1,7 @@
 use std::fmt;
 use std::result::Result;
 
-use crate::lexer::position::Position;
+use crate::lexer::position::{Position, Span};
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum TokenKind {
@@ -218,17 +218,19 @@ pub enum FloatSuffix {
     Double,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug)]
 pub struct Token {
     pub kind: TokenKind,
     pub position: Position,
+    pub span: Span,
 }
 
 impl Token {
-    pub fn new(tok: TokenKind, pos: Position) -> Token {
+    pub fn new(tok: TokenKind, pos: Position, span: Span) -> Token {
         Token {
             kind: tok,
             position: pos,
+            span: span,
         }
     }
 

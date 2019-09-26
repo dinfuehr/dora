@@ -98,6 +98,10 @@ impl Reader {
     pub fn pos(&self) -> Position {
         self.pos
     }
+
+    pub fn idx(&self) -> u32 {
+        self.idx as u32
+    }
 }
 
 fn common_init(name: String, content: String) -> Reader {
