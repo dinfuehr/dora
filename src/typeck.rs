@@ -9,6 +9,7 @@ use dora_parser::ast::NodeId;
 
 mod constck;
 mod expr;
+mod lookup;
 
 pub fn check<'a, 'ast>(vm: &VM<'ast>) {
     for fct in vm.fcts.iter() {
