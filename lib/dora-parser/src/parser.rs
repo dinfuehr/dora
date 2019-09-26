@@ -1298,14 +1298,16 @@ impl<'a> Parser<'a> {
 
     fn parse_identifier(&mut self) -> ExprResult {
         let pos = self.token.position;
+        let span = self.token.span;
         let name = self.expect_identifier()?;
 
-        return Ok(Box::new(Expr::create_ident(
+        Ok(Box::new(Expr::create_ident(
             self.generate_id(),
             pos,
+            span,
             name,
             None,
-        )));
+        )))
     }
 
     fn parse_parentheses(&mut self) -> ExprResult {
@@ -1463,30 +1465,40 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_this(&mut self) -> ExprResult {
+        let span = self.token.span;
         let tok = self.advance_token()?;
 
         Ok(Box::new(Expr::create_this(
             self.generate_id(),
             tok.position,
+            span,
         )))
     }
 
     fn parse_super(&mut self) -> ExprResult {
+        let span = self.token.span;
         let tok = self.advance_token()?;
 
         Ok(Box::new(Expr::create_super(
             self.generate_id(),
             tok.position,
+            span,
         )))
     }
 
     fn parse_nil(&mut self) -> ExprResult {
+        let span = self.token.span;
         let tok = self.advance_token()?;
 
-        Ok(Box::new(Expr::create_nil(self.generate_id(), tok.position)))
+        Ok(Box::new(Expr::create_nil(
+            self.generate_id(),
+            tok.position,
+            span,
+        )))
     }
 
     fn parse_lambda(&mut self) -> ExprResult {
+        let start = self.token.span.start();
         let tok = self.advance_token()?;
 
         let params = if tok.kind == TokenKind::Or {
@@ -1508,10 +1520,12 @@ impl<'a> Parser<'a> {
         };
 
         let block = self.parse_block()?;
+        let span = self.span_from(start);
 
         Ok(Box::new(Expr::create_lambda(
             self.generate_id(),
             tok.position,
+            span,
             params,
             ret,
             block,

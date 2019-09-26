@@ -1427,7 +1427,7 @@ impl Expr {
         })
     }
 
-    pub fn create_this(id: NodeId, pos: Position) -> Expr {
+    pub fn create_this(id: NodeId, pos: Position, span: Span) -> Expr {
         Expr::ExprSelf(ExprSelfType {
             id: id,
             pos: pos,
@@ -1435,7 +1435,7 @@ impl Expr {
         })
     }
 
-    pub fn create_super(id: NodeId, pos: Position) -> Expr {
+    pub fn create_super(id: NodeId, pos: Position, span: Span) -> Expr {
         Expr::ExprSuper(ExprSuperType {
             id: id,
             pos: pos,
@@ -1443,7 +1443,7 @@ impl Expr {
         })
     }
 
-    pub fn create_nil(id: NodeId, pos: Position) -> Expr {
+    pub fn create_nil(id: NodeId, pos: Position, span: Span) -> Expr {
         Expr::ExprNil(ExprNilType {
             id: id,
             pos: pos,
@@ -1454,13 +1454,14 @@ impl Expr {
     pub fn create_ident(
         id: NodeId,
         pos: Position,
+        span: Span,
         name: Name,
         type_params: Option<Vec<Type>>,
     ) -> Expr {
         Expr::ExprIdent(ExprIdentType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             name: name,
             type_params: type_params,
@@ -1546,6 +1547,7 @@ impl Expr {
     pub fn create_lambda(
         id: NodeId,
         pos: Position,
+        span: Span,
         params: Vec<Param>,
         ret: Option<Box<Type>>,
         block: Box<Stmt>,
@@ -1553,7 +1555,7 @@ impl Expr {
         Expr::ExprLambda(ExprLambdaType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             params: params,
             ret: ret,
