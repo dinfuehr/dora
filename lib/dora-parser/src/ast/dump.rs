@@ -116,16 +116,16 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_impl(&mut self, ximpl: &Impl) {
-        dump!(
-            self,
-            "impl {} for {} @ {} {}",
-            self.str(ximpl.trait_name),
-            self.str(ximpl.class_name),
-            ximpl.pos,
-            ximpl.id
-        );
+        dump!(self, "impl @ {} {}", ximpl.pos, ximpl.id);
 
         self.indent(|d| {
+            if let Some(trait_type) = ximpl.trait_type.as_ref() {
+                d.dump_type(trait_type);
+                dump!(d, "for");
+            }
+
+            d.dump_type(&ximpl.class_type);
+
             for mtd in &ximpl.methods {
                 d.dump_fct(mtd);
             }

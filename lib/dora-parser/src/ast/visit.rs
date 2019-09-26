@@ -186,14 +186,6 @@ pub fn walk_type<'v, V: Visitor<'v>>(v: &mut V, t: &'v Type) {
 
             v.visit_type(&fct.ret);
         }
-
-        TypePtr(ref ptr) => {
-            v.visit_type(&ptr.subtype);
-        }
-
-        TypeArray(ref array) => {
-            v.visit_type(&array.subtype);
-        }
     }
 }
 

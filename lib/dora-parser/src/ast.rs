@@ -207,8 +207,6 @@ pub enum Type {
     TypeSelf(TypeSelfType),
     TypeBasic(TypeBasicType),
     TypeTuple(TypeTupleType),
-    TypePtr(TypePtrType),
-    TypeArray(TypeArrayType),
     TypeLambda(TypeLambdaType),
 }
 
@@ -269,22 +267,6 @@ impl Type {
         })
     }
 
-    pub fn create_ptr(id: NodeId, pos: Position, subtype: Box<Type>) -> Type {
-        Type::TypePtr(TypePtrType {
-            id: id,
-            pos: pos,
-            subtype: subtype,
-        })
-    }
-
-    pub fn create_array(id: NodeId, pos: Position, subtype: Box<Type>) -> Type {
-        Type::TypeArray(TypeArrayType {
-            id: id,
-            pos: pos,
-            subtype: subtype,
-        })
-    }
-
     pub fn create_fct(id: NodeId, pos: Position, params: Vec<Box<Type>>, ret: Box<Type>) -> Type {
         Type::TypeLambda(TypeLambdaType {
             id: id,
@@ -309,16 +291,16 @@ impl Type {
         }
     }
 
-    pub fn to_ptr(&self) -> Option<&TypePtrType> {
+    pub fn to_basic_without_type_params(&self) -> Option<Name> {
         match *self {
-            Type::TypePtr(ref val) => Some(val),
-            _ => None,
-        }
-    }
+            Type::TypeBasic(ref basic) => {
+                if basic.params.len() == 0 {
+                    Some(basic.name)
+                } else {
+                    None
+                }
+            }
 
-    pub fn to_array(&self) -> Option<&TypeArrayType> {
-        match *self {
-            Type::TypeArray(ref val) => Some(val),
             _ => None,
         }
     }
@@ -363,10 +345,6 @@ impl Type {
 
                 format!("({}) -> {}", types.join(", "), ret)
             }
-
-            Type::TypePtr(ref val) => format!("*{}", val.subtype.to_string(interner)),
-
-            Type::TypeArray(ref val) => format!("[{}]", val.subtype.to_string(interner)),
         }
     }
 
@@ -376,8 +354,6 @@ impl Type {
             Type::TypeBasic(ref val) => val.pos,
             Type::TypeTuple(ref val) => val.pos,
             Type::TypeLambda(ref val) => val.pos,
-            Type::TypePtr(ref val) => val.pos,
-            Type::TypeArray(ref val) => val.pos,
         }
     }
 
@@ -387,8 +363,6 @@ impl Type {
             Type::TypeBasic(ref val) => val.id,
             Type::TypeTuple(ref val) => val.id,
             Type::TypeLambda(ref val) => val.id,
-            Type::TypePtr(ref val) => val.id,
-            Type::TypeArray(ref val) => val.id,
         }
     }
 }
@@ -396,9 +370,11 @@ impl Type {
 #[derive(Clone, Debug)]
 pub struct Impl {
     pub id: NodeId,
-    pub trait_name: Name,
-    pub class_name: Name,
     pub pos: Position,
+
+    pub type_params: Option<Vec<TypeParam>>,
+    pub trait_type: Option<Type>,
+    pub class_type: Type,
     pub methods: Vec<Function>,
 }
 

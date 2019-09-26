@@ -42,18 +42,46 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
 
         let mut ximpl = self.vm.impls[self.impl_id.unwrap()].write();
 
-        if let Some(Sym::SymTrait(trait_id)) = self.vm.sym.lock().get(i.trait_name) {
-            ximpl.trait_id = Some(trait_id);
-        } else {
-            let name = self.vm.interner.str(i.trait_name).to_string();
-            report(self.vm, i.pos, Msg::ExpectedTrait(name));
+        if i.type_params.is_some() {
+            // We don't support type parameters for impl-blocks yet.
+            report(self.vm, i.pos, Msg::Unimplemented);
+            self.impl_id = None;
+            return;
         }
 
-        if let Some(Sym::SymClass(class_id)) = self.vm.sym.lock().get(i.class_name) {
-            ximpl.class_id = Some(class_id);
+        if let Some(ref trait_type) = i.trait_type {
+            if let Some(trait_name) = trait_type.to_basic_without_type_params() {
+                if let Some(Sym::SymTrait(trait_id)) = self.vm.sym.lock().get(trait_name) {
+                    ximpl.trait_id = Some(trait_id);
+                } else {
+                    let name = self.vm.interner.str(trait_name).to_string();
+                    report(self.vm, i.pos, Msg::ExpectedTrait(name));
+                }
+            } else {
+                // We don't support type parameters for traits yet.
+                report(self.vm, i.pos, Msg::Unimplemented);
+                self.impl_id = None;
+                return;
+            }
         } else {
-            let name = self.vm.interner.str(i.class_name).to_string();
-            report(self.vm, i.pos, Msg::ExpectedClass(name));
+            // We don't support extension blocks yet.
+            report(self.vm, i.pos, Msg::Unimplemented);
+            self.impl_id = None;
+            return;
+        }
+
+        if let Some(class_name) = i.class_type.to_basic_without_type_params() {
+            if let Some(Sym::SymClass(class_id)) = self.vm.sym.lock().get(class_name) {
+                ximpl.class_id = Some(class_id);
+            } else {
+                let name = self.vm.interner.str(class_name).to_string();
+                report(self.vm, i.pos, Msg::ExpectedClass(name));
+            }
+        } else {
+            // We don't support type parameters for the class yet.
+            report(self.vm, i.pos, Msg::Unimplemented);
+            self.impl_id = None;
+            return;
         }
 
         if ximpl.trait_id.is_some() && ximpl.class_id.is_some() {

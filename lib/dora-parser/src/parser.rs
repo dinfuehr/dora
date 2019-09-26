@@ -162,9 +162,18 @@ impl<'a> Parser<'a> {
 
     fn parse_impl(&mut self) -> Result<Impl, MsgWithPos> {
         let pos = self.expect_token(TokenKind::Impl)?.position;
-        let trait_name = self.expect_identifier()?;
-        self.expect_token(TokenKind::For)?;
-        let class_name = self.expect_identifier()?;
+        let type_params = self.parse_type_params()?;
+
+        let type_name = self.parse_type()?;
+
+        let (class_type, trait_type) = if self.token.is(TokenKind::For) {
+            self.advance_token()?;
+            let class_type = self.parse_type()?;
+
+            (class_type, Some(type_name))
+        } else {
+            (type_name, None)
+        };
 
         self.expect_token(TokenKind::LBrace)?;
 
@@ -182,8 +191,9 @@ impl<'a> Parser<'a> {
 
         Ok(Impl {
             id: self.generate_id(),
-            trait_name: trait_name,
-            class_name: class_name,
+            type_params: type_params,
+            trait_type: trait_type,
+            class_type: class_type,
             pos: pos,
             methods: methods,
         })
@@ -3012,8 +3022,11 @@ mod tests {
         let (prog, interner) = parse("impl Foo for A {}");
         let ximpl = prog.impl0();
 
-        assert_eq!("Foo", *interner.str(ximpl.trait_name));
-        assert_eq!("A", *interner.str(ximpl.class_name));
+        assert_eq!(
+            "Foo",
+            ximpl.trait_type.as_ref().unwrap().to_string(&interner)
+        );
+        assert_eq!("A", ximpl.class_type.to_string(&interner));
         assert_eq!(0, ximpl.methods.len());
     }
 
@@ -3022,8 +3035,11 @@ mod tests {
         let (prog, interner) = parse("impl Bar for B { fun foo(); }");
         let ximpl = prog.impl0();
 
-        assert_eq!("Bar", *interner.str(ximpl.trait_name));
-        assert_eq!("B", *interner.str(ximpl.class_name));
+        assert_eq!(
+            "Bar",
+            ximpl.trait_type.as_ref().unwrap().to_string(&interner)
+        );
+        assert_eq!("B", ximpl.class_type.to_string(&interner));
         assert_eq!(1, ximpl.methods.len());
         assert_eq!(false, ximpl.methods[0].is_static);
     }
@@ -3033,8 +3049,11 @@ mod tests {
         let (prog, interner) = parse("impl Bar for B { @static fun foo(); }");
         let ximpl = prog.impl0();
 
-        assert_eq!("Bar", *interner.str(ximpl.trait_name));
-        assert_eq!("B", *interner.str(ximpl.class_name));
+        assert_eq!(
+            "Bar",
+            ximpl.trait_type.as_ref().unwrap().to_string(&interner)
+        );
+        assert_eq!("B", ximpl.class_type.to_string(&interner));
         assert_eq!(1, ximpl.methods.len());
         assert_eq!(true, ximpl.methods[0].is_static);
     }

@@ -441,8 +441,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 .report_without_path(e.pos, Msg::LvalueExpected);
         }
 
-        self.src.set_ty(e.id, BuiltinType::Error);
-        self.expr_type = BuiltinType::Error;
+        self.src.set_ty(e.id, BuiltinType::Unit);
+        self.expr_type = BuiltinType::Unit;
     }
 
     fn check_expr_assign_call(&mut self, e: &'ast ExprAssignType) {
@@ -465,39 +465,19 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         let name = self.vm.interner.intern("set");
         arg_types.push(value_type);
-        let ret_type = Some(BuiltinType::Unit);
 
-        if let Some((_, fct_id, return_type)) = self.find_method(
+        if let Some((_, fct_id, _)) = self.find_method(
             e.pos,
             expr_type,
             false,
             name,
             &arg_types,
             &TypeParams::empty(),
-            ret_type,
         ) {
             let call_type = CallType::Expr(expr_type, fct_id);
             self.src
                 .map_calls
                 .insert_or_replace(e.id, Arc::new(call_type));
-
-            // let fct = self.vm.fcts.idx(fct_id);
-            // let fct = fct.read();
-            // let element_type = *fct.params_without_self().last().unwrap();
-            // let element_type_params = expr_type.type_params(self.vm);
-            // let element_type = specialize_type(
-            //     self.vm,
-            //     element_type,
-            //     &element_type_params,
-            //     &TypeParams::empty(),
-            // );
-            // self.src.set_ty(call.id, element_type);
-
-            self.src.set_ty(e.id, return_type);
-            self.expr_type = return_type;
-        } else {
-            self.src.set_ty(e.id, BuiltinType::Error);
-            self.expr_type = BuiltinType::Error;
         }
     }
 
@@ -579,7 +559,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         name: Name,
         args: &[BuiltinType],
         fct_type_params: &TypeParams,
-        return_type: Option<BuiltinType>,
     ) -> Option<(ClassId, FctId, BuiltinType)> {
         let result = lookup_method(
             self.vm,
@@ -588,7 +567,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             name,
             args,
             fct_type_params,
-            return_type,
+            None,
         );
 
         if result.is_none() {
@@ -895,7 +874,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             get,
             arg_types,
             &TypeParams::empty(),
-            None,
         ) {
             let call_type = CallType::Expr(expr_type, fct_id);
             self.src
@@ -2973,16 +2951,16 @@ mod tests {
     #[test]
     fn type_array_assign() {
         err(
-            "fun f(a: Array[Int]) -> Int { return a.set(3, 4); }",
+            "fun f(a: Array[Int]) -> Int { return a(3) = 4; }",
             pos(1, 31),
             Msg::ReturnType("Int".into(), "()".into()),
         );
         err(
-            "fun f(a: Array[Int]) { a.set(3, \"b\"); }",
+            "fun f(a: Array[Int]) { a(3) = \"b\"; }",
             pos(1, 29),
-            Msg::ParamTypesIncompatible(
+            Msg::UnknownMethod(
+                "Array[Int]".into(),
                 "set".into(),
-                vec!["Int".into(), "T".into()],
                 vec!["Int".into(), "String".into()],
             ),
         );
