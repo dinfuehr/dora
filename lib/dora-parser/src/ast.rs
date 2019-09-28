@@ -1298,11 +1298,11 @@ pub enum Expr {
 }
 
 impl Expr {
-    pub fn create_un(id: NodeId, pos: Position, op: UnOp, opnd: Box<Expr>) -> Expr {
+    pub fn create_un(id: NodeId, pos: Position, span: Span, op: UnOp, opnd: Box<Expr>) -> Expr {
         Expr::ExprUn(ExprUnType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             op: op,
             opnd: opnd,
@@ -1366,7 +1366,7 @@ impl Expr {
         Expr::ExprLitChar(ExprLitCharType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             value: value,
         })
@@ -1431,7 +1431,7 @@ impl Expr {
         Expr::ExprSelf(ExprSelfType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
         })
     }
 
@@ -1439,7 +1439,7 @@ impl Expr {
         Expr::ExprSuper(ExprSuperType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
         })
     }
 
@@ -1447,7 +1447,7 @@ impl Expr {
         Expr::ExprNil(ExprNilType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
         })
     }
 
@@ -1468,11 +1468,17 @@ impl Expr {
         })
     }
 
-    pub fn create_call(id: NodeId, pos: Position, callee: Box<Expr>, args: Vec<Box<Expr>>) -> Expr {
+    pub fn create_call(
+        id: NodeId,
+        pos: Position,
+        span: Span,
+        callee: Box<Expr>,
+        args: Vec<Box<Expr>>,
+    ) -> Expr {
         Expr::ExprCall(ExprCallType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             callee: callee,
             args: args,
@@ -1482,24 +1488,31 @@ impl Expr {
     pub fn create_type_param(
         id: NodeId,
         pos: Position,
+        span: Span,
         callee: Box<Expr>,
         args: Vec<Type>,
     ) -> Expr {
         Expr::ExprTypeParam(ExprTypeParamType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             callee: callee,
             args: args,
         })
     }
 
-    pub fn create_path(id: NodeId, pos: Position, lhs: Box<Expr>, rhs: Box<Expr>) -> Expr {
+    pub fn create_path(
+        id: NodeId,
+        pos: Position,
+        span: Span,
+        lhs: Box<Expr>,
+        rhs: Box<Expr>,
+    ) -> Expr {
         Expr::ExprPath(ExprPathType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             lhs: lhs,
             rhs: rhs,
@@ -1533,11 +1546,17 @@ impl Expr {
         })
     }
 
-    pub fn create_dot(id: NodeId, pos: Position, object: Box<Expr>, name: Name) -> Expr {
+    pub fn create_dot(
+        id: NodeId,
+        pos: Position,
+        span: Span,
+        object: Box<Expr>,
+        name: Name,
+    ) -> Expr {
         Expr::ExprDot(ExprDotType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             object: object,
             name: name,
