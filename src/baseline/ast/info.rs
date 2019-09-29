@@ -727,12 +727,15 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn expr_bin(&mut self, expr: &'ast ExprBinType) {
+        if expr.op.is_any_assign() {
+            self.expr_assign(expr);
+            return;
+        }
+
         let lhs_ty = self.ty(expr.lhs.id());
         let rhs_ty = self.ty(expr.rhs.id());
 
-        if expr.op.is_any_assign() {
-            self.expr_assign(expr);
-        } else if expr.op == BinOp::Cmp(CmpOp::Is) || expr.op == BinOp::Cmp(CmpOp::IsNot) {
+        if expr.op == BinOp::Cmp(CmpOp::Is) || expr.op == BinOp::Cmp(CmpOp::IsNot) {
             self.visit_expr(&expr.lhs);
             self.visit_expr(&expr.rhs);
 
