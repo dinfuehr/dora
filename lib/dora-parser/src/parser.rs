@@ -1101,7 +1101,7 @@ impl<'a> Parser<'a> {
             let right_precedence = match self.token.kind {
                 TokenKind::Or => 1,
                 TokenKind::And => 2,
-                TokenKind::Eq => 3,
+                TokenKind::Eq | TokenKind::AddEq => 3,
                 TokenKind::EqEq
                 | TokenKind::Ne
                 | TokenKind::Lt
@@ -1242,15 +1242,7 @@ impl<'a> Parser<'a> {
 
     fn create_binary(&mut self, tok: Token, left: Box<Expr>, right: Box<Expr>) -> Box<Expr> {
         let op = match tok.kind {
-            TokenKind::Eq => {
-                return Box::new(Expr::create_assign(
-                    self.generate_id(),
-                    tok.position,
-                    left,
-                    right,
-                ));
-            }
-
+            TokenKind::Eq => BinOp::Assign,
             TokenKind::Or => BinOp::Or,
             TokenKind::And => BinOp::And,
             TokenKind::EqEq => BinOp::Cmp(CmpOp::Eq),
@@ -2201,8 +2193,9 @@ mod tests {
     fn parse_assign() {
         let (expr, _) = parse_expr("a=4");
 
-        let assign = expr.to_assign().unwrap();
+        let assign = expr.to_bin().unwrap();
         assert!(assign.lhs.is_ident());
+        assert_eq!(BinOp::Assign, assign.op);
         assert_eq!(4, assign.rhs.to_lit_int().unwrap().value);
     }
 

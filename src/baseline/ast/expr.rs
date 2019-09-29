@@ -90,7 +90,6 @@ where
             ExprLitStr(ref expr) => self.emit_lit_str(expr, dest.reg()),
             ExprUn(ref expr) => self.emit_unary_operator(expr, dest),
             ExprIdent(ref expr) => self.emit_ident(expr, dest),
-            ExprAssign(ref expr) => self.emit_assign(expr),
             ExprBin(ref expr) => self.emit_bin(expr, dest),
             ExprCall(ref expr) => self.emit_call(expr, dest),
             ExprTypeParam(_) => unreachable!(),
@@ -662,7 +661,7 @@ where
         }
     }
 
-    fn emit_assign(&mut self, e: &'ast ExprAssignType) {
+    fn emit_assign(&mut self, e: &'ast ExprBinType) {
         let call_type = self.src.map_calls.get(e.id);
 
         if call_type.is_some() {
@@ -825,7 +824,9 @@ where
     }
 
     fn emit_bin(&mut self, e: &'ast ExprBinType, dest: ExprStore) {
-        if let Some(intrinsic) = self.intrinsic(e.id) {
+        if e.op.is_any_assign() {
+            self.emit_assign(e);
+        } else if let Some(intrinsic) = self.intrinsic(e.id) {
             self.emit_intrinsic_bin(&e.lhs, &e.rhs, dest, intrinsic, Some(e.op));
         } else if e.op == BinOp::Cmp(CmpOp::Is) || e.op == BinOp::Cmp(CmpOp::IsNot) {
             self.emit_bin_is(e, dest.reg());

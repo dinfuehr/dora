@@ -480,7 +480,6 @@ impl<'a> AstDumper<'a> {
             ExprTemplate(ref tmpl) => self.dump_expr_template(tmpl),
             ExprLitBool(ref lit) => self.dump_expr_lit_bool(lit),
             ExprIdent(ref ident) => self.dump_expr_ident(ident),
-            ExprAssign(ref assign) => self.dump_expr_assign(assign),
             ExprCall(ref call) => self.dump_expr_call(call),
             ExprTypeParam(ref expr) => self.dump_expr_type_param(expr),
             ExprPath(ref path) => self.dump_expr_path(path),
@@ -599,12 +598,6 @@ impl<'a> AstDumper<'a> {
             field.id
         );
         self.indent(|d| d.dump_expr(&field.object));
-    }
-
-    fn dump_expr_assign(&mut self, expr: &ExprAssignType) {
-        self.indent(|d| d.dump_expr(&expr.rhs));
-        dump!(self, "assign (=) @ {} {}", expr.pos, expr.id);
-        self.indent(|d| d.dump_expr(&expr.lhs));
     }
 
     fn dump_expr_path(&mut self, expr: &ExprPathType) {

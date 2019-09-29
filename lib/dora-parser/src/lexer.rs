@@ -274,7 +274,15 @@ impl Lexer {
         let nnch = self.next().unwrap_or('x');
 
         let kind = match ch {
-            '+' => TokenKind::Add,
+            '+' => {
+                if nch == '=' {
+                    self.read_char();
+                    TokenKind::AddEq
+                } else {
+                    TokenKind::Add
+                }
+            }
+
             '-' => {
                 if nch == '>' {
                     self.read_char();
@@ -1082,8 +1090,7 @@ mod tests {
     fn test_operators() {
         let mut reader = Lexer::from_str("==+=-*/%~.@");
         assert_tok(&mut reader, TokenKind::EqEq, 1, 1);
-        assert_tok(&mut reader, TokenKind::Add, 1, 3);
-        assert_tok(&mut reader, TokenKind::Eq, 1, 4);
+        assert_tok(&mut reader, TokenKind::AddEq, 1, 3);
         assert_tok(&mut reader, TokenKind::Sub, 1, 5);
         assert_tok(&mut reader, TokenKind::Mul, 1, 6);
         assert_tok(&mut reader, TokenKind::Div, 1, 7);

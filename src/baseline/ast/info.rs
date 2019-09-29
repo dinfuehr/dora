@@ -202,7 +202,6 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
         match *e {
             ExprCall(ref expr) => self.expr_call(expr),
             ExprDelegation(ref expr) => self.expr_delegation(expr),
-            ExprAssign(ref expr) => self.expr_assign(expr),
             ExprBin(ref expr) => self.expr_bin(expr),
             ExprUn(ref expr) => self.expr_un(expr),
             ExprConv(ref expr) => self.expr_conv(expr),
@@ -675,7 +674,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         }
     }
 
-    fn expr_assign(&mut self, e: &'ast ExprAssignType) {
+    fn expr_assign(&mut self, e: &'ast ExprBinType) {
         let call_type = self.src.map_calls.get(e.id);
 
         if call_type.is_some() {
@@ -731,7 +730,9 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let lhs_ty = self.ty(expr.lhs.id());
         let rhs_ty = self.ty(expr.rhs.id());
 
-        if expr.op == BinOp::Cmp(CmpOp::Is) || expr.op == BinOp::Cmp(CmpOp::IsNot) {
+        if expr.op.is_any_assign() {
+            self.expr_assign(expr);
+        } else if expr.op == BinOp::Cmp(CmpOp::Is) || expr.op == BinOp::Cmp(CmpOp::IsNot) {
             self.visit_expr(&expr.lhs);
             self.visit_expr(&expr.rhs);
 

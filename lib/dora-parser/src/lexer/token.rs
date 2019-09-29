@@ -57,6 +57,7 @@ pub enum TokenKind {
 
     // Operators
     Add,
+    AddEq,
     Sub,
     Mul,
     Div,
@@ -163,6 +164,7 @@ impl TokenKind {
 
             // Operators
             TokenKind::Add => "+",
+            TokenKind::AddEq => "+=",
             TokenKind::Sub => "-",
             TokenKind::Mul => "*",
             TokenKind::Div => "/",

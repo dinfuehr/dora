@@ -37,11 +37,12 @@ impl<'a> Builder<'a> {
     pub fn build_assign(&self, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {
         let id = self.id_generator.next();
 
-        Box::new(Expr::ExprAssign(ExprAssignType {
+        Box::new(Expr::ExprBin(ExprBinType {
             id: id,
             pos: Position::new(1, 1),
             span: Span::invalid(),
 
+            op: BinOp::Assign,
             lhs: lhs,
             rhs: rhs,
         }))

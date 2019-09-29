@@ -1229,6 +1229,7 @@ impl CmpOp {
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum BinOp {
+    Assign,
     Add,
     Sub,
     Mul,
@@ -1248,6 +1249,7 @@ pub enum BinOp {
 impl BinOp {
     pub fn as_str(&self) -> &'static str {
         match *self {
+            BinOp::Assign => "=",
             BinOp::Add => "+",
             BinOp::Sub => "-",
             BinOp::Mul => "*",
@@ -1262,6 +1264,13 @@ impl BinOp {
             BinOp::ShiftL => "<<",
             BinOp::ArithShiftR => ">>",
             BinOp::LogicalShiftR => ">>>",
+        }
+    }
+
+    pub fn is_any_assign(&self) -> bool {
+        match *self {
+            BinOp::Assign => true,
+            _ => false,
         }
     }
 
@@ -1288,7 +1297,6 @@ pub enum Expr {
     ExprTypeParam(ExprTypeParamType),
     ExprPath(ExprPathType),
     ExprDelegation(ExprDelegationType),
-    ExprAssign(ExprAssignType),
     ExprDot(ExprDotType),
     ExprSelf(ExprSelfType),
     ExprSuper(ExprSuperType),
@@ -1546,17 +1554,6 @@ impl Expr {
         })
     }
 
-    pub fn create_assign(id: NodeId, pos: Position, lhs: Box<Expr>, rhs: Box<Expr>) -> Expr {
-        Expr::ExprAssign(ExprAssignType {
-            id: id,
-            pos: pos,
-            span: Span::invalid(),
-
-            lhs: lhs,
-            rhs: rhs,
-        })
-    }
-
     pub fn create_dot(
         id: NodeId,
         pos: Position,
@@ -1617,20 +1614,6 @@ impl Expr {
     pub fn is_bin(&self) -> bool {
         match *self {
             Expr::ExprBin(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn to_assign(&self) -> Option<&ExprAssignType> {
-        match *self {
-            Expr::ExprAssign(ref val) => Some(val),
-            _ => None,
-        }
-    }
-
-    pub fn is_assign(&self) -> bool {
-        match *self {
-            Expr::ExprAssign(_) => true,
             _ => false,
         }
     }
@@ -1891,7 +1874,6 @@ impl Expr {
             Expr::ExprTemplate(ref val) => val.pos,
             Expr::ExprLitBool(ref val) => val.pos,
             Expr::ExprIdent(ref val) => val.pos,
-            Expr::ExprAssign(ref val) => val.pos,
             Expr::ExprCall(ref val) => val.pos,
             Expr::ExprTypeParam(ref val) => val.pos,
             Expr::ExprPath(ref val) => val.pos,
@@ -1917,7 +1899,6 @@ impl Expr {
             Expr::ExprTemplate(ref val) => val.span,
             Expr::ExprLitBool(ref val) => val.span,
             Expr::ExprIdent(ref val) => val.span,
-            Expr::ExprAssign(ref val) => val.span,
             Expr::ExprCall(ref val) => val.span,
             Expr::ExprTypeParam(ref val) => val.span,
             Expr::ExprPath(ref val) => val.span,
@@ -1943,7 +1924,6 @@ impl Expr {
             Expr::ExprTemplate(ref val) => val.id,
             Expr::ExprLitBool(ref val) => val.id,
             Expr::ExprIdent(ref val) => val.id,
-            Expr::ExprAssign(ref val) => val.id,
             Expr::ExprCall(ref val) => val.id,
             Expr::ExprTypeParam(ref val) => val.id,
             Expr::ExprPath(ref val) => val.id,
@@ -2212,16 +2192,6 @@ pub struct ExprTypeParamType {
 
     pub callee: Box<Expr>,
     pub args: Vec<Type>,
-}
-
-#[derive(Clone, Debug)]
-pub struct ExprAssignType {
-    pub id: NodeId,
-    pub pos: Position,
-    pub span: Span,
-
-    pub lhs: Box<Expr>,
-    pub rhs: Box<Expr>,
 }
 
 #[derive(Clone, Debug)]

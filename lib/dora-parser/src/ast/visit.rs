@@ -281,11 +281,6 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
             v.visit_expr(&value.rhs);
         }
 
-        ExprAssign(ref value) => {
-            v.visit_expr(&value.lhs);
-            v.visit_expr(&value.rhs);
-        }
-
         ExprCall(ref call) => {
             v.visit_expr(&call.callee);
 

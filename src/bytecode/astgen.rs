@@ -237,7 +237,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             // ExprLitStruct(ref lit) => {},
             ExprLitBool(ref lit) => self.visit_expr_lit_bool(lit, dest),
             ExprIdent(ref ident) => self.visit_expr_ident(ident, dest),
-            ExprAssign(ref assign) => self.visit_expr_assign(assign, dest),
             ExprCall(ref call) => self.visit_expr_call(call, dest),
             // ExprDelegation(ref call) => {},
             ExprSelf(ref selfie) => self.visit_expr_self(selfie, dest),
@@ -592,7 +591,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn visit_expr_bin(&mut self, e: &ExprBinType, dest: DataDest) -> Register {
-        if e.op == BinOp::Cmp(CmpOp::Is) || e.op == BinOp::Cmp(CmpOp::IsNot) {
+        if e.op.is_any_assign() {
+            self.visit_expr_assign(e, dest)
+        } else if e.op == BinOp::Cmp(CmpOp::Is) || e.op == BinOp::Cmp(CmpOp::IsNot) {
             self.emit_bin_is(e, dest)
         } else if e.op == BinOp::Or {
             self.emit_bin_or(e, dest)
@@ -739,7 +740,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         dest
     }
 
-    fn visit_expr_assign(&mut self, e: &ExprAssignType, dest: DataDest) -> Register {
+    fn visit_expr_assign(&mut self, e: &ExprBinType, dest: DataDest) -> Register {
         assert!(dest.is_effect());
 
         if e.lhs.is_ident() {

@@ -336,7 +336,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_expr_assign(&mut self, e: &'ast ExprAssignType) {
+    fn check_expr_assign(&mut self, e: &'ast ExprBinType) {
         if e.lhs.is_call() {
             self.check_expr_assign_call(e);
         } else if e.lhs.is_dot() {
@@ -444,7 +444,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.expr_type = BuiltinType::Unit;
     }
 
-    fn check_expr_assign_call(&mut self, e: &'ast ExprAssignType) {
+    fn check_expr_assign_call(&mut self, e: &'ast ExprBinType) {
         let call = e.lhs.to_call().unwrap();
 
         self.visit_expr(&call.callee);
@@ -480,7 +480,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_expr_assign_field(&mut self, e: &'ast ExprAssignType) {
+    fn check_expr_assign_field(&mut self, e: &'ast ExprBinType) {
         let field_expr = e.lhs.to_dot().unwrap();
         let name = field_expr.name;
 
@@ -638,6 +638,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_bin(&mut self, e: &'ast ExprBinType) {
+        if e.op.is_any_assign() {
+            self.check_expr_assign(e);
+            return;
+        }
+
         self.visit_expr(&e.lhs);
         let lhs_type = self.expr_type;
 
@@ -662,6 +667,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             BinOp::LogicalShiftR => {
                 self.check_expr_bin_method(e, e.op, "unsignedShiftRight", lhs_type, rhs_type)
             }
+            BinOp::Assign => unreachable!(),
         }
     }
 
@@ -1672,7 +1678,6 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprTemplate(ref expr) => self.check_expr_template(expr),
             ExprLitBool(ref expr) => self.check_expr_lit_bool(expr),
             ExprIdent(ref expr) => self.check_expr_ident(expr),
-            ExprAssign(ref expr) => self.check_expr_assign(expr),
             ExprUn(ref expr) => self.check_expr_un(expr),
             ExprBin(ref expr) => self.check_expr_bin(expr),
             ExprCall(ref expr) => self.check_expr_call(expr, false),
