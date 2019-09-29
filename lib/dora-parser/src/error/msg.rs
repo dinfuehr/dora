@@ -79,6 +79,7 @@ pub enum Msg {
     ExpectedTrait(String),
     ExpectedType(String),
     ExpectedIdentifier(String),
+    ExpectedStringable(String),
     ExpectedSomeIdentifier,
     MisplacedElse,
     IoError,
@@ -286,6 +287,7 @@ impl Msg {
             ExpectedClassElement(ref token) => {
                 format!("field or method expected but got {}.", token)
             }
+            ExpectedStringable(ref ty) => format!("type {} does not implement Stringable.", ty),
             MisplacedAnnotation(ref modifier) => format!("misplaced annotation `{}`.", modifier),
             RedundantAnnotation(ref token) => format!("redundant annotation {}.", token),
             UnknownAnnotation(ref token) => format!("unknown annotation {}.", token),

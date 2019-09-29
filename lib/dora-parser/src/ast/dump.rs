@@ -477,6 +477,7 @@ impl<'a> AstDumper<'a> {
             ExprLitInt(ref lit) => self.dump_expr_lit_int(lit),
             ExprLitFloat(ref lit) => self.dump_expr_lit_float(lit),
             ExprLitStr(ref lit) => self.dump_expr_lit_str(lit),
+            ExprTemplate(ref tmpl) => self.dump_expr_template(tmpl),
             ExprLitBool(ref lit) => self.dump_expr_lit_bool(lit),
             ExprIdent(ref ident) => self.dump_expr_ident(ident),
             ExprAssign(ref assign) => self.dump_expr_assign(assign),
@@ -548,6 +549,15 @@ impl<'a> AstDumper<'a> {
 
     fn dump_expr_lit_str(&mut self, lit: &ExprLitStrType) {
         dump!(self, "lit string {:?} @ {} {}", lit.value, lit.pos, lit.id);
+    }
+
+    fn dump_expr_template(&mut self, tmpl: &ExprTemplateType) {
+        dump!(self, "template @ {} {}", tmpl.pos, tmpl.id);
+        self.indent(|d| {
+            for part in &tmpl.parts {
+                d.dump_expr(part)
+            }
+        });
     }
 
     fn dump_expr_lit_bool(&mut self, lit: &ExprLitBoolType) {

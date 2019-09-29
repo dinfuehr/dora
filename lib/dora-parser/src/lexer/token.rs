@@ -5,7 +5,8 @@ use crate::lexer::position::{Position, Span};
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum TokenKind {
-    String(String),
+    StringTail(String),
+    StringExpr(String),
     LitChar(char),
     LitInt(String, IntBase, IntSuffix),
     LitFloat(String, FloatSuffix),
@@ -100,7 +101,8 @@ pub enum TokenKind {
 impl TokenKind {
     pub fn name(&self) -> &str {
         match *self {
-            TokenKind::String(_) => "string",
+            TokenKind::StringTail(_) => "string tail",
+            TokenKind::StringExpr(_) => "string epxr",
             TokenKind::LitInt(_, _, suffix) => match suffix {
                 IntSuffix::Byte => "byte number",
                 IntSuffix::Int => "int number",
@@ -254,7 +256,9 @@ impl Token {
                 format!("{}{}", val, suffix)
             }
 
-            TokenKind::String(ref val) => format!("\"{}\"", &val),
+            TokenKind::StringTail(ref val) => format!("\"{}\" tail", &val),
+            TokenKind::StringExpr(ref val) => format!("\"{}\" expr", &val),
+
             TokenKind::Identifier(ref val) => val.clone(),
 
             _ => self.kind.name().into(),

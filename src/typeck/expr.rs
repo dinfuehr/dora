@@ -1618,26 +1618,57 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.src.set_ty(e.id, ty);
         self.expr_type = ty;
     }
+
+    fn check_expr_lit_str(&mut self, e: &'ast ExprLitStrType) {
+        let str_ty = self.vm.cls(self.vm.vips.string_class);
+        self.src.set_ty(e.id, str_ty);
+        self.expr_type = str_ty;
+    }
+
+    fn check_expr_lit_bool(&mut self, e: &'ast ExprLitBoolType) {
+        self.src.set_ty(e.id, BuiltinType::Bool);
+        self.expr_type = BuiltinType::Bool;
+    }
+
+    fn check_expr_lit_char(&mut self, e: &'ast ExprLitCharType) {
+        self.src.set_ty(e.id, BuiltinType::Char);
+        self.expr_type = BuiltinType::Char;
+    }
+
+    fn check_expr_template(&mut self, e: &'ast ExprTemplateType) {
+        let stringable_trait = self.vm.vips.stringable_trait;
+
+        for (idx, part) in e.parts.iter().enumerate() {
+            if idx % 2 != 0 {
+                self.visit_expr(part);
+
+                if self.expr_type.implements_trait(self.vm, stringable_trait) {
+                    continue;
+                }
+
+                let ty = self.expr_type.name(self.vm);
+                self.vm
+                    .diag
+                    .lock()
+                    .report_without_path(part.pos(), Msg::ExpectedStringable(ty));
+            }
+        }
+
+        let str_ty = self.vm.cls(self.vm.vips.string_class);
+        self.src.set_ty(e.id, str_ty);
+        self.expr_type = str_ty;
+    }
 }
 
 impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
     fn visit_expr(&mut self, e: &'ast Expr) {
         match *e {
-            ExprLitChar(ExprLitCharType { id, .. }) => {
-                self.src.set_ty(id, BuiltinType::Char);
-                self.expr_type = BuiltinType::Char;
-            }
+            ExprLitChar(ref expr) => self.check_expr_lit_char(expr),
             ExprLitInt(ref expr) => self.check_expr_lit_int(expr),
             ExprLitFloat(ref expr) => self.check_expr_lit_float(expr),
-            ExprLitStr(ExprLitStrType { id, .. }) => {
-                let str_ty = self.vm.cls(self.vm.vips.string_class);
-                self.src.set_ty(id, str_ty);
-                self.expr_type = str_ty;
-            }
-            ExprLitBool(ExprLitBoolType { id, .. }) => {
-                self.src.set_ty(id, BuiltinType::Bool);
-                self.expr_type = BuiltinType::Bool;
-            }
+            ExprLitStr(ref expr) => self.check_expr_lit_str(expr),
+            ExprTemplate(ref expr) => self.check_expr_template(expr),
+            ExprLitBool(ref expr) => self.check_expr_lit_bool(expr),
             ExprIdent(ref expr) => self.check_expr_ident(expr),
             ExprAssign(ref expr) => self.check_expr_assign(expr),
             ExprUn(ref expr) => self.check_expr_un(expr),
@@ -3669,6 +3700,16 @@ mod tests {
                 "set".into(),
                 vec!["String".into(), "Int".into()],
             ),
+        );
+    }
+
+    #[test]
+    fn test_template() {
+        ok("fun f(x: Int) -> String { return \"x = ${x}\"; }");
+        err(
+            "class Foo fun f(x: Foo) -> String { return \"x = ${x}\"; }",
+            pos(1, 51),
+            Msg::ExpectedStringable("Foo".into()),
         );
     }
 }

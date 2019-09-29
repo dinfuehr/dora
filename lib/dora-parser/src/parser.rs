@@ -1290,7 +1290,7 @@ impl<'a> Parser<'a> {
             TokenKind::LitChar(_) => self.parse_lit_char(),
             TokenKind::LitInt(_, _, _) => self.parse_lit_int(),
             TokenKind::LitFloat(_, _) => self.parse_lit_float(),
-            TokenKind::String(_) => self.parse_string(),
+            TokenKind::StringTail(_) | TokenKind::StringExpr(_) => self.parse_string(),
             TokenKind::Identifier(_) => self.parse_identifier(),
             TokenKind::True => self.parse_bool_literal(),
             TokenKind::False => self.parse_bool_literal(),
@@ -1451,15 +1451,73 @@ impl<'a> Parser<'a> {
         let span = self.token.span;
         let string = self.advance_token()?;
 
-        if let TokenKind::String(value) = string.kind {
-            Ok(Box::new(Expr::create_lit_str(
+        match string.kind {
+            TokenKind::StringTail(value) => Ok(Box::new(Expr::create_lit_str(
                 self.generate_id(),
                 string.position,
                 span,
                 value,
-            )))
-        } else {
-            unreachable!();
+            ))),
+
+            TokenKind::StringExpr(value) => {
+                let start = self.token.span.start();
+                let mut parts: Vec<Box<Expr>> = Vec::new();
+                parts.push(Box::new(Expr::create_lit_str(
+                    self.generate_id(),
+                    string.position,
+                    span,
+                    value,
+                )));
+
+                loop {
+                    let expr = self.parse_expression()?;
+                    parts.push(expr);
+
+                    if !self.token.is(TokenKind::RBrace) {
+                        return Err(MsgWithPos::new(
+                            self.lexer.path().to_string(),
+                            self.token.position,
+                            Msg::UnclosedString,
+                        ));
+                    }
+
+                    let token = self.lexer.read_string_continuation()?;
+                    self.advance_token_with(token);
+
+                    let pos = self.token.position;
+                    let span = self.token.span;
+
+                    let (value, finished) = match self.token.kind {
+                        TokenKind::StringTail(ref value) => (value.clone(), true),
+                        TokenKind::StringExpr(ref value) => (value.clone(), false),
+                        _ => unreachable!(),
+                    };
+
+                    parts.push(Box::new(Expr::create_lit_str(
+                        self.generate_id(),
+                        pos,
+                        span,
+                        value,
+                    )));
+
+                    self.advance_token()?;
+
+                    if finished {
+                        break;
+                    }
+                }
+
+                let span = self.span_from(start);
+
+                Ok(Box::new(Expr::create_template(
+                    self.generate_id(),
+                    string.position,
+                    span,
+                    parts,
+                )))
+            }
+
+            _ => unreachable!(),
         }
     }
 
@@ -1579,14 +1637,18 @@ impl<'a> Parser<'a> {
     }
 
     fn advance_token(&mut self) -> Result<Token, MsgWithPos> {
+        let token = self.lexer.read_token()?;
+        Ok(self.advance_token_with(token))
+    }
+
+    fn advance_token_with(&mut self, token: Token) -> Token {
         self.last_end = if self.token.span.is_valid() {
             Some(self.token.span.end())
         } else {
             None
         };
-        let tok = self.lexer.read_token()?;
 
-        Ok(mem::replace(&mut self.token, tok))
+        mem::replace(&mut self.token, token)
     }
 
     fn span_from(&self, start: u32) -> Span {
@@ -1693,7 +1755,13 @@ mod tests {
             let mut parser = Parser::new(reader, &id_generator, &mut ast, &mut interner);
             assert!(parser.init().is_ok(), true);
 
-            parser.parse_expression().unwrap()
+            let result = parser.parse_expression();
+
+            if let Err(ref msg) = result {
+                println!("error parsing: {:?}", msg);
+            }
+
+            result.unwrap()
         };
 
         (expr, interner)
@@ -3015,6 +3083,19 @@ mod tests {
         let lit = expr.to_lit_float().unwrap();
 
         assert_eq!(1.2, lit.value);
+    }
+
+    #[test]
+    fn parse_template() {
+        let (expr, _) = parse_expr("\"a${1}b${2}c\"");
+        let tmpl = expr.to_template().unwrap();
+        assert_eq!(tmpl.parts.len(), 5);
+
+        assert_eq!("a".to_string(), tmpl.parts[0].to_lit_str().unwrap().value);
+        assert_eq!(1, tmpl.parts[1].to_lit_int().unwrap().value);
+        assert_eq!("b".to_string(), tmpl.parts[2].to_lit_str().unwrap().value);
+        assert_eq!(2, tmpl.parts[3].to_lit_int().unwrap().value);
+        assert_eq!("c".to_string(), tmpl.parts[4].to_lit_str().unwrap().value);
     }
 
     #[test]

@@ -62,7 +62,7 @@ impl Lexer {
             } else if is_identifier_start(ch) {
                 return self.read_identifier();
             } else if is_quote(ch) {
-                return self.read_string();
+                return self.read_string(true);
             } else if is_char_quote(ch) {
                 return self.read_char_literal();
             } else if is_operator(ch) {
@@ -221,14 +221,26 @@ impl Lexer {
         }
     }
 
-    fn read_string(&mut self) -> Result<Token, MsgWithPos> {
+    fn read_string(&mut self, skip_quote: bool) -> Result<Token, MsgWithPos> {
         let pos = self.reader.pos();
         let idx = self.reader.idx();
         let mut value = String::new();
 
-        self.read_char();
+        if skip_quote {
+            assert_eq!(self.curr(), Some('\"'));
+            self.read_char();
+        }
 
-        while !self.curr().is_none() && !is_quote(self.curr()) {
+        while self.curr().is_some() && !is_quote(self.curr()) {
+            if self.curr() == Some('$') && self.next() == Some('{') {
+                self.read_char();
+                self.read_char();
+
+                let ttype = TokenKind::StringExpr(value);
+                let span = self.span_from(idx);
+                return Ok(Token::new(ttype, pos, span));
+            }
+
             let ch = self.read_escaped_char(pos, Msg::UnclosedString)?;
             value.push(ch);
         }
@@ -236,7 +248,7 @@ impl Lexer {
         if is_quote(self.curr()) {
             self.read_char();
 
-            let ttype = TokenKind::String(value);
+            let ttype = TokenKind::StringTail(value);
             let span = self.span_from(idx);
             Ok(Token::new(ttype, pos, span))
         } else {
@@ -246,6 +258,10 @@ impl Lexer {
                 Msg::UnclosedString,
             ))
         }
+    }
+
+    pub fn read_string_continuation(&mut self) -> Result<Token, MsgWithPos> {
+        self.read_string(false)
     }
 
     fn read_operator(&mut self) -> Result<Token, MsgWithPos> {
@@ -964,28 +980,28 @@ mod tests {
     #[test]
     fn test_string_with_newline() {
         let mut reader = Lexer::from_str("\"abc\ndef\"");
-        assert_tok(&mut reader, TokenKind::String("abc\ndef".into()), 1, 1);
+        assert_tok(&mut reader, TokenKind::StringTail("abc\ndef".into()), 1, 1);
     }
 
     #[test]
     fn test_escape_sequences() {
         let mut reader = Lexer::from_str("\"\\\"\"");
-        assert_tok(&mut reader, TokenKind::String("\"".into()), 1, 1);
+        assert_tok(&mut reader, TokenKind::StringTail("\"".into()), 1, 1);
 
         let mut reader = Lexer::from_str("\"\\\'\"");
-        assert_tok(&mut reader, TokenKind::String("'".into()), 1, 1);
+        assert_tok(&mut reader, TokenKind::StringTail("'".into()), 1, 1);
 
         let mut reader = Lexer::from_str("\"\\t\"");
-        assert_tok(&mut reader, TokenKind::String("\t".into()), 1, 1);
+        assert_tok(&mut reader, TokenKind::StringTail("\t".into()), 1, 1);
 
         let mut reader = Lexer::from_str("\"\\n\"");
-        assert_tok(&mut reader, TokenKind::String("\n".into()), 1, 1);
+        assert_tok(&mut reader, TokenKind::StringTail("\n".into()), 1, 1);
 
         let mut reader = Lexer::from_str("\"\\r\"");
-        assert_tok(&mut reader, TokenKind::String("\r".into()), 1, 1);
+        assert_tok(&mut reader, TokenKind::StringTail("\r".into()), 1, 1);
 
         let mut reader = Lexer::from_str("\"\\\\\"");
-        assert_tok(&mut reader, TokenKind::String("\\".into()), 1, 1);
+        assert_tok(&mut reader, TokenKind::StringTail("\\".into()), 1, 1);
 
         let mut reader = Lexer::from_str("\"\\");
         assert_err(&mut reader, Msg::UnclosedString, 1, 1);
@@ -1018,7 +1034,7 @@ mod tests {
     #[test]
     fn test_string() {
         let mut reader = Lexer::from_str("\"abc\"");
-        assert_tok(&mut reader, TokenKind::String("abc".into()), 1, 1);
+        assert_tok(&mut reader, TokenKind::StringTail("abc".into()), 1, 1);
         assert_end(&mut reader, 1, 6);
     }
 

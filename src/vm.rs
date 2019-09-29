@@ -146,6 +146,7 @@ impl<'ast> VM<'ast> {
 
                 equals_trait: empty_trait_id,
                 comparable_trait: empty_trait_id,
+                stringable_trait: empty_trait_id,
                 iterator_trait: Mutex::new(None),
 
                 int_array_def: Mutex::new(None),
@@ -649,6 +650,7 @@ pub struct KnownElements {
 
     pub equals_trait: TraitId,
     pub comparable_trait: TraitId,
+    pub stringable_trait: TraitId,
     pub iterator_trait: Mutex<Option<TraitId>>,
 
     int_array_def: Mutex<Option<ClassDefId>>,

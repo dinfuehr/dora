@@ -40,6 +40,7 @@ pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {
     vm.vips.error_class = internal_class(vm, "Error", None);
     vm.vips.exception_class = internal_class(vm, "Exception", None);
     vm.vips.stack_trace_element_class = internal_class(vm, "StackTraceElement", None);
+    vm.vips.stringable_trait = find_trait(vm, "Stringable");
 
     *vm.vips.iterator_trait.lock() = Some(find_trait(vm, "Iterator"));
 
@@ -124,6 +125,7 @@ fn internal_class<'ast>(vm: &mut VM<'ast>, name: &str, ty: Option<BuiltinType>) 
 
 fn find_trait<'ast>(vm: &mut VM<'ast>, name: &str) -> TraitId {
     let iname = vm.interner.intern(name);
+
     let tid = vm.sym.lock().get_trait(iname);
 
     if let Some(tid) = tid {

@@ -338,6 +338,12 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
             v.visit_stmt(&value.block);
         }
 
+        ExprTemplate(ref value) => {
+            for part in &value.parts {
+                v.visit_expr(part);
+            }
+        }
+
         ExprSuper(_) => {}
         ExprSelf(_) => {}
         ExprLitChar(_) => {}

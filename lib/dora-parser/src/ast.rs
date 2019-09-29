@@ -1281,6 +1281,7 @@ pub enum Expr {
     ExprLitInt(ExprLitIntType),
     ExprLitFloat(ExprLitFloatType),
     ExprLitStr(ExprLitStrType),
+    ExprTemplate(ExprTemplateType),
     ExprLitBool(ExprLitBoolType),
     ExprIdent(ExprIdentType),
     ExprCall(ExprCallType),
@@ -1414,6 +1415,16 @@ impl Expr {
             span: span,
 
             value: value,
+        })
+    }
+
+    pub fn create_template(id: NodeId, pos: Position, span: Span, parts: Vec<Box<Expr>>) -> Expr {
+        Expr::ExprTemplate(ExprTemplateType {
+            id: id,
+            pos: pos,
+            span: span,
+
+            parts: parts,
         })
     }
 
@@ -1708,6 +1719,20 @@ impl Expr {
         }
     }
 
+    pub fn to_template(&self) -> Option<&ExprTemplateType> {
+        match *self {
+            Expr::ExprTemplate(ref val) => Some(val),
+            _ => None,
+        }
+    }
+
+    pub fn is_template(&self) -> bool {
+        match *self {
+            Expr::ExprTemplate(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn to_lit_float(&self) -> Option<&ExprLitFloatType> {
         match *self {
             Expr::ExprLitFloat(ref val) => Some(val),
@@ -1856,6 +1881,7 @@ impl Expr {
             Expr::ExprLitInt(ref val) => val.pos,
             Expr::ExprLitFloat(ref val) => val.pos,
             Expr::ExprLitStr(ref val) => val.pos,
+            Expr::ExprTemplate(ref val) => val.pos,
             Expr::ExprLitBool(ref val) => val.pos,
             Expr::ExprIdent(ref val) => val.pos,
             Expr::ExprAssign(ref val) => val.pos,
@@ -1881,6 +1907,7 @@ impl Expr {
             Expr::ExprLitInt(ref val) => val.span,
             Expr::ExprLitFloat(ref val) => val.span,
             Expr::ExprLitStr(ref val) => val.span,
+            Expr::ExprTemplate(ref val) => val.span,
             Expr::ExprLitBool(ref val) => val.span,
             Expr::ExprIdent(ref val) => val.span,
             Expr::ExprAssign(ref val) => val.span,
@@ -1906,6 +1933,7 @@ impl Expr {
             Expr::ExprLitInt(ref val) => val.id,
             Expr::ExprLitFloat(ref val) => val.id,
             Expr::ExprLitStr(ref val) => val.id,
+            Expr::ExprTemplate(ref val) => val.id,
             Expr::ExprLitBool(ref val) => val.id,
             Expr::ExprIdent(ref val) => val.id,
             Expr::ExprAssign(ref val) => val.id,
@@ -2081,6 +2109,15 @@ pub struct ExprLitStrType {
     pub span: Span,
 
     pub value: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct ExprTemplateType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub span: Span,
+
+    pub parts: Vec<Box<Expr>>,
 }
 
 #[derive(Clone, Debug)]

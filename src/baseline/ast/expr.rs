@@ -101,6 +101,7 @@ where
             ExprSuper(_) => self.emit_self(dest),
             ExprNil(_) => self.emit_nil(dest.reg()),
             ExprConv(ref expr) => self.emit_conv(expr, dest.reg()),
+            ExprTemplate(_) => unimplemented!(),
             ExprTry(ref expr) => self.emit_try(expr, dest),
             ExprLambda(_) => unimplemented!(),
         }

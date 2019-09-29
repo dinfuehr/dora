@@ -45,6 +45,7 @@ where
         "stdlib/Double.dora",
         "stdlib/Array.dora",
         "stdlib/String.dora",
+        "stdlib/Stringable.dora",
         "stdlib/Throwable.dora",
         "stdlib/Error.dora",
         "stdlib/Exception.dora",
