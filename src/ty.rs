@@ -117,6 +117,11 @@ impl BuiltinType {
         }
     }
 
+    pub fn from_cls(cls_id: ClassId, vm: &VM) -> BuiltinType {
+        let list_id = vm.lists.lock().insert(TypeParams::empty());
+        BuiltinType::Class(cls_id, list_id)
+    }
+
     pub fn implements_trait(&self, vm: &VM, trait_id: TraitId) -> bool {
         if let Some(cls_id) = self.cls_id(vm) {
             let cls = vm.classes.idx(cls_id);

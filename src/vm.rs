@@ -111,6 +111,7 @@ impl<'ast> VM<'ast> {
         let empty_class_id: ClassId = 0.into();
         let empty_class_def_id: ClassDefId = 0.into();
         let empty_trait_id: TraitId = 0.into();
+        let empty_fct_id: FctId = 0.into();
         let gc = Gc::new(&args);
 
         let vm = Box::new(VM {
@@ -137,6 +138,16 @@ impl<'ast> VM<'ast> {
                 string_class: empty_class_id,
 
                 array_class: empty_class_id,
+
+                cls: KnownClasses {
+                    string_buffer: empty_class_id,
+                },
+
+                fct: KnownFunctions {
+                    string_buffer_empty: empty_fct_id,
+                    string_buffer_append: empty_fct_id,
+                    string_buffer_to_string: empty_fct_id,
+                },
 
                 testing_class: empty_class_id,
                 throwable_class: empty_class_id,
@@ -642,6 +653,9 @@ pub struct KnownElements {
     pub string_class: ClassId,
     pub array_class: ClassId,
 
+    pub cls: KnownClasses,
+    pub fct: KnownFunctions,
+
     pub testing_class: ClassId,
     pub throwable_class: ClassId,
     pub error_class: ClassId,
@@ -661,6 +675,18 @@ pub struct KnownElements {
 
     pub free_object_class_def: ClassDefId,
     pub free_array_class_def: ClassDefId,
+}
+
+#[derive(Debug)]
+pub struct KnownClasses {
+    pub string_buffer: ClassId,
+}
+
+#[derive(Debug)]
+pub struct KnownFunctions {
+    pub string_buffer_empty: FctId,
+    pub string_buffer_append: FctId,
+    pub string_buffer_to_string: FctId,
 }
 
 impl KnownElements {

@@ -83,8 +83,9 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
     implck::check(vm);
     return_on_error!(vm);
 
-    // define internal functions
+    // define internal functions & methods
     prelude::internal_functions(vm);
+    prelude::known_methods(vm);
 
     // check types of expressions in functions
     typeck::check(vm);

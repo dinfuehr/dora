@@ -46,6 +46,7 @@ where
         "stdlib/Array.dora",
         "stdlib/String.dora",
         "stdlib/Stringable.dora",
+        "stdlib/StringBuffer.dora",
         "stdlib/Throwable.dora",
         "stdlib/Error.dora",
         "stdlib/Exception.dora",

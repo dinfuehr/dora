@@ -7,7 +7,7 @@ use crate::gc::Address;
 use crate::object::Header;
 use crate::stdlib;
 use crate::ty::BuiltinType;
-use crate::vm::{FctKind, Intrinsic, TraitId, VM};
+use crate::vm::{FctId, FctKind, Intrinsic, TraitId, VM};
 use crate::vtable::VTableBox;
 
 pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {
@@ -23,6 +23,7 @@ pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {
 
     vm.vips.object_class = internal_class(vm, "Object", None);
     vm.vips.string_class = internal_class(vm, "String", None);
+    vm.vips.cls.string_buffer = internal_class(vm, "StringBuffer", None);
 
     let cls = vm.classes.idx(vm.vips.string_class);
     let mut cls = cls.write();
@@ -45,6 +46,12 @@ pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {
     *vm.vips.iterator_trait.lock() = Some(find_trait(vm, "Iterator"));
 
     internal_free_classes(vm);
+}
+
+pub fn known_methods<'ast>(vm: &mut VM<'ast>) {
+    vm.vips.fct.string_buffer_empty = find_static_method(vm, vm.vips.cls.string_buffer, "empty");
+    vm.vips.fct.string_buffer_append = find_method(vm, vm.vips.cls.string_buffer, "append");
+    vm.vips.fct.string_buffer_to_string = find_method(vm, vm.vips.cls.string_buffer, "toString");
 }
 
 fn internal_free_classes<'ast>(vm: &mut VM<'ast>) {
@@ -378,6 +385,31 @@ fn internal_method<'ast>(vm: &mut VM<'ast>, clsid: ClassId, name: &str, kind: Fc
             break;
         }
     }
+}
+
+fn find_method<'ast>(vm: &VM<'ast>, clsid: ClassId, name: &str) -> FctId {
+    find_method_internal(vm, clsid, name, false)
+}
+
+fn find_static_method<'ast>(vm: &VM<'ast>, clsid: ClassId, name: &str) -> FctId {
+    find_method_internal(vm, clsid, name, true)
+}
+
+fn find_method_internal<'ast>(vm: &VM<'ast>, clsid: ClassId, name: &str, is_static: bool) -> FctId {
+    let cls = vm.classes.idx(clsid);
+    let cls = cls.read();
+    let intern_name = vm.interner.intern(name);
+
+    for &mid in &cls.methods {
+        let mtd = vm.fcts.idx(mid);
+        let mtd = mtd.read();
+
+        if mtd.name == intern_name && mtd.is_static == is_static {
+            return mid;
+        }
+    }
+
+    panic!("cannot find method `{}`", name)
 }
 
 fn native_fct<'ast>(vm: &mut VM<'ast>, name: &str, fctptr: *const u8) {

@@ -101,7 +101,7 @@ where
             ExprSuper(_) => self.emit_self(dest),
             ExprNil(_) => self.emit_nil(dest.reg()),
             ExprConv(ref expr) => self.emit_conv(expr, dest.reg()),
-            ExprTemplate(_) => unimplemented!(),
+            ExprTemplate(ref expr) => self.emit_template(expr, dest.reg()),
             ExprTry(ref expr) => self.emit_try(expr, dest),
             ExprLambda(_) => unimplemented!(),
         }
@@ -167,6 +167,57 @@ where
 
             TryMode::Opt => panic!("unsupported"),
         }
+    }
+
+    fn emit_template(&mut self, e: &'ast ExprTemplateType, dest: Reg) {
+        let template_info = self
+            .jit_info
+            .map_templates
+            .get(e.id)
+            .expect("no TemplateJitInfo found");
+        self.emit_call_site(&template_info.string_buffer_new, e.pos, REG_RESULT.into());
+        self.asm.var_store(
+            template_info.string_buffer_offset,
+            BuiltinType::Ptr,
+            REG_RESULT.into(),
+        );
+
+        self.add_temp(template_info.string_buffer_offset, BuiltinType::Ptr);
+
+        for (idx, part) in e.parts.iter().enumerate() {
+            let part_info = &template_info.part_infos[idx];
+
+            if let Some(ref lit_str) = part.to_lit_str() {
+                self.emit_lit_str_value(&lit_str.value, REG_RESULT);
+            } else {
+                let ty = self.ty(part.id());
+
+                let dest = result_reg(ty.mode());
+                self.emit_expr(part, dest);
+
+                if ty.cls_id(self.vm) != Some(self.vm.vips.string_class) {
+                    self.asm.var_store(
+                        part_info.object_offset.expect("object_info missing"),
+                        ty,
+                        dest,
+                    );
+
+                    let to_string = part_info.to_string.as_ref().unwrap();
+                    self.emit_call_site(to_string, e.pos, REG_RESULT.into());
+                }
+            }
+
+            self.asm.var_store(
+                template_info.string_part_offset,
+                BuiltinType::Ptr,
+                REG_RESULT.into(),
+            );
+
+            self.emit_call_site(&part_info.append, e.pos, dest.into());
+        }
+
+        self.emit_call_site(&template_info.string_buffer_to_string, e.pos, dest.into());
+        self.free_temp(template_info.string_buffer_offset, BuiltinType::Ptr);
     }
 
     fn emit_conv(&mut self, e: &'ast ExprConvType, dest: Reg) {
@@ -319,6 +370,18 @@ where
         }
 
         offset
+    }
+
+    fn add_temp(&mut self, offset: i32, ty: BuiltinType) {
+        if ty.reference_type() {
+            self.temps.insert(offset);
+        }
+    }
+
+    fn free_temp(&mut self, offset: i32, ty: BuiltinType) {
+        if ty.reference_type() {
+            self.temps.remove(offset);
+        }
     }
 
     fn reserve_temp_for_arg(&mut self, arg: &Arg<'ast>) -> i32 {

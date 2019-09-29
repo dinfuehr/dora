@@ -1,5 +1,5 @@
-class StringBuf(var buf: Array[Byte], var length: Int) {
-  @static fun empty() -> StringBuf = StringBuf(Array[Byte](0), 0);
+class StringBuffer(var buf: Array[Byte], var length: Int) {
+  @static fun empty() -> StringBuffer = StringBuffer(Array[Byte](0), 0);
 
   fun length() -> Int {
     return self.length;
@@ -47,7 +47,7 @@ class StringBuf(var buf: Array[Byte], var length: Int) {
     }
   }
 
-  fun appendChar(ch: Char) -> StringBuf {
+  fun appendChar(ch: Char) -> StringBuffer {
     let chLen = ch.lenUtf8();
     self.reserve(chLen);
     ch.encodeUtf8(self.buf, self.length);
@@ -55,7 +55,7 @@ class StringBuf(var buf: Array[Byte], var length: Int) {
     return self;
   }
 
-  fun appendString(value: String) -> StringBuf {
+  fun append(value: String) -> StringBuffer {
     self.reserve(value.length());
     var i = 0;
 

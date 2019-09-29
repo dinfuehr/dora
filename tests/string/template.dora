@@ -1,0 +1,21 @@
+//= vm-args "--gc=copy"
+
+fun main() {
+    let x = "a${1}b${2}c${3}d";
+    assert(x == "a1b2c3d");
+
+    let x = "a${Foo(1)}b${Foo(2)}c${Foo(3)}d";
+    assert(x == "a1b2c3d");
+
+    let x = "a${1.1}b${2.3F}c${4.3}d";
+    assert(x == "a1.1b2.3c4.3d");
+}
+
+class Foo(let i: Int)
+
+impl Stringable for Foo {
+    fun toString() -> String {
+        forceCollect();
+        return self.i.toString();
+    }
+}

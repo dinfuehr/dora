@@ -67,6 +67,7 @@ pub struct JitInfo<'ast> {
     pub map_var_types: HashMap<VarId, BuiltinType>,
     pub map_intrinsics: NodeMap<Intrinsic>,
     pub map_fors: NodeMap<ForInfo<'ast>>,
+    pub map_templates: NodeMap<TemplateJitInfo<'ast>>,
 }
 
 impl<'ast> JitInfo<'ast> {
@@ -110,6 +111,7 @@ impl<'ast> JitInfo<'ast> {
             map_var_types: HashMap::new(),
             map_intrinsics: NodeMap::new(),
             map_fors: NodeMap::new(),
+            map_templates: NodeMap::new(),
         }
     }
 }
@@ -205,6 +207,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
             ExprUn(ref expr) => self.expr_un(expr),
             ExprConv(ref expr) => self.expr_conv(expr),
             ExprTypeParam(_) => unreachable!(),
+            ExprTemplate(ref expr) => self.expr_template(expr),
 
             _ => visit::walk_expr(self, e),
         }
@@ -767,6 +770,77 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         }
     }
 
+    fn expr_template(&mut self, expr: &'ast ExprTemplateType) {
+        let string_buffer_offset = self.reserve_stack_for_type(BuiltinType::Ptr);
+        let string_part_offset = self.reserve_stack_for_type(BuiltinType::Ptr);
+
+        // build StringBuffer::empty() call
+        let fct_id = self.vm.vips.fct.string_buffer_empty;
+        let ctype = CallType::Fct(fct_id, TypeParams::empty(), TypeParams::empty());
+        let string_buffer_new = self.build_call_site(&ctype, fct_id, Vec::new());
+        let mut part_infos = Vec::new();
+
+        for part in &expr.parts {
+            let mut object_offset = None;
+            let mut to_string = None;
+
+            if !part.is_lit_str() {
+                self.visit_expr(part);
+                let ty = self.ty(part.id());
+
+                if ty.cls_id(self.vm) != Some(self.vm.vips.string_class) {
+                    // build toString() call
+                    let offset = self.reserve_stack_for_type(ty);
+                    object_offset = Some(offset);
+                    let cls_id = ty.cls_id(self.vm).expect("no cls_id found for type");
+                    let cls = self.vm.classes.idx(cls_id);
+                    let cls = cls.read();
+                    let name = self.vm.interner.intern("toString");
+                    let to_string_id = cls
+                        .find_trait_method(self.vm, self.vm.vips.stringable_trait, name, false)
+                        .expect("toString() method not found");
+                    let ctype = CallType::Method(ty, to_string_id, TypeParams::empty());
+                    let args = vec![Arg::Stack(offset, ty, 0)];
+                    to_string = Some(self.build_call_site(&ctype, to_string_id, args));
+                }
+            }
+
+            // build StringBuffer::append() call
+            let fct_id = self.vm.vips.fct.string_buffer_append;
+            let ty = BuiltinType::from_cls(self.vm.vips.cls.string_buffer, self.vm);
+            let ctype = CallType::Method(ty, fct_id, TypeParams::empty());
+            let args = vec![
+                Arg::Stack(string_buffer_offset, BuiltinType::Ptr, 0),
+                Arg::Stack(string_part_offset, BuiltinType::Ptr, 0),
+            ];
+            let append = self.build_call_site(&ctype, fct_id, args);
+
+            part_infos.push(TemplatePartJitInfo {
+                object_offset: object_offset,
+                to_string: to_string,
+                append: append,
+            });
+        }
+
+        // build StringBuffer::toString() call
+        let fct_id = self.vm.vips.fct.string_buffer_to_string;
+        let ty = BuiltinType::from_cls(self.vm.vips.cls.string_buffer, self.vm);
+        let ctype = CallType::Method(ty, fct_id, TypeParams::empty());
+        let args = vec![Arg::Stack(string_buffer_offset, BuiltinType::Ptr, 0)];
+        let string_buffer_to_string = self.build_call_site(&ctype, fct_id, args);
+
+        self.jit_info.map_templates.insert(
+            expr.id,
+            TemplateJitInfo {
+                string_buffer_offset: string_buffer_offset,
+                string_part_offset: string_part_offset,
+                string_buffer_new: string_buffer_new,
+                part_infos: part_infos,
+                string_buffer_to_string: string_buffer_to_string,
+            },
+        );
+    }
+
     fn reserve_temp_for_node_id(&mut self, id: NodeId) -> i32 {
         let ty = self.ty(id);
         self.reserve_temp_for_node_with_type(id, ty)
@@ -845,6 +919,22 @@ pub struct ForInfo<'ast> {
     pub make_iterator: CallSite<'ast>,
     pub has_next: CallSite<'ast>,
     pub next: CallSite<'ast>,
+}
+
+#[derive(Clone)]
+pub struct TemplateJitInfo<'ast> {
+    pub string_buffer_offset: i32,
+    pub string_part_offset: i32,
+    pub string_buffer_new: CallSite<'ast>,
+    pub part_infos: Vec<TemplatePartJitInfo<'ast>>,
+    pub string_buffer_to_string: CallSite<'ast>,
+}
+
+#[derive(Clone)]
+pub struct TemplatePartJitInfo<'ast> {
+    pub object_offset: Option<i32>,
+    pub to_string: Option<CallSite<'ast>>,
+    pub append: CallSite<'ast>,
 }
 
 #[cfg(test)]

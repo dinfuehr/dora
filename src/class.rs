@@ -161,6 +161,33 @@ impl Class {
         }
     }
 
+    pub fn find_trait_method(
+        &self,
+        vm: &VM,
+        trait_id: TraitId,
+        name: Name,
+        is_static: bool,
+    ) -> Option<FctId> {
+        for &impl_id in &self.impls {
+            let ximpl = vm.impls[impl_id].read();
+
+            if ximpl.trait_id != Some(trait_id) {
+                continue;
+            }
+
+            for &method in &ximpl.methods {
+                let method = vm.fcts.idx(method);
+                let method = method.read();
+
+                if method.name == name && method.is_static == is_static {
+                    return Some(method.id);
+                }
+            }
+        }
+
+        None
+    }
+
     pub fn find_methods(&self, vm: &VM, name: Name, is_static: bool) -> Vec<FctId> {
         let mut classid = self.id;
         let mut candidates = Vec::new();
