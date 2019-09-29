@@ -1651,6 +1651,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     .diag
                     .lock()
                     .report_without_path(part.pos(), Msg::ExpectedStringable(ty));
+            } else {
+                assert!(part.is_lit_str());
             }
         }
 

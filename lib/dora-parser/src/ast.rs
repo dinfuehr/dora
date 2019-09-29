@@ -1754,6 +1754,13 @@ impl Expr {
         }
     }
 
+    pub fn is_lit_str(&self) -> bool {
+        match *self {
+            Expr::ExprLitStr(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn to_lit_bool(&self) -> Option<&ExprLitBoolType> {
         match *self {
             Expr::ExprLitBool(ref val) => Some(val),
