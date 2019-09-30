@@ -13,6 +13,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_trait_defs: &NodeMap<T
         ast: ast,
         trait_id: None,
         map_trait_defs: map_trait_defs,
+        file_id: 0,
     };
 
     clsck.check();
@@ -22,6 +23,7 @@ struct TraitCheck<'x, 'ast: 'x> {
     vm: &'x mut VM<'ast>,
     ast: &'ast ast::Ast,
     map_trait_defs: &'x NodeMap<TraitId>,
+    file_id: u32,
 
     trait_id: Option<TraitId>,
 }
@@ -33,6 +35,11 @@ impl<'x, 'ast> TraitCheck<'x, 'ast> {
 }
 
 impl<'x, 'ast> Visitor<'ast> for TraitCheck<'x, 'ast> {
+    fn visit_file(&mut self, f: &'ast ast::File) {
+        visit::walk_file(self, f);
+        self.file_id += 1;
+    }
+
     fn visit_trait(&mut self, t: &'ast ast::Trait) {
         self.trait_id = Some(*self.map_trait_defs.get(t.id).unwrap());
 
@@ -72,6 +79,7 @@ impl<'x, 'ast> Visitor<'ast> for TraitCheck<'x, 'ast> {
             vtable_index: None,
             initialized: false,
             impl_for: None,
+            file: self.file_id.into(),
 
             type_params: Vec::new(),
             kind: FctKind::Definition,

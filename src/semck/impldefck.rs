@@ -15,6 +15,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_impl_defs: &NodeMap<Im
         ast: ast,
         impl_id: None,
         map_impl_defs: map_impl_defs,
+        file_id: 0,
     };
 
     clsck.check();
@@ -24,6 +25,7 @@ struct ImplCheck<'x, 'ast: 'x> {
     vm: &'x mut VM<'ast>,
     ast: &'ast ast::Ast,
     map_impl_defs: &'x NodeMap<ImplId>,
+    file_id: u32,
 
     impl_id: Option<ImplId>,
 }
@@ -35,6 +37,11 @@ impl<'x, 'ast> ImplCheck<'x, 'ast> {
 }
 
 impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
+    fn visit_file(&mut self, f: &'ast ast::File) {
+        visit::walk_file(self, f);
+        self.file_id += 1;
+    }
+
     fn visit_impl(&mut self, i: &'ast ast::Impl) {
         self.impl_id = Some(*self.map_impl_defs.get(i.id).unwrap());
 
@@ -131,6 +138,7 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
             vtable_index: None,
             initialized: false,
             impl_for: None,
+            file: self.file_id.into(),
 
             type_params: Vec::new(),
             kind: kind,

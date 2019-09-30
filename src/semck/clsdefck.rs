@@ -19,6 +19,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_cls_defs: &NodeMap<Cla
         ast: ast,
         cls_id: None,
         map_cls_defs: map_cls_defs,
+        file_id: 0,
     };
 
     clsck.check();
@@ -28,6 +29,7 @@ struct ClsCheck<'x, 'ast: 'x> {
     vm: &'x mut VM<'ast>,
     ast: &'ast ast::Ast,
     map_cls_defs: &'x NodeMap<ClassId>,
+    file_id: u32,
 
     cls_id: Option<ClassId>,
 }
@@ -61,6 +63,11 @@ impl<'x, 'ast> ClsCheck<'x, 'ast> {
 }
 
 impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
+    fn visit_file(&mut self, f: &'ast ast::File) {
+        visit::walk_file(self, f);
+        self.file_id += 1;
+    }
+
     fn visit_class(&mut self, c: &'ast ast::Class) {
         self.cls_id = Some(*self.map_cls_defs.get(c.id).unwrap());
 
@@ -234,6 +241,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
             vtable_index: None,
             initialized: false,
             impl_for: None,
+            file: self.file_id.into(),
 
             type_params: Vec::new(),
             kind: kind,
@@ -282,6 +290,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
             vtable_index: None,
             initialized: false,
             impl_for: None,
+            file: self.file_id.into(),
 
             type_params: Vec::new(),
             kind: kind,

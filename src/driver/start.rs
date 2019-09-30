@@ -259,6 +259,7 @@ fn parse_reader(reader: Reader, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
     match parser.parse() {
         Ok(file) => {
             vm.files.push(file);
+            assert_eq!(ast.files.len(), vm.files.len());
             Ok(())
         }
 

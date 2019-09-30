@@ -26,6 +26,7 @@ pub fn check<'ast>(
     let ast = vm.ast;
     let mut gdef = GlobalDef {
         vm: vm,
+        file_id: 0,
         map_cls_defs: map_cls_defs,
         map_struct_defs: map_struct_defs,
         map_trait_defs: map_trait_defs,
@@ -39,6 +40,7 @@ pub fn check<'ast>(
 
 struct GlobalDef<'x, 'ast: 'x> {
     vm: &'x mut VM<'ast>,
+    file_id: u32,
     map_cls_defs: &'x mut NodeMap<ClassId>,
     map_struct_defs: &'x mut NodeMap<StructId>,
     map_trait_defs: &'x mut NodeMap<TraitId>,
@@ -48,6 +50,11 @@ struct GlobalDef<'x, 'ast: 'x> {
 }
 
 impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
+    fn visit_file(&mut self, f: &'ast File) {
+        walk_file(self, f);
+        self.file_id += 1;
+    }
+
     fn visit_trait(&mut self, t: &'ast Trait) {
         let id: TraitId = (self.vm.traits.len() as u32).into();
         let xtrait = TraitData {
@@ -243,6 +250,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             vtable_index: None,
             initialized: false,
             impl_for: None,
+            file: self.file_id.into(),
 
             type_params: Vec::new(),
             kind: kind,

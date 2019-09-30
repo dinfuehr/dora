@@ -409,6 +409,10 @@ impl<'ast> VM<'ast> {
 
         *trap_thunk
     }
+
+    pub fn file(&self, idx: FileId) -> &File {
+        &self.files[idx.0 as usize]
+    }
 }
 
 unsafe impl<'ast> Sync for VM<'ast> {}
@@ -453,6 +457,15 @@ pub struct GlobalId(u32);
 impl From<u32> for GlobalId {
     fn from(data: u32) -> GlobalId {
         GlobalId(data)
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct FileId(u32);
+
+impl From<u32> for FileId {
+    fn from(data: u32) -> FileId {
+        FileId(data)
     }
 }
 
@@ -838,6 +851,7 @@ pub struct Fct<'ast> {
     pub param_types: Vec<BuiltinType>,
     pub return_type: BuiltinType,
     pub is_constructor: bool,
+    pub file: FileId,
 
     pub vtable_index: Option<u32>,
     pub impl_for: Option<FctId>,
