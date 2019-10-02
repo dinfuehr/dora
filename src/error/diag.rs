@@ -1,7 +1,7 @@
 use crate::error::msg::Msg;
 use crate::error::msg::MsgWithPos;
 
-use crate::lexer::position::Position;
+use dora_parser::lexer::position::Position;
 
 pub struct Diagnostic {
     errors: Vec<MsgWithPos>,

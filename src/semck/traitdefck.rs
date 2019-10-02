@@ -1,10 +1,10 @@
+use crate::error::msg::Msg;
 use crate::ty::BuiltinType;
 use crate::vm::{Fct, FctId, FctKind, FctParent, NodeMap, TraitId, VM};
 
 use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::ast::{self, Ast};
 
-use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 
 pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_trait_defs: &NodeMap<TraitId>) {
@@ -98,8 +98,8 @@ fn report(vm: &VM, pos: Position, msg: Msg) {
 
 #[cfg(test)]
 mod tests {
+    use crate::error::msg::Msg;
     use crate::semck::tests::*;
-    use dora_parser::error::msg::Msg;
 
     #[test]
     fn trait_method_with_body() {

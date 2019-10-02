@@ -1,9 +1,8 @@
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
-use dora_parser::error::msg::Msg;
-
 use crate::class::{Class, ClassId};
+use crate::error::msg::Msg;
 use crate::vm::{FctId, VM};
 
 pub fn check<'ast>(vm: &mut VM<'ast>) {
@@ -118,8 +117,8 @@ fn find_abstract_methods<'ast>(
 
 #[cfg(test)]
 mod tests {
+    use crate::error::msg::Msg;
     use crate::semck::tests::{err, ok, pos};
-    use dora_parser::error::msg::Msg;
 
     #[test]
     fn test_abstract_class_without_abstract_methods() {

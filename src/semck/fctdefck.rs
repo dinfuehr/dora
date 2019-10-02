@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use crate::error::msg::Msg;
 use crate::semck;
 use crate::sym::Sym;
 use crate::ty::BuiltinType;
@@ -7,7 +8,6 @@ use crate::vm::{self, Fct, FctId, FctParent, FctSrc, VM};
 use dora_parser::ast::visit::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
-use dora_parser::error::msg::Msg;
 
 pub fn check<'a, 'ast>(vm: &VM<'ast>) {
     debug_assert!(vm.sym.lock().levels() == 1);
@@ -329,8 +329,8 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
 
 #[cfg(test)]
 mod tests {
+    use crate::error::msg::Msg;
     use crate::semck::tests::*;
-    use dora_parser::error::msg::Msg;
 
     #[test]
     fn self_param() {

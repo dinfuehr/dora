@@ -1,5 +1,5 @@
+use crate::error::msg::Msg;
 use crate::vm::{Fct, FctSrc, VM};
-use dora_parser::error::msg::Msg;
 
 use crate::ty::BuiltinType;
 use dora_parser::ast::visit::*;
@@ -129,9 +129,9 @@ fn do_returns_value(s: &StmtDoType) -> Result<(), Position> {
 
 #[cfg(test)]
 mod tests {
+    use crate::error::msg::Msg;
     use crate::semck::tests::*;
     use crate::test::parse;
-    use dora_parser::error::msg::Msg;
 
     fn test_always_returns(code: &'static str, value: bool) {
         parse(code, |vm| {

@@ -5,7 +5,7 @@ use crate::ast;
 use crate::ast::Elem::*;
 use crate::ast::*;
 use crate::builder::Builder;
-use crate::error::msg::*;
+use crate::error::{ParseError, ParseErrorAndPos};
 
 use crate::interner::*;
 
@@ -1726,7 +1726,7 @@ mod tests {
     use crate::ast::*;
     use crate::interner::*;
 
-    use crate::error::msg::ParseError;
+    use crate::error::ParseError;
     use crate::lexer::position::Position;
     use crate::lexer::reader::Reader;
     use crate::parser::{NodeIdGenerator, Parser};

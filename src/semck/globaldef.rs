@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::class::{self, ClassId};
+use crate::error::msg::Msg;
 use crate::gc::Address;
 use crate::sym::Sym::{self, SymClass, SymConst, SymFct, SymGlobal, SymStruct, SymTrait};
 use crate::ty::BuiltinType;
@@ -10,7 +11,6 @@ use crate::vm;
 use crate::vm::*;
 use dora_parser::ast::visit::*;
 use dora_parser::ast::*;
-use dora_parser::error::msg::Msg;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
@@ -280,8 +280,8 @@ fn report(vm: &VM, name: Name, pos: Position, sym: Sym) {
 
 #[cfg(test)]
 mod tests {
+    use crate::error::msg::Msg;
     use crate::semck::tests::*;
-    use dora_parser::error::msg::Msg;
 
     #[test]
     fn test_struct() {

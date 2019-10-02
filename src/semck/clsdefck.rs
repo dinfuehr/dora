@@ -2,6 +2,7 @@ use parking_lot::RwLock;
 use std::collections::HashSet;
 
 use crate::class::*;
+use crate::error::msg::Msg;
 use crate::semck;
 use crate::sym::Sym;
 use crate::ty::BuiltinType;
@@ -9,7 +10,6 @@ use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, NodeMap, VM};
 
 use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::ast::{self, Ast};
-use dora_parser::error::msg::Msg;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
@@ -310,8 +310,8 @@ fn report(vm: &VM, pos: Position, msg: Msg) {
 
 #[cfg(test)]
 mod tests {
+    use crate::error::msg::Msg;
     use crate::semck::tests::*;
-    use dora_parser::error::msg::Msg;
 
     #[test]
     fn test_multiple_definition() {

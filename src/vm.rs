@@ -7,9 +7,6 @@ use std::ops::{Index, IndexMut};
 use std::ptr;
 use std::sync::Arc;
 
-use crate::driver::cmd::Args;
-use dora_parser::error::diag::Diagnostic;
-
 use crate::baseline;
 use crate::baseline::dora_compile;
 use crate::baseline::dora_entry;
@@ -18,6 +15,8 @@ use crate::baseline::dora_throw;
 use crate::baseline::fct::{JitFct, JitFctId};
 use crate::baseline::map::{CodeDescriptor, CodeMap};
 use crate::class::{Class, ClassDef, ClassDefId, ClassId, FieldId, TypeParams};
+use crate::driver::cmd::Args;
+use crate::error::diag::Diagnostic;
 use crate::exception::DoraToNativeInfo;
 use crate::gc::{Address, Gc};
 use crate::object::{Ref, Testing};
@@ -29,6 +28,7 @@ use crate::sym::*;
 use crate::threads::{Threads, THREAD};
 use crate::ty::{BuiltinType, LambdaTypes, TypeLists};
 use crate::utils::GrowableVec;
+
 use dora_parser::ast;
 use dora_parser::interner::*;
 use dora_parser::lexer::position::Position;

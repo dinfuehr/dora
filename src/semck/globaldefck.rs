@@ -1,10 +1,10 @@
+use crate::error::msg::Msg;
 use crate::semck;
 use crate::ty::BuiltinType;
 use crate::vm::{GlobalId, NodeMap, VM};
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::Elem::ElemGlobal;
 use dora_parser::ast::{Ast, File, Global};
-use dora_parser::error::msg::Msg;
 
 pub fn check<'a, 'ast>(vm: &VM<'ast>, ast: &'ast Ast, map_global_defs: &NodeMap<GlobalId>) {
     let mut checker = GlobalDefCheck {
@@ -50,8 +50,8 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDefCheck<'a, 'ast> {
 
 #[cfg(test)]
 mod tests {
+    use crate::error::msg::Msg;
     use crate::semck::tests::*;
-    use dora_parser::error::msg::Msg;
 
     #[test]
     fn check_initializer() {

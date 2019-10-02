@@ -1,11 +1,11 @@
 use std::collections::HashSet;
 
 use crate::class::{ClassId, TypeParams};
+use crate::error::msg::Msg;
 use crate::ty::BuiltinType;
 use crate::typeck::expr::{args_compatible, replace_type_param};
 use crate::vm::{FctId, FctParent, TraitId, TypeParam, VM};
 
-use dora_parser::error::msg::Msg;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 

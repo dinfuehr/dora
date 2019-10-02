@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::error::msg::{ParseError, ParseErrorAndPos};
+use crate::error::{ParseError, ParseErrorAndPos};
 use crate::lexer::position::{Position, Span};
 use crate::lexer::reader::Reader;
 use crate::lexer::token::{FloatSuffix, IntBase, IntSuffix, Token, TokenKind};

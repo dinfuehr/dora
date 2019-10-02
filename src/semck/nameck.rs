@@ -1,5 +1,5 @@
+use crate::error::msg::Msg;
 use crate::vm::*;
-use dora_parser::error::msg::Msg;
 
 use dora_parser::ast::visit::*;
 use dora_parser::ast::Expr::*;
@@ -326,8 +326,8 @@ fn str(vm: &VM, name: Name) -> String {
 
 #[cfg(test)]
 mod tests {
+    use crate::error::msg::Msg;
     use crate::semck::tests::*;
-    use dora_parser::error::msg::Msg;
 
     #[test]
     fn multiple_functions() {

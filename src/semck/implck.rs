@@ -1,7 +1,8 @@
 use std::collections::HashSet;
 
+use crate::error::msg::Msg;
 use crate::vm::VM;
-use dora_parser::error::msg::Msg;
+
 use dora_parser::lexer::position::Position;
 
 pub fn check<'ast>(vm: &mut VM<'ast>) {
@@ -76,8 +77,8 @@ fn report(vm: &VM, pos: Position, msg: Msg) {
 
 #[cfg(test)]
 mod tests {
+    use crate::error::msg::Msg;
     use crate::semck::tests::*;
-    use dora_parser::error::msg::Msg;
 
     #[test]
     fn method_not_in_trait() {

@@ -3,12 +3,12 @@ use std::sync::Arc;
 use std::{f32, f64};
 
 use crate::class::{ClassId, TypeParams};
+use crate::error::msg::Msg;
 use crate::sym::Sym::SymClass;
 use crate::ty::BuiltinType;
 use crate::typeck::lookup::MethodLookup;
 use crate::vm;
 use crate::vm::{CallType, ConvInfo, Fct, FctId, FctParent, FctSrc, ForTypeInfo, IdentType, VM};
-use dora_parser::error::msg::Msg;
 
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::Expr::*;
@@ -2034,9 +2034,9 @@ pub fn replace_type_param(
 
 #[cfg(test)]
 mod tests {
+    use crate::error::msg::Msg;
     use crate::semck::tests::*;
     use crate::vm::ConstValue;
-    use dora_parser::error::msg::Msg;
 
     #[test]
     fn type_method_len() {

@@ -1,11 +1,11 @@
 use crate::class::TypeParams;
+use crate::error::msg::Msg;
 use crate::ty::BuiltinType;
 use crate::typeck::expr::{check_lit_float, check_lit_int, lookup_method};
 use crate::vm::{ConstData, ConstValue, VM};
 
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::*;
-use dora_parser::error::msg::Msg;
 
 pub struct ConstCheck<'a, 'ast: 'a> {
     pub vm: &'a VM<'ast>,

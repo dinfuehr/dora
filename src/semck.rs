@@ -1,4 +1,5 @@
 use crate::class::TypeParams;
+use crate::error::msg::Msg;
 use crate::mem;
 use crate::sym::Sym::{SymClass, SymClassTypeParam, SymFctTypeParam, SymStruct, SymTrait};
 use crate::ty::BuiltinType;
@@ -6,7 +7,6 @@ use crate::typeck;
 use crate::vm::{NodeMap, VM};
 use dora_parser::ast::Type::{TypeBasic, TypeLambda, TypeSelf, TypeTuple};
 use dora_parser::ast::{Stmt, Type};
-use dora_parser::error::msg::Msg;
 
 mod abstractck;
 mod clsdefck;
@@ -362,9 +362,9 @@ pub fn always_returns(s: &Stmt) -> bool {
 
 #[cfg(test)]
 pub mod tests {
+    use crate::error::msg::Msg;
     use crate::test;
     use crate::vm::VM;
-    use dora_parser::error::msg::Msg;
     use dora_parser::lexer::position::Position;
 
     pub fn ok(code: &'static str) {

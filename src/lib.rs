@@ -25,6 +25,7 @@ mod class;
 mod cpu;
 mod driver;
 mod dseg;
+mod error;
 mod exception;
 mod execstate;
 mod gc;
