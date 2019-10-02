@@ -34,13 +34,13 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDefCheck<'a, 'ast> {
 
     fn visit_global(&mut self, g: &'ast Global) {
         let global_id = *self.map_global_defs.get(g.id).unwrap();
-
-        let ty = semck::read_type(self.vm, &g.data_type).unwrap_or(BuiltinType::Unit);
         let glob = self.vm.globals.idx(global_id);
+        let file = glob.lock().file;
+
+        let ty = semck::read_type(self.vm, file, &g.data_type).unwrap_or(BuiltinType::Unit);
         glob.lock().ty = ty;
 
         if g.expr.is_some() {
-            let file = glob.lock().file;
             self.vm
                 .diag
                 .lock()

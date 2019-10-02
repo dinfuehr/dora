@@ -41,10 +41,12 @@ impl<'x, 'ast> Visitor<'ast> for StructCheck<'x, 'ast> {
     }
 
     fn visit_struct_field(&mut self, f: &'ast ast::StructField) {
-        let ty = semck::read_type(self.vm, &f.data_type).unwrap_or(BuiltinType::Unit);
         let id = self.struct_id.unwrap();
-
         let struc = self.vm.structs.idx(id);
+        let file = struc.lock().file;
+
+        let ty = semck::read_type(self.vm, file, &f.data_type).unwrap_or(BuiltinType::Unit);
+
         let mut struc = struc.lock();
 
         for field in &struc.fields {

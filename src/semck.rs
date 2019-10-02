@@ -4,7 +4,7 @@ use crate::mem;
 use crate::sym::Sym::{SymClass, SymClassTypeParam, SymFctTypeParam, SymStruct, SymTrait};
 use crate::ty::BuiltinType;
 use crate::typeck;
-use crate::vm::{NodeMap, VM};
+use crate::vm::{FileId, NodeMap, VM};
 use dora_parser::ast::Type::{TypeBasic, TypeLambda, TypeSelf, TypeTuple};
 use dora_parser::ast::{Stmt, Type};
 
@@ -122,13 +122,13 @@ fn internalck<'ast>(vm: &VM<'ast>) {
         if fct.internal && !fct.internal_resolved {
             vm.diag
                 .lock()
-                .report_without_file(fct.pos, SemError::UnresolvedInternal);
+                .report(fct.file, fct.pos, SemError::UnresolvedInternal);
         }
 
         if fct.kind.is_definition() && !fct.in_trait() {
             vm.diag
                 .lock()
-                .report_without_file(fct.pos, SemError::MissingFctBody);
+                .report(fct.file, fct.pos, SemError::MissingFctBody);
         }
     }
 
@@ -138,7 +138,7 @@ fn internalck<'ast>(vm: &VM<'ast>) {
         if cls.internal && !cls.internal_resolved {
             vm.diag
                 .lock()
-                .report_without_file(cls.pos, SemError::UnresolvedInternal);
+                .report(cls.file, cls.pos, SemError::UnresolvedInternal);
         }
 
         for method in &cls.methods {
@@ -148,13 +148,13 @@ fn internalck<'ast>(vm: &VM<'ast>) {
             if method.internal && !method.internal_resolved {
                 vm.diag
                     .lock()
-                    .report_without_file(method.pos, SemError::UnresolvedInternal);
+                    .report(method.file, method.pos, SemError::UnresolvedInternal);
             }
 
             if method.kind.is_definition() && !method.is_abstract {
                 vm.diag
                     .lock()
-                    .report_without_file(method.pos, SemError::MissingFctBody);
+                    .report(method.file, method.pos, SemError::MissingFctBody);
             }
         }
     }
@@ -186,7 +186,7 @@ fn init_global_addresses<'ast>(vm: &VM<'ast>) {
     }
 }
 
-pub fn read_type<'ast>(vm: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
+pub fn read_type<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> Option<BuiltinType> {
     match *t {
         TypeSelf(_) => {
             return Some(BuiltinType::This);
@@ -201,7 +201,7 @@ pub fn read_type<'ast>(vm: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
                             let mut type_params = Vec::new();
 
                             for param in &basic.params {
-                                let param = read_type(vm, param);
+                                let param = read_type(vm, file, param);
 
                                 if let Some(param) = param {
                                     type_params.push(param);
@@ -218,7 +218,7 @@ pub fn read_type<'ast>(vm: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
                                     cls.type_params.len(),
                                     type_params.len(),
                                 );
-                                vm.diag.lock().report_without_file(basic.pos, msg);
+                                vm.diag.lock().report(file, basic.pos, msg);
                                 return None;
                             }
 
@@ -231,7 +231,7 @@ pub fn read_type<'ast>(vm: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
                                         let cls = cls.name(vm);
 
                                         let msg = SemError::ClassBoundNotSatisfied(name, cls);
-                                        vm.diag.lock().report_without_file(basic.pos, msg);
+                                        vm.diag.lock().report(file, basic.pos, msg);
                                     }
                                 }
 
@@ -251,7 +251,7 @@ pub fn read_type<'ast>(vm: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
                                         let trait_name = vm.interner.str(bound.name).to_string();
                                         let msg =
                                             SemError::TraitBoundNotSatisfied(name, trait_name);
-                                        vm.diag.lock().report_without_file(bound.pos, msg);
+                                        vm.diag.lock().report(file, bound.pos, msg);
                                     }
                                 }
                             }
@@ -271,7 +271,7 @@ pub fn read_type<'ast>(vm: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
                     SymTrait(trait_id) => {
                         if basic.params.len() > 0 {
                             let msg = SemError::NoTypeParamsExpected;
-                            vm.diag.lock().report_without_file(basic.pos, msg);
+                            vm.diag.lock().report(file, basic.pos, msg);
                         }
 
                         return Some(BuiltinType::Trait(trait_id));
@@ -280,7 +280,7 @@ pub fn read_type<'ast>(vm: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
                     SymStruct(struct_id) => {
                         if basic.params.len() > 0 {
                             let msg = SemError::NoTypeParamsExpected;
-                            vm.diag.lock().report_without_file(basic.pos, msg);
+                            vm.diag.lock().report(file, basic.pos, msg);
                         }
 
                         let list_id = vm.lists.lock().insert(TypeParams::empty());
@@ -290,7 +290,7 @@ pub fn read_type<'ast>(vm: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
                     SymClassTypeParam(cls_id, type_param_id) => {
                         if basic.params.len() > 0 {
                             let msg = SemError::NoTypeParamsExpected;
-                            vm.diag.lock().report_without_file(basic.pos, msg);
+                            vm.diag.lock().report(file, basic.pos, msg);
                         }
 
                         return Some(BuiltinType::ClassTypeParam(cls_id, type_param_id));
@@ -299,7 +299,7 @@ pub fn read_type<'ast>(vm: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
                     SymFctTypeParam(fct_id, type_param_id) => {
                         if basic.params.len() > 0 {
                             let msg = SemError::NoTypeParamsExpected;
-                            vm.diag.lock().report_without_file(basic.pos, msg);
+                            vm.diag.lock().report(file, basic.pos, msg);
                         }
 
                         return Some(BuiltinType::FctTypeParam(fct_id, type_param_id));
@@ -308,13 +308,13 @@ pub fn read_type<'ast>(vm: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
                     _ => {
                         let name = vm.interner.str(basic.name).to_string();
                         let msg = SemError::ExpectedType(name);
-                        vm.diag.lock().report_without_file(basic.pos, msg);
+                        vm.diag.lock().report(file, basic.pos, msg);
                     }
                 }
             } else {
                 let name = vm.interner.str(basic.name).to_string();
                 let msg = SemError::UnknownType(name);
-                vm.diag.lock().report_without_file(basic.pos, msg);
+                vm.diag.lock().report(file, basic.pos, msg);
             }
         }
 
@@ -326,14 +326,14 @@ pub fn read_type<'ast>(vm: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
             let mut params = vec![];
 
             for param in &lambda.params {
-                if let Some(p) = read_type(vm, param) {
+                if let Some(p) = read_type(vm, file, param) {
                     params.push(p);
                 } else {
                     return None;
                 }
             }
 
-            let ret = if let Some(ret) = read_type(vm, &lambda.ret) {
+            let ret = if let Some(ret) = read_type(vm, file, &lambda.ret) {
                 ret
             } else {
                 return None;
@@ -348,7 +348,7 @@ pub fn read_type<'ast>(vm: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
         _ => vm
             .diag
             .lock()
-            .report_without_file(t.pos(), SemError::Unimplemented),
+            .report(file, t.pos(), SemError::Unimplemented),
     }
 
     None

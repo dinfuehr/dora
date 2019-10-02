@@ -16,10 +16,6 @@ impl Diagnostic {
         &self.errors
     }
 
-    pub fn report_without_file(&mut self, pos: Position, msg: SemError) {
-        self.errors.push(SemErrorAndPos::without_file(pos, msg));
-    }
-
     pub fn report(&mut self, file: FileId, pos: Position, msg: SemError) {
         self.errors.push(SemErrorAndPos::new(file, pos, msg));
     }

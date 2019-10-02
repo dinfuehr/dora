@@ -77,7 +77,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                     fct.type_params.push(vm::TypeParam::new(type_param.name));
 
                     for bound in &type_param.bounds {
-                        let ty = semck::read_type(vm, bound);
+                        let ty = semck::read_type(vm, fct.file, bound);
 
                         match ty {
                             Some(BuiltinType::Class(cls_id, _)) => {
@@ -118,7 +118,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
         }
 
         for p in &ast.params {
-            let ty = semck::read_type(vm, &p.data_type).unwrap_or(BuiltinType::Unit);
+            let ty = semck::read_type(vm, fct.file, &p.data_type).unwrap_or(BuiltinType::Unit);
 
             if ty == BuiltinType::This && !fct.in_trait() {
                 vm.diag
@@ -138,7 +138,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
         }
 
         if let Some(ret) = ast.return_type.as_ref() {
-            let ty = semck::read_type(vm, ret).unwrap_or(BuiltinType::Unit);
+            let ty = semck::read_type(vm, fct.file, ret).unwrap_or(BuiltinType::Unit);
 
             if ty == BuiltinType::This && !fct.in_trait() {
                 vm.diag
@@ -326,7 +326,8 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
     }
 
     fn visit_type(&mut self, t: &'ast Type) {
-        self.current_type = semck::read_type(self.vm, t).unwrap_or(BuiltinType::Unit);
+        self.current_type =
+            semck::read_type(self.vm, self.fct.file, t).unwrap_or(BuiltinType::Unit);
         self.src.set_ty(t.id(), self.current_type);
     }
 }

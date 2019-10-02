@@ -10,7 +10,6 @@ use crate::driver::cmd;
 use crate::object;
 use crate::os;
 use crate::timer::Timer;
-use dora_parser::lexer::position::Position;
 use dora_parser::lexer::reader::Reader;
 
 use crate::semck;
@@ -57,6 +56,11 @@ pub fn start(content: Option<&str>) -> i32 {
     } else {
         find_main(&vm)
     };
+
+    if main.is_none() {
+        println!("no `main` function found in the program");
+        return 1;
+    }
 
     if vm.diag.lock().has_errors() {
         vm.diag.lock().dump(&vm);
@@ -283,9 +287,6 @@ fn find_main<'ast>(vm: &VM<'ast>) -> Option<FctId> {
     let fctid = match vm.sym.lock().get_fct(name) {
         Some(id) => id,
         None => {
-            vm.diag
-                .lock()
-                .report_without_file(Position::new(1, 1), SemError::MainNotFound);
             return None;
         }
     };

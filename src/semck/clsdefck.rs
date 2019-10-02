@@ -95,7 +95,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                     params.push(BuiltinType::ClassTypeParam(cls.id, type_param_id.into()));
 
                     for bound in &type_param.bounds {
-                        let ty = semck::read_type(self.vm, bound);
+                        let ty = semck::read_type(self.vm, cls.file, bound);
 
                         match ty {
                             Some(BuiltinType::Class(cls_id, _)) => {
@@ -203,7 +203,8 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
     }
 
     fn visit_field(&mut self, f: &'ast ast::Field) {
-        let ty = semck::read_type(self.vm, &f.data_type).unwrap_or(BuiltinType::Unit);
+        let ty = semck::read_type(self.vm, self.file_id.into(), &f.data_type)
+            .unwrap_or(BuiltinType::Unit);
         self.add_field(f.pos, f.name, ty, f.reassignable);
 
         if !f.reassignable && !f.primary_ctor && f.expr.is_none() {
