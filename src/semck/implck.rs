@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::error::msg::Msg;
+use crate::error::msg::SemError;
 use crate::vm::VM;
 
 use dora_parser::lexer::position::Position;
@@ -39,9 +39,9 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
                 let trait_name = vm.interner.str(xtrait.name).to_string();
 
                 let msg = if method.is_static {
-                    Msg::StaticMethodNotInTrait(trait_name, mtd_name, args)
+                    SemError::StaticMethodNotInTrait(trait_name, mtd_name, args)
                 } else {
-                    Msg::MethodNotInTrait(trait_name, mtd_name, args)
+                    SemError::MethodNotInTrait(trait_name, mtd_name, args)
                 };
 
                 report(vm, method.pos, msg);
@@ -61,9 +61,9 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
             let trait_name = vm.interner.str(xtrait.name).to_string();
 
             let msg = if method.is_static {
-                Msg::StaticMethodMissingFromTrait(trait_name, mtd_name, args)
+                SemError::StaticMethodMissingFromTrait(trait_name, mtd_name, args)
             } else {
-                Msg::MethodMissingFromTrait(trait_name, mtd_name, args)
+                SemError::MethodMissingFromTrait(trait_name, mtd_name, args)
             };
 
             report(vm, ximpl.pos, msg);
@@ -71,13 +71,13 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
     }
 }
 
-fn report(vm: &VM, pos: Position, msg: Msg) {
+fn report(vm: &VM, pos: Position, msg: SemError) {
     vm.diag.lock().report_without_path(pos, msg);
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::Msg;
+    use crate::error::msg::SemError;
     use crate::semck::tests::*;
 
     #[test]
@@ -90,7 +90,7 @@ mod tests {
                 fun bar() {}
             }",
             pos(5, 17),
-            Msg::MethodNotInTrait("Foo".into(), "bar".into(), vec![]),
+            SemError::MethodNotInTrait("Foo".into(), "bar".into(), vec![]),
         );
     }
 
@@ -104,7 +104,7 @@ mod tests {
             class A
             impl Foo for A {}",
             pos(6, 13),
-            Msg::MethodMissingFromTrait("Foo".into(), "bar".into(), vec![]),
+            SemError::MethodMissingFromTrait("Foo".into(), "bar".into(), vec![]),
         );
     }
 
@@ -131,7 +131,7 @@ mod tests {
                 @static fun bar() {}
             }",
             pos(5, 25),
-            Msg::StaticMethodNotInTrait("Foo".into(), "bar".into(), vec![]),
+            SemError::StaticMethodNotInTrait("Foo".into(), "bar".into(), vec![]),
         );
     }
 
@@ -145,7 +145,7 @@ mod tests {
             class A
             impl Foo for A {}",
             pos(6, 13),
-            Msg::StaticMethodMissingFromTrait("Foo".into(), "bar".into(), vec![]),
+            SemError::StaticMethodMissingFromTrait("Foo".into(), "bar".into(), vec![]),
         );
     }
 }

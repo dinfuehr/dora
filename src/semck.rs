@@ -1,5 +1,5 @@
 use crate::class::TypeParams;
-use crate::error::msg::Msg;
+use crate::error::msg::SemError;
 use crate::mem;
 use crate::sym::Sym::{SymClass, SymClassTypeParam, SymFctTypeParam, SymStruct, SymTrait};
 use crate::ty::BuiltinType;
@@ -122,13 +122,13 @@ fn internalck<'ast>(vm: &VM<'ast>) {
         if fct.internal && !fct.internal_resolved {
             vm.diag
                 .lock()
-                .report_without_path(fct.pos, Msg::UnresolvedInternal);
+                .report_without_path(fct.pos, SemError::UnresolvedInternal);
         }
 
         if fct.kind.is_definition() && !fct.in_trait() {
             vm.diag
                 .lock()
-                .report_without_path(fct.pos, Msg::MissingFctBody);
+                .report_without_path(fct.pos, SemError::MissingFctBody);
         }
     }
 
@@ -138,7 +138,7 @@ fn internalck<'ast>(vm: &VM<'ast>) {
         if cls.internal && !cls.internal_resolved {
             vm.diag
                 .lock()
-                .report_without_path(cls.pos, Msg::UnresolvedInternal);
+                .report_without_path(cls.pos, SemError::UnresolvedInternal);
         }
 
         for method in &cls.methods {
@@ -148,13 +148,13 @@ fn internalck<'ast>(vm: &VM<'ast>) {
             if method.internal && !method.internal_resolved {
                 vm.diag
                     .lock()
-                    .report_without_path(method.pos, Msg::UnresolvedInternal);
+                    .report_without_path(method.pos, SemError::UnresolvedInternal);
             }
 
             if method.kind.is_definition() && !method.is_abstract {
                 vm.diag
                     .lock()
-                    .report_without_path(method.pos, Msg::MissingFctBody);
+                    .report_without_path(method.pos, SemError::MissingFctBody);
             }
         }
     }
@@ -214,7 +214,7 @@ pub fn read_type<'ast>(vm: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
                             let cls = cls.read();
 
                             if cls.type_params.len() != type_params.len() {
-                                let msg = Msg::WrongNumberTypeParams(
+                                let msg = SemError::WrongNumberTypeParams(
                                     cls.type_params.len(),
                                     type_params.len(),
                                 );
@@ -230,7 +230,7 @@ pub fn read_type<'ast>(vm: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
                                         let name = ty.name(vm);
                                         let cls = cls.name(vm);
 
-                                        let msg = Msg::ClassBoundNotSatisfied(name, cls);
+                                        let msg = SemError::ClassBoundNotSatisfied(name, cls);
                                         vm.diag.lock().report_without_path(basic.pos, msg);
                                     }
                                 }
@@ -249,7 +249,8 @@ pub fn read_type<'ast>(vm: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
                                         let bound = vm.traits[trait_bound].read();
                                         let name = ty.name(vm);
                                         let trait_name = vm.interner.str(bound.name).to_string();
-                                        let msg = Msg::TraitBoundNotSatisfied(name, trait_name);
+                                        let msg =
+                                            SemError::TraitBoundNotSatisfied(name, trait_name);
                                         vm.diag.lock().report_without_path(bound.pos, msg);
                                     }
                                 }
@@ -269,7 +270,7 @@ pub fn read_type<'ast>(vm: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
 
                     SymTrait(trait_id) => {
                         if basic.params.len() > 0 {
-                            let msg = Msg::NoTypeParamsExpected;
+                            let msg = SemError::NoTypeParamsExpected;
                             vm.diag.lock().report_without_path(basic.pos, msg);
                         }
 
@@ -278,7 +279,7 @@ pub fn read_type<'ast>(vm: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
 
                     SymStruct(struct_id) => {
                         if basic.params.len() > 0 {
-                            let msg = Msg::NoTypeParamsExpected;
+                            let msg = SemError::NoTypeParamsExpected;
                             vm.diag.lock().report_without_path(basic.pos, msg);
                         }
 
@@ -288,7 +289,7 @@ pub fn read_type<'ast>(vm: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
 
                     SymClassTypeParam(cls_id, type_param_id) => {
                         if basic.params.len() > 0 {
-                            let msg = Msg::NoTypeParamsExpected;
+                            let msg = SemError::NoTypeParamsExpected;
                             vm.diag.lock().report_without_path(basic.pos, msg);
                         }
 
@@ -297,7 +298,7 @@ pub fn read_type<'ast>(vm: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
 
                     SymFctTypeParam(fct_id, type_param_id) => {
                         if basic.params.len() > 0 {
-                            let msg = Msg::NoTypeParamsExpected;
+                            let msg = SemError::NoTypeParamsExpected;
                             vm.diag.lock().report_without_path(basic.pos, msg);
                         }
 
@@ -306,13 +307,13 @@ pub fn read_type<'ast>(vm: &VM<'ast>, t: &'ast Type) -> Option<BuiltinType> {
 
                     _ => {
                         let name = vm.interner.str(basic.name).to_string();
-                        let msg = Msg::ExpectedType(name);
+                        let msg = SemError::ExpectedType(name);
                         vm.diag.lock().report_without_path(basic.pos, msg);
                     }
                 }
             } else {
                 let name = vm.interner.str(basic.name).to_string();
-                let msg = Msg::UnknownType(name);
+                let msg = SemError::UnknownType(name);
                 vm.diag.lock().report_without_path(basic.pos, msg);
             }
         }
@@ -362,7 +363,7 @@ pub fn always_returns(s: &Stmt) -> bool {
 
 #[cfg(test)]
 pub mod tests {
-    use crate::error::msg::Msg;
+    use crate::error::msg::SemError;
     use crate::test;
     use crate::vm::VM;
     use dora_parser::lexer::position::Position;
@@ -402,7 +403,7 @@ pub mod tests {
         })
     }
 
-    pub fn err(code: &'static str, pos: Position, msg: Msg) {
+    pub fn err(code: &'static str, pos: Position, msg: SemError) {
         test::parse_with_errors(code, |vm| {
             let diag = vm.diag.lock();
             let errors = diag.errors();
@@ -415,7 +416,7 @@ pub mod tests {
         });
     }
 
-    pub fn errors(code: &'static str, vec: &[(Position, Msg)]) {
+    pub fn errors(code: &'static str, vec: &[(Position, SemError)]) {
         test::parse_with_errors(code, |vm| {
             let diag = vm.diag.lock();
             let errors = diag.errors();

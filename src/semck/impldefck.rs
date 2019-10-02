@@ -1,6 +1,6 @@
 use parking_lot::RwLock;
 
-use crate::error::msg::Msg;
+use crate::error::msg::SemError;
 use crate::sym::Sym;
 use crate::ty::BuiltinType;
 use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, ImplId, NodeMap, VM};
@@ -51,7 +51,7 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
 
         if i.type_params.is_some() {
             // We don't support type parameters for impl-blocks yet.
-            report(self.vm, i.pos, Msg::Unimplemented);
+            report(self.vm, i.pos, SemError::Unimplemented);
             self.impl_id = None;
             return;
         }
@@ -62,17 +62,17 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
                     ximpl.trait_id = Some(trait_id);
                 } else {
                     let name = self.vm.interner.str(trait_name).to_string();
-                    report(self.vm, i.pos, Msg::ExpectedTrait(name));
+                    report(self.vm, i.pos, SemError::ExpectedTrait(name));
                 }
             } else {
                 // We don't support type parameters for traits yet.
-                report(self.vm, i.pos, Msg::Unimplemented);
+                report(self.vm, i.pos, SemError::Unimplemented);
                 self.impl_id = None;
                 return;
             }
         } else {
             // We don't support extension blocks yet.
-            report(self.vm, i.pos, Msg::Unimplemented);
+            report(self.vm, i.pos, SemError::Unimplemented);
             self.impl_id = None;
             return;
         }
@@ -82,11 +82,11 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
                 ximpl.class_id = Some(class_id);
             } else {
                 let name = self.vm.interner.str(class_name).to_string();
-                report(self.vm, i.pos, Msg::ExpectedClass(name));
+                report(self.vm, i.pos, SemError::ExpectedClass(name));
             }
         } else {
             // We don't support type parameters for the class yet.
-            report(self.vm, i.pos, Msg::Unimplemented);
+            report(self.vm, i.pos, SemError::Unimplemented);
             self.impl_id = None;
             return;
         }
@@ -107,7 +107,7 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
         }
 
         if f.block.is_none() && !f.internal {
-            report(self.vm, f.pos, Msg::MissingFctBody);
+            report(self.vm, f.pos, SemError::MissingFctBody);
         }
 
         let kind = if f.internal {
@@ -151,13 +151,13 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
     }
 }
 
-fn report(vm: &VM, pos: Position, msg: Msg) {
+fn report(vm: &VM, pos: Position, msg: SemError) {
     vm.diag.lock().report_without_path(pos, msg);
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::Msg;
+    use crate::error::msg::SemError;
     use crate::semck::tests::*;
 
     #[test]
@@ -170,7 +170,7 @@ mod tests {
             class Bar {}
             impl Foo for Bar { fun foo() -> Int;}",
             pos(6, 32),
-            Msg::MissingFctBody,
+            SemError::MissingFctBody,
         );
     }
 
@@ -187,7 +187,7 @@ mod tests {
                 fun foo() -> Int { return 1; }
             }",
             pos(8, 17),
-            Msg::MethodExists("Foo".into(), "foo".into(), pos(7, 17)),
+            SemError::MethodExists("Foo".into(), "foo".into(), pos(7, 17)),
         );
     }
 
@@ -196,7 +196,7 @@ mod tests {
         err(
             "class A {} impl Foo for A {}",
             pos(1, 12),
-            Msg::ExpectedTrait("Foo".into()),
+            SemError::ExpectedTrait("Foo".into()),
         );
     }
 
@@ -205,7 +205,7 @@ mod tests {
         err(
             "trait Foo {} impl Foo for A {}",
             pos(1, 14),
-            Msg::ExpectedClass("A".into()),
+            SemError::ExpectedClass("A".into()),
         );
     }
 

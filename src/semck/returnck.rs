@@ -1,4 +1,4 @@
-use crate::error::msg::Msg;
+use crate::error::msg::SemError;
 use crate::vm::{Fct, FctSrc, VM};
 
 use crate::ty::BuiltinType;
@@ -55,7 +55,7 @@ impl<'a, 'ast> Visitor<'ast> for ReturnCheck<'a, 'ast> {
                 self.vm
                     .diag
                     .lock()
-                    .report_without_path(pos, Msg::NoReturnValue);
+                    .report_without_path(pos, SemError::NoReturnValue);
             }
         } else {
             // otherwise the function is always finished with a return statement
@@ -129,7 +129,7 @@ fn do_returns_value(s: &StmtDoType) -> Result<(), Position> {
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::Msg;
+    use crate::error::msg::SemError;
     use crate::semck::tests::*;
     use crate::test::parse;
 
@@ -165,21 +165,21 @@ mod tests {
 
     #[test]
     fn returns_int() {
-        err("fun f() -> Int { }", pos(1, 16), Msg::NoReturnValue);
+        err("fun f() -> Int { }", pos(1, 16), SemError::NoReturnValue);
         err(
             "fun f() -> Int { if true { return 1; } }",
             pos(1, 18),
-            Msg::NoReturnValue,
+            SemError::NoReturnValue,
         );
         err(
             "fun f() -> Int { if true { } else { return 1; } }",
             pos(1, 26),
-            Msg::NoReturnValue,
+            SemError::NoReturnValue,
         );
         err(
             "fun f() -> Int { while true { return 1; } }",
             pos(1, 18),
-            Msg::NoReturnValue,
+            SemError::NoReturnValue,
         );
         ok("fun f() -> Int { loop { return 1; } }");
         ok("fun f() -> Int { if true { return 1; } else { return 2; } }");
@@ -197,12 +197,12 @@ mod tests {
         err(
             "fun f() -> Int { do { return 1; } catch x: String { } }",
             pos(1, 51),
-            Msg::NoReturnValue,
+            SemError::NoReturnValue,
         );
         err(
             "fun f() -> Int { do { } catch x: String { return 1; } }",
             pos(1, 21),
-            Msg::NoReturnValue,
+            SemError::NoReturnValue,
         );
     }
 }

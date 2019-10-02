@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::class::{Class, ClassId};
-use crate::error::msg::Msg;
+use crate::error::msg::SemError;
 use crate::vm::{Fct, VM};
 
 pub fn check<'ast>(vm: &mut VM<'ast>) {
@@ -30,7 +30,7 @@ fn cycle_detection<'ast>(vm: &mut VM<'ast>) {
             if !map.insert(p) {
                 vm.diag
                     .lock()
-                    .report_without_path(cls.pos, Msg::CycleInHierarchy);
+                    .report_without_path(cls.pos, SemError::CycleInHierarchy);
                 break;
             }
 
@@ -122,7 +122,7 @@ fn determine_vtable<'ast>(vm: &VM<'ast>, lens: &mut HashSet<ClassId>, cls: &mut 
 //                 if path.iter().find(|&&x| x == id).is_some() {
 //                     vm.diag
 //                         .borrow_mut()
-//                         .report(field.pos, Msg::RecursiveStructure);
+//                         .report(field.pos, SemError::RecursiveStructure);
 //                     return (0, 0);
 //                 }
 
@@ -171,7 +171,7 @@ fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
         let name = vm.interner.str(fct.name).to_string();
         vm.diag
             .lock()
-            .report_without_path(fct.pos(), Msg::SuperfluousOpen(name));
+            .report_without_path(fct.pos(), SemError::SuperfluousOpen(name));
         return;
     }
 
@@ -180,7 +180,7 @@ fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
             let name = vm.interner.str(fct.name).to_string();
             vm.diag
                 .lock()
-                .report_without_path(fct.pos(), Msg::SuperfluousOverride(name));
+                .report_without_path(fct.pos(), SemError::SuperfluousOverride(name));
             return;
         }
 
@@ -201,21 +201,21 @@ fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
             let name = vm.interner.str(fct.name).to_string();
             vm.diag
                 .lock()
-                .report_without_path(fct.pos(), Msg::MissingOverride(name));
+                .report_without_path(fct.pos(), SemError::MissingOverride(name));
         }
 
         if !(super_method.has_open || super_method.has_override) || super_method.has_final {
             let name = vm.interner.str(fct.name).to_string();
             vm.diag
                 .lock()
-                .report_without_path(fct.pos(), Msg::MethodNotOverridable(name));
+                .report_without_path(fct.pos(), SemError::MethodNotOverridable(name));
         }
 
         if super_method.throws != fct.throws {
             let name = vm.interner.str(fct.name).to_string();
             vm.diag
                 .lock()
-                .report_without_path(fct.pos(), Msg::ThrowsDifference(name));
+                .report_without_path(fct.pos(), SemError::ThrowsDifference(name));
         }
 
         if super_method.return_type != fct.return_type {
@@ -224,7 +224,7 @@ fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
             let sup = super_method.return_type.name(vm);
             vm.diag
                 .lock()
-                .report_without_path(pos, Msg::ReturnTypeMismatch(fct, sup));
+                .report_without_path(pos, SemError::ReturnTypeMismatch(fct, sup));
         }
 
         fct.overrides = Some(super_method.id);
@@ -233,7 +233,7 @@ fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
             let name = vm.interner.str(fct.name).to_string();
             vm.diag
                 .lock()
-                .report_without_path(fct.pos(), Msg::SuperfluousOverride(name));
+                .report_without_path(fct.pos(), SemError::SuperfluousOverride(name));
         }
     }
 }
@@ -241,7 +241,7 @@ fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
 #[cfg(test)]
 mod tests {
     use crate::class::ClassSize;
-    use crate::error::msg::Msg;
+    use crate::error::msg::SemError;
     use crate::mem;
     use crate::object::Header;
     use crate::semck::tests::{err, errors, ok, ok_with_test, pos};
@@ -327,8 +327,8 @@ mod tests {
         errors(
             "@open class A: B @open class B: A",
             &[
-                (pos(1, 7), Msg::CycleInHierarchy),
-                (pos(1, 24), Msg::CycleInHierarchy),
+                (pos(1, 7), SemError::CycleInHierarchy),
+                (pos(1, 24), SemError::CycleInHierarchy),
             ],
         );
     }
@@ -338,22 +338,22 @@ mod tests {
         err(
             "class A { @override fun f() {} }",
             pos(1, 21),
-            Msg::SuperfluousOverride("f".into()),
+            SemError::SuperfluousOverride("f".into()),
         );
         err(
             "@open class B { } class A: B { @override fun f() {} }",
             pos(1, 42),
-            Msg::SuperfluousOverride("f".into()),
+            SemError::SuperfluousOverride("f".into()),
         );
         err(
             "@open class B { fun g() {} } class A: B { @override fun f() {} }",
             pos(1, 53),
-            Msg::SuperfluousOverride("f".into()),
+            SemError::SuperfluousOverride("f".into()),
         );
         err(
             "@open class B { fun f(a: Int) {} } class A: B { @override fun f() {} }",
             pos(1, 59),
-            Msg::MethodNotOverridable("f".into()),
+            SemError::MethodNotOverridable("f".into()),
         );
     }
 
@@ -362,7 +362,7 @@ mod tests {
         err(
             "@open class A { fun f() {} } class B: A { @override fun f() {} }",
             pos(1, 53),
-            Msg::MethodNotOverridable("f".into()),
+            SemError::MethodNotOverridable("f".into()),
         );
         ok("@open class A { @open fun f() {} } class B: A { @override fun f() {} }");
         ok("@open class A { @open fun f() {} }
@@ -371,14 +371,14 @@ mod tests {
         err(
             "@open class A { @open fun f() {} } class B: A { fun f() {} }",
             pos(1, 49),
-            Msg::MissingOverride("f".into()),
+            SemError::MissingOverride("f".into()),
         );
         err(
             "@open class A { @open fun f() {} }
              @open class B: A { @final @override fun f() {} }
              class C: B { @override fun f() {} }",
             pos(3, 37),
-            Msg::MethodNotOverridable("f".into()),
+            SemError::MethodNotOverridable("f".into()),
         );
     }
 
@@ -388,8 +388,8 @@ mod tests {
             "@open class A { fun f() {} }
             class B: A { fun f(a: Int) {} }",
             &[
-                (pos(2, 26), Msg::MissingOverride("f".into())),
-                (pos(2, 26), Msg::MethodNotOverridable("f".into())),
+                (pos(2, 26), SemError::MissingOverride("f".into())),
+                (pos(2, 26), SemError::MethodNotOverridable("f".into())),
             ],
         );
 
@@ -403,7 +403,7 @@ mod tests {
             "@open class A { @open fun f() {} }
              class B: A { @override fun f() -> Int { return 1; } }",
             pos(2, 37),
-            Msg::ReturnTypeMismatch("Int".into(), "()".into()),
+            SemError::ReturnTypeMismatch("Int".into(), "()".into()),
         );
     }
 
@@ -413,7 +413,7 @@ mod tests {
             "@open class A { @open fun f() throws {} }
              class B: A { @override fun f() {} }",
             pos(2, 37),
-            Msg::ThrowsDifference("f".into()),
+            SemError::ThrowsDifference("f".into()),
         );
     }
 
@@ -427,7 +427,7 @@ mod tests {
         err(
             "class A { @open fun f() {} }",
             pos(1, 17),
-            Msg::SuperfluousOpen("f".into()),
+            SemError::SuperfluousOpen("f".into()),
         );
     }
 
@@ -654,7 +654,7 @@ mod tests {
     //         "struct Foo { a: int, bar: Bar }
     //          struct Bar { b: int, foo: Foo }",
     //         pos(2, 35),
-    //         Msg::RecursiveStructure,
+    //         SemError::RecursiveStructure,
     //     );
     // }
 

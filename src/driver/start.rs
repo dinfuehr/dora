@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use crate::error::msg::Msg;
+use crate::error::msg::SemError;
 use crate::vm::VM;
 use crate::vm::{exception_get_and_clear, Fct, FctId};
 use dora_parser::ast::{self, Ast};
@@ -280,7 +280,7 @@ fn find_main<'ast>(vm: &VM<'ast>) -> Option<FctId> {
         None => {
             vm.diag
                 .lock()
-                .report_without_path(Position::new(1, 1), Msg::MainNotFound);
+                .report_without_path(Position::new(1, 1), SemError::MainNotFound);
             return None;
         }
     };
@@ -294,7 +294,7 @@ fn find_main<'ast>(vm: &VM<'ast>) -> Option<FctId> {
         let pos = fct.ast.pos;
         vm.diag
             .lock()
-            .report_without_path(pos, Msg::WrongMainDefinition);
+            .report_without_path(pos, SemError::WrongMainDefinition);
         return None;
     }
 

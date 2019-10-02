@@ -1,4 +1,4 @@
-use crate::error::msg::Msg;
+use crate::error::msg::SemError;
 use crate::semck;
 use crate::ty::BuiltinType;
 use crate::vm::{ConstId, NodeMap, VM};
@@ -42,13 +42,13 @@ impl<'x, 'ast> Visitor<'ast> for ConstCheck<'x, 'ast> {
     }
 }
 
-fn report(vm: &VM, pos: Position, msg: Msg) {
+fn report(vm: &VM, pos: Position, msg: SemError) {
     vm.diag.lock().report_without_path(pos, msg);
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::Msg;
+    use crate::error::msg::SemError;
     use crate::semck::tests::*;
 
     #[test]
@@ -56,7 +56,7 @@ mod tests {
         err(
             "const x: Foo = 0;",
             pos(1, 10),
-            Msg::UnknownType("Foo".into()),
+            SemError::UnknownType("Foo".into()),
         );
 
         ok("const x: Int = 0;");

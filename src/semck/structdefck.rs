@@ -1,4 +1,4 @@
-use crate::error::msg::Msg;
+use crate::error::msg::SemError;
 use crate::semck;
 use crate::ty::BuiltinType;
 use crate::vm::{NodeMap, StructFieldData, StructId, VM};
@@ -52,7 +52,7 @@ impl<'x, 'ast> Visitor<'ast> for StructCheck<'x, 'ast> {
         for field in &struc.fields {
             if field.name == f.name {
                 let name = self.vm.interner.str(f.name).to_string();
-                report(self.vm, f.pos, Msg::ShadowField(name));
+                report(self.vm, f.pos, SemError::ShadowField(name));
                 return;
             }
         }
@@ -68,13 +68,13 @@ impl<'x, 'ast> Visitor<'ast> for StructCheck<'x, 'ast> {
     }
 }
 
-fn report(vm: &VM, pos: Position, msg: Msg) {
+fn report(vm: &VM, pos: Position, msg: SemError) {
     vm.diag.lock().report_without_path(pos, msg);
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::Msg;
+    use crate::error::msg::SemError;
     use crate::semck::tests::*;
 
     #[test]
@@ -86,12 +86,12 @@ mod tests {
         err(
             "struct Bar { a: Unknown }",
             pos(1, 17),
-            Msg::UnknownType("Unknown".into()),
+            SemError::UnknownType("Unknown".into()),
         );
         err(
             "struct Foo { a: Int, a: Int }",
             pos(1, 22),
-            Msg::ShadowField("a".into()),
+            SemError::ShadowField("a".into()),
         );
     }
 }

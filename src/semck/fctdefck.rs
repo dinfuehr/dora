@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::error::msg::Msg;
+use crate::error::msg::SemError;
 use crate::semck;
 use crate::sym::Sym;
 use crate::ty::BuiltinType;
@@ -70,7 +70,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                 for type_param in type_params {
                     if !names.insert(type_param.name) {
                         let name = vm.interner.str(type_param.name).to_string();
-                        let msg = Msg::TypeParamNameNotUnique(name);
+                        let msg = SemError::TypeParamNameNotUnique(name);
                         vm.diag.lock().report_without_path(type_param.pos, msg);
                     }
 
@@ -84,14 +84,14 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                                 if let None = fct.type_params[type_param_id].class_bound {
                                     fct.type_params[type_param_id].class_bound = Some(cls_id);
                                 } else {
-                                    let msg = Msg::MultipleClassBounds;
+                                    let msg = SemError::MultipleClassBounds;
                                     vm.diag.lock().report_without_path(type_param.pos, msg);
                                 }
                             }
 
                             Some(BuiltinType::Trait(trait_id)) => {
                                 if !fct.type_params[type_param_id].trait_bounds.insert(trait_id) {
-                                    let msg = Msg::DuplicateTraitBound;
+                                    let msg = SemError::DuplicateTraitBound;
                                     vm.diag.lock().report_without_path(type_param.pos, msg);
                                 }
                             }
@@ -101,7 +101,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                             }
 
                             _ => {
-                                let msg = Msg::BoundExpected;
+                                let msg = SemError::BoundExpected;
                                 vm.diag.lock().report_without_path(bound.pos(), msg);
                             }
                         }
@@ -112,7 +112,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                     type_param_id += 1;
                 }
             } else {
-                let msg = Msg::TypeParamsExpected;
+                let msg = SemError::TypeParamsExpected;
                 vm.diag.lock().report_without_path(fct.pos, msg);
             }
         }
@@ -123,7 +123,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
             if ty == BuiltinType::This && !fct.in_trait() {
                 vm.diag
                     .lock()
-                    .report_without_path(p.data_type.pos(), Msg::SelfTypeUnavailable);
+                    .report_without_path(p.data_type.pos(), SemError::SelfTypeUnavailable);
             }
 
             fct.param_types.push(ty);
@@ -143,7 +143,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
             if ty == BuiltinType::This && !fct.in_trait() {
                 vm.diag
                     .lock()
-                    .report_without_path(ret.pos(), Msg::SelfTypeUnavailable);
+                    .report_without_path(ret.pos(), SemError::SelfTypeUnavailable);
             }
 
             fct.return_type = ty;
@@ -206,12 +206,12 @@ fn check_abstract<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) {
     let cls = cls.read();
 
     if !fct.kind.is_definition() {
-        let msg = Msg::AbstractMethodWithImplementation;
+        let msg = SemError::AbstractMethodWithImplementation;
         vm.diag.lock().report_without_path(fct.pos, msg);
     }
 
     if !cls.is_abstract {
-        let msg = Msg::AbstractMethodNotInAbstractClass;
+        let msg = SemError::AbstractMethodNotInAbstractClass;
         vm.diag.lock().report_without_path(fct.pos, msg);
     }
 }
@@ -233,7 +233,7 @@ fn check_static<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) {
             "final"
         };
 
-        let msg = Msg::ModifierNotAllowedForStaticMethod(modifier.into());
+        let msg = SemError::ModifierNotAllowedForStaticMethod(modifier.into());
         vm.diag.lock().report_without_path(fct.pos, msg);
     }
 }
@@ -251,7 +251,7 @@ fn check_against_methods(vm: &VM, ty: BuiltinType, fct: &Fct, methods: &[FctId])
             let cls_name = ty.name(vm);
             let method_name = vm.interner.str(method.name).to_string();
 
-            let msg = Msg::MethodExists(cls_name, method_name, method.pos);
+            let msg = SemError::MethodExists(cls_name, method_name, method.pos);
             vm.diag.lock().report_without_path(fct.ast.pos, msg);
             return;
         }
@@ -304,7 +304,7 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
                         let ty = ty.name(self.vm);
                         self.vm.diag.lock().report_without_path(
                             catch.data_type.pos(),
-                            Msg::ReferenceTypeExpected(ty),
+                            SemError::ReferenceTypeExpected(ty),
                         );
                     }
                 }
@@ -313,7 +313,7 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
                     self.vm
                         .diag
                         .lock()
-                        .report_without_path(r#try.pos, Msg::CatchOrFinallyExpected);
+                        .report_without_path(r#try.pos, SemError::CatchOrFinallyExpected);
                 }
             }
 
@@ -329,17 +329,25 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::Msg;
+    use crate::error::msg::SemError;
     use crate::semck::tests::*;
 
     #[test]
     fn self_param() {
-        err("fun foo(x: Self) {}", pos(1, 12), Msg::SelfTypeUnavailable);
+        err(
+            "fun foo(x: Self) {}",
+            pos(1, 12),
+            SemError::SelfTypeUnavailable,
+        );
     }
 
     #[test]
     fn self_return_type() {
-        err("fun foo() -> Self {}", pos(1, 14), Msg::SelfTypeUnavailable);
+        err(
+            "fun foo() -> Self {}",
+            pos(1, 14),
+            SemError::SelfTypeUnavailable,
+        );
     }
 
     #[test]
@@ -357,9 +365,9 @@ mod tests {
         err(
             "fun f[T, T]() {}",
             pos(1, 10),
-            Msg::TypeParamNameNotUnique("T".into()),
+            SemError::TypeParamNameNotUnique("T".into()),
         );
-        err("fun f[]() {}", pos(1, 1), Msg::TypeParamsExpected);
+        err("fun f[]() {}", pos(1, 1), SemError::TypeParamsExpected);
     }
 
     #[test]
@@ -372,7 +380,7 @@ mod tests {
         err(
             "class A { @abstract fun foo(); }",
             pos(1, 21),
-            Msg::AbstractMethodNotInAbstractClass,
+            SemError::AbstractMethodNotInAbstractClass,
         );
     }
 
@@ -381,7 +389,7 @@ mod tests {
         err(
             "@abstract class A { @abstract fun foo() {} }",
             pos(1, 31),
-            Msg::AbstractMethodWithImplementation,
+            SemError::AbstractMethodWithImplementation,
         );
     }
 
@@ -390,7 +398,7 @@ mod tests {
         err(
             "@abstract class A { @static @abstract fun foo(); }",
             pos(1, 39),
-            Msg::ModifierNotAllowedForStaticMethod("abstract".into()),
+            SemError::ModifierNotAllowedForStaticMethod("abstract".into()),
         );
     }
 
@@ -399,7 +407,7 @@ mod tests {
         err(
             "@abstract class A { @static @open fun foo() {} }",
             pos(1, 35),
-            Msg::ModifierNotAllowedForStaticMethod("open".into()),
+            SemError::ModifierNotAllowedForStaticMethod("open".into()),
         );
     }
 
@@ -408,7 +416,7 @@ mod tests {
         err(
             "@abstract class A { @static @override fun foo() {} }",
             pos(1, 39),
-            Msg::ModifierNotAllowedForStaticMethod("override".into()),
+            SemError::ModifierNotAllowedForStaticMethod("override".into()),
         );
     }
 
@@ -417,7 +425,7 @@ mod tests {
         err(
             "@abstract class A { @final @static fun foo() {} }",
             pos(1, 36),
-            Msg::ModifierNotAllowedForStaticMethod("final".into()),
+            SemError::ModifierNotAllowedForStaticMethod("final".into()),
         );
     }
 
@@ -430,12 +438,12 @@ mod tests {
         err(
             "fun f() { || -> Foo { }; }",
             pos(1, 17),
-            Msg::UnknownType("Foo".into()),
+            SemError::UnknownType("Foo".into()),
         );
         err(
             "fun f() { |a: Foo| { }; }",
             pos(1, 15),
-            Msg::UnknownType("Foo".into()),
+            SemError::UnknownType("Foo".into()),
         );
     }
 
@@ -444,7 +452,7 @@ mod tests {
         err(
             "fun f[T: Foo]() {}",
             pos(1, 10),
-            Msg::UnknownType("Foo".into()),
+            SemError::UnknownType("Foo".into()),
         );
         ok("class Foo fun f[T: Foo]() {}");
         ok("trait Foo {} fun f[T: Foo]() {}");
@@ -453,13 +461,13 @@ mod tests {
             "class A class B
             fun f[T: A + B]() {  }",
             pos(2, 19),
-            Msg::MultipleClassBounds,
+            SemError::MultipleClassBounds,
         );
         err(
             "trait Foo {}
             fun f[T: Foo + Foo]() {  }",
             pos(2, 19),
-            Msg::DuplicateTraitBound,
+            SemError::DuplicateTraitBound,
         );
     }
 
@@ -467,6 +475,10 @@ mod tests {
     fn check_previous_defined_type_params() {
         // defaultValue<T>() defines T and needs to be cleaned up again,
         // such that this fct definition is reported as an error
-        err("fun f(a: T) {}", pos(1, 10), Msg::UnknownType("T".into()));
+        err(
+            "fun f(a: T) {}",
+            pos(1, 10),
+            SemError::UnknownType("T".into()),
+        );
     }
 }

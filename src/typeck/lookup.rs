@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::class::{ClassId, TypeParams};
-use crate::error::msg::Msg;
+use crate::error::msg::SemError;
 use crate::ty::BuiltinType;
 use crate::typeck::expr::{args_compatible, replace_type_param};
 use crate::vm::{FctId, FctParent, TraitId, TypeParam, VM};
@@ -165,28 +165,28 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                 .collect::<Vec<String>>();
 
             let msg = match kind {
-                LookupKind::Fct => Msg::Unimplemented,
+                LookupKind::Fct => SemError::Unimplemented,
                 LookupKind::Callee(_) => unreachable!(),
                 LookupKind::Method(obj) => {
                     let type_name = obj.name(self.vm);
 
                     if self.found_multiple_functions {
-                        Msg::MultipleCandidatesForMethod(type_name, name, param_names)
+                        SemError::MultipleCandidatesForMethod(type_name, name, param_names)
                     } else {
-                        Msg::UnknownMethod(type_name, name, param_names)
+                        SemError::UnknownMethod(type_name, name, param_names)
                     }
                 }
 
                 LookupKind::Static(cls_id) => {
                     let type_name = self.vm.cls(cls_id).name(self.vm);
-                    Msg::UnknownStaticMethod(type_name, name, param_names)
+                    SemError::UnknownStaticMethod(type_name, name, param_names)
                 }
 
                 LookupKind::Ctor(cls_id) => {
                     let cls = self.vm.classes.idx(cls_id);
                     let cls = cls.read();
                     let name = self.vm.interner.str(cls.name).to_string();
-                    Msg::UnknownCtor(name, param_names)
+                    SemError::UnknownCtor(name, param_names)
                 }
             };
 
@@ -249,7 +249,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                 .map(|a| a.name(self.vm))
                 .collect::<Vec<_>>();
             let call_types = args.iter().map(|a| a.name(self.vm)).collect::<Vec<_>>();
-            let msg = Msg::ParamTypesIncompatible(fct_name, fct_params, call_types);
+            let msg = SemError::ParamTypesIncompatible(fct_name, fct_params, call_types);
             self.vm
                 .diag
                 .lock()
@@ -345,7 +345,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
     fn check_tps(&self, specified_tps: &[TypeParam], tps: &TypeParams) -> bool {
         if specified_tps.len() != tps.len() {
-            let msg = Msg::WrongNumberTypeParams(specified_tps.len(), tps.len());
+            let msg = SemError::WrongNumberTypeParams(specified_tps.len(), tps.len());
             self.vm
                 .diag
                 .lock()
@@ -441,7 +441,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         let cls = cls.read();
         let cls = self.vm.interner.str(cls.name).to_string();
 
-        let msg = Msg::ClassBoundNotSatisfied(name, cls);
+        let msg = SemError::ClassBoundNotSatisfied(name, cls);
         self.vm
             .diag
             .lock()
@@ -452,7 +452,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         let bound = self.vm.traits[trait_id].read();
         let name = ty.name(self.vm);
         let trait_name = self.vm.interner.str(bound.name).to_string();
-        let msg = Msg::TraitBoundNotSatisfied(name, trait_name);
+        let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
         self.vm
             .diag
             .lock()

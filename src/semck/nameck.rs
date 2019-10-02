@@ -1,4 +1,4 @@
-use crate::error::msg::Msg;
+use crate::error::msg::SemError;
 use crate::vm::*;
 
 use dora_parser::ast::visit::*;
@@ -145,7 +145,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
             Err(_) => {
                 let name = str(self.vm, var.name);
-                report(self.vm, var.pos, Msg::ShadowClass(name));
+                report(self.vm, var.pos, SemError::ShadowClass(name));
             }
         }
     }
@@ -170,7 +170,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
             Err(_) => {
                 let name = str(self.vm, for_loop.name);
-                report(self.vm, for_loop.pos, Msg::ShadowClass(name));
+                report(self.vm, for_loop.pos, SemError::ShadowClass(name));
             }
         }
 
@@ -201,7 +201,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
                 Err(_) => {
                     let name = str(self.vm, catch.name);
-                    report(self.vm, catch.pos, Msg::ShadowClass(name));
+                    report(self.vm, catch.pos, SemError::ShadowClass(name));
                 }
             }
 
@@ -252,7 +252,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
             _ => {
                 let name = self.vm.interner.str(ident.name).to_string();
-                report(self.vm, ident.pos, Msg::UnknownIdentifier(name));
+                report(self.vm, ident.pos, SemError::UnknownIdentifier(name));
             }
         }
     }
@@ -283,9 +283,9 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
             Err(sym) => {
                 let name = str(self.vm, p.name);
                 let msg = if sym.is_class() {
-                    Msg::ShadowClass(name)
+                    SemError::ShadowClass(name)
                 } else {
-                    Msg::ShadowParam(name)
+                    SemError::ShadowParam(name)
                 };
 
                 report(self.vm, p.pos, msg);
@@ -316,7 +316,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
     }
 }
 
-fn report(vm: &VM, pos: Position, msg: Msg) {
+fn report(vm: &VM, pos: Position, msg: SemError) {
     vm.diag.lock().report_without_path(pos, msg);
 }
 
@@ -326,7 +326,7 @@ fn str(vm: &VM, name: Name) -> String {
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::Msg;
+    use crate::error::msg::SemError;
     use crate::semck::tests::*;
 
     #[test]
@@ -339,13 +339,17 @@ mod tests {
         err(
             "fun f() {}\nfun f() {}",
             pos(2, 1),
-            Msg::ShadowFunction("f".into()),
+            SemError::ShadowFunction("f".into()),
         );
     }
 
     #[test]
     fn shadow_type_with_function() {
-        err("fun Int() {}", pos(1, 1), Msg::ShadowClass("Int".into()));
+        err(
+            "fun Int() {}",
+            pos(1, 1),
+            SemError::ShadowClass("Int".into()),
+        );
     }
 
     #[test]
@@ -353,7 +357,7 @@ mod tests {
         err(
             "fun test(Bool: String) {}",
             pos(1, 10),
-            Msg::ShadowClass("Bool".into()),
+            SemError::ShadowClass("Bool".into()),
         );
     }
 
@@ -362,7 +366,7 @@ mod tests {
         err(
             "fun test() { let String = 3; }",
             pos(1, 14),
-            Msg::ShadowClass("String".into()),
+            SemError::ShadowClass("String".into()),
         );
     }
 
@@ -372,7 +376,7 @@ mod tests {
         err(
             "fun f() { let f = 1; f(); }",
             pos(1, 23),
-            Msg::UnknownMethod("Int".into(), "get".into(), Vec::new()),
+            SemError::UnknownMethod("Int".into(), "get".into(), Vec::new()),
         );
     }
 
@@ -386,7 +390,7 @@ mod tests {
         err(
             "fun f(a: Int, b: Int, a: String) {}",
             pos(1, 23),
-            Msg::ShadowParam("a".into()),
+            SemError::ShadowParam("a".into()),
         );
     }
 
@@ -400,12 +404,12 @@ mod tests {
         err(
             "fun f() { let b = a; }",
             pos(1, 19),
-            Msg::UnknownIdentifier("a".into()),
+            SemError::UnknownIdentifier("a".into()),
         );
         err(
             "fun f() { a; }",
             pos(1, 11),
-            Msg::UnknownIdentifier("a".into()),
+            SemError::UnknownIdentifier("a".into()),
         );
     }
 
@@ -414,7 +418,7 @@ mod tests {
         err(
             "fun f() { foo(); }",
             pos(1, 11),
-            Msg::UnknownIdentifier("foo".into()),
+            SemError::UnknownIdentifier("foo".into()),
         );
     }
 
@@ -436,7 +440,7 @@ mod tests {
         err(
             "fun f() -> Int { { let a = 1; } return a; }",
             pos(1, 40),
-            Msg::UnknownIdentifier("a".into()),
+            SemError::UnknownIdentifier("a".into()),
         );
 
         ok("fun f() -> Int { let a = 1; { let a = 2; } return a; }");

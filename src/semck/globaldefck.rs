@@ -1,4 +1,4 @@
-use crate::error::msg::Msg;
+use crate::error::msg::SemError;
 use crate::semck;
 use crate::ty::BuiltinType;
 use crate::vm::{GlobalId, NodeMap, VM};
@@ -43,14 +43,14 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDefCheck<'a, 'ast> {
             self.vm
                 .diag
                 .lock()
-                .report_without_path(g.pos, Msg::GlobalInitializerNotSupported);
+                .report_without_path(g.pos, SemError::GlobalInitializerNotSupported);
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::Msg;
+    use crate::error::msg::SemError;
     use crate::semck::tests::*;
 
     #[test]
@@ -58,12 +58,16 @@ mod tests {
         err(
             "let a: Int = 0;",
             pos(1, 1),
-            Msg::GlobalInitializerNotSupported,
+            SemError::GlobalInitializerNotSupported,
         );
     }
 
     #[test]
     fn check_type() {
-        err("var x: Foo;", pos(1, 8), Msg::UnknownType("Foo".into()));
+        err(
+            "var x: Foo;",
+            pos(1, 8),
+            SemError::UnknownType("Foo".into()),
+        );
     }
 }

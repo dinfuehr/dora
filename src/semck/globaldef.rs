@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::class::{self, ClassId};
-use crate::error::msg::Msg;
+use crate::error::msg::SemError;
 use crate::gc::Address;
 use crate::sym::Sym::{self, SymClass, SymConst, SymFct, SymGlobal, SymStruct, SymTrait};
 use crate::ty::BuiltinType;
@@ -266,12 +266,12 @@ fn report(vm: &VM, name: Name, pos: Position, sym: Sym) {
     let name = vm.interner.str(name).to_string();
 
     let msg = match sym {
-        SymClass(_) => Msg::ShadowClass(name),
-        SymStruct(_) => Msg::ShadowStruct(name),
-        SymFct(_) => Msg::ShadowFunction(name),
-        SymTrait(_) => Msg::ShadowTrait(name),
-        SymGlobal(_) => Msg::ShadowGlobal(name),
-        SymConst(_) => Msg::ShadowConst(name),
+        SymClass(_) => SemError::ShadowClass(name),
+        SymStruct(_) => SemError::ShadowStruct(name),
+        SymFct(_) => SemError::ShadowFunction(name),
+        SymTrait(_) => SemError::ShadowTrait(name),
+        SymGlobal(_) => SemError::ShadowGlobal(name),
+        SymConst(_) => SemError::ShadowConst(name),
         _ => unimplemented!(),
     };
 
@@ -280,7 +280,7 @@ fn report(vm: &VM, name: Name, pos: Position, sym: Sym) {
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::Msg;
+    use crate::error::msg::SemError;
     use crate::semck::tests::*;
 
     #[test]
@@ -289,17 +289,17 @@ mod tests {
         err(
             "struct Foo {} struct Foo {}",
             pos(1, 15),
-            Msg::ShadowStruct("Foo".into()),
+            SemError::ShadowStruct("Foo".into()),
         );
         err(
             "struct Foo {} class Foo {}",
             pos(1, 15),
-            Msg::ShadowStruct("Foo".into()),
+            SemError::ShadowStruct("Foo".into()),
         );
         err(
             "struct Foo {} fun Foo() {}",
             pos(1, 15),
-            Msg::ShadowStruct("Foo".into()),
+            SemError::ShadowStruct("Foo".into()),
         );
     }
 
@@ -309,17 +309,17 @@ mod tests {
         err(
             "trait Foo {} struct Foo {}",
             pos(1, 14),
-            Msg::ShadowTrait("Foo".into()),
+            SemError::ShadowTrait("Foo".into()),
         );
         err(
             "trait Foo {} class Foo {}",
             pos(1, 14),
-            Msg::ShadowTrait("Foo".into()),
+            SemError::ShadowTrait("Foo".into()),
         );
         err(
             "trait Foo {} fun Foo() {}",
             pos(1, 14),
-            Msg::ShadowTrait("Foo".into()),
+            SemError::ShadowTrait("Foo".into()),
         );
     }
 
@@ -329,17 +329,17 @@ mod tests {
         err(
             "const foo: Int = 0; fun foo() {}",
             pos(1, 21),
-            Msg::ShadowConst("foo".into()),
+            SemError::ShadowConst("foo".into()),
         );
         err(
             "const foo: Int = 0; class foo {}",
             pos(1, 21),
-            Msg::ShadowConst("foo".into()),
+            SemError::ShadowConst("foo".into()),
         );
         err(
             "const foo: Int = 0; struct foo {}",
             pos(1, 21),
-            Msg::ShadowConst("foo".into()),
+            SemError::ShadowConst("foo".into()),
         );
     }
 }

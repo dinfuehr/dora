@@ -1,5 +1,5 @@
 use crate::class::TypeParams;
-use crate::error::msg::Msg;
+use crate::error::msg::SemError;
 use crate::ty::BuiltinType;
 use crate::typeck::expr::{check_lit_float, check_lit_int, lookup_method};
 use crate::vm::{ConstData, ConstValue, VM};
@@ -47,7 +47,7 @@ impl<'a, 'ast> ConstCheck<'a, 'ast> {
                 .is_none()
                 {
                     let ty = ty.name(self.vm);
-                    let msg = Msg::UnOpType(expr.op.as_str().into(), ty);
+                    let msg = SemError::UnOpType(expr.op.as_str().into(), ty);
 
                     self.vm.diag.lock().report_without_path(expr.pos, msg);
                 }
@@ -56,7 +56,7 @@ impl<'a, 'ast> ConstCheck<'a, 'ast> {
             }
 
             _ => {
-                let msg = Msg::ConstValueExpected;
+                let msg = SemError::ConstValueExpected;
                 self.vm.diag.lock().report_without_path(expr.pos(), msg);
                 return (BuiltinType::Error, ConstValue::None);
             }
@@ -66,7 +66,7 @@ impl<'a, 'ast> ConstCheck<'a, 'ast> {
             let name = self.vm.interner.str(self.xconst.name).to_string();
             let const_ty = self.xconst.ty.name(self.vm);
             let ty = ty.name(self.vm);
-            let msg = Msg::AssignType(name, const_ty, ty);
+            let msg = SemError::AssignType(name, const_ty, ty);
             self.vm.diag.lock().report_without_path(expr.pos(), msg);
         }
 

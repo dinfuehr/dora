@@ -1,10 +1,9 @@
 use std::fmt;
 
-use self::Msg::*;
 use dora_parser::lexer::position::Position;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub enum Msg {
+pub enum SemError {
     Unimplemented,
     UnknownClass(String),
     UnknownType(String),
@@ -128,73 +127,81 @@ pub enum Msg {
     NameOfStaticMethodExpected,
 }
 
-impl Msg {
+impl SemError {
     pub fn message(&self) -> String {
         match *self {
-            Unimplemented => format!("feature not implemented yet."),
-            UnknownClass(ref name) => format!("class `{}` does not exist.", name),
-            UnknownType(ref name) => format!("type `{}` does not exist.", name),
-            UnknownIdentifier(ref name) => format!("unknown identifier `{}`.", name),
-            UnknownStruct(ref name) => format!("unknown struct `{}`.", name),
-            UnknownFunction(ref name) => format!("unknown function `{}`", name),
-            UnknownMethod(ref cls, ref name, ref args) => {
+            SemError::Unimplemented => format!("feature not implemented yet."),
+            SemError::UnknownClass(ref name) => format!("class `{}` does not exist.", name),
+            SemError::UnknownType(ref name) => format!("type `{}` does not exist.", name),
+            SemError::UnknownIdentifier(ref name) => format!("unknown identifier `{}`.", name),
+            SemError::UnknownStruct(ref name) => format!("unknown struct `{}`.", name),
+            SemError::UnknownFunction(ref name) => format!("unknown function `{}`", name),
+            SemError::UnknownMethod(ref cls, ref name, ref args) => {
                 let args = args.join(", ");
                 format!(
                     "no method with definition `{}({})` in class `{}`.",
                     name, args, cls
                 )
             }
-            MultipleCandidatesForMethod(ref cls, ref name, ref args) => {
+            SemError::MultipleCandidatesForMethod(ref cls, ref name, ref args) => {
                 let args = args.join(", ");
                 format!(
                     "multiple candidates for definition `{}({})` in class `{}`.",
                     name, args, cls
                 )
             }
-            UnknownMethodForTypeParam(ref tp, ref name, ref args) => {
+            SemError::UnknownMethodForTypeParam(ref tp, ref name, ref args) => {
                 let args = args.join(", ");
                 format!(
                     "no method with definition `{}({})` found for type param `{}`.",
                     name, args, tp
                 )
             }
-            MultipleCandidatesForTypeParam(ref tp, ref name, ref args) => {
+            SemError::MultipleCandidatesForTypeParam(ref tp, ref name, ref args) => {
                 let args = args.join(", ");
                 format!(
                     "multiple candidates with definition `{}({})` found for type param `{}`.",
                     name, args, tp
                 )
             }
-            UnknownStaticMethod(ref cls, ref name, ref args) => {
+            SemError::UnknownStaticMethod(ref cls, ref name, ref args) => {
                 let args = args.join(", ");
                 format!("no static method `{}::{}({})`.", cls, name, args)
             }
-            UnknownCtor(ref name, ref args) => {
+            SemError::UnknownCtor(ref name, ref args) => {
                 let args = args.join(", ");
                 format!("no ctor with definition `{}({})`.", name, args)
             }
-            MethodExists(ref cls, ref name, pos) => format!(
+            SemError::MethodExists(ref cls, ref name, pos) => format!(
                 "method with name `{}` already exists in class `{}` at line {}.",
                 name, cls, pos
             ),
-            IncompatibleWithNil(ref ty) => format!("cannot assign `nil` to type `{}`.", ty),
-            UnknownField(ref field, ref ty) => {
+            SemError::IncompatibleWithNil(ref ty) => {
+                format!("cannot assign `nil` to type `{}`.", ty)
+            }
+            SemError::UnknownField(ref field, ref ty) => {
                 format!("unknown field `{}` for type `{}`", field, ty)
             }
-            IdentifierExists(ref name) => format!("can not redefine identifier `{}`.", name),
-            ShadowFunction(ref name) => format!("can not shadow function `{}`.", name),
-            ShadowParam(ref name) => format!("can not shadow param `{}`.", name),
-            ShadowClass(ref name) => format!("can not shadow class `{}`.", name),
-            ShadowStruct(ref name) => format!("can not shadow struct `{}`.", name),
-            ShadowTrait(ref name) => format!("can not shadow trait `{}`.", name),
-            ShadowField(ref name) => format!("field with name `{}` already exists.", name),
-            ShadowGlobal(ref name) => format!("can not shadow global variable `{}`.", name),
-            ShadowConst(ref name) => format!("can not shadow const `{}`", name),
-            VarNeedsTypeInfo(ref name) => format!(
+            SemError::IdentifierExists(ref name) => {
+                format!("can not redefine identifier `{}`.", name)
+            }
+            SemError::ShadowFunction(ref name) => format!("can not shadow function `{}`.", name),
+            SemError::ShadowParam(ref name) => format!("can not shadow param `{}`.", name),
+            SemError::ShadowClass(ref name) => format!("can not shadow class `{}`.", name),
+            SemError::ShadowStruct(ref name) => format!("can not shadow struct `{}`.", name),
+            SemError::ShadowTrait(ref name) => format!("can not shadow trait `{}`.", name),
+            SemError::ShadowField(ref name) => {
+                format!("field with name `{}` already exists.", name)
+            }
+            SemError::ShadowGlobal(ref name) => {
+                format!("can not shadow global variable `{}`.", name)
+            }
+            SemError::ShadowConst(ref name) => format!("can not shadow const `{}`", name),
+            SemError::VarNeedsTypeInfo(ref name) => format!(
                 "variable `{}` needs either type declaration or expression.",
                 name
             ),
-            ParamTypesIncompatible(ref name, ref def, ref expr) => {
+            SemError::ParamTypesIncompatible(ref name, ref def, ref expr) => {
                 let def = def.join(", ");
                 let expr = expr.join(", ");
 
@@ -203,119 +210,143 @@ impl Msg {
                     name, def, name, expr
                 )
             }
-            WhileCondType(ref ty) => {
+            SemError::WhileCondType(ref ty) => {
                 format!("`while` expects condition of type `bool` but got `{}`.", ty)
             }
-            IfCondType(ref ty) => {
+            SemError::IfCondType(ref ty) => {
                 format!("`if` expects condition of type `bool` but got `{}`.", ty)
             }
-            ReturnType(ref def, ref expr) => format!(
+            SemError::ReturnType(ref def, ref expr) => format!(
                 "`return` expects value of type `{}` but got `{}`.",
                 def, expr
             ),
-            LvalueExpected => format!("lvalue expected for assignment"),
-            AssignType(ref name, ref def, ref expr) => format!(
+            SemError::LvalueExpected => format!("lvalue expected for assignment"),
+            SemError::AssignType(ref name, ref def, ref expr) => format!(
                 "cannot assign `{}` to variable `{}` of type `{}`.",
                 expr, name, def
             ),
-            AssignField(ref name, ref cls, ref def, ref expr) => format!(
+            SemError::AssignField(ref name, ref cls, ref def, ref expr) => format!(
                 "cannot assign `{}` to field `{}`.`{}` of type `{}`.",
                 expr, cls, name, def
             ),
-            UnOpType(ref op, ref expr) => format!(
+            SemError::UnOpType(ref op, ref expr) => format!(
                 "unary operator `{}` can not handle value of type `{} {}`.",
                 op, op, expr
             ),
-            BinOpType(ref op, ref lhs, ref rhs) => format!(
+            SemError::BinOpType(ref op, ref lhs, ref rhs) => format!(
                 "binary operator `{}` can not handle expression of type `{} {} {}`",
                 op, lhs, op, rhs
             ),
-            ConstValueExpected => "constant value expected".into(),
-            OutsideLoop => "statement only allowed inside loops".into(),
-            NoReturnValue => "function does not return a value in all code paths".into(),
-            MainNotFound => "no `main` function found in the program".into(),
-            WrongMainDefinition => "`main` function has wrong definition".into(),
-            ThisUnavailable => "`self` can only be used in methods not functions".into(),
-            SelfTypeUnavailable => "`Self` can only be used in traits.".into(),
-            SuperUnavailable => {
+            SemError::ConstValueExpected => "constant value expected".into(),
+            SemError::OutsideLoop => "statement only allowed inside loops".into(),
+            SemError::NoReturnValue => "function does not return a value in all code paths".into(),
+            SemError::MainNotFound => "no `main` function found in the program".into(),
+            SemError::WrongMainDefinition => "`main` function has wrong definition".into(),
+            SemError::ThisUnavailable => "`self` can only be used in methods not functions".into(),
+            SemError::SelfTypeUnavailable => "`Self` can only be used in traits.".into(),
+            SemError::SuperUnavailable => {
                 "`super` only available in methods of classes with parent class".into()
             }
-            SuperNeedsMethodCall => "`super` only allowed in method calls".into(),
-            ReferenceTypeExpected(ref name) => format!("`{}` is not a reference type.", name),
-            ThrowNil => "throwing `nil` is not allowed.".into(),
-            CatchOrFinallyExpected => "`try` without `catch` or `finally`.".into(),
-            LetMissingInitialization => "`let` binding is missing initialization.".into(),
-            LetReassigned => "`let` binding cannot be reassigned.".into(),
-            FctReassigned => "function cannot be reassigned.".into(),
-            ClassReassigned => "class cannot be reassigned.".into(),
-            FctUsedAsIdentifier => "function cannot be used as identifier.".into(),
-            ClsUsedAsIdentifier => "class cannot be used as identifier.".into(),
-            UnderivableType(ref name) => format!("type `{}` cannot be used as super class.", name),
-            CycleInHierarchy => "cycle in type hierarchy detected.".into(),
-            SuperfluousOverride(_) => {
+            SemError::SuperNeedsMethodCall => "`super` only allowed in method calls".into(),
+            SemError::ReferenceTypeExpected(ref name) => {
+                format!("`{}` is not a reference type.", name)
+            }
+            SemError::ThrowNil => "throwing `nil` is not allowed.".into(),
+            SemError::CatchOrFinallyExpected => "`try` without `catch` or `finally`.".into(),
+            SemError::LetMissingInitialization => "`let` binding is missing initialization.".into(),
+            SemError::LetReassigned => "`let` binding cannot be reassigned.".into(),
+            SemError::FctReassigned => "function cannot be reassigned.".into(),
+            SemError::ClassReassigned => "class cannot be reassigned.".into(),
+            SemError::FctUsedAsIdentifier => "function cannot be used as identifier.".into(),
+            SemError::ClsUsedAsIdentifier => "class cannot be used as identifier.".into(),
+            SemError::UnderivableType(ref name) => {
+                format!("type `{}` cannot be used as super class.", name)
+            }
+            SemError::CycleInHierarchy => "cycle in type hierarchy detected.".into(),
+            SemError::SuperfluousOverride(_) => {
                 "method `{}` uses modifier `override` without overriding a function.".into()
             }
-            MissingOverride(_) => "method `{}` is missing modifier `override`.".into(),
-            SuperfluousOpen(_) => {
+            SemError::MissingOverride(_) => "method `{}` is missing modifier `override`.".into(),
+            SemError::SuperfluousOpen(_) => {
                 "method `{}` uses modifier `open` but class allows no subclasses.".into()
             }
-            ThrowsDifference(_) => {
+            SemError::ThrowsDifference(_) => {
                 "use of `throws` in method `{}`needs to match super class".into()
             }
-            MethodNotOverridable(ref name) => {
+            SemError::MethodNotOverridable(ref name) => {
                 format!("method `{}` in super class not overridable.", name)
             }
-            TypesIncompatible(ref na, ref nb) => {
+            SemError::TypesIncompatible(ref na, ref nb) => {
                 format!("types `{}` and `{}` incompatible.", na, nb)
             }
-            ReturnTypeMismatch(ref fct, ref sup) => {
+            SemError::ReturnTypeMismatch(ref fct, ref sup) => {
                 format!("return types `{}` and `{}` do not match.", fct, sup)
             }
-            UnresolvedInternal => "unresolved internal.".into(),
-            MisplacedElse => "misplace else.".into(),
-            ExpectedToken(ref exp, ref got) => format!("expected {} but got {}.", exp, got),
-            NumberOverflow(ref ty) => format!("number does not fit into type {}.", ty),
-            ExpectedClass(ref cls) => format!("expected class name but got {}.", cls),
-            ExpectedFactor(ref got) => format!("factor expected but got {}.", got),
-            ExpectedTrait(ref trt) => format!("expected trait name but got {}.", trt),
-            ExpectedType(ref got) => format!("type expected but got {}.", got),
-            ExpectedIdentifier(ref tok) => format!("identifier expected but got {}.", tok),
-            ExpectedSomeIdentifier => "identifier expected".into(),
-            ExpectedTopLevelElement(ref token) => {
+            SemError::UnresolvedInternal => "unresolved internal.".into(),
+            SemError::MisplacedElse => "misplace else.".into(),
+            SemError::ExpectedToken(ref exp, ref got) => {
+                format!("expected {} but got {}.", exp, got)
+            }
+            SemError::NumberOverflow(ref ty) => format!("number does not fit into type {}.", ty),
+            SemError::ExpectedClass(ref cls) => format!("expected class name but got {}.", cls),
+            SemError::ExpectedFactor(ref got) => format!("factor expected but got {}.", got),
+            SemError::ExpectedTrait(ref trt) => format!("expected trait name but got {}.", trt),
+            SemError::ExpectedType(ref got) => format!("type expected but got {}.", got),
+            SemError::ExpectedIdentifier(ref tok) => {
+                format!("identifier expected but got {}.", tok)
+            }
+            SemError::ExpectedSomeIdentifier => "identifier expected".into(),
+            SemError::ExpectedTopLevelElement(ref token) => {
                 format!("expected function or class but got {}.", token)
             }
-            ExpectedClassElement(ref token) => {
+            SemError::ExpectedClassElement(ref token) => {
                 format!("field or method expected but got {}.", token)
             }
-            ExpectedStringable(ref ty) => format!("type {} does not implement Stringable.", ty),
-            MisplacedAnnotation(ref modifier) => format!("misplaced annotation `{}`.", modifier),
-            RedundantAnnotation(ref token) => format!("redundant annotation {}.", token),
-            UnknownAnnotation(ref token) => format!("unknown annotation {}.", token),
-            UnknownChar(ch) => format!("unknown character {} (codepoint {}).", ch, ch as usize),
-            UnclosedComment => "unclosed comment.".into(),
-            InvalidEscapeSequence(ch) => format!("unknown escape sequence `\\{}`.", ch),
-            UnclosedString => "unclosed string.".into(),
-            UnclosedChar => "unclosed char.".into(),
-            IoError => "error reading from file.".into(),
-            MissingFctBody => "missing function body.".into(),
-            FctCallExpected => format!("function call expected"),
-            ThisOrSuperExpected(ref val) => format!("`self` or `super` expected but got {}.", val),
-            NoSuperDelegationWithPrimaryCtor(ref name) => format!(
+            SemError::ExpectedStringable(ref ty) => {
+                format!("type {} does not implement Stringable.", ty)
+            }
+            SemError::MisplacedAnnotation(ref modifier) => {
+                format!("misplaced annotation `{}`.", modifier)
+            }
+            SemError::RedundantAnnotation(ref token) => format!("redundant annotation {}.", token),
+            SemError::UnknownAnnotation(ref token) => format!("unknown annotation {}.", token),
+            SemError::UnknownChar(ch) => {
+                format!("unknown character {} (codepoint {}).", ch, ch as usize)
+            }
+            SemError::UnclosedComment => "unclosed comment.".into(),
+            SemError::InvalidEscapeSequence(ch) => format!("unknown escape sequence `\\{}`.", ch),
+            SemError::UnclosedString => "unclosed string.".into(),
+            SemError::UnclosedChar => "unclosed char.".into(),
+            SemError::IoError => "error reading from file.".into(),
+            SemError::MissingFctBody => "missing function body.".into(),
+            SemError::FctCallExpected => format!("function call expected"),
+            SemError::ThisOrSuperExpected(ref val) => {
+                format!("`self` or `super` expected but got {}.", val)
+            }
+            SemError::NoSuperDelegationWithPrimaryCtor(ref name) => format!(
                 "no `super` delegation allowed for ctor in class {}, because class has \
                  primary ctor.",
                 name
             ),
-            NoSuperClass(ref name) => format!("class `{}` does not have super class.", name),
-            RecursiveStructure => "recursive structure is not allowed.".into(),
-            TraitMethodWithBody => "trait method is not allowed to have definition".into(),
-            TryNeedsCall => "`try` expects function or method call.".into(),
-            TryCallNonThrowing => "given function or method call for `try` does not throw.".into(),
-            ThrowingCallWithoutTry => {
+            SemError::NoSuperClass(ref name) => {
+                format!("class `{}` does not have super class.", name)
+            }
+            SemError::RecursiveStructure => "recursive structure is not allowed.".into(),
+            SemError::TraitMethodWithBody => {
+                "trait method is not allowed to have definition".into()
+            }
+            SemError::TryNeedsCall => "`try` expects function or method call.".into(),
+            SemError::TryCallNonThrowing => {
+                "given function or method call for `try` does not throw.".into()
+            }
+            SemError::ThrowingCallWithoutTry => {
                 "function or method call that is able to throw, needs `try`.".into()
             }
-            TypeParamsExpected => "type params expected.".into(),
-            TypeParamNameNotUnique(ref name) => format!("type param `{}` name already used.", name),
-            StaticMethodNotInTrait(ref trait_name, ref mtd_name, ref args) => {
+            SemError::TypeParamsExpected => "type params expected.".into(),
+            SemError::TypeParamNameNotUnique(ref name) => {
+                format!("type param `{}` name already used.", name)
+            }
+            SemError::StaticMethodNotInTrait(ref trait_name, ref mtd_name, ref args) => {
                 let args = args.join(", ");
 
                 format!(
@@ -323,7 +354,7 @@ impl Msg {
                     trait_name, mtd_name, args
                 )
             }
-            MethodNotInTrait(ref trait_name, ref mtd_name, ref args) => {
+            SemError::MethodNotInTrait(ref trait_name, ref mtd_name, ref args) => {
                 let args = args.join(", ");
 
                 format!(
@@ -331,7 +362,7 @@ impl Msg {
                     trait_name, mtd_name, args
                 )
             }
-            StaticMethodMissingFromTrait(ref trait_name, ref mtd_name, ref args) => {
+            SemError::StaticMethodMissingFromTrait(ref trait_name, ref mtd_name, ref args) => {
                 let args = args.join(", ");
 
                 format!(
@@ -339,7 +370,7 @@ impl Msg {
                     trait_name, mtd_name, args
                 )
             }
-            MethodMissingFromTrait(ref trait_name, ref mtd_name, ref args) => {
+            SemError::MethodMissingFromTrait(ref trait_name, ref mtd_name, ref args) => {
                 let args = args.join(", ");
 
                 format!(
@@ -347,64 +378,70 @@ impl Msg {
                     trait_name, mtd_name, args
                 )
             }
-            WrongNumberTypeParams(exp, actual) => {
+            SemError::WrongNumberTypeParams(exp, actual) => {
                 format!("expected {} type parameters but got {}.", exp, actual)
             }
-            ClassExpected(ref name) => format!("`{}` is not a class.", name),
-            ClassExpectedAsTypeParam => "class as type parameter expected.".into(),
-            AssignmentToConst => "cannot assign to const variable.".into(),
-            BoundExpected => "class or trait bound expected".into(),
-            NoTypeParamsExpected => "no type params allowed".into(),
-            MultipleClassBounds => "multiple class bounds not allowed".into(),
-            DuplicateTraitBound => "duplicate trait bound".into(),
-            ClassBoundNotSatisfied(ref name, ref xclass) => {
+            SemError::ClassExpected(ref name) => format!("`{}` is not a class.", name),
+            SemError::ClassExpectedAsTypeParam => "class as type parameter expected.".into(),
+            SemError::AssignmentToConst => "cannot assign to const variable.".into(),
+            SemError::BoundExpected => "class or trait bound expected".into(),
+            SemError::NoTypeParamsExpected => "no type params allowed".into(),
+            SemError::MultipleClassBounds => "multiple class bounds not allowed".into(),
+            SemError::DuplicateTraitBound => "duplicate trait bound".into(),
+            SemError::ClassBoundNotSatisfied(ref name, ref xclass) => {
                 format!("type `{}` not a subclass of `{}`.", name, xclass)
             }
-            TraitBoundNotSatisfied(ref name, ref xtrait) => {
+            SemError::TraitBoundNotSatisfied(ref name, ref xtrait) => {
                 format!("type `{}` does not implement trait `{}`.", name, xtrait)
             }
-            AbstractMethodWithImplementation => "abstract methods cannot be implemented.".into(),
-            AbstractMethodNotInAbstractClass => {
+            SemError::AbstractMethodWithImplementation => {
+                "abstract methods cannot be implemented.".into()
+            }
+            SemError::AbstractMethodNotInAbstractClass => {
                 "abstract methods only allowed in abstract classes.".into()
             }
-            NewAbstractClass => "cannot create object of abstract class.".into(),
-            MissingAbstractOverride(ref cls, ref name) => format!(
+            SemError::NewAbstractClass => "cannot create object of abstract class.".into(),
+            SemError::MissingAbstractOverride(ref cls, ref name) => format!(
                 "missing override of abstract method `{}` in class `{}`.",
                 cls, name
             ),
-            ModifierNotAllowedForStaticMethod(ref modifier) => {
+            SemError::ModifierNotAllowedForStaticMethod(ref modifier) => {
                 format!("modifier `{}` not allowed for static method.", modifier)
             }
-            GlobalInitializerNotSupported => {
+            SemError::GlobalInitializerNotSupported => {
                 "global variables do no support initial assignment for now.".into()
             }
-            MakeIteratorReturnType(ref ty) => format!(
+            SemError::MakeIteratorReturnType(ref ty) => format!(
                 "makeIterator() returns `{}` which does not implement Iterator.",
                 ty
             ),
-            UnknownStructField(ref struc, ref field) => {
+            SemError::UnknownStructField(ref struc, ref field) => {
                 format!("struct `{}` does not have field named `{}`.", struc, field)
             }
-            StructFieldNotInitialized(ref struc, ref field) => {
+            SemError::StructFieldNotInitialized(ref struc, ref field) => {
                 format!("field `{}` in struct `{}` not initialized.", field, struc)
             }
-            InvalidLeftSideOfSeparator => "left hand side of separator is not a class.".into(),
-            InvalidUseOfTypeParams => "type params need to be used on class or function.".into(),
-            NameOfStaticMethodExpected => "name of static method expected.".into(),
+            SemError::InvalidLeftSideOfSeparator => {
+                "left hand side of separator is not a class.".into()
+            }
+            SemError::InvalidUseOfTypeParams => {
+                "type params need to be used on class or function.".into()
+            }
+            SemError::NameOfStaticMethodExpected => "name of static method expected.".into(),
         }
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct MsgWithPos {
+pub struct SemErrorAndPos {
     pub path: String,
     pub pos: Position,
-    pub msg: Msg,
+    pub msg: SemError,
 }
 
-impl MsgWithPos {
-    pub fn new(path: String, pos: Position, msg: Msg) -> MsgWithPos {
-        MsgWithPos { path, pos, msg }
+impl SemErrorAndPos {
+    pub fn new(path: String, pos: Position, msg: SemError) -> SemErrorAndPos {
+        SemErrorAndPos { path, pos, msg }
     }
 
     pub fn message(&self) -> String {
@@ -420,8 +457,8 @@ impl MsgWithPos {
         }
     }
 
-    pub fn without_path(pos: Position, msg: Msg) -> MsgWithPos {
-        MsgWithPos {
+    pub fn without_path(pos: Position, msg: SemError) -> SemErrorAndPos {
+        SemErrorAndPos {
             path: "".to_string(),
             pos,
             msg,
@@ -429,7 +466,7 @@ impl MsgWithPos {
     }
 }
 
-impl fmt::Display for MsgWithPos {
+impl fmt::Display for SemErrorAndPos {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "{}", self.message())
     }

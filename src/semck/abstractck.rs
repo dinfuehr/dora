@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use crate::class::{Class, ClassId};
-use crate::error::msg::Msg;
+use crate::error::msg::SemError;
 use crate::vm::{FctId, VM};
 
 pub fn check<'ast>(vm: &mut VM<'ast>) {
@@ -60,9 +60,10 @@ pub fn check_abstract<'ast>(
             let cls_name = vm.interner.str(mtd_cls.name).to_string();
             let mtd_name = vm.interner.str(mtd.name).to_string();
 
-            vm.diag
-                .lock()
-                .report_without_path(cls.pos, Msg::MissingAbstractOverride(cls_name, mtd_name));
+            vm.diag.lock().report_without_path(
+                cls.pos,
+                SemError::MissingAbstractOverride(cls_name, mtd_name),
+            );
         }
     }
 }
@@ -117,7 +118,7 @@ fn find_abstract_methods<'ast>(
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::Msg;
+    use crate::error::msg::SemError;
     use crate::semck::tests::{err, ok, pos};
 
     #[test]
@@ -144,7 +145,7 @@ mod tests {
             "@open @abstract class A { @abstract fun foo(); }
             class B: A { }",
             pos(2, 13),
-            Msg::MissingAbstractOverride("A".into(), "foo".into()),
+            SemError::MissingAbstractOverride("A".into(), "foo".into()),
         );
     }
 
@@ -155,7 +156,7 @@ mod tests {
             @open @abstract class B: A {}
             class C: B { }",
             pos(3, 13),
-            Msg::MissingAbstractOverride("A".into(), "foo".into()),
+            SemError::MissingAbstractOverride("A".into(), "foo".into()),
         );
     }
 }

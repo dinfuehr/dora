@@ -1,4 +1,4 @@
-use crate::error::msg::Msg;
+use crate::error::msg::SemError;
 use crate::ty::BuiltinType;
 use crate::vm::{Fct, FctId, FctKind, FctParent, NodeMap, TraitId, VM};
 
@@ -54,7 +54,7 @@ impl<'x, 'ast> Visitor<'ast> for TraitCheck<'x, 'ast> {
         }
 
         if f.block.is_some() {
-            report(self.vm, f.pos, Msg::TraitMethodWithBody);
+            report(self.vm, f.pos, SemError::TraitMethodWithBody);
         }
 
         let fct = Fct {
@@ -92,13 +92,13 @@ impl<'x, 'ast> Visitor<'ast> for TraitCheck<'x, 'ast> {
     }
 }
 
-fn report(vm: &VM, pos: Position, msg: Msg) {
+fn report(vm: &VM, pos: Position, msg: SemError) {
     vm.diag.lock().report_without_path(pos, msg);
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::Msg;
+    use crate::error::msg::SemError;
     use crate::semck::tests::*;
 
     #[test]
@@ -106,7 +106,7 @@ mod tests {
         err(
             "trait Foo { fun foo() -> Int { return 1; } }",
             pos(1, 13),
-            Msg::TraitMethodWithBody,
+            SemError::TraitMethodWithBody,
         );
     }
 
@@ -122,18 +122,18 @@ mod tests {
         err(
             "trait Bar { fun foo() -> Unknown; }",
             pos(1, 26),
-            Msg::UnknownType("Unknown".into()),
+            SemError::UnknownType("Unknown".into()),
         );
         err(
             "trait Foo { fun foo(); fun foo() -> Int; }",
             pos(1, 24),
-            Msg::MethodExists("Foo".into(), "foo".into(), pos(1, 13)),
+            SemError::MethodExists("Foo".into(), "foo".into(), pos(1, 13)),
         );
 
         err(
             "trait Foo { fun foo(); fun foo(); }",
             pos(1, 24),
-            Msg::MethodExists("Foo".into(), "foo".into(), pos(1, 13)),
+            SemError::MethodExists("Foo".into(), "foo".into(), pos(1, 13)),
         );
     }
 
@@ -145,7 +145,7 @@ mod tests {
             fun foo() -> Self;
         }",
             pos(3, 13),
-            Msg::MethodExists("Foo".into(), "foo".into(), pos(2, 13)),
+            SemError::MethodExists("Foo".into(), "foo".into(), pos(2, 13)),
         );
     }
 }

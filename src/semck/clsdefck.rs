@@ -2,7 +2,7 @@ use parking_lot::RwLock;
 use std::collections::HashSet;
 
 use crate::class::*;
-use crate::error::msg::Msg;
+use crate::error::msg::SemError;
 use crate::semck;
 use crate::sym::Sym;
 use crate::ty::BuiltinType;
@@ -46,7 +46,7 @@ impl<'x, 'ast> ClsCheck<'x, 'ast> {
         for field in &cls.fields {
             if field.name == name {
                 let name = self.vm.interner.str(name).to_string();
-                report(self.vm, pos, Msg::ShadowField(name));
+                report(self.vm, pos, SemError::ShadowField(name));
             }
         }
 
@@ -84,7 +84,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                 for type_param in type_params {
                     if !names.insert(type_param.name) {
                         let name = self.vm.interner.str(type_param.name).to_string();
-                        let msg = Msg::TypeParamNameNotUnique(name);
+                        let msg = SemError::TypeParamNameNotUnique(name);
                         self.vm.diag.lock().report_without_path(type_param.pos, msg);
                     }
 
@@ -98,14 +98,14 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                                 if let None = cls.type_params[type_param_id].class_bound {
                                     cls.type_params[type_param_id].class_bound = Some(cls_id);
                                 } else {
-                                    let msg = Msg::MultipleClassBounds;
+                                    let msg = SemError::MultipleClassBounds;
                                     self.vm.diag.lock().report_without_path(type_param.pos, msg);
                                 }
                             }
 
                             Some(BuiltinType::Trait(trait_id)) => {
                                 if !cls.type_params[type_param_id].trait_bounds.insert(trait_id) {
-                                    let msg = Msg::DuplicateTraitBound;
+                                    let msg = SemError::DuplicateTraitBound;
                                     self.vm.diag.lock().report_without_path(type_param.pos, msg);
                                 }
                             }
@@ -115,7 +115,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                             }
 
                             _ => {
-                                let msg = Msg::BoundExpected;
+                                let msg = SemError::BoundExpected;
                                 self.vm.diag.lock().report_without_path(bound.pos(), msg);
                             }
                         }
@@ -129,7 +129,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                 let list_id = self.vm.lists.lock().insert(params.into());
                 cls.ty = BuiltinType::Class(cls.id, list_id);
             } else {
-                let msg = Msg::TypeParamsExpected;
+                let msg = SemError::TypeParamsExpected;
                 self.vm.diag.lock().report_without_path(c.pos, msg);
             }
         }
@@ -150,7 +150,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                         let mut cls = cls.write();
                         cls.parent_class = Some(clsid);
                     } else {
-                        let msg = Msg::UnderivableType(name);
+                        let msg = SemError::UnderivableType(name);
                         self.vm
                             .diag
                             .lock()
@@ -164,7 +164,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                         .unwrap_or(0);
 
                     if number_type_params != super_cls.type_params.len() {
-                        let msg = Msg::WrongNumberTypeParams(
+                        let msg = SemError::WrongNumberTypeParams(
                             super_cls.type_params.len(),
                             number_type_params,
                         );
@@ -176,7 +176,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                 }
 
                 _ => {
-                    let msg = Msg::UnknownClass(name);
+                    let msg = SemError::UnknownClass(name);
                     self.vm
                         .diag
                         .lock()
@@ -206,7 +206,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
             self.vm
                 .diag
                 .lock()
-                .report_without_path(f.pos, Msg::LetMissingInitialization);
+                .report_without_path(f.pos, SemError::LetMissingInitialization);
         }
     }
 
@@ -304,13 +304,13 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
     }
 }
 
-fn report(vm: &VM, pos: Position, msg: Msg) {
+fn report(vm: &VM, pos: Position, msg: SemError) {
     vm.diag.lock().report_without_path(pos, msg);
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::error::msg::Msg;
+    use crate::error::msg::SemError;
     use crate::semck::tests::*;
 
     #[test]
@@ -318,7 +318,7 @@ mod tests {
         err(
             "class Foo class Foo",
             pos(1, 11),
-            Msg::ShadowClass("Foo".into()),
+            SemError::ShadowClass("Foo".into()),
         );
     }
 
@@ -327,12 +327,12 @@ mod tests {
         err(
             "fun Foo() {} class Foo",
             pos(1, 14),
-            Msg::ShadowFunction("Foo".into()),
+            SemError::ShadowFunction("Foo".into()),
         );
         err(
             "class Foo fun Foo() {}",
             pos(1, 11),
-            Msg::ShadowClass("Foo".into()),
+            SemError::ShadowClass("Foo".into()),
         );
     }
 
@@ -347,27 +347,31 @@ mod tests {
         err(
             "class Foo(let a: Unknown)",
             pos(1, 18),
-            Msg::UnknownType("Unknown".into()),
+            SemError::UnknownType("Unknown".into()),
         );
         err(
             "class Foo(let a: Int, let a: Int)",
             pos(1, 27),
-            Msg::ShadowField("a".to_string()),
+            SemError::ShadowField("a".to_string()),
         );
     }
 
     #[test]
     fn class_with_unknown_super_class() {
-        err("class B : A {}", pos(1, 11), Msg::UnknownClass("A".into()));
+        err(
+            "class B : A {}",
+            pos(1, 11),
+            SemError::UnknownClass("A".into()),
+        );
         err(
             "@open class B : A {}",
             pos(1, 17),
-            Msg::UnknownClass("A".into()),
+            SemError::UnknownClass("A".into()),
         );
         err(
             "class B : Int {}",
             pos(1, 11),
-            Msg::UnderivableType("Int".into()),
+            SemError::UnderivableType("Int".into()),
         );
     }
 
@@ -378,7 +382,7 @@ mod tests {
         err(
             "class A {} class B : A {}",
             pos(1, 22),
-            Msg::UnderivableType("A".into()),
+            SemError::UnderivableType("A".into()),
         );
     }
 
@@ -390,22 +394,22 @@ mod tests {
         err(
             "class Foo(a: Int, a: Int)",
             pos(1, 1),
-            Msg::ShadowParam("a".into()),
+            SemError::ShadowParam("a".into()),
         );
         err(
             "class Foo(a: Int, let a: Int)",
             pos(1, 1),
-            Msg::ShadowParam("a".into()),
+            SemError::ShadowParam("a".into()),
         );
         err(
             "class Foo(let a: Int, a: Int)",
             pos(1, 1),
-            Msg::ShadowParam("a".into()),
+            SemError::ShadowParam("a".into()),
         );
         err(
             "class Foo(a: Int) fun f(x: Foo) { x.a = 1; }",
             pos(1, 36),
-            Msg::UnknownField("a".into(), "Foo".into()),
+            SemError::UnknownField("a".into(), "Foo".into()),
         );
 
         ok("class Foo(a: Int) fun foo() -> Foo { return Foo(1); } ");
@@ -416,12 +420,12 @@ mod tests {
         err(
             "class Foo { var a: Int; var a: Int; }",
             pos(1, 25),
-            Msg::ShadowField("a".into()),
+            SemError::ShadowField("a".into()),
         );
         err(
             "class Foo(let a: Int) { var a: Int; }",
             pos(1, 25),
-            Msg::ShadowField("a".into()),
+            SemError::ShadowField("a".into()),
         );
     }
 
@@ -430,7 +434,7 @@ mod tests {
         err(
             "class Foo { let a: Int; }",
             pos(1, 13),
-            Msg::LetMissingInitialization,
+            SemError::LetMissingInitialization,
         );
     }
 
@@ -439,7 +443,7 @@ mod tests {
         err(
             "class Foo(a: Int) { var b: Int = b; }",
             pos(1, 34),
-            Msg::UnknownIdentifier("b".into()),
+            SemError::UnknownIdentifier("b".into()),
         );
     }
 
@@ -450,9 +454,9 @@ mod tests {
         err(
             "class A[T, T]",
             pos(1, 12),
-            Msg::TypeParamNameNotUnique("T".into()),
+            SemError::TypeParamNameNotUnique("T".into()),
         );
-        err("class A[]", pos(1, 1), Msg::TypeParamsExpected);
+        err("class A[]", pos(1, 1), SemError::TypeParamsExpected);
     }
 
     #[test]
@@ -467,7 +471,7 @@ mod tests {
         err(
             "class A[T: Foo]",
             pos(1, 12),
-            Msg::UnknownType("Foo".into()),
+            SemError::UnknownType("Foo".into()),
         );
         ok("class Foo class A[T: Foo]");
         ok("trait Foo {} class A[T: Foo]");
@@ -479,7 +483,7 @@ mod tests {
             "class Foo class Bar
             class A[T: Foo + Bar]",
             pos(2, 21),
-            Msg::MultipleClassBounds,
+            SemError::MultipleClassBounds,
         );
     }
 
@@ -489,7 +493,7 @@ mod tests {
             "trait Foo {}
             class A[T: Foo + Foo]",
             pos(2, 21),
-            Msg::DuplicateTraitBound,
+            SemError::DuplicateTraitBound,
         );
     }
 
@@ -500,7 +504,7 @@ mod tests {
             @open class A
             class B: A[Int] {}",
             pos(3, 22),
-            Msg::WrongNumberTypeParams(0, 1),
+            SemError::WrongNumberTypeParams(0, 1),
         );
     }
 }
