@@ -1,11 +1,9 @@
-use crate::error::msg::SemError;
 use crate::semck;
 use crate::ty::BuiltinType;
 use crate::vm::{ConstId, NodeMap, VM};
 
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, Ast};
-use dora_parser::lexer::position::Position;
 
 pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_const_defs: &NodeMap<ConstId>) {
     let mut clsck = ConstCheck {
@@ -40,10 +38,6 @@ impl<'x, 'ast> Visitor<'ast> for ConstCheck<'x, 'ast> {
         let mut xconst = xconst.lock();
         xconst.ty = semck::read_type(self.vm, &c.data_type).unwrap_or(BuiltinType::Unit);
     }
-}
-
-fn report(vm: &VM, pos: Position, msg: SemError) {
-    vm.diag.lock().report_without_path(pos, msg);
 }
 
 #[cfg(test)]

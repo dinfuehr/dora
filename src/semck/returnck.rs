@@ -55,7 +55,7 @@ impl<'a, 'ast> Visitor<'ast> for ReturnCheck<'a, 'ast> {
                 self.vm
                     .diag
                     .lock()
-                    .report_without_path(pos, SemError::NoReturnValue);
+                    .report(self.fct.file, pos, SemError::NoReturnValue);
             }
         } else {
             // otherwise the function is always finished with a return statement

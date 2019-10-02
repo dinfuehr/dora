@@ -18,11 +18,13 @@ impl<'a, 'ast> ConstCheck<'a, 'ast> {
         let (ty, lit) = match expr {
             &ExprLitChar(ref expr) => (BuiltinType::Char, ConstValue::Char(expr.value)),
             &ExprLitInt(ref expr) => {
-                let (ty, val) = check_lit_int(self.vm, expr, self.negative_expr_id);
+                let (ty, val) =
+                    check_lit_int(self.vm, self.xconst.file, expr, self.negative_expr_id);
                 (ty, ConstValue::Int(val))
             }
             &ExprLitFloat(ref expr) => {
-                let (ty, val) = check_lit_float(self.vm, expr, self.negative_expr_id);
+                let (ty, val) =
+                    check_lit_float(self.vm, self.xconst.file, expr, self.negative_expr_id);
                 (ty, ConstValue::Float(val))
             }
             &ExprLitBool(ref expr) => (BuiltinType::Bool, ConstValue::Bool(expr.value)),
@@ -49,7 +51,7 @@ impl<'a, 'ast> ConstCheck<'a, 'ast> {
                     let ty = ty.name(self.vm);
                     let msg = SemError::UnOpType(expr.op.as_str().into(), ty);
 
-                    self.vm.diag.lock().report_without_path(expr.pos, msg);
+                    self.vm.diag.lock().report(self.xconst.file, expr.pos, msg);
                 }
 
                 return (ty, val);
@@ -57,7 +59,10 @@ impl<'a, 'ast> ConstCheck<'a, 'ast> {
 
             _ => {
                 let msg = SemError::ConstValueExpected;
-                self.vm.diag.lock().report_without_path(expr.pos(), msg);
+                self.vm
+                    .diag
+                    .lock()
+                    .report(self.xconst.file, expr.pos(), msg);
                 return (BuiltinType::Error, ConstValue::None);
             }
         };
@@ -67,7 +72,10 @@ impl<'a, 'ast> ConstCheck<'a, 'ast> {
             let const_ty = self.xconst.ty.name(self.vm);
             let ty = ty.name(self.vm);
             let msg = SemError::AssignType(name, const_ty, ty);
-            self.vm.diag.lock().report_without_path(expr.pos(), msg);
+            self.vm
+                .diag
+                .lock()
+                .report(self.xconst.file, expr.pos(), msg);
         }
 
         (ty, lit)

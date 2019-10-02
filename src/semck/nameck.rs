@@ -145,7 +145,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
             Err(_) => {
                 let name = str(self.vm, var.name);
-                report(self.vm, var.pos, SemError::ShadowClass(name));
+                report(self.vm, self.fct.file, var.pos, SemError::ShadowClass(name));
             }
         }
     }
@@ -170,7 +170,12 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
             Err(_) => {
                 let name = str(self.vm, for_loop.name);
-                report(self.vm, for_loop.pos, SemError::ShadowClass(name));
+                report(
+                    self.vm,
+                    self.fct.file,
+                    for_loop.pos,
+                    SemError::ShadowClass(name),
+                );
             }
         }
 
@@ -201,7 +206,12 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
                 Err(_) => {
                     let name = str(self.vm, catch.name);
-                    report(self.vm, catch.pos, SemError::ShadowClass(name));
+                    report(
+                        self.vm,
+                        self.fct.file,
+                        catch.pos,
+                        SemError::ShadowClass(name),
+                    );
                 }
             }
 
@@ -252,7 +262,12 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
             _ => {
                 let name = self.vm.interner.str(ident.name).to_string();
-                report(self.vm, ident.pos, SemError::UnknownIdentifier(name));
+                report(
+                    self.vm,
+                    self.fct.file,
+                    ident.pos,
+                    SemError::UnknownIdentifier(name),
+                );
             }
         }
     }
@@ -288,7 +303,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
                     SemError::ShadowParam(name)
                 };
 
-                report(self.vm, p.pos, msg);
+                report(self.vm, self.fct.file, p.pos, msg);
             }
         }
     }
@@ -316,8 +331,8 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
     }
 }
 
-fn report(vm: &VM, pos: Position, msg: SemError) {
-    vm.diag.lock().report_without_path(pos, msg);
+fn report(vm: &VM, file: FileId, pos: Position, msg: SemError) {
+    vm.diag.lock().report(file, pos, msg);
 }
 
 fn str(vm: &VM, name: Name) -> String {

@@ -71,7 +71,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                     if !names.insert(type_param.name) {
                         let name = vm.interner.str(type_param.name).to_string();
                         let msg = SemError::TypeParamNameNotUnique(name);
-                        vm.diag.lock().report_without_path(type_param.pos, msg);
+                        vm.diag.lock().report(fct.file, type_param.pos, msg);
                     }
 
                     fct.type_params.push(vm::TypeParam::new(type_param.name));
@@ -85,14 +85,14 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                                     fct.type_params[type_param_id].class_bound = Some(cls_id);
                                 } else {
                                     let msg = SemError::MultipleClassBounds;
-                                    vm.diag.lock().report_without_path(type_param.pos, msg);
+                                    vm.diag.lock().report(fct.file, type_param.pos, msg);
                                 }
                             }
 
                             Some(BuiltinType::Trait(trait_id)) => {
                                 if !fct.type_params[type_param_id].trait_bounds.insert(trait_id) {
                                     let msg = SemError::DuplicateTraitBound;
-                                    vm.diag.lock().report_without_path(type_param.pos, msg);
+                                    vm.diag.lock().report(fct.file, type_param.pos, msg);
                                 }
                             }
 
@@ -102,7 +102,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
 
                             _ => {
                                 let msg = SemError::BoundExpected;
-                                vm.diag.lock().report_without_path(bound.pos(), msg);
+                                vm.diag.lock().report(fct.file, bound.pos(), msg);
                             }
                         }
                     }
@@ -113,7 +113,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                 }
             } else {
                 let msg = SemError::TypeParamsExpected;
-                vm.diag.lock().report_without_path(fct.pos, msg);
+                vm.diag.lock().report(fct.file, fct.pos, msg);
             }
         }
 
@@ -123,7 +123,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
             if ty == BuiltinType::This && !fct.in_trait() {
                 vm.diag
                     .lock()
-                    .report_without_path(p.data_type.pos(), SemError::SelfTypeUnavailable);
+                    .report(fct.file, p.data_type.pos(), SemError::SelfTypeUnavailable);
             }
 
             fct.param_types.push(ty);
@@ -143,7 +143,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
             if ty == BuiltinType::This && !fct.in_trait() {
                 vm.diag
                     .lock()
-                    .report_without_path(ret.pos(), SemError::SelfTypeUnavailable);
+                    .report(fct.file, ret.pos(), SemError::SelfTypeUnavailable);
             }
 
             fct.return_type = ty;
@@ -183,6 +183,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
 
         let mut defck = FctDefCheck {
             vm: vm,
+            fct: &*fct,
             src: &mut src,
             ast: ast,
             current_type: BuiltinType::Unit,
@@ -207,12 +208,12 @@ fn check_abstract<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) {
 
     if !fct.kind.is_definition() {
         let msg = SemError::AbstractMethodWithImplementation;
-        vm.diag.lock().report_without_path(fct.pos, msg);
+        vm.diag.lock().report(fct.file, fct.pos, msg);
     }
 
     if !cls.is_abstract {
         let msg = SemError::AbstractMethodNotInAbstractClass;
-        vm.diag.lock().report_without_path(fct.pos, msg);
+        vm.diag.lock().report(fct.file, fct.pos, msg);
     }
 }
 
@@ -234,7 +235,7 @@ fn check_static<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) {
         };
 
         let msg = SemError::ModifierNotAllowedForStaticMethod(modifier.into());
-        vm.diag.lock().report_without_path(fct.pos, msg);
+        vm.diag.lock().report(fct.file, fct.pos, msg);
     }
 }
 
@@ -252,7 +253,7 @@ fn check_against_methods(vm: &VM, ty: BuiltinType, fct: &Fct, methods: &[FctId])
             let method_name = vm.interner.str(method.name).to_string();
 
             let msg = SemError::MethodExists(cls_name, method_name, method.pos);
-            vm.diag.lock().report_without_path(fct.ast.pos, msg);
+            vm.diag.lock().report(fct.file, fct.ast.pos, msg);
             return;
         }
     }
@@ -260,6 +261,7 @@ fn check_against_methods(vm: &VM, ty: BuiltinType, fct: &Fct, methods: &[FctId])
 
 struct FctDefCheck<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
+    fct: &'a Fct<'ast>,
     src: &'a mut FctSrc,
     ast: &'ast Function,
     current_type: BuiltinType,
@@ -302,7 +304,8 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
 
                     if !ty.reference_type() {
                         let ty = ty.name(self.vm);
-                        self.vm.diag.lock().report_without_path(
+                        self.vm.diag.lock().report(
+                            self.fct.file,
                             catch.data_type.pos(),
                             SemError::ReferenceTypeExpected(ty),
                         );
@@ -310,10 +313,11 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
                 }
 
                 if r#try.catch_blocks.is_empty() && r#try.finally_block.is_none() {
-                    self.vm
-                        .diag
-                        .lock()
-                        .report_without_path(r#try.pos, SemError::CatchOrFinallyExpected);
+                    self.vm.diag.lock().report(
+                        self.fct.file,
+                        r#try.pos,
+                        SemError::CatchOrFinallyExpected,
+                    );
                 }
             }
 

@@ -1,5 +1,4 @@
-use std::fmt;
-
+use crate::vm::{FileId, VM};
 use dora_parser::lexer::position::Position;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -434,40 +433,39 @@ impl SemError {
 
 #[derive(Clone, Debug)]
 pub struct SemErrorAndPos {
-    pub path: String,
+    pub file: Option<FileId>,
     pub pos: Position,
     pub msg: SemError,
 }
 
 impl SemErrorAndPos {
-    pub fn new(path: String, pos: Position, msg: SemError) -> SemErrorAndPos {
-        SemErrorAndPos { path, pos, msg }
-    }
-
-    pub fn message(&self) -> String {
-        if self.path.is_empty() {
-            format!("error at {}: {}", self.pos, self.msg.message())
-        } else {
-            format!(
-                "error in {} at {}: {}",
-                self.path,
-                self.pos,
-                self.msg.message()
-            )
-        }
-    }
-
-    pub fn without_path(pos: Position, msg: SemError) -> SemErrorAndPos {
+    pub fn new(file: FileId, pos: Position, msg: SemError) -> SemErrorAndPos {
         SemErrorAndPos {
-            path: "".to_string(),
+            file: Some(file),
             pos,
             msg,
         }
     }
-}
 
-impl fmt::Display for SemErrorAndPos {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "{}", self.message())
+    pub fn message(&self, vm: &VM) -> String {
+        if let Some(file) = self.file {
+            let file = vm.file(file);
+            format!(
+                "error in {} at {}: {}",
+                file.name,
+                self.pos,
+                self.msg.message()
+            )
+        } else {
+            format!("error at {}: {}", self.pos, self.msg.message())
+        }
+    }
+
+    pub fn without_file(pos: Position, msg: SemError) -> SemErrorAndPos {
+        SemErrorAndPos {
+            file: None,
+            pos,
+            msg,
+        }
     }
 }

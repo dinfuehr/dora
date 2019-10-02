@@ -1,4 +1,5 @@
 use crate::error::msg::{SemError, SemErrorAndPos};
+use crate::vm::{FileId, VM};
 
 use dora_parser::lexer::position::Position;
 
@@ -15,26 +16,21 @@ impl Diagnostic {
         &self.errors
     }
 
-    pub fn report_without_path(&mut self, pos: Position, msg: SemError) {
-        self.errors.push(SemErrorAndPos::without_path(pos, msg));
+    pub fn report_without_file(&mut self, pos: Position, msg: SemError) {
+        self.errors.push(SemErrorAndPos::without_file(pos, msg));
     }
 
-    pub fn report(&mut self, file: String, pos: Position, msg: SemError) {
+    pub fn report(&mut self, file: FileId, pos: Position, msg: SemError) {
         self.errors.push(SemErrorAndPos::new(file, pos, msg));
-    }
-
-    pub fn report_unimplemented(&mut self, file: String, pos: Position) {
-        self.errors
-            .push(SemErrorAndPos::new(file, pos, SemError::Unimplemented));
     }
 
     pub fn has_errors(&self) -> bool {
         !self.errors.is_empty()
     }
 
-    pub fn dump(&self) {
+    pub fn dump(&self, vm: &VM) {
         for err in &self.errors {
-            println!("{}", &err.message());
+            println!("{}", &err.message(vm));
         }
     }
 }

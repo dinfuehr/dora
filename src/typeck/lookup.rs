@@ -4,7 +4,7 @@ use crate::class::{ClassId, TypeParams};
 use crate::error::msg::SemError;
 use crate::ty::BuiltinType;
 use crate::typeck::expr::{args_compatible, replace_type_param};
-use crate::vm::{FctId, FctParent, TraitId, TypeParam, VM};
+use crate::vm::{FctId, FctParent, FileId, TraitId, TypeParam, VM};
 
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
@@ -20,6 +20,7 @@ enum LookupKind {
 
 pub struct MethodLookup<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
+    file: FileId,
     kind: Option<LookupKind>,
     name: Option<Name>,
     args: Option<&'a [BuiltinType]>,
@@ -36,9 +37,10 @@ pub struct MethodLookup<'a, 'ast: 'a> {
 }
 
 impl<'a, 'ast> MethodLookup<'a, 'ast> {
-    pub fn new(vm: &'a VM<'ast>) -> MethodLookup<'a, 'ast> {
+    pub fn new(vm: &'a VM<'ast>, file: FileId) -> MethodLookup<'a, 'ast> {
         MethodLookup {
             vm: vm,
+            file: file,
             kind: None,
             name: None,
             args: None,
@@ -193,7 +195,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             self.vm
                 .diag
                 .lock()
-                .report_without_path(self.pos.expect("pos not set"), msg);
+                .report(self.file, self.pos.expect("pos not set"), msg);
             return false;
         };
 
@@ -253,7 +255,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             self.vm
                 .diag
                 .lock()
-                .report_without_path(self.pos.expect("pos not set"), msg);
+                .report(self.file, self.pos.expect("pos not set"), msg);
             return false;
         }
 
@@ -349,7 +351,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             self.vm
                 .diag
                 .lock()
-                .report_without_path(self.pos.expect("pos not set"), msg);
+                .report(self.file, self.pos.expect("pos not set"), msg);
             return false;
         }
 
@@ -445,7 +447,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         self.vm
             .diag
             .lock()
-            .report_without_path(self.pos.expect("pos not set"), msg);
+            .report(self.file, self.pos.expect("pos not set"), msg);
     }
 
     fn fail_trait_bound(&self, trait_id: TraitId, ty: BuiltinType) {
@@ -456,7 +458,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         self.vm
             .diag
             .lock()
-            .report_without_path(self.pos.expect("pos not set"), msg);
+            .report(self.file, self.pos.expect("pos not set"), msg);
     }
 
     pub fn found_fct_id(&self) -> Option<FctId> {

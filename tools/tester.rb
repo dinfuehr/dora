@@ -251,8 +251,12 @@ def read_error_message(content)
   content.each_line do |line|
     line = line.strip
 
-    if line == "1 error found."
+    if line == "1 error found." || line == "error during parsing."
       return position, message
+
+    elsif (m = line.match(/^error in (.+) at (\d+:\d+): (.+)$/)) != nil
+      position = m[2].to_s
+      message = m[3].to_s
 
     elsif (m = line.match(/^error at (\d+:\d+): (.+)$/)) != nil
       position = m[1].to_s

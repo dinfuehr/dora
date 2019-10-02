@@ -40,10 +40,11 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDefCheck<'a, 'ast> {
         glob.lock().ty = ty;
 
         if g.expr.is_some() {
+            let file = glob.lock().file;
             self.vm
                 .diag
                 .lock()
-                .report_without_path(g.pos, SemError::GlobalInitializerNotSupported);
+                .report(file, g.pos, SemError::GlobalInitializerNotSupported);
         }
     }
 }

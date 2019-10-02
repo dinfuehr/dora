@@ -30,7 +30,7 @@ fn cycle_detection<'ast>(vm: &mut VM<'ast>) {
             if !map.insert(p) {
                 vm.diag
                     .lock()
-                    .report_without_path(cls.pos, SemError::CycleInHierarchy);
+                    .report(cls.file, cls.pos, SemError::CycleInHierarchy);
                 break;
             }
 
@@ -171,7 +171,7 @@ fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
         let name = vm.interner.str(fct.name).to_string();
         vm.diag
             .lock()
-            .report_without_path(fct.pos(), SemError::SuperfluousOpen(name));
+            .report(fct.file, fct.pos(), SemError::SuperfluousOpen(name));
         return;
     }
 
@@ -180,7 +180,7 @@ fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
             let name = vm.interner.str(fct.name).to_string();
             vm.diag
                 .lock()
-                .report_without_path(fct.pos(), SemError::SuperfluousOverride(name));
+                .report(fct.file, fct.pos(), SemError::SuperfluousOverride(name));
             return;
         }
 
@@ -201,30 +201,30 @@ fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
             let name = vm.interner.str(fct.name).to_string();
             vm.diag
                 .lock()
-                .report_without_path(fct.pos(), SemError::MissingOverride(name));
+                .report(fct.file, fct.pos(), SemError::MissingOverride(name));
         }
 
         if !(super_method.has_open || super_method.has_override) || super_method.has_final {
             let name = vm.interner.str(fct.name).to_string();
             vm.diag
                 .lock()
-                .report_without_path(fct.pos(), SemError::MethodNotOverridable(name));
+                .report(fct.file, fct.pos(), SemError::MethodNotOverridable(name));
         }
 
         if super_method.throws != fct.throws {
             let name = vm.interner.str(fct.name).to_string();
             vm.diag
                 .lock()
-                .report_without_path(fct.pos(), SemError::ThrowsDifference(name));
+                .report(fct.file, fct.pos(), SemError::ThrowsDifference(name));
         }
 
         if super_method.return_type != fct.return_type {
             let pos = fct.pos();
-            let fct = fct.return_type.name(vm);
+            let fct_return = fct.return_type.name(vm);
             let sup = super_method.return_type.name(vm);
             vm.diag
                 .lock()
-                .report_without_path(pos, SemError::ReturnTypeMismatch(fct, sup));
+                .report(fct.file, pos, SemError::ReturnTypeMismatch(fct_return, sup));
         }
 
         fct.overrides = Some(super_method.id);
@@ -233,7 +233,7 @@ fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
             let name = vm.interner.str(fct.name).to_string();
             vm.diag
                 .lock()
-                .report_without_path(fct.pos(), SemError::SuperfluousOverride(name));
+                .report(fct.file, fct.pos(), SemError::SuperfluousOverride(name));
         }
     }
 }

@@ -472,6 +472,7 @@ impl From<u32> for FileId {
 #[derive(Debug)]
 pub struct GlobalData {
     pub id: GlobalId,
+    pub file: FileId,
     pub pos: Position,
     pub ty: BuiltinType,
     pub reassignable: bool,
@@ -499,6 +500,7 @@ impl From<u32> for ImplId {
 #[derive(Debug)]
 pub struct ImplData {
     pub id: ImplId,
+    pub file: FileId,
     pub pos: Position,
     pub trait_id: Option<TraitId>,
     pub class_id: Option<ClassId>,
@@ -548,6 +550,7 @@ impl From<u32> for TraitId {
 #[derive(Debug)]
 pub struct TraitData {
     pub id: TraitId,
+    pub file: FileId,
     pub pos: Position,
     pub name: Name,
     pub methods: Vec<FctId>,
@@ -630,6 +633,7 @@ impl From<u32> for StructId {
 #[derive(Debug)]
 pub struct StructData {
     pub id: StructId,
+    pub file: FileId,
     pub pos: Position,
     pub name: Name,
     pub fields: Vec<StructFieldData>,
@@ -1443,6 +1447,7 @@ impl GrowableVec<Mutex<ConstData>> {
 #[derive(Clone, Debug)]
 pub struct ConstData {
     pub id: ConstId,
+    pub file: FileId,
     pub pos: Position,
     pub name: Name,
     pub ty: BuiltinType,

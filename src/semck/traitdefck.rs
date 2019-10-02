@@ -5,8 +5,6 @@ use crate::vm::{Fct, FctId, FctKind, FctParent, NodeMap, TraitId, VM};
 use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::ast::{self, Ast};
 
-use dora_parser::lexer::position::Position;
-
 pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_trait_defs: &NodeMap<TraitId>) {
     let mut clsck = TraitCheck {
         vm: vm,
@@ -54,7 +52,10 @@ impl<'x, 'ast> Visitor<'ast> for TraitCheck<'x, 'ast> {
         }
 
         if f.block.is_some() {
-            report(self.vm, f.pos, SemError::TraitMethodWithBody);
+            self.vm
+                .diag
+                .lock()
+                .report(self.file_id.into(), f.pos, SemError::TraitMethodWithBody);
         }
 
         let fct = Fct {
@@ -90,10 +91,6 @@ impl<'x, 'ast> Visitor<'ast> for TraitCheck<'x, 'ast> {
         let mut xtrait = self.vm.traits[self.trait_id.unwrap()].write();
         xtrait.methods.push(fctid);
     }
-}
-
-fn report(vm: &VM, pos: Position, msg: SemError) {
-    vm.diag.lock().report_without_path(pos, msg);
 }
 
 #[cfg(test)]

@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::error::msg::SemError;
-use crate::vm::VM;
+use crate::vm::{FileId, VM};
 
 use dora_parser::lexer::position::Position;
 
@@ -44,7 +44,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
                     SemError::MethodNotInTrait(trait_name, mtd_name, args)
                 };
 
-                report(vm, method.pos, msg);
+                report(vm, ximpl.file, method.pos, msg);
             }
         }
 
@@ -66,13 +66,13 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
                 SemError::MethodMissingFromTrait(trait_name, mtd_name, args)
             };
 
-            report(vm, ximpl.pos, msg);
+            report(vm, ximpl.file, ximpl.pos, msg);
         }
     }
 }
 
-fn report(vm: &VM, pos: Position, msg: SemError) {
-    vm.diag.lock().report_without_path(pos, msg);
+fn report(vm: &VM, file: FileId, pos: Position, msg: SemError) {
+    vm.diag.lock().report(file, pos, msg);
 }
 
 #[cfg(test)]

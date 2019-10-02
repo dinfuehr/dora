@@ -59,7 +59,7 @@ pub fn start(content: Option<&str>) -> i32 {
     };
 
     if vm.diag.lock().has_errors() {
-        vm.diag.lock().dump();
+        vm.diag.lock().dump(&vm);
         let no_errors = vm.diag.lock().errors().len();
 
         if no_errors == 1 {
@@ -265,7 +265,12 @@ fn parse_reader(reader: Reader, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
         }
 
         Err(error) => {
-            println!("{}:{}: {}", filename, error.pos, error.error.message());
+            println!(
+                "error in {} at {}: {}",
+                filename,
+                error.pos,
+                error.error.message()
+            );
             println!("error during parsing.");
 
             Err(1)
@@ -280,7 +285,7 @@ fn find_main<'ast>(vm: &VM<'ast>) -> Option<FctId> {
         None => {
             vm.diag
                 .lock()
-                .report_without_path(Position::new(1, 1), SemError::MainNotFound);
+                .report_without_file(Position::new(1, 1), SemError::MainNotFound);
             return None;
         }
     };
@@ -294,7 +299,7 @@ fn find_main<'ast>(vm: &VM<'ast>) -> Option<FctId> {
         let pos = fct.ast.pos;
         vm.diag
             .lock()
-            .report_without_path(pos, SemError::WrongMainDefinition);
+            .report(fct.file, pos, SemError::WrongMainDefinition);
         return None;
     }
 

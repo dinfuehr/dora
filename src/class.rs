@@ -8,7 +8,7 @@ use std::sync::Arc;
 use crate::ty::BuiltinType;
 use crate::utils::GrowableVec;
 use crate::vm::VM;
-use crate::vm::{FctId, ImplId, TraitId, TypeParam};
+use crate::vm::{FctId, FileId, ImplId, TraitId, TypeParam};
 use crate::vtable::VTableBox;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
@@ -45,6 +45,7 @@ pub static DISPLAY_SIZE: usize = 6;
 #[derive(Debug)]
 pub struct Class {
     pub id: ClassId,
+    pub file: FileId,
     pub pos: Position,
     pub name: Name,
     pub ty: BuiltinType,

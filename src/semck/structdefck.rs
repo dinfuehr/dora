@@ -6,8 +6,6 @@ use crate::vm::{NodeMap, StructFieldData, StructId, VM};
 use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::ast::{self, Ast};
 
-use dora_parser::lexer::position::Position;
-
 pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_struct_defs: &NodeMap<StructId>) {
     let mut clsck = StructCheck {
         vm: vm,
@@ -52,7 +50,10 @@ impl<'x, 'ast> Visitor<'ast> for StructCheck<'x, 'ast> {
         for field in &struc.fields {
             if field.name == f.name {
                 let name = self.vm.interner.str(f.name).to_string();
-                report(self.vm, f.pos, SemError::ShadowField(name));
+                self.vm
+                    .diag
+                    .lock()
+                    .report(struc.file, f.pos, SemError::ShadowField(name));
                 return;
             }
         }
@@ -66,10 +67,6 @@ impl<'x, 'ast> Visitor<'ast> for StructCheck<'x, 'ast> {
 
         struc.fields.push(field);
     }
-}
-
-fn report(vm: &VM, pos: Position, msg: SemError) {
-    vm.diag.lock().report_without_path(pos, msg);
 }
 
 #[cfg(test)]

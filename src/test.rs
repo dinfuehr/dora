@@ -13,7 +13,7 @@ where
 {
     parse_with_errors(code, |vm| {
         if vm.diag.lock().has_errors() {
-            vm.diag.lock().dump();
+            vm.diag.lock().dump(vm);
             println!("{}", code);
             panic!("unexpected error in test::parse()");
         }

@@ -59,6 +59,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         let id: TraitId = (self.vm.traits.len() as u32).into();
         let xtrait = TraitData {
             id: id,
+            file: self.file_id.into(),
             pos: t.pos,
             name: t.name,
             methods: Vec::new(),
@@ -70,7 +71,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         self.map_trait_defs.insert(t.id, id);
 
         if let Some(sym) = self.vm.sym.lock().insert(t.name, sym) {
-            report(self.vm, t.name, t.pos, sym);
+            report(self.vm, t.name, self.file_id.into(), t.pos, sym);
         }
     }
 
@@ -80,6 +81,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             let id: GlobalId = (globals.len() as u32).into();
             let global = GlobalData {
                 id: id,
+                file: self.file_id.into(),
                 pos: g.pos,
                 name: g.name,
                 ty: BuiltinType::Unit,
@@ -98,7 +100,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         self.map_global_defs.insert(g.id, id);
 
         if let Some(sym) = self.vm.sym.lock().insert(g.name, sym) {
-            report(self.vm, g.name, g.pos, sym);
+            report(self.vm, g.name, self.file_id.into(), g.pos, sym);
         }
     }
 
@@ -106,6 +108,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         let id: ImplId = (self.vm.impls.len() as u32).into();
         let ximpl = ImplData {
             id: id,
+            file: self.file_id.into(),
             pos: i.pos,
             trait_id: None,
             class_id: None,
@@ -122,6 +125,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             let id: ConstId = consts.len().into();
             let xconst = ConstData {
                 id: id,
+                file: self.file_id.into(),
                 pos: c.pos,
                 name: c.name,
                 ty: BuiltinType::Unit,
@@ -139,7 +143,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         let sym = SymConst(id);
 
         if let Some(sym) = self.vm.sym.lock().insert(c.name, sym) {
-            report(self.vm, c.name, c.pos, sym);
+            report(self.vm, c.name, self.file_id.into(), c.pos, sym);
         }
     }
 
@@ -151,6 +155,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             let mut cls = class::Class {
                 id: id,
                 name: c.name,
+                file: self.file_id.into(),
                 pos: c.pos,
                 ty: self.vm.cls(id),
                 parent_class: None,
@@ -191,7 +196,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         self.map_cls_defs.insert(c.id, id);
 
         if let Some(sym) = self.vm.sym.lock().insert(c.name, sym) {
-            report(self.vm, c.name, c.pos, sym);
+            report(self.vm, c.name, self.file_id.into(), c.pos, sym);
         }
     }
 
@@ -201,6 +206,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             let id: StructId = (structs.len() as u32).into();
             let struc = StructData {
                 id: id,
+                file: self.file_id.into(),
                 pos: s.pos,
                 name: s.name,
                 fields: Vec::new(),
@@ -217,7 +223,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         self.map_struct_defs.insert(s.id, id);
 
         if let Some(sym) = self.vm.sym.lock().insert(s.name, sym) {
-            report(self.vm, s.name, s.pos, sym);
+            report(self.vm, s.name, self.file_id.into(), s.pos, sym);
         }
     }
 
@@ -230,6 +236,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
         let fct = Fct {
             id: FctId(0),
+            file: self.file_id.into(),
             pos: f.pos,
             ast: f,
             name: f.name,
@@ -250,19 +257,18 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             vtable_index: None,
             initialized: false,
             impl_for: None,
-            file: self.file_id.into(),
 
             type_params: Vec::new(),
             kind: kind,
         };
 
         if let Err(sym) = self.vm.add_fct_to_sym(fct) {
-            report(self.vm, f.name, f.pos, sym);
+            report(self.vm, f.name, self.file_id.into(), f.pos, sym);
         }
     }
 }
 
-fn report(vm: &VM, name: Name, pos: Position, sym: Sym) {
+fn report(vm: &VM, name: Name, file: FileId, pos: Position, sym: Sym) {
     let name = vm.interner.str(name).to_string();
 
     let msg = match sym {
@@ -275,7 +281,7 @@ fn report(vm: &VM, name: Name, pos: Position, sym: Sym) {
         _ => unimplemented!(),
     };
 
-    vm.diag.lock().report_without_path(pos, msg);
+    vm.diag.lock().report(file, pos, msg);
 }
 
 #[cfg(test)]

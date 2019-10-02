@@ -60,7 +60,8 @@ pub fn check_abstract<'ast>(
             let cls_name = vm.interner.str(mtd_cls.name).to_string();
             let mtd_name = vm.interner.str(mtd.name).to_string();
 
-            vm.diag.lock().report_without_path(
+            vm.diag.lock().report(
+                cls.file,
                 cls.pos,
                 SemError::MissingAbstractOverride(cls_name, mtd_name),
             );

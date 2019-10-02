@@ -46,7 +46,10 @@ impl<'x, 'ast> ClsCheck<'x, 'ast> {
         for field in &cls.fields {
             if field.name == name {
                 let name = self.vm.interner.str(name).to_string();
-                report(self.vm, pos, SemError::ShadowField(name));
+                self.vm
+                    .diag
+                    .lock()
+                    .report(cls.file, pos, SemError::ShadowField(name));
             }
         }
 
@@ -74,18 +77,19 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
         self.vm.sym.lock().push_level();
 
         if let Some(ref type_params) = c.type_params {
+            let cls = self.vm.classes.idx(self.cls_id.unwrap());
+            let mut cls = cls.write();
+
             if type_params.len() > 0 {
                 let mut names = HashSet::new();
                 let mut type_param_id = 0;
-                let cls = self.vm.classes.idx(self.cls_id.unwrap());
-                let mut cls = cls.write();
                 let mut params = Vec::new();
 
                 for type_param in type_params {
                     if !names.insert(type_param.name) {
                         let name = self.vm.interner.str(type_param.name).to_string();
                         let msg = SemError::TypeParamNameNotUnique(name);
-                        self.vm.diag.lock().report_without_path(type_param.pos, msg);
+                        self.vm.diag.lock().report(cls.file, type_param.pos, msg);
                     }
 
                     params.push(BuiltinType::ClassTypeParam(cls.id, type_param_id.into()));
@@ -99,14 +103,14 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                                     cls.type_params[type_param_id].class_bound = Some(cls_id);
                                 } else {
                                     let msg = SemError::MultipleClassBounds;
-                                    self.vm.diag.lock().report_without_path(type_param.pos, msg);
+                                    self.vm.diag.lock().report(cls.file, type_param.pos, msg);
                                 }
                             }
 
                             Some(BuiltinType::Trait(trait_id)) => {
                                 if !cls.type_params[type_param_id].trait_bounds.insert(trait_id) {
                                     let msg = SemError::DuplicateTraitBound;
-                                    self.vm.diag.lock().report_without_path(type_param.pos, msg);
+                                    self.vm.diag.lock().report(cls.file, type_param.pos, msg);
                                 }
                             }
 
@@ -116,7 +120,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
 
                             _ => {
                                 let msg = SemError::BoundExpected;
-                                self.vm.diag.lock().report_without_path(bound.pos(), msg);
+                                self.vm.diag.lock().report(cls.file, bound.pos(), msg);
                             }
                         }
                     }
@@ -130,7 +134,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                 cls.ty = BuiltinType::Class(cls.id, list_id);
             } else {
                 let msg = SemError::TypeParamsExpected;
-                self.vm.diag.lock().report_without_path(c.pos, msg);
+                self.vm.diag.lock().report(cls.file, c.pos, msg);
             }
         }
 
@@ -154,7 +158,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                         self.vm
                             .diag
                             .lock()
-                            .report_without_path(parent_class.pos, msg);
+                            .report(self.file_id.into(), parent_class.pos, msg);
                     }
 
                     let number_type_params = parent_class
@@ -171,7 +175,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                         self.vm
                             .diag
                             .lock()
-                            .report_without_path(parent_class.pos, msg);
+                            .report(self.file_id.into(), parent_class.pos, msg);
                     }
                 }
 
@@ -180,7 +184,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                     self.vm
                         .diag
                         .lock()
-                        .report_without_path(parent_class.pos, msg);
+                        .report(self.file_id.into(), parent_class.pos, msg);
                 }
             };
         } else {
@@ -203,10 +207,11 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
         self.add_field(f.pos, f.name, ty, f.reassignable);
 
         if !f.reassignable && !f.primary_ctor && f.expr.is_none() {
-            self.vm
-                .diag
-                .lock()
-                .report_without_path(f.pos, SemError::LetMissingInitialization);
+            self.vm.diag.lock().report(
+                self.file_id.into(),
+                f.pos,
+                SemError::LetMissingInitialization,
+            );
         }
     }
 
@@ -302,10 +307,6 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
         let mut cls = cls.write();
         cls.methods.push(fctid);
     }
-}
-
-fn report(vm: &VM, pos: Position, msg: SemError) {
-    vm.diag.lock().report_without_path(pos, msg);
 }
 
 #[cfg(test)]

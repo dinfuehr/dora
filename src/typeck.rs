@@ -28,6 +28,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
         let mut typeck = TypeCheck {
             vm: vm,
             fct: &fct,
+            file: fct.file,
             src: &mut src,
             ast: ast,
             expr_type: BuiltinType::Unit,
