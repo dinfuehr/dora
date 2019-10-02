@@ -254,6 +254,7 @@ fn parse_str(file: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
 }
 
 fn parse_reader(reader: Reader, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
+    let filename: String = reader.path().into();
     let parser = Parser::new(reader, &vm.id_generator, ast, &mut vm.interner);
 
     match parser.parse() {
@@ -264,8 +265,8 @@ fn parse_reader(reader: Reader, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
         }
 
         Err(error) => {
-            println!("{}", error);
-            println!("1 error found.");
+            println!("{}:{}: {}", filename, error.pos, error.error.message());
+            println!("error during parsing.");
 
             Err(1)
         }

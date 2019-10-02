@@ -27,8 +27,8 @@ pub struct Parser<'a> {
     last_end: Option<u32>,
 }
 
-type ExprResult = Result<Box<Expr>, MsgWithPos>;
-type StmtResult = Result<Box<Stmt>, MsgWithPos>;
+type ExprResult = Result<Box<Expr>, ParseErrorAndPos>;
+type StmtResult = Result<Box<Stmt>, ParseErrorAndPos>;
 
 impl<'a> Parser<'a> {
     pub fn new(
@@ -59,7 +59,7 @@ impl<'a> Parser<'a> {
         self.id_generator.next()
     }
 
-    pub fn parse(mut self) -> Result<LexerFile, MsgWithPos> {
+    pub fn parse(mut self) -> Result<LexerFile, ParseErrorAndPos> {
         self.init()?;
         let mut elements = vec![];
 
@@ -77,13 +77,16 @@ impl<'a> Parser<'a> {
         Ok(file)
     }
 
-    fn init(&mut self) -> Result<(), MsgWithPos> {
+    fn init(&mut self) -> Result<(), ParseErrorAndPos> {
         self.advance_token()?;
 
         Ok(())
     }
 
-    fn parse_top_level_element(&mut self, elements: &mut Vec<Elem>) -> Result<(), MsgWithPos> {
+    fn parse_top_level_element(
+        &mut self,
+        elements: &mut Vec<Elem>,
+    ) -> Result<(), ParseErrorAndPos> {
         let modifiers = self.parse_annotations()?;
 
         match self.token.kind {
@@ -132,19 +135,15 @@ impl<'a> Parser<'a> {
             }
 
             _ => {
-                let msg = Msg::ExpectedTopLevelElement(self.token.name());
-                return Err(MsgWithPos::new(
-                    self.lexer.path().to_string(),
-                    self.token.position,
-                    msg,
-                ));
+                let msg = ParseError::ExpectedTopLevelElement(self.token.name());
+                return Err(ParseErrorAndPos::new(self.token.position, msg));
             }
         }
 
         Ok(())
     }
 
-    fn parse_const(&mut self) -> Result<Const, MsgWithPos> {
+    fn parse_const(&mut self) -> Result<Const, ParseErrorAndPos> {
         let pos = self.expect_token(TokenKind::Const)?.position;
         let name = self.expect_identifier()?;
         self.expect_token(TokenKind::Colon)?;
@@ -162,7 +161,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_impl(&mut self) -> Result<Impl, MsgWithPos> {
+    fn parse_impl(&mut self) -> Result<Impl, ParseErrorAndPos> {
         let pos = self.expect_token(TokenKind::Impl)?.position;
         let type_params = self.parse_type_params()?;
 
@@ -201,7 +200,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_global(&mut self, elements: &mut Vec<Elem>) -> Result<(), MsgWithPos> {
+    fn parse_global(&mut self, elements: &mut Vec<Elem>) -> Result<(), ParseErrorAndPos> {
         let pos = self.token.position;
         let reassignable = self.token.is(TokenKind::Var);
 
@@ -237,7 +236,7 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    fn parse_trait(&mut self) -> Result<Trait, MsgWithPos> {
+    fn parse_trait(&mut self) -> Result<Trait, ParseErrorAndPos> {
         let pos = self.expect_token(TokenKind::Trait)?.position;
         let ident = self.expect_identifier()?;
 
@@ -263,7 +262,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_struct(&mut self) -> Result<Struct, MsgWithPos> {
+    fn parse_struct(&mut self) -> Result<Struct, ParseErrorAndPos> {
         let pos = self.expect_token(TokenKind::Struct)?.position;
         let ident = self.expect_identifier()?;
 
@@ -278,7 +277,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_struct_field(&mut self) -> Result<StructField, MsgWithPos> {
+    fn parse_struct_field(&mut self) -> Result<StructField, ParseErrorAndPos> {
         let pos = self.token.position;
         let ident = self.expect_identifier()?;
 
@@ -293,7 +292,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_class(&mut self, modifiers: &Modifiers) -> Result<Class, MsgWithPos> {
+    fn parse_class(&mut self, modifiers: &Modifiers) -> Result<Class, ParseErrorAndPos> {
         let has_open = modifiers.contains(Modifier::Open);
         let internal = modifiers.contains(Modifier::Internal);
         let is_abstract = modifiers.contains(Modifier::Abstract);
@@ -341,7 +340,7 @@ impl<'a> Parser<'a> {
         Ok(cls)
     }
 
-    fn parse_type_params(&mut self) -> Result<Option<Vec<TypeParam>>, MsgWithPos> {
+    fn parse_type_params(&mut self) -> Result<Option<Vec<TypeParam>>, ParseErrorAndPos> {
         if self.token.is(TokenKind::LBracket) {
             self.advance_token()?;
             let params = self.parse_comma_list(TokenKind::RBracket, |p| p.parse_type_param())?;
@@ -352,7 +351,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_type_param(&mut self) -> Result<TypeParam, MsgWithPos> {
+    fn parse_type_param(&mut self) -> Result<TypeParam, ParseErrorAndPos> {
         let pos = self.token.position;
         let name = self.expect_identifier()?;
 
@@ -383,7 +382,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_parent_class_params(&mut self) -> Result<Vec<Box<Expr>>, MsgWithPos> {
+    fn parse_parent_class_params(&mut self) -> Result<Vec<Box<Expr>>, ParseErrorAndPos> {
         if !self.token.is(TokenKind::LParen) {
             return Ok(Vec::new());
         }
@@ -395,7 +394,10 @@ impl<'a> Parser<'a> {
         Ok(params)
     }
 
-    fn parse_constructor(&mut self, cls: &mut Class) -> Result<Vec<ConstructorParam>, MsgWithPos> {
+    fn parse_constructor(
+        &mut self,
+        cls: &mut Class,
+    ) -> Result<Vec<ConstructorParam>, ParseErrorAndPos> {
         if !self.token.is(TokenKind::LParen) {
             return Ok(Vec::new());
         }
@@ -409,7 +411,10 @@ impl<'a> Parser<'a> {
         Ok(params)
     }
 
-    fn parse_constructor_param(&mut self, cls: &mut Class) -> Result<ConstructorParam, MsgWithPos> {
+    fn parse_constructor_param(
+        &mut self,
+        cls: &mut Class,
+    ) -> Result<ConstructorParam, ParseErrorAndPos> {
         let field = self.token.is(TokenKind::Var) || self.token.is(TokenKind::Let);
         let reassignable = self.token.is(TokenKind::Var);
 
@@ -445,7 +450,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_class_body(&mut self, cls: &mut Class) -> Result<(), MsgWithPos> {
+    fn parse_class_body(&mut self, cls: &mut Class) -> Result<(), ParseErrorAndPos> {
         if !self.token.is(TokenKind::LBrace) {
             return Ok(());
         }
@@ -490,7 +495,7 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    fn parse_annotations(&mut self) -> Result<Modifiers, MsgWithPos> {
+    fn parse_annotations(&mut self) -> Result<Modifiers, ParseErrorAndPos> {
         let mut modifiers = Modifiers::new();
         loop {
             if !self.token.is(TokenKind::At) {
@@ -508,19 +513,17 @@ impl<'a> Parser<'a> {
                 "static" => Modifier::Static,
                 "optimize" => Modifier::Optimize,
                 _ => {
-                    return Err(MsgWithPos::new(
-                        self.lexer.path().to_string(),
+                    return Err(ParseErrorAndPos::new(
                         self.token.position,
-                        Msg::UnknownAnnotation(self.token.to_string()),
+                        ParseError::UnknownAnnotation(self.token.to_string()),
                     ));
                 }
             };
 
             if modifiers.contains(modifier) {
-                return Err(MsgWithPos::new(
-                    self.lexer.path().to_string(),
+                return Err(ParseErrorAndPos::new(
                     self.token.position,
-                    Msg::RedundantAnnotation(self.token.name()),
+                    ParseError::RedundantAnnotation(self.token.name()),
                 ));
             }
 
@@ -530,7 +533,7 @@ impl<'a> Parser<'a> {
         Ok(modifiers)
     }
 
-    fn ban_modifiers(&mut self, modifiers: &Modifiers) -> Result<(), MsgWithPos> {
+    fn ban_modifiers(&mut self, modifiers: &Modifiers) -> Result<(), ParseErrorAndPos> {
         self.restrict_modifiers(modifiers, &[])
     }
 
@@ -538,13 +541,12 @@ impl<'a> Parser<'a> {
         &mut self,
         modifiers: &Modifiers,
         restrict: &[Modifier],
-    ) -> Result<(), MsgWithPos> {
+    ) -> Result<(), ParseErrorAndPos> {
         for modifier in modifiers.iter() {
             if !restrict.contains(&modifier.value) {
-                return Err(MsgWithPos::new(
-                    self.lexer.path().to_string(),
+                return Err(ParseErrorAndPos::new(
                     modifier.pos,
-                    Msg::MisplacedAnnotation(modifier.value.name().into()),
+                    ParseError::MisplacedAnnotation(modifier.value.name().into()),
                 ));
             }
         }
@@ -552,7 +554,7 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    fn parse_field(&mut self) -> Result<Field, MsgWithPos> {
+    fn parse_field(&mut self) -> Result<Field, ParseErrorAndPos> {
         let pos = self.token.position;
         let reassignable = if self.token.is(TokenKind::Var) {
             self.expect_token(TokenKind::Var)?;
@@ -588,7 +590,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_function(&mut self, modifiers: &Modifiers) -> Result<Function, MsgWithPos> {
+    fn parse_function(&mut self, modifiers: &Modifiers) -> Result<Function, ParseErrorAndPos> {
         let pos = self.expect_token(TokenKind::Fun)?.position;
         let ident = self.expect_identifier()?;
         let type_params = self.parse_type_params()?;
@@ -619,7 +621,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_throws(&mut self) -> Result<bool, MsgWithPos> {
+    fn parse_throws(&mut self) -> Result<bool, ParseErrorAndPos> {
         if self.token.is(TokenKind::Throws) {
             self.advance_token()?;
 
@@ -629,7 +631,7 @@ impl<'a> Parser<'a> {
         Ok(false)
     }
 
-    fn parse_function_params(&mut self) -> Result<Vec<Param>, MsgWithPos> {
+    fn parse_function_params(&mut self) -> Result<Vec<Param>, ParseErrorAndPos> {
         self.expect_token(TokenKind::LParen)?;
         self.param_idx = 0;
 
@@ -646,19 +648,18 @@ impl<'a> Parser<'a> {
         &mut self,
         stop: TokenKind,
         mut parse: F,
-    ) -> Result<Vec<R>, MsgWithPos>
+    ) -> Result<Vec<R>, ParseErrorAndPos>
     where
-        F: FnMut(&mut Parser) -> Result<R, MsgWithPos>,
+        F: FnMut(&mut Parser) -> Result<R, ParseErrorAndPos>,
     {
         let mut data = vec![];
         let mut comma = true;
 
         while !self.token.is(stop.clone()) && !self.token.is_eof() {
             if !comma {
-                return Err(MsgWithPos::new(
-                    self.lexer.path().to_string(),
+                return Err(ParseErrorAndPos::new(
                     self.token.position,
-                    Msg::ExpectedToken(TokenKind::Comma.name().into(), self.token.name()),
+                    ParseError::ExpectedToken(TokenKind::Comma.name().into(), self.token.name()),
                 ));
             }
 
@@ -676,7 +677,7 @@ impl<'a> Parser<'a> {
         Ok(data)
     }
 
-    fn parse_function_param(&mut self) -> Result<Param, MsgWithPos> {
+    fn parse_function_param(&mut self) -> Result<Param, ParseErrorAndPos> {
         let pos = self.token.position;
 
         let reassignable = if self.token.is(TokenKind::Var) {
@@ -702,7 +703,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_function_type(&mut self) -> Result<Option<Type>, MsgWithPos> {
+    fn parse_function_type(&mut self) -> Result<Option<Type>, ParseErrorAndPos> {
         if self.token.is(TokenKind::Arrow) {
             self.advance_token()?;
             let ty = self.parse_type()?;
@@ -713,7 +714,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_function_block(&mut self) -> Result<Option<Box<Stmt>>, MsgWithPos> {
+    fn parse_function_block(&mut self) -> Result<Option<Box<Stmt>>, ParseErrorAndPos> {
         if self.token.is(TokenKind::Semicolon) {
             self.advance_token()?;
 
@@ -729,7 +730,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_function_block_expression(&mut self) -> Result<Box<Stmt>, MsgWithPos> {
+    fn parse_function_block_expression(&mut self) -> Result<Box<Stmt>, ParseErrorAndPos> {
         self.advance_token()?;
         let pos = self.token.position;
 
@@ -744,7 +745,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_type(&mut self) -> Result<Type, MsgWithPos> {
+    fn parse_type(&mut self) -> Result<Type, ParseErrorAndPos> {
         match self.token.kind {
             TokenKind::CapitalThis => {
                 let pos = self.token.position;
@@ -807,10 +808,9 @@ impl<'a> Parser<'a> {
                 }
             }
 
-            _ => Err(MsgWithPos::new(
-                self.lexer.path().to_string(),
+            _ => Err(ParseErrorAndPos::new(
                 self.token.position,
-                Msg::ExpectedType(self.token.name()),
+                ParseError::ExpectedType(self.token.name()),
             )),
         }
     }
@@ -825,10 +825,9 @@ impl<'a> Parser<'a> {
             TokenKind::Break => self.parse_break(),
             TokenKind::Continue => self.parse_continue(),
             TokenKind::Return => self.parse_return(),
-            TokenKind::Else => Err(MsgWithPos::new(
-                self.lexer.path().to_string(),
+            TokenKind::Else => Err(ParseErrorAndPos::new(
                 self.token.position,
-                Msg::MisplacedElse,
+                ParseError::MisplacedElse,
             )),
             TokenKind::Throw => self.parse_throw(),
             TokenKind::Defer => self.parse_defer(),
@@ -890,7 +889,7 @@ impl<'a> Parser<'a> {
         )))
     }
 
-    fn parse_catch(&mut self) -> Result<CatchBlock, MsgWithPos> {
+    fn parse_catch(&mut self) -> Result<CatchBlock, ParseErrorAndPos> {
         let id = self.generate_id();
         let pos = self.expect_token(TokenKind::Catch)?.position;
         let name = self.expect_identifier()?;
@@ -901,7 +900,7 @@ impl<'a> Parser<'a> {
         Ok(CatchBlock::new(id, name, pos, data_type, block))
     }
 
-    fn parse_finally(&mut self) -> Result<FinallyBlock, MsgWithPos> {
+    fn parse_finally(&mut self) -> Result<FinallyBlock, ParseErrorAndPos> {
         self.expect_token(TokenKind::Finally)?;
         let block = self.parse_block()?;
 
@@ -934,7 +933,7 @@ impl<'a> Parser<'a> {
         )))
     }
 
-    fn parse_var_type(&mut self) -> Result<Option<Type>, MsgWithPos> {
+    fn parse_var_type(&mut self) -> Result<Option<Type>, ParseErrorAndPos> {
         if self.token.is(TokenKind::Colon) {
             self.advance_token()?;
 
@@ -944,7 +943,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_var_assignment(&mut self) -> Result<Option<Box<Expr>>, MsgWithPos> {
+    fn parse_var_assignment(&mut self) -> Result<Option<Box<Expr>>, ParseErrorAndPos> {
         if self.token.is(TokenKind::Eq) {
             self.expect_token(TokenKind::Eq)?;
             let expr = self.parse_expression()?;
@@ -1292,10 +1291,9 @@ impl<'a> Parser<'a> {
             TokenKind::Try => self.parse_try(),
             TokenKind::TryForce | TokenKind::TryOpt => self.parse_try_op(),
             TokenKind::BitOr | TokenKind::Or => self.parse_lambda(),
-            _ => Err(MsgWithPos::new(
-                self.lexer.path().to_string(),
+            _ => Err(ParseErrorAndPos::new(
                 self.token.position,
-                Msg::ExpectedFactor(self.token.name().clone()),
+                ParseError::ExpectedFactor(self.token.name().clone()),
             )),
         }
     }
@@ -1409,10 +1407,9 @@ impl<'a> Parser<'a> {
                         IntSuffix::Long => "long",
                     };
 
-                    Err(MsgWithPos::new(
-                        self.lexer.path().to_string(),
+                    Err(ParseErrorAndPos::new(
                         pos,
-                        Msg::NumberOverflow(bits.into()),
+                        ParseError::NumberOverflow(bits.into()),
                     ))
                 }
             }
@@ -1466,10 +1463,9 @@ impl<'a> Parser<'a> {
                     parts.push(expr);
 
                     if !self.token.is(TokenKind::RBrace) {
-                        return Err(MsgWithPos::new(
-                            self.lexer.path().to_string(),
+                        return Err(ParseErrorAndPos::new(
                             self.token.position,
-                            Msg::UnclosedString,
+                            ParseError::UnclosedStringTemplate,
                         ));
                     }
 
@@ -1594,7 +1590,7 @@ impl<'a> Parser<'a> {
         )))
     }
 
-    fn expect_identifier(&mut self) -> Result<Name, MsgWithPos> {
+    fn expect_identifier(&mut self) -> Result<Name, ParseErrorAndPos> {
         let tok = self.advance_token()?;
 
         if let TokenKind::Identifier(ref value) = tok.kind {
@@ -1602,33 +1598,31 @@ impl<'a> Parser<'a> {
 
             Ok(interned)
         } else {
-            Err(MsgWithPos::new(
-                self.lexer.path().to_string(),
+            Err(ParseErrorAndPos::new(
                 tok.position,
-                Msg::ExpectedIdentifier(tok.name()),
+                ParseError::ExpectedIdentifier(tok.name()),
             ))
         }
     }
 
-    fn expect_semicolon(&mut self) -> Result<Token, MsgWithPos> {
+    fn expect_semicolon(&mut self) -> Result<Token, ParseErrorAndPos> {
         self.expect_token(TokenKind::Semicolon)
     }
 
-    fn expect_token(&mut self, kind: TokenKind) -> Result<Token, MsgWithPos> {
+    fn expect_token(&mut self, kind: TokenKind) -> Result<Token, ParseErrorAndPos> {
         if self.token.kind == kind {
             let token = self.advance_token()?;
 
             Ok(token)
         } else {
-            Err(MsgWithPos::new(
-                self.lexer.path().to_string(),
+            Err(ParseErrorAndPos::new(
                 self.token.position,
-                Msg::ExpectedToken(kind.name().into(), self.token.name()),
+                ParseError::ExpectedToken(kind.name().into(), self.token.name()),
             ))
         }
     }
 
-    fn advance_token(&mut self) -> Result<Token, MsgWithPos> {
+    fn advance_token(&mut self) -> Result<Token, ParseErrorAndPos> {
         let token = self.lexer.read_token()?;
         Ok(self.advance_token_with(token))
     }
@@ -1732,7 +1726,7 @@ mod tests {
     use crate::ast::*;
     use crate::interner::*;
 
-    use crate::error::msg::Msg;
+    use crate::error::msg::ParseError;
     use crate::lexer::position::Position;
     use crate::lexer::reader::Reader;
     use crate::parser::{NodeIdGenerator, Parser};
@@ -1759,7 +1753,7 @@ mod tests {
         (expr, interner)
     }
 
-    fn err_expr(code: &'static str, msg: Msg, line: u32, col: u32) {
+    fn err_expr(code: &'static str, msg: ParseError, line: u32, col: u32) {
         let err = {
             let id_generator = NodeIdGenerator::new();
             let mut interner = Interner::new();
@@ -1771,7 +1765,7 @@ mod tests {
             parser.parse_expression().unwrap_err()
         };
 
-        assert_eq!(msg, err.msg);
+        assert_eq!(msg, err.error);
         assert_eq!(line, err.pos.line);
         assert_eq!(col, err.pos.column);
     }
@@ -1787,7 +1781,7 @@ mod tests {
         parser.parse_statement().unwrap()
     }
 
-    fn err_stmt(code: &'static str, msg: Msg, line: u32, col: u32) {
+    fn err_stmt(code: &'static str, msg: ParseError, line: u32, col: u32) {
         let err = {
             let id_generator = NodeIdGenerator::new();
             let mut interner = Interner::new();
@@ -1799,7 +1793,7 @@ mod tests {
             parser.parse_statement().unwrap_err()
         };
 
-        assert_eq!(msg, err.msg);
+        assert_eq!(msg, err.error);
         assert_eq!(line, err.pos.line);
         assert_eq!(col, err.pos.column);
     }
@@ -1898,7 +1892,7 @@ mod tests {
 
     #[test]
     fn parse_field_non_ident() {
-        err_expr("obj.12", Msg::ExpectedIdentifier("12".into()), 1, 5);
+        err_expr("obj.12", ParseError::ExpectedIdentifier("12".into()), 1, 5);
     }
 
     #[test]
@@ -1940,7 +1934,7 @@ mod tests {
 
     #[test]
     fn parse_double_neg_without_parentheses() {
-        err_expr("- -2", Msg::ExpectedFactor("-".into()), 1, 3);
+        err_expr("- -2", ParseError::ExpectedFactor("-".into()), 1, 3);
     }
 
     #[test]
@@ -1955,7 +1949,7 @@ mod tests {
 
     #[test]
     fn parse_double_unary_plus_without_parentheses() {
-        err_expr("+ +4", Msg::ExpectedFactor("+".into()), 1, 3);
+        err_expr("+ +4", ParseError::ExpectedFactor("+".into()), 1, 3);
     }
 
     #[test]
@@ -2424,7 +2418,12 @@ mod tests {
 
     #[test]
     fn parse_expr_stmt_without_semicolon() {
-        err_stmt("1", Msg::ExpectedToken(";".into(), "<<EOF>>".into()), 1, 2);
+        err_stmt(
+            "1",
+            ParseError::ExpectedToken(";".into(), "<<EOF>>".into()),
+            1,
+            2,
+        );
     }
 
     #[test]
@@ -2529,7 +2528,7 @@ mod tests {
 
     #[test]
     fn parse_else() {
-        err_stmt("else", Msg::MisplacedElse, 1, 1);
+        err_stmt("else", ParseError::MisplacedElse, 1, 1);
     }
 
     #[test]

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::error::msg::{Msg, MsgWithPos};
+use crate::error::msg::{ParseError, ParseErrorAndPos};
 use crate::lexer::position::{Position, Span};
 use crate::lexer::reader::Reader;
 use crate::lexer::token::{FloatSuffix, IntBase, IntSuffix, Token, TokenKind};
@@ -41,7 +41,7 @@ impl Lexer {
         self.reader.path()
     }
 
-    pub fn read_token(&mut self) -> Result<Token, MsgWithPos> {
+    pub fn read_token(&mut self) -> Result<Token, ParseErrorAndPos> {
         loop {
             self.skip_white();
 
@@ -70,11 +70,7 @@ impl Lexer {
             } else {
                 let ch = ch.unwrap();
 
-                return Err(MsgWithPos::new(
-                    self.reader.path().to_string(),
-                    pos,
-                    Msg::UnknownChar(ch),
-                ));
+                return Err(ParseErrorAndPos::new(pos, ParseError::UnknownChar(ch)));
             }
         }
     }
@@ -85,7 +81,7 @@ impl Lexer {
         }
     }
 
-    fn read_comment(&mut self) -> Result<(), MsgWithPos> {
+    fn read_comment(&mut self) -> Result<(), ParseErrorAndPos> {
         while !self.curr().is_none() && !is_newline(self.curr()) {
             self.read_char();
         }
@@ -93,7 +89,7 @@ impl Lexer {
         Ok(())
     }
 
-    fn read_multi_comment(&mut self) -> Result<(), MsgWithPos> {
+    fn read_multi_comment(&mut self) -> Result<(), ParseErrorAndPos> {
         let pos = self.reader.pos();
 
         self.read_char();
@@ -104,11 +100,7 @@ impl Lexer {
         }
 
         if self.curr().is_none() {
-            return Err(MsgWithPos::new(
-                self.reader.path().to_string(),
-                pos,
-                Msg::UnclosedComment,
-            ));
+            return Err(ParseErrorAndPos::new(pos, ParseError::UnclosedComment));
         }
 
         self.read_char();
@@ -117,7 +109,7 @@ impl Lexer {
         Ok(())
     }
 
-    fn read_identifier(&mut self) -> Result<Token, MsgWithPos> {
+    fn read_identifier(&mut self) -> Result<Token, ParseErrorAndPos> {
         let pos = self.reader.pos();
         let idx = self.reader.idx();
         let mut value = String::new();
@@ -157,12 +149,12 @@ impl Lexer {
         Ok(Token::new(ttype, pos, span))
     }
 
-    fn read_char_literal(&mut self) -> Result<Token, MsgWithPos> {
+    fn read_char_literal(&mut self) -> Result<Token, ParseErrorAndPos> {
         let pos = self.reader.pos();
         let idx = self.reader.idx();
 
         self.read_char();
-        let ch = self.read_escaped_char(pos, Msg::UnclosedChar)?;
+        let ch = self.read_escaped_char(pos, ParseError::UnclosedChar)?;
 
         if is_char_quote(self.curr()) {
             self.read_char();
@@ -171,15 +163,15 @@ impl Lexer {
             let span = self.span_from(idx);
             Ok(Token::new(ttype, pos, span))
         } else {
-            Err(MsgWithPos::new(
-                self.reader.path().to_string(),
-                pos,
-                Msg::UnclosedChar,
-            ))
+            Err(ParseErrorAndPos::new(pos, ParseError::UnclosedChar))
         }
     }
 
-    fn read_escaped_char(&mut self, pos: Position, unclosed: Msg) -> Result<char, MsgWithPos> {
+    fn read_escaped_char(
+        &mut self,
+        pos: Position,
+        unclosed: ParseError,
+    ) -> Result<char, ParseErrorAndPos> {
         if let Some(ch) = self.curr() {
             self.read_char();
 
@@ -187,11 +179,7 @@ impl Lexer {
                 let ch = if let Some(ch) = self.curr() {
                     ch
                 } else {
-                    return Err(MsgWithPos::new(
-                        self.reader.path().to_string(),
-                        pos,
-                        unclosed,
-                    ));
+                    return Err(ParseErrorAndPos::new(pos, unclosed));
                 };
 
                 self.read_char();
@@ -205,23 +193,19 @@ impl Lexer {
                     '\'' => Ok('\''),
                     '0' => Ok('\0'),
                     _ => {
-                        let msg = Msg::InvalidEscapeSequence(ch);
-                        Err(MsgWithPos::new(self.reader.path().to_string(), pos, msg))
+                        let msg = ParseError::InvalidEscapeSequence(ch);
+                        Err(ParseErrorAndPos::new(pos, msg))
                     }
                 }
             } else {
                 Ok(ch)
             }
         } else {
-            Err(MsgWithPos::new(
-                self.reader.path().to_string(),
-                pos,
-                unclosed,
-            ))
+            Err(ParseErrorAndPos::new(pos, unclosed))
         }
     }
 
-    fn read_string(&mut self, skip_quote: bool) -> Result<Token, MsgWithPos> {
+    fn read_string(&mut self, skip_quote: bool) -> Result<Token, ParseErrorAndPos> {
         let pos = self.reader.pos();
         let idx = self.reader.idx();
         let mut value = String::new();
@@ -241,7 +225,7 @@ impl Lexer {
                 return Ok(Token::new(ttype, pos, span));
             }
 
-            let ch = self.read_escaped_char(pos, Msg::UnclosedString)?;
+            let ch = self.read_escaped_char(pos, ParseError::UnclosedString)?;
             value.push(ch);
         }
 
@@ -252,19 +236,15 @@ impl Lexer {
             let span = self.span_from(idx);
             Ok(Token::new(ttype, pos, span))
         } else {
-            Err(MsgWithPos::new(
-                self.reader.path().to_string(),
-                pos,
-                Msg::UnclosedString,
-            ))
+            Err(ParseErrorAndPos::new(pos, ParseError::UnclosedString))
         }
     }
 
-    pub fn read_string_continuation(&mut self) -> Result<Token, MsgWithPos> {
+    pub fn read_string_continuation(&mut self) -> Result<Token, ParseErrorAndPos> {
         self.read_string(false)
     }
 
-    fn read_operator(&mut self) -> Result<Token, MsgWithPos> {
+    fn read_operator(&mut self) -> Result<Token, ParseErrorAndPos> {
         let pos = self.reader.pos();
         let idx = self.reader.idx();
         let ch = self.curr().unwrap();
@@ -399,11 +379,7 @@ impl Lexer {
             '@' => TokenKind::At,
 
             _ => {
-                return Err(MsgWithPos::new(
-                    self.reader.path().to_string(),
-                    pos,
-                    Msg::UnknownChar(ch),
-                ));
+                return Err(ParseErrorAndPos::new(pos, ParseError::UnknownChar(ch)));
             }
         };
 
@@ -411,7 +387,7 @@ impl Lexer {
         Ok(Token::new(kind, pos, span))
     }
 
-    fn read_number(&mut self) -> Result<Token, MsgWithPos> {
+    fn read_number(&mut self) -> Result<Token, ParseErrorAndPos> {
         let pos = self.reader.pos();
         let idx = self.reader.idx();
         let mut value = String::new();
@@ -635,7 +611,6 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::error::msg::Msg;
     use crate::lexer::reader::Reader;
     use crate::lexer::token::TokenKind;
 
@@ -650,9 +625,9 @@ mod tests {
         assert_eq!(c, tok.position.column);
     }
 
-    fn assert_err(reader: &mut Lexer, msg: Msg, l: u32, c: u32) {
+    fn assert_err(reader: &mut Lexer, msg: ParseError, l: u32, c: u32) {
         let err = reader.read_token().unwrap_err();
-        assert_eq!(msg, err.msg);
+        assert_eq!(msg, err.error);
         assert_eq!(l, err.pos.line);
         assert_eq!(c, err.pos.column);
     }
@@ -753,7 +728,7 @@ mod tests {
     #[test]
     fn test_unfinished_multi_comment() {
         let mut reader = Lexer::from_str("/*test");
-        assert_err(&mut reader, Msg::UnclosedComment, 1, 1);
+        assert_err(&mut reader, ParseError::UnclosedComment, 1, 1);
 
         let mut reader = Lexer::from_str("1/*test");
         assert_tok(
@@ -762,7 +737,7 @@ mod tests {
             1,
             1,
         );
-        assert_err(&mut reader, Msg::UnclosedComment, 1, 2);
+        assert_err(&mut reader, ParseError::UnclosedComment, 1, 2);
     }
 
     #[test]
@@ -1012,31 +987,31 @@ mod tests {
         assert_tok(&mut reader, TokenKind::StringTail("\\".into()), 1, 1);
 
         let mut reader = Lexer::from_str("\"\\");
-        assert_err(&mut reader, Msg::UnclosedString, 1, 1);
+        assert_err(&mut reader, ParseError::UnclosedString, 1, 1);
     }
 
     #[test]
     fn test_unclosed_string() {
         let mut reader = Lexer::from_str("\"abc");
-        assert_err(&mut reader, Msg::UnclosedString, 1, 1);
+        assert_err(&mut reader, ParseError::UnclosedString, 1, 1);
     }
 
     #[test]
     fn test_unclosed_char() {
         let mut reader = Lexer::from_str("'a");
-        assert_err(&mut reader, Msg::UnclosedChar, 1, 1);
+        assert_err(&mut reader, ParseError::UnclosedChar, 1, 1);
 
         let mut reader = Lexer::from_str("'\\");
-        assert_err(&mut reader, Msg::UnclosedChar, 1, 1);
+        assert_err(&mut reader, ParseError::UnclosedChar, 1, 1);
 
         let mut reader = Lexer::from_str("'\\n");
-        assert_err(&mut reader, Msg::UnclosedChar, 1, 1);
+        assert_err(&mut reader, ParseError::UnclosedChar, 1, 1);
 
         let mut reader = Lexer::from_str("'ab'");
-        assert_err(&mut reader, Msg::UnclosedChar, 1, 1);
+        assert_err(&mut reader, ParseError::UnclosedChar, 1, 1);
 
         let mut reader = Lexer::from_str("'");
-        assert_err(&mut reader, Msg::UnclosedChar, 1, 1);
+        assert_err(&mut reader, ParseError::UnclosedChar, 1, 1);
     }
 
     #[test]
