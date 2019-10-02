@@ -123,6 +123,12 @@ impl<'a> Parser<'a> {
                 elements.push(ElemImpl(ximpl));
             }
 
+            TokenKind::Module => {
+                self.ban_modifiers(&modifiers)?;
+                let module = self.parse_module(&modifiers)?;
+                elements.push(ElemModule(module));
+            }
+
             TokenKind::Let | TokenKind::Var => {
                 self.ban_modifiers(&modifiers)?;
                 self.parse_global(elements)?;
@@ -340,6 +346,46 @@ impl<'a> Parser<'a> {
         Ok(cls)
     }
 
+    fn parse_module(&mut self, modifiers: &Modifiers) -> Result<Module, ParseErrorAndPos> {
+        let internal = modifiers.contains(Modifier::Internal);
+
+        let pos = self.expect_token(TokenKind::Module)?.position;
+        let ident = self.expect_identifier()?;
+
+        let mut module = Module {
+            id: self.generate_id(),
+            name: ident,
+            pos: pos,
+            parent_class: None,
+            internal: internal,
+            has_constructor: false,
+            constructor: None,
+            fields: Vec::new(),
+            methods: Vec::new(),
+            initializers: Vec::new(),
+        };
+
+        self.in_class = true;
+
+        module.parent_class = if self.token.is(TokenKind::Colon) {
+            self.advance_token()?;
+
+            let pos = self.token.position;
+            let name = self.expect_identifier()?;
+            let type_params = self.parse_type_params()?;
+            let params = self.parse_parent_class_params()?;
+
+            Some(ParentClass::new(name, pos, type_params, params))
+        } else {
+            None
+        };
+
+        self.parse_module_body(&mut module)?;
+        self.in_class = false;
+
+        Ok(module)
+    }
+
     fn parse_type_params(&mut self) -> Result<Option<Vec<TypeParam>>, ParseErrorAndPos> {
         if self.token.is(TokenKind::LBracket) {
             self.advance_token()?;
@@ -487,6 +533,51 @@ impl<'a> Parser<'a> {
                 _ => {
                     let initializer = self.parse_statement()?;
                     cls.initializers.push(initializer);
+                }
+            }
+        }
+
+        self.advance_token()?;
+        Ok(())
+    }
+
+    fn parse_module_body(&mut self, module: &mut Module) -> Result<(), ParseErrorAndPos> {
+        if !self.token.is(TokenKind::LBrace) {
+            return Ok(());
+        }
+
+        self.advance_token()?;
+
+        while !self.token.is(TokenKind::RBrace) {
+            let modifiers = self.parse_annotations()?;
+
+            match self.token.kind {
+                TokenKind::Fun => {
+                    let mods = &[
+                        Modifier::Abstract,
+                        Modifier::Internal,
+                        Modifier::Open,
+                        Modifier::Override,
+                        Modifier::Final,
+                        Modifier::Pub,
+                        Modifier::Static,
+                    ];
+                    self.restrict_modifiers(&modifiers, mods)?;
+
+                    let fct = self.parse_function(&modifiers)?;
+                    module.methods.push(fct);
+                }
+
+                TokenKind::Var | TokenKind::Let => {
+                    self.ban_modifiers(&modifiers)?;
+
+                    let field = self.parse_field()?;
+                    module.fields.push(field);
+                }
+
+                _ => {
+                    let initializer = self.parse_statement()?;
+                    module.initializers.push(initializer);
                 }
             }
         }
@@ -2758,6 +2849,39 @@ mod tests {
         let class = prog.cls0();
 
         assert_eq!(true, class.has_open);
+    }
+
+    #[test]
+    fn parse_module() {
+        let (prog, interner) = parse("module Foo");
+        let module = prog.mod0();
+
+        assert_eq!(0, module.fields.len());
+        assert_eq!(Position::new(1, 1), module.pos);
+        assert_eq!("Foo", *interner.str(module.name));
+    }
+
+    #[test]
+    fn parse_module_with_parent() {
+        let (prog, interner) = parse("module Foo : Bar");
+        let module = prog.mod0();
+
+        assert_eq!(
+            "Bar",
+            interner
+                .str(module.parent_class.as_ref().unwrap().name)
+                .to_string()
+        );
+    }
+
+    #[test]
+    fn parse_module_with_body() {
+        let (prog, _) =
+            parse("module Foo { let x: Int = 23; var y: String = \"abc\"; fun z() {} }");
+        let module = prog.mod0();
+
+        assert_eq!(2, module.fields.len());
+        assert_eq!(1, module.methods.len());
     }
 
     #[test]

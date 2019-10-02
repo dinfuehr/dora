@@ -74,6 +74,7 @@ impl<'a> AstDumper<'a> {
                 ElemStruct(ref struc) => self.dump_struct(struc),
                 ElemTrait(ref xtrait) => self.dump_trait(xtrait),
                 ElemImpl(ref ximpl) => self.dump_impl(ximpl),
+                ElemModule(ref module) => self.dump_module(module),
                 ElemGlobal(ref global) => self.dump_global(global),
                 ElemConst(ref xconst) => self.dump_const(xconst),
             }
@@ -205,6 +206,47 @@ impl<'a> AstDumper<'a> {
             dump!(d, "methods");
             d.indent(|d| {
                 for mtd in &cls.methods {
+                    d.dump_fct(mtd);
+                }
+            });
+        });
+    }
+
+    fn dump_module(&mut self, modu: &Module) {
+        dump!(
+            self,
+            "class {} @ {} {}",
+            self.str(modu.name),
+            modu.pos,
+            modu.id
+        );
+
+        self.indent(|d| {
+            if let Some(ref parent_class) = modu.parent_class {
+                dump!(
+                    d,
+                    "super (name={} @ {})",
+                    d.str(parent_class.name),
+                    parent_class.pos
+                );
+            }
+
+            dump!(d, "fields");
+
+            d.indent(|d| {
+                for field in &modu.fields {
+                    d.dump_field(field);
+                }
+            });
+
+            dump!(d, "constructor");
+            if let Some(ctor) = &modu.constructor {
+                d.indent(|d| d.dump_fct(ctor));
+            }
+
+            dump!(d, "methods");
+            d.indent(|d| {
+                for mtd in &modu.methods {
                     d.dump_fct(mtd);
                 }
             });
