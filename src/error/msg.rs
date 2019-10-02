@@ -433,39 +433,23 @@ impl SemError {
 
 #[derive(Clone, Debug)]
 pub struct SemErrorAndPos {
-    pub file: Option<FileId>,
+    pub file: FileId,
     pub pos: Position,
     pub msg: SemError,
 }
 
 impl SemErrorAndPos {
     pub fn new(file: FileId, pos: Position, msg: SemError) -> SemErrorAndPos {
-        SemErrorAndPos {
-            file: Some(file),
-            pos,
-            msg,
-        }
+        SemErrorAndPos { file, pos, msg }
     }
 
     pub fn message(&self, vm: &VM) -> String {
-        if let Some(file) = self.file {
-            let file = vm.file(file);
-            format!(
-                "error in {} at {}: {}",
-                file.name,
-                self.pos,
-                self.msg.message()
-            )
-        } else {
-            format!("error at {}: {}", self.pos, self.msg.message())
-        }
-    }
-
-    pub fn without_file(pos: Position, msg: SemError) -> SemErrorAndPos {
-        SemErrorAndPos {
-            file: None,
-            pos,
-            msg,
-        }
+        let file = vm.file(self.file);
+        format!(
+            "error in {} at {}: {}",
+            file.name,
+            self.pos,
+            self.msg.message()
+        )
     }
 }
