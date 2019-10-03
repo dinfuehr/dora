@@ -57,11 +57,6 @@ pub fn start(content: Option<&str>) -> i32 {
         find_main(&vm)
     };
 
-    if main.is_none() {
-        println!("no `main` function found in the program");
-        return 1;
-    }
-
     if vm.diag.lock().has_errors() {
         vm.diag.lock().dump(&vm);
         let no_errors = vm.diag.lock().errors().len();
@@ -72,6 +67,11 @@ pub fn start(content: Option<&str>) -> i32 {
             println!("{} errors found.", no_errors);
         }
 
+        return 1;
+    }
+
+    if !vm.args.cmd_test && main.is_none() {
+        println!("error: no `main` function found in the program");
         return 1;
     }
 
