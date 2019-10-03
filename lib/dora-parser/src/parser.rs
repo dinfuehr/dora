@@ -22,7 +22,7 @@ pub struct Parser<'a> {
     interner: &'a mut Interner,
     ast: &'a mut Ast,
     param_idx: u32,
-    in_class: bool,
+    in_class_or_module: bool,
     parse_struct_lit: bool,
     last_end: Option<u32>,
 }
@@ -46,7 +46,7 @@ impl<'a> Parser<'a> {
             id_generator: id_generator,
             interner: interner,
             param_idx: 0,
-            in_class: false,
+            in_class_or_module: false,
             parse_struct_lit: true,
             ast: ast,
             last_end: Some(0),
@@ -323,7 +323,7 @@ impl<'a> Parser<'a> {
             type_params: type_params,
         };
 
-        self.in_class = true;
+        self.in_class_or_module = true;
         let ctor_params = self.parse_constructor(&mut cls)?;
 
         cls.parent_class = if self.token.is(TokenKind::Colon) {
@@ -341,7 +341,7 @@ impl<'a> Parser<'a> {
 
         self.parse_class_body(&mut cls)?;
         cls.constructor = Some(self.generate_constructor(&mut cls, ctor_params));
-        self.in_class = false;
+        self.in_class_or_module = false;
 
         Ok(cls)
     }
@@ -365,7 +365,7 @@ impl<'a> Parser<'a> {
             initializers: Vec::new(),
         };
 
-        self.in_class = true;
+        self.in_class_or_module = true;
 
         module.parent_class = if self.token.is(TokenKind::Colon) {
             self.advance_token()?;
@@ -381,7 +381,7 @@ impl<'a> Parser<'a> {
         };
 
         self.parse_module_body(&mut module)?;
-        self.in_class = false;
+        self.in_class_or_module = false;
 
         Ok(module)
     }
@@ -694,7 +694,7 @@ impl<'a> Parser<'a> {
             id: self.generate_id(),
             name: ident,
             pos: pos,
-            method: self.in_class,
+            method: self.in_class_or_module,
             has_open: modifiers.contains(Modifier::Open),
             has_override: modifiers.contains(Modifier::Override),
             has_final: modifiers.contains(Modifier::Final),

@@ -3,12 +3,12 @@ class Foo {
 }
 
 module Foo {
-  fun foo() -> String = "foo";
+  fun foo() -> String = "bar";
 }
 
 fun main() {
   let foo: Foo = Foo();
-  println(foo.foo());
+  assert(foo.foo() == "foo");
 
-  println(Foo::foo());
+  assert(Foo::foo() == "bar");
 }

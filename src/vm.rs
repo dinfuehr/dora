@@ -90,8 +90,8 @@ pub struct VM<'ast> {
     pub struct_defs: GrowableVec<Mutex<StructDef>>, // stores all struct definitions
     pub classes: GrowableVec<RwLock<Class>>,   // stores all class source definitions
     pub class_defs: GrowableVec<RwLock<ClassDef>>, // stores all class definitions
-    pub modules: GrowableVec<RwLock<Module>>,   // stores all class source definitions
-    pub module_defs: GrowableVec<RwLock<ModuleDef>>, // stores all class definitions
+    pub modules: GrowableVec<RwLock<Module>>,   // stores all module source definitions
+    pub module_defs: GrowableVec<RwLock<ModuleDef>>, // stores all module definitions
     pub fcts: GrowableVec<RwLock<Fct<'ast>>>,  // stores all function definitions
     pub jit_fcts: GrowableVec<JitFct>,         // stores all function implementations
     pub traits: Vec<RwLock<TraitData>>,        // stores all trait definitions

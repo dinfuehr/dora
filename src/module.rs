@@ -9,7 +9,7 @@ use crate::vm::{FctId, TraitId, ImplId, TypeParam, VM, FileId};
 use dora_parser::lexer::position::Position;
 use dora_parser::interner::Name;
 use crate::vtable::VTableBox;
-use crate::class::ClassSize;
+use crate::class::{ClassSize, ClassId};
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ModuleId(usize);
@@ -47,7 +47,7 @@ pub struct Module {
     pub pos: Position,
     pub name: Name,
     pub ty: BuiltinType,
-    pub parent_class: Option<ModuleId>,
+    pub parent_class: Option<ClassId>,
     pub internal: bool,
     pub internal_resolved: bool,
     pub has_constructor: bool,
@@ -59,8 +59,6 @@ pub struct Module {
 
     pub traits: Vec<TraitId>,
     pub impls: Vec<ImplId>,
-
-    pub type_params: Vec<TypeParam>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

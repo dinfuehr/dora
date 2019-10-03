@@ -227,8 +227,6 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
                 traits: Vec::new(),
                 impls: Vec::new(),
-
-                type_params: Vec::new(),
             };
 
             modules.push(Arc::new(RwLock::new(module)));
