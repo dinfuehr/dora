@@ -13,9 +13,9 @@ use crate::gc::root::Slot;
 use crate::gc::Address;
 use crate::handle::{root, Handle};
 use crate::mem;
+use crate::size::InstanceSize;
 use crate::vm::VM;
 use crate::vtable::VTable;
-use crate::size::InstanceSize;
 
 #[repr(C)]
 pub struct Header {

@@ -3,11 +3,10 @@ use std::collections::HashMap;
 use self::Sym::*;
 
 use crate::class::ClassId;
+use crate::module::ModuleId;
 use crate::typeparams::TypeParamId;
 use crate::vm::*;
 use dora_parser::interner::Name;
-use crate::module::ModuleId;
-
 
 #[derive(Debug)]
 pub struct SymTable {

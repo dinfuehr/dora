@@ -215,7 +215,7 @@ impl<'a> AstDumper<'a> {
     fn dump_module(&mut self, modu: &Module) {
         dump!(
             self,
-            "class {} @ {} {}",
+            "module {} @ {} {}",
             self.str(modu.name),
             modu.pos,
             modu.id

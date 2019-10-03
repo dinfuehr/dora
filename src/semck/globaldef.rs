@@ -5,10 +5,13 @@ use std::sync::Arc;
 use crate::class::{self, ClassId};
 use crate::error::msg::SemError;
 use crate::gc::Address;
+use crate::module;
 use crate::module::ModuleId;
-use crate::sym::Sym::{self, SymClass, SymConst, SymFct, SymGlobal, SymStruct, SymTrait, SymModule};
+use crate::sym::Sym::{
+    self, SymClass, SymConst, SymFct, SymGlobal, SymModule, SymStruct, SymTrait,
+};
 use crate::ty::BuiltinType;
-use crate::{vm, module};
+use crate::vm;
 use crate::vm::*;
 use dora_parser::ast::visit::*;
 use dora_parser::ast::*;

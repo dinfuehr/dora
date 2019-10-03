@@ -3,11 +3,11 @@ use std::sync::Arc;
 
 use crate::class::ClassId;
 use crate::mem;
+use crate::module::ModuleId;
 use crate::semck;
+use crate::typeparams::{TypeParamId, TypeParams};
 use crate::vm::VM;
 use crate::vm::{FctId, StructId, TraitId};
-use crate::typeparams::{TypeParamId, TypeParams};
-use crate::module::ModuleId;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum BuiltinType {
@@ -336,9 +336,10 @@ impl BuiltinType {
             BuiltinType::Double => 8,
             BuiltinType::Nil => panic!("no size for nil."),
             BuiltinType::This => panic!("no size for Self."),
-            BuiltinType::Class(_, _) | BuiltinType::Module(_) | BuiltinType::Lambda(_) | BuiltinType::Ptr => {
-                mem::ptr_width()
-            }
+            BuiltinType::Class(_, _)
+            | BuiltinType::Module(_)
+            | BuiltinType::Lambda(_)
+            | BuiltinType::Ptr => mem::ptr_width(),
             BuiltinType::Struct(sid, list_id) => {
                 let params = vm.lists.lock().get(list_id);
                 let sid = semck::specialize::specialize_struct_id_params(vm, sid, params);
@@ -367,9 +368,10 @@ impl BuiltinType {
             BuiltinType::Double => 8,
             BuiltinType::Nil => panic!("no alignment for nil."),
             BuiltinType::This => panic!("no alignment for Self."),
-            BuiltinType::Class(_, _) | BuiltinType::Module(_) | BuiltinType::Lambda(_) | BuiltinType::Ptr => {
-                mem::ptr_width()
-            }
+            BuiltinType::Class(_, _)
+            | BuiltinType::Module(_)
+            | BuiltinType::Lambda(_)
+            | BuiltinType::Ptr => mem::ptr_width(),
             BuiltinType::Struct(sid, list_id) => {
                 let params = vm.lists.lock().get(list_id);
                 let sid = semck::specialize::specialize_struct_id_params(vm, sid, params);
@@ -398,9 +400,10 @@ impl BuiltinType {
             BuiltinType::Double => MachineMode::Float64,
             BuiltinType::Nil => panic!("no machine mode for nil."),
             BuiltinType::This => panic!("no machine mode for Self."),
-            BuiltinType::Class(_, _) | BuiltinType::Module(_) | BuiltinType::Lambda(_) | BuiltinType::Ptr => {
-                MachineMode::Ptr
-            }
+            BuiltinType::Class(_, _)
+            | BuiltinType::Module(_)
+            | BuiltinType::Lambda(_)
+            | BuiltinType::Ptr => MachineMode::Ptr,
             BuiltinType::Struct(_, _) => panic!("no machine mode for struct."),
             BuiltinType::Trait(_) => unimplemented!(),
             BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_, _) => {

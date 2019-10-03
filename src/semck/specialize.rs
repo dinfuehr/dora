@@ -7,11 +7,11 @@ use crate::class::{self, ClassDef, ClassDefId, ClassId};
 use crate::field::FieldDef;
 use crate::mem;
 use crate::object::Header;
+use crate::size::InstanceSize;
 use crate::ty::BuiltinType;
 use crate::typeparams::TypeParams;
 use crate::vm::{StructData, StructDef, StructDefId, StructFieldDef, StructId, VM};
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
-use crate::size::InstanceSize;
 
 pub fn specialize_type(
     vm: &VM,

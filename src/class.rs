@@ -4,7 +4,8 @@ use std::convert::From;
 use std::iter::Iterator;
 use std::sync::Arc;
 
-use crate::field::{Field, FieldId, FieldDef};
+use crate::field::{Field, FieldDef, FieldId};
+use crate::size::InstanceSize;
 use crate::ty::BuiltinType;
 use crate::typeparams::TypeParams;
 use crate::utils::GrowableVec;
@@ -13,7 +14,6 @@ use crate::vm::{FctId, FileId, ImplId, TraitId, TypeParam};
 use crate::vtable::VTableBox;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
-use crate::size::InstanceSize;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ClassId(usize);
@@ -274,8 +274,6 @@ impl Class {
         }
     }
 }
-
-
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct ClassDefId(usize);

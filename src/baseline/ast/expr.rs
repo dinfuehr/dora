@@ -16,6 +16,7 @@ use crate::mem;
 use crate::object::{Header, Str};
 use crate::os::signal::Trap;
 use crate::semck::specialize::{specialize_class_id, specialize_class_ty};
+use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, MachineMode};
 use crate::typeparams::TypeParams;
 use crate::vm::VM;
@@ -25,7 +26,6 @@ use dora_parser::ast::Expr::*;
 use dora_parser::ast::*;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
-use crate::size::InstanceSize;
 
 pub struct ExprGen<'a, 'b, 'ast>
 where

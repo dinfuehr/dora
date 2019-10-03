@@ -2,13 +2,16 @@ class Foo {
   fun foo() -> String = "foo";
 }
 
+/*
 module Foo {
   fun foo() -> String = "bar";
 }
+*/
 
 fun main() {
   let foo: Foo = Foo();
   assert(foo.foo() == "foo");
 
-  assert(Foo::foo() == "bar");
+  // todo:
+  // assert(Foo::foo() == "bar");
 }

@@ -1,16 +1,16 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
+use crate::class::ClassId;
 use crate::field::{Field, FieldDef};
+use crate::size::InstanceSize;
 use crate::ty::BuiltinType;
 use crate::utils::GrowableVec;
-use crate::vm::{FctId, TraitId, ImplId, VM, FileId};
-
-use dora_parser::lexer::position::Position;
-use dora_parser::interner::Name;
+use crate::vm::{FctId, FileId, ImplId, TraitId, VM};
 use crate::vtable::VTableBox;
-use crate::class::ClassId;
-use crate::size::InstanceSize;
+
+use dora_parser::interner::Name;
+use dora_parser::lexer::position::Position;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ModuleId(usize);

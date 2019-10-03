@@ -1003,8 +1003,8 @@ mod tests {
     use crate::bytecode::generate::{BytecodeFunction, BytecodeIdx, Register, StrConstPoolIdx};
     use crate::bytecode::opcode::Bytecode::*;
     use crate::test;
-    use crate::vm::VM;
     use crate::typeparams::TypeParams;
+    use crate::vm::VM;
 
     fn code(code: &'static str) -> BytecodeFunction {
         test::parse(code, |vm| {

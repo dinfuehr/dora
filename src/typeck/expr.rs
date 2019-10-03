@@ -9,7 +9,8 @@ use crate::ty::BuiltinType;
 use crate::typeck::lookup::MethodLookup;
 use crate::typeparams::TypeParams;
 use crate::vm::{
-    self, CallType, ConvInfo, Fct, FctId, FctParent, FctSrc, FileId, ForTypeInfo, IdentType, VM};
+    self, CallType, ConvInfo, Fct, FctId, FctParent, FctSrc, FileId, ForTypeInfo, IdentType, VM,
+};
 
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::Expr::*;
@@ -1841,9 +1842,7 @@ fn arg_allows(
             true
         }
 
-        BuiltinType::Module(_) => {
-            def == arg
-        }
+        BuiltinType::Module(_) => def == arg,
 
         BuiltinType::Lambda(_) => {
             // for now expect the exact same params and return types
