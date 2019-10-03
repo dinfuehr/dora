@@ -4,12 +4,13 @@ use std::sync::Arc;
 use crate::field::{Field, FieldDef};
 use crate::ty::BuiltinType;
 use crate::utils::GrowableVec;
-use crate::vm::{FctId, TraitId, ImplId, TypeParam, VM, FileId};
+use crate::vm::{FctId, TraitId, ImplId, VM, FileId};
 
 use dora_parser::lexer::position::Position;
 use dora_parser::interner::Name;
 use crate::vtable::VTableBox;
-use crate::class::{ClassSize, ClassId};
+use crate::class::ClassId;
+use crate::size::InstanceSize;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ModuleId(usize);
@@ -88,7 +89,7 @@ pub struct ModuleDef {
     pub mod_id: Option<ModuleId>,
     pub parent_id: Option<ModuleDefId>,
     pub fields: Vec<FieldDef>,
-    pub size: ClassSize,
+    pub size: InstanceSize,
     pub ref_fields: Vec<i32>,
     pub vtable: Option<VTableBox>,
 }

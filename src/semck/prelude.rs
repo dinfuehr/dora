@@ -1,7 +1,7 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
-use crate::class::{ClassDef, ClassDefId, ClassId, ClassSize};
+use crate::class::{ClassDef, ClassDefId, ClassId};
 use crate::exception;
 use crate::gc::Address;
 use crate::object::Header;
@@ -10,6 +10,7 @@ use crate::ty::BuiltinType;
 use crate::typeparams::TypeParams;
 use crate::vm::{FctId, FctKind, Intrinsic, TraitId, VM};
 use crate::vtable::VTableBox;
+use crate::size::InstanceSize;
 
 pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {
     vm.vips.bool_class = internal_class(vm, "Bool", Some(BuiltinType::Bool));
@@ -71,7 +72,7 @@ fn internal_free_classes<'ast>(vm: &mut VM<'ast>) {
             cls_id: None,
             type_params: TypeParams::empty(),
             parent_id: None,
-            size: ClassSize::Fixed(Header::size()),
+            size: InstanceSize::Fixed(Header::size()),
             fields: Vec::new(),
             ref_fields: Vec::new(),
             vtable: None,
@@ -82,7 +83,7 @@ fn internal_free_classes<'ast>(vm: &mut VM<'ast>) {
             cls_id: None,
             type_params: TypeParams::empty(),
             parent_id: None,
-            size: ClassSize::FreeArray,
+            size: InstanceSize::FreeArray,
             fields: Vec::new(),
             ref_fields: Vec::new(),
             vtable: None,

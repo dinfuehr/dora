@@ -3,7 +3,7 @@ use std::cmp::max;
 use std::ptr;
 use std::sync::Arc;
 
-use crate::class::{self, ClassDef, ClassDefId, ClassId, ClassSize};
+use crate::class::{self, ClassDef, ClassDefId, ClassId};
 use crate::field::FieldDef;
 use crate::mem;
 use crate::object::Header;
@@ -11,6 +11,7 @@ use crate::ty::BuiltinType;
 use crate::typeparams::TypeParams;
 use crate::vm::{StructData, StructDef, StructDefId, StructFieldDef, StructId, VM};
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
+use crate::size::InstanceSize;
 
 pub fn specialize_type(
     vm: &VM,
@@ -191,7 +192,7 @@ fn create_specialized_class(vm: &VM, cls: &class::Class, type_params: &TypeParam
             cls_id: Some(cls.id),
             type_params: type_params.clone(),
             parent_id: None,
-            size: ClassSize::Fixed(0),
+            size: InstanceSize::Fixed(0),
             fields: Vec::new(),
             ref_fields: Vec::new(),
             vtable: None,
@@ -211,12 +212,12 @@ fn create_specialized_class(vm: &VM, cls: &class::Class, type_params: &TypeParam
 
         size = if cls.is_array {
             if type_params[0].reference_type() {
-                ClassSize::ObjArray
+                InstanceSize::ObjArray
             } else {
-                ClassSize::Array(type_params[0].size(vm))
+                InstanceSize::Array(type_params[0].size(vm))
             }
         } else {
-            ClassSize::Str
+            InstanceSize::Str
         };
 
         let super_id = cls
@@ -235,7 +236,7 @@ fn create_specialized_class(vm: &VM, cls: &class::Class, type_params: &TypeParam
             fields = Vec::new();
             ref_fields = cls_def.ref_fields.clone();
             csize = match cls_def.size {
-                ClassSize::Fixed(size) => size,
+                InstanceSize::Fixed(size) => size,
                 _ => unreachable!(),
             };
             parent_id = Some(id);
@@ -266,7 +267,7 @@ fn create_specialized_class(vm: &VM, cls: &class::Class, type_params: &TypeParam
             }
         }
 
-        size = ClassSize::Fixed(mem::align_i32(csize, mem::ptr_width()));
+        size = InstanceSize::Fixed(mem::align_i32(csize, mem::ptr_width()));
     }
 
     let stub = vm.compiler_thunk().to_usize();

@@ -13,6 +13,7 @@ use crate::vm::{FctId, FileId, ImplId, TraitId, TypeParam};
 use crate::vtable::VTableBox;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
+use crate::size::InstanceSize;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ClassId(usize);
@@ -297,15 +298,6 @@ impl GrowableVec<RwLock<ClassDef>> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ClassSize {
-    Fixed(i32),
-    Array(i32),
-    ObjArray,
-    FreeArray,
-    Str,
-}
-
 #[derive(Debug)]
 pub struct ClassDef {
     pub id: ClassDefId,
@@ -313,7 +305,7 @@ pub struct ClassDef {
     pub type_params: TypeParams,
     pub parent_id: Option<ClassDefId>,
     pub fields: Vec<FieldDef>,
-    pub size: ClassSize,
+    pub size: InstanceSize,
     pub ref_fields: Vec<i32>,
     pub vtable: Option<VTableBox>,
 }

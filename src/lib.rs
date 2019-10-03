@@ -41,6 +41,7 @@ mod os;
 mod os_cpu;
 mod safepoint;
 mod semck;
+mod size;
 mod stdlib;
 mod sym;
 mod threads;

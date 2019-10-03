@@ -8,13 +8,14 @@ use std::slice;
 use std::str;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::class::{ClassDefId, ClassSize};
+use crate::class::ClassDefId;
 use crate::gc::root::Slot;
 use crate::gc::Address;
 use crate::handle::{root, Handle};
 use crate::mem;
 use crate::vm::VM;
 use crate::vtable::VTable;
+use crate::size::InstanceSize;
 
 #[repr(C)]
 pub struct Header {
@@ -246,14 +247,14 @@ impl Obj {
         let cls = vtbl.class();
 
         match cls.size {
-            ClassSize::Fixed(size) => size as usize,
+            InstanceSize::Fixed(size) => size as usize,
 
-            ClassSize::ObjArray => determine_array_size(self, mem::ptr_width()),
-            ClassSize::FreeArray => determine_array_size(self, mem::ptr_width()),
+            InstanceSize::ObjArray => determine_array_size(self, mem::ptr_width()),
+            InstanceSize::FreeArray => determine_array_size(self, mem::ptr_width()),
 
-            ClassSize::Array(element_size) => determine_array_size(self, element_size),
+            InstanceSize::Array(element_size) => determine_array_size(self, element_size),
 
-            ClassSize::Str => {
+            InstanceSize::Str => {
                 let handle: Ref<Str> = Ref {
                     ptr: self as *const Obj as *const Str,
                 };
@@ -273,7 +274,7 @@ impl Obj {
         let classptr = self.header().vtbl().classptr;
         let cls = unsafe { &*classptr };
 
-        if let ClassSize::ObjArray = cls.size {
+        if let InstanceSize::ObjArray = cls.size {
             let array = unsafe { &*(self as *const _ as *const StrArray) };
 
             // walk through all objects in array
@@ -303,7 +304,7 @@ impl Obj {
         let classptr = self.header().vtbl().classptr;
         let cls = unsafe { &*classptr };
 
-        if let ClassSize::ObjArray = cls.size {
+        if let InstanceSize::ObjArray = cls.size {
             let array = unsafe { &*(self as *const _ as *const StrArray) };
 
             // walk through all objects in array
@@ -723,7 +724,7 @@ pub fn alloc(vm: &VM, clsid: ClassDefId) -> Ref<Obj> {
     let cls_def = cls_def.read();
 
     let size = match cls_def.size {
-        ClassSize::Fixed(size) => size as usize,
+        InstanceSize::Fixed(size) => size as usize,
         _ => panic!("alloc only supports fix-sized types"),
     };
 
