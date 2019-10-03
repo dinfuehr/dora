@@ -7,6 +7,7 @@ use crate::semck;
 use crate::vm::VM;
 use crate::vm::{FctId, StructId, TraitId};
 use crate::typeparams::{TypeParamId, TypeParams};
+use crate::module::ModuleId;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum BuiltinType {
@@ -44,6 +45,9 @@ pub enum BuiltinType {
 
     // some trait
     Trait(TraitId),
+
+    // some module
+    Module(ModuleId),
 
     // some type variable
     FctTypeParam(FctId, TypeParamId),
@@ -220,6 +224,11 @@ impl BuiltinType {
                     format!("{}[{}]", base, params)
                 }
             }
+            BuiltinType::Module(id) => {
+                let modu = vm.modules.idx(id);
+                let modu = modu.read();
+                vm.interner.str(modu.name).to_string()
+            }
             BuiltinType::Struct(sid, list_id) => {
                 let struc = vm.structs.idx(sid);
                 let struc = struc.lock();
@@ -291,6 +300,7 @@ impl BuiltinType {
             BuiltinType::Class(_, _) => {
                 *self == other || other.is_nil() || other.subclass_from(vm, *self)
             }
+            BuiltinType::Module(_) => *self == other,
             BuiltinType::Trait(_) => unimplemented!(),
 
             BuiltinType::ClassTypeParam(_, _) => *self == other,
@@ -326,7 +336,7 @@ impl BuiltinType {
             BuiltinType::Double => 8,
             BuiltinType::Nil => panic!("no size for nil."),
             BuiltinType::This => panic!("no size for Self."),
-            BuiltinType::Class(_, _) | BuiltinType::Lambda(_) | BuiltinType::Ptr => {
+            BuiltinType::Class(_, _) | BuiltinType::Module(_) | BuiltinType::Lambda(_) | BuiltinType::Ptr => {
                 mem::ptr_width()
             }
             BuiltinType::Struct(sid, list_id) => {
@@ -357,7 +367,7 @@ impl BuiltinType {
             BuiltinType::Double => 8,
             BuiltinType::Nil => panic!("no alignment for nil."),
             BuiltinType::This => panic!("no alignment for Self."),
-            BuiltinType::Class(_, _) | BuiltinType::Lambda(_) | BuiltinType::Ptr => {
+            BuiltinType::Class(_, _) | BuiltinType::Module(_) | BuiltinType::Lambda(_) | BuiltinType::Ptr => {
                 mem::ptr_width()
             }
             BuiltinType::Struct(sid, list_id) => {
@@ -388,7 +398,7 @@ impl BuiltinType {
             BuiltinType::Double => MachineMode::Float64,
             BuiltinType::Nil => panic!("no machine mode for nil."),
             BuiltinType::This => panic!("no machine mode for Self."),
-            BuiltinType::Class(_, _) | BuiltinType::Lambda(_) | BuiltinType::Ptr => {
+            BuiltinType::Class(_, _) | BuiltinType::Module(_) | BuiltinType::Lambda(_) | BuiltinType::Ptr => {
                 MachineMode::Ptr
             }
             BuiltinType::Struct(_, _) => panic!("no machine mode for struct."),

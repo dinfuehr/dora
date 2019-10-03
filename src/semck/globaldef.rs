@@ -5,9 +5,10 @@ use std::sync::Arc;
 use crate::class::{self, ClassId};
 use crate::error::msg::SemError;
 use crate::gc::Address;
-use crate::sym::Sym::{self, SymClass, SymConst, SymFct, SymGlobal, SymStruct, SymTrait};
+use crate::module::ModuleId;
+use crate::sym::Sym::{self, SymClass, SymConst, SymFct, SymGlobal, SymStruct, SymTrait, SymModule};
 use crate::ty::BuiltinType;
-use crate::vm;
+use crate::{vm, module};
 use crate::vm::*;
 use dora_parser::ast::visit::*;
 use dora_parser::ast::*;
@@ -20,6 +21,7 @@ pub fn check<'ast>(
     map_struct_defs: &mut NodeMap<StructId>,
     map_trait_defs: &mut NodeMap<TraitId>,
     map_impl_defs: &mut NodeMap<ImplId>,
+    map_module_defs: &mut NodeMap<ModuleId>,
     map_global_defs: &mut NodeMap<GlobalId>,
     map_const_defs: &mut NodeMap<ConstId>,
 ) {
@@ -31,6 +33,7 @@ pub fn check<'ast>(
         map_struct_defs: map_struct_defs,
         map_trait_defs: map_trait_defs,
         map_impl_defs: map_impl_defs,
+        map_module_defs: map_module_defs,
         map_global_defs: map_global_defs,
         map_const_defs: map_const_defs,
     };
@@ -45,6 +48,7 @@ struct GlobalDef<'x, 'ast: 'x> {
     map_struct_defs: &'x mut NodeMap<StructId>,
     map_trait_defs: &'x mut NodeMap<TraitId>,
     map_impl_defs: &'x mut NodeMap<ImplId>,
+    map_module_defs: &'x mut NodeMap<ModuleId>,
     map_global_defs: &'x mut NodeMap<GlobalId>,
     map_const_defs: &'x mut NodeMap<ConstId>,
 }
@@ -197,6 +201,47 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
         if let Some(sym) = self.vm.sym.lock().insert(c.name, sym) {
             report(self.vm, c.name, self.file_id.into(), c.pos, sym);
+        }
+    }
+
+    fn visit_module(&mut self, m: &'ast Module) {
+        let id = {
+            let mut modules = self.vm.modules.lock();
+
+            let id: ModuleId = modules.len().into();
+            let module = module::Module {
+                id: id,
+                name: m.name,
+                file: self.file_id.into(),
+                pos: m.pos,
+                ty: self.vm.modu(id),
+                parent_class: None,
+                internal: m.internal,
+                internal_resolved: false,
+                has_constructor: m.has_constructor,
+
+                constructor: None,
+                fields: Vec::new(),
+                methods: Vec::new(),
+                virtual_fcts: Vec::new(),
+
+                traits: Vec::new(),
+                impls: Vec::new(),
+
+                type_params: Vec::new(),
+            };
+
+            modules.push(Arc::new(RwLock::new(module)));
+
+            id
+        };
+
+        let sym = SymModule(id);
+
+        self.map_module_defs.insert(m.id, id);
+
+        if let Some(sym) = self.vm.sym.lock().insert(m.name, sym) {
+            report(self.vm, m.name, self.file_id.into(), m.pos, sym);
         }
     }
 

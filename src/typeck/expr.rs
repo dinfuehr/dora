@@ -1841,6 +1841,10 @@ fn arg_allows(
             true
         }
 
+        BuiltinType::Module(_) => {
+            def == arg
+        }
+
         BuiltinType::Lambda(_) => {
             // for now expect the exact same params and return types
             // possible improvement: allow super classes for params,

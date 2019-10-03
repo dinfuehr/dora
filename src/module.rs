@@ -1,13 +1,15 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
-use crate::field::Field;
+use crate::field::{Field, FieldDef};
 use crate::ty::BuiltinType;
 use crate::utils::GrowableVec;
-use crate::vm::{FctId, TraitId, ImplId, TypeParam};
+use crate::vm::{FctId, TraitId, ImplId, TypeParam, VM, FileId};
 
 use dora_parser::lexer::position::Position;
 use dora_parser::interner::Name;
+use crate::vtable::VTableBox;
+use crate::class::ClassSize;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ModuleId(usize);
@@ -41,6 +43,7 @@ pub static DISPLAY_SIZE: usize = 6;
 #[derive(Debug)]
 pub struct Module {
     pub id: ModuleId,
+    pub file: FileId,
     pub pos: Position,
     pub name: Name,
     pub ty: BuiltinType,
@@ -58,4 +61,50 @@ pub struct Module {
     pub impls: Vec<ImplId>,
 
     pub type_params: Vec<TypeParam>,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct ModuleDefId(usize);
+
+impl ModuleDefId {
+    pub fn to_usize(self) -> usize {
+        self.0
+    }
+}
+
+impl From<usize> for ModuleDefId {
+    fn from(data: usize) -> ModuleDefId {
+        ModuleDefId(data)
+    }
+}
+
+impl GrowableVec<RwLock<ModuleDef>> {
+    pub fn idx(&self, index: ModuleDefId) -> Arc<RwLock<ModuleDef>> {
+        self.idx_usize(index.0)
+    }
+}
+
+#[derive(Debug)]
+pub struct ModuleDef {
+    pub id: ModuleDefId,
+    pub mod_id: Option<ModuleId>,
+    pub parent_id: Option<ModuleDefId>,
+    pub fields: Vec<FieldDef>,
+    pub size: ClassSize,
+    pub ref_fields: Vec<i32>,
+    pub vtable: Option<VTableBox>,
+}
+
+impl ModuleDef {
+    pub fn name(&self, vm: &VM) -> String {
+        if let Some(mod_id) = self.mod_id {
+            let modu = vm.modules.idx(mod_id);
+            let modu = modu.read();
+            let name = vm.interner.str(modu.name);
+
+            format!("{}", name)
+        } else {
+            "<Unknown>".into()
+        }
+    }
 }

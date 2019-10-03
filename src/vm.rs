@@ -20,6 +20,7 @@ use crate::error::diag::Diagnostic;
 use crate::exception::DoraToNativeInfo;
 use crate::field::FieldId;
 use crate::gc::{Address, Gc};
+use crate::module::{Module, ModuleDef, ModuleId};
 use crate::object::{Ref, Testing};
 use crate::safepoint::{PollingPage, Safepoint};
 use crate::semck::specialize::{specialize_class_id, specialize_class_id_params};
@@ -89,6 +90,8 @@ pub struct VM<'ast> {
     pub struct_defs: GrowableVec<Mutex<StructDef>>, // stores all struct definitions
     pub classes: GrowableVec<RwLock<Class>>,   // stores all class source definitions
     pub class_defs: GrowableVec<RwLock<ClassDef>>, // stores all class definitions
+    pub modules: GrowableVec<RwLock<Module>>,   // stores all class source definitions
+    pub module_defs: GrowableVec<RwLock<ModuleDef>>, // stores all class definitions
     pub fcts: GrowableVec<RwLock<Fct<'ast>>>,  // stores all function definitions
     pub jit_fcts: GrowableVec<JitFct>,         // stores all function implementations
     pub traits: Vec<RwLock<TraitData>>,        // stores all trait definitions
@@ -118,12 +121,14 @@ impl<'ast> VM<'ast> {
 
         let vm = Box::new(VM {
             args: args,
+            files: Vec::new(),
             consts: GrowableVec::new(),
             structs: GrowableVec::new(),
             struct_defs: GrowableVec::new(),
             classes: GrowableVec::new(),
-            files: Vec::new(),
             class_defs: GrowableVec::new(),
+            modules: GrowableVec::new(),
+            module_defs: GrowableVec::new(),
             traits: Vec::new(),
             impls: Vec::new(),
             globals: GrowableVec::new(),
@@ -360,6 +365,10 @@ impl<'ast> VM<'ast> {
     pub fn cls(&self, cls_id: ClassId) -> BuiltinType {
         let list_id = self.lists.lock().insert(TypeParams::empty());
         BuiltinType::Class(cls_id, list_id)
+    }
+
+    pub fn modu(&self, mod_id: ModuleId) -> BuiltinType {
+        BuiltinType::Module(mod_id)
     }
 
     pub fn dora_entry_thunk(&self) -> Address {

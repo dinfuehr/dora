@@ -6,6 +6,7 @@ use crate::class::ClassId;
 use crate::typeparams::TypeParamId;
 use crate::vm::*;
 use dora_parser::interner::Name;
+use crate::module::ModuleId;
 
 
 #[derive(Debug)]
@@ -101,6 +102,7 @@ pub enum Sym {
     SymFct(FctId),
     SymVar(VarId),
     SymClass(ClassId),
+    SymModule(ModuleId),
     SymStruct(StructId),
     SymTrait(TraitId),
     SymGlobal(GlobalId),

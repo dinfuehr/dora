@@ -2075,6 +2075,7 @@ fn check_for_nil(ty: BuiltinType) -> bool {
         | BuiltinType::Bool => false,
         BuiltinType::Nil | BuiltinType::Ptr => true,
         BuiltinType::Class(_, _) => true,
+        BuiltinType::Module(_) => unreachable!(),
         BuiltinType::Struct(_, _) => false,
         BuiltinType::Trait(_) => false,
         BuiltinType::This => unreachable!(),
