@@ -1,0 +1,60 @@
+name: lint & test
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: ${{ matrix.kind }} ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        os: [ubuntu-16.04, macOS-10.14]
+        kind: ['test', 'lint']
+        exclude:
+          - os: macOS-10.14
+            kind: 'lint'
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
+          submodules: true
+
+      - name: Install rust
+        uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: "nightly"
+
+      - name: Install rustfmt
+        if: matrix.kind == 'lint'
+        run: rustup component add rustfmt
+
+      - name: Install ruby
+        if: matrix.kind == 'test'
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: 2.6.x
+
+      - name: Install capstone (mac)
+        if: startsWith(matrix.os, 'macOS')
+        run: |
+          brew install capstone
+          export DYLD_LIBRARY_PATH=/usr/local/opt/capstone/lib/:$DYLD_LIBRARY_PATH
+
+      - name: Install capstone (linux)
+        if: startsWith(matrix.os, 'ubuntu') && matrix.kind != 'lint'
+        run: sudo apt-get install libcapstone-dev
+
+      - name: Cargo Fmt
+        if: matrix.kind == 'lint'
+        run: cargo fmt -- --check
+
+      - name: Test
+        if: matrix.kind == 'test'
+        run: tools/test
+
+      - name: Test Release
+        if: matrix.kind == 'test'
+        run: tools/test-release
