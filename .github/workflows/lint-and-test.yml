@@ -1,0 +1,64 @@
+name: lint & test
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: ${{ matrix.kind }} ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        os: [ubuntu-16.04]
+        kind: ['test', 'lint']
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
+          submodules: true
+
+      - name: Install rust
+        uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: "nightly"
+
+      - name: Install clippy and rustfmt
+        if: matrix.kind == 'lint'
+        run: |
+          rustup component add clippy --toolchain nightly-2019-09-23-x86_64-unknown-linux-gnu
+          rustup component add rustfmt
+
+      - name: Install ruby
+        if: matrix.kind == 'test'
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: 2.6.x
+
+      - name: Install capstone
+        if: matrix.kind != 'lint'
+        run: |
+          git clone https://github.com/aquynh/capstone
+          (cd capstone && git checkout 3.0.4 && sudo make install)
+
+      - name: Environment (linux)
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          echo ::add-path::`pwd`/prebuilt/linux64
+
+      #- name: Clippy
+      #  if: matrix.kind == 'lint'
+      #  run: cargo clippy --all-targets --release --locked -- -D clippy::all
+
+      - name: Cargo Fmt
+        if: matrix.kind == 'lint'
+        run: cargo fmt -- --check
+
+      - name: Test
+        if: matrix.kind == 'test'
+        run: tools/test
+
+      - name: Test Release
+        if: matrix.kind == 'test'
+        run: tools/test-release
