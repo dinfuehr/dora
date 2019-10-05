@@ -41,7 +41,6 @@ pub enum TokenKind {
     Do,
     Catch,
     Finally,
-    Spawn,
     At,
 
     Enum,
@@ -148,7 +147,6 @@ impl TokenKind {
             TokenKind::Do => "do",
             TokenKind::Catch => "catch",
             TokenKind::Finally => "finally",
-            TokenKind::Spawn => "spawn",
             TokenKind::At => "@",
 
             TokenKind::Enum => "enum",

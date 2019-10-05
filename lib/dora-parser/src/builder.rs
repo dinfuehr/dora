@@ -109,6 +109,7 @@ impl<'a> BuilderFct<'a> {
             name: name,
             reassignable: false,
             pos: Position::new(1, 1),
+            span: Span::invalid(),
             data_type: ty,
         };
 
@@ -140,6 +141,7 @@ impl<'a> BuilderFct<'a> {
         Function {
             id: self.id_generator.next(),
             pos: Position::new(1, 1),
+            span: Span::invalid(),
             name: self.name,
             method: self.is_method,
             has_open: false,

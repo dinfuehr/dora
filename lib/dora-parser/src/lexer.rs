@@ -602,7 +602,6 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("defer", TokenKind::Defer);
     keywords.insert("is", TokenKind::Is);
     keywords.insert("as", TokenKind::As);
-    keywords.insert("spawn", TokenKind::Spawn);
     keywords.insert("const", TokenKind::Const);
 
     keywords
@@ -1050,12 +1049,11 @@ mod tests {
         assert_tok(&mut reader, TokenKind::Trait, 1, 24);
         assert_tok(&mut reader, TokenKind::Const, 1, 30);
 
-        let mut reader = Lexer::from_str("for in impl Self spawn");
+        let mut reader = Lexer::from_str("for in impl Self");
         assert_tok(&mut reader, TokenKind::For, 1, 1);
         assert_tok(&mut reader, TokenKind::In, 1, 5);
         assert_tok(&mut reader, TokenKind::Impl, 1, 8);
         assert_tok(&mut reader, TokenKind::CapitalThis, 1, 13);
-        assert_tok(&mut reader, TokenKind::Spawn, 1, 18);
 
         let mut reader = Lexer::from_str("defer");
         assert_tok(&mut reader, TokenKind::Defer, 1, 1);

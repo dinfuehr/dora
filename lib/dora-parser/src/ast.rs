@@ -171,6 +171,7 @@ impl Elem {
 pub struct Global {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
     pub name: Name,
     pub reassignable: bool,
     pub data_type: Type,
@@ -181,6 +182,7 @@ pub struct Global {
 pub struct Const {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
     pub name: Name,
     pub data_type: Type,
     pub expr: Box<Expr>,
@@ -190,6 +192,7 @@ pub struct Const {
 pub struct Struct {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
     pub name: Name,
     pub fields: Vec<StructField>,
 }
@@ -199,6 +202,7 @@ pub struct StructField {
     pub id: NodeId,
     pub name: Name,
     pub pos: Position,
+    pub span: Span,
     pub data_type: Type,
 }
 
@@ -383,6 +387,7 @@ impl Type {
 pub struct Impl {
     pub id: NodeId,
     pub pos: Position,
+    pub span: Span,
 
     pub type_params: Option<Vec<TypeParam>>,
     pub trait_type: Option<Type>,
@@ -395,6 +400,7 @@ pub struct Trait {
     pub id: NodeId,
     pub name: Name,
     pub pos: Position,
+    pub span: Span,
     pub methods: Vec<Function>,
 }
 
@@ -403,6 +409,7 @@ pub struct Class {
     pub id: NodeId,
     pub name: Name,
     pub pos: Position,
+    pub span: Span,
     pub parent_class: Option<ParentClass>,
     pub has_open: bool,
     pub is_abstract: bool,
@@ -420,6 +427,7 @@ pub struct Class {
 pub struct TypeParam {
     pub name: Name,
     pub pos: Position,
+    pub span: Span,
     pub bounds: Vec<Type>,
 }
 
@@ -427,6 +435,7 @@ pub struct TypeParam {
 pub struct ConstructorParam {
     pub name: Name,
     pub pos: Position,
+    pub span: Span,
     pub data_type: Type,
     pub field: bool,
     pub reassignable: bool,
@@ -436,6 +445,7 @@ pub struct ConstructorParam {
 pub struct ParentClass {
     pub name: Name,
     pub pos: Position,
+    pub span: Span,
     pub type_params: Option<Vec<TypeParam>>,
     pub params: Vec<Box<Expr>>,
 }
@@ -444,12 +454,14 @@ impl ParentClass {
     pub fn new(
         name: Name,
         pos: Position,
+        span: Span,
         type_params: Option<Vec<TypeParam>>,
         params: Vec<Box<Expr>>,
     ) -> ParentClass {
         ParentClass {
             name: name,
             pos: pos,
+            span: span,
             type_params: type_params,
             params: params,
         }
@@ -461,6 +473,7 @@ pub struct Field {
     pub id: NodeId,
     pub name: Name,
     pub pos: Position,
+    pub span: Span,
     pub data_type: Type,
     pub primary_ctor: bool,
     pub expr: Option<Box<Expr>>,
@@ -472,6 +485,7 @@ pub struct Function {
     pub id: NodeId,
     pub name: Name,
     pub pos: Position,
+    pub span: Span,
     pub method: bool,
     pub has_open: bool,
     pub has_override: bool,
@@ -509,10 +523,11 @@ impl Modifiers {
         self.0.iter().find(|el| el.value == modifier).is_some()
     }
 
-    pub fn add(&mut self, modifier: Modifier, pos: Position) {
+    pub fn add(&mut self, modifier: Modifier, pos: Position, span: Span) {
         self.0.push(ModifierElement {
             value: modifier,
             pos: pos,
+            span: span,
         });
     }
 
@@ -525,6 +540,7 @@ impl Modifiers {
 pub struct ModifierElement {
     pub value: Modifier,
     pub pos: Position,
+    pub span: Span,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -561,6 +577,7 @@ pub struct Param {
     pub reassignable: bool,
     pub name: Name,
     pub pos: Position,
+    pub span: Span,
     pub data_type: Type,
 }
 
@@ -578,7 +595,6 @@ pub enum Stmt {
     StmtThrow(StmtThrowType),
     StmtDefer(StmtDeferType),
     StmtDo(StmtDoType),
-    StmtSpawn(StmtSpawnType),
     StmtFor(StmtForType),
 }
 
@@ -586,6 +602,7 @@ impl Stmt {
     pub fn create_var(
         id: NodeId,
         pos: Position,
+        span: Span,
         name: Name,
         reassignable: bool,
         data_type: Option<Type>,
@@ -594,7 +611,7 @@ impl Stmt {
         Stmt::StmtVar(StmtVarType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             name: name,
             reassignable: reassignable,
@@ -606,6 +623,7 @@ impl Stmt {
     pub fn create_for(
         id: NodeId,
         pos: Position,
+        span: Span,
         name: Name,
         expr: Box<Expr>,
         block: Box<Stmt>,
@@ -613,7 +631,7 @@ impl Stmt {
         Stmt::StmtFor(StmtForType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             name: name,
             expr: expr,
@@ -621,22 +639,28 @@ impl Stmt {
         })
     }
 
-    pub fn create_while(id: NodeId, pos: Position, cond: Box<Expr>, block: Box<Stmt>) -> Stmt {
+    pub fn create_while(
+        id: NodeId,
+        pos: Position,
+        span: Span,
+        cond: Box<Expr>,
+        block: Box<Stmt>,
+    ) -> Stmt {
         Stmt::StmtWhile(StmtWhileType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             cond: cond,
             block: block,
         })
     }
 
-    pub fn create_loop(id: NodeId, pos: Position, block: Box<Stmt>) -> Stmt {
+    pub fn create_loop(id: NodeId, pos: Position, span: Span, block: Box<Stmt>) -> Stmt {
         Stmt::StmtLoop(StmtLoopType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             block: block,
         })
@@ -645,6 +669,7 @@ impl Stmt {
     pub fn create_if(
         id: NodeId,
         pos: Position,
+        span: Span,
         cond: Box<Expr>,
         then_block: Box<Stmt>,
         else_block: Option<Box<Stmt>>,
@@ -652,7 +677,7 @@ impl Stmt {
         Stmt::StmtIf(StmtIfType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             cond: cond,
             then_block: then_block,
@@ -660,67 +685,67 @@ impl Stmt {
         })
     }
 
-    pub fn create_expr(id: NodeId, pos: Position, expr: Box<Expr>) -> Stmt {
+    pub fn create_expr(id: NodeId, pos: Position, span: Span, expr: Box<Expr>) -> Stmt {
         Stmt::StmtExpr(StmtExprType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             expr: expr,
         })
     }
 
-    pub fn create_block(id: NodeId, pos: Position, stmts: Vec<Box<Stmt>>) -> Stmt {
+    pub fn create_block(id: NodeId, pos: Position, span: Span, stmts: Vec<Box<Stmt>>) -> Stmt {
         Stmt::StmtBlock(StmtBlockType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             stmts: stmts,
         })
     }
 
-    pub fn create_break(id: NodeId, pos: Position) -> Stmt {
+    pub fn create_break(id: NodeId, pos: Position, span: Span) -> Stmt {
         Stmt::StmtBreak(StmtBreakType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
         })
     }
 
-    pub fn create_continue(id: NodeId, pos: Position) -> Stmt {
+    pub fn create_continue(id: NodeId, pos: Position, span: Span) -> Stmt {
         Stmt::StmtContinue(StmtContinueType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
         })
     }
 
-    pub fn create_return(id: NodeId, pos: Position, expr: Option<Box<Expr>>) -> Stmt {
+    pub fn create_return(id: NodeId, pos: Position, span: Span, expr: Option<Box<Expr>>) -> Stmt {
         Stmt::StmtReturn(StmtReturnType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             expr: expr,
         })
     }
 
-    pub fn create_throw(id: NodeId, pos: Position, expr: Box<Expr>) -> Stmt {
+    pub fn create_throw(id: NodeId, pos: Position, span: Span, expr: Box<Expr>) -> Stmt {
         Stmt::StmtThrow(StmtThrowType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             expr: expr,
         })
     }
 
-    pub fn create_defer(id: NodeId, pos: Position, expr: Box<Expr>) -> Stmt {
+    pub fn create_defer(id: NodeId, pos: Position, span: Span, expr: Box<Expr>) -> Stmt {
         Stmt::StmtDefer(StmtDeferType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             expr: expr,
         })
@@ -729,6 +754,7 @@ impl Stmt {
     pub fn create_do(
         id: NodeId,
         pos: Position,
+        span: Span,
         do_block: Box<Stmt>,
         catch_blocks: Vec<CatchBlock>,
         finally_block: Option<FinallyBlock>,
@@ -736,21 +762,11 @@ impl Stmt {
         Stmt::StmtDo(StmtDoType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             do_block: do_block,
             catch_blocks: catch_blocks,
             finally_block: finally_block,
-        })
-    }
-
-    pub fn create_spawn(id: NodeId, pos: Position, expr: Box<Expr>) -> Stmt {
-        Stmt::StmtSpawn(StmtSpawnType {
-            id: id,
-            pos: pos,
-            span: Span::invalid(),
-
-            expr: expr,
         })
     }
 
@@ -769,7 +785,6 @@ impl Stmt {
             Stmt::StmtThrow(ref stmt) => stmt.id,
             Stmt::StmtDefer(ref stmt) => stmt.id,
             Stmt::StmtDo(ref stmt) => stmt.id,
-            Stmt::StmtSpawn(ref stmt) => stmt.id,
         }
     }
 
@@ -788,7 +803,6 @@ impl Stmt {
             Stmt::StmtThrow(ref stmt) => stmt.pos,
             Stmt::StmtDefer(ref stmt) => stmt.pos,
             Stmt::StmtDo(ref stmt) => stmt.pos,
-            Stmt::StmtSpawn(ref stmt) => stmt.pos,
         }
     }
 
@@ -807,7 +821,6 @@ impl Stmt {
             Stmt::StmtThrow(ref stmt) => stmt.span,
             Stmt::StmtDefer(ref stmt) => stmt.span,
             Stmt::StmtDo(ref stmt) => stmt.span,
-            Stmt::StmtSpawn(ref stmt) => stmt.span,
         }
     }
 
@@ -992,20 +1005,6 @@ impl Stmt {
             _ => false,
         }
     }
-
-    pub fn to_spawn(&self) -> Option<&StmtSpawnType> {
-        match *self {
-            Stmt::StmtSpawn(ref val) => Some(val),
-            _ => None,
-        }
-    }
-
-    pub fn is_spawn(&self) -> bool {
-        match *self {
-            Stmt::StmtSpawn(_) => true,
-            _ => false,
-        }
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -1133,15 +1132,6 @@ pub struct StmtDoType {
 }
 
 #[derive(Clone, Debug)]
-pub struct StmtSpawnType {
-    pub id: NodeId,
-    pub pos: Position,
-    pub span: Span,
-
-    pub expr: Box<Expr>,
-}
-
-#[derive(Clone, Debug)]
 pub struct CatchBlock {
     pub id: NodeId,
     pub name: Name,
@@ -1157,6 +1147,7 @@ impl CatchBlock {
         id: NodeId,
         name: Name,
         pos: Position,
+        span: Span,
         data_type: Type,
         block: Box<Stmt>,
     ) -> CatchBlock {
@@ -1164,7 +1155,7 @@ impl CatchBlock {
             id: id,
             name: name,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             data_type: data_type,
             block: block,
@@ -1338,6 +1329,7 @@ impl Expr {
     pub fn create_bin(
         id: NodeId,
         pos: Position,
+        span: Span,
         op: BinOp,
         lhs: Box<Expr>,
         rhs: Box<Expr>,
@@ -1345,7 +1337,7 @@ impl Expr {
         Expr::ExprBin(ExprBinType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             op: op,
             lhs: lhs,
@@ -1356,6 +1348,7 @@ impl Expr {
     pub fn create_conv(
         id: NodeId,
         pos: Position,
+        span: Span,
         object: Box<Expr>,
         data_type: Box<Type>,
         is: bool,
@@ -1363,7 +1356,7 @@ impl Expr {
         Expr::ExprConv(ExprConvType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             object: object,
             data_type: data_type,
@@ -1541,13 +1534,14 @@ impl Expr {
     pub fn create_delegation(
         id: NodeId,
         pos: Position,
+        span: Span,
         ty: DelegationType,
         args: Vec<Box<Expr>>,
     ) -> Expr {
         Expr::ExprDelegation(ExprDelegationType {
             id: id,
             pos: pos,
-            span: Span::invalid(),
+            span: span,
 
             ty: ty,
             args: args,
@@ -1937,14 +1931,6 @@ impl Expr {
             Expr::ExprLambda(ref val) => val.id,
         }
     }
-}
-
-#[derive(Clone, Debug)]
-pub struct StructArg {
-    pub id: NodeId,
-    pub pos: Position,
-    pub name: Name,
-    pub expr: Box<Expr>,
 }
 
 #[derive(Clone, Debug)]
