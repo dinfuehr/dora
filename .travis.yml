@@ -6,10 +6,7 @@ addons:
   apt:
     packages:
     - ruby
-
-install:
-  - git clone https://github.com/aquynh/capstone
-  - (cd capstone && git checkout 3.0.4 && sudo make install)
+    - libcapstone-dev
 
 before_script:
   - rustup component add rustfmt
