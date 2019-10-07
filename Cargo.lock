@@ -148,7 +148,7 @@ dependencies = [
  "capstone 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "crossbeam-deque 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "docopt 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "dora-parser 0.1.0",
+ "dora-parser 0.0.1",
  "fixedbitset 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.62 (registry+https://github.com/rust-lang/crates.io-index)",
  "num_cpus 1.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -163,7 +163,7 @@ dependencies = [
 
 [[package]]
 name = "dora-parser"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "parking_lot 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

@@ -2,6 +2,9 @@
 name = "dora"
 version = "0.0.1"
 authors = ["Dominik Inführ <dominik.infuehr@gmail.com>"]
+description = "The Dora programming language"
+homepage = "https://github.com/dinfuehr/dora"
+repository = "https://github.com/dinfuehr/dora"
 edition = "2018"
 
 [dependencies]
