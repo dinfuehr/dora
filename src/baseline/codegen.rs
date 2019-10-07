@@ -7,7 +7,7 @@ use std::io::{self, BufWriter, Write};
 use std::slice;
 use std::sync::Arc;
 
-use capstone::{Engine, Error};
+use capstone::prelude::*;
 
 use crate::baseline::asm::BaselineAssembler;
 use crate::baseline::ast::{generate_info, AstCodeGen, JitInfo};
@@ -167,17 +167,22 @@ pub fn generate_fct<'ast>(
 }
 
 #[cfg(target_arch = "x86_64")]
-fn get_engine() -> Result<Engine, Error> {
-    use capstone::{Arch, MODE_64};
+fn get_engine(asm_syntax: AsmSyntax) -> CsResult<Capstone> {
+    let arch_syntax = match asm_syntax {
+        AsmSyntax::Intel => arch::x86::ArchSyntax::Intel,
+        AsmSyntax::Att => arch::x86::ArchSyntax::Att,
+    };
 
-    Engine::new(Arch::X86, MODE_64)
+    Capstone::new()
+        .x86()
+        .mode(arch::x86::ArchMode::Mode64)
+        .syntax(arch_syntax)
+        .build()
 }
 
 #[cfg(target_arch = "aarch64")]
-fn get_engine() -> Result<Engine, Error> {
-    use capstone::{Arch, MODE_ARM};
-
-    Engine::new(Arch::Arm64, MODE_ARM)
+fn get_engine(asm_syntax: AsmSyntax) -> CsResult {
+    unimplemented!()
 }
 
 pub fn dump_asm<'ast>(
@@ -187,20 +192,10 @@ pub fn dump_asm<'ast>(
     fct_src: Option<&FctSrc>,
     asm_syntax: AsmSyntax,
 ) {
-    use capstone::*;
-
     let buf: &[u8] =
         unsafe { slice::from_raw_parts(jit_fct.fct_ptr().to_ptr(), jit_fct.fct_len()) };
 
-    let asm_syntax = match asm_syntax {
-        AsmSyntax::Intel => 1,
-        AsmSyntax::Att => 2,
-    };
-
-    let engine = get_engine().expect("cannot create capstone engine");
-    if let Err(_) = engine.set_option(Opt::Syntax, asm_syntax) {
-        panic!("capstone: syntax couldn't be set");
-    }
+    let engine = get_engine(asm_syntax).expect("cannot create capstone engine");
 
     let mut w: Box<dyn Write> = if vm.args.flag_emit_asm_file {
         let pid = unsafe { libc::getpid() };
@@ -220,7 +215,7 @@ pub fn dump_asm<'ast>(
     let end_addr = jit_fct.fct_end().to_usize() as u64;
 
     let instrs = engine
-        .disasm(buf, start_addr, jit_fct.fct_len())
+        .disasm_all(buf, start_addr)
         .expect("could not disassemble code");
 
     let name = fct.full_name(vm);
@@ -238,8 +233,8 @@ pub fn dump_asm<'ast>(
         }
     }
 
-    for instr in instrs {
-        let addr = (instr.addr - start_addr) as i32;
+    for instr in instrs.iter() {
+        let addr = (instr.address() - start_addr) as i32;
 
         if let Some(gc_point) = jit_fct.gcpoint_for_offset(addr) {
             write!(&mut w, "\t\t  ; gc point = (").unwrap();
@@ -281,7 +276,9 @@ pub fn dump_asm<'ast>(
         writeln!(
             &mut w,
             "  {:#06x}: {}\t\t{}",
-            instr.addr, instr.mnemonic, instr.op_str
+            instr.address(),
+            instr.mnemonic().expect("no mnmemonic found"),
+            instr.op_str().expect("no op_str found"),
         )
         .unwrap();
     }

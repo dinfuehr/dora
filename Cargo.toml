@@ -10,6 +10,7 @@ docopt = "0.7"
 byteorder = "*"
 libc = "*"
 time = "*"
+capstone = "*"
 dora-parser = { path = "lib/dora-parser" }
 threadpool = "*"
 crossbeam-deque = "*"
@@ -20,9 +21,6 @@ parking_lot = "*"
 fixedbitset = "*"
 num_cpus = "*"
 backtrace = "*"
-
-[dependencies.capstone]
-git = "https://github.com/ebfe/rust-capstone.git"
 
 [profile.release]
 panic = "abort"
