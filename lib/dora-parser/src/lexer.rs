@@ -192,6 +192,7 @@ impl Lexer {
                     '\"' => Ok('\"'),
                     '\'' => Ok('\''),
                     '0' => Ok('\0'),
+                    '$' => Ok('$'),
                     _ => {
                         let msg = ParseError::InvalidEscapeSequence(ch);
                         Err(ParseErrorAndPos::new(pos, msg))
@@ -969,6 +970,9 @@ mod tests {
     fn test_escape_sequences() {
         let mut reader = Lexer::from_str("\"\\\"\"");
         assert_tok(&mut reader, TokenKind::StringTail("\"".into()), 1, 1);
+
+        let mut reader = Lexer::from_str("\"\\$\"");
+        assert_tok(&mut reader, TokenKind::StringTail("$".into()), 1, 1);
 
         let mut reader = Lexer::from_str("\"\\\'\"");
         assert_tok(&mut reader, TokenKind::StringTail("'".into()), 1, 1);

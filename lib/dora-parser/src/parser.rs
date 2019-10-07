@@ -3198,6 +3198,9 @@ mod tests {
         assert_eq!("b".to_string(), tmpl.parts[2].to_lit_str().unwrap().value);
         assert_eq!(2, tmpl.parts[3].to_lit_int().unwrap().value);
         assert_eq!("c".to_string(), tmpl.parts[4].to_lit_str().unwrap().value);
+
+        let (expr, _) = parse_expr("\"a\\${1}b\"");
+        assert!(expr.is_lit_str());
     }
 
     #[test]
