@@ -1699,3 +1699,15 @@ fn test_template() {
         SemError::ExpectedStringable("Foo".into()),
     );
 }
+
+#[test]
+fn test_trait_object_as_argument() {
+    ok("trait Foo { fun bar() -> Int; }
+        fun f(x: Foo) -> Int { return x.bar(); }");
+    err(
+        "trait Foo { fun baz(); }
+        fun f(x: Foo) -> String { return x.baz(); }",
+        pos(2, 35),
+        SemError::ReturnType("String".into(), "()".into()),
+    );
+}

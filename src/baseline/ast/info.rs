@@ -435,6 +435,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
                 fct_id = fid;
             }
+
+            CallType::Trait(_, _) => unimplemented!(),
         }
 
         let fct = self.vm.fcts.idx(fct_id);
@@ -632,6 +634,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 cls_type_params = ty.type_params(self.vm);
                 fct_type_params = TypeParams::empty();
             }
+
+            CallType::Trait(_, _) => unimplemented!(),
         }
 
         (cls_type_params, fct_type_params)
@@ -908,6 +912,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             CallType::Ctor(_, _, ref type_params) | CallType::CtorNew(_, _, ref type_params) => {
                 specialize_type(self.vm, ty, type_params, &TypeParams::empty())
             }
+
+            CallType::Trait(_, _) => unimplemented!(),
         };
 
         self.specialize_type(ty)

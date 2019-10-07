@@ -41,7 +41,7 @@ pub enum BuiltinType {
     // some struct
     Struct(StructId, TypeListId),
 
-    // some trait
+    // some trait object
     Trait(TraitId),
 
     // some type variable
@@ -336,7 +336,7 @@ impl BuiltinType {
 
                 struc.size
             }
-            BuiltinType::Trait(_) => 2 * mem::ptr_width(),
+            BuiltinType::Trait(_) => mem::ptr_width(),
             BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_, _) => {
                 panic!("no size for type variable.")
             }
@@ -391,7 +391,7 @@ impl BuiltinType {
                 MachineMode::Ptr
             }
             BuiltinType::Struct(_, _) => panic!("no machine mode for struct."),
-            BuiltinType::Trait(_) => unimplemented!(),
+            BuiltinType::Trait(_) => MachineMode::Ptr,
             BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_, _) => {
                 panic!("no machine mode for type variable.")
             }

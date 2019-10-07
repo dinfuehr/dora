@@ -112,10 +112,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let next_name = self.vm.interner.intern("next");
                 let trai = self.vm.traits[iterator_trait_id].read();
                 let next_id = trai
-                    .find_method(self.vm, false, next_name, None, &[])
+                    .find_method_with_replace(self.vm, false, next_name, None, &[])
                     .expect("next() not found");
                 let has_next_id = trai
-                    .find_method(self.vm, false, has_next_name, None, &[])
+                    .find_method_with_replace(self.vm, false, has_next_name, None, &[])
                     .expect("hasNext() not found");
 
                 // find impl for ret that implements Iterator
@@ -1009,7 +1009,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let fct_id = lookup.found_fct_id().unwrap();
             let return_type = lookup.found_ret().unwrap();
 
-            let call_type = CallType::Method(object_type, fct_id, type_params.clone());
+            let call_type = if let BuiltinType::Trait(trait_id) = object_type {
+                CallType::Trait(trait_id, fct_id)
+            } else {
+                CallType::Method(object_type, fct_id, type_params.clone())
+            };
+
             self.src
                 .map_calls
                 .insert_or_replace(e.id, Arc::new(call_type));
@@ -1125,7 +1130,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         for &trait_id in &tp.trait_bounds {
             let trai = self.vm.traits[trait_id].read();
 
-            if let Some(fid) = trai.find_method(self.vm, false, name, None, args) {
+            if let Some(fid) = trai.find_method_with_replace(self.vm, false, name, None, args) {
                 found_fcts.push(fid);
             }
         }

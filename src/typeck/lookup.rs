@@ -14,6 +14,7 @@ enum LookupKind {
     Fct,
     Method(BuiltinType),
     Static(ClassId),
+    Trait(TraitId),
     Callee(FctId),
     Ctor(ClassId),
 }
@@ -68,7 +69,16 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
     }
 
     pub fn method(mut self, obj: BuiltinType) -> MethodLookup<'a, 'ast> {
-        self.kind = Some(LookupKind::Method(obj));
+        self.kind = if let Some(_) = obj.cls_id(self.vm) {
+            Some(LookupKind::Method(obj))
+        } else if let BuiltinType::Trait(trait_id) = obj {
+            Some(LookupKind::Trait(trait_id))
+        } else if obj.is_nil() {
+            Some(LookupKind::Method(obj))
+        } else {
+            panic!("neither object nor trait object");
+        };
+
         self
     }
 
@@ -134,6 +144,11 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                 }
             }
 
+            LookupKind::Trait(trait_id) => {
+                let name = self.name.expect("name not set");
+                self.find_method_in_trait(trait_id, name, false)
+            }
+
             LookupKind::Static(cls_id) => {
                 assert!(self.cls_tps.is_none());
                 let name = self.name.expect("name not set");
@@ -177,6 +192,13 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                     } else {
                         SemError::UnknownMethod(type_name, name, param_names)
                     }
+                }
+
+                LookupKind::Trait(trait_id) => {
+                    let xtrait = &self.vm.traits[trait_id];
+                    let xtrait = xtrait.read();
+                    let type_name = self.vm.interner.str(xtrait.name).to_string();
+                    SemError::UnknownMethod(type_name, name, param_names)
                 }
 
                 LookupKind::Static(cls_id) => {
@@ -320,6 +342,18 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         } else {
             None
         }
+    }
+
+    fn find_method_in_trait(
+        &mut self,
+        trait_id: TraitId,
+        name: Name,
+        is_static: bool,
+    ) -> Option<FctId> {
+        let xtrait = &self.vm.traits[trait_id];
+        let xtrait = xtrait.read();
+
+        xtrait.find_method(self.vm, name, is_static)
     }
 
     fn check_cls_tps(&self, tps: &TypeParams) -> bool {

@@ -20,7 +20,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
             let method = vm.fcts.idx(method_id);
             let mut method = method.write();
 
-            if let Some(fid) = xtrait.find_method(
+            if let Some(fid) = xtrait.find_method_with_replace(
                 vm,
                 method.is_static,
                 method.name,

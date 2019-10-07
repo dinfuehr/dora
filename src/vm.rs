@@ -557,7 +557,20 @@ pub struct TraitData {
 }
 
 impl TraitData {
-    pub fn find_method(
+    pub fn find_method(&self, vm: &VM, name: Name, is_static: bool) -> Option<FctId> {
+        for &method in &self.methods {
+            let method = vm.fcts.idx(method);
+            let method = method.read();
+
+            if method.name == name && method.is_static == is_static {
+                return Some(method.id);
+            }
+        }
+
+        None
+    }
+
+    pub fn find_method_with_replace(
         &self,
         vm: &VM,
         is_static: bool,
@@ -1377,6 +1390,7 @@ pub enum CallType {
     CtorNew(ClassId, FctId, TypeParams),
     Ctor(ClassId, FctId, TypeParams),
     Expr(BuiltinType, FctId),
+    Trait(TraitId, FctId),
 }
 
 impl CallType {
@@ -1415,6 +1429,7 @@ impl CallType {
             CallType::CtorNew(_, fctid, _) => fctid,
             CallType::Ctor(_, fctid, _) => fctid,
             CallType::Expr(_, fctid) => fctid,
+            CallType::Trait(_, fctid) => fctid,
         }
     }
 }
