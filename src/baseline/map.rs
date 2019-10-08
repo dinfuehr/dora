@@ -117,10 +117,7 @@ impl CodeSpan {
     fn new(start: Address, end: Address) -> CodeSpan {
         assert!(start < end);
 
-        CodeSpan {
-            start,
-            end,
-        }
+        CodeSpan { start, end }
     }
 }
 

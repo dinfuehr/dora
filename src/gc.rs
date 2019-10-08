@@ -362,10 +362,7 @@ impl Region {
     pub fn new(start: Address, end: Address) -> Region {
         debug_assert!(start <= end);
 
-        Region {
-            start,
-            end,
-        }
+        Region { start, end }
     }
 
     #[inline(always)]

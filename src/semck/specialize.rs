@@ -118,10 +118,7 @@ fn create_specialized_struct(vm: &VM, struc: &StructData, type_params: TypeParam
         let field_align = ty.align(vm);
 
         let offset = mem::align_i32(size, field_align);
-        fields.push(StructFieldDef {
-            offset,
-            ty,
-        });
+        fields.push(StructFieldDef { offset, ty });
 
         size = offset + field_size;
         align = max(align, field_align);
@@ -252,10 +249,7 @@ fn create_specialized_class(vm: &VM, cls: &class::Class, type_params: &TypeParam
             let field_align = ty.align(vm);
 
             let offset = mem::align_i32(csize, field_align);
-            fields.push(FieldDef {
-                offset,
-                ty,
-            });
+            fields.push(FieldDef { offset, ty });
 
             csize = offset + field_size;
 

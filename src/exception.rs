@@ -25,10 +25,7 @@ impl Stacktrace {
     }
 
     pub fn push_entry(&mut self, fct_id: JitFctId, lineno: i32) {
-        self.elems.push(StackElem {
-            fct_id,
-            lineno,
-        });
+        self.elems.push(StackElem { fct_id, lineno });
     }
 
     pub fn dump(&self, vm: &VM) {

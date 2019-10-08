@@ -20,10 +20,7 @@ pub struct LoopLabels {
 
 impl LoopLabels {
     fn new(cond: Label, end: Label) -> LoopLabels {
-        LoopLabels {
-            cond,
-            end,
-        }
+        LoopLabels { cond, end }
     }
 }
 
