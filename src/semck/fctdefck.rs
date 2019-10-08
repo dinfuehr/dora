@@ -182,10 +182,10 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
         let mut src = src.write();
 
         let mut defck = FctDefCheck {
-            vm: vm,
+            vm,
             fct: &*fct,
             src: &mut src,
-            ast: ast,
+            ast,
             current_type: BuiltinType::Unit,
         };
 

@@ -49,22 +49,22 @@ impl<'a, 'ast> FullSweepCollector<'a, 'ast> {
         max_heap_size: usize,
     ) -> FullSweepCollector<'a, 'ast> {
         FullSweepCollector {
-            vm: vm,
-            heap: heap,
+            vm,
+            heap,
 
-            young: young,
-            old: old,
+            young,
+            old,
             old_prot: old.protected(),
-            large_space: large_space,
-            card_table: card_table,
-            crossing_map: crossing_map,
-            perm_space: perm_space,
+            large_space,
+            card_table,
+            crossing_map,
+            perm_space,
 
-            rootset: rootset,
-            reason: reason,
+            rootset,
+            reason,
 
-            min_heap_size: min_heap_size,
-            max_heap_size: max_heap_size,
+            min_heap_size,
+            max_heap_size,
         }
     }
 

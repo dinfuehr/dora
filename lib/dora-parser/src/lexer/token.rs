@@ -232,7 +232,7 @@ impl Token {
         Token {
             kind: tok,
             position: pos,
-            span: span,
+            span,
         }
     }
 

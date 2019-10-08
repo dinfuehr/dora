@@ -7,10 +7,10 @@ use dora_parser::ast::{self, Ast};
 
 pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_trait_defs: &NodeMap<TraitId>) {
     let mut clsck = TraitCheck {
-        vm: vm,
-        ast: ast,
+        vm,
+        ast,
         trait_id: None,
-        map_trait_defs: map_trait_defs,
+        map_trait_defs,
         file_id: 0,
     };
 

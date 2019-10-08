@@ -1609,7 +1609,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             e.id,
             ConvInfo {
                 cls_id: check_type.cls_id(self.vm).unwrap(),
-                valid: valid,
+                valid,
             },
         );
 

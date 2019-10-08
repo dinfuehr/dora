@@ -65,24 +65,24 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
         max_heap_size: usize,
     ) -> ParallelFullCollector<'a, 'ast> {
         ParallelFullCollector {
-            vm: vm,
-            heap: heap,
-            young: young,
-            old: old,
+            vm,
+            heap,
+            young,
+            old,
             old_protected: old.protected(),
-            large_space: large_space,
-            rootset: rootset,
-            card_table: card_table,
-            crossing_map: crossing_map,
-            perm_space: perm_space,
+            large_space,
+            rootset,
+            card_table,
+            crossing_map,
+            perm_space,
 
             old_total: old.total(),
 
-            reason: reason,
-            number_workers: number_workers,
+            reason,
+            number_workers,
 
-            min_heap_size: min_heap_size,
-            max_heap_size: max_heap_size,
+            min_heap_size,
+            max_heap_size,
 
             units: Vec::new(),
             young_units: Vec::new(),
@@ -885,7 +885,7 @@ struct Unit {
 impl Unit {
     fn old(region: Region) -> Unit {
         Unit {
-            region: region,
+            region,
             live: 0,
             young: false,
         }
@@ -893,7 +893,7 @@ impl Unit {
 
     fn young(region: Region) -> Unit {
         Unit {
-            region: region,
+            region,
             live: 0,
             young: true,
         }
@@ -937,14 +937,14 @@ impl CollectRegion {
         mapping: Region,
     ) -> CollectRegion {
         CollectRegion {
-            start_idx: start_idx,
-            units: units,
+            start_idx,
+            units,
             young_units: Vec::new(),
             young_live: 0,
-            slide_start: slide_start,
-            span: span,
-            compact: compact,
-            mapping: mapping,
+            slide_start,
+            span,
+            compact,
+            mapping,
         }
     }
 

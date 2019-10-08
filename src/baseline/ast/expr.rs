@@ -59,17 +59,17 @@ where
         fct_type_params: &'a TypeParams,
     ) -> ExprGen<'a, 'b, 'ast> {
         ExprGen {
-            vm: vm,
-            fct: fct,
-            src: src,
-            ast: ast,
-            asm: asm,
+            vm,
+            fct,
+            src,
+            ast,
+            asm,
             tempsize: 0,
-            scopes: scopes,
+            scopes,
             temps: TempOffsets::new(),
-            jit_info: jit_info,
-            cls_type_params: cls_type_params,
-            fct_type_params: fct_type_params,
+            jit_info,
+            cls_type_params,
+            fct_type_params,
         }
     }
 
@@ -975,7 +975,7 @@ where
 
                 FctKind::Native(ptr) => {
                     let internal_fct = InternalFct {
-                        ptr: ptr,
+                        ptr,
                         args: fct.params_with_self(),
                         return_type: fct.return_type,
                         throws: fct.ast.throws,

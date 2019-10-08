@@ -14,7 +14,7 @@ use crate::vm::VM;
 
 pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>) -> Address {
     let ngen = DoraThrowGen {
-        vm: vm,
+        vm,
         masm: MacroAssembler::new(),
         dbg: vm.args.flag_emit_debug_compile,
     };

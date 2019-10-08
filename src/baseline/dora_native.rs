@@ -55,10 +55,10 @@ pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>, fct: InternalFct, dbg: bool) -> 
     let fct_desc = fct.desc.clone();
 
     let ngen = NativeGen {
-        vm: vm,
+        vm,
         masm: MacroAssembler::new(),
-        fct: fct,
-        dbg: dbg,
+        fct,
+        dbg,
     };
 
     let jit_fct = ngen.generate();

@@ -106,8 +106,8 @@ impl Reader {
 
 fn common_init(name: String, content: String) -> Reader {
     let reader = Reader {
-        name: name,
-        content: content,
+        name,
+        content,
         line_ends: Vec::new(),
 
         idx: 0,

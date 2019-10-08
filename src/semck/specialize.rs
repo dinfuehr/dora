@@ -119,8 +119,8 @@ fn create_specialized_struct(vm: &VM, struc: &StructData, type_params: TypeParam
 
         let offset = mem::align_i32(size, field_align);
         fields.push(StructFieldDef {
-            offset: offset,
-            ty: ty,
+            offset,
+            ty,
         });
 
         size = offset + field_size;
@@ -185,7 +185,7 @@ fn create_specialized_class(vm: &VM, cls: &class::Class, type_params: &TypeParam
         assert!(old.is_none());
 
         class_defs.push(Arc::new(RwLock::new(ClassDef {
-            id: id,
+            id,
             cls_id: Some(cls.id),
             type_params: type_params.clone(),
             parent_id: None,
@@ -253,8 +253,8 @@ fn create_specialized_class(vm: &VM, cls: &class::Class, type_params: &TypeParam
 
             let offset = mem::align_i32(csize, field_align);
             fields.push(FieldDef {
-                offset: offset,
-                ty: ty,
+                offset,
+                ty,
             });
 
             csize = offset + field_size;

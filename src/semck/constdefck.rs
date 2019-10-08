@@ -7,10 +7,10 @@ use dora_parser::ast::{self, Ast};
 
 pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_const_defs: &NodeMap<ConstId>) {
     let mut clsck = ConstCheck {
-        vm: vm,
-        ast: ast,
+        vm,
+        ast,
         const_id: None,
-        map_const_defs: map_const_defs,
+        map_const_defs,
     };
 
     clsck.check();

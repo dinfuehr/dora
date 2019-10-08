@@ -141,17 +141,17 @@ impl JitBaselineFct {
         JitBaselineFct {
             code_start: ptr,
             code_end: ptr.offset(size as usize),
-            bailouts: bailouts,
-            nil_checks: nil_checks,
-            gcpoints: gcpoints,
-            comments: comments,
-            framesize: framesize,
-            fct_start: fct_start,
+            bailouts,
+            nil_checks,
+            gcpoints,
+            comments,
+            framesize,
+            fct_start,
             fct_len: buffer.len(),
-            linenos: linenos,
-            desc: desc,
-            throws: throws,
-            exception_handlers: exception_handlers,
+            linenos,
+            desc,
+            throws,
+            exception_handlers,
         }
     }
 
@@ -246,7 +246,7 @@ impl GcPoint {
     }
 
     pub fn from_offsets(offsets: Vec<i32>) -> GcPoint {
-        GcPoint { offsets: offsets }
+        GcPoint { offsets }
     }
 }
 

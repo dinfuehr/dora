@@ -497,8 +497,8 @@ impl LambdaTypes {
 
     pub fn insert(&mut self, params: Vec<BuiltinType>, ret: BuiltinType) -> LambdaId {
         let ty = LambdaType {
-            params: params,
-            ret: ret,
+            params,
+            ret,
         };
 
         if let Some(&val) = self.types.get(&ty) {

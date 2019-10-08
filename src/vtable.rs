@@ -16,7 +16,7 @@ impl VTableBox {
     pub fn new(classptr: *mut ClassDef, entries: &[usize]) -> VTableBox {
         let size = VTable::size_of(entries.len());
         let vtable = VTable {
-            classptr: classptr,
+            classptr,
             subtype_depth: 0,
             subtype_display: [ptr::null(); DISPLAY_SIZE],
             subtype_overflow: ptr::null(),

@@ -118,8 +118,8 @@ impl CodeSpan {
         assert!(start < end);
 
         CodeSpan {
-            start: start,
-            end: end,
+            start,
+            end,
         }
     }
 }

@@ -15,10 +15,10 @@ use dora_parser::lexer::position::Position;
 
 pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_cls_defs: &NodeMap<ClassId>) {
     let mut clsck = ClsCheck {
-        vm: vm,
-        ast: ast,
+        vm,
+        ast,
         cls_id: None,
-        map_cls_defs: map_cls_defs,
+        map_cls_defs,
         file_id: 0,
     };
 
@@ -55,10 +55,10 @@ impl<'x, 'ast> ClsCheck<'x, 'ast> {
 
         let field = Field {
             id: cls.fields.len().into(),
-            name: name,
-            ty: ty,
+            name,
+            ty,
             offset: 0,
-            reassignable: reassignable,
+            reassignable,
         };
 
         cls.fields.push(field);
@@ -250,7 +250,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
             file: self.file_id.into(),
 
             type_params: Vec::new(),
-            kind: kind,
+            kind,
         };
 
         let fctid = self.vm.add_fct(fct);
@@ -299,7 +299,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
             file: self.file_id.into(),
 
             type_params: Vec::new(),
-            kind: kind,
+            kind,
         };
 
         let fctid = self.vm.add_fct(fct);

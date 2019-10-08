@@ -111,14 +111,14 @@ impl<'a> Verifier<'a> {
         let old_protected = old.protected();
 
         Verifier {
-            young: young,
-            old: old,
-            old_protected: old_protected,
-            card_table: card_table,
-            crossing_map: crossing_map,
-            rootset: rootset,
-            perm_space: perm_space,
-            large: large,
+            young,
+            old,
+            old_protected,
+            card_table,
+            crossing_map,
+            rootset,
+            perm_space,
+            large,
 
             refs_to_young_gen: 0,
             in_old: false,
@@ -128,11 +128,11 @@ impl<'a> Verifier<'a> {
             from_active: young.from_active(),
             to_active: young.to_active(),
             young_total: young.total(),
-            reserved_area: reserved_area,
+            reserved_area,
 
-            phase: phase,
-            promotion_failed: promotion_failed,
-            init_old_top: init_old_top,
+            phase,
+            promotion_failed,
+            init_old_top,
         }
     }
 
@@ -688,10 +688,10 @@ mod memory {
                 let region = Region::new(start, end);
 
                 mappings.push(MemoryMapping {
-                    region: region,
-                    readable: readable,
-                    writable: writable,
-                    executable: executable,
+                    region,
+                    readable,
+                    writable,
+                    executable,
                 });
             }
         }

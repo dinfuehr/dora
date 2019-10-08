@@ -37,7 +37,7 @@ impl MarkCompactCollector {
         }
 
         MarkCompactCollector {
-            heap: heap,
+            heap,
             alloc: BumpAllocator::new(heap_start, heap_end),
             stats: Mutex::new(CollectionStats::new()),
         }
@@ -131,15 +131,15 @@ impl Drop for MarkCompactCollector {
 impl MarkCompactCollector {
     fn mark_compact(&self, vm: &VM, rootset: &[Slot], reason: GcReason) {
         let mut mark_compact = MarkCompact {
-            vm: vm,
+            vm,
             heap: self.heap,
             perm_space: &vm.gc.perm_space,
 
             init_top: self.alloc.top(),
             top: self.heap.start,
 
-            rootset: rootset,
-            reason: reason,
+            rootset,
+            reason,
         };
 
         mark_compact.collect();

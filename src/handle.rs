@@ -93,8 +93,8 @@ impl HandleMemoryInner {
         let element = self.free;
 
         self.borders.push(BorderData {
-            buffer: buffer,
-            element: element,
+            buffer,
+            element,
         });
     }
 

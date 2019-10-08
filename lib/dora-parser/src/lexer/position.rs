@@ -32,7 +32,7 @@ impl Span {
     pub fn new(start: u32, count: u32) -> Span {
         Span {
             start: Loc::new(start),
-            count: count,
+            count,
         }
     }
 

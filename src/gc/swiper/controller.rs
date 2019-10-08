@@ -248,8 +248,8 @@ impl HeapConfig {
         assert!(min_heap_size <= max_heap_size);
 
         HeapConfig {
-            min_heap_size: min_heap_size,
-            max_heap_size: max_heap_size,
+            min_heap_size,
+            max_heap_size,
 
             eden_size: 0,
             semi_size: 0,
@@ -428,8 +428,8 @@ fn calculate_numbers(data: &[f32]) -> Numbers {
     let avg = sum / (data.len() as f32);
 
     Numbers {
-        avg: avg,
-        sum: sum,
+        avg,
+        sum,
         min: xmin,
         max: xmax,
     }

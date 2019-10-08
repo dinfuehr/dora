@@ -79,8 +79,8 @@ impl Gc {
         let supports_tlab = !args.flag_disable_tlab && collector.supports_tlab();
 
         Gc {
-            collector: collector,
-            supports_tlab: supports_tlab,
+            collector,
+            supports_tlab,
 
             code_space: Space::new(code_config, "code"),
             perm_space: Space::new(perm_config, "perm"),
@@ -363,8 +363,8 @@ impl Region {
         debug_assert!(start <= end);
 
         Region {
-            start: start,
-            end: end,
+            start,
+            end,
         }
     }
 

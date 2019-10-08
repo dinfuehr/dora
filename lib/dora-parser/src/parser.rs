@@ -41,14 +41,14 @@ impl<'a> Parser<'a> {
         let lexer = Lexer::new(reader);
 
         let parser = Parser {
-            lexer: lexer,
-            token: token,
-            id_generator: id_generator,
-            interner: interner,
+            lexer,
+            token,
+            id_generator,
+            interner,
             param_idx: 0,
             in_class: false,
             parse_struct_lit: true,
-            ast: ast,
+            ast,
             last_end: Some(0),
         };
 
@@ -71,7 +71,7 @@ impl<'a> Parser<'a> {
 
         self.ast.files.push(ast::File {
             path: file.name.clone(),
-            elements: elements,
+            elements,
         });
 
         Ok(file)
@@ -156,11 +156,11 @@ impl<'a> Parser<'a> {
 
         Ok(Const {
             id: self.generate_id(),
-            pos: pos,
-            span: span,
-            name: name,
+            pos,
+            span,
+            name,
             data_type: ty,
-            expr: expr,
+            expr,
         })
     }
 
@@ -197,12 +197,12 @@ impl<'a> Parser<'a> {
 
         Ok(Impl {
             id: self.generate_id(),
-            pos: pos,
-            span: span,
-            type_params: type_params,
-            trait_type: trait_type,
-            class_type: class_type,
-            methods: methods,
+            pos,
+            span,
+            type_params,
+            trait_type,
+            class_type,
+            methods,
         })
     }
 
@@ -230,12 +230,12 @@ impl<'a> Parser<'a> {
 
         let global = Global {
             id: self.generate_id(),
-            name: name,
-            pos: pos,
-            span: span,
-            data_type: data_type,
-            reassignable: reassignable,
-            expr: expr,
+            name,
+            pos,
+            span,
+            data_type,
+            reassignable,
+            expr,
         };
 
         elements.push(ElemGlobal(global));
@@ -266,9 +266,9 @@ impl<'a> Parser<'a> {
         Ok(Trait {
             id: self.generate_id(),
             name: ident,
-            pos: pos,
-            span: span,
-            methods: methods,
+            pos,
+            span,
+            methods,
         })
     }
 
@@ -284,9 +284,9 @@ impl<'a> Parser<'a> {
         Ok(Struct {
             id: self.generate_id(),
             name: ident,
-            pos: pos,
-            span: span,
-            fields: fields,
+            pos,
+            span,
+            fields,
         })
     }
 
@@ -302,8 +302,8 @@ impl<'a> Parser<'a> {
         Ok(StructField {
             id: self.generate_id(),
             name: ident,
-            pos: pos,
-            span: span,
+            pos,
+            span,
             data_type: ty,
         })
     }
@@ -321,18 +321,18 @@ impl<'a> Parser<'a> {
         let mut cls = Class {
             id: self.generate_id(),
             name: ident,
-            pos: pos,
+            pos,
             span: Span::invalid(),
-            has_open: has_open,
-            internal: internal,
-            is_abstract: is_abstract,
+            has_open,
+            internal,
+            is_abstract,
             has_constructor: false,
             parent_class: None,
             constructor: None,
             fields: Vec::new(),
             methods: Vec::new(),
             initializers: Vec::new(),
-            type_params: type_params,
+            type_params,
         };
 
         self.in_class = true;
@@ -402,10 +402,10 @@ impl<'a> Parser<'a> {
         let span = self.span_from(start);
 
         Ok(TypeParam {
-            name: name,
-            span: span,
-            pos: pos,
-            bounds: bounds,
+            name,
+            span,
+            pos,
+            bounds,
         })
     }
 
@@ -462,23 +462,23 @@ impl<'a> Parser<'a> {
         if field {
             cls.fields.push(Field {
                 id: self.generate_id(),
-                name: name,
-                pos: pos,
+                name,
+                pos,
                 span: span,
                 data_type: data_type.clone(),
                 primary_ctor: true,
                 expr: None,
-                reassignable: reassignable,
+                reassignable,
             })
         }
 
         Ok(ConstructorParam {
-            name: name,
-            pos: pos,
-            span: span,
-            data_type: data_type,
-            field: field,
-            reassignable: reassignable,
+            name,
+            pos,
+            span,
+            data_type,
+            field,
+            reassignable,
         })
     }
 
@@ -615,13 +615,13 @@ impl<'a> Parser<'a> {
 
         Ok(Field {
             id: self.generate_id(),
-            name: name,
-            pos: pos,
-            span: span,
-            data_type: data_type,
+            name,
+            pos,
+            span,
+            data_type,
             primary_ctor: false,
-            expr: expr,
-            reassignable: reassignable,
+            expr,
+            reassignable,
         })
     }
 
@@ -639,8 +639,8 @@ impl<'a> Parser<'a> {
         Ok(Function {
             id: self.generate_id(),
             name: ident,
-            pos: pos,
-            span: span,
+            pos,
+            span,
             method: self.in_class,
             has_open: modifiers.contains(Modifier::Open),
             has_override: modifiers.contains(Modifier::Override),
@@ -651,11 +651,11 @@ impl<'a> Parser<'a> {
             internal: modifiers.contains(Modifier::Internal),
             is_abstract: modifiers.contains(Modifier::Abstract),
             is_constructor: false,
-            params: params,
-            throws: throws,
-            return_type: return_type,
-            block: block,
-            type_params: type_params,
+            params,
+            throws,
+            return_type,
+            block,
+            type_params,
         })
     }
 
@@ -736,11 +736,11 @@ impl<'a> Parser<'a> {
         Ok(Param {
             id: self.generate_id(),
             idx: self.param_idx - 1,
-            reassignable: reassignable,
-            name: name,
-            pos: pos,
-            span: span,
-            data_type: data_type,
+            reassignable,
+            name,
+            pos,
+            span,
+            data_type,
         })
     }
 

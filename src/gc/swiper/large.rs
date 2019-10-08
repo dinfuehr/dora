@@ -18,7 +18,7 @@ impl LargeSpace {
         LargeSpace {
             total: Region::new(start, end),
             space: Mutex::new(LargeSpaceProtected::new(start, end)),
-            config: config,
+            config,
         }
     }
 

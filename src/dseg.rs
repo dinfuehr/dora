@@ -104,7 +104,7 @@ impl DSeg {
 
         let entry = Entry {
             disp: self.size,
-            value: value,
+            value,
         };
 
         self.entries.push(entry);

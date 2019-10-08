@@ -40,8 +40,8 @@ pub struct MethodLookup<'a, 'ast: 'a> {
 impl<'a, 'ast> MethodLookup<'a, 'ast> {
     pub fn new(vm: &'a VM<'ast>, file: FileId) -> MethodLookup<'a, 'ast> {
         MethodLookup {
-            vm: vm,
-            file: file,
+            vm,
+            file,
             kind: None,
             name: None,
             args: None,

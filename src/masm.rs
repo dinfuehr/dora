@@ -219,9 +219,9 @@ impl MacroAssembler {
         self.exception_handlers.push(ExHandler {
             try_start: span.0,
             try_end: span.1,
-            catch: catch,
-            offset: offset,
-            catch_type: catch_type,
+            catch,
+            offset,
+            catch_type,
         });
     }
 
@@ -334,7 +334,7 @@ impl ScratchRegisters {
     #[cfg(test)]
     pub fn with_regs(regs: &'static [Reg]) -> ScratchRegisters {
         ScratchRegisters {
-            regs: regs,
+            regs,
             value: Rc::new(Cell::new(0)),
         }
     }
@@ -349,7 +349,7 @@ impl ScratchRegisters {
 
                 return ScratchReg {
                     ind: ind as u32,
-                    reg: reg,
+                    reg,
                     scratch: self.clone(),
                 };
             }
