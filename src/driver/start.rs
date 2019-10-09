@@ -105,8 +105,13 @@ pub fn start(content: Option<&str>) -> i32 {
 
 fn parse_all_files(vm: &mut VM, ast: &mut Ast, content: Option<&str>) -> Result<(), i32> {
     let fuzzing = content.is_some();
+    let stdlib = vm
+        .args
+        .flag_stdlib
+        .clone()
+        .unwrap_or_else(|| "stdlib".to_string());
 
-    parse_dir("stdlib", vm, ast).and_then(|_| {
+    parse_dir(&stdlib, vm, ast).and_then(|_| {
         if fuzzing {
             return parse_str(content.unwrap(), vm, ast);
         }

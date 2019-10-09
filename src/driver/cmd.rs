@@ -65,6 +65,8 @@ Options:
     --max-heap-size=<SIZE>  Set maximum heap size.
     --code-size=<SIZE>      Set code size limit.
     --perm-size=<SIZE>      Set perm size limit.
+
+    --stdlib=<path>         Load standard library from the given path.
 ";
 
 #[derive(Debug, RustcDecodable)]
@@ -109,6 +111,7 @@ pub struct Args {
     pub flag_check: bool,
     pub flag_disable_tlab: bool,
     pub flag_disable_barrier: bool,
+    pub flag_stdlib: Option<String>,
 
     pub cmd_test: bool,
 }
@@ -211,6 +214,7 @@ impl Default for Args {
             flag_check: false,
             flag_disable_tlab: false,
             flag_disable_barrier: false,
+            flag_stdlib: None,
 
             cmd_test: false,
         }
