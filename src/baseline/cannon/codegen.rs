@@ -78,6 +78,9 @@ where
         lhs: Register,
         rhs: Register,
     ) {
+        assert_eq!(bytecode.register(lhs), bytecode.register(rhs));
+        assert_eq!(bytecode.register(lhs), bytecode.register(dest));
+
         let bytecode_type = bytecode.register(lhs);
         let offset = bytecode.offset(lhs);
         self.asm
@@ -104,6 +107,9 @@ where
         lhs: Register,
         rhs: Register,
     ) {
+        assert_eq!(bytecode.register(lhs), bytecode.register(rhs));
+        assert_eq!(bytecode.register(lhs), bytecode.register(dest));
+
         let bytecode_type = bytecode.register(lhs);
         let offset = bytecode.offset(lhs);
         self.asm
@@ -130,6 +136,9 @@ where
         lhs: Register,
         rhs: Register,
     ) {
+        assert_eq!(bytecode.register(lhs), bytecode.register(rhs));
+        assert_eq!(bytecode.register(lhs), bytecode.register(dest));
+
         let bytecode_type = bytecode.register(lhs);
         let offset = bytecode.offset(lhs);
         self.asm
@@ -150,6 +159,8 @@ where
     }
 
     fn emit_neg_int(&mut self, bytecode: &BytecodeFunction, dest: Register, src: Register) {
+        assert_eq!(bytecode.register(src), bytecode.register(dest));
+
         let bytecode_type = bytecode.register(src);
         let offset = bytecode.offset(src);
         self.asm
@@ -171,6 +182,9 @@ where
         lhs: Register,
         rhs: Register,
     ) {
+        assert_eq!(bytecode.register(lhs), bytecode.register(rhs));
+        assert_eq!(bytecode.register(lhs), bytecode.register(dest));
+
         let bytecode_type = bytecode.register(lhs);
         let offset = bytecode.offset(lhs);
         self.asm
@@ -197,6 +211,9 @@ where
         lhs: Register,
         rhs: Register,
     ) {
+        assert_eq!(bytecode.register(lhs), bytecode.register(rhs));
+        assert_eq!(bytecode.register(lhs), bytecode.register(dest));
+
         let bytecode_type = bytecode.register(lhs);
         let offset = bytecode.offset(lhs);
         self.asm
@@ -223,6 +240,9 @@ where
         lhs: Register,
         rhs: Register,
     ) {
+        assert_eq!(bytecode.register(lhs), bytecode.register(rhs));
+        assert_eq!(bytecode.register(lhs), bytecode.register(dest));
+
         let bytecode_type = bytecode.register(lhs);
         let offset = bytecode.offset(lhs);
         self.asm
@@ -249,6 +269,9 @@ where
         lhs: Register,
         rhs: Register,
     ) {
+        assert_eq!(bytecode.register(lhs), bytecode.register(rhs));
+        assert_eq!(bytecode.register(lhs), bytecode.register(dest));
+
         let bytecode_type = bytecode.register(lhs);
         let offset = bytecode.offset(lhs);
         self.asm
@@ -275,6 +298,9 @@ where
         lhs: Register,
         rhs: Register,
     ) {
+        assert_eq!(bytecode.register(lhs), bytecode.register(rhs));
+        assert_eq!(bytecode.register(lhs), bytecode.register(dest));
+
         let bytecode_type = bytecode.register(lhs);
         let offset = bytecode.offset(lhs);
         self.asm
@@ -301,6 +327,9 @@ where
         lhs: Register,
         rhs: Register,
     ) {
+        assert_eq!(bytecode.register(lhs), bytecode.register(rhs));
+        assert_eq!(bytecode.register(lhs), bytecode.register(dest));
+
         let bytecode_type = bytecode.register(lhs);
         let offset = bytecode.offset(lhs);
         self.asm
@@ -321,6 +350,8 @@ where
     }
 
     fn emit_not_bool(&mut self, bytecode: &BytecodeFunction, dest: Register, src: Register) {
+        assert_eq!(bytecode.register(src), bytecode.register(dest));
+
         let bytecode_type = bytecode.register(src);
         let offset = bytecode.offset(src);
         self.asm
@@ -341,6 +372,9 @@ where
         lhs: Register,
         rhs: Register,
     ) {
+        assert_eq!(bytecode.register(lhs), bytecode.register(rhs));
+        assert_eq!(bytecode.register(lhs), bytecode.register(dest));
+
         let bytecode_type = bytecode.register(lhs);
         let offset = bytecode.offset(lhs);
         self.asm
@@ -367,6 +401,9 @@ where
         lhs: Register,
         rhs: Register,
     ) {
+        assert_eq!(bytecode.register(lhs), bytecode.register(rhs));
+        assert_eq!(bytecode.register(lhs), bytecode.register(dest));
+
         let bytecode_type = bytecode.register(lhs);
         let offset = bytecode.offset(lhs);
         self.asm
@@ -393,6 +430,9 @@ where
         lhs: Register,
         rhs: Register,
     ) {
+        assert_eq!(bytecode.register(lhs), bytecode.register(rhs));
+        assert_eq!(bytecode.register(lhs), bytecode.register(dest));
+
         let bytecode_type = bytecode.register(lhs);
         let offset = bytecode.offset(lhs);
         self.asm
@@ -413,6 +453,8 @@ where
     }
 
     fn emit_mov_generic(&mut self, bytecode: &BytecodeFunction, dest: Register, src: Register) {
+        assert_eq!(bytecode.register(src), bytecode.register(dest));
+
         let bytecode_type = bytecode.register(src);
         let offset = bytecode.offset(src);
 
@@ -431,6 +473,8 @@ where
     }
 
     fn emit_const_nil(&mut self, bytecode: &BytecodeFunction, dest: Register) {
+        assert_eq!(bytecode.register(dest), BytecodeType::Ptr);
+
         let bytecode_type = bytecode.register(dest);
         let offset = bytecode.offset(dest);
 
@@ -441,6 +485,8 @@ where
     }
 
     fn emit_const_bool(&mut self, bytecode: &BytecodeFunction, dest: Register, bool_const: bool) {
+        assert_eq!(bytecode.register(dest), BytecodeType::Bool);
+
         let bytecode_type = bytecode.register(dest);
         let offset = bytecode.offset(dest);
 
@@ -454,6 +500,13 @@ where
     }
 
     fn emit_const_int(&mut self, bytecode: &BytecodeFunction, dest: Register, int_const: i64) {
+        assert!(
+            bytecode.register(dest) == BytecodeType::Char
+                || bytecode.register(dest) == BytecodeType::Byte
+                || bytecode.register(dest) == BytecodeType::Int
+                || bytecode.register(dest) == BytecodeType::Long
+        );
+
         let bytecode_type = bytecode.register(dest);
         let offset = bytecode.offset(dest);
 
@@ -465,6 +518,11 @@ where
     }
 
     fn emit_const_float(&mut self, bytecode: &BytecodeFunction, dest: Register, float_const: f64) {
+        assert!(
+            bytecode.register(dest) == BytecodeType::Float
+                || bytecode.register(dest) == BytecodeType::Double
+        );
+
         let bytecode_type = bytecode.register(dest);
         let offset = bytecode.offset(dest);
 
@@ -481,6 +539,8 @@ where
         dest: Register,
         sp: StrConstPoolIdx,
     ) {
+        assert_eq!(bytecode.register(dest), BytecodeType::Ptr);
+
         let bytecode_type = bytecode.register(dest);
         let offset = bytecode.offset(dest);
 
@@ -506,11 +566,13 @@ where
         rhs: Register,
         op: CondCode,
     ) {
+        assert_eq!(bytecode.register(lhs), bytecode.register(rhs));
+        assert_eq!(bytecode.register(dest), BytecodeType::Bool);
+
         let bytecode_type = bytecode.register(lhs);
         let offset = bytecode.offset(lhs);
         self.asm
             .load_mem(bytecode_type.mode(), REG_RESULT.into(), Mem::Local(offset));
-
         let bytecode_type = bytecode.register(rhs);
         let offset = bytecode.offset(rhs);
         self.asm

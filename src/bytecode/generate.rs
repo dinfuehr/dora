@@ -59,7 +59,7 @@ impl fmt::Display for BytecodeIdx {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum BytecodeType {
     Bool,
     Byte,
