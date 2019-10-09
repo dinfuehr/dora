@@ -11,16 +11,13 @@ You need to install these dependencies:
 
 ```
 # on Fedora
-$ sudo dnf install capstone-devel ruby
+$ sudo dnf install ruby
 
 # on Ubuntu/Debian
-$ sudo apt install libcapstone-dev ruby
-
-# on MacOS capstone can be installed via homebrew
-$ brew install capstone
+$ sudo apt install ruby
 ```
 
-[Ruby](https://www.ruby-lang.org/) is used for running tests, while [capstone](https://github.com/aquynh/capstone) is used for instruction decoding/disassembling machine code.
+[Ruby](https://www.ruby-lang.org/) is used for running tests
 
 
 ## Compilation & Testing
