@@ -37,16 +37,6 @@ jobs:
         with:
           ruby-version: 2.6.x
 
-      - name: Install capstone (mac)
-        if: startsWith(matrix.os, 'macOS')
-        run: |
-          brew install capstone
-          export DYLD_LIBRARY_PATH=/usr/local/opt/capstone/lib/:$DYLD_LIBRARY_PATH
-
-      - name: Install capstone (linux)
-        if: startsWith(matrix.os, 'ubuntu') && matrix.kind != 'lint'
-        run: sudo apt-get install libcapstone-dev
-
       - name: Cargo Fmt
         if: matrix.kind == 'lint'
         run: cargo fmt -- --check
