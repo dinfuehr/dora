@@ -15,7 +15,7 @@ dependencies = [
 
 [[package]]
 name = "dora-parser"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "parking_lot 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
