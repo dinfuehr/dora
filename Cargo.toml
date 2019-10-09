@@ -15,7 +15,7 @@ byteorder = "*"
 libc = "*"
 time = "*"
 capstone = "*"
-dora-parser = { path = "lib/dora-parser" }
+dora-parser = "*"
 threadpool = "*"
 crossbeam-deque = "*"
 rand = "*"
