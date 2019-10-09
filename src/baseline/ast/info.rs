@@ -27,11 +27,11 @@ pub fn generate<'a, 'ast: 'a>(
     let start = if fct.has_self() { 1 } else { 0 };
 
     let mut ig = InfoGenerator {
-        vm: vm,
-        fct: fct,
+        vm,
+        fct,
         ast: fct.ast,
-        src: src,
-        jit_info: jit_info,
+        src,
+        jit_info,
 
         localsize: 0,
         max_tempsize: 0,
@@ -46,8 +46,8 @@ pub fn generate<'a, 'ast: 'a>(
         param_reg_idx: start,
         param_freg_idx: 0,
 
-        cls_type_params: cls_type_params,
-        fct_type_params: fct_type_params,
+        cls_type_params,
+        fct_type_params,
     };
 
     ig.generate();
@@ -292,9 +292,9 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.jit_info.map_fors.insert(
             stmt.id,
             ForInfo {
-                make_iterator: make_iterator,
-                has_next: has_next,
-                next: next,
+                make_iterator,
+                has_next,
+                next,
             },
         );
     }
@@ -559,11 +559,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         CallSite {
             callee: callee_id,
-            args: args,
-            cls_type_params: cls_type_params,
-            fct_type_params: fct_type_params,
-            super_call: super_call,
-            return_type: return_type,
+            args,
+            cls_type_params,
+            fct_type_params,
+            super_call,
+            return_type,
         }
     }
 
@@ -824,9 +824,9 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             let append = self.build_call_site(&ctype, fct_id, args);
 
             part_infos.push(TemplatePartJitInfo {
-                object_offset: object_offset,
-                to_string: to_string,
-                append: append,
+                object_offset,
+                to_string,
+                append,
             });
         }
 
@@ -840,11 +840,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.jit_info.map_templates.insert(
             expr.id,
             TemplateJitInfo {
-                string_buffer_offset: string_buffer_offset,
-                string_part_offset: string_part_offset,
-                string_buffer_new: string_buffer_new,
-                part_infos: part_infos,
-                string_buffer_to_string: string_buffer_to_string,
+                string_buffer_offset,
+                string_part_offset,
+                string_buffer_new,
+                part_infos,
+                string_buffer_to_string,
             },
         );
     }

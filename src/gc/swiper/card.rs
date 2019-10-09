@@ -37,10 +37,10 @@ impl CardTable {
         assert!(old_and_large.contains(old_end));
 
         let card = CardTable {
-            start: start,
-            end: end,
-            old_and_large: old_and_large,
-            old_end: old_end,
+            start,
+            end,
+            old_and_large,
+            old_end,
             cards_in_heap: heap_size / CARD_SIZE,
         };
 

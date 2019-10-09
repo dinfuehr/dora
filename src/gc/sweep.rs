@@ -38,7 +38,7 @@ impl SweepCollector {
         }
 
         SweepCollector {
-            heap: heap,
+            heap,
             alloc: Mutex::new(SweepAllocator::new(heap)),
             stats: Mutex::new(CollectionStats::new()),
         }
@@ -140,12 +140,12 @@ impl SweepCollector {
         let top = self.alloc.lock().top;
 
         let mut collector = MarkSweep {
-            vm: vm,
+            vm,
             heap: Region::new(start, top),
             perm_space: &vm.gc.perm_space,
 
-            rootset: rootset,
-            reason: reason,
+            rootset,
+            reason,
             free_list: FreeList::new(),
         };
 

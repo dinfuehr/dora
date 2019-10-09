@@ -10,7 +10,7 @@ impl Timer {
         let ts = if active { timestamp() } else { 0 };
 
         Timer {
-            active: active,
+            active,
             timestamp: ts,
         }
     }

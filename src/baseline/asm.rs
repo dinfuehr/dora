@@ -30,7 +30,7 @@ where
     pub fn new(vm: &'a VM<'ast>) -> BaselineAssembler<'a, 'ast> {
         BaselineAssembler {
             masm: MacroAssembler::new(),
-            vm: vm,
+            vm,
             slow_paths: Vec::new(),
         }
     }

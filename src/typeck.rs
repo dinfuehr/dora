@@ -26,11 +26,11 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
         let ast = fct.ast;
 
         let mut typeck = TypeCheck {
-            vm: vm,
+            vm,
             fct: &fct,
             file: fct.file,
             src: &mut src,
-            ast: ast,
+            ast,
             expr_type: BuiltinType::Unit,
             negative_expr_id: NodeId(0),
             used_in_call: HashSet::new(),
@@ -44,7 +44,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
 
         let (_, value) = {
             let mut constck = ConstCheck {
-                vm: vm,
+                vm,
                 xconst: &*xconst,
                 negative_expr_id: NodeId(0),
             };

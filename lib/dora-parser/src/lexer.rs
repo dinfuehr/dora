@@ -32,8 +32,8 @@ impl Lexer {
         let keywords = keywords_in_map();
 
         Lexer {
-            reader: reader,
-            keywords: keywords,
+            reader,
+            keywords,
         }
     }
 

@@ -20,10 +20,10 @@ pub fn check<'ast>(vm: &VM<'ast>) {
         let ast = fct.ast;
 
         let mut returnck = ReturnCheck {
-            vm: vm,
+            vm,
             fct: &fct,
             src: &mut src,
-            ast: ast,
+            ast,
         };
 
         returnck.check();

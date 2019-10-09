@@ -24,7 +24,7 @@ impl YoungGen {
         let semi_total = Region::new(eden_total.end, total.end);
 
         let young = YoungGen {
-            total: total,
+            total,
             eden: Eden::new(eden_total, eden_size),
             semi: SemiSpace::new(semi_total, semi_size, protect),
         };
@@ -245,7 +245,7 @@ impl SemiSpace {
             second: Block::new(second, committed_semi_size / 2),
 
             from_index: AtomicUsize::new(2),
-            protect: protect,
+            protect,
             alloc: BumpAllocator::new(first.start, limit),
             age_marker: AtomicUsize::new(first.start.to_usize()),
         }

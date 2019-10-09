@@ -20,10 +20,7 @@ pub struct LoopLabels {
 
 impl LoopLabels {
     fn new(cond: Label, end: Label) -> LoopLabels {
-        LoopLabels {
-            cond: cond,
-            end: end,
-        }
+        LoopLabels { cond, end }
     }
 }
 
@@ -49,13 +46,13 @@ pub fn generate_fct<'ast>(
     fct_type_params: &TypeParams,
 ) -> BytecodeFunction {
     let ast_bytecode_generator = AstBytecodeGen {
-        vm: vm,
-        fct: fct,
+        vm,
+        fct,
         ast: fct.ast,
-        src: src,
+        src,
 
-        cls_type_params: cls_type_params,
-        fct_type_params: fct_type_params,
+        cls_type_params,
+        fct_type_params,
 
         gen: BytecodeGenerator::new(),
         loops: Vec::new(),

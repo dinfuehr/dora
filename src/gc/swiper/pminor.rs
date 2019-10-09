@@ -73,13 +73,13 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
         config: &'a SharedHeapConfig,
     ) -> ParallelMinorCollector<'a, 'ast> {
         ParallelMinorCollector {
-            vm: vm,
-            young: young,
-            old: old,
-            large: large,
-            rootset: rootset,
-            card_table: card_table,
-            crossing_map: crossing_map,
+            vm,
+            young,
+            old,
+            large,
+            rootset,
+            card_table,
+            crossing_map,
 
             young_top: Address::null(),
             young_limit: Address::null(),
@@ -91,16 +91,16 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
             from_active: Default::default(),
             eden_active: young.eden_active(),
 
-            reason: reason,
+            reason,
 
-            min_heap_size: min_heap_size,
-            max_heap_size: max_heap_size,
+            min_heap_size,
+            max_heap_size,
 
             number_workers: threadpool.thread_count() as usize,
-            threadpool: threadpool,
+            threadpool,
 
             worklist: Vec::new(),
-            config: config,
+            config,
             phases: MinorCollectorPhases::new(),
         }
     }
@@ -241,33 +241,33 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
 
                 scoped.execute(move || {
                     let mut task = CopyTask {
-                        task_id: task_id,
+                        task_id,
                         local: Vec::new(),
-                        worker: worker,
-                        injector: injector,
-                        stealers: stealers,
-                        terminator: terminator,
-                        number_workers: number_workers,
+                        worker,
+                        injector,
+                        stealers,
+                        terminator,
+                        number_workers,
 
-                        vm: vm,
-                        young: young,
-                        old: old,
-                        large: large,
-                        young_region: young_region,
-                        card_table: card_table,
-                        crossing_map: crossing_map,
-                        rootset: rootset,
-                        init_old_top: init_old_top,
-                        old_region_start: old_region_start,
-                        barrier: barrier,
+                        vm,
+                        young,
+                        old,
+                        large,
+                        young_region,
+                        card_table,
+                        crossing_map,
+                        rootset,
+                        init_old_top,
+                        old_region_start,
+                        barrier,
 
                         from_active: young.from_active(),
                         eden_active: young.eden_active(),
 
-                        next_card_stride: next_card_stride,
-                        next_root_stride: next_root_stride,
-                        strides: strides,
-                        next_large: next_large,
+                        next_card_stride,
+                        next_root_stride,
+                        strides,
+                        next_large,
 
                         promoted_size: 0,
                         traced: 0,
@@ -276,8 +276,8 @@ impl<'a, 'ast: 'a> ParallelMinorCollector<'a, 'ast> {
                         promotion_failed: false,
 
                         young_lab: Lab::new(),
-                        young_top: young_top,
-                        young_limit: young_limit,
+                        young_top,
+                        young_limit,
                         copy_failed: false,
 
                         timer: prot_timer,

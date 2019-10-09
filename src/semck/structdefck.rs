@@ -8,10 +8,10 @@ use dora_parser::ast::{self, Ast};
 
 pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_struct_defs: &NodeMap<StructId>) {
     let mut clsck = StructCheck {
-        vm: vm,
-        ast: ast,
+        vm,
+        ast,
         struct_id: None,
-        map_struct_defs: map_struct_defs,
+        map_struct_defs,
     };
 
     clsck.check();
@@ -64,7 +64,7 @@ impl<'x, 'ast> Visitor<'ast> for StructCheck<'x, 'ast> {
             id: (struc.fields.len() as u32).into(),
             pos: f.pos,
             name: f.name,
-            ty: ty,
+            ty,
         };
 
         struc.fields.push(field);

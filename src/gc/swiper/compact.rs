@@ -61,26 +61,26 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         let old_total = old.total();
 
         FullCollector {
-            vm: vm,
-            heap: heap,
-            young: young,
-            old: old,
+            vm,
+            heap,
+            young,
+            old,
             old_protected: old.protected(),
-            large_space: large_space,
-            rootset: rootset,
-            card_table: card_table,
-            crossing_map: crossing_map,
-            perm_space: perm_space,
+            large_space,
+            rootset,
+            card_table,
+            crossing_map,
+            perm_space,
 
             old_top: old_total.start,
             old_limit: old_total.end,
             old_committed: Default::default(),
             init_old_top: Vec::new(),
 
-            reason: reason,
+            reason,
 
-            min_heap_size: min_heap_size,
-            max_heap_size: max_heap_size,
+            min_heap_size,
+            max_heap_size,
 
             phases: FullCollectorPhases::new(),
         }

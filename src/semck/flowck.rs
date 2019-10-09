@@ -18,10 +18,10 @@ pub fn check<'ast>(vm: &VM<'ast>) {
         let ast = fct.ast;
 
         let mut flowck = FlowCheck {
-            vm: vm,
+            vm,
             fct: &fct,
             src: &mut src,
-            ast: ast,
+            ast,
             in_loop: false,
         };
 

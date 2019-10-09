@@ -31,9 +31,9 @@ impl OldGen {
             total: total.clone(),
             protected: Mutex::new(OldGenProtected::new(total)),
 
-            crossing_map: crossing_map,
-            card_table: card_table,
-            config: config,
+            crossing_map,
+            card_table,
+            config,
         };
 
         old
@@ -261,7 +261,7 @@ impl OldGenProtected {
         let region = OldGenRegion {
             total: self.total.clone(),
             total_mapping: self.total.clone(),
-            top: top,
+            top,
             mapping_top: limit,
         };
 
@@ -455,10 +455,10 @@ impl OldGenRegion {
         assert!(total_mapping.valid_top(mapping_top));
 
         OldGenRegion {
-            total: total,
-            total_mapping: total_mapping,
-            top: top,
-            mapping_top: mapping_top,
+            total,
+            total_mapping,
+            top,
+            mapping_top,
         }
     }
 

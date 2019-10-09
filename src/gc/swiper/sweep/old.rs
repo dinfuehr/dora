@@ -53,12 +53,12 @@ impl OldGen {
         });
 
         OldGen {
-            total: total,
-            chunks: chunks,
-            prot: prot,
-            crossing_map: crossing_map,
-            card_table: card_table,
-            config: config,
+            total,
+            chunks,
+            prot,
+            crossing_map,
+            card_table,
+            config,
         }
     }
 
@@ -173,8 +173,8 @@ struct ChunkSetBounds {
 impl ChunkSetBounds {
     fn new(leftmost: usize, rightmost: usize) -> ChunkSetBounds {
         ChunkSetBounds {
-            leftmost: leftmost,
-            rightmost: rightmost,
+            leftmost,
+            rightmost,
         }
     }
 
@@ -200,7 +200,7 @@ impl ChunkSet {
 
         ChunkSet {
             bounds: Some(ChunkSetBounds::new(0, num_chunks - 1)),
-            chunks: chunks,
+            chunks,
         }
     }
 

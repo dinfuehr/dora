@@ -25,14 +25,14 @@ pub fn check<'ast>(
 ) {
     let ast = vm.ast;
     let mut gdef = GlobalDef {
-        vm: vm,
+        vm,
         file_id: 0,
-        map_cls_defs: map_cls_defs,
-        map_struct_defs: map_struct_defs,
-        map_trait_defs: map_trait_defs,
-        map_impl_defs: map_impl_defs,
-        map_global_defs: map_global_defs,
-        map_const_defs: map_const_defs,
+        map_cls_defs,
+        map_struct_defs,
+        map_trait_defs,
+        map_impl_defs,
+        map_global_defs,
+        map_const_defs,
     };
 
     gdef.visit_ast(ast);
@@ -58,7 +58,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
     fn visit_trait(&mut self, t: &'ast Trait) {
         let id: TraitId = (self.vm.traits.len() as u32).into();
         let xtrait = TraitData {
-            id: id,
+            id,
             file: self.file_id.into(),
             pos: t.pos,
             name: t.name,
@@ -80,7 +80,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             let mut globals = self.vm.globals.lock();
             let id: GlobalId = (globals.len() as u32).into();
             let global = GlobalData {
-                id: id,
+                id,
                 file: self.file_id.into(),
                 pos: g.pos,
                 name: g.name,
@@ -107,7 +107,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
     fn visit_impl(&mut self, i: &'ast Impl) {
         let id: ImplId = (self.vm.impls.len() as u32).into();
         let ximpl = ImplData {
-            id: id,
+            id,
             file: self.file_id.into(),
             pos: i.pos,
             trait_id: None,
@@ -124,7 +124,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             let mut consts = self.vm.consts.lock();
             let id: ConstId = consts.len().into();
             let xconst = ConstData {
-                id: id,
+                id,
                 file: self.file_id.into(),
                 pos: c.pos,
                 name: c.name,
@@ -153,7 +153,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
             let id: ClassId = classes.len().into();
             let mut cls = class::Class {
-                id: id,
+                id,
                 name: c.name,
                 file: self.file_id.into(),
                 pos: c.pos,
@@ -205,7 +205,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             let mut structs = self.vm.structs.lock();
             let id: StructId = (structs.len() as u32).into();
             let struc = StructData {
-                id: id,
+                id,
                 file: self.file_id.into(),
                 pos: s.pos,
                 name: s.name,
@@ -259,7 +259,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             impl_for: None,
 
             type_params: Vec::new(),
-            kind: kind,
+            kind,
         };
 
         if let Err(sym) = self.vm.add_fct_to_sym(fct) {

@@ -459,11 +459,18 @@ impl ParentClass {
         params: Vec<Box<Expr>>,
     ) -> ParentClass {
         ParentClass {
+<<<<<<< HEAD
+            name: name,
+            pos: pos,
+            span: span,
+            type_params: type_params,
+            params: params,
+=======
             name,
             pos,
-            span,
             type_params,
             params,
+>>>>>>> f1efad92... fix(clippy): redundant field names
         }
     }
 }
@@ -526,8 +533,12 @@ impl Modifiers {
     pub fn add(&mut self, modifier: Modifier, pos: Position, span: Span) {
         self.0.push(ModifierElement {
             value: modifier,
+<<<<<<< HEAD
+            pos: pos,
+            span: span,
+=======
             pos,
-            span,
+>>>>>>> f1efad92... fix(clippy): redundant field names
         });
     }
 
@@ -609,9 +620,15 @@ impl Stmt {
         expr: Option<Box<Expr>>,
     ) -> Stmt {
         Stmt::StmtVar(StmtVarType {
+<<<<<<< HEAD
+            id: id,
+            pos: pos,
+            span: span,
+=======
             id,
             pos,
-            span,
+            span: Span::invalid(),
+>>>>>>> f1efad92... fix(clippy): redundant field names
 
             name,
             reassignable,
@@ -629,9 +646,15 @@ impl Stmt {
         block: Box<Stmt>,
     ) -> Stmt {
         Stmt::StmtFor(StmtForType {
+<<<<<<< HEAD
+            id: id,
+            pos: pos,
+            span: span,
+=======
             id,
             pos,
-            span,
+            span: Span::invalid(),
+>>>>>>> f1efad92... fix(clippy): redundant field names
 
             name,
             expr,
@@ -647,9 +670,15 @@ impl Stmt {
         block: Box<Stmt>,
     ) -> Stmt {
         Stmt::StmtWhile(StmtWhileType {
+<<<<<<< HEAD
+            id: id,
+            pos: pos,
+            span: span,
+=======
             id,
             pos,
-            span,
+            span: Span::invalid(),
+>>>>>>> f1efad92... fix(clippy): redundant field names
 
             cond,
             block,
@@ -658,9 +687,15 @@ impl Stmt {
 
     pub fn create_loop(id: NodeId, pos: Position, span: Span, block: Box<Stmt>) -> Stmt {
         Stmt::StmtLoop(StmtLoopType {
+<<<<<<< HEAD
+            id: id,
+            pos: pos,
+            span: span,
+=======
             id,
             pos,
-            span,
+            span: Span::invalid(),
+>>>>>>> f1efad92... fix(clippy): redundant field names
 
             block,
         })
@@ -675,9 +710,15 @@ impl Stmt {
         else_block: Option<Box<Stmt>>,
     ) -> Stmt {
         Stmt::StmtIf(StmtIfType {
+<<<<<<< HEAD
+            id: id,
+            pos: pos,
+            span: span,
+=======
             id,
             pos,
-            span,
+            span: Span::invalid(),
+>>>>>>> f1efad92... fix(clippy): redundant field names
 
             cond,
             then_block,
@@ -687,9 +728,15 @@ impl Stmt {
 
     pub fn create_expr(id: NodeId, pos: Position, span: Span, expr: Box<Expr>) -> Stmt {
         Stmt::StmtExpr(StmtExprType {
+<<<<<<< HEAD
+            id: id,
+            pos: pos,
+            span: span,
+=======
             id,
             pos,
-            span,
+            span: Span::invalid(),
+>>>>>>> f1efad92... fix(clippy): redundant field names
 
             expr,
         })
@@ -697,9 +744,15 @@ impl Stmt {
 
     pub fn create_block(id: NodeId, pos: Position, span: Span, stmts: Vec<Box<Stmt>>) -> Stmt {
         Stmt::StmtBlock(StmtBlockType {
+<<<<<<< HEAD
+            id: id,
+            pos: pos,
+            span: span,
+=======
             id,
             pos,
-            span,
+            span: Span::invalid(),
+>>>>>>> f1efad92... fix(clippy): redundant field names
 
             stmts,
         })
@@ -707,25 +760,43 @@ impl Stmt {
 
     pub fn create_break(id: NodeId, pos: Position, span: Span) -> Stmt {
         Stmt::StmtBreak(StmtBreakType {
+<<<<<<< HEAD
+            id: id,
+            pos: pos,
+            span: span,
+=======
             id,
             pos,
-            span,
+            span: Span::invalid(),
+>>>>>>> f1efad92... fix(clippy): redundant field names
         })
     }
 
     pub fn create_continue(id: NodeId, pos: Position, span: Span) -> Stmt {
         Stmt::StmtContinue(StmtContinueType {
+<<<<<<< HEAD
+            id: id,
+            pos: pos,
+            span: span,
+=======
             id,
             pos,
-            span,
+            span: Span::invalid(),
+>>>>>>> f1efad92... fix(clippy): redundant field names
         })
     }
 
     pub fn create_return(id: NodeId, pos: Position, span: Span, expr: Option<Box<Expr>>) -> Stmt {
         Stmt::StmtReturn(StmtReturnType {
+<<<<<<< HEAD
+            id: id,
+            pos: pos,
+            span: span,
+=======
             id,
             pos,
-            span,
+            span: Span::invalid(),
+>>>>>>> f1efad92... fix(clippy): redundant field names
 
             expr,
         })
@@ -733,9 +804,15 @@ impl Stmt {
 
     pub fn create_throw(id: NodeId, pos: Position, span: Span, expr: Box<Expr>) -> Stmt {
         Stmt::StmtThrow(StmtThrowType {
+<<<<<<< HEAD
+            id: id,
+            pos: pos,
+            span: span,
+=======
             id,
             pos,
-            span,
+            span: Span::invalid(),
+>>>>>>> f1efad92... fix(clippy): redundant field names
 
             expr,
         })
@@ -743,9 +820,15 @@ impl Stmt {
 
     pub fn create_defer(id: NodeId, pos: Position, span: Span, expr: Box<Expr>) -> Stmt {
         Stmt::StmtDefer(StmtDeferType {
+<<<<<<< HEAD
+            id: id,
+            pos: pos,
+            span: span,
+=======
             id,
             pos,
-            span,
+            span: Span::invalid(),
+>>>>>>> f1efad92... fix(clippy): redundant field names
 
             expr,
         })
@@ -760,9 +843,15 @@ impl Stmt {
         finally_block: Option<FinallyBlock>,
     ) -> Stmt {
         Stmt::StmtDo(StmtDoType {
+<<<<<<< HEAD
+            id: id,
+            pos: pos,
+            span: span,
+=======
             id,
             pos,
-            span,
+            span: Span::invalid(),
+>>>>>>> f1efad92... fix(clippy): redundant field names
 
             do_block,
             catch_blocks,
@@ -770,6 +859,19 @@ impl Stmt {
         })
     }
 
+<<<<<<< HEAD
+=======
+    pub fn create_spawn(id: NodeId, pos: Position, expr: Box<Expr>) -> Stmt {
+        Stmt::StmtSpawn(StmtSpawnType {
+            id,
+            pos,
+            span: Span::invalid(),
+
+            expr,
+        })
+    }
+
+>>>>>>> f1efad92... fix(clippy): redundant field names
     pub fn id(&self) -> NodeId {
         match *self {
             Stmt::StmtVar(ref stmt) => stmt.id,
@@ -1152,10 +1254,17 @@ impl CatchBlock {
         block: Box<Stmt>,
     ) -> CatchBlock {
         CatchBlock {
+<<<<<<< HEAD
+            id: id,
+            name: name,
+            pos: pos,
+            span: span,
+=======
             id,
             name,
             pos,
-            span,
+            span: Span::invalid(),
+>>>>>>> f1efad92... fix(clippy): redundant field names
 
             data_type,
             block,
@@ -1335,9 +1444,15 @@ impl Expr {
         rhs: Box<Expr>,
     ) -> Expr {
         Expr::ExprBin(ExprBinType {
+<<<<<<< HEAD
+            id: id,
+            pos: pos,
+            span: span,
+=======
             id,
             pos,
-            span,
+            span: Span::invalid(),
+>>>>>>> f1efad92... fix(clippy): redundant field names
 
             op,
             lhs,
@@ -1354,9 +1469,15 @@ impl Expr {
         is: bool,
     ) -> Expr {
         Expr::ExprConv(ExprConvType {
+<<<<<<< HEAD
+            id: id,
+            pos: pos,
+            span: span,
+=======
             id,
             pos,
-            span,
+            span: Span::invalid(),
+>>>>>>> f1efad92... fix(clippy): redundant field names
 
             object,
             data_type,
@@ -1539,9 +1660,15 @@ impl Expr {
         args: Vec<Box<Expr>>,
     ) -> Expr {
         Expr::ExprDelegation(ExprDelegationType {
+<<<<<<< HEAD
+            id: id,
+            pos: pos,
+            span: span,
+=======
             id,
             pos,
-            span,
+            span: Span::invalid(),
+>>>>>>> f1efad92... fix(clippy): redundant field names
 
             ty,
             args,

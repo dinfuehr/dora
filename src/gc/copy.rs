@@ -42,7 +42,7 @@ impl CopyCollector {
 
         CopyCollector {
             total: heap,
-            separator: separator,
+            separator,
             alloc: BumpAllocator::new(heap_start, separator),
             stats: Mutex::new(CollectionStats::new()),
         }

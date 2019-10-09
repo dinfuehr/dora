@@ -144,21 +144,21 @@ impl SweepSwiper {
 
         SweepSwiper {
             heap: Region::new(heap_start, heap_end),
-            reserved_area: reserved_area,
+            reserved_area,
 
-            young: young,
-            old: old,
-            large: large,
+            young,
+            old,
+            large,
 
-            card_table: card_table,
-            crossing_map: crossing_map,
-            config: config,
+            card_table,
+            crossing_map,
+            config,
 
-            card_table_offset: card_table_offset,
-            emit_write_barrier: emit_write_barrier,
+            card_table_offset,
+            emit_write_barrier,
 
-            min_heap_size: min_heap_size,
-            max_heap_size: max_heap_size,
+            min_heap_size,
+            max_heap_size,
 
             threadpool: Mutex::new(Pool::new(nworkers as u32)),
         }

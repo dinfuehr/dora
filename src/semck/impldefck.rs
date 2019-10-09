@@ -11,10 +11,10 @@ use dora_parser::lexer::position::Position;
 
 pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_impl_defs: &NodeMap<ImplId>) {
     let mut clsck = ImplCheck {
-        vm: vm,
-        ast: ast,
+        vm,
+        ast,
         impl_id: None,
-        map_impl_defs: map_impl_defs,
+        map_impl_defs,
         file_id: 0,
     };
 
@@ -146,7 +146,7 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
             file: self.file_id.into(),
 
             type_params: Vec::new(),
-            kind: kind,
+            kind,
         };
 
         let fctid = self.vm.add_fct(fct);

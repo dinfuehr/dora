@@ -69,12 +69,12 @@ pub fn generate_fct<'ast>(
 
     let jit_fct = match vm.args.bc() {
         BaselineName::Cannon => CannonCodeGen {
-            vm: vm,
+            vm,
             fct: &fct,
-            ast: ast,
+            ast,
             asm: BaselineAssembler::new(vm),
             scopes: Scopes::new(),
-            src: src,
+            src,
 
             lbl_break: None,
             lbl_continue: None,
@@ -84,8 +84,8 @@ pub fn generate_fct<'ast>(
             active_loop: None,
             lbl_return: None,
 
-            cls_type_params: cls_type_params,
-            fct_type_params: fct_type_params,
+            cls_type_params,
+            fct_type_params,
         }
         .generate(),
         BaselineName::AstCompiler => {
@@ -99,13 +99,13 @@ pub fn generate_fct<'ast>(
                 fct_type_params,
             );
             AstCodeGen {
-                vm: vm,
+                vm,
                 fct: &fct,
-                ast: ast,
+                ast,
                 asm: BaselineAssembler::new(vm),
                 scopes: Scopes::new(),
-                src: src,
-                jit_info: jit_info,
+                src,
+                jit_info,
 
                 lbl_break: None,
                 lbl_continue: None,
@@ -115,8 +115,8 @@ pub fn generate_fct<'ast>(
                 active_loop: None,
                 lbl_return: None,
 
-                cls_type_params: cls_type_params,
-                fct_type_params: fct_type_params,
+                cls_type_params,
+                fct_type_params,
             }
             .generate()
         }
@@ -264,9 +264,9 @@ pub fn dump_asm<'ast>(
                 }
 
                 let cfmt = CommentFormat {
-                    comment: comment,
-                    vm: vm,
-                    fct_src: fct_src,
+                    comment,
+                    vm,
+                    fct_src,
                 };
 
                 writeln!(&mut w, "\t\t  ; {}", cfmt).unwrap();

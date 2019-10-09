@@ -115,7 +115,7 @@ impl<'ast> VM<'ast> {
         let gc = Gc::new(&args);
 
         let vm = Box::new(VM {
-            args: args,
+            args,
             consts: GrowableVec::new(),
             structs: GrowableVec::new(),
             struct_defs: GrowableVec::new(),
@@ -169,8 +169,8 @@ impl<'ast> VM<'ast> {
                 free_object_class_def: empty_class_def_id,
                 free_array_class_def: empty_class_def_id,
             },
-            gc: gc,
-            ast: ast,
+            gc,
+            ast,
             id_generator: NodeIdGenerator::new(),
             diag: Mutex::new(Diagnostic::new()),
             sym: Mutex::new(SymTable::new()),
@@ -842,7 +842,7 @@ pub struct TypeParam {
 impl TypeParam {
     pub fn new(name: Name) -> TypeParam {
         TypeParam {
-            name: name,
+            name,
             class_bound: None,
             trait_bounds: HashSet::new(),
         }

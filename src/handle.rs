@@ -92,10 +92,7 @@ impl HandleMemoryInner {
         let buffer = self.buffers.len();
         let element = self.free;
 
-        self.borders.push(BorderData {
-            buffer: buffer,
-            element: element,
-        });
+        self.borders.push(BorderData { buffer, element });
     }
 
     pub fn pop_border(&mut self) {

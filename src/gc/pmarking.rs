@@ -51,14 +51,14 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, threadpool: &mut Pool
 
             scoped.execute(move || {
                 let mut task = MarkingTask {
-                    task_id: task_id,
+                    task_id,
                     local: Segment::new(),
-                    worker: worker,
-                    injector: injector,
-                    stealers: stealers,
-                    terminator: terminator,
-                    heap_region: heap_region,
-                    perm_region: perm_region,
+                    worker,
+                    injector,
+                    stealers,
+                    terminator,
+                    heap_region,
+                    perm_region,
                     marked: 0,
                 };
 

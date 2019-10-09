@@ -33,8 +33,8 @@ pub struct CrossingMap {
 impl CrossingMap {
     pub fn new(start: Address, end: Address, heap_size: usize) -> CrossingMap {
         CrossingMap {
-            start: start,
-            end: end,
+            start,
+            end,
             cards_in_heap: heap_size / CARD_SIZE,
         }
     }

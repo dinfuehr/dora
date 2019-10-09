@@ -8,9 +8,9 @@ use dora_parser::ast::{Ast, File, Global};
 
 pub fn check<'a, 'ast>(vm: &VM<'ast>, ast: &'ast Ast, map_global_defs: &NodeMap<GlobalId>) {
     let mut checker = GlobalDefCheck {
-        vm: vm,
+        vm,
         current_type: BuiltinType::Unit,
-        map_global_defs: map_global_defs,
+        map_global_defs,
     };
 
     checker.visit_ast(ast);

@@ -60,14 +60,14 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         config: &'a SharedHeapConfig,
     ) -> MinorCollector<'a, 'ast> {
         MinorCollector {
-            vm: vm,
-            young: young,
-            old: old,
+            vm,
+            young,
+            old,
             old_protected: old.protected(),
-            large: large,
-            rootset: rootset,
-            card_table: card_table,
-            crossing_map: crossing_map,
+            large,
+            rootset,
+            card_table,
+            crossing_map,
 
             young_top: Address::null(),
             young_limit: Address::null(),
@@ -79,12 +79,12 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
             from_active: Default::default(),
             eden_active: young.eden_active(),
 
-            reason: reason,
+            reason,
 
-            min_heap_size: min_heap_size,
-            max_heap_size: max_heap_size,
+            min_heap_size,
+            max_heap_size,
 
-            config: config,
+            config,
             phases: MinorCollectorPhases::new(),
         }
     }

@@ -49,8 +49,8 @@ impl Space {
         let end = space_start.offset(config.chunk);
 
         Space {
-            name: name,
-            config: config,
+            name,
+            config,
             total: Region::new(space_start, space_end),
 
             top: AtomicUsize::new(space_start.to_usize()),

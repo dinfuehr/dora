@@ -25,10 +25,10 @@ pub fn check<'ast>(vm: &VM<'ast>) {
         let ast = fct.ast;
 
         let mut nameck = NameCheck {
-            vm: vm,
+            vm,
             fct: &fct,
             src: &mut src,
-            ast: ast,
+            ast,
         };
 
         nameck.check();
@@ -85,8 +85,8 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
         let var = Var {
             id: VarId(0),
-            name: name,
-            ty: ty,
+            name,
+            ty,
             reassignable: false,
             node_id: ast_id,
         };

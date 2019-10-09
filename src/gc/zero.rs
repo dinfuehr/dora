@@ -19,8 +19,8 @@ impl ZeroCollector {
         arena::commit(start, heap_size, false);
 
         ZeroCollector {
-            start: start,
-            end: end,
+            start,
+            end,
             alloc: BumpAllocator::new(start, end),
         }
     }

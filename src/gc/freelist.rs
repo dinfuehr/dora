@@ -91,7 +91,7 @@ impl FreeList {
             classes.push(FreeListClass::new());
         }
 
-        FreeList { classes: classes }
+        FreeList { classes }
     }
 
     pub fn add(&mut self, vm: &VM, addr: Address, size: usize) {
