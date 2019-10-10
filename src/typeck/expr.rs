@@ -4,6 +4,7 @@ use std::{f32, f64};
 
 use crate::class::{ClassId, TypeParams};
 use crate::error::msg::SemError;
+use crate::semck;
 use crate::sym::Sym::SymClass;
 use crate::ty::BuiltinType;
 use crate::typeck::lookup::MethodLookup;
@@ -43,13 +44,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.expr_type
         });
 
-        let defined_type = if let Some(_) = s.data_type {
-            let ty = self.src.vars[var].ty;
-            if ty == BuiltinType::Unit {
-                None
-            } else {
-                Some(ty)
-            }
+        let defined_type = if let Some(ref data_type) = s.data_type {
+            let ty = semck::read_type(self.vm, self.file, &data_type);
+            Some(ty.unwrap_or(BuiltinType::Error))
         } else {
             expr_type
         };
@@ -72,7 +69,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.src.vars[var].ty = defined_type;
 
         if let Some(expr_type) = expr_type {
-            if !expr_type.is_error() && !defined_type.allows(self.vm, expr_type) {
+            if !expr_type.is_error()
+                && !defined_type.is_error()
+                && !defined_type.allows(self.vm, expr_type)
+            {
                 let name = self.vm.interner.str(s.name).to_string();
                 let defined_type = defined_type.name(self.vm);
                 let expr_type = expr_type.name(self.vm);
@@ -256,11 +256,33 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.visit_stmt(&s.do_block);
 
         for catch in &s.catch_blocks {
+            let ty = semck::read_type(self.vm, self.fct.file, &catch.data_type)
+                .unwrap_or(BuiltinType::Error);
+
+            let var = *self.src.map_vars.get(catch.id).unwrap();
+            self.src.vars[var].ty = ty;
+
+            if !ty.is_error() && !ty.reference_type() {
+                let ty = ty.name(self.vm);
+                self.vm.diag.lock().report(
+                    self.fct.file,
+                    catch.data_type.pos(),
+                    SemError::ReferenceTypeExpected(ty),
+                );
+            }
+
             self.visit_stmt(&catch.block);
         }
 
         if let Some(ref finally_block) = s.finally_block {
             self.visit_stmt(&finally_block.block);
+        }
+
+        if s.catch_blocks.is_empty() && s.finally_block.is_none() {
+            self.vm
+                .diag
+                .lock()
+                .report(self.fct.file, s.pos, SemError::CatchOrFinallyExpected);
         }
     }
 

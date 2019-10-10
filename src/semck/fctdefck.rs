@@ -6,7 +6,6 @@ use crate::sym::Sym;
 use crate::ty::BuiltinType;
 use crate::vm::{self, Fct, FctId, FctParent, FctSrc, VM};
 use dora_parser::ast::visit::*;
-use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 
 pub fn check<'a, 'ast>(vm: &VM<'ast>) {
@@ -276,53 +275,6 @@ impl<'a, 'ast> FctDefCheck<'a, 'ast> {
 impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
         self.visit_stmt(f.block());
-    }
-
-    fn visit_stmt(&mut self, s: &'ast Stmt) {
-        match *s {
-            StmtVar(ref var) => {
-                if let Some(ref data_type) = var.data_type {
-                    self.visit_type(data_type);
-
-                    let varid = *self.src.map_vars.get(var.id).unwrap();
-                    self.src.vars[varid].ty = self.current_type;
-                }
-
-                if let Some(ref expr) = var.expr {
-                    visit::walk_expr(self, expr);
-                }
-            }
-
-            StmtDo(ref r#try) => {
-                visit::walk_stmt(self, s);
-
-                for catch in &r#try.catch_blocks {
-                    let ty = self.src.ty(catch.data_type.id());
-
-                    let var = *self.src.map_vars.get(catch.id).unwrap();
-                    self.src.vars[var].ty = ty;
-
-                    if !ty.reference_type() {
-                        let ty = ty.name(self.vm);
-                        self.vm.diag.lock().report(
-                            self.fct.file,
-                            catch.data_type.pos(),
-                            SemError::ReferenceTypeExpected(ty),
-                        );
-                    }
-                }
-
-                if r#try.catch_blocks.is_empty() && r#try.finally_block.is_none() {
-                    self.vm.diag.lock().report(
-                        self.fct.file,
-                        r#try.pos,
-                        SemError::CatchOrFinallyExpected,
-                    );
-                }
-            }
-
-            _ => visit::walk_stmt(self, s),
-        }
     }
 
     fn visit_type(&mut self, t: &'ast Type) {
