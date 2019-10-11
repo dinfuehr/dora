@@ -1314,21 +1314,55 @@ impl Store {
 
 #[derive(Debug, Clone)]
 pub enum IdentType {
+    /// name of local variable
     Var(VarId),
+    /// name of a global variable
     Global(GlobalId),
+
+    /// field expression: <expr>.<field_name>
     Field(BuiltinType, FieldId),
+
+    /// name of structure
     Struct(StructId),
+
+    // name of constant
     Const(ConstId),
+
+    // name of function
     Fct(FctId),
+
+    // name of function with type params: some_fct[T1, T2, ...]
     FctType(FctId, TypeParams),
+
+    // name of class
     Class(ClassId),
+
+    // name of class with type params: SomeClass[T1, T2, ...]
     ClassType(ClassId, TypeParams),
+
+    // method expression: <expr>.<method_name>
     Method(BuiltinType, Name),
+
+    // method expression with type params: <expr>.<method_name>[T1, T2, ...]
     MethodType(BuiltinType, Name, TypeParams),
+
+    // static method expression: SomeClass[T1, T2, ...]::<name>
     StaticMethod(BuiltinType, Name),
+
+    // static method expression: SomeClass[T1, T2, ...]::<name>[T1, T2, ...]
     StaticMethodType(BuiltinType, Name, TypeParams),
+
+    // function type param: e.g. T
     FctTypeParam(TypeParamId),
+
+    // static method call on function type param: <T>::<name>
+    FctTypeParamMethod(TypeParamId, Name),
+
+    // class type param: e.g. T
     ClassTypeParam(TypeParamId),
+
+    // static method call on class type param: <T>::<name>
+    ClassTypeParamMethod(TypeParamId, Name),
 }
 
 impl IdentType {

@@ -51,6 +51,18 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             self.add_hidden_parameter_self();
         }
 
+        if let FctParent::Class(cls_id) = self.fct.parent {
+            let cls = self.vm.classes.idx(cls_id);
+            let cls = cls.read();
+
+            for (tpid, tp) in cls.type_params.iter().enumerate() {
+                self.vm
+                    .sym
+                    .lock()
+                    .insert(tp.name, SymClassTypeParam(cls_id, tpid.into()));
+            }
+        }
+
         if let Some(ref type_params) = self.fct.ast.type_params {
             for (tpid, tp) in type_params.iter().enumerate() {
                 self.vm

@@ -1719,13 +1719,29 @@ fn test_type_param_used_as_value() {
         pos(1, 28),
         SemError::TypeParamUsedAsIdentifier,
     );
+
+    err(
+        "class SomeClass[T] {
+            fun f() -> Int { return T; }
+        }",
+        pos(2, 37),
+        SemError::TypeParamUsedAsIdentifier,
+    );
 }
 
 #[test]
 fn test_assign_to_type_param() {
     err(
-        "fun f[T]() -> Int { T = 10; }",
-        pos(1, 23),
+        "fun f[T]() { T = 10; }",
+        pos(1, 16),
+        SemError::TypeParamReassigned,
+    );
+
+    err(
+        "class SomeClass[T] {
+            fun f() { T = 10; }
+        }",
+        pos(2, 25),
         SemError::TypeParamReassigned,
     );
 }

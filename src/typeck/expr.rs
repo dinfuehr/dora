@@ -362,6 +362,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             &IdentType::FctType(_, _) | &IdentType::ClassType(_, _) => unreachable!(),
+            &IdentType::FctTypeParamMethod(_, _) | &IdentType::ClassTypeParamMethod(_, _) => {
+                unreachable!()
+            }
             &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
             &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => {
                 unreachable!()
@@ -445,7 +448,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         return;
                     }
 
-                    &IdentType::FctTypeParam(_) | &IdentType::ClassTypeParam(_) => {
+                    &IdentType::FctTypeParam(_)
+                    | &IdentType::FctTypeParamMethod(_, _)
+                    | &IdentType::ClassTypeParam(_)
+                    | &IdentType::ClassTypeParamMethod(_, _) => {
                         self.vm
                             .diag
                             .lock()
@@ -1358,24 +1364,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_path(&mut self, e: &'ast ExprPathType) {
         let ident_type = self.src.map_idents.get(e.lhs.id());
 
-        let cls_ty = match ident_type {
-            Some(&IdentType::Class(cls_id)) => {
-                let list = self.vm.lists.lock().insert(TypeParams::empty());
-                BuiltinType::Class(cls_id, list)
-            }
-
-            Some(&IdentType::ClassType(cls_id, ref type_params)) => {
-                let list = self.vm.lists.lock().insert(type_params.clone());
-                BuiltinType::Class(cls_id, list)
-            }
-
-            _ => {
-                let msg = SemError::InvalidLeftSideOfSeparator;
-                self.vm.diag.lock().report(self.file, e.lhs.pos(), msg);
-                return;
-            }
-        };
-
         let name = if let Some(ident) = e.rhs.to_ident() {
             ident.name
         } else {
@@ -1384,10 +1372,34 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             return;
         };
 
+        let ident_type = match ident_type {
+            Some(&IdentType::Class(cls_id)) => {
+                let list = self.vm.lists.lock().insert(TypeParams::empty());
+                let cls_ty = BuiltinType::Class(cls_id, list);
+
+                IdentType::StaticMethod(cls_ty, name)
+            }
+
+            Some(&IdentType::ClassType(cls_id, ref type_params)) => {
+                let list = self.vm.lists.lock().insert(type_params.clone());
+                let cls_ty = BuiltinType::Class(cls_id, list);
+
+                IdentType::StaticMethod(cls_ty, name)
+            }
+
+            Some(&IdentType::FctTypeParam(tpid)) => IdentType::FctTypeParamMethod(tpid, name),
+
+            Some(&IdentType::ClassTypeParam(tpid)) => IdentType::ClassTypeParamMethod(tpid, name),
+
+            _ => {
+                let msg = SemError::InvalidLeftSideOfSeparator;
+                self.vm.diag.lock().report(self.file, e.lhs.pos(), msg);
+                return;
+            }
+        };
+
         if self.used_in_call.contains(&e.id) {
-            self.src
-                .map_idents
-                .insert(e.id, IdentType::StaticMethod(cls_ty, name));
+            self.src.map_idents.insert(e.id, ident_type);
             return;
         }
 
