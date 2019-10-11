@@ -1745,3 +1745,22 @@ fn test_assign_to_type_param() {
         SemError::TypeParamReassigned,
     );
 }
+
+#[test]
+fn test_type_param_with_name_but_no_call() {
+    err(
+        "trait X { fun foo() -> Int; }
+        fun f[T: X]() { T::foo; }",
+        pos(2, 26),
+        SemError::FctUsedAsIdentifier,
+    );
+
+    err(
+        "trait X { fun foo() -> Int; }
+        class SomeClass[T: X] {
+            fun f() { T::foo; }
+        }",
+        pos(3, 24),
+        SemError::FctUsedAsIdentifier,
+    );
+}
