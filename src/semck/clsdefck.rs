@@ -5,7 +5,7 @@ use crate::class::*;
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::sym::Sym;
-use crate::ty::BuiltinType;
+use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, NodeMap, VM};
 
 use dora_parser::ast::visit::{self, Visitor};

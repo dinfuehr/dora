@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
-use crate::class::{ClassId, TypeList};
+use crate::class::ClassId;
 use crate::error::msg::SemError;
-use crate::ty::BuiltinType;
+use crate::ty::{BuiltinType, TypeList};
 use crate::typeck::expr::{args_compatible, replace_type_param};
 use crate::vm::{FctId, FctParent, FileId, TraitId, TypeParam, VM};
 

@@ -5,7 +5,7 @@ use std::iter::Iterator;
 use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
-use crate::ty::BuiltinType;
+use crate::ty::{BuiltinType, TypeList};
 use crate::utils::GrowableVec;
 use crate::vm::VM;
 use crate::vm::{FctId, FileId, ImplId, TraitId, TypeParam};
@@ -273,22 +273,6 @@ impl Class {
     }
 }
 
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct TypeListId(u32);
-
-impl TypeListId {
-    pub fn idx(self) -> usize {
-        self.0 as usize
-    }
-}
-
-impl From<usize> for TypeListId {
-    fn from(data: usize) -> TypeListId {
-        assert!(data < u32::max_value() as usize);
-        TypeListId(data as u32)
-    }
-}
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct FieldId(usize);
 
@@ -397,79 +381,4 @@ impl ClassDef {
 pub struct FieldDef {
     pub offset: i32,
     pub ty: BuiltinType,
-}
-
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub enum TypeList {
-    Empty,
-    List(Arc<Vec<BuiltinType>>),
-}
-
-impl TypeList {
-    pub fn empty() -> TypeList {
-        TypeList::Empty
-    }
-
-    pub fn single(ty: BuiltinType) -> TypeList {
-        TypeList::List(Arc::new(vec![ty]))
-    }
-
-    pub fn with(type_params: Vec<BuiltinType>) -> TypeList {
-        if type_params.len() == 0 {
-            TypeList::Empty
-        } else {
-            TypeList::List(Arc::new(type_params))
-        }
-    }
-
-    pub fn len(&self) -> usize {
-        match self {
-            &TypeList::Empty => 0,
-            &TypeList::List(ref params) => params.len(),
-        }
-    }
-
-    pub fn iter(&self) -> TypeListIter {
-        TypeListIter {
-            params: self,
-            idx: 0,
-        }
-    }
-}
-
-impl Index<usize> for TypeList {
-    type Output = BuiltinType;
-
-    fn index(&self, idx: usize) -> &BuiltinType {
-        match self {
-            &TypeList::Empty => panic!("out-of-bounds"),
-            &TypeList::List(ref params) => &params[idx],
-        }
-    }
-}
-
-pub struct TypeListIter<'a> {
-    params: &'a TypeList,
-    idx: usize,
-}
-
-impl<'a> Iterator for TypeListIter<'a> {
-    type Item = BuiltinType;
-
-    fn next(&mut self) -> Option<BuiltinType> {
-        match self.params {
-            &TypeList::Empty => None,
-
-            &TypeList::List(ref params) => {
-                if self.idx < params.len() {
-                    let ret = params[self.idx];
-                    self.idx += 1;
-
-                    Some(ret)
-                } else {
-                    None
-                }
-            }
-        }
-    }
 }

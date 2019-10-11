@@ -8,7 +8,6 @@ use std::str;
 use std::thread;
 use std::time::Duration;
 
-use crate::class::TypeList;
 use crate::exception::{alloc_exception, stacktrace_from_last_dtn};
 use crate::gc::{Address, GcReason};
 use crate::handle::root;
@@ -16,6 +15,7 @@ use crate::object::{ByteArray, Obj, Ref, Str};
 use crate::os::signal::Trap;
 use crate::sym::Sym::SymFct;
 use crate::threads::{DoraThread, THREAD};
+use crate::ty::TypeList;
 use crate::vm::exception_set;
 use crate::vm::get_vm;
 

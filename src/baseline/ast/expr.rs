@@ -6,7 +6,7 @@ use crate::baseline::codegen::{
 };
 use crate::baseline::dora_native::{InternalFct, InternalFctDescriptor};
 use crate::baseline::fct::{CatchType, Comment, GcPoint};
-use crate::class::{ClassDefId, ClassSize, FieldId, TypeList};
+use crate::class::{ClassDefId, ClassSize, FieldId};
 use crate::cpu::{
     FReg, Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_TMP1, REG_TMP2,
 };
@@ -15,7 +15,7 @@ use crate::mem;
 use crate::object::{Header, Str};
 use crate::os::signal::Trap;
 use crate::semck::specialize::{specialize_class_id, specialize_class_ty};
-use crate::ty::{BuiltinType, MachineMode};
+use crate::ty::{BuiltinType, MachineMode, TypeList};
 use crate::vm::VM;
 use crate::vm::*;
 use crate::vtable::{VTable, DISPLAY_SIZE};

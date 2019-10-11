@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use self::Sym::*;
 
-use crate::class::{ClassId, TypeListId};
+use crate::class::ClassId;
+use crate::ty::TypeListId;
 use crate::vm::*;
 use dora_parser::interner::Name;
 

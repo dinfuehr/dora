@@ -2,11 +2,11 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::{f32, f64};
 
-use crate::class::{ClassId, TypeList, TypeListId};
+use crate::class::ClassId;
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::sym::Sym::SymClass;
-use crate::ty::BuiltinType;
+use crate::ty::{BuiltinType, TypeList, TypeListId};
 use crate::typeck::lookup::MethodLookup;
 use crate::vm::{
     self, CallType, ConvInfo, Fct, FctId, FctParent, FctSrc, FileId, ForTypeInfo, IdentType, VM,

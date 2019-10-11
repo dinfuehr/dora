@@ -1,12 +1,12 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
-use crate::class::{ClassDef, ClassDefId, ClassId, ClassSize, TypeList};
+use crate::class::{ClassDef, ClassDefId, ClassId, ClassSize};
 use crate::exception;
 use crate::gc::Address;
 use crate::object::Header;
 use crate::stdlib;
-use crate::ty::BuiltinType;
+use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{FctId, FctKind, Intrinsic, TraitId, VM};
 use crate::vtable::VTableBox;
 

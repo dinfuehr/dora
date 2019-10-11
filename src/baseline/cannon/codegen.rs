@@ -5,9 +5,9 @@ use dora_parser::ast::*;
 
 use crate::baseline::codegen::{should_emit_debug, CodeGen, CondCode, Scopes};
 use crate::baseline::fct::{Comment, JitBaselineFct, JitDescriptor};
-use crate::class::TypeList;
 use crate::masm::*;
 use crate::object::Str;
+use crate::ty::TypeList;
 use crate::vm::VM;
 use crate::vm::{Fct, FctSrc};
 

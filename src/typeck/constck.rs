@@ -1,6 +1,5 @@
-use crate::class::TypeList;
 use crate::error::msg::SemError;
-use crate::ty::BuiltinType;
+use crate::ty::{BuiltinType, TypeList};
 use crate::typeck::expr::{check_lit_float, check_lit_int, lookup_method};
 use crate::vm::{ConstData, ConstValue, VM};
 
