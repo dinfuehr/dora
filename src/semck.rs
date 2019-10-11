@@ -1,4 +1,4 @@
-use crate::class::TypeParams;
+use crate::class::TypeList;
 use crate::error::msg::SemError;
 use crate::mem;
 use crate::sym::Sym::{SymClass, SymClassTypeParam, SymFctTypeParam, SymStruct, SymTrait};
@@ -256,7 +256,8 @@ pub fn read_type<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> Option<Bui
                                 }
                             }
 
-                            let list_id = vm.lists.lock().insert(type_params.into());
+                            let list = TypeList::with(type_params);
+                            let list_id = vm.lists.lock().insert(list);
                             BuiltinType::Class(cls.id, list_id)
                         } else {
                             let cls = vm.classes.idx(cls_id);
@@ -283,7 +284,7 @@ pub fn read_type<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> Option<Bui
                             vm.diag.lock().report(file, basic.pos, msg);
                         }
 
-                        let list_id = vm.lists.lock().insert(TypeParams::empty());
+                        let list_id = vm.lists.lock().insert(TypeList::empty());
                         return Some(BuiltinType::Struct(struct_id, list_id));
                     }
 

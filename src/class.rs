@@ -66,7 +66,7 @@ pub struct Class {
 
     pub type_params: Vec<TypeParam>,
 
-    pub specializations: RwLock<HashMap<TypeParams, ClassDefId>>,
+    pub specializations: RwLock<HashMap<TypeList, ClassDefId>>,
 
     // true if this class is the generic Array class
     pub is_array: bool,
@@ -274,17 +274,18 @@ impl Class {
 }
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct TypeParamId(usize);
+pub struct TypeListId(u32);
 
-impl TypeParamId {
+impl TypeListId {
     pub fn idx(self) -> usize {
-        self.0
+        self.0 as usize
     }
 }
 
-impl From<usize> for TypeParamId {
-    fn from(data: usize) -> TypeParamId {
-        TypeParamId(data)
+impl From<usize> for TypeListId {
+    fn from(data: usize) -> TypeListId {
+        assert!(data < u32::max_value() as usize);
+        TypeListId(data as u32)
     }
 }
 
@@ -360,7 +361,7 @@ pub enum ClassSize {
 pub struct ClassDef {
     pub id: ClassDefId,
     pub cls_id: Option<ClassId>,
-    pub type_params: TypeParams,
+    pub type_params: TypeList,
     pub parent_id: Option<ClassDefId>,
     pub fields: Vec<FieldDef>,
     pub size: ClassSize,
@@ -399,63 +400,67 @@ pub struct FieldDef {
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub enum TypeParams {
+pub enum TypeList {
     Empty,
     List(Arc<Vec<BuiltinType>>),
 }
 
-impl TypeParams {
-    pub fn empty() -> TypeParams {
-        TypeParams::Empty
+impl TypeList {
+    pub fn empty() -> TypeList {
+        TypeList::Empty
     }
 
-    pub fn with(type_params: Vec<BuiltinType>) -> TypeParams {
+    pub fn single(ty: BuiltinType) -> TypeList {
+        TypeList::List(Arc::new(vec![ty]))
+    }
+
+    pub fn with(type_params: Vec<BuiltinType>) -> TypeList {
         if type_params.len() == 0 {
-            TypeParams::Empty
+            TypeList::Empty
         } else {
-            TypeParams::List(Arc::new(type_params))
+            TypeList::List(Arc::new(type_params))
         }
     }
 
     pub fn len(&self) -> usize {
         match self {
-            &TypeParams::Empty => 0,
-            &TypeParams::List(ref params) => params.len(),
+            &TypeList::Empty => 0,
+            &TypeList::List(ref params) => params.len(),
         }
     }
 
-    pub fn iter(&self) -> TypeParamsIter {
-        TypeParamsIter {
+    pub fn iter(&self) -> TypeListIter {
+        TypeListIter {
             params: self,
             idx: 0,
         }
     }
 }
 
-impl Index<usize> for TypeParams {
+impl Index<usize> for TypeList {
     type Output = BuiltinType;
 
     fn index(&self, idx: usize) -> &BuiltinType {
         match self {
-            &TypeParams::Empty => panic!("out-of-bounds"),
-            &TypeParams::List(ref params) => &params[idx],
+            &TypeList::Empty => panic!("out-of-bounds"),
+            &TypeList::List(ref params) => &params[idx],
         }
     }
 }
 
-pub struct TypeParamsIter<'a> {
-    params: &'a TypeParams,
+pub struct TypeListIter<'a> {
+    params: &'a TypeList,
     idx: usize,
 }
 
-impl<'a> Iterator for TypeParamsIter<'a> {
+impl<'a> Iterator for TypeListIter<'a> {
     type Item = BuiltinType;
 
     fn next(&mut self) -> Option<BuiltinType> {
         match self.params {
-            &TypeParams::Empty => None,
+            &TypeList::Empty => None,
 
-            &TypeParams::List(ref params) => {
+            &TypeList::List(ref params) => {
                 if self.idx < params.len() {
                     let ret = params[self.idx];
                     self.idx += 1;
@@ -466,11 +471,5 @@ impl<'a> Iterator for TypeParamsIter<'a> {
                 }
             }
         }
-    }
-}
-
-impl From<Vec<BuiltinType>> for TypeParams {
-    fn from(val: Vec<BuiltinType>) -> TypeParams {
-        TypeParams::with(val)
     }
 }

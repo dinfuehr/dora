@@ -3,7 +3,7 @@ use std::fmt;
 use std::ptr;
 use std::sync::Arc;
 
-use crate::class::{ClassDef, ClassDefId, FieldId, TypeParams};
+use crate::class::{ClassDef, ClassDefId, FieldId, TypeList};
 use crate::cpu::flush_icache;
 use crate::dseg::DSeg;
 use crate::gc::Address;
@@ -487,6 +487,6 @@ impl Bailouts {
 
 #[derive(Clone, Debug)]
 pub enum BailoutInfo {
-    Compile(FctId, i32, TypeParams, TypeParams),
-    VirtCompile(u32, TypeParams),
+    Compile(FctId, i32, TypeList, TypeList),
+    VirtCompile(u32, TypeList),
 }

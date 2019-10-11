@@ -11,7 +11,7 @@ use crate::baseline::codegen::{
     TempOffsets,
 };
 use crate::baseline::fct::{CatchType, Comment, JitBaselineFct, JitDescriptor};
-use crate::class::{ClassDef, TypeParams};
+use crate::class::{ClassDef, TypeList};
 use crate::cpu::{Mem, FREG_PARAMS, FREG_RESULT, REG_PARAMS, REG_RESULT};
 use crate::masm::*;
 use crate::os::signal::Trap;
@@ -55,8 +55,8 @@ pub struct AstCodeGen<'a, 'ast: 'a> {
     // see emit_finallys_within_loop and tests/finally/continue-return.dora
     pub active_upper: Option<usize>,
 
-    pub cls_type_params: &'a TypeParams,
-    pub fct_type_params: &'a TypeParams,
+    pub cls_type_params: &'a TypeList,
+    pub fct_type_params: &'a TypeList,
 }
 
 impl<'a, 'ast> AstCodeGen<'a, 'ast>
@@ -625,8 +625,9 @@ where
                 let params = self.vm.lists.lock().get(list_id);
 
                 let params: Vec<_> = params.iter().map(|t| self.specialize_type(t)).collect();
+                let list = TypeList::with(params);
 
-                let list_id = self.vm.lists.lock().insert(params.into());
+                let list_id = self.vm.lists.lock().insert(list);
 
                 BuiltinType::Class(cls_id, list_id)
             }

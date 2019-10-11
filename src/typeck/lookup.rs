@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::class::{ClassId, TypeParams};
+use crate::class::{ClassId, TypeList};
 use crate::error::msg::SemError;
 use crate::ty::BuiltinType;
 use crate::typeck::expr::{args_compatible, replace_type_param};
@@ -25,8 +25,8 @@ pub struct MethodLookup<'a, 'ast: 'a> {
     kind: Option<LookupKind>,
     name: Option<Name>,
     args: Option<&'a [BuiltinType]>,
-    cls_tps: Option<&'a TypeParams>,
-    fct_tps: Option<&'a TypeParams>,
+    cls_tps: Option<&'a TypeList>,
+    fct_tps: Option<&'a TypeList>,
     ret: Option<BuiltinType>,
     pos: Option<Position>,
 
@@ -102,12 +102,12 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         self
     }
 
-    pub fn cls_type_params(mut self, cls_tps: &'a TypeParams) -> MethodLookup<'a, 'ast> {
+    pub fn cls_type_params(mut self, cls_tps: &'a TypeList) -> MethodLookup<'a, 'ast> {
         self.cls_tps = Some(cls_tps);
         self
     }
 
-    pub fn fct_type_params(mut self, fct_tps: &'a TypeParams) -> MethodLookup<'a, 'ast> {
+    pub fn fct_type_params(mut self, fct_tps: &'a TypeList) -> MethodLookup<'a, 'ast> {
         self.fct_tps = Some(fct_tps);
         self
     }
@@ -235,26 +235,26 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
         self.found_cls_id = cls_id;
 
-        let cls_tps: TypeParams = if let Some(cls_tps) = self.cls_tps {
+        let cls_tps: TypeList = if let Some(cls_tps) = self.cls_tps {
             cls_tps.clone()
         } else if let LookupKind::Method(obj) = kind {
             obj.type_params(self.vm)
         } else {
-            TypeParams::empty()
+            TypeList::empty()
         };
 
         if cls_id.is_some() && !self.check_cls_tps(&cls_tps) {
             return false;
         }
 
-        let fct_tps: TypeParams = if let Some(fct_tps) = self.fct_tps {
+        let fct_tps: TypeList = if let Some(fct_tps) = self.fct_tps {
             if !self.check_fct_tps(fct_tps) {
                 return false;
             }
 
             fct_tps.clone()
         } else {
-            TypeParams::empty()
+            TypeList::empty()
         };
 
         if !args_compatible(
@@ -320,7 +320,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                 Some(cls_id),
                 None,
                 type_params,
-                &TypeParams::empty(),
+                &TypeList::empty(),
             ) {
                 return Some(ctor_id);
             }
@@ -356,7 +356,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         xtrait.find_method(self.vm, name, is_static)
     }
 
-    fn check_cls_tps(&self, tps: &TypeParams) -> bool {
+    fn check_cls_tps(&self, tps: &TypeList) -> bool {
         let cls_tps = {
             let cls_id = self.found_cls_id.expect("found_cls_id not set");
             let cls = self.vm.classes.idx(cls_id);
@@ -367,7 +367,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         self.check_tps(&cls_tps, tps)
     }
 
-    fn check_fct_tps(&self, tps: &TypeParams) -> bool {
+    fn check_fct_tps(&self, tps: &TypeList) -> bool {
         let fct_tps = {
             let fct_id = self.found_fct_id.expect("found_fct_id not set");
 
@@ -379,7 +379,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         self.check_tps(&fct_tps, tps)
     }
 
-    fn check_tps(&self, specified_tps: &[TypeParam], tps: &TypeParams) -> bool {
+    fn check_tps(&self, specified_tps: &[TypeParam], tps: &TypeList) -> bool {
         if specified_tps.len() != tps.len() {
             let msg = SemError::WrongNumberTypeParams(specified_tps.len(), tps.len());
             self.vm

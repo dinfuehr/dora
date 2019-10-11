@@ -1,4 +1,4 @@
-use crate::class::TypeParams;
+use crate::class::TypeList;
 use crate::error::msg::SemError;
 use crate::ty::BuiltinType;
 use crate::typeck::expr::{check_lit_float, check_lit_int, lookup_method};
@@ -37,16 +37,8 @@ impl<'a, 'ast> ConstCheck<'a, 'ast> {
                 let (ty, val) = self.check_expr(&expr.opnd);
                 let name = self.vm.interner.intern("unaryMinus");
 
-                if lookup_method(
-                    self.vm,
-                    ty,
-                    false,
-                    name,
-                    &[],
-                    &TypeParams::empty(),
-                    Some(ty),
-                )
-                .is_none()
+                if lookup_method(self.vm, ty, false, name, &[], &TypeList::empty(), Some(ty))
+                    .is_none()
                 {
                     let ty = ty.name(self.vm);
                     let msg = SemError::UnOpType(expr.op.as_str().into(), ty);

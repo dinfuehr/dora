@@ -14,7 +14,7 @@ use crate::baseline::dora_native::{self, InternalFct, InternalFctDescriptor, Nat
 use crate::baseline::dora_throw;
 use crate::baseline::fct::{JitFct, JitFctId};
 use crate::baseline::map::{CodeDescriptor, CodeMap};
-use crate::class::{Class, ClassDef, ClassDefId, ClassId, FieldId, TypeParamId, TypeParams};
+use crate::class::{Class, ClassDef, ClassDefId, ClassId, FieldId, TypeList, TypeListId};
 use crate::driver::cmd::Args;
 use crate::error::diag::Diagnostic;
 use crate::exception::DoraToNativeInfo;
@@ -224,7 +224,7 @@ impl<'ast> VM<'ast> {
 
     fn ensure_compiled(&self, fct_id: FctId) -> Address {
         let mut dtn = DoraToNativeInfo::new();
-        let type_params = TypeParams::empty();
+        let type_params = TypeList::empty();
 
         THREAD.with(|thread| {
             thread.borrow().use_dtn(&mut dtn, || {
@@ -356,7 +356,7 @@ impl<'ast> VM<'ast> {
     }
 
     pub fn cls(&self, cls_id: ClassId) -> BuiltinType {
-        let list_id = self.lists.lock().insert(TypeParams::empty());
+        let list_id = self.lists.lock().insert(TypeList::empty());
         BuiltinType::Class(cls_id, list_id)
     }
 
@@ -650,7 +650,7 @@ pub struct StructData {
     pub pos: Position,
     pub name: Name,
     pub fields: Vec<StructFieldData>,
-    pub specializations: RwLock<HashMap<TypeParams, StructDefId>>,
+    pub specializations: RwLock<HashMap<TypeList, StructDefId>>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -730,7 +730,7 @@ impl KnownElements {
         if let Some(cls_id) = *int_array_def {
             cls_id
         } else {
-            let type_args: TypeParams = vec![BuiltinType::Int].into();
+            let type_args = TypeList::single(BuiltinType::Int);
             let cls_id = specialize_class_id_params(vm, self.array_class, &type_args);
             *int_array_def = Some(cls_id);
             cls_id
@@ -1186,7 +1186,7 @@ pub struct FctSrc {
 
     pub always_returns: bool, // true if function is always exited via return statement
     // false if function execution could reach the closing } of this function
-    pub specializations: RwLock<HashMap<(TypeParams, TypeParams), JitFctId>>,
+    pub specializations: RwLock<HashMap<(TypeList, TypeList), JitFctId>>,
     pub vars: Vec<Var>, // variables in functions
 }
 
@@ -1332,37 +1332,37 @@ pub enum IdentType {
     Fct(FctId),
 
     // name of function with type params: some_fct[T1, T2, ...]
-    FctType(FctId, TypeParams),
+    FctType(FctId, TypeList),
 
     // name of class
     Class(ClassId),
 
     // name of class with type params: SomeClass[T1, T2, ...]
-    ClassType(ClassId, TypeParams),
+    ClassType(ClassId, TypeList),
 
     // method expression: <expr>.<method_name>
     Method(BuiltinType, Name),
 
     // method expression with type params: <expr>.<method_name>[T1, T2, ...]
-    MethodType(BuiltinType, Name, TypeParams),
+    MethodType(BuiltinType, Name, TypeList),
 
     // static method expression: SomeClass[T1, T2, ...]::<name>
     StaticMethod(BuiltinType, Name),
 
     // static method expression: SomeClass[T1, T2, ...]::<name>[T1, T2, ...]
-    StaticMethodType(BuiltinType, Name, TypeParams),
+    StaticMethodType(BuiltinType, Name, TypeList),
 
     // function type param: e.g. T
-    FctTypeParam(TypeParamId),
+    FctTypeParam(TypeListId),
 
     // static method call on function type param: <T>::<name>
-    FctTypeParamMethod(TypeParamId, Name),
+    FctTypeParamMethod(TypeListId, Name),
 
     // class type param: e.g. T
-    ClassTypeParam(TypeParamId),
+    ClassTypeParam(TypeListId),
 
     // static method call on class type param: <T>::<name>
-    ClassTypeParamMethod(TypeParamId, Name),
+    ClassTypeParamMethod(TypeListId, Name),
 }
 
 impl IdentType {
@@ -1421,10 +1421,10 @@ pub struct ForTypeInfo {
 
 #[derive(Debug, Clone)]
 pub enum CallType {
-    Fct(FctId, TypeParams, TypeParams),
-    Method(BuiltinType, FctId, TypeParams),
-    CtorNew(ClassId, FctId, TypeParams),
-    Ctor(ClassId, FctId, TypeParams),
+    Fct(FctId, TypeList, TypeList),
+    Method(BuiltinType, FctId, TypeList),
+    CtorNew(ClassId, FctId, TypeList),
+    Ctor(ClassId, FctId, TypeList),
     Expr(BuiltinType, FctId),
     Trait(TraitId, FctId),
 }
@@ -1473,8 +1473,8 @@ impl CallType {
 #[derive(Clone, Debug)]
 pub struct CallSite<'ast> {
     pub callee: FctId,
-    pub cls_type_params: TypeParams,
-    pub fct_type_params: TypeParams,
+    pub cls_type_params: TypeList,
+    pub fct_type_params: TypeList,
     pub args: Vec<Arg<'ast>>,
     pub super_call: bool,
     pub return_type: BuiltinType,

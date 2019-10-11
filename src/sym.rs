@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use self::Sym::*;
 
-use crate::class::{ClassId, TypeParamId};
+use crate::class::{ClassId, TypeListId};
 use crate::vm::*;
 use dora_parser::interner::Name;
 
@@ -102,8 +102,8 @@ pub enum Sym {
     SymStruct(StructId),
     SymTrait(TraitId),
     SymGlobal(GlobalId),
-    SymClassTypeParam(ClassId, TypeParamId),
-    SymFctTypeParam(FctId, TypeParamId),
+    SymClassTypeParam(ClassId, TypeListId),
+    SymFctTypeParam(FctId, TypeListId),
     SymConst(ConstId),
 }
 

@@ -2,7 +2,7 @@ use crate::baseline::codegen::CondCode;
 use crate::baseline::codegen::ExprStore;
 use crate::baseline::fct::BailoutInfo;
 use crate::baseline::fct::GcPoint;
-use crate::class::TypeParams;
+use crate::class::TypeList;
 use crate::cpu::*;
 use crate::gc::swiper::CARD_SIZE_BITS;
 use crate::gc::Address;
@@ -54,8 +54,8 @@ impl MacroAssembler {
         &mut self,
         fct_id: FctId,
         ptr: *const u8,
-        cls_tps: TypeParams,
-        fct_tps: TypeParams,
+        cls_tps: TypeList,
+        fct_tps: TypeList,
     ) {
         let disp = self.add_addr(ptr);
         let pos = self.pos() as i32;
@@ -96,7 +96,7 @@ impl MacroAssembler {
 
         // call *REG_RESULT
         self.call_reg(REG_RESULT);
-        self.emit_bailout_info(BailoutInfo::VirtCompile(index, TypeParams::empty()));
+        self.emit_bailout_info(BailoutInfo::VirtCompile(index, TypeList::empty()));
     }
 
     pub fn load_array_elem(&mut self, mode: MachineMode, dest: ExprStore, array: Reg, index: Reg) {

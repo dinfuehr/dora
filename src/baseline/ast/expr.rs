@@ -6,7 +6,7 @@ use crate::baseline::codegen::{
 };
 use crate::baseline::dora_native::{InternalFct, InternalFctDescriptor};
 use crate::baseline::fct::{CatchType, Comment, GcPoint};
-use crate::class::{ClassDefId, ClassSize, FieldId, TypeParams};
+use crate::class::{ClassDefId, ClassSize, FieldId, TypeList};
 use crate::cpu::{
     FReg, Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_TMP1, REG_TMP2,
 };
@@ -38,8 +38,8 @@ where
     tempsize: i32,
     temps: TempOffsets,
     jit_info: &'a JitInfo<'ast>,
-    cls_type_params: &'a TypeParams,
-    fct_type_params: &'a TypeParams,
+    cls_type_params: &'a TypeList,
+    fct_type_params: &'a TypeList,
 }
 
 impl<'a, 'b, 'ast> ExprGen<'a, 'b, 'ast>
@@ -55,8 +55,8 @@ where
         asm: &'a mut BaselineAssembler<'b, 'ast>,
         scopes: &'a mut Scopes,
         jit_info: &'a JitInfo<'ast>,
-        cls_type_params: &'a TypeParams,
-        fct_type_params: &'a TypeParams,
+        cls_type_params: &'a TypeList,
+        fct_type_params: &'a TypeList,
     ) -> ExprGen<'a, 'b, 'ast> {
         ExprGen {
             vm,
@@ -963,8 +963,8 @@ where
     fn ptr_for_fct_id(
         &mut self,
         fid: FctId,
-        cls_type_params: TypeParams,
-        fct_type_params: TypeParams,
+        cls_type_params: TypeList,
+        fct_type_params: TypeList,
     ) -> Address {
         if self.fct.id == fid {
             // we want to recursively invoke the function we are compiling right now
@@ -1801,18 +1801,20 @@ where
         }
 
         let return_type = self.specialize_type(csite.return_type);
-        let cls_type_params: TypeParams = csite
-            .cls_type_params
-            .iter()
-            .map(|ty| self.specialize_type(ty))
-            .collect::<Vec<_>>()
-            .into();
-        let fct_type_params: TypeParams = csite
-            .fct_type_params
-            .iter()
-            .map(|ty| self.specialize_type(ty))
-            .collect::<Vec<_>>()
-            .into();
+        let cls_type_params = TypeList::with(
+            csite
+                .cls_type_params
+                .iter()
+                .map(|ty| self.specialize_type(ty))
+                .collect::<Vec<_>>(),
+        );
+        let fct_type_params = TypeList::with(
+            csite
+                .fct_type_params
+                .iter()
+                .map(|ty| self.specialize_type(ty))
+                .collect::<Vec<_>>(),
+        );
 
         debug_assert!(cls_type_params
             .iter()
@@ -2038,8 +2040,8 @@ where
                 let params = self.vm.lists.lock().get(list_id);
 
                 let params: Vec<_> = params.iter().map(|t| self.specialize_type(t)).collect();
-
-                let list_id = self.vm.lists.lock().insert(params.into());
+                let params = TypeList::with(params);
+                let list_id = self.vm.lists.lock().insert(params);
 
                 BuiltinType::Class(cls_id, list_id)
             }
@@ -2093,8 +2095,8 @@ fn check_for_nil(ty: BuiltinType) -> bool {
 fn ensure_jit_or_stub_ptr<'ast>(
     src: &mut FctSrc,
     vm: &VM,
-    cls_type_params: TypeParams,
-    fct_type_params: TypeParams,
+    cls_type_params: TypeList,
+    fct_type_params: TypeList,
 ) -> Address {
     let specials = src.specializations.read();
     let key = (cls_type_params, fct_type_params);

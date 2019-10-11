@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::{f32, f64};
 
-use crate::class::{ClassId, TypeParams};
+use crate::class::{ClassId, TypeList, TypeListId};
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::sym::Sym::SymClass;
@@ -314,7 +314,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             &IdentType::Struct(sid) => {
-                let list_id = self.vm.lists.lock().insert(TypeParams::empty());
+                let list_id = self.vm.lists.lock().insert(TypeList::empty());
                 let ty = BuiltinType::Struct(sid, list_id);
                 self.src.set_ty(e.id, ty);
                 self.expr_type = ty;
@@ -519,7 +519,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             false,
             name,
             &arg_types,
-            &TypeParams::empty(),
+            &TypeList::empty(),
         ) {
             let call_type = CallType::Expr(expr_type, fct_id);
             self.src
@@ -561,7 +561,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let field = &cls.fields[field_id];
                 let class_type_params = ty.type_params(self.vm);
                 let fty =
-                    replace_type_param(self.vm, field.ty, &class_type_params, &TypeParams::empty());
+                    replace_type_param(self.vm, field.ty, &class_type_params, &TypeList::empty());
 
                 if !self.fct.is_constructor && !field.reassignable {
                     self.vm
@@ -605,7 +605,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         is_static: bool,
         name: Name,
         args: &[BuiltinType],
-        fct_type_params: &TypeParams,
+        fct_type_params: &TypeList,
     ) -> Option<(ClassId, FctId, BuiltinType)> {
         let result = lookup_method(
             self.vm,
@@ -664,10 +664,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 false,
                 name,
                 &call_types,
-                &TypeParams::empty(),
+                &TypeList::empty(),
                 None,
             ) {
-                let call_type = CallType::Method(ty, fct_id, TypeParams::empty());
+                let call_type = CallType::Method(ty, fct_id, TypeList::empty());
                 self.src.map_calls.insert(e.id, Arc::new(call_type));
 
                 self.src.set_ty(e.id, return_type);
@@ -748,10 +748,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             false,
             name,
             &call_types,
-            &TypeParams::empty(),
+            &TypeList::empty(),
             None,
         ) {
-            let call_type = CallType::Method(lhs_type, fct_id, TypeParams::empty());
+            let call_type = CallType::Method(lhs_type, fct_id, TypeList::empty());
             self.src
                 .map_calls
                 .insert_or_replace(e.id, Arc::new(call_type));
@@ -843,7 +843,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         match ident_type {
             Some(IdentType::Fct(fct_id)) => {
-                self.check_expr_call_ident(e, fct_id, TypeParams::empty(), &arg_types, in_try);
+                self.check_expr_call_ident(e, fct_id, TypeList::empty(), &arg_types, in_try);
             }
 
             Some(IdentType::FctType(fct_id, type_params)) => {
@@ -851,7 +851,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             Some(IdentType::Class(cls_id)) => {
-                self.check_expr_call_ctor(e, cls_id, TypeParams::empty(), &arg_types, in_try);
+                self.check_expr_call_ctor(e, cls_id, TypeList::empty(), &arg_types, in_try);
             }
 
             Some(IdentType::ClassType(cls_id, type_params)) => {
@@ -863,7 +863,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     e,
                     object_type,
                     method_name,
-                    TypeParams::empty(),
+                    TypeList::empty(),
                     &arg_types,
                     in_try,
                 );
@@ -885,7 +885,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     e,
                     object_type,
                     method_name,
-                    TypeParams::empty(),
+                    TypeList::empty(),
                     &arg_types,
                     in_try,
                 ),
@@ -900,6 +900,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     in_try,
                 ),
 
+            Some(IdentType::FctTypeParamMethod(tp_id, name)) => {
+                self.check_expr_call_generic_static_method(e, tp_id, name, &arg_types, in_try)
+            }
+
             _ => {
                 if expr_type.is_error() {
                     self.src.set_ty(e.id, expr_type);
@@ -912,6 +916,17 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
+    fn check_expr_call_generic_static_method(
+        &mut self,
+        _e: &'ast ExprCallType,
+        _tp_id: TypeListId,
+        _name: Name,
+        _arg_types: &[BuiltinType],
+        _in_try: bool,
+    ) {
+        unimplemented!();
+    }
+
     fn check_expr_call_expr(
         &mut self,
         e: &'ast ExprCallType,
@@ -921,14 +936,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     ) {
         let get = self.vm.interner.intern("get");
 
-        if let Some((_, fct_id, return_type)) = self.find_method(
-            e.pos,
-            expr_type,
-            false,
-            get,
-            arg_types,
-            &TypeParams::empty(),
-        ) {
+        if let Some((_, fct_id, return_type)) =
+            self.find_method(e.pos, expr_type, false, get, arg_types, &TypeList::empty())
+        {
             let call_type = CallType::Expr(expr_type, fct_id);
             self.src
                 .map_calls
@@ -946,7 +956,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         &mut self,
         e: &'ast ExprCallType,
         fct_id: FctId,
-        type_params: TypeParams,
+        type_params: TypeList,
         arg_types: &[BuiltinType],
         in_try: bool,
     ) {
@@ -957,7 +967,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             .fct_type_params(&type_params);
 
         let ty = if lookup.find() {
-            let call_type = CallType::Fct(fct_id, TypeParams::empty(), type_params.clone());
+            let call_type = CallType::Fct(fct_id, TypeList::empty(), type_params.clone());
             self.src.map_calls.insert(e.id, Arc::new(call_type));
 
             if !in_try {
@@ -985,7 +995,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         e: &'ast ExprCallType,
         object_type: BuiltinType,
         method_name: Name,
-        type_params: TypeParams,
+        type_params: TypeList,
         arg_types: &[BuiltinType],
         in_try: bool,
     ) {
@@ -1005,7 +1015,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let return_type = lookup.found_ret().unwrap();
             let call_type = Arc::new(CallType::Fct(
                 fct_id,
-                TypeParams::empty(),
+                TypeList::empty(),
                 type_params.clone(),
             ));
             self.src.map_calls.insert(e.id, call_type.clone());
@@ -1034,7 +1044,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         e: &'ast ExprCallType,
         object_type: BuiltinType,
         method_name: Name,
-        type_params: TypeParams,
+        type_params: TypeList,
         arg_types: &[BuiltinType],
         in_try: bool,
     ) {
@@ -1087,11 +1097,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         &mut self,
         e: &'ast ExprCallType,
         cls_id: ClassId,
-        type_params: TypeParams,
+        type_params: TypeList,
         arg_types: &[BuiltinType],
         _in_try: bool,
     ) {
-        let call_type = CallType::CtorNew(cls_id, FctId(0), TypeParams::empty());
+        let call_type = CallType::CtorNew(cls_id, FctId(0), TypeList::empty());
         self.src.map_calls.insert(e.id, Arc::new(call_type));
 
         let mut lookup = MethodLookup::new(self.vm, self.file)
@@ -1183,7 +1193,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         if found_fcts.len() == 1 {
             let fid = found_fcts[0];
-            let call_type = CallType::Method(object_type, fid, TypeParams::empty());
+            let call_type = CallType::Method(object_type, fid, TypeList::empty());
             self.src.map_calls.insert(e.id, Arc::new(call_type));
 
             let fct = self.vm.fcts.idx(fid);
@@ -1220,7 +1230,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_call_path(
         &mut self,
         e: &'ast ExprCallType,
-        type_params: TypeParams,
+        type_params: TypeList,
         arg_types: &[BuiltinType],
     ) {
         let path = e.callee.to_path().unwrap();
@@ -1268,7 +1278,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     let fct_id = lookup.found_fct_id().unwrap();
                     let call_type = Arc::new(CallType::Fct(
                         fct_id,
-                        TypeParams::empty(),
+                        TypeList::empty(),
                         type_params.clone(),
                     ));
                     self.src.map_calls.insert(e.id, call_type.clone());
@@ -1326,12 +1336,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 &arg_types,
                 Some(cls_id),
                 None,
-                &TypeParams::empty(),
-                &TypeParams::empty(),
+                &TypeList::empty(),
+                &TypeList::empty(),
             ) {
                 self.src.map_tys.insert(e.id, self.vm.cls(cls.id));
 
-                let call_type = CallType::Ctor(cls.id, ctor.id, TypeParams::empty());
+                let call_type = CallType::Ctor(cls.id, ctor.id, TypeList::empty());
                 self.src.map_calls.insert(e.id, Arc::new(call_type));
                 return;
             }
@@ -1374,7 +1384,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         let ident_type = match ident_type {
             Some(&IdentType::Class(cls_id)) => {
-                let list = self.vm.lists.lock().insert(TypeParams::empty());
+                let list = self.vm.lists.lock().insert(TypeList::empty());
                 let cls_ty = BuiltinType::Class(cls_id, list);
 
                 IdentType::StaticMethod(cls_ty, name)
@@ -1418,7 +1428,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let ident_type = self.src.map_idents.get(e.callee.id()).cloned();
 
         let type_params: Vec<BuiltinType> = e.args.iter().map(|p| self.src.ty(p.id())).collect();
-        let type_params: TypeParams = TypeParams::with(type_params);
+        let type_params: TypeList = TypeList::with(type_params);
 
         match ident_type {
             Some(IdentType::Class(cls_id)) => {
@@ -1489,7 +1499,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let field = &cls.fields[field_id];
                 let class_type_params = ty.type_params(self.vm);
                 let fty =
-                    replace_type_param(self.vm, field.ty, &class_type_params, &TypeParams::empty());
+                    replace_type_param(self.vm, field.ty, &class_type_params, &TypeList::empty());
 
                 self.src.set_ty(e.id, fty);
                 self.expr_type = fty;
@@ -1778,8 +1788,8 @@ pub fn args_compatible(
     expr: &[BuiltinType],
     cls_id: Option<ClassId>,
     fct_id: Option<FctId>,
-    cls_tps: &TypeParams,
-    fct_tps: &TypeParams,
+    cls_tps: &TypeList,
+    fct_tps: &TypeList,
 ) -> bool {
     if def.len() != expr.len() {
         return false;
@@ -1800,8 +1810,8 @@ fn arg_allows(
     arg: BuiltinType,
     global_cls_id: Option<ClassId>,
     global_fct_id: Option<FctId>,
-    cls_tps: &TypeParams,
-    fct_tps: &TypeParams,
+    cls_tps: &TypeList,
+    fct_tps: &TypeList,
 ) -> bool {
     match def {
         BuiltinType::Error => panic!("error shouldn't occur in fct definition."),
@@ -2004,10 +2014,10 @@ pub fn lookup_method<'ast>(
     is_static: bool,
     name: Name,
     args: &[BuiltinType],
-    fct_tps: &TypeParams,
+    fct_tps: &TypeList,
     return_type: Option<BuiltinType>,
 ) -> Option<(ClassId, FctId, BuiltinType)> {
-    let values: Option<(ClassId, TypeParams)> = match object_type {
+    let values: Option<(ClassId, TypeList)> = match object_type {
         BuiltinType::Class(cls_id, list_id) if !is_static => {
             let params = vm.lists.lock().get(list_id);
             Some((cls_id, params))
@@ -2015,7 +2025,7 @@ pub fn lookup_method<'ast>(
         _ => vm
             .vips
             .find_class(object_type)
-            .map(|c| (c, TypeParams::empty())),
+            .map(|c| (c, TypeList::empty())),
     };
 
     if let Some((cls_id, ref cls_type_params)) = values {
@@ -2064,8 +2074,8 @@ pub fn lookup_method<'ast>(
 pub fn replace_type_param(
     vm: &VM,
     ty: BuiltinType,
-    cls_tp: &TypeParams,
-    fct_tp: &TypeParams,
+    cls_tp: &TypeList,
+    fct_tp: &TypeList,
 ) -> BuiltinType {
     if cls_tp.len() == 0 && fct_tp.len() == 0 {
         return ty;
@@ -2078,11 +2088,12 @@ pub fn replace_type_param(
         BuiltinType::Class(cls_id, list_id) => {
             let params = vm.lists.lock().get(list_id);
 
-            let params: TypeParams = params
-                .iter()
-                .map(|p| replace_type_param(vm, p, cls_tp, fct_tp))
-                .collect::<Vec<_>>()
-                .into();
+            let params = TypeList::with(
+                params
+                    .iter()
+                    .map(|p| replace_type_param(vm, p, cls_tp, fct_tp))
+                    .collect::<Vec<_>>(),
+            );
 
             let list_id = vm.lists.lock().insert(params);
             BuiltinType::Class(cls_id, list_id)

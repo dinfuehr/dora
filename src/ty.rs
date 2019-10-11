@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::class::{ClassId, TypeParamId, TypeParams};
+use crate::class::{ClassId, TypeList, TypeListId};
 use crate::mem;
 use crate::semck;
 use crate::vm::VM;
@@ -45,8 +45,8 @@ pub enum BuiltinType {
     Trait(TraitId),
 
     // some type variable
-    FctTypeParam(FctId, TypeParamId),
-    ClassTypeParam(ClassId, TypeParamId),
+    FctTypeParam(FctId, TypeListId),
+    ClassTypeParam(ClassId, TypeListId),
 
     // some lambda
     Lambda(LambdaId),
@@ -118,7 +118,7 @@ impl BuiltinType {
     }
 
     pub fn from_cls(cls_id: ClassId, vm: &VM) -> BuiltinType {
-        let list_id = vm.lists.lock().insert(TypeParams::empty());
+        let list_id = vm.lists.lock().insert(TypeList::empty());
         BuiltinType::Class(cls_id, list_id)
     }
 
@@ -132,11 +132,11 @@ impl BuiltinType {
         false
     }
 
-    pub fn type_params(&self, vm: &VM) -> TypeParams {
+    pub fn type_params(&self, vm: &VM) -> TypeList {
         match self {
             &BuiltinType::Class(_, list_id) => vm.lists.lock().get(list_id),
 
-            _ => TypeParams::empty(),
+            _ => TypeList::empty(),
         }
     }
 
@@ -430,8 +430,8 @@ impl MachineMode {
 }
 
 pub struct TypeLists {
-    lists: HashMap<TypeParams, TypeListId>,
-    values: Vec<TypeParams>,
+    lists: HashMap<TypeList, TypeListId>,
+    values: Vec<TypeList>,
     next_id: usize,
 }
 
@@ -444,12 +444,12 @@ impl TypeLists {
         }
     }
 
-    pub fn insert(&mut self, list: TypeParams) -> TypeListId {
+    pub fn insert(&mut self, list: TypeList) -> TypeListId {
         if let Some(&val) = self.lists.get(&list) {
             return val;
         }
 
-        let id = TypeListId(self.next_id);
+        let id: TypeListId = self.next_id.into();
         self.lists.insert(list.clone(), id);
 
         self.values.push(list);
@@ -459,13 +459,10 @@ impl TypeLists {
         id
     }
 
-    pub fn get(&self, id: TypeListId) -> TypeParams {
-        self.values[id.0].clone()
+    pub fn get(&self, id: TypeListId) -> TypeList {
+        self.values[id.idx()].clone()
     }
 }
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct TypeListId(usize);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct LambdaId(usize);

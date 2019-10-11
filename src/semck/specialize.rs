@@ -3,7 +3,7 @@ use std::cmp::max;
 use std::ptr;
 use std::sync::Arc;
 
-use crate::class::{self, ClassDef, ClassDefId, ClassId, ClassSize, FieldDef, TypeParams};
+use crate::class::{self, ClassDef, ClassDefId, ClassId, ClassSize, FieldDef, TypeList};
 use crate::mem;
 use crate::object::Header;
 use crate::ty::BuiltinType;
@@ -13,8 +13,8 @@ use crate::vtable::{VTableBox, DISPLAY_SIZE};
 pub fn specialize_type(
     vm: &VM,
     ty: BuiltinType,
-    cls_type_params: &TypeParams,
-    fct_type_params: &TypeParams,
+    cls_type_params: &TypeList,
+    fct_type_params: &TypeList,
 ) -> BuiltinType {
     match ty {
         BuiltinType::ClassTypeParam(_, id) => cls_type_params[id.idx()],
@@ -24,11 +24,12 @@ pub fn specialize_type(
         BuiltinType::Struct(struct_id, list_id) => {
             let params = vm.lists.lock().get(list_id);
 
-            let params: TypeParams = params
-                .iter()
-                .map(|t| specialize_type(vm, t, cls_type_params, fct_type_params))
-                .collect::<Vec<_>>()
-                .into();
+            let params = TypeList::with(
+                params
+                    .iter()
+                    .map(|t| specialize_type(vm, t, cls_type_params, fct_type_params))
+                    .collect::<Vec<_>>(),
+            );
 
             let list_id = vm.lists.lock().insert(params);
 
@@ -38,12 +39,14 @@ pub fn specialize_type(
         BuiltinType::Class(cls_id, list_id) => {
             let params = vm.lists.lock().get(list_id);
 
-            let params: Vec<_> = params
-                .iter()
-                .map(|t| specialize_type(vm, t, cls_type_params, fct_type_params))
-                .collect();
+            let params = TypeList::with(
+                params
+                    .iter()
+                    .map(|t| specialize_type(vm, t, cls_type_params, fct_type_params))
+                    .collect(),
+            );
 
-            let list_id = vm.lists.lock().insert(params.into());
+            let list_id = vm.lists.lock().insert(params);
 
             BuiltinType::Class(cls_id, list_id)
         }
@@ -63,20 +66,20 @@ pub enum SpecializeFor {
 pub fn specialize_struct_id(vm: &VM, struct_id: StructId) -> StructDefId {
     let struc = vm.structs.idx(struct_id);
     let struc = struc.lock();
-    specialize_struct(vm, &*struc, TypeParams::empty())
+    specialize_struct(vm, &*struc, TypeList::empty())
 }
 
 pub fn specialize_struct_id_params(
     vm: &VM,
     struct_id: StructId,
-    type_params: TypeParams,
+    type_params: TypeList,
 ) -> StructDefId {
     let struc = vm.structs.idx(struct_id);
     let struc = struc.lock();
     specialize_struct(vm, &*struc, type_params)
 }
 
-pub fn specialize_struct(vm: &VM, struc: &StructData, type_params: TypeParams) -> StructDefId {
+pub fn specialize_struct(vm: &VM, struc: &StructData, type_params: TypeList) -> StructDefId {
     if let Some(&id) = struc.specializations.read().get(&type_params) {
         return id;
     }
@@ -84,7 +87,7 @@ pub fn specialize_struct(vm: &VM, struc: &StructData, type_params: TypeParams) -
     create_specialized_struct(vm, struc, type_params)
 }
 
-fn create_specialized_struct(vm: &VM, struc: &StructData, type_params: TypeParams) -> StructDefId {
+fn create_specialized_struct(vm: &VM, struc: &StructData, type_params: TypeList) -> StructDefId {
     let id = {
         let mut struct_defs = vm.struct_defs.lock();
         let id: StructDefId = struct_defs.len().into();
@@ -111,7 +114,7 @@ fn create_specialized_struct(vm: &VM, struc: &StructData, type_params: TypeParam
     let mut ref_fields = Vec::new();
 
     for f in &struc.fields {
-        let ty = specialize_type(vm, f.ty, &type_params, &TypeParams::empty());
+        let ty = specialize_type(vm, f.ty, &type_params, &TypeList::empty());
         debug_assert!(!ty.contains_type_param(vm));
 
         let field_size = ty.size(vm);
@@ -141,14 +144,10 @@ fn create_specialized_struct(vm: &VM, struc: &StructData, type_params: TypeParam
 pub fn specialize_class_id(vm: &VM, cls_id: ClassId) -> ClassDefId {
     let cls = vm.classes.idx(cls_id);
     let cls = cls.read();
-    specialize_class(vm, &*cls, &TypeParams::empty())
+    specialize_class(vm, &*cls, &TypeList::empty())
 }
 
-pub fn specialize_class_id_params(
-    vm: &VM,
-    cls_id: ClassId,
-    type_params: &TypeParams,
-) -> ClassDefId {
+pub fn specialize_class_id_params(vm: &VM, cls_id: ClassId, type_params: &TypeList) -> ClassDefId {
     let cls = vm.classes.idx(cls_id);
     let cls = cls.read();
     specialize_class(vm, &*cls, &type_params)
@@ -165,7 +164,7 @@ pub fn specialize_class_ty(vm: &VM, ty: BuiltinType) -> ClassDefId {
     }
 }
 
-pub fn specialize_class(vm: &VM, cls: &class::Class, type_params: &TypeParams) -> ClassDefId {
+pub fn specialize_class(vm: &VM, cls: &class::Class, type_params: &TypeList) -> ClassDefId {
     if let Some(&id) = cls.specializations.read().get(&type_params) {
         return id;
     }
@@ -173,7 +172,7 @@ pub fn specialize_class(vm: &VM, cls: &class::Class, type_params: &TypeParams) -
     create_specialized_class(vm, cls, type_params)
 }
 
-fn create_specialized_class(vm: &VM, cls: &class::Class, type_params: &TypeParams) -> ClassDefId {
+fn create_specialized_class(vm: &VM, cls: &class::Class, type_params: &TypeList) -> ClassDefId {
     let id = {
         let mut class_defs = vm.class_defs.lock();
         let id: ClassDefId = class_defs.len().into();
@@ -242,7 +241,7 @@ fn create_specialized_class(vm: &VM, cls: &class::Class, type_params: &TypeParam
         };
 
         for f in &cls.fields {
-            let ty = specialize_type(vm, f.ty, &type_params, &TypeParams::empty());
+            let ty = specialize_type(vm, f.ty, &type_params, &TypeList::empty());
             debug_assert!(!ty.contains_type_param(vm));
 
             let field_size = ty.size(vm);

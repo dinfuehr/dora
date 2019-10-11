@@ -6,7 +6,7 @@ use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 
-use crate::class::TypeParams;
+use crate::class::TypeList;
 use crate::cpu::*;
 use crate::mem;
 use crate::semck::specialize::specialize_type;
@@ -21,8 +21,8 @@ pub fn generate<'a, 'ast: 'a>(
     fct: &Fct<'ast>,
     src: &'a FctSrc,
     jit_info: &'a mut JitInfo<'ast>,
-    cls_type_params: &TypeParams,
-    fct_type_params: &TypeParams,
+    cls_type_params: &TypeList,
+    fct_type_params: &TypeList,
 ) {
     let start = if fct.has_self() { 1 } else { 0 };
 
@@ -136,8 +136,8 @@ struct InfoGenerator<'a, 'ast: 'a> {
     param_reg_idx: usize,
     param_freg_idx: usize,
 
-    cls_type_params: &'a TypeParams,
-    fct_type_params: &'a TypeParams,
+    cls_type_params: &'a TypeList,
+    fct_type_params: &'a TypeList,
 }
 
 impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
@@ -263,11 +263,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         // build makeIterator() call
         let object_type = self.ty(stmt.expr.id());
-        let ctype = CallType::Method(
-            object_type,
-            for_type_info.make_iterator,
-            TypeParams::empty(),
-        );
+        let ctype = CallType::Method(object_type, for_type_info.make_iterator, TypeList::empty());
         let args = vec![Arg::Expr(&stmt.expr, BuiltinType::Unit, 0)];
         let make_iterator = self.build_call_site(&ctype, for_type_info.make_iterator, args);
 
@@ -275,7 +271,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let ctype = CallType::Method(
             for_type_info.iterator_type,
             for_type_info.has_next,
-            TypeParams::empty(),
+            TypeList::empty(),
         );
         let args = vec![Arg::Stack(offset, BuiltinType::Unit, 0)];
         let has_next = self.build_call_site(&ctype, for_type_info.has_next, args);
@@ -284,7 +280,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let ctype = CallType::Method(
             for_type_info.iterator_type,
             for_type_info.next,
-            TypeParams::empty(),
+            TypeList::empty(),
         );
         let args = vec![Arg::Stack(offset, BuiltinType::Unit, 0)];
         let next = self.build_call_site(&ctype, for_type_info.next, args);
@@ -606,14 +602,14 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         (args, return_type, super_call)
     }
 
-    fn determine_call_type_params(&mut self, call_type: &CallType) -> (TypeParams, TypeParams) {
+    fn determine_call_type_params(&mut self, call_type: &CallType) -> (TypeList, TypeList) {
         let cls_type_params;
         let fct_type_params;
 
         match *call_type {
             CallType::Ctor(_, _, ref type_params) | CallType::CtorNew(_, _, ref type_params) => {
                 cls_type_params = type_params.clone();
-                fct_type_params = TypeParams::empty();
+                fct_type_params = TypeList::empty();
             }
 
             CallType::Method(ty, _, ref type_params) => {
@@ -632,7 +628,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 let ty = self.specialize_type(ty);
 
                 cls_type_params = ty.type_params(self.vm);
-                fct_type_params = TypeParams::empty();
+                fct_type_params = TypeList::empty();
             }
 
             CallType::Trait(_, _) => unimplemented!(),
@@ -784,7 +780,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         // build StringBuffer::empty() call
         let fct_id = self.vm.vips.fct.string_buffer_empty;
-        let ctype = CallType::Fct(fct_id, TypeParams::empty(), TypeParams::empty());
+        let ctype = CallType::Fct(fct_id, TypeList::empty(), TypeList::empty());
         let string_buffer_new = self.build_call_site(&ctype, fct_id, Vec::new());
         let mut part_infos = Vec::new();
 
@@ -807,7 +803,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                     let to_string_id = cls
                         .find_trait_method(self.vm, self.vm.vips.stringable_trait, name, false)
                         .expect("toString() method not found");
-                    let ctype = CallType::Method(ty, to_string_id, TypeParams::empty());
+                    let ctype = CallType::Method(ty, to_string_id, TypeList::empty());
                     let args = vec![Arg::Stack(offset, ty, 0)];
                     to_string = Some(self.build_call_site(&ctype, to_string_id, args));
                 }
@@ -816,7 +812,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             // build StringBuffer::append() call
             let fct_id = self.vm.vips.fct.string_buffer_append;
             let ty = BuiltinType::from_cls(self.vm.vips.cls.string_buffer, self.vm);
-            let ctype = CallType::Method(ty, fct_id, TypeParams::empty());
+            let ctype = CallType::Method(ty, fct_id, TypeList::empty());
             let args = vec![
                 Arg::Stack(string_buffer_offset, BuiltinType::Ptr, 0),
                 Arg::Stack(string_part_offset, BuiltinType::Ptr, 0),
@@ -833,7 +829,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         // build StringBuffer::toString() call
         let fct_id = self.vm.vips.fct.string_buffer_to_string;
         let ty = BuiltinType::from_cls(self.vm.vips.cls.string_buffer, self.vm);
-        let ctype = CallType::Method(ty, fct_id, TypeParams::empty());
+        let ctype = CallType::Method(ty, fct_id, TypeList::empty());
         let args = vec![Arg::Stack(string_buffer_offset, BuiltinType::Ptr, 0)];
         let string_buffer_to_string = self.build_call_site(&ctype, fct_id, args);
 
@@ -906,11 +902,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
             CallType::Expr(ty, _) => {
                 let type_params = ty.type_params(self.vm);
-                specialize_type(self.vm, ty, &type_params, &TypeParams::empty())
+                specialize_type(self.vm, ty, &type_params, &TypeList::empty())
             }
 
             CallType::Ctor(_, _, ref type_params) | CallType::CtorNew(_, _, ref type_params) => {
-                specialize_type(self.vm, ty, type_params, &TypeParams::empty())
+                specialize_type(self.vm, ty, type_params, &TypeList::empty())
             }
 
             CallType::Trait(_, _) => unimplemented!(),
@@ -968,7 +964,7 @@ mod tests {
             let src = fct.src();
             let mut src = src.write();
             let mut jit_info = JitInfo::new();
-            let empty = TypeParams::empty();
+            let empty = TypeList::empty();
 
             generate(vm, &fct, &mut src, &mut jit_info, &empty, &empty);
 

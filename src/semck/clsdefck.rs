@@ -130,7 +130,8 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                     type_param_id += 1;
                 }
 
-                let list_id = self.vm.lists.lock().insert(params.into());
+                let params = TypeList::with(params);
+                let list_id = self.vm.lists.lock().insert(params);
                 cls.ty = BuiltinType::Class(cls.id, list_id);
             } else {
                 let msg = SemError::TypeParamsExpected;

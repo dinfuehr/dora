@@ -5,7 +5,7 @@ use dora_parser::ast::*;
 
 use crate::baseline::codegen::{should_emit_debug, CodeGen, CondCode, Scopes};
 use crate::baseline::fct::{Comment, JitBaselineFct, JitDescriptor};
-use crate::class::TypeParams;
+use crate::class::TypeList;
 use crate::masm::*;
 use crate::object::Str;
 use crate::vm::VM;
@@ -48,8 +48,8 @@ pub struct CannonCodeGen<'a, 'ast: 'a> {
     // see emit_finallys_within_loop and tests/finally/continue-return.dora
     pub active_upper: Option<usize>,
 
-    pub cls_type_params: &'a TypeParams,
-    pub fct_type_params: &'a TypeParams,
+    pub cls_type_params: &'a TypeList,
+    pub fct_type_params: &'a TypeList,
 }
 
 impl<'a, 'ast> CannonCodeGen<'a, 'ast>

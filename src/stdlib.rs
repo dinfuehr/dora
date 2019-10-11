@@ -8,7 +8,7 @@ use std::str;
 use std::thread;
 use std::time::Duration;
 
-use crate::class::TypeParams;
+use crate::class::TypeList;
 use crate::exception::{alloc_exception, stacktrace_from_last_dtn};
 use crate::gc::{Address, GcReason};
 use crate::handle::root;
@@ -341,7 +341,7 @@ pub extern "C" fn spawn_thread(obj: Ref<Obj>) {
 
         let fct_ptr = {
             let mut dtn = DoraToNativeInfo::new();
-            let type_params = TypeParams::empty();
+            let type_params = TypeList::empty();
 
             THREAD.with(|thread| {
                 thread.borrow().use_dtn(&mut dtn, || {

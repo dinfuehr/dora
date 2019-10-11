@@ -1,7 +1,7 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
-use crate::class::{ClassDef, ClassDefId, ClassId, ClassSize, TypeParams};
+use crate::class::{ClassDef, ClassDefId, ClassId, ClassSize, TypeList};
 use crate::exception;
 use crate::gc::Address;
 use crate::object::Header;
@@ -68,7 +68,7 @@ fn internal_free_classes<'ast>(vm: &mut VM<'ast>) {
         class_defs.push(Arc::new(RwLock::new(ClassDef {
             id: free_object,
             cls_id: None,
-            type_params: TypeParams::empty(),
+            type_params: TypeList::empty(),
             parent_id: None,
             size: ClassSize::Fixed(Header::size()),
             fields: Vec::new(),
@@ -79,7 +79,7 @@ fn internal_free_classes<'ast>(vm: &mut VM<'ast>) {
         class_defs.push(Arc::new(RwLock::new(ClassDef {
             id: free_array,
             cls_id: None,
-            type_params: TypeParams::empty(),
+            type_params: TypeList::empty(),
             parent_id: None,
             size: ClassSize::FreeArray,
             fields: Vec::new(),

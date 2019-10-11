@@ -4,7 +4,7 @@ use crate::baseline;
 use crate::baseline::dora_native::{finish_native_call, start_native_call};
 use crate::baseline::fct::{BailoutInfo, JitBaselineFct, JitDescriptor, JitFct};
 use crate::baseline::map::CodeDescriptor;
-use crate::class::TypeParams;
+use crate::class::TypeList;
 use crate::cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1};
 use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
@@ -209,19 +209,14 @@ fn compile_request(ra: usize, receiver: Address) -> Address {
     }
 }
 
-fn patch_vtable_call(
-    vm: &VM,
-    receiver: Address,
-    vtable_index: u32,
-    fct_tps: &TypeParams,
-) -> Address {
+fn patch_vtable_call(vm: &VM, receiver: Address, vtable_index: u32, fct_tps: &TypeList) -> Address {
     let obj = unsafe { &mut *receiver.to_mut_ptr::<Obj>() };
     let vtable = obj.header().vtbl();
     let cls_id = vtable.class().cls_id.expect("no corresponding class");
     let cls = vm.classes.idx(cls_id);
     let cls = cls.read();
 
-    let empty = TypeParams::empty();
+    let empty = TypeList::empty();
     let fct_id = cls.virtual_fcts[vtable_index as usize];
     let fct_ptr = baseline::generate(vm, fct_id, &empty, fct_tps);
 
@@ -235,8 +230,8 @@ fn patch_fct_call(
     vm: &VM,
     ra: usize,
     fct_id: FctId,
-    cls_tps: &TypeParams,
-    fct_tps: &TypeParams,
+    cls_tps: &TypeList,
+    fct_tps: &TypeList,
     disp: i32,
 ) -> Address {
     let fct_ptr = baseline::generate(vm, fct_id, cls_tps, fct_tps);

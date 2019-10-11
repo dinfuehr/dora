@@ -8,7 +8,7 @@ use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 use crate::bytecode::generate::{
     BytecodeFunction, BytecodeGenerator, BytecodeType, Label, Register,
 };
-use crate::class::TypeParams;
+use crate::class::TypeList;
 use crate::semck::specialize::{specialize_class_id_params, specialize_class_ty, specialize_type};
 use crate::ty::BuiltinType;
 use crate::vm::{CallType, Fct, FctId, FctKind, FctSrc, IdentType, Intrinsic, VarId, VM};
@@ -27,8 +27,8 @@ impl LoopLabels {
 pub fn generate<'ast>(
     vm: &VM<'ast>,
     id: FctId,
-    cls_type_params: &TypeParams,
-    fct_type_params: &TypeParams,
+    cls_type_params: &TypeList,
+    fct_type_params: &TypeList,
 ) -> BytecodeFunction {
     let fct = vm.fcts.idx(id);
     let fct = fct.read();
@@ -42,8 +42,8 @@ pub fn generate_fct<'ast>(
     vm: &VM<'ast>,
     fct: &Fct<'ast>,
     src: &mut FctSrc,
-    cls_type_params: &TypeParams,
-    fct_type_params: &TypeParams,
+    cls_type_params: &TypeList,
+    fct_type_params: &TypeList,
 ) -> BytecodeFunction {
     let ast_bytecode_generator = AstBytecodeGen {
         vm,
@@ -67,8 +67,8 @@ pub struct AstBytecodeGen<'a, 'ast: 'a> {
     ast: &'ast Function,
     src: &'a mut FctSrc,
 
-    cls_type_params: &'a TypeParams,
-    fct_type_params: &'a TypeParams,
+    cls_type_params: &'a TypeList,
+    fct_type_params: &'a TypeList,
 
     gen: BytecodeGenerator,
     loops: Vec<LoopLabels>,
@@ -305,7 +305,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             .iter()
             .map(|&arg| {
                 self.specialize_type_for_call(
-                    &CallType::CtorNew(cls_id, fct_id, TypeParams::Empty),
+                    &CallType::CtorNew(cls_id, fct_id, TypeList::Empty),
                     arg,
                 )
                 .into()
@@ -314,7 +314,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let num_args = arg_types.len();
 
         let start_reg = self.gen.add_register_chain(&arg_types);
-        let cls_id = specialize_class_id_params(self.vm, cls_id, &TypeParams::Empty);
+        let cls_id = specialize_class_id_params(self.vm, cls_id, &TypeList::Empty);
         self.gen.emit_new_object(start_reg, cls_id);
         let error_string_reg = start_reg.offset(1);
         let error_string_index = self.gen.add_string_const_pool("assert failed".to_string());
@@ -932,12 +932,12 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             },
 
             CallType::Ctor(_, _, ref type_params) | CallType::CtorNew(_, _, ref type_params) => {
-                specialize_type(self.vm, ty, type_params, &TypeParams::empty())
+                specialize_type(self.vm, ty, type_params, &TypeList::empty())
             }
 
             CallType::Expr(ty, _) => {
                 let type_params = ty.type_params(self.vm);
-                specialize_type(self.vm, ty, &type_params, &TypeParams::empty())
+                specialize_type(self.vm, ty, &type_params, &TypeList::empty())
             }
 
             CallType::Trait(_, _) => unimplemented!(),
@@ -1011,14 +1011,14 @@ mod tests {
     use crate::bytecode::astgen;
     use crate::bytecode::generate::{BytecodeFunction, BytecodeIdx, Register, StrConstPoolIdx};
     use crate::bytecode::opcode::Bytecode::*;
-    use crate::class::TypeParams;
+    use crate::class::TypeList;
     use crate::test;
     use crate::vm::VM;
 
     fn code(code: &'static str) -> BytecodeFunction {
         test::parse(code, |vm| {
             let fct_id = vm.fct_by_name("f").expect("no function `f`.");
-            let tp = TypeParams::empty();
+            let tp = TypeList::empty();
             astgen::generate(vm, fct_id, &tp, &tp)
         })
     }
@@ -1035,7 +1035,7 @@ mod tests {
             let fct_id = vm
                 .cls_method_by_name(class_name, "f", false)
                 .unwrap_or_else(|| panic!("no function `f` in Class `{}`.", class_name));
-            let tp = TypeParams::empty();
+            let tp = TypeList::empty();
             astgen::generate(vm, fct_id, &tp, &tp)
         })
     }
@@ -1046,7 +1046,7 @@ mod tests {
     {
         test::parse(code, |vm| {
             let fct_id = vm.fct_by_name("f").expect("no function `f`.");
-            let tp = TypeParams::empty();
+            let tp = TypeList::empty();
             let fct = astgen::generate(vm, fct_id, &tp, &tp);
 
             testfct(vm, fct);

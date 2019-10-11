@@ -15,7 +15,7 @@ use crate::baseline::cannon::CannonCodeGen;
 use crate::baseline::dora_native::{self, InternalFct};
 use crate::baseline::fct::{CommentFormat, GcPoint, JitBaselineFct, JitFct};
 use crate::baseline::map::CodeDescriptor;
-use crate::class::TypeParams;
+use crate::class::TypeList;
 use crate::cpu::x64::reg::{FREG_RESULT, REG_RESULT};
 use crate::cpu::{FReg, Reg};
 use crate::driver::cmd::{AsmSyntax, BaselineName};
@@ -30,8 +30,8 @@ use crate::vm::{Fct, FctId, FctSrc, VarId};
 pub fn generate<'ast>(
     vm: &VM<'ast>,
     id: FctId,
-    cls_type_params: &TypeParams,
-    fct_type_params: &TypeParams,
+    cls_type_params: &TypeList,
+    fct_type_params: &TypeList,
 ) -> Address {
     let fct = vm.fcts.idx(id);
     let fct = fct.read();
@@ -45,8 +45,8 @@ pub fn generate_fct<'ast>(
     vm: &VM<'ast>,
     fct: &Fct<'ast>,
     src: &mut FctSrc,
-    cls_type_params: &TypeParams,
-    fct_type_params: &TypeParams,
+    cls_type_params: &TypeList,
+    fct_type_params: &TypeList,
 ) -> Address {
     debug_assert!(cls_type_params
         .iter()
