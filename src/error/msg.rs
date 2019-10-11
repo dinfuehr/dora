@@ -53,8 +53,10 @@ pub enum SemError {
     LetReassigned,
     FctReassigned,
     ClassReassigned,
+    TypeParamReassigned,
     FctUsedAsIdentifier,
     ClsUsedAsIdentifier,
+    TypeParamUsedAsIdentifier,
     UnderivableType(String),
     CycleInHierarchy,
     SuperfluousOverride(String),
@@ -256,8 +258,12 @@ impl SemError {
             SemError::LetReassigned => "`let` binding cannot be reassigned.".into(),
             SemError::FctReassigned => "function cannot be reassigned.".into(),
             SemError::ClassReassigned => "class cannot be reassigned.".into(),
+            SemError::TypeParamReassigned => "type param cannot be reassigned.".into(),
             SemError::FctUsedAsIdentifier => "function cannot be used as identifier.".into(),
             SemError::ClsUsedAsIdentifier => "class cannot be used as identifier.".into(),
+            SemError::TypeParamUsedAsIdentifier => {
+                "type param cannot be used as identifier.".into()
+            }
             SemError::UnderivableType(ref name) => {
                 format!("type `{}` cannot be used as super class.", name)
             }

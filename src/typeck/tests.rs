@@ -1711,3 +1711,21 @@ fn test_trait_object_as_argument() {
         SemError::ReturnType("String".into(), "()".into()),
     );
 }
+
+#[test]
+fn test_type_param_used_as_value() {
+    err(
+        "fun f[T]() -> Int { return T; }",
+        pos(1, 28),
+        SemError::TypeParamUsedAsIdentifier,
+    );
+}
+
+#[test]
+fn test_assign_to_type_param() {
+    err(
+        "fun f[T]() -> Int { T = 10; }",
+        pos(1, 23),
+        SemError::TypeParamReassigned,
+    );
+}

@@ -51,6 +51,15 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             self.add_hidden_parameter_self();
         }
 
+        if let Some(ref type_params) = self.fct.ast.type_params {
+            for (tpid, tp) in type_params.iter().enumerate() {
+                self.vm
+                    .sym
+                    .lock()
+                    .insert(tp.name, SymFctTypeParam(self.fct.id, tpid.into()));
+            }
+        }
+
         for p in &self.ast.params {
             self.visit_param(p);
         }
@@ -258,6 +267,18 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
             Some(SymClass(id)) => {
                 self.src.map_idents.insert(ident.id, IdentType::Class(id));
+            }
+
+            Some(SymFctTypeParam(_, id)) => {
+                self.src
+                    .map_idents
+                    .insert(ident.id, IdentType::FctTypeParam(id));
+            }
+
+            Some(SymClassTypeParam(_, id)) => {
+                self.src
+                    .map_idents
+                    .insert(ident.id, IdentType::ClassTypeParam(id));
             }
 
             _ => {

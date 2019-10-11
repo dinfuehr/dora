@@ -14,7 +14,7 @@ use crate::baseline::dora_native::{self, InternalFct, InternalFctDescriptor, Nat
 use crate::baseline::dora_throw;
 use crate::baseline::fct::{JitFct, JitFctId};
 use crate::baseline::map::{CodeDescriptor, CodeMap};
-use crate::class::{Class, ClassDef, ClassDefId, ClassId, FieldId, TypeParams};
+use crate::class::{Class, ClassDef, ClassDefId, ClassId, FieldId, TypeParamId, TypeParams};
 use crate::driver::cmd::Args;
 use crate::error::diag::Diagnostic;
 use crate::exception::DoraToNativeInfo;
@@ -1327,6 +1327,8 @@ pub enum IdentType {
     MethodType(BuiltinType, Name, TypeParams),
     StaticMethod(BuiltinType, Name),
     StaticMethodType(BuiltinType, Name, TypeParams),
+    FctTypeParam(TypeParamId),
+    ClassTypeParam(TypeParamId),
 }
 
 impl IdentType {

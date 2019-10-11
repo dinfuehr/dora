@@ -352,6 +352,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.expr_type = BuiltinType::Error;
             }
 
+            &IdentType::FctTypeParam(_) | &IdentType::ClassTypeParam(_) => {
+                self.vm
+                    .diag
+                    .lock()
+                    .report(self.file, e.pos, SemError::TypeParamUsedAsIdentifier);
+                self.src.set_ty(e.id, BuiltinType::Error);
+                self.expr_type = BuiltinType::Error;
+            }
+
             &IdentType::FctType(_, _) | &IdentType::ClassType(_, _) => unreachable!(),
             &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
             &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => {
@@ -432,6 +441,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                             .diag
                             .lock()
                             .report(self.file, e.pos, SemError::ClassReassigned);
+
+                        return;
+                    }
+
+                    &IdentType::FctTypeParam(_) | &IdentType::ClassTypeParam(_) => {
+                        self.vm
+                            .diag
+                            .lock()
+                            .report(self.file, e.pos, SemError::TypeParamReassigned);
 
                         return;
                     }
