@@ -14,6 +14,8 @@ pub enum SemError {
     MultipleCandidatesForMethod(String, String, Vec<String>),
     UnknownMethodForTypeParam(String, String, Vec<String>),
     MultipleCandidatesForTypeParam(String, String, Vec<String>),
+    MultipleCandidatesForStaticMethodWithTypeParam,
+    UnknownStaticMethodWithTypeParam,
     UnknownStaticMethod(String, String, Vec<String>),
     UnknownCtor(String, Vec<String>),
     MethodExists(String, String, Position),
@@ -57,6 +59,7 @@ pub enum SemError {
     FctUsedAsIdentifier,
     ClsUsedAsIdentifier,
     TypeParamUsedAsIdentifier,
+    TypeParamUsedAsCallee,
     UnderivableType(String),
     CycleInHierarchy,
     SuperfluousOverride(String),
@@ -165,6 +168,12 @@ impl SemError {
                     name, args, tp
                 )
             }
+            SemError::MultipleCandidatesForStaticMethodWithTypeParam => {
+                "multiple candidates for static method call found.".into()
+            }
+            SemError::UnknownStaticMethodWithTypeParam => {
+                "no static method with this name found for type param.".into()
+            }
             SemError::UnknownStaticMethod(ref cls, ref name, ref args) => {
                 let args = args.join(", ");
                 format!("no static method `{}::{}({})`.", cls, name, args)
@@ -264,6 +273,7 @@ impl SemError {
             SemError::TypeParamUsedAsIdentifier => {
                 "type param cannot be used as identifier.".into()
             }
+            SemError::TypeParamUsedAsCallee => "type param cannot be used as callee.".into(),
             SemError::UnderivableType(ref name) => {
                 format!("type `{}` cannot be used as super class.", name)
             }

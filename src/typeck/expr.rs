@@ -353,10 +353,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             &IdentType::FctTypeParam(_) | &IdentType::ClassTypeParam(_) => {
-                self.vm
-                    .diag
-                    .lock()
-                    .report(self.file, e.pos, SemError::TypeParamUsedAsIdentifier);
+                let msg = if self.used_in_call.contains(&e.id) {
+                    SemError::TypeParamUsedAsCallee
+                } else {
+                    SemError::TypeParamUsedAsIdentifier
+                };
+
+                self.vm.diag.lock().report(self.file, e.pos, msg);
                 self.src.set_ty(e.id, BuiltinType::Error);
                 self.expr_type = BuiltinType::Error;
             }
@@ -904,6 +907,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.check_expr_call_generic_static_method(e, tp_id, name, &arg_types, in_try)
             }
 
+            Some(IdentType::ClassTypeParamMethod(_tp_id, _name)) => {
+                unimplemented!();
+            }
+
+            Some(IdentType::FctTypeParam(_)) | Some(IdentType::ClassTypeParam(_)) => {
+                self.src.set_ty(e.id, BuiltinType::Error);
+                self.expr_type = BuiltinType::Error;
+            }
+
             _ => {
                 if expr_type.is_error() {
                     self.src.set_ty(e.id, expr_type);
@@ -918,12 +930,41 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_call_generic_static_method(
         &mut self,
-        _e: &'ast ExprCallType,
-        _tp_id: TypeListId,
-        _name: Name,
+        e: &'ast ExprCallType,
+        tp_id: TypeListId,
+        name: Name,
         _arg_types: &[BuiltinType],
         _in_try: bool,
     ) {
+        let tp = &self.fct.type_params[tp_id.idx()];
+        let mut fcts = Vec::new();
+
+        if let Some(_) = tp.class_bound {
+            unimplemented!();
+        }
+
+        for &trait_id in &tp.trait_bounds {
+            let xtrait = self.vm.traits[trait_id].read();
+
+            if let Some(fct_id) = xtrait.find_method(self.vm, name, true) {
+                fcts.push(fct_id);
+            }
+        }
+
+        if fcts.len() != 1 {
+            let msg = if fcts.len() > 1 {
+                SemError::MultipleCandidatesForStaticMethodWithTypeParam
+            } else {
+                SemError::UnknownStaticMethodWithTypeParam
+            };
+
+            self.vm.diag.lock().report(self.file, e.pos, msg);
+
+            self.src.set_ty(e.id, BuiltinType::Error);
+            self.expr_type = BuiltinType::Error;
+            return;
+        }
+
         unimplemented!();
     }
 

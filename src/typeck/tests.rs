@@ -1764,3 +1764,40 @@ fn test_type_param_with_name_but_no_call() {
         SemError::FctUsedAsIdentifier,
     );
 }
+
+#[test]
+fn test_type_param_call() {
+    err(
+        "trait X { fun foo() -> Int; }
+        fun f[T: X]() { T(); }",
+        pos(2, 25),
+        SemError::TypeParamUsedAsCallee,
+    );
+
+    err(
+        "trait X { fun foo() -> Int; }
+        class SomeClass[T: X] {
+            fun f() { T(); }
+        }",
+        pos(3, 23),
+        SemError::TypeParamUsedAsCallee,
+    );
+}
+
+#[test]
+fn test_static_method_call_with_type_param() {
+    err(
+        "trait X { @static fun bar() -> Int; }
+        fun f[T: X]() { T::foo(); }",
+        pos(2, 31),
+        SemError::UnknownStaticMethodWithTypeParam,
+    );
+
+    err(
+        "trait X { @static fun foo() -> Int; }
+        trait Y { @static fun foo() -> String; }
+        fun f[T: X + Y]() { T::foo(); }",
+        pos(3, 35),
+        SemError::MultipleCandidatesForStaticMethodWithTypeParam,
+    );
+}
