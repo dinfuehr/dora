@@ -26,7 +26,7 @@ use crate::stdlib;
 use crate::sym::Sym::*;
 use crate::sym::*;
 use crate::threads::{Threads, STACK_SIZE, THREAD};
-use crate::ty::{BuiltinType, LambdaTypes, TypeList, TypeListId, TypeLists, TypeParamId};
+use crate::ty::{BuiltinType, LambdaTypes, TypeList, TypeLists, TypeParamId};
 use crate::utils::GrowableVec;
 
 use dora_parser::ast;
@@ -1364,17 +1364,11 @@ pub enum IdentType {
     // static method expression: SomeClass[T1, T2, ...]::<name>[T1, T2, ...]
     StaticMethodType(BuiltinType, Name, TypeList),
 
-    // function type param: e.g. T
-    FctTypeParam(TypeListId),
+    // function or class type param: e.g. T
+    TypeParam(BuiltinType),
 
-    // static method call on function type param: <T>::<name>
-    FctTypeParamMethod(TypeListId, Name),
-
-    // class type param: e.g. T
-    ClassTypeParam(TypeListId),
-
-    // static method call on class type param: <T>::<name>
-    ClassTypeParamMethod(TypeListId, Name),
+    // static method call on type param: <T>::<name>
+    TypeParamStaticMethod(BuiltinType, Name),
 }
 
 impl IdentType {

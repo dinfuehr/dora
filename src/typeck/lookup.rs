@@ -291,7 +291,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                 BuiltinType::Class(cls_id, list_id)
             }
 
-            _ => replace_type_param(self.vm, fct.return_type, &cls_tps, &fct_tps),
+            _ => replace_type_param(self.vm, fct.return_type, &cls_tps, &fct_tps, None),
         };
 
         if self.ret.is_none() || self.ret.unwrap() == cmp_type {

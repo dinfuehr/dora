@@ -552,10 +552,7 @@ where
             &IdentType::Fct(_) | &IdentType::FctType(_, _) => unreachable!(),
             &IdentType::Class(_) | &IdentType::ClassType(_, _) => unreachable!(),
             &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
-            &IdentType::FctTypeParam(_)
-            | &IdentType::FctTypeParamMethod(_, _)
-            | &IdentType::ClassTypeParam(_)
-            | &IdentType::ClassTypeParamMethod(_, _) => unreachable!(),
+            &IdentType::TypeParam(_) | &IdentType::TypeParamStaticMethod(_, _) => unreachable!(),
             &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => {
                 unreachable!()
             }
@@ -821,10 +818,7 @@ where
             &IdentType::Fct(_) | &IdentType::FctType(_, _) => unreachable!(),
             &IdentType::Class(_) | &IdentType::ClassType(_, _) => unreachable!(),
             &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
-            &IdentType::FctTypeParam(_)
-            | &IdentType::FctTypeParamMethod(_, _)
-            | &IdentType::ClassTypeParam(_)
-            | &IdentType::ClassTypeParamMethod(_, _) => unreachable!(),
+            &IdentType::TypeParam(_) | &IdentType::TypeParamStaticMethod(_, _) => unreachable!(),
             &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => {
                 unreachable!()
             }

@@ -281,16 +281,18 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                 self.src.map_idents.insert(ident.id, IdentType::Class(id));
             }
 
-            Some(SymFctTypeParam(_, id)) => {
+            Some(SymFctTypeParam(fct_id, id)) => {
+                let ty = BuiltinType::FctTypeParam(fct_id, id);
                 self.src
                     .map_idents
-                    .insert(ident.id, IdentType::FctTypeParam(id));
+                    .insert(ident.id, IdentType::TypeParam(ty));
             }
 
-            Some(SymClassTypeParam(_, id)) => {
+            Some(SymClassTypeParam(cls_id, id)) => {
+                let ty = BuiltinType::ClassTypeParam(cls_id, id);
                 self.src
                     .map_idents
-                    .insert(ident.id, IdentType::ClassTypeParam(id));
+                    .insert(ident.id, IdentType::TypeParam(ty));
             }
 
             _ => {
