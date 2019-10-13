@@ -76,7 +76,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         } else if obj.is_nil() {
             Some(LookupKind::Method(obj))
         } else {
-            panic!("neither object nor trait object");
+            panic!("neither object nor trait object: {:?}", obj);
         };
 
         self

@@ -353,6 +353,7 @@ def parse_test_file(file)
         when "cast" then test_case.expectation.code = 106
         when "unexpected" then test_case.expectation.code = 107
         when "oom" then test_case.expectation.code = 108
+        when "stack-overflow" then test_case.expectation.code = 109
         when "fail"
           # do nothing
         else

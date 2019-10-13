@@ -25,7 +25,7 @@ use crate::semck::specialize::{specialize_class_id, specialize_class_id_params};
 use crate::stdlib;
 use crate::sym::Sym::*;
 use crate::sym::*;
-use crate::threads::{Threads, THREAD};
+use crate::threads::{Threads, STACK_SIZE, THREAD};
 use crate::ty::{BuiltinType, LambdaTypes, TypeList, TypeListId, TypeLists};
 use crate::utils::GrowableVec;
 
@@ -71,6 +71,11 @@ pub fn set_vm(vm: &VM) {
     unsafe {
         VM_GLOBAL = ptr;
     }
+}
+
+pub fn stack_pointer() -> Address {
+    let local: i32 = 0;
+    Address::from_ptr(&local as *const i32)
 }
 
 pub struct VM<'ast> {
@@ -195,6 +200,13 @@ impl<'ast> VM<'ast> {
     }
 
     pub fn run(&self, fct_id: FctId) -> i32 {
+        let stack_top = stack_pointer();
+        let stack_limit = stack_top.sub(STACK_SIZE);
+
+        THREAD.with(|thread| {
+            thread.borrow().tld.set_stack_limit(stack_limit);
+        });
+
         let tld = THREAD.with(|thread| {
             let thread = thread.borrow();
             let ptr = &thread.tld;

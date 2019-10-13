@@ -14,10 +14,9 @@ use crate::handle::root;
 use crate::object::{ByteArray, Obj, Ref, Str};
 use crate::os::signal::Trap;
 use crate::sym::Sym::SymFct;
-use crate::threads::{DoraThread, THREAD};
+use crate::threads::{DoraThread, STACK_SIZE, THREAD};
 use crate::ty::TypeList;
-use crate::vm::exception_set;
-use crate::vm::get_vm;
+use crate::vm::{exception_set, get_vm, stack_pointer};
 
 pub extern "C" fn byte_to_string(val: u8) -> Ref<Str> {
     let buffer = val.to_string();
@@ -298,6 +297,7 @@ pub extern "C" fn trap(trap_id: u32) {
         Trap::THROW => "uncaught exception",
         Trap::UNEXPECTED => "unexpected exception",
         Trap::OOM => "out of memory",
+        Trap::STACK_OVERFLOW => "stack overflow",
     };
 
     println!("{}", msg);
@@ -318,8 +318,15 @@ pub extern "C" fn spawn_thread(obj: Ref<Obj>) {
     vm.threads.attach_thread(thread.clone());
 
     thread::spawn(move || {
-        THREAD.with(|tld| {
-            *tld.borrow_mut() = thread;
+        THREAD.with(|tld_thread| {
+            *tld_thread.borrow_mut() = thread;
+        });
+
+        let stack_top = stack_pointer();
+        let stack_limit = stack_top.sub(STACK_SIZE);
+
+        THREAD.with(|thread| {
+            thread.borrow().tld.set_stack_limit(stack_limit);
         });
 
         let main = {

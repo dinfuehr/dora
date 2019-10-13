@@ -214,6 +214,7 @@ pub enum Trap {
     CAST,
     UNEXPECTED,
     OOM,
+    STACK_OVERFLOW,
 }
 
 impl Trap {
@@ -227,6 +228,7 @@ impl Trap {
             Trap::CAST => 6,
             Trap::UNEXPECTED => 7,
             Trap::OOM => 8,
+            Trap::STACK_OVERFLOW => 9,
         }
     }
 
@@ -240,6 +242,7 @@ impl Trap {
             6 => Some(Trap::CAST),
             7 => Some(Trap::UNEXPECTED),
             8 => Some(Trap::OOM),
+            9 => Some(Trap::STACK_OVERFLOW),
             _ => None,
         }
     }

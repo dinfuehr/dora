@@ -1,0 +1,20 @@
+//= error stack-overflow
+
+fun main() {
+    let thread = MyThread();
+    thread.start();
+}
+
+class MyThread : Thread {
+    @override fun run() {
+        g();
+    }
+}
+
+fun g() {
+    f();
+}
+
+fun f() {
+    f();
+}

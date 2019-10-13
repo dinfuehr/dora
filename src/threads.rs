@@ -4,8 +4,10 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use crate::exception::DoraToNativeInfo;
-use crate::gc::{Address, Region};
+use crate::gc::{Address, Region, M};
 use crate::handle::HandleMemory;
+
+pub const STACK_SIZE: usize = 1 * M;
 
 thread_local! {
     pub static THREAD: RefCell<Arc<DoraThread>> = RefCell::new(DoraThread::new());
@@ -157,6 +159,7 @@ pub struct ThreadLocalData {
     tlab_top: AtomicUsize,
     tlab_end: AtomicUsize,
     concurrent_marking: AtomicBool,
+    stack_limit: AtomicUsize,
 }
 
 impl ThreadLocalData {
@@ -165,6 +168,7 @@ impl ThreadLocalData {
             tlab_top: AtomicUsize::new(0),
             tlab_end: AtomicUsize::new(0),
             concurrent_marking: AtomicBool::new(false),
+            stack_limit: AtomicUsize::new(0),
         }
     }
 
@@ -189,6 +193,11 @@ impl ThreadLocalData {
         Region::new(tlab_top.into(), tlab_end.into())
     }
 
+    pub fn set_stack_limit(&self, stack_limit: Address) {
+        self.stack_limit
+            .store(stack_limit.to_usize(), Ordering::Relaxed);
+    }
+
     pub fn tlab_top_offset() -> i32 {
         offset_of!(ThreadLocalData, tlab_top) as i32
     }
@@ -199,5 +208,9 @@ impl ThreadLocalData {
 
     pub fn concurrent_marking_offset() -> i32 {
         offset_of!(ThreadLocalData, concurrent_marking) as i32
+    }
+
+    pub fn stack_limit_offset() -> i32 {
+        offset_of!(ThreadLocalData, stack_limit) as i32
     }
 }

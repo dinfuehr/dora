@@ -131,7 +131,7 @@ where
 
     fn emit_prolog(&mut self) {
         let stacksize = self.jit_info.stacksize();
-        self.asm.prolog(stacksize);
+        self.asm.prolog(stacksize, self.fct.ast.pos);
         self.asm.emit_comment(Comment::Lit("prolog end"));
         self.asm.emit_comment(Comment::Newline);
     }

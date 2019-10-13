@@ -1133,6 +1133,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             return;
         }
 
+        if object_type.is_error() {
+            self.src.set_ty(e.id, BuiltinType::Error);
+            self.expr_type = BuiltinType::Error;
+
+            return;
+        }
+
         let mut lookup = MethodLookup::new(self.vm, self.file)
             .method(object_type)
             .pos(e.pos)

@@ -29,13 +29,14 @@ impl Stacktrace {
     }
 
     pub fn dump(&self, vm: &VM) {
+        let frames = self.elems.len();
         for (ind, elem) in self.elems.iter().enumerate() {
             let jit_fct = vm.jit_fcts.idx(elem.fct_id);
             let fct_id = jit_fct.fct_id();
             let fct = vm.fcts.idx(fct_id);
             let fct = fct.read();
             let name = fct.full_name(vm);
-            print!("{}: {}: ", ind, name);
+            print!("{}: {}: ", frames - ind, name);
 
             if elem.lineno == 0 {
                 println!("?");
@@ -159,7 +160,8 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, vm: &VM, pc: usize) -> boo
         Some(CodeDescriptor::DoraEntry) => false,
 
         _ => {
-            println!("data = {:?}", data);
+            println!("data = {:?}, pc = {:x}", data, pc);
+            code_map.dump(vm);
             panic!("invalid stack frame");
         }
     }

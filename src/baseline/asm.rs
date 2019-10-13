@@ -38,8 +38,14 @@ where
         self.masm.debug();
     }
 
-    pub fn prolog(&mut self, stacksize: i32) {
+    pub fn prolog(&mut self, stacksize: i32, pos: Position) {
         self.masm.prolog(stacksize);
+
+        let lbl_stack_overflow = self.masm.create_label();
+        self.masm.check_stack_pointer(lbl_stack_overflow);
+
+        self.slow_paths
+            .push(SlowPathKind::StackOverflow(lbl_stack_overflow, pos));
     }
 
     pub fn epilog_with_polling(&mut self, stacksize: i32, polling_page: Address) {
@@ -557,13 +563,13 @@ where
         array_ref: bool,
         gcpoint: GcPoint,
     ) {
-        let lbl_allocate = self.masm.create_label();
+        let lbl_slow_path = self.masm.create_label();
 
         match size {
             AllocationSize::Dynamic(reg_size) => {
                 self.masm
                     .cmp_reg_imm(MachineMode::Ptr, reg_size, TLAB_OBJECT_SIZE as i32);
-                self.masm.jump_if(CondCode::GreaterEq, lbl_allocate);
+                self.masm.jump_if(CondCode::GreaterEq, lbl_slow_path);
             }
 
             AllocationSize::Fixed(size) => {
@@ -601,7 +607,7 @@ where
         }
 
         self.masm.cmp_reg(MachineMode::Ptr, *tlab_next, *tlab_end);
-        self.masm.jump_if(CondCode::Greater, lbl_allocate);
+        self.masm.jump_if(CondCode::Greater, lbl_slow_path);
 
         self.masm.store_mem(
             MachineMode::Ptr,
@@ -614,7 +620,7 @@ where
         self.masm.bind_label(lbl_return);
 
         self.slow_paths.push(SlowPathKind::TlabAllocationFailure(
-            lbl_allocate,
+            lbl_slow_path,
             lbl_return,
             dest,
             size,
@@ -670,9 +676,14 @@ where
                         lbl_start, lbl_return, dest, size, pos, array_ref, gcpoint,
                     );
                 }
+
+                SlowPathKind::StackOverflow(lbl_stack_overflow, pos) => {
+                    self.slow_path_stack_overflow(lbl_stack_overflow, pos);
+                }
             }
         }
 
+        self.masm.nop();
         assert!(self.slow_paths.is_empty());
     }
 
@@ -690,8 +701,14 @@ where
         self.gc_allocate(dest, size, pos, array_ref, gcpoint);
         self.masm.jump(lbl_return);
     }
+
+    fn slow_path_stack_overflow(&mut self, lbl_stack_overflow: Label, pos: Position) {
+        self.masm.bind_label(lbl_stack_overflow);
+        self.masm.trap(Trap::STACK_OVERFLOW, pos);
+    }
 }
 
 enum SlowPathKind {
     TlabAllocationFailure(Label, Label, Reg, AllocationSize, Position, bool, GcPoint),
+    StackOverflow(Label, Position),
 }

@@ -1,0 +1,9 @@
+//= error stack-overflow
+
+fun main() {
+    f();
+}
+
+fun f() {
+    f();
+}

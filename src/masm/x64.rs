@@ -9,6 +9,7 @@ use crate::masm::{Label, MacroAssembler};
 use crate::mem::{fits_i32, ptr_width};
 use crate::object::{offset_of_array_data, offset_of_array_length, Header};
 use crate::os::signal::Trap;
+use crate::threads::ThreadLocalData;
 use crate::ty::{MachineMode, TypeList};
 use crate::vm::get_vm;
 use crate::vm::FctId;
@@ -24,6 +25,18 @@ impl MacroAssembler {
         if stacksize > 0 {
             asm::emit_subq_imm_reg(self, stacksize, RSP);
         }
+    }
+
+    pub fn check_stack_pointer(&mut self, lbl_overflow: Label) {
+        asm::emit_cmp_mem_reg(
+            self,
+            MachineMode::Ptr,
+            REG_THREAD,
+            ThreadLocalData::stack_limit_offset(),
+            RSP,
+        );
+
+        asm::emit_jcc(self, CondCode::UnsignedGreater, lbl_overflow);
     }
 
     pub fn epilog_with_polling(&mut self, stacksize: i32, polling_page: Address) {

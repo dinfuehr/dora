@@ -1,5 +1,5 @@
 //= error exception
-//= output "uncaught exception\n0: foo(): 9\n1: call(String): 20\n2: main(): 5\n"
+//= output "uncaught exception\n3: foo(): 9\n2: call(String): 20\n1: main(): 5\n"
 
 fun main() {
     call("foo");
