@@ -1427,6 +1427,7 @@ pub enum CallType {
     Ctor(ClassId, FctId, TypeList),
     Expr(BuiltinType, FctId),
     Trait(TraitId, FctId),
+    TraitStatic(TraitId, FctId),
 }
 
 impl CallType {
@@ -1466,6 +1467,7 @@ impl CallType {
             CallType::Ctor(_, fctid, _) => fctid,
             CallType::Expr(_, fctid) => fctid,
             CallType::Trait(_, fctid) => fctid,
+            CallType::TraitStatic(_, fctid) => fctid,
         }
     }
 }

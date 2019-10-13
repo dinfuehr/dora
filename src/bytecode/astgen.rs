@@ -445,6 +445,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             }
 
             CallType::Trait(_, _) => unimplemented!(),
+            CallType::TraitStatic(_, _) => unimplemented!(),
         }
 
         if call_type.is_ctor_new() {
@@ -939,7 +940,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 specialize_type(self.vm, ty, &type_params, &TypeList::empty())
             }
 
-            CallType::Trait(_, _) => unimplemented!(),
+            CallType::Trait(_, _) | CallType::TraitStatic(_, _) => unimplemented!(),
         };
 
         self.specialize_type(ty)

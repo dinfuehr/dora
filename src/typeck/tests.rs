@@ -1800,4 +1800,21 @@ fn test_static_method_call_with_type_param() {
         pos(3, 35),
         SemError::MultipleCandidatesForStaticMethodWithTypeParam,
     );
+
+    err(
+        "trait X { @static fun foo() -> Int; }
+        fun f[T: X]() -> Int { return T::foo(1); }",
+        pos(2, 45),
+        SemError::ParamTypesIncompatible("foo".into(), Vec::new(), vec!["Int".into()]),
+    );
+
+    err(
+        "trait X { @static fun foo() throws -> Int; }
+        fun f[T: X]() -> Int { return T::foo(); }",
+        pos(2, 45),
+        SemError::ThrowingCallWithoutTry,
+    );
+
+    ok("trait X { @static fun foo() -> Int; }
+        fun f[T: X]() -> Int { return T::foo(); }");
 }

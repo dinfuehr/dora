@@ -933,8 +933,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         e: &'ast ExprCallType,
         tp_id: TypeListId,
         name: Name,
-        _arg_types: &[BuiltinType],
-        _in_try: bool,
+        arg_types: &[BuiltinType],
+        in_try: bool,
     ) {
         let tp = &self.fct.type_params[tp_id.idx()];
         let mut fcts = Vec::new();
@@ -947,7 +947,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let xtrait = self.vm.traits[trait_id].read();
 
             if let Some(fct_id) = xtrait.find_method(self.vm, name, true) {
-                fcts.push(fct_id);
+                fcts.push((trait_id, fct_id));
             }
         }
 
@@ -965,7 +965,45 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             return;
         }
 
-        unimplemented!();
+        let (trait_id, fct_id) = fcts[0];
+        let fct = self.vm.fcts.idx(fct_id);
+        let fct = fct.read();
+
+        if !args_compatible(
+            self.vm,
+            fct.params_without_self(),
+            arg_types,
+            None,
+            Some(fct_id),
+            &TypeList::empty(),
+            &TypeList::empty(),
+        ) {
+            let fct_name = self.vm.interner.str(name).to_string();
+            let fct_params = fct
+                .params_without_self()
+                .iter()
+                .map(|a| a.name(self.vm))
+                .collect::<Vec<_>>();
+            let arg_types = arg_types
+                .iter()
+                .map(|a| a.name(self.vm))
+                .collect::<Vec<_>>();
+            let msg = SemError::ParamTypesIncompatible(fct_name, fct_params, arg_types);
+            self.vm.diag.lock().report(self.file, e.pos, msg);
+        }
+
+        if !in_try && fct.throws {
+            let msg = SemError::ThrowingCallWithoutTry;
+            self.vm.diag.lock().report(self.file, e.pos, msg);
+        }
+
+        let call_type = CallType::TraitStatic(trait_id, fct_id);
+        self.src.map_calls.insert(e.id, Arc::new(call_type));
+
+        let return_type = fct.return_type;
+
+        self.src.set_ty(e.id, return_type);
+        self.expr_type = return_type;
     }
 
     fn check_expr_call_expr(
