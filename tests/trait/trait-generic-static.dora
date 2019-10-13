@@ -1,0 +1,28 @@
+fun main() {
+    assert(f[Bar]() == 1);
+    assert(f[Baz]() == 2);
+}
+
+trait X {
+    @static fun foo() -> Int;
+}
+
+fun f[T: X]() -> Int {
+    return T::foo();
+}
+
+class Bar
+
+impl X for Bar {
+    @static fun foo() -> Int {
+        return 1;
+    }
+}
+
+class Baz
+
+impl X for Baz {
+    @static fun foo() -> Int {
+        return 2;
+    }
+}

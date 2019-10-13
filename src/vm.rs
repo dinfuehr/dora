@@ -26,7 +26,7 @@ use crate::stdlib;
 use crate::sym::Sym::*;
 use crate::sym::*;
 use crate::threads::{Threads, STACK_SIZE, THREAD};
-use crate::ty::{BuiltinType, LambdaTypes, TypeList, TypeListId, TypeLists};
+use crate::ty::{BuiltinType, LambdaTypes, TypeList, TypeListId, TypeLists, TypeParamId};
 use crate::utils::GrowableVec;
 
 use dora_parser::ast;
@@ -1439,7 +1439,7 @@ pub enum CallType {
     Ctor(ClassId, FctId, TypeList),
     Expr(BuiltinType, FctId),
     Trait(TraitId, FctId),
-    TraitStatic(TraitId, FctId),
+    TraitStatic(TypeParamId, TraitId, FctId),
 }
 
 impl CallType {
@@ -1479,7 +1479,7 @@ impl CallType {
             CallType::Ctor(_, fctid, _) => fctid,
             CallType::Expr(_, fctid) => fctid,
             CallType::Trait(_, fctid) => fctid,
-            CallType::TraitStatic(_, fctid) => fctid,
+            CallType::TraitStatic(_, _, fctid) => fctid,
         }
     }
 }

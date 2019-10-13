@@ -9,7 +9,7 @@ use dora_parser::ast::*;
 use crate::cpu::*;
 use crate::mem;
 use crate::semck::specialize::specialize_type;
-use crate::ty::{BuiltinType, TypeList};
+use crate::ty::{BuiltinType, TypeList, TypeParamId};
 use crate::vm::{
     Arg, CallSite, CallType, Fct, FctId, FctKind, FctParent, FctSrc, Intrinsic, NodeMap, Store,
     TraitId, VarId, VM,
@@ -431,8 +431,42 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 fct_id = fid;
             }
 
+            CallType::TraitStatic(tp_id, trait_id, trait_fct_id) => {
+                let list_id = match tp_id {
+                    TypeParamId::Fct(list_id) => list_id,
+                    TypeParamId::Class(_) => unimplemented!(),
+                };
+
+                let ty = self.fct_type_params[list_id.idx()];
+                let cls_id = ty.cls_id(self.vm).expect("no cls_id for type");
+
+                let cls = self.vm.classes.idx(cls_id);
+                let cls = cls.read();
+
+                let mut impl_fct_id: Option<FctId> = None;
+
+                for &impl_id in &cls.impls {
+                    let ximpl = self.vm.impls[impl_id].read();
+
+                    if ximpl.trait_id != Some(trait_id) {
+                        continue;
+                    }
+
+                    for &fid in &ximpl.methods {
+                        let method = self.vm.fcts.idx(fid);
+                        let method = method.read();
+
+                        if method.impl_for == Some(trait_fct_id) {
+                            impl_fct_id = Some(fid);
+                            break;
+                        }
+                    }
+                }
+
+                fct_id = impl_fct_id.expect("no impl_fct_id found");
+            }
+
             CallType::Trait(_, _) => unimplemented!(),
-            CallType::TraitStatic(_, _) => unimplemented!(),
         }
 
         let fct = self.vm.fcts.idx(fct_id);
@@ -631,7 +665,12 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 fct_type_params = TypeList::empty();
             }
 
-            CallType::Trait(_, _) | CallType::TraitStatic(_, _) => unimplemented!(),
+            CallType::Trait(_, _) => unimplemented!(),
+
+            CallType::TraitStatic(_, _, _) => {
+                cls_type_params = TypeList::empty();
+                fct_type_params = TypeList::empty();
+            }
         }
 
         (cls_type_params, fct_type_params)
@@ -909,7 +948,13 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 specialize_type(self.vm, ty, type_params, &TypeList::empty())
             }
 
-            CallType::Trait(_, _) | CallType::TraitStatic(_, _) => unimplemented!(),
+            CallType::Trait(_, _) => unimplemented!(),
+
+            CallType::TraitStatic(_, _, _) => {
+                assert_ne!(ty, BuiltinType::This);
+
+                ty
+            }
         };
 
         self.specialize_type(ty)

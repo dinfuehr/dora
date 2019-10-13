@@ -257,6 +257,10 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             TypeList::empty()
         };
 
+        if args.contains(&BuiltinType::Error) {
+            return false;
+        }
+
         if !args_compatible(
             self.vm,
             &fct.params_without_self(),

@@ -6,7 +6,7 @@ use crate::class::ClassId;
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::sym::Sym::SymClass;
-use crate::ty::{BuiltinType, TypeList, TypeListId};
+use crate::ty::{BuiltinType, TypeList, TypeListId, TypeParamId};
 use crate::typeck::lookup::MethodLookup;
 use crate::vm::{
     self, CallType, ConvInfo, Fct, FctId, FctParent, FctSrc, FileId, ForTypeInfo, IdentType, VM,
@@ -700,6 +700,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.visit_expr(&e.rhs);
         let rhs_type = self.expr_type;
 
+        if lhs_type.is_error() || rhs_type.is_error() {
+            self.src.set_ty(e.id, BuiltinType::Error);
+            self.expr_type = BuiltinType::Error;
+            return;
+        }
+
         match e.op {
             BinOp::Or | BinOp::And => self.check_expr_bin_bool(e, e.op, lhs_type, rhs_type),
             BinOp::Cmp(cmp) => self.check_expr_bin_cmp(e, cmp, lhs_type, rhs_type),
@@ -997,7 +1003,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.vm.diag.lock().report(self.file, e.pos, msg);
         }
 
-        let call_type = CallType::TraitStatic(trait_id, fct_id);
+        let call_type = CallType::TraitStatic(TypeParamId::Fct(tp_id), trait_id, fct_id);
         self.src.map_calls.insert(e.id, Arc::new(call_type));
 
         let return_type = fct.return_type;
