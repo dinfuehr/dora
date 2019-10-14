@@ -269,6 +269,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             Some(fct_id),
             &cls_tps,
             &fct_tps,
+            None,
         ) {
             let fct_name = self.vm.interner.str(fct.name).to_string();
             let fct_params = fct
@@ -325,6 +326,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                 None,
                 type_params,
                 &TypeList::empty(),
+                None,
             ) {
                 return Some(ctor_id);
             }

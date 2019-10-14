@@ -1,7 +1,6 @@
-//= ignore
-
 fun main() {
     assert("x${f[Bar]()}y${f[Baz]()}z" == "xBAR1yBAZ2z");
+    // assert("x${g[Bar]()}y${g[Baz]()}z" == "xBAR1yBAZ2z");
 }
 
 trait X {
@@ -10,9 +9,13 @@ trait X {
 }
 
 fun f[T: X]() -> String {
+    return T::makeString(T::foo());
+}
+
+/*fun g[T: X]() -> String {
     let value: T = T::foo();
     return T::makeString(value);
-}
+}*/
 
 class Bar(let x: Int)
 

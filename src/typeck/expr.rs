@@ -981,6 +981,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             return;
         }
 
+        if arg_types.contains(&BuiltinType::Error) {
+            self.src.set_ty(e.id, BuiltinType::Error);
+            self.expr_type = BuiltinType::Error;
+            return;
+        }
+
         let (trait_id, fct_id) = fcts[0];
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
@@ -993,6 +999,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             Some(fct_id),
             &TypeList::empty(),
             &TypeList::empty(),
+            Some(tp),
         ) {
             let fct_name = self.vm.interner.str(name).to_string();
             let fct_params = fct
@@ -1446,6 +1453,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 None,
                 &TypeList::empty(),
                 &TypeList::empty(),
+                None,
             ) {
                 self.src.map_tys.insert(e.id, self.vm.cls(cls.id));
 
@@ -1901,13 +1909,16 @@ pub fn args_compatible(
     fct_id: Option<FctId>,
     cls_tps: &TypeList,
     fct_tps: &TypeList,
+    self_ty: Option<BuiltinType>,
 ) -> bool {
     if def.len() != expr.len() {
         return false;
     }
 
     for (ind, &arg) in def.iter().enumerate() {
-        if !arg_allows(vm, arg, expr[ind], cls_id, fct_id, cls_tps, fct_tps) {
+        if !arg_allows(
+            vm, arg, expr[ind], cls_id, fct_id, cls_tps, fct_tps, self_ty,
+        ) {
             return false;
         }
     }
@@ -1923,6 +1934,7 @@ fn arg_allows(
     global_fct_id: Option<FctId>,
     cls_tps: &TypeList,
     fct_tps: &TypeList,
+    self_ty: Option<BuiltinType>,
 ) -> bool {
     match def {
         BuiltinType::Error => panic!("error shouldn't occur in fct definition."),
@@ -1937,7 +1949,20 @@ fn arg_allows(
         | BuiltinType::Double => def == arg,
         BuiltinType::Nil => panic!("nil should not occur in fct definition."),
         BuiltinType::Ptr => panic!("ptr should not occur in fct definition."),
-        BuiltinType::This => panic!("this should not occur in fct definition."),
+        BuiltinType::This => {
+            let real = self_ty.expect("no Self type expected.");
+
+            arg_allows(
+                vm,
+                real,
+                arg,
+                global_cls_id,
+                global_fct_id,
+                cls_tps,
+                fct_tps,
+                self_ty,
+            )
+        }
         BuiltinType::Trait(_) => panic!("trait should not occur in fct definition."),
 
         BuiltinType::ClassTypeParam(cls_id, tpid) => {
@@ -1957,6 +1982,7 @@ fn arg_allows(
                 global_fct_id,
                 cls_tps,
                 fct_tps,
+                None,
             )
         }
         BuiltinType::FctTypeParam(fct_id, tpid) => {
@@ -1976,6 +2002,7 @@ fn arg_allows(
                 global_fct_id,
                 cls_tps,
                 fct_tps,
+                self_ty,
             )
         }
 
@@ -2010,7 +2037,16 @@ fn arg_allows(
             }
 
             for (tp, op) in params.iter().zip(other_params.iter()) {
-                if !arg_allows(vm, tp, op, global_cls_id, global_fct_id, cls_tps, fct_tps) {
+                if !arg_allows(
+                    vm,
+                    tp,
+                    op,
+                    global_cls_id,
+                    global_fct_id,
+                    cls_tps,
+                    fct_tps,
+                    self_ty,
+                ) {
                     return false;
                 }
             }
@@ -2168,6 +2204,7 @@ pub fn lookup_method<'ast>(
                 Some(method.id),
                 cls_type_params,
                 fct_tps,
+                None,
             ) {
                 let cmp_type =
                     replace_type_param(vm, method.return_type, &cls_type_params, fct_tps, None);
