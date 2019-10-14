@@ -53,7 +53,7 @@ fun arrayFill[T](len: Int, value: T) -> Array[T] {
   return array;
 }
 
-/*fun arrayNew[T: Default](len: Int) -> Array[T] {
+fun arrayNew[T: Default](len: Int) -> Array[T] {
   let array = Array[T](len);
   var i = 0;
   let value = T::default();
@@ -64,7 +64,7 @@ fun arrayFill[T](len: Int, value: T) -> Array[T] {
   }
 
   return array;
-}*/
+}
 
 fun arrayCopy[T](src: Array[T], srcPos: Int, dest: Array[T], destPos: Int, len: Int) {
   var i = 0;

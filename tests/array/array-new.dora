@@ -1,0 +1,13 @@
+fun main() {
+    let array = arrayNew[String](10);
+    assert(array(0) == "");
+    assert(array(0) == array(9));
+
+    let array = arrayNew[Double](10);
+    assert(array(0) == 0.0);
+    assert(array(9) == 0.0);
+
+    let array = arrayNew[Float](10);
+    assert(array(0) == 0.0F);
+    assert(array(9) == 0.0F);
+}
