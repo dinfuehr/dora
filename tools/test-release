@@ -2,9 +2,4 @@
 
 set -e
 
-cd lib/dora-parser
-cargo build --release
-cargo test --release
-cd ../..
-
 cargo build --release && cargo test --release && ruby tools/tester.rb --release $@
