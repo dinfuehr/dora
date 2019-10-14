@@ -252,11 +252,7 @@ pub struct TypeBasicType {
 
 impl Type {
     pub fn create_self(id: NodeId, pos: Position, span: Span) -> Type {
-        Type::TypeSelf(TypeSelfType {
-            id,
-            pos,
-            span,
-        })
+        Type::TypeSelf(TypeSelfType { id, pos, span })
     }
 
     pub fn create_basic(
@@ -706,19 +702,11 @@ impl Stmt {
     }
 
     pub fn create_break(id: NodeId, pos: Position, span: Span) -> Stmt {
-        Stmt::StmtBreak(StmtBreakType {
-            id,
-            pos,
-            span,
-        })
+        Stmt::StmtBreak(StmtBreakType { id, pos, span })
     }
 
     pub fn create_continue(id: NodeId, pos: Position, span: Span) -> Stmt {
-        Stmt::StmtContinue(StmtContinueType {
-            id,
-            pos,
-            span,
-        })
+        Stmt::StmtContinue(StmtContinueType { id, pos, span })
     }
 
     pub fn create_return(id: NodeId, pos: Position, span: Span, expr: Option<Box<Expr>>) -> Stmt {
@@ -1440,27 +1428,15 @@ impl Expr {
     }
 
     pub fn create_this(id: NodeId, pos: Position, span: Span) -> Expr {
-        Expr::ExprSelf(ExprSelfType {
-            id,
-            pos,
-            span,
-        })
+        Expr::ExprSelf(ExprSelfType { id, pos, span })
     }
 
     pub fn create_super(id: NodeId, pos: Position, span: Span) -> Expr {
-        Expr::ExprSuper(ExprSuperType {
-            id,
-            pos,
-            span,
-        })
+        Expr::ExprSuper(ExprSuperType { id, pos, span })
     }
 
     pub fn create_nil(id: NodeId, pos: Position, span: Span) -> Expr {
-        Expr::ExprNil(ExprNilType {
-            id,
-            pos,
-            span,
-        })
+        Expr::ExprNil(ExprNilType { id, pos, span })
     }
 
     pub fn create_ident(

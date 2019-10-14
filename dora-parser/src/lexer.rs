@@ -31,10 +31,7 @@ impl Lexer {
     pub fn new(reader: Reader) -> Lexer {
         let keywords = keywords_in_map();
 
-        Lexer {
-            reader,
-            keywords,
-        }
+        Lexer { reader, keywords }
     }
 
     pub fn path(&self) -> &str {

@@ -11,9 +11,7 @@ pub struct Builder<'a> {
 
 impl<'a> Builder<'a> {
     pub fn new(id_generator: &'a NodeIdGenerator) -> Builder<'a> {
-        Builder {
-            id_generator,
-        }
+        Builder { id_generator }
     }
 
     pub fn build_block(&self) -> BuilderBlock<'a> {
