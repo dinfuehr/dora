@@ -13,10 +13,17 @@ pub const DISPLAY_SIZE: usize = 6;
 pub struct VTableBox(*mut VTable);
 
 impl VTableBox {
-    pub fn new(classptr: *mut ClassDef, entries: &[usize]) -> VTableBox {
+    pub fn new(
+        classptr: *mut ClassDef,
+        instance_size: usize,
+        element_size: usize,
+        entries: &[usize],
+    ) -> VTableBox {
         let size = VTable::size_of(entries.len());
         let vtable = VTable {
             classptr,
+            instance_size,
+            element_size,
             subtype_depth: 0,
             subtype_display: [ptr::null(); DISPLAY_SIZE],
             subtype_overflow: ptr::null(),
@@ -78,6 +85,8 @@ impl Drop for VTableBox {
 #[derive(Debug)]
 pub struct VTable {
     pub classptr: *mut ClassDef,
+    pub instance_size: usize,
+    pub element_size: usize,
     pub subtype_depth: i32,
     pub subtype_display: [*const VTable; DISPLAY_SIZE],
     pub subtype_overflow: *const *const VTable,
@@ -96,6 +105,14 @@ impl VTable {
 
     pub fn class(&self) -> &mut ClassDef {
         unsafe { &mut *self.classptr }
+    }
+
+    pub fn instance_size(&self) -> usize {
+        self.instance_size
+    }
+
+    pub fn element_size(&self) -> usize {
+        self.element_size
     }
 
     pub fn table(&self) -> &[usize] {

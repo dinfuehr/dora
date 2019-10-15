@@ -270,8 +270,16 @@ fn create_specialized_class(vm: &VM, cls: &class::Class, type_params: &TypeList)
     cls_def.ref_fields = ref_fields;
     cls_def.parent_id = parent_id;
 
+    let (instance_size, element_size) = match size {
+        ClassSize::Fixed(instance_size) => (instance_size as usize, 0),
+        ClassSize::Array(element_size) => (0, element_size as usize),
+        ClassSize::ObjArray => (0, mem::ptr_width_usize()),
+        ClassSize::FreeArray => (0, mem::ptr_width_usize()),
+        ClassSize::Str => (0, 1),
+    };
+
     let clsptr = (&*cls_def) as *const class::ClassDef as *mut class::ClassDef;
-    let vtable = VTableBox::new(clsptr, &vtable_entries);
+    let vtable = VTableBox::new(clsptr, instance_size, element_size, &vtable_entries);
     cls_def.vtable = Some(vtable);
 
     ensure_display(vm, &mut cls_def);

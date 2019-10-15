@@ -4,6 +4,7 @@ use std::sync::Arc;
 use crate::class::{ClassDef, ClassDefId, ClassId, ClassSize};
 use crate::exception;
 use crate::gc::Address;
+use crate::mem;
 use crate::object::Header;
 use crate::stdlib;
 use crate::ty::{BuiltinType, TypeList};
@@ -91,7 +92,7 @@ fn internal_free_classes<'ast>(vm: &mut VM<'ast>) {
             let free_object_class_def = &class_defs[free_object.to_usize()];
             let mut free_object_class_def = free_object_class_def.write();
             let clsptr = (&*free_object_class_def) as *const ClassDef as *mut ClassDef;
-            let vtable = VTableBox::new(clsptr, &[]);
+            let vtable = VTableBox::new(clsptr, Header::size() as usize, 0, &[]);
             free_object_class_def.vtable = Some(vtable);
         }
 
@@ -99,7 +100,7 @@ fn internal_free_classes<'ast>(vm: &mut VM<'ast>) {
             let free_array_class_def = &class_defs[free_array.to_usize()];
             let mut free_array_class_def = free_array_class_def.write();
             let clsptr = (&*free_array_class_def) as *const ClassDef as *mut ClassDef;
-            let vtable = VTableBox::new(clsptr, &[]);
+            let vtable = VTableBox::new(clsptr, 0, mem::ptr_width_usize(), &[]);
             free_array_class_def.vtable = Some(vtable);
         }
     }

@@ -243,23 +243,13 @@ impl Obj {
 
     pub fn size_for_vtblptr(&self, vtblptr: Address) -> usize {
         let vtbl = unsafe { &*vtblptr.to_mut_ptr::<VTable>() };
-        let cls = vtbl.class();
+        let instance_size = vtbl.instance_size;
 
-        match cls.size {
-            ClassSize::Fixed(size) => size as usize,
-
-            ClassSize::ObjArray => determine_array_size(self, mem::ptr_width()),
-            ClassSize::FreeArray => determine_array_size(self, mem::ptr_width()),
-
-            ClassSize::Array(element_size) => determine_array_size(self, element_size),
-
-            ClassSize::Str => {
-                let handle: Ref<Str> = Ref {
-                    ptr: self as *const Obj as *const Str,
-                };
-                mem::align_usize(handle.size(), mem::ptr_width() as usize)
-            }
+        if instance_size != 0 {
+            return instance_size;
         }
+
+        determine_array_size(self, vtbl.element_size)
     }
 
     pub fn size(&self) -> usize {
@@ -341,16 +331,15 @@ impl Obj {
     }
 }
 
-fn determine_array_size(obj: &Obj, element_size: i32) -> usize {
+fn determine_array_size(obj: &Obj, element_size: usize) -> usize {
     let handle: Ref<ByteArray> = Ref {
         ptr: obj as *const Obj as *const ByteArray,
     };
 
-    let value = Header::size() as usize
-        + mem::ptr_width() as usize
-        + element_size as usize * handle.len() as usize;
+    let calc =
+        Header::size() as usize + mem::ptr_width_usize() + element_size * handle.len() as usize;
 
-    mem::align_usize(value, mem::ptr_width() as usize)
+    mem::align_usize(calc, mem::ptr_width_usize())
 }
 
 #[repr(C)]

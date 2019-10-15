@@ -332,7 +332,7 @@ impl GrowableVec<RwLock<ClassDef>> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ClassSize {
     Fixed(i32),
     Array(i32),
