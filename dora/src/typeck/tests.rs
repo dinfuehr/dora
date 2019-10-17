@@ -1818,3 +1818,11 @@ fn test_static_method_call_with_type_param() {
     ok("trait X { @static fun foo() -> Int; }
         fun f[T: X]() -> Int { return T::foo(); }");
 }
+
+#[test]
+fn test_type_param_with_let() {
+    ok("fun myid[T](val: T) -> T {
+        let tmp: T = val;
+        return tmp;
+    }");
+}

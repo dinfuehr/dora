@@ -1242,7 +1242,7 @@ impl FctSrc {
     }
 
     pub fn ty(&self, id: ast::NodeId) -> BuiltinType {
-        self.map_tys.get(id).unwrap().clone()
+        self.map_tys.get(id).expect("no type found").clone()
     }
 
     pub fn var_self(&self) -> &Var {

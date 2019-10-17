@@ -4,7 +4,6 @@ use std::{f32, f64};
 
 use crate::class::ClassId;
 use crate::error::msg::SemError;
-use crate::semck;
 use crate::sym::Sym::SymClass;
 use crate::ty::{BuiltinType, TypeList, TypeParamId};
 use crate::typeck::lookup::MethodLookup;
@@ -45,8 +44,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         });
 
         let defined_type = if let Some(ref data_type) = s.data_type {
-            let ty = semck::read_type(self.vm, self.file, &data_type);
-            Some(ty.unwrap_or(BuiltinType::Error))
+            let ty = self.src.ty(data_type.id());
+            Some(ty)
         } else {
             expr_type
         };
@@ -256,8 +255,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.visit_stmt(&s.do_block);
 
         for catch in &s.catch_blocks {
-            let ty = semck::read_type(self.vm, self.fct.file, &catch.data_type)
-                .unwrap_or(BuiltinType::Error);
+            let ty = self.src.ty(catch.data_type.id());
 
             let var = *self.src.map_vars.get(catch.id).unwrap();
             self.src.vars[var].ty = ty;
