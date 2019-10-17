@@ -1832,7 +1832,26 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             if idx % 2 != 0 {
                 self.visit_expr(part);
 
-                if self.expr_type.implements_trait(self.vm, stringable_trait) {
+                let implements_stringable = match self.expr_type {
+                    BuiltinType::FctTypeParam(fct_id, tp_id) => {
+                        assert_eq!(self.fct.id, fct_id);
+                        self.fct.type_params[tp_id.idx()]
+                            .trait_bounds
+                            .contains(&stringable_trait)
+                    }
+
+                    BuiltinType::ClassTypeParam(cls_id, tp_id) => {
+                        let cls = self.vm.classes.idx(cls_id);
+                        let cls = cls.read();
+                        cls.type_params[tp_id.idx()]
+                            .trait_bounds
+                            .contains(&stringable_trait)
+                    }
+
+                    _ => self.expr_type.implements_trait(self.vm, stringable_trait),
+                };
+
+                if implements_stringable {
                     continue;
                 }
 

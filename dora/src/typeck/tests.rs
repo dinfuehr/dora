@@ -1698,6 +1698,7 @@ fn test_template() {
         pos(1, 51),
         SemError::ExpectedStringable("Foo".into()),
     );
+    ok("fun f[T: Stringable](x: T) -> String { return \"${x}\"; }");
 }
 
 #[test]
@@ -1833,4 +1834,25 @@ fn test_type_param_with_let() {
         pos(2, 24),
         SemError::ReferenceTypeExpected("T".into()),
     );
+}
+
+#[test]
+fn test_fct_and_class_type_params() {
+    ok("class A[X] {
+        fun test[Y]() {}
+    }");
+
+    ok("class A[X] {
+        fun t1[Y](x: X, y: Y) -> Y { return y; }
+        fun t2[Y](x: X, y: Y) -> X { return x; }
+    }
+
+    fun t1(a: A[Int]) -> String {
+        return a.t1[String](1, \"bla\");
+    }
+
+    fun t2(a: A[Int]) -> Int {
+        return a.t2[String](1, \"bla\");
+    }
+    ");
 }

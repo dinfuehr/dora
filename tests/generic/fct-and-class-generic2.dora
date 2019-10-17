@@ -1,0 +1,8 @@
+class A[X: Stringable](let x: X) {
+    fun msg[Y: Stringable](y: Y) -> String { return "x${self.x}x${y}x"; }
+}
+
+fun main() {
+    assert("x1xblax" == A[Int](1).msg[String]("bla"));
+    assert("xblax1x" == A[String]("bla").msg[Int](1));
+}
