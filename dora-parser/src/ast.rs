@@ -102,6 +102,7 @@ pub enum Elem {
     ElemImpl(Impl),
     ElemGlobal(Global),
     ElemConst(Const),
+    ElemEnum(Enum),
 }
 
 impl Elem {
@@ -114,6 +115,7 @@ impl Elem {
             &ElemImpl(ref i) => i.id,
             &ElemGlobal(ref g) => g.id,
             &ElemConst(ref c) => c.id,
+            &ElemEnum(ref e) => e.id,
         }
     }
 
@@ -186,6 +188,15 @@ pub struct Const {
     pub name: Name,
     pub data_type: Type,
     pub expr: Box<Expr>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Enum {
+    pub id: NodeId,
+    pub pos: Position,
+    pub span: Span,
+    pub name: Name,
+    pub values: Vec<Box<Expr>>,
 }
 
 #[derive(Clone, Debug)]

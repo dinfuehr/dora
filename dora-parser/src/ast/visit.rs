@@ -37,6 +37,10 @@ pub trait Visitor<'v>: Sized {
         walk_const(self, c);
     }
 
+    fn visit_enum(&mut self, e: &'v Enum) {
+        walk_enum(self, e);
+    }
+
     fn visit_struct_field(&mut self, f: &'v StructField) {
         walk_struct_field(self, f);
     }
@@ -94,6 +98,7 @@ pub fn walk_file<'v, V: Visitor<'v>>(v: &mut V, f: &'v File) {
             ElemImpl(ref i) => v.visit_impl(i),
             ElemGlobal(ref g) => v.visit_global(g),
             ElemConst(ref c) => v.visit_const(c),
+            ElemEnum(ref e) => v.visit_enum(e),
         }
     }
 }
@@ -135,6 +140,10 @@ pub fn walk_class<'v, V: Visitor<'v>>(v: &mut V, c: &'v Class) {
 pub fn walk_const<'v, V: Visitor<'v>>(v: &mut V, c: &'v Const) {
     v.visit_type(&c.data_type);
     v.visit_expr_top(&c.expr);
+}
+
+pub fn walk_enum<'v, V: Visitor<'v>>(_v: &mut V, _e: &'v Enum) {
+    // nothing to do
 }
 
 pub fn walk_struct<'v, V: Visitor<'v>>(v: &mut V, s: &'v Struct) {

@@ -134,6 +134,12 @@ impl<'a> Parser<'a> {
                 elements.push(ElemConst(xconst));
             }
 
+            TokenKind::Enum => {
+                self.ban_modifiers(&modifiers)?;
+                let xenum = self.parse_enum()?;
+                elements.push(ElemEnum(xenum));
+            }
+
             _ => {
                 let msg = ParseError::ExpectedTopLevelElement(self.token.name());
                 return Err(ParseErrorAndPos::new(self.token.position, msg));
@@ -141,6 +147,24 @@ impl<'a> Parser<'a> {
         }
 
         Ok(())
+    }
+
+    fn parse_enum(&mut self) -> Result<Enum, ParseErrorAndPos> {
+        let start = self.token.span.start();
+        let pos = self.expect_token(TokenKind::Enum)?.position;
+        let name = self.expect_identifier()?;
+
+        self.expect_token(TokenKind::LParen)?;
+        let values = self.parse_comma_list(TokenKind::RParen, |p| p.parse_identifier())?;
+        let span = self.span_from(start);
+
+        Ok(Enum {
+            id: self.generate_id(),
+            pos,
+            span,
+            name,
+            values,
+        })
     }
 
     fn parse_const(&mut self) -> Result<Const, ParseErrorAndPos> {

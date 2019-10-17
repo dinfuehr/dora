@@ -31,7 +31,7 @@ class Builder {
     }
 
     fun create_arg(idx: Int) -> Inst {
-        return self.create_inst(AryInst(idx));
+        return self.create_inst(ArgInst(idx));
     }
 
     fun create_inst(inst: Inst) -> Inst {
