@@ -2,4 +2,4 @@
 
 set -e
 
-cargo build && cargo test && ruby tools/tester.rb $@
+cargo build && cargo test && ruby tools/tester.rb $@ && cargo run -- test dora-boots

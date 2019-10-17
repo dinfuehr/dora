@@ -1,0 +1,41 @@
+/*class IRBuilder {
+    var fct: Function;
+    var current_block: Block;
+
+    fun append_return(value: Value) -> Inst {
+        let inst = ReturnInst(value);
+        self.current_block.append(inst);
+        return inst;
+    }
+
+    fun append_return_void() -> Inst {
+        let inst = ReturnVoidInst();
+        self.current_block.append(inst);
+        return inst;
+    }
+
+    fun append_goto(block: Block) -> Inst {
+        let inst = GotoInst(block);
+        self.current_block.append(inst);
+        return inst;
+    }
+
+    fun append_cond(cond: Value, true_succ: Block, false_succ: Block) -> Inst {
+        let inst = CondInst(cond, true_succ, false_succ);
+        self.current_block.append(inst);
+        return inst;
+    }
+
+    fun append_bin(op: Int, lhs: Value, rhs: Value) -> Inst {
+        let inst = BinaryInst(op, lhs, rhs);
+        self.current_block.append(inst);
+        return inst;
+    }
+
+    fun append_un(op: Int, opnd: Value) -> Inst {
+        let inst = UnaryInst(op, opnd);
+        self.current_block.append(inst);
+        return inst;
+    }
+}
+*/

@@ -1,0 +1,71 @@
+class Function {
+    var start: Block;
+    var end: Block;
+
+    var blocks: Vec[Block];
+}
+
+class Block {
+    var instructions: Vec[Inst];
+
+    fun append_inst(inst: Inst) {
+        self.instructions.push(inst);
+    }
+}
+
+@abstract @open class Value
+
+@abstract @open class Const: Value
+class IntConst(let value: Int): Value
+class FloatConst(let value: Float): Value
+class DoubleConst(let value: Double): Value
+class LongConst(let value: Long): Value
+
+@abstract @open class Inst: Value
+
+class PrologInst: Inst
+class EpilogInst: Inst
+class UnaryInst(let op: Int, let opnd: Value): Inst
+class BinaryInst(let op: Int, let lhs: Value, let rhs: Value): Inst
+class ArgInst(let idx: Int): Inst
+class PhiInst(let inputs: Vec[Value]): Inst
+
+@abstract @open class Terminator: Inst
+
+class ReturnInst(let value: Value): Terminator
+class ReturnVoidInst: Terminator
+class CondInst(let cond: Value, let true_succ: Block, let false_succ: Block): Terminator
+class GotoInst(let succ: Block): Terminator
+
+const TYPE_UNIT: Int = 0;
+const TYPE_INT: Int = 1;
+const TYPE_LONG: Int = 2;
+const TYPE_FLOAT: Int = 3;
+const TYPE_DOUBLE: Int = 4;
+const TYPE_PTR: Int = 5;
+
+class Type(let kind: Int) {
+    @static fun unit() -> Type { return Type(TYPE_UNIT); }
+    @static fun int() -> Type { return Type(TYPE_INT); }
+    @static fun long() -> Type { return Type(TYPE_LONG); }
+    @static fun float() -> Type { return Type(TYPE_FLOAT); }
+    @static fun double() -> Type { return Type(TYPE_DOUBLE); }
+    @static fun ptr() -> Type { return Type(TYPE_PTR); }
+
+    fun is_unit() -> Bool { return self.kind == TYPE_UNIT; }
+    fun is_int() -> Bool { return self.kind == TYPE_INT; }
+    fun is_long() -> Bool { return self.kind == TYPE_LONG; }
+    fun is_float() -> Bool { return self.kind == TYPE_FLOAT; }
+    fun is_double() -> Bool { return self.kind == TYPE_DOUBLE; }
+    fun is_ptr() -> Bool { return self.kind == TYPE_PTR; }
+}
+
+const BIN_ADD_INT: Int = 0;
+const BIN_ADD_LONG: Int = 1;
+const BIN_ADD_FLOAT: Int = 2;
+const BIN_ADD_DOUBLE: Int = 3;
+
+const BIN_SUB_INT: Int = 0;
+const BIN_SUB_LONG: Int = 1;
+const BIN_SUB_FLOAT: Int = 2;
+const BIN_SUB_DOUBLE: Int = 3;
