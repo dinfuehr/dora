@@ -1,41 +1,48 @@
-/*class IRBuilder {
-    var fct: Function;
+class Builder {
+    let fct: Function = Function();
     var current_block: Block;
 
-    fun append_return(value: Value) -> Inst {
-        let inst = ReturnInst(value);
-        self.current_block.append(inst);
-        return inst;
+    fun create_block() -> Block {
+        return self.fct.create_block();
     }
 
-    fun append_return_void() -> Inst {
-        let inst = ReturnVoidInst();
-        self.current_block.append(inst);
-        return inst;
+    fun create_return(value: Value) -> Inst {
+        return self.current_block.create_inst(ReturnInst(value));
     }
 
-    fun append_goto(block: Block) -> Inst {
-        let inst = GotoInst(block);
-        self.current_block.append(inst);
-        return inst;
+    fun create_return_void() -> Inst {
+        return self.create_inst(ReturnVoidInst());
     }
 
-    fun append_cond(cond: Value, true_succ: Block, false_succ: Block) -> Inst {
-        let inst = CondInst(cond, true_succ, false_succ);
-        self.current_block.append(inst);
-        return inst;
+    fun create_goto(block: Block) -> Inst {
+        return self.create_inst(GotoInst(block));
     }
 
-    fun append_bin(op: Int, lhs: Value, rhs: Value) -> Inst {
-        let inst = BinaryInst(op, lhs, rhs);
-        self.current_block.append(inst);
-        return inst;
+    fun create_cond(cond: Value, true_succ: Block, false_succ: Block) -> Inst {
+        return self.create_inst(CondInst(cond, true_succ, false_succ));
     }
 
-    fun append_un(op: Int, opnd: Value) -> Inst {
-        let inst = UnaryInst(op, opnd);
-        self.current_block.append(inst);
-        return inst;
+    fun create_bin(op: Int, lhs: Value, rhs: Value) -> Inst {
+        return self.create_inst(BinaryInst(op, lhs, rhs));
+    }
+
+    fun create_un(op: Int, opnd: Value) -> Inst {
+        return self.create_inst(UnaryInst(op, opnd));
+    }
+
+    fun create_arg(idx: Int) -> Inst {
+        return self.create_inst(AryInst(idx));
+    }
+
+    fun create_inst(inst: Inst) -> Inst {
+        return self.current_block.create_inst(inst);
+    }
+
+    fun select_block(block: Block) {
+        self.current_block = block;
+    }
+
+    fun current_block() -> Block {
+        return self.current_block;
     }
 }
-*/

@@ -3,13 +3,20 @@ class Function {
     var end: Block;
 
     var blocks: Vec[Block];
+
+    fun create_block() -> Block {
+        let block = Block();
+        self.blocks.push(block);
+        return block;
+    }
 }
 
 class Block {
     var instructions: Vec[Inst];
 
-    fun append_inst(inst: Inst) {
+    fun create_inst(inst: Inst) -> Inst {
         self.instructions.push(inst);
+        return inst;
     }
 }
 
@@ -28,7 +35,9 @@ class EpilogInst: Inst
 class UnaryInst(let op: Int, let opnd: Value): Inst
 class BinaryInst(let op: Int, let lhs: Value, let rhs: Value): Inst
 class ArgInst(let idx: Int): Inst
-class PhiInst(let inputs: Vec[Value]): Inst
+
+class PhiInst(let inputs: Vec[PhiArg]): Inst
+class PhiArg(let value: Value, let block: Block)
 
 @abstract @open class Terminator: Inst
 
@@ -60,12 +69,13 @@ class Type(let kind: Int) {
     fun is_ptr() -> Bool { return self.kind == TYPE_PTR; }
 }
 
-const BIN_ADD_INT: Int = 0;
-const BIN_ADD_LONG: Int = 1;
-const BIN_ADD_FLOAT: Int = 2;
-const BIN_ADD_DOUBLE: Int = 3;
+const BIN_ADD: Int = 0;
+const BIN_SUB: Int = 1;
+const BIN_MUL: Int = 2;
+const BIN_DIV: Int = 3;
+const BIN_MOD: Int = 4;
 
-const BIN_SUB_INT: Int = 0;
-const BIN_SUB_LONG: Int = 1;
-const BIN_SUB_FLOAT: Int = 2;
-const BIN_SUB_DOUBLE: Int = 3;
+const BIN_FADD: Int = 5;
+const BIN_FSUB: Int = 6;
+const BIN_FMUL: Int = 7;
+const BIN_FDIV: Int = 8;

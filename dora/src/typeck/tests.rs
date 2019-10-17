@@ -1856,3 +1856,14 @@ fn test_fct_and_class_type_params() {
     }
     ");
 }
+
+#[test]
+fn test_subtyping() {
+    ok("
+    @open class A class B: A
+    class Test {
+        fun foo(a: A) {}
+    }
+    fun bar(t: Test) { t.foo(B()); }
+    ");
+}
