@@ -158,7 +158,12 @@ impl BuiltinType {
     }
 
     pub fn reference_type(&self) -> bool {
-        !self.value_type()
+        match *self {
+            BuiltinType::Ptr => true,
+            BuiltinType::Class(_, _) => true,
+            BuiltinType::Trait(_) => true,
+            _ => false,
+        }
     }
 
     pub fn value_type(&self) -> bool {

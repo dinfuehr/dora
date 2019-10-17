@@ -1825,4 +1825,12 @@ fn test_type_param_with_let() {
         let tmp: T = val;
         return tmp;
     }");
+
+    err(
+        "fun myid[T](val: T) {
+        do {} catch x: T {}
+    }",
+        pos(2, 24),
+        SemError::ReferenceTypeExpected("T".into()),
+    );
 }
