@@ -4,6 +4,7 @@ use std::{f32, f64};
 
 use crate::class::ClassId;
 use crate::error::msg::SemError;
+use crate::semck::always_returns;
 use crate::sym::Sym::SymClass;
 use crate::ty::{BuiltinType, TypeList, TypeParamId};
 use crate::typeck::lookup::MethodLookup;
@@ -33,7 +34,12 @@ pub struct TypeCheck<'a, 'ast: 'a> {
 
 impl<'a, 'ast> TypeCheck<'a, 'ast> {
     pub fn check(&mut self) {
-        self.visit_fct(self.ast);
+        let block = self.ast.block.as_ref().expect("missing block");
+        self.visit_stmt(block);
+
+        if !always_returns(block) {
+            self.check_fct_return_type(block.pos(), self.expr_type);
+        }
     }
 
     pub fn check_stmt_var(&mut self, s: &'ast StmtVarType) {
@@ -205,6 +211,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             })
             .unwrap_or(BuiltinType::Unit);
 
+        self.check_fct_return_type(s.pos, expr_type);
+    }
+
+    fn check_fct_return_type(&mut self, pos: Position, expr_type: BuiltinType) {
         let fct_type = self.fct.return_type;
 
         if !expr_type.is_error() && !fct_type.allows(self.vm, expr_type) {
@@ -219,7 +229,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 SemError::ReturnType(fct_type, expr_type)
             };
 
-            self.vm.diag.lock().report(self.file, s.pos, msg);
+            self.vm.diag.lock().report(self.file, pos, msg);
         }
     }
 
@@ -250,6 +260,38 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 .lock()
                 .report(self.file, s.pos, SemError::FctCallExpected);
         }
+    }
+
+    fn check_stmt_block(&mut self, block: &'ast StmtBlockType) {
+        for stmt in &block.stmts {
+            self.visit_stmt(stmt);
+        }
+
+        let ty = if let Some(ref expr) = block.expr {
+            self.visit_expr(expr);
+            self.expr_type
+        } else {
+            BuiltinType::Unit
+        };
+
+        self.src.set_ty(block.id, ty);
+        self.expr_type = ty;
+    }
+
+    fn check_expr_block(&mut self, block: &'ast ExprBlockType) {
+        for stmt in &block.stmts {
+            self.visit_stmt(stmt);
+        }
+
+        let ty = if let Some(ref expr) = block.expr {
+            self.visit_expr(expr);
+            self.expr_type
+        } else {
+            BuiltinType::Unit
+        };
+
+        self.src.set_ty(block.id, ty);
+        self.expr_type = ty;
     }
 
     fn check_stmt_do(&mut self, s: &'ast StmtDoType) {
@@ -1977,6 +2019,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprConv(ref expr) => self.check_expr_conv(expr),
             ExprTry(ref expr) => self.check_expr_try(expr),
             ExprLambda(ref expr) => self.check_expr_lambda(expr),
+            ExprBlock(ref expr) => self.check_expr_block(expr),
         }
     }
 
@@ -1990,13 +2033,20 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             StmtThrow(ref stmt) => self.check_stmt_throw(stmt),
             StmtDefer(ref stmt) => self.check_stmt_defer(stmt),
             StmtDo(ref stmt) => self.check_stmt_do(stmt),
+            StmtBlock(ref stmt) => self.check_stmt_block(stmt),
 
             // for the rest of the statements, no special handling is necessary
             StmtBreak(_) => visit::walk_stmt(self, s),
             StmtContinue(_) => visit::walk_stmt(self, s),
             StmtLoop(_) => visit::walk_stmt(self, s),
             StmtExpr(_) => visit::walk_stmt(self, s),
-            StmtBlock(_) => visit::walk_stmt(self, s),
+
+            StmtValue(_) => unreachable!(),
+        }
+
+        if !s.is_block() {
+            self.src.set_ty(s.id(), BuiltinType::Unit);
+            self.expr_type = BuiltinType::Unit;
         }
     }
 }

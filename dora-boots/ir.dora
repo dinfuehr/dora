@@ -32,7 +32,7 @@ class LongConst(let value: Long): Value
 
 class PrologInst: Inst
 class EpilogInst: Inst
-class UnaryInst(let op: Int, let opnd: Value): Inst
+class UnaryInst(let op: UnOp, let opnd: Value): Inst
 class BinaryInst(let op: BinOp, let lhs: Value, let rhs: Value): Inst
 class ArgInst(let idx: Int): Inst
 
@@ -69,4 +69,8 @@ enum TypeKind {
 enum BinOp {
     Add, Sub, Mul, Div, Mod,
     FAdd, FSub, FMul, FDiv,
+}
+
+enum UnOp {
+    Neg, FNeg, Not,
 }

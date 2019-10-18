@@ -595,6 +595,7 @@ pub enum Stmt {
     StmtLoop(StmtLoopType),
     StmtIf(StmtIfType),
     StmtExpr(StmtExprType),
+    StmtValue(Box<Expr>),
     StmtBlock(StmtBlockType),
     StmtBreak(StmtBreakType),
     StmtContinue(StmtContinueType),
@@ -702,13 +703,23 @@ impl Stmt {
         })
     }
 
-    pub fn create_block(id: NodeId, pos: Position, span: Span, stmts: Vec<Box<Stmt>>) -> Stmt {
+    pub fn create_value(expr: Box<Expr>) -> Stmt {
+        Stmt::StmtValue(expr)
+    }
+
+    pub fn create_block(
+        id: NodeId,
+        pos: Position,
+        span: Span,
+        stmts: Vec<Box<Stmt>>,
+        expr: Option<Box<Expr>>,
+    ) -> Stmt {
         Stmt::StmtBlock(StmtBlockType {
             id,
             pos,
             span,
-
             stmts,
+            expr,
         })
     }
 
@@ -784,6 +795,7 @@ impl Stmt {
             Stmt::StmtThrow(ref stmt) => stmt.id,
             Stmt::StmtDefer(ref stmt) => stmt.id,
             Stmt::StmtDo(ref stmt) => stmt.id,
+            Stmt::StmtValue(_) => panic!("should only be used during parsing"),
         }
     }
 
@@ -802,6 +814,7 @@ impl Stmt {
             Stmt::StmtThrow(ref stmt) => stmt.pos,
             Stmt::StmtDefer(ref stmt) => stmt.pos,
             Stmt::StmtDo(ref stmt) => stmt.pos,
+            Stmt::StmtValue(_) => panic!("should only be used during parsing"),
         }
     }
 
@@ -820,6 +833,7 @@ impl Stmt {
             Stmt::StmtThrow(ref stmt) => stmt.span,
             Stmt::StmtDefer(ref stmt) => stmt.span,
             Stmt::StmtDo(ref stmt) => stmt.span,
+            Stmt::StmtValue(_) => panic!("should only be used during parsing"),
         }
     }
 
@@ -945,6 +959,13 @@ impl Stmt {
     pub fn is_expr(&self) -> bool {
         match *self {
             Stmt::StmtExpr(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_value(&self) -> bool {
+        match *self {
+            Stmt::StmtValue(_) => true,
             _ => false,
         }
     }
@@ -1076,6 +1097,7 @@ pub struct StmtBlockType {
     pub span: Span,
 
     pub stmts: Vec<Box<Stmt>>,
+    pub expr: Option<Box<Expr>>,
 }
 
 #[derive(Clone, Debug)]
@@ -1294,9 +1316,27 @@ pub enum Expr {
     ExprConv(ExprConvType),
     ExprTry(ExprTryType),
     ExprLambda(ExprLambdaType),
+    ExprBlock(ExprBlockType),
 }
 
 impl Expr {
+    pub fn create_block(
+        id: NodeId,
+        pos: Position,
+        span: Span,
+        stmts: Vec<Box<Stmt>>,
+        expr: Option<Box<Expr>>,
+    ) -> Expr {
+        Expr::ExprBlock(ExprBlockType {
+            id,
+            pos,
+            span,
+
+            stmts,
+            expr,
+        })
+    }
+
     pub fn create_un(id: NodeId, pos: Position, span: Span, op: UnOp, opnd: Box<Expr>) -> Expr {
         Expr::ExprUn(ExprUnType {
             id,
@@ -1866,6 +1906,7 @@ impl Expr {
             Expr::ExprConv(ref val) => val.pos,
             Expr::ExprTry(ref val) => val.pos,
             Expr::ExprLambda(ref val) => val.pos,
+            Expr::ExprBlock(ref val) => val.pos,
         }
     }
 
@@ -1891,6 +1932,7 @@ impl Expr {
             Expr::ExprConv(ref val) => val.span,
             Expr::ExprTry(ref val) => val.span,
             Expr::ExprLambda(ref val) => val.span,
+            Expr::ExprBlock(ref val) => val.span,
         }
     }
 
@@ -1916,6 +1958,7 @@ impl Expr {
             Expr::ExprConv(ref val) => val.id,
             Expr::ExprTry(ref val) => val.id,
             Expr::ExprLambda(ref val) => val.id,
+            Expr::ExprBlock(ref val) => val.id,
         }
     }
 }
@@ -2087,6 +2130,16 @@ pub struct ExprLitBoolType {
     pub span: Span,
 
     pub value: bool,
+}
+
+#[derive(Clone, Debug)]
+pub struct ExprBlockType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub span: Span,
+
+    pub stmts: Vec<Box<Stmt>>,
+    pub expr: Option<Box<Expr>>,
 }
 
 #[derive(Clone, Debug)]

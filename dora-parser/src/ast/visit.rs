@@ -241,6 +241,10 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
             for stmt in &value.stmts {
                 v.visit_stmt(stmt);
             }
+
+            if let Some(ref expr) = value.expr {
+                v.visit_expr(expr);
+            }
         }
 
         StmtReturn(ref value) => {
@@ -272,6 +276,8 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
 
         StmtBreak(_) => {}
         StmtContinue(_) => {}
+
+        StmtValue(_) => unreachable!(),
     }
 }
 
@@ -336,6 +342,16 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
             }
 
             v.visit_stmt(&value.block);
+        }
+
+        ExprBlock(ref value) => {
+            for stmt in &value.stmts {
+                v.visit_stmt(stmt);
+            }
+
+            if let Some(ref expr) = value.expr {
+                v.visit_expr(expr);
+            }
         }
 
         ExprTemplate(ref value) => {

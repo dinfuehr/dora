@@ -200,6 +200,7 @@ impl<'a> BuilderBlock<'a> {
             pos: Position::new(1, 1),
             span: Span::invalid(),
             stmts: self.stmts,
+            expr: None,
         }))
     }
 }

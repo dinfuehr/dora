@@ -1895,3 +1895,11 @@ fn test_enum() {
         SemError::UnknownEnumValue("V3".into()),
     );
 }
+
+#[test]
+fn test_block_value() {
+    ok("fun f() -> Int { 1 }");
+    ok("fun f() { let x = { 1 }; }");
+    ok("fun g() -> Int { return 1; } fun f() { let x: Int = { g() }; }");
+    ok("fun g() -> Int { return 1; } fun f() { let x: Int = { g(); 1 }; }");
+}

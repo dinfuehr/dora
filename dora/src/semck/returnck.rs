@@ -1,7 +1,5 @@
-use crate::error::msg::SemError;
 use crate::vm::{Fct, FctSrc, VM};
 
-use crate::ty::BuiltinType;
 use dora_parser::ast::visit::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
@@ -47,17 +45,7 @@ impl<'a, 'ast> Visitor<'ast> for ReturnCheck<'a, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
         let returns = returns_value(f.block());
 
-        if let Err(pos) = returns {
-            let return_type = self.fct.return_type;
-
-            // only report error for functions that do not just return ()
-            if return_type != BuiltinType::Unit {
-                self.vm
-                    .diag
-                    .lock()
-                    .report(self.fct.file, pos, SemError::NoReturnValue);
-            }
-        } else {
+        if returns.is_ok() {
             // otherwise the function is always finished with a return statement
             // save this information for the function, this information is useful
             // for code generation
@@ -82,6 +70,7 @@ pub fn returns_value(s: &Stmt) -> Result<(), Position> {
         StmtThrow(_) => Ok(()),
         StmtDefer(ref stmt) => Err(stmt.pos),
         StmtDo(ref stmt) => do_returns_value(stmt),
+        StmtValue(_) => unreachable!(),
     }
 }
 
@@ -164,21 +153,25 @@ mod tests {
 
     #[test]
     fn returns_int() {
-        err("fun f() -> Int { }", pos(1, 16), SemError::NoReturnValue);
+        err(
+            "fun f() -> Int { }",
+            pos(1, 16),
+            SemError::ReturnType("Int".into(), "()".into()),
+        );
         err(
             "fun f() -> Int { if true { return 1; } }",
-            pos(1, 18),
-            SemError::NoReturnValue,
+            pos(1, 16),
+            SemError::ReturnType("Int".into(), "()".into()),
         );
         err(
             "fun f() -> Int { if true { } else { return 1; } }",
-            pos(1, 26),
-            SemError::NoReturnValue,
+            pos(1, 16),
+            SemError::ReturnType("Int".into(), "()".into()),
         );
         err(
             "fun f() -> Int { while true { return 1; } }",
-            pos(1, 18),
-            SemError::NoReturnValue,
+            pos(1, 16),
+            SemError::ReturnType("Int".into(), "()".into()),
         );
         ok("fun f() -> Int { loop { return 1; } }");
         ok("fun f() -> Int { if true { return 1; } else { return 2; } }");
@@ -195,13 +188,13 @@ mod tests {
         ok("fun f() -> Int { do { } catch x: String { } finally { return 1; } }");
         err(
             "fun f() -> Int { do { return 1; } catch x: String { } }",
-            pos(1, 51),
-            SemError::NoReturnValue,
+            pos(1, 16),
+            SemError::ReturnType("Int".into(), "()".into()),
         );
         err(
             "fun f() -> Int { do { } catch x: String { return 1; } }",
-            pos(1, 21),
-            SemError::NoReturnValue,
+            pos(1, 16),
+            SemError::ReturnType("Int".into(), "()".into()),
         );
     }
 }

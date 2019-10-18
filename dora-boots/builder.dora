@@ -26,7 +26,7 @@ class Builder {
         return self.create_inst(BinaryInst(op, lhs, rhs));
     }
 
-    fun create_un(op: Int, opnd: Value) -> Inst {
+    fun create_un(op: UnOp, opnd: Value) -> Inst {
         return self.create_inst(UnaryInst(op, opnd));
     }
 

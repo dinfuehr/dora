@@ -103,6 +103,7 @@ where
             ExprTemplate(ref expr) => self.emit_template(expr, dest.reg()),
             ExprTry(ref expr) => self.emit_try(expr, dest),
             ExprLambda(_) => unimplemented!(),
+            ExprBlock(_) => unimplemented!(),
         }
     }
 

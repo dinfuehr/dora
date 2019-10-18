@@ -541,7 +541,7 @@ impl<'a> Parser<'a> {
                 }
 
                 _ => {
-                    let initializer = self.parse_statement()?;
+                    let initializer = self.parse_statement(false)?;
                     cls.initializers.push(initializer);
                 }
             }
@@ -886,7 +886,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_statement(&mut self) -> StmtResult {
+    fn parse_statement(&mut self, accept_value: bool) -> StmtResult {
         match self.token.kind {
             TokenKind::Let | TokenKind::Var => self.parse_var(),
             TokenKind::LBrace => self.parse_block(),
@@ -904,7 +904,7 @@ impl<'a> Parser<'a> {
             TokenKind::Defer => self.parse_defer(),
             TokenKind::Do => self.parse_do(),
             TokenKind::For => self.parse_for(),
-            _ => self.parse_expression_statement(),
+            _ => self.parse_expression_statement(accept_value),
         }
     }
 
@@ -1040,9 +1040,16 @@ impl<'a> Parser<'a> {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::LBrace)?.position;
         let mut stmts = vec![];
+        let mut expr = None;
 
         while !self.token.is(TokenKind::RBrace) && !self.token.is_eof() {
-            let stmt = self.parse_statement()?;
+            let stmt = self.parse_statement(true)?;
+
+            if let Stmt::StmtValue(e) = *stmt {
+                expr = Some(e);
+                break;
+            }
+
             stmts.push(stmt);
         }
 
@@ -1054,6 +1061,36 @@ impl<'a> Parser<'a> {
             pos,
             span,
             stmts,
+            expr,
+        )))
+    }
+
+    fn parse_block_expr(&mut self) -> ExprResult {
+        let start = self.token.span.start();
+        let pos = self.expect_token(TokenKind::LBrace)?.position;
+        let mut stmts = vec![];
+        let mut expr = None;
+
+        while !self.token.is(TokenKind::RBrace) && !self.token.is_eof() {
+            let stmt = self.parse_statement(true)?;
+
+            if let Stmt::StmtValue(e) = *stmt {
+                expr = Some(e);
+                break;
+            }
+
+            stmts.push(stmt);
+        }
+
+        self.expect_token(TokenKind::RBrace)?;
+        let span = self.span_from(start);
+
+        Ok(Box::new(Expr::create_block(
+            self.generate_id(),
+            pos,
+            span,
+            stmts,
+            expr,
         )))
     }
 
@@ -1181,19 +1218,25 @@ impl<'a> Parser<'a> {
         )))
     }
 
-    fn parse_expression_statement(&mut self) -> StmtResult {
+    fn parse_expression_statement(&mut self, accept_value: bool) -> StmtResult {
         let start = self.token.span.start();
         let pos = self.token.position;
         let expr = self.parse_expression()?;
-        self.expect_semicolon()?;
-        let span = self.span_from(start);
 
-        Ok(Box::new(Stmt::create_expr(
-            self.generate_id(),
-            pos,
-            span,
-            expr,
-        )))
+        if !accept_value || self.token.is(TokenKind::Semicolon) {
+            self.expect_semicolon()?;
+
+            let span = self.span_from(start);
+
+            Ok(Box::new(Stmt::create_expr(
+                self.generate_id(),
+                pos,
+                span,
+                expr,
+            )))
+        } else {
+            Ok(Box::new(Stmt::create_value(expr)))
+        }
     }
 
     fn parse_expression(&mut self) -> ExprResult {
@@ -1411,6 +1454,7 @@ impl<'a> Parser<'a> {
     fn parse_factor(&mut self) -> ExprResult {
         match self.token.kind {
             TokenKind::LParen => self.parse_parentheses(),
+            TokenKind::LBrace => self.parse_block_expr(),
             TokenKind::LitChar(_) => self.parse_lit_char(),
             TokenKind::LitInt(_, _, _) => self.parse_lit_int(),
             TokenKind::LitFloat(_, _) => self.parse_lit_float(),
@@ -1912,7 +1956,7 @@ mod tests {
         let mut parser = Parser::new(reader, &id_generator, &mut ast, &mut interner);
         assert!(parser.init().is_ok(), true);
 
-        parser.parse_statement().unwrap()
+        parser.parse_statement(false).unwrap()
     }
 
     fn err_stmt(code: &'static str, msg: ParseError, line: u32, col: u32) {
@@ -1924,7 +1968,7 @@ mod tests {
             let mut parser = Parser::new(reader, &id_generator, &mut ast, &mut interner);
 
             assert!(parser.init().is_ok(), true);
-            parser.parse_statement().unwrap_err()
+            parser.parse_statement(false).unwrap_err()
         };
 
         assert_eq!(msg, err.error);

@@ -312,6 +312,7 @@ impl<'a> AstDumper<'a> {
             StmtDefer(ref stmt) => self.dump_stmt_defer(stmt),
             StmtDo(ref stmt) => self.dump_stmt_do(stmt),
             StmtFor(ref stmt) => self.dump_stmt_for(stmt),
+            StmtValue(_) => unreachable!(),
         }
     }
 
@@ -426,6 +427,11 @@ impl<'a> AstDumper<'a> {
                     d.dump_stmt(stmt);
                 }
             }
+
+            if let Some(ref expr) = block.expr {
+                dump!(d, "value");
+                d.dump_expr(expr);
+            }
         });
 
         dump!(self, "block end");
@@ -501,7 +507,35 @@ impl<'a> AstDumper<'a> {
             ExprConv(ref expr) => self.dump_expr_conv(expr),
             ExprTry(ref expr) => self.dump_expr_try(expr),
             ExprLambda(ref expr) => self.dump_expr_lambda(expr),
+            ExprBlock(ref expr) => self.dump_expr_block(expr),
         }
+    }
+
+    fn dump_expr_block(&mut self, block: &ExprBlockType) {
+        dump!(
+            self,
+            "block ({} statement(s)) @ {} {}",
+            block.stmts.len(),
+            block.pos,
+            block.id
+        );
+
+        self.indent(|d| {
+            if block.stmts.is_empty() {
+                dump!(d, "no statements");
+            } else {
+                for stmt in &block.stmts {
+                    d.dump_stmt(stmt);
+                }
+            }
+
+            if let Some(ref expr) = block.expr {
+                dump!(d, "value");
+                d.dump_expr(expr);
+            }
+        });
+
+        dump!(self, "block end");
     }
 
     fn dump_expr_conv(&mut self, expr: &ExprConvType) {
