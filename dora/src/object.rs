@@ -493,7 +493,7 @@ impl Str {
         let total_len = val.len();
 
         if offset > total_len {
-            return Ref::null();
+            return str_alloc_heap(vm, 0);
         }
 
         let len = std::cmp::min(total_len - offset, len);
@@ -517,7 +517,7 @@ impl Str {
 
             handle
         } else {
-            Ref::null()
+            return str_alloc_heap(vm, 0);
         }
     }
 

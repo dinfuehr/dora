@@ -1,8 +1,0 @@
-//= error nil
-
-fun main() {
-    let root: Foo = nil;
-    println(root.value.toString());
-}
-
-class Foo(let value: Int)

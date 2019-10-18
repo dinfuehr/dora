@@ -54,7 +54,6 @@ pub enum SemError {
     SuperUnavailable,
     SuperNeedsMethodCall,
     ReferenceTypeExpected(String),
-    ThrowNil,
     CatchOrFinallyExpected,
     LetMissingInitialization,
     LetReassigned,
@@ -277,7 +276,6 @@ impl SemError {
             SemError::ReferenceTypeExpected(ref name) => {
                 format!("`{}` is not a reference type.", name)
             }
-            SemError::ThrowNil => "throwing `nil` is not allowed.".into(),
             SemError::CatchOrFinallyExpected => "`try` without `catch` or `finally`.".into(),
             SemError::LetMissingInitialization => "`let` binding is missing initialization.".into(),
             SemError::LetReassigned => "`let` binding cannot be reassigned.".into(),

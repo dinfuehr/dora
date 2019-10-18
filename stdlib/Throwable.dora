@@ -1,15 +1,15 @@
 @open @abstract class Throwable(let msg: String) {
-  var backtrace: Array[Int] = nil;
-  var elements: Array[StackTraceElement] = nil;
+  var backtrace: Array[Int] = arrayEmpty[Int]();
+  var elements: Array[StackTraceElement] = arrayEmpty[StackTraceElement]();
 
   self.retrieveStackTrace();
 
   fun getStackTrace() -> Array[StackTraceElement] {
-    if self.elements !== nil {
+    if self.elements.length() != 0 {
       return self.elements;
     }
 
-    if self.backtrace === nil {
+    if self.backtrace.length() != 0 {
       self.elements = arrayEmpty[StackTraceElement]();
       return self.elements;
     }

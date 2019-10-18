@@ -589,7 +589,6 @@ where
             ExprDot(ref expr) => self.emit_dot(expr, dest),
             ExprSelf(_) => self.emit_self(dest),
             ExprSuper(_) => self.emit_self(dest),
-            ExprNil(_) => self.emit_nil(dest.reg()),
             ExprConv(ref expr) => self.emit_conv(expr, dest.reg()),
             ExprTemplate(ref expr) => self.emit_template(expr, dest.reg()),
             ExprTry(ref expr) => self.emit_try(expr, dest),

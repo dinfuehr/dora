@@ -235,7 +235,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             // ExprDelegation(ref call) => {},
             ExprSelf(ref selfie) => self.visit_expr_self(selfie, dest),
             // ExprSuper(ref expr) => {},
-            ExprNil(ref nil) => self.visit_expr_nil(nil, dest),
             // ExprConv(ref expr) => {},
             // ExprTry(ref expr) => {},
             // ExprLambda(ref expr) => {},
@@ -491,18 +490,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         } else {
             return_reg
         }
-    }
-
-    fn visit_expr_nil(&mut self, _nil: &ExprNilType, dest: DataDest) -> Register {
-        if dest.is_effect() {
-            return Register::invalid();
-        }
-
-        let dest = self.ensure_register(dest, BytecodeType::Ptr);
-
-        self.gen.emit_const_nil(dest);
-
-        dest
     }
 
     fn visit_expr_self(&mut self, _selfie: &ExprSelfType, dest: DataDest) -> Register {
@@ -1327,13 +1314,6 @@ mod tests {
             Jump(bc(0)),
             RetVoid,
         ];
-        assert_eq!(expected, fct.code());
-    }
-
-    #[test]
-    fn gen_expr_nil() {
-        let fct = code("fun f() -> Object { return nil; }");
-        let expected = vec![ConstNil(r(0)), RetPtr(r(0))];
         assert_eq!(expected, fct.code());
     }
 

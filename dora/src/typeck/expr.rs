@@ -242,12 +242,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.visit_expr(&s.expr);
         let ty = self.expr_type;
 
-        if ty.is_nil() {
-            self.vm
-                .diag
-                .lock()
-                .report(self.file, s.pos, SemError::ThrowNil);
-        } else if !ty.reference_type() {
+        if !ty.reference_type() {
             let tyname = ty.name(self.vm);
             self.vm
                 .diag
@@ -1880,11 +1875,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.expr_type = BuiltinType::Unit;
     }
 
-    fn check_expr_nil(&mut self, e: &'ast ExprNilType) {
-        self.src.set_ty(e.id, BuiltinType::Nil);
-        self.expr_type = BuiltinType::Nil;
-    }
-
     fn check_expr_try(&mut self, e: &'ast ExprTryType) {
         let expr_type;
 
@@ -2103,7 +2093,6 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprDot(ref expr) => self.check_expr_dot(expr),
             ExprSelf(ref expr) => self.check_expr_this(expr),
             ExprSuper(ref expr) => self.check_expr_super(expr),
-            ExprNil(ref expr) => self.check_expr_nil(expr),
             ExprConv(ref expr) => self.check_expr_conv(expr),
             ExprTry(ref expr) => self.check_expr_try(expr),
             ExprLambda(ref expr) => self.check_expr_lambda(expr),

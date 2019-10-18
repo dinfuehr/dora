@@ -1,5 +1,5 @@
 class Vec[T] {
-  var array: Array[T] = nil;
+  var array: Array[T] = arrayEmpty[T]();
   var length: Int = 0;
 
   fun get(idx: Int) -> T {
@@ -57,7 +57,7 @@ class Vec[T] {
   fun trimToLen() {
     if self.length != self.capacity() {
       if self.length == 0 {
-        self.array = nil;
+        self.array = arrayEmpty[T]();
       } else {
         let newarray = Array[T](self.length);
         arrayCopy[T](self.array, 0, newarray, 0, self.length);
@@ -91,11 +91,7 @@ class Vec[T] {
   }
 
   fun capacity() -> Int {
-    if self.array === nil {
-      return 0;
-    } else {
-      return self.array.length();
-    }
+    return self.array.length();
   }
 
   fun first() -> T {

@@ -1208,7 +1208,6 @@ pub enum Expr {
     ExprDot(ExprDotType),
     ExprSelf(ExprSelfType),
     ExprSuper(ExprSuperType),
-    ExprNil(ExprNilType),
     ExprConv(ExprConvType),
     ExprTry(ExprTryType),
     ExprLambda(ExprLambdaType),
@@ -1401,10 +1400,6 @@ impl Expr {
 
     pub fn create_super(id: NodeId, pos: Position, span: Span) -> Expr {
         Expr::ExprSuper(ExprSuperType { id, pos, span })
-    }
-
-    pub fn create_nil(id: NodeId, pos: Position, span: Span) -> Expr {
-        Expr::ExprNil(ExprNilType { id, pos, span })
     }
 
     pub fn create_ident(
@@ -1754,13 +1749,6 @@ impl Expr {
         }
     }
 
-    pub fn is_nil(&self) -> bool {
-        match *self {
-            Expr::ExprNil(_) => true,
-            _ => false,
-        }
-    }
-
     pub fn to_conv(&self) -> Option<&ExprConvType> {
         match *self {
             Expr::ExprConv(ref val) => Some(val),
@@ -1871,7 +1859,6 @@ impl Expr {
             Expr::ExprDot(ref val) => val.pos,
             Expr::ExprSelf(ref val) => val.pos,
             Expr::ExprSuper(ref val) => val.pos,
-            Expr::ExprNil(ref val) => val.pos,
             Expr::ExprConv(ref val) => val.pos,
             Expr::ExprTry(ref val) => val.pos,
             Expr::ExprLambda(ref val) => val.pos,
@@ -1899,7 +1886,6 @@ impl Expr {
             Expr::ExprDot(ref val) => val.span,
             Expr::ExprSelf(ref val) => val.span,
             Expr::ExprSuper(ref val) => val.span,
-            Expr::ExprNil(ref val) => val.span,
             Expr::ExprConv(ref val) => val.span,
             Expr::ExprTry(ref val) => val.span,
             Expr::ExprLambda(ref val) => val.span,
@@ -1927,7 +1913,6 @@ impl Expr {
             Expr::ExprDot(ref val) => val.id,
             Expr::ExprSelf(ref val) => val.id,
             Expr::ExprSuper(ref val) => val.id,
-            Expr::ExprNil(ref val) => val.id,
             Expr::ExprConv(ref val) => val.id,
             Expr::ExprTry(ref val) => val.id,
             Expr::ExprLambda(ref val) => val.id,
@@ -2123,13 +2108,6 @@ pub struct ExprSuperType {
 
 #[derive(Clone, Debug)]
 pub struct ExprSelfType {
-    pub id: NodeId,
-    pub pos: Position,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug)]
-pub struct ExprNilType {
     pub id: NodeId,
     pub pos: Position,
     pub span: Span,

@@ -1,9 +1,9 @@
 class HashMap[K: Hash + Equals, V] {
     // BitSet.size == capacity * 2
     // [bit 0: inserted; bit 1: deleted] * capacity
-    var inserted_and_deleted: BitSet = nil;
-    var keys: Array[K] = nil;
-    var values: Array[V] = nil;
+    var inserted_and_deleted: BitSet = BitSet(0);
+    var keys: Array[K] = arrayEmpty[K]();
+    var values: Array[V] = arrayEmpty[V]();
     var size: Int = 0;
     var capacity: Int = 0;
 

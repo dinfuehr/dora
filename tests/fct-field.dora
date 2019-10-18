@@ -1,9 +1,5 @@
-//= error nil
-//= output file
-
 fun main() {
   f(Foo(1));
-  f(nil);
 }
 
 fun f(x: Foo) {
