@@ -154,8 +154,8 @@ impl<'a> Parser<'a> {
         let pos = self.expect_token(TokenKind::Enum)?.position;
         let name = self.expect_identifier()?;
 
-        self.expect_token(TokenKind::LParen)?;
-        let values = self.parse_comma_list(TokenKind::RParen, |p| p.parse_identifier())?;
+        self.expect_token(TokenKind::LBrace)?;
+        let values = self.parse_comma_list(TokenKind::RBrace, |p| p.parse_identifier())?;
         let span = self.span_from(start);
 
         Ok(Enum {

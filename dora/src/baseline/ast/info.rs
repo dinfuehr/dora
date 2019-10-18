@@ -349,7 +349,13 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn get_intrinsic(&self, id: NodeId) -> Option<Intrinsic> {
-        let fid = self.src.map_calls.get(id).unwrap().fct_id();
+        let call_type = self.src.map_calls.get(id).unwrap();
+
+        if let Some(intrinsic) = call_type.to_intrinsic() {
+            return Some(intrinsic);
+        }
+
+        let fid = call_type.fct_id().unwrap();
 
         // the function we compile right now is never an intrinsic
         if self.fct.id == fid {
@@ -467,6 +473,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             }
 
             CallType::Trait(_, _) => unimplemented!(),
+            CallType::Intrinsic(_) => unreachable!(),
         }
 
         let fct = self.vm.fcts.idx(fct_id);
@@ -560,7 +567,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let callee_id = if let Some(callee_id) = callee_id {
             callee_id
         } else {
-            call_type.fct_id()
+            call_type.fct_id().unwrap()
         };
 
         let csite = self.build_call_site(&*call_type, callee_id, args);
@@ -671,6 +678,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 cls_type_params = TypeList::empty();
                 fct_type_params = TypeList::empty();
             }
+
+            CallType::Intrinsic(_) => unreachable!(),
         }
 
         (cls_type_params, fct_type_params)
@@ -795,7 +804,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 Arg::Expr(&expr.lhs, lhs_ty, 0),
                 Arg::Expr(&expr.rhs, rhs_ty, 0),
             ];
-            let fid = self.src.map_calls.get(expr.id).unwrap().fct_id();
+            let fid = self.src.map_calls.get(expr.id).unwrap().fct_id().unwrap();
 
             self.universal_call(expr.id, args, Some(fid));
         }
@@ -949,6 +958,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             }
 
             CallType::Trait(_, _) => unimplemented!(),
+
+            CallType::Intrinsic(_) => unimplemented!(),
 
             CallType::TraitStatic(_, _, _) => {
                 assert_ne!(ty, BuiltinType::This);

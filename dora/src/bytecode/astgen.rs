@@ -338,7 +338,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
 
         let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
-        let fct_id = call_type.fct_id();
+        let fct_id = call_type.fct_id().unwrap();
 
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
@@ -446,6 +446,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
             CallType::Trait(_, _) => unimplemented!(),
             CallType::TraitStatic(_, _, _) => unimplemented!(),
+            CallType::Intrinsic(_) => unreachable!(),
         }
 
         if call_type.is_ctor_new() {
@@ -807,6 +808,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 &IdentType::Field(_, _) => unimplemented!(),
 
                 &IdentType::Struct(_) => unimplemented!(),
+                &IdentType::Enum(_) | &IdentType::EnumValue(_, _) => unreachable!(),
                 &IdentType::Const(_) => unreachable!(),
                 &IdentType::Fct(_) | &IdentType::FctType(_, _) => unreachable!(),
                 &IdentType::Class(_) | &IdentType::ClassType(_, _) => unimplemented!(),
@@ -888,6 +890,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             &IdentType::Struct(_) => unimplemented!(),
             &IdentType::Const(_) => unimplemented!(),
 
+            &IdentType::Enum(_) | &IdentType::EnumValue(_, _) => unreachable!(),
             &IdentType::Fct(_) | &IdentType::FctType(_, _) => unreachable!(),
             &IdentType::Class(_) | &IdentType::ClassType(_, _) => unreachable!(),
             &IdentType::TypeParam(_) | &IdentType::TypeParamStaticMethod(_, _) => unreachable!(),
@@ -937,6 +940,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             }
 
             CallType::Trait(_, _) | CallType::TraitStatic(_, _, _) => unimplemented!(),
+            CallType::Intrinsic(_) => unreachable!(),
         };
 
         self.specialize_type(ty)
@@ -947,7 +951,13 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn get_intrinsic(&self, id: NodeId) -> Option<Intrinsic> {
-        let fid = self.src.map_calls.get(id).unwrap().fct_id();
+        let call_type = self.src.map_calls.get(id).unwrap();
+
+        if let Some(intrinsic) = call_type.to_intrinsic() {
+            return Some(intrinsic);
+        }
+
+        let fid = call_type.fct_id().unwrap();
 
         // the function we compile right now is never an intrinsic
         if self.fct.id == fid {

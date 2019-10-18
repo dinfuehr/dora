@@ -8,7 +8,8 @@ use crate::sym::Sym::SymClass;
 use crate::ty::{BuiltinType, TypeList, TypeParamId};
 use crate::typeck::lookup::MethodLookup;
 use crate::vm::{
-    self, CallType, ConvInfo, Fct, FctId, FctParent, FctSrc, FileId, ForTypeInfo, IdentType, VM,
+    self, CallType, ConvInfo, Fct, FctId, FctParent, FctSrc, FileId, ForTypeInfo, IdentType,
+    Intrinsic, VM,
 };
 
 use dora_parser::ast::visit::Visitor;
@@ -362,6 +363,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.expr_type = BuiltinType::Error;
             }
 
+            &IdentType::Enum(_) => {
+                let msg = SemError::EnumUsedAsIdentifier;
+                self.vm.diag.lock().report(self.file, e.pos, msg);
+                self.src.set_ty(e.id, BuiltinType::Error);
+                self.expr_type = BuiltinType::Error;
+            }
+
+            &IdentType::EnumValue(_, _) => unreachable!(),
             &IdentType::FctType(_, _) | &IdentType::ClassType(_, _) => unreachable!(),
             &IdentType::TypeParamStaticMethod(_, _) => unreachable!(),
             &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
@@ -452,6 +461,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                             .diag
                             .lock()
                             .report(self.file, e.pos, SemError::TypeParamReassigned);
+
+                        return;
+                    }
+
+                    &IdentType::Enum(_) | &IdentType::EnumValue(_, _) => {
+                        self.vm.diag.lock().report(
+                            self.file,
+                            e.pos,
+                            SemError::InvalidLhsAssignment,
+                        );
 
                         return;
                     }
@@ -804,7 +823,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             CmpOp::Eq | CmpOp::Ne => {
-                self.check_expr_bin_method(e, e.op, "equals", lhs_type, rhs_type)
+                if lhs_type.is_enum() {
+                    self.check_expr_cmp_enum(e, cmp, lhs_type, rhs_type)
+                } else {
+                    self.check_expr_bin_method(e, e.op, "equals", lhs_type, rhs_type)
+                }
             }
 
             _ => self.check_expr_bin_method(e, e.op, "compareTo", lhs_type, rhs_type),
@@ -812,6 +835,38 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         self.src.set_ty(e.id, BuiltinType::Bool);
         self.expr_type = BuiltinType::Bool;
+    }
+
+    fn check_expr_cmp_enum(
+        &mut self,
+        e: &'ast ExprBinType,
+        op: CmpOp,
+        lhs_type: BuiltinType,
+        rhs_type: BuiltinType,
+    ) {
+        if lhs_type.allows(self.vm, rhs_type) {
+            let intrinsic = match op {
+                CmpOp::Eq => Intrinsic::EnumEq,
+                CmpOp::Ne => Intrinsic::EnumNe,
+                _ => unreachable!(),
+            };
+            let call_type = CallType::Intrinsic(intrinsic);
+            self.src
+                .map_calls
+                .insert_or_replace(e.id, Arc::new(call_type));
+
+            self.src.set_ty(e.id, BuiltinType::Bool);
+            self.expr_type = BuiltinType::Bool;
+        } else {
+            let lhs_type = lhs_type.name(self.vm);
+            let rhs_type = rhs_type.name(self.vm);
+            let msg = SemError::BinOpType("equals".into(), lhs_type, rhs_type);
+
+            self.vm.diag.lock().report(self.file, e.pos, msg);
+
+            self.src.set_ty(e.id, BuiltinType::Error);
+            self.expr_type = BuiltinType::Error;
+        }
     }
 
     fn check_type(
@@ -912,6 +967,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             Some(IdentType::TypeParam(_)) => {
+                self.src.set_ty(e.id, BuiltinType::Error);
+                self.expr_type = BuiltinType::Error;
+            }
+
+            Some(IdentType::Enum(_)) => {
                 self.src.set_ty(e.id, BuiltinType::Error);
                 self.expr_type = BuiltinType::Error;
             }
@@ -1513,9 +1573,32 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             Some(&IdentType::TypeParam(ty)) => IdentType::TypeParamStaticMethod(ty, name),
 
+            Some(&IdentType::Enum(id)) => {
+                let xenum = self.vm.enums[id].read();
+
+                if let Some(&value) = xenum.name_to_value.get(&name) {
+                    self.src
+                        .map_idents
+                        .insert(e.id, IdentType::EnumValue(id, value));
+                } else {
+                    let name = self.vm.interner.str(name).to_string();
+                    self.vm
+                        .diag
+                        .lock()
+                        .report(self.file, e.pos, SemError::UnknownEnumValue(name));
+                }
+
+                self.src.set_ty(e.id, BuiltinType::Enum(id));
+                self.expr_type = BuiltinType::Enum(id);
+                return;
+            }
+
             _ => {
                 let msg = SemError::InvalidLeftSideOfSeparator;
                 self.vm.diag.lock().report(self.file, e.lhs.pos(), msg);
+
+                self.src.set_ty(e.id, BuiltinType::Error);
+                self.expr_type = BuiltinType::Error;
                 return;
             }
         };
@@ -1698,7 +1781,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.src.set_ty(e.id, expr_type);
 
         if let Some(call_type) = self.src.map_calls.get(e.expr.id()) {
-            let fct_id = call_type.fct_id();
+            let fct_id = call_type.fct_id().unwrap();
             let fct = self.vm.fcts.idx(fct_id);
             let fct = fct.read();
             let throws = fct.throws;
@@ -1963,7 +2046,8 @@ fn arg_allows(
         | BuiltinType::Int
         | BuiltinType::Long
         | BuiltinType::Float
-        | BuiltinType::Double => def == arg,
+        | BuiltinType::Double
+        | BuiltinType::Enum(_) => def == arg,
         BuiltinType::Nil => panic!("nil should not occur in fct definition."),
         BuiltinType::Ptr => panic!("ptr should not occur in fct definition."),
         BuiltinType::This => {

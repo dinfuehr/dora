@@ -33,7 +33,7 @@ class LongConst(let value: Long): Value
 class PrologInst: Inst
 class EpilogInst: Inst
 class UnaryInst(let op: Int, let opnd: Value): Inst
-class BinaryInst(let op: Int, let lhs: Value, let rhs: Value): Inst
+class BinaryInst(let op: BinOp, let lhs: Value, let rhs: Value): Inst
 class ArgInst(let idx: Int): Inst
 
 class PhiInst(let inputs: Vec[PhiArg]): Inst
@@ -46,36 +46,27 @@ class ReturnVoidInst: Terminator
 class CondInst(let cond: Value, let true_succ: Block, let false_succ: Block): Terminator
 class GotoInst(let succ: Block): Terminator
 
-const TYPE_UNIT: Int = 0;
-const TYPE_INT: Int = 1;
-const TYPE_LONG: Int = 2;
-const TYPE_FLOAT: Int = 3;
-const TYPE_DOUBLE: Int = 4;
-const TYPE_PTR: Int = 5;
+class Type(let kind: TypeKind) {
+    @static fun unit() -> Type { return Type(TypeKind::Unit); }
+    @static fun int() -> Type { return Type(TypeKind::Int); }
+    @static fun long() -> Type { return Type(TypeKind::Long); }
+    @static fun float() -> Type { return Type(TypeKind::Float); }
+    @static fun double() -> Type { return Type(TypeKind::Double); }
+    @static fun ptr() -> Type { return Type(TypeKind::Ptr); }
 
-class Type(let kind: Int) {
-    @static fun unit() -> Type { return Type(TYPE_UNIT); }
-    @static fun int() -> Type { return Type(TYPE_INT); }
-    @static fun long() -> Type { return Type(TYPE_LONG); }
-    @static fun float() -> Type { return Type(TYPE_FLOAT); }
-    @static fun double() -> Type { return Type(TYPE_DOUBLE); }
-    @static fun ptr() -> Type { return Type(TYPE_PTR); }
-
-    fun is_unit() -> Bool { return self.kind == TYPE_UNIT; }
-    fun is_int() -> Bool { return self.kind == TYPE_INT; }
-    fun is_long() -> Bool { return self.kind == TYPE_LONG; }
-    fun is_float() -> Bool { return self.kind == TYPE_FLOAT; }
-    fun is_double() -> Bool { return self.kind == TYPE_DOUBLE; }
-    fun is_ptr() -> Bool { return self.kind == TYPE_PTR; }
+    fun is_unit() -> Bool { return self.kind == TypeKind::Unit; }
+    fun is_int() -> Bool { return self.kind == TypeKind::Int; }
+    fun is_long() -> Bool { return self.kind == TypeKind::Long; }
+    fun is_float() -> Bool { return self.kind == TypeKind::Float; }
+    fun is_double() -> Bool { return self.kind == TypeKind::Double; }
+    fun is_ptr() -> Bool { return self.kind == TypeKind::Ptr; }
 }
 
-const BIN_ADD: Int = 0;
-const BIN_SUB: Int = 1;
-const BIN_MUL: Int = 2;
-const BIN_DIV: Int = 3;
-const BIN_MOD: Int = 4;
+enum TypeKind {
+    Unit, Int, Long, Float, Double, Ptr
+}
 
-const BIN_FADD: Int = 5;
-const BIN_FSUB: Int = 6;
-const BIN_FMUL: Int = 7;
-const BIN_FDIV: Int = 8;
+enum BinOp {
+    Add, Sub, Mul, Div, Mod,
+    FAdd, FSub, FMul, FDiv,
+}

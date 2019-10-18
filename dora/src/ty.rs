@@ -6,7 +6,7 @@ use crate::class::ClassId;
 use crate::mem;
 use crate::semck;
 use crate::vm::VM;
-use crate::vm::{FctId, StructId, TraitId};
+use crate::vm::{EnumId, FctId, StructId, TraitId};
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum BuiltinType {
@@ -51,12 +51,22 @@ pub enum BuiltinType {
 
     // some lambda
     Lambda(LambdaId),
+
+    // some enum
+    Enum(EnumId),
 }
 
 impl BuiltinType {
     pub fn is_error(&self) -> bool {
         match *self {
             BuiltinType::Error => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_enum(&self) -> bool {
+        match *self {
+            BuiltinType::Enum(_) => true,
             _ => false,
         }
     }
@@ -249,6 +259,10 @@ impl BuiltinType {
                 let xtrait = vm.traits[tid].read();
                 vm.interner.str(xtrait.name).to_string()
             }
+            BuiltinType::Enum(id) => {
+                let xenum = vm.enums[id].read();
+                vm.interner.str(xenum.name).to_string()
+            }
             BuiltinType::ClassTypeParam(cid, id) => {
                 let cls = vm.classes.idx(cid);
                 let cls = cls.read();
@@ -297,6 +311,7 @@ impl BuiltinType {
                 *self == other || other.is_nil() || other.subclass_from(vm, *self)
             }
             BuiltinType::Trait(_) => unimplemented!(),
+            BuiltinType::Enum(_) => *self == other,
 
             BuiltinType::ClassTypeParam(_, _) => *self == other,
             BuiltinType::FctTypeParam(_, _) => *self == other,
@@ -329,6 +344,7 @@ impl BuiltinType {
             BuiltinType::Long => 8,
             BuiltinType::Float => 4,
             BuiltinType::Double => 8,
+            BuiltinType::Enum(_) => 4,
             BuiltinType::Nil => panic!("no size for nil."),
             BuiltinType::This => panic!("no size for Self."),
             BuiltinType::Class(_, _) | BuiltinType::Lambda(_) | BuiltinType::Ptr => {
@@ -362,6 +378,7 @@ impl BuiltinType {
             BuiltinType::Double => 8,
             BuiltinType::Nil => panic!("no alignment for nil."),
             BuiltinType::This => panic!("no alignment for Self."),
+            BuiltinType::Enum(_) => 4,
             BuiltinType::Class(_, _) | BuiltinType::Lambda(_) | BuiltinType::Ptr => {
                 mem::ptr_width()
             }
@@ -391,6 +408,7 @@ impl BuiltinType {
             BuiltinType::Long => MachineMode::Int64,
             BuiltinType::Float => MachineMode::Float32,
             BuiltinType::Double => MachineMode::Float64,
+            BuiltinType::Enum(_) => MachineMode::Int32,
             BuiltinType::Nil => panic!("no machine mode for nil."),
             BuiltinType::This => panic!("no machine mode for Self."),
             BuiltinType::Class(_, _) | BuiltinType::Lambda(_) | BuiltinType::Ptr => {

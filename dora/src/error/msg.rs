@@ -11,6 +11,7 @@ pub enum SemError {
     UnknownFunction(String),
     UnknownField(String, String),
     UnknownMethod(String, String, Vec<String>),
+    UnknownEnumValue(String),
     MultipleCandidatesForMethod(String, String, Vec<String>),
     UnknownMethodForTypeParam(String, String, Vec<String>),
     MultipleCandidatesForTypeParam(String, String, Vec<String>),
@@ -29,6 +30,10 @@ pub enum SemError {
     ShadowField(String),
     ShadowGlobal(String),
     ShadowConst(String),
+    ShadowEnum(String),
+    ShadowEnumValue(String),
+    InvalidLhsAssignment,
+    NoEnumValue,
     VarNeedsTypeInfo(String),
     ParamTypesIncompatible(String, Vec<String>, Vec<String>),
     WhileCondType(String),
@@ -59,6 +64,7 @@ pub enum SemError {
     FctUsedAsIdentifier,
     ClsUsedAsIdentifier,
     TypeParamUsedAsIdentifier,
+    EnumUsedAsIdentifier,
     TypeParamUsedAsCallee,
     UnderivableType(String),
     CycleInHierarchy,
@@ -147,6 +153,9 @@ impl SemError {
                     name, args, cls
                 )
             }
+            SemError::UnknownEnumValue(ref name) => {
+                format!("no value with name `{}` in enumeration.", name)
+            }
             SemError::MultipleCandidatesForMethod(ref cls, ref name, ref args) => {
                 let args = args.join(", ");
                 format!(
@@ -206,7 +215,10 @@ impl SemError {
             SemError::ShadowGlobal(ref name) => {
                 format!("can not shadow global variable `{}`.", name)
             }
-            SemError::ShadowConst(ref name) => format!("can not shadow const `{}`", name),
+            SemError::ShadowConst(ref name) => format!("can not shadow const `{}`.", name),
+            SemError::ShadowEnum(ref name) => format!("can not shadow enum `{}`.", name),
+            SemError::ShadowEnumValue(ref name) => format!("can not shadow enum value `{}`.", name),
+            SemError::NoEnumValue => "enum needs at least one value.".into(),
             SemError::VarNeedsTypeInfo(ref name) => format!(
                 "variable `{}` needs either type declaration or expression.",
                 name
@@ -273,6 +285,8 @@ impl SemError {
             SemError::TypeParamUsedAsIdentifier => {
                 "type param cannot be used as identifier.".into()
             }
+            SemError::EnumUsedAsIdentifier => "enum cannot be used as identifier.".into(),
+            SemError::InvalidLhsAssignment => "invalid left-hand-side of assignment.".into(),
             SemError::TypeParamUsedAsCallee => "type param cannot be used as callee.".into(),
             SemError::UnderivableType(ref name) => {
                 format!("type `{}` cannot be used as super class.", name)

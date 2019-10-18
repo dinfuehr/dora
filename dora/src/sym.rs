@@ -67,6 +67,10 @@ impl SymTable {
         self.get(name).and_then(|n| n.to_global())
     }
 
+    pub fn get_enum(&self, name: Name) -> Option<EnumId> {
+        self.get(name).and_then(|n| n.to_enum())
+    }
+
     pub fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
         self.levels.last_mut().unwrap().insert(name, sym)
     }
@@ -106,6 +110,7 @@ pub enum Sym {
     SymClassTypeParam(ClassId, TypeListId),
     SymFctTypeParam(FctId, TypeListId),
     SymConst(ConstId),
+    SymEnum(EnumId),
 }
 
 impl Sym {
@@ -211,6 +216,20 @@ impl Sym {
     pub fn to_const(&self) -> Option<ConstId> {
         match *self {
             SymConst(id) => Some(id),
+            _ => None,
+        }
+    }
+
+    pub fn is_enum(&self) -> bool {
+        match *self {
+            SymEnum(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_enum(&self) -> Option<EnumId> {
+        match *self {
+            SymEnum(id) => Some(id),
             _ => None,
         }
     }

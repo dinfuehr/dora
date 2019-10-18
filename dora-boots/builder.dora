@@ -22,7 +22,7 @@ class Builder {
         return self.create_inst(CondInst(cond, true_succ, false_succ));
     }
 
-    fun create_bin(op: Int, lhs: Value, rhs: Value) -> Inst {
+    fun create_bin(op: BinOp, lhs: Value, rhs: Value) -> Inst {
         return self.create_inst(BinaryInst(op, lhs, rhs));
     }
 

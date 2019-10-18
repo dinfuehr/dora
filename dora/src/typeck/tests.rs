@@ -1867,3 +1867,31 @@ fn test_subtyping() {
     fun bar(t: Test) { t.foo(B()); }
     ");
 }
+
+#[test]
+fn test_enum() {
+    ok("enum A { V1, V2 }");
+    ok("enum A { V1, V2 } fun f(a: A) -> A { return a; }");
+    ok("enum A { V1, V2 } fun f() -> A { return A::V1; }");
+
+    ok("enum A { V1, V2 } fun f() -> Bool { return A::V1 == A::V2; }");
+    ok("enum A { V1, V2 } fun f() -> Bool { return A::V1 != A::V2; }");
+
+    err(
+        "enum A { V1 } fun f() -> A { return A; }",
+        pos(1, 37),
+        SemError::EnumUsedAsIdentifier,
+    );
+
+    err(
+        "enum A { V1 } fun f() { A = 1; }",
+        pos(1, 27),
+        SemError::InvalidLhsAssignment,
+    );
+
+    err(
+        "enum A { V1, V2 } fun f() -> A { return A::V3; }",
+        pos(1, 42),
+        SemError::UnknownEnumValue("V3".into()),
+    );
+}

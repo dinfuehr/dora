@@ -295,6 +295,10 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                     .insert(ident.id, IdentType::TypeParam(ty));
             }
 
+            Some(SymEnum(id)) => {
+                self.src.map_idents.insert(ident.id, IdentType::Enum(id));
+            }
+
             _ => {
                 let name = self.vm.interner.str(ident.name).to_string();
                 report(

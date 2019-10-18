@@ -1,6 +1,6 @@
 use crate::error::msg::SemError;
 use crate::mem;
-use crate::sym::Sym::{SymClass, SymClassTypeParam, SymFctTypeParam, SymStruct, SymTrait};
+use crate::sym::Sym::{SymClass, SymClassTypeParam, SymEnum, SymFctTypeParam, SymStruct, SymTrait};
 use crate::ty::{BuiltinType, TypeList};
 use crate::typeck;
 use crate::vm::{FileId, NodeMap, VM};
@@ -10,6 +10,7 @@ use dora_parser::ast::{Stmt, Type};
 mod abstractck;
 mod clsdefck;
 mod constdefck;
+mod enumck;
 mod fctdefck;
 mod flowck;
 mod globaldef;
@@ -39,6 +40,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
     let mut map_impl_defs = NodeMap::new(); // get ImplId from ast node
     let mut map_global_defs = NodeMap::new(); // get GlobalId from ast node
     let mut map_const_defs = NodeMap::new(); // get ConstId from ast node
+    let mut map_enum_defs = NodeMap::new(); // get EnumId from ast node
 
     // add user defined fcts and classes to vm
     // this check does not look into fct or class bodies
@@ -50,6 +52,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
         &mut map_impl_defs,
         &mut map_global_defs,
         &mut map_const_defs,
+        &mut map_enum_defs,
     );
     return_on_error!(vm);
 
@@ -63,6 +66,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
     impldefck::check(vm, &vm.ast, &map_impl_defs);
     globaldefck::check(vm, &vm.ast, &map_global_defs);
     constdefck::check(vm, &vm.ast, &map_const_defs);
+    enumck::check(vm, &vm.ast, &map_enum_defs);
     return_on_error!(vm);
 
     // check names/identifiers of local variables
@@ -285,6 +289,15 @@ pub fn read_type<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> Option<Bui
 
                         let list_id = vm.lists.lock().insert(TypeList::empty());
                         return Some(BuiltinType::Struct(struct_id, list_id));
+                    }
+
+                    SymEnum(enum_id) => {
+                        if basic.params.len() > 0 {
+                            let msg = SemError::NoTypeParamsExpected;
+                            vm.diag.lock().report(file, basic.pos, msg);
+                        }
+
+                        return Some(BuiltinType::Enum(enum_id));
                     }
 
                     SymClassTypeParam(cls_id, type_param_id) => {

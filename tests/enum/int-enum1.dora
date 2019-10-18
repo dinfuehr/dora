@@ -1,0 +1,18 @@
+enum Foo { A, B }
+
+fun main() {
+    assert(is_a(Foo::A));
+    assert(!is_a(Foo::B));
+    assert(Foo::A == myid(Foo::A));
+    assert(Foo::B == myid(Foo::B));
+    assert(Foo::A != myid(Foo::B));
+    assert(Foo::B != myid(Foo::A));
+}
+
+fun is_a(foo: Foo) -> Bool {
+    return foo == Foo::A;
+}
+
+fun myid(foo: Foo) -> Foo {
+    return foo;
+}

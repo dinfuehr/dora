@@ -5,7 +5,7 @@ use std::sync::Arc;
 use crate::class::{self, ClassId};
 use crate::error::msg::SemError;
 use crate::gc::Address;
-use crate::sym::Sym::{self, SymClass, SymConst, SymFct, SymGlobal, SymStruct, SymTrait};
+use crate::sym::Sym::{self, SymClass, SymConst, SymEnum, SymFct, SymGlobal, SymStruct, SymTrait};
 use crate::ty::BuiltinType;
 use crate::vm;
 use crate::vm::*;
@@ -22,6 +22,7 @@ pub fn check<'ast>(
     map_impl_defs: &mut NodeMap<ImplId>,
     map_global_defs: &mut NodeMap<GlobalId>,
     map_const_defs: &mut NodeMap<ConstId>,
+    map_enum_defs: &mut NodeMap<EnumId>,
 ) {
     let ast = vm.ast;
     let mut gdef = GlobalDef {
@@ -33,6 +34,7 @@ pub fn check<'ast>(
         map_impl_defs,
         map_global_defs,
         map_const_defs,
+        map_enum_defs,
     };
 
     gdef.visit_ast(ast);
@@ -47,6 +49,7 @@ struct GlobalDef<'x, 'ast: 'x> {
     map_impl_defs: &'x mut NodeMap<ImplId>,
     map_global_defs: &'x mut NodeMap<GlobalId>,
     map_const_defs: &'x mut NodeMap<ConstId>,
+    map_enum_defs: &'x mut NodeMap<EnumId>,
 }
 
 impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
@@ -266,6 +269,27 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             report(self.vm, f.name, self.file_id.into(), f.pos, sym);
         }
     }
+
+    fn visit_enum(&mut self, e: &'ast Enum) {
+        let id: EnumId = self.vm.enums.len().into();
+        let xenum = EnumData {
+            id,
+            file: self.file_id.into(),
+            pos: e.pos,
+            name: e.name,
+            values: Vec::new(),
+            name_to_value: HashMap::new(),
+        };
+
+        self.vm.enums.push(RwLock::new(xenum));
+        self.map_enum_defs.insert(e.id, id);
+
+        let sym = SymEnum(id);
+
+        if let Some(sym) = self.vm.sym.lock().insert(e.name, sym) {
+            report(self.vm, e.name, self.file_id.into(), e.pos, sym);
+        }
+    }
 }
 
 fn report(vm: &VM, name: Name, file: FileId, pos: Position, sym: Sym) {
@@ -278,6 +302,7 @@ fn report(vm: &VM, name: Name, file: FileId, pos: Position, sym: Sym) {
         SymTrait(_) => SemError::ShadowTrait(name),
         SymGlobal(_) => SemError::ShadowGlobal(name),
         SymConst(_) => SemError::ShadowConst(name),
+        SymEnum(_) => SemError::ShadowEnum(name),
         _ => unimplemented!(),
     };
 
@@ -346,6 +371,17 @@ mod tests {
             "const foo: Int = 0; struct foo {}",
             pos(1, 21),
             SemError::ShadowConst("foo".into()),
+        );
+    }
+
+    #[test]
+    fn test_enum() {
+        ok("enum Foo { A }");
+
+        err(
+            "enum Foo { A } class Foo",
+            pos(1, 16),
+            SemError::ShadowEnum("Foo".into()),
         );
     }
 }

@@ -2,6 +2,7 @@ use parking_lot::{Mutex, RwLock};
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::convert::TryInto;
 use std::mem;
 use std::ops::{Index, IndexMut};
 use std::ptr;
@@ -94,6 +95,7 @@ pub struct VM<'ast> {
     pub class_defs: GrowableVec<RwLock<ClassDef>>, // stores all class definitions
     pub fcts: GrowableVec<RwLock<Fct<'ast>>>,  // stores all function definitions
     pub jit_fcts: GrowableVec<JitFct>,         // stores all function implementations
+    pub enums: Vec<RwLock<EnumData>>,          // store all enum definitions
     pub traits: Vec<RwLock<TraitData>>,        // stores all trait definitions
     pub impls: Vec<RwLock<ImplData>>,          // stores all impl definitions
     pub code_map: Mutex<CodeMap>,              // stores all compiled functions
@@ -127,6 +129,7 @@ impl<'ast> VM<'ast> {
             classes: GrowableVec::new(),
             files: Vec::new(),
             class_defs: GrowableVec::new(),
+            enums: Vec::new(),
             traits: Vec::new(),
             impls: Vec::new(),
             globals: GrowableVec::new(),
@@ -548,6 +551,33 @@ impl Index<ImplId> for Vec<RwLock<ImplData>> {
     fn index(&self, index: ImplId) -> &RwLock<ImplData> {
         &self[index.0 as usize]
     }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct EnumId(u32);
+
+impl From<usize> for EnumId {
+    fn from(data: usize) -> EnumId {
+        EnumId(data.try_into().unwrap())
+    }
+}
+
+impl Index<EnumId> for Vec<RwLock<EnumData>> {
+    type Output = RwLock<EnumData>;
+
+    fn index(&self, index: EnumId) -> &RwLock<EnumData> {
+        &self[index.0 as usize]
+    }
+}
+
+#[derive(Debug)]
+pub struct EnumData {
+    pub id: EnumId,
+    pub file: FileId,
+    pub pos: Position,
+    pub name: Name,
+    pub values: Vec<Name>,
+    pub name_to_value: HashMap<Name, u32>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -1092,6 +1122,9 @@ pub enum Intrinsic {
     IntToDouble,
     IntAsFloat,
 
+    EnumEq,
+    EnumNe,
+
     IntEq,
     IntCmp,
 
@@ -1369,6 +1402,12 @@ pub enum IdentType {
 
     // static method call on type param: <T>::<name>
     TypeParamStaticMethod(BuiltinType, Name),
+
+    // name of enum
+    Enum(EnumId),
+
+    // specific value in enum
+    EnumValue(EnumId, u32),
 }
 
 impl IdentType {
@@ -1434,6 +1473,7 @@ pub enum CallType {
     Expr(BuiltinType, FctId),
     Trait(TraitId, FctId),
     TraitStatic(TypeParamId, TraitId, FctId),
+    Intrinsic(Intrinsic),
 }
 
 impl CallType {
@@ -1465,15 +1505,23 @@ impl CallType {
         }
     }
 
-    pub fn fct_id(&self) -> FctId {
+    pub fn to_intrinsic(&self) -> Option<Intrinsic> {
         match *self {
-            CallType::Fct(fctid, _, _) => fctid,
-            CallType::Method(_, fctid, _) => fctid,
-            CallType::CtorNew(_, fctid, _) => fctid,
-            CallType::Ctor(_, fctid, _) => fctid,
-            CallType::Expr(_, fctid) => fctid,
-            CallType::Trait(_, fctid) => fctid,
-            CallType::TraitStatic(_, _, fctid) => fctid,
+            CallType::Intrinsic(intrinsic) => Some(intrinsic),
+            _ => None,
+        }
+    }
+
+    pub fn fct_id(&self) -> Option<FctId> {
+        match *self {
+            CallType::Fct(fctid, _, _) => Some(fctid),
+            CallType::Method(_, fctid, _) => Some(fctid),
+            CallType::CtorNew(_, fctid, _) => Some(fctid),
+            CallType::Ctor(_, fctid, _) => Some(fctid),
+            CallType::Expr(_, fctid) => Some(fctid),
+            CallType::Trait(_, fctid) => Some(fctid),
+            CallType::TraitStatic(_, _, fctid) => Some(fctid),
+            CallType::Intrinsic(_) => None,
         }
     }
 }

@@ -93,7 +93,7 @@ where
             ExprBin(ref expr) => self.emit_bin(expr, dest),
             ExprCall(ref expr) => self.emit_call(expr, dest),
             ExprTypeParam(_) => unreachable!(),
-            ExprPath(_) => unreachable!(),
+            ExprPath(ref expr) => self.emit_path(expr, dest),
             ExprDelegation(ref expr) => self.emit_delegation(expr, dest),
             ExprDot(ref expr) => self.emit_dot(expr, dest),
             ExprSelf(_) => self.emit_self(dest),
@@ -549,6 +549,7 @@ where
                 self.emit_const(const_id, dest);
             }
 
+            &IdentType::Enum(_) | &IdentType::EnumValue(_, _) => unreachable!(),
             &IdentType::Fct(_) | &IdentType::FctType(_, _) => unreachable!(),
             &IdentType::Class(_) | &IdentType::ClassType(_, _) => unreachable!(),
             &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
@@ -811,7 +812,7 @@ where
                 unimplemented!();
             }
 
-            &IdentType::Const(_) => {
+            &IdentType::Const(_) | &IdentType::Enum(_) | &IdentType::EnumValue(_, _) => {
                 unreachable!();
             }
 
@@ -990,6 +991,19 @@ where
                 FctKind::Definition => panic!("prototype for fct call"),
                 FctKind::Builtin(_) => panic!("intrinsic fct call"),
             }
+        }
+    }
+
+    fn emit_path(&mut self, e: &'ast ExprPathType, dest: ExprStore) {
+        let ident_type = self.src.map_idents.get(e.id).unwrap();
+
+        match ident_type {
+            &IdentType::EnumValue(_, value) => {
+                self.asm
+                    .load_int_const(MachineMode::Int32, dest.reg(), value as i64);
+            }
+
+            _ => unreachable!(),
         }
     }
 
@@ -1561,6 +1575,16 @@ where
                 self.asm.set(dest, cond_code);
             }
 
+            Intrinsic::EnumEq | Intrinsic::EnumNe => {
+                let cond_code = match intr {
+                    Intrinsic::EnumEq => CondCode::Equal,
+                    Intrinsic::EnumNe => CondCode::NotEqual,
+                    _ => unreachable!(),
+                };
+                self.asm.cmp_reg(MachineMode::Int32, lhs, rhs);
+                self.asm.set(dest, cond_code);
+            }
+
             Intrinsic::ByteCmp | Intrinsic::CharCmp | Intrinsic::IntCmp | Intrinsic::LongCmp => {
                 let mode = if intr == Intrinsic::LongCmp {
                     MachineMode::Int64
@@ -2074,7 +2098,8 @@ fn check_for_nil(ty: BuiltinType) -> bool {
         | BuiltinType::Long
         | BuiltinType::Float
         | BuiltinType::Double
-        | BuiltinType::Bool => false,
+        | BuiltinType::Bool
+        | BuiltinType::Enum(_) => false,
         BuiltinType::Nil | BuiltinType::Ptr => true,
         BuiltinType::Class(_, _) => true,
         BuiltinType::Struct(_, _) => false,
