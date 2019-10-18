@@ -5,7 +5,7 @@ const STEP: Int = 5;
 const REMOVED: Int = 20;
 
 fun main() {
-    var x = Vec[Array[Int] ]();
+    var x = Vec[Array[Int]]();
     var i = 0;
 
     while i < SIZE {
@@ -18,7 +18,7 @@ fun main() {
     i = 0;
 
     while i < SIZE {
-        x(i) = nil;
+        x(i) = arrayEmpty[Int]();
         i = i + STEP;
     }
 
@@ -28,7 +28,7 @@ fun main() {
     var nils = 0;
 
     while i < SIZE {
-        if x(i) === nil {
+        if x(i).length() == 0 {
             nils = nils + 1;
         }
 

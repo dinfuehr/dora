@@ -4,10 +4,10 @@ fun main() {
     map.insert(10000, "b");
     map.insert(7, "c");
 
-    assert(map.get(1) == "a");
-    assert(map.get(10000) == "b");
-    assert(map.get(7) == "c");
-    assert(map.get(2) === nil);
+    assert(map.get(1).unwrap() == "a");
+    assert(map.get(10000).unwrap() == "b");
+    assert(map.get(7).unwrap() == "c");
+    assert(map.get(2).isNone());
     assert(map.len() == 3);
 
     assert(map.contains(1));
@@ -17,10 +17,10 @@ fun main() {
 
     map.remove(10000);
 
-    assert(map.get(1) == "a");
-    assert(map.get(10000) === nil);
-    assert(map.get(7) == "c");
-    assert(map.get(2) === nil);
+    assert(map.get(1).unwrap() == "a");
+    assert(map.get(10000).isNone());
+    assert(map.get(7).unwrap() == "c");
+    assert(map.get(2).isNone());
     assert(map.len() == 2);
 
     assert(map.contains(1));

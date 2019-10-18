@@ -1,15 +1,10 @@
 fun main() {
-  assert(is_nil(nil));
-  assert(get_x_or_default(nil, 10) == 10);
-  assert(get_x_or_default(A[Int](9), 10) == 9);
+  assert(get_x_or_default(A[Int](9), 10, true) == 10);
+  assert(get_x_or_default(A[Int](9), 10, false) == 9);
 }
 
-fun is_nil(a: A[Int]) -> Bool {
-  return a === nil;
-}
-
-fun get_x_or_default(a: A[Int], val: Int) -> Int {
-  if a === nil {
+fun get_x_or_default(a: A[Int], val: Int, def: Bool) -> Int {
+  if def {
     return val;
   } else {
     return a.x;

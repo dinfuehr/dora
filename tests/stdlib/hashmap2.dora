@@ -16,7 +16,7 @@ fun main() {
     i = 0;
 
     while i < 1000 {
-        assert(map.get(i) == i.toString());
+        assert(map.get(i).unwrap() == i.toString());
         assert(map.contains(i));
         i = i + 1;
     }
@@ -35,7 +35,7 @@ fun main() {
     i = 0;
 
     while i < 900 {
-        assert(map.get(i) == i.toString());
+        assert(map.get(i).unwrap() == i.toString());
         assert(map.contains(i));
         i = i + 1;
     }

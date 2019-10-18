@@ -1,17 +1,17 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fun main() {
-  var x = Foo(1, Foo(2, Foo(3, nil)));
+  var x = Foo(1, some[Foo](Foo(2, some[Foo](Foo(3, none[Foo]())))));
   forceMinorCollect();
-  x.next.next.next = Foo(4, nil);
-  x = Foo(100, x);
+  x.next.unwrap().next.unwrap().next = some[Foo](Foo(4, none[Foo]()));
+  x = Foo(100, some[Foo](x));
   forceMinorCollect();
   assert(x.a == 100);
-  assert(x.next.a == 1);
-  assert(x.next.next.a == 2);
-  assert(x.next.next.next.a == 3);
-  assert(x.next.next.next.next.a == 4);
-  assert(x.next.next.next.next.next === nil);
+  assert(x.next.unwrap().a == 1);
+  assert(x.next.unwrap().next.unwrap().a == 2);
+  assert(x.next.unwrap().next.unwrap().next.unwrap().a == 3);
+  assert(x.next.unwrap().next.unwrap().next.unwrap().next.unwrap().a == 4);
+  assert(x.next.unwrap().next.unwrap().next.unwrap().next.unwrap().next.isNone());
 }
 
-class Foo(let a: Int, var next: Foo)
+class Foo(let a: Int, var next: Option[Foo])

@@ -1,9 +1,0 @@
-//= error nil
-
-fun main() {
-    set_first(nil);
-}
-
-fun set_first(f: Array[Int]) {
-    f(0) = 0;
-}

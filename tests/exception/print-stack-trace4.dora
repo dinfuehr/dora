@@ -1,4 +1,4 @@
-//= output "Exception: SubException 0\n0: SubException.SubException(String, Int): 14\n1: create_exceptions() -> SubException: 8\n2: main(): 4\nException: SubException 1\n0: create_exceptions() -> SubException: 8\n1: main(): 4\n"
+//= output "Exception: SubException 0\n0: SubException.SubException(String, Int): 13\n1: create_exceptions() -> SubException: 8\n2: main(): 4\nException: SubException 1\n0: create_exceptions() -> SubException: 8\n1: main(): 4\n"
 
 fun main() {
   create_exceptions().printTraces();
@@ -9,10 +9,11 @@ fun create_exceptions() -> SubException {
 }
 
 class SubException(msg: String, t: Int) : Exception(msg + " " + t.toString()) {
-  var exception: SubException;
-  if(t > 0) {
-    self.exception = SubException(msg, t-1);
-  }
+  var exception: Option[SubException] = if t > 0 {
+    some[SubException](SubException(msg, t-1))
+  } else {
+    none[SubException]()
+  };
 
   // currently needed, because of error when an @abstract function is overloaded in base class
   @override fun printStackTrace() {
@@ -20,8 +21,8 @@ class SubException(msg: String, t: Int) : Exception(msg + " " + t.toString()) {
   }
 
   fun printTraces() {
-    if(self.exception !== nil) {
-      self.exception.printTraces();
+    if(self.exception.isSome()) {
+      self.exception.unwrap().printTraces();
     }
     self.printStackTrace();
   }

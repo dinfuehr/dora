@@ -3,12 +3,12 @@ fun main() {
     assert(m.insert(1, "hello"));
     assert(m.insert(2, "world"));
 
-    assert(m.get(1) == "hello");
-    assert(m.get(2) == "world");
-    assert(m.get(3) === nil);
+    assert(m.get(1).unwrap() == "hello");
+    assert(m.get(2).unwrap() == "world");
+    assert(m.get(3).isNone());
 
     assert(!m.insert(2, "test"));
-    assert(m.get(2) == "test");
+    assert(m.get(2).unwrap() == "test");
 }
 
 class SlowMap[K: Equals, V] {
@@ -33,7 +33,7 @@ class SlowMap[K: Equals, V] {
         return true;
     }
 
-    fun get(key: K) -> V {
+    fun get(key: K) -> Option[V] {
         var i = 0;
         var len = self.entries.length();
 
@@ -41,13 +41,13 @@ class SlowMap[K: Equals, V] {
             let entry = self.entries.get(i);
 
             if entry.key.equals(key) {
-                return entry.value;
+                return some[V](entry.value);
             }
 
             i = i + 1;
         }
 
-        return defaultValue[V]();
+        return none[V]();
     }
 }
 

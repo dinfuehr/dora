@@ -37,7 +37,7 @@
   @static fun fromBytesPart(val: Array[Byte], offset: Int, len: Int) throws -> String {
     let str = String::fromBytesPartOrNull(val, offset, len);
 
-    if str === nil {
+    if str.length() == 0 && len != 0 {
       throw "invalid utf-8 encoding.";
     }
 
@@ -47,7 +47,7 @@
   @static fun fromBytes(val: Array[Byte]) throws -> String {
     let str = String::fromBytesPartOrNull(val, 0, val.length());
 
-    if str === nil {
+    if str.length() == 0 && val.length() != 0 {
       throw "invalid utf-8 encoding.";
     }
 
@@ -57,7 +57,7 @@
   @static fun fromStringPart(val: String, offset: Int, len: Int) throws -> String {
     let str = String::fromStringPartOrNull(val, offset, len);
 
-    if str === nil {
+    if str.length() == 0 && len != 0 {
       throw "invalid utf-8 encoding.";
     }
 

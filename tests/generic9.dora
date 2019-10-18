@@ -6,8 +6,8 @@ fun main() {
     consume2(b.x);
 }
 
-class A[T] {
-    var x: Array[T] = Array[T](10);
+class A[T : Default] {
+    var x: Array[T] = arrayNew[T](10);
 }
 
 fun consume(x: Array[Int]) {
@@ -15,5 +15,5 @@ fun consume(x: Array[Int]) {
 }
 
 fun consume2(x: Array[String]) {
-    assert(x(9) === nil);
+    assert(x(9) == "");
 }

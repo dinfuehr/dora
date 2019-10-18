@@ -1,9 +1,9 @@
 @open class Error(msg: String): Throwable(msg) {
   @override fun printStackTrace() {
-    if super.getMessage() !== nil {
-      println("Error: " + super.getMessage());
-    } else {
+    if super.getMessage().isEmpty() {
       println("Error");
+    } else {
+      println("Error: " + super.getMessage());
     }
 
     let x = self.getStackTrace();

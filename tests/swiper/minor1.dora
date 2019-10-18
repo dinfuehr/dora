@@ -1,13 +1,13 @@
 //= vm-args "--gc-parallel-minor --gc-worker=2 --gc-verify"
 
 fun main() {
-    let x = Foo(Foo(nil));
+    let x = Foo(some[Foo](Foo(none[Foo]())));
     forceMinorCollect();
-    assert(x.next.next === nil);
+    assert(x.next.unwrap().next.isNone());
     forceMinorCollect();
-    assert(x.next.next === nil);
+    assert(x.next.unwrap().next.isNone());
     forceMinorCollect();
-    assert(x.next.next === nil);
+    assert(x.next.unwrap().next.isNone());
 }
 
-class Foo(let next: Foo)
+class Foo(let next: Option[Foo])

@@ -11,7 +11,7 @@ fun main() {
 
 fun foo() throws {
   do {
-    throw arrayFill[Bar](5, nil);
+    throw arrayFill[Bar](5, Bar());
   } catch x: Array[Foo] {
     fatalError("should not be caught");
   }

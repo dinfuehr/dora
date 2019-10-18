@@ -1,6 +1,6 @@
 fun main() {
-    let x: A[Int] = nil;
-    assert(x === nil);
+    let a: A[Int] = A[Int](5);
+    assert(a.x === 5);
 }
 
 class A[T](let x: T)

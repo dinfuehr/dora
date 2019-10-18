@@ -1,10 +1,8 @@
-class Node(left: Node, right: Node) {
+class Node(var left: Option[Node], var right: Option[Node]) {
     var i: Int;
     var j: Int;
-    var left: Node = left;
-    var right: Node = right;
 
-    @static fun leaf() -> Node = Node(nil, nil);
+    @static fun leaf() -> Node = Node(none[Node](), none[Node]());
 }
 
 var stretchTreeDepth: Int;
@@ -26,10 +24,10 @@ fun populate(var iDepth: Int, thisNode: Node) {
         return;
     } else {
         iDepth = iDepth - 1;
-        thisNode.left = Node::leaf();
-        thisNode.right = Node::leaf();
-        populate(iDepth, thisNode.left);
-        populate(iDepth, thisNode.right);
+        thisNode.left = some[Node](Node::leaf());
+        thisNode.right = some[Node](Node::leaf());
+        populate(iDepth, thisNode.left.unwrap());
+        populate(iDepth, thisNode.right.unwrap());
     }
 }
 
@@ -37,7 +35,7 @@ fun makeTree(iDepth: Int) -> Node {
     if iDepth <= 0 {
         return Node::leaf();
     } else {
-        return Node(makeTree(iDepth-1), makeTree(iDepth-1));
+        return Node(some[Node](makeTree(iDepth-1)), some[Node](makeTree(iDepth-1)));
     }
 }
 
@@ -109,7 +107,7 @@ fun main() {
         d = d + 2;
     }
 
-    assert(longLivedTree !== nil && array(1000) == 1.0/1000.0);
+    assert(array(1000) == 1.0/1000.0);
     let finish = timestamp();
     let elapsed = (finish - start).toFloat() / 1000.0F / 1000.0F;
     println("Completed in " + elapsed.toString() + "ms.");

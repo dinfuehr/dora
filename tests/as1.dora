@@ -1,8 +1,6 @@
 fun main() {
   let b = B();
 
-  assert(asb(nil) === nil);
-  assert(asa(nil) === nil);
   assert(asa(b) === b);
   assert(asb(b) === b);
 }

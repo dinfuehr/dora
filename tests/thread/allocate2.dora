@@ -18,10 +18,10 @@ fun main() {
 
 fun allocator() {
     var i = 1;
-    var list = Foo(0, nil);
+    var list = Foo(0, none[Foo]());
 
     while i < 10_000 {
-        list = Foo(i, list);
+        list = Foo(i, some[Foo](list));
         i = i + 1;
     }
 
@@ -30,8 +30,10 @@ fun allocator() {
     while i > 0 {
         i = i - 1;
         assert(list.key == i);
-        list = list.prev;
+        if list.prev.isSome() {
+          list = list.prev.unwrap();
+        }
     }
 }
 
-class Foo(let key: Int, let prev: Foo)
+class Foo(let key: Int, let prev: Option[Foo])
