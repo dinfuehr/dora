@@ -618,7 +618,17 @@ where
             ExprTemplate(ref expr) => self.emit_template(expr, dest.reg()),
             ExprTry(ref expr) => self.emit_try(expr, dest),
             ExprLambda(_) => unimplemented!(),
-            ExprBlock(_) => unimplemented!(),
+            ExprBlock(ref expr) => self.emit_block(expr, dest),
+        }
+    }
+
+    fn emit_block(&mut self, block: &'ast ExprBlockType, dest: ExprStore) {
+        for stmt in &block.stmts {
+            self.visit_stmt(stmt);
+        }
+
+        if let Some(ref expr) = block.expr {
+            self.emit_expr(expr, dest);
         }
     }
 

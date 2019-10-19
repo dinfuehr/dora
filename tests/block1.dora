@@ -1,0 +1,22 @@
+fun main() {
+    t1();
+    t2();
+    t3();
+}
+
+fun g() -> Int { return 1; }
+
+fun t1() {
+    let x: Int = { g() };
+    assert(x == 1);
+}
+
+fun t2() {
+    let x: Int = { g(); 1 };
+    assert(x == 1);
+}
+
+fun t3() {
+    let x: String = "x${1}y" + { forceCollect(); "end" };
+    assert(x == "x1yend");
+}
