@@ -104,7 +104,7 @@ pub fn generate_fct<'ast>(
                 asm: BaselineAssembler::new(vm),
                 scopes: Scopes::new(),
                 src,
-                jit_info,
+                jit_info: &jit_info,
 
                 lbl_break: None,
                 lbl_continue: None,
@@ -113,6 +113,7 @@ pub fn generate_fct<'ast>(
                 active_upper: None,
                 active_loop: None,
                 lbl_return: None,
+                temps: TempOffsets::new(),
 
                 cls_type_params,
                 fct_type_params,
