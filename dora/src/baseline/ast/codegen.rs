@@ -397,16 +397,6 @@ where
         self.emit_expr_old(&s.expr);
     }
 
-    fn emit_stmt_block(&mut self, s: &'ast StmtBlockType) {
-        self.scopes.push_scope();
-
-        for stmt in &s.stmts {
-            self.visit_stmt(stmt);
-        }
-
-        self.scopes.pop_scope();
-    }
-
     fn emit_stmt_var(&mut self, s: &'ast StmtVarType) {
         let mut initialized = false;
         let var = *self.src.map_vars.get(s.id).unwrap();
@@ -623,6 +613,8 @@ where
     }
 
     fn emit_block(&mut self, block: &'ast ExprBlockType, dest: ExprStore) {
+        self.scopes.push_scope();
+
         for stmt in &block.stmts {
             self.visit_stmt(stmt);
         }
@@ -630,6 +622,8 @@ where
         if let Some(ref expr) = block.expr {
             self.emit_expr(expr, dest);
         }
+
+        self.scopes.pop_scope();
     }
 
     fn emit_try(&mut self, e: &'ast ExprTryType, dest: ExprStore) {
@@ -2655,7 +2649,6 @@ impl<'a, 'ast> visit::Visitor<'ast> for AstCodeGen<'a, 'ast> {
             StmtReturn(ref stmt) => self.emit_stmt_return(stmt),
             StmtBreak(ref stmt) => self.emit_stmt_break(stmt),
             StmtContinue(ref stmt) => self.emit_stmt_continue(stmt),
-            StmtBlock(ref stmt) => self.emit_stmt_block(stmt),
             StmtVar(ref stmt) => self.emit_stmt_var(stmt),
             StmtThrow(ref stmt) => self.emit_stmt_throw(stmt),
             StmtDefer(_) => unimplemented!(),

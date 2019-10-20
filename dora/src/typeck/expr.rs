@@ -273,22 +273,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_stmt_block(&mut self, block: &'ast StmtBlockType) {
-        for stmt in &block.stmts {
-            self.visit_stmt(stmt);
-        }
-
-        let ty = if let Some(ref expr) = block.expr {
-            self.visit_expr(expr);
-            self.expr_type
-        } else {
-            BuiltinType::Unit
-        };
-
-        self.src.set_ty(block.id, ty);
-        self.expr_type = ty;
-    }
-
     fn check_expr_block(&mut self, block: &'ast ExprBlockType) {
         for stmt in &block.stmts {
             self.visit_stmt(stmt);
@@ -2044,7 +2028,6 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             StmtThrow(ref stmt) => self.check_stmt_throw(stmt),
             StmtDefer(ref stmt) => self.check_stmt_defer(stmt),
             StmtDo(ref stmt) => self.check_stmt_do(stmt),
-            StmtBlock(ref stmt) => self.check_stmt_block(stmt),
 
             // for the rest of the statements, no special handling is necessary
             StmtBreak(_) => visit::walk_stmt(self, s),
@@ -2053,10 +2036,8 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             StmtExpr(_) => visit::walk_stmt(self, s),
         }
 
-        if !s.is_block() {
-            self.src.set_ty(s.id(), BuiltinType::Unit);
-            self.expr_type = BuiltinType::Unit;
-        }
+        self.src.set_ty(s.id(), BuiltinType::Unit);
+        self.expr_type = BuiltinType::Unit;
     }
 }
 

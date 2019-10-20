@@ -255,14 +255,6 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         }
     }
 
-    fn check_stmt_block(&mut self, block: &'ast StmtBlockType) {
-        self.vm.sym.lock().push_level();
-        for stmt in &block.stmts {
-            self.visit_stmt(stmt);
-        }
-        self.vm.sym.lock().pop_level();
-    }
-
     fn check_expr_ident(&mut self, ident: &'ast ExprIdentType) {
         let sym = self.vm.sym.lock().get(ident.name);
 
@@ -374,7 +366,6 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         match *s {
             StmtVar(ref stmt) => self.check_stmt_var(stmt),
-            StmtBlock(ref stmt) => self.check_stmt_block(stmt),
             StmtDo(ref stmt) => self.check_stmt_do(stmt),
             StmtFor(ref stmt) => self.check_stmt_for(stmt),
 

@@ -113,7 +113,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     // TODO - implement other statements
     fn visit_stmt(&mut self, stmt: &Stmt) {
         match *stmt {
-            StmtBlock(ref block) => self.visit_block(block),
             StmtReturn(ref ret) => self.visit_stmt_return(ret),
             StmtBreak(ref stmt) => self.visit_stmt_break(stmt),
             StmtContinue(ref stmt) => self.visit_stmt_continue(stmt),
@@ -195,12 +194,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     fn visit_stmt_expr(&mut self, stmt: &StmtExprType) {
         self.visit_expr(&stmt.expr, DataDest::Effect);
-    }
-
-    fn visit_block(&mut self, block: &StmtBlockType) {
-        for stmt in &block.stmts {
-            self.visit_stmt(stmt);
-        }
     }
 
     fn visit_stmt_return(&mut self, ret: &StmtReturnType) {

@@ -595,7 +595,6 @@ pub enum Stmt {
     StmtLoop(StmtLoopType),
     StmtIf(StmtIfType),
     StmtExpr(StmtExprType),
-    StmtBlock(StmtBlockType),
     StmtBreak(StmtBreakType),
     StmtContinue(StmtContinueType),
     StmtReturn(StmtReturnType),
@@ -702,22 +701,6 @@ impl Stmt {
         })
     }
 
-    pub fn create_block(
-        id: NodeId,
-        pos: Position,
-        span: Span,
-        stmts: Vec<Box<Stmt>>,
-        expr: Option<Box<Expr>>,
-    ) -> Stmt {
-        Stmt::StmtBlock(StmtBlockType {
-            id,
-            pos,
-            span,
-            stmts,
-            expr,
-        })
-    }
-
     pub fn create_break(id: NodeId, pos: Position, span: Span) -> Stmt {
         Stmt::StmtBreak(StmtBreakType { id, pos, span })
     }
@@ -783,7 +766,6 @@ impl Stmt {
             Stmt::StmtLoop(ref stmt) => stmt.id,
             Stmt::StmtIf(ref stmt) => stmt.id,
             Stmt::StmtExpr(ref stmt) => stmt.id,
-            Stmt::StmtBlock(ref stmt) => stmt.id,
             Stmt::StmtBreak(ref stmt) => stmt.id,
             Stmt::StmtContinue(ref stmt) => stmt.id,
             Stmt::StmtReturn(ref stmt) => stmt.id,
@@ -801,7 +783,6 @@ impl Stmt {
             Stmt::StmtLoop(ref stmt) => stmt.pos,
             Stmt::StmtIf(ref stmt) => stmt.pos,
             Stmt::StmtExpr(ref stmt) => stmt.pos,
-            Stmt::StmtBlock(ref stmt) => stmt.pos,
             Stmt::StmtBreak(ref stmt) => stmt.pos,
             Stmt::StmtContinue(ref stmt) => stmt.pos,
             Stmt::StmtReturn(ref stmt) => stmt.pos,
@@ -819,7 +800,6 @@ impl Stmt {
             Stmt::StmtLoop(ref stmt) => stmt.span,
             Stmt::StmtIf(ref stmt) => stmt.span,
             Stmt::StmtExpr(ref stmt) => stmt.span,
-            Stmt::StmtBlock(ref stmt) => stmt.span,
             Stmt::StmtBreak(ref stmt) => stmt.span,
             Stmt::StmtContinue(ref stmt) => stmt.span,
             Stmt::StmtReturn(ref stmt) => stmt.span,
@@ -955,20 +935,6 @@ impl Stmt {
         }
     }
 
-    pub fn to_block(&self) -> Option<&StmtBlockType> {
-        match *self {
-            Stmt::StmtBlock(ref val) => Some(val),
-            _ => None,
-        }
-    }
-
-    pub fn is_block(&self) -> bool {
-        match *self {
-            Stmt::StmtBlock(_) => true,
-            _ => false,
-        }
-    }
-
     pub fn to_return(&self) -> Option<&StmtReturnType> {
         match *self {
             Stmt::StmtReturn(ref val) => Some(val),
@@ -1073,16 +1039,6 @@ pub struct StmtExprType {
     pub span: Span,
 
     pub expr: Box<Expr>,
-}
-
-#[derive(Clone, Debug)]
-pub struct StmtBlockType {
-    pub id: NodeId,
-    pub pos: Position,
-    pub span: Span,
-
-    pub stmts: Vec<Box<Stmt>>,
-    pub expr: Option<Box<Expr>>,
 }
 
 #[derive(Clone, Debug)]

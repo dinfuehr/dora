@@ -243,16 +243,6 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
             v.visit_expr_top(&value.expr);
         }
 
-        StmtBlock(ref value) => {
-            for stmt in &value.stmts {
-                v.visit_stmt(stmt);
-            }
-
-            if let Some(ref expr) = value.expr {
-                v.visit_expr(expr);
-            }
-        }
-
         StmtReturn(ref value) => {
             if let Some(ref e) = value.expr {
                 v.visit_expr_top(e);

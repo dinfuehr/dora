@@ -68,7 +68,6 @@ pub fn expr_block_returns_value(block: &ExprBlockType) -> bool {
 pub fn returns_value(s: &Stmt) -> Result<(), Position> {
     match *s {
         StmtReturn(_) => Ok(()),
-        StmtBlock(ref stmt) => block_returns_value(stmt),
         StmtIf(ref stmt) => if_returns_value(stmt),
         StmtLoop(ref stmt) => returns_value(&stmt.block),
         StmtFor(ref stmt) => Err(stmt.pos),
@@ -109,19 +108,6 @@ fn if_returns_value(s: &StmtIfType) -> Result<(), Position> {
         Some(ref block) => returns_value(block),
         None => Err(s.pos),
     }
-}
-
-fn block_returns_value(s: &StmtBlockType) -> Result<(), Position> {
-    let mut pos = s.pos;
-
-    for stmt in &s.stmts {
-        match returns_value(stmt) {
-            Ok(_) => return Ok(()),
-            Err(err_pos) => pos = err_pos,
-        }
-    }
-
-    Err(pos)
 }
 
 fn do_returns_value(s: &StmtDoType) -> Result<(), Position> {
