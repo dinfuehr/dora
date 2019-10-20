@@ -1,0 +1,17 @@
+fun main() {
+    assert(myid[Int](1) == 1);
+    assert(myid[Int](100) == 100);
+    assert(myid[Int](4) == 4);
+
+    assert(myid[Bool](false) == false);
+    assert(myid[Bool](true) == true);
+
+    assert(myid[Float](1.0F) == 1.0F);
+    assert(myid[Float](2.0F) == 2.0F);
+    assert(myid[Float](3.0F) == 3.0F);
+
+    assert(myid[Double](3.0) == 3.0);
+    assert(myid[Double](1.0) == 1.0);
+}
+
+fun myid[T](x: T) -> T { x }
