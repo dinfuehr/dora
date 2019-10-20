@@ -76,11 +76,29 @@ pub fn returns_value(s: &Stmt) -> Result<(), Position> {
         StmtBreak(ref stmt) => Err(stmt.pos),
         StmtContinue(ref stmt) => Err(stmt.pos),
         StmtVar(ref stmt) => Err(stmt.pos),
-        StmtExpr(ref stmt) => Err(stmt.pos),
+        StmtExpr(ref stmt) => expr_returns_value(&stmt.expr),
         StmtThrow(_) => Ok(()),
         StmtDefer(ref stmt) => Err(stmt.pos),
         StmtDo(ref stmt) => do_returns_value(stmt),
-        StmtValue(_) => unreachable!(),
+    }
+}
+
+pub fn expr_returns_value(e: &Expr) -> Result<(), Position> {
+    match *e {
+        Expr::ExprBlock(ref block) => {
+            let mut pos = block.pos;
+
+            for stmt in &block.stmts {
+                match returns_value(stmt) {
+                    Ok(_) => return Ok(()),
+                    Err(err_pos) => pos = err_pos,
+                }
+            }
+
+            Err(pos)
+        }
+
+        _ => Err(e.pos()),
     }
 }
 

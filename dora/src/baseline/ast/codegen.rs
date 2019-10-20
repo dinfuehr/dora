@@ -2660,7 +2660,6 @@ impl<'a, 'ast> visit::Visitor<'ast> for AstCodeGen<'a, 'ast> {
             StmtThrow(ref stmt) => self.emit_stmt_throw(stmt),
             StmtDefer(_) => unimplemented!(),
             StmtDo(ref stmt) => self.emit_stmt_do(stmt),
-            StmtValue(_) => unreachable!(),
         }
     }
 

@@ -29,6 +29,12 @@ pub struct Parser<'a> {
 
 type ExprResult = Result<Box<Expr>, ParseErrorAndPos>;
 type StmtResult = Result<Box<Stmt>, ParseErrorAndPos>;
+type StmtOrExprResult = Result<StmtOrExpr, ParseErrorAndPos>;
+
+enum StmtOrExpr {
+    Stmt(Box<Stmt>),
+    Expr(Box<Expr>),
+}
 
 impl<'a> Parser<'a> {
     pub fn new(
@@ -541,7 +547,7 @@ impl<'a> Parser<'a> {
                 }
 
                 _ => {
-                    let initializer = self.parse_statement(false)?;
+                    let initializer = self.parse_statement()?;
                     cls.initializers.push(initializer);
                 }
             }
@@ -789,7 +795,7 @@ impl<'a> Parser<'a> {
 
             Ok(Some(expr))
         } else {
-            let block = self.parse_block_expr()?;
+            let block = self.parse_block()?;
 
             if let Expr::ExprBlock(block_type) = *block {
                 Ok(Some(Box::new(block_type)))
@@ -909,10 +915,9 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_statement(&mut self, accept_value: bool) -> StmtResult {
+    fn parse_statement(&mut self) -> StmtResult {
         match self.token.kind {
             TokenKind::Let | TokenKind::Var => self.parse_var(),
-            TokenKind::LBrace => self.parse_block(),
             TokenKind::If => self.parse_if(),
             TokenKind::While => self.parse_while(),
             TokenKind::Loop => self.parse_loop(),
@@ -927,7 +932,31 @@ impl<'a> Parser<'a> {
             TokenKind::Defer => self.parse_defer(),
             TokenKind::Do => self.parse_do(),
             TokenKind::For => self.parse_for(),
-            _ => self.parse_expression_statement(accept_value),
+            _ => {
+                let start = self.token.span.start();
+                let pos = self.token.position;
+                let expr = self.parse_expression()?;
+
+                if expr.needs_semicolon() {
+                    self.expect_semicolon()?;
+
+                    let span = self.span_from(start);
+
+                    Ok(Box::new(Stmt::create_expr(
+                        self.generate_id(),
+                        pos,
+                        span,
+                        expr,
+                    )))
+                } else {
+                    Ok(Box::new(Stmt::create_expr(
+                        self.generate_id(),
+                        expr.pos(),
+                        expr.span(),
+                        expr,
+                    )))
+                }
+            }
         }
     }
 
@@ -964,7 +993,7 @@ impl<'a> Parser<'a> {
     fn parse_do(&mut self) -> StmtResult {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::Do)?.position;
-        let try_block = self.parse_block()?;
+        let try_block = self.parse_block_stmt()?;
         let mut catch_blocks = Vec::new();
 
         while self.token.is(TokenKind::Catch) {
@@ -996,7 +1025,7 @@ impl<'a> Parser<'a> {
         let name = self.expect_identifier()?;
         self.expect_token(TokenKind::Colon)?;
         let data_type = self.parse_type()?;
-        let block = self.parse_block()?;
+        let block = self.parse_block_stmt()?;
         let span = self.span_from(start);
 
         Ok(CatchBlock::new(id, name, pos, span, data_type, block))
@@ -1004,7 +1033,7 @@ impl<'a> Parser<'a> {
 
     fn parse_finally(&mut self) -> Result<FinallyBlock, ParseErrorAndPos> {
         self.expect_token(TokenKind::Finally)?;
-        let block = self.parse_block()?;
+        let block = self.parse_block_stmt()?;
 
         Ok(FinallyBlock::new(block))
     }
@@ -1059,50 +1088,43 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_block(&mut self) -> StmtResult {
-        let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::LBrace)?.position;
-        let mut stmts = vec![];
-        let mut expr = None;
-
-        while !self.token.is(TokenKind::RBrace) && !self.token.is_eof() {
-            let stmt = self.parse_statement(true)?;
-
-            if let Stmt::StmtValue(e) = *stmt {
-                expr = Some(e);
-                break;
-            }
-
-            stmts.push(stmt);
-        }
-
-        self.expect_token(TokenKind::RBrace)?;
-        let span = self.span_from(start);
-
-        Ok(Box::new(Stmt::create_block(
+    fn parse_block_stmt(&mut self) -> StmtResult {
+        let block = self.parse_block()?;
+        Ok(Box::new(Stmt::create_expr(
             self.generate_id(),
-            pos,
-            span,
-            stmts,
-            expr,
+            block.pos(),
+            block.span(),
+            block,
         )))
     }
 
-    fn parse_block_expr(&mut self) -> ExprResult {
+    fn parse_block(&mut self) -> ExprResult {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::LBrace)?.position;
         let mut stmts = vec![];
         let mut expr = None;
 
         while !self.token.is(TokenKind::RBrace) && !self.token.is_eof() {
-            let stmt = self.parse_statement(true)?;
+            let stmt_or_expr = self.parse_block_element()?;
 
-            if let Stmt::StmtValue(e) = *stmt {
-                expr = Some(e);
-                break;
+            match stmt_or_expr {
+                StmtOrExpr::Stmt(stmt) => stmts.push(stmt),
+                StmtOrExpr::Expr(curr_expr) => {
+                    if curr_expr.needs_semicolon() {
+                        expr = Some(curr_expr);
+                        break;
+                    } else if !self.token.is(TokenKind::RBrace) {
+                        stmts.push(Box::new(Stmt::create_expr(
+                            self.generate_id(),
+                            curr_expr.pos(),
+                            curr_expr.span(),
+                            curr_expr,
+                        )));
+                    } else {
+                        expr = Some(curr_expr);
+                    }
+                }
             }
-
-            stmts.push(stmt);
         }
 
         self.expect_token(TokenKind::RBrace)?;
@@ -1117,13 +1139,50 @@ impl<'a> Parser<'a> {
         )))
     }
 
+    fn parse_block_element(&mut self) -> StmtOrExprResult {
+        match self.token.kind {
+            TokenKind::Let | TokenKind::Var => Ok(StmtOrExpr::Stmt(self.parse_var()?)),
+            TokenKind::If => Ok(StmtOrExpr::Stmt(self.parse_if()?)),
+            TokenKind::While => Ok(StmtOrExpr::Stmt(self.parse_while()?)),
+            TokenKind::Loop => Ok(StmtOrExpr::Stmt(self.parse_loop()?)),
+            TokenKind::Break => Ok(StmtOrExpr::Stmt(self.parse_break()?)),
+            TokenKind::Continue => Ok(StmtOrExpr::Stmt(self.parse_continue()?)),
+            TokenKind::Return => Ok(StmtOrExpr::Stmt(self.parse_return()?)),
+            TokenKind::Else => Err(ParseErrorAndPos::new(
+                self.token.position,
+                ParseError::MisplacedElse,
+            )),
+            TokenKind::Throw => Ok(StmtOrExpr::Stmt(self.parse_throw()?)),
+            TokenKind::Defer => Ok(StmtOrExpr::Stmt(self.parse_defer()?)),
+            TokenKind::Do => Ok(StmtOrExpr::Stmt(self.parse_do()?)),
+            TokenKind::For => Ok(StmtOrExpr::Stmt(self.parse_for()?)),
+            _ => {
+                let expr = self.parse_expression()?;
+
+                if self.token.is(TokenKind::Semicolon) {
+                    self.expect_token(TokenKind::Semicolon)?;
+                    let span = self.span_from(expr.span().start());
+
+                    Ok(StmtOrExpr::Stmt(Box::new(Stmt::create_expr(
+                        self.generate_id(),
+                        expr.pos(),
+                        span,
+                        expr,
+                    ))))
+                } else {
+                    Ok(StmtOrExpr::Expr(expr))
+                }
+            }
+        }
+    }
+
     fn parse_if(&mut self) -> StmtResult {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::If)?.position;
 
         let cond = self.parse_expression_no_struct_lit()?;
 
-        let then_block = self.parse_block()?;
+        let then_block = self.parse_block_stmt()?;
 
         let else_block = if self.token.is(TokenKind::Else) {
             self.advance_token()?;
@@ -1131,7 +1190,7 @@ impl<'a> Parser<'a> {
             if self.token.is(TokenKind::If) {
                 Some(self.parse_if()?)
             } else {
-                Some(self.parse_block()?)
+                Some(self.parse_block_stmt()?)
             }
         } else {
             None
@@ -1155,7 +1214,7 @@ impl<'a> Parser<'a> {
         let name = self.expect_identifier()?;
         self.expect_token(TokenKind::In)?;
         let expr = self.parse_expression_no_struct_lit()?;
-        let block = self.parse_block()?;
+        let block = self.parse_block_stmt()?;
         let span = self.span_from(start);
 
         Ok(Box::new(Stmt::create_for(
@@ -1172,7 +1231,7 @@ impl<'a> Parser<'a> {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::While)?.position;
         let expr = self.parse_expression_no_struct_lit()?;
-        let block = self.parse_block()?;
+        let block = self.parse_block_stmt()?;
         let span = self.span_from(start);
 
         Ok(Box::new(Stmt::create_while(
@@ -1187,7 +1246,7 @@ impl<'a> Parser<'a> {
     fn parse_loop(&mut self) -> StmtResult {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::Loop)?.position;
-        let block = self.parse_block()?;
+        let block = self.parse_block_stmt()?;
         let span = self.span_from(start);
 
         Ok(Box::new(Stmt::create_loop(
@@ -1239,27 +1298,6 @@ impl<'a> Parser<'a> {
             span,
             expr,
         )))
-    }
-
-    fn parse_expression_statement(&mut self, accept_value: bool) -> StmtResult {
-        let start = self.token.span.start();
-        let pos = self.token.position;
-        let expr = self.parse_expression()?;
-
-        if !accept_value || self.token.is(TokenKind::Semicolon) {
-            self.expect_semicolon()?;
-
-            let span = self.span_from(start);
-
-            Ok(Box::new(Stmt::create_expr(
-                self.generate_id(),
-                pos,
-                span,
-                expr,
-            )))
-        } else {
-            Ok(Box::new(Stmt::create_value(expr)))
-        }
     }
 
     fn parse_expression(&mut self) -> ExprResult {
@@ -1477,7 +1515,7 @@ impl<'a> Parser<'a> {
     fn parse_factor(&mut self) -> ExprResult {
         match self.token.kind {
             TokenKind::LParen => self.parse_parentheses(),
-            TokenKind::LBrace => self.parse_block_expr(),
+            TokenKind::LBrace => self.parse_block(),
             TokenKind::LitChar(_) => self.parse_lit_char(),
             TokenKind::LitInt(_, _, _) => self.parse_lit_int(),
             TokenKind::LitFloat(_, _) => self.parse_lit_float(),
@@ -1777,7 +1815,7 @@ impl<'a> Parser<'a> {
             None
         };
 
-        let block = self.parse_block()?;
+        let block = self.parse_block_stmt()?;
         let span = self.span_from(start);
 
         Ok(Box::new(Expr::create_lambda(
@@ -1979,7 +2017,7 @@ mod tests {
         let mut parser = Parser::new(reader, &id_generator, &mut ast, &mut interner);
         assert!(parser.init().is_ok(), true);
 
-        parser.parse_statement(false).unwrap()
+        parser.parse_statement().unwrap()
     }
 
     fn err_stmt(code: &'static str, msg: ParseError, line: u32, col: u32) {
@@ -1991,7 +2029,7 @@ mod tests {
             let mut parser = Parser::new(reader, &id_generator, &mut ast, &mut interner);
 
             assert!(parser.init().is_ok(), true);
-            parser.parse_statement(false).unwrap_err()
+            parser.parse_statement().unwrap_err()
         };
 
         assert_eq!(msg, err.error);
@@ -2651,9 +2689,7 @@ mod tests {
         let whilestmt = stmt.to_while().unwrap();
 
         assert!(whilestmt.cond.is_lit_bool());
-
-        let block = whilestmt.block.to_block().unwrap();
-        assert_eq!(1, block.stmts.len());
+        assert!(whilestmt.block.is_expr());
     }
 
     #[test]
@@ -2661,32 +2697,34 @@ mod tests {
         let stmt = parse_stmt("loop { 1; }");
         let block = &stmt.to_loop().unwrap().block;
 
-        assert_eq!(1, block.to_block().unwrap().stmts.len());
+        assert!(block.is_expr());
     }
 
     #[test]
     fn parse_empty_block() {
-        let stmt = parse_stmt("{}");
-        let block = stmt.to_block().unwrap();
+        let (expr, _) = parse_expr("{}");
+        let block = expr.to_block().unwrap();
 
         assert_eq!(0, block.stmts.len());
     }
 
     #[test]
     fn parse_block_with_one_stmt() {
-        let stmt = parse_stmt("{ 1; }");
-        let block = stmt.to_block().unwrap();
+        let (expr, _) = parse_expr("{ 1; 2 }");
+        let block = expr.to_block().unwrap();
 
         assert_eq!(1, block.stmts.len());
 
         let expr = &block.stmts[0].to_expr().unwrap().expr;
         assert_eq!(1, expr.to_lit_int().unwrap().value);
+
+        assert_eq!(2, block.expr.as_ref().unwrap().to_lit_int().unwrap().value);
     }
 
     #[test]
     fn parse_block_with_multiple_stmts() {
-        let stmt = parse_stmt("{ 1; 2; }");
-        let block = stmt.to_block().unwrap();
+        let (expr, _) = parse_expr("{ 1; 2; }");
+        let block = expr.to_block().unwrap();
 
         assert_eq!(2, block.stmts.len());
 
@@ -2695,6 +2733,8 @@ mod tests {
 
         let expr = &block.stmts[1].to_expr().unwrap().expr;
         assert_eq!(2, expr.to_lit_int().unwrap().value);
+
+        assert!(block.expr.is_none());
     }
 
     #[test]

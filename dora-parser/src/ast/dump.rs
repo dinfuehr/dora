@@ -312,7 +312,6 @@ impl<'a> AstDumper<'a> {
             StmtDefer(ref stmt) => self.dump_stmt_defer(stmt),
             StmtDo(ref stmt) => self.dump_stmt_do(stmt),
             StmtFor(ref stmt) => self.dump_stmt_for(stmt),
-            StmtValue(_) => unreachable!(),
         }
     }
 

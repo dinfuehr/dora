@@ -595,7 +595,6 @@ pub enum Stmt {
     StmtLoop(StmtLoopType),
     StmtIf(StmtIfType),
     StmtExpr(StmtExprType),
-    StmtValue(Box<Expr>),
     StmtBlock(StmtBlockType),
     StmtBreak(StmtBreakType),
     StmtContinue(StmtContinueType),
@@ -703,10 +702,6 @@ impl Stmt {
         })
     }
 
-    pub fn create_value(expr: Box<Expr>) -> Stmt {
-        Stmt::StmtValue(expr)
-    }
-
     pub fn create_block(
         id: NodeId,
         pos: Position,
@@ -795,7 +790,6 @@ impl Stmt {
             Stmt::StmtThrow(ref stmt) => stmt.id,
             Stmt::StmtDefer(ref stmt) => stmt.id,
             Stmt::StmtDo(ref stmt) => stmt.id,
-            Stmt::StmtValue(_) => panic!("should only be used during parsing"),
         }
     }
 
@@ -814,7 +808,6 @@ impl Stmt {
             Stmt::StmtThrow(ref stmt) => stmt.pos,
             Stmt::StmtDefer(ref stmt) => stmt.pos,
             Stmt::StmtDo(ref stmt) => stmt.pos,
-            Stmt::StmtValue(_) => panic!("should only be used during parsing"),
         }
     }
 
@@ -833,7 +826,6 @@ impl Stmt {
             Stmt::StmtThrow(ref stmt) => stmt.span,
             Stmt::StmtDefer(ref stmt) => stmt.span,
             Stmt::StmtDo(ref stmt) => stmt.span,
-            Stmt::StmtValue(_) => panic!("should only be used during parsing"),
         }
     }
 
@@ -959,13 +951,6 @@ impl Stmt {
     pub fn is_expr(&self) -> bool {
         match *self {
             Stmt::StmtExpr(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_value(&self) -> bool {
-        match *self {
-            Stmt::StmtValue(_) => true,
             _ => false,
         }
     }
@@ -1895,6 +1880,13 @@ impl Expr {
         match self {
             &Expr::ExprBlock(_) => true,
             _ => false,
+        }
+    }
+
+    pub fn needs_semicolon(&self) -> bool {
+        match self {
+            &Expr::ExprBlock(_) => false,
+            _ => true,
         }
     }
 

@@ -2051,8 +2051,6 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             StmtContinue(_) => visit::walk_stmt(self, s),
             StmtLoop(_) => visit::walk_stmt(self, s),
             StmtExpr(_) => visit::walk_stmt(self, s),
-
-            StmtValue(_) => unreachable!(),
         }
 
         if !s.is_block() {

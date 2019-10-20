@@ -325,6 +325,20 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         self.visit_expr(&path.lhs);
         // do not check right hand site of path
     }
+
+    fn check_expr_block(&mut self, block: &'ast ExprBlockType) {
+        self.vm.sym.lock().push_level();
+
+        for stmt in &block.stmts {
+            self.visit_stmt(stmt);
+        }
+
+        if let Some(ref expr) = block.expr {
+            self.visit_expr(expr);
+        }
+
+        self.vm.sym.lock().pop_level();
+    }
 }
 
 impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
@@ -373,6 +387,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
         match e {
             &ExprIdent(ref ident) => self.check_expr_ident(ident),
             &ExprPath(ref path) => self.check_expr_path(path),
+            &ExprBlock(ref block) => self.check_expr_block(block),
 
             // no need to handle rest of expressions
             _ => visit::walk_expr(self, e),

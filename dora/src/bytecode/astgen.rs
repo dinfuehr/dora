@@ -243,6 +243,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             ExprUn(ref un) => self.visit_expr_un(un, dest),
             ExprBin(ref bin) => self.visit_expr_bin(bin, dest),
             ExprDot(ref field) => self.visit_expr_dot(field, dest),
+            ExprBlock(ref block) => self.visit_expr_block(block, dest),
             // ExprArray(ref array) => {},
             ExprLitChar(ref lit) => self.visit_expr_lit_char(lit, dest),
             ExprLitInt(ref lit) => self.visit_expr_lit_int(lit, dest),
@@ -260,6 +261,18 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             // ExprTry(ref expr) => {},
             // ExprLambda(ref expr) => {},
             _ => unimplemented!(),
+        }
+    }
+
+    fn visit_expr_block(&mut self, block: &ExprBlockType, dest: DataDest) -> Register {
+        for stmt in &block.stmts {
+            self.visit_stmt(stmt);
+        }
+
+        if let Some(ref expr) = block.expr {
+            self.visit_expr(expr, dest)
+        } else {
+            Register::invalid()
         }
     }
 

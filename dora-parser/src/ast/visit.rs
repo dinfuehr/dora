@@ -282,8 +282,6 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
 
         StmtBreak(_) => {}
         StmtContinue(_) => {}
-
-        StmtValue(_) => unreachable!(),
     }
 }
 
