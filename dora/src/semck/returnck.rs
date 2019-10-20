@@ -43,9 +43,9 @@ impl<'a, 'ast> ReturnCheck<'a, 'ast> {
 
 impl<'a, 'ast> Visitor<'ast> for ReturnCheck<'a, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
-        let returns = returns_value(f.block());
+        let returns = expr_block_returns_value(f.block());
 
-        if returns.is_ok() {
+        if returns {
             // otherwise the function is always finished with a return statement
             // save this information for the function, this information is useful
             // for code generation
@@ -53,6 +53,16 @@ impl<'a, 'ast> Visitor<'ast> for ReturnCheck<'a, 'ast> {
             self.src.always_returns = true;
         }
     }
+}
+
+pub fn expr_block_returns_value(block: &ExprBlockType) -> bool {
+    for stmt in &block.stmts {
+        if returns_value(stmt).is_ok() {
+            return true;
+        }
+    }
+
+    block.expr.is_some()
 }
 
 pub fn returns_value(s: &Stmt) -> Result<(), Position> {

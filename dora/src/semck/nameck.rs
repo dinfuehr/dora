@@ -76,7 +76,17 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             self.visit_param(p);
         }
 
-        self.visit_stmt(self.ast.block());
+        {
+            let block = self.ast.block();
+
+            for stmt in &block.stmts {
+                self.visit_stmt(stmt);
+            }
+
+            if let Some(ref value) = block.expr {
+                self.visit_expr(value);
+            }
+        }
 
         self.vm.sym.lock().pop_level();
     }

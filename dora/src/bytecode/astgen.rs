@@ -91,7 +91,16 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
 
         if let Some(ref block) = self.ast.block {
-            self.visit_stmt(block);
+            for stmt in &block.stmts {
+                self.visit_stmt(stmt);
+            }
+
+            if let Some(ref value) = block.expr {
+                let reg = self.visit_expr(value, DataDest::Alloc);
+                self.emit_ret_value(reg);
+            }
+        } else {
+            unreachable!();
         }
 
         if self.fct.return_type.is_unit() {
@@ -196,21 +205,25 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     fn visit_stmt_return(&mut self, ret: &StmtReturnType) {
         if let Some(ref expr) = ret.expr {
-            let return_type: BytecodeType = self.specialize_type(self.fct.return_type).into();
             let result_reg = self.visit_expr(expr, DataDest::Alloc);
-
-            match return_type {
-                BytecodeType::Bool => self.gen.emit_ret_bool(result_reg),
-                BytecodeType::Byte => self.gen.emit_ret_byte(result_reg),
-                BytecodeType::Char => self.gen.emit_ret_char(result_reg),
-                BytecodeType::Int => self.gen.emit_ret_int(result_reg),
-                BytecodeType::Long => self.gen.emit_ret_long(result_reg),
-                BytecodeType::Float => self.gen.emit_ret_float(result_reg),
-                BytecodeType::Double => self.gen.emit_ret_double(result_reg),
-                BytecodeType::Ptr => self.gen.emit_ret_ptr(result_reg),
-            }
+            self.emit_ret_value(result_reg);
         } else {
             self.gen.emit_ret_void();
+        }
+    }
+
+    fn emit_ret_value(&mut self, result_reg: Register) {
+        let return_type: BytecodeType = self.specialize_type(self.fct.return_type).into();
+
+        match return_type {
+            BytecodeType::Bool => self.gen.emit_ret_bool(result_reg),
+            BytecodeType::Byte => self.gen.emit_ret_byte(result_reg),
+            BytecodeType::Char => self.gen.emit_ret_char(result_reg),
+            BytecodeType::Int => self.gen.emit_ret_int(result_reg),
+            BytecodeType::Long => self.gen.emit_ret_long(result_reg),
+            BytecodeType::Float => self.gen.emit_ret_float(result_reg),
+            BytecodeType::Double => self.gen.emit_ret_double(result_reg),
+            BytecodeType::Ptr => self.gen.emit_ret_ptr(result_reg),
         }
     }
 

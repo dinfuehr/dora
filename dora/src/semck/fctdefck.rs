@@ -274,7 +274,14 @@ impl<'a, 'ast> FctDefCheck<'a, 'ast> {
 
 impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
-        self.visit_stmt(f.block());
+        let block = f.block();
+        for stmt in &block.stmts {
+            self.visit_stmt(stmt);
+        }
+
+        if let Some(ref value) = block.expr {
+            self.visit_expr(value);
+        }
     }
 
     fn visit_type(&mut self, t: &'ast Type) {

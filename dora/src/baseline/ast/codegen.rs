@@ -2610,7 +2610,21 @@ impl<'a, 'ast> CodeGen<'ast> for AstCodeGen<'a, 'ast> {
 
         self.emit_prolog();
         self.store_register_params_on_stack();
-        self.visit_fct(self.ast);
+
+        {
+            let block = self.ast.block();
+
+            for stmt in &block.stmts {
+                self.visit_stmt(stmt);
+            }
+
+            if let Some(ref value) = block.expr {
+                let return_type = self.specialize_type(self.fct.return_type);
+                let reg = result_reg(return_type.mode());
+                self.emit_expr(value, reg);
+                self.emit_epilog();
+            }
+        }
 
         assert!(self.temps.is_empty());
 

@@ -779,7 +779,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_function_block(&mut self) -> Result<Option<Box<Stmt>>, ParseErrorAndPos> {
+    fn parse_function_block(&mut self) -> Result<Option<Box<ExprBlockType>>, ParseErrorAndPos> {
         if self.token.is(TokenKind::Semicolon) {
             self.advance_token()?;
 
@@ -789,29 +789,52 @@ impl<'a> Parser<'a> {
 
             Ok(Some(expr))
         } else {
-            let block = self.parse_block()?;
+            let block = self.parse_block_expr()?;
 
-            Ok(Some(block))
+            if let Expr::ExprBlock(block_type) = *block {
+                Ok(Some(Box::new(block_type)))
+            } else {
+                unreachable!()
+            }
         }
     }
 
-    fn parse_function_block_expression(&mut self) -> Result<Box<Stmt>, ParseErrorAndPos> {
-        self.advance_token()?;
-        let pos = self.token.position;
+    fn parse_function_block_expression(&mut self) -> Result<Box<ExprBlockType>, ParseErrorAndPos> {
+        self.expect_token(TokenKind::Eq)?;
 
         match self.token.kind {
-            TokenKind::Throw => self.parse_throw(),
-            TokenKind::Return => self.parse_return(),
+            TokenKind::Throw => {
+                let stmt = self.parse_throw()?;
+                Ok(Box::new(ExprBlockType {
+                    id: self.generate_id(),
+                    pos: stmt.pos(),
+                    span: stmt.span(),
+                    stmts: vec![stmt],
+                    expr: None,
+                }))
+            }
+
+            TokenKind::Return => {
+                let stmt = self.parse_return()?;
+                Ok(Box::new(ExprBlockType {
+                    id: self.generate_id(),
+                    pos: stmt.pos(),
+                    span: stmt.span(),
+                    stmts: vec![stmt],
+                    expr: None,
+                }))
+            }
+
             _ => {
                 let expr = self.parse_expression()?;
                 self.expect_token(TokenKind::Semicolon)?;
-                let span = expr.span();
-                Ok(Box::new(Stmt::create_return(
-                    self.generate_id(),
-                    pos,
-                    span,
-                    Some(expr),
-                )))
+                Ok(Box::new(ExprBlockType {
+                    id: self.generate_id(),
+                    pos: expr.pos(),
+                    span: expr.span(),
+                    stmts: Vec::new(),
+                    expr: Some(expr),
+                }))
             }
         }
     }

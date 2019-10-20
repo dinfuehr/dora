@@ -35,10 +35,21 @@ pub struct TypeCheck<'a, 'ast: 'a> {
 impl<'a, 'ast> TypeCheck<'a, 'ast> {
     pub fn check(&mut self) {
         let block = self.ast.block.as_ref().expect("missing block");
-        self.visit_stmt(block);
+        let mut returns = false;
 
-        if !always_returns(block) {
-            self.check_fct_return_type(block.pos(), self.expr_type);
+        for stmt in &block.stmts {
+            self.visit_stmt(stmt);
+
+            if always_returns(stmt) {
+                returns = true;
+            }
+        }
+
+        if let Some(ref value) = &block.expr {
+            self.visit_expr(value);
+            self.check_fct_return_type(block.pos, self.expr_type);
+        } else if !returns {
+            self.check_fct_return_type(block.pos, BuiltinType::Unit);
         }
     }
 

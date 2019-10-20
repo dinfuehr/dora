@@ -508,12 +508,12 @@ pub struct Function {
     pub throws: bool,
 
     pub return_type: Option<Type>,
-    pub block: Option<Box<Stmt>>,
+    pub block: Option<Box<ExprBlockType>>,
     pub type_params: Option<Vec<TypeParam>>,
 }
 
 impl Function {
-    pub fn block(&self) -> &Stmt {
+    pub fn block(&self) -> &ExprBlockType {
         self.block.as_ref().unwrap()
     }
 }
@@ -1880,6 +1880,20 @@ impl Expr {
     pub fn is_lambda(&self) -> bool {
         match self {
             &Expr::ExprLambda(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_block(&self) -> Option<&ExprBlockType> {
+        match *self {
+            Expr::ExprBlock(ref val) => Some(val),
+            _ => None,
+        }
+    }
+
+    pub fn is_block(&self) -> bool {
+        match self {
+            &Expr::ExprBlock(_) => true,
             _ => false,
         }
     }

@@ -81,7 +81,7 @@ pub struct BuilderFct<'a> {
     is_constructor: bool,
     return_type: Option<Type>,
     params: Vec<Param>,
-    block: Option<Box<Stmt>>,
+    block: Option<Box<ExprBlockType>>,
 }
 
 impl<'a> BuilderFct<'a> {
@@ -130,8 +130,8 @@ impl<'a> BuilderFct<'a> {
         self
     }
 
-    pub fn block(&mut self, stmt: Box<Stmt>) -> &mut BuilderFct<'a> {
-        self.block = Some(stmt);
+    pub fn block(&mut self, block: Box<ExprBlockType>) -> &mut BuilderFct<'a> {
+        self.block = Some(block);
         self
     }
 
@@ -192,15 +192,15 @@ impl<'a> BuilderBlock<'a> {
         self
     }
 
-    pub fn build(self) -> Box<Stmt> {
+    pub fn build(self) -> Box<ExprBlockType> {
         let id = self.id_generator.next();
 
-        Box::new(Stmt::StmtBlock(StmtBlockType {
+        Box::new(ExprBlockType {
             id,
             pos: Position::new(1, 1),
             span: Span::invalid(),
             stmts: self.stmts,
             expr: None,
-        }))
+        })
     }
 }

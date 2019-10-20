@@ -170,7 +170,13 @@ pub fn walk_fct<'v, V: Visitor<'v>>(v: &mut V, f: &'v Function) {
     }
 
     if let Some(ref block) = f.block {
-        v.visit_stmt(block);
+        for stmt in &block.stmts {
+            v.visit_stmt(stmt);
+        }
+
+        if let Some(ref value) = block.expr {
+            v.visit_expr_top(value);
+        }
     }
 }
 
