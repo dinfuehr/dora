@@ -916,38 +916,13 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_statement(&mut self) -> StmtResult {
-        match self.token.kind {
-            TokenKind::Let | TokenKind::Var => self.parse_var(),
-            TokenKind::If => self.parse_if(),
-            TokenKind::While => self.parse_while(),
-            TokenKind::Loop => self.parse_loop(),
-            TokenKind::Break => self.parse_break(),
-            TokenKind::Continue => self.parse_continue(),
-            TokenKind::Return => self.parse_return(),
-            TokenKind::Else => Err(ParseErrorAndPos::new(
-                self.token.position,
-                ParseError::MisplacedElse,
-            )),
-            TokenKind::Throw => self.parse_throw(),
-            TokenKind::Defer => self.parse_defer(),
-            TokenKind::Do => self.parse_do(),
-            TokenKind::For => self.parse_for(),
-            _ => {
-                let start = self.token.span.start();
-                let pos = self.token.position;
-                let expr = self.parse_expression()?;
+        let stmt_or_expr = self.parse_statement_or_expression()?;
 
+        match stmt_or_expr {
+            StmtOrExpr::Stmt(stmt) => Ok(stmt),
+            StmtOrExpr::Expr(expr) => {
                 if expr.needs_semicolon() {
-                    self.expect_semicolon()?;
-
-                    let span = self.span_from(start);
-
-                    Ok(Box::new(Stmt::create_expr(
-                        self.generate_id(),
-                        pos,
-                        span,
-                        expr,
-                    )))
+                    Err(self.expect_semicolon().unwrap_err())
                 } else {
                     Ok(Box::new(Stmt::create_expr(
                         self.generate_id(),
@@ -1105,7 +1080,7 @@ impl<'a> Parser<'a> {
         let mut expr = None;
 
         while !self.token.is(TokenKind::RBrace) && !self.token.is_eof() {
-            let stmt_or_expr = self.parse_block_element()?;
+            let stmt_or_expr = self.parse_statement_or_expression()?;
 
             match stmt_or_expr {
                 StmtOrExpr::Stmt(stmt) => stmts.push(stmt),
@@ -1139,7 +1114,7 @@ impl<'a> Parser<'a> {
         )))
     }
 
-    fn parse_block_element(&mut self) -> StmtOrExprResult {
+    fn parse_statement_or_expression(&mut self) -> StmtOrExprResult {
         match self.token.kind {
             TokenKind::Let | TokenKind::Var => Ok(StmtOrExpr::Stmt(self.parse_var()?)),
             TokenKind::If => Ok(StmtOrExpr::Stmt(self.parse_if()?)),
@@ -1301,18 +1276,22 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_expression(&mut self) -> ExprResult {
-        let old = self.parse_struct_lit;
-        self.parse_struct_lit = true;
-        let result = self.parse_binary(0);
-        self.parse_struct_lit = old;
-
-        result
+        self.parse_expression_struct_lit(true)
     }
 
     fn parse_expression_no_struct_lit(&mut self) -> ExprResult {
+        self.parse_expression_struct_lit(false)
+    }
+
+    fn parse_expression_struct_lit(&mut self, struct_lit: bool) -> ExprResult {
         let old = self.parse_struct_lit;
-        self.parse_struct_lit = false;
-        let result = self.parse_binary(0);
+        self.parse_struct_lit = struct_lit;
+
+        let result = match self.token.kind {
+            TokenKind::LBrace => self.parse_block(),
+            _ => self.parse_binary(0),
+        };
+
         self.parse_struct_lit = old;
 
         result
@@ -3645,5 +3624,17 @@ mod tests {
         let call = expr.to_call().unwrap();
         assert!(call.callee.is_ident());
         assert_eq!(call.args.len(), 2);
+    }
+
+    #[test]
+    fn parse_block() {
+        let (expr, _) = parse_expr("{1}");
+        assert!(expr.to_block().unwrap().expr.as_ref().unwrap().is_lit_int());
+
+        let (expr, _) = parse_expr("({}) + 1");
+        assert!(expr.is_bin());
+
+        let (expr, _) = parse_expr("1 + {}");
+        assert!(expr.is_bin());
     }
 }
