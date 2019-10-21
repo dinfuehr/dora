@@ -161,7 +161,7 @@ where
         let return_type = self.specialize_type(self.fct.return_type);
 
         if let Some(ref expr) = s.expr {
-            self.emit_expr_old(expr);
+            self.emit_expr_result_reg(expr);
 
             if len > 0 {
                 let offset = self.jit_info.eh_return_value.unwrap();
@@ -217,7 +217,7 @@ where
         } else {
             // execute condition, when condition is false jump to
             // end of while
-            self.emit_expr_old(&s.cond);
+            self.emit_expr_result_reg(&s.cond);
             self.asm
                 .test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_end);
         }
@@ -333,7 +333,7 @@ where
             lbl_end
         };
 
-        self.emit_expr_old(&s.cond);
+        self.emit_expr_result_reg(&s.cond);
         self.asm
             .test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_else);
 
@@ -394,7 +394,7 @@ where
     }
 
     fn emit_stmt_expr(&mut self, s: &'ast StmtExprType) {
-        self.emit_expr_old(&s.expr);
+        self.emit_expr_result_reg(&s.expr);
     }
 
     fn emit_stmt_var(&mut self, s: &'ast StmtVarType) {
@@ -402,7 +402,7 @@ where
         let var = *self.src.map_vars.get(s.id).unwrap();
 
         if let Some(ref expr) = s.expr {
-            let value = self.emit_expr_old(expr);
+            let value = self.emit_expr_result_reg(expr);
             initialized = true;
 
             self.asm
@@ -433,7 +433,7 @@ where
     }
 
     fn emit_stmt_throw(&mut self, s: &'ast StmtThrowType) {
-        self.emit_expr_old(&s.expr);
+        self.emit_expr_result_reg(&s.expr);
         self.asm.test_if_nil_bailout(s.pos, REG_RESULT, Trap::NIL);
 
         self.asm.throw(REG_RESULT, s.pos);
@@ -553,22 +553,16 @@ where
         Some(finally_pos)
     }
 
-    fn emit_expr_old(&mut self, e: &'ast Expr) -> ExprStore {
+    fn emit_expr_result_reg(&mut self, e: &'ast Expr) -> ExprStore {
         let ty = self
             .src
             .map_tys
             .get(e.id())
             .map(|ty| *ty)
-            .unwrap_or(BuiltinType::Int);
+            .expect("no type found");
 
         let ty = self.specialize_type(ty);
-
-        let dest: ExprStore = if ty.is_float() {
-            FREG_RESULT.into()
-        } else {
-            REG_RESULT.into()
-        };
-
+        let dest = result_reg_ty(ty);
         self.emit_expr(e, dest);
 
         dest
@@ -2663,6 +2657,14 @@ impl<'a, 'ast> visit::Visitor<'ast> for AstCodeGen<'a, 'ast> {
 
 fn result_reg(mode: MachineMode) -> ExprStore {
     if mode.is_float() {
+        FREG_RESULT.into()
+    } else {
+        REG_RESULT.into()
+    }
+}
+
+fn result_reg_ty(ty: BuiltinType) -> ExprStore {
+    if ty.is_float() {
         FREG_RESULT.into()
     } else {
         REG_RESULT.into()

@@ -1912,7 +1912,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             },
         );
 
-        self.expr_type = if e.is { BuiltinType::Bool } else { check_type };
+        let ty = if e.is { BuiltinType::Bool } else { check_type };
+        self.src.set_ty(e.id, ty);
+        self.expr_type = ty;
     }
 
     fn check_expr_lit_int(&mut self, e: &'ast ExprLitIntType) {
