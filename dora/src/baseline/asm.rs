@@ -52,6 +52,14 @@ where
         self.masm.epilog_with_polling(stacksize, polling_page);
     }
 
+    pub fn increase_stack_frame(&mut self, size: i32) {
+        self.masm.increase_stack_frame(size);
+    }
+
+    pub fn decrease_stack_frame(&mut self, size: i32) {
+        self.masm.decrease_stack_frame(size);
+    }
+
     pub fn emit_comment(&mut self, comment: Comment) {
         self.masm.emit_comment(comment);
     }

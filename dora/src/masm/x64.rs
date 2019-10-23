@@ -62,6 +62,18 @@ impl MacroAssembler {
         asm::emit_popq_reg(self, RBP);
     }
 
+    pub fn increase_stack_frame(&mut self, size: i32) {
+        if size > 0 {
+            asm::emit_subq_imm_reg(self, size, RSP);
+        }
+    }
+
+    pub fn decrease_stack_frame(&mut self, size: i32) {
+        if size > 0 {
+            asm::emit_addq_imm_reg(self, size, RSP);
+        }
+    }
+
     pub fn direct_call(
         &mut self,
         fct_id: FctId,

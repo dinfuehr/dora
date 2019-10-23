@@ -32,8 +32,7 @@ pub fn generate<'a, 'ast: 'a>(
         src,
         jit_info,
 
-        localsize: 0,
-        argsize: 0,
+        stacksize: 0,
 
         param_offset: PARAM_OFFSET,
         leaf: true,
@@ -51,8 +50,7 @@ pub fn generate<'a, 'ast: 'a>(
 }
 
 pub struct JitInfo<'ast> {
-    pub localsize: i32,               // size of local variables on stack
-    pub argsize: i32,                 // size of arguments on stack (need to be on bottom)
+    pub stacksize: i32,               // size of local variables on stack
     pub leaf: bool,                   // false if fct calls other functions
     pub eh_return_value: Option<i32>, // stack slot for return value storage
 
@@ -75,7 +73,7 @@ impl<'ast> JitInfo<'ast> {
     }
 
     pub fn stacksize(&self) -> i32 {
-        mem::align_i32(self.localsize + self.argsize, 16)
+        self.stacksize
     }
 
     pub fn offset(&self, var_id: VarId) -> i32 {
@@ -94,8 +92,7 @@ impl<'ast> JitInfo<'ast> {
 
     pub fn new() -> JitInfo<'ast> {
         JitInfo {
-            localsize: 0,
-            argsize: 0,
+            stacksize: 0,
             leaf: false,
             eh_return_value: None,
 
@@ -118,8 +115,7 @@ struct InfoGenerator<'a, 'ast: 'a> {
     ast: &'ast Function,
     jit_info: &'a mut JitInfo<'ast>,
 
-    localsize: i32,
-    argsize: i32,
+    stacksize: i32,
 
     eh_return_value: Option<i32>,
     eh_status: Option<i32>,
@@ -208,8 +204,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         self.visit_fct(self.ast);
 
-        self.jit_info.localsize = mem::align_i32(self.localsize, mem::ptr_width());
-        self.jit_info.argsize = self.argsize;
+        self.jit_info.stacksize = mem::align_i32(self.stacksize, 16);
         self.jit_info.leaf = self.leaf;
         self.jit_info.eh_return_value = self.eh_return_value;
     }
@@ -574,10 +569,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         let argsize = self.determine_call_stack(&args);
 
-        if argsize > self.argsize {
-            self.argsize = argsize;
-        }
-
         CallSite {
             callee: callee_id,
             args,
@@ -905,9 +896,9 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             (ty.size(self.vm), ty.align(self.vm))
         };
 
-        self.localsize = mem::align_i32(self.localsize, ty_align) + ty_size;
+        self.stacksize = mem::align_i32(self.stacksize, ty_align) + ty_size;
 
-        -self.localsize
+        -self.stacksize
     }
 
     fn ty(&self, id: NodeId) -> BuiltinType {
@@ -1013,13 +1004,13 @@ mod tests {
     #[test]
     fn test_tempsize() {
         info("fun f() { 1+2*3; }", |_, jit_info| {
-            assert_eq!(8, jit_info.localsize);
+            assert_eq!(16, jit_info.stacksize);
         });
         info("fun f() { 2*3+4+5; }", |_, jit_info| {
-            assert_eq!(16, jit_info.localsize);
+            assert_eq!(16, jit_info.stacksize);
         });
         info("fun f() { 1+(2+(3+4)); }", |_, jit_info| {
-            assert_eq!(16, jit_info.localsize);
+            assert_eq!(16, jit_info.stacksize);
         })
     }
 
@@ -1029,7 +1020,7 @@ mod tests {
             "fun f() { g(1,2,3,4,5,6); }
               fun g(a:Int, b:Int, c:Int, d:Int, e:Int, f:Int) {}",
             |_, jit_info| {
-                assert_eq!(24, jit_info.localsize);
+                assert_eq!(32, jit_info.stacksize);
             },
         );
 
@@ -1037,7 +1028,7 @@ mod tests {
             "fun f() { g(1,2,3,4,5,6,7,8); }
               fun g(a:Int, b:Int, c:Int, d:Int, e:Int, f:Int, g:Int, h:Int) {}",
             |_, jit_info| {
-                assert_eq!(32, jit_info.localsize);
+                assert_eq!(32, jit_info.stacksize);
             },
         );
 
@@ -1047,7 +1038,7 @@ mod tests {
                   return 0;
               }",
             |_, jit_info| {
-                assert_eq!(40, jit_info.localsize);
+                assert_eq!(48, jit_info.stacksize);
             },
         );
     }
@@ -1066,7 +1057,7 @@ mod tests {
     #[test]
     fn test_param_offset() {
         info("fun f(a: Bool, b: Int) { let c = 1; }", |fct, jit_info| {
-            assert_eq!(16, jit_info.localsize);
+            assert_eq!(16, jit_info.stacksize);
 
             for (var, offset) in fct.vars.iter().zip(&[-1, -8, -12]) {
                 assert_eq!(*offset, jit_info.offset(var.id));
@@ -1083,7 +1074,7 @@ mod tests {
                   let i : Int = 1;
               }",
             |fct, jit_info| {
-                assert_eq!(32, jit_info.localsize);
+                assert_eq!(32, jit_info.stacksize);
                 let offsets = [-4, -8, -12, -16, -20, -24, 16, 24, -28];
 
                 for (var, offset) in fct.vars.iter().zip(&offsets) {
@@ -1103,7 +1094,7 @@ mod tests {
                   let k : Int = 1;
               }",
             |fct, jit_info| {
-                assert_eq!(36, jit_info.localsize);
+                assert_eq!(36, jit_info.stacksize);
                 let offsets = [-4, -8, -12, -16, -20, -24, -28, -32, 16, 24, -36];
 
                 for (var, offset) in fct.vars.iter().zip(&offsets) {
@@ -1118,7 +1109,7 @@ mod tests {
         info(
             "fun f() { let a = true; let b = false; let c = 2; let d = \"abc\"; }",
             |fct, jit_info| {
-                assert_eq!(16, jit_info.localsize);
+                assert_eq!(16, jit_info.stacksize);
 
                 for (var, offset) in fct.vars.iter().zip(&[-1, -2, -8, -16]) {
                     assert_eq!(*offset, jit_info.offset(var.id));

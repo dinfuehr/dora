@@ -15,7 +15,8 @@ use crate::baseline::dora_native::{InternalFct, InternalFctDescriptor};
 use crate::baseline::fct::{CatchType, Comment, JitBaselineFct, JitDescriptor};
 use crate::class::{ClassDef, ClassDefId, ClassSize, FieldId};
 use crate::cpu::{
-    FReg, Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_TMP1, REG_TMP2,
+    FReg, Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_SP, REG_TMP1,
+    REG_TMP2,
 };
 use crate::gc::Address;
 use crate::masm::*;
@@ -2273,7 +2274,9 @@ where
             temps.push((arg.ty(), offset, None));
         }
 
-        let mut arg_offset = -self.jit_info.stacksize();
+        self.asm.increase_stack_frame(csite.argsize);
+
+        let mut sp_offset = 0;
         let mut idx = 0;
         let mut reg_idx = 0;
         let mut freg_idx = 0;
@@ -2310,9 +2313,9 @@ where
                     self.asm
                         .load_mem(mode, FREG_TMP1.into(), Mem::Local(offset));
                     self.asm
-                        .store_mem(mode, Mem::Local(arg_offset), FREG_TMP1.into());
+                        .store_mem(mode, Mem::Base(REG_SP, sp_offset), FREG_TMP1.into());
 
-                    arg_offset += 8;
+                    sp_offset += 8;
                 }
             } else {
                 if reg_idx < REG_PARAMS.len() {
@@ -2323,9 +2326,9 @@ where
                 } else {
                     self.asm.load_mem(mode, REG_TMP1.into(), Mem::Local(offset));
                     self.asm
-                        .store_mem(mode, Mem::Local(arg_offset), REG_TMP1.into());
+                        .store_mem(mode, Mem::Base(REG_SP, sp_offset), REG_TMP1.into());
 
-                    arg_offset += 8;
+                    sp_offset += 8;
                 }
             }
 
@@ -2401,6 +2404,8 @@ where
         for temp in temps.into_iter() {
             self.free_temp_with_type(temp.0, temp.1);
         }
+
+        self.asm.decrease_stack_frame(csite.argsize);
     }
 
     fn emit_allocation(
