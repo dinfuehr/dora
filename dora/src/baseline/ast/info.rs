@@ -33,8 +33,6 @@ pub fn generate<'a, 'ast: 'a>(
         jit_info,
 
         localsize: 0,
-        max_tempsize: 0,
-        cur_tempsize: 0,
         argsize: 0,
 
         param_offset: PARAM_OFFSET,
@@ -53,7 +51,6 @@ pub fn generate<'a, 'ast: 'a>(
 }
 
 pub struct JitInfo<'ast> {
-    pub tempsize: i32,                // size of temporary variables on stack
     pub localsize: i32,               // size of local variables on stack
     pub argsize: i32,                 // size of arguments on stack (need to be on bottom)
     pub leaf: bool,                   // false if fct calls other functions
@@ -78,7 +75,7 @@ impl<'ast> JitInfo<'ast> {
     }
 
     pub fn stacksize(&self) -> i32 {
-        mem::align_i32(self.tempsize + self.localsize + self.argsize, 16)
+        mem::align_i32(self.localsize + self.argsize, 16)
     }
 
     pub fn offset(&self, var_id: VarId) -> i32 {
@@ -97,7 +94,6 @@ impl<'ast> JitInfo<'ast> {
 
     pub fn new() -> JitInfo<'ast> {
         JitInfo {
-            tempsize: 0,
             localsize: 0,
             argsize: 0,
             leaf: false,
@@ -123,8 +119,6 @@ struct InfoGenerator<'a, 'ast: 'a> {
     jit_info: &'a mut JitInfo<'ast>,
 
     localsize: i32,
-    max_tempsize: i32,
-    cur_tempsize: i32,
     argsize: i32,
 
     eh_return_value: Option<i32>,
@@ -191,12 +185,6 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
         visit::walk_stmt(self, s);
     }
 
-    fn visit_expr_top(&mut self, e: &'ast Expr) {
-        self.cur_tempsize = 0;
-        self.visit_expr(e);
-        self.max_tempsize = max(self.cur_tempsize, self.max_tempsize);
-    }
-
     fn visit_expr(&mut self, e: &'ast Expr) {
         match *e {
             ExprCall(ref expr) => self.expr_call(expr),
@@ -221,7 +209,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.visit_fct(self.ast);
 
         self.jit_info.localsize = mem::align_i32(self.localsize, mem::ptr_width());
-        self.jit_info.tempsize = mem::align_i32(self.max_tempsize, mem::ptr_width());
         self.jit_info.argsize = self.argsize;
         self.jit_info.leaf = self.leaf;
         self.jit_info.eh_return_value = self.eh_return_value;
@@ -233,7 +220,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         if !ret.is_unit() {
             self.eh_return_value = Some(
                 self.eh_return_value
-                    .unwrap_or_else(|| self.reserve_stack_for_type(ret)),
+                    .unwrap_or_else(|| self.reserve_stack_slot(ret)),
             );
         }
 
@@ -244,7 +231,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         }
 
         if r#try.finally_block.is_some() {
-            let offset = self.reserve_stack_for_type(BuiltinType::Ptr);
+            let offset = self.reserve_stack_slot(BuiltinType::Ptr);
             self.jit_info.map_offsets.insert(r#try.id, offset);
         }
     }
@@ -257,7 +244,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.reserve_stack_for_var(var);
 
         // reserve stack slot for iterator
-        let offset = self.reserve_stack_for_type(for_type_info.iterator_type);
+        let offset = self.reserve_stack_slot(for_type_info.iterator_type);
         self.jit_info.map_offsets.insert(stmt.id, offset);
 
         // build makeIterator() call
@@ -315,7 +302,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             _ => unreachable!(),
         };
 
-        let offset = self.reserve_stack_for_type(ty);
+        let offset = self.reserve_stack_slot(ty);
 
         let id = self.src.var_self().id;
         self.jit_info.map_var_offsets.insert(id, offset);
@@ -324,19 +311,12 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     fn reserve_stack_for_var(&mut self, id: VarId) -> i32 {
         let ty = self.src.vars[id].ty;
         let ty = self.specialize_type(ty);
-        let offset = self.reserve_stack_for_type(ty);
+        let offset = self.reserve_stack_slot(ty);
 
         self.jit_info.map_var_offsets.insert(id, offset);
         self.jit_info.map_var_types.insert(id, ty);
 
         offset
-    }
-
-    fn reserve_stack_for_type(&mut self, ty: BuiltinType) -> i32 {
-        let ty_size = ty.size(self.vm);
-        self.localsize = mem::align_i32(self.localsize + ty_size, ty_size);
-
-        -self.localsize
     }
 
     fn expr_conv(&mut self, e: &'ast ExprConvType) {
@@ -378,11 +358,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
             match intrinsic {
                 Intrinsic::Assert => {
-                    let offset = self.reserve_stack_for_type(BuiltinType::Ptr);
+                    let offset = self.reserve_stack_slot(BuiltinType::Ptr);
                     let cls_id = self.vm.vips.error_class;
                     let cls = self.vm.classes.idx(cls_id);
                     let cls = cls.read();
-                    let selfie_offset = self.reserve_temp_for_type(cls.ty);
+                    let selfie_offset = self.reserve_stack_slot(cls.ty);
                     let args = vec![
                         Arg::SelfieNew(cls.ty, selfie_offset),
                         Arg::Stack(offset, BuiltinType::Ptr, 0),
@@ -625,7 +605,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             .map(|(ind, arg)| {
                 let ty = callee.params_with_self()[ind];
                 let ty = self.specialize_type_for_call(call_type, ty);
-                let offset = self.reserve_temp_for_type(ty);
+                let offset = self.reserve_stack_slot(ty);
 
                 match *arg {
                     Arg::Expr(ast, _, _) => {
@@ -824,8 +804,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn expr_template(&mut self, expr: &'ast ExprTemplateType) {
-        let string_buffer_offset = self.reserve_stack_for_type(BuiltinType::Ptr);
-        let string_part_offset = self.reserve_stack_for_type(BuiltinType::Ptr);
+        let string_buffer_offset = self.reserve_stack_slot(BuiltinType::Ptr);
+        let string_part_offset = self.reserve_stack_slot(BuiltinType::Ptr);
 
         // build StringBuffer::empty() call
         let fct_id = self.vm.vips.fct.string_buffer_empty;
@@ -843,7 +823,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
                 if ty.cls_id(self.vm) != Some(self.vm.vips.string_class) {
                     // build toString() call
-                    let offset = self.reserve_stack_for_type(ty);
+                    let offset = self.reserve_stack_slot(ty);
                     object_offset = Some(offset);
                     let cls_id = ty.cls_id(self.vm).expect("no cls_id found for type");
                     let cls = self.vm.classes.idx(cls_id);
@@ -909,7 +889,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn reserve_temp_for_node_with_type(&mut self, id: NodeId, ty: BuiltinType) -> i32 {
-        let offset = self.reserve_temp_for_type(ty);
+        let offset = self.reserve_stack_slot(ty);
 
         self.jit_info
             .map_stores
@@ -918,15 +898,16 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         offset
     }
 
-    fn reserve_temp_for_type(&mut self, ty: BuiltinType) -> i32 {
-        let ty_size = if ty.is_nil() {
-            BuiltinType::Ptr.size(self.vm)
+    fn reserve_stack_slot(&mut self, ty: BuiltinType) -> i32 {
+        let (ty_size, ty_align) = if ty.is_nil() {
+            (mem::ptr_width(), mem::ptr_width())
         } else {
-            ty.size(self.vm)
+            (ty.size(self.vm), ty.align(self.vm))
         };
-        self.cur_tempsize = mem::align_i32(self.cur_tempsize + ty_size, ty_size);
 
-        self.cur_tempsize
+        self.localsize = mem::align_i32(self.localsize, ty_align) + ty_size;
+
+        -self.localsize
     }
 
     fn ty(&self, id: NodeId) -> BuiltinType {
@@ -1032,13 +1013,13 @@ mod tests {
     #[test]
     fn test_tempsize() {
         info("fun f() { 1+2*3; }", |_, jit_info| {
-            assert_eq!(8, jit_info.tempsize);
+            assert_eq!(8, jit_info.localsize);
         });
         info("fun f() { 2*3+4+5; }", |_, jit_info| {
-            assert_eq!(16, jit_info.tempsize);
+            assert_eq!(16, jit_info.localsize);
         });
         info("fun f() { 1+(2+(3+4)); }", |_, jit_info| {
-            assert_eq!(16, jit_info.tempsize);
+            assert_eq!(16, jit_info.localsize);
         })
     }
 
@@ -1048,7 +1029,7 @@ mod tests {
             "fun f() { g(1,2,3,4,5,6); }
               fun g(a:Int, b:Int, c:Int, d:Int, e:Int, f:Int) {}",
             |_, jit_info| {
-                assert_eq!(24, jit_info.tempsize);
+                assert_eq!(24, jit_info.localsize);
             },
         );
 
@@ -1056,7 +1037,7 @@ mod tests {
             "fun f() { g(1,2,3,4,5,6,7,8); }
               fun g(a:Int, b:Int, c:Int, d:Int, e:Int, f:Int, g:Int, h:Int) {}",
             |_, jit_info| {
-                assert_eq!(32, jit_info.tempsize);
+                assert_eq!(32, jit_info.localsize);
             },
         );
 
@@ -1066,7 +1047,7 @@ mod tests {
                   return 0;
               }",
             |_, jit_info| {
-                assert_eq!(40, jit_info.tempsize);
+                assert_eq!(40, jit_info.localsize);
             },
         );
     }

@@ -878,7 +878,7 @@ where
     fn reserve_temp_for_node(&mut self, expr: &Expr) -> i32 {
         let id = expr.id();
         let ty = self.ty(id);
-        let offset = -(self.jit_info.localsize + self.jit_info.get_store(id).offset());
+        let offset = self.jit_info.get_store(id).offset();
 
         if ty.reference_type() {
             self.temps.insert(offset);
@@ -900,7 +900,7 @@ where
     }
 
     fn reserve_temp_for_arg(&mut self, arg: &Arg<'ast>) -> i32 {
-        let offset = -(self.jit_info.localsize + arg.offset());
+        let offset = arg.offset();
         let ty = arg.ty();
 
         if ty.reference_type() {
@@ -911,9 +911,7 @@ where
     }
 
     fn reserve_temp_for_self(&mut self, arg: &Arg<'ast>) -> i32 {
-        let offset = -(self.jit_info.localsize + arg.offset());
-
-        offset
+        arg.offset()
     }
 
     fn free_temp_for_node(&mut self, expr: &Expr, offset: i32) {

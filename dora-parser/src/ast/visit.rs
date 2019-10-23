@@ -73,10 +73,6 @@ pub trait Visitor<'v>: Sized {
         walk_stmt(self, s);
     }
 
-    fn visit_expr_top(&mut self, e: &'v Expr) {
-        self.visit_expr(e);
-    }
-
     fn visit_expr(&mut self, e: &'v Expr) {
         walk_expr(self, e);
     }
@@ -107,7 +103,7 @@ pub fn walk_global<'v, V: Visitor<'v>>(v: &mut V, g: &'v Global) {
     v.visit_type(&g.data_type);
 
     if let Some(ref expr) = g.expr {
-        v.visit_expr_top(expr);
+        v.visit_expr(expr);
     }
 }
 
@@ -139,7 +135,7 @@ pub fn walk_class<'v, V: Visitor<'v>>(v: &mut V, c: &'v Class) {
 
 pub fn walk_const<'v, V: Visitor<'v>>(v: &mut V, c: &'v Const) {
     v.visit_type(&c.data_type);
-    v.visit_expr_top(&c.expr);
+    v.visit_expr(&c.expr);
 }
 
 pub fn walk_enum<'v, V: Visitor<'v>>(_v: &mut V, _e: &'v Enum) {
@@ -175,7 +171,7 @@ pub fn walk_fct<'v, V: Visitor<'v>>(v: &mut V, f: &'v Function) {
         }
 
         if let Some(ref value) = block.expr {
-            v.visit_expr_top(value);
+            v.visit_expr(value);
         }
     }
 }
@@ -212,17 +208,17 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
             }
 
             if let Some(ref e) = value.expr {
-                v.visit_expr_top(e);
+                v.visit_expr(e);
             }
         }
 
         StmtFor(ref value) => {
-            v.visit_expr_top(&value.expr);
+            v.visit_expr(&value.expr);
             v.visit_stmt(&value.block);
         }
 
         StmtWhile(ref value) => {
-            v.visit_expr_top(&value.cond);
+            v.visit_expr(&value.cond);
             v.visit_stmt(&value.block);
         }
 
@@ -231,7 +227,7 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
         }
 
         StmtIf(ref value) => {
-            v.visit_expr_top(&value.cond);
+            v.visit_expr(&value.cond);
             v.visit_stmt(&value.then_block);
 
             if let Some(ref b) = value.else_block {
@@ -240,21 +236,21 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
         }
 
         StmtExpr(ref value) => {
-            v.visit_expr_top(&value.expr);
+            v.visit_expr(&value.expr);
         }
 
         StmtReturn(ref value) => {
             if let Some(ref e) = value.expr {
-                v.visit_expr_top(e);
+                v.visit_expr(e);
             }
         }
 
         StmtThrow(ref value) => {
-            v.visit_expr_top(&value.expr);
+            v.visit_expr(&value.expr);
         }
 
         StmtDefer(ref value) => {
-            v.visit_expr_top(&value.expr);
+            v.visit_expr(&value.expr);
         }
 
         StmtDo(ref value) => {
