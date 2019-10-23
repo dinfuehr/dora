@@ -592,11 +592,16 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.determine_call_args_and_types(&*call_type, &*callee, args);
         let (cls_type_params, fct_type_params) = self.determine_call_type_params(&*call_type);
 
-        self.determine_call_stack(&args);
+        let argsize = self.determine_call_stack(&args);
+
+        if argsize > self.argsize {
+            self.argsize = argsize;
+        }
 
         CallSite {
             callee: callee_id,
             args,
+            argsize,
             cls_type_params,
             fct_type_params,
             super_call,
@@ -685,7 +690,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         (cls_type_params, fct_type_params)
     }
 
-    fn determine_call_stack(&mut self, args: &[Arg<'ast>]) {
+    fn determine_call_stack(&mut self, args: &[Arg<'ast>]) -> i32 {
         let mut reg_args: i32 = 0;
         let mut freg_args: i32 = 0;
 
@@ -715,11 +720,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let args_on_stack = max(0, reg_args - REG_PARAMS.len() as i32)
             + max(0, freg_args - FREG_PARAMS.len() as i32);
 
-        let argsize = 8 * args_on_stack;
-
-        if argsize > self.argsize {
-            self.argsize = argsize;
-        }
+        mem::align_i32(mem::ptr_width() * args_on_stack, 16)
     }
 
     fn expr_assign(&mut self, e: &'ast ExprBinType) {

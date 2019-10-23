@@ -1532,6 +1532,7 @@ pub struct CallSite<'ast> {
     pub cls_type_params: TypeList,
     pub fct_type_params: TypeList,
     pub args: Vec<Arg<'ast>>,
+    pub argsize: i32,
     pub super_call: bool,
     pub return_type: BuiltinType,
 }
