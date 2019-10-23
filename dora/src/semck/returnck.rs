@@ -43,7 +43,7 @@ impl<'a, 'ast> ReturnCheck<'a, 'ast> {
 
 impl<'a, 'ast> Visitor<'ast> for ReturnCheck<'a, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
-        let returns = expr_block_returns_value(f.block());
+        let returns = expr_block_returns_value(f.block()).is_ok();
 
         if returns {
             // otherwise the function is always finished with a return statement
@@ -55,20 +55,9 @@ impl<'a, 'ast> Visitor<'ast> for ReturnCheck<'a, 'ast> {
     }
 }
 
-pub fn expr_block_returns_value(block: &ExprBlockType) -> bool {
-    for stmt in &block.stmts {
-        if returns_value(stmt).is_ok() {
-            return true;
-        }
-    }
-
-    block.expr.is_some()
-}
-
 pub fn returns_value(s: &Stmt) -> Result<(), Position> {
     match *s {
         StmtReturn(_) => Ok(()),
-        StmtIf(ref stmt) => if_returns_value(stmt),
         StmtLoop(ref stmt) => returns_value(&stmt.block),
         StmtFor(ref stmt) => Err(stmt.pos),
         StmtWhile(ref stmt) => Err(stmt.pos),
@@ -84,29 +73,35 @@ pub fn returns_value(s: &Stmt) -> Result<(), Position> {
 
 pub fn expr_returns_value(e: &Expr) -> Result<(), Position> {
     match *e {
-        Expr::ExprBlock(ref block) => {
-            let mut pos = block.pos;
-
-            for stmt in &block.stmts {
-                match returns_value(stmt) {
-                    Ok(_) => return Ok(()),
-                    Err(err_pos) => pos = err_pos,
-                }
-            }
-
-            Err(pos)
-        }
-
+        Expr::ExprBlock(ref block) => expr_block_returns_value(block),
+        Expr::ExprIf(ref expr) => expr_if_returns_value(expr),
         _ => Err(e.pos()),
     }
 }
 
-fn if_returns_value(s: &StmtIfType) -> Result<(), Position> {
-    returns_value(&s.then_block)?;
+pub fn expr_block_returns_value(e: &ExprBlockType) -> Result<(), Position> {
+    let mut pos = e.pos;
 
-    match s.else_block {
-        Some(ref block) => returns_value(block),
-        None => Err(s.pos),
+    for stmt in &e.stmts {
+        match returns_value(stmt) {
+            Ok(_) => return Ok(()),
+            Err(err_pos) => pos = err_pos,
+        }
+    }
+
+    if let Some(ref expr) = e.expr {
+        expr_returns_value(expr)
+    } else {
+        Err(pos)
+    }
+}
+
+fn expr_if_returns_value(e: &ExprIfType) -> Result<(), Position> {
+    expr_returns_value(&e.then_block)?;
+
+    match e.else_block {
+        Some(ref block) => expr_returns_value(block),
+        None => Err(e.pos),
     }
 }
 
@@ -163,6 +158,10 @@ mod tests {
         test_always_returns("fun f() { return; }", true);
         test_always_returns("fun f() -> Int { return 1; }", true);
         test_always_returns("fun f() -> Int { throw \"abc\"; }", true);
+        test_always_returns(
+            "fun f() -> Int { if true { return 1; } else { return 2; } }",
+            true,
+        );
     }
 
     #[test]

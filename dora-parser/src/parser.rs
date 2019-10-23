@@ -1117,7 +1117,6 @@ impl<'a> Parser<'a> {
     fn parse_statement_or_expression(&mut self) -> StmtOrExprResult {
         match self.token.kind {
             TokenKind::Let | TokenKind::Var => Ok(StmtOrExpr::Stmt(self.parse_var()?)),
-            TokenKind::If => Ok(StmtOrExpr::Stmt(self.parse_if()?)),
             TokenKind::While => Ok(StmtOrExpr::Stmt(self.parse_while()?)),
             TokenKind::Loop => Ok(StmtOrExpr::Stmt(self.parse_loop()?)),
             TokenKind::Break => Ok(StmtOrExpr::Stmt(self.parse_break()?)),
@@ -1151,13 +1150,13 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_if(&mut self) -> StmtResult {
+    fn parse_if(&mut self) -> ExprResult {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::If)?.position;
 
         let cond = self.parse_expression_no_struct_lit()?;
 
-        let then_block = self.parse_block_stmt()?;
+        let then_block = self.parse_block()?;
 
         let else_block = if self.token.is(TokenKind::Else) {
             self.advance_token()?;
@@ -1165,7 +1164,7 @@ impl<'a> Parser<'a> {
             if self.token.is(TokenKind::If) {
                 Some(self.parse_if()?)
             } else {
-                Some(self.parse_block_stmt()?)
+                Some(self.parse_block()?)
             }
         } else {
             None
@@ -1173,7 +1172,7 @@ impl<'a> Parser<'a> {
 
         let span = self.span_from(start);
 
-        Ok(Box::new(Stmt::create_if(
+        Ok(Box::new(Expr::create_if(
             self.generate_id(),
             pos,
             span,
@@ -1289,6 +1288,7 @@ impl<'a> Parser<'a> {
 
         let result = match self.token.kind {
             TokenKind::LBrace => self.parse_block(),
+            TokenKind::If => self.parse_if(),
             _ => self.parse_binary(0),
         };
 
@@ -1495,6 +1495,7 @@ impl<'a> Parser<'a> {
         match self.token.kind {
             TokenKind::LParen => self.parse_parentheses(),
             TokenKind::LBrace => self.parse_block(),
+            TokenKind::If => self.parse_if(),
             TokenKind::LitChar(_) => self.parse_lit_char(),
             TokenKind::LitInt(_, _, _) => self.parse_lit_int(),
             TokenKind::LitFloat(_, _) => self.parse_lit_float(),
@@ -2042,6 +2043,21 @@ mod tests {
             .unwrap();
 
         (ast, interner)
+    }
+
+    fn parse_err(code: &'static str, msg: ParseError, line: u32, col: u32) {
+        let id_generator = NodeIdGenerator::new();
+        let mut interner = Interner::new();
+        let mut ast = Ast::new();
+
+        let reader = Reader::from_string(code);
+        let err = Parser::new(reader, &id_generator, &mut ast, &mut interner)
+            .parse()
+            .unwrap_err();
+
+        assert_eq!(msg, err.error);
+        assert_eq!(line, err.pos.line);
+        assert_eq!(col, err.pos.column);
     }
 
     #[test]
@@ -2646,20 +2662,20 @@ mod tests {
 
     #[test]
     fn parse_if() {
-        let stmt = parse_stmt("if true { 2; } else { 3; }");
-        let ifstmt = stmt.to_if().unwrap();
+        let (expr, _) = parse_expr("if true { 2; } else { 3; }");
+        let ifexpr = expr.to_if().unwrap();
 
-        assert!(ifstmt.cond.is_lit_bool());
-        assert!(ifstmt.else_block.is_some());
+        assert!(ifexpr.cond.is_lit_bool());
+        assert!(ifexpr.else_block.is_some());
     }
 
     #[test]
     fn parse_if_without_else() {
-        let stmt = parse_stmt("if true { 2; }");
-        let ifstmt = stmt.to_if().unwrap();
+        let (expr, _) = parse_expr("if true { 2; }");
+        let ifexpr = expr.to_if().unwrap();
 
-        assert!(ifstmt.cond.is_lit_bool());
-        assert!(ifstmt.else_block.is_none());
+        assert!(ifexpr.cond.is_lit_bool());
+        assert!(ifexpr.else_block.is_none());
     }
 
     #[test]
@@ -3095,8 +3111,8 @@ mod tests {
     fn parse_override_method() {
         let (prog, _) = parse(
             "class A { fun f() {}
-                                                @override fun g() {}
-                                                @open fun h() {} }",
+                @override fun g() {}
+                @open fun h() {} }",
         );
         let cls = prog.cls0();
 
@@ -3280,9 +3296,9 @@ mod tests {
 
     #[test]
     fn parse_struct_lit_if() {
-        let stmt = parse_stmt("if i < n { }");
-        let ifstmt = stmt.to_if().unwrap();
-        let bin = ifstmt.cond.to_bin().unwrap();
+        let (expr, _) = parse_expr("if i < n { }");
+        let ifexpr = expr.to_if().unwrap();
+        let bin = ifexpr.cond.to_bin().unwrap();
 
         assert!(bin.lhs.is_ident());
         assert!(bin.rhs.is_ident());
@@ -3636,5 +3652,15 @@ mod tests {
 
         let (expr, _) = parse_expr("1 + {}");
         assert!(expr.is_bin());
+    }
+
+    #[test]
+    fn parse_if_expr() {
+        parse_err(
+            "fun f() { if true { 1 } else { 2 } * 4 }",
+            ParseError::ExpectedFactor("*".into()),
+            1,
+            36,
+        );
     }
 }

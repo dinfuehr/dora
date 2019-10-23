@@ -135,6 +135,7 @@ pub enum SemError {
     InvalidLeftSideOfSeparator,
     InvalidUseOfTypeParams,
     NameOfStaticMethodExpected,
+    IfBranchTypesIncompatible(String, String),
 }
 
 impl SemError {
@@ -457,6 +458,10 @@ impl SemError {
                 "type params need to be used on class or function.".into()
             }
             SemError::NameOfStaticMethodExpected => "name of static method expected.".into(),
+            SemError::IfBranchTypesIncompatible(ref then_block, ref else_block) => format!(
+                "if-branches have incompatible types `{}` and `{}`.",
+                then_block, else_block
+            ),
         }
     }
 }

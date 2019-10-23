@@ -4,7 +4,7 @@ use std::{f32, f64};
 
 use crate::class::ClassId;
 use crate::error::msg::SemError;
-use crate::semck::always_returns;
+use crate::semck::{always_returns, expr_always_returns};
 use crate::sym::Sym::SymClass;
 use crate::ty::{BuiltinType, TypeList, TypeParamId};
 use crate::typeck::lookup::MethodLookup;
@@ -45,11 +45,19 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
         }
 
-        if let Some(ref value) = &block.expr {
+        let return_type = if let Some(ref value) = &block.expr {
+            if expr_always_returns(value) {
+                returns = true;
+            }
+
             self.visit_expr(value);
-            self.check_fct_return_type(block.pos, self.expr_type);
-        } else if !returns {
-            self.check_fct_return_type(block.pos, BuiltinType::Unit);
+            self.expr_type
+        } else {
+            BuiltinType::Unit
+        };
+
+        if !returns {
+            self.check_fct_return_type(block.pos, return_type);
         }
     }
 
@@ -195,22 +203,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.visit_stmt(&s.block);
     }
 
-    fn check_stmt_if(&mut self, s: &'ast StmtIfType) {
-        self.visit_expr(&s.cond);
-
-        if self.expr_type != BuiltinType::Bool && !self.expr_type.is_error() {
-            let expr_type = self.expr_type.name(self.vm);
-            let msg = SemError::IfCondType(expr_type);
-            self.vm.diag.lock().report(self.file, s.pos, msg);
-        }
-
-        self.visit_stmt(&s.then_block);
-
-        if let Some(ref else_block) = s.else_block {
-            self.visit_stmt(else_block);
-        }
-    }
-
     fn check_stmt_return(&mut self, s: &'ast StmtReturnType) {
         let expr_type = s
             .expr
@@ -287,6 +279,38 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         self.src.set_ty(block.id, ty);
         self.expr_type = ty;
+    }
+
+    fn check_expr_if(&mut self, expr: &'ast ExprIfType) {
+        self.visit_expr(&expr.cond);
+
+        if self.expr_type != BuiltinType::Bool && !self.expr_type.is_error() {
+            let expr_type = self.expr_type.name(self.vm);
+            let msg = SemError::IfCondType(expr_type);
+            self.vm.diag.lock().report(self.file, expr.pos, msg);
+        }
+
+        self.visit_expr(&expr.then_block);
+        let then_type = self.expr_type;
+
+        let merged_type = if let Some(ref else_block) = expr.else_block {
+            self.visit_expr(else_block);
+            let else_type = self.expr_type;
+
+            if !then_type.allows(self.vm, else_type) {
+                let then_type = then_type.name(self.vm);
+                let else_type = else_type.name(self.vm);
+                let msg = SemError::IfBranchTypesIncompatible(then_type, else_type);
+                self.vm.diag.lock().report(self.file, expr.pos, msg);
+            }
+
+            then_type
+        } else {
+            BuiltinType::Unit
+        };
+
+        self.src.set_ty(expr.id, merged_type);
+        self.expr_type = merged_type;
     }
 
     fn check_stmt_do(&mut self, s: &'ast StmtDoType) {
@@ -2017,6 +2041,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprTry(ref expr) => self.check_expr_try(expr),
             ExprLambda(ref expr) => self.check_expr_lambda(expr),
             ExprBlock(ref expr) => self.check_expr_block(expr),
+            ExprIf(ref expr) => self.check_expr_if(expr),
         }
     }
 
@@ -2025,7 +2050,6 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             StmtVar(ref stmt) => self.check_stmt_var(stmt),
             StmtWhile(ref stmt) => self.check_stmt_while(stmt),
             StmtFor(ref stmt) => self.check_stmt_for(stmt),
-            StmtIf(ref stmt) => self.check_stmt_if(stmt),
             StmtReturn(ref stmt) => self.check_stmt_return(stmt),
             StmtThrow(ref stmt) => self.check_stmt_throw(stmt),
             StmtDefer(ref stmt) => self.check_stmt_defer(stmt),

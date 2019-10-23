@@ -593,7 +593,6 @@ pub enum Stmt {
     StmtVar(StmtVarType),
     StmtWhile(StmtWhileType),
     StmtLoop(StmtLoopType),
-    StmtIf(StmtIfType),
     StmtExpr(StmtExprType),
     StmtBreak(StmtBreakType),
     StmtContinue(StmtContinueType),
@@ -672,25 +671,6 @@ impl Stmt {
         })
     }
 
-    pub fn create_if(
-        id: NodeId,
-        pos: Position,
-        span: Span,
-        cond: Box<Expr>,
-        then_block: Box<Stmt>,
-        else_block: Option<Box<Stmt>>,
-    ) -> Stmt {
-        Stmt::StmtIf(StmtIfType {
-            id,
-            pos,
-            span,
-
-            cond,
-            then_block,
-            else_block,
-        })
-    }
-
     pub fn create_expr(id: NodeId, pos: Position, span: Span, expr: Box<Expr>) -> Stmt {
         Stmt::StmtExpr(StmtExprType {
             id,
@@ -764,7 +744,6 @@ impl Stmt {
             Stmt::StmtWhile(ref stmt) => stmt.id,
             Stmt::StmtFor(ref stmt) => stmt.id,
             Stmt::StmtLoop(ref stmt) => stmt.id,
-            Stmt::StmtIf(ref stmt) => stmt.id,
             Stmt::StmtExpr(ref stmt) => stmt.id,
             Stmt::StmtBreak(ref stmt) => stmt.id,
             Stmt::StmtContinue(ref stmt) => stmt.id,
@@ -781,7 +760,6 @@ impl Stmt {
             Stmt::StmtWhile(ref stmt) => stmt.pos,
             Stmt::StmtFor(ref stmt) => stmt.pos,
             Stmt::StmtLoop(ref stmt) => stmt.pos,
-            Stmt::StmtIf(ref stmt) => stmt.pos,
             Stmt::StmtExpr(ref stmt) => stmt.pos,
             Stmt::StmtBreak(ref stmt) => stmt.pos,
             Stmt::StmtContinue(ref stmt) => stmt.pos,
@@ -798,7 +776,6 @@ impl Stmt {
             Stmt::StmtWhile(ref stmt) => stmt.span,
             Stmt::StmtFor(ref stmt) => stmt.span,
             Stmt::StmtLoop(ref stmt) => stmt.span,
-            Stmt::StmtIf(ref stmt) => stmt.span,
             Stmt::StmtExpr(ref stmt) => stmt.span,
             Stmt::StmtBreak(ref stmt) => stmt.span,
             Stmt::StmtContinue(ref stmt) => stmt.span,
@@ -907,20 +884,6 @@ impl Stmt {
         }
     }
 
-    pub fn to_if(&self) -> Option<&StmtIfType> {
-        match *self {
-            Stmt::StmtIf(ref val) => Some(val),
-            _ => None,
-        }
-    }
-
-    pub fn is_if(&self) -> bool {
-        match *self {
-            Stmt::StmtIf(_) => true,
-            _ => false,
-        }
-    }
-
     pub fn to_expr(&self) -> Option<&StmtExprType> {
         match *self {
             Stmt::StmtExpr(ref val) => Some(val),
@@ -1019,17 +982,6 @@ pub struct StmtLoopType {
     pub span: Span,
 
     pub block: Box<Stmt>,
-}
-
-#[derive(Clone, Debug)]
-pub struct StmtIfType {
-    pub id: NodeId,
-    pub pos: Position,
-    pub span: Span,
-
-    pub cond: Box<Expr>,
-    pub then_block: Box<Stmt>,
-    pub else_block: Option<Box<Stmt>>,
 }
 
 #[derive(Clone, Debug)]
@@ -1258,6 +1210,7 @@ pub enum Expr {
     ExprTry(ExprTryType),
     ExprLambda(ExprLambdaType),
     ExprBlock(ExprBlockType),
+    ExprIf(ExprIfType),
 }
 
 impl Expr {
@@ -1275,6 +1228,25 @@ impl Expr {
 
             stmts,
             expr,
+        })
+    }
+
+    pub fn create_if(
+        id: NodeId,
+        pos: Position,
+        span: Span,
+        cond: Box<Expr>,
+        then_block: Box<Expr>,
+        else_block: Option<Box<Expr>>,
+    ) -> Expr {
+        Expr::ExprIf(ExprIfType {
+            id,
+            pos,
+            span,
+
+            cond,
+            then_block,
+            else_block,
         })
     }
 
@@ -1839,9 +1811,24 @@ impl Expr {
         }
     }
 
+    pub fn to_if(&self) -> Option<&ExprIfType> {
+        match *self {
+            Expr::ExprIf(ref val) => Some(val),
+            _ => None,
+        }
+    }
+
+    pub fn is_if(&self) -> bool {
+        match *self {
+            Expr::ExprIf(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn needs_semicolon(&self) -> bool {
         match self {
             &Expr::ExprBlock(_) => false,
+            &Expr::ExprIf(_) => false,
             _ => true,
         }
     }
@@ -1869,6 +1856,7 @@ impl Expr {
             Expr::ExprTry(ref val) => val.pos,
             Expr::ExprLambda(ref val) => val.pos,
             Expr::ExprBlock(ref val) => val.pos,
+            Expr::ExprIf(ref val) => val.pos,
         }
     }
 
@@ -1895,6 +1883,7 @@ impl Expr {
             Expr::ExprTry(ref val) => val.span,
             Expr::ExprLambda(ref val) => val.span,
             Expr::ExprBlock(ref val) => val.span,
+            Expr::ExprIf(ref val) => val.span,
         }
     }
 
@@ -1921,8 +1910,20 @@ impl Expr {
             Expr::ExprTry(ref val) => val.id,
             Expr::ExprLambda(ref val) => val.id,
             Expr::ExprBlock(ref val) => val.id,
+            Expr::ExprIf(ref val) => val.id,
         }
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct ExprIfType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub span: Span,
+
+    pub cond: Box<Expr>,
+    pub then_block: Box<Expr>,
+    pub else_block: Option<Box<Expr>>,
 }
 
 #[derive(Clone, Debug)]

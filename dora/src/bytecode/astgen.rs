@@ -8,6 +8,7 @@ use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 use crate::bytecode::generate::{
     BytecodeFunction, BytecodeGenerator, BytecodeType, Label, Register,
 };
+use crate::semck::expr_block_always_returns;
 use crate::semck::specialize::{specialize_class_id_params, specialize_class_ty, specialize_type};
 use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{CallType, Fct, FctId, FctKind, FctSrc, IdentType, Intrinsic, VarId, VM};
@@ -97,7 +98,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
             if let Some(ref value) = block.expr {
                 let reg = self.visit_expr(value, DataDest::Alloc);
-                self.emit_ret_value(reg);
+
+                if !expr_block_always_returns(block) {
+                    self.emit_ret_value(reg);
+                }
             }
         } else {
             unreachable!();
@@ -117,7 +121,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             StmtBreak(ref stmt) => self.visit_stmt_break(stmt),
             StmtContinue(ref stmt) => self.visit_stmt_continue(stmt),
             StmtExpr(ref expr) => self.visit_stmt_expr(expr),
-            StmtIf(ref stmt) => self.visit_stmt_if(stmt),
             StmtVar(ref stmt) => self.visit_stmt_var(stmt),
             StmtWhile(ref stmt) => self.visit_stmt_while(stmt),
             StmtLoop(ref stmt) => self.visit_stmt_loop(stmt),
@@ -169,29 +172,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.gen.emit_throw(exception_reg);
     }
 
-    fn visit_stmt_if(&mut self, stmt: &StmtIfType) {
-        if let Some(ref else_block) = stmt.else_block {
-            let else_lbl = self.gen.create_label();
-            let end_lbl = self.gen.create_label();
-
-            let cond_reg = self.visit_expr(&stmt.cond, DataDest::Alloc);
-            self.gen.emit_jump_if_false(cond_reg, else_lbl);
-
-            self.visit_stmt(&stmt.then_block);
-            self.gen.emit_jump(end_lbl);
-
-            self.gen.bind_label(else_lbl);
-            self.visit_stmt(&else_block);
-            self.gen.bind_label(end_lbl);
-        } else {
-            let end_lbl = self.gen.create_label();
-            let cond_reg = self.visit_expr(&stmt.cond, DataDest::Alloc);
-            self.gen.emit_jump_if_false(cond_reg, end_lbl);
-            self.visit_stmt(&stmt.then_block);
-            self.gen.bind_label(end_lbl);
-        }
-    }
-
     fn visit_stmt_expr(&mut self, stmt: &StmtExprType) {
         self.visit_expr(&stmt.expr, DataDest::Effect);
     }
@@ -237,6 +217,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             ExprBin(ref bin) => self.visit_expr_bin(bin, dest),
             ExprDot(ref field) => self.visit_expr_dot(field, dest),
             ExprBlock(ref block) => self.visit_expr_block(block, dest),
+            ExprIf(ref expr) => self.visit_expr_if(expr, dest),
             // ExprArray(ref array) => {},
             ExprLitChar(ref lit) => self.visit_expr_lit_char(lit, dest),
             ExprLitInt(ref lit) => self.visit_expr_lit_int(lit, dest),
@@ -255,6 +236,38 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             // ExprLambda(ref expr) => {},
             _ => unimplemented!(),
         }
+    }
+
+    fn visit_expr_if(&mut self, expr: &ExprIfType, dest: DataDest) -> Register {
+        let ty = self.ty(expr.id);
+        let dest = if ty.is_unit() {
+            Register::invalid()
+        } else {
+            self.ensure_register(dest, ty.into())
+        };
+
+        if let Some(ref else_block) = expr.else_block {
+            let else_lbl = self.gen.create_label();
+            let end_lbl = self.gen.create_label();
+
+            let cond_reg = self.visit_expr(&expr.cond, DataDest::Alloc);
+            self.gen.emit_jump_if_false(cond_reg, else_lbl);
+
+            self.visit_expr(&expr.then_block, DataDest::Reg(dest));
+            self.gen.emit_jump(end_lbl);
+
+            self.gen.bind_label(else_lbl);
+            self.visit_expr(else_block, DataDest::Reg(dest));
+            self.gen.bind_label(end_lbl);
+        } else {
+            let end_lbl = self.gen.create_label();
+            let cond_reg = self.visit_expr(&expr.cond, DataDest::Alloc);
+            self.gen.emit_jump_if_false(cond_reg, end_lbl);
+            self.visit_expr(&expr.then_block, DataDest::Reg(dest));
+            self.gen.bind_label(end_lbl);
+        }
+
+        dest
     }
 
     fn visit_expr_block(&mut self, block: &ExprBlockType, dest: DataDest) -> Register {
@@ -967,6 +980,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
         specialize_type(self.vm, ty, self.cls_type_params, self.fct_type_params)
+    }
+
+    fn ty(&self, id: NodeId) -> BuiltinType {
+        let ty = self.src.ty(id);
+        self.specialize_type(ty)
     }
 
     fn get_intrinsic(&self, id: NodeId) -> Option<Intrinsic> {

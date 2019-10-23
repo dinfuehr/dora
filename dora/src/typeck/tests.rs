@@ -1903,3 +1903,12 @@ fn test_block_value() {
     ok("fun g() -> Int { return 1; } fun f() { let x: Int = { g() }; }");
     ok("fun g() -> Int { return 1; } fun f() { let x: Int = { g(); 1 }; }");
 }
+
+#[test]
+fn test_if_expression() {
+    ok("fun f() -> Int { if true { 1 } else { 2 } }");
+    ok("fun f() -> Float { if true { 1.0F } else { 2.0F } }");
+    ok("fun f() -> Double { if true { 1.0 } else { 2.0 } }");
+
+    ok("fun f() -> Int { 4 * if true { 1 } else { 2 } }");
+}

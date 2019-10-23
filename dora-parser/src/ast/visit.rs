@@ -226,15 +226,6 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
             v.visit_stmt(&value.block);
         }
 
-        StmtIf(ref value) => {
-            v.visit_expr(&value.cond);
-            v.visit_stmt(&value.then_block);
-
-            if let Some(ref b) = value.else_block {
-                v.visit_stmt(b);
-            }
-        }
-
         StmtExpr(ref value) => {
             v.visit_expr(&value.expr);
         }
@@ -347,6 +338,15 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
         ExprTemplate(ref value) => {
             for part in &value.parts {
                 v.visit_expr(part);
+            }
+        }
+
+        ExprIf(ref value) => {
+            v.visit_expr(&value.cond);
+            v.visit_expr(&value.then_block);
+
+            if let Some(ref b) = value.else_block {
+                v.visit_expr(b);
             }
         }
 

@@ -303,7 +303,6 @@ impl<'a> AstDumper<'a> {
             StmtBreak(ref stmt) => self.dump_stmt_break(stmt),
             StmtContinue(ref stmt) => self.dump_stmt_continue(stmt),
             StmtExpr(ref expr) => self.dump_stmt_expr(expr),
-            StmtIf(ref stmt) => self.dump_stmt_if(stmt),
             StmtVar(ref stmt) => self.dump_stmt_var(stmt),
             StmtWhile(ref stmt) => self.dump_stmt_while(stmt),
             StmtLoop(ref stmt) => self.dump_stmt_loop(stmt),
@@ -380,24 +379,6 @@ impl<'a> AstDumper<'a> {
         dump!(self, "loop @ {} {}", stmt.pos, stmt.id);
         self.indent(|d| {
             d.dump_stmt(&stmt.block);
-        });
-    }
-
-    fn dump_stmt_if(&mut self, stmt: &StmtIfType) {
-        dump!(self, "if @ {} {}", stmt.pos, stmt.id);
-
-        self.indent(|d| {
-            d.indent(|d| {
-                d.dump_expr(&stmt.cond);
-            });
-            dump!(d, "then");
-            d.indent(|d| {
-                d.dump_stmt(&stmt.then_block);
-            });
-            dump!(d, "else");
-            d.indent(|d| {
-                d.dump_stmt(&stmt.then_block);
-            });
         });
     }
 
@@ -479,6 +460,7 @@ impl<'a> AstDumper<'a> {
             ExprTry(ref expr) => self.dump_expr_try(expr),
             ExprLambda(ref expr) => self.dump_expr_lambda(expr),
             ExprBlock(ref expr) => self.dump_expr_block(expr),
+            ExprIf(ref expr) => self.dump_expr_if(expr),
         }
     }
 
@@ -507,6 +489,24 @@ impl<'a> AstDumper<'a> {
         });
 
         dump!(self, "block end");
+    }
+
+    fn dump_expr_if(&mut self, expr: &ExprIfType) {
+        dump!(self, "if @ {} {}", expr.pos, expr.id);
+
+        self.indent(|d| {
+            d.indent(|d| {
+                d.dump_expr(&expr.cond);
+            });
+            dump!(d, "then");
+            d.indent(|d| {
+                d.dump_expr(&expr.then_block);
+            });
+            dump!(d, "else");
+            d.indent(|d| {
+                d.dump_expr(&expr.then_block);
+            });
+        });
     }
 
     fn dump_expr_conv(&mut self, expr: &ExprConvType) {

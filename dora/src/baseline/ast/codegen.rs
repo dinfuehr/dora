@@ -322,30 +322,6 @@ where
         self.lbl_continue = old_lbl_continue;
     }
 
-    fn emit_stmt_if(&mut self, s: &'ast StmtIfType) {
-        let lbl_end = self.asm.create_label();
-        let lbl_else = if let Some(_) = s.else_block {
-            self.asm.create_label()
-        } else {
-            lbl_end
-        };
-
-        self.emit_expr_result_reg(&s.cond);
-        self.asm
-            .test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_else);
-
-        self.visit_stmt(&s.then_block);
-
-        if let Some(ref else_block) = s.else_block {
-            self.asm.jump(lbl_end);
-            self.asm.bind_label(lbl_else);
-
-            self.visit_stmt(else_block);
-        }
-
-        self.asm.bind_label(lbl_end);
-    }
-
     fn emit_stmt_break(&mut self, _: &'ast StmtBreakType) {
         // emit finallys between loop and break
         self.emit_finallys_within_loop();
@@ -593,7 +569,32 @@ where
             ExprTry(ref expr) => self.emit_try(expr, dest),
             ExprLambda(_) => unimplemented!(),
             ExprBlock(ref expr) => self.emit_block(expr, dest),
+            ExprIf(ref expr) => self.emit_if(expr, dest),
         }
+    }
+
+    fn emit_if(&mut self, e: &'ast ExprIfType, dest: ExprStore) {
+        let lbl_end = self.asm.create_label();
+        let lbl_else = if let Some(_) = e.else_block {
+            self.asm.create_label()
+        } else {
+            lbl_end
+        };
+
+        self.emit_expr_result_reg(&e.cond);
+        self.asm
+            .test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_else);
+
+        self.emit_expr(&e.then_block, dest);
+
+        if let Some(ref else_block) = e.else_block {
+            self.asm.jump(lbl_end);
+            self.asm.bind_label(lbl_else);
+
+            self.emit_expr(else_block, dest);
+        }
+
+        self.asm.bind_label(lbl_end);
     }
 
     fn emit_block(&mut self, block: &'ast ExprBlockType, dest: ExprStore) {
@@ -2564,6 +2565,8 @@ impl<'a, 'ast> CodeGen<'ast> for AstCodeGen<'a, 'ast> {
         self.emit_prolog();
         self.store_register_params_on_stack();
 
+        let always_returns = self.src.always_returns;
+
         {
             let block = self.ast.block();
 
@@ -2573,16 +2576,17 @@ impl<'a, 'ast> CodeGen<'ast> for AstCodeGen<'a, 'ast> {
 
             if let Some(ref value) = block.expr {
                 let return_type = self.specialize_type(self.fct.return_type);
-                let reg = result_reg(return_type.mode());
+                let reg = result_reg_ty(return_type);
                 self.emit_expr(value, reg);
-                self.emit_epilog();
+
+                if !always_returns {
+                    self.emit_epilog();
+                }
             }
         }
 
         self.stack.pop_scope();
         assert!(self.stack.is_empty());
-
-        let always_returns = self.src.always_returns;
 
         if !always_returns {
             self.emit_epilog();
@@ -2605,7 +2609,6 @@ impl<'a, 'ast> visit::Visitor<'ast> for AstCodeGen<'a, 'ast> {
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         match *s {
             StmtExpr(ref stmt) => self.emit_stmt_expr(stmt),
-            StmtIf(ref stmt) => self.emit_stmt_if(stmt),
             StmtLoop(ref stmt) => self.emit_stmt_loop(stmt),
             StmtWhile(ref stmt) => self.emit_stmt_while(stmt),
             StmtFor(ref stmt) => self.emit_stmt_for(stmt),

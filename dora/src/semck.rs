@@ -5,7 +5,7 @@ use crate::ty::{BuiltinType, TypeList};
 use crate::typeck;
 use crate::vm::{FileId, NodeMap, VM};
 use dora_parser::ast::Type::{TypeBasic, TypeLambda, TypeSelf, TypeTuple};
-use dora_parser::ast::{Stmt, Type};
+use dora_parser::ast::{Expr, ExprBlockType, Stmt, Type};
 
 mod abstractck;
 mod clsdefck;
@@ -368,10 +368,15 @@ pub fn read_type<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> Option<Bui
 }
 
 pub fn always_returns(s: &Stmt) -> bool {
-    match returnck::returns_value(s) {
-        Ok(_) => true,
-        Err(_) => false,
-    }
+    returnck::returns_value(s).is_ok()
+}
+
+pub fn expr_always_returns(e: &Expr) -> bool {
+    returnck::expr_returns_value(e).is_ok()
+}
+
+pub fn expr_block_always_returns(e: &ExprBlockType) -> bool {
+    returnck::expr_block_returns_value(e).is_ok()
 }
 
 #[cfg(test)]
