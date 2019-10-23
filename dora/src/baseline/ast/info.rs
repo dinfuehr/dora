@@ -220,8 +220,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         self.visit_fct(self.ast);
 
-        self.jit_info.localsize = self.localsize;
-        self.jit_info.tempsize = self.max_tempsize;
+        self.jit_info.localsize = mem::align_i32(self.localsize, mem::ptr_width());
+        self.jit_info.tempsize = mem::align_i32(self.max_tempsize, mem::ptr_width());
         self.jit_info.argsize = self.argsize;
         self.jit_info.leaf = self.leaf;
         self.jit_info.eh_return_value = self.eh_return_value;
@@ -1034,10 +1034,10 @@ mod tests {
             assert_eq!(8, jit_info.tempsize);
         });
         info("fun f() { 2*3+4+5; }", |_, jit_info| {
-            assert_eq!(12, jit_info.tempsize);
+            assert_eq!(16, jit_info.tempsize);
         });
         info("fun f() { 1+(2+(3+4)); }", |_, jit_info| {
-            assert_eq!(12, jit_info.tempsize);
+            assert_eq!(16, jit_info.tempsize);
         })
     }
 
@@ -1084,7 +1084,7 @@ mod tests {
     #[test]
     fn test_param_offset() {
         info("fun f(a: Bool, b: Int) { let c = 1; }", |fct, jit_info| {
-            assert_eq!(12, jit_info.localsize);
+            assert_eq!(16, jit_info.localsize);
 
             for (var, offset) in fct.vars.iter().zip(&[-1, -8, -12]) {
                 assert_eq!(*offset, jit_info.offset(var.id));
@@ -1101,7 +1101,7 @@ mod tests {
                   let i : Int = 1;
               }",
             |fct, jit_info| {
-                assert_eq!(28, jit_info.localsize);
+                assert_eq!(32, jit_info.localsize);
                 let offsets = [-4, -8, -12, -16, -20, -24, 16, 24, -28];
 
                 for (var, offset) in fct.vars.iter().zip(&offsets) {

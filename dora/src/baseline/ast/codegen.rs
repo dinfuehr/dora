@@ -93,7 +93,9 @@ where
             let offset = self.jit_info.offset(var.id);
             self.asm.store_mem(mode, Mem::Local(offset), dest);
 
-            self.scopes.add_var(var.id, offset);
+            if var.ty.reference_type() {
+                self.scopes.add_var(var.id, offset);
+            }
 
             if mode.is_float() {
                 freg_idx += 1;

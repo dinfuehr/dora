@@ -331,11 +331,13 @@ impl Scopes {
     }
 
     pub fn add_var(&mut self, id: VarId, offset: i32) {
+        debug_assert_eq!(offset % mem::ptr_width(), 0);
         let scope = self.scopes.last_mut().unwrap();
         assert!(scope.vars.insert(id, offset).is_none());
     }
 
     pub fn add_var_offset(&mut self, offset: i32) {
+        debug_assert_eq!(offset % mem::ptr_width(), 0);
         let scope = self.scopes.last_mut().unwrap();
         scope.offsets.push(offset);
     }
@@ -371,6 +373,7 @@ impl TempOffsets {
     }
 
     pub fn insert(&mut self, offset: i32) {
+        debug_assert_eq!(offset % mem::ptr_width(), 0);
         assert!(self.offsets.insert(offset));
     }
 
