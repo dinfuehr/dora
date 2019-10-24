@@ -56,7 +56,7 @@ where
     'ast: 'a,
 {
     fn emit_prolog(&mut self, bytecode: &BytecodeFunction) {
-        self.asm.prolog(bytecode.stacksize(), self.fct.ast.pos);
+        self.asm.prolog_size(bytecode.stacksize(), self.fct.ast.pos);
         self.asm.emit_comment(Comment::Lit("prolog end"));
         self.asm.emit_comment(Comment::Newline);
     }

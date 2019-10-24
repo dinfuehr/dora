@@ -112,6 +112,7 @@ pub fn generate_fct<'ast>(
                 active_loop: None,
                 lbl_return: None,
                 stack: StackFrame::new(),
+                patch_offset: 0,
 
                 cls_type_params,
                 fct_type_params,

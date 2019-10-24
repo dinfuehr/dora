@@ -65,6 +65,7 @@ pub struct AstCodeGen<'a, 'ast: 'a> {
     pub active_upper: Option<usize>,
 
     pub stack: StackFrame,
+    pub patch_offset: usize,
 
     pub cls_type_params: &'a TypeList,
     pub fct_type_params: &'a TypeList,
@@ -139,8 +140,7 @@ where
     }
 
     fn emit_prolog(&mut self) {
-        let stacksize = self.jit_info.stacksize();
-        self.asm.prolog(stacksize, self.fct.ast.pos);
+        self.patch_offset = self.asm.prolog(self.fct.ast.pos);
         self.asm.emit_comment(Comment::Lit("prolog end"));
         self.asm.emit_comment(Comment::Newline);
     }
@@ -2587,6 +2587,9 @@ impl<'a, 'ast> CodeGen<'ast> for AstCodeGen<'a, 'ast> {
         if !always_returns {
             self.emit_epilog();
         }
+
+        self.asm
+            .patch_stacksize(self.patch_offset, self.jit_info.stacksize());
 
         let jit_fct = self.asm.jit(
             self.jit_info.stacksize(),

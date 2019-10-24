@@ -18,13 +18,27 @@ use byteorder::{LittleEndian, WriteBytesExt};
 use dora_parser::lexer::position::Position;
 
 impl MacroAssembler {
-    pub fn prolog(&mut self, stacksize: i32) {
+    pub fn prolog_size(&mut self, stacksize: i32) {
         asm::emit_pushq_reg(self, RBP);
         asm::emit_mov_reg_reg(self, 1, RSP, RBP);
 
         if stacksize > 0 {
             asm::emit_subq_imm_reg(self, stacksize, RSP);
         }
+    }
+
+    pub fn prolog(&mut self) -> usize {
+        asm::emit_pushq_reg(self, RBP);
+        asm::emit_mov_reg_reg(self, 1, RSP, RBP);
+
+        asm::emit_subq_immd_reg(self, 0, RSP);
+        let patch_offset = self.pos() - 4;
+
+        patch_offset
+    }
+
+    pub fn patch_stacksize(&mut self, patch_offset: usize, stacksize: i32) {
+        self.emit_u32_at(patch_offset as i32, stacksize as u32);
     }
 
     pub fn check_stack_pointer(&mut self, lbl_overflow: Label) {

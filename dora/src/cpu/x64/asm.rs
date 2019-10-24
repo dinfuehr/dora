@@ -241,25 +241,30 @@ pub fn emit_cmp_imm_reg(buf: &mut MacroAssembler, mode: MachineMode, imm: i32, r
         MachineMode::Ptr => 1,
     };
 
-    emit_aluq_imm_reg(buf, x64, imm, reg, 0x3d, 0b111);
+    emit_aluq_imm_reg(buf, x64, imm, false, reg, 0x3d, 0b111);
 }
 
 pub fn emit_subq_imm_reg(buf: &mut MacroAssembler, imm: i32, reg: Reg) {
-    emit_aluq_imm_reg(buf, 1, imm, reg, 0x2d, 0b101);
+    emit_aluq_imm_reg(buf, 1, imm, false, reg, 0x2d, 0b101);
+}
+
+pub fn emit_subq_immd_reg(buf: &mut MacroAssembler, imm: i32, reg: Reg) {
+    emit_aluq_imm_reg(buf, 1, imm, true, reg, 0x2d, 0b101);
 }
 
 pub fn emit_addq_imm_reg(buf: &mut MacroAssembler, imm: i32, reg: Reg) {
-    emit_aluq_imm_reg(buf, 1, imm, reg, 0x05, 0);
+    emit_aluq_imm_reg(buf, 1, imm, false, reg, 0x05, 0);
 }
 
 pub fn emit_andq_imm_reg(buf: &mut MacroAssembler, imm: i32, reg: Reg) {
-    emit_aluq_imm_reg(buf, 1, imm, reg, 0x25, 4);
+    emit_aluq_imm_reg(buf, 1, imm, false, reg, 0x25, 4);
 }
 
 fn emit_aluq_imm_reg(
     buf: &mut MacroAssembler,
     x64: u8,
     imm: i32,
+    force_32: bool,
     reg: Reg,
     rax_opcode: u8,
     modrm_reg: u8,
@@ -270,7 +275,7 @@ fn emit_aluq_imm_reg(
         emit_rex(buf, x64, 0, 0, reg.msb());
     }
 
-    if fits_i8(imm) {
+    if fits_i8(imm) && !force_32 {
         emit_op(buf, 0x83);
         emit_modrm(buf, 0b11, modrm_reg, reg.and7());
         emit_u8(buf, imm as u8);

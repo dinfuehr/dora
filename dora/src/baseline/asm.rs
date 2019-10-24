@@ -38,14 +38,30 @@ where
         self.masm.debug();
     }
 
-    pub fn prolog(&mut self, stacksize: i32, pos: Position) {
-        self.masm.prolog(stacksize);
+    pub fn prolog_size(&mut self, stacksize: i32, pos: Position) {
+        self.masm.prolog_size(stacksize);
 
         let lbl_stack_overflow = self.masm.create_label();
         self.masm.check_stack_pointer(lbl_stack_overflow);
 
         self.slow_paths
             .push(SlowPathKind::StackOverflow(lbl_stack_overflow, pos));
+    }
+
+    pub fn prolog(&mut self, pos: Position) -> usize {
+        let patch_offset = self.masm.prolog();
+
+        let lbl_stack_overflow = self.masm.create_label();
+        self.masm.check_stack_pointer(lbl_stack_overflow);
+
+        self.slow_paths
+            .push(SlowPathKind::StackOverflow(lbl_stack_overflow, pos));
+
+        patch_offset
+    }
+
+    pub fn patch_stacksize(&mut self, patch_offset: usize, stacksize: i32) {
+        self.masm.patch_stacksize(patch_offset, stacksize);
     }
 
     pub fn epilog_with_polling(&mut self, stacksize: i32, polling_page: Address) {

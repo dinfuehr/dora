@@ -67,7 +67,7 @@ where
 
         // the return address is the call-site we need to patch
         self.masm.copy_ra(REG_TMP1);
-        self.masm.prolog(framesize);
+        self.masm.prolog_size(framesize);
 
         self.masm.store_mem(
             MachineMode::Ptr,

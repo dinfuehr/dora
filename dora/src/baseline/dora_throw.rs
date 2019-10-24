@@ -57,7 +57,7 @@ where
             self.masm.debug();
         }
 
-        self.masm.prolog(framesize);
+        self.masm.prolog_size(framesize);
 
         self.masm.store_mem(
             MachineMode::Ptr,
