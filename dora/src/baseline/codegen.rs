@@ -22,7 +22,7 @@ use crate::gc::Address;
 use crate::masm::*;
 use crate::mem;
 use crate::os;
-use crate::ty::{MachineMode, TypeList};
+use crate::ty::{BuiltinType, MachineMode, TypeList};
 use crate::vm::VM;
 use crate::vm::{Fct, FctId, FctSrc, VarId};
 
@@ -113,7 +113,7 @@ pub fn generate_fct<'ast>(
                 active_upper: None,
                 active_loop: None,
                 lbl_return: None,
-                temps: TempOffsets::new(),
+                stack: StackFrame::new(),
 
                 cls_type_params,
                 fct_type_params,
@@ -357,32 +357,82 @@ impl Scope {
     }
 }
 
-pub struct TempOffsets {
-    offsets: HashSet<i32>,
+pub struct StackFrame {
+    all: HashSet<i32>,
+    references: HashSet<i32>,
+    scopes: Vec<StackScope>,
 }
 
-impl TempOffsets {
-    pub fn new() -> TempOffsets {
-        TempOffsets {
-            offsets: HashSet::new(),
+impl StackFrame {
+    pub fn new() -> StackFrame {
+        StackFrame {
+            all: HashSet::new(),
+            references: HashSet::new(),
+            scopes: Vec::new(),
         }
     }
 
     pub fn is_empty(&self) -> bool {
-        self.offsets.is_empty()
+        self.scopes.is_empty() && self.all.is_empty() && self.references.is_empty()
     }
 
-    pub fn insert(&mut self, offset: i32) {
-        debug_assert_eq!(offset % mem::ptr_width(), 0);
-        assert!(self.offsets.insert(offset));
+    pub fn push_scope(&mut self) {
+        self.scopes.push(StackScope::new());
     }
 
-    pub fn remove(&mut self, offset: i32) {
-        assert!(self.offsets.remove(&offset));
+    pub fn add_var(&mut self, ty: BuiltinType, offset: i32) {
+        // if ty.reference_type() {
+        //     assert!(self.references.insert(offset));
+        // }
+
+        let scope = self.scopes.last_mut().expect("no active scope");
+        scope.add_var(ty, offset);
+    }
+
+    pub fn pop_scope(&mut self) {
+        let _scope = self.scopes.pop().expect("no active scope");
+
+        // for (offset, ty) in scope.vars.into_iter() {
+        //     if ty.reference_type() {
+        //         assert!(self.references.remove(&offset));
+        //     }
+        // }
+    }
+
+    pub fn add_temp(&mut self, ty: BuiltinType, offset: i32) {
+        if ty.reference_type() {
+            assert!(self.references.insert(offset));
+        }
+
+        assert!(self.all.insert(offset));
+    }
+
+    pub fn free_temp(&mut self, ty: BuiltinType, offset: i32) {
+        if ty.reference_type() {
+            assert!(self.references.remove(&offset));
+        }
+
+        assert!(self.all.remove(&offset));
     }
 }
 
-pub fn create_gcpoint(vars: &Scopes, temps: &TempOffsets) -> GcPoint {
+pub struct StackScope {
+    vars: HashMap<i32, BuiltinType>,
+}
+
+impl StackScope {
+    fn new() -> StackScope {
+        StackScope {
+            vars: HashMap::new(),
+        }
+    }
+
+    fn add_var(&mut self, ty: BuiltinType, offset: i32) {
+        assert!(self.vars.insert(offset, ty).is_none());
+    }
+}
+
+pub fn create_gcpoint(vars: &Scopes, temps: &StackFrame) -> GcPoint {
     let mut offsets = Vec::new();
 
     for scope in &vars.scopes {
@@ -393,7 +443,7 @@ pub fn create_gcpoint(vars: &Scopes, temps: &TempOffsets) -> GcPoint {
         offsets.extend_from_slice(&scope.offsets);
     }
 
-    for &offset in &temps.offsets {
+    for &offset in &temps.references {
         offsets.push(offset);
     }
 

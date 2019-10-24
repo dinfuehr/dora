@@ -9,7 +9,7 @@ use crate::baseline::asm::BaselineAssembler;
 use crate::baseline::ast::info::JitInfo;
 use crate::baseline::codegen::{
     create_gcpoint, ensure_native_stub, register_for_mode, should_emit_debug, AllocationSize,
-    CodeGen, CondCode, ExprStore, Scopes, TempOffsets,
+    CodeGen, CondCode, ExprStore, Scopes, StackFrame,
 };
 use crate::baseline::dora_native::{InternalFct, InternalFctDescriptor};
 use crate::baseline::fct::{CatchType, Comment, JitBaselineFct, JitDescriptor};
@@ -65,7 +65,7 @@ pub struct AstCodeGen<'a, 'ast: 'a> {
     // see emit_finallys_within_loop and tests/finally/continue-return.dora
     pub active_upper: Option<usize>,
 
-    pub temps: TempOffsets,
+    pub stack: StackFrame,
 
     pub cls_type_params: &'a TypeList,
     pub fct_type_params: &'a TypeList,
@@ -307,7 +307,7 @@ where
         self.asm.emit_comment(Comment::ReadPollingPage);
         self.asm.check_polling_page(self.vm.polling_page.addr());
 
-        let temps = TempOffsets::new();
+        let temps = StackFrame::new();
         let gcpoint = create_gcpoint(&self.scopes, &temps);
         self.asm.emit_gcpoint(gcpoint);
     }
@@ -412,20 +412,17 @@ where
                 .var_store(self.jit_info.offset(var), self.jit_info.ty(var), value);
         }
 
-        let reference_type = {
-            let ty = self.jit_info.ty(var);
+        let ty = self.jit_info.ty(var);
+        let offset = self.jit_info.offset(var);
+        self.stack.add_var(ty, offset);
 
-            if ty.reference_type() {
-                let offset = self.jit_info.offset(var);
-                self.scopes.add_var(var, offset);
-            }
-
-            ty.reference_type()
-        };
+        if ty.reference_type() {
+            self.scopes.add_var(var, offset);
+        }
 
         // uninitialized variables which reference objects need to be initialized to null
         // otherwise the GC  can't know if the stored value is a valid pointer
-        if reference_type && !initialized {
+        if ty.reference_type() && !initialized {
             self.asm.load_nil(REG_RESULT);
             self.asm.var_store(
                 self.jit_info.offset(var),
@@ -480,10 +477,13 @@ where
             let offset = self.jit_info.offset(varid);
 
             self.scopes.push_scope();
-            self.scopes.add_var(varid, offset);
+            self.stack.push_scope();
 
+            self.scopes.add_var(varid, offset);
+            self.stack.add_var(BuiltinType::Ptr, offset);
             let catch_span = self.stmt_with_finally(s, &catch.block, lbl_after);
 
+            self.stack.pop_scope();
             self.scopes.pop_scope();
 
             let ty = self.src.ty(catch.data_type.id());
@@ -541,9 +541,11 @@ where
         let finally_pos = self.asm.pos();
 
         self.scopes.push_scope();
+        self.stack.push_scope();
 
         let offset = *self.jit_info.map_offsets.get(s.id).unwrap();
         self.scopes.add_var_offset(offset);
+        self.stack.add_var(BuiltinType::Ptr, offset);
 
         self.visit_stmt(&finally_block.block);
 
@@ -551,6 +553,7 @@ where
             .load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Local(offset));
         self.asm.throw(REG_RESULT, s.pos);
 
+        self.stack.pop_scope();
         self.scopes.pop_scope();
 
         Some(finally_pos)
@@ -611,6 +614,7 @@ where
 
     fn emit_block(&mut self, block: &'ast ExprBlockType, dest: ExprStore) {
         self.scopes.push_scope();
+        self.stack.push_scope();
 
         for stmt in &block.stmts {
             self.visit_stmt(stmt);
@@ -620,6 +624,7 @@ where
             self.emit_expr(expr, dest);
         }
 
+        self.stack.pop_scope();
         self.scopes.pop_scope();
     }
 
@@ -698,7 +703,8 @@ where
             REG_RESULT.into(),
         );
 
-        self.add_temp(template_info.string_buffer_offset, BuiltinType::Ptr);
+        self.stack
+            .add_temp(BuiltinType::Ptr, template_info.string_buffer_offset);
 
         for (idx, part) in e.parts.iter().enumerate() {
             let part_info = &template_info.part_infos[idx];
@@ -733,7 +739,8 @@ where
         }
 
         self.emit_call_site(&template_info.string_buffer_to_string, e.pos, dest.into());
-        self.free_temp(template_info.string_buffer_offset, BuiltinType::Ptr);
+        self.stack
+            .free_temp(BuiltinType::Ptr, template_info.string_buffer_offset);
     }
 
     fn emit_conv(&mut self, e: &'ast ExprConvType, dest: Reg) {
@@ -762,7 +769,7 @@ where
                 0
             } else {
                 // reserve temp variable for object
-                let offset = self.reserve_temp_for_node(&e.object);
+                let offset = self.add_temp_node(&e.object);
                 self.asm
                     .store_mem(MachineMode::Ptr, Mem::Local(offset), dest.into());
 
@@ -865,7 +872,7 @@ where
             }
 
             if !e.is {
-                self.free_temp_for_node(&e.object, offset);
+                self.free_temp_node(&e.object, offset);
             }
         }
 
@@ -876,57 +883,28 @@ where
         // also for as we are finished: dest is null and stays null
     }
 
-    fn reserve_temp_for_node(&mut self, expr: &Expr) -> i32 {
+    fn add_temp_arg(&mut self, arg: &Arg<'ast>) -> i32 {
+        let ty = arg.ty();
+        let offset = arg.offset();
+
+        self.stack.add_temp(ty, offset);
+
+        offset
+    }
+
+    fn add_temp_node(&mut self, expr: &Expr) -> i32 {
         let id = expr.id();
         let ty = self.ty(id);
         let offset = self.jit_info.get_store(id).offset();
 
-        if ty.reference_type() {
-            self.temps.insert(offset);
-        }
+        self.stack.add_temp(ty, offset);
 
         offset
     }
 
-    fn add_temp(&mut self, offset: i32, ty: BuiltinType) {
-        if ty.reference_type() {
-            self.temps.insert(offset);
-        }
-    }
-
-    fn free_temp(&mut self, offset: i32, ty: BuiltinType) {
-        if ty.reference_type() {
-            self.temps.remove(offset);
-        }
-    }
-
-    fn reserve_temp_for_arg(&mut self, arg: &Arg<'ast>) -> i32 {
-        let offset = arg.offset();
-        let ty = arg.ty();
-
-        if ty.reference_type() {
-            self.temps.insert(offset);
-        }
-
-        offset
-    }
-
-    fn reserve_temp_for_self(&mut self, arg: &Arg<'ast>) -> i32 {
-        arg.offset()
-    }
-
-    fn free_temp_for_node(&mut self, expr: &Expr, offset: i32) {
+    fn free_temp_node(&mut self, expr: &Expr, offset: i32) {
         let ty = self.ty(expr.id());
-
-        if ty.reference_type() {
-            self.temps.remove(offset);
-        }
-    }
-
-    fn free_temp_with_type(&mut self, ty: BuiltinType, offset: i32) {
-        if ty.reference_type() {
-            self.temps.remove(offset);
-        }
+        self.stack.free_temp(ty, offset);
     }
 
     fn intrinsic(&self, id: NodeId) -> Option<Intrinsic> {
@@ -1269,14 +1247,14 @@ where
                     &e.lhs
                 };
 
-                let temp_offset = self.reserve_temp_for_node(temp);
+                let temp_offset = self.add_temp_node(temp);
                 self.asm
                     .store_mem(MachineMode::Ptr, Mem::Local(temp_offset), REG_RESULT.into());
 
                 let reg = result_reg(field.ty.mode());
                 let verify_refs = self.vm.args.flag_gc_verify_write && field.ty.reference_type();
                 let temp_value_offset = if verify_refs {
-                    self.reserve_temp_for_node(&e.rhs)
+                    self.add_temp_node(&e.rhs)
                 } else {
                     0
                 };
@@ -1304,7 +1282,7 @@ where
                 );
 
                 if verify_refs {
-                    let gcpoint = create_gcpoint(&self.scopes, &self.temps);
+                    let gcpoint = create_gcpoint(&self.scopes, &self.stack);
                     self.asm.load_mem(
                         MachineMode::Ptr,
                         REG_PARAMS[0].into(),
@@ -1317,10 +1295,10 @@ where
                     );
                     self.asm
                         .verify_refs(REG_PARAMS[0], REG_PARAMS[1], e.pos, gcpoint);
-                    self.free_temp_for_node(&e.rhs, temp_value_offset);
+                    self.free_temp_node(&e.rhs, temp_value_offset);
                 }
 
-                self.free_temp_for_node(temp, temp_offset);
+                self.free_temp_node(temp, temp_offset);
             }
 
             &IdentType::Struct(_) => {
@@ -1395,7 +1373,7 @@ where
             self.emit_expr(&e.lhs, FREG_RESULT.into());
             self.asm
                 .float_as_int(dest_mode, REG_RESULT, src_mode, FREG_RESULT);
-            offset = self.reserve_temp_for_node(&e.lhs);
+            offset = self.add_temp_node(&e.lhs);
             self.asm
                 .store_mem(dest_mode, Mem::Local(offset), REG_RESULT.into());
 
@@ -1404,7 +1382,7 @@ where
                 .float_as_int(dest_mode, REG_TMP1, src_mode, FREG_RESULT);
         } else {
             self.emit_expr(&e.lhs, REG_RESULT.into());
-            offset = self.reserve_temp_for_node(&e.lhs);
+            offset = self.add_temp_node(&e.lhs);
             self.asm
                 .store_mem(dest_mode, Mem::Local(offset), REG_RESULT.into());
 
@@ -1421,7 +1399,7 @@ where
         };
 
         self.asm.set(dest, op);
-        self.free_temp_for_node(&e.lhs, offset);
+        self.free_temp_node(&e.lhs, offset);
     }
 
     fn emit_bin_or(&mut self, e: &'ast ExprBinType, dest: Reg) {
@@ -1752,7 +1730,7 @@ where
         rhs: &'ast Expr,
     ) {
         self.emit_expr(object, REG_RESULT.into());
-        let offset_object = self.reserve_temp_for_node(object);
+        let offset_object = self.add_temp_node(object);
         self.asm.store_mem(
             MachineMode::Ptr,
             Mem::Local(offset_object),
@@ -1760,7 +1738,7 @@ where
         );
 
         self.emit_expr(index, REG_RESULT.into());
-        let offset_index = self.reserve_temp_for_node(index);
+        let offset_index = self.add_temp_node(index);
         self.asm.store_mem(
             MachineMode::Int32,
             Mem::Local(offset_index),
@@ -1770,7 +1748,7 @@ where
         let res = result_reg(mode);
 
         self.emit_expr(rhs, res);
-        let offset_value = self.reserve_temp_for_node(rhs);
+        let offset_value = self.add_temp_node(rhs);
         self.asm.store_mem(mode, Mem::Local(offset_value), res);
 
         self.asm
@@ -1801,9 +1779,9 @@ where
             card_table_offset,
         );
 
-        self.free_temp_for_node(object, offset_object);
-        self.free_temp_for_node(index, offset_index);
-        self.free_temp_for_node(rhs, offset_value);
+        self.free_temp_node(object, offset_object);
+        self.free_temp_node(index, offset_index);
+        self.free_temp_node(rhs, offset_value);
     }
 
     fn emit_array_get(
@@ -1815,7 +1793,7 @@ where
         dest: ExprStore,
     ) {
         self.emit_expr(object, REG_RESULT.into());
-        let offset = self.reserve_temp_for_node(object);
+        let offset = self.add_temp_node(object);
         self.asm
             .store_mem(MachineMode::Ptr, Mem::Local(offset), REG_RESULT.into());
 
@@ -1834,7 +1812,7 @@ where
 
         self.asm.load_array_elem(mode, res, REG_RESULT, REG_TMP1);
 
-        self.free_temp_for_node(object, offset);
+        self.free_temp_node(object, offset);
 
         if dest != res {
             self.asm.copy(mode, dest, res);
@@ -1843,7 +1821,7 @@ where
 
     fn emit_set_uint8(&mut self, lhs: &'ast Expr, rhs: &'ast Expr, _: Reg) {
         self.emit_expr(lhs, REG_RESULT.into());
-        let offset = self.reserve_temp_for_node(lhs);
+        let offset = self.add_temp_node(lhs);
         self.asm
             .store_mem(MachineMode::Int64, Mem::Local(offset), REG_RESULT.into());
 
@@ -1906,7 +1884,7 @@ where
 
     fn emit_intrinsic_shl(&mut self, lhs: &'ast Expr, rhs: &'ast Expr, dest: Reg) {
         self.emit_expr(lhs, REG_RESULT.into());
-        let offset = self.reserve_temp_for_node(lhs);
+        let offset = self.add_temp_node(lhs);
         self.asm
             .store_mem(MachineMode::Int32, Mem::Local(offset), REG_RESULT.into());
 
@@ -2038,7 +2016,7 @@ where
         };
 
         self.emit_expr(lhs, lhs_reg);
-        let offset = self.reserve_temp_for_node(lhs);
+        let offset = self.add_temp_node(lhs);
 
         self.asm.store_mem(mode, Mem::Local(offset), lhs_reg);
 
@@ -2058,7 +2036,7 @@ where
             self.emit_intrinsic_int(dest.reg(), lhs_reg, rhs_reg, intr, op);
         }
 
-        self.free_temp_for_node(lhs, offset);
+        self.free_temp_node(lhs, offset);
     }
 
     fn emit_intrinsic_int(
@@ -2258,17 +2236,16 @@ where
 
                 Arg::SelfieNew(ty, _) => {
                     let cls_id = specialize_class_ty(self.vm, ty);
-                    // do NOT invoke `reserve_temp_for_arg` here, since
+                    // do NOT invoke `add_temp_arg` here, since
                     // this would also add it to the set of temporaries, which
                     // leads to this address being part of the gc point for
                     // the collection of the object.
-                    let offset = self.reserve_temp_for_self(arg);
-                    temps.push((ty, offset, Some(cls_id)));
+                    temps.push((ty, arg.offset(), Some(cls_id)));
                     continue;
                 }
             }
 
-            let offset = self.reserve_temp_for_arg(arg);
+            let offset = self.add_temp_arg(arg);
             self.asm
                 .store_mem(arg.ty().mode(), Mem::Local(offset), dest);
             temps.push((arg.ty(), offset, None));
@@ -2295,7 +2272,7 @@ where
                     // after the allocation `offset` is initialized,
                     // add it to the set of temporaries such that it is part
                     // of the gc point
-                    self.temps.insert(offset);
+                    self.stack.add_temp(BuiltinType::Ptr, offset);
 
                     reg_idx += 1;
                     idx += 1;
@@ -2361,7 +2338,7 @@ where
         if csite.super_call {
             let ptr = self.ptr_for_fct_id(fid, cls_type_params.clone(), fct_type_params.clone());
             self.asm.emit_comment(Comment::CallSuper(fid));
-            let gcpoint = create_gcpoint(&self.scopes, &self.temps);
+            let gcpoint = create_gcpoint(&self.scopes, &self.stack);
             self.asm.direct_call(
                 fid,
                 ptr.to_ptr(),
@@ -2375,13 +2352,13 @@ where
         } else if fct.is_virtual() {
             let vtable_index = fct.vtable_index.unwrap();
             self.asm.emit_comment(Comment::CallVirtual(fid));
-            let gcpoint = create_gcpoint(&self.scopes, &self.temps);
+            let gcpoint = create_gcpoint(&self.scopes, &self.stack);
             self.asm
                 .indirect_call(vtable_index, pos, gcpoint, return_type, dest);
         } else {
             let ptr = self.ptr_for_fct_id(fid, cls_type_params.clone(), fct_type_params.clone());
             self.asm.emit_comment(Comment::CallDirect(fid));
-            let gcpoint = create_gcpoint(&self.scopes, &self.temps);
+            let gcpoint = create_gcpoint(&self.scopes, &self.stack);
             self.asm.direct_call(
                 fid,
                 ptr.to_ptr(),
@@ -2402,7 +2379,7 @@ where
         }
 
         for temp in temps.into_iter() {
-            self.free_temp_with_type(temp.0, temp.1);
+            self.stack.free_temp(temp.0, temp.1);
         }
 
         self.asm.decrease_stack_frame(csite.argsize);
@@ -2482,7 +2459,7 @@ where
             _ => false,
         };
 
-        let gcpoint = create_gcpoint(&self.scopes, &self.temps);
+        let gcpoint = create_gcpoint(&self.scopes, &self.stack);
         self.asm.allocate(dest, alloc_size, pos, array_ref, gcpoint);
 
         // store gc object in temporary storage
@@ -2605,6 +2582,7 @@ impl<'a, 'ast> CodeGen<'ast> for AstCodeGen<'a, 'ast> {
         self.store_register_params_on_stack();
 
         {
+            self.stack.push_scope();
             let block = self.ast.block();
 
             for stmt in &block.stmts {
@@ -2617,9 +2595,11 @@ impl<'a, 'ast> CodeGen<'ast> for AstCodeGen<'a, 'ast> {
                 self.emit_expr(value, reg);
                 self.emit_epilog();
             }
+
+            self.stack.pop_scope();
         }
 
-        assert!(self.temps.is_empty());
+        assert!(self.stack.is_empty());
 
         let always_returns = self.src.always_returns;
 
