@@ -313,6 +313,9 @@ pub struct StackFrame {
     all: HashSet<i32>,
     references: HashSet<i32>,
     scopes: Vec<StackScope>,
+
+    free_slots: FreeSlots,
+    size: u32,
 }
 
 impl StackFrame {
@@ -321,6 +324,9 @@ impl StackFrame {
             all: HashSet::new(),
             references: HashSet::new(),
             scopes: Vec::new(),
+
+            free_slots: FreeSlots::new(),
+            size: 0,
         }
     }
 
@@ -395,6 +401,152 @@ impl StackScope {
 
     fn add_var(&mut self, ty: BuiltinType, offset: i32) {
         assert!(self.vars.insert(offset, ty).is_none());
+    }
+}
+
+struct FreeSlots {
+    slots: Vec<FreeSlot>,
+}
+
+impl FreeSlots {
+    fn new() -> FreeSlots {
+        FreeSlots { slots: Vec::new() }
+    }
+
+    fn free(&mut self, new: FreeSlot) {
+        let slots = self.slots.len();
+
+        for idx in 0..slots {
+            let slot = self.slots[idx];
+
+            if idx > 0 {
+                debug_assert!(self.slots[idx - 1].end() < slot.start());
+            }
+
+            if new.end() < slot.start() {
+                // insert before
+                self.slots.insert(idx, new);
+                return;
+            } else if new.end() == slot.start() {
+                // extend current slot from left
+                self.slots[idx] = FreeSlot::new(new.start(), new.size() + slot.size());
+                return;
+            } else if slot.end() == new.start() {
+                if idx + 1 < slots && self.slots[idx + 1].start() == new.end() {
+                    // merge two slots
+                    let left = slot;
+                    let right = self.slots[idx + 1];
+
+                    self.slots.remove(idx);
+
+                    let size = right.end() - left.start();
+                    self.slots[idx] = FreeSlot::new(left.start(), size);
+                } else {
+                    // extend current slot from right
+                    self.slots[idx] = FreeSlot::new(slot.start(), slot.size() + new.size());
+
+                    if idx + 1 < slots {
+                        debug_assert!(self.slots[idx].end() < self.slots[idx + 1].start());
+                    }
+                }
+                return;
+            } else {
+                // continue to next slot
+            }
+        }
+
+        self.slots.push(new);
+    }
+
+    fn alloc(&mut self, size: u32, alignment: u32) -> Option<u32> {
+        let mut result = None;
+        let mut best = u32::max_value();
+        let slots = self.slots.len();
+
+        for idx in 0..slots {
+            let slot = self.slots[idx];
+
+            if idx > 0 {
+                debug_assert!(self.slots[idx - 1].end() < slot.start());
+            }
+
+            if slot.size() < size {
+                continue;
+            } else if slot.size() == size {
+                if is_aligned(slot.start(), alignment) {
+                    self.slots.remove(idx);
+                    return Some(slot.start());
+                }
+            } else {
+                let start = align(slot.start(), alignment);
+
+                if start + size < slot.end() {
+                    let gap_left = start - slot.start();
+                    let gap_right = slot.end() - (start + size);
+                    let gap = gap_left + gap_right;
+
+                    if gap < best {
+                        best = gap;
+                        result = Some(idx);
+                    }
+                }
+            }
+        }
+
+        if let Some(mut idx) = result {
+            let slot = self.slots[idx];
+            self.slots.remove(idx);
+            let start = align(slot.start(), alignment);
+            let gap_left = start - slot.start();
+            let gap_right = slot.end() - (start + size);
+
+            if gap_left > 0 {
+                self.slots
+                    .insert(idx, FreeSlot::new(slot.start(), gap_left));
+                idx += 1;
+            }
+
+            if gap_right > 0 {
+                self.slots
+                    .insert(idx, FreeSlot::new(slot.end() - gap_right, gap_right));
+            }
+
+            Some(start)
+        } else {
+            None
+        }
+    }
+}
+
+fn is_aligned(value: u32, size: u32) -> bool {
+    value % size == 0
+}
+
+fn align(value: u32, alignment: u32) -> u32 {
+    (value * alignment + alignment - 1) / alignment
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+struct FreeSlot {
+    start: u32,
+    size: u32,
+}
+
+impl FreeSlot {
+    fn new(start: u32, size: u32) -> FreeSlot {
+        FreeSlot { start, size }
+    }
+
+    fn start(self) -> u32 {
+        self.start
+    }
+
+    fn end(self) -> u32 {
+        self.start + self.size
+    }
+
+    fn size(self) -> u32 {
+        self.size
     }
 }
 
@@ -523,5 +675,44 @@ pub fn ensure_native_stub(vm: &VM, fct_id: FctId, internal_fct: InternalFct) -> 
 
         native_thunks.insert_fct(ptr, jit_fct_id);
         fct_start
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{FreeSlot, FreeSlots};
+
+    #[test]
+    fn merge_free_slots() {
+        let mut free_slots = FreeSlots::new();
+        free_slots.free(FreeSlot::new(0, 2));
+        free_slots.free(FreeSlot::new(8, 8));
+        free_slots.free(FreeSlot::new(2, 2));
+        free_slots.free(FreeSlot::new(4, 4));
+
+        assert_eq!(free_slots.slots, vec![FreeSlot::new(0, 16)]);
+
+        let mut free_slots = FreeSlots::new();
+        free_slots.free(FreeSlot::new(4, 8));
+        free_slots.free(FreeSlot::new(0, 2));
+        free_slots.free(FreeSlot::new(2, 2));
+
+        assert_eq!(free_slots.slots, vec![FreeSlot::new(0, 12)]);
+    }
+
+    #[test]
+    fn alloc_free_slot() {
+        let mut free_slots = FreeSlots::new();
+
+        assert_eq!(free_slots.alloc(2, 2), None);
+        free_slots.free(FreeSlot::new(0, 2));
+
+        assert_eq!(free_slots.alloc(2, 2), Some(0));
+        assert_eq!(free_slots.slots, Vec::new());
+
+        free_slots.free(FreeSlot::new(0, 8));
+        free_slots.free(FreeSlot::new(12, 4));
+        assert_eq!(free_slots.alloc(4, 4), Some(12));
+        assert_eq!(free_slots.slots, vec![FreeSlot::new(0, 8)]);
     }
 }
