@@ -1,0 +1,26 @@
+//= vm-args "--gc=copy"
+
+fun main() {
+    assert(f(true) == 1);
+    assert(f(false) == 2);
+
+    assert(g(true) == 1);
+    assert(g(false) == 2);
+
+    assert(h(true, 7) == "t7end");
+    assert(h(false, 12) == "f12end");
+}
+
+fun f(x: Bool) -> Int {
+    if x { 1 } else { 2 }
+}
+
+fun g(x: Bool) -> Int {
+    let ret = if x { 1 } else { 2 };
+
+    ret
+}
+
+fun h(x: Bool, y: Int) -> String {
+    (if x { "t${y}" } else { "f${y}" }) + { forceCollect(); "end" }
+}
