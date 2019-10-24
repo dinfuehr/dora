@@ -156,7 +156,7 @@ where
         );
 
         self.masm
-            .epilog_with_polling(framesize, self.vm.polling_page.addr());
+            .epilog_size(framesize, self.vm.polling_page.addr());
 
         self.masm.bind_label(lbl_exception);
         self.masm.throw(REG_RESULT, Position::new(1, 1));

@@ -256,6 +256,10 @@ pub fn emit_addq_imm_reg(buf: &mut MacroAssembler, imm: i32, reg: Reg) {
     emit_aluq_imm_reg(buf, 1, imm, false, reg, 0x05, 0);
 }
 
+pub fn emit_addq_immd_reg(buf: &mut MacroAssembler, imm: i32, reg: Reg) {
+    emit_aluq_imm_reg(buf, 1, imm, true, reg, 0x05, 0);
+}
+
 pub fn emit_andq_imm_reg(buf: &mut MacroAssembler, imm: i32, reg: Reg) {
     emit_aluq_imm_reg(buf, 1, imm, false, reg, 0x25, 4);
 }

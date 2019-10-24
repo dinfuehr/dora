@@ -53,8 +53,22 @@ impl MacroAssembler {
         asm::emit_jcc(self, CondCode::UnsignedGreater, lbl_overflow);
     }
 
-    pub fn epilog_with_polling(&mut self, stacksize: i32, polling_page: Address) {
-        self.epilog_without_return(stacksize);
+    pub fn epilog_with_polling(&mut self, polling_page: Address) -> usize {
+        asm::emit_addq_immd_reg(self, 0, RSP);
+        let patch_offset = self.pos() - 4;
+        asm::emit_popq_reg(self, RBP);
+        self.check_polling_page(polling_page);
+
+        let gcpoint = GcPoint::new();
+        self.emit_gcpoint(gcpoint);
+
+        asm::emit_retq(self);
+        patch_offset
+    }
+
+    pub fn epilog_size(&mut self, stacksize: i32, polling_page: Address) {
+        asm::emit_addq_imm_reg(self, stacksize, RSP);
+        asm::emit_popq_reg(self, RBP);
         self.check_polling_page(polling_page);
 
         let gcpoint = GcPoint::new();

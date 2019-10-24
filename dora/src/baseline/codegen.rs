@@ -106,13 +106,13 @@ pub fn generate_fct<'ast>(
 
                 lbl_break: None,
                 lbl_continue: None,
+                lbl_return: None,
 
                 active_finallys: Vec::new(),
                 active_upper: None,
                 active_loop: None,
-                lbl_return: None,
                 stack: StackFrame::new(),
-                patch_offset: 0,
+                stacksize_offsets: Vec::new(),
 
                 cls_type_params,
                 fct_type_params,
@@ -426,11 +426,9 @@ impl FreeSlots {
             if new.end() < slot.start() {
                 // insert before
                 self.slots.insert(idx, new);
-                return;
             } else if new.end() == slot.start() {
                 // extend current slot from left
                 self.slots[idx] = FreeSlot::new(new.start(), new.size() + slot.size());
-                return;
             } else if slot.end() == new.start() {
                 if idx + 1 < slots && self.slots[idx + 1].start() == new.end() {
                     // merge two slots
@@ -449,10 +447,12 @@ impl FreeSlots {
                         debug_assert!(self.slots[idx].end() < self.slots[idx + 1].start());
                     }
                 }
-                return;
             } else {
                 // continue to next slot
+                continue;
             }
+
+            return;
         }
 
         self.slots.push(new);
