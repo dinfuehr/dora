@@ -297,14 +297,19 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.visit_expr(else_block);
             let else_type = self.expr_type;
 
-            if !then_type.allows(self.vm, else_type) {
-                let then_type = then_type.name(self.vm);
-                let else_type = else_type.name(self.vm);
-                let msg = SemError::IfBranchTypesIncompatible(then_type, else_type);
+            if expr_always_returns(&expr.then_block) {
+                else_type
+            } else if expr_always_returns(else_block) {
+                then_type
+            } else if !then_type.allows(self.vm, else_type) {
+                let then_type_name = then_type.name(self.vm);
+                let else_type_name = else_type.name(self.vm);
+                let msg = SemError::IfBranchTypesIncompatible(then_type_name, else_type_name);
                 self.vm.diag.lock().report(self.file, expr.pos, msg);
+                then_type
+            } else {
+                then_type
             }
-
-            then_type
         } else {
             BuiltinType::Unit
         };

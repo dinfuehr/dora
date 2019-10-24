@@ -9,6 +9,9 @@ fun main() {
 
     assert(h(true, 7) == "t7end");
     assert(h(false, 12) == "f12end");
+
+    assert(i(true) == "1");
+    assert(i(false) == "not one");
 }
 
 fun f(x: Bool) -> Int {
@@ -23,4 +26,9 @@ fun g(x: Bool) -> Int {
 
 fun h(x: Bool, y: Int) -> String {
     (if x { "t${y}" } else { "f${y}" }) + { forceCollect(); "end" }
+}
+
+fun i(x: Bool) -> String {
+  let i = if x { 1 } else { return "not one"; };
+  i.toString()
 }
