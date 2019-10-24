@@ -112,7 +112,7 @@ pub fn generate_fct<'ast>(
                 active_upper: None,
                 active_loop: None,
                 stack: StackFrame::new(),
-                stacksize_offsets: Vec::new(),
+                stacksize_offset: 0,
 
                 cls_type_params,
                 fct_type_params,

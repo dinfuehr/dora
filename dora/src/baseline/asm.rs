@@ -64,12 +64,12 @@ where
         self.masm.patch_stacksize(patch_offset, stacksize);
     }
 
-    pub fn epilog_with_polling(&mut self, polling_page: Address) -> usize {
-        self.masm.epilog_with_polling(polling_page)
+    pub fn safepoint(&mut self, polling_page: Address) {
+        self.masm.safepoint(polling_page);
     }
 
-    pub fn epilog_size(&mut self, stacksize: i32, polling_page: Address) {
-        self.masm.epilog_size(stacksize, polling_page);
+    pub fn epilog(&mut self) {
+        self.masm.epilog();
     }
 
     pub fn increase_stack_frame(&mut self, size: i32) {

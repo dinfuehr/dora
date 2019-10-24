@@ -67,7 +67,7 @@ where
             REG_THREAD.into(),
             Mem::Base(REG_SP, offset_thread),
         );
-        self.masm.epilog(framesize);
+        self.masm.epilog();
 
         self.masm
             .jit(self.vm, framesize, JitDescriptor::DoraEntry, false)

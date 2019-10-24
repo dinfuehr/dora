@@ -128,7 +128,7 @@ where
         self.load_params(offset_params);
 
         // remove the stack frame
-        self.masm.epilog_without_return(framesize);
+        self.masm.epilog_without_return();
 
         // jump to compiled function
         self.masm.jump_reg(REG_TMP1);

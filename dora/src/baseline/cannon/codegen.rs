@@ -61,12 +61,13 @@ where
         self.asm.emit_comment(Comment::Newline);
     }
 
-    fn emit_epilog(&mut self, bytecode: &BytecodeFunction) {
+    fn emit_epilog(&mut self) {
         self.asm.emit_comment(Comment::Newline);
         self.asm.emit_comment(Comment::Lit("epilog"));
 
         let polling_page = self.vm.polling_page.addr();
-        self.asm.epilog_size(bytecode.stacksize(), polling_page);
+        self.asm.safepoint(polling_page);
+        self.asm.epilog();
     }
 
     fn emit_add_int(
@@ -748,7 +749,7 @@ impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
             }
         }
 
-        self.emit_epilog(&bytecode);
+        self.emit_epilog();
 
         let jit_fct = self.asm.jit(
             bytecode.stacksize(),

@@ -65,7 +65,7 @@ pub struct AstCodeGen<'a, 'ast: 'a> {
     pub active_upper: Option<usize>,
 
     pub stack: StackFrame,
-    pub stacksize_offsets: Vec<usize>,
+    pub stacksize_offset: usize,
 
     pub cls_type_params: &'a TypeList,
     pub fct_type_params: &'a TypeList,
@@ -140,8 +140,7 @@ where
     }
 
     fn emit_prolog(&mut self) {
-        let patch_offset = self.asm.prolog(self.fct.ast.pos);
-        self.stacksize_offsets.push(patch_offset);
+        self.stacksize_offset = self.asm.prolog(self.fct.ast.pos);
         self.asm.emit_comment(Comment::Lit("prolog end"));
         self.asm.emit_comment(Comment::Newline);
     }
@@ -151,8 +150,8 @@ where
         self.asm.emit_comment(Comment::Lit("epilog"));
 
         let polling_page = self.vm.polling_page.addr();
-        let patch_offset = self.asm.epilog_with_polling(polling_page);
-        self.stacksize_offsets.push(patch_offset);
+        self.asm.safepoint(polling_page);
+        self.asm.epilog();
     }
 
     fn emit_stmt_return(&mut self, s: &'ast StmtReturnType) {
@@ -2589,10 +2588,8 @@ impl<'a, 'ast> CodeGen<'ast> for AstCodeGen<'a, 'ast> {
             self.emit_epilog();
         }
 
-        for &stacksize_offset in &self.stacksize_offsets {
-            self.asm
-                .patch_stacksize(stacksize_offset as usize, self.jit_info.stacksize());
-        }
+        self.asm
+            .patch_stacksize(self.stacksize_offset, self.jit_info.stacksize());
 
         let jit_fct = self.asm.jit(
             self.jit_info.stacksize(),

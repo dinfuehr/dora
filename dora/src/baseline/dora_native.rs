@@ -155,8 +155,8 @@ where
             Mem::Base(REG_SP, offset_thread),
         );
 
-        self.masm
-            .epilog_size(framesize, self.vm.polling_page.addr());
+        self.masm.safepoint(self.vm.polling_page.addr());
+        self.masm.epilog();
 
         self.masm.bind_label(lbl_exception);
         self.masm.throw(REG_RESULT, Position::new(1, 1));
