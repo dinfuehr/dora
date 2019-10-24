@@ -24,7 +24,7 @@ use crate::mem;
 use crate::os;
 use crate::ty::{BuiltinType, MachineMode, TypeList};
 use crate::vm::VM;
-use crate::vm::{Fct, FctId, FctSrc, VarId};
+use crate::vm::{Fct, FctId, FctSrc};
 
 pub fn generate<'ast>(
     vm: &VM<'ast>,
@@ -72,7 +72,6 @@ pub fn generate_fct<'ast>(
             fct: &fct,
             ast,
             asm: BaselineAssembler::new(vm),
-            scopes: Scopes::new(),
             src,
 
             lbl_break: None,
@@ -102,7 +101,6 @@ pub fn generate_fct<'ast>(
                 fct: &fct,
                 ast,
                 asm: BaselineAssembler::new(vm),
-                scopes: Scopes::new(),
                 src,
                 jit_info: &jit_info,
 
@@ -310,53 +308,6 @@ pub enum CondCode {
     UnsignedLessEq,
 }
 
-pub struct Scopes {
-    scopes: Vec<Scope>,
-}
-
-impl Scopes {
-    pub fn new() -> Scopes {
-        Scopes {
-            scopes: vec![Scope::new()],
-        }
-    }
-
-    pub fn push_scope(&mut self) {
-        self.scopes.push(Scope::new())
-    }
-
-    pub fn pop_scope(&mut self) {
-        assert!(self.scopes.pop().is_some());
-        assert!(self.scopes.len() >= 1);
-    }
-
-    pub fn add_var(&mut self, id: VarId, offset: i32) {
-        debug_assert_eq!(offset % mem::ptr_width(), 0);
-        let scope = self.scopes.last_mut().unwrap();
-        assert!(scope.vars.insert(id, offset).is_none());
-    }
-
-    pub fn add_var_offset(&mut self, offset: i32) {
-        debug_assert_eq!(offset % mem::ptr_width(), 0);
-        let scope = self.scopes.last_mut().unwrap();
-        scope.offsets.push(offset);
-    }
-}
-
-struct Scope {
-    vars: HashMap<VarId, i32>,
-    offsets: Vec<i32>,
-}
-
-impl Scope {
-    pub fn new() -> Scope {
-        Scope {
-            vars: HashMap::new(),
-            offsets: Vec::new(),
-        }
-    }
-}
-
 pub struct StackFrame {
     all: HashSet<i32>,
     references: HashSet<i32>,
@@ -381,22 +332,26 @@ impl StackFrame {
     }
 
     pub fn add_var(&mut self, ty: BuiltinType, offset: i32) {
-        // if ty.reference_type() {
-        //     assert!(self.references.insert(offset));
-        // }
+        if ty.reference_type() {
+            assert!(self.references.insert(offset));
+        }
+
+        assert!(self.all.insert(offset));
 
         let scope = self.scopes.last_mut().expect("no active scope");
         scope.add_var(ty, offset);
     }
 
     pub fn pop_scope(&mut self) {
-        let _scope = self.scopes.pop().expect("no active scope");
+        let scope = self.scopes.pop().expect("no active scope");
 
-        // for (offset, ty) in scope.vars.into_iter() {
-        //     if ty.reference_type() {
-        //         assert!(self.references.remove(&offset));
-        //     }
-        // }
+        for (offset, ty) in scope.vars.into_iter() {
+            if ty.reference_type() {
+                assert!(self.references.remove(&offset));
+            }
+
+            assert!(self.all.remove(&offset));
+        }
     }
 
     pub fn add_temp(&mut self, ty: BuiltinType, offset: i32) {
@@ -414,6 +369,16 @@ impl StackFrame {
 
         assert!(self.all.remove(&offset));
     }
+
+    pub fn gcpoint(&self) -> GcPoint {
+        let mut offsets = Vec::new();
+
+        for &offset in &self.references {
+            offsets.push(offset);
+        }
+
+        GcPoint::from_offsets(offsets)
+    }
 }
 
 pub struct StackScope {
@@ -430,24 +395,6 @@ impl StackScope {
     fn add_var(&mut self, ty: BuiltinType, offset: i32) {
         assert!(self.vars.insert(offset, ty).is_none());
     }
-}
-
-pub fn create_gcpoint(vars: &Scopes, temps: &StackFrame) -> GcPoint {
-    let mut offsets = Vec::new();
-
-    for scope in &vars.scopes {
-        for (_, &offset) in &scope.vars {
-            offsets.push(offset);
-        }
-
-        offsets.extend_from_slice(&scope.offsets);
-    }
-
-    for &offset in &temps.references {
-        offsets.push(offset);
-    }
-
-    GcPoint::from_offsets(offsets)
 }
 
 #[derive(Copy, Clone, Debug)]

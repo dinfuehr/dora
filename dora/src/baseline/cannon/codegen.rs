@@ -3,7 +3,7 @@ use crate::baseline::codegen::fct_pattern_match;
 use crate::cpu::{Mem, FREG_RESULT, FREG_TMP1, REG_RESULT, REG_TMP1};
 use dora_parser::ast::*;
 
-use crate::baseline::codegen::{should_emit_debug, CodeGen, CondCode, Scopes};
+use crate::baseline::codegen::{should_emit_debug, CodeGen, CondCode};
 use crate::baseline::fct::{Comment, JitBaselineFct, JitDescriptor};
 use crate::masm::*;
 use crate::object::Str;
@@ -20,7 +20,6 @@ pub struct CannonCodeGen<'a, 'ast: 'a> {
     pub fct: &'a Fct<'ast>,
     pub ast: &'ast Function,
     pub asm: BaselineAssembler<'a, 'ast>,
-    pub scopes: Scopes,
     pub src: &'a mut FctSrc,
 
     pub lbl_break: Option<Label>,

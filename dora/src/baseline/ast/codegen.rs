@@ -8,8 +8,8 @@ use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 use crate::baseline::asm::BaselineAssembler;
 use crate::baseline::ast::info::JitInfo;
 use crate::baseline::codegen::{
-    create_gcpoint, ensure_native_stub, register_for_mode, should_emit_debug, AllocationSize,
-    CodeGen, CondCode, ExprStore, Scopes, StackFrame,
+    ensure_native_stub, register_for_mode, should_emit_debug, AllocationSize, CodeGen, CondCode,
+    ExprStore, StackFrame,
 };
 use crate::baseline::dora_native::{InternalFct, InternalFctDescriptor};
 use crate::baseline::fct::{CatchType, Comment, JitBaselineFct, JitDescriptor};
@@ -36,7 +36,6 @@ pub struct AstCodeGen<'a, 'ast: 'a> {
     pub fct: &'a Fct<'ast>,
     pub ast: &'ast Function,
     pub asm: BaselineAssembler<'a, 'ast>,
-    pub scopes: Scopes,
     pub src: &'a mut FctSrc,
     pub jit_info: &'a JitInfo<'ast>,
 
@@ -94,9 +93,7 @@ where
             let offset = self.jit_info.offset(var.id);
             self.asm.store_mem(mode, Mem::Local(offset), dest);
 
-            if var.ty.reference_type() {
-                self.scopes.add_var(var.id, offset);
-            }
+            self.stack.add_var(var.ty, offset);
 
             if mode.is_float() {
                 freg_idx += 1;
@@ -109,11 +106,9 @@ where
             let varid = *self.src.map_vars.get(p.id).unwrap();
             let ty = self.jit_info.ty(varid);
             let is_float = ty.mode().is_float();
+            let offset = self.jit_info.offset(varid);
 
-            if ty.reference_type() {
-                let offset = self.jit_info.offset(varid);
-                self.scopes.add_var(varid, offset);
-            }
+            self.stack.add_var(ty, offset);
 
             if is_float && freg_idx < FREG_PARAMS.len() {
                 let reg = FREG_PARAMS[freg_idx];
@@ -307,8 +302,7 @@ where
         self.asm.emit_comment(Comment::ReadPollingPage);
         self.asm.check_polling_page(self.vm.polling_page.addr());
 
-        let temps = StackFrame::new();
-        let gcpoint = create_gcpoint(&self.scopes, &temps);
+        let gcpoint = self.stack.gcpoint();
         self.asm.emit_gcpoint(gcpoint);
     }
 
@@ -416,10 +410,6 @@ where
         let offset = self.jit_info.offset(var);
         self.stack.add_var(ty, offset);
 
-        if ty.reference_type() {
-            self.scopes.add_var(var, offset);
-        }
-
         // uninitialized variables which reference objects need to be initialized to null
         // otherwise the GC  can't know if the stored value is a valid pointer
         if ty.reference_type() && !initialized {
@@ -476,15 +466,12 @@ where
             let varid = *self.src.map_vars.get(catch.id).unwrap();
             let offset = self.jit_info.offset(varid);
 
-            self.scopes.push_scope();
             self.stack.push_scope();
 
-            self.scopes.add_var(varid, offset);
             self.stack.add_var(BuiltinType::Ptr, offset);
             let catch_span = self.stmt_with_finally(s, &catch.block, lbl_after);
 
             self.stack.pop_scope();
-            self.scopes.pop_scope();
 
             let ty = self.src.ty(catch.data_type.id());
             let ty = self.specialize_type(ty);
@@ -540,11 +527,9 @@ where
 
         let finally_pos = self.asm.pos();
 
-        self.scopes.push_scope();
         self.stack.push_scope();
 
         let offset = *self.jit_info.map_offsets.get(s.id).unwrap();
-        self.scopes.add_var_offset(offset);
         self.stack.add_var(BuiltinType::Ptr, offset);
 
         self.visit_stmt(&finally_block.block);
@@ -554,7 +539,6 @@ where
         self.asm.throw(REG_RESULT, s.pos);
 
         self.stack.pop_scope();
-        self.scopes.pop_scope();
 
         Some(finally_pos)
     }
@@ -613,7 +597,6 @@ where
     }
 
     fn emit_block(&mut self, block: &'ast ExprBlockType, dest: ExprStore) {
-        self.scopes.push_scope();
         self.stack.push_scope();
 
         for stmt in &block.stmts {
@@ -625,7 +608,6 @@ where
         }
 
         self.stack.pop_scope();
-        self.scopes.pop_scope();
     }
 
     fn emit_try(&mut self, e: &'ast ExprTryType, dest: ExprStore) {
@@ -1282,7 +1264,7 @@ where
                 );
 
                 if verify_refs {
-                    let gcpoint = create_gcpoint(&self.scopes, &self.stack);
+                    let gcpoint = self.stack.gcpoint();
                     self.asm.load_mem(
                         MachineMode::Ptr,
                         REG_PARAMS[0].into(),
@@ -2338,7 +2320,7 @@ where
         if csite.super_call {
             let ptr = self.ptr_for_fct_id(fid, cls_type_params.clone(), fct_type_params.clone());
             self.asm.emit_comment(Comment::CallSuper(fid));
-            let gcpoint = create_gcpoint(&self.scopes, &self.stack);
+            let gcpoint = self.stack.gcpoint();
             self.asm.direct_call(
                 fid,
                 ptr.to_ptr(),
@@ -2352,13 +2334,13 @@ where
         } else if fct.is_virtual() {
             let vtable_index = fct.vtable_index.unwrap();
             self.asm.emit_comment(Comment::CallVirtual(fid));
-            let gcpoint = create_gcpoint(&self.scopes, &self.stack);
+            let gcpoint = self.stack.gcpoint();
             self.asm
                 .indirect_call(vtable_index, pos, gcpoint, return_type, dest);
         } else {
             let ptr = self.ptr_for_fct_id(fid, cls_type_params.clone(), fct_type_params.clone());
             self.asm.emit_comment(Comment::CallDirect(fid));
-            let gcpoint = create_gcpoint(&self.scopes, &self.stack);
+            let gcpoint = self.stack.gcpoint();
             self.asm.direct_call(
                 fid,
                 ptr.to_ptr(),
@@ -2459,7 +2441,7 @@ where
             _ => false,
         };
 
-        let gcpoint = create_gcpoint(&self.scopes, &self.stack);
+        let gcpoint = self.stack.gcpoint();
         self.asm.allocate(dest, alloc_size, pos, array_ref, gcpoint);
 
         // store gc object in temporary storage
@@ -2578,11 +2560,11 @@ impl<'a, 'ast> CodeGen<'ast> for AstCodeGen<'a, 'ast> {
             self.asm.debug();
         }
 
+        self.stack.push_scope();
         self.emit_prolog();
         self.store_register_params_on_stack();
 
         {
-            self.stack.push_scope();
             let block = self.ast.block();
 
             for stmt in &block.stmts {
@@ -2595,10 +2577,9 @@ impl<'a, 'ast> CodeGen<'ast> for AstCodeGen<'a, 'ast> {
                 self.emit_expr(value, reg);
                 self.emit_epilog();
             }
-
-            self.stack.pop_scope();
         }
 
+        self.stack.pop_scope();
         assert!(self.stack.is_empty());
 
         let always_returns = self.src.always_returns;
