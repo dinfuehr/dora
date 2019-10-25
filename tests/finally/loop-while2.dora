@@ -4,7 +4,7 @@ fun main() {
     loop {
         do {
             do {
-                break;
+                return;
                 print("nope");
             } finally {
                 print("f");

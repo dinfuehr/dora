@@ -61,8 +61,6 @@ pub fn returns_value(s: &Stmt) -> Result<(), Position> {
         StmtLoop(ref stmt) => returns_value(&stmt.block),
         StmtFor(ref stmt) => Err(stmt.pos),
         StmtWhile(ref stmt) => Err(stmt.pos),
-        StmtBreak(ref stmt) => Err(stmt.pos),
-        StmtContinue(ref stmt) => Err(stmt.pos),
         StmtVar(ref stmt) => Err(stmt.pos),
         StmtExpr(ref stmt) => expr_returns_value(&stmt.expr),
         StmtThrow(_) => Ok(()),

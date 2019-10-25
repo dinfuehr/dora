@@ -594,8 +594,6 @@ pub enum Stmt {
     StmtWhile(StmtWhileType),
     StmtLoop(StmtLoopType),
     StmtExpr(StmtExprType),
-    StmtBreak(StmtBreakType),
-    StmtContinue(StmtContinueType),
     StmtReturn(StmtReturnType),
     StmtThrow(StmtThrowType),
     StmtDefer(StmtDeferType),
@@ -681,14 +679,6 @@ impl Stmt {
         })
     }
 
-    pub fn create_break(id: NodeId, pos: Position, span: Span) -> Stmt {
-        Stmt::StmtBreak(StmtBreakType { id, pos, span })
-    }
-
-    pub fn create_continue(id: NodeId, pos: Position, span: Span) -> Stmt {
-        Stmt::StmtContinue(StmtContinueType { id, pos, span })
-    }
-
     pub fn create_return(id: NodeId, pos: Position, span: Span, expr: Option<Box<Expr>>) -> Stmt {
         Stmt::StmtReturn(StmtReturnType {
             id,
@@ -745,8 +735,6 @@ impl Stmt {
             Stmt::StmtFor(ref stmt) => stmt.id,
             Stmt::StmtLoop(ref stmt) => stmt.id,
             Stmt::StmtExpr(ref stmt) => stmt.id,
-            Stmt::StmtBreak(ref stmt) => stmt.id,
-            Stmt::StmtContinue(ref stmt) => stmt.id,
             Stmt::StmtReturn(ref stmt) => stmt.id,
             Stmt::StmtThrow(ref stmt) => stmt.id,
             Stmt::StmtDefer(ref stmt) => stmt.id,
@@ -761,8 +749,6 @@ impl Stmt {
             Stmt::StmtFor(ref stmt) => stmt.pos,
             Stmt::StmtLoop(ref stmt) => stmt.pos,
             Stmt::StmtExpr(ref stmt) => stmt.pos,
-            Stmt::StmtBreak(ref stmt) => stmt.pos,
-            Stmt::StmtContinue(ref stmt) => stmt.pos,
             Stmt::StmtReturn(ref stmt) => stmt.pos,
             Stmt::StmtThrow(ref stmt) => stmt.pos,
             Stmt::StmtDefer(ref stmt) => stmt.pos,
@@ -777,8 +763,6 @@ impl Stmt {
             Stmt::StmtFor(ref stmt) => stmt.span,
             Stmt::StmtLoop(ref stmt) => stmt.span,
             Stmt::StmtExpr(ref stmt) => stmt.span,
-            Stmt::StmtBreak(ref stmt) => stmt.span,
-            Stmt::StmtContinue(ref stmt) => stmt.span,
             Stmt::StmtReturn(ref stmt) => stmt.span,
             Stmt::StmtThrow(ref stmt) => stmt.span,
             Stmt::StmtDefer(ref stmt) => stmt.span,
@@ -911,34 +895,6 @@ impl Stmt {
             _ => false,
         }
     }
-
-    pub fn to_break(&self) -> Option<&StmtBreakType> {
-        match *self {
-            Stmt::StmtBreak(ref val) => Some(val),
-            _ => None,
-        }
-    }
-
-    pub fn is_break(&self) -> bool {
-        match *self {
-            Stmt::StmtBreak(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn to_continue(&self) -> Option<&StmtContinueType> {
-        match *self {
-            Stmt::StmtContinue(ref val) => Some(val),
-            _ => None,
-        }
-    }
-
-    pub fn is_continue(&self) -> bool {
-        match *self {
-            Stmt::StmtContinue(_) => true,
-            _ => false,
-        }
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -1000,20 +956,6 @@ pub struct StmtReturnType {
     pub span: Span,
 
     pub expr: Option<Box<Expr>>,
-}
-
-#[derive(Clone, Debug)]
-pub struct StmtBreakType {
-    pub id: NodeId,
-    pub pos: Position,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug)]
-pub struct StmtContinueType {
-    pub id: NodeId,
-    pub pos: Position,
-    pub span: Span,
 }
 
 #[derive(Clone, Debug)]

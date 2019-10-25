@@ -15,51 +15,52 @@
         var l: Node = node;
         var r: Node = node;
 
-        loop {
+        var continue = true;
+        while continue {
             if node.value <= tree.value {
                 if tree.left === nil {
-                    break;
-                }
-
-                if node.value <= tree.left.value {
+                    continue = false;
+                } else if node.value <= tree.left.value {
                     // rotate right
                     let y = tree.left;
                     tree.left = y.right;
                     y.right = tree;
                     tree = y;
                     if tree.left === nil {
-                        break;
+                        continue = false;
                     }
                 }
 
-                // link right
-                r.left = tree;
-                r = tree;
-                tree = tree.left;
+                if continue {
+                    // link right
+                    r.left = tree;
+                    r = tree;
+                    tree = tree.left;
+                }
 
             } else if node.value > tree.value {
                 if tree.right === nil {
-                    break;
-                }
-
-                if node.value > tree.right.value {
+                    continue = false;
+                } else if node.value > tree.right.value {
                     // rotate left
                     let y = tree.right;
                     tree.right = y.left;
                     y.left = tree;
                     tree = y;
                     if tree.right === nil {
-                        break;
+                        continue = false;
                     }
                 }
 
-                // link left
-                l.right = tree;
-                l = tree;
-                tree = tree.right;
+                if continue {
+                    // link left
+                    l.right = tree;
+                    l = tree;
+                    tree = tree.right;
+                }
 
             } else {
-                break;
+                continue = false;
             }
         }
 

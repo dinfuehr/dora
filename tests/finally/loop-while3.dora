@@ -3,7 +3,7 @@
 fun main() {
     loop {
         do {
-            break;
+            return;
             print("nope");
         } finally {
             print("f");

@@ -100,11 +100,12 @@ class Benchmark {
     fun insertNewNode() -> Int {
         var key: Int = 0;
 
-        loop {
+        var continue = true;
+        while continue {
             key = self.generateKey();
 
             if self.splayTree.find(key) === nil {
-                break;
+                continue = false;
             }
         }
 
@@ -273,13 +274,12 @@ class SplayTree {
 
         var current = self.root;
 
-        loop {
+        var continue = true;
+        while continue {
             if key < current.key {
                 if current.left === nil {
-                    break;
-                }
-
-                if key < current.left.key {
+                    continue = false;
+                } else if key < current.left.key {
                     // Rotate right
                     let tmp = current.left;
                     current.left = tmp.right;
@@ -287,20 +287,21 @@ class SplayTree {
                     current = tmp;
 
                     if current.left === nil {
-                        break;
+                        continue = false;
                     }
                 }
 
-                // Link right
-                right.left = current;
-                right = current;
-                current = current.left;
-            } else if key > current.key {
-                if current.right === nil {
-                    break;
+                if continue {
+                    // Link right
+                    right.left = current;
+                    right = current;
+                    current = current.left;
                 }
 
-                if key > current.right.key {
+            } else if key > current.key {
+                if current.right === nil {
+                    continue = false;
+                } else if key > current.right.key {
                     // Rotate left
                     let tmp = current.right;
                     current.right = tmp.left;
@@ -308,16 +309,19 @@ class SplayTree {
                     current = tmp;
 
                     if current.right === nil {
-                        break;
+                        continue = false;
                     }
                 }
 
-                // Link left
-                left.right = current;
-                left = current;
-                current = current.right;
+                if continue {
+                    // Link left
+                    left.right = current;
+                    left = current;
+                    current = current.right;
+                }
+
             } else {
-                break;
+                continue = false;
             }
         }
 
@@ -349,3 +353,5 @@ class SplayNode(var key: Int, var value: PayloadNode) {
 }
 
 class PayloadNode(let array: Array[Int], let text: String, let left: PayloadNode, let right: PayloadNode)
+
+class Cell[T](var value: T)

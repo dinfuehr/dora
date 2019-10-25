@@ -316,24 +316,6 @@ where
         self.lbl_continue = old_lbl_continue;
     }
 
-    fn emit_stmt_break(&mut self, _: &'ast StmtBreakType) {
-        // emit finallys between loop and break
-        self.emit_finallys_within_loop();
-
-        // now jump out of loop
-        let lbl_break = self.lbl_break.unwrap();
-        self.asm.jump(lbl_break);
-    }
-
-    fn emit_stmt_continue(&mut self, _: &'ast StmtContinueType) {
-        // emit finallys between loop and continue
-        self.emit_finallys_within_loop();
-
-        // now jump to start of loop
-        let lbl_continue = self.lbl_continue.unwrap();
-        self.asm.jump(lbl_continue);
-    }
-
     fn emit_finallys_within_loop(&mut self) {
         let finallys_len = self.active_upper.unwrap_or(self.active_finallys.len());
         let start = self.active_loop.unwrap_or(0);
@@ -2611,8 +2593,6 @@ impl<'a, 'ast> visit::Visitor<'ast> for AstCodeGen<'a, 'ast> {
             StmtWhile(ref stmt) => self.emit_stmt_while(stmt),
             StmtFor(ref stmt) => self.emit_stmt_for(stmt),
             StmtReturn(ref stmt) => self.emit_stmt_return(stmt),
-            StmtBreak(ref stmt) => self.emit_stmt_break(stmt),
-            StmtContinue(ref stmt) => self.emit_stmt_continue(stmt),
             StmtVar(ref stmt) => self.emit_stmt_var(stmt),
             StmtThrow(ref stmt) => self.emit_stmt_throw(stmt),
             StmtDefer(_) => unimplemented!(),

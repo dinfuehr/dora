@@ -1119,8 +1119,6 @@ impl<'a> Parser<'a> {
             TokenKind::Let | TokenKind::Var => Ok(StmtOrExpr::Stmt(self.parse_var()?)),
             TokenKind::While => Ok(StmtOrExpr::Stmt(self.parse_while()?)),
             TokenKind::Loop => Ok(StmtOrExpr::Stmt(self.parse_loop()?)),
-            TokenKind::Break => Ok(StmtOrExpr::Stmt(self.parse_break()?)),
-            TokenKind::Continue => Ok(StmtOrExpr::Stmt(self.parse_continue()?)),
             TokenKind::Return => Ok(StmtOrExpr::Stmt(self.parse_return()?)),
             TokenKind::Else => Err(ParseErrorAndPos::new(
                 self.token.position,
@@ -1228,28 +1226,6 @@ impl<'a> Parser<'a> {
             pos,
             span,
             block,
-        )))
-    }
-
-    fn parse_break(&mut self) -> StmtResult {
-        let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Break)?.position;
-        self.expect_semicolon()?;
-        let span = self.span_from(start);
-
-        Ok(Box::new(Stmt::create_break(self.generate_id(), pos, span)))
-    }
-
-    fn parse_continue(&mut self) -> StmtResult {
-        let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Continue)?.position;
-        self.expect_semicolon()?;
-        let span = self.span_from(start);
-
-        Ok(Box::new(Stmt::create_continue(
-            self.generate_id(),
-            pos,
-            span,
         )))
     }
 
@@ -2730,20 +2706,6 @@ mod tests {
         assert_eq!(2, expr.to_lit_int().unwrap().value);
 
         assert!(block.expr.is_none());
-    }
-
-    #[test]
-    fn parse_break() {
-        let stmt = parse_stmt("break;");
-
-        assert!(stmt.is_break());
-    }
-
-    #[test]
-    fn parse_continue() {
-        let stmt = parse_stmt("continue;");
-
-        assert!(stmt.is_continue());
     }
 
     #[test]

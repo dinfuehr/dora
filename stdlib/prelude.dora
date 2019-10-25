@@ -61,52 +61,53 @@ fun isValidUtf8(data: Array[Byte]) -> Bool {
     if by & 0x80 == 0 {
       nextBytes = 0;
       i = i + 1;
-      continue;
 
-    } else if by & 0xC0 == 0x80 {
-      return false;
+    } else {
+      if by & 0xC0 == 0x80 {
+        return false;
 
-    } else if by & 0xE0 == 0xC0 {
-      codePoint = by & 0x1F;
-      nextBytes = 1;
-      min = 0x80;
-      max = 0x7FF;
+      } else if by & 0xE0 == 0xC0 {
+        codePoint = by & 0x1F;
+        nextBytes = 1;
+        min = 0x80;
+        max = 0x7FF;
 
-    } else if by & 0xF0 == 0xE0 {
-      codePoint = by & 0xF;
-      nextBytes = 2;
-      min = 0x800;
-      max = 0xFFFF;
+      } else if by & 0xF0 == 0xE0 {
+        codePoint = by & 0xF;
+        nextBytes = 2;
+        min = 0x800;
+        max = 0xFFFF;
 
-    } else if by & 0xF8 == 0xF0 {
-      codePoint = by & 0x7;
-      nextBytes = 3;
-      min = 0x10000;
-      max = 0x10FFFF;
-    }
+      } else if by & 0xF8 == 0xF0 {
+        codePoint = by & 0x7;
+        nextBytes = 3;
+        min = 0x10000;
+        max = 0x10FFFF;
+      }
 
-    while nextBytes > 0 {
-      nextBytes = nextBytes - 1;
+      while nextBytes > 0 {
+        nextBytes = nextBytes - 1;
+        i = i + 1;
+
+        if i >= data.length() {
+          return false;
+        }
+
+        let by = data.get(i).toInt();
+
+        if by & 0xC0 != 0x80 {
+          return false;
+        }
+
+        codePoint = (codePoint << 6) | (by & 0x3F);
+      }
+
+      if codePoint < min || codePoint > max {
+        return false;
+      }
+
       i = i + 1;
-
-      if i >= data.length() {
-        return false;
-      }
-
-      let by = data.get(i).toInt();
-
-      if by & 0xC0 != 0x80 {
-        return false;
-      }
-
-      codePoint = (codePoint << 6) | (by & 0x3F);
     }
-
-    if codePoint < min || codePoint > max {
-      return false;
-    }
-
-    i = i + 1;
   }
 
   return true;

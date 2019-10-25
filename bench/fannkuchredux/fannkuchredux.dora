@@ -59,7 +59,8 @@ fun fannkuch(n: Int) -> Int {
       checksum = checksum - flipsCount;
     }
 
-    while true {
+    var continue = true;
+    while continue {
       if r == n {
         println(checksum.toString());
         return maxFlipsCount;
@@ -78,9 +79,11 @@ fun fannkuch(n: Int) -> Int {
 
       count(r) = count(r) - 1;
 
-      if count(r) > 0 { break; }
-
-      r = r + 1;
+      if count(r) > 0 {
+        continue = false;
+      } else {
+        r = r + 1;
+      }
     }
 
     permCount = permCount + 1;

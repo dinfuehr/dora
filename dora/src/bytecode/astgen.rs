@@ -118,8 +118,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     fn visit_stmt(&mut self, stmt: &Stmt) {
         match *stmt {
             StmtReturn(ref ret) => self.visit_stmt_return(ret),
-            StmtBreak(ref stmt) => self.visit_stmt_break(stmt),
-            StmtContinue(ref stmt) => self.visit_stmt_continue(stmt),
             StmtExpr(ref expr) => self.visit_stmt_expr(expr),
             StmtVar(ref stmt) => self.visit_stmt_var(stmt),
             StmtWhile(ref stmt) => self.visit_stmt_while(stmt),
@@ -198,16 +196,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Double => self.gen.emit_ret_double(result_reg),
             BytecodeType::Ptr => self.gen.emit_ret_ptr(result_reg),
         }
-    }
-
-    fn visit_stmt_break(&mut self, _stmt: &StmtBreakType) {
-        let end = self.loops.pop().unwrap().end;
-        self.gen.emit_jump(end);
-    }
-
-    fn visit_stmt_continue(&mut self, _stmt: &StmtContinueType) {
-        let cond = self.loops.last().unwrap().cond;
-        self.gen.emit_jump(cond);
     }
 
     // TODO - implement other expressions
@@ -1295,32 +1283,6 @@ mod tests {
             Jump(bc(6)),
             ConstInt(r(2), 2),
             RetInt(r(2)),
-        ];
-        assert_eq!(expected, fct.code());
-    }
-
-    #[test]
-    fn gen_stmt_break() {
-        let fct = code("fun f() { while true { break; } }");
-        let expected = vec![
-            ConstTrue(r(0)),
-            JumpIfFalse(r(0), bc(4)),
-            Jump(bc(4)),
-            Jump(bc(0)),
-            RetVoid,
-        ];
-        assert_eq!(expected, fct.code());
-    }
-
-    #[test]
-    fn gen_stmt_continue() {
-        let fct = code("fun f() { while true { continue; } }");
-        let expected = vec![
-            ConstTrue(r(0)),
-            JumpIfFalse(r(0), bc(4)),
-            Jump(bc(0)),
-            Jump(bc(0)),
-            RetVoid,
         ];
         assert_eq!(expected, fct.code());
     }

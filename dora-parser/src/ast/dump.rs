@@ -300,8 +300,6 @@ impl<'a> AstDumper<'a> {
     fn dump_stmt(&mut self, stmt: &Stmt) {
         match *stmt {
             StmtReturn(ref ret) => self.dump_stmt_return(ret),
-            StmtBreak(ref stmt) => self.dump_stmt_break(stmt),
-            StmtContinue(ref stmt) => self.dump_stmt_continue(stmt),
             StmtExpr(ref expr) => self.dump_stmt_expr(expr),
             StmtVar(ref stmt) => self.dump_stmt_var(stmt),
             StmtWhile(ref stmt) => self.dump_stmt_while(stmt),
@@ -399,14 +397,6 @@ impl<'a> AstDumper<'a> {
                 dump!(d, "<nothing>");
             }
         });
-    }
-
-    fn dump_stmt_break(&mut self, stmt: &StmtBreakType) {
-        dump!(self, "break @ {} {}", stmt.pos, stmt.id);
-    }
-
-    fn dump_stmt_continue(&mut self, stmt: &StmtContinueType) {
-        dump!(self, "continue @ {} {}", stmt.pos, stmt.id);
     }
 
     fn dump_stmt_throw(&mut self, stmt: &StmtThrowType) {

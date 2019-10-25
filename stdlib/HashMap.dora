@@ -51,11 +51,11 @@ class HashMap[K: Hash + Equals, V] {
                 if current_key.hash() == hash && current_key.equals(key) {
                     return true;
                 }
+                idx = (idx + 1) & (self.capacity - 1);
             } else {
-                break;
+                return false;
             }
 
-            idx = (idx + 1) & (self.capacity - 1);
         }
 
         return false;
@@ -74,11 +74,12 @@ class HashMap[K: Hash + Equals, V] {
                 if current_key.hash() == hash && current_key.equals(key) {
                     return self.values.get(idx);
                 }
+
+                idx = (idx + 1) & (self.capacity - 1);
             } else {
-                break;
+                return defaultValue[V]();
             }
 
-            idx = (idx + 1) & (self.capacity - 1);
         }
 
         return defaultValue[V]();
@@ -104,11 +105,12 @@ class HashMap[K: Hash + Equals, V] {
                     self.size = self.size - 1;
                     return value;
                 }
+
+                idx = (idx + 1) & (self.capacity - 1);
             } else {
-                break;
+                return defaultValue[V]();
             }
 
-            idx = (idx + 1) & (self.capacity - 1);
         }
 
         return defaultValue[V]();

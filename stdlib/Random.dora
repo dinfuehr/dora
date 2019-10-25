@@ -21,7 +21,7 @@ class Random(var seed: Long) {
       mod = num % bound;
 
       if num - mod + bound_minus_1 >= 0 {
-        break;
+        return mod;
       }
     }
 

@@ -1,4 +1,3 @@
-use crate::error::msg::SemError;
 use crate::vm::{Fct, FctSrc, VM};
 
 use dora_parser::ast::visit::*;
@@ -49,15 +48,6 @@ impl<'a, 'ast> FlowCheck<'a, 'ast> {
         visit::walk_stmt(self, block);
         self.in_loop = old_in_loop;
     }
-
-    fn handle_flow(&mut self, s: &'ast Stmt) {
-        if !self.in_loop {
-            self.vm
-                .diag
-                .lock()
-                .report(self.fct.file, s.pos(), SemError::OutsideLoop);
-        }
-    }
 }
 
 impl<'a, 'ast> Visitor<'ast> for FlowCheck<'a, 'ast> {
@@ -66,64 +56,8 @@ impl<'a, 'ast> Visitor<'ast> for FlowCheck<'a, 'ast> {
             StmtLoop(_) => self.handle_loop(s),
             StmtWhile(_) => self.handle_loop(s),
             StmtFor(_) => self.handle_loop(s),
-            StmtBreak(_) => self.handle_flow(s),
-            StmtContinue(_) => self.handle_flow(s),
 
             _ => visit::walk_stmt(self, s),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::error::msg::SemError;
-    use crate::semck::tests::*;
-
-    #[test]
-    fn flowck_break() {
-        ok("fun a() { while true { break; } }");
-        ok("fun a() { while true { if true { break; } } }");
-        ok("fun a() { loop { break; } }");
-        ok("fun a() { loop { if true { break; } } }");
-        err("fun a() { break; }", pos(1, 11), SemError::OutsideLoop);
-        err(
-            "fun a() { loop { } break; }",
-            pos(1, 20),
-            SemError::OutsideLoop,
-        );
-        err(
-            "fun a() { while true { } break; }",
-            pos(1, 26),
-            SemError::OutsideLoop,
-        );
-        err(
-            "fun a() { if true { } break; }",
-            pos(1, 23),
-            SemError::OutsideLoop,
-        );
-    }
-
-    #[test]
-    fn flowck_continue() {
-        ok("fun a() { while true { continue; } }");
-        ok("fun a() { while true { if true { continue; } } }");
-        ok("fun a() { loop { continue; } }");
-        ok("fun a() { loop { if true { continue; } } }");
-        err("fun a() { continue; }", pos(1, 11), SemError::OutsideLoop);
-        err(
-            "fun a() { loop { } continue; }",
-            pos(1, 20),
-            SemError::OutsideLoop,
-        );
-        err(
-            "fun a() { while true { } continue; }",
-            pos(1, 26),
-            SemError::OutsideLoop,
-        );
-        err(
-            "fun a() { if true { } continue; }",
-            pos(1, 23),
-            SemError::OutsideLoop,
-        );
     }
 }

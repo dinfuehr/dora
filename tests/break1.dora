@@ -1,13 +1,22 @@
 fun main() {
+  let isum = foo();
+  assert(isum.i == 4);
+  assert(isum.sum == 10);
+}
+
+fun foo() -> ISum {
   var i = 0;
   var sum = 0;
 
   while i < 10 {
-    if i == 4 { break; }
+    if i == 4 {
+      return ISum(i, sum);
+    }
     i = i + 1;
     sum = sum + i;
   }
 
-  assert(i == 4);
-  assert(sum == 10);
+  return ISum(-1, -1);
 }
+
+class ISum(let i: Int, let sum: Int)
