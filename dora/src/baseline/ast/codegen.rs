@@ -27,7 +27,7 @@ use crate::semck::always_returns;
 use crate::semck::specialize::{specialize_class_id, specialize_class_ty};
 use crate::ty::{BuiltinType, MachineMode, TypeList};
 use crate::vm::{
-    Arg, CallSite, ConstId, Fct, FctId, FctKind, FctParent, FctSrc, IdentType, Intrinsic, VM,
+    Arg, CallSite, ConstId, Fct, FctId, FctKind, FctParent, FctSrc, IdentType, Intrinsic, VarId, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
@@ -91,7 +91,7 @@ where
                 REG_PARAMS[0].into()
             };
 
-            let offset = self.jit_info.offset(var.id);
+            let offset = self.var_offset(var.id);
             self.asm.store_mem(mode, Mem::Local(offset), dest);
 
             self.stack.add_var(var.ty, offset);
@@ -107,7 +107,7 @@ where
             let varid = *self.src.map_vars.get(p.id).unwrap();
             let ty = self.jit_info.ty(varid);
             let is_float = ty.mode().is_float();
-            let offset = self.jit_info.offset(varid);
+            let offset = self.var_offset(varid);
 
             self.stack.add_var(ty, offset);
 
@@ -115,22 +115,16 @@ where
                 let reg = FREG_PARAMS[freg_idx];
 
                 self.asm.emit_comment(Comment::StoreParam(varid));
-                self.asm.var_store(
-                    self.jit_info.offset(varid),
-                    self.jit_info.ty(varid),
-                    reg.into(),
-                );
+                self.asm
+                    .var_store(self.var_offset(varid), self.jit_info.ty(varid), reg.into());
 
                 freg_idx += 1;
             } else if !is_float && reg_idx < REG_PARAMS.len() {
                 let reg = REG_PARAMS[reg_idx];
 
                 self.asm.emit_comment(Comment::StoreParam(varid));
-                self.asm.var_store(
-                    self.jit_info.offset(varid),
-                    self.jit_info.ty(varid),
-                    reg.into(),
-                );
+                self.asm
+                    .var_store(self.var_offset(varid), self.jit_info.ty(varid), reg.into());
 
                 reg_idx += 1;
             } else {
@@ -261,7 +255,7 @@ where
 
         let for_var_id = *self.src.map_vars.get(s.id).unwrap();
         self.asm.var_store(
-            self.jit_info.offset(for_var_id),
+            self.var_offset(for_var_id),
             self.jit_info.ty(for_var_id),
             dest,
         );
@@ -379,11 +373,11 @@ where
             initialized = true;
 
             self.asm
-                .var_store(self.jit_info.offset(var), self.jit_info.ty(var), value);
+                .var_store(self.var_offset(var), self.jit_info.ty(var), value);
         }
 
         let ty = self.jit_info.ty(var);
-        let offset = self.jit_info.offset(var);
+        let offset = self.var_offset(var);
         self.stack.add_var(ty, offset);
 
         // uninitialized variables which reference objects need to be initialized to null
@@ -391,7 +385,7 @@ where
         if ty.reference_type() && !initialized {
             self.asm.load_nil(REG_RESULT);
             self.asm.var_store(
-                self.jit_info.offset(var),
+                self.var_offset(var),
                 self.jit_info.ty(var),
                 REG_RESULT.into(),
             );
@@ -440,7 +434,7 @@ where
 
         for catch in &s.catch_blocks {
             let varid = *self.src.map_vars.get(catch.id).unwrap();
-            let offset = self.jit_info.offset(varid);
+            let offset = self.var_offset(varid);
 
             self.stack.push_scope();
 
@@ -866,6 +860,10 @@ where
         // also for as we are finished: dest is null and stays null
     }
 
+    fn var_offset(&self, id: VarId) -> i32 {
+        self.jit_info.offset(id)
+    }
+
     fn add_temp_arg(&mut self, arg: &Arg<'ast>) -> i32 {
         let ty = arg.ty();
         let offset = arg.offset();
@@ -899,7 +897,7 @@ where
 
         self.asm.emit_comment(Comment::LoadSelf(var.id));
 
-        let offset = self.jit_info.offset(var.id);
+        let offset = self.var_offset(var.id);
         self.asm
             .load_mem(var.ty.mode(), dest.into(), Mem::Local(offset));
     }
@@ -995,7 +993,7 @@ where
             &IdentType::Var(varid) => {
                 self.asm.emit_comment(Comment::LoadVar(varid));
                 self.asm
-                    .var_load(self.jit_info.offset(varid), self.jit_info.ty(varid), dest)
+                    .var_load(self.var_offset(varid), self.jit_info.ty(varid), dest)
             }
 
             &IdentType::Global(gid) => {
@@ -1191,7 +1189,7 @@ where
 
                 self.asm.emit_comment(Comment::StoreVar(varid));
                 self.asm
-                    .var_store(self.jit_info.offset(varid), self.jit_info.ty(varid), dest);
+                    .var_store(self.var_offset(varid), self.jit_info.ty(varid), dest);
             }
 
             &IdentType::Global(gid) => {

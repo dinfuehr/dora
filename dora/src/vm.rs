@@ -39,25 +39,27 @@ use dora_parser::parser::NodeIdGenerator;
 pub static mut EXCEPTION_OBJECT: *const u8 = 0 as *const u8;
 
 pub fn has_exception() -> bool {
-    unsafe { !EXCEPTION_OBJECT.is_null() }
+    THREAD.with(|thread| {
+        let thread = thread.borrow();
+        let tld = &thread.tld;
+        tld.exception_object().is_non_null()
+    })
 }
 
-pub fn exception_get_and_clear() -> *const u8 {
-    unsafe {
-        let val = EXCEPTION_OBJECT;
-
-        if !val.is_null() {
-            EXCEPTION_OBJECT = ptr::null();
-        }
-
-        val
-    }
+pub fn exception_get_and_clear() -> Address {
+    THREAD.with(|thread| {
+        let thread = thread.borrow();
+        let tld = &thread.tld;
+        let object = tld.exception_object();
+        tld.set_exception_object(Address::null());
+        object
+    })
 }
 
-pub fn exception_set(val: *const u8) {
-    unsafe {
-        EXCEPTION_OBJECT = val;
-    }
+pub fn exception_set(val: Address) {
+    THREAD.with(|thread| {
+        thread.borrow().tld.set_exception_object(val);
+    });
 }
 
 static mut VM_GLOBAL: *const u8 = ptr::null();

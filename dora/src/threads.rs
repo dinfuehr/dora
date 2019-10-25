@@ -160,6 +160,7 @@ pub struct ThreadLocalData {
     tlab_end: AtomicUsize,
     concurrent_marking: AtomicBool,
     stack_limit: AtomicUsize,
+    exception_object: AtomicUsize,
 }
 
 impl ThreadLocalData {
@@ -169,6 +170,7 @@ impl ThreadLocalData {
             tlab_end: AtomicUsize::new(0),
             concurrent_marking: AtomicBool::new(false),
             stack_limit: AtomicUsize::new(0),
+            exception_object: AtomicUsize::new(0),
         }
     }
 
@@ -196,6 +198,15 @@ impl ThreadLocalData {
     pub fn set_stack_limit(&self, stack_limit: Address) {
         self.stack_limit
             .store(stack_limit.to_usize(), Ordering::Relaxed);
+    }
+
+    pub fn set_exception_object(&self, obj: Address) {
+        self.exception_object
+            .store(obj.to_usize(), Ordering::Relaxed);
+    }
+
+    pub fn exception_object(&self) -> Address {
+        Address::from(self.exception_object.load(Ordering::Relaxed))
     }
 
     pub fn tlab_top_offset() -> i32 {

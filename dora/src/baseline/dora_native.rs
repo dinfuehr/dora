@@ -243,7 +243,7 @@ pub fn start_native_call(fp: *const u8, pc: usize) {
     }
 }
 
-pub fn finish_native_call() -> *const u8 {
+pub fn finish_native_call() -> Address {
     THREAD.with(|thread| {
         thread.borrow().handles.pop_border();
         thread.borrow().pop_dtn();

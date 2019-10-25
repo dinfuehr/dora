@@ -108,7 +108,7 @@ pub extern "C" fn throw_native(val: bool) {
         let obj = alloc_exception(vm, Ref::null());
         let obj = root(obj);
 
-        exception_set(obj.direct().raw() as *const u8);
+        exception_set(obj.direct().address());
     }
 }
 
