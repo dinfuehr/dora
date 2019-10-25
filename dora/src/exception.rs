@@ -4,6 +4,7 @@ use crate::baseline::fct::{CatchType, JitFctId};
 use crate::baseline::map::CodeDescriptor;
 use crate::cpu::fp_from_execstate;
 use crate::execstate::ExecState;
+use crate::gc::Address;
 use crate::handle::root;
 use crate::object::{alloc, Array, IntArray, Obj, Ref, StackTraceElement, Str, Throwable};
 use crate::os::signal::Trap;
@@ -185,6 +186,7 @@ pub extern "C" fn throw(exception: Ref<Obj>, resume: &mut ThrowResume) {
 
     let dtn = THREAD.with(|thread| {
         let thread = thread.borrow();
+        thread.tld.set_exception_object(Address::null());
         let dtn = thread.dtn();
 
         dtn

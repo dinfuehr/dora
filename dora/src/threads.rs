@@ -217,6 +217,10 @@ impl ThreadLocalData {
         offset_of!(ThreadLocalData, tlab_end) as i32
     }
 
+    pub fn exception_object_offset() -> i32 {
+        offset_of!(ThreadLocalData, exception_object) as i32
+    }
+
     pub fn concurrent_marking_offset() -> i32 {
         offset_of!(ThreadLocalData, concurrent_marking) as i32
     }

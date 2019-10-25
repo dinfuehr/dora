@@ -10,10 +10,10 @@ use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
 use crate::masm::MacroAssembler;
 use crate::mem;
-use crate::threads::THREAD;
+use crate::threads::{ThreadLocalData, THREAD};
 use crate::ty::{BuiltinType, MachineMode};
+use crate::vm::FctId;
 use crate::vm::VM;
-use crate::vm::{exception_get_and_clear, FctId};
 
 pub struct NativeThunks {
     map: HashMap<Address, JitFctId>,
@@ -139,6 +139,12 @@ where
 
         self.masm.raw_call(finish_native_call as *const u8);
 
+        self.masm.load_mem(
+            MachineMode::Ptr,
+            REG_RESULT.into(),
+            Mem::Base(REG_THREAD, ThreadLocalData::exception_object_offset()),
+        );
+
         let lbl_exception = self.masm.test_if_not_nil(REG_RESULT);
 
         if save_return {
@@ -243,11 +249,9 @@ pub fn start_native_call(fp: *const u8, pc: usize) {
     }
 }
 
-pub fn finish_native_call() -> Address {
+pub fn finish_native_call() {
     THREAD.with(|thread| {
         thread.borrow().handles.pop_border();
         thread.borrow().pop_dtn();
     });
-
-    exception_get_and_clear()
 }
