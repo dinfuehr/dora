@@ -1,0 +1,23 @@
+class Type(let kind: TypeKind) {
+    @static fun unit() -> Type { return Type(TypeKind::Unit); }
+    @static fun int() -> Type { return Type(TypeKind::Int); }
+    @static fun long() -> Type { return Type(TypeKind::Long); }
+    @static fun float() -> Type { return Type(TypeKind::Float); }
+    @static fun double() -> Type { return Type(TypeKind::Double); }
+    @static fun reference() -> Type { return Type(TypeKind::Reference); }
+
+    fun is_unit() -> Bool { return self.kind == TypeKind::Unit; }
+    fun is_int() -> Bool { return self.kind == TypeKind::Int; }
+    fun is_long() -> Bool { return self.kind == TypeKind::Long; }
+    fun is_float() -> Bool { return self.kind == TypeKind::Float; }
+    fun is_double() -> Bool { return self.kind == TypeKind::Double; }
+    fun is_reference() -> Bool { return self.kind == TypeKind::Reference; }
+
+    fun is_floating_point() -> Bool {
+        return self.kind == TypeKind::Float || self.kind == TypeKind::Double;
+    }
+}
+
+enum TypeKind {
+    Unit, Int, Long, Float, Double, Reference
+}

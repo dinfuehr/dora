@@ -93,6 +93,17 @@ class Vec[T] {
       return self.array.length();
     }
   }
+
+  fun first() -> T {
+    assert(self.length > 0);
+    return self.array.get(0);
+  }
+
+  fun last() -> T {
+    let len = self.length;
+    assert(len > 0);
+    return self.array.get(len-1);
+  }
 }
 
 fun removeItem[T: Equals](vec: Vec[T], elem: T) {

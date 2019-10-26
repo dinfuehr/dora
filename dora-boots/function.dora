@@ -1,0 +1,96 @@
+class Graph {
+    var start_block: Block;
+    var end_block: Block;
+
+    var blocks: Vec[Block];
+    var reverse_post_order: Vec[Block];
+
+    fun create_block() -> Block {
+        let block = Block();
+        self.blocks.push(block);
+        return block;
+    }
+}
+
+class Block {
+    var phis: Vec[Inst];
+    var instructions: Vec[Inst];
+    var graph: Graph;
+    var dominator: Block;
+    var dominated_blocks: Vec[Block];
+    var predecessors: Vec[Block];
+    var successors: Vec[Block];
+
+    fun create_inst(inst: Inst) -> Inst {
+        self.instructions.push(inst);
+        return inst;
+    }
+}
+
+class User(user: Inst, idx: Int)
+
+@abstract @open class Inst {
+    var block: Block;
+    var used_by: Vec[User];
+    var previous: Inst;
+    var next: Inst;
+
+    fun getType() -> Type {
+        return Type::unit();
+    }
+}
+
+@abstract @open class Const: Inst
+class IntConst(let value: Int): Const
+class FloatConst(let value: Float): Const
+class DoubleConst(let value: Double): Const
+class LongConst(let value: Long): Const
+
+class PrologInst: Inst
+class EpilogInst: Inst
+class UnaryInst(let op: UnOp, let opnd: Inst): Inst
+class BinaryInst(let op: BinOp, let lhs: Inst, let rhs: Inst): Inst
+class ArgInst(let idx: Int): Inst
+
+class PhiInst(let inputs: Vec[PhiArg]): Inst
+class PhiArg(let value: Inst, let block: Block)
+
+@abstract @open class Terminator: Inst
+
+class ReturnInst(let value: Inst): Terminator
+class ReturnVoidInst: Terminator
+class CondInst(let cond: Inst, let true_succ: Block, let false_succ: Block): Terminator
+class GotoInst(let succ: Block): Terminator
+
+enum BinOp {
+    Add, Sub, Mul, Div, Mod,
+    FAdd, FSub, FMul, FDiv,
+}
+
+enum UnOp {
+    Neg, FNeg, Not,
+}
+
+class InstIterator(block: Block) {
+    var inst: Inst = block.instructions.first();
+
+    fun current() -> Inst { self.inst }
+    fun isDone() -> Bool { self.inst === nil }
+    fun next() {
+        if self.inst !== nil {
+            self.inst = self.inst.next;
+        }
+    }
+}
+
+class BackwardInstIterator(block: Block) {
+    var inst: Inst = block.instructions.last();
+
+    fun current() -> Inst { self.inst }
+    fun isDone() -> Bool { self.inst === nil }
+    fun next() {
+        if self.inst !== nil {
+            self.inst = self.inst.previous;
+        }
+    }
+}
