@@ -53,7 +53,6 @@ impl<'a, 'ast> FlowCheck<'a, 'ast> {
 impl<'a, 'ast> Visitor<'ast> for FlowCheck<'a, 'ast> {
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         match *s {
-            StmtLoop(_) => self.handle_loop(s),
             StmtWhile(_) => self.handle_loop(s),
             StmtFor(_) => self.handle_loop(s),
 

@@ -2061,7 +2061,6 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             StmtDo(ref stmt) => self.check_stmt_do(stmt),
 
             // for the rest of the statements, no special handling is necessary
-            StmtLoop(_) => visit::walk_stmt(self, s),
             StmtExpr(_) => visit::walk_stmt(self, s),
         }
 

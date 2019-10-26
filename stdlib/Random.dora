@@ -16,7 +16,7 @@ class Random(var seed: Long) {
 
     var mod = 0;
 
-    loop {
+    while true {
       let num = self.nextInt31();
       mod = num % bound;
 

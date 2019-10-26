@@ -222,10 +222,6 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
             v.visit_stmt(&value.block);
         }
 
-        StmtLoop(ref value) => {
-            v.visit_stmt(&value.block);
-        }
-
         StmtExpr(ref value) => {
             v.visit_expr(&value.expr);
         }

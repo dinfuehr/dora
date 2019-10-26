@@ -1,7 +1,7 @@
 //= output "f"
 
 fun main() {
-    loop {
+    while true {
         do {
             return;
             print("nope");

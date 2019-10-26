@@ -121,7 +121,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             StmtExpr(ref expr) => self.visit_stmt_expr(expr),
             StmtVar(ref stmt) => self.visit_stmt_var(stmt),
             StmtWhile(ref stmt) => self.visit_stmt_while(stmt),
-            StmtLoop(ref stmt) => self.visit_stmt_loop(stmt),
             StmtThrow(ref stmt) => self.visit_stmt_throw(stmt),
             // StmtDefer(ref stmt) => {},
             // StmtDo(ref stmt) => {},
@@ -152,16 +151,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.visit_stmt(&stmt.block);
         self.loops.pop();
         self.gen.emit_jump(cond_lbl);
-        self.gen.bind_label(end_lbl);
-    }
-
-    fn visit_stmt_loop(&mut self, stmt: &StmtLoopType) {
-        let start_lbl = self.gen.define_label();
-        let end_lbl = self.gen.create_label();
-        self.loops.push(LoopLabels::new(start_lbl, end_lbl));
-        self.visit_stmt(&stmt.block);
-        self.loops.pop();
-        self.gen.emit_jump(start_lbl);
         self.gen.bind_label(end_lbl);
     }
 

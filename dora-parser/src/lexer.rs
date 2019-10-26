@@ -579,7 +579,6 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("for", TokenKind::For);
     keywords.insert("in", TokenKind::In);
     keywords.insert("impl", TokenKind::Impl);
-    keywords.insert("loop", TokenKind::Loop);
     keywords.insert("return", TokenKind::Return);
     keywords.insert("true", TokenKind::True);
     keywords.insert("false", TokenKind::False);
@@ -1033,10 +1032,9 @@ mod tests {
         assert_tok(&mut reader, TokenKind::Class, 1, 6);
         assert_tok(&mut reader, TokenKind::Super, 1, 12);
 
-        let mut reader = Lexer::from_str("loop return nil");
-        assert_tok(&mut reader, TokenKind::Loop, 1, 1);
-        assert_tok(&mut reader, TokenKind::Return, 1, 6);
-        assert_tok(&mut reader, TokenKind::Nil, 1, 13);
+        let mut reader = Lexer::from_str("return nil");
+        assert_tok(&mut reader, TokenKind::Return, 1, 1);
+        assert_tok(&mut reader, TokenKind::Nil, 1, 8);
 
         let mut reader = Lexer::from_str("type struct enum alias trait const");
         assert_tok(&mut reader, TokenKind::Type, 1, 1);

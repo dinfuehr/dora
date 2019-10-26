@@ -45,7 +45,6 @@ pub enum SemError {
     UnOpType(String, String),
     BinOpType(String, String, String),
     ConstValueExpected,
-    OutsideLoop,
     NoReturnValue,
     MainNotFound,
     WrongMainDefinition,
@@ -261,7 +260,6 @@ impl SemError {
                 op, lhs, op, rhs
             ),
             SemError::ConstValueExpected => "constant value expected".into(),
-            SemError::OutsideLoop => "statement only allowed inside loops".into(),
             SemError::NoReturnValue => "function does not return a value in all code paths".into(),
             SemError::MainNotFound => "no `main` function found in the program".into(),
             SemError::WrongMainDefinition => "`main` function has wrong definition".into(),

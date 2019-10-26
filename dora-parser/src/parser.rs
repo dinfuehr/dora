@@ -1118,7 +1118,6 @@ impl<'a> Parser<'a> {
         match self.token.kind {
             TokenKind::Let | TokenKind::Var => Ok(StmtOrExpr::Stmt(self.parse_var()?)),
             TokenKind::While => Ok(StmtOrExpr::Stmt(self.parse_while()?)),
-            TokenKind::Loop => Ok(StmtOrExpr::Stmt(self.parse_loop()?)),
             TokenKind::Return => Ok(StmtOrExpr::Stmt(self.parse_return()?)),
             TokenKind::Else => Err(ParseErrorAndPos::new(
                 self.token.position,
@@ -1211,20 +1210,6 @@ impl<'a> Parser<'a> {
             pos,
             span,
             expr,
-            block,
-        )))
-    }
-
-    fn parse_loop(&mut self) -> StmtResult {
-        let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Loop)?.position;
-        let block = self.parse_block_stmt()?;
-        let span = self.span_from(start);
-
-        Ok(Box::new(Stmt::create_loop(
-            self.generate_id(),
-            pos,
-            span,
             block,
         )))
     }
@@ -2661,14 +2646,6 @@ mod tests {
 
         assert!(whilestmt.cond.is_lit_bool());
         assert!(whilestmt.block.is_expr());
-    }
-
-    #[test]
-    fn parse_loop() {
-        let stmt = parse_stmt("loop { 1; }");
-        let block = &stmt.to_loop().unwrap().block;
-
-        assert!(block.is_expr());
     }
 
     #[test]

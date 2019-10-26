@@ -2,7 +2,7 @@
 
 fun main() {
     do {
-        loop {
+        while true {
             do {
                 do {
                     return;

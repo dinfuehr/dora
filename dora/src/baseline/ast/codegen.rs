@@ -272,26 +272,6 @@ where
         self.active_loop = saved_active_loop;
     }
 
-    fn emit_stmt_loop(&mut self, s: &'ast StmtLoopType) {
-        let lbl_start = self.asm.create_label();
-        let lbl_end = self.asm.create_label();
-
-        let saved_active_loop = self.active_loop;
-
-        self.active_loop = Some(self.active_finallys.len());
-        self.asm.bind_label(lbl_start);
-
-        self.save_label_state(lbl_end, lbl_start, |this| {
-            this.visit_stmt(&s.block);
-
-            this.emit_safepoint();
-            this.asm.jump(lbl_start);
-        });
-
-        self.asm.bind_label(lbl_end);
-        self.active_loop = saved_active_loop;
-    }
-
     fn emit_safepoint(&mut self) {
         self.asm.emit_comment(Comment::ReadPollingPage);
         self.asm.check_polling_page(self.vm.polling_page.addr());
@@ -314,32 +294,6 @@ where
 
         self.lbl_break = old_lbl_break;
         self.lbl_continue = old_lbl_continue;
-    }
-
-    fn emit_finallys_within_loop(&mut self) {
-        let finallys_len = self.active_upper.unwrap_or(self.active_finallys.len());
-        let start = self.active_loop.unwrap_or(0);
-
-        if finallys_len == 0 || start >= finallys_len {
-            return;
-        }
-
-        let mut ind = 0;
-        let end = finallys_len - start;
-
-        let saved_active_upper = self.active_upper;
-
-        while ind < end {
-            let idx = finallys_len - 1 - ind;
-            self.active_upper = Some(idx);
-
-            let finally = self.active_finallys[idx];
-            self.visit_stmt(finally);
-
-            ind += 1;
-        }
-
-        self.active_upper = saved_active_upper;
     }
 
     fn emit_stmt_expr(&mut self, s: &'ast StmtExprType) {
@@ -2589,7 +2543,6 @@ impl<'a, 'ast> visit::Visitor<'ast> for AstCodeGen<'a, 'ast> {
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         match *s {
             StmtExpr(ref stmt) => self.emit_stmt_expr(stmt),
-            StmtLoop(ref stmt) => self.emit_stmt_loop(stmt),
             StmtWhile(ref stmt) => self.emit_stmt_while(stmt),
             StmtFor(ref stmt) => self.emit_stmt_for(stmt),
             StmtReturn(ref stmt) => self.emit_stmt_return(stmt),

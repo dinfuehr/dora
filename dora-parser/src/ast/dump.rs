@@ -303,7 +303,6 @@ impl<'a> AstDumper<'a> {
             StmtExpr(ref expr) => self.dump_stmt_expr(expr),
             StmtVar(ref stmt) => self.dump_stmt_var(stmt),
             StmtWhile(ref stmt) => self.dump_stmt_while(stmt),
-            StmtLoop(ref stmt) => self.dump_stmt_loop(stmt),
             StmtThrow(ref stmt) => self.dump_stmt_throw(stmt),
             StmtDefer(ref stmt) => self.dump_stmt_defer(stmt),
             StmtDo(ref stmt) => self.dump_stmt_do(stmt),
@@ -370,13 +369,6 @@ impl<'a> AstDumper<'a> {
             d.indent(|d| {
                 d.dump_stmt(&stmt.block);
             });
-        });
-    }
-
-    fn dump_stmt_loop(&mut self, stmt: &StmtLoopType) {
-        dump!(self, "loop @ {} {}", stmt.pos, stmt.id);
-        self.indent(|d| {
-            d.dump_stmt(&stmt.block);
         });
     }
 
