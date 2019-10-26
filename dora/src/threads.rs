@@ -67,7 +67,6 @@ impl Threads {
 }
 
 pub struct DoraThread {
-    pub dtn: AtomicUsize,
     pub handles: HandleMemory,
     pub tld: ThreadLocalData,
     pub state: AtomicUsize,
@@ -81,7 +80,6 @@ unsafe impl Send for DoraThread {}
 impl DoraThread {
     pub fn new() -> Arc<DoraThread> {
         Arc::new(DoraThread {
-            dtn: AtomicUsize::new(0),
             handles: HandleMemory::new(),
             tld: ThreadLocalData::new(),
             state: AtomicUsize::new(ThreadState::Uninitialized as usize),
@@ -91,11 +89,11 @@ impl DoraThread {
     }
 
     pub fn dtn(&self) -> *const DoraToNativeInfo {
-        self.dtn.load(Ordering::Relaxed) as *const _
+        self.tld.dtn.load(Ordering::Relaxed) as *const _
     }
 
     pub fn set_dtn(&self, ptr: *const DoraToNativeInfo) {
-        self.dtn.store(ptr as usize, Ordering::Relaxed);
+        self.tld.dtn.store(ptr as usize, Ordering::Relaxed);
     }
 
     pub fn use_dtn<F, R>(&self, dtn: &mut DoraToNativeInfo, fct: F) -> R
@@ -161,6 +159,7 @@ pub struct ThreadLocalData {
     concurrent_marking: AtomicBool,
     stack_limit: AtomicUsize,
     exception_object: AtomicUsize,
+    dtn: AtomicUsize,
 }
 
 impl ThreadLocalData {
@@ -171,6 +170,7 @@ impl ThreadLocalData {
             concurrent_marking: AtomicBool::new(false),
             stack_limit: AtomicUsize::new(0),
             exception_object: AtomicUsize::new(0),
+            dtn: AtomicUsize::new(0),
         }
     }
 
@@ -227,5 +227,9 @@ impl ThreadLocalData {
 
     pub fn stack_limit_offset() -> i32 {
         offset_of!(ThreadLocalData, stack_limit) as i32
+    }
+
+    pub fn dtn_offset() -> i32 {
+        offset_of!(ThreadLocalData, dtn) as i32
     }
 }

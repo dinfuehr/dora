@@ -72,6 +72,18 @@ impl DoraToNativeInfo {
             pc: 0,
         }
     }
+
+    pub fn last_offset() -> i32 {
+        offset_of!(DoraToNativeInfo, last) as i32
+    }
+
+    pub fn fp_offset() -> i32 {
+        offset_of!(DoraToNativeInfo, fp) as i32
+    }
+
+    pub fn pc_offset() -> i32 {
+        offset_of!(DoraToNativeInfo, pc) as i32
+    }
 }
 
 pub fn stacktrace_from_es(vm: &VM, es: &ExecState) -> Stacktrace {

@@ -5,7 +5,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::baseline::fct::{JitBaselineFct, JitDescriptor, JitFct, JitFctId};
 use crate::baseline::map::CodeDescriptor;
-use crate::cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD};
+use crate::cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1};
 use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
 use crate::masm::MacroAssembler;
@@ -94,16 +94,12 @@ where
         let save_return = self.fct.return_type != BuiltinType::Unit;
         let args = self.fct.args.len();
 
-        let framesize = size_of::<DoraToNativeInfo>() as i32 +          // save d2n structure on stack
-            mem::ptr_width() +                              // store thread register
-            (args as i32 * mem::ptr_width()) +              // store arguments on stack
-            if save_return { mem::ptr_width() } else { 0 }; // save return value on stack
+        let dtn_size = size_of::<DoraToNativeInfo>() as i32;
 
-        let framesize = mem::align_i32(framesize, 16);
-
-        let offset_return = 0;
+        let offset_dtn = 0;
+        let offset_return = dtn_size;
         let offset_args = offset_return + if save_return { mem::ptr_width() } else { 0 };
-        let offset_thread = offset_args + args as i32 * mem::ptr_width();
+        let framesize = mem::align_i32(offset_args + args as i32 * mem::ptr_width(), 16);
 
         // `start_native_call` assumes that offset_dtn is on top of current stack frame.
 
@@ -113,16 +109,40 @@ where
 
         self.masm.prolog_size(framesize);
 
-        self.masm.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(REG_SP, offset_thread),
-            REG_THREAD.into(),
-        );
-
         save_params(&mut self.masm, self.fct.args, offset_args);
 
-        self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_FP);
-        self.masm.copy_pc(REG_PARAMS[1]);
+        self.masm.load_mem(
+            MachineMode::Ptr,
+            REG_TMP1.into(),
+            Mem::Base(REG_THREAD, ThreadLocalData::dtn_offset()),
+        );
+
+        self.masm.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(REG_SP, offset_dtn + DoraToNativeInfo::last_offset()),
+            REG_TMP1.into(),
+        );
+
+        self.masm.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(REG_SP, offset_dtn + DoraToNativeInfo::fp_offset()),
+            REG_FP.into(),
+        );
+
+        self.masm.copy_pc(REG_TMP1);
+
+        self.masm.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(REG_SP, offset_dtn + DoraToNativeInfo::pc_offset()),
+            REG_TMP1.into(),
+        );
+
+        self.masm.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(REG_THREAD, ThreadLocalData::dtn_offset()),
+            REG_SP.into(),
+        );
+
         self.masm.raw_call(start_native_call as *const u8);
 
         restore_params(&mut self.masm, self.fct.args, offset_args);
@@ -136,6 +156,18 @@ where
                 REG_RESULT.into(),
             );
         }
+
+        self.masm.load_mem(
+            MachineMode::Ptr,
+            REG_TMP1.into(),
+            Mem::Base(REG_SP, offset_dtn + DoraToNativeInfo::last_offset()),
+        );
+
+        self.masm.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(REG_THREAD, ThreadLocalData::dtn_offset()),
+            REG_TMP1.into(),
+        );
 
         self.masm.raw_call(finish_native_call as *const u8);
 
@@ -154,12 +186,6 @@ where
                 Mem::Base(REG_SP, offset_return),
             );
         }
-
-        self.masm.load_mem(
-            MachineMode::Ptr,
-            REG_THREAD.into(),
-            Mem::Base(REG_SP, offset_thread),
-        );
 
         self.masm.safepoint(self.vm.polling_page.addr());
         self.masm.epilog();
@@ -231,27 +257,14 @@ fn restore_params(masm: &mut MacroAssembler, args: &[BuiltinType], offset_args: 
     }
 }
 
-pub fn start_native_call(fp: *const u8, pc: usize) {
-    unsafe {
-        // fp is framepointer of native stub
-
-        let dtn_size = size_of::<DoraToNativeInfo>() as isize;
-        let dtn: *mut DoraToNativeInfo = fp.offset(-dtn_size) as *mut DoraToNativeInfo;
-        let dtn: &mut DoraToNativeInfo = &mut *dtn;
-
-        dtn.fp = fp as usize;
-        dtn.pc = pc;
-
-        THREAD.with(|thread| {
-            thread.borrow().push_dtn(dtn);
-            thread.borrow().handles.push_border();
-        });
-    }
+pub fn start_native_call() {
+    THREAD.with(|thread| {
+        thread.borrow().handles.push_border();
+    });
 }
 
 pub fn finish_native_call() {
     THREAD.with(|thread| {
         thread.borrow().handles.pop_border();
-        thread.borrow().pop_dtn();
     });
 }
