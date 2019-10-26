@@ -120,8 +120,8 @@ where
         self.masm.pos()
     }
 
-    pub fn throw(&mut self, receiver: Reg, pos: Position) {
-        self.masm.throw(receiver, pos);
+    pub fn throw(&mut self, exception: Reg, pos: Position) {
+        self.masm.throw(exception, pos);
     }
 
     pub fn store_mem(&mut self, mode: MachineMode, mem: Mem, src: ExprStore) {

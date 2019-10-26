@@ -181,12 +181,16 @@ pub struct ThrowResume {
     fp: usize,
 }
 
-pub extern "C" fn throw(exception: Ref<Obj>, resume: &mut ThrowResume) {
+pub extern "C" fn throw(resume: &mut ThrowResume) {
     let vm = get_vm();
+
+    let exception: Ref<Obj> = THREAD.with(|thread| {
+        let thread = thread.borrow();
+        thread.tld.exception_object().into()
+    });
 
     let dtn = THREAD.with(|thread| {
         let thread = thread.borrow();
-        thread.tld.set_exception_object(Address::null());
         let dtn = thread.dtn();
 
         dtn
@@ -202,6 +206,11 @@ pub extern "C" fn throw(exception: Ref<Obj>, resume: &mut ThrowResume) {
         match res {
             HandlerFound::Yes => {
                 // handler found, resume from there
+                THREAD.with(|thread| {
+                    let thread = thread.borrow();
+                    thread.tld.set_exception_object(Address::null());
+                });
+
                 return;
             }
 

@@ -1016,9 +1016,13 @@ impl MacroAssembler {
         self.emit_lineno(pos.line as i32);
     }
 
-    pub fn throw(&mut self, receiver: Reg, pos: Position) {
+    pub fn throw(&mut self, exception: Reg, pos: Position) {
         let vm = get_vm();
-        self.copy_reg(MachineMode::Ptr, REG_PARAMS[0], receiver);
+        self.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(REG_THREAD, ThreadLocalData::exception_object_offset()),
+            exception.into(),
+        );
         self.raw_call(vm.throw_thunk().to_ptr());
         self.emit_lineno(pos.line as i32);
     }

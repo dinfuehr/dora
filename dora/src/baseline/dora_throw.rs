@@ -43,11 +43,10 @@ where
     'ast: 'a,
 {
     pub fn generate(mut self) -> JitBaselineFct {
-        let framesize = size_of::<DoraToNativeInfo>() as i32 + 5 * mem::ptr_width();
+        let framesize = size_of::<DoraToNativeInfo>() as i32 + 4 * mem::ptr_width();
         let framesize = mem::align_i32(framesize, 16);
 
-        let offset_receiver = 0;
-        let offset_thread = offset_receiver + mem::ptr_width();
+        let offset_thread = 0;
         let offset_result = offset_thread + mem::ptr_width();
         let offset_result_pc = offset_result;
         let offset_result_sp = offset_result_pc + mem::ptr_width();
@@ -65,26 +64,15 @@ where
             REG_THREAD.into(),
         );
 
-        self.masm.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(REG_SP, offset_receiver),
-            REG_PARAMS[0].into(),
-        );
-
         self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_FP);
         self.masm.copy_pc(REG_PARAMS[1]);
         self.masm.raw_call(start_native_call as *const u8);
 
-        self.masm.load_mem(
-            MachineMode::Ptr,
-            REG_PARAMS[0].into(),
-            Mem::Base(REG_SP, offset_receiver),
-        );
-        self.masm.copy_sp(REG_PARAMS[1]);
+        self.masm.copy_sp(REG_PARAMS[0]);
         self.masm.int_add_imm(
             MachineMode::Ptr,
-            REG_PARAMS[1],
-            REG_PARAMS[1],
+            REG_PARAMS[0],
+            REG_PARAMS[0],
             offset_result as i64,
         );
         self.masm.raw_call(throw as *const u8);
