@@ -27,17 +27,29 @@ class Block {
     }
 }
 
-class User(user: Inst, idx: Int)
+class Input {
+    var inst: Inst;
+
+    var used_by: Inst;
+    var idx: Int;
+
+    var previous_use: Inst;
+    var next_use: Inst;
+}
 
 @abstract @open class Inst {
     var block: Block;
-    var used_by: Vec[User];
+
     var previous: Inst;
     var next: Inst;
+
     var ty: Type;
 
+    var use_list_first: Inst;
+    var use_list_last: Inst;
+
     fun getType() -> Type {
-        return Type::unit();
+        return self.ty;
     }
 }
 
