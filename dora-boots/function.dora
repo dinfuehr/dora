@@ -89,7 +89,16 @@ class InstLinkedList {
     }
 
     fun appendInst(inst: Inst) {
-        assert(false);
+        if self.first_inst === nil {
+            self.first_inst = self.last_inst = inst;
+        } else {
+            self.last_inst.next = inst;
+
+            inst.previous = self.last_inst;
+            inst.next = nil;
+
+            self.last_inst = inst;
+        }
     }
 }
 
