@@ -1,9 +1,9 @@
 var a: A;
 
 fun main() {
-    assert(a === nil);
+    //assert(a === nil);
     forceCollect();
-    assert(a === nil);
+    //assert(a === nil);
     a = A(10);
     forceCollect();
     assert(a.val == 10);

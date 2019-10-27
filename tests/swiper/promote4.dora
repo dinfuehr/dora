@@ -7,8 +7,9 @@ fun main() {
   x(127) = Foo(2);
   forceMinorCollect();
   assert(x(0).a == 1);
-  assert(x(1) === nil);
-  assert(x(126) === nil);
+  assert(x(1) === x(126));
+  //assert(x(1) === nil);
+  //assert(x(126) === nil);
   assert(x(127).a == 2);
 }
 

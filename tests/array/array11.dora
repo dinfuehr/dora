@@ -1,9 +1,0 @@
-//= error nil
-
-fun main() {
-    first(nil);
-}
-
-fun first(f: Array[Int]) -> Int {
-    return f(0);
-}

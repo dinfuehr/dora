@@ -33,7 +33,7 @@ class Benchmark {
     var splaySumOfSquaredPauses: Long = 0L;
 
     fun setup() {
-        self.splayTree = SplayTree();
+        self.splayTree = SplayTree(none[SplayNode]());
 
         var i = 0;
 
@@ -85,10 +85,10 @@ class Benchmark {
             let key = self.insertNewNode();
             let greatest = self.splayTree.findGreatestLessThan(key);
 
-            if greatest === nil {
+            if greatest.isEmpty() {
                 self.splayTree.remove(key);
             } else {
-                self.splayTree.remove(greatest.key);
+                self.splayTree.remove(greatest.value.key);
             }
 
             i = i + 1;
@@ -103,7 +103,7 @@ class Benchmark {
         loop {
             key = self.generateKey();
 
-            if self.splayTree.find(key) === nil {
+            if self.splayTree.find(key).isEmpty() {
                 break;
             }
         }
@@ -137,122 +137,121 @@ fun generatePayloadTree(depth: Int, tag: String) -> PayloadNode {
         }
 
         let text = "String for key " + tag + " in leaf node";
-        return PayloadNode(arr, text, nil, nil);
+        return PayloadNode(arr, text, none[PayloadNode](), none[PayloadNode]());
     } else {
         return PayloadNode(
-            nil,
-            nil,
-            generatePayloadTree(depth-1, tag),
-            generatePayloadTree(depth-1, tag),
+            arrayEmpty[Int](),
+            "",
+            some[PayloadNode](generatePayloadTree(depth-1, tag)),
+            some[PayloadNode](generatePayloadTree(depth-1, tag)),
         );
     }
 }
 
-class SplayTree {
-    var root: SplayNode;
+class SplayTree(var root: Option[SplayNode]) {
 
     fun isEmpty() -> Bool {
-        return self.root === nil;
+        return self.root.isEmpty();
     }
 
     fun insert(key: Int, value: PayloadNode) {
         if self.isEmpty() {
-            self.root = SplayNode(key, value);
+            self.root = some[SplayNode](SplayNode(key, some[PayloadNode](value)));
             return;
         }
 
         self.splay(key);
 
-        if self.root.key == key {
+        if self.root.value.key == key {
             return;
         }
 
-        let node = SplayNode(key, value);
+        let node = SplayNode(key, some[PayloadNode](value));
 
-        if key > self.root.key {
+        if key > self.root.value.key {
             node.left = self.root;
-            node.right = self.root.right;
-            self.root.right = nil;
+            node.right = self.root.value.right;
+            self.root.value.right = none[SplayNode]();
 
         } else {
             node.right = self.root;
-            node.left = self.root.left;
-            self.root.left = nil;
+            node.left = self.root.value.left;
+            self.root.value.left = none[SplayNode]();
         }
 
-        self.root = node;
+        self.root = some[SplayNode](node);
     }
 
-    fun remove(key: Int) -> SplayNode {
+    fun remove(key: Int) -> Option[SplayNode] {
         if self.isEmpty() {
-            return nil;
+            return none[SplayNode]();
         }
 
         self.splay(key);
 
-        if self.root.key != key {
-            return nil;
+        if self.root.value.key != key {
+            return none[SplayNode]();
         }
 
         let removed = self.root;
 
-        if self.root.left === nil {
-            self.root = self.root.right;
+        if self.root.value.left.isEmpty() {
+            self.root = self.root.value.right;
         } else {
-            let right = self.root.right;
-            self.root = self.root.left;
+            let right = self.root.value.right;
+            self.root = none[SplayNode]();
             self.splay(key);
-            self.root.right = right;
+            self.root.value.right = right;
         }
 
         return removed;
     }
 
-    fun find(key: Int) -> SplayNode {
+    fun find(key: Int) -> Option[SplayNode] {
         if self.isEmpty() {
-            return nil;
+            return none[SplayNode]();
         }
 
         self.splay(key);
 
-        if self.root.key == key {
+        if self.root.value.key == key {
             return self.root;
         } else {
-            return nil;
+            return none[SplayNode]();
         }
     }
 
-    fun findMax(startNode: SplayNode) -> SplayNode {
+    fun findMax(startNode: Option[SplayNode]) -> Option[SplayNode] {
         if self.isEmpty() {
-            return nil;
+            return none[SplayNode]();
         }
 
         var current = startNode;
 
-        if current === nil {
+        if current.isEmpty() {
             current = self.root;
         }
 
-        while current.right !== nil {
-            current = current.right;
+        while current.value.right.isPresent {
+            current = current.value.right;
         }
 
         return current;
     }
 
-    fun findGreatestLessThan(key: Int) -> SplayNode {
+    fun findGreatestLessThan(key: Int) -> Option[SplayNode] {
         if self.isEmpty() {
-            return nil;
+            return none[SplayNode]();
         }
 
         self.splay(key);
 
-        if self.root.key < key {
+        if self.root.value.key < key {
             return self.root;
-        } else if self.root.left !== nil {
-            return self.findMax(self.root.left);
+        } else if self.root.value.left.isPresent {
+            return self.findMax(self.root.value.left);
         } else {
-            return nil;
+            return none[SplayNode]();
         }
     }
 
@@ -267,85 +266,85 @@ class SplayTree {
             return;
         }
 
-        var dummy = SplayNode(0, nil);
+        var dummy = SplayNode(0, none[PayloadNode]());
         var left = dummy;
         var right = dummy;
 
-        var current = self.root;
+        var current: Option[SplayNode] = self.root;
 
         loop {
-            if key < current.key {
-                if current.left === nil {
+            if key < current.value.key {
+                if current.value.left.isEmpty() {
                     break;
                 }
 
-                if key < current.left.key {
+                if key < current.value.left.value.key {
                     // Rotate right
-                    let tmp = current.left;
-                    current.left = tmp.right;
-                    tmp.right = current;
+                    let tmp = current.value.left;
+                    current.value.left = tmp.value.right;
+                    tmp.value.right = current;
                     current = tmp;
 
-                    if current.left === nil {
+                    if current.value.left.isEmpty() {
                         break;
                     }
                 }
 
                 // Link right
                 right.left = current;
-                right = current;
-                current = current.left;
-            } else if key > current.key {
-                if current.right === nil {
+                right = current.value;
+                current = current.value.left;
+            } else if key > current.value.key {
+                if current.value.right.isEmpty() {
                     break;
                 }
 
-                if key > current.right.key {
+                if key > current.value.right.value.key {
                     // Rotate left
-                    let tmp = current.right;
-                    current.right = tmp.left;
-                    tmp.left = current;
+                    let tmp = current.value.right;
+                    current.value.right = tmp.value.left;
+                    tmp.value.left = current;
                     current = tmp;
 
-                    if current.right === nil {
+                    if current.value.right.isEmpty() {
                         break;
                     }
                 }
 
                 // Link left
                 left.right = current;
-                left = current;
-                current = current.right;
+                left = current.value;
+                current = current.value.right;
             } else {
                 break;
             }
         }
 
         // Assemble
-        left.right = current.left;
-        right.left = current.right;
-        current.left = dummy.right;
-        current.right = dummy.left;
+        left.right = current.value.left;
+        right.left = current.value.right;
+        current.value.left = dummy.right;
+        current.value.right = dummy.left;
         self.root = current;
     }
 }
 
-fun exportKeysTraverse(list: Vec[Int], node: SplayNode) {
+fun exportKeysTraverse(list: Vec[Int], node: Option[SplayNode]) {
     var current = node;
 
-    while current !== nil {
-        var left = current.left;
-        if left !== nil {
+    while current.isPresent {
+        var left = current.value.left;
+        if left.isPresent {
             exportKeysTraverse(list, left);
         }
-        list.push(current.key);
-        current = current.right;
+        list.push(current.value.key);
+        current = current.value.right;
     }
 }
 
-class SplayNode(var key: Int, var value: PayloadNode) {
-    var left: SplayNode;
-    var right: SplayNode;
+class SplayNode(var key: Int, var value: Option[PayloadNode]) {
+    var left: Option[SplayNode];
+    var right: Option[SplayNode];
 }
 
-class PayloadNode(let array: Array[Int], let text: String, let left: PayloadNode, let right: PayloadNode)
+class PayloadNode(let array: Array[Int], let text: String, let left: Option[PayloadNode], let right: Option[PayloadNode])

@@ -1,10 +1,11 @@
 // FIXME: Identity/Equals/Stringable constraints should all end up on the individual methods that need them, not on the class
 // After nil is gone, this class needs some more intrinsics, so that it can treat <nullptr> as an empty Option (and get rid
 // of the isPresent field). Usual caveats apply: this only works for the first "layer", not for Options inside Options, etc.
-class Option[T : Identity + Equals + Stringable](let value: T, let isPresent: Bool) {
+class Option[T /*: Identity + Equals + Stringable*/](let value: T, let isPresent: Bool) {
 
   fun isEmpty() -> Bool = !self.isPresent;
 
+  /*
   fun has(rhs: T) -> Bool = self.isPresent && self.value === rhs;
 
   fun contains(rhs: T) -> Bool =
@@ -12,7 +13,9 @@ class Option[T : Identity + Equals + Stringable](let value: T, let isPresent: Bo
 
   fun equals(rhs: Option[T]) -> Bool =
     self.isPresent == rhs.isPresent && self.value.equals(rhs.value);
+  */
 
+  /*
   fun toString() -> String {
     if self.isPresent {
       return "Some(" + self.value.toString() + ")";
@@ -20,9 +23,10 @@ class Option[T : Identity + Equals + Stringable](let value: T, let isPresent: Bo
       return "None";
     }
   }
+  */
 
 }
 
-fun none[T : Identity + Equals + Stringable]() -> Option[T] = Option[T](defaultValue[T](), false);
+fun none[T /*: Identity + Equals + Stringable*/]() -> Option[T] = Option[T](defaultValue[T](), false);
 
-fun some[T : Identity + Equals + Stringable](val: T) -> Option[T] = Option[T](val, true);
+fun some[T /*: Identity + Equals + Stringable*/](val: T) -> Option[T] = Option[T](val, true);

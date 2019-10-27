@@ -5,13 +5,13 @@ class Foo(let x: Int)
 fun main() {
     let x = LargeObject();
     forceCollect();
-    assert(x.field0 === nil);
-    assert(x.field16383 === nil);
+    //assert(x.field0 === nil);
+    //assert(x.field16383 === nil);
 
     x.field0 = Foo(1);
     forceMinorCollect();
     assert(x.field0.x == 1);
-    assert(x.field16383 === nil);
+    //assert(x.field16383 === nil);
 
     x.field16383 = Foo(2);
     forceMinorCollect();

@@ -1,5 +1,5 @@
 fun main() {
-  let x = arrayFill[Foo](5, nil);
+  let x = arrayFill[Foo](5, Foo(32));
   x(0) = Foo(1);
   x(4) = Foo(2);
   forceCollect();

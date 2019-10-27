@@ -11,7 +11,7 @@ fun main() {
 
   let stretchDepth = maxDepth + 1;
   println("stretch tree of depth " + stretchDepth.toString() +
-          "\t check: " + checkTree(createTree(stretchDepth)).toString());
+          "\t check: " + checkTree(some[TreeNode](createTree(stretchDepth))).toString());
 
   trees(maxDepth);
 }
@@ -28,7 +28,7 @@ fun trees(maxDepth: Int) {
   }
 
   println("long lived tree of depth " + maxDepth.toString()
-    + "\t check: " + checkTree(longLastingNode).toString());
+    + "\t check: " + checkTree(some[TreeNode](longLastingNode)).toString());
 }
 
 fun loops(iterations: Int, depth: Int) {
@@ -36,7 +36,7 @@ fun loops(iterations: Int, depth: Int) {
   var item = 0;
 
   while item < iterations {
-    check = check + checkTree(createTree(depth));
+    check = check + checkTree(some[TreeNode](createTree(depth)));
     item = item + 1;
   }
 
@@ -45,23 +45,26 @@ fun loops(iterations: Int, depth: Int) {
 }
 
 fun createTree(var depth: Int) -> TreeNode {
-  let node = TreeNode(0, nil, nil);
+  let node = TreeNode(0, none[TreeNode](), none[TreeNode]());
 
   if depth > 0 {
     depth = depth - 1;
-    node.left = createTree(depth);
-    node.right = createTree(depth);
+    node.left = some[TreeNode](createTree(depth));
+    node.right = some[TreeNode](createTree(depth));
   }
 
   return node;
 }
 
-fun checkTree(node: TreeNode) -> Int {
-  if node.left === nil {
+fun checkTree(node: Option[TreeNode]) -> Int {
+  if node.isEmpty() {
+    return 1;
+  }
+  if node.value.left.isEmpty() {
     return 1;
   }
 
-  return checkTree(node.left) + checkTree(node.right) + 1;
+  return checkTree(node.value.left) + checkTree(node.value.right) + 1;
 }
 
-class TreeNode(let item: Int, var left: TreeNode, var right: TreeNode)
+class TreeNode(let item: Int, var left: Option[TreeNode], var right: Option[TreeNode])

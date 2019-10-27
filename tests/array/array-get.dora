@@ -20,14 +20,8 @@ fun main() {
   assert(str_array_get(x, 2) == "hello");
 
   let x = arrayFill[Foo](1, Foo(1));
-  assert(x(0) !== nil);
   assert(x(0).y == 1);
-  assert(foo_array_get(x, 0) !== nil);
   assert(foo_array_get(x, 0).y == 1);
-
-  let x = arrayFill[Foo](2, nil);
-  assert(x(0) === nil);
-  assert(foo_array_get(x, 0) === nil);
 }
 
 fun int_array_get(x: Array[Int], idx: Int) -> Int {

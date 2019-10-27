@@ -1,117 +1,119 @@
 @open @abstract class Node {
     var birthday: Int;
     var value: Int;
-    var left: Node;
-    var right: Node;
+    var left: Option[Node];
+    var right: Option[Node];
 
-    @static fun splay(var tree: Node, node: Node) -> Node {
-        if tree === nil {
-            return tree;
+    @static fun splay(var tree: Option[Node], node: Node) -> Option[Node] {
+        if tree.isEmpty() {
+            return none[Node]();
         }
 
-        node.left = nil;
-        node.right = nil;
+        node.left = none[Node]();
+        node.right = none[Node]();
 
         var l: Node = node;
         var r: Node = node;
 
         loop {
-            if node.value <= tree.value {
-                if tree.left === nil {
+            if node.value <= tree.value.value {
+                if tree.value.left.isEmpty() {
                     break;
                 }
 
-                if node.value <= tree.left.value {
+                if node.value <= tree.value.left.value.value {
                     // rotate right
-                    let y = tree.left;
-                    tree.left = y.right;
-                    y.right = tree;
+                    let y = tree.value.left;
+                    tree.value.left = y.value.right;
+                    y.value.right = tree;
                     tree = y;
-                    if tree.left === nil {
+                    if tree.value.left.isEmpty() {
                         break;
                     }
                 }
 
                 // link right
                 r.left = tree;
-                r = tree;
-                tree = tree.left;
+                r = tree.value;
+                tree = tree.value.left;
 
-            } else if node.value > tree.value {
-                if tree.right === nil {
+            } else if node.value > tree.value.value {
+                if tree.value.right.isEmpty() {
                     break;
                 }
 
-                if node.value > tree.right.value {
+                if node.value > tree.value.right.value.value {
                     // rotate left
-                    let y = tree.right;
-                    tree.right = y.left;
-                    y.left = tree;
+                    let y = tree.value.right;
+                    tree.value.right = y.value.left;
+                    y.value.left = tree;
                     tree = y;
-                    if tree.right === nil {
+                    if tree.value.right.isEmpty() {
                         break;
                     }
                 }
 
                 // link left
                 l.right = tree;
-                l = tree;
-                tree = tree.right;
+                l = tree.value;
+                tree = tree.value.right;
 
             } else {
                 break;
             }
         }
 
-        l.right = tree.left;
-        r.left = tree.right;
-        tree.left = node.right;
-        tree.right = node.left;
+        l.right = tree.value.left;
+        r.left = tree.value.right;
+        tree.value.left = node.right;
+        tree.value.right = node.left;
         return tree;
     }
 
-    @static fun insert(var tree: Node, node: Node) -> Node {
-        if tree === nil {
+    @static fun insert(var tree: Option[Node], node: Node) -> Node {
+        if tree.isEmpty() {
             return node;
         }
 
         tree = Node::splay(tree, node);
 
-        if node.value <= tree.value {
-            node.left = tree.left;
+        if node.value <= tree.value.value {
+            node.left = tree.value.left;
             node.right = tree;
-            tree.left = nil;
+            tree.value.left = none[Node]();
         } else { // if (node.value > true.value)
-            node.right = tree.right;
+            node.right = tree.value.right;
             node.left = tree;
-            tree.right = nil;
+            tree.value.right = none[Node]();
         }
 
         return node;
     }
 
-    @static fun trunc(date: Int, tree: Node, depth: Int) {
-        if tree === nil {
+    @static fun trunc(date: Int, optTree: Option[Node], depth: Int) {
+        if optTree.isEmpty() {
             return;
         }
 
-        if tree.left !== nil {
+        let tree = optTree.value;
+
+        if tree.left.isPresent {
             if depth == 0 {
                 /*if tree.left !== nil {
                     println("truncate left");
                 }*/
-                tree.left = nil;
+                tree.left = none[Node]();
             } else {
                 Node::trunc(date, tree.left, depth-1);
             }
         }
 
-        if tree.right !== nil {
+        if tree.right.isPresent {
             if depth == 0 {
                 /*if tree.right !== nil {
                     println("truncate right");
                 }*/
-                tree.right = nil;
+                tree.right = none[Node]();
             } else {
                 Node::trunc(date, tree.right, depth-1);
             }
@@ -125,12 +127,12 @@
     fun printAges(date: Int) {
         self.printAge(date);
 
-        if self.left !== nil {
-            self.left.printAges(date);
+        if self.left.isPresent {
+            self.left.value.printAges(date);
         }
 
-        if self.right !== nil {
-            self.right.printAges(date);
+        if self.right.isPresent {
+            self.right.value.printAges(date);
         }
     }
 
@@ -139,21 +141,21 @@
         print("age: " + (date - self.birthday).toString());
         println(" value: " + self.value.toString());
 
-        if self.left !== nil {
-            self.left.printTree(date, prefix + "  ");
+        if self.left.isPresent {
+            self.left.value.printTree(date, prefix + "  ");
         }
 
-        if self.right !== nil {
-            self.right.printTree(date, prefix + "  ");
+        if self.right.isPresent {
+            self.right.value.printTree(date, prefix + "  ");
         }
     }
 
-    @static fun countNodes(node: Node) -> Int {
-        if node === nil {
+    @static fun countNodes(node: Option[Node]) -> Int {
+        if node.isEmpty() {
             return 0;
         }
 
-        return 1 + Node::countNodes(node.left) + Node::countNodes(node.right);
+        return 1 + Node::countNodes(node.value.left) + Node::countNodes(node.value.right);
     }
 }
 
@@ -196,25 +198,25 @@ fun main() {
         var i = 0;
         while i < n {
             let value = rnd.nextIntWithBound(4);
-            var node: Node = nil;
+            var node: Option[Node] = none[Node]();
 
             if value == 0 {
-                node = NodeA();
+                node = some[Node](NodeA());
             } else if value == 1 {
-                node = NodeB();
+                node = some[Node](NodeB());
             } else if value == 2 {
-                node = NodeC();
+                node = some[Node](NodeC());
             } else {
                 assert(value == 3);
-                node = NodeD();
+                node = some[Node](NodeD());
             }
 
-            node.birthday = date;
+            node.value.birthday = date;
             date = date + 1;
-            node.value = rnd.nextIntWithBound(max_size);
+            node.value.value = rnd.nextIntWithBound(max_size);
 
-            tree = Node::insert(tree, node);
-            Node::trunc(date, tree, depth);
+            tree = Node::insert(some[Node](tree), node.value);
+            Node::trunc(date, some[Node](tree), depth);
 
             // println("nodes in tree: " + Node::countNodes(tree).toString());
 

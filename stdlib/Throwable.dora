@@ -9,7 +9,7 @@
       return self.elements;
     }
 
-    if self.backtrace.length() != 0 {
+    if self.backtrace.length() == 0 {
       self.elements = arrayEmpty[StackTraceElement]();
       return self.elements;
     }

@@ -5,7 +5,7 @@ class Foo(let x: Int)
 fun main() {
     let x = Array[Foo](16 * 1024);
     forceCollect();
-    assert(x(0) === nil);
+    assert(x(0) === x(1));
 
     x(0) = Foo(1);
     forceMinorCollect();

@@ -1,4 +1,4 @@
-class TreeNode(var left: TreeNode, var right: TreeNode, var value: Int)
+class TreeNode(var left: Option[TreeNode], var right: Option[TreeNode], var value: Int)
 
 const MEG: Int = 1_000_000;
 const INSIGNIFICANT: Long = 999L;
@@ -25,19 +25,19 @@ var promoteRate: Int;
 var ptrMutRate: Int;
 var steps: Int;
 
-fun height(t: TreeNode) -> Int {
-    if t === nil {
+fun height(t: Option[TreeNode]) -> Int {
+    if t.isEmpty() {
         return 0;
     } else {
-        return 1 + Int::max(height(t.left), height(t.right));
+        return 1 + Int::max(height(t.value.left), height(t.value.right));
     }
 }
 
-fun shortestPath(t: TreeNode) -> Int {
-    if t === nil {
+fun shortestPath(t: Option[TreeNode]) -> Int {
+    if t.isEmpty() {
         return 0;
     } else {
-        return 1 + Int::min(shortestPath(t.left), shortestPath(t.right));
+        return 1 + Int::min(shortestPath(t.value.left), shortestPath(t.value.right));
     }
 }
 
@@ -76,17 +76,17 @@ fun bytesToHeight(bytes: Long) -> Int {
     return nodesToHeight(bytes / BYTES_PER_NODE.toLong());
 }
 
-fun makeTree(h: Int) -> TreeNode {
+fun makeTree(h: Int) -> Option[TreeNode] {
     if h == 0 {
-        return nil;
+        return none[TreeNode]();
     }
 
-    let res = TreeNode(nil, nil, 0);
+    let res = TreeNode(none[TreeNode](), none[TreeNode](), 0);
     nodes = nodes + 1L;
     res.left = makeTree(h-1);
     res.right = makeTree(h-1);
     res.value = h;
-    return res;
+    return some[TreeNode](res);
 }
 
 fun initialize() {
@@ -99,7 +99,7 @@ fun initialize() {
     var i = 0;
 
     while i < ntrees {
-        trees(i) = makeTree(treeHeight);
+        trees(i) = makeTree(treeHeight).value;
         i = i + 1;
     }
 
@@ -114,8 +114,8 @@ fun checkTrees() {
     while i < ntrees {
         let t = trees(i);
 
-        let h1 = height(t);
-        let h2 = shortestPath(t);
+        let h1 = height(some[TreeNode](t));
+        let h2 = shortestPath(some[TreeNode](t));
 
         if (h1 != treeHeight) || (h2 != treeHeight) {
             println("**** BUG: " + h1.toString() + " " + h2.toString());
@@ -126,25 +126,25 @@ fun checkTrees() {
 }
 
 fun replaceTreeWork(full: TreeNode, partial: TreeNode, dir: Bool) {
-    let canGoLeft = full.left !== nil && full.left.value > partial.value;
-    let canGoRight = full.right !== nil && full.right.value > partial.value;
+    let canGoLeft = full.left.isPresent && full.left.value.value > partial.value;
+    let canGoRight = full.right.isPresent && full.right.value.value > partial.value;
 
     if canGoLeft && canGoRight {
         if dir {
-            replaceTreeWork(full.left, partial, !dir);
+            replaceTreeWork(full.left.value, partial, !dir);
         } else {
-            replaceTreeWork(full.right, partial, !dir);
+            replaceTreeWork(full.right.value, partial, !dir);
         }
     } else if !canGoLeft && !canGoRight {
         if dir {
-            full.left = partial;
+            full.left = some[TreeNode](partial);
         } else {
-            full.right = partial;
+            full.right = some[TreeNode](partial);
         }
     } else if !canGoLeft {
-        full.left = partial;
+        full.left = some[TreeNode](partial);
     } else {
-        full.right = partial;
+        full.right = some[TreeNode](partial);
     }
 }
 
@@ -160,7 +160,7 @@ fun oldGenAlloc(n: Long) {
 
     var i = 0;
     while i < full {
-        trees(where) = makeTree(treeHeight);
+        trees(where) = makeTree(treeHeight).value;
         where = where + 1;
 
         if where == trees.length() {
@@ -173,7 +173,7 @@ fun oldGenAlloc(n: Long) {
     while partial > INSIGNIFICANT {
         let h = bytesToHeight(partial);
         let newTree = makeTree(h);
-        replaceTree(trees(where), newTree);
+        replaceTree(trees(where), newTree.value);
         where = where + 1;
 
         if where == trees.length() {
@@ -197,11 +197,11 @@ fun oldGenSwapSubtrees() {
 
     while i < depth {
         if (path & 1) == 0 {
-            tn1 = tn1.left;
-            tn2 = tn2.left;
+            tn1 = tn1.left.value;
+            tn2 = tn2.left.value;
         } else {
-            tn1 = tn1.right;
-            tn2 = tn2.right;
+            tn1 = tn1.right.value;
+            tn2 = tn2.right.value;
         }
 
         path = path >> 1;

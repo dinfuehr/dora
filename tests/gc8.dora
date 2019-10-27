@@ -1,9 +1,9 @@
 fun main() {
-  let node = Node(10, Node(9, nil, nil), Node(11, nil, nil));
+  let node = Node(10, some[Node](Node(9, none[Node](), none[Node]())), some[Node](Node(11, none[Node](), none[Node]())));
   forceCollect();
-  assert(node.lhs.value == 9);
+  assert(node.lhs.value.value == 9);
   assert(node.value == 10);
-  assert(node.rhs.value == 11);
+  assert(node.rhs.value.value == 11);
 }
 
-class Node(let value: Int, let lhs: Node, let rhs: Node)
+class Node(let value: Int, let lhs: Option[Node], let rhs: Option[Node])
