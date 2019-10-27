@@ -14,7 +14,7 @@ class Graph {
 
 class Block {
     var phis: Vec[Inst];
-    var instructions: Vec[Inst];
+    var instructions: InstLinkedList;
     var graph: Graph;
     var dominator: Block;
     var dominated_blocks: Vec[Block];
@@ -22,7 +22,7 @@ class Block {
     var successors: Vec[Block];
 
     fun create_inst(inst: Inst) -> Inst {
-        self.instructions.push(inst);
+        self.instructions.appendInst(inst);
         return inst;
     }
 }
@@ -34,6 +34,7 @@ class User(user: Inst, idx: Int)
     var used_by: Vec[User];
     var previous: Inst;
     var next: Inst;
+    var ty: Type;
 
     fun getType() -> Type {
         return Type::unit();
@@ -71,8 +72,29 @@ enum UnOp {
     Neg, FNeg, Not,
 }
 
+class InstLinkedList {
+    var first_inst: Inst;
+    var last_inst: Inst;
+
+    fun isEmpty() -> Bool {
+        self.first_inst === nil
+    }
+
+    fun firstInst() -> Inst {
+        self.first_inst
+    }
+
+    fun lastInst() -> Inst {
+        self.last_inst
+    }
+
+    fun appendInst(inst: Inst) {
+        assert(false);
+    }
+}
+
 class InstIterator(block: Block) {
-    var inst: Inst = block.instructions.first();
+    var inst: Inst = block.instructions.firstInst();
 
     fun current() -> Inst { self.inst }
     fun isDone() -> Bool { self.inst === nil }
@@ -84,7 +106,7 @@ class InstIterator(block: Block) {
 }
 
 class BackwardInstIterator(block: Block) {
-    var inst: Inst = block.instructions.last();
+    var inst: Inst = block.instructions.lastInst();
 
     fun current() -> Inst { self.inst }
     fun isDone() -> Bool { self.inst === nil }
