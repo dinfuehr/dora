@@ -1,8 +1,0 @@
-fun main() {
-    if argc() > 0 {
-        let arg = argv(0);
-        let file = File(arg);
-
-        try file.delete();
-    }
-}

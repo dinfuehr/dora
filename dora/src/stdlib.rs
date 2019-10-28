@@ -3,7 +3,6 @@ use libc;
 use std::io::{self, Write};
 use std::mem;
 use std::process;
-use std::ptr;
 use std::str;
 use std::thread;
 use std::time::Duration;
@@ -237,51 +236,6 @@ pub extern "C" fn str_parse_long(val: Ref<Str>) -> i64 {
     let val = str::from_utf8(slice).unwrap();
 
     val.parse::<i64>().unwrap_or(0)
-}
-
-pub extern "C" fn load_function(name: Ref<Str>) -> usize {
-    let name = name.to_cstring();
-
-    unsafe {
-        let lib = libc::dlopen(ptr::null(), libc::RTLD_LAZY | libc::RTLD_LOCAL);
-        let addr = libc::dlsym(lib, name.as_ptr());
-
-        libc::dlclose(lib);
-
-        addr as usize
-    }
-}
-
-pub extern "C" fn call0(addr: *const u8) -> usize {
-    let fct: extern "C" fn() -> usize = unsafe { mem::transmute(addr) };
-
-    fct()
-}
-
-pub extern "C" fn call1(addr: *const u8, arg1: usize) -> usize {
-    let fct: extern "C" fn(usize) -> usize = unsafe { mem::transmute(addr) };
-
-    fct(arg1)
-}
-
-pub extern "C" fn call2(addr: *const u8, arg1: usize, arg2: usize) -> usize {
-    let fct: extern "C" fn(usize, usize) -> usize = unsafe { mem::transmute(addr) };
-
-    fct(arg1, arg2)
-}
-
-pub extern "C" fn call3(addr: *const u8, arg1: usize, arg2: usize, arg3: usize) -> usize {
-    let fct: extern "C" fn(usize, usize, usize) -> usize = unsafe { mem::transmute(addr) };
-
-    fct(arg1, arg2, arg3)
-}
-
-pub extern "C" fn native_malloc(size: usize) -> *const u8 {
-    unsafe { libc::malloc(size) as *const u8 }
-}
-
-pub extern "C" fn native_free(addr: *const u8) {
-    unsafe { libc::free(addr as *mut libc::c_void) }
 }
 
 pub extern "C" fn trap(trap_id: u32) {

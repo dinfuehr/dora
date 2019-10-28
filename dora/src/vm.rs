@@ -1095,8 +1095,6 @@ pub enum Intrinsic {
     Debug,
     Shl,
 
-    SetUint8,
-
     StrLen,
     StrGet,
     StrSet,

@@ -1530,7 +1530,6 @@ where
             Intrinsic::Assert => self.emit_intrinsic_assert(pos, id, args[0], dest.reg()),
             Intrinsic::Debug => self.emit_intrinsic_debug(),
             Intrinsic::Shl => self.emit_intrinsic_shl(args[0], args[1], dest.reg()),
-            Intrinsic::SetUint8 => self.emit_set_uint8(args[0], args[1], dest.reg()),
             Intrinsic::StrLen => self.emit_intrinsic_len(pos, args[0], dest.reg()),
             Intrinsic::StrGet => {
                 self.emit_array_get(pos, MachineMode::Int8, args[0], args[1], dest)
@@ -1798,20 +1797,6 @@ where
         if dest != res {
             self.asm.copy(mode, dest, res);
         }
-    }
-
-    fn emit_set_uint8(&mut self, lhs: &'ast Expr, rhs: &'ast Expr, _: Reg) {
-        self.emit_expr(lhs, REG_RESULT.into());
-        let offset = self.add_temp_node(lhs);
-        self.asm
-            .store_mem(MachineMode::Int64, Mem::Local(offset), REG_RESULT.into());
-
-        self.emit_expr(rhs, REG_TMP1.into());
-        self.asm
-            .load_mem(MachineMode::Int64, REG_RESULT.into(), Mem::Local(offset));
-
-        self.asm
-            .store_mem(MachineMode::Int8, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
     }
 
     fn emit_intrinsic_is_nan(&mut self, e: &'ast Expr, dest: Reg, intrinsic: Intrinsic) {

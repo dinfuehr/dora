@@ -172,15 +172,6 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
         stdlib::throw_native as *const u8,
     );
 
-    native_fct(vm, "loadFunction", stdlib::load_function as *const u8);
-    native_fct(vm, "call0", stdlib::call0 as *const u8);
-    native_fct(vm, "call1", stdlib::call1 as *const u8);
-    native_fct(vm, "call2", stdlib::call2 as *const u8);
-    native_fct(vm, "call3", stdlib::call3 as *const u8);
-
-    native_fct(vm, "native_malloc", stdlib::native_malloc as *const u8);
-    native_fct(vm, "native_free", stdlib::native_free as *const u8);
-    intrinsic_fct(vm, "set_uint8", Intrinsic::SetUint8);
     intrinsic_fct(vm, "defaultValue", Intrinsic::DefaultValue);
 
     let clsid = vm.vips.byte_class;

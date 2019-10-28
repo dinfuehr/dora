@@ -1,7 +1,0 @@
-fun main() {
-    let pid = getpid();
-    println(pid.toString());
-
-    let ppid = getppid();
-    println(ppid.toString());
-}
