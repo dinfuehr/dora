@@ -5,7 +5,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::baseline::fct::{JitBaselineFct, JitDescriptor, JitFct, JitFctId};
 use crate::baseline::map::CodeDescriptor;
-use crate::cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1};
+use crate::cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1};
 use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
 use crate::masm::MacroAssembler;
@@ -143,9 +143,19 @@ where
             REG_SP.into(),
         );
 
+        self.masm.raw_call(start_native_call as *const u8);
+
         restore_params(&mut self.masm, self.fct.args, offset_args);
 
         self.masm.raw_call(self.fct.ptr.to_ptr());
+
+        if save_return {
+            self.masm.store_mem(
+                MachineMode::Ptr,
+                Mem::Base(REG_SP, offset_return),
+                REG_RESULT.into(),
+            );
+        }
 
         self.masm.load_mem(
             MachineMode::Ptr,
@@ -159,19 +169,29 @@ where
             REG_TMP1.into(),
         );
 
+        self.masm.raw_call(finish_native_call as *const u8);
+
         self.masm.load_mem(
             MachineMode::Ptr,
-            REG_TMP1.into(),
+            REG_RESULT.into(),
             Mem::Base(REG_THREAD, ThreadLocalData::exception_object_offset()),
         );
 
-        let lbl_exception = self.masm.test_if_not_nil(REG_TMP1);
+        let lbl_exception = self.masm.test_if_not_nil(REG_RESULT);
+
+        if save_return {
+            self.masm.load_mem(
+                MachineMode::Ptr,
+                REG_RESULT.into(),
+                Mem::Base(REG_SP, offset_return),
+            );
+        }
 
         self.masm.safepoint(self.vm.polling_page.addr());
         self.masm.epilog();
 
         self.masm.bind_label(lbl_exception);
-        self.masm.throw(REG_TMP1, Position::new(1, 1));
+        self.masm.throw(REG_RESULT, Position::new(1, 1));
         self.masm.nop();
 
         let desc = match self.fct.desc {
