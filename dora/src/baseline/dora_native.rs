@@ -109,8 +109,6 @@ where
 
         self.masm.prolog_size(framesize);
 
-        save_params(&mut self.masm, self.fct.args, offset_args);
-
         self.masm.load_mem(
             MachineMode::Ptr,
             REG_TMP1.into(),
@@ -142,8 +140,6 @@ where
             Mem::Base(REG_THREAD, ThreadLocalData::dtn_offset()),
             REG_SP.into(),
         );
-
-        restore_params(&mut self.masm, self.fct.args, offset_args);
 
         self.masm.raw_call(self.fct.ptr.to_ptr());
 
