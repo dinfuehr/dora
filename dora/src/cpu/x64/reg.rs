@@ -10,6 +10,7 @@ pub const REG_TMP2: Reg = R11;
 pub const REG_SP: Reg = RSP;
 pub const REG_FP: Reg = RBP;
 pub const REG_THREAD: Reg = R15;
+pub const REG_TMP_CALLEE: Reg = R14;
 
 pub const RAX: Reg = Reg(0);
 pub const RCX: Reg = Reg(1);

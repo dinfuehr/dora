@@ -5,7 +5,9 @@ use dora_parser::lexer::position::Position;
 
 use crate::baseline::fct::{JitBaselineFct, JitDescriptor, JitFct, JitFctId};
 use crate::baseline::map::CodeDescriptor;
-use crate::cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1};
+use crate::cpu::{
+    Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1, REG_TMP_CALLEE,
+};
 use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
 use crate::masm::MacroAssembler;
@@ -111,14 +113,14 @@ where
 
         self.masm.load_mem(
             MachineMode::Ptr,
-            REG_TMP1.into(),
+            REG_TMP_CALLEE.into(),
             Mem::Base(REG_THREAD, ThreadLocalData::dtn_offset()),
         );
 
         self.masm.store_mem(
             MachineMode::Ptr,
             Mem::Base(REG_SP, offset_dtn + DoraToNativeInfo::last_offset()),
-            REG_TMP1.into(),
+            REG_TMP_CALLEE.into(),
         );
 
         self.masm.store_mem(
@@ -143,16 +145,10 @@ where
 
         self.masm.raw_call(self.fct.ptr.to_ptr());
 
-        self.masm.load_mem(
-            MachineMode::Ptr,
-            REG_TMP1.into(),
-            Mem::Base(REG_SP, offset_dtn + DoraToNativeInfo::last_offset()),
-        );
-
         self.masm.store_mem(
             MachineMode::Ptr,
             Mem::Base(REG_THREAD, ThreadLocalData::dtn_offset()),
-            REG_TMP1.into(),
+            REG_TMP_CALLEE.into(),
         );
 
         self.masm.load_mem(
