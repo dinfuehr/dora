@@ -203,3 +203,17 @@ impl<'a> Iterator for HandleMemoryIter<'a> {
         None
     }
 }
+
+pub fn scope<F: FnOnce() -> R, R>(f: F) -> R {
+    THREAD.with(|thread| {
+        thread.borrow().handles.push_border();
+    });
+
+    let result = f();
+
+    THREAD.with(|thread| {
+        thread.borrow().handles.pop_border();
+    });
+
+    result
+}

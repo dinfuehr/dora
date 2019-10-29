@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use crate::exception::{alloc_exception, stacktrace_from_last_dtn};
 use crate::gc::{Address, GcReason};
-use crate::handle::root;
+use crate::handle::{root, scope as handle_scope};
 use crate::object::{ByteArray, Obj, Ref, Str};
 use crate::os::signal::Trap;
 use crate::sym::Sym::SymFct;
@@ -18,45 +18,57 @@ use crate::ty::TypeList;
 use crate::vm::{exception_set, get_vm, stack_pointer};
 
 pub extern "C" fn byte_to_string(val: u8) -> Ref<Str> {
-    let buffer = val.to_string();
-    let vm = get_vm();
+    handle_scope(|| {
+        let buffer = val.to_string();
+        let vm = get_vm();
 
-    Str::from_buffer(vm, buffer.as_bytes())
+        Str::from_buffer(vm, buffer.as_bytes())
+    })
 }
 
 pub extern "C" fn char_to_string(val: char) -> Ref<Str> {
-    let buffer = val.to_string();
-    let vm = get_vm();
+    handle_scope(|| {
+        let buffer = val.to_string();
+        let vm = get_vm();
 
-    Str::from_buffer(vm, buffer.as_bytes())
+        Str::from_buffer(vm, buffer.as_bytes())
+    })
 }
 
 pub extern "C" fn int_to_string(val: i32) -> Ref<Str> {
-    let buffer = val.to_string();
-    let vm = get_vm();
+    handle_scope(|| {
+        let buffer = val.to_string();
+        let vm = get_vm();
 
-    Str::from_buffer(vm, buffer.as_bytes())
+        Str::from_buffer(vm, buffer.as_bytes())
+    })
 }
 
 pub extern "C" fn long_to_string(val: i64) -> Ref<Str> {
-    let buffer = val.to_string();
-    let vm = get_vm();
+    handle_scope(|| {
+        let buffer = val.to_string();
+        let vm = get_vm();
 
-    Str::from_buffer(vm, buffer.as_bytes())
+        Str::from_buffer(vm, buffer.as_bytes())
+    })
 }
 
 pub extern "C" fn float_to_string(val: f32) -> Ref<Str> {
-    let buffer = val.to_string();
-    let vm = get_vm();
+    handle_scope(|| {
+        let buffer = val.to_string();
+        let vm = get_vm();
 
-    Str::from_buffer(vm, buffer.as_bytes())
+        Str::from_buffer(vm, buffer.as_bytes())
+    })
 }
 
 pub extern "C" fn double_to_string(val: f64) -> Ref<Str> {
-    let buffer = val.to_string();
-    let vm = get_vm();
+    handle_scope(|| {
+        let buffer = val.to_string();
+        let vm = get_vm();
 
-    Str::from_buffer(vm, buffer.as_bytes())
+        Str::from_buffer(vm, buffer.as_bytes())
+    })
 }
 
 pub extern "C" fn print(val: Ref<Str>) {
@@ -103,11 +115,13 @@ pub extern "C" fn sleep(seconds: i32) {
 
 pub extern "C" fn throw_native(val: bool) {
     if val {
-        let vm = get_vm();
-        let obj = alloc_exception(vm, Ref::null());
-        let obj = root(obj);
+        handle_scope(|| {
+            let vm = get_vm();
+            let obj = alloc_exception(vm, Ref::null());
+            let obj = root(obj);
 
-        exception_set(obj.direct().address());
+            exception_set(obj.direct().address())
+        })
     }
 }
 
@@ -154,25 +168,31 @@ pub extern "C" fn strcmp(lhs: Ref<Str>, rhs: Ref<Str>) -> i32 {
 }
 
 pub extern "C" fn strcat(lhs: Ref<Str>, rhs: Ref<Str>) -> Ref<Str> {
-    let vm = get_vm();
-    let lhs = root(lhs);
-    let rhs = root(rhs);
+    handle_scope(|| {
+        let vm = get_vm();
+        let lhs = root(lhs);
+        let rhs = root(rhs);
 
-    Str::concat(vm, lhs, rhs).direct()
+        Str::concat(vm, lhs, rhs).direct()
+    })
 }
 
 pub extern "C" fn str_clone(val: Ref<Str>) -> Ref<Str> {
-    let vm = get_vm();
+    handle_scope(|| {
+        let vm = get_vm();
 
-    val.dup(vm)
+        val.dup(vm)
+    })
 }
 
 pub extern "C" fn str_from_bytes(val: Ref<ByteArray>, offset: usize, len: usize) -> Ref<Str> {
-    let vm = get_vm();
-    let val: Ref<Str> = val.cast();
-    let val = root(val);
+    handle_scope(|| {
+        let vm = get_vm();
+        let val: Ref<Str> = val.cast();
+        let val = root(val);
 
-    Str::from_str(vm, val, offset, len)
+        Str::from_str(vm, val, offset, len)
+    })
 }
 
 pub extern "C" fn gc_verify_refs(obj: Ref<Obj>, value: Ref<Obj>) {
