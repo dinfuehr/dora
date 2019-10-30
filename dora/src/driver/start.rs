@@ -192,9 +192,8 @@ fn is_test_fct<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) -> bool {
         return false;
     }
 
-    // the functions name needs to start with `test`
-    let fct_name = vm.interner.str(fct.name);
-    fct_name.starts_with("test")
+    // the function needs to be marked with the @test annotation
+    fct.is_test
 }
 
 fn run_main<'ast>(vm: &VM<'ast>, main: FctId) -> i32 {

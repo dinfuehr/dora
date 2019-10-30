@@ -97,7 +97,10 @@ impl<'a> Parser<'a> {
 
         match self.token.kind {
             TokenKind::Fun => {
-                self.restrict_modifiers(&modifiers, &[Modifier::Internal, Modifier::Optimize])?;
+                self.restrict_modifiers(
+                    &modifiers,
+                    &[Modifier::Internal, Modifier::Optimize, Modifier::Test],
+                )?;
                 let fct = self.parse_function(&modifiers)?;
                 elements.push(ElemFunction(fct));
             }
@@ -574,6 +577,7 @@ impl<'a> Parser<'a> {
                 "pub" => Modifier::Pub,
                 "static" => Modifier::Static,
                 "optimize" => Modifier::Optimize,
+                "test" => Modifier::Test,
                 _ => {
                     return Err(ParseErrorAndPos::new(
                         self.token.position,
@@ -681,6 +685,7 @@ impl<'a> Parser<'a> {
             internal: modifiers.contains(Modifier::Internal),
             is_abstract: modifiers.contains(Modifier::Abstract),
             is_constructor: false,
+            is_test: modifiers.contains(Modifier::Test),
             params,
             throws,
             return_type,

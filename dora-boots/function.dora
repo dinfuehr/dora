@@ -6,23 +6,23 @@ class Graph {
     var reverse_post_order: Vec[Block];
 
     fun create_block() -> Block {
-        let block = Block();
+        let block = Block(self);
         self.blocks.push(block);
         return block;
     }
 }
 
-class Block {
-    var phis: Vec[Inst];
-    var instructions: InstLinkedList;
-    var graph: Graph;
+class Block(graph: Graph) {
+    var phis: Vec[Inst] = Vec[Inst]();
+    var instructions: InstLinkedList = InstLinkedList();
+    var graph: Graph = graph;
     var dominator: Block;
     var dominated_blocks: Vec[Block];
-    var predecessors: Vec[Block];
-    var successors: Vec[Block];
+    var predecessors: Vec[Block] = Vec[Block]();
+    var successors: Vec[Block] = Vec[Block]();
 
-    fun create_inst(inst: Inst) -> Inst {
-        self.instructions.appendInst(inst);
+    fun append_inst(inst: Inst) -> Inst {
+        self.instructions.append_inst(inst);
         return inst;
     }
 }
@@ -100,7 +100,7 @@ class InstLinkedList {
         self.last_inst
     }
 
-    fun appendInst(inst: Inst) {
+    fun append_inst(inst: Inst) {
         if self.first_inst === nil {
             inst.previous = nil;
             inst.next = nil;

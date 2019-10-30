@@ -1,13 +1,13 @@
 class GraphBuilder {
     let graph: Graph = Graph();
-    var current_block: Block;
+    var current_block: Block = Block(self.graph);
 
     fun create_block() -> Block {
         return self.graph.create_block();
     }
 
     fun create_return(value: Inst) -> Inst {
-        return self.current_block.create_inst(ReturnInst(value));
+        return self.create_inst(ReturnInst(value));
     }
 
     fun create_return_void() -> Inst {
@@ -35,7 +35,7 @@ class GraphBuilder {
     }
 
     fun create_inst(inst: Inst) -> Inst {
-        return self.current_block.create_inst(inst);
+        return self.current_block.append_inst(inst);
     }
 
     fun select_block(block: Block) {
@@ -45,4 +45,13 @@ class GraphBuilder {
     fun current_block() -> Block {
         return self.current_block;
     }
+
+    fun append(inst: Inst) {
+        self.current_block.append_inst(inst);
+    }
+}
+
+@test fun simpleGraph(x: Testing) {
+    let builder = GraphBuilder();
+    builder.append(ReturnVoidInst());
 }

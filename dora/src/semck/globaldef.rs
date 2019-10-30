@@ -252,6 +252,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             is_pub: true,
             is_static: false,
             is_abstract: false,
+            is_test: f.is_test,
             internal: f.internal,
             internal_resolved: false,
             overrides: None,

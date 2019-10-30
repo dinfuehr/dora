@@ -151,6 +151,7 @@ impl<'a> BuilderFct<'a> {
             is_abstract: false,
             internal: false,
             is_constructor: self.is_constructor,
+            is_test: false,
             params: self.params,
             throws: false,
             return_type: self.return_type,
