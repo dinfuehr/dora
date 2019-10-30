@@ -564,6 +564,7 @@ where
             ExprLambda(_) => unimplemented!(),
             ExprBlock(ref expr) => self.emit_block(expr, dest),
             ExprIf(ref expr) => self.emit_if(expr, dest),
+            ExprTuple(_) => unimplemented!(),
         }
     }
 

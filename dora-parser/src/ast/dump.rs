@@ -461,6 +461,7 @@ impl<'a> AstDumper<'a> {
             ExprLambda(ref expr) => self.dump_expr_lambda(expr),
             ExprBlock(ref expr) => self.dump_expr_block(expr),
             ExprIf(ref expr) => self.dump_expr_if(expr),
+            ExprTuple(ref expr) => self.dump_expr_tuple(expr),
         }
     }
 
@@ -603,6 +604,15 @@ impl<'a> AstDumper<'a> {
     fn dump_expr_lambda(&mut self, expr: &ExprLambdaType) {
         dump!(self, "lambda @ {} {}", expr.pos, expr.id);
         self.indent(|d| d.dump_stmt(&expr.block));
+    }
+
+    fn dump_expr_tuple(&mut self, expr: &ExprTupleType) {
+        dump!(self, "tuple @ {} {}", expr.pos, expr.id);
+        self.indent(|d| {
+            for expr in &expr.values {
+                d.dump_expr(expr);
+            }
+        });
     }
 
     fn dump_expr_dot(&mut self, field: &ExprDotType) {

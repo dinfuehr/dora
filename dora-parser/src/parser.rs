@@ -1536,11 +1536,45 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_parentheses(&mut self) -> ExprResult {
-        self.advance_token()?;
-        let exp = self.parse_expression()?;
-        self.expect_token(TokenKind::RParen)?;
+        let pos = self.token.position;
+        let start = self.token.span.start();
+        self.expect_token(TokenKind::LParen)?;
+        let expr = self.parse_expression()?;
 
-        Ok(exp)
+        if self.token.kind == TokenKind::Comma {
+            let mut values = vec![expr];
+            let span;
+
+            loop {
+                self.expect_token(TokenKind::Comma)?;
+
+                if self.token.kind == TokenKind::RParen {
+                    self.advance_token()?;
+                    span = self.span_from(start);
+                    break;
+                }
+
+                let expr = self.parse_expression()?;
+                values.push(expr);
+
+                if self.token.kind == TokenKind::RParen {
+                    self.advance_token()?;
+                    span = self.span_from(start);
+                    break;
+                }
+            }
+
+            Ok(Box::new(Expr::create_tuple(
+                self.generate_id(),
+                pos,
+                span,
+                values,
+            )))
+        } else {
+            self.expect_token(TokenKind::RParen)?;
+
+            Ok(expr)
+        }
     }
 
     fn parse_try_op(&mut self) -> ExprResult {
@@ -3667,5 +3701,20 @@ mod tests {
             1,
             36,
         );
+    }
+
+    #[test]
+    fn parse_tuple() {
+        let (expr, _) = parse_expr("(1,)");
+        assert_eq!(expr.to_tuple().unwrap().values.len(), 1);
+
+        let (expr, _) = parse_expr("(1)");
+        assert!(expr.is_lit_int());
+
+        let (expr, _) = parse_expr("(1,2,3)");
+        assert_eq!(expr.to_tuple().unwrap().values.len(), 3);
+
+        let (expr, _) = parse_expr("(1,2,3,4,)");
+        assert_eq!(expr.to_tuple().unwrap().values.len(), 4);
     }
 }

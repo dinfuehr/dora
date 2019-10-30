@@ -1214,6 +1214,7 @@ pub enum Expr {
     ExprLambda(ExprLambdaType),
     ExprBlock(ExprBlockType),
     ExprIf(ExprIfType),
+    ExprTuple(ExprTupleType),
 }
 
 impl Expr {
@@ -1527,6 +1528,15 @@ impl Expr {
         })
     }
 
+    pub fn create_tuple(id: NodeId, pos: Position, span: Span, values: Vec<Box<Expr>>) -> Expr {
+        Expr::ExprTuple(ExprTupleType {
+            id,
+            pos,
+            span,
+            values,
+        })
+    }
+
     pub fn to_un(&self) -> Option<&ExprUnType> {
         match *self {
             Expr::ExprUn(ref val) => Some(val),
@@ -1800,6 +1810,20 @@ impl Expr {
         }
     }
 
+    pub fn to_tuple(&self) -> Option<&ExprTupleType> {
+        match *self {
+            Expr::ExprTuple(ref val) => Some(val),
+            _ => None,
+        }
+    }
+
+    pub fn is_tuple(&self) -> bool {
+        match *self {
+            Expr::ExprTuple(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn to_block(&self) -> Option<&ExprBlockType> {
         match *self {
             Expr::ExprBlock(ref val) => Some(val),
@@ -1860,6 +1884,7 @@ impl Expr {
             Expr::ExprLambda(ref val) => val.pos,
             Expr::ExprBlock(ref val) => val.pos,
             Expr::ExprIf(ref val) => val.pos,
+            Expr::ExprTuple(ref val) => val.pos,
         }
     }
 
@@ -1887,6 +1912,7 @@ impl Expr {
             Expr::ExprLambda(ref val) => val.span,
             Expr::ExprBlock(ref val) => val.span,
             Expr::ExprIf(ref val) => val.span,
+            Expr::ExprTuple(ref val) => val.span,
         }
     }
 
@@ -1914,6 +1940,7 @@ impl Expr {
             Expr::ExprLambda(ref val) => val.id,
             Expr::ExprBlock(ref val) => val.id,
             Expr::ExprIf(ref val) => val.id,
+            Expr::ExprTuple(ref val) => val.id,
         }
     }
 }
@@ -1927,6 +1954,15 @@ pub struct ExprIfType {
     pub cond: Box<Expr>,
     pub then_block: Box<Expr>,
     pub else_block: Option<Box<Expr>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ExprTupleType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub span: Span,
+
+    pub values: Vec<Box<Expr>>,
 }
 
 #[derive(Clone, Debug)]

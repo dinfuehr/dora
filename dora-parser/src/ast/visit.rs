@@ -350,6 +350,12 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
             }
         }
 
+        ExprTuple(ref value) => {
+            for expr in &value.values {
+                v.visit_expr(expr);
+            }
+        }
+
         ExprSuper(_) => {}
         ExprSelf(_) => {}
         ExprLitChar(_) => {}

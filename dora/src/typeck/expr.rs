@@ -2047,6 +2047,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprLambda(ref expr) => self.check_expr_lambda(expr),
             ExprBlock(ref expr) => self.check_expr_block(expr),
             ExprIf(ref expr) => self.check_expr_if(expr),
+            ExprTuple(_) => unimplemented!(),
         }
     }
 
