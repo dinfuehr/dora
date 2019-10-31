@@ -1,5 +1,9 @@
 use std::{
-    env, error::Error, fs::{self, File, copy}, io::Write, path::Path,
+    env,
+    error::Error,
+    fs::{self, copy, File},
+    io::Write,
+    path::Path,
 };
 
 const SOURCE_DIR: &str = "stdlib";

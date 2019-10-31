@@ -108,10 +108,7 @@ const STDLIB: &[(&str, &str)] = &include!(concat!(env!("OUT_DIR"), "/stdlib.rs")
 fn parse_all_files(vm: &mut VM, ast: &mut Ast, content: Option<&str>) -> Result<(), i32> {
     let fuzzing = content.is_some();
 
-    let stdlib_dir = vm
-        .args
-        .flag_stdlib
-        .clone();
+    let stdlib_dir = vm.args.flag_stdlib.clone();
 
     if let Some(stdlib) = stdlib_dir {
         parse_dir(&stdlib, vm, ast)?;
