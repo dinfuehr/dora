@@ -12,7 +12,7 @@ use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
 use crate::masm::MacroAssembler;
 use crate::mem;
-use crate::threads::{ThreadLocalData, THREAD};
+use crate::threads::ThreadLocalData;
 use crate::ty::{BuiltinType, MachineMode};
 use crate::vm::FctId;
 use crate::vm::VM;
@@ -102,8 +102,6 @@ where
         let offset_return = dtn_size;
         let offset_args = offset_return + if save_return { mem::ptr_width() } else { 0 };
         let framesize = mem::align_i32(offset_args + args as i32 * mem::ptr_width(), 16);
-
-        // `start_native_call` assumes that offset_dtn is on top of current stack frame.
 
         if self.dbg {
             self.masm.debug();
@@ -227,16 +225,4 @@ fn restore_params(masm: &mut MacroAssembler, args: &[BuiltinType], offset_args: 
 
         idx += 1;
     }
-}
-
-pub fn start_native_call() {
-    THREAD.with(|thread| {
-        thread.borrow().handles.push_border();
-    });
-}
-
-pub fn finish_native_call() {
-    THREAD.with(|thread| {
-        thread.borrow().handles.pop_border();
-    });
 }

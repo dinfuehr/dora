@@ -1,10 +1,11 @@
 use std::mem::size_of;
 
 use crate::baseline;
-use crate::baseline::dora_native::{finish_native_call, start_native_call};
 use crate::baseline::fct::{BailoutInfo, JitBaselineFct, JitDescriptor, JitFct};
 use crate::baseline::map::CodeDescriptor;
-use crate::cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1};
+use crate::cpu::{
+    Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1, REG_TMP_CALLEE,
+};
 use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
 use crate::masm::MacroAssembler;
@@ -65,20 +66,7 @@ where
         }
 
         // the return address is the call-site we need to patch
-        self.masm.copy_ra(REG_TMP1);
         self.masm.prolog_size(framesize);
-
-        self.masm.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(REG_SP, offset_thread),
-            REG_THREAD.into(),
-        );
-
-        self.masm.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(REG_SP, offset_tmp),
-            REG_TMP1.into(),
-        );
 
         // store params passed in registers on the stack
         self.store_params(offset_params);
@@ -86,14 +74,14 @@ where
         // prepare the native call
         self.masm.load_mem(
             MachineMode::Ptr,
-            REG_TMP1.into(),
+            REG_TMP_CALLEE.into(),
             Mem::Base(REG_THREAD, ThreadLocalData::dtn_offset()),
         );
 
         self.masm.store_mem(
             MachineMode::Ptr,
             Mem::Base(REG_SP, offset_dtn + DoraToNativeInfo::last_offset()),
-            REG_TMP1.into(),
+            REG_TMP_CALLEE.into(),
         );
 
         self.masm.store_mem(
@@ -116,13 +104,11 @@ where
             REG_SP.into(),
         );
 
-        self.masm.raw_call(start_native_call as *const u8);
-
         // invoke the compiler for the call site
         self.masm.load_mem(
             MachineMode::Ptr,
             REG_PARAMS[0].into(),
-            Mem::Base(REG_SP, offset_tmp),
+            Mem::Base(REG_FP, mem::ptr_width()),
         );
         self.masm.load_mem(
             MachineMode::Ptr,
@@ -130,39 +116,11 @@ where
             Mem::Base(REG_SP, offset_params),
         );
         self.masm.raw_call(compile_request as *const u8);
-        self.masm.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(REG_SP, offset_tmp),
-            REG_RESULT.into(),
-        );
-
-        self.masm.load_mem(
-            MachineMode::Ptr,
-            REG_TMP1.into(),
-            Mem::Base(REG_SP, offset_dtn + DoraToNativeInfo::last_offset()),
-        );
 
         self.masm.store_mem(
             MachineMode::Ptr,
             Mem::Base(REG_THREAD, ThreadLocalData::dtn_offset()),
-            REG_TMP1.into(),
-        );
-
-        // undo the previous native call
-        self.masm.raw_call(finish_native_call as *const u8);
-
-        // load the address of the compiled function into REG_TMP1
-        self.masm.load_mem(
-            MachineMode::Ptr,
-            REG_TMP1.into(),
-            Mem::Base(REG_SP, offset_tmp),
-        );
-
-        // restore thread register
-        self.masm.load_mem(
-            MachineMode::Ptr,
-            REG_THREAD.into(),
-            Mem::Base(REG_SP, offset_thread),
+            REG_TMP_CALLEE.into(),
         );
 
         // restore argument registers from the stack
@@ -172,7 +130,7 @@ where
         self.masm.epilog_without_return();
 
         // jump to compiled function
-        self.masm.jump_reg(REG_TMP1);
+        self.masm.jump_reg(REG_RESULT);
 
         self.masm
             .jit(self.vm, framesize, JitDescriptor::CompilerThunk, false)
