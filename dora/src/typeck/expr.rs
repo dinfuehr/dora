@@ -627,9 +627,21 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_assign_field(&mut self, e: &'ast ExprBinType) {
         let field_expr = e.lhs.to_dot().unwrap();
-        let name = field_expr.name;
 
-        self.visit_expr(&field_expr.object);
+        let name = match field_expr.rhs.to_ident() {
+            Some(ident) => ident.name,
+
+            None => {
+                let msg = SemError::NameExpected;
+                self.vm.diag.lock().report(self.file, e.pos, msg);
+
+                self.src.set_ty(e.id, BuiltinType::Error);
+                self.expr_type = BuiltinType::Error;
+                return;
+            }
+        };
+
+        self.visit_expr(&field_expr.lhs);
         let object_type = self.expr_type;
 
         self.visit_expr(&e.rhs);
@@ -673,8 +685,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 }
 
                 if !fty.allows(self.vm, rhs_type) && !rhs_type.is_error() {
-                    let field = e.lhs.to_dot().unwrap();
-                    let name = self.vm.interner.str(field.name).to_string();
+                    let name = self.vm.interner.str(name).to_string();
 
                     let object_type = object_type.name(self.vm);
                     let lhs_type = fty.name(self.vm);
@@ -1741,17 +1752,30 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_dot(&mut self, e: &'ast ExprDotType) {
-        let object_type = if e.object.is_super() {
-            self.super_type(e.object.pos())
+        let object_type = if e.lhs.is_super() {
+            self.super_type(e.lhs.pos())
         } else {
-            self.visit_expr(&e.object);
+            self.visit_expr(&e.lhs);
             self.expr_type
+        };
+
+        let name = match e.rhs.to_ident() {
+            Some(ident) => ident.name,
+
+            None => {
+                let msg = SemError::NameExpected;
+                self.vm.diag.lock().report(self.file, e.pos, msg);
+
+                self.src.set_ty(e.id, BuiltinType::Error);
+                self.expr_type = BuiltinType::Error;
+                return;
+            }
         };
 
         if self.used_in_call.contains(&e.id) {
             self.src
                 .map_idents
-                .insert(e.id, IdentType::Method(object_type, e.name));
+                .insert(e.id, IdentType::Method(object_type, name));
             return;
         }
 
@@ -1761,7 +1785,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
 
-            if let Some((cls_id, field_id)) = cls.find_field(self.vm, e.name) {
+            if let Some((cls_id, field_id)) = cls.find_field(self.vm, name) {
                 let ty = match object_type {
                     BuiltinType::Class(_, list_id) => BuiltinType::Class(cls_id, list_id),
 
@@ -1790,7 +1814,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
 
         // field not found, report error
-        let field_name = self.vm.interner.str(e.name).to_string();
+        let field_name = self.vm.interner.str(name).to_string();
         let expr_name = object_type.name(self.vm);
         let msg = SemError::UnknownField(field_name, expr_name);
         self.vm.diag.lock().report(self.file, e.pos, msg);

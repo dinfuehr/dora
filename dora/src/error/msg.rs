@@ -136,6 +136,7 @@ pub enum SemError {
     InvalidUseOfTypeParams,
     NameOfStaticMethodExpected,
     IfBranchTypesIncompatible(String, String),
+    NameExpected,
 }
 
 impl SemError {
@@ -462,6 +463,7 @@ impl SemError {
                 "if-branches have incompatible types `{}` and `{}`.",
                 then_block, else_block
             ),
+            SemError::NameExpected => "name expected for dot-operator.".into(),
         }
     }
 }

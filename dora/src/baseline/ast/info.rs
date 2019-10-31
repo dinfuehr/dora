@@ -738,10 +738,10 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             // e.lhs is a field
             let lhs = e.lhs.to_dot().unwrap();
 
-            self.visit_expr(&lhs.object);
+            self.visit_expr(&lhs.lhs);
             self.visit_expr(&e.rhs);
 
-            self.reserve_temp_for_node(&lhs.object);
+            self.reserve_temp_for_node(&lhs.lhs);
             self.reserve_temp_for_node(&e.rhs);
         }
     }

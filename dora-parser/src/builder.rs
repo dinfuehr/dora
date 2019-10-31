@@ -46,7 +46,7 @@ impl<'a> Builder<'a> {
         }))
     }
 
-    pub fn build_dot(&self, object: Box<Expr>, name: Name) -> Box<Expr> {
+    pub fn build_dot(&self, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {
         let id = self.id_generator.next();
 
         Box::new(Expr::ExprDot(ExprDotType {
@@ -54,8 +54,8 @@ impl<'a> Builder<'a> {
             pos: Position::new(1, 1),
             span: Span::invalid(),
 
-            object,
-            name,
+            lhs,
+            rhs,
         }))
     }
 

@@ -300,7 +300,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let ty: BytecodeType = field.ty.into();
 
         let dest = self.ensure_register(dest, ty);
-        let obj = self.visit_expr(&e.object, DataDest::Alloc);
+        let obj = self.visit_expr(&e.lhs, DataDest::Alloc);
 
         match ty {
             BytecodeType::Byte => self.gen.emit_load_field_byte(dest, obj, cls_id, field_id),

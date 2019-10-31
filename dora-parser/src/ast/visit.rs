@@ -301,7 +301,8 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
         }
 
         ExprDot(ref value) => {
-            v.visit_expr(&value.object);
+            v.visit_expr(&value.lhs);
+            v.visit_expr(&value.rhs);
         }
 
         ExprConv(ref value) => {

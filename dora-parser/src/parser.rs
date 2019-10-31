@@ -1389,7 +1389,7 @@ impl<'a> Parser<'a> {
             left = match self.token.kind {
                 TokenKind::Dot => {
                     let tok = self.advance_token()?;
-                    let ident = self.expect_identifier()?;
+                    let rhs = self.parse_factor()?;
                     let span = self.span_from(start);
 
                     Box::new(Expr::create_dot(
@@ -1397,7 +1397,7 @@ impl<'a> Parser<'a> {
                         tok.position,
                         span,
                         left,
-                        ident,
+                        rhs,
                     ))
                 }
 
@@ -1920,7 +1920,7 @@ impl<'a> Parser<'a> {
 
         for param in ctor_params.iter().filter(|param| param.field) {
             let this = builder.build_this();
-            let lhs = builder.build_dot(this, param.name);
+            let lhs = builder.build_dot(this, builder.build_ident(param.name));
             let rhs = builder.build_ident(param.name);
             let ass = builder.build_assign(lhs, rhs);
 
@@ -1929,7 +1929,7 @@ impl<'a> Parser<'a> {
 
         for field in cls.fields.iter().filter(|field| field.expr.is_some()) {
             let this = builder.build_this();
-            let lhs = builder.build_dot(this, field.name);
+            let lhs = builder.build_dot(this, builder.build_ident(field.name));
             let ass = builder.build_assign(lhs, field.expr.as_ref().unwrap().clone());
 
             block.add_expr(ass);
@@ -2150,11 +2150,13 @@ mod tests {
     #[test]
     fn parse_field_access() {
         let (expr, interner) = parse_expr("obj.field");
-        let field = expr.to_dot().unwrap();
+        let dot = expr.to_dot().unwrap();
 
-        let ident = field.object.to_ident().unwrap();
+        let ident = dot.lhs.to_ident().unwrap();
         assert_eq!("obj", *interner.str(ident.name));
-        assert_eq!("field", *interner.str(field.name));
+
+        let ident = dot.rhs.to_ident().unwrap();
+        assert_eq!("field", *interner.str(ident.name));
     }
 
     #[test]
@@ -2165,7 +2167,13 @@ mod tests {
 
     #[test]
     fn parse_field_non_ident() {
-        err_expr("obj.12", ParseError::ExpectedIdentifier("12".into()), 1, 5);
+        let (expr, interner) = parse_expr("bar.12");
+        let dot = expr.to_dot().unwrap();
+
+        let ident = dot.lhs.to_ident().unwrap();
+        assert_eq!("bar", *interner.str(ident.name));
+
+        assert_eq!(12, dot.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]

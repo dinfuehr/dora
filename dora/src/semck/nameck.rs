@@ -318,6 +318,11 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         // do not check right hand site of path
     }
 
+    fn check_expr_dot(&mut self, dot: &'ast ExprDotType) {
+        self.visit_expr(&dot.lhs);
+        // do not check right hand site of dot
+    }
+
     fn check_expr_block(&mut self, block: &'ast ExprBlockType) {
         self.vm.sym.lock().push_level();
 
@@ -378,6 +383,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
         match e {
             &ExprIdent(ref ident) => self.check_expr_ident(ident),
             &ExprPath(ref path) => self.check_expr_path(path),
+            &ExprDot(ref dot) => self.check_expr_dot(dot),
             &ExprBlock(ref block) => self.check_expr_block(block),
 
             // no need to handle rest of expressions

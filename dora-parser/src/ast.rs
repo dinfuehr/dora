@@ -1496,16 +1496,16 @@ impl Expr {
         id: NodeId,
         pos: Position,
         span: Span,
-        object: Box<Expr>,
-        name: Name,
+        lhs: Box<Expr>,
+        rhs: Box<Expr>,
     ) -> Expr {
         Expr::ExprDot(ExprDotType {
             id,
             pos,
             span,
 
-            object,
-            name,
+            lhs,
+            rhs,
         })
     }
 
@@ -2200,12 +2200,12 @@ impl ExprCallType {
     pub fn object(&self) -> Option<&Expr> {
         if let Some(type_param) = self.callee.to_type_param() {
             if let Some(dot) = type_param.callee.to_dot() {
-                Some(&dot.object)
+                Some(&dot.lhs)
             } else {
                 None
             }
         } else if let Some(dot) = self.callee.to_dot() {
-            Some(&dot.object)
+            Some(&dot.lhs)
         } else {
             None
         }
@@ -2238,6 +2238,6 @@ pub struct ExprDotType {
     pub pos: Position,
     pub span: Span,
 
-    pub object: Box<Expr>,
-    pub name: Name,
+    pub lhs: Box<Expr>,
+    pub rhs: Box<Expr>,
 }

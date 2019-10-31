@@ -919,7 +919,7 @@ where
 
         let ty = self.specialize_type(ty);
 
-        self.emit_expr(&expr.object, REG_RESULT.into());
+        self.emit_expr(&expr.lhs, REG_RESULT.into());
         self.emit_field_access(expr.pos, ty, field, REG_RESULT, dest);
     }
 
@@ -1220,9 +1220,9 @@ where
                 let field = &cls.fields[fieldid.idx()];
 
                 let temp = if let Some(expr_field) = e.lhs.to_dot() {
-                    self.emit_expr(&expr_field.object, REG_RESULT.into());
+                    self.emit_expr(&expr_field.lhs, REG_RESULT.into());
 
-                    &expr_field.object
+                    &expr_field.lhs
                 } else {
                     self.emit_self(REG_RESULT.into());
 

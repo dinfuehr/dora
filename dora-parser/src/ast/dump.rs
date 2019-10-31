@@ -615,15 +615,10 @@ impl<'a> AstDumper<'a> {
         });
     }
 
-    fn dump_expr_dot(&mut self, field: &ExprDotType) {
-        dump!(
-            self,
-            "field {} @ {} {}",
-            self.str(field.name),
-            field.pos,
-            field.id
-        );
-        self.indent(|d| d.dump_expr(&field.object));
+    fn dump_expr_dot(&mut self, expr: &ExprDotType) {
+        self.indent(|d| d.dump_expr(&expr.rhs));
+        dump!(self, "dot @ {} {}", expr.pos, expr.id);
+        self.indent(|d| d.dump_expr(&expr.lhs));
     }
 
     fn dump_expr_path(&mut self, expr: &ExprPathType) {
