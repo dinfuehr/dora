@@ -42,6 +42,9 @@ pub enum BuiltinType {
     // some struct
     Struct(StructId, TypeListId),
 
+    // some tuple
+    Tuple(TypeListId),
+
     // some trait object
     Trait(TraitId),
 
@@ -110,6 +113,13 @@ impl BuiltinType {
         match self {
             &BuiltinType::ClassTypeParam(_, _) => true,
             &BuiltinType::FctTypeParam(_, _) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_tuple(&self) -> bool {
+        match self {
+            &BuiltinType::Tuple(_) => true,
             _ => false,
         }
     }
@@ -287,6 +297,18 @@ impl BuiltinType {
 
                 format!("({}) -> {}", params, ret)
             }
+
+            BuiltinType::Tuple(list_id) => {
+                let types = vm.lists.lock().get(list_id);
+
+                let types = types
+                    .iter()
+                    .map(|ty| ty.name(vm))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+
+                format!("({})", types)
+            }
         }
     }
 
@@ -310,6 +332,35 @@ impl BuiltinType {
             BuiltinType::Class(_, _) => {
                 *self == other || other.is_nil() || other.subclass_from(vm, *self)
             }
+            BuiltinType::Tuple(list_id) => match other {
+                BuiltinType::Tuple(other_list_id) => {
+                    if list_id == other_list_id {
+                        return true;
+                    }
+
+                    let subtypes = vm.lists.lock().get(list_id);
+                    let other_subtypes = vm.lists.lock().get(other_list_id);
+
+                    if subtypes.len() != other_subtypes.len() {
+                        return false;
+                    }
+
+                    let len = subtypes.len();
+
+                    for idx in 0..len {
+                        let ty = subtypes[idx];
+                        let other_ty = other_subtypes[idx];
+
+                        if !ty.allows(vm, other_ty) {
+                            return false;
+                        }
+                    }
+
+                    true
+                }
+
+                _ => false,
+            },
             BuiltinType::Trait(_) => unimplemented!(),
             BuiltinType::Enum(_) => *self == other,
 
@@ -362,6 +413,7 @@ impl BuiltinType {
             BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_, _) => {
                 panic!("no size for type variable.")
             }
+            BuiltinType::Tuple(_) => unimplemented!(),
         }
     }
 
@@ -394,6 +446,7 @@ impl BuiltinType {
             BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_, _) => {
                 panic!("no alignment for type variable.")
             }
+            BuiltinType::Tuple(_) => unimplemented!(),
         }
     }
 
@@ -419,6 +472,7 @@ impl BuiltinType {
             BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_, _) => {
                 panic!("no machine mode for type variable.")
             }
+            BuiltinType::Tuple(_) => unimplemented!(),
         }
     }
 }

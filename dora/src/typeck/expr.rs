@@ -281,6 +281,22 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.expr_type = ty;
     }
 
+    fn check_expr_tuple(&mut self, tuple: &'ast ExprTupleType) {
+        let mut subtypes = Vec::new();
+
+        for value in &tuple.values {
+            self.visit_expr(value);
+            subtypes.push(self.expr_type);
+        }
+
+        let list = TypeList::with(subtypes);
+        let list_id = self.vm.lists.lock().insert(list);
+
+        let ty = BuiltinType::Tuple(list_id);
+        self.src.set_ty(tuple.id, ty);
+        self.expr_type = ty;
+    }
+
     fn check_expr_if(&mut self, expr: &'ast ExprIfType) {
         self.visit_expr(&expr.cond);
 
@@ -2047,7 +2063,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprLambda(ref expr) => self.check_expr_lambda(expr),
             ExprBlock(ref expr) => self.check_expr_block(expr),
             ExprIf(ref expr) => self.check_expr_if(expr),
-            ExprTuple(_) => unimplemented!(),
+            ExprTuple(ref expr) => self.check_expr_tuple(expr),
         }
     }
 
@@ -2226,6 +2242,45 @@ fn arg_allows(
 
             true
         }
+
+        BuiltinType::Tuple(list_id) => match arg {
+            BuiltinType::Tuple(other_list_id) => {
+                if list_id == other_list_id {
+                    return true;
+                }
+
+                let subtypes = vm.lists.lock().get(list_id);
+                let other_subtypes = vm.lists.lock().get(other_list_id);
+
+                if subtypes.len() != other_subtypes.len() {
+                    return false;
+                }
+
+                let len = subtypes.len();
+
+                for idx in 0..len {
+                    let ty = subtypes[idx];
+                    let other_ty = other_subtypes[idx];
+
+                    if !arg_allows(
+                        vm,
+                        ty,
+                        other_ty,
+                        global_cls_id,
+                        global_fct_id,
+                        cls_tps,
+                        fct_tps,
+                        self_ty,
+                    ) {
+                        return false;
+                    }
+                }
+
+                true
+            }
+
+            _ => false,
+        },
 
         BuiltinType::Lambda(_) => {
             // for now expect the exact same params and return types

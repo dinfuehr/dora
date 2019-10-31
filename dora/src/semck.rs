@@ -191,9 +191,7 @@ fn init_global_addresses<'ast>(vm: &VM<'ast>) {
 
 pub fn read_type<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> Option<BuiltinType> {
     match *t {
-        TypeSelf(_) => {
-            return Some(BuiltinType::This);
-        }
+        TypeSelf(_) => Some(BuiltinType::This),
 
         TypeBasic(ref basic) => {
             let sym = vm.sym.lock().get(basic.name);
@@ -329,10 +327,29 @@ pub fn read_type<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> Option<Bui
                 let msg = SemError::UnknownType(name);
                 vm.diag.lock().report(file, basic.pos, msg);
             }
+
+            None
         }
 
-        TypeTuple(ref tuple) if tuple.subtypes.len() == 0 => {
-            return Some(BuiltinType::Unit);
+        TypeTuple(ref tuple) => {
+            if tuple.subtypes.len() == 0 {
+                Some(BuiltinType::Unit)
+            } else {
+                let mut subtypes = Vec::new();
+
+                for subtype in &tuple.subtypes {
+                    if let Some(ty) = read_type(vm, file, subtype) {
+                        subtypes.push(ty);
+                    } else {
+                        return None;
+                    }
+                }
+
+                let list = TypeList::with(subtypes);
+                let list_id = vm.lists.lock().insert(list);
+
+                Some(BuiltinType::Tuple(list_id))
+            }
         }
 
         TypeLambda(ref lambda) => {
@@ -355,16 +372,9 @@ pub fn read_type<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> Option<Bui
             let ty = vm.lambda_types.lock().insert(params, ret);
             let ty = BuiltinType::Lambda(ty);
 
-            return Some(ty);
+            Some(ty)
         }
-
-        _ => vm
-            .diag
-            .lock()
-            .report(file, t.pos(), SemError::Unimplemented),
     }
-
-    None
 }
 
 pub fn always_returns(s: &Stmt) -> bool {

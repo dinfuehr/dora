@@ -2865,7 +2865,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_type_unit_with_one_type() {
+    fn parse_type_tuple_with_one_type() {
         let (ty, interner) = parse_type("(c)");
 
         let subtypes = &ty.to_tuple().unwrap().subtypes;
@@ -2876,7 +2876,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_type_unit_with_two_types() {
+    fn parse_type_tuple_with_two_types() {
         let (ty, interner) = parse_type("(a, b)");
 
         let subtypes = &ty.to_tuple().unwrap().subtypes;

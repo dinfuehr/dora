@@ -1912,3 +1912,56 @@ fn test_if_expression() {
 
     ok("fun f() -> Int { 4 * if true { 1 } else { 2 } }");
 }
+
+#[test]
+fn test_tuple() {
+    ok("fun f(a: (Int, Bool)) {}");
+    ok("fun f(a: (Int, Bool)) -> (Int, Bool) { return a; }");
+    ok("fun f(a: (Int, Bool)) -> (Int, Bool) {
+            let tmp = a;
+            return tmp;
+        }");
+    err(
+        "fun f(a: (Int, Bool)) -> (Int) { return a; }",
+        pos(1, 34),
+        SemError::ReturnType("(Int)".into(), "(Int, Bool)".into()),
+    );
+    err(
+        "fun f(a: (Int, Bool)) -> (Int, Float) { return a; }",
+        pos(1, 41),
+        SemError::ReturnType("(Int, Float)".into(), "(Int, Bool)".into()),
+    );
+}
+
+#[test]
+fn test_tuple_literal() {
+    ok("fun f() -> (Int, Bool) {
+        return (1, false);
+    }");
+
+    err(
+        "fun f() -> (Int) {
+        return (1);
+    }",
+        pos(2, 9),
+        SemError::ReturnType("(Int)".into(), "Int".into()),
+    );
+
+    err(
+        "fun f() -> (Int, Int) {
+        return (1, false);
+    }",
+        pos(2, 9),
+        SemError::ReturnType("(Int, Int)".into(), "(Int, Bool)".into()),
+    );
+}
+
+#[test]
+fn test_tuple_in_call() {
+    ok("
+        fun f(a: (Int, Bool)) {}
+        fun g() {
+            f((1, true));
+        }
+    ")
+}

@@ -2647,6 +2647,7 @@ fn check_for_nil(ty: BuiltinType) -> bool {
         BuiltinType::ClassTypeParam(_, _) => unreachable!(),
         BuiltinType::FctTypeParam(_, _) => unreachable!(),
         BuiltinType::Lambda(_) => true,
+        BuiltinType::Tuple(_) => false,
     }
 }
 
