@@ -1,6 +1,7 @@
 use crate::baseline::asm::BaselineAssembler;
 use crate::baseline::codegen::fct_pattern_match;
 use crate::bytecode::generate::BytecodeIdx;
+use crate::class::{ClassDefId, FieldId};
 use crate::cpu::{Mem, FREG_RESULT, FREG_TMP1, REG_RESULT, REG_TMP1};
 use dora_parser::ast::*;
 use std::collections::hash_map::HashMap;
@@ -517,6 +518,46 @@ where
             .store_mem(bytecode_type.mode(), Mem::Local(offset), reg);
     }
 
+    fn emit_load_field(
+        &mut self,
+        bytecode: &BytecodeFunction,
+        dest: Register,
+        obj: Register,
+        class_def_id: ClassDefId,
+        field_id: FieldId,
+    ) {
+        assert_eq!(bytecode.register(obj), BytecodeType::Ptr);
+
+        let cls = self.vm.class_defs.idx(class_def_id);
+        let cls = cls.read();
+        let field = &cls.fields[field_id.idx()];
+
+        assert_eq!(bytecode.register(dest), field.ty.into());
+
+        self.asm
+            .emit_comment(Comment::LoadField(class_def_id, field_id));
+
+        let bytecode_type = bytecode.register(obj);
+        let offset = bytecode.offset(obj);
+
+        self.asm
+            .load_mem(bytecode_type.mode(), REG_RESULT.into(), Mem::Local(offset));
+
+        self.asm.load_field(
+            field.ty.mode(),
+            REG_RESULT.into(),
+            REG_RESULT,
+            field.offset,
+            -1,
+        );
+
+        let bytecode_type = bytecode.register(dest);
+        let offset = bytecode.offset(dest);
+
+        self.asm
+            .store_mem(bytecode_type.mode(), Mem::Local(offset), REG_RESULT.into());
+    }
+
     fn emit_const_nil(&mut self, bytecode: &BytecodeFunction, dest: Register) {
         assert_eq!(bytecode.register(dest), BytecodeType::Ptr);
 
@@ -783,15 +824,15 @@ impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
                 | Bytecode::MovDouble(dest, src)
                 | Bytecode::MovPtr(dest, src) => self.emit_mov_generic(&bytecode, *dest, *src),
 
-                Bytecode::LoadFieldBool(_dest, _obj, _class_def_id, _field_id)
-                | Bytecode::LoadFieldByte(_dest, _obj, _class_def_id, _field_id)
-                | Bytecode::LoadFieldChar(_dest, _obj, _class_def_id, _field_id)
-                | Bytecode::LoadFieldInt(_dest, _obj, _class_def_id, _field_id)
-                | Bytecode::LoadFieldLong(_dest, _obj, _class_def_id, _field_id)
-                | Bytecode::LoadFieldFloat(_dest, _obj, _class_def_id, _field_id)
-                | Bytecode::LoadFieldDouble(_dest, _obj, _class_def_id, _field_id)
-                | Bytecode::LoadFieldPtr(_dest, _obj, _class_def_id, _field_id) => {
-                    unimplemented!("bytecode {:?}", btcode)
+                Bytecode::LoadFieldBool(dest, obj, class_def_id, field_id)
+                | Bytecode::LoadFieldByte(dest, obj, class_def_id, field_id)
+                | Bytecode::LoadFieldChar(dest, obj, class_def_id, field_id)
+                | Bytecode::LoadFieldInt(dest, obj, class_def_id, field_id)
+                | Bytecode::LoadFieldLong(dest, obj, class_def_id, field_id)
+                | Bytecode::LoadFieldFloat(dest, obj, class_def_id, field_id)
+                | Bytecode::LoadFieldDouble(dest, obj, class_def_id, field_id)
+                | Bytecode::LoadFieldPtr(dest, obj, class_def_id, field_id) => {
+                    self.emit_load_field(&bytecode, *dest, *obj, *class_def_id, *field_id)
                 }
 
                 Bytecode::LoadGlobalBool(_dest, _global_id)
