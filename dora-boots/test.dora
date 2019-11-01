@@ -1,0 +1,11 @@
+@test fun simpleGraph(x: Testing) {
+    let graph = Graph();
+
+    let block = Block();
+    graph.add_block(block);
+    graph.set_entry_block(block);
+    graph.set_exit_block(block);
+
+    let inst = ReturnVoidInst();
+    block.append_inst(inst);
+}

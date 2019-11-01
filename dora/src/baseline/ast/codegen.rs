@@ -9,7 +9,7 @@ use crate::baseline::asm::BaselineAssembler;
 use crate::baseline::ast::info::JitInfo;
 use crate::baseline::codegen::{
     ensure_native_stub, register_for_mode, should_emit_debug, AllocationSize, CodeGen, CondCode,
-    ExprStore, ManagedStackFrame, ManagedVarAndOffset, StackFrame,
+    ExprStore, ManagedStackFrame, ManagedStackSlot, StackFrame,
 };
 use crate::baseline::dora_native::{InternalFct, InternalFctDescriptor};
 use crate::baseline::fct::{CatchType, Comment, JitBaselineFct, JitDescriptor};
@@ -874,7 +874,7 @@ where
         self.jit_info.offset(id)
     }
 
-    fn add_temp_arg(&mut self, arg: &Arg<'ast>) -> (ManagedVarAndOffset, i32) {
+    fn add_temp_arg(&mut self, arg: &Arg<'ast>) -> (ManagedStackSlot, i32) {
         let ty = arg.ty();
         let offset = arg.offset();
 
@@ -884,7 +884,7 @@ where
         (slot, offset)
     }
 
-    fn add_temp_node(&mut self, expr: &Expr) -> (ManagedVarAndOffset, i32) {
+    fn add_temp_node(&mut self, expr: &Expr) -> (ManagedStackSlot, i32) {
         let id = expr.id();
         let ty = self.ty(id);
         let offset = self.jit_info.get_store(id).offset();
@@ -895,7 +895,7 @@ where
         (slot, offset)
     }
 
-    fn free_temp_node(&mut self, expr: &Expr, slot: ManagedVarAndOffset, offset: i32) {
+    fn free_temp_node(&mut self, expr: &Expr, slot: ManagedStackSlot, offset: i32) {
         let ty = self.ty(expr.id());
         self.stack.free_temp(ty, offset);
         self.managed_stack.free_temp(slot, self.vm);
@@ -2190,7 +2190,7 @@ where
     pub fn emit_call_site(&mut self, csite: &CallSite<'ast>, pos: Position, dest: ExprStore) {
         let mut temps: Vec<(
             BuiltinType,
-            Option<ManagedVarAndOffset>,
+            Option<ManagedStackSlot>,
             i32,
             Option<ClassDefId>,
         )> = Vec::new();
@@ -2390,7 +2390,7 @@ where
         pos: Position,
         temps: &[(
             BuiltinType,
-            Option<ManagedVarAndOffset>,
+            Option<ManagedStackSlot>,
             i32,
             Option<ClassDefId>,
         )],

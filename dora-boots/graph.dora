@@ -1,27 +1,56 @@
 class Graph {
-    var start_block: Block;
-    var end_block: Block;
+    var entry_block: Block;
+    var exit_block: Block;
 
-    var blocks: Vec[Block];
-    var reverse_post_order: Vec[Block];
+    var blocks: Vec[Block] = Vec[Block]();
+    var reverse_post_order: Vec[Block] = Vec[Block]();
 
-    fun create_block() -> Block {
-        let block = Block(self);
+    var next_block_id: Int = 0;
+    var next_inst_id: Int = 0;
+
+    fun add_block(block: Block) {
+        block.graph = self;
+        block.id = self.next_block_id();
         self.blocks.push(block);
-        return block;
+    }
+
+    fun set_entry_block(block: Block) {
+        self.entry_block = block;
+    }
+
+    fun set_exit_block(block: Block) {
+        self.exit_block = block;
+    }
+
+    fun next_inst_id() -> Int {
+        let id = self.next_inst_id;
+        self.next_inst_id = id + 1;
+
+        id
+    }
+
+    fun next_block_id() -> Int {
+        let id = self.next_block_id;
+        self.next_block_id = id + 1;
+
+        id
     }
 }
 
-class Block(graph: Graph) {
+class Block() {
+    var id: Int;
     var phis: Vec[Inst] = Vec[Inst]();
     var instructions: InstLinkedList = InstLinkedList();
-    var graph: Graph = graph;
-    var dominator: Block;
-    var dominated_blocks: Vec[Block];
+    var graph: Graph;
+    var dominator: Block = nil;
+    var dominated_blocks: Vec[Block] = Vec[Block]();
     var predecessors: Vec[Block] = Vec[Block]();
     var successors: Vec[Block] = Vec[Block]();
 
     fun append_inst(inst: Inst) -> Inst {
+        inst.block = self;
+        inst.id = self.graph.next_inst_id();
+
         self.instructions.append_inst(inst);
         return inst;
     }
@@ -38,6 +67,7 @@ class Input {
 }
 
 @abstract @open class Inst {
+    var id: Int;
     var block: Block;
 
     var previous: Inst;
@@ -48,7 +78,7 @@ class Input {
     var use_list_first: Inst;
     var use_list_last: Inst;
 
-    fun getType() -> Type {
+    fun get_type() -> Type {
         return self.ty;
     }
 }
@@ -88,15 +118,15 @@ class InstLinkedList {
     var first_inst: Inst;
     var last_inst: Inst;
 
-    fun isEmpty() -> Bool {
+    fun is_empty() -> Bool {
         self.first_inst === nil
     }
 
-    fun firstInst() -> Inst {
+    fun first_inst() -> Inst {
         self.first_inst
     }
 
-    fun lastInst() -> Inst {
+    fun last_inst() -> Inst {
         self.last_inst
     }
 
@@ -119,10 +149,10 @@ class InstLinkedList {
 }
 
 class InstIterator(block: Block) {
-    var inst: Inst = block.instructions.firstInst();
+    var inst: Inst = block.instructions.first_inst();
 
     fun current() -> Inst { self.inst }
-    fun isDone() -> Bool { self.inst === nil }
+    fun is_done() -> Bool { self.inst === nil }
     fun next() {
         if self.inst !== nil {
             self.inst = self.inst.next;
@@ -131,10 +161,10 @@ class InstIterator(block: Block) {
 }
 
 class BackwardInstIterator(block: Block) {
-    var inst: Inst = block.instructions.lastInst();
+    var inst: Inst = block.instructions.last_inst();
 
     fun current() -> Inst { self.inst }
-    fun isDone() -> Bool { self.inst === nil }
+    fun is_done() -> Bool { self.inst === nil }
     fun next() {
         if self.inst !== nil {
             self.inst = self.inst.previous;

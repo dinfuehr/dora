@@ -400,12 +400,18 @@ impl StackScope {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
-pub struct ManagedVar(usize);
+struct ManagedVar(usize);
 
 #[derive(Copy, Clone)]
-pub struct ManagedVarAndOffset {
+pub struct ManagedStackSlot {
     var: ManagedVar,
     offset: i32,
+}
+
+impl ManagedStackSlot {
+    fn offset(&self) -> i32 {
+        self.offset
+    }
 }
 
 pub struct ManagedStackFrame {
@@ -445,7 +451,7 @@ impl ManagedStackFrame {
         }
     }
 
-    pub fn add_scope(&mut self, ty: BuiltinType, vm: &VM) -> ManagedVarAndOffset {
+    pub fn add_scope(&mut self, ty: BuiltinType, vm: &VM) -> ManagedStackSlot {
         let var_and_offset = self.alloc(ty, vm);
         let scope = self.scopes.last_mut().expect("no active scope");
         scope.add_var(var_and_offset.var);
@@ -453,15 +459,15 @@ impl ManagedStackFrame {
         var_and_offset
     }
 
-    pub fn add_temp(&mut self, ty: BuiltinType, vm: &VM) -> ManagedVarAndOffset {
+    pub fn add_temp(&mut self, ty: BuiltinType, vm: &VM) -> ManagedStackSlot {
         self.alloc(ty, vm)
     }
 
-    pub fn free_temp(&mut self, temp: ManagedVarAndOffset, vm: &VM) {
+    pub fn free_temp(&mut self, temp: ManagedStackSlot, vm: &VM) {
         self.free(temp.var, vm)
     }
 
-    fn alloc(&mut self, ty: BuiltinType, vm: &VM) -> ManagedVarAndOffset {
+    fn alloc(&mut self, ty: BuiltinType, vm: &VM) -> ManagedStackSlot {
         let var = self.next_var;
         self.next_var = ManagedVar(var.0 + 1);
 
@@ -480,7 +486,7 @@ impl ManagedStackFrame {
         };
 
         self.vars.insert(var, (ty, offset));
-        ManagedVarAndOffset { var, offset }
+        ManagedStackSlot { var, offset }
     }
 
     fn extend_stack(&mut self, size: i32, alignment: i32) -> i32 {
