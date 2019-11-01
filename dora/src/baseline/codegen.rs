@@ -113,6 +113,7 @@ pub fn generate_fct<'ast>(
                 active_loop: None,
                 stack: StackFrame::new(),
                 stacksize_offset: 0,
+                managed_stack: ManagedStackFrame::new(),
 
                 cls_type_params,
                 fct_type_params,
@@ -456,8 +457,8 @@ impl ManagedStackFrame {
         self.alloc(ty, vm)
     }
 
-    pub fn free_temp(&mut self, temp: ManagedVar, vm: &VM) {
-        self.free(temp, vm)
+    pub fn free_temp(&mut self, temp: ManagedVarAndOffset, vm: &VM) {
+        self.free(temp.var, vm)
     }
 
     fn alloc(&mut self, ty: BuiltinType, vm: &VM) -> ManagedVarAndOffset {
@@ -489,9 +490,14 @@ impl ManagedStackFrame {
 
     fn free(&mut self, var: ManagedVar, vm: &VM) {
         if let Some((ty, offset)) = self.vars.remove(&var) {
-            let size = ty.size(vm);
+            let size = if ty.is_nil() {
+                mem::ptr_width()
+            } else {
+                ty.size(vm)
+            };
+            let start = -(offset + size);
             self.free_slots
-                .free(FreeSlot::new(offset as u32, size as u32));
+                .free(FreeSlot::new(start as u32, size as u32));
         } else {
             panic!("var not found");
         }
