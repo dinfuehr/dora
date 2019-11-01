@@ -657,6 +657,8 @@ where
 
         self.asm
             .load_mem(bytecode_type.mode(), reg, Mem::Local(offset));
+
+        self.emit_epilog();
     }
 
     fn resolve_forward_jumps(&mut self) {
@@ -827,7 +829,7 @@ impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
                 | Bytecode::RetLong(src)
                 | Bytecode::RetFloat(src)
                 | Bytecode::RetDouble(src) => self.emit_return_generic(&bytecode, *src),
-                Bytecode::RetVoid => {}
+                Bytecode::RetVoid => self.emit_epilog(),
                 _ => panic!("bytecode {:?} not implemented", btcode),
             }
 
@@ -835,8 +837,6 @@ impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
         }
 
         self.resolve_forward_jumps();
-
-        self.emit_epilog();
 
         let jit_fct = self.asm.jit(
             bytecode.stacksize(),
