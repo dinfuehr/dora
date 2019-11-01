@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::convert::TryFrom;
 use std::sync::Arc;
 use std::{f32, f64};
 
@@ -1759,6 +1760,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.expr_type
         };
 
+        if object_type.is_tuple() {
+            self.check_expr_dot_tuple(e, object_type);
+            return;
+        }
+
         let name = match e.rhs.to_ident() {
             Some(ident) => ident.name,
 
@@ -1821,6 +1827,41 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         self.src.set_ty(e.id, BuiltinType::Error);
         self.expr_type = BuiltinType::Error;
+    }
+
+    fn check_expr_dot_tuple(&mut self, e: &'ast ExprDotType, object_type: BuiltinType) {
+        let index = match e.rhs.to_lit_int() {
+            Some(ident) => ident.value,
+
+            None => {
+                let msg = SemError::IndexExpected;
+                self.vm.diag.lock().report(self.file, e.pos, msg);
+
+                self.src.set_ty(e.id, BuiltinType::Error);
+                self.expr_type = BuiltinType::Error;
+                return;
+            }
+        };
+
+        let list_id = match object_type {
+            BuiltinType::Tuple(list_id) => list_id,
+            _ => unreachable!(),
+        };
+
+        let list = self.vm.lists.lock().get(list_id);
+
+        if index >= list.len() as u64 {
+            let msg = SemError::IllegalTupleIndex(index, object_type.name(self.vm));
+            self.vm.diag.lock().report(self.file, e.pos, msg);
+
+            self.src.set_ty(e.id, BuiltinType::Error);
+            self.expr_type = BuiltinType::Error;
+            return;
+        }
+
+        let ty = list[usize::try_from(index).unwrap()];
+        self.src.set_ty(e.id, ty);
+        self.expr_type = ty;
     }
 
     fn check_expr_this(&mut self, e: &'ast ExprSelfType) {

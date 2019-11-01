@@ -137,6 +137,8 @@ pub enum SemError {
     NameOfStaticMethodExpected,
     IfBranchTypesIncompatible(String, String),
     NameExpected,
+    IndexExpected,
+    IllegalTupleIndex(u64, String),
 }
 
 impl SemError {
@@ -464,6 +466,10 @@ impl SemError {
                 then_block, else_block
             ),
             SemError::NameExpected => "name expected for dot-operator.".into(),
+            SemError::IndexExpected => "index expected as right-hand-side for tuple.".into(),
+            SemError::IllegalTupleIndex(idx, ref ty) => {
+                format!("illegal index `{}` for type `{}`", idx, ty)
+            }
         }
     }
 }

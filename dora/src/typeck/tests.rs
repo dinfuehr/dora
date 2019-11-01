@@ -1965,3 +1965,28 @@ fn test_tuple_in_call() {
         }
     ")
 }
+
+#[test]
+fn test_tuple_element() {
+    ok("
+        fun f(a: (Int, Bool)) -> Int {
+            return a.0;
+        }
+    ");
+
+    ok("
+        fun f(a: (Int, Bool)) -> Bool {
+            return a.1;
+        }
+    ");
+
+    err(
+        "
+        fun f(a: (Int, Bool)) -> String {
+            return a.1;
+        }
+    ",
+        pos(3, 13),
+        SemError::ReturnType("String".into(), "Bool".into()),
+    );
+}
