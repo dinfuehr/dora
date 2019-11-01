@@ -1,4 +1,4 @@
-@test fun simpleGraph(x: Testing) {
+@test fun simple_graph(x: Testing) {
     let graph = Graph();
 
     let block = Block();
@@ -8,4 +8,29 @@
 
     let inst = ReturnVoidInst();
     block.append_inst(inst);
+}
+
+@test fun add_int_consts(x: Testing) {
+    let graph = Graph();
+
+    let block = Block();
+    graph.add_block(block);
+    graph.set_entry_block(block);
+    graph.set_exit_block(block);
+
+    let const1 = IntConst(1);
+    block.append_inst(const1);
+
+    let const2 = IntConst(2);
+    block.append_inst(const2);
+
+    let inst = BinaryInst(BinOp::Add, const1, const2);
+    block.append_inst(inst);
+
+    let inst = ReturnVoidInst();
+    block.append_inst(inst);
+
+    assert(const1.has_uses());
+    assert(const2.has_uses());
+    assert(!inst.has_uses());
 }

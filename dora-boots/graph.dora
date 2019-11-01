@@ -9,6 +9,8 @@ class Graph {
     var next_inst_id: Int = 0;
 
     fun add_block(block: Block) {
+        assert(block.graph === nil && block.id == -1);
+
         block.graph = self;
         block.id = self.next_block_id();
         self.blocks.push(block);
@@ -38,72 +40,158 @@ class Graph {
 }
 
 class Block() {
-    var id: Int;
+    var id: Int = -1;
+
     var phis: Vec[Inst] = Vec[Inst]();
     var instructions: InstLinkedList = InstLinkedList();
+
     var graph: Graph;
+
     var dominator: Block = nil;
     var dominated_blocks: Vec[Block] = Vec[Block]();
+
     var predecessors: Vec[Block] = Vec[Block]();
     var successors: Vec[Block] = Vec[Block]();
 
+    fun add_predecessor(block: Block) {
+        self.predecessors.push(block);
+        block.successors.push(block);
+    }
+
+    fun add_successor(block: Block) {
+        self.successors.push(block);
+        block.predecessors.push(block);
+    }
+
     fun append_inst(inst: Inst) -> Inst {
+        assert(inst.block === nil && inst.id == -1);
+
         inst.block = self;
         inst.id = self.graph.next_inst_id();
 
         self.instructions.append_inst(inst);
+
+        inst.register_uses();
         return inst;
     }
 }
 
 class Input {
-    var inst: Inst;
-
-    var used_by: Inst;
     var idx: Int;
 
-    var previous_use: Inst;
-    var next_use: Inst;
+    var value: Inst;
+    var used_by: Inst;
+
+    var previous_use: Input;
+    var next_use: Input;
 }
 
 @abstract @open class Inst {
-    var id: Int;
-    var block: Block;
+    var id: Int = -1;
+    var block: Block = nil;
 
-    var previous: Inst;
-    var next: Inst;
+    var previous: Inst = nil;
+    var next: Inst = nil;
 
-    var ty: Type;
+    var ty: Type = nil;
 
-    var use_list_first: Inst;
-    var use_list_last: Inst;
+    var use_list_head: Input = nil;
+    var use_list_tail: Input = nil;
+
+    var inputs: Vec[Input] = Vec[Input]();
 
     fun get_type() -> Type {
         return self.ty;
+    }
+
+    fun add_input(inst: Inst) {
+        let input = Input();
+        input.value = inst;
+        input.used_by = self;
+        input.idx = self.inputs.length();
+
+        self.inputs.push(input);
+    }
+
+    fun add_use(input: Input) {
+        if self.use_list_head === nil {
+            input.previous_use = nil;
+            input.next_use = nil;
+
+            self.use_list_head = input;
+            self.use_list_tail = input;
+        } else {
+            input.previous_use = self.use_list_tail;
+            input.next_use = nil;
+
+            self.use_list_tail = input;
+        }
+    }
+
+    fun register_uses() {
+        let inputs = self.inputs.length();
+        var idx = 0;
+
+        while idx < inputs {
+            let input = self.inputs.get(idx);
+            input.value.add_use(input);
+            idx = idx + 1;
+        }
+    }
+
+    fun has_uses() -> Bool {
+        self.use_list_head !== nil
     }
 }
 
 @abstract @open class Const: Inst
 class IntConst(let value: Int): Const
+class LongConst(let value: Long): Const
 class FloatConst(let value: Float): Const
 class DoubleConst(let value: Double): Const
-class LongConst(let value: Long): Const
 
-class PrologInst: Inst
-class EpilogInst: Inst
-class UnaryInst(let op: UnOp, let opnd: Inst): Inst
-class BinaryInst(let op: BinOp, let lhs: Inst, let rhs: Inst): Inst
-class ArgInst(let idx: Int): Inst
+class UnaryInst(let op: UnOp, let opnd: Inst): Inst {
+    self.add_input(opnd);
+}
+
+class BinaryInst(let op: BinOp, let lhs: Inst, let rhs: Inst): Inst {
+    self.add_input(lhs);
+    self.add_input(rhs);
+}
 
 class PhiInst(let inputs: Vec[PhiArg]): Inst
 class PhiArg(let value: Inst, let block: Block)
 
-@abstract @open class Terminator: Inst
+class ArrayGet(let array: Inst, let index: Inst): Inst {
+    self.add_input(array);
+    self.add_input(index);
+}
 
-class ReturnInst(let value: Inst): Terminator
-class ReturnVoidInst: Terminator
-class CondInst(let cond: Inst, let true_succ: Block, let false_succ: Block): Terminator
-class GotoInst(let succ: Block): Terminator
+class ArraySet(let array: Inst, let index: Inst, let value: Inst): Inst {
+    self.add_input(array);
+    self.add_input(index);
+    self.add_input(value);
+}
+
+class ArrayLength(let array: Inst): Inst {
+    self.add_input(array);
+}
+
+class ParamInst(let index: Int, ty: Type): Inst {
+    self.ty = ty;
+}
+
+class ReturnInst(let value: Inst): Inst {
+    self.add_input(value);
+}
+
+class ReturnVoidInst: Inst
+
+class CondInst(let cond: Inst, let true_block: Block, let false_block: Block): Inst {
+    self.add_input(cond);
+}
+
+class GotoInst(let block: Block): Inst
 
 enum BinOp {
     Add, Sub, Mul, Div, Mod,
