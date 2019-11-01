@@ -195,10 +195,15 @@ impl MacroAssembler {
     }
 
     pub fn bind_label(&mut self, lbl: Label) {
+        self.bind_label_to(lbl, self.pos());
+    }
+
+    pub fn bind_label_to(&mut self, lbl: Label, pos: usize) {
         let lbl_idx = lbl.index();
 
         assert!(self.labels[lbl_idx].is_none());
-        self.labels[lbl_idx] = Some(self.pos());
+        assert!(pos <= self.pos());
+        self.labels[lbl_idx] = Some(pos);
     }
 
     pub fn emit_bailout(&mut self, lbl: Label, trap: Trap, pos: Position) {

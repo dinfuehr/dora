@@ -84,6 +84,9 @@ pub fn generate_fct<'ast>(
 
             cls_type_params,
             fct_type_params,
+
+            bytecode_to_address: HashMap::new(),
+            forward_jumps: Vec::new(),
         }
         .generate(),
         BaselineName::AstCompiler => {

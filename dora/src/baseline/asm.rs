@@ -108,6 +108,10 @@ where
         self.masm.create_label()
     }
 
+    pub fn bind_label_to(&mut self, label: Label, pos: usize) {
+        self.masm.bind_label_to(label, pos);
+    }
+
     pub fn jump(&mut self, label: Label) {
         self.masm.jump(label);
     }
