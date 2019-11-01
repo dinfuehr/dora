@@ -313,9 +313,6 @@ pub struct StackFrame {
     all: HashSet<i32>,
     references: HashSet<i32>,
     scopes: Vec<StackScope>,
-
-    free_slots: FreeSlots,
-    size: u32,
 }
 
 impl StackFrame {
@@ -324,9 +321,6 @@ impl StackFrame {
             all: HashSet::new(),
             references: HashSet::new(),
             scopes: Vec::new(),
-
-            free_slots: FreeSlots::new(),
-            size: 0,
         }
     }
 
@@ -401,6 +395,132 @@ impl StackScope {
 
     fn add_var(&mut self, ty: BuiltinType, offset: i32) {
         assert!(self.vars.insert(offset, ty).is_none());
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+pub struct ManagedVar(usize);
+
+#[derive(Copy, Clone)]
+pub struct ManagedVarAndOffset {
+    var: ManagedVar,
+    offset: i32,
+}
+
+pub struct ManagedStackFrame {
+    vars: HashMap<ManagedVar, (BuiltinType, i32)>,
+    scopes: Vec<ManagedStackScope>,
+    next_var: ManagedVar,
+
+    free_slots: FreeSlots,
+    stacksize: i32,
+}
+
+impl ManagedStackFrame {
+    pub fn new() -> ManagedStackFrame {
+        ManagedStackFrame {
+            vars: HashMap::new(),
+            scopes: Vec::new(),
+            next_var: ManagedVar(0),
+
+            free_slots: FreeSlots::new(),
+            stacksize: 0,
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.scopes.is_empty() && self.vars.is_empty()
+    }
+
+    pub fn push_scope(&mut self) {
+        self.scopes.push(ManagedStackScope::new());
+    }
+
+    pub fn pop_scope(&mut self, vm: &VM) {
+        let scope = self.scopes.pop().expect("no active scope");
+
+        for var in scope.vars.into_iter() {
+            self.free(var, vm);
+        }
+    }
+
+    pub fn add_scope(&mut self, ty: BuiltinType, vm: &VM) -> ManagedVarAndOffset {
+        let var_and_offset = self.alloc(ty, vm);
+        let scope = self.scopes.last_mut().expect("no active scope");
+        scope.add_var(var_and_offset.var);
+
+        var_and_offset
+    }
+
+    pub fn add_temp(&mut self, ty: BuiltinType, vm: &VM) -> ManagedVarAndOffset {
+        self.alloc(ty, vm)
+    }
+
+    pub fn free_temp(&mut self, temp: ManagedVar, vm: &VM) {
+        self.free(temp, vm)
+    }
+
+    fn alloc(&mut self, ty: BuiltinType, vm: &VM) -> ManagedVarAndOffset {
+        let var = self.next_var;
+        self.next_var = ManagedVar(var.0 + 1);
+
+        let (size, alignment) = if ty.is_nil() {
+            (mem::ptr_width(), mem::ptr_width())
+        } else {
+            (ty.size(vm), ty.align(vm))
+        };
+
+        let alloc = self.free_slots.alloc(size as u32, alignment as u32);
+
+        let offset = if let Some(free_start) = alloc {
+            -(free_start as i32 + size)
+        } else {
+            self.extend_stack(size, alignment)
+        };
+
+        self.vars.insert(var, (ty, offset));
+        ManagedVarAndOffset { var, offset }
+    }
+
+    fn extend_stack(&mut self, size: i32, alignment: i32) -> i32 {
+        self.stacksize = mem::align_i32(self.stacksize as i32, alignment) + size;
+        -self.stacksize
+    }
+
+    fn free(&mut self, var: ManagedVar, vm: &VM) {
+        if let Some((ty, offset)) = self.vars.remove(&var) {
+            let size = ty.size(vm);
+            self.free_slots
+                .free(FreeSlot::new(offset as u32, size as u32));
+        } else {
+            panic!("var not found");
+        }
+    }
+
+    pub fn gcpoint(&self) -> GcPoint {
+        let mut offsets: Vec<i32> = Vec::new();
+
+        for (_, (ty, offset)) in &self.vars {
+            if ty.reference_type() {
+                offsets.push(*offset);
+            }
+        }
+
+        GcPoint::from_offsets(offsets)
+    }
+}
+
+pub struct ManagedStackScope {
+    vars: Vec<ManagedVar>,
+}
+
+impl ManagedStackScope {
+    fn new() -> ManagedStackScope {
+        ManagedStackScope { vars: Vec::new() }
+    }
+
+    fn add_var(&mut self, var: ManagedVar) {
+        self.vars.push(var);
     }
 }
 
