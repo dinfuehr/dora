@@ -162,11 +162,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                             .report(self.file_id.into(), parent_class.pos, msg);
                     }
 
-                    let number_type_params = parent_class
-                        .type_params
-                        .as_ref()
-                        .map(|x| x.len())
-                        .unwrap_or(0);
+                    let number_type_params = parent_class.type_params.len();
 
                     if number_type_params != super_cls.type_params.len() {
                         let msg = SemError::WrongNumberTypeParams(

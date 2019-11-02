@@ -371,20 +371,7 @@ impl<'a> Parser<'a> {
         self.in_class = true;
         let ctor_params = self.parse_constructor(&mut cls)?;
 
-        cls.parent_class = if self.token.is(TokenKind::Colon) {
-            self.advance_token()?;
-
-            let start = self.token.span.start();
-            let pos = self.token.position;
-            let name = self.expect_identifier()?;
-            let type_params = self.parse_type_params()?;
-            let params = self.parse_parent_class_params()?;
-            let span = self.span_from(start);
-
-            Some(ParentClass::new(name, pos, span, type_params, params))
-        } else {
-            None
-        };
+        cls.parent_class = self.parse_class_parent()?;
 
         self.parse_class_body(&mut cls)?;
         let span = self.span_from(start);
@@ -394,6 +381,34 @@ impl<'a> Parser<'a> {
         self.in_class = false;
 
         Ok(cls)
+    }
+
+    fn parse_class_parent(&mut self) -> Result<Option<ParentClass>, ParseErrorAndPos> {
+        if self.token.is(TokenKind::Colon) {
+            self.advance_token()?;
+
+            let start = self.token.span.start();
+            let pos = self.token.position;
+            let name = self.expect_identifier()?;
+            let type_params = self.parse_class_parent_type_params()?;
+            let params = self.parse_parent_class_params()?;
+            let span = self.span_from(start);
+
+            Ok(Some(ParentClass::new(name, pos, span, type_params, params)))
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn parse_class_parent_type_params(&mut self) -> Result<Vec<Type>, ParseErrorAndPos> {
+        let mut types = Vec::new();
+
+        if self.token.is(TokenKind::LBracket) {
+            self.advance_token()?;
+            types = self.parse_comma_list(TokenKind::RBracket, |p| p.parse_type())?;
+        }
+
+        Ok(types)
     }
 
     fn parse_type_params(&mut self) -> Result<Option<Vec<TypeParam>>, ParseErrorAndPos> {
@@ -3589,8 +3604,16 @@ mod tests {
         let cls = prog.cls0();
 
         let parent = cls.parent_class.as_ref().unwrap();
-        let type_params = parent.type_params.as_ref().unwrap();
-        assert_eq!(2, type_params.len());
+        assert_eq!(2, parent.type_params.len());
+    }
+
+    #[test]
+    fn parse_generic_super_class_with_nested_type_definition() {
+        let (prog, _) = parse("class A: B[SomeType[SomeOtherType[Int]]]");
+        let cls = prog.cls0();
+
+        let parent = cls.parent_class.as_ref().unwrap();
+        assert_eq!(1, parent.type_params.len());
     }
 
     #[test]

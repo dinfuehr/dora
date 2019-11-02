@@ -453,7 +453,7 @@ pub struct ParentClass {
     pub name: Name,
     pub pos: Position,
     pub span: Span,
-    pub type_params: Option<Vec<TypeParam>>,
+    pub type_params: Vec<Type>,
     pub params: Vec<Box<Expr>>,
 }
 
@@ -462,7 +462,7 @@ impl ParentClass {
         name: Name,
         pos: Position,
         span: Span,
-        type_params: Option<Vec<TypeParam>>,
+        type_params: Vec<Type>,
         params: Vec<Box<Expr>>,
     ) -> ParentClass {
         ParentClass {
