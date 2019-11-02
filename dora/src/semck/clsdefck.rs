@@ -146,15 +146,11 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
             let sym = self.vm.sym.lock().get(parent_class.name);
 
             match sym {
-                Some(Sym::SymClass(clsid)) => {
-                    let super_cls = self.vm.classes.idx(clsid);
+                Some(Sym::SymClass(cls_id)) => {
+                    let super_cls = self.vm.classes.idx(cls_id);
                     let super_cls = super_cls.read();
 
-                    if super_cls.has_open {
-                        let cls = self.vm.classes.idx(self.cls_id.unwrap());
-                        let mut cls = cls.write();
-                        cls.parent_class = Some(clsid);
-                    } else {
+                    if !super_cls.has_open {
                         let msg = SemError::UnderivableType(name);
                         self.vm
                             .diag
@@ -173,6 +169,22 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                             .diag
                             .lock()
                             .report(self.file_id.into(), parent_class.pos, msg);
+                    } else {
+                        let mut types = Vec::new();
+
+                        for tp in &parent_class.type_params {
+                            let ty = semck::read_type(self.vm, self.file_id.into(), tp)
+                                .unwrap_or(BuiltinType::Error);
+                            types.push(ty);
+                        }
+
+                        let list = TypeList::with(types);
+                        let list_id = self.vm.lists.lock().insert(list);
+                        let _ty = BuiltinType::Class(cls_id, list_id);
+
+                        let cls = self.vm.classes.idx(self.cls_id.unwrap());
+                        let mut cls = cls.write();
+                        cls.parent_class = Some(cls_id);
                     }
                 }
 
