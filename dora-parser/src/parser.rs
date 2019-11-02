@@ -1926,7 +1926,6 @@ impl<'a> Parser<'a> {
                 self.generate_id(),
                 parent_class.pos,
                 parent_class.span,
-                DelegationType::Super,
                 parent_class.params.clone(),
             );
 
@@ -1970,7 +1969,6 @@ impl<'a> Parser<'a> {
 #[derive(Clone, Debug)]
 struct Delegation {
     pub pos: Position,
-    pub ty: DelegationType,
     pub args: Vec<Box<Expr>>,
 }
 

@@ -1475,19 +1475,12 @@ impl Expr {
         })
     }
 
-    pub fn create_delegation(
-        id: NodeId,
-        pos: Position,
-        span: Span,
-        ty: DelegationType,
-        args: Vec<Box<Expr>>,
-    ) -> Expr {
+    pub fn create_delegation(id: NodeId, pos: Position, span: Span, args: Vec<Box<Expr>>) -> Expr {
         Expr::ExprDelegation(ExprDelegationType {
             id,
             pos,
             span,
 
-            ty,
             args,
         })
     }
@@ -2030,30 +2023,7 @@ pub struct ExprDelegationType {
     pub pos: Position,
     pub span: Span,
 
-    pub ty: DelegationType, // true for this class, false for super class
     pub args: Vec<Box<Expr>>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum DelegationType {
-    This,
-    Super,
-}
-
-impl DelegationType {
-    pub fn is_this(&self) -> bool {
-        match *self {
-            DelegationType::This => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_super(&self) -> bool {
-        match *self {
-            DelegationType::Super => true,
-            _ => false,
-        }
-    }
 }
 
 #[derive(Clone, Debug)]

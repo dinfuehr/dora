@@ -1584,12 +1584,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let owner = self.vm.classes.idx(self.fct.cls_id());
         let owner = owner.read();
 
-        let cls_id = if e.ty.is_super() {
-            owner.parent_class.unwrap()
-        } else {
-            owner.id
-        };
-
+        let cls_id = owner.parent_class.unwrap();
         let cls = self.vm.classes.idx(cls_id);
         let cls = cls.read();
 
