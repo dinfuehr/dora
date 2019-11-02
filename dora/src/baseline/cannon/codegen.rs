@@ -19,7 +19,7 @@ use crate::bytecode::opcode::Bytecode;
 
 pub struct ForwardJump {
     label: Label,
-    bytecode_idx: usize,
+    bytecode_idx: BytecodeIdx,
 }
 
 pub struct CannonCodeGen<'a, 'ast: 'a> {
@@ -57,14 +57,50 @@ pub struct CannonCodeGen<'a, 'ast: 'a> {
     pub cls_type_params: &'a TypeList,
     pub fct_type_params: &'a TypeList,
 
-    pub bytecode_to_address: HashMap<usize, usize>,
-    pub forward_jumps: Vec<ForwardJump>,
+    bytecode_to_address: HashMap<BytecodeIdx, usize>,
+    forward_jumps: Vec<ForwardJump>,
+    current_pos: Option<BytecodeIdx>,
 }
 
 impl<'a, 'ast> CannonCodeGen<'a, 'ast>
 where
     'ast: 'a,
 {
+    pub fn new(
+        vm: &'a VM<'ast>,
+        fct: &'a Fct<'ast>,
+        ast: &'ast Function,
+        asm: BaselineAssembler<'a, 'ast>,
+        src: &'a mut FctSrc,
+        lbl_break: Option<Label>,
+        lbl_continue: Option<Label>,
+        active_finallys: Vec<&'ast Stmt>,
+        lbl_return: Option<Label>,
+        active_loop: Option<usize>,
+        active_upper: Option<usize>,
+        cls_type_params: &'a TypeList,
+        fct_type_params: &'a TypeList,
+    ) -> CannonCodeGen<'a, 'ast> {
+        CannonCodeGen {
+            vm,
+            fct,
+            ast,
+            asm,
+            src,
+            lbl_break,
+            lbl_continue,
+            active_finallys,
+            active_upper,
+            active_loop,
+            lbl_return,
+            cls_type_params,
+            fct_type_params,
+            bytecode_to_address: HashMap::new(),
+            forward_jumps: Vec::new(),
+            current_pos: None,
+        }
+    }
+
     fn emit_prolog(&mut self, bytecode: &BytecodeFunction) {
         self.asm.prolog_size(bytecode.stacksize(), self.fct.ast.pos);
         self.asm.emit_comment(Comment::Lit("prolog end"));
@@ -601,8 +637,8 @@ where
         &mut self,
         bytecode: &BytecodeFunction,
         src: Register,
-        bytecode_idx: &BytecodeIdx,
-        op: CondCode,
+        bytecode_idx: BytecodeIdx,
+        op: bool,
     ) {
         assert_eq!(bytecode.register(src), BytecodeType::Bool);
 
@@ -611,38 +647,41 @@ where
         self.asm
             .load_mem(bytecode_type.mode(), REG_RESULT.into(), Mem::Local(offset));
 
+        let op = if op {
+            CondCode::NonZero
+        } else {
+            CondCode::Zero
+        };
         let lbl = self.asm.create_label();
         self.asm.test_and_jump_if(op, REG_RESULT, lbl);
 
-        let BytecodeIdx(bytecode_idx) = bytecode_idx;
-        match self.bytecode_to_address.get(&bytecode_idx) {
-            Some(&address) => {
-                self.asm.bind_label_to(lbl, address);
-            }
-            None => {
-                self.forward_jumps.push(ForwardJump {
-                    label: lbl,
-                    bytecode_idx: *bytecode_idx,
-                });
-            }
-        }
+        self.resolve_label(bytecode_idx, lbl);
     }
 
-    fn emit_jump(&mut self, _bytecode: &BytecodeFunction, bytecode_idx: &BytecodeIdx) {
+    fn emit_jump(&mut self, _bytecode: &BytecodeFunction, bytecode_idx: BytecodeIdx) {
         let lbl = self.asm.create_label();
         self.asm.jump(lbl);
 
-        let BytecodeIdx(bytecode_idx) = bytecode_idx;
-        match self.bytecode_to_address.get(&bytecode_idx) {
-            Some(&address) => {
-                self.asm.bind_label_to(lbl, address);
-            }
-            None => {
-                self.forward_jumps.push(ForwardJump {
-                    label: lbl,
-                    bytecode_idx: *bytecode_idx,
-                });
-            }
+        self.resolve_label(bytecode_idx, lbl);
+    }
+
+    fn resolve_label(&mut self, bytecode_idx: BytecodeIdx, lbl: Label) {
+        let BytecodeIdx(current_position) = self.pos();
+        let BytecodeIdx(target) = bytecode_idx;
+
+        if target < current_position {
+            self.asm.bind_label_to(
+                lbl,
+                *self
+                    .bytecode_to_address
+                    .get(&bytecode_idx)
+                    .expect("jump with wrong offset"),
+            );
+        } else {
+            self.forward_jumps.push(ForwardJump {
+                label: lbl,
+                bytecode_idx: bytecode_idx,
+            });
         }
     }
 
@@ -678,6 +717,15 @@ where
             }
         }
     }
+
+    fn pos(&self) -> BytecodeIdx {
+        self.current_pos.expect("current position is not set")
+    }
+
+    fn pos_inc(&mut self) {
+        let BytecodeIdx(pos_idx) = self.pos();
+        self.current_pos = Some(BytecodeIdx(pos_idx + 1));
+    }
 }
 
 impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
@@ -700,9 +748,9 @@ impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
 
         self.emit_prolog(&bytecode);
 
-        let mut btidx: usize = 0;
+        self.current_pos = Some(BytecodeIdx(0));
         for btcode in bytecode.code() {
-            self.bytecode_to_address.insert(btidx, self.asm.pos());
+            self.bytecode_to_address.insert(self.pos(), self.asm.pos());
 
             match btcode {
                 Bytecode::AddInt(dest, lhs, rhs) | Bytecode::AddLong(dest, lhs, rhs) => {
@@ -815,12 +863,12 @@ impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
                 }
 
                 Bytecode::JumpIfFalse(src, bytecode_idx) => {
-                    self.emit_jump_if(&bytecode, *src, &bytecode_idx, CondCode::Zero)
+                    self.emit_jump_if(&bytecode, *src, *bytecode_idx, false)
                 }
                 Bytecode::JumpIfTrue(src, bytecode_idx) => {
-                    self.emit_jump_if(&bytecode, *src, &bytecode_idx, CondCode::NonZero)
+                    self.emit_jump_if(&bytecode, *src, *bytecode_idx, true)
                 }
-                Bytecode::Jump(bytecode_idx) => self.emit_jump(&bytecode, bytecode_idx),
+                Bytecode::Jump(bytecode_idx) => self.emit_jump(&bytecode, *bytecode_idx),
 
                 Bytecode::RetBool(src)
                 | Bytecode::RetByte(src)
@@ -833,7 +881,7 @@ impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
                 _ => panic!("bytecode {:?} not implemented", btcode),
             }
 
-            btidx = btidx + 1;
+            self.pos_inc();
         }
 
         self.resolve_forward_jumps();
