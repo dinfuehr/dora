@@ -4,10 +4,10 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use crate::exception::DoraToNativeInfo;
-use crate::gc::{Address, Region, M};
+use crate::gc::{Address, Region, K};
 use crate::handle::HandleMemory;
 
-pub const STACK_SIZE: usize = 1 * M;
+pub const STACK_SIZE: usize = 500 * K;
 
 thread_local! {
     pub static THREAD: RefCell<Arc<DoraThread>> = RefCell::new(DoraThread::new());
