@@ -12,7 +12,7 @@ use crate::masm::*;
 use crate::object::Str;
 use crate::ty::TypeList;
 use crate::vm::VM;
-use crate::vm::{Fct, FctSrc};
+use crate::vm::{Fct, FctSrc, GlobalId};
 
 use crate::bytecode::astgen::generate_fct;
 use crate::bytecode::generate::{BytecodeFunction, BytecodeType, Register, StrConstPoolIdx};
@@ -558,6 +558,33 @@ where
             .store_mem(bytecode_type.mode(), Mem::Local(offset), REG_RESULT.into());
     }
 
+    fn emit_load_global_field(
+        &mut self,
+        bytecode: &BytecodeFunction,
+        dest: Register,
+        global_id: GlobalId,
+    ) {
+        let glob = self.vm.globals.idx(global_id);
+        let glob = glob.lock();
+
+        assert_eq!(bytecode.register(dest), glob.ty.into());
+
+        let disp = self.asm.add_addr(glob.address_value.to_ptr());
+        let pos = self.asm.pos() as i32;
+
+        self.asm.emit_comment(Comment::LoadGlobal(global_id));
+        self.asm.load_constpool(REG_TMP1, disp + pos);
+
+        self.asm
+            .load_mem(glob.ty.mode(), REG_RESULT.into(), Mem::Base(REG_TMP1, 0));
+
+        let bytecode_type = bytecode.register(dest);
+        let offset = bytecode.offset(dest);
+
+        self.asm
+            .store_mem(bytecode_type.mode(), Mem::Local(offset), REG_RESULT.into());
+    }
+
     fn emit_const_nil(&mut self, bytecode: &BytecodeFunction, dest: Register) {
         assert_eq!(bytecode.register(dest), BytecodeType::Ptr);
 
@@ -835,15 +862,15 @@ impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
                     self.emit_load_field(&bytecode, *dest, *obj, *class_def_id, *field_id)
                 }
 
-                Bytecode::LoadGlobalBool(_dest, _global_id)
-                | Bytecode::LoadGlobalByte(_dest, _global_id)
-                | Bytecode::LoadGlobalChar(_dest, _global_id)
-                | Bytecode::LoadGlobalInt(_dest, _global_id)
-                | Bytecode::LoadGlobalLong(_dest, _global_id)
-                | Bytecode::LoadGlobalFloat(_dest, _global_id)
-                | Bytecode::LoadGlobalDouble(_dest, _global_id)
-                | Bytecode::LoadGlobalPtr(_dest, _global_id) => {
-                    unimplemented!("bytecode {:?}", btcode)
+                Bytecode::LoadGlobalBool(dest, global_id)
+                | Bytecode::LoadGlobalByte(dest, global_id)
+                | Bytecode::LoadGlobalChar(dest, global_id)
+                | Bytecode::LoadGlobalInt(dest, global_id)
+                | Bytecode::LoadGlobalLong(dest, global_id)
+                | Bytecode::LoadGlobalFloat(dest, global_id)
+                | Bytecode::LoadGlobalDouble(dest, global_id)
+                | Bytecode::LoadGlobalPtr(dest, global_id) => {
+                    self.emit_load_global_field(&bytecode, *dest, *global_id);
                 }
 
                 Bytecode::ConstNil(dest) => self.emit_const_nil(&bytecode, *dest),
