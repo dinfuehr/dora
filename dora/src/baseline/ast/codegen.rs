@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use dora_parser::ast::visit::*;
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
@@ -68,6 +70,8 @@ pub struct AstCodeGen<'a, 'ast: 'a> {
     pub managed_stack: ManagedStackFrame,
     pub stacksize_offset: usize,
 
+    pub var_to_slot: HashMap<VarId, ManagedStackSlot>,
+
     pub cls_type_params: &'a TypeList,
     pub fct_type_params: &'a TypeList,
 }
@@ -92,6 +96,9 @@ where
                 REG_PARAMS[0].into()
             };
 
+            let slot_param = self.managed_stack.add_scope(var.ty, self.vm);
+            assert!(self.var_to_slot.insert(var.id, slot_param).is_none());
+
             let offset = self.var_offset(var.id);
             self.asm.store_mem(mode, Mem::Local(offset), dest);
 
@@ -108,8 +115,11 @@ where
             let varid = *self.src.map_vars.get(p.id).unwrap();
             let ty = self.jit_info.ty(varid);
             let is_float = ty.mode().is_float();
-            let offset = self.var_offset(varid);
 
+            let slot_param = self.managed_stack.add_scope(ty, self.vm);
+            assert!(self.var_to_slot.insert(varid, slot_param).is_none());
+
+            let offset = self.var_offset(varid);
             self.stack.add_var(ty, offset);
 
             if is_float && freg_idx < FREG_PARAMS.len() {
@@ -228,13 +238,19 @@ where
     }
 
     fn emit_stmt_for(&mut self, s: &'ast StmtForType) {
-        let for_info = self.jit_info.map_fors.get(s.id).unwrap().clone();
+        let for_type_info = self.src.map_fors.get(s.id).unwrap().clone();
+        let for_jit_info = self.jit_info.map_fors.get(s.id).unwrap().clone();
+
+        self.managed_stack.push_scope();
 
         // emit: <iterator> = obj.makeIterator()
-        let dest = self.emit_call_site_old(&for_info.make_iterator, s.pos);
+        let dest = self.emit_call_site_old(&for_jit_info.make_iterator, s.pos);
 
         // offset of iterator storage
         let offset = *self.jit_info.map_offsets.get(s.id).unwrap();
+        let _slot_offset = self
+            .managed_stack
+            .add_scope(for_type_info.iterator_type, self.vm);
         self.asm
             .store_mem(MachineMode::Ptr, Mem::Local(offset), dest);
 
@@ -247,19 +263,20 @@ where
         self.asm.bind_label(lbl_start);
 
         // emit: iterator.hasNext() & jump to lbl_end if false
-        let dest = self.emit_call_site_old(&for_info.has_next, s.pos);
+        let dest = self.emit_call_site_old(&for_jit_info.has_next, s.pos);
         self.asm
             .test_and_jump_if(CondCode::Zero, dest.reg(), lbl_end);
 
         // emit: <for_var> = iterator.next()
-        let dest = self.emit_call_site_old(&for_info.next, s.pos);
+        let dest = self.emit_call_site_old(&for_jit_info.next, s.pos);
 
         let for_var_id = *self.src.map_vars.get(s.id).unwrap();
-        self.asm.var_store(
-            self.var_offset(for_var_id),
-            self.jit_info.ty(for_var_id),
-            dest,
-        );
+        let var_ty = self.jit_info.ty(for_var_id);
+        let slot_var = self.managed_stack.add_scope(var_ty, self.vm);
+        assert!(self.var_to_slot.insert(for_var_id, slot_var).is_none());
+
+        let offset = self.var_offset(for_var_id);
+        self.asm.var_store(offset, var_ty, dest);
 
         self.save_label_state(lbl_end, lbl_start, |this| {
             // execute while body, then jump back to condition
@@ -268,6 +285,8 @@ where
             this.emit_safepoint();
             this.asm.jump(lbl_start);
         });
+
+        self.managed_stack.pop_scope(&self.vm);
 
         self.asm.bind_label(lbl_end);
         self.active_loop = saved_active_loop;
@@ -368,6 +387,10 @@ where
     fn emit_stmt_var(&mut self, s: &'ast StmtVarType) {
         let mut initialized = false;
         let var = *self.src.map_vars.get(s.id).unwrap();
+        let ty = self.jit_info.ty(var);
+
+        let slot_var = self.managed_stack.add_scope(ty, self.vm);
+        assert!(self.var_to_slot.insert(var, slot_var).is_none());
 
         if let Some(ref expr) = s.expr {
             let value = self.emit_expr_result_reg(expr);
@@ -377,7 +400,6 @@ where
                 .var_store(self.var_offset(var), self.jit_info.ty(var), value);
         }
 
-        let ty = self.jit_info.ty(var);
         let offset = self.var_offset(var);
         self.stack.add_var(ty, offset);
 
@@ -435,13 +457,16 @@ where
 
         for catch in &s.catch_blocks {
             let varid = *self.src.map_vars.get(catch.id).unwrap();
+
+            let slot_var = self.managed_stack.add_scope(BuiltinType::Ptr, self.vm);
+            assert!(self.var_to_slot.insert(varid, slot_var).is_none());
+
             let offset = self.var_offset(varid);
 
             self.stack.push_scope();
             self.managed_stack.push_scope();
 
             self.stack.add_var(BuiltinType::Ptr, offset);
-            let _catch_var = self.managed_stack.add_scope(BuiltinType::Ptr, self.vm);
             let catch_span = self.stmt_with_finally(s, &catch.block, lbl_after);
 
             self.managed_stack.pop_scope(self.vm);
@@ -692,6 +717,7 @@ where
 
         self.stack
             .add_temp(BuiltinType::Ptr, template_info.string_buffer_offset);
+        let slot_string_buffer_offset = self.managed_stack.add_temp(BuiltinType::Ptr, self.vm);
 
         for (idx, part) in e.parts.iter().enumerate() {
             let part_info = &template_info.part_infos[idx];
@@ -728,6 +754,8 @@ where
         self.emit_call_site(&template_info.string_buffer_to_string, e.pos, dest.into());
         self.stack
             .free_temp(BuiltinType::Ptr, template_info.string_buffer_offset);
+        self.managed_stack
+            .free_temp(slot_string_buffer_offset, self.vm);
     }
 
     fn emit_conv(&mut self, e: &'ast ExprConvType, dest: Reg) {
@@ -871,7 +899,9 @@ where
     }
 
     fn var_offset(&self, id: VarId) -> i32 {
-        self.jit_info.offset(id)
+        let offset = self.jit_info.offset(id);
+        assert!(self.var_to_slot.contains_key(&id));
+        offset
     }
 
     fn add_temp_arg(&mut self, arg: &Arg<'ast>) -> (ManagedStackSlot, i32) {
@@ -2269,6 +2299,8 @@ where
                     // add it to the set of temporaries such that it is part
                     // of the gc point
                     self.stack.add_temp(BuiltinType::Ptr, offset);
+                    let slot = self.managed_stack.add_temp(BuiltinType::Ptr, self.vm);
+                    temps[idx].1 = Some(slot);
 
                     reg_idx += 1;
                     idx += 1;
@@ -2584,6 +2616,7 @@ impl<'a, 'ast> CodeGen<'ast> for AstCodeGen<'a, 'ast> {
         }
 
         self.stack.push_scope();
+        self.managed_stack.push_scope();
         self.emit_prolog();
         self.store_register_params_on_stack();
 
@@ -2607,8 +2640,10 @@ impl<'a, 'ast> CodeGen<'ast> for AstCodeGen<'a, 'ast> {
             }
         }
 
+        self.managed_stack.pop_scope(self.vm);
         self.stack.pop_scope();
         assert!(self.stack.is_empty());
+        assert!(self.managed_stack.is_empty());
 
         if !always_returns {
             self.emit_epilog();

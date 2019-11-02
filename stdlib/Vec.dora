@@ -86,6 +86,10 @@ class Vec[T] {
     return self.length;
   }
 
+  fun is_empty() -> Bool {
+    self.length == 0
+  }
+
   fun capacity() -> Int {
     if self.array === nil {
       return 0;

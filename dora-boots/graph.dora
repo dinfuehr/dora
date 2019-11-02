@@ -37,6 +37,10 @@ class Graph {
 
         id
     }
+
+    fun number_blocks() -> Int {
+        self.next_block_id
+    }
 }
 
 class Block() {
