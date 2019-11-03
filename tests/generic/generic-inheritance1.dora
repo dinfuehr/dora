@@ -1,0 +1,7 @@
+fun main() {
+    let x = Bar();
+}
+
+@open @abstract class Foo[A]
+class Bar: Foo[Int]
+

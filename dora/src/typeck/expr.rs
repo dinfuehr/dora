@@ -1588,7 +1588,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let ctor = self.vm.fcts.idx(ctor_id);
             let ctor = ctor.read();
 
-            let cls_ty = parent_class.type_params(self.vm);
+            let parent_class_type_params = parent_class.type_params(self.vm);
 
             if args_compatible(
                 self.vm,
@@ -1596,13 +1596,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 &arg_types,
                 Some(cls_id),
                 None,
-                &cls_ty,
+                &parent_class_type_params,
                 &TypeList::empty(),
                 None,
             ) {
-                self.src.map_tys.insert(e.id, self.vm.cls(cls.id));
+                self.src.map_tys.insert(e.id, parent_class);
 
-                let call_type = CallType::Ctor(cls.id, ctor.id, TypeList::empty());
+                let call_type = CallType::Ctor(cls.id, ctor.id, parent_class_type_params);
                 self.src.map_calls.insert(e.id, Arc::new(call_type));
                 return;
             }
