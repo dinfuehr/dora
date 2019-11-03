@@ -2036,8 +2036,8 @@ fn test_methods_with_generics() {
             @override fun test() -> A { self.bar }
         }
 
-        class Baz[A](let baz: A): Foo[A] {
-            @override fun test() -> A { self.baz }
+        class Baz[A](let baz: A): Foo[Int] {
+            @override fun test() -> Int { 0 }
         }
     ");
 }
