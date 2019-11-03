@@ -67,24 +67,21 @@ pub fn generate_fct<'ast>(
     let ast = fct.ast;
 
     let jit_fct = match vm.args.bc() {
-        BaselineName::Cannon => CannonCodeGen {
+        BaselineName::Cannon => CannonCodeGen::new(
             vm,
-            fct: &fct,
+            &fct,
             ast,
-            asm: BaselineAssembler::new(vm),
+            BaselineAssembler::new(vm),
             src,
-
-            lbl_break: None,
-            lbl_continue: None,
-
-            active_finallys: Vec::new(),
-            active_upper: None,
-            active_loop: None,
-            lbl_return: None,
-
+            None,
+            None,
+            Vec::new(),
+            None,
+            None,
+            None,
             cls_type_params,
             fct_type_params,
-        }
+        )
         .generate(),
         BaselineName::AstCompiler => {
             let mut jit_info = JitInfo::new();

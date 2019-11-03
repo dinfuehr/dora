@@ -186,6 +186,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn emit_ret_value(&mut self, result_reg: Register) {
+        if BuiltinType::Unit == self.fct.return_type {
+            self.gen.emit_ret_void();
+            return;
+        }
+
         let return_type: BytecodeType = self.specialize_type(self.fct.return_type).into();
 
         match return_type {

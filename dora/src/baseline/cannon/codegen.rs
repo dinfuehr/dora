@@ -1,7 +1,9 @@
 use crate::baseline::asm::BaselineAssembler;
 use crate::baseline::codegen::fct_pattern_match;
+use crate::bytecode::generate::BytecodeIdx;
 use crate::cpu::{Mem, FREG_RESULT, FREG_TMP1, REG_RESULT, REG_TMP1};
 use dora_parser::ast::*;
+use std::collections::hash_map::HashMap;
 
 use crate::baseline::codegen::{should_emit_debug, CodeGen, CondCode};
 use crate::baseline::fct::{Comment, JitBaselineFct, JitDescriptor};
@@ -14,6 +16,11 @@ use crate::vm::{Fct, FctSrc};
 use crate::bytecode::astgen::generate_fct;
 use crate::bytecode::generate::{BytecodeFunction, BytecodeType, Register, StrConstPoolIdx};
 use crate::bytecode::opcode::Bytecode;
+
+pub struct ForwardJump {
+    label: Label,
+    bytecode_idx: BytecodeIdx,
+}
 
 pub struct CannonCodeGen<'a, 'ast: 'a> {
     pub vm: &'a VM<'ast>,
@@ -49,12 +56,51 @@ pub struct CannonCodeGen<'a, 'ast: 'a> {
 
     pub cls_type_params: &'a TypeList,
     pub fct_type_params: &'a TypeList,
+
+    bytecode_to_address: HashMap<BytecodeIdx, usize>,
+    forward_jumps: Vec<ForwardJump>,
+    current_pos: Option<BytecodeIdx>,
 }
 
 impl<'a, 'ast> CannonCodeGen<'a, 'ast>
 where
     'ast: 'a,
 {
+    pub fn new(
+        vm: &'a VM<'ast>,
+        fct: &'a Fct<'ast>,
+        ast: &'ast Function,
+        asm: BaselineAssembler<'a, 'ast>,
+        src: &'a mut FctSrc,
+        lbl_break: Option<Label>,
+        lbl_continue: Option<Label>,
+        active_finallys: Vec<&'ast Stmt>,
+        lbl_return: Option<Label>,
+        active_loop: Option<usize>,
+        active_upper: Option<usize>,
+        cls_type_params: &'a TypeList,
+        fct_type_params: &'a TypeList,
+    ) -> CannonCodeGen<'a, 'ast> {
+        CannonCodeGen {
+            vm,
+            fct,
+            ast,
+            asm,
+            src,
+            lbl_break,
+            lbl_continue,
+            active_finallys,
+            active_upper,
+            active_loop,
+            lbl_return,
+            cls_type_params,
+            fct_type_params,
+            bytecode_to_address: HashMap::new(),
+            forward_jumps: Vec::new(),
+            current_pos: None,
+        }
+    }
+
     fn emit_prolog(&mut self, bytecode: &BytecodeFunction) {
         self.asm.prolog_size(bytecode.stacksize(), self.fct.ast.pos);
         self.asm.emit_comment(Comment::Lit("prolog end"));
@@ -587,6 +633,58 @@ where
             .store_mem(bytecode_type.mode(), Mem::Local(offset), REG_RESULT.into());
     }
 
+    fn emit_jump_if(
+        &mut self,
+        bytecode: &BytecodeFunction,
+        src: Register,
+        bytecode_idx: BytecodeIdx,
+        op: bool,
+    ) {
+        assert_eq!(bytecode.register(src), BytecodeType::Bool);
+
+        let bytecode_type = bytecode.register(src);
+        let offset = bytecode.offset(src);
+        self.asm
+            .load_mem(bytecode_type.mode(), REG_RESULT.into(), Mem::Local(offset));
+
+        let op = if op {
+            CondCode::NonZero
+        } else {
+            CondCode::Zero
+        };
+        let lbl = self.asm.create_label();
+        self.asm.test_and_jump_if(op, REG_RESULT, lbl);
+
+        self.resolve_label(bytecode_idx, lbl);
+    }
+
+    fn emit_jump(&mut self, _bytecode: &BytecodeFunction, bytecode_idx: BytecodeIdx) {
+        let lbl = self.asm.create_label();
+        self.asm.jump(lbl);
+
+        self.resolve_label(bytecode_idx, lbl);
+    }
+
+    fn resolve_label(&mut self, bytecode_idx: BytecodeIdx, lbl: Label) {
+        let BytecodeIdx(current_position) = self.pos();
+        let BytecodeIdx(target) = bytecode_idx;
+
+        if target < current_position {
+            self.asm.bind_label_to(
+                lbl,
+                *self
+                    .bytecode_to_address
+                    .get(&bytecode_idx)
+                    .expect("jump with wrong offset"),
+            );
+        } else {
+            self.forward_jumps.push(ForwardJump {
+                label: lbl,
+                bytecode_idx: bytecode_idx,
+            });
+        }
+    }
+
     fn emit_return_generic(&mut self, bytecode: &BytecodeFunction, src: Register) {
         let bytecode_type = bytecode.register(src);
         let offset = bytecode.offset(src);
@@ -598,6 +696,35 @@ where
 
         self.asm
             .load_mem(bytecode_type.mode(), reg, Mem::Local(offset));
+
+        self.emit_epilog();
+    }
+
+    fn resolve_forward_jumps(&mut self) {
+        for jump in &self.forward_jumps {
+            let ForwardJump {
+                label,
+                bytecode_idx,
+            } = jump;
+
+            match self.bytecode_to_address.get(&bytecode_idx) {
+                Some(&address) => {
+                    self.asm.bind_label_to(*label, address);
+                }
+                None => {
+                    panic!("address for bytecode index not found");
+                }
+            }
+        }
+    }
+
+    fn pos(&self) -> BytecodeIdx {
+        self.current_pos.expect("current position is not set")
+    }
+
+    fn pos_inc(&mut self) {
+        let BytecodeIdx(pos_idx) = self.pos();
+        self.current_pos = Some(BytecodeIdx(pos_idx + 1));
     }
 }
 
@@ -620,7 +747,11 @@ impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
         }
 
         self.emit_prolog(&bytecode);
+
+        self.current_pos = Some(BytecodeIdx(0));
         for btcode in bytecode.code() {
+            self.bytecode_to_address.insert(self.pos(), self.asm.pos());
+
             match btcode {
                 Bytecode::AddInt(dest, lhs, rhs) | Bytecode::AddLong(dest, lhs, rhs) => {
                     self.emit_add_int(&bytecode, *dest, *lhs, *rhs)
@@ -731,11 +862,13 @@ impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
                     self.emit_test_generic(&bytecode, *dest, *lhs, *rhs, CondCode::LessEq)
                 }
 
-                Bytecode::JumpIfFalse(_src, _bytecode_idx)
-                | Bytecode::JumpIfTrue(_src, _bytecode_idx) => {
-                    unimplemented!("bytecode {:?}", btcode)
+                Bytecode::JumpIfFalse(src, bytecode_idx) => {
+                    self.emit_jump_if(&bytecode, *src, *bytecode_idx, false)
                 }
-                Bytecode::Jump(_bytecode_idx) => unimplemented!("bytecode {:?}", btcode),
+                Bytecode::JumpIfTrue(src, bytecode_idx) => {
+                    self.emit_jump_if(&bytecode, *src, *bytecode_idx, true)
+                }
+                Bytecode::Jump(bytecode_idx) => self.emit_jump(&bytecode, *bytecode_idx),
 
                 Bytecode::RetBool(src)
                 | Bytecode::RetByte(src)
@@ -744,12 +877,14 @@ impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
                 | Bytecode::RetLong(src)
                 | Bytecode::RetFloat(src)
                 | Bytecode::RetDouble(src) => self.emit_return_generic(&bytecode, *src),
-                Bytecode::RetVoid => {}
+                Bytecode::RetVoid => self.emit_epilog(),
                 _ => panic!("bytecode {:?} not implemented", btcode),
             }
+
+            self.pos_inc();
         }
 
-        self.emit_epilog();
+        self.resolve_forward_jumps();
 
         let jit_fct = self.asm.jit(
             bytecode.stacksize(),

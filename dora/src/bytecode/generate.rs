@@ -40,7 +40,7 @@ impl fmt::Display for Register {
 #[derive(Copy, Clone, PartialEq, Debug, Eq, Hash)]
 pub struct Label(pub usize);
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct BytecodeIdx(pub usize);
 
 impl BytecodeIdx {
