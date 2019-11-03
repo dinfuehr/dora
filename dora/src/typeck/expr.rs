@@ -3,7 +3,7 @@ use std::convert::TryFrom;
 use std::sync::Arc;
 use std::{f32, f64};
 
-use crate::class::{find_field_in_class, ClassId};
+use crate::class::{find_field_in_class, find_methods_in_class, ClassId};
 use crate::error::msg::SemError;
 use crate::semck::specialize::replace_type_param;
 use crate::semck::{always_returns, expr_always_returns};
@@ -2441,25 +2441,13 @@ pub fn lookup_method<'ast>(
     fct_tps: &TypeList,
     return_type: Option<BuiltinType>,
 ) -> Option<(ClassId, FctId, BuiltinType)> {
-    let values: Option<(ClassId, TypeList)> = match object_type {
-        BuiltinType::Class(cls_id, list_id) if !is_static => {
-            let params = vm.lists.lock().get(list_id);
-            Some((cls_id, params))
-        }
-        _ => vm
-            .vips
-            .find_class(object_type)
-            .map(|c| (c, TypeList::empty())),
-    };
+    let cls_id = object_type.cls_id(vm);
 
-    if let Some((cls_id, ref cls_type_params)) = values {
-        let cls = vm.classes.idx(cls_id);
-        let cls = cls.read();
-
-        let candidates = cls.find_methods(vm, name, is_static);
+    if cls_id.is_some() {
+        let candidates = find_methods_in_class(vm, object_type, name, is_static);
 
         if candidates.len() == 1 {
-            let candidate = candidates[0];
+            let candidate = candidates[0].1;
             let method = vm.fcts.idx(candidate);
             let method = method.read();
 
@@ -2473,13 +2461,15 @@ pub fn lookup_method<'ast>(
                 _ => unreachable!(),
             };
 
+            let cls_type_params = object_type.type_params(vm);
+
             if args_compatible(
                 vm,
                 &method.params_without_self(),
                 args,
                 Some(cls_id),
                 Some(method.id),
-                cls_type_params,
+                &cls_type_params,
                 fct_tps,
                 None,
             ) {

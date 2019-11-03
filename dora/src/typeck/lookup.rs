@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::class::ClassId;
+use crate::class::{find_methods_in_class, ClassId};
 use crate::error::msg::SemError;
 use crate::semck::specialize::replace_type_param;
 use crate::ty::{BuiltinType, TypeList};
@@ -137,12 +137,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             LookupKind::Callee(fct_id) => Some(fct_id),
 
             LookupKind::Method(obj) => {
-                if let Some(cls_id) = obj.cls_id(self.vm) {
-                    let name = self.name.expect("name not set");
-                    self.find_method(cls_id, name, false)
-                } else {
-                    None
-                }
+                let name = self.name.expect("name not set");
+                self.find_method(obj, name, false)
             }
 
             LookupKind::Trait(trait_id) => {
@@ -153,7 +149,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             LookupKind::Static(cls_id) => {
                 assert!(self.cls_tps.is_none());
                 let name = self.name.expect("name not set");
-                self.find_method(cls_id, name, true)
+                self.find_method(self.vm.cls(cls_id), name, true)
             }
 
             LookupKind::Ctor(cls_id) => {
@@ -336,16 +332,21 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         None
     }
 
-    fn find_method(&mut self, cls_id: ClassId, name: Name, is_static: bool) -> Option<FctId> {
-        let cls = self.vm.classes.idx(cls_id);
-        let cls = cls.read();
+    fn find_method(
+        &mut self,
+        object_type: BuiltinType,
+        name: Name,
+        is_static: bool,
+    ) -> Option<FctId> {
+        if object_type.is_nil() {
+            return None;
+        }
 
-        let candidates = cls.find_methods(self.vm, name, is_static);
-
+        let candidates = find_methods_in_class(self.vm, object_type, name, is_static);
         self.found_multiple_functions = candidates.len() > 1;
 
         if candidates.len() == 1 {
-            Some(candidates[0])
+            Some(candidates[0].1)
         } else {
             None
         }

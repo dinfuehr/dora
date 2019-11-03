@@ -299,6 +299,8 @@ impl<'ast> VM<'ast> {
         function_name: &'static str,
         is_static: bool,
     ) -> Option<FctId> {
+        use crate::class::find_methods_in_class;
+
         let class_name = self.interner.intern(class_name);
         let function_name = self.interner.intern(function_name);
 
@@ -307,12 +309,11 @@ impl<'ast> VM<'ast> {
             .lock()
             .get_class(class_name)
             .expect("class not found");
-        let cls = self.classes.idx(cls_id);
-        let cls = cls.read();
+        let cls = self.cls(cls_id);
 
-        let candidates = cls.find_methods(self, function_name, is_static);
+        let candidates = find_methods_in_class(self, cls, function_name, is_static);
         if candidates.len() == 1 {
-            Some(candidates[0])
+            Some(candidates[0].1)
         } else {
             None
         }

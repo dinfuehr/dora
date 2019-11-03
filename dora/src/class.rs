@@ -169,66 +169,6 @@ impl Class {
         None
     }
 
-    pub fn find_methods(&self, vm: &VM, name: Name, is_static: bool) -> Vec<FctId> {
-        let mut classid = self.id;
-        let mut candidates = Vec::new();
-        let mut ignores = HashSet::new();
-
-        loop {
-            let cls = vm.classes.idx(classid);
-            let cls = cls.read();
-
-            for &method in &cls.methods {
-                let method = vm.fcts.idx(method);
-                let method = method.read();
-
-                if method.name == name && method.is_static == is_static {
-                    if let Some(overrides) = method.overrides {
-                        ignores.insert(overrides);
-                    }
-
-                    if !ignores.contains(&method.id) {
-                        return vec![method.id];
-                    }
-                }
-            }
-
-            if let Some(parent_class) = cls.parent_class {
-                classid = parent_class.cls_id(vm).expect("no class");
-            } else {
-                break;
-            }
-        }
-
-        classid = self.id;
-
-        loop {
-            let cls = vm.classes.idx(classid);
-            let cls = cls.read();
-
-            for &impl_id in &cls.impls {
-                let ximpl = vm.impls[impl_id].read();
-
-                for &method in &ximpl.methods {
-                    let method = vm.fcts.idx(method);
-                    let method = method.read();
-
-                    if method.name == name && method.is_static == is_static {
-                        candidates.push(method.id);
-                    }
-                }
-            }
-
-            if let Some(parent_class) = cls.parent_class {
-                classid = parent_class.cls_id(vm).expect("no class");
-            } else {
-                break;
-            }
-        }
-
-        candidates
-    }
-
     pub fn subclass_from(&self, vm: &VM, super_id: ClassId) -> bool {
         let mut cls_id = self.id;
 
@@ -259,11 +199,7 @@ pub fn find_field_in_class(
     name: Name,
 ) -> Option<(BuiltinType, FieldId)> {
     loop {
-        let (cls_id, list_id) = match class {
-            BuiltinType::Class(cls_id, list_id) => (cls_id, list_id),
-            _ => unreachable!(),
-        };
-
+        let cls_id = class.cls_id(vm).expect("no class");
         let cls = vm.classes.idx(cls_id);
         let cls = cls.read();
 
@@ -274,12 +210,82 @@ pub fn find_field_in_class(
         }
 
         if let Some(parent_class) = cls.parent_class {
-            let type_list = vm.lists.lock().get(list_id);
+            let type_list = parent_class.type_params(vm);
             class = replace_type_param(vm, parent_class, &type_list, &TypeList::empty(), None)
         } else {
             return None;
         }
     }
+}
+
+pub fn find_methods_in_class(
+    vm: &VM,
+    object_type: BuiltinType,
+    name: Name,
+    is_static: bool,
+) -> Vec<(BuiltinType, FctId)> {
+    let mut candidates = Vec::new();
+    let mut ignores = HashSet::new();
+
+    let mut class_type = object_type;
+
+    loop {
+        let cls_id = class_type.cls_id(vm).expect("no class");
+        let cls = vm.classes.idx(cls_id);
+        let cls = cls.read();
+
+        for &method in &cls.methods {
+            let method = vm.fcts.idx(method);
+            let method = method.read();
+
+            if method.name == name && method.is_static == is_static {
+                if let Some(overrides) = method.overrides {
+                    ignores.insert(overrides);
+                }
+
+                if !ignores.contains(&method.id) {
+                    return vec![(class_type, method.id)];
+                }
+            }
+        }
+
+        if let Some(parent_class) = cls.parent_class {
+            let type_list = class_type.type_params(vm);
+            class_type = replace_type_param(vm, parent_class, &type_list, &TypeList::empty(), None);
+        } else {
+            break;
+        }
+    }
+
+    let mut class_type = object_type;
+
+    loop {
+        let cls_id = class_type.cls_id(vm).expect("no class");
+        let cls = vm.classes.idx(cls_id);
+        let cls = cls.read();
+
+        for &impl_id in &cls.impls {
+            let ximpl = vm.impls[impl_id].read();
+
+            for &method in &ximpl.methods {
+                let method = vm.fcts.idx(method);
+                let method = method.read();
+
+                if method.name == name && method.is_static == is_static {
+                    candidates.push((class_type, method.id));
+                }
+            }
+        }
+
+        if let Some(parent_class) = cls.parent_class {
+            let type_list = class_type.type_params(vm);
+            class_type = replace_type_param(vm, parent_class, &type_list, &TypeList::empty(), None);
+        } else {
+            break;
+        }
+    }
+
+    candidates
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
