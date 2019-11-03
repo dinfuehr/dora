@@ -3,8 +3,9 @@ use std::convert::TryFrom;
 use std::sync::Arc;
 use std::{f32, f64};
 
-use crate::class::ClassId;
+use crate::class::{find_field_in_class, ClassId};
 use crate::error::msg::SemError;
+use crate::semck::specialize::replace_type_param;
 use crate::semck::{always_returns, expr_always_returns};
 use crate::sym::Sym::SymClass;
 use crate::ty::{BuiltinType, TypeList, TypeParamId};
@@ -648,28 +649,22 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.visit_expr(&e.rhs);
         let rhs_type = self.expr_type;
 
-        let cls_id = object_type.cls_id(self.vm);
-
-        if let Some(cls_id) = cls_id {
-            let cls = self.vm.classes.idx(cls_id);
-            let cls = cls.read();
-
-            if let Some((cls_id, field_id)) = cls.find_field(self.vm, name) {
-                let ty = match object_type {
-                    BuiltinType::Class(_, list_id) => BuiltinType::Class(cls_id, list_id),
-
-                    _ => unreachable!(),
-                };
-
-                let cls = self.vm.classes.idx(cls_id);
-                let cls = cls.read();
-                let ident_type = IdentType::Field(ty, field_id);
+        if object_type.cls_id(self.vm).is_some() {
+            if let Some((cls_ty, field_id)) = find_field_in_class(self.vm, object_type, name) {
+                let ident_type = IdentType::Field(cls_ty, field_id);
                 self.src
                     .map_idents
                     .insert_or_replace(e.lhs.id(), ident_type);
 
+                let cls = self
+                    .vm
+                    .classes
+                    .idx(cls_ty.cls_id(self.vm).expect("no class"));
+                let cls = cls.read();
                 let field = &cls.fields[field_id];
-                let class_type_params = ty.type_params(self.vm);
+
+                let class_type_params = cls_ty.type_params(self.vm);
+
                 let fty = replace_type_param(
                     self.vm,
                     field.ty,
@@ -1781,26 +1776,19 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             return;
         }
 
-        let cls_id = object_type.cls_id(self.vm);
-
-        if let Some(cls_id) = cls_id {
-            let cls = self.vm.classes.idx(cls_id);
-            let cls = cls.read();
-
-            if let Some((cls_id, field_id)) = cls.find_field(self.vm, name) {
-                let ty = match object_type {
-                    BuiltinType::Class(_, list_id) => BuiltinType::Class(cls_id, list_id),
-
-                    _ => unreachable!(),
-                };
-
-                let cls = self.vm.classes.idx(cls_id);
-                let cls = cls.read();
-                let ident_type = IdentType::Field(ty, field_id);
+        if object_type.cls_id(self.vm).is_some() {
+            if let Some((cls_ty, field_id)) = find_field_in_class(self.vm, object_type, name) {
+                let ident_type = IdentType::Field(cls_ty, field_id);
                 self.src.map_idents.insert_or_replace(e.id, ident_type);
 
+                let cls = self
+                    .vm
+                    .classes
+                    .idx(cls_ty.cls_id(self.vm).expect("no class"));
+                let cls = cls.read();
+
                 let field = &cls.fields[field_id];
-                let class_type_params = ty.type_params(self.vm);
+                let class_type_params = cls_ty.type_params(self.vm);
                 let fty = replace_type_param(
                     self.vm,
                     field.ty,
@@ -2506,37 +2494,4 @@ pub fn lookup_method<'ast>(
     }
 
     None
-}
-
-pub fn replace_type_param(
-    vm: &VM,
-    ty: BuiltinType,
-    cls_tp: &TypeList,
-    fct_tp: &TypeList,
-    self_ty: Option<BuiltinType>,
-) -> BuiltinType {
-    match ty {
-        BuiltinType::ClassTypeParam(_, tpid) => cls_tp[tpid.idx()],
-        BuiltinType::FctTypeParam(_, tpid) => fct_tp[tpid.idx()],
-
-        BuiltinType::Class(cls_id, list_id) => {
-            let params = vm.lists.lock().get(list_id);
-
-            let params = TypeList::with(
-                params
-                    .iter()
-                    .map(|p| replace_type_param(vm, p, cls_tp, fct_tp, self_ty))
-                    .collect::<Vec<_>>(),
-            );
-
-            let list_id = vm.lists.lock().insert(params);
-            BuiltinType::Class(cls_id, list_id)
-        }
-
-        BuiltinType::This => self_ty.expect("no type for Self given"),
-
-        BuiltinType::Lambda(_) => unimplemented!(),
-
-        _ => ty,
-    }
 }

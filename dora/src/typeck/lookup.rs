@@ -2,8 +2,9 @@ use std::collections::HashSet;
 
 use crate::class::ClassId;
 use crate::error::msg::SemError;
+use crate::semck::specialize::replace_type_param;
 use crate::ty::{BuiltinType, TypeList};
-use crate::typeck::expr::{args_compatible, replace_type_param};
+use crate::typeck::expr::args_compatible;
 use crate::vm::{FctId, FctParent, FileId, TraitId, TypeParam, VM};
 
 use dora_parser::interner::Name;

@@ -5,6 +5,7 @@ use std::iter::Iterator;
 use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
+use crate::semck::specialize::replace_type_param;
 use crate::ty::{BuiltinType, TypeList};
 use crate::utils::GrowableVec;
 use crate::vm::VM;
@@ -115,27 +116,6 @@ impl Class {
         }
 
         None
-    }
-
-    pub fn find_field(&self, vm: &VM, name: Name) -> Option<(ClassId, FieldId)> {
-        let mut classid = self.id;
-
-        loop {
-            let cls = vm.classes.idx(classid);
-            let cls = cls.read();
-
-            for field in &cls.fields {
-                if field.name == name {
-                    return Some((classid, field.id));
-                }
-            }
-
-            if let Some(parent_class) = cls.parent_class {
-                classid = parent_class.cls_id(vm).expect("no class");
-            } else {
-                return None;
-            }
-        }
     }
 
     pub fn find_method(&self, vm: &VM, name: Name, is_static: bool) -> Option<FctId> {
@@ -269,6 +249,35 @@ impl Class {
                     return false;
                 }
             }
+        }
+    }
+}
+
+pub fn find_field_in_class(
+    vm: &VM,
+    mut class: BuiltinType,
+    name: Name,
+) -> Option<(BuiltinType, FieldId)> {
+    loop {
+        let (cls_id, list_id) = match class {
+            BuiltinType::Class(cls_id, list_id) => (cls_id, list_id),
+            _ => unreachable!(),
+        };
+
+        let cls = vm.classes.idx(cls_id);
+        let cls = cls.read();
+
+        for field in &cls.fields {
+            if field.name == name {
+                return Some((class, field.id));
+            }
+        }
+
+        if let Some(parent_class) = cls.parent_class {
+            let type_list = vm.lists.lock().get(list_id);
+            class = replace_type_param(vm, parent_class, &type_list, &TypeList::empty(), None)
+        } else {
+            return None;
         }
     }
 }

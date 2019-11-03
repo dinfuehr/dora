@@ -8,7 +8,7 @@ use crate::vm::VM;
 use dora_parser::ast::NodeId;
 
 mod constck;
-mod expr;
+pub mod expr;
 mod lookup;
 #[cfg(test)]
 mod tests;
