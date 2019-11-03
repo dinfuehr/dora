@@ -1,0 +1,10 @@
+fun main() {
+    let x = Bar();
+    assert(x.value == 10);
+    x.value = 100;
+    assert(x.value == 100);
+}
+
+@open @abstract class Foo[A](var value: A)
+class Bar: Foo[Int](10)
+
