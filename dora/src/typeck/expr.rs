@@ -1363,9 +1363,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         arg_types: &[BuiltinType],
         _in_try: bool,
     ) {
-        let call_type = CallType::CtorNew(cls_id, FctId(0), TypeList::empty());
-        self.src.map_calls.insert(e.id, Arc::new(call_type));
-
         let mut lookup = MethodLookup::new(self.vm, self.file)
             .pos(e.pos)
             .ctor(cls_id)
@@ -1374,12 +1371,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         let ty = if lookup.find() {
             let fct_id = lookup.found_fct_id().unwrap();
-            let cls_id = lookup.found_cls_id().unwrap();
             let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
 
             let call_type = CallType::CtorNew(cls_id, fct_id, type_params.clone());
-            self.src.map_calls.replace(e.id, Arc::new(call_type));
+            self.src.map_calls.insert(e.id, Arc::new(call_type));
 
             if cls.is_abstract {
                 let msg = SemError::NewAbstractClass;

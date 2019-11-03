@@ -32,7 +32,6 @@ pub struct MethodLookup<'a, 'ast: 'a> {
     pos: Option<Position>,
 
     found_fct_id: Option<FctId>,
-    found_cls_id: Option<ClassId>,
     found_ret: Option<BuiltinType>,
 
     found_multiple_functions: bool,
@@ -52,7 +51,6 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             pos: None,
 
             found_fct_id: None,
-            found_cls_id: None,
             found_ret: None,
 
             found_multiple_functions: false,
@@ -230,8 +228,6 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             _ => None,
         };
 
-        self.found_cls_id = cls_id;
-
         let cls_tps: TypeList = if let Some(cls_tps) = self.cls_tps {
             cls_tps.clone()
         } else if let LookupKind::Method(obj) = kind {
@@ -240,7 +236,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             TypeList::empty()
         };
 
-        if cls_id.is_some() && !self.check_cls_tps(&cls_tps) {
+        if cls_id.is_some() && !self.check_cls_tps(cls_id.unwrap(), &cls_tps) {
             return false;
         }
 
@@ -364,9 +360,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         xtrait.find_method(self.vm, name, is_static)
     }
 
-    fn check_cls_tps(&self, tps: &TypeList) -> bool {
+    fn check_cls_tps(&self, cls_id: ClassId, tps: &TypeList) -> bool {
         let cls_tps = {
-            let cls_id = self.found_cls_id.expect("found_cls_id not set");
             let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
             cls.type_params.to_vec()
@@ -505,10 +500,6 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
     pub fn found_fct_id(&self) -> Option<FctId> {
         self.found_fct_id
-    }
-
-    pub fn found_cls_id(&self) -> Option<ClassId> {
-        self.found_cls_id
     }
 
     pub fn found_ret(&self) -> Option<BuiltinType> {
