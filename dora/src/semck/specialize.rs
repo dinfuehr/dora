@@ -213,16 +213,16 @@ fn create_specialized_class(vm: &VM, cls: &class::Class, type_params: &TypeList)
             ClassSize::Str
         };
 
-        let super_id = cls
+        let parent_class = cls
             .parent_class
             .expect("Array & String should have super class");
-        let id = specialize_class_id(vm, super_id);
+        let id = specialize_class_ty(vm, parent_class);
         parent_id = Some(id);
     } else {
         let mut csize;
 
-        if let Some(super_id) = cls.parent_class {
-            let id = specialize_class_id(vm, super_id);
+        if let Some(parent_class) = cls.parent_class {
+            let id = specialize_class_ty(vm, parent_class);
             let cls_def = vm.class_defs.idx(id);
             let cls_def = cls_def.read();
 

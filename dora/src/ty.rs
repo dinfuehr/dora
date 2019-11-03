@@ -156,7 +156,6 @@ impl BuiltinType {
     pub fn type_params(&self, vm: &VM) -> TypeList {
         match self {
             &BuiltinType::Class(_, list_id) => vm.lists.lock().get(list_id),
-
             _ => TypeList::empty(),
         }
     }

@@ -22,21 +22,21 @@ fn cycle_detection<'ast>(vm: &mut VM<'ast>) {
         let mut map: HashSet<ClassId> = HashSet::new();
         map.insert(cls.id);
 
-        let mut parent = cls.parent_class;
+        let mut parent_class = cls.parent_class;
 
-        while parent.is_some() {
-            let p = parent.unwrap();
+        while parent_class.is_some() {
+            let parent_class_id = parent_class.unwrap().cls_id(vm).expect("no class");
 
-            if !map.insert(p) {
+            if !map.insert(parent_class_id) {
                 vm.diag
                     .lock()
                     .report(cls.file, cls.pos, SemError::CycleInHierarchy);
                 break;
             }
 
-            let cls = vm.classes.idx(p);
+            let cls = vm.classes.idx(parent_class_id);
             let cls = cls.read();
-            parent = cls.parent_class;
+            parent_class = cls.parent_class;
         }
     }
 }
@@ -53,7 +53,8 @@ fn determine_vtables<'ast>(vm: &VM<'ast>) {
 }
 
 fn determine_vtable<'ast>(vm: &VM<'ast>, lens: &mut HashSet<ClassId>, cls: &mut Class) {
-    if let Some(parent_cls_id) = cls.parent_class {
+    if let Some(parent_class) = cls.parent_class {
+        let parent_cls_id = parent_class.cls_id(vm).expect("no class");
         let parent = vm.classes.idx(parent_cls_id);
         if !lens.contains(&parent_cls_id) {
             let mut parent = parent.write();
@@ -188,7 +189,8 @@ fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
     }
 
     let parent = cls.parent_class.unwrap();
-    let parent = vm.classes.idx(parent);
+    let parent_id = parent.cls_id(vm).expect("no class");
+    let parent = vm.classes.idx(parent_id);
     let parent = parent.read();
 
     let super_method = parent.find_method(vm, fct.name, false);

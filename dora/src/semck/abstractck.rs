@@ -18,7 +18,8 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
             continue;
         }
 
-        if let Some(super_cls_id) = cls.parent_class {
+        if let Some(parent_class) = cls.parent_class {
+            let super_cls_id = parent_class.cls_id(vm).expect("no class");
             let super_cls = vm.classes.idx(super_cls_id);
             let super_cls = super_cls.read();
 
@@ -96,7 +97,8 @@ fn find_abstract_methods<'ast>(
         }
     }
 
-    if let Some(super_cls_id) = cls.parent_class {
+    if let Some(parent_class) = cls.parent_class {
+        let super_cls_id = parent_class.cls_id(vm).expect("no class");
         let super_cls = vm.classes.idx(super_cls_id);
         let super_cls = super_cls.read();
 

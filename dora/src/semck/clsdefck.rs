@@ -180,11 +180,10 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
 
                         let list = TypeList::with(types);
                         let list_id = self.vm.lists.lock().insert(list);
-                        let _ty = BuiltinType::Class(cls_id, list_id);
 
                         let cls = self.vm.classes.idx(self.cls_id.unwrap());
                         let mut cls = cls.write();
-                        cls.parent_class = Some(cls_id);
+                        cls.parent_class = Some(BuiltinType::Class(cls_id, list_id));
                     }
                 }
 
@@ -203,7 +202,10 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
             if cls_id != object_cls {
                 let cls = self.vm.classes.idx(cls_id);
                 let mut cls = cls.write();
-                cls.parent_class = Some(object_cls);
+
+                let list = TypeList::empty();
+                let list_id = self.vm.lists.lock().insert(list);
+                cls.parent_class = Some(BuiltinType::Class(object_cls, list_id));
             }
         }
 

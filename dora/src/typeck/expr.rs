@@ -1584,7 +1584,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let owner = self.vm.classes.idx(self.fct.cls_id());
         let owner = owner.read();
 
-        let cls_id = owner.parent_class.unwrap();
+        let parent_class = owner.parent_class.unwrap();
+        let cls_id = parent_class.cls_id(self.vm).expect("no class");
         let cls = self.vm.classes.idx(cls_id);
         let cls = cls.read();
 
@@ -1592,13 +1593,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let ctor = self.vm.fcts.idx(ctor_id);
             let ctor = ctor.read();
 
+            let cls_ty = parent_class.type_params(self.vm);
+
             if args_compatible(
                 self.vm,
                 &ctor.params_without_self(),
                 &arg_types,
                 Some(cls_id),
                 None,
-                &TypeList::empty(),
+                &cls_ty,
                 &TypeList::empty(),
                 None,
             ) {
@@ -1621,10 +1624,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let cls = self.vm.classes.idx(clsid);
             let cls = cls.read();
 
-            if let Some(superid) = cls.parent_class {
-                let cls = self.vm.classes.idx(superid);
-                let cls = cls.read();
-                return cls.ty;
+            if let Some(parent_class) = cls.parent_class {
+                return parent_class;
             }
         }
 

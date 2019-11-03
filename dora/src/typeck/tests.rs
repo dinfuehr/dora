@@ -1990,3 +1990,25 @@ fn test_tuple_element() {
         SemError::ReturnType("String".into(), "Bool".into()),
     );
 }
+
+#[test]
+fn test_inheritance_with_generics() {
+    ok("
+        @open class Foo[A](let a: A)
+        class Bar: Foo[Int](10)
+    ");
+
+    err(
+        "
+        @open class Foo[A](let a: A)
+        class Bar: Foo(10)
+    ",
+        pos(3, 20),
+        SemError::WrongNumberTypeParams(1, 0),
+    );
+
+    ok("
+        @open class Foo[A](let a: A)
+        class Bar[A](x: A): Foo[A](x)
+    ");
+}

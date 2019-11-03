@@ -49,7 +49,7 @@ pub struct Class {
     pub pos: Position,
     pub name: Name,
     pub ty: BuiltinType,
-    pub parent_class: Option<ClassId>,
+    pub parent_class: Option<BuiltinType>,
     pub has_open: bool,
     pub is_abstract: bool,
     pub internal: bool,
@@ -131,7 +131,7 @@ impl Class {
             }
 
             if let Some(parent_class) = cls.parent_class {
-                classid = parent_class;
+                classid = parent_class.cls_id(vm).expect("no class");
             } else {
                 return None;
             }
@@ -155,7 +155,7 @@ impl Class {
             }
 
             if let Some(parent_class) = cls.parent_class {
-                classid = parent_class;
+                classid = parent_class.cls_id(vm).expect("no class");
             } else {
                 return None;
             }
@@ -214,7 +214,7 @@ impl Class {
             }
 
             if let Some(parent_class) = cls.parent_class {
-                classid = parent_class;
+                classid = parent_class.cls_id(vm).expect("no class");
             } else {
                 break;
             }
@@ -240,7 +240,7 @@ impl Class {
             }
 
             if let Some(parent_class) = cls.parent_class {
-                classid = parent_class;
+                classid = parent_class.cls_id(vm).expect("no class");
             } else {
                 break;
             }
@@ -261,8 +261,8 @@ impl Class {
             let cls = cls.read();
 
             match cls.parent_class {
-                Some(id) => {
-                    cls_id = id;
+                Some(parent_class) => {
+                    cls_id = parent_class.cls_id(vm).expect("no class");
                 }
 
                 None => {
