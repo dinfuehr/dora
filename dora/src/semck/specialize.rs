@@ -7,7 +7,7 @@ use crate::class::{self, ClassDef, ClassDefId, ClassId, ClassSize, FieldDef};
 use crate::mem;
 use crate::object::Header;
 use crate::ty::{BuiltinType, TypeList};
-use crate::vm::{StructData, StructDef, StructDefId, StructFieldDef, StructId, VM};
+use crate::vm::{CallType, StructData, StructDef, StructDefId, StructFieldDef, StructId, VM};
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
 
 pub fn specialize_type(
@@ -373,5 +373,42 @@ pub fn replace_type_param(
         BuiltinType::Lambda(_) => unimplemented!(),
 
         _ => ty,
+    }
+}
+
+pub fn specialize_for_call_type(call_type: &CallType, ty: BuiltinType, vm: &VM) -> BuiltinType {
+    match *call_type {
+        CallType::Fct(_, ref cls_type_params, ref fct_type_params) => {
+            specialize_type(vm, ty, cls_type_params, fct_type_params)
+        }
+
+        CallType::Method(cls_ty, _, ref fct_type_params) => match cls_ty {
+            BuiltinType::Class(_, list_id) => {
+                let cls_type_params = vm.lists.lock().get(list_id);
+                specialize_type(vm, ty, &cls_type_params, fct_type_params)
+            }
+
+            _ => ty,
+        },
+
+        CallType::Expr(ty, _) => {
+            let cls_type_params = ty.type_params(vm);
+            specialize_type(vm, ty, &cls_type_params, &TypeList::empty())
+        }
+
+        CallType::Ctor(_, _, ref cls_type_params)
+        | CallType::CtorNew(_, _, ref cls_type_params) => {
+            specialize_type(vm, ty, cls_type_params, &TypeList::empty())
+        }
+
+        CallType::Trait(_, _) => unimplemented!(),
+
+        CallType::Intrinsic(_) => unimplemented!(),
+
+        CallType::TraitStatic(_, _, _) => {
+            assert_ne!(ty, BuiltinType::This);
+
+            ty
+        }
     }
 }

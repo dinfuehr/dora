@@ -8,7 +8,7 @@ use dora_parser::ast::*;
 
 use crate::cpu::*;
 use crate::mem;
-use crate::semck::specialize::specialize_type;
+use crate::semck::specialize::{specialize_for_call_type, specialize_type};
 use crate::ty::{BuiltinType, TypeList, TypeParamId};
 use crate::vm::{
     Arg, CallSite, CallType, Fct, FctId, FctKind, FctParent, FctSrc, Intrinsic, NodeMap, Store,
@@ -595,7 +595,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             .enumerate()
             .map(|(ind, arg)| {
                 let ty = callee.params_with_self()[ind];
-                let ty = self.specialize_type_for_call(call_type, ty);
+                let ty = self.specialize_type(specialize_for_call_type(call_type, ty, self.vm));
                 let offset = self.reserve_stack_slot(ty);
 
                 match *arg {
@@ -614,7 +614,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             })
             .collect::<Vec<_>>();
 
-        let return_type = self.specialize_type_for_call(call_type, callee.return_type);
+        let return_type = self.specialize_type(specialize_for_call_type(
+            call_type,
+            callee.return_type,
+            self.vm,
+        ));
 
         (args, return_type, super_call)
     }
@@ -903,44 +907,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
     fn ty(&self, id: NodeId) -> BuiltinType {
         let ty = self.src.ty(id);
-        self.specialize_type(ty)
-    }
-
-    fn specialize_type_for_call(&self, call_type: &CallType, ty: BuiltinType) -> BuiltinType {
-        let ty = match *call_type {
-            CallType::Fct(_, ref cls_type_params, ref fct_type_params) => {
-                specialize_type(self.vm, ty, cls_type_params, fct_type_params)
-            }
-
-            CallType::Method(cls_ty, _, ref type_params) => match cls_ty {
-                BuiltinType::Class(_, list_id) => {
-                    let params = self.vm.lists.lock().get(list_id);
-                    specialize_type(self.vm, ty, &params, type_params)
-                }
-
-                _ => ty,
-            },
-
-            CallType::Expr(ty, _) => {
-                let type_params = ty.type_params(self.vm);
-                specialize_type(self.vm, ty, &type_params, &TypeList::empty())
-            }
-
-            CallType::Ctor(_, _, ref type_params) | CallType::CtorNew(_, _, ref type_params) => {
-                specialize_type(self.vm, ty, type_params, &TypeList::empty())
-            }
-
-            CallType::Trait(_, _) => unimplemented!(),
-
-            CallType::Intrinsic(_) => unimplemented!(),
-
-            CallType::TraitStatic(_, _, _) => {
-                assert_ne!(ty, BuiltinType::This);
-
-                ty
-            }
-        };
-
         self.specialize_type(ty)
     }
 
