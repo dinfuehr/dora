@@ -2012,3 +2012,33 @@ fn test_inheritance_with_generics() {
         class Bar[A](x: A): Foo[A](x)
     ");
 }
+
+#[test]
+#[ignore]
+fn test_virtual_with_generics() {
+    ok("
+        @open @abstract class Foo[A] {
+            @abstract fun test() -> A;
+        }
+
+        class Bar[A](let bar: A): Foo[A] {
+            @override fun test() -> A { self.bar }
+        }
+
+        class Baz[A](let baz: A): Foo[A] {
+            @override fun test() -> A { self.baz }
+        }
+    ");
+}
+
+#[test]
+#[ignore]
+fn test_fields_with_generics() {
+    ok("
+        @open @abstract class Foo[A](let a: A)
+        @open class Bar[A]: Foo[Int](10)
+        class Baz[A]: Bar[A] {
+            fun test() -> Int { self.a }
+        }
+    ");
+}
