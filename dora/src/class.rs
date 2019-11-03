@@ -211,7 +211,36 @@ pub fn find_field_in_class(
 
         if let Some(parent_class) = cls.parent_class {
             let type_list = parent_class.type_params(vm);
-            class = replace_type_param(vm, parent_class, &type_list, &TypeList::empty(), None)
+            class = replace_type_param(vm, parent_class, &type_list, &TypeList::empty(), None);
+        } else {
+            return None;
+        }
+    }
+}
+
+pub fn find_method_in_class(
+    vm: &VM,
+    mut class: BuiltinType,
+    name: Name,
+    is_static: bool,
+) -> Option<(BuiltinType, FctId)> {
+    loop {
+        let cls_id = class.cls_id(vm).expect("no class");
+        let cls = vm.classes.idx(cls_id);
+        let cls = cls.read();
+
+        for &method in &cls.methods {
+            let method = vm.fcts.idx(method);
+            let method = method.read();
+
+            if method.name == name && method.is_static == is_static {
+                return Some((class, method.id));
+            }
+        }
+
+        if let Some(parent_class) = cls.parent_class {
+            let type_list = parent_class.type_params(vm);
+            class = replace_type_param(vm, parent_class, &type_list, &TypeList::empty(), None);
         } else {
             return None;
         }

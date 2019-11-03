@@ -2026,7 +2026,6 @@ fn test_fields_with_generics() {
 }
 
 #[test]
-#[ignore]
 fn test_methods_with_generics() {
     ok("
         @open @abstract class Foo[A] {

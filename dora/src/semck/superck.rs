@@ -1,8 +1,10 @@
 use std::collections::HashSet;
 
-use crate::class::{Class, ClassId};
+use crate::class::{find_method_in_class, Class, ClassId};
 use crate::error::msg::SemError;
-use crate::vm::{Fct, VM};
+use crate::semck::specialize::replace_type_param;
+use crate::ty::TypeList;
+use crate::vm::{Fct, FctId, VM};
 
 pub fn check<'ast>(vm: &mut VM<'ast>) {
     cycle_detection(vm);
@@ -159,13 +161,19 @@ pub fn check_override<'ast>(vm: &VM<'ast>) {
 
         for &fct_id in &cls.methods {
             let fct = vm.fcts.idx(fct_id);
+
+            let overrides = {
+                let fct = fct.read();
+                check_fct_modifier(vm, &*cls, &*fct)
+            };
+
             let mut fct = fct.write();
-            check_fct_modifier(vm, &*cls, &mut *fct);
+            fct.overrides = overrides;
         }
     }
 }
 
-fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
+fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &Fct<'ast>) -> Option<FctId> {
     // catch: class A { @open fun f() } (A is not derivable)
     // catch: @open @final fun f()
     if fct.has_open && (!cls.has_open || fct.has_final) {
@@ -173,7 +181,7 @@ fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
         vm.diag
             .lock()
             .report(fct.file, fct.pos(), SemError::SuperfluousOpen(name));
-        return;
+        return None;
     }
 
     if cls.parent_class.is_none() {
@@ -182,20 +190,15 @@ fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
             vm.diag
                 .lock()
                 .report(fct.file, fct.pos(), SemError::SuperfluousOverride(name));
-            return;
+            return None;
         }
 
-        return;
+        return None;
     }
 
-    let parent = cls.parent_class.unwrap();
-    let parent_id = parent.cls_id(vm).expect("no class");
-    let parent = vm.classes.idx(parent_id);
-    let parent = parent.read();
+    let result = find_method_in_class(vm, cls.parent_class.unwrap(), fct.name, false);
 
-    let super_method = parent.find_method(vm, fct.name, false);
-
-    if let Some(super_method) = super_method {
+    if let Some((super_type, super_method)) = result {
         let super_method = vm.fcts.idx(super_method);
         let super_method = super_method.read();
 
@@ -220,16 +223,25 @@ fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
                 .report(fct.file, fct.pos(), SemError::ThrowsDifference(name));
         }
 
-        if super_method.return_type != fct.return_type {
+        let cls_type_params = super_type.type_params(vm);
+        let super_method_return_type = replace_type_param(
+            vm,
+            super_method.return_type,
+            &cls_type_params,
+            &TypeList::empty(),
+            None,
+        );
+
+        if super_method_return_type != fct.return_type {
             let pos = fct.pos();
             let fct_return = fct.return_type.name(vm);
-            let sup = super_method.return_type.name(vm);
+            let sup = super_method_return_type.name(vm);
             vm.diag
                 .lock()
                 .report(fct.file, pos, SemError::ReturnTypeMismatch(fct_return, sup));
         }
 
-        fct.overrides = Some(super_method.id);
+        Some(super_method.id)
     } else {
         if fct.has_override {
             let name = vm.interner.str(fct.name).to_string();
@@ -237,6 +249,8 @@ fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
                 .lock()
                 .report(fct.file, fct.pos(), SemError::SuperfluousOverride(name));
         }
+
+        None
     }
 }
 
