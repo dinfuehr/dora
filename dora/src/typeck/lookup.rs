@@ -32,6 +32,7 @@ pub struct MethodLookup<'a, 'ast: 'a> {
     pos: Option<Position>,
 
     found_fct_id: Option<FctId>,
+    found_class_type: Option<BuiltinType>,
     found_ret: Option<BuiltinType>,
 
     found_multiple_functions: bool,
@@ -51,6 +52,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             pos: None,
 
             found_fct_id: None,
+            found_class_type: None,
             found_ret: None,
 
             found_multiple_functions: false,
@@ -342,7 +344,9 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         self.found_multiple_functions = candidates.len() > 1;
 
         if candidates.len() == 1 {
-            Some(candidates[0].1)
+            let candidate = candidates.first().unwrap();
+            self.found_class_type = Some(candidate.0);
+            Some(candidate.1)
         } else {
             None
         }
@@ -500,6 +504,10 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
     pub fn found_fct_id(&self) -> Option<FctId> {
         self.found_fct_id
+    }
+
+    pub fn found_class_type(&self) -> Option<BuiltinType> {
+        self.found_class_type
     }
 
     pub fn found_ret(&self) -> Option<BuiltinType> {

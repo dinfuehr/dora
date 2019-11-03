@@ -1330,7 +1330,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let call_type = if let BuiltinType::Trait(trait_id) = object_type {
                 CallType::Trait(trait_id, fct_id)
             } else {
-                CallType::Method(object_type, fct_id, type_params.clone())
+                let method_type = lookup.found_class_type().unwrap();
+                CallType::Method(method_type, fct_id, type_params.clone())
             };
 
             self.src
