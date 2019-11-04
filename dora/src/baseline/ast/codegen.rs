@@ -2381,8 +2381,15 @@ where
             let vtable_index = fct.vtable_index.unwrap();
             self.asm.emit_comment(Comment::CallVirtual(fid));
             let gcpoint = self.stack.gcpoint();
-            self.asm
-                .indirect_call(vtable_index, pos, gcpoint, return_type, dest);
+            let cls_type_params = temps[0].0.type_params(self.vm);
+            self.asm.indirect_call(
+                vtable_index,
+                pos,
+                gcpoint,
+                return_type,
+                cls_type_params,
+                dest,
+            );
         } else {
             let ptr = self.ptr_for_fct_id(fid, cls_type_params.clone(), fct_type_params.clone());
             self.asm.emit_comment(Comment::CallDirect(fid));

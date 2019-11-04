@@ -489,5 +489,5 @@ impl Bailouts {
 #[derive(Clone, Debug)]
 pub enum BailoutInfo {
     Compile(FctId, i32, TypeList, TypeList),
-    VirtCompile(u32, TypeList),
+    VirtCompile(u32, TypeList, TypeList),
 }

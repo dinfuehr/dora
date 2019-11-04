@@ -25,6 +25,24 @@ pub fn generate<'a, 'ast: 'a>(
 ) {
     let start = if fct.has_self() { 1 } else { 0 };
 
+    if let FctParent::Class(cls_id) = fct.parent {
+        let cls = vm.classes.idx(cls_id);
+        let cls = cls.read();
+        assert_eq!(cls_type_params.len(), cls.type_params.len());
+    } else {
+        assert_eq!(cls_type_params.len(), 0);
+    }
+
+    assert_eq!(fct.type_params.len(), fct_type_params.len());
+
+    for ty in cls_type_params.iter() {
+        assert!(ty.is_concrete_type(vm));
+    }
+
+    for ty in fct_type_params.iter() {
+        assert!(ty.is_concrete_type(vm));
+    }
+
     let mut ig = InfoGenerator {
         vm,
         fct,
@@ -911,9 +929,9 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
-        let ty = specialize_type(self.vm, ty, &self.cls_type_params, &self.fct_type_params);
-        assert!(ty.is_concrete_type(self.vm));
-        ty
+        let result = specialize_type(self.vm, ty, &self.cls_type_params, &self.fct_type_params);
+        assert!(result.is_concrete_type(self.vm));
+        result
     }
 }
 

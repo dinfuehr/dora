@@ -107,7 +107,7 @@ impl MacroAssembler {
         self.call_reg(REG_RESULT);
     }
 
-    pub fn indirect_call(&mut self, line: i32, index: u32) {
+    pub fn indirect_call(&mut self, line: i32, index: u32, cls_type_params: TypeList) {
         let obj = REG_PARAMS[0];
 
         self.emit_lineno(line);
@@ -128,7 +128,11 @@ impl MacroAssembler {
 
         // call *REG_RESULT
         self.call_reg(REG_RESULT);
-        self.emit_bailout_info(BailoutInfo::VirtCompile(index, TypeList::empty()));
+        self.emit_bailout_info(BailoutInfo::VirtCompile(
+            index,
+            cls_type_params,
+            TypeList::empty(),
+        ));
     }
 
     pub fn load_array_elem(&mut self, mode: MachineMode, dest: ExprStore, array: Reg, index: Reg) {

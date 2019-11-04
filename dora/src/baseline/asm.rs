@@ -501,11 +501,13 @@ where
         index: u32,
         pos: Position,
         gcpoint: GcPoint,
-        ty: BuiltinType,
+        return_type: BuiltinType,
+        cls_type_params: TypeList,
         dest: ExprStore,
     ) {
-        self.masm.indirect_call(pos.line as i32, index);
-        self.call_epilog(pos, ty, dest, gcpoint);
+        self.masm
+            .indirect_call(pos.line as i32, index, cls_type_params);
+        self.call_epilog(pos, return_type, dest, gcpoint);
     }
 
     fn call_epilog(&mut self, pos: Position, ty: BuiltinType, dest: ExprStore, gcpoint: GcPoint) {
