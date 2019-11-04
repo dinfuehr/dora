@@ -1,6 +1,7 @@
 use std::{
     env,
     error::Error,
+    ffi::OsStr,
     fs::{self, copy, File},
     io::Write,
     path::Path,
@@ -16,7 +17,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let root_path = Path::new(&root_dir);
 
     let copy_path = out_path.join("stdlib");
-    let stdlib_path = out_path.join("stdlib.rs");
+    let stdlib_bundle_path = out_path.join("dora_stdlib_bundle.rs");
 
     if copy_path.is_dir() {
         fs::remove_dir_all(&copy_path)?;
@@ -25,11 +26,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         fs::create_dir(&copy_path)?;
     }
 
-    if stdlib_path.is_file() {
-        fs::remove_file(&stdlib_path)?;
+    if stdlib_bundle_path.is_file() {
+        fs::remove_file(&stdlib_bundle_path)?;
     }
 
-    let mut stdlib = File::create(&stdlib_path)?;
+    let mut stdlib = File::create(&stdlib_bundle_path)?;
 
     writeln!(&mut stdlib, r#"["#,)?;
 
@@ -38,6 +39,15 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         if !f.file_type()?.is_file() {
             continue;
+        }
+
+        match f.path().extension() {
+            Some(extension) => {
+                if extension != OsStr::new("dora") {
+                    continue;
+                }
+            }
+            None => continue,
         }
 
         copy(root_path.join(f.path()), out_path.join(f.path()))?;

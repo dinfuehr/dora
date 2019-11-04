@@ -103,7 +103,7 @@ pub fn start(content: Option<&str>) -> i32 {
     code
 }
 
-const STDLIB: &[(&str, &str)] = &include!(concat!(env!("OUT_DIR"), "/stdlib.rs"));
+const STDLIB: &[(&str, &str)] = &include!(concat!(env!("OUT_DIR"), "/dora_stdlib_bundle.rs"));
 
 fn parse_all_files(vm: &mut VM, ast: &mut Ast, content: Option<&str>) -> Result<(), i32> {
     let fuzzing = content.is_some();
@@ -113,8 +113,8 @@ fn parse_all_files(vm: &mut VM, ast: &mut Ast, content: Option<&str>) -> Result<
     if let Some(stdlib) = stdlib_dir {
         parse_dir(&stdlib, vm, ast)?;
     } else {
-        for (_, data) in STDLIB {
-            parse_str(data, vm, ast)?;
+        for (filename, data) in STDLIB {
+            parse_bundle(filename, data, vm, ast)?;
         }
     }
 
@@ -258,6 +258,11 @@ fn parse_file(filename: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
         }
     };
 
+    parse_reader(reader, vm, ast)
+}
+
+fn parse_bundle(filename: &str, data: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
+    let reader = Reader::from_bundle(filename, data);
     parse_reader(reader, vm, ast)
 }
 

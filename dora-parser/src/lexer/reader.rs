@@ -32,6 +32,10 @@ impl Reader {
         Ok(common_init(filename.into(), src))
     }
 
+    pub fn from_bundle(filename: &str, src: &str) -> Reader {
+        common_init(filename.into(), src.into())
+    }
+
     pub fn from_string(src: &str) -> Reader {
         common_init("<<code>>".into(), src.into())
     }
