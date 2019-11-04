@@ -249,7 +249,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
             has_final: f.has_final,
             is_pub: true,
             is_static: false,
-            is_abstract: f.is_test,
+            is_abstract: false,
             is_test: f.is_test,
             internal: f.internal,
             internal_resolved: false,
