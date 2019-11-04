@@ -103,31 +103,36 @@ pub fn start(content: Option<&str>) -> i32 {
     code
 }
 
+const STDLIB: &[(&str, &str)] = &include!(concat!(env!("OUT_DIR"), "/dora_stdlib_bundle.rs"));
+
 fn parse_all_files(vm: &mut VM, ast: &mut Ast, content: Option<&str>) -> Result<(), i32> {
     let fuzzing = content.is_some();
-    let stdlib = vm
-        .args
-        .flag_stdlib
-        .clone()
-        .unwrap_or_else(|| "stdlib".to_string());
 
-    parse_dir(&stdlib, vm, ast).and_then(|_| {
-        if fuzzing {
-            return parse_str(content.unwrap(), vm, ast);
+    let stdlib_dir = vm.args.flag_stdlib.clone();
+
+    if let Some(stdlib) = stdlib_dir {
+        parse_dir(&stdlib, vm, ast)?;
+    } else {
+        for (filename, data) in STDLIB {
+            parse_bundle(filename, data, vm, ast)?;
         }
+    }
 
-        let arg_file = vm.args.arg_file.clone();
-        let path = Path::new(&arg_file);
+    if fuzzing {
+        return parse_str(content.unwrap(), vm, ast);
+    }
 
-        if path.is_file() {
-            parse_file(&arg_file, vm, ast)
-        } else if path.is_dir() {
-            parse_dir(&arg_file, vm, ast)
-        } else {
-            println!("file or directory `{}` does not exist.", &arg_file);
-            Err(1)
-        }
-    })
+    let arg_file = vm.args.arg_file.clone();
+    let path = Path::new(&arg_file);
+
+    if path.is_file() {
+        parse_file(&arg_file, vm, ast)
+    } else if path.is_dir() {
+        parse_dir(&arg_file, vm, ast)
+    } else {
+        println!("file or directory `{}` does not exist.", &arg_file);
+        Err(1)
+    }
 }
 
 fn run_tests<'ast>(vm: &VM<'ast>) -> i32 {
@@ -256,8 +261,13 @@ fn parse_file(filename: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
     parse_reader(reader, vm, ast)
 }
 
+fn parse_bundle(filename: &str, data: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
+    let reader = Reader::from_string(filename, data);
+    parse_reader(reader, vm, ast)
+}
+
 fn parse_str(file: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
-    let reader = Reader::from_string(file);
+    let reader = Reader::from_string("<<code>>", file);
     parse_reader(reader, vm, ast)
 }
 

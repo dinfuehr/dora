@@ -24,7 +24,7 @@ pub struct Lexer {
 impl Lexer {
     #[cfg(test)]
     pub fn from_str(code: &str) -> Lexer {
-        let reader = Reader::from_string(code);
+        let reader = Reader::from_string("<<code>>", code);
         Lexer::new(reader)
     }
 
@@ -914,7 +914,7 @@ mod tests {
 
     #[test]
     fn test_code_with_tabwidth8() {
-        let mut reader = Reader::from_string("1\t2\n1234567\t8\n12345678\t9");
+        let mut reader = Reader::from_string("<<code>>", "1\t2\n1234567\t8\n12345678\t9");
         reader.set_tabwidth(8);
         let mut reader = Lexer::new(reader);
 
