@@ -32,12 +32,8 @@ impl Reader {
         Ok(common_init(filename.into(), src))
     }
 
-    pub fn from_bundle(filename: &str, src: &str) -> Reader {
+    pub fn from_string(filename: &str, src: &str) -> Reader {
         common_init(filename.into(), src.into())
-    }
-
-    pub fn from_string(src: &str) -> Reader {
-        common_init("<<code>>".into(), src.into())
     }
 
     pub fn set_tabwidth(&mut self, tabwidth: u32) {
@@ -128,7 +124,7 @@ mod tests {
 
     #[test]
     fn read_from_str() {
-        let mut reader = Reader::from_string("abc");
+        let mut reader = Reader::from_string("<<code>>", "abc");
 
         assert_eq!(Some('a'), reader.curr());
         assert_eq!(Some('b'), reader.nth(1));

@@ -64,7 +64,7 @@ where
     }
 
     {
-        let reader = Reader::from_string(code);
+        let reader = Reader::from_string("<<code>>", code);
         let parser = Parser::new(reader, &vm.id_generator, &mut ast, &mut vm.interner);
         parser.parse().unwrap();
     }

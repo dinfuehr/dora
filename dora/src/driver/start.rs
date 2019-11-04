@@ -262,12 +262,12 @@ fn parse_file(filename: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
 }
 
 fn parse_bundle(filename: &str, data: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
-    let reader = Reader::from_bundle(filename, data);
+    let reader = Reader::from_string(filename, data);
     parse_reader(reader, vm, ast)
 }
 
 fn parse_str(file: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
-    let reader = Reader::from_string(file);
+    let reader = Reader::from_string("<<code>>", file);
     parse_reader(reader, vm, ast)
 }
 
