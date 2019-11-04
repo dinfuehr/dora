@@ -75,6 +75,7 @@ pub enum SemError {
     MethodNotOverridable(String),
     TypesIncompatible(String, String),
     ReturnTypeMismatch(String, String),
+    OverrideMismatch,
     UnresolvedInternal,
     UnclosedComment,
     UnknownChar(char),
@@ -315,6 +316,7 @@ impl SemError {
             SemError::ReturnTypeMismatch(ref fct, ref sup) => {
                 format!("return types `{}` and `{}` do not match.", fct, sup)
             }
+            SemError::OverrideMismatch => "definition does not match overriden function.".into(),
             SemError::UnresolvedInternal => "unresolved internal.".into(),
             SemError::MisplacedElse => "misplace else.".into(),
             SemError::ExpectedToken(ref exp, ref got) => {

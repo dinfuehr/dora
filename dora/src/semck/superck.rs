@@ -224,6 +224,15 @@ fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &Fct<'ast>) -> Opti
         }
 
         let cls_type_params = super_type.type_params(vm);
+
+        let super_method_params: Vec<_> = super_method
+            .params_without_self()
+            .iter()
+            .map(|&param_type| {
+                replace_type_param(vm, param_type, &cls_type_params, &TypeList::empty(), None)
+            })
+            .collect();
+
         let super_method_return_type = replace_type_param(
             vm,
             super_method.return_type,
@@ -232,13 +241,12 @@ fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &Fct<'ast>) -> Opti
             None,
         );
 
-        if super_method_return_type != fct.return_type {
-            let pos = fct.pos();
-            let fct_return = fct.return_type.name(vm);
-            let sup = super_method_return_type.name(vm);
+        if super_method_params != fct.params_without_self()
+            || super_method_return_type != fct.return_type
+        {
             vm.diag
                 .lock()
-                .report(fct.file, pos, SemError::ReturnTypeMismatch(fct_return, sup));
+                .report(fct.file, fct.pos(), SemError::OverrideMismatch);
         }
 
         Some(super_method.id)
@@ -367,9 +375,9 @@ mod tests {
             SemError::SuperfluousOverride("f".into()),
         );
         err(
-            "@open class B { fun f(a: Int) {} } class A: B { @override fun f() {} }",
-            pos(1, 59),
-            SemError::MethodNotOverridable("f".into()),
+            "@open class B { @open fun f(a: Int) {} } class A: B { @override fun f() {} }",
+            pos(1, 65),
+            SemError::OverrideMismatch,
         );
     }
 
@@ -401,11 +409,11 @@ mod tests {
     #[test]
     fn test_overload_method_in_super_class() {
         errors(
-            "@open class A { fun f() {} }
+            "@open class A { @open fun f() {} }
             class B: A { fun f(a: Int) {} }",
             &[
                 (pos(2, 26), SemError::MissingOverride("f".into())),
-                (pos(2, 26), SemError::MethodNotOverridable("f".into())),
+                (pos(2, 26), SemError::OverrideMismatch),
             ],
         );
 
@@ -419,7 +427,7 @@ mod tests {
             "@open class A { @open fun f() {} }
              class B: A { @override fun f() -> Int { return 1; } }",
             pos(2, 37),
-            SemError::ReturnTypeMismatch("Int".into(), "()".into()),
+            SemError::OverrideMismatch,
         );
     }
 
@@ -430,6 +438,23 @@ mod tests {
              class B: A { @override fun f() {} }",
             pos(2, 37),
             SemError::ThrowsDifference("f".into()),
+        );
+    }
+
+    #[test]
+    fn test_wrong_parameters_in_override() {
+        err(
+            "
+        @open @abstract class Foo {
+            @open fun test(x: Int) -> Int { x * 2 }
+        }
+
+        class Bar: Foo {
+            @override fun test(x: String) -> Int { 0 }
+        }
+    ",
+            pos(7, 23),
+            SemError::OverrideMismatch,
         );
     }
 

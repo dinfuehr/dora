@@ -2026,20 +2026,6 @@ fn test_fields_with_generics() {
 }
 
 #[test]
-#[ignore]
-fn test_wrong_parameters_in_override() {
-    ok("
-        @open @abstract class Foo {
-            @open fun test(x: Int) -> Int { x * 2 }
-        }
-
-        class Bar: Foo {
-            @override fun test(x: String) -> Int { 0 }
-        }
-    ");
-}
-
-#[test]
 fn test_methods_with_generics() {
     ok("
         @open @abstract class Foo[A] {
