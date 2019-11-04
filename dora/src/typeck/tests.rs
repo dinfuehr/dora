@@ -2026,6 +2026,20 @@ fn test_fields_with_generics() {
 }
 
 #[test]
+#[ignore]
+fn test_wrong_parameters_in_override() {
+    ok("
+        @open @abstract class Foo {
+            @open fun test(x: Int) -> Int { x * 2 }
+        }
+
+        class Bar: Foo {
+            @override fun test(x: String) -> Int { 0 }
+        }
+    ");
+}
+
+#[test]
 fn test_methods_with_generics() {
     ok("
         @open @abstract class Foo[A] {
@@ -2038,6 +2052,20 @@ fn test_methods_with_generics() {
 
         class Baz[A](let baz: A): Foo[Int] {
             @override fun test() -> Int { 0 }
+        }
+    ");
+
+    ok("
+        @open @abstract class Foo[A] {
+            @open fun test(x: A) -> A { x }
+        }
+
+        class Bar[A](let bar: A): Foo[A] {
+            @override fun test(x: A) -> A { self.bar }
+        }
+
+        class Baz[A](let baz: A): Foo[Int] {
+            @override fun test(x: Int) -> Int { x+x }
         }
     ");
 }

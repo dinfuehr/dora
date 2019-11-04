@@ -210,7 +210,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn reserve_stmt_do(&mut self, r#try: &'ast StmtDoType) {
-        let ret = self.fct.return_type;
+        let ret = self.specialize_type(self.fct.return_type);
 
         if !ret.is_unit() {
             self.eh_return_value = Some(
@@ -911,7 +911,9 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
-        specialize_type(self.vm, ty, &self.cls_type_params, &self.fct_type_params)
+        let ty = specialize_type(self.vm, ty, &self.cls_type_params, &self.fct_type_params);
+        assert!(ty.is_concrete_type(self.vm));
+        ty
     }
 }
 
