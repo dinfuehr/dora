@@ -3,9 +3,7 @@ use std::mem::size_of;
 use crate::baseline;
 use crate::baseline::fct::{BailoutInfo, JitBaselineFct, JitDescriptor, JitFct};
 use crate::baseline::map::CodeDescriptor;
-use crate::cpu::{
-    Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
-};
+use crate::cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1};
 use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
 use crate::masm::MacroAssembler;
