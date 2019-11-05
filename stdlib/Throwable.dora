@@ -1,16 +1,18 @@
 @open @abstract class Throwable(let msg: String) {
   var backtrace: Array[Int] = arrayEmpty[Int]();
   var elements: Array[StackTraceElement] = arrayEmpty[StackTraceElement]();
+  // HACK HACK HACK
+  var bNil: Array[Int];
+  var eNil: Array[StackTraceElement];
 
   self.retrieveStackTrace();
 
   fun getStackTrace() -> Array[StackTraceElement] {
-    if self.elements.length() != 0 {
+    if self.elements !== self.eNil && self.elements.isEmpty().not() {
       return self.elements;
     }
 
-    if self.backtrace.length() == 0 {
-      self.elements = arrayEmpty[StackTraceElement]();
+    if self.backtrace === self.bNil || self.backtrace.isEmpty() {
       return self.elements;
     }
 
