@@ -117,7 +117,7 @@ pub extern "C" fn throw_native(val: bool) {
     if val {
         handle_scope(|| {
             let vm = get_vm();
-            let obj = alloc_exception(vm, Ref::null());
+            let obj = alloc_exception(vm, Str::empty(vm));
             let obj = root(obj);
 
             exception_set(obj.direct().address())
