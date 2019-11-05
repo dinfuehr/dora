@@ -1,0 +1,18 @@
+//= ignore
+
+class Foo[A]
+
+fun is_foo_int(f: Object) -> Bool {
+    return f is Foo[Int];
+}
+
+fun main() {
+    let x = Object();
+    assert(!is_foo_int(x));
+
+    let x = Foo[String]() as Object;
+    assert(!is_foo_int(x));
+
+    let x = Foo[Int]() as Object;
+    assert(is_foo_int(x));
+}

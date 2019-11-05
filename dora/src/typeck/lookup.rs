@@ -1,8 +1,7 @@
-use std::collections::HashSet;
-
 use crate::class::{find_methods_in_class, ClassId};
 use crate::error::msg::SemError;
 use crate::semck::specialize::replace_type_param;
+use crate::semck::typeparamck;
 use crate::ty::{BuiltinType, TypeList};
 use crate::typeck::expr::args_compatible;
 use crate::vm::{FctId, FctParent, FileId, TraitId, TypeParam, VM};
@@ -387,119 +386,13 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
     }
 
     fn check_tps(&self, specified_tps: &[TypeParam], tps: &TypeList) -> bool {
-        if specified_tps.len() != tps.len() {
-            let msg = SemError::WrongNumberTypeParams(specified_tps.len(), tps.len());
-            self.vm
-                .diag
-                .lock()
-                .report(self.file, self.pos.expect("pos not set"), msg);
-            return false;
-        }
-
-        let mut succeeded = true;
-
-        for (tp, ty) in specified_tps.iter().zip(tps.iter()) {
-            if ty.is_type_param() {
-                let ok = match ty {
-                    BuiltinType::ClassTypeParam(cls_id, tpid) => {
-                        let cls = self.vm.classes.idx(cls_id);
-                        let cls = cls.read();
-                        self.check_tp_against_tp(tp, &cls.type_params[tpid.idx()], ty)
-                    }
-
-                    BuiltinType::FctTypeParam(fct_id, tpid) => {
-                        let fct = self.vm.fcts.idx(fct_id);
-                        let fct = fct.read();
-                        self.check_tp_against_tp(tp, &fct.type_params[tpid.idx()], ty)
-                    }
-
-                    _ => unreachable!(),
-                };
-
-                if !ok {
-                    succeeded = false;
-                }
-            } else if !self.check_tp(tp, ty) {
-                succeeded = false;
-            }
-        }
-
-        succeeded
-    }
-
-    fn check_tp(&self, tp: &TypeParam, ty: BuiltinType) -> bool {
-        let mut succeeded = true;
-
-        if let Some(cls_id) = tp.class_bound {
-            let cls = self.vm.cls(cls_id);
-            if !ty.subclass_from(self.vm, cls) {
-                self.fail_cls_bound(cls_id, ty);
-                succeeded = false;
-            }
-        }
-
-        let cls_id = ty.cls_id(self.vm).unwrap();
-        let cls = self.vm.classes.idx(cls_id);
-        let cls = cls.read();
-
-        for &trait_bound in &tp.trait_bounds {
-            if !cls.traits.contains(&trait_bound) {
-                self.fail_trait_bound(trait_bound, ty);
-                succeeded = false;
-            }
-        }
-
-        succeeded
-    }
-
-    fn check_tp_against_tp(&self, tp: &TypeParam, arg: &TypeParam, arg_ty: BuiltinType) -> bool {
-        let mut succeeded = true;
-
-        if let Some(cls_id) = tp.class_bound {
-            if tp.class_bound != arg.class_bound {
-                self.fail_cls_bound(cls_id, arg_ty);
-                succeeded = false;
-            }
-        }
-
-        if tp.trait_bounds.len() == 0 {
-            return succeeded;
-        }
-
-        let traits_set = arg.trait_bounds.iter().collect::<HashSet<_>>();
-
-        for &trait_bound in &tp.trait_bounds {
-            if !traits_set.contains(&trait_bound) {
-                self.fail_trait_bound(trait_bound, arg_ty);
-                succeeded = false;
-            }
-        }
-
-        succeeded
-    }
-
-    fn fail_cls_bound(&self, cls_id: ClassId, ty: BuiltinType) {
-        let name = ty.name(self.vm);
-        let cls = self.vm.classes.idx(cls_id);
-        let cls = cls.read();
-        let cls = self.vm.interner.str(cls.name).to_string();
-
-        let msg = SemError::ClassBoundNotSatisfied(name, cls);
-        self.vm
-            .diag
-            .lock()
-            .report(self.file, self.pos.expect("pos not set"), msg);
-    }
-
-    fn fail_trait_bound(&self, trait_id: TraitId, ty: BuiltinType) {
-        let bound = self.vm.traits[trait_id].read();
-        let name = ty.name(self.vm);
-        let trait_name = self.vm.interner.str(bound.name).to_string();
-        let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
-        self.vm
-            .diag
-            .lock()
-            .report(self.file, self.pos.expect("pos not set"), msg);
+        typeparamck::check_params(
+            self.vm,
+            self.file,
+            self.pos.expect("no pos"),
+            specified_tps,
+            tps,
+        )
     }
 
     pub fn found_fct_id(&self) -> Option<FctId> {

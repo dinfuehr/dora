@@ -2055,3 +2055,18 @@ fn test_methods_with_generics() {
         }
     ");
 }
+
+#[test]
+fn test_is_types() {
+    err(
+        "
+        trait SomeTrait {}
+        class Foo[A: SomeTrait] {}
+        fun test(f: Object) -> Bool {
+            return f is Foo[Int];
+        }
+    ",
+        pos(2, 9),
+        SemError::TraitBoundNotSatisfied("Int".into(), "SomeTrait".into()),
+    );
+}

@@ -6,6 +6,7 @@ use std::{f32, f64};
 use crate::class::{find_field_in_class, find_methods_in_class, ClassId};
 use crate::error::msg::SemError;
 use crate::semck::specialize::replace_type_param;
+use crate::semck::typeparamck;
 use crate::semck::{always_returns, expr_always_returns};
 use crate::sym::Sym::SymClass;
 use crate::ty::{BuiltinType, TypeList, TypeParamId};
@@ -1966,16 +1967,34 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_conv(&mut self, e: &'ast ExprConvType) {
         self.visit_expr(&e.object);
         let object_type = self.expr_type;
-        self.src.set_ty(e.object.id(), self.expr_type);
+        self.src.set_ty(e.object.id(), object_type);
 
         let check_type = self.src.ty(e.data_type.id());
 
-        if !check_type.reference_type() {
+        if !check_type.is_cls() {
             let name = check_type.name(self.vm);
             self.vm
                 .diag
                 .lock()
                 .report(self.file, e.pos, SemError::ReferenceTypeExpected(name));
+            let ty = if e.is {
+                BuiltinType::Bool
+            } else {
+                BuiltinType::Error
+            };
+            self.src.set_ty(e.id, ty);
+            self.expr_type = ty;
+            return;
+        }
+
+        if !typeparamck::check_type(self.vm, self.file, e.data_type.pos(), check_type) {
+            let ty = if e.is {
+                BuiltinType::Bool
+            } else {
+                BuiltinType::Error
+            };
+            self.src.set_ty(e.id, ty);
+            self.expr_type = ty;
             return;
         }
 

@@ -24,6 +24,7 @@ pub mod specialize;
 mod structdefck;
 mod superck;
 mod traitdefck;
+pub mod typeparamck;
 
 macro_rules! return_on_error {
     ($vm: ident) => {{
