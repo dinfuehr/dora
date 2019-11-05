@@ -2070,3 +2070,17 @@ fn test_is_types() {
         SemError::TraitBoundNotSatisfied("Int".into(), "SomeTrait".into()),
     );
 }
+
+#[test]
+#[ignore]
+fn test_type_params_with_bounds_in_subclass() {
+    err(
+        "
+        trait SomeTrait {}
+        @open class Foo[A: SomeTrait]
+        class Bar: Foo[Int]
+    ",
+        pos(1, 1),
+        SemError::Unimplemented,
+    );
+}
