@@ -2017,7 +2017,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.src.map_convs.insert(
             e.id,
             ConvInfo {
-                cls_id: check_type.cls_id(self.vm).unwrap(),
+                check_type: check_type,
                 valid,
             },
         );

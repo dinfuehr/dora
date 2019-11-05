@@ -26,7 +26,7 @@ use crate::mem;
 use crate::object::{Header, Str};
 use crate::os::signal::Trap;
 use crate::semck::always_returns;
-use crate::semck::specialize::{specialize_class_id, specialize_class_ty};
+use crate::semck::specialize::specialize_class_ty;
 use crate::ty::{BuiltinType, MachineMode, TypeList};
 use crate::vm::{
     Arg, CallSite, ConstId, Fct, FctId, FctKind, FctParent, FctSrc, IdentType, Intrinsic, VarId, VM,
@@ -773,8 +773,7 @@ where
                 // do nothing for object as T
             }
         } else {
-            let cls_id = conv.cls_id;
-            let cls_id = specialize_class_id(self.vm, cls_id);
+            let cls_id = specialize_class_ty(self.vm, conv.check_type);
             let cls = self.vm.class_defs.idx(cls_id);
             let cls = cls.read();
 

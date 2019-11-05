@@ -1340,7 +1340,7 @@ where
 
 #[derive(Debug, Copy, Clone)]
 pub struct ConvInfo {
-    pub cls_id: ClassId,
+    pub check_type: BuiltinType,
     pub valid: bool,
 }
 
