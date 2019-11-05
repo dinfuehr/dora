@@ -4,7 +4,7 @@ use crate::baseline;
 use crate::baseline::fct::{BailoutInfo, JitBaselineFct, JitDescriptor, JitFct};
 use crate::baseline::map::CodeDescriptor;
 use crate::cpu::{
-    Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1, REG_TMP_CALLEE,
+    Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
 };
 use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
@@ -56,9 +56,8 @@ where
     pub fn generate(mut self) -> JitBaselineFct {
         let offset_dtn = 0;
         let offset_params = offset_dtn + size_of::<DoraToNativeInfo>() as i32;
-        let offset_tmp =
+        let offset_thread =
             offset_params + (FREG_PARAMS.len() + REG_PARAMS.len()) as i32 * mem::ptr_width();
-        let offset_thread = offset_tmp + mem::ptr_width();
         let framesize = mem::align_i32(offset_thread + mem::ptr_width(), 16) as i32;
 
         if self.dbg {
@@ -74,14 +73,14 @@ where
         // prepare the native call
         self.masm.load_mem(
             MachineMode::Ptr,
-            REG_TMP_CALLEE.into(),
+            REG_TMP1.into(),
             Mem::Base(REG_THREAD, ThreadLocalData::dtn_offset()),
         );
 
         self.masm.store_mem(
             MachineMode::Ptr,
             Mem::Base(REG_SP, offset_dtn + DoraToNativeInfo::last_offset()),
-            REG_TMP_CALLEE.into(),
+            REG_TMP1.into(),
         );
 
         self.masm.store_mem(
@@ -117,10 +116,16 @@ where
         );
         self.masm.raw_call(compile_request as *const u8);
 
+        self.masm.load_mem(
+            MachineMode::Ptr,
+            REG_TMP1.into(),
+            Mem::Base(REG_SP, offset_dtn + DoraToNativeInfo::last_offset()),
+        );
+
         self.masm.store_mem(
             MachineMode::Ptr,
             Mem::Base(REG_THREAD, ThreadLocalData::dtn_offset()),
-            REG_TMP_CALLEE.into(),
+            REG_TMP1.into(),
         );
 
         // restore argument registers from the stack
