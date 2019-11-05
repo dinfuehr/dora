@@ -4,6 +4,7 @@
   @internal fun get(idx: Int) -> T;
   @internal fun set(idx: Int, val: T);
 
+  fun isEmpty() -> Bool = self.length() == 0;
 }
 
 // The next two functions should be instance functions, but we cannot properly encode the fact that they put additional
