@@ -136,6 +136,7 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
             is_static: f.is_static,
             is_abstract: false,
             is_test: f.is_test,
+            use_cannon: f.use_cannon,
             internal: f.internal,
             internal_resolved: false,
             overrides: None,

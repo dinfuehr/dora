@@ -79,6 +79,7 @@ pub struct BuilderFct<'a> {
     is_method: bool,
     is_public: bool,
     is_constructor: bool,
+    use_cannon: bool,
     return_type: Option<Type>,
     params: Vec<Param>,
     block: Option<Box<ExprBlockType>>,
@@ -92,6 +93,7 @@ impl<'a> BuilderFct<'a> {
             is_method: false,
             is_public: false,
             is_constructor: false,
+            use_cannon: false,
             return_type: None,
             params: Vec::new(),
             block: None,
@@ -125,6 +127,11 @@ impl<'a> BuilderFct<'a> {
         self
     }
 
+    pub fn use_cannon(&mut self, value: bool) -> &mut BuilderFct<'a> {
+        self.use_cannon = value;
+        self
+    }
+
     pub fn constructor(&mut self, constructor: bool) -> &mut BuilderFct<'a> {
         self.is_constructor = constructor;
         self
@@ -152,6 +159,7 @@ impl<'a> BuilderFct<'a> {
             internal: false,
             is_constructor: self.is_constructor,
             is_test: false,
+            use_cannon: self.use_cannon,
             params: self.params,
             throws: false,
             return_type: self.return_type,
