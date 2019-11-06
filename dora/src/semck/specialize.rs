@@ -3,10 +3,11 @@ use std::cmp::max;
 use std::ptr;
 use std::sync::Arc;
 
-use crate::class::{self, ClassDef, ClassDefId, ClassId, ClassSize};
+use crate::class::{self, ClassDef, ClassDefId, ClassId};
 use crate::field::FieldDef;
 use crate::mem;
 use crate::object::Header;
+use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{CallType, StructData, StructDef, StructDefId, StructFieldDef, StructId, VM};
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
@@ -186,7 +187,7 @@ fn create_specialized_class(vm: &VM, cls: &class::Class, type_params: &TypeList)
             cls_id: Some(cls.id),
             type_params: type_params.clone(),
             parent_id: None,
-            size: ClassSize::Fixed(0),
+            size: InstanceSize::Fixed(0),
             fields: Vec::new(),
             ref_fields: Vec::new(),
             vtable: None,
@@ -206,12 +207,12 @@ fn create_specialized_class(vm: &VM, cls: &class::Class, type_params: &TypeList)
 
         size = if cls.is_array {
             if type_params[0].reference_type() {
-                ClassSize::ObjArray
+                InstanceSize::ObjArray
             } else {
-                ClassSize::Array(type_params[0].size(vm))
+                InstanceSize::Array(type_params[0].size(vm))
             }
         } else {
-            ClassSize::Str
+            InstanceSize::Str
         };
 
         let parent_class = cls
@@ -230,7 +231,7 @@ fn create_specialized_class(vm: &VM, cls: &class::Class, type_params: &TypeList)
             fields = Vec::new();
             ref_fields = cls_def.ref_fields.clone();
             csize = match cls_def.size {
-                ClassSize::Fixed(size) => size,
+                InstanceSize::Fixed(size) => size,
                 _ => unreachable!(),
             };
             parent_id = Some(id);
@@ -258,7 +259,7 @@ fn create_specialized_class(vm: &VM, cls: &class::Class, type_params: &TypeList)
             }
         }
 
-        size = ClassSize::Fixed(mem::align_i32(csize, mem::ptr_width()));
+        size = InstanceSize::Fixed(mem::align_i32(csize, mem::ptr_width()));
     }
 
     let stub = vm.compiler_thunk().to_usize();
@@ -272,11 +273,11 @@ fn create_specialized_class(vm: &VM, cls: &class::Class, type_params: &TypeList)
     cls_def.parent_id = parent_id;
 
     let (instance_size, element_size) = match size {
-        ClassSize::Fixed(instance_size) => (instance_size as usize, 0),
-        ClassSize::Array(element_size) => (0, element_size as usize),
-        ClassSize::ObjArray => (0, mem::ptr_width_usize()),
-        ClassSize::FreeArray => (0, mem::ptr_width_usize()),
-        ClassSize::Str => (0, 1),
+        InstanceSize::Fixed(instance_size) => (instance_size as usize, 0),
+        InstanceSize::Array(element_size) => (0, element_size as usize),
+        InstanceSize::ObjArray => (0, mem::ptr_width_usize()),
+        InstanceSize::FreeArray => (0, mem::ptr_width_usize()),
+        InstanceSize::Str => (0, 1),
     };
 
     let clsptr = (&*cls_def) as *const class::ClassDef as *mut class::ClassDef;

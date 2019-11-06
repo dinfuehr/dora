@@ -264,39 +264,39 @@ fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &Fct<'ast>) -> Opti
 
 #[cfg(test)]
 mod tests {
-    use crate::class::ClassSize;
     use crate::error::msg::SemError;
     use crate::mem;
     use crate::object::Header;
     use crate::semck::tests::{err, errors, ok, ok_with_test, pos};
+    use crate::size::InstanceSize;
     use crate::vm::VM;
     use dora_parser::interner::Name;
 
     #[test]
     fn test_class_size() {
         assert_eq!(
-            ClassSize::Fixed(Header::size()),
+            InstanceSize::Fixed(Header::size()),
             class_size("class Foo", "Foo")
         );
         assert_eq!(
-            ClassSize::Fixed(Header::size() + mem::ptr_width()),
+            InstanceSize::Fixed(Header::size() + mem::ptr_width()),
             class_size("class Foo(let a: Int)", "Foo")
         );
         assert_eq!(
-            ClassSize::Fixed(Header::size() + 8),
+            InstanceSize::Fixed(Header::size() + 8),
             class_size("class Foo(let a: Long)", "Foo")
         );
         assert_eq!(
-            ClassSize::Fixed(Header::size() + mem::ptr_width()),
+            InstanceSize::Fixed(Header::size() + mem::ptr_width()),
             class_size("class Foo(let a: Bool)", "Foo")
         );
         assert_eq!(
-            ClassSize::Fixed(Header::size() + mem::ptr_width()),
+            InstanceSize::Fixed(Header::size() + mem::ptr_width()),
             class_size("class Foo(let a: String)", "Foo")
         );
     }
 
-    fn class_size(code: &'static str, name: &'static str) -> ClassSize {
+    fn class_size(code: &'static str, name: &'static str) -> InstanceSize {
         ok_with_test(code, |vm| {
             let id = vm.cls_def_by_name(name);
             let cls = vm.class_defs.idx(id);
@@ -308,15 +308,15 @@ mod tests {
     #[test]
     fn test_intrinsic_class_size() {
         ok_with_test("", |vm| {
-            assert_eq!(ClassSize::Str, class_size_name(vm, "String"));
-            assert_eq!(ClassSize::Fixed(16), class_size_name(vm, "Bool"));
-            assert_eq!(ClassSize::Fixed(16), class_size_name(vm, "Int"));
-            assert_eq!(ClassSize::Fixed(16), class_size_name(vm, "Byte"));
-            assert_eq!(ClassSize::Fixed(16), class_size_name(vm, "Long"));
+            assert_eq!(InstanceSize::Str, class_size_name(vm, "String"));
+            assert_eq!(InstanceSize::Fixed(16), class_size_name(vm, "Bool"));
+            assert_eq!(InstanceSize::Fixed(16), class_size_name(vm, "Int"));
+            assert_eq!(InstanceSize::Fixed(16), class_size_name(vm, "Byte"));
+            assert_eq!(InstanceSize::Fixed(16), class_size_name(vm, "Long"));
         });
     }
 
-    fn class_size_name(vm: &VM, name: &'static str) -> ClassSize {
+    fn class_size_name(vm: &VM, name: &'static str) -> InstanceSize {
         let id = vm.cls_def_by_name(name);
         let cls = vm.class_defs.idx(id);
         let cls = cls.read();

@@ -15,7 +15,7 @@ use crate::baseline::codegen::{
 };
 use crate::baseline::dora_native::{InternalFct, InternalFctDescriptor};
 use crate::baseline::fct::{CatchType, Comment, JitBaselineFct, JitDescriptor};
-use crate::class::{ClassDef, ClassDefId, ClassSize};
+use crate::class::{ClassDef, ClassDefId};
 use crate::cpu::{
     FReg, Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_SP, REG_TMP1,
     REG_TMP2,
@@ -28,6 +28,7 @@ use crate::object::{Header, Str};
 use crate::os::signal::Trap;
 use crate::semck::always_returns;
 use crate::semck::specialize::specialize_class_ty;
+use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, MachineMode, TypeList};
 use crate::vm::{
     Arg, CallSite, ConstId, Fct, FctId, FctKind, FctParent, FctSrc, IdentType, Intrinsic, VarId, VM,
@@ -2447,13 +2448,13 @@ where
         let alloc_size;
 
         match cls.size {
-            ClassSize::Fixed(size) => {
+            InstanceSize::Fixed(size) => {
                 self.asm
                     .load_int_const(MachineMode::Int32, REG_PARAMS[0], size as i64);
                 alloc_size = AllocationSize::Fixed(size as usize);
             }
 
-            ClassSize::Array(esize) if temps.len() > 1 => {
+            InstanceSize::Array(esize) if temps.len() > 1 => {
                 self.asm
                     .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].2));
 
@@ -2464,7 +2465,7 @@ where
                 alloc_size = AllocationSize::Dynamic(REG_PARAMS[0]);
             }
 
-            ClassSize::ObjArray if temps.len() > 1 => {
+            InstanceSize::ObjArray if temps.len() > 1 => {
                 self.asm
                     .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].2));
 
@@ -2475,7 +2476,7 @@ where
                 alloc_size = AllocationSize::Dynamic(REG_PARAMS[0]);
             }
 
-            ClassSize::Str if temps.len() > 1 => {
+            InstanceSize::Str if temps.len() > 1 => {
                 self.asm
                     .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].2));
 
@@ -2486,7 +2487,7 @@ where
                 alloc_size = AllocationSize::Dynamic(REG_PARAMS[0]);
             }
 
-            ClassSize::Array(_) | ClassSize::ObjArray | ClassSize::Str => {
+            InstanceSize::Array(_) | InstanceSize::ObjArray | InstanceSize::Str => {
                 let size = Header::size() as usize + mem::ptr_width_usize();
                 self.asm
                     .load_int_const(MachineMode::Int32, REG_PARAMS[0], size as i64);
@@ -2495,11 +2496,11 @@ where
                 alloc_size = AllocationSize::Fixed(size);
             }
 
-            ClassSize::FreeArray => unreachable!(),
+            InstanceSize::FreeArray => unreachable!(),
         }
 
         let array_ref = match cls.size {
-            ClassSize::ObjArray => true,
+            InstanceSize::ObjArray => true,
             _ => false,
         };
 
@@ -2548,7 +2549,7 @@ where
         }
 
         match cls.size {
-            ClassSize::Fixed(size) => {
+            InstanceSize::Fixed(size) => {
                 self.asm.fill_zero(dest, size as usize);
             }
 
@@ -2561,11 +2562,11 @@ where
                 );
 
                 let element_size = match cls.size {
-                    ClassSize::Array(esize) => esize,
-                    ClassSize::ObjArray => mem::ptr_width(),
-                    ClassSize::Str => 1,
-                    ClassSize::Fixed(_) => unreachable!(),
-                    ClassSize::FreeArray => unreachable!(),
+                    InstanceSize::Array(esize) => esize,
+                    InstanceSize::ObjArray => mem::ptr_width(),
+                    InstanceSize::Str => 1,
+                    InstanceSize::Fixed(_) => unreachable!(),
+                    InstanceSize::FreeArray => unreachable!(),
                 };
 
                 self.asm

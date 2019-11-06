@@ -6,7 +6,8 @@ use std::ops::{Deref, DerefMut};
 use std::ptr::NonNull;
 use std::{self, fmt, ptr, slice};
 
-use crate::class::{ClassDef, ClassSize};
+use crate::class::ClassDef;
+use crate::size::InstanceSize;
 
 pub const DISPLAY_SIZE: usize = 6;
 
@@ -190,7 +191,7 @@ impl VTable {
         let cls = self.class();
 
         match cls.size {
-            ClassSize::ObjArray => true,
+            InstanceSize::ObjArray => true,
             _ => false,
         }
     }

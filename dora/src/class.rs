@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use crate::field::{Field, FieldDef, FieldId};
 use crate::semck::specialize::replace_type_param;
+use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, TypeList};
 use crate::utils::GrowableVec;
 use crate::vm::VM;
@@ -338,15 +339,6 @@ impl GrowableVec<RwLock<ClassDef>> {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum ClassSize {
-    Fixed(i32),
-    Array(i32),
-    ObjArray,
-    FreeArray,
-    Str,
-}
-
 #[derive(Debug)]
 pub struct ClassDef {
     pub id: ClassDefId,
@@ -354,7 +346,7 @@ pub struct ClassDef {
     pub type_params: TypeList,
     pub parent_id: Option<ClassDefId>,
     pub fields: Vec<FieldDef>,
-    pub size: ClassSize,
+    pub size: InstanceSize,
     pub ref_fields: Vec<i32>,
     pub vtable: Option<VTableBox>,
 }
