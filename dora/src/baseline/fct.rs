@@ -3,9 +3,10 @@ use std::fmt;
 use std::ptr;
 use std::sync::Arc;
 
-use crate::class::{ClassDef, ClassDefId, FieldId};
+use crate::class::{ClassDef, ClassDefId};
 use crate::cpu::flush_icache;
 use crate::dseg::DSeg;
+use crate::field::FieldId;
 use crate::gc::Address;
 use crate::object::{Ref, Str};
 use crate::opt::fct::JitOptFct;

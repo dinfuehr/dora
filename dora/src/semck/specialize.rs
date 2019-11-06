@@ -3,7 +3,8 @@ use std::cmp::max;
 use std::ptr;
 use std::sync::Arc;
 
-use crate::class::{self, ClassDef, ClassDefId, ClassId, ClassSize, FieldDef};
+use crate::class::{self, ClassDef, ClassDefId, ClassId, ClassSize};
+use crate::field::FieldDef;
 use crate::mem;
 use crate::object::Header;
 use crate::ty::{BuiltinType, TypeList};

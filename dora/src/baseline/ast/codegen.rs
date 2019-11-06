@@ -15,11 +15,12 @@ use crate::baseline::codegen::{
 };
 use crate::baseline::dora_native::{InternalFct, InternalFctDescriptor};
 use crate::baseline::fct::{CatchType, Comment, JitBaselineFct, JitDescriptor};
-use crate::class::{ClassDef, ClassDefId, ClassSize, FieldId};
+use crate::class::{ClassDef, ClassDefId, ClassSize};
 use crate::cpu::{
     FReg, Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_SP, REG_TMP1,
     REG_TMP2,
 };
+use crate::field::FieldId;
 use crate::gc::Address;
 use crate::masm::*;
 use crate::mem;
