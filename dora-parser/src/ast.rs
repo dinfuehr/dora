@@ -502,6 +502,7 @@ pub struct Function {
     pub is_static: bool,
     pub is_abstract: bool,
     pub is_test: bool,
+    pub use_cannon: bool,
     pub internal: bool,
     pub is_constructor: bool,
 
@@ -562,6 +563,7 @@ pub enum Modifier {
     Pub,
     Static,
     Test,
+    Cannon,
 }
 
 impl Modifier {
@@ -576,6 +578,7 @@ impl Modifier {
             Modifier::Pub => "pub",
             Modifier::Static => "static",
             Modifier::Test => "test",
+            Modifier::Cannon => "cannon",
         }
     }
 }

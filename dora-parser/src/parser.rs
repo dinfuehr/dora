@@ -99,7 +99,12 @@ impl<'a> Parser<'a> {
             TokenKind::Fun => {
                 self.restrict_modifiers(
                     &modifiers,
-                    &[Modifier::Internal, Modifier::Optimize, Modifier::Test],
+                    &[
+                        Modifier::Internal,
+                        Modifier::Optimize,
+                        Modifier::Test,
+                        Modifier::Cannon,
+                    ],
                 )?;
                 let fct = self.parse_function(&modifiers)?;
                 elements.push(ElemFunction(fct));
@@ -108,7 +113,12 @@ impl<'a> Parser<'a> {
             TokenKind::Class => {
                 self.restrict_modifiers(
                     &modifiers,
-                    &[Modifier::Abstract, Modifier::Open, Modifier::Internal],
+                    &[
+                        Modifier::Abstract,
+                        Modifier::Open,
+                        Modifier::Internal,
+                        Modifier::Cannon,
+                    ],
                 )?;
                 let class = self.parse_class(&modifiers)?;
                 elements.push(ElemClass(class));
@@ -219,7 +229,7 @@ impl<'a> Parser<'a> {
 
         while !self.token.is(TokenKind::RBrace) {
             let modifiers = self.parse_annotations()?;
-            let mods = &[Modifier::Static, Modifier::Internal];
+            let mods = &[Modifier::Static, Modifier::Internal, Modifier::Cannon];
             self.restrict_modifiers(&modifiers, mods)?;
 
             methods.push(self.parse_function(&modifiers)?);
@@ -371,12 +381,14 @@ impl<'a> Parser<'a> {
         self.in_class = true;
         let ctor_params = self.parse_constructor(&mut cls)?;
 
+        let use_cannon = modifiers.contains(Modifier::Cannon);
+
         cls.parent_class = self.parse_class_parent()?;
 
         self.parse_class_body(&mut cls)?;
         let span = self.span_from(start);
 
-        cls.constructor = Some(self.generate_constructor(&mut cls, ctor_params));
+        cls.constructor = Some(self.generate_constructor(&mut cls, ctor_params, use_cannon));
         cls.span = span;
         self.in_class = false;
 
@@ -550,6 +562,7 @@ impl<'a> Parser<'a> {
                         Modifier::Final,
                         Modifier::Pub,
                         Modifier::Static,
+                        Modifier::Cannon,
                     ];
                     self.restrict_modifiers(&modifiers, mods)?;
 
@@ -593,6 +606,7 @@ impl<'a> Parser<'a> {
                 "static" => Modifier::Static,
                 "optimize" => Modifier::Optimize,
                 "test" => Modifier::Test,
+                "cannon" => Modifier::Cannon,
                 _ => {
                     return Err(ParseErrorAndPos::new(
                         self.token.position,
@@ -701,6 +715,7 @@ impl<'a> Parser<'a> {
             is_abstract: modifiers.contains(Modifier::Abstract),
             is_constructor: false,
             is_test: modifiers.contains(Modifier::Test),
+            use_cannon: modifiers.contains(Modifier::Cannon),
             params,
             throws,
             return_type,
@@ -1917,6 +1932,7 @@ impl<'a> Parser<'a> {
         &mut self,
         cls: &mut Class,
         ctor_params: Vec<ConstructorParam>,
+        use_cannon: bool,
     ) -> Function {
         let builder = Builder::new(self.id_generator);
         let mut block = builder.build_block();
@@ -1959,6 +1975,7 @@ impl<'a> Parser<'a> {
 
         fct.is_method(true)
             .is_public(true)
+            .use_cannon(use_cannon)
             .constructor(true)
             .block(block.build());
 

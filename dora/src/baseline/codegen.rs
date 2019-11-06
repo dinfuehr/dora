@@ -66,7 +66,13 @@ pub fn generate_fct<'ast>(
 
     let ast = fct.ast;
 
-    let jit_fct = match vm.args.bc() {
+    let mut bc = vm.args.bc();
+
+    if fct.use_cannon {
+        bc = BaselineName::Cannon;
+    }
+
+    let jit_fct = match bc {
         BaselineName::Cannon => CannonCodeGen::new(
             vm,
             &fct,
