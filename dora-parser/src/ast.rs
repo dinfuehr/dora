@@ -68,6 +68,18 @@ impl Ast {
     }
 
     #[cfg(test)]
+    pub fn mod0(&self) -> &Module {
+        self.files.last().unwrap().elements[0].to_module().unwrap()
+    }
+
+    #[cfg(test)]
+    pub fn modu(&self, index: usize) -> &Module {
+        self.files.last().unwrap().elements[index]
+            .to_module()
+            .unwrap()
+    }
+
+    #[cfg(test)]
     pub fn global0(&self) -> &Global {
         self.files.last().unwrap().elements[0].to_global().unwrap()
     }
@@ -100,6 +112,7 @@ pub enum Elem {
     ElemStruct(Struct),
     ElemTrait(Trait),
     ElemImpl(Impl),
+    ElemModule(Module),
     ElemGlobal(Global),
     ElemConst(Const),
     ElemEnum(Enum),
@@ -113,6 +126,7 @@ impl Elem {
             &ElemStruct(ref s) => s.id,
             &ElemTrait(ref t) => t.id,
             &ElemImpl(ref i) => i.id,
+            &ElemModule(ref m) => m.id,
             &ElemGlobal(ref g) => g.id,
             &ElemConst(ref c) => c.id,
             &ElemEnum(ref e) => e.id,
@@ -150,6 +164,13 @@ impl Elem {
     pub fn to_impl(&self) -> Option<&Impl> {
         match self {
             &ElemImpl(ref ximpl) => Some(ximpl),
+            _ => None,
+        }
+    }
+
+    pub fn to_module(&self) -> Option<&Module> {
+        match self {
+            &ElemModule(ref module) => Some(module),
             _ => None,
         }
     }
@@ -428,6 +449,21 @@ pub struct Class {
     pub methods: Vec<Function>,
     pub initializers: Vec<Box<Stmt>>,
     pub type_params: Option<Vec<TypeParam>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Module {
+    pub id: NodeId,
+    pub name: Name,
+    pub pos: Position,
+    pub parent_class: Option<ParentClass>,
+    pub internal: bool,
+    pub has_constructor: bool,
+
+    pub constructor: Option<Function>,
+    pub fields: Vec<Field>,
+    pub methods: Vec<Function>,
+    pub initializers: Vec<Box<Stmt>>,
 }
 
 #[derive(Clone, Debug)]
