@@ -69,6 +69,7 @@ impl<'x, 'ast> Visitor<'ast> for TraitCheck<'x, 'ast> {
             has_override: f.has_override,
             has_open: f.has_open,
             has_final: f.has_final,
+            has_optimize_immediately: f.has_optimize_immediately,
             is_pub: f.is_pub,
             is_static: f.is_static,
             is_abstract: false,

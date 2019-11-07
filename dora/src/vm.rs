@@ -904,6 +904,7 @@ pub struct Fct<'ast> {
     pub has_open: bool,
     pub has_override: bool,
     pub has_final: bool,
+    pub has_optimize_immediately: bool,
     pub is_static: bool,
     pub is_pub: bool,
     pub is_abstract: bool,

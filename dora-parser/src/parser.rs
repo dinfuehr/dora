@@ -607,6 +607,7 @@ impl<'a> Parser<'a> {
                 "optimize" => Modifier::Optimize,
                 "test" => Modifier::Test,
                 "cannon" => Modifier::Cannon,
+                "optimize_immediately" => Modifier::OptimizeImmediately,
                 _ => {
                     return Err(ParseErrorAndPos::new(
                         self.token.position,
@@ -709,6 +710,7 @@ impl<'a> Parser<'a> {
             has_override: modifiers.contains(Modifier::Override),
             has_final: modifiers.contains(Modifier::Final),
             has_optimize: modifiers.contains(Modifier::Optimize),
+            has_optimize_immediately: modifiers.contains(Modifier::OptimizeImmediately),
             is_pub: modifiers.contains(Modifier::Pub),
             is_static: modifiers.contains(Modifier::Static),
             internal: modifiers.contains(Modifier::Internal),

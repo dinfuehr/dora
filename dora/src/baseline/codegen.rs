@@ -70,6 +70,8 @@ pub fn generate_fct<'ast>(
 
     if fct.use_cannon {
         bc = BaselineName::Cannon;
+    } else if fct.has_optimize_immediately {
+        unimplemented!();
     }
 
     let jit_fct = match bc {

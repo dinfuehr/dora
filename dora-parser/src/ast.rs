@@ -498,6 +498,7 @@ pub struct Function {
     pub has_override: bool,
     pub has_final: bool,
     pub has_optimize: bool,
+    pub has_optimize_immediately: bool,
     pub is_pub: bool,
     pub is_static: bool,
     pub is_abstract: bool,
@@ -564,6 +565,7 @@ pub enum Modifier {
     Static,
     Test,
     Cannon,
+    OptimizeImmediately,
 }
 
 impl Modifier {
@@ -579,6 +581,7 @@ impl Modifier {
             Modifier::Static => "static",
             Modifier::Test => "test",
             Modifier::Cannon => "cannon",
+            Modifier::OptimizeImmediately => "optimize_immediately",
         }
     }
 }
