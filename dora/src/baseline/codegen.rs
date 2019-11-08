@@ -3354,6 +3354,7 @@ fn check_for_nil(ty: BuiltinType) -> bool {
         BuiltinType::Class(_, _) => true,
         BuiltinType::Struct(_, _) => false,
         BuiltinType::Trait(_) => false,
+        BuiltinType::Module(_) => false,
         BuiltinType::This => unreachable!(),
         BuiltinType::ClassTypeParam(_, _) => unreachable!(),
         BuiltinType::FctTypeParam(_, _) => unreachable!(),

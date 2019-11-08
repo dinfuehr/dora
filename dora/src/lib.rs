@@ -33,6 +33,7 @@ mod gc;
 mod handle;
 mod masm;
 mod mem;
+mod module;
 mod object;
 mod os;
 mod safepoint;

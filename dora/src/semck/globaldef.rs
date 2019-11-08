@@ -23,6 +23,7 @@ pub fn check<'ast>(
     map_struct_defs: &mut NodeMap<StructId>,
     map_trait_defs: &mut NodeMap<TraitId>,
     map_impl_defs: &mut NodeMap<ImplId>,
+    map_module_defs: &mut NodeMap<ModuleId>,
     map_global_defs: &mut NodeMap<GlobalId>,
     map_const_defs: &mut NodeMap<ConstId>,
     map_enum_defs: &mut NodeMap<EnumId>,
@@ -35,6 +36,7 @@ pub fn check<'ast>(
         map_struct_defs,
         map_trait_defs,
         map_impl_defs,
+        map_module_defs,
         map_global_defs,
         map_const_defs,
         map_enum_defs,
@@ -50,6 +52,7 @@ struct GlobalDef<'x, 'ast: 'x> {
     map_struct_defs: &'x mut NodeMap<StructId>,
     map_trait_defs: &'x mut NodeMap<TraitId>,
     map_impl_defs: &'x mut NodeMap<ImplId>,
+    map_module_defs: &'x mut NodeMap<ModuleId>,
     map_global_defs: &'x mut NodeMap<GlobalId>,
     map_const_defs: &'x mut NodeMap<ConstId>,
     map_enum_defs: &'x mut NodeMap<EnumId>,
@@ -123,6 +126,44 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
         self.vm.impls.push(RwLock::new(ximpl));
         self.map_impl_defs.insert(i.id, id);
+    }
+
+    fn visit_module(&mut self, m: &'ast Module) {
+        let id = {
+            let mut modules = self.vm.modules.lock();
+
+            let id: ModuleId = modules.len().into();
+            let module = module::Module {
+                id: id,
+                name: m.name,
+                file: self.file_id.into(),
+                pos: m.pos,
+                ty: self.vm.modu(id),
+                parent_class: None,
+                internal: m.internal,
+                internal_resolved: false,
+                has_constructor: m.has_constructor,
+
+                constructor: None,
+                fields: Vec::new(),
+                methods: Vec::new(),
+                virtual_fcts: Vec::new(),
+
+                traits: Vec::new(),
+            };
+
+            modules.push(Arc::new(RwLock::new(module)));
+
+            id
+        };
+
+        let sym = SymModule(id);
+
+        self.map_module_defs.insert(m.id, id);
+
+        if let Some(sym) = self.vm.sym.lock().insert(m.name, sym) {
+            report(self.vm, m.name, self.file_id.into(), m.pos, sym);
+        }
     }
 
     fn visit_const(&mut self, c: &'ast Const) {

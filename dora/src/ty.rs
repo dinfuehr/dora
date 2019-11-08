@@ -3,6 +3,7 @@ use std::ops::Index;
 use std::sync::Arc;
 
 use crate::mem;
+use crate::module::ModuleId;
 use crate::semck;
 use crate::vm::VM;
 use crate::vm::{ClassId, EnumId, FctId, StructId, TraitId};
@@ -46,6 +47,9 @@ pub enum BuiltinType {
 
     // some trait object
     Trait(TraitId),
+
+    // some module
+    Module(ModuleId),
 
     // some type variable
     FctTypeParam(FctId, TypeListId),
@@ -271,6 +275,11 @@ impl BuiltinType {
                 let xenum = vm.enums[id].read();
                 vm.interner.str(xenum.name).to_string()
             }
+            BuiltinType::Module(id) => {
+                let modu = vm.modules.idx(id);
+                let modu = modu.read();
+                vm.interner.str(modu.name).to_string()
+            }
             BuiltinType::ClassTypeParam(cid, id) => {
                 let cls = vm.classes.idx(cid);
                 let cls = cls.read();
@@ -360,6 +369,7 @@ impl BuiltinType {
                 _ => false,
             },
             BuiltinType::Trait(_) => unimplemented!(),
+            BuiltinType::Module(_) => *self == other,
             BuiltinType::Enum(_) => *self == other,
 
             BuiltinType::ClassTypeParam(_, _) => *self == other,
@@ -396,9 +406,10 @@ impl BuiltinType {
             BuiltinType::Enum(_) => 4,
             BuiltinType::Nil => panic!("no size for nil."),
             BuiltinType::This => panic!("no size for Self."),
-            BuiltinType::Class(_, _) | BuiltinType::Lambda(_) | BuiltinType::Ptr => {
-                mem::ptr_width()
-            }
+            BuiltinType::Class(_, _)
+            | BuiltinType::Module(_)
+            | BuiltinType::Lambda(_)
+            | BuiltinType::Ptr => mem::ptr_width(),
             BuiltinType::Struct(sid, list_id) => {
                 let params = vm.lists.lock().get(list_id);
                 let sid = semck::specialize::specialize_struct_id_params(vm, sid, params);
@@ -429,9 +440,10 @@ impl BuiltinType {
             BuiltinType::Nil => panic!("no alignment for nil."),
             BuiltinType::This => panic!("no alignment for Self."),
             BuiltinType::Enum(_) => 4,
-            BuiltinType::Class(_, _) | BuiltinType::Lambda(_) | BuiltinType::Ptr => {
-                mem::ptr_width()
-            }
+            BuiltinType::Class(_, _)
+            | BuiltinType::Module(_)
+            | BuiltinType::Lambda(_)
+            | BuiltinType::Ptr => mem::ptr_width(),
             BuiltinType::Struct(sid, list_id) => {
                 let params = vm.lists.lock().get(list_id);
                 let sid = semck::specialize::specialize_struct_id_params(vm, sid, params);
@@ -462,9 +474,10 @@ impl BuiltinType {
             BuiltinType::Enum(_) => MachineMode::Int32,
             BuiltinType::Nil => panic!("no machine mode for nil."),
             BuiltinType::This => panic!("no machine mode for Self."),
-            BuiltinType::Class(_, _) | BuiltinType::Lambda(_) | BuiltinType::Ptr => {
-                MachineMode::Ptr
-            }
+            BuiltinType::Class(_, _)
+            | BuiltinType::Module(_)
+            | BuiltinType::Lambda(_)
+            | BuiltinType::Ptr => MachineMode::Ptr,
             BuiltinType::Struct(_, _) => panic!("no machine mode for struct."),
             BuiltinType::Trait(_) => MachineMode::Ptr,
             BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_, _) => {
@@ -486,6 +499,7 @@ impl BuiltinType {
             | BuiltinType::Float
             | BuiltinType::Double
             | BuiltinType::Enum(_)
+            | BuiltinType::Module(_)
             | BuiltinType::Ptr
             | BuiltinType::Trait(_)
             | BuiltinType::Nil => true,
