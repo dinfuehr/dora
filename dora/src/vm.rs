@@ -473,6 +473,12 @@ pub struct StructFieldDef {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct GlobalId(u32);
 
+impl GlobalId {
+    pub fn to_usize(self) -> usize {
+        self.0 as usize
+    }
+}
+
 impl From<u32> for GlobalId {
     fn from(data: u32) -> GlobalId {
         GlobalId(data)

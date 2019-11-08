@@ -1,5 +1,6 @@
 use std::collections::hash_map::HashMap;
 use std::convert::From;
+
 use std::fmt;
 use std::mem;
 
@@ -21,6 +22,10 @@ impl Register {
 
     pub fn zero() -> Register {
         Register(0)
+    }
+
+    pub fn to_usize(&self) -> usize {
+        self.0
     }
 
     pub fn is_invalid(&self) -> bool {

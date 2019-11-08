@@ -1,7 +1,14 @@
+use crate::class::ClassDefId;
+use crate::field::FieldId;
+use crate::vm::{FctId, GlobalId};
+
 use crate::bytecode::generate::Register;
 use crate::bytecode::opcode::Bytecode;
 
+#[derive(Copy, Clone)]
 pub enum BytecodeInst {
+    Wide,
+
     AddInt,
     AddLong,
     AddFloat,
@@ -191,32 +198,64 @@ impl BytecodeStreamGenerator {
             Bytecode::MovDouble(dest, src) => self.emit_reg2(BytecodeInst::MovDouble, dest, src),
             Bytecode::MovPtr(dest, src) => self.emit_reg2(BytecodeInst::MovPtr, dest, src),
 
-            Bytecode::LoadFieldBool(_, _, _, _) => unimplemented!(),
-            Bytecode::LoadFieldByte(_, _, _, _) => unimplemented!(),
-            Bytecode::LoadFieldChar(_, _, _, _) => unimplemented!(),
-            Bytecode::LoadFieldInt(_, _, _, _) => unimplemented!(),
-            Bytecode::LoadFieldLong(_, _, _, _) => unimplemented!(),
-            Bytecode::LoadFieldFloat(_, _, _, _) => unimplemented!(),
-            Bytecode::LoadFieldDouble(_, _, _, _) => unimplemented!(),
-            Bytecode::LoadFieldPtr(_, _, _, _) => unimplemented!(),
+            Bytecode::LoadFieldBool(dest, obj, cid, fid) => {
+                self.emit_load_field(BytecodeInst::LoadFieldBool, dest, obj, cid, fid)
+            }
+            Bytecode::LoadFieldByte(dest, obj, cid, fid) => {
+                self.emit_load_field(BytecodeInst::LoadFieldByte, dest, obj, cid, fid)
+            }
+            Bytecode::LoadFieldChar(dest, obj, cid, fid) => {
+                self.emit_load_field(BytecodeInst::LoadFieldChar, dest, obj, cid, fid)
+            }
+            Bytecode::LoadFieldInt(dest, obj, cid, fid) => {
+                self.emit_load_field(BytecodeInst::LoadFieldInt, dest, obj, cid, fid)
+            }
+            Bytecode::LoadFieldLong(dest, obj, cid, fid) => {
+                self.emit_load_field(BytecodeInst::LoadFieldLong, dest, obj, cid, fid)
+            }
+            Bytecode::LoadFieldFloat(dest, obj, cid, fid) => {
+                self.emit_load_field(BytecodeInst::LoadFieldFloat, dest, obj, cid, fid)
+            }
+            Bytecode::LoadFieldDouble(dest, obj, cid, fid) => {
+                self.emit_load_field(BytecodeInst::LoadFieldDouble, dest, obj, cid, fid)
+            }
+            Bytecode::LoadFieldPtr(dest, obj, cid, fid) => {
+                self.emit_load_field(BytecodeInst::LoadFieldPtr, dest, obj, cid, fid)
+            }
 
-            Bytecode::LoadGlobalBool(_, _) => unimplemented!(),
-            Bytecode::LoadGlobalByte(_, _) => unimplemented!(),
-            Bytecode::LoadGlobalChar(_, _) => unimplemented!(),
-            Bytecode::LoadGlobalInt(_, _) => unimplemented!(),
-            Bytecode::LoadGlobalLong(_, _) => unimplemented!(),
-            Bytecode::LoadGlobalFloat(_, _) => unimplemented!(),
-            Bytecode::LoadGlobalDouble(_, _) => unimplemented!(),
-            Bytecode::LoadGlobalPtr(_, _) => unimplemented!(),
+            Bytecode::LoadGlobalBool(dest, gid) => {
+                self.emit_load_global(BytecodeInst::LoadGlobalBool, dest, gid)
+            }
+            Bytecode::LoadGlobalByte(dest, gid) => {
+                self.emit_load_global(BytecodeInst::LoadGlobalByte, dest, gid)
+            }
+            Bytecode::LoadGlobalChar(dest, gid) => {
+                self.emit_load_global(BytecodeInst::LoadGlobalChar, dest, gid)
+            }
+            Bytecode::LoadGlobalInt(dest, gid) => {
+                self.emit_load_global(BytecodeInst::LoadGlobalInt, dest, gid)
+            }
+            Bytecode::LoadGlobalLong(dest, gid) => {
+                self.emit_load_global(BytecodeInst::LoadGlobalLong, dest, gid)
+            }
+            Bytecode::LoadGlobalFloat(dest, gid) => {
+                self.emit_load_global(BytecodeInst::LoadGlobalFloat, dest, gid)
+            }
+            Bytecode::LoadGlobalDouble(dest, gid) => {
+                self.emit_load_global(BytecodeInst::LoadGlobalDouble, dest, gid)
+            }
+            Bytecode::LoadGlobalPtr(dest, gid) => {
+                self.emit_load_global(BytecodeInst::LoadGlobalPtr, dest, gid)
+            }
 
-            Bytecode::ConstNil(_) => unimplemented!(),
-            Bytecode::ConstTrue(_) => unimplemented!(),
-            Bytecode::ConstFalse(_) => unimplemented!(),
-            Bytecode::ConstZeroByte(_) => unimplemented!(),
-            Bytecode::ConstZeroInt(_) => unimplemented!(),
-            Bytecode::ConstZeroLong(_) => unimplemented!(),
-            Bytecode::ConstZeroFloat(_) => unimplemented!(),
-            Bytecode::ConstZeroDouble(_) => unimplemented!(),
+            Bytecode::ConstNil(dest) => self.emit_reg1(BytecodeInst::ConstNil, dest),
+            Bytecode::ConstTrue(dest) => self.emit_reg1(BytecodeInst::ConstTrue, dest),
+            Bytecode::ConstFalse(dest) => self.emit_reg1(BytecodeInst::ConstFalse, dest),
+            Bytecode::ConstZeroByte(dest) => self.emit_reg1(BytecodeInst::ConstZeroByte, dest),
+            Bytecode::ConstZeroInt(dest) => self.emit_reg1(BytecodeInst::ConstZeroInt, dest),
+            Bytecode::ConstZeroLong(dest) => self.emit_reg1(BytecodeInst::ConstZeroLong, dest),
+            Bytecode::ConstZeroFloat(dest) => self.emit_reg1(BytecodeInst::ConstZeroFloat, dest),
+            Bytecode::ConstZeroDouble(dest) => self.emit_reg1(BytecodeInst::ConstZeroDouble, dest),
             Bytecode::ConstChar(_, _) => unimplemented!(),
             Bytecode::ConstByte(_, _) => unimplemented!(),
             Bytecode::ConstInt(_, _) => unimplemented!(),
@@ -302,23 +341,87 @@ impl BytecodeStreamGenerator {
         }
     }
 
-    fn emit_reg3(&mut self, _inst: BytecodeInst, _r1: Register, _r2: Register, _r3: Register) {
-        unimplemented!();
+    fn emit_reg3(&mut self, inst: BytecodeInst, r1: Register, r2: Register, r3: Register) {
+        let values = [
+            inst as u32,
+            r1.to_usize() as u32,
+            r2.to_usize() as u32,
+            r3.to_usize() as u32,
+        ];
+        self.emit_values(&values);
     }
 
-    fn emit_reg2(&mut self, _inst: BytecodeInst, _r1: Register, _r2: Register) {
-        unimplemented!();
+    fn emit_reg2(&mut self, inst: BytecodeInst, r1: Register, r2: Register) {
+        let values = [inst as u32, r1.to_usize() as u32, r2.to_usize() as u32];
+        self.emit_values(&values);
     }
 
-    fn emit_reg1(&mut self, _inst: BytecodeInst, _r1: Register) {
-        unimplemented!();
+    fn emit_reg1(&mut self, inst: BytecodeInst, r1: Register) {
+        let values = [inst as u32, r1.to_usize() as u32];
+        self.emit_values(&values);
     }
 
-    fn emit_op(&mut self, _inst: BytecodeInst) {
-        unimplemented!();
+    fn emit_load_field(
+        &mut self,
+        inst: BytecodeInst,
+        r1: Register,
+        r2: Register,
+        cid: ClassDefId,
+        fid: FieldId,
+    ) {
+        let values = [
+            inst as u32,
+            r1.to_usize() as u32,
+            r2.to_usize() as u32,
+            cid.to_usize() as u32,
+            fid.to_usize() as u32,
+        ];
+        self.emit_values(&values);
+    }
+
+    fn emit_load_global(&mut self, inst: BytecodeInst, r1: Register, gid: GlobalId) {
+        let values = [inst as u32, r1.to_usize() as u32, gid.to_usize() as u32];
+        self.emit_values(&values);
+    }
+
+    fn emit_op(&mut self, inst: BytecodeInst) {
+        let values = [inst as u32];
+        self.emit_values(&values);
+    }
+
+    fn emit_values(&mut self, values: &[u32]) {
+        if is_wide(values) {
+            self.emit_wide();
+            for &value in values {
+                self.emit_u32(value);
+            }
+        } else {
+            for &value in values {
+                self.emit_u8(value as u8);
+            }
+        }
+    }
+
+    fn emit_wide(&mut self) {
+        self.data.push(BytecodeInst::Wide as u8);
+    }
+
+    fn emit_u8(&mut self, value: u8) {
+        self.data.push(value);
+    }
+
+    fn emit_u32(&mut self, value: u32) {
+        self.data.push((value & 0xFF) as u8);
+        self.data.push(((value >> 8) & 0xFF) as u8);
+        self.data.push(((value >> 16) & 0xFF) as u8);
+        self.data.push(((value >> 24) & 0xFF) as u8);
     }
 
     pub fn finish(self) -> Vec<u8> {
         self.data
     }
+}
+
+fn is_wide(values: &[u32]) -> bool {
+    values.iter().any(|&val| val > u8::max_value() as u32)
 }

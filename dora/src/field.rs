@@ -10,6 +10,10 @@ impl FieldId {
     pub fn idx(self) -> usize {
         self.0
     }
+
+    pub fn to_usize(self) -> usize {
+        self.0
+    }
 }
 
 impl From<usize> for FieldId {
