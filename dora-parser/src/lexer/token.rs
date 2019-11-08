@@ -49,6 +49,7 @@ pub enum TokenKind {
     Struct,
     Trait,
     Impl,
+    Module,
     Const,
 
     Underscore,
@@ -155,6 +156,7 @@ impl TokenKind {
             TokenKind::Struct => "struct",
             TokenKind::Trait => "trait",
             TokenKind::Impl => "impl",
+            TokenKind::Module => "module",
             TokenKind::Const => "const",
 
             TokenKind::Underscore => "_",
