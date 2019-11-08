@@ -8,11 +8,12 @@ use std::slice;
 use std::str;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::class::{ClassDefId, ClassSize};
+use crate::class::ClassDefId;
 use crate::gc::root::Slot;
 use crate::gc::Address;
 use crate::handle::{root, Handle};
 use crate::mem;
+use crate::size::InstanceSize;
 use crate::vm::VM;
 use crate::vtable::VTable;
 
@@ -263,7 +264,7 @@ impl Obj {
         let classptr = self.header().vtbl().classptr;
         let cls = unsafe { &*classptr };
 
-        if let ClassSize::ObjArray = cls.size {
+        if let InstanceSize::ObjArray = cls.size {
             let array = unsafe { &*(self as *const _ as *const StrArray) };
 
             // walk through all objects in array
@@ -293,7 +294,7 @@ impl Obj {
         let classptr = self.header().vtbl().classptr;
         let cls = unsafe { &*classptr };
 
-        if let ClassSize::ObjArray = cls.size {
+        if let InstanceSize::ObjArray = cls.size {
             let array = unsafe { &*(self as *const _ as *const StrArray) };
 
             // walk through all objects in array
@@ -712,7 +713,7 @@ pub fn alloc(vm: &VM, clsid: ClassDefId) -> Ref<Obj> {
     let cls_def = cls_def.read();
 
     let size = match cls_def.size {
-        ClassSize::Fixed(size) => size as usize,
+        InstanceSize::Fixed(size) => size as usize,
         _ => panic!("alloc only supports fix-sized types"),
     };
 

@@ -1,5 +1,6 @@
 use crate::bytecode::generate::{BytecodeIdx, Register, StrConstPoolIdx};
-use crate::class::{ClassDefId, FieldId};
+use crate::class::ClassDefId;
+use crate::field::FieldId;
 use crate::vm::{FctId, GlobalId};
 
 #[derive(PartialEq, Debug)]

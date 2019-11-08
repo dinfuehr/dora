@@ -1,8 +1,9 @@
 use crate::baseline::asm::BaselineAssembler;
 use crate::baseline::codegen::fct_pattern_match;
 use crate::bytecode::generate::BytecodeIdx;
-use crate::class::{ClassDefId, FieldId};
+use crate::class::ClassDefId;
 use crate::cpu::{Mem, FREG_RESULT, FREG_TMP1, REG_RESULT, REG_TMP1};
+use crate::field::FieldId;
 use dora_parser::ast::*;
 use std::collections::hash_map::HashMap;
 

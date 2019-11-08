@@ -2,10 +2,11 @@ use parking_lot::RwLock;
 use std::collections::{HashMap, HashSet};
 use std::convert::From;
 use std::iter::Iterator;
-use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
+use crate::field::{Field, FieldDef, FieldId};
 use crate::semck::specialize::replace_type_param;
+use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, TypeList};
 use crate::utils::GrowableVec;
 use crate::vm::VM;
@@ -317,44 +318,6 @@ pub fn find_methods_in_class(
     candidates
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct FieldId(usize);
-
-impl FieldId {
-    pub fn idx(self) -> usize {
-        self.0
-    }
-}
-
-impl From<usize> for FieldId {
-    fn from(data: usize) -> FieldId {
-        FieldId(data)
-    }
-}
-
-#[derive(Debug)]
-pub struct Field {
-    pub id: FieldId,
-    pub name: Name,
-    pub ty: BuiltinType,
-    pub offset: i32,
-    pub reassignable: bool,
-}
-
-impl Index<FieldId> for Vec<Field> {
-    type Output = Field;
-
-    fn index(&self, index: FieldId) -> &Field {
-        &self[index.0]
-    }
-}
-
-impl IndexMut<FieldId> for Vec<Field> {
-    fn index_mut(&mut self, index: FieldId) -> &mut Field {
-        &mut self[index.0]
-    }
-}
-
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct ClassDefId(usize);
 
@@ -376,15 +339,6 @@ impl GrowableVec<RwLock<ClassDef>> {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum ClassSize {
-    Fixed(i32),
-    Array(i32),
-    ObjArray,
-    FreeArray,
-    Str,
-}
-
 #[derive(Debug)]
 pub struct ClassDef {
     pub id: ClassDefId,
@@ -392,7 +346,7 @@ pub struct ClassDef {
     pub type_params: TypeList,
     pub parent_id: Option<ClassDefId>,
     pub fields: Vec<FieldDef>,
-    pub size: ClassSize,
+    pub size: InstanceSize,
     pub ref_fields: Vec<i32>,
     pub vtable: Option<VTableBox>,
 }
@@ -419,10 +373,4 @@ impl ClassDef {
             "<Unknown>".into()
         }
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct FieldDef {
-    pub offset: i32,
-    pub ty: BuiltinType,
 }
