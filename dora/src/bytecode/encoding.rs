@@ -290,41 +290,97 @@ impl BytecodeStreamGenerator {
                 self.emit_reg3(BytecodeInst::TestLeInt, dest, lhs, rhs)
             }
 
-            Bytecode::JumpIfFalse(_, _) => unimplemented!(),
-            Bytecode::JumpIfTrue(_, _) => unimplemented!(),
-            Bytecode::Jump(_) => unimplemented!(),
+            Bytecode::JumpIfFalse(cond, _) => {
+                self.emit_cond_jmp(BytecodeInst::JumpIfFalse, cond, 0)
+            }
+            Bytecode::JumpIfTrue(cond, _) => self.emit_cond_jmp(BytecodeInst::JumpIfFalse, cond, 0),
+            Bytecode::Jump(_) => self.emit_jmp(BytecodeInst::Jump, 0),
 
-            Bytecode::InvokeDirectVoid(_, _, _) => unimplemented!(),
-            Bytecode::InvokeDirectBool(_, _, _, _) => unimplemented!(),
-            Bytecode::InvokeDirectByte(_, _, _, _) => unimplemented!(),
-            Bytecode::InvokeDirectChar(_, _, _, _) => unimplemented!(),
-            Bytecode::InvokeDirectInt(_, _, _, _) => unimplemented!(),
-            Bytecode::InvokeDirectLong(_, _, _, _) => unimplemented!(),
-            Bytecode::InvokeDirectFloat(_, _, _, _) => unimplemented!(),
-            Bytecode::InvokeDirectDouble(_, _, _, _) => unimplemented!(),
-            Bytecode::InvokeDirectPtr(_, _, _, _) => unimplemented!(),
+            Bytecode::InvokeDirectVoid(fid, opnd, cnt) => {
+                self.emit_fct_void(BytecodeInst::InvokeDirectVoid, fid, opnd, cnt)
+            }
+            Bytecode::InvokeDirectBool(dest, fid, opnd, cnt) => {
+                self.emit_fct(BytecodeInst::InvokeDirectBool, dest, fid, opnd, cnt)
+            }
+            Bytecode::InvokeDirectByte(dest, fid, opnd, cnt) => {
+                self.emit_fct(BytecodeInst::InvokeDirectByte, dest, fid, opnd, cnt)
+            }
+            Bytecode::InvokeDirectChar(dest, fid, opnd, cnt) => {
+                self.emit_fct(BytecodeInst::InvokeDirectChar, dest, fid, opnd, cnt)
+            }
+            Bytecode::InvokeDirectInt(dest, fid, opnd, cnt) => {
+                self.emit_fct(BytecodeInst::InvokeDirectInt, dest, fid, opnd, cnt)
+            }
+            Bytecode::InvokeDirectLong(dest, fid, opnd, cnt) => {
+                self.emit_fct(BytecodeInst::InvokeDirectLong, dest, fid, opnd, cnt)
+            }
+            Bytecode::InvokeDirectFloat(dest, fid, opnd, cnt) => {
+                self.emit_fct(BytecodeInst::InvokeDirectFloat, dest, fid, opnd, cnt)
+            }
+            Bytecode::InvokeDirectDouble(dest, fid, opnd, cnt) => {
+                self.emit_fct(BytecodeInst::InvokeDirectDouble, dest, fid, opnd, cnt)
+            }
+            Bytecode::InvokeDirectPtr(dest, fid, opnd, cnt) => {
+                self.emit_fct(BytecodeInst::InvokeDirectPtr, dest, fid, opnd, cnt)
+            }
 
-            Bytecode::InvokeVirtualVoid(_, _, _) => unimplemented!(),
-            Bytecode::InvokeVirtualBool(_, _, _, _) => unimplemented!(),
-            Bytecode::InvokeVirtualByte(_, _, _, _) => unimplemented!(),
-            Bytecode::InvokeVirtualChar(_, _, _, _) => unimplemented!(),
-            Bytecode::InvokeVirtualInt(_, _, _, _) => unimplemented!(),
-            Bytecode::InvokeVirtualLong(_, _, _, _) => unimplemented!(),
-            Bytecode::InvokeVirtualFloat(_, _, _, _) => unimplemented!(),
-            Bytecode::InvokeVirtualDouble(_, _, _, _) => unimplemented!(),
-            Bytecode::InvokeVirtualPtr(_, _, _, _) => unimplemented!(),
+            Bytecode::InvokeVirtualVoid(fid, opnd, cnt) => {
+                self.emit_fct_void(BytecodeInst::InvokeVirtualVoid, fid, opnd, cnt)
+            }
+            Bytecode::InvokeVirtualBool(dest, fid, opnd, cnt) => {
+                self.emit_fct(BytecodeInst::InvokeVirtualBool, dest, fid, opnd, cnt)
+            }
+            Bytecode::InvokeVirtualByte(dest, fid, opnd, cnt) => {
+                self.emit_fct(BytecodeInst::InvokeVirtualByte, dest, fid, opnd, cnt)
+            }
+            Bytecode::InvokeVirtualChar(dest, fid, opnd, cnt) => {
+                self.emit_fct(BytecodeInst::InvokeVirtualChar, dest, fid, opnd, cnt)
+            }
+            Bytecode::InvokeVirtualInt(dest, fid, opnd, cnt) => {
+                self.emit_fct(BytecodeInst::InvokeVirtualInt, dest, fid, opnd, cnt)
+            }
+            Bytecode::InvokeVirtualLong(dest, fid, opnd, cnt) => {
+                self.emit_fct(BytecodeInst::InvokeVirtualLong, dest, fid, opnd, cnt)
+            }
+            Bytecode::InvokeVirtualFloat(dest, fid, opnd, cnt) => {
+                self.emit_fct(BytecodeInst::InvokeVirtualFloat, dest, fid, opnd, cnt)
+            }
+            Bytecode::InvokeVirtualDouble(dest, fid, opnd, cnt) => {
+                self.emit_fct(BytecodeInst::InvokeVirtualDouble, dest, fid, opnd, cnt)
+            }
+            Bytecode::InvokeVirtualPtr(dest, fid, opnd, cnt) => {
+                self.emit_fct(BytecodeInst::InvokeVirtualPtr, dest, fid, opnd, cnt)
+            }
 
-            Bytecode::InvokeStaticVoid(_, _, _) => unimplemented!(),
-            Bytecode::InvokeStaticBool(_, _, _, _) => unimplemented!(),
-            Bytecode::InvokeStaticByte(_, _, _, _) => unimplemented!(),
-            Bytecode::InvokeStaticChar(_, _, _, _) => unimplemented!(),
-            Bytecode::InvokeStaticInt(_, _, _, _) => unimplemented!(),
-            Bytecode::InvokeStaticLong(_, _, _, _) => unimplemented!(),
-            Bytecode::InvokeStaticFloat(_, _, _, _) => unimplemented!(),
-            Bytecode::InvokeStaticDouble(_, _, _, _) => unimplemented!(),
-            Bytecode::InvokeStaticPtr(_, _, _, _) => unimplemented!(),
+            Bytecode::InvokeStaticVoid(fid, opnd, cnt) => {
+                self.emit_fct_void(BytecodeInst::InvokeStaticVoid, fid, opnd, cnt)
+            }
+            Bytecode::InvokeStaticBool(dest, fid, opnd, cnt) => {
+                self.emit_fct(BytecodeInst::InvokeStaticBool, dest, fid, opnd, cnt)
+            }
+            Bytecode::InvokeStaticByte(dest, fid, opnd, cnt) => {
+                self.emit_fct(BytecodeInst::InvokeStaticBool, dest, fid, opnd, cnt)
+            }
+            Bytecode::InvokeStaticChar(dest, fid, opnd, cnt) => {
+                self.emit_fct(BytecodeInst::InvokeStaticBool, dest, fid, opnd, cnt)
+            }
+            Bytecode::InvokeStaticInt(dest, fid, opnd, cnt) => {
+                self.emit_fct(BytecodeInst::InvokeStaticBool, dest, fid, opnd, cnt)
+            }
+            Bytecode::InvokeStaticLong(dest, fid, opnd, cnt) => {
+                self.emit_fct(BytecodeInst::InvokeStaticBool, dest, fid, opnd, cnt)
+            }
+            Bytecode::InvokeStaticFloat(dest, fid, opnd, cnt) => {
+                self.emit_fct(BytecodeInst::InvokeStaticBool, dest, fid, opnd, cnt)
+            }
+            Bytecode::InvokeStaticDouble(dest, fid, opnd, cnt) => {
+                self.emit_fct(BytecodeInst::InvokeStaticBool, dest, fid, opnd, cnt)
+            }
+            Bytecode::InvokeStaticPtr(dest, fid, opnd, cnt) => {
+                self.emit_fct(BytecodeInst::InvokeStaticBool, dest, fid, opnd, cnt)
+            }
 
-            Bytecode::NewObject(_, _) => unimplemented!(),
+            Bytecode::NewObject(dest, cid) => self.emit_new(BytecodeInst::NewObject, dest, cid),
 
             Bytecode::Throw(src) => self.emit_reg1(BytecodeInst::Throw, src),
 
@@ -358,6 +414,32 @@ impl BytecodeStreamGenerator {
 
     fn emit_reg1(&mut self, inst: BytecodeInst, r1: Register) {
         let values = [inst as u32, r1.to_usize() as u32];
+        self.emit_values(&values);
+    }
+
+    fn emit_new(&mut self, inst: BytecodeInst, r1: Register, cid: ClassDefId) {
+        let values = [inst as u32, r1.to_usize() as u32, cid.to_usize() as u32];
+        self.emit_values(&values);
+    }
+
+    fn emit_fct_void(&mut self, inst: BytecodeInst, fid: FctId, r1: Register, cnt: usize) {
+        let values = [
+            inst as u32,
+            fid.to_usize() as u32,
+            r1.to_usize() as u32,
+            cnt as u32,
+        ];
+        self.emit_values(&values);
+    }
+
+    fn emit_fct(&mut self, inst: BytecodeInst, r1: Register, fid: FctId, r2: Register, cnt: usize) {
+        let values = [
+            inst as u32,
+            r1.to_usize() as u32,
+            fid.to_usize() as u32,
+            r2.to_usize() as u32,
+            cnt as u32,
+        ];
         self.emit_values(&values);
     }
 
@@ -410,6 +492,30 @@ impl BytecodeStreamGenerator {
         self.data.push(value);
     }
 
+    fn emit_cond_jmp(&mut self, inst: BytecodeInst, cond: Register, offset: i32) {
+        if is_wide_u32(cond.to_usize() as u32) || is_wide_i32(offset) {
+            self.emit_wide();
+            self.emit_u32(inst as u32);
+            self.emit_u32(cond.to_usize() as u32);
+            self.emit_u32(offset as u32);
+        } else {
+            self.emit_u8(inst as u8);
+            self.emit_u8(cond.to_usize() as u8);
+            self.emit_u8(offset as u8);
+        }
+    }
+
+    fn emit_jmp(&mut self, inst: BytecodeInst, offset: i32) {
+        if is_wide_i32(offset) {
+            self.emit_wide();
+            self.emit_u32(inst as u32);
+            self.emit_u32(offset as u32);
+        } else {
+            self.emit_u8(inst as u8);
+            self.emit_u8(offset as u8);
+        }
+    }
+
     fn emit_u32(&mut self, value: u32) {
         self.data.push((value & 0xFF) as u8);
         self.data.push(((value >> 8) & 0xFF) as u8);
@@ -424,4 +530,12 @@ impl BytecodeStreamGenerator {
 
 fn is_wide(values: &[u32]) -> bool {
     values.iter().any(|&val| val > u8::max_value() as u32)
+}
+
+fn is_wide_u32(value: u32) -> bool {
+    value > u8::max_value() as u32
+}
+
+fn is_wide_i32(value: i32) -> bool {
+    i8::min_value() as i32 <= value && value <= i8::max_value() as i32
 }

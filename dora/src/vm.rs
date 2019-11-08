@@ -854,6 +854,12 @@ impl KnownElements {
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct FctId(pub usize);
 
+impl FctId {
+    pub fn to_usize(self) -> usize {
+        self.0
+    }
+}
+
 impl From<usize> for FctId {
     fn from(id: usize) -> FctId {
         FctId(id)
