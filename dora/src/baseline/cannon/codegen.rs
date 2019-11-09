@@ -2,7 +2,7 @@ use crate::baseline::asm::BaselineAssembler;
 use crate::baseline::codegen::fct_pattern_match;
 use crate::bytecode::generate::BytecodeIdx;
 use crate::class::ClassDefId;
-use crate::cpu::{Mem, FREG_RESULT, FREG_TMP1, REG_RESULT, REG_TMP1};
+use crate::cpu::{Mem, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_TMP1};
 use crate::field::FieldId;
 use dora_parser::ast::*;
 use std::collections::hash_map::HashMap;
@@ -100,6 +100,53 @@ where
             bytecode_to_address: HashMap::new(),
             forward_jumps: Vec::new(),
             current_pos: None,
+        }
+    }
+
+    fn store_params_on_stack(&mut self, bytecode: &BytecodeFunction) {
+        let mut reg_idx = 0;
+        let mut freg_idx = 0;
+        let mut sp_offset = 16;
+        let mut idx = 0;
+
+        for param in self.fct.params_with_self() {
+            let dest = Register(idx);
+            assert_eq!(bytecode.register(dest), (*param).into());
+
+            // let bytecode_type = bytecode.register(dest);
+            let offset = bytecode.offset(dest);
+
+            let reg = match param.mode().is_float() {
+                true if freg_idx < FREG_PARAMS.len() => {
+                    let freg = FREG_PARAMS[freg_idx].into();
+                    freg_idx += 1;
+                    Some(freg)
+                }
+                false if reg_idx < REG_PARAMS.len() => {
+                    let reg = REG_PARAMS[reg_idx].into();
+                    reg_idx += 1;
+                    Some(reg)
+                }
+                _ => None,
+            };
+
+            match reg {
+                Some(dest) => {
+                    self.asm.store_mem(param.mode(), Mem::Local(offset), dest);
+                }
+                None => {
+                    let dest = if param.mode().is_float() {
+                        FREG_RESULT.into()
+                    } else {
+                        REG_RESULT.into()
+                    };
+                    self.asm.load_mem(param.mode(), dest, Mem::Local(sp_offset));
+                    self.asm.store_mem(param.mode(), Mem::Local(offset), dest);
+                    sp_offset += 8;
+                }
+            }
+
+            idx += 1;
         }
     }
 
@@ -816,6 +863,7 @@ impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
         }
 
         self.emit_prolog(&bytecode);
+        self.store_params_on_stack(&bytecode);
 
         self.current_pos = Some(BytecodeIdx(0));
         for btcode in bytecode.code() {

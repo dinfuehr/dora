@@ -1,0 +1,17 @@
+//= ignore
+fun main() {
+    assert(add(1, 2, 1, 2, 1, 2, 1, 2, 1) == 5);
+
+    let float_result = add_float(1F, 2F, 1F, 2F, 1F, 2F, 1F, 2F, 1F);
+    let epsilon = 0.1F;
+    assert(float_result >= (5F-epsilon) && float_result <= (5F+epsilon));
+}
+
+@cannon fun add(x: Int, y: Int, z: Int, a: Int, b: Int, c: Int, i: Int, j: Int, k: Int) -> Int {
+    return x+y-z+a-b+c-i+j-k;
+}
+
+@cannon fun add_float(x: Float, y: Float, z: Float, a: Float, b: Float, c: Float, i: Float, j: Float, k: Float) -> Float {
+    return x+ y- z+ a- b+ c- i+ j- k;
+    // return 1F+2F-1F+2F-1F+2F-1F+2F-1F;
+}

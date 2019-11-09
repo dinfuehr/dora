@@ -1,0 +1,31 @@
+//= ignore
+fun main() {
+    assert(testInt(3) == 3);
+    assert(testInt(122) == 122);
+
+    assert(testFloat(3F) == 3F);
+    assert(testFloat(122F) == 122F);
+
+    let foo = Foo();
+    assert(testPtr(foo) === foo);
+
+    assert(foo.testSelf() === foo);
+}
+
+@cannon fun testInt(x: Int) -> Int {
+    return x;
+}
+
+@cannon fun testFloat(x: Float) -> Float {
+    return x;
+}
+
+@cannon fun testPtr(x: Foo) -> Foo {
+    return x;
+}
+
+class Foo() {
+    @cannon fun testSelf() -> Foo {
+        return self;
+    }
+}
