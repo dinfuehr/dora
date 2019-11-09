@@ -850,16 +850,17 @@ impl MacroAssembler {
 
     pub fn load_float_const(&mut self, mode: MachineMode, dest: FReg, imm: f64) {
         let pos = self.pos() as i32;
+        let inst_size = 8 + if dest.msb() != 0 { 1 } else { 0 };
 
         match mode {
             MachineMode::Float32 => {
                 let off = self.dseg.add_f32(imm as f32);
-                asm::movss_load(self, dest, Mem::Base(RIP, -(off + pos + 8)));
+                asm::movss_load(self, dest, Mem::Base(RIP, -(off + pos + inst_size)));
             }
 
             MachineMode::Float64 => {
                 let off = self.dseg.add_f64(imm);
-                asm::movsd_load(self, dest, Mem::Base(RIP, -(off + pos + 8)));
+                asm::movsd_load(self, dest, Mem::Base(RIP, -(off + pos + inst_size)));
             }
 
             _ => unreachable!(),
