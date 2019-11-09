@@ -993,7 +993,8 @@ impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
                 | Bytecode::RetInt(src)
                 | Bytecode::RetLong(src)
                 | Bytecode::RetFloat(src)
-                | Bytecode::RetDouble(src) => self.emit_return_generic(&bytecode, *src),
+                | Bytecode::RetDouble(src)
+                | Bytecode::RetPtr(src) => self.emit_return_generic(&bytecode, *src),
                 Bytecode::RetVoid => self.emit_epilog(),
                 _ => panic!("bytecode {:?} not implemented", btcode),
             }
