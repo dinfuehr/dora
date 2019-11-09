@@ -1,0 +1,42 @@
+fun main() {
+    test_arg1(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F);
+    test_arg2(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F);
+    test_arg3(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F);
+    test_arg4(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F);
+    test_arg5(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F);
+    test_arg6(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F);
+    test_arg7(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F);
+    test_arg8(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F);
+}
+
+fun test_arg1(a: Float, b: Float, c: Float, d: Float, e: Float, f: Float, g: Float, h: Float) {
+    assert(a == 1F);
+}
+
+fun test_arg2(a: Float, b: Float, c: Float, d: Float, e: Float, f: Float, g: Float, h: Float) {
+    assert(b == 2F);
+}
+
+fun test_arg3(a: Float, b: Float, c: Float, d: Float, e: Float, f: Float, g: Float, h: Float) {
+    assert(c == 3F);
+}
+
+fun test_arg4(a: Float, b: Float, c: Float, d: Float, e: Float, f: Float, g: Float, h: Float) {
+    assert(d == 4F);
+}
+
+fun test_arg5(a: Float, b: Float, c: Float, d: Float, e: Float, f: Float, g: Float, h: Float) {
+    assert(e == 5F);
+}
+
+fun test_arg6(a: Float, b: Float, c: Float, d: Float, e: Float, f: Float, g: Float, h: Float) {
+    assert(f == 6F);
+}
+
+fun test_arg7(a: Float, b: Float, c: Float, d: Float, e: Float, f: Float, g: Float, h: Float) {
+    assert(g == 7F);
+}
+
+fun test_arg8(a: Float, b: Float, c: Float, d: Float, e: Float, f: Float, g: Float, h: Float) {
+    assert(h == 8F);
+}
