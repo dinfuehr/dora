@@ -591,19 +591,19 @@ where
         self.asm
             .load_mem(bytecode_type.mode(), REG_RESULT.into(), Mem::Local(offset));
 
-        self.asm.load_field(
-            field.ty.mode(),
-            REG_RESULT.into(),
-            REG_RESULT,
-            field.offset,
-            -1,
-        );
-
         let bytecode_type = bytecode.register(dest);
         let offset = bytecode.offset(dest);
 
+        let reg = match bytecode_type {
+            BytecodeType::Float | BytecodeType::Double => FREG_RESULT.into(),
+            _ => REG_RESULT.into(),
+        };
+
         self.asm
-            .store_mem(bytecode_type.mode(), Mem::Local(offset), REG_RESULT.into());
+            .load_field(field.ty.mode(), reg, REG_RESULT, field.offset, -1);
+
+        self.asm
+            .store_mem(bytecode_type.mode(), Mem::Local(offset), reg);
     }
 
     fn emit_load_global_field(
