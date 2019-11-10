@@ -1,17 +1,47 @@
-//= ignore
 fun main() {
-    assert(add(1, 2, 1, 2, 1, 2, 1, 2, 1) == 5);
-
-    let float_result = add_float(1F, 2F, 1F, 2F, 1F, 2F, 1F, 2F, 1F);
-    let epsilon = 0.1F;
-    assert(float_result >= (5F-epsilon) && float_result <= (5F+epsilon));
+    assert(abi_1(1, 2, 3, 4, 5, 6, 7, 8, 9) == 1);
+    assert(abi_2(1, 2, 3, 4, 5, 6, 7, 8, 9) == 2);
+    assert(abi_3(1, 2, 3, 4, 5, 6, 7, 8, 9) == 3);
+    assert(abi_4(1, 2, 3, 4, 5, 6, 7, 8, 9) == 4);
+    assert(abi_5(1, 2, 3, 4, 5, 6, 7, 8, 9) == 5);
+    assert(abi_6(1, 2, 3, 4, 5, 6, 7, 8, 9) == 6);
+    assert(abi_7(1, 2, 3, 4, 5, 6, 7, 8, 9) == 7);
+    assert(abi_8(1, 2, 3, 4, 5, 6, 7, 8, 9) == 8);
+    assert(abi_9(1, 2, 3, 4, 5, 6, 7, 8, 9) == 9);
 }
 
-@cannon fun add(x: Int, y: Int, z: Int, a: Int, b: Int, c: Int, i: Int, j: Int, k: Int) -> Int {
-    return x+y-z+a-b+c-i+j-k;
+@cannon fun abi_1(x: Int, y: Int, z: Int, a: Int, b: Int, c: Int, i: Int, j: Int, k: Int) -> Int {
+    return x;
 }
 
-@cannon fun add_float(x: Float, y: Float, z: Float, a: Float, b: Float, c: Float, i: Float, j: Float, k: Float) -> Float {
-    return x+ y- z+ a- b+ c- i+ j- k;
-    // return 1F+2F-1F+2F-1F+2F-1F+2F-1F;
+@cannon fun abi_2(x: Int, y: Int, z: Int, a: Int, b: Int, c: Int, i: Int, j: Int, k: Int) -> Int {
+    return y;
+}
+
+@cannon fun abi_3(x: Int, y: Int, z: Int, a: Int, b: Int, c: Int, i: Int, j: Int, k: Int) -> Int {
+    return z;
+}
+
+@cannon fun abi_4(x: Int, y: Int, z: Int, a: Int, b: Int, c: Int, i: Int, j: Int, k: Int) -> Int {
+    return a;
+}
+
+@cannon fun abi_5(x: Int, y: Int, z: Int, a: Int, b: Int, c: Int, i: Int, j: Int, k: Int) -> Int {
+    return b;
+}
+
+@cannon fun abi_6(x: Int, y: Int, z: Int, a: Int, b: Int, c: Int, i: Int, j: Int, k: Int) -> Int {
+    return c;
+}
+
+@cannon fun abi_7(x: Int, y: Int, z: Int, a: Int, b: Int, c: Int, i: Int, j: Int, k: Int) -> Int {
+    return i;
+}
+
+@cannon fun abi_8(x: Int, y: Int, z: Int, a: Int, b: Int, c: Int, i: Int, j: Int, k: Int) -> Int {
+    return j;
+}
+
+@cannon fun abi_9(x: Int, y: Int, z: Int, a: Int, b: Int, c: Int, i: Int, j: Int, k: Int) -> Int {
+    return k;
 }

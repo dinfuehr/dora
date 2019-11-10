@@ -1,0 +1,115 @@
+fun main() {
+    // assert(not(20) == 245);
+
+    assert(add(20, 7) == 27);
+    assert(sub(20, 7) == 13);
+    assert(mul(20, 7) == 140);
+    assert(div(20, 7) == 2);
+    
+    assert(mod(20, 7) == 6);
+
+    assert(or(20, 5) == 21);
+    assert(xor(20, 5) == 17);
+    assert(and(20, 5) == 4);
+
+    assert(shl(20, 2) == 80);
+    assert(shr(20, 2) == 5);
+    assert(sar(20, 2) == 5);
+
+    assert(!eq(20, 5));
+    assert(eq(5, 5));
+    assert(!eq(5, 20));
+
+    assert(ne(20, 5));
+    assert(!ne(5, 5));
+    assert(ne(5, 20));
+
+
+    assert(!lt(20, 5));
+    assert(!lt(5, 5));
+    assert(lt(5, 20));
+
+    assert(!le(20, 5));
+    assert(le(5, 5));
+    assert(le(5, 20));
+
+    assert(ge(20, 5));
+    assert(ge(5, 5));
+    assert(!ge(5, 20));
+
+    assert(gt(20, 5));
+    assert(!gt(5, 5));
+    assert(!gt(5, 20));
+}
+
+@cannon fun not(x: Int) -> Int {
+    return !x;
+}
+
+@cannon fun add(x: Int, y: Int) -> Int {
+    return x+y;
+}
+
+@cannon fun sub(x: Int, y: Int) -> Int {
+    return x-y;
+}
+
+@cannon fun mul(x: Int, y: Int) -> Int {
+    return x*y;
+}
+
+@cannon fun div(x: Int, y: Int) -> Int {
+    return x/y;
+}
+
+@cannon fun mod(y: Int, z: Int) -> Int {
+    return y%z;
+}
+
+@cannon fun or(x: Int, y: Int) -> Int {
+    return x | y;
+}
+
+@cannon fun xor(x: Int, y: Int) -> Int {
+    return x ^ y;
+}
+
+@cannon fun and(x: Int, y: Int) -> Int {
+    return x & y;
+}
+
+@cannon fun shl(x: Int, y: Int) -> Int {
+    return x << y;
+}
+
+@cannon fun shr(x: Int, y: Int) -> Int {
+    return x >>> y;
+}
+
+@cannon fun sar(x: Int, y: Int) -> Int {
+    return x >> y;
+}
+
+@cannon fun eq(x: Int, y: Int) -> Bool {
+    return x == y;
+}
+
+@cannon fun ne(x: Int, y: Int) -> Bool {
+    return x != y;
+}
+
+@cannon fun lt(x: Int, y: Int) -> Bool {
+    return x < y;
+}
+
+@cannon fun le(x: Int, y: Int) -> Bool {
+    return x <= y;
+}
+
+@cannon fun ge(x: Int, y: Int) -> Bool {
+    return x >= y;
+}
+
+@cannon fun gt(x: Int, y: Int) -> Bool {
+    return x > y;
+}
