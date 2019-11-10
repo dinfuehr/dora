@@ -64,6 +64,139 @@ impl<'x, 'ast> ClsCheck<'x, 'ast> {
 
         cls.fields.push(field);
     }
+
+    fn check_parent_class(&mut self, parent_class: &'ast ast::ParentClass) {
+        let name = self.vm.interner.str(parent_class.name).to_string();
+        let sym = self.vm.sym.lock().get(parent_class.name);
+
+        match sym {
+            Some(Sym::SymClass(cls_id)) => {
+                let super_cls = self.vm.classes.idx(cls_id);
+                let super_cls = super_cls.read();
+
+                if !super_cls.has_open {
+                    let msg = SemError::UnderivableType(name);
+                    self.vm
+                        .diag
+                        .lock()
+                        .report(self.file_id.into(), parent_class.pos, msg);
+                }
+
+                let number_type_params = parent_class.type_params.len();
+
+                if number_type_params != super_cls.type_params.len() {
+                    let msg = SemError::WrongNumberTypeParams(
+                        super_cls.type_params.len(),
+                        number_type_params,
+                    );
+                    self.vm
+                        .diag
+                        .lock()
+                        .report(self.file_id.into(), parent_class.pos, msg);
+                } else {
+                    let mut types = Vec::new();
+
+                    for tp in &parent_class.type_params {
+                        let ty = semck::read_type(self.vm, self.file_id.into(), tp)
+                            .unwrap_or(BuiltinType::Error);
+                        types.push(ty);
+                    }
+
+                    let list = TypeList::with(types);
+                    let list_id = self.vm.lists.lock().insert(list);
+
+                    let cls = self.vm.classes.idx(self.cls_id.unwrap());
+                    let mut cls = cls.write();
+                    cls.parent_class = Some(BuiltinType::Class(cls_id, list_id));
+                }
+            }
+
+            _ => {
+                let msg = SemError::UnknownClass(name);
+                self.vm
+                    .diag
+                    .lock()
+                    .report(self.file_id.into(), parent_class.pos, msg);
+            }
+        }
+    }
+
+    fn check_type_params(&mut self, c: &'ast ast::Class, type_params: &'ast [ast::TypeParam]) {
+        let cls = self.vm.classes.idx(self.cls_id.unwrap());
+        let mut cls = cls.write();
+
+        if type_params.len() > 0 {
+            let mut names = HashSet::new();
+            let mut type_param_id = 0;
+            let mut params = Vec::new();
+
+            for type_param in type_params {
+                if !names.insert(type_param.name) {
+                    let name = self.vm.interner.str(type_param.name).to_string();
+                    let msg = SemError::TypeParamNameNotUnique(name);
+                    self.vm.diag.lock().report(cls.file, type_param.pos, msg);
+                }
+
+                params.push(BuiltinType::ClassTypeParam(cls.id, type_param_id.into()));
+
+                for bound in &type_param.bounds {
+                    let ty = semck::read_type(self.vm, cls.file, bound);
+
+                    match ty {
+                        Some(BuiltinType::Class(cls_id, _)) => {
+                            if let None = cls.type_params[type_param_id].class_bound {
+                                cls.type_params[type_param_id].class_bound = Some(cls_id);
+                            } else {
+                                let msg = SemError::MultipleClassBounds;
+                                self.vm.diag.lock().report(cls.file, type_param.pos, msg);
+                            }
+                        }
+
+                        Some(BuiltinType::Trait(trait_id)) => {
+                            if !cls.type_params[type_param_id].trait_bounds.insert(trait_id) {
+                                let msg = SemError::DuplicateTraitBound;
+                                self.vm.diag.lock().report(cls.file, type_param.pos, msg);
+                            }
+                        }
+
+                        None => {
+                            // unknown type, error is already thrown
+                        }
+
+                        _ => {
+                            let msg = SemError::BoundExpected;
+                            self.vm.diag.lock().report(cls.file, bound.pos(), msg);
+                        }
+                    }
+                }
+
+                let sym = Sym::SymClassTypeParam(cls.id, type_param_id.into());
+                self.vm.sym.lock().insert(type_param.name, sym);
+                type_param_id += 1;
+            }
+
+            let params = TypeList::with(params);
+            let list_id = self.vm.lists.lock().insert(params);
+            cls.ty = BuiltinType::Class(cls.id, list_id);
+        } else {
+            let msg = SemError::TypeParamsExpected;
+            self.vm.diag.lock().report(cls.file, c.pos, msg);
+        }
+    }
+
+    fn use_object_class_as_parent(&mut self) {
+        let object_cls = self.vm.vips.object_class;
+        let cls_id = self.cls_id.unwrap();
+
+        if cls_id != object_cls {
+            let cls = self.vm.classes.idx(cls_id);
+            let mut cls = cls.write();
+
+            let list = TypeList::empty();
+            let list_id = self.vm.lists.lock().insert(list);
+            cls.parent_class = Some(BuiltinType::Class(object_cls, list_id));
+        }
+    }
 }
 
 impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
@@ -78,136 +211,15 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
         self.vm.sym.lock().push_level();
 
         if let Some(ref type_params) = c.type_params {
-            let cls = self.vm.classes.idx(self.cls_id.unwrap());
-            let mut cls = cls.write();
-
-            if type_params.len() > 0 {
-                let mut names = HashSet::new();
-                let mut type_param_id = 0;
-                let mut params = Vec::new();
-
-                for type_param in type_params {
-                    if !names.insert(type_param.name) {
-                        let name = self.vm.interner.str(type_param.name).to_string();
-                        let msg = SemError::TypeParamNameNotUnique(name);
-                        self.vm.diag.lock().report(cls.file, type_param.pos, msg);
-                    }
-
-                    params.push(BuiltinType::ClassTypeParam(cls.id, type_param_id.into()));
-
-                    for bound in &type_param.bounds {
-                        let ty = semck::read_type(self.vm, cls.file, bound);
-
-                        match ty {
-                            Some(BuiltinType::Class(cls_id, _)) => {
-                                if let None = cls.type_params[type_param_id].class_bound {
-                                    cls.type_params[type_param_id].class_bound = Some(cls_id);
-                                } else {
-                                    let msg = SemError::MultipleClassBounds;
-                                    self.vm.diag.lock().report(cls.file, type_param.pos, msg);
-                                }
-                            }
-
-                            Some(BuiltinType::Trait(trait_id)) => {
-                                if !cls.type_params[type_param_id].trait_bounds.insert(trait_id) {
-                                    let msg = SemError::DuplicateTraitBound;
-                                    self.vm.diag.lock().report(cls.file, type_param.pos, msg);
-                                }
-                            }
-
-                            None => {
-                                // unknown type, error is already thrown
-                            }
-
-                            _ => {
-                                let msg = SemError::BoundExpected;
-                                self.vm.diag.lock().report(cls.file, bound.pos(), msg);
-                            }
-                        }
-                    }
-
-                    let sym = Sym::SymClassTypeParam(cls.id, type_param_id.into());
-                    self.vm.sym.lock().insert(type_param.name, sym);
-                    type_param_id += 1;
-                }
-
-                let params = TypeList::with(params);
-                let list_id = self.vm.lists.lock().insert(params);
-                cls.ty = BuiltinType::Class(cls.id, list_id);
-            } else {
-                let msg = SemError::TypeParamsExpected;
-                self.vm.diag.lock().report(cls.file, c.pos, msg);
-            }
+            self.check_type_params(c, type_params);
         }
 
         visit::walk_class(self, c);
 
         if let Some(ref parent_class) = c.parent_class {
-            let name = self.vm.interner.str(parent_class.name).to_string();
-            let sym = self.vm.sym.lock().get(parent_class.name);
-
-            match sym {
-                Some(Sym::SymClass(cls_id)) => {
-                    let super_cls = self.vm.classes.idx(cls_id);
-                    let super_cls = super_cls.read();
-
-                    if !super_cls.has_open {
-                        let msg = SemError::UnderivableType(name);
-                        self.vm
-                            .diag
-                            .lock()
-                            .report(self.file_id.into(), parent_class.pos, msg);
-                    }
-
-                    let number_type_params = parent_class.type_params.len();
-
-                    if number_type_params != super_cls.type_params.len() {
-                        let msg = SemError::WrongNumberTypeParams(
-                            super_cls.type_params.len(),
-                            number_type_params,
-                        );
-                        self.vm
-                            .diag
-                            .lock()
-                            .report(self.file_id.into(), parent_class.pos, msg);
-                    } else {
-                        let mut types = Vec::new();
-
-                        for tp in &parent_class.type_params {
-                            let ty = semck::read_type(self.vm, self.file_id.into(), tp)
-                                .unwrap_or(BuiltinType::Error);
-                            types.push(ty);
-                        }
-
-                        let list = TypeList::with(types);
-                        let list_id = self.vm.lists.lock().insert(list);
-
-                        let cls = self.vm.classes.idx(self.cls_id.unwrap());
-                        let mut cls = cls.write();
-                        cls.parent_class = Some(BuiltinType::Class(cls_id, list_id));
-                    }
-                }
-
-                _ => {
-                    let msg = SemError::UnknownClass(name);
-                    self.vm
-                        .diag
-                        .lock()
-                        .report(self.file_id.into(), parent_class.pos, msg);
-                }
-            };
+            self.check_parent_class(parent_class);
         } else {
-            let object_cls = self.vm.vips.object_class;
-            let cls_id = self.cls_id.unwrap();
-
-            if cls_id != object_cls {
-                let cls = self.vm.classes.idx(cls_id);
-                let mut cls = cls.write();
-
-                let list = TypeList::empty();
-                let list_id = self.vm.lists.lock().insert(list);
-                cls.parent_class = Some(BuiltinType::Class(object_cls, list_id));
-            }
+            self.use_object_class_as_parent();
         }
 
         self.cls_id = None;
