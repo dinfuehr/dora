@@ -11,10 +11,17 @@ pub enum Bytecode {
     AddDouble(Register, Register, Register),
 
     SubInt(Register, Register, Register),
+    SubFloat(Register, Register, Register),
+
     NegInt(Register, Register),
     NegLong(Register, Register),
+
     MulInt(Register, Register, Register),
+    MulFloat(Register, Register, Register),
+
     DivInt(Register, Register, Register),
+    DivFloat(Register, Register, Register),
+
     ModInt(Register, Register, Register),
     AndInt(Register, Register, Register),
     OrInt(Register, Register, Register),
@@ -77,6 +84,13 @@ pub enum Bytecode {
     TestGeInt(Register, Register, Register),
     TestLtInt(Register, Register, Register),
     TestLeInt(Register, Register, Register),
+
+    TestEqFloat(Register, Register, Register),
+    TestNeFloat(Register, Register, Register),
+    TestGtFloat(Register, Register, Register),
+    TestGeFloat(Register, Register, Register),
+    TestLtFloat(Register, Register, Register),
+    TestLeFloat(Register, Register, Register),
 
     JumpIfFalse(Register, BytecodeIdx),
     JumpIfTrue(Register, BytecodeIdx),

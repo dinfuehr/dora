@@ -785,7 +785,13 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             | Intrinsic::IntShl
             | Intrinsic::IntShr
             | Intrinsic::IntSar => BytecodeType::Int,
-            Intrinsic::IntEq | Intrinsic::IntCmp => BytecodeType::Bool,
+            Intrinsic::FloatAdd
+            | Intrinsic::FloatSub
+            | Intrinsic::FloatDiv
+            | Intrinsic::FloatMul => BytecodeType::Float,
+            Intrinsic::IntEq | Intrinsic::IntCmp | Intrinsic::FloatEq | Intrinsic::FloatCmp => {
+                BytecodeType::Bool
+            }
             _ => unimplemented!(),
         };
 
@@ -822,6 +828,22 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 BinOp::Cmp(CmpOp::Le) => self.gen.emit_test_le_int(dest, lhs_reg, rhs_reg),
                 BinOp::Cmp(CmpOp::Gt) => self.gen.emit_test_gt_int(dest, lhs_reg, rhs_reg),
                 BinOp::Cmp(CmpOp::Ge) => self.gen.emit_test_ge_int(dest, lhs_reg, rhs_reg),
+                _ => unreachable!(),
+            },
+            Intrinsic::FloatAdd => self.gen.emit_add_float(dest, lhs_reg, rhs_reg),
+            Intrinsic::FloatSub => self.gen.emit_sub_float(dest, lhs_reg, rhs_reg),
+            Intrinsic::FloatMul => self.gen.emit_mul_float(dest, lhs_reg, rhs_reg),
+            Intrinsic::FloatDiv => self.gen.emit_div_float(dest, lhs_reg, rhs_reg),
+            Intrinsic::FloatEq => match op {
+                BinOp::Cmp(CmpOp::Eq) => self.gen.emit_test_eq_float(dest, lhs_reg, rhs_reg),
+                BinOp::Cmp(CmpOp::Ne) => self.gen.emit_test_ne_float(dest, lhs_reg, rhs_reg),
+                _ => unreachable!(),
+            },
+            Intrinsic::FloatCmp => match op {
+                BinOp::Cmp(CmpOp::Lt) => self.gen.emit_test_lt_float(dest, lhs_reg, rhs_reg),
+                BinOp::Cmp(CmpOp::Le) => self.gen.emit_test_le_float(dest, lhs_reg, rhs_reg),
+                BinOp::Cmp(CmpOp::Gt) => self.gen.emit_test_gt_float(dest, lhs_reg, rhs_reg),
+                BinOp::Cmp(CmpOp::Ge) => self.gen.emit_test_ge_float(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             _ => unimplemented!(),
@@ -1210,6 +1232,18 @@ mod tests {
     }
 
     #[test]
+    fn gen_add_float() {
+        let fct = code("fun f() -> Float { return 1F + 2F; }");
+        let expected = vec![
+            ConstFloat(r(1), 1_f32),
+            ConstFloat(r(2), 2_f32),
+            AddFloat(r(0), r(1), r(2)),
+            RetFloat(r(0)),
+        ];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
     fn gen_id_int() {
         let fct = code("fun f(a: Int) -> Int { return a; }");
         let expected = vec![RetInt(r(0))];
@@ -1238,23 +1272,44 @@ mod tests {
     }
 
     #[test]
-    fn gen_sub() {
+    fn gen_sub_int() {
         let fct = code("fun f(a: Int, b: Int) -> Int { return a - b; }");
         let expected = vec![SubInt(r(2), r(0), r(1)), RetInt(r(2))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
-    fn gen_div() {
+    fn gen_sub_float() {
+        let fct = code("fun f(a: Float, b: Float) -> Float { return a - b; }");
+        let expected = vec![SubFloat(r(2), r(0), r(1)), RetFloat(r(2))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_div_int() {
         let fct = code("fun f(a: Int, b: Int) -> Int { return a / b; }");
         let expected = vec![DivInt(r(2), r(0), r(1)), RetInt(r(2))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
-    fn gen_mul() {
+    fn gen_div_float() {
+        let fct = code("fun f(a: Float, b: Float) -> Float { return a / b; }");
+        let expected = vec![DivFloat(r(2), r(0), r(1)), RetFloat(r(2))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_mul_int() {
         let fct = code("fun f(a: Int, b: Int) -> Int { return a * b; }");
         let expected = vec![MulInt(r(2), r(0), r(1)), RetInt(r(2))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_mul_float() {
+        let fct = code("fun f(a: Float, b: Float) -> Float { return a * b; }");
+        let expected = vec![MulFloat(r(2), r(0), r(1)), RetFloat(r(2))];
         assert_eq!(expected, fct.code());
     }
 
@@ -1536,44 +1591,86 @@ mod tests {
     }
 
     #[test]
-    fn gen_expr_test_equal() {
+    fn gen_expr_test_equal_int() {
         let fct = code("fun f(a: Int, b: Int) -> Bool { return a == b; }");
         let expected = vec![TestEqInt(r(2), r(0), r(1)), RetBool(r(2))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
-    fn gen_expr_test_notequal() {
+    fn gen_expr_test_equal_float() {
+        let fct = code("fun f(a: Float, b: Float) -> Bool { return a == b; }");
+        let expected = vec![TestEqFloat(r(2), r(0), r(1)), RetBool(r(2))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_expr_test_notequal_int() {
         let fct = code("fun f(a: Int, b: Int) -> Bool { return a != b; }");
         let expected = vec![TestNeInt(r(2), r(0), r(1)), RetBool(r(2))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
-    fn gen_expr_test_lessthan() {
+    fn gen_expr_test_notequal_float() {
+        let fct = code("fun f(a: Float, b: Float) -> Bool { return a != b; }");
+        let expected = vec![TestNeFloat(r(2), r(0), r(1)), RetBool(r(2))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_expr_test_lessthan_int() {
         let fct = code("fun f(a: Int, b: Int) -> Bool { return a < b; }");
         let expected = vec![TestLtInt(r(2), r(0), r(1)), RetBool(r(2))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
-    fn gen_expr_test_lessthanequal() {
+    fn gen_expr_test_lessthan_float() {
+        let fct = code("fun f(a: Float, b: Float) -> Bool { return a < b; }");
+        let expected = vec![TestLtFloat(r(2), r(0), r(1)), RetBool(r(2))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_expr_test_lessthanequal_int() {
         let fct = code("fun f(a: Int, b: Int) -> Bool { return a <= b; }");
         let expected = vec![TestLeInt(r(2), r(0), r(1)), RetBool(r(2))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
-    fn gen_expr_test_greaterthan() {
+    fn gen_expr_test_lessthanequal_float() {
+        let fct = code("fun f(a: Float, b: Float) -> Bool { return a <= b; }");
+        let expected = vec![TestLeFloat(r(2), r(0), r(1)), RetBool(r(2))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_expr_test_greaterthan_int() {
         let fct = code("fun f(a: Int, b: Int) -> Bool { return a > b; }");
         let expected = vec![TestGtInt(r(2), r(0), r(1)), RetBool(r(2))];
         assert_eq!(expected, fct.code());
     }
 
     #[test]
-    fn gen_expr_test_greaterthanequal() {
+    fn gen_expr_test_greaterthan_float() {
+        let fct = code("fun f(a: Float, b: Float) -> Bool { return a > b; }");
+        let expected = vec![TestGtFloat(r(2), r(0), r(1)), RetBool(r(2))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_expr_test_greaterthanequal_int() {
         let fct = code("fun f(a: Int, b: Int) -> Bool { return a >= b; }");
         let expected = vec![TestGeInt(r(2), r(0), r(1)), RetBool(r(2))];
+        assert_eq!(expected, fct.code());
+    }
+
+    #[test]
+    fn gen_expr_test_greaterthanequal_float() {
+        let fct = code("fun f(a: Float, b: Float) -> Bool { return a >= b; }");
+        let expected = vec![TestGeFloat(r(2), r(0), r(1)), RetBool(r(2))];
         assert_eq!(expected, fct.code());
     }
 
