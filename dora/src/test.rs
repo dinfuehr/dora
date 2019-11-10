@@ -58,7 +58,8 @@ where
         "stdlib/prelude.dora",
         "stdlib/Testing.dora",
     ] {
-        let reader = Reader::from_file(file).unwrap();
+        let msg = format!("cannot open stdlib file `{}`.", file);
+        let reader = Reader::from_file(file).expect(&msg);
         let parser = Parser::new(reader, &vm.id_generator, &mut ast, &mut vm.interner);
         parser.parse().unwrap();
     }
