@@ -1,0 +1,76 @@
+fun main() {
+    assert(test_with_epsilon(add(20F, 5F, 2F), 27F));
+    assert(test_with_epsilon(sub(20F, 5F, 2F), 13F));
+    assert(test_with_epsilon(mul(20F, 5F, 2F), 200F));
+    assert(test_with_epsilon(div(20F, 5F, 2F), 2F));
+
+    assert(!eq(20F, 5F));
+    assert(eq(5F, 5F));
+    assert(!eq(5F, 20F));
+
+    assert(ne(20F, 5F));
+    assert(!ne(5F, 5F));
+    assert(ne(5F, 20F));
+
+
+    assert(!lt(20F, 5F));
+    assert(!lt(5F, 5F));
+    assert(lt(5F, 20F));
+
+    assert(!le(20F, 5F));
+    assert(le(5F, 5F));
+    assert(le(5F, 20F));
+
+    assert(ge(20F, 5F));
+    assert(ge(5F, 5F));
+    assert(!ge(5F, 20F));
+
+    assert(gt(20F, 5F));
+    assert(!gt(5F, 5F));
+    assert(!gt(5F, 20F));
+}
+
+fun test_with_epsilon(expected: Float, value: Float) -> Bool {
+    let epsilon = 0.01F;
+    return value >= (expected-epsilon) && value <= (expected+epsilon);
+}
+
+@cannon fun add(x: Float, y: Float, z: Float) -> Float {
+    return x+y+z;
+}
+
+@cannon fun sub(x: Float, y: Float, z: Float) -> Float {
+    return x-y-z;
+}
+
+@cannon fun mul(x: Float, y: Float, z: Float) -> Float {
+    return x*y*z;
+}
+
+@cannon fun div(x: Float, y: Float, z: Float) -> Float {
+    return x/y/z;
+}
+
+@cannon fun eq(x: Float, y: Float) -> Bool {
+    return x == y;
+}
+
+@cannon fun ne(x: Float, y: Float) -> Bool {
+    return x != y;
+}
+
+@cannon fun lt(x: Float, y: Float) -> Bool {
+    return x < y;
+}
+
+@cannon fun le(x: Float, y: Float) -> Bool {
+    return x <= y;
+}
+
+@cannon fun ge(x: Float, y: Float) -> Bool {
+    return x >= y;
+}
+
+@cannon fun gt(x: Float, y: Float) -> Bool {
+    return x > y;
+}
