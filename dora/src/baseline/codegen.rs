@@ -136,6 +136,8 @@ pub fn generate_fct<'ast>(
         dump_asm(
             vm,
             &*fct,
+            cls_type_params,
+            fct_type_params,
             &jit_fct,
             Some(&src),
             vm.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att),
@@ -194,6 +196,8 @@ fn get_engine(asm_syntax: AsmSyntax) -> CsResult {
 pub fn dump_asm<'ast>(
     vm: &VM<'ast>,
     fct: &Fct<'ast>,
+    cls_type_params: &TypeList,
+    fct_type_params: &TypeList,
     jit_fct: &JitBaselineFct,
     fct_src: Option<&FctSrc>,
     asm_syntax: AsmSyntax,
@@ -226,7 +230,36 @@ pub fn dump_asm<'ast>(
 
     let name = fct.full_name(vm);
 
-    writeln!(&mut w, "fun {} {:#x} {:#x}", &name, start_addr, end_addr).unwrap();
+    let cls_type_params: String = if cls_type_params.len() > 0 {
+        let mut ty_names = Vec::new();
+
+        for ty in cls_type_params.iter() {
+            ty_names.push(ty.name(vm));
+        }
+
+        format!(" CLS[{}]", ty_names.join(", "))
+    } else {
+        "".into()
+    };
+
+    let fct_type_params: String = if fct_type_params.len() > 0 {
+        let mut ty_names = Vec::new();
+
+        for ty in fct_type_params.iter() {
+            ty_names.push(ty.name(vm));
+        }
+
+        format!(" FCT[{}]", ty_names.join(", "))
+    } else {
+        "".into()
+    };
+
+    writeln!(
+        &mut w,
+        "fun {}{}{} {:#x} {:#x}",
+        &name, cls_type_params, fct_type_params, start_addr, end_addr
+    )
+    .unwrap();
 
     if let Some(fct_src) = fct_src {
         for var in &fct_src.vars {
@@ -783,7 +816,7 @@ pub enum AllocationSize {
     Dynamic(Reg),
 }
 
-pub fn ensure_native_stub(vm: &VM, fct_id: FctId, internal_fct: InternalFct) -> Address {
+pub fn ensure_native_stub(vm: &VM, fct_id: Option<FctId>, internal_fct: InternalFct) -> Address {
     let mut native_thunks = vm.native_thunks.lock();
     let ptr = internal_fct.ptr;
 
@@ -791,9 +824,13 @@ pub fn ensure_native_stub(vm: &VM, fct_id: FctId, internal_fct: InternalFct) -> 
         let jit_fct = vm.jit_fcts.idx(jit_fct_id);
         jit_fct.fct_ptr()
     } else {
-        let fct = vm.fcts.idx(fct_id);
-        let fct = fct.read();
-        let dbg = should_emit_debug(vm, &*fct);
+        let dbg = if let Some(fct_id) = fct_id {
+            let fct = vm.fcts.idx(fct_id);
+            let fct = fct.read();
+            should_emit_debug(vm, &*fct)
+        } else {
+            false
+        };
 
         let jit_fct_id = dora_native::generate(vm, internal_fct, dbg);
         let jit_fct = vm.jit_fcts.idx(jit_fct_id);
@@ -801,14 +838,20 @@ pub fn ensure_native_stub(vm: &VM, fct_id: FctId, internal_fct: InternalFct) -> 
 
         let fct_start = jit_fct.fct_start;
 
-        if should_emit_asm(vm, &*fct) {
-            dump_asm(
-                vm,
-                &*fct,
-                &jit_fct,
-                None,
-                vm.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att),
-            );
+        if let Some(fct_id) = fct_id {
+            let fct = vm.fcts.idx(fct_id);
+            let fct = fct.read();
+            if should_emit_asm(vm, &*fct) {
+                dump_asm(
+                    vm,
+                    &*fct,
+                    &TypeList::empty(),
+                    &TypeList::empty(),
+                    &jit_fct,
+                    None,
+                    vm.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att),
+                );
+            }
         }
 
         native_thunks.insert_fct(ptr, jit_fct_id);

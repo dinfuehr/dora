@@ -1514,7 +1514,7 @@ where
                         desc: InternalFctDescriptor::NativeThunk(fid),
                     };
 
-                    ensure_native_stub(self.vm, fid, internal_fct)
+                    ensure_native_stub(self.vm, Some(fid), internal_fct)
                 }
 
                 FctKind::Definition => panic!("prototype for fct call"),
