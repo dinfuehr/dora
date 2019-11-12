@@ -294,6 +294,12 @@ impl<'ast> VM<'ast> {
     }
 
     #[cfg(test)]
+    pub fn const_by_name(&self, name: &'static str) -> ConstId {
+        let name = self.interner.intern(name);
+        self.sym.lock().get_const(name).expect("class not found")
+    }
+
+    #[cfg(test)]
     pub fn cls_method_by_name(
         &self,
         class_name: &'static str,

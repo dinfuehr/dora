@@ -3,6 +3,7 @@ use dora_parser::lexer::reader::Reader;
 use dora_parser::parser::Parser;
 
 use crate::driver::cmd::Args;
+use crate::driver::start::parse_bundled_stdlib;
 use crate::os;
 use crate::semck;
 use crate::vm::VM;
@@ -33,36 +34,7 @@ where
     let empty = Ast::new();
     let mut vm = VM::new(args, &empty);
 
-    for file in &[
-        "stdlib/Identity.dora",
-        "stdlib/Equals.dora",
-        "stdlib/Bool.dora",
-        "stdlib/Byte.dora",
-        "stdlib/Char.dora",
-        "stdlib/Int.dora",
-        "stdlib/Long.dora",
-        "stdlib/Float.dora",
-        "stdlib/Double.dora",
-        "stdlib/Array.dora",
-        "stdlib/String.dora",
-        "stdlib/Stringable.dora",
-        "stdlib/StringBuffer.dora",
-        "stdlib/Throwable.dora",
-        "stdlib/Error.dora",
-        "stdlib/Exception.dora",
-        "stdlib/Thread.dora",
-        "stdlib/Comparable.dora",
-        "stdlib/Sortable.dora",
-        "stdlib/Hash.dora",
-        "stdlib/Default.dora",
-        "stdlib/prelude.dora",
-        "stdlib/Testing.dora",
-    ] {
-        let msg = format!("cannot open stdlib file `{}`.", file);
-        let reader = Reader::from_file(file).expect(&msg);
-        let parser = Parser::new(reader, &vm.id_generator, &mut ast, &mut vm.interner);
-        parser.parse().unwrap();
-    }
+    parse_bundled_stdlib(&mut vm, &mut ast).expect("failed parsing stdlib");
 
     {
         let reader = Reader::from_string("<<code>>", code);

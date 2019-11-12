@@ -51,6 +51,10 @@ impl SymTable {
         self.get(name).and_then(|n| n.to_class())
     }
 
+    pub fn get_const(&self, name: Name) -> Option<ConstId> {
+        self.get(name).and_then(|n| n.to_const())
+    }
+
     pub fn get_fct(&self, name: Name) -> Option<FctId> {
         self.get(name).and_then(|n| n.to_fct())
     }
