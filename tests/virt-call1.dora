@@ -1,0 +1,17 @@
+@open @abstract class Foo {
+    @open @abstract fun test() -> Int;
+}
+
+class Bar: Foo {
+    @override fun test() -> Int {
+        17
+    }
+}
+
+fun test(foo: Foo) -> Int {
+    foo.test()
+}
+
+fun main() {
+    assert(test(Bar()) == 17);
+}

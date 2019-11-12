@@ -888,6 +888,13 @@ impl FctParent {
         }
     }
 
+    pub fn is_trait(&self) -> bool {
+        match self {
+            &FctParent::Trait(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn cls_id(&self) -> ClassId {
         match self {
             &FctParent::Class(id) => id,
@@ -1489,13 +1496,25 @@ pub struct ForTypeInfo {
 
 #[derive(Debug, Clone)]
 pub enum CallType {
+    // Function calls, e.g. fct(<args>)
     Fct(FctId, TypeList, TypeList),
+
+    // Direct or virtual method calls, e.g. obj.method(<args>)
     Method(BuiltinType, FctId, TypeList),
+
+    // Constructor call Class(<args>)
     CtorNew(ClassId, FctId, TypeList),
     Ctor(ClassId, FctId, TypeList),
+
+    // Invoke on expression, e.g. <expr>(<args>)
     Expr(BuiltinType, FctId),
+
+    // Invoke method on trait object
     Trait(TraitId, FctId),
+
+    // Invoke static trait method on type param, e.g. T::method()
     TraitStatic(TypeParamId, TraitId, FctId),
+
     Intrinsic(Intrinsic),
 }
 

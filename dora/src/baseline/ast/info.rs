@@ -395,9 +395,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             .map(|arg| Arg::Expr(arg, BuiltinType::Unit, 0))
             .collect::<Vec<_>>();
 
-        let fct_id: FctId;
-
-        match *call_type {
+        let callee_id = match *call_type {
             CallType::Ctor(_, fid, _) | CallType::CtorNew(_, fid, _) => {
                 let ty = self.ty(expr.id);
                 let arg = if call_type.is_ctor() {
@@ -408,26 +406,39 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
                 args.insert(0, arg);
 
-                fct_id = fid;
+                fid
             }
 
-            CallType::Method(_, fid, _) => {
+            CallType::Method(_, fct_id, _) => {
                 let object = expr.object().unwrap();
                 args.insert(0, Arg::Expr(object, BuiltinType::Unit, 0));
 
-                fct_id = fid;
+                let fct = self.vm.fcts.idx(fct_id);
+                let fct = fct.read();
+
+                if fct.parent.is_trait() {
+                    // This happens for calls like (T: SomeTrait).method()
+                    // Find the exact method that is called
+                    let trait_id = fct.trait_id();
+                    let object_type = match *call_type {
+                        CallType::Method(ty, _, _) => ty,
+                        _ => unreachable!(),
+                    };
+                    let object_type = self.specialize_type(object_type);
+                    self.find_trait_impl(fct_id, trait_id, object_type)
+                } else {
+                    fct_id
+                }
             }
 
-            CallType::Fct(fid, _, _) => {
-                fct_id = fid;
-            }
+            CallType::Fct(fid, _, _) => fid,
 
             CallType::Expr(_, fid) => {
                 let object = &expr.callee;
                 let ty = self.ty(object.id());
                 args.insert(0, Arg::Expr(object, ty, 0));
 
-                fct_id = fid;
+                fid
             }
 
             CallType::TraitStatic(tp_id, trait_id, trait_fct_id) => {
@@ -462,28 +473,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                     }
                 }
 
-                fct_id = impl_fct_id.expect("no impl_fct_id found");
+                impl_fct_id.expect("no impl_fct_id found")
             }
 
             CallType::Trait(_, _) => unimplemented!(),
             CallType::Intrinsic(_) => unreachable!(),
-        }
-
-        let fct = self.vm.fcts.idx(fct_id);
-        let fct = fct.read();
-
-        let callee_id = if fct.kind.is_definition() {
-            let trait_id = fct.trait_id();
-            let object_type = match *call_type {
-                CallType::Method(ty, _, _) => ty,
-                _ => unreachable!(),
-            };
-
-            let object_type = self.specialize_type(object_type);
-
-            self.find_trait_impl(fct_id, trait_id, object_type)
-        } else {
-            fct_id
         };
 
         let callee = self.vm.fcts.idx(callee_id);
