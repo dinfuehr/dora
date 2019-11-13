@@ -84,6 +84,7 @@ impl Drop for VTableBox {
 }
 
 #[derive(Debug)]
+#[repr(C)]
 pub struct VTable {
     pub classptr: *mut ClassDef,
     pub instance_size: usize,
