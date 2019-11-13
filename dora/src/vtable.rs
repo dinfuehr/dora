@@ -89,7 +89,7 @@ pub struct VTable {
     pub classptr: *mut ClassDef,
     pub instance_size: usize,
     pub element_size: usize,
-    pub subtype_depth: i32,
+    pub subtype_depth: usize,
     pub subtype_display: [*const VTable; DISPLAY_SIZE],
     pub subtype_overflow: *const *const VTable,
     pub table_length: usize,

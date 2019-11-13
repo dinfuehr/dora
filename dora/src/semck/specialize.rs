@@ -332,7 +332,7 @@ fn ensure_display<'ast>(vm: &VM<'ast>, cls_def: &mut ClassDef) -> usize {
             vtable.subtype_display[depth] = &**vtable as *const _;
         }
 
-        vtable.subtype_depth = depth as i32;
+        vtable.subtype_depth = depth;
         vtable.subtype_display[0..depth_fixed]
             .clone_from_slice(&parent_vtable.subtype_display[0..depth_fixed]);
 

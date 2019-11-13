@@ -804,12 +804,12 @@ where
             // tmp2 = <vtable of T>
             self.asm.load_constpool(REG_TMP2, disp + pos);
 
-            if vtable.subtype_depth >= DISPLAY_SIZE as i32 {
+            if vtable.subtype_depth >= DISPLAY_SIZE {
                 // cmp [tmp1 + offset T.vtable.subtype_depth], tmp3
                 self.asm.cmp_mem_imm(
                     MachineMode::Int32,
                     Mem::Base(REG_TMP1, VTable::offset_of_depth()),
-                    vtable.subtype_depth,
+                    vtable.subtype_depth as i32,
                 );
 
                 // jnz lbl_false
@@ -824,7 +824,7 @@ where
                 );
 
                 let overflow_offset =
-                    mem::ptr_width() * (vtable.subtype_depth - DISPLAY_SIZE as i32);
+                    mem::ptr_width() * (vtable.subtype_depth - DISPLAY_SIZE) as i32;
 
                 // cmp [tmp1 + 8*(vtable.subtype_depth - DISPLAY_SIZE) ], tmp2
                 self.asm.cmp_mem(
@@ -864,7 +864,7 @@ where
                 self.asm.bind_label(lbl_finished);
             } else {
                 let display_entry =
-                    VTable::offset_of_display() + vtable.subtype_depth * mem::ptr_width();
+                    VTable::offset_of_display() + vtable.subtype_depth as i32 * mem::ptr_width();
 
                 // tmp1 = vtable of object
                 // tmp2 = vtable of T
