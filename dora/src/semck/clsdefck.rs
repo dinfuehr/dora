@@ -238,6 +238,8 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
         self.vm.sym.lock().pop_level();
     }
 
+    fn visit_module(&mut self, _: &'ast ast::Module) {}
+
     fn visit_field(&mut self, f: &'ast ast::Field) {
         let ty = semck::read_type(self.vm, self.file_id.into(), &f.data_type)
             .unwrap_or(BuiltinType::Unit);

@@ -1,16 +1,17 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
-use crate::class::ClassId;
 use crate::field::{Field, FieldDef};
+use crate::semck::specialize::replace_type_param;
 use crate::size::InstanceSize;
-use crate::ty::BuiltinType;
+use crate::ty::{BuiltinType, TypeList};
 use crate::utils::GrowableVec;
 use crate::vm::{FctId, FileId, TraitId, VM};
-use crate::vtable::VTableBox;
 
+use crate::vtable::VTableBox;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
+use std::collections::HashSet;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ModuleId(usize);
@@ -48,7 +49,7 @@ pub struct Module {
     pub pos: Position,
     pub name: Name,
     pub ty: BuiltinType,
-    pub parent_class: Option<ClassId>,
+    pub parent_class: Option<BuiltinType>,
     pub internal: bool,
     pub internal_resolved: bool,
     pub has_constructor: bool,
@@ -59,6 +60,47 @@ pub struct Module {
     pub virtual_fcts: Vec<FctId>,
 
     pub traits: Vec<TraitId>,
+}
+
+pub fn find_methods_in_module(
+    vm: &VM,
+    object_type: BuiltinType,
+    name: Name,
+) -> Vec<(BuiltinType, FctId)> {
+    let mut ignores = HashSet::new();
+
+    let mut module_type = object_type;
+
+    loop {
+        let module_id = module_type.module_id().expect("no class");
+        let module = vm.modules.idx(module_id);
+        let module = module.read();
+
+        for &method in &module.methods {
+            let method = vm.fcts.idx(method);
+            let method = method.read();
+
+            if method.name == name {
+                if let Some(overrides) = method.overrides {
+                    ignores.insert(overrides);
+                }
+
+                if !ignores.contains(&method.id) {
+                    return vec![(module_type, method.id)];
+                }
+            }
+        }
+
+        if let Some(parent_class) = module.parent_class {
+            let type_list = module_type.type_params(vm);
+            module_type =
+                replace_type_param(vm, parent_class, &type_list, &TypeList::empty(), None);
+        } else {
+            break;
+        }
+    }
+
+    Vec::new()
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -95,10 +137,10 @@ pub struct ModuleDef {
 
 impl ModuleDef {
     pub fn name(&self, vm: &VM) -> String {
-        if let Some(mod_id) = self.mod_id {
-            let modu = vm.modules.idx(mod_id);
-            let modu = modu.read();
-            let name = vm.interner.str(modu.name);
+        if let Some(module_id) = self.mod_id {
+            let module = vm.modules.idx(module_id);
+            let module = module.read();
+            let name = vm.interner.str(module.name);
 
             format!("{}", name)
         } else {

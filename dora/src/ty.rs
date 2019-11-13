@@ -98,6 +98,13 @@ impl BuiltinType {
         }
     }
 
+    pub fn is_module(&self) -> bool {
+        match *self {
+            BuiltinType::Module(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn is_float(&self) -> bool {
         match self {
             &BuiltinType::Float | &BuiltinType::Double => true,
@@ -144,6 +151,13 @@ impl BuiltinType {
     pub fn from_cls(cls_id: ClassId, vm: &VM) -> BuiltinType {
         let list_id = vm.lists.lock().insert(TypeList::empty());
         BuiltinType::Class(cls_id, list_id)
+    }
+
+    pub fn module_id(&self) -> Option<ModuleId> {
+        match *self {
+            BuiltinType::Module(module_id) => Some(module_id),
+            _ => None,
+        }
     }
 
     pub fn implements_trait(&self, vm: &VM, trait_id: TraitId) -> bool {
@@ -276,9 +290,9 @@ impl BuiltinType {
                 vm.interner.str(xenum.name).to_string()
             }
             BuiltinType::Module(id) => {
-                let modu = vm.modules.idx(id);
-                let modu = modu.read();
-                vm.interner.str(modu.name).to_string()
+                let module = vm.modules.idx(id);
+                let module = module.read();
+                vm.interner.str(module.name).to_string()
             }
             BuiltinType::ClassTypeParam(cid, id) => {
                 let cls = vm.classes.idx(cid);

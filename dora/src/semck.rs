@@ -17,6 +17,7 @@ mod globaldef;
 mod globaldefck;
 mod implck;
 mod impldefck;
+mod moduledefck;
 mod nameck;
 pub(crate) mod prelude;
 mod returnck;
@@ -67,6 +68,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
 
     // checks class/struct/trait definitions/bodies
     clsdefck::check(vm, &vm.ast, &map_cls_defs);
+    moduledefck::check(vm, &vm.ast, &map_module_defs);
     structdefck::check(vm, &vm.ast, &map_struct_defs);
     traitdefck::check(vm, &vm.ast, &map_trait_defs);
     globaldefck::check(vm, &vm.ast, &map_global_defs);

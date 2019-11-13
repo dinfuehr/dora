@@ -1,4 +1,5 @@
 use crate::error::msg::SemError;
+use crate::module::find_methods_in_module;
 use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck;
 use crate::ty::{BuiltinType, TypeList};
@@ -69,6 +70,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
     pub fn method(mut self, obj: BuiltinType) -> MethodLookup<'a, 'ast> {
         self.kind = if let Some(_) = obj.cls_id(self.vm) {
+            Some(LookupKind::Method(obj))
+        } else if let Some(_) = obj.module_id() {
             Some(LookupKind::Method(obj))
         } else if let BuiltinType::Trait(trait_id) = obj {
             Some(LookupKind::Trait(trait_id))
@@ -338,7 +341,12 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             return None;
         }
 
-        let candidates = find_methods_in_class(self.vm, object_type, name, is_static);
+        let candidates = if object_type.is_module() {
+            find_methods_in_module(self.vm, object_type, name)
+        } else {
+            find_methods_in_class(self.vm, object_type, name, is_static)
+        };
+
         self.found_multiple_functions = candidates.len() > 1;
 
         if candidates.len() == 1 {

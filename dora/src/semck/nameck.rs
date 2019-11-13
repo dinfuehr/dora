@@ -125,7 +125,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         self.src.vars.push(var);
     }
 
-    pub fn add_var<F>(&mut self, mut var: Var, replacable: F) -> Result<VarId, Sym>
+    pub fn add_var<F>(&mut self, mut var: Var, replaceable: F) -> Result<VarId, Sym>
     where
         F: FnOnce(&Sym) -> bool,
     {
@@ -136,7 +136,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
         let result = match self.vm.sym.lock().get(name) {
             Some(sym) => {
-                if replacable(&sym) {
+                if replaceable(&sym) {
                     Ok(var_id)
                 } else {
                     Err(sym)
@@ -281,6 +281,10 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
             Some(SymClass(id)) => {
                 self.src.map_idents.insert(ident.id, IdentType::Class(id));
+            }
+
+            Some(SymModule(id)) => {
+                self.src.map_idents.insert(ident.id, IdentType::Module(id));
             }
 
             Some(SymFctTypeParam(fct_id, id)) => {

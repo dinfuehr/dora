@@ -351,6 +351,7 @@ fn report(vm: &VM, name: Name, file: FileId, pos: Position, sym: Sym) {
         SymTrait(_) => SemError::ShadowTrait(name),
         SymGlobal(_) => SemError::ShadowGlobal(name),
         SymConst(_) => SemError::ShadowConst(name),
+        SymModule(_) => SemError::ShadowModule(name),
         SymEnum(_) => SemError::ShadowEnum(name),
         _ => unimplemented!(),
     };
@@ -401,6 +402,21 @@ mod tests {
             pos(1, 14),
             SemError::ShadowTrait("Foo".into()),
         );
+    }
+
+    #[test]
+    fn test_module() {
+        ok("module Foo {}");
+    }
+
+    #[test]
+    fn test_module_with_fun() {
+        ok("module Foo { fun bar() -> Int = 0; }");
+    }
+
+    #[test]
+    fn test_module_with_let() {
+        ok("module Foo { let bar: Int = 0; }");
     }
 
     #[test]

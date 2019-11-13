@@ -435,6 +435,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.expr_type = BuiltinType::Error;
             }
 
+            &IdentType::Module(module_id) => {
+                let module = self.vm.modules.idx(module_id);
+                let ty = module.read().ty;
+                self.src.set_ty(e.id, ty);
+                self.expr_type = ty;
+            }
+
             &IdentType::TypeParam(_) => {
                 let msg = if self.used_in_call.contains(&e.id) {
                     SemError::TypeParamUsedAsCallee
@@ -539,6 +546,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                         return;
                     }
+
+                    &IdentType::Module(_) => unreachable!(),
 
                     &IdentType::TypeParam(_) | &IdentType::TypeParamStaticMethod(_, _) => {
                         self.vm
@@ -1646,6 +1655,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let cls_ty = BuiltinType::Class(cls_id, list);
 
                 IdentType::StaticMethod(cls_ty, name)
+            }
+
+            Some(&IdentType::Module(module_id)) => {
+                let module_ty = BuiltinType::Module(module_id);
+
+                IdentType::Method(module_ty, name)
             }
 
             Some(&IdentType::ClassType(cls_id, ref type_params)) => {
