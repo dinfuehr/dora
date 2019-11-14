@@ -1,39 +1,21 @@
 fun main() {
   let x = none[Int]();
-  assert(x.isEmpty());
+  assert(x.is_none());
+  assert(!x.is_some());
   assert(!x.has(0));
-  assert(!x.contains(0));
-  assert(x.equals(Option[Int](0, false)));
-  assert(!x.equals(some[Int](0)));
-  assert(x.toString() == "None");
+  assert(!optionContains[Int](x, 0));
+  assert(optionEquals[Int](x, none[Int]()));
+  assert(!optionEquals[Int](x, some[Int](0)));
+  assert(optionToString[Int](x) == "None");
 
   let x = some[Int](1);
-  assert(x.value == 1);
-  assert(x.isPresent);
-  assert(!x.isEmpty());
+  assert(x.is_some());
+  assert(!x.is_none());
+  assert(x.unwrap() == 1);
   assert(x.has(1));
-  assert(x.contains(1));
-  assert(x.equals(some[Int](1)));
-  assert(!x.equals(some[Int](2)));
-  assert(x.toString() == "Some(1)");
-
-  // this constructor should be private
-  let x = Option[Int](1, true);
-  assert(x.value == 1);
-  assert(x.isPresent);
-  assert(!x.isEmpty());
-  assert(x.has(1));
-  assert(x.contains(1));
-  assert(x.equals(some[Int](1)));
-  assert(!x.equals(some[Int](2)));
-  assert(x.toString() == "Some(1)");
-
-  // this constructor should be private
-  let x = Option[Int](-1, false);
-  assert(x.isEmpty());
-  assert(!x.has(-1));
-  assert(!x.contains(-1));
-  assert(x.equals(Option[Int](-1, false)));
-  assert(!x.equals(some[Int](2)));
-  assert(x.toString() == "None");
+  assert(optionContains[Int](x, 1));
+  assert(optionEquals[Int](x, some[Int](1)));
+  assert(!optionEquals[Int](x, some[Int](2)));
+  assert(!optionEquals[Int](x, none[Int]()));
+  assert(optionToString[Int](x) == "Some(1)");
 }

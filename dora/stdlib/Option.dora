@@ -1,28 +1,60 @@
-// FIXME: Identity/Equals/Stringable constraints should all end up on the individual methods that need them, not on the class
-// After nil is gone, this class needs some more intrinsics, so that it can treat <nullptr> as an empty Option (and get rid
-// of the isPresent field). Usual caveats apply: this only works for the first "layer", not for Options inside Options, etc.
-class Option[T : Identity + Equals + Stringable](let value: T, let isPresent: Bool) {
+@open @abstract class Option[T] {
+  @open @abstract fun is_some() -> Bool;
+  @open @abstract fun is_none() -> Bool;
 
-  fun isEmpty() -> Bool = !self.isPresent;
-
-  fun has(rhs: T) -> Bool = self.isPresent && self.value === rhs;
-
-  fun contains(rhs: T) -> Bool =
-    self.isPresent && (self.value === rhs || self.value.equals(rhs));
-
-  fun equals(rhs: Option[T]) -> Bool =
-    self.isPresent == rhs.isPresent && self.value.equals(rhs.value);
-
-  fun toString() -> String {
-    if self.isPresent {
-      return "Some(" + self.value.toString() + ")";
-    } else {
-      return "None";
-    }
-  }
-
+  @open @abstract fun has(rhs: T) -> Bool;
+  @open @abstract fun unwrap() -> T;
 }
 
-fun none[T : Identity + Equals + Stringable]() -> Option[T] = Option[T](defaultValue[T](), false);
+class Some[T](let wrapped: T): Option[T] {
+  @override fun is_some() -> Bool = true;
+  @override fun is_none() -> Bool = false;
 
-fun some[T : Identity + Equals + Stringable](val: T) -> Option[T] = Option[T](val, true);
+  @override fun has(rhs: T) -> Bool = self.wrapped === rhs;
+  @override fun unwrap() -> T { self.wrapped }
+}
+
+class None[T]: Option[T] {
+  @override fun is_some() -> Bool = false;
+  @override fun is_none() -> Bool = true;
+
+  @override fun has(rhs: T) -> Bool = false;
+  @override fun unwrap() -> T {
+    fatalError("cannot unwrap None.");
+    defaultValue[T]()
+  }
+}
+
+fun none[T]() -> Option[T] = None[T]();
+fun some[T](wrapped: T) -> Option[T] = Some[T](wrapped);
+
+fun optionContains[T: Equals](lhs: Option[T], rhs: T) -> Bool {
+  if lhs.is_some() {
+    let lhs = lhs.unwrap();
+    lhs === rhs || lhs.equals(rhs)
+  } else {
+    false
+  }
+}
+
+fun optionEquals[T: Equals](lhs: Option[T], rhs: Option[T]) -> Bool {
+  if lhs.is_some() {
+    if rhs.is_some() {
+      let lhs = lhs.unwrap();
+      let rhs = rhs.unwrap();
+      lhs.equals(rhs)
+    } else {
+      false
+    }
+  } else {
+    rhs.is_none()
+  }
+}
+
+fun optionToString[T: Stringable](lhs: Option[T]) -> String {
+  if lhs.is_some() {
+    "Some(${lhs.unwrap()})"
+  } else {
+    "None"
+  }
+}
