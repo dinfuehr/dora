@@ -2079,7 +2079,6 @@ fn test_is_types() {
 }
 
 #[test]
-#[ignore]
 fn test_type_params_with_bounds_in_subclass() {
     err(
         "
@@ -2087,7 +2086,21 @@ fn test_type_params_with_bounds_in_subclass() {
         @open class Foo[A: SomeTrait]
         class Bar: Foo[Int]
     ",
-        pos(1, 1),
-        SemError::Unimplemented,
+        pos(4, 20),
+        SemError::TraitBoundNotSatisfied("Int".into(), "SomeTrait".into()),
+    );
+}
+
+#[test]
+#[ignore]
+fn test_type_params_with_bounds_in_subclass_wrong_order() {
+    err(
+        "
+        trait SomeTrait {}
+        class Bar: Foo[Int]
+        @open class Foo[A: SomeTrait]
+    ",
+        pos(4, 20),
+        SemError::TraitBoundNotSatisfied("Int".into(), "SomeTrait".into()),
     );
 }

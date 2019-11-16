@@ -5,6 +5,7 @@ use crate::class::*;
 use crate::error::msg::SemError;
 use crate::field::Field;
 use crate::semck;
+use crate::semck::typeparamck;
 use crate::sym::Sym;
 use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, NodeMap, VM};
@@ -82,32 +83,28 @@ impl<'x, 'ast> ClsCheck<'x, 'ast> {
                         .report(self.file_id.into(), parent_class.pos, msg);
                 }
 
-                let number_type_params = parent_class.type_params.len();
+                let mut types = Vec::new();
 
-                if number_type_params != super_cls.type_params.len() {
-                    let msg = SemError::WrongNumberTypeParams(
-                        super_cls.type_params.len(),
-                        number_type_params,
-                    );
-                    self.vm
-                        .diag
-                        .lock()
-                        .report(self.file_id.into(), parent_class.pos, msg);
-                } else {
-                    let mut types = Vec::new();
+                for tp in &parent_class.type_params {
+                    let ty = semck::read_type(self.vm, self.file_id.into(), tp)
+                        .unwrap_or(BuiltinType::Error);
+                    types.push(ty);
+                }
 
-                    for tp in &parent_class.type_params {
-                        let ty = semck::read_type(self.vm, self.file_id.into(), tp)
-                            .unwrap_or(BuiltinType::Error);
-                        types.push(ty);
-                    }
+                let list = TypeList::with(types);
+                let list_id = self.vm.lists.lock().insert(list);
 
-                    let list = TypeList::with(types);
-                    let list_id = self.vm.lists.lock().insert(list);
+                let super_class = BuiltinType::Class(cls_id, list_id);
 
+                if typeparamck::check_type(
+                    self.vm,
+                    self.file_id.into(),
+                    parent_class.pos,
+                    super_class,
+                ) {
                     let cls = self.vm.classes.idx(self.cls_id.unwrap());
                     let mut cls = cls.write();
-                    cls.parent_class = Some(BuiltinType::Class(cls_id, list_id));
+                    cls.parent_class = Some(super_class);
                 }
             }
 
