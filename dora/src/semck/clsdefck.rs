@@ -16,7 +16,7 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_cls_defs: &NodeMap<ClassId>) {
-    let mut clsck = ClsCheck {
+    let mut clsck = ClsDefCheck {
         vm,
         ast,
         cls_id: None,
@@ -27,7 +27,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_cls_defs: &NodeMap<Cla
     clsck.check();
 }
 
-struct ClsCheck<'x, 'ast: 'x> {
+struct ClsDefCheck<'x, 'ast: 'x> {
     vm: &'x mut VM<'ast>,
     ast: &'ast ast::Ast,
     map_cls_defs: &'x NodeMap<ClassId>,
@@ -36,7 +36,7 @@ struct ClsCheck<'x, 'ast: 'x> {
     cls_id: Option<ClassId>,
 }
 
-impl<'x, 'ast> ClsCheck<'x, 'ast> {
+impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
     fn check(&mut self) {
         self.visit_ast(self.ast);
     }
@@ -64,58 +64,6 @@ impl<'x, 'ast> ClsCheck<'x, 'ast> {
         };
 
         cls.fields.push(field);
-    }
-
-    fn check_parent_class(&mut self, parent_class: &'ast ast::ParentClass) {
-        let name = self.vm.interner.str(parent_class.name).to_string();
-        let sym = self.vm.sym.lock().get(parent_class.name);
-
-        match sym {
-            Some(Sym::SymClass(cls_id)) => {
-                let super_cls = self.vm.classes.idx(cls_id);
-                let super_cls = super_cls.read();
-
-                if !super_cls.has_open {
-                    let msg = SemError::UnderivableType(name);
-                    self.vm
-                        .diag
-                        .lock()
-                        .report(self.file_id.into(), parent_class.pos, msg);
-                }
-
-                let mut types = Vec::new();
-
-                for tp in &parent_class.type_params {
-                    let ty = semck::read_type(self.vm, self.file_id.into(), tp)
-                        .unwrap_or(BuiltinType::Error);
-                    types.push(ty);
-                }
-
-                let list = TypeList::with(types);
-                let list_id = self.vm.lists.lock().insert(list);
-
-                let super_class = BuiltinType::Class(cls_id, list_id);
-
-                if typeparamck::check_type(
-                    self.vm,
-                    self.file_id.into(),
-                    parent_class.pos,
-                    super_class,
-                ) {
-                    let cls = self.vm.classes.idx(self.cls_id.unwrap());
-                    let mut cls = cls.write();
-                    cls.parent_class = Some(super_class);
-                }
-            }
-
-            _ => {
-                let msg = SemError::UnknownClass(name);
-                self.vm
-                    .diag
-                    .lock()
-                    .report(self.file_id.into(), parent_class.pos, msg);
-            }
-        }
     }
 
     fn check_type_params(&mut self, c: &'ast ast::Class, type_params: &'ast [ast::TypeParam]) {
@@ -181,6 +129,50 @@ impl<'x, 'ast> ClsCheck<'x, 'ast> {
         }
     }
 
+    fn check_parent_class(&mut self, parent_class: &'ast ast::ParentClass) {
+        let name = self.vm.interner.str(parent_class.name).to_string();
+        let sym = self.vm.sym.lock().get(parent_class.name);
+
+        match sym {
+            Some(Sym::SymClass(cls_id)) => {
+                let super_cls = self.vm.classes.idx(cls_id);
+                let super_cls = super_cls.read();
+
+                if !super_cls.has_open {
+                    let msg = SemError::UnderivableType(name);
+                    self.vm
+                        .diag
+                        .lock()
+                        .report(self.file_id.into(), parent_class.pos, msg);
+                }
+
+                let mut types = Vec::new();
+
+                for tp in &parent_class.type_params {
+                    let ty = semck::read_type(self.vm, self.file_id.into(), tp)
+                        .unwrap_or(BuiltinType::Error);
+                    types.push(ty);
+                }
+
+                let list = TypeList::with(types);
+                let list_id = self.vm.lists.lock().insert(list);
+
+                let super_class = BuiltinType::Class(cls_id, list_id);
+                let cls = self.vm.classes.idx(self.cls_id.unwrap());
+                let mut cls = cls.write();
+                cls.parent_class = Some(super_class);
+            }
+
+            _ => {
+                let msg = SemError::UnknownClass(name);
+                self.vm
+                    .diag
+                    .lock()
+                    .report(self.file_id.into(), parent_class.pos, msg);
+            }
+        }
+    }
+
     fn use_object_class_as_parent(&mut self) {
         let object_cls = self.vm.vips.object_class;
         let cls_id = self.cls_id.unwrap();
@@ -196,7 +188,7 @@ impl<'x, 'ast> ClsCheck<'x, 'ast> {
     }
 }
 
-impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
+impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
     fn visit_file(&mut self, f: &'ast ast::File) {
         visit::walk_file(self, f);
         self.file_id += 1;
@@ -334,6 +326,60 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
         let cls = self.vm.classes.idx(self.cls_id.unwrap());
         let mut cls = cls.write();
         cls.methods.push(fctid);
+    }
+}
+
+pub fn check_super_definition<'ast>(
+    vm: &mut VM<'ast>,
+    ast: &'ast Ast,
+    map_cls_defs: &NodeMap<ClassId>,
+) {
+    let mut clsck = ClsSuperDefinitionCheck {
+        vm,
+        ast,
+        cls_id: None,
+        map_cls_defs,
+        file_id: 0,
+    };
+
+    clsck.check();
+}
+
+struct ClsSuperDefinitionCheck<'x, 'ast: 'x> {
+    vm: &'x mut VM<'ast>,
+    ast: &'ast ast::Ast,
+    map_cls_defs: &'x NodeMap<ClassId>,
+    file_id: u32,
+
+    cls_id: Option<ClassId>,
+}
+
+impl<'x, 'ast> ClsSuperDefinitionCheck<'x, 'ast> {
+    fn check(&mut self) {
+        self.visit_ast(self.ast);
+    }
+}
+
+impl<'x, 'ast> Visitor<'ast> for ClsSuperDefinitionCheck<'x, 'ast> {
+    fn visit_file(&mut self, f: &'ast ast::File) {
+        visit::walk_file(self, f);
+        self.file_id += 1;
+    }
+
+    fn visit_class(&mut self, c: &'ast ast::Class) {
+        self.cls_id = Some(*self.map_cls_defs.get(c.id).unwrap());
+
+        self.vm.sym.lock().push_level();
+
+        if let Some(ref parent_class) = c.parent_class {
+            let cls = self.vm.classes.idx(self.cls_id.unwrap());
+            let cls = cls.read();
+            let super_class = cls.parent_class.expect("parent_class missing");
+            typeparamck::check_type(self.vm, self.file_id.into(), parent_class.pos, super_class);
+        }
+
+        self.cls_id = None;
+        self.vm.sym.lock().pop_level();
     }
 }
 

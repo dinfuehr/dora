@@ -70,6 +70,10 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
     enumck::check(vm, &vm.ast, &map_enum_defs);
     return_on_error!(vm);
 
+    // check super class definition of classes
+    clsdefck::check_super_definition(vm, &vm.ast, &map_cls_defs);
+    return_on_error!(vm);
+
     // check names/identifiers of local variables
     // and their usage (variable def/use, function calls) in function bodies
     nameck::check(vm);

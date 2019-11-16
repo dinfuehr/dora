@@ -2092,7 +2092,6 @@ fn test_type_params_with_bounds_in_subclass() {
 }
 
 #[test]
-#[ignore]
 fn test_type_params_with_bounds_in_subclass_wrong_order() {
     err(
         "
@@ -2100,7 +2099,7 @@ fn test_type_params_with_bounds_in_subclass_wrong_order() {
         class Bar: Foo[Int]
         @open class Foo[A: SomeTrait]
     ",
-        pos(4, 20),
+        pos(3, 20),
         SemError::TraitBoundNotSatisfied("Int".into(), "SomeTrait".into()),
     );
 }
