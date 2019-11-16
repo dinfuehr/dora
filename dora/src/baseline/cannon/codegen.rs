@@ -1,5 +1,6 @@
 use crate::baseline::asm::BaselineAssembler;
 use crate::baseline::codegen::fct_pattern_match;
+use crate::baseline::codegen::ExprStore;
 use crate::bytecode::generate::BytecodeIdx;
 use crate::class::ClassDefId;
 use crate::cpu::{Mem, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_TMP1};
@@ -552,10 +553,7 @@ where
         let bytecode_type = bytecode.register(src);
         let offset = bytecode.offset(src);
 
-        let reg = match bytecode_type {
-            BytecodeType::Float | BytecodeType::Double => FREG_RESULT.into(),
-            _ => REG_RESULT.into(),
-        };
+        let reg = result_reg(bytecode_type);
 
         self.asm
             .load_mem(bytecode_type.mode(), reg, Mem::Local(offset));
@@ -594,10 +592,7 @@ where
         let bytecode_type = bytecode.register(dest);
         let offset = bytecode.offset(dest);
 
-        let reg = match bytecode_type {
-            BytecodeType::Float | BytecodeType::Double => FREG_RESULT.into(),
-            _ => REG_RESULT.into(),
-        };
+        let reg = result_reg(bytecode_type);
 
         self.asm
             .load_field(field.ty.mode(), reg, REG_RESULT, field.offset, -1);
@@ -805,10 +800,7 @@ where
         let bytecode_type = bytecode.register(src);
         let offset = bytecode.offset(src);
 
-        let reg = match bytecode_type {
-            BytecodeType::Float | BytecodeType::Double => FREG_RESULT.into(),
-            _ => REG_RESULT.into(),
-        };
+        let reg = result_reg(bytecode_type);
 
         self.asm
             .load_mem(bytecode_type.mode(), reg, Mem::Local(offset));
@@ -1019,5 +1011,13 @@ fn should_emit_bytecode(vm: &VM, fct: &Fct) -> bool {
         fct_pattern_match(vm, fct, dbg_names)
     } else {
         false
+    }
+}
+
+fn result_reg(bytecode_type: BytecodeType) -> ExprStore {
+    if bytecode_type.mode().is_float() {
+        FREG_RESULT.into()
+    } else {
+        REG_RESULT.into()
     }
 }
