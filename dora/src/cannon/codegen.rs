@@ -728,14 +728,16 @@ where
         self.asm.emit_comment(Comment::LoadGlobal(global_id));
         self.asm.load_constpool(REG_TMP1, disp + pos);
 
-        self.asm
-            .load_mem(glob.ty.mode(), REG_RESULT.into(), Mem::Base(REG_TMP1, 0));
-
         let bytecode_type = self.bytecode.register_type(dest);
         let offset = self.bytecode.register_offset(dest);
 
+        let reg = result_reg(bytecode_type);
+
         self.asm
-            .store_mem(bytecode_type.mode(), Mem::Local(offset), REG_RESULT.into());
+            .load_mem(glob.ty.mode(), reg, Mem::Base(REG_TMP1, 0));
+
+        self.asm
+            .store_mem(bytecode_type.mode(), Mem::Local(offset), reg);
     }
 
     fn emit_const_nil(&mut self, dest: Register) {
