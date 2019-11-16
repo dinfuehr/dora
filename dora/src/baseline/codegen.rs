@@ -16,7 +16,7 @@ use crate::baseline::dora_native::{self, InternalFct};
 use crate::baseline::fct::{CommentFormat, GcPoint, JitBaselineFct, JitFct};
 use crate::baseline::map::CodeDescriptor;
 use crate::cpu::x64::reg::{FREG_RESULT, REG_RESULT};
-use crate::cpu::{FReg, Reg};
+use crate::cpu::{FReg, Reg, STACK_FRAME_ALIGNMENT};
 use crate::driver::cmd::{AsmSyntax, BaselineName};
 use crate::gc::Address;
 use crate::masm::*;
@@ -533,6 +533,11 @@ impl ManagedStackFrame {
         -self.stacksize
     }
 
+    pub fn initial_stacksize(&mut self, size: i32) {
+        assert!(self.stacksize == 0);
+        self.stacksize = size;
+    }
+
     fn free(&mut self, var: ManagedVar, vm: &VM) {
         if let Some((ty, offset)) = self.vars.remove(&var) {
             let size = if ty.is_nil() {
@@ -558,6 +563,10 @@ impl ManagedStackFrame {
         }
 
         GcPoint::from_offsets(offsets)
+    }
+
+    pub fn stacksize(&self) -> i32 {
+        mem::align_i32(self.stacksize, STACK_FRAME_ALIGNMENT as i32)
     }
 }
 

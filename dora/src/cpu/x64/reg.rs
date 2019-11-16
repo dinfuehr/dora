@@ -11,6 +11,8 @@ pub const REG_SP: Reg = RSP;
 pub const REG_FP: Reg = RBP;
 pub const REG_THREAD: Reg = R15;
 
+pub const STACK_FRAME_ALIGNMENT: usize = 16;
+
 pub const RAX: Reg = Reg(0);
 pub const RCX: Reg = Reg(1);
 pub const RDX: Reg = Reg(2);

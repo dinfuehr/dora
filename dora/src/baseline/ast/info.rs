@@ -222,7 +222,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         self.visit_fct(self.ast);
 
-        self.jit_info.stacksize = mem::align_i32(self.stacksize, 16);
+        self.jit_info.stacksize = mem::align_i32(self.stacksize, STACK_FRAME_ALIGNMENT as i32);
         self.jit_info.leaf = self.leaf;
         self.jit_info.eh_return_value = self.eh_return_value;
     }

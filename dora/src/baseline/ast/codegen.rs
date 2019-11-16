@@ -2623,6 +2623,9 @@ impl<'a, 'ast> CodeGen<'ast> for AstCodeGen<'a, 'ast> {
             self.asm.debug();
         }
 
+        let jit_info_stacksize = self.jit_info.stacksize();
+        self.managed_stack.initial_stacksize(jit_info_stacksize);
+
         self.stack.push_scope();
         self.managed_stack.push_scope();
         self.emit_prolog();
@@ -2658,7 +2661,7 @@ impl<'a, 'ast> CodeGen<'ast> for AstCodeGen<'a, 'ast> {
         }
 
         self.asm
-            .patch_stacksize(self.stacksize_offset, self.jit_info.stacksize());
+            .patch_stacksize(self.stacksize_offset, self.managed_stack.stacksize());
 
         let jit_fct = self.asm.jit(
             self.jit_info.stacksize(),
