@@ -1,5 +1,6 @@
 use crate::baseline::asm::BaselineAssembler;
 use crate::baseline::codegen::fct_pattern_match;
+use crate::baseline::codegen::ExprStore;
 use crate::bytecode::generate::BytecodeIdx;
 use crate::class::ClassDefId;
 use crate::cpu::{Mem, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_TMP1};
@@ -552,10 +553,7 @@ where
         let bytecode_type = bytecode.register(src);
         let offset = bytecode.offset(src);
 
-        let reg = match bytecode_type {
-            BytecodeType::Float | BytecodeType::Double => FREG_RESULT.into(),
-            _ => REG_RESULT.into(),
-        };
+        let reg = result_reg(bytecode_type);
 
         self.asm
             .load_mem(bytecode_type.mode(), reg, Mem::Local(offset));
@@ -591,19 +589,16 @@ where
         self.asm
             .load_mem(bytecode_type.mode(), REG_RESULT.into(), Mem::Local(offset));
 
-        self.asm.load_field(
-            field.ty.mode(),
-            REG_RESULT.into(),
-            REG_RESULT,
-            field.offset,
-            -1,
-        );
-
         let bytecode_type = bytecode.register(dest);
         let offset = bytecode.offset(dest);
 
+        let reg = result_reg(bytecode_type);
+
         self.asm
-            .store_mem(bytecode_type.mode(), Mem::Local(offset), REG_RESULT.into());
+            .load_field(field.ty.mode(), reg, REG_RESULT, field.offset, -1);
+
+        self.asm
+            .store_mem(bytecode_type.mode(), Mem::Local(offset), reg);
     }
 
     fn emit_load_global_field(
@@ -805,10 +800,7 @@ where
         let bytecode_type = bytecode.register(src);
         let offset = bytecode.offset(src);
 
-        let reg = match bytecode_type {
-            BytecodeType::Float | BytecodeType::Double => FREG_RESULT.into(),
-            _ => REG_RESULT.into(),
-        };
+        let reg = result_reg(bytecode_type);
 
         self.asm
             .load_mem(bytecode_type.mode(), reg, Mem::Local(offset));
@@ -993,7 +985,8 @@ impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
                 | Bytecode::RetInt(src)
                 | Bytecode::RetLong(src)
                 | Bytecode::RetFloat(src)
-                | Bytecode::RetDouble(src) => self.emit_return_generic(&bytecode, *src),
+                | Bytecode::RetDouble(src)
+                | Bytecode::RetPtr(src) => self.emit_return_generic(&bytecode, *src),
                 Bytecode::RetVoid => self.emit_epilog(),
                 _ => panic!("bytecode {:?} not implemented", btcode),
             }
@@ -1018,5 +1011,13 @@ fn should_emit_bytecode(vm: &VM, fct: &Fct) -> bool {
         fct_pattern_match(vm, fct, dbg_names)
     } else {
         false
+    }
+}
+
+fn result_reg(bytecode_type: BytecodeType) -> ExprStore {
+    if bytecode_type.mode().is_float() {
+        FREG_RESULT.into()
+    } else {
+        REG_RESULT.into()
     }
 }
