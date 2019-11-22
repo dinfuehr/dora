@@ -222,6 +222,10 @@ impl BytecodeGenerator {
         self.code.push(Bytecode::DivInt(dest, lhs, rhs));
     }
 
+    pub fn emit_div_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::DivFloat(dest, lhs, rhs));
+    }
+
     pub fn emit_load_field_bool(
         &mut self,
         dest: Register,
@@ -422,6 +426,10 @@ impl BytecodeGenerator {
         self.code.push(Bytecode::MulInt(dest, lhs, rhs));
     }
 
+    pub fn emit_mul_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::MulFloat(dest, lhs, rhs));
+    }
+
     pub fn emit_neg_int(&mut self, dest: Register, src: Register) {
         self.code.push(Bytecode::NegInt(dest, src));
     }
@@ -444,6 +452,10 @@ impl BytecodeGenerator {
 
     pub fn emit_sub_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::SubInt(dest, lhs, rhs));
+    }
+
+    pub fn emit_sub_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::SubFloat(dest, lhs, rhs));
     }
 
     pub fn emit_mov_bool(&mut self, dest: Register, src: Register) {
@@ -518,12 +530,20 @@ impl BytecodeGenerator {
         self.code.push(Bytecode::TestEqInt(dest, lhs, rhs));
     }
 
+    pub fn emit_test_eq_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::TestEqFloat(dest, lhs, rhs));
+    }
+
     pub fn emit_test_eq_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::TestEqPtr(dest, lhs, rhs));
     }
 
     pub fn emit_test_ne_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::TestNeInt(dest, lhs, rhs));
+    }
+
+    pub fn emit_test_ne_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::TestNeFloat(dest, lhs, rhs));
     }
 
     pub fn emit_test_ne_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -534,16 +554,32 @@ impl BytecodeGenerator {
         self.code.push(Bytecode::TestGtInt(dest, lhs, rhs));
     }
 
+    pub fn emit_test_gt_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::TestGtFloat(dest, lhs, rhs));
+    }
+
     pub fn emit_test_ge_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::TestGeInt(dest, lhs, rhs));
+    }
+
+    pub fn emit_test_ge_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::TestGeFloat(dest, lhs, rhs));
     }
 
     pub fn emit_test_lt_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::TestLtInt(dest, lhs, rhs));
     }
 
+    pub fn emit_test_lt_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::TestLtFloat(dest, lhs, rhs));
+    }
+
     pub fn emit_test_le_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::TestLeInt(dest, lhs, rhs));
+    }
+
+    pub fn emit_test_le_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.code.push(Bytecode::TestLeFloat(dest, lhs, rhs));
     }
 
     pub fn emit_load_global_bool(&mut self, dest: Register, gid: GlobalId) {
@@ -989,6 +1025,9 @@ impl BytecodeFunction {
                 Bytecode::DivInt(dest, lhs, rhs) => {
                     println!("{}: {} <-int {} / {}", btidx, dest, lhs, rhs)
                 }
+                Bytecode::DivFloat(dest, lhs, rhs) => {
+                    println!("{}: {} <-float {} / {}", btidx, dest, lhs, rhs)
+                }
                 Bytecode::ConstNil(dest) => println!("{}: {} <- nil", btidx, dest),
                 Bytecode::ConstTrue(dest) => println!("{}: {} <- true", btidx, dest),
                 Bytecode::ConstFalse(dest) => println!("{}: {} <- false", btidx, dest),
@@ -1022,6 +1061,9 @@ impl BytecodeFunction {
                 Bytecode::MulInt(dest, lhs, rhs) => {
                     println!("{}: {} <-int {} * {}", btidx, dest, lhs, rhs)
                 }
+                Bytecode::MulFloat(dest, lhs, rhs) => {
+                    println!("{}: {} <-float {} * {}", btidx, dest, lhs, rhs)
+                }
                 Bytecode::NegInt(dest, src) => println!("{}: {} <-int -{}", btidx, dest, src),
                 Bytecode::NegLong(dest, src) => println!("{}: {} <-long -{}", btidx, dest, src),
                 Bytecode::ShlInt(dest, lhs, rhs) => {
@@ -1036,7 +1078,9 @@ impl BytecodeFunction {
                 Bytecode::SubInt(dest, lhs, rhs) => {
                     println!("{}: {} <-int {} - {}", btidx, dest, lhs, rhs)
                 }
-
+                Bytecode::SubFloat(dest, lhs, rhs) => {
+                    println!("{}: {} <-float {} - {}", btidx, dest, lhs, rhs)
+                }
                 Bytecode::LoadFieldBool(dest, obj, cls, field) => {
                     println!("{}: {} <-bool {} {:?}.{:?}", btidx, dest, obj, cls, field);
                 }
@@ -1073,11 +1117,17 @@ impl BytecodeFunction {
                 Bytecode::TestEqInt(dest, lhs, rhs) => {
                     println!("{}: {} <- {} =.int {}", btidx, dest, lhs, rhs)
                 }
+                Bytecode::TestEqFloat(dest, lhs, rhs) => {
+                    println!("{}: {} <- {} =.float {}", btidx, dest, lhs, rhs)
+                }
                 Bytecode::TestEqPtr(dest, lhs, rhs) => {
                     println!("{}: {} <- {} === {}", btidx, dest, lhs, rhs)
                 }
                 Bytecode::TestNeInt(dest, lhs, rhs) => {
                     println!("{}: {} <- {} !=.int {}", btidx, dest, lhs, rhs)
+                }
+                Bytecode::TestNeFloat(dest, lhs, rhs) => {
+                    println!("{}: {} <- {} !=.float {}", btidx, dest, lhs, rhs)
                 }
                 Bytecode::TestNePtr(dest, lhs, rhs) => {
                     println!("{}: {} <- {} !== {}", btidx, dest, lhs, rhs)
@@ -1085,14 +1135,26 @@ impl BytecodeFunction {
                 Bytecode::TestGtInt(dest, lhs, rhs) => {
                     println!("{}: {} <- {} >.int {}", btidx, dest, lhs, rhs)
                 }
+                Bytecode::TestGtFloat(dest, lhs, rhs) => {
+                    println!("{}: {} <- {} >.float {}", btidx, dest, lhs, rhs)
+                }
                 Bytecode::TestGeInt(dest, lhs, rhs) => {
-                    println!("{}: {} <- {} <=.int {}", btidx, dest, lhs, rhs)
+                    println!("{}: {} <- {} >=.int {}", btidx, dest, lhs, rhs)
+                }
+                Bytecode::TestGeFloat(dest, lhs, rhs) => {
+                    println!("{}: {} <- {} >=.float {}", btidx, dest, lhs, rhs)
                 }
                 Bytecode::TestLtInt(dest, lhs, rhs) => {
-                    println!("{}: {} <- {} >.int {}", btidx, dest, lhs, rhs)
+                    println!("{}: {} <- {} <.int {}", btidx, dest, lhs, rhs)
+                }
+                Bytecode::TestLtFloat(dest, lhs, rhs) => {
+                    println!("{}: {} <- {} <.float {}", btidx, dest, lhs, rhs)
                 }
                 Bytecode::TestLeInt(dest, lhs, rhs) => {
-                    println!("{}: {} <- {} >=.int {}", btidx, dest, lhs, rhs)
+                    println!("{}: {} <- {} <=.int {}", btidx, dest, lhs, rhs)
+                }
+                Bytecode::TestLeFloat(dest, lhs, rhs) => {
+                    println!("{}: {} <- {} <=.float {}", btidx, dest, lhs, rhs)
                 }
                 Bytecode::LoadGlobalBool(dest, gid) => {
                     println!("{}: {} <-bool global {:?}", btidx, dest, gid)

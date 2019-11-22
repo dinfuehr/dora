@@ -15,10 +15,13 @@ pub enum BytecodeInst {
     AddDouble,
 
     SubInt,
+    SubFloat,
     NegInt,
     NegLong,
     MulInt,
+    MulFloat,
     DivInt,
+    DivFloat,
     ModInt,
     AndInt,
     OrInt,
@@ -81,6 +84,13 @@ pub enum BytecodeInst {
     TestGeInt,
     TestLtInt,
     TestLeInt,
+
+    TestEqFloat,
+    TestNeFloat,
+    TestGtFloat,
+    TestGeFloat,
+    TestLtFloat,
+    TestLeFloat,
 
     JumpIfFalse,
     JumpIfTrue,
@@ -159,13 +169,22 @@ impl BytecodeStreamGenerator {
             Bytecode::SubInt(dest, lhs, rhs) => {
                 self.emit_reg3(BytecodeInst::SubInt, dest, lhs, rhs)
             }
+            Bytecode::SubFloat(dest, lhs, rhs) => {
+                self.emit_reg3(BytecodeInst::SubFloat, dest, lhs, rhs)
+            }
             Bytecode::NegInt(dest, src) => self.emit_reg2(BytecodeInst::NegInt, dest, src),
             Bytecode::NegLong(dest, src) => self.emit_reg2(BytecodeInst::NegLong, dest, src),
             Bytecode::MulInt(dest, lhs, rhs) => {
                 self.emit_reg3(BytecodeInst::MulInt, dest, lhs, rhs)
             }
+            Bytecode::MulFloat(dest, lhs, rhs) => {
+                self.emit_reg3(BytecodeInst::MulFloat, dest, lhs, rhs)
+            }
             Bytecode::DivInt(dest, lhs, rhs) => {
                 self.emit_reg3(BytecodeInst::DivInt, dest, lhs, rhs)
+            }
+            Bytecode::DivFloat(dest, lhs, rhs) => {
+                self.emit_reg3(BytecodeInst::DivFloat, dest, lhs, rhs)
             }
             Bytecode::ModInt(dest, lhs, rhs) => {
                 self.emit_reg3(BytecodeInst::ModInt, dest, lhs, rhs)
@@ -288,6 +307,24 @@ impl BytecodeStreamGenerator {
             }
             Bytecode::TestLeInt(dest, lhs, rhs) => {
                 self.emit_reg3(BytecodeInst::TestLeInt, dest, lhs, rhs)
+            }
+            Bytecode::TestEqFloat(dest, lhs, rhs) => {
+                self.emit_reg3(BytecodeInst::TestEqFloat, dest, lhs, rhs)
+            }
+            Bytecode::TestNeFloat(dest, lhs, rhs) => {
+                self.emit_reg3(BytecodeInst::TestNeFloat, dest, lhs, rhs)
+            }
+            Bytecode::TestGtFloat(dest, lhs, rhs) => {
+                self.emit_reg3(BytecodeInst::TestGtFloat, dest, lhs, rhs)
+            }
+            Bytecode::TestGeFloat(dest, lhs, rhs) => {
+                self.emit_reg3(BytecodeInst::TestGeFloat, dest, lhs, rhs)
+            }
+            Bytecode::TestLtFloat(dest, lhs, rhs) => {
+                self.emit_reg3(BytecodeInst::TestLtFloat, dest, lhs, rhs)
+            }
+            Bytecode::TestLeFloat(dest, lhs, rhs) => {
+                self.emit_reg3(BytecodeInst::TestLeFloat, dest, lhs, rhs)
             }
 
             Bytecode::JumpIfFalse(cond, _) => {
