@@ -2671,7 +2671,7 @@ impl<'a, 'ast> CodeGen<'ast> for AstCodeGen<'a, 'ast> {
             .patch_stacksize(self.stacksize_offset, self.managed_stack.stacksize());
 
         let jit_fct = self.asm.jit(
-            self.jit_info.stacksize(),
+            self.managed_stack.stacksize(),
             JitDescriptor::DoraFct(self.fct.id),
             self.ast.throws,
         );
