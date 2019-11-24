@@ -448,7 +448,7 @@ pub struct ManagedStackSlot {
 }
 
 impl ManagedStackSlot {
-    fn offset(&self) -> i32 {
+    pub fn offset(&self) -> i32 {
         self.offset
     }
 }

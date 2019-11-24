@@ -926,6 +926,13 @@ where
         (slot, offset)
     }
 
+    fn add_temp_node2(&mut self, expr: &Expr) -> ManagedStackSlot {
+        let id = expr.id();
+        let ty = self.ty(id);
+
+        self.managed_stack.add_temp(ty, self.vm)
+    }
+
     fn free_temp_node(&mut self, expr: &Expr, slot: ManagedStackSlot, offset: i32) {
         let ty = self.ty(expr.id());
         self.stack.free_temp(ty, offset);
