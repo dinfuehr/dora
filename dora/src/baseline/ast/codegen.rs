@@ -922,8 +922,32 @@ where
         self.managed_stack.add_temp(ty, self.vm)
     }
 
-    fn intrinsic(&self, id: NodeId) -> Option<Intrinsic> {
-        self.jit_info.map_intrinsics.get(id).map(|&intr| intr)
+    fn get_intrinsic(&self, id: NodeId) -> Option<Intrinsic> {
+        let call_type = self.src.map_calls.get(id);
+        let call_type = if call_type.is_some() {
+            call_type.unwrap()
+        } else {
+            return None;
+        };
+
+        if let Some(intrinsic) = call_type.to_intrinsic() {
+            return Some(intrinsic);
+        }
+
+        let fid = call_type.fct_id().unwrap();
+
+        // the function we compile right now is never an intrinsic
+        if self.fct.id == fid {
+            return None;
+        }
+
+        let fct = self.vm.fcts.idx(fid);
+        let fct = fct.read();
+
+        match fct.kind {
+            FctKind::Builtin(intr) => Some(intr),
+            _ => None,
+        }
     }
 
     fn emit_self(&mut self, dest: ExprStore) {
@@ -1164,7 +1188,7 @@ where
     }
 
     fn emit_unary_operator(&mut self, e: &'ast ExprUnType, dest: ExprStore) {
-        if let Some(intrinsic) = self.intrinsic(e.id) {
+        if let Some(intrinsic) = self.get_intrinsic(e.id) {
             self.emit_intrinsic_unary(&e.opnd, dest, intrinsic);
         } else {
             self.emit_call_site_id(e.id, e.pos, dest);
@@ -1177,7 +1201,7 @@ where
         if call_type.is_some() {
             let call_expr = e.lhs.to_call().unwrap();
 
-            if let Some(intrinsic) = self.intrinsic(e.id) {
+            if let Some(intrinsic) = self.get_intrinsic(e.id) {
                 let object = &call_expr.callee;
                 let index = &call_expr.args[0];
                 let value = &e.rhs;
@@ -1345,7 +1369,7 @@ where
     fn emit_bin(&mut self, e: &'ast ExprBinType, dest: ExprStore) {
         if e.op.is_any_assign() {
             self.emit_assign(e);
-        } else if let Some(intrinsic) = self.intrinsic(e.id) {
+        } else if let Some(intrinsic) = self.get_intrinsic(e.id) {
             self.emit_intrinsic_bin(&e.lhs, &e.rhs, dest, intrinsic, Some(e.op));
         } else if e.op == BinOp::Cmp(CmpOp::Is) || e.op == BinOp::Cmp(CmpOp::IsNot) {
             self.emit_bin_is(e, dest.reg());
@@ -1526,7 +1550,7 @@ where
     }
 
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: ExprStore) {
-        if let Some(intrinsic) = self.intrinsic(e.id) {
+        if let Some(intrinsic) = self.get_intrinsic(e.id) {
             let mut args: Vec<&'ast Expr> = Vec::with_capacity(3);
             let call_type = self.src.map_calls.get(e.id).unwrap();
 

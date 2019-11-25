@@ -76,7 +76,6 @@ pub struct JitInfo<'ast> {
     pub map_csites: NodeMap<CallSite<'ast>>,
     pub map_offsets: NodeMap<i32>,
     pub map_var_offsets: HashMap<VarId, i32>,
-    pub map_intrinsics: NodeMap<Intrinsic>,
     pub map_fors: NodeMap<ForInfo<'ast>>,
     pub map_templates: NodeMap<TemplateJitInfo<'ast>>,
 }
@@ -110,7 +109,6 @@ impl<'ast> JitInfo<'ast> {
             map_csites: NodeMap::new(),
             map_offsets: NodeMap::new(),
             map_var_offsets: HashMap::new(),
-            map_intrinsics: NodeMap::new(),
             map_fors: NodeMap::new(),
             map_templates: NodeMap::new(),
         }
@@ -188,7 +186,6 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
             ExprDelegation(ref expr) => self.expr_delegation(expr),
             ExprBin(ref expr) => self.expr_bin(expr),
             ExprUn(ref expr) => self.expr_un(expr),
-            ExprConv(ref expr) => self.expr_conv(expr),
             ExprTypeParam(_) => unreachable!(),
             ExprTemplate(ref expr) => self.expr_template(expr),
 
@@ -263,15 +260,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         );
     }
 
-    fn expr_conv(&mut self, e: &'ast ExprConvType) {
-        self.visit_expr(&e.object);
-        let is_valid = self.src.map_convs.get(e.id).unwrap().valid;
-
-        if !e.is && !is_valid {
-            self.reserve_temp_for_node(&e.object);
-        }
-    }
-
     fn get_intrinsic(&self, id: NodeId) -> Option<Intrinsic> {
         let call_type = self.src.map_calls.get(id).unwrap();
 
@@ -298,7 +286,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     fn expr_call(&mut self, expr: &'ast ExprCallType) {
         if let Some(intrinsic) = self.get_intrinsic(expr.id) {
             self.reserve_args_call(expr);
-            self.jit_info.map_intrinsics.insert(expr.id, intrinsic);
 
             match intrinsic {
                 Intrinsic::Assert => {
@@ -414,9 +401,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let callee = self.vm.fcts.idx(callee_id);
         let callee = callee.read();
 
-        if let FctKind::Builtin(intrinsic) = callee.kind {
+        if let FctKind::Builtin(_) = callee.kind {
             self.reserve_args_call(expr);
-            self.jit_info.map_intrinsics.insert(expr.id, intrinsic);
             return;
         }
 
@@ -651,7 +637,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             let index = &call_expr.args[0];
             let value = &e.rhs;
 
-            if let Some(intrinsic) = self.get_intrinsic(e.id) {
+            if let Some(_) = self.get_intrinsic(e.id) {
                 self.visit_expr(object);
                 self.visit_expr(index);
                 self.visit_expr(value);
@@ -661,8 +647,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
                 let element_type = self.ty(object.id()).type_params(self.vm)[0];
                 self.reserve_temp_for_node_with_type(e.rhs.id(), element_type);
-
-                self.jit_info.map_intrinsics.insert(e.id, intrinsic);
             } else {
                 let args = vec![
                     Arg::Expr(object, BuiltinType::Unit, 0),
@@ -712,12 +696,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.visit_expr(&expr.rhs);
 
         // no temporaries needed
-        } else if let Some(intrinsic) = self.get_intrinsic(expr.id) {
+        } else if let Some(_) = self.get_intrinsic(expr.id) {
             self.visit_expr(&expr.lhs);
             self.visit_expr(&expr.rhs);
 
             self.reserve_temp_for_node(&expr.lhs);
-            self.jit_info.map_intrinsics.insert(expr.id, intrinsic);
         } else {
             let args = vec![
                 Arg::Expr(&expr.lhs, lhs_ty, 0),
@@ -730,10 +713,9 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn expr_un(&mut self, expr: &'ast ExprUnType) {
-        if let Some(intrinsic) = self.get_intrinsic(expr.id) {
+        if let Some(_) = self.get_intrinsic(expr.id) {
             // no temporaries needed
             self.visit_expr(&expr.opnd);
-            self.jit_info.map_intrinsics.insert(expr.id, intrinsic);
         } else {
             let args = vec![Arg::Expr(&expr.opnd, BuiltinType::Unit, 0)];
 
