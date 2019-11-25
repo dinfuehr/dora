@@ -98,13 +98,11 @@ where
                 REG_PARAMS[0].into()
             };
 
-            // let slot_param = self.managed_stack.add_scope(var.ty, self.vm);
-            // assert!(self.var_to_slot.insert(var.id, slot_param).is_none());
+            let slot_param = self.managed_stack.add_scope(var.ty, self.vm);
+            assert!(self.var_to_slot.insert(var.id, slot_param).is_none());
 
-            let offset = self.var_offset(var.id);
-            self.asm.store_mem(mode, Mem::Local(offset), dest);
-
-            self.stack.add_var(var.ty, offset);
+            self.asm
+                .store_mem(mode, Mem::Local(slot_param.offset()), dest);
 
             if mode.is_float() {
                 freg_idx += 1;
@@ -118,14 +116,11 @@ where
             let ty = self.var_ty(varid);
             let is_float = ty.mode().is_float();
 
-            // let slot_param = self.managed_stack.add_scope(ty, self.vm);
-            // assert!(self.var_to_slot.insert(varid, slot_param).is_none());
-
-            let offset = self.var_offset(varid);
-            self.stack.add_var(ty, offset);
-
             if is_float && freg_idx < FREG_PARAMS.len() {
                 let reg = FREG_PARAMS[freg_idx];
+
+                let slot_param = self.managed_stack.add_scope(ty, self.vm);
+                assert!(self.var_to_slot.insert(varid, slot_param).is_none());
 
                 self.asm.emit_comment(Comment::StoreParam(varid));
                 self.asm.var_store(self.var_offset(varid), ty, reg.into());
@@ -133,6 +128,9 @@ where
                 freg_idx += 1;
             } else if !is_float && reg_idx < REG_PARAMS.len() {
                 let reg = REG_PARAMS[reg_idx];
+
+                let slot_param = self.managed_stack.add_scope(ty, self.vm);
+                assert!(self.var_to_slot.insert(varid, slot_param).is_none());
 
                 self.asm.emit_comment(Comment::StoreParam(varid));
                 self.asm.var_store(self.var_offset(varid), ty, reg.into());

@@ -149,10 +149,8 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
         // only some parameters are passed in registers
         // these registers need to be stored into local variables
         if is_float && self.param_freg_idx < FREG_PARAMS.len() {
-            self.reserve_stack_for_var(var);
             self.param_freg_idx += 1;
         } else if !is_float && self.param_reg_idx < REG_PARAMS.len() {
-            self.reserve_stack_for_var(var);
             self.param_reg_idx += 1;
 
         // the rest of the parameters are already stored on the stack
@@ -201,10 +199,6 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
 
 impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     fn generate(&mut self) {
-        if self.fct.has_self() {
-            self.reserve_stack_for_self();
-        }
-
         self.visit_fct(self.ast);
 
         self.jit_info.stacksize = mem::align_i32(self.stacksize, STACK_FRAME_ALIGNMENT as i32);
