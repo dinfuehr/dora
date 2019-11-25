@@ -788,15 +788,15 @@ where
 
             let vtable: &VTable = cls.vtable.as_ref().unwrap();
 
-            let (slot, offset) = if e.is {
-                (None, None)
+            let slot = if e.is {
+                None
             } else {
                 // reserve temp variable for object
-                let (slot, offset) = self.add_temp_node(&e.object);
+                let slot = self.add_temp_node(&e.object);
                 self.asm
-                    .store_mem(MachineMode::Ptr, Mem::Local(offset), dest.into());
+                    .store_mem(MachineMode::Ptr, Mem::Local(slot.offset()), dest.into());
 
-                (Some(slot), Some(offset))
+                Some(slot)
             };
 
             // object instanceof T
@@ -848,8 +848,11 @@ where
                     self.asm.jump_if(CondCode::NonZero, lbl_false);
 
                     // otherwise load temp variable again
-                    self.asm
-                        .load_mem(MachineMode::Ptr, dest.into(), Mem::Local(offset.unwrap()));
+                    self.asm.load_mem(
+                        MachineMode::Ptr,
+                        dest.into(),
+                        Mem::Local(slot.unwrap().offset()),
+                    );
                 }
 
                 // jmp lbl_finished
@@ -889,13 +892,16 @@ where
                     self.asm.jump_if(CondCode::NotEqual, lbl_bailout);
                     self.asm.emit_bailout(lbl_bailout, Trap::CAST, e.pos);
 
-                    self.asm
-                        .load_mem(MachineMode::Ptr, dest.into(), Mem::Local(offset.unwrap()));
+                    self.asm.load_mem(
+                        MachineMode::Ptr,
+                        dest.into(),
+                        Mem::Local(slot.unwrap().offset()),
+                    );
                 }
             }
 
-            if let Some(offset) = offset {
-                self.free_temp_node(&e.object, slot.unwrap(), offset);
+            if let Some(slot) = slot {
+                self.managed_stack.free_temp(slot, self.vm);
             }
         }
 
@@ -921,26 +927,11 @@ where
         ((), offset)
     }
 
-    fn add_temp_node(&mut self, expr: &Expr) -> ((), i32) {
-        let id = expr.id();
-        let ty = self.ty(id);
-        let offset = self.jit_info.get_store(id).offset();
-
-        self.stack.add_temp(ty, offset);
-
-        ((), offset)
-    }
-
-    fn add_temp_node2(&mut self, expr: &Expr) -> ManagedStackSlot {
+    fn add_temp_node(&mut self, expr: &Expr) -> ManagedStackSlot {
         let id = expr.id();
         let ty = self.ty(id);
 
         self.managed_stack.add_temp(ty, self.vm)
-    }
-
-    fn free_temp_node(&mut self, expr: &Expr, _slot: (), offset: i32) {
-        let ty = self.ty(expr.id());
-        self.stack.free_temp(ty, offset);
     }
 
     fn intrinsic(&self, id: NodeId) -> Option<Intrinsic> {
@@ -1283,29 +1274,33 @@ where
                     &e.lhs
                 };
 
-                let (slot, temp_offset) = self.add_temp_node(temp);
-                self.asm
-                    .store_mem(MachineMode::Ptr, Mem::Local(temp_offset), REG_RESULT.into());
+                let object_slot = self.add_temp_node(temp);
+                self.asm.store_mem(
+                    MachineMode::Ptr,
+                    Mem::Local(object_slot.offset()),
+                    REG_RESULT.into(),
+                );
 
                 let reg = result_reg(field.ty.mode());
                 let verify_refs = self.vm.args.flag_gc_verify_write && field.ty.reference_type();
-                let (temp_value_slot, temp_value_offset) = if verify_refs {
-                    let (temp_value_slot, temp_value_offset) = self.add_temp_node(&e.rhs);
-
-                    (Some(temp_value_slot), Some(temp_value_offset))
+                let value_slot = if verify_refs {
+                    Some(self.add_temp_node(&e.rhs))
                 } else {
-                    (None, None)
+                    None
                 };
                 self.emit_expr(&e.rhs, reg);
                 if verify_refs {
                     self.asm.store_mem(
                         field.ty.mode(),
-                        Mem::Local(temp_value_offset.unwrap()),
+                        Mem::Local(value_slot.unwrap().offset()),
                         reg,
                     );
                 }
-                self.asm
-                    .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(temp_offset));
+                self.asm.load_mem(
+                    MachineMode::Ptr,
+                    REG_TMP1.into(),
+                    Mem::Local(object_slot.offset()),
+                );
 
                 self.asm.emit_comment(Comment::StoreField(cls_id, fieldid));
 
@@ -1327,23 +1322,19 @@ where
                     self.asm.load_mem(
                         MachineMode::Ptr,
                         REG_PARAMS[0].into(),
-                        Mem::Local(temp_offset),
+                        Mem::Local(object_slot.offset()),
                     );
                     self.asm.load_mem(
                         MachineMode::Ptr,
                         REG_PARAMS[1].into(),
-                        Mem::Local(temp_value_offset.unwrap()),
+                        Mem::Local(value_slot.unwrap().offset()),
                     );
                     self.asm
                         .verify_refs(REG_PARAMS[0], REG_PARAMS[1], e.pos, gcpoint);
-                    self.free_temp_node(
-                        &e.rhs,
-                        temp_value_slot.unwrap(),
-                        temp_value_offset.unwrap(),
-                    );
+                    self.managed_stack.free_temp(value_slot.unwrap(), self.vm);
                 }
 
-                self.free_temp_node(temp, slot, temp_offset);
+                self.managed_stack.free_temp(object_slot, self.vm);
             }
 
             &IdentType::Struct(_) => {
@@ -1411,33 +1402,33 @@ where
             BuiltinType::Double => MachineMode::Int64,
             _ => builtin_type.mode(),
         };
-        let (slot, offset) = if builtin_type.is_float() {
+        let slot = if builtin_type.is_float() {
             let src_mode = builtin_type.mode();
 
             self.emit_expr(&e.lhs, FREG_RESULT.into());
             self.asm
                 .float_as_int(dest_mode, REG_RESULT, src_mode, FREG_RESULT);
-            let (slot, offset) = self.add_temp_node(&e.lhs);
+            let slot = self.add_temp_node(&e.lhs);
             self.asm
-                .store_mem(dest_mode, Mem::Local(offset), REG_RESULT.into());
+                .store_mem(dest_mode, Mem::Local(slot.offset()), REG_RESULT.into());
 
             self.emit_expr(&e.rhs, FREG_RESULT.into());
             self.asm
                 .float_as_int(dest_mode, REG_TMP1, src_mode, FREG_RESULT);
-            (slot, offset)
+            slot
         } else {
             self.emit_expr(&e.lhs, REG_RESULT.into());
-            let (slot, offset) = self.add_temp_node(&e.lhs);
+            let slot = self.add_temp_node(&e.lhs);
             self.asm
-                .store_mem(dest_mode, Mem::Local(offset), REG_RESULT.into());
+                .store_mem(dest_mode, Mem::Local(slot.offset()), REG_RESULT.into());
 
             self.emit_expr(&e.rhs, REG_TMP1.into());
 
-            (slot, offset)
+            slot
         };
 
         self.asm
-            .load_mem(dest_mode, REG_RESULT.into(), Mem::Local(offset));
+            .load_mem(dest_mode, REG_RESULT.into(), Mem::Local(slot.offset()));
         self.asm.cmp_reg(dest_mode, REG_RESULT, REG_TMP1);
 
         let op = match e.op {
@@ -1446,7 +1437,7 @@ where
         };
 
         self.asm.set(dest, op);
-        self.free_temp_node(&e.lhs, slot, offset);
+        self.managed_stack.free_temp(slot, self.vm);
     }
 
     fn emit_bin_or(&mut self, e: &'ast ExprBinType, dest: Reg) {
@@ -1776,33 +1767,37 @@ where
         rhs: &'ast Expr,
     ) {
         self.emit_expr(object, REG_RESULT.into());
-        let (slot_object, offset_object) = self.add_temp_node(object);
+        let slot_object = self.add_temp_node(object);
         self.asm.store_mem(
             MachineMode::Ptr,
-            Mem::Local(offset_object),
+            Mem::Local(slot_object.offset()),
             REG_RESULT.into(),
         );
 
         self.emit_expr(index, REG_RESULT.into());
-        let (slot_index, offset_index) = self.add_temp_node(index);
+        let slot_index = self.add_temp_node(index);
         self.asm.store_mem(
             MachineMode::Int32,
-            Mem::Local(offset_index),
+            Mem::Local(slot_index.offset()),
             REG_RESULT.into(),
         );
 
         let res = result_reg(mode);
 
         self.emit_expr(rhs, res);
-        let (slot_value, offset_value) = self.add_temp_node(rhs);
-        self.asm.store_mem(mode, Mem::Local(offset_value), res);
-
+        let slot_value = self.add_temp_node(rhs);
         self.asm
-            .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(offset_object));
+            .store_mem(mode, Mem::Local(slot_value.offset()), res);
+
+        self.asm.load_mem(
+            MachineMode::Ptr,
+            REG_TMP1.into(),
+            Mem::Local(slot_object.offset()),
+        );
         self.asm.load_mem(
             MachineMode::Int32,
             REG_TMP2.into(),
-            Mem::Local(offset_index),
+            Mem::Local(slot_index.offset()),
         );
 
         self.asm.test_if_nil_bailout(pos, REG_TMP1, Trap::NIL);
@@ -1811,7 +1806,8 @@ where
             self.asm.check_index_out_of_bounds(pos, REG_TMP1, REG_TMP2);
         }
 
-        self.asm.load_mem(mode, res, Mem::Local(offset_value));
+        self.asm
+            .load_mem(mode, res, Mem::Local(slot_value.offset()));
 
         let write_barrier = self.vm.gc.needs_write_barrier() && element_type.reference_type();
         let card_table_offset = self.vm.gc.card_table_offset();
@@ -1825,9 +1821,9 @@ where
             card_table_offset,
         );
 
-        self.free_temp_node(object, slot_object, offset_object);
-        self.free_temp_node(index, slot_index, offset_index);
-        self.free_temp_node(rhs, slot_value, offset_value);
+        self.managed_stack.free_temp(slot_object, self.vm);
+        self.managed_stack.free_temp(slot_index, self.vm);
+        self.managed_stack.free_temp(slot_value, self.vm);
     }
 
     fn emit_array_get(
@@ -1839,13 +1835,19 @@ where
         dest: ExprStore,
     ) {
         self.emit_expr(object, REG_RESULT.into());
-        let (slot, offset) = self.add_temp_node(object);
-        self.asm
-            .store_mem(MachineMode::Ptr, Mem::Local(offset), REG_RESULT.into());
+        let slot = self.add_temp_node(object);
+        self.asm.store_mem(
+            MachineMode::Ptr,
+            Mem::Local(slot.offset()),
+            REG_RESULT.into(),
+        );
 
         self.emit_expr(index, REG_TMP1.into());
-        self.asm
-            .load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Local(offset));
+        self.asm.load_mem(
+            MachineMode::Ptr,
+            REG_RESULT.into(),
+            Mem::Local(slot.offset()),
+        );
 
         self.asm.test_if_nil_bailout(pos, REG_RESULT, Trap::NIL);
 
@@ -1858,7 +1860,7 @@ where
 
         self.asm.load_array_elem(mode, res, REG_RESULT, REG_TMP1);
 
-        self.free_temp_node(object, slot, offset);
+        self.managed_stack.free_temp(slot, self.vm);
 
         if dest != res {
             self.asm.copy(mode, dest, res);
@@ -1916,17 +1918,23 @@ where
 
     fn emit_intrinsic_shl(&mut self, lhs: &'ast Expr, rhs: &'ast Expr, dest: Reg) {
         self.emit_expr(lhs, REG_RESULT.into());
-        let (slot, offset) = self.add_temp_node(lhs);
-        self.asm
-            .store_mem(MachineMode::Int32, Mem::Local(offset), REG_RESULT.into());
+        let slot = self.add_temp_node(lhs);
+        self.asm.store_mem(
+            MachineMode::Int32,
+            Mem::Local(slot.offset()),
+            REG_RESULT.into(),
+        );
 
         self.emit_expr(rhs, REG_TMP1.into());
-        self.asm
-            .load_mem(MachineMode::Int32, REG_RESULT.into(), Mem::Local(offset));
+        self.asm.load_mem(
+            MachineMode::Int32,
+            REG_RESULT.into(),
+            Mem::Local(slot.offset()),
+        );
 
         self.asm
             .int_shl(MachineMode::Int32, dest, REG_RESULT, REG_TMP1);
-        self.free_temp_node(lhs, slot, offset);
+        self.managed_stack.free_temp(slot, self.vm);
     }
 
     fn emit_intrinsic_long_to_int(&mut self, e: &'ast Expr, dest: Reg) {
@@ -2049,13 +2057,13 @@ where
         };
 
         self.emit_expr(lhs, lhs_reg);
-        let (slot, offset) = self.add_temp_node(lhs);
+        let slot = self.add_temp_node(lhs);
 
-        self.asm.store_mem(mode, Mem::Local(offset), lhs_reg);
+        self.asm.store_mem(mode, Mem::Local(slot.offset()), lhs_reg);
 
         self.emit_expr(rhs, rhs_reg);
 
-        self.asm.load_mem(mode, lhs_reg, Mem::Local(offset));
+        self.asm.load_mem(mode, lhs_reg, Mem::Local(slot.offset()));
 
         if mode.is_float() {
             let lhs_reg = lhs_reg.freg();
@@ -2069,7 +2077,7 @@ where
             self.emit_intrinsic_int(dest.reg(), lhs_reg, rhs_reg, intr, op);
         }
 
-        self.free_temp_node(lhs, slot, offset);
+        self.managed_stack.free_temp(slot, self.vm);
     }
 
     fn emit_intrinsic_int(
@@ -2661,7 +2669,7 @@ impl<'a, 'ast> CodeGen<'ast> for AstCodeGen<'a, 'ast> {
             self.emit_epilog();
         }
 
-        assert_eq!(self.jit_info.stacksize(), self.managed_stack.stacksize());
+        assert!(self.jit_info.stacksize() <= self.managed_stack.stacksize());
 
         self.asm
             .patch_stacksize(self.stacksize_offset, self.managed_stack.stacksize());
