@@ -14,7 +14,7 @@ use crate::baseline::codegen::{
     ExprStore, ManagedStackFrame, ManagedStackSlot, StackFrame,
 };
 use crate::baseline::dora_native::{InternalFct, InternalFctDescriptor};
-use crate::baseline::fct::{CatchType, Comment, JitBaselineFct, JitDescriptor};
+use crate::baseline::fct::{CatchType, Comment, GcPoint, JitBaselineFct, JitDescriptor};
 use crate::class::{ClassDef, ClassDefId};
 use crate::cpu::{
     FReg, Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_SP, REG_TMP1,
@@ -98,8 +98,8 @@ where
                 REG_PARAMS[0].into()
             };
 
-            let slot_param = self.managed_stack.add_scope(var.ty, self.vm);
-            assert!(self.var_to_slot.insert(var.id, slot_param).is_none());
+            // let slot_param = self.managed_stack.add_scope(var.ty, self.vm);
+            // assert!(self.var_to_slot.insert(var.id, slot_param).is_none());
 
             let offset = self.var_offset(var.id);
             self.asm.store_mem(mode, Mem::Local(offset), dest);
@@ -118,8 +118,8 @@ where
             let ty = self.jit_info.ty(varid);
             let is_float = ty.mode().is_float();
 
-            let slot_param = self.managed_stack.add_scope(ty, self.vm);
-            assert!(self.var_to_slot.insert(varid, slot_param).is_none());
+            // let slot_param = self.managed_stack.add_scope(ty, self.vm);
+            // assert!(self.var_to_slot.insert(varid, slot_param).is_none());
 
             let offset = self.var_offset(varid);
             self.stack.add_var(ty, offset);
@@ -274,8 +274,8 @@ where
 
         let for_var_id = *self.src.map_vars.get(s.id).unwrap();
         let var_ty = self.jit_info.ty(for_var_id);
-        let slot_var = self.managed_stack.add_scope(var_ty, self.vm);
-        assert!(self.var_to_slot.insert(for_var_id, slot_var).is_none());
+        // let slot_var = self.managed_stack.add_scope(var_ty, self.vm);
+        // assert!(self.var_to_slot.insert(for_var_id, slot_var).is_none());
 
         let offset = self.var_offset(for_var_id);
         self.asm.var_store(offset, var_ty, dest);
@@ -318,8 +318,15 @@ where
         self.asm.emit_comment(Comment::ReadPollingPage);
         self.asm.check_polling_page(self.vm.polling_page.addr());
 
-        let gcpoint = self.stack.gcpoint();
+        let gcpoint = self.create_gcpoint();
         self.asm.emit_gcpoint(gcpoint);
+    }
+
+    fn create_gcpoint(&mut self) -> GcPoint {
+        let stack_offsets = self.stack.gcpoint();
+        let managed_stack_offset = self.managed_stack.gcpoint();
+
+        GcPoint::merge(stack_offsets, managed_stack_offset)
     }
 
     fn save_label_state<F>(&mut self, lbl_break: Label, lbl_continue: Label, f: F)
@@ -391,8 +398,8 @@ where
         let var = *self.src.map_vars.get(s.id).unwrap();
         let ty = self.jit_info.ty(var);
 
-        let slot_var = self.managed_stack.add_scope(ty, self.vm);
-        assert!(self.var_to_slot.insert(var, slot_var).is_none());
+        // let slot_var = self.managed_stack.add_scope(ty, self.vm);
+        // assert!(self.var_to_slot.insert(var, slot_var).is_none());
 
         if let Some(ref expr) = s.expr {
             let value = self.emit_expr_result_reg(expr);
@@ -460,8 +467,8 @@ where
         for catch in &s.catch_blocks {
             let varid = *self.src.map_vars.get(catch.id).unwrap();
 
-            let slot_var = self.managed_stack.add_scope(BuiltinType::Ptr, self.vm);
-            assert!(self.var_to_slot.insert(varid, slot_var).is_none());
+            // let slot_var = self.managed_stack.add_scope(BuiltinType::Ptr, self.vm);
+            // assert!(self.var_to_slot.insert(varid, slot_var).is_none());
 
             let offset = self.var_offset(varid);
 
@@ -533,7 +540,7 @@ where
 
         let offset = *self.jit_info.map_offsets.get(s.id).unwrap();
         self.stack.add_var(BuiltinType::Ptr, offset);
-        let _slot = self.managed_stack.add_scope(BuiltinType::Ptr, self.vm);
+        // let _slot = self.managed_stack.add_scope(BuiltinType::Ptr, self.vm);
 
         self.visit_stmt(&finally_block.block);
 
@@ -719,7 +726,7 @@ where
 
         self.stack
             .add_temp(BuiltinType::Ptr, template_info.string_buffer_offset);
-        let slot_string_buffer_offset = self.managed_stack.add_temp(BuiltinType::Ptr, self.vm);
+        // let slot_string_buffer_offset = self.managed_stack.add_temp(BuiltinType::Ptr, self.vm);
 
         for (idx, part) in e.parts.iter().enumerate() {
             let part_info = &template_info.part_infos[idx];
@@ -756,8 +763,8 @@ where
         self.emit_call_site(&template_info.string_buffer_to_string, e.pos, dest.into());
         self.stack
             .free_temp(BuiltinType::Ptr, template_info.string_buffer_offset);
-        self.managed_stack
-            .free_temp(slot_string_buffer_offset, self.vm);
+        // self.managed_stack
+        //     .free_temp(slot_string_buffer_offset, self.vm);
     }
 
     fn emit_conv(&mut self, e: &'ast ExprConvType, dest: Reg) {
@@ -901,29 +908,27 @@ where
 
     fn var_offset(&self, id: VarId) -> i32 {
         let offset = self.jit_info.offset(id);
-        assert!(self.var_to_slot.contains_key(&id));
+        // assert!(self.var_to_slot.contains_key(&id));
         offset
     }
 
-    fn add_temp_arg(&mut self, arg: &Arg<'ast>) -> (ManagedStackSlot, i32) {
+    fn add_temp_arg(&mut self, arg: &Arg<'ast>) -> ((), i32) {
         let ty = arg.ty();
         let offset = arg.offset();
 
         self.stack.add_temp(ty, offset);
-        let slot = self.managed_stack.add_temp(ty, self.vm);
 
-        (slot, offset)
+        ((), offset)
     }
 
-    fn add_temp_node(&mut self, expr: &Expr) -> (ManagedStackSlot, i32) {
+    fn add_temp_node(&mut self, expr: &Expr) -> ((), i32) {
         let id = expr.id();
         let ty = self.ty(id);
         let offset = self.jit_info.get_store(id).offset();
 
         self.stack.add_temp(ty, offset);
-        let slot = self.managed_stack.add_temp(ty, self.vm);
 
-        (slot, offset)
+        ((), offset)
     }
 
     fn add_temp_node2(&mut self, expr: &Expr) -> ManagedStackSlot {
@@ -933,10 +938,9 @@ where
         self.managed_stack.add_temp(ty, self.vm)
     }
 
-    fn free_temp_node(&mut self, expr: &Expr, slot: ManagedStackSlot, offset: i32) {
+    fn free_temp_node(&mut self, expr: &Expr, _slot: (), offset: i32) {
         let ty = self.ty(expr.id());
         self.stack.free_temp(ty, offset);
-        self.managed_stack.free_temp(slot, self.vm);
     }
 
     fn intrinsic(&self, id: NodeId) -> Option<Intrinsic> {
@@ -1319,7 +1323,7 @@ where
                 );
 
                 if verify_refs {
-                    let gcpoint = self.stack.gcpoint();
+                    let gcpoint = self.create_gcpoint();
                     self.asm.load_mem(
                         MachineMode::Ptr,
                         REG_PARAMS[0].into(),
@@ -2226,12 +2230,7 @@ where
     }
 
     pub fn emit_call_site(&mut self, csite: &CallSite<'ast>, pos: Position, dest: ExprStore) {
-        let mut temps: Vec<(
-            BuiltinType,
-            Option<ManagedStackSlot>,
-            i32,
-            Option<ClassDefId>,
-        )> = Vec::new();
+        let mut temps: Vec<(BuiltinType, Option<()>, i32, Option<ClassDefId>)> = Vec::new();
 
         let fid = csite.callee;
         let fct = self.vm.fcts.idx(fid);
@@ -2307,8 +2306,8 @@ where
                     // add it to the set of temporaries such that it is part
                     // of the gc point
                     self.stack.add_temp(BuiltinType::Ptr, offset);
-                    let slot = self.managed_stack.add_temp(BuiltinType::Ptr, self.vm);
-                    temps[idx].1 = Some(slot);
+                    // let slot = self.managed_stack.add_temp(BuiltinType::Ptr, self.vm);
+                    // temps[idx].1 = Some(slot);
 
                     reg_idx += 1;
                     idx += 1;
@@ -2374,7 +2373,7 @@ where
         if csite.super_call {
             let ptr = self.ptr_for_fct_id(fid, cls_type_params.clone(), fct_type_params.clone());
             self.asm.emit_comment(Comment::CallSuper(fid));
-            let gcpoint = self.stack.gcpoint();
+            let gcpoint = self.create_gcpoint();
             self.asm.direct_call(
                 fid,
                 ptr.to_ptr(),
@@ -2388,7 +2387,7 @@ where
         } else if fct.is_virtual() {
             let vtable_index = fct.vtable_index.unwrap();
             self.asm.emit_comment(Comment::CallVirtual(fid));
-            let gcpoint = self.stack.gcpoint();
+            let gcpoint = self.create_gcpoint();
             let cls_type_params = temps[0].0.type_params(self.vm);
             self.asm.indirect_call(
                 vtable_index,
@@ -2401,7 +2400,7 @@ where
         } else {
             let ptr = self.ptr_for_fct_id(fid, cls_type_params.clone(), fct_type_params.clone());
             self.asm.emit_comment(Comment::CallDirect(fid));
-            let gcpoint = self.stack.gcpoint();
+            let gcpoint = self.create_gcpoint();
             self.asm.direct_call(
                 fid,
                 ptr.to_ptr(),
@@ -2424,9 +2423,9 @@ where
         for temp in temps.into_iter() {
             self.stack.free_temp(temp.0, temp.2);
 
-            if let Some(slot) = temp.1 {
-                self.managed_stack.free_temp(slot, self.vm);
-            }
+            // if let Some(slot) = temp.1 {
+            //     self.managed_stack.free_temp(slot, self.vm);
+            // }
         }
 
         self.asm.decrease_stack_frame(csite.argsize);
@@ -2435,12 +2434,7 @@ where
     fn emit_allocation(
         &mut self,
         pos: Position,
-        temps: &[(
-            BuiltinType,
-            Option<ManagedStackSlot>,
-            i32,
-            Option<ClassDefId>,
-        )],
+        temps: &[(BuiltinType, Option<()>, i32, Option<ClassDefId>)],
         cls_id: ClassDefId,
         offset: i32,
         dest: Reg,
@@ -2511,7 +2505,7 @@ where
             _ => false,
         };
 
-        let gcpoint = self.stack.gcpoint();
+        let gcpoint = self.create_gcpoint();
         self.asm.allocate(dest, alloc_size, pos, array_ref, gcpoint);
 
         // store gc object in temporary storage
@@ -2666,6 +2660,8 @@ impl<'a, 'ast> CodeGen<'ast> for AstCodeGen<'a, 'ast> {
         if !always_returns {
             self.emit_epilog();
         }
+
+        assert_eq!(self.jit_info.stacksize(), self.managed_stack.stacksize());
 
         self.asm
             .patch_stacksize(self.stacksize_offset, self.managed_stack.stacksize());

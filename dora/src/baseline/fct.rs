@@ -247,6 +247,20 @@ impl GcPoint {
         }
     }
 
+    pub fn merge(lhs: GcPoint, rhs: GcPoint) -> GcPoint {
+        let mut offsets = HashSet::new();
+
+        for offset in lhs.offsets {
+            offsets.insert(offset);
+        }
+
+        for offset in rhs.offsets {
+            offsets.insert(offset);
+        }
+
+        GcPoint::from_offsets(offsets.drain().collect())
+    }
+
     pub fn from_offsets(offsets: Vec<i32>) -> GcPoint {
         GcPoint { offsets }
     }
