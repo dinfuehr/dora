@@ -11,8 +11,8 @@ use crate::mem;
 use crate::semck::specialize::{specialize_for_call_type, specialize_type};
 use crate::ty::{BuiltinType, TypeList, TypeParamId};
 use crate::vm::{
-    Arg, CallSite, CallType, Fct, FctId, FctKind, FctParent, FctSrc, Intrinsic, NodeMap, Store,
-    TraitId, VarId, VM,
+    Arg, CallSite, CallType, Fct, FctId, FctKind, FctParent, FctSrc, Intrinsic, NodeMap, TraitId,
+    VarId, VM,
 };
 
 pub fn generate<'a, 'ast: 'a>(
@@ -72,7 +72,6 @@ pub struct JitInfo<'ast> {
     pub leaf: bool,                   // false if fct calls other functions
     pub eh_return_value: Option<i32>, // stack slot for return value storage
 
-    pub map_stores: NodeMap<Store>,
     pub map_csites: NodeMap<CallSite<'ast>>,
     pub map_offsets: NodeMap<i32>,
     pub map_var_offsets: HashMap<VarId, i32>,
@@ -81,13 +80,6 @@ pub struct JitInfo<'ast> {
 }
 
 impl<'ast> JitInfo<'ast> {
-    pub fn get_store(&self, id: NodeId) -> Store {
-        match self.map_stores.get(id) {
-            Some(store) => *store,
-            None => Store::Reg,
-        }
-    }
-
     pub fn stacksize(&self) -> i32 {
         self.stacksize
     }
@@ -105,7 +97,6 @@ impl<'ast> JitInfo<'ast> {
             leaf: false,
             eh_return_value: None,
 
-            map_stores: NodeMap::new(),
             map_csites: NodeMap::new(),
             map_offsets: NodeMap::new(),
             map_var_offsets: HashMap::new(),
@@ -412,7 +403,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     fn reserve_args_call(&mut self, expr: &'ast ExprCallType) {
         for arg in &expr.args {
             self.visit_expr(arg);
-            self.reserve_temp_for_node(arg);
         }
 
         let call_type = self.src.map_calls.get(expr.id).unwrap();
@@ -420,10 +410,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         if call_type.is_method() {
             let object = expr.object().unwrap();
             self.visit_expr(object);
-            self.reserve_temp_for_node(object);
         } else if call_type.is_expr() {
             self.visit_expr(&expr.callee);
-            self.reserve_temp_for_node(&expr.callee);
         }
     }
 
@@ -641,12 +629,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 self.visit_expr(object);
                 self.visit_expr(index);
                 self.visit_expr(value);
-
-                self.reserve_temp_for_node(object);
-                self.reserve_temp_for_node(index);
-
-                let element_type = self.ty(object.id()).type_params(self.vm)[0];
-                self.reserve_temp_for_node_with_type(e.rhs.id(), element_type);
             } else {
                 let args = vec![
                     Arg::Expr(object, BuiltinType::Unit, 0),
@@ -658,22 +640,12 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             }
         } else if e.lhs.is_ident() {
             self.visit_expr(&e.rhs);
-
-            let lhs = e.lhs.to_ident().unwrap();
-            let field = self.src.map_idents.get(lhs.id).unwrap().is_field();
-
-            if field {
-                self.reserve_temp_for_node_with_type(lhs.id, BuiltinType::Ptr);
-            }
         } else {
             // e.lhs is a field
             let lhs = e.lhs.to_dot().unwrap();
 
             self.visit_expr(&lhs.lhs);
             self.visit_expr(&e.rhs);
-
-            self.reserve_temp_for_node(&lhs.lhs);
-            self.reserve_temp_for_node(&e.rhs);
         }
     }
 
@@ -689,8 +661,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         if expr.op == BinOp::Cmp(CmpOp::Is) || expr.op == BinOp::Cmp(CmpOp::IsNot) {
             self.visit_expr(&expr.lhs);
             self.visit_expr(&expr.rhs);
-
-            self.reserve_temp_for_node_with_type(expr.lhs.id(), BuiltinType::Ptr);
         } else if expr.op == BinOp::Or || expr.op == BinOp::And {
             self.visit_expr(&expr.lhs);
             self.visit_expr(&expr.rhs);
@@ -699,8 +669,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         } else if let Some(_) = self.get_intrinsic(expr.id) {
             self.visit_expr(&expr.lhs);
             self.visit_expr(&expr.rhs);
-
-            self.reserve_temp_for_node(&expr.lhs);
         } else {
             let args = vec![
                 Arg::Expr(&expr.lhs, lhs_ty, 0),
@@ -796,26 +764,12 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
     fn reserve_temp_for_node_id(&mut self, id: NodeId) -> i32 {
         let ty = self.ty(id);
-        self.reserve_temp_for_node_with_type(id, ty)
+        self.reserve_stack_slot(ty)
     }
 
     fn reserve_temp_for_node(&mut self, expr: &Expr) -> i32 {
         let ty = self.ty(expr.id());
-        self.reserve_temp_for_node_with_type(expr.id(), ty)
-    }
-
-    fn reserve_temp_for_ctor(&mut self, id: NodeId) -> i32 {
-        self.reserve_temp_for_node_with_type(id, BuiltinType::Ptr)
-    }
-
-    fn reserve_temp_for_node_with_type(&mut self, id: NodeId, ty: BuiltinType) -> i32 {
-        let offset = self.reserve_stack_slot(ty);
-
-        self.jit_info
-            .map_stores
-            .insert_or_replace(id, Store::Temp(offset, ty));
-
-        offset
+        self.reserve_stack_slot(ty)
     }
 
     fn reserve_stack_slot(&mut self, ty: BuiltinType) -> i32 {
@@ -892,48 +846,6 @@ mod tests {
 
             f(&src, &jit_info);
         });
-    }
-
-    #[test]
-    fn test_tempsize() {
-        info("fun f() { 1+2*3; }", |_, jit_info| {
-            assert_eq!(16, jit_info.stacksize);
-        });
-        info("fun f() { 2*3+4+5; }", |_, jit_info| {
-            assert_eq!(16, jit_info.stacksize);
-        });
-        info("fun f() { 1+(2+(3+4)); }", |_, jit_info| {
-            assert_eq!(16, jit_info.stacksize);
-        })
-    }
-
-    #[test]
-    fn test_tempsize_for_fct_call() {
-        info(
-            "fun f() { g(1,2,3,4,5,6); }
-              fun g(a:Int, b:Int, c:Int, d:Int, e:Int, f:Int) {}",
-            |_, jit_info| {
-                assert_eq!(32, jit_info.stacksize);
-            },
-        );
-
-        info(
-            "fun f() { g(1,2,3,4,5,6,7,8); }
-              fun g(a:Int, b:Int, c:Int, d:Int, e:Int, f:Int, g:Int, h:Int) {}",
-            |_, jit_info| {
-                assert_eq!(32, jit_info.stacksize);
-            },
-        );
-
-        info(
-            "fun f() { g(1,2,3,4,5,6,7,8)+(1+2); }
-              fun g(a:Int, b:Int, c:Int, d:Int, e:Int, f:Int, g:Int, h:Int) -> Int {
-                  return 0;
-              }",
-            |_, jit_info| {
-                assert_eq!(48, jit_info.stacksize);
-            },
-        );
     }
 
     #[test]
