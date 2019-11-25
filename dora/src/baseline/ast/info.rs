@@ -225,10 +225,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     fn reserve_stmt_for(&mut self, stmt: &'ast StmtForType) {
         let for_type_info = self.src.map_fors.get(stmt.id).unwrap();
 
-        // reserve stack slot for iterated value
-        let var = *self.src.map_vars.get(stmt.id).unwrap();
-        self.reserve_stack_for_var(var);
-
         // reserve stack slot for iterator
         let offset = self.reserve_stack_slot(for_type_info.iterator_type);
         self.jit_info.map_offsets.insert(stmt.id, offset);
@@ -265,43 +261,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 next,
             },
         );
-    }
-
-    fn reserve_stack_for_self(&mut self) {
-        let ty = match self.fct.parent {
-            FctParent::Class(clsid) => {
-                let cls = self.vm.classes.idx(clsid);
-                let cls = cls.read();
-
-                cls.ty
-            }
-
-            FctParent::Impl(impl_id) => {
-                let ximpl = self.vm.impls[impl_id].read();
-
-                let cls = self.vm.classes.idx(ximpl.cls_id());
-                let cls = cls.read();
-
-                cls.ty
-            }
-
-            _ => unreachable!(),
-        };
-
-        let offset = self.reserve_stack_slot(ty);
-
-        let id = self.src.var_self().id;
-        self.jit_info.map_var_offsets.insert(id, offset);
-    }
-
-    fn reserve_stack_for_var(&mut self, id: VarId) -> i32 {
-        let ty = self.src.vars[id].ty;
-        let ty = self.specialize_type(ty);
-        let offset = self.reserve_stack_slot(ty);
-
-        self.jit_info.map_var_offsets.insert(id, offset);
-
-        offset
     }
 
     fn expr_conv(&mut self, e: &'ast ExprConvType) {

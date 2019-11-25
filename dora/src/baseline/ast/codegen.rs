@@ -270,11 +270,10 @@ where
 
         let for_var_id = *self.src.map_vars.get(s.id).unwrap();
         let var_ty = self.var_ty(for_var_id);
-        // let slot_var = self.managed_stack.add_scope(var_ty, self.vm);
-        // assert!(self.var_to_slot.insert(for_var_id, slot_var).is_none());
+        let slot_var = self.managed_stack.add_scope(var_ty, self.vm);
+        assert!(self.var_to_slot.insert(for_var_id, slot_var).is_none());
 
-        let offset = self.var_offset(for_var_id);
-        self.asm.var_store(offset, var_ty, dest);
+        self.asm.var_store(slot_var.offset(), var_ty, dest);
 
         self.save_label_state(lbl_end, lbl_start, |this| {
             // execute while body, then jump back to condition
