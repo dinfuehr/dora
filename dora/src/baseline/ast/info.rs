@@ -76,7 +76,6 @@ pub struct JitInfo<'ast> {
     pub map_csites: NodeMap<CallSite<'ast>>,
     pub map_offsets: NodeMap<i32>,
     pub map_var_offsets: HashMap<VarId, i32>,
-    pub map_var_types: HashMap<VarId, BuiltinType>,
     pub map_intrinsics: NodeMap<Intrinsic>,
     pub map_fors: NodeMap<ForInfo<'ast>>,
     pub map_templates: NodeMap<TemplateJitInfo<'ast>>,
@@ -101,13 +100,6 @@ impl<'ast> JitInfo<'ast> {
             .expect("no offset found for var")
     }
 
-    pub fn ty(&self, var_id: VarId) -> BuiltinType {
-        *self
-            .map_var_types
-            .get(&var_id)
-            .expect("no type found for var")
-    }
-
     pub fn new() -> JitInfo<'ast> {
         JitInfo {
             stacksize: 0,
@@ -118,7 +110,6 @@ impl<'ast> JitInfo<'ast> {
             map_csites: NodeMap::new(),
             map_offsets: NodeMap::new(),
             map_var_offsets: HashMap::new(),
-            map_var_types: HashMap::new(),
             map_intrinsics: NodeMap::new(),
             map_fors: NodeMap::new(),
             map_templates: NodeMap::new(),
@@ -152,7 +143,6 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
         let var = *self.src.map_vars.get(p.id).unwrap();
         let ty = self.src.vars[var].ty;
         let ty = self.specialize_type(ty);
-        self.jit_info.map_var_types.insert(var, ty);
 
         let is_float = ty.is_float();
 
@@ -180,11 +170,6 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         match s {
-            &StmtVar(ref var) => {
-                let var = *self.src.map_vars.get(var.id).unwrap();
-                self.reserve_stack_for_var(var);
-            }
-
             &StmtDo(ref r#try) => {
                 self.reserve_stmt_do(r#try);
             }
@@ -235,12 +220,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 self.eh_return_value
                     .unwrap_or_else(|| self.reserve_stack_slot(ret)),
             );
-        }
-
-        // we also need space for catch block parameters
-        for catch in &r#try.catch_blocks {
-            let var = *self.src.map_vars.get(catch.id).unwrap();
-            self.reserve_stack_for_var(var);
         }
 
         if r#try.finally_block.is_some() {
@@ -327,7 +306,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let offset = self.reserve_stack_slot(ty);
 
         self.jit_info.map_var_offsets.insert(id, offset);
-        self.jit_info.map_var_types.insert(id, ty);
 
         offset
     }
@@ -1032,69 +1010,5 @@ mod tests {
         info("fun f() { }", |_, jit_info| {
             assert!(jit_info.leaf);
         });
-    }
-
-    #[test]
-    fn test_param_offset() {
-        info("fun f(a: Bool, b: Int) { let c = 1; }", |fct, jit_info| {
-            assert_eq!(16, jit_info.stacksize);
-
-            for (var, offset) in fct.vars.iter().zip(&[-1, -8, -12]) {
-                assert_eq!(*offset, jit_info.offset(var.id));
-            }
-        });
-    }
-
-    #[test]
-    #[cfg(target_arch = "x86_64")]
-    fn test_params_over_6_offset() {
-        info(
-            "fun f(a: Int, b: Int, c: Int, d: Int,
-                   e: Int, f: Int, g: Int, h: Int) {
-                  let i : Int = 1;
-              }",
-            |fct, jit_info| {
-                assert_eq!(32, jit_info.stacksize);
-                let offsets = [-4, -8, -12, -16, -20, -24, 16, 24, -28];
-
-                for (var, offset) in fct.vars.iter().zip(&offsets) {
-                    assert_eq!(*offset, jit_info.offset(var.id));
-                }
-            },
-        );
-    }
-
-    #[test]
-    #[cfg(target_arch = "aarch64")]
-    fn test_params_over_8_offset() {
-        info(
-            "fun f(a: Int, b: Int, c: Int, d: Int,
-                   e: Int, f: Int, g: Int, h: Int,
-                   i: Int, j: Int) {
-                  let k : Int = 1;
-              }",
-            |fct, jit_info| {
-                assert_eq!(36, jit_info.stacksize);
-                let offsets = [-4, -8, -12, -16, -20, -24, -28, -32, 16, 24, -36];
-
-                for (var, offset) in fct.vars.iter().zip(&offsets) {
-                    assert_eq!(*offset, jit_info.offset(var.id));
-                }
-            },
-        );
-    }
-
-    #[test]
-    fn test_var_offset() {
-        info(
-            "fun f() { let a = true; let b = false; let c = 2; let d = \"abc\"; }",
-            |fct, jit_info| {
-                assert_eq!(16, jit_info.stacksize);
-
-                for (var, offset) in fct.vars.iter().zip(&[-1, -2, -8, -16]) {
-                    assert_eq!(*offset, jit_info.offset(var.id));
-                }
-            },
-        );
     }
 }

@@ -115,7 +115,7 @@ where
 
         for p in &self.ast.params {
             let varid = *self.src.map_vars.get(p.id).unwrap();
-            let ty = self.jit_info.ty(varid);
+            let ty = self.var_ty(varid);
             let is_float = ty.mode().is_float();
 
             // let slot_param = self.managed_stack.add_scope(ty, self.vm);
@@ -128,16 +128,14 @@ where
                 let reg = FREG_PARAMS[freg_idx];
 
                 self.asm.emit_comment(Comment::StoreParam(varid));
-                self.asm
-                    .var_store(self.var_offset(varid), self.jit_info.ty(varid), reg.into());
+                self.asm.var_store(self.var_offset(varid), ty, reg.into());
 
                 freg_idx += 1;
             } else if !is_float && reg_idx < REG_PARAMS.len() {
                 let reg = REG_PARAMS[reg_idx];
 
                 self.asm.emit_comment(Comment::StoreParam(varid));
-                self.asm
-                    .var_store(self.var_offset(varid), self.jit_info.ty(varid), reg.into());
+                self.asm.var_store(self.var_offset(varid), ty, reg.into());
 
                 reg_idx += 1;
             } else {
@@ -240,7 +238,7 @@ where
     }
 
     fn emit_stmt_for(&mut self, s: &'ast StmtForType) {
-        let for_type_info = self.src.map_fors.get(s.id).unwrap().clone();
+        // let for_type_info = self.src.map_fors.get(s.id).unwrap().clone();
         let for_jit_info = self.jit_info.map_fors.get(s.id).unwrap().clone();
 
         self.managed_stack.push_scope();
@@ -250,9 +248,9 @@ where
 
         // offset of iterator storage
         let offset = *self.jit_info.map_offsets.get(s.id).unwrap();
-        let _slot_offset = self
-            .managed_stack
-            .add_scope(for_type_info.iterator_type, self.vm);
+        // let _slot_offset = self
+        //     .managed_stack
+        //     .add_scope(for_type_info.iterator_type, self.vm);
         self.asm
             .store_mem(MachineMode::Ptr, Mem::Local(offset), dest);
 
@@ -273,7 +271,7 @@ where
         let dest = self.emit_call_site_old(&for_jit_info.next, s.pos);
 
         let for_var_id = *self.src.map_vars.get(s.id).unwrap();
-        let var_ty = self.jit_info.ty(for_var_id);
+        let var_ty = self.var_ty(for_var_id);
         // let slot_var = self.managed_stack.add_scope(var_ty, self.vm);
         // assert!(self.var_to_slot.insert(for_var_id, slot_var).is_none());
 
@@ -394,33 +392,26 @@ where
     }
 
     fn emit_stmt_var(&mut self, s: &'ast StmtVarType) {
-        let mut initialized = false;
         let var = *self.src.map_vars.get(s.id).unwrap();
-        let ty = self.jit_info.ty(var);
+        let ty = self.var_ty(var);
 
-        // let slot_var = self.managed_stack.add_scope(ty, self.vm);
-        // assert!(self.var_to_slot.insert(var, slot_var).is_none());
+        let value = if let Some(ref expr) = s.expr {
+            Some(self.emit_expr_result_reg(expr))
+        } else {
+            None
+        };
 
-        if let Some(ref expr) = s.expr {
-            let value = self.emit_expr_result_reg(expr);
-            initialized = true;
+        let slot_var = self.managed_stack.add_scope(ty, self.vm);
+        assert!(self.var_to_slot.insert(var, slot_var).is_none());
 
-            self.asm
-                .var_store(self.var_offset(var), self.jit_info.ty(var), value);
-        }
-
-        let offset = self.var_offset(var);
-        self.stack.add_var(ty, offset);
-
-        // uninitialized variables which reference objects need to be initialized to null
-        // otherwise the GC can't know if the stored value is a valid pointer
-        if ty.reference_type() && !initialized {
+        if let Some(value) = value {
+            self.asm.var_store(self.var_offset(var), ty, value);
+        } else if ty.reference_type() {
+            // uninitialized variables which reference objects need to be initialized to null
+            // otherwise the GC can't know if the stored value is a valid pointer
             self.asm.load_nil(REG_RESULT);
-            self.asm.var_store(
-                self.var_offset(var),
-                self.jit_info.ty(var),
-                REG_RESULT.into(),
-            );
+            self.asm
+                .var_store(self.var_offset(var), ty, REG_RESULT.into());
         }
     }
 
@@ -467,15 +458,12 @@ where
         for catch in &s.catch_blocks {
             let varid = *self.src.map_vars.get(catch.id).unwrap();
 
-            // let slot_var = self.managed_stack.add_scope(BuiltinType::Ptr, self.vm);
-            // assert!(self.var_to_slot.insert(varid, slot_var).is_none());
-
-            let offset = self.var_offset(varid);
+            let slot_var = self.managed_stack.add_scope(BuiltinType::Ptr, self.vm);
+            assert!(self.var_to_slot.insert(varid, slot_var).is_none());
 
             self.stack.push_scope();
             self.managed_stack.push_scope();
 
-            self.stack.add_var(BuiltinType::Ptr, offset);
             let catch_span = self.stmt_with_finally(s, &catch.block, lbl_after);
 
             self.managed_stack.pop_scope(self.vm);
@@ -488,8 +476,12 @@ where
             let cls_def = cls_def.read();
 
             let catch_type = CatchType::Class(&*cls_def as *const ClassDef);
-            self.asm
-                .emit_exception_handler(try_span, catch_span.0, Some(offset), catch_type);
+            self.asm.emit_exception_handler(
+                try_span,
+                catch_span.0,
+                Some(slot_var.offset()),
+                catch_type,
+            );
 
             ret.push(catch_span);
         }
@@ -913,9 +905,12 @@ where
     }
 
     fn var_offset(&self, id: VarId) -> i32 {
-        let offset = self.jit_info.offset(id);
-        // assert!(self.var_to_slot.contains_key(&id));
-        offset
+        if let Some(&offset) = self.jit_info.map_var_offsets.get(&id) {
+            assert!(!self.var_to_slot.contains_key(&id));
+            offset
+        } else {
+            self.var_to_slot[&id].offset()
+        }
     }
 
     fn add_temp_arg(&mut self, arg: &Arg<'ast>) -> ManagedStackSlot {
@@ -1034,8 +1029,8 @@ where
         match ident {
             &IdentType::Var(varid) => {
                 self.asm.emit_comment(Comment::LoadVar(varid));
-                self.asm
-                    .var_load(self.var_offset(varid), self.jit_info.ty(varid), dest)
+                let ty = self.var_ty(varid);
+                self.asm.var_load(self.var_offset(varid), ty, dest)
             }
 
             &IdentType::Global(gid) => {
@@ -1225,13 +1220,12 @@ where
 
         match ident_type {
             &IdentType::Var(varid) => {
-                let ty = self.jit_info.ty(varid);
+                let ty = self.var_ty(varid);
                 let dest = result_reg(ty.mode());
                 self.emit_expr(&e.rhs, dest);
 
                 self.asm.emit_comment(Comment::StoreVar(varid));
-                self.asm
-                    .var_store(self.var_offset(varid), self.jit_info.ty(varid), dest);
+                self.asm.var_store(self.var_offset(varid), ty, dest);
             }
 
             &IdentType::Global(gid) => {
@@ -2623,6 +2617,11 @@ where
 
     fn ty(&self, id: NodeId) -> BuiltinType {
         let ty = self.src.ty(id);
+        self.specialize_type(ty)
+    }
+
+    fn var_ty(&self, id: VarId) -> BuiltinType {
+        let ty = self.src.vars[id].ty;
         self.specialize_type(ty)
     }
 }
