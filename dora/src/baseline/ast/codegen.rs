@@ -918,13 +918,9 @@ where
         offset
     }
 
-    fn add_temp_arg(&mut self, arg: &Arg<'ast>) -> ((), i32) {
+    fn add_temp_arg(&mut self, arg: &Arg<'ast>) -> ManagedStackSlot {
         let ty = arg.ty();
-        let offset = arg.offset();
-
-        self.stack.add_temp(ty, offset);
-
-        ((), offset)
+        self.managed_stack.add_temp(ty, self.vm)
     }
 
     fn add_temp_node(&mut self, expr: &Expr) -> ManagedStackSlot {
@@ -2238,7 +2234,12 @@ where
     }
 
     pub fn emit_call_site(&mut self, csite: &CallSite<'ast>, pos: Position, dest: ExprStore) {
-        let mut temps: Vec<(BuiltinType, Option<()>, i32, Option<ClassDefId>)> = Vec::new();
+        let mut temps: Vec<(
+            BuiltinType,
+            Option<ManagedStackSlot>,
+            i32,
+            Option<ClassDefId>,
+        )> = Vec::new();
 
         let fid = csite.callee;
         let fct = self.vm.fcts.idx(fid);
@@ -2286,10 +2287,10 @@ where
                 }
             }
 
-            let (slot, offset) = self.add_temp_arg(arg);
+            let slot = self.add_temp_arg(arg);
             self.asm
-                .store_mem(arg.ty().mode(), Mem::Local(offset), dest);
-            temps.push((arg.ty(), Some(slot), offset, None));
+                .store_mem(arg.ty().mode(), Mem::Local(slot.offset()), dest);
+            temps.push((arg.ty(), Some(slot), slot.offset(), None));
         }
 
         self.asm.increase_stack_frame(csite.argsize);
@@ -2313,9 +2314,8 @@ where
                     // after the allocation `offset` is initialized,
                     // add it to the set of temporaries such that it is part
                     // of the gc point
-                    self.stack.add_temp(BuiltinType::Ptr, offset);
-                    // let slot = self.managed_stack.add_temp(BuiltinType::Ptr, self.vm);
-                    // temps[idx].1 = Some(slot);
+                    let slot = self.managed_stack.add_temp(BuiltinType::Ptr, self.vm);
+                    temps[idx].1 = Some(slot);
 
                     reg_idx += 1;
                     idx += 1;
@@ -2429,11 +2429,7 @@ where
         }
 
         for temp in temps.into_iter() {
-            self.stack.free_temp(temp.0, temp.2);
-
-            // if let Some(slot) = temp.1 {
-            //     self.managed_stack.free_temp(slot, self.vm);
-            // }
+            self.managed_stack.free_temp(temp.1.unwrap(), self.vm);
         }
 
         self.asm.decrease_stack_frame(csite.argsize);
@@ -2442,7 +2438,12 @@ where
     fn emit_allocation(
         &mut self,
         pos: Position,
-        temps: &[(BuiltinType, Option<()>, i32, Option<ClassDefId>)],
+        temps: &[(
+            BuiltinType,
+            Option<ManagedStackSlot>,
+            i32,
+            Option<ClassDefId>,
+        )],
         cls_id: ClassDefId,
         offset: i32,
         dest: Reg,
