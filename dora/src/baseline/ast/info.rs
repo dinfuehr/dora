@@ -1,4 +1,3 @@
-use std::cmp::max;
 use std::collections::HashMap;
 
 use dora_parser::ast::visit::*;
@@ -449,12 +448,19 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.determine_call_args_and_types(&*call_type, &*callee, args);
         let (cls_type_params, fct_type_params) = self.determine_call_type_params(&*call_type);
 
-        let argsize = self.determine_call_stack(&args);
+        for arg in &args {
+            match *arg {
+                Arg::Expr(ast, _, _) => {
+                    self.visit_expr(ast);
+                }
+
+                _ => {}
+            }
+        }
 
         CallSite {
             callee: callee_id,
             args,
-            argsize,
             cls_type_params,
             fct_type_params,
             super_call,
@@ -545,39 +551,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         }
 
         (cls_type_params, fct_type_params)
-    }
-
-    fn determine_call_stack(&mut self, args: &[Arg<'ast>]) -> i32 {
-        let mut reg_args: i32 = 0;
-        let mut freg_args: i32 = 0;
-
-        for arg in args {
-            match *arg {
-                Arg::Expr(ast, ty, _) => {
-                    self.visit_expr(ast);
-
-                    if ty.is_float() {
-                        freg_args += 1;
-                    } else {
-                        reg_args += 1;
-                    }
-                }
-
-                Arg::Stack(_, ty, _) | Arg::Selfie(ty, _) | Arg::SelfieNew(ty, _) => {
-                    if ty.is_float() {
-                        freg_args += 1;
-                    } else {
-                        reg_args += 1;
-                    }
-                }
-            }
-        }
-
-        // some register are reserved on stack
-        let args_on_stack = max(0, reg_args - REG_PARAMS.len() as i32)
-            + max(0, freg_args - FREG_PARAMS.len() as i32);
-
-        mem::align_i32(mem::ptr_width() * args_on_stack, 16)
     }
 
     fn expr_assign(&mut self, e: &'ast ExprBinType) {

@@ -1,3 +1,4 @@
+use std::cmp::max;
 use std::collections::HashMap;
 
 use dora_parser::ast::visit::*;
@@ -2323,7 +2324,8 @@ where
             temps.push((arg.ty(), Some(slot), slot.offset(), None));
         }
 
-        self.asm.increase_stack_frame(csite.argsize);
+        let argsize = self.determine_call_stack(&csite.args);
+        self.asm.increase_stack_frame(argsize);
 
         let mut sp_offset = 0;
         let mut idx = 0;
@@ -2462,7 +2464,7 @@ where
             self.managed_stack.free_temp(temp.1.unwrap(), self.vm);
         }
 
-        self.asm.decrease_stack_frame(csite.argsize);
+        self.asm.decrease_stack_frame(argsize);
     }
 
     fn emit_allocation(
@@ -2649,6 +2651,37 @@ where
 
             _ => ty,
         }
+    }
+
+    fn determine_call_stack(&mut self, args: &[Arg<'ast>]) -> i32 {
+        let mut reg_args: i32 = 0;
+        let mut freg_args: i32 = 0;
+
+        for arg in args {
+            match *arg {
+                Arg::Expr(_, ty, _) => {
+                    if ty.is_float() {
+                        freg_args += 1;
+                    } else {
+                        reg_args += 1;
+                    }
+                }
+
+                Arg::Stack(_, ty, _) | Arg::Selfie(ty, _) | Arg::SelfieNew(ty, _) => {
+                    if ty.is_float() {
+                        freg_args += 1;
+                    } else {
+                        reg_args += 1;
+                    }
+                }
+            }
+        }
+
+        // some register are reserved on stack
+        let args_on_stack = max(0, reg_args - REG_PARAMS.len() as i32)
+            + max(0, freg_args - FREG_PARAMS.len() as i32);
+
+        mem::align_i32(mem::ptr_width() * args_on_stack, 16)
     }
 
     fn ty(&self, id: NodeId) -> BuiltinType {
