@@ -72,6 +72,8 @@ pub struct AstCodeGen<'a, 'ast: 'a> {
     pub managed_stack: ManagedStackFrame,
     pub stacksize_offset: usize,
 
+    pub eh_return_value: Option<ManagedStackSlot>,
+
     pub var_to_slot: HashMap<VarId, ManagedStackSlot>,
 
     pub cls_type_params: &'a TypeList,
@@ -165,7 +167,7 @@ where
             self.emit_expr_result_reg(expr);
 
             if len > 0 {
-                let offset = self.jit_info.eh_return_value.unwrap();
+                let offset = self.ensure_eh_return_value();
                 let rmode = return_type.mode();
                 self.asm
                     .store_mem(rmode, Mem::Local(offset), register_for_mode(rmode));
@@ -192,7 +194,7 @@ where
             }
 
             if s.expr.is_some() {
-                let offset = self.jit_info.eh_return_value.unwrap();
+                let offset = self.ensure_eh_return_value();
                 let rmode = return_type.mode();
                 self.asm
                     .load_mem(rmode, register_for_mode(rmode), Mem::Local(offset));
@@ -202,6 +204,17 @@ where
         }
 
         self.emit_epilog();
+    }
+
+    fn ensure_eh_return_value(&mut self) -> i32 {
+        if let Some(slot) = self.eh_return_value {
+            slot.offset()
+        } else {
+            let return_type = self.specialize_type(self.fct.return_type);
+            let slot = self.managed_stack.add_temp(return_type, self.vm);
+            self.eh_return_value = Some(slot);
+            slot.offset()
+        }
     }
 
     fn emit_stmt_while(&mut self, s: &'ast StmtWhileType) {
@@ -2681,6 +2694,10 @@ impl<'a, 'ast> CodeGen<'ast> for AstCodeGen<'a, 'ast> {
                     self.emit_epilog();
                 }
             }
+        }
+
+        if let Some(slot) = self.eh_return_value {
+            self.managed_stack.free_temp(slot, self.vm);
         }
 
         self.managed_stack.pop_scope(self.vm);

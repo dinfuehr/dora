@@ -120,6 +120,7 @@ pub fn generate_fct<'ast>(
                 stacksize_offset: 0,
                 managed_stack: ManagedStackFrame::new(),
                 var_to_slot: HashMap::new(),
+                eh_return_value: None,
 
                 cls_type_params,
                 fct_type_params,

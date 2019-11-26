@@ -53,9 +53,6 @@ pub fn generate<'a, 'ast: 'a>(
         stacksize: 0,
 
         param_offset: PARAM_OFFSET,
-        leaf: true,
-        eh_return_value: None,
-        eh_status: None,
 
         param_reg_idx: start,
         param_freg_idx: 0,
@@ -68,9 +65,7 @@ pub fn generate<'a, 'ast: 'a>(
 }
 
 pub struct JitInfo<'ast> {
-    pub stacksize: i32,               // size of local variables on stack
-    pub leaf: bool,                   // false if fct calls other functions
-    pub eh_return_value: Option<i32>, // stack slot for return value storage
+    pub stacksize: i32, // size of local variables on stack
 
     pub map_csites: NodeMap<CallSite<'ast>>,
     pub map_offsets: NodeMap<i32>,
@@ -94,8 +89,6 @@ impl<'ast> JitInfo<'ast> {
     pub fn new() -> JitInfo<'ast> {
         JitInfo {
             stacksize: 0,
-            leaf: false,
-            eh_return_value: None,
 
             map_csites: NodeMap::new(),
             map_offsets: NodeMap::new(),
@@ -115,10 +108,7 @@ struct InfoGenerator<'a, 'ast: 'a> {
 
     stacksize: i32,
 
-    eh_return_value: Option<i32>,
-    eh_status: Option<i32>,
     param_offset: i32,
-    leaf: bool,
 
     param_reg_idx: usize,
     param_freg_idx: usize,
@@ -157,10 +147,6 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         match s {
-            &StmtDo(ref r#try) => {
-                self.reserve_stmt_do(r#try);
-            }
-
             &StmtFor(ref sfor) => {
                 self.reserve_stmt_for(sfor);
             }
@@ -190,19 +176,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.visit_fct(self.ast);
 
         self.jit_info.stacksize = mem::align_i32(self.stacksize, STACK_FRAME_ALIGNMENT as i32);
-        self.jit_info.leaf = self.leaf;
-        self.jit_info.eh_return_value = self.eh_return_value;
-    }
-
-    fn reserve_stmt_do(&mut self, r#try: &'ast StmtDoType) {
-        let ret = self.specialize_type(self.fct.return_type);
-
-        if !ret.is_unit() {
-            self.eh_return_value = Some(
-                self.eh_return_value
-                    .unwrap_or_else(|| self.reserve_stack_slot(ret)),
-            );
-        }
     }
 
     fn reserve_stmt_for(&mut self, stmt: &'ast StmtForType) {
@@ -469,9 +442,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         callee_id: FctId,
         args: Vec<Arg<'ast>>,
     ) -> CallSite<'ast> {
-        // function invokes another function
-        self.leaf = false;
-
         let callee = self.vm.fcts.idx(callee_id);
         let callee = callee.read();
 
@@ -840,17 +810,6 @@ mod tests {
             generate(vm, &fct, &mut src, &mut jit_info, &empty, &empty);
 
             f(&src, &jit_info);
-        });
-    }
-
-    #[test]
-    fn test_invocation_flag() {
-        info("fun f() { g(); } fun g() { }", |_, jit_info| {
-            assert!(!jit_info.leaf);
-        });
-
-        info("fun f() { }", |_, jit_info| {
-            assert!(jit_info.leaf);
         });
     }
 }
