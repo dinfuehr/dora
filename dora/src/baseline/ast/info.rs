@@ -203,11 +203,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                     .unwrap_or_else(|| self.reserve_stack_slot(ret)),
             );
         }
-
-        if r#try.finally_block.is_some() {
-            let offset = self.reserve_stack_slot(BuiltinType::Ptr);
-            self.jit_info.map_offsets.insert(r#try.id, offset);
-        }
     }
 
     fn reserve_stmt_for(&mut self, stmt: &'ast StmtForType) {

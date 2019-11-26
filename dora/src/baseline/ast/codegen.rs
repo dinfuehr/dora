@@ -428,16 +428,19 @@ where
 
         self.asm.bind_label(lbl_after);
 
-        if let Some(finally_start) = finally_start {
-            let offset = *self.jit_info.map_offsets.get(s.id).unwrap();
-            self.asm
-                .emit_exception_handler(do_span, finally_start, Some(offset), CatchType::Any);
+        if let Some((finally_start, finally_offset)) = finally_start {
+            self.asm.emit_exception_handler(
+                do_span,
+                finally_start,
+                Some(finally_offset),
+                CatchType::Any,
+            );
 
             for &catch_span in &catch_spans {
                 self.asm.emit_exception_handler(
                     catch_span,
                     finally_start,
-                    Some(offset),
+                    Some(finally_offset),
                     CatchType::Any,
                 );
             }
@@ -516,7 +519,7 @@ where
         (start, end)
     }
 
-    fn emit_do_finally_block(&mut self, s: &'ast StmtDoType) -> Option<usize> {
+    fn emit_do_finally_block(&mut self, s: &'ast StmtDoType) -> Option<(usize, i32)> {
         if s.finally_block.is_none() {
             return None;
         }
@@ -527,9 +530,8 @@ where
         self.stack.push_scope();
         self.managed_stack.push_scope();
 
-        let offset = *self.jit_info.map_offsets.get(s.id).unwrap();
-        self.stack.add_var(BuiltinType::Ptr, offset);
-        // let _slot = self.managed_stack.add_scope(BuiltinType::Ptr, self.vm);
+        let slot = self.managed_stack.add_scope(BuiltinType::Ptr, self.vm);
+        let offset = slot.offset();
 
         self.visit_stmt(&finally_block.block);
 
@@ -540,7 +542,7 @@ where
         self.managed_stack.pop_scope(self.vm);
         self.stack.pop_scope();
 
-        Some(finally_pos)
+        Some((finally_pos, offset))
     }
 
     fn emit_expr_result_reg(&mut self, e: &'ast Expr) -> ExprStore {
