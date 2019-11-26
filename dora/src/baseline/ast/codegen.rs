@@ -2265,12 +2265,7 @@ where
     }
 
     pub fn emit_call_site(&mut self, csite: &CallSite<'ast>, pos: Position, dest: ExprStore) {
-        let mut temps: Vec<(
-            BuiltinType,
-            Option<ManagedStackSlot>,
-            i32,
-            Option<ClassDefId>,
-        )> = Vec::new();
+        let mut temps: Vec<ArgInfo> = Vec::new();
 
         let fid = csite.callee;
         let fct = self.vm.fcts.idx(fid);
@@ -2313,7 +2308,12 @@ where
                     // this would also add it to the set of temporaries, which
                     // leads to this address being part of the gc point for
                     // the collection of the object.
-                    temps.push((ty, None, arg.offset(), Some(cls_id)));
+                    temps.push(ArgInfo {
+                        ty,
+                        slot: None,
+                        offset: arg.offset(),
+                        cls_id: Some(cls_id),
+                    });
                     continue;
                 }
             }
@@ -2321,7 +2321,12 @@ where
             let slot = self.add_temp_arg(arg);
             self.asm
                 .store_mem(arg.ty().mode(), Mem::Local(slot.offset()), dest);
-            temps.push((arg.ty(), Some(slot), slot.offset(), None));
+            temps.push(ArgInfo {
+                ty: arg.ty(),
+                slot: Some(slot),
+                offset: slot.offset(),
+                cls_id: None,
+            });
         }
 
         let argsize = self.determine_call_stack(&csite.args);
@@ -2336,10 +2341,10 @@ where
             let ty = arg.ty();
             let mode = ty.mode();
             let is_float = mode.is_float();
-            let offset = temps[idx].2;
+            let offset = temps[idx].offset;
 
             if idx == 0 {
-                if let Some(cls_id) = temps[idx].3 {
+                if let Some(cls_id) = temps[idx].cls_id {
                     let reg = REG_PARAMS[reg_idx];
                     self.emit_allocation(pos, &temps, cls_id, offset, reg);
 
@@ -2347,7 +2352,7 @@ where
                     // add it to the set of temporaries such that it is part
                     // of the gc point
                     let slot = self.managed_stack.add_temp(BuiltinType::Ptr, self.vm);
-                    temps[idx].1 = Some(slot);
+                    temps[idx].slot = Some(slot);
 
                     reg_idx += 1;
                     idx += 1;
@@ -2428,7 +2433,7 @@ where
             let vtable_index = fct.vtable_index.unwrap();
             self.asm.emit_comment(Comment::CallVirtual(fid));
             let gcpoint = self.create_gcpoint();
-            let cls_type_params = temps[0].0.type_params(self.vm);
+            let cls_type_params = temps[0].ty.type_params(self.vm);
             self.asm.indirect_call(
                 vtable_index,
                 pos,
@@ -2455,13 +2460,14 @@ where
 
         if csite.args.len() > 0 {
             if let Arg::SelfieNew(_, _) = csite.args[0] {
-                let (ty, _, offset, _) = temps[0];
-                self.asm.load_mem(ty.mode(), dest, Mem::Local(offset));
+                let temp = &temps[0];
+                self.asm
+                    .load_mem(temp.ty.mode(), dest, Mem::Local(temp.offset));
             }
         }
 
         for temp in temps.into_iter() {
-            self.managed_stack.free_temp(temp.1.unwrap(), self.vm);
+            self.managed_stack.free_temp(temp.slot.unwrap(), self.vm);
         }
 
         self.asm.decrease_stack_frame(argsize);
@@ -2470,12 +2476,7 @@ where
     fn emit_allocation(
         &mut self,
         pos: Position,
-        temps: &[(
-            BuiltinType,
-            Option<ManagedStackSlot>,
-            i32,
-            Option<ClassDefId>,
-        )],
+        temps: &[ArgInfo],
         cls_id: ClassDefId,
         offset: i32,
         dest: Reg,
@@ -2497,8 +2498,11 @@ where
             }
 
             InstanceSize::Array(esize) if temps.len() > 1 => {
-                self.asm
-                    .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].2));
+                self.asm.load_mem(
+                    MachineMode::Int32,
+                    REG_TMP1.into(),
+                    Mem::Local(temps[1].offset),
+                );
 
                 self.asm
                     .determine_array_size(REG_PARAMS[0], REG_TMP1, esize, true);
@@ -2508,8 +2512,11 @@ where
             }
 
             InstanceSize::ObjArray if temps.len() > 1 => {
-                self.asm
-                    .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].2));
+                self.asm.load_mem(
+                    MachineMode::Int32,
+                    REG_TMP1.into(),
+                    Mem::Local(temps[1].offset),
+                );
 
                 self.asm
                     .determine_array_size(REG_PARAMS[0], REG_TMP1, mem::ptr_width(), true);
@@ -2519,8 +2526,11 @@ where
             }
 
             InstanceSize::Str if temps.len() > 1 => {
-                self.asm
-                    .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].2));
+                self.asm.load_mem(
+                    MachineMode::Int32,
+                    REG_TMP1.into(),
+                    Mem::Local(temps[1].offset),
+                );
 
                 self.asm
                     .determine_array_size(REG_PARAMS[0], REG_TMP1, 1, true);
@@ -2578,7 +2588,7 @@ where
         if store_length {
             if temps.len() > 1 {
                 self.asm
-                    .load_mem(MachineMode::Int32, temp.into(), Mem::Local(temps[1].2));
+                    .load_mem(MachineMode::Int32, temp.into(), Mem::Local(temps[1].offset));
             } else {
                 self.asm.load_int_const(MachineMode::Ptr, temp, 0);
             }
@@ -2847,4 +2857,11 @@ fn to_cond_code(cmp: CmpOp) -> CondCode {
         CmpOp::Is => CondCode::Equal,
         CmpOp::IsNot => CondCode::NotEqual,
     }
+}
+
+struct ArgInfo {
+    ty: BuiltinType,
+    slot: Option<ManagedStackSlot>,
+    offset: i32,
+    cls_id: Option<ClassDefId>,
 }
