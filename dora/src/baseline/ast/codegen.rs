@@ -2265,7 +2265,8 @@ where
     }
 
     pub fn emit_call_site(&mut self, csite: &CallSite<'ast>, pos: Position, dest: ExprStore) {
-        let mut temps: Vec<ArgInfo> = Vec::new();
+        let mut temps: Vec<SlotOrOffset> = Vec::new();
+        let mut alloc_cls_id: Option<ClassDefId> = None;
 
         let fid = csite.callee;
         let fct = self.vm.fcts.idx(fid);
@@ -2275,7 +2276,7 @@ where
             let mode = arg.ty().mode();
             let dest = register_for_mode(mode);
 
-            match *arg {
+            let slot_or_offset = match *arg {
                 Arg::Expr(ast, ty, _) => {
                     self.emit_expr(ast, dest);
 
@@ -2292,41 +2293,35 @@ where
                     {
                         self.asm.test_if_nil_bailout(pos, dest.reg(), Trap::NIL);
                     }
+
+                    let slot = self.add_temp_arg(arg);
+                    self.asm
+                        .store_mem(arg.ty().mode(), Mem::Local(slot.offset()), dest);
+                    SlotOrOffset::Slot(slot)
                 }
 
-                Arg::Stack(soffset, ty, _) => {
-                    self.asm.load_mem(ty.mode(), dest, Mem::Local(soffset));
+                Arg::Stack(offset, ty, _) => {
+                    self.asm.load_mem(ty.mode(), dest, Mem::Local(offset));
+                    SlotOrOffset::Offset(offset)
                 }
 
                 Arg::Selfie(_, _) => {
-                    self.emit_self(dest);
+                    let var = self.src.var_self();
+                    let offset = self.var_offset(var.id);
+                    SlotOrOffset::Offset(offset)
                 }
 
                 Arg::SelfieNew(ty, _) => {
-                    let cls_id = specialize_class_ty(self.vm, ty);
+                    alloc_cls_id = Some(specialize_class_ty(self.vm, ty));
                     // do NOT invoke `add_temp_arg` here, since
                     // this would also add it to the set of temporaries, which
                     // leads to this address being part of the gc point for
                     // the collection of the object.
-                    temps.push(ArgInfo {
-                        ty,
-                        slot: None,
-                        offset: arg.offset(),
-                        cls_id: Some(cls_id),
-                    });
-                    continue;
+                    SlotOrOffset::Uninitialized
                 }
-            }
+            };
 
-            let slot = self.add_temp_arg(arg);
-            self.asm
-                .store_mem(arg.ty().mode(), Mem::Local(slot.offset()), dest);
-            temps.push(ArgInfo {
-                ty: arg.ty(),
-                slot: Some(slot),
-                offset: slot.offset(),
-                cls_id: None,
-            });
+            temps.push(slot_or_offset);
         }
 
         let argsize = self.determine_call_stack(&csite.args);
@@ -2341,24 +2336,22 @@ where
             let ty = arg.ty();
             let mode = ty.mode();
             let is_float = mode.is_float();
-            let offset = temps[idx].offset;
 
-            if idx == 0 {
-                if let Some(cls_id) = temps[idx].cls_id {
-                    let reg = REG_PARAMS[reg_idx];
-                    self.emit_allocation(pos, &temps, cls_id, offset, reg);
+            if idx == 0 && alloc_cls_id.is_some() {
+                let reg = REG_PARAMS[reg_idx];
+                let slot = self.emit_allocation(pos, &temps, alloc_cls_id.unwrap(), reg);
 
-                    // after the allocation `offset` is initialized,
-                    // add it to the set of temporaries such that it is part
-                    // of the gc point
-                    let slot = self.managed_stack.add_temp(BuiltinType::Ptr, self.vm);
-                    temps[idx].slot = Some(slot);
+                // after the allocation `offset` is initialized,
+                // add it to the set of temporaries such that it is part
+                // of the gc point
+                temps[idx] = SlotOrOffset::Slot(slot);
 
-                    reg_idx += 1;
-                    idx += 1;
-                    continue;
-                }
+                reg_idx += 1;
+                idx += 1;
+                continue;
             }
+
+            let offset = temps[idx].offset();
 
             if is_float {
                 if freg_idx < FREG_PARAMS.len() {
@@ -2433,7 +2426,7 @@ where
             let vtable_index = fct.vtable_index.unwrap();
             self.asm.emit_comment(Comment::CallVirtual(fid));
             let gcpoint = self.create_gcpoint();
-            let cls_type_params = temps[0].ty.type_params(self.vm);
+            let cls_type_params = csite.args[0].ty().type_params(self.vm);
             self.asm.indirect_call(
                 vtable_index,
                 pos,
@@ -2459,15 +2452,17 @@ where
         }
 
         if csite.args.len() > 0 {
-            if let Arg::SelfieNew(_, _) = csite.args[0] {
+            if let Arg::SelfieNew(ty, _) = csite.args[0] {
                 let temp = &temps[0];
                 self.asm
-                    .load_mem(temp.ty.mode(), dest, Mem::Local(temp.offset));
+                    .load_mem(ty.mode(), dest, Mem::Local(temp.offset()));
             }
         }
 
         for temp in temps.into_iter() {
-            self.managed_stack.free_temp(temp.slot.unwrap(), self.vm);
+            if let SlotOrOffset::Slot(slot) = temp {
+                self.managed_stack.free_temp(slot, self.vm);
+            }
         }
 
         self.asm.decrease_stack_frame(argsize);
@@ -2476,11 +2471,10 @@ where
     fn emit_allocation(
         &mut self,
         pos: Position,
-        temps: &[ArgInfo],
+        temps: &[SlotOrOffset],
         cls_id: ClassDefId,
-        offset: i32,
         dest: Reg,
-    ) {
+    ) -> ManagedStackSlot {
         let cls = self.vm.class_defs.idx(cls_id);
         let cls = cls.read();
         let mut store_length = false;
@@ -2501,7 +2495,7 @@ where
                 self.asm.load_mem(
                     MachineMode::Int32,
                     REG_TMP1.into(),
-                    Mem::Local(temps[1].offset),
+                    Mem::Local(temps[1].offset()),
                 );
 
                 self.asm
@@ -2515,7 +2509,7 @@ where
                 self.asm.load_mem(
                     MachineMode::Int32,
                     REG_TMP1.into(),
-                    Mem::Local(temps[1].offset),
+                    Mem::Local(temps[1].offset()),
                 );
 
                 self.asm
@@ -2529,7 +2523,7 @@ where
                 self.asm.load_mem(
                     MachineMode::Int32,
                     REG_TMP1.into(),
-                    Mem::Local(temps[1].offset),
+                    Mem::Local(temps[1].offset()),
                 );
 
                 self.asm
@@ -2560,8 +2554,12 @@ where
         self.asm.allocate(dest, alloc_size, pos, array_ref, gcpoint);
 
         // store gc object in temporary storage
-        self.asm
-            .store_mem(MachineMode::Ptr, Mem::Local(offset), dest.into());
+        let temp_slot = self.managed_stack.add_temp(BuiltinType::Ptr, self.vm);
+        self.asm.store_mem(
+            MachineMode::Ptr,
+            Mem::Local(temp_slot.offset()),
+            dest.into(),
+        );
 
         // store classptr in object
         let cptr = (&**cls.vtable.as_ref().unwrap()) as *const VTable as *const u8;
@@ -2587,8 +2585,11 @@ where
         // store length in object
         if store_length {
             if temps.len() > 1 {
-                self.asm
-                    .load_mem(MachineMode::Int32, temp.into(), Mem::Local(temps[1].offset));
+                self.asm.load_mem(
+                    MachineMode::Int32,
+                    temp.into(),
+                    Mem::Local(temps[1].offset()),
+                );
             } else {
                 self.asm.load_int_const(MachineMode::Ptr, temp, 0);
             }
@@ -2631,8 +2632,13 @@ where
             _ => {}
         }
 
-        self.asm
-            .load_mem(MachineMode::Ptr, dest.into(), Mem::Local(offset));
+        self.asm.load_mem(
+            MachineMode::Ptr,
+            dest.into(),
+            Mem::Local(temp_slot.offset()),
+        );
+
+        temp_slot
     }
 
     fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
@@ -2859,9 +2865,18 @@ fn to_cond_code(cmp: CmpOp) -> CondCode {
     }
 }
 
-struct ArgInfo {
-    ty: BuiltinType,
-    slot: Option<ManagedStackSlot>,
-    offset: i32,
-    cls_id: Option<ClassDefId>,
+enum SlotOrOffset {
+    Uninitialized,
+    Slot(ManagedStackSlot),
+    Offset(i32),
+}
+
+impl SlotOrOffset {
+    fn offset(&self) -> i32 {
+        match *self {
+            SlotOrOffset::Uninitialized => panic!("uninitialized"),
+            SlotOrOffset::Slot(slot) => slot.offset(),
+            SlotOrOffset::Offset(offset) => offset,
+        }
+    }
 }
