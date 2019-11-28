@@ -2404,7 +2404,17 @@ where
     }
 
     fn emit_delegation(&mut self, e: &'ast ExprDelegationType, dest: ExprStore) {
-        self.emit_call_site_id(e.id, e.pos, dest);
+        let mut args = e
+            .args
+            .iter()
+            .map(|arg| Arg::Expr(arg, BuiltinType::Unit))
+            .collect::<Vec<_>>();
+
+        let cls = self.ty(e.id);
+        args.insert(0, Arg::Selfie(cls));
+
+        let call_site = self.build_call_site_id(e.id, args, None);
+        self.emit_call_site(&call_site, e.pos, dest);
     }
 
     fn has_call_site(&self, id: NodeId) -> bool {

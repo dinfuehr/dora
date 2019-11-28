@@ -80,7 +80,6 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
     fn visit_expr(&mut self, e: &'ast Expr) {
         match *e {
             ExprCall(ref expr) => self.expr_call(expr),
-            ExprDelegation(ref expr) => self.expr_delegation(expr),
             ExprBin(ref expr) => self.expr_bin(expr),
             ExprTypeParam(_) => unreachable!(),
 
@@ -267,19 +266,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         }
 
         panic!("no impl found for generic trait call")
-    }
-
-    fn expr_delegation(&mut self, expr: &'ast ExprDelegationType) {
-        let mut args = expr
-            .args
-            .iter()
-            .map(|arg| Arg::Expr(arg, BuiltinType::Unit))
-            .collect::<Vec<_>>();
-
-        let cls = self.ty(expr.id);
-        args.insert(0, Arg::Selfie(cls));
-
-        self.universal_call(expr.id, args, None);
     }
 
     fn universal_call(&mut self, id: NodeId, args: Vec<Arg<'ast>>, callee_id: Option<FctId>) {
