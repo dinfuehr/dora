@@ -1,14 +1,13 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use crate::baseline::fct::{GcPoint, JitBaselineFct};
 use crate::cpu::STACK_FRAME_ALIGNMENT;
 use crate::mem;
 use crate::ty::{BuiltinType, TypeList};
-use crate::vm::{Fct, FctId, FctSrc, NodeMap, VM};
+use crate::vm::{Fct, FctId, FctSrc, VM};
 use dora_parser::ast;
 
 mod codegen;
-mod info;
 
 pub fn compile<'a, 'ast: 'a>(
     vm: &'a VM<'ast>,
@@ -17,23 +16,7 @@ pub fn compile<'a, 'ast: 'a>(
     cls_type_params: &TypeList,
     fct_type_params: &TypeList,
 ) -> JitBaselineFct {
-    let mut jit_info = JitInfo::new();
-    info::generate(
-        vm,
-        fct,
-        src,
-        &mut jit_info,
-        cls_type_params,
-        fct_type_params,
-    );
-    codegen::generate(
-        vm,
-        fct,
-        src,
-        &mut jit_info,
-        cls_type_params,
-        fct_type_params,
-    )
+    codegen::generate(vm, fct, src, cls_type_params, fct_type_params)
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -70,113 +53,6 @@ struct CallSite<'ast> {
     args: Vec<Arg<'ast>>,
     super_call: bool,
     return_type: BuiltinType,
-}
-
-struct JitInfo<'ast> {
-    stacksize: i32, // size of local variables on stack
-    map_csites: NodeMap<CallSite<'ast>>,
-}
-
-impl<'ast> JitInfo<'ast> {
-    fn stacksize(&self) -> i32 {
-        self.stacksize
-    }
-
-    fn new() -> JitInfo<'ast> {
-        JitInfo {
-            stacksize: 0,
-            map_csites: NodeMap::new(),
-        }
-    }
-}
-
-struct StackFrame {
-    all: HashSet<i32>,
-    references: HashSet<i32>,
-    scopes: Vec<StackScope>,
-}
-
-impl StackFrame {
-    fn new() -> StackFrame {
-        StackFrame {
-            all: HashSet::new(),
-            references: HashSet::new(),
-            scopes: Vec::new(),
-        }
-    }
-
-    fn is_empty(&self) -> bool {
-        self.scopes.is_empty() && self.all.is_empty() && self.references.is_empty()
-    }
-
-    fn push_scope(&mut self) {
-        self.scopes.push(StackScope::new());
-    }
-
-    fn add_var(&mut self, ty: BuiltinType, offset: i32) {
-        if ty.reference_type() {
-            assert!(self.references.insert(offset));
-        }
-
-        assert!(self.all.insert(offset));
-
-        let scope = self.scopes.last_mut().expect("no active scope");
-        scope.add_var(ty, offset);
-    }
-
-    fn pop_scope(&mut self) {
-        let scope = self.scopes.pop().expect("no active scope");
-
-        for (offset, ty) in scope.vars.into_iter() {
-            if ty.reference_type() {
-                assert!(self.references.remove(&offset));
-            }
-
-            assert!(self.all.remove(&offset));
-        }
-    }
-
-    fn add_temp(&mut self, ty: BuiltinType, offset: i32) {
-        if ty.reference_type() {
-            assert!(self.references.insert(offset));
-        }
-
-        assert!(self.all.insert(offset));
-    }
-
-    fn free_temp(&mut self, ty: BuiltinType, offset: i32) {
-        if ty.reference_type() {
-            assert!(self.references.remove(&offset));
-        }
-
-        assert!(self.all.remove(&offset));
-    }
-
-    fn gcpoint(&self) -> GcPoint {
-        let mut offsets = Vec::new();
-
-        for &offset in &self.references {
-            offsets.push(offset);
-        }
-
-        GcPoint::from_offsets(offsets)
-    }
-}
-
-struct StackScope {
-    vars: HashMap<i32, BuiltinType>,
-}
-
-impl StackScope {
-    fn new() -> StackScope {
-        StackScope {
-            vars: HashMap::new(),
-        }
-    }
-
-    fn add_var(&mut self, ty: BuiltinType, offset: i32) {
-        assert!(self.vars.insert(offset, ty).is_none());
-    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]

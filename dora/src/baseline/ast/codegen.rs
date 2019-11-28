@@ -9,9 +9,7 @@ use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 
 use crate::baseline::asm::BaselineAssembler;
-use crate::baseline::ast::{
-    Arg, CallSite, JitInfo, ManagedStackFrame, ManagedStackSlot, StackFrame,
-};
+use crate::baseline::ast::{Arg, CallSite, ManagedStackFrame, ManagedStackSlot};
 use crate::baseline::codegen::{
     ensure_native_stub, register_for_mode, should_emit_debug, AllocationSize, CondCode, ExprStore,
 };
@@ -31,9 +29,10 @@ use crate::os::signal::Trap;
 use crate::semck::always_returns;
 use crate::semck::specialize::{specialize_class_ty, specialize_for_call_type};
 use crate::size::InstanceSize;
-use crate::ty::{BuiltinType, MachineMode, TypeList};
+use crate::ty::{BuiltinType, MachineMode, TypeList, TypeParamId};
 use crate::vm::{
-    CallType, ConstId, Fct, FctId, FctKind, FctParent, FctSrc, IdentType, Intrinsic, VarId, VM,
+    CallType, ConstId, Fct, FctId, FctKind, FctParent, FctSrc, IdentType, Intrinsic, TraitId,
+    VarId, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
@@ -41,7 +40,6 @@ pub(super) fn generate<'a, 'ast: 'a>(
     vm: &'a VM<'ast>,
     fct: &Fct<'ast>,
     src: &'a mut FctSrc,
-    jit_info: &'a JitInfo<'ast>,
     cls_type_params: &TypeList,
     fct_type_params: &TypeList,
 ) -> JitBaselineFct {
@@ -51,7 +49,6 @@ pub(super) fn generate<'a, 'ast: 'a>(
         ast: fct.ast,
         asm: BaselineAssembler::new(vm),
         src,
-        jit_info: &jit_info,
 
         lbl_break: None,
         lbl_continue: None,
@@ -60,7 +57,6 @@ pub(super) fn generate<'a, 'ast: 'a>(
         active_finallys: Vec::new(),
         active_upper: None,
         active_loop: None,
-        stack: StackFrame::new(),
         stacksize_offset: 0,
         managed_stack: ManagedStackFrame::new(),
         var_to_slot: HashMap::new(),
@@ -79,7 +75,6 @@ struct AstCodeGen<'a, 'ast: 'a> {
     ast: &'ast Function,
     asm: BaselineAssembler<'a, 'ast>,
     src: &'a mut FctSrc,
-    jit_info: &'a JitInfo<'ast>,
 
     lbl_break: Option<Label>,
     lbl_continue: Option<Label>,
@@ -106,7 +101,6 @@ struct AstCodeGen<'a, 'ast: 'a> {
     // see emit_finallys_within_loop and tests/finally/continue-return.dora
     active_upper: Option<usize>,
 
-    stack: StackFrame,
     managed_stack: ManagedStackFrame,
     stacksize_offset: usize,
 
@@ -128,10 +122,6 @@ where
             self.asm.debug();
         }
 
-        let jit_info_stacksize = self.jit_info.stacksize();
-        self.managed_stack.initial_stacksize(jit_info_stacksize);
-
-        self.stack.push_scope();
         self.managed_stack.push_scope();
         self.emit_prolog();
         self.store_register_params_on_stack();
@@ -161,15 +151,11 @@ where
         }
 
         self.managed_stack.pop_scope(self.vm);
-        self.stack.pop_scope();
-        assert!(self.stack.is_empty());
         assert!(self.managed_stack.is_empty());
 
         if !always_returns {
             self.emit_epilog();
         }
-
-        assert!(self.jit_info.stacksize() <= self.managed_stack.stacksize());
 
         self.asm
             .patch_stacksize(self.stacksize_offset, self.managed_stack.stacksize());
@@ -451,10 +437,7 @@ where
     }
 
     fn create_gcpoint(&mut self) -> GcPoint {
-        let stack_offsets = self.stack.gcpoint();
-        let managed_stack_offset = self.managed_stack.gcpoint();
-
-        GcPoint::merge(stack_offsets, managed_stack_offset)
+        self.managed_stack.gcpoint()
     }
 
     fn save_label_state<F>(&mut self, lbl_break: Label, lbl_continue: Label, f: F)
@@ -594,13 +577,9 @@ where
             let slot_var = self.managed_stack.add_scope(BuiltinType::Ptr, self.vm);
             assert!(self.var_to_slot.insert(varid, slot_var).is_none());
 
-            self.stack.push_scope();
             self.managed_stack.push_scope();
-
             let catch_span = self.stmt_with_finally(s, &catch.block, lbl_after);
-
             self.managed_stack.pop_scope(self.vm);
-            self.stack.pop_scope();
 
             let ty = self.src.ty(catch.data_type.id());
             let ty = self.specialize_type(ty);
@@ -660,7 +639,6 @@ where
 
         let finally_pos = self.asm.pos();
 
-        self.stack.push_scope();
         self.managed_stack.push_scope();
 
         let slot = self.managed_stack.add_scope(BuiltinType::Ptr, self.vm);
@@ -673,7 +651,6 @@ where
         self.asm.throw(REG_RESULT, s.pos);
 
         self.managed_stack.pop_scope(self.vm);
-        self.stack.pop_scope();
 
         Some((finally_pos, offset))
     }
@@ -758,7 +735,6 @@ where
     }
 
     fn emit_block(&mut self, block: &'ast ExprBlockType, dest: ExprStore) {
-        self.stack.push_scope();
         self.managed_stack.push_scope();
 
         for stmt in &block.stmts {
@@ -770,7 +746,6 @@ where
         }
 
         self.managed_stack.pop_scope(self.vm);
-        self.stack.pop_scope();
     }
 
     fn emit_try(&mut self, e: &'ast ExprTryType, dest: ExprStore) {
@@ -1709,9 +1684,10 @@ where
     }
 
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: ExprStore) {
+        let call_type = self.src.map_calls.get(e.id).unwrap().clone();
+
         if let Some(intrinsic) = self.get_intrinsic(e.id) {
             let mut args: Vec<&'ast Expr> = Vec::with_capacity(3);
-            let call_type = self.src.map_calls.get(e.id).unwrap();
 
             if call_type.is_expr() {
                 args.push(&e.callee);
@@ -1725,8 +1701,125 @@ where
 
             self.emit_call_intrinsic(e.id, e.pos, &args, intrinsic, dest);
         } else {
-            self.emit_call_site_id(e.id, e.pos, dest);
+            let mut args = e
+                .args
+                .iter()
+                .map(|arg| Arg::Expr(arg, BuiltinType::Unit))
+                .collect::<Vec<_>>();
+
+            let callee_id = match *call_type {
+                CallType::Ctor(_, fid, _) | CallType::CtorNew(_, fid, _) => {
+                    let ty = self.ty(e.id);
+                    let arg = if call_type.is_ctor() {
+                        Arg::Selfie(ty)
+                    } else {
+                        Arg::SelfieNew(ty)
+                    };
+
+                    args.insert(0, arg);
+
+                    fid
+                }
+
+                CallType::Method(_, fct_id, _) => {
+                    let object = e.object().unwrap();
+                    args.insert(0, Arg::Expr(object, BuiltinType::Unit));
+
+                    let fct = self.vm.fcts.idx(fct_id);
+                    let fct = fct.read();
+
+                    if fct.parent.is_trait() {
+                        // This happens for calls like (T: SomeTrait).method()
+                        // Find the exact method that is called
+                        let trait_id = fct.trait_id();
+                        let object_type = match *call_type {
+                            CallType::Method(ty, _, _) => ty,
+                            _ => unreachable!(),
+                        };
+                        let object_type = self.specialize_type(object_type);
+                        self.find_trait_impl(fct_id, trait_id, object_type)
+                    } else {
+                        fct_id
+                    }
+                }
+
+                CallType::Fct(fid, _, _) => fid,
+
+                CallType::Expr(_, fid) => {
+                    let object = &e.callee;
+                    let ty = self.ty(object.id());
+                    args.insert(0, Arg::Expr(object, ty));
+
+                    fid
+                }
+
+                CallType::TraitStatic(tp_id, trait_id, trait_fct_id) => {
+                    let list_id = match tp_id {
+                        TypeParamId::Fct(list_id) => list_id,
+                        TypeParamId::Class(_) => unimplemented!(),
+                    };
+
+                    let ty = self.fct_type_params[list_id.idx()];
+                    let cls_id = ty.cls_id(self.vm).expect("no cls_id for type");
+
+                    let cls = self.vm.classes.idx(cls_id);
+                    let cls = cls.read();
+
+                    let mut impl_fct_id: Option<FctId> = None;
+
+                    for &impl_id in &cls.impls {
+                        let ximpl = self.vm.impls[impl_id].read();
+
+                        if ximpl.trait_id != Some(trait_id) {
+                            continue;
+                        }
+
+                        for &fid in &ximpl.methods {
+                            let method = self.vm.fcts.idx(fid);
+                            let method = method.read();
+
+                            if method.impl_for == Some(trait_fct_id) {
+                                impl_fct_id = Some(fid);
+                                break;
+                            }
+                        }
+                    }
+
+                    impl_fct_id.expect("no impl_fct_id found")
+                }
+
+                CallType::Trait(_, _) => unimplemented!(),
+                CallType::Intrinsic(_) => unreachable!(),
+            };
+
+            let call_site = self.build_call_site_id(e.id, args, Some(callee_id));
+            self.emit_call_site(&call_site, e.pos, dest);
         }
+    }
+
+    fn find_trait_impl(&self, fct_id: FctId, trait_id: TraitId, object_type: BuiltinType) -> FctId {
+        let cls_id = object_type.cls_id(self.vm).unwrap();
+        let cls = self.vm.classes.idx(cls_id);
+        let cls = cls.read();
+
+        for &impl_id in &cls.impls {
+            let ximpl = self.vm.impls[impl_id].read();
+
+            if ximpl.trait_id() != trait_id {
+                continue;
+            }
+
+            for &mtd_id in &ximpl.methods {
+                let mtd = self.vm.fcts.idx(mtd_id);
+                let mtd = mtd.read();
+
+                if mtd.impl_for == Some(fct_id) {
+                    return mtd_id;
+                }
+            }
+        }
+
+        panic!("no impl found for generic trait call")
     }
 
     fn emit_call_intrinsic(
@@ -2420,15 +2513,6 @@ where
 
         let call_site = self.build_call_site_id(e.id, args, None);
         self.emit_call_site(&call_site, e.pos, dest);
-    }
-
-    fn has_call_site(&self, id: NodeId) -> bool {
-        self.jit_info.map_csites.get(id).is_some()
-    }
-
-    fn emit_call_site_id(&mut self, id: NodeId, pos: Position, dest: ExprStore) {
-        let csite = self.jit_info.map_csites.get(id).unwrap().clone();
-        self.emit_call_site(&csite, pos, dest);
     }
 
     pub fn emit_call_site(&mut self, csite: &CallSite<'ast>, pos: Position, dest: ExprStore) {
