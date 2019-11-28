@@ -187,7 +187,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         // build makeIterator() call
         let object_type = self.ty(stmt.expr.id());
         let ctype = CallType::Method(object_type, for_type_info.make_iterator, TypeList::empty());
-        let args = vec![Arg::Expr(&stmt.expr, BuiltinType::Unit, 0)];
+        let args = vec![Arg::Expr(&stmt.expr, BuiltinType::Unit)];
         let make_iterator = self.build_call_site(&ctype, for_type_info.make_iterator, args);
 
         // build hasNext() call
@@ -196,7 +196,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             for_type_info.has_next,
             TypeList::empty(),
         );
-        let args = vec![Arg::Stack(offset, BuiltinType::Unit, 0)];
+        let args = vec![Arg::Stack(offset, BuiltinType::Unit)];
         let has_next = self.build_call_site(&ctype, for_type_info.has_next, args);
 
         // build next() call
@@ -205,7 +205,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             for_type_info.next,
             TypeList::empty(),
         );
-        let args = vec![Arg::Stack(offset, BuiltinType::Unit, 0)];
+        let args = vec![Arg::Stack(offset, BuiltinType::Unit)];
         let next = self.build_call_site(&ctype, for_type_info.next, args);
 
         self.jit_info.map_fors.insert(
@@ -251,11 +251,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                     let cls_id = self.vm.vips.error_class;
                     let cls = self.vm.classes.idx(cls_id);
                     let cls = cls.read();
-                    let selfie_offset = self.reserve_stack_slot(cls.ty);
-                    let args = vec![
-                        Arg::SelfieNew(cls.ty, selfie_offset),
-                        Arg::Stack(offset, BuiltinType::Ptr, 0),
-                    ];
+                    let args = vec![Arg::SelfieNew(cls.ty), Arg::Stack(offset, BuiltinType::Ptr)];
                     self.universal_call(expr.id, args, cls.constructor);
                 }
                 _ => {}
@@ -268,16 +264,16 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let mut args = expr
             .args
             .iter()
-            .map(|arg| Arg::Expr(arg, BuiltinType::Unit, 0))
+            .map(|arg| Arg::Expr(arg, BuiltinType::Unit))
             .collect::<Vec<_>>();
 
         let callee_id = match *call_type {
             CallType::Ctor(_, fid, _) | CallType::CtorNew(_, fid, _) => {
                 let ty = self.ty(expr.id);
                 let arg = if call_type.is_ctor() {
-                    Arg::Selfie(ty, 0)
+                    Arg::Selfie(ty)
                 } else {
-                    Arg::SelfieNew(ty, 0)
+                    Arg::SelfieNew(ty)
                 };
 
                 args.insert(0, arg);
@@ -287,7 +283,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
             CallType::Method(_, fct_id, _) => {
                 let object = expr.object().unwrap();
-                args.insert(0, Arg::Expr(object, BuiltinType::Unit, 0));
+                args.insert(0, Arg::Expr(object, BuiltinType::Unit));
 
                 let fct = self.vm.fcts.idx(fct_id);
                 let fct = fct.read();
@@ -312,7 +308,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             CallType::Expr(_, fid) => {
                 let object = &expr.callee;
                 let ty = self.ty(object.id());
-                args.insert(0, Arg::Expr(object, ty, 0));
+                args.insert(0, Arg::Expr(object, ty));
 
                 fid
             }
@@ -411,11 +407,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let mut args = expr
             .args
             .iter()
-            .map(|arg| Arg::Expr(arg, BuiltinType::Unit, 0))
+            .map(|arg| Arg::Expr(arg, BuiltinType::Unit))
             .collect::<Vec<_>>();
 
         let cls = self.ty(expr.id);
-        args.insert(0, Arg::Selfie(cls, 0));
+        args.insert(0, Arg::Selfie(cls));
 
         self.universal_call(expr.id, args, None);
     }
@@ -450,7 +446,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         for arg in &args {
             match *arg {
-                Arg::Expr(ast, _, _) => {
+                Arg::Expr(ast, _) => {
                     self.visit_expr(ast);
                 }
 
@@ -484,20 +480,19 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             .map(|(ind, arg)| {
                 let ty = callee.params_with_self()[ind];
                 let ty = self.specialize_type(specialize_for_call_type(call_type, ty, self.vm));
-                let offset = self.reserve_stack_slot(ty);
 
                 match *arg {
-                    Arg::Expr(ast, _, _) => {
+                    Arg::Expr(ast, _) => {
                         if ind == 0 && ast.is_super() {
                             super_call = true;
                         }
 
-                        Arg::Expr(ast, ty, offset)
+                        Arg::Expr(ast, ty)
                     }
 
-                    Arg::Stack(soffset, _, _) => Arg::Stack(soffset, ty, offset),
-                    Arg::SelfieNew(cid, _) => Arg::SelfieNew(cid, offset),
-                    Arg::Selfie(cid, _) => Arg::Selfie(cid, offset),
+                    Arg::Stack(offset, _) => Arg::Stack(offset, ty),
+                    Arg::SelfieNew(cid) => Arg::SelfieNew(cid),
+                    Arg::Selfie(cid) => Arg::Selfie(cid),
                 }
             })
             .collect::<Vec<_>>();
@@ -569,9 +564,9 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 self.visit_expr(value);
             } else {
                 let args = vec![
-                    Arg::Expr(object, BuiltinType::Unit, 0),
-                    Arg::Expr(index, BuiltinType::Unit, 0),
-                    Arg::Expr(value, BuiltinType::Unit, 0),
+                    Arg::Expr(object, BuiltinType::Unit),
+                    Arg::Expr(index, BuiltinType::Unit),
+                    Arg::Expr(value, BuiltinType::Unit),
                 ];
 
                 self.universal_call(e.id, args, None);
@@ -608,10 +603,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.visit_expr(&expr.lhs);
             self.visit_expr(&expr.rhs);
         } else {
-            let args = vec![
-                Arg::Expr(&expr.lhs, lhs_ty, 0),
-                Arg::Expr(&expr.rhs, rhs_ty, 0),
-            ];
+            let args = vec![Arg::Expr(&expr.lhs, lhs_ty), Arg::Expr(&expr.rhs, rhs_ty)];
             let fid = self.src.map_calls.get(expr.id).unwrap().fct_id().unwrap();
 
             self.universal_call(expr.id, args, Some(fid));
@@ -623,7 +615,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             // no temporaries needed
             self.visit_expr(&expr.opnd);
         } else {
-            let args = vec![Arg::Expr(&expr.opnd, BuiltinType::Unit, 0)];
+            let args = vec![Arg::Expr(&expr.opnd, BuiltinType::Unit)];
 
             self.universal_call(expr.id, args, None);
         }
@@ -659,7 +651,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                         .find_trait_method(self.vm, self.vm.vips.stringable_trait, name, false)
                         .expect("toString() method not found");
                     let ctype = CallType::Method(ty, to_string_id, TypeList::empty());
-                    let args = vec![Arg::Stack(offset, ty, 0)];
+                    let args = vec![Arg::Stack(offset, ty)];
                     to_string = Some(self.build_call_site(&ctype, to_string_id, args));
                 }
             }
@@ -669,8 +661,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             let ty = BuiltinType::from_cls(self.vm.vips.cls.string_buffer, self.vm);
             let ctype = CallType::Method(ty, fct_id, TypeList::empty());
             let args = vec![
-                Arg::Stack(string_buffer_offset, BuiltinType::Ptr, 0),
-                Arg::Stack(string_part_offset, BuiltinType::Ptr, 0),
+                Arg::Stack(string_buffer_offset, BuiltinType::Ptr),
+                Arg::Stack(string_part_offset, BuiltinType::Ptr),
             ];
             let append = self.build_call_site(&ctype, fct_id, args);
 
@@ -685,7 +677,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let fct_id = self.vm.vips.fct.string_buffer_to_string;
         let ty = BuiltinType::from_cls(self.vm.vips.cls.string_buffer, self.vm);
         let ctype = CallType::Method(ty, fct_id, TypeList::empty());
-        let args = vec![Arg::Stack(string_buffer_offset, BuiltinType::Ptr, 0)];
+        let args = vec![Arg::Stack(string_buffer_offset, BuiltinType::Ptr)];
         let string_buffer_to_string = self.build_call_site(&ctype, fct_id, args);
 
         self.jit_info.map_templates.insert(

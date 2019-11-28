@@ -1645,34 +1645,25 @@ impl ConstValue {
 
 #[derive(Copy, Clone, Debug)]
 pub enum Arg<'ast> {
-    Expr(&'ast ast::Expr, BuiltinType, i32),
-    Stack(i32, BuiltinType, i32),
-    SelfieNew(BuiltinType, i32),
-    Selfie(BuiltinType, i32),
+    Expr(&'ast ast::Expr, BuiltinType),
+    Stack(i32, BuiltinType),
+    SelfieNew(BuiltinType),
+    Selfie(BuiltinType),
 }
 
 impl<'ast> Arg<'ast> {
-    pub fn offset(&self) -> i32 {
-        match *self {
-            Arg::Expr(_, _, offset) => offset,
-            Arg::Stack(_, _, offset) => offset,
-            Arg::Selfie(_, offset) => offset,
-            Arg::SelfieNew(_, offset) => offset,
-        }
-    }
-
     pub fn ty(&self) -> BuiltinType {
         match *self {
-            Arg::Expr(_, ty, _) => ty,
-            Arg::Stack(_, ty, _) => ty,
-            Arg::Selfie(ty, _) => ty,
-            Arg::SelfieNew(ty, _) => ty,
+            Arg::Expr(_, ty) => ty,
+            Arg::Stack(_, ty) => ty,
+            Arg::Selfie(ty) => ty,
+            Arg::SelfieNew(ty) => ty,
         }
     }
 
     pub fn is_selfie_new(&self) -> bool {
         match *self {
-            Arg::SelfieNew(_, _) => true,
+            Arg::SelfieNew(_) => true,
             _ => false,
         }
     }

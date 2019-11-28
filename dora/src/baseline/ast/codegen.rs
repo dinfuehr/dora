@@ -1927,7 +1927,7 @@ where
         let csite = self.jit_info.map_csites.get(id).unwrap().clone();
 
         match csite.args.get(1).unwrap() {
-            Arg::Stack(offset, _, _) => {
+            Arg::Stack(offset, _) => {
                 self.emit_lit_str_value(&"assert failed".to_string(), REG_RESULT);
                 self.asm
                     .store_mem(MachineMode::Ptr, Mem::Local(*offset), REG_RESULT.into());
@@ -2277,7 +2277,7 @@ where
             let dest = register_for_mode(mode);
 
             let slot_or_offset = match *arg {
-                Arg::Expr(ast, ty, _) => {
+                Arg::Expr(ast, ty) => {
                     self.emit_expr(ast, dest);
 
                     // check first argument for nil for method calls
@@ -2300,18 +2300,18 @@ where
                     SlotOrOffset::Slot(slot)
                 }
 
-                Arg::Stack(offset, ty, _) => {
+                Arg::Stack(offset, ty) => {
                     self.asm.load_mem(ty.mode(), dest, Mem::Local(offset));
                     SlotOrOffset::Offset(offset)
                 }
 
-                Arg::Selfie(_, _) => {
+                Arg::Selfie(_) => {
                     let var = self.src.var_self();
                     let offset = self.var_offset(var.id);
                     SlotOrOffset::Offset(offset)
                 }
 
-                Arg::SelfieNew(ty, _) => {
+                Arg::SelfieNew(ty) => {
                     alloc_cls_id = Some(specialize_class_ty(self.vm, ty));
                     // we have to allocate the object first before we can create
                     // the slot, store uninitialized for now.
@@ -2453,7 +2453,7 @@ where
         }
 
         if csite.args.len() > 0 {
-            if let Arg::SelfieNew(ty, _) = csite.args[0] {
+            if let Arg::SelfieNew(ty) = csite.args[0] {
                 let temp = &temps[0];
                 self.asm
                     .load_mem(ty.mode(), dest, Mem::Local(temp.offset()));
@@ -2676,7 +2676,7 @@ where
 
         for arg in args {
             match *arg {
-                Arg::Expr(_, ty, _) => {
+                Arg::Expr(_, ty) => {
                     if ty.is_float() {
                         freg_args += 1;
                     } else {
@@ -2684,7 +2684,7 @@ where
                     }
                 }
 
-                Arg::Stack(_, ty, _) | Arg::Selfie(ty, _) | Arg::SelfieNew(ty, _) => {
+                Arg::Stack(_, ty) | Arg::Selfie(ty) | Arg::SelfieNew(ty) => {
                     if ty.is_float() {
                         freg_args += 1;
                     } else {
