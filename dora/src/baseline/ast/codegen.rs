@@ -1740,7 +1740,7 @@ where
                     args[2],
                 )
             }
-            Intrinsic::Assert => self.emit_intrinsic_assert(pos, id, args[0], dest.reg()),
+            Intrinsic::Assert => self.emit_intrinsic_assert(pos, args[0], dest.reg()),
             Intrinsic::Debug => self.emit_intrinsic_debug(),
             Intrinsic::Shl => self.emit_intrinsic_shl(args[0], args[1], dest.reg()),
             Intrinsic::StrLen => self.emit_intrinsic_len(pos, args[0], dest.reg()),
@@ -2045,27 +2045,41 @@ where
         );
     }
 
-    fn emit_intrinsic_assert(&mut self, pos: Position, id: NodeId, e: &'ast Expr, _: Reg) {
-        // throw Error if assertion failed
+    fn emit_intrinsic_assert(&mut self, pos: Position, e: &'ast Expr, _: Reg) {
+        // throw Error("assert failed") if assertion failed
         let lbl_assert = self.asm.create_label();
         self.emit_expr(e, REG_RESULT.into());
 
         self.asm.emit_comment(Comment::Lit("check assert"));
         self.asm
             .test_and_jump_if(CondCode::NonZero, REG_RESULT, lbl_assert);
-        let csite = self.jit_info.map_csites.get(id).unwrap().clone();
 
-        match csite.args.get(1).unwrap() {
-            Arg::Stack(offset, _) => {
-                self.emit_lit_str_value(&"assert failed".to_string(), REG_RESULT);
-                self.asm
-                    .store_mem(MachineMode::Ptr, Mem::Local(*offset), REG_RESULT.into());
-            }
-            _ => panic!("unexpected argument for assert"),
-        };
+        // message = "assert failed"
+        self.emit_lit_str_value(&"assert failed".to_string(), REG_RESULT);
+        let message_slot = self.managed_stack.add_temp(BuiltinType::Ptr, self.vm);
+        self.asm.store_mem(
+            MachineMode::Ptr,
+            Mem::Local(message_slot.offset()),
+            REG_RESULT.into(),
+        );
+
+        // throw Error(message)
+        let cls_id = self.vm.vips.error_class;
+        let cls = self.vm.classes.idx(cls_id);
+        let cls = cls.read();
+        let args = vec![
+            Arg::SelfieNew(cls.ty),
+            Arg::Stack(message_slot.offset(), BuiltinType::Ptr),
+        ];
+        let ctor_id = cls.constructor.expect("missing ctor for Error");
+        let call_type = CallType::CtorNew(cls_id, ctor_id, TypeList::empty());
+        let csite = self.build_call_site(&call_type, ctor_id, args);
         self.emit_call_site(&csite, pos, REG_RESULT.into());
+
         self.asm.throw(REG_RESULT, pos);
-        self.asm.bind_label(lbl_assert)
+        self.asm.bind_label(lbl_assert);
+
+        self.managed_stack.free_temp(message_slot, self.vm);
     }
 
     fn emit_intrinsic_debug(&mut self) {

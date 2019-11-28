@@ -121,20 +121,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn expr_call(&mut self, expr: &'ast ExprCallType) {
-        if let Some(intrinsic) = self.get_intrinsic(expr.id) {
+        if let Some(_) = self.get_intrinsic(expr.id) {
             self.reserve_args_call(expr);
-
-            match intrinsic {
-                Intrinsic::Assert => {
-                    let offset = self.reserve_stack_slot(BuiltinType::Ptr);
-                    let cls_id = self.vm.vips.error_class;
-                    let cls = self.vm.classes.idx(cls_id);
-                    let cls = cls.read();
-                    let args = vec![Arg::SelfieNew(cls.ty), Arg::Stack(offset, BuiltinType::Ptr)];
-                    self.universal_call(expr.id, args, cls.constructor);
-                }
-                _ => {}
-            };
             return;
         }
 
