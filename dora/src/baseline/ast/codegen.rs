@@ -841,7 +841,12 @@ where
             .map_templates
             .get(e.id)
             .expect("no TemplateJitInfo found");
-        self.emit_call_site(&template_info.string_buffer_new, e.pos, REG_RESULT.into());
+
+        // build StringBuffer::empty() call
+        let fct_id = self.vm.vips.fct.string_buffer_empty;
+        let ctype = CallType::Fct(fct_id, TypeList::empty(), TypeList::empty());
+        let string_buffer_new = self.build_call_site(&ctype, fct_id, Vec::new());
+        self.emit_call_site(&string_buffer_new, e.pos, REG_RESULT.into());
         self.asm.var_store(
             template_info.string_buffer_offset,
             BuiltinType::Ptr,
@@ -850,7 +855,7 @@ where
 
         self.stack
             .add_temp(BuiltinType::Ptr, template_info.string_buffer_offset);
-        // let slot_string_buffer_offset = self.managed_stack.add_temp(BuiltinType::Ptr, self.vm);
+        // let buffer_slot = self.managed_stack.add_temp(BuiltinType::Ptr, self.vm);
 
         for (idx, part) in e.parts.iter().enumerate() {
             let part_info = &template_info.part_infos[idx];
@@ -881,10 +886,28 @@ where
                 REG_RESULT.into(),
             );
 
-            self.emit_call_site(&part_info.append, e.pos, dest.into());
+            // build StringBuffer::append() call
+            let fct_id = self.vm.vips.fct.string_buffer_append;
+            let ty = BuiltinType::from_cls(self.vm.vips.cls.string_buffer, self.vm);
+            let ctype = CallType::Method(ty, fct_id, TypeList::empty());
+            let args = vec![
+                Arg::Stack(template_info.string_buffer_offset, BuiltinType::Ptr),
+                Arg::Stack(template_info.string_part_offset, BuiltinType::Ptr),
+            ];
+            let append = self.build_call_site(&ctype, fct_id, args);
+            self.emit_call_site(&append, e.pos, dest.into());
         }
 
-        self.emit_call_site(&template_info.string_buffer_to_string, e.pos, dest.into());
+        // build StringBuffer::toString() call
+        let fct_id = self.vm.vips.fct.string_buffer_to_string;
+        let ty = BuiltinType::from_cls(self.vm.vips.cls.string_buffer, self.vm);
+        let ctype = CallType::Method(ty, fct_id, TypeList::empty());
+        let args = vec![Arg::Stack(
+            template_info.string_buffer_offset,
+            BuiltinType::Ptr,
+        )];
+        let string_buffer_to_string = self.build_call_site(&ctype, fct_id, args);
+        self.emit_call_site(&string_buffer_to_string, e.pos, dest.into());
         self.stack
             .free_temp(BuiltinType::Ptr, template_info.string_buffer_offset);
         // self.managed_stack
