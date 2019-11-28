@@ -1669,6 +1669,13 @@ impl<'ast> Arg<'ast> {
             Arg::SelfieNew(ty, _) => ty,
         }
     }
+
+    pub fn is_selfie_new(&self) -> bool {
+        match *self {
+            Arg::SelfieNew(_, _) => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]

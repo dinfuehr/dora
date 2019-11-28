@@ -2313,10 +2313,8 @@ where
 
                 Arg::SelfieNew(ty, _) => {
                     alloc_cls_id = Some(specialize_class_ty(self.vm, ty));
-                    // do NOT invoke `add_temp_arg` here, since
-                    // this would also add it to the set of temporaries, which
-                    // leads to this address being part of the gc point for
-                    // the collection of the object.
+                    // we have to allocate the object first before we can create
+                    // the slot, store uninitialized for now.
                     SlotOrOffset::Uninitialized
                 }
             };
@@ -2332,25 +2330,28 @@ where
         let mut reg_idx = 0;
         let mut freg_idx = 0;
 
-        for arg in &csite.args {
+        let skip = if csite.args.len() > 0 && alloc_cls_id.is_some() {
+            assert!(csite.args[0].is_selfie_new());
+
+            let reg = REG_PARAMS[reg_idx];
+            let slot = self.emit_allocation(pos, &temps, alloc_cls_id.unwrap(), reg);
+
+            // after object allocation we now have a slot and can
+            // store it in our `temps` array.
+            temps[idx] = SlotOrOffset::Slot(slot);
+
+            reg_idx += 1;
+            idx += 1;
+
+            1
+        } else {
+            0
+        };
+
+        for arg in csite.args.iter().skip(skip) {
             let ty = arg.ty();
             let mode = ty.mode();
             let is_float = mode.is_float();
-
-            if idx == 0 && alloc_cls_id.is_some() {
-                let reg = REG_PARAMS[reg_idx];
-                let slot = self.emit_allocation(pos, &temps, alloc_cls_id.unwrap(), reg);
-
-                // after the allocation `offset` is initialized,
-                // add it to the set of temporaries such that it is part
-                // of the gc point
-                temps[idx] = SlotOrOffset::Slot(slot);
-
-                reg_idx += 1;
-                idx += 1;
-                continue;
-            }
-
             let offset = temps[idx].offset();
 
             if is_float {
