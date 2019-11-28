@@ -82,7 +82,6 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
             ExprCall(ref expr) => self.expr_call(expr),
             ExprDelegation(ref expr) => self.expr_delegation(expr),
             ExprBin(ref expr) => self.expr_bin(expr),
-            ExprUn(ref expr) => self.expr_un(expr),
             ExprTypeParam(_) => unreachable!(),
 
             _ => visit::walk_expr(self, e),
@@ -455,37 +454,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             return;
         }
 
-        let lhs_ty = self.ty(expr.lhs.id());
-        let rhs_ty = self.ty(expr.rhs.id());
-
-        if expr.op == BinOp::Cmp(CmpOp::Is) || expr.op == BinOp::Cmp(CmpOp::IsNot) {
-            self.visit_expr(&expr.lhs);
-            self.visit_expr(&expr.rhs);
-        } else if expr.op == BinOp::Or || expr.op == BinOp::And {
-            self.visit_expr(&expr.lhs);
-            self.visit_expr(&expr.rhs);
-
-        // no temporaries needed
-        } else if let Some(_) = self.get_intrinsic(expr.id) {
-            self.visit_expr(&expr.lhs);
-            self.visit_expr(&expr.rhs);
-        } else {
-            let args = vec![Arg::Expr(&expr.lhs, lhs_ty), Arg::Expr(&expr.rhs, rhs_ty)];
-            let fid = self.src.map_calls.get(expr.id).unwrap().fct_id().unwrap();
-
-            self.universal_call(expr.id, args, Some(fid));
-        }
-    }
-
-    fn expr_un(&mut self, expr: &'ast ExprUnType) {
-        if let Some(_) = self.get_intrinsic(expr.id) {
-            // no temporaries needed
-            self.visit_expr(&expr.opnd);
-        } else {
-            let args = vec![Arg::Expr(&expr.opnd, BuiltinType::Unit)];
-
-            self.universal_call(expr.id, args, None);
-        }
+        self.visit_expr(&expr.lhs);
+        self.visit_expr(&expr.rhs);
     }
 
     fn reserve_stack_slot(&mut self, ty: BuiltinType) -> i32 {

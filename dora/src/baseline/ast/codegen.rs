@@ -1526,7 +1526,13 @@ where
         } else if e.op == BinOp::And {
             self.emit_bin_and(e, dest.reg());
         } else {
-            self.emit_call_site_id(e.id, e.pos, dest);
+            let lhs_ty = self.ty(e.lhs.id());
+            let rhs_ty = self.ty(e.rhs.id());
+
+            let args = vec![Arg::Expr(&e.lhs, lhs_ty), Arg::Expr(&e.rhs, rhs_ty)];
+            let fid = self.src.map_calls.get(e.id).unwrap().fct_id().unwrap();
+            let call_site = self.build_call_site_id(e.id, args, Some(fid));
+            self.emit_call_site(&call_site, e.pos, dest);
 
             match e.op {
                 BinOp::Cmp(CmpOp::Eq) => {}
