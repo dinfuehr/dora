@@ -1336,7 +1336,10 @@ where
         if let Some(intrinsic) = self.get_intrinsic(e.id) {
             self.emit_intrinsic_unary(&e.opnd, dest, intrinsic);
         } else {
-            self.emit_call_site_id(e.id, e.pos, dest);
+            let args = vec![Arg::Expr(&e.opnd, BuiltinType::Unit)];
+            let fid = self.src.map_calls.get(e.id).unwrap().fct_id().unwrap();
+            let call_site = self.build_call_site_id(e.id, args, Some(fid));
+            self.emit_call_site(&call_site, e.pos, dest);
         }
     }
 
@@ -2865,6 +2868,23 @@ where
             super_call,
             return_type,
         }
+    }
+
+    fn build_call_site_id(
+        &mut self,
+        id: NodeId,
+        args: Vec<Arg<'ast>>,
+        callee_id: Option<FctId>,
+    ) -> CallSite<'ast> {
+        let call_type = self.src.map_calls.get(id).unwrap().clone();
+
+        let callee_id = if let Some(callee_id) = callee_id {
+            callee_id
+        } else {
+            call_type.fct_id().unwrap()
+        };
+
+        self.build_call_site(&*call_type, callee_id, args)
     }
 
     fn determine_call_args_and_types(
