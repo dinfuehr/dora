@@ -8,7 +8,7 @@ use crate::field::FieldId;
 use dora_parser::ast::*;
 use std::collections::hash_map::HashMap;
 
-use crate::baseline::codegen::{should_emit_debug, CodeGen, CondCode};
+use crate::baseline::codegen::{should_emit_debug, CondCode};
 use crate::baseline::fct::{Comment, JitBaselineFct, JitDescriptor};
 use crate::masm::*;
 use crate::object::Str;
@@ -102,6 +102,203 @@ where
             forward_jumps: Vec::new(),
             current_pos: None,
         }
+    }
+
+    pub fn generate(mut self) -> JitBaselineFct {
+        let bytecode = generate_fct(
+            self.vm,
+            self.fct,
+            self.src,
+            self.cls_type_params,
+            self.fct_type_params,
+        );
+
+        if should_emit_bytecode(self.vm, self.fct) {
+            bytecode.dump();
+        }
+
+        if should_emit_debug(self.vm, self.fct) {
+            self.asm.debug();
+        }
+
+        self.emit_prolog(&bytecode);
+        self.store_params_on_stack(&bytecode);
+
+        self.current_pos = Some(BytecodeIdx(0));
+        for btcode in bytecode.code() {
+            self.bytecode_to_address.insert(self.pos(), self.asm.pos());
+
+            match btcode {
+                Bytecode::AddInt(dest, lhs, rhs) | Bytecode::AddLong(dest, lhs, rhs) => {
+                    self.emit_add_int(&bytecode, *dest, *lhs, *rhs)
+                }
+                Bytecode::AddFloat(dest, lhs, rhs) | Bytecode::AddDouble(dest, lhs, rhs) => {
+                    self.emit_add_float(&bytecode, *dest, *lhs, *rhs)
+                }
+
+                Bytecode::SubInt(dest, lhs, rhs) => self.emit_sub_int(&bytecode, *dest, *lhs, *rhs),
+                Bytecode::SubFloat(dest, lhs, rhs) => {
+                    self.emit_sub_float(&bytecode, *dest, *lhs, *rhs)
+                }
+
+                Bytecode::NegInt(dest, src) | Bytecode::NegLong(dest, src) => {
+                    self.emit_neg_int(&bytecode, *dest, *src)
+                }
+                Bytecode::MulInt(dest, lhs, rhs) => self.emit_mul_int(&bytecode, *dest, *lhs, *rhs),
+                Bytecode::MulFloat(dest, lhs, rhs) => {
+                    self.emit_mul_float(&bytecode, *dest, *lhs, *rhs)
+                }
+                Bytecode::DivInt(dest, lhs, rhs) => self.emit_div_int(&bytecode, *dest, *lhs, *rhs),
+                Bytecode::DivFloat(dest, lhs, rhs) => {
+                    self.emit_div_float(&bytecode, *dest, *lhs, *rhs)
+                }
+                Bytecode::ModInt(dest, lhs, rhs) => self.emit_mod_int(&bytecode, *dest, *lhs, *rhs),
+                Bytecode::AndInt(dest, lhs, rhs) => self.emit_and_int(&bytecode, *dest, *lhs, *rhs),
+                Bytecode::OrInt(dest, lhs, rhs) => self.emit_or_int(&bytecode, *dest, *lhs, *rhs),
+                Bytecode::XorInt(dest, lhs, rhs) => self.emit_xor_int(&bytecode, *dest, *lhs, *rhs),
+                Bytecode::NotBool(dest, src) => self.emit_not_bool(&bytecode, *dest, *src),
+                Bytecode::ShlInt(dest, lhs, rhs) => self.emit_shl_int(&bytecode, *dest, *lhs, *rhs),
+                Bytecode::ShrInt(dest, lhs, rhs) => self.emit_shr_int(&bytecode, *dest, *lhs, *rhs),
+                Bytecode::SarInt(dest, lhs, rhs) => self.emit_sar_int(&bytecode, *dest, *lhs, *rhs),
+                Bytecode::MovBool(dest, src)
+                | Bytecode::MovByte(dest, src)
+                | Bytecode::MovChar(dest, src)
+                | Bytecode::MovInt(dest, src)
+                | Bytecode::MovLong(dest, src)
+                | Bytecode::MovFloat(dest, src)
+                | Bytecode::MovDouble(dest, src)
+                | Bytecode::MovPtr(dest, src) => self.emit_mov_generic(&bytecode, *dest, *src),
+
+                Bytecode::LoadFieldBool(dest, obj, class_def_id, field_id)
+                | Bytecode::LoadFieldByte(dest, obj, class_def_id, field_id)
+                | Bytecode::LoadFieldChar(dest, obj, class_def_id, field_id)
+                | Bytecode::LoadFieldInt(dest, obj, class_def_id, field_id)
+                | Bytecode::LoadFieldLong(dest, obj, class_def_id, field_id)
+                | Bytecode::LoadFieldFloat(dest, obj, class_def_id, field_id)
+                | Bytecode::LoadFieldDouble(dest, obj, class_def_id, field_id)
+                | Bytecode::LoadFieldPtr(dest, obj, class_def_id, field_id) => {
+                    self.emit_load_field(&bytecode, *dest, *obj, *class_def_id, *field_id)
+                }
+
+                Bytecode::LoadGlobalBool(dest, global_id)
+                | Bytecode::LoadGlobalByte(dest, global_id)
+                | Bytecode::LoadGlobalChar(dest, global_id)
+                | Bytecode::LoadGlobalInt(dest, global_id)
+                | Bytecode::LoadGlobalLong(dest, global_id)
+                | Bytecode::LoadGlobalFloat(dest, global_id)
+                | Bytecode::LoadGlobalDouble(dest, global_id)
+                | Bytecode::LoadGlobalPtr(dest, global_id) => {
+                    self.emit_load_global_field(&bytecode, *dest, *global_id);
+                }
+
+                Bytecode::ConstNil(dest) => self.emit_const_nil(&bytecode, *dest),
+                Bytecode::ConstTrue(dest) => self.emit_const_bool(&bytecode, *dest, true),
+                Bytecode::ConstFalse(dest) => self.emit_const_bool(&bytecode, *dest, false),
+                Bytecode::ConstZeroByte(dest)
+                | Bytecode::ConstZeroInt(dest)
+                | Bytecode::ConstZeroLong(dest) => self.emit_const_int(&bytecode, *dest, 0),
+                Bytecode::ConstByte(dest, value) => {
+                    self.emit_const_int(&bytecode, *dest, *value as i64)
+                }
+                Bytecode::ConstInt(dest, value) => {
+                    self.emit_const_int(&bytecode, *dest, *value as i64)
+                }
+                Bytecode::ConstLong(dest, value) => {
+                    self.emit_const_int(&bytecode, *dest, *value as i64)
+                }
+                Bytecode::ConstChar(dest, value) => {
+                    self.emit_const_int(&bytecode, *dest, *value as i64)
+                }
+                Bytecode::ConstZeroFloat(dest) | Bytecode::ConstZeroDouble(dest) => {
+                    self.emit_const_float(&bytecode, *dest, 0_f64)
+                }
+                Bytecode::ConstFloat(dest, value) => {
+                    self.emit_const_float(&bytecode, *dest, *value as f64)
+                }
+                Bytecode::ConstDouble(dest, value) => {
+                    self.emit_const_float(&bytecode, *dest, *value)
+                }
+                Bytecode::ConstString(dest, sp) => {
+                    self.emit_const_string(&bytecode, *dest, *sp);
+                }
+
+                Bytecode::TestEqPtr(dest, lhs, rhs) => {
+                    self.emit_test_generic(&bytecode, *dest, *lhs, *rhs, CondCode::Equal);
+                }
+                Bytecode::TestNePtr(dest, lhs, rhs) => {
+                    self.emit_test_generic(&bytecode, *dest, *lhs, *rhs, CondCode::NotEqual);
+                }
+
+                Bytecode::TestEqInt(dest, lhs, rhs) => {
+                    self.emit_test_generic(&bytecode, *dest, *lhs, *rhs, CondCode::Equal)
+                }
+                Bytecode::TestNeInt(dest, lhs, rhs) => {
+                    self.emit_test_generic(&bytecode, *dest, *lhs, *rhs, CondCode::NotEqual)
+                }
+                Bytecode::TestGtInt(dest, lhs, rhs) => {
+                    self.emit_test_generic(&bytecode, *dest, *lhs, *rhs, CondCode::Greater)
+                }
+                Bytecode::TestGeInt(dest, lhs, rhs) => {
+                    self.emit_test_generic(&bytecode, *dest, *lhs, *rhs, CondCode::GreaterEq)
+                }
+                Bytecode::TestLtInt(dest, lhs, rhs) => {
+                    self.emit_test_generic(&bytecode, *dest, *lhs, *rhs, CondCode::Less)
+                }
+                Bytecode::TestLeInt(dest, lhs, rhs) => {
+                    self.emit_test_generic(&bytecode, *dest, *lhs, *rhs, CondCode::LessEq)
+                }
+
+                Bytecode::TestEqFloat(dest, lhs, rhs) => {
+                    self.emit_test_float(&bytecode, *dest, *lhs, *rhs, CondCode::Equal)
+                }
+                Bytecode::TestNeFloat(dest, lhs, rhs) => {
+                    self.emit_test_float(&bytecode, *dest, *lhs, *rhs, CondCode::NotEqual)
+                }
+                Bytecode::TestGtFloat(dest, lhs, rhs) => {
+                    self.emit_test_float(&bytecode, *dest, *lhs, *rhs, CondCode::Greater)
+                }
+                Bytecode::TestGeFloat(dest, lhs, rhs) => {
+                    self.emit_test_float(&bytecode, *dest, *lhs, *rhs, CondCode::GreaterEq)
+                }
+                Bytecode::TestLtFloat(dest, lhs, rhs) => {
+                    self.emit_test_float(&bytecode, *dest, *lhs, *rhs, CondCode::Less)
+                }
+                Bytecode::TestLeFloat(dest, lhs, rhs) => {
+                    self.emit_test_float(&bytecode, *dest, *lhs, *rhs, CondCode::LessEq)
+                }
+
+                Bytecode::JumpIfFalse(src, bytecode_idx) => {
+                    self.emit_jump_if(&bytecode, *src, *bytecode_idx, false)
+                }
+                Bytecode::JumpIfTrue(src, bytecode_idx) => {
+                    self.emit_jump_if(&bytecode, *src, *bytecode_idx, true)
+                }
+                Bytecode::Jump(bytecode_idx) => self.emit_jump(&bytecode, *bytecode_idx),
+
+                Bytecode::RetBool(src)
+                | Bytecode::RetByte(src)
+                | Bytecode::RetChar(src)
+                | Bytecode::RetInt(src)
+                | Bytecode::RetLong(src)
+                | Bytecode::RetFloat(src)
+                | Bytecode::RetDouble(src)
+                | Bytecode::RetPtr(src) => self.emit_return_generic(&bytecode, *src),
+                Bytecode::RetVoid => self.emit_epilog(),
+                _ => panic!("bytecode {:?} not implemented", btcode),
+            }
+
+            self.pos_inc();
+        }
+
+        self.resolve_forward_jumps();
+
+        let jit_fct = self.asm.jit(
+            bytecode.stacksize(),
+            JitDescriptor::DoraFct(self.fct.id),
+            self.ast.throws,
+        );
+
+        jit_fct
     }
 
     fn store_params_on_stack(&mut self, bytecode: &BytecodeFunction) {
@@ -950,205 +1147,6 @@ where
     fn pos_inc(&mut self) {
         let BytecodeIdx(pos_idx) = self.pos();
         self.current_pos = Some(BytecodeIdx(pos_idx + 1));
-    }
-}
-
-impl<'a, 'ast> CodeGen<'ast> for CannonCodeGen<'a, 'ast> {
-    fn generate(mut self) -> JitBaselineFct {
-        let bytecode = generate_fct(
-            self.vm,
-            self.fct,
-            self.src,
-            self.cls_type_params,
-            self.fct_type_params,
-        );
-
-        if should_emit_bytecode(self.vm, self.fct) {
-            bytecode.dump();
-        }
-
-        if should_emit_debug(self.vm, self.fct) {
-            self.asm.debug();
-        }
-
-        self.emit_prolog(&bytecode);
-        self.store_params_on_stack(&bytecode);
-
-        self.current_pos = Some(BytecodeIdx(0));
-        for btcode in bytecode.code() {
-            self.bytecode_to_address.insert(self.pos(), self.asm.pos());
-
-            match btcode {
-                Bytecode::AddInt(dest, lhs, rhs) | Bytecode::AddLong(dest, lhs, rhs) => {
-                    self.emit_add_int(&bytecode, *dest, *lhs, *rhs)
-                }
-                Bytecode::AddFloat(dest, lhs, rhs) | Bytecode::AddDouble(dest, lhs, rhs) => {
-                    self.emit_add_float(&bytecode, *dest, *lhs, *rhs)
-                }
-
-                Bytecode::SubInt(dest, lhs, rhs) => self.emit_sub_int(&bytecode, *dest, *lhs, *rhs),
-                Bytecode::SubFloat(dest, lhs, rhs) => {
-                    self.emit_sub_float(&bytecode, *dest, *lhs, *rhs)
-                }
-
-                Bytecode::NegInt(dest, src) | Bytecode::NegLong(dest, src) => {
-                    self.emit_neg_int(&bytecode, *dest, *src)
-                }
-                Bytecode::MulInt(dest, lhs, rhs) => self.emit_mul_int(&bytecode, *dest, *lhs, *rhs),
-                Bytecode::MulFloat(dest, lhs, rhs) => {
-                    self.emit_mul_float(&bytecode, *dest, *lhs, *rhs)
-                }
-                Bytecode::DivInt(dest, lhs, rhs) => self.emit_div_int(&bytecode, *dest, *lhs, *rhs),
-                Bytecode::DivFloat(dest, lhs, rhs) => {
-                    self.emit_div_float(&bytecode, *dest, *lhs, *rhs)
-                }
-                Bytecode::ModInt(dest, lhs, rhs) => self.emit_mod_int(&bytecode, *dest, *lhs, *rhs),
-                Bytecode::AndInt(dest, lhs, rhs) => self.emit_and_int(&bytecode, *dest, *lhs, *rhs),
-                Bytecode::OrInt(dest, lhs, rhs) => self.emit_or_int(&bytecode, *dest, *lhs, *rhs),
-                Bytecode::XorInt(dest, lhs, rhs) => self.emit_xor_int(&bytecode, *dest, *lhs, *rhs),
-                Bytecode::NotBool(dest, src) => self.emit_not_bool(&bytecode, *dest, *src),
-                Bytecode::ShlInt(dest, lhs, rhs) => self.emit_shl_int(&bytecode, *dest, *lhs, *rhs),
-                Bytecode::ShrInt(dest, lhs, rhs) => self.emit_shr_int(&bytecode, *dest, *lhs, *rhs),
-                Bytecode::SarInt(dest, lhs, rhs) => self.emit_sar_int(&bytecode, *dest, *lhs, *rhs),
-                Bytecode::MovBool(dest, src)
-                | Bytecode::MovByte(dest, src)
-                | Bytecode::MovChar(dest, src)
-                | Bytecode::MovInt(dest, src)
-                | Bytecode::MovLong(dest, src)
-                | Bytecode::MovFloat(dest, src)
-                | Bytecode::MovDouble(dest, src)
-                | Bytecode::MovPtr(dest, src) => self.emit_mov_generic(&bytecode, *dest, *src),
-
-                Bytecode::LoadFieldBool(dest, obj, class_def_id, field_id)
-                | Bytecode::LoadFieldByte(dest, obj, class_def_id, field_id)
-                | Bytecode::LoadFieldChar(dest, obj, class_def_id, field_id)
-                | Bytecode::LoadFieldInt(dest, obj, class_def_id, field_id)
-                | Bytecode::LoadFieldLong(dest, obj, class_def_id, field_id)
-                | Bytecode::LoadFieldFloat(dest, obj, class_def_id, field_id)
-                | Bytecode::LoadFieldDouble(dest, obj, class_def_id, field_id)
-                | Bytecode::LoadFieldPtr(dest, obj, class_def_id, field_id) => {
-                    self.emit_load_field(&bytecode, *dest, *obj, *class_def_id, *field_id)
-                }
-
-                Bytecode::LoadGlobalBool(dest, global_id)
-                | Bytecode::LoadGlobalByte(dest, global_id)
-                | Bytecode::LoadGlobalChar(dest, global_id)
-                | Bytecode::LoadGlobalInt(dest, global_id)
-                | Bytecode::LoadGlobalLong(dest, global_id)
-                | Bytecode::LoadGlobalFloat(dest, global_id)
-                | Bytecode::LoadGlobalDouble(dest, global_id)
-                | Bytecode::LoadGlobalPtr(dest, global_id) => {
-                    self.emit_load_global_field(&bytecode, *dest, *global_id);
-                }
-
-                Bytecode::ConstNil(dest) => self.emit_const_nil(&bytecode, *dest),
-                Bytecode::ConstTrue(dest) => self.emit_const_bool(&bytecode, *dest, true),
-                Bytecode::ConstFalse(dest) => self.emit_const_bool(&bytecode, *dest, false),
-                Bytecode::ConstZeroByte(dest)
-                | Bytecode::ConstZeroInt(dest)
-                | Bytecode::ConstZeroLong(dest) => self.emit_const_int(&bytecode, *dest, 0),
-                Bytecode::ConstByte(dest, value) => {
-                    self.emit_const_int(&bytecode, *dest, *value as i64)
-                }
-                Bytecode::ConstInt(dest, value) => {
-                    self.emit_const_int(&bytecode, *dest, *value as i64)
-                }
-                Bytecode::ConstLong(dest, value) => {
-                    self.emit_const_int(&bytecode, *dest, *value as i64)
-                }
-                Bytecode::ConstChar(dest, value) => {
-                    self.emit_const_int(&bytecode, *dest, *value as i64)
-                }
-                Bytecode::ConstZeroFloat(dest) | Bytecode::ConstZeroDouble(dest) => {
-                    self.emit_const_float(&bytecode, *dest, 0_f64)
-                }
-                Bytecode::ConstFloat(dest, value) => {
-                    self.emit_const_float(&bytecode, *dest, *value as f64)
-                }
-                Bytecode::ConstDouble(dest, value) => {
-                    self.emit_const_float(&bytecode, *dest, *value)
-                }
-                Bytecode::ConstString(dest, sp) => {
-                    self.emit_const_string(&bytecode, *dest, *sp);
-                }
-
-                Bytecode::TestEqPtr(dest, lhs, rhs) => {
-                    self.emit_test_generic(&bytecode, *dest, *lhs, *rhs, CondCode::Equal);
-                }
-                Bytecode::TestNePtr(dest, lhs, rhs) => {
-                    self.emit_test_generic(&bytecode, *dest, *lhs, *rhs, CondCode::NotEqual);
-                }
-
-                Bytecode::TestEqInt(dest, lhs, rhs) => {
-                    self.emit_test_generic(&bytecode, *dest, *lhs, *rhs, CondCode::Equal)
-                }
-                Bytecode::TestNeInt(dest, lhs, rhs) => {
-                    self.emit_test_generic(&bytecode, *dest, *lhs, *rhs, CondCode::NotEqual)
-                }
-                Bytecode::TestGtInt(dest, lhs, rhs) => {
-                    self.emit_test_generic(&bytecode, *dest, *lhs, *rhs, CondCode::Greater)
-                }
-                Bytecode::TestGeInt(dest, lhs, rhs) => {
-                    self.emit_test_generic(&bytecode, *dest, *lhs, *rhs, CondCode::GreaterEq)
-                }
-                Bytecode::TestLtInt(dest, lhs, rhs) => {
-                    self.emit_test_generic(&bytecode, *dest, *lhs, *rhs, CondCode::Less)
-                }
-                Bytecode::TestLeInt(dest, lhs, rhs) => {
-                    self.emit_test_generic(&bytecode, *dest, *lhs, *rhs, CondCode::LessEq)
-                }
-
-                Bytecode::TestEqFloat(dest, lhs, rhs) => {
-                    self.emit_test_float(&bytecode, *dest, *lhs, *rhs, CondCode::Equal)
-                }
-                Bytecode::TestNeFloat(dest, lhs, rhs) => {
-                    self.emit_test_float(&bytecode, *dest, *lhs, *rhs, CondCode::NotEqual)
-                }
-                Bytecode::TestGtFloat(dest, lhs, rhs) => {
-                    self.emit_test_float(&bytecode, *dest, *lhs, *rhs, CondCode::Greater)
-                }
-                Bytecode::TestGeFloat(dest, lhs, rhs) => {
-                    self.emit_test_float(&bytecode, *dest, *lhs, *rhs, CondCode::GreaterEq)
-                }
-                Bytecode::TestLtFloat(dest, lhs, rhs) => {
-                    self.emit_test_float(&bytecode, *dest, *lhs, *rhs, CondCode::Less)
-                }
-                Bytecode::TestLeFloat(dest, lhs, rhs) => {
-                    self.emit_test_float(&bytecode, *dest, *lhs, *rhs, CondCode::LessEq)
-                }
-
-                Bytecode::JumpIfFalse(src, bytecode_idx) => {
-                    self.emit_jump_if(&bytecode, *src, *bytecode_idx, false)
-                }
-                Bytecode::JumpIfTrue(src, bytecode_idx) => {
-                    self.emit_jump_if(&bytecode, *src, *bytecode_idx, true)
-                }
-                Bytecode::Jump(bytecode_idx) => self.emit_jump(&bytecode, *bytecode_idx),
-
-                Bytecode::RetBool(src)
-                | Bytecode::RetByte(src)
-                | Bytecode::RetChar(src)
-                | Bytecode::RetInt(src)
-                | Bytecode::RetLong(src)
-                | Bytecode::RetFloat(src)
-                | Bytecode::RetDouble(src)
-                | Bytecode::RetPtr(src) => self.emit_return_generic(&bytecode, *src),
-                Bytecode::RetVoid => self.emit_epilog(),
-                _ => panic!("bytecode {:?} not implemented", btcode),
-            }
-
-            self.pos_inc();
-        }
-
-        self.resolve_forward_jumps();
-
-        let jit_fct = self.asm.jit(
-            bytecode.stacksize(),
-            JitDescriptor::DoraFct(self.fct.id),
-            self.ast.throws,
-        );
-
-        jit_fct
     }
 }
 

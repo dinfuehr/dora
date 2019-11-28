@@ -13,8 +13,7 @@ use crate::baseline::ast::{
     Arg, CallSite, JitInfo, ManagedStackFrame, ManagedStackSlot, StackFrame,
 };
 use crate::baseline::codegen::{
-    ensure_native_stub, register_for_mode, should_emit_debug, AllocationSize, CodeGen, CondCode,
-    ExprStore,
+    ensure_native_stub, register_for_mode, should_emit_debug, AllocationSize, CondCode, ExprStore,
 };
 use crate::baseline::dora_native::{InternalFct, InternalFctDescriptor};
 use crate::baseline::fct::{CatchType, Comment, GcPoint, JitBaselineFct, JitDescriptor};
@@ -120,6 +119,66 @@ impl<'a, 'ast> AstCodeGen<'a, 'ast>
 where
     'ast: 'a,
 {
+    fn generate(mut self) -> JitBaselineFct {
+        if should_emit_debug(self.vm, self.fct) {
+            self.asm.debug();
+        }
+
+        let jit_info_stacksize = self.jit_info.stacksize();
+        self.managed_stack.initial_stacksize(jit_info_stacksize);
+
+        self.stack.push_scope();
+        self.managed_stack.push_scope();
+        self.emit_prolog();
+        self.store_register_params_on_stack();
+
+        let always_returns = self.src.always_returns;
+
+        {
+            let block = self.ast.block();
+
+            for stmt in &block.stmts {
+                self.visit_stmt(stmt);
+            }
+
+            if let Some(ref value) = block.expr {
+                let return_type = self.specialize_type(self.fct.return_type);
+                let reg = result_reg_ty(return_type);
+                self.emit_expr(value, reg);
+
+                if !always_returns {
+                    self.emit_epilog();
+                }
+            }
+        }
+
+        if let Some(slot) = self.eh_return_value {
+            self.managed_stack.free_temp(slot, self.vm);
+        }
+
+        self.managed_stack.pop_scope(self.vm);
+        self.stack.pop_scope();
+        assert!(self.stack.is_empty());
+        assert!(self.managed_stack.is_empty());
+
+        if !always_returns {
+            self.emit_epilog();
+        }
+
+        assert!(self.jit_info.stacksize() <= self.managed_stack.stacksize());
+
+        self.asm
+            .patch_stacksize(self.stacksize_offset, self.managed_stack.stacksize());
+
+        let jit_fct = self.asm.jit(
+            self.managed_stack.stacksize(),
+            JitDescriptor::DoraFct(self.fct.id),
+            self.ast.throws,
+        );
+
+        jit_fct
+    }
+
     fn store_register_params_on_stack(&mut self) {
         let mut reg_idx = 0;
         let mut freg_idx = 0;
@@ -2744,68 +2803,6 @@ where
     fn var_ty(&self, id: VarId) -> BuiltinType {
         let ty = self.src.vars[id].ty;
         self.specialize_type(ty)
-    }
-}
-
-impl<'a, 'ast> CodeGen<'ast> for AstCodeGen<'a, 'ast> {
-    fn generate(mut self) -> JitBaselineFct {
-        if should_emit_debug(self.vm, self.fct) {
-            self.asm.debug();
-        }
-
-        let jit_info_stacksize = self.jit_info.stacksize();
-        self.managed_stack.initial_stacksize(jit_info_stacksize);
-
-        self.stack.push_scope();
-        self.managed_stack.push_scope();
-        self.emit_prolog();
-        self.store_register_params_on_stack();
-
-        let always_returns = self.src.always_returns;
-
-        {
-            let block = self.ast.block();
-
-            for stmt in &block.stmts {
-                self.visit_stmt(stmt);
-            }
-
-            if let Some(ref value) = block.expr {
-                let return_type = self.specialize_type(self.fct.return_type);
-                let reg = result_reg_ty(return_type);
-                self.emit_expr(value, reg);
-
-                if !always_returns {
-                    self.emit_epilog();
-                }
-            }
-        }
-
-        if let Some(slot) = self.eh_return_value {
-            self.managed_stack.free_temp(slot, self.vm);
-        }
-
-        self.managed_stack.pop_scope(self.vm);
-        self.stack.pop_scope();
-        assert!(self.stack.is_empty());
-        assert!(self.managed_stack.is_empty());
-
-        if !always_returns {
-            self.emit_epilog();
-        }
-
-        assert!(self.jit_info.stacksize() <= self.managed_stack.stacksize());
-
-        self.asm
-            .patch_stacksize(self.stacksize_offset, self.managed_stack.stacksize());
-
-        let jit_fct = self.asm.jit(
-            self.managed_stack.stacksize(),
-            JitDescriptor::DoraFct(self.fct.id),
-            self.ast.throws,
-        );
-
-        jit_fct
     }
 }
 

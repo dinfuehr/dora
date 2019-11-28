@@ -333,10 +333,6 @@ pub fn fct_pattern_match(vm: &VM, fct: &Fct, pattern: &str) -> bool {
     false
 }
 
-pub trait CodeGen<'v> {
-    fn generate(self) -> JitBaselineFct;
-}
-
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ExprStore {
     Reg(Reg),

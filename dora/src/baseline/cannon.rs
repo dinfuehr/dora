@@ -1,7 +1,6 @@
 use self::codegen::CannonCodeGen;
 
 use crate::baseline::asm::BaselineAssembler;
-use crate::baseline::codegen::CodeGen;
 use crate::baseline::fct::JitBaselineFct;
 use crate::ty::TypeList;
 use crate::vm::{Fct, FctSrc, VM};
