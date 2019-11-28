@@ -46,8 +46,6 @@ pub(super) fn generate<'a, 'ast: 'a>(
 
         stacksize: 0,
 
-        param_offset: PARAM_OFFSET,
-
         param_reg_idx: start,
         param_freg_idx: 0,
 
@@ -67,8 +65,6 @@ struct InfoGenerator<'a, 'ast: 'a> {
 
     stacksize: i32,
 
-    param_offset: i32,
-
     param_reg_idx: usize,
     param_freg_idx: usize,
 
@@ -77,33 +73,6 @@ struct InfoGenerator<'a, 'ast: 'a> {
 }
 
 impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
-    fn visit_param(&mut self, p: &'ast Param) {
-        let var = *self.src.map_vars.get(p.id).unwrap();
-        let ty = self.src.vars[var].ty;
-        let ty = self.specialize_type(ty);
-
-        let is_float = ty.is_float();
-
-        // only some parameters are passed in registers
-        // these registers need to be stored into local variables
-        if is_float && self.param_freg_idx < FREG_PARAMS.len() {
-            self.param_freg_idx += 1;
-        } else if !is_float && self.param_reg_idx < REG_PARAMS.len() {
-            self.param_reg_idx += 1;
-
-        // the rest of the parameters are already stored on the stack
-        // just use the current offset
-        } else {
-            let var = &self.src.vars[var];
-            self.jit_info
-                .map_var_offsets
-                .insert(var.id, self.param_offset);
-
-            // determine next `param_offset`
-            self.param_offset = next_param_offset(self.param_offset, var.ty);
-        }
-    }
-
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         visit::walk_stmt(self, s);
     }

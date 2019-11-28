@@ -19,8 +19,8 @@ use crate::baseline::dora_native::{InternalFct, InternalFctDescriptor};
 use crate::baseline::fct::{CatchType, Comment, GcPoint, JitBaselineFct, JitDescriptor};
 use crate::class::{ClassDef, ClassDefId};
 use crate::cpu::{
-    FReg, Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_SP, REG_TMP1,
-    REG_TMP2,
+    next_param_offset, FReg, Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, PARAM_OFFSET,
+    REG_PARAMS, REG_RESULT, REG_SP, REG_TMP1, REG_TMP2,
 };
 use crate::field::FieldId;
 use crate::gc::Address;
@@ -64,6 +64,7 @@ pub(super) fn generate<'a, 'ast: 'a>(
         stacksize_offset: 0,
         managed_stack: ManagedStackFrame::new(),
         var_to_slot: HashMap::new(),
+        var_to_offset: HashMap::new(),
         eh_return_value: None,
 
         cls_type_params,
@@ -112,6 +113,7 @@ struct AstCodeGen<'a, 'ast: 'a> {
     eh_return_value: Option<ManagedStackSlot>,
 
     var_to_slot: HashMap<VarId, ManagedStackSlot>,
+    var_to_offset: HashMap<VarId, i32>,
 
     cls_type_params: &'a TypeList,
     fct_type_params: &'a TypeList,
@@ -210,6 +212,8 @@ where
             }
         }
 
+        let mut param_offset = PARAM_OFFSET;
+
         for p in &self.ast.params {
             let varid = *self.src.map_vars.get(p.id).unwrap();
             let ty = self.var_ty(varid);
@@ -236,7 +240,10 @@ where
 
                 reg_idx += 1;
             } else {
-                // ignore params not stored in register
+                // all other parameters are stored on stack, just use
+                // that offset
+                self.var_to_offset.insert(varid, param_offset);
+                param_offset = next_param_offset(param_offset, ty);
             }
         }
     }
@@ -1030,7 +1037,7 @@ where
     }
 
     fn var_offset(&self, id: VarId) -> i32 {
-        if let Some(&offset) = self.jit_info.map_var_offsets.get(&id) {
+        if let Some(&offset) = self.var_to_offset.get(&id) {
             assert!(!self.var_to_slot.contains_key(&id));
             offset
         } else {
