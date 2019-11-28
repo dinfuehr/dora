@@ -836,30 +836,16 @@ where
     }
 
     fn emit_template(&mut self, e: &'ast ExprTemplateType, dest: Reg) {
-        let template_info = self
-            .jit_info
-            .map_templates
-            .get(e.id)
-            .expect("no TemplateJitInfo found");
-
         // build StringBuffer::empty() call
         let fct_id = self.vm.vips.fct.string_buffer_empty;
         let ctype = CallType::Fct(fct_id, TypeList::empty(), TypeList::empty());
         let string_buffer_new = self.build_call_site(&ctype, fct_id, Vec::new());
         self.emit_call_site(&string_buffer_new, e.pos, REG_RESULT.into());
-        self.asm.var_store(
-            template_info.string_buffer_offset,
-            BuiltinType::Ptr,
-            REG_RESULT.into(),
-        );
+        let buffer_slot = self.managed_stack.add_temp(BuiltinType::Ptr, self.vm);
+        self.asm
+            .var_store(buffer_slot.offset(), BuiltinType::Ptr, REG_RESULT.into());
 
-        self.stack
-            .add_temp(BuiltinType::Ptr, template_info.string_buffer_offset);
-        // let buffer_slot = self.managed_stack.add_temp(BuiltinType::Ptr, self.vm);
-
-        for (idx, part) in e.parts.iter().enumerate() {
-            let part_info = &template_info.part_infos[idx];
-
+        for part in &e.parts {
             if let Some(ref lit_str) = part.to_lit_str() {
                 self.emit_lit_str_value(&lit_str.value, REG_RESULT);
             } else {
@@ -869,49 +855,50 @@ where
                 self.emit_expr(part, dest);
 
                 if ty.cls_id(self.vm) != Some(self.vm.vips.string_class) {
-                    self.asm.var_store(
-                        part_info.object_offset.expect("object_info missing"),
-                        ty,
-                        dest,
-                    );
+                    let object_slot = self.managed_stack.add_temp(ty, self.vm);
+                    self.asm.var_store(object_slot.offset(), ty, dest);
 
-                    let to_string = part_info.to_string.as_ref().unwrap();
-                    self.emit_call_site(to_string, e.pos, REG_RESULT.into());
+                    // build toString() call
+                    let cls_id = ty.cls_id(self.vm).expect("no cls_id found for type");
+                    let cls = self.vm.classes.idx(cls_id);
+                    let cls = cls.read();
+                    let name = self.vm.interner.intern("toString");
+                    let to_string_id = cls
+                        .find_trait_method(self.vm, self.vm.vips.stringable_trait, name, false)
+                        .expect("toString() method not found");
+                    let ctype = CallType::Method(ty, to_string_id, TypeList::empty());
+                    let args = vec![Arg::Stack(object_slot.offset(), ty)];
+                    let to_string = self.build_call_site(&ctype, to_string_id, args);
+                    self.emit_call_site(&to_string, e.pos, REG_RESULT.into());
+                    self.managed_stack.free_temp(object_slot, self.vm);
                 }
             }
 
-            self.asm.var_store(
-                template_info.string_part_offset,
-                BuiltinType::Ptr,
-                REG_RESULT.into(),
-            );
+            let part_slot = self.managed_stack.add_temp(BuiltinType::Ptr, self.vm);
+            self.asm
+                .var_store(part_slot.offset(), BuiltinType::Ptr, REG_RESULT.into());
 
             // build StringBuffer::append() call
             let fct_id = self.vm.vips.fct.string_buffer_append;
             let ty = BuiltinType::from_cls(self.vm.vips.cls.string_buffer, self.vm);
             let ctype = CallType::Method(ty, fct_id, TypeList::empty());
             let args = vec![
-                Arg::Stack(template_info.string_buffer_offset, BuiltinType::Ptr),
-                Arg::Stack(template_info.string_part_offset, BuiltinType::Ptr),
+                Arg::Stack(buffer_slot.offset(), BuiltinType::Ptr),
+                Arg::Stack(part_slot.offset(), BuiltinType::Ptr),
             ];
             let append = self.build_call_site(&ctype, fct_id, args);
             self.emit_call_site(&append, e.pos, dest.into());
+            self.managed_stack.free_temp(part_slot, self.vm);
         }
 
         // build StringBuffer::toString() call
         let fct_id = self.vm.vips.fct.string_buffer_to_string;
         let ty = BuiltinType::from_cls(self.vm.vips.cls.string_buffer, self.vm);
         let ctype = CallType::Method(ty, fct_id, TypeList::empty());
-        let args = vec![Arg::Stack(
-            template_info.string_buffer_offset,
-            BuiltinType::Ptr,
-        )];
+        let args = vec![Arg::Stack(buffer_slot.offset(), BuiltinType::Ptr)];
         let string_buffer_to_string = self.build_call_site(&ctype, fct_id, args);
         self.emit_call_site(&string_buffer_to_string, e.pos, dest.into());
-        self.stack
-            .free_temp(BuiltinType::Ptr, template_info.string_buffer_offset);
-        // self.managed_stack
-        //     .free_temp(slot_string_buffer_offset, self.vm);
+        self.managed_stack.free_temp(buffer_slot, self.vm);
     }
 
     fn emit_conv(&mut self, e: &'ast ExprConvType, dest: Reg) {

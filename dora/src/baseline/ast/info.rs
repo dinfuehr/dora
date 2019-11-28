@@ -2,7 +2,7 @@ use dora_parser::ast::visit::*;
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::*;
 
-use crate::baseline::ast::{Arg, CallSite, JitInfo, TemplateJitInfo, TemplatePartJitInfo};
+use crate::baseline::ast::{Arg, CallSite, JitInfo};
 use crate::cpu::*;
 use crate::mem;
 use crate::semck::specialize::{specialize_for_call_type, specialize_type};
@@ -84,7 +84,6 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
             ExprBin(ref expr) => self.expr_bin(expr),
             ExprUn(ref expr) => self.expr_un(expr),
             ExprTypeParam(_) => unreachable!(),
-            ExprTemplate(ref expr) => self.expr_template(expr),
 
             _ => visit::walk_expr(self, e),
         }
@@ -499,77 +498,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
             self.universal_call(expr.id, args, None);
         }
-    }
-
-    fn expr_template(&mut self, expr: &'ast ExprTemplateType) {
-        let string_buffer_offset = self.reserve_stack_slot(BuiltinType::Ptr);
-        let string_part_offset = self.reserve_stack_slot(BuiltinType::Ptr);
-
-        // build StringBuffer::empty() call
-        let fct_id = self.vm.vips.fct.string_buffer_empty;
-        let ctype = CallType::Fct(fct_id, TypeList::empty(), TypeList::empty());
-        let string_buffer_new = self.build_call_site(&ctype, fct_id, Vec::new());
-        let mut part_infos = Vec::new();
-
-        for part in &expr.parts {
-            let mut object_offset = None;
-            let mut to_string = None;
-
-            if !part.is_lit_str() {
-                self.visit_expr(part);
-                let ty = self.ty(part.id());
-
-                if ty.cls_id(self.vm) != Some(self.vm.vips.string_class) {
-                    // build toString() call
-                    let offset = self.reserve_stack_slot(ty);
-                    object_offset = Some(offset);
-                    let cls_id = ty.cls_id(self.vm).expect("no cls_id found for type");
-                    let cls = self.vm.classes.idx(cls_id);
-                    let cls = cls.read();
-                    let name = self.vm.interner.intern("toString");
-                    let to_string_id = cls
-                        .find_trait_method(self.vm, self.vm.vips.stringable_trait, name, false)
-                        .expect("toString() method not found");
-                    let ctype = CallType::Method(ty, to_string_id, TypeList::empty());
-                    let args = vec![Arg::Stack(offset, ty)];
-                    to_string = Some(self.build_call_site(&ctype, to_string_id, args));
-                }
-            }
-
-            // build StringBuffer::append() call
-            let fct_id = self.vm.vips.fct.string_buffer_append;
-            let ty = BuiltinType::from_cls(self.vm.vips.cls.string_buffer, self.vm);
-            let ctype = CallType::Method(ty, fct_id, TypeList::empty());
-            let args = vec![
-                Arg::Stack(string_buffer_offset, BuiltinType::Ptr),
-                Arg::Stack(string_part_offset, BuiltinType::Ptr),
-            ];
-            let append = self.build_call_site(&ctype, fct_id, args);
-
-            part_infos.push(TemplatePartJitInfo {
-                object_offset,
-                to_string,
-                append,
-            });
-        }
-
-        // build StringBuffer::toString() call
-        let fct_id = self.vm.vips.fct.string_buffer_to_string;
-        let ty = BuiltinType::from_cls(self.vm.vips.cls.string_buffer, self.vm);
-        let ctype = CallType::Method(ty, fct_id, TypeList::empty());
-        let args = vec![Arg::Stack(string_buffer_offset, BuiltinType::Ptr)];
-        let string_buffer_to_string = self.build_call_site(&ctype, fct_id, args);
-
-        self.jit_info.map_templates.insert(
-            expr.id,
-            TemplateJitInfo {
-                string_buffer_offset,
-                string_part_offset,
-                string_buffer_new,
-                part_infos,
-                string_buffer_to_string,
-            },
-        );
     }
 
     fn reserve_stack_slot(&mut self, ty: BuiltinType) -> i32 {

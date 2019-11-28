@@ -74,9 +74,7 @@ struct CallSite<'ast> {
 
 struct JitInfo<'ast> {
     stacksize: i32, // size of local variables on stack
-
     map_csites: NodeMap<CallSite<'ast>>,
-    map_templates: NodeMap<TemplateJitInfo<'ast>>,
 }
 
 impl<'ast> JitInfo<'ast> {
@@ -87,27 +85,9 @@ impl<'ast> JitInfo<'ast> {
     fn new() -> JitInfo<'ast> {
         JitInfo {
             stacksize: 0,
-
             map_csites: NodeMap::new(),
-            map_templates: NodeMap::new(),
         }
     }
-}
-
-#[derive(Clone)]
-struct TemplateJitInfo<'ast> {
-    string_buffer_offset: i32,
-    string_part_offset: i32,
-    string_buffer_new: CallSite<'ast>,
-    part_infos: Vec<TemplatePartJitInfo<'ast>>,
-    string_buffer_to_string: CallSite<'ast>,
-}
-
-#[derive(Clone)]
-struct TemplatePartJitInfo<'ast> {
-    object_offset: Option<i32>,
-    to_string: Option<CallSite<'ast>>,
-    append: CallSite<'ast>,
 }
 
 struct StackFrame {
