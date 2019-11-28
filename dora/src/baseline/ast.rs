@@ -4,7 +4,7 @@ use crate::baseline::fct::{GcPoint, JitBaselineFct};
 use crate::cpu::STACK_FRAME_ALIGNMENT;
 use crate::mem;
 use crate::ty::{BuiltinType, TypeList};
-use crate::vm::{Fct, FctId, FctSrc, NodeMap, VarId, VM};
+use crate::vm::{Fct, FctId, FctSrc, NodeMap, VM};
 use dora_parser::ast;
 
 mod codegen;
@@ -76,7 +76,6 @@ struct JitInfo<'ast> {
     stacksize: i32, // size of local variables on stack
 
     map_csites: NodeMap<CallSite<'ast>>,
-    map_var_offsets: HashMap<VarId, i32>,
     map_templates: NodeMap<TemplateJitInfo<'ast>>,
 }
 
@@ -85,19 +84,11 @@ impl<'ast> JitInfo<'ast> {
         self.stacksize
     }
 
-    fn offset(&self, var_id: VarId) -> i32 {
-        *self
-            .map_var_offsets
-            .get(&var_id)
-            .expect("no offset found for var")
-    }
-
     fn new() -> JitInfo<'ast> {
         JitInfo {
             stacksize: 0,
 
             map_csites: NodeMap::new(),
-            map_var_offsets: HashMap::new(),
             map_templates: NodeMap::new(),
         }
     }

@@ -572,16 +572,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         );
     }
 
-    fn reserve_temp_for_node_id(&mut self, id: NodeId) -> i32 {
-        let ty = self.ty(id);
-        self.reserve_stack_slot(ty)
-    }
-
-    fn reserve_temp_for_node(&mut self, expr: &Expr) -> i32 {
-        let ty = self.ty(expr.id());
-        self.reserve_stack_slot(ty)
-    }
-
     fn reserve_stack_slot(&mut self, ty: BuiltinType) -> i32 {
         let (ty_size, ty_align) = if ty.is_nil() {
             (mem::ptr_width(), mem::ptr_width())
