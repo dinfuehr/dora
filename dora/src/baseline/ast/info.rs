@@ -1,9 +1,8 @@
 use dora_parser::ast::visit::*;
 use dora_parser::ast::Expr::*;
-use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 
-use crate::baseline::ast::{Arg, CallSite, ForInfo, JitInfo, TemplateJitInfo, TemplatePartJitInfo};
+use crate::baseline::ast::{Arg, CallSite, JitInfo, TemplateJitInfo, TemplatePartJitInfo};
 use crate::cpu::*;
 use crate::mem;
 use crate::semck::specialize::{specialize_for_call_type, specialize_type};
@@ -106,14 +105,6 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
     }
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
-        match s {
-            &StmtFor(ref sfor) => {
-                self.reserve_stmt_for(sfor);
-            }
-
-            _ => {}
-        }
-
         visit::walk_stmt(self, s);
     }
 
@@ -136,47 +127,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.visit_fct(self.ast);
 
         self.jit_info.stacksize = mem::align_i32(self.stacksize, STACK_FRAME_ALIGNMENT as i32);
-    }
-
-    fn reserve_stmt_for(&mut self, stmt: &'ast StmtForType) {
-        let for_type_info = self.src.map_fors.get(stmt.id).unwrap();
-
-        // reserve stack slot for iterator
-        let offset = self.reserve_stack_slot(for_type_info.iterator_type);
-        self.jit_info.map_offsets.insert(stmt.id, offset);
-
-        // build makeIterator() call
-        let object_type = self.ty(stmt.expr.id());
-        let ctype = CallType::Method(object_type, for_type_info.make_iterator, TypeList::empty());
-        let args = vec![Arg::Expr(&stmt.expr, BuiltinType::Unit)];
-        let make_iterator = self.build_call_site(&ctype, for_type_info.make_iterator, args);
-
-        // build hasNext() call
-        let ctype = CallType::Method(
-            for_type_info.iterator_type,
-            for_type_info.has_next,
-            TypeList::empty(),
-        );
-        let args = vec![Arg::Stack(offset, BuiltinType::Unit)];
-        let has_next = self.build_call_site(&ctype, for_type_info.has_next, args);
-
-        // build next() call
-        let ctype = CallType::Method(
-            for_type_info.iterator_type,
-            for_type_info.next,
-            TypeList::empty(),
-        );
-        let args = vec![Arg::Stack(offset, BuiltinType::Unit)];
-        let next = self.build_call_site(&ctype, for_type_info.next, args);
-
-        self.jit_info.map_fors.insert(
-            stmt.id,
-            ForInfo {
-                make_iterator,
-                has_next,
-                next,
-            },
-        );
     }
 
     fn get_intrinsic(&self, id: NodeId) -> Option<Intrinsic> {

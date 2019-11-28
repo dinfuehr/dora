@@ -76,9 +76,7 @@ struct JitInfo<'ast> {
     stacksize: i32, // size of local variables on stack
 
     map_csites: NodeMap<CallSite<'ast>>,
-    map_offsets: NodeMap<i32>,
     map_var_offsets: HashMap<VarId, i32>,
-    map_fors: NodeMap<ForInfo<'ast>>,
     map_templates: NodeMap<TemplateJitInfo<'ast>>,
 }
 
@@ -99,19 +97,10 @@ impl<'ast> JitInfo<'ast> {
             stacksize: 0,
 
             map_csites: NodeMap::new(),
-            map_offsets: NodeMap::new(),
             map_var_offsets: HashMap::new(),
-            map_fors: NodeMap::new(),
             map_templates: NodeMap::new(),
         }
     }
-}
-
-#[derive(Clone)]
-struct ForInfo<'ast> {
-    make_iterator: CallSite<'ast>,
-    has_next: CallSite<'ast>,
-    next: CallSite<'ast>,
 }
 
 #[derive(Clone)]

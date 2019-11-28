@@ -29,10 +29,12 @@ use crate::mem;
 use crate::object::{Header, Str};
 use crate::os::signal::Trap;
 use crate::semck::always_returns;
-use crate::semck::specialize::specialize_class_ty;
+use crate::semck::specialize::{specialize_class_ty, specialize_for_call_type};
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, MachineMode, TypeList};
-use crate::vm::{ConstId, Fct, FctId, FctKind, FctParent, FctSrc, IdentType, Intrinsic, VarId, VM};
+use crate::vm::{
+    CallType, ConstId, Fct, FctId, FctKind, FctParent, FctSrc, IdentType, Intrinsic, VarId, VM,
+};
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
 pub(super) fn generate<'a, 'ast: 'a>(
@@ -343,22 +345,24 @@ where
         self.active_loop = saved_active_loop;
     }
 
-    fn emit_stmt_for(&mut self, s: &'ast StmtForType) {
-        // let for_type_info = self.src.map_fors.get(s.id).unwrap().clone();
-        let for_jit_info = self.jit_info.map_fors.get(s.id).unwrap().clone();
+    fn emit_stmt_for(&mut self, stmt: &'ast StmtForType) {
+        let for_type_info = self.src.map_fors.get(stmt.id).unwrap().clone();
 
         self.managed_stack.push_scope();
 
         // emit: <iterator> = obj.makeIterator()
-        let dest = self.emit_call_site_old(&for_jit_info.make_iterator, s.pos);
+        let object_type = self.ty(stmt.expr.id());
+        let ctype = CallType::Method(object_type, for_type_info.make_iterator, TypeList::empty());
+        let args = vec![Arg::Expr(&stmt.expr, BuiltinType::Unit)];
+        let make_iterator = self.build_call_site(&ctype, for_type_info.make_iterator, args);
+        let dest = self.emit_call_site_old(&make_iterator, stmt.pos);
 
         // offset of iterator storage
-        let offset = *self.jit_info.map_offsets.get(s.id).unwrap();
-        // let _slot_offset = self
-        //     .managed_stack
-        //     .add_scope(for_type_info.iterator_type, self.vm);
+        let iterator_slot = self
+            .managed_stack
+            .add_scope(for_type_info.iterator_type, self.vm);
         self.asm
-            .store_mem(MachineMode::Ptr, Mem::Local(offset), dest);
+            .store_mem(MachineMode::Ptr, Mem::Local(iterator_slot.offset()), dest);
 
         let lbl_start = self.asm.create_label();
         let lbl_end = self.asm.create_label();
@@ -369,14 +373,28 @@ where
         self.asm.bind_label(lbl_start);
 
         // emit: iterator.hasNext() & jump to lbl_end if false
-        let dest = self.emit_call_site_old(&for_jit_info.has_next, s.pos);
+        let ctype = CallType::Method(
+            for_type_info.iterator_type,
+            for_type_info.has_next,
+            TypeList::empty(),
+        );
+        let args = vec![Arg::Stack(iterator_slot.offset(), BuiltinType::Unit)];
+        let has_next = self.build_call_site(&ctype, for_type_info.has_next, args);
+        let dest = self.emit_call_site_old(&has_next, stmt.pos);
         self.asm
             .test_and_jump_if(CondCode::Zero, dest.reg(), lbl_end);
 
         // emit: <for_var> = iterator.next()
-        let dest = self.emit_call_site_old(&for_jit_info.next, s.pos);
+        let ctype = CallType::Method(
+            for_type_info.iterator_type,
+            for_type_info.next,
+            TypeList::empty(),
+        );
+        let args = vec![Arg::Stack(iterator_slot.offset(), BuiltinType::Unit)];
+        let next = self.build_call_site(&ctype, for_type_info.next, args);
+        let dest = self.emit_call_site_old(&next, stmt.pos);
 
-        let for_var_id = *self.src.map_vars.get(s.id).unwrap();
+        let for_var_id = *self.src.map_vars.get(stmt.id).unwrap();
         let var_ty = self.var_ty(for_var_id);
         let slot_var = self.managed_stack.add_scope(var_ty, self.vm);
         assert!(self.var_to_slot.insert(for_var_id, slot_var).is_none());
@@ -385,7 +403,7 @@ where
 
         self.save_label_state(lbl_end, lbl_start, |this| {
             // execute while body, then jump back to condition
-            this.visit_stmt(&s.block);
+            this.visit_stmt(&stmt.block);
 
             this.emit_safepoint();
             this.asm.jump(lbl_start);
@@ -2793,6 +2811,113 @@ where
             + max(0, freg_args - FREG_PARAMS.len() as i32);
 
         mem::align_i32(mem::ptr_width() * args_on_stack, 16)
+    }
+
+    fn build_call_site(
+        &mut self,
+        call_type: &CallType,
+        callee_id: FctId,
+        args: Vec<Arg<'ast>>,
+    ) -> CallSite<'ast> {
+        let callee = self.vm.fcts.idx(callee_id);
+        let callee = callee.read();
+
+        let (args, return_type, super_call) =
+            self.determine_call_args_and_types(&*call_type, &*callee, args);
+        let (cls_type_params, fct_type_params) = self.determine_call_type_params(&*call_type);
+
+        CallSite {
+            callee: callee_id,
+            args,
+            cls_type_params,
+            fct_type_params,
+            super_call,
+            return_type,
+        }
+    }
+
+    fn determine_call_args_and_types(
+        &mut self,
+        call_type: &CallType,
+        callee: &Fct<'ast>,
+        args: Vec<Arg<'ast>>,
+    ) -> (Vec<Arg<'ast>>, BuiltinType, bool) {
+        let mut super_call = false;
+
+        assert!(callee.params_with_self().len() == args.len());
+
+        let args = args
+            .iter()
+            .enumerate()
+            .map(|(ind, arg)| {
+                let ty = callee.params_with_self()[ind];
+                let ty = self.specialize_type(specialize_for_call_type(call_type, ty, self.vm));
+
+                match *arg {
+                    Arg::Expr(ast, _) => {
+                        if ind == 0 && ast.is_super() {
+                            super_call = true;
+                        }
+
+                        Arg::Expr(ast, ty)
+                    }
+
+                    Arg::Stack(offset, _) => Arg::Stack(offset, ty),
+                    Arg::SelfieNew(cid) => Arg::SelfieNew(cid),
+                    Arg::Selfie(cid) => Arg::Selfie(cid),
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let return_type = self.specialize_type(specialize_for_call_type(
+            call_type,
+            callee.return_type,
+            self.vm,
+        ));
+
+        (args, return_type, super_call)
+    }
+
+    fn determine_call_type_params(&mut self, call_type: &CallType) -> (TypeList, TypeList) {
+        let cls_type_params;
+        let fct_type_params;
+
+        match *call_type {
+            CallType::Ctor(_, _, ref type_params) | CallType::CtorNew(_, _, ref type_params) => {
+                cls_type_params = type_params.clone();
+                fct_type_params = TypeList::empty();
+            }
+
+            CallType::Method(ty, _, ref type_params) => {
+                let ty = self.specialize_type(ty);
+
+                cls_type_params = ty.type_params(self.vm);
+                fct_type_params = type_params.clone();
+            }
+
+            CallType::Fct(_, ref cls_tps, ref fct_tps) => {
+                cls_type_params = cls_tps.clone();
+                fct_type_params = fct_tps.clone();
+            }
+
+            CallType::Expr(ty, _) => {
+                let ty = self.specialize_type(ty);
+
+                cls_type_params = ty.type_params(self.vm);
+                fct_type_params = TypeList::empty();
+            }
+
+            CallType::Trait(_, _) => unimplemented!(),
+
+            CallType::TraitStatic(_, _, _) => {
+                cls_type_params = TypeList::empty();
+                fct_type_params = TypeList::empty();
+            }
+
+            CallType::Intrinsic(_) => unreachable!(),
+        }
+
+        (cls_type_params, fct_type_params)
     }
 
     fn ty(&self, id: NodeId) -> BuiltinType {
