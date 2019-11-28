@@ -410,19 +410,9 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             let index = &call_expr.args[0];
             let value = &e.rhs;
 
-            if let Some(_) = self.get_intrinsic(e.id) {
-                self.visit_expr(object);
-                self.visit_expr(index);
-                self.visit_expr(value);
-            } else {
-                let args = vec![
-                    Arg::Expr(object, BuiltinType::Unit),
-                    Arg::Expr(index, BuiltinType::Unit),
-                    Arg::Expr(value, BuiltinType::Unit),
-                ];
-
-                self.universal_call(e.id, args, None);
-            }
+            self.visit_expr(object);
+            self.visit_expr(index);
+            self.visit_expr(value);
         } else if e.lhs.is_ident() {
             self.visit_expr(&e.rhs);
         } else {

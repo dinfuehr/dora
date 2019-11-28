@@ -1348,12 +1348,11 @@ where
 
         if call_type.is_some() {
             let call_expr = e.lhs.to_call().unwrap();
+            let object = &call_expr.callee;
+            let index = &call_expr.args[0];
+            let value = &e.rhs;
 
             if let Some(intrinsic) = self.get_intrinsic(e.id) {
-                let object = &call_expr.callee;
-                let index = &call_expr.args[0];
-                let value = &e.rhs;
-
                 match intrinsic {
                     Intrinsic::GenericArraySet => {
                         let element_type = self.ty(object.id()).type_params(self.vm)[0];
@@ -1379,7 +1378,13 @@ where
                     _ => panic!("unexpected intrinsic {:?}", intrinsic),
                 }
             } else {
-                self.emit_call_site_id(e.id, e.pos, REG_RESULT.into());
+                let args = vec![
+                    Arg::Expr(object, BuiltinType::Unit),
+                    Arg::Expr(index, BuiltinType::Unit),
+                    Arg::Expr(value, BuiltinType::Unit),
+                ];
+                let call_site = self.build_call_site_id(e.id, args, None);
+                self.emit_call_site(&call_site, e.pos, REG_RESULT.into());
             }
 
             return;
