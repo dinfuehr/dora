@@ -1,20 +1,16 @@
-use std::collections::HashMap;
-
 use dora_parser::ast::visit::*;
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 
+use crate::baseline::ast::{Arg, CallSite, ForInfo, JitInfo, TemplateJitInfo, TemplatePartJitInfo};
 use crate::cpu::*;
 use crate::mem;
 use crate::semck::specialize::{specialize_for_call_type, specialize_type};
 use crate::ty::{BuiltinType, TypeList, TypeParamId};
-use crate::vm::{
-    Arg, CallSite, CallType, Fct, FctId, FctKind, FctParent, FctSrc, Intrinsic, NodeMap, TraitId,
-    VarId, VM,
-};
+use crate::vm::{CallType, Fct, FctId, FctKind, FctParent, FctSrc, Intrinsic, TraitId, VM};
 
-pub fn generate<'a, 'ast: 'a>(
+pub(super) fn generate<'a, 'ast: 'a>(
     vm: &'a VM<'ast>,
     fct: &Fct<'ast>,
     src: &'a FctSrc,
@@ -61,41 +57,6 @@ pub fn generate<'a, 'ast: 'a>(
     };
 
     ig.generate();
-}
-
-pub struct JitInfo<'ast> {
-    pub stacksize: i32, // size of local variables on stack
-
-    pub map_csites: NodeMap<CallSite<'ast>>,
-    pub map_offsets: NodeMap<i32>,
-    pub map_var_offsets: HashMap<VarId, i32>,
-    pub map_fors: NodeMap<ForInfo<'ast>>,
-    pub map_templates: NodeMap<TemplateJitInfo<'ast>>,
-}
-
-impl<'ast> JitInfo<'ast> {
-    pub fn stacksize(&self) -> i32 {
-        self.stacksize
-    }
-
-    pub fn offset(&self, var_id: VarId) -> i32 {
-        *self
-            .map_var_offsets
-            .get(&var_id)
-            .expect("no offset found for var")
-    }
-
-    pub fn new() -> JitInfo<'ast> {
-        JitInfo {
-            stacksize: 0,
-
-            map_csites: NodeMap::new(),
-            map_offsets: NodeMap::new(),
-            map_var_offsets: HashMap::new(),
-            map_fors: NodeMap::new(),
-            map_templates: NodeMap::new(),
-        }
-    }
 }
 
 struct InfoGenerator<'a, 'ast: 'a> {
@@ -724,29 +685,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         assert!(result.is_concrete_type(self.vm));
         result
     }
-}
-
-#[derive(Clone)]
-pub struct ForInfo<'ast> {
-    pub make_iterator: CallSite<'ast>,
-    pub has_next: CallSite<'ast>,
-    pub next: CallSite<'ast>,
-}
-
-#[derive(Clone)]
-pub struct TemplateJitInfo<'ast> {
-    pub string_buffer_offset: i32,
-    pub string_part_offset: i32,
-    pub string_buffer_new: CallSite<'ast>,
-    pub part_infos: Vec<TemplatePartJitInfo<'ast>>,
-    pub string_buffer_to_string: CallSite<'ast>,
-}
-
-#[derive(Clone)]
-pub struct TemplatePartJitInfo<'ast> {
-    pub object_offset: Option<i32>,
-    pub to_string: Option<CallSite<'ast>>,
-    pub append: CallSite<'ast>,
 }
 
 #[cfg(test)]

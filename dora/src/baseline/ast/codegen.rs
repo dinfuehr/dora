@@ -9,10 +9,12 @@ use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 
 use crate::baseline::asm::BaselineAssembler;
-use crate::baseline::ast::info::JitInfo;
+use crate::baseline::ast::{
+    Arg, CallSite, JitInfo, ManagedStackFrame, ManagedStackSlot, StackFrame,
+};
 use crate::baseline::codegen::{
     ensure_native_stub, register_for_mode, should_emit_debug, AllocationSize, CodeGen, CondCode,
-    ExprStore, ManagedStackFrame, ManagedStackSlot, StackFrame,
+    ExprStore,
 };
 use crate::baseline::dora_native::{InternalFct, InternalFctDescriptor};
 use crate::baseline::fct::{CatchType, Comment, GcPoint, JitBaselineFct, JitDescriptor};
@@ -31,54 +33,87 @@ use crate::semck::always_returns;
 use crate::semck::specialize::specialize_class_ty;
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, MachineMode, TypeList};
-use crate::vm::{
-    Arg, CallSite, ConstId, Fct, FctId, FctKind, FctParent, FctSrc, IdentType, Intrinsic, VarId, VM,
-};
+use crate::vm::{ConstId, Fct, FctId, FctKind, FctParent, FctSrc, IdentType, Intrinsic, VarId, VM};
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
-pub struct AstCodeGen<'a, 'ast: 'a> {
-    pub vm: &'a VM<'ast>,
-    pub fct: &'a Fct<'ast>,
-    pub ast: &'ast Function,
-    pub asm: BaselineAssembler<'a, 'ast>,
-    pub src: &'a mut FctSrc,
-    pub jit_info: &'a JitInfo<'ast>,
+pub(super) fn generate<'a, 'ast: 'a>(
+    vm: &'a VM<'ast>,
+    fct: &Fct<'ast>,
+    src: &'a mut FctSrc,
+    jit_info: &'a JitInfo<'ast>,
+    cls_type_params: &TypeList,
+    fct_type_params: &TypeList,
+) -> JitBaselineFct {
+    AstCodeGen {
+        vm,
+        fct: &fct,
+        ast: fct.ast,
+        asm: BaselineAssembler::new(vm),
+        src,
+        jit_info: &jit_info,
 
-    pub lbl_break: Option<Label>,
-    pub lbl_continue: Option<Label>,
+        lbl_break: None,
+        lbl_continue: None,
+        lbl_return: None,
+
+        active_finallys: Vec::new(),
+        active_upper: None,
+        active_loop: None,
+        stack: StackFrame::new(),
+        stacksize_offset: 0,
+        managed_stack: ManagedStackFrame::new(),
+        var_to_slot: HashMap::new(),
+        eh_return_value: None,
+
+        cls_type_params,
+        fct_type_params,
+    }
+    .generate()
+}
+
+struct AstCodeGen<'a, 'ast: 'a> {
+    vm: &'a VM<'ast>,
+    fct: &'a Fct<'ast>,
+    ast: &'ast Function,
+    asm: BaselineAssembler<'a, 'ast>,
+    src: &'a mut FctSrc,
+    jit_info: &'a JitInfo<'ast>,
+
+    lbl_break: Option<Label>,
+    lbl_continue: Option<Label>,
 
     // stores all active finally blocks
-    pub active_finallys: Vec<&'ast Stmt>,
+    active_finallys: Vec<&'ast Stmt>,
 
     // label to jump instead of emitting epilog for return
     // needed for return's in finally blocks
     // return in finally needs to execute to next finally block and not
     // leave the current function
-    pub lbl_return: Option<Label>,
+    lbl_return: Option<Label>,
 
     // length of active_finallys in last loop
     // default: 0
     // break/continue need to emit finally blocks up to the last loop
     // see tests/finally/break-while.dora
-    pub active_loop: Option<usize>,
+    active_loop: Option<usize>,
 
     // upper length of active_finallys in emitting finally-blocks for break/continue
     // default: active_finallys.len()
     // break/continue needs to execute finally-blocks in loop, return in these blocks
     // would dump all active_finally-entries from the loop but we need an upper bound.
     // see emit_finallys_within_loop and tests/finally/continue-return.dora
-    pub active_upper: Option<usize>,
+    active_upper: Option<usize>,
 
-    pub stack: StackFrame,
-    pub managed_stack: ManagedStackFrame,
-    pub stacksize_offset: usize,
+    stack: StackFrame,
+    managed_stack: ManagedStackFrame,
+    stacksize_offset: usize,
 
-    pub eh_return_value: Option<ManagedStackSlot>,
+    eh_return_value: Option<ManagedStackSlot>,
 
-    pub var_to_slot: HashMap<VarId, ManagedStackSlot>,
+    var_to_slot: HashMap<VarId, ManagedStackSlot>,
 
-    pub cls_type_params: &'a TypeList,
-    pub fct_type_params: &'a TypeList,
+    cls_type_params: &'a TypeList,
+    fct_type_params: &'a TypeList,
 }
 
 impl<'a, 'ast> AstCodeGen<'a, 'ast>

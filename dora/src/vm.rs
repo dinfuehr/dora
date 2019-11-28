@@ -1568,16 +1568,6 @@ impl CallType {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct CallSite<'ast> {
-    pub callee: FctId,
-    pub cls_type_params: TypeList,
-    pub fct_type_params: TypeList,
-    pub args: Vec<Arg<'ast>>,
-    pub super_call: bool,
-    pub return_type: BuiltinType,
-}
-
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ConstId(usize);
 
@@ -1639,32 +1629,6 @@ impl ConstValue {
         match self {
             &ConstValue::Float(f) => f,
             _ => unreachable!(),
-        }
-    }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum Arg<'ast> {
-    Expr(&'ast ast::Expr, BuiltinType),
-    Stack(i32, BuiltinType),
-    SelfieNew(BuiltinType),
-    Selfie(BuiltinType),
-}
-
-impl<'ast> Arg<'ast> {
-    pub fn ty(&self) -> BuiltinType {
-        match *self {
-            Arg::Expr(_, ty) => ty,
-            Arg::Stack(_, ty) => ty,
-            Arg::Selfie(ty) => ty,
-            Arg::SelfieNew(ty) => ty,
-        }
-    }
-
-    pub fn is_selfie_new(&self) -> bool {
-        match *self {
-            Arg::SelfieNew(_) => true,
-            _ => false,
         }
     }
 }
