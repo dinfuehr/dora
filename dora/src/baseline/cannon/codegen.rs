@@ -20,45 +20,45 @@ use crate::bytecode::astgen::generate_fct;
 use crate::bytecode::generate::{BytecodeFunction, BytecodeType, Register, StrConstPoolIdx};
 use crate::bytecode::opcode::Bytecode;
 
-pub struct ForwardJump {
+struct ForwardJump {
     label: Label,
     bytecode_idx: BytecodeIdx,
 }
 
 pub struct CannonCodeGen<'a, 'ast: 'a> {
-    pub vm: &'a VM<'ast>,
-    pub fct: &'a Fct<'ast>,
-    pub ast: &'ast Function,
-    pub asm: BaselineAssembler<'a, 'ast>,
-    pub src: &'a mut FctSrc,
+    vm: &'a VM<'ast>,
+    fct: &'a Fct<'ast>,
+    ast: &'ast Function,
+    asm: BaselineAssembler<'a, 'ast>,
+    src: &'a mut FctSrc,
 
-    pub lbl_break: Option<Label>,
-    pub lbl_continue: Option<Label>,
+    lbl_break: Option<Label>,
+    lbl_continue: Option<Label>,
 
     // stores all active finally blocks
-    pub active_finallys: Vec<&'ast Stmt>,
+    active_finallys: Vec<&'ast Stmt>,
 
     // label to jump instead of emitting epilog for return
     // needed for return's in finally blocks
     // return in finally needs to execute to next finally block and not
     // leave the current function
-    pub lbl_return: Option<Label>,
+    lbl_return: Option<Label>,
 
     // length of active_finallys in last loop
     // default: 0
     // break/continue need to emit finally blocks up to the last loop
     // see tests/finally/break-while.dora
-    pub active_loop: Option<usize>,
+    active_loop: Option<usize>,
 
     // upper length of active_finallys in emitting finally-blocks for break/continue
     // default: active_finallys.len()
     // break/continue needs to execute finally-blocks in loop, return in these blocks
     // would dump all active_finally-entries from the loop but we need an upper bound.
     // see emit_finallys_within_loop and tests/finally/continue-return.dora
-    pub active_upper: Option<usize>,
+    active_upper: Option<usize>,
 
-    pub cls_type_params: &'a TypeList,
-    pub fct_type_params: &'a TypeList,
+    cls_type_params: &'a TypeList,
+    fct_type_params: &'a TypeList,
 
     bytecode_to_address: HashMap<BytecodeIdx, usize>,
     forward_jumps: Vec<ForwardJump>,

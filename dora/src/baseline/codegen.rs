@@ -7,9 +7,8 @@ use std::sync::Arc;
 
 use capstone::prelude::*;
 
-use crate::baseline::asm::BaselineAssembler;
 use crate::baseline::ast;
-use crate::baseline::cannon::CannonCodeGen;
+use crate::baseline::cannon;
 use crate::baseline::dora_native::{self, InternalFct};
 use crate::baseline::fct::{CommentFormat, JitBaselineFct, JitFct};
 use crate::baseline::map::CodeDescriptor;
@@ -62,38 +61,21 @@ pub fn generate_fct<'ast>(
         }
     }
 
-    let ast = fct.ast;
-
-    let mut bc = vm.args.bc();
-
-    if fct.use_cannon {
-        bc = BaselineName::Cannon;
+    let bc = if fct.use_cannon {
+        BaselineName::Cannon
     } else if fct.has_optimize_immediately {
         unimplemented!();
-    }
+    } else {
+        vm.args.bc()
+    };
 
     let jit_fct = match bc {
-        BaselineName::Cannon => CannonCodeGen::new(
-            vm,
-            &fct,
-            ast,
-            BaselineAssembler::new(vm),
-            src,
-            None,
-            None,
-            Vec::new(),
-            None,
-            None,
-            None,
-            cls_type_params,
-            fct_type_params,
-        )
-        .generate(),
+        BaselineName::Cannon => cannon::compile(vm, &fct, src, cls_type_params, fct_type_params),
         BaselineName::AstCompiler => ast::compile(vm, &fct, src, cls_type_params, fct_type_params),
     };
 
     if vm.args.flag_enable_perf {
-        os::perf::register_with_perf(&jit_fct, vm, ast.name);
+        os::perf::register_with_perf(&jit_fct, vm, fct.ast.name);
     }
 
     if should_emit_asm(vm, &*fct) {
