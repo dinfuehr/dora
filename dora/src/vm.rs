@@ -1511,7 +1511,7 @@ pub struct ForTypeInfo {
 
 #[derive(Debug, Clone)]
 pub enum CallType {
-    // Function calls, e.g. fct(<args>)
+    // Function calls, e.g. fct(<args>) or Class::static_fct(<args>)
     Fct(FctId, TypeList, TypeList),
 
     // Direct or virtual method calls, e.g. obj.method(<args>)

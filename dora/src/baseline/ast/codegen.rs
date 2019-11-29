@@ -371,7 +371,7 @@ where
             for_type_info.has_next,
             TypeList::empty(),
         );
-        let args = vec![Arg::Stack(iterator_slot.offset(), BuiltinType::Unit)];
+        let args = vec![Arg::Stack(iterator_slot.offset(), BuiltinType::Error)];
         let has_next = self.build_call_site(&ctype, for_type_info.has_next, args);
         let dest = self.emit_call_site_old(&has_next, stmt.pos);
         self.asm
@@ -383,7 +383,7 @@ where
             for_type_info.next,
             TypeList::empty(),
         );
-        let args = vec![Arg::Stack(iterator_slot.offset(), BuiltinType::Unit)];
+        let args = vec![Arg::Stack(iterator_slot.offset(), BuiltinType::Error)];
         let next = self.build_call_site(&ctype, for_type_info.next, args);
         let dest = self.emit_call_site_old(&next, stmt.pos);
 
@@ -842,7 +842,7 @@ where
                         .find_trait_method(self.vm, self.vm.vips.stringable_trait, name, false)
                         .expect("toString() method not found");
                     let ctype = CallType::Method(ty, to_string_id, TypeList::empty());
-                    let args = vec![Arg::Stack(object_slot.offset(), ty)];
+                    let args = vec![Arg::Stack(object_slot.offset(), BuiltinType::Error)];
                     let to_string = self.build_call_site(&ctype, to_string_id, args);
                     self.emit_call_site(&to_string, e.pos, REG_RESULT.into());
                     self.managed_stack.free_temp(object_slot, self.vm);
@@ -858,8 +858,8 @@ where
             let ty = BuiltinType::from_cls(self.vm.vips.cls.string_buffer, self.vm);
             let ctype = CallType::Method(ty, fct_id, TypeList::empty());
             let args = vec![
-                Arg::Stack(buffer_slot.offset(), BuiltinType::Ptr),
-                Arg::Stack(part_slot.offset(), BuiltinType::Ptr),
+                Arg::Stack(buffer_slot.offset(), BuiltinType::Error),
+                Arg::Stack(part_slot.offset(), BuiltinType::Error),
             ];
             let append = self.build_call_site(&ctype, fct_id, args);
             self.emit_call_site(&append, e.pos, dest.into());
@@ -870,7 +870,7 @@ where
         let fct_id = self.vm.vips.fct.string_buffer_to_string;
         let ty = BuiltinType::from_cls(self.vm.vips.cls.string_buffer, self.vm);
         let ctype = CallType::Method(ty, fct_id, TypeList::empty());
-        let args = vec![Arg::Stack(buffer_slot.offset(), BuiltinType::Ptr)];
+        let args = vec![Arg::Stack(buffer_slot.offset(), BuiltinType::Error)];
         let string_buffer_to_string = self.build_call_site(&ctype, fct_id, args);
         self.emit_call_site(&string_buffer_to_string, e.pos, dest.into());
         self.managed_stack.free_temp(buffer_slot, self.vm);
@@ -2176,7 +2176,7 @@ where
         let cls = cls.read();
         let args = vec![
             Arg::SelfieNew(cls.ty),
-            Arg::Stack(message_slot.offset(), BuiltinType::Ptr),
+            Arg::Stack(message_slot.offset(), BuiltinType::Error),
         ];
         let ctor_id = cls.constructor.expect("missing ctor for Error");
         let cls_ty = self.vm.cls(cls_id);
@@ -3020,8 +3020,8 @@ where
                     }
 
                     Arg::Stack(offset, _) => Arg::Stack(offset, ty),
-                    Arg::SelfieNew(cid) => Arg::SelfieNew(cid),
-                    Arg::Selfie(cid) => Arg::Selfie(cid),
+                    Arg::SelfieNew(_) => Arg::SelfieNew(ty),
+                    Arg::Selfie(_) => Arg::Selfie(ty),
                 }
             })
             .collect::<Vec<_>>();
