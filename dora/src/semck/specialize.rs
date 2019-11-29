@@ -398,9 +398,9 @@ pub fn specialize_for_call_type(call_type: &CallType, ty: BuiltinType, vm: &VM) 
             specialize_type(vm, ty, &cls_type_params, &TypeList::empty())
         }
 
-        CallType::Ctor(_, _, ref cls_type_params)
-        | CallType::CtorNew(_, _, ref cls_type_params) => {
-            specialize_type(vm, ty, cls_type_params, &TypeList::empty())
+        CallType::Ctor(cls_ty, _) | CallType::CtorNew(cls_ty, _) => {
+            let cls_type_params = cls_ty.type_params(vm);
+            specialize_type(vm, ty, &cls_type_params, &TypeList::empty())
         }
 
         CallType::Trait(_, _) => unimplemented!(),

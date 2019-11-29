@@ -385,6 +385,21 @@ impl<'ast> VM<'ast> {
         BuiltinType::Class(cls_id, list_id)
     }
 
+    pub fn cls_with_type_params(
+        &self,
+        cls_id: ClassId,
+        type_params: Vec<BuiltinType>,
+    ) -> BuiltinType {
+        let list = TypeList::with(type_params);
+        let list_id = self.lists.lock().insert(list);
+        BuiltinType::Class(cls_id, list_id)
+    }
+
+    pub fn cls_with_type_list(&self, cls_id: ClassId, type_list: TypeList) -> BuiltinType {
+        let list_id = self.lists.lock().insert(type_list);
+        BuiltinType::Class(cls_id, list_id)
+    }
+
     pub fn dora_entry_thunk(&self) -> Address {
         let mut dora_entry_thunk = self.dora_entry.lock();
 
@@ -1503,8 +1518,8 @@ pub enum CallType {
     Method(BuiltinType, FctId, TypeList),
 
     // Constructor call Class(<args>)
-    CtorNew(ClassId, FctId, TypeList),
-    Ctor(ClassId, FctId, TypeList),
+    CtorNew(BuiltinType, FctId),
+    Ctor(BuiltinType, FctId),
 
     // Invoke on expression, e.g. <expr>(<args>)
     Expr(BuiltinType, FctId),
@@ -1521,14 +1536,14 @@ pub enum CallType {
 impl CallType {
     pub fn is_ctor_new(&self) -> bool {
         match *self {
-            CallType::CtorNew(_, _, _) => true,
+            CallType::CtorNew(_, _) => true,
             _ => false,
         }
     }
 
     pub fn is_ctor(&self) -> bool {
         match *self {
-            CallType::Ctor(_, _, _) => true,
+            CallType::Ctor(_, _) => true,
             _ => false,
         }
     }
@@ -1558,8 +1573,8 @@ impl CallType {
         match *self {
             CallType::Fct(fctid, _, _) => Some(fctid),
             CallType::Method(_, fctid, _) => Some(fctid),
-            CallType::CtorNew(_, fctid, _) => Some(fctid),
-            CallType::Ctor(_, fctid, _) => Some(fctid),
+            CallType::CtorNew(_, fctid) => Some(fctid),
+            CallType::Ctor(_, fctid) => Some(fctid),
             CallType::Expr(_, fctid) => Some(fctid),
             CallType::Trait(_, fctid) => Some(fctid),
             CallType::TraitStatic(_, _, fctid) => Some(fctid),

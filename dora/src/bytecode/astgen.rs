@@ -329,6 +329,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.gen.emit_jump_if_true(assert_reg, lbl_assert);
 
         let cls_id = self.vm.vips.error_class;
+        let cls_ty = self.vm.cls(cls_id);
         let cls = self.vm.classes.idx(cls_id);
         let cls = cls.read();
 
@@ -340,11 +341,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             .params_with_self()
             .iter()
             .map(|&arg| {
-                self.specialize_type_for_call(
-                    &CallType::CtorNew(cls_id, fct_id, TypeList::Empty),
-                    arg,
-                )
-                .into()
+                self.specialize_type_for_call(&CallType::CtorNew(cls_ty, fct_id), arg)
+                    .into()
             })
             .collect::<Vec<BytecodeType>>();
         let num_args = arg_types.len();
@@ -417,8 +415,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             Register::zero()
         };
 
-        let arg_start_reg = if let CallType::CtorNew(cls_id, _, tp) = &*call_type {
-            let cls_id = specialize_class_id_params(self.vm, *cls_id, tp);
+        let arg_start_reg = if let CallType::CtorNew(ty, _) = &*call_type {
+            let cls_id = specialize_class_ty(self.vm, *ty);
             self.gen.emit_new_object(start_reg, cls_id);
             start_reg.offset(1)
         } else if callee.has_self() {
@@ -437,7 +435,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
 
         match *call_type {
-            CallType::Ctor(_, _, _) | CallType::CtorNew(_, _, _) => {
+            CallType::Ctor(_, _) | CallType::CtorNew(_, _) => {
                 self.gen
                     .emit_invoke_direct_void(callee_id, start_reg, num_args);
             }
@@ -980,17 +978,14 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 specialize_type(self.vm, ty, cls_type_params, fct_type_params)
             }
 
-            CallType::Method(cls_ty, _, ref type_params) => match cls_ty {
-                BuiltinType::Class(_, list_id) => {
-                    let params = self.vm.lists.lock().get(list_id);
-                    specialize_type(self.vm, ty, &params, type_params)
-                }
+            CallType::Method(cls_ty, _, ref type_params) => {
+                let cls_type_params = cls_ty.type_params(self.vm);
+                specialize_type(self.vm, ty, &cls_type_params, type_params)
+            }
 
-                _ => ty,
-            },
-
-            CallType::Ctor(_, _, ref type_params) | CallType::CtorNew(_, _, ref type_params) => {
-                specialize_type(self.vm, ty, type_params, &TypeList::empty())
+            CallType::Ctor(cls_ty, _) | CallType::CtorNew(cls_ty, _) => {
+                let cls_type_params = cls_ty.type_params(self.vm);
+                specialize_type(self.vm, ty, &cls_type_params, &TypeList::empty())
             }
 
             CallType::Expr(ty, _) => {

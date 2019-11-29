@@ -1708,7 +1708,7 @@ where
                 .collect::<Vec<_>>();
 
             let callee_id = match *call_type {
-                CallType::Ctor(_, fid, _) | CallType::CtorNew(_, fid, _) => {
+                CallType::Ctor(_, fid) | CallType::CtorNew(_, fid) => {
                     let ty = self.ty(e.id);
                     let arg = if call_type.is_ctor() {
                         Arg::Selfie(ty)
@@ -2179,7 +2179,8 @@ where
             Arg::Stack(message_slot.offset(), BuiltinType::Ptr),
         ];
         let ctor_id = cls.constructor.expect("missing ctor for Error");
-        let call_type = CallType::CtorNew(cls_id, ctor_id, TypeList::empty());
+        let cls_ty = self.vm.cls(cls_id);
+        let call_type = CallType::CtorNew(cls_ty, ctor_id);
         let csite = self.build_call_site(&call_type, ctor_id, args);
         self.emit_call_site(&csite, pos, REG_RESULT.into());
 
@@ -3039,8 +3040,8 @@ where
         let fct_type_params;
 
         match *call_type {
-            CallType::Ctor(_, _, ref type_params) | CallType::CtorNew(_, _, ref type_params) => {
-                cls_type_params = type_params.clone();
+            CallType::Ctor(ty, _) | CallType::CtorNew(ty, _) => {
+                cls_type_params = ty.type_params(self.vm);
                 fct_type_params = TypeList::empty();
             }
 
