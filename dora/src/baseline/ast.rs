@@ -21,25 +21,33 @@ pub fn compile<'a, 'ast: 'a>(
 
 #[derive(Copy, Clone, Debug)]
 enum Arg<'ast> {
+    Expr(&'ast ast::Expr),
+    Stack(i32),
+    SelfieNew,
+    Selfie,
+}
+
+#[derive(Copy, Clone, Debug)]
+enum InternalArg<'ast> {
     Expr(&'ast ast::Expr, BuiltinType),
     Stack(i32, BuiltinType),
     SelfieNew(BuiltinType),
     Selfie(BuiltinType),
 }
 
-impl<'ast> Arg<'ast> {
+impl<'ast> InternalArg<'ast> {
     fn ty(&self) -> BuiltinType {
         match *self {
-            Arg::Expr(_, ty) => ty,
-            Arg::Stack(_, ty) => ty,
-            Arg::Selfie(ty) => ty,
-            Arg::SelfieNew(ty) => ty,
+            InternalArg::Expr(_, ty) => ty,
+            InternalArg::Stack(_, ty) => ty,
+            InternalArg::Selfie(ty) => ty,
+            InternalArg::SelfieNew(ty) => ty,
         }
     }
 
     fn is_selfie_new(&self) -> bool {
         match *self {
-            Arg::SelfieNew(_) => true,
+            InternalArg::SelfieNew(_) => true,
             _ => false,
         }
     }
@@ -50,7 +58,7 @@ struct CallSite<'ast> {
     callee: FctId,
     cls_type_params: TypeList,
     fct_type_params: TypeList,
-    args: Vec<Arg<'ast>>,
+    args: Vec<InternalArg<'ast>>,
     super_call: bool,
     return_type: BuiltinType,
 }

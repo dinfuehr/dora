@@ -9,7 +9,7 @@ use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 
 use crate::baseline::asm::BaselineAssembler;
-use crate::baseline::ast::{Arg, CallSite, ManagedStackFrame, ManagedStackSlot};
+use crate::baseline::ast::{Arg, CallSite, InternalArg, ManagedStackFrame, ManagedStackSlot};
 use crate::baseline::codegen::{
     ensure_native_stub, register_for_mode, should_emit_debug, AllocationSize, CondCode, ExprStore,
 };
@@ -346,7 +346,7 @@ where
         // emit: <iterator> = obj.makeIterator()
         let object_type = self.ty(stmt.expr.id());
         let ctype = CallType::Method(object_type, for_type_info.make_iterator, TypeList::empty());
-        let args = vec![Arg::Expr(&stmt.expr, BuiltinType::Unit)];
+        let args = vec![Arg::Expr(&stmt.expr)];
         let make_iterator = self.build_call_site(&ctype, for_type_info.make_iterator, args);
         let dest = self.emit_call_site_old(&make_iterator, stmt.pos);
 
@@ -371,7 +371,7 @@ where
             for_type_info.has_next,
             TypeList::empty(),
         );
-        let args = vec![Arg::Stack(iterator_slot.offset(), BuiltinType::Error)];
+        let args = vec![Arg::Stack(iterator_slot.offset())];
         let has_next = self.build_call_site(&ctype, for_type_info.has_next, args);
         let dest = self.emit_call_site_old(&has_next, stmt.pos);
         self.asm
@@ -383,7 +383,7 @@ where
             for_type_info.next,
             TypeList::empty(),
         );
-        let args = vec![Arg::Stack(iterator_slot.offset(), BuiltinType::Error)];
+        let args = vec![Arg::Stack(iterator_slot.offset())];
         let next = self.build_call_site(&ctype, for_type_info.next, args);
         let dest = self.emit_call_site_old(&next, stmt.pos);
 
@@ -842,7 +842,7 @@ where
                         .find_trait_method(self.vm, self.vm.vips.stringable_trait, name, false)
                         .expect("toString() method not found");
                     let ctype = CallType::Method(ty, to_string_id, TypeList::empty());
-                    let args = vec![Arg::Stack(object_slot.offset(), BuiltinType::Error)];
+                    let args = vec![Arg::Stack(object_slot.offset())];
                     let to_string = self.build_call_site(&ctype, to_string_id, args);
                     self.emit_call_site(&to_string, e.pos, REG_RESULT.into());
                     self.managed_stack.free_temp(object_slot, self.vm);
@@ -858,8 +858,8 @@ where
             let ty = BuiltinType::from_cls(self.vm.vips.cls.string_buffer, self.vm);
             let ctype = CallType::Method(ty, fct_id, TypeList::empty());
             let args = vec![
-                Arg::Stack(buffer_slot.offset(), BuiltinType::Error),
-                Arg::Stack(part_slot.offset(), BuiltinType::Error),
+                Arg::Stack(buffer_slot.offset()),
+                Arg::Stack(part_slot.offset()),
             ];
             let append = self.build_call_site(&ctype, fct_id, args);
             self.emit_call_site(&append, e.pos, dest.into());
@@ -870,7 +870,7 @@ where
         let fct_id = self.vm.vips.fct.string_buffer_to_string;
         let ty = BuiltinType::from_cls(self.vm.vips.cls.string_buffer, self.vm);
         let ctype = CallType::Method(ty, fct_id, TypeList::empty());
-        let args = vec![Arg::Stack(buffer_slot.offset(), BuiltinType::Error)];
+        let args = vec![Arg::Stack(buffer_slot.offset())];
         let string_buffer_to_string = self.build_call_site(&ctype, fct_id, args);
         self.emit_call_site(&string_buffer_to_string, e.pos, dest.into());
         self.managed_stack.free_temp(buffer_slot, self.vm);
@@ -1030,7 +1030,7 @@ where
         }
     }
 
-    fn add_temp_arg(&mut self, arg: &Arg<'ast>) -> ManagedStackSlot {
+    fn add_temp_arg(&mut self, arg: &InternalArg<'ast>) -> ManagedStackSlot {
         let ty = arg.ty();
         self.managed_stack.add_temp(ty, self.vm)
     }
@@ -1311,7 +1311,7 @@ where
         if let Some(intrinsic) = self.get_intrinsic(e.id) {
             self.emit_intrinsic_unary(&e.opnd, dest, intrinsic);
         } else {
-            let args = vec![Arg::Expr(&e.opnd, BuiltinType::Unit)];
+            let args = vec![Arg::Expr(&e.opnd)];
             let fid = self.src.map_calls.get(e.id).unwrap().fct_id().unwrap();
             let call_site = self.build_call_site_id(e.id, args, Some(fid));
             self.emit_call_site(&call_site, e.pos, dest);
@@ -1353,11 +1353,7 @@ where
                     _ => panic!("unexpected intrinsic {:?}", intrinsic),
                 }
             } else {
-                let args = vec![
-                    Arg::Expr(object, BuiltinType::Unit),
-                    Arg::Expr(index, BuiltinType::Unit),
-                    Arg::Expr(value, BuiltinType::Unit),
-                ];
+                let args = vec![Arg::Expr(object), Arg::Expr(index), Arg::Expr(value)];
                 let call_site = self.build_call_site_id(e.id, args, None);
                 self.emit_call_site(&call_site, e.pos, REG_RESULT.into());
             }
@@ -1506,10 +1502,7 @@ where
         } else if e.op == BinOp::And {
             self.emit_bin_and(e, dest.reg());
         } else {
-            let lhs_ty = self.ty(e.lhs.id());
-            let rhs_ty = self.ty(e.rhs.id());
-
-            let args = vec![Arg::Expr(&e.lhs, lhs_ty), Arg::Expr(&e.rhs, rhs_ty)];
+            let args = vec![Arg::Expr(&e.lhs), Arg::Expr(&e.rhs)];
             let fid = self.src.map_calls.get(e.id).unwrap().fct_id().unwrap();
             let call_site = self.build_call_site_id(e.id, args, Some(fid));
             self.emit_call_site(&call_site, e.pos, dest);
@@ -1701,19 +1694,14 @@ where
 
             self.emit_call_intrinsic(e.id, e.pos, &args, intrinsic, dest);
         } else {
-            let mut args = e
-                .args
-                .iter()
-                .map(|arg| Arg::Expr(arg, BuiltinType::Unit))
-                .collect::<Vec<_>>();
+            let mut args = e.args.iter().map(|arg| Arg::Expr(arg)).collect::<Vec<_>>();
 
             let callee_id = match *call_type {
                 CallType::Ctor(_, fid) | CallType::CtorNew(_, fid) => {
-                    let ty = self.ty(e.id);
                     let arg = if call_type.is_ctor() {
-                        Arg::Selfie(ty)
+                        Arg::Selfie
                     } else {
-                        Arg::SelfieNew(ty)
+                        Arg::SelfieNew
                     };
 
                     args.insert(0, arg);
@@ -1723,7 +1711,7 @@ where
 
                 CallType::Method(_, fct_id, _) => {
                     let object = e.object().unwrap();
-                    args.insert(0, Arg::Expr(object, BuiltinType::Unit));
+                    args.insert(0, Arg::Expr(object));
 
                     let fct = self.vm.fcts.idx(fct_id);
                     let fct = fct.read();
@@ -1747,8 +1735,7 @@ where
 
                 CallType::Expr(_, fid) => {
                     let object = &e.callee;
-                    let ty = self.ty(object.id());
-                    args.insert(0, Arg::Expr(object, ty));
+                    args.insert(0, Arg::Expr(object));
 
                     fid
                 }
@@ -2174,10 +2161,7 @@ where
         let cls_id = self.vm.vips.error_class;
         let cls = self.vm.classes.idx(cls_id);
         let cls = cls.read();
-        let args = vec![
-            Arg::SelfieNew(cls.ty),
-            Arg::Stack(message_slot.offset(), BuiltinType::Error),
-        ];
+        let args = vec![Arg::SelfieNew, Arg::Stack(message_slot.offset())];
         let ctor_id = cls.constructor.expect("missing ctor for Error");
         let cls_ty = self.vm.cls(cls_id);
         let call_type = CallType::CtorNew(cls_ty, ctor_id);
@@ -2503,14 +2487,8 @@ where
     }
 
     fn emit_delegation(&mut self, e: &'ast ExprDelegationType, dest: ExprStore) {
-        let mut args = e
-            .args
-            .iter()
-            .map(|arg| Arg::Expr(arg, BuiltinType::Unit))
-            .collect::<Vec<_>>();
-
-        let cls = self.ty(e.id);
-        args.insert(0, Arg::Selfie(cls));
+        let mut args = e.args.iter().map(|arg| Arg::Expr(arg)).collect::<Vec<_>>();
+        args.insert(0, Arg::Selfie);
 
         let call_site = self.build_call_site_id(e.id, args, None);
         self.emit_call_site(&call_site, e.pos, dest);
@@ -2529,7 +2507,7 @@ where
             let dest = register_for_mode(mode);
 
             let slot_or_offset = match *arg {
-                Arg::Expr(ast, ty) => {
+                InternalArg::Expr(ast, ty) => {
                     self.emit_expr(ast, dest);
 
                     // check first argument for nil for method calls
@@ -2552,18 +2530,18 @@ where
                     SlotOrOffset::Slot(slot)
                 }
 
-                Arg::Stack(offset, ty) => {
+                InternalArg::Stack(offset, ty) => {
                     self.asm.load_mem(ty.mode(), dest, Mem::Local(offset));
                     SlotOrOffset::Offset(offset)
                 }
 
-                Arg::Selfie(_) => {
+                InternalArg::Selfie(_) => {
                     let var = self.src.var_self();
                     let offset = self.var_offset(var.id);
                     SlotOrOffset::Offset(offset)
                 }
 
-                Arg::SelfieNew(ty) => {
+                InternalArg::SelfieNew(ty) => {
                     alloc_cls_id = Some(specialize_class_ty(self.vm, ty));
                     // we have to allocate the object first before we can create
                     // the slot, store uninitialized for now.
@@ -2705,7 +2683,7 @@ where
         }
 
         if csite.args.len() > 0 {
-            if let Arg::SelfieNew(ty) = csite.args[0] {
+            if let InternalArg::SelfieNew(ty) = csite.args[0] {
                 let temp = &temps[0];
                 self.asm
                     .load_mem(ty.mode(), dest, Mem::Local(temp.offset()));
@@ -2922,13 +2900,13 @@ where
         }
     }
 
-    fn determine_call_stack(&mut self, args: &[Arg<'ast>]) -> i32 {
+    fn determine_call_stack(&mut self, args: &[InternalArg<'ast>]) -> i32 {
         let mut reg_args: i32 = 0;
         let mut freg_args: i32 = 0;
 
         for arg in args {
             match *arg {
-                Arg::Expr(_, ty) => {
+                InternalArg::Expr(_, ty) => {
                     if ty.is_float() {
                         freg_args += 1;
                     } else {
@@ -2936,7 +2914,9 @@ where
                     }
                 }
 
-                Arg::Stack(_, ty) | Arg::Selfie(ty) | Arg::SelfieNew(ty) => {
+                InternalArg::Stack(_, ty)
+                | InternalArg::Selfie(ty)
+                | InternalArg::SelfieNew(ty) => {
                     if ty.is_float() {
                         freg_args += 1;
                     } else {
@@ -2998,7 +2978,7 @@ where
         call_type: &CallType,
         callee: &Fct<'ast>,
         args: Vec<Arg<'ast>>,
-    ) -> (Vec<Arg<'ast>>, BuiltinType, bool) {
+    ) -> (Vec<InternalArg<'ast>>, BuiltinType, bool) {
         let mut super_call = false;
 
         assert!(callee.params_with_self().len() == args.len());
@@ -3011,17 +2991,17 @@ where
                 let ty = self.specialize_type(specialize_for_call_type(call_type, ty, self.vm));
 
                 match *arg {
-                    Arg::Expr(ast, _) => {
+                    Arg::Expr(ast) => {
                         if ind == 0 && ast.is_super() {
                             super_call = true;
                         }
 
-                        Arg::Expr(ast, ty)
+                        InternalArg::Expr(ast, ty)
                     }
 
-                    Arg::Stack(offset, _) => Arg::Stack(offset, ty),
-                    Arg::SelfieNew(_) => Arg::SelfieNew(ty),
-                    Arg::Selfie(_) => Arg::Selfie(ty),
+                    Arg::Stack(offset) => InternalArg::Stack(offset, ty),
+                    Arg::SelfieNew => InternalArg::SelfieNew(ty),
+                    Arg::Selfie => InternalArg::Selfie(ty),
                 }
             })
             .collect::<Vec<_>>();
