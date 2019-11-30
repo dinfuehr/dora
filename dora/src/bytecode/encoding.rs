@@ -1,5 +1,4 @@
-use crate::field::FieldId;
-use crate::vm::{ClassDefId, FctId, GlobalId};
+use crate::vm::{ClassDefId, FctId, FieldId, GlobalId};
 
 use crate::bytecode::generate::Register;
 use crate::bytecode::opcode::Bytecode;

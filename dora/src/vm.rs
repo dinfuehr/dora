@@ -18,7 +18,6 @@ use crate::baseline::map::{CodeDescriptor, CodeMap};
 use crate::driver::cmd::Args;
 use crate::error::diag::Diagnostic;
 use crate::exception::DoraToNativeInfo;
-use crate::field::FieldId;
 use crate::gc::{Address, Gc};
 use crate::object::{Ref, Testing};
 use crate::safepoint::{PollingPage, Safepoint};
@@ -41,7 +40,10 @@ pub use self::class::{
     ClassId,
 };
 
+pub use self::field::{Field, FieldDef, FieldId};
+
 pub mod class;
+mod field;
 
 pub static mut EXCEPTION_OBJECT: *const u8 = 0 as *const u8;
 

@@ -3,13 +3,12 @@ use std::cmp::max;
 use std::ptr;
 use std::sync::Arc;
 
-use crate::field::FieldDef;
 use crate::mem;
 use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{
-    CallType, Class, ClassDef, ClassDefId, ClassId, StructData, StructDef, StructDefId,
+    CallType, Class, ClassDef, ClassDefId, ClassId, FieldDef, StructData, StructDef, StructDefId,
     StructFieldDef, StructId, VM,
 };
 use crate::vtable::{VTableBox, DISPLAY_SIZE};

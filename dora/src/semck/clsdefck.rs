@@ -2,12 +2,11 @@ use parking_lot::RwLock;
 use std::collections::HashSet;
 
 use crate::error::msg::SemError;
-use crate::field::Field;
 use crate::semck;
 use crate::semck::typeparamck;
 use crate::sym::Sym;
 use crate::ty::{BuiltinType, TypeList};
-use crate::vm::{ClassId, Fct, FctId, FctKind, FctParent, FctSrc, NodeMap, VM};
+use crate::vm::{ClassId, Fct, FctId, FctKind, FctParent, FctSrc, Field, NodeMap, VM};
 
 use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::ast::{self, Ast};

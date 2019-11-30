@@ -7,9 +7,8 @@ use std::mem;
 use crate::mem as cratemem;
 
 use crate::bytecode::opcode::Bytecode;
-use crate::field::FieldId;
 use crate::ty::{BuiltinType, MachineMode};
-use crate::vm::{ClassDefId, FctId, GlobalId};
+use crate::vm::{ClassDefId, FctId, FieldId, GlobalId};
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Register(pub usize);

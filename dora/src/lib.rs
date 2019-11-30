@@ -26,7 +26,6 @@ mod dseg;
 mod error;
 mod exception;
 mod execstate;
-mod field;
 mod gc;
 mod handle;
 mod masm;

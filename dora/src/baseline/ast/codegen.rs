@@ -19,7 +19,6 @@ use crate::cpu::{
     next_param_offset, FReg, Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, PARAM_OFFSET,
     REG_PARAMS, REG_RESULT, REG_SP, REG_TMP1, REG_TMP2,
 };
-use crate::field::FieldId;
 use crate::gc::Address;
 use crate::masm::*;
 use crate::mem;
@@ -30,8 +29,8 @@ use crate::semck::specialize::{specialize_class_ty, specialize_for_call_type};
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, MachineMode, TypeList, TypeParamId};
 use crate::vm::{
-    CallType, ClassDef, ClassDefId, ConstId, Fct, FctId, FctKind, FctParent, FctSrc, IdentType,
-    Intrinsic, TraitId, VarId, VM,
+    CallType, ClassDef, ClassDefId, ConstId, Fct, FctId, FctKind, FctParent, FctSrc, FieldId,
+    IdentType, Intrinsic, TraitId, VarId, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 

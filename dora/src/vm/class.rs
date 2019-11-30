@@ -4,13 +4,12 @@ use std::convert::From;
 use std::iter::Iterator;
 use std::sync::Arc;
 
-use crate::field::{Field, FieldDef, FieldId};
 use crate::semck::specialize::replace_type_param;
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, TypeList};
 use crate::utils::GrowableVec;
 use crate::vm::VM;
-use crate::vm::{FctId, FileId, ImplId, TraitId, TypeParam};
+use crate::vm::{FctId, Field, FieldDef, FieldId, FileId, ImplId, TraitId, TypeParam};
 use crate::vtable::VTableBox;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
