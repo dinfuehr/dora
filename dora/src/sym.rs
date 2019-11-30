@@ -2,9 +2,8 @@ use std::collections::HashMap;
 
 use self::Sym::*;
 
-use crate::class::ClassId;
 use crate::ty::TypeListId;
-use crate::vm::*;
+use crate::vm::{ClassId, ConstId, EnumId, FctId, GlobalId, StructId, TraitId, VarId};
 use dora_parser::interner::Name;
 
 #[derive(Debug)]

@@ -1,7 +1,6 @@
 use crate::bytecode::generate::{BytecodeIdx, Register, StrConstPoolIdx};
-use crate::class::ClassDefId;
 use crate::field::FieldId;
-use crate::vm::{FctId, GlobalId};
+use crate::vm::{ClassDefId, FctId, GlobalId};
 
 #[derive(PartialEq, Debug)]
 pub enum Bytecode {

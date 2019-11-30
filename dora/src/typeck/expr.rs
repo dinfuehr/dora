@@ -3,7 +3,6 @@ use std::convert::TryFrom;
 use std::sync::Arc;
 use std::{f32, f64};
 
-use crate::class::{find_field_in_class, find_methods_in_class, ClassId};
 use crate::error::msg::SemError;
 use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck;
@@ -12,8 +11,8 @@ use crate::sym::Sym::SymClass;
 use crate::ty::{BuiltinType, TypeList, TypeParamId};
 use crate::typeck::lookup::MethodLookup;
 use crate::vm::{
-    self, CallType, ConvInfo, Fct, FctId, FctParent, FctSrc, FileId, ForTypeInfo, IdentType,
-    Intrinsic, VM,
+    self, find_field_in_class, find_methods_in_class, CallType, ClassId, ConvInfo, Fct, FctId,
+    FctParent, FctSrc, FileId, ForTypeInfo, IdentType, Intrinsic, VM,
 };
 
 use dora_parser::ast::visit::Visitor;

@@ -1,10 +1,9 @@
-use crate::class::{find_methods_in_class, ClassId};
 use crate::error::msg::SemError;
 use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck;
 use crate::ty::{BuiltinType, TypeList};
 use crate::typeck::expr::args_compatible;
-use crate::vm::{FctId, FctParent, FileId, TraitId, TypeParam, VM};
+use crate::vm::{find_methods_in_class, ClassId, FctId, FctParent, FileId, TraitId, TypeParam, VM};
 
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;

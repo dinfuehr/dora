@@ -2,10 +2,9 @@ use dora_parser::lexer::position::Position;
 
 use std::collections::hash_set::HashSet;
 
-use crate::class::ClassId;
 use crate::error::msg::SemError;
 use crate::ty::{BuiltinType, TypeList};
-use crate::vm::{FileId, TraitId, TypeParam, VM};
+use crate::vm::{ClassId, FileId, TraitId, TypeParam, VM};
 
 pub fn check_type(vm: &VM, file: FileId, pos: Position, object_type: BuiltinType) -> bool {
     let tp_defs = {

@@ -1,9 +1,8 @@
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
-use crate::class::{Class, ClassId};
 use crate::error::msg::SemError;
-use crate::vm::{FctId, VM};
+use crate::vm::{Class, ClassId, FctId, VM};
 
 pub fn check<'ast>(vm: &mut VM<'ast>) {
     let mut abstract_methods: HashMap<ClassId, Rc<Vec<FctId>>> = HashMap::new();

@@ -3,7 +3,6 @@ use std::fmt;
 use std::ptr;
 use std::sync::Arc;
 
-use crate::class::{ClassDef, ClassDefId};
 use crate::cpu::flush_icache;
 use crate::dseg::DSeg;
 use crate::field::FieldId;
@@ -13,7 +12,7 @@ use crate::opt::fct::JitOptFct;
 use crate::ty::TypeList;
 use crate::utils::GrowableVec;
 use crate::vm::VM;
-use crate::vm::{FctId, FctSrc, GlobalId, VarId};
+use crate::vm::{ClassDef, ClassDefId, FctId, FctSrc, GlobalId, VarId};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct JitFctId(usize);

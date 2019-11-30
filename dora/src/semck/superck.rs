@@ -1,10 +1,9 @@
 use std::collections::HashSet;
 
-use crate::class::{find_method_in_class, Class, ClassId};
 use crate::error::msg::SemError;
 use crate::semck::specialize::replace_type_param;
 use crate::ty::TypeList;
-use crate::vm::{Fct, FctId, VM};
+use crate::vm::{find_method_in_class, Class, ClassId, Fct, FctId, VM};
 
 pub fn check<'ast>(vm: &mut VM<'ast>) {
     cycle_detection(vm);

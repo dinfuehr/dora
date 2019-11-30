@@ -3,13 +3,15 @@ use std::cmp::max;
 use std::ptr;
 use std::sync::Arc;
 
-use crate::class::{self, ClassDef, ClassDefId, ClassId};
 use crate::field::FieldDef;
 use crate::mem;
 use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, TypeList};
-use crate::vm::{CallType, StructData, StructDef, StructDefId, StructFieldDef, StructId, VM};
+use crate::vm::{
+    CallType, Class, ClassDef, ClassDefId, ClassId, StructData, StructDef, StructDefId,
+    StructFieldDef, StructId, VM,
+};
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
 
 pub fn specialize_type(
@@ -166,7 +168,7 @@ pub fn specialize_class_ty(vm: &VM, ty: BuiltinType) -> ClassDefId {
     }
 }
 
-pub fn specialize_class(vm: &VM, cls: &class::Class, type_params: &TypeList) -> ClassDefId {
+pub fn specialize_class(vm: &VM, cls: &Class, type_params: &TypeList) -> ClassDefId {
     if let Some(&id) = cls.specializations.read().get(&type_params) {
         return id;
     }
@@ -174,7 +176,7 @@ pub fn specialize_class(vm: &VM, cls: &class::Class, type_params: &TypeList) -> 
     create_specialized_class(vm, cls, type_params)
 }
 
-fn create_specialized_class(vm: &VM, cls: &class::Class, type_params: &TypeList) -> ClassDefId {
+fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> ClassDefId {
     let id = {
         let mut class_defs = vm.class_defs.lock();
         let id: ClassDefId = class_defs.len().into();
@@ -280,7 +282,7 @@ fn create_specialized_class(vm: &VM, cls: &class::Class, type_params: &TypeList)
         InstanceSize::Str => (0, 1),
     };
 
-    let clsptr = (&*cls_def) as *const class::ClassDef as *mut class::ClassDef;
+    let clsptr = (&*cls_def) as *const ClassDef as *mut ClassDef;
     let vtable = VTableBox::new(clsptr, instance_size, element_size, &vtable_entries);
     cls_def.vtable = Some(vtable);
 

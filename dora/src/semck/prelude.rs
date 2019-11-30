@@ -1,7 +1,6 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
-use crate::class::{ClassDef, ClassDefId, ClassId};
 use crate::exception;
 use crate::gc::Address;
 use crate::mem;
@@ -9,7 +8,7 @@ use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::ty::{BuiltinType, TypeList};
-use crate::vm::{FctId, FctKind, Intrinsic, TraitId, VM};
+use crate::vm::{ClassDef, ClassDefId, ClassId, FctId, FctKind, Intrinsic, TraitId, VM};
 use crate::vtable::VTableBox;
 
 pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {

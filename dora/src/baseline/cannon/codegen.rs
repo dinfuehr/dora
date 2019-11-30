@@ -1,7 +1,6 @@
 use crate::baseline::asm::BaselineAssembler;
 use crate::baseline::codegen::ExprStore;
 use crate::bytecode::generate::BytecodeIdx;
-use crate::class::ClassDefId;
 use crate::cpu::{Mem, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_TMP1};
 use crate::field::FieldId;
 use dora_parser::ast::*;
@@ -13,7 +12,7 @@ use crate::masm::*;
 use crate::object::Str;
 use crate::ty::TypeList;
 use crate::vm::VM;
-use crate::vm::{Fct, FctSrc, GlobalId};
+use crate::vm::{ClassDefId, Fct, FctSrc, GlobalId};
 
 use crate::bytecode::generate::{BytecodeFunction, BytecodeType, Register, StrConstPoolIdx};
 use crate::bytecode::opcode::Bytecode;

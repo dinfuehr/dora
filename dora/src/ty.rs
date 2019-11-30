@@ -2,11 +2,10 @@ use std::collections::HashMap;
 use std::ops::Index;
 use std::sync::Arc;
 
-use crate::class::ClassId;
 use crate::mem;
 use crate::semck;
 use crate::vm::VM;
-use crate::vm::{EnumId, FctId, StructId, TraitId};
+use crate::vm::{ClassId, EnumId, FctId, StructId, TraitId};
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum BuiltinType {

@@ -15,7 +15,6 @@ use crate::baseline::dora_native::{self, InternalFct, InternalFctDescriptor, Nat
 use crate::baseline::dora_throw;
 use crate::baseline::fct::{JitFct, JitFctId};
 use crate::baseline::map::{CodeDescriptor, CodeMap};
-use crate::class::{Class, ClassDef, ClassDefId, ClassId};
 use crate::driver::cmd::Args;
 use crate::error::diag::Diagnostic;
 use crate::exception::DoraToNativeInfo;
@@ -36,6 +35,13 @@ use dora_parser::interner::*;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::File;
 use dora_parser::parser::NodeIdGenerator;
+
+pub use self::class::{
+    find_field_in_class, find_method_in_class, find_methods_in_class, Class, ClassDef, ClassDefId,
+    ClassId,
+};
+
+pub mod class;
 
 pub static mut EXCEPTION_OBJECT: *const u8 = 0 as *const u8;
 
@@ -306,8 +312,6 @@ impl<'ast> VM<'ast> {
         function_name: &'static str,
         is_static: bool,
     ) -> Option<FctId> {
-        use crate::class::find_methods_in_class;
-
         let class_name = self.interner.intern(class_name);
         let function_name = self.interner.intern(function_name);
 
