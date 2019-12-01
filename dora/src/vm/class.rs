@@ -1,4 +1,5 @@
 use parking_lot::RwLock;
+
 use std::collections::{HashMap, HashSet};
 use std::convert::From;
 use std::iter::Iterator;
@@ -9,7 +10,7 @@ use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, TypeList};
 use crate::utils::GrowableVec;
 use crate::vm::VM;
-use crate::vm::{FctId, Field, FieldDef, FieldId, FileId, ImplId, TraitId, TypeParam};
+use crate::vm::{FctId, Field, FieldDef, FieldId, FileId, ImplId, TraitId};
 use crate::vtable::VTableBox;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
@@ -315,6 +316,23 @@ pub fn find_methods_in_class(
     }
 
     candidates
+}
+
+#[derive(Clone, Debug)]
+pub struct TypeParam {
+    pub name: Name,
+    pub class_bound: Option<ClassId>,
+    pub trait_bounds: HashSet<TraitId>,
+}
+
+impl TypeParam {
+    pub fn new(name: Name) -> TypeParam {
+        TypeParam {
+            name,
+            class_bound: None,
+            trait_bounds: HashSet::new(),
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

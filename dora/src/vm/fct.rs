@@ -1,18 +1,15 @@
 use parking_lot::RwLock;
-use std::collections::hash_map::HashMap;
+
 use std::sync::Arc;
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::baseline::fct::JitFctId;
 use crate::gc::Address;
-use crate::ty::{BuiltinType, TypeList};
-use crate::vm::{
-    CallType, ClassId, ConvInfo, FileId, ForTypeInfo, IdentType, ImplId, NodeMap, TraitId,
-    TypeParam, Var, VarId, VM,
-};
+use crate::ty::BuiltinType;
+use crate::utils::GrowableVec;
+use crate::vm::{ClassId, FctSrc, FileId, ImplId, TraitId, TypeParam, VM};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct FctId(pub usize);
@@ -29,34 +26,9 @@ impl From<usize> for FctId {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum FctParent {
-    Class(ClassId),
-    Trait(TraitId),
-    Impl(ImplId),
-    None,
-}
-
-impl FctParent {
-    pub fn is_none(&self) -> bool {
-        match self {
-            &FctParent::None => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_trait(&self) -> bool {
-        match self {
-            &FctParent::Trait(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn cls_id(&self) -> ClassId {
-        match self {
-            &FctParent::Class(id) => id,
-            _ => unreachable!(),
-        }
+impl<'ast> GrowableVec<RwLock<Fct<'ast>>> {
+    pub fn idx(&self, index: FctId) -> Arc<RwLock<Fct<'ast>>> {
+        self.idx_usize(index.0)
     }
 }
 
@@ -216,6 +188,37 @@ impl<'ast> Fct<'ast> {
             &self.param_types[1..]
         } else {
             &self.param_types
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum FctParent {
+    Class(ClassId),
+    Trait(TraitId),
+    Impl(ImplId),
+    None,
+}
+
+impl FctParent {
+    pub fn is_none(&self) -> bool {
+        match self {
+            &FctParent::None => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_trait(&self) -> bool {
+        match self {
+            &FctParent::Trait(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn cls_id(&self) -> ClassId {
+        match self {
+            &FctParent::Class(id) => id,
+            _ => unreachable!(),
         }
     }
 }
@@ -387,72 +390,4 @@ pub enum Intrinsic {
     DoubleArrayLen,
     DoubleArrayGet,
     DoubleArraySet,
-}
-
-#[derive(Debug)]
-pub struct FctSrc {
-    pub map_calls: NodeMap<Arc<CallType>>, // maps function call to FctId
-    pub map_idents: NodeMap<IdentType>,
-    pub map_tys: NodeMap<BuiltinType>,
-    pub map_vars: NodeMap<VarId>,
-    pub map_convs: NodeMap<ConvInfo>,
-    pub map_cls: NodeMap<ClassId>,
-    pub map_fors: NodeMap<ForTypeInfo>,
-
-    pub always_returns: bool, // true if function is always exited via return statement
-    // false if function execution could reach the closing } of this function
-    pub specializations: RwLock<HashMap<(TypeList, TypeList), JitFctId>>,
-    pub vars: Vec<Var>, // variables in functions
-}
-
-impl Clone for FctSrc {
-    fn clone(&self) -> FctSrc {
-        FctSrc {
-            map_calls: self.map_calls.clone(),
-            map_idents: self.map_idents.clone(),
-            map_tys: self.map_tys.clone(),
-            map_vars: self.map_vars.clone(),
-            map_convs: self.map_convs.clone(),
-            map_cls: self.map_cls.clone(),
-            map_fors: self.map_fors.clone(),
-
-            vars: self.vars.clone(),
-            always_returns: self.always_returns,
-            specializations: RwLock::new(HashMap::new()),
-        }
-    }
-}
-
-impl FctSrc {
-    pub fn new() -> FctSrc {
-        FctSrc {
-            map_calls: NodeMap::new(),
-            map_idents: NodeMap::new(),
-            map_tys: NodeMap::new(),
-            map_vars: NodeMap::new(),
-            map_convs: NodeMap::new(),
-            map_cls: NodeMap::new(),
-            map_fors: NodeMap::new(),
-
-            vars: Vec::new(),
-            always_returns: false,
-            specializations: RwLock::new(HashMap::new()),
-        }
-    }
-
-    pub fn set_ty(&mut self, id: ast::NodeId, ty: BuiltinType) {
-        self.map_tys.insert_or_replace(id, ty);
-    }
-
-    pub fn ty(&self, id: ast::NodeId) -> BuiltinType {
-        self.map_tys.get(id).expect("no type found").clone()
-    }
-
-    pub fn var_self(&self) -> &Var {
-        &self.vars[0]
-    }
-
-    pub fn var_self_mut(&mut self) -> &mut Var {
-        &mut self.vars[0]
-    }
 }
