@@ -83,7 +83,11 @@ impl MacroAssembler {
     }
 
     pub fn check_stack_pointer(&mut self, lbl_overflow: Label) {
-        self.emit_u32(asm::ldrx_imm(REG_TMP1, REG_THREAD, ThreadLocalData::stack_limit_offset() as u32));
+        self.emit_u32(asm::ldrx_imm(
+            REG_TMP1,
+            REG_THREAD,
+            ThreadLocalData::stack_limit_offset() as u32,
+        ));
         self.emit_u32(asm::add_extreg(
             1,
             REG_TMP2,
@@ -886,9 +890,13 @@ impl MacroAssembler {
         let inst = match mode {
             MachineMode::Int8 => asm::strb_ind(src.reg(), base, reg, LdStExtend::LSL, 0),
             MachineMode::Int32 => asm::strw_ind(src.reg(), base, reg, LdStExtend::LSL, 0),
-            MachineMode::Int64 | MachineMode::Ptr => {
-                asm::strx_ind(src_reg.map_or(src.reg(), |x| *x), base, reg, LdStExtend::LSL, 0)
-            }
+            MachineMode::Int64 | MachineMode::Ptr => asm::strx_ind(
+                src_reg.map_or(src.reg(), |x| *x),
+                base,
+                reg,
+                LdStExtend::LSL,
+                0,
+            ),
             MachineMode::Float32 => asm::strs_ind(src.freg(), base, reg, LdStExtend::LSL, 0),
             MachineMode::Float64 => asm::strd_ind(src.freg(), base, reg, LdStExtend::LSL, 0),
         };
