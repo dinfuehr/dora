@@ -134,7 +134,11 @@ impl MacroAssembler {
 
         // call *scratch
         self.emit_u32(asm::blr(*scratch));
-        self.emit_bailout_info(BailoutInfo::VirtCompile(index, cls_type_params, TypeList::empty()));
+        self.emit_bailout_info(BailoutInfo::VirtCompile(
+            index,
+            cls_type_params,
+            TypeList::empty(),
+        ));
     }
 
     pub fn load_array_elem(&mut self, mode: MachineMode, dest: ExprStore, array: Reg, index: Reg) {
