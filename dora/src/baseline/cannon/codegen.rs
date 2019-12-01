@@ -26,7 +26,7 @@ pub struct CannonCodeGen<'a, 'ast: 'a> {
     fct: &'a Fct<'ast>,
     ast: &'ast Function,
     asm: BaselineAssembler<'a, 'ast>,
-    src: &'a mut FctSrc,
+    src: &'a FctSrc,
     bytecode: &'a BytecodeFunction,
 
     lbl_break: Option<Label>,
@@ -71,7 +71,7 @@ where
         fct: &'a Fct<'ast>,
         ast: &'ast Function,
         asm: BaselineAssembler<'a, 'ast>,
-        src: &'a mut FctSrc,
+        src: &'a FctSrc,
         bytecode: &'a BytecodeFunction,
         lbl_break: Option<Label>,
         lbl_continue: Option<Label>,

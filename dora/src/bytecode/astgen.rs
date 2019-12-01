@@ -41,7 +41,7 @@ pub fn generate<'ast>(
 pub fn generate_fct<'ast>(
     vm: &VM<'ast>,
     fct: &Fct<'ast>,
-    src: &mut FctSrc,
+    src: &FctSrc,
     cls_type_params: &TypeList,
     fct_type_params: &TypeList,
 ) -> BytecodeFunction {
@@ -65,7 +65,7 @@ pub struct AstBytecodeGen<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
     fct: &'a Fct<'ast>,
     ast: &'ast Function,
-    src: &'a mut FctSrc,
+    src: &'a FctSrc,
 
     cls_type_params: &'a TypeList,
     fct_type_params: &'a TypeList,

@@ -12,7 +12,7 @@ mod codegen;
 pub(super) fn compile<'a, 'ast: 'a>(
     vm: &'a VM<'ast>,
     fct: &Fct<'ast>,
-    src: &'a mut FctSrc,
+    src: &'a FctSrc,
     cls_type_params: &TypeList,
     fct_type_params: &TypeList,
 ) -> JitBaselineFct {

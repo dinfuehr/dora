@@ -32,15 +32,15 @@ pub fn generate<'ast>(
     let fct = vm.fcts.idx(id);
     let fct = fct.read();
     let src = fct.src();
-    let mut src = src.write();
+    let src = src.write();
 
-    generate_fct(vm, &fct, &mut src, cls_type_params, fct_type_params)
+    generate_fct(vm, &fct, &src, cls_type_params, fct_type_params)
 }
 
 pub fn generate_fct<'ast>(
     vm: &VM<'ast>,
     fct: &Fct<'ast>,
-    src: &mut FctSrc,
+    src: &FctSrc,
     cls_type_params: &TypeList,
     fct_type_params: &TypeList,
 ) -> Address {

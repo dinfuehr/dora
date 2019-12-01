@@ -37,7 +37,7 @@ use crate::vtable::{VTable, DISPLAY_SIZE};
 pub(super) fn generate<'a, 'ast: 'a>(
     vm: &'a VM<'ast>,
     fct: &Fct<'ast>,
-    src: &'a mut FctSrc,
+    src: &'a FctSrc,
     cls_type_params: &TypeList,
     fct_type_params: &TypeList,
 ) -> JitBaselineFct {
@@ -72,7 +72,7 @@ struct AstCodeGen<'a, 'ast: 'a> {
     fct: &'a Fct<'ast>,
     ast: &'ast Function,
     asm: BaselineAssembler<'a, 'ast>,
-    src: &'a mut FctSrc,
+    src: &'a FctSrc,
 
     lbl_break: Option<Label>,
     lbl_continue: Option<Label>,
@@ -1638,9 +1638,9 @@ where
             match fct.kind {
                 FctKind::Source(_) => {
                     let src = fct.src();
-                    let mut src = src.write();
+                    let src = src.read();
 
-                    ensure_jit_or_stub_ptr(&mut src, self.vm, cls_type_params, fct_type_params)
+                    ensure_jit_or_stub_ptr(&src, self.vm, cls_type_params, fct_type_params)
                 }
 
                 FctKind::Native(ptr) => {
@@ -3129,7 +3129,7 @@ fn check_for_nil(ty: BuiltinType) -> bool {
 }
 
 fn ensure_jit_or_stub_ptr<'ast>(
-    src: &mut FctSrc,
+    src: &FctSrc,
     vm: &VM,
     cls_type_params: TypeList,
     fct_type_params: TypeList,
