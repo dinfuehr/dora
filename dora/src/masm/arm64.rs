@@ -3,7 +3,6 @@ use dora_parser::lexer::position::Position;
 
 use crate::baseline::codegen::{CondCode, ExprStore};
 use crate::baseline::fct::BailoutInfo;
-use crate::baseline::fct::GcPoint;
 use crate::cpu::asm;
 use crate::cpu::asm::*;
 use crate::cpu::reg::*;
@@ -19,7 +18,7 @@ use crate::vm::{get_vm, FctId};
 use crate::vtable::VTable;
 
 impl MacroAssembler {
-    pub fn prolog(&mut self, stacksize: i32) {
+    pub fn prolog(&mut self) {
         self.emit_u32(asm::stp_pre(1, REG_FP, REG_LR, REG_SP, -2));
         self.emit_u32(asm::add_extreg(
             1,
@@ -44,6 +43,18 @@ impl MacroAssembler {
         }
     }
 
+    pub fn prolog_size(&mut self) {
+        unimplemented!();
+    }
+
+    pub fn patch_stacksize(&mut self, _patch_offset: usize, _stacksize: i32) {
+        unimplemented!();
+    }
+
+    pub fn check_stack_pointer(&mut self, _lbl_overflow: Label) {
+        unimplemented!();
+    }
+
     pub fn epilog_with_polling(&mut self, stacksize: i32, polling_page: Address) {
         self.epilog_without_return(stacksize);
         self.check_polling_page(polling_page);
@@ -54,25 +65,12 @@ impl MacroAssembler {
         self.emit_u32(asm::ret());
     }
 
-    pub fn epilog(&mut self, stacksize: i32) {
-        self.epilog_without_return(stacksize);
+    pub fn epilog(&mut self) {
+        self.epilog_without_return();
         self.emit_u32(asm::ret());
     }
 
-    pub fn epilog_without_return(&mut self, stacksize: i32) {
-        if stacksize > 0 {
-            let scratch = self.get_scratch();
-            self.load_int_const(MachineMode::Ptr, *scratch, stacksize as i64);
-            self.emit_u32(asm::add_extreg(
-                1,
-                REG_SP,
-                REG_SP,
-                *scratch,
-                Extend::UXTX,
-                0,
-            ));
-        }
-
+    pub fn epilog_without_return(&mut self) {
         self.emit_u32(asm::add_extreg(
             1,
             REG_SP,
@@ -113,7 +111,7 @@ impl MacroAssembler {
         self.emit_u32(asm::blr(*scratch));
     }
 
-    pub fn indirect_call(&mut self, line: i32, index: u32) {
+    pub fn indirect_call(&mut self, line: i32, index: u32, cls_type_params: TypeList) {
         let obj = REG_PARAMS[0];
 
         // need to use scratch register instead of REG_RESULT for calculations
@@ -135,7 +133,7 @@ impl MacroAssembler {
 
         // call *scratch
         self.emit_u32(asm::blr(*scratch));
-        self.emit_bailout_info(BailoutInfo::VirtCompile(index, TypeList::empty()));
+        self.emit_bailout_info(BailoutInfo::VirtCompile(index, cls_type_params, TypeList::empty()));
     }
 
     pub fn load_array_elem(&mut self, mode: MachineMode, dest: ExprStore, array: Reg, index: Reg) {

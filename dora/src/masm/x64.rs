@@ -1,7 +1,6 @@
 use crate::baseline::codegen::CondCode;
 use crate::baseline::codegen::ExprStore;
 use crate::baseline::fct::BailoutInfo;
-use crate::baseline::fct::GcPoint;
 use crate::cpu::*;
 use crate::gc::swiper::CARD_SIZE_BITS;
 use crate::gc::Address;
@@ -51,12 +50,6 @@ impl MacroAssembler {
         );
 
         asm::emit_jcc(self, CondCode::UnsignedGreater, lbl_overflow);
-    }
-
-    pub fn safepoint(&mut self, polling_page: Address) {
-        self.check_polling_page(polling_page);
-        let gcpoint = GcPoint::new();
-        self.emit_gcpoint(gcpoint);
     }
 
     pub fn epilog(&mut self) {
