@@ -1,8 +1,7 @@
 use libc;
-use std;
 
-use execstate::ExecState;
-use os::signal::Trap;
+use crate::execstate::ExecState;
+use crate::os::signal::Trap;
 
 pub fn read_execstate(uc: *const u8) -> ExecState {
     let mut es: ExecState = Default::default();

@@ -1,5 +1,5 @@
-use execstate::ExecState;
-use object::{Obj, Ref};
+use crate::execstate::ExecState;
+use crate::object::{Obj, Ref};
 
 pub use self::param::*;
 pub use self::reg::*;

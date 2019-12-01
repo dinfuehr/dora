@@ -1,4 +1,4 @@
-use ty::BuiltinType;
+use crate::ty::BuiltinType;
 
 pub static PARAM_OFFSET: i32 = 16;
 

@@ -12,8 +12,7 @@ use crate::baseline::cannon;
 use crate::baseline::dora_native::{self, InternalFct};
 use crate::baseline::fct::{CommentFormat, JitBaselineFct, JitFct};
 use crate::baseline::map::CodeDescriptor;
-use crate::cpu::x64::reg::{FREG_RESULT, REG_RESULT};
-use crate::cpu::{FReg, Reg};
+use crate::cpu::{FReg, Reg, FREG_RESULT, REG_RESULT};
 use crate::driver::cmd::{AsmSyntax, BaselineName};
 use crate::gc::Address;
 use crate::masm::*;
@@ -135,7 +134,7 @@ fn get_engine(asm_syntax: AsmSyntax) -> CsResult<Capstone> {
 }
 
 #[cfg(target_arch = "aarch64")]
-fn get_engine(asm_syntax: AsmSyntax) -> CsResult {
+fn get_engine(asm_syntax: AsmSyntax) -> CsResult<Capstone> {
     unimplemented!()
 }
 

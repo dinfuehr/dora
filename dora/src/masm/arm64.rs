@@ -1,23 +1,22 @@
-use baseline::codegen::CondCode;
-use baseline::expr::ExprStore;
-use baseline::fct::BailoutInfo;
-use baseline::fct::GcPoint;
 use byteorder::{LittleEndian, WriteBytesExt};
-use class::TypeParams;
-use cpu::asm;
-use cpu::asm::*;
-use cpu::reg::*;
-use cpu::{FReg, Mem, Reg};
 use dora_parser::lexer::position::Position;
-use gc::swiper::CARD_SIZE_BITS;
-use gc::Address;
-use masm::{Label, MacroAssembler};
-use mem::ptr_width;
-use object::{offset_of_array_data, offset_of_array_length, Header};
-use os::signal::Trap;
-use ty::MachineMode;
-use vm::{get_vm, FctId};
-use vtable::VTable;
+
+use crate::baseline::codegen::{CondCode, ExprStore};
+use crate::baseline::fct::BailoutInfo;
+use crate::baseline::fct::GcPoint;
+use crate::cpu::asm;
+use crate::cpu::asm::*;
+use crate::cpu::reg::*;
+use crate::cpu::{FReg, Mem, Reg};
+use crate::gc::swiper::CARD_SIZE_BITS;
+use crate::gc::Address;
+use crate::masm::{Label, MacroAssembler};
+use crate::mem::ptr_width;
+use crate::object::{offset_of_array_data, offset_of_array_length, Header};
+use crate::os::signal::Trap;
+use crate::ty::{MachineMode, TypeList};
+use crate::vm::{get_vm, FctId};
+use crate::vtable::VTable;
 
 impl MacroAssembler {
     pub fn prolog(&mut self, stacksize: i32) {
@@ -89,8 +88,8 @@ impl MacroAssembler {
         &mut self,
         fct_id: FctId,
         ptr: *const u8,
-        cls_tps: TypeParams,
-        fct_tps: TypeParams,
+        cls_tps: TypeList,
+        fct_tps: TypeList,
     ) {
         let disp = self.add_addr(ptr);
         let pos = self.pos() as i32;
@@ -136,7 +135,7 @@ impl MacroAssembler {
 
         // call *scratch
         self.emit_u32(asm::blr(*scratch));
-        self.emit_bailout_info(BailoutInfo::VirtCompile(index, TypeParams::empty()));
+        self.emit_bailout_info(BailoutInfo::VirtCompile(index, TypeList::empty()));
     }
 
     pub fn load_array_elem(&mut self, mode: MachineMode, dest: ExprStore, array: Reg, index: Reg) {

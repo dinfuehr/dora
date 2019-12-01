@@ -1,4 +1,4 @@
-use cpu::{FReg, Reg};
+use crate::cpu::{FReg, Reg};
 
 pub const REG_COUNT: usize = 31;
 pub static REG_PARAMS: [Reg; 8] = [R0, R1, R2, R3, R4, R5, R6, R7];
@@ -10,6 +10,8 @@ pub const REG_TMP2: Reg = R11;
 pub const REG_FP: Reg = R29;
 pub const REG_LR: Reg = R30;
 pub const REG_THREAD: Reg = R28;
+
+pub const STACK_FRAME_ALIGNMENT: usize = 16;
 
 pub const REG_SP: Reg = Reg(32);
 pub const REG_ZERO: Reg = Reg(33);
@@ -110,9 +112,7 @@ impl Reg {
 
 impl FReg {
     pub fn asm(self) -> u32 {
-        match self.0 {
-            0...31 => self.0 as u32,
-            _ => panic!("invalid fp register."),
-        }
+        assert!(self.0 < 32);
+        self.0 as u32
     }
 }
