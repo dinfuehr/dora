@@ -40,39 +40,15 @@ pub use self::class::{
     ClassId,
 };
 pub use self::cnst::{ConstData, ConstId, ConstValue};
+pub use self::exception::{exception_get_and_clear, exception_set};
 pub use self::fct::{Fct, FctId, FctKind, FctParent, FctSrc, Intrinsic};
 pub use self::field::{Field, FieldDef, FieldId};
 
 pub mod class;
 mod cnst;
+mod exception;
 mod fct;
 mod field;
-
-pub static mut EXCEPTION_OBJECT: *const u8 = 0 as *const u8;
-
-pub fn has_exception() -> bool {
-    THREAD.with(|thread| {
-        let thread = thread.borrow();
-        let tld = &thread.tld;
-        tld.exception_object().is_non_null()
-    })
-}
-
-pub fn exception_get_and_clear() -> Address {
-    THREAD.with(|thread| {
-        let thread = thread.borrow();
-        let tld = &thread.tld;
-        let object = tld.exception_object();
-        tld.set_exception_object(Address::null());
-        object
-    })
-}
-
-pub fn exception_set(val: Address) {
-    THREAD.with(|thread| {
-        thread.borrow().tld.set_exception_object(val);
-    });
-}
 
 static mut VM_GLOBAL: *const u8 = ptr::null();
 
