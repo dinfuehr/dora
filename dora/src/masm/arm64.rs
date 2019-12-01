@@ -29,15 +29,56 @@ impl MacroAssembler {
             0,
         ));
 
-        unimplemented!()
+        let patch_offset = self.pos();
+
+        self.emit_u32(asm::movz(1, REG_TMP1, 0, 0));
+        self.emit_u32(asm::movk(1, REG_TMP1, 0, 1));
+        self.emit_u32(asm::sub_extreg(
+            1,
+            REG_SP,
+            REG_SP,
+            REG_TMP1,
+            Extend::UXTX,
+            0,
+        ));
+
+        patch_offset
     }
 
-    pub fn prolog_size(&mut self, _stacksize: i32) {
-        unimplemented!();
+    pub fn prolog_size(&mut self, stacksize: i32) {
+        self.emit_u32(asm::stp_pre(1, REG_FP, REG_LR, REG_SP, -2));
+        self.emit_u32(asm::add_extreg(
+            1,
+            REG_FP,
+            REG_SP,
+            REG_ZERO,
+            Extend::UXTX,
+            0,
+        ));
+
+        if stacksize > 0 {
+            self.load_int_const(MachineMode::Ptr, REG_TMP1, stacksize as i64);
+            self.emit_u32(asm::sub_extreg(
+                1,
+                REG_SP,
+                REG_SP,
+                REG_TMP1,
+                Extend::UXTX,
+                0,
+            ));
+        }
     }
 
-    pub fn patch_stacksize(&mut self, _patch_offset: usize, _stacksize: i32) {
-        unimplemented!();
+    pub fn patch_stacksize(&mut self, patch_offset: usize, stacksize: i32) {
+        let stacksize = stacksize as u32;
+        self.emit_u32_at(
+            patch_offset as i32,
+            asm::movz(1, REG_TMP1, stacksize & 0xFFFF, 0),
+        );
+        self.emit_u32_at(
+            (patch_offset + 4) as i32,
+            asm::movk(1, REG_TMP1, (stacksize >> 16) & 0xFFFF, 0),
+        );
     }
 
     pub fn check_stack_pointer(&mut self, _lbl_overflow: Label) {
@@ -73,13 +114,15 @@ impl MacroAssembler {
 
     pub fn increase_stack_frame(&mut self, size: i32) {
         if size > 0 {
-            unimplemented!();
+            self.load_int_const(MachineMode::Ptr, REG_TMP1, size as i64);
+            self.emit_u32(asm::sub_reg(1, REG_SP, REG_SP, REG_TMP1));
         }
     }
 
     pub fn decrease_stack_frame(&mut self, size: i32) {
         if size > 0 {
-            unimplemented!();
+            self.load_int_const(MachineMode::Ptr, REG_TMP1, size as i64);
+            self.emit_u32(asm::add_reg(1, REG_SP, REG_SP, REG_TMP1));
         }
     }
 
