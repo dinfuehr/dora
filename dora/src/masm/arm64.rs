@@ -13,6 +13,7 @@ use crate::masm::{Label, MacroAssembler};
 use crate::mem::ptr_width;
 use crate::object::{offset_of_array_data, offset_of_array_length, Header};
 use crate::os::signal::Trap;
+use crate::threads::ThreadLocalData;
 use crate::ty::{MachineMode, TypeList};
 use crate::vm::{get_vm, FctId};
 use crate::vtable::VTable;
@@ -81,8 +82,18 @@ impl MacroAssembler {
         );
     }
 
-    pub fn check_stack_pointer(&mut self, _lbl_overflow: Label) {
-        unimplemented!();
+    pub fn check_stack_pointer(&mut self, lbl_overflow: Label) {
+        self.emit_u32(asm::ldrx_imm(REG_TMP1, REG_THREAD, ThreadLocalData::stack_limit_offset() as u32));
+        self.emit_u32(asm::add_extreg(
+            1,
+            REG_TMP2,
+            REG_SP,
+            REG_ZERO,
+            Extend::UXTX,
+            0,
+        ));
+        self.cmp_reg(MachineMode::Ptr, REG_TMP1, REG_TMP2);
+        self.jump_if(CondCode::UnsignedGreater, lbl_overflow);
     }
 
     pub fn epilog_with_polling(&mut self, polling_page: Address) {
@@ -857,11 +868,26 @@ impl MacroAssembler {
             *scratch
         };
 
+        let src_reg = if src.is_reg() && src.reg() == REG_SP {
+            let src_reg = self.get_scratch();
+            self.emit_u32(asm::add_extreg(
+                1,
+                *src_reg,
+                REG_SP,
+                REG_ZERO,
+                Extend::UXTX,
+                0,
+            ));
+            Some(src_reg)
+        } else {
+            None
+        };
+
         let inst = match mode {
             MachineMode::Int8 => asm::strb_ind(src.reg(), base, reg, LdStExtend::LSL, 0),
             MachineMode::Int32 => asm::strw_ind(src.reg(), base, reg, LdStExtend::LSL, 0),
             MachineMode::Int64 | MachineMode::Ptr => {
-                asm::strx_ind(src.reg(), base, reg, LdStExtend::LSL, 0)
+                asm::strx_ind(src_reg.map_or(src.reg(), |x| *x), base, reg, LdStExtend::LSL, 0)
             }
             MachineMode::Float32 => asm::strs_ind(src.freg(), base, reg, LdStExtend::LSL, 0),
             MachineMode::Float64 => asm::strd_ind(src.freg(), base, reg, LdStExtend::LSL, 0),
@@ -1159,7 +1185,7 @@ fn size_flag(mode: MachineMode) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ty::MachineMode::{Int32, Int8, Ptr};
+    use crate::ty::MachineMode::{Int32, Int8, Ptr};
 
     macro_rules! assert_emit {
         (

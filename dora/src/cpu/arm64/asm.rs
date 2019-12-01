@@ -1234,7 +1234,7 @@ pub fn count_empty_half_words(mut imm: u64, register_size: u32) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cpu::arm64::reg::*;
+    use crate::cpu::arm64::reg::*;
 
     macro_rules! assert_emit {
         ($exp: expr; $val: expr) => {{
