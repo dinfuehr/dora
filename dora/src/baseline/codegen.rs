@@ -134,7 +134,7 @@ fn get_engine(asm_syntax: AsmSyntax) -> CsResult<Capstone> {
 }
 
 #[cfg(target_arch = "aarch64")]
-fn get_engine(asm_syntax: AsmSyntax) -> CsResult<Capstone> {
+fn get_engine(_asm_syntax: AsmSyntax) -> CsResult<Capstone> {
     unimplemented!()
 }
 

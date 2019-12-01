@@ -2,7 +2,7 @@ use byteorder::{LittleEndian, WriteBytesExt};
 use dora_parser::lexer::position::Position;
 
 use crate::baseline::codegen::{CondCode, ExprStore};
-use crate::baseline::fct::BailoutInfo;
+use crate::baseline::fct::{BailoutInfo, GcPoint};
 use crate::cpu::asm;
 use crate::cpu::asm::*;
 use crate::cpu::reg::*;
@@ -18,7 +18,7 @@ use crate::vm::{get_vm, FctId};
 use crate::vtable::VTable;
 
 impl MacroAssembler {
-    pub fn prolog(&mut self) {
+    pub fn prolog(&mut self) -> usize {
         self.emit_u32(asm::stp_pre(1, REG_FP, REG_LR, REG_SP, -2));
         self.emit_u32(asm::add_extreg(
             1,
@@ -29,21 +29,10 @@ impl MacroAssembler {
             0,
         ));
 
-        if stacksize > 0 {
-            let scratch = self.get_scratch();
-            self.load_int_const(MachineMode::Ptr, *scratch, stacksize as i64);
-            self.emit_u32(asm::sub_extreg(
-                1,
-                REG_SP,
-                REG_SP,
-                *scratch,
-                Extend::UXTX,
-                0,
-            ));
-        }
+        unimplemented!()
     }
 
-    pub fn prolog_size(&mut self) {
+    pub fn prolog_size(&mut self, _stacksize: i32) {
         unimplemented!();
     }
 
@@ -55,8 +44,8 @@ impl MacroAssembler {
         unimplemented!();
     }
 
-    pub fn epilog_with_polling(&mut self, stacksize: i32, polling_page: Address) {
-        self.epilog_without_return(stacksize);
+    pub fn epilog_with_polling(&mut self, polling_page: Address) {
+        self.epilog_without_return();
         self.check_polling_page(polling_page);
 
         let gcpoint = GcPoint::new();
@@ -80,6 +69,18 @@ impl MacroAssembler {
             0,
         ));
         self.emit_u32(asm::ldp_post(1, REG_FP, REG_LR, REG_SP, 2));
+    }
+
+    pub fn increase_stack_frame(&mut self, size: i32) {
+        if size > 0 {
+            unimplemented!();
+        }
+    }
+
+    pub fn decrease_stack_frame(&mut self, size: i32) {
+        if size > 0 {
+            unimplemented!();
+        }
     }
 
     pub fn direct_call(
@@ -459,6 +460,30 @@ impl MacroAssembler {
 
     pub fn double_to_float(&mut self, dest: FReg, src: FReg) {
         self.emit_u32(asm::fcvt_ds(dest, src));
+    }
+
+    pub fn int_as_float(
+        &mut self,
+        dest_mode: MachineMode,
+        _dest: FReg,
+        src_mode: MachineMode,
+        _src: Reg,
+    ) {
+        assert!(src_mode.size() == dest_mode.size());
+
+        unimplemented!();
+    }
+
+    pub fn float_as_int(
+        &mut self,
+        dest_mode: MachineMode,
+        _dest: Reg,
+        src_mode: MachineMode,
+        _src: FReg,
+    ) {
+        assert!(src_mode.size() == dest_mode.size());
+
+        unimplemented!();
     }
 
     pub fn float_add(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
