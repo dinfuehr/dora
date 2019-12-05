@@ -7,7 +7,6 @@ pub use self::reg::*;
 pub mod asm;
 pub mod param;
 pub mod reg;
-pub mod trap;
 
 pub fn flush_icache(start: *const u8, len: usize) {
     let start = start as usize;
