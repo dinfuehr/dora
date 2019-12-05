@@ -1,0 +1,7 @@
+//= ignore
+
+fun main() {
+    f();
+}
+
+@optimize_immediately fun f() {}

@@ -102,6 +102,7 @@ impl<'a> Parser<'a> {
                     &[
                         Modifier::Internal,
                         Modifier::Optimize,
+                        Modifier::OptimizeImmediately,
                         Modifier::Test,
                         Modifier::Cannon,
                     ],

@@ -13,7 +13,7 @@ use crate::compiler::dora_native::{self, InternalFct};
 use crate::compiler::fct::{CommentFormat, JitBaselineFct, JitFct};
 use crate::compiler::map::CodeDescriptor;
 use crate::cpu::{FReg, Reg, FREG_RESULT, REG_RESULT};
-use crate::driver::cmd::{AsmSyntax, BaselineName};
+use crate::driver::cmd::{AsmSyntax, CompilerName};
 use crate::gc::Address;
 use crate::masm::*;
 use crate::mem;
@@ -61,18 +61,19 @@ pub fn generate_fct<'ast>(
     }
 
     let bc = if fct.use_cannon {
-        BaselineName::Cannon
+        CompilerName::Cannon
     } else if fct.has_optimize_immediately {
-        unimplemented!();
+        CompilerName::Boots
     } else {
-        vm.args.bc()
+        vm.args.compiler()
     };
 
     let jit_fct = match bc {
-        BaselineName::Cannon => cannon::compile(vm, &fct, src, cls_type_params, fct_type_params),
-        BaselineName::AstCompiler => {
+        CompilerName::Cannon => cannon::compile(vm, &fct, src, cls_type_params, fct_type_params),
+        CompilerName::Baseline => {
             baseline::compile(vm, &fct, src, cls_type_params, fct_type_params)
         }
+        CompilerName::Boots => unimplemented!(),
     };
 
     if vm.args.flag_enable_perf {

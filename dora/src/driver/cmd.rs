@@ -103,7 +103,7 @@ pub struct Args {
     flag_gc_young_size: Option<MemSize>,
     pub flag_gc_semi_ratio: Option<usize>,
     pub flag_gc: Option<CollectorName>,
-    pub flag_bc: Option<BaselineName>,
+    pub flag_compiler: Option<CompilerName>,
     pub flag_min_heap_size: Option<MemSize>,
     pub flag_max_heap_size: Option<MemSize>,
     pub flag_code_size: Option<MemSize>,
@@ -166,8 +166,8 @@ impl Args {
         self.flag_gc_parallel_full || self.flag_gc_parallel
     }
 
-    pub fn bc(&self) -> BaselineName {
-        self.flag_bc.unwrap_or(BaselineName::AstCompiler)
+    pub fn compiler(&self) -> CompilerName {
+        self.flag_compiler.unwrap_or(CompilerName::Baseline)
     }
 }
 
@@ -206,7 +206,7 @@ impl Default for Args {
             flag_gc_young_size: None,
             flag_gc_semi_ratio: None,
             flag_gc: None,
-            flag_bc: None,
+            flag_compiler: None,
             flag_min_heap_size: None,
             flag_max_heap_size: None,
             flag_code_size: None,
@@ -232,9 +232,10 @@ pub enum CollectorName {
 }
 
 #[derive(Copy, Clone, Debug, RustcDecodable)]
-pub enum BaselineName {
+pub enum CompilerName {
     Cannon,
-    AstCompiler,
+    Baseline,
+    Boots,
 }
 
 #[derive(Copy, Clone, Debug, RustcDecodable)]
