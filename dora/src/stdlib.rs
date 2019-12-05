@@ -283,7 +283,7 @@ pub extern "C" fn trap(trap_id: u32) {
 }
 
 pub extern "C" fn spawn_thread(obj: Ref<Obj>) {
-    use crate::baseline;
+    use crate::compiler;
     use crate::exception::DoraToNativeInfo;
 
     let vm = get_vm();
@@ -326,7 +326,7 @@ pub extern "C" fn spawn_thread(obj: Ref<Obj>) {
 
             THREAD.with(|thread| {
                 thread.borrow().use_dtn(&mut dtn, || {
-                    baseline::generate(vm, main, &type_params, &type_params)
+                    compiler::generate(vm, main, &type_params, &type_params)
                 })
             })
         };

@@ -1,7 +1,7 @@
 use std::ptr;
 
-use crate::baseline::fct::{CatchType, JitFctId};
-use crate::baseline::map::CodeDescriptor;
+use crate::compiler::fct::{CatchType, JitFctId};
+use crate::compiler::map::CodeDescriptor;
 use crate::cpu::fp_from_execstate;
 use crate::execstate::ExecState;
 use crate::gc::Address;

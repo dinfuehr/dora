@@ -2,7 +2,7 @@ use libc;
 use std;
 use std::mem::MaybeUninit;
 
-use crate::baseline::map::CodeDescriptor;
+use crate::compiler::map::CodeDescriptor;
 use crate::exception::stacktrace_from_es;
 use crate::os;
 use crate::os_cpu::*;

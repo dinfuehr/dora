@@ -1,10 +1,9 @@
-use crate::baseline::codegen::CondCode;
-use crate::baseline::codegen::ExprStore;
-use crate::baseline::fct::BailoutInfo;
+use crate::compiler::codegen::ExprStore;
+use crate::compiler::fct::BailoutInfo;
 use crate::cpu::*;
 use crate::gc::swiper::CARD_SIZE_BITS;
 use crate::gc::Address;
-use crate::masm::{Label, MacroAssembler};
+use crate::masm::{CondCode, Label, MacroAssembler};
 use crate::mem::{fits_i32, ptr_width};
 use crate::object::{offset_of_array_data, offset_of_array_length, Header};
 use crate::os::signal::Trap;

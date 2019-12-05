@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
-use crate::baseline::fct::JitFctId;
+use crate::compiler::fct::JitFctId;
 use crate::gc::Address;
 use crate::vm::VM;
 

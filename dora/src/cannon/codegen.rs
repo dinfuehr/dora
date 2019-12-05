@@ -1,20 +1,20 @@
-use crate::baseline::asm::BaselineAssembler;
-use crate::baseline::codegen::ExprStore;
-use crate::bytecode::generate::BytecodeIdx;
-use crate::cpu::{Mem, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_TMP1};
 use dora_parser::ast::*;
 use std::collections::hash_map::HashMap;
 
-use crate::baseline::codegen::{should_emit_debug, CondCode};
-use crate::baseline::fct::{Comment, JitBaselineFct, JitDescriptor};
+use crate::bytecode::generate::{
+    BytecodeFunction, BytecodeIdx, BytecodeType, Register, StrConstPoolIdx,
+};
+use crate::bytecode::opcode::Bytecode;
+use crate::compiler::asm::BaselineAssembler;
+use crate::compiler::codegen::should_emit_debug;
+use crate::compiler::codegen::ExprStore;
+use crate::compiler::fct::{Comment, JitBaselineFct, JitDescriptor};
+use crate::cpu::{Mem, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_TMP1};
 use crate::masm::*;
 use crate::object::Str;
 use crate::ty::TypeList;
 use crate::vm::VM;
 use crate::vm::{ClassDefId, Fct, FctSrc, FieldId, GlobalId};
-
-use crate::bytecode::generate::{BytecodeFunction, BytecodeType, Register, StrConstPoolIdx};
-use crate::bytecode::opcode::Bytecode;
 
 struct ForwardJump {
     label: Label,

@@ -1,7 +1,7 @@
 use std::mem::size_of;
 
-use crate::baseline::fct::{JitBaselineFct, JitDescriptor, JitFct};
-use crate::baseline::map::CodeDescriptor;
+use crate::compiler::fct::{JitBaselineFct, JitDescriptor, JitFct};
+use crate::compiler::map::CodeDescriptor;
 use crate::cpu::{Mem, REG_FP, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1, REG_TMP2};
 use crate::exception::throw;
 use crate::exception::DoraToNativeInfo;

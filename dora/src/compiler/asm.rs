@@ -2,13 +2,13 @@ use std::mem;
 
 use dora_parser::lexer::position::Position;
 
-use crate::baseline::codegen::{ensure_native_stub, AllocationSize, CondCode, ExprStore};
-use crate::baseline::dora_native::{InternalFct, InternalFctDescriptor};
-use crate::baseline::fct::{CatchType, Comment, GcPoint, JitBaselineFct, JitDescriptor};
+use crate::compiler::codegen::{ensure_native_stub, AllocationSize, ExprStore};
+use crate::compiler::dora_native::{InternalFct, InternalFctDescriptor};
+use crate::compiler::fct::{CatchType, Comment, GcPoint, JitBaselineFct, JitDescriptor};
 use crate::cpu::{FReg, Mem, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1};
 use crate::gc::tlab::TLAB_OBJECT_SIZE;
 use crate::gc::Address;
-use crate::masm::{Label, MacroAssembler, ScratchReg};
+use crate::masm::{CondCode, Label, MacroAssembler, ScratchReg};
 use crate::os::signal::Trap;
 use crate::stdlib;
 use crate::threads::ThreadLocalData;

@@ -3,9 +3,8 @@ use std::collections::HashSet;
 use std::ops::Deref;
 use std::rc::Rc;
 
-use crate::baseline::codegen::CondCode;
-use crate::baseline::codegen::ExprStore;
-use crate::baseline::fct::{
+use crate::compiler::codegen::ExprStore;
+use crate::compiler::fct::{
     BailoutInfo, Bailouts, CatchType, Comment, Comments, ExHandler, GcPoint, GcPoints,
     JitBaselineFct, JitDescriptor, LineNumberTable,
 };
@@ -376,6 +375,22 @@ impl ScratchRegisters {
 
         self.value.set(value & bitmask);
     }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum CondCode {
+    Zero,
+    NonZero,
+    Equal,
+    NotEqual,
+    Greater,
+    GreaterEq,
+    Less,
+    LessEq,
+    UnsignedGreater,
+    UnsignedGreaterEq,
+    UnsignedLess,
+    UnsignedLessEq,
 }
 
 #[derive(Debug)]

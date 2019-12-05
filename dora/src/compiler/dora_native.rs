@@ -3,8 +3,8 @@ use std::mem::size_of;
 
 use dora_parser::lexer::position::Position;
 
-use crate::baseline::fct::{JitBaselineFct, JitDescriptor, JitFct, JitFctId};
-use crate::baseline::map::CodeDescriptor;
+use crate::compiler::fct::{JitBaselineFct, JitDescriptor, JitFct, JitFctId};
+use crate::compiler::map::CodeDescriptor;
 use crate::cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1};
 use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;

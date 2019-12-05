@@ -3,13 +3,13 @@ use std::mem;
 use std::ptr;
 use std::sync::Arc;
 
-use crate::baseline;
-use crate::baseline::dora_compile;
-use crate::baseline::dora_entry;
-use crate::baseline::dora_native::{self, InternalFct, InternalFctDescriptor, NativeThunks};
-use crate::baseline::dora_throw;
-use crate::baseline::fct::JitFct;
-use crate::baseline::map::{CodeDescriptor, CodeMap};
+use crate::compiler;
+use crate::compiler::dora_compile;
+use crate::compiler::dora_entry;
+use crate::compiler::dora_native::{self, InternalFct, InternalFctDescriptor, NativeThunks};
+use crate::compiler::dora_throw;
+use crate::compiler::fct::JitFct;
+use crate::compiler::map::{CodeDescriptor, CodeMap};
 use crate::driver::cmd::Args;
 use crate::error::diag::Diagnostic;
 use crate::exception::DoraToNativeInfo;
@@ -242,7 +242,7 @@ impl<'ast> VM<'ast> {
 
         THREAD.with(|thread| {
             thread.borrow().use_dtn(&mut dtn, || {
-                baseline::generate(self, fct_id, &type_params, &type_params)
+                compiler::generate(self, fct_id, &type_params, &type_params)
             })
         })
     }

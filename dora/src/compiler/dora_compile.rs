@@ -1,8 +1,8 @@
 use std::mem::size_of;
 
-use crate::baseline;
-use crate::baseline::fct::{BailoutInfo, JitBaselineFct, JitDescriptor, JitFct};
-use crate::baseline::map::CodeDescriptor;
+use crate::compiler;
+use crate::compiler::fct::{BailoutInfo, JitBaselineFct, JitDescriptor, JitFct};
+use crate::compiler::map::CodeDescriptor;
 use crate::cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1};
 use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
@@ -224,7 +224,7 @@ fn patch_vtable_call(
     let cls = cls.read();
 
     let fct_id = cls.virtual_fcts[vtable_index as usize];
-    let fct_ptr = baseline::generate(vm, fct_id, cls_tps, fct_tps);
+    let fct_ptr = compiler::generate(vm, fct_id, cls_tps, fct_tps);
 
     let methodtable = vtable.table_mut();
     methodtable[vtable_index as usize] = fct_ptr.to_usize();
@@ -240,7 +240,7 @@ fn patch_fct_call(
     fct_tps: &TypeList,
     disp: i32,
 ) -> Address {
-    let fct_ptr = baseline::generate(vm, fct_id, cls_tps, fct_tps);
+    let fct_ptr = compiler::generate(vm, fct_id, cls_tps, fct_tps);
     let fct_addr: *mut usize = (ra as isize - disp as isize) as *mut _;
 
     // update function pointer in data segment

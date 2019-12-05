@@ -1,9 +1,9 @@
 use self::codegen::CannonCodeGen;
 
-use crate::baseline::asm::BaselineAssembler;
-use crate::baseline::codegen::fct_pattern_match;
-use crate::baseline::fct::JitBaselineFct;
 use crate::bytecode::astgen::generate_fct;
+use crate::compiler::asm::BaselineAssembler;
+use crate::compiler::codegen::fct_pattern_match;
+use crate::compiler::fct::JitBaselineFct;
 use crate::ty::TypeList;
 use crate::vm::{Fct, FctSrc, VM};
 

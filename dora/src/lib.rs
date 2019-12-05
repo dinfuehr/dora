@@ -20,6 +20,8 @@ macro_rules! offset_of {
 
 mod baseline;
 mod bytecode;
+mod cannon;
+mod compiler;
 mod cpu;
 mod driver;
 mod dseg;

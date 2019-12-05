@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::baseline::map::CodeDescriptor;
+use crate::compiler::map::CodeDescriptor;
 use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
 use crate::threads::DoraThread;

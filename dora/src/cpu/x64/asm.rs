@@ -1,6 +1,5 @@
-use crate::baseline::codegen::CondCode;
 use crate::cpu::*;
-use crate::masm::{Label, MacroAssembler};
+use crate::masm::{CondCode, Label, MacroAssembler};
 use crate::ty::MachineMode;
 
 pub fn emit_or_reg_reg(buf: &mut MacroAssembler, x64: u8, src: Reg, dest: Reg) {
@@ -1207,8 +1206,7 @@ fn sse_cmp(buf: &mut MacroAssembler, dbl: bool, dest: FReg, src: FReg) {
 mod tests {
     use super::*;
 
-    use crate::baseline::codegen::CondCode;
-    use crate::masm::MacroAssembler;
+    use crate::masm::{CondCode, MacroAssembler};
     use crate::ty::MachineMode;
 
     macro_rules! assert_emit {

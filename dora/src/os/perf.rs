@@ -1,4 +1,4 @@
-use crate::baseline::fct::JitBaselineFct;
+use crate::compiler::fct::JitBaselineFct;
 use crate::vm::VM;
 use dora_parser::interner::Name;
 

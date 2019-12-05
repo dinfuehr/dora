@@ -1,5 +1,5 @@
-use crate::baseline::fct::{JitBaselineFct, JitDescriptor, JitFct};
-use crate::baseline::map::CodeDescriptor;
+use crate::compiler::fct::{JitBaselineFct, JitDescriptor, JitFct};
+use crate::compiler::map::CodeDescriptor;
 use crate::cpu::{Mem, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1};
 use crate::gc::Address;
 use crate::masm::MacroAssembler;

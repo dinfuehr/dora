@@ -6,7 +6,7 @@ use std::sync::Arc;
 use dora_parser::ast;
 use dora_parser::interner::Name;
 
-use crate::baseline::fct::JitFctId;
+use crate::compiler::fct::JitFctId;
 use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{
     ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, Intrinsic, StructId, TraitId, TypeParamId,
