@@ -8,6 +8,7 @@
 
   @internal fun equals(rhs: Double) -> Bool;
   @internal fun compareTo(rhs: Double) -> Int;
+  @internal fun sortsAs(rhs: Double) -> Int;
 
   @internal fun plus(rhs: Double) -> Double;
   @internal fun minus(rhs: Double) -> Double;

@@ -269,6 +269,47 @@ impl MacroAssembler {
         }
     }
 
+    pub fn float_cmp_total(
+        &mut self,
+        src_mode: MachineMode,
+        dest_mode: MachineMode,
+        dest: Reg,
+        lhs: FReg,
+        rhs: FReg,
+    ) {
+        let bits_to_flip = match dest_mode {
+            MachineMode::Int32 => 31,
+            MachineMode::Int64 => 63,
+            _ => unimplemented!(),
+        };
+
+        self.float_as_int(dest_mode, RAX, src_mode, lhs);
+        self.float_as_int(dest_mode, RCX, src_mode, rhs);
+        self.float_as_int(dest_mode, RDX, src_mode, lhs);
+        self.float_as_int(dest_mode, RSI, src_mode, rhs);
+
+        self.load_int_const(dest_mode, REG_TMP1, bits_to_flip);
+        self.int_sar(dest_mode, RDX, RDX, REG_TMP1);
+        self.load_int_const(dest_mode, REG_TMP1, bits_to_flip);
+        self.int_sar(dest_mode, RSI, RSI, REG_TMP1);
+        self.load_int_const(dest_mode, REG_TMP2, 1);
+        self.int_shr(dest_mode, RDX, RDX, REG_TMP2);
+        self.int_shr(dest_mode, RSI, RSI, REG_TMP2);
+        self.int_xor(dest_mode, RDX, RDX, RAX);
+        self.int_xor(dest_mode, RSI, RSI, RCX);
+
+        self.int_xor(dest_mode, RCX, RCX, RCX);
+        self.cmp_reg(dest_mode, RDX, RSI);
+        self.set(RCX, CondCode::NotEqual);
+        self.load_int_const(dest_mode, RAX, -1);
+        let x64 = match dest_mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unimplemented!(),
+        };
+        asm::cmov(self, x64, dest, RCX, CondCode::GreaterEq);
+    }
+
     pub fn float_cmp_nan(&mut self, mode: MachineMode, dest: Reg, src: FReg) {
         self.load_int_const(MachineMode::Int32, dest, 0);
 
@@ -1081,6 +1122,13 @@ pub struct ForwardJump {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_float_cmp_total() {
+        let mut masm = MacroAssembler::new();
+        masm.float_cmp_total(MachineMode::Float64, MachineMode::Int64, RAX, FREG_RESULT, FREG_TMP1);
+        //assert_eq!(vec![0xff], masm.data());
+    }
 
     #[test]
     fn test_backward() {

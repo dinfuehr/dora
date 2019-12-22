@@ -8,6 +8,7 @@
 
   @internal fun equals(rhs: Float) -> Bool;
   @internal fun compareTo(rhs: Float) -> Int;
+  @internal fun sortsAs(rhs: Float) -> Int;
 
   @internal fun plus(rhs: Float) -> Float;
   @internal fun minus(rhs: Float) -> Float;

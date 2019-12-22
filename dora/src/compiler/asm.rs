@@ -314,6 +314,17 @@ where
         self.masm.float_cmp(mode, dest, lhs, rhs, cond);
     }
 
+    pub fn float_cmp_total(
+        &mut self,
+        src_mode: MachineMode,
+        dest_mode: MachineMode,
+        dest: Reg,
+        lhs: FReg,
+        rhs: FReg,
+    ) {
+        self.masm.float_cmp_total(src_mode, dest_mode, dest, lhs, rhs);
+    }
+
     pub fn determine_array_size(
         &mut self,
         dest: Reg,

@@ -1960,6 +1960,7 @@ where
             Intrinsic::FloatIsNan => self.emit_intrinsic_is_nan(args[0], dest.reg(), intrinsic),
             Intrinsic::FloatSqrt => self.emit_intrinsic_sqrt(args[0], dest.freg(), intrinsic),
             Intrinsic::FloatEq => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::FloatCmpTotal => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
 
             Intrinsic::DoubleAdd => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
             Intrinsic::DoubleSub => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
@@ -1970,6 +1971,7 @@ where
             Intrinsic::DoubleIsNan => self.emit_intrinsic_is_nan(args[0], dest.reg(), intrinsic),
             Intrinsic::DoubleSqrt => self.emit_intrinsic_sqrt(args[0], dest.freg(), intrinsic),
             Intrinsic::DoubleEq => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::DoubleCmpTotal => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
 
             Intrinsic::DefaultValue => self.emit_intrinsic_default_value(id, dest),
 
@@ -2436,7 +2438,7 @@ where
         intr: Intrinsic,
         op: Option<BinOp>,
     ) {
-        use crate::ty::MachineMode::{Float32, Float64};
+        use crate::ty::MachineMode::{Float32, Float64, Int32, Int64};
 
         match intr {
             Intrinsic::FloatEq | Intrinsic::DoubleEq => {
@@ -2468,6 +2470,14 @@ where
                 } else {
                     unimplemented!();
                 }
+            }
+
+            Intrinsic::FloatCmpTotal => {
+                self.asm.float_cmp_total(Float32, Int32, dest.reg(), lhs, rhs)
+            }
+
+            Intrinsic::DoubleCmpTotal => {
+                self.asm.float_cmp_total(Float64, Int64, dest.reg(), lhs, rhs)
             }
 
             Intrinsic::FloatAdd => self.asm.float_add(Float32, dest.freg(), lhs, rhs),

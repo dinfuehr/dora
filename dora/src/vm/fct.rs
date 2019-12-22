@@ -354,6 +354,7 @@ pub enum Intrinsic {
 
     FloatEq,
     FloatCmp,
+    FloatCmpTotal,
 
     FloatAdd,
     FloatSub,
@@ -376,6 +377,7 @@ pub enum Intrinsic {
 
     DoubleEq,
     DoubleCmp,
+    DoubleCmpTotal,
 
     DoubleAdd,
     DoubleSub,
