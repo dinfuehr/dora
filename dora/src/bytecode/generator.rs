@@ -23,7 +23,7 @@ impl LoopLabels {
     }
 }
 
-pub fn generate<'ast>(
+pub fn generate_fct<'ast>(
     vm: &VM<'ast>,
     id: FctId,
     cls_type_params: &TypeList,
@@ -34,10 +34,10 @@ pub fn generate<'ast>(
     let src = fct.src();
     let mut src = src.write();
 
-    generate_fct(vm, &fct, &mut src, cls_type_params, fct_type_params)
+    generate(vm, &fct, &mut src, cls_type_params, fct_type_params)
 }
 
-pub fn generate_fct<'ast>(
+pub fn generate<'ast>(
     vm: &VM<'ast>,
     fct: &Fct<'ast>,
     src: &FctSrc,
@@ -60,7 +60,7 @@ pub fn generate_fct<'ast>(
     ast_bytecode_generator.generate()
 }
 
-pub struct AstBytecodeGen<'a, 'ast: 'a> {
+struct AstBytecodeGen<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
     fct: &'a Fct<'ast>,
     ast: &'ast Function,
@@ -75,7 +75,7 @@ pub struct AstBytecodeGen<'a, 'ast: 'a> {
 }
 
 impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
-    pub fn generate(mut self) -> BytecodeFunction {
+    fn generate(mut self) -> BytecodeFunction {
         if self.fct.has_self() {
             let var_id = self.src.var_self().id;
             let reg = self.gen.add_register(BytecodeType::Ptr);
@@ -1068,10 +1068,8 @@ impl DataDest {
 
 #[cfg(test)]
 mod tests {
-    use crate::bytecode::data::Bytecode::*;
-    use crate::bytecode::data::{BytecodeIdx, Register};
-    use crate::bytecode::generator;
-    use crate::bytecode::writer::BytecodeFunction;
+    use crate::bytecode::Bytecode::*;
+    use crate::bytecode::{self, BytecodeFunction, BytecodeIdx, Register};
     use crate::test;
     use crate::ty::TypeList;
     use crate::vm::VM;
@@ -1080,7 +1078,7 @@ mod tests {
         test::parse(code, |vm| {
             let fct_id = vm.fct_by_name("f").expect("no function `f`.");
             let tp = TypeList::empty();
-            generator::generate(vm, fct_id, &tp, &tp)
+            bytecode::generate_fct(vm, fct_id, &tp, &tp)
         })
     }
 
@@ -1097,7 +1095,7 @@ mod tests {
                 .cls_method_by_name(class_name, "f", false)
                 .unwrap_or_else(|| panic!("no function `f` in Class `{}`.", class_name));
             let tp = TypeList::empty();
-            generator::generate(vm, fct_id, &tp, &tp)
+            bytecode::generate_fct(vm, fct_id, &tp, &tp)
         })
     }
 
@@ -1108,7 +1106,7 @@ mod tests {
         test::parse(code, |vm| {
             let fct_id = vm.fct_by_name("f").expect("no function `f`.");
             let tp = TypeList::empty();
-            let fct = generator::generate(vm, fct_id, &tp, &tp);
+            let fct = bytecode::generate_fct(vm, fct_id, &tp, &tp);
 
             testfct(vm, fct);
         })

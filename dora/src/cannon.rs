@@ -1,6 +1,6 @@
 use self::codegen::CannonCodeGen;
 
-use crate::bytecode::generator::generate_fct;
+use crate::bytecode;
 use crate::compiler::asm::BaselineAssembler;
 use crate::compiler::codegen::fct_pattern_match;
 use crate::compiler::fct::JitBaselineFct;
@@ -16,10 +16,10 @@ pub(super) fn compile<'a, 'ast: 'a>(
     cls_type_params: &TypeList,
     fct_type_params: &TypeList,
 ) -> JitBaselineFct {
-    let bytecode = generate_fct(vm, fct, src, cls_type_params, fct_type_params);
+    let bytecode_fct = bytecode::generate(vm, fct, src, cls_type_params, fct_type_params);
 
     if should_emit_bytecode(vm, fct) {
-        bytecode.dump();
+        bytecode_fct.dump();
     }
 
     CannonCodeGen::new(
@@ -28,7 +28,7 @@ pub(super) fn compile<'a, 'ast: 'a>(
         fct.ast,
         BaselineAssembler::new(vm),
         src,
-        &bytecode,
+        &bytecode_fct,
         None,
         None,
         Vec::new(),
