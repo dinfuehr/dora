@@ -11,7 +11,7 @@ use crate::baseline;
 use crate::cannon;
 use crate::compiler::fct::{CommentFormat, JitBaselineFct, JitFct};
 use crate::compiler::map::CodeDescriptor;
-use crate::compiler::native_stub::{self, InternalFct};
+use crate::compiler::native_stub::{self, NativeFct};
 use crate::cpu::{FReg, Reg, FREG_RESULT, REG_RESULT};
 use crate::driver::cmd::{AsmSyntax, CompilerName};
 use crate::gc::Address;
@@ -372,7 +372,7 @@ pub enum AllocationSize {
     Dynamic(Reg),
 }
 
-pub fn ensure_native_stub(vm: &VM, fct_id: Option<FctId>, internal_fct: InternalFct) -> Address {
+pub fn ensure_native_stub(vm: &VM, fct_id: Option<FctId>, internal_fct: NativeFct) -> Address {
     let mut native_stubs = vm.native_stubs.lock();
     let ptr = internal_fct.ptr;
 

@@ -4,7 +4,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::compiler::codegen::{ensure_native_stub, AllocationSize, ExprStore};
 use crate::compiler::fct::{CatchType, Comment, GcPoint, JitBaselineFct, JitDescriptor};
-use crate::compiler::native_stub::{InternalFct, InternalFctDescriptor};
+use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
 use crate::cpu::{FReg, Mem, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1};
 use crate::gc::tlab::TLAB_OBJECT_SIZE;
 use crate::gc::Address;
@@ -469,7 +469,7 @@ where
 
     pub fn native_call(
         &mut self,
-        internal_fct: InternalFct,
+        internal_fct: NativeFct,
         pos: Position,
         gcpoint: GcPoint,
         dest: ExprStore,
@@ -557,12 +557,12 @@ where
             if array_ref { 1 } else { 0 },
         );
 
-        let internal_fct = InternalFct {
+        let internal_fct = NativeFct {
             ptr: Address::from_ptr(stdlib::gc_alloc as *const u8),
             args: &[BuiltinType::Ptr],
             return_type: BuiltinType::Ptr,
             throws: false,
-            desc: InternalFctDescriptor::AllocStub,
+            desc: NativeFctDescriptor::AllocStub,
         };
 
         self.native_call(internal_fct, pos, gcpoint, dest.into());
@@ -578,12 +578,12 @@ where
             self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[1], value);
         }
 
-        let internal_fct = InternalFct {
+        let internal_fct = NativeFct {
             ptr: Address::from_ptr(stdlib::gc_verify_refs as *const u8),
             args: &[BuiltinType::Ptr, BuiltinType::Ptr],
             return_type: BuiltinType::Unit,
             throws: false,
-            desc: InternalFctDescriptor::VerifyStub,
+            desc: NativeFctDescriptor::VerifyStub,
         };
 
         self.native_call(internal_fct, pos, gcpoint, REG_RESULT.into());

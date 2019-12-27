@@ -14,7 +14,7 @@ use crate::compiler::codegen::{
     ensure_native_stub, register_for_mode, should_emit_debug, AllocationSize, ExprStore,
 };
 use crate::compiler::fct::{CatchType, Comment, GcPoint, JitBaselineFct, JitDescriptor};
-use crate::compiler::native_stub::{InternalFct, InternalFctDescriptor};
+use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
 use crate::cpu::{
     next_param_offset, FReg, Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, PARAM_OFFSET,
     REG_PARAMS, REG_RESULT, REG_SP, REG_TMP1, REG_TMP2,
@@ -1644,12 +1644,12 @@ where
                 }
 
                 FctKind::Native(ptr) => {
-                    let internal_fct = InternalFct {
+                    let internal_fct = NativeFct {
                         ptr,
                         args: fct.params_with_self(),
                         return_type: fct.return_type,
                         throws: fct.ast.throws,
-                        desc: InternalFctDescriptor::NativeStub(fid),
+                        desc: NativeFctDescriptor::NativeStub(fid),
                     };
 
                     ensure_native_stub(self.vm, Some(fid), internal_fct)

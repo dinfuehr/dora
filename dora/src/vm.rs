@@ -8,7 +8,7 @@ use crate::compiler::compile_stub;
 use crate::compiler::dora_stub;
 use crate::compiler::fct::JitFct;
 use crate::compiler::map::{CodeDescriptor, CodeMap};
-use crate::compiler::native_stub::{self, InternalFct, InternalFctDescriptor, NativeStubs};
+use crate::compiler::native_stub::{self, NativeFct, NativeFctDescriptor, NativeStubs};
 use crate::compiler::throw_stub;
 use crate::driver::cmd::Args;
 use crate::error::diag::Diagnostic;
@@ -430,12 +430,12 @@ impl<'ast> VM<'ast> {
         let mut trap_stub_address = self.trap_stub.lock();
 
         if trap_stub_address.is_null() {
-            let ifct = InternalFct {
+            let ifct = NativeFct {
                 ptr: Address::from_ptr(stdlib::trap as *const u8),
                 args: &[BuiltinType::Int],
                 return_type: BuiltinType::Unit,
                 throws: false,
-                desc: InternalFctDescriptor::TrapStub,
+                desc: NativeFctDescriptor::TrapStub,
             };
             let jit_fct_id = native_stub::generate(self, ifct, false);
             let jit_fct = self.jit_fcts.idx(jit_fct_id);

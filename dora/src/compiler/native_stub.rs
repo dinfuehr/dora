@@ -36,22 +36,22 @@ impl NativeStubs {
 }
 
 #[derive(Clone)]
-pub enum InternalFctDescriptor {
+pub enum NativeFctDescriptor {
     NativeStub(FctId),
     AllocStub,
     VerifyStub,
     TrapStub,
 }
 
-pub struct InternalFct<'a> {
+pub struct NativeFct<'a> {
     pub ptr: Address,
     pub args: &'a [BuiltinType],
     pub return_type: BuiltinType,
     pub throws: bool,
-    pub desc: InternalFctDescriptor,
+    pub desc: NativeFctDescriptor,
 }
 
-pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>, fct: InternalFct, dbg: bool) -> JitFctId {
+pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>, fct: NativeFct, dbg: bool) -> JitFctId {
     let fct_desc = fct.desc.clone();
 
     let ngen = NativeGen {
@@ -67,10 +67,10 @@ pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>, fct: InternalFct, dbg: bool) -> 
     let jit_fct_id: JitFctId = vm.jit_fcts.push(JitFct::Base(jit_fct)).into();
 
     let code_desc = match fct_desc {
-        InternalFctDescriptor::NativeStub(_) => CodeDescriptor::NativeStub(jit_fct_id),
-        InternalFctDescriptor::TrapStub => CodeDescriptor::TrapStub,
-        InternalFctDescriptor::VerifyStub => CodeDescriptor::VerifyStub,
-        InternalFctDescriptor::AllocStub => CodeDescriptor::AllocStub,
+        NativeFctDescriptor::NativeStub(_) => CodeDescriptor::NativeStub(jit_fct_id),
+        NativeFctDescriptor::TrapStub => CodeDescriptor::TrapStub,
+        NativeFctDescriptor::VerifyStub => CodeDescriptor::VerifyStub,
+        NativeFctDescriptor::AllocStub => CodeDescriptor::AllocStub,
     };
 
     vm.insert_code_map(jit_start, jit_end, code_desc);
@@ -82,7 +82,7 @@ struct NativeGen<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
     masm: MacroAssembler,
 
-    fct: InternalFct<'a>,
+    fct: NativeFct<'a>,
     dbg: bool,
 }
 
@@ -169,10 +169,10 @@ where
         self.masm.nop();
 
         let desc = match self.fct.desc {
-            InternalFctDescriptor::NativeStub(fid) => JitDescriptor::NativeStub(fid),
-            InternalFctDescriptor::AllocStub => JitDescriptor::AllocStub,
-            InternalFctDescriptor::VerifyStub => JitDescriptor::VerifyStub,
-            InternalFctDescriptor::TrapStub => JitDescriptor::TrapStub,
+            NativeFctDescriptor::NativeStub(fid) => JitDescriptor::NativeStub(fid),
+            NativeFctDescriptor::AllocStub => JitDescriptor::AllocStub,
+            NativeFctDescriptor::VerifyStub => JitDescriptor::VerifyStub,
+            NativeFctDescriptor::TrapStub => JitDescriptor::TrapStub,
         };
 
         self.masm.jit(self.vm, framesize, desc, self.fct.throws)
