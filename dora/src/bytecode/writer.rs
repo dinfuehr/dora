@@ -888,9 +888,10 @@ impl BytecodeWriter {
 
         BytecodeFunction {
             code: self.code,
+            data: self.data,
             offset: generate_offset(&self.registers),
             registers: self.registers,
-            const_pool: Vec::new(),
+            const_pool: self.const_pool,
         }
     }
 
@@ -1078,6 +1079,7 @@ fn generate_offset(registers: &Vec<BytecodeType>) -> Vec<i32> {
 
 pub struct BytecodeFunction {
     code: Vec<Bytecode>,
+    data: Vec<u8>,
     registers: Vec<BytecodeType>,
     const_pool: Vec<ConstPoolEntry>,
     offset: Vec<i32>,
@@ -1086,6 +1088,10 @@ pub struct BytecodeFunction {
 impl BytecodeFunction {
     pub fn code(&self) -> &[Bytecode] {
         &self.code
+    }
+
+    pub fn data(&self) -> &[u8] {
+        &self.data
     }
 
     pub fn registers(&self) -> &[BytecodeType] {

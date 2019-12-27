@@ -31,6 +31,7 @@ pub struct KnownElements {
     pub stringable_trait: TraitId,
     pub iterator_trait: Mutex<Option<TraitId>>,
 
+    pub byte_array_def: Mutex<Option<ClassDefId>>,
     pub int_array_def: Mutex<Option<ClassDefId>>,
     pub str_class_def: Mutex<Option<ClassDefId>>,
     pub obj_class_def: Mutex<Option<ClassDefId>>,
@@ -56,6 +57,19 @@ pub struct KnownFunctions {
 impl KnownElements {
     pub fn iterator(&self) -> TraitId {
         self.iterator_trait.lock().expect("iterator trait not set")
+    }
+
+    pub fn byte_array(&self, vm: &VM) -> ClassDefId {
+        let mut byte_array_def = self.byte_array_def.lock();
+
+        if let Some(cls_id) = *byte_array_def {
+            cls_id
+        } else {
+            let type_args = TypeList::single(BuiltinType::Byte);
+            let cls_id = specialize_class_id_params(vm, self.array_class, &type_args);
+            *byte_array_def = Some(cls_id);
+            cls_id
+        }
     }
 
     pub fn int_array(&self, vm: &VM) -> ClassDefId {

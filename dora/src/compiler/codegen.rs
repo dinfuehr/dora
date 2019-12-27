@@ -304,6 +304,14 @@ pub fn should_emit_asm(vm: &VM, fct: &Fct) -> bool {
     }
 }
 
+pub fn should_emit_bytecode(vm: &VM, fct: &Fct) -> bool {
+    if let Some(ref dbg_names) = vm.args.flag_emit_bytecode {
+        fct_pattern_match(vm, fct, dbg_names)
+    } else {
+        false
+    }
+}
+
 pub fn fct_pattern_match(vm: &VM, fct: &Fct, pattern: &str) -> bool {
     if pattern == "all" {
         return true;

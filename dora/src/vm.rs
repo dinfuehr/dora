@@ -167,6 +167,7 @@ impl<'ast> VM<'ast> {
                 stringable_trait: empty_trait_id,
                 iterator_trait: Mutex::new(None),
 
+                byte_array_def: Mutex::new(None),
                 int_array_def: Mutex::new(None),
                 str_class_def: Mutex::new(None),
                 obj_class_def: Mutex::new(None),
@@ -236,7 +237,7 @@ impl<'ast> VM<'ast> {
         fct(tld, ptr, testing);
     }
 
-    fn ensure_compiled(&self, fct_id: FctId) -> Address {
+    pub fn ensure_compiled(&self, fct_id: FctId) -> Address {
         let mut dtn = DoraToNativeInfo::new();
         let type_params = TypeList::empty();
 
@@ -354,7 +355,6 @@ impl<'ast> VM<'ast> {
         (cls_id, field_id)
     }
 
-    #[cfg(test)]
     pub fn fct_by_name(&self, name: &str) -> Option<FctId> {
         let name = self.interner.intern(name);
         self.sym.lock().get_fct(name)

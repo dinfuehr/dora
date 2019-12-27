@@ -2,7 +2,7 @@ use self::codegen::CannonCodeGen;
 
 use crate::bytecode;
 use crate::compiler::asm::BaselineAssembler;
-use crate::compiler::codegen::fct_pattern_match;
+use crate::compiler::codegen::should_emit_bytecode;
 use crate::compiler::fct::JitFct;
 use crate::ty::TypeList;
 use crate::vm::{Fct, FctSrc, VM};
@@ -41,12 +41,4 @@ pub(super) fn compile<'a, 'ast: 'a>(
     .generate();
 
     JitFct::Base(jit_fct_base)
-}
-
-fn should_emit_bytecode(vm: &VM, fct: &Fct) -> bool {
-    if let Some(ref dbg_names) = vm.args.flag_emit_bytecode {
-        fct_pattern_match(vm, fct, dbg_names)
-    } else {
-        false
-    }
 }
