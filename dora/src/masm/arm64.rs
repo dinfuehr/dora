@@ -1126,14 +1126,14 @@ impl MacroAssembler {
     pub fn trap(&mut self, trap: Trap, pos: Position) {
         let vm = get_vm();
         self.load_int_const(MachineMode::Int32, REG_PARAMS[0], trap.int() as i64);
-        self.raw_call(vm.trap_thunk().to_ptr());
+        self.raw_call(vm.trap_stub().to_ptr());
         self.emit_lineno(pos.line as i32);
     }
 
     pub fn throw(&mut self, receiver: Reg, pos: Position) {
         let vm = get_vm();
         self.copy_reg(MachineMode::Ptr, REG_PARAMS[0], receiver);
-        self.raw_call(vm.throw_thunk().to_ptr());
+        self.raw_call(vm.throw_stub().to_ptr());
         self.emit_lineno(pos.line as i32);
     }
 

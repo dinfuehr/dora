@@ -30,19 +30,19 @@ impl CodeMap {
 
                     println!("dora {}", fct.full_name(vm));
                 }
-                &CodeDescriptor::CompilerThunk => println!("compiler_thunk"),
-                &CodeDescriptor::ThrowThunk => println!("throw_thunk"),
-                &CodeDescriptor::TrapThunk => println!("trap_thunk"),
-                &CodeDescriptor::AllocThunk => println!("alloc_thunk"),
-                &CodeDescriptor::VerifyThunk => println!("verify_thunk"),
-                &CodeDescriptor::NativeThunk(jit_fct_id) => {
+                &CodeDescriptor::CompileStub => println!("compile_stub"),
+                &CodeDescriptor::ThrowStub => println!("throw_stub"),
+                &CodeDescriptor::TrapStub => println!("trap_stub"),
+                &CodeDescriptor::AllocStub => println!("alloc_stub"),
+                &CodeDescriptor::VerifyStub => println!("verify_stub"),
+                &CodeDescriptor::NativeStub(jit_fct_id) => {
                     let jit_fct = vm.jit_fcts.idx(jit_fct_id);
                     let fct = vm.fcts.idx(jit_fct.fct_id());
                     let fct = fct.read();
 
-                    println!("native {}", fct.full_name(vm));
+                    println!("native stub {}", fct.full_name(vm));
                 }
-                &CodeDescriptor::DoraEntry => println!("dora_entry"),
+                &CodeDescriptor::DoraStub => println!("dora_stub"),
             }
         }
 
@@ -64,13 +64,13 @@ impl CodeMap {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum CodeDescriptor {
     DoraFct(JitFctId),
-    CompilerThunk,
-    ThrowThunk,
-    TrapThunk,
-    AllocThunk,
-    VerifyThunk,
-    NativeThunk(JitFctId),
-    DoraEntry,
+    CompileStub,
+    ThrowStub,
+    TrapStub,
+    AllocStub,
+    VerifyStub,
+    NativeStub(JitFctId),
+    DoraStub,
 }
 
 #[derive(Copy, Clone, Debug)]

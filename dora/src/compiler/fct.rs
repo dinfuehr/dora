@@ -69,13 +69,13 @@ impl JitFct {
 #[derive(Debug)]
 pub enum JitDescriptor {
     DoraFct(FctId),
-    CompilerThunk,
-    ThrowThunk,
-    TrapThunk,
-    AllocThunk,
-    VerifyThunk,
-    NativeThunk(FctId),
-    DoraEntry,
+    CompileStub,
+    ThrowStub,
+    TrapStub,
+    AllocStub,
+    VerifyStub,
+    NativeStub(FctId),
+    DoraStub,
 }
 
 pub struct JitBaselineFct {
@@ -177,7 +177,7 @@ impl JitBaselineFct {
 
     pub fn fct_id(&self) -> FctId {
         match self.desc {
-            JitDescriptor::NativeThunk(fct_id) => fct_id,
+            JitDescriptor::NativeStub(fct_id) => fct_id,
             JitDescriptor::DoraFct(fct_id) => fct_id,
             _ => panic!("no fctid found"),
         }

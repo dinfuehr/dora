@@ -4,12 +4,12 @@ use std::ptr;
 use std::sync::Arc;
 
 use crate::compiler;
-use crate::compiler::dora_compile;
-use crate::compiler::dora_entry;
-use crate::compiler::dora_native::{self, InternalFct, InternalFctDescriptor, NativeThunks};
-use crate::compiler::dora_throw;
+use crate::compiler::compile_stub;
+use crate::compiler::dora_stub;
 use crate::compiler::fct::JitFct;
 use crate::compiler::map::{CodeDescriptor, CodeMap};
+use crate::compiler::native_stub::{self, InternalFct, InternalFctDescriptor, NativeStubs};
+use crate::compiler::throw_stub;
 use crate::driver::cmd::Args;
 use crate::error::diag::Diagnostic;
 use crate::exception::DoraToNativeInfo;
@@ -100,14 +100,14 @@ pub struct VM<'ast> {
     pub code_map: Mutex<CodeMap>,              // stores all compiled functions
     pub globals: GrowableVec<Mutex<GlobalData>>, // stores all global variables
     pub gc: Gc,                                // garbage collector
-    pub native_thunks: Mutex<NativeThunks>,
+    pub native_stubs: Mutex<NativeStubs>,
     pub polling_page: PollingPage,
     pub lists: Mutex<TypeLists>,
     pub lambda_types: Mutex<LambdaTypes>,
-    pub compiler_thunk: Mutex<Address>,
-    pub dora_entry: Mutex<Address>,
-    pub trap_thunk: Mutex<Address>,
-    pub throw_thunk: Mutex<Address>,
+    pub compile_stub: Mutex<Address>,
+    pub dora_stub: Mutex<Address>,
+    pub trap_stub: Mutex<Address>,
+    pub throw_stub: Mutex<Address>,
     pub threads: Threads,
     pub safepoint: Safepoint,
 }
@@ -187,11 +187,11 @@ impl<'ast> VM<'ast> {
             polling_page: PollingPage::new(),
             lists: Mutex::new(TypeLists::new()),
             lambda_types: Mutex::new(LambdaTypes::new()),
-            native_thunks: Mutex::new(NativeThunks::new()),
-            compiler_thunk: Mutex::new(Address::null()),
-            dora_entry: Mutex::new(Address::null()),
-            trap_thunk: Mutex::new(Address::null()),
-            throw_thunk: Mutex::new(Address::null()),
+            native_stubs: Mutex::new(NativeStubs::new()),
+            compile_stub: Mutex::new(Address::null()),
+            dora_stub: Mutex::new(Address::null()),
+            trap_stub: Mutex::new(Address::null()),
+            throw_stub: Mutex::new(Address::null()),
             threads: Threads::new(),
             safepoint: Safepoint::new(),
         });
@@ -216,9 +216,9 @@ impl<'ast> VM<'ast> {
             Address::from_ptr(ptr as *const _)
         });
         let ptr = self.ensure_compiled(fct_id);
-        let dora_entry_thunk = self.dora_entry_thunk();
+        let dora_stub_address = self.dora_stub();
         let fct: extern "C" fn(Address, Address) -> i32 =
-            unsafe { mem::transmute(dora_entry_thunk) };
+            unsafe { mem::transmute(dora_stub_address) };
         fct(tld, ptr)
     }
 
@@ -230,9 +230,9 @@ impl<'ast> VM<'ast> {
             Address::from_ptr(ptr as *const _)
         });
         let ptr = self.ensure_compiled(fct_id);
-        let dora_entry_thunk = self.dora_entry_thunk();
+        let dora_stub_address = self.dora_stub();
         let fct: extern "C" fn(Address, Address, Ref<Testing>) -> i32 =
-            unsafe { mem::transmute(dora_entry_thunk) };
+            unsafe { mem::transmute(dora_stub_address) };
         fct(tld, ptr, testing);
     }
 
@@ -396,54 +396,54 @@ impl<'ast> VM<'ast> {
         BuiltinType::Class(cls_id, list_id)
     }
 
-    pub fn dora_entry_thunk(&self) -> Address {
-        let mut dora_entry_thunk = self.dora_entry.lock();
+    pub fn dora_stub(&self) -> Address {
+        let mut dora_stub_address = self.dora_stub.lock();
 
-        if dora_entry_thunk.is_null() {
-            *dora_entry_thunk = dora_entry::generate(self);
+        if dora_stub_address.is_null() {
+            *dora_stub_address = dora_stub::generate(self);
         }
 
-        *dora_entry_thunk
+        *dora_stub_address
     }
 
-    pub fn throw_thunk(&self) -> Address {
-        let mut throw_thunk = self.throw_thunk.lock();
+    pub fn throw_stub(&self) -> Address {
+        let mut throw_stub_address = self.throw_stub.lock();
 
-        if throw_thunk.is_null() {
-            *throw_thunk = dora_throw::generate(self);
+        if throw_stub_address.is_null() {
+            *throw_stub_address = throw_stub::generate(self);
         }
 
-        *throw_thunk
+        *throw_stub_address
     }
 
-    pub fn compiler_thunk(&self) -> Address {
-        let mut compiler_thunk = self.compiler_thunk.lock();
+    pub fn compile_stub(&self) -> Address {
+        let mut compile_stub_address = self.compile_stub.lock();
 
-        if compiler_thunk.is_null() {
-            *compiler_thunk = dora_compile::generate(self);
+        if compile_stub_address.is_null() {
+            *compile_stub_address = compile_stub::generate(self);
         }
 
-        *compiler_thunk
+        *compile_stub_address
     }
 
-    pub fn trap_thunk(&self) -> Address {
-        let mut trap_thunk = self.trap_thunk.lock();
+    pub fn trap_stub(&self) -> Address {
+        let mut trap_stub_address = self.trap_stub.lock();
 
-        if trap_thunk.is_null() {
+        if trap_stub_address.is_null() {
             let ifct = InternalFct {
                 ptr: Address::from_ptr(stdlib::trap as *const u8),
                 args: &[BuiltinType::Int],
                 return_type: BuiltinType::Unit,
                 throws: false,
-                desc: InternalFctDescriptor::TrapThunk,
+                desc: InternalFctDescriptor::TrapStub,
             };
-            let jit_fct_id = dora_native::generate(self, ifct, false);
+            let jit_fct_id = native_stub::generate(self, ifct, false);
             let jit_fct = self.jit_fcts.idx(jit_fct_id);
             let fct_ptr = jit_fct.fct_ptr();
-            *trap_thunk = fct_ptr;
+            *trap_stub_address = fct_ptr;
         }
 
-        *trap_thunk
+        *trap_stub_address
     }
 
     pub fn file(&self, idx: FileId) -> &File {

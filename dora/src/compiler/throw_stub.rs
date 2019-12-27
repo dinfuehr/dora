@@ -23,7 +23,7 @@ pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>) -> Address {
     vm.insert_code_map(
         jit_fct.ptr_start(),
         jit_fct.ptr_end(),
-        CodeDescriptor::ThrowThunk,
+        CodeDescriptor::ThrowStub,
     );
     let addr = jit_fct.fct_ptr();
 
@@ -130,6 +130,6 @@ where
         self.masm.jump_reg(REG_TMP1);
 
         self.masm
-            .jit(self.vm, framesize, JitDescriptor::ThrowThunk, false)
+            .jit(self.vm, framesize, JitDescriptor::ThrowStub, false)
     }
 }

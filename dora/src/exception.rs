@@ -157,7 +157,7 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, vm: &VM, pc: usize) -> boo
             true
         }
 
-        Some(CodeDescriptor::NativeThunk(fct_id)) => {
+        Some(CodeDescriptor::NativeStub(fct_id)) => {
             let jit_fct = vm.jit_fcts.idx(fct_id);
             let fct = vm.fcts.idx(jit_fct.fct_id());
             let fct = fct.read();
@@ -167,10 +167,10 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, vm: &VM, pc: usize) -> boo
             true
         }
 
-        Some(CodeDescriptor::TrapThunk) => true,
-        Some(CodeDescriptor::ThrowThunk) => true,
-        Some(CodeDescriptor::AllocThunk) => true,
-        Some(CodeDescriptor::DoraEntry) => false,
+        Some(CodeDescriptor::TrapStub) => true,
+        Some(CodeDescriptor::ThrowStub) => true,
+        Some(CodeDescriptor::AllocStub) => true,
+        Some(CodeDescriptor::DoraStub) => false,
 
         _ => {
             println!("data = {:?}, pc = {:x}", data, pc);
@@ -254,7 +254,7 @@ fn find_handler(
     };
 
     match data {
-        Some(CodeDescriptor::DoraFct(fct_id)) | Some(CodeDescriptor::NativeThunk(fct_id)) => {
+        Some(CodeDescriptor::DoraFct(fct_id)) | Some(CodeDescriptor::NativeStub(fct_id)) => {
             let jit_fct = vm.jit_fcts.idx(fct_id);
             let jit_fct = jit_fct.to_base().expect("baseline expected");
             let clsptr = exception.header().vtbl().classptr();
@@ -300,8 +300,8 @@ fn find_handler(
             HandlerFound::No
         }
 
-        Some(CodeDescriptor::DoraEntry) => HandlerFound::Stop,
-        Some(CodeDescriptor::ThrowThunk) => HandlerFound::No,
+        Some(CodeDescriptor::DoraStub) => HandlerFound::Stop,
+        Some(CodeDescriptor::ThrowStub) => HandlerFound::No,
 
         _ => {
             println!("data = {:?}", data);

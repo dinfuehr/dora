@@ -14,11 +14,11 @@ use crate::ty::{MachineMode, TypeList};
 use crate::vm::FctId;
 use crate::vm::{get_vm, VM};
 
-// This code generates the compiler thunk, there should only be one instance
+// This code generates the compiler stub, there should only be one instance
 // of this function be used in Dora. It is necessary for lazy compilation, where
 // functions are only compiled on their first invocation. The compiler can use
-// the address of this thunk for invocations of functions that have not been compiled
-// yet. The thunk compiles the function and patches the call site to invoke the
+// the address of this stub for invocations of functions that have not been compiled
+// yet. The stub compiles the function and patches the call site to invoke the
 // now-compiled function directly on the next invocation. In the end the function is
 // executed.
 
@@ -34,7 +34,7 @@ pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>) -> Address {
     vm.insert_code_map(
         jit_fct.ptr_start(),
         jit_fct.ptr_end(),
-        CodeDescriptor::CompilerThunk,
+        CodeDescriptor::CompileStub,
     );
     vm.jit_fcts.push(JitFct::Base(jit_fct));
 
@@ -136,7 +136,7 @@ where
         self.masm.jump_reg(REG_RESULT);
 
         self.masm
-            .jit(self.vm, framesize, JitDescriptor::CompilerThunk, false)
+            .jit(self.vm, framesize, JitDescriptor::CompileStub, false)
     }
 
     fn store_params(&mut self, mut offset: i32) {

@@ -263,7 +263,7 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
         size = InstanceSize::Fixed(mem::align_i32(csize, mem::ptr_width()));
     }
 
-    let stub = vm.compiler_thunk().to_usize();
+    let stub = vm.compile_stub().to_usize();
     let vtable_entries = vec![stub; cls.virtual_fcts.len()];
 
     let cls_def = vm.class_defs.idx(id);

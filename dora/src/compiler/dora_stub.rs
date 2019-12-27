@@ -20,7 +20,7 @@ pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>) -> Address {
     vm.insert_code_map(
         jit_fct.ptr_start(),
         jit_fct.ptr_end(),
-        CodeDescriptor::DoraEntry,
+        CodeDescriptor::DoraStub,
     );
     vm.jit_fcts.push(JitFct::Base(jit_fct));
 
@@ -70,6 +70,6 @@ where
         self.masm.epilog();
 
         self.masm
-            .jit(self.vm, framesize, JitDescriptor::DoraEntry, false)
+            .jit(self.vm, framesize, JitDescriptor::DoraStub, false)
     }
 }

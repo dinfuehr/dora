@@ -9,9 +9,9 @@ use capstone::prelude::*;
 
 use crate::baseline;
 use crate::cannon;
-use crate::compiler::dora_native::{self, InternalFct};
 use crate::compiler::fct::{CommentFormat, JitBaselineFct, JitFct};
 use crate::compiler::map::CodeDescriptor;
+use crate::compiler::native_stub::{self, InternalFct};
 use crate::cpu::{FReg, Reg, FREG_RESULT, REG_RESULT};
 use crate::driver::cmd::{AsmSyntax, CompilerName};
 use crate::gc::Address;
@@ -373,10 +373,10 @@ pub enum AllocationSize {
 }
 
 pub fn ensure_native_stub(vm: &VM, fct_id: Option<FctId>, internal_fct: InternalFct) -> Address {
-    let mut native_thunks = vm.native_thunks.lock();
+    let mut native_stubs = vm.native_stubs.lock();
     let ptr = internal_fct.ptr;
 
-    if let Some(jit_fct_id) = native_thunks.find_fct(ptr) {
+    if let Some(jit_fct_id) = native_stubs.find_fct(ptr) {
         let jit_fct = vm.jit_fcts.idx(jit_fct_id);
         jit_fct.fct_ptr()
     } else {
@@ -388,7 +388,7 @@ pub fn ensure_native_stub(vm: &VM, fct_id: Option<FctId>, internal_fct: Internal
             false
         };
 
-        let jit_fct_id = dora_native::generate(vm, internal_fct, dbg);
+        let jit_fct_id = native_stub::generate(vm, internal_fct, dbg);
         let jit_fct = vm.jit_fcts.idx(jit_fct_id);
         let jit_fct = jit_fct.to_base().expect("baseline expected");
 
@@ -410,7 +410,7 @@ pub fn ensure_native_stub(vm: &VM, fct_id: Option<FctId>, internal_fct: Internal
             }
         }
 
-        native_thunks.insert_fct(ptr, jit_fct_id);
+        native_stubs.insert_fct(ptr, jit_fct_id);
         fct_start
     }
 }

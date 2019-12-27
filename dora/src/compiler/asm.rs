@@ -3,8 +3,8 @@ use std::mem;
 use dora_parser::lexer::position::Position;
 
 use crate::compiler::codegen::{ensure_native_stub, AllocationSize, ExprStore};
-use crate::compiler::dora_native::{InternalFct, InternalFctDescriptor};
 use crate::compiler::fct::{CatchType, Comment, GcPoint, JitBaselineFct, JitDescriptor};
+use crate::compiler::native_stub::{InternalFct, InternalFctDescriptor};
 use crate::cpu::{FReg, Mem, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1};
 use crate::gc::tlab::TLAB_OBJECT_SIZE;
 use crate::gc::Address;
@@ -562,7 +562,7 @@ where
             args: &[BuiltinType::Ptr],
             return_type: BuiltinType::Ptr,
             throws: false,
-            desc: InternalFctDescriptor::AllocThunk,
+            desc: InternalFctDescriptor::AllocStub,
         };
 
         self.native_call(internal_fct, pos, gcpoint, dest.into());
@@ -583,7 +583,7 @@ where
             args: &[BuiltinType::Ptr, BuiltinType::Ptr],
             return_type: BuiltinType::Unit,
             throws: false,
-            desc: InternalFctDescriptor::VerifyThunk,
+            desc: InternalFctDescriptor::VerifyStub,
         };
 
         self.native_call(internal_fct, pos, gcpoint, REG_RESULT.into());

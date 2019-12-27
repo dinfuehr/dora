@@ -31,9 +31,9 @@ Options:
     --emit-bytecode=<fct>   Emits bytecode to stdout.
     --emit-stubs            Emits generated stubs.
     --emit-debug=<fct>      Emits debug instruction at beginning of functions.
-    --emit-debug-compile    Emits debug instruction at beginning of compile thunk.
-    --emit-debug-throw      Emits debug instruction at beginning of throw thunk.
-    --emit-debug-entry      Emits debug instruction at beginning of entry thunk.
+    --emit-debug-compile    Emits debug instruction at beginning of compile stub.
+    --emit-debug-throw      Emits debug instruction at beginning of throw stub.
+    --emit-debug-entry      Emits debug instruction at beginning of entry stub.
     --omit-bounds-check     Omit array index out of bounds checks.
     --check                 Only type check given program.
     --asm-syntax TYPE       Emits assembly with Intel or AT&T syntax.
