@@ -58,10 +58,52 @@ impl JitFct {
         }
     }
 
+    pub fn fct_end(&self) -> Address {
+        match self {
+            &JitFct::Base(ref base) => base.fct_end(),
+            &JitFct::Opt(_) => unimplemented!(),
+        }
+    }
+
+    pub fn fct_len(&self) -> usize {
+        match self {
+            &JitFct::Base(ref base) => base.fct_len(),
+            &JitFct::Opt(_) => unimplemented!(),
+        }
+    }
+
+    pub fn ptr_start(&self) -> Address {
+        match self {
+            &JitFct::Base(ref base) => base.ptr_start(),
+            &JitFct::Opt(_) => unimplemented!(),
+        }
+    }
+
+    pub fn ptr_end(&self) -> Address {
+        match self {
+            &JitFct::Base(ref base) => base.ptr_end(),
+            &JitFct::Opt(_) => unimplemented!(),
+        }
+    }
+
     pub fn to_base(&self) -> Option<&JitBaselineFct> {
         match self {
             &JitFct::Base(ref base) => Some(base),
-            _ => None,
+            &JitFct::Opt(_) => None,
+        }
+    }
+
+    pub fn gcpoint_for_offset(&self, offset: i32) -> Option<&GcPoint> {
+        match self {
+            &JitFct::Base(ref base) => base.gcpoint_for_offset(offset),
+            &JitFct::Opt(_) => unimplemented!(),
+        }
+    }
+
+    pub fn get_comment(&self, pos: i32) -> Option<&[Comment]> {
+        match self {
+            &JitFct::Base(ref base) => base.get_comment(pos),
+            &JitFct::Opt(_) => unimplemented!(),
         }
     }
 }

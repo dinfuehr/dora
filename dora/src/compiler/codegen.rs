@@ -8,8 +8,9 @@ use std::sync::Arc;
 use capstone::prelude::*;
 
 use crate::baseline;
+use crate::boots;
 use crate::cannon;
-use crate::compiler::fct::{CommentFormat, JitBaselineFct, JitFct};
+use crate::compiler::fct::{CommentFormat, JitFct};
 use crate::compiler::map::CodeDescriptor;
 use crate::compiler::native_stub::{self, NativeFct};
 use crate::cpu::{FReg, Reg, FREG_RESULT, REG_RESULT};
@@ -73,7 +74,7 @@ pub fn generate_fct<'ast>(
         CompilerName::Baseline => {
             baseline::compile(vm, &fct, src, cls_type_params, fct_type_params)
         }
-        CompilerName::Boots => unimplemented!(),
+        CompilerName::Boots => boots::compile(vm, &fct, src, cls_type_params, fct_type_params),
     };
 
     if vm.args.flag_enable_perf {
@@ -102,7 +103,7 @@ pub fn generate_fct<'ast>(
     let jit_fct_id = {
         let mut jit_fcts = vm.jit_fcts.lock();
         let jit_fct_id = jit_fcts.len().into();
-        jit_fcts.push(Arc::new(JitFct::Base(jit_fct)));
+        jit_fcts.push(Arc::new(jit_fct));
 
         jit_fct_id
     };
@@ -146,7 +147,7 @@ pub fn dump_asm<'ast>(
     fct: &Fct<'ast>,
     cls_type_params: &TypeList,
     fct_type_params: &TypeList,
-    jit_fct: &JitBaselineFct,
+    jit_fct: &JitFct,
     fct_src: Option<&FctSrc>,
     asm_syntax: AsmSyntax,
 ) {
@@ -390,9 +391,8 @@ pub fn ensure_native_stub(vm: &VM, fct_id: Option<FctId>, internal_fct: NativeFc
 
         let jit_fct_id = native_stub::generate(vm, internal_fct, dbg);
         let jit_fct = vm.jit_fcts.idx(jit_fct_id);
-        let jit_fct = jit_fct.to_base().expect("baseline expected");
 
-        let fct_start = jit_fct.fct_start;
+        let fct_ptr = jit_fct.fct_ptr();
 
         if let Some(fct_id) = fct_id {
             let fct = vm.fcts.idx(fct_id);
@@ -411,6 +411,6 @@ pub fn ensure_native_stub(vm: &VM, fct_id: Option<FctId>, internal_fct: NativeFc
         }
 
         native_stubs.insert_fct(ptr, jit_fct_id);
-        fct_start
+        fct_ptr
     }
 }

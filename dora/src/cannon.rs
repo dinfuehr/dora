@@ -3,7 +3,7 @@ use self::codegen::CannonCodeGen;
 use crate::bytecode;
 use crate::compiler::asm::BaselineAssembler;
 use crate::compiler::codegen::fct_pattern_match;
-use crate::compiler::fct::JitBaselineFct;
+use crate::compiler::fct::JitFct;
 use crate::ty::TypeList;
 use crate::vm::{Fct, FctSrc, VM};
 
@@ -15,14 +15,14 @@ pub(super) fn compile<'a, 'ast: 'a>(
     src: &'a FctSrc,
     cls_type_params: &TypeList,
     fct_type_params: &TypeList,
-) -> JitBaselineFct {
+) -> JitFct {
     let bytecode_fct = bytecode::generate(vm, fct, src, cls_type_params, fct_type_params);
 
     if should_emit_bytecode(vm, fct) {
         bytecode_fct.dump();
     }
 
-    CannonCodeGen::new(
+    let jit_fct_base = CannonCodeGen::new(
         vm,
         &fct,
         fct.ast,
@@ -38,7 +38,9 @@ pub(super) fn compile<'a, 'ast: 'a>(
         cls_type_params,
         fct_type_params,
     )
-    .generate()
+    .generate();
+
+    JitFct::Base(jit_fct_base)
 }
 
 fn should_emit_bytecode(vm: &VM, fct: &Fct) -> bool {

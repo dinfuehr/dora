@@ -19,6 +19,7 @@ macro_rules! offset_of {
 }
 
 mod baseline;
+mod boots;
 mod bytecode;
 mod cannon;
 mod compiler;
