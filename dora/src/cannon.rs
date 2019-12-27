@@ -1,6 +1,6 @@
 use self::codegen::CannonCodeGen;
 
-use crate::bytecode::astgen::generate_fct;
+use crate::bytecode::generator::generate_fct;
 use crate::compiler::asm::BaselineAssembler;
 use crate::compiler::codegen::fct_pattern_match;
 use crate::compiler::fct::JitBaselineFct;

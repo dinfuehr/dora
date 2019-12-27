@@ -1,10 +1,8 @@
 use dora_parser::ast::*;
 use std::collections::hash_map::HashMap;
 
-use crate::bytecode::generate::{
-    BytecodeFunction, BytecodeIdx, BytecodeType, Register, StrConstPoolIdx,
-};
-use crate::bytecode::opcode::Bytecode;
+use crate::bytecode::data::{Bytecode, BytecodeIdx, BytecodeType, Register};
+use crate::bytecode::writer::BytecodeFunction;
 use crate::compiler::asm::BaselineAssembler;
 use crate::compiler::codegen::should_emit_debug;
 use crate::compiler::codegen::ExprStore;
@@ -187,8 +185,8 @@ where
                 }
                 Bytecode::ConstFloat(dest, value) => self.emit_const_float(*dest, *value as f64),
                 Bytecode::ConstDouble(dest, value) => self.emit_const_float(*dest, *value),
-                Bytecode::ConstString(dest, sp) => {
-                    self.emit_const_string(*dest, *sp);
+                Bytecode::ConstString(dest, value) => {
+                    self.emit_const_string(*dest, value);
                 }
 
                 Bytecode::TestEqPtr(dest, lhs, rhs) => {
@@ -847,13 +845,11 @@ where
             .store_mem(bytecode_type.mode(), Mem::Local(offset), FREG_RESULT.into());
     }
 
-    fn emit_const_string(&mut self, dest: Register, sp: StrConstPoolIdx) {
+    fn emit_const_string(&mut self, dest: Register, lit_value: &String) {
         assert_eq!(self.bytecode.register(dest), BytecodeType::Ptr);
 
         let bytecode_type = self.bytecode.register(dest);
         let offset = self.bytecode.offset(dest);
-
-        let lit_value = self.bytecode.string(sp);
 
         let handle = Str::from_buffer_in_perm(self.vm, lit_value.as_bytes());
         let disp = self.asm.add_addr(handle.raw() as *const u8);

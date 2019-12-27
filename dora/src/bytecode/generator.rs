@@ -5,9 +5,8 @@ use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 
-use crate::bytecode::generate::{
-    BytecodeFunction, BytecodeGenerator, BytecodeType, Label, Register,
-};
+use crate::bytecode::data::{BytecodeType, Register};
+use crate::bytecode::writer::{BytecodeFunction, BytecodeWriter, Label};
 use crate::semck::expr_block_always_returns;
 use crate::semck::specialize::{specialize_class_id_params, specialize_class_ty, specialize_type};
 use crate::ty::{BuiltinType, TypeList};
@@ -54,7 +53,7 @@ pub fn generate_fct<'ast>(
         cls_type_params,
         fct_type_params,
 
-        gen: BytecodeGenerator::new(),
+        gen: BytecodeWriter::new(),
         loops: Vec::new(),
         var_registers: HashMap::new(),
     };
@@ -70,7 +69,7 @@ pub struct AstBytecodeGen<'a, 'ast: 'a> {
     cls_type_params: &'a TypeList,
     fct_type_params: &'a TypeList,
 
-    gen: BytecodeGenerator,
+    gen: BytecodeWriter,
     loops: Vec<LoopLabels>,
     var_registers: HashMap<VarId, Register>,
 }
@@ -351,9 +350,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let cls_id = specialize_class_id_params(self.vm, cls_id, &TypeList::Empty);
         self.gen.emit_new_object(start_reg, cls_id);
         let error_string_reg = start_reg.offset(1);
-        let error_string_index = self.gen.add_string_const_pool("assert failed".to_string());
         self.gen
-            .emit_const_string(error_string_reg, error_string_index);
+            .emit_const_string(error_string_reg, "assert failed".to_string());
 
         self.gen
             .emit_invoke_direct_void(fct_id, start_reg, num_args);
@@ -566,8 +564,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         } else {
             match ty {
                 BytecodeType::Byte => self.gen.emit_const_byte(dest, lit.value as u8),
-                BytecodeType::Int => self.gen.emit_const_int(dest, lit.value as u32),
-                BytecodeType::Long => self.gen.emit_const_long(dest, lit.value),
+                BytecodeType::Int => self.gen.emit_const_int(dest, lit.value as i32),
+                BytecodeType::Long => self.gen.emit_const_long(dest, lit.value as i64),
                 _ => unreachable!(),
             }
         }
@@ -610,10 +608,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
 
         let dest = self.ensure_register(dest, BytecodeType::Ptr);
-
-        let index = self.gen.add_string_const_pool(lit.value.clone());
-
-        self.gen.emit_const_string(dest, index);
+        self.gen.emit_const_string(dest, lit.value.clone());
 
         dest
     }
@@ -1073,9 +1068,10 @@ impl DataDest {
 
 #[cfg(test)]
 mod tests {
-    use crate::bytecode::astgen;
-    use crate::bytecode::generate::{BytecodeFunction, BytecodeIdx, Register, StrConstPoolIdx};
-    use crate::bytecode::opcode::Bytecode::*;
+    use crate::bytecode::data::Bytecode::*;
+    use crate::bytecode::data::{BytecodeIdx, Register};
+    use crate::bytecode::generator;
+    use crate::bytecode::writer::BytecodeFunction;
     use crate::test;
     use crate::ty::TypeList;
     use crate::vm::VM;
@@ -1084,7 +1080,7 @@ mod tests {
         test::parse(code, |vm| {
             let fct_id = vm.fct_by_name("f").expect("no function `f`.");
             let tp = TypeList::empty();
-            astgen::generate(vm, fct_id, &tp, &tp)
+            generator::generate(vm, fct_id, &tp, &tp)
         })
     }
 
@@ -1101,7 +1097,7 @@ mod tests {
                 .cls_method_by_name(class_name, "f", false)
                 .unwrap_or_else(|| panic!("no function `f` in Class `{}`.", class_name));
             let tp = TypeList::empty();
-            astgen::generate(vm, fct_id, &tp, &tp)
+            generator::generate(vm, fct_id, &tp, &tp)
         })
     }
 
@@ -1112,7 +1108,7 @@ mod tests {
         test::parse(code, |vm| {
             let fct_id = vm.fct_by_name("f").expect("no function `f`.");
             let tp = TypeList::empty();
-            let fct = astgen::generate(vm, fct_id, &tp, &tp);
+            let fct = generator::generate(vm, fct_id, &tp, &tp);
 
             testfct(vm, fct);
         })
@@ -1432,28 +1428,30 @@ mod tests {
     #[test]
     fn gen_expr_lit_string() {
         let fct = code("fun f() -> String { return \"z\"; }");
-        let expected = vec![ConstString(r(0), sp(0)), RetPtr(r(0))];
-        let expected_string_pool = vec!["z"];
+        let expected = vec![ConstString(r(0), "z".to_string()), RetPtr(r(0))];
         assert_eq!(expected, fct.code());
-        assert_eq!(expected_string_pool, fct.string_pool());
     }
 
     #[test]
     fn gen_expr_lit_string_duplicate() {
         let fct = code("fun f() { let a = \"z\"; let b = \"z\"; }");
-        let expected = vec![ConstString(r(0), sp(0)), ConstString(r(1), sp(0)), RetVoid];
-        let expected_string_pool = vec!["z"];
+        let expected = vec![
+            ConstString(r(0), "z".to_string()),
+            ConstString(r(1), "z".to_string()),
+            RetVoid,
+        ];
         assert_eq!(expected, fct.code());
-        assert_eq!(expected_string_pool, fct.string_pool());
     }
 
     #[test]
     fn gen_expr_lit_string_multiple() {
         let fct = code("fun f() { let a = \"z\"; let b = \"y\"; }");
-        let expected = vec![ConstString(r(0), sp(0)), ConstString(r(1), sp(1)), RetVoid];
-        let expected_string_pool = vec!["z", "y"];
+        let expected = vec![
+            ConstString(r(0), "z".to_string()),
+            ConstString(r(1), "y".to_string()),
+            RetVoid,
+        ];
         assert_eq!(expected, fct.code());
-        assert_eq!(expected_string_pool, fct.string_pool());
     }
 
     #[test]
@@ -2139,14 +2137,12 @@ mod tests {
                     ConstTrue(r(0)),
                     JumpIfTrue(r(0), bc(6)),
                     NewObject(r(1), cls_id),
-                    ConstString(r(2), sp(0)),
+                    ConstString(r(2), "assert failed".to_string()),
                     InvokeDirectVoid(ctor_id, r(1), 2),
                     Throw(r(1)),
                     RetVoid,
                 ];
-                let expected_string_pool = vec!["assert failed"];
                 assert_eq!(expected, fct.code());
-                assert_eq!(expected_string_pool, fct.string_pool());
             },
         );
     }
@@ -2162,14 +2158,12 @@ mod tests {
                 let ctor_id = vm.ctor_by_name("Exception");
                 let expected = vec![
                     NewObject(r(0), cls_id),
-                    ConstString(r(1), sp(0)),
+                    ConstString(r(1), "exception".to_string()),
                     InvokeDirectVoid(ctor_id, r(0), 2),
                     Throw(r(0)),
                     RetVoid,
                 ];
-                let expected_string_pool = vec!["exception"];
                 assert_eq!(expected, fct.code());
-                assert_eq!(expected_string_pool, fct.string_pool());
             },
         );
     }
@@ -2180,9 +2174,5 @@ mod tests {
 
     fn bc(val: usize) -> BytecodeIdx {
         BytecodeIdx(val)
-    }
-
-    fn sp(val: usize) -> StrConstPoolIdx {
-        StrConstPoolIdx(val)
     }
 }

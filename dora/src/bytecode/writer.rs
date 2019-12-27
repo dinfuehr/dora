@@ -1,149 +1,30 @@
-use std::collections::hash_map::HashMap;
-use std::convert::From;
-
-use std::fmt;
 use std::mem;
 
-use crate::mem as cratemem;
-
-use crate::bytecode::opcode::Bytecode;
-use crate::ty::{BuiltinType, MachineMode};
+use crate::bytecode::data::{Bytecode, BytecodeIdx, BytecodeInst, BytecodeType, Register};
+use crate::mem::align_i32;
 use crate::vm::{ClassDefId, FctId, FieldId, GlobalId};
-
-#[derive(Copy, Clone, PartialEq, Debug)]
-pub struct Register(pub usize);
-
-impl Register {
-    pub fn invalid() -> Register {
-        Register(usize::max_value())
-    }
-
-    pub fn zero() -> Register {
-        Register(0)
-    }
-
-    pub fn to_usize(&self) -> usize {
-        self.0
-    }
-
-    pub fn is_invalid(&self) -> bool {
-        self.0 == usize::max_value()
-    }
-
-    pub fn offset(&self, value: usize) -> Register {
-        Register(self.0 + value)
-    }
-}
-
-impl fmt::Display for Register {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "r{}", self.0)
-    }
-}
 
 #[derive(Copy, Clone, PartialEq, Debug, Eq, Hash)]
 pub struct Label(pub usize);
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct BytecodeIdx(pub usize);
-
-impl BytecodeIdx {
-    fn invalid() -> BytecodeIdx {
-        BytecodeIdx(usize::max_value())
-    }
-
-    fn is_invalid(&self) -> bool {
-        self.0 == usize::max_value()
-    }
-}
-
-impl fmt::Display for BytecodeIdx {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "bc#{}", self.0)
-    }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum BytecodeType {
-    Bool,
-    Byte,
-    Char,
-    Int,
-    Long,
-    Float,
-    Double,
-    Ptr,
-}
-
-impl BytecodeType {
-    pub fn size(&self) -> i32 {
-        match self {
-            BytecodeType::Bool => 1,
-            BytecodeType::Byte => 1,
-            BytecodeType::Char => 4,
-            BytecodeType::Int => 4,
-            BytecodeType::Long => 8,
-            BytecodeType::Float => 4,
-            BytecodeType::Double => 8,
-            BytecodeType::Ptr => cratemem::ptr_width(),
-        }
-    }
-
-    pub fn mode(&self) -> MachineMode {
-        match self {
-            BytecodeType::Bool => MachineMode::Int8,
-            BytecodeType::Byte => MachineMode::Int8,
-            BytecodeType::Char => MachineMode::Int32,
-            BytecodeType::Int => MachineMode::Int32,
-            BytecodeType::Long => MachineMode::Int64,
-            BytecodeType::Float => MachineMode::Float32,
-            BytecodeType::Double => MachineMode::Float64,
-            BytecodeType::Ptr => MachineMode::Ptr,
-        }
-    }
-}
-
-impl From<BuiltinType> for BytecodeType {
-    fn from(ty: BuiltinType) -> Self {
-        match ty {
-            BuiltinType::Bool => BytecodeType::Bool,
-            BuiltinType::Byte => BytecodeType::Byte,
-            BuiltinType::Char => BytecodeType::Char,
-            BuiltinType::Int => BytecodeType::Int,
-            BuiltinType::Long => BytecodeType::Long,
-            BuiltinType::Float => BytecodeType::Float,
-            BuiltinType::Double => BytecodeType::Double,
-            BuiltinType::Class(_, _) => BytecodeType::Ptr,
-            _ => panic!("BuiltinType cannot converted to BytecodeType"),
-        }
-    }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct StrConstPoolIdx(pub usize);
-
-impl fmt::Display for StrConstPoolIdx {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "str_idx#{}", self.0)
-    }
-}
-
-pub struct BytecodeGenerator {
+pub struct BytecodeWriter {
     code: Vec<Bytecode>,
+    data: Vec<u8>,
     labels: Vec<Option<BytecodeIdx>>,
     unresolved_jumps: Vec<(BytecodeIdx, Label)>,
     registers: Vec<BytecodeType>,
-    string_pool_map: HashMap<String, StrConstPoolIdx>,
+    const_pool: Vec<ConstPoolEntry>,
 }
 
-impl BytecodeGenerator {
-    pub fn new() -> BytecodeGenerator {
-        BytecodeGenerator {
+impl BytecodeWriter {
+    pub fn new() -> BytecodeWriter {
+        BytecodeWriter {
             code: Vec::new(),
+            data: Vec::new(),
             labels: Vec::new(),
             unresolved_jumps: Vec::new(),
             registers: Vec::new(),
-            string_pool_map: HashMap::new(),
+            const_pool: Vec::new(),
         }
     }
 
@@ -190,38 +71,47 @@ impl BytecodeGenerator {
 
     pub fn emit_add_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::AddInt(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::AddInt, dest, lhs, rhs);
     }
 
     pub fn emit_add_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::AddLong(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::AddLong, dest, lhs, rhs);
     }
 
     pub fn emit_add_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::AddFloat(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::AddFloat, dest, lhs, rhs);
     }
 
     pub fn emit_add_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::AddDouble(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::AddDouble, dest, lhs, rhs);
     }
 
     pub fn emit_and_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::AndInt(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::AndInt, dest, lhs, rhs);
     }
 
     pub fn emit_or_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::OrInt(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::OrInt, dest, lhs, rhs);
     }
 
     pub fn emit_xor_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::XorInt(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::XorInt, dest, lhs, rhs);
     }
 
     pub fn emit_div_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::DivInt(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::DivInt, dest, lhs, rhs);
     }
 
     pub fn emit_div_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::DivFloat(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::DivFloat, dest, lhs, rhs);
     }
 
     pub fn emit_load_field_bool(
@@ -233,6 +123,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::LoadFieldBool(dest, obj, cls, field));
+        self.emit_load_field(BytecodeInst::LoadFieldBool, dest, obj, cls, field);
     }
 
     pub fn emit_load_field_byte(
@@ -244,6 +135,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::LoadFieldByte(dest, obj, cls, field));
+        self.emit_load_field(BytecodeInst::LoadFieldByte, dest, obj, cls, field);
     }
 
     pub fn emit_load_field_char(
@@ -255,6 +147,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::LoadFieldChar(dest, obj, cls, field));
+        self.emit_load_field(BytecodeInst::LoadFieldChar, dest, obj, cls, field);
     }
 
     pub fn emit_load_field_int(
@@ -266,6 +159,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::LoadFieldInt(dest, obj, cls, field));
+        self.emit_load_field(BytecodeInst::LoadFieldInt, dest, obj, cls, field);
     }
 
     pub fn emit_load_field_long(
@@ -277,6 +171,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::LoadFieldLong(dest, obj, cls, field));
+        self.emit_load_field(BytecodeInst::LoadFieldLong, dest, obj, cls, field);
     }
 
     pub fn emit_load_field_float(
@@ -288,6 +183,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::LoadFieldFloat(dest, obj, cls, field));
+        self.emit_load_field(BytecodeInst::LoadFieldFloat, dest, obj, cls, field);
     }
 
     pub fn emit_load_field_double(
@@ -299,6 +195,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::LoadFieldDouble(dest, obj, cls, field));
+        self.emit_load_field(BytecodeInst::LoadFieldDouble, dest, obj, cls, field);
     }
 
     pub fn emit_load_field_ptr(
@@ -310,81 +207,93 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::LoadFieldPtr(dest, obj, cls, field));
+        self.emit_load_field(BytecodeInst::LoadFieldPtr, dest, obj, cls, field);
     }
 
     pub fn emit_const_nil(&mut self, dest: Register) {
         self.code.push(Bytecode::ConstNil(dest));
+        self.emit_reg1(BytecodeInst::ConstNil, dest);
     }
 
     pub fn emit_const_char(&mut self, dest: Register, value: char) {
         self.code.push(Bytecode::ConstChar(dest, value));
+        let idx = self.add_const(ConstPoolEntry::Char(value));
+        self.emit_reg1_idx(BytecodeInst::ConstChar, dest, idx);
     }
 
     pub fn emit_const_byte(&mut self, dest: Register, value: u8) {
         self.code.push(Bytecode::ConstByte(dest, value));
+        self.emit_reg1_byte(BytecodeInst::ConstByte, dest, value);
     }
 
-    pub fn emit_const_int(&mut self, dest: Register, value: u32) {
+    pub fn emit_const_int(&mut self, dest: Register, value: i32) {
         self.code.push(Bytecode::ConstInt(dest, value));
+        let idx = self.add_const(ConstPoolEntry::Int(value as i32));
+        self.emit_reg1_idx(BytecodeInst::ConstInt, dest, idx);
     }
 
-    pub fn emit_const_long(&mut self, dest: Register, value: u64) {
+    pub fn emit_const_long(&mut self, dest: Register, value: i64) {
         self.code.push(Bytecode::ConstLong(dest, value));
+        let idx = self.add_const(ConstPoolEntry::Long(value as i64));
+        self.emit_reg1_idx(BytecodeInst::ConstLong, dest, idx);
     }
 
     pub fn emit_const_float(&mut self, dest: Register, value: f32) {
         self.code.push(Bytecode::ConstFloat(dest, value));
+        let idx = self.add_const(ConstPoolEntry::Float32(value));
+        self.emit_reg1_idx(BytecodeInst::ConstFloat, dest, idx);
     }
 
     pub fn emit_const_double(&mut self, dest: Register, value: f64) {
         self.code.push(Bytecode::ConstDouble(dest, value));
+        let idx = self.add_const(ConstPoolEntry::Float64(value));
+        self.emit_reg1_idx(BytecodeInst::ConstDouble, dest, idx);
     }
 
-    pub fn add_string_const_pool(&mut self, value: String) -> StrConstPoolIdx {
-        match self.string_pool_map.get(&value) {
-            Some(index) => index.clone(),
-            None => {
-                let index = StrConstPoolIdx(self.string_pool_map.len());
-                self.string_pool_map.insert(value.clone(), index);
-                index
-            }
-        }
-    }
-
-    pub fn emit_const_string(&mut self, dest: Register, index: StrConstPoolIdx) {
-        self.code.push(Bytecode::ConstString(dest, index));
+    pub fn emit_const_string(&mut self, dest: Register, value: String) {
+        self.code.push(Bytecode::ConstString(dest, value.clone()));
+        let idx = self.add_const(ConstPoolEntry::String(value));
+        self.emit_reg1_idx(BytecodeInst::ConstDouble, dest, idx);
     }
 
     pub fn emit_const_zero_byte(&mut self, dest: Register) {
         self.code.push(Bytecode::ConstZeroByte(dest));
+        self.emit_reg1(BytecodeInst::ConstZeroByte, dest);
     }
 
     pub fn emit_const_zero_int(&mut self, dest: Register) {
         self.code.push(Bytecode::ConstZeroInt(dest));
+        self.emit_reg1(BytecodeInst::ConstZeroInt, dest);
     }
 
     pub fn emit_const_zero_long(&mut self, dest: Register) {
         self.code.push(Bytecode::ConstZeroLong(dest));
+        self.emit_reg1(BytecodeInst::ConstZeroLong, dest);
     }
 
     pub fn emit_const_zero_float(&mut self, dest: Register) {
         self.code.push(Bytecode::ConstZeroFloat(dest));
+        self.emit_reg1(BytecodeInst::ConstZeroFloat, dest);
     }
 
     pub fn emit_const_zero_double(&mut self, dest: Register) {
         self.code.push(Bytecode::ConstZeroDouble(dest));
+        self.emit_reg1(BytecodeInst::ConstZeroDouble, dest);
     }
 
     pub fn emit_const_true(&mut self, dest: Register) {
         self.code.push(Bytecode::ConstTrue(dest));
+        self.emit_reg1(BytecodeInst::ConstTrue, dest);
     }
 
     pub fn emit_const_false(&mut self, dest: Register) {
         self.code.push(Bytecode::ConstFalse(dest));
+        self.emit_reg1(BytecodeInst::ConstFalse, dest);
     }
 
     pub fn emit_not_bool(&mut self, dest: Register, src: Register) {
         self.code.push(Bytecode::NotBool(dest, src));
+        self.emit_reg2(BytecodeInst::NotBool, dest, src);
     }
 
     pub fn emit_jump_if_false(&mut self, opnd: Register, lbl: Label) {
@@ -418,202 +327,252 @@ impl BytecodeGenerator {
 
     pub fn emit_mod_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::ModInt(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::ModInt, dest, lhs, rhs);
     }
 
     pub fn emit_mul_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::MulInt(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::MulInt, dest, lhs, rhs);
     }
 
     pub fn emit_mul_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::MulFloat(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::MulFloat, dest, lhs, rhs);
     }
 
     pub fn emit_neg_int(&mut self, dest: Register, src: Register) {
         self.code.push(Bytecode::NegInt(dest, src));
+        self.emit_reg2(BytecodeInst::NegInt, dest, src);
     }
 
     pub fn emit_neg_long(&mut self, dest: Register, src: Register) {
         self.code.push(Bytecode::NegLong(dest, src));
+        self.emit_reg2(BytecodeInst::NegLong, dest, src);
     }
 
     pub fn emit_shl_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::ShlInt(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::ShlInt, dest, lhs, rhs);
     }
 
     pub fn emit_shr_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::ShrInt(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::ShrInt, dest, lhs, rhs);
     }
 
     pub fn emit_sar_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::SarInt(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::SarInt, dest, lhs, rhs);
     }
 
     pub fn emit_sub_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::SubInt(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::SubInt, dest, lhs, rhs);
     }
 
     pub fn emit_sub_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::SubFloat(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::SubFloat, dest, lhs, rhs);
     }
 
     pub fn emit_mov_bool(&mut self, dest: Register, src: Register) {
         self.code.push(Bytecode::MovBool(dest, src));
+        self.emit_reg2(BytecodeInst::MovBool, dest, src);
     }
 
     pub fn emit_mov_byte(&mut self, dest: Register, src: Register) {
         self.code.push(Bytecode::MovByte(dest, src));
+        self.emit_reg2(BytecodeInst::MovByte, dest, src);
     }
 
     pub fn emit_mov_char(&mut self, dest: Register, src: Register) {
         self.code.push(Bytecode::MovChar(dest, src));
+        self.emit_reg2(BytecodeInst::MovChar, dest, src);
     }
 
     pub fn emit_mov_int(&mut self, dest: Register, src: Register) {
         self.code.push(Bytecode::MovInt(dest, src));
+        self.emit_reg2(BytecodeInst::MovInt, dest, src);
     }
 
     pub fn emit_mov_long(&mut self, dest: Register, src: Register) {
         self.code.push(Bytecode::MovLong(dest, src));
+        self.emit_reg2(BytecodeInst::MovLong, dest, src);
     }
 
     pub fn emit_mov_float(&mut self, dest: Register, src: Register) {
         self.code.push(Bytecode::MovFloat(dest, src));
+        self.emit_reg2(BytecodeInst::MovFloat, dest, src);
     }
 
     pub fn emit_mov_double(&mut self, dest: Register, src: Register) {
         self.code.push(Bytecode::MovDouble(dest, src));
+        self.emit_reg2(BytecodeInst::MovDouble, dest, src);
     }
 
     pub fn emit_mov_ptr(&mut self, dest: Register, src: Register) {
         self.code.push(Bytecode::MovPtr(dest, src));
+        self.emit_reg2(BytecodeInst::MovPtr, dest, src);
     }
 
     pub fn emit_ret_bool(&mut self, src: Register) {
         self.code.push(Bytecode::RetBool(src));
+        self.emit_reg1(BytecodeInst::RetBool, src);
     }
 
     pub fn emit_ret_byte(&mut self, src: Register) {
         self.code.push(Bytecode::RetByte(src));
+        self.emit_reg1(BytecodeInst::RetByte, src);
     }
 
     pub fn emit_ret_char(&mut self, src: Register) {
         self.code.push(Bytecode::RetChar(src));
+        self.emit_reg1(BytecodeInst::RetChar, src);
     }
 
     pub fn emit_ret_int(&mut self, src: Register) {
         self.code.push(Bytecode::RetInt(src));
+        self.emit_reg1(BytecodeInst::RetInt, src);
     }
 
     pub fn emit_ret_long(&mut self, src: Register) {
         self.code.push(Bytecode::RetLong(src));
+        self.emit_reg1(BytecodeInst::RetLong, src);
     }
 
     pub fn emit_ret_float(&mut self, src: Register) {
         self.code.push(Bytecode::RetFloat(src));
+        self.emit_reg1(BytecodeInst::RetFloat, src);
     }
 
     pub fn emit_ret_double(&mut self, src: Register) {
         self.code.push(Bytecode::RetDouble(src));
+        self.emit_reg1(BytecodeInst::RetDouble, src);
     }
 
     pub fn emit_ret_ptr(&mut self, src: Register) {
         self.code.push(Bytecode::RetPtr(src));
+        self.emit_reg1(BytecodeInst::RetPtr, src);
     }
 
     pub fn emit_ret_void(&mut self) {
         self.code.push(Bytecode::RetVoid);
+        self.emit_op(BytecodeInst::RetVoid);
     }
 
     pub fn emit_test_eq_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::TestEqInt(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::TestEqInt, dest, lhs, rhs);
     }
 
     pub fn emit_test_eq_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::TestEqFloat(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::TestEqFloat, dest, lhs, rhs);
     }
 
     pub fn emit_test_eq_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::TestEqPtr(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::TestEqPtr, dest, lhs, rhs);
     }
 
     pub fn emit_test_ne_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::TestNeInt(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::TestNeInt, dest, lhs, rhs);
     }
 
     pub fn emit_test_ne_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::TestNeFloat(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::TestNeFloat, dest, lhs, rhs);
     }
 
     pub fn emit_test_ne_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::TestNePtr(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::TestNePtr, dest, lhs, rhs);
     }
 
     pub fn emit_test_gt_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::TestGtInt(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::TestGtInt, dest, lhs, rhs);
     }
 
     pub fn emit_test_gt_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::TestGtFloat(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::TestGtFloat, dest, lhs, rhs);
     }
 
     pub fn emit_test_ge_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::TestGeInt(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::TestGeInt, dest, lhs, rhs);
     }
 
     pub fn emit_test_ge_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::TestGeFloat(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::TestGeFloat, dest, lhs, rhs);
     }
 
     pub fn emit_test_lt_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::TestLtInt(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::TestLtInt, dest, lhs, rhs);
     }
 
     pub fn emit_test_lt_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::TestLtFloat(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::TestLtFloat, dest, lhs, rhs);
     }
 
     pub fn emit_test_le_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::TestLeInt(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::TestLeInt, dest, lhs, rhs);
     }
 
     pub fn emit_test_le_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.code.push(Bytecode::TestLeFloat(dest, lhs, rhs));
+        self.emit_reg3(BytecodeInst::TestLeFloat, dest, lhs, rhs);
     }
 
     pub fn emit_load_global_bool(&mut self, dest: Register, gid: GlobalId) {
         self.code.push(Bytecode::LoadGlobalBool(dest, gid));
+        self.emit_load_global(BytecodeInst::LoadGlobalBool, dest, gid);
     }
 
     pub fn emit_load_global_byte(&mut self, dest: Register, gid: GlobalId) {
         self.code.push(Bytecode::LoadGlobalByte(dest, gid));
+        self.emit_load_global(BytecodeInst::LoadGlobalByte, dest, gid);
     }
 
     pub fn emit_load_global_char(&mut self, dest: Register, gid: GlobalId) {
         self.code.push(Bytecode::LoadGlobalChar(dest, gid));
+        self.emit_load_global(BytecodeInst::LoadGlobalChar, dest, gid);
     }
 
     pub fn emit_load_global_int(&mut self, dest: Register, gid: GlobalId) {
         self.code.push(Bytecode::LoadGlobalInt(dest, gid));
+        self.emit_load_global(BytecodeInst::LoadGlobalInt, dest, gid);
     }
 
     pub fn emit_load_global_long(&mut self, dest: Register, gid: GlobalId) {
         self.code.push(Bytecode::LoadGlobalLong(dest, gid));
+        self.emit_load_global(BytecodeInst::LoadGlobalLong, dest, gid);
     }
 
     pub fn emit_load_global_float(&mut self, dest: Register, gid: GlobalId) {
         self.code.push(Bytecode::LoadGlobalFloat(dest, gid));
+        self.emit_load_global(BytecodeInst::LoadGlobalFloat, dest, gid);
     }
 
     pub fn emit_load_global_double(&mut self, dest: Register, gid: GlobalId) {
         self.code.push(Bytecode::LoadGlobalDouble(dest, gid));
+        self.emit_load_global(BytecodeInst::LoadGlobalDouble, dest, gid);
     }
 
     pub fn emit_load_global_ptr(&mut self, dest: Register, gid: GlobalId) {
         self.code.push(Bytecode::LoadGlobalPtr(dest, gid));
+        self.emit_load_global(BytecodeInst::LoadGlobalPtr, dest, gid);
     }
 
     pub fn emit_invoke_direct_void(&mut self, fid: FctId, start: Register, num: usize) {
         self.code.push(Bytecode::InvokeDirectVoid(fid, start, num));
+        self.emit_fct_void(BytecodeInst::InvokeDirectVoid, fid, start, num);
     }
 
     pub fn emit_invoke_direct_bool(
@@ -625,6 +584,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::InvokeDirectBool(dest, fid, start, num));
+        self.emit_fct(BytecodeInst::InvokeDirectBool, dest, fid, start, num);
     }
 
     pub fn emit_invoke_direct_byte(
@@ -636,6 +596,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::InvokeDirectByte(dest, fid, start, num));
+        self.emit_fct(BytecodeInst::InvokeDirectByte, dest, fid, start, num);
     }
 
     pub fn emit_invoke_direct_char(
@@ -647,6 +608,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::InvokeDirectChar(dest, fid, start, num));
+        self.emit_fct(BytecodeInst::InvokeDirectChar, dest, fid, start, num);
     }
 
     pub fn emit_invoke_direct_int(
@@ -658,6 +620,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::InvokeDirectInt(dest, fid, start, num));
+        self.emit_fct(BytecodeInst::InvokeDirectInt, dest, fid, start, num);
     }
 
     pub fn emit_invoke_direct_long(
@@ -669,6 +632,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::InvokeDirectLong(dest, fid, start, num));
+        self.emit_fct(BytecodeInst::InvokeDirectLong, dest, fid, start, num);
     }
 
     pub fn emit_invoke_direct_float(
@@ -680,6 +644,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::InvokeDirectFloat(dest, fid, start, num));
+        self.emit_fct(BytecodeInst::InvokeDirectFloat, dest, fid, start, num);
     }
 
     pub fn emit_invoke_direct_double(
@@ -691,6 +656,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::InvokeDirectDouble(dest, fid, start, num));
+        self.emit_fct(BytecodeInst::InvokeDirectDouble, dest, fid, start, num);
     }
 
     pub fn emit_invoke_direct_ptr(
@@ -702,10 +668,12 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::InvokeDirectPtr(dest, fid, start, num));
+        self.emit_fct(BytecodeInst::InvokeDirectPtr, dest, fid, start, num);
     }
 
     pub fn emit_invoke_virtual_void(&mut self, fid: FctId, start: Register, num: usize) {
         self.code.push(Bytecode::InvokeVirtualVoid(fid, start, num));
+        self.emit_fct_void(BytecodeInst::InvokeVirtualVoid, fid, start, num);
     }
 
     pub fn emit_invoke_virtual_bool(
@@ -717,6 +685,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::InvokeVirtualBool(dest, fid, start, num));
+        self.emit_fct(BytecodeInst::InvokeVirtualBool, dest, fid, start, num);
     }
 
     pub fn emit_invoke_virtual_byte(
@@ -728,6 +697,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::InvokeVirtualByte(dest, fid, start, num));
+        self.emit_fct(BytecodeInst::InvokeVirtualByte, dest, fid, start, num);
     }
 
     pub fn emit_invoke_virtual_char(
@@ -739,6 +709,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::InvokeVirtualChar(dest, fid, start, num));
+        self.emit_fct(BytecodeInst::InvokeVirtualChar, dest, fid, start, num);
     }
 
     pub fn emit_invoke_virtual_int(
@@ -750,6 +721,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::InvokeVirtualInt(dest, fid, start, num));
+        self.emit_fct(BytecodeInst::InvokeVirtualInt, dest, fid, start, num);
     }
 
     pub fn emit_invoke_virtual_long(
@@ -761,6 +733,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::InvokeVirtualLong(dest, fid, start, num));
+        self.emit_fct(BytecodeInst::InvokeVirtualLong, dest, fid, start, num);
     }
 
     pub fn emit_invoke_virtual_float(
@@ -772,6 +745,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::InvokeVirtualFloat(dest, fid, start, num));
+        self.emit_fct(BytecodeInst::InvokeVirtualFloat, dest, fid, start, num);
     }
 
     pub fn emit_invoke_virtual_double(
@@ -783,6 +757,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::InvokeVirtualDouble(dest, fid, start, num));
+        self.emit_fct(BytecodeInst::InvokeVirtualDouble, dest, fid, start, num);
     }
 
     pub fn emit_invoke_virtual_ptr(
@@ -794,10 +769,12 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::InvokeVirtualPtr(dest, fid, start, num));
+        self.emit_fct(BytecodeInst::InvokeVirtualPtr, dest, fid, start, num);
     }
 
     pub fn emit_invoke_static_void(&mut self, fid: FctId, start: Register, num: usize) {
         self.code.push(Bytecode::InvokeStaticVoid(fid, start, num));
+        self.emit_fct_void(BytecodeInst::InvokeStaticVoid, fid, start, num);
     }
 
     pub fn emit_invoke_static_bool(
@@ -809,6 +786,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::InvokeStaticBool(dest, fid, start, num));
+        self.emit_fct(BytecodeInst::InvokeStaticBool, dest, fid, start, num);
     }
 
     pub fn emit_invoke_static_byte(
@@ -820,6 +798,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::InvokeStaticByte(dest, fid, start, num));
+        self.emit_fct(BytecodeInst::InvokeStaticByte, dest, fid, start, num);
     }
 
     pub fn emit_invoke_static_char(
@@ -831,6 +810,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::InvokeStaticChar(dest, fid, start, num));
+        self.emit_fct(BytecodeInst::InvokeStaticChar, dest, fid, start, num);
     }
 
     pub fn emit_invoke_static_int(
@@ -842,6 +822,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::InvokeStaticInt(dest, fid, start, num));
+        self.emit_fct(BytecodeInst::InvokeStaticInt, dest, fid, start, num);
     }
 
     pub fn emit_invoke_static_long(
@@ -853,6 +834,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::InvokeStaticLong(dest, fid, start, num));
+        self.emit_fct(BytecodeInst::InvokeStaticLong, dest, fid, start, num);
     }
 
     pub fn emit_invoke_static_float(
@@ -864,6 +846,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::InvokeStaticFloat(dest, fid, start, num));
+        self.emit_fct(BytecodeInst::InvokeStaticFloat, dest, fid, start, num);
     }
 
     pub fn emit_invoke_static_double(
@@ -875,6 +858,7 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::InvokeStaticDouble(dest, fid, start, num));
+        self.emit_fct(BytecodeInst::InvokeStaticDouble, dest, fid, start, num);
     }
 
     pub fn emit_invoke_static_ptr(
@@ -886,14 +870,17 @@ impl BytecodeGenerator {
     ) {
         self.code
             .push(Bytecode::InvokeStaticPtr(dest, fid, start, num));
+        self.emit_fct(BytecodeInst::InvokeStaticPtr, dest, fid, start, num);
     }
 
-    pub fn emit_throw(&mut self, exception: Register) {
-        self.code.push(Bytecode::Throw(exception));
+    pub fn emit_throw(&mut self, opnd: Register) {
+        self.code.push(Bytecode::Throw(opnd));
+        self.emit_reg1(BytecodeInst::Throw, opnd);
     }
 
     pub fn emit_new_object(&mut self, dest: Register, cls_id: ClassDefId) {
         self.code.push(Bytecode::NewObject(dest, cls_id));
+        self.emit_new(BytecodeInst::NewObject, dest, cls_id);
     }
 
     pub fn generate(mut self) -> BytecodeFunction {
@@ -903,7 +890,7 @@ impl BytecodeGenerator {
             code: self.code,
             offset: generate_offset(&self.registers),
             registers: self.registers,
-            string_pool: generate_string_pool(self.string_pool_map),
+            const_pool: Vec::new(),
         }
     }
 
@@ -934,22 +921,155 @@ impl BytecodeGenerator {
             }
         }
     }
-}
 
-fn generate_string_pool(map: HashMap<String, StrConstPoolIdx>) -> Vec<String> {
-    let mut pool: Vec<String> = vec![String::new(); map.len()];
-    for (string_value, StrConstPoolIdx(index)) in map {
-        pool[index] = string_value;
+    fn emit_reg3(&mut self, inst: BytecodeInst, r1: Register, r2: Register, r3: Register) {
+        let values = [
+            inst as u32,
+            r1.to_usize() as u32,
+            r2.to_usize() as u32,
+            r3.to_usize() as u32,
+        ];
+        self.emit_values(&values);
     }
 
-    pool
+    fn emit_reg2(&mut self, inst: BytecodeInst, r1: Register, r2: Register) {
+        let values = [inst as u32, r1.to_usize() as u32, r2.to_usize() as u32];
+        self.emit_values(&values);
+    }
+
+    fn emit_reg1(&mut self, inst: BytecodeInst, r1: Register) {
+        let values = [inst as u32, r1.to_usize() as u32];
+        self.emit_values(&values);
+    }
+
+    fn emit_reg1_idx(&mut self, inst: BytecodeInst, r1: Register, idx: ConstPoolIdx) {
+        let values = [inst as u32, r1.to_usize() as u32, idx.to_usize() as u32];
+        self.emit_values(&values);
+    }
+
+    fn emit_reg1_byte(&mut self, inst: BytecodeInst, r1: Register, value: u8) {
+        let values = [inst as u32, r1.to_usize() as u32, value as u32];
+        self.emit_values(&values);
+    }
+
+    fn add_const(&mut self, value: ConstPoolEntry) -> ConstPoolIdx {
+        let idx = self.const_pool.len();
+        self.const_pool.push(value);
+        idx.into()
+    }
+
+    fn emit_new(&mut self, inst: BytecodeInst, r1: Register, cid: ClassDefId) {
+        let values = [inst as u32, r1.to_usize() as u32, cid.to_usize() as u32];
+        self.emit_values(&values);
+    }
+
+    fn emit_fct_void(&mut self, inst: BytecodeInst, fid: FctId, r1: Register, cnt: usize) {
+        let values = [
+            inst as u32,
+            fid.to_usize() as u32,
+            r1.to_usize() as u32,
+            cnt as u32,
+        ];
+        self.emit_values(&values);
+    }
+
+    fn emit_fct(&mut self, inst: BytecodeInst, r1: Register, fid: FctId, r2: Register, cnt: usize) {
+        let values = [
+            inst as u32,
+            r1.to_usize() as u32,
+            fid.to_usize() as u32,
+            r2.to_usize() as u32,
+            cnt as u32,
+        ];
+        self.emit_values(&values);
+    }
+
+    fn emit_load_field(
+        &mut self,
+        inst: BytecodeInst,
+        r1: Register,
+        r2: Register,
+        cid: ClassDefId,
+        fid: FieldId,
+    ) {
+        let values = [
+            inst as u32,
+            r1.to_usize() as u32,
+            r2.to_usize() as u32,
+            cid.to_usize() as u32,
+            fid.to_usize() as u32,
+        ];
+        self.emit_values(&values);
+    }
+
+    fn emit_load_global(&mut self, inst: BytecodeInst, r1: Register, gid: GlobalId) {
+        let values = [inst as u32, r1.to_usize() as u32, gid.to_usize() as u32];
+        self.emit_values(&values);
+    }
+
+    fn emit_op(&mut self, inst: BytecodeInst) {
+        let values = [inst as u32];
+        self.emit_values(&values);
+    }
+
+    fn emit_values(&mut self, values: &[u32]) {
+        if is_wide(values) {
+            self.emit_wide();
+            for &value in values {
+                self.emit_u32(value);
+            }
+        } else {
+            for &value in values {
+                self.emit_u8(value as u8);
+            }
+        }
+    }
+
+    fn emit_wide(&mut self) {
+        self.data.push(BytecodeInst::Wide as u8);
+    }
+
+    fn emit_u8(&mut self, value: u8) {
+        self.data.push(value);
+    }
+
+    fn emit_cond_jmp(&mut self, inst: BytecodeInst, cond: Register, offset: i32) {
+        if is_wide_u32(cond.to_usize() as u32) || is_wide_i32(offset) {
+            self.emit_wide();
+            self.emit_u32(inst as u32);
+            self.emit_u32(cond.to_usize() as u32);
+            self.emit_u32(offset as u32);
+        } else {
+            self.emit_u8(inst as u8);
+            self.emit_u8(cond.to_usize() as u8);
+            self.emit_u8(offset as u8);
+        }
+    }
+
+    fn emit_jmp(&mut self, inst: BytecodeInst, offset: i32) {
+        if is_wide_i32(offset) {
+            self.emit_wide();
+            self.emit_u32(inst as u32);
+            self.emit_u32(offset as u32);
+        } else {
+            self.emit_u8(inst as u8);
+            self.emit_u8(offset as u8);
+        }
+    }
+
+    fn emit_u32(&mut self, value: u32) {
+        self.data.push((value & 0xFF) as u8);
+        self.data.push(((value >> 8) & 0xFF) as u8);
+        self.data.push(((value >> 16) & 0xFF) as u8);
+        self.data.push(((value >> 24) & 0xFF) as u8);
+    }
 }
 
 fn generate_offset(registers: &Vec<BytecodeType>) -> Vec<i32> {
     let mut offset: Vec<i32> = vec![0; registers.len()];
     let mut stacksize: i32 = 0;
     for (index, ty) in registers.iter().enumerate() {
-        stacksize = cratemem::align_i32(stacksize + ty.size(), ty.size());
+        stacksize = align_i32(stacksize + ty.size(), ty.size());
         offset[index] = -stacksize;
     }
 
@@ -959,21 +1079,13 @@ fn generate_offset(registers: &Vec<BytecodeType>) -> Vec<i32> {
 pub struct BytecodeFunction {
     code: Vec<Bytecode>,
     registers: Vec<BytecodeType>,
-    string_pool: Vec<String>,
+    const_pool: Vec<ConstPoolEntry>,
     offset: Vec<i32>,
 }
 
 impl BytecodeFunction {
     pub fn code(&self) -> &[Bytecode] {
         &self.code
-    }
-
-    pub fn string_pool(&self) -> &[String] {
-        &self.string_pool
-    }
-
-    pub fn string(&self, sp: StrConstPoolIdx) -> &String {
-        self.string_pool().get(sp.0).expect("string not found")
     }
 
     pub fn registers(&self) -> &[BytecodeType] {
@@ -991,7 +1103,7 @@ impl BytecodeFunction {
     pub fn stacksize(&self) -> i32 {
         match self.offset.last() {
             None => 0,
-            Some(stacksize) => cratemem::align_i32(-(*stacksize), 16),
+            Some(stacksize) => align_i32(-(*stacksize), 16),
         }
     }
 
@@ -1348,5 +1460,41 @@ impl BytecodeFunction {
             }
             btidx = btidx + 1;
         }
+    }
+}
+
+fn is_wide(values: &[u32]) -> bool {
+    values.iter().any(|&val| val > u8::max_value() as u32)
+}
+
+fn is_wide_u32(value: u32) -> bool {
+    value > u8::max_value() as u32
+}
+
+fn is_wide_i32(value: i32) -> bool {
+    i8::min_value() as i32 <= value && value <= i8::max_value() as i32
+}
+
+pub enum ConstPoolEntry {
+    String(String),
+    Float32(f32),
+    Float64(f64),
+    Int(i32),
+    Long(i64),
+    Char(char),
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct ConstPoolIdx(usize);
+
+impl ConstPoolIdx {
+    pub fn to_usize(self) -> usize {
+        self.0
+    }
+}
+
+impl From<usize> for ConstPoolIdx {
+    fn from(value: usize) -> Self {
+        ConstPoolIdx(value)
     }
 }
