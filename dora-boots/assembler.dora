@@ -1,0 +1,33 @@
+class AssemblerBuffer {
+    let buffer: Vec[Byte] = Vec[Byte]();
+    let slow_paths: Vec[SlowPath] = Vec[SlowPath]();
+
+    fun emitByte(value: Byte) {
+        self.buffer.push(value);
+    }
+
+    fun addSlowPath(slow_path: SlowPath) {
+        self.slow_paths.push(slow_path);
+    }
+
+    fun length() -> Int {
+        self.buffer.length()
+    }
+
+    fun capacity() -> Int {
+        self.buffer.capacity()
+    }
+}
+
+@test fun add_to_assembler_buffer(_x: Testing) {
+    let buffer = AssemblerBuffer();
+    buffer.emitByte(0x01Y);
+    buffer.emitByte(0x02Y);
+    assert(buffer.length() == 2);
+}
+
+@open @abstract class SlowPath {
+    @abstract fun emit(asm: Assembler);
+}
+
+class Assembler
