@@ -7,7 +7,7 @@ require 'open3'
 
 $config = {
   :main => '',
-  :cannon => '--bc=cannon'
+  :cannon => '--compiler=cannon'
 }
 
 $ARGS = ARGV.clone

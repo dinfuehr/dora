@@ -56,7 +56,7 @@ Options:
     --gc-young-appel        Use Appel dynamic resizing of young generation.
     --gc-semi-ratio=<num>   Use fixed ratio of semi space in young generation.
 
-    --bc=<name>             Switch Baseline Compiler. Possible values: cannon, astcompiler [default: astcompiler].
+    --compiler=<name>       Switch default compiler. Possible values: cannon, baseline [default: baseline].
 
     --disable-tlab          Disable tlab allocation.
     --disable-barrier       Disable barriers.
@@ -67,6 +67,7 @@ Options:
     --perm-size=<SIZE>      Set perm size limit.
 
     --stdlib=<path>         Load standard library from the given path.
+    --boots=<path>          Load boots source from the given path.
 ";
 
 #[derive(Debug, RustcDecodable)]
@@ -112,6 +113,7 @@ pub struct Args {
     pub flag_disable_tlab: bool,
     pub flag_disable_barrier: bool,
     pub flag_stdlib: Option<String>,
+    pub flag_boots: Option<String>,
 
     pub cmd_test: bool,
 }
@@ -215,6 +217,7 @@ impl Default for Args {
             flag_disable_tlab: false,
             flag_disable_barrier: false,
             flag_stdlib: None,
+            flag_boots: None,
 
             cmd_test: false,
         }

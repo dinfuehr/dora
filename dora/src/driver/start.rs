@@ -114,6 +114,12 @@ fn parse_all_files(vm: &mut VM, ast: &mut Ast, content: Option<&str>) -> Result<
         parse_bundled_stdlib(vm, ast)?;
     }
 
+    let boots_dir = vm.args.flag_boots.clone();
+
+    if let Some(boots) = boots_dir {
+        parse_dir(&boots, vm, ast)?;
+    }
+
     if fuzzing {
         return parse_str(content.unwrap(), vm, ast);
     }
