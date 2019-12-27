@@ -30,4 +30,37 @@ class AssemblerBuffer {
     @abstract fun emit(asm: Assembler);
 }
 
-class Assembler
+@open @abstract class Assembler
+
+class Register(let value: Int) {
+    fun lowBits() -> Int {
+        self.value & 0b111
+    }
+
+    fun needsRexBit() -> Bool {
+        self.value > 7
+    }
+}
+
+class AssemblerX64: Assembler {
+    let buffer: AssemblerBuffer = AssemblerBuffer();
+
+    fun pushq_r(reg: Register) {
+        unimplemented();
+    }
+
+    fun emitRexIfNeeded(reg: Register) {
+        if reg.needsRexBit() {
+            self.emitRex(false, false, false, true);
+        }
+    }
+
+    fun emitRex(w: Bool, r: Bool, x: Bool, b: Bool) {
+        let opcode = 0x40 | w.toInt() << 3 | r.toInt() << 2 | x.toInt() << 1 | b.toInt();
+        self.emitByte(opcode.toByte());
+    }
+
+    fun emitByte(value: Byte) {
+        self.buffer.emitByte(value);
+    }
+}
