@@ -37,6 +37,12 @@ class Vec[T] {
     self.length = self.length + 1;
   }
 
+  fun toArray() -> Array[T] {
+    let newarray = Array[T](self.length);
+    arrayCopy[T](self.array, 0, newarray, 0, self.length);
+    newarray
+  }
+
   fun pop() -> T {
     if self.length == 0 {
       fatalError("no element left to pop");

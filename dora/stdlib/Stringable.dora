@@ -29,3 +29,7 @@ impl Stringable for Double {
 impl Stringable for String {
   fun toString() -> String = self.toString();
 }
+
+impl Stringable for Char {
+  fun toString() -> String = self.toString();
+}

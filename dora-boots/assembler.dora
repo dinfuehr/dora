@@ -17,6 +17,10 @@ class AssemblerBuffer {
     fun capacity() -> Int {
         self.buffer.capacity()
     }
+
+    fun toArray() -> Array[Byte] {
+        self.buffer.toArray()
+    }
 }
 
 @test fun add_to_assembler_buffer(_x: Testing) {
@@ -42,25 +46,228 @@ class Register(let value: Int) {
     }
 }
 
+var RAX: Register;
+var RCX: Register;
+var RDX: Register;
+var RBX: Register;
+var RSP: Register;
+var RBP: Register;
+var RSI: Register;
+var RDI: Register;
+
+var R8: Register;
+var R9: Register;
+var R10: Register;
+var R11: Register;
+var R12: Register;
+var R13: Register;
+var R14: Register;
+var R15: Register;
+
+fun setupAssemblerRegisters() {
+    if RAX !== nil { return; }
+    RAX = Register(0);
+    RCX = Register(1);
+    RDX = Register(2);
+    RBX = Register(3);
+    RSP = Register(4);
+    RBP = Register(5);
+    RSI = Register(6);
+    RDI = Register(7);
+
+    R8 = Register(8);
+    R9 = Register(9);
+    R10 = Register(10);
+    R11 = Register(11);
+    R12 = Register(12);
+    R13 = Register(13);
+    R14 = Register(14);
+    R15 = Register(15);
+}
+
 class AssemblerX64: Assembler {
     let buffer: AssemblerBuffer = AssemblerBuffer();
 
     fun pushq_r(reg: Register) {
-        unimplemented();
+        self.emitRexOptional(reg);
+        self.emitByte((0x50 + reg.lowBits()).toByte());
     }
 
-    fun emitRexIfNeeded(reg: Register) {
+    fun popq_r(reg: Register) {
+        self.emitRexOptional(reg);
+        self.emitByte((0x58 + reg.lowBits()).toByte());
+    }
+
+    fun movq_rr(dest: Register, src: Register) {
+        self.emitRex64(src, dest);
+        self.emitByte(0x89Y);
+        self.emitModRmReg(src.lowBits(), dest.lowBits());
+    }
+
+    fun retq() {
+        self.emitByte(0xC3Y);
+    }
+
+    fun emitRexOptional(reg: Register) {
         if reg.needsRexBit() {
             self.emitRex(false, false, false, true);
         }
     }
 
+    fun emitRex64(modrm_reg: Register, modrm_rm: Register) {
+        self.emitRex(true, modrm_reg.needsRexBit(), false, modrm_rm.needsRexBit());
+    }
+
     fun emitRex(w: Bool, r: Bool, x: Bool, b: Bool) {
+        // w - 64-bit width
+        // r - extension of modrm-reg field
+        // x - extension of sib index field
+        // b - extension of modrm-rm/sib base/opcode reg field
         let opcode = 0x40 | w.toInt() << 3 | r.toInt() << 2 | x.toInt() << 1 | b.toInt();
         self.emitByte(opcode.toByte());
+    }
+
+    fun emitModRmReg(reg: Int, rm: Int) {
+        self.emitModRm(0b11, reg, rm);
+    }
+
+    fun emitModRm(mode: Int, reg: Int, rm: Int) {
+        assert(mode < 4 && reg < 8 && rm < 8);
+        self.emitByte((mode << 6 | reg << 3 | rm).toByte());
+    }
+
+    fun emitSib(scale: Int, index: Int, base: Int) {
+        assert(scale < 4);
+        assert(index < 8);
+        assert(base < 8);
+        self.emitByte((scale << 6 | index << 3 | base).toByte());
     }
 
     fun emitByte(value: Byte) {
         self.buffer.emitByte(value);
     }
+
+    fun finalize() -> Array[Byte] {
+        self.buffer.toArray()
+    }
+
+    setupAssemblerRegisters();
+}
+
+@test fun test_asm_registers() {
+    setupAssemblerRegisters();
+
+    assert(RAX.lowBits() == 0 && !RAX.needsRexBit());
+    assert(RCX.lowBits() == 1 && !RCX.needsRexBit());
+    assert(RDX.lowBits() == 2 && !RDX.needsRexBit());
+    assert(RBX.lowBits() == 3 && !RBX.needsRexBit());
+    assert(RSP.lowBits() == 4 && !RSP.needsRexBit());
+    assert(RBP.lowBits() == 5 && !RBP.needsRexBit());
+    assert(RSI.lowBits() == 6 && !RSI.needsRexBit());
+    assert(RDI.lowBits() == 7 && !RDI.needsRexBit());
+
+    assert(R8.lowBits() == 0 && R8.needsRexBit());
+    assert(R9.lowBits() == 1 && R9.needsRexBit());
+    assert(R10.lowBits() == 2 && R10.needsRexBit());
+    assert(R11.lowBits() == 3 && R11.needsRexBit());
+    assert(R12.lowBits() == 4 && R12.needsRexBit());
+    assert(R13.lowBits() == 5 && R13.needsRexBit());
+    assert(R14.lowBits() == 6 && R14.needsRexBit());
+    assert(R15.lowBits() == 7 && R15.needsRexBit());
+}
+
+@test fun test_asm_pushq_r(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.pushq_r(RAX);
+    asm.pushq_r(RSP);
+    asm.pushq_r(R8);
+    asm.pushq_r(R15);
+    let buffer = asm.finalize();
+    asm1(buffer, 0, 0x50Y);
+    asm1(buffer, 1, 0x54Y);
+    asm2(buffer, 2, 0x41Y, 0x50Y);
+    asm2(buffer, 4, 0x41Y, 0x57Y);
+    assert(buffer.length() == 6);
+}
+
+@test fun test_asm_popq_r(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.popq_r(RAX);
+    asm.popq_r(RSP);
+    asm.popq_r(R8);
+    asm.popq_r(R15);
+    let buffer = asm.finalize();
+    asm1(buffer, 0, 0x58Y);
+    asm1(buffer, 1, 0x5CY);
+    asm2(buffer, 2, 0x41Y, 0x58Y);
+    asm2(buffer, 4, 0x41Y, 0x5FY);
+    assert(buffer.length() == 6);
+}
+
+@test fun test_asm_movq_rr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.movq_rr(R15, RAX);
+    asm.movq_rr(RAX, R15);
+    let buffer = asm.finalize();
+    asm3(buffer, 0, 0x49Y, 0x89Y, 0xC7Y);
+    asm3(buffer, 3, 0x4CY, 0x89Y, 0xF8Y);
+    assert(buffer.length() == 6);
+}
+
+@test fun test_asm_retq(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.retq();
+    let buffer = asm.finalize();
+    asm1(buffer, 0, 0xC3Y);
+    assert(buffer.length() == 1);
+}
+
+fun asm1(buffer: Array[Byte], index: Int, val: Byte) {
+    assert(buffer(index) == val);
+}
+
+fun asm2(buffer: Array[Byte], index: Int, val1: Byte, val2: Byte) {
+    assert(buffer(index) == val1 && buffer(index+1) == val2);
+}
+
+fun asm3(buffer: Array[Byte], index: Int, val1: Byte, val2: Byte, val3: Byte) {
+    assert(buffer(index) == val1 && buffer(index+1) == val2 && buffer(index+2) == val3);
+}
+
+fun printBuffer(buffer: Array[Byte]) {
+    var i = 0;
+
+    while i < buffer.length() {
+        let val = buffer(i);
+        if i > 0 { print(" "); }
+        print(intToHexString(val.toInt(), 2));
+        i = i + 1;
+    }
+}
+
+fun intToHexString(var val: Int, padding: Int) -> String {
+    var result = "";
+
+    while val != 0 {
+        let digit = val & 0xF;
+        val = val >>> 4;
+
+        let digit = if digit < 10 {
+            try! (48 + digit).toChar()
+        } else {
+            try! (65 + digit - 10).toChar()
+        };
+
+        result = "${digit}${result}";
+    }
+
+    if result.isEmpty() {
+        result = "0";
+    }
+
+    while result.length() < padding {
+        result = "0${result}";
+    }
+
+    return result;
 }
