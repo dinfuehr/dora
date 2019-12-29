@@ -1,0 +1,17 @@
+class BytecodeFunction(let data: Array[Byte], let const_pool: Array[ConstPoolEntry])
+
+@open @abstract class ConstPoolEntry
+
+class ConstPoolInt(let value: Int): ConstPoolEntry
+class ConstPoolLong(let value: Long): ConstPoolEntry
+class ConstPoolString(let value: String): ConstPoolEntry
+class ConstPoolChar(let value: Char): ConstPoolEntry
+
+class BytecodeRegister(let value: Int)
+
+trait BytecodeVisitor {
+    fun visitAddInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    fun visitAddLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    fun visitAddFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    fun visitAddDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+}

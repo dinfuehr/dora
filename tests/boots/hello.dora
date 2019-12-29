@@ -2,6 +2,8 @@
 
 fun main() {
     f();
+    // assert(g() == 17);
 }
 
 @optimize_immediately fun f() {}
+@optimize_immediately fun g() -> Int { 17 }
