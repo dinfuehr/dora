@@ -1,4 +1,4 @@
-//= ignore
+//= boots
 
 fun main() {
     f();

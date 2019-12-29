@@ -1,3 +1,24 @@
 fun compile(bytecode: Array[Byte]) -> Array[Byte] {
-    nil
+    CodeGen().generate()
+}
+
+class CodeGen {
+    let asm: AssemblerX64 = AssemblerX64();
+
+    fun prolog() {
+        self.asm.pushq_r(RBP);
+        self.asm.movq_rr(RBP, RSP);
+    }
+
+    fun epilog() {
+        self.asm.movq_rr(RSP, RBP);
+        self.asm.popq_r(RBP);
+        self.asm.retq();
+    }
+
+    fun generate() -> Array[Byte] {
+        self.prolog();
+        self.epilog();
+        self.asm.finalize()
+    }
 }

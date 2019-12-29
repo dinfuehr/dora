@@ -6,8 +6,8 @@ require 'thread'
 require 'open3'
 
 $config = {
-  :main => '',
-  :cannon => '--compiler=cannon'
+  main: '',
+  cannon: '--compiler=cannon',
 }
 
 $ARGS = ARGV.clone
@@ -382,6 +382,9 @@ def parse_test_file(file)
 
       when "cannon"
         test_case.optional_configs.push(:cannon)
+
+      when "boots"
+        test_case.args += '--boots=dora-boots'
 
       else
         raise "unkown expectation in #{file}: #{line}"

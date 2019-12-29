@@ -143,6 +143,30 @@ pub struct JitBaselineFct {
 }
 
 impl JitBaselineFct {
+    pub fn from_optimized_buffer(
+        vm: &VM,
+        buffer: &[u8],
+        desc: JitDescriptor,
+        throws: bool,
+    ) -> JitBaselineFct {
+        let dseg = DSeg::new();
+
+        JitBaselineFct::from_buffer(
+            vm,
+            &dseg,
+            buffer,
+            Bailouts::new(),
+            HashSet::new(),
+            GcPoints::new(),
+            0,
+            Comments::new(),
+            LineNumberTable::new(),
+            desc,
+            throws,
+            Vec::new(),
+        )
+    }
+
     pub fn from_buffer(
         vm: &VM,
         dseg: &DSeg,
