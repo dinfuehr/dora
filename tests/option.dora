@@ -1,7 +1,7 @@
 fun main() {
   let x = none[Int]();
-  assert(x.is_none());
-  assert(!x.is_some());
+  assert(x.isNone());
+  assert(!x.isSome());
   assert(!x.has(0));
   assert(!optionContains[Int](x, 0));
   assert(optionEquals[Int](x, none[Int]()));
@@ -9,8 +9,8 @@ fun main() {
   assert(optionToString[Int](x) == "None");
 
   let x = some[Int](1);
-  assert(x.is_some());
-  assert(!x.is_none());
+  assert(x.isSome());
+  assert(!x.isNone());
   assert(x.unwrap() == 1);
   assert(x.has(1));
   assert(optionContains[Int](x, 1));
