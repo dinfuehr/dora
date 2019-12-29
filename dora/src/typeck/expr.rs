@@ -196,7 +196,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_stmt_while(&mut self, s: &'ast StmtWhileType) {
         self.visit_expr(&s.cond);
 
-        if self.expr_type != BuiltinType::Bool {
+        if !self.expr_type.is_error() && !self.expr_type.is_bool() {
             let expr_type = self.expr_type.name(self.vm);
             let msg = SemError::WhileCondType(expr_type);
             self.vm.diag.lock().report(self.file, s.pos, msg);
@@ -302,7 +302,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_if(&mut self, expr: &'ast ExprIfType) {
         self.visit_expr(&expr.cond);
 
-        if self.expr_type != BuiltinType::Bool && !self.expr_type.is_error() {
+        if !self.expr_type.is_bool() && !self.expr_type.is_error() {
             let expr_type = self.expr_type.name(self.vm);
             let msg = SemError::IfCondType(expr_type);
             self.vm.diag.lock().report(self.file, expr.pos, msg);

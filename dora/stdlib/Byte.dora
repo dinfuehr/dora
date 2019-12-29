@@ -7,4 +7,12 @@
   @internal fun compareTo(rhs: Byte) -> Int;
 
   fun hash() -> Int = self.toInt();
+
+  @static fun max_value() -> Byte {
+    return 255Y;
+  }
+
+  @static fun min_value() -> Byte {
+    return 0Y;
+  }
 }
