@@ -42,6 +42,43 @@
   @internal fun unaryMinus() -> Long;
   @internal fun not() -> Long;
 
+  @internal fun countZeroBits() -> Int = self.not().countOneBits();
+  @internal fun countOneBits() -> Int {
+    var x = self;
+    var c = 0;
+    while (x != 0L) {
+      c = c + 1;
+      x = x.bitwiseAnd(x - 1L);
+    }
+    return c;
+  }
+  @internal fun countZeroBitsLeading() -> Int {
+    if self == 0L {
+      return Long::bits();
+    }
+    var t = 1L.shiftLeft(Long::bits() - 1);
+    var r = 0;
+    while (self.bitwiseAnd(t)) == 0L {
+      t = t.shiftRight(1);
+      r = r + 1;
+    }
+    return r;
+  }
+  @internal fun countOneBitsLeading() -> Int = self.not().countZeroBitsLeading();
+  @internal fun countZeroBitsTrailing() -> Int {
+    if self == 0L {
+      return Long::bits();
+    }
+    var t = 1L;
+    var r = 0;
+    while (self.bitwiseAnd(t)) == 0L {
+      t = t.shiftLeft(1);
+      r = r + 1
+    }
+    return r;
+  }
+  @internal fun countOneBitsTrailing() -> Int = self.not().countZeroBitsTrailing();
+
   fun hash() -> Int = self.toInt();
 
   @static fun bits() -> Int = 64;

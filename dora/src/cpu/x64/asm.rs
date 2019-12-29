@@ -1187,6 +1187,42 @@ pub fn ucomisd(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
     sse_cmp(buf, true, dest, src);
 }
 
+pub fn popcnt(buf: &mut MacroAssembler, x64: u8, dest: Reg, src: Reg) {
+    emit_op(buf, 0xf3);
+
+    if x64 != 0 || src.msb() != 0 || dest.msb() != 0 {
+        emit_rex(buf, x64, src.msb(), 0, dest.msb());
+    }
+
+    emit_op(buf, 0x0f);
+    emit_op(buf, 0xb8);
+    emit_modrm(buf, 0b11, src.and7(), dest.and7());
+}
+
+pub fn lzcnt(buf: &mut MacroAssembler, x64: u8, dest: Reg, src: Reg) {
+    emit_op(buf, 0xf3);
+
+    if x64 != 0 || src.msb() != 0 || dest.msb() != 0 {
+        emit_rex(buf, x64, src.msb(), 0, dest.msb());
+    }
+
+    emit_op(buf, 0x0f);
+    emit_op(buf, 0xbd);
+    emit_modrm(buf, 0b11, src.and7(), dest.and7());
+}
+
+pub fn tzcnt(buf: &mut MacroAssembler, x64: u8, dest: Reg, src: Reg) {
+    emit_op(buf, 0xf3);
+
+    if x64 != 0 || src.msb() != 0 || dest.msb() != 0 {
+        emit_rex(buf, x64, src.msb(), 0, dest.msb());
+    }
+
+    emit_op(buf, 0x0f);
+    emit_op(buf, 0xbc);
+    emit_modrm(buf, 0b11, src.and7(), dest.and7());
+}
+
 fn sse_cmp(buf: &mut MacroAssembler, dbl: bool, dest: FReg, src: FReg) {
     if dbl {
         emit_op(buf, 0x66);
@@ -2182,6 +2218,24 @@ mod tests {
         assert_emit!(0x66, 0x0f, 0x2e, 0xc8; ucomisd(XMM1, XMM0));
         assert_emit!(0x66, 0x44, 0x0f, 0x2e, 0xfb; ucomisd(XMM15, XMM3));
         assert_emit!(0x66, 0x41, 0x0f, 0x2e, 0xe0; ucomisd(XMM4, XMM8));
+    }
+
+    #[test]
+    fn test_popcnt() {
+        assert_emit!(0xf3, 0x48, 0x0f, 0xb8, 0xc7; popcnt(1, RDI, RAX));
+        assert_emit!(0xf3, 0x0f, 0xb8, 0xc7; popcnt(0, RDI, RAX));
+    }
+
+    #[test]
+    fn test_lzcnt() {
+        assert_emit!(0xf3, 0x48, 0x0f, 0xbd, 0xc7; lzcnt(1, RDI, RAX));
+        assert_emit!(0xf3, 0x0f, 0xbd, 0xc7; lzcnt(0, RDI, RAX));
+    }
+
+    #[test]
+    fn test_tzcnt() {
+        assert_emit!(0xf3, 0x48, 0x0f, 0xbc, 0xc7; tzcnt(1, RDI, RAX));
+        assert_emit!(0xf3, 0x0f, 0xbc, 0xc7; tzcnt(0, RDI, RAX));
     }
 
     #[test]

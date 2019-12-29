@@ -1309,6 +1309,74 @@ where
                 self.asm.bool_not(dest, dest)
             }
 
+            Intrinsic::IntCountZeroBits => {
+                let dest = dest.reg();
+                self.asm.count_bits(MachineMode::Int32, dest, dest, false)
+            }
+
+            Intrinsic::IntCountOneBits => {
+                let dest = dest.reg();
+                self.asm.count_bits(MachineMode::Int32, dest, dest, true)
+            }
+
+            Intrinsic::IntCountZeroBitsLeading => {
+                let dest = dest.reg();
+                self.asm
+                    .count_bits_leading(MachineMode::Int32, dest, dest, false)
+            }
+
+            Intrinsic::IntCountOneBitsLeading => {
+                let dest = dest.reg();
+                self.asm
+                    .count_bits_leading(MachineMode::Int32, dest, dest, true)
+            }
+
+            Intrinsic::IntCountZeroBitsTrailing => {
+                let dest = dest.reg();
+                self.asm
+                    .count_bits_trailing(MachineMode::Int32, dest, dest, false)
+            }
+
+            Intrinsic::IntCountOneBitsTrailing => {
+                let dest = dest.reg();
+                self.asm
+                    .count_bits_trailing(MachineMode::Int32, dest, dest, true)
+            }
+
+            Intrinsic::LongCountZeroBits => {
+                let dest = dest.reg();
+                self.asm.count_bits(MachineMode::Int64, dest, dest, false)
+            }
+
+            Intrinsic::LongCountOneBits => {
+                let dest = dest.reg();
+                self.asm.count_bits(MachineMode::Int64, dest, dest, true)
+            }
+
+            Intrinsic::LongCountZeroBitsLeading => {
+                let dest = dest.reg();
+                self.asm
+                    .count_bits_leading(MachineMode::Int64, dest, dest, false)
+            }
+
+            Intrinsic::LongCountOneBitsLeading => {
+                let dest = dest.reg();
+                self.asm
+                    .count_bits_leading(MachineMode::Int64, dest, dest, true)
+            }
+
+            Intrinsic::LongCountZeroBitsTrailing => {
+                let dest = dest.reg();
+                self.asm
+                    .count_bits_trailing(MachineMode::Int64, dest, dest, false)
+            }
+
+            Intrinsic::LongCountOneBitsTrailing => {
+                let dest = dest.reg();
+                self.asm
+                    .count_bits_trailing(MachineMode::Int64, dest, dest, true)
+            }
+
             _ => panic!("unexpected intrinsic {:?}", intrinsic),
         }
     }
@@ -2000,6 +2068,21 @@ where
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
 
+            Intrinsic::IntCountZeroBits => self.emit_intrinsic_unary(args[0], dest, intrinsic),
+            Intrinsic::IntCountOneBits => self.emit_intrinsic_unary(args[0], dest, intrinsic),
+            Intrinsic::IntCountZeroBitsLeading => {
+                self.emit_intrinsic_unary(args[0], dest, intrinsic)
+            }
+            Intrinsic::IntCountOneBitsLeading => {
+                self.emit_intrinsic_unary(args[0], dest, intrinsic)
+            }
+            Intrinsic::IntCountZeroBitsTrailing => {
+                self.emit_intrinsic_unary(args[0], dest, intrinsic)
+            }
+            Intrinsic::IntCountOneBitsTrailing => {
+                self.emit_intrinsic_unary(args[0], dest, intrinsic)
+            }
+
             Intrinsic::LongEq => {
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
@@ -2051,6 +2134,21 @@ where
             }
             Intrinsic::LongRotateRight => {
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+
+            Intrinsic::LongCountZeroBits => self.emit_intrinsic_unary(args[0], dest, intrinsic),
+            Intrinsic::LongCountOneBits => self.emit_intrinsic_unary(args[0], dest, intrinsic),
+            Intrinsic::LongCountZeroBitsLeading => {
+                self.emit_intrinsic_unary(args[0], dest, intrinsic)
+            }
+            Intrinsic::LongCountOneBitsLeading => {
+                self.emit_intrinsic_unary(args[0], dest, intrinsic)
+            }
+            Intrinsic::LongCountZeroBitsTrailing => {
+                self.emit_intrinsic_unary(args[0], dest, intrinsic)
+            }
+            Intrinsic::LongCountOneBitsTrailing => {
+                self.emit_intrinsic_unary(args[0], dest, intrinsic)
             }
 
             Intrinsic::FloatAdd => {
