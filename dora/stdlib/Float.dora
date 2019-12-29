@@ -8,7 +8,20 @@
 
   @internal fun equals(rhs: Float) -> Bool;
   @internal fun compareTo(rhs: Float) -> Int;
+  fun sortsAs(rhs: Float) -> Int {
+    var ix = self.asInt();
+    var iy = rhs.asInt();
 
+    let sx = ix.shiftRight(31).unsignedShiftRight(1);
+    let sy = iy.shiftRight(31).unsignedShiftRight(1);
+
+    ix = ix.bitwiseXor(sx);
+    iy = iy.bitwiseXor(sy);
+
+    if ix < iy { return -1; }
+    if ix == iy { return 0; }
+    return 1;
+  }
   @internal fun plus(rhs: Float) -> Float;
   @internal fun minus(rhs: Float) -> Float;
   @internal fun times(rhs: Float) -> Float;

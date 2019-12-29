@@ -1,0 +1,19 @@
+fun main() {
+    assert(0.0F.sortsAs(0.0F) == 0);
+    assert((-0.0F).sortsAs(-0.0F) == 0);
+    assert(1.0F.sortsAs(1.0F) == 0);
+    assert(0.0F.sortsAs(1.0F) == -1);
+    assert(1.0F.sortsAs(0.0F) == 1);
+    assert((-0.0F).sortsAs(0.0F) == -1);
+    assert(0.0F.sortsAs(-0.0F) == 1);
+    assert((0.0F/0.0F).sortsAs(0.0F/0.0F) == 0);
+
+    assert(0.0.sortsAs(0.0) == 0);
+    assert((-0.0).sortsAs(-0.0) == 0);
+    assert(1.0.sortsAs(1.0) == 0);
+    assert(0.0.sortsAs(1.0) == -1);
+    assert(1.0.sortsAs(0.0) == 1);
+    assert((-0.0).sortsAs(0.0) == -1);
+    assert(0.0.sortsAs(-0.0) == 1);
+    assert((0.0/0.0).sortsAs(0.0/0.0) == 0);
+}
