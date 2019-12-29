@@ -1,22 +1,22 @@
 @open @abstract class Option[T] {
-  @open @abstract fun is_some() -> Bool;
-  @open @abstract fun is_none() -> Bool;
+  @open @abstract fun isSome() -> Bool;
+  @open @abstract fun isNone() -> Bool;
 
   @open @abstract fun has(rhs: T) -> Bool;
   @open @abstract fun unwrap() -> T;
 }
 
 class Some[T](let wrapped: T): Option[T] {
-  @override fun is_some() -> Bool = true;
-  @override fun is_none() -> Bool = false;
+  @override fun isSome() -> Bool = true;
+  @override fun isNone() -> Bool = false;
 
   @override fun has(rhs: T) -> Bool = self.wrapped === rhs;
   @override fun unwrap() -> T { self.wrapped }
 }
 
 class None[T]: Option[T] {
-  @override fun is_some() -> Bool = false;
-  @override fun is_none() -> Bool = true;
+  @override fun isSome() -> Bool = false;
+  @override fun isNone() -> Bool = true;
 
   @override fun has(rhs: T) -> Bool = false;
   @override fun unwrap() -> T {
@@ -29,7 +29,7 @@ fun none[T]() -> Option[T] = None[T]();
 fun some[T](wrapped: T) -> Option[T] = Some[T](wrapped);
 
 fun optionContains[T: Equals](lhs: Option[T], rhs: T) -> Bool {
-  if lhs.is_some() {
+  if lhs.isSome() {
     let lhs = lhs.unwrap();
     lhs === rhs || lhs.equals(rhs)
   } else {
@@ -38,8 +38,8 @@ fun optionContains[T: Equals](lhs: Option[T], rhs: T) -> Bool {
 }
 
 fun optionEquals[T: Equals](lhs: Option[T], rhs: Option[T]) -> Bool {
-  if lhs.is_some() {
-    if rhs.is_some() {
+  if lhs.isSome() {
+    if rhs.isSome() {
       let lhs = lhs.unwrap();
       let rhs = rhs.unwrap();
       lhs.equals(rhs)
@@ -47,12 +47,12 @@ fun optionEquals[T: Equals](lhs: Option[T], rhs: Option[T]) -> Bool {
       false
     }
   } else {
-    rhs.is_none()
+    rhs.isNone()
   }
 }
 
 fun optionToString[T: Stringable](lhs: Option[T]) -> String {
-  if lhs.is_some() {
+  if lhs.isSome() {
     "Some(${lhs.unwrap()})"
   } else {
     "None"
