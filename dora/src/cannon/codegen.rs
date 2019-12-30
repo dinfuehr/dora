@@ -1,8 +1,9 @@
 use dora_parser::ast::*;
 use std::collections::hash_map::HashMap;
 
-use crate::bytecode::data::{Bytecode, BytecodeIdx, BytecodeType, Register};
-use crate::bytecode::writer::BytecodeFunction;
+use crate::bytecode::{
+    Bytecode, BytecodeFunction, BytecodeIdx, BytecodeType, BytecodeVisitor, ConstPoolIdx, Register,
+};
 use crate::compiler::asm::BaselineAssembler;
 use crate::compiler::codegen::should_emit_debug;
 use crate::compiler::codegen::ExprStore;
@@ -11,8 +12,7 @@ use crate::cpu::{Mem, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESUL
 use crate::masm::*;
 use crate::object::Str;
 use crate::ty::TypeList;
-use crate::vm::VM;
-use crate::vm::{ClassDefId, Fct, FctSrc, FieldId, GlobalId};
+use crate::vm::{ClassDefId, Fct, FctId, FctSrc, FieldId, GlobalId, VM};
 
 struct ForwardJump {
     label: Label,
@@ -108,6 +108,11 @@ where
 
         self.emit_prolog();
         self.store_params_on_stack();
+
+        // {
+        //     let mut reader = BytecodeReader::new(self.bytecode.data(), &mut self);
+        //     reader.read();
+        // }
 
         self.current_pos = Some(BytecodeIdx(0));
         for btcode in self.bytecode.code() {
@@ -992,6 +997,757 @@ where
     fn pos_inc(&mut self) {
         let BytecodeIdx(pos_idx) = self.pos();
         self.current_pos = Some(BytecodeIdx(pos_idx + 1));
+    }
+}
+
+impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
+    fn visit_add_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_add_int(dest, lhs, rhs);
+    }
+    fn visit_add_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_add_int(dest, lhs, rhs);
+    }
+    fn visit_add_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_add_float(dest, lhs, rhs);
+    }
+    fn visit_add_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_add_float(dest, lhs, rhs);
+    }
+
+    fn visit_sub_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_sub_int(dest, lhs, rhs);
+    }
+    fn visit_sub_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_sub_int(dest, lhs, rhs);
+    }
+    fn visit_sub_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_sub_float(dest, lhs, rhs);
+    }
+    fn visit_sub_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_sub_float(dest, lhs, rhs);
+    }
+
+    fn visit_neg_int(&mut self, dest: Register, src: Register) {
+        self.emit_neg_int(dest, src);
+    }
+    fn visit_neg_long(&mut self, dest: Register, src: Register) {
+        self.emit_neg_int(dest, src);
+    }
+    fn visit_neg_float(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_neg_double(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+
+    fn visit_mul_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_mul_int(dest, lhs, rhs);
+    }
+    fn visit_mul_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_mul_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_mul_float(dest, lhs, rhs);
+    }
+    fn visit_mul_double(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+
+    fn visit_div_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_div_int(dest, lhs, rhs);
+    }
+    fn visit_div_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_div_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_div_float(dest, lhs, rhs);
+    }
+    fn visit_div_double(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+
+    fn visit_mod_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_mod_int(dest, lhs, rhs);
+    }
+    fn visit_mod_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+
+    fn visit_and_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_and_int(dest, lhs, rhs);
+    }
+    fn visit_and_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+
+    fn visit_or_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_or_int(dest, lhs, rhs)
+    }
+    fn visit_or_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+
+    fn visit_xor_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_xor_int(dest, lhs, rhs);
+    }
+    fn visit_xor_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+
+    fn visit_not_bool(&mut self, dest: Register, src: Register) {
+        self.emit_not_bool(dest, src);
+    }
+    fn visit_not_int(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_not_long(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+
+    fn visit_shl_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_shl_int(dest, lhs, rhs);
+    }
+    fn visit_shr_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_shr_int(dest, lhs, rhs);
+    }
+    fn visit_sar_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_sar_int(dest, lhs, rhs);
+    }
+
+    fn visit_shl_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_shr_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_sar_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+
+    fn visit_mov_bool(&mut self, dest: Register, src: Register) {
+        self.emit_mov_generic(dest, src);
+    }
+    fn visit_mov_byte(&mut self, dest: Register, src: Register) {
+        self.emit_mov_generic(dest, src);
+    }
+    fn visit_mov_char(&mut self, dest: Register, src: Register) {
+        self.emit_mov_generic(dest, src);
+    }
+    fn visit_mov_int(&mut self, dest: Register, src: Register) {
+        self.emit_mov_generic(dest, src);
+    }
+    fn visit_mov_long(&mut self, dest: Register, src: Register) {
+        self.emit_mov_generic(dest, src);
+    }
+    fn visit_mov_float(&mut self, dest: Register, src: Register) {
+        self.emit_mov_generic(dest, src);
+    }
+    fn visit_mov_double(&mut self, dest: Register, src: Register) {
+        self.emit_mov_generic(dest, src);
+    }
+    fn visit_mov_ptr(&mut self, dest: Register, src: Register) {
+        self.emit_mov_generic(dest, src);
+    }
+
+    fn visit_load_field_bool(
+        &mut self,
+        dest: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_load_field(dest, obj, cls, field);
+    }
+    fn visit_load_field_byte(
+        &mut self,
+        dest: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_load_field(dest, obj, cls, field);
+    }
+    fn visit_load_field_char(
+        &mut self,
+        dest: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_load_field(dest, obj, cls, field);
+    }
+    fn visit_load_field_int(
+        &mut self,
+        dest: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_load_field(dest, obj, cls, field);
+    }
+    fn visit_load_field_long(
+        &mut self,
+        dest: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_load_field(dest, obj, cls, field);
+    }
+    fn visit_load_field_float(
+        &mut self,
+        dest: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_load_field(dest, obj, cls, field);
+    }
+    fn visit_load_field_double(
+        &mut self,
+        dest: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_load_field(dest, obj, cls, field);
+    }
+    fn visit_load_field_ptr(
+        &mut self,
+        dest: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_load_field(dest, obj, cls, field);
+    }
+
+    fn visit_store_field_bool(
+        &mut self,
+        _src: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
+    fn visit_store_field_byte(
+        &mut self,
+        _src: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
+    fn visit_store_field_char(
+        &mut self,
+        _src: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
+    fn visit_store_field_int(
+        &mut self,
+        _src: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
+    fn visit_store_field_long(
+        &mut self,
+        _src: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
+    fn visit_store_field_float(
+        &mut self,
+        _src: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
+    fn visit_store_field_double(
+        &mut self,
+        _src: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
+    fn visit_store_field_ptr(
+        &mut self,
+        _src: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
+
+    fn visit_load_global_bool(&mut self, dest: Register, glob: GlobalId) {
+        self.emit_load_global_field(dest, glob);
+    }
+    fn visit_load_global_byte(&mut self, dest: Register, glob: GlobalId) {
+        self.emit_load_global_field(dest, glob);
+    }
+    fn visit_load_global_char(&mut self, dest: Register, glob: GlobalId) {
+        self.emit_load_global_field(dest, glob);
+    }
+    fn visit_load_global_int(&mut self, dest: Register, glob: GlobalId) {
+        self.emit_load_global_field(dest, glob);
+    }
+    fn visit_load_global_long(&mut self, dest: Register, glob: GlobalId) {
+        self.emit_load_global_field(dest, glob);
+    }
+    fn visit_load_global_float(&mut self, dest: Register, glob: GlobalId) {
+        self.emit_load_global_field(dest, glob);
+    }
+    fn visit_load_global_double(&mut self, dest: Register, glob: GlobalId) {
+        self.emit_load_global_field(dest, glob);
+    }
+    fn visit_load_global_ptr(&mut self, dest: Register, glob: GlobalId) {
+        self.emit_load_global_field(dest, glob);
+    }
+
+    fn visit_store_global_bool(&mut self, _src: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
+    fn visit_store_global_byte(&mut self, _src: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
+    fn visit_store_global_char(&mut self, _src: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
+    fn visit_store_global_int(&mut self, _src: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
+    fn visit_store_global_long(&mut self, _src: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
+    fn visit_store_global_float(&mut self, _src: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
+    fn visit_store_global_double(&mut self, _src: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
+    fn visit_store_global_ptr(&mut self, _src: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
+
+    fn visit_const_nil(&mut self, dest: Register) {
+        self.emit_const_nil(dest);
+    }
+    fn visit_const_true(&mut self, dest: Register) {
+        self.emit_const_bool(dest, true);
+    }
+    fn visit_const_false(&mut self, dest: Register) {
+        self.emit_const_bool(dest, false);
+    }
+    fn visit_const_zero_byte(&mut self, dest: Register) {
+        self.emit_const_int(dest, 0);
+    }
+    fn visit_const_zero_char(&mut self, dest: Register) {
+        self.emit_const_int(dest, 0);
+    }
+    fn visit_const_zero_int(&mut self, dest: Register) {
+        self.emit_const_int(dest, 0);
+    }
+    fn visit_const_zero_long(&mut self, dest: Register) {
+        self.emit_const_int(dest, 0);
+    }
+    fn visit_const_zero_float(&mut self, dest: Register) {
+        self.emit_const_float(dest, 0_f64);
+    }
+    fn visit_const_zero_double(&mut self, dest: Register) {
+        self.emit_const_float(dest, 0_f64);
+    }
+    fn visit_const_char(&mut self, _dest: Register, _value: ConstPoolIdx) {
+        unimplemented!();
+    }
+    fn visit_const_byte(&mut self, dest: Register, value: u8) {
+        self.emit_const_int(dest, value as i64);
+    }
+    fn visit_const_int(&mut self, _dest: Register, _value: ConstPoolIdx) {
+        unimplemented!();
+    }
+    fn visit_const_long(&mut self, _dest: Register, _value: ConstPoolIdx) {
+        unimplemented!();
+    }
+    fn visit_const_float(&mut self, _dest: Register, _value: ConstPoolIdx) {
+        unimplemented!();
+    }
+    fn visit_const_double(&mut self, _dest: Register, _value: ConstPoolIdx) {
+        unimplemented!();
+    }
+    fn visit_const_string(&mut self, _dest: Register, _value: ConstPoolIdx) {
+        unimplemented!();
+    }
+
+    fn visit_test_eq_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
+    }
+    fn visit_test_ne_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
+    }
+
+    fn visit_test_eq_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
+    }
+    fn visit_test_ne_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::NotEqual);
+    }
+    fn visit_test_gt_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::Greater);
+    }
+    fn visit_test_ge_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::GreaterEq);
+    }
+    fn visit_test_lt_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::Less);
+    }
+    fn visit_test_le_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::LessEq);
+    }
+
+    fn visit_test_eq_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
+    }
+    fn visit_test_ne_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::NotEqual);
+    }
+    fn visit_test_gt_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::Greater);
+    }
+    fn visit_test_ge_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::GreaterEq);
+    }
+    fn visit_test_lt_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::Less);
+    }
+    fn visit_test_le_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::LessEq);
+    }
+
+    fn visit_test_eq_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
+    }
+    fn visit_test_ne_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::NotEqual);
+    }
+    fn visit_test_gt_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::Greater);
+    }
+    fn visit_test_ge_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::GreaterEq);
+    }
+    fn visit_test_lt_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::Less);
+    }
+    fn visit_test_le_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::LessEq);
+    }
+
+    fn visit_test_eq_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
+    }
+    fn visit_test_ne_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::NotEqual);
+    }
+    fn visit_test_gt_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::Greater);
+    }
+    fn visit_test_ge_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::GreaterEq);
+    }
+    fn visit_test_lt_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::Less);
+    }
+    fn visit_test_le_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::LessEq);
+    }
+
+    fn visit_jump_if_false(&mut self, _opnd: Register, _offset: i32) {
+        unimplemented!();
+    }
+    fn visit_jump_if_true(&mut self, _opnd: Register, _offset: i32) {
+        unimplemented!();
+    }
+    fn visit_jump(&mut self, _offset: i32) {
+        unimplemented!();
+    }
+
+    fn visit_invoke_direct_void(&mut self, _fct: FctId, _start: Register, _count: u32) {
+        unimplemented!();
+    }
+    fn visit_invoke_direct_bool(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_direct_byte(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_direct_char(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_direct_int(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_direct_long(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_direct_float(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_direct_double(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_direct_ptr(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+
+    fn visit_invoke_virtual_void(&mut self, _fct: FctId, _start: Register, _count: u32) {
+        unimplemented!();
+    }
+    fn visit_invoke_virtual_bool(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_virtual_byte(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_virtual_char(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_virtual_int(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_virtual_long(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_virtual_float(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_virtual_double(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_virtual_ptr(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+
+    fn visit_invoke_static_void(&mut self, _fct: FctId, _start: Register, _count: u32) {
+        unimplemented!();
+    }
+    fn visit_invoke_static_bool(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_static_byte(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_static_char(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_static_int(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_static_long(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_static_float(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_static_double(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_static_ptr(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+
+    fn visit_new_object(&mut self, _dest: Register, _cls: ClassDefId) {
+        unimplemented!();
+    }
+    fn visit_throw(&mut self, _opnd: Register) {
+        unimplemented!();
+    }
+
+    fn visit_ret_void(&mut self) {
+        self.emit_epilog();
+    }
+    fn visit_ret_bool(&mut self, opnd: Register) {
+        self.emit_return_generic(opnd);
+    }
+    fn visit_ret_byte(&mut self, opnd: Register) {
+        self.emit_return_generic(opnd);
+    }
+    fn visit_ret_char(&mut self, opnd: Register) {
+        self.emit_return_generic(opnd);
+    }
+    fn visit_ret_int(&mut self, opnd: Register) {
+        self.emit_return_generic(opnd);
+    }
+    fn visit_ret_long(&mut self, opnd: Register) {
+        self.emit_return_generic(opnd);
+    }
+    fn visit_ret_float(&mut self, opnd: Register) {
+        self.emit_return_generic(opnd);
+    }
+    fn visit_ret_double(&mut self, opnd: Register) {
+        self.emit_return_generic(opnd);
+    }
+    fn visit_ret_ptr(&mut self, opnd: Register) {
+        self.emit_return_generic(opnd);
     }
 }
 

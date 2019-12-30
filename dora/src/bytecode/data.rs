@@ -218,7 +218,9 @@ impl From<BuiltinType> for BytecodeType {
     }
 }
 
-#[derive(Copy, Clone)]
+// Keep in sync with dora-boots/bytecode.dora
+
+#[derive(Copy, Clone, FromPrimitive, ToPrimitive)]
 pub enum BytecodeInst {
     Wide,
 
@@ -228,22 +230,48 @@ pub enum BytecodeInst {
     AddDouble,
 
     SubInt,
+    SubLong,
     SubFloat,
+    SubDouble,
+
     NegInt,
     NegLong,
+    NegFloat,
+    NegDouble,
+
     MulInt,
+    MulLong,
     MulFloat,
+    MulDouble,
+
     DivInt,
+    DivLong,
     DivFloat,
+    DivDouble,
+
     ModInt,
+    ModLong,
+
     AndInt,
+    AndLong,
+
     OrInt,
+    OrLong,
+
     XorInt,
+    XorLong,
+
     NotBool,
+    NotInt,
+    NotLong,
 
     ShlInt,
     ShrInt,
     SarInt,
+
+    ShlLong,
+    ShrLong,
+    SarLong,
 
     MovBool,
     MovByte,
@@ -263,6 +291,15 @@ pub enum BytecodeInst {
     LoadFieldDouble,
     LoadFieldPtr,
 
+    StoreFieldBool,
+    StoreFieldByte,
+    StoreFieldChar,
+    StoreFieldInt,
+    StoreFieldLong,
+    StoreFieldFloat,
+    StoreFieldDouble,
+    StoreFieldPtr,
+
     LoadGlobalBool,
     LoadGlobalByte,
     LoadGlobalChar,
@@ -272,10 +309,20 @@ pub enum BytecodeInst {
     LoadGlobalDouble,
     LoadGlobalPtr,
 
+    StoreGlobalBool,
+    StoreGlobalByte,
+    StoreGlobalChar,
+    StoreGlobalInt,
+    StoreGlobalLong,
+    StoreGlobalFloat,
+    StoreGlobalDouble,
+    StoreGlobalPtr,
+
     ConstNil,
     ConstTrue,
     ConstFalse,
     ConstZeroByte,
+    ConstZeroChar,
     ConstZeroInt,
     ConstZeroLong,
     ConstZeroFloat,
@@ -298,12 +345,26 @@ pub enum BytecodeInst {
     TestLtInt,
     TestLeInt,
 
+    TestEqLong,
+    TestNeLong,
+    TestGtLong,
+    TestGeLong,
+    TestLtLong,
+    TestLeLong,
+
     TestEqFloat,
     TestNeFloat,
     TestGtFloat,
     TestGeFloat,
     TestLtFloat,
     TestLeFloat,
+
+    TestEqDouble,
+    TestNeDouble,
+    TestGtDouble,
+    TestGeDouble,
+    TestLtDouble,
+    TestLeDouble,
 
     JumpIfFalse,
     JumpIfTrue,
@@ -343,6 +404,7 @@ pub enum BytecodeInst {
 
     Throw,
 
+    RetVoid,
     RetBool,
     RetByte,
     RetChar,
@@ -351,8 +413,6 @@ pub enum BytecodeInst {
     RetFloat,
     RetDouble,
     RetPtr,
-
-    RetVoid,
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]

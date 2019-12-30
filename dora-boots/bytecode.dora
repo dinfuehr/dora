@@ -8,10 +8,794 @@ class ConstPoolString(let value: String): ConstPoolEntry
 class ConstPoolChar(let value: Char): ConstPoolEntry
 
 class BytecodeRegister(let value: Int)
+class ClassDefId(let value: Int)
+class FieldId(let value: Int)
+class GlobalId(let value: Int)
+class ConstPoolId(let value: Int)
+class FctId(let value: Int)
 
-trait BytecodeVisitor {
-    fun visitAddInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    fun visitAddLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    fun visitAddFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    fun visitAddDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+@open @abstract class BytecodeVisitor {
+    @abstract fun visitAddInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitAddLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitAddFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitAddDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+
+    @abstract fun visitSubInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitSubLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitSubFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitSubDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+
+    @abstract fun visitNegInt(dest: BytecodeRegister, src: BytecodeRegister);
+    @abstract fun visitNegLong(dest: BytecodeRegister, src: BytecodeRegister);
+    @abstract fun visitNegFloat(dest: BytecodeRegister, src: BytecodeRegister);
+    @abstract fun visitNegDouble(dest: BytecodeRegister, src: BytecodeRegister);
+
+    @abstract fun visitMulInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitMulLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitMulFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitMulDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+
+    @abstract fun visitDivInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitDivLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitDivFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitDivDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+
+    @abstract fun visitModInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitModLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+
+    @abstract fun visitAndInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitAndLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+
+    @abstract fun visitOrInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitOrLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+
+    @abstract fun visitXorInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitXorLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+
+    @abstract fun visitNotBool(dest: BytecodeRegister, src: BytecodeRegister);
+    @abstract fun visitNotInt(dest: BytecodeRegister, src: BytecodeRegister);
+    @abstract fun visitNotLong(dest: BytecodeRegister, src: BytecodeRegister);
+
+    @abstract fun visitShlInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitShrInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitSarInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+
+    @abstract fun visitShlLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitShrLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitSarLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+
+    @abstract fun visitMovBool(dest: BytecodeRegister, src: BytecodeRegister);
+    @abstract fun visitMovByte(dest: BytecodeRegister, src: BytecodeRegister);
+    @abstract fun visitMovChar(dest: BytecodeRegister, src: BytecodeRegister);
+    @abstract fun visitMovInt(dest: BytecodeRegister, src: BytecodeRegister);
+    @abstract fun visitMovLong(dest: BytecodeRegister, src: BytecodeRegister);
+    @abstract fun visitMovFloat(dest: BytecodeRegister, src: BytecodeRegister);
+    @abstract fun visitMovDouble(dest: BytecodeRegister, src: BytecodeRegister);
+    @abstract fun visitMovPtr(dest: BytecodeRegister, src: BytecodeRegister);
+
+    @abstract fun visitLoadFieldBool(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId);
+    @abstract fun visitLoadFieldByte(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId);
+    @abstract fun visitLoadFieldChar(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId);
+    @abstract fun visitLoadFieldInt(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId);
+    @abstract fun visitLoadFieldLong(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId);
+    @abstract fun visitLoadFieldFloat(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId);
+    @abstract fun visitLoadFieldDouble(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId);
+    @abstract fun visitLoadFieldPtr(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId);
+
+    @abstract fun visitLoadGlobalBool(dest: BytecodeRegister, glob: GlobalId);
+    @abstract fun visitLoadGlobalByte(dest: BytecodeRegister, glob: GlobalId);
+    @abstract fun visitLoadGlobalChar(dest: BytecodeRegister, glob: GlobalId);
+    @abstract fun visitLoadGlobalInt(dest: BytecodeRegister, glob: GlobalId);
+    @abstract fun visitLoadGlobalLong(dest: BytecodeRegister, glob: GlobalId);
+    @abstract fun visitLoadGlobalFloat(dest: BytecodeRegister, glob: GlobalId);
+    @abstract fun visitLoadGlobalDouble(dest: BytecodeRegister, glob: GlobalId);
+    @abstract fun visitLoadGlobalPtr(dest: BytecodeRegister, glob: GlobalId);
+
+    @abstract fun visitConstNil(dest: BytecodeRegister);
+    @abstract fun visitConstTrue(dest: BytecodeRegister);
+    @abstract fun visitConstFalse(dest: BytecodeRegister);
+    @abstract fun visitConstZeroByte(dest: BytecodeRegister);
+    @abstract fun visitConstZeroInt(dest: BytecodeRegister);
+    @abstract fun visitConstZeroLong(dest: BytecodeRegister);
+    @abstract fun visitConstZeroFloat(dest: BytecodeRegister);
+    @abstract fun visitConstZeroDouble(dest: BytecodeRegister);
+    @abstract fun visitConstChar(dest: BytecodeRegister, value: ConstPoolId);
+    @abstract fun visitConstByte(dest: BytecodeRegister, value: Byte);
+    @abstract fun visitConstInt(dest: BytecodeRegister, value: ConstPoolId);
+    @abstract fun visitConstLong(dest: BytecodeRegister, value: ConstPoolId);
+    @abstract fun visitConstFloat(dest: BytecodeRegister, value: ConstPoolId);
+    @abstract fun visitConstDouble(dest: BytecodeRegister, value: ConstPoolId);
+    @abstract fun visitConstString(dest: BytecodeRegister, value: ConstPoolId);
+
+    @abstract fun visitTestEqPtr(lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitTestNePtr(lhs: BytecodeRegister, rhs: BytecodeRegister);
+
+    @abstract fun visitTestEqInt(lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitTestNeInt(lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitTestGtInt(lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitTestGeInt(lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitTestLtInt(lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitTestLeInt(lhs: BytecodeRegister, rhs: BytecodeRegister);
+
+    @abstract fun visitTestEqLong(lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitTestNeLong(lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitTestGtLong(lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitTestGeLong(lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitTestLtLong(lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitTestLeLong(lhs: BytecodeRegister, rhs: BytecodeRegister);
+
+    @abstract fun visitTestEqFloat(lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitTestNeFloat(lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitTestGtFloat(lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitTestGeFloat(lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitTestLtFloat(lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitTestLeFloat(lhs: BytecodeRegister, rhs: BytecodeRegister);
+
+    @abstract fun visitTestEqDouble(lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitTestNeDouble(lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitTestGtDouble(lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitTestGeDouble(lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitTestLtDouble(lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @abstract fun visitTestLeDouble(lhs: BytecodeRegister, rhs: BytecodeRegister);
+
+    @abstract fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int);
+    @abstract fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int);
+    @abstract fun visitJump(offset: Int);
+
+    @abstract fun visitInvokeDirectVoid(fct: FctId, start: BytecodeRegister, count: Int);
+    @abstract fun visitInvokeDirectBool(fct: FctId, start: BytecodeRegister, count: Int);
+    @abstract fun visitInvokeDirectByte(fct: FctId, start: BytecodeRegister, count: Int);
+    @abstract fun visitInvokeDirectChar(fct: FctId, start: BytecodeRegister, count: Int);
+    @abstract fun visitInvokeDirectInt(fct: FctId, start: BytecodeRegister, count: Int);
+    @abstract fun visitInvokeDirectLong(fct: FctId, start: BytecodeRegister, count: Int);
+    @abstract fun visitInvokeDirectFloat(fct: FctId, start: BytecodeRegister, count: Int);
+    @abstract fun visitInvokeDirectDouble(fct: FctId, start: BytecodeRegister, count: Int);
+    @abstract fun visitInvokeDirectPtr(fct: FctId, start: BytecodeRegister, count: Int);
+
+    @abstract fun visitInvokeVirtualVoid(fct: FctId, start: BytecodeRegister, count: Int);
+    @abstract fun visitInvokeVirtualBool(fct: FctId, start: BytecodeRegister, count: Int);
+    @abstract fun visitInvokeVirtualByte(fct: FctId, start: BytecodeRegister, count: Int);
+    @abstract fun visitInvokeVirtualChar(fct: FctId, start: BytecodeRegister, count: Int);
+    @abstract fun visitInvokeVirtualInt(fct: FctId, start: BytecodeRegister, count: Int);
+    @abstract fun visitInvokeVirtualLong(fct: FctId, start: BytecodeRegister, count: Int);
+    @abstract fun visitInvokeVirtualFloat(fct: FctId, start: BytecodeRegister, count: Int);
+    @abstract fun visitInvokeVirtualDouble(fct: FctId, start: BytecodeRegister, count: Int);
+    @abstract fun visitInvokeVirtualPtr(fct: FctId, start: BytecodeRegister, count: Int);
+
+    @abstract fun visitInvokeStaticVoid(fct: FctId, start: BytecodeRegister, count: Int);
+    @abstract fun visitInvokeStaticBool(fct: FctId, start: BytecodeRegister, count: Int);
+    @abstract fun visitInvokeStaticByte(fct: FctId, start: BytecodeRegister, count: Int);
+    @abstract fun visitInvokeStaticChar(fct: FctId, start: BytecodeRegister, count: Int);
+    @abstract fun visitInvokeStaticInt(fct: FctId, start: BytecodeRegister, count: Int);
+    @abstract fun visitInvokeStaticLong(fct: FctId, start: BytecodeRegister, count: Int);
+    @abstract fun visitInvokeStaticFloat(fct: FctId, start: BytecodeRegister, count: Int);
+    @abstract fun visitInvokeStaticDouble(fct: FctId, start: BytecodeRegister, count: Int);
+    @abstract fun visitInvokeStaticPtr(fct: FctId, start: BytecodeRegister, count: Int);
+
+    @abstract fun visitNewObject(dest: BytecodeRegister, cls: ClassDefId);
+    
+    @abstract fun visitThrow(opnd: BytecodeRegister);
+
+    @abstract fun visitRetVoid();
+    @abstract fun visitRetBool(opnd: BytecodeRegister);
+    @abstract fun visitRetByte(opnd: BytecodeRegister);
+    @abstract fun visitRetChar(opnd: BytecodeRegister);
+    @abstract fun visitRetInt(opnd: BytecodeRegister);
+    @abstract fun visitRetLong(opnd: BytecodeRegister);
+    @abstract fun visitRetFloat(opnd: BytecodeRegister);
+    @abstract fun visitRetDouble(opnd: BytecodeRegister);
+    @abstract fun visitRetPtr(opnd: BytecodeRegister);
 }
+
+class BytecodeReader(let data: Array[Byte], let const_pool: Array[ConstPoolEntry], let visitor: BytecodeVisitor) {
+    var pos: Int = 0;
+    var length: Int = data.length();
+
+    fun read() {
+        while self.pos < self.length {
+            let wide = self.hasWideOperands();
+            let opcode = self.readOpcode(wide);
+            self.readInstruction(wide, opcode);
+        }
+    }
+
+    fun readInstruction(wide: Bool, opcode: Int) {
+        if opcode == BC_ADD_INT {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitAddInt(dest, lhs, rhs);
+        } else if opcode == BC_ADD_LONG {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitAddLong(dest, lhs, rhs);
+        } else if opcode == BC_ADD_FLOAT {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitAddFloat(dest, lhs, rhs);
+        } else if opcode == BC_ADD_DOUBLE {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitAddDouble(dest, lhs, rhs);
+
+        } else if opcode == BC_SUB_INT {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitSubInt(dest, lhs, rhs);
+        } else if opcode == BC_SUB_LONG {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitSubLong(dest, lhs, rhs);
+        } else if opcode == BC_SUB_FLOAT {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitSubFloat(dest, lhs, rhs);
+        } else if opcode == BC_SUB_DOUBLE {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitSubDouble(dest, lhs, rhs);
+
+        } else if opcode == BC_NEG_INT {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitNegInt(dest, src);
+        } else if opcode == BC_NEG_LONG {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitNegLong(dest, src);
+        } else if opcode == BC_NEG_FLOAT {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitNegFloat(dest, src);
+        } else if opcode == BC_NEG_DOUBLE {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitNegDouble(dest, src);
+
+        } else if opcode == BC_MUL_INT {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitMulInt(dest, lhs, rhs);
+        } else if opcode == BC_MUL_LONG {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitMulLong(dest, lhs, rhs);
+        } else if opcode == BC_MUL_FLOAT {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitMulFloat(dest, lhs, rhs);
+        } else if opcode == BC_MUL_DOUBLE {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitMulDouble(dest, lhs, rhs);
+
+        } else if opcode == BC_DIV_INT {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitDivInt(dest, lhs, rhs);
+        } else if opcode == BC_DIV_LONG {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitDivLong(dest, lhs, rhs);
+        } else if opcode == BC_DIV_FLOAT {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitDivFloat(dest, lhs, rhs);
+        } else if opcode == BC_DIV_DOUBLE {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitDivDouble(dest, lhs, rhs);
+
+        } else if opcode == BC_MOD_INT {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitModInt(dest, lhs, rhs);
+        } else if opcode == BC_MOD_LONG {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitModLong(dest, lhs, rhs);
+
+        } else if opcode == BC_AND_INT {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitAndInt(dest, lhs, rhs);
+        } else if opcode == BC_AND_LONG {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitAndLong(dest, lhs, rhs);
+
+        } else if opcode == BC_OR_INT {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitOrInt(dest, lhs, rhs);
+        } else if opcode == BC_OR_LONG {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitOrLong(dest, lhs, rhs);
+
+        } else if opcode == BC_XOR_INT {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitXorInt(dest, lhs, rhs);
+        } else if opcode == BC_XOR_LONG {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitXorLong(dest, lhs, rhs);
+
+        } else if opcode == BC_NOT_BOOL {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitNotBool(dest, src);
+        } else if opcode == BC_NOT_INT {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitNotInt(dest, src);
+        } else if opcode == BC_NOT_LONG {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitNotLong(dest, src);
+
+        } else if opcode == BC_SHL_INT {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitShlInt(dest, lhs, rhs);
+        } else if opcode == BC_SHR_INT {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitShrInt(dest, lhs, rhs);
+        } else if opcode == BC_SAR_INT {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitSarInt(dest, lhs, rhs);
+
+        } else if opcode == BC_SHL_LONG {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitShlLong(dest, lhs, rhs);
+        } else if opcode == BC_SHR_LONG {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitShrLong(dest, lhs, rhs);
+        } else if opcode == BC_SAR_LONG {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitSarLong(dest, lhs, rhs);
+
+        } else if opcode == BC_MOV_BOOL {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitMovBool(dest, src);
+        } else if opcode == BC_MOV_BYTE {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitMovByte(dest, src);
+        } else if opcode == BC_MOV_CHAR {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitMovChar(dest, src);
+        } else if opcode == BC_MOV_INT {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitMovInt(dest, src);
+        } else if opcode == BC_MOV_LONG {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitMovLong(dest, src);
+        } else if opcode == BC_MOV_FLOAT {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitMovFloat(dest, src);
+        } else if opcode == BC_MOV_DOUBLE {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitMovDouble(dest, src);
+        } else if opcode == BC_MOV_PTR {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitMovPtr(dest, src);
+
+        } else if opcode == BC_LOAD_FIELD_BOOL {
+            let dest = self.readRegister(wide);
+            let obj = self.readRegister(wide);
+            let cls = self.readClassDefId(wide);
+            let field = self.readFieldId(wide);
+            self.visitor.visitLoadFieldBool(dest, obj, cls, field);
+        } else if opcode == BC_LOAD_FIELD_BYTE {
+            let dest = self.readRegister(wide);
+            let obj = self.readRegister(wide);
+            let cls = self.readClassDefId(wide);
+            let field = self.readFieldId(wide);
+            self.visitor.visitLoadFieldByte(dest, obj, cls, field);
+        } else if opcode == BC_LOAD_FIELD_CHAR {
+            let dest = self.readRegister(wide);
+            let obj = self.readRegister(wide);
+            let cls = self.readClassDefId(wide);
+            let field = self.readFieldId(wide);
+            self.visitor.visitLoadFieldChar(dest, obj, cls, field);
+        } else if opcode == BC_LOAD_FIELD_INT {
+            let dest = self.readRegister(wide);
+            let obj = self.readRegister(wide);
+            let cls = self.readClassDefId(wide);
+            let field = self.readFieldId(wide);
+            self.visitor.visitLoadFieldInt(dest, obj, cls, field);
+        } else if opcode == BC_LOAD_FIELD_LONG {
+            let dest = self.readRegister(wide);
+            let obj = self.readRegister(wide);
+            let cls = self.readClassDefId(wide);
+            let field = self.readFieldId(wide);
+            self.visitor.visitLoadFieldLong(dest, obj, cls, field);
+        } else if opcode == BC_LOAD_FIELD_FLOAT {
+            let dest = self.readRegister(wide);
+            let obj = self.readRegister(wide);
+            let cls = self.readClassDefId(wide);
+            let field = self.readFieldId(wide);
+            self.visitor.visitLoadFieldFloat(dest, obj, cls, field);
+        } else if opcode == BC_LOAD_FIELD_DOUBLE {
+            let dest = self.readRegister(wide);
+            let obj = self.readRegister(wide);
+            let cls = self.readClassDefId(wide);
+            let field = self.readFieldId(wide);
+            self.visitor.visitLoadFieldDouble(dest, obj, cls, field);
+        } else if opcode == BC_LOAD_FIELD_PTR {
+            let dest = self.readRegister(wide);
+            let obj = self.readRegister(wide);
+            let cls = self.readClassDefId(wide);
+            let field = self.readFieldId(wide);
+            self.visitor.visitLoadFieldPtr(dest, obj, cls, field);
+
+        } else if opcode == BC_LOAD_GLOBAL_BOOL {
+            let dest = self.readRegister(wide);
+            let glob = self.readGlobalId(wide);
+            self.visitor.visitLoadGlobalBool(dest, glob);
+        } else if opcode == BC_LOAD_GLOBAL_BYTE {
+            let dest = self.readRegister(wide);
+            let glob = self.readGlobalId(wide);
+            self.visitor.visitLoadGlobalByte(dest, glob);
+        } else if opcode == BC_LOAD_FIELD_CHAR {
+            let dest = self.readRegister(wide);
+            let glob = self.readGlobalId(wide);
+            self.visitor.visitLoadGlobalChar(dest, glob);
+        } else if opcode == BC_LOAD_FIELD_INT {
+            let dest = self.readRegister(wide);
+            let glob = self.readGlobalId(wide);
+            self.visitor.visitLoadGlobalInt(dest, glob);
+        } else if opcode == BC_LOAD_FIELD_LONG {
+            let dest = self.readRegister(wide);
+            let glob = self.readGlobalId(wide);
+            self.visitor.visitLoadGlobalLong(dest, glob);
+        } else if opcode == BC_LOAD_FIELD_FLOAT {
+            let dest = self.readRegister(wide);
+            let glob = self.readGlobalId(wide);
+            self.visitor.visitLoadGlobalFloat(dest, glob);
+        } else if opcode == BC_LOAD_FIELD_DOUBLE {
+            let dest = self.readRegister(wide);
+            let glob = self.readGlobalId(wide);
+            self.visitor.visitLoadGlobalDouble(dest, glob);
+        } else if opcode == BC_LOAD_FIELD_PTR {
+            let dest = self.readRegister(wide);
+            let glob = self.readGlobalId(wide);
+            self.visitor.visitLoadGlobalPtr(dest, glob);
+
+        } else if opcode == BC_CONST_NIL {
+            let dest = self.readRegister(wide);
+            self.visitor.visitConstNil(dest);
+        } else if opcode == BC_CONST_TRUE {
+            let dest = self.readRegister(wide);
+            self.visitor.visitConstTrue(dest);
+        } else if opcode == BC_CONST_FALSE {
+            let dest = self.readRegister(wide);
+            self.visitor.visitConstFalse(dest);
+        } else if opcode == BC_CONST_ZERO_BYTE {
+            let dest = self.readRegister(wide);
+            self.visitor.visitConstZeroByte(dest);
+        } else if opcode == BC_CONST_ZERO_INT {
+            let dest = self.readRegister(wide);
+            self.visitor.visitConstZeroInt(dest);
+        } else if opcode == BC_CONST_ZERO_LONG {
+            let dest = self.readRegister(wide);
+            self.visitor.visitConstZeroLong(dest);
+        } else if opcode == BC_CONST_ZERO_FLOAT {
+            let dest = self.readRegister(wide);
+            self.visitor.visitConstZeroFloat(dest);
+        } else if opcode == BC_CONST_ZERO_DOUBLE {
+            let dest = self.readRegister(wide);
+            self.visitor.visitConstZeroDouble(dest);
+        } else if opcode == BC_CONST_CHAR {
+            let dest = self.readRegister(wide);
+            let idx = self.readConstPoolId(wide);
+            self.visitor.visitConstChar(dest, idx);
+        } else if opcode == BC_CONST_BYTE {
+            let dest = self.readRegister(wide);
+            let value = self.readIndex(wide).toByte();
+            self.visitor.visitConstByte(dest, value);
+        } else if opcode == BC_CONST_INT {
+            let dest = self.readRegister(wide);
+            let idx = self.readConstPoolId(wide);
+            self.visitor.visitConstInt(dest, idx);
+        } else if opcode == BC_CONST_LONG {
+            let dest = self.readRegister(wide);
+            let idx = self.readConstPoolId(wide);
+            self.visitor.visitConstLong(dest, idx);
+        } else if opcode == BC_CONST_FLOAT {
+            let dest = self.readRegister(wide);
+            let idx = self.readConstPoolId(wide);
+            self.visitor.visitConstFloat(dest, idx);
+        } else if opcode == BC_CONST_DOUBLE {
+            let dest = self.readRegister(wide);
+            let idx = self.readConstPoolId(wide);
+            self.visitor.visitConstDouble(dest, idx);
+        } else if opcode == BC_CONST_STRING {
+            let dest = self.readRegister(wide);
+            let idx = self.readConstPoolId(wide);
+            self.visitor.visitConstString(dest, idx);
+
+        } else {
+            fatalError("unkown opcode ${opcode}");
+        }
+    }
+
+    fun readRegister(wide: Bool) -> BytecodeRegister {
+        BytecodeRegister(self.readIndex(wide))
+    }
+
+    fun hasWideOperands() -> Bool {
+        let data = self.data;
+        let value = data(self.pos);
+
+        if value.toInt() == BC_WIDE {
+            self.pos = self.pos + 1;
+            true
+        } else {
+            false
+        }
+    }
+
+    fun readOpcode(wide: Bool) -> Int {
+        self.readIndex(wide)
+    }
+
+    fun readClassDefId(wide: Bool) -> ClassDefId {
+        ClassDefId(self.readIndex(wide))
+    }
+
+    fun readGlobalId(wide: Bool) -> GlobalId {
+        GlobalId(self.readIndex(wide))
+    }
+
+    fun readFieldId(wide: Bool) -> FieldId {
+        FieldId(self.readIndex(wide))
+    }
+
+    fun readConstPoolId(wide: Bool) -> ConstPoolId {
+        ConstPoolId(self.readIndex(wide))
+    }
+
+    fun readIndex(wide: Bool) -> Int {
+        if wide {
+            self.readInt()
+        } else {
+            self.readByte()
+        }
+    }
+
+    fun readByte() -> Int {
+        let data = self.data;
+        let value = data(self.pos);
+        self.pos = self.pos + 1;
+
+        value.toInt()
+    }
+
+    fun readInt() -> Int {
+        let by1 = self.readByte();
+        let by2 = self.readByte();
+        let by3 = self.readByte();
+        let by4 = self.readByte();
+
+        (by4 << 24) | (by3 << 16) | (by2 << 8) | by1
+    }
+}
+
+// Keep in sync with bytecode/data.rs:BytecodeInst
+
+const BC_WIDE: Int = 0;
+
+const BC_ADD_INT: Int = 1;
+const BC_ADD_LONG: Int = 2;
+const BC_ADD_FLOAT: Int = 3;
+const BC_ADD_DOUBLE: Int = 4;
+
+const BC_SUB_INT: Int = 5;
+const BC_SUB_LONG: Int = 6;
+const BC_SUB_FLOAT: Int = 7;
+const BC_SUB_DOUBLE: Int = 8;
+
+const BC_NEG_INT: Int = 9;
+const BC_NEG_LONG: Int = 10;
+const BC_NEG_FLOAT: Int = 11;
+const BC_NEG_DOUBLE: Int = 12;
+
+const BC_MUL_INT: Int = 13;
+const BC_MUL_LONG: Int = 14;
+const BC_MUL_FLOAT: Int = 15;
+const BC_MUL_DOUBLE: Int = 16;
+
+const BC_DIV_INT: Int = 17;
+const BC_DIV_LONG: Int = 18;
+const BC_DIV_FLOAT: Int = 19;
+const BC_DIV_DOUBLE: Int = 20;
+
+const BC_MOD_INT: Int = 21;
+const BC_MOD_LONG: Int = 22;
+
+const BC_AND_INT: Int = 23;
+const BC_AND_LONG: Int = 24;
+
+const BC_OR_INT: Int = 25;
+const BC_OR_LONG: Int = 26;
+
+const BC_XOR_INT: Int = 27;
+const BC_XOR_LONG: Int = 28;
+
+const BC_NOT_BOOL: Int = 29;
+const BC_NOT_INT: Int = 30;
+const BC_NOT_LONG: Int = 31;
+
+const BC_SHL_INT: Int = 32;
+const BC_SHR_INT: Int = 33;
+const BC_SAR_INT: Int = 34;
+
+const BC_SHL_LONG: Int = 35;
+const BC_SHR_LONG: Int = 36;
+const BC_SAR_LONG: Int = 37;
+
+const BC_MOV_BOOL: Int = 38;
+const BC_MOV_BYTE: Int = 39;
+const BC_MOV_CHAR: Int = 40;
+const BC_MOV_INT: Int = 41;
+const BC_MOV_LONG: Int = 42;
+const BC_MOV_FLOAT: Int = 43;
+const BC_MOV_DOUBLE: Int = 44;
+const BC_MOV_PTR: Int = 45;
+
+const BC_LOAD_FIELD_BOOL: Int = 46;
+const BC_LOAD_FIELD_BYTE: Int = 47;
+const BC_LOAD_FIELD_CHAR: Int = 48;
+const BC_LOAD_FIELD_INT: Int = 49;
+const BC_LOAD_FIELD_LONG: Int = 50;
+const BC_LOAD_FIELD_FLOAT: Int = 51;
+const BC_LOAD_FIELD_DOUBLE: Int = 52;
+const BC_LOAD_FIELD_PTR: Int = 53;
+
+const BC_LOAD_GLOBAL_BOOL: Int = 54;
+const BC_LOAD_GLOBAL_BYTE: Int = 55;
+const BC_LOAD_GLOBAL_CHAR: Int = 56;
+const BC_LOAD_GLOBAL_INT: Int = 57;
+const BC_LOAD_GLOBAL_LONG: Int = 58;
+const BC_LOAD_GLOBAL_FLOAT: Int = 59;
+const BC_LOAD_GLOBAL_DOUBLE: Int = 60;
+const BC_LOAD_GLOBAL_PTR: Int = 61;
+
+const BC_CONST_NIL: Int = 62;
+const BC_CONST_TRUE: Int = 63;
+const BC_CONST_FALSE: Int = 64;
+const BC_CONST_ZERO_BYTE: Int = 65;
+const BC_CONST_ZERO_INT: Int = 66;
+const BC_CONST_ZERO_LONG: Int = 67;
+const BC_CONST_ZERO_FLOAT: Int = 68;
+const BC_CONST_ZERO_DOUBLE: Int = 69;
+const BC_CONST_CHAR: Int = 70;
+const BC_CONST_BYTE: Int = 71;
+const BC_CONST_INT: Int = 72;
+const BC_CONST_LONG: Int = 73;
+const BC_CONST_FLOAT: Int = 74;
+const BC_CONST_DOUBLE: Int = 75;
+const BC_CONST_STRING: Int = 76;
+
+const BC_TEST_EQ_PTR: Int = 77;
+const BC_TEST_NE_PTR: Int = 78;
+
+const BC_TEST_EQ_INT: Int = 79;
+const BC_TEST_NE_INT: Int = 80;
+const BC_TEST_GT_INT: Int = 81;
+const BC_TEST_GE_INT: Int = 82;
+const BC_TEST_LT_INT: Int = 83;
+const BC_TEST_LE_INT: Int = 84;
+
+const BC_TEST_EQ_LONG: Int = 85;
+const BC_TEST_NE_LONG: Int = 86;
+const BC_TEST_GT_LONG: Int = 87;
+const BC_TEST_GE_LONG: Int = 88;
+const BC_TEST_LT_LONG: Int = 89;
+const BC_TEST_LE_LONG: Int = 90;
+
+const BC_TEST_EQ_FLOAT: Int = 91;
+const BC_TEST_NE_FLOAT: Int = 92;
+const BC_TEST_GT_FLOAT: Int = 93;
+const BC_TEST_GE_FLOAT: Int = 94;
+const BC_TEST_LT_FLOAT: Int = 95;
+const BC_TEST_LE_FLOAT: Int = 96;
+
+const BC_TEST_EQ_DOUBLE: Int = 97;
+const BC_TEST_NE_DOUBLE: Int = 98;
+const BC_TEST_GT_DOUBLE: Int = 99;
+const BC_TEST_GE_DOUBLE: Int = 100;
+const BC_TEST_LT_DOUBLE: Int = 101;
+const BC_TEST_LE_DOUBLE: Int = 102;
+
+const BC_JUMP_IF_FALSE: Int = 103;
+const BC_JUMP_IF_TRUE: Int = 104;
+const BC_JUMP: Int = 105;
+
+const BC_INVOKE_DIRECT_VOID: Int = 106;
+const BC_INVOKE_DIRECT_BOOL: Int = 107;
+const BC_INVOKE_DIRECT_BYTE: Int = 108;
+const BC_INVOKE_DIRECT_CHAR: Int = 109;
+const BC_INVOKE_DIRECT_INT: Int = 110;
+const BC_INVOKE_DIRECT_LONG: Int = 111;
+const BC_INVOKE_DIRECT_FLOAT: Int = 112;
+const BC_INVOKE_DIRECT_DOUBLE: Int = 113;
+const BC_INVOKE_DIRECT_PTR: Int = 114;
+
+const BC_INVOKE_VIRTUAL_VOID: Int = 115;
+const BC_INVOKE_VIRTUAL_BOOL: Int = 116;
+const BC_INVOKE_VIRTUAL_BYTE: Int = 117;
+const BC_INVOKE_VIRTUAL_CHAR: Int = 118;
+const BC_INVOKE_VIRTUAL_INT: Int = 119;
+const BC_INVOKE_VIRTUAL_LONG: Int = 120;
+const BC_INVOKE_VIRTUAL_FLOAT: Int = 121;
+const BC_INVOKE_VIRTUAL_DOUBLE: Int = 122;
+const BC_INVOKE_VIRTUAL_PTR: Int = 123;
+
+const BC_INVOKE_STATIC_VOID: Int = 124;
+const BC_INVOKE_STATIC_BOOL: Int = 125;
+const BC_INVOKE_STATIC_BYTE: Int = 126;
+const BC_INVOKE_STATIC_CHAR: Int = 127;
+const BC_INVOKE_STATIC_INT: Int = 128;
+const BC_INVOKE_STATIC_LONG: Int = 129;
+const BC_INVOKE_STATIC_FLOAT: Int = 130;
+const BC_INVOKE_STATIC_DOUBLE: Int = 131;
+const BC_INVOKE_STATIC_PTR: Int = 132;
+
+const BC_NEW_OBJECT: Int = 133;
+
+const BC_THROW: Int = 134;
+
+const BC_RET_VOID: Int = 135;
+const BC_RET_BOOL: Int = 136;
+const BC_RET_BYTE: Int = 137;
+const BC_RET_CHAR: Int = 138;
+const BC_RET_INT: Int = 139;
+const BC_RET_LONG: Int = 140;
+const BC_RET_FLOAT: Int = 141;
+const BC_RET_DOUBLE: Int = 142;
+const BC_RET_PTR: Int = 143;

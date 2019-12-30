@@ -18,6 +18,9 @@ macro_rules! offset_of {
     };
 }
 
+#[macro_use]
+extern crate num_derive;
+
 mod baseline;
 mod boots;
 mod bytecode;

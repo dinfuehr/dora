@@ -26,6 +26,8 @@ parking_lot = "0.9.*"
 fixedbitset = "0.2.*"
 num_cpus = "1.10.*"
 backtrace = "0.3.*"
+num-traits = "0.2"
+num-derive = "0.3"
 
 [lib]
 name = "dora"
