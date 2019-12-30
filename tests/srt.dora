@@ -1,0 +1,85 @@
+fun main() {
+    assert(0.0F.sortsAs(0.0F) == 0);
+    assert((-0.0F).sortsAs(-0.0F) == 0);
+    assert(1.0F.sortsAs(1.0F) == 0);
+    assert(0.0F.sortsAs(1.0F) == -1);
+    assert(1.0F.sortsAs(0.0F) == 1);
+    assert((-0.0F).sortsAs(0.0F) == -1);
+    assert(0.0F.sortsAs(-0.0F) == 1);
+    assert((0.0F/0.0F).sortsAs(0.0F/0.0F) == 0);
+
+    assert(0.0.sortsAs(0.0) == 0);
+    assert((-0.0).sortsAs(-0.0) == 0);
+    assert(1.0.sortsAs(1.0) == 0);
+    assert(0.0.sortsAs(1.0) == -1);
+    assert(1.0.sortsAs(0.0) == 1);
+    assert((-0.0).sortsAs(0.0) == -1);
+    assert(0.0.sortsAs(-0.0) == 1);
+    assert((0.0/0.0).sortsAs(0.0/0.0) == 0);
+
+    // 11111111110000000000000000000000
+    let nanQuietNegative = (-4194304).asFloat();
+    // 11111111100000000000000000000001
+    let nanSignaNegative = (-8388607).asFloat();
+    // 11111111100000000000000000000000
+    let infNegative = (-8388608).asFloat();
+    // negative numbers
+    // positive numbers
+    // 01111111100000000000000000000000
+    let infPositive = 2139095040.asFloat();
+    // 01111111100000000000000000000001
+    let nanSignaPositive = 2139095041.asFloat();
+    // 01111111110000000000000000000000
+    let nanQuietPositive = 2143289344.asFloat();
+
+    assert(nanQuietNegative.sortsAs(nanSignaNegative) == -1);
+    assert(nanSignaNegative.sortsAs(infNegative) == -1);
+    assert(infNegative.sortsAs(infPositive) == -1);
+    assert(infPositive.sortsAs(nanSignaPositive) == -1);
+    assert(nanSignaPositive.sortsAs(nanQuietPositive) == -1);
+
+    assert(nanQuietNegative.sortsAs(-1.0F) == -1);
+    assert(nanSignaNegative.sortsAs(-1.0F) == -1);
+    assert(infNegative.sortsAs(-1.0F) == -1);
+    assert(infPositive.sortsAs(-1.0F) == 1);
+    assert(nanSignaPositive.sortsAs(-1.0F) == 1);
+
+    assert(nanQuietNegative.sortsAs(1.0F) == -1);
+    assert(nanSignaNegative.sortsAs(1.0F) == -1);
+    assert(infNegative.sortsAs(1.0F) == -1);
+    assert(infPositive.sortsAs(1.0F) == 1);
+    assert(nanSignaPositive.sortsAs(1.0F) == 1);
+
+    // 1111111111111000000000000000000000000000000000000000000000000000
+    let nanQuietNegative = (-2251799813685248L).asDouble();
+    // 1111111111110000000000000000000000000000000000000000000000000001
+    let nanSignaNegative = (-4503599627370495L).asDouble();
+    // 1111111111110000000000000000000000000000000000000000000000000000
+    let infNegative = (-4503599627370496L).asDouble();
+    // negative numbers
+    // positive numbers
+    // 0111111111110000000000000000000000000000000000000000000000000000
+    let infPositive = 9218868437227405312L.asDouble();
+    // 0111111111110000000000000000000000000000000000000000000000000001
+    let nanSignaPositive = 9218868437227405313L.asDouble();
+    // 0111111111111000000000000000000000000000000000000000000000000000
+    let nanQuietPositive = 9221120237041090560L.asDouble();
+
+    assert(nanQuietNegative.sortsAs(nanSignaNegative) == -1);
+    assert(nanSignaNegative.sortsAs(infNegative) == -1);
+    assert(infNegative.sortsAs(infPositive) == -1);
+    assert(infPositive.sortsAs(nanSignaPositive) == -1);
+    assert(nanSignaPositive.sortsAs(nanQuietPositive) == -1);
+
+    assert(nanQuietNegative.sortsAs(-1.0) == -1);
+    assert(nanSignaNegative.sortsAs(-1.0) == -1);
+    assert(infNegative.sortsAs(-1.0) == -1);
+    assert(infPositive.sortsAs(-1.0) == 1);
+    assert(nanSignaPositive.sortsAs(-1.0) == 1);
+
+    assert(nanQuietNegative.sortsAs(1.0) == -1);
+    assert(nanSignaNegative.sortsAs(1.0) == -1);
+    assert(infNegative.sortsAs(1.0) == -1);
+    assert(infPositive.sortsAs(1.0) == 1);
+    assert(nanSignaPositive.sortsAs(1.0) == 1);
+}
