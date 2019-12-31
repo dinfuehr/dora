@@ -1113,6 +1113,10 @@ impl BytecodeFunction {
         }
     }
 
+    pub fn const_pool(&self, idx: ConstPoolIdx) -> &ConstPoolEntry {
+        &self.const_pool[idx.to_usize()]
+    }
+
     pub fn dump(&self) {
         let mut btidx = 0;
         for btcode in self.code.iter() {
@@ -1488,6 +1492,50 @@ pub enum ConstPoolEntry {
     Int(i32),
     Long(i64),
     Char(char),
+}
+
+impl ConstPoolEntry {
+    pub fn to_string(&self) -> Option<&str> {
+        match self {
+            ConstPoolEntry::String(ref value) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub fn to_float(&self) -> Option<f32> {
+        match self {
+            ConstPoolEntry::Float32(value) => Some(*value),
+            _ => None,
+        }
+    }
+
+    pub fn to_double(&self) -> Option<f64> {
+        match self {
+            ConstPoolEntry::Float64(value) => Some(*value),
+            _ => None,
+        }
+    }
+
+    pub fn to_int(&self) -> Option<i32> {
+        match self {
+            ConstPoolEntry::Int(value) => Some(*value),
+            _ => None,
+        }
+    }
+
+    pub fn to_long(&self) -> Option<i64> {
+        match self {
+            ConstPoolEntry::Long(value) => Some(*value),
+            _ => None,
+        }
+    }
+
+    pub fn to_char(&self) -> Option<char> {
+        match self {
+            ConstPoolEntry::Char(value) => Some(*value),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

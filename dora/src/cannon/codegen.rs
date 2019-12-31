@@ -850,7 +850,7 @@ where
             .store_mem(bytecode_type.mode(), Mem::Local(offset), FREG_RESULT.into());
     }
 
-    fn emit_const_string(&mut self, dest: Register, lit_value: &String) {
+    fn emit_const_string(&mut self, dest: Register, lit_value: &str) {
         assert_eq!(self.bytecode.register(dest), BytecodeType::Ptr);
 
         let bytecode_type = self.bytecode.register(dest);
@@ -1372,26 +1372,57 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_const_zero_double(&mut self, dest: Register) {
         self.emit_const_float(dest, 0_f64);
     }
-    fn visit_const_char(&mut self, _dest: Register, _value: ConstPoolIdx) {
-        unimplemented!();
+    fn visit_const_char(&mut self, dest: Register, idx: ConstPoolIdx) {
+        let value = self
+            .bytecode
+            .const_pool(idx)
+            .to_char()
+            .expect("unexpected const pool entry");
+        self.emit_const_int(dest, value as i64);
     }
+
     fn visit_const_byte(&mut self, dest: Register, value: u8) {
         self.emit_const_int(dest, value as i64);
     }
-    fn visit_const_int(&mut self, _dest: Register, _value: ConstPoolIdx) {
-        unimplemented!();
+    fn visit_const_int(&mut self, dest: Register, idx: ConstPoolIdx) {
+        let value = self
+            .bytecode
+            .const_pool(idx)
+            .to_int()
+            .expect("unexpected const pool entry");
+        self.emit_const_int(dest, value as i64);
     }
-    fn visit_const_long(&mut self, _dest: Register, _value: ConstPoolIdx) {
-        unimplemented!();
+    fn visit_const_long(&mut self, dest: Register, idx: ConstPoolIdx) {
+        let value = self
+            .bytecode
+            .const_pool(idx)
+            .to_long()
+            .expect("unexpected const pool entry");
+        self.emit_const_int(dest, value);
     }
-    fn visit_const_float(&mut self, _dest: Register, _value: ConstPoolIdx) {
-        unimplemented!();
+    fn visit_const_float(&mut self, dest: Register, idx: ConstPoolIdx) {
+        let value = self
+            .bytecode
+            .const_pool(idx)
+            .to_float()
+            .expect("unexpected const pool entry");
+        self.emit_const_float(dest, value as f64);
     }
-    fn visit_const_double(&mut self, _dest: Register, _value: ConstPoolIdx) {
-        unimplemented!();
+    fn visit_const_double(&mut self, dest: Register, idx: ConstPoolIdx) {
+        let value = self
+            .bytecode
+            .const_pool(idx)
+            .to_double()
+            .expect("unexpected const pool entry");
+        self.emit_const_float(dest, value);
     }
-    fn visit_const_string(&mut self, _dest: Register, _value: ConstPoolIdx) {
-        unimplemented!();
+    fn visit_const_string(&mut self, dest: Register, idx: ConstPoolIdx) {
+        let value = self
+            .bytecode
+            .const_pool(idx)
+            .to_string()
+            .expect("unexpected const pool entry");
+        self.emit_const_string(dest, value);
     }
 
     fn visit_test_eq_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
