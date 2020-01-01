@@ -11,6 +11,8 @@
   @internal fun toInt() -> Int;
   @internal fun toString() -> String;
 
+  fun toStringBinary() -> String = String::toStringBinary(self, Long::bits());
+
   @internal fun toFloat() -> Float;
   @internal fun toDouble() -> Double;
 
@@ -39,27 +41,12 @@
 
   fun hash() -> Int = self.toInt();
 
-  @static fun max_value() -> Long {
-    return 9223372036854775807L;
-  }
+  @static fun bits() -> Int = 64;
+  @static fun bytes() -> Int = 8;
 
-  @static fun min_value() -> Long {
-    return -9223372036854775808L;
-  }
+  @static fun max_value() -> Long = 9223372036854775807L;
+  @static fun min_value() -> Long = -9223372036854775808L;
 
-  @static fun min(lhs: Long, rhs: Long) -> Long {
-    if lhs < rhs {
-      return lhs;
-    } else {
-      return rhs;
-    }
-  }
-
-  @static fun max(lhs: Long, rhs: Long) -> Long {
-    if lhs < rhs {
-      return rhs;
-    } else {
-      return lhs;
-    }
-  }
+  @static fun min(lhs: Long, rhs: Long) -> Long = if lhs < rhs { lhs } else { rhs };
+  @static fun max(lhs: Long, rhs: Long) -> Long = if lhs < rhs { rhs } else { lhs };
 }

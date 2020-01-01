@@ -4,4 +4,13 @@ fun main() {
 
     let x = (-1).toByte();
     assert(x == 255.toByte());
+
+    let x = 129Y.toInt();
+    assert(x == 129);
+
+    let x = 129Y.toLong();
+    assert(x == 129L);
+
+    let x = 129.toByte().toStringBinary();
+    assert(x == "10000001");
 }
