@@ -19,6 +19,8 @@
     return true;
   }
 
+  fun toString() -> String = self;
+
   @internal fun compareTo(rhs: String) -> Int;
 
   @internal fun length() -> Int;
