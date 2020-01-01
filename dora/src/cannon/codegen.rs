@@ -17,11 +17,6 @@ use crate::vm::{ClassDefId, Fct, FctId, FctSrc, FieldId, GlobalId, VM};
 
 struct ForwardJump {
     label: Label,
-    bytecode_idx: BytecodeIdx,
-}
-
-struct ForwardJumpOffset {
-    label: Label,
     offset: BytecodeOffset,
 }
 
@@ -65,8 +60,6 @@ pub struct CannonCodeGen<'a, 'ast: 'a> {
     offset_to_address: HashMap<BytecodeOffset, usize>,
 
     forward_jumps: Vec<ForwardJump>,
-    forward_jump_offsets: Vec<ForwardJumpOffset>,
-    current_pos: Option<BytecodeIdx>,
     current_offset: BytecodeOffset,
 }
 
@@ -108,8 +101,6 @@ where
             bytecode_to_address: HashMap::new(),
             offset_to_address: HashMap::new(),
             forward_jumps: Vec::new(),
-            forward_jump_offsets: Vec::new(),
-            current_pos: None,
             current_offset: BytecodeOffset(0),
         }
     }
@@ -123,154 +114,6 @@ where
         self.store_params_on_stack();
 
         BytecodeReader::new(self.bytecode.data(), &mut self).read();
-
-        /*self.current_pos = Some(BytecodeIdx(0));
-        for btcode in self.bytecode.code() {
-            self.bytecode_to_address.insert(self.pos(), self.asm.pos());
-
-            match btcode {
-                Bytecode::AddInt(dest, lhs, rhs) | Bytecode::AddLong(dest, lhs, rhs) => {
-                    self.emit_add_int(*dest, *lhs, *rhs)
-                }
-                Bytecode::AddFloat(dest, lhs, rhs) | Bytecode::AddDouble(dest, lhs, rhs) => {
-                    self.emit_add_float(*dest, *lhs, *rhs)
-                }
-
-                Bytecode::SubInt(dest, lhs, rhs) => self.emit_sub_int(*dest, *lhs, *rhs),
-                Bytecode::SubFloat(dest, lhs, rhs) => self.emit_sub_float(*dest, *lhs, *rhs),
-
-                Bytecode::NegInt(dest, src) | Bytecode::NegLong(dest, src) => {
-                    self.emit_neg_int(*dest, *src)
-                }
-                Bytecode::MulInt(dest, lhs, rhs) => self.emit_mul_int(*dest, *lhs, *rhs),
-                Bytecode::MulFloat(dest, lhs, rhs) => self.emit_mul_float(*dest, *lhs, *rhs),
-                Bytecode::DivInt(dest, lhs, rhs) => self.emit_div_int(*dest, *lhs, *rhs),
-                Bytecode::DivFloat(dest, lhs, rhs) => self.emit_div_float(*dest, *lhs, *rhs),
-                Bytecode::ModInt(dest, lhs, rhs) => self.emit_mod_int(*dest, *lhs, *rhs),
-                Bytecode::AndInt(dest, lhs, rhs) => self.emit_and_int(*dest, *lhs, *rhs),
-                Bytecode::OrInt(dest, lhs, rhs) => self.emit_or_int(*dest, *lhs, *rhs),
-                Bytecode::XorInt(dest, lhs, rhs) => self.emit_xor_int(*dest, *lhs, *rhs),
-                Bytecode::NotBool(dest, src) => self.emit_not_bool(*dest, *src),
-                Bytecode::ShlInt(dest, lhs, rhs) => self.emit_shl_int(*dest, *lhs, *rhs),
-                Bytecode::ShrInt(dest, lhs, rhs) => self.emit_shr_int(*dest, *lhs, *rhs),
-                Bytecode::SarInt(dest, lhs, rhs) => self.emit_sar_int(*dest, *lhs, *rhs),
-                Bytecode::MovBool(dest, src)
-                | Bytecode::MovByte(dest, src)
-                | Bytecode::MovChar(dest, src)
-                | Bytecode::MovInt(dest, src)
-                | Bytecode::MovLong(dest, src)
-                | Bytecode::MovFloat(dest, src)
-                | Bytecode::MovDouble(dest, src)
-                | Bytecode::MovPtr(dest, src) => self.emit_mov_generic(*dest, *src),
-
-                Bytecode::LoadFieldBool(dest, obj, class_def_id, field_id)
-                | Bytecode::LoadFieldByte(dest, obj, class_def_id, field_id)
-                | Bytecode::LoadFieldChar(dest, obj, class_def_id, field_id)
-                | Bytecode::LoadFieldInt(dest, obj, class_def_id, field_id)
-                | Bytecode::LoadFieldLong(dest, obj, class_def_id, field_id)
-                | Bytecode::LoadFieldFloat(dest, obj, class_def_id, field_id)
-                | Bytecode::LoadFieldDouble(dest, obj, class_def_id, field_id)
-                | Bytecode::LoadFieldPtr(dest, obj, class_def_id, field_id) => {
-                    self.emit_load_field(*dest, *obj, *class_def_id, *field_id)
-                }
-
-                Bytecode::LoadGlobalBool(dest, global_id)
-                | Bytecode::LoadGlobalByte(dest, global_id)
-                | Bytecode::LoadGlobalChar(dest, global_id)
-                | Bytecode::LoadGlobalInt(dest, global_id)
-                | Bytecode::LoadGlobalLong(dest, global_id)
-                | Bytecode::LoadGlobalFloat(dest, global_id)
-                | Bytecode::LoadGlobalDouble(dest, global_id)
-                | Bytecode::LoadGlobalPtr(dest, global_id) => {
-                    self.emit_load_global_field(*dest, *global_id);
-                }
-
-                Bytecode::ConstNil(dest) => self.emit_const_nil(*dest),
-                Bytecode::ConstTrue(dest) => self.emit_const_bool(*dest, true),
-                Bytecode::ConstFalse(dest) => self.emit_const_bool(*dest, false),
-                Bytecode::ConstZeroByte(dest)
-                | Bytecode::ConstZeroInt(dest)
-                | Bytecode::ConstZeroLong(dest) => self.emit_const_int(*dest, 0),
-                Bytecode::ConstByte(dest, value) => self.emit_const_int(*dest, *value as i64),
-                Bytecode::ConstInt(dest, value) => self.emit_const_int(*dest, *value as i64),
-                Bytecode::ConstLong(dest, value) => self.emit_const_int(*dest, *value as i64),
-                Bytecode::ConstChar(dest, value) => self.emit_const_int(*dest, *value as i64),
-                Bytecode::ConstZeroFloat(dest) | Bytecode::ConstZeroDouble(dest) => {
-                    self.emit_const_float(*dest, 0_f64)
-                }
-                Bytecode::ConstFloat(dest, value) => self.emit_const_float(*dest, *value as f64),
-                Bytecode::ConstDouble(dest, value) => self.emit_const_float(*dest, *value),
-                Bytecode::ConstString(dest, value) => {
-                    self.emit_const_string(*dest, value);
-                }
-
-                Bytecode::TestEqPtr(dest, lhs, rhs) => {
-                    self.emit_test_generic(*dest, *lhs, *rhs, CondCode::Equal);
-                }
-                Bytecode::TestNePtr(dest, lhs, rhs) => {
-                    self.emit_test_generic(*dest, *lhs, *rhs, CondCode::NotEqual);
-                }
-
-                Bytecode::TestEqInt(dest, lhs, rhs) => {
-                    self.emit_test_generic(*dest, *lhs, *rhs, CondCode::Equal)
-                }
-                Bytecode::TestNeInt(dest, lhs, rhs) => {
-                    self.emit_test_generic(*dest, *lhs, *rhs, CondCode::NotEqual)
-                }
-                Bytecode::TestGtInt(dest, lhs, rhs) => {
-                    self.emit_test_generic(*dest, *lhs, *rhs, CondCode::Greater)
-                }
-                Bytecode::TestGeInt(dest, lhs, rhs) => {
-                    self.emit_test_generic(*dest, *lhs, *rhs, CondCode::GreaterEq)
-                }
-                Bytecode::TestLtInt(dest, lhs, rhs) => {
-                    self.emit_test_generic(*dest, *lhs, *rhs, CondCode::Less)
-                }
-                Bytecode::TestLeInt(dest, lhs, rhs) => {
-                    self.emit_test_generic(*dest, *lhs, *rhs, CondCode::LessEq)
-                }
-
-                Bytecode::TestEqFloat(dest, lhs, rhs) => {
-                    self.emit_test_float(*dest, *lhs, *rhs, CondCode::Equal)
-                }
-                Bytecode::TestNeFloat(dest, lhs, rhs) => {
-                    self.emit_test_float(*dest, *lhs, *rhs, CondCode::NotEqual)
-                }
-                Bytecode::TestGtFloat(dest, lhs, rhs) => {
-                    self.emit_test_float(*dest, *lhs, *rhs, CondCode::Greater)
-                }
-                Bytecode::TestGeFloat(dest, lhs, rhs) => {
-                    self.emit_test_float(*dest, *lhs, *rhs, CondCode::GreaterEq)
-                }
-                Bytecode::TestLtFloat(dest, lhs, rhs) => {
-                    self.emit_test_float(*dest, *lhs, *rhs, CondCode::Less)
-                }
-                Bytecode::TestLeFloat(dest, lhs, rhs) => {
-                    self.emit_test_float(*dest, *lhs, *rhs, CondCode::LessEq)
-                }
-
-                Bytecode::JumpIfFalse(src, bytecode_idx) => {
-                    self.emit_jump_if(*src, *bytecode_idx, false)
-                }
-                Bytecode::JumpIfTrue(src, bytecode_idx) => {
-                    self.emit_jump_if(*src, *bytecode_idx, true)
-                }
-                Bytecode::Jump(bytecode_idx) => self.emit_jump(*bytecode_idx),
-
-                Bytecode::RetBool(src)
-                | Bytecode::RetByte(src)
-                | Bytecode::RetChar(src)
-                | Bytecode::RetInt(src)
-                | Bytecode::RetLong(src)
-                | Bytecode::RetFloat(src)
-                | Bytecode::RetDouble(src)
-                | Bytecode::RetPtr(src) => self.emit_return_generic(*src),
-                Bytecode::RetVoid => self.emit_epilog(),
-                _ => panic!("bytecode {:?} not implemented", btcode),
-            }
-
-            self.pos_inc();
-        }*/
 
         self.resolve_forward_jumps();
 
@@ -924,53 +767,7 @@ where
             .store_mem(bytecode_type.mode(), Mem::Local(offset), REG_RESULT.into());
     }
 
-    fn emit_jump_if(&mut self, src: Register, bytecode_idx: BytecodeIdx, op: bool) {
-        assert_eq!(self.bytecode.register(src), BytecodeType::Bool);
-
-        let bytecode_type = self.bytecode.register(src);
-        let offset = self.bytecode.offset(src);
-        self.asm
-            .load_mem(bytecode_type.mode(), REG_RESULT.into(), Mem::Local(offset));
-
-        let op = if op {
-            CondCode::NonZero
-        } else {
-            CondCode::Zero
-        };
-        let lbl = self.asm.create_label();
-        self.asm.test_and_jump_if(op, REG_RESULT, lbl);
-
-        self.resolve_label(bytecode_idx, lbl);
-    }
-
-    fn emit_jump(&mut self, bytecode_idx: BytecodeIdx) {
-        let lbl = self.asm.create_label();
-        self.asm.jump(lbl);
-
-        self.resolve_label(bytecode_idx, lbl);
-    }
-
-    fn resolve_label(&mut self, bytecode_idx: BytecodeIdx, lbl: Label) {
-        let BytecodeIdx(current_position) = self.pos();
-        let BytecodeIdx(target) = bytecode_idx;
-
-        if target < current_position {
-            self.asm.bind_label_to(
-                lbl,
-                *self
-                    .bytecode_to_address
-                    .get(&bytecode_idx)
-                    .expect("jump with wrong offset"),
-            );
-        } else {
-            self.forward_jumps.push(ForwardJump {
-                label: lbl,
-                bytecode_idx: bytecode_idx,
-            });
-        }
-    }
-
-    fn emit_jump_if2(&mut self, src: Register, offset: BytecodeOffset, op: bool) {
+    fn emit_jump_if(&mut self, src: Register, offset: BytecodeOffset, op: bool) {
         assert_eq!(self.bytecode.register(src), BytecodeType::Bool);
 
         let bytecode_type = self.bytecode.register(src);
@@ -989,17 +786,17 @@ where
         let lbl = self.asm.create_label();
         self.asm.test_and_jump_if(op, REG_RESULT, lbl);
 
-        self.resolve_label2(offset, lbl);
+        self.resolve_label(offset, lbl);
     }
 
-    fn emit_jump2(&mut self, offset: BytecodeOffset) {
+    fn emit_jump(&mut self, offset: BytecodeOffset) {
         let lbl = self.asm.create_label();
         self.asm.jump(lbl);
 
-        self.resolve_label2(offset, lbl);
+        self.resolve_label(offset, lbl);
     }
 
-    fn resolve_label2(&mut self, target: BytecodeOffset, lbl: Label) {
+    fn resolve_label(&mut self, target: BytecodeOffset, lbl: Label) {
         if target < self.current_offset {
             self.asm.bind_label_to(
                 lbl,
@@ -1009,7 +806,7 @@ where
                     .expect("jump with wrong offset"),
             );
         } else {
-            self.forward_jump_offsets.push(ForwardJumpOffset {
+            self.forward_jumps.push(ForwardJump {
                 label: lbl,
                 offset: target,
             });
@@ -1030,37 +827,12 @@ where
 
     fn resolve_forward_jumps(&mut self) {
         for jump in &self.forward_jumps {
-            let ForwardJump {
-                label,
-                bytecode_idx,
-            } = jump;
-
-            match self.bytecode_to_address.get(&bytecode_idx) {
-                Some(&address) => {
-                    self.asm.bind_label_to(*label, address);
-                }
-                None => {
-                    panic!("address for bytecode index not found");
-                }
-            }
-        }
-
-        for jump in &self.forward_jump_offsets {
             let offset = *self
                 .offset_to_address
                 .get(&jump.offset)
                 .expect("offset for bytecode not found");
             self.asm.bind_label_to(jump.label, offset);
         }
-    }
-
-    fn pos(&self) -> BytecodeIdx {
-        self.current_pos.expect("current position is not set")
-    }
-
-    fn pos_inc(&mut self) {
-        let BytecodeIdx(pos_idx) = self.pos();
-        self.current_pos = Some(BytecodeIdx(pos_idx + 1));
     }
 }
 
@@ -1579,7 +1351,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
 
     fn visit_jump_if_false(&mut self, opnd: Register, offset: u32) {
         let target = BytecodeOffset(self.current_offset.to_u32() + offset);
-        self.emit_jump_if2(opnd, target, false);
+        self.emit_jump_if(opnd, target, false);
     }
     fn visit_jump_if_false_const(&mut self, opnd: Register, idx: ConstPoolIdx) {
         let offset = self
@@ -1591,7 +1363,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
     fn visit_jump_if_true(&mut self, opnd: Register, offset: u32) {
         let target = BytecodeOffset(self.current_offset.to_u32() + offset);
-        self.emit_jump_if2(opnd, target, true);
+        self.emit_jump_if(opnd, target, true);
     }
     fn visit_jump_if_true_const(&mut self, opnd: Register, idx: ConstPoolIdx) {
         let offset = self
@@ -1603,11 +1375,11 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
     fn visit_jump_loop(&mut self, offset: u32) {
         let target = BytecodeOffset(self.current_offset.to_u32() - offset);
-        self.emit_jump2(target);
+        self.emit_jump(target);
     }
     fn visit_jump(&mut self, offset: u32) {
         let target = BytecodeOffset(self.current_offset.to_u32() + offset);
-        self.emit_jump2(target);
+        self.emit_jump(target);
     }
     fn visit_jump_const(&mut self, idx: ConstPoolIdx) {
         let offset = self
