@@ -162,10 +162,14 @@ impl fmt::Display for BytecodeIdx {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct BytecodeOffset(pub u32);
 
 impl BytecodeOffset {
+    pub fn to_u32(&self) -> u32 {
+        self.0
+    }
+
     pub fn to_usize(&self) -> usize {
         self.0 as usize
     }

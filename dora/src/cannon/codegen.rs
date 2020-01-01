@@ -2,7 +2,8 @@ use dora_parser::ast::*;
 use std::collections::hash_map::HashMap;
 
 use crate::bytecode::{
-    Bytecode, BytecodeFunction, BytecodeIdx, BytecodeType, BytecodeVisitor, ConstPoolIdx, Register,
+    BytecodeFunction, BytecodeIdx, BytecodeOffset, BytecodeReader, BytecodeType, BytecodeVisitor,
+    ConstPoolIdx, Register,
 };
 use crate::compiler::asm::BaselineAssembler;
 use crate::compiler::codegen::should_emit_debug;
@@ -17,6 +18,11 @@ use crate::vm::{ClassDefId, Fct, FctId, FctSrc, FieldId, GlobalId, VM};
 struct ForwardJump {
     label: Label,
     bytecode_idx: BytecodeIdx,
+}
+
+struct ForwardJumpOffset {
+    label: Label,
+    offset: BytecodeOffset,
 }
 
 pub struct CannonCodeGen<'a, 'ast: 'a> {
@@ -56,8 +62,12 @@ pub struct CannonCodeGen<'a, 'ast: 'a> {
     fct_type_params: &'a TypeList,
 
     bytecode_to_address: HashMap<BytecodeIdx, usize>,
+    offset_to_address: HashMap<BytecodeOffset, usize>,
+
     forward_jumps: Vec<ForwardJump>,
+    forward_jump_offsets: Vec<ForwardJumpOffset>,
     current_pos: Option<BytecodeIdx>,
+    current_offset: BytecodeOffset,
 }
 
 impl<'a, 'ast> CannonCodeGen<'a, 'ast>
@@ -96,8 +106,11 @@ where
             cls_type_params,
             fct_type_params,
             bytecode_to_address: HashMap::new(),
+            offset_to_address: HashMap::new(),
             forward_jumps: Vec::new(),
+            forward_jump_offsets: Vec::new(),
             current_pos: None,
+            current_offset: BytecodeOffset(0),
         }
     }
 
@@ -109,12 +122,9 @@ where
         self.emit_prolog();
         self.store_params_on_stack();
 
-        // {
-        //     let mut reader = BytecodeReader::new(self.bytecode.data(), &mut self);
-        //     reader.read();
-        // }
+        BytecodeReader::new(self.bytecode.data(), &mut self).read();
 
-        self.current_pos = Some(BytecodeIdx(0));
+        /*self.current_pos = Some(BytecodeIdx(0));
         for btcode in self.bytecode.code() {
             self.bytecode_to_address.insert(self.pos(), self.asm.pos());
 
@@ -260,7 +270,7 @@ where
             }
 
             self.pos_inc();
-        }
+        }*/
 
         self.resolve_forward_jumps();
 
@@ -960,6 +970,52 @@ where
         }
     }
 
+    fn emit_jump_if2(&mut self, src: Register, offset: BytecodeOffset, op: bool) {
+        assert_eq!(self.bytecode.register(src), BytecodeType::Bool);
+
+        let bytecode_type = self.bytecode.register(src);
+        let src_offset = self.bytecode.offset(src);
+        self.asm.load_mem(
+            bytecode_type.mode(),
+            REG_RESULT.into(),
+            Mem::Local(src_offset),
+        );
+
+        let op = if op {
+            CondCode::NonZero
+        } else {
+            CondCode::Zero
+        };
+        let lbl = self.asm.create_label();
+        self.asm.test_and_jump_if(op, REG_RESULT, lbl);
+
+        self.resolve_label2(offset, lbl);
+    }
+
+    fn emit_jump2(&mut self, offset: BytecodeOffset) {
+        let lbl = self.asm.create_label();
+        self.asm.jump(lbl);
+
+        self.resolve_label2(offset, lbl);
+    }
+
+    fn resolve_label2(&mut self, target: BytecodeOffset, lbl: Label) {
+        if target < self.current_offset {
+            self.asm.bind_label_to(
+                lbl,
+                *self
+                    .offset_to_address
+                    .get(&target)
+                    .expect("jump with wrong offset"),
+            );
+        } else {
+            self.forward_jump_offsets.push(ForwardJumpOffset {
+                label: lbl,
+                offset: target,
+            });
+        }
+    }
+
     fn emit_return_generic(&mut self, src: Register) {
         let bytecode_type = self.bytecode.register(src);
         let offset = self.bytecode.offset(src);
@@ -988,6 +1044,14 @@ where
                 }
             }
         }
+
+        for jump in &self.forward_jump_offsets {
+            let offset = *self
+                .offset_to_address
+                .get(&jump.offset)
+                .expect("offset for bytecode not found");
+            self.asm.bind_label_to(jump.label, offset);
+        }
     }
 
     fn pos(&self) -> BytecodeIdx {
@@ -1001,6 +1065,11 @@ where
 }
 
 impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
+    fn visit_instruction(&mut self, offset: BytecodeOffset) {
+        self.offset_to_address.insert(offset, self.asm.pos());
+        self.current_offset = offset;
+    }
+
     fn visit_add_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_add_int(dest, lhs, rhs);
     }
@@ -1471,51 +1540,82 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
 
     fn visit_test_eq_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
+        self.emit_test_float(dest, lhs, rhs, CondCode::Equal);
     }
     fn visit_test_ne_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_test_generic(dest, lhs, rhs, CondCode::NotEqual);
+        self.emit_test_float(dest, lhs, rhs, CondCode::NotEqual);
     }
     fn visit_test_gt_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_test_generic(dest, lhs, rhs, CondCode::Greater);
+        self.emit_test_float(dest, lhs, rhs, CondCode::Greater);
     }
     fn visit_test_ge_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_test_generic(dest, lhs, rhs, CondCode::GreaterEq);
+        self.emit_test_float(dest, lhs, rhs, CondCode::GreaterEq);
     }
     fn visit_test_lt_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_test_generic(dest, lhs, rhs, CondCode::Less);
+        self.emit_test_float(dest, lhs, rhs, CondCode::Less);
     }
     fn visit_test_le_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_test_generic(dest, lhs, rhs, CondCode::LessEq);
+        self.emit_test_float(dest, lhs, rhs, CondCode::LessEq);
     }
 
     fn visit_test_eq_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
+        self.emit_test_float(dest, lhs, rhs, CondCode::Equal);
     }
     fn visit_test_ne_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_test_generic(dest, lhs, rhs, CondCode::NotEqual);
+        self.emit_test_float(dest, lhs, rhs, CondCode::NotEqual);
     }
     fn visit_test_gt_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_test_generic(dest, lhs, rhs, CondCode::Greater);
+        self.emit_test_float(dest, lhs, rhs, CondCode::Greater);
     }
     fn visit_test_ge_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_test_generic(dest, lhs, rhs, CondCode::GreaterEq);
+        self.emit_test_float(dest, lhs, rhs, CondCode::GreaterEq);
     }
     fn visit_test_lt_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_test_generic(dest, lhs, rhs, CondCode::Less);
+        self.emit_test_float(dest, lhs, rhs, CondCode::Less);
     }
     fn visit_test_le_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_test_generic(dest, lhs, rhs, CondCode::LessEq);
+        self.emit_test_float(dest, lhs, rhs, CondCode::LessEq);
     }
 
-    fn visit_jump_if_false(&mut self, _opnd: Register, _offset: u32) {
-        unimplemented!();
+    fn visit_jump_if_false(&mut self, opnd: Register, offset: u32) {
+        let target = BytecodeOffset(self.current_offset.to_u32() + offset);
+        self.emit_jump_if2(opnd, target, false);
     }
-    fn visit_jump_if_true(&mut self, _opnd: Register, _offset: u32) {
-        unimplemented!();
+    fn visit_jump_if_false_const(&mut self, opnd: Register, idx: ConstPoolIdx) {
+        let offset = self
+            .bytecode
+            .const_pool(idx)
+            .to_int()
+            .expect("int expected");
+        self.visit_jump_if_false(opnd, offset as u32);
     }
-    fn visit_jump_loop(&mut self, _offset: u32) {
-        unimplemented!();
+    fn visit_jump_if_true(&mut self, opnd: Register, offset: u32) {
+        let target = BytecodeOffset(self.current_offset.to_u32() + offset);
+        self.emit_jump_if2(opnd, target, true);
+    }
+    fn visit_jump_if_true_const(&mut self, opnd: Register, idx: ConstPoolIdx) {
+        let offset = self
+            .bytecode
+            .const_pool(idx)
+            .to_int()
+            .expect("int expected");
+        self.visit_jump_if_true(opnd, offset as u32);
+    }
+    fn visit_jump_loop(&mut self, offset: u32) {
+        let target = BytecodeOffset(self.current_offset.to_u32() - offset);
+        self.emit_jump2(target);
+    }
+    fn visit_jump(&mut self, offset: u32) {
+        let target = BytecodeOffset(self.current_offset.to_u32() + offset);
+        self.emit_jump2(target);
+    }
+    fn visit_jump_const(&mut self, idx: ConstPoolIdx) {
+        let offset = self
+            .bytecode
+            .const_pool(idx)
+            .to_int()
+            .expect("int expected");
+        self.visit_jump(offset as u32);
     }
 
     fn visit_invoke_direct_void(&mut self, _fct: FctId, _start: Register, _count: u32) {

@@ -1,6 +1,6 @@
 use num_traits::cast::FromPrimitive;
 
-use crate::bytecode::{BytecodeInst, ConstPoolIdx, Register};
+use crate::bytecode::{BytecodeInst, BytecodeOffset, ConstPoolIdx, Register};
 use crate::vm::{ClassDefId, FctId, FieldId, GlobalId};
 
 pub struct BytecodeReader<'a, T: BytecodeVisitor> {
@@ -23,6 +23,8 @@ where
 
     pub fn read(&mut self) {
         while self.pos < self.data.len() {
+            self.visitor
+                .visit_instruction(BytecodeOffset(self.pos as u32));
             let wide = self.read_operand_width();
             let opcode = self.read_opcode(wide);
             self.read_instruction(wide, opcode)
@@ -107,25 +109,25 @@ where
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_sub_int(dest, lhs, rhs);
+                self.visitor.visit_mul_int(dest, lhs, rhs);
             }
             BytecodeInst::MulLong => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_sub_long(dest, lhs, rhs);
+                self.visitor.visit_mul_long(dest, lhs, rhs);
             }
             BytecodeInst::MulFloat => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_sub_float(dest, lhs, rhs);
+                self.visitor.visit_mul_float(dest, lhs, rhs);
             }
             BytecodeInst::MulDouble => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_sub_double(dest, lhs, rhs);
+                self.visitor.visit_mul_double(dest, lhs, rhs);
             }
             BytecodeInst::DivInt => {
                 let dest = self.read_register(wide);
@@ -658,74 +660,74 @@ where
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_eq_long(dest, lhs, rhs);
+                self.visitor.visit_test_eq_float(dest, lhs, rhs);
             }
             BytecodeInst::TestNeFloat => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_ne_long(dest, lhs, rhs);
+                self.visitor.visit_test_ne_float(dest, lhs, rhs);
             }
             BytecodeInst::TestGtFloat => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_gt_long(dest, lhs, rhs);
+                self.visitor.visit_test_gt_float(dest, lhs, rhs);
             }
             BytecodeInst::TestGeFloat => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_ge_long(dest, lhs, rhs);
+                self.visitor.visit_test_ge_float(dest, lhs, rhs);
             }
             BytecodeInst::TestLtFloat => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_lt_long(dest, lhs, rhs);
+                self.visitor.visit_test_lt_float(dest, lhs, rhs);
             }
             BytecodeInst::TestLeFloat => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_le_long(dest, lhs, rhs);
+                self.visitor.visit_test_le_float(dest, lhs, rhs);
             }
 
             BytecodeInst::TestEqDouble => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_eq_long(dest, lhs, rhs);
+                self.visitor.visit_test_eq_double(dest, lhs, rhs);
             }
             BytecodeInst::TestNeDouble => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_ne_long(dest, lhs, rhs);
+                self.visitor.visit_test_ne_double(dest, lhs, rhs);
             }
             BytecodeInst::TestGtDouble => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_gt_long(dest, lhs, rhs);
+                self.visitor.visit_test_gt_double(dest, lhs, rhs);
             }
             BytecodeInst::TestGeDouble => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_ge_long(dest, lhs, rhs);
+                self.visitor.visit_test_ge_double(dest, lhs, rhs);
             }
             BytecodeInst::TestLtDouble => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_lt_long(dest, lhs, rhs);
+                self.visitor.visit_test_lt_double(dest, lhs, rhs);
             }
             BytecodeInst::TestLeDouble => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_le_long(dest, lhs, rhs);
+                self.visitor.visit_test_le_double(dest, lhs, rhs);
             }
 
             BytecodeInst::JumpLoop => {
@@ -1089,6 +1091,8 @@ where
 }
 
 pub trait BytecodeVisitor {
+    fn visit_instruction(&mut self, _offset: BytecodeOffset) {}
+
     fn visit_add_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
