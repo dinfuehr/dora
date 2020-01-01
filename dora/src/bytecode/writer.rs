@@ -1,6 +1,10 @@
+use num_traits::cast::FromPrimitive;
+
 use std::mem;
 
-use crate::bytecode::data::{Bytecode, BytecodeIdx, BytecodeInst, BytecodeType, Register};
+use crate::bytecode::{
+    Bytecode, BytecodeIdx, BytecodeInst, BytecodeOffset, BytecodeType, Register,
+};
 use crate::mem::align_i32;
 use crate::vm::{ClassDefId, FctId, FieldId, GlobalId};
 
@@ -10,8 +14,14 @@ pub struct Label(pub usize);
 pub struct BytecodeWriter {
     code: Vec<Bytecode>,
     data: Vec<u8>,
+
     labels: Vec<Option<BytecodeIdx>>,
     unresolved_jumps: Vec<(BytecodeIdx, Label)>,
+
+    label_offsets: Vec<Option<BytecodeOffset>>,
+    unresolved_jump_offsets: Vec<(BytecodeOffset, BytecodeOffset, Label)>,
+    unresolved_jump_consts: Vec<(BytecodeOffset, ConstPoolIdx, Label)>,
+
     registers: Vec<BytecodeType>,
     const_pool: Vec<ConstPoolEntry>,
 }
@@ -21,8 +31,14 @@ impl BytecodeWriter {
         BytecodeWriter {
             code: Vec::new(),
             data: Vec::new(),
+
             labels: Vec::new(),
             unresolved_jumps: Vec::new(),
+
+            label_offsets: Vec::new(),
+            unresolved_jump_offsets: Vec::new(),
+            unresolved_jump_consts: Vec::new(),
+
             registers: Vec::new(),
             const_pool: Vec::new(),
         }
@@ -46,27 +62,42 @@ impl BytecodeWriter {
 
     pub fn create_label(&mut self) -> Label {
         self.labels.push(None);
-        Label(self.labels.len() - 1)
+        self.label_offsets.push(None);
+        Label(self.label_offsets.len() - 1)
     }
 
     pub fn define_label(&mut self) -> Label {
-        let dest = BytecodeIdx(self.code.len());
-        self.labels.push(Some(dest));
-        Label(self.labels.len() - 1)
+        let idx = BytecodeIdx(self.code.len());
+        self.labels.push(Some(idx));
+
+        let offset = BytecodeOffset(self.data.len() as u32);
+        self.label_offsets.push(Some(offset));
+
+        Label(self.label_offsets.len() - 1)
     }
 
     pub fn bind_label(&mut self, lbl: Label) {
         assert!(self.labels[lbl.0].is_none(), "bind label twice");
-        let dest = BytecodeIdx(self.code.len());
-        self.labels[lbl.0] = Some(dest);
+        assert!(self.label_offsets[lbl.0].is_none(), "bind label twice");
+
+        self.labels[lbl.0] = Some(self.pc());
+        self.label_offsets[lbl.0] = Some(self.offset());
     }
 
     fn dest_label(&self, lbl: Label) -> Option<BytecodeIdx> {
         self.labels[lbl.0]
     }
 
+    fn lookup_label(&self, lbl: Label) -> Option<BytecodeOffset> {
+        self.label_offsets[lbl.0]
+    }
+
     fn pc(&self) -> BytecodeIdx {
         BytecodeIdx(self.code.len())
+    }
+
+    fn offset(&self) -> BytecodeOffset {
+        BytecodeOffset(self.data.len() as u32)
     }
 
     pub fn emit_add_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -253,7 +284,7 @@ impl BytecodeWriter {
     pub fn emit_const_string(&mut self, dest: Register, value: String) {
         self.code.push(Bytecode::ConstString(dest, value.clone()));
         let idx = self.add_const(ConstPoolEntry::String(value));
-        self.emit_reg1_idx(BytecodeInst::ConstDouble, dest, idx);
+        self.emit_reg1_idx(BytecodeInst::ConstString, dest, idx);
     }
 
     pub fn emit_const_zero_byte(&mut self, dest: Register) {
@@ -297,32 +328,54 @@ impl BytecodeWriter {
     }
 
     pub fn emit_jump_if_false(&mut self, opnd: Register, lbl: Label) {
-        if let Some(idx) = self.dest_label(lbl) {
-            self.code.push(Bytecode::JumpIfFalse(opnd, idx));
-        } else {
-            self.unresolved_jumps.push((self.pc(), lbl));
-            self.code
-                .push(Bytecode::JumpIfFalse(opnd, BytecodeIdx::invalid()));
-        }
+        assert!(self.lookup_label(lbl).is_none());
+
+        self.unresolved_jumps.push((self.pc(), lbl));
+        self.code
+            .push(Bytecode::JumpIfFalse(opnd, BytecodeIdx::invalid()));
+
+        self.emit_jmp_forward(
+            BytecodeInst::JumpIfFalse,
+            BytecodeInst::JumpIfFalseConst,
+            Some(opnd),
+            lbl,
+        );
     }
 
     pub fn emit_jump_if_true(&mut self, opnd: Register, lbl: Label) {
-        if let Some(idx) = self.dest_label(lbl) {
-            self.code.push(Bytecode::JumpIfTrue(opnd, idx));
-        } else {
-            self.unresolved_jumps.push((self.pc(), lbl));
-            self.code
-                .push(Bytecode::JumpIfTrue(opnd, BytecodeIdx::invalid()));
-        }
+        assert!(self.lookup_label(lbl).is_none());
+
+        self.unresolved_jumps.push((self.pc(), lbl));
+        self.code
+            .push(Bytecode::JumpIfTrue(opnd, BytecodeIdx::invalid()));
+
+        self.emit_jmp_forward(
+            BytecodeInst::JumpIfTrue,
+            BytecodeInst::JumpIfTrueConst,
+            Some(opnd),
+            lbl,
+        );
     }
 
-    pub fn emit_jump(&mut self, lbl: Label) {
+    pub fn emit_jump_loop(&mut self, lbl: Label) {
         if let Some(idx) = self.dest_label(lbl) {
             self.code.push(Bytecode::Jump(idx));
         } else {
-            self.unresolved_jumps.push((self.pc(), lbl));
-            self.code.push(Bytecode::Jump(BytecodeIdx::invalid()));
+            panic!("label not bound");
         }
+
+        let offset = self.lookup_label(lbl).expect("label not bound");
+        assert!(offset.to_usize() <= self.data.len());
+        let distance = (self.data.len() - offset.to_usize()) as u32;
+        self.emit_jmp(BytecodeInst::JumpLoop, distance);
+    }
+
+    pub fn emit_jump(&mut self, lbl: Label) {
+        assert!(self.lookup_label(lbl).is_none());
+        self.unresolved_jumps.push((self.pc(), lbl));
+        self.code.push(Bytecode::Jump(BytecodeIdx::invalid()));
+
+        self.emit_jmp_forward(BytecodeInst::Jump, BytecodeInst::JumpConst, None, lbl);
     }
 
     pub fn emit_mod_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -921,6 +974,44 @@ impl BytecodeWriter {
                 _ => unreachable!(),
             }
         }
+
+        let unresolved_jumps = mem::replace(&mut self.unresolved_jump_offsets, Vec::new());
+
+        for (start, address, label) in unresolved_jumps {
+            let label = self.lookup_label(label).expect("label not bound");
+            assert!(start.to_usize() < label.to_usize());
+            let distance = (label.to_usize() - start.to_usize()) as u32;
+            self.patch_u32(address, distance as u32);
+        }
+
+        let unresolved_jumps = mem::replace(&mut self.unresolved_jump_consts, Vec::new());
+
+        for (start, const_idx, label) in unresolved_jumps {
+            let target = self.lookup_label(label).expect("label not bound");
+            assert!(start.to_usize() < target.to_usize());
+            let distance = (target.to_usize() - start.to_usize()) as u32;
+            let inst = self.bytecode_at(start);
+
+            if inst != BytecodeInst::Wide && fits_u8(distance) {
+                let inst_imm = match inst {
+                    BytecodeInst::JumpIfFalseConst => BytecodeInst::JumpIfFalse,
+                    BytecodeInst::JumpIfTrueConst => BytecodeInst::JumpIfTrue,
+                    BytecodeInst::JumpConst => BytecodeInst::Jump,
+                    _ => unreachable!(),
+                };
+
+                let jump_target = if inst == BytecodeInst::JumpConst {
+                    1
+                } else {
+                    2
+                };
+
+                self.data[start.to_usize()] = inst_imm as u8;
+                self.data[start.to_usize() + jump_target] = distance as u8;
+            } else {
+                self.patch_const(const_idx, ConstPoolEntry::Int(distance as i32));
+            }
+        }
     }
 
     fn emit_reg3(&mut self, inst: BytecodeInst, r1: Register, r2: Register, r3: Register) {
@@ -949,8 +1040,9 @@ impl BytecodeWriter {
     }
 
     fn emit_reg1_byte(&mut self, inst: BytecodeInst, r1: Register, value: u8) {
-        let values = [inst as u32, r1.to_usize() as u32, value as u32];
+        let values = [inst as u32, r1.to_usize() as u32];
         self.emit_values(&values);
+        self.emit_u8(value);
     }
 
     fn add_const(&mut self, value: ConstPoolEntry) -> ConstPoolIdx {
@@ -1035,7 +1127,7 @@ impl BytecodeWriter {
     }
 
     fn emit_cond_jmp(&mut self, inst: BytecodeInst, cond: Register, offset: i32) {
-        if is_wide_u32(cond.to_usize() as u32) || is_wide_i32(offset) {
+        if !fits_u8(inst as u32) || !fits_u8(cond.to_usize() as u32) || !fits_i8(offset) {
             self.emit_wide();
             self.emit_u32(inst as u32);
             self.emit_u32(cond.to_usize() as u32);
@@ -1047,15 +1139,45 @@ impl BytecodeWriter {
         }
     }
 
-    fn emit_jmp(&mut self, inst: BytecodeInst, offset: i32) {
-        if is_wide_i32(offset) {
+    fn emit_jmp_forward(
+        &mut self,
+        inst: BytecodeInst,
+        inst_const: BytecodeInst,
+        cond: Option<Register>,
+        lbl: Label,
+    ) {
+        debug_assert!(fits_u8(inst as u32));
+        debug_assert!(fits_u8(inst_const as u32));
+        let start = self.offset();
+
+        if (cond.is_some() && !fits_u8(cond.unwrap().to_usize() as u32))
+            || !fits_u8(self.const_pool.len() as u32)
+        {
             self.emit_wide();
             self.emit_u32(inst as u32);
-            self.emit_u32(offset as u32);
+            if let Some(cond) = cond {
+                self.emit_u32(cond.to_usize() as u32);
+            }
+            let address = self.offset();
+            self.emit_u32(0);
+            self.unresolved_jump_offsets.push((start, address, lbl));
         } else {
-            self.emit_u8(inst as u8);
-            self.emit_u8(offset as u8);
+            self.emit_u8(inst_const as u8);
+            if let Some(cond) = cond {
+                self.emit_u8(cond.to_usize() as u8);
+            }
+            let idx = self.add_const(ConstPoolEntry::Int(0));
+            self.emit_u8(idx.to_usize() as u8);
+            self.unresolved_jump_consts.push((start, idx, lbl));
         }
+    }
+
+    fn emit_jmp(&mut self, inst: BytecodeInst, offset: u32) {
+        self.emit_values(&[inst as u32, offset]);
+    }
+
+    fn bytecode_at(&self, offset: BytecodeOffset) -> BytecodeInst {
+        FromPrimitive::from_u8(self.data[offset.to_usize()]).expect("unknown bytecode")
     }
 
     fn emit_u32(&mut self, value: u32) {
@@ -1063,6 +1185,18 @@ impl BytecodeWriter {
         self.data.push(((value >> 8) & 0xFF) as u8);
         self.data.push(((value >> 16) & 0xFF) as u8);
         self.data.push(((value >> 24) & 0xFF) as u8);
+    }
+
+    fn patch_u32(&mut self, offset: BytecodeOffset, value: u32) {
+        let offset = offset.to_usize();
+        self.data[offset] = (value & 0xFF) as u8;
+        self.data[offset + 1] = ((value >> 8) & 0xFF) as u8;
+        self.data[offset + 2] = ((value >> 16) & 0xFF) as u8;
+        self.data[offset + 3] = ((value >> 24) & 0xFF) as u8;
+    }
+
+    fn patch_const(&mut self, idx: ConstPoolIdx, entry: ConstPoolEntry) {
+        self.const_pool[idx.to_usize()] = entry;
     }
 }
 
@@ -1477,11 +1611,11 @@ fn is_wide(values: &[u32]) -> bool {
     values.iter().any(|&val| val > u8::max_value() as u32)
 }
 
-fn is_wide_u32(value: u32) -> bool {
-    value > u8::max_value() as u32
+fn fits_u8(value: u32) -> bool {
+    value <= u8::max_value() as u32
 }
 
-fn is_wide_i32(value: i32) -> bool {
+fn fits_i8(value: i32) -> bool {
     i8::min_value() as i32 <= value && value <= i8::max_value() as i32
 }
 
@@ -1539,7 +1673,7 @@ impl ConstPoolEntry {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct ConstPoolIdx(usize);
+pub struct ConstPoolIdx(pub usize);
 
 impl ConstPoolIdx {
     pub fn to_usize(self) -> usize {

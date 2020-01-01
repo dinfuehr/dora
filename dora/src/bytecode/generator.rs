@@ -152,7 +152,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.loops.push(LoopLabels::new(cond_lbl, end_lbl));
         self.visit_stmt(&stmt.block);
         self.loops.pop();
-        self.gen.emit_jump(cond_lbl);
+        self.gen.emit_jump_loop(cond_lbl);
         self.gen.bind_label(end_lbl);
     }
 
@@ -211,7 +211,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     fn visit_stmt_continue(&mut self, _stmt: &StmtContinueType) {
         let cond = self.loops.last().unwrap().cond;
-        self.gen.emit_jump(cond);
+        self.gen.emit_jump_loop(cond);
     }
 
     // TODO - implement other expressions

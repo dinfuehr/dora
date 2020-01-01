@@ -538,7 +538,7 @@ where
             }
             BytecodeInst::ConstByte => {
                 let dest = self.read_register(wide);
-                let value = self.read_index(wide);
+                let value = self.read_byte();
                 self.visitor.visit_const_byte(dest, value as u8);
             }
             BytecodeInst::ConstInt => {
@@ -728,19 +728,37 @@ where
                 self.visitor.visit_test_le_long(dest, lhs, rhs);
             }
 
+            BytecodeInst::JumpLoop => {
+                let offset = self.read_offset(wide);
+                self.visitor.visit_jump_loop(offset);
+            }
             BytecodeInst::JumpIfFalse => {
                 let opnd = self.read_register(wide);
                 let offset = self.read_offset(wide);
                 self.visitor.visit_jump_if_false(opnd, offset);
+            }
+            BytecodeInst::JumpIfFalseConst => {
+                let opnd = self.read_register(wide);
+                let idx = self.read_const_pool_idx(wide);
+                self.visitor.visit_jump_if_false_const(opnd, idx);
             }
             BytecodeInst::JumpIfTrue => {
                 let opnd = self.read_register(wide);
                 let offset = self.read_offset(wide);
                 self.visitor.visit_jump_if_true(opnd, offset);
             }
+            BytecodeInst::JumpIfTrueConst => {
+                let opnd = self.read_register(wide);
+                let idx = self.read_const_pool_idx(wide);
+                self.visitor.visit_jump_if_true_const(opnd, idx);
+            }
             BytecodeInst::Jump => {
                 let offset = self.read_offset(wide);
                 self.visitor.visit_jump(offset);
+            }
+            BytecodeInst::JumpConst => {
+                let idx = self.read_const_pool_idx(wide);
+                self.visitor.visit_jump_const(idx);
             }
 
             BytecodeInst::InvokeDirectVoid => {
@@ -1033,12 +1051,8 @@ where
         (self.read_index(wide) as usize).into()
     }
 
-    fn read_offset(&mut self, wide: bool) -> i32 {
-        if wide {
-            self.read_wide() as i32
-        } else {
-            self.read_byte() as u8 as i8 as i32
-        }
+    fn read_offset(&mut self, wide: bool) -> u32 {
+        self.read_index(wide)
     }
 
     fn read_index(&mut self, wide: bool) -> u32 {
@@ -1075,348 +1089,764 @@ where
 }
 
 pub trait BytecodeVisitor {
-    fn visit_add_int(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_add_long(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_add_float(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_add_double(&mut self, dest: Register, lhs: Register, rhs: Register);
+    fn visit_add_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_add_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_add_float(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_add_double(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
 
-    fn visit_sub_int(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_sub_long(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_sub_float(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_sub_double(&mut self, dest: Register, lhs: Register, rhs: Register);
+    fn visit_sub_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_sub_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_sub_float(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_sub_double(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
 
-    fn visit_neg_int(&mut self, dest: Register, src: Register);
-    fn visit_neg_long(&mut self, dest: Register, src: Register);
-    fn visit_neg_float(&mut self, dest: Register, src: Register);
-    fn visit_neg_double(&mut self, dest: Register, src: Register);
+    fn visit_neg_int(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_neg_long(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_neg_float(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_neg_double(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
 
-    fn visit_mul_int(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_mul_long(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_mul_float(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_mul_double(&mut self, dest: Register, lhs: Register, rhs: Register);
+    fn visit_mul_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_mul_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_mul_float(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_mul_double(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
 
-    fn visit_div_int(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_div_long(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_div_float(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_div_double(&mut self, dest: Register, lhs: Register, rhs: Register);
+    fn visit_div_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_div_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_div_float(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_div_double(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
 
-    fn visit_mod_int(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_mod_long(&mut self, dest: Register, lhs: Register, rhs: Register);
+    fn visit_mod_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_mod_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
 
-    fn visit_and_int(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_and_long(&mut self, dest: Register, lhs: Register, rhs: Register);
+    fn visit_and_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_and_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
 
-    fn visit_or_int(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_or_long(&mut self, dest: Register, lhs: Register, rhs: Register);
+    fn visit_or_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_or_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
 
-    fn visit_xor_int(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_xor_long(&mut self, dest: Register, lhs: Register, rhs: Register);
+    fn visit_xor_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_xor_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
 
-    fn visit_not_bool(&mut self, dest: Register, src: Register);
-    fn visit_not_int(&mut self, dest: Register, src: Register);
-    fn visit_not_long(&mut self, dest: Register, src: Register);
+    fn visit_not_bool(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_not_int(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_not_long(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
 
-    fn visit_shl_int(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_shr_int(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_sar_int(&mut self, dest: Register, lhs: Register, rhs: Register);
+    fn visit_shl_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_shr_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_sar_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
 
-    fn visit_shl_long(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_shr_long(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_sar_long(&mut self, dest: Register, lhs: Register, rhs: Register);
+    fn visit_shl_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_shr_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_sar_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
 
-    fn visit_mov_bool(&mut self, dest: Register, src: Register);
-    fn visit_mov_byte(&mut self, dest: Register, src: Register);
-    fn visit_mov_char(&mut self, dest: Register, src: Register);
-    fn visit_mov_int(&mut self, dest: Register, src: Register);
-    fn visit_mov_long(&mut self, dest: Register, src: Register);
-    fn visit_mov_float(&mut self, dest: Register, src: Register);
-    fn visit_mov_double(&mut self, dest: Register, src: Register);
-    fn visit_mov_ptr(&mut self, dest: Register, src: Register);
+    fn visit_mov_bool(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_mov_byte(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_mov_char(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_mov_int(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_mov_long(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_mov_float(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_mov_double(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_mov_ptr(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
 
     fn visit_load_field_bool(
         &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    );
+        _dest: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
     fn visit_load_field_byte(
         &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    );
+        _dest: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
     fn visit_load_field_char(
         &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    );
+        _dest: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
     fn visit_load_field_int(
         &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    );
+        _dest: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
     fn visit_load_field_long(
         &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    );
+        _dest: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
     fn visit_load_field_float(
         &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    );
+        _dest: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
     fn visit_load_field_double(
         &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    );
+        _dest: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
     fn visit_load_field_ptr(
         &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    );
+        _dest: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
 
     fn visit_store_field_bool(
         &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    );
+        _src: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
     fn visit_store_field_byte(
         &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    );
+        _src: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
     fn visit_store_field_char(
         &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    );
+        _src: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
     fn visit_store_field_int(
         &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    );
+        _src: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
     fn visit_store_field_long(
         &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    );
+        _src: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
     fn visit_store_field_float(
         &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    );
+        _src: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
     fn visit_store_field_double(
         &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    );
+        _src: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
     fn visit_store_field_ptr(
         &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    );
+        _src: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
 
-    fn visit_load_global_bool(&mut self, dest: Register, glob: GlobalId);
-    fn visit_load_global_byte(&mut self, dest: Register, glob: GlobalId);
-    fn visit_load_global_char(&mut self, dest: Register, glob: GlobalId);
-    fn visit_load_global_int(&mut self, dest: Register, glob: GlobalId);
-    fn visit_load_global_long(&mut self, dest: Register, glob: GlobalId);
-    fn visit_load_global_float(&mut self, dest: Register, glob: GlobalId);
-    fn visit_load_global_double(&mut self, dest: Register, glob: GlobalId);
-    fn visit_load_global_ptr(&mut self, dest: Register, glob: GlobalId);
+    fn visit_load_global_bool(&mut self, _dest: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
+    fn visit_load_global_byte(&mut self, _dest: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
+    fn visit_load_global_char(&mut self, _dest: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
+    fn visit_load_global_int(&mut self, _dest: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
+    fn visit_load_global_long(&mut self, _dest: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
+    fn visit_load_global_float(&mut self, _dest: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
+    fn visit_load_global_double(&mut self, _dest: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
+    fn visit_load_global_ptr(&mut self, _dest: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
 
-    fn visit_store_global_bool(&mut self, src: Register, glob: GlobalId);
-    fn visit_store_global_byte(&mut self, src: Register, glob: GlobalId);
-    fn visit_store_global_char(&mut self, src: Register, glob: GlobalId);
-    fn visit_store_global_int(&mut self, src: Register, glob: GlobalId);
-    fn visit_store_global_long(&mut self, src: Register, glob: GlobalId);
-    fn visit_store_global_float(&mut self, src: Register, glob: GlobalId);
-    fn visit_store_global_double(&mut self, src: Register, glob: GlobalId);
-    fn visit_store_global_ptr(&mut self, src: Register, glob: GlobalId);
+    fn visit_store_global_bool(&mut self, _src: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
+    fn visit_store_global_byte(&mut self, _src: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
+    fn visit_store_global_char(&mut self, _src: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
+    fn visit_store_global_int(&mut self, _src: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
+    fn visit_store_global_long(&mut self, _src: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
+    fn visit_store_global_float(&mut self, _src: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
+    fn visit_store_global_double(&mut self, _src: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
+    fn visit_store_global_ptr(&mut self, _src: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
 
-    fn visit_const_nil(&mut self, dest: Register);
-    fn visit_const_true(&mut self, dest: Register);
-    fn visit_const_false(&mut self, dest: Register);
-    fn visit_const_zero_byte(&mut self, dest: Register);
-    fn visit_const_zero_char(&mut self, dest: Register);
-    fn visit_const_zero_int(&mut self, dest: Register);
-    fn visit_const_zero_long(&mut self, dest: Register);
-    fn visit_const_zero_float(&mut self, dest: Register);
-    fn visit_const_zero_double(&mut self, dest: Register);
-    fn visit_const_char(&mut self, dest: Register, value: ConstPoolIdx);
-    fn visit_const_byte(&mut self, dest: Register, value: u8);
-    fn visit_const_int(&mut self, dest: Register, value: ConstPoolIdx);
-    fn visit_const_long(&mut self, dest: Register, value: ConstPoolIdx);
-    fn visit_const_float(&mut self, dest: Register, value: ConstPoolIdx);
-    fn visit_const_double(&mut self, dest: Register, value: ConstPoolIdx);
-    fn visit_const_string(&mut self, dest: Register, value: ConstPoolIdx);
+    fn visit_const_nil(&mut self, _dest: Register) {
+        unimplemented!();
+    }
+    fn visit_const_true(&mut self, _dest: Register) {
+        unimplemented!();
+    }
+    fn visit_const_false(&mut self, _dest: Register) {
+        unimplemented!();
+    }
+    fn visit_const_zero_byte(&mut self, _dest: Register) {
+        unimplemented!();
+    }
+    fn visit_const_zero_char(&mut self, _dest: Register) {
+        unimplemented!();
+    }
+    fn visit_const_zero_int(&mut self, _dest: Register) {
+        unimplemented!();
+    }
+    fn visit_const_zero_long(&mut self, _dest: Register) {
+        unimplemented!();
+    }
+    fn visit_const_zero_float(&mut self, _dest: Register) {
+        unimplemented!();
+    }
+    fn visit_const_zero_double(&mut self, _dest: Register) {
+        unimplemented!();
+    }
+    fn visit_const_char(&mut self, _dest: Register, _value: ConstPoolIdx) {
+        unimplemented!();
+    }
+    fn visit_const_byte(&mut self, _dest: Register, _value: u8) {
+        unimplemented!();
+    }
+    fn visit_const_int(&mut self, _dest: Register, _value: ConstPoolIdx) {
+        unimplemented!();
+    }
+    fn visit_const_long(&mut self, _dest: Register, _value: ConstPoolIdx) {
+        unimplemented!();
+    }
+    fn visit_const_float(&mut self, _dest: Register, _value: ConstPoolIdx) {
+        unimplemented!();
+    }
+    fn visit_const_double(&mut self, _dest: Register, _value: ConstPoolIdx) {
+        unimplemented!();
+    }
+    fn visit_const_string(&mut self, _dest: Register, _value: ConstPoolIdx) {
+        unimplemented!();
+    }
 
-    fn visit_test_eq_ptr(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_test_ne_ptr(&mut self, dest: Register, lhs: Register, rhs: Register);
+    fn visit_test_eq_ptr(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_ne_ptr(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
 
-    fn visit_test_eq_int(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_test_ne_int(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_test_gt_int(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_test_ge_int(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_test_lt_int(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_test_le_int(&mut self, dest: Register, lhs: Register, rhs: Register);
+    fn visit_test_eq_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_ne_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_gt_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_ge_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_lt_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_le_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
 
-    fn visit_test_eq_long(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_test_ne_long(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_test_gt_long(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_test_ge_long(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_test_lt_long(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_test_le_long(&mut self, dest: Register, lhs: Register, rhs: Register);
+    fn visit_test_eq_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_ne_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_gt_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_ge_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_lt_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_le_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
 
-    fn visit_test_eq_float(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_test_ne_float(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_test_gt_float(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_test_ge_float(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_test_lt_float(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_test_le_float(&mut self, dest: Register, lhs: Register, rhs: Register);
+    fn visit_test_eq_float(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_ne_float(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_gt_float(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_ge_float(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_lt_float(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_le_float(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
 
-    fn visit_test_eq_double(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_test_ne_double(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_test_gt_double(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_test_ge_double(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_test_lt_double(&mut self, dest: Register, lhs: Register, rhs: Register);
-    fn visit_test_le_double(&mut self, dest: Register, lhs: Register, rhs: Register);
+    fn visit_test_eq_double(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_ne_double(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_gt_double(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_ge_double(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_lt_double(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_le_double(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
 
-    fn visit_jump_if_false(&mut self, opnd: Register, offset: i32);
-    fn visit_jump_if_true(&mut self, opnd: Register, offset: i32);
-    fn visit_jump(&mut self, offset: i32);
+    fn visit_jump_if_false(&mut self, _opnd: Register, _offset: u32) {
+        unimplemented!();
+    }
+    fn visit_jump_if_false_const(&mut self, _opnd: Register, _idx: ConstPoolIdx) {
+        unimplemented!();
+    }
+    fn visit_jump_if_true(&mut self, _opnd: Register, _offset: u32) {
+        unimplemented!();
+    }
+    fn visit_jump_if_true_const(&mut self, _opnd: Register, _idx: ConstPoolIdx) {
+        unimplemented!();
+    }
+    fn visit_jump_loop(&mut self, _offset: u32) {
+        unimplemented!();
+    }
+    fn visit_jump(&mut self, _offset: u32) {
+        unimplemented!();
+    }
+    fn visit_jump_const(&mut self, _idx: ConstPoolIdx) {
+        unimplemented!();
+    }
 
-    fn visit_invoke_direct_void(&mut self, fct: FctId, start: Register, count: u32);
-    fn visit_invoke_direct_bool(&mut self, dest: Register, fct: FctId, start: Register, count: u32);
-    fn visit_invoke_direct_byte(&mut self, dest: Register, fct: FctId, start: Register, count: u32);
-    fn visit_invoke_direct_char(&mut self, dest: Register, fct: FctId, start: Register, count: u32);
-    fn visit_invoke_direct_int(&mut self, dest: Register, fct: FctId, start: Register, count: u32);
-    fn visit_invoke_direct_long(&mut self, dest: Register, fct: FctId, start: Register, count: u32);
+    fn visit_invoke_direct_void(&mut self, _fct: FctId, _start: Register, _count: u32) {
+        unimplemented!();
+    }
+    fn visit_invoke_direct_bool(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_direct_byte(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_direct_char(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_direct_int(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_direct_long(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
     fn visit_invoke_direct_float(
         &mut self,
-        dest: Register,
-        fct: FctId,
-        start: Register,
-        count: u32,
-    );
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
     fn visit_invoke_direct_double(
         &mut self,
-        dest: Register,
-        fct: FctId,
-        start: Register,
-        count: u32,
-    );
-    fn visit_invoke_direct_ptr(&mut self, dest: Register, fct: FctId, start: Register, count: u32);
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_direct_ptr(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
 
-    fn visit_invoke_virtual_void(&mut self, fct: FctId, start: Register, count: u32);
+    fn visit_invoke_virtual_void(&mut self, _fct: FctId, _start: Register, _count: u32) {
+        unimplemented!();
+    }
     fn visit_invoke_virtual_bool(
         &mut self,
-        dest: Register,
-        fct: FctId,
-        start: Register,
-        count: u32,
-    );
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
     fn visit_invoke_virtual_byte(
         &mut self,
-        dest: Register,
-        fct: FctId,
-        start: Register,
-        count: u32,
-    );
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
     fn visit_invoke_virtual_char(
         &mut self,
-        dest: Register,
-        fct: FctId,
-        start: Register,
-        count: u32,
-    );
-    fn visit_invoke_virtual_int(&mut self, dest: Register, fct: FctId, start: Register, count: u32);
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_virtual_int(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
     fn visit_invoke_virtual_long(
         &mut self,
-        dest: Register,
-        fct: FctId,
-        start: Register,
-        count: u32,
-    );
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
     fn visit_invoke_virtual_float(
         &mut self,
-        dest: Register,
-        fct: FctId,
-        start: Register,
-        count: u32,
-    );
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
     fn visit_invoke_virtual_double(
         &mut self,
-        dest: Register,
-        fct: FctId,
-        start: Register,
-        count: u32,
-    );
-    fn visit_invoke_virtual_ptr(&mut self, dest: Register, fct: FctId, start: Register, count: u32);
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_virtual_ptr(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
 
-    fn visit_invoke_static_void(&mut self, fct: FctId, start: Register, count: u32);
-    fn visit_invoke_static_bool(&mut self, dest: Register, fct: FctId, start: Register, count: u32);
-    fn visit_invoke_static_byte(&mut self, dest: Register, fct: FctId, start: Register, count: u32);
-    fn visit_invoke_static_char(&mut self, dest: Register, fct: FctId, start: Register, count: u32);
-    fn visit_invoke_static_int(&mut self, dest: Register, fct: FctId, start: Register, count: u32);
-    fn visit_invoke_static_long(&mut self, dest: Register, fct: FctId, start: Register, count: u32);
+    fn visit_invoke_static_void(&mut self, _fct: FctId, _start: Register, _count: u32) {
+        unimplemented!();
+    }
+    fn visit_invoke_static_bool(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_static_byte(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_static_char(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_static_int(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_static_long(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
     fn visit_invoke_static_float(
         &mut self,
-        dest: Register,
-        fct: FctId,
-        start: Register,
-        count: u32,
-    );
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
     fn visit_invoke_static_double(
         &mut self,
-        dest: Register,
-        fct: FctId,
-        start: Register,
-        count: u32,
-    );
-    fn visit_invoke_static_ptr(&mut self, dest: Register, fct: FctId, start: Register, count: u32);
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
+    fn visit_invoke_static_ptr(
+        &mut self,
+        _dest: Register,
+        _fct: FctId,
+        _start: Register,
+        _count: u32,
+    ) {
+        unimplemented!();
+    }
 
-    fn visit_new_object(&mut self, dest: Register, cls: ClassDefId);
-    fn visit_throw(&mut self, opnd: Register);
+    fn visit_new_object(&mut self, _dest: Register, _cls: ClassDefId) {
+        unimplemented!();
+    }
+    fn visit_throw(&mut self, _opnd: Register) {
+        unimplemented!();
+    }
 
-    fn visit_ret_void(&mut self);
-    fn visit_ret_bool(&mut self, opnd: Register);
-    fn visit_ret_byte(&mut self, opnd: Register);
-    fn visit_ret_char(&mut self, opnd: Register);
-    fn visit_ret_int(&mut self, opnd: Register);
-    fn visit_ret_long(&mut self, opnd: Register);
-    fn visit_ret_float(&mut self, opnd: Register);
-    fn visit_ret_double(&mut self, opnd: Register);
-    fn visit_ret_ptr(&mut self, opnd: Register);
+    fn visit_ret_void(&mut self) {
+        unimplemented!();
+    }
+    fn visit_ret_bool(&mut self, _opnd: Register) {
+        unimplemented!();
+    }
+    fn visit_ret_byte(&mut self, _opnd: Register) {
+        unimplemented!();
+    }
+    fn visit_ret_char(&mut self, _opnd: Register) {
+        unimplemented!();
+    }
+    fn visit_ret_int(&mut self, _opnd: Register) {
+        unimplemented!();
+    }
+    fn visit_ret_long(&mut self, _opnd: Register) {
+        unimplemented!();
+    }
+    fn visit_ret_float(&mut self, _opnd: Register) {
+        unimplemented!();
+    }
+    fn visit_ret_double(&mut self, _opnd: Register) {
+        unimplemented!();
+    }
+    fn visit_ret_ptr(&mut self, _opnd: Register) {
+        unimplemented!();
+    }
 }

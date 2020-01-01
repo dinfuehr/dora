@@ -162,6 +162,15 @@ impl fmt::Display for BytecodeIdx {
     }
 }
 
+#[derive(Copy, Clone)]
+pub struct BytecodeOffset(pub u32);
+
+impl BytecodeOffset {
+    pub fn to_usize(&self) -> usize {
+        self.0 as usize
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum BytecodeType {
     Bool,
@@ -220,7 +229,7 @@ impl From<BuiltinType> for BytecodeType {
 
 // Keep in sync with dora-boots/bytecode.dora
 
-#[derive(Copy, Clone, FromPrimitive, ToPrimitive)]
+#[derive(Copy, Clone, PartialEq, Eq, FromPrimitive, ToPrimitive)]
 pub enum BytecodeInst {
     Wide,
 
@@ -366,9 +375,16 @@ pub enum BytecodeInst {
     TestLtDouble,
     TestLeDouble,
 
-    JumpIfFalse,
-    JumpIfTrue,
+    // Backward jump
+    JumpLoop,
+
+    // Forward jumps
     Jump,
+    JumpConst,
+    JumpIfFalse,
+    JumpIfFalseConst,
+    JumpIfTrue,
+    JumpIfTrueConst,
 
     InvokeDirectVoid,
     InvokeDirectBool,

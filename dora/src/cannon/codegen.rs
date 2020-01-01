@@ -1508,13 +1508,13 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_test_generic(dest, lhs, rhs, CondCode::LessEq);
     }
 
-    fn visit_jump_if_false(&mut self, _opnd: Register, _offset: i32) {
+    fn visit_jump_if_false(&mut self, _opnd: Register, _offset: u32) {
         unimplemented!();
     }
-    fn visit_jump_if_true(&mut self, _opnd: Register, _offset: i32) {
+    fn visit_jump_if_true(&mut self, _opnd: Register, _offset: u32) {
         unimplemented!();
     }
-    fn visit_jump(&mut self, _offset: i32) {
+    fn visit_jump_loop(&mut self, _offset: u32) {
         unimplemented!();
     }
 
