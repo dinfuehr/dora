@@ -66,6 +66,16 @@
 
   @static fun fromString(val: String) -> String = val.clone();
 
+  @static fun toStringBinary(data: Long, bits: Int) -> String {
+    let array = Array[Byte](bits);
+    var at = array.length() - 1;
+    while (at >= 0) {
+      array(bits - 1 - at) = ('0'.toLong() + (((data >> at.toLong()) & 1L))).toByte();
+      at = at - 1;
+    }
+    return try! String::fromBytes(array);
+  }
+
   fun isEmpty() -> Bool = self.length() == 0;
 
   fun codePoints() -> StringCodePointIterator = StringCodePointIterator(self, 0);

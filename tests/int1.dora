@@ -77,6 +77,9 @@ fun main() {
     let x = 12 >> 2;
     assert(x == 3);
 
+    let x = (-12).toStringBinary();
+    assert(x == "11111111111111111111111111110100");
+
     assert(2 != 3);
     assert(5 == 5);
     assert(2 > 1);

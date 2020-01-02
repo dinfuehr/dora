@@ -4,6 +4,8 @@
   @internal fun toDouble() -> Double;
   @internal fun toString() -> String;
 
+  fun toStringBinary() -> String = String::toStringBinary(self.asInt().toLong(), Float::bits());
+
   @internal fun asInt() -> Int;
 
   @internal fun equals(rhs: Float) -> Bool;
@@ -34,4 +36,7 @@
   @internal fun sqrt() -> Float;
 
   fun hash() -> Int = self.asInt();
+
+  @static fun bits() -> Int = 32;
+  @static fun bytes() -> Int = 4;
 }

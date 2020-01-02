@@ -3,16 +3,16 @@
   @internal fun toLong() -> Long;
   @internal fun toString() -> String;
 
+  fun toStringBinary() -> String = String::toStringBinary(self.toLong(), Byte::bits());
+
   @internal fun equals(rhs: Byte) -> Bool;
   @internal fun compareTo(rhs: Byte) -> Int;
 
   fun hash() -> Int = self.toInt();
 
-  @static fun max_value() -> Byte {
-    return 255Y;
-  }
+  @static fun bits() -> Int = 8;
+  @static fun bytes() -> Int = 1;
 
-  @static fun min_value() -> Byte {
-    return 0Y;
-  }
+  @static fun max_value() -> Byte = 255Y;
+  @static fun min_value() -> Byte = 0Y;
 }
