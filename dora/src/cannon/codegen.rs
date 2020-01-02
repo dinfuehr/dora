@@ -2,8 +2,7 @@ use dora_parser::ast::*;
 use std::collections::hash_map::HashMap;
 
 use crate::bytecode::{
-    self, BytecodeFunction, BytecodeIdx, BytecodeOffset, BytecodeType, BytecodeVisitor,
-    ConstPoolIdx, Register,
+    self, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeVisitor, ConstPoolIdx, Register,
 };
 use crate::compiler::asm::BaselineAssembler;
 use crate::compiler::codegen::should_emit_debug;
@@ -56,7 +55,6 @@ pub struct CannonCodeGen<'a, 'ast: 'a> {
     cls_type_params: &'a TypeList,
     fct_type_params: &'a TypeList,
 
-    bytecode_to_address: HashMap<BytecodeIdx, usize>,
     offset_to_address: HashMap<BytecodeOffset, usize>,
 
     forward_jumps: Vec<ForwardJump>,
@@ -98,7 +96,6 @@ where
             lbl_return,
             cls_type_params,
             fct_type_params,
-            bytecode_to_address: HashMap::new(),
             offset_to_address: HashMap::new(),
             forward_jumps: Vec::new(),
             current_offset: BytecodeOffset(0),

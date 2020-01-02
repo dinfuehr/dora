@@ -1,6 +1,8 @@
 pub mod data;
 pub mod dumper;
 pub mod generator;
+#[cfg(test)]
+mod generator_tests;
 pub mod reader;
 pub mod writer;
 
