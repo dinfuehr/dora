@@ -3,7 +3,11 @@ use num_traits::cast::FromPrimitive;
 use crate::bytecode::{BytecodeInst, BytecodeOffset, ConstPoolIdx, Register};
 use crate::vm::{ClassDefId, FctId, FieldId, GlobalId};
 
-pub struct BytecodeReader<'a, T: BytecodeVisitor> {
+pub fn read<T: BytecodeVisitor>(data: &[u8], visitor: &mut T) {
+    BytecodeReader::new(data, visitor).read();
+}
+
+struct BytecodeReader<'a, T: BytecodeVisitor> {
     data: &'a [u8],
     pos: usize,
     visitor: &'a mut T,
@@ -13,7 +17,7 @@ impl<'a, T> BytecodeReader<'a, T>
 where
     T: BytecodeVisitor,
 {
-    pub fn new(data: &'a [u8], visitor: &'a mut T) -> BytecodeReader<'a, T> {
+    fn new(data: &'a [u8], visitor: &'a mut T) -> BytecodeReader<'a, T> {
         BytecodeReader {
             data: data,
             pos: 0,
@@ -21,7 +25,7 @@ where
         }
     }
 
-    pub fn read(&mut self) {
+    fn read(&mut self) {
         while self.pos < self.data.len() {
             self.visitor
                 .visit_instruction(BytecodeOffset(self.pos as u32));

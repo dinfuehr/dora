@@ -21,7 +21,7 @@ pub fn compile<'a, 'ast: 'a>(
     let bytecode_fct = bytecode::generate(vm, fct, src, cls_type_params, fct_type_params);
 
     if should_emit_bytecode(vm, fct) {
-        bytecode_fct.dump();
+        bytecode::dump(&bytecode_fct);
     }
 
     let compile_fct = vm.fct_by_name("compile").expect("compile()-method missing");

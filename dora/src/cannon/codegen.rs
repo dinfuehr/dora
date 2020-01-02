@@ -2,7 +2,7 @@ use dora_parser::ast::*;
 use std::collections::hash_map::HashMap;
 
 use crate::bytecode::{
-    BytecodeFunction, BytecodeIdx, BytecodeOffset, BytecodeReader, BytecodeType, BytecodeVisitor,
+    self, BytecodeFunction, BytecodeIdx, BytecodeOffset, BytecodeType, BytecodeVisitor,
     ConstPoolIdx, Register,
 };
 use crate::compiler::asm::BaselineAssembler;
@@ -113,7 +113,7 @@ where
         self.emit_prolog();
         self.store_params_on_stack();
 
-        BytecodeReader::new(self.bytecode.data(), &mut self).read();
+        bytecode::read(self.bytecode.data(), &mut self);
 
         self.resolve_forward_jumps();
 

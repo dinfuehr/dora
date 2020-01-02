@@ -12,26 +12,45 @@ pub enum Bytecode {
     AddDouble(Register, Register, Register),
 
     SubInt(Register, Register, Register),
+    SubLong(Register, Register, Register),
     SubFloat(Register, Register, Register),
+    SubDouble(Register, Register, Register),
 
     NegInt(Register, Register),
     NegLong(Register, Register),
+    NegFloat(Register, Register, Register),
+    NegDouble(Register, Register, Register),
 
     MulInt(Register, Register, Register),
+    MulLong(Register, Register, Register),
     MulFloat(Register, Register, Register),
+    MulDouble(Register, Register, Register),
 
     DivInt(Register, Register, Register),
+    DivLong(Register, Register, Register),
     DivFloat(Register, Register, Register),
+    DivDouble(Register, Register, Register),
 
     ModInt(Register, Register, Register),
+    ModLong(Register, Register, Register),
+
     AndInt(Register, Register, Register),
+    AndLong(Register, Register, Register),
     OrInt(Register, Register, Register),
+    OrLong(Register, Register, Register),
     XorInt(Register, Register, Register),
+    XorLong(Register, Register, Register),
     NotBool(Register, Register),
+    NotInt(Register, Register),
+    NotLong(Register, Register),
 
     ShlInt(Register, Register, Register),
     ShrInt(Register, Register, Register),
     SarInt(Register, Register, Register),
+
+    ShlLong(Register, Register, Register),
+    ShrLong(Register, Register, Register),
+    SarLong(Register, Register, Register),
 
     MovBool(Register, Register),
     MovByte(Register, Register),
@@ -51,6 +70,15 @@ pub enum Bytecode {
     LoadFieldDouble(Register, Register, ClassDefId, FieldId),
     LoadFieldPtr(Register, Register, ClassDefId, FieldId),
 
+    StoreFieldBool(Register, Register, ClassDefId, FieldId),
+    StoreFieldByte(Register, Register, ClassDefId, FieldId),
+    StoreFieldChar(Register, Register, ClassDefId, FieldId),
+    StoreFieldInt(Register, Register, ClassDefId, FieldId),
+    StoreFieldLong(Register, Register, ClassDefId, FieldId),
+    StoreFieldFloat(Register, Register, ClassDefId, FieldId),
+    StoreFieldDouble(Register, Register, ClassDefId, FieldId),
+    StoreFieldPtr(Register, Register, ClassDefId, FieldId),
+
     LoadGlobalBool(Register, GlobalId),
     LoadGlobalByte(Register, GlobalId),
     LoadGlobalChar(Register, GlobalId),
@@ -60,16 +88,26 @@ pub enum Bytecode {
     LoadGlobalDouble(Register, GlobalId),
     LoadGlobalPtr(Register, GlobalId),
 
+    StoreGlobalBool(Register, GlobalId),
+    StoreGlobalByte(Register, GlobalId),
+    StoreGlobalChar(Register, GlobalId),
+    StoreGlobalInt(Register, GlobalId),
+    StoreGlobalLong(Register, GlobalId),
+    StoreGlobalFloat(Register, GlobalId),
+    StoreGlobalDouble(Register, GlobalId),
+    StoreGlobalPtr(Register, GlobalId),
+
     ConstNil(Register),
     ConstTrue(Register),
     ConstFalse(Register),
     ConstZeroByte(Register),
+    ConstZeroChar(Register),
     ConstZeroInt(Register),
     ConstZeroLong(Register),
     ConstZeroFloat(Register),
     ConstZeroDouble(Register),
-    ConstChar(Register, char),
     ConstByte(Register, u8),
+    ConstChar(Register, char),
     ConstInt(Register, i32),
     ConstLong(Register, i64),
     ConstFloat(Register, f32),
@@ -86,6 +124,13 @@ pub enum Bytecode {
     TestLtInt(Register, Register, Register),
     TestLeInt(Register, Register, Register),
 
+    TestEqLong(Register, Register, Register),
+    TestNeLong(Register, Register, Register),
+    TestGtLong(Register, Register, Register),
+    TestGeLong(Register, Register, Register),
+    TestLtLong(Register, Register, Register),
+    TestLeLong(Register, Register, Register),
+
     TestEqFloat(Register, Register, Register),
     TestNeFloat(Register, Register, Register),
     TestGtFloat(Register, Register, Register),
@@ -93,9 +138,17 @@ pub enum Bytecode {
     TestLtFloat(Register, Register, Register),
     TestLeFloat(Register, Register, Register),
 
+    TestEqDouble(Register, Register, Register),
+    TestNeDouble(Register, Register, Register),
+    TestGtDouble(Register, Register, Register),
+    TestGeDouble(Register, Register, Register),
+    TestLtDouble(Register, Register, Register),
+    TestLeDouble(Register, Register, Register),
+
+    JumpLoop(BytecodeIdx),
+    Jump(BytecodeIdx),
     JumpIfFalse(Register, BytecodeIdx),
     JumpIfTrue(Register, BytecodeIdx),
-    Jump(BytecodeIdx),
 
     InvokeDirectVoid(FctId, Register, usize),
     InvokeDirectBool(Register, FctId, Register, usize),
@@ -131,6 +184,7 @@ pub enum Bytecode {
 
     Throw(Register),
 
+    RetVoid,
     RetBool(Register),
     RetByte(Register),
     RetChar(Register),
@@ -139,8 +193,6 @@ pub enum Bytecode {
     RetFloat(Register),
     RetDouble(Register),
     RetPtr(Register),
-
-    RetVoid,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -340,8 +392,8 @@ pub enum BytecodeInst {
     ConstZeroLong,
     ConstZeroFloat,
     ConstZeroDouble,
-    ConstChar,
     ConstByte,
+    ConstChar,
     ConstInt,
     ConstLong,
     ConstFloat,
