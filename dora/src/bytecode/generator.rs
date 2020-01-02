@@ -5,8 +5,7 @@ use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 
-use crate::bytecode::data::{BytecodeType, Register};
-use crate::bytecode::writer::{BytecodeFunction, BytecodeWriter, Label};
+use crate::bytecode::{BytecodeFunction, BytecodeType, BytecodeWriter, Label, Register};
 use crate::semck::expr_block_always_returns;
 use crate::semck::specialize::{specialize_class_id_params, specialize_class_ty, specialize_type};
 use crate::ty::{BuiltinType, TypeList};

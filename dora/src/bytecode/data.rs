@@ -1,6 +1,7 @@
 use std::fmt;
 
-use crate::mem::ptr_width;
+use crate::cpu::STACK_FRAME_ALIGNMENT;
+use crate::mem::{align_i32, ptr_width};
 use crate::ty::{BuiltinType, MachineMode};
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -304,5 +305,134 @@ impl Register {
 impl fmt::Display for Register {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "r{}", self.0)
+    }
+}
+
+pub struct BytecodeFunction {
+    data: Vec<u8>,
+    registers: Vec<BytecodeType>,
+    const_pool: Vec<ConstPoolEntry>,
+    offset: Vec<i32>,
+    stacksize: i32,
+}
+
+impl BytecodeFunction {
+    pub fn new(
+        data: Vec<u8>,
+        const_pool: Vec<ConstPoolEntry>,
+        registers: Vec<BytecodeType>,
+    ) -> BytecodeFunction {
+        let (offset, stacksize) = determine_offsets(&registers);
+        BytecodeFunction {
+            data,
+            const_pool,
+            registers,
+            offset,
+            stacksize,
+        }
+    }
+    pub fn data(&self) -> &[u8] {
+        &self.data
+    }
+
+    pub fn registers(&self) -> &[BytecodeType] {
+        &self.registers
+    }
+
+    pub fn register_type(&self, register: Register) -> BytecodeType {
+        *self.registers.get(register.0).expect("register not found")
+    }
+
+    pub fn register_offset(&self, register: Register) -> i32 {
+        *self.offset.get(register.0).expect("offset not found")
+    }
+
+    pub fn stacksize(&self) -> i32 {
+        self.stacksize
+    }
+
+    pub fn const_pool(&self, idx: ConstPoolIdx) -> &ConstPoolEntry {
+        &self.const_pool[idx.to_usize()]
+    }
+}
+
+fn determine_offsets(registers: &Vec<BytecodeType>) -> (Vec<i32>, i32) {
+    let mut offset: Vec<i32> = vec![0; registers.len()];
+    let mut stacksize: i32 = 0;
+    for (index, ty) in registers.iter().enumerate() {
+        stacksize = align_i32(stacksize + ty.size(), ty.size());
+        offset[index] = -stacksize;
+    }
+
+    stacksize = align_i32(stacksize, STACK_FRAME_ALIGNMENT as i32);
+
+    (offset, stacksize)
+}
+
+pub enum ConstPoolEntry {
+    String(String),
+    Float32(f32),
+    Float64(f64),
+    Int(i32),
+    Long(i64),
+    Char(char),
+}
+
+impl ConstPoolEntry {
+    pub fn to_string(&self) -> Option<&str> {
+        match self {
+            ConstPoolEntry::String(ref value) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub fn to_float(&self) -> Option<f32> {
+        match self {
+            ConstPoolEntry::Float32(value) => Some(*value),
+            _ => None,
+        }
+    }
+
+    pub fn to_double(&self) -> Option<f64> {
+        match self {
+            ConstPoolEntry::Float64(value) => Some(*value),
+            _ => None,
+        }
+    }
+
+    pub fn to_int(&self) -> Option<i32> {
+        match self {
+            ConstPoolEntry::Int(value) => Some(*value),
+            _ => None,
+        }
+    }
+
+    pub fn to_long(&self) -> Option<i64> {
+        match self {
+            ConstPoolEntry::Long(value) => Some(*value),
+            _ => None,
+        }
+    }
+
+    pub fn to_char(&self) -> Option<char> {
+        match self {
+            ConstPoolEntry::Char(value) => Some(*value),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct ConstPoolIdx(pub usize);
+
+impl ConstPoolIdx {
+    pub fn to_usize(self) -> usize {
+        self.0
+    }
+}
+
+impl From<usize> for ConstPoolIdx {
+    fn from(value: usize) -> Self {
+        ConstPoolIdx(value)
     }
 }

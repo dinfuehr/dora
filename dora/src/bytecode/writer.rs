@@ -2,8 +2,10 @@ use num_traits::cast::FromPrimitive;
 
 use std::mem;
 
-use crate::bytecode::{BytecodeOffset, BytecodeOpcode, BytecodeType, Register};
-use crate::mem::align_i32;
+use crate::bytecode::{
+    BytecodeFunction, BytecodeOffset, BytecodeOpcode, BytecodeType, ConstPoolEntry, ConstPoolIdx,
+    Register,
+};
 use crate::vm::{ClassDefId, FctId, FieldId, GlobalId};
 
 #[derive(Copy, Clone, PartialEq, Debug, Eq, Hash)]
@@ -755,12 +757,7 @@ impl BytecodeWriter {
     pub fn generate(mut self) -> BytecodeFunction {
         self.resolve_forward_jumps();
 
-        BytecodeFunction {
-            data: self.data,
-            offset: generate_offset(&self.registers),
-            registers: self.registers,
-            const_pool: self.const_pool,
-        }
+        BytecodeFunction::new(self.data, self.const_pool, self.registers)
     }
 
     fn resolve_forward_jumps(&mut self) {
@@ -902,7 +899,9 @@ impl BytecodeWriter {
     }
 
     fn emit_values(&mut self, values: &[u32]) {
-        if is_wide(values) {
+        let is_wide = values.iter().any(|&val| val > u8::max_value() as u32);
+
+        if is_wide {
             self.emit_wide();
             for &value in values {
                 self.emit_u32(value);
@@ -920,19 +919,6 @@ impl BytecodeWriter {
 
     fn emit_u8(&mut self, value: u8) {
         self.data.push(value);
-    }
-
-    fn emit_cond_jmp(&mut self, inst: BytecodeOpcode, cond: Register, offset: i32) {
-        if !fits_u8(inst as u32) || !fits_u8(cond.to_usize() as u32) || !fits_i8(offset) {
-            self.emit_wide();
-            self.emit_u32(inst as u32);
-            self.emit_u32(cond.to_usize() as u32);
-            self.emit_u32(offset as u32);
-        } else {
-            self.emit_u8(inst as u8);
-            self.emit_u8(cond.to_usize() as u8);
-            self.emit_u8(offset as u8);
-        }
     }
 
     fn emit_jmp_forward(
@@ -996,129 +982,6 @@ impl BytecodeWriter {
     }
 }
 
-fn generate_offset(registers: &Vec<BytecodeType>) -> Vec<i32> {
-    let mut offset: Vec<i32> = vec![0; registers.len()];
-    let mut stacksize: i32 = 0;
-    for (index, ty) in registers.iter().enumerate() {
-        stacksize = align_i32(stacksize + ty.size(), ty.size());
-        offset[index] = -stacksize;
-    }
-
-    offset
-}
-
-pub struct BytecodeFunction {
-    data: Vec<u8>,
-    registers: Vec<BytecodeType>,
-    const_pool: Vec<ConstPoolEntry>,
-    offset: Vec<i32>,
-}
-
-impl BytecodeFunction {
-    pub fn data(&self) -> &[u8] {
-        &self.data
-    }
-
-    pub fn registers(&self) -> &[BytecodeType] {
-        &self.registers
-    }
-
-    pub fn register(&self, register: Register) -> BytecodeType {
-        *self.registers.get(register.0).expect("register not found")
-    }
-
-    pub fn offset(&self, register: Register) -> i32 {
-        *self.offset.get(register.0).expect("offset not found")
-    }
-
-    pub fn stacksize(&self) -> i32 {
-        match self.offset.last() {
-            None => 0,
-            Some(stacksize) => align_i32(-(*stacksize), 16),
-        }
-    }
-
-    pub fn const_pool(&self, idx: ConstPoolIdx) -> &ConstPoolEntry {
-        &self.const_pool[idx.to_usize()]
-    }
-}
-
-fn is_wide(values: &[u32]) -> bool {
-    values.iter().any(|&val| val > u8::max_value() as u32)
-}
-
 fn fits_u8(value: u32) -> bool {
     value <= u8::max_value() as u32
-}
-
-fn fits_i8(value: i32) -> bool {
-    i8::min_value() as i32 <= value && value <= i8::max_value() as i32
-}
-
-pub enum ConstPoolEntry {
-    String(String),
-    Float32(f32),
-    Float64(f64),
-    Int(i32),
-    Long(i64),
-    Char(char),
-}
-
-impl ConstPoolEntry {
-    pub fn to_string(&self) -> Option<&str> {
-        match self {
-            ConstPoolEntry::String(ref value) => Some(value),
-            _ => None,
-        }
-    }
-
-    pub fn to_float(&self) -> Option<f32> {
-        match self {
-            ConstPoolEntry::Float32(value) => Some(*value),
-            _ => None,
-        }
-    }
-
-    pub fn to_double(&self) -> Option<f64> {
-        match self {
-            ConstPoolEntry::Float64(value) => Some(*value),
-            _ => None,
-        }
-    }
-
-    pub fn to_int(&self) -> Option<i32> {
-        match self {
-            ConstPoolEntry::Int(value) => Some(*value),
-            _ => None,
-        }
-    }
-
-    pub fn to_long(&self) -> Option<i64> {
-        match self {
-            ConstPoolEntry::Long(value) => Some(*value),
-            _ => None,
-        }
-    }
-
-    pub fn to_char(&self) -> Option<char> {
-        match self {
-            ConstPoolEntry::Char(value) => Some(*value),
-            _ => None,
-        }
-    }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct ConstPoolIdx(pub usize);
-
-impl ConstPoolIdx {
-    pub fn to_usize(self) -> usize {
-        self.0
-    }
-}
-
-impl From<usize> for ConstPoolIdx {
-    fn from(value: usize) -> Self {
-        ConstPoolIdx(value)
-    }
 }
