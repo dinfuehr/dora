@@ -1,6 +1,6 @@
 use num_traits::cast::FromPrimitive;
 
-use crate::bytecode::{BytecodeInst, BytecodeOffset, ConstPoolIdx, Register};
+use crate::bytecode::{BytecodeOffset, BytecodeOpcode, ConstPoolIdx, Register};
 use crate::vm::{ClassDefId, FctId, FieldId, GlobalId};
 
 pub fn read<T: BytecodeVisitor>(data: &[u8], visitor: &mut T) {
@@ -36,325 +36,325 @@ where
     }
 
     fn read_instruction(&mut self, wide: bool, opcode: u32) {
-        let inst: BytecodeInst = FromPrimitive::from_u32(opcode).expect("illegal opcode");
+        let inst: BytecodeOpcode = FromPrimitive::from_u32(opcode).expect("illegal opcode");
 
         match inst {
-            BytecodeInst::Wide => unreachable!(),
+            BytecodeOpcode::Wide => unreachable!(),
 
-            BytecodeInst::AddInt => {
+            BytecodeOpcode::AddInt => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_add_int(dest, lhs, rhs);
             }
-            BytecodeInst::AddLong => {
+            BytecodeOpcode::AddLong => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_add_long(dest, lhs, rhs);
             }
-            BytecodeInst::AddFloat => {
+            BytecodeOpcode::AddFloat => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_add_float(dest, lhs, rhs);
             }
-            BytecodeInst::AddDouble => {
+            BytecodeOpcode::AddDouble => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_add_double(dest, lhs, rhs);
             }
-            BytecodeInst::SubInt => {
+            BytecodeOpcode::SubInt => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_sub_int(dest, lhs, rhs);
             }
-            BytecodeInst::SubLong => {
+            BytecodeOpcode::SubLong => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_sub_long(dest, lhs, rhs);
             }
-            BytecodeInst::SubFloat => {
+            BytecodeOpcode::SubFloat => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_sub_float(dest, lhs, rhs);
             }
-            BytecodeInst::SubDouble => {
+            BytecodeOpcode::SubDouble => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_sub_double(dest, lhs, rhs);
             }
-            BytecodeInst::NegInt => {
+            BytecodeOpcode::NegInt => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
                 self.visitor.visit_neg_int(dest, src);
             }
-            BytecodeInst::NegLong => {
+            BytecodeOpcode::NegLong => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
                 self.visitor.visit_neg_long(dest, src);
             }
-            BytecodeInst::NegFloat => {
+            BytecodeOpcode::NegFloat => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
                 self.visitor.visit_neg_float(dest, src);
             }
-            BytecodeInst::NegDouble => {
+            BytecodeOpcode::NegDouble => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
                 self.visitor.visit_neg_double(dest, src);
             }
-            BytecodeInst::MulInt => {
+            BytecodeOpcode::MulInt => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_mul_int(dest, lhs, rhs);
             }
-            BytecodeInst::MulLong => {
+            BytecodeOpcode::MulLong => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_mul_long(dest, lhs, rhs);
             }
-            BytecodeInst::MulFloat => {
+            BytecodeOpcode::MulFloat => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_mul_float(dest, lhs, rhs);
             }
-            BytecodeInst::MulDouble => {
+            BytecodeOpcode::MulDouble => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_mul_double(dest, lhs, rhs);
             }
-            BytecodeInst::DivInt => {
+            BytecodeOpcode::DivInt => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_div_int(dest, lhs, rhs);
             }
-            BytecodeInst::DivLong => {
+            BytecodeOpcode::DivLong => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_div_long(dest, lhs, rhs);
             }
-            BytecodeInst::DivFloat => {
+            BytecodeOpcode::DivFloat => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_div_float(dest, lhs, rhs);
             }
-            BytecodeInst::DivDouble => {
+            BytecodeOpcode::DivDouble => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_div_double(dest, lhs, rhs);
             }
 
-            BytecodeInst::ModInt => {
+            BytecodeOpcode::ModInt => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_mod_int(dest, lhs, rhs);
             }
-            BytecodeInst::ModLong => {
+            BytecodeOpcode::ModLong => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_mod_long(dest, lhs, rhs);
             }
 
-            BytecodeInst::AndInt => {
+            BytecodeOpcode::AndInt => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_and_int(dest, lhs, rhs);
             }
-            BytecodeInst::AndLong => {
+            BytecodeOpcode::AndLong => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_and_long(dest, lhs, rhs);
             }
 
-            BytecodeInst::OrInt => {
+            BytecodeOpcode::OrInt => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_or_int(dest, lhs, rhs);
             }
-            BytecodeInst::OrLong => {
+            BytecodeOpcode::OrLong => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_or_long(dest, lhs, rhs);
             }
 
-            BytecodeInst::XorInt => {
+            BytecodeOpcode::XorInt => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_xor_int(dest, lhs, rhs);
             }
-            BytecodeInst::XorLong => {
+            BytecodeOpcode::XorLong => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_xor_long(dest, lhs, rhs);
             }
 
-            BytecodeInst::NotBool => {
+            BytecodeOpcode::NotBool => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
                 self.visitor.visit_not_bool(dest, src);
             }
-            BytecodeInst::NotInt => {
+            BytecodeOpcode::NotInt => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
                 self.visitor.visit_not_int(dest, src);
             }
-            BytecodeInst::NotLong => {
+            BytecodeOpcode::NotLong => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
                 self.visitor.visit_not_long(dest, src);
             }
 
-            BytecodeInst::ShlInt => {
+            BytecodeOpcode::ShlInt => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_shl_int(dest, lhs, rhs);
             }
-            BytecodeInst::ShrInt => {
+            BytecodeOpcode::ShrInt => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_shr_int(dest, lhs, rhs);
             }
-            BytecodeInst::SarInt => {
+            BytecodeOpcode::SarInt => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_sar_int(dest, lhs, rhs);
             }
 
-            BytecodeInst::ShlLong => {
+            BytecodeOpcode::ShlLong => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_shl_long(dest, lhs, rhs);
             }
-            BytecodeInst::ShrLong => {
+            BytecodeOpcode::ShrLong => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_shr_long(dest, lhs, rhs);
             }
-            BytecodeInst::SarLong => {
+            BytecodeOpcode::SarLong => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_sar_long(dest, lhs, rhs);
             }
 
-            BytecodeInst::MovBool => {
+            BytecodeOpcode::MovBool => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
                 self.visitor.visit_mov_bool(dest, src);
             }
-            BytecodeInst::MovByte => {
+            BytecodeOpcode::MovByte => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
                 self.visitor.visit_mov_byte(dest, src);
             }
-            BytecodeInst::MovChar => {
+            BytecodeOpcode::MovChar => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
                 self.visitor.visit_mov_char(dest, src);
             }
-            BytecodeInst::MovInt => {
+            BytecodeOpcode::MovInt => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
                 self.visitor.visit_mov_int(dest, src);
             }
-            BytecodeInst::MovLong => {
+            BytecodeOpcode::MovLong => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
                 self.visitor.visit_mov_long(dest, src);
             }
-            BytecodeInst::MovFloat => {
+            BytecodeOpcode::MovFloat => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
                 self.visitor.visit_mov_float(dest, src);
             }
-            BytecodeInst::MovDouble => {
+            BytecodeOpcode::MovDouble => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
                 self.visitor.visit_mov_double(dest, src);
             }
-            BytecodeInst::MovPtr => {
+            BytecodeOpcode::MovPtr => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
                 self.visitor.visit_mov_ptr(dest, src);
             }
 
-            BytecodeInst::LoadFieldBool => {
+            BytecodeOpcode::LoadFieldBool => {
                 let dest = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
                 let field = self.read_field(wide);
                 self.visitor.visit_load_field_bool(dest, obj, cls, field);
             }
-            BytecodeInst::LoadFieldByte => {
+            BytecodeOpcode::LoadFieldByte => {
                 let dest = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
                 let field = self.read_field(wide);
                 self.visitor.visit_load_field_byte(dest, obj, cls, field);
             }
-            BytecodeInst::LoadFieldChar => {
+            BytecodeOpcode::LoadFieldChar => {
                 let dest = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
                 let field = self.read_field(wide);
                 self.visitor.visit_load_field_char(dest, obj, cls, field);
             }
-            BytecodeInst::LoadFieldInt => {
+            BytecodeOpcode::LoadFieldInt => {
                 let dest = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
                 let field = self.read_field(wide);
                 self.visitor.visit_load_field_int(dest, obj, cls, field);
             }
-            BytecodeInst::LoadFieldLong => {
+            BytecodeOpcode::LoadFieldLong => {
                 let dest = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
                 let field = self.read_field(wide);
                 self.visitor.visit_load_field_long(dest, obj, cls, field);
             }
-            BytecodeInst::LoadFieldFloat => {
+            BytecodeOpcode::LoadFieldFloat => {
                 let dest = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
                 let field = self.read_field(wide);
                 self.visitor.visit_load_field_float(dest, obj, cls, field);
             }
-            BytecodeInst::LoadFieldDouble => {
+            BytecodeOpcode::LoadFieldDouble => {
                 let dest = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
                 let field = self.read_field(wide);
                 self.visitor.visit_load_field_double(dest, obj, cls, field);
             }
-            BytecodeInst::LoadFieldPtr => {
+            BytecodeOpcode::LoadFieldPtr => {
                 let dest = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
@@ -362,56 +362,56 @@ where
                 self.visitor.visit_load_field_ptr(dest, obj, cls, field);
             }
 
-            BytecodeInst::StoreFieldBool => {
+            BytecodeOpcode::StoreFieldBool => {
                 let src = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
                 let field = self.read_field(wide);
                 self.visitor.visit_store_field_bool(src, obj, cls, field);
             }
-            BytecodeInst::StoreFieldByte => {
+            BytecodeOpcode::StoreFieldByte => {
                 let src = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
                 let field = self.read_field(wide);
                 self.visitor.visit_store_field_byte(src, obj, cls, field);
             }
-            BytecodeInst::StoreFieldChar => {
+            BytecodeOpcode::StoreFieldChar => {
                 let src = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
                 let field = self.read_field(wide);
                 self.visitor.visit_store_field_char(src, obj, cls, field);
             }
-            BytecodeInst::StoreFieldInt => {
+            BytecodeOpcode::StoreFieldInt => {
                 let src = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
                 let field = self.read_field(wide);
                 self.visitor.visit_store_field_int(src, obj, cls, field);
             }
-            BytecodeInst::StoreFieldLong => {
+            BytecodeOpcode::StoreFieldLong => {
                 let src = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
                 let field = self.read_field(wide);
                 self.visitor.visit_store_field_long(src, obj, cls, field);
             }
-            BytecodeInst::StoreFieldFloat => {
+            BytecodeOpcode::StoreFieldFloat => {
                 let src = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
                 let field = self.read_field(wide);
                 self.visitor.visit_store_field_float(src, obj, cls, field);
             }
-            BytecodeInst::StoreFieldDouble => {
+            BytecodeOpcode::StoreFieldDouble => {
                 let src = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
                 let field = self.read_field(wide);
                 self.visitor.visit_store_field_double(src, obj, cls, field);
             }
-            BytecodeInst::StoreFieldPtr => {
+            BytecodeOpcode::StoreFieldPtr => {
                 let src = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
@@ -419,361 +419,361 @@ where
                 self.visitor.visit_store_field_ptr(src, obj, cls, field);
             }
 
-            BytecodeInst::LoadGlobalBool => {
+            BytecodeOpcode::LoadGlobalBool => {
                 let dest = self.read_register(wide);
                 let glob = self.read_global(wide);
                 self.visitor.visit_load_global_bool(dest, glob);
             }
-            BytecodeInst::LoadGlobalByte => {
+            BytecodeOpcode::LoadGlobalByte => {
                 let dest = self.read_register(wide);
                 let glob = self.read_global(wide);
                 self.visitor.visit_load_global_byte(dest, glob);
             }
-            BytecodeInst::LoadGlobalChar => {
+            BytecodeOpcode::LoadGlobalChar => {
                 let dest = self.read_register(wide);
                 let glob = self.read_global(wide);
                 self.visitor.visit_load_global_char(dest, glob);
             }
-            BytecodeInst::LoadGlobalInt => {
+            BytecodeOpcode::LoadGlobalInt => {
                 let dest = self.read_register(wide);
                 let glob = self.read_global(wide);
                 self.visitor.visit_load_global_int(dest, glob);
             }
-            BytecodeInst::LoadGlobalLong => {
+            BytecodeOpcode::LoadGlobalLong => {
                 let dest = self.read_register(wide);
                 let glob = self.read_global(wide);
                 self.visitor.visit_load_global_long(dest, glob);
             }
-            BytecodeInst::LoadGlobalFloat => {
+            BytecodeOpcode::LoadGlobalFloat => {
                 let dest = self.read_register(wide);
                 let glob = self.read_global(wide);
                 self.visitor.visit_load_global_float(dest, glob);
             }
-            BytecodeInst::LoadGlobalDouble => {
+            BytecodeOpcode::LoadGlobalDouble => {
                 let dest = self.read_register(wide);
                 let glob = self.read_global(wide);
                 self.visitor.visit_load_global_double(dest, glob);
             }
-            BytecodeInst::LoadGlobalPtr => {
+            BytecodeOpcode::LoadGlobalPtr => {
                 let dest = self.read_register(wide);
                 let glob = self.read_global(wide);
                 self.visitor.visit_load_global_ptr(dest, glob);
             }
 
-            BytecodeInst::StoreGlobalBool => {
+            BytecodeOpcode::StoreGlobalBool => {
                 let dest = self.read_register(wide);
                 let glob = self.read_global(wide);
                 self.visitor.visit_store_global_bool(dest, glob);
             }
-            BytecodeInst::StoreGlobalByte => {
+            BytecodeOpcode::StoreGlobalByte => {
                 let dest = self.read_register(wide);
                 let glob = self.read_global(wide);
                 self.visitor.visit_store_global_byte(dest, glob);
             }
-            BytecodeInst::StoreGlobalChar => {
+            BytecodeOpcode::StoreGlobalChar => {
                 let dest = self.read_register(wide);
                 let glob = self.read_global(wide);
                 self.visitor.visit_store_global_char(dest, glob);
             }
-            BytecodeInst::StoreGlobalInt => {
+            BytecodeOpcode::StoreGlobalInt => {
                 let dest = self.read_register(wide);
                 let glob = self.read_global(wide);
                 self.visitor.visit_store_global_int(dest, glob);
             }
-            BytecodeInst::StoreGlobalLong => {
+            BytecodeOpcode::StoreGlobalLong => {
                 let dest = self.read_register(wide);
                 let glob = self.read_global(wide);
                 self.visitor.visit_store_global_long(dest, glob);
             }
-            BytecodeInst::StoreGlobalFloat => {
+            BytecodeOpcode::StoreGlobalFloat => {
                 let dest = self.read_register(wide);
                 let glob = self.read_global(wide);
                 self.visitor.visit_store_global_float(dest, glob);
             }
-            BytecodeInst::StoreGlobalDouble => {
+            BytecodeOpcode::StoreGlobalDouble => {
                 let dest = self.read_register(wide);
                 let glob = self.read_global(wide);
                 self.visitor.visit_store_global_double(dest, glob);
             }
-            BytecodeInst::StoreGlobalPtr => {
+            BytecodeOpcode::StoreGlobalPtr => {
                 let dest = self.read_register(wide);
                 let glob = self.read_global(wide);
                 self.visitor.visit_store_global_ptr(dest, glob);
             }
 
-            BytecodeInst::ConstNil => {
+            BytecodeOpcode::ConstNil => {
                 let dest = self.read_register(wide);
                 self.visitor.visit_const_nil(dest);
             }
-            BytecodeInst::ConstTrue => {
+            BytecodeOpcode::ConstTrue => {
                 let dest = self.read_register(wide);
                 self.visitor.visit_const_true(dest);
             }
-            BytecodeInst::ConstFalse => {
+            BytecodeOpcode::ConstFalse => {
                 let dest = self.read_register(wide);
                 self.visitor.visit_const_false(dest);
             }
-            BytecodeInst::ConstZeroByte => {
+            BytecodeOpcode::ConstZeroByte => {
                 let dest = self.read_register(wide);
                 self.visitor.visit_const_zero_byte(dest);
             }
-            BytecodeInst::ConstZeroChar => {
+            BytecodeOpcode::ConstZeroChar => {
                 let dest = self.read_register(wide);
                 self.visitor.visit_const_zero_char(dest);
             }
-            BytecodeInst::ConstZeroInt => {
+            BytecodeOpcode::ConstZeroInt => {
                 let dest = self.read_register(wide);
                 self.visitor.visit_const_zero_int(dest);
             }
-            BytecodeInst::ConstZeroLong => {
+            BytecodeOpcode::ConstZeroLong => {
                 let dest = self.read_register(wide);
                 self.visitor.visit_const_zero_long(dest);
             }
-            BytecodeInst::ConstZeroFloat => {
+            BytecodeOpcode::ConstZeroFloat => {
                 let dest = self.read_register(wide);
                 self.visitor.visit_const_zero_float(dest);
             }
-            BytecodeInst::ConstZeroDouble => {
+            BytecodeOpcode::ConstZeroDouble => {
                 let dest = self.read_register(wide);
                 self.visitor.visit_const_zero_double(dest);
             }
-            BytecodeInst::ConstChar => {
+            BytecodeOpcode::ConstChar => {
                 let dest = self.read_register(wide);
                 let idx = self.read_const_pool_idx(wide);
                 self.visitor.visit_const_char(dest, idx);
             }
-            BytecodeInst::ConstByte => {
+            BytecodeOpcode::ConstByte => {
                 let dest = self.read_register(wide);
                 let value = self.read_byte();
                 self.visitor.visit_const_byte(dest, value as u8);
             }
-            BytecodeInst::ConstInt => {
+            BytecodeOpcode::ConstInt => {
                 let dest = self.read_register(wide);
                 let idx = self.read_const_pool_idx(wide);
                 self.visitor.visit_const_int(dest, idx);
             }
-            BytecodeInst::ConstLong => {
+            BytecodeOpcode::ConstLong => {
                 let dest = self.read_register(wide);
                 let idx = self.read_const_pool_idx(wide);
                 self.visitor.visit_const_long(dest, idx);
             }
-            BytecodeInst::ConstFloat => {
+            BytecodeOpcode::ConstFloat => {
                 let dest = self.read_register(wide);
                 let idx = self.read_const_pool_idx(wide);
                 self.visitor.visit_const_float(dest, idx);
             }
-            BytecodeInst::ConstDouble => {
+            BytecodeOpcode::ConstDouble => {
                 let dest = self.read_register(wide);
                 let idx = self.read_const_pool_idx(wide);
                 self.visitor.visit_const_double(dest, idx);
             }
-            BytecodeInst::ConstString => {
+            BytecodeOpcode::ConstString => {
                 let dest = self.read_register(wide);
                 let idx = self.read_const_pool_idx(wide);
                 self.visitor.visit_const_string(dest, idx);
             }
 
-            BytecodeInst::TestEqPtr => {
+            BytecodeOpcode::TestEqPtr => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_eq_ptr(dest, lhs, rhs);
             }
-            BytecodeInst::TestNePtr => {
+            BytecodeOpcode::TestNePtr => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_ne_ptr(dest, lhs, rhs);
             }
 
-            BytecodeInst::TestEqInt => {
+            BytecodeOpcode::TestEqInt => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_eq_int(dest, lhs, rhs);
             }
-            BytecodeInst::TestNeInt => {
+            BytecodeOpcode::TestNeInt => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_ne_int(dest, lhs, rhs);
             }
-            BytecodeInst::TestGtInt => {
+            BytecodeOpcode::TestGtInt => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_gt_int(dest, lhs, rhs);
             }
-            BytecodeInst::TestGeInt => {
+            BytecodeOpcode::TestGeInt => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_ge_int(dest, lhs, rhs);
             }
-            BytecodeInst::TestLtInt => {
+            BytecodeOpcode::TestLtInt => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_lt_int(dest, lhs, rhs);
             }
-            BytecodeInst::TestLeInt => {
+            BytecodeOpcode::TestLeInt => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_le_int(dest, lhs, rhs);
             }
 
-            BytecodeInst::TestEqLong => {
+            BytecodeOpcode::TestEqLong => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_eq_long(dest, lhs, rhs);
             }
-            BytecodeInst::TestNeLong => {
+            BytecodeOpcode::TestNeLong => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_ne_long(dest, lhs, rhs);
             }
-            BytecodeInst::TestGtLong => {
+            BytecodeOpcode::TestGtLong => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_gt_long(dest, lhs, rhs);
             }
-            BytecodeInst::TestGeLong => {
+            BytecodeOpcode::TestGeLong => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_ge_long(dest, lhs, rhs);
             }
-            BytecodeInst::TestLtLong => {
+            BytecodeOpcode::TestLtLong => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_lt_long(dest, lhs, rhs);
             }
-            BytecodeInst::TestLeLong => {
+            BytecodeOpcode::TestLeLong => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_le_long(dest, lhs, rhs);
             }
 
-            BytecodeInst::TestEqFloat => {
+            BytecodeOpcode::TestEqFloat => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_eq_float(dest, lhs, rhs);
             }
-            BytecodeInst::TestNeFloat => {
+            BytecodeOpcode::TestNeFloat => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_ne_float(dest, lhs, rhs);
             }
-            BytecodeInst::TestGtFloat => {
+            BytecodeOpcode::TestGtFloat => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_gt_float(dest, lhs, rhs);
             }
-            BytecodeInst::TestGeFloat => {
+            BytecodeOpcode::TestGeFloat => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_ge_float(dest, lhs, rhs);
             }
-            BytecodeInst::TestLtFloat => {
+            BytecodeOpcode::TestLtFloat => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_lt_float(dest, lhs, rhs);
             }
-            BytecodeInst::TestLeFloat => {
+            BytecodeOpcode::TestLeFloat => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_le_float(dest, lhs, rhs);
             }
 
-            BytecodeInst::TestEqDouble => {
+            BytecodeOpcode::TestEqDouble => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_eq_double(dest, lhs, rhs);
             }
-            BytecodeInst::TestNeDouble => {
+            BytecodeOpcode::TestNeDouble => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_ne_double(dest, lhs, rhs);
             }
-            BytecodeInst::TestGtDouble => {
+            BytecodeOpcode::TestGtDouble => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_gt_double(dest, lhs, rhs);
             }
-            BytecodeInst::TestGeDouble => {
+            BytecodeOpcode::TestGeDouble => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_ge_double(dest, lhs, rhs);
             }
-            BytecodeInst::TestLtDouble => {
+            BytecodeOpcode::TestLtDouble => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_lt_double(dest, lhs, rhs);
             }
-            BytecodeInst::TestLeDouble => {
+            BytecodeOpcode::TestLeDouble => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_le_double(dest, lhs, rhs);
             }
 
-            BytecodeInst::JumpLoop => {
+            BytecodeOpcode::JumpLoop => {
                 let offset = self.read_offset(wide);
                 self.visitor.visit_jump_loop(offset);
             }
-            BytecodeInst::JumpIfFalse => {
+            BytecodeOpcode::JumpIfFalse => {
                 let opnd = self.read_register(wide);
                 let offset = self.read_offset(wide);
                 self.visitor.visit_jump_if_false(opnd, offset);
             }
-            BytecodeInst::JumpIfFalseConst => {
+            BytecodeOpcode::JumpIfFalseConst => {
                 let opnd = self.read_register(wide);
                 let idx = self.read_const_pool_idx(wide);
                 self.visitor.visit_jump_if_false_const(opnd, idx);
             }
-            BytecodeInst::JumpIfTrue => {
+            BytecodeOpcode::JumpIfTrue => {
                 let opnd = self.read_register(wide);
                 let offset = self.read_offset(wide);
                 self.visitor.visit_jump_if_true(opnd, offset);
             }
-            BytecodeInst::JumpIfTrueConst => {
+            BytecodeOpcode::JumpIfTrueConst => {
                 let opnd = self.read_register(wide);
                 let idx = self.read_const_pool_idx(wide);
                 self.visitor.visit_jump_if_true_const(opnd, idx);
             }
-            BytecodeInst::Jump => {
+            BytecodeOpcode::Jump => {
                 let offset = self.read_offset(wide);
                 self.visitor.visit_jump(offset);
             }
-            BytecodeInst::JumpConst => {
+            BytecodeOpcode::JumpConst => {
                 let idx = self.read_const_pool_idx(wide);
                 self.visitor.visit_jump_const(idx);
             }
 
-            BytecodeInst::InvokeDirectVoid => {
+            BytecodeOpcode::InvokeDirectVoid => {
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
                 let count = self.read_index(wide);
                 self.visitor.visit_invoke_direct_void(fct, start, count);
             }
-            BytecodeInst::InvokeDirectBool => {
+            BytecodeOpcode::InvokeDirectBool => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
@@ -781,7 +781,7 @@ where
                 self.visitor
                     .visit_invoke_direct_bool(dest, fct, start, count);
             }
-            BytecodeInst::InvokeDirectByte => {
+            BytecodeOpcode::InvokeDirectByte => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
@@ -789,7 +789,7 @@ where
                 self.visitor
                     .visit_invoke_direct_byte(dest, fct, start, count);
             }
-            BytecodeInst::InvokeDirectChar => {
+            BytecodeOpcode::InvokeDirectChar => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
@@ -797,7 +797,7 @@ where
                 self.visitor
                     .visit_invoke_direct_char(dest, fct, start, count);
             }
-            BytecodeInst::InvokeDirectInt => {
+            BytecodeOpcode::InvokeDirectInt => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
@@ -805,7 +805,7 @@ where
                 self.visitor
                     .visit_invoke_direct_int(dest, fct, start, count);
             }
-            BytecodeInst::InvokeDirectLong => {
+            BytecodeOpcode::InvokeDirectLong => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
@@ -813,7 +813,7 @@ where
                 self.visitor
                     .visit_invoke_direct_long(dest, fct, start, count);
             }
-            BytecodeInst::InvokeDirectFloat => {
+            BytecodeOpcode::InvokeDirectFloat => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
@@ -821,7 +821,7 @@ where
                 self.visitor
                     .visit_invoke_direct_float(dest, fct, start, count);
             }
-            BytecodeInst::InvokeDirectDouble => {
+            BytecodeOpcode::InvokeDirectDouble => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
@@ -829,7 +829,7 @@ where
                 self.visitor
                     .visit_invoke_direct_double(dest, fct, start, count);
             }
-            BytecodeInst::InvokeDirectPtr => {
+            BytecodeOpcode::InvokeDirectPtr => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
@@ -838,13 +838,13 @@ where
                     .visit_invoke_direct_ptr(dest, fct, start, count);
             }
 
-            BytecodeInst::InvokeVirtualVoid => {
+            BytecodeOpcode::InvokeVirtualVoid => {
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
                 let count = self.read_index(wide);
                 self.visitor.visit_invoke_virtual_void(fct, start, count);
             }
-            BytecodeInst::InvokeVirtualBool => {
+            BytecodeOpcode::InvokeVirtualBool => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
@@ -852,7 +852,7 @@ where
                 self.visitor
                     .visit_invoke_virtual_bool(dest, fct, start, count);
             }
-            BytecodeInst::InvokeVirtualByte => {
+            BytecodeOpcode::InvokeVirtualByte => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
@@ -860,7 +860,7 @@ where
                 self.visitor
                     .visit_invoke_virtual_byte(dest, fct, start, count);
             }
-            BytecodeInst::InvokeVirtualChar => {
+            BytecodeOpcode::InvokeVirtualChar => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
@@ -868,7 +868,7 @@ where
                 self.visitor
                     .visit_invoke_virtual_char(dest, fct, start, count);
             }
-            BytecodeInst::InvokeVirtualInt => {
+            BytecodeOpcode::InvokeVirtualInt => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
@@ -876,7 +876,7 @@ where
                 self.visitor
                     .visit_invoke_virtual_int(dest, fct, start, count);
             }
-            BytecodeInst::InvokeVirtualLong => {
+            BytecodeOpcode::InvokeVirtualLong => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
@@ -884,7 +884,7 @@ where
                 self.visitor
                     .visit_invoke_virtual_long(dest, fct, start, count);
             }
-            BytecodeInst::InvokeVirtualFloat => {
+            BytecodeOpcode::InvokeVirtualFloat => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
@@ -892,7 +892,7 @@ where
                 self.visitor
                     .visit_invoke_virtual_float(dest, fct, start, count);
             }
-            BytecodeInst::InvokeVirtualDouble => {
+            BytecodeOpcode::InvokeVirtualDouble => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
@@ -900,7 +900,7 @@ where
                 self.visitor
                     .visit_invoke_virtual_double(dest, fct, start, count);
             }
-            BytecodeInst::InvokeVirtualPtr => {
+            BytecodeOpcode::InvokeVirtualPtr => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
@@ -909,13 +909,13 @@ where
                     .visit_invoke_virtual_ptr(dest, fct, start, count);
             }
 
-            BytecodeInst::InvokeStaticVoid => {
+            BytecodeOpcode::InvokeStaticVoid => {
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
                 let count = self.read_index(wide);
                 self.visitor.visit_invoke_static_void(fct, start, count);
             }
-            BytecodeInst::InvokeStaticBool => {
+            BytecodeOpcode::InvokeStaticBool => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
@@ -923,7 +923,7 @@ where
                 self.visitor
                     .visit_invoke_static_bool(dest, fct, start, count);
             }
-            BytecodeInst::InvokeStaticByte => {
+            BytecodeOpcode::InvokeStaticByte => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
@@ -931,7 +931,7 @@ where
                 self.visitor
                     .visit_invoke_static_byte(dest, fct, start, count);
             }
-            BytecodeInst::InvokeStaticChar => {
+            BytecodeOpcode::InvokeStaticChar => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
@@ -939,7 +939,7 @@ where
                 self.visitor
                     .visit_invoke_static_char(dest, fct, start, count);
             }
-            BytecodeInst::InvokeStaticInt => {
+            BytecodeOpcode::InvokeStaticInt => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
@@ -947,7 +947,7 @@ where
                 self.visitor
                     .visit_invoke_static_int(dest, fct, start, count);
             }
-            BytecodeInst::InvokeStaticLong => {
+            BytecodeOpcode::InvokeStaticLong => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
@@ -955,7 +955,7 @@ where
                 self.visitor
                     .visit_invoke_static_long(dest, fct, start, count);
             }
-            BytecodeInst::InvokeStaticFloat => {
+            BytecodeOpcode::InvokeStaticFloat => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
@@ -963,7 +963,7 @@ where
                 self.visitor
                     .visit_invoke_static_float(dest, fct, start, count);
             }
-            BytecodeInst::InvokeStaticDouble => {
+            BytecodeOpcode::InvokeStaticDouble => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
@@ -971,7 +971,7 @@ where
                 self.visitor
                     .visit_invoke_static_double(dest, fct, start, count);
             }
-            BytecodeInst::InvokeStaticPtr => {
+            BytecodeOpcode::InvokeStaticPtr => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let start = self.read_register(wide);
@@ -980,49 +980,49 @@ where
                     .visit_invoke_static_ptr(dest, fct, start, count);
             }
 
-            BytecodeInst::NewObject => {
+            BytecodeOpcode::NewObject => {
                 let dest = self.read_register(wide);
                 let cls = self.read_class(wide);
                 self.visitor.visit_new_object(dest, cls);
             }
 
-            BytecodeInst::Throw => {
+            BytecodeOpcode::Throw => {
                 let opnd = self.read_register(wide);
                 self.visitor.visit_throw(opnd);
             }
 
-            BytecodeInst::RetVoid => {
+            BytecodeOpcode::RetVoid => {
                 self.visitor.visit_ret_void();
             }
-            BytecodeInst::RetBool => {
+            BytecodeOpcode::RetBool => {
                 let opnd = self.read_register(wide);
                 self.visitor.visit_ret_bool(opnd);
             }
-            BytecodeInst::RetByte => {
+            BytecodeOpcode::RetByte => {
                 let opnd = self.read_register(wide);
                 self.visitor.visit_ret_byte(opnd);
             }
-            BytecodeInst::RetChar => {
+            BytecodeOpcode::RetChar => {
                 let opnd = self.read_register(wide);
                 self.visitor.visit_ret_char(opnd);
             }
-            BytecodeInst::RetInt => {
+            BytecodeOpcode::RetInt => {
                 let opnd = self.read_register(wide);
                 self.visitor.visit_ret_int(opnd);
             }
-            BytecodeInst::RetLong => {
+            BytecodeOpcode::RetLong => {
                 let opnd = self.read_register(wide);
                 self.visitor.visit_ret_long(opnd);
             }
-            BytecodeInst::RetFloat => {
+            BytecodeOpcode::RetFloat => {
                 let opnd = self.read_register(wide);
                 self.visitor.visit_ret_float(opnd);
             }
-            BytecodeInst::RetDouble => {
+            BytecodeOpcode::RetDouble => {
                 let opnd = self.read_register(wide);
                 self.visitor.visit_ret_double(opnd);
             }
-            BytecodeInst::RetPtr => {
+            BytecodeOpcode::RetPtr => {
                 let opnd = self.read_register(wide);
                 self.visitor.visit_ret_ptr(opnd);
             }
@@ -1070,7 +1070,7 @@ where
     }
 
     fn read_operand_width(&mut self) -> bool {
-        if self.data[self.pos] as u32 == BytecodeInst::Wide as u32 {
+        if self.data[self.pos] as u32 == BytecodeOpcode::Wide as u32 {
             self.pos += 1;
             true
         } else {
