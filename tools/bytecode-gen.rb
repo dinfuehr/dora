@@ -37,6 +37,17 @@ def write_bytecodes(bytecodes)
             f.puts "const #{dora_name(bytecode)}: Int = #{opcode};"
             opcode += 1
         end
+
+        f.puts
+        f.puts "fun bytecodeName(opcode: Int) -> String {"
+
+        for bytecode in bytecodes
+            f.puts "  if opcode == #{dora_name(bytecode)} { return #{bytecode.inspect}; }"
+        end
+
+        f.puts "  \"UNKNOWN(${opcode})\""
+
+        f.puts "}"
     end
 end
 
