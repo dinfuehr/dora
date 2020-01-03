@@ -1,4 +1,3 @@
-//= ignore
 fun main() {
     assert(testInt(3) == 3);
     assert(testInt(122) == 122);

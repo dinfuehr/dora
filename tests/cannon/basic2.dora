@@ -1,0 +1,52 @@
+fun main() {
+    assert(moveBool(true) == true);
+    assert(moveBool(false) == false);
+
+    assert(moveChar('5') == '5');
+    assert(moveByte(5Y) == 5Y);
+    assert(moveInt(5) == 5);
+    assert(moveLong(5L) == 5L);
+    assert(moveFloat(5F) == 5F);
+    assert(moveDouble(5D) == 5D);
+    assert(moveString("5") == "5");
+}
+
+@cannon fun moveBool(x: Bool) -> Bool {
+    let y = x;
+    return y;
+}
+
+@cannon fun moveChar(x: Char) -> Char {
+    let y = x;
+    return y;
+}
+
+@cannon fun moveByte(x: Byte) -> Byte {
+    let y = x;
+    return y;
+}
+
+@cannon fun moveInt(x: Int) -> Int {
+    let y = x;
+    return y;
+}
+
+@cannon fun moveLong(x: Long) -> Long {
+    let y = x;
+    return y;
+}
+
+@cannon fun moveFloat(x: Float) -> Float {
+    let y = x;
+    return y;
+}
+
+@cannon fun moveDouble(x: Double) -> Double {
+    let y = x;
+    return y;
+}
+
+@cannon fun moveString(x: String) -> String {
+    let y = x;
+    return y;
+}

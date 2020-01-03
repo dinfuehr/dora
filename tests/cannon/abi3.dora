@@ -1,0 +1,47 @@
+fun main() {
+    assert(abi_1(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F, 9F) == 1F);
+    assert(abi_2(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F, 9F) == 2F);
+    assert(abi_3(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F, 9F) == 3F);
+    assert(abi_4(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F, 9F) == 4F);
+    assert(abi_5(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F, 9F) == 5F);
+    assert(abi_6(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F, 9F) == 6F);
+    assert(abi_7(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F, 9F) == 7F);
+    assert(abi_8(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F, 9F) == 8F);
+    assert(abi_9(1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F, 9F) == 9F);
+}
+
+@cannon fun abi_1(x: Float, y: Float, z: Float, a: Float, b: Float, c: Float, i: Float, j: Float, k: Float) -> Float {
+    return x;
+}
+
+@cannon fun abi_2(x: Float, y: Float, z: Float, a: Float, b: Float, c: Float, i: Float, j: Float, k: Float) -> Float {
+    return y;
+}
+
+@cannon fun abi_3(x: Float, y: Float, z: Float, a: Float, b: Float, c: Float, i: Float, j: Float, k: Float) -> Float {
+    return z;
+}
+
+@cannon fun abi_4(x: Float, y: Float, z: Float, a: Float, b: Float, c: Float, i: Float, j: Float, k: Float) -> Float {
+    return a;
+}
+
+@cannon fun abi_5(x: Float, y: Float, z: Float, a: Float, b: Float, c: Float, i: Float, j: Float, k: Float) -> Float {
+    return b;
+}
+
+@cannon fun abi_6(x: Float, y: Float, z: Float, a: Float, b: Float, c: Float, i: Float, j: Float, k: Float) -> Float {
+    return c;
+}
+
+@cannon fun abi_7(x: Float, y: Float, z: Float, a: Float, b: Float, c: Float, i: Float, j: Float, k: Float) -> Float {
+    return i;
+}
+
+@cannon fun abi_8(x: Float, y: Float, z: Float, a: Float, b: Float, c: Float, i: Float, j: Float, k: Float) -> Float {
+    return j;
+}
+
+@cannon fun abi_9(x: Float, y: Float, z: Float, a: Float, b: Float, c: Float, i: Float, j: Float, k: Float) -> Float {
+    return k;
+}

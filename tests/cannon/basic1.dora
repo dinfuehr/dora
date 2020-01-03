@@ -1,0 +1,42 @@
+fun main() {
+    assert(returnBool() == true);
+    assert(returnChar() == '5');
+    assert(returnByte() == 5Y);
+    assert(returnInt() == 5);
+    assert(returnLong() == 5L);
+    assert(returnFloat() == 5F);
+    assert(returnDouble() == 5D);
+    assert(returnString() == "5");
+}
+
+@cannon fun returnBool() -> Bool {
+    return true;
+}
+
+@cannon fun returnChar() -> Char {
+    return '5';
+}
+
+@cannon fun returnByte() -> Byte {
+    return 5Y;
+}
+
+@cannon fun returnInt() -> Int {
+    return 5;
+}
+
+@cannon fun returnLong() -> Long {
+    return 5L;
+}
+
+@cannon fun returnFloat() -> Float {
+    return 5F;
+}
+
+@cannon fun returnDouble() -> Double {
+    return 5D;
+}
+
+@cannon fun returnString() -> String {
+    return "5";
+}
