@@ -309,7 +309,7 @@ impl fmt::Display for Register {
 }
 
 pub struct BytecodeFunction {
-    data: Vec<u8>,
+    code: Vec<u8>,
     registers: Vec<BytecodeType>,
     const_pool: Vec<ConstPoolEntry>,
     offset: Vec<i32>,
@@ -318,21 +318,21 @@ pub struct BytecodeFunction {
 
 impl BytecodeFunction {
     pub fn new(
-        data: Vec<u8>,
+        code: Vec<u8>,
         const_pool: Vec<ConstPoolEntry>,
         registers: Vec<BytecodeType>,
     ) -> BytecodeFunction {
         let (offset, stacksize) = determine_offsets(&registers);
         BytecodeFunction {
-            data,
+            code,
             const_pool,
             registers,
             offset,
             stacksize,
         }
     }
-    pub fn data(&self) -> &[u8] {
-        &self.data
+    pub fn code(&self) -> &[u8] {
+        &self.code
     }
 
     pub fn registers(&self) -> &[BytecodeType] {

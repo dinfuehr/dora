@@ -1,4 +1,10 @@
+fun readBytecode(code: Array[Byte], visitor: BytecodeVisitor) {
+    BytecodeReader(code, visitor).read();
+}
+
 @open @abstract class BytecodeVisitor {
+    @abstract fun visitInstruction(offset: Int);
+
     @abstract fun visitAddInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
     @abstract fun visitAddLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
     @abstract fun visitAddFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
@@ -195,12 +201,13 @@
     @abstract fun visitRetPtr(opnd: BytecodeRegister);
 }
 
-class BytecodeReader(let data: Array[Byte], let const_pool: Array[ConstPoolEntry], let visitor: BytecodeVisitor) {
+class BytecodeReader(let data: Array[Byte], let visitor: BytecodeVisitor) {
     var pos: Int = 0;
     var length: Int = data.length();
 
     fun read() {
         while self.pos < self.length {
+            self.visitor.visitInstruction(self.pos);
             let wide = self.hasWideOperands();
             let opcode = self.readOpcode(wide);
             self.readInstruction(wide, opcode);

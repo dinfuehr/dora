@@ -15,9 +15,9 @@ fn test_ret() {
     let mut writer = BytecodeWriter::new();
     writer.emit_ret_void();
     let fct = writer.generate();
-    assert_eq!(fct.data(), &[BytecodeOpcode::RetVoid as u8]);
+    assert_eq!(fct.code(), &[BytecodeOpcode::RetVoid as u8]);
     let mut visitor = TestVisitor { found: false };
-    read(fct.data(), &mut visitor);
+    read(fct.code(), &mut visitor);
     assert!(visitor.found);
 }
 
@@ -35,9 +35,9 @@ fn test_ret_int() {
     let mut writer = BytecodeWriter::new();
     writer.emit_ret_int(Register(17));
     let fct = writer.generate();
-    assert_eq!(fct.data(), &[BytecodeOpcode::RetInt as u8, 17]);
+    assert_eq!(fct.code(), &[BytecodeOpcode::RetInt as u8, 17]);
     let mut visitor = TestVisitor { found: false };
-    read(fct.data(), &mut visitor);
+    read(fct.code(), &mut visitor);
     assert!(visitor.found);
 }
 
@@ -56,7 +56,7 @@ fn test_ret_wide() {
     writer.emit_ret_int(Register(256));
     let fct = writer.generate();
     assert_eq!(
-        fct.data(),
+        fct.code(),
         &[
             BytecodeOpcode::Wide as u8,
             BytecodeOpcode::RetInt as u8,
@@ -70,7 +70,7 @@ fn test_ret_wide() {
         ]
     );
     let mut visitor = TestVisitor { found: false };
-    read(fct.data(), &mut visitor);
+    read(fct.code(), &mut visitor);
     assert!(visitor.found);
 }
 
@@ -89,9 +89,9 @@ fn test_move() {
     let mut writer = BytecodeWriter::new();
     writer.emit_mov_ptr(Register(0), Register(1));
     let fct = writer.generate();
-    assert_eq!(fct.data(), &[BytecodeOpcode::MovPtr as u8, 0, 1]);
+    assert_eq!(fct.code(), &[BytecodeOpcode::MovPtr as u8, 0, 1]);
     let mut visitor = TestVisitor { found: false };
-    read(fct.data(), &mut visitor);
+    read(fct.code(), &mut visitor);
     assert!(visitor.found);
 }
 
@@ -111,7 +111,7 @@ fn test_move_wide() {
     writer.emit_mov_ptr(Register(256), Register(255));
     let fct = writer.generate();
     assert_eq!(
-        fct.data(),
+        fct.code(),
         &[
             BytecodeOpcode::Wide as u8,
             BytecodeOpcode::MovPtr as u8,
@@ -129,7 +129,7 @@ fn test_move_wide() {
         ]
     );
     let mut visitor = TestVisitor { found: false };
-    read(fct.data(), &mut visitor);
+    read(fct.code(), &mut visitor);
     assert!(visitor.found);
 }
 
@@ -148,9 +148,9 @@ fn test_const_byte() {
     let mut writer = BytecodeWriter::new();
     writer.emit_const_byte(Register(255), 255);
     let fct = writer.generate();
-    assert_eq!(fct.data(), &[BytecodeOpcode::ConstByte as u8, 255, 255]);
+    assert_eq!(fct.code(), &[BytecodeOpcode::ConstByte as u8, 255, 255]);
     let mut visitor = TestVisitor { found: false };
-    read(fct.data(), &mut visitor);
+    read(fct.code(), &mut visitor);
     assert!(visitor.found);
 }
 
@@ -170,7 +170,7 @@ fn test_const_byte_wide() {
     writer.emit_const_byte(Register(256), 19);
     let fct = writer.generate();
     assert_eq!(
-        fct.data(),
+        fct.code(),
         &[
             BytecodeOpcode::Wide as u8,
             BytecodeOpcode::ConstByte as u8,
@@ -185,7 +185,7 @@ fn test_const_byte_wide() {
         ]
     );
     let mut visitor = TestVisitor { found: false };
-    read(fct.data(), &mut visitor);
+    read(fct.code(), &mut visitor);
     assert!(visitor.found);
 }
 
@@ -204,10 +204,10 @@ fn test_const_string() {
     let mut writer = BytecodeWriter::new();
     writer.emit_const_string(Register(7), "foo".into());
     let fct = writer.generate();
-    assert_eq!(fct.data(), &[BytecodeOpcode::ConstString as u8, 7, 0]);
+    assert_eq!(fct.code(), &[BytecodeOpcode::ConstString as u8, 7, 0]);
     assert_eq!(fct.const_pool(ConstPoolIdx(0)).to_string(), Some("foo"));
     let mut visitor = TestVisitor { found: false };
-    read(fct.data(), &mut visitor);
+    read(fct.code(), &mut visitor);
     assert!(visitor.found);
 }
 
@@ -227,9 +227,9 @@ fn test_sub_float() {
     let mut writer = BytecodeWriter::new();
     writer.emit_sub_float(Register(2), Register(9), Register(255));
     let fct = writer.generate();
-    assert_eq!(fct.data(), &[BytecodeOpcode::SubFloat as u8, 2, 9, 255]);
+    assert_eq!(fct.code(), &[BytecodeOpcode::SubFloat as u8, 2, 9, 255]);
     let mut visitor = TestVisitor { found: false };
-    read(fct.data(), &mut visitor);
+    read(fct.code(), &mut visitor);
     assert!(visitor.found);
 }
 
@@ -248,9 +248,9 @@ fn test_jump_back() {
     let label = writer.define_label();
     writer.emit_jump_loop(label);
     let fct = writer.generate();
-    assert_eq!(fct.data(), &[BytecodeOpcode::JumpLoop as u8, 0]);
+    assert_eq!(fct.code(), &[BytecodeOpcode::JumpLoop as u8, 0]);
     let mut visitor = TestVisitor { found: false };
-    read(fct.data(), &mut visitor);
+    read(fct.code(), &mut visitor);
     assert!(visitor.found);
 }
 
@@ -275,7 +275,7 @@ fn test_jump_back_one_inst() {
     writer.emit_jump_loop(label);
     let fct = writer.generate();
     assert_eq!(
-        fct.data(),
+        fct.code(),
         &[
             BytecodeOpcode::RetVoid as u8,
             BytecodeOpcode::JumpLoop as u8,
@@ -283,7 +283,7 @@ fn test_jump_back_one_inst() {
         ]
     );
     let mut visitor = TestVisitor { found: 0 };
-    read(fct.data(), &mut visitor);
+    read(fct.code(), &mut visitor);
     assert_eq!(visitor.found, 2);
 }
 
@@ -303,9 +303,9 @@ fn test_jump() {
     writer.emit_jump(label);
     writer.bind_label(label);
     let fct = writer.generate();
-    assert_eq!(fct.data(), &[BytecodeOpcode::Jump as u8, 2]);
+    assert_eq!(fct.code(), &[BytecodeOpcode::Jump as u8, 2]);
     let mut visitor = TestVisitor { found: false };
-    read(fct.data(), &mut visitor);
+    read(fct.code(), &mut visitor);
     assert!(visitor.found);
 }
 
@@ -333,7 +333,7 @@ fn test_jump_far() {
     writer.bind_label(label);
     let fct = writer.generate();
     assert_eq!(
-        &fct.data()[..3],
+        &fct.code()[..3],
         &[
             BytecodeOpcode::JumpConst as u8,
             0,
@@ -347,7 +347,7 @@ fn test_jump_far() {
         256
     );
     let mut visitor = TestVisitor { found: 0 };
-    read(fct.data(), &mut visitor);
+    read(fct.code(), &mut visitor);
     assert_eq!(visitor.found, 255);
 }
 
@@ -368,9 +368,9 @@ fn test_cond_jump() {
     writer.emit_jump_if_true(Register(7), label);
     writer.bind_label(label);
     let fct = writer.generate();
-    assert_eq!(fct.data(), &[BytecodeOpcode::JumpIfTrue as u8, 7, 3]);
+    assert_eq!(fct.code(), &[BytecodeOpcode::JumpIfTrue as u8, 7, 3]);
     let mut visitor = TestVisitor { found: false };
-    read(fct.data(), &mut visitor);
+    read(fct.code(), &mut visitor);
     assert!(visitor.found);
 }
 
@@ -392,7 +392,7 @@ fn test_cond_jump_wide() {
     writer.bind_label(label);
     let fct = writer.generate();
     assert_eq!(
-        fct.data(),
+        fct.code(),
         &[
             BytecodeOpcode::Wide as u8,
             BytecodeOpcode::JumpIfFalse as u8,
@@ -410,7 +410,7 @@ fn test_cond_jump_wide() {
         ]
     );
     let mut visitor = TestVisitor { found: false };
-    read(fct.data(), &mut visitor);
+    read(fct.code(), &mut visitor);
     assert!(visitor.found);
 }
 
@@ -439,7 +439,7 @@ fn test_cond_jump_far() {
     writer.bind_label(label);
     let fct = writer.generate();
     assert_eq!(
-        &fct.data()[..4],
+        &fct.code()[..4],
         &[
             BytecodeOpcode::JumpIfTrueConst as u8,
             7,
@@ -448,6 +448,6 @@ fn test_cond_jump_far() {
         ]
     );
     let mut visitor = TestVisitor { found: 0 };
-    read(fct.data(), &mut visitor);
+    read(fct.code(), &mut visitor);
     assert_eq!(visitor.found, 254);
 }

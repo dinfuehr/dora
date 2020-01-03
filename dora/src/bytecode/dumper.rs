@@ -12,7 +12,7 @@ pub fn dump(bc: &BytecodeFunction) {
         pos: BytecodeOffset(0),
         w: &mut stdout,
     };
-    read(bc.data(), &mut visitor);
+    read(bc.code(), &mut visitor);
 }
 
 struct BytecodeDumper<'a> {

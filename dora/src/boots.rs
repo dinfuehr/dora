@@ -26,7 +26,7 @@ pub fn compile<'a, 'ast: 'a>(
 
     let compile_fct = vm.fct_by_name("compile").expect("compile()-method missing");
 
-    let bytecode_array = root(byte_array_from_buffer(vm, bytecode_fct.data()));
+    let bytecode_array = root(byte_array_from_buffer(vm, bytecode_fct.code()));
 
     let tld = THREAD.with(|thread| {
         let thread = thread.borrow();

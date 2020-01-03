@@ -1296,7 +1296,7 @@ pub enum Bytecode {
 
 fn build(bc: &BytecodeFunction) -> Vec<Bytecode> {
     let mut visitor = BytecodeArrayBuilder::new(bc);
-    bytecode::read(bc.data(), &mut visitor);
+    bytecode::read(bc.code(), &mut visitor);
     visitor.generate()
 }
 
@@ -1328,7 +1328,7 @@ impl<'a> BytecodeArrayBuilder<'a> {
 
     fn resolve_jumps(&mut self) {
         self.offset_to_index
-            .insert(BytecodeOffset(self.bc.data().len() as u32), self.next_idx);
+            .insert(BytecodeOffset(self.bc.code().len() as u32), self.next_idx);
         let jumps = mem::replace(&mut self.jumps, Vec::new());
 
         for (location, target) in jumps {

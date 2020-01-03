@@ -1,4 +1,4 @@
-class BytecodeFunction(let data: Array[Byte], let const_pool: Array[ConstPoolEntry])
+class BytecodeFunction(let code: Array[Byte], let const_pool: Array[ConstPoolEntry], let registers: Array[Byte])
 
 @open @abstract class ConstPoolEntry
 

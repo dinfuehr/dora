@@ -110,7 +110,7 @@ where
         self.emit_prolog();
         self.store_params_on_stack();
 
-        bytecode::read(self.bytecode.data(), &mut self);
+        bytecode::read(self.bytecode.code(), &mut self);
 
         self.resolve_forward_jumps();
 
