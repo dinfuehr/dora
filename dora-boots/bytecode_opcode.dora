@@ -166,6 +166,15 @@ const BC_RET_FLOAT: Int = 162;
 const BC_RET_DOUBLE: Int = 163;
 const BC_RET_PTR: Int = 164;
 
+const BC_TYPE_BOOL: Int = 0;
+const BC_TYPE_BYTE: Int = 1;
+const BC_TYPE_CHAR: Int = 2;
+const BC_TYPE_INT: Int = 3;
+const BC_TYPE_LONG: Int = 4;
+const BC_TYPE_FLOAT: Int = 5;
+const BC_TYPE_DOUBLE: Int = 6;
+const BC_TYPE_PTR: Int = 7;
+
 fun bytecodeName(opcode: Int) -> String {
   if opcode == BC_WIDE { return "Wide"; }
   if opcode == BC_ADD_INT { return "AddInt"; }
@@ -333,4 +342,16 @@ fun bytecodeName(opcode: Int) -> String {
   if opcode == BC_RET_DOUBLE { return "RetDouble"; }
   if opcode == BC_RET_PTR { return "RetPtr"; }
   "UNKNOWN(${opcode})"
+}
+
+fun bytecodeTypeName(code: Int) -> String {
+  if code == BC_TYPE_BOOL { return "Bool"; }
+  if code == BC_TYPE_BYTE { return "Byte"; }
+  if code == BC_TYPE_CHAR { return "Char"; }
+  if code == BC_TYPE_INT { return "Int"; }
+  if code == BC_TYPE_LONG { return "Long"; }
+  if code == BC_TYPE_FLOAT { return "Float"; }
+  if code == BC_TYPE_DOUBLE { return "Double"; }
+  if code == BC_TYPE_PTR { return "Ptr"; }
+  "UNKNOWN(${code})"
 }
