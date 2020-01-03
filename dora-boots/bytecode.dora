@@ -8,6 +8,11 @@ class ConstPoolString(let value: String): ConstPoolEntry
 class ConstPoolChar(let value: Char): ConstPoolEntry
 
 class BytecodeRegister(let value: Int)
+
+impl Stringable for BytecodeRegister {
+    fun toString() -> String = "r${self.value}";
+}
+
 class ClassDefId(let value: Int)
 class FieldId(let value: Int)
 class GlobalId(let value: Int)
