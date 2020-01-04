@@ -4,7 +4,7 @@ fun find_reachable_blocks(graph: Graph) -> BitSet {
     let visited = BitSet(blocks);
     let successors_processed = arrayFill[Int](blocks, 0);
 
-    worklist.push(graph.entry_block);
+    worklist.push(graph.entryBlock);
 
     while !worklist.is_empty() {
         let block = worklist.last();

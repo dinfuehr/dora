@@ -1,5 +1,6 @@
 fun createGraph(bc: BytecodeFunction) -> Graph {
     let ssagen = SsaGen(bc);
+    ssagen.prepare();
     readBytecode(bc.code, ssagen);
     ssagen.graph
 }
@@ -7,15 +8,19 @@ fun createGraph(bc: BytecodeFunction) -> Graph {
 class SsaGen(let bc: BytecodeFunction): BytecodeVisitor {
     let graph: Graph = Graph();
     var currentBlock: Block;
+    var currentJoinBlock: Block;
+    var offset: Int = 0;
+    var registers: Array[Inst];
 
-    fun setup() {
+    fun prepare() {
         self.currentBlock = Block();
         self.graph.addBlock(self.currentBlock);
         self.graph.setEntryBlock(self.currentBlock);
         self.graph.setExitBlock(self.currentBlock);
+        self.registers = Array[Inst](self.bc.registers.length());
     }
 
-    @override fun visitInstruction(offset: Int) { unimplemented(); }
+    @override fun visitInstruction(offset: Int) { self.offset = offset; }
 
     @override fun visitAddInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @override fun visitAddLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
@@ -124,7 +129,9 @@ class SsaGen(let bc: BytecodeFunction): BytecodeVisitor {
     @override fun visitConstChar(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
     @override fun visitConstInt(dest: BytecodeRegister, idx: ConstPoolId) {
         let value = self.bc.constPool(idx).toInt().unwrap();
-        self.currentBlock.appendInst(IntConst(value));
+        let inst = IntConst(value);
+        self.currentBlock.appendInst(inst);
+        self.registers.set(dest.value, inst);
     }
     @override fun visitConstLong(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
     @override fun visitConstFloat(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
@@ -206,15 +213,55 @@ class SsaGen(let bc: BytecodeFunction): BytecodeVisitor {
     @override fun visitThrow(opnd: BytecodeRegister) { unimplemented(); }
 
     @override fun visitRetVoid() {
-        self.currentBlock.appendInst(ReturnVoidInst());
+        let inst = ReturnVoidInst();
+        self.currentBlock.appendInst(inst);
     }
 
     @override fun visitRetBool(opnd: BytecodeRegister) { unimplemented(); }
     @override fun visitRetByte(opnd: BytecodeRegister) { unimplemented(); }
     @override fun visitRetChar(opnd: BytecodeRegister) { unimplemented(); }
-    @override fun visitRetInt(opnd: BytecodeRegister) { unimplemented(); }
+    @override fun visitRetInt(opnd: BytecodeRegister) {
+        let value = self.registers.get(opnd.value);
+        let inst = ReturnInst(value);
+        self.currentBlock.appendInst(inst);
+    }
+
     @override fun visitRetLong(opnd: BytecodeRegister) { unimplemented(); }
     @override fun visitRetFloat(opnd: BytecodeRegister) { unimplemented(); }
     @override fun visitRetDouble(opnd: BytecodeRegister) { unimplemented(); }
     @override fun visitRetPtr(opnd: BytecodeRegister) { unimplemented(); }
+}
+
+@test fun testSsaGenRetVoid(_x: Testing) {
+    let writer = BytecodeWriter();
+    writer.emitRetVoid();
+    let fct = writer.generate();
+
+    let graph = createGraph(fct);
+    assert(graph.numberBlocks() == 1);
+    let block = graph.entryBlock;
+    let it = InstIterator(block);
+    assert(it.current() is ReturnVoidInst);
+    it.next();
+    assert(it.current() === nil);
+}
+
+@test fun testSsaGenRetInt(_x: Testing) {
+    let writer = BytecodeWriter();
+    let tmp = writer.addRegister(BytecodeType::int());
+    writer.emitConstInt(tmp, 4711);
+    writer.emitRetInt(tmp);
+    let fct = writer.generate();
+
+    let graph = createGraph(fct);
+    assert(graph.numberBlocks() == 1);
+    let block = graph.entryBlock;
+    let it = InstIterator(block);
+    let val = it.current() as IntConst;
+    assert(val.value == 4711);
+    it.next();
+    let ret = it.current() as ReturnInst;
+    assert(ret.value === val);
+    it.next();
+    assert(it.current() === nil);
 }

@@ -1,0 +1,7 @@
+fun dumpGraph(graph: Graph) -> String {
+    ""
+}
+
+class GraphDumper(let graph: Graph) {
+
+}
