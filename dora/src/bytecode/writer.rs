@@ -194,6 +194,86 @@ impl BytecodeWriter {
         self.emit_load_field(BytecodeOpcode::LoadFieldPtr, dest, obj, cls, field);
     }
 
+    pub fn emit_store_field_bool(
+        &mut self,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_store_field(BytecodeOpcode::StoreFieldBool, src, obj, cls, field);
+    }
+
+    pub fn emit_store_field_byte(
+        &mut self,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_store_field(BytecodeOpcode::StoreFieldByte, src, obj, cls, field);
+    }
+
+    pub fn emit_store_field_char(
+        &mut self,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_store_field(BytecodeOpcode::StoreFieldChar, src, obj, cls, field);
+    }
+
+    pub fn emit_store_field_int(
+        &mut self,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_store_field(BytecodeOpcode::StoreFieldInt, src, obj, cls, field);
+    }
+
+    pub fn emit_store_field_long(
+        &mut self,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_store_field(BytecodeOpcode::StoreFieldLong, src, obj, cls, field);
+    }
+
+    pub fn emit_store_field_float(
+        &mut self,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_store_field(BytecodeOpcode::StoreFieldFloat, src, obj, cls, field);
+    }
+
+    pub fn emit_store_field_double(
+        &mut self,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_store_field(BytecodeOpcode::StoreFieldDouble, src, obj, cls, field);
+    }
+
+    pub fn emit_store_field_ptr(
+        &mut self,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_store_field(BytecodeOpcode::StoreFieldPtr, src, obj, cls, field);
+    }
+
     pub fn emit_const_nil(&mut self, dest: Register) {
         self.emit_reg1(BytecodeOpcode::ConstNil, dest);
     }
@@ -871,6 +951,24 @@ impl BytecodeWriter {
     }
 
     fn emit_load_field(
+        &mut self,
+        inst: BytecodeOpcode,
+        r1: Register,
+        r2: Register,
+        cid: ClassDefId,
+        fid: FieldId,
+    ) {
+        let values = [
+            inst as u32,
+            r1.to_usize() as u32,
+            r2.to_usize() as u32,
+            cid.to_usize() as u32,
+            fid.to_usize() as u32,
+        ];
+        self.emit_values(&values);
+    }
+
+    fn emit_store_field(
         &mut self,
         inst: BytecodeOpcode,
         r1: Register,

@@ -943,7 +943,54 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 }
             }
         } else {
-            unimplemented!();
+            match *e.lhs {
+                ExprDot(ref dot) => {
+                    let (class, field_id) = {
+                        let ident_type = self.src.map_idents.get(dot.id).unwrap();
+                        match ident_type {
+                            &IdentType::Field(class, field) => (class, field),
+                            _ => unreachable!(),
+                        }
+                    };
+                    let class = self.specialize_type(class);
+                    let cls_id = specialize_class_ty(self.vm, class);
+                    let cls = self.vm.class_defs.idx(cls_id);
+                    let cls = cls.read();
+                    let field = &cls.fields[field_id.idx()];
+                    let ty: BytecodeType = field.ty.into();
+
+                    let src = self.visit_expr(&e.rhs, DataDest::Alloc);
+                    let obj = self.visit_expr(&dot.lhs, DataDest::Alloc);
+
+                    match ty {
+                        BytecodeType::Byte => {
+                            self.gen.emit_store_field_byte(src, obj, cls_id, field_id)
+                        }
+                        BytecodeType::Bool => {
+                            self.gen.emit_store_field_bool(src, obj, cls_id, field_id)
+                        }
+                        BytecodeType::Char => {
+                            self.gen.emit_store_field_char(src, obj, cls_id, field_id)
+                        }
+                        BytecodeType::Int => {
+                            self.gen.emit_store_field_int(src, obj, cls_id, field_id)
+                        }
+                        BytecodeType::Long => {
+                            self.gen.emit_store_field_long(src, obj, cls_id, field_id)
+                        }
+                        BytecodeType::Float => {
+                            self.gen.emit_store_field_float(src, obj, cls_id, field_id)
+                        }
+                        BytecodeType::Double => {
+                            self.gen.emit_store_field_double(src, obj, cls_id, field_id)
+                        }
+                        BytecodeType::Ptr => {
+                            self.gen.emit_store_field_ptr(src, obj, cls_id, field_id)
+                        }
+                    }
+                }
+                _ => unreachable!(),
+            };
         }
 
         Register::invalid()
