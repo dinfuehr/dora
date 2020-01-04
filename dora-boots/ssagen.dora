@@ -6,6 +6,14 @@ fun createGraph(bc: BytecodeFunction) -> Graph {
 
 class SsaGen(let bc: BytecodeFunction): BytecodeVisitor {
     let graph: Graph = Graph();
+    var currentBlock: Block;
+
+    fun setup() {
+        self.currentBlock = Block();
+        self.graph.addBlock(self.currentBlock);
+        self.graph.setEntryBlock(self.currentBlock);
+        self.graph.setExitBlock(self.currentBlock);
+    }
 
     @override fun visitInstruction(offset: Int) { unimplemented(); }
 
@@ -113,12 +121,15 @@ class SsaGen(let bc: BytecodeFunction): BytecodeVisitor {
     @override fun visitConstZeroFloat(dest: BytecodeRegister) { unimplemented(); }
     @override fun visitConstZeroDouble(dest: BytecodeRegister) { unimplemented(); }
     @override fun visitConstByte(dest: BytecodeRegister, value: Byte) { unimplemented(); }
-    @override fun visitConstChar(dest: BytecodeRegister, value: ConstPoolId) { unimplemented(); }
-    @override fun visitConstInt(dest: BytecodeRegister, value: ConstPoolId) { unimplemented(); }
-    @override fun visitConstLong(dest: BytecodeRegister, value: ConstPoolId) { unimplemented(); }
-    @override fun visitConstFloat(dest: BytecodeRegister, value: ConstPoolId) { unimplemented(); }
-    @override fun visitConstDouble(dest: BytecodeRegister, value: ConstPoolId) { unimplemented(); }
-    @override fun visitConstString(dest: BytecodeRegister, value: ConstPoolId) { unimplemented(); }
+    @override fun visitConstChar(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @override fun visitConstInt(dest: BytecodeRegister, idx: ConstPoolId) {
+        let value = self.bc.constPool(idx).toInt().unwrap();
+        self.currentBlock.appendInst(IntConst(value));
+    }
+    @override fun visitConstLong(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @override fun visitConstFloat(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @override fun visitConstDouble(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @override fun visitConstString(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
 
     @override fun visitTestEqPtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @override fun visitTestNePtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
@@ -194,7 +205,10 @@ class SsaGen(let bc: BytecodeFunction): BytecodeVisitor {
     
     @override fun visitThrow(opnd: BytecodeRegister) { unimplemented(); }
 
-    @override fun visitRetVoid() { unimplemented(); }
+    @override fun visitRetVoid() {
+        self.currentBlock.appendInst(ReturnVoidInst());
+    }
+
     @override fun visitRetBool(opnd: BytecodeRegister) { unimplemented(); }
     @override fun visitRetByte(opnd: BytecodeRegister) { unimplemented(); }
     @override fun visitRetChar(opnd: BytecodeRegister) { unimplemented(); }

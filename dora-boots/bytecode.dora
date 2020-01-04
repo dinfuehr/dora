@@ -1,9 +1,23 @@
-class BytecodeFunction(let code: Array[Byte], let const_pool: Array[ConstPoolEntry], let registers: Array[Byte])
+class BytecodeFunction(let code: Array[Byte], let const_pool: Array[ConstPoolEntry], let registers: Array[Byte]) {
+    fun constPool(idx: ConstPoolId) -> ConstPoolEntry {
+        self.const_pool.get(idx.value)
+    }
+}
 
-@open @abstract class ConstPoolEntry
+@open @abstract class ConstPoolEntry {
+    fun toInt() -> Option[Int] {
+        if self is ConstPoolInt {
+            some[Int]((self as ConstPoolInt).value)
+        } else {
+            none[Int]()
+        }
+    }
+}
 
 class ConstPoolInt(let value: Int): ConstPoolEntry
 class ConstPoolLong(let value: Long): ConstPoolEntry
+class ConstPoolFloat(let value: Float): ConstPoolEntry
+class ConstPoolDouble(let value: Double): ConstPoolEntry
 class ConstPoolString(let value: String): ConstPoolEntry
 class ConstPoolChar(let value: Char): ConstPoolEntry
 
@@ -18,3 +32,13 @@ class FieldId(let value: Int)
 class GlobalId(let value: Int)
 class ConstPoolId(let value: Int)
 class FctId(let value: Int)
+class BytecodeType(let value: Int) {
+    fun isBool() -> Bool = self.value == BC_TYPE_BOOL;
+    fun isByte() -> Bool = self.value == BC_TYPE_BYTE;
+    fun isChar() -> Bool = self.value == BC_TYPE_CHAR;
+    fun isInt() -> Bool = self.value == BC_TYPE_INT;
+    fun isLong() -> Bool = self.value == BC_TYPE_LONG;
+    fun isFloat() -> Bool = self.value == BC_TYPE_FLOAT;
+    fun isDouble() -> Bool = self.value == BC_TYPE_DOUBLE;
+    fun isPtr() -> Bool = self.value == BC_TYPE_PTR;
+}

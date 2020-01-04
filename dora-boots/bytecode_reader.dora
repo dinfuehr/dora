@@ -109,12 +109,12 @@ fun readBytecode(code: Array[Byte], visitor: BytecodeVisitor) {
     @abstract fun visitConstZeroFloat(dest: BytecodeRegister);
     @abstract fun visitConstZeroDouble(dest: BytecodeRegister);
     @abstract fun visitConstByte(dest: BytecodeRegister, value: Byte);
-    @abstract fun visitConstChar(dest: BytecodeRegister, value: ConstPoolId);
-    @abstract fun visitConstInt(dest: BytecodeRegister, value: ConstPoolId);
-    @abstract fun visitConstLong(dest: BytecodeRegister, value: ConstPoolId);
-    @abstract fun visitConstFloat(dest: BytecodeRegister, value: ConstPoolId);
-    @abstract fun visitConstDouble(dest: BytecodeRegister, value: ConstPoolId);
-    @abstract fun visitConstString(dest: BytecodeRegister, value: ConstPoolId);
+    @abstract fun visitConstChar(dest: BytecodeRegister, idx: ConstPoolId);
+    @abstract fun visitConstInt(dest: BytecodeRegister, idx: ConstPoolId);
+    @abstract fun visitConstLong(dest: BytecodeRegister, idx: ConstPoolId);
+    @abstract fun visitConstFloat(dest: BytecodeRegister, idx: ConstPoolId);
+    @abstract fun visitConstDouble(dest: BytecodeRegister, idx: ConstPoolId);
+    @abstract fun visitConstString(dest: BytecodeRegister, idx: ConstPoolId);
 
     @abstract fun visitTestEqPtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
     @abstract fun visitTestNePtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);

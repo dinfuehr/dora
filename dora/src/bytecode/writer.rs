@@ -12,7 +12,7 @@ use crate::vm::{ClassDefId, FctId, FieldId, GlobalId};
 pub struct Label(pub usize);
 
 pub struct BytecodeWriter {
-    data: Vec<u8>,
+    code: Vec<u8>,
 
     label_offsets: Vec<Option<BytecodeOffset>>,
     unresolved_jump_offsets: Vec<(BytecodeOffset, BytecodeOffset, Label)>,
@@ -25,7 +25,7 @@ pub struct BytecodeWriter {
 impl BytecodeWriter {
     pub fn new() -> BytecodeWriter {
         BytecodeWriter {
-            data: Vec::new(),
+            code: Vec::new(),
 
             label_offsets: Vec::new(),
             unresolved_jump_offsets: Vec::new(),
@@ -58,7 +58,7 @@ impl BytecodeWriter {
     }
 
     pub fn define_label(&mut self) -> Label {
-        let offset = BytecodeOffset(self.data.len() as u32);
+        let offset = BytecodeOffset(self.code.len() as u32);
         self.label_offsets.push(Some(offset));
 
         Label(self.label_offsets.len() - 1)
@@ -75,7 +75,7 @@ impl BytecodeWriter {
     }
 
     fn offset(&self) -> BytecodeOffset {
-        BytecodeOffset(self.data.len() as u32)
+        BytecodeOffset(self.code.len() as u32)
     }
 
     pub fn emit_add_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -288,8 +288,8 @@ impl BytecodeWriter {
 
     pub fn emit_jump_loop(&mut self, lbl: Label) {
         let offset = self.lookup_label(lbl).expect("label not bound");
-        assert!(offset.to_usize() <= self.data.len());
-        let distance = (self.data.len() - offset.to_usize()) as u32;
+        assert!(offset.to_usize() <= self.code.len());
+        let distance = (self.code.len() - offset.to_usize()) as u32;
         self.emit_jmp(BytecodeOpcode::JumpLoop, distance);
     }
 
@@ -757,7 +757,7 @@ impl BytecodeWriter {
     pub fn generate(mut self) -> BytecodeFunction {
         self.resolve_forward_jumps();
 
-        BytecodeFunction::new(self.data, self.const_pool, self.registers)
+        BytecodeFunction::new(self.code, self.const_pool, self.registers)
     }
 
     fn resolve_forward_jumps(&mut self) {
@@ -792,8 +792,8 @@ impl BytecodeWriter {
                     2
                 };
 
-                self.data[start.to_usize()] = inst_imm as u8;
-                self.data[start.to_usize() + jump_target] = distance as u8;
+                self.code[start.to_usize()] = inst_imm as u8;
+                self.code[start.to_usize() + jump_target] = distance as u8;
             } else {
                 self.patch_const(const_idx, ConstPoolEntry::Int(distance as i32));
             }
@@ -914,11 +914,11 @@ impl BytecodeWriter {
     }
 
     fn emit_wide(&mut self) {
-        self.data.push(BytecodeOpcode::Wide as u8);
+        self.code.push(BytecodeOpcode::Wide as u8);
     }
 
     fn emit_u8(&mut self, value: u8) {
-        self.data.push(value);
+        self.code.push(value);
     }
 
     fn emit_jmp_forward(
@@ -959,22 +959,22 @@ impl BytecodeWriter {
     }
 
     fn bytecode_at(&self, offset: BytecodeOffset) -> BytecodeOpcode {
-        FromPrimitive::from_u8(self.data[offset.to_usize()]).expect("unknown bytecode")
+        FromPrimitive::from_u8(self.code[offset.to_usize()]).expect("unknown bytecode")
     }
 
     fn emit_u32(&mut self, value: u32) {
-        self.data.push((value & 0xFF) as u8);
-        self.data.push(((value >> 8) & 0xFF) as u8);
-        self.data.push(((value >> 16) & 0xFF) as u8);
-        self.data.push(((value >> 24) & 0xFF) as u8);
+        self.code.push((value & 0xFF) as u8);
+        self.code.push(((value >> 8) & 0xFF) as u8);
+        self.code.push(((value >> 16) & 0xFF) as u8);
+        self.code.push(((value >> 24) & 0xFF) as u8);
     }
 
     fn patch_u32(&mut self, offset: BytecodeOffset, value: u32) {
         let offset = offset.to_usize();
-        self.data[offset] = (value & 0xFF) as u8;
-        self.data[offset + 1] = ((value >> 8) & 0xFF) as u8;
-        self.data[offset + 2] = ((value >> 16) & 0xFF) as u8;
-        self.data[offset + 3] = ((value >> 24) & 0xFF) as u8;
+        self.code[offset] = (value & 0xFF) as u8;
+        self.code[offset + 1] = ((value >> 8) & 0xFF) as u8;
+        self.code[offset + 2] = ((value >> 16) & 0xFF) as u8;
+        self.code[offset + 3] = ((value >> 24) & 0xFF) as u8;
     }
 
     fn patch_const(&mut self, idx: ConstPoolIdx, entry: ConstPoolEntry) {

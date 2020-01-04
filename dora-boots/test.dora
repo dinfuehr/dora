@@ -2,35 +2,35 @@
     let graph = Graph();
 
     let block = Block();
-    graph.add_block(block);
-    graph.set_entry_block(block);
-    graph.set_exit_block(block);
+    graph.addBlock(block);
+    graph.setEntryBlock(block);
+    graph.setExitBlock(block);
 
     let inst = ReturnVoidInst();
-    block.append_inst(inst);
+    block.appendInst(inst);
 }
 
 @test fun add_int_consts(_x: Testing) {
     let graph = Graph();
 
     let block = Block();
-    graph.add_block(block);
-    graph.set_entry_block(block);
-    graph.set_exit_block(block);
+    graph.addBlock(block);
+    graph.setEntryBlock(block);
+    graph.setExitBlock(block);
 
     let const1 = IntConst(1);
-    block.append_inst(const1);
+    block.appendInst(const1);
 
     let const2 = IntConst(2);
-    block.append_inst(const2);
+    block.appendInst(const2);
 
     let inst = BinaryInst(BinOp::Add, const1, const2);
-    block.append_inst(inst);
+    block.appendInst(inst);
 
     let inst = ReturnVoidInst();
-    block.append_inst(inst);
+    block.appendInst(inst);
 
-    assert(const1.has_uses());
-    assert(const2.has_uses());
-    assert(!inst.has_uses());
+    assert(const1.hasUses());
+    assert(const2.hasUses());
+    assert(!inst.hasUses());
 }
