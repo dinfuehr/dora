@@ -2,6 +2,7 @@ class BytecodeWriter {
     let code: Vec[Byte] = Vec[Byte]();
     let constPool: Vec[ConstPoolEntry] = Vec[ConstPoolEntry]();
     let registers: Vec[BytecodeType] = Vec[BytecodeType]();
+    let unresolvedJumps: Vec[UnresolvedJump] = Vec[UnresolvedJump]();
 
     fun addRegister(ty: BytecodeType) -> BytecodeRegister {
         self.registers.push(ty);
@@ -14,6 +15,10 @@ class BytecodeWriter {
 
     fun defineLabel() -> BytecodeLabel {
         BytecodeLabel().bindTo(self.code.length())
+    }
+
+    fun bindLabel(lbl: BytecodeLabel) {
+        lbl.bindTo(self.code.length());
     }
 
     fun emitAddInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
@@ -671,6 +676,54 @@ class BytecodeWriter {
         self.emitReg1(BC_RET_PTR, opnd);
     }
 
+    fun generate() -> BytecodeFunction {
+        self.resolveJumps();
+        let code = self.code.toArray();
+        let constPool = self.constPool.toArray();
+        let registers = self.registers.toArray();
+        BytecodeFunction(code, constPool, registers)
+    }
+
+    fun resolveJumps() {
+        var i = 0;
+
+        while i < self.unresolvedJumps.length() {
+            let jump = self.unresolvedJumps.get(i);
+            assert(jump.label.isBound());
+
+            assert(jump.label.offset() > jump.inst);
+            let offset = jump.label.offset() - jump.inst;
+
+            let opcode = self.code.get(jump.inst).toInt();
+
+            if opcode == BC_WIDE {
+                // wide is guaranteed to not use constant pool
+                self.patchInt(jump.target, offset);
+            } else if isWide(offset) {
+                // Need to update const pool entry
+                let idx = self.code.get(jump.target).toInt();
+                self.constPool.set(idx, ConstPoolInt(offset));
+            } else {
+                // Offset fits into byte, replace instruction with jump+immediate
+                let opcode = if opcode == BC_JUMP_CONST {
+                    BC_JUMP
+                } else if opcode == BC_JUMP_IF_FALSE_CONST {
+                    BC_JUMP_IF_FALSE
+                } else if opcode == BC_JUMP_IF_TRUE_CONST {
+                    BC_JUMP_IF_TRUE
+                } else {
+                    fatalError("unexpected opcode ${bytecodeName(opcode)} (${opcode})");
+                    -1
+                };
+
+                self.code.set(jump.inst, opcode.toByte());
+                self.code.set(jump.target, offset.toByte());
+            }
+
+            i = i + 1;
+        }
+    }
+
     fun emitFctVoid(inst: Int, fct: FctId, start: BytecodeRegister, count: Int) {
         self.emitVal4(inst, fct.value, start.value, count);
     }
@@ -687,6 +740,7 @@ class BytecodeWriter {
         assert(!isWide(inst));
         assert(!isWide(inst_const));
         let start = self.code.length();
+        var target: Int = 0;
 
         if (opnd.isSome() && isWide(opnd.unwrap().value)) || isWide(self.constPool.length()) {
             self.emitWide();
@@ -694,6 +748,7 @@ class BytecodeWriter {
             if opnd.isSome() {
                 self.emitInt(opnd.unwrap().value);
             }
+            target = self.code.length();
             self.emitInt(0);
         } else {
             self.emitByte(inst_const);
@@ -701,8 +756,11 @@ class BytecodeWriter {
                 self.emitByte(opnd.unwrap().value);
             }
             let idx = self.addConst(ConstPoolInt(0));
+            target = self.code.length();
             self.emitByte(idx.value);
         }
+
+        self.unresolvedJumps.push(UnresolvedJump(start, target, lbl));
     }
 
     fun emitInst(inst: Int) {
@@ -830,6 +888,14 @@ class BytecodeWriter {
         self.emitByte((val >>> 16) & 0xFF);
         self.emitByte((val >>> 24) & 0xFF);
     }
+
+    fun patchInt(idx: Int, val: Int) {
+        assert(val >= 0);
+        self.code.set(idx, (val & 0xFF).toByte());
+        self.code.set(idx + 1, ((val >>> 8) & 0xFF).toByte());
+        self.code.set(idx + 2 , ((val >>> 16) & 0xFF).toByte());
+        self.code.set(idx + 3, ((val >>> 24) & 0xFF).toByte());
+    }
 }
 
 fun isWide(val: Int) -> Bool {
@@ -854,3 +920,5 @@ class BytecodeLabel {
         self.offset
     }
 }
+
+class UnresolvedJump(let inst: Int, let target: Int, let label: BytecodeLabel)

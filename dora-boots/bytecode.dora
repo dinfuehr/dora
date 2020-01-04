@@ -1,6 +1,19 @@
-class BytecodeFunction(let code: Array[Byte], let const_pool: Array[ConstPoolEntry], let registers: Array[Byte]) {
+class BytecodeFunction(let code: Array[Byte], let const_pool: Array[ConstPoolEntry], let registers: Array[BytecodeType]) {
     fun constPool(idx: ConstPoolId) -> ConstPoolEntry {
         self.const_pool.get(idx.value)
+    }
+
+    fun codeAt(idx: Int) -> Int {
+        self.code.get(idx).toInt()
+    }
+
+    fun codeIntAt(idx: Int) -> Int {
+        let byte1 = self.codeAt(idx);
+        let byte2 = self.codeAt(idx+1);
+        let byte3 = self.codeAt(idx+2);
+        let byte4 = self.codeAt(idx+3);
+
+        (byte4 << 24) | (byte3 << 16) | (byte2 << 8) | byte1
     }
 }
 
@@ -21,7 +34,11 @@ class ConstPoolDouble(let value: Double): ConstPoolEntry
 class ConstPoolString(let value: String): ConstPoolEntry
 class ConstPoolChar(let value: Char): ConstPoolEntry
 
-class BytecodeRegister(let value: Int)
+class BytecodeRegister(let value: Int) {
+    fun equals(rhs: BytecodeRegister) -> Bool {
+        self.value == rhs.value
+    }
+}
 
 impl Stringable for BytecodeRegister {
     fun toString() -> String = "r${self.value}";
@@ -30,7 +47,12 @@ impl Stringable for BytecodeRegister {
 class ClassDefId(let value: Int)
 class FieldId(let value: Int)
 class GlobalId(let value: Int)
-class ConstPoolId(let value: Int)
+class ConstPoolId(let value: Int) {
+    fun equals(rhs: ConstPoolId) -> Bool {
+        self.value == rhs.value
+    }
+}
+
 class FctId(let value: Int)
 class BytecodeType(let value: Int) {
     fun isBool() -> Bool = self.value == BC_TYPE_BOOL;

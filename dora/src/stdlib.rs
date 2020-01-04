@@ -83,6 +83,11 @@ pub extern "C" fn fatal_error(msg: Ref<Str>) {
     write!(&mut io::stderr(), "fatal error: ").expect("could not print to stderr");
     io::stderr().write(msg.content()).unwrap();
     writeln!(&mut io::stderr(), "").expect("could not print to stderr");
+
+    let vm = get_vm();
+    let stacktrace = stacktrace_from_last_dtn(vm);
+    stacktrace.dump(vm);
+
     process::exit(1);
 }
 

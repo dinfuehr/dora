@@ -34,7 +34,7 @@ pub const K: usize = 1024;
 pub const M: usize = K * K;
 
 const CHUNK_SIZE: usize = 8 * K;
-pub const DEFAULT_CODE_SPACE_LIMIT: usize = 128 * K;
+pub const DEFAULT_CODE_SPACE_LIMIT: usize = 1 * M;
 pub const DEFAULT_PERM_SPACE_LIMIT: usize = 64 * K;
 
 // young/old gen are aligned to at least this size

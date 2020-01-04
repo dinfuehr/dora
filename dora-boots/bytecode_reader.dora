@@ -3,202 +3,202 @@ fun readBytecode(code: Array[Byte], visitor: BytecodeVisitor) {
 }
 
 @open @abstract class BytecodeVisitor {
-    @abstract fun visitInstruction(offset: Int);
+    @open fun visitInstruction(offset: Int) {}
 
-    @abstract fun visitAddInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitAddLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitAddFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitAddDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @open fun visitAddInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitAddLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitAddFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitAddDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @abstract fun visitSubInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitSubLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitSubFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitSubDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @open fun visitSubInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitSubLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitSubFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitSubDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @abstract fun visitNegInt(dest: BytecodeRegister, src: BytecodeRegister);
-    @abstract fun visitNegLong(dest: BytecodeRegister, src: BytecodeRegister);
-    @abstract fun visitNegFloat(dest: BytecodeRegister, src: BytecodeRegister);
-    @abstract fun visitNegDouble(dest: BytecodeRegister, src: BytecodeRegister);
+    @open fun visitNegInt(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitNegLong(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitNegFloat(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitNegDouble(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
 
-    @abstract fun visitMulInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitMulLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitMulFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitMulDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @open fun visitMulInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitMulLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitMulFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitMulDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @abstract fun visitDivInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitDivLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitDivFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitDivDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @open fun visitDivInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitDivLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitDivFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitDivDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @abstract fun visitModInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitModLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @open fun visitModInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitModLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @abstract fun visitAndInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitAndLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @open fun visitAndInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitAndLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @abstract fun visitOrInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitOrLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @open fun visitOrInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitOrLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @abstract fun visitXorInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitXorLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @open fun visitXorInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitXorLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @abstract fun visitNotBool(dest: BytecodeRegister, src: BytecodeRegister);
-    @abstract fun visitNotInt(dest: BytecodeRegister, src: BytecodeRegister);
-    @abstract fun visitNotLong(dest: BytecodeRegister, src: BytecodeRegister);
+    @open fun visitNotBool(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitNotInt(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitNotLong(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
 
-    @abstract fun visitShlInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitShrInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitSarInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @open fun visitShlInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitShrInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitSarInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @abstract fun visitShlLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitShrLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitSarLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @open fun visitShlLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitShrLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitSarLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @abstract fun visitMovBool(dest: BytecodeRegister, src: BytecodeRegister);
-    @abstract fun visitMovByte(dest: BytecodeRegister, src: BytecodeRegister);
-    @abstract fun visitMovChar(dest: BytecodeRegister, src: BytecodeRegister);
-    @abstract fun visitMovInt(dest: BytecodeRegister, src: BytecodeRegister);
-    @abstract fun visitMovLong(dest: BytecodeRegister, src: BytecodeRegister);
-    @abstract fun visitMovFloat(dest: BytecodeRegister, src: BytecodeRegister);
-    @abstract fun visitMovDouble(dest: BytecodeRegister, src: BytecodeRegister);
-    @abstract fun visitMovPtr(dest: BytecodeRegister, src: BytecodeRegister);
+    @open fun visitMovBool(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitMovByte(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitMovChar(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitMovInt(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitMovLong(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitMovFloat(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitMovDouble(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitMovPtr(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
 
-    @abstract fun visitLoadFieldBool(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId);
-    @abstract fun visitLoadFieldByte(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId);
-    @abstract fun visitLoadFieldChar(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId);
-    @abstract fun visitLoadFieldInt(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId);
-    @abstract fun visitLoadFieldLong(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId);
-    @abstract fun visitLoadFieldFloat(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId);
-    @abstract fun visitLoadFieldDouble(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId);
-    @abstract fun visitLoadFieldPtr(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId);
+    @open fun visitLoadFieldBool(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @open fun visitLoadFieldByte(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @open fun visitLoadFieldChar(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @open fun visitLoadFieldInt(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @open fun visitLoadFieldLong(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @open fun visitLoadFieldFloat(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @open fun visitLoadFieldDouble(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @open fun visitLoadFieldPtr(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
 
-    @abstract fun visitStoreFieldBool(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId);
-    @abstract fun visitStoreFieldByte(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId);
-    @abstract fun visitStoreFieldChar(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId);
-    @abstract fun visitStoreFieldInt(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId);
-    @abstract fun visitStoreFieldLong(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId);
-    @abstract fun visitStoreFieldFloat(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId);
-    @abstract fun visitStoreFieldDouble(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId);
-    @abstract fun visitStoreFieldPtr(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId);
+    @open fun visitStoreFieldBool(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @open fun visitStoreFieldByte(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @open fun visitStoreFieldChar(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @open fun visitStoreFieldInt(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @open fun visitStoreFieldLong(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @open fun visitStoreFieldFloat(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @open fun visitStoreFieldDouble(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @open fun visitStoreFieldPtr(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
 
-    @abstract fun visitLoadGlobalBool(dest: BytecodeRegister, glob: GlobalId);
-    @abstract fun visitLoadGlobalByte(dest: BytecodeRegister, glob: GlobalId);
-    @abstract fun visitLoadGlobalChar(dest: BytecodeRegister, glob: GlobalId);
-    @abstract fun visitLoadGlobalInt(dest: BytecodeRegister, glob: GlobalId);
-    @abstract fun visitLoadGlobalLong(dest: BytecodeRegister, glob: GlobalId);
-    @abstract fun visitLoadGlobalFloat(dest: BytecodeRegister, glob: GlobalId);
-    @abstract fun visitLoadGlobalDouble(dest: BytecodeRegister, glob: GlobalId);
-    @abstract fun visitLoadGlobalPtr(dest: BytecodeRegister, glob: GlobalId);
+    @open fun visitLoadGlobalBool(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
+    @open fun visitLoadGlobalByte(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
+    @open fun visitLoadGlobalChar(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
+    @open fun visitLoadGlobalInt(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
+    @open fun visitLoadGlobalLong(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
+    @open fun visitLoadGlobalFloat(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
+    @open fun visitLoadGlobalDouble(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
+    @open fun visitLoadGlobalPtr(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
 
-    @abstract fun visitStoreGlobalBool(src: BytecodeRegister, glob: GlobalId);
-    @abstract fun visitStoreGlobalByte(src: BytecodeRegister, glob: GlobalId);
-    @abstract fun visitStoreGlobalChar(src: BytecodeRegister, glob: GlobalId);
-    @abstract fun visitStoreGlobalInt(src: BytecodeRegister, glob: GlobalId);
-    @abstract fun visitStoreGlobalLong(src: BytecodeRegister, glob: GlobalId);
-    @abstract fun visitStoreGlobalFloat(src: BytecodeRegister, glob: GlobalId);
-    @abstract fun visitStoreGlobalDouble(src: BytecodeRegister, glob: GlobalId);
-    @abstract fun visitStoreGlobalPtr(src: BytecodeRegister, glob: GlobalId);
+    @open fun visitStoreGlobalBool(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
+    @open fun visitStoreGlobalByte(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
+    @open fun visitStoreGlobalChar(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
+    @open fun visitStoreGlobalInt(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
+    @open fun visitStoreGlobalLong(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
+    @open fun visitStoreGlobalFloat(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
+    @open fun visitStoreGlobalDouble(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
+    @open fun visitStoreGlobalPtr(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
 
-    @abstract fun visitConstNil(dest: BytecodeRegister);
-    @abstract fun visitConstTrue(dest: BytecodeRegister);
-    @abstract fun visitConstFalse(dest: BytecodeRegister);
-    @abstract fun visitConstZeroByte(dest: BytecodeRegister);
-    @abstract fun visitConstZeroChar(dest: BytecodeRegister);
-    @abstract fun visitConstZeroInt(dest: BytecodeRegister);
-    @abstract fun visitConstZeroLong(dest: BytecodeRegister);
-    @abstract fun visitConstZeroFloat(dest: BytecodeRegister);
-    @abstract fun visitConstZeroDouble(dest: BytecodeRegister);
-    @abstract fun visitConstByte(dest: BytecodeRegister, value: Byte);
-    @abstract fun visitConstChar(dest: BytecodeRegister, idx: ConstPoolId);
-    @abstract fun visitConstInt(dest: BytecodeRegister, idx: ConstPoolId);
-    @abstract fun visitConstLong(dest: BytecodeRegister, idx: ConstPoolId);
-    @abstract fun visitConstFloat(dest: BytecodeRegister, idx: ConstPoolId);
-    @abstract fun visitConstDouble(dest: BytecodeRegister, idx: ConstPoolId);
-    @abstract fun visitConstString(dest: BytecodeRegister, idx: ConstPoolId);
+    @open fun visitConstNil(dest: BytecodeRegister) { unimplemented(); }
+    @open fun visitConstTrue(dest: BytecodeRegister) { unimplemented(); }
+    @open fun visitConstFalse(dest: BytecodeRegister) { unimplemented(); }
+    @open fun visitConstZeroByte(dest: BytecodeRegister) { unimplemented(); }
+    @open fun visitConstZeroChar(dest: BytecodeRegister) { unimplemented(); }
+    @open fun visitConstZeroInt(dest: BytecodeRegister) { unimplemented(); }
+    @open fun visitConstZeroLong(dest: BytecodeRegister) { unimplemented(); }
+    @open fun visitConstZeroFloat(dest: BytecodeRegister) { unimplemented(); }
+    @open fun visitConstZeroDouble(dest: BytecodeRegister) { unimplemented(); }
+    @open fun visitConstByte(dest: BytecodeRegister, value: Byte) { unimplemented(); }
+    @open fun visitConstChar(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @open fun visitConstInt(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @open fun visitConstLong(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @open fun visitConstFloat(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @open fun visitConstDouble(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @open fun visitConstString(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
 
-    @abstract fun visitTestEqPtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitTestNePtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @open fun visitTestEqPtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestNePtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @abstract fun visitTestEqInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitTestNeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitTestGtInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitTestGeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitTestLtInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitTestLeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @open fun visitTestEqInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestNeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestGtInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestGeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestLtInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestLeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @abstract fun visitTestEqLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitTestNeLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitTestGtLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitTestGeLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitTestLtLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitTestLeLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @open fun visitTestEqLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestNeLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestGtLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestGeLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestLtLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestLeLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @abstract fun visitTestEqFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitTestNeFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitTestGtFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitTestGeFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitTestLtFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitTestLeFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @open fun visitTestEqFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestNeFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestGtFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestGeFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestLtFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestLeFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @abstract fun visitTestEqDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitTestNeDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitTestGtDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitTestGeDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitTestLtDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
-    @abstract fun visitTestLeDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister);
+    @open fun visitTestEqDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestNeDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestGtDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestGeDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestLtDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestLeDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @abstract fun visitJumpLoop(offset: Int);
+    @open fun visitJumpLoop(offset: Int) { unimplemented(); }
     
-    @abstract fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int);
-    @abstract fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId);
-    @abstract fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int);
-    @abstract fun visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId);
-    @abstract fun visitJump(offset: Int);
-    @abstract fun visitJumpConst(idx: ConstPoolId);
+    @open fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int) { unimplemented(); }
+    @open fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @open fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int) { unimplemented(); }
+    @open fun visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @open fun visitJump(offset: Int) { unimplemented(); }
+    @open fun visitJumpConst(idx: ConstPoolId) { unimplemented(); }
 
-    @abstract fun visitInvokeDirectVoid(fct: FctId, start: BytecodeRegister, count: Int);
-    @abstract fun visitInvokeDirectBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int);
-    @abstract fun visitInvokeDirectByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int);
-    @abstract fun visitInvokeDirectChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int);
-    @abstract fun visitInvokeDirectInt(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int);
-    @abstract fun visitInvokeDirectLong(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int);
-    @abstract fun visitInvokeDirectFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int);
-    @abstract fun visitInvokeDirectDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int);
-    @abstract fun visitInvokeDirectPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int);
+    @open fun visitInvokeDirectVoid(fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeDirectBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeDirectByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeDirectChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeDirectInt(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeDirectLong(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeDirectFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeDirectDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeDirectPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
 
-    @abstract fun visitInvokeVirtualVoid(fct: FctId, start: BytecodeRegister, count: Int);
-    @abstract fun visitInvokeVirtualBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int);
-    @abstract fun visitInvokeVirtualByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int);
-    @abstract fun visitInvokeVirtualChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int);
-    @abstract fun visitInvokeVirtualInt(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int);
-    @abstract fun visitInvokeVirtualLong(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int);
-    @abstract fun visitInvokeVirtualFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int);
-    @abstract fun visitInvokeVirtualDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int);
-    @abstract fun visitInvokeVirtualPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int);
+    @open fun visitInvokeVirtualVoid(fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeVirtualBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeVirtualByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeVirtualChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeVirtualInt(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeVirtualLong(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeVirtualFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeVirtualDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeVirtualPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
 
-    @abstract fun visitInvokeStaticVoid(fct: FctId, start: BytecodeRegister, count: Int);
-    @abstract fun visitInvokeStaticBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int);
-    @abstract fun visitInvokeStaticByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int);
-    @abstract fun visitInvokeStaticChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int);
-    @abstract fun visitInvokeStaticInt(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int);
-    @abstract fun visitInvokeStaticLong(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int);
-    @abstract fun visitInvokeStaticFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int);
-    @abstract fun visitInvokeStaticDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int);
-    @abstract fun visitInvokeStaticPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int);
+    @open fun visitInvokeStaticVoid(fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeStaticBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeStaticByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeStaticChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeStaticInt(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeStaticLong(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeStaticFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeStaticDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeStaticPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
 
-    @abstract fun visitNewObject(dest: BytecodeRegister, cls: ClassDefId);
+    @open fun visitNewObject(dest: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
     
-    @abstract fun visitThrow(opnd: BytecodeRegister);
+    @open fun visitThrow(opnd: BytecodeRegister) { unimplemented(); }
 
-    @abstract fun visitRetVoid();
-    @abstract fun visitRetBool(opnd: BytecodeRegister);
-    @abstract fun visitRetByte(opnd: BytecodeRegister);
-    @abstract fun visitRetChar(opnd: BytecodeRegister);
-    @abstract fun visitRetInt(opnd: BytecodeRegister);
-    @abstract fun visitRetLong(opnd: BytecodeRegister);
-    @abstract fun visitRetFloat(opnd: BytecodeRegister);
-    @abstract fun visitRetDouble(opnd: BytecodeRegister);
-    @abstract fun visitRetPtr(opnd: BytecodeRegister);
+    @open fun visitRetVoid() { unimplemented(); }
+    @open fun visitRetBool(opnd: BytecodeRegister) { unimplemented(); }
+    @open fun visitRetByte(opnd: BytecodeRegister) { unimplemented(); }
+    @open fun visitRetChar(opnd: BytecodeRegister) { unimplemented(); }
+    @open fun visitRetInt(opnd: BytecodeRegister) { unimplemented(); }
+    @open fun visitRetLong(opnd: BytecodeRegister) { unimplemented(); }
+    @open fun visitRetFloat(opnd: BytecodeRegister) { unimplemented(); }
+    @open fun visitRetDouble(opnd: BytecodeRegister) { unimplemented(); }
+    @open fun visitRetPtr(opnd: BytecodeRegister) { unimplemented(); }
 }
 
 class BytecodeReader(let data: Array[Byte], let visitor: BytecodeVisitor) {
@@ -634,7 +634,7 @@ class BytecodeReader(let data: Array[Byte], let visitor: BytecodeVisitor) {
             self.visitor.visitConstZeroDouble(dest);
         } else if opcode == BC_CONST_BYTE {
             let dest = self.readRegister(wide);
-            let value = self.readIndex(wide).toByte();
+            let value = self.readByte().toByte();
             self.visitor.visitConstByte(dest, value);
         } else if opcode == BC_CONST_CHAR {
             let dest = self.readRegister(wide);
