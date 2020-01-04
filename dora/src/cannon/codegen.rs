@@ -1,18 +1,23 @@
 use dora_parser::ast::*;
+use dora_parser::lexer::position::Position;
 use std::collections::hash_map::HashMap;
 
 use crate::bytecode::{
     self, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeVisitor, ConstPoolIdx, Register,
 };
 use crate::compiler::asm::BaselineAssembler;
-use crate::compiler::codegen::should_emit_debug;
-use crate::compiler::codegen::ExprStore;
-use crate::compiler::fct::{Comment, JitBaselineFct, JitDescriptor};
+use crate::compiler::codegen::{ensure_native_stub, should_emit_debug, AllocationSize, ExprStore};
+use crate::compiler::fct::{Comment, GcPoint, JitBaselineFct, JitDescriptor};
+use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
 use crate::cpu::{Mem, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_TMP1};
+use crate::gc::Address;
 use crate::masm::*;
-use crate::object::Str;
-use crate::ty::TypeList;
-use crate::vm::{ClassDefId, Fct, FctId, FctSrc, FieldId, GlobalId, VM};
+use crate::mem;
+use crate::object::{Header, Str};
+use crate::size::InstanceSize;
+use crate::ty::{BuiltinType, MachineMode, TypeList};
+use crate::vm::{ClassDefId, Fct, FctId, FctKind, FctSrc, FieldId, GlobalId, VM};
+use crate::vtable::VTable;
 
 struct ForwardJump {
     label: Label,
@@ -59,6 +64,8 @@ pub struct CannonCodeGen<'a, 'ast: 'a> {
 
     forward_jumps: Vec<ForwardJump>,
     current_offset: BytecodeOffset,
+
+    references: Vec<i32>,
 }
 
 impl<'a, 'ast> CannonCodeGen<'a, 'ast>
@@ -99,6 +106,7 @@ where
             offset_to_address: HashMap::new(),
             forward_jumps: Vec::new(),
             current_offset: BytecodeOffset(0),
+            references: Vec::new(),
         }
     }
 
@@ -938,6 +946,191 @@ where
             self.asm.bind_label_to(jump.label, offset);
         }
     }
+
+    fn emit_new_object(&mut self, dest: Register, class_def_id: ClassDefId) {
+        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Ptr);
+
+        let cls = self.vm.class_defs.idx(class_def_id);
+        let cls = cls.read();
+
+        self.asm.emit_comment(Comment::Alloc(class_def_id));
+
+        let alloc_size = match cls.size {
+            InstanceSize::Fixed(size) => AllocationSize::Fixed(size as usize),
+            _ => unimplemented!(
+                "class size type {:?} for new object not supported",
+                cls.size
+            ),
+        };
+
+        let array_ref = match cls.size {
+            InstanceSize::ObjArray => true,
+            _ => false,
+        };
+
+        let gcpoint = GcPoint::from_offsets(self.references.clone());
+        self.asm.allocate(
+            REG_RESULT.into(),
+            alloc_size,
+            Position { line: 0, column: 0 }, // Correct position is currently not known.
+            array_ref,
+            gcpoint,
+        );
+
+        let bytecode_type = self.bytecode.register_type(dest);
+        let offset = self.bytecode.register_offset(dest);
+
+        // store gc object in temporary storage
+        self.asm
+            .store_mem(bytecode_type.mode(), Mem::Local(offset), REG_RESULT.into());
+
+        // store classptr in object
+        let cptr = (&**cls.vtable.as_ref().unwrap()) as *const VTable as *const u8;
+        let disp = self.asm.add_addr(cptr);
+        let pos = self.asm.pos() as i32;
+
+        self.asm.emit_comment(Comment::StoreVTable(class_def_id));
+        self.asm.load_constpool(REG_TMP1.into(), disp + pos);
+        self.asm
+            .store_mem(MachineMode::Ptr, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
+
+        // clear mark/fwdptr word in header
+        assert!(Header::size() == 2 * mem::ptr_width());
+        self.asm.load_int_const(MachineMode::Ptr, REG_TMP1, 0);
+        self.asm.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(REG_RESULT, mem::ptr_width()),
+            REG_TMP1.into(),
+        );
+
+        match cls.size {
+            InstanceSize::Fixed(size) => {
+                self.asm.fill_zero(REG_RESULT, size as usize);
+            }
+            _ => {}
+        }
+
+        self.references.push(offset);
+    }
+
+    fn emit_throw(&mut self, exception: Register) {
+        assert_eq!(self.bytecode.register_type(exception), BytecodeType::Ptr);
+
+        let bytecode_type = self.bytecode.register_type(exception);
+        let offset = self.bytecode.register_offset(exception);
+
+        self.asm
+            .load_mem(bytecode_type.mode(), REG_RESULT.into(), Mem::Local(offset));
+
+        self.asm.throw(
+            REG_RESULT,
+            Position { line: 0, column: 0 }, // Correct position is currently not known.
+        );
+    }
+
+    fn emit_invoke_direct_void(&mut self, fct_id: FctId, start_reg: Register, num: u32) {
+        assert_eq!(self.bytecode.register_type(start_reg), BytecodeType::Ptr);
+
+        let _fct = self.vm.fcts.idx(fct_id);
+        let _fct = _fct.read();
+
+        let Register(start) = start_reg;
+
+        let mut idx = 0;
+        let mut reg_idx = 0;
+        let mut freg_idx = 0;
+
+        while idx < num {
+            let src = Register((idx as usize) + start);
+            let bytecode_type = self.bytecode.register_type(src);
+            let offset = self.bytecode.register_offset(src);
+
+            match bytecode_type {
+                BytecodeType::Float | BytecodeType::Double => {
+                    if freg_idx < FREG_PARAMS.len() {
+                        self.asm.load_mem(
+                            bytecode_type.mode(),
+                            FREG_PARAMS[freg_idx].into(),
+                            Mem::Local(offset),
+                        );
+                        freg_idx += 1;
+                    } else {
+                        unimplemented!("invoke argument should be written on stack");
+                    }
+                }
+                _ => {
+                    if reg_idx < REG_PARAMS.len() {
+                        self.asm.load_mem(
+                            bytecode_type.mode(),
+                            REG_PARAMS[reg_idx].into(),
+                            Mem::Local(offset),
+                        );
+                        reg_idx += 1;
+                    } else {
+                        unimplemented!("invoke argument should be written on stack");
+                    }
+                }
+            }
+            idx += 1;
+        }
+
+        // handling of class and function type parameters has to implemented
+        let cls_type_params = TypeList::Empty;
+        let fct_type_params = TypeList::Empty;
+
+        self.asm.emit_comment(Comment::CallDirect(fct_id));
+        let ptr = self.ptr_for_fct_id(fct_id, cls_type_params.clone(), fct_type_params.clone());
+        let gcpoint = GcPoint::from_offsets(self.references.clone());
+        self.asm.direct_call(
+            fct_id,
+            ptr.to_ptr(),
+            cls_type_params,
+            fct_type_params,
+            Position { line: 0, column: 0 }, // Correct position is currently not known.
+            gcpoint,
+            BuiltinType::Unit,
+            REG_RESULT.into(),
+        );
+    }
+
+    fn ptr_for_fct_id(
+        &mut self,
+        fid: FctId,
+        cls_type_params: TypeList,
+        fct_type_params: TypeList,
+    ) -> Address {
+        if self.fct.id == fid {
+            // we want to recursively invoke the function we are compiling right now
+            ensure_jit_or_stub_ptr(self.src, self.vm, cls_type_params, fct_type_params)
+        } else {
+            let fct = self.vm.fcts.idx(fid);
+            let fct = fct.read();
+
+            match fct.kind {
+                FctKind::Source(_) => {
+                    let src = fct.src();
+                    let src = src.read();
+
+                    ensure_jit_or_stub_ptr(&src, self.vm, cls_type_params, fct_type_params)
+                }
+
+                FctKind::Native(ptr) => {
+                    let internal_fct = NativeFct {
+                        ptr,
+                        args: fct.params_with_self(),
+                        return_type: fct.return_type,
+                        throws: fct.ast.throws,
+                        desc: NativeFctDescriptor::NativeStub(fid),
+                    };
+
+                    ensure_native_stub(self.vm, Some(fid), internal_fct)
+                }
+
+                FctKind::Definition => panic!("prototype for fct call"),
+                FctKind::Builtin(_) => panic!("intrinsic fct call"),
+            }
+        }
+    }
 }
 
 impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
@@ -1494,8 +1687,8 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.visit_jump(offset as u32);
     }
 
-    fn visit_invoke_direct_void(&mut self, _fct: FctId, _start: Register, _count: u32) {
-        unimplemented!();
+    fn visit_invoke_direct_void(&mut self, fct: FctId, start: Register, count: u32) {
+        self.emit_invoke_direct_void(fct, start, count)
     }
     fn visit_invoke_direct_bool(
         &mut self,
@@ -1722,11 +1915,11 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         unimplemented!();
     }
 
-    fn visit_new_object(&mut self, _dest: Register, _cls: ClassDefId) {
-        unimplemented!();
+    fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {
+        self.emit_new_object(dest, cls)
     }
-    fn visit_throw(&mut self, _opnd: Register) {
-        unimplemented!();
+    fn visit_throw(&mut self, exception: Register) {
+        self.emit_throw(exception)
     }
 
     fn visit_ret_void(&mut self) {
@@ -1764,4 +1957,21 @@ fn result_reg(bytecode_type: BytecodeType) -> ExprStore {
     } else {
         REG_RESULT.into()
     }
+}
+
+fn ensure_jit_or_stub_ptr<'ast>(
+    src: &FctSrc,
+    vm: &VM,
+    cls_type_params: TypeList,
+    fct_type_params: TypeList,
+) -> Address {
+    let specials = src.specializations.read();
+    let key = (cls_type_params, fct_type_params);
+
+    if let Some(&jit_fct_id) = specials.get(&key) {
+        let jit_fct = vm.jit_fcts.idx(jit_fct_id);
+        return jit_fct.fct_ptr();
+    }
+
+    vm.compile_stub()
 }
