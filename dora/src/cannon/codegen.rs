@@ -724,6 +724,50 @@ where
             .store_mem(bytecode_type.mode(), Mem::Local(offset), reg);
     }
 
+    fn emit_store_field(
+        &mut self,
+        src: Register,
+        obj: Register,
+        class_def_id: ClassDefId,
+        field_id: FieldId,
+    ) {
+        assert_eq!(self.bytecode.register_type(obj), BytecodeType::Ptr);
+
+        let cls = self.vm.class_defs.idx(class_def_id);
+        let cls = cls.read();
+        let field = &cls.fields[field_id.idx()];
+
+        assert_eq!(self.bytecode.register_type(src), field.ty.into());
+
+        self.asm
+            .emit_comment(Comment::StoreField(class_def_id, field_id));
+
+        let bytecode_type = self.bytecode.register_type(src);
+        let offset = self.bytecode.register_offset(src);
+
+        self.asm
+            .load_mem(bytecode_type.mode(), REG_RESULT.into(), Mem::Local(offset));
+
+        let bytecode_type = self.bytecode.register_type(obj);
+        let offset = self.bytecode.register_offset(obj);
+
+        self.asm
+            .load_mem(bytecode_type.mode(), REG_TMP1.into(), Mem::Local(offset));
+
+        let write_barrier = self.vm.gc.needs_write_barrier() && field.ty.reference_type();
+        let card_table_offset = self.vm.gc.card_table_offset();
+
+        self.asm.store_field(
+            field.ty.mode(),
+            REG_TMP1,
+            field.offset,
+            REG_RESULT.into(),
+            -1,
+            write_barrier,
+            card_table_offset,
+        );
+    }
+
     fn emit_load_global_field(&mut self, dest: Register, global_id: GlobalId) {
         let glob = self.vm.globals.idx(global_id);
         let glob = glob.lock();
@@ -1362,75 +1406,75 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
 
     fn visit_store_field_bool(
         &mut self,
-        _src: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
     ) {
-        unimplemented!();
+        self.emit_store_field(src, obj, cls, field);
     }
     fn visit_store_field_byte(
         &mut self,
-        _src: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
     ) {
-        unimplemented!();
+        self.emit_store_field(src, obj, cls, field);
     }
     fn visit_store_field_char(
         &mut self,
-        _src: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
     ) {
-        unimplemented!();
+        self.emit_store_field(src, obj, cls, field);
     }
     fn visit_store_field_int(
         &mut self,
-        _src: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
     ) {
-        unimplemented!();
+        self.emit_store_field(src, obj, cls, field);
     }
     fn visit_store_field_long(
         &mut self,
-        _src: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
     ) {
-        unimplemented!();
+        self.emit_store_field(src, obj, cls, field);
     }
     fn visit_store_field_float(
         &mut self,
-        _src: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
     ) {
-        unimplemented!();
+        self.emit_store_field(src, obj, cls, field);
     }
     fn visit_store_field_double(
         &mut self,
-        _src: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
     ) {
-        unimplemented!();
+        self.emit_store_field(src, obj, cls, field);
     }
     fn visit_store_field_ptr(
         &mut self,
-        _src: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
     ) {
-        unimplemented!();
+        self.emit_store_field(src, obj, cls, field);
     }
 
     fn visit_load_global_bool(&mut self, dest: Register, glob: GlobalId) {
