@@ -1,0 +1,12 @@
+//= output "xyz"
+
+@cannon class X(let msg: String) {
+}
+
+@cannon fun cannonMain() -> X {
+    return X("xyz");
+}
+
+fun main() {
+    print(cannonMain().msg);
+}
