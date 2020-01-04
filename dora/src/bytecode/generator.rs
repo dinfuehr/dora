@@ -230,7 +230,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             ExprLitBool(ref lit) => self.visit_expr_lit_bool(lit, dest),
             ExprIdent(ref ident) => self.visit_expr_ident(ident, dest),
             ExprCall(ref call) => self.visit_expr_call(call, dest),
-            // ExprDelegation(ref call) => {},
+            ExprDelegation(ref call) => self.visit_expr_delegation(call, dest),
             ExprSelf(ref selfie) => self.visit_expr_self(selfie, dest),
             // ExprSuper(ref expr) => {},
             ExprNil(ref nil) => self.visit_expr_nil(nil, dest),
@@ -486,6 +486,77 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         } else {
             return_reg
         }
+    }
+
+    fn visit_expr_delegation(&mut self, expr: &ExprDelegationType, dest: DataDest) -> Register {
+        let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
+        let fct_id = call_type.fct_id().unwrap();
+
+        let fct = self.vm.fcts.idx(fct_id);
+        let fct = fct.read();
+
+        let callee_id = if fct.kind.is_definition() {
+            unimplemented!()
+        } else {
+            fct_id
+        };
+
+        let callee = self.vm.fcts.idx(callee_id);
+        let callee = callee.read();
+
+        if let FctKind::Builtin(_intrinsic) = callee.kind {
+            unimplemented!()
+        }
+
+        let return_type = if dest.is_effect() {
+            BuiltinType::Unit
+        } else {
+            self.specialize_type_for_call(&call_type, callee.return_type)
+        };
+        let arg_types = callee
+            .params_with_self()
+            .iter()
+            .map(|&arg| self.specialize_type_for_call(&call_type, arg).into())
+            .collect::<Vec<BytecodeType>>();
+        let num_args = arg_types.len();
+
+        let return_reg = if return_type.is_unit() {
+            Register::invalid()
+        } else {
+            self.ensure_register(dest, return_type.into())
+        };
+
+        let start_reg = if num_args > 0 {
+            self.gen.add_register_chain(&arg_types)
+        } else {
+            Register::zero()
+        };
+
+        let arg_start_reg = if callee.has_self() {
+            let self_id = self.src.var_self().id;
+            let self_reg = self.var_reg(self_id);
+
+            self.gen.emit_mov_ptr(start_reg, self_reg);
+            start_reg.offset(1)
+        } else {
+            start_reg
+        };
+
+        for (idx, arg) in expr.args.iter().enumerate() {
+            let arg_reg = arg_start_reg.offset(idx);
+            self.visit_expr(arg, DataDest::Reg(arg_reg));
+        }
+
+        match *call_type {
+            CallType::Ctor(_, _) => {
+                self.gen
+                    .emit_invoke_direct_void(callee_id, start_reg, num_args);
+            }
+
+            _ => unreachable!(),
+        }
+
+        return_reg
     }
 
     fn visit_expr_nil(&mut self, _nil: &ExprNilType, dest: DataDest) -> Register {
