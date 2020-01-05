@@ -121,7 +121,7 @@ impl BytecodeWriter {
         cls: ClassDefId,
         field: FieldId,
     ) {
-        self.emit_load_field(BytecodeOpcode::LoadFieldBool, dest, obj, cls, field);
+        self.emit_access_field(BytecodeOpcode::LoadFieldBool, dest, obj, cls, field);
     }
 
     pub fn emit_load_field_byte(
@@ -131,7 +131,7 @@ impl BytecodeWriter {
         cls: ClassDefId,
         field: FieldId,
     ) {
-        self.emit_load_field(BytecodeOpcode::LoadFieldByte, dest, obj, cls, field);
+        self.emit_access_field(BytecodeOpcode::LoadFieldByte, dest, obj, cls, field);
     }
 
     pub fn emit_load_field_char(
@@ -141,7 +141,7 @@ impl BytecodeWriter {
         cls: ClassDefId,
         field: FieldId,
     ) {
-        self.emit_load_field(BytecodeOpcode::LoadFieldChar, dest, obj, cls, field);
+        self.emit_access_field(BytecodeOpcode::LoadFieldChar, dest, obj, cls, field);
     }
 
     pub fn emit_load_field_int(
@@ -151,7 +151,7 @@ impl BytecodeWriter {
         cls: ClassDefId,
         field: FieldId,
     ) {
-        self.emit_load_field(BytecodeOpcode::LoadFieldInt, dest, obj, cls, field);
+        self.emit_access_field(BytecodeOpcode::LoadFieldInt, dest, obj, cls, field);
     }
 
     pub fn emit_load_field_long(
@@ -161,7 +161,7 @@ impl BytecodeWriter {
         cls: ClassDefId,
         field: FieldId,
     ) {
-        self.emit_load_field(BytecodeOpcode::LoadFieldLong, dest, obj, cls, field);
+        self.emit_access_field(BytecodeOpcode::LoadFieldLong, dest, obj, cls, field);
     }
 
     pub fn emit_load_field_float(
@@ -171,7 +171,7 @@ impl BytecodeWriter {
         cls: ClassDefId,
         field: FieldId,
     ) {
-        self.emit_load_field(BytecodeOpcode::LoadFieldFloat, dest, obj, cls, field);
+        self.emit_access_field(BytecodeOpcode::LoadFieldFloat, dest, obj, cls, field);
     }
 
     pub fn emit_load_field_double(
@@ -181,7 +181,7 @@ impl BytecodeWriter {
         cls: ClassDefId,
         field: FieldId,
     ) {
-        self.emit_load_field(BytecodeOpcode::LoadFieldDouble, dest, obj, cls, field);
+        self.emit_access_field(BytecodeOpcode::LoadFieldDouble, dest, obj, cls, field);
     }
 
     pub fn emit_load_field_ptr(
@@ -191,7 +191,87 @@ impl BytecodeWriter {
         cls: ClassDefId,
         field: FieldId,
     ) {
-        self.emit_load_field(BytecodeOpcode::LoadFieldPtr, dest, obj, cls, field);
+        self.emit_access_field(BytecodeOpcode::LoadFieldPtr, dest, obj, cls, field);
+    }
+
+    pub fn emit_store_field_bool(
+        &mut self,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_access_field(BytecodeOpcode::StoreFieldBool, src, obj, cls, field);
+    }
+
+    pub fn emit_store_field_byte(
+        &mut self,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_access_field(BytecodeOpcode::StoreFieldByte, src, obj, cls, field);
+    }
+
+    pub fn emit_store_field_char(
+        &mut self,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_access_field(BytecodeOpcode::StoreFieldChar, src, obj, cls, field);
+    }
+
+    pub fn emit_store_field_int(
+        &mut self,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_access_field(BytecodeOpcode::StoreFieldInt, src, obj, cls, field);
+    }
+
+    pub fn emit_store_field_long(
+        &mut self,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_access_field(BytecodeOpcode::StoreFieldLong, src, obj, cls, field);
+    }
+
+    pub fn emit_store_field_float(
+        &mut self,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_access_field(BytecodeOpcode::StoreFieldFloat, src, obj, cls, field);
+    }
+
+    pub fn emit_store_field_double(
+        &mut self,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_access_field(BytecodeOpcode::StoreFieldDouble, src, obj, cls, field);
+    }
+
+    pub fn emit_store_field_ptr(
+        &mut self,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_access_field(BytecodeOpcode::StoreFieldPtr, src, obj, cls, field);
     }
 
     pub fn emit_const_nil(&mut self, dest: Register) {
@@ -870,7 +950,7 @@ impl BytecodeWriter {
         self.emit_values(&values);
     }
 
-    fn emit_load_field(
+    fn emit_access_field(
         &mut self,
         inst: BytecodeOpcode,
         r1: Register,

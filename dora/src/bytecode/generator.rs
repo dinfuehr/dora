@@ -230,7 +230,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             ExprLitBool(ref lit) => self.visit_expr_lit_bool(lit, dest),
             ExprIdent(ref ident) => self.visit_expr_ident(ident, dest),
             ExprCall(ref call) => self.visit_expr_call(call, dest),
-            // ExprDelegation(ref call) => {},
+            ExprDelegation(ref call) => self.visit_expr_delegation(call, dest),
             ExprSelf(ref selfie) => self.visit_expr_self(selfie, dest),
             // ExprSuper(ref expr) => {},
             ExprNil(ref nil) => self.visit_expr_nil(nil, dest),
@@ -486,6 +486,49 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         } else {
             return_reg
         }
+    }
+
+    fn visit_expr_delegation(&mut self, expr: &ExprDelegationType, dest: DataDest) -> Register {
+        assert!(dest.is_effect());
+        let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
+        let fct_id = call_type.fct_id().unwrap();
+
+        let callee_id = fct_id;
+        let callee = self.vm.fcts.idx(callee_id);
+        let callee = callee.read();
+
+        assert!(callee.return_type.is_unit());
+        let arg_types = callee
+            .params_with_self()
+            .iter()
+            .map(|&arg| self.specialize_type_for_call(&call_type, arg).into())
+            .collect::<Vec<BytecodeType>>();
+        let num_args = arg_types.len();
+
+        assert!(num_args > 0);
+        let start_reg = self.gen.add_register_chain(&arg_types);
+
+        assert!(callee.has_self());
+        let self_id = self.src.var_self().id;
+        let self_reg = self.var_reg(self_id);
+        self.gen.emit_mov_ptr(start_reg, self_reg);
+        let arg_start_reg = start_reg.offset(1);
+
+        for (idx, arg) in expr.args.iter().enumerate() {
+            let arg_reg = arg_start_reg.offset(idx);
+            self.visit_expr(arg, DataDest::Reg(arg_reg));
+        }
+
+        match *call_type {
+            CallType::Ctor(_, _) => {
+                self.gen
+                    .emit_invoke_direct_void(callee_id, start_reg, num_args);
+            }
+
+            _ => unreachable!(),
+        }
+
+        Register::invalid()
     }
 
     fn visit_expr_nil(&mut self, _nil: &ExprNilType, dest: DataDest) -> Register {
@@ -872,7 +915,54 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 }
             }
         } else {
-            unimplemented!();
+            match *e.lhs {
+                ExprDot(ref dot) => {
+                    let (class, field_id) = {
+                        let ident_type = self.src.map_idents.get(dot.id).unwrap();
+                        match ident_type {
+                            &IdentType::Field(class, field) => (class, field),
+                            _ => unreachable!(),
+                        }
+                    };
+                    let class = self.specialize_type(class);
+                    let cls_id = specialize_class_ty(self.vm, class);
+                    let cls = self.vm.class_defs.idx(cls_id);
+                    let cls = cls.read();
+                    let field = &cls.fields[field_id.idx()];
+                    let ty: BytecodeType = field.ty.into();
+
+                    let src = self.visit_expr(&e.rhs, DataDest::Alloc);
+                    let obj = self.visit_expr(&dot.lhs, DataDest::Alloc);
+
+                    match ty {
+                        BytecodeType::Byte => {
+                            self.gen.emit_store_field_byte(src, obj, cls_id, field_id)
+                        }
+                        BytecodeType::Bool => {
+                            self.gen.emit_store_field_bool(src, obj, cls_id, field_id)
+                        }
+                        BytecodeType::Char => {
+                            self.gen.emit_store_field_char(src, obj, cls_id, field_id)
+                        }
+                        BytecodeType::Int => {
+                            self.gen.emit_store_field_int(src, obj, cls_id, field_id)
+                        }
+                        BytecodeType::Long => {
+                            self.gen.emit_store_field_long(src, obj, cls_id, field_id)
+                        }
+                        BytecodeType::Float => {
+                            self.gen.emit_store_field_float(src, obj, cls_id, field_id)
+                        }
+                        BytecodeType::Double => {
+                            self.gen.emit_store_field_double(src, obj, cls_id, field_id)
+                        }
+                        BytecodeType::Ptr => {
+                            self.gen.emit_store_field_ptr(src, obj, cls_id, field_id)
+                        }
+                    }
+                }
+                _ => unreachable!(),
+            };
         }
 
         Register::invalid()

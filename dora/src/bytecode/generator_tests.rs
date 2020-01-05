@@ -144,6 +144,102 @@ fn gen_load_field_ptr() {
 }
 
 #[test]
+fn gen_store_field_byte() {
+    gen(
+        "class Foo(var bar: Byte) fun f(a: Foo, b: Byte) { a.bar = b; }",
+        |vm, code| {
+            let (cls, field) = vm.field_by_name("Foo", "bar");
+            let expected = vec![StoreFieldByte(r(1), r(0), cls, field), RetVoid];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_store_field_bool() {
+    gen(
+        "class Foo(var bar: Bool) fun f(a: Foo, b: Bool) { a.bar = b; }",
+        |vm, code| {
+            let (cls, field) = vm.field_by_name("Foo", "bar");
+            let expected = vec![StoreFieldBool(r(1), r(0), cls, field), RetVoid];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_store_field_char() {
+    gen(
+        "class Foo(var bar: Char) fun f(a: Foo, b: Char) { a.bar = b; }",
+        |vm, code| {
+            let (cls, field) = vm.field_by_name("Foo", "bar");
+            let expected = vec![StoreFieldChar(r(1), r(0), cls, field), RetVoid];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_store_field_int() {
+    gen(
+        "class Foo(var bar: Int) fun f(a: Foo, b: Int) { a.bar = b; }",
+        |vm, code| {
+            let (cls, field) = vm.field_by_name("Foo", "bar");
+            let expected = vec![StoreFieldInt(r(1), r(0), cls, field), RetVoid];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_store_field_long() {
+    gen(
+        "class Foo(var bar: Long) fun f(a: Foo, b: Long) { a.bar = b; }",
+        |vm, code| {
+            let (cls, field) = vm.field_by_name("Foo", "bar");
+            let expected = vec![StoreFieldLong(r(1), r(0), cls, field), RetVoid];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_store_field_float() {
+    gen(
+        "class Foo(var bar: Float) fun f(a: Foo, b: Float) { a.bar = b; }",
+        |vm, code| {
+            let (cls, field) = vm.field_by_name("Foo", "bar");
+            let expected = vec![StoreFieldFloat(r(1), r(0), cls, field), RetVoid];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_store_field_double() {
+    gen(
+        "class Foo(var bar: Double) fun f(a: Foo, b: Double) { a.bar = b; }",
+        |vm, code| {
+            let (cls, field) = vm.field_by_name("Foo", "bar");
+            let expected = vec![StoreFieldDouble(r(1), r(0), cls, field), RetVoid];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_store_field_ptr() {
+    gen(
+        "class Foo(var bar: Object) fun f(a: Foo, b: Object) { a.bar = b; }",
+        |vm, code| {
+            let (cls, field) = vm.field_by_name("Foo", "bar");
+            let expected = vec![StoreFieldPtr(r(1), r(0), cls, field), RetVoid];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
 fn gen_add_int() {
     let result = code("fun f() -> Int { return 1 + 2; }");
     let expected = vec![
