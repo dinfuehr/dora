@@ -489,6 +489,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn visit_expr_delegation(&mut self, expr: &ExprDelegationType, dest: DataDest) -> Register {
+        assert!(dest.is_effect());
         let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
         let fct_id = call_type.fct_id().unwrap();
 
@@ -496,11 +497,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let callee = self.vm.fcts.idx(callee_id);
         let callee = callee.read();
 
-        let return_type = if dest.is_effect() {
-            BuiltinType::Unit
-        } else {
-            self.specialize_type_for_call(&call_type, callee.return_type)
-        };
+        assert!(callee.return_type.is_unit());
         let arg_types = callee
             .params_with_self()
             .iter()
@@ -522,7 +519,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             self.visit_expr(arg, DataDest::Reg(arg_reg));
         }
 
-        assert!(return_type.is_unit());
         match *call_type {
             CallType::Ctor(_, _) => {
                 self.gen

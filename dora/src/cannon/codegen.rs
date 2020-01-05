@@ -1070,8 +1070,10 @@ where
     fn emit_invoke_direct_void(&mut self, fct_id: FctId, start_reg: Register, num: u32) {
         assert_eq!(self.bytecode.register_type(start_reg), BytecodeType::Ptr);
 
-        let _fct = self.vm.fcts.idx(fct_id);
-        let _fct = _fct.read();
+        let fct = self.vm.fcts.idx(fct_id);
+        let fct = fct.read();
+
+        assert!(fct.type_params.is_empty());
 
         let Register(start) = start_reg;
 
