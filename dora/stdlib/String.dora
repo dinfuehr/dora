@@ -24,8 +24,23 @@
   @internal fun compareTo(rhs: String) -> Int;
 
   @internal fun length() -> Int;
-  @internal fun parseInt() -> Int;
-  @internal fun parseLong() -> Long;
+  @internal fun toIntOrThrow() throws -> Int;
+  fun toInt() -> Option[Int] {
+    do {
+      return some[Int](try self.toIntOrThrow());
+    } catch e: Exception {
+      return none[Int]();
+    }
+  }
+  @internal fun toLongOrThrow() throws -> Long;
+  fun toLong() -> Option[Long] {
+    do {
+      return some[Long](try self.toLongOrThrow());
+    } catch e: Exception {
+      return none[Long]();
+    }
+  }
+
   @internal fun plus(rhs: String) -> String;
 
   @internal fun getByte(idx: Int) -> Byte;

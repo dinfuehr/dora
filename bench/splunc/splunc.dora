@@ -175,8 +175,8 @@ fun main() {
         exit(1);
     }
 
-    let rnd = Random(argv(0).parseLong());
-    let max_size = argv(1).parseInt();
+    let rnd = Random(argv(0).toLong().unwrap());
+    let max_size = argv(1).toInt().unwrap();
     var date = 0;
 
     var tree: Node = NodeA();
@@ -187,8 +187,8 @@ fun main() {
     var j = 2;
 
     while j + 2 <= argc() {
-        let n = argv(j).parseInt();
-        let depth = argv(j+1).parseInt();
+        let n = argv(j).toInt().unwrap();
+        let depth = argv(j+1).toInt().unwrap();
 
         // println("n = " + n.toString());
         // println("depth = " + depth.toString());

@@ -1,6 +1,6 @@
 fun main() {
-  assert("1".parseInt() == 1);
-  assert("100".parseInt() == 100);
-  assert("789".parseInt() == 789);
-  assert("bla".parseInt() == 0);
+  assert("1".toInt().unwrap() == 1);
+  assert("100".toInt().unwrap() == 100);
+  assert("789".toInt().unwrap() == 789);
+  assert("bla".toInt().isNone());
 }

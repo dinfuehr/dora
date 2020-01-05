@@ -118,15 +118,19 @@ pub extern "C" fn sleep(seconds: i32) {
     thread::sleep(Duration::from_secs(seconds as u64));
 }
 
-pub extern "C" fn throw_native(val: bool) {
-    if val {
-        handle_scope(|| {
-            let vm = get_vm();
-            let obj = alloc_exception(vm, Ref::null());
-            let obj = root(obj);
+pub extern "C" fn throw_native() {
+    handle_scope(|| {
+        let vm = get_vm();
+        let obj = alloc_exception(vm, Ref::null());
+        let obj = root(obj);
 
-            exception_set(obj.direct().address())
-        })
+        exception_set(obj.direct().address())
+    })
+}
+
+pub extern "C" fn test_throw_native(val: bool) {
+    if val {
+        throw_native()
     }
 }
 
@@ -249,18 +253,28 @@ pub extern "C" fn argv(ind: i32) -> Ref<Str> {
     panic!("argument does not exist");
 }
 
-pub extern "C" fn str_parse_int(val: Ref<Str>) -> i32 {
+pub extern "C" fn str_to_int_or_throw(val: Ref<Str>) -> i32 {
     let slice = val.content();
     let val = str::from_utf8(slice).unwrap();
 
-    val.parse::<i32>().unwrap_or(0)
+    let result = val.parse::<i32>();
+    if result.is_ok() {
+        return result.unwrap();
+    }
+    throw_native();
+    0
 }
 
-pub extern "C" fn str_parse_long(val: Ref<Str>) -> i64 {
+pub extern "C" fn str_to_long_or_throw(val: Ref<Str>) -> i64 {
     let slice = val.content();
     let val = str::from_utf8(slice).unwrap();
 
-    val.parse::<i64>().unwrap_or(0)
+    let result = val.parse::<i64>();
+    if result.is_ok() {
+        return result.unwrap();
+    }
+    throw_native();
+    0
 }
 
 pub extern "C" fn trap(trap_id: u32) {

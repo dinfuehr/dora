@@ -2,7 +2,7 @@
 
 fun main() {
     do {
-        throwFromNativeButNotThrows(true);
+        testThrowFromNativeButNotThrows(true);
     } catch e: Exception {
         assert(false);
     }
