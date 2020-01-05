@@ -492,21 +492,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
         let fct_id = call_type.fct_id().unwrap();
 
-        let fct = self.vm.fcts.idx(fct_id);
-        let fct = fct.read();
-
-        let callee_id = if fct.kind.is_definition() {
-            unimplemented!()
-        } else {
-            fct_id
-        };
-
+        let callee_id = fct_id;
         let callee = self.vm.fcts.idx(callee_id);
         let callee = callee.read();
-
-        if let FctKind::Builtin(_intrinsic) = callee.kind {
-            unimplemented!()
-        }
 
         let return_type = if dest.is_effect() {
             BuiltinType::Unit
@@ -520,33 +508,21 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             .collect::<Vec<BytecodeType>>();
         let num_args = arg_types.len();
 
-        let return_reg = if return_type.is_unit() {
-            Register::invalid()
-        } else {
-            self.ensure_register(dest, return_type.into())
-        };
+        assert!(num_args > 0);
+        let start_reg = self.gen.add_register_chain(&arg_types);
 
-        let start_reg = if num_args > 0 {
-            self.gen.add_register_chain(&arg_types)
-        } else {
-            Register::zero()
-        };
-
-        let arg_start_reg = if callee.has_self() {
-            let self_id = self.src.var_self().id;
-            let self_reg = self.var_reg(self_id);
-
-            self.gen.emit_mov_ptr(start_reg, self_reg);
-            start_reg.offset(1)
-        } else {
-            start_reg
-        };
+        assert!(callee.has_self());
+        let self_id = self.src.var_self().id;
+        let self_reg = self.var_reg(self_id);
+        self.gen.emit_mov_ptr(start_reg, self_reg);
+        let arg_start_reg = start_reg.offset(1);
 
         for (idx, arg) in expr.args.iter().enumerate() {
             let arg_reg = arg_start_reg.offset(idx);
             self.visit_expr(arg, DataDest::Reg(arg_reg));
         }
 
+        assert!(return_type.is_unit());
         match *call_type {
             CallType::Ctor(_, _) => {
                 self.gen
@@ -556,7 +532,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             _ => unreachable!(),
         }
 
-        return_reg
+        Register::invalid()
     }
 
     fn visit_expr_nil(&mut self, _nil: &ExprNilType, dest: DataDest) -> Register {

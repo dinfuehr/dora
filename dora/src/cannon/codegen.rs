@@ -1001,15 +1001,10 @@ where
 
         let alloc_size = match cls.size {
             InstanceSize::Fixed(size) => AllocationSize::Fixed(size as usize),
-            _ => unimplemented!(
+            _ => unreachable!(
                 "class size type {:?} for new object not supported",
                 cls.size
             ),
-        };
-
-        let array_ref = match cls.size {
-            InstanceSize::ObjArray => true,
-            _ => false,
         };
 
         let gcpoint = GcPoint::from_offsets(self.references.clone());
@@ -1017,7 +1012,7 @@ where
             REG_RESULT.into(),
             alloc_size,
             Position { line: 0, column: 0 }, // Correct position is currently not known.
-            array_ref,
+            false,
             gcpoint,
         );
 
@@ -1051,7 +1046,7 @@ where
             InstanceSize::Fixed(size) => {
                 self.asm.fill_zero(REG_RESULT, size as usize);
             }
-            _ => {}
+            _ => unreachable!(),
         }
 
         self.references.push(offset);
