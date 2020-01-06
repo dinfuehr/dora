@@ -60,11 +60,13 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
     // define internal classes
     prelude::internal_classes(vm);
 
+    // find all trait implementations for classes
+    impldefck::check(vm, &vm.ast, &map_impl_defs);
+
     // checks class/struct/trait definitions/bodies
     clsdefck::check(vm, &vm.ast, &map_cls_defs);
     structdefck::check(vm, &vm.ast, &map_struct_defs);
     traitdefck::check(vm, &vm.ast, &map_trait_defs);
-    impldefck::check(vm, &vm.ast, &map_impl_defs);
     globaldefck::check(vm, &vm.ast, &map_global_defs);
     constdefck::check(vm, &vm.ast, &map_const_defs);
     enumck::check(vm, &vm.ast, &map_enum_defs);

@@ -80,6 +80,14 @@ class Block() {
     }
 }
 
+impl Hash for Block {
+  fun hash() -> Int = self.id.hash();
+}
+
+impl Equals for Block {
+  fun equals(other: Block) -> Bool = self === other;
+}
+
 class Input {
     var idx: Int;
 

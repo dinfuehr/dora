@@ -11,6 +11,7 @@ class SsaGen(let bc: BytecodeFunction): BytecodeVisitor {
     var currentJoinBlock: Block;
     var offset: Int = 0;
     var registers: Array[Inst];
+    var currentDef: Array[HashMap[Block, Inst]];
 
     fun prepare() {
         self.currentBlock = Block();
@@ -18,6 +19,15 @@ class SsaGen(let bc: BytecodeFunction): BytecodeVisitor {
         self.graph.setEntryBlock(self.currentBlock);
         self.graph.setExitBlock(self.currentBlock);
         self.registers = Array[Inst](self.bc.registers.length());
+        self.currentDef = Array[HashMap[Block, Inst]](self.bc.registers.length());
+
+        for i in range(0, self.currentDef.length()) {
+            self.currentDef(i) = HashMap[Block, Inst]();
+        }
+    }
+
+    fun writeVariable(register: BytecodeRegister, block: Block, value: Inst) {
+        self.currentDef.get(register.value).insert(block, value);
     }
 
     @override fun visitInstruction(offset: Int) { self.offset = offset; }
@@ -246,7 +256,7 @@ class SsaGen(let bc: BytecodeFunction): BytecodeVisitor {
     assert(it.current() === nil);
 }
 
-@test fun testSsaGenRetInt(_x: Testing) {
+/*@test fun testSsaGenRetInt(_x: Testing) {
     let writer = BytecodeWriter();
     let tmp = writer.addRegister(BytecodeType::int());
     writer.emitConstInt(tmp, 4711);
@@ -264,4 +274,4 @@ class SsaGen(let bc: BytecodeFunction): BytecodeVisitor {
     assert(ret.value === val);
     it.next();
     assert(it.current() === nil);
-}
+}*/
