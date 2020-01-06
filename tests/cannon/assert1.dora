@@ -1,0 +1,16 @@
+//= error exception
+fun main() {
+  var x = Foo(12);
+  x.test();
+  x.test2(1);
+}
+
+class Foo(let i: Int) {
+  @cannon fun test() {
+    var x = self.i;
+  }
+
+  @cannon fun test2(i: Int) {
+    assert(i == 2);
+  }
+}
