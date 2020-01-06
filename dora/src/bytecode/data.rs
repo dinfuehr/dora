@@ -1,8 +1,31 @@
+use std::collections::HashMap;
 use std::fmt;
 
 use crate::cpu::STACK_FRAME_ALIGNMENT;
 use crate::mem::{align_i32, ptr_width};
 use crate::ty::{BuiltinType, MachineMode};
+use dora_parser::lexer::position::Position;
+
+#[derive(Debug)]
+pub struct PositionTable {
+    map: HashMap<u32, Position>,
+}
+
+impl PositionTable {
+    pub fn new() -> PositionTable {
+        PositionTable {
+            map: HashMap::new(),
+        }
+    }
+
+    pub fn insert(&mut self, offset: u32, position: Position) {
+        assert!(self.map.insert(offset, position).is_none());
+    }
+
+    pub fn get(&self, offset: u32) -> Option<&Position> {
+        self.map.get(&offset)
+    }
+}
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct BytecodeOffset(pub u32);
@@ -315,6 +338,7 @@ pub struct BytecodeFunction {
     offset: Vec<i32>,
     stacksize: i32,
     arguments: u32,
+    positions: PositionTable,
 }
 
 impl BytecodeFunction {
@@ -323,6 +347,7 @@ impl BytecodeFunction {
         const_pool: Vec<ConstPoolEntry>,
         registers: Vec<BytecodeType>,
         arguments: u32,
+        positions: PositionTable,
     ) -> BytecodeFunction {
         let (offset, stacksize) = determine_offsets(&registers);
         BytecodeFunction {
@@ -332,6 +357,7 @@ impl BytecodeFunction {
             offset,
             stacksize,
             arguments,
+            positions,
         }
     }
     pub fn code(&self) -> &[u8] {
@@ -360,6 +386,10 @@ impl BytecodeFunction {
 
     pub fn const_pool(&self, idx: ConstPoolIdx) -> &ConstPoolEntry {
         &self.const_pool[idx.to_usize()]
+    }
+
+    pub fn offset_position(&self, offset: u32) -> Position {
+        *self.positions.get(offset).expect("position not found")
     }
 }
 
