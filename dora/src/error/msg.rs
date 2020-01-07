@@ -19,7 +19,7 @@ pub enum SemError {
     UnknownStaticMethodWithTypeParam,
     UnknownStaticMethod(String, String, Vec<String>),
     UnknownCtor(String, Vec<String>),
-    MethodExists(String, String, Position),
+    MethodExists(String, Position),
     IncompatibleWithNil(String),
     IdentifierExists(String),
     ShadowFunction(String),
@@ -196,9 +196,9 @@ impl SemError {
                 let args = args.join(", ");
                 format!("no ctor with definition `{}({})`.", name, args)
             }
-            SemError::MethodExists(ref cls, ref name, pos) => format!(
-                "method with name `{}` already exists in class `{}` at line {}.",
-                name, cls, pos
+            SemError::MethodExists(ref name, pos) => format!(
+                "method with name `{}` already exists at line {}.",
+                name, pos
             ),
             SemError::IncompatibleWithNil(ref ty) => {
                 format!("cannot assign `nil` to type `{}`.", ty)

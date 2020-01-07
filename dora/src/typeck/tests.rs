@@ -77,7 +77,7 @@ fn type_method_defined_twice() {
                  fun bar() {}
              }",
         pos(3, 18),
-        SemError::MethodExists("Foo".into(), "bar".into(), pos(2, 18)),
+        SemError::MethodExists("bar".into(), pos(2, 18)),
     );
 
     err(
@@ -86,7 +86,7 @@ fn type_method_defined_twice() {
                  fun bar() -> Int {}
              }",
         pos(3, 18),
-        SemError::MethodExists("Foo".into(), "bar".into(), pos(2, 18)),
+        SemError::MethodExists("bar".into(), pos(2, 18)),
     );
 
     err(
@@ -95,7 +95,7 @@ fn type_method_defined_twice() {
                  fun bar(a: Int) -> Int {}
              }",
         pos(3, 18),
-        SemError::MethodExists("Foo".into(), "bar".into(), pos(2, 18)),
+        SemError::MethodExists("bar".into(), pos(2, 18)),
     );
 
     err(
@@ -104,7 +104,7 @@ fn type_method_defined_twice() {
                 fun bar(a: String) {}
             }",
         pos(3, 17),
-        SemError::MethodExists("Foo".into(), "bar".into(), pos(2, 17)),
+        SemError::MethodExists("bar".into(), pos(2, 17)),
     );
 }
 

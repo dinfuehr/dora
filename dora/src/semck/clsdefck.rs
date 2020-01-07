@@ -4,9 +4,11 @@ use std::collections::HashSet;
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::semck::typeparamck;
-use crate::sym::Sym;
+use crate::sym::{Sym, SymLevel};
 use crate::ty::{BuiltinType, TypeList};
-use crate::vm::{ClassId, Fct, FctId, FctKind, FctParent, FctSrc, Field, NodeMap, VM};
+use crate::vm::{
+    ClassId, Fct, FctId, FctKind, FctParent, FctSrc, Field, FieldId, FileId, NodeMap, VM,
+};
 
 use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::ast::{self, Ast};
@@ -43,25 +45,20 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
         let cls = self.vm.classes.idx(self.cls_id.unwrap());
         let mut cls = cls.write();
 
-        for field in &cls.fields {
-            if field.name == name {
-                let name = self.vm.interner.str(name).to_string();
-                self.vm
-                    .diag
-                    .lock()
-                    .report(cls.file, pos, SemError::ShadowField(name));
-            }
-        }
+        let fid: FieldId = cls.fields.len().into();
 
         let field = Field {
-            id: cls.fields.len().into(),
+            id: fid,
             name,
             ty,
             offset: 0,
             reassignable,
         };
 
+        self.check_if_symbol_exists(name, pos, &cls.table);
+
         cls.fields.push(field);
+        cls.table.insert(name, Sym::SymField(fid));
     }
 
     fn check_type_params(&mut self, c: &'ast ast::Class, type_params: &'ast [ast::TypeParam]) {
@@ -182,6 +179,34 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
             let list = TypeList::empty();
             let list_id = self.vm.lists.lock().insert(list);
             cls.parent_class = Some(BuiltinType::Class(object_cls, list_id));
+        }
+    }
+
+    fn check_if_symbol_exists(&mut self, name: Name, pos: Position, table: &SymLevel) {
+        if table.contains(name) {
+            let sym = table.get(name).unwrap();
+            let file: FileId = self.file_id.into();
+
+            match sym {
+                &Sym::SymFct(method) => {
+                    let method = self.vm.fcts.idx(method);
+                    let method = method.read();
+
+                    let method_name = self.vm.interner.str(method.name).to_string();
+                    let msg = SemError::MethodExists(method_name, method.pos);
+                    self.vm.diag.lock().report(file, pos, msg);
+                }
+
+                &Sym::SymField(_) => {
+                    let name = self.vm.interner.str(name).to_string();
+                    self.vm
+                        .diag
+                        .lock()
+                        .report(file, pos, SemError::ShadowField(name));
+                }
+
+                _ => unreachable!(),
+            }
         }
     }
 }
@@ -323,6 +348,15 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
 
         let cls = self.vm.classes.idx(self.cls_id.unwrap());
         let mut cls = cls.write();
+
+        if f.is_static {
+            self.check_if_symbol_exists(f.name, f.pos, &cls.static_table);
+            cls.static_table.insert(f.name, Sym::SymFct(fctid));
+        } else {
+            self.check_if_symbol_exists(f.name, f.pos, &cls.table);
+            cls.table.insert(f.name, Sym::SymFct(fctid));
+        }
+
         cls.methods.push(fctid);
     }
 }

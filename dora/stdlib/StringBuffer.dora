@@ -1,8 +1,8 @@
-class StringBuffer(var buf: Array[Byte], var length: Int) {
+class StringBuffer(var buf: Array[Byte], var len: Int) {
   @static fun empty() -> StringBuffer = StringBuffer(Array[Byte](0), 0);
 
   fun length() -> Int {
-    return self.length;
+    return self.len;
   }
 
   fun capacity() -> Int {
@@ -29,7 +29,7 @@ class StringBuffer(var buf: Array[Byte], var length: Int) {
   }
 
   fun newCapacity(reserve: Int) -> Int {
-    var len = self.length;
+    var len = self.len;
 
     if len == 0 {
       len = 4;
@@ -50,8 +50,8 @@ class StringBuffer(var buf: Array[Byte], var length: Int) {
   fun appendChar(ch: Char) -> StringBuffer {
     let chLen = ch.lenUtf8();
     self.reserve(chLen);
-    ch.encodeUtf8(self.buf, self.length);
-    self.length = self.length + chLen;
+    ch.encodeUtf8(self.buf, self.len);
+    self.len = self.len + chLen;
     return self;
   }
 
@@ -60,11 +60,11 @@ class StringBuffer(var buf: Array[Byte], var length: Int) {
     var i = 0;
 
     while i < value.length() {
-      self.buf.set(self.length + i, value.getByte(i));
+      self.buf.set(self.len + i, value.getByte(i));
       i = i + 1;
     }
 
-    self.length = self.length + value.length();
+    self.len = self.len + value.length();
     return self;
   }
 

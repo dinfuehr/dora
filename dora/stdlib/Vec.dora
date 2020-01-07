@@ -1,9 +1,9 @@
 class Vec[T] {
   var array: Array[T] = nil;
-  var length: Int = 0;
+  var len: Int = 0;
 
   fun get(idx: Int) -> T {
-    if idx < 0 || idx >= self.length {
+    if idx < 0 || idx >= self.len {
       fatalError("index out of bounds for vector");
     }
 
@@ -11,7 +11,7 @@ class Vec[T] {
   }
 
   fun set(idx: Int, val: T) {
-    if idx < 0 || idx >= self.length {
+    if idx < 0 || idx >= self.len {
       fatalError("index out of bounds for vector");
     }
 
@@ -21,7 +21,7 @@ class Vec[T] {
   fun push(val: T) {
     var newcap = self.capacity();
 
-    if self.length == newcap {
+    if self.len == newcap {
       if newcap == 0 {
         newcap = 4;
       } else {
@@ -29,53 +29,53 @@ class Vec[T] {
       }
 
       let newarray = Array[T](newcap);
-      arrayCopy[T](self.array, 0, newarray, 0, self.length);
+      arrayCopy[T](self.array, 0, newarray, 0, self.len);
       self.array = newarray;
     }
 
-    self.array.set(self.length, val);
-    self.length = self.length + 1;
+    self.array.set(self.len, val);
+    self.len = self.len + 1;
   }
 
   fun toArray() -> Array[T] {
-    let newarray = Array[T](self.length);
-    arrayCopy[T](self.array, 0, newarray, 0, self.length);
+    let newarray = Array[T](self.len);
+    arrayCopy[T](self.array, 0, newarray, 0, self.len);
     newarray
   }
 
   fun pop() -> T {
-    if self.length == 0 {
+    if self.len == 0 {
       fatalError("no element left to pop");
     }
 
-    let newlength = self.length - 1;
+    let newlength = self.len - 1;
     let temp = self.array.get(newlength);
 
     // set popped element to nil so that GC can collect object
     // not necessary for primitive types
     self.array.set(newlength, defaultValue[T]());
 
-    self.length = newlength;
+    self.len = newlength;
 
     return temp;
   }
 
   fun trimToLen() {
-    if self.length != self.capacity() {
-      if self.length == 0 {
+    if self.len != self.capacity() {
+      if self.len == 0 {
         self.array = nil;
       } else {
-        let newarray = Array[T](self.length);
-        arrayCopy[T](self.array, 0, newarray, 0, self.length);
+        let newarray = Array[T](self.len);
+        arrayCopy[T](self.array, 0, newarray, 0, self.len);
         self.array = newarray;
       }
     }
   }
 
   fun removeAt(var ind: Int) -> T {
-    assert(ind < self.length);
+    assert(ind < self.len);
     let temp = self.get(ind);
-    let len = self.length;
+    let len = self.len;
 
     while ind < len - 1 {
       self.set(ind, self.get(ind+1));
@@ -83,17 +83,17 @@ class Vec[T] {
     }
 
     self.set(ind, defaultValue[T]());
-    self.length = ind;
+    self.len = ind;
 
     return temp;
   }
 
   fun length() -> Int {
-    return self.length;
+    return self.len;
   }
 
   fun is_empty() -> Bool {
-    self.length == 0
+    self.len == 0
   }
 
   fun capacity() -> Int {
@@ -105,12 +105,12 @@ class Vec[T] {
   }
 
   fun first() -> T {
-    assert(self.length > 0);
+    assert(self.len > 0);
     return self.array.get(0);
   }
 
   fun last() -> T {
-    let len = self.length;
+    let len = self.len;
     assert(len > 0);
     return self.array.get(len-1);
   }

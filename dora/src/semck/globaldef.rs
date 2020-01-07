@@ -5,6 +5,7 @@ use std::sync::Arc;
 use crate::error::msg::SemError;
 use crate::gc::Address;
 use crate::sym::Sym::{self, SymClass, SymConst, SymEnum, SymFct, SymGlobal, SymStruct, SymTrait};
+use crate::sym::SymLevel;
 use crate::ty::BuiltinType;
 use crate::vm::{
     class, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, Fct, FctId, FctKind,
@@ -169,6 +170,8 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
                 internal: c.internal,
                 internal_resolved: false,
                 has_constructor: c.has_constructor,
+                table: SymLevel::new(),
+                static_table: SymLevel::new(),
 
                 constructor: None,
                 fields: Vec::new(),

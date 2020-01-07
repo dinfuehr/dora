@@ -5,14 +5,14 @@ class HashMap[K: Hash + Equals, V] {
     var keys: Array[K] = nil;
     var values: Array[V] = nil;
     var size: Int = 0;
-    var capacity: Int = 0;
+    var cap: Int = 0;
 
     fun insert(key: K, value: V) {
         self.ensureCapacity(1);
-        assert(self.size < self.capacity);
+        assert(self.size < self.cap);
 
         var hash = key.hash();
-        var idx = hash & (self.capacity - 1);
+        var idx = hash & (self.cap - 1);
 
         while true {
             if self.isLive(idx) {
@@ -34,15 +34,15 @@ class HashMap[K: Hash + Equals, V] {
                 return;
             }
 
-            idx = (idx + 1) & (self.capacity - 1);
+            idx = (idx + 1) & (self.cap - 1);
         }
     }
 
     fun contains(key: K) -> Bool {
-        assert(self.size < self.capacity);
+        assert(self.size < self.cap);
 
         var hash = key.hash();
-        var idx = hash & (self.capacity - 1);
+        var idx = hash & (self.cap - 1);
 
         while true {
             if self.isLive(idx) {
@@ -55,17 +55,17 @@ class HashMap[K: Hash + Equals, V] {
                 break;
             }
 
-            idx = (idx + 1) & (self.capacity - 1);
+            idx = (idx + 1) & (self.cap - 1);
         }
 
         return false;
     }
 
     fun get(key: K) -> V {
-        assert(self.size < self.capacity);
+        assert(self.size < self.cap);
 
         var hash = key.hash();
-        var idx = hash & (self.capacity - 1);
+        var idx = hash & (self.cap - 1);
 
         while true {
             if self.isLive(idx) {
@@ -78,7 +78,7 @@ class HashMap[K: Hash + Equals, V] {
                 break;
             }
 
-            idx = (idx + 1) & (self.capacity - 1);
+            idx = (idx + 1) & (self.cap - 1);
         }
 
         return defaultValue[V]();
@@ -88,7 +88,7 @@ class HashMap[K: Hash + Equals, V] {
         self.shrink();
 
         var hash = key.hash();
-        var idx = hash & (self.capacity - 1);
+        var idx = hash & (self.cap - 1);
 
         while true {
             if self.isLive(idx) {
@@ -108,21 +108,21 @@ class HashMap[K: Hash + Equals, V] {
                 break;
             }
 
-            idx = (idx + 1) & (self.capacity - 1);
+            idx = (idx + 1) & (self.cap - 1);
         }
 
         return defaultValue[V]();
     }
 
     fun ensureCapacity(elements_to_add: Int) {
-        if self.size + elements_to_add < self.capacity {
-            if self.size <= (self.capacity - (self.capacity / 4)) {
+        if self.size + elements_to_add < self.cap {
+            if self.size <= (self.cap - (self.cap / 4)) {
                 return;
             }
         }
 
         var new_capacity = 4;
-        let old_capacity = self.capacity;
+        let old_capacity = self.cap;
 
         if old_capacity > 0 {
             new_capacity = old_capacity * 2;
@@ -134,11 +134,11 @@ class HashMap[K: Hash + Equals, V] {
     }
 
     fun shrink() {
-        if self.size > (self.capacity / 4) {
+        if self.size > (self.cap / 4) {
             return;
         }
 
-        let new_capacity = self.capacity / 2;
+        let new_capacity = self.cap / 2;
 
         if new_capacity < 4 {
             return;
@@ -150,14 +150,14 @@ class HashMap[K: Hash + Equals, V] {
     }
 
     fun rehash(new_capacity: Int) {
-        let old_capacity = self.capacity;
+        let old_capacity = self.cap;
 
         let new_map = HashMap[K, V]();
         new_map.inserted_and_deleted = BitSet(2 * new_capacity);
         new_map.keys = Array[K](new_capacity);
         new_map.values = Array[V](new_capacity);
         new_map.size = 0;
-        new_map.capacity = new_capacity;
+        new_map.cap = new_capacity;
 
         var idx = 0;
 
@@ -176,7 +176,7 @@ class HashMap[K: Hash + Equals, V] {
         self.keys = new_map.keys;
         self.values = new_map.values;
         self.size = new_map.size;
-        self.capacity = new_capacity;
+        self.cap = new_capacity;
     }
 
     fun isLive(idx: Int) -> Bool {
@@ -189,6 +189,6 @@ class HashMap[K: Hash + Equals, V] {
     }
 
     fun capacity() -> Int {
-        return self.capacity;
+        return self.cap;
     }
 }

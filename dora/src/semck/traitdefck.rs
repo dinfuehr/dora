@@ -127,13 +127,13 @@ mod tests {
         err(
             "trait Foo { fun foo(); fun foo() -> Int; }",
             pos(1, 24),
-            SemError::MethodExists("Foo".into(), "foo".into(), pos(1, 13)),
+            SemError::MethodExists("foo".into(), pos(1, 13)),
         );
 
         err(
             "trait Foo { fun foo(); fun foo(); }",
             pos(1, 24),
-            SemError::MethodExists("Foo".into(), "foo".into(), pos(1, 13)),
+            SemError::MethodExists("foo".into(), pos(1, 13)),
         );
     }
 
@@ -145,7 +145,7 @@ mod tests {
             fun foo() -> Self;
         }",
             pos(3, 13),
-            SemError::MethodExists("Foo".into(), "foo".into(), pos(2, 13)),
+            SemError::MethodExists("foo".into(), pos(2, 13)),
         );
     }
 }

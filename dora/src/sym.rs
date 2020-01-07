@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use self::Sym::*;
 
 use crate::ty::TypeListId;
-use crate::vm::{ClassId, ConstId, EnumId, FctId, GlobalId, StructId, TraitId, VarId};
+use crate::vm::{ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, StructId, TraitId, VarId};
 use dora_parser::interner::Name;
 
 #[derive(Debug)]
@@ -80,30 +80,35 @@ impl SymTable {
 }
 
 #[derive(Debug)]
-struct SymLevel {
+pub struct SymLevel {
     map: HashMap<Name, Sym>,
 }
 
 impl SymLevel {
     // creates a new table
-    fn new() -> SymLevel {
+    pub fn new() -> SymLevel {
         SymLevel {
             map: HashMap::new(),
         }
     }
 
+    pub fn contains(&self, name: Name) -> bool {
+        self.map.contains_key(&name)
+    }
+
     // finds symbol in table
-    fn get(&self, name: Name) -> Option<&Sym> {
+    pub fn get(&self, name: Name) -> Option<&Sym> {
         self.map.get(&name)
     }
 
-    fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
+    pub fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
         self.map.insert(name, sym)
     }
 }
 
 #[derive(Debug, Clone)]
 pub enum Sym {
+    SymField(FieldId),
     SymFct(FctId),
     SymVar(VarId),
     SymClass(ClassId),

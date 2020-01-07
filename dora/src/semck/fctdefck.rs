@@ -154,19 +154,17 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
             FctParent::Class(clsid) => {
                 let cls = vm.classes.idx(clsid);
                 let cls = cls.read();
-                check_against_methods(vm, cls.ty, &*fct, &cls.methods);
+                check_against_methods(vm, &*fct, &cls.methods);
             }
 
             FctParent::Trait(traitid) => {
                 let xtrait = vm.traits[traitid].read();
-                let ty = BuiltinType::Trait(traitid);
-                check_against_methods(vm, ty, &*fct, &xtrait.methods);
+                check_against_methods(vm, &*fct, &xtrait.methods);
             }
 
             FctParent::Impl(implid) => {
                 let ximpl = vm.impls[implid].read();
-                let ty = BuiltinType::Trait(ximpl.trait_id());
-                check_against_methods(vm, ty, &*fct, &ximpl.methods);
+                check_against_methods(vm, &*fct, &ximpl.methods);
             }
 
             _ => {}
@@ -238,7 +236,7 @@ fn check_static<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) {
     }
 }
 
-fn check_against_methods(vm: &VM, ty: BuiltinType, fct: &Fct, methods: &[FctId]) {
+fn check_against_methods(vm: &VM, fct: &Fct, methods: &[FctId]) {
     for &method in methods {
         if method == fct.id {
             continue;
@@ -248,10 +246,9 @@ fn check_against_methods(vm: &VM, ty: BuiltinType, fct: &Fct, methods: &[FctId])
         let method = method.read();
 
         if method.initialized && method.name == fct.name && method.is_static == fct.is_static {
-            let cls_name = ty.name(vm);
             let method_name = vm.interner.str(method.name).to_string();
 
-            let msg = SemError::MethodExists(cls_name, method_name, method.pos);
+            let msg = SemError::MethodExists(method_name, method.pos);
             vm.diag.lock().report(fct.file, fct.ast.pos, msg);
             return;
         }

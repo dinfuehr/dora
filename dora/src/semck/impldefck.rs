@@ -195,7 +195,7 @@ mod tests {
                 fun foo() -> Int { return 1; }
             }",
             pos(8, 17),
-            SemError::MethodExists("Foo".into(), "foo".into(), pos(7, 17)),
+            SemError::MethodExists("foo".into(), pos(7, 17)),
         );
     }
 

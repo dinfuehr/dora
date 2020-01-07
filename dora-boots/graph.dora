@@ -5,8 +5,8 @@ class Graph {
     var blocks: Vec[Block] = Vec[Block]();
     var reversePostOrder: Vec[Block] = Vec[Block]();
 
-    var nextBlockId: Int = 0;
-    var nextInstId: Int = 0;
+    var nextBlockIdValue: Int = 0;
+    var nextInstIdValue: Int = 0;
 
     fun addBlock(block: Block) {
         assert(block.graph === nil && block.id == -1);
@@ -25,21 +25,21 @@ class Graph {
     }
 
     fun nextInstId() -> Int {
-        let id = self.nextInstId;
-        self.nextInstId = id + 1;
+        let id = self.nextInstIdValue;
+        self.nextInstIdValue = id + 1;
 
         id
     }
 
     fun nextBlockId() -> Int {
-        let id = self.nextBlockId;
-        self.nextBlockId = id + 1;
+        let id = self.nextBlockIdValue;
+        self.nextBlockIdValue = id + 1;
 
         id
     }
 
     fun numberBlocks() -> Int {
-        self.nextBlockId
+        self.nextBlockIdValue
     }
 }
 

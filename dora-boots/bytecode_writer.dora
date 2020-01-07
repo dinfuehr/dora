@@ -903,21 +903,21 @@ fun isWide(val: Int) -> Bool {
 }
 
 class BytecodeLabel {
-    var offset: Int = -1;
+    var off: Int = -1;
 
     fun bindTo(offset: Int) -> BytecodeLabel {
         assert(offset >= 0);
-        self.offset = offset;
+        self.off = offset;
         self
     }
 
     fun isBound() -> Bool {
-        self.offset >= 0
+        self.off >= 0
     }
 
     fun offset() -> Int {
         assert(self.isBound());
-        self.offset
+        self.off
     }
 }
 
