@@ -18,8 +18,6 @@ fun unimplemented() = fatalError("not yet implemented");
 @internal fun forceMinorCollect();
 
 @internal fun call(fct: String);
-@internal fun throwFromNative(val: Bool) throws;
-@internal fun throwFromNativeButNotThrows(val: Bool);
 
 @internal fun timestamp() -> Long;
 

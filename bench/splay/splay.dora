@@ -4,9 +4,9 @@ fun main() {
         exit(1);
     }
 
-    rnd = Random(argv(0).parseLong());
-    splayTreeSize = argv(1).parseInt();
-    let iterations = argv(2).parseInt();
+    rnd = Random(argv(0).toLong().unwrap());
+    splayTreeSize = argv(1).toInt().unwrap();
+    let iterations = argv(2).toInt().unwrap();
 
     let bench = Benchmark();
     bench.setup();

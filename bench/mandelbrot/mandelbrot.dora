@@ -1,5 +1,5 @@
 fun main() {
-    Mandelbrot(argv(0).parseInt()).compute();
+    Mandelbrot(argv(0).toInt().unwrap()).compute();
 }
 
 const BUFFER_SIZE: Int = 8192;

@@ -2,7 +2,7 @@ fun main() {
     var i = 0;
 
     while i < 100_000_000 {
-        try throwFromNative(false);
+        try testThrowFromNative(false);
         i = i + 1;
     }
 }

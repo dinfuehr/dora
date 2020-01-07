@@ -279,11 +279,11 @@ fun main() {
 
     treeSize = heightToBytes(treeHeight);
 
-    size = argv(0).parseInt();
-    workUnits = argv(1).parseInt();
-    promoteRate = argv(2).parseInt();
-    ptrMutRate = argv(3).parseInt();
-    steps = argv(4).parseInt();
+    size = argv(0).toInt().unwrap();
+    workUnits = argv(1).toInt().unwrap();
+    promoteRate = argv(2).toInt().unwrap();
+    ptrMutRate = argv(3).toInt().unwrap();
+    steps = argv(4).toInt().unwrap();
 
     println("GCOld: version 1.0");
     println(size.toString() + " megabytes of live storage");

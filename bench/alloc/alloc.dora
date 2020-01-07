@@ -1,5 +1,5 @@
 fun main() {
-    let threads = argv(0).parseInt();
+    let threads = argv(0).toInt().unwrap();
 
     var i = 0;
 

@@ -2,7 +2,7 @@ fun main() {
   var maxDepth = 6;
 
   if argc() > 0 {
-    maxDepth = argv(0).parseInt();
+    maxDepth = argv(0).toInt().unwrap();
   }
 
   if 6 > maxDepth {

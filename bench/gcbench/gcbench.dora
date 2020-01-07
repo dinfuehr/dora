@@ -78,7 +78,7 @@ fun main() {
         exit(1);
     }
 
-    let depth = argv(0).parseInt();
+    let depth = argv(0).toInt().unwrap();
 
     stretchTreeDepth = depth+1;
     longLivedTreeDepth = depth;

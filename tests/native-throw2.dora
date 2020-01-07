@@ -1,8 +1,8 @@
-//= output "caught\nException\n0: throwFromNative(Bool): 21\n1: main(): 5\nafter\nend\n"
+//= output "caught\nException\n0: testThrowFromNative(Bool): 9\n1: main(): 5\nafter\nend\n"
 
 fun main() {
   do {
-    try throwFromNative(true);
+    try testThrowFromNative(true);
     assert(false);
   } catch e: Exception {
     println("caught");
@@ -11,6 +11,6 @@ fun main() {
   }
 
   println("after");
-  try! throwFromNative(false);
+  try! testThrowFromNative(false);
   println("end");
 }
