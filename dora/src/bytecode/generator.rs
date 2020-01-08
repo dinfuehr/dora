@@ -173,7 +173,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     fn visit_stmt_throw(&mut self, stmt: &StmtThrowType) {
         let exception_reg = self.visit_expr(&stmt.expr, DataDest::Alloc);
-        self.gen.emit_throw(exception_reg, stmt.pos);
+        self.gen.set_position(stmt.pos);
+        self.gen.emit_throw(exception_reg);
     }
 
     fn visit_stmt_expr(&mut self, stmt: &StmtExprType) {
@@ -353,15 +354,20 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         let start_reg = self.gen.add_register_chain(&arg_types);
         let cls_id = specialize_class_id_params(self.vm, cls_id, &TypeList::Empty);
-        self.gen.emit_new_object(start_reg, cls_id, expr.pos);
+
+        self.gen.set_position(expr.pos);
+        self.gen.emit_new_object(start_reg, cls_id);
+
         let error_string_reg = start_reg.offset(1);
         self.gen
             .emit_const_string(error_string_reg, "assert failed".to_string());
 
+        self.gen.set_position(expr.pos);
         self.gen
-            .emit_invoke_direct_void(fct_id, start_reg, num_args, expr.pos);
+            .emit_invoke_direct_void(fct_id, start_reg, num_args);
 
-        self.gen.emit_throw(start_reg, expr.pos);
+        self.gen.set_position(expr.pos);
+        self.gen.emit_throw(start_reg);
 
         self.gen.bind_label(lbl_assert);
     }
@@ -420,7 +426,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         let arg_start_reg = if let CallType::CtorNew(ty, _) = &*call_type {
             let cls_id = specialize_class_ty(self.vm, *ty);
-            self.gen.emit_new_object(start_reg, cls_id, expr.pos);
+
+            self.gen.set_position(expr.pos);
+            self.gen.emit_new_object(start_reg, cls_id);
             start_reg.offset(1)
         } else if callee.has_self() {
             let self_id = self.src.var_self().id;
@@ -439,8 +447,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         match *call_type {
             CallType::Ctor(_, _) | CallType::CtorNew(_, _) => {
+                self.gen.set_position(expr.pos);
                 self.gen
-                    .emit_invoke_direct_void(callee_id, start_reg, num_args, expr.pos);
+                    .emit_invoke_direct_void(callee_id, start_reg, num_args);
             }
 
             CallType::Method(_, _, _) => unimplemented!(),
@@ -448,36 +457,38 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
             CallType::Fct(_, _, _) => {
                 if return_type.is_unit() {
+                    self.gen.set_position(expr.pos);
                     self.gen
-                        .emit_invoke_static_void(callee_id, start_reg, num_args, expr.pos);
+                        .emit_invoke_static_void(callee_id, start_reg, num_args);
                 } else {
                     let return_type: BytecodeType = return_type.into();
 
+                    self.gen.set_position(expr.pos);
                     match return_type.into() {
-                        BytecodeType::Bool => self.gen.emit_invoke_static_bool(
-                            return_reg, callee_id, start_reg, num_args, expr.pos,
-                        ),
-                        BytecodeType::Byte => self.gen.emit_invoke_static_byte(
-                            return_reg, callee_id, start_reg, num_args, expr.pos,
-                        ),
-                        BytecodeType::Char => self.gen.emit_invoke_static_char(
-                            return_reg, callee_id, start_reg, num_args, expr.pos,
-                        ),
-                        BytecodeType::Int => self.gen.emit_invoke_static_int(
-                            return_reg, callee_id, start_reg, num_args, expr.pos,
-                        ),
-                        BytecodeType::Long => self.gen.emit_invoke_static_long(
-                            return_reg, callee_id, start_reg, num_args, expr.pos,
-                        ),
-                        BytecodeType::Float => self.gen.emit_invoke_static_float(
-                            return_reg, callee_id, start_reg, num_args, expr.pos,
-                        ),
-                        BytecodeType::Double => self.gen.emit_invoke_static_double(
-                            return_reg, callee_id, start_reg, num_args, expr.pos,
-                        ),
-                        BytecodeType::Ptr => self.gen.emit_invoke_static_ptr(
-                            return_reg, callee_id, start_reg, num_args, expr.pos,
-                        ),
+                        BytecodeType::Bool => self
+                            .gen
+                            .emit_invoke_static_bool(return_reg, callee_id, start_reg, num_args),
+                        BytecodeType::Byte => self
+                            .gen
+                            .emit_invoke_static_byte(return_reg, callee_id, start_reg, num_args),
+                        BytecodeType::Char => self
+                            .gen
+                            .emit_invoke_static_char(return_reg, callee_id, start_reg, num_args),
+                        BytecodeType::Int => self
+                            .gen
+                            .emit_invoke_static_int(return_reg, callee_id, start_reg, num_args),
+                        BytecodeType::Long => self
+                            .gen
+                            .emit_invoke_static_long(return_reg, callee_id, start_reg, num_args),
+                        BytecodeType::Float => self
+                            .gen
+                            .emit_invoke_static_float(return_reg, callee_id, start_reg, num_args),
+                        BytecodeType::Double => self
+                            .gen
+                            .emit_invoke_static_double(return_reg, callee_id, start_reg, num_args),
+                        BytecodeType::Ptr => self
+                            .gen
+                            .emit_invoke_static_ptr(return_reg, callee_id, start_reg, num_args),
                     }
                 }
             }
@@ -527,8 +538,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         match *call_type {
             CallType::Ctor(_, _) => {
+                self.gen.set_position(expr.pos);
                 self.gen
-                    .emit_invoke_direct_void(callee_id, start_reg, num_args, expr.pos);
+                    .emit_invoke_direct_void(callee_id, start_reg, num_args);
             }
 
             _ => unreachable!(),

@@ -25,6 +25,17 @@ impl PositionTable {
     pub fn get(&self, offset: u32) -> Option<&Position> {
         self.map.get(&offset)
     }
+
+    pub fn to_vec(&self) -> Vec<(u32, Position)> {
+        let mut as_vec = self
+            .map
+            .iter()
+            .clone()
+            .map(|(k, v)| (*k, *v))
+            .collect::<Vec<(u32, Position)>>();
+        as_vec.sort_by(|(a, _), (b, _)| a.cmp(b));
+        as_vec
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -366,6 +377,10 @@ impl BytecodeFunction {
 
     pub fn registers(&self) -> &[BytecodeType] {
         &self.registers
+    }
+
+    pub fn positions(&self) -> &PositionTable {
+        &self.positions
     }
 
     pub fn register_type(&self, register: Register) -> BytecodeType {

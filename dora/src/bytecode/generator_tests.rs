@@ -8,6 +8,7 @@ use crate::bytecode::{
 use crate::test;
 use crate::ty::TypeList;
 use crate::vm::{ClassDefId, FctId, FieldId, GlobalId, VM};
+use dora_parser::lexer::position::Position;
 
 fn code(code: &'static str) -> Vec<Bytecode> {
     test::parse(code, |vm| {
@@ -44,6 +45,20 @@ where
         let code = build(&fct);
 
         testfct(vm, code);
+    })
+}
+
+fn gen_fct<F>(code: &'static str, testfct: F)
+where
+    F: FnOnce(&VM, Vec<Bytecode>, BytecodeFunction),
+{
+    test::parse(code, |vm| {
+        let fct_id = vm.fct_by_name("f").expect("no function `f`.");
+        let tp = TypeList::empty();
+        let fct = bytecode::generate_fct(vm, fct_id, &tp, &tp);
+        let code = build(&fct);
+
+        testfct(vm, code, fct);
     })
 }
 
@@ -1176,11 +1191,11 @@ fn gen_assert() {
 
 #[test]
 fn gen_throw() {
-    gen(
+    gen_fct(
         "
             fun f() { throw Exception(\"exception\"); }
             ",
-        |vm, code| {
+        |vm, code, fct| {
             let cls_id = vm.cls_def_by_name("Exception");
             let ctor_id = vm.ctor_by_name("Exception");
             let expected = vec![
@@ -1190,9 +1205,15 @@ fn gen_throw() {
                 Throw(r(0)),
                 RetVoid,
             ];
+            let expected_position = vec![(0, p(2, 38)), (6, p(2, 38)), (10, p(2, 23))];
             assert_eq!(expected, code);
+            assert_eq!(expected_position, fct.positions().to_vec());
         },
     );
+}
+
+fn p(line: u32, column: u32) -> Position {
+    Position { line, column }
 }
 
 fn r(val: usize) -> Register {
