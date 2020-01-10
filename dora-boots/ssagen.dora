@@ -10,15 +10,14 @@ class SsaGen(let bc: BytecodeFunction): BytecodeVisitor {
     var currentBlock: Block;
     var currentJoinBlock: Block;
     var offset: Int = 0;
-    var registers: Array[Inst];
     var currentDef: Array[HashMap[Block, Inst]];
+    var incompletePhis: Vec[HashMap[BytecodeRegister, Inst]] = Vec[HashMap[BytecodeRegister, Inst]]();
 
     fun prepare() {
         self.currentBlock = Block();
         self.graph.addBlock(self.currentBlock);
         self.graph.setEntryBlock(self.currentBlock);
         self.graph.setExitBlock(self.currentBlock);
-        self.registers = Array[Inst](self.bc.registers.length());
         self.currentDef = Array[HashMap[Block, Inst]](self.bc.registers.length());
 
         for i in range(0, self.currentDef.length()) {
@@ -28,6 +27,34 @@ class SsaGen(let bc: BytecodeFunction): BytecodeVisitor {
 
     fun writeVariable(register: BytecodeRegister, block: Block, value: Inst) {
         self.currentDef.get(register.value).insert(block, value);
+    }
+
+    fun readVariable(register: BytecodeRegister, block: Block) -> Inst {
+        if self.currentDef.get(register.value).contains(block) {
+            self.currentDef.get(register.value).get(block)
+        } else {
+            self.readVariableRecursive(register, block)
+        }
+    }
+
+    fun readVariableRecursive(register: BytecodeRegister, block: Block) -> Inst {
+        nil
+
+/*        let value = if !self.isSealed(block) {
+            let value = PhiInst();
+            unimplemented();
+        } else if block.predecessors.length() == 1 {
+            self.readVariable(register, block.predecessors.first())
+        } else {
+            unimplemented();
+        };
+
+        self.writeVariable(register, block, value);
+        value*/
+    }
+
+    fun isSealed(block: Block) -> Bool {
+        false
     }
 
     @override fun visitInstruction(offset: Int) { self.offset = offset; }
@@ -141,7 +168,7 @@ class SsaGen(let bc: BytecodeFunction): BytecodeVisitor {
         let value = self.bc.constPool(idx).toInt().unwrap();
         let inst = IntConst(value);
         self.currentBlock.appendInst(inst);
-        self.registers.set(dest.value, inst);
+        self.writeVariable(dest, self.currentBlock, inst);
     }
     @override fun visitConstLong(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
     @override fun visitConstFloat(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
@@ -231,7 +258,7 @@ class SsaGen(let bc: BytecodeFunction): BytecodeVisitor {
     @override fun visitRetByte(opnd: BytecodeRegister) { unimplemented(); }
     @override fun visitRetChar(opnd: BytecodeRegister) { unimplemented(); }
     @override fun visitRetInt(opnd: BytecodeRegister) {
-        let value = self.registers.get(opnd.value);
+        let value = self.readVariable(opnd, self.currentBlock);
         let inst = ReturnInst(value);
         self.currentBlock.appendInst(inst);
     }
@@ -256,7 +283,7 @@ class SsaGen(let bc: BytecodeFunction): BytecodeVisitor {
     assert(it.current() === nil);
 }
 
-/*@test fun testSsaGenRetInt(_x: Testing) {
+@test fun testSsaGenRetInt(_x: Testing) {
     let writer = BytecodeWriter();
     let tmp = writer.addRegister(BytecodeType::int());
     writer.emitConstInt(tmp, 4711);
@@ -274,4 +301,4 @@ class SsaGen(let bc: BytecodeFunction): BytecodeVisitor {
     assert(ret.value === val);
     it.next();
     assert(it.current() === nil);
-}*/
+}

@@ -40,6 +40,18 @@ class BytecodeRegister(let value: Int) {
     }
 }
 
+impl Equals for BytecodeRegister {
+    fun equals(other: BytecodeRegister) -> Bool {
+        self.value == other.value
+    }
+}
+
+impl Hash for BytecodeRegister {
+    fun hash() -> Int {
+        self.value
+    }
+}
+
 impl Stringable for BytecodeRegister {
     fun toString() -> String = "r${self.value}";
 }

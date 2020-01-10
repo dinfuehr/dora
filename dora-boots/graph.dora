@@ -67,6 +67,18 @@ class Block() {
         block.predecessors.push(block);
     }
 
+    fun appendPhi(phi: PhiInst) -> PhiInst {
+        assert(phi.block === nil && phi.id == -1);
+
+        phi.block = self;
+        phi.id = self.graph.nextInstId();
+
+        self.phis.push(phi);
+        phi.registerUses();
+
+        phi
+    }
+
     fun appendInst(inst: Inst) -> Inst {
         assert(inst.block === nil && inst.id == -1);
 
@@ -171,7 +183,9 @@ class BinaryInst(let op: BinOp, let lhs: Inst, let rhs: Inst): Inst {
     self.addInput(rhs);
 }
 
-class PhiInst(let inputs: Vec[PhiArg]): Inst
+class PhiInst(): Inst {
+    let inputs: Vec[PhiArg] = Vec[PhiArg]();
+}
 class PhiArg(let value: Inst, let block: Block)
 
 class ArrayGet(let array: Inst, let index: Inst): Inst {
