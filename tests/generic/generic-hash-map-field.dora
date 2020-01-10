@@ -1,0 +1,17 @@
+class MyOwnType
+
+impl Equals for MyOwnType {
+    fun equals(other: MyOwnType) -> Bool = true;
+}
+
+impl Hash for MyOwnType {
+    fun hash() -> Int = 0;
+}
+
+class Foo {
+    let x: HashMap[MyOwnType, String] = HashMap[MyOwnType, String]();
+}
+
+fun main() {
+    let foo = Foo();
+}

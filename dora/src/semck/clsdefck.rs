@@ -614,4 +614,13 @@ mod tests {
             SemError::WrongNumberTypeParams(0, 1),
         );
     }
+
+    #[test]
+    fn test_defining_static_method_twice() {
+        err(
+            "class X { @static fun foo() {} @static fun foo(a: String) {} }",
+            pos(1, 40),
+            SemError::MethodExists("foo".into(), pos(1, 19)),
+        );
+    }
 }
