@@ -1,42 +1,9 @@
-use std::collections::HashMap;
 use std::fmt;
 
 use crate::cpu::STACK_FRAME_ALIGNMENT;
 use crate::mem::{align_i32, ptr_width};
 use crate::ty::{BuiltinType, MachineMode};
 use dora_parser::lexer::position::Position;
-
-#[derive(Debug)]
-pub struct PositionTable {
-    map: HashMap<u32, Position>,
-}
-
-impl PositionTable {
-    pub fn new() -> PositionTable {
-        PositionTable {
-            map: HashMap::new(),
-        }
-    }
-
-    pub fn insert(&mut self, offset: u32, position: Position) {
-        assert!(self.map.insert(offset, position).is_none());
-    }
-
-    pub fn get(&self, offset: u32) -> Option<&Position> {
-        self.map.get(&offset)
-    }
-
-    pub fn to_vec(&self) -> Vec<(u32, Position)> {
-        let mut as_vec = self
-            .map
-            .iter()
-            .clone()
-            .map(|(k, v)| (*k, *v))
-            .collect::<Vec<(u32, Position)>>();
-        as_vec.sort_by(|(a, _), (b, _)| a.cmp(b));
-        as_vec
-    }
-}
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct BytecodeOffset(pub u32);
@@ -349,7 +316,7 @@ pub struct BytecodeFunction {
     offset: Vec<i32>,
     stacksize: i32,
     arguments: u32,
-    positions: PositionTable,
+    positions: Vec<(u32, Position)>,
 }
 
 impl BytecodeFunction {
@@ -358,7 +325,7 @@ impl BytecodeFunction {
         const_pool: Vec<ConstPoolEntry>,
         registers: Vec<BytecodeType>,
         arguments: u32,
-        positions: PositionTable,
+        positions: Vec<(u32, Position)>,
     ) -> BytecodeFunction {
         let (offset, stacksize) = determine_offsets(&registers);
         BytecodeFunction {
@@ -379,7 +346,7 @@ impl BytecodeFunction {
         &self.registers
     }
 
-    pub fn positions(&self) -> &PositionTable {
+    pub fn positions(&self) -> &[(u32, Position)] {
         &self.positions
     }
 
@@ -404,7 +371,11 @@ impl BytecodeFunction {
     }
 
     pub fn offset_position(&self, offset: u32) -> Position {
-        *self.positions.get(offset).expect("position not found")
+        let index = self
+            .positions
+            .binary_search_by_key(&offset, |&(o, _)| o)
+            .expect("position not found");
+        self.positions[index].1
     }
 }
 

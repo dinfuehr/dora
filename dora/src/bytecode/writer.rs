@@ -4,7 +4,7 @@ use std::mem;
 
 use crate::bytecode::{
     BytecodeFunction, BytecodeOffset, BytecodeOpcode, BytecodeType, ConstPoolEntry, ConstPoolIdx,
-    PositionTable, Register,
+    Register,
 };
 use crate::vm::{ClassDefId, FctId, FieldId, GlobalId};
 
@@ -24,7 +24,7 @@ pub struct BytecodeWriter {
     registers: Vec<BytecodeType>,
     const_pool: Vec<ConstPoolEntry>,
 
-    positions: PositionTable,
+    positions: Vec<(u32, Position)>,
     position: Position,
 }
 
@@ -41,7 +41,7 @@ impl BytecodeWriter {
             registers: Vec::new(),
             const_pool: Vec::new(),
 
-            positions: PositionTable::new(),
+            positions: Vec::new(),
             position: Position { line: 0, column: 0 },
         }
     }
@@ -1002,9 +1002,14 @@ impl BytecodeWriter {
         self.emit_values(&values);
     }
 
-    fn emit_values(&mut self, values: &[u32]) {
+    fn emit_position(&mut self) {
         let offset = self.code.len() as u32;
-        self.positions.insert(offset, self.position);
+        let position = (offset, self.position);
+        self.positions.push(position);
+    }
+
+    fn emit_values(&mut self, values: &[u32]) {
+        self.emit_position();
 
         let is_wide = values.iter().any(|&val| val > u8::max_value() as u32);
 
