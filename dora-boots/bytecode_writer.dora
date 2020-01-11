@@ -3,6 +3,7 @@ class BytecodeWriter {
     let constPool: Vec[ConstPoolEntry] = Vec[ConstPoolEntry]();
     let registers: Vec[BytecodeType] = Vec[BytecodeType]();
     let unresolvedJumps: Vec[UnresolvedJump] = Vec[UnresolvedJump]();
+    var arguments: Int = 0;
 
     fun addRegister(ty: BytecodeType) -> BytecodeRegister {
         self.registers.push(ty);
@@ -19,6 +20,10 @@ class BytecodeWriter {
 
     fun bindLabel(lbl: BytecodeLabel) {
         lbl.bindTo(self.code.length());
+    }
+
+    fun setArguments(arguments: Int) {
+        self.arguments = arguments;
     }
 
     fun emitAddInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
@@ -681,7 +686,9 @@ class BytecodeWriter {
         let code = self.code.toArray();
         let constPool = self.constPool.toArray();
         let registers = self.registers.toArray();
-        BytecodeFunction(code, constPool, registers)
+        let arguments = self.arguments;
+        assert(arguments <= registers.length());
+        BytecodeFunction(code, constPool, registers, arguments)
     }
 
     fun resolveJumps() {
