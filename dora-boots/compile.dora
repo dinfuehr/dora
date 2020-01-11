@@ -1,4 +1,4 @@
-fun compile(bytecode: Array[Byte]) -> Array[Byte] {
+fun compile(bytecode: Array[Byte], arguments: Int) -> Array[Byte] {
     CodeGen().generate()
 }
 

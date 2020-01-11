@@ -13,6 +13,7 @@ pub struct Label(pub usize);
 
 pub struct BytecodeWriter {
     code: Vec<u8>,
+    arguments: u32,
 
     label_offsets: Vec<Option<BytecodeOffset>>,
     unresolved_jump_offsets: Vec<(BytecodeOffset, BytecodeOffset, Label)>,
@@ -26,6 +27,7 @@ impl BytecodeWriter {
     pub fn new() -> BytecodeWriter {
         BytecodeWriter {
             code: Vec::new(),
+            arguments: 0,
 
             label_offsets: Vec::new(),
             unresolved_jump_offsets: Vec::new(),
@@ -76,6 +78,10 @@ impl BytecodeWriter {
 
     fn offset(&self) -> BytecodeOffset {
         BytecodeOffset(self.code.len() as u32)
+    }
+
+    pub fn set_arguments(&mut self, arguments: u32) {
+        self.arguments = arguments;
     }
 
     pub fn emit_add_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -837,7 +843,7 @@ impl BytecodeWriter {
     pub fn generate(mut self) -> BytecodeFunction {
         self.resolve_forward_jumps();
 
-        BytecodeFunction::new(self.code, self.const_pool, self.registers)
+        BytecodeFunction::new(self.code, self.const_pool, self.registers, self.arguments)
     }
 
     fn resolve_forward_jumps(&mut self) {

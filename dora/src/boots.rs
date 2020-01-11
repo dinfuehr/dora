@@ -36,9 +36,14 @@ pub fn compile<'a, 'ast: 'a>(
     });
     let ptr = vm.ensure_compiled(compile_fct);
     let dora_stub_address = vm.dora_stub();
-    let fctptr: extern "C" fn(Address, Address, Ref<ByteArray>) -> Ref<ByteArray> =
+    let fctptr: extern "C" fn(Address, Address, Ref<ByteArray>, i32) -> Ref<ByteArray> =
         unsafe { mem::transmute(dora_stub_address) };
-    let machine_code = root(fctptr(tld, ptr, bytecode_array.direct()));
+    let machine_code = root(fctptr(
+        tld,
+        ptr,
+        bytecode_array.direct(),
+        bytecode_fct.arguments() as i32,
+    ));
     let mut machine_code_array = vec![0; machine_code.len()];
 
     unsafe {

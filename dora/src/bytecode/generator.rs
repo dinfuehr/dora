@@ -75,10 +75,13 @@ struct AstBytecodeGen<'a, 'ast: 'a> {
 
 impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     fn generate(mut self) -> BytecodeFunction {
+        let mut arguments = 0;
+
         if self.fct.has_self() {
             let var_id = self.src.var_self().id;
             let reg = self.gen.add_register(BytecodeType::Ptr);
             self.var_registers.insert(var_id, reg);
+            arguments += 1;
         }
 
         for param in &self.ast.params {
@@ -87,7 +90,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             let ty: BytecodeType = self.specialize_type(var.ty).into();
             let reg = self.gen.add_register(ty);
             self.var_registers.insert(var_id, reg);
+            arguments += 1;
         }
+
+        self.gen.set_arguments(arguments);
 
         if let Some(ref block) = self.ast.block {
             for stmt in &block.stmts {

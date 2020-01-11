@@ -314,6 +314,7 @@ pub struct BytecodeFunction {
     const_pool: Vec<ConstPoolEntry>,
     offset: Vec<i32>,
     stacksize: i32,
+    arguments: u32,
 }
 
 impl BytecodeFunction {
@@ -321,6 +322,7 @@ impl BytecodeFunction {
         code: Vec<u8>,
         const_pool: Vec<ConstPoolEntry>,
         registers: Vec<BytecodeType>,
+        arguments: u32,
     ) -> BytecodeFunction {
         let (offset, stacksize) = determine_offsets(&registers);
         BytecodeFunction {
@@ -329,6 +331,7 @@ impl BytecodeFunction {
             registers,
             offset,
             stacksize,
+            arguments,
         }
     }
     pub fn code(&self) -> &[u8] {
@@ -349,6 +352,10 @@ impl BytecodeFunction {
 
     pub fn stacksize(&self) -> i32 {
         self.stacksize
+    }
+
+    pub fn arguments(&self) -> u32 {
+        self.arguments
     }
 
     pub fn const_pool(&self, idx: ConstPoolIdx) -> &ConstPoolEntry {
