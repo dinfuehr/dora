@@ -1168,46 +1168,51 @@ fn gen_self_assign_for_string() {
 
 #[test]
 fn gen_assert() {
-    gen(
-        "
-            fun f() { assert(true); }
-            ",
-        |vm, code| {
-            let cls_id = vm.cls_def_by_name("Error");
-            let ctor_id = vm.ctor_by_name("Error");
-            let expected = vec![
-                ConstTrue(r(0)),
-                JumpIfTrue(r(0), 6),
-                NewObject(r(1), cls_id),
-                ConstString(r(2), "assert failed".to_string()),
-                InvokeDirectVoid(ctor_id, r(1), 2),
-                Throw(r(1)),
-                RetVoid,
-            ];
-            assert_eq!(expected, code);
-        },
-    );
+    gen("fun f() { assert(true); }", |vm, code| {
+        let cls_id = vm.cls_def_by_name("Error");
+        let ctor_id = vm.ctor_by_name("Error");
+        let expected = vec![
+            ConstTrue(r(0)),
+            JumpIfTrue(r(0), 6),
+            NewObject(r(1), cls_id),
+            ConstString(r(2), "assert failed".to_string()),
+            InvokeDirectVoid(ctor_id, r(1), 2),
+            Throw(r(1)),
+            RetVoid,
+        ];
+        assert_eq!(expected, code);
+    });
 }
 
 #[test]
 fn gen_throw() {
+    gen("fun f() { throw Exception(\"exception\"); }", |vm, code| {
+        let cls_id = vm.cls_def_by_name("Exception");
+        let ctor_id = vm.ctor_by_name("Exception");
+        let expected = vec![
+            NewObject(r(0), cls_id),
+            ConstString(r(1), "exception".to_string()),
+            InvokeDirectVoid(ctor_id, r(0), 2),
+            Throw(r(0)),
+            RetVoid,
+        ];
+        assert_eq!(expected, code);
+    });
+}
+
+#[test]
+fn gen_position_throw() {
     gen_fct(
-        "
-            fun f() { throw Exception(\"exception\"); }
-            ",
-        |vm, code, fct| {
-            let cls_id = vm.cls_def_by_name("Exception");
-            let ctor_id = vm.ctor_by_name("Exception");
+        "fun f() { throw Exception(\"exception\"); }",
+        |_vm, _code, fct| {
             let expected = vec![
-                NewObject(r(0), cls_id),
-                ConstString(r(1), "exception".to_string()),
-                InvokeDirectVoid(ctor_id, r(0), 2),
-                Throw(r(0)),
-                RetVoid,
+                (0, p(1, 26)),
+                (3, p(1, 27)),
+                (6, p(1, 26)),
+                (10, p(1, 11)),
+                (12, p(1, 11)),
             ];
-            let expected_position = vec![(0, p(2, 38)), (6, p(2, 38)), (10, p(2, 23))];
-            assert_eq!(expected, code);
-            assert_eq!(expected_position, fct.positions().to_vec());
+            assert_eq!(expected, fct.positions().to_vec());
         },
     );
 }
