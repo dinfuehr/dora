@@ -120,6 +120,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     // TODO - implement other statements
     fn visit_stmt(&mut self, stmt: &Stmt) {
+        self.gen.set_position(stmt.pos());
         match *stmt {
             StmtReturn(ref ret) => self.visit_stmt_return(ret),
             StmtBreak(ref stmt) => self.visit_stmt_break(stmt),
@@ -222,6 +223,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     // TODO - implement other expressions
     fn visit_expr(&mut self, expr: &Expr, dest: DataDest) -> Register {
+        self.gen.set_position(expr.pos());
         match *expr {
             ExprUn(ref un) => self.visit_expr_un(un, dest),
             ExprBin(ref bin) => self.visit_expr_bin(bin, dest),
@@ -330,7 +332,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let lbl_assert = self.gen.create_label();
 
         let assert_reg = self.visit_expr(&*expr.args[0], DataDest::Alloc);
-
+        self.gen.set_position(expr.pos);
         self.gen.emit_jump_if_true(assert_reg, lbl_assert);
 
         let cls_id = self.vm.vips.error_class;
@@ -355,18 +357,15 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let start_reg = self.gen.add_register_chain(&arg_types);
         let cls_id = specialize_class_id_params(self.vm, cls_id, &TypeList::Empty);
 
-        self.gen.set_position(expr.pos);
         self.gen.emit_new_object(start_reg, cls_id);
 
         let error_string_reg = start_reg.offset(1);
         self.gen
             .emit_const_string(error_string_reg, "assert failed".to_string());
 
-        self.gen.set_position(expr.pos);
         self.gen
             .emit_invoke_direct_void(fct_id, start_reg, num_args);
 
-        self.gen.set_position(expr.pos);
         self.gen.emit_throw(start_reg);
 
         self.gen.bind_label(lbl_assert);
@@ -426,8 +425,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         let arg_start_reg = if let CallType::CtorNew(ty, _) = &*call_type {
             let cls_id = specialize_class_ty(self.vm, *ty);
-
-            self.gen.set_position(expr.pos);
             self.gen.emit_new_object(start_reg, cls_id);
             start_reg.offset(1)
         } else if callee.has_self() {
@@ -444,10 +441,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             let arg_reg = arg_start_reg.offset(idx);
             self.visit_expr(arg, DataDest::Reg(arg_reg));
         }
+        self.gen.set_position(expr.pos);
 
         match *call_type {
             CallType::Ctor(_, _) | CallType::CtorNew(_, _) => {
-                self.gen.set_position(expr.pos);
                 self.gen
                     .emit_invoke_direct_void(callee_id, start_reg, num_args);
             }
@@ -457,13 +454,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
             CallType::Fct(_, _, _) => {
                 if return_type.is_unit() {
-                    self.gen.set_position(expr.pos);
                     self.gen
                         .emit_invoke_static_void(callee_id, start_reg, num_args);
                 } else {
                     let return_type: BytecodeType = return_type.into();
 
-                    self.gen.set_position(expr.pos);
                     match return_type.into() {
                         BytecodeType::Bool => self
                             .gen

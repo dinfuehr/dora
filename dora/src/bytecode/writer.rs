@@ -25,6 +25,7 @@ pub struct BytecodeWriter {
     const_pool: Vec<ConstPoolEntry>,
 
     positions: PositionTable,
+    position: Position,
 }
 
 impl BytecodeWriter {
@@ -41,6 +42,7 @@ impl BytecodeWriter {
             const_pool: Vec::new(),
 
             positions: PositionTable::new(),
+            position: Position { line: 0, column: 0 },
         }
     }
 
@@ -992,8 +994,7 @@ impl BytecodeWriter {
     }
 
     pub fn set_position(&mut self, pos: Position) {
-        let offset = self.code.len() as u32;
-        self.positions.insert(offset, pos);
+        self.position = pos;
     }
 
     fn emit_op(&mut self, inst: BytecodeOpcode) {
@@ -1002,6 +1003,9 @@ impl BytecodeWriter {
     }
 
     fn emit_values(&mut self, values: &[u32]) {
+        let offset = self.code.len() as u32;
+        self.positions.insert(offset, self.position);
+
         let is_wide = values.iter().any(|&val| val > u8::max_value() as u32);
 
         if is_wide {
