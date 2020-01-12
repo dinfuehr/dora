@@ -281,7 +281,27 @@ pub enum BytecodeOpcode {
 impl BytecodeOpcode {
     pub fn need_position(&self) -> bool {
         match *self {
-            BytecodeOpcode::InvokeDirectVoid
+            BytecodeOpcode::DivInt
+            | BytecodeOpcode::DivLong
+            | BytecodeOpcode::ModInt
+            | BytecodeOpcode::ModLong
+            | BytecodeOpcode::LoadFieldBool
+            | BytecodeOpcode::LoadFieldByte
+            | BytecodeOpcode::LoadFieldChar
+            | BytecodeOpcode::LoadFieldInt
+            | BytecodeOpcode::LoadFieldLong
+            | BytecodeOpcode::LoadFieldFloat
+            | BytecodeOpcode::LoadFieldDouble
+            | BytecodeOpcode::LoadFieldPtr
+            | BytecodeOpcode::StoreFieldBool
+            | BytecodeOpcode::StoreFieldByte
+            | BytecodeOpcode::StoreFieldChar
+            | BytecodeOpcode::StoreFieldInt
+            | BytecodeOpcode::StoreFieldLong
+            | BytecodeOpcode::StoreFieldFloat
+            | BytecodeOpcode::StoreFieldDouble
+            | BytecodeOpcode::StoreFieldPtr
+            | BytecodeOpcode::InvokeDirectVoid
             | BytecodeOpcode::InvokeDirectBool
             | BytecodeOpcode::InvokeDirectByte
             | BytecodeOpcode::InvokeDirectChar

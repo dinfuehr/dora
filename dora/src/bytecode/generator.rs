@@ -1,3 +1,4 @@
+use dora_parser::lexer::position::Position;
 use std::collections::HashMap;
 
 use dora_parser::ast::Expr::*;
@@ -311,6 +312,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         let dest = self.ensure_register(dest, ty);
         let obj = self.visit_expr(&expr.lhs, DataDest::Alloc);
+
+        self.gen.set_position(expr.pos);
 
         match ty {
             BytecodeType::Byte => self.gen.emit_load_field_byte(dest, obj, cls_id, field_id),
@@ -736,7 +739,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         } else if expr.op == BinOp::And {
             self.emit_bin_and(expr, dest)
         } else if let Some(intrinsic) = self.get_intrinsic(expr.id) {
-            self.emit_intrinsic_bin(&expr.lhs, &expr.rhs, intrinsic, expr.op, dest)
+            self.emit_intrinsic_bin(&expr.lhs, &expr.rhs, intrinsic, expr.op, expr.pos, dest)
         } else {
             unimplemented!();
         }
@@ -816,6 +819,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         rhs: &Expr,
         intrinsic: Intrinsic,
         op: BinOp,
+        pos: Position,
         dest: DataDest,
     ) -> Register {
         let result_type = match intrinsic {
@@ -850,6 +854,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         let lhs_reg = self.visit_expr(lhs, DataDest::Alloc);
         let rhs_reg = self.visit_expr(rhs, DataDest::Alloc);
+        self.gen.set_position(pos);
         match intrinsic {
             Intrinsic::IntAdd => self.gen.emit_add_int(dest, lhs_reg, rhs_reg),
             Intrinsic::IntSub => self.gen.emit_sub_int(dest, lhs_reg, rhs_reg),
@@ -942,6 +947,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
                     let src = self.visit_expr(&expr.rhs, DataDest::Alloc);
                     let obj = self.visit_expr(&dot.lhs, DataDest::Alloc);
+
+                    self.gen.set_position(expr.pos);
+
                     match ty {
                         BytecodeType::Byte => {
                             self.gen.emit_store_field_byte(src, obj, cls_id, field_id)
