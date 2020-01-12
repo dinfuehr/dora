@@ -1,4 +1,3 @@
-use dora_parser::lexer::position::Position;
 use std::collections::HashMap;
 
 use dora_parser::ast::Expr::*;
@@ -121,7 +120,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     // TODO - implement other statements
     fn visit_stmt(&mut self, stmt: &Stmt) {
-        self.gen.set_position(stmt.pos());
         match *stmt {
             StmtReturn(ref ret) => self.visit_stmt_return(ret),
             StmtBreak(ref stmt) => self.visit_stmt_break(stmt),
@@ -224,7 +222,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     // TODO - implement other expressions
     fn visit_expr(&mut self, expr: &Expr, dest: DataDest) -> Register {
-        self.gen.set_position(expr.pos());
         match *expr {
             ExprUn(ref un) => self.visit_expr_un(un, dest),
             ExprBin(ref bin) => self.visit_expr_bin(bin, dest),
@@ -264,11 +261,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             let end_lbl = self.gen.create_label();
 
             let cond_reg = self.visit_expr(&expr.cond, DataDest::Alloc);
-            self.gen.set_position(expr.pos);
             self.gen.emit_jump_if_false(cond_reg, else_lbl);
 
             self.visit_expr(&expr.then_block, DataDest::Reg(dest));
-            self.gen.set_position(expr.pos);
             self.gen.emit_jump(end_lbl);
 
             self.gen.bind_label(else_lbl);
@@ -277,7 +272,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         } else {
             let end_lbl = self.gen.create_label();
             let cond_reg = self.visit_expr(&expr.cond, DataDest::Alloc);
-            self.gen.set_position(expr.pos);
             self.gen.emit_jump_if_false(cond_reg, end_lbl);
             self.visit_expr(&expr.then_block, DataDest::Reg(dest));
             self.gen.bind_label(end_lbl);
@@ -318,7 +312,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let dest = self.ensure_register(dest, ty);
         let obj = self.visit_expr(&expr.lhs, DataDest::Alloc);
 
-        self.gen.set_position(expr.pos);
         match ty {
             BytecodeType::Byte => self.gen.emit_load_field_byte(dest, obj, cls_id, field_id),
             BytecodeType::Bool => self.gen.emit_load_field_bool(dest, obj, cls_id, field_id),
@@ -337,7 +330,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let lbl_assert = self.gen.create_label();
 
         let assert_reg = self.visit_expr(&*expr.args[0], DataDest::Alloc);
-        self.gen.set_position(expr.pos);
         self.gen.emit_jump_if_true(assert_reg, lbl_assert);
 
         let cls_id = self.vm.vips.error_class;
@@ -362,6 +354,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let start_reg = self.gen.add_register_chain(&arg_types);
         let cls_id = specialize_class_id_params(self.vm, cls_id, &TypeList::Empty);
 
+        self.gen.set_position(expr.pos);
         self.gen.emit_new_object(start_reg, cls_id);
 
         let error_string_reg = start_reg.offset(1);
@@ -427,7 +420,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         } else {
             Register::zero()
         };
-
+        self.gen.set_position(expr.pos);
         let arg_start_reg = if let CallType::CtorNew(ty, _) = &*call_type {
             let cls_id = specialize_class_ty(self.vm, *ty);
             self.gen.emit_new_object(start_reg, cls_id);
@@ -705,7 +698,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 Intrinsic::IntNeg => {
                     let dest = self.ensure_register(dest, BytecodeType::Int);
                     let src = self.visit_expr(&expr.opnd, DataDest::Alloc);
-                    self.gen.set_position(expr.pos);
                     self.gen.emit_neg_int(dest, src);
 
                     dest
@@ -714,7 +706,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 Intrinsic::LongNeg => {
                     let dest = self.ensure_register(dest, BytecodeType::Long);
                     let src = self.visit_expr(&expr.opnd, DataDest::Alloc);
-                    self.gen.set_position(expr.pos);
                     self.gen.emit_neg_long(dest, src);
 
                     dest
@@ -723,7 +714,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 Intrinsic::BoolNot => {
                     let dest = self.ensure_register(dest, BytecodeType::Bool);
                     let src = self.visit_expr(&expr.opnd, DataDest::Alloc);
-                    self.gen.set_position(expr.pos);
                     self.gen.emit_not_bool(dest, src);
 
                     dest
@@ -746,7 +736,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         } else if expr.op == BinOp::And {
             self.emit_bin_and(expr, dest)
         } else if let Some(intrinsic) = self.get_intrinsic(expr.id) {
-            self.emit_intrinsic_bin(&expr.lhs, &expr.rhs, intrinsic, expr.op, expr.pos, dest)
+            self.emit_intrinsic_bin(&expr.lhs, &expr.rhs, intrinsic, expr.op, dest)
         } else {
             unimplemented!();
         }
@@ -763,7 +753,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         let lhs_reg = self.visit_expr(&expr.lhs, DataDest::Alloc);
         let rhs_reg = self.visit_expr(&expr.rhs, DataDest::Alloc);
-        self.gen.set_position(expr.pos);
         if expr.op == BinOp::Cmp(CmpOp::Is) {
             self.gen.emit_test_eq_ptr(dest, lhs_reg, rhs_reg);
         } else {
@@ -779,7 +768,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             let dest = self.gen.add_register(BytecodeType::Bool);
 
             self.visit_expr(&expr.lhs, DataDest::Reg(dest));
-            self.gen.set_position(expr.pos);
             self.gen.emit_jump_if_true(dest, end_lbl);
             self.visit_expr(&expr.rhs, DataDest::Effect);
             self.gen.bind_label(end_lbl);
@@ -790,7 +778,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             let dest = self.ensure_register(dest, BytecodeType::Bool);
 
             self.visit_expr(&expr.lhs, DataDest::Reg(dest));
-            self.gen.set_position(expr.pos);
             self.gen.emit_jump_if_true(dest, end_lbl);
             self.visit_expr(&expr.rhs, DataDest::Reg(dest));
             self.gen.bind_label(end_lbl);
@@ -805,7 +792,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             let dest = self.gen.add_register(BytecodeType::Bool);
 
             self.visit_expr(&expr.lhs, DataDest::Reg(dest));
-            self.gen.set_position(expr.pos);
             self.gen.emit_jump_if_false(dest, end_lbl);
             self.visit_expr(&expr.rhs, DataDest::Effect);
             self.gen.bind_label(end_lbl);
@@ -816,7 +802,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             let dest = self.ensure_register(dest, BytecodeType::Bool);
 
             self.visit_expr(&expr.lhs, DataDest::Reg(dest));
-            self.gen.set_position(expr.pos);
             self.gen.emit_jump_if_false(dest, end_lbl);
             self.visit_expr(&expr.rhs, DataDest::Reg(dest));
             self.gen.bind_label(end_lbl);
@@ -831,7 +816,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         rhs: &Expr,
         intrinsic: Intrinsic,
         op: BinOp,
-        pos: Position,
         dest: DataDest,
     ) -> Register {
         let result_type = match intrinsic {
@@ -866,7 +850,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         let lhs_reg = self.visit_expr(lhs, DataDest::Alloc);
         let rhs_reg = self.visit_expr(rhs, DataDest::Alloc);
-        self.gen.set_position(pos);
         match intrinsic {
             Intrinsic::IntAdd => self.gen.emit_add_int(dest, lhs_reg, rhs_reg),
             Intrinsic::IntSub => self.gen.emit_sub_int(dest, lhs_reg, rhs_reg),
@@ -959,7 +942,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
                     let src = self.visit_expr(&expr.rhs, DataDest::Alloc);
                     let obj = self.visit_expr(&dot.lhs, DataDest::Alloc);
-                    self.gen.set_position(expr.pos);
                     match ty {
                         BytecodeType::Byte => {
                             self.gen.emit_store_field_byte(src, obj, cls_id, field_id)

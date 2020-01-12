@@ -278,6 +278,43 @@ pub enum BytecodeOpcode {
     RetPtr,
 }
 
+impl BytecodeOpcode {
+    pub fn need_position(&self) -> bool {
+        match *self {
+            BytecodeOpcode::InvokeDirectVoid
+            | BytecodeOpcode::InvokeDirectBool
+            | BytecodeOpcode::InvokeDirectByte
+            | BytecodeOpcode::InvokeDirectChar
+            | BytecodeOpcode::InvokeDirectInt
+            | BytecodeOpcode::InvokeDirectLong
+            | BytecodeOpcode::InvokeDirectFloat
+            | BytecodeOpcode::InvokeDirectDouble
+            | BytecodeOpcode::InvokeDirectPtr
+            | BytecodeOpcode::InvokeVirtualVoid
+            | BytecodeOpcode::InvokeVirtualBool
+            | BytecodeOpcode::InvokeVirtualByte
+            | BytecodeOpcode::InvokeVirtualChar
+            | BytecodeOpcode::InvokeVirtualInt
+            | BytecodeOpcode::InvokeVirtualLong
+            | BytecodeOpcode::InvokeVirtualFloat
+            | BytecodeOpcode::InvokeVirtualDouble
+            | BytecodeOpcode::InvokeVirtualPtr
+            | BytecodeOpcode::InvokeStaticVoid
+            | BytecodeOpcode::InvokeStaticBool
+            | BytecodeOpcode::InvokeStaticByte
+            | BytecodeOpcode::InvokeStaticChar
+            | BytecodeOpcode::InvokeStaticInt
+            | BytecodeOpcode::InvokeStaticLong
+            | BytecodeOpcode::InvokeStaticFloat
+            | BytecodeOpcode::InvokeStaticDouble
+            | BytecodeOpcode::InvokeStaticPtr
+            | BytecodeOpcode::NewObject
+            | BytecodeOpcode::Throw => true,
+            _ => false,
+        }
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Register(pub usize);
 
@@ -371,10 +408,11 @@ impl BytecodeFunction {
     }
 
     pub fn offset_position(&self, offset: u32) -> Position {
-        let index = self
-            .positions
-            .binary_search_by_key(&offset, |&(o, _)| o)
-            .expect("position not found");
+        let index = self.positions.binary_search_by_key(&offset, |&(o, _)| o);
+        let index = match index {
+            Err(index) => index - 1,
+            Ok(index) => index,
+        };
         self.positions[index].1
     }
 }

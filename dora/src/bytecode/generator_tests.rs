@@ -1205,13 +1205,7 @@ fn gen_position_throw() {
     gen_fct(
         "fun f() { throw Exception(\"exception\"); }",
         |_vm, _code, fct| {
-            let expected = vec![
-                (0, p(1, 26)),
-                (3, p(1, 27)),
-                (6, p(1, 26)),
-                (10, p(1, 11)),
-                (12, p(1, 11)),
-            ];
+            let expected = vec![(0, p(1, 26)), (10, p(1, 11))];
             assert_eq!(expected, fct.positions().to_vec());
         },
     );

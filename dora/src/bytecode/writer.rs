@@ -25,7 +25,7 @@ pub struct BytecodeWriter {
     const_pool: Vec<ConstPoolEntry>,
 
     positions: Vec<(u32, Position)>,
-    position: Position,
+    position: Option<Position>,
 }
 
 impl BytecodeWriter {
@@ -42,7 +42,7 @@ impl BytecodeWriter {
             const_pool: Vec::new(),
 
             positions: Vec::new(),
-            position: Position { line: 0, column: 0 },
+            position: None,
         }
     }
 
@@ -902,32 +902,31 @@ impl BytecodeWriter {
 
     fn emit_reg3(&mut self, inst: BytecodeOpcode, r1: Register, r2: Register, r3: Register) {
         let values = [
-            inst as u32,
             r1.to_usize() as u32,
             r2.to_usize() as u32,
             r3.to_usize() as u32,
         ];
-        self.emit_values(&values);
+        self.emit_values(inst, &values);
     }
 
     fn emit_reg2(&mut self, inst: BytecodeOpcode, r1: Register, r2: Register) {
-        let values = [inst as u32, r1.to_usize() as u32, r2.to_usize() as u32];
-        self.emit_values(&values);
+        let values = [r1.to_usize() as u32, r2.to_usize() as u32];
+        self.emit_values(inst, &values);
     }
 
     fn emit_reg1(&mut self, inst: BytecodeOpcode, r1: Register) {
-        let values = [inst as u32, r1.to_usize() as u32];
-        self.emit_values(&values);
+        let values = [r1.to_usize() as u32];
+        self.emit_values(inst, &values);
     }
 
     fn emit_reg1_idx(&mut self, inst: BytecodeOpcode, r1: Register, idx: ConstPoolIdx) {
-        let values = [inst as u32, r1.to_usize() as u32, idx.to_usize() as u32];
-        self.emit_values(&values);
+        let values = [r1.to_usize() as u32, idx.to_usize() as u32];
+        self.emit_values(inst, &values);
     }
 
     fn emit_reg1_byte(&mut self, inst: BytecodeOpcode, r1: Register, value: u8) {
-        let values = [inst as u32, r1.to_usize() as u32];
-        self.emit_values(&values);
+        let values = [r1.to_usize() as u32];
+        self.emit_values(inst, &values);
         self.emit_u8(value);
     }
 
@@ -938,18 +937,13 @@ impl BytecodeWriter {
     }
 
     fn emit_new(&mut self, inst: BytecodeOpcode, r1: Register, cid: ClassDefId) {
-        let values = [inst as u32, r1.to_usize() as u32, cid.to_usize() as u32];
-        self.emit_values(&values);
+        let values = [r1.to_usize() as u32, cid.to_usize() as u32];
+        self.emit_values(inst, &values);
     }
 
     fn emit_fct_void(&mut self, inst: BytecodeOpcode, fid: FctId, r1: Register, cnt: usize) {
-        let values = [
-            inst as u32,
-            fid.to_usize() as u32,
-            r1.to_usize() as u32,
-            cnt as u32,
-        ];
-        self.emit_values(&values);
+        let values = [fid.to_usize() as u32, r1.to_usize() as u32, cnt as u32];
+        self.emit_values(inst, &values);
     }
 
     fn emit_fct(
@@ -961,13 +955,12 @@ impl BytecodeWriter {
         cnt: usize,
     ) {
         let values = [
-            inst as u32,
             r1.to_usize() as u32,
             fid.to_usize() as u32,
             r2.to_usize() as u32,
             cnt as u32,
         ];
-        self.emit_values(&values);
+        self.emit_values(inst, &values);
     }
 
     fn emit_access_field(
@@ -979,46 +972,62 @@ impl BytecodeWriter {
         fid: FieldId,
     ) {
         let values = [
-            inst as u32,
             r1.to_usize() as u32,
             r2.to_usize() as u32,
             cid.to_usize() as u32,
             fid.to_usize() as u32,
         ];
-        self.emit_values(&values);
+        self.emit_values(inst, &values);
     }
 
     fn emit_load_global(&mut self, inst: BytecodeOpcode, r1: Register, gid: GlobalId) {
-        let values = [inst as u32, r1.to_usize() as u32, gid.to_usize() as u32];
-        self.emit_values(&values);
+        let values = [r1.to_usize() as u32, gid.to_usize() as u32];
+        self.emit_values(inst, &values);
     }
 
     pub fn set_position(&mut self, pos: Position) {
-        self.position = pos;
+        self.position = Some(pos);
     }
 
     fn emit_op(&mut self, inst: BytecodeOpcode) {
-        let values = [inst as u32];
-        self.emit_values(&values);
+        let values = [];
+        self.emit_values(inst, &values);
     }
 
     fn emit_position(&mut self) {
         let offset = self.code.len() as u32;
-        let position = (offset, self.position);
-        self.positions.push(position);
+        if self.position.is_none() {
+            return;
+        }
+
+        let position = self.position.unwrap();
+        let last_position = self.positions.last().map(|(_, p)| p);
+
+        if let Some(last_position) = last_position {
+            if *last_position == position {
+                return;
+            }
+        }
+
+        self.positions.push((offset, position));
+        self.position = None;
     }
 
-    fn emit_values(&mut self, values: &[u32]) {
-        self.emit_position();
+    fn emit_values(&mut self, op: BytecodeOpcode, values: &[u32]) {
+        if op.need_position() {
+            self.emit_position();
+        }
 
         let is_wide = values.iter().any(|&val| val > u8::max_value() as u32);
 
         if is_wide {
             self.emit_wide();
+            self.emit_u32(op as u32);
             for &value in values {
                 self.emit_u32(value);
             }
         } else {
+            self.emit_u8(op as u8);
             for &value in values {
                 self.emit_u8(value as u8);
             }
@@ -1067,7 +1076,7 @@ impl BytecodeWriter {
     }
 
     fn emit_jmp(&mut self, inst: BytecodeOpcode, offset: u32) {
-        self.emit_values(&[inst as u32, offset]);
+        self.emit_values(inst, &[offset]);
     }
 
     fn bytecode_at(&self, offset: BytecodeOffset) -> BytecodeOpcode {
