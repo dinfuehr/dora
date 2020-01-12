@@ -409,12 +409,15 @@ where
 
         let bytecode_type = self.bytecode.register_type(dest);
         let offset = self.bytecode.register_offset(dest);
+
+        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+
         self.asm.int_div(
             bytecode_type.mode(),
             REG_RESULT,
             REG_RESULT,
             REG_TMP1,
-            Position::new(1, 1),
+            position,
         );
 
         self.asm
@@ -472,12 +475,15 @@ where
 
         let bytecode_type = self.bytecode.register_type(dest);
         let offset = self.bytecode.register_offset(dest);
+
+        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+
         self.asm.int_mod(
             bytecode_type.mode(),
             REG_RESULT,
             REG_RESULT,
             REG_TMP1,
-            Position::new(1, 1),
+            position,
         );
 
         self.asm
