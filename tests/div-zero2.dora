@@ -1,0 +1,10 @@
+//= error div0
+//= output "division by 0\n2: divide(Long) -> Long: 9\n1: main(): 5\n"
+
+fun main() {
+    divide(0L);
+}
+
+fun divide(x: Long) -> Long {
+    4711L / x
+}
