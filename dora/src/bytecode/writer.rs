@@ -1018,7 +1018,8 @@ impl BytecodeWriter {
             self.emit_position();
         }
 
-        let is_wide = values.iter().any(|&val| val > u8::max_value() as u32);
+        let is_wide = op as u32 > u8::max_value() as u32
+            || values.iter().any(|&val| val > u8::max_value() as u32);
 
         if is_wide {
             self.emit_wide();
