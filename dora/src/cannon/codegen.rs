@@ -410,8 +410,13 @@ where
 
         let bytecode_type = self.bytecode.register_type(dest);
         let offset = self.bytecode.register_offset(dest);
-        self.asm
-            .int_div(bytecode_type.mode(), REG_RESULT, REG_RESULT, REG_TMP1);
+        self.asm.int_div(
+            bytecode_type.mode(),
+            REG_RESULT,
+            REG_RESULT,
+            REG_TMP1,
+            Position::new(1, 1),
+        );
 
         self.asm
             .store_mem(bytecode_type.mode(), Mem::Local(offset), REG_RESULT.into());
@@ -468,8 +473,13 @@ where
 
         let bytecode_type = self.bytecode.register_type(dest);
         let offset = self.bytecode.register_offset(dest);
-        self.asm
-            .int_mod(bytecode_type.mode(), REG_RESULT, REG_RESULT, REG_TMP1);
+        self.asm.int_mod(
+            bytecode_type.mode(),
+            REG_RESULT,
+            REG_RESULT,
+            REG_TMP1,
+            Position::new(1, 1),
+        );
 
         self.asm
             .store_mem(bytecode_type.mode(), Mem::Local(offset), REG_RESULT.into());

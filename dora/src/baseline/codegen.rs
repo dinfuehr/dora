@@ -2399,8 +2399,14 @@ where
             Intrinsic::IntAdd => self.asm.int_add(MachineMode::Int32, dest, lhs, rhs),
             Intrinsic::IntSub => self.asm.int_sub(MachineMode::Int32, dest, lhs, rhs),
             Intrinsic::IntMul => self.asm.int_mul(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntDiv => self.asm.int_div(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntMod => self.asm.int_mod(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::IntDiv => {
+                self.asm
+                    .int_div(MachineMode::Int32, dest, lhs, rhs, Position::new(1, 1))
+            }
+            Intrinsic::IntMod => {
+                self.asm
+                    .int_mod(MachineMode::Int32, dest, lhs, rhs, Position::new(1, 1))
+            }
 
             Intrinsic::IntOr => self.asm.int_or(MachineMode::Int32, dest, lhs, rhs),
             Intrinsic::IntAnd => self.asm.int_and(MachineMode::Int32, dest, lhs, rhs),
@@ -2413,8 +2419,14 @@ where
             Intrinsic::LongAdd => self.asm.int_add(MachineMode::Int64, dest, lhs, rhs),
             Intrinsic::LongSub => self.asm.int_sub(MachineMode::Int64, dest, lhs, rhs),
             Intrinsic::LongMul => self.asm.int_mul(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongDiv => self.asm.int_div(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongMod => self.asm.int_mod(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::LongDiv => {
+                self.asm
+                    .int_div(MachineMode::Int64, dest, lhs, rhs, Position::new(1, 1))
+            }
+            Intrinsic::LongMod => {
+                self.asm
+                    .int_mod(MachineMode::Int64, dest, lhs, rhs, Position::new(1, 1))
+            }
 
             Intrinsic::LongOr => self.asm.int_or(MachineMode::Int64, dest, lhs, rhs),
             Intrinsic::LongAnd => self.asm.int_and(MachineMode::Int64, dest, lhs, rhs),

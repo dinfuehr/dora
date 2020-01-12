@@ -235,11 +235,11 @@ where
         self.masm.int_mul(mode, dest, lhs, rhs);
     }
 
-    pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+    pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, _pos: Position) {
         self.masm.int_div(mode, dest, lhs, rhs);
     }
 
-    pub fn int_mod(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+    pub fn int_mod(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, _pos: Position) {
         self.masm.int_mod(mode, dest, lhs, rhs);
     }
 
