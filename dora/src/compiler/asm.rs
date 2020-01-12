@@ -339,9 +339,9 @@ where
         dest: ExprStore,
         base: Reg,
         offset: i32,
-        line: i32,
+        pos: Position,
     ) {
-        self.masm.load_field(mode, dest, base, offset, line);
+        self.masm.load_field(mode, dest, base, offset, pos);
     }
 
     pub fn store_field(
@@ -350,7 +350,7 @@ where
         base: Reg,
         offset: i32,
         src: ExprStore,
-        line: i32,
+        pos: Position,
         write_barrier: bool,
         card_table_offset: usize,
     ) {
@@ -359,7 +359,7 @@ where
             base,
             offset,
             src,
-            line,
+            pos,
             write_barrier,
             card_table_offset,
         );
@@ -505,8 +505,7 @@ where
         cls_type_params: TypeList,
         dest: ExprStore,
     ) {
-        self.masm
-            .indirect_call(pos.line as i32, index, cls_type_params);
+        self.masm.indirect_call(pos, index, cls_type_params);
         self.call_epilog(pos, return_type, dest, gcpoint);
     }
 

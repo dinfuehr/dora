@@ -135,7 +135,6 @@ pub struct JitBaselineFct {
 
     pub framesize: i32,
     pub bailouts: Bailouts,
-    pub nil_checks: HashSet<i32>,
     gcpoints: GcPoints,
     comments: Comments,
     linenos: LineNumberTable,
@@ -156,7 +155,6 @@ impl JitBaselineFct {
             &dseg,
             buffer,
             Bailouts::new(),
-            HashSet::new(),
             GcPoints::new(),
             0,
             Comments::new(),
@@ -172,7 +170,6 @@ impl JitBaselineFct {
         dseg: &DSeg,
         buffer: &[u8],
         bailouts: Bailouts,
-        nil_checks: HashSet<i32>,
         gcpoints: GcPoints,
         framesize: i32,
         comments: Comments,
@@ -208,7 +205,6 @@ impl JitBaselineFct {
             code_start: ptr,
             code_end: ptr.offset(size as usize),
             bailouts,
-            nil_checks,
             gcpoints,
             comments,
             framesize,
@@ -227,10 +223,6 @@ impl JitBaselineFct {
 
     pub fn gcpoint_for_offset(&self, offset: i32) -> Option<&GcPoint> {
         self.gcpoints.get(offset)
-    }
-
-    pub fn nil_check_for_offset(&self, offset: i32) -> bool {
-        self.nil_checks.contains(&offset)
     }
 
     pub fn ptr_start(&self) -> Address {

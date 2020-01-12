@@ -1113,7 +1113,7 @@ where
 
         self.asm.emit_comment(Comment::LoadField(cls_id, fieldid));
         self.asm
-            .load_field(field.ty.mode(), dest, src, field.offset, pos.line as i32);
+            .load_field(field.ty.mode(), dest, src, field.offset, pos);
     }
 
     fn emit_lit_char(&mut self, lit: &'ast ExprLitCharType, dest: Reg) {
@@ -1445,7 +1445,7 @@ where
                     REG_TMP1,
                     field.offset,
                     reg,
-                    e.pos.line as i32,
+                    e.pos,
                     write_barrier,
                     card_table_offset,
                 );

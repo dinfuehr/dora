@@ -731,9 +731,10 @@ where
         let offset = self.bytecode.register_offset(dest);
 
         let reg = result_reg(bytecode_type);
+        let pos = self.bytecode.offset_position(self.current_offset.to_u32());
 
         self.asm
-            .load_field(field.ty.mode(), reg, REG_RESULT, field.offset, -1);
+            .load_field(field.ty.mode(), reg, REG_RESULT, field.offset, pos);
 
         self.asm
             .store_mem(bytecode_type.mode(), Mem::Local(offset), reg);
@@ -771,13 +772,14 @@ where
 
         let write_barrier = self.vm.gc.needs_write_barrier() && field.ty.reference_type();
         let card_table_offset = self.vm.gc.card_table_offset();
+        let pos = self.bytecode.offset_position(self.current_offset.to_u32());
 
         self.asm.store_field(
             field.ty.mode(),
             REG_TMP1,
             field.offset,
             REG_RESULT.into(),
-            -1,
+            pos,
             write_barrier,
             card_table_offset,
         );

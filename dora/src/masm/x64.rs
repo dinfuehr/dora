@@ -99,11 +99,10 @@ impl MacroAssembler {
         self.call_reg(REG_RESULT);
     }
 
-    pub fn indirect_call(&mut self, line: i32, index: u32, cls_type_params: TypeList) {
+    pub fn indirect_call(&mut self, pos: Position, index: u32, cls_type_params: TypeList) {
         let obj = REG_PARAMS[0];
 
-        self.emit_lineno(line);
-        self.emit_nil_check();
+        self.test_if_nil_bailout(pos, obj, Trap::NIL);
 
         // REG_RESULT = [obj] (load vtable)
         self.load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Base(obj, 0));
@@ -657,10 +656,9 @@ impl MacroAssembler {
         dest: ExprStore,
         base: Reg,
         offset: i32,
-        line: i32,
+        pos: Position,
     ) {
-        self.emit_nil_check();
-        self.emit_lineno_if_missing(line);
+        self.test_if_nil_bailout(pos, base, Trap::NIL);
         self.load_mem(mode, dest, Mem::Base(base, offset));
     }
 
@@ -710,12 +708,11 @@ impl MacroAssembler {
         base: Reg,
         offset: i32,
         src: ExprStore,
-        line: i32,
+        pos: Position,
         write_barrier: bool,
         card_table_offset: usize,
     ) {
-        self.emit_nil_check();
-        self.emit_lineno_if_missing(line);
+        self.test_if_nil_bailout(pos, base, Trap::NIL);
         self.store_mem(mode, Mem::Base(base, offset), src);
 
         if write_barrier {

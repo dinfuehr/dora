@@ -2,9 +2,6 @@ use libc;
 use std;
 use std::mem::MaybeUninit;
 
-use crate::compiler::map::CodeDescriptor;
-use crate::exception::stacktrace_from_es;
-use crate::os;
 use crate::os_cpu::*;
 use crate::safepoint;
 use crate::vm::{get_vm, VM};
@@ -89,14 +86,7 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
 
     let addr = unsafe { (*info).si_addr } as *const u8;
 
-    if detect_nil_check(vm, es.pc, signo, addr) {
-        println!("nil check failed");
-        let stacktrace = stacktrace_from_es(vm, &es);
-        stacktrace.dump(vm);
-        unsafe {
-            libc::_exit(104);
-        }
-    } else if detect_polling_page_check(vm, signo, addr) {
+    if detect_polling_page_check(vm, signo, addr) {
         // polling page read failed => enter safepoint
         safepoint::block(&es);
 
@@ -161,24 +151,6 @@ fn dump_symbol(symbol: &backtrace::Symbol) {
 
     if let Some(lineno) = symbol.lineno() {
         println!("\tlineno: {}", lineno);
-    }
-}
-
-fn detect_nil_check(vm: &VM, pc: usize, signo: libc::c_int, addr: *const u8) -> bool {
-    if signo != libc::SIGSEGV || addr as usize >= os::page_size() as usize {
-        return false;
-    }
-
-    let code_map = vm.code_map.lock();
-
-    if let Some(CodeDescriptor::DoraFct(fid)) = code_map.get(pc.into()) {
-        let jit_fct = vm.jit_fcts.idx(fid);
-        let offset = pc - jit_fct.fct_ptr().to_usize();
-
-        let jit_fct = jit_fct.to_base().expect("baseline expected");
-        jit_fct.nil_check_for_offset(offset as i32)
-    } else {
-        false
     }
 }
 
