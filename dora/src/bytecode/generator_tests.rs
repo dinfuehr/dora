@@ -8,6 +8,7 @@ use crate::bytecode::{
 use crate::test;
 use crate::ty::TypeList;
 use crate::vm::{ClassDefId, FctId, FieldId, GlobalId, VM};
+use dora_parser::lexer::position::Position;
 
 fn code(code: &'static str) -> Vec<Bytecode> {
     test::parse(code, |vm| {
@@ -15,6 +16,15 @@ fn code(code: &'static str) -> Vec<Bytecode> {
         let tp = TypeList::empty();
         let fct = bytecode::generate_fct(vm, fct_id, &tp, &tp);
         build(&fct)
+    })
+}
+
+fn position(code: &'static str) -> Vec<(u32, Position)> {
+    test::parse(code, |vm| {
+        let fct_id = vm.fct_by_name("f").expect("no function `f`.");
+        let tp = TypeList::empty();
+        let fct = bytecode::generate_fct(vm, fct_id, &tp, &tp);
+        fct.positions().to_vec()
     })
 }
 
@@ -44,6 +54,20 @@ where
         let code = build(&fct);
 
         testfct(vm, code);
+    })
+}
+
+fn gen_fct<F>(code: &'static str, testfct: F)
+where
+    F: FnOnce(&VM, Vec<Bytecode>, BytecodeFunction),
+{
+    test::parse(code, |vm| {
+        let fct_id = vm.fct_by_name("f").expect("no function `f`.");
+        let tp = TypeList::empty();
+        let fct = bytecode::generate_fct(vm, fct_id, &tp, &tp);
+        let code = build(&fct);
+
+        testfct(vm, code, fct);
     })
 }
 
@@ -144,6 +168,62 @@ fn gen_load_field_ptr() {
 }
 
 #[test]
+fn gen_position_load_field_byte() {
+    let result = position("class Foo(let bar: Byte) fun f(a: Foo) -> Byte { return a.bar; }");
+    let expected = vec![(0, p(1, 58))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_load_field_bool() {
+    let result = position("class Foo(let bar: Bool) fun f(a: Foo) -> Bool { return a.bar; }");
+    let expected = vec![(0, p(1, 58))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_load_field_char() {
+    let result = position("class Foo(let bar: Char) fun f(a: Foo) -> Char { return a.bar; }");
+    let expected = vec![(0, p(1, 58))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_load_field_int() {
+    let result = position("class Foo(let bar: Int) fun f(a: Foo) -> Int { return a.bar; }");
+    let expected = vec![(0, p(1, 56))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_load_field_long() {
+    let result = position("class Foo(let bar: Long) fun f(a: Foo) -> Long { return a.bar; }");
+    let expected = vec![(0, p(1, 58))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_load_field_float() {
+    let result = position("class Foo(let bar: Float) fun f(a: Foo) -> Float { return a.bar; }");
+    let expected = vec![(0, p(1, 60))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_load_field_double() {
+    let result = position("class Foo(let bar: Double) fun f(a: Foo) -> Double { return a.bar; }");
+    let expected = vec![(0, p(1, 62))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_load_field_ptr() {
+    let result = position("class Foo(let bar: Object) fun f(a: Foo) -> Object { return a.bar; }");
+    let expected = vec![(0, p(1, 62))];
+    assert_eq!(expected, result);
+}
+
+#[test]
 fn gen_store_field_byte() {
     gen(
         "class Foo(var bar: Byte) fun f(a: Foo, b: Byte) { a.bar = b; }",
@@ -240,6 +320,62 @@ fn gen_store_field_ptr() {
 }
 
 #[test]
+fn gen_position_store_field_byte() {
+    let result = position("class Foo(var bar: Byte) fun f(a: Foo, b: Byte) { a.bar = b; }");
+    let expected = vec![(0, p(1, 57))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_store_field_bool() {
+    let result = position("class Foo(var bar: Bool) fun f(a: Foo, b: Bool) { a.bar = b; }");
+    let expected = vec![(0, p(1, 57))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_store_field_char() {
+    let result = position("class Foo(var bar: Char) fun f(a: Foo, b: Char) { a.bar = b; }");
+    let expected = vec![(0, p(1, 57))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_store_field_int() {
+    let result = position("class Foo(var bar: Int) fun f(a: Foo, b: Int) { a.bar = b; }");
+    let expected = vec![(0, p(1, 55))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_store_field_long() {
+    let result = position("class Foo(var bar: Long) fun f(a: Foo, b: Long) { a.bar = b; }");
+    let expected = vec![(0, p(1, 57))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_store_field_float() {
+    let result = position("class Foo(var bar: Float) fun f(a: Foo, b: Float) { a.bar = b; }");
+    let expected = vec![(0, p(1, 59))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_store_field_double() {
+    let result = position("class Foo(var bar: Double) fun f(a: Foo, b: Double) { a.bar = b; }");
+    let expected = vec![(0, p(1, 61))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_store_field_ptr() {
+    let result = position("class Foo(var bar: Object) fun f(a: Foo, b: Object) { a.bar = b; }");
+    let expected = vec![(0, p(1, 61))];
+    assert_eq!(expected, result);
+}
+
+#[test]
 fn gen_add_int() {
     let result = code("fun f() -> Int { return 1 + 2; }");
     let expected = vec![
@@ -309,6 +445,13 @@ fn gen_sub_float() {
 fn gen_div_int() {
     let result = code("fun f(a: Int, b: Int) -> Int { return a / b; }");
     let expected = vec![DivInt(r(2), r(0), r(1)), RetInt(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_div_int() {
+    let result = position("fun f(a: Int, b: Int) -> Int { return a / b; }");
+    let expected = vec![(0, p(1, 41))];
     assert_eq!(expected, result);
 }
 
@@ -562,6 +705,13 @@ fn gen_expr_not() {
 fn gen_expr_mod() {
     let result = code("fun f(a: Int, b: Int) -> Int { return a % b; }");
     let expected = vec![ModInt(r(2), r(0), r(1)), RetInt(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_mod_int() {
+    let result = position("fun f(a: Int, b: Int) -> Int { return a % b; }");
+    let expected = vec![(0, p(1, 41))];
     assert_eq!(expected, result);
 }
 
@@ -961,6 +1111,13 @@ fn gen_new_object() {
 }
 
 #[test]
+fn gen_position_new_object() {
+    let result = position("fun f() -> Object { return Object(); }");
+    let expected = vec![(0, p(1, 34))];
+    assert_eq!(expected, result);
+}
+
+#[test]
 fn gen_new_object_with_multiple_args() {
     gen(
         "
@@ -981,6 +1138,17 @@ fn gen_new_object_with_multiple_args() {
             assert_eq!(expected, code);
         },
     );
+}
+
+#[test]
+fn gen_position_new_object_with_multiple_args() {
+    let result = position(
+        "
+            class Foo(a: Int, b: Int, c: Int)
+            fun f() -> Foo { return Foo(1, 2, 3); }",
+    );
+    let expected = vec![(0, p(3, 40))];
+    assert_eq!(expected, result);
 }
 
 #[test]
@@ -1153,46 +1321,54 @@ fn gen_self_assign_for_string() {
 
 #[test]
 fn gen_assert() {
-    gen(
-        "
-            fun f() { assert(true); }
-            ",
-        |vm, code| {
-            let cls_id = vm.cls_def_by_name("Error");
-            let ctor_id = vm.ctor_by_name("Error");
-            let expected = vec![
-                ConstTrue(r(0)),
-                JumpIfTrue(r(0), 6),
-                NewObject(r(1), cls_id),
-                ConstString(r(2), "assert failed".to_string()),
-                InvokeDirectVoid(ctor_id, r(1), 2),
-                Throw(r(1)),
-                RetVoid,
-            ];
-            assert_eq!(expected, code);
-        },
-    );
+    gen("fun f() { assert(true); }", |vm, code| {
+        let cls_id = vm.cls_def_by_name("Error");
+        let ctor_id = vm.ctor_by_name("Error");
+        let expected = vec![
+            ConstTrue(r(0)),
+            JumpIfTrue(r(0), 6),
+            NewObject(r(1), cls_id),
+            ConstString(r(2), "assert failed".to_string()),
+            InvokeDirectVoid(ctor_id, r(1), 2),
+            Throw(r(1)),
+            RetVoid,
+        ];
+        assert_eq!(expected, code);
+    });
+}
+
+#[test]
+fn gen_position_assert() {
+    let result = position("fun f() { assert(true); }");
+    let expected = vec![(5, p(1, 17))];
+    assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_throw() {
-    gen(
-        "
-            fun f() { throw Exception(\"exception\"); }
-            ",
-        |vm, code| {
-            let cls_id = vm.cls_def_by_name("Exception");
-            let ctor_id = vm.ctor_by_name("Exception");
-            let expected = vec![
-                NewObject(r(0), cls_id),
-                ConstString(r(1), "exception".to_string()),
-                InvokeDirectVoid(ctor_id, r(0), 2),
-                Throw(r(0)),
-                RetVoid,
-            ];
-            assert_eq!(expected, code);
-        },
-    );
+    gen("fun f() { throw Exception(\"exception\"); }", |vm, code| {
+        let cls_id = vm.cls_def_by_name("Exception");
+        let ctor_id = vm.ctor_by_name("Exception");
+        let expected = vec![
+            NewObject(r(0), cls_id),
+            ConstString(r(1), "exception".to_string()),
+            InvokeDirectVoid(ctor_id, r(0), 2),
+            Throw(r(0)),
+            RetVoid,
+        ];
+        assert_eq!(expected, code);
+    });
+}
+
+#[test]
+fn gen_position_throw() {
+    let result = position("fun f() { throw Exception(\"exception\"); }");
+    let expected = vec![(0, p(1, 26)), (10, p(1, 11))];
+    assert_eq!(expected, result);
+}
+
+fn p(line: u32, column: u32) -> Position {
+    Position { line, column }
 }
 
 fn r(val: usize) -> Register {

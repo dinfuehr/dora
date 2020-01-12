@@ -1,3 +1,4 @@
+use dora_parser::lexer::position::Position;
 use std::collections::HashMap;
 
 use dora_parser::ast::Expr::*;
@@ -173,6 +174,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     fn visit_stmt_throw(&mut self, stmt: &StmtThrowType) {
         let exception_reg = self.visit_expr(&stmt.expr, DataDest::Alloc);
+        self.gen.set_position(stmt.pos);
         self.gen.emit_throw(exception_reg);
     }
 
@@ -291,9 +293,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
     }
 
-    fn visit_expr_dot(&mut self, e: &ExprDotType, dest: DataDest) -> Register {
+    fn visit_expr_dot(&mut self, expr: &ExprDotType, dest: DataDest) -> Register {
         let (class, field_id) = {
-            let ident_type = self.src.map_idents.get(e.id).unwrap();
+            let ident_type = self.src.map_idents.get(expr.id).unwrap();
 
             match ident_type {
                 &IdentType::Field(class, field) => (class, field),
@@ -309,7 +311,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let ty: BytecodeType = field.ty.into();
 
         let dest = self.ensure_register(dest, ty);
-        let obj = self.visit_expr(&e.lhs, DataDest::Alloc);
+        let obj = self.visit_expr(&expr.lhs, DataDest::Alloc);
+
+        self.gen.set_position(expr.pos);
 
         match ty {
             BytecodeType::Byte => self.gen.emit_load_field_byte(dest, obj, cls_id, field_id),
@@ -329,7 +333,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let lbl_assert = self.gen.create_label();
 
         let assert_reg = self.visit_expr(&*expr.args[0], DataDest::Alloc);
-
         self.gen.emit_jump_if_true(assert_reg, lbl_assert);
 
         let cls_id = self.vm.vips.error_class;
@@ -353,7 +356,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         let start_reg = self.gen.add_register_chain(&arg_types);
         let cls_id = specialize_class_id_params(self.vm, cls_id, &TypeList::Empty);
+
+        self.gen.set_position(expr.pos);
         self.gen.emit_new_object(start_reg, cls_id);
+
         let error_string_reg = start_reg.offset(1);
         self.gen
             .emit_const_string(error_string_reg, "assert failed".to_string());
@@ -417,7 +423,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         } else {
             Register::zero()
         };
-
+        self.gen.set_position(expr.pos);
         let arg_start_reg = if let CallType::CtorNew(ty, _) = &*call_type {
             let cls_id = specialize_class_ty(self.vm, *ty);
             self.gen.emit_new_object(start_reg, cls_id);
@@ -436,6 +442,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             let arg_reg = arg_start_reg.offset(idx);
             self.visit_expr(arg, DataDest::Reg(arg_reg));
         }
+        self.gen.set_position(expr.pos);
 
         match *call_type {
             CallType::Ctor(_, _) | CallType::CtorNew(_, _) => {
@@ -525,6 +532,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             self.visit_expr(arg, DataDest::Reg(arg_reg));
         }
 
+        self.gen.set_position(expr.pos);
         match *call_type {
             CallType::Ctor(_, _) => {
                 self.gen
@@ -721,35 +729,34 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
     }
 
-    fn visit_expr_bin(&mut self, e: &ExprBinType, dest: DataDest) -> Register {
-        if e.op.is_any_assign() {
-            self.visit_expr_assign(e, dest)
-        } else if e.op == BinOp::Cmp(CmpOp::Is) || e.op == BinOp::Cmp(CmpOp::IsNot) {
-            self.emit_bin_is(e, dest)
-        } else if e.op == BinOp::Or {
-            self.emit_bin_or(e, dest)
-        } else if e.op == BinOp::And {
-            self.emit_bin_and(e, dest)
-        } else if let Some(intrinsic) = self.get_intrinsic(e.id) {
-            self.emit_intrinsic_bin(&e.lhs, &e.rhs, intrinsic, e.op, dest)
+    fn visit_expr_bin(&mut self, expr: &ExprBinType, dest: DataDest) -> Register {
+        if expr.op.is_any_assign() {
+            self.visit_expr_assign(expr, dest)
+        } else if expr.op == BinOp::Cmp(CmpOp::Is) || expr.op == BinOp::Cmp(CmpOp::IsNot) {
+            self.emit_bin_is(expr, dest)
+        } else if expr.op == BinOp::Or {
+            self.emit_bin_or(expr, dest)
+        } else if expr.op == BinOp::And {
+            self.emit_bin_and(expr, dest)
+        } else if let Some(intrinsic) = self.get_intrinsic(expr.id) {
+            self.emit_intrinsic_bin(&expr.lhs, &expr.rhs, intrinsic, expr.op, expr.pos, dest)
         } else {
             unimplemented!();
         }
     }
 
-    fn emit_bin_is(&mut self, e: &ExprBinType, dest: DataDest) -> Register {
+    fn emit_bin_is(&mut self, expr: &ExprBinType, dest: DataDest) -> Register {
         if dest.is_effect() {
-            self.visit_expr(&e.lhs, dest);
-            self.visit_expr(&e.rhs, dest);
+            self.visit_expr(&expr.lhs, dest);
+            self.visit_expr(&expr.rhs, dest);
             return Register::invalid();
         }
 
         let dest = self.ensure_register(dest, BytecodeType::Bool);
 
-        let lhs_reg = self.visit_expr(&e.lhs, DataDest::Alloc);
-        let rhs_reg = self.visit_expr(&e.rhs, DataDest::Alloc);
-
-        if e.op == BinOp::Cmp(CmpOp::Is) {
+        let lhs_reg = self.visit_expr(&expr.lhs, DataDest::Alloc);
+        let rhs_reg = self.visit_expr(&expr.rhs, DataDest::Alloc);
+        if expr.op == BinOp::Cmp(CmpOp::Is) {
             self.gen.emit_test_eq_ptr(dest, lhs_reg, rhs_reg);
         } else {
             self.gen.emit_test_ne_ptr(dest, lhs_reg, rhs_reg);
@@ -758,14 +765,14 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         dest
     }
 
-    fn emit_bin_or(&mut self, e: &ExprBinType, dest: DataDest) -> Register {
+    fn emit_bin_or(&mut self, expr: &ExprBinType, dest: DataDest) -> Register {
         if dest.is_effect() {
             let end_lbl = self.gen.create_label();
             let dest = self.gen.add_register(BytecodeType::Bool);
 
-            self.visit_expr(&e.lhs, DataDest::Reg(dest));
+            self.visit_expr(&expr.lhs, DataDest::Reg(dest));
             self.gen.emit_jump_if_true(dest, end_lbl);
-            self.visit_expr(&e.rhs, DataDest::Effect);
+            self.visit_expr(&expr.rhs, DataDest::Effect);
             self.gen.bind_label(end_lbl);
 
             Register::invalid()
@@ -773,23 +780,23 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             let end_lbl = self.gen.create_label();
             let dest = self.ensure_register(dest, BytecodeType::Bool);
 
-            self.visit_expr(&e.lhs, DataDest::Reg(dest));
+            self.visit_expr(&expr.lhs, DataDest::Reg(dest));
             self.gen.emit_jump_if_true(dest, end_lbl);
-            self.visit_expr(&e.rhs, DataDest::Reg(dest));
+            self.visit_expr(&expr.rhs, DataDest::Reg(dest));
             self.gen.bind_label(end_lbl);
 
             dest
         }
     }
 
-    fn emit_bin_and(&mut self, e: &ExprBinType, dest: DataDest) -> Register {
+    fn emit_bin_and(&mut self, expr: &ExprBinType, dest: DataDest) -> Register {
         if dest.is_effect() {
             let end_lbl = self.gen.create_label();
             let dest = self.gen.add_register(BytecodeType::Bool);
 
-            self.visit_expr(&e.lhs, DataDest::Reg(dest));
+            self.visit_expr(&expr.lhs, DataDest::Reg(dest));
             self.gen.emit_jump_if_false(dest, end_lbl);
-            self.visit_expr(&e.rhs, DataDest::Effect);
+            self.visit_expr(&expr.rhs, DataDest::Effect);
             self.gen.bind_label(end_lbl);
 
             Register::invalid()
@@ -797,9 +804,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             let end_lbl = self.gen.create_label();
             let dest = self.ensure_register(dest, BytecodeType::Bool);
 
-            self.visit_expr(&e.lhs, DataDest::Reg(dest));
+            self.visit_expr(&expr.lhs, DataDest::Reg(dest));
             self.gen.emit_jump_if_false(dest, end_lbl);
-            self.visit_expr(&e.rhs, DataDest::Reg(dest));
+            self.visit_expr(&expr.rhs, DataDest::Reg(dest));
             self.gen.bind_label(end_lbl);
 
             dest
@@ -812,6 +819,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         rhs: &Expr,
         intrinsic: Intrinsic,
         op: BinOp,
+        pos: Position,
         dest: DataDest,
     ) -> Register {
         let result_type = match intrinsic {
@@ -846,7 +854,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         let lhs_reg = self.visit_expr(lhs, DataDest::Alloc);
         let rhs_reg = self.visit_expr(rhs, DataDest::Alloc);
-
+        self.gen.set_position(pos);
         match intrinsic {
             Intrinsic::IntAdd => self.gen.emit_add_int(dest, lhs_reg, rhs_reg),
             Intrinsic::IntSub => self.gen.emit_sub_int(dest, lhs_reg, rhs_reg),
@@ -893,15 +901,15 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         dest
     }
 
-    fn visit_expr_assign(&mut self, e: &ExprBinType, dest: DataDest) -> Register {
+    fn visit_expr_assign(&mut self, expr: &ExprBinType, dest: DataDest) -> Register {
         assert!(dest.is_effect());
 
-        if e.lhs.is_ident() {
-            let ident_type = self.src.map_idents.get(e.lhs.id()).unwrap();
+        if expr.lhs.is_ident() {
+            let ident_type = self.src.map_idents.get(expr.lhs.id()).unwrap();
             match ident_type {
                 &IdentType::Var(var_id) => {
                     let var_reg = self.var_reg(var_id);
-                    self.visit_expr(&e.rhs, DataDest::Reg(var_reg));
+                    self.visit_expr(&expr.rhs, DataDest::Reg(var_reg));
                 }
 
                 &IdentType::Global(_) => unimplemented!(),
@@ -921,7 +929,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 }
             }
         } else {
-            match *e.lhs {
+            match *expr.lhs {
                 ExprDot(ref dot) => {
                     let (class, field_id) = {
                         let ident_type = self.src.map_idents.get(dot.id).unwrap();
@@ -937,8 +945,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     let field = &cls.fields[field_id.idx()];
                     let ty: BytecodeType = field.ty.into();
 
-                    let src = self.visit_expr(&e.rhs, DataDest::Alloc);
+                    let src = self.visit_expr(&expr.rhs, DataDest::Alloc);
                     let obj = self.visit_expr(&dot.lhs, DataDest::Alloc);
+
+                    self.gen.set_position(expr.pos);
 
                     match ty {
                         BytecodeType::Byte => {

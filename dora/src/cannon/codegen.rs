@@ -1,5 +1,4 @@
 use dora_parser::ast::*;
-use dora_parser::lexer::position::Position;
 use std::collections::hash_map::HashMap;
 
 use crate::bytecode::{
@@ -410,12 +409,15 @@ where
 
         let bytecode_type = self.bytecode.register_type(dest);
         let offset = self.bytecode.register_offset(dest);
+
+        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+
         self.asm.int_div(
             bytecode_type.mode(),
             REG_RESULT,
             REG_RESULT,
             REG_TMP1,
-            Position::new(1, 1),
+            position,
         );
 
         self.asm
@@ -473,12 +475,15 @@ where
 
         let bytecode_type = self.bytecode.register_type(dest);
         let offset = self.bytecode.register_offset(dest);
+
+        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+
         self.asm.int_mod(
             bytecode_type.mode(),
             REG_RESULT,
             REG_RESULT,
             REG_TMP1,
-            Position::new(1, 1),
+            position,
         );
 
         self.asm
@@ -1018,13 +1023,9 @@ where
         };
 
         let gcpoint = GcPoint::from_offsets(self.references.clone());
-        self.asm.allocate(
-            REG_RESULT.into(),
-            alloc_size,
-            Position { line: 0, column: 0 }, // Correct position is currently not known.
-            false,
-            gcpoint,
-        );
+        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+        self.asm
+            .allocate(REG_RESULT.into(), alloc_size, position, false, gcpoint);
 
         let bytecode_type = self.bytecode.register_type(dest);
         let offset = self.bytecode.register_offset(dest);
@@ -1071,10 +1072,8 @@ where
         self.asm
             .load_mem(bytecode_type.mode(), REG_RESULT.into(), Mem::Local(offset));
 
-        self.asm.throw(
-            REG_RESULT,
-            Position { line: 0, column: 0 }, // Correct position is currently not known.
-        );
+        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+        self.asm.throw(REG_RESULT, position);
     }
 
     fn emit_invoke_direct_void(&mut self, fct_id: FctId, start_reg: Register, num: u32) {
@@ -1132,12 +1131,13 @@ where
         self.asm.emit_comment(Comment::CallDirect(fct_id));
         let ptr = self.ptr_for_fct_id(fct_id, cls_type_params.clone(), fct_type_params.clone());
         let gcpoint = GcPoint::from_offsets(self.references.clone());
+        let position = self.bytecode.offset_position(self.current_offset.to_u32());
         self.asm.direct_call(
             fct_id,
             ptr.to_ptr(),
             cls_type_params,
             fct_type_params,
-            Position { line: 0, column: 0 }, // Correct position is currently not known.
+            position,
             gcpoint,
             BuiltinType::Unit,
             REG_RESULT.into(),

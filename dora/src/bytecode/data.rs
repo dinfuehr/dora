@@ -3,6 +3,7 @@ use std::fmt;
 use crate::cpu::STACK_FRAME_ALIGNMENT;
 use crate::mem::{align_i32, ptr_width};
 use crate::ty::{BuiltinType, MachineMode};
+use dora_parser::lexer::position::Position;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct BytecodeOffset(pub u32);
@@ -277,6 +278,63 @@ pub enum BytecodeOpcode {
     RetPtr,
 }
 
+impl BytecodeOpcode {
+    pub fn need_position(&self) -> bool {
+        match *self {
+            BytecodeOpcode::DivInt
+            | BytecodeOpcode::DivLong
+            | BytecodeOpcode::ModInt
+            | BytecodeOpcode::ModLong
+            | BytecodeOpcode::LoadFieldBool
+            | BytecodeOpcode::LoadFieldByte
+            | BytecodeOpcode::LoadFieldChar
+            | BytecodeOpcode::LoadFieldInt
+            | BytecodeOpcode::LoadFieldLong
+            | BytecodeOpcode::LoadFieldFloat
+            | BytecodeOpcode::LoadFieldDouble
+            | BytecodeOpcode::LoadFieldPtr
+            | BytecodeOpcode::StoreFieldBool
+            | BytecodeOpcode::StoreFieldByte
+            | BytecodeOpcode::StoreFieldChar
+            | BytecodeOpcode::StoreFieldInt
+            | BytecodeOpcode::StoreFieldLong
+            | BytecodeOpcode::StoreFieldFloat
+            | BytecodeOpcode::StoreFieldDouble
+            | BytecodeOpcode::StoreFieldPtr
+            | BytecodeOpcode::InvokeDirectVoid
+            | BytecodeOpcode::InvokeDirectBool
+            | BytecodeOpcode::InvokeDirectByte
+            | BytecodeOpcode::InvokeDirectChar
+            | BytecodeOpcode::InvokeDirectInt
+            | BytecodeOpcode::InvokeDirectLong
+            | BytecodeOpcode::InvokeDirectFloat
+            | BytecodeOpcode::InvokeDirectDouble
+            | BytecodeOpcode::InvokeDirectPtr
+            | BytecodeOpcode::InvokeVirtualVoid
+            | BytecodeOpcode::InvokeVirtualBool
+            | BytecodeOpcode::InvokeVirtualByte
+            | BytecodeOpcode::InvokeVirtualChar
+            | BytecodeOpcode::InvokeVirtualInt
+            | BytecodeOpcode::InvokeVirtualLong
+            | BytecodeOpcode::InvokeVirtualFloat
+            | BytecodeOpcode::InvokeVirtualDouble
+            | BytecodeOpcode::InvokeVirtualPtr
+            | BytecodeOpcode::InvokeStaticVoid
+            | BytecodeOpcode::InvokeStaticBool
+            | BytecodeOpcode::InvokeStaticByte
+            | BytecodeOpcode::InvokeStaticChar
+            | BytecodeOpcode::InvokeStaticInt
+            | BytecodeOpcode::InvokeStaticLong
+            | BytecodeOpcode::InvokeStaticFloat
+            | BytecodeOpcode::InvokeStaticDouble
+            | BytecodeOpcode::InvokeStaticPtr
+            | BytecodeOpcode::NewObject
+            | BytecodeOpcode::Throw => true,
+            _ => false,
+        }
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Register(pub usize);
 
@@ -315,6 +373,7 @@ pub struct BytecodeFunction {
     offset: Vec<i32>,
     stacksize: i32,
     arguments: u32,
+    positions: Vec<(u32, Position)>,
 }
 
 impl BytecodeFunction {
@@ -323,6 +382,7 @@ impl BytecodeFunction {
         const_pool: Vec<ConstPoolEntry>,
         registers: Vec<BytecodeType>,
         arguments: u32,
+        positions: Vec<(u32, Position)>,
     ) -> BytecodeFunction {
         let (offset, stacksize) = determine_offsets(&registers);
         BytecodeFunction {
@@ -332,6 +392,7 @@ impl BytecodeFunction {
             offset,
             stacksize,
             arguments,
+            positions,
         }
     }
     pub fn code(&self) -> &[u8] {
@@ -340,6 +401,10 @@ impl BytecodeFunction {
 
     pub fn registers(&self) -> &[BytecodeType] {
         &self.registers
+    }
+
+    pub fn positions(&self) -> &[(u32, Position)] {
+        &self.positions
     }
 
     pub fn register_type(&self, register: Register) -> BytecodeType {
@@ -360,6 +425,15 @@ impl BytecodeFunction {
 
     pub fn const_pool(&self, idx: ConstPoolIdx) -> &ConstPoolEntry {
         &self.const_pool[idx.to_usize()]
+    }
+
+    pub fn offset_position(&self, offset: u32) -> Position {
+        let index = self.positions.binary_search_by_key(&offset, |&(o, _)| o);
+        let index = match index {
+            Err(index) => index - 1,
+            Ok(index) => index,
+        };
+        self.positions[index].1
     }
 }
 
