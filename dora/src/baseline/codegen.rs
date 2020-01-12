@@ -1492,7 +1492,7 @@ where
         if e.op.is_any_assign() {
             self.emit_assign(e);
         } else if let Some(intrinsic) = self.get_intrinsic(e.id) {
-            self.emit_intrinsic_bin(&e.lhs, &e.rhs, dest, intrinsic, Some(e.op));
+            self.emit_intrinsic_bin(&e.lhs, &e.rhs, dest, intrinsic, Some(e.op), e.pos);
         } else if e.op == BinOp::Cmp(CmpOp::Is) || e.op == BinOp::Cmp(CmpOp::IsNot) {
             self.emit_bin_is(e, dest.reg());
         } else if e.op == BinOp::Or {
@@ -1888,8 +1888,12 @@ where
             }
 
             Intrinsic::CharToLong => self.emit_intrinsic_int_to_long(args[0], dest.reg()),
-            Intrinsic::CharEq => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
-            Intrinsic::CharCmp => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::CharEq => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::CharCmp => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
 
             Intrinsic::IntToByte => self.emit_intrinsic_int_to_byte(args[0], dest.reg()),
             Intrinsic::IntToLong => self.emit_intrinsic_int_to_long(args[0], dest.reg()),
@@ -1904,72 +1908,152 @@ where
                 self.emit_intrinsic_int_as_float(args[0], dest.freg(), intrinsic)
             }
 
-            Intrinsic::ByteEq => self.emit_intrinsic_bin_call(args[0], args[0], dest, intrinsic),
-            Intrinsic::ByteCmp => self.emit_intrinsic_bin_call(args[0], args[0], dest, intrinsic),
-            Intrinsic::ByteNot => self.emit_intrinsic_bin_call(args[0], args[0], dest, intrinsic),
+            Intrinsic::ByteEq => {
+                self.emit_intrinsic_bin_call(args[0], args[0], dest, intrinsic, pos)
+            }
+            Intrinsic::ByteCmp => {
+                self.emit_intrinsic_bin_call(args[0], args[0], dest, intrinsic, pos)
+            }
+            Intrinsic::ByteNot => {
+                self.emit_intrinsic_bin_call(args[0], args[0], dest, intrinsic, pos)
+            }
 
-            Intrinsic::BoolEq => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::BoolEq => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
             Intrinsic::BoolNot => self.emit_intrinsic_unary(args[0], dest, intrinsic),
 
-            Intrinsic::IntEq => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
-            Intrinsic::IntCmp => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::IntEq => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::IntCmp => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
 
-            Intrinsic::IntAdd => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
-            Intrinsic::IntSub => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
-            Intrinsic::IntMul => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
-            Intrinsic::IntDiv => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
-            Intrinsic::IntMod => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::IntAdd => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::IntSub => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::IntMul => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::IntDiv => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::IntMod => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
             Intrinsic::IntNeg => self.emit_intrinsic_unary(args[0], dest, intrinsic),
             Intrinsic::IntPlus => self.emit_intrinsic_unary(args[0], dest, intrinsic),
 
-            Intrinsic::IntOr => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
-            Intrinsic::IntAnd => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
-            Intrinsic::IntXor => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::IntOr => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::IntAnd => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::IntXor => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
             Intrinsic::IntNot => self.emit_intrinsic_unary(args[0], dest, intrinsic),
 
-            Intrinsic::IntShl => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
-            Intrinsic::IntSar => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
-            Intrinsic::IntShr => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::IntShl => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::IntSar => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::IntShr => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
 
-            Intrinsic::LongEq => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
-            Intrinsic::LongCmp => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::LongEq => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::LongCmp => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
 
-            Intrinsic::LongAdd => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
-            Intrinsic::LongSub => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
-            Intrinsic::LongMul => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
-            Intrinsic::LongDiv => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
-            Intrinsic::LongMod => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::LongAdd => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::LongSub => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::LongMul => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::LongDiv => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::LongMod => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
             Intrinsic::LongNeg => self.emit_intrinsic_unary(args[0], dest, intrinsic),
             Intrinsic::LongPlus => self.emit_intrinsic_unary(args[0], dest, intrinsic),
 
-            Intrinsic::LongOr => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
-            Intrinsic::LongAnd => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
-            Intrinsic::LongXor => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::LongOr => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::LongAnd => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::LongXor => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
             Intrinsic::LongNot => self.emit_intrinsic_unary(args[0], dest, intrinsic),
 
-            Intrinsic::LongShl => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
-            Intrinsic::LongSar => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
-            Intrinsic::LongShr => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::LongShl => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::LongSar => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::LongShr => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
 
-            Intrinsic::FloatAdd => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
-            Intrinsic::FloatSub => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
-            Intrinsic::FloatMul => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
-            Intrinsic::FloatDiv => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::FloatAdd => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::FloatSub => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::FloatMul => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::FloatDiv => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
             Intrinsic::FloatNeg => self.emit_intrinsic_unary(args[0], dest, intrinsic),
             Intrinsic::FloatPlus => self.emit_intrinsic_unary(args[0], dest, intrinsic),
             Intrinsic::FloatIsNan => self.emit_intrinsic_is_nan(args[0], dest.reg(), intrinsic),
             Intrinsic::FloatSqrt => self.emit_intrinsic_sqrt(args[0], dest.freg(), intrinsic),
-            Intrinsic::FloatEq => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::FloatEq => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
 
-            Intrinsic::DoubleAdd => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
-            Intrinsic::DoubleSub => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
-            Intrinsic::DoubleMul => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
-            Intrinsic::DoubleDiv => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::DoubleAdd => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::DoubleSub => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::DoubleMul => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::DoubleDiv => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
             Intrinsic::DoubleNeg => self.emit_intrinsic_unary(args[0], dest, intrinsic),
             Intrinsic::DoublePlus => self.emit_intrinsic_unary(args[0], dest, intrinsic),
             Intrinsic::DoubleIsNan => self.emit_intrinsic_is_nan(args[0], dest.reg(), intrinsic),
             Intrinsic::DoubleSqrt => self.emit_intrinsic_sqrt(args[0], dest.freg(), intrinsic),
-            Intrinsic::DoubleEq => self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic),
+            Intrinsic::DoubleEq => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
 
             Intrinsic::DefaultValue => self.emit_intrinsic_default_value(id, dest),
 
@@ -2296,8 +2380,9 @@ where
         rhs: &'ast Expr,
         dest: ExprStore,
         intr: Intrinsic,
+        pos: Position,
     ) {
-        self.emit_intrinsic_bin(lhs, rhs, dest, intr, None);
+        self.emit_intrinsic_bin(lhs, rhs, dest, intr, None, pos);
     }
 
     fn emit_intrinsic_bin(
@@ -2307,6 +2392,7 @@ where
         dest: ExprStore,
         intr: Intrinsic,
         op: Option<BinOp>,
+        pos: Position,
     ) {
         let mode = self.ty(lhs.id()).mode();
 
@@ -2334,7 +2420,7 @@ where
             let lhs_reg = lhs_reg.reg();
             let rhs_reg = rhs_reg.reg();
 
-            self.emit_intrinsic_int(dest.reg(), lhs_reg, rhs_reg, intr, op);
+            self.emit_intrinsic_int(dest.reg(), lhs_reg, rhs_reg, intr, op, pos);
         }
 
         self.managed_stack.free_temp(slot, self.vm);
@@ -2347,6 +2433,7 @@ where
         rhs: Reg,
         intr: Intrinsic,
         op: Option<BinOp>,
+        pos: Position,
     ) {
         match intr {
             Intrinsic::ByteEq
@@ -2399,14 +2486,8 @@ where
             Intrinsic::IntAdd => self.asm.int_add(MachineMode::Int32, dest, lhs, rhs),
             Intrinsic::IntSub => self.asm.int_sub(MachineMode::Int32, dest, lhs, rhs),
             Intrinsic::IntMul => self.asm.int_mul(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntDiv => {
-                self.asm
-                    .int_div(MachineMode::Int32, dest, lhs, rhs, Position::new(1, 1))
-            }
-            Intrinsic::IntMod => {
-                self.asm
-                    .int_mod(MachineMode::Int32, dest, lhs, rhs, Position::new(1, 1))
-            }
+            Intrinsic::IntDiv => self.asm.int_div(MachineMode::Int32, dest, lhs, rhs, pos),
+            Intrinsic::IntMod => self.asm.int_mod(MachineMode::Int32, dest, lhs, rhs, pos),
 
             Intrinsic::IntOr => self.asm.int_or(MachineMode::Int32, dest, lhs, rhs),
             Intrinsic::IntAnd => self.asm.int_and(MachineMode::Int32, dest, lhs, rhs),
@@ -2419,14 +2500,8 @@ where
             Intrinsic::LongAdd => self.asm.int_add(MachineMode::Int64, dest, lhs, rhs),
             Intrinsic::LongSub => self.asm.int_sub(MachineMode::Int64, dest, lhs, rhs),
             Intrinsic::LongMul => self.asm.int_mul(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongDiv => {
-                self.asm
-                    .int_div(MachineMode::Int64, dest, lhs, rhs, Position::new(1, 1))
-            }
-            Intrinsic::LongMod => {
-                self.asm
-                    .int_mod(MachineMode::Int64, dest, lhs, rhs, Position::new(1, 1))
-            }
+            Intrinsic::LongDiv => self.asm.int_div(MachineMode::Int64, dest, lhs, rhs, pos),
+            Intrinsic::LongMod => self.asm.int_mod(MachineMode::Int64, dest, lhs, rhs, pos),
 
             Intrinsic::LongOr => self.asm.int_or(MachineMode::Int64, dest, lhs, rhs),
             Intrinsic::LongAnd => self.asm.int_and(MachineMode::Int64, dest, lhs, rhs),
