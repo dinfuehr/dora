@@ -1362,8 +1362,8 @@ fn gen_throw() {
 
 #[test]
 fn gen_position_throw() {
-    let result = position("fun f() { throw Exception(\"exception\"); }");
-    let expected = vec![(0, p(1, 26)), (10, p(1, 11))];
+    let expected = vec![(0, p(1, 23))];
+    let result = position("fun f(a: Exception) { throw a; }");
     assert_eq!(expected, result);
 }
 
