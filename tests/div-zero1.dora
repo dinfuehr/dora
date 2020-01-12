@@ -1,0 +1,10 @@
+//= error div0
+//= ignore
+
+fun main() {
+    divide(0);
+}
+
+fun divide(x: Int) -> Int {
+    4711 / x
+}
