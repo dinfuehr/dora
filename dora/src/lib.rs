@@ -39,7 +39,6 @@ mod mem;
 mod object;
 mod opt;
 mod os;
-mod os_cpu;
 mod safepoint;
 mod semck;
 mod size;

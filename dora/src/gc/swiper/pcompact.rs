@@ -16,10 +16,9 @@ use crate::gc::swiper::verify::verify_mapped_regions;
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{walk_region, walk_region_and_skip_garbage, CardIdx, CARD_REFS};
 use crate::gc::{Address, GcReason, Region};
-use crate::os::signal::Trap;
 use crate::stdlib;
 use crate::timer::Timer;
-use crate::vm::VM;
+use crate::vm::{Trap, VM};
 
 pub struct ParallelFullCollector<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,

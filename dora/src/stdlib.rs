@@ -11,11 +11,10 @@ use crate::exception::{alloc_exception, stacktrace_from_last_dtn};
 use crate::gc::{Address, GcReason};
 use crate::handle::{root, scope as handle_scope};
 use crate::object::{ByteArray, Obj, Ref, Str};
-use crate::os::signal::Trap;
 use crate::sym::Sym::SymFct;
 use crate::threads::{DoraThread, STACK_SIZE, THREAD};
 use crate::ty::TypeList;
-use crate::vm::{exception_set, get_vm, stack_pointer};
+use crate::vm::{exception_set, get_vm, stack_pointer, Trap};
 
 pub extern "C" fn byte_to_string(val: u8) -> Ref<Str> {
     handle_scope(|| {

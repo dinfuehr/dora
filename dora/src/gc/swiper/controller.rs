@@ -10,9 +10,9 @@ use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{CollectionKind, CommonOldGen};
 use crate::gc::{align_gen, align_gen_down, formatted_size, AllNumbers, GcReason, GEN_SIZE, M};
 use crate::mem;
-use crate::os::signal::Trap;
 use crate::stdlib;
 use crate::timer;
+use crate::vm::Trap;
 
 const INIT_HEAP_SIZE_RATIO: usize = 2;
 const INIT_YOUNG_RATIO: usize = 4;

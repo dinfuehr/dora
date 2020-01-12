@@ -9,12 +9,11 @@ use crate::cpu::{FReg, Mem, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD
 use crate::gc::tlab::TLAB_OBJECT_SIZE;
 use crate::gc::Address;
 use crate::masm::{CondCode, Label, MacroAssembler, ScratchReg};
-use crate::os::signal::Trap;
 use crate::stdlib;
 use crate::threads::ThreadLocalData;
 use crate::ty::{BuiltinType, MachineMode, TypeList};
 use crate::vm::FctId;
-use crate::vm::VM;
+use crate::vm::{Trap, VM};
 
 pub struct BaselineAssembler<'a, 'ast: 'a> {
     masm: MacroAssembler,

@@ -7,10 +7,9 @@ use crate::execstate::ExecState;
 use crate::gc::Address;
 use crate::handle::root;
 use crate::object::{alloc, Array, IntArray, Obj, Ref, StackTraceElement, Str, Throwable};
-use crate::os::signal::Trap;
 use crate::stdlib;
 use crate::threads::THREAD;
-use crate::vm::{get_vm, FctParent, VM};
+use crate::vm::{get_vm, FctParent, Trap, VM};
 
 pub struct Stacktrace {
     elems: Vec<StackElem>,

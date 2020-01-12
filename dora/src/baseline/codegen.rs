@@ -23,14 +23,13 @@ use crate::gc::Address;
 use crate::masm::*;
 use crate::mem;
 use crate::object::{Header, Str};
-use crate::os::signal::Trap;
 use crate::semck::always_returns;
 use crate::semck::specialize::{specialize_class_ty, specialize_for_call_type};
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, MachineMode, TypeList, TypeParamId};
 use crate::vm::{
     CallType, ClassDef, ClassDefId, ConstId, Fct, FctId, FctKind, FctParent, FctSrc, FieldId,
-    IdentType, Intrinsic, TraitId, VarId, VM,
+    IdentType, Intrinsic, TraitId, Trap, VarId, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 

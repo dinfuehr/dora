@@ -461,3 +461,47 @@ impl From<u32> for FileId {
         FileId(data)
     }
 }
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum Trap {
+    DIV0,
+    ASSERT,
+    INDEX_OUT_OF_BOUNDS,
+    NIL,
+    THROW,
+    CAST,
+    UNEXPECTED,
+    OOM,
+    STACK_OVERFLOW,
+}
+
+impl Trap {
+    pub fn int(self) -> u32 {
+        match self {
+            Trap::DIV0 => 1,
+            Trap::ASSERT => 2,
+            Trap::INDEX_OUT_OF_BOUNDS => 3,
+            Trap::NIL => 4,
+            Trap::THROW => 5,
+            Trap::CAST => 6,
+            Trap::UNEXPECTED => 7,
+            Trap::OOM => 8,
+            Trap::STACK_OVERFLOW => 9,
+        }
+    }
+
+    pub fn from(value: u32) -> Option<Trap> {
+        match value {
+            1 => Some(Trap::DIV0),
+            2 => Some(Trap::ASSERT),
+            3 => Some(Trap::INDEX_OUT_OF_BOUNDS),
+            4 => Some(Trap::NIL),
+            5 => Some(Trap::THROW),
+            6 => Some(Trap::CAST),
+            7 => Some(Trap::UNEXPECTED),
+            8 => Some(Trap::OOM),
+            9 => Some(Trap::STACK_OVERFLOW),
+            _ => None,
+        }
+    }
+}

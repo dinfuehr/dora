@@ -12,9 +12,8 @@ use crate::dseg::DSeg;
 use crate::gc::Address;
 use crate::mem;
 use crate::object::Header;
-use crate::os::signal::Trap;
 use crate::ty::MachineMode;
-use crate::vm::VM;
+use crate::vm::{Trap, VM};
 use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
 use dora_parser::lexer::position::Position;
 

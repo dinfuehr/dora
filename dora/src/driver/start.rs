@@ -48,9 +48,6 @@ pub fn start(content: Option<&str>) -> i32 {
 
     semck::check(&mut vm);
 
-    // register signal handler
-    os::register_signals();
-
     let main = if vm.args.cmd_test {
         None
     } else {
@@ -92,8 +89,6 @@ pub fn start(content: Option<&str>) -> i32 {
 
     vm.threads.detach_current_thread();
     vm.threads.join_all();
-
-    os::unregister_signals();
 
     if vm.args.flag_gc_stats {
         let duration = timer.stop();
