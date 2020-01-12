@@ -304,20 +304,33 @@ impl MacroAssembler {
         asm::emit_jmp_reg(self, reg);
     }
 
-    pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        self.div_common(mode, dest, lhs, rhs, RAX);
+    pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, pos: Position) {
+        self.div_common(mode, dest, lhs, rhs, RAX, pos);
     }
 
-    pub fn int_mod(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        self.div_common(mode, dest, lhs, rhs, RDX);
+    pub fn int_mod(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, pos: Position) {
+        self.div_common(mode, dest, lhs, rhs, RDX, pos);
     }
 
-    fn div_common(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, result: Reg) {
+    fn div_common(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        result: Reg,
+        pos: Position,
+    ) {
         let x64 = match mode {
             MachineMode::Int32 => 0,
             MachineMode::Int64 => 1,
             _ => unimplemented!(),
         };
+
+        asm::emit_cmp_imm_reg(self, mode, 0, rhs);
+        let lbl = self.create_label();
+        self.jump_if(CondCode::Zero, lbl);
+        self.emit_bailout(lbl, Trap::DIV0, pos);
 
         if lhs != RAX {
             assert!(rhs != RAX);

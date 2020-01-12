@@ -1,5 +1,5 @@
 //= error div0
-//= ignore
+//= output "division by 0\n2: divide(Int) -> Int: 9\n1: main(): 5\n"
 
 fun main() {
     divide(0);

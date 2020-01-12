@@ -235,9 +235,8 @@ fn emit_membase(buf: &mut MacroAssembler, base: Reg, disp: i32, dest: Reg) {
 pub fn emit_cmp_imm_reg(buf: &mut MacroAssembler, mode: MachineMode, imm: i32, reg: Reg) {
     let x64 = match mode {
         MachineMode::Int8 | MachineMode::Int32 => 0,
-        MachineMode::Int64 => unimplemented!(),
         MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
-        MachineMode::Ptr => 1,
+        MachineMode::Int64 | MachineMode::Ptr => 1,
     };
 
     emit_aluq_imm_reg(buf, x64, imm, false, reg, 0x3d, 0b111);
@@ -1961,6 +1960,7 @@ mod tests {
     #[test]
     fn test_cmp_imm_reg() {
         assert_emit!(0x48, 0x83, 0xf8, 0; emit_cmp_imm_reg(MachineMode::Ptr, 0, RAX));
+        assert_emit!(0x48, 0x83, 0xf8, 0; emit_cmp_imm_reg(MachineMode::Int64, 0, RAX));
         assert_emit!(0x83, 0xf8, 0; emit_cmp_imm_reg(MachineMode::Int32, 0, RAX));
         assert_emit!(0x49, 0x83, 0xff, 0; emit_cmp_imm_reg(MachineMode::Ptr, 0, R15));
         assert_emit!(0x41, 0x83, 0xff, 0; emit_cmp_imm_reg(MachineMode::Int32, 0, R15));
