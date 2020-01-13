@@ -15,7 +15,6 @@ use crate::error::diag::Diagnostic;
 use crate::exception::DoraToNativeInfo;
 use crate::gc::{Address, Gc};
 use crate::object::{Ref, Testing};
-use crate::safepoint::{PollingPage, Safepoint};
 use crate::stdlib;
 use crate::sym::Sym::*;
 use crate::sym::*;
@@ -101,7 +100,6 @@ pub struct VM<'ast> {
     pub globals: GrowableVec<Mutex<GlobalData>>, // stores all global variables
     pub gc: Gc,                                // garbage collector
     pub native_stubs: Mutex<NativeStubs>,
-    pub polling_page: PollingPage,
     pub lists: Mutex<TypeLists>,
     pub lambda_types: Mutex<LambdaTypes>,
     pub compile_stub: Mutex<Address>,
@@ -109,7 +107,6 @@ pub struct VM<'ast> {
     pub trap_stub: Mutex<Address>,
     pub throw_stub: Mutex<Address>,
     pub threads: Threads,
-    pub safepoint: Safepoint,
 }
 
 impl<'ast> VM<'ast> {
@@ -185,7 +182,6 @@ impl<'ast> VM<'ast> {
             fcts: GrowableVec::new(),
             jit_fcts: GrowableVec::new(),
             code_map: Mutex::new(CodeMap::new()),
-            polling_page: PollingPage::new(),
             lists: Mutex::new(TypeLists::new()),
             lambda_types: Mutex::new(LambdaTypes::new()),
             native_stubs: Mutex::new(NativeStubs::new()),
@@ -194,7 +190,6 @@ impl<'ast> VM<'ast> {
             trap_stub: Mutex::new(Address::null()),
             throw_stub: Mutex::new(Address::null()),
             threads: Threads::new(),
-            safepoint: Safepoint::new(),
         });
 
         set_vm(&vm);

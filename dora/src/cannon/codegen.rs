@@ -188,8 +188,6 @@ where
         self.asm.emit_comment(Comment::Newline);
         self.asm.emit_comment(Comment::Lit("epilog"));
 
-        let polling_page = self.vm.polling_page.addr();
-        self.asm.safepoint(polling_page);
         self.asm.epilog();
     }
 

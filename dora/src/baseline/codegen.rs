@@ -241,8 +241,6 @@ where
         self.asm.emit_comment(Comment::Newline);
         self.asm.emit_comment(Comment::Lit("epilog"));
 
-        let polling_page = self.vm.polling_page.addr();
-        self.asm.safepoint(polling_page);
         self.asm.epilog();
     }
 
@@ -327,7 +325,6 @@ where
             // execute while body, then jump back to condition
             this.visit_stmt(&s.block);
 
-            this.emit_safepoint();
             this.asm.jump(lbl_start);
         });
 
@@ -395,7 +392,6 @@ where
             // execute while body, then jump back to condition
             this.visit_stmt(&stmt.block);
 
-            this.emit_safepoint();
             this.asm.jump(lbl_start);
         });
 
@@ -417,20 +413,11 @@ where
         self.save_label_state(lbl_end, lbl_start, |this| {
             this.visit_stmt(&s.block);
 
-            this.emit_safepoint();
             this.asm.jump(lbl_start);
         });
 
         self.asm.bind_label(lbl_end);
         self.active_loop = saved_active_loop;
-    }
-
-    fn emit_safepoint(&mut self) {
-        self.asm.emit_comment(Comment::ReadPollingPage);
-        self.asm.check_polling_page(self.vm.polling_page.addr());
-
-        let gcpoint = self.create_gcpoint();
-        self.asm.emit_gcpoint(gcpoint);
     }
 
     fn create_gcpoint(&mut self) -> GcPoint {

@@ -161,7 +161,6 @@ where
 
         let lbl_exception = self.masm.test_if_not_nil(REG_TMP1);
 
-        self.masm.safepoint(self.vm.polling_page.addr());
         self.masm.epilog();
 
         self.masm.bind_label(lbl_exception);
