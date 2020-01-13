@@ -1,14 +1,14 @@
 use parking_lot::Mutex;
 
 use crate::driver::cmd::Args;
-use crate::gc::arena;
+use crate::gc::arena::{self, Access};
 use crate::gc::bump::BumpAllocator;
 use crate::gc::root::{get_rootset, Slot};
 use crate::gc::tlab;
 use crate::gc::{formatted_size, Address, CollectionStats, Collector, GcReason, Region};
 use crate::mem;
 use crate::object::Obj;
-use crate::os::{self, ProtType};
+use crate::os;
 use crate::safepoint;
 use crate::timer::Timer;
 use crate::vm::VM;
@@ -140,7 +140,7 @@ impl CopyCollector {
         // enable writing into to-space again (for debug builds)
         if cfg!(debug_assertions) {
             let to_space = self.to_space();
-            os::mprotect(to_space.start.to_ptr(), to_space.size(), ProtType::Writable);
+            arena::protect(to_space.start, to_space.size(), Access::ReadWrite);
         }
 
         // empty to-space
@@ -178,7 +178,7 @@ impl CopyCollector {
         // disable access in current from-space
         // makes sure that no pointer into from-space is left (in debug-builds)
         if cfg!(debug_assertions) {
-            os::mprotect(from_space.start.to_ptr(), from_space.size(), ProtType::None);
+            arena::protect(from_space.start, from_space.size(), Access::None);
         }
 
         self.alloc.reset(top, to_space.end);

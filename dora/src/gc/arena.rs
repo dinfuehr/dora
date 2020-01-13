@@ -137,3 +137,30 @@ pub fn discard(ptr: Address, size: usize) {
         panic!("discarding memory with mprotect() failed");
     }
 }
+
+pub fn protect(start: Address, size: usize, access: Access) {
+    debug_assert!(start.is_page_aligned());
+    debug_assert!(mem::is_page_aligned(size));
+
+    let protection = match access {
+        Access::None => 0,
+        Access::Read => libc::PROT_READ,
+        Access::ReadWrite => libc::PROT_READ | libc::PROT_WRITE,
+        Access::ReadExecutable => libc::PROT_READ | libc::PROT_EXEC,
+        Access::ReadWriteExecutable => libc::PROT_READ | libc::PROT_WRITE | libc::PROT_EXEC,
+    };
+
+    let res = unsafe { libc::mprotect(start.to_mut_ptr(), size, protection) };
+
+    if res != 0 {
+        panic!("mprotect() failed");
+    }
+}
+
+pub enum Access {
+    None,
+    Read,
+    ReadWrite,
+    ReadExecutable,
+    ReadWriteExecutable,
+}

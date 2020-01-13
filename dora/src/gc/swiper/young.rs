@@ -1,9 +1,9 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use crate::gc::arena::Access;
 use crate::gc::bump::BumpAllocator;
 use crate::gc::{arena, gen_aligned, Address, Region};
 use crate::mem;
-use crate::os::{self, ProtType};
 
 pub struct YoungGen {
     // bounds of eden & semi-spaces
@@ -308,11 +308,7 @@ impl SemiSpace {
         if cfg!(debug_assertions) || self.protect {
             let from_space = self.from_committed();
 
-            os::mprotect(
-                from_space.start.to_ptr::<u8>(),
-                from_space.size(),
-                ProtType::Writable,
-            );
+            arena::protect(from_space.start, from_space.size(), Access::ReadWrite);
         }
     }
 
@@ -322,11 +318,7 @@ impl SemiSpace {
         // Since this has some overhead, do it only in debug builds.
         if cfg!(debug_assertions) || self.protect {
             let from_space = self.from_committed();
-            os::mprotect(
-                from_space.start.to_ptr::<u8>(),
-                from_space.size(),
-                ProtType::None,
-            );
+            arena::protect(from_space.start, from_space.size(), Access::None);
         }
     }
 
