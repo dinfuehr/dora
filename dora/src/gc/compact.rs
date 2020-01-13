@@ -1,6 +1,7 @@
 use parking_lot::Mutex;
 
 use crate::driver::cmd::Args;
+use crate::gc::arena;
 use crate::gc::bump::BumpAllocator;
 use crate::gc::marking;
 use crate::gc::root::{get_rootset, Slot};
@@ -8,7 +9,6 @@ use crate::gc::space::Space;
 use crate::gc::tlab;
 use crate::gc::{formatted_size, Address, CollectionStats, Collector, GcReason, Region};
 use crate::object::Obj;
-use crate::os;
 use crate::safepoint;
 use crate::timer::Timer;
 use crate::vm::VM;
@@ -22,13 +22,12 @@ pub struct MarkCompactCollector {
 impl MarkCompactCollector {
     pub fn new(args: &Args) -> MarkCompactCollector {
         let heap_size = args.max_heap_size();
-        let ptr = os::mmap(heap_size, os::Writable);
+        let heap_start = arena::commit(heap_size, false);
 
-        if ptr.is_null() {
+        if heap_start.is_null() {
             panic!("could not allocate heap of size {} bytes", heap_size);
         }
 
-        let heap_start = Address::from_ptr(ptr);
         let heap_end = heap_start.offset(heap_size);
         let heap = Region::new(heap_start, heap_end);
 
@@ -124,7 +123,7 @@ impl Collector for MarkCompactCollector {
 
 impl Drop for MarkCompactCollector {
     fn drop(&mut self) {
-        os::munmap(self.heap.start.to_ptr(), self.heap.size());
+        arena::uncommit(self.heap.start, self.heap.size());
     }
 }
 

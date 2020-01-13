@@ -48,7 +48,34 @@ pub fn reserve_align(size: usize, align: usize) -> Address {
     aligned
 }
 
-pub fn commit(ptr: Address, size: usize, executable: bool) {
+pub fn commit(size: usize, executable: bool) -> Address {
+    debug_assert!(mem::is_page_aligned(size));
+
+    let mut prot = libc::PROT_READ | libc::PROT_WRITE;
+
+    if executable {
+        prot |= libc::PROT_EXEC;
+    }
+
+    let ptr = unsafe {
+        libc::mmap(
+            ptr::null_mut(),
+            size,
+            prot,
+            libc::MAP_PRIVATE | libc::MAP_ANON,
+            -1,
+            0,
+        )
+    };
+
+    if ptr == libc::MAP_FAILED {
+        panic!("committing memory with mmap() failed");
+    }
+
+    Address::from_ptr(ptr)
+}
+
+pub fn commit_at(ptr: Address, size: usize, executable: bool) {
     debug_assert!(ptr.is_page_aligned());
     debug_assert!(mem::is_page_aligned(size));
 

@@ -413,7 +413,7 @@ impl Block {
         let size = self.committed_size();
 
         if size > 0 {
-            arena::commit(self.start, size, false);
+            arena::commit_at(self.start, size, false);
         }
     }
 
@@ -451,7 +451,7 @@ impl Block {
 
         if old_committed < new_committed {
             let size = new_committed - old_committed;
-            arena::commit(old_committed.into(), size, false);
+            arena::commit_at(old_committed.into(), size, false);
         } else if old_committed > new_committed {
             let size = old_committed - new_committed;
             arena::discard(new_committed.into(), size);

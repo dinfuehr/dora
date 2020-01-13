@@ -45,7 +45,7 @@ impl Space {
         let space_start = arena::reserve(config.limit);
         let space_end = space_start.offset(config.limit);
 
-        arena::commit(space_start, config.chunk, config.executable);
+        arena::commit_at(space_start, config.chunk, config.executable);
         let end = space_start.offset(config.chunk);
 
         Space {
@@ -119,7 +119,7 @@ impl Space {
         let new_end = end + size;
 
         if new_end <= self.total.end.to_usize() {
-            arena::commit(end.into(), size, self.config.executable);
+            arena::commit_at(end.into(), size, self.config.executable);
             self.end.store(new_end, Ordering::SeqCst);
 
             true

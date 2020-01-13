@@ -16,7 +16,7 @@ impl ZeroCollector {
         let start = arena::reserve(heap_size);
         let end = start.offset(heap_size);
 
-        arena::commit(start, heap_size, false);
+        arena::commit_at(start, heap_size, false);
 
         ZeroCollector {
             start,

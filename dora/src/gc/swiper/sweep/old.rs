@@ -75,7 +75,7 @@ impl OldGen {
 
             if let Some(chunk) = prot.free_chunks.remove_leftmost() {
                 prot.used_chunks.add(chunk);
-                arena::commit(chunk_addr(chunk, self.total.start), CHUNK_SIZE, false);
+                arena::commit_at(chunk_addr(chunk, self.total.start), CHUNK_SIZE, false);
                 return true;
             }
         }

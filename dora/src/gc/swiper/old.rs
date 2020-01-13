@@ -147,7 +147,7 @@ impl OldGenProtected {
 
             if mapping_end > last_mapped {
                 let size = mapping_end.offset_from(last_mapped);
-                arena::commit(last_mapped, size, false);
+                arena::commit_at(last_mapped, size, false);
             }
 
             if mapping_end == limit {
@@ -159,7 +159,7 @@ impl OldGenProtected {
 
         if limit > last_mapped {
             let size = limit.offset_from(last_mapped);
-            arena::commit(last_mapped, size, false);
+            arena::commit_at(last_mapped, size, false);
         }
     }
 
@@ -239,7 +239,7 @@ impl OldGenProtected {
                     // memory needs to be committed
                     if start < old.mapping_start() {
                         let size = old.mapping_start().offset_from(start);
-                        arena::commit(start, size, false);
+                        arena::commit_at(start, size, false);
                     }
 
                     start = old.mapping_end();
@@ -249,7 +249,7 @@ impl OldGenProtected {
 
             if start < end {
                 let size = end.offset_from(start);
-                arena::commit(start, size, false);
+                arena::commit_at(start, size, false);
             }
         }
     }
@@ -520,7 +520,7 @@ impl OldGenRegion {
         let new_mapping_top = self.mapping_top.offset(size);
 
         if new_mapping_top <= self.total_mapping.end {
-            arena::commit(self.mapping_top, size, false);
+            arena::commit_at(self.mapping_top, size, false);
             self.mapping_top = new_mapping_top;
 
             true

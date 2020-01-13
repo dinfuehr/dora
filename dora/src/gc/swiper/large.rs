@@ -161,7 +161,7 @@ impl LargeSpaceProtected {
                     self.elements[i] = Region::new(range.start.offset(size), range.end);
                 }
 
-                arena::commit(addr, size, false);
+                arena::commit_at(addr, size, false);
                 self.append_large_alloc(addr, size);
                 self.committed_size += size;
 

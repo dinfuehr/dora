@@ -1,6 +1,7 @@
 use parking_lot::Mutex;
 
 use crate::driver::cmd::Args;
+use crate::gc::arena;
 use crate::gc::bump::BumpAllocator;
 use crate::gc::root::{get_rootset, Slot};
 use crate::gc::tlab;
@@ -24,13 +25,12 @@ impl CopyCollector {
     pub fn new(args: &Args) -> CopyCollector {
         let alignment = 2 * (os::page_size() as usize);
         let heap_size = mem::align_usize(args.max_heap_size(), alignment);
-        let ptr = os::mmap(heap_size, os::Writable);
+        let heap_start = arena::commit(heap_size, false);
 
-        if ptr.is_null() {
+        if heap_start.is_null() {
             panic!("could not allocate semi space of size {} bytes", heap_size);
         }
 
-        let heap_start = Address::from_ptr(ptr);
         let heap = heap_start.region_start(heap_size);
 
         let semi_size = heap_size / 2;
@@ -129,7 +129,7 @@ impl Collector for CopyCollector {
 
 impl Drop for CopyCollector {
     fn drop(&mut self) {
-        os::munmap(self.total.start.to_ptr(), self.total.size());
+        arena::uncommit(self.total.start, self.total.size());
     }
 }
 
