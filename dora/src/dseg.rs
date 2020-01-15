@@ -53,7 +53,7 @@ impl DSeg {
 
                 match entry.value {
                     Value::Ptr(v) => {
-                        *(entry_ptr as *mut (*const u8)) = v;
+                        *(entry_ptr as *mut *const u8) = v;
                     }
 
                     Value::Float(v) => {

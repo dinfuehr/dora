@@ -59,7 +59,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         )?;
     }
 
-    writeln!(&mut stdlib, r#"];"#,)?;
+    writeln!(&mut stdlib, r#"]"#,)?;
 
     Ok(())
 }
