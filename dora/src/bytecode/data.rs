@@ -74,6 +74,21 @@ impl From<BuiltinType> for BytecodeType {
     }
 }
 
+impl Into<BuiltinType> for BytecodeType {
+    fn into(self) -> BuiltinType {
+        match self {
+            BytecodeType::Bool => BuiltinType::Bool,
+            BytecodeType::Byte => BuiltinType::Byte,
+            BytecodeType::Char => BuiltinType::Char,
+            BytecodeType::Int => BuiltinType::Int,
+            BytecodeType::Long => BuiltinType::Long,
+            BytecodeType::Float => BuiltinType::Float,
+            BytecodeType::Double => BuiltinType::Double,
+            BytecodeType::Ptr => BuiltinType::Ptr,
+        }
+    }
+}
+
 // Keep in sync with dora-boots/bytecode.dora
 
 #[derive(Copy, Clone, PartialEq, Eq, FromPrimitive, ToPrimitive)]
