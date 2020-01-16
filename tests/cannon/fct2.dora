@@ -1,0 +1,78 @@
+fun main() {
+  assert(foo_bool() == false);
+  assert(foo_byte() == 6Y);
+  assert(foo_char() == '6');
+  assert(foo_int() == 6);
+  assert(foo_long() == 6L);
+  assert(foo_float() == 6F);
+  assert(foo_double() == 6D);
+  assert(foo_string() == "33");
+}
+
+@cannon fun foo_bool() -> Bool {
+  return bar_bool(true);
+}
+fun bar_bool(a: Bool) -> Bool {
+  assert(a == true);
+  return !a;
+}
+
+@cannon fun foo_byte() -> Byte {
+  return bar_byte(3Y);
+}
+fun bar_byte(a: Byte) -> Byte {
+  assert(a == 3Y);
+  return (3+a.toInt()).toByte();
+}
+
+@cannon fun foo_char() -> Char {
+  return bar_char('3');
+}
+fun bar_char(a: Char) -> Char {
+  assert(a == '3');
+  return try! (3+a.toInt()).toChar();  
+}
+
+@cannon fun foo_int() -> Int {
+  return bar_int(3);
+}
+fun bar_int(a: Int) -> Int {
+  assert(a == 3);
+  return 3+a;
+}
+
+@cannon fun foo_long() -> Long {
+  return bar_long(3L);
+}
+
+fun bar_long(a: Long) -> Long {
+  assert(a == 3L);
+  return 3L+a;
+}
+
+@cannon fun foo_float() -> Float {
+  return bar_float(3F);
+}
+
+fun bar_float(a: Float) -> Float {
+  assert(a == 3F);
+  return 3F+a;
+}
+
+@cannon fun foo_double() -> Double {
+  return bar_double(3D);
+}
+
+fun bar_double(a: Double) -> Double {
+  assert(a == 3D);
+  return 3D+a;
+}
+
+@cannon fun foo_string() -> String {
+  return bar_string("3");
+}
+
+fun bar_string(a: String) -> String {
+  assert(a == "3");
+  return "3"+a;
+}
