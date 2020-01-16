@@ -8,7 +8,6 @@ use dora_parser::ast::{self, Ast};
 
 use crate::driver::cmd;
 use crate::object;
-use crate::os;
 use crate::timer::Timer;
 use dora_parser::lexer::reader::Reader;
 
@@ -18,7 +17,6 @@ use crate::ty::BuiltinType;
 use dora_parser::parser::Parser;
 
 pub fn start(content: Option<&str>) -> i32 {
-    os::mem::init_page_size();
     let fuzzing = content.is_some();
 
     let args = if fuzzing {

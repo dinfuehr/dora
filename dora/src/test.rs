@@ -4,7 +4,6 @@ use dora_parser::parser::Parser;
 
 use crate::driver::cmd::Args;
 use crate::driver::start::parse_bundled_stdlib;
-use crate::os;
 use crate::semck;
 use crate::vm::VM;
 
@@ -27,8 +26,6 @@ pub fn parse_with_errors<F, T>(code: &'static str, f: F) -> T
 where
     F: FnOnce(&VM) -> T,
 {
-    os::mem::init_page_size();
-
     let mut ast = Ast::new();
     let args: Args = Default::default();
     let empty = Ast::new();

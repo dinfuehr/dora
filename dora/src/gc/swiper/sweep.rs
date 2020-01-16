@@ -13,9 +13,10 @@ use crate::gc::swiper::verify::VerifierPhase;
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{CollectionKind, CARD_SIZE_BITS, LARGE_OBJECT_SIZE};
 use crate::gc::tlab;
-use crate::gc::{align_gen, arena, formatted_size, GEN_SIZE};
+use crate::gc::{align_gen, formatted_size, GEN_SIZE};
 use crate::gc::{Address, Collector, GcReason, Region};
 use crate::mem;
+use crate::os;
 use crate::safepoint;
 use crate::vm::VM;
 
@@ -66,7 +67,7 @@ impl SweepSwiper {
         let reserve_size = max_heap_size * 4 + card_size + crossing_size;
 
         // reserve full memory
-        let heap_start = arena::reserve_align(reserve_size, GEN_SIZE);
+        let heap_start = os::reserve_align(reserve_size, GEN_SIZE);
         assert!(heap_start.is_gen_aligned());
 
         // heap is young/old generation & large space
@@ -83,13 +84,13 @@ impl SweepSwiper {
         let card_start = heap_end;
         let card_end = card_start.offset(card_size);
 
-        arena::commit_at(card_start, card_size, false);
+        os::commit_at(card_start, card_size, false);
 
         // determine boundaries for crossing map
         let crossing_start = card_end;
         let crossing_end = crossing_start.offset(crossing_size);
 
-        arena::commit_at(crossing_start, crossing_size, false);
+        os::commit_at(crossing_start, crossing_size, false);
 
         // determine boundaries of young generation
         let young_start = heap_start;

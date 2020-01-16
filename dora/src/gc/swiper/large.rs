@@ -1,11 +1,11 @@
 use parking_lot::Mutex;
 use std::mem::size_of;
 
-use crate::gc::arena;
 use crate::gc::swiper::controller::SharedHeapConfig;
 use crate::gc::swiper::LARGE_OBJECT_SIZE;
 use crate::gc::{Address, Region};
 use crate::mem;
+use crate::os;
 
 pub struct LargeSpace {
     total: Region,
@@ -161,7 +161,7 @@ impl LargeSpaceProtected {
                     self.elements[i] = Region::new(range.start.offset(size), range.end);
                 }
 
-                arena::commit_at(addr, size, false);
+                os::commit_at(addr, size, false);
                 self.append_large_alloc(addr, size);
                 self.committed_size += size;
 
@@ -174,7 +174,7 @@ impl LargeSpaceProtected {
 
     fn free(&mut self, ptr: Address, size: usize) {
         debug_assert!(mem::is_page_aligned(size));
-        arena::discard(ptr, size);
+        os::discard(ptr, size);
         self.elements.push(ptr.region_start(size));
         self.committed_size -= size;
     }

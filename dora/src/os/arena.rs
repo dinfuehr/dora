@@ -4,6 +4,7 @@ use crate::gc::Address;
 use crate::mem;
 use crate::os::page_size;
 
+#[cfg(target_family = "unix")]
 pub fn reserve(size: usize) -> Address {
     debug_assert!(mem::is_page_aligned(size));
 
@@ -25,11 +26,27 @@ pub fn reserve(size: usize) -> Address {
     Address::from_ptr(ptr)
 }
 
+#[cfg(target_family = "windows")]
+pub fn reserve(size: usize) -> Address {
+    debug_assert!(mem::is_page_aligned(size));
+
+    use kernel32::VirtualAlloc;
+    use winapi::winnt::{MEM_RESERVE, PAGE_NOACCESS};
+
+    let ptr = unsafe { VirtualAlloc(ptr::null_mut(), size as u64, MEM_RESERVE, PAGE_NOACCESS) };
+
+    if ptr.is_null() {
+        panic!("VirtualAlloc failed");
+    }
+
+    Address::from_ptr(ptr)
+}
+
 pub fn reserve_align(size: usize, align: usize) -> Address {
     debug_assert!(mem::is_page_aligned(size));
     debug_assert!(mem::is_page_aligned(align));
 
-    let align_minus_page = align - page_size() as usize;
+    let align_minus_page = align - page_size();
 
     let unaligned = reserve(size + align_minus_page);
     let aligned: Address = mem::align_usize(unaligned.to_usize(), align).into();
@@ -48,6 +65,7 @@ pub fn reserve_align(size: usize, align: usize) -> Address {
     aligned
 }
 
+#[cfg(target_family = "unix")]
 pub fn commit(size: usize, executable: bool) -> Address {
     debug_assert!(mem::is_page_aligned(size));
 
@@ -75,6 +93,29 @@ pub fn commit(size: usize, executable: bool) -> Address {
     Address::from_ptr(ptr)
 }
 
+#[cfg(target_family = "windows")]
+pub fn commit(size: usize, executable: bool) -> Address {
+    debug_assert!(mem::is_page_aligned(size));
+
+    use kernel32::VirtualAlloc;
+    use winapi::winnt::{MEM_COMMIT, MEM_RESERVE, PAGE_EXECUTE_READWRITE, PAGE_READWRITE};
+
+    let prot = if exec == Executable {
+        PAGE_EXECUTE_READWRITE
+    } else {
+        PAGE_READWRITE
+    };
+
+    let ptr = unsafe { VirtualAlloc(ptr::null_mut(), size as u64, MEM_COMMIT | MEM_RESERVE, prot) };
+
+    if ptr.is_null() {
+        panic!("VirtualAlloc failed");
+    }
+
+    Address::from_ptr(ptr)
+}
+
+#[cfg(target_family = "unix")]
 pub fn commit_at(ptr: Address, size: usize, executable: bool) {
     debug_assert!(ptr.is_page_aligned());
     debug_assert!(mem::is_page_aligned(size));
@@ -101,6 +142,28 @@ pub fn commit_at(ptr: Address, size: usize, executable: bool) {
     }
 }
 
+#[cfg(target_family = "windows")]
+pub fn commit_at(ptr: Address, size: usize, executable: bool) {
+    debug_assert!(ptr.is_page_aligned());
+    debug_assert!(mem::is_page_aligned(size));
+
+    use kernel32::VirtualAlloc;
+    use winapi::winnt::{MEM_COMMIT, MEM_RESERVE, PAGE_EXECUTE_READWRITE, PAGE_READWRITE};
+
+    let prot = if exec == Executable {
+        PAGE_EXECUTE_READWRITE
+    } else {
+        PAGE_READWRITE
+    };
+
+    let result = unsafe { VirtualAlloc(ptr.to_mut_ptr(), size as u64, MEM_COMMIT, prot) };
+
+    if result != ptr.to_mut_ptr() {
+        panic!("VirtualAlloc failed");
+    }
+}
+
+#[cfg(target_family = "unix")]
 pub fn uncommit(ptr: Address, size: usize) {
     debug_assert!(ptr.is_page_aligned());
     debug_assert!(mem::is_page_aligned(size));
@@ -121,6 +184,23 @@ pub fn uncommit(ptr: Address, size: usize) {
     }
 }
 
+#[cfg(target_family = "windows")]
+pub fn uncommit(ptr: Address, size: usize) {
+    debug_assert!(ptr.is_page_aligned());
+    debug_assert!(mem::is_page_aligned(size));
+
+    use kernel32::VirtualFree;
+    use winapi;
+    use winapi::winnt::MEM_RELEASE;
+
+    let res = unsafe { VirtualFree(ptr.to_mut_ptr(), size, MEM_RELEASE) };
+
+    if res == 0 {
+        panic!("VirtualFree failed");
+    }
+}
+
+#[cfg(target_family = "unix")]
 pub fn discard(ptr: Address, size: usize) {
     debug_assert!(ptr.is_page_aligned());
     debug_assert!(mem::is_page_aligned(size));
@@ -138,12 +218,33 @@ pub fn discard(ptr: Address, size: usize) {
     }
 }
 
+#[cfg(target_family = "windows")]
+pub fn discard(ptr: Address, size: usize) {
+    debug_assert!(ptr.is_page_aligned());
+    debug_assert!(mem::is_page_aligned(size));
+
+    use kernel32::VirtualFree;
+    use winapi::winnt::{MEM_DECOMMIT, PAGE_NOACCESS};
+
+    let ptr = unsafe { VirtualFree(ptr.to_mut_ptr(), size as u64, MEM_DECOMMIT) };
+
+    if ptr.is_null() {
+        panic!("VirtualFree failed");
+    }
+}
+
+#[cfg(target_family = "unix")]
 pub fn protect(start: Address, size: usize, access: Access) {
     debug_assert!(start.is_page_aligned());
     debug_assert!(mem::is_page_aligned(size));
 
+    if access.is_none() {
+        discard(start, size);
+        return;
+    }
+
     let protection = match access {
-        Access::None => 0,
+        Access::None => unreachable!(),
         Access::Read => libc::PROT_READ,
         Access::ReadWrite => libc::PROT_READ | libc::PROT_WRITE,
         Access::ReadExecutable => libc::PROT_READ | libc::PROT_EXEC,
@@ -157,10 +258,49 @@ pub fn protect(start: Address, size: usize, access: Access) {
     }
 }
 
+#[cfg(target_family = "windows")]
+pub fn protect(start: Address, size: usize, access: Access) {
+    debug_assert!(start.is_page_aligned());
+    debug_assert!(mem::is_page_aligned(size));
+
+    use kernel32::VirtualAlloc;
+    use winapi::winnt::{
+        MEM_UNCOMMIT, PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE, PAGE_READ, PAGE_READWRITE,
+    };
+
+    if access.is_none() {
+        discard(start, size);
+        return;
+    }
+
+    let protection = match access {
+        Access::None => unreachable!(),
+        Access::Read => PAGE_READ,
+        Access::ReadWrite => PAGE_READWRITE,
+        Access::ReadExecutable => PAGE_EXECUTE_READ,
+        Access::ReadWriteExecutable => PAGE_EXECUTE_READWRITE,
+    };
+
+    let ptr = unsafe { VirtualAlloc(start.to_mut_ptr(), size as u64, MEM_COMMIT, protection) };
+
+    if ptr.is_null() {
+        panic!("VirtualAlloc failed");
+    }
+}
+
 pub enum Access {
     None,
     Read,
     ReadWrite,
     ReadExecutable,
     ReadWriteExecutable,
+}
+
+impl Access {
+    fn is_none(&self) -> bool {
+        match self {
+            Access::None => true,
+            _ => false,
+        }
+    }
 }

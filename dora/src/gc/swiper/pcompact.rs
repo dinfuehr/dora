@@ -5,7 +5,6 @@ use std::cmp;
 use crate::gc::pmarking;
 use crate::gc::root::Slot;
 use crate::gc::space::Space;
-use crate::gc::swiper::arena;
 use crate::gc::swiper::card::CardTable;
 use crate::gc::swiper::compact::verify_marking;
 use crate::gc::swiper::controller::FullCollectorPhases;
@@ -16,6 +15,7 @@ use crate::gc::swiper::verify::verify_mapped_regions;
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{walk_region, walk_region_and_skip_garbage, CardIdx, CARD_REFS};
 use crate::gc::{Address, GcReason, Region};
+use crate::os;
 use crate::stdlib;
 use crate::timer::Timer;
 use crate::vm::{Trap, VM};
@@ -711,7 +711,7 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
                             let free_start = large_alloc.address();
                             let free_size = large_alloc.size;
 
-                            arena::discard(free_start, free_size);
+                            os::discard(free_start, free_size);
                             free_regions.push(free_start.region_start(free_size));
                             freed += free_size;
                         }

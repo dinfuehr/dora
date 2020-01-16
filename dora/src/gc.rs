@@ -16,7 +16,6 @@ use crate::os;
 use crate::vm::VM;
 use crate::vtable::VTable;
 
-pub mod arena;
 pub mod bump;
 pub mod compact;
 pub mod copy;
@@ -313,7 +312,7 @@ impl Address {
 
     #[inline(always)]
     pub fn align_page_down(self) -> Address {
-        Address(self.0 & !(os::page_size() as usize - 1))
+        Address(self.0 & !(os::page_size() - 1))
     }
 
     #[inline(always)]

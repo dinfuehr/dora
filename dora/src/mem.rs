@@ -26,8 +26,7 @@ pub fn is_page_aligned(val: usize) -> bool {
 
 #[test]
 fn test_is_page_aligned() {
-    os::init_page_size();
-    let p = os::page_size() as usize;
+    let p = os::page_size();
 
     assert_eq!(false, is_page_aligned(1));
     assert_eq!(false, is_page_aligned(2));
@@ -48,8 +47,7 @@ pub fn page_align(val: usize) -> usize {
 
 #[test]
 fn test_page_align() {
-    os::init_page_size();
-    let p = os::page_size() as usize;
+    let p = os::page_size();
 
     assert_eq!(p, page_align(1));
     assert_eq!(p, page_align(p - 1));

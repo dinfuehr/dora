@@ -6,7 +6,8 @@ use crate::gc::swiper::card::CardTable;
 use crate::gc::swiper::controller::SharedHeapConfig;
 use crate::gc::swiper::crossing::CrossingMap;
 use crate::gc::swiper::CommonOldGen;
-use crate::gc::{arena, Address, Region, GEN_SIZE};
+use crate::gc::{Address, Region, GEN_SIZE};
+use crate::os;
 
 pub struct OldGen {
     total: Region,
@@ -147,7 +148,7 @@ impl OldGenProtected {
 
             if mapping_end > last_mapped {
                 let size = mapping_end.offset_from(last_mapped);
-                arena::commit_at(last_mapped, size, false);
+                os::commit_at(last_mapped, size, false);
             }
 
             if mapping_end == limit {
@@ -159,7 +160,7 @@ impl OldGenProtected {
 
         if limit > last_mapped {
             let size = limit.offset_from(last_mapped);
-            arena::commit_at(last_mapped, size, false);
+            os::commit_at(last_mapped, size, false);
         }
     }
 
@@ -239,7 +240,7 @@ impl OldGenProtected {
                     // memory needs to be committed
                     if start < old.mapping_start() {
                         let size = old.mapping_start().offset_from(start);
-                        arena::commit_at(start, size, false);
+                        os::commit_at(start, size, false);
                     }
 
                     start = old.mapping_end();
@@ -249,7 +250,7 @@ impl OldGenProtected {
 
             if start < end {
                 let size = end.offset_from(start);
-                arena::commit_at(start, size, false);
+                os::commit_at(start, size, false);
             }
         }
     }
@@ -276,7 +277,7 @@ impl OldGenProtected {
             let size = region.mapping_end().offset_from(start);
 
             if size > 0 {
-                arena::discard(start, size);
+                os::discard(start, size);
             }
         }
 
@@ -310,7 +311,7 @@ impl OldGenProtected {
                     // memory needs to be forgotten
                     if start < new.mapping_start() {
                         let size = new.mapping_start().offset_from(start);
-                        arena::discard(start, size);
+                        os::discard(start, size);
                     }
 
                     start = new.mapping_end();
@@ -320,7 +321,7 @@ impl OldGenProtected {
 
             if start < end {
                 let size = end.offset_from(start);
-                arena::discard(start, size);
+                os::discard(start, size);
             }
         }
 
@@ -520,7 +521,7 @@ impl OldGenRegion {
         let new_mapping_top = self.mapping_top.offset(size);
 
         if new_mapping_top <= self.total_mapping.end {
-            arena::commit_at(self.mapping_top, size, false);
+            os::commit_at(self.mapping_top, size, false);
             self.mapping_top = new_mapping_top;
 
             true

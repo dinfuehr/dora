@@ -1,9 +1,9 @@
 use parking_lot::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::gc::arena;
 use crate::gc::{Address, Region};
 use crate::mem;
+use crate::os;
 
 /// Configuration for a space.
 /// This makes it possible to use `Space` both for the
@@ -42,10 +42,10 @@ impl Space {
     pub fn new(config: SpaceConfig, name: &'static str) -> Space {
         let config = adapt_to_page_size(config);
 
-        let space_start = arena::reserve(config.limit);
+        let space_start = os::reserve(config.limit);
         let space_end = space_start.offset(config.limit);
 
-        arena::commit_at(space_start, config.chunk, config.executable);
+        os::commit_at(space_start, config.chunk, config.executable);
         let end = space_start.offset(config.chunk);
 
         Space {
@@ -119,7 +119,7 @@ impl Space {
         let new_end = end + size;
 
         if new_end <= self.total.end.to_usize() {
-            arena::commit_at(end.into(), size, self.config.executable);
+            os::commit_at(end.into(), size, self.config.executable);
             self.end.store(new_end, Ordering::SeqCst);
 
             true

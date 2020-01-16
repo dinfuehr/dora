@@ -1,14 +1,13 @@
 use parking_lot::Mutex;
 
 use crate::driver::cmd::Args;
-use crate::gc::arena::{self, Access};
 use crate::gc::bump::BumpAllocator;
 use crate::gc::root::{get_rootset, Slot};
 use crate::gc::tlab;
 use crate::gc::{formatted_size, Address, CollectionStats, Collector, GcReason, Region};
 use crate::mem;
 use crate::object::Obj;
-use crate::os;
+use crate::os::{self, Access};
 use crate::safepoint;
 use crate::timer::Timer;
 use crate::vm::VM;
@@ -23,9 +22,9 @@ pub struct CopyCollector {
 
 impl CopyCollector {
     pub fn new(args: &Args) -> CopyCollector {
-        let alignment = 2 * (os::page_size() as usize);
+        let alignment = 2 * os::page_size();
         let heap_size = mem::align_usize(args.max_heap_size(), alignment);
-        let heap_start = arena::commit(heap_size, false);
+        let heap_start = os::commit(heap_size, false);
 
         if heap_start.is_null() {
             panic!("could not allocate semi space of size {} bytes", heap_size);
@@ -129,7 +128,7 @@ impl Collector for CopyCollector {
 
 impl Drop for CopyCollector {
     fn drop(&mut self) {
-        arena::uncommit(self.total.start, self.total.size());
+        os::uncommit(self.total.start, self.total.size());
     }
 }
 
@@ -140,7 +139,7 @@ impl CopyCollector {
         // enable writing into to-space again (for debug builds)
         if cfg!(debug_assertions) {
             let to_space = self.to_space();
-            arena::protect(to_space.start, to_space.size(), Access::ReadWrite);
+            os::protect(to_space.start, to_space.size(), Access::ReadWrite);
         }
 
         // empty to-space
@@ -178,7 +177,7 @@ impl CopyCollector {
         // disable access in current from-space
         // makes sure that no pointer into from-space is left (in debug-builds)
         if cfg!(debug_assertions) {
-            arena::protect(from_space.start, from_space.size(), Access::None);
+            os::protect(from_space.start, from_space.size(), Access::None);
         }
 
         self.alloc.reset(top, to_space.end);

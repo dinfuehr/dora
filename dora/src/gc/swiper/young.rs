@@ -1,9 +1,9 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::gc::arena::Access;
 use crate::gc::bump::BumpAllocator;
-use crate::gc::{arena, gen_aligned, Address, Region};
+use crate::gc::{gen_aligned, Address, Region};
 use crate::mem;
+use crate::os::{self, Access};
 
 pub struct YoungGen {
     // bounds of eden & semi-spaces
@@ -308,7 +308,7 @@ impl SemiSpace {
         if cfg!(debug_assertions) || self.protect {
             let from_space = self.from_committed();
 
-            arena::protect(from_space.start, from_space.size(), Access::ReadWrite);
+            os::protect(from_space.start, from_space.size(), Access::ReadWrite);
         }
     }
 
@@ -318,7 +318,7 @@ impl SemiSpace {
         // Since this has some overhead, do it only in debug builds.
         if cfg!(debug_assertions) || self.protect {
             let from_space = self.from_committed();
-            arena::protect(from_space.start, from_space.size(), Access::None);
+            os::protect(from_space.start, from_space.size(), Access::None);
         }
     }
 
@@ -405,7 +405,7 @@ impl Block {
         let size = self.committed_size();
 
         if size > 0 {
-            arena::commit_at(self.start, size, false);
+            os::commit_at(self.start, size, false);
         }
     }
 
@@ -443,10 +443,10 @@ impl Block {
 
         if old_committed < new_committed {
             let size = new_committed - old_committed;
-            arena::commit_at(old_committed.into(), size, false);
+            os::commit_at(old_committed.into(), size, false);
         } else if old_committed > new_committed {
             let size = old_committed - new_committed;
-            arena::discard(new_committed.into(), size);
+            os::discard(new_committed.into(), size);
         }
 
         self.alloc.reset_limit(new_committed.into());

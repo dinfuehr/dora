@@ -1,7 +1,6 @@
 use parking_lot::Mutex;
 
 use crate::driver::cmd::Args;
-use crate::gc::arena;
 use crate::gc::freelist::FreeList;
 use crate::gc::marking;
 use crate::gc::root::{get_rootset, Slot};
@@ -10,6 +9,7 @@ use crate::gc::tlab;
 use crate::gc::{
     fill_region_with_free, formatted_size, Address, CollectionStats, Collector, GcReason, Region,
 };
+use crate::os;
 use crate::safepoint;
 use crate::timer::Timer;
 use crate::vm::VM;
@@ -23,7 +23,7 @@ pub struct SweepCollector {
 impl SweepCollector {
     pub fn new(args: &Args) -> SweepCollector {
         let heap_size = args.max_heap_size();
-        let heap_start = arena::commit(heap_size, false);
+        let heap_start = os::commit(heap_size, false);
 
         if heap_start.is_null() {
             panic!("could not allocate heap of size {} bytes", heap_size);
@@ -124,7 +124,7 @@ impl Collector for SweepCollector {
 
 impl Drop for SweepCollector {
     fn drop(&mut self) {
-        arena::uncommit(self.heap.start, self.heap.size());
+        os::uncommit(self.heap.start, self.heap.size());
     }
 }
 
