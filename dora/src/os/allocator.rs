@@ -223,7 +223,7 @@ pub fn discard(ptr: Address, size: usize) {
     debug_assert!(mem::is_page_aligned(size));
 
     use winapi::um::memoryapi::VirtualFree;
-    use winapi::um::winnt::{MEM_DECOMMIT, PAGE_NOACCESS};
+    use winapi::um::winnt::MEM_DECOMMIT;
 
     let result = unsafe { VirtualFree(ptr.to_mut_ptr(), size, MEM_DECOMMIT) };
 
