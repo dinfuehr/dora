@@ -21,7 +21,7 @@ $ sudo apt install ruby
 
 
 ## Compilation & Testing
-Install the Rust nightly version through [rustup.rs](http://rustup.rs). Use the specific nightly version listed in the [rust-toolchain](https://github.com/dinfuehr/dora/blob/master/rust-toolchain) file.
+Install Rust nightly through [rustup.rs](http://rustup.rs). Use the specific nightly version listed in the [rust-toolchain](https://github.com/dinfuehr/dora/blob/master/rust-toolchain) file. Dora simply uses `cargo` for building:
 
 ```
 # build in debug and release mode
