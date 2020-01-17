@@ -17,27 +17,22 @@ $ sudo dnf install ruby
 $ sudo apt install ruby
 ```
 
-[Ruby](https://www.ruby-lang.org/) is used for running tests
+[Ruby](https://www.ruby-lang.org/) is used for running tests.
 
 
 ## Compilation & Testing
-Install current Rust Nightly via [rustup.rs](http://rustup.rs). The nightly version of
-Rust is needed because Dora uses some unstable features of Rust (e.g. inline assembly).
-
-Dora uses [cargo](http://crates.io) for building, which is bundled with Rust:
+Install the Rust nightly version through [rustup.rs](http://rustup.rs). Use the specific nightly version listed in the [rust-toolchain](https://github.com/dinfuehr/dora/blob/master/rust-toolchain) file.
 
 ```
-# install last nightly and use it for this project
-rustup update nightly
-rustup override set nightly
+# build in debug and release mode
+cargo build && cargo build --release
 
 # run all tests in debug and release mode
-tools/test
-tools/test-release
+tools/test && tools/test-release
 ```
 
 ## Working on the standard library
 The standard library (stdlib) is included into the `dora`-binary at compile time.
 Changing the stdlib therefore requires recompiling Dora, even though the stdlib is written into Dora.
 In order to avoid this recompilation when working on the stdlib, simply pass your working directory of the stdlib to Dora using the `--stdlib` argument.
-With this parameter, Dora loads the stdlib from the specified directory instead of the stdlib bundled in the executable.
+With this parameter, Dora loads the stdlib from the specified directory instead of the one bundled in the executable.
