@@ -1,4 +1,4 @@
-//= output "10\n10\n"
+//= stdout "10\n10\n"
 
 fun main() {
     let a = A(10);

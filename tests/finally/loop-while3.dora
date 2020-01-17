@@ -1,4 +1,4 @@
-//= output "f"
+//= stdout "f"
 
 fun main() {
     loop {

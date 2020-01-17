@@ -1,4 +1,4 @@
-//= output "hello1"
+//= stdout "hello1"
 
 fun main() {
   let a = A[String](foo(1));

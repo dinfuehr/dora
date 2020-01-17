@@ -1,4 +1,4 @@
-//= output "DONE\n"
+//= stdout "DONE\n"
 
 fun main() {
   do {

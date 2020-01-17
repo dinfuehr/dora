@@ -26,7 +26,7 @@ impl Diagnostic {
 
     pub fn dump(&self, vm: &VM) {
         for err in &self.errors {
-            println!("{}", &err.message(vm));
+            eprintln!("{}", &err.message(vm));
         }
     }
 }

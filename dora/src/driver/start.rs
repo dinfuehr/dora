@@ -57,9 +57,9 @@ pub fn start(content: Option<&str>) -> i32 {
         let no_errors = vm.diag.lock().errors().len();
 
         if no_errors == 1 {
-            println!("{} error found.", no_errors);
+            eprintln!("{} error found.", no_errors);
         } else {
-            println!("{} errors found.", no_errors);
+            eprintln!("{} errors found.", no_errors);
         }
 
         return 1;

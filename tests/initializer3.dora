@@ -1,4 +1,4 @@
-//= output "abc!xyz"
+//= stdout "abc!xyz"
 
 class X(msg: String) {
   if msg == "abc" {

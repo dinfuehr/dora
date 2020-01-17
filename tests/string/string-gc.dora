@@ -1,4 +1,4 @@
-//= output "abxy\n"
+//= stdout "abxy\n"
 
 fun main() {
     let x = arrayEmpty[String]();

@@ -1,5 +1,5 @@
 //= error code 1
-//= output "program aborted.\n"
+//= stderr "program aborted.\n"
 
 fun main() {
     abort();

@@ -1,4 +1,4 @@
-//= output "0"
+//= stdout "0"
 
 fun main() {
     let val = try foo() else 0;

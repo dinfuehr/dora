@@ -1,4 +1,4 @@
-//= output "321"
+//= stdout "321"
 
 fun main() {
     let x = Vec[String]();

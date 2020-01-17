@@ -79,19 +79,19 @@ pub extern "C" fn addr(val: Ref<Obj>) -> u64 {
 }
 
 pub extern "C" fn fatal_error(msg: Ref<Str>) {
-    write!(&mut io::stderr(), "fatal error: ").expect("could not print to stderr");
+    eprint!("fatal error: ");
     io::stderr().write(msg.content()).unwrap();
-    writeln!(&mut io::stderr(), "").expect("could not print to stderr");
+    eprintln!("");
 
     let vm = get_vm();
     let stacktrace = stacktrace_from_last_dtn(vm);
-    stacktrace.dump(vm);
+    stacktrace.dump_err(vm);
 
     process::exit(1);
 }
 
 pub extern "C" fn abort() {
-    writeln!(&mut io::stderr(), "program aborted.").expect("could not print to stderr");
+    eprintln!("program aborted.");
     process::exit(1);
 }
 
@@ -292,9 +292,9 @@ pub extern "C" fn trap(trap_id: u32) {
         Trap::STACK_OVERFLOW => "stack overflow",
     };
 
-    println!("{}", msg);
+    eprintln!("{}", msg);
     let stacktrace = stacktrace_from_last_dtn(vm);
-    stacktrace.dump(vm);
+    stacktrace.dump_err(vm);
     unsafe {
         libc::_exit(100 + trap_id as i32);
     }

@@ -1,4 +1,4 @@
-//= output "78"
+//= stdout "78"
 
 class X(j: Int) {
   var i: Int;

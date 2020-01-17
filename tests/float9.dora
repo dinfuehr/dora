@@ -1,4 +1,4 @@
-//= output "1\n1\n"
+//= stdout "1\n1\n"
 
 fun main() {
     let x = 1F;

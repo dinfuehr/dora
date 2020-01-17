@@ -1,4 +1,4 @@
-//= output "world\n"
+//= stdout "world\n"
 
 trait Foo {
     fun bar() -> Int;

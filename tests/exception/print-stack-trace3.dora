@@ -1,4 +1,4 @@
-//= output "Exception: bar\n0: b() -> Exception: 18\n1: a() -> Exception: 14\n2: main(): 4\n"
+//= stdout "Exception: bar\n0: b() -> Exception: 18\n1: a() -> Exception: 14\n2: main(): 4\n"
 
 fun main() {
   let e = a();

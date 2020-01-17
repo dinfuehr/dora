@@ -1,4 +1,4 @@
-//= output "imo"
+//= stdout "imo"
 
 fun main() {
   do {

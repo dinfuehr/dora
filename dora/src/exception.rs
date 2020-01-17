@@ -45,6 +45,24 @@ impl Stacktrace {
             }
         }
     }
+
+    pub fn dump_err(&self, vm: &VM) {
+        let frames = self.elems.len();
+        for (ind, elem) in self.elems.iter().enumerate() {
+            let jit_fct = vm.jit_fcts.idx(elem.fct_id);
+            let fct_id = jit_fct.fct_id();
+            let fct = vm.fcts.idx(fct_id);
+            let fct = fct.read();
+            let name = fct.full_name(vm);
+            eprint!("{}: {}: ", frames - ind, name);
+
+            if elem.lineno == 0 {
+                eprintln!("?");
+            } else {
+                eprintln!("{}", elem.lineno);
+            }
+        }
+    }
 }
 
 struct StackElem {

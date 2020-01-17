@@ -1,4 +1,4 @@
-//= output "wwwae"
+//= stdout "wwwae"
 
 fun main() {
     do {

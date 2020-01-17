@@ -1,4 +1,4 @@
-//= output "Hello, world!\n"
+//= stdout "Hello, world!\n"
 
 fun main() {
   println("Hello, world!");

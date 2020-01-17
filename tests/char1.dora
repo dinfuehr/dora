@@ -1,4 +1,4 @@
-//= output "a\n"
+//= stdout "a\n"
 
 fun main() {
     let ch = 'a';

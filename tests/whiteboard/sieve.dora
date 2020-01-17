@@ -1,4 +1,4 @@
-//= output file
+//= stdout file
 
 fun main() {
     let primes = sieve(100);

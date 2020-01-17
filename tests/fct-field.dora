@@ -1,5 +1,5 @@
 //= error nil
-//= output file
+//= stderr "nil check failed\n2: f(Foo): 10\n1: main(): 6\n"
 
 fun main() {
   f(Foo(1));

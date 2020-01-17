@@ -1,4 +1,4 @@
-//= output "xyz\n"
+//= stdout "xyz\n"
 
 trait Foo {
     fun bla();

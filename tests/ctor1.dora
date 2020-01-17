@@ -1,4 +1,4 @@
-//= output "xyz"
+//= stdout "xyz"
 
 class X(msg: String) {
     print(msg);

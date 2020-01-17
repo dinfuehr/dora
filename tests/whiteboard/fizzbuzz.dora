@@ -1,4 +1,4 @@
-//= output file
+//= stdout file
 
 fun main() {
     var i = 1;

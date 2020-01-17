@@ -1,4 +1,4 @@
-//= output "1"
+//= stdout "1"
 
 fun main() {
     let a = A[Int](1);

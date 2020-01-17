@@ -1,4 +1,4 @@
-//= output "fghi"
+//= stdout "fghi"
 
 fun main() {
     do {

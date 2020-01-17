@@ -1,4 +1,4 @@
-//= output "done\ndone\n"
+//= stdout "done\ndone\n"
 //= vm-args "--gc-young-size=64M --max-heap-size=128M"
 
 class MyThread() : Thread {

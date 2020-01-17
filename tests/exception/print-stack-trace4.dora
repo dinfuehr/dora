@@ -1,4 +1,4 @@
-//= output "Exception: SubException 0\n0: SubException.SubException(String, Int): 14\n1: create_exceptions() -> SubException: 8\n2: main(): 4\nException: SubException 1\n0: create_exceptions() -> SubException: 8\n1: main(): 4\n"
+//= stdout "Exception: SubException 0\n0: SubException.SubException(String, Int): 14\n1: create_exceptions() -> SubException: 8\n2: main(): 4\nException: SubException 1\n0: create_exceptions() -> SubException: 8\n1: main(): 4\n"
 
 fun main() {
   create_exceptions().printTraces();

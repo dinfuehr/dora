@@ -1,4 +1,4 @@
-//= output "012"
+//= stdout "012"
 
 fun main() {
     for i in range(0, 5) {

@@ -1,4 +1,4 @@
-//= output "hello world!\n"
+//= stdout "hello world!\n"
 
 fun main() {
   assert(f() == 6);

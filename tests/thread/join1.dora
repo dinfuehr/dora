@@ -1,4 +1,4 @@
-//= output "one\ntwo\n"
+//= stdout "one\ntwo\n"
 
 class MyThread() : Thread {
     @override fun run() {

@@ -1,4 +1,4 @@
-//= output "finally in foo\ncatch me\n"
+//= stdout "finally in foo\ncatch me\n"
 
 fun main() {
   do {

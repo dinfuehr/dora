@@ -1,7 +1,7 @@
-//= output ""
-
 fun main() {
+    var counter = 0;
     for i in range(0, 0) {
-        print(i.toString());
+        counter = counter + 1;
     }
+    assert(counter == 0);
 }

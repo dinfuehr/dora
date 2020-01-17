@@ -29,7 +29,8 @@ class TestExpectation
                 :position,
                 :code,
                 :message,
-                :output
+                :stdout,
+                :stderr
 
   def initialize(opts = {})
     fail = opts.fetch(:fail, false)
@@ -100,23 +101,14 @@ class TestCase
   private
   def run_test(optional_vm_args)
     temp_out = Tempfile.new("dora-test-runner")
-    out_args = ">#{temp_out.path} 2>&1"
-
-    system("target/#{target}/dora #{vm_args} #{optional_vm_args} #{test_file} #{args} #{out_args}")
-
-    process = $?
-    exit_code = process.exitstatus
-  
-    temp_out_content = IO.read(temp_out.path)
-    temp_out.close
-
-    position, message = read_error_message(temp_out_content)
-
-    return check_test_run_result(exit_code, position, message, temp_out_content)
+    stdout, stderr, status = Open3.capture3("target/#{target}/dora #{vm_args} #{optional_vm_args} #{test_file} #{args}")
+    return check_test_run_result(stdout, stderr, status.exitstatus)
   end
 
-  def check_test_run_result(exit_code, position, message, content)
+  def check_test_run_result(stdout, stderr, exit_code)
     if self.expectation.fail
+      position, message = read_error_message(stderr)
+
       return "expected failure (test exited with 0)" if exit_code == 0
       return "expected failure (#{self.expectation.code} expected but test returned #{exit_code})" if 
         self.expectation.code && exit_code != self.expectation.code
@@ -131,9 +123,12 @@ class TestCase
   
     end
   
-    return "output does not match (#{self.expectation.output.inspect} != #{content.inspect})" if
-      self.expectation.output && self.expectation.output != content
-  
+    return "stdout does not match (#{self.expectation.stdout.inspect} != #{stdout.inspect})" if
+      self.expectation.stdout && self.expectation.stdout != stdout
+
+    return "stderr does not match (#{self.expectation.stderr.inspect} != #{stderr.inspect})" if
+      self.expectation.stderr && self.expectation.stderr != stderr
+
     true
   end
 end
@@ -367,12 +362,15 @@ def parse_test_file(file)
         test_case.expectation = :ignore
         return test_case
 
-      when "output"
+      when "stdout"
         case arguments[1]
-        when "file" then test_case.expectation.output = IO.read(file.sub(".dora", ".result"))
+        when "file" then test_case.expectation.stdout = IO.read(file.sub(".dora", ".stdout"))
         else
-          test_case.expectation.output = arguments[1]
+          test_case.expectation.stdout = arguments[1]
         end
+
+      when "stderr"
+        test_case.expectation.stderr = arguments[1]
 
       when "args"
         test_case.args = arguments[1..-1].join(" ")

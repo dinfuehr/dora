@@ -1,4 +1,4 @@
-//= output "abc!xyz"
+//= stdout "abc!xyz"
 
 class X(let msg: String) {
   if self.msg == "abc" {

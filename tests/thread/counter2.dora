@@ -1,4 +1,4 @@
-//= output "done\n"
+//= stdout "done\n"
 
 class MyThread(var executed: Bool) : Thread {
     @override fun run() {
