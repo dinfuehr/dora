@@ -1,7 +1,13 @@
 use crate::cpu::{FReg, Reg};
 
 pub const REG_COUNT: usize = 16;
+
+#[cfg(target_family = "unix")]
 pub static REG_PARAMS: [Reg; 6] = [RDI, RSI, RDX, RCX, R8, R9];
+
+#[cfg(target_family = "windows")]
+pub static REG_PARAMS: [Reg; 4] = [RCX, RDX, R8, R9];
+
 pub static SCRATCH: [Reg; 3] = [R9, R8, RDI];
 
 pub const REG_RESULT: Reg = RAX;
@@ -38,7 +44,11 @@ pub const FREG_RESULT: FReg = XMM0;
 // shall not overlap with param registers
 pub const FREG_TMP1: FReg = XMM8;
 
+#[cfg(target_family = "unix")]
 pub static FREG_PARAMS: [FReg; 8] = [XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7];
+
+#[cfg(target_family = "windows")]
+pub static FREG_PARAMS: [FReg; 4] = [XMM0, XMM1, XMM2, XMM3];
 
 pub const XMM0: FReg = FReg(0);
 pub const XMM1: FReg = FReg(1);

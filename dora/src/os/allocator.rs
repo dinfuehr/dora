@@ -190,9 +190,9 @@ pub fn uncommit(ptr: Address, size: usize) {
     debug_assert!(mem::is_page_aligned(size));
 
     use winapi::um::memoryapi::VirtualFree;
-    use winapi::um::winnt::MEM_RELEASE;
+    use winapi::um::winnt::MEM_DECOMMIT;
 
-    let result = unsafe { VirtualFree(ptr.to_mut_ptr(), size, MEM_RELEASE) };
+    let result = unsafe { VirtualFree(ptr.to_mut_ptr(), size, MEM_DECOMMIT) };
 
     if result == 0 {
         panic!("VirtualFree failed");

@@ -52,10 +52,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         copy(root_path.join(f.path()), out_path.join(f.path()))?;
 
+        let name = f.path().display().to_string();
+        // On Windows the directory separator needs to be escaped
+        let name = name.replace("\\", "\\\\");
+
         writeln!(
             &mut stdlib,
             r#"("{name}", include_str!("{name}")),"#,
-            name = f.path().display(),
+            name = name,
         )?;
     }
 
