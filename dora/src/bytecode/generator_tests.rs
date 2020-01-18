@@ -1111,6 +1111,847 @@ fn gen_fct_call_int_with_3_args() {
 }
 
 #[test]
+fn gen_method_call_void_with_0_args() {
+    gen(
+        "
+            fun f(foo: Foo) { foo.g(); }
+            class Foo {
+                fun g() { }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(1), r(0)),
+                InvokeDirectVoid(fct_id, r(1), 1),
+                RetVoid,
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_void_with_1_arg() {
+    gen(
+        "
+            fun f(foo: Foo) { foo.g(1); }
+            class Foo {
+                fun g(a: Int) { }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(1), r(0)),
+                ConstInt(r(2), 1),
+                InvokeDirectVoid(fct_id, r(1), 2),
+                RetVoid,
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_void_with_3_args() {
+    gen(
+        "
+            fun f(foo: Foo) { foo.g(1, 2, 3); }
+            class Foo {
+                fun g(a: Int, b: Int, c: Int) { }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(1), r(0)),
+                ConstInt(r(2), 1),
+                ConstInt(r(3), 2),
+                ConstInt(r(4), 3),
+                InvokeDirectVoid(fct_id, r(1), 4),
+                RetVoid,
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_bool_with_0_args() {
+    gen(
+        "
+            fun f(foo: Foo) -> Bool { return foo.g(); }
+            class Foo {
+                fun g() -> Bool { return true; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(0)),
+                InvokeDirectBool(r(1), fct_id, r(2), 1),
+                RetBool(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_bool_with_0_args_and_unused_result() {
+    gen(
+        "
+            fun f(foo: Foo) { foo.g(); }
+            class Foo {
+                fun g() -> Bool { return true; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(1), r(0)),
+                InvokeDirectVoid(fct_id, r(1), 1),
+                RetVoid,
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_bool_with_1_arg() {
+    gen(
+        "
+            fun f(foo: Foo) -> Bool { return foo.g(true); }
+            class Foo {
+                fun g(a: Bool) -> Bool { return true; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(0)),
+                ConstTrue(r(3)),
+                InvokeDirectBool(r(1), fct_id, r(2), 2),
+                RetBool(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_bool_with_3_args() {
+    gen(
+        "
+            fun f(foo: Foo) -> Bool { return foo.g(true, false, true); }
+            class Foo {
+                fun g(a: Bool, b: Bool, c: Bool) -> Bool { return true; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(0)),
+                ConstTrue(r(3)),
+                ConstFalse(r(4)),
+                ConstTrue(r(5)),
+                InvokeDirectBool(r(1), fct_id, r(2), 4),
+                RetBool(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_byte_with_0_args() {
+    gen(
+        "
+            fun f(foo: Foo) -> Byte { return foo.g(); }
+            class Foo {
+                fun g() -> Byte { return 1Y; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(0)),
+                InvokeDirectByte(r(1), fct_id, r(2), 1),
+                RetByte(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_byte_with_0_args_and_unused_result() {
+    gen(
+        "
+            fun f(foo: Foo) { foo.g(); }
+            class Foo {
+                fun g() -> Byte { return 1Y; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(1), r(0)),
+                InvokeDirectVoid(fct_id, r(1), 1),
+                RetVoid,
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_byte_with_1_arg() {
+    gen(
+        "
+            fun f(foo: Foo) -> Byte { return foo.g(1Y); }
+            class Foo {
+                fun g(a: Byte) -> Byte { return 1Y; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(0)),
+                ConstByte(r(3), 1),
+                InvokeDirectByte(r(1), fct_id, r(2), 2),
+                RetByte(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_byte_with_3_args() {
+    gen(
+        "
+            fun f(foo: Foo) -> Byte { return foo.g(1Y, 2Y, 3Y); }
+            class Foo {
+                fun g(a: Byte, b: Byte, c: Byte) -> Byte { return 1Y; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(0)),
+                ConstByte(r(3), 1),
+                ConstByte(r(4), 2),
+                ConstByte(r(5), 3),
+                InvokeDirectByte(r(1), fct_id, r(2), 4),
+                RetByte(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_char_with_0_args() {
+    gen(
+        "
+            fun f(foo: Foo) -> Char { return foo.g(); }
+            class Foo {
+                fun g() -> Char { return '1'; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(0)),
+                InvokeDirectChar(r(1), fct_id, r(2), 1),
+                RetChar(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_char_with_0_args_and_unused_result() {
+    gen(
+        "
+            fun f(foo: Foo) { foo.g(); }
+            class Foo {
+                fun g() -> Char { return '1'; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(1), r(0)),
+                InvokeDirectVoid(fct_id, r(1), 1),
+                RetVoid,
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_char_with_1_arg() {
+    gen(
+        "
+            fun f(foo: Foo) -> Char { return foo.g('1'); }
+            class Foo {
+                fun g(a: Char) -> Char { return '1'; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(0)),
+                ConstChar(r(3), '1'),
+                InvokeDirectChar(r(1), fct_id, r(2), 2),
+                RetChar(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_char_with_3_args() {
+    gen(
+        "
+            fun f(foo: Foo) -> Char { return foo.g('1', '2', '3'); }
+            class Foo {
+                fun g(a: Char, b: Char, c: Char) -> Char { return '1'; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(0)),
+                ConstChar(r(3), '1'),
+                ConstChar(r(4), '2'),
+                ConstChar(r(5), '3'),
+                InvokeDirectChar(r(1), fct_id, r(2), 4),
+                RetChar(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_int_with_0_args() {
+    gen(
+        "
+            fun f(foo: Foo) -> Int { return foo.g(); }
+            class Foo {
+                fun g() -> Int { return 1; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(0)),
+                InvokeDirectInt(r(1), fct_id, r(2), 1),
+                RetInt(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_int_with_0_args_and_unused_result() {
+    gen(
+        "
+            fun f(foo: Foo) { foo.g(); }
+            class Foo {
+                fun g() -> Int { return 1; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(1), r(0)),
+                InvokeDirectVoid(fct_id, r(1), 1),
+                RetVoid,
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_int_with_1_arg() {
+    gen(
+        "
+            fun f(foo: Foo) -> Int { return foo.g(1); }
+            class Foo {
+                fun g(a: Int) -> Int { return 1; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(0)),
+                ConstInt(r(3), 1),
+                InvokeDirectInt(r(1), fct_id, r(2), 2),
+                RetInt(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_int_with_3_args() {
+    gen(
+        "
+            fun f(foo: Foo) -> Int { return foo.g(1, 2, 3); }
+            class Foo {
+                fun g(a: Int, b: Int, c: Int) -> Int { return 1; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(0)),
+                ConstInt(r(3), 1),
+                ConstInt(r(4), 2),
+                ConstInt(r(5), 3),
+                InvokeDirectInt(r(1), fct_id, r(2), 4),
+                RetInt(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_long_with_0_args() {
+    gen(
+        "
+            fun f(foo: Foo) -> Long { return foo.g(); }
+            class Foo {
+                fun g() -> Long { return 1L; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(0)),
+                InvokeDirectLong(r(1), fct_id, r(2), 1),
+                RetLong(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_long_with_0_args_and_unused_result() {
+    gen(
+        "
+            fun f(foo: Foo) { foo.g(); }
+            class Foo {
+                fun g() -> Long { return 1L; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(1), r(0)),
+                InvokeDirectVoid(fct_id, r(1), 1),
+                RetVoid,
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_long_with_1_arg() {
+    gen(
+        "
+            fun f(foo: Foo) -> Long { return foo.g(1L); }
+            class Foo {
+                fun g(a: Long) -> Long { return 1L; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(0)),
+                ConstLong(r(3), 1),
+                InvokeDirectLong(r(1), fct_id, r(2), 2),
+                RetLong(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_long_with_3_args() {
+    gen(
+        "
+            fun f(foo: Foo) -> Long { return foo.g(1L, 2L, 3L); }
+            class Foo {
+                fun g(a: Long, b: Long, c: Long) -> Long { return 1L; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(0)),
+                ConstLong(r(3), 1),
+                ConstLong(r(4), 2),
+                ConstLong(r(5), 3),
+                InvokeDirectLong(r(1), fct_id, r(2), 4),
+                RetLong(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_float_with_0_args() {
+    gen(
+        "
+            fun f(foo: Foo) -> Float { return foo.g(); }
+            class Foo {
+                fun g() -> Float { return 1F; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(0)),
+                InvokeDirectFloat(r(1), fct_id, r(2), 1),
+                RetFloat(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_float_with_0_args_and_unused_result() {
+    gen(
+        "
+            fun f(foo: Foo) { foo.g(); }
+            class Foo {
+                fun g() -> Float { return 1F; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(1), r(0)),
+                InvokeDirectVoid(fct_id, r(1), 1),
+                RetVoid,
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_float_with_1_arg() {
+    gen(
+        "
+            fun f(foo: Foo) -> Float { return foo.g(1F); }
+            class Foo {
+                fun g(a: Float) -> Float { return 1F; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(0)),
+                ConstFloat(r(3), 1_f32),
+                InvokeDirectFloat(r(1), fct_id, r(2), 2),
+                RetFloat(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_float_with_3_args() {
+    gen(
+        "
+            fun f(foo: Foo) -> Float { return foo.g(1F, 2F, 3F); }
+            class Foo {
+                fun g(a: Float, b: Float, c: Float) -> Float { return 1F; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(0)),
+                ConstFloat(r(3), 1_f32),
+                ConstFloat(r(4), 2_f32),
+                ConstFloat(r(5), 3_f32),
+                InvokeDirectFloat(r(1), fct_id, r(2), 4),
+                RetFloat(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_double_with_0_args() {
+    gen(
+        "
+            fun f(foo: Foo) -> Double { return foo.g(); }
+            class Foo {
+                fun g() -> Double { return 1D; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(0)),
+                InvokeDirectDouble(r(1), fct_id, r(2), 1),
+                RetDouble(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_double_with_0_args_and_unused_result() {
+    gen(
+        "
+            fun f(foo: Foo) { foo.g(); }
+            class Foo {
+                fun g() -> Double { return 1D; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(1), r(0)),
+                InvokeDirectVoid(fct_id, r(1), 1),
+                RetVoid,
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_double_with_1_arg() {
+    gen(
+        "
+            fun f(foo: Foo) -> Double { return foo.g(1D); }
+            class Foo {
+                fun g(a: Double) -> Double { return 1D; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(0)),
+                ConstDouble(r(3), 1_f64),
+                InvokeDirectDouble(r(1), fct_id, r(2), 2),
+                RetDouble(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_double_with_3_args() {
+    gen(
+        "
+            fun f(foo: Foo) -> Double { return foo.g(1D, 2D, 3D); }
+            class Foo {
+                fun g(a: Double, b: Double, c: Double) -> Double { return 1D; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(0)),
+                ConstDouble(r(3), 1_f64),
+                ConstDouble(r(4), 2_f64),
+                ConstDouble(r(5), 3_f64),
+                InvokeDirectDouble(r(1), fct_id, r(2), 4),
+                RetDouble(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_ptr_with_0_args() {
+    gen(
+        "
+            fun f(foo: Foo) -> String { return foo.g(); }
+            class Foo {
+                fun g() -> String { return \"1\"; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(0)),
+                InvokeDirectPtr(r(1), fct_id, r(2), 1),
+                RetPtr(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_ptr_with_0_args_and_unused_result() {
+    gen(
+        "
+            fun f(foo: Foo) { foo.g(); }
+            class Foo {
+                fun g() -> String { return \"1\"; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(1), r(0)),
+                InvokeDirectVoid(fct_id, r(1), 1),
+                RetVoid,
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_ptr_with_1_arg() {
+    gen(
+        "
+            fun f(foo: Foo) -> String { return foo.g(\"1\"); }
+            class Foo {
+                fun g(a: String) -> String { return \"1\"; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(0)),
+                ConstString(r(3), "1".to_string()),
+                InvokeDirectPtr(r(1), fct_id, r(2), 2),
+                RetPtr(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_method_call_ptr_with_3_args() {
+    gen(
+        "
+            fun f(foo: Foo) -> String { return foo.g(\"1\", \"2\", \"3\"); }
+            class Foo {
+                fun g(a: String, b: String, c: String) -> String { return \"1\"; }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(0)),
+                ConstString(r(3), "1".to_string()),
+                ConstString(r(4), "2".to_string()),
+                ConstString(r(5), "3".to_string()),
+                InvokeDirectPtr(r(1), fct_id, r(2), 4),
+                RetPtr(r(1)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
 fn gen_new_object() {
     gen("fun f() -> Object { return Object(); }", |vm, code| {
         let cls_id = vm.cls_def_by_name("Object");
