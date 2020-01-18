@@ -1101,6 +1101,32 @@ where
     }
 
     fn emit_invoke_direct_void(&mut self, fct_id: FctId, start_reg: Register, num: u32) {
+        self.emit_invoke_direct(fct_id, start_reg, num, None);
+    }
+
+    fn emit_invoke_direct_generic(
+        &mut self,
+        dest: Register,
+        fct_id: FctId,
+        start_reg: Register,
+        num: u32,
+    ) {
+        let bytecode_type = self.bytecode.register_type(dest);
+        let offset = self.bytecode.register_offset(dest);
+
+        let reg = self.emit_invoke_direct(fct_id, start_reg, num, Some(bytecode_type));
+
+        self.asm
+            .store_mem(bytecode_type.mode(), Mem::Local(offset), reg);
+    }
+
+    fn emit_invoke_direct(
+        &mut self,
+        fct_id: FctId,
+        start_reg: Register,
+        num: u32,
+        bytecode_type: Option<BytecodeType>,
+    ) -> ExprStore {
         assert_eq!(self.bytecode.register_type(start_reg), BytecodeType::Ptr);
         assert!(num > 0);
 
@@ -1120,6 +1146,11 @@ where
         let ptr = self.ptr_for_fct_id(fct_id, cls_type_params.clone(), fct_type_params.clone());
         let gcpoint = GcPoint::from_offsets(self.references.clone());
         let position = self.bytecode.offset_position(self.current_offset.to_u32());
+
+        let (reg, ty) = match bytecode_type {
+            Some(bytecode_type) => (result_reg(bytecode_type), bytecode_type.into()),
+            None => (REG_RESULT.into(), BuiltinType::Unit),
+        };
         self.asm.direct_call(
             fct_id,
             ptr.to_ptr(),
@@ -1127,9 +1158,11 @@ where
             fct_type_params,
             position,
             gcpoint,
-            BuiltinType::Unit,
-            REG_RESULT.into(),
+            ty,
+            reg,
         );
+
+        reg
     }
 
     fn emit_invoke_static_void(&mut self, fct_id: FctId, start_reg: Register, num: u32) {
@@ -1843,75 +1876,63 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
     fn visit_invoke_direct_bool(
         &mut self,
-        _dest: Register,
-        _fct: FctId,
-        _start: Register,
-        _count: u32,
+        dest: Register,
+        fct: FctId,
+        start: Register,
+        count: u32,
     ) {
-        unimplemented!();
+        self.emit_invoke_direct_generic(dest, fct, start, count);
     }
     fn visit_invoke_direct_byte(
         &mut self,
-        _dest: Register,
-        _fct: FctId,
-        _start: Register,
-        _count: u32,
+        dest: Register,
+        fct: FctId,
+        start: Register,
+        count: u32,
     ) {
-        unimplemented!();
+        self.emit_invoke_direct_generic(dest, fct, start, count);
     }
     fn visit_invoke_direct_char(
         &mut self,
-        _dest: Register,
-        _fct: FctId,
-        _start: Register,
-        _count: u32,
+        dest: Register,
+        fct: FctId,
+        start: Register,
+        count: u32,
     ) {
-        unimplemented!();
+        self.emit_invoke_direct_generic(dest, fct, start, count);
     }
-    fn visit_invoke_direct_int(
-        &mut self,
-        _dest: Register,
-        _fct: FctId,
-        _start: Register,
-        _count: u32,
-    ) {
-        unimplemented!();
+    fn visit_invoke_direct_int(&mut self, dest: Register, fct: FctId, start: Register, count: u32) {
+        self.emit_invoke_direct_generic(dest, fct, start, count);
     }
     fn visit_invoke_direct_long(
         &mut self,
-        _dest: Register,
-        _fct: FctId,
-        _start: Register,
-        _count: u32,
+        dest: Register,
+        fct: FctId,
+        start: Register,
+        count: u32,
     ) {
-        unimplemented!();
+        self.emit_invoke_direct_generic(dest, fct, start, count);
     }
     fn visit_invoke_direct_float(
         &mut self,
-        _dest: Register,
-        _fct: FctId,
-        _start: Register,
-        _count: u32,
+        dest: Register,
+        fct: FctId,
+        start: Register,
+        count: u32,
     ) {
-        unimplemented!();
+        self.emit_invoke_direct_generic(dest, fct, start, count);
     }
     fn visit_invoke_direct_double(
         &mut self,
-        _dest: Register,
-        _fct: FctId,
-        _start: Register,
-        _count: u32,
+        dest: Register,
+        fct: FctId,
+        start: Register,
+        count: u32,
     ) {
-        unimplemented!();
+        self.emit_invoke_direct_generic(dest, fct, start, count);
     }
-    fn visit_invoke_direct_ptr(
-        &mut self,
-        _dest: Register,
-        _fct: FctId,
-        _start: Register,
-        _count: u32,
-    ) {
-        unimplemented!();
+    fn visit_invoke_direct_ptr(&mut self, dest: Register, fct: FctId, start: Register, count: u32) {
+        self.emit_invoke_direct_generic(dest, fct, start, count);
     }
 
     fn visit_invoke_virtual_void(&mut self, _fct: FctId, _start: Register, _count: u32) {
