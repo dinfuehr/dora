@@ -450,7 +450,41 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     .emit_invoke_direct_void(callee_id, start_reg, num_args);
             }
 
-            CallType::Method(_, _, _) => unimplemented!(),
+            CallType::Method(_, _, _) => {
+                if return_type.is_unit() {
+                    self.gen
+                        .emit_invoke_direct_void(callee_id, start_reg, num_args);
+                } else {
+                    let return_type: BytecodeType = return_type.into();
+
+                    match return_type.into() {
+                        BytecodeType::Bool => self
+                            .gen
+                            .emit_invoke_direct_bool(return_reg, callee_id, start_reg, num_args),
+                        BytecodeType::Byte => self
+                            .gen
+                            .emit_invoke_direct_byte(return_reg, callee_id, start_reg, num_args),
+                        BytecodeType::Char => self
+                            .gen
+                            .emit_invoke_direct_char(return_reg, callee_id, start_reg, num_args),
+                        BytecodeType::Int => self
+                            .gen
+                            .emit_invoke_direct_int(return_reg, callee_id, start_reg, num_args),
+                        BytecodeType::Long => self
+                            .gen
+                            .emit_invoke_direct_long(return_reg, callee_id, start_reg, num_args),
+                        BytecodeType::Float => self
+                            .gen
+                            .emit_invoke_direct_float(return_reg, callee_id, start_reg, num_args),
+                        BytecodeType::Double => self
+                            .gen
+                            .emit_invoke_direct_double(return_reg, callee_id, start_reg, num_args),
+                        BytecodeType::Ptr => self
+                            .gen
+                            .emit_invoke_direct_ptr(return_reg, callee_id, start_reg, num_args),
+                    }
+                }
+            }
             CallType::Expr(_, _) => unimplemented!(),
 
             CallType::Fct(_, _, _) => {
