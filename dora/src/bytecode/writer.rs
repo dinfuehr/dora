@@ -500,6 +500,10 @@ impl BytecodeWriter {
         self.emit_op(BytecodeOpcode::RetVoid);
     }
 
+    pub fn emit_test_eq_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestEqBool, dest, lhs, rhs);
+    }
+
     pub fn emit_test_eq_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::TestEqInt, dest, lhs, rhs);
     }
@@ -510,6 +514,10 @@ impl BytecodeWriter {
 
     pub fn emit_test_eq_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::TestEqPtr, dest, lhs, rhs);
+    }
+
+    pub fn emit_test_ne_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestNeBool, dest, lhs, rhs);
     }
 
     pub fn emit_test_ne_int(&mut self, dest: Register, lhs: Register, rhs: Register) {

@@ -838,9 +838,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             | Intrinsic::FloatSub
             | Intrinsic::FloatDiv
             | Intrinsic::FloatMul => BytecodeType::Float,
-            Intrinsic::IntEq | Intrinsic::IntCmp | Intrinsic::FloatEq | Intrinsic::FloatCmp => {
-                BytecodeType::Bool
-            }
+            Intrinsic::BoolEq
+            | Intrinsic::IntEq
+            | Intrinsic::IntCmp
+            | Intrinsic::FloatEq
+            | Intrinsic::FloatCmp => BytecodeType::Bool,
             _ => unimplemented!(),
         };
 
@@ -856,6 +858,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let rhs_reg = self.visit_expr(rhs, DataDest::Alloc);
         self.gen.set_position(pos);
         match intrinsic {
+            Intrinsic::BoolEq => match op {
+                BinOp::Cmp(CmpOp::Eq) => self.gen.emit_test_eq_bool(dest, lhs_reg, rhs_reg),
+                BinOp::Cmp(CmpOp::Ne) => self.gen.emit_test_ne_bool(dest, lhs_reg, rhs_reg),
+                _ => unreachable!(),
+            },
             Intrinsic::IntAdd => self.gen.emit_add_int(dest, lhs_reg, rhs_reg),
             Intrinsic::IntSub => self.gen.emit_sub_int(dest, lhs_reg, rhs_reg),
             Intrinsic::IntMul => self.gen.emit_mul_int(dest, lhs_reg, rhs_reg),
