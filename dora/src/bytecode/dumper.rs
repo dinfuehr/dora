@@ -589,7 +589,7 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     }
 
     fn visit_jump_if_false(&mut self, opnd: Register, offset: u32) {
-        self.emit_reg1_u32("JumpIfTrue", opnd, offset);
+        self.emit_reg1_u32("JumpIfFalse", opnd, offset);
     }
     fn visit_jump_if_false_const(&mut self, opnd: Register, idx: ConstPoolIdx) {
         self.emit_reg1_idx("JumpIfFalseConst", opnd, idx);
