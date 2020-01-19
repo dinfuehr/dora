@@ -758,6 +758,20 @@ fn gen_expr_bit_ashiftr() {
 }
 
 #[test]
+fn gen_expr_test_equal_bool() {
+    let result = code("fun f(a: Bool, b: Bool) -> Bool { return a == b; }");
+    let expected = vec![TestEqBool(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_notequal_bool() {
+    let result = code("fun f(a: Bool, b: Bool) -> Bool { return a != b; }");
+    let expected = vec![TestNeBool(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
 fn gen_expr_test_equal_int() {
     let result = code("fun f(a: Int, b: Int) -> Bool { return a == b; }");
     let expected = vec![TestEqInt(r(2), r(0), r(1)), RetBool(r(2))];
@@ -1488,6 +1502,9 @@ pub enum Bytecode {
     TestEqPtr(Register, Register, Register),
     TestNePtr(Register, Register, Register),
 
+    TestEqBool(Register, Register, Register),
+    TestNeBool(Register, Register, Register),
+
     TestEqInt(Register, Register, Register),
     TestNeInt(Register, Register, Register),
     TestGtInt(Register, Register, Register),
@@ -2041,7 +2058,12 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_test_ne_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::TestNePtr(dest, lhs, rhs));
     }
-
+    fn visit_test_eq_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestEqBool(dest, lhs, rhs));
+    }
+    fn visit_test_ne_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestNeBool(dest, lhs, rhs));
+    }
     fn visit_test_eq_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::TestEqInt(dest, lhs, rhs));
     }

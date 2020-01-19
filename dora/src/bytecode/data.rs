@@ -194,6 +194,9 @@ pub enum BytecodeOpcode {
     TestEqPtr,
     TestNePtr,
 
+    TestEqBool,
+    TestNeBool,
+
     TestEqInt,
     TestNeInt,
     TestGtInt,
