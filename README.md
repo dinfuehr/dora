@@ -33,6 +33,6 @@ tools/test && tools/test-release
 
 ## Working on the standard library
 The standard library (stdlib) is included into the `dora`-binary at compile time.
-Changing the stdlib therefore requires recompiling Dora, even though the stdlib is written into Dora.
+Changing the stdlib therefore requires recompiling Dora, even though the stdlib is written in Dora.
 In order to avoid this recompilation when working on the stdlib, simply pass your working directory of the stdlib to Dora using the `--stdlib` argument.
 With this parameter, Dora loads the stdlib from the specified directory instead of the one bundled in the executable.
