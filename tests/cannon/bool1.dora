@@ -1,0 +1,19 @@
+fun main() {
+  assert(boolEq(true, false) == false);
+  assert(boolEq(true, true) == true);
+  assert(boolEq(false, false) == true);
+  assert(boolEq(false, true) == false);
+
+  assert(boolNe(true, true) == false);
+  assert(boolNe(false, true) == true);
+  assert(boolNe(true, false) == true);
+  assert(boolNe(false, false) == false);
+}
+
+@cannon fun boolEq(a: Bool, b: Bool) -> Bool {
+  return a == b;
+}
+
+@cannon fun boolNe(a: Bool, b: Bool) -> Bool {
+  return a != b;
+}
