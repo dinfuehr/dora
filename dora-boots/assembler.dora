@@ -30,14 +30,14 @@ class AssemblerBuffer {
     }
 }
 
-@test fun test_assembler_buffer_emit_byte(_x: Testing) {
+@test fun testAssemblerBufferEmitByte(_x: Testing) {
     let buffer = AssemblerBuffer();
     buffer.emitByte(0x01Y);
     buffer.emitByte(0x02Y);
     assert(buffer.length() == 2);
 }
 
-@test fun test_assembler_buffer_emit_int(_x: Testing) {
+@test fun testAssemblerBufferEmitInt(_x: Testing) {
     let asm = AssemblerBuffer();
     asm.emitInt(0x11223344);
     let buffer = asm.toArray();
@@ -136,37 +136,37 @@ fun setupAssemblerRegisters() {
 class AssemblerX64: Assembler {
     let buffer: AssemblerBuffer = AssemblerBuffer();
 
-    fun pushq_r(reg: Register) {
+    fun pushqr(reg: Register) {
         self.emitRexOptional(reg);
         self.emitByte((0x50 + reg.lowBits()).toByte());
     }
 
-    fun popq_r(reg: Register) {
+    fun popqr(reg: Register) {
         self.emitRexOptional(reg);
         self.emitByte((0x58 + reg.lowBits()).toByte());
     }
 
-    fun addq_ri(reg: Register, imm: Immediate) {
+    fun addqri(reg: Register, imm: Immediate) {
         self.emitAlu64Imm(reg, imm, 0b000, 0x05Y);
     }
 
-    fun subq_ri(reg: Register, imm: Immediate) {
+    fun subqri(reg: Register, imm: Immediate) {
         self.emitAlu64Imm(reg, imm, 0b101, 0x2dY);
     }
 
-    fun addq_rr(dest: Register, src: Register) {
+    fun addqrr(dest: Register, src: Register) {
         self.emitRex64ModRm(dest, src);
         self.emitByte(0x01Y);
         self.emitModRmReg(dest.lowBits(), src.lowBits());
     }
 
-    fun subq_rr(dest: Register, src: Register) {
+    fun subqrr(dest: Register, src: Register) {
         self.emitRex64ModRm(dest, src);
         self.emitByte(0x29Y);
         self.emitModRmReg(dest.lowBits(), src.lowBits());
     }
 
-    fun movq_rr(dest: Register, src: Register) {
+    fun movqrr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x89Y);
         self.emitModRmReg(src.lowBits(), dest.lowBits());
@@ -248,7 +248,7 @@ class AssemblerX64: Assembler {
     setupAssemblerRegisters();
 }
 
-@test fun test_asm_registers() {
+@test fun testAsmRegisters() {
     setupAssemblerRegisters();
 
     assert(RAX.lowBits() == 0 && !RAX.needsRexBit());
@@ -270,12 +270,12 @@ class AssemblerX64: Assembler {
     assert(R15.lowBits() == 7 && R15.needsRexBit());
 }
 
-@test fun test_asm_pushq_r(_x: Testing) {
+@test fun testAsmPushqr(_x: Testing) {
     let asm = AssemblerX64();
-    asm.pushq_r(RAX);
-    asm.pushq_r(RSP);
-    asm.pushq_r(R8);
-    asm.pushq_r(R15);
+    asm.pushqr(RAX);
+    asm.pushqr(RSP);
+    asm.pushqr(R8);
+    asm.pushqr(R15);
     let buffer = asm.finalize();
     asm1(buffer, 0, 0x50Y);
     asm1(buffer, 1, 0x54Y);
@@ -284,12 +284,12 @@ class AssemblerX64: Assembler {
     assert(buffer.length() == 6);
 }
 
-@test fun test_asm_popq_r(_x: Testing) {
+@test fun testAsmPopqr(_x: Testing) {
     let asm = AssemblerX64();
-    asm.popq_r(RAX);
-    asm.popq_r(RSP);
-    asm.popq_r(R8);
-    asm.popq_r(R15);
+    asm.popqr(RAX);
+    asm.popqr(RSP);
+    asm.popqr(R8);
+    asm.popqr(R15);
     let buffer = asm.finalize();
     asm1(buffer, 0, 0x58Y);
     asm1(buffer, 1, 0x5CY);
@@ -298,22 +298,22 @@ class AssemblerX64: Assembler {
     assert(buffer.length() == 6);
 }
 
-@test fun test_asm_movq_rr(_x: Testing) {
+@test fun testAsmMovqrr(_x: Testing) {
     let asm = AssemblerX64();
-    asm.movq_rr(R15, RAX);
-    asm.movq_rr(RAX, R15);
+    asm.movqrr(R15, RAX);
+    asm.movqrr(RAX, R15);
     let buffer = asm.finalize();
     asm3(buffer, 0, 0x49Y, 0x89Y, 0xC7Y);
     asm3(buffer, 3, 0x4CY, 0x89Y, 0xF8Y);
     assert(buffer.length() == 6);
 }
 
-@test fun test_asm_addq_rr(_x: Testing) {
+@test fun testAsmAddqrr(_x: Testing) {
     let asm = AssemblerX64();
-    asm.addq_rr(RBX, RAX);
-    asm.addq_rr(R12, RAX);
-    asm.addq_rr(RAX, R12);
-    asm.addq_rr(RSP, R15);
+    asm.addqrr(RBX, RAX);
+    asm.addqrr(R12, RAX);
+    asm.addqrr(RAX, R12);
+    asm.addqrr(RSP, R15);
     let buffer = asm.finalize();
     asm3(buffer, 0, 0x48Y, 0x01Y, 0xD8Y);
     asm3(buffer, 3, 0x4CY, 0x01Y, 0xE0Y);
@@ -322,13 +322,13 @@ class AssemblerX64: Assembler {
     assert(buffer.length() == 12);
 }
 
-@test fun test_asm_addq_ri(_x: Testing) {
+@test fun testAsmAddqri(_x: Testing) {
     let asm = AssemblerX64();
-    asm.addq_ri(RAX, Immediate(0x11L));
-    asm.addq_ri(R15, Immediate(0x11L));
-    asm.addq_ri(RAX, Immediate(0x2211L));
-    asm.addq_ri(RCX, Immediate(0x2211L));
-    asm.addq_ri(R15, Immediate(0x2211L));
+    asm.addqri(RAX, Immediate(0x11L));
+    asm.addqri(R15, Immediate(0x11L));
+    asm.addqri(RAX, Immediate(0x2211L));
+    asm.addqri(RCX, Immediate(0x2211L));
+    asm.addqri(R15, Immediate(0x2211L));
     let buffer = asm.finalize();
     asm4(buffer, 0, 0x48Y, 0x83Y, 0xC0Y, 0x11Y);
     asm4(buffer, 4, 0x49Y, 0x83Y, 0xC7Y, 0x11Y);
@@ -341,23 +341,23 @@ class AssemblerX64: Assembler {
     assert(buffer.length() == 28);
 }
 
-@test fun test_asm_subq_rr(_x: Testing) {
+@test fun testAsmSubqrr(_x: Testing) {
     let asm = AssemblerX64();
-    asm.subq_rr(RBX, RAX);
-    asm.subq_rr(R15, RCX);
+    asm.subqrr(RBX, RAX);
+    asm.subqrr(R15, RCX);
     let buffer = asm.finalize();
     asm3(buffer, 0, 0x48Y, 0x29Y, 0xD8Y);
     asm3(buffer, 3, 0x4CY, 0x29Y, 0xF9Y);
     assert(buffer.length() == 6);
 }
 
-@test fun test_asm_subq_ri(_x: Testing) {
+@test fun testAsmSubqri(_x: Testing) {
     let asm = AssemblerX64();
-    asm.subq_ri(RAX, Immediate(0x11L));
-    asm.subq_ri(R15, Immediate(0x11L));
-    asm.subq_ri(RAX, Immediate(0x2211L));
-    asm.subq_ri(RCX, Immediate(0x2211L));
-    asm.subq_ri(R15, Immediate(0x2211L));
+    asm.subqri(RAX, Immediate(0x11L));
+    asm.subqri(R15, Immediate(0x11L));
+    asm.subqri(RAX, Immediate(0x2211L));
+    asm.subqri(RCX, Immediate(0x2211L));
+    asm.subqri(R15, Immediate(0x2211L));
     let buffer = asm.finalize();
     asm4(buffer, 0, 0x48Y, 0x83Y, 0xE8Y, 0x11Y);
     asm4(buffer, 4, 0x49Y, 0x83Y, 0xEFY, 0x11Y);
@@ -370,7 +370,7 @@ class AssemblerX64: Assembler {
     assert(buffer.length() == 28);
 }
 
-@test fun test_asm_retq(_x: Testing) {
+@test fun testAsmRetq(_x: Testing) {
     let asm = AssemblerX64();
     asm.retq();
     let buffer = asm.finalize();
