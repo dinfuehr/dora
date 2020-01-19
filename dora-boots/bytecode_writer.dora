@@ -412,6 +412,14 @@ class BytecodeWriter {
         self.emitReg3(BC_TEST_NE_PTR, dest, lhs, rhs);
     }
 
+    fun emitTestEqBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_EQ_BOOL, dest, lhs, rhs);
+    }
+
+    fun emitTestNeBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_NE_BOOL, dest, lhs, rhs);
+    }
+
     fun emitTestEqInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_EQ_INT, dest, lhs, rhs);
     }

@@ -119,6 +119,9 @@ fun readBytecode(code: Array[Byte], visitor: BytecodeVisitor) {
     @open fun visitTestEqPtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitTestNePtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
+    @open fun visitTestEqBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestNeBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+
     @open fun visitTestEqInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitTestNeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitTestGtInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
@@ -671,6 +674,17 @@ class BytecodeReader(let data: Array[Byte], let visitor: BytecodeVisitor) {
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitTestNePtr(dest, lhs, rhs);
+
+        } else if opcode == BC_TEST_EQ_BOOL {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitTestEqBool(dest, lhs, rhs);
+        } else if opcode == BC_TEST_NE_BOOL {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitTestNeBool(dest, lhs, rhs);
 
         } else if opcode == BC_TEST_EQ_INT {
             let dest = self.readRegister(wide);
