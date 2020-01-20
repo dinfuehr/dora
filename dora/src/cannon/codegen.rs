@@ -1078,51 +1078,14 @@ where
 
     fn emit_invoke_direct_void(&mut self, fct_id: FctId, start_reg: Register, num: u32) {
         assert_eq!(self.bytecode.register_type(start_reg), BytecodeType::Ptr);
+        assert!(num > 0);
 
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
 
         assert!(fct.type_params.is_empty());
 
-        let Register(start) = start_reg;
-
-        let mut idx = 0;
-        let mut reg_idx = 0;
-        let mut freg_idx = 0;
-
-        while idx < num {
-            let src = Register((idx as usize) + start);
-            let bytecode_type = self.bytecode.register_type(src);
-            let offset = self.bytecode.register_offset(src);
-
-            match bytecode_type {
-                BytecodeType::Float | BytecodeType::Double => {
-                    if freg_idx < FREG_PARAMS.len() {
-                        self.asm.load_mem(
-                            bytecode_type.mode(),
-                            FREG_PARAMS[freg_idx].into(),
-                            Mem::Local(offset),
-                        );
-                        freg_idx += 1;
-                    } else {
-                        unimplemented!("invoke argument should be written on stack");
-                    }
-                }
-                _ => {
-                    if reg_idx < REG_PARAMS.len() {
-                        self.asm.load_mem(
-                            bytecode_type.mode(),
-                            REG_PARAMS[reg_idx].into(),
-                            Mem::Local(offset),
-                        );
-                        reg_idx += 1;
-                    } else {
-                        unimplemented!("invoke argument should be written on stack");
-                    }
-                }
-            }
-            idx += 1;
-        }
+        self.emit_invoke_arguments(start_reg, num);
 
         // handling of class and function type parameters has to implemented
         let cls_type_params = TypeList::Empty;
@@ -1142,6 +1105,111 @@ where
             BuiltinType::Unit,
             REG_RESULT.into(),
         );
+    }
+
+    fn emit_invoke_static_void(&mut self, fct_id: FctId, start_reg: Register, num: u32) {
+        self.emit_invoke_static(fct_id, start_reg, num, None);
+    }
+
+    fn emit_invoke_static_generic(
+        &mut self,
+        dest: Register,
+        fct_id: FctId,
+        start_reg: Register,
+        num: u32,
+    ) {
+        let bytecode_type = self.bytecode.register_type(dest);
+        let offset = self.bytecode.register_offset(dest);
+
+        let reg = self.emit_invoke_static(fct_id, start_reg, num, Some(bytecode_type));
+
+        self.asm
+            .store_mem(bytecode_type.mode(), Mem::Local(offset), reg);
+    }
+
+    fn emit_invoke_static(
+        &mut self,
+        fct_id: FctId,
+        start_reg: Register,
+        num: u32,
+        bytecode_type: Option<BytecodeType>,
+    ) -> ExprStore {
+        let fct = self.vm.fcts.idx(fct_id);
+        let fct = fct.read();
+
+        assert!(fct.type_params.is_empty());
+
+        self.emit_invoke_arguments(start_reg, num);
+
+        // handling of class and function type parameters has to implemented
+        let cls_type_params = TypeList::Empty;
+        let fct_type_params = TypeList::Empty;
+
+        self.asm.emit_comment(Comment::CallDirect(fct_id));
+        let ptr = self.ptr_for_fct_id(fct_id, cls_type_params.clone(), fct_type_params.clone());
+        let gcpoint = GcPoint::from_offsets(self.references.clone());
+        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+
+        let (reg, ty) = match bytecode_type {
+            Some(bytecode_type) => (result_reg(bytecode_type), bytecode_type.into()),
+            None => (REG_RESULT.into(), BuiltinType::Unit),
+        };
+        self.asm.direct_call(
+            fct_id,
+            ptr.to_ptr(),
+            cls_type_params,
+            fct_type_params,
+            position,
+            gcpoint,
+            ty,
+            reg,
+        );
+
+        reg
+    }
+
+    fn emit_invoke_arguments(&mut self, start_reg: Register, num: u32) {
+        if num > 0 {
+            let Register(start) = start_reg;
+
+            let mut idx = 0;
+            let mut reg_idx = 0;
+            let mut freg_idx = 0;
+
+            while idx < num {
+                let src = Register((idx as usize) + start);
+                let bytecode_type = self.bytecode.register_type(src);
+                let offset = self.bytecode.register_offset(src);
+
+                match bytecode_type {
+                    BytecodeType::Float | BytecodeType::Double => {
+                        if freg_idx < FREG_PARAMS.len() {
+                            self.asm.load_mem(
+                                bytecode_type.mode(),
+                                FREG_PARAMS[freg_idx].into(),
+                                Mem::Local(offset),
+                            );
+                            freg_idx += 1;
+                        } else {
+                            unimplemented!("invoke argument should be written on stack");
+                        }
+                    }
+                    _ => {
+                        if reg_idx < REG_PARAMS.len() {
+                            self.asm.load_mem(
+                                bytecode_type.mode(),
+                                REG_PARAMS[reg_idx].into(),
+                                Mem::Local(offset),
+                            );
+                            reg_idx += 1;
+                        } else {
+                            unimplemented!("invoke argument should be written on stack");
+                        }
+                    }
+                }
+                idx += 1;
+            }
+        }
     }
 
     fn ptr_for_fct_id(
@@ -1895,80 +1963,68 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         unimplemented!();
     }
 
-    fn visit_invoke_static_void(&mut self, _fct: FctId, _start: Register, _count: u32) {
-        unimplemented!();
+    fn visit_invoke_static_void(&mut self, fct: FctId, start: Register, count: u32) {
+        self.emit_invoke_static_void(fct, start, count)
     }
     fn visit_invoke_static_bool(
         &mut self,
-        _dest: Register,
-        _fct: FctId,
-        _start: Register,
-        _count: u32,
+        dest: Register,
+        fct: FctId,
+        start: Register,
+        count: u32,
     ) {
-        unimplemented!();
+        self.emit_invoke_static_generic(dest, fct, start, count);
     }
     fn visit_invoke_static_byte(
         &mut self,
-        _dest: Register,
-        _fct: FctId,
-        _start: Register,
-        _count: u32,
+        dest: Register,
+        fct: FctId,
+        start: Register,
+        count: u32,
     ) {
-        unimplemented!();
+        self.emit_invoke_static_generic(dest, fct, start, count);
     }
     fn visit_invoke_static_char(
         &mut self,
-        _dest: Register,
-        _fct: FctId,
-        _start: Register,
-        _count: u32,
+        dest: Register,
+        fct: FctId,
+        start: Register,
+        count: u32,
     ) {
-        unimplemented!();
+        self.emit_invoke_static_generic(dest, fct, start, count);
     }
-    fn visit_invoke_static_int(
-        &mut self,
-        _dest: Register,
-        _fct: FctId,
-        _start: Register,
-        _count: u32,
-    ) {
-        unimplemented!();
+    fn visit_invoke_static_int(&mut self, dest: Register, fct: FctId, start: Register, count: u32) {
+        self.emit_invoke_static_generic(dest, fct, start, count);
     }
     fn visit_invoke_static_long(
         &mut self,
-        _dest: Register,
-        _fct: FctId,
-        _start: Register,
-        _count: u32,
+        dest: Register,
+        fct: FctId,
+        start: Register,
+        count: u32,
     ) {
-        unimplemented!();
+        self.emit_invoke_static_generic(dest, fct, start, count);
     }
     fn visit_invoke_static_float(
         &mut self,
-        _dest: Register,
-        _fct: FctId,
-        _start: Register,
-        _count: u32,
+        dest: Register,
+        fct: FctId,
+        start: Register,
+        count: u32,
     ) {
-        unimplemented!();
+        self.emit_invoke_static_generic(dest, fct, start, count);
     }
     fn visit_invoke_static_double(
         &mut self,
-        _dest: Register,
-        _fct: FctId,
-        _start: Register,
-        _count: u32,
+        dest: Register,
+        fct: FctId,
+        start: Register,
+        count: u32,
     ) {
-        unimplemented!();
+        self.emit_invoke_static_generic(dest, fct, start, count);
     }
-    fn visit_invoke_static_ptr(
-        &mut self,
-        _dest: Register,
-        _fct: FctId,
-        _start: Register,
-        _count: u32,
-    ) {
-        unimplemented!();
+    fn visit_invoke_static_ptr(&mut self, dest: Register, fct: FctId, start: Register, count: u32) {
+        self.emit_invoke_static_generic(dest, fct, start, count);
     }
 
     fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {
