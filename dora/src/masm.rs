@@ -4,8 +4,8 @@ use std::rc::Rc;
 
 use crate::compiler::codegen::ExprStore;
 use crate::compiler::fct::{
-    BailoutInfo, Bailouts, CatchType, Comment, Comments, ExHandler, GcPoint, GcPoints,
-    JitBaselineFct, JitDescriptor, LineNumberTable,
+    CatchType, Comment, Comments, ExHandler, GcPoint, GcPoints, JitBaselineFct, JitDescriptor,
+    LazyCompilationData, LazyCompilationSite, LineNumberTable,
 };
 use crate::cpu::{Mem, Reg, SCRATCH};
 use crate::dseg::DSeg;
@@ -34,7 +34,7 @@ pub struct MacroAssembler {
     labels: Vec<Option<usize>>,
     jumps: Vec<ForwardJump>,
     bailouts: Vec<(Label, Trap, Position)>,
-    bailout_infos: Bailouts,
+    lazy_compilation: LazyCompilationData,
     dseg: DSeg,
     gcpoints: GcPoints,
     comments: Comments,
@@ -50,7 +50,7 @@ impl MacroAssembler {
             labels: Vec::new(),
             jumps: Vec::new(),
             bailouts: Vec::new(),
-            bailout_infos: Bailouts::new(),
+            lazy_compilation: LazyCompilationData::new(),
             dseg: DSeg::new(),
             gcpoints: GcPoints::new(),
             comments: Comments::new(),
@@ -77,7 +77,7 @@ impl MacroAssembler {
             vm,
             &self.dseg,
             &self.data,
-            self.bailout_infos,
+            self.lazy_compilation,
             self.gcpoints,
             stacksize,
             self.comments,
@@ -167,9 +167,9 @@ impl MacroAssembler {
         self.gcpoints.insert(pos, gcpoint);
     }
 
-    pub fn emit_bailout_info(&mut self, info: BailoutInfo) {
-        let pos = self.pos() as i32;
-        self.bailout_infos.insert(pos, info);
+    pub fn emit_lazy_compilation_site(&mut self, info: LazyCompilationSite) {
+        let pos = self.pos() as u32;
+        self.lazy_compilation.insert(pos, info);
     }
 
     pub fn create_label(&mut self) -> Label {

@@ -134,7 +134,7 @@ pub struct JitBaselineFct {
     fct_len: usize,
 
     pub framesize: i32,
-    pub bailouts: Bailouts,
+    pub lazy_compilation: LazyCompilationData,
     gcpoints: GcPoints,
     comments: Comments,
     linenos: LineNumberTable,
@@ -154,7 +154,7 @@ impl JitBaselineFct {
             vm,
             &dseg,
             buffer,
-            Bailouts::new(),
+            LazyCompilationData::new(),
             GcPoints::new(),
             0,
             Comments::new(),
@@ -169,7 +169,7 @@ impl JitBaselineFct {
         vm: &VM,
         dseg: &DSeg,
         buffer: &[u8],
-        bailouts: Bailouts,
+        lazy_compilation: LazyCompilationData,
         gcpoints: GcPoints,
         framesize: i32,
         comments: Comments,
@@ -204,7 +204,7 @@ impl JitBaselineFct {
         JitBaselineFct {
             code_start: ptr,
             code_end: ptr.offset(size as usize),
-            bailouts,
+            lazy_compilation,
             gcpoints,
             comments,
             framesize,
@@ -537,28 +537,39 @@ pub enum CatchType {
 }
 
 #[derive(Debug)]
-pub struct Bailouts {
-    map: HashMap<i32, BailoutInfo>,
+pub struct LazyCompilationData {
+    entries: Vec<(u32, LazyCompilationSite)>,
 }
 
-impl Bailouts {
-    pub fn new() -> Bailouts {
-        Bailouts {
-            map: HashMap::new(),
+impl LazyCompilationData {
+    pub fn new() -> LazyCompilationData {
+        LazyCompilationData {
+            entries: Vec::new(),
         }
     }
 
-    pub fn insert(&mut self, offset: i32, info: BailoutInfo) {
-        assert!(self.map.insert(offset, info).is_none());
+    pub fn insert(&mut self, offset: u32, info: LazyCompilationSite) {
+        if let Some(last) = self.entries.last() {
+            debug_assert!(offset >= last.0);
+        }
+
+        self.entries.push((offset, info));
     }
 
-    pub fn get(&self, offset: i32) -> Option<&BailoutInfo> {
-        self.map.get(&offset)
+    pub fn get(&self, offset: u32) -> Option<&LazyCompilationSite> {
+        let result = self
+            .entries
+            .binary_search_by_key(&offset, |&(offset, _)| offset);
+
+        match result {
+            Ok(idx) => Some(&self.entries[idx].1),
+            Err(_) => None,
+        }
     }
 }
 
 #[derive(Clone, Debug)]
-pub enum BailoutInfo {
+pub enum LazyCompilationSite {
     Compile(FctId, i32, TypeList, TypeList),
     VirtCompile(u32, TypeList, TypeList),
 }

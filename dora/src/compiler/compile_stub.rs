@@ -1,7 +1,7 @@
 use std::mem::size_of;
 
 use crate::compiler;
-use crate::compiler::fct::{BailoutInfo, JitBaselineFct, JitDescriptor, JitFct};
+use crate::compiler::fct::{JitBaselineFct, JitDescriptor, JitFct, LazyCompilationSite};
 use crate::compiler::map::CodeDescriptor;
 use crate::cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1};
 use crate::exception::DoraToNativeInfo;
@@ -177,7 +177,7 @@ where
 fn compile_request(ra: usize, receiver: Address) -> Address {
     let vm = get_vm();
 
-    let bailout = {
+    let lazy_compilation_site = {
         let data = {
             let code_map = vm.code_map.lock();
             code_map.get(ra.into()).expect("return address not found")
@@ -193,18 +193,18 @@ fn compile_request(ra: usize, receiver: Address) -> Address {
         let offset = ra - jit_fct.fct_ptr().to_usize();
         let jit_fct = jit_fct.to_base().expect("baseline expected");
         jit_fct
-            .bailouts
-            .get(offset as i32)
+            .lazy_compilation
+            .get(offset as u32)
             .expect("bailout info not found")
             .clone()
     };
 
-    match bailout {
-        BailoutInfo::Compile(fct_id, disp, ref cls_tps, ref fct_tps) => {
+    match lazy_compilation_site {
+        LazyCompilationSite::Compile(fct_id, disp, ref cls_tps, ref fct_tps) => {
             patch_fct_call(vm, ra, fct_id, cls_tps, fct_tps, disp)
         }
 
-        BailoutInfo::VirtCompile(vtable_index, ref cls_tps, ref fct_tps) => {
+        LazyCompilationSite::VirtCompile(vtable_index, ref cls_tps, ref fct_tps) => {
             patch_vtable_call(vm, receiver, vtable_index, cls_tps, fct_tps)
         }
     }

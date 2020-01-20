@@ -1,5 +1,5 @@
 use crate::compiler::codegen::ExprStore;
-use crate::compiler::fct::BailoutInfo;
+use crate::compiler::fct::LazyCompilationSite;
 use crate::cpu::*;
 use crate::gc::swiper::CARD_SIZE_BITS;
 use crate::gc::Address;
@@ -88,7 +88,12 @@ impl MacroAssembler {
         self.call_reg(REG_RESULT);
 
         let pos = self.pos() as i32;
-        self.emit_bailout_info(BailoutInfo::Compile(fct_id, disp + pos, cls_tps, fct_tps));
+        self.emit_lazy_compilation_site(LazyCompilationSite::Compile(
+            fct_id,
+            disp + pos,
+            cls_tps,
+            fct_tps,
+        ));
     }
 
     pub fn raw_call(&mut self, ptr: *const u8) {
@@ -119,7 +124,7 @@ impl MacroAssembler {
 
         // call *REG_RESULT
         self.call_reg(REG_RESULT);
-        self.emit_bailout_info(BailoutInfo::VirtCompile(
+        self.emit_lazy_compilation_site(LazyCompilationSite::VirtCompile(
             index,
             cls_type_params,
             TypeList::empty(),
