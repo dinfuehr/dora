@@ -1025,7 +1025,7 @@ impl MacroAssembler {
         let vm = get_vm();
         self.load_int_const(MachineMode::Int32, REG_PARAMS[0], trap.int() as i64);
         self.raw_call(vm.trap_stub().to_ptr());
-        self.emit_lineno(pos.line as i32);
+        self.emit_position(pos);
     }
 
     pub fn throw(&mut self, exception: Reg, pos: Position) {
@@ -1036,7 +1036,7 @@ impl MacroAssembler {
             exception.into(),
         );
         self.raw_call(vm.throw_stub().to_ptr());
-        self.emit_lineno(pos.line as i32);
+        self.emit_position(pos);
     }
 
     pub fn nop(&mut self) {

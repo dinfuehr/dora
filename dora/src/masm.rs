@@ -5,7 +5,7 @@ use std::rc::Rc;
 use crate::compiler::codegen::ExprStore;
 use crate::compiler::fct::{
     CatchType, Comment, Comments, ExHandler, GcPoint, GcPoints, JitBaselineFct, JitDescriptor,
-    LazyCompilationData, LazyCompilationSite, LineNumberTable,
+    LazyCompilationData, LazyCompilationSite, PositionTable,
 };
 use crate::cpu::{Mem, Reg, SCRATCH};
 use crate::dseg::DSeg;
@@ -38,7 +38,7 @@ pub struct MacroAssembler {
     dseg: DSeg,
     gcpoints: GcPoints,
     comments: Comments,
-    linenos: LineNumberTable,
+    positions: PositionTable,
     exception_handlers: Vec<ExHandler>,
     scratch_registers: ScratchRegisters,
 }
@@ -54,7 +54,7 @@ impl MacroAssembler {
             dseg: DSeg::new(),
             gcpoints: GcPoints::new(),
             comments: Comments::new(),
-            linenos: LineNumberTable::new(),
+            positions: PositionTable::new(),
             exception_handlers: Vec::new(),
             scratch_registers: ScratchRegisters::new(),
         }
@@ -81,7 +81,7 @@ impl MacroAssembler {
             self.gcpoints,
             stacksize,
             self.comments,
-            self.linenos,
+            self.positions,
             desc,
             throws,
             self.exception_handlers,
@@ -149,17 +149,9 @@ impl MacroAssembler {
         lbl
     }
 
-    pub fn emit_lineno(&mut self, lineno: i32) {
-        let pos = self.pos() as i32;
-        self.linenos.insert(pos, lineno);
-    }
-
-    pub fn emit_lineno_if_missing(&mut self, lineno: i32) {
-        let pos = self.pos() as i32;
-
-        if self.linenos.get(pos) == 0 {
-            self.linenos.insert(pos, lineno);
-        }
+    pub fn emit_position(&mut self, position: Position) {
+        let offset = self.pos() as u32;
+        self.positions.insert(offset, position);
     }
 
     pub fn emit_gcpoint(&mut self, gcpoint: GcPoint) {

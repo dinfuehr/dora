@@ -13,6 +13,8 @@ use crate::utils::GrowableVec;
 use crate::vm::VM;
 use crate::vm::{ClassDef, ClassDefId, FctId, FctSrc, FieldId, GlobalId, VarId};
 
+use dora_parser::Position;
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct JitFctId(usize);
 
@@ -137,7 +139,7 @@ pub struct JitBaselineFct {
     pub lazy_compilation: LazyCompilationData,
     gcpoints: GcPoints,
     comments: Comments,
-    linenos: LineNumberTable,
+    positions: PositionTable,
     pub exception_handlers: Vec<ExHandler>,
 }
 
@@ -158,7 +160,7 @@ impl JitBaselineFct {
             GcPoints::new(),
             0,
             Comments::new(),
-            LineNumberTable::new(),
+            PositionTable::new(),
             desc,
             throws,
             Vec::new(),
@@ -173,7 +175,7 @@ impl JitBaselineFct {
         gcpoints: GcPoints,
         framesize: i32,
         comments: Comments,
-        linenos: LineNumberTable,
+        positions: PositionTable,
         desc: JitDescriptor,
         throws: bool,
         mut exception_handlers: Vec<ExHandler>,
@@ -210,15 +212,15 @@ impl JitBaselineFct {
             framesize,
             fct_start,
             fct_len: buffer.len(),
-            linenos,
+            positions,
             desc,
             throws,
             exception_handlers,
         }
     }
 
-    pub fn lineno_for_offset(&self, offset: i32) -> i32 {
-        self.linenos.get(offset)
+    pub fn position_for_offset(&self, offset: u32) -> Option<Position> {
+        self.positions.get(offset)
     }
 
     pub fn gcpoint_for_offset(&self, offset: i32) -> Option<&GcPoint> {
@@ -497,26 +499,33 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
 }
 
 #[derive(Debug)]
-pub struct LineNumberTable {
-    map: HashMap<i32, i32>,
+pub struct PositionTable {
+    entries: Vec<(u32, Position)>,
 }
 
-impl LineNumberTable {
-    pub fn new() -> LineNumberTable {
-        LineNumberTable {
-            map: HashMap::new(),
+impl PositionTable {
+    pub fn new() -> PositionTable {
+        PositionTable {
+            entries: Vec::new(),
         }
     }
 
-    pub fn insert(&mut self, offset: i32, lineno: i32) {
-        assert!(self.map.insert(offset, lineno).is_none());
+    pub fn insert(&mut self, offset: u32, position: Position) {
+        if let Some(last) = self.entries.last() {
+            debug_assert!(offset > last.0);
+        }
+
+        self.entries.push((offset, position));
     }
 
-    pub fn get(&self, offset: i32) -> i32 {
-        if let Some(value) = self.map.get(&offset) {
-            *value
-        } else {
-            0
+    pub fn get(&self, offset: u32) -> Option<Position> {
+        let result = self
+            .entries
+            .binary_search_by_key(&offset, |&(offset, _)| offset);
+
+        match result {
+            Ok(idx) => Some(self.entries[idx].1),
+            Err(_) => None,
         }
     }
 }
@@ -550,7 +559,7 @@ impl LazyCompilationData {
 
     pub fn insert(&mut self, offset: u32, info: LazyCompilationSite) {
         if let Some(last) = self.entries.last() {
-            debug_assert!(offset >= last.0);
+            debug_assert!(offset > last.0);
         }
 
         self.entries.push((offset, info));

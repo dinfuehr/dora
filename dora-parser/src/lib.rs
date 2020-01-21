@@ -1,3 +1,5 @@
+pub use lexer::position::Position;
+
 pub mod ast;
 mod builder;
 pub mod error;

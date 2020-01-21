@@ -449,8 +449,8 @@ where
         self.masm.int_as_float(dest_mode, dest, src_mode, src);
     }
 
-    pub fn emit_lineno(&mut self, lineno: i32) {
-        self.masm.emit_lineno(lineno);
+    pub fn emit_positon(&mut self, position: Position) {
+        self.masm.emit_position(position);
     }
 
     pub fn var_store(&mut self, offset: i32, ty: BuiltinType, src: ExprStore) {
@@ -509,7 +509,7 @@ where
     }
 
     fn call_epilog(&mut self, pos: Position, ty: BuiltinType, dest: ExprStore, gcpoint: GcPoint) {
-        self.masm.emit_lineno(pos.line as i32);
+        self.masm.emit_position(pos);
         self.masm.emit_gcpoint(gcpoint);
         self.copy_result(ty, dest);
     }

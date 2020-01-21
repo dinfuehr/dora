@@ -163,13 +163,11 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, vm: &VM, pc: usize) -> boo
 
             let offset = pc - jit_fct.fct_ptr().to_usize();
             let jit_fct = jit_fct.to_base().expect("baseline expected");
-            let lineno = jit_fct.lineno_for_offset(offset as i32);
+            let position = jit_fct
+                .position_for_offset(offset as u32)
+                .expect("position not found for program point");
 
-            if lineno == 0 {
-                panic!("lineno not found for program point");
-            }
-
-            stacktrace.push_entry(fct_id, lineno);
+            stacktrace.push_entry(fct_id, position.line as i32);
 
             true
         }
