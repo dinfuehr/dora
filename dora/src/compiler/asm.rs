@@ -83,6 +83,10 @@ where
         self.masm.emit_comment(comment);
     }
 
+    pub fn emit_comment_lit(&mut self, comment: String) {
+        self.masm.emit_comment(Comment::Lit(comment));
+    }
+
     pub fn copy_reg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
         self.masm.copy_reg(mode, dest, src);
     }

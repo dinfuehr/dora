@@ -102,9 +102,9 @@ impl JitFct {
         }
     }
 
-    pub fn get_comment(&self, pos: i32) -> Option<&[Comment]> {
+    pub fn get_comment(&self, offset: u32) -> Option<&[Comment]> {
         match self {
-            &JitFct::Base(ref base) => base.get_comment(pos),
+            &JitFct::Base(ref base) => base.get_comment(offset),
             &JitFct::Opt(_) => unimplemented!(),
         }
     }
@@ -255,8 +255,8 @@ impl JitBaselineFct {
         self.fct_len
     }
 
-    pub fn get_comment(&self, pos: i32) -> Option<&[Comment]> {
-        self.comments.get(pos)
+    pub fn get_comment(&self, offset: u32) -> Option<&[Comment]> {
+        self.comments.get(offset)
     }
 }
 
@@ -325,27 +325,43 @@ impl GcPoint {
 }
 
 pub struct Comments {
-    comments: HashMap<i32, Vec<Comment>>,
+    entries: Vec<(u32, Vec<Comment>)>,
 }
 
 impl Comments {
     pub fn new() -> Comments {
         Comments {
-            comments: HashMap::new(),
+            entries: Vec::new(),
         }
     }
 
-    pub fn get(&self, pos: i32) -> Option<&[Comment]> {
-        self.comments.get(&pos).map(|c| c.as_slice())
+    pub fn get(&self, offset: u32) -> Option<&[Comment]> {
+        let result = self
+            .entries
+            .binary_search_by_key(&offset, |&(offset, _)| offset);
+
+        match result {
+            Ok(idx) => Some(&self.entries[idx].1),
+            Err(_) => None,
+        }
     }
 
-    pub fn insert(&mut self, pos: i32, comment: Comment) {
-        self.comments.entry(pos).or_insert(Vec::new()).push(comment);
+    pub fn insert(&mut self, offset: u32, comment: Comment) {
+        if let Some(last) = self.entries.last_mut() {
+            debug_assert!(offset >= last.0);
+
+            if last.0 == offset {
+                last.1.push(comment);
+                return;
+            }
+        }
+
+        self.entries.push((offset, vec![comment]));
     }
 }
 
 pub enum Comment {
-    Lit(&'static str),
+    Lit(String),
     LoadString(Ref<Str>),
     Alloc(ClassDefId),
     StoreVTable(ClassDefId),
@@ -382,7 +398,7 @@ pub struct CommentFormat<'a, 'ast: 'a> {
 impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.comment {
-            &Comment::Lit(val) => write!(f, "{}", val),
+            &Comment::Lit(ref val) => write!(f, "{}", val),
             &Comment::LoadString(_) => write!(f, "load string"),
             &Comment::Alloc(cls_def_id) => {
                 let cls_def = self.vm.class_defs.idx(cls_def_id);

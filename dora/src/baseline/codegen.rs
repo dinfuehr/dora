@@ -233,14 +233,11 @@ where
 
     fn emit_prolog(&mut self) {
         self.stacksize_offset = self.asm.prolog(self.fct.ast.pos);
-        self.asm.emit_comment(Comment::Lit("prolog end"));
-        self.asm.emit_comment(Comment::Newline);
+        self.asm.emit_comment_lit("prolog end".into());
     }
 
     fn emit_epilog(&mut self) {
-        self.asm.emit_comment(Comment::Newline);
-        self.asm.emit_comment(Comment::Lit("epilog"));
-
+        self.asm.emit_comment_lit("epilog".into());
         self.asm.epilog();
     }
 
@@ -2212,7 +2209,7 @@ where
         let lbl_assert = self.asm.create_label();
         self.emit_expr(e, REG_RESULT.into());
 
-        self.asm.emit_comment(Comment::Lit("check assert"));
+        self.asm.emit_comment_lit("check assert".into());
         self.asm
             .test_and_jump_if(CondCode::NonZero, REG_RESULT, lbl_assert);
 

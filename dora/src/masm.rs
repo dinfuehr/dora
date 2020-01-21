@@ -172,8 +172,8 @@ impl MacroAssembler {
     }
 
     pub fn emit_comment(&mut self, comment: Comment) {
-        let pos = self.pos() as i32;
-        self.comments.insert(pos, comment);
+        let offset = self.pos() as u32;
+        self.comments.insert(offset, comment);
     }
 
     pub fn bind_label(&mut self, lbl: Label) {

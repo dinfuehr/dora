@@ -244,7 +244,7 @@ pub fn dump_asm<'ast>(
             writeln!(&mut w, ")").unwrap();
         }
 
-        if let Some(comments) = jit_fct.get_comment(addr) {
+        if let Some(comments) = jit_fct.get_comment(addr as u32) {
             for comment in comments {
                 if comment.is_newline() {
                     writeln!(&mut w).unwrap();

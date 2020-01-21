@@ -6,7 +6,7 @@ use crate::bytecode::{
 };
 use crate::compiler::asm::BaselineAssembler;
 use crate::compiler::codegen::{ensure_native_stub, should_emit_debug, AllocationSize, ExprStore};
-use crate::compiler::fct::{Comment, GcPoint, JitBaselineFct, JitDescriptor};
+use crate::compiler::fct::{GcPoint, JitBaselineFct, JitDescriptor};
 use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
 use crate::cpu::{Mem, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_TMP1};
 use crate::gc::Address;
@@ -180,14 +180,11 @@ where
     fn emit_prolog(&mut self) {
         self.asm
             .prolog_size(self.bytecode.stacksize(), self.fct.ast.pos);
-        self.asm.emit_comment(Comment::Lit("prolog end"));
-        self.asm.emit_comment(Comment::Newline);
+        self.asm.emit_comment_lit("prolog end".into());
     }
 
     fn emit_epilog(&mut self) {
-        self.asm.emit_comment(Comment::Newline);
-        self.asm.emit_comment(Comment::Lit("epilog"));
-
+        self.asm.emit_comment_lit("epilog".into());
         self.asm.epilog();
     }
 
@@ -716,8 +713,18 @@ where
 
         assert_eq!(self.bytecode.register_type(dest), field.ty.into());
 
-        self.asm
-            .emit_comment(Comment::LoadField(class_def_id, field_id));
+        {
+            let cname = cls.name(self.vm);
+
+            let cls_id = cls.cls_id.expect("no corresponding class");
+            let class = self.vm.classes.idx(cls_id);
+            let class = class.read();
+            let field = &class.fields[field_id.idx()];
+            let fname = self.vm.interner.str(field.name);
+
+            self.asm
+                .emit_comment_lit(format!("load field {}.{}", cname, fname));
+        }
 
         let bytecode_type = self.bytecode.register_type(obj);
         let offset = self.bytecode.register_offset(obj);
@@ -753,8 +760,18 @@ where
 
         assert_eq!(self.bytecode.register_type(src), field.ty.into());
 
-        self.asm
-            .emit_comment(Comment::StoreField(class_def_id, field_id));
+        {
+            let cname = cls.name(self.vm);
+
+            let cls_id = cls.cls_id.expect("no corresponding class");
+            let class = self.vm.classes.idx(cls_id);
+            let class = class.read();
+            let field = &class.fields[field_id.idx()];
+            let fname = self.vm.interner.str(field.name);
+
+            self.asm
+                .emit_comment_lit(format!("store field {}.{}", cname, fname));
+        }
 
         let bytecode_type = self.bytecode.register_type(src);
         let offset = self.bytecode.register_offset(src);
@@ -792,7 +809,8 @@ where
         let disp = self.asm.add_addr(glob.address_value.to_ptr());
         let pos = self.asm.pos() as i32;
 
-        self.asm.emit_comment(Comment::LoadGlobal(global_id));
+        let name = self.vm.interner.str(glob.name);
+        self.asm.emit_comment_lit(format!("load global {}", name));
         self.asm.load_constpool(REG_TMP1, disp + pos);
 
         let bytecode_type = self.bytecode.register_type(dest);
@@ -878,7 +896,8 @@ where
         let disp = self.asm.add_addr(handle.raw() as *const u8);
         let pos = self.asm.pos() as i32;
 
-        self.asm.emit_comment(Comment::LoadString(handle));
+        self.asm
+            .emit_comment_lit(format!("load string '{}'", lit_value));
 
         self.asm.load_constpool(REG_RESULT, disp + pos);
 
@@ -1012,7 +1031,11 @@ where
         let cls = self.vm.class_defs.idx(class_def_id);
         let cls = cls.read();
 
-        self.asm.emit_comment(Comment::Alloc(class_def_id));
+        {
+            let name = cls.name(self.vm);
+            self.asm
+                .emit_comment_lit(format!("allocate object of class {}", name));
+        }
 
         let alloc_size = match cls.size {
             InstanceSize::Fixed(size) => AllocationSize::Fixed(size as usize),
@@ -1039,7 +1062,9 @@ where
         let disp = self.asm.add_addr(cptr);
         let pos = self.asm.pos() as i32;
 
-        self.asm.emit_comment(Comment::StoreVTable(class_def_id));
+        let name = cls.name(self.vm);
+        self.asm
+            .emit_comment_lit(format!("store vtable ptr for class {} in object", name));
         self.asm.load_constpool(REG_TMP1.into(), disp + pos);
         self.asm
             .store_mem(MachineMode::Ptr, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
@@ -1091,7 +1116,8 @@ where
         let cls_type_params = TypeList::Empty;
         let fct_type_params = TypeList::Empty;
 
-        self.asm.emit_comment(Comment::CallDirect(fct_id));
+        let name = fct.full_name(self.vm);
+        self.asm.emit_comment_lit(format!("call direct {}", name));
         let ptr = self.ptr_for_fct_id(fct_id, cls_type_params.clone(), fct_type_params.clone());
         let gcpoint = GcPoint::from_offsets(self.references.clone());
         let position = self.bytecode.offset_position(self.current_offset.to_u32());
@@ -1145,7 +1171,9 @@ where
         let cls_type_params = TypeList::Empty;
         let fct_type_params = TypeList::Empty;
 
-        self.asm.emit_comment(Comment::CallDirect(fct_id));
+        let name = fct.full_name(self.vm);
+        self.asm.emit_comment_lit(format!("call direct {}", name));
+
         let ptr = self.ptr_for_fct_id(fct_id, cls_type_params.clone(), fct_type_params.clone());
         let gcpoint = GcPoint::from_offsets(self.references.clone());
         let position = self.bytecode.offset_position(self.current_offset.to_u32());
