@@ -273,7 +273,7 @@ fn find_handler(
             let jit_fct = jit_fct.to_base().expect("baseline expected");
             let clsptr = exception.header().vtbl().classptr();
 
-            for entry in &jit_fct.exception_handlers {
+            for entry in jit_fct.handlers() {
                 // println!("entry = {:x} to {:x} for {:?}",
                 //          entry.try_start, entry.try_end, entry.catch_type);
 

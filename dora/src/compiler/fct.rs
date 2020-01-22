@@ -101,6 +101,13 @@ impl JitFct {
         }
     }
 
+    pub fn handlers(&self) -> &[Handler] {
+        match self {
+            &JitFct::Base(ref base) => base.handlers(),
+            &JitFct::Opt(_) => unimplemented!(),
+        }
+    }
+
     pub fn gcpoint_for_offset(&self, offset: u32) -> Option<&GcPoint> {
         match self {
             &JitFct::Base(ref base) => base.gcpoint_for_offset(offset),
@@ -158,7 +165,7 @@ pub struct JitBaselineFct {
     gcpoints: GcPoints,
     comments: Comments,
     positions: PositionTable,
-    pub exception_handlers: Vec<Handler>,
+    handlers: Vec<Handler>,
 }
 
 impl JitBaselineFct {
@@ -196,7 +203,7 @@ impl JitBaselineFct {
         positions: PositionTable,
         desc: JitDescriptor,
         throws: bool,
-        mut exception_handlers: Vec<Handler>,
+        mut handlers: Vec<Handler>,
     ) -> JitBaselineFct {
         let size = dseg.size() as usize + buffer.len();
         let ptr = vm.gc.alloc_code(size);
@@ -220,7 +227,7 @@ impl JitBaselineFct {
 
         flush_icache(ptr.to_ptr(), size);
 
-        for handler in &mut exception_handlers {
+        for handler in &mut handlers {
             handler.try_start = instruction_start.offset(handler.try_start).to_usize();
             handler.try_end = instruction_start.offset(handler.try_end).to_usize();
             handler.catch = instruction_start.offset(handler.catch).to_usize();
@@ -238,7 +245,7 @@ impl JitBaselineFct {
             positions,
             desc,
             throws,
-            exception_handlers,
+            handlers,
         }
     }
 
@@ -248,6 +255,10 @@ impl JitBaselineFct {
 
     pub fn gcpoint_for_offset(&self, offset: u32) -> Option<&GcPoint> {
         self.gcpoints.get(offset)
+    }
+
+    pub fn handlers(&self) -> &[Handler] {
+        &self.handlers
     }
 
     pub fn ptr_start(&self) -> Address {
