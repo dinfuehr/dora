@@ -52,23 +52,16 @@ impl JitFct {
         }
     }
 
-    pub fn fct_ptr(&self) -> Address {
+    pub fn instruction_start(&self) -> Address {
         match self {
-            &JitFct::Base(ref base) => base.fct_ptr(),
-            &JitFct::Opt(ref opt) => opt.fct_ptr(),
-        }
-    }
-
-    pub fn fct_end(&self) -> Address {
-        match self {
-            &JitFct::Base(ref base) => base.fct_end(),
+            &JitFct::Base(ref base) => base.instruction_start(),
             &JitFct::Opt(_) => unimplemented!(),
         }
     }
 
-    pub fn fct_len(&self) -> usize {
+    pub fn instruction_end(&self) -> Address {
         match self {
-            &JitFct::Base(ref base) => base.fct_len(),
+            &JitFct::Base(ref base) => base.instruction_end(),
             &JitFct::Opt(_) => unimplemented!(),
         }
     }
@@ -94,16 +87,30 @@ impl JitFct {
         }
     }
 
-    pub fn gcpoint_for_offset(&self, offset: i32) -> Option<&GcPoint> {
+    pub fn gcpoint_for_offset(&self, offset: u32) -> Option<&GcPoint> {
         match self {
             &JitFct::Base(ref base) => base.gcpoint_for_offset(offset),
             &JitFct::Opt(_) => unimplemented!(),
         }
     }
 
-    pub fn get_comment(&self, offset: u32) -> Option<&[String]> {
+    pub fn position_for_offset(&self, offset: u32) -> Option<Position> {
         match self {
-            &JitFct::Base(ref base) => base.get_comment(offset),
+            &JitFct::Base(ref base) => base.position_for_offset(offset),
+            &JitFct::Opt(_) => unimplemented!(),
+        }
+    }
+
+    pub fn comment_for_offset(&self, offset: u32) -> Option<&String> {
+        match self {
+            &JitFct::Base(ref base) => base.comment_for_offset(offset),
+            &JitFct::Opt(_) => unimplemented!(),
+        }
+    }
+
+    pub fn lazy_for_offset(&self, offset: u32) -> Option<&LazyCompilationSite> {
+        match self {
+            &JitFct::Base(ref base) => base.lazy_for_offset(offset),
             &JitFct::Opt(_) => unimplemented!(),
         }
     }
@@ -129,10 +136,8 @@ pub struct JitBaselineFct {
     pub throws: bool,
 
     // pointer to beginning of function
-    pub fct_start: Address,
-
-    // machine code length in bytes
-    fct_len: usize,
+    pub instruction_start: Address,
+    pub instruction_end: Address,
 
     pub framesize: i32,
     pub lazy_compilation: LazyCompilationData,
@@ -188,18 +193,23 @@ impl JitBaselineFct {
 
         dseg.finish(ptr.to_ptr());
 
-        let fct_start = ptr.offset(dseg.size() as usize);
+        let instruction_start = ptr.offset(dseg.size() as usize);
+        let instruction_end = instruction_start.offset(buffer.len());
 
         unsafe {
-            ptr::copy_nonoverlapping(buffer.as_ptr(), fct_start.to_mut_ptr(), buffer.len());
+            ptr::copy_nonoverlapping(
+                buffer.as_ptr(),
+                instruction_start.to_mut_ptr(),
+                buffer.len(),
+            );
         }
 
         flush_icache(ptr.to_ptr(), size);
 
         for handler in &mut exception_handlers {
-            handler.try_start = fct_start.offset(handler.try_start).to_usize();
-            handler.try_end = fct_start.offset(handler.try_end).to_usize();
-            handler.catch = fct_start.offset(handler.catch).to_usize();
+            handler.try_start = instruction_start.offset(handler.try_start).to_usize();
+            handler.try_end = instruction_start.offset(handler.try_end).to_usize();
+            handler.catch = instruction_start.offset(handler.catch).to_usize();
         }
 
         JitBaselineFct {
@@ -209,8 +219,8 @@ impl JitBaselineFct {
             gcpoints,
             comments,
             framesize,
-            fct_start,
-            fct_len: buffer.len(),
+            instruction_start,
+            instruction_end,
             positions,
             desc,
             throws,
@@ -222,7 +232,7 @@ impl JitBaselineFct {
         self.positions.get(offset)
     }
 
-    pub fn gcpoint_for_offset(&self, offset: i32) -> Option<&GcPoint> {
+    pub fn gcpoint_for_offset(&self, offset: u32) -> Option<&GcPoint> {
         self.gcpoints.get(offset)
     }
 
@@ -242,20 +252,20 @@ impl JitBaselineFct {
         }
     }
 
-    pub fn fct_ptr(&self) -> Address {
-        self.fct_start
+    pub fn instruction_start(&self) -> Address {
+        self.instruction_start
     }
 
-    pub fn fct_end(&self) -> Address {
-        self.fct_start.offset(self.fct_len())
+    pub fn instruction_end(&self) -> Address {
+        self.instruction_end
     }
 
-    pub fn fct_len(&self) -> usize {
-        self.fct_len
-    }
-
-    pub fn get_comment(&self, offset: u32) -> Option<&[String]> {
+    pub fn comment_for_offset(&self, offset: u32) -> Option<&String> {
         self.comments.get(offset)
+    }
+
+    pub fn lazy_for_offset(&self, offset: u32) -> Option<&LazyCompilationSite> {
+        self.lazy_compilation.get(offset)
     }
 }
 
@@ -273,7 +283,7 @@ impl fmt::Debug for JitBaselineFct {
 
 #[derive(Debug)]
 pub struct GcPoints {
-    points: HashMap<i32, GcPoint>,
+    points: HashMap<u32, GcPoint>,
 }
 
 impl GcPoints {
@@ -283,11 +293,11 @@ impl GcPoints {
         }
     }
 
-    pub fn get(&self, offset: i32) -> Option<&GcPoint> {
+    pub fn get(&self, offset: u32) -> Option<&GcPoint> {
         self.points.get(&offset)
     }
 
-    pub fn insert(&mut self, offset: i32, gcpoint: GcPoint) {
+    pub fn insert(&mut self, offset: u32, gcpoint: GcPoint) {
         assert!(self.points.insert(offset, gcpoint).is_none());
     }
 }
@@ -324,7 +334,7 @@ impl GcPoint {
 }
 
 pub struct Comments {
-    entries: Vec<(u32, Vec<String>)>,
+    entries: Vec<(u32, String)>,
 }
 
 impl Comments {
@@ -334,7 +344,7 @@ impl Comments {
         }
     }
 
-    pub fn get(&self, offset: u32) -> Option<&[String]> {
+    pub fn get(&self, offset: u32) -> Option<&String> {
         let result = self
             .entries
             .binary_search_by_key(&offset, |&(offset, _)| offset);
@@ -347,15 +357,10 @@ impl Comments {
 
     pub fn insert(&mut self, offset: u32, comment: String) {
         if let Some(last) = self.entries.last_mut() {
-            debug_assert!(offset >= last.0);
-
-            if last.0 == offset {
-                last.1.push(comment);
-                return;
-            }
+            debug_assert!(offset > last.0);
         }
 
-        self.entries.push((offset, vec![comment]));
+        self.entries.push((offset, comment));
     }
 }
 

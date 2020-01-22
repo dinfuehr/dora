@@ -84,10 +84,9 @@ fn determine_rootset(rootset: &mut Vec<Slot>, vm: &VM, fp: usize, pc: usize) -> 
         Some(CodeDescriptor::DoraFct(fct_id)) => {
             let jit_fct = vm.jit_fcts.idx(fct_id);
 
-            let offset = pc - jit_fct.fct_ptr().to_usize();
-            let jit_fct = jit_fct.to_base().expect("baseline expected");
+            let offset = pc - jit_fct.instruction_start().to_usize();
             let gcpoint = jit_fct
-                .gcpoint_for_offset(offset as i32)
+                .gcpoint_for_offset(offset as u32)
                 .expect("no gcpoint");
 
             for &offset in &gcpoint.offsets {

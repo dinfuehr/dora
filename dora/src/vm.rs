@@ -434,7 +434,7 @@ impl<'ast> VM<'ast> {
             };
             let jit_fct_id = native_stub::generate(self, ifct, false);
             let jit_fct = self.jit_fcts.idx(jit_fct_id);
-            let fct_ptr = jit_fct.fct_ptr();
+            let fct_ptr = jit_fct.instruction_start();
             *trap_stub_address = fct_ptr;
         }
 

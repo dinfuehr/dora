@@ -161,8 +161,7 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, vm: &VM, pc: usize) -> boo
         Some(CodeDescriptor::DoraFct(fct_id)) => {
             let jit_fct = vm.jit_fcts.idx(fct_id);
 
-            let offset = pc - jit_fct.fct_ptr().to_usize();
-            let jit_fct = jit_fct.to_base().expect("baseline expected");
+            let offset = pc - jit_fct.instruction_start().to_usize();
             let position = jit_fct
                 .position_for_offset(offset as u32)
                 .expect("position not found for program point");

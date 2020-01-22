@@ -241,7 +241,6 @@ where
 
     fn emit_prolog(&mut self) {
         self.stacksize_offset = self.asm.prolog(self.fct.ast.pos);
-        self.asm.emit_comment("prolog end".into());
     }
 
     fn emit_epilog(&mut self) {
@@ -3260,7 +3259,7 @@ fn ensure_jit_or_stub_ptr<'ast>(
 
     if let Some(&jit_fct_id) = specials.get(&key) {
         let jit_fct = vm.jit_fcts.idx(jit_fct_id);
-        return jit_fct.fct_ptr();
+        return jit_fct.instruction_start();
     }
 
     vm.compile_stub()

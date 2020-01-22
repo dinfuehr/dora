@@ -155,7 +155,7 @@ impl MacroAssembler {
     }
 
     pub fn emit_gcpoint(&mut self, gcpoint: GcPoint) {
-        let pos = self.pos() as i32;
+        let pos = self.pos() as u32;
         self.gcpoints.insert(pos, gcpoint);
     }
 

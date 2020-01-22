@@ -57,7 +57,7 @@ pub fn generate_fct<'ast>(
 
         if let Some(&jit_fct_id) = specials.get(&key) {
             let jit_fct = vm.jit_fcts.idx(jit_fct_id);
-            return jit_fct.fct_ptr();
+            return jit_fct.instruction_start();
         }
     }
 
@@ -93,7 +93,7 @@ pub fn generate_fct<'ast>(
         );
     }
 
-    let fct_ptr = jit_fct.fct_ptr();
+    let fct_ptr = jit_fct.instruction_start();
     let ptr_start = jit_fct.ptr_start();
     let ptr_end = jit_fct.ptr_end();
 
@@ -151,8 +151,11 @@ pub fn dump_asm<'ast>(
     fct_src: Option<&FctSrc>,
     asm_syntax: AsmSyntax,
 ) {
+    let instruction_length = jit_fct
+        .instruction_end()
+        .offset_from(jit_fct.instruction_start());
     let buf: &[u8] =
-        unsafe { slice::from_raw_parts(jit_fct.fct_ptr().to_ptr(), jit_fct.fct_len()) };
+        unsafe { slice::from_raw_parts(jit_fct.instruction_start().to_ptr(), instruction_length) };
 
     let engine = get_engine(asm_syntax).expect("cannot create capstone engine");
 
@@ -170,8 +173,8 @@ pub fn dump_asm<'ast>(
         Box::new(io::stdout())
     };
 
-    let start_addr = jit_fct.fct_ptr().to_usize() as u64;
-    let end_addr = jit_fct.fct_end().to_usize() as u64;
+    let start_addr = jit_fct.instruction_start().to_usize() as u64;
+    let end_addr = jit_fct.instruction_end().to_usize() as u64;
 
     let instrs = engine
         .disasm_all(buf, start_addr)
@@ -222,7 +225,7 @@ pub fn dump_asm<'ast>(
     }
 
     for instr in instrs.iter() {
-        let addr = (instr.address() - start_addr) as i32;
+        let addr = (instr.address() - start_addr) as u32;
 
         if let Some(gc_point) = jit_fct.gcpoint_for_offset(addr) {
             write!(&mut w, "\t\t  ; gc point = (").unwrap();
@@ -244,10 +247,8 @@ pub fn dump_asm<'ast>(
             writeln!(&mut w, ")").unwrap();
         }
 
-        if let Some(comments) = jit_fct.get_comment(addr as u32) {
-            for comment in comments {
-                writeln!(&mut w, "\t\t  // {}", comment).unwrap();
-            }
+        if let Some(comment) = jit_fct.comment_for_offset(addr as u32) {
+            writeln!(&mut w, "\t\t  // {}", comment).unwrap();
         }
 
         writeln!(
@@ -376,7 +377,7 @@ pub fn ensure_native_stub(vm: &VM, fct_id: Option<FctId>, internal_fct: NativeFc
 
     if let Some(jit_fct_id) = native_stubs.find_fct(ptr) {
         let jit_fct = vm.jit_fcts.idx(jit_fct_id);
-        jit_fct.fct_ptr()
+        jit_fct.instruction_start()
     } else {
         let dbg = if let Some(fct_id) = fct_id {
             let fct = vm.fcts.idx(fct_id);
@@ -389,7 +390,7 @@ pub fn ensure_native_stub(vm: &VM, fct_id: Option<FctId>, internal_fct: NativeFc
         let jit_fct_id = native_stub::generate(vm, internal_fct, dbg);
         let jit_fct = vm.jit_fcts.idx(jit_fct_id);
 
-        let fct_ptr = jit_fct.fct_ptr();
+        let fct_ptr = jit_fct.instruction_start();
 
         if let Some(fct_id) = fct_id {
             let fct = vm.fcts.idx(fct_id);

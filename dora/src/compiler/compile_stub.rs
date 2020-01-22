@@ -30,7 +30,7 @@ pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>) -> Address {
     };
 
     let jit_fct = ngen.generate();
-    let addr = jit_fct.fct_ptr();
+    let addr = jit_fct.instruction_start();
     vm.insert_code_map(
         jit_fct.ptr_start(),
         jit_fct.ptr_end(),
@@ -190,7 +190,7 @@ fn compile_request(ra: usize, receiver: Address) -> Address {
 
         let jit_fct = vm.jit_fcts.idx(fct_id);
 
-        let offset = ra - jit_fct.fct_ptr().to_usize();
+        let offset = ra - jit_fct.instruction_start().to_usize();
         let jit_fct = jit_fct.to_base().expect("baseline expected");
         jit_fct
             .lazy_compilation
