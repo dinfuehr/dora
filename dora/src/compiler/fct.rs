@@ -6,12 +6,11 @@ use std::sync::Arc;
 use crate::cpu::flush_icache;
 use crate::dseg::DSeg;
 use crate::gc::Address;
-use crate::object::{Ref, Str};
 use crate::opt::fct::JitOptFct;
 use crate::ty::TypeList;
 use crate::utils::GrowableVec;
 use crate::vm::VM;
-use crate::vm::{ClassDef, ClassDefId, FctId, FctSrc, FieldId, GlobalId, VarId};
+use crate::vm::{ClassDef, FctId};
 
 use dora_parser::Position;
 
@@ -102,7 +101,7 @@ impl JitFct {
         }
     }
 
-    pub fn get_comment(&self, offset: u32) -> Option<&[Comment]> {
+    pub fn get_comment(&self, offset: u32) -> Option<&[String]> {
         match self {
             &JitFct::Base(ref base) => base.get_comment(offset),
             &JitFct::Opt(_) => unimplemented!(),
@@ -255,7 +254,7 @@ impl JitBaselineFct {
         self.fct_len
     }
 
-    pub fn get_comment(&self, offset: u32) -> Option<&[Comment]> {
+    pub fn get_comment(&self, offset: u32) -> Option<&[String]> {
         self.comments.get(offset)
     }
 }
@@ -325,7 +324,7 @@ impl GcPoint {
 }
 
 pub struct Comments {
-    entries: Vec<(u32, Vec<Comment>)>,
+    entries: Vec<(u32, Vec<String>)>,
 }
 
 impl Comments {
@@ -335,7 +334,7 @@ impl Comments {
         }
     }
 
-    pub fn get(&self, offset: u32) -> Option<&[Comment]> {
+    pub fn get(&self, offset: u32) -> Option<&[String]> {
         let result = self
             .entries
             .binary_search_by_key(&offset, |&(offset, _)| offset);
@@ -346,7 +345,7 @@ impl Comments {
         }
     }
 
-    pub fn insert(&mut self, offset: u32, comment: Comment) {
+    pub fn insert(&mut self, offset: u32, comment: String) {
         if let Some(last) = self.entries.last_mut() {
             debug_assert!(offset >= last.0);
 
@@ -357,160 +356,6 @@ impl Comments {
         }
 
         self.entries.push((offset, vec![comment]));
-    }
-}
-
-pub enum Comment {
-    Lit(String),
-    LoadString(Ref<Str>),
-    Alloc(ClassDefId),
-    StoreVTable(ClassDefId),
-    CallSuper(FctId),
-    CallVirtual(FctId),
-    CallDirect(FctId),
-    StoreParam(VarId),
-    Newline,
-    StoreField(ClassDefId, FieldId),
-    LoadField(ClassDefId, FieldId),
-    StoreVar(VarId),
-    LoadVar(VarId),
-    LoadSelf(VarId),
-    LoadGlobal(GlobalId),
-    StoreGlobal(GlobalId),
-    ReadPollingPage,
-}
-
-impl Comment {
-    pub fn is_newline(&self) -> bool {
-        match self {
-            &Comment::Newline => true,
-            _ => false,
-        }
-    }
-}
-
-pub struct CommentFormat<'a, 'ast: 'a> {
-    pub comment: &'a Comment,
-    pub fct_src: Option<&'a FctSrc>,
-    pub vm: &'a VM<'ast>,
-}
-
-impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self.comment {
-            &Comment::Lit(ref val) => write!(f, "{}", val),
-            &Comment::LoadString(_) => write!(f, "load string"),
-            &Comment::Alloc(cls_def_id) => {
-                let cls_def = self.vm.class_defs.idx(cls_def_id);
-                let cls_def = cls_def.read();
-                let name = cls_def.name(self.vm);
-                write!(f, "allocate object of class {}", &name)
-            }
-
-            &Comment::StoreVTable(cls_def_id) => {
-                let cls_def = self.vm.class_defs.idx(cls_def_id);
-                let cls_def = cls_def.read();
-                let name = cls_def.name(self.vm);
-                write!(f, "store vtable ptr for class {} in object", &name)
-            }
-
-            &Comment::CallSuper(fid) => {
-                let fct = self.vm.fcts.idx(fid);
-                let fct = fct.read();
-                let name = fct.full_name(self.vm);
-
-                write!(f, "call super {}", &name)
-            }
-
-            &Comment::CallVirtual(fid) => {
-                let fct = self.vm.fcts.idx(fid);
-                let fct = fct.read();
-                let name = fct.full_name(self.vm);
-
-                write!(f, "call virtual {}", &name)
-            }
-
-            &Comment::CallDirect(fid) => {
-                let fct = self.vm.fcts.idx(fid);
-                let fct = fct.read();
-                let name = fct.full_name(self.vm);
-
-                write!(f, "call direct {}", &name)
-            }
-
-            &Comment::StoreParam(vid) => {
-                let var = &self.fct_src.unwrap().vars[vid];
-                let name = self.vm.interner.str(var.name);
-
-                write!(f, "store param {}", name)
-            }
-
-            &Comment::Newline => write!(f, ""),
-
-            &Comment::StoreField(clsid, fid) => {
-                let cls_def = self.vm.class_defs.idx(clsid);
-                let cls_def = cls_def.read();
-                let cname = cls_def.name(self.vm);
-
-                let cls_id = cls_def.cls_id.expect("no corresponding class");
-                let cls = self.vm.classes.idx(cls_id);
-                let cls = cls.read();
-                let field = &cls.fields[fid];
-                let fname = field.name;
-                let fname = self.vm.interner.str(fname);
-
-                write!(f, "store in {}.{}", cname, fname)
-            }
-
-            &Comment::LoadField(clsid, fid) => {
-                let cls_def = self.vm.class_defs.idx(clsid);
-                let cls_def = cls_def.read();
-                let cname = cls_def.name(self.vm);
-
-                let cls_id = cls_def.cls_id.expect("no corresponding class");
-                let cls = self.vm.classes.idx(cls_id);
-                let cls = cls.read();
-                let field = &cls.fields[fid];
-                let fname = field.name;
-                let fname = self.vm.interner.str(fname);
-
-                write!(f, "load from {}.{}", cname, fname)
-            }
-
-            &Comment::StoreVar(vid) => {
-                let var = &self.fct_src.unwrap().vars[vid];
-                let name = self.vm.interner.str(var.name);
-
-                write!(f, "store var {}", name)
-            }
-
-            &Comment::LoadVar(vid) => {
-                let var = &self.fct_src.unwrap().vars[vid];
-                let name = self.vm.interner.str(var.name);
-
-                write!(f, "load var {}", name)
-            }
-
-            &Comment::StoreGlobal(gid) => {
-                let glob = self.vm.globals.idx(gid);
-                let glob = glob.lock();
-                let name = self.vm.interner.str(glob.name);
-
-                write!(f, "store global {}", name)
-            }
-
-            &Comment::LoadGlobal(gid) => {
-                let glob = self.vm.globals.idx(gid);
-                let glob = glob.lock();
-                let name = self.vm.interner.str(glob.name);
-
-                write!(f, "load global {}", name)
-            }
-
-            &Comment::LoadSelf(_) => write!(f, "load self"),
-
-            &Comment::ReadPollingPage => write!(f, "read polling page (safepoint)"),
-        }
     }
 }
 

@@ -180,11 +180,11 @@ where
     fn emit_prolog(&mut self) {
         self.asm
             .prolog_size(self.bytecode.stacksize(), self.fct.ast.pos);
-        self.asm.emit_comment_lit("prolog end".into());
+        self.asm.emit_comment("prolog end".into());
     }
 
     fn emit_epilog(&mut self) {
-        self.asm.emit_comment_lit("epilog".into());
+        self.asm.emit_comment("epilog".into());
         self.asm.epilog();
     }
 
@@ -723,7 +723,7 @@ where
             let fname = self.vm.interner.str(field.name);
 
             self.asm
-                .emit_comment_lit(format!("load field {}.{}", cname, fname));
+                .emit_comment(format!("load field {}.{}", cname, fname));
         }
 
         let bytecode_type = self.bytecode.register_type(obj);
@@ -770,7 +770,7 @@ where
             let fname = self.vm.interner.str(field.name);
 
             self.asm
-                .emit_comment_lit(format!("store field {}.{}", cname, fname));
+                .emit_comment(format!("store field {}.{}", cname, fname));
         }
 
         let bytecode_type = self.bytecode.register_type(src);
@@ -810,7 +810,7 @@ where
         let pos = self.asm.pos() as i32;
 
         let name = self.vm.interner.str(glob.name);
-        self.asm.emit_comment_lit(format!("load global {}", name));
+        self.asm.emit_comment(format!("load global {}", name));
         self.asm.load_constpool(REG_TMP1, disp + pos);
 
         let bytecode_type = self.bytecode.register_type(dest);
@@ -897,7 +897,7 @@ where
         let pos = self.asm.pos() as i32;
 
         self.asm
-            .emit_comment_lit(format!("load string '{}'", lit_value));
+            .emit_comment(format!("load string '{}'", lit_value));
 
         self.asm.load_constpool(REG_RESULT, disp + pos);
 
@@ -1034,7 +1034,7 @@ where
         {
             let name = cls.name(self.vm);
             self.asm
-                .emit_comment_lit(format!("allocate object of class {}", name));
+                .emit_comment(format!("allocate object of class {}", name));
         }
 
         let alloc_size = match cls.size {
@@ -1064,7 +1064,7 @@ where
 
         let name = cls.name(self.vm);
         self.asm
-            .emit_comment_lit(format!("store vtable ptr for class {} in object", name));
+            .emit_comment(format!("store vtable ptr for class {} in object", name));
         self.asm.load_constpool(REG_TMP1.into(), disp + pos);
         self.asm
             .store_mem(MachineMode::Ptr, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
@@ -1117,7 +1117,7 @@ where
         let fct_type_params = TypeList::Empty;
 
         let name = fct.full_name(self.vm);
-        self.asm.emit_comment_lit(format!("call direct {}", name));
+        self.asm.emit_comment(format!("call direct {}", name));
         let ptr = self.ptr_for_fct_id(fct_id, cls_type_params.clone(), fct_type_params.clone());
         let gcpoint = GcPoint::from_offsets(self.references.clone());
         let position = self.bytecode.offset_position(self.current_offset.to_u32());
@@ -1172,7 +1172,7 @@ where
         let fct_type_params = TypeList::Empty;
 
         let name = fct.full_name(self.vm);
-        self.asm.emit_comment_lit(format!("call direct {}", name));
+        self.asm.emit_comment(format!("call direct {}", name));
 
         let ptr = self.ptr_for_fct_id(fct_id, cls_type_params.clone(), fct_type_params.clone());
         let gcpoint = GcPoint::from_offsets(self.references.clone());

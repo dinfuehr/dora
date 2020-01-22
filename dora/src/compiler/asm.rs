@@ -3,7 +3,7 @@ use std::mem;
 use dora_parser::lexer::position::Position;
 
 use crate::compiler::codegen::{ensure_native_stub, AllocationSize, ExprStore};
-use crate::compiler::fct::{CatchType, Comment, GcPoint, JitBaselineFct, JitDescriptor};
+use crate::compiler::fct::{CatchType, GcPoint, JitBaselineFct, JitDescriptor};
 use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
 use crate::cpu::{FReg, Mem, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1};
 use crate::gc::tlab::TLAB_OBJECT_SIZE;
@@ -79,12 +79,8 @@ where
         self.masm.decrease_stack_frame(size);
     }
 
-    pub fn emit_comment(&mut self, comment: Comment) {
+    pub fn emit_comment(&mut self, comment: String) {
         self.masm.emit_comment(comment);
-    }
-
-    pub fn emit_comment_lit(&mut self, comment: String) {
-        self.masm.emit_comment(Comment::Lit(comment));
     }
 
     pub fn copy_reg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {

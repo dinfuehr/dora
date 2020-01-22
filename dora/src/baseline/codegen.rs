@@ -13,7 +13,7 @@ use crate::compiler::asm::BaselineAssembler;
 use crate::compiler::codegen::{
     ensure_native_stub, register_for_mode, should_emit_debug, AllocationSize, ExprStore,
 };
-use crate::compiler::fct::{CatchType, Comment, GcPoint, JitBaselineFct, JitDescriptor};
+use crate::compiler::fct::{CatchType, GcPoint, JitBaselineFct, JitDescriptor};
 use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
 use crate::cpu::{
     next_param_offset, FReg, Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, PARAM_OFFSET,
@@ -174,7 +174,7 @@ where
             let var = self.src.var_self();
             let mode = var.ty.mode();
 
-            self.asm.emit_comment(Comment::StoreParam(var.id));
+            self.asm.emit_comment("store param self".into());
 
             let dest = if mode.is_float() {
                 FREG_PARAMS[0].into()
@@ -208,7 +208,11 @@ where
                 let slot_param = self.managed_stack.add_scope(ty, self.vm);
                 assert!(self.var_to_slot.insert(varid, slot_param).is_none());
 
-                self.asm.emit_comment(Comment::StoreParam(varid));
+                {
+                    let var = &self.src.vars[varid];
+                    let name = self.vm.interner.str(var.name);
+                    self.asm.emit_comment(format!("store param {}", name));
+                }
                 self.asm.var_store(self.var_offset(varid), ty, reg.into());
 
                 freg_idx += 1;
@@ -218,7 +222,11 @@ where
                 let slot_param = self.managed_stack.add_scope(ty, self.vm);
                 assert!(self.var_to_slot.insert(varid, slot_param).is_none());
 
-                self.asm.emit_comment(Comment::StoreParam(varid));
+                {
+                    let var = &self.src.vars[varid];
+                    let name = self.vm.interner.str(var.name);
+                    self.asm.emit_comment(format!("store param {}", name));
+                }
                 self.asm.var_store(self.var_offset(varid), ty, reg.into());
 
                 reg_idx += 1;
@@ -233,11 +241,11 @@ where
 
     fn emit_prolog(&mut self) {
         self.stacksize_offset = self.asm.prolog(self.fct.ast.pos);
-        self.asm.emit_comment_lit("prolog end".into());
+        self.asm.emit_comment("prolog end".into());
     }
 
     fn emit_epilog(&mut self) {
-        self.asm.emit_comment_lit("epilog".into());
+        self.asm.emit_comment("epilog".into());
         self.asm.epilog();
     }
 
@@ -1054,7 +1062,7 @@ where
     fn emit_self(&mut self, dest: ExprStore) {
         let var = self.src.var_self();
 
-        self.asm.emit_comment(Comment::LoadSelf(var.id));
+        self.asm.emit_comment("load self".into());
 
         let offset = self.var_offset(var.id);
         self.asm
@@ -1094,7 +1102,18 @@ where
         let cls = cls.read();
         let field = &cls.fields[fieldid.idx()];
 
-        self.asm.emit_comment(Comment::LoadField(cls_id, fieldid));
+        {
+            let cname = cls.name(self.vm);
+            let class_id = cls.cls_id.expect("no corresponding class");
+            let class = self.vm.classes.idx(class_id);
+            let class = class.read();
+            let field = &class.fields[fieldid];
+            let fname = self.vm.interner.str(field.name);
+
+            self.asm
+                .emit_comment(format!("load field {}.{}", cname, fname));
+        }
+
         self.asm
             .load_field(field.ty.mode(), dest, src, field.offset, pos);
     }
@@ -1141,7 +1160,8 @@ where
         let disp = self.asm.add_addr(handle.raw() as *const u8);
         let pos = self.asm.pos() as i32;
 
-        self.asm.emit_comment(Comment::LoadString(handle));
+        self.asm
+            .emit_comment(format!("load string \"{}\"", lit_value));
         self.asm.load_constpool(dest, disp + pos);
     }
 
@@ -1150,7 +1170,11 @@ where
 
         match ident {
             &IdentType::Var(varid) => {
-                self.asm.emit_comment(Comment::LoadVar(varid));
+                {
+                    let var = &self.src.vars[varid];
+                    let name = self.vm.interner.str(var.name);
+                    self.asm.emit_comment(format!("load var {}", name));
+                }
                 let ty = self.var_ty(varid);
                 self.asm.var_load(self.var_offset(varid), ty, dest)
             }
@@ -1162,7 +1186,9 @@ where
                 let disp = self.asm.add_addr(glob.address_value.to_ptr());
                 let pos = self.asm.pos() as i32;
 
-                self.asm.emit_comment(Comment::LoadGlobal(gid));
+                let name = self.vm.interner.str(glob.name);
+                self.asm.emit_comment(format!("load global {}", name));
+
                 self.asm.load_constpool(REG_TMP1, disp + pos);
 
                 self.asm
@@ -1350,7 +1376,12 @@ where
                 let dest = result_reg(ty.mode());
                 self.emit_expr(&e.rhs, dest);
 
-                self.asm.emit_comment(Comment::StoreVar(varid));
+                {
+                    let var = &self.src.vars[varid];
+                    let name = self.vm.interner.str(var.name);
+                    self.asm.emit_comment(format!("store var {}", name));
+                }
+
                 self.asm.var_store(self.var_offset(varid), ty, dest);
             }
 
@@ -1367,7 +1398,9 @@ where
                 let disp = self.asm.add_addr(address_value.to_ptr());
                 let pos = self.asm.pos() as i32;
 
-                self.asm.emit_comment(Comment::StoreGlobal(gid));
+                let name = self.vm.interner.str(glob.lock().name);
+                self.asm.emit_comment(format!("store global {}", name));
+
                 self.asm.load_constpool(REG_TMP1, disp + pos);
 
                 self.asm.store_mem(ty.mode(), Mem::Base(REG_TMP1, 0), dest);
@@ -1418,7 +1451,16 @@ where
                     Mem::Local(object_slot.offset()),
                 );
 
-                self.asm.emit_comment(Comment::StoreField(cls_id, fieldid));
+                {
+                    let cname = cls.name(self.vm);
+                    let class_id = cls.cls_id.expect("no corresponding class");
+                    let class = self.vm.classes.idx(class_id);
+                    let class = class.read();
+                    let field = &class.fields[fieldid];
+                    let fname = self.vm.interner.str(field.name);
+                    self.asm
+                        .emit_comment(format!("store field {}.{}", cname, fname));
+                }
 
                 let write_barrier = self.vm.gc.needs_write_barrier() && field.ty.reference_type();
                 let card_table_offset = self.vm.gc.card_table_offset();
@@ -2209,7 +2251,7 @@ where
         let lbl_assert = self.asm.create_label();
         self.emit_expr(e, REG_RESULT.into());
 
-        self.asm.emit_comment_lit("check assert".into());
+        self.asm.emit_comment("check assert".into());
         self.asm
             .test_and_jump_if(CondCode::NonZero, REG_RESULT, lbl_assert);
 
@@ -2709,7 +2751,8 @@ where
 
         if csite.super_call {
             let ptr = self.ptr_for_fct_id(fid, cls_type_params.clone(), fct_type_params.clone());
-            self.asm.emit_comment(Comment::CallSuper(fid));
+            let name = fct.full_name(self.vm);
+            self.asm.emit_comment(format!("call super {}", name));
             let gcpoint = self.create_gcpoint();
             self.asm.direct_call(
                 fid,
@@ -2723,7 +2766,8 @@ where
             );
         } else if fct.is_virtual() {
             let vtable_index = fct.vtable_index.unwrap();
-            self.asm.emit_comment(Comment::CallVirtual(fid));
+            let name = fct.full_name(self.vm);
+            self.asm.emit_comment(format!("call virtual {}", name));
             let gcpoint = self.create_gcpoint();
             let cls_type_params = csite.args[0].ty().type_params(self.vm);
             self.asm.indirect_call(
@@ -2736,7 +2780,8 @@ where
             );
         } else {
             let ptr = self.ptr_for_fct_id(fid, cls_type_params.clone(), fct_type_params.clone());
-            self.asm.emit_comment(Comment::CallDirect(fid));
+            let name = fct.full_name(self.vm);
+            self.asm.emit_comment(format!("call direct {}", name));
             let gcpoint = self.create_gcpoint();
             self.asm.direct_call(
                 fid,
@@ -2779,7 +2824,11 @@ where
         let mut store_length = false;
 
         // allocate storage for object
-        self.asm.emit_comment(Comment::Alloc(cls_id));
+        {
+            let name = cls.name(self.vm);
+            self.asm
+                .emit_comment(format!("allocate object of class {}", &name));
+        }
 
         let alloc_size;
 
@@ -2867,7 +2916,9 @@ where
 
         let temp = if dest == REG_TMP1 { REG_TMP2 } else { REG_TMP1 };
 
-        self.asm.emit_comment(Comment::StoreVTable(cls_id));
+        let name = cls.name(self.vm);
+        self.asm
+            .emit_comment(format!("store vtable ptr for class {} in object", name));
         self.asm.load_constpool(temp, disp + pos);
         self.asm
             .store_mem(MachineMode::Ptr, Mem::Base(dest, 0), temp.into());

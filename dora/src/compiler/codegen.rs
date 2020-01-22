@@ -10,7 +10,7 @@ use capstone::prelude::*;
 use crate::baseline;
 use crate::boots;
 use crate::cannon;
-use crate::compiler::fct::{CommentFormat, JitFct};
+use crate::compiler::fct::JitFct;
 use crate::compiler::map::CodeDescriptor;
 use crate::compiler::native_stub::{self, NativeFct};
 use crate::cpu::{FReg, Reg, FREG_RESULT, REG_RESULT};
@@ -246,18 +246,7 @@ pub fn dump_asm<'ast>(
 
         if let Some(comments) = jit_fct.get_comment(addr as u32) {
             for comment in comments {
-                if comment.is_newline() {
-                    writeln!(&mut w).unwrap();
-                    continue;
-                }
-
-                let cfmt = CommentFormat {
-                    comment,
-                    vm,
-                    fct_src,
-                };
-
-                writeln!(&mut w, "\t\t  ; {}", cfmt).unwrap();
+                writeln!(&mut w, "\t\t  // {}", comment).unwrap();
             }
         }
 

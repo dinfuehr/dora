@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use crate::compiler::codegen::ExprStore;
 use crate::compiler::fct::{
-    CatchType, Comment, Comments, ExHandler, GcPoint, GcPoints, JitBaselineFct, JitDescriptor,
+    CatchType, Comments, ExHandler, GcPoint, GcPoints, JitBaselineFct, JitDescriptor,
     LazyCompilationData, LazyCompilationSite, PositionTable,
 };
 use crate::cpu::{Mem, Reg, SCRATCH};
@@ -171,7 +171,7 @@ impl MacroAssembler {
         Label(idx)
     }
 
-    pub fn emit_comment(&mut self, comment: Comment) {
+    pub fn emit_comment(&mut self, comment: String) {
         let offset = self.pos() as u32;
         self.comments.insert(offset, comment);
     }
