@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::fmt;
 use std::ptr;
 use std::sync::Arc;
@@ -283,22 +283,33 @@ impl fmt::Debug for JitBaselineFct {
 
 #[derive(Debug)]
 pub struct GcPoints {
-    points: HashMap<u32, GcPoint>,
+    entries: Vec<(u32, GcPoint)>,
 }
 
 impl GcPoints {
     pub fn new() -> GcPoints {
         GcPoints {
-            points: HashMap::new(),
+            entries: Vec::new(),
         }
     }
 
     pub fn get(&self, offset: u32) -> Option<&GcPoint> {
-        self.points.get(&offset)
+        let result = self
+            .entries
+            .binary_search_by_key(&offset, |&(offset, _)| offset);
+
+        match result {
+            Ok(idx) => Some(&self.entries[idx].1),
+            Err(_) => None,
+        }
     }
 
     pub fn insert(&mut self, offset: u32, gcpoint: GcPoint) {
-        assert!(self.points.insert(offset, gcpoint).is_none());
+        if let Some(last) = self.entries.last_mut() {
+            debug_assert!(offset > last.0);
+        }
+
+        self.entries.push((offset, gcpoint));
     }
 }
 
