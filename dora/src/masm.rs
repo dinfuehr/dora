@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use crate::compiler::codegen::ExprStore;
 use crate::compiler::fct::{
-    CatchType, Comments, ExHandler, GcPoint, GcPoints, JitBaselineFct, JitDescriptor,
+    CatchType, Comments, GcPoint, GcPoints, Handler, JitBaselineFct, JitDescriptor,
     LazyCompilationData, LazyCompilationSite, PositionTable,
 };
 use crate::cpu::{Mem, Reg, SCRATCH};
@@ -39,7 +39,7 @@ pub struct MacroAssembler {
     gcpoints: GcPoints,
     comments: Comments,
     positions: PositionTable,
-    exception_handlers: Vec<ExHandler>,
+    exception_handlers: Vec<Handler>,
     scratch_registers: ScratchRegisters,
 }
 
@@ -203,7 +203,7 @@ impl MacroAssembler {
         offset: Option<i32>,
         catch_type: CatchType,
     ) {
-        self.exception_handlers.push(ExHandler {
+        self.exception_handlers.push(Handler {
             try_start: span.0,
             try_end: span.1,
             catch,

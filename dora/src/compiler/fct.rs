@@ -87,6 +87,20 @@ impl JitFct {
         }
     }
 
+    pub fn framesize(&self) -> i32 {
+        match self {
+            &JitFct::Base(ref base) => base.framesize(),
+            &JitFct::Opt(_) => unimplemented!(),
+        }
+    }
+
+    pub fn throws(&self) -> bool {
+        match self {
+            &JitFct::Base(ref base) => base.throws(),
+            &JitFct::Opt(_) => unimplemented!(),
+        }
+    }
+
     pub fn gcpoint_for_offset(&self, offset: u32) -> Option<&GcPoint> {
         match self {
             &JitFct::Base(ref base) => base.gcpoint_for_offset(offset),
@@ -132,19 +146,19 @@ pub struct JitBaselineFct {
     code_start: Address,
     code_end: Address,
 
-    pub desc: JitDescriptor,
-    pub throws: bool,
+    desc: JitDescriptor,
+    throws: bool,
 
     // pointer to beginning of function
-    pub instruction_start: Address,
-    pub instruction_end: Address,
+    instruction_start: Address,
+    instruction_end: Address,
 
-    pub framesize: i32,
-    pub lazy_compilation: LazyCompilationData,
+    framesize: i32,
+    lazy_compilation: LazyCompilationData,
     gcpoints: GcPoints,
     comments: Comments,
     positions: PositionTable,
-    pub exception_handlers: Vec<ExHandler>,
+    pub exception_handlers: Vec<Handler>,
 }
 
 impl JitBaselineFct {
@@ -182,7 +196,7 @@ impl JitBaselineFct {
         positions: PositionTable,
         desc: JitDescriptor,
         throws: bool,
-        mut exception_handlers: Vec<ExHandler>,
+        mut exception_handlers: Vec<Handler>,
     ) -> JitBaselineFct {
         let size = dseg.size() as usize + buffer.len();
         let ptr = vm.gc.alloc_code(size);
@@ -258,6 +272,14 @@ impl JitBaselineFct {
 
     pub fn instruction_end(&self) -> Address {
         self.instruction_end
+    }
+
+    pub fn framesize(&self) -> i32 {
+        self.framesize
+    }
+
+    pub fn throws(&self) -> bool {
+        self.throws
     }
 
     pub fn comment_for_offset(&self, offset: u32) -> Option<&String> {
@@ -408,7 +430,7 @@ impl PositionTable {
 }
 
 #[derive(Debug)]
-pub struct ExHandler {
+pub struct Handler {
     pub try_start: usize,
     pub try_end: usize,
     pub catch: usize,

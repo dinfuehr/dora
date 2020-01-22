@@ -1,4 +1,4 @@
-@test fun simple_graph(_x: Testing) {
+@test fun simpleGraph(_x: Testing) {
     let graph = Graph();
 
     let block = Block();
@@ -10,7 +10,7 @@
     block.appendInst(inst);
 }
 
-@test fun add_int_consts(_x: Testing) {
+@test fun addIntConsts(_x: Testing) {
     let graph = Graph();
 
     let block = Block();

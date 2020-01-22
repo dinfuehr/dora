@@ -282,7 +282,7 @@ fn find_handler(
                     && (entry.catch_type == CatchType::Any
                         || entry.catch_type == CatchType::Class(clsptr))
                 {
-                    let stacksize = jit_fct.framesize as usize;
+                    let stacksize = jit_fct.framesize() as usize;
 
                     if let Some(offset) = entry.offset {
                         let arg = (fp as isize + offset as isize) as usize;
@@ -307,7 +307,7 @@ fn find_handler(
 
             // exception can only bubble up in stacktrace if current function
             // is allowed to throw exceptions
-            if !jit_fct.throws {
+            if !jit_fct.throws() {
                 return HandlerFound::Stop;
             }
 
