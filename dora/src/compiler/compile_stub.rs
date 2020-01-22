@@ -191,11 +191,9 @@ fn compile_request(ra: usize, receiver: Address) -> Address {
         let jit_fct = vm.jit_fcts.idx(fct_id);
 
         let offset = ra - jit_fct.instruction_start().to_usize();
-        let jit_fct = jit_fct.to_base().expect("baseline expected");
         jit_fct
-            .lazy_compilation
-            .get(offset as u32)
-            .expect("bailout info not found")
+            .lazy_for_offset(offset as u32)
+            .expect("lazy compilation site not found")
             .clone()
     };
 
