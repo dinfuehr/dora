@@ -3,7 +3,7 @@ use std::mem::size_of;
 
 use dora_parser::lexer::position::Position;
 
-use crate::compiler::fct::{JitBaselineFct, JitDescriptor, JitFct, JitFctId};
+use crate::compiler::fct::{Code, JitDescriptor, JitFct, JitFctId};
 use crate::compiler::map::CodeDescriptor;
 use crate::cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1};
 use crate::exception::DoraToNativeInfo;
@@ -64,7 +64,7 @@ pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>, fct: NativeFct, dbg: bool) -> Ji
     let jit_fct = ngen.generate();
     let jit_start = jit_fct.ptr_start();
     let jit_end = jit_fct.ptr_end();
-    let jit_fct_id: JitFctId = vm.jit_fcts.push(JitFct::Base(jit_fct)).into();
+    let jit_fct_id: JitFctId = vm.jit_fcts.push(JitFct::Compiled(jit_fct)).into();
 
     let code_desc = match fct_desc {
         NativeFctDescriptor::NativeStub(_) => CodeDescriptor::NativeStub(jit_fct_id),
@@ -90,7 +90,7 @@ impl<'a, 'ast> NativeGen<'a, 'ast>
 where
     'ast: 'a,
 {
-    pub fn generate(mut self) -> JitBaselineFct {
+    pub fn generate(mut self) -> Code {
         let save_return = self.fct.return_type != BuiltinType::Unit;
         let args = self.fct.args.len();
 

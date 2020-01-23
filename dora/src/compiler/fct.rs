@@ -6,7 +6,6 @@ use std::sync::Arc;
 use crate::cpu::flush_icache;
 use crate::dseg::DSeg;
 use crate::gc::Address;
-use crate::opt::fct::JitOptFct;
 use crate::ty::TypeList;
 use crate::utils::GrowableVec;
 use crate::vm::VM;
@@ -40,99 +39,99 @@ impl From<usize> for JitFctId {
 }
 
 pub enum JitFct {
-    Base(JitBaselineFct),
-    Opt(JitOptFct),
+    Compiled(Code),
+    Uncompiled,
 }
 
 impl JitFct {
     pub fn fct_id(&self) -> FctId {
         match self {
-            &JitFct::Base(ref base) => base.fct_id(),
-            &JitFct::Opt(ref opt) => opt.fct_id(),
+            &JitFct::Compiled(ref base) => base.fct_id(),
+            &JitFct::Uncompiled => unreachable!(),
         }
     }
 
     pub fn instruction_start(&self) -> Address {
         match self {
-            &JitFct::Base(ref base) => base.instruction_start(),
-            &JitFct::Opt(_) => unimplemented!(),
+            &JitFct::Compiled(ref base) => base.instruction_start(),
+            &JitFct::Uncompiled => unreachable!(),
         }
     }
 
     pub fn instruction_end(&self) -> Address {
         match self {
-            &JitFct::Base(ref base) => base.instruction_end(),
-            &JitFct::Opt(_) => unimplemented!(),
+            &JitFct::Compiled(ref base) => base.instruction_end(),
+            &JitFct::Uncompiled => unreachable!(),
         }
     }
 
     pub fn ptr_start(&self) -> Address {
         match self {
-            &JitFct::Base(ref base) => base.ptr_start(),
-            &JitFct::Opt(_) => unimplemented!(),
+            &JitFct::Compiled(ref base) => base.ptr_start(),
+            &JitFct::Uncompiled => unreachable!(),
         }
     }
 
     pub fn ptr_end(&self) -> Address {
         match self {
-            &JitFct::Base(ref base) => base.ptr_end(),
-            &JitFct::Opt(_) => unimplemented!(),
+            &JitFct::Compiled(ref base) => base.ptr_end(),
+            &JitFct::Uncompiled => unreachable!(),
         }
     }
 
-    pub fn to_base(&self) -> Option<&JitBaselineFct> {
+    pub fn to_code(&self) -> Option<&Code> {
         match self {
-            &JitFct::Base(ref base) => Some(base),
-            &JitFct::Opt(_) => None,
+            &JitFct::Compiled(ref code) => Some(code),
+            &JitFct::Uncompiled => unreachable!(),
         }
     }
 
     pub fn framesize(&self) -> i32 {
         match self {
-            &JitFct::Base(ref base) => base.framesize(),
-            &JitFct::Opt(_) => unimplemented!(),
+            &JitFct::Compiled(ref base) => base.framesize(),
+            &JitFct::Uncompiled => unreachable!(),
         }
     }
 
     pub fn throws(&self) -> bool {
         match self {
-            &JitFct::Base(ref base) => base.throws(),
-            &JitFct::Opt(_) => unimplemented!(),
+            &JitFct::Compiled(ref base) => base.throws(),
+            &JitFct::Uncompiled => unreachable!(),
         }
     }
 
     pub fn handlers(&self) -> &[Handler] {
         match self {
-            &JitFct::Base(ref base) => base.handlers(),
-            &JitFct::Opt(_) => unimplemented!(),
+            &JitFct::Compiled(ref base) => base.handlers(),
+            &JitFct::Uncompiled => unreachable!(),
         }
     }
 
     pub fn gcpoint_for_offset(&self, offset: u32) -> Option<&GcPoint> {
         match self {
-            &JitFct::Base(ref base) => base.gcpoint_for_offset(offset),
-            &JitFct::Opt(_) => unimplemented!(),
+            &JitFct::Compiled(ref base) => base.gcpoint_for_offset(offset),
+            &JitFct::Uncompiled => unreachable!(),
         }
     }
 
     pub fn position_for_offset(&self, offset: u32) -> Option<Position> {
         match self {
-            &JitFct::Base(ref base) => base.position_for_offset(offset),
-            &JitFct::Opt(_) => unimplemented!(),
+            &JitFct::Compiled(ref base) => base.position_for_offset(offset),
+            &JitFct::Uncompiled => unreachable!(),
         }
     }
 
     pub fn comment_for_offset(&self, offset: u32) -> Option<&String> {
         match self {
-            &JitFct::Base(ref base) => base.comment_for_offset(offset),
-            &JitFct::Opt(_) => unimplemented!(),
+            &JitFct::Compiled(ref base) => base.comment_for_offset(offset),
+            &JitFct::Uncompiled => unreachable!(),
         }
     }
 
     pub fn lazy_for_offset(&self, offset: u32) -> Option<&LazyCompilationSite> {
         match self {
-            &JitFct::Base(ref base) => base.lazy_for_offset(offset),
-            &JitFct::Opt(_) => unimplemented!(),
+            &JitFct::Compiled(ref base) => base.lazy_for_offset(offset),
+            &JitFct::Uncompiled => unreachable!(),
         }
     }
 }
@@ -149,7 +148,7 @@ pub enum JitDescriptor {
     DoraStub,
 }
 
-pub struct JitBaselineFct {
+pub struct Code {
     code_start: Address,
     code_end: Address,
 
@@ -168,16 +167,16 @@ pub struct JitBaselineFct {
     handlers: Vec<Handler>,
 }
 
-impl JitBaselineFct {
+impl Code {
     pub fn from_optimized_buffer(
         vm: &VM,
         buffer: &[u8],
         desc: JitDescriptor,
         throws: bool,
-    ) -> JitBaselineFct {
+    ) -> Code {
         let dseg = DSeg::new();
 
-        JitBaselineFct::from_buffer(
+        Code::from_buffer(
             vm,
             &dseg,
             buffer,
@@ -204,7 +203,7 @@ impl JitBaselineFct {
         desc: JitDescriptor,
         throws: bool,
         mut handlers: Vec<Handler>,
-    ) -> JitBaselineFct {
+    ) -> Code {
         let size = dseg.size() as usize + buffer.len();
         let ptr = vm.gc.alloc_code(size);
 
@@ -233,7 +232,7 @@ impl JitBaselineFct {
             handler.catch = instruction_start.offset(handler.catch).to_usize();
         }
 
-        JitBaselineFct {
+        Code {
             code_start: ptr,
             code_end: ptr.offset(size as usize),
             lazy_compilation,
@@ -302,7 +301,7 @@ impl JitBaselineFct {
     }
 }
 
-impl fmt::Debug for JitBaselineFct {
+impl fmt::Debug for Code {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,

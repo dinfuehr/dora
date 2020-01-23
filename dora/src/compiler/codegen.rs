@@ -10,9 +10,8 @@ use capstone::prelude::*;
 use crate::baseline;
 use crate::boots;
 use crate::cannon;
-use crate::compiler::fct::JitFct;
-use crate::compiler::map::CodeDescriptor;
-use crate::compiler::native_stub::{self, NativeFct};
+use crate::compiler::JitFct;
+use crate::compiler::{native_stub, Code, CodeDescriptor, NativeFct};
 use crate::cpu::{FReg, Reg, FREG_RESULT, REG_RESULT};
 use crate::driver::cmd::{AsmSyntax, CompilerName};
 use crate::gc::Address;
@@ -69,7 +68,7 @@ pub fn generate_fct<'ast>(
         vm.args.compiler()
     };
 
-    let jit_fct = match bc {
+    let code = match bc {
         CompilerName::Cannon => cannon::compile(vm, &fct, src, cls_type_params, fct_type_params),
         CompilerName::Baseline => {
             baseline::compile(vm, &fct, src, cls_type_params, fct_type_params)
@@ -78,7 +77,7 @@ pub fn generate_fct<'ast>(
     };
 
     if vm.args.flag_enable_perf {
-        os::perf::register_with_perf(&jit_fct, vm, fct.ast.name);
+        os::perf::register_with_perf(&code, vm, fct.ast.name);
     }
 
     if should_emit_asm(vm, &*fct) {
@@ -87,15 +86,15 @@ pub fn generate_fct<'ast>(
             &*fct,
             cls_type_params,
             fct_type_params,
-            &jit_fct,
+            &code,
             Some(&src),
             vm.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att),
         );
     }
 
-    let fct_ptr = jit_fct.instruction_start();
-    let ptr_start = jit_fct.ptr_start();
-    let ptr_end = jit_fct.ptr_end();
+    let fct_ptr = code.instruction_start();
+    let ptr_start = code.ptr_start();
+    let ptr_end = code.ptr_end();
 
     debug_assert!(mem::is_aligned(ptr_start.to_usize(), 16));
     debug_assert!(mem::is_aligned(fct_ptr.to_usize(), 16));
@@ -103,7 +102,7 @@ pub fn generate_fct<'ast>(
     let jit_fct_id = {
         let mut jit_fcts = vm.jit_fcts.lock();
         let jit_fct_id = jit_fcts.len().into();
-        jit_fcts.push(Arc::new(jit_fct));
+        jit_fcts.push(Arc::new(JitFct::Compiled(code)));
 
         jit_fct_id
     };
@@ -147,15 +146,13 @@ pub fn dump_asm<'ast>(
     fct: &Fct<'ast>,
     cls_type_params: &TypeList,
     fct_type_params: &TypeList,
-    jit_fct: &JitFct,
+    code: &Code,
     fct_src: Option<&FctSrc>,
     asm_syntax: AsmSyntax,
 ) {
-    let instruction_length = jit_fct
-        .instruction_end()
-        .offset_from(jit_fct.instruction_start());
+    let instruction_length = code.instruction_end().offset_from(code.instruction_start());
     let buf: &[u8] =
-        unsafe { slice::from_raw_parts(jit_fct.instruction_start().to_ptr(), instruction_length) };
+        unsafe { slice::from_raw_parts(code.instruction_start().to_ptr(), instruction_length) };
 
     let engine = get_engine(asm_syntax).expect("cannot create capstone engine");
 
@@ -173,8 +170,8 @@ pub fn dump_asm<'ast>(
         Box::new(io::stdout())
     };
 
-    let start_addr = jit_fct.instruction_start().to_usize() as u64;
-    let end_addr = jit_fct.instruction_end().to_usize() as u64;
+    let start_addr = code.instruction_start().to_usize() as u64;
+    let end_addr = code.instruction_end().to_usize() as u64;
 
     let instrs = engine
         .disasm_all(buf, start_addr)
@@ -227,7 +224,7 @@ pub fn dump_asm<'ast>(
     for instr in instrs.iter() {
         let addr = (instr.address() - start_addr) as u32;
 
-        if let Some(gc_point) = jit_fct.gcpoint_for_offset(addr) {
+        if let Some(gc_point) = code.gcpoint_for_offset(addr) {
             write!(&mut w, "\t\t  ; gc point = (").unwrap();
             let mut first = true;
 
@@ -247,7 +244,7 @@ pub fn dump_asm<'ast>(
             writeln!(&mut w, ")").unwrap();
         }
 
-        if let Some(comment) = jit_fct.comment_for_offset(addr as u32) {
+        if let Some(comment) = code.comment_for_offset(addr as u32) {
             writeln!(&mut w, "\t\t  // {}", comment).unwrap();
         }
 
@@ -401,7 +398,7 @@ pub fn ensure_native_stub(vm: &VM, fct_id: Option<FctId>, internal_fct: NativeFc
                     &*fct,
                     &TypeList::empty(),
                     &TypeList::empty(),
-                    &jit_fct,
+                    jit_fct.to_code().expect("still uncompiled"),
                     None,
                     vm.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att),
                 );

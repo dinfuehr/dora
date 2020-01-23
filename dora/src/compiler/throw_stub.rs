@@ -1,6 +1,6 @@
 use std::mem::size_of;
 
-use crate::compiler::fct::{JitBaselineFct, JitDescriptor, JitFct};
+use crate::compiler::fct::{Code, JitDescriptor, JitFct};
 use crate::compiler::map::CodeDescriptor;
 use crate::cpu::{Mem, REG_FP, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1, REG_TMP2};
 use crate::exception::throw;
@@ -27,7 +27,7 @@ pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>) -> Address {
     );
     let addr = jit_fct.instruction_start();
 
-    vm.jit_fcts.push(JitFct::Base(jit_fct));
+    vm.jit_fcts.push(JitFct::Compiled(jit_fct));
 
     addr
 }
@@ -42,7 +42,7 @@ impl<'a, 'ast> DoraThrowGen<'a, 'ast>
 where
     'ast: 'a,
 {
-    pub fn generate(mut self) -> JitBaselineFct {
+    pub fn generate(mut self) -> Code {
         let offset_dtn = 0;
         let offset_thread = offset_dtn + size_of::<DoraToNativeInfo>() as i32;
         let offset_result = offset_thread + mem::ptr_width();

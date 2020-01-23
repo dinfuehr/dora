@@ -1,9 +1,9 @@
-use crate::compiler::fct::JitFct;
+use crate::compiler::Code;
 use crate::vm::VM;
 use dora_parser::interner::Name;
 
 #[cfg(target_os = "linux")]
-pub fn register_with_perf(jit_fct: &JitFct, vm: &VM, name: Name) {
+pub fn register_with_perf(code: &Code, vm: &VM, name: Name) {
     use std::fs::OpenOptions;
     use std::io::prelude::*;
 
@@ -13,8 +13,8 @@ pub fn register_with_perf(jit_fct: &JitFct, vm: &VM, name: Name) {
     let mut options = OpenOptions::new();
     let mut file = options.create(true).append(true).open(&fname).unwrap();
 
-    let code_start = jit_fct.ptr_start().to_usize();
-    let code_end = jit_fct.ptr_end().to_usize();
+    let code_start = code.ptr_start().to_usize();
+    let code_end = code.ptr_end().to_usize();
     let name = vm.interner.str(name);
 
     let line = format!(
@@ -27,6 +27,6 @@ pub fn register_with_perf(jit_fct: &JitFct, vm: &VM, name: Name) {
 }
 
 #[cfg(not(target_os = "linux"))]
-pub fn register_with_perf(_: &JitFct, _: &VM, _: Name) {
+pub fn register_with_perf(_: &Code, _: &VM, _: Name) {
     // nothing to do
 }

@@ -3,7 +3,7 @@ use std::mem;
 use dora_parser::lexer::position::Position;
 
 use crate::compiler::codegen::{ensure_native_stub, AllocationSize, ExprStore};
-use crate::compiler::fct::{CatchType, GcPoint, JitBaselineFct, JitDescriptor};
+use crate::compiler::fct::{CatchType, Code, GcPoint, JitDescriptor};
 use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
 use crate::cpu::{FReg, Mem, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1};
 use crate::gc::tlab::TLAB_OBJECT_SIZE;
@@ -461,7 +461,7 @@ where
         self.masm.load_mem(ty.mode(), dest, Mem::Local(offset));
     }
 
-    pub fn jit(mut self, stacksize: i32, desc: JitDescriptor, throws: bool) -> JitBaselineFct {
+    pub fn jit(mut self, stacksize: i32, desc: JitDescriptor, throws: bool) -> Code {
         self.slow_paths();
         self.masm.jit(self.vm, stacksize, desc, throws)
     }

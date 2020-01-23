@@ -6,7 +6,7 @@ use crate::bytecode::{
 };
 use crate::compiler::asm::BaselineAssembler;
 use crate::compiler::codegen::{ensure_native_stub, should_emit_debug, AllocationSize, ExprStore};
-use crate::compiler::fct::{GcPoint, JitBaselineFct, JitDescriptor};
+use crate::compiler::fct::{Code, GcPoint, JitDescriptor};
 use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
 use crate::cpu::{Mem, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_TMP1};
 use crate::gc::Address;
@@ -109,7 +109,7 @@ where
         }
     }
 
-    pub fn generate(mut self) -> JitBaselineFct {
+    pub fn generate(mut self) -> Code {
         if should_emit_debug(self.vm, self.fct) {
             self.asm.debug();
         }

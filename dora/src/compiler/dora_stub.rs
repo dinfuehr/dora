@@ -1,4 +1,4 @@
-use crate::compiler::fct::{JitBaselineFct, JitDescriptor, JitFct};
+use crate::compiler::fct::{Code, JitDescriptor, JitFct};
 use crate::compiler::map::CodeDescriptor;
 use crate::cpu::{Mem, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1};
 use crate::gc::Address;
@@ -22,7 +22,7 @@ pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>) -> Address {
         jit_fct.ptr_end(),
         CodeDescriptor::DoraStub,
     );
-    vm.jit_fcts.push(JitFct::Base(jit_fct));
+    vm.jit_fcts.push(JitFct::Compiled(jit_fct));
 
     ptr
 }
@@ -37,7 +37,7 @@ impl<'a, 'ast> DoraEntryGen<'a, 'ast>
 where
     'ast: 'a,
 {
-    pub fn generate(mut self) -> JitBaselineFct {
+    pub fn generate(mut self) -> Code {
         let framesize = mem::ptr_width_usize();
         let framesize = mem::align_usize(framesize, 16) as i32;
 

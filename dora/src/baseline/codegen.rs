@@ -13,7 +13,7 @@ use crate::compiler::asm::BaselineAssembler;
 use crate::compiler::codegen::{
     ensure_native_stub, register_for_mode, should_emit_debug, AllocationSize, ExprStore,
 };
-use crate::compiler::fct::{CatchType, GcPoint, JitBaselineFct, JitDescriptor};
+use crate::compiler::fct::{CatchType, Code, GcPoint, JitDescriptor};
 use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
 use crate::cpu::{
     next_param_offset, FReg, Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, PARAM_OFFSET,
@@ -39,7 +39,7 @@ pub(super) fn generate<'a, 'ast: 'a>(
     src: &'a FctSrc,
     cls_type_params: &TypeList,
     fct_type_params: &TypeList,
-) -> JitBaselineFct {
+) -> Code {
     AstCodeGen {
         vm,
         fct: &fct,
@@ -114,7 +114,7 @@ impl<'a, 'ast> AstCodeGen<'a, 'ast>
 where
     'ast: 'a,
 {
-    fn generate(mut self) -> JitBaselineFct {
+    fn generate(mut self) -> Code {
         if should_emit_debug(self.vm, self.fct) {
             self.asm.debug();
         }

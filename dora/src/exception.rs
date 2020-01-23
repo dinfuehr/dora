@@ -260,7 +260,6 @@ fn find_handler(
     match data {
         Some(CodeDescriptor::DoraFct(fct_id)) | Some(CodeDescriptor::NativeStub(fct_id)) => {
             let jit_fct = vm.jit_fcts.idx(fct_id);
-            let jit_fct = jit_fct.to_base().expect("baseline expected");
             let clsptr = exception.header().vtbl().classptr();
 
             for entry in jit_fct.handlers() {

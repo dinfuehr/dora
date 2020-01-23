@@ -4,8 +4,8 @@ use std::rc::Rc;
 
 use crate::compiler::codegen::ExprStore;
 use crate::compiler::fct::{
-    CatchType, Comments, GcPoint, GcPoints, Handler, JitBaselineFct, JitDescriptor,
-    LazyCompilationData, LazyCompilationSite, PositionTable,
+    CatchType, Code, Comments, GcPoint, GcPoints, Handler, JitDescriptor, LazyCompilationData,
+    LazyCompilationSite, PositionTable,
 };
 use crate::cpu::{Mem, Reg, SCRATCH};
 use crate::dseg::DSeg;
@@ -60,20 +60,14 @@ impl MacroAssembler {
         }
     }
 
-    pub fn jit(
-        mut self,
-        vm: &VM,
-        stacksize: i32,
-        desc: JitDescriptor,
-        throws: bool,
-    ) -> JitBaselineFct {
+    pub fn jit(mut self, vm: &VM, stacksize: i32, desc: JitDescriptor, throws: bool) -> Code {
         self.finish();
 
         // align data such that code starts at address that is
         // aligned to 16
         self.dseg.align(16);
 
-        JitBaselineFct::from_buffer(
+        Code::from_buffer(
             vm,
             &self.dseg,
             &self.data,

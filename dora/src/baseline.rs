@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::compiler::fct::{GcPoint, JitFct};
+use crate::compiler::{Code, GcPoint};
 use crate::cpu::STACK_FRAME_ALIGNMENT;
 use crate::mem;
 use crate::ty::{BuiltinType, TypeList};
@@ -15,10 +15,8 @@ pub fn compile<'a, 'ast: 'a>(
     src: &'a FctSrc,
     cls_type_params: &TypeList,
     fct_type_params: &TypeList,
-) -> JitFct {
-    let jit_fct_base = codegen::generate(vm, fct, src, cls_type_params, fct_type_params);
-
-    JitFct::Base(jit_fct_base)
+) -> Code {
+    codegen::generate(vm, fct, src, cls_type_params, fct_type_params)
 }
 
 #[derive(Copy, Clone, Debug)]

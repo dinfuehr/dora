@@ -3,7 +3,7 @@ use std::ptr;
 
 use crate::bytecode;
 use crate::compiler::codegen::should_emit_bytecode;
-use crate::compiler::fct::{JitBaselineFct, JitDescriptor, JitFct};
+use crate::compiler::fct::{Code, JitDescriptor};
 use crate::gc::Address;
 use crate::handle::root;
 use crate::object::{byte_array_from_buffer, ByteArray, Ref};
@@ -17,7 +17,7 @@ pub fn compile<'a, 'ast: 'a>(
     src: &'a FctSrc,
     cls_type_params: &TypeList,
     fct_type_params: &TypeList,
-) -> JitFct {
+) -> Code {
     let bytecode_fct = bytecode::generate(vm, fct, src, cls_type_params, fct_type_params);
 
     if should_emit_bytecode(vm, fct) {
@@ -54,12 +54,10 @@ pub fn compile<'a, 'ast: 'a>(
         );
     }
 
-    let jit_fct = JitBaselineFct::from_optimized_buffer(
+    Code::from_optimized_buffer(
         vm,
         &machine_code_array,
         JitDescriptor::DoraFct(fct.id),
         fct.throws,
-    );
-
-    JitFct::Base(jit_fct)
+    )
 }

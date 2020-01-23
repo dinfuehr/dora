@@ -33,7 +33,6 @@ mod handle;
 mod masm;
 mod mem;
 mod object;
-mod opt;
 mod os;
 mod safepoint;
 mod semck;

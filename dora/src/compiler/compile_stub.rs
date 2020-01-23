@@ -1,7 +1,7 @@
 use std::mem::size_of;
 
 use crate::compiler;
-use crate::compiler::fct::{JitBaselineFct, JitDescriptor, JitFct, LazyCompilationSite};
+use crate::compiler::fct::{Code, JitDescriptor, JitFct, LazyCompilationSite};
 use crate::compiler::map::CodeDescriptor;
 use crate::cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1};
 use crate::exception::DoraToNativeInfo;
@@ -36,7 +36,7 @@ pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>) -> Address {
         jit_fct.ptr_end(),
         CodeDescriptor::CompileStub,
     );
-    vm.jit_fcts.push(JitFct::Base(jit_fct));
+    vm.jit_fcts.push(JitFct::Compiled(jit_fct));
 
     addr
 }
@@ -51,7 +51,7 @@ impl<'a, 'ast> DoraCompileGen<'a, 'ast>
 where
     'ast: 'a,
 {
-    pub fn generate(mut self) -> JitBaselineFct {
+    pub fn generate(mut self) -> Code {
         let offset_dtn = 0;
         let offset_params = offset_dtn + size_of::<DoraToNativeInfo>() as i32;
         let offset_thread =
