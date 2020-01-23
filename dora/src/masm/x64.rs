@@ -17,7 +17,7 @@ use dora_parser::lexer::position::Position;
 
 impl MacroAssembler {
     pub fn prolog_size(&mut self, stacksize: i32) {
-        asm::emit_pushq_reg(self, RBP);
+        self.asm.pushqr(RBP.into());
         asm::emit_mov_reg_reg(self, 1, RSP, RBP);
 
         if stacksize > 0 {
@@ -26,7 +26,7 @@ impl MacroAssembler {
     }
 
     pub fn prolog(&mut self) -> usize {
-        asm::emit_pushq_reg(self, RBP);
+        self.asm.pushqr(RBP.into());
         asm::emit_mov_reg_reg(self, 1, RSP, RBP);
 
         asm::emit_subq_immd_reg(self, 0, RSP);
@@ -54,7 +54,7 @@ impl MacroAssembler {
     pub fn epilog(&mut self) {
         asm::emit_mov_reg_reg(self, 1, RBP, RSP);
         asm::emit_popq_reg(self, RBP);
-        self.asm.ret();
+        self.asm.retq();
     }
 
     pub fn epilog_without_return(&mut self) {
@@ -1071,7 +1071,7 @@ impl MacroAssembler {
             let target = self.labels[jmp.to.0].expect("label not defined");
             let diff = (target - jmp.at - 4) as i32;
 
-            let mut slice = &mut self.asm.data()[jmp.at..];
+            let mut slice = &mut self.asm.code_mut()[jmp.at..];
             slice.write_u32::<LittleEndian>(diff as u32).unwrap();
         }
     }

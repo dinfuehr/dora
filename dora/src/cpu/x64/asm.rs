@@ -369,14 +369,6 @@ pub fn emit_sub_imm_mem(buf: &mut MacroAssembler, mode: MachineMode, base: Reg, 
     emit_u8(buf, imm);
 }
 
-pub fn emit_pushq_reg(buf: &mut MacroAssembler, reg: Reg) {
-    if reg.msb() != 0 {
-        emit_rex(buf, 0, 0, 0, 1);
-    }
-
-    emit_op(buf, 0x50 + reg.and7());
-}
-
 pub fn emit_popq_reg(buf: &mut MacroAssembler, reg: Reg) {
     if reg.msb() != 0 {
         emit_rex(buf, 0, 0, 0, 1);
@@ -1278,14 +1270,6 @@ mod tests {
         assert_emit!(0x5c; emit_popq_reg(RSP));
         assert_emit!(0x41, 0x58; emit_popq_reg(R8));
         assert_emit!(0x41, 0x5F; emit_popq_reg(R15));
-    }
-
-    #[test]
-    fn test_emit_pushq_reg() {
-        assert_emit!(0x50; emit_pushq_reg(RAX));
-        assert_emit!(0x54; emit_pushq_reg(RSP));
-        assert_emit!(0x41, 0x50; emit_pushq_reg(R8));
-        assert_emit!(0x41, 0x57; emit_pushq_reg(R15));
     }
 
     #[test]

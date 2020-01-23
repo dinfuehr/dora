@@ -71,7 +71,7 @@ impl MacroAssembler {
         Code::from_buffer(
             vm,
             &self.dseg,
-            self.asm.data(),
+            self.asm.code_mut(),
             self.lazy_compilation,
             self.gcpoints,
             stacksize,
@@ -85,7 +85,7 @@ impl MacroAssembler {
 
     #[cfg(test)]
     pub fn buffer(&self) -> &[u8] {
-        self.asm.buffer()
+        self.asm.code()
     }
 
     pub fn data(mut self) -> Vec<u8> {
@@ -212,24 +212,30 @@ impl MacroAssembler {
     }
 
     pub fn emit_u8(&mut self, value: u8) {
-        self.asm.data().write_u8(value).unwrap();
+        self.asm.code_mut().write_u8(value).unwrap();
     }
 
     pub fn emit_u8_at(&mut self, pos: i32, value: u8) {
-        self.asm.data()[pos as usize] = value;
+        self.asm.code_mut()[pos as usize] = value;
     }
 
     pub fn emit_u32(&mut self, value: u32) {
-        self.asm.data().write_u32::<LittleEndian>(value).unwrap();
+        self.asm
+            .code_mut()
+            .write_u32::<LittleEndian>(value)
+            .unwrap();
     }
 
     pub fn emit_u32_at(&mut self, pos: i32, value: u32) {
-        let buf = &mut self.asm.data()[pos as usize..];
+        let buf = &mut self.asm.code_mut()[pos as usize..];
         LittleEndian::write_u32(buf, value);
     }
 
     pub fn emit_u64(&mut self, value: u64) {
-        self.asm.data().write_u64::<LittleEndian>(value).unwrap();
+        self.asm
+            .code_mut()
+            .write_u64::<LittleEndian>(value)
+            .unwrap();
     }
 
     pub fn copy(&mut self, mode: MachineMode, dest: ExprStore, src: ExprStore) {
