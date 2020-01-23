@@ -1,4 +1,5 @@
-//= stdout "Exception\n0: main(): 4\n"
+//= vm-args "--gc=copy --gc-stress --disable-tlab"
+//= stdout "Exception\n0: main(): 5\n"
 
 fun main() {
   let e = Exception(nil);

@@ -58,13 +58,13 @@ class TestCase
     self.target = $release ? "release" : "debug"
   end
 
-  def run()
+  def run(mutex)
     if self.expectation == :ignore
       self.results = :ignore 
       return {:ignore => 1}
     end
     optional_configs.each do |optional_config|
-      self.results[optional_config] = run_test($config[optional_config])
+      self.results[optional_config] = run_test($config[optional_config], mutex)
     end
 
     if self.results.empty? 
@@ -99,10 +99,21 @@ class TestCase
   end
 
   private
-  def run_test(optional_vm_args)
+  def run_test(optional_vm_args, mutex)
     temp_out = Tempfile.new("dora-test-runner")
-    stdout, stderr, status = Open3.capture3("target/#{target}/dora #{vm_args} #{optional_vm_args} #{test_file} #{args}")
-    return check_test_run_result(stdout, stderr, status.exitstatus)
+    cmdline = "target/#{target}/dora #{vm_args} #{optional_vm_args} #{test_file} #{args}"
+    stdout, stderr, status = Open3.capture3(cmdline)
+    result = check_test_run_result(stdout, stderr, status.exitstatus)
+    if $no_capture || result != true
+      mutex.synchronize do
+        puts "#==== STDOUT"
+        puts stdout unless stdout.empty?
+        puts "#==== STDERR"
+        puts stderr unless stdout.empty?
+        puts "RUN: #{cmdline}"
+      end
+    end
+    result
   end
 
   def check_test_run_result(stdout, stderr, exit_code)
@@ -123,10 +134,10 @@ class TestCase
   
     end
   
-    return "stdout does not match (#{self.expectation.stdout.inspect} != #{stdout.inspect})" if
+    return "stdout does not match (expected #{self.expectation.stdout.inspect} but got #{stdout.inspect})" if
       self.expectation.stdout && self.expectation.stdout != stdout
 
-    return "stderr does not match (#{self.expectation.stderr.inspect} != #{stderr.inspect})" if
+    return "stderr does not match (expected #{self.expectation.stderr.inspect} but got #{stderr.inspect})" if
       self.expectation.stderr && self.expectation.stderr != stderr
 
     true
@@ -198,7 +209,7 @@ def run_tests
         break unless file
 
         test_case = parse_test_file(Pathname.new(file))
-        test_results = test_case.run()
+        test_results = test_case.run(mutex)
 
         test_results.each_pair do |key, value|
           passed += value if key == :passed
