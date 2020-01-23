@@ -2,8 +2,6 @@ use std::ptr;
 
 use crate::compiler::fct::{CatchType, JitFctId};
 use crate::compiler::map::CodeDescriptor;
-use crate::cpu::fp_from_execstate;
-use crate::execstate::ExecState;
 use crate::gc::Address;
 use crate::handle::root;
 use crate::object::{alloc, Array, IntArray, Obj, Ref, StackTraceElement, Str, Throwable};
@@ -101,14 +99,6 @@ impl DoraToNativeInfo {
     pub fn pc_offset() -> i32 {
         offset_of!(DoraToNativeInfo, pc) as i32
     }
-}
-
-pub fn stacktrace_from_es(vm: &VM, es: &ExecState) -> Stacktrace {
-    let mut stacktrace = Stacktrace::new();
-    let fp = fp_from_execstate(es);
-    frames_from_pc(&mut stacktrace, vm, es.pc, fp);
-    frames_from_dtns(&mut stacktrace, vm);
-    return stacktrace;
 }
 
 pub fn stacktrace_from_last_dtn(vm: &VM) -> Stacktrace {

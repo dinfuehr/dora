@@ -28,7 +28,6 @@ mod driver;
 mod dseg;
 mod error;
 mod exception;
-mod execstate;
 mod gc;
 mod handle;
 mod masm;
