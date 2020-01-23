@@ -42,6 +42,33 @@ pub fn reserve(size: usize) -> Address {
     Address::from_ptr(ptr)
 }
 
+#[cfg(target_family = "unix")]
+pub fn release(ptr: Address, size: usize) {
+    debug_assert!(ptr.is_page_aligned());
+    debug_assert!(mem::is_page_aligned(size));
+
+    let result = unsafe { libc::munmap(ptr.to_mut_ptr(), size) };
+
+    if result != 0 {
+        panic!("munmap() failed");
+    }
+}
+
+#[cfg(target_family = "windows")]
+pub fn release(ptr: Address, size: usize) {
+    debug_assert!(ptr.is_page_aligned());
+    debug_assert!(mem::is_page_aligned(size));
+
+    use winapi::um::memoryapi::VirtualFree;
+    use winapi::um::winnt::MEM_RELEASE;
+
+    let result = unsafe { VirtualFree(ptr.to_mut_ptr(), 0, MEM_RELEASE) };
+
+    if result == 0 {
+        panic!("VirtualFree failed");
+    }
+}
+
 pub fn reserve_align(size: usize, align: usize) -> Address {
     debug_assert!(mem::is_page_aligned(size));
     debug_assert!(mem::is_page_aligned(align));
