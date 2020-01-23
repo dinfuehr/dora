@@ -385,14 +385,6 @@ pub fn emit_popq_reg(buf: &mut MacroAssembler, reg: Reg) {
     emit_op(buf, 0x58 + reg.and7());
 }
 
-pub fn emit_retq(buf: &mut MacroAssembler) {
-    emit_op(buf, 0xC3);
-}
-
-pub fn emit_nop(buf: &mut MacroAssembler) {
-    emit_op(buf, 0x90);
-}
-
 pub fn emit_u64(buf: &mut MacroAssembler, val: u64) {
     buf.emit_u64(val)
 }
@@ -1281,11 +1273,6 @@ mod tests {
     }
 
     #[test]
-    fn test_emit_retq() {
-        assert_emit!(0xc3; emit_retq);
-    }
-
-    #[test]
     fn test_emit_popq_reg() {
         assert_emit!(0x58; emit_popq_reg(RAX));
         assert_emit!(0x5c; emit_popq_reg(RSP));
@@ -1368,7 +1355,7 @@ mod tests {
         let mut buf = MacroAssembler::new();
         let lbl = buf.create_label();
         emit_jcc(&mut buf, CondCode::Zero, lbl);
-        emit_nop(&mut buf);
+        buf.nop();
         buf.bind_label(lbl);
         assert_eq!(vec![0x0f, 0x84, 1, 0, 0, 0, 0x90], buf.data());
     }
@@ -1378,7 +1365,7 @@ mod tests {
         let mut buf = MacroAssembler::new();
         let lbl = buf.create_label();
         emit_jcc(&mut buf, CondCode::NonZero, lbl);
-        emit_nop(&mut buf);
+        buf.nop();
         buf.bind_label(lbl);
         assert_eq!(vec![0x0f, 0x85, 1, 0, 0, 0, 0x90], buf.data());
     }
@@ -1388,7 +1375,7 @@ mod tests {
         let mut buf = MacroAssembler::new();
         let lbl = buf.create_label();
         emit_jcc(&mut buf, CondCode::Greater, lbl);
-        emit_nop(&mut buf);
+        buf.nop();
         buf.bind_label(lbl);
         assert_eq!(vec![0x0f, 0x8F, 1, 0, 0, 0, 0x90], buf.data());
     }
@@ -1398,7 +1385,7 @@ mod tests {
         let mut buf = MacroAssembler::new();
         let lbl = buf.create_label();
         emit_jcc(&mut buf, CondCode::GreaterEq, lbl);
-        emit_nop(&mut buf);
+        buf.nop();
         buf.bind_label(lbl);
         assert_eq!(vec![0x0f, 0x8D, 1, 0, 0, 0, 0x90], buf.data());
     }
@@ -1408,7 +1395,7 @@ mod tests {
         let mut buf = MacroAssembler::new();
         let lbl = buf.create_label();
         emit_jcc(&mut buf, CondCode::Less, lbl);
-        emit_nop(&mut buf);
+        buf.nop();
         buf.bind_label(lbl);
         assert_eq!(vec![0x0f, 0x8C, 1, 0, 0, 0, 0x90], buf.data());
     }
@@ -1418,7 +1405,7 @@ mod tests {
         let mut buf = MacroAssembler::new();
         let lbl = buf.create_label();
         emit_jcc(&mut buf, CondCode::LessEq, lbl);
-        emit_nop(&mut buf);
+        buf.nop();
         buf.bind_label(lbl);
         assert_eq!(vec![0x0f, 0x8E, 1, 0, 0, 0, 0x90], buf.data());
     }
@@ -1428,7 +1415,7 @@ mod tests {
         let mut buf = MacroAssembler::new();
         let lbl = buf.create_label();
         emit_jcc(&mut buf, CondCode::UnsignedGreater, lbl);
-        emit_nop(&mut buf);
+        buf.nop();
         buf.bind_label(lbl);
         assert_eq!(vec![0x0f, 0x87, 1, 0, 0, 0, 0x90], buf.data());
     }
@@ -1438,7 +1425,7 @@ mod tests {
         let mut buf = MacroAssembler::new();
         let lbl = buf.create_label();
         emit_jcc(&mut buf, CondCode::UnsignedGreaterEq, lbl);
-        emit_nop(&mut buf);
+        buf.nop();
         buf.bind_label(lbl);
         assert_eq!(vec![0x0f, 0x83, 1, 0, 0, 0, 0x90], buf.data());
     }
@@ -1448,7 +1435,7 @@ mod tests {
         let mut buf = MacroAssembler::new();
         let lbl = buf.create_label();
         emit_jcc(&mut buf, CondCode::UnsignedLess, lbl);
-        emit_nop(&mut buf);
+        buf.nop();
         buf.bind_label(lbl);
         assert_eq!(vec![0x0f, 0x82, 1, 0, 0, 0, 0x90], buf.data());
     }
@@ -1458,7 +1445,7 @@ mod tests {
         let mut buf = MacroAssembler::new();
         let lbl = buf.create_label();
         emit_jcc(&mut buf, CondCode::UnsignedLessEq, lbl);
-        emit_nop(&mut buf);
+        buf.nop();
         buf.bind_label(lbl);
         assert_eq!(vec![0x0f, 0x86, 1, 0, 0, 0, 0x90], buf.data());
     }
@@ -1468,7 +1455,7 @@ mod tests {
         let mut buf = MacroAssembler::new();
         let lbl = buf.create_label();
         emit_jmp(&mut buf, lbl);
-        emit_nop(&mut buf);
+        buf.nop();
         buf.bind_label(lbl);
         assert_eq!(vec![0xe9, 1, 0, 0, 0, 0x90], buf.data());
     }

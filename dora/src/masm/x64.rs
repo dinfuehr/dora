@@ -54,7 +54,7 @@ impl MacroAssembler {
     pub fn epilog(&mut self) {
         asm::emit_mov_reg_reg(self, 1, RBP, RSP);
         asm::emit_popq_reg(self, RBP);
-        asm::emit_retq(self);
+        self.asm.ret();
     }
 
     pub fn epilog_without_return(&mut self) {
@@ -1040,7 +1040,7 @@ impl MacroAssembler {
     }
 
     pub fn nop(&mut self) {
-        asm::emit_nop(self);
+        self.asm.nop();
     }
 
     pub fn emit_label(&mut self, lbl: Label) {

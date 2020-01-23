@@ -176,6 +176,10 @@ class AssemblerX64: Assembler {
         self.emitByte(0xC3Y);
     }
 
+    fun nop() {
+        self.emitByte(0x90Y);
+    }
+
     fun emitAlu64Imm(reg: Register, imm: Immediate, modrm_reg: Int, rax_opcode: Byte) {
         assert(imm.isInt());
         self.emitRex64RmField(reg);
@@ -375,6 +379,14 @@ class AssemblerX64: Assembler {
     asm.retq();
     let buffer = asm.finalize();
     asm1(buffer, 0, 0xC3Y);
+    assert(buffer.length() == 1);
+}
+
+@test fun testAsmNop(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.nop();
+    let buffer = asm.finalize();
+    asm1(buffer, 0, 0x90Y);
     assert(buffer.length() == 1);
 }
 
