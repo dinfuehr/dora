@@ -1071,7 +1071,7 @@ impl MacroAssembler {
             let target = self.labels[jmp.to.0].expect("label not defined");
             let diff = (target - jmp.at - 4) as i32;
 
-            let mut slice = &mut self.data[jmp.at..];
+            let mut slice = &mut self.asm.data()[jmp.at..];
             slice.write_u32::<LittleEndian>(diff as u32).unwrap();
         }
     }

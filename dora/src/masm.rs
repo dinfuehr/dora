@@ -2,6 +2,7 @@ use std::cell::Cell;
 use std::ops::Deref;
 use std::rc::Rc;
 
+use crate::asm::Assembler;
 use crate::compiler::codegen::ExprStore;
 use crate::compiler::fct::{
     CatchType, Code, Comments, GcPoint, GcPoints, Handler, JitDescriptor, LazyCompilationData,
@@ -30,7 +31,7 @@ pub use self::arm64::*;
 pub mod arm64;
 
 pub struct MacroAssembler {
-    data: Vec<u8>,
+    asm: Assembler,
     labels: Vec<Option<usize>>,
     jumps: Vec<ForwardJump>,
     bailouts: Vec<(Label, Trap, Position)>,
@@ -46,7 +47,7 @@ pub struct MacroAssembler {
 impl MacroAssembler {
     pub fn new() -> MacroAssembler {
         MacroAssembler {
-            data: Vec::new(),
+            asm: Assembler::new(),
             labels: Vec::new(),
             jumps: Vec::new(),
             bailouts: Vec::new(),
@@ -70,7 +71,7 @@ impl MacroAssembler {
         Code::from_buffer(
             vm,
             &self.dseg,
-            &self.data,
+            self.asm.data(),
             self.lazy_compilation,
             self.gcpoints,
             stacksize,
@@ -84,13 +85,13 @@ impl MacroAssembler {
 
     #[cfg(test)]
     pub fn buffer(&self) -> &[u8] {
-        &self.data
+        self.asm.buffer()
     }
 
     pub fn data(mut self) -> Vec<u8> {
         self.finish();
 
-        self.data
+        self.asm.finalize()
     }
 
     fn finish(&mut self) {
@@ -117,7 +118,7 @@ impl MacroAssembler {
     }
 
     pub fn pos(&self) -> usize {
-        self.data.len()
+        self.asm.pc() as usize
     }
 
     pub fn test_if_nil_bailout(&mut self, pos: Position, reg: Reg, trap: Trap) {
@@ -211,24 +212,24 @@ impl MacroAssembler {
     }
 
     pub fn emit_u8(&mut self, value: u8) {
-        self.data.write_u8(value).unwrap();
+        self.asm.data().write_u8(value).unwrap();
     }
 
     pub fn emit_u8_at(&mut self, pos: i32, value: u8) {
-        self.data[pos as usize] = value;
+        self.asm.data()[pos as usize] = value;
     }
 
     pub fn emit_u32(&mut self, value: u32) {
-        self.data.write_u32::<LittleEndian>(value).unwrap();
+        self.asm.data().write_u32::<LittleEndian>(value).unwrap();
     }
 
     pub fn emit_u32_at(&mut self, pos: i32, value: u32) {
-        let buf = &mut self.data[pos as usize..];
+        let buf = &mut self.asm.data()[pos as usize..];
         LittleEndian::write_u32(buf, value);
     }
 
     pub fn emit_u64(&mut self, value: u64) {
-        self.data.write_u64::<LittleEndian>(value).unwrap();
+        self.asm.data().write_u64::<LittleEndian>(value).unwrap();
     }
 
     pub fn copy(&mut self, mode: MachineMode, dest: ExprStore, src: ExprStore) {
