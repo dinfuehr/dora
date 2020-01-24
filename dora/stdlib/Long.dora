@@ -44,8 +44,8 @@
   @static fun bits() -> Int = 64;
   @static fun bytes() -> Int = 8;
 
-  @static fun max_value() -> Long = 9223372036854775807L;
-  @static fun min_value() -> Long = -9223372036854775808L;
+  @static fun maxValue() -> Long = 9223372036854775807L;
+  @static fun minValue() -> Long = -9223372036854775808L;
 
   @static fun min(lhs: Long, rhs: Long) -> Long = if lhs < rhs { lhs } else { rhs };
   @static fun max(lhs: Long, rhs: Long) -> Long = if lhs < rhs { rhs } else { lhs };
