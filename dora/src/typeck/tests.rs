@@ -921,16 +921,16 @@ fn overload_shl() {
 
 #[test]
 fn overload_sar() {
-    ok("class A { fun shiftRight(rhs: A) -> Int { return 0; } }
-            fun f() -> Int { return A() >> A(); }");
+    ok(
+        "class A { fun shiftRightSigned(rhs: A) -> Int { return 0; } }
+            fun f() -> Int { return A() >> A(); }",
+    );
 }
 
 #[test]
 fn overload_shr() {
-    ok(
-        "class A { fun unsignedShiftRight(rhs: A) -> Int { return 0; } }
-            fun f() -> Int { return A() >>> A(); }",
-    );
+    ok("class A { fun shiftRight(rhs: A) -> Int { return 0; } }
+            fun f() -> Int { return A() >>> A(); }");
 }
 
 #[test]

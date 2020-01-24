@@ -32,8 +32,8 @@
   @internal fun bitwiseXor(rhs: Long) -> Long;
 
   @internal fun shiftLeft(rhs: Long) -> Long;
+  @internal fun shiftRightSigned(rhs: Long) -> Long;
   @internal fun shiftRight(rhs: Long) -> Long;
-  @internal fun unsignedShiftRight(rhs: Long) -> Long;
 
   @internal fun unaryPlus() -> Long;
   @internal fun unaryMinus() -> Long;
