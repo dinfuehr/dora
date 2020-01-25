@@ -35,6 +35,9 @@
   @internal fun shiftRightSigned(rhs: Long) -> Long;
   @internal fun shiftRight(rhs: Long) -> Long;
 
+  @internal fun rotateLeft(rhs: Long) -> Long;
+  @internal fun rotateRight(rhs: Long) -> Long;
+
   @internal fun unaryPlus() -> Long;
   @internal fun unaryMinus() -> Long;
   @internal fun not() -> Long;

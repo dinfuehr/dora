@@ -274,6 +274,14 @@ where
         self.masm.int_sar(mode, dest, lhs, rhs);
     }
 
+    pub fn int_rol(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        self.masm.int_rol(mode, dest, lhs, rhs);
+    }
+
+    pub fn int_ror(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        self.masm.int_ror(mode, dest, lhs, rhs);
+    }
+
     pub fn bool_not(&mut self, dest: Reg, src: Reg) {
         self.masm.bool_not(dest, src);
     }

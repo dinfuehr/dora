@@ -950,6 +950,22 @@ pub fn emit_sar_reg_cl(buf: &mut MacroAssembler, x64: u8, dest: Reg) {
     emit_modrm(buf, 0b11, 0b111, dest.and7());
 }
 
+pub fn emit_rol_reg_cl(buf: &mut MacroAssembler, x64: u8, dest: Reg) {
+    if dest.msb() != 0 || x64 != 0 {
+        emit_rex(buf, x64, dest.msb(), 0, dest.msb());
+    }
+    emit_op(buf, 0xD3);
+    emit_modrm(buf, 0b11, 0b000, dest.and7());
+}
+
+pub fn emit_ror_reg_cl(buf: &mut MacroAssembler, x64: u8, dest: Reg) {
+    if dest.msb() != 0 || x64 != 0 {
+        emit_rex(buf, x64, dest.msb(), 0, dest.msb());
+    }
+    emit_op(buf, 0xD3);
+    emit_modrm(buf, 0b11, 0b001, dest.and7());
+}
+
 pub fn emit_movzx_byte(buf: &mut MacroAssembler, x64: u8, src: Reg, dest: Reg) {
     if src.msb() != 0 || dest.msb() != 0 || x64 != 0 {
         emit_rex(buf, x64, dest.msb(), 0, src.msb());

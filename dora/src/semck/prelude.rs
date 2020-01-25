@@ -223,6 +223,9 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_method(vm, clsid, "shiftRight", Intrinsic::IntShr);
     intrinsic_method(vm, clsid, "shiftRightSigned", Intrinsic::IntSar);
 
+    intrinsic_method(vm, clsid, "rotateLeft", Intrinsic::IntRotateLeft);
+    intrinsic_method(vm, clsid, "rotateRight", Intrinsic::IntRotateRight);
+
     intrinsic_method(vm, clsid, "unaryPlus", Intrinsic::IntPlus);
     intrinsic_method(vm, clsid, "unaryMinus", Intrinsic::IntNeg);
     intrinsic_method(vm, clsid, "not", Intrinsic::IntNot);
@@ -254,6 +257,9 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_method(vm, clsid, "shiftLeft", Intrinsic::LongShl);
     intrinsic_method(vm, clsid, "shiftRight", Intrinsic::LongShr);
     intrinsic_method(vm, clsid, "shiftRightSigned", Intrinsic::LongSar);
+
+    intrinsic_method(vm, clsid, "rotateLeft", Intrinsic::LongRotateLeft);
+    intrinsic_method(vm, clsid, "rotateRight", Intrinsic::LongRotateRight);
 
     intrinsic_method(vm, clsid, "unaryPlus", Intrinsic::LongPlus);
     intrinsic_method(vm, clsid, "unaryMinus", Intrinsic::LongNeg);

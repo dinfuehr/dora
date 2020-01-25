@@ -77,6 +77,12 @@ fun main() {
     let x = 12L >> 2L;
     assert(x == 3L);
 
+    let x = (-12L).rotateLeft(1L);
+    assert(x == -23L);
+
+    let x = (-12L).rotateRight(1L);
+    assert(x == 9223372036854775802L);
+
     let x = 3L;
     assert(x.toInt() == 3);
 
