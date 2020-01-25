@@ -14,8 +14,8 @@
     var ix = self.asLong();
     var iy = rhs.asLong();
 
-    let sx = ix.shiftRightSigned(63L).shiftRight(1L);
-    let sy = iy.shiftRightSigned(63L).shiftRight(1L);
+    let sx = ix.shiftRightSigned(63).shiftRight(1);
+    let sy = iy.shiftRightSigned(63).shiftRight(1);
 
     ix = ix.bitwiseXor(sx);
     iy = iy.bitwiseXor(sy);

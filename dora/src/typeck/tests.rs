@@ -959,9 +959,9 @@ fn long_operations() {
     ok("fun f(a: Long, b: Long) -> Long { return a | b; }");
     ok("fun f(a: Long, b: Long) -> Long { return a & b; }");
     ok("fun f(a: Long, b: Long) -> Long { return a ^ b; }");
-    ok("fun f(a: Long, b: Long) -> Long { return a << b; }");
-    ok("fun f(a: Long, b: Long) -> Long { return a >> b; }");
-    ok("fun f(a: Long, b: Long) -> Long { return a >>> b; }");
+    ok("fun f(a: Long, b: Int ) -> Long { return a << b; }");
+    ok("fun f(a: Long, b: Int)  -> Long { return a >> b; }");
+    ok("fun f(a: Long, b: Int)  -> Long { return a >>> b; }");
     ok("fun f(a: Long, b: Long) -> Bool { return a == b; }");
     ok("fun f(a: Long, b: Long) -> Bool { return a != b; }");
     ok("fun f(a: Long, b: Long) -> Bool { return a === b; }");

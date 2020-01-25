@@ -31,12 +31,12 @@
   @internal fun bitwiseAnd(rhs: Long) -> Long;
   @internal fun bitwiseXor(rhs: Long) -> Long;
 
-  @internal fun shiftLeft(rhs: Long) -> Long;
-  @internal fun shiftRightSigned(rhs: Long) -> Long;
-  @internal fun shiftRight(rhs: Long) -> Long;
+  @internal fun shiftLeft(by: Int) -> Long;
+  @internal fun shiftRightSigned(by: Int) -> Long;
+  @internal fun shiftRight(by: Int) -> Long;
 
-  @internal fun rotateLeft(rhs: Long) -> Long;
-  @internal fun rotateRight(rhs: Long) -> Long;
+  @internal fun rotateLeft(by: Int) -> Long;
+  @internal fun rotateRight(by: Int) -> Long;
 
   @internal fun unaryPlus() -> Long;
   @internal fun unaryMinus() -> Long;
