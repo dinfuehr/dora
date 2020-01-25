@@ -1,0 +1,38 @@
+fun main() {
+    let x = 1.shiftLeft(1);
+    assert(x == 2);
+
+    let x = 1 << 1;
+    assert(x == 2);
+
+    let x = 6.shiftRightSigned(1);
+    assert(x == 3);
+
+    let x = 6 >> 1;
+    assert(x == 3);
+
+    let x = 12.shiftRight(2);
+    assert(x == 3);
+
+    let x = 12 >> 2;
+    assert(x == 3);
+
+    let x = (-12).rotateLeft(1);
+    assert(x == -23);
+
+    let x = (-12).rotateRight(1);
+    assert(x == 2147483642);
+
+    // rotate arg is masked to 5 bits:
+    let x = (-12).rotateLeft(32);
+    assert(x == -12);
+
+    let x = (-12).rotateRight(32);
+    assert(x == -12);
+
+    let x = (-12).rotateLeft(-1);
+    assert(x == 2147483642);
+
+    let x = (-12).rotateRight(-1);
+    assert(x == -23);
+}

@@ -59,30 +59,6 @@ fun main() {
     let x = !1L;
     assert(x == -2L);
 
-    let x = 1L.shiftLeft(1);
-    assert(x == 2L);
-
-    let x = 1L << 1;
-    assert(x == 2L);
-
-    let x = 6L.shiftRightSigned(1);
-    assert(x == 3L);
-
-    let x = 6L >> 1;
-    assert(x == 3L);
-
-    let x = 12L.shiftRight(2);
-    assert(x == 3L);
-
-    let x = 12L >> 2;
-    assert(x == 3L);
-
-    let x = (-12L).rotateLeft(1);
-    assert(x == -23L);
-
-    let x = (-12L).rotateRight(1);
-    assert(x == 9223372036854775802L);
-
     let x = 3L;
     assert(x.toInt() == 3);
 
