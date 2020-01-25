@@ -13,6 +13,6 @@
   @static fun bits() -> Int = 8;
   @static fun bytes() -> Int = 1;
 
-  @static fun max_value() -> Byte = 255Y;
-  @static fun min_value() -> Byte = 0Y;
+  @static fun maxValue() -> Byte = 255Y;
+  @static fun minValue() -> Byte = 0Y;
 }

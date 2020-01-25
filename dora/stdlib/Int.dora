@@ -32,8 +32,8 @@
   @internal fun bitwiseXor(rhs: Int) -> Int;
 
   @internal fun shiftLeft(rhs: Int) -> Int;
+  @internal fun shiftRightSigned(rhs: Int) -> Int;
   @internal fun shiftRight(rhs: Int) -> Int;
-  @internal fun unsignedShiftRight(rhs: Int) -> Int;
 
   @internal fun unaryPlus() -> Int;
   @internal fun unaryMinus() -> Int;
@@ -46,8 +46,8 @@
   @static fun bits() -> Int = 32;
   @static fun bytes() -> Int = 4;
 
-  @static fun max_value() -> Int = 2147483647;
-  @static fun min_value() -> Int = -2147483648;
+  @static fun maxValue() -> Int = 2147483647;
+  @static fun minValue() -> Int = -2147483648;
 
   @static fun min(lhs: Int, rhs: Int) -> Int = if lhs < rhs { lhs } else { rhs };
   @static fun max(lhs: Int, rhs: Int) -> Int = if lhs < rhs { rhs } else { lhs };

@@ -220,8 +220,8 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_method(vm, clsid, "bitwiseXor", Intrinsic::IntXor);
 
     intrinsic_method(vm, clsid, "shiftLeft", Intrinsic::IntShl);
-    intrinsic_method(vm, clsid, "shiftRight", Intrinsic::IntSar);
-    intrinsic_method(vm, clsid, "unsignedShiftRight", Intrinsic::IntShr);
+    intrinsic_method(vm, clsid, "shiftRight", Intrinsic::IntShr);
+    intrinsic_method(vm, clsid, "shiftRightSigned", Intrinsic::IntSar);
 
     intrinsic_method(vm, clsid, "unaryPlus", Intrinsic::IntPlus);
     intrinsic_method(vm, clsid, "unaryMinus", Intrinsic::IntNeg);
@@ -252,8 +252,8 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_method(vm, clsid, "bitwiseXor", Intrinsic::LongXor);
 
     intrinsic_method(vm, clsid, "shiftLeft", Intrinsic::LongShl);
-    intrinsic_method(vm, clsid, "shiftRight", Intrinsic::LongSar);
-    intrinsic_method(vm, clsid, "unsignedShiftRight", Intrinsic::LongShr);
+    intrinsic_method(vm, clsid, "shiftRight", Intrinsic::LongShr);
+    intrinsic_method(vm, clsid, "shiftRightSigned", Intrinsic::LongSar);
 
     intrinsic_method(vm, clsid, "unaryPlus", Intrinsic::LongPlus);
     intrinsic_method(vm, clsid, "unaryMinus", Intrinsic::LongNeg);
