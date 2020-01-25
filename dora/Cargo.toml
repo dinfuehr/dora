@@ -13,6 +13,7 @@ edition = "2018"
 rustc-serialize = "0.3.*"
 docopt = "0.7.*"
 byteorder = "1.3.*"
+lazy_static = "1.4.0"
 libc = "0.2.*"
 time = "0.1.*"
 capstone = "0.6.*"
@@ -30,6 +31,9 @@ num-derive = "0.3"
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "*", features = ["memoryapi"] }
+
+[target.'cfg(target_arch = "x86_64")'.dependencies]
+raw-cpuid = "7.0.*"
 
 [lib]
 name = "dora"
