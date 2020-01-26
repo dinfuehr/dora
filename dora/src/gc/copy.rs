@@ -128,7 +128,7 @@ impl Collector for CopyCollector {
 
 impl Drop for CopyCollector {
     fn drop(&mut self) {
-        os::uncommit(self.total.start, self.total.size());
+        os::free(self.total.start, self.total.size());
     }
 }
 

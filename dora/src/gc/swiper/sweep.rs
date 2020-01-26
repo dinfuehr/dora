@@ -67,7 +67,8 @@ impl SweepSwiper {
         let reserve_size = max_heap_size * 4 + card_size + crossing_size;
 
         // reserve full memory
-        let heap_start = os::reserve_align(reserve_size, GEN_SIZE);
+        let reservation = os::reserve_align(reserve_size, GEN_SIZE);
+        let heap_start = reservation.start;
         assert!(heap_start.is_gen_aligned());
 
         // heap is young/old generation & large space

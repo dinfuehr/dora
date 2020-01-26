@@ -124,7 +124,7 @@ impl Collector for SweepCollector {
 
 impl Drop for SweepCollector {
     fn drop(&mut self) {
-        os::uncommit(self.heap.start, self.heap.size());
+        os::free(self.heap.start, self.heap.size());
     }
 }
 

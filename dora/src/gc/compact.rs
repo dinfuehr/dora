@@ -123,7 +123,7 @@ impl Collector for MarkCompactCollector {
 
 impl Drop for MarkCompactCollector {
     fn drop(&mut self) {
-        os::uncommit(self.heap.start, self.heap.size());
+        os::free(self.heap.start, self.heap.size());
     }
 }
 

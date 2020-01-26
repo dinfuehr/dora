@@ -143,3 +143,9 @@ impl Space {
         Region::new(start, end)
     }
 }
+
+impl Drop for Space {
+    fn drop(&mut self) {
+        os::free(self.total.start, self.total.size());
+    }
+}

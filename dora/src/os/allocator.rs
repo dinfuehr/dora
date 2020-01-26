@@ -43,7 +43,7 @@ pub fn reserve(size: usize) -> Address {
 }
 
 #[cfg(target_family = "unix")]
-pub fn release(ptr: Address, size: usize) {
+pub fn free(ptr: Address, size: usize) {
     debug_assert!(ptr.is_page_aligned());
     debug_assert!(mem::is_page_aligned(size));
 
@@ -55,7 +55,7 @@ pub fn release(ptr: Address, size: usize) {
 }
 
 #[cfg(target_family = "windows")]
-pub fn release(ptr: Address, size: usize) {
+pub fn free(ptr: Address, size: usize) {
     debug_assert!(ptr.is_page_aligned());
     debug_assert!(mem::is_page_aligned(size));
 
@@ -69,27 +69,38 @@ pub fn release(ptr: Address, size: usize) {
     }
 }
 
-pub fn reserve_align(size: usize, align: usize) -> Address {
+pub struct Reservation {
+    pub start: Address,
+
+    pub unaligned_start: Address,
+    pub unaligned_size: usize,
+}
+
+pub fn reserve_align(size: usize, align: usize) -> Reservation {
     debug_assert!(mem::is_page_aligned(size));
     debug_assert!(mem::is_page_aligned(align));
 
-    let align_minus_page = align - page_size();
+    let unaligned_size = align - page_size();
 
-    let unaligned = reserve(size + align_minus_page);
-    let aligned: Address = mem::align_usize(unaligned.to_usize(), align).into();
+    let unaligned_start = reserve(size + unaligned_size);
+    let aligned_start: Address = mem::align_usize(unaligned_start.to_usize(), align).into();
 
-    let gap_start = aligned.offset_from(unaligned);
-    let gap_end = align_minus_page - gap_start;
+    let gap_start = aligned_start.offset_from(unaligned_start);
+    let gap_end = unaligned_size - gap_start;
 
     if gap_start > 0 {
-        uncommit(unaligned, gap_start);
+        uncommit(unaligned_start, gap_start);
     }
 
     if gap_end > 0 {
-        uncommit(aligned.offset(size), gap_end);
+        uncommit(aligned_start.offset(size), gap_end);
     }
 
-    aligned
+    Reservation {
+        start: aligned_start,
+        unaligned_start,
+        unaligned_size,
+    }
 }
 
 #[cfg(target_family = "unix")]
