@@ -9,10 +9,12 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        os: [ubuntu-latest, macOS-latest]
+        os: [ubuntu-latest, windows-latest, macOS-latest]
         kind: ['test', 'lint']
         exclude:
           - os: macOS-latest
+            kind: 'lint'
+          - os: windows-latest
             kind: 'lint'
 
     steps:
@@ -42,9 +44,17 @@ jobs:
         run: cargo fmt -- --check
 
       - name: Test
-        if: matrix.kind == 'test'
+        if: matrix.kind == 'test' && matrix.os != 'windows-latest'
         run: tools/test
 
+      - name: Test (Windows)
+        if: matrix.kind == 'test' && matrix.os == 'windows-latest'
+        run: .\tools\test.bat
+
       - name: Test Release
-        if: matrix.kind == 'test'
+        if: matrix.kind == 'test' && matrix.os != 'windows-latest'
         run: tools/test-release
+
+      - name: Test Release (Windows)
+        if: matrix.kind == 'test' && matrix.os == 'windows-latest'
+        run: .\tools\test-release.bat
