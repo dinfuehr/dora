@@ -14,7 +14,8 @@ impl ZeroCollector {
     pub fn new(args: &Args) -> ZeroCollector {
         let heap_size: usize = args.max_heap_size();
 
-        let start = os::reserve(heap_size);
+        let reservation = os::reserve_align(heap_size, os::page_size());
+        let start = reservation.start;
         let end = start.offset(heap_size);
 
         os::commit_at(start, heap_size, false);
@@ -66,5 +67,12 @@ impl Collector for ZeroCollector {
             "GC summary: 0ms collection (0), {:.1}ms mutator, {:.1}ms total (100% mutator, 0% GC)",
             mutator, runtime,
         );
+    }
+}
+
+impl Drop for ZeroCollector {
+    fn drop(&mut self) {
+        let size = self.end.offset_from(self.start);
+        os::free(self.start, size);
     }
 }

@@ -5,7 +5,7 @@ use crate::mem;
 use crate::os::page_size;
 
 #[cfg(target_family = "unix")]
-pub fn reserve(size: usize) -> Address {
+fn reserve(size: usize) -> Address {
     debug_assert!(mem::is_page_aligned(size));
 
     let ptr = unsafe {
@@ -27,7 +27,7 @@ pub fn reserve(size: usize) -> Address {
 }
 
 #[cfg(target_family = "windows")]
-pub fn reserve(size: usize) -> Address {
+fn reserve(size: usize) -> Address {
     debug_assert!(mem::is_page_aligned(size));
 
     use winapi::um::memoryapi::VirtualAlloc;
@@ -80,13 +80,14 @@ pub fn reserve_align(size: usize, align: usize) -> Reservation {
     debug_assert!(mem::is_page_aligned(size));
     debug_assert!(mem::is_page_aligned(align));
 
-    let unaligned_size = align - page_size();
+    let align = if align == 0 { page_size() } else { align };
+    let unaligned_size = size + align - page_size();
 
-    let unaligned_start = reserve(size + unaligned_size);
+    let unaligned_start = reserve(unaligned_size);
     let aligned_start: Address = mem::align_usize(unaligned_start.to_usize(), align).into();
 
     let gap_start = aligned_start.offset_from(unaligned_start);
-    let gap_end = unaligned_size - gap_start;
+    let gap_end = unaligned_size - size - gap_start;
 
     if gap_start > 0 {
         uncommit(unaligned_start, gap_start);
@@ -96,10 +97,20 @@ pub fn reserve_align(size: usize, align: usize) -> Reservation {
         uncommit(aligned_start.offset(size), gap_end);
     }
 
-    Reservation {
-        start: aligned_start,
-        unaligned_start,
-        unaligned_size,
+    if cfg!(target_family = "unix") {
+        Reservation {
+            start: aligned_start,
+            unaligned_start: aligned_start,
+            unaligned_size: size,
+        }
+    } else if cfg!(target_family = "windows") {
+        Reservation {
+            start: aligned_start,
+            unaligned_start,
+            unaligned_size,
+        }
+    } else {
+        unreachable!();
     }
 }
 
@@ -202,28 +213,19 @@ pub fn commit_at(ptr: Address, size: usize, executable: bool) {
 }
 
 #[cfg(target_family = "unix")]
-pub fn uncommit(ptr: Address, size: usize) {
+fn uncommit(ptr: Address, size: usize) {
     debug_assert!(ptr.is_page_aligned());
     debug_assert!(mem::is_page_aligned(size));
 
-    let val = unsafe {
-        libc::mmap(
-            ptr.to_mut_ptr(),
-            size,
-            libc::PROT_NONE,
-            libc::MAP_PRIVATE | libc::MAP_ANON | libc::MAP_NORESERVE,
-            -1,
-            0,
-        )
-    };
+    let result = unsafe { libc::munmap(ptr.to_mut_ptr(), size) };
 
-    if val == libc::MAP_FAILED {
-        panic!("uncommitting memory with mmap() failed");
+    if result != 0 {
+        panic!("munmap() failed");
     }
 }
 
 #[cfg(target_family = "windows")]
-pub fn uncommit(ptr: Address, size: usize) {
+fn uncommit(ptr: Address, size: usize) {
     debug_assert!(ptr.is_page_aligned());
     debug_assert!(mem::is_page_aligned(size));
 

@@ -42,7 +42,8 @@ impl Space {
     pub fn new(config: SpaceConfig, name: &'static str) -> Space {
         let config = adapt_to_page_size(config);
 
-        let space_start = os::reserve(config.limit);
+        let reservation = os::reserve_align(config.limit, os::page_size());
+        let space_start = reservation.start;
         let space_end = space_start.offset(config.limit);
 
         os::commit_at(space_start, config.chunk, config.executable);
