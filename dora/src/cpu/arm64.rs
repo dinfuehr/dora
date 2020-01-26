@@ -73,3 +73,19 @@ pub fn get_exception_object(es: &ExecState) -> Ref<Obj> {
 pub fn ra_from_execstate(es: &ExecState) -> usize {
     es.regs[REG_LR.asm() as usize]
 }
+
+pub fn has_round() -> bool {
+    true
+}
+
+pub fn has_popcnt() -> bool {
+    true
+}
+
+pub fn has_lzcnt() -> bool {
+    true
+}
+
+pub fn has_tzcnt() -> bool {
+    true
+}
