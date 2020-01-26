@@ -1,0 +1,38 @@
+fun main() {
+    let x = 1L.shiftLeft(1);
+    assert(x == 2L);
+
+    let x = 1L << 1;
+    assert(x == 2L);
+
+    let x = 6L.shiftRightSigned(1);
+    assert(x == 3L);
+
+    let x = 6L >> 1;
+    assert(x == 3L);
+
+    let x = 12L.shiftRight(2);
+    assert(x == 3L);
+
+    let x = 12L >> 2;
+    assert(x == 3L);
+
+    let x = (-12L).rotateLeft(1);
+    assert(x == -23L);
+
+    let x = (-12L).rotateRight(1);
+    assert(x == 9223372036854775802L);
+
+    // rotate arg is masked to 6 bits:
+    let x = (-12L).rotateLeft(64);
+    assert(x == -12L);
+
+    let x = (-12L).rotateRight(64);
+    assert(x == -12L);
+
+    let x = (-12L).rotateLeft(-1);
+    assert(x == 9223372036854775802L);
+
+    let x = (-12L).rotateRight(-1);
+    assert(x == -23L);
+}

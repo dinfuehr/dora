@@ -315,6 +315,9 @@ pub enum Intrinsic {
     IntSar,
     IntShr,
 
+    IntRotateLeft,
+    IntRotateRight,
+
     IntNot,
     IntNeg,
     IntPlus,
@@ -342,6 +345,9 @@ pub enum Intrinsic {
     LongShl,
     LongSar,
     LongShr,
+
+    LongRotateLeft,
+    LongRotateRight,
 
     LongNot,
     LongNeg,

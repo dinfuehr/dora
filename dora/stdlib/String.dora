@@ -85,7 +85,7 @@
     let array = Array[Byte](bits);
     var at = array.length() - 1;
     while (at >= 0) {
-      array(bits - 1 - at) = ('0'.toLong() + (((data >> at.toLong()) & 1L))).toByte();
+      array(bits - 1 - at) = (('0'.toLong()) + ((data >> at) & 1L)).toByte();
       at = at - 1;
     }
     return try! String::fromBytes(array);

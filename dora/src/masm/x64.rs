@@ -474,6 +474,44 @@ impl MacroAssembler {
         }
     }
 
+    pub fn int_rol(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unimplemented!(),
+        };
+
+        if rhs != RCX {
+            assert!(lhs != RCX);
+            asm::emit_mov_reg_reg(self, x64, rhs, RCX);
+        }
+
+        asm::emit_rol_reg_cl(self, x64, lhs);
+
+        if dest != lhs {
+            asm::emit_mov_reg_reg(self, x64, lhs, dest);
+        }
+    }
+
+    pub fn int_ror(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unimplemented!(),
+        };
+
+        if rhs != RCX {
+            assert!(lhs != RCX);
+            asm::emit_mov_reg_reg(self, x64, rhs, RCX);
+        }
+
+        asm::emit_ror_reg_cl(self, x64, lhs);
+
+        if dest != lhs {
+            asm::emit_mov_reg_reg(self, x64, lhs, dest);
+        }
+    }
+
     pub fn int_or(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         let x64 = match mode {
             MachineMode::Int32 => 0,

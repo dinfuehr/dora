@@ -1993,6 +1993,13 @@ where
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
 
+            Intrinsic::IntRotateLeft => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::IntRotateRight => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+
             Intrinsic::LongEq => {
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
@@ -2036,6 +2043,13 @@ where
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
             Intrinsic::LongShr => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+
+            Intrinsic::LongRotateLeft => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::LongRotateRight => {
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
 
@@ -2521,6 +2535,9 @@ where
             Intrinsic::IntSar => self.asm.int_sar(MachineMode::Int32, dest, lhs, rhs),
             Intrinsic::IntShr => self.asm.int_shr(MachineMode::Int32, dest, lhs, rhs),
 
+            Intrinsic::IntRotateLeft => self.asm.int_rol(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::IntRotateRight => self.asm.int_ror(MachineMode::Int32, dest, lhs, rhs),
+
             Intrinsic::LongAdd => self.asm.int_add(MachineMode::Int64, dest, lhs, rhs),
             Intrinsic::LongSub => self.asm.int_sub(MachineMode::Int64, dest, lhs, rhs),
             Intrinsic::LongMul => self.asm.int_mul(MachineMode::Int64, dest, lhs, rhs),
@@ -2534,6 +2551,9 @@ where
             Intrinsic::LongShl => self.asm.int_shl(MachineMode::Int64, dest, lhs, rhs),
             Intrinsic::LongSar => self.asm.int_sar(MachineMode::Int64, dest, lhs, rhs),
             Intrinsic::LongShr => self.asm.int_shr(MachineMode::Int64, dest, lhs, rhs),
+
+            Intrinsic::LongRotateLeft => self.asm.int_rol(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::LongRotateRight => self.asm.int_ror(MachineMode::Int64, dest, lhs, rhs),
 
             _ => panic!("unexpected intrinsic {:?}", intr),
         }
