@@ -34,7 +34,7 @@ class SsaGen(let bc: BytecodeFunction, let basicBlockStarts: BitSet): BytecodeVi
 
     fun readVariable(register: BytecodeRegister, block: Block) -> Inst {
         if self.currentDef.get(register.value).contains(block) {
-            self.currentDef.get(register.value).get(block)
+            self.currentDef.get(register.value).get(block).unwrap()
         } else {
             self.readVariableRecursive(register, block)
         }
