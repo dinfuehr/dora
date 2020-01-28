@@ -68,6 +68,7 @@ struct StackElem {
     lineno: i32,
 }
 
+#[repr(C)]
 pub struct DoraToNativeInfo {
     // pointer to previous DTN-Info
     pub last: *const DoraToNativeInfo,

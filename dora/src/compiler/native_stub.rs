@@ -5,7 +5,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::compiler::fct::{Code, JitDescriptor, JitFct, JitFctId};
 use crate::compiler::map::CodeDescriptor;
-use crate::cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1};
+use crate::cpu::{Mem, REG_FP, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1};
 use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
 use crate::masm::MacroAssembler;
@@ -92,14 +92,15 @@ where
 {
     pub fn generate(mut self) -> Code {
         let save_return = self.fct.return_type != BuiltinType::Unit;
-        let args = self.fct.args.len();
-
         let dtn_size = size_of::<DoraToNativeInfo>() as i32;
 
         let offset_dtn = 0;
         let offset_return = dtn_size;
-        let offset_args = offset_return + if save_return { mem::ptr_width() } else { 0 };
-        let framesize = mem::align_i32(offset_args + args as i32 * mem::ptr_width(), 16);
+        let offset_handles = offset_return + if save_return { mem::ptr_width() } else { 0 };
+        let framesize = mem::align_i32(
+            offset_handles + needed_handles(self.fct.args) as i32 * mem::ptr_width(),
+            16,
+        );
 
         if self.dbg {
             self.masm.debug();
@@ -138,6 +139,8 @@ where
             Mem::Base(REG_THREAD, ThreadLocalData::dtn_offset()),
             REG_SP.into(),
         );
+
+        store_params(&mut self.masm, self.fct.args, offset_handles);
 
         self.masm.raw_call(self.fct.ptr.to_ptr());
 
@@ -178,54 +181,41 @@ where
     }
 }
 
-fn save_params(masm: &mut MacroAssembler, args: &[BuiltinType], offset_args: i32) {
+fn needed_handles(args: &[BuiltinType]) -> u32 {
     let mut reg_idx = 0;
-    let mut freg_idx = 0;
-    let mut idx = 0;
+    let mut count = 0;
 
     for &ty in args {
-        let mode = ty.mode();
-        let is_float = mode.is_float();
-        let offset = offset_args + idx as i32 * 8;
-
-        if is_float && freg_idx < FREG_PARAMS.len() {
-            let freg = FREG_PARAMS[freg_idx].into();
-            masm.store_mem(mode, Mem::Base(REG_SP, offset), freg);
-            freg_idx += 1;
-        } else if !is_float && reg_idx < REG_PARAMS.len() {
-            let reg = REG_PARAMS[reg_idx].into();
-            masm.store_mem(mode, Mem::Base(REG_SP, offset), reg);
+        if ty.is_float() {
+            // ignore floating point arguments
+        } else if ty.reference_type() && reg_idx < REG_PARAMS.len() {
             reg_idx += 1;
+            count += 1;
         } else {
-            panic!("parameter saved on stack");
+            reg_idx += 1;
         }
-
-        idx += 1;
     }
+
+    count
 }
 
-fn restore_params(masm: &mut MacroAssembler, args: &[BuiltinType], offset_args: i32) {
+fn store_params(masm: &mut MacroAssembler, args: &[BuiltinType], offset_handles: i32) {
     let mut reg_idx = 0;
-    let mut freg_idx = 0;
-    let mut idx = 0;
+    let mut count = 0;
 
     for &ty in args {
-        let mode = ty.mode();
-        let is_float = mode.is_float();
-        let offset = offset_args + idx as i32 * 8;
-
-        if is_float && freg_idx < FREG_PARAMS.len() {
-            let freg = FREG_PARAMS[freg_idx].into();
-            masm.load_mem(mode, freg, Mem::Base(REG_SP, offset));
-            freg_idx += 1;
-        } else if !is_float && reg_idx < REG_PARAMS.len() {
-            let reg = REG_PARAMS[reg_idx].into();
-            masm.load_mem(mode, reg, Mem::Base(REG_SP, offset));
+        if ty.is_float() {
+            // ignore floating point arguments
+        } else if ty.reference_type() && reg_idx < REG_PARAMS.len() {
+            masm.store_mem(
+                MachineMode::Ptr,
+                Mem::Base(REG_SP, offset_handles + count * mem::ptr_width()),
+                REG_PARAMS[reg_idx].into(),
+            );
             reg_idx += 1;
+            count += 1;
         } else {
-            panic!("parameter saved on stack");
+            reg_idx += 1;
         }
-
-        idx += 1;
     }
 }
