@@ -2,6 +2,19 @@ use crate::cpu::*;
 use crate::masm::{CondCode, Label, MacroAssembler};
 use crate::ty::MachineMode;
 
+pub const VEXM_0F: u8 = 1;
+pub const VEXM_0F38: u8 = 2;
+pub const VEXM_0F3A: u8 = 3;
+
+pub const VEXL_Z: u8 = 0;
+pub const VEXL_128: u8 = 0;
+pub const VEXL_256: u8 = 1;
+
+pub const VEXP_NONE: u8 = 0;
+pub const VEXP_66: u8 = 1;
+pub const VEXP_F3: u8 = 2;
+pub const VEXP_F2: u8 = 3;
+
 pub fn emit_or_reg_reg(buf: &mut MacroAssembler, x64: u8, src: Reg, dest: Reg) {
     emit_alu_reg_reg(buf, x64, 0x09, src, dest);
 }
@@ -376,13 +389,42 @@ pub fn emit_op(buf: &mut MacroAssembler, opcode: u8) {
     buf.emit_u8(opcode);
 }
 
+pub fn emit_vex3_rxbm(buf: &mut MacroAssembler, r: u8, x: u8, b: u8, m: u8) {
+    assert!(r == 0 || r == 1);
+    assert!(x == 0 || x == 1);
+    assert!(b == 0 || b == 1);
+    assert!(m > 1 && m < 4);
+
+    buf.emit_u8(0b11000100);
+    buf.emit_u8(!r << 7 | (!x << 6) & 0b1000000 | (!b << 5) & 0b100000 | m);
+}
+
+pub fn emit_vex3_wvlp(buf: &mut MacroAssembler, w: u8, v: u8, l: u8, p: u8) {
+    assert!(w == 0 || w == 1);
+    assert!(v < 16);
+    assert!(l == 0 || l == 1);
+    assert!(p < 4);
+
+    buf.emit_u8(w << 7 | (!v << 3) & 0b1111000 | l << 2 | p);
+}
+
+pub fn emit_vex2(buf: &mut MacroAssembler, r: u8, v: u8, l: u8, p: u8) {
+    assert!(r == 0 || r == 1);
+    assert!(v < 16);
+    assert!(l == 0 || l == 1);
+    assert!(p < 4);
+
+    buf.emit_u8(0b11000101);
+    buf.emit_u8(!r << 7 | (!v << 3) & 0b1111000 | l << 2 | p);
+}
+
 pub fn emit_rex(buf: &mut MacroAssembler, w: u8, r: u8, x: u8, b: u8) {
     assert!(w == 0 || w == 1);
     assert!(r == 0 || r == 1);
     assert!(x == 0 || x == 1);
     assert!(b == 0 || b == 1);
 
-    buf.emit_u8(0x4 << 4 | w << 3 | r << 2 | x << 1 | b);
+    buf.emit_u8(0x40 | w << 3 | r << 2 | x << 1 | b);
 }
 
 pub fn emit_modrm(buf: &mut MacroAssembler, mode: u8, reg: u8, rm: u8) {
@@ -858,6 +900,13 @@ pub fn emit_callq_reg(buf: &mut MacroAssembler, dest: Reg) {
     emit_modrm(buf, 0b11, 0b10, dest.and7());
 }
 
+pub fn emit_shlx(buf: &mut MacroAssembler, x64: u8, dest: Reg, lhs: Reg, rhs: Reg) {
+    emit_vex3_rxbm(buf, dest.msb(), 0, lhs.msb(), VEXM_0F38);
+    emit_vex3_wvlp(buf, x64, rhs.int(), VEXL_Z, VEXP_66);
+    emit_u8(buf, 0xF7);
+    emit_modrm(buf, 0b11, dest.and7(), lhs.and7());
+}
+
 pub fn emit_shlq_reg(buf: &mut MacroAssembler, imm: u8, dest: Reg) {
     emit_rex(buf, 1, 0, 0, dest.msb());
     emit_op(buf, 0xC1);
@@ -884,6 +933,13 @@ pub fn emit_shl_reg_cl(buf: &mut MacroAssembler, x64: u8, dest: Reg) {
     emit_modrm(buf, 0b11, 0b100, dest.and7());
 }
 
+pub fn emit_shrx(buf: &mut MacroAssembler, x64: u8, dest: Reg, lhs: Reg, rhs: Reg) {
+    emit_vex3_rxbm(buf, dest.msb(), 0, lhs.msb(), VEXM_0F38);
+    emit_vex3_wvlp(buf, x64, rhs.int(), VEXL_Z, VEXP_F2);
+    emit_u8(buf, 0xF7);
+    emit_modrm(buf, 0b11, dest.and7(), lhs.and7());
+}
+
 pub fn emit_shr_reg_cl(buf: &mut MacroAssembler, x64: u8, dest: Reg) {
     if dest.msb() != 0 || x64 != 0 {
         emit_rex(buf, x64, 0, 0, dest.msb());
@@ -904,6 +960,13 @@ pub fn emit_shr_reg_imm(buf: &mut MacroAssembler, x64: u8, dest: Reg, imm: u8) {
     if imm != 1 {
         emit_u8(buf, imm);
     }
+}
+
+pub fn emit_sarx(buf: &mut MacroAssembler, x64: u8, dest: Reg, lhs: Reg, rhs: Reg) {
+    emit_vex3_rxbm(buf, dest.msb(), 0, lhs.msb(), VEXM_0F38);
+    emit_vex3_wvlp(buf, x64, rhs.int(), VEXL_Z, VEXP_F3);
+    emit_u8(buf, 0xF7);
+    emit_modrm(buf, 0b11, dest.and7(), lhs.and7());
 }
 
 pub fn emit_sar_reg_cl(buf: &mut MacroAssembler, x64: u8, dest: Reg) {
@@ -1695,6 +1758,24 @@ mod tests {
         assert_emit!(0x89, 0x1C, 0x81; emit_movl_ra(RBX, RCX, RAX, 4));
         assert_emit!(0x89, 0x04, 0x4B; emit_movl_ra(RAX, RBX, RCX, 2));
         assert_emit!(0x45, 0x89, 0x3C, 0x03; emit_movl_ra(R15, R11, RAX, 1));
+    }
+
+    #[test]
+    fn test_int_shlx() {
+        assert_emit!(0xC4, 0xE2, 0xE1, 0xF7, 0xC2; emit_shlx(MachineMode::Int64.w(), RAX, RDX, RBX));
+        assert_emit!(0xC4, 0x42, 0x29, 0xF7, 0xC1; emit_shlx(MachineMode::Int32.w(), R8, R9, R10));
+    }
+
+    #[test]
+    fn test_int_shrx() {
+        assert_emit!(0xC4, 0xE2, 0xE3, 0xF7, 0xC2; emit_shrx(MachineMode::Int64.w(), RAX, RDX, RBX));
+        assert_emit!(0xC4, 0x42, 0x2B, 0xF7, 0xC1; emit_shrx(MachineMode::Int32.w(), R8, R9, R10));
+    }
+
+    #[test]
+    fn test_int_sarx() {
+        assert_emit!(0xC4, 0xE2, 0xE2, 0xF7, 0xC2; emit_sarx(MachineMode::Int64.w(), RAX, RDX, RBX));
+        assert_emit!(0xC4, 0x42, 0x22, 0xF7, 0xCA; emit_sarx(MachineMode::Int32.w(), R9, R10, R11));
     }
 
     #[test]

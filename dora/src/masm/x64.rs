@@ -424,6 +424,11 @@ impl MacroAssembler {
     }
 
     pub fn int_shl(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        if has_x_ops() {
+            asm::emit_shlx(self, mode.w(), dest, lhs, rhs);
+            return;
+        }
+
         if rhs != RCX {
             assert!(lhs != RCX);
             self.mov_rr(mode.is64(), RCX.into(), rhs.into());
@@ -437,6 +442,11 @@ impl MacroAssembler {
     }
 
     pub fn int_shr(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        if has_x_ops() {
+            asm::emit_shrx(self, mode.w(), dest, lhs, rhs);
+            return;
+        }
+
         if rhs != RCX {
             assert!(lhs != RCX);
             self.mov_rr(mode.is64(), RCX.into(), rhs.into());
@@ -450,6 +460,11 @@ impl MacroAssembler {
     }
 
     pub fn int_sar(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        if has_x_ops() {
+            asm::emit_sarx(self, mode.w(), dest, lhs, rhs);
+            return;
+        }
+
         if rhs != RCX {
             assert!(lhs != RCX);
             self.mov_rr(mode.is64(), RCX.into(), rhs.into());
@@ -475,6 +490,9 @@ impl MacroAssembler {
         }
     }
 
+    // We don't use RORX optionally like for the shifts above,
+    // because curiously RORX only supports encoding the count as an immediate,
+    // not by passing the value in a register.
     pub fn int_ror(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         if rhs != RCX {
             assert!(lhs != RCX);
@@ -1087,7 +1105,7 @@ impl MacroAssembler {
 }
 
 impl MachineMode {
-    fn w(self) -> u8 {
+    pub fn w(self) -> u8 {
         match self {
             MachineMode::Int32 => 0,
             MachineMode::Int64 => 1,
@@ -1095,7 +1113,7 @@ impl MachineMode {
         }
     }
 
-    fn is64(self) -> bool {
+    pub fn is64(self) -> bool {
         match self {
             MachineMode::Int8 | MachineMode::Int32 => false,
             MachineMode::Int64 | MachineMode::Ptr => true,
