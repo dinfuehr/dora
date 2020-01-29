@@ -322,6 +322,13 @@ pub enum Intrinsic {
     IntNeg,
     IntPlus,
 
+    IntCountZeroBits,
+    IntCountOneBits,
+    IntCountZeroBitsLeading,
+    IntCountOneBitsLeading,
+    IntCountZeroBitsTrailing,
+    IntCountOneBitsTrailing,
+
     LongToInt,
     LongToChar,
     LongToByte,
@@ -352,6 +359,13 @@ pub enum Intrinsic {
     LongNot,
     LongNeg,
     LongPlus,
+
+    LongCountZeroBits,
+    LongCountOneBits,
+    LongCountZeroBitsLeading,
+    LongCountOneBitsLeading,
+    LongCountZeroBitsTrailing,
+    LongCountOneBitsTrailing,
 
     FloatToInt,
     FloatToLong,

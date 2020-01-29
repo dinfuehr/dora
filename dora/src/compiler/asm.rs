@@ -282,6 +282,32 @@ where
         self.masm.int_ror(mode, dest, lhs, rhs);
     }
 
+    pub fn count_bits(&mut self, mode: MachineMode, dest: Reg, src: Reg, count_one_bits: bool) {
+        self.masm.count_bits(mode, dest, src, count_one_bits);
+    }
+
+    pub fn count_bits_leading(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        src: Reg,
+        count_one_bits: bool,
+    ) {
+        self.masm
+            .count_bits_leading(mode, dest, src, count_one_bits);
+    }
+
+    pub fn count_bits_trailing(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        src: Reg,
+        count_one_bits: bool,
+    ) {
+        self.masm
+            .count_bits_trailing(mode, dest, src, count_one_bits);
+    }
+
     pub fn bool_not(&mut self, dest: Reg, src: Reg) {
         self.masm.bool_not(dest, src);
     }

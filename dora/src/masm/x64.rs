@@ -554,6 +554,63 @@ impl MacroAssembler {
         }
     }
 
+    pub fn count_bits(&mut self, mode: MachineMode, dest: Reg, src: Reg, count_one_bits: bool) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unimplemented!(),
+        };
+
+        if count_one_bits {
+            asm::popcnt(self, x64, dest, src);
+        } else {
+            asm::emit_not_reg(self, x64, src);
+            asm::popcnt(self, x64, dest, src);
+        }
+    }
+
+    pub fn count_bits_leading(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        src: Reg,
+        count_one_bits: bool,
+    ) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unimplemented!(),
+        };
+
+        if count_one_bits {
+            asm::emit_not_reg(self, x64, src);
+            asm::lzcnt(self, x64, dest, src);
+        } else {
+            asm::lzcnt(self, x64, dest, src);
+        }
+    }
+
+    pub fn count_bits_trailing(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        src: Reg,
+        count_one_bits: bool,
+    ) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unimplemented!(),
+        };
+
+        if count_one_bits {
+            asm::emit_not_reg(self, x64, src);
+            asm::tzcnt(self, x64, dest, src);
+        } else {
+            asm::tzcnt(self, x64, dest, src);
+        }
+    }
+
     pub fn int_to_float(
         &mut self,
         dest_mode: MachineMode,

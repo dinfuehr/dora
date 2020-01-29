@@ -18,7 +18,7 @@ mod globaldefck;
 mod implck;
 mod impldefck;
 mod nameck;
-mod prelude;
+pub(crate) mod prelude;
 mod returnck;
 pub mod specialize;
 mod structdefck;
@@ -129,7 +129,7 @@ fn internalck<'ast>(vm: &VM<'ast>) {
             continue;
         }
 
-        if fct.internal && !fct.internal_resolved {
+        if fct.internal && !fct.internal_resolved && fct.kind.is_definition() {
             vm.diag
                 .lock()
                 .report(fct.file, fct.pos, SemError::UnresolvedInternal);
@@ -155,7 +155,7 @@ fn internalck<'ast>(vm: &VM<'ast>) {
             let method = vm.fcts.idx(*method);
             let method = method.read();
 
-            if method.internal && !method.internal_resolved {
+            if method.internal && !method.internal_resolved && method.kind.is_definition() {
                 vm.diag
                     .lock()
                     .report(method.file, method.pos, SemError::UnresolvedInternal);

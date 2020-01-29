@@ -1,6 +1,7 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
+use crate::cpu::{has_lzcnt, has_popcnt, has_tzcnt};
 use crate::exception;
 use crate::gc::Address;
 use crate::mem;
@@ -477,6 +478,76 @@ fn internal_impl<'ast>(vm: &mut VM<'ast>, clsid: ClassId, tid: TraitId, name: &s
                 }
             }
         }
+    }
+}
+
+pub(crate) fn install_conditional_intrinsics(vm: &mut VM) {
+    let clsid = vm.vips.int_class;
+    if has_popcnt() {
+        intrinsic_method(vm, clsid, "countZeroBits", Intrinsic::IntCountZeroBits);
+        intrinsic_method(vm, clsid, "countOneBits", Intrinsic::IntCountOneBits);
+    }
+    if has_lzcnt() {
+        intrinsic_method(
+            vm,
+            clsid,
+            "countZeroBitsLeading",
+            Intrinsic::IntCountZeroBitsLeading,
+        );
+        intrinsic_method(
+            vm,
+            clsid,
+            "countOneBitsLeading",
+            Intrinsic::IntCountOneBitsLeading,
+        );
+    }
+    if has_tzcnt() {
+        intrinsic_method(
+            vm,
+            clsid,
+            "countZeroBitsTrailing",
+            Intrinsic::IntCountZeroBitsTrailing,
+        );
+        intrinsic_method(
+            vm,
+            clsid,
+            "countOneBitsTrailing",
+            Intrinsic::IntCountOneBitsTrailing,
+        );
+    }
+
+    let clsid = vm.vips.long_class;
+    if has_popcnt() {
+        intrinsic_method(vm, clsid, "countZeroBits", Intrinsic::LongCountZeroBits);
+        intrinsic_method(vm, clsid, "countOneBits", Intrinsic::LongCountOneBits);
+    }
+    if has_lzcnt() {
+        intrinsic_method(
+            vm,
+            clsid,
+            "countZeroBitsLeading",
+            Intrinsic::LongCountZeroBitsLeading,
+        );
+        intrinsic_method(
+            vm,
+            clsid,
+            "countOneBitsLeading",
+            Intrinsic::LongCountOneBitsLeading,
+        );
+    }
+    if has_tzcnt() {
+        intrinsic_method(
+            vm,
+            clsid,
+            "countZeroBitsTrailing",
+            Intrinsic::LongCountZeroBitsTrailing,
+        );
+        intrinsic_method(
+            vm,
+            clsid,
+            "countOneBitsTrailing",
+            Intrinsic::LongCountOneBitsTrailing,
+        );
     }
 }
 

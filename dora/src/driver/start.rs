@@ -46,6 +46,8 @@ pub fn start(content: Option<&str>) -> i32 {
 
     semck::check(&mut vm);
 
+    semck::prelude::install_conditional_intrinsics(&mut vm);
+
     let main = if vm.args.cmd_test {
         None
     } else {
