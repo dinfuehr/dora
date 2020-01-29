@@ -18,7 +18,7 @@ mod globaldefck;
 mod implck;
 mod impldefck;
 mod nameck;
-mod prelude;
+pub(crate) mod prelude;
 mod returnck;
 pub mod specialize;
 mod structdefck;
@@ -93,14 +93,13 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
     implck::check(vm);
     return_on_error!(vm);
 
+    // define internal functions & methods
+    prelude::internal_functions(vm);
     prelude::known_methods(vm);
 
     // check types of expressions in functions
     typeck::check(vm);
     return_on_error!(vm);
-
-    // define internal functions & methods
-    prelude::internal_functions(vm);
 
     // are break and continue used in the right places?
     flowck::check(vm);
