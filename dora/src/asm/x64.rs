@@ -29,12 +29,12 @@ pub const R14: Register = Register(14);
 pub const R15: Register = Register(15);
 
 impl Assembler {
-    pub fn pushqr(&mut self, reg: Register) {
+    pub fn pushq_r(&mut self, reg: Register) {
         self.emit_rex_optional(reg);
         self.emit_u8(0x50 + reg.low_bits());
     }
 
-    pub fn popqr(&mut self, reg: Register) {
+    pub fn popq_r(&mut self, reg: Register) {
         self.emit_rex_optional(reg);
         self.emit_u8(0x58 + reg.low_bits());
     }
@@ -47,10 +47,32 @@ impl Assembler {
         self.emit_u8(0x90);
     }
 
+    pub fn movq_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex64(src, dest);
+        self.emit_u8(0x89);
+        self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn movl_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex32_optional(src, dest);
+        self.emit_u8(0x89);
+        self.emit_modrm_registers(src, dest);
+    }
+
     fn emit_rex_optional(&mut self, reg: Register) {
         if reg.needs_rex() {
             self.emit_rex(false, false, false, true);
         }
+    }
+
+    fn emit_rex32_optional(&mut self, reg: Register, rm: Register) {
+        if reg.needs_rex() || rm.needs_rex() {
+            self.emit_rex(false, reg.needs_rex(), false, rm.needs_rex());
+        }
+    }
+
+    fn emit_rex64(&mut self, reg: Register, rm: Register) {
+        self.emit_rex(true, reg.needs_rex(), false, rm.needs_rex());
     }
 
     fn emit_rex(&mut self, w: bool, r: bool, x: bool, b: bool) {
@@ -60,6 +82,24 @@ impl Assembler {
         // b - extension of modrm-rm/sib base/opcode reg field
         let opcode = 0x40 | (w as u8) << 3 | (r as u8) << 2 | (x as u8) << 1 | b as u8;
         self.emit_u8(opcode);
+    }
+
+    fn emit_modrm_registers(&mut self, reg: Register, rm: Register) {
+        self.emit_modrm(0b11, reg.low_bits(), rm.low_bits());
+    }
+
+    fn emit_modrm(&mut self, mode: u8, reg: u8, rm: u8) {
+        assert!(mode < 4);
+        assert!(reg < 8);
+        assert!(rm < 8);
+        self.emit_u8(mode << 6 | reg << 3 | rm);
+    }
+
+    fn emit_sib(&mut self, scale: u8, index: u8, base: u8) {
+        assert!(scale < 4);
+        assert!(index < 8);
+        assert!(base < 8);
+        self.emit_u8(scale << 6 | index << 3 | base);
     }
 }
 
@@ -116,19 +156,19 @@ mod tests {
     }
 
     #[test]
-    fn test_popqr() {
-        assert_emit!(0x58; popqr(RAX));
-        assert_emit!(0x5c; popqr(RSP));
-        assert_emit!(0x41, 0x58; popqr(R8));
-        assert_emit!(0x41, 0x5F; popqr(R15));
+    fn test_popq_r() {
+        assert_emit!(0x58; popq_r(RAX));
+        assert_emit!(0x5c; popq_r(RSP));
+        assert_emit!(0x41, 0x58; popq_r(R8));
+        assert_emit!(0x41, 0x5F; popq_r(R15));
     }
 
     #[test]
-    fn test_pushqr() {
-        assert_emit!(0x50; pushqr(RAX));
-        assert_emit!(0x54; pushqr(RSP));
-        assert_emit!(0x41, 0x50; pushqr(R8));
-        assert_emit!(0x41, 0x57; pushqr(R15));
+    fn test_pushq_r() {
+        assert_emit!(0x50; pushq_r(RAX));
+        assert_emit!(0x54; pushq_r(RSP));
+        assert_emit!(0x41, 0x50; pushq_r(R8));
+        assert_emit!(0x41, 0x57; pushq_r(R15));
     }
 
     #[test]
@@ -139,5 +179,20 @@ mod tests {
     #[test]
     fn test_nop() {
         assert_emit!(0x90; nop);
+    }
+
+    #[test]
+    fn test_emit_movq_rr() {
+        assert_emit!(0x49, 0x89, 0xc7; movq_rr(R15, RAX));
+        assert_emit!(0x4c, 0x89, 0xf8; movq_rr(RAX, R15));
+        assert_emit!(0x48, 0x89, 0xe5; movq_rr(RBP, RSP));
+        assert_emit!(0x48, 0x89, 0xec; movq_rr(RSP, RBP));
+    }
+
+    #[test]
+    fn test_emit_movl_rr() {
+        assert_emit!(0x41, 0x89, 0xc7; movl_rr(R15, RAX));
+        assert_emit!(0x44, 0x89, 0xf8; movl_rr(RAX, R15));
+        assert_emit!(0x89, 0xc1; movl_rr(RCX, RAX));
     }
 }

@@ -17,8 +17,8 @@ use dora_parser::lexer::position::Position;
 
 impl MacroAssembler {
     pub fn prolog_size(&mut self, stacksize: i32) {
-        self.asm.pushqr(RBP.into());
-        asm::emit_mov_reg_reg(self, 1, RSP, RBP);
+        self.asm.pushq_r(RBP.into());
+        self.asm.movq_rr(RBP.into(), RSP.into());
 
         if stacksize > 0 {
             asm::emit_subq_imm_reg(self, stacksize, RSP);
@@ -26,8 +26,8 @@ impl MacroAssembler {
     }
 
     pub fn prolog(&mut self) -> usize {
-        self.asm.pushqr(RBP.into());
-        asm::emit_mov_reg_reg(self, 1, RSP, RBP);
+        self.asm.pushq_r(RBP.into());
+        self.asm.movq_rr(RBP.into(), RSP.into());
 
         asm::emit_subq_immd_reg(self, 0, RSP);
         let patch_offset = self.pos() - 4;
@@ -52,14 +52,14 @@ impl MacroAssembler {
     }
 
     pub fn epilog(&mut self) {
-        asm::emit_mov_reg_reg(self, 1, RBP, RSP);
-        asm::emit_popq_reg(self, RBP);
+        self.asm.movq_rr(RSP.into(), RBP.into());
+        self.asm.popq_r(RBP.into());
         self.asm.retq();
     }
 
     pub fn epilog_without_return(&mut self) {
-        asm::emit_mov_reg_reg(self, 1, RBP, RSP);
-        asm::emit_popq_reg(self, RBP);
+        self.asm.movq_rr(RSP.into(), RBP.into());
+        self.asm.popq_r(RBP.into());
     }
 
     pub fn increase_stack_frame(&mut self, size: i32) {

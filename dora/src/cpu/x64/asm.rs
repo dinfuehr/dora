@@ -369,14 +369,6 @@ pub fn emit_sub_imm_mem(buf: &mut MacroAssembler, mode: MachineMode, base: Reg, 
     emit_u8(buf, imm);
 }
 
-pub fn emit_popq_reg(buf: &mut MacroAssembler, reg: Reg) {
-    if reg.msb() != 0 {
-        emit_rex(buf, 0, 0, 0, 1);
-    }
-
-    emit_op(buf, 0x58 + reg.and7());
-}
-
 pub fn emit_u64(buf: &mut MacroAssembler, val: u64) {
     buf.emit_u64(val)
 }
@@ -1314,14 +1306,6 @@ mod tests {
     fn test_shll_reg() {
         assert_emit!(0xC1, 0xE0, 0x02; emit_shll_reg(2, RAX));
         assert_emit!(0x41, 0xC1, 0xE4, 0x07; emit_shll_reg(7, R12));
-    }
-
-    #[test]
-    fn test_emit_popq_reg() {
-        assert_emit!(0x58; emit_popq_reg(RAX));
-        assert_emit!(0x5c; emit_popq_reg(RSP));
-        assert_emit!(0x41, 0x58; emit_popq_reg(R8));
-        assert_emit!(0x41, 0x5F; emit_popq_reg(R15));
     }
 
     #[test]
