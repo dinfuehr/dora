@@ -325,12 +325,6 @@ impl MacroAssembler {
         result: Reg,
         pos: Position,
     ) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
-            _ => unimplemented!(),
-        };
-
         asm::emit_cmp_imm_reg(self, mode, 0, rhs);
         let lbl = self.create_label();
         self.jump_if(CondCode::Zero, lbl);
@@ -338,33 +332,27 @@ impl MacroAssembler {
 
         if lhs != RAX {
             assert!(rhs != RAX);
-            asm::emit_mov_reg_reg(self, x64, lhs, RAX);
+            asm::emit_mov_reg_reg(self, mode.w(), lhs, RAX);
         }
 
-        if x64 != 0 {
+        if mode.w() != 0 {
             asm::emit_cqo(self);
         } else {
             asm::emit_cdq(self);
         }
 
-        asm::emit_idiv_reg_reg(self, x64, rhs);
+        asm::emit_idiv_reg_reg(self, mode.w(), rhs);
 
         if dest != result {
-            asm::emit_mov_reg_reg(self, x64, result, dest);
+            asm::emit_mov_reg_reg(self, mode.w(), result, dest);
         }
     }
 
     pub fn int_mul(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
-            _ => unimplemented!(),
-        };
-
-        asm::emit_imul_reg_reg(self, x64, rhs, lhs);
+        asm::emit_imul_reg_reg(self, mode.w(), rhs, lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, x64, lhs, dest);
+            asm::emit_mov_reg_reg(self, mode.w(), lhs, dest);
         }
     }
 
@@ -404,153 +392,99 @@ impl MacroAssembler {
     }
 
     pub fn int_sub(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
-            _ => unimplemented!(),
-        };
-
-        asm::emit_sub_reg_reg(self, x64, rhs, lhs);
+        asm::emit_sub_reg_reg(self, mode.w(), rhs, lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, x64, lhs, dest);
+            asm::emit_mov_reg_reg(self, mode.w(), lhs, dest);
         }
     }
 
     pub fn int_shl(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
-            _ => unimplemented!(),
-        };
-
         if rhs != RCX {
             assert!(lhs != RCX);
-            asm::emit_mov_reg_reg(self, x64, rhs, RCX);
+            asm::emit_mov_reg_reg(self, mode.w(), rhs, RCX);
         }
 
-        asm::emit_shl_reg_cl(self, x64, lhs);
+        asm::emit_shl_reg_cl(self, mode.w(), lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, x64, lhs, dest);
+            asm::emit_mov_reg_reg(self, mode.w(), lhs, dest);
         }
     }
 
     pub fn int_shr(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
-            _ => unimplemented!(),
-        };
-
         if rhs != RCX {
             assert!(lhs != RCX);
-            asm::emit_mov_reg_reg(self, x64, rhs, RCX);
+            asm::emit_mov_reg_reg(self, mode.w(), rhs, RCX);
         }
 
-        asm::emit_shr_reg_cl(self, x64, lhs);
+        asm::emit_shr_reg_cl(self, mode.w(), lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, x64, lhs, dest);
+            asm::emit_mov_reg_reg(self, mode.w(), lhs, dest);
         }
     }
 
     pub fn int_sar(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
-            _ => unimplemented!(),
-        };
-
         if rhs != RCX {
             assert!(lhs != RCX);
-            asm::emit_mov_reg_reg(self, x64, rhs, RCX);
+            asm::emit_mov_reg_reg(self, mode.w(), rhs, RCX);
         }
 
-        asm::emit_sar_reg_cl(self, x64, lhs);
+        asm::emit_sar_reg_cl(self, mode.w(), lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, x64, lhs, dest);
+            asm::emit_mov_reg_reg(self, mode.w(), lhs, dest);
         }
     }
 
     pub fn int_rol(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
-            _ => unimplemented!(),
-        };
-
         if rhs != RCX {
             assert!(lhs != RCX);
-            asm::emit_mov_reg_reg(self, x64, rhs, RCX);
+            asm::emit_mov_reg_reg(self, mode.w(), rhs, RCX);
         }
 
-        asm::emit_rol_reg_cl(self, x64, lhs);
+        asm::emit_rol_reg_cl(self, mode.w(), lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, x64, lhs, dest);
+            asm::emit_mov_reg_reg(self, mode.w(), lhs, dest);
         }
     }
 
     pub fn int_ror(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
-            _ => unimplemented!(),
-        };
-
         if rhs != RCX {
             assert!(lhs != RCX);
-            asm::emit_mov_reg_reg(self, x64, rhs, RCX);
+            asm::emit_mov_reg_reg(self, mode.w(), rhs, RCX);
         }
 
-        asm::emit_ror_reg_cl(self, x64, lhs);
+        asm::emit_ror_reg_cl(self, mode.w(), lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, x64, lhs, dest);
+            asm::emit_mov_reg_reg(self, mode.w(), lhs, dest);
         }
     }
 
     pub fn int_or(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
-            _ => unimplemented!(),
-        };
-
-        asm::emit_or_reg_reg(self, x64, rhs, lhs);
+        asm::emit_or_reg_reg(self, mode.w(), rhs, lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, x64, lhs, dest);
+            asm::emit_mov_reg_reg(self, mode.w(), lhs, dest);
         }
     }
 
     pub fn int_and(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
-            _ => unimplemented!(),
-        };
-
-        asm::emit_and_reg_reg(self, x64, rhs, lhs);
+        asm::emit_and_reg_reg(self, mode.w(), rhs, lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, x64, lhs, dest);
+            asm::emit_mov_reg_reg(self, mode.w(), lhs, dest);
         }
     }
 
     pub fn int_xor(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
-            _ => unimplemented!(),
-        };
-
-        asm::emit_xor_reg_reg(self, x64, rhs, lhs);
+        asm::emit_xor_reg_reg(self, mode.w(), rhs, lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, x64, lhs, dest);
+            asm::emit_mov_reg_reg(self, mode.w(), lhs, dest);
         }
     }
 
@@ -620,15 +554,9 @@ impl MacroAssembler {
     ) {
         asm::pxor(self, dest, dest);
 
-        let x64 = match src_mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
-            _ => unreachable!(),
-        };
-
         match dest_mode {
-            MachineMode::Float32 => asm::cvtsi2ss(self, dest, x64, src),
-            MachineMode::Float64 => asm::cvtsi2sd(self, dest, x64, src),
+            MachineMode::Float32 => asm::cvtsi2ss(self, dest, src_mode.w(), src),
+            MachineMode::Float64 => asm::cvtsi2sd(self, dest, src_mode.w(), src),
             _ => unreachable!(),
         }
     }
@@ -640,15 +568,9 @@ impl MacroAssembler {
         src_mode: MachineMode,
         src: FReg,
     ) {
-        let x64 = match dest_mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
-            _ => unreachable!(),
-        };
-
         match src_mode {
-            MachineMode::Float32 => asm::cvttss2si(self, x64, dest, src),
-            MachineMode::Float64 => asm::cvttsd2si(self, x64, dest, src),
+            MachineMode::Float32 => asm::cvttss2si(self, dest_mode.w(), dest, src),
+            MachineMode::Float64 => asm::cvttsd2si(self, dest_mode.w(), dest, src),
             _ => unreachable!(),
         }
     }
@@ -670,14 +592,10 @@ impl MacroAssembler {
     ) {
         assert!(src_mode.size() == dest_mode.size());
 
-        let x64 = match src_mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
-            _ => unreachable!(),
-        };
-
         match dest_mode {
-            MachineMode::Float32 | MachineMode::Float64 => asm::movd_i2f(self, x64, dest, src),
+            MachineMode::Float32 | MachineMode::Float64 => {
+                asm::movd_i2f(self, src_mode.w(), dest, src)
+            }
             _ => unreachable!(),
         }
     }
@@ -691,14 +609,10 @@ impl MacroAssembler {
     ) {
         assert!(src_mode.size() == dest_mode.size());
 
-        let x64 = match dest_mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
-            _ => unreachable!(),
-        };
-
         match src_mode {
-            MachineMode::Float32 | MachineMode::Float64 => asm::movd_f2i(self, x64, dest, src),
+            MachineMode::Float32 | MachineMode::Float64 => {
+                asm::movd_f2i(self, dest_mode.w(), dest, src)
+            }
             _ => unreachable!(),
         }
     }
@@ -908,13 +822,7 @@ impl MacroAssembler {
     }
 
     pub fn extend_byte(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
-            _ => unimplemented!(),
-        };
-
-        asm::emit_movzx_byte(self, x64, src, dest);
+        asm::emit_movzx_byte(self, mode.w(), src, dest);
     }
 
     pub fn load_constpool(&mut self, dest: Reg, disp: i32) {
@@ -978,16 +886,10 @@ impl MacroAssembler {
     }
 
     pub fn int_neg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
-            _ => unimplemented!(),
-        };
-
-        asm::emit_neg_reg(self, x64, src);
+        asm::emit_neg_reg(self, mode.w(), src);
 
         if dest != src {
-            asm::emit_mov_reg_reg(self, x64, src, dest);
+            asm::emit_mov_reg_reg(self, mode.w(), src, dest);
         }
     }
 
@@ -1179,6 +1081,16 @@ impl MacroAssembler {
         self.load_constpool(*scratch, disp + pos);
 
         asm::testl_reg_mem(self, RAX, Mem::Base(*scratch, 0));
+    }
+}
+
+impl MachineMode {
+    fn w(self) -> u8 {
+        match self {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unreachable!(),
+        }
     }
 }
 
