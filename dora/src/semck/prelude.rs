@@ -392,10 +392,17 @@ fn internal_method<'ast>(vm: &mut VM<'ast>, clsid: ClassId, name: &str, kind: Fc
         let mtd = vm.fcts.idx(mid);
         let mut mtd = mtd.write();
 
-        if mtd.name == name && mtd.internal {
-            mtd.kind = kind;
-            mtd.internal_resolved = true;
-            break;
+        if mtd.name == name {
+            if mtd.internal {
+                mtd.kind = kind;
+                mtd.internal_resolved = true;
+                break;
+            } else {
+                panic!(
+                    "method {} found, but was not @internal",
+                    vm.interner.str(name)
+                )
+            }
         }
     }
 }
