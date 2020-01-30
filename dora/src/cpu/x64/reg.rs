@@ -8,7 +8,7 @@ pub static REG_PARAMS: [Reg; 6] = [RDI, RSI, RDX, RCX, R8, R9];
 #[cfg(target_family = "windows")]
 pub static REG_PARAMS: [Reg; 4] = [RCX, RDX, R8, R9];
 
-pub static SCRATCH: [Reg; 3] = [R9, R8, RDI];
+pub static SCRATCH: [Reg; 4] = [RCX, RDX, R8, R9];
 
 pub const REG_RESULT: Reg = RAX;
 pub const REG_TMP1: Reg = R10;
