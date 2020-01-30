@@ -94,8 +94,14 @@ where
         let save_return = self.fct.return_type != BuiltinType::Unit;
         let dtn_size = size_of::<DoraToNativeInfo>() as i32;
 
-        let offset_dtn = 0;
-        let offset_return = dtn_size;
+        let offset_shadow_stack = 0;
+        let offset_dtn = offset_shadow_stack
+            + if cfg!(target_family = "windows") {
+                32
+            } else {
+                0
+            };
+        let offset_return = offset_dtn + dtn_size;
         let offset_handles = offset_return + if save_return { mem::ptr_width() } else { 0 };
         let framesize = mem::align_i32(
             offset_handles + needed_handles(self.fct.args) as i32 * mem::ptr_width(),
@@ -134,10 +140,16 @@ where
             REG_TMP1.into(),
         );
 
+        self.masm.copy_reg(MachineMode::Ptr, REG_TMP1, REG_SP);
+        if offset_dtn != 0 {
+            self.masm
+                .int_add_imm(MachineMode::Ptr, REG_TMP1, REG_TMP1, offset_dtn as i64);
+        }
+
         self.masm.store_mem(
             MachineMode::Ptr,
             Mem::Base(REG_THREAD, ThreadLocalData::dtn_offset()),
-            REG_SP.into(),
+            REG_TMP1.into(),
         );
 
         store_params(&mut self.masm, self.fct.args, offset_handles);
