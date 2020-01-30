@@ -52,7 +52,13 @@ where
     'ast: 'a,
 {
     pub fn generate(mut self) -> Code {
-        let offset_dtn = 0;
+        let offset_shadow_stack = 0;
+        let offset_dtn = offset_shadow_stack
+            + if cfg!(target_family = "windows") {
+                32
+            } else {
+                0
+            };
         let offset_params = offset_dtn + size_of::<DoraToNativeInfo>() as i32;
         let offset_thread =
             offset_params + (FREG_PARAMS.len() + REG_PARAMS.len()) as i32 * mem::ptr_width();
@@ -95,10 +101,16 @@ where
             REG_TMP1.into(),
         );
 
+        self.masm.copy_reg(MachineMode::Ptr, REG_TMP1, REG_SP);
+        if offset_dtn != 0 {
+            self.masm
+                .int_add_imm(MachineMode::Ptr, REG_TMP1, REG_TMP1, offset_dtn as i64);
+        }
+
         self.masm.store_mem(
             MachineMode::Ptr,
             Mem::Base(REG_THREAD, ThreadLocalData::dtn_offset()),
-            REG_SP.into(),
+            REG_TMP1.into(),
         );
 
         // invoke the compiler for the call site
