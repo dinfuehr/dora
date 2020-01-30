@@ -155,21 +155,39 @@ class AssemblerX64: Assembler {
     }
 
     fun addqrr(dest: Register, src: Register) {
-        self.emitRex64ModRm(dest, src);
+        self.emitRex64ModRm(src, dest);
         self.emitByte(0x01Y);
-        self.emitModRmReg(dest.lowBits(), src.lowBits());
+        self.emitModRmReg(src, dest);
+    }
+
+    fun addlrr(dest: Register, src: Register) {
+        self.emitRex32ModRmOptional(src, dest);
+        self.emitByte(0x01Y);
+        self.emitModRmReg(src, dest);
     }
 
     fun subqrr(dest: Register, src: Register) {
-        self.emitRex64ModRm(dest, src);
+        self.emitRex64ModRm(src, dest);
         self.emitByte(0x29Y);
-        self.emitModRmReg(dest.lowBits(), src.lowBits());
+        self.emitModRmReg(src, dest);
+    }
+
+    fun sublrr(dest: Register, src: Register) {
+        self.emitRex32ModRmOptional(src, dest);
+        self.emitByte(0x29Y);
+        self.emitModRmReg(src, dest);
     }
 
     fun movqrr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x89Y);
-        self.emitModRmReg(src.lowBits(), dest.lowBits());
+        self.emitModRmReg(src, dest);
+    }
+
+    fun movlrr(dest: Register, src: Register) {
+        self.emitRex32ModRmOptional(src, dest);
+        self.emitByte(0x89Y);
+        self.emitModRmReg(src, dest);
     }
 
     fun retq() {
@@ -178,6 +196,15 @@ class AssemblerX64: Assembler {
 
     fun nop() {
         self.emitByte(0x90Y);
+    }
+
+    fun cdq() {
+        self.emitByte(0x99Y);
+    }
+
+    fun cqo() {
+        self.emitRex64();
+        self.emitByte(0x99Y);
     }
 
     fun emitAlu64Imm(reg: Register, imm: Immediate, modrm_reg: Int, rax_opcode: Byte) {
@@ -212,6 +239,16 @@ class AssemblerX64: Assembler {
         self.emitRex(true, modrm_reg.needsRexBit(), false, modrm_rm.needsRexBit());
     }
 
+    fun emitRex32ModRmOptional(modrm_reg: Register, modrm_rm: Register) {
+        if modrm_reg.needsRexBit() || modrm_rm.needsRexBit() {
+            self.emitRex(false, modrm_reg.needsRexBit(), false, modrm_rm.needsRexBit());
+        }
+    }
+
+    fun emitRex64() {
+        self.emitRex(true, false, false, false);
+    }
+
     fun emitRex(w: Bool, r: Bool, x: Bool, b: Bool) {
         // w - 64-bit width
         // r - extension of modrm-reg field
@@ -221,8 +258,8 @@ class AssemblerX64: Assembler {
         self.emitByte(opcode.toByte());
     }
 
-    fun emitModRmReg(reg: Int, rm: Int) {
-        self.emitModRm(0b11, reg, rm);
+    fun emitModRmReg(reg: Register, rm: Register) {
+        self.emitModRm(0b11, reg.lowBits(), rm.lowBits());
     }
 
     fun emitModRm(mode: Int, reg: Int, rm: Int) {
@@ -312,18 +349,40 @@ class AssemblerX64: Assembler {
     assert(buffer.length() == 6);
 }
 
+@test fun testAsmMovlrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.movlrr(R15, RAX);
+    asm.movlrr(RAX, R15);
+    asm.movlrr(RCX, RAX);
+    let buffer = asm.finalize();
+    asm3(buffer, 0, 0x41Y, 0x89Y, 0xC7Y);
+    asm3(buffer, 3, 0x44Y, 0x89Y, 0xF8Y);
+    asm2(buffer, 6, 0x89Y, 0xC1Y);
+    assert(buffer.length() == 8);
+}
+
 @test fun testAsmAddqrr(_x: Testing) {
     let asm = AssemblerX64();
-    asm.addqrr(RBX, RAX);
-    asm.addqrr(R12, RAX);
+    asm.addqrr(RAX, RBX);
     asm.addqrr(RAX, R12);
-    asm.addqrr(RSP, R15);
+    asm.addqrr(R12, RAX);
+    asm.addqrr(R15, RSP);
     let buffer = asm.finalize();
     asm3(buffer, 0, 0x48Y, 0x01Y, 0xD8Y);
     asm3(buffer, 3, 0x4CY, 0x01Y, 0xE0Y);
     asm3(buffer, 6, 0x49Y, 0x01Y, 0xC4Y);
     asm3(buffer, 9, 0x49Y, 0x01Y, 0xE7Y);
     assert(buffer.length() == 12);
+}
+
+@test fun testAsmAddlrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.addlrr(RAX, RBX);
+    asm.addlrr(RCX, R15);
+    let buffer = asm.finalize();
+    asm2(buffer, 0, 0x01Y, 0xD8Y);
+    asm3(buffer, 2, 0x44Y, 0x01Y, 0xF9Y);
+    assert(buffer.length() == 5);
 }
 
 @test fun testAsmAddqri(_x: Testing) {
@@ -347,8 +406,8 @@ class AssemblerX64: Assembler {
 
 @test fun testAsmSubqrr(_x: Testing) {
     let asm = AssemblerX64();
-    asm.subqrr(RBX, RAX);
-    asm.subqrr(R15, RCX);
+    asm.subqrr(RAX, RBX);
+    asm.subqrr(RCX, R15);
     let buffer = asm.finalize();
     asm3(buffer, 0, 0x48Y, 0x29Y, 0xD8Y);
     asm3(buffer, 3, 0x4CY, 0x29Y, 0xF9Y);
@@ -390,19 +449,40 @@ class AssemblerX64: Assembler {
     assert(buffer.length() == 1);
 }
 
+@test fun testAsmCdqCqo(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.cdq();
+    asm.cqo();
+    let buffer = asm.finalize();
+    asm1(buffer, 0, 0x99Y);
+    assert(buffer.length() == 3);
+}
+
 fun asm1(buffer: Array[Byte], index: Int, val: Byte) {
+    if buffer(index) != val {
+        println("expected ${val.toStringHex()} but got ${buffer(index).toStringHex()}")
+    }
     assert(buffer(index) == val);
 }
 
 fun asm2(buffer: Array[Byte], index: Int, val1: Byte, val2: Byte) {
+    if buffer(index) != val1 || buffer(index+1) != val2 {
+        println("expected ${val1.toStringHex()} ${val2.toStringHex()} but got ${buffer(index).toStringHex()} ${buffer(index+1).toStringHex()}")
+    }
     assert(buffer(index) == val1 && buffer(index+1) == val2);
 }
 
 fun asm3(buffer: Array[Byte], index: Int, val1: Byte, val2: Byte, val3: Byte) {
+    if buffer(index) != val1 || buffer(index+1) != val2 || buffer(index+2) != val3 {
+        println("expected ${val1.toStringHex()} ${val2.toStringHex()} ${val3.toStringHex()} but got ${buffer(index).toStringHex()} ${buffer(index+1).toStringHex()} ${buffer(index+2).toStringHex()}")
+    }
     assert(buffer(index) == val1 && buffer(index+1) == val2 && buffer(index+2) == val3);
 }
 
 fun asm4(buffer: Array[Byte], index: Int, val1: Byte, val2: Byte, val3: Byte, val4: Byte) {
+    if buffer(index) != val1 || buffer(index+1) != val2 || buffer(index+2) != val3 || buffer(index+3) != val4 {
+        println("expected ${val1.toStringHex()} ${val2.toStringHex()} ${val3.toStringHex()} ${val4.toStringHex()} but got ${buffer(index).toStringHex()} ${buffer(index+1).toStringHex()} ${buffer(index+2).toStringHex()} ${buffer(index+3).toStringHex()}")
+    }
     assert(buffer(index) == val1 && buffer(index+1) == val2 && buffer(index+2) == val3 && buffer(index+3) == val4);
 }
 

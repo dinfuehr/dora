@@ -1,3 +1,4 @@
+use crate::asm::Register as AsmRegister;
 use crate::compiler::codegen::ExprStore;
 use crate::compiler::fct::LazyCompilationSite;
 use crate::cpu::*;
@@ -19,6 +20,7 @@ impl MacroAssembler {
     pub fn prolog_size(&mut self, stacksize: i32) {
         self.asm.pushq_r(RBP.into());
         self.asm.movq_rr(RBP.into(), RSP.into());
+        debug_assert!(stacksize as usize % STACK_FRAME_ALIGNMENT == 0);
 
         if stacksize > 0 {
             asm::emit_subq_imm_reg(self, stacksize, RSP);
@@ -63,6 +65,8 @@ impl MacroAssembler {
     }
 
     pub fn increase_stack_frame(&mut self, size: i32) {
+        debug_assert!(size as usize % STACK_FRAME_ALIGNMENT == 0);
+
         if size > 0 {
             asm::emit_subq_imm_reg(self, size, RSP);
         }
@@ -332,19 +336,19 @@ impl MacroAssembler {
 
         if lhs != RAX {
             assert!(rhs != RAX);
-            asm::emit_mov_reg_reg(self, mode.w(), lhs, RAX);
+            self.mov_rr(mode.is64(), RAX.into(), lhs.into());
         }
 
         if mode.w() != 0 {
-            asm::emit_cqo(self);
+            self.asm.cqo();
         } else {
-            asm::emit_cdq(self);
+            self.asm.cdq();
         }
 
         asm::emit_idiv_reg_reg(self, mode.w(), rhs);
 
         if dest != result {
-            asm::emit_mov_reg_reg(self, mode.w(), result, dest);
+            self.mov_rr(mode.is64(), dest.into(), result.into());
         }
     }
 
@@ -352,21 +356,19 @@ impl MacroAssembler {
         asm::emit_imul_reg_reg(self, mode.w(), rhs, lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, mode.w(), lhs, dest);
+            self.mov_rr(mode.is64(), dest.into(), lhs.into());
         }
     }
 
     pub fn int_add(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 | MachineMode::Ptr => 1,
-            _ => unimplemented!(),
-        };
-
-        asm::emit_add_reg_reg(self, x64, rhs, lhs);
+        if mode.is64() {
+            self.asm.addq_rr(lhs.into(), rhs.into());
+        } else {
+            self.asm.addl_rr(lhs.into(), rhs.into());
+        }
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, x64, lhs, dest);
+            self.mov_rr(mode.is64(), dest.into(), lhs.into());
         }
     }
 
@@ -379,15 +381,11 @@ impl MacroAssembler {
             return;
         }
 
-        let x64 = match mode {
-            MachineMode::Int64 | MachineMode::Ptr => 1,
-            _ => unimplemented!(),
-        };
-
+        assert!(mode.is64());
         asm::emit_addq_imm_reg(self, value as i32, lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, x64, lhs, dest);
+            self.mov_rr(mode.is64(), dest.into(), lhs.into());
         }
     }
 
@@ -395,72 +393,72 @@ impl MacroAssembler {
         asm::emit_sub_reg_reg(self, mode.w(), rhs, lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, mode.w(), lhs, dest);
+            self.mov_rr(mode.is64(), dest.into(), lhs.into());
         }
     }
 
     pub fn int_shl(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         if rhs != RCX {
             assert!(lhs != RCX);
-            asm::emit_mov_reg_reg(self, mode.w(), rhs, RCX);
+            self.mov_rr(mode.is64(), RCX.into(), rhs.into());
         }
 
         asm::emit_shl_reg_cl(self, mode.w(), lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, mode.w(), lhs, dest);
+            self.mov_rr(mode.is64(), dest.into(), lhs.into());
         }
     }
 
     pub fn int_shr(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         if rhs != RCX {
             assert!(lhs != RCX);
-            asm::emit_mov_reg_reg(self, mode.w(), rhs, RCX);
+            self.mov_rr(mode.is64(), RCX.into(), rhs.into());
         }
 
         asm::emit_shr_reg_cl(self, mode.w(), lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, mode.w(), lhs, dest);
+            self.mov_rr(mode.is64(), dest.into(), lhs.into());
         }
     }
 
     pub fn int_sar(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         if rhs != RCX {
             assert!(lhs != RCX);
-            asm::emit_mov_reg_reg(self, mode.w(), rhs, RCX);
+            self.mov_rr(mode.is64(), RCX.into(), rhs.into());
         }
 
         asm::emit_sar_reg_cl(self, mode.w(), lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, mode.w(), lhs, dest);
+            self.mov_rr(mode.is64(), dest.into(), lhs.into());
         }
     }
 
     pub fn int_rol(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         if rhs != RCX {
             assert!(lhs != RCX);
-            asm::emit_mov_reg_reg(self, mode.w(), rhs, RCX);
+            self.mov_rr(mode.is64(), RCX.into(), rhs.into());
         }
 
         asm::emit_rol_reg_cl(self, mode.w(), lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, mode.w(), lhs, dest);
+            self.mov_rr(mode.is64(), dest.into(), lhs.into());
         }
     }
 
     pub fn int_ror(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         if rhs != RCX {
             assert!(lhs != RCX);
-            asm::emit_mov_reg_reg(self, mode.w(), rhs, RCX);
+            self.mov_rr(mode.is64(), RCX.into(), rhs.into());
         }
 
         asm::emit_ror_reg_cl(self, mode.w(), lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, mode.w(), lhs, dest);
+            self.mov_rr(mode.is64(), dest.into(), lhs.into());
         }
     }
 
@@ -468,7 +466,7 @@ impl MacroAssembler {
         asm::emit_or_reg_reg(self, mode.w(), rhs, lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, mode.w(), lhs, dest);
+            self.mov_rr(mode.is64(), dest.into(), lhs.into());
         }
     }
 
@@ -476,7 +474,7 @@ impl MacroAssembler {
         asm::emit_and_reg_reg(self, mode.w(), rhs, lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, mode.w(), lhs, dest);
+            self.mov_rr(mode.is64(), dest.into(), lhs.into());
         }
     }
 
@@ -484,7 +482,7 @@ impl MacroAssembler {
         asm::emit_xor_reg_reg(self, mode.w(), rhs, lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, mode.w(), lhs, dest);
+            self.mov_rr(mode.is64(), dest.into(), lhs.into());
         }
     }
 
@@ -784,13 +782,7 @@ impl MacroAssembler {
     }
 
     pub fn copy_reg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
-        let x64 = match mode {
-            MachineMode::Int8 | MachineMode::Int32 => 0,
-            MachineMode::Int64 | MachineMode::Ptr => 1,
-            MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
-        };
-
-        asm::emit_mov_reg_reg(self, x64, src, dest);
+        self.mov_rr(mode.is64(), dest.into(), src.into());
     }
 
     pub fn copy_pc(&mut self, dest: Reg) {
@@ -889,33 +881,29 @@ impl MacroAssembler {
         asm::emit_neg_reg(self, mode.w(), src);
 
         if dest != src {
-            asm::emit_mov_reg_reg(self, mode.w(), src, dest);
+            self.mov_rr(mode.is64(), dest.into(), src.into());
         }
     }
 
     pub fn int_not(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
-        let x64 = match mode {
+        match mode {
             MachineMode::Int8 => {
                 asm::emit_not_reg_byte(self, src);
-                0
             }
 
             MachineMode::Int32 => {
                 asm::emit_not_reg(self, 0, src);
-                0
             }
 
             MachineMode::Int64 => {
                 asm::emit_not_reg(self, 1, src);
-
-                1
             }
 
             _ => unimplemented!(),
         };
 
         if dest != src {
-            asm::emit_mov_reg_reg(self, x64, src, dest);
+            self.mov_rr(mode.is64(), dest.into(), src.into());
         }
     }
 
@@ -924,7 +912,7 @@ impl MacroAssembler {
         asm::emit_andb_imm_reg(self, 1, src);
 
         if dest != src {
-            asm::emit_mov_reg_reg(self, 0, src, dest);
+            self.asm.movl_rr(dest.into(), src.into());
         }
     }
 
@@ -1082,6 +1070,14 @@ impl MacroAssembler {
 
         asm::testl_reg_mem(self, RAX, Mem::Base(*scratch, 0));
     }
+
+    fn mov_rr(&mut self, x64: bool, lhs: AsmRegister, rhs: AsmRegister) {
+        if x64 {
+            self.asm.movq_rr(lhs, rhs);
+        } else {
+            self.asm.movl_rr(lhs, rhs);
+        }
+    }
 }
 
 impl MachineMode {
@@ -1089,6 +1085,14 @@ impl MachineMode {
         match self {
             MachineMode::Int32 => 0,
             MachineMode::Int64 => 1,
+            _ => unreachable!(),
+        }
+    }
+
+    fn is64(self) -> bool {
+        match self {
+            MachineMode::Int8 | MachineMode::Int32 => false,
+            MachineMode::Int64 | MachineMode::Ptr => true,
             _ => unreachable!(),
         }
     }

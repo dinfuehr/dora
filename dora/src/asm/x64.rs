@@ -48,7 +48,7 @@ impl Assembler {
     }
 
     pub fn movq_rr(&mut self, dest: Register, src: Register) {
-        self.emit_rex64(src, dest);
+        self.emit_rex64_modrm(src, dest);
         self.emit_u8(0x89);
         self.emit_modrm_registers(src, dest);
     }
@@ -57,6 +57,27 @@ impl Assembler {
         self.emit_rex32_optional(src, dest);
         self.emit_u8(0x89);
         self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn addq_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex64_modrm(src, dest);
+        self.emit_u8(0x01);
+        self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn addl_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex32_optional(src, dest);
+        self.emit_u8(0x01);
+        self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn cdq(&mut self) {
+        self.emit_u8(0x99);
+    }
+
+    pub fn cqo(&mut self) {
+        self.emit_rex64();
+        self.emit_u8(0x99);
     }
 
     fn emit_rex_optional(&mut self, reg: Register) {
@@ -71,7 +92,11 @@ impl Assembler {
         }
     }
 
-    fn emit_rex64(&mut self, reg: Register, rm: Register) {
+    fn emit_rex64(&mut self) {
+        self.emit_rex(true, false, false, false);
+    }
+
+    fn emit_rex64_modrm(&mut self, reg: Register, rm: Register) {
         self.emit_rex(true, reg.needs_rex(), false, rm.needs_rex());
     }
 
@@ -194,5 +219,25 @@ mod tests {
         assert_emit!(0x41, 0x89, 0xc7; movl_rr(R15, RAX));
         assert_emit!(0x44, 0x89, 0xf8; movl_rr(RAX, R15));
         assert_emit!(0x89, 0xc1; movl_rr(RCX, RAX));
+    }
+
+    #[test]
+    fn test_emit_addq_rr() {
+        assert_emit!(0x48, 0x01, 0xD8; addq_rr(RAX, RBX));
+        assert_emit!(0x4C, 0x01, 0xE0; addq_rr(RAX, R12));
+        assert_emit!(0x49, 0x01, 0xC4; addq_rr(R12, RAX));
+        assert_emit!(0x49, 0x01, 0xE7; addq_rr(R15, RSP));
+    }
+
+    #[test]
+    fn test_emit_addl_rr() {
+        assert_emit!(0x01, 0xd8; addl_rr(RAX, RBX));
+        assert_emit!(0x44, 0x01, 0xf9; addl_rr(RCX, R15));
+    }
+
+    #[test]
+    fn test_cdq_cqo() {
+        assert_emit!(0x99; cdq);
+        assert_emit!(0x48, 0x99; cqo);
     }
 }

@@ -3,7 +3,8 @@
   @internal fun toLong() -> Long;
   @internal fun toString() -> String;
 
-  fun toStringBinary() -> String = String::toStringBinary(self.toLong(), Byte::bits());
+  fun toStringBinary() -> String = String::binary(self.toLong());
+  fun toStringHex() -> String = String::hex(self.toLong());
 
   @internal fun equals(rhs: Byte) -> Bool;
   @internal fun compareTo(rhs: Byte) -> Int;

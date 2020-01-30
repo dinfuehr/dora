@@ -81,14 +81,36 @@
 
   @static fun fromString(val: String) -> String = val.clone();
 
-  @static fun toStringBinary(data: Long, bits: Int) -> String {
-    let array = Array[Byte](bits);
-    var at = array.length() - 1;
-    while (at >= 0) {
-      array(bits - 1 - at) = (('0'.toLong()) + ((data >> at) & 1L)).toByte();
+  @static fun binary(var data: Long) -> String {
+    if data == 0L { return "0"; }
+    let array = Array[Byte](64);
+    var at = array.length();
+    while data != 0L {
+      array(at - 1) = ('0'.toLong() + (data & 1L)).toByte();
+      data = data.shiftRight(1);
       at = at - 1;
     }
-    return try! String::fromBytes(array);
+    return try! String::fromBytesPart(array, at, array.length() - at + 1);
+  }
+
+  @static fun hex(var data: Long) -> String {
+    if data == 0L { return "0"; }
+    let array = Array[Byte](16);
+    var at = array.length();
+    array(at) = '0'.toInt().toByte();
+    while (data != 0L) {
+      let digit = (data & 0xFL).toInt();
+
+      if digit < 10 {
+        array(at - 1) = ('0'.toInt() + digit).toByte();
+      } else {
+        array(at - 1) = ('A'.toInt() + digit - 10).toByte();
+      }
+
+      data = data.shiftRight(4);
+      at = at - 1;
+    }
+    return try! String::fromBytesPart(array, at, array.length() - at + 1);
   }
 
   fun isEmpty() -> Bool = self.length() == 0;
