@@ -1,4 +1,4 @@
-$RUNS = 100
+$RUNS = 1000
 
 success = 0
 failure = 0

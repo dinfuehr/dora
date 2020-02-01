@@ -123,7 +123,7 @@ class TestCase
       position, message = read_error_message(stderr)
 
       return "expected failure (test exited with 0)" if exit_code == 0
-      return "expected failure (#{self.expectation.code} expected but test returned #{exit_code})" if 
+      return "expected failure (#{self.expectation.code} expected but test returned #{status})" if
         self.expectation.code && exit_code != self.expectation.code
   
       return "position does not match (#{position.inspect} != #{self.expectation.position.inspect})" if
