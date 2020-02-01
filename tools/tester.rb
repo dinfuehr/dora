@@ -132,7 +132,7 @@ class TestCase
         self.expectation.message && message != self.expectation.message
   
     elsif exit_code != 0
-      return "expected success (0 expected but test returned #{exit_code})"
+      return "expected success (0 expected but test returned #{status})"
   
     end
   

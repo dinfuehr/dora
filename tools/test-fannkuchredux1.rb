@@ -16,3 +16,4 @@ $RUNS.times.each do
 end
 
 puts "success=#{success} failure=#{failure}"
+exit 1 if failure > 0
