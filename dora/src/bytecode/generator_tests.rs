@@ -1966,6 +1966,24 @@ fn gen_new_object() {
 }
 
 #[test]
+fn gen_new_object_assign_to_var() {
+    gen(
+        "fun f() -> Object { let obj = Object(); return obj; }",
+        |vm, code| {
+            let cls_id = vm.cls_def_by_name("Object");
+            let ctor_id = vm.ctor_by_name("Object");
+            let expected = vec![
+                NewObject(r(1), cls_id),
+                InvokeDirectVoid(ctor_id, r(1), 1),
+                MovPtr(r(0), r(1)),
+                RetPtr(r(0)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
 fn gen_position_new_object() {
     let result = position("fun f() -> Object { return Object(); }");
     let expected = vec![(0, p(1, 34))];

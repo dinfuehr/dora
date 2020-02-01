@@ -528,8 +528,14 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             CallType::Intrinsic(_) => unreachable!(),
         }
 
-        if call_type.is_ctor_new() {
-            start_reg
+        if call_type.is_ctor_new() || call_type.is_ctor() {
+            if dest.is_reg() {
+                let return_reg = self.ensure_register(dest, BytecodeType::Ptr);
+                self.gen.emit_mov_ptr(return_reg, start_reg);
+                return_reg
+            } else {
+                start_reg
+            }
         } else {
             return_reg
         }
@@ -1201,6 +1207,14 @@ impl DataDest {
             DataDest::Effect => false,
             DataDest::Reg(_) => false,
             DataDest::Alloc => true,
+        }
+    }
+
+    fn is_reg(&self) -> bool {
+        match self {
+            DataDest::Effect => false,
+            DataDest::Reg(_) => true,
+            DataDest::Alloc => false,
         }
     }
 
