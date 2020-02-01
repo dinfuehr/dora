@@ -459,6 +459,10 @@ impl Str {
             + self.len() // string content
     }
 
+    pub fn empty(vm: &VM) -> Ref<Str> {
+        str_alloc_heap(vm, 0)
+    }
+
     /// allocates string from buffer in permanent space
     pub fn from_buffer_in_perm(vm: &VM, buf: &[u8]) -> Ref<Str> {
         let mut handle = str_alloc_perm(vm, buf.len());
@@ -493,7 +497,7 @@ impl Str {
         let total_len = val.len();
 
         if offset > total_len {
-            return Ref::null();
+            return str_alloc_heap(vm, 0);
         }
 
         let len = std::cmp::min(total_len - offset, len);
@@ -517,7 +521,7 @@ impl Str {
 
             handle
         } else {
-            Ref::null()
+            str_alloc_heap(vm, 0)
         }
     }
 
