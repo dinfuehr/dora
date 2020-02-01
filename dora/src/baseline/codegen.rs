@@ -2790,8 +2790,13 @@ where
         let skip = if csite.args.len() > 0 && alloc_cls_id.is_some() {
             assert!(csite.args[0].is_selfie_new());
 
-            let reg = REG_PARAMS[reg_idx];
-            let slot = self.emit_allocation(pos, &temps, alloc_cls_id.unwrap(), reg);
+            let slot = self.emit_allocation(pos, &temps, alloc_cls_id.unwrap());
+
+            self.asm.load_mem(
+                MachineMode::Ptr,
+                REG_PARAMS[reg_idx].into(),
+                Mem::Local(slot.offset()),
+            );
 
             // after object allocation we now have a slot and can
             // store it in our `temps` array.
@@ -2934,7 +2939,6 @@ where
         pos: Position,
         temps: &[SlotOrOffset],
         cls_id: ClassDefId,
-        dest: Reg,
     ) -> ManagedStackSlot {
         let cls = self.vm.class_defs.idx(cls_id);
         let cls = cls.read();
@@ -2964,10 +2968,10 @@ where
                 );
 
                 self.asm
-                    .determine_array_size(REG_PARAMS[0], REG_TMP1, esize, true);
+                    .determine_array_size(REG_TMP1, REG_TMP1, esize, true);
 
                 store_length = true;
-                alloc_size = AllocationSize::Dynamic(REG_PARAMS[0]);
+                alloc_size = AllocationSize::Dynamic(REG_TMP1);
             }
 
             InstanceSize::ObjArray if temps.len() > 1 => {
@@ -2978,10 +2982,10 @@ where
                 );
 
                 self.asm
-                    .determine_array_size(REG_PARAMS[0], REG_TMP1, mem::ptr_width(), true);
+                    .determine_array_size(REG_TMP1, REG_TMP1, mem::ptr_width(), true);
 
                 store_length = true;
-                alloc_size = AllocationSize::Dynamic(REG_PARAMS[0]);
+                alloc_size = AllocationSize::Dynamic(REG_TMP1);
             }
 
             InstanceSize::Str if temps.len() > 1 => {
@@ -2991,18 +2995,14 @@ where
                     Mem::Local(temps[1].offset()),
                 );
 
-                self.asm
-                    .determine_array_size(REG_PARAMS[0], REG_TMP1, 1, true);
+                self.asm.determine_array_size(REG_TMP1, REG_TMP1, 1, true);
 
                 store_length = true;
-                alloc_size = AllocationSize::Dynamic(REG_PARAMS[0]);
+                alloc_size = AllocationSize::Dynamic(REG_TMP1);
             }
 
             InstanceSize::Array(_) | InstanceSize::ObjArray | InstanceSize::Str => {
                 let size = Header::size() as usize + mem::ptr_width_usize();
-                self.asm
-                    .load_int_const(MachineMode::Int32, REG_PARAMS[0], size as i64);
-
                 store_length = true;
                 alloc_size = AllocationSize::Fixed(size);
             }
@@ -3014,6 +3014,8 @@ where
             InstanceSize::ObjArray => true,
             _ => false,
         };
+
+        let dest = REG_TMP1;
 
         let gcpoint = self.create_gcpoint();
         self.asm.allocate(dest, alloc_size, pos, array_ref, gcpoint);
@@ -3031,7 +3033,7 @@ where
         let disp = self.asm.add_addr(cptr);
         let pos = self.asm.pos() as i32;
 
-        let temp = if dest == REG_TMP1 { REG_TMP2 } else { REG_TMP1 };
+        let temp = REG_TMP2;
 
         let name = cls.name(self.vm);
         self.asm
@@ -3098,12 +3100,6 @@ where
             // arrays with length 0 do not need to clear any data
             _ => {}
         }
-
-        self.asm.load_mem(
-            MachineMode::Ptr,
-            dest.into(),
-            Mem::Local(temp_slot.offset()),
-        );
 
         temp_slot
     }

@@ -5,7 +5,9 @@ use dora_parser::lexer::position::Position;
 use crate::compiler::codegen::{ensure_native_stub, AllocationSize, ExprStore};
 use crate::compiler::fct::{CatchType, Code, GcPoint, JitDescriptor};
 use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
-use crate::cpu::{FReg, Mem, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1};
+use crate::cpu::{
+    FReg, Mem, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1, REG_TMP2,
+};
 use crate::gc::tlab::TLAB_OBJECT_SIZE;
 use crate::gc::Address;
 use crate::masm::{CondCode, Label, MacroAssembler, ScratchReg};
@@ -648,7 +650,7 @@ where
 
         self.masm.load_mem(
             MachineMode::Ptr,
-            REG_TMP1.into(),
+            (*tlab_next).into(),
             Mem::Base(REG_THREAD, ThreadLocalData::tlab_top_offset()),
         );
 
@@ -658,15 +660,23 @@ where
             Mem::Base(REG_THREAD, ThreadLocalData::tlab_end_offset()),
         );
 
+        let temp;
+
         match size {
             AllocationSize::Fixed(size) => {
-                self.masm.copy_reg(MachineMode::Ptr, *tlab_next, REG_TMP1);
+                temp = REG_TMP1;
+                self.masm.copy_reg(MachineMode::Ptr, temp, *tlab_next);
                 self.masm
                     .int_add_imm(MachineMode::Ptr, *tlab_next, *tlab_next, size as i64);
             }
 
             AllocationSize::Dynamic(reg_size) => {
-                self.masm.copy_reg(MachineMode::Ptr, *tlab_next, REG_TMP1);
+                temp = if reg_size == REG_TMP1 {
+                    REG_TMP2
+                } else {
+                    REG_TMP1
+                };
+                self.masm.copy_reg(MachineMode::Ptr, temp, *tlab_next);
                 self.masm
                     .int_add(MachineMode::Ptr, *tlab_next, *tlab_next, reg_size);
             }
@@ -681,7 +691,10 @@ where
             (*tlab_next).into(),
         );
 
-        self.masm.copy_reg(MachineMode::Ptr, dest, REG_TMP1);
+        if dest != temp {
+            self.masm.copy_reg(MachineMode::Ptr, dest, temp);
+        }
+
         let lbl_return = self.masm.create_label();
         self.masm.bind_label(lbl_return);
 
@@ -764,12 +777,14 @@ where
         gcpoint: GcPoint,
     ) {
         self.masm.bind_label(lbl_start);
+        self.masm.emit_comment("slow path tlab allocation".into());
         self.gc_allocate(dest, size, pos, array_ref, gcpoint);
         self.masm.jump(lbl_return);
     }
 
     fn slow_path_stack_overflow(&mut self, lbl_stack_overflow: Label, pos: Position) {
         self.masm.bind_label(lbl_stack_overflow);
+        self.masm.emit_comment("slow path stack overflow".into());
         self.masm.trap(Trap::STACK_OVERFLOW, pos);
     }
 }
