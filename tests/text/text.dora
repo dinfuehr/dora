@@ -1,0 +1,6 @@
+fun main() {
+  let hallo = Text("hallo ", Locale::de());
+  let welt = Text("welt!", Locale::de());
+
+  hallo + welt;
+}

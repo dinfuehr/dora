@@ -1,0 +1,28 @@
+class Text(let value: String, let locale: Locale) {
+
+  fun plus(rhs: Text) -> Text {
+    if self.locale != rhs.locale {
+      fatalError("locales different");
+    }
+    return Text(self.value + rhs.value, self.locale);
+  }
+
+  fun asString() -> String = self.value;
+
+  fun toString() -> String = "Text(" + self.value + ", " + self.locale.toString() + ")";
+
+  fun asBytes() -> Array[Byte] {
+    unimplemented();
+    return arrayEmpty[Byte]();
+  }
+
+  fun toUpperCase() -> Text {
+    unimplemented();
+    return self;
+  }
+
+  fun toLowerCase() -> Text {
+    unimplemented();
+    return self;
+  }
+}

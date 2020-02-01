@@ -1,0 +1,13 @@
+class Locale(let value: String) {
+  @static fun de() -> Locale = Locale("de");
+  @static fun en() -> Locale = Locale("en");
+  @static fun fr() -> Locale = Locale("fr");
+}
+
+impl Equals for Locale {
+  fun equals(rhs: Locale) -> Bool = self.value == rhs.value;
+}
+
+impl Stringable for Locale {
+  fun toString() -> String = "Locale(" + self.value + ")";
+}
