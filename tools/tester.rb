@@ -103,7 +103,7 @@ class TestCase
     temp_out = Tempfile.new("dora-test-runner")
     cmdline = "target/#{target}/dora #{vm_args} #{optional_vm_args} #{test_file} #{args}"
     stdout, stderr, status = Open3.capture3(cmdline)
-    result = check_test_run_result(stdout, stderr, status.exitstatus)
+    result = check_test_run_result(stdout, stderr, status)
     if $no_capture || result != true
       mutex.synchronize do
         puts "#==== STDOUT"
@@ -116,12 +116,14 @@ class TestCase
     result
   end
 
-  def check_test_run_result(stdout, stderr, exit_code)
+  def check_test_run_result(stdout, stderr, status)
+    exit_code = status.exitstatus
+
     if self.expectation.fail
       position, message = read_error_message(stderr)
 
       return "expected failure (test exited with 0)" if exit_code == 0
-      return "expected failure (#{self.expectation.code} expected but test returned #{exit_code})" if 
+      return "expected failure (#{self.expectation.code} expected but test returned #{status})" if
         self.expectation.code && exit_code != self.expectation.code
   
       return "position does not match (#{position.inspect} != #{self.expectation.position.inspect})" if
@@ -130,7 +132,7 @@ class TestCase
         self.expectation.message && message != self.expectation.message
   
     elsif exit_code != 0
-      return "expected success (0 expected but test returned #{exit_code})"
+      return "expected success (0 expected but test returned #{status})"
   
     end
   
