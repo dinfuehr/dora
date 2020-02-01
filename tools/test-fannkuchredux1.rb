@@ -1,4 +1,4 @@
-$RUNS = 1000
+$RUNS = 20
 
 success = 0
 failure = 0
@@ -6,7 +6,7 @@ failure = 0
 system("cargo build")
 
 $RUNS.times.each do
-    result = system("ruby tools/tester.rb tests/fannkuchredux1.dora")
+    result = system("ruby tools/tester.rb")
 
     if result
         success += 1
