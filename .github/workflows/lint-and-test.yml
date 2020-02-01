@@ -58,3 +58,7 @@ jobs:
       - name: Test Release (Windows)
         if: matrix.kind == 'test' && matrix.os == 'windows-latest'
         run: .\tools\test-release.bat
+      
+      - name: Fannkuch Stress
+        if: matrix.kind == 'test' && matrix.os == 'macOS-latest'
+        run: ruby tools/test-fannkuchredux1.rb
