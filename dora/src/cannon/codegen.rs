@@ -15,7 +15,7 @@ use crate::mem;
 use crate::object::{Header, Str};
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, MachineMode, TypeList};
-use crate::vm::{ClassDefId, Fct, FctId, FctKind, FctSrc, FieldId, GlobalId, VM};
+use crate::vm::{ClassDefId, Fct, FctId, FctKind, FctSrc, FieldId, GlobalId, Trap, VM};
 use crate::vtable::VTable;
 
 struct ForwardJump {
@@ -1127,8 +1127,20 @@ where
         num: u32,
         bytecode_type: Option<BytecodeType>,
     ) -> ExprStore {
-        assert_eq!(self.bytecode.register_type(start_reg), BytecodeType::Ptr);
         assert!(num > 0);
+
+        let bytecode_type_self = self.bytecode.register_type(start_reg);
+        let offset_self = self.bytecode.register_offset(start_reg);
+        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+        assert_eq!(bytecode_type_self, BytecodeType::Ptr);
+
+        self.asm.load_mem(
+            bytecode_type_self.mode(),
+            REG_RESULT.into(),
+            Mem::Local(offset_self),
+        );
+        self.asm
+            .test_if_nil_bailout(position, REG_RESULT.into(), Trap::NIL);
 
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
@@ -1145,7 +1157,6 @@ where
         self.asm.emit_comment(format!("call direct {}", name));
         let ptr = self.ptr_for_fct_id(fct_id, cls_type_params.clone(), fct_type_params.clone());
         let gcpoint = GcPoint::from_offsets(self.references.clone());
-        let position = self.bytecode.offset_position(self.current_offset.to_u32());
 
         let (reg, ty) = match bytecode_type {
             Some(bytecode_type) => (result_reg(bytecode_type), bytecode_type.into()),
