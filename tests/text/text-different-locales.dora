@@ -1,0 +1,11 @@
+//= error code 1
+//= stderr "fatal error: locales different\n3: fatalError(String): 1\n2: Text.plus(Text) -> Text: 5\n1: main(): 10\n"
+
+fun main() {
+  let en = Locale("en");
+  let de = Locale("de");
+  let hello = Text("hello ", en);
+  let welt = Text("welt!", de);
+
+  hello + welt;
+}
