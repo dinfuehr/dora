@@ -424,18 +424,18 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             Register::zero()
         };
         self.gen.set_position(expr.pos);
-        let arg_start_reg = if let CallType::CtorNew(ty, _) = &*call_type {
-            let cls_id = specialize_class_ty(self.vm, *ty);
-            self.gen.emit_new_object(start_reg, cls_id);
-            start_reg.offset(1)
-        } else if callee.has_self() {
-            let self_id = self.src.var_self().id;
-            let self_reg = self.var_reg(self_id);
-
-            self.gen.emit_mov_ptr(start_reg, self_reg);
-            start_reg.offset(1)
-        } else {
-            start_reg
+        let arg_start_reg = match *call_type {
+            CallType::CtorNew(ty, _) => {
+                let cls_id = specialize_class_ty(self.vm, ty);
+                self.gen.emit_new_object(start_reg, cls_id);
+                start_reg.offset(1)
+            }
+            CallType::Method(_, _, _) => {
+                let obj_expr = expr.object().expect("method target required");
+                self.visit_expr(obj_expr, DataDest::Reg(start_reg));
+                start_reg.offset(1)
+            }
+            _ => start_reg,
         };
 
         for (idx, arg) in expr.args.iter().enumerate() {
