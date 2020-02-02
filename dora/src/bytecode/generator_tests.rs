@@ -772,16 +772,51 @@ fn gen_expr_test_notequal_bool() {
 }
 
 #[test]
-fn gen_expr_test_equal_int() {
-    let result = code("fun f(a: Int, b: Int) -> Bool { return a == b; }");
-    let expected = vec![TestEqInt(r(2), r(0), r(1)), RetBool(r(2))];
+fn gen_expr_test_equal_byte() {
+    let result = code("fun f(a: Byte, b: Byte) -> Bool { return a == b; }");
+    let expected = vec![TestEqByte(r(2), r(0), r(1)), RetBool(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
-fn gen_expr_test_equal_float() {
-    let result = code("fun f(a: Float, b: Float) -> Bool { return a == b; }");
-    let expected = vec![TestEqFloat(r(2), r(0), r(1)), RetBool(r(2))];
+fn gen_expr_test_notequal_byte() {
+    let result = code("fun f(a: Byte, b: Byte) -> Bool { return a != b; }");
+    let expected = vec![TestNeByte(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_lessthan_byte() {
+    let result = code("fun f(a: Byte, b: Byte) -> Bool { return a < b; }");
+    let expected = vec![TestLtByte(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_lessthanequal_byte() {
+    let result = code("fun f(a: Byte, b: Byte) -> Bool { return a <= b; }");
+    let expected = vec![TestLeByte(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_greaterthan_byte() {
+    let result = code("fun f(a: Byte, b: Byte) -> Bool { return a > b; }");
+    let expected = vec![TestGtByte(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_greaterthanequal_byte() {
+    let result = code("fun f(a: Byte, b: Byte) -> Bool { return a >= b; }");
+    let expected = vec![TestGeByte(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_equal_int() {
+    let result = code("fun f(a: Int, b: Int) -> Bool { return a == b; }");
+    let expected = vec![TestEqInt(r(2), r(0), r(1)), RetBool(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -793,23 +828,9 @@ fn gen_expr_test_notequal_int() {
 }
 
 #[test]
-fn gen_expr_test_notequal_float() {
-    let result = code("fun f(a: Float, b: Float) -> Bool { return a != b; }");
-    let expected = vec![TestNeFloat(r(2), r(0), r(1)), RetBool(r(2))];
-    assert_eq!(expected, result);
-}
-
-#[test]
 fn gen_expr_test_lessthan_int() {
     let result = code("fun f(a: Int, b: Int) -> Bool { return a < b; }");
     let expected = vec![TestLtInt(r(2), r(0), r(1)), RetBool(r(2))];
-    assert_eq!(expected, result);
-}
-
-#[test]
-fn gen_expr_test_lessthan_float() {
-    let result = code("fun f(a: Float, b: Float) -> Bool { return a < b; }");
-    let expected = vec![TestLtFloat(r(2), r(0), r(1)), RetBool(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -821,13 +842,6 @@ fn gen_expr_test_lessthanequal_int() {
 }
 
 #[test]
-fn gen_expr_test_lessthanequal_float() {
-    let result = code("fun f(a: Float, b: Float) -> Bool { return a <= b; }");
-    let expected = vec![TestLeFloat(r(2), r(0), r(1)), RetBool(r(2))];
-    assert_eq!(expected, result);
-}
-
-#[test]
 fn gen_expr_test_greaterthan_int() {
     let result = code("fun f(a: Int, b: Int) -> Bool { return a > b; }");
     let expected = vec![TestGtInt(r(2), r(0), r(1)), RetBool(r(2))];
@@ -835,16 +849,44 @@ fn gen_expr_test_greaterthan_int() {
 }
 
 #[test]
-fn gen_expr_test_greaterthan_float() {
-    let result = code("fun f(a: Float, b: Float) -> Bool { return a > b; }");
-    let expected = vec![TestGtFloat(r(2), r(0), r(1)), RetBool(r(2))];
+fn gen_expr_test_greaterthanequal_int() {
+    let result = code("fun f(a: Int, b: Int) -> Bool { return a >= b; }");
+    let expected = vec![TestGeInt(r(2), r(0), r(1)), RetBool(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
-fn gen_expr_test_greaterthanequal_int() {
-    let result = code("fun f(a: Int, b: Int) -> Bool { return a >= b; }");
-    let expected = vec![TestGeInt(r(2), r(0), r(1)), RetBool(r(2))];
+fn gen_expr_test_equal_float() {
+    let result = code("fun f(a: Float, b: Float) -> Bool { return a == b; }");
+    let expected = vec![TestEqFloat(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_notequal_float() {
+    let result = code("fun f(a: Float, b: Float) -> Bool { return a != b; }");
+    let expected = vec![TestNeFloat(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_lessthan_float() {
+    let result = code("fun f(a: Float, b: Float) -> Bool { return a < b; }");
+    let expected = vec![TestLtFloat(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_lessthanequal_float() {
+    let result = code("fun f(a: Float, b: Float) -> Bool { return a <= b; }");
+    let expected = vec![TestLeFloat(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_greaterthan_float() {
+    let result = code("fun f(a: Float, b: Float) -> Bool { return a > b; }");
+    let expected = vec![TestGtFloat(r(2), r(0), r(1)), RetBool(r(2))];
     assert_eq!(expected, result);
 }
 
