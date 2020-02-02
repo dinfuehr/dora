@@ -814,6 +814,48 @@ fn gen_expr_test_greaterthanequal_byte() {
 }
 
 #[test]
+fn gen_expr_test_equal_char() {
+    let result = code("fun f(a: Char, b: Char) -> Bool { return a == b; }");
+    let expected = vec![TestEqChar(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_notequal_char() {
+    let result = code("fun f(a: Char, b: Char) -> Bool { return a != b; }");
+    let expected = vec![TestNeChar(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_lessthan_char() {
+    let result = code("fun f(a: Char, b: Char) -> Bool { return a < b; }");
+    let expected = vec![TestLtChar(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_lessthanequal_char() {
+    let result = code("fun f(a: Char, b: Char) -> Bool { return a <= b; }");
+    let expected = vec![TestLeChar(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_greaterthan_char() {
+    let result = code("fun f(a: Char, b: Char) -> Bool { return a > b; }");
+    let expected = vec![TestGtChar(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_greaterthanequal_char() {
+    let result = code("fun f(a: Char, b: Char) -> Bool { return a >= b; }");
+    let expected = vec![TestGeChar(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
 fn gen_expr_test_equal_int() {
     let result = code("fun f(a: Int, b: Int) -> Bool { return a == b; }");
     let expected = vec![TestEqInt(r(2), r(0), r(1)), RetBool(r(2))];
