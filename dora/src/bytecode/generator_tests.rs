@@ -1111,6 +1111,29 @@ fn gen_fct_call_int_with_3_args() {
 }
 
 #[test]
+fn gen_method_call_void_check_correct_self() {
+    gen(
+        "
+            fun f(i: Int, foo: Foo) { foo.g(); }
+            class Foo {
+                fun g() { }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(1)),
+                InvokeDirectVoid(fct_id, r(2), 1),
+                RetVoid,
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
 fn gen_method_call_void_with_0_args() {
     gen(
         "
