@@ -1,0 +1,50 @@
+fun main() {    
+    assert(!eq('2', '5'));
+    assert(eq('5', '5'));
+    assert(!eq('5', '2'));
+
+    assert(ne('2', '5'));
+    assert(!ne('5', '5'));
+    assert(ne('5', '2'));
+
+
+    assert(!lt('7', '5'));
+    assert(!lt('5', '5'));
+    assert(lt('5', '7'));
+
+    assert(!le('7', '5'));
+    assert(le('5', '5'));
+    assert(le('5', '7'));
+
+    assert(ge('7', '5'));
+    assert(ge('5', '5'));
+    assert(!ge('5', '7'));
+
+    assert(gt('7', '5'));
+    assert(!gt('5', '5'));
+    assert(!gt('5', '7'));
+}
+
+@cannon fun eq(x: Char, y: Char) -> Bool {
+    return x == y;
+}
+
+@cannon fun ne(x: Char, y: Char) -> Bool {
+    return x != y;
+}
+
+@cannon fun lt(x: Char, y: Char) -> Bool {
+    return x < y;
+}
+
+@cannon fun le(x: Char, y: Char) -> Bool {
+    return x <= y;
+}
+
+@cannon fun ge(x: Char, y: Char) -> Bool {
+    return x >= y;
+}
+
+@cannon fun gt(x: Char, y: Char) -> Bool {
+    return x > y;
+}

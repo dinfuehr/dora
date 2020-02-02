@@ -508,6 +508,10 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestEqByte, dest, lhs, rhs);
     }
 
+    pub fn emit_test_eq_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestEqChar, dest, lhs, rhs);
+    }
+
     pub fn emit_test_eq_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::TestEqInt, dest, lhs, rhs);
     }
@@ -528,6 +532,10 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestNeByte, dest, lhs, rhs);
     }
 
+    pub fn emit_test_ne_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestNeChar, dest, lhs, rhs);
+    }
+
     pub fn emit_test_ne_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::TestNeInt, dest, lhs, rhs);
     }
@@ -544,6 +552,10 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestGtByte, dest, lhs, rhs);
     }
 
+    pub fn emit_test_gt_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestGtChar, dest, lhs, rhs);
+    }
+
     pub fn emit_test_gt_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::TestGtInt, dest, lhs, rhs);
     }
@@ -554,6 +566,10 @@ impl BytecodeWriter {
 
     pub fn emit_test_ge_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::TestGeByte, dest, lhs, rhs);
+    }
+
+    pub fn emit_test_ge_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestGeChar, dest, lhs, rhs);
     }
 
     pub fn emit_test_ge_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -568,6 +584,10 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestLtByte, dest, lhs, rhs);
     }
 
+    pub fn emit_test_lt_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestLtChar, dest, lhs, rhs);
+    }
+
     pub fn emit_test_lt_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::TestLtInt, dest, lhs, rhs);
     }
@@ -578,6 +598,10 @@ impl BytecodeWriter {
 
     pub fn emit_test_le_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::TestLeByte, dest, lhs, rhs);
+    }
+
+    pub fn emit_test_le_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestLeChar, dest, lhs, rhs);
     }
 
     pub fn emit_test_le_int(&mut self, dest: Register, lhs: Register, rhs: Register) {

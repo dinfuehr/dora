@@ -219,6 +219,13 @@ pub enum BytecodeOpcode {
     TestLtByte,
     TestLeByte,
 
+    TestEqChar,
+    TestNeChar,
+    TestGtChar,
+    TestGeChar,
+    TestLtChar,
+    TestLeChar,
+
     TestEqInt,
     TestNeInt,
     TestGtInt,

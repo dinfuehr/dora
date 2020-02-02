@@ -537,6 +537,25 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg3("TestLeByte", dest, lhs, rhs);
     }
 
+    fn visit_test_eq_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestEqChar", dest, lhs, rhs);
+    }
+    fn visit_test_ne_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestNeChar", dest, lhs, rhs);
+    }
+    fn visit_test_gt_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestGtByte", dest, lhs, rhs);
+    }
+    fn visit_test_ge_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestGeChar", dest, lhs, rhs);
+    }
+    fn visit_test_lt_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestLtChar", dest, lhs, rhs);
+    }
+    fn visit_test_le_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestLeChar", dest, lhs, rhs);
+    }
+
     fn visit_test_eq_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("TestEqInt", dest, lhs, rhs);
     }
