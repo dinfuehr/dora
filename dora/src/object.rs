@@ -13,6 +13,7 @@ use crate::gc::Address;
 use crate::handle::{root, Handle};
 use crate::mem;
 use crate::size::InstanceSize;
+use crate::stdlib::throw_native;
 use crate::vm::{ClassDefId, VM};
 use crate::vtable::VTable;
 
@@ -497,7 +498,8 @@ impl Str {
         let total_len = val.len();
 
         if offset > total_len {
-            return str_alloc_heap(vm, 0);
+            throw_native();
+            return Ref::null();
         }
 
         let len = std::cmp::min(total_len - offset, len);
@@ -521,7 +523,8 @@ impl Str {
 
             handle
         } else {
-            str_alloc_heap(vm, 0)
+            throw_native();
+            Ref::null()
         }
     }
 
