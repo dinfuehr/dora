@@ -1,3 +1,4 @@
+//= cannon
 fun main() {
   let obj = Foo(1);
   assert(obj.a == 1);
