@@ -3,7 +3,10 @@ use std::mem::size_of;
 use crate::compiler;
 use crate::compiler::fct::{Code, JitDescriptor, JitFct, LazyCompilationSite};
 use crate::compiler::map::CodeDescriptor;
-use crate::cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1};
+use crate::cpu::{
+    Mem, CCALL_REG_PARAMS, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD,
+    REG_TMP1,
+};
 use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
 use crate::masm::MacroAssembler;
@@ -116,12 +119,12 @@ where
         // invoke the compiler for the call site
         self.masm.load_mem(
             MachineMode::Ptr,
-            REG_PARAMS[0].into(),
+            CCALL_REG_PARAMS[0].into(),
             Mem::Base(REG_FP, mem::ptr_width()),
         );
         self.masm.load_mem(
             MachineMode::Ptr,
-            REG_PARAMS[1].into(),
+            CCALL_REG_PARAMS[1].into(),
             Mem::Base(REG_SP, offset_params),
         );
         self.masm.raw_call(compile_request as *const u8);
