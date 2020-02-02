@@ -1,5 +1,5 @@
 class BitSet(capacity: Int) {
-    var data: Array[Int] = nil;
+    var data: Array[Int] = arrayEmpty[Int]();
     var capacity: Int = 0;
 
     if capacity > 0 {

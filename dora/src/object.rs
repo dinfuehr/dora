@@ -13,6 +13,7 @@ use crate::gc::Address;
 use crate::handle::{root, Handle};
 use crate::mem;
 use crate::size::InstanceSize;
+use crate::stdlib::throw_native;
 use crate::vm::{ClassDefId, VM};
 use crate::vtable::VTable;
 
@@ -459,6 +460,10 @@ impl Str {
             + self.len() // string content
     }
 
+    pub fn empty(vm: &VM) -> Ref<Str> {
+        str_alloc_heap(vm, 0)
+    }
+
     /// allocates string from buffer in permanent space
     pub fn from_buffer_in_perm(vm: &VM, buf: &[u8]) -> Ref<Str> {
         let mut handle = str_alloc_perm(vm, buf.len());
@@ -493,6 +498,7 @@ impl Str {
         let total_len = val.len();
 
         if offset > total_len {
+            throw_native();
             return Ref::null();
         }
 
@@ -517,6 +523,7 @@ impl Str {
 
             handle
         } else {
+            throw_native();
             Ref::null()
         }
     }

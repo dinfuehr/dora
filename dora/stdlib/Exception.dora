@@ -1,9 +1,9 @@
 @open class Exception(msg: String): Throwable(msg) {
   @override fun printStackTrace() {
-    if super.getMessage() !== nil {
-      println("Exception: " + super.getMessage());
-    } else {
+    if super.getMessage().isEmpty() {
       println("Exception");
+    } else {
+      println("Exception: " + super.getMessage());
     }
 
     let x = self.getStackTrace();

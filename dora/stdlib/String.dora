@@ -46,37 +46,31 @@
   @internal fun getByte(idx: Int) -> Byte;
   @internal fun clone() -> String;
 
-  @internal @static fun fromBytesPartOrNull(val: Array[Byte], offset: Int, len: Int) -> String;
-  @internal @static fun fromStringPartOrNull(val: String, offset: Int, len: Int) -> String;
+  @internal @static fun fromBytesPartOrNull(val: Array[Byte], offset: Int, len: Int) throws -> String;
+  @internal @static fun fromStringPartOrNull(val: String, offset: Int, len: Int) throws -> String;
 
-  @static fun fromBytesPart(val: Array[Byte], offset: Int, len: Int) throws -> String {
-    let str = String::fromBytesPartOrNull(val, offset, len);
-
-    if str === nil {
-      throw "invalid utf-8 encoding.";
+  @static fun fromBytesPart(val: Array[Byte], offset: Int, len: Int) -> Option[String] {
+    do {
+      return some[String](try String::fromBytesPartOrNull(val, offset, len));
+    } catch e: Exception {
+      return none[String]();
     }
-
-    return str;
   }
 
-  @static fun fromBytes(val: Array[Byte]) throws -> String {
-    let str = String::fromBytesPartOrNull(val, 0, val.length());
-
-    if str === nil {
-      throw "invalid utf-8 encoding.";
+  @static fun fromBytes(val: Array[Byte]) -> Option[String] {
+    do {
+      return some[String](try String::fromBytesPartOrNull(val, 0, val.length()));
+    } catch e: Exception {
+      return none[String]();
     }
-
-    return str;
   }
 
-  @static fun fromStringPart(val: String, offset: Int, len: Int) throws -> String {
-    let str = String::fromStringPartOrNull(val, offset, len);
-
-    if str === nil {
-      throw "invalid utf-8 encoding.";
+  @static fun fromStringPart(val: String, offset: Int, len: Int) -> Option[String] {
+    do {
+      return some[String](try String::fromStringPartOrNull(val, offset, len));
+    } catch e: Exception {
+      return none[String]();
     }
-
-    return str;
   }
 
   @static fun fromString(val: String) -> String = val.clone();
@@ -90,7 +84,7 @@
       data = data.shiftRight(1);
       at = at - 1;
     }
-    return try! String::fromBytesPart(array, at, array.length() - at + 1);
+    return String::fromBytesPart(array, at, array.length() - at + 1).unwrap();
   }
 
   @static fun hex(var data: Long) -> String {
@@ -110,7 +104,7 @@
       data = data.shiftRight(4);
       at = at - 1;
     }
-    return try! String::fromBytesPart(array, at, array.length() - at + 1);
+    return String::fromBytesPart(array, at, array.length() - at + 1).unwrap();
   }
 
   fun isEmpty() -> Bool = self.length() == 0;
@@ -171,6 +165,5 @@ class StringCodePointIterator(let value: String, var ind: Int) {
         return i;
     }
 
-    fun toString() -> String =
-        try! String::fromStringPart(self.value, self.ind, self.value.length() - self.ind);
+    fun toString() -> String = String::fromStringPart(self.value, self.ind, self.value.length() - self.ind).unwrap();
 }

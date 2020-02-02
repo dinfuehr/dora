@@ -68,5 +68,5 @@ class StringBuffer(var buf: Array[Byte], var len: Int) {
     return self;
   }
 
-  fun toString() -> String = try! String::fromBytesPart(self.buf, 0, self.length());
+  fun toString() -> String = String::fromBytesPart(self.buf, 0, self.length()).unwrap();
 }
