@@ -1,3 +1,4 @@
+//= cannon
 fun main() {
   let f = Foo(12);
   var a1 = f.a1();
