@@ -2387,6 +2387,13 @@ pub enum Bytecode {
     TestEqBool(Register, Register, Register),
     TestNeBool(Register, Register, Register),
 
+    TestEqByte(Register, Register, Register),
+    TestNeByte(Register, Register, Register),
+    TestGtByte(Register, Register, Register),
+    TestGeByte(Register, Register, Register),
+    TestLtByte(Register, Register, Register),
+    TestLeByte(Register, Register, Register),
+
     TestEqInt(Register, Register, Register),
     TestNeInt(Register, Register, Register),
     TestGtInt(Register, Register, Register),
@@ -2940,12 +2947,33 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_test_ne_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::TestNePtr(dest, lhs, rhs));
     }
+
     fn visit_test_eq_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::TestEqBool(dest, lhs, rhs));
     }
     fn visit_test_ne_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::TestNeBool(dest, lhs, rhs));
     }
+
+    fn visit_test_eq_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestEqByte(dest, lhs, rhs));
+    }
+    fn visit_test_ne_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestNeByte(dest, lhs, rhs));
+    }
+    fn visit_test_gt_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestGtByte(dest, lhs, rhs));
+    }
+    fn visit_test_ge_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestGeByte(dest, lhs, rhs));
+    }
+    fn visit_test_lt_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestLtByte(dest, lhs, rhs));
+    }
+    fn visit_test_le_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestLeByte(dest, lhs, rhs));
+    }
+
     fn visit_test_eq_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::TestEqInt(dest, lhs, rhs));
     }

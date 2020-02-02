@@ -597,6 +597,42 @@ where
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_ne_bool(dest, lhs, rhs);
             }
+            BytecodeOpcode::TestEqByte => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_test_eq_byte(dest, lhs, rhs);
+            }
+            BytecodeOpcode::TestNeByte => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_test_ne_byte(dest, lhs, rhs);
+            }
+            BytecodeOpcode::TestGtByte => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_test_gt_byte(dest, lhs, rhs);
+            }
+            BytecodeOpcode::TestGeByte => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_test_ge_byte(dest, lhs, rhs);
+            }
+            BytecodeOpcode::TestLtByte => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_test_lt_byte(dest, lhs, rhs);
+            }
+            BytecodeOpcode::TestLeByte => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_test_le_byte(dest, lhs, rhs);
+            }
             BytecodeOpcode::TestEqInt => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
@@ -633,7 +669,6 @@ where
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_le_int(dest, lhs, rhs);
             }
-
             BytecodeOpcode::TestEqLong => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
@@ -1513,6 +1548,25 @@ pub trait BytecodeVisitor {
     fn visit_test_ne_bool(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
+    fn visit_test_eq_byte(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_ne_byte(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_gt_byte(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_ge_byte(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_lt_byte(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_le_byte(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+
     fn visit_test_eq_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }

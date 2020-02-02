@@ -880,6 +880,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             | Intrinsic::FloatDiv
             | Intrinsic::FloatMul => BytecodeType::Float,
             Intrinsic::BoolEq
+            | Intrinsic::ByteEq
+            | Intrinsic::ByteCmp
             | Intrinsic::IntEq
             | Intrinsic::IntCmp
             | Intrinsic::FloatEq
@@ -904,17 +906,18 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 BinOp::Cmp(CmpOp::Ne) => self.gen.emit_test_ne_bool(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
-            Intrinsic::IntAdd => self.gen.emit_add_int(dest, lhs_reg, rhs_reg),
-            Intrinsic::IntSub => self.gen.emit_sub_int(dest, lhs_reg, rhs_reg),
-            Intrinsic::IntMul => self.gen.emit_mul_int(dest, lhs_reg, rhs_reg),
-            Intrinsic::IntDiv => self.gen.emit_div_int(dest, lhs_reg, rhs_reg),
-            Intrinsic::IntMod => self.gen.emit_mod_int(dest, lhs_reg, rhs_reg),
-            Intrinsic::IntOr => self.gen.emit_or_int(dest, lhs_reg, rhs_reg),
-            Intrinsic::IntAnd => self.gen.emit_and_int(dest, lhs_reg, rhs_reg),
-            Intrinsic::IntXor => self.gen.emit_xor_int(dest, lhs_reg, rhs_reg),
-            Intrinsic::IntShl => self.gen.emit_shl_int(dest, lhs_reg, rhs_reg),
-            Intrinsic::IntShr => self.gen.emit_shr_int(dest, lhs_reg, rhs_reg),
-            Intrinsic::IntSar => self.gen.emit_sar_int(dest, lhs_reg, rhs_reg),
+            Intrinsic::ByteEq => match op {
+                BinOp::Cmp(CmpOp::Eq) => self.gen.emit_test_eq_byte(dest, lhs_reg, rhs_reg),
+                BinOp::Cmp(CmpOp::Ne) => self.gen.emit_test_ne_byte(dest, lhs_reg, rhs_reg),
+                _ => unreachable!(),
+            },
+            Intrinsic::ByteCmp => match op {
+                BinOp::Cmp(CmpOp::Lt) => self.gen.emit_test_lt_byte(dest, lhs_reg, rhs_reg),
+                BinOp::Cmp(CmpOp::Le) => self.gen.emit_test_le_byte(dest, lhs_reg, rhs_reg),
+                BinOp::Cmp(CmpOp::Gt) => self.gen.emit_test_gt_byte(dest, lhs_reg, rhs_reg),
+                BinOp::Cmp(CmpOp::Ge) => self.gen.emit_test_ge_byte(dest, lhs_reg, rhs_reg),
+                _ => unreachable!(),
+            },
             Intrinsic::IntEq => match op {
                 BinOp::Cmp(CmpOp::Eq) => self.gen.emit_test_eq_int(dest, lhs_reg, rhs_reg),
                 BinOp::Cmp(CmpOp::Ne) => self.gen.emit_test_ne_int(dest, lhs_reg, rhs_reg),
