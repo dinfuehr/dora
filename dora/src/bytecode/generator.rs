@@ -1211,14 +1211,6 @@ impl DataDest {
         }
     }
 
-    fn is_reg(&self) -> bool {
-        match self {
-            DataDest::Effect => false,
-            DataDest::Reg(_) => true,
-            DataDest::Alloc => false,
-        }
-    }
-
     fn reg(&self) -> Register {
         match self {
             DataDest::Effect | DataDest::Alloc => panic!("not a register"),
