@@ -111,6 +111,7 @@ class TestCase
         puts "#==== STDERR"
         puts stderr unless stdout.empty?
         puts "RUN: #{cmdline}"
+        STDOUT.flush
       end
     end
     result
@@ -163,14 +164,18 @@ end
 def number_processors
   return $processors if $processors > 0
 
-  num = num_from_shell("nproc --all")
-  return num if num > 0
+  case $RUBY_PLATFORM
+  when /linux/
+    num = num_from_shell("nproc --all")
+    return num if num > 0
 
-  num = num_from_shell("grep -c ^processor /proc/cpuinfo")
-  return num if num > 0
+    num = num_from_shell("grep -c ^processor /proc/cpuinfo")
+    return num if num > 0
 
-  num = num_from_shell("sysctl -n hw.ncpu")
-  return num if num > 0
+  when /darwin/
+    num = num_from_shell("sysctl -n hw.ncpu")
+    return num if num > 0
+  end
 
   1
 end
@@ -221,6 +226,7 @@ def run_tests
 
         mutex.synchronize do
           test_case.print_results
+          STDOUT.flush
 
         end
       end
