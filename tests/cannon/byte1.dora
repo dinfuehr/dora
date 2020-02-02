@@ -1,0 +1,50 @@
+fun main() {    
+    assert(!eq(20Y, 5Y));
+    assert(eq(5Y, 5Y));
+    assert(!eq(5Y, 20Y));
+
+    assert(ne(20Y, 5Y));
+    assert(!ne(5Y, 5Y));
+    assert(ne(5Y, 20Y));
+
+
+    assert(!lt(20Y, 5Y));
+    assert(!lt(5Y, 5Y));
+    assert(lt(5Y, 20Y));
+
+    assert(!le(20Y, 5Y));
+    assert(le(5Y, 5Y));
+    assert(le(5Y, 20Y));
+
+    assert(ge(20Y, 5Y));
+    assert(ge(5Y, 5Y));
+    assert(!ge(5Y, 20Y));
+
+    assert(gt(20Y, 5Y));
+    assert(!gt(5Y, 5Y));
+    assert(!gt(5Y, 20Y));
+}
+
+@cannon fun eq(x: Byte, y: Byte) -> Bool {
+    return x == y;
+}
+
+@cannon fun ne(x: Byte, y: Byte) -> Bool {
+    return x != y;
+}
+
+@cannon fun lt(x: Byte, y: Byte) -> Bool {
+    return x < y;
+}
+
+@cannon fun le(x: Byte, y: Byte) -> Bool {
+    return x <= y;
+}
+
+@cannon fun ge(x: Byte, y: Byte) -> Bool {
+    return x >= y;
+}
+
+@cannon fun gt(x: Byte, y: Byte) -> Bool {
+    return x > y;
+}
