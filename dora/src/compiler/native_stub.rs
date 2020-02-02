@@ -108,7 +108,7 @@ where
             16,
         );
 
-        if self.dbg {
+        if self.dbg || self.vm.args.flag_emit_debug_native {
             self.masm.debug();
         }
 
