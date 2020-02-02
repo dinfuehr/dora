@@ -531,10 +531,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         if call_type.is_ctor_new() || call_type.is_ctor() {
             match dest {
                 DataDest::Effect => Register::invalid(),
-                DataDest::Reg(_) => {
-                    let return_reg = self.ensure_register(dest, BytecodeType::Ptr);
-                    self.gen.emit_mov_ptr(return_reg, start_reg);
-                    return_reg
+                DataDest::Reg(reg) => {
+                    self.gen.emit_mov_ptr(reg, start_reg);
+                    reg
                 }
                 DataDest::Alloc => start_reg,
             }
