@@ -2436,6 +2436,13 @@ pub enum Bytecode {
     TestLtByte(Register, Register, Register),
     TestLeByte(Register, Register, Register),
 
+    TestEqChar(Register, Register, Register),
+    TestNeChar(Register, Register, Register),
+    TestGtChar(Register, Register, Register),
+    TestGeChar(Register, Register, Register),
+    TestLtChar(Register, Register, Register),
+    TestLeChar(Register, Register, Register),
+
     TestEqInt(Register, Register, Register),
     TestNeInt(Register, Register, Register),
     TestGtInt(Register, Register, Register),
@@ -3014,6 +3021,25 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_test_le_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::TestLeByte(dest, lhs, rhs));
+    }
+
+    fn visit_test_eq_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestEqChar(dest, lhs, rhs));
+    }
+    fn visit_test_ne_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestNeChar(dest, lhs, rhs));
+    }
+    fn visit_test_gt_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestGtChar(dest, lhs, rhs));
+    }
+    fn visit_test_ge_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestGeChar(dest, lhs, rhs));
+    }
+    fn visit_test_lt_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestLtChar(dest, lhs, rhs));
+    }
+    fn visit_test_le_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestLeChar(dest, lhs, rhs));
     }
 
     fn visit_test_eq_int(&mut self, dest: Register, lhs: Register, rhs: Register) {

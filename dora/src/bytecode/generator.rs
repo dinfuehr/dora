@@ -882,6 +882,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             Intrinsic::BoolEq
             | Intrinsic::ByteEq
             | Intrinsic::ByteCmp
+            | Intrinsic::CharEq
+            | Intrinsic::CharCmp
             | Intrinsic::IntEq
             | Intrinsic::IntCmp
             | Intrinsic::FloatEq
@@ -916,6 +918,18 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 BinOp::Cmp(CmpOp::Le) => self.gen.emit_test_le_byte(dest, lhs_reg, rhs_reg),
                 BinOp::Cmp(CmpOp::Gt) => self.gen.emit_test_gt_byte(dest, lhs_reg, rhs_reg),
                 BinOp::Cmp(CmpOp::Ge) => self.gen.emit_test_ge_byte(dest, lhs_reg, rhs_reg),
+                _ => unreachable!(),
+            },
+            Intrinsic::CharEq => match op {
+                BinOp::Cmp(CmpOp::Eq) => self.gen.emit_test_eq_char(dest, lhs_reg, rhs_reg),
+                BinOp::Cmp(CmpOp::Ne) => self.gen.emit_test_ne_char(dest, lhs_reg, rhs_reg),
+                _ => unreachable!(),
+            },
+            Intrinsic::CharCmp => match op {
+                BinOp::Cmp(CmpOp::Lt) => self.gen.emit_test_lt_char(dest, lhs_reg, rhs_reg),
+                BinOp::Cmp(CmpOp::Le) => self.gen.emit_test_le_char(dest, lhs_reg, rhs_reg),
+                BinOp::Cmp(CmpOp::Gt) => self.gen.emit_test_gt_char(dest, lhs_reg, rhs_reg),
+                BinOp::Cmp(CmpOp::Ge) => self.gen.emit_test_ge_char(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             Intrinsic::IntEq => match op {

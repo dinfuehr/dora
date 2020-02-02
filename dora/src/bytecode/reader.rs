@@ -633,6 +633,42 @@ where
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_le_byte(dest, lhs, rhs);
             }
+            BytecodeOpcode::TestEqChar => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_test_eq_char(dest, lhs, rhs);
+            }
+            BytecodeOpcode::TestNeChar => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_test_ne_char(dest, lhs, rhs);
+            }
+            BytecodeOpcode::TestGtChar => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_test_gt_char(dest, lhs, rhs);
+            }
+            BytecodeOpcode::TestGeChar => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_test_ge_char(dest, lhs, rhs);
+            }
+            BytecodeOpcode::TestLtChar => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_test_lt_char(dest, lhs, rhs);
+            }
+            BytecodeOpcode::TestLeChar => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_test_le_char(dest, lhs, rhs);
+            }
             BytecodeOpcode::TestEqInt => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
@@ -1566,7 +1602,24 @@ pub trait BytecodeVisitor {
     fn visit_test_le_byte(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-
+    fn visit_test_eq_char(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_ne_char(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_gt_char(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_ge_char(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_lt_char(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_le_char(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
     fn visit_test_eq_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
