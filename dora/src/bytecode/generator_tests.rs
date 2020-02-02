@@ -772,16 +772,51 @@ fn gen_expr_test_notequal_bool() {
 }
 
 #[test]
-fn gen_expr_test_equal_int() {
-    let result = code("fun f(a: Int, b: Int) -> Bool { return a == b; }");
-    let expected = vec![TestEqInt(r(2), r(0), r(1)), RetBool(r(2))];
+fn gen_expr_test_equal_byte() {
+    let result = code("fun f(a: Byte, b: Byte) -> Bool { return a == b; }");
+    let expected = vec![TestEqByte(r(2), r(0), r(1)), RetBool(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
-fn gen_expr_test_equal_float() {
-    let result = code("fun f(a: Float, b: Float) -> Bool { return a == b; }");
-    let expected = vec![TestEqFloat(r(2), r(0), r(1)), RetBool(r(2))];
+fn gen_expr_test_notequal_byte() {
+    let result = code("fun f(a: Byte, b: Byte) -> Bool { return a != b; }");
+    let expected = vec![TestNeByte(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_lessthan_byte() {
+    let result = code("fun f(a: Byte, b: Byte) -> Bool { return a < b; }");
+    let expected = vec![TestLtByte(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_lessthanequal_byte() {
+    let result = code("fun f(a: Byte, b: Byte) -> Bool { return a <= b; }");
+    let expected = vec![TestLeByte(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_greaterthan_byte() {
+    let result = code("fun f(a: Byte, b: Byte) -> Bool { return a > b; }");
+    let expected = vec![TestGtByte(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_greaterthanequal_byte() {
+    let result = code("fun f(a: Byte, b: Byte) -> Bool { return a >= b; }");
+    let expected = vec![TestGeByte(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_equal_int() {
+    let result = code("fun f(a: Int, b: Int) -> Bool { return a == b; }");
+    let expected = vec![TestEqInt(r(2), r(0), r(1)), RetBool(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -793,23 +828,9 @@ fn gen_expr_test_notequal_int() {
 }
 
 #[test]
-fn gen_expr_test_notequal_float() {
-    let result = code("fun f(a: Float, b: Float) -> Bool { return a != b; }");
-    let expected = vec![TestNeFloat(r(2), r(0), r(1)), RetBool(r(2))];
-    assert_eq!(expected, result);
-}
-
-#[test]
 fn gen_expr_test_lessthan_int() {
     let result = code("fun f(a: Int, b: Int) -> Bool { return a < b; }");
     let expected = vec![TestLtInt(r(2), r(0), r(1)), RetBool(r(2))];
-    assert_eq!(expected, result);
-}
-
-#[test]
-fn gen_expr_test_lessthan_float() {
-    let result = code("fun f(a: Float, b: Float) -> Bool { return a < b; }");
-    let expected = vec![TestLtFloat(r(2), r(0), r(1)), RetBool(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -821,13 +842,6 @@ fn gen_expr_test_lessthanequal_int() {
 }
 
 #[test]
-fn gen_expr_test_lessthanequal_float() {
-    let result = code("fun f(a: Float, b: Float) -> Bool { return a <= b; }");
-    let expected = vec![TestLeFloat(r(2), r(0), r(1)), RetBool(r(2))];
-    assert_eq!(expected, result);
-}
-
-#[test]
 fn gen_expr_test_greaterthan_int() {
     let result = code("fun f(a: Int, b: Int) -> Bool { return a > b; }");
     let expected = vec![TestGtInt(r(2), r(0), r(1)), RetBool(r(2))];
@@ -835,16 +849,44 @@ fn gen_expr_test_greaterthan_int() {
 }
 
 #[test]
-fn gen_expr_test_greaterthan_float() {
-    let result = code("fun f(a: Float, b: Float) -> Bool { return a > b; }");
-    let expected = vec![TestGtFloat(r(2), r(0), r(1)), RetBool(r(2))];
+fn gen_expr_test_greaterthanequal_int() {
+    let result = code("fun f(a: Int, b: Int) -> Bool { return a >= b; }");
+    let expected = vec![TestGeInt(r(2), r(0), r(1)), RetBool(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
-fn gen_expr_test_greaterthanequal_int() {
-    let result = code("fun f(a: Int, b: Int) -> Bool { return a >= b; }");
-    let expected = vec![TestGeInt(r(2), r(0), r(1)), RetBool(r(2))];
+fn gen_expr_test_equal_float() {
+    let result = code("fun f(a: Float, b: Float) -> Bool { return a == b; }");
+    let expected = vec![TestEqFloat(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_notequal_float() {
+    let result = code("fun f(a: Float, b: Float) -> Bool { return a != b; }");
+    let expected = vec![TestNeFloat(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_lessthan_float() {
+    let result = code("fun f(a: Float, b: Float) -> Bool { return a < b; }");
+    let expected = vec![TestLtFloat(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_lessthanequal_float() {
+    let result = code("fun f(a: Float, b: Float) -> Bool { return a <= b; }");
+    let expected = vec![TestLeFloat(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_greaterthan_float() {
+    let result = code("fun f(a: Float, b: Float) -> Bool { return a > b; }");
+    let expected = vec![TestGtFloat(r(2), r(0), r(1)), RetBool(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -2387,6 +2429,13 @@ pub enum Bytecode {
     TestEqBool(Register, Register, Register),
     TestNeBool(Register, Register, Register),
 
+    TestEqByte(Register, Register, Register),
+    TestNeByte(Register, Register, Register),
+    TestGtByte(Register, Register, Register),
+    TestGeByte(Register, Register, Register),
+    TestLtByte(Register, Register, Register),
+    TestLeByte(Register, Register, Register),
+
     TestEqInt(Register, Register, Register),
     TestNeInt(Register, Register, Register),
     TestGtInt(Register, Register, Register),
@@ -2940,12 +2989,33 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_test_ne_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::TestNePtr(dest, lhs, rhs));
     }
+
     fn visit_test_eq_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::TestEqBool(dest, lhs, rhs));
     }
     fn visit_test_ne_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::TestNeBool(dest, lhs, rhs));
     }
+
+    fn visit_test_eq_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestEqByte(dest, lhs, rhs));
+    }
+    fn visit_test_ne_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestNeByte(dest, lhs, rhs));
+    }
+    fn visit_test_gt_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestGtByte(dest, lhs, rhs));
+    }
+    fn visit_test_ge_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestGeByte(dest, lhs, rhs));
+    }
+    fn visit_test_lt_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestLtByte(dest, lhs, rhs));
+    }
+    fn visit_test_le_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestLeByte(dest, lhs, rhs));
+    }
+
     fn visit_test_eq_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::TestEqInt(dest, lhs, rhs));
     }

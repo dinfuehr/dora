@@ -1759,12 +1759,33 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_test_ne_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
     }
+
     fn visit_test_eq_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
     }
     fn visit_test_ne_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_test_generic(dest, lhs, rhs, CondCode::NotEqual);
     }
+
+    fn visit_test_eq_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
+    }
+    fn visit_test_ne_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::NotEqual);
+    }
+    fn visit_test_gt_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::Greater);
+    }
+    fn visit_test_ge_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::GreaterEq);
+    }
+    fn visit_test_lt_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::Less);
+    }
+    fn visit_test_le_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::LessEq);
+    }
+
     fn visit_test_eq_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
     }
