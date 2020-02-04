@@ -1,6 +1,9 @@
 fun main() {
   let hallo = Text("hallo ", Locale::de());
   let welt = Text("welt!", Locale::de());
+  let result = hallo + welt;
 
-  hallo + welt;
+  assert(hallo.isEmpty().not());
+  assert(result.isEmpty().not());
+  assert(Text("", Locale::en()).isEmpty());
 }
