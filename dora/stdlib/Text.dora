@@ -16,6 +16,10 @@ class Text(let value: String, let locale: Locale) {
     return arrayEmpty[Byte]();
   }
 
+  fun isEmpty() -> Bool = self.value.isEmpty();
+
+  fun codePoints() -> CodepointIterator = CodepointIterator(self.value, 0);
+
   fun toUpperCase() -> Text {
     unimplemented();
     return self;
