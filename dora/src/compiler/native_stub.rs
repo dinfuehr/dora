@@ -5,7 +5,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::compiler::fct::{Code, JitDescriptor, JitFct, JitFctId};
 use crate::compiler::map::CodeDescriptor;
-use crate::cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1};
+use crate::cpu::{Mem, CCALL_FREG_PARAMS, CCALL_REG_PARAMS, REG_FP, REG_SP, REG_THREAD, REG_TMP1};
 use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
 use crate::masm::MacroAssembler;
@@ -200,7 +200,7 @@ fn needed_handles(args: &[BuiltinType]) -> u32 {
     for &ty in args {
         if ty.is_float() {
             // ignore floating point arguments
-        } else if ty.reference_type() && reg_idx < REG_PARAMS.len() {
+        } else if ty.reference_type() && reg_idx < CCALL_REG_PARAMS.len() {
             reg_idx += 1;
             count += 1;
         } else {
@@ -218,18 +218,18 @@ fn store_params(masm: &mut MacroAssembler, args: &[BuiltinType], offset_handles:
 
     for &ty in args {
         if ty.is_float() {
-            if freg_idx < FREG_PARAMS.len() {
+            if freg_idx < CCALL_FREG_PARAMS.len() {
                 freg_idx += 1;
             } else {
                 unimplemented!();
             }
         } else {
-            if reg_idx < REG_PARAMS.len() {
+            if reg_idx < CCALL_REG_PARAMS.len() {
                 if ty.reference_type() {
                     masm.store_mem(
                         MachineMode::Ptr,
                         Mem::Base(REG_SP, offset_handles + count * mem::ptr_width()),
-                        REG_PARAMS[reg_idx].into(),
+                        CCALL_REG_PARAMS[reg_idx].into(),
                     );
                     count += 1;
                 }

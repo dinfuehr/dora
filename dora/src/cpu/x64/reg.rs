@@ -2,15 +2,23 @@ use crate::cpu::{FReg, Reg};
 
 #[cfg(target_family = "unix")]
 pub static REG_PARAMS: [Reg; 6] = [RDI, RSI, RDX, RCX, R8, R9];
-
 #[cfg(target_family = "windows")]
 pub static REG_PARAMS: [Reg; 4] = [RCX, RDX, R8, R9];
 
 #[cfg(target_family = "unix")]
-pub static SCRATCH: [Reg; 4] = [RDI, RSI, RDX, RCX];
-
+pub static FREG_PARAMS: [FReg; 8] = [XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7];
 #[cfg(target_family = "windows")]
-pub static SCRATCH: [Reg; 4] = [RCX, RDX, R8, R9];
+pub static FREG_PARAMS: [FReg; 4] = [XMM0, XMM1, XMM2, XMM3];
+
+#[cfg(target_family = "unix")]
+pub static CCALL_REG_PARAMS: [Reg; 6] = [RDI, RSI, RDX, RCX, R8, R9];
+#[cfg(target_family = "windows")]
+pub static CCALL_REG_PARAMS: [Reg; 4] = [RCX, RDX, R8, R9];
+
+#[cfg(target_family = "unix")]
+pub static CCALL_FREG_PARAMS: [FReg; 8] = [XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7];
+#[cfg(target_family = "windows")]
+pub static CCALL_FREG_PARAMS: [FReg; 4] = [XMM0, XMM1, XMM2, XMM3];
 
 pub const REG_RESULT: Reg = RAX;
 pub const REG_TMP1: Reg = R10;
@@ -19,19 +27,17 @@ pub const REG_SP: Reg = RSP;
 pub const REG_FP: Reg = RBP;
 pub const REG_THREAD: Reg = R15;
 
+#[cfg(target_family = "unix")]
+pub static SCRATCH: [Reg; 4] = [RDI, RSI, RDX, RCX];
+#[cfg(target_family = "windows")]
+pub static SCRATCH: [Reg; 4] = [RCX, RDX, R8, R9];
+
 pub const FREG_RESULT: FReg = XMM0;
 
 #[cfg(target_family = "unix")]
 pub const FREG_TMP1: FReg = XMM8; // shall not overlap with argument registers
-
 #[cfg(target_family = "windows")]
 pub const FREG_TMP1: FReg = XMM4; // shall not overlap with argument registers
-
-#[cfg(target_family = "unix")]
-pub static FREG_PARAMS: [FReg; 8] = [XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7];
-
-#[cfg(target_family = "windows")]
-pub static FREG_PARAMS: [FReg; 4] = [XMM0, XMM1, XMM2, XMM3];
 
 pub const STACK_FRAME_ALIGNMENT: usize = 16;
 

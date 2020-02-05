@@ -2,7 +2,7 @@ use std::mem::size_of;
 
 use crate::compiler::fct::{Code, JitDescriptor, JitFct};
 use crate::compiler::map::CodeDescriptor;
-use crate::cpu::{Mem, REG_FP, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1, REG_TMP2};
+use crate::cpu::{Mem, CCALL_REG_PARAMS, REG_FP, REG_SP, REG_THREAD, REG_TMP1, REG_TMP2};
 use crate::exception::throw;
 use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
@@ -101,11 +101,11 @@ where
             REG_TMP1.into(),
         );
 
-        self.masm.copy_sp(REG_PARAMS[0]);
+        self.masm.copy_sp(CCALL_REG_PARAMS[0]);
         self.masm.int_add_imm(
             MachineMode::Ptr,
-            REG_PARAMS[0],
-            REG_PARAMS[0],
+            CCALL_REG_PARAMS[0],
+            CCALL_REG_PARAMS[0],
             offset_result as i64,
         );
         self.masm.raw_call(throw as *const u8);

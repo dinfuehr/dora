@@ -1,6 +1,6 @@
 use crate::compiler::fct::{Code, JitDescriptor, JitFct};
 use crate::compiler::map::CodeDescriptor;
-use crate::cpu::{Mem, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1};
+use crate::cpu::{Mem, CCALL_REG_PARAMS, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1};
 use crate::gc::Address;
 use crate::masm::MacroAssembler;
 use crate::mem;
@@ -55,11 +55,11 @@ where
         );
 
         self.masm
-            .copy_reg(MachineMode::Ptr, REG_THREAD, REG_PARAMS[0]);
+            .copy_reg(MachineMode::Ptr, REG_THREAD, CCALL_REG_PARAMS[0]);
         self.masm
-            .copy_reg(MachineMode::Ptr, REG_TMP1, REG_PARAMS[1]);
+            .copy_reg(MachineMode::Ptr, REG_TMP1, CCALL_REG_PARAMS[1]);
         self.masm
-            .copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_PARAMS[2]);
+            .copy_reg(MachineMode::Ptr, REG_PARAMS[0], CCALL_REG_PARAMS[2]);
         self.masm.call_reg(REG_TMP1);
 
         self.masm.load_mem(
