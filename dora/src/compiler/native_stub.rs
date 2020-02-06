@@ -3,9 +3,13 @@ use std::mem::size_of;
 
 use dora_parser::lexer::position::Position;
 
+use crate::compiler::codegen::register_for_mode;
 use crate::compiler::fct::{Code, JitDescriptor, JitFct, JitFctId};
-use crate::compiler::map::CodeDescriptor;
-use crate::cpu::{Mem, CCALL_FREG_PARAMS, CCALL_REG_PARAMS, REG_FP, REG_SP, REG_THREAD, REG_TMP1};
+use crate::compiler::CodeDescriptor;
+use crate::cpu::{
+    FReg, Mem, Reg, CCALL_FREG_PARAMS, CCALL_REG_PARAMS, FREG_PARAMS, PARAM_OFFSET, REG_FP,
+    REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1,
+};
 use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
 use crate::masm::MacroAssembler;
@@ -94,25 +98,46 @@ where
         let save_return = self.fct.return_type != BuiltinType::Unit;
         let dtn_size = size_of::<DoraToNativeInfo>() as i32;
 
-        let offset_shadow_stack = 0;
-        let offset_dtn = offset_shadow_stack
-            + if cfg!(target_family = "windows") {
-                32
-            } else {
-                0
-            };
+        let (stack_args, temporaries, temporaries_desc, args_desc) = analyze(self.fct.args);
+
+        let offset_args = 0;
+        let offset_temporaries = offset_args + stack_args as i32 * mem::ptr_width();
+        let offset_dtn = offset_temporaries + temporaries as i32 * mem::ptr_width();
         let offset_return = offset_dtn + dtn_size;
-        let offset_handles = offset_return + if save_return { mem::ptr_width() } else { 0 };
-        let framesize = mem::align_i32(
-            offset_handles + needed_handles(self.fct.args) as i32 * mem::ptr_width(),
-            16,
-        );
+        let framesize = offset_return + if save_return { mem::ptr_width() } else { 0 };
+        let framesize = mem::align_i32(framesize, 16);
 
         if self.dbg || self.vm.args.flag_emit_debug_native {
             self.masm.debug();
         }
 
         self.masm.prolog_size(framesize);
+
+        for desc in temporaries_desc {
+            match desc {
+                TemporaryStore::Register(mode, reg, offset) => {
+                    self.masm.store_mem(
+                        mode,
+                        Mem::Base(
+                            REG_SP,
+                            offset_temporaries + offset as i32 * mem::ptr_width(),
+                        ),
+                        reg.into(),
+                    );
+                }
+
+                TemporaryStore::FloatRegister(mode, reg, offset) => {
+                    self.masm.store_mem(
+                        mode,
+                        Mem::Base(
+                            REG_SP,
+                            offset_temporaries + offset as i32 * mem::ptr_width(),
+                        ),
+                        reg.into(),
+                    );
+                }
+            }
+        }
 
         self.masm.load_mem(
             MachineMode::Ptr,
@@ -152,7 +177,37 @@ where
             REG_TMP1.into(),
         );
 
-        store_params(&mut self.masm, self.fct.args, offset_handles);
+        for desc in args_desc {
+            let sp_offset = match desc.0 {
+                ArgumentSource::CallerArg(offset) => {
+                    framesize + PARAM_OFFSET + offset as i32 * mem::ptr_width()
+                }
+                ArgumentSource::Temporary(offset) => {
+                    offset_temporaries + offset as i32 * mem::ptr_width()
+                }
+            };
+
+            match desc.1 {
+                ArgumentDestination::FloatRegister(mode, reg) => {
+                    self.masm
+                        .load_mem(mode, reg.into(), Mem::Base(REG_SP, sp_offset));
+                }
+                ArgumentDestination::Register(mode, reg) => {
+                    self.masm
+                        .load_mem(mode, reg.into(), Mem::Base(REG_SP, sp_offset));
+                }
+                ArgumentDestination::Offset(mode, offset) => {
+                    let reg = register_for_mode(mode);
+                    self.masm
+                        .load_mem(mode, reg.into(), Mem::Base(REG_SP, sp_offset));
+                    self.masm.store_mem(
+                        mode,
+                        Mem::Base(REG_SP, offset as i32 * mem::ptr_width()),
+                        reg.into(),
+                    );
+                }
+            }
+        }
 
         self.masm.raw_call(self.fct.ptr.to_ptr());
 
@@ -193,50 +248,98 @@ where
     }
 }
 
-fn needed_handles(args: &[BuiltinType]) -> u32 {
-    let mut reg_idx = 0;
-    let mut count = 0;
+fn analyze(
+    args: &[BuiltinType],
+) -> (
+    u32,
+    u32,
+    Vec<TemporaryStore>,
+    Vec<(ArgumentSource, ArgumentDestination)>,
+) {
+    let mut stack_args = 0;
+    let mut temporaries = 0;
 
-    for &ty in args {
-        if ty.is_float() {
-            // ignore floating point arguments
-        } else if ty.reference_type() && reg_idx < CCALL_REG_PARAMS.len() {
-            reg_idx += 1;
-            count += 1;
-        } else {
-            reg_idx += 1;
-        }
-    }
+    let mut save_temporaries: Vec<TemporaryStore> = Vec::new();
+    let mut load_params: Vec<(ArgumentSource, ArgumentDestination)> = Vec::new();
 
-    count
-}
-
-fn store_params(masm: &mut MacroAssembler, args: &[BuiltinType], offset_handles: i32) {
     let mut reg_idx = 0;
     let mut freg_idx = 0;
-    let mut count = 0;
+    let mut stack_idx = 0;
 
     for &ty in args {
         if ty.is_float() {
-            if freg_idx < CCALL_FREG_PARAMS.len() {
-                freg_idx += 1;
+            let source = if freg_idx < FREG_PARAMS.len() {
+                save_temporaries.push(TemporaryStore::FloatRegister(
+                    ty.mode(),
+                    FREG_PARAMS[freg_idx],
+                    temporaries,
+                ));
+                temporaries += 1;
+                ArgumentSource::Temporary(temporaries - 1)
             } else {
-                unimplemented!();
-            }
+                stack_idx += 1;
+                ArgumentSource::CallerArg(stack_idx - 1)
+            };
+
+            let destination = if freg_idx < CCALL_FREG_PARAMS.len() {
+                // argument still fits into register
+                ArgumentDestination::FloatRegister(ty.mode(), CCALL_FREG_PARAMS[freg_idx])
+            } else {
+                stack_args += 1;
+                ArgumentDestination::Offset(ty.mode(), stack_args - 1)
+            };
+
+            load_params.push((source, destination));
+            freg_idx += 1;
         } else {
-            if reg_idx < CCALL_REG_PARAMS.len() {
-                if ty.reference_type() {
-                    masm.store_mem(
-                        MachineMode::Ptr,
-                        Mem::Base(REG_SP, offset_handles + count * mem::ptr_width()),
-                        CCALL_REG_PARAMS[reg_idx].into(),
-                    );
-                    count += 1;
-                }
-                reg_idx += 1;
+            let source = if reg_idx < REG_PARAMS.len() {
+                save_temporaries.push(TemporaryStore::Register(
+                    ty.mode(),
+                    REG_PARAMS[reg_idx],
+                    temporaries,
+                ));
+                temporaries += 1;
+                ArgumentSource::Temporary(temporaries - 1)
             } else {
-                unimplemented!();
-            }
+                stack_idx += 1;
+                ArgumentSource::CallerArg(stack_idx - 1)
+            };
+
+            let destination = if reg_idx < CCALL_REG_PARAMS.len() {
+                // argument still fits into register
+                if cfg!(target_family = "windows") {
+                    stack_args += 1;
+                }
+                ArgumentDestination::Register(ty.mode(), CCALL_REG_PARAMS[reg_idx])
+            } else {
+                stack_args += 1;
+                ArgumentDestination::Offset(ty.mode(), stack_args - 1)
+            };
+
+            load_params.push((source, destination));
+            reg_idx += 1;
         }
     }
+
+    if cfg!(target_family = "windows") && stack_args < 4 {
+        stack_args = 4;
+    }
+
+    (stack_args, temporaries, save_temporaries, load_params)
+}
+
+enum TemporaryStore {
+    Register(MachineMode, Reg, u32),
+    FloatRegister(MachineMode, FReg, u32),
+}
+
+enum ArgumentSource {
+    Temporary(u32),
+    CallerArg(u32),
+}
+
+enum ArgumentDestination {
+    Offset(MachineMode, u32),
+    Register(MachineMode, Reg),
+    FloatRegister(MachineMode, FReg),
 }
