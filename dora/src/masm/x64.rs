@@ -714,6 +714,10 @@ impl MacroAssembler {
         }
     }
 
+    pub fn lea(&mut self, dest: Reg, mem: Mem) {
+        asm::lea(self, dest, mem);
+    }
+
     pub fn store_field(
         &mut self,
         mode: MachineMode,

@@ -3,7 +3,7 @@ use std::ptr;
 use crate::compiler::fct::{CatchType, JitFctId};
 use crate::compiler::map::CodeDescriptor;
 use crate::gc::Address;
-use crate::handle::root;
+use crate::handle::{root, Handle};
 use crate::object::{alloc, Array, IntArray, Obj, Ref, StackTraceElement, Str, Throwable};
 use crate::stdlib;
 use crate::threads::THREAD;
@@ -314,14 +314,13 @@ fn find_handler(
     }
 }
 
-pub extern "C" fn retrieve_stack_trace(obj: Ref<Throwable>) {
+pub extern "C" fn retrieve_stack_trace(obj: Handle<Throwable>) {
     let vm = get_vm();
     set_exception_backtrace(vm, obj, true);
 }
 
-pub extern "C" fn stack_element(obj: Ref<Throwable>, ind: i32) -> Ref<StackTraceElement> {
+pub extern "C" fn stack_element(obj: Handle<Throwable>, ind: i32) -> Ref<StackTraceElement> {
     let vm = get_vm();
-    let obj = root(obj);
     let array = obj.backtrace;
 
     let ind = ind as usize * 2;
@@ -344,20 +343,19 @@ pub extern "C" fn stack_element(obj: Ref<Throwable>, ind: i32) -> Ref<StackTrace
     ste.direct()
 }
 
-pub fn alloc_exception(vm: &VM, msg: Ref<Str>) -> Ref<Throwable> {
+pub fn alloc_exception(vm: &VM, msg: Handle<Str>) -> Ref<Throwable> {
     let cls_id = vm.vips.exception(vm);
     let obj: Ref<Throwable> = alloc(vm, cls_id).cast();
     let mut obj = root(obj);
 
-    obj.msg = msg;
-    set_exception_backtrace(vm, obj.direct(), false);
+    obj.msg = msg.direct();
+    set_exception_backtrace(vm, obj, false);
 
     obj.direct()
 }
 
-fn set_exception_backtrace(vm: &VM, obj: Ref<Throwable>, via_retrieve: bool) {
+fn set_exception_backtrace(vm: &VM, mut obj: Handle<Throwable>, via_retrieve: bool) {
     let stacktrace = stacktrace_from_last_dtn(vm);
-    let mut obj = root(obj);
     let mut skip = 0;
 
     let mut skip_retrieve_stack = false;
