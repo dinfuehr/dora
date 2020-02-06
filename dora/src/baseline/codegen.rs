@@ -119,6 +119,8 @@ where
             self.asm.debug();
         }
 
+        self.managed_stack.initial_stacksize(8096);
+
         self.managed_stack.push_scope();
         self.emit_prolog();
         self.store_register_params_on_stack();
