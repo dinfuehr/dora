@@ -313,11 +313,11 @@ impl MacroAssembler {
     }
 
     pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, pos: Position) {
-        self.div_common(mode, dest, lhs, rhs, RAX, pos);
+        self.div_common(mode, dest, lhs, rhs, RAX, true, pos);
     }
 
     pub fn int_mod(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, pos: Position) {
-        self.div_common(mode, dest, lhs, rhs, RDX, pos);
+        self.div_common(mode, dest, lhs, rhs, RDX, false, pos);
     }
 
     fn div_common(
@@ -327,12 +327,31 @@ impl MacroAssembler {
         lhs: Reg,
         rhs: Reg,
         result: Reg,
+        is_div: bool,
         pos: Position,
     ) {
         asm::emit_cmp_imm_reg(self, mode, 0, rhs);
-        let lbl = self.create_label();
-        self.jump_if(CondCode::Zero, lbl);
-        self.emit_bailout(lbl, Trap::DIV0, pos);
+        let lbl_zero = self.create_label();
+        let lbl_done = self.create_label();
+        let lbl_div = self.create_label();
+
+        self.jump_if(CondCode::Zero, lbl_zero);
+        self.emit_bailout(lbl_zero, Trap::DIV0, pos);
+
+        asm::emit_cmp_imm_reg(self, mode, -1, rhs);
+        self.jump_if(CondCode::NotEqual, lbl_div);
+
+        if is_div {
+            self.int_neg(mode, dest, lhs);
+        } else {
+            asm::emit_xor_reg_reg(self, mode.w(), lhs, lhs);
+            if dest != lhs {
+                self.mov_rr(mode.is64(), dest.into(), lhs.into());
+            }
+        }
+        self.jump(lbl_done);
+
+        self.bind_label(lbl_div);
 
         if lhs != RAX {
             assert!(rhs != RAX);
@@ -350,6 +369,8 @@ impl MacroAssembler {
         if dest != result {
             self.mov_rr(mode.is64(), dest.into(), result.into());
         }
+
+        self.bind_label(lbl_done);
     }
 
     pub fn int_mul(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {

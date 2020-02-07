@@ -1,0 +1,13 @@
+fun main() {
+  let result = Int::minValue() / -1;
+  assert(result == Int::minValue());
+
+  let result = Int::minValue() % -1;
+  assert(result == 0);
+
+  let result = Long::minValue() / -1L;
+  assert(result == Long::minValue());
+
+  let result = Long::minValue() % -1L;
+  assert(result == 0L);
+}
