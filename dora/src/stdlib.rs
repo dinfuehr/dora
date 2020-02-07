@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use crate::exception::{alloc_exception, stacktrace_from_last_dtn};
 use crate::gc::{Address, GcReason};
-use crate::handle::{root, scope as handle_scope};
+use crate::handle::{root, scope as handle_scope, Handle};
 use crate::object::{ByteArray, Obj, Ref, Str};
 use crate::sym::Sym::SymFct;
 use crate::threads::{DoraThread, STACK_SIZE, THREAD};
@@ -70,15 +70,15 @@ pub extern "C" fn double_to_string(val: f64) -> Ref<Str> {
     })
 }
 
-pub extern "C" fn print(val: Ref<Str>) {
+pub extern "C" fn print(val: Handle<Str>) {
     io::stdout().write(val.content()).unwrap();
 }
 
-pub extern "C" fn addr(val: Ref<Obj>) -> u64 {
+pub extern "C" fn addr(val: Handle<Obj>) -> u64 {
     val.raw() as usize as u64
 }
 
-pub extern "C" fn fatal_error(msg: Ref<Str>) {
+pub extern "C" fn fatal_error(msg: Handle<Str>) {
     eprint!("fatal error: ");
     io::stderr().write(msg.content()).unwrap();
     eprintln!("");
@@ -105,7 +105,7 @@ pub extern "C" fn timestamp() -> u64 {
     timer::timestamp()
 }
 
-pub extern "C" fn println(val: Ref<Str>) {
+pub extern "C" fn println(val: Handle<Str>) {
     let stdout = io::stdout();
     let mut handle = stdout.lock();
     handle.write(val.content()).unwrap();
@@ -120,7 +120,8 @@ pub extern "C" fn sleep(seconds: i32) {
 pub extern "C" fn throw_native() {
     handle_scope(|| {
         let vm = get_vm();
-        let obj = alloc_exception(vm, Str::empty(vm));
+        let msg = root(Str::empty(vm));
+        let obj = alloc_exception(vm, msg);
         let obj = root(obj);
 
         exception_set(obj.direct().address())
@@ -133,7 +134,7 @@ pub extern "C" fn test_throw_native(val: bool) {
     }
 }
 
-pub extern "C" fn call(fct: Ref<Str>) {
+pub extern "C" fn call(fct: Handle<Str>) {
     let fct_name = fct.to_cstring();
     let fct_name = fct_name.to_str().unwrap();
 
@@ -166,7 +167,7 @@ pub extern "C" fn call(fct: Ref<Str>) {
     }
 }
 
-pub extern "C" fn strcmp(lhs: Ref<Str>, rhs: Ref<Str>) -> i32 {
+pub extern "C" fn strcmp(lhs: Handle<Str>, rhs: Handle<Str>) -> i32 {
     unsafe {
         libc::strcmp(
             lhs.data() as *const libc::c_char,
@@ -175,17 +176,14 @@ pub extern "C" fn strcmp(lhs: Ref<Str>, rhs: Ref<Str>) -> i32 {
     }
 }
 
-pub extern "C" fn strcat(lhs: Ref<Str>, rhs: Ref<Str>) -> Ref<Str> {
+pub extern "C" fn strcat(lhs: Handle<Str>, rhs: Handle<Str>) -> Ref<Str> {
     handle_scope(|| {
         let vm = get_vm();
-        let lhs = root(lhs);
-        let rhs = root(rhs);
-
         Str::concat(vm, lhs, rhs).direct()
     })
 }
 
-pub extern "C" fn str_clone(val: Ref<Str>) -> Ref<Str> {
+pub extern "C" fn str_clone(val: Handle<Str>) -> Ref<Str> {
     handle_scope(|| {
         let vm = get_vm();
 
@@ -193,17 +191,16 @@ pub extern "C" fn str_clone(val: Ref<Str>) -> Ref<Str> {
     })
 }
 
-pub extern "C" fn str_from_bytes(val: Ref<ByteArray>, offset: usize, len: usize) -> Ref<Str> {
+pub extern "C" fn str_from_bytes(val: Handle<ByteArray>, offset: usize, len: usize) -> Ref<Str> {
     handle_scope(|| {
         let vm = get_vm();
-        let val: Ref<Str> = val.cast();
-        let val = root(val);
+        let val: Handle<Str> = val.cast();
 
         Str::from_str(vm, val, offset, len)
     })
 }
 
-pub extern "C" fn gc_verify_refs(obj: Ref<Obj>, value: Ref<Obj>) {
+pub extern "C" fn gc_verify_refs(obj: Handle<Obj>, value: Handle<Obj>) {
     let vm = get_vm();
     vm.gc.verify_ref(vm, obj.address());
     vm.gc.verify_ref(vm, value.address());
@@ -222,10 +219,6 @@ pub extern "C" fn gc_collect() {
 pub extern "C" fn gc_minor_collect() {
     let vm = get_vm();
     vm.gc.minor_collect(vm, GcReason::ForceMinorCollect);
-}
-
-pub extern "C" fn str_len(s: Ref<Str>) -> i32 {
-    s.len() as i32
 }
 
 pub extern "C" fn argc() -> i32 {
@@ -252,7 +245,7 @@ pub extern "C" fn argv(ind: i32) -> Ref<Str> {
     panic!("argument does not exist");
 }
 
-pub extern "C" fn str_to_int_or_throw(val: Ref<Str>) -> i32 {
+pub extern "C" fn str_to_int_or_throw(val: Handle<Str>) -> i32 {
     let slice = val.content();
     let val = str::from_utf8(slice).unwrap();
 
@@ -264,7 +257,7 @@ pub extern "C" fn str_to_int_or_throw(val: Ref<Str>) -> i32 {
     0
 }
 
-pub extern "C" fn str_to_long_or_throw(val: Ref<Str>) -> i64 {
+pub extern "C" fn str_to_long_or_throw(val: Handle<Str>) -> i64 {
     let slice = val.content();
     let val = str::from_utf8(slice).unwrap();
 
@@ -300,7 +293,7 @@ pub extern "C" fn trap(trap_id: u32) {
     }
 }
 
-pub extern "C" fn spawn_thread(obj: Ref<Obj>) {
+pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
     use crate::compiler;
     use crate::exception::DoraToNativeInfo;
 
@@ -308,6 +301,7 @@ pub extern "C" fn spawn_thread(obj: Ref<Obj>) {
     let thread = DoraThread::new();
 
     vm.threads.attach_thread(thread.clone());
+    let obj = obj.direct();
 
     thread::spawn(move || {
         THREAD.with(|tld_thread| {

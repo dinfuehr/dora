@@ -97,8 +97,19 @@ fn determine_rootset(rootset: &mut Vec<Slot>, vm: &VM, fp: usize, pc: usize) -> 
             true
         }
 
+        Some(CodeDescriptor::NativeStub(fct_id)) => {
+            let jit_fct = vm.jit_fcts.idx(fct_id);
+            let gcpoint = jit_fct.gcpoint_for_offset(0).expect("no gcpoint");
+
+            for &offset in &gcpoint.offsets {
+                let addr = (fp as isize + offset as isize) as usize;
+                rootset.push(Slot::at(addr.into()));
+            }
+
+            true
+        }
+
         Some(CodeDescriptor::AllocStub) => true,
-        Some(CodeDescriptor::NativeStub(_)) => true,
         Some(CodeDescriptor::DoraStub) => false,
 
         _ => {

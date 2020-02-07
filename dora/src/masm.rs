@@ -154,6 +154,10 @@ impl MacroAssembler {
         self.gcpoints.insert(pos, gcpoint);
     }
 
+    pub fn emit_only_gcpoint(&mut self, gcpoint: GcPoint) {
+        self.gcpoints.insert(0, gcpoint);
+    }
+
     pub fn emit_lazy_compilation_site(&mut self, info: LazyCompilationSite) {
         let pos = self.pos() as u32;
         self.lazy_compilation.insert(pos, info);

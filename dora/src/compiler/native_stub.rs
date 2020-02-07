@@ -4,11 +4,11 @@ use std::mem::size_of;
 use dora_parser::lexer::position::Position;
 
 use crate::compiler::codegen::register_for_mode;
-use crate::compiler::fct::{Code, JitDescriptor, JitFct, JitFctId};
 use crate::compiler::CodeDescriptor;
+use crate::compiler::{Code, GcPoint, JitDescriptor, JitFct, JitFctId};
 use crate::cpu::{
     FReg, Mem, Reg, CCALL_FREG_PARAMS, CCALL_REG_PARAMS, FREG_PARAMS, PARAM_OFFSET, REG_FP,
-    REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1,
+    REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
 };
 use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
@@ -177,6 +177,8 @@ where
             REG_TMP1.into(),
         );
 
+        let mut offsets = Vec::new();
+
         for desc in args_desc {
             let sp_offset = match desc.0 {
                 ArgumentSource::CallerArg(offset) => {
@@ -206,10 +208,24 @@ where
                         reg.into(),
                     );
                 }
+                ArgumentDestination::HandleRegister(reg) => {
+                    offsets.push(sp_offset - framesize);
+                    self.masm.lea(reg, Mem::Base(REG_SP, sp_offset));
+                }
+                ArgumentDestination::HandleOffset(offset) => {
+                    offsets.push(sp_offset - framesize);
+                    self.masm.lea(REG_RESULT, Mem::Base(REG_SP, sp_offset));
+                    self.masm.store_mem(
+                        MachineMode::Ptr,
+                        Mem::Base(REG_SP, offset as i32 * mem::ptr_width()),
+                        REG_RESULT.into(),
+                    );
+                }
             }
         }
 
         self.masm.raw_call(self.fct.ptr.to_ptr());
+        self.masm.emit_only_gcpoint(GcPoint::from_offsets(offsets));
 
         self.masm.load_mem(
             MachineMode::Ptr,
@@ -310,10 +326,20 @@ fn analyze(
                 if cfg!(target_family = "windows") {
                     stack_args += 1;
                 }
-                ArgumentDestination::Register(ty.mode(), CCALL_REG_PARAMS[reg_idx])
+
+                if ty.reference_type() {
+                    ArgumentDestination::HandleRegister(CCALL_REG_PARAMS[reg_idx])
+                } else {
+                    ArgumentDestination::Register(ty.mode(), CCALL_REG_PARAMS[reg_idx])
+                }
             } else {
                 stack_args += 1;
-                ArgumentDestination::Offset(ty.mode(), stack_args - 1)
+
+                if ty.reference_type() {
+                    ArgumentDestination::HandleOffset(stack_args - 1)
+                } else {
+                    ArgumentDestination::Offset(ty.mode(), stack_args - 1)
+                }
             };
 
             load_params.push((source, destination));
@@ -342,4 +368,6 @@ enum ArgumentDestination {
     Offset(MachineMode, u32),
     Register(MachineMode, Reg),
     FloatRegister(MachineMode, FReg),
+    HandleOffset(u32),
+    HandleRegister(Reg),
 }
