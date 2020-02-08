@@ -344,10 +344,7 @@ impl MacroAssembler {
         if is_div {
             self.int_neg(mode, dest, lhs);
         } else {
-            asm::emit_xor_reg_reg(self, mode.w(), lhs, lhs);
-            if dest != lhs {
-                self.mov_rr(mode.is64(), dest.into(), lhs.into());
-            }
+            asm::emit_xor_reg_reg(self, mode.w(), dest, dest);
         }
         self.jump(lbl_done);
 
