@@ -29,3 +29,7 @@ impl Equals for Double {
 impl Equals for String {
   fun equals(other: String) -> Bool = self == other;
 }
+
+impl Equals for Text {
+  fun equals(other: Text) -> Bool = self == other;
+}
