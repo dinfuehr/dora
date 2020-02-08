@@ -4,11 +4,14 @@ use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::gc::Address;
-use crate::sym::Sym::{self, SymClass, SymConst, SymEnum, SymFct, SymGlobal, SymStruct, SymTrait};
+use crate::sym::Sym::{
+    self, SymClass, SymConst, SymEnum, SymFct, SymGlobal, SymModule, SymStruct, SymTrait,
+};
 use crate::sym::SymLevel;
 use crate::ty::BuiltinType;
+use crate::vm::module::ModuleId;
 use crate::vm::{
-    class, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, Fct, FctId, FctKind,
+    class, module, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, Fct, FctId, FctKind,
     FctParent, FctSrc, FileId, GlobalData, GlobalId, ImplData, ImplId, NodeMap, StructData,
     StructId, TraitData, TraitId, TypeParam, VM,
 };

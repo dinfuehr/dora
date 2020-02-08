@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use self::Sym::*;
 
 use crate::ty::TypeListId;
+use crate::vm::module::ModuleId;
 use crate::vm::{ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, StructId, TraitId, VarId};
 use dora_parser::interner::Name;
 

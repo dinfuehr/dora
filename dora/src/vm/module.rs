@@ -1,12 +1,11 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
-use crate::field::{Field, FieldDef};
 use crate::semck::specialize::replace_type_param;
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, TypeList};
 use crate::utils::GrowableVec;
-use crate::vm::{FctId, FileId, TraitId, VM};
+use crate::vm::{FctId, Field, FieldDef, FileId, TraitId, VM};
 
 use crate::vtable::VTableBox;
 use dora_parser::interner::Name;

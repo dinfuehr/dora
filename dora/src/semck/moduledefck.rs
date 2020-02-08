@@ -1,13 +1,12 @@
 use parking_lot::RwLock;
 
 use crate::error::msg::SemError;
-use crate::field::Field;
-use crate::module::ModuleId;
 use crate::semck;
 use crate::sym::Sym;
 use crate::ty::{BuiltinType, TypeList};
 
-use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, NodeMap, VM};
+use crate::vm::module::ModuleId;
+use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, Field, NodeMap, VM};
 use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::ast::{self, Ast};
 use dora_parser::interner::Name;
@@ -337,7 +336,8 @@ mod tests {
         );
     }
 
-    //#[test] // should fail but doesn't
+    #[ignore]
+    #[test] // should fail but doesn't
     fn field_self_assignment() {
         err(
             "module Foo { var b: Int = b; }",
@@ -346,12 +346,14 @@ mod tests {
         );
     }
 
-    //#[test]
+    #[ignore]
+    #[test]
     fn test_generic_bound() {
         ok("module Foo class A[T: Foo]");
     }
 
-    //#[test]
+    #[ignore]
+    #[test]
     fn test_generic_multiple_module_bounds() {
         err(
             "module Foo class Bar

@@ -996,6 +996,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 &IdentType::Const(_) => unreachable!(),
                 &IdentType::Fct(_) | &IdentType::FctType(_, _) => unreachable!(),
                 &IdentType::Class(_) | &IdentType::ClassType(_, _) => unimplemented!(),
+                &IdentType::Module(_) => unimplemented!(),
                 &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unimplemented!(),
                 &IdentType::TypeParam(_) | &IdentType::TypeParamStaticMethod(_, _) => {
                     unreachable!()
@@ -1126,6 +1127,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             &IdentType::Enum(_) | &IdentType::EnumValue(_, _) => unreachable!(),
             &IdentType::Fct(_) | &IdentType::FctType(_, _) => unreachable!(),
             &IdentType::Class(_) | &IdentType::ClassType(_, _) => unreachable!(),
+            &IdentType::Module(_) => unreachable!(),
             &IdentType::TypeParam(_) | &IdentType::TypeParamStaticMethod(_, _) => unreachable!(),
             &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
             &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => {

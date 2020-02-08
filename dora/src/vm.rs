@@ -14,7 +14,6 @@ use crate::driver::cmd::Args;
 use crate::error::diag::Diagnostic;
 use crate::exception::DoraToNativeInfo;
 use crate::gc::{Address, Gc};
-use crate::module::{Module, ModuleDef, ModuleId};
 use crate::object::{Ref, Testing};
 use crate::stdlib;
 use crate::sym::Sym::*;
@@ -45,6 +44,7 @@ pub use self::strct::{
 };
 pub use self::traits::{TraitData, TraitId};
 pub use self::vip::{KnownClasses, KnownElements, KnownFunctions};
+use crate::vm::module::{Module, ModuleDef, ModuleId};
 
 pub mod class;
 mod cnst;
@@ -54,6 +54,7 @@ mod fct;
 mod field;
 mod global;
 mod impls;
+pub mod module;
 mod src;
 mod strct;
 mod traits;

@@ -3,8 +3,8 @@ use std::ops::Index;
 use std::sync::Arc;
 
 use crate::mem;
-use crate::module::ModuleId;
 use crate::semck;
+use crate::vm::module::ModuleId;
 use crate::vm::VM;
 use crate::vm::{ClassId, EnumId, FctId, StructId, TraitId};
 
