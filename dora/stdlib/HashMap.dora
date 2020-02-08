@@ -184,8 +184,12 @@ class HashMap[K: Hash + Equals, V] {
                !self.inserted_and_deleted.contains(2 * idx + 1);
     }
 
-    fun len() -> Int {
+    fun length() -> Int {
         return self.size;
+    }
+
+    fun isEmpty() -> Bool {
+        return self.size == 0;
     }
 
     fun capacity() -> Int {
