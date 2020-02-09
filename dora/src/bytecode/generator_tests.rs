@@ -2230,7 +2230,7 @@ fn gen_self_assign_for_bool() {
 #[test]
 fn gen_self_assign_for_byte() {
     let result = code_method_with_class_name(
-        "trait MyId { fun f() -> Self; }
+        "trait MyId { fun f(); }
             impl MyId for Byte { fun f() { let x = self; } }
             ",
         "Byte",
@@ -2242,7 +2242,7 @@ fn gen_self_assign_for_byte() {
 #[test]
 fn gen_self_assign_for_int() {
     let result = code_method_with_class_name(
-        "trait MyId { fun f() -> Self; }
+        "trait MyId { fun f(); }
             impl MyId for Int { fun f() { let x = self; } }
             ",
         "Int",
@@ -2254,7 +2254,7 @@ fn gen_self_assign_for_int() {
 #[test]
 fn gen_self_assign_for_long() {
     let result = code_method_with_class_name(
-        "trait MyId { fun f() -> Self; }
+        "trait MyId { fun f(); }
             impl MyId for Long { fun f() { let x = self; } }
             ",
         "Long",
@@ -2266,7 +2266,7 @@ fn gen_self_assign_for_long() {
 #[test]
 fn gen_self_assign_for_float() {
     let result = code_method_with_class_name(
-        "trait MyId { fun f() -> Self; }
+        "trait MyId { fun f(); }
             impl MyId for Float { fun f() { let x = self; } }
             ",
         "Float",
@@ -2278,7 +2278,7 @@ fn gen_self_assign_for_float() {
 #[test]
 fn gen_self_assign_for_double() {
     let result = code_method_with_class_name(
-        "trait MyId { fun f() -> Self; }
+        "trait MyId { fun f(); }
             impl MyId for Double { fun f() { let x = self; } }
             ",
         "Double",
@@ -2290,7 +2290,7 @@ fn gen_self_assign_for_double() {
 #[test]
 fn gen_self_assign_for_string() {
     let result = code_method_with_class_name(
-        "trait MyId { fun f() -> Self; }
+        "trait MyId { fun f(); }
             impl MyId for String { fun f() { let x = self; } }
             ",
         "String",

@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use crate::error::msg::SemError;
+use crate::ty::BuiltinType;
 use crate::vm::{FileId, VM};
 
 use dora_parser::lexer::position::Position;
@@ -29,6 +30,24 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
             ) {
                 method.impl_for = Some(fid);
                 defined.insert(fid);
+
+                let trait_method = vm.fcts.idx(fid);
+                let trait_method = trait_method.read();
+
+                let return_type_valid = method.return_type
+                    == if trait_method.return_type == BuiltinType::This {
+                        cls
+                    } else {
+                        trait_method.return_type
+                    };
+
+                if !return_type_valid {
+                    let impl_return_type = method.return_type.name(vm);
+                    let trait_return_type = trait_method.return_type.name(vm);
+
+                    let msg = SemError::ReturnTypeMismatch(impl_return_type, trait_return_type);
+                    vm.diag.lock().report(ximpl.file, method.pos, msg);
+                }
             } else {
                 let args = method
                     .params_without_self()
@@ -146,6 +165,25 @@ mod tests {
             impl Foo for A {}",
             pos(6, 13),
             SemError::StaticMethodMissingFromTrait("Foo".into(), "bar".into(), vec![]),
+        );
+    }
+
+    #[test]
+    fn method_return_type_check() {
+        err(
+            "trait X {
+                fun m() -> Bool;
+                fun n() -> Bool;
+              }
+              
+              class CX
+              
+              impl X for CX {
+                fun m() -> Int = 0;
+                fun n() -> Bool = true;
+              }",
+            pos(9, 17),
+            SemError::ReturnTypeMismatch("Int".into(), "Bool".into()),
         );
     }
 }
