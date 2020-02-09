@@ -1,11 +1,11 @@
-class CodepointIterator(let value: String, var ind: Int) {
-    fun hasNext() -> Bool = self.ind < self.value.length();
+class CodepointIterator(let value: String, var start: Int) {
+    fun hasNext() -> Bool = self.start < self.value.length();
 
     fun next() -> Char {
-        var ch = self.value.getByte(self.ind);
+        var ch = self.value.getByte(self.start);
 
         if ch <= 0x7FY {
-            self.ind = self.ind + 1;
+            self.start = self.start + 1;
             return ch.toInt().toCharUnchecked();
         }
 
@@ -14,25 +14,25 @@ class CodepointIterator(let value: String, var ind: Int) {
         }
 
         if ch <= 0xDFY {
-            let cp = (ch.toInt() & 0x1F) << 6 | (self.value.getByte(self.ind + 1).toInt() & 0x3F);
-            self.ind = self.ind + 2;
+            let cp = (ch.toInt() & 0x1F) << 6 | (self.value.getByte(self.start + 1).toInt() & 0x3F);
+            self.start = self.start + 2;
             return cp.toCharUnchecked();
         }
 
         if ch <= 0xEFY {
             let cp = (ch.toInt() & 0xF) << 12 |
-                 (self.value.getByte(self.ind + 1).toInt() & 0x3F) << 6 |
-                 (self.value.getByte(self.ind + 2).toInt() & 0x3F);
-            self.ind = self.ind + 3;
+                 (self.value.getByte(self.start + 1).toInt() & 0x3F) << 6 |
+                 (self.value.getByte(self.start + 2).toInt() & 0x3F);
+            self.start = self.start + 3;
             return cp.toCharUnchecked();
         }
 
         if ch <= 0xF7Y {
             let cp = (ch.toInt() & 0x3) << 18 |
-                 (self.value.getByte(self.ind + 1).toInt() & 0x3F) << 12 |
-                 (self.value.getByte(self.ind + 2).toInt() & 0x3F) << 6 |
-                 (self.value.getByte(self.ind + 3).toInt() & 0x3F);
-            self.ind = self.ind + 4;
+                 (self.value.getByte(self.start + 1).toInt() & 0x3F) << 12 |
+                 (self.value.getByte(self.start + 2).toInt() & 0x3F) << 6 |
+                 (self.value.getByte(self.start + 3).toInt() & 0x3F);
+            self.start = self.start + 4;
             return cp.toCharUnchecked();
         }
 
@@ -51,5 +51,5 @@ class CodepointIterator(let value: String, var ind: Int) {
         return i;
     }
 
-    fun toString() -> String = String::fromStringPart(self.value, self.ind, self.value.length() - self.ind).unwrap();
+    fun toString() -> String = String::fromStringPart(self.value, self.start, self.value.length() - self.start).unwrap();
 }
