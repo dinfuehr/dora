@@ -3,7 +3,7 @@
 [![Join the chat at https://gitter.im/dora-lang/dora](https://badges.gitter.im/dora-lang/Lobby.svg)](https://gitter.im/dora-lang/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/dinfuehr/dora.svg?branch=master)](https://travis-ci.org/dinfuehr/dora) [![Actions Status](https://github.com/dinfuehr/dora/workflows/lint-and-test/badge.svg)](https://github.com/dinfuehr/dora/actions)
 
 JIT-compiler for the programming language Dora implemented in Rust.
-Works on Linux (x86\_64, aarch64) and macOS (x86\_64).
+Works on Linux, Windows and macOS (x86\_64 and aarch64).
 Build with:
 
 ## Dependencies
@@ -28,7 +28,8 @@ Install Rust nightly through [rustup.rs](http://rustup.rs). Use the specific nig
 cargo build && cargo build --release
 
 # run all tests in debug and release mode
-tools/test && tools/test-release
+tools/test && tools/test-release # Linux and macOS
+tools/test.bat && tools/test-release.bat # Windows
 ```
 
 ## Working on the standard library
