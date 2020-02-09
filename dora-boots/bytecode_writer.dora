@@ -420,6 +420,54 @@ class BytecodeWriter {
         self.emitReg3(BC_TEST_NE_BOOL, dest, lhs, rhs);
     }
 
+    fun emitTestEqByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_EQ_BYTE, dest, lhs, rhs);
+    }
+
+    fun emitTestNeByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_NE_BYTE, dest, lhs, rhs);
+    }
+
+    fun emitTestGtByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_GT_BYTE, dest, lhs, rhs);
+    }
+
+    fun emitTestGeByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_GE_BYTE, dest, lhs, rhs);
+    }
+
+    fun emitTestLtByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_LT_BYTE, dest, lhs, rhs);
+    }
+
+    fun emitTestLeByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_LE_BYTE, dest, lhs, rhs);
+    }
+
+    fun emitTestEqChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_EQ_CHAR, dest, lhs, rhs);
+    }
+
+    fun emitTestNeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_NE_CHAR, dest, lhs, rhs);
+    }
+
+    fun emitTestGtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_GT_CHAR, dest, lhs, rhs);
+    }
+
+    fun emitTestGeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_GE_CHAR, dest, lhs, rhs);
+    }
+
+    fun emitTestLtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_LT_CHAR, dest, lhs, rhs);
+    }
+
+    fun emitTestLeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_LE_CHAR, dest, lhs, rhs);
+    }
+
     fun emitTestEqInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_EQ_INT, dest, lhs, rhs);
     }

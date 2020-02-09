@@ -197,6 +197,20 @@ class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
     @override fun visitTestEqPtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("TestEqPtr", dest, lhs, rhs); }
     @override fun visitTestNePtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("TestNePtr", dest, lhs, rhs); }
 
+    @override fun visitTestEqByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("TestEqByte", dest, lhs, rhs); }
+    @override fun visitTestNeByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("TestNeByte", dest, lhs, rhs); }
+    @override fun visitTestGtByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("TestGtByte", dest, lhs, rhs); }
+    @override fun visitTestGeByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("TestGeByte", dest, lhs, rhs); }
+    @override fun visitTestLtByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("TestLtByte", dest, lhs, rhs); }
+    @override fun visitTestLeByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("TestLeByte", dest, lhs, rhs); }
+
+    @override fun visitTestEqChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("TestEqChar", dest, lhs, rhs); }
+    @override fun visitTestNeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("TestNeChar", dest, lhs, rhs); }
+    @override fun visitTestGtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("TestGtChar", dest, lhs, rhs); }
+    @override fun visitTestGeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("TestGeChar", dest, lhs, rhs); }
+    @override fun visitTestLtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("TestLtChar", dest, lhs, rhs); }
+    @override fun visitTestLeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("TestLeChar", dest, lhs, rhs); }
+
     @override fun visitTestEqInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("TestEqInt", dest, lhs, rhs); }
     @override fun visitTestNeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("TestNeInt", dest, lhs, rhs); }
     @override fun visitTestGtInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("TestGtInt", dest, lhs, rhs); }

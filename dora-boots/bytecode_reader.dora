@@ -122,6 +122,20 @@ fun readBytecode(code: Array[Byte], visitor: BytecodeVisitor) {
     @open fun visitTestEqBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitTestNeBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
+    @open fun visitTestEqByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestNeByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestGtByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestGeByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestLtByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestLeByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+
+    @open fun visitTestEqChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestNeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestGtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestGeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestLtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestLeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+
     @open fun visitTestEqInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitTestNeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitTestGtInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
@@ -685,6 +699,68 @@ class BytecodeReader(let data: Array[Byte], let visitor: BytecodeVisitor) {
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitTestNeBool(dest, lhs, rhs);
+
+        } else if opcode == BC_TEST_EQ_BYTE {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitTestEqByte(dest, lhs, rhs);
+        } else if opcode == BC_TEST_NE_BYTE {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitTestNeByte(dest, lhs, rhs);
+        } else if opcode == BC_TEST_GT_BYTE {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitTestGtByte(dest, lhs, rhs);
+        } else if opcode == BC_TEST_GE_BYTE {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitTestGeByte(dest, lhs, rhs);
+        } else if opcode == BC_TEST_LT_BYTE {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitTestLtByte(dest, lhs, rhs);
+        } else if opcode == BC_TEST_LE_BYTE {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitTestLeByte(dest, lhs, rhs);
+
+        } else if opcode == BC_TEST_EQ_CHAR {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitTestEqChar(dest, lhs, rhs);
+        } else if opcode == BC_TEST_NE_CHAR {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitTestNeChar(dest, lhs, rhs);
+        } else if opcode == BC_TEST_GT_CHAR {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitTestGtChar(dest, lhs, rhs);
+        } else if opcode == BC_TEST_GE_CHAR {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitTestGeChar(dest, lhs, rhs);
+        } else if opcode == BC_TEST_LT_CHAR {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitTestLtChar(dest, lhs, rhs);
+        } else if opcode == BC_TEST_LE_CHAR {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitTestLeChar(dest, lhs, rhs);
 
         } else if opcode == BC_TEST_EQ_INT {
             let dest = self.readRegister(wide);
