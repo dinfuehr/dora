@@ -1,0 +1,11 @@
+module Foo {
+  fun foo() -> String = "bar";
+}
+
+module Bar {
+  let bar: Int = 0;
+}
+
+fun main() {
+  // assert(Foo::foo() == "bar");
+}

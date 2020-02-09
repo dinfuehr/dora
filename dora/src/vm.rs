@@ -44,6 +44,7 @@ pub use self::strct::{
 };
 pub use self::traits::{TraitData, TraitId};
 pub use self::vip::{KnownClasses, KnownElements, KnownFunctions};
+use crate::vm::module::{Module, ModuleDef, ModuleId};
 
 pub mod class;
 mod cnst;
@@ -53,6 +54,7 @@ mod fct;
 mod field;
 mod global;
 mod impls;
+pub mod module;
 mod src;
 mod strct;
 mod traits;
@@ -91,6 +93,8 @@ pub struct VM<'ast> {
     pub struct_defs: GrowableVec<Mutex<StructDef>>, // stores all struct definitions
     pub classes: GrowableVec<RwLock<Class>>,   // stores all class source definitions
     pub class_defs: GrowableVec<RwLock<ClassDef>>, // stores all class definitions
+    pub modules: GrowableVec<RwLock<Module>>,  // stores all module source definitions
+    pub module_defs: GrowableVec<RwLock<ModuleDef>>, // stores all module definitions
     pub fcts: GrowableVec<RwLock<Fct<'ast>>>,  // stores all function definitions
     pub jit_fcts: GrowableVec<JitFct>,         // stores all function implementations
     pub enums: Vec<RwLock<EnumData>>,          // store all enum definitions
@@ -119,12 +123,14 @@ impl<'ast> VM<'ast> {
 
         let vm = Box::new(VM {
             args,
+            files: Vec::new(),
             consts: GrowableVec::new(),
             structs: GrowableVec::new(),
             struct_defs: GrowableVec::new(),
             classes: GrowableVec::new(),
-            files: Vec::new(),
             class_defs: GrowableVec::new(),
+            modules: GrowableVec::new(),
+            module_defs: GrowableVec::new(),
             enums: Vec::new(),
             traits: Vec::new(),
             impls: Vec::new(),
@@ -389,6 +395,10 @@ impl<'ast> VM<'ast> {
     pub fn cls_with_type_list(&self, cls_id: ClassId, type_list: TypeList) -> BuiltinType {
         let list_id = self.lists.lock().insert(type_list);
         BuiltinType::Class(cls_id, list_id)
+    }
+
+    pub fn modu(&self, mod_id: ModuleId) -> BuiltinType {
+        BuiltinType::Module(mod_id)
     }
 
     pub fn dora_stub(&self) -> Address {

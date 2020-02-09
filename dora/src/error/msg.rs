@@ -30,6 +30,7 @@ pub enum SemError {
     ShadowField(String),
     ShadowGlobal(String),
     ShadowConst(String),
+    ShadowModule(String),
     ShadowEnum(String),
     ShadowEnumValue(String),
     InvalidLhsAssignment,
@@ -63,6 +64,7 @@ pub enum SemError {
     TypeParamReassigned,
     FctUsedAsIdentifier,
     ClsUsedAsIdentifier,
+    ModuleUsedAsIdentifier,
     TypeParamUsedAsIdentifier,
     EnumUsedAsIdentifier,
     TypeParamUsedAsCallee,
@@ -220,6 +222,7 @@ impl SemError {
             SemError::ShadowGlobal(ref name) => {
                 format!("can not shadow global variable `{}`.", name)
             }
+            SemError::ShadowModule(ref name) => format!("can not shadow module `{}`.", name),
             SemError::ShadowConst(ref name) => format!("can not shadow const `{}`.", name),
             SemError::ShadowEnum(ref name) => format!("can not shadow enum `{}`.", name),
             SemError::ShadowEnumValue(ref name) => format!("can not shadow enum value `{}`.", name),
@@ -287,6 +290,7 @@ impl SemError {
             SemError::TypeParamReassigned => "type param cannot be reassigned.".into(),
             SemError::FctUsedAsIdentifier => "function cannot be used as identifier.".into(),
             SemError::ClsUsedAsIdentifier => "class cannot be used as identifier.".into(),
+            SemError::ModuleUsedAsIdentifier => "module cannot be used as identifier.".into(),
             SemError::TypeParamUsedAsIdentifier => {
                 "type param cannot be used as identifier.".into()
             }

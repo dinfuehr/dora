@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use self::Sym::*;
 
 use crate::ty::TypeListId;
+use crate::vm::module::ModuleId;
 use crate::vm::{ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, StructId, TraitId, VarId};
 use dora_parser::interner::Name;
 
@@ -42,10 +43,6 @@ impl SymTable {
         None
     }
 
-    pub fn get_var(&self, name: Name) -> Option<VarId> {
-        self.get(name).and_then(|n| n.to_var())
-    }
-
     pub fn get_class(&self, name: Name) -> Option<ClassId> {
         self.get(name).and_then(|n| n.to_class())
     }
@@ -66,12 +63,20 @@ impl SymTable {
         self.get(name).and_then(|n| n.to_trait())
     }
 
-    pub fn get_global(&self, name: Name) -> Option<GlobalId> {
-        self.get(name).and_then(|n| n.to_global())
+    pub fn get_module(&self, name: Name) -> Option<ModuleId> {
+        self.get(name).and_then(|n| n.to_module())
     }
 
     pub fn get_enum(&self, name: Name) -> Option<EnumId> {
         self.get(name).and_then(|n| n.to_enum())
+    }
+
+    pub fn get_global(&self, name: Name) -> Option<GlobalId> {
+        self.get(name).and_then(|n| n.to_global())
+    }
+
+    pub fn get_var(&self, name: Name) -> Option<VarId> {
+        self.get(name).and_then(|n| n.to_var())
     }
 
     pub fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
@@ -114,6 +119,7 @@ pub enum Sym {
     SymClass(ClassId),
     SymStruct(StructId),
     SymTrait(TraitId),
+    SymModule(ModuleId),
     SymGlobal(GlobalId),
     SymClassTypeParam(ClassId, TypeListId),
     SymFctTypeParam(FctId, TypeListId),
@@ -188,6 +194,20 @@ impl Sym {
     pub fn to_trait(&self) -> Option<TraitId> {
         match *self {
             SymTrait(id) => Some(id),
+            _ => None,
+        }
+    }
+
+    pub fn is_module(&self) -> bool {
+        match *self {
+            SymModule(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_module(&self) -> Option<ModuleId> {
+        match *self {
+            SymModule(id) => Some(id),
             _ => None,
         }
     }

@@ -52,6 +52,8 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                 }
             }
 
+            FctParent::Module(_) => {}
+
             FctParent::Trait(_) => {
                 if fct.has_self() {
                     fct.param_types.push(BuiltinType::This);

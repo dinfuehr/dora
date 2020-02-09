@@ -17,6 +17,7 @@ mod globaldef;
 mod globaldefck;
 mod implck;
 mod impldefck;
+mod moduledefck;
 mod nameck;
 pub(crate) mod prelude;
 mod returnck;
@@ -39,6 +40,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
     let mut map_struct_defs = NodeMap::new(); // get StructId from ast node
     let mut map_trait_defs = NodeMap::new(); // get TraitId from ast node
     let mut map_impl_defs = NodeMap::new(); // get ImplId from ast node
+    let mut map_module_defs = NodeMap::new(); // get ModuleId from ast node
     let mut map_global_defs = NodeMap::new(); // get GlobalId from ast node
     let mut map_const_defs = NodeMap::new(); // get ConstId from ast node
     let mut map_enum_defs = NodeMap::new(); // get EnumId from ast node
@@ -51,6 +53,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
         &mut map_struct_defs,
         &mut map_trait_defs,
         &mut map_impl_defs,
+        &mut map_module_defs,
         &mut map_global_defs,
         &mut map_const_defs,
         &mut map_enum_defs,
@@ -65,6 +68,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
 
     // checks class/struct/trait definitions/bodies
     clsdefck::check(vm, &vm.ast, &map_cls_defs);
+    moduledefck::check(vm, &vm.ast, &map_module_defs);
     structdefck::check(vm, &vm.ast, &map_struct_defs);
     traitdefck::check(vm, &vm.ast, &map_trait_defs);
     globaldefck::check(vm, &vm.ast, &map_global_defs);

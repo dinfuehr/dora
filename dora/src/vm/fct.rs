@@ -9,6 +9,7 @@ use dora_parser::lexer::position::Position;
 use crate::gc::Address;
 use crate::ty::BuiltinType;
 use crate::utils::GrowableVec;
+use crate::vm::module::ModuleId;
 use crate::vm::{ClassId, FctSrc, FileId, ImplId, TraitId, TypeParam, VM};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
@@ -196,6 +197,7 @@ impl<'ast> Fct<'ast> {
 pub enum FctParent {
     Class(ClassId),
     Trait(TraitId),
+    Module(ModuleId),
     Impl(ImplId),
     None,
 }

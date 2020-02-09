@@ -8,6 +8,7 @@ use dora_parser::interner::Name;
 
 use crate::compiler::fct::JitFctId;
 use crate::ty::{BuiltinType, TypeList};
+use crate::vm::module::ModuleId;
 use crate::vm::{
     ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, Intrinsic, StructId, TraitId, TypeParamId,
 };
@@ -162,6 +163,9 @@ pub enum IdentType {
 
     // name of class with type params: SomeClass[T1, T2, ...]
     ClassType(ClassId, TypeList),
+
+    // name of method
+    Module(ModuleId),
 
     // method expression: <expr>.<method_name>
     Method(BuiltinType, Name),

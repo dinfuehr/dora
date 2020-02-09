@@ -4,11 +4,14 @@ use std::sync::Arc;
 
 use crate::error::msg::SemError;
 use crate::gc::Address;
-use crate::sym::Sym::{self, SymClass, SymConst, SymEnum, SymFct, SymGlobal, SymStruct, SymTrait};
+use crate::sym::Sym::{
+    self, SymClass, SymConst, SymEnum, SymFct, SymGlobal, SymModule, SymStruct, SymTrait,
+};
 use crate::sym::SymLevel;
 use crate::ty::BuiltinType;
+use crate::vm::module::ModuleId;
 use crate::vm::{
-    class, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, Fct, FctId, FctKind,
+    class, module, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, Fct, FctId, FctKind,
     FctParent, FctSrc, FileId, GlobalData, GlobalId, ImplData, ImplId, NodeMap, StructData,
     StructId, TraitData, TraitId, TypeParam, VM,
 };
@@ -23,6 +26,7 @@ pub fn check<'ast>(
     map_struct_defs: &mut NodeMap<StructId>,
     map_trait_defs: &mut NodeMap<TraitId>,
     map_impl_defs: &mut NodeMap<ImplId>,
+    map_module_defs: &mut NodeMap<ModuleId>,
     map_global_defs: &mut NodeMap<GlobalId>,
     map_const_defs: &mut NodeMap<ConstId>,
     map_enum_defs: &mut NodeMap<EnumId>,
@@ -35,6 +39,7 @@ pub fn check<'ast>(
         map_struct_defs,
         map_trait_defs,
         map_impl_defs,
+        map_module_defs,
         map_global_defs,
         map_const_defs,
         map_enum_defs,
@@ -50,6 +55,7 @@ struct GlobalDef<'x, 'ast: 'x> {
     map_struct_defs: &'x mut NodeMap<StructId>,
     map_trait_defs: &'x mut NodeMap<TraitId>,
     map_impl_defs: &'x mut NodeMap<ImplId>,
+    map_module_defs: &'x mut NodeMap<ModuleId>,
     map_global_defs: &'x mut NodeMap<GlobalId>,
     map_const_defs: &'x mut NodeMap<ConstId>,
     map_enum_defs: &'x mut NodeMap<EnumId>,
@@ -123,6 +129,44 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
         self.vm.impls.push(RwLock::new(ximpl));
         self.map_impl_defs.insert(i.id, id);
+    }
+
+    fn visit_module(&mut self, m: &'ast Module) {
+        let id = {
+            let mut modules = self.vm.modules.lock();
+
+            let id: ModuleId = modules.len().into();
+            let module = module::Module {
+                id: id,
+                name: m.name,
+                file: self.file_id.into(),
+                pos: m.pos,
+                ty: self.vm.modu(id),
+                parent_class: None,
+                internal: m.internal,
+                internal_resolved: false,
+                has_constructor: m.has_constructor,
+
+                constructor: None,
+                fields: Vec::new(),
+                methods: Vec::new(),
+                virtual_fcts: Vec::new(),
+
+                traits: Vec::new(),
+            };
+
+            modules.push(Arc::new(RwLock::new(module)));
+
+            id
+        };
+
+        let sym = SymModule(id);
+
+        self.map_module_defs.insert(m.id, id);
+
+        if let Some(sym) = self.vm.sym.lock().insert(m.name, sym) {
+            report(self.vm, m.name, self.file_id.into(), m.pos, sym);
+        }
     }
 
     fn visit_const(&mut self, c: &'ast Const) {
@@ -310,6 +354,7 @@ fn report(vm: &VM, name: Name, file: FileId, pos: Position, sym: Sym) {
         SymTrait(_) => SemError::ShadowTrait(name),
         SymGlobal(_) => SemError::ShadowGlobal(name),
         SymConst(_) => SemError::ShadowConst(name),
+        SymModule(_) => SemError::ShadowModule(name),
         SymEnum(_) => SemError::ShadowEnum(name),
         _ => unimplemented!(),
     };
@@ -360,6 +405,21 @@ mod tests {
             pos(1, 14),
             SemError::ShadowTrait("Foo".into()),
         );
+    }
+
+    #[test]
+    fn test_module() {
+        ok("module Foo {}");
+    }
+
+    #[test]
+    fn test_module_with_fun() {
+        ok("module Foo { fun bar() -> Int = 0; }");
+    }
+
+    #[test]
+    fn test_module_with_let() {
+        ok("module Foo { let bar: Int = 0; }");
     }
 
     #[test]

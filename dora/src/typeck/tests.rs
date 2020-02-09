@@ -49,7 +49,7 @@ fn type_object_field_without_self() {
 }
 
 #[test]
-fn type_method_call() {
+fn type_class_method_call() {
     ok("class Foo {
                 fun bar() {}
                 fun baz() -> Int { return 1; }
@@ -65,6 +65,28 @@ fn type_method_call() {
 
              fun f(x: Foo) -> String { return x.bar(); }",
         pos(5, 40),
+        SemError::ReturnType("String".into(), "Int".into()),
+    );
+}
+
+#[test]
+fn type_module_method_call_1() {
+    ok("module Foo {
+                fun bar() {}
+                fun baz() -> Int { return 1; }
+            }
+
+            fun f1() { Foo.bar(); }
+            fun f2() { Foo::bar(); }
+            fun g() -> Int { return Foo.baz(); }");
+
+    err(
+        "module Foo {
+                 fun bar() -> Int { return 0; }
+             }
+
+             fun f() -> String { return Foo.bar(); }",
+        pos(5, 34),
         SemError::ReturnType("String".into(), "Int".into()),
     );
 }
