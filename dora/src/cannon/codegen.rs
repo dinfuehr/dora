@@ -1805,6 +1805,13 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_test_generic(dest, lhs, rhs, CondCode::LessEq);
     }
 
+    fn visit_test_eq_enum(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
+    }
+    fn visit_test_ne_enum(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_test_generic(dest, lhs, rhs, CondCode::NotEqual);
+    }
+
     fn visit_test_eq_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
     }
