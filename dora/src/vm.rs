@@ -43,6 +43,7 @@ pub use self::strct::{
     StructData, StructDef, StructDefId, StructFieldData, StructFieldDef, StructId,
 };
 pub use self::traits::{TraitData, TraitId};
+pub use self::tuple::{TupleId, Tuples};
 pub use self::vip::{KnownClasses, KnownElements, KnownFunctions};
 use crate::vm::module::{Module, ModuleDef, ModuleId};
 
@@ -58,6 +59,7 @@ pub mod module;
 mod src;
 mod strct;
 mod traits;
+mod tuple;
 mod vip;
 
 static mut VM_GLOBAL: *const u8 = ptr::null();
@@ -93,6 +95,7 @@ pub struct VM<'ast> {
     pub struct_defs: GrowableVec<Mutex<StructDef>>, // stores all struct definitions
     pub classes: GrowableVec<RwLock<Class>>,   // stores all class source definitions
     pub class_defs: GrowableVec<RwLock<ClassDef>>, // stores all class definitions
+    pub tuples: Mutex<Tuples>,                 // stores all tuple definitions
     pub modules: GrowableVec<RwLock<Module>>,  // stores all module source definitions
     pub module_defs: GrowableVec<RwLock<ModuleDef>>, // stores all module definitions
     pub fcts: GrowableVec<RwLock<Fct<'ast>>>,  // stores all function definitions
@@ -129,6 +132,7 @@ impl<'ast> VM<'ast> {
             struct_defs: GrowableVec::new(),
             classes: GrowableVec::new(),
             class_defs: GrowableVec::new(),
+            tuples: Mutex::new(Tuples::new()),
             modules: GrowableVec::new(),
             module_defs: GrowableVec::new(),
             enums: Vec::new(),

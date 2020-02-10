@@ -6,7 +6,7 @@ use crate::mem;
 use crate::semck;
 use crate::vm::module::ModuleId;
 use crate::vm::VM;
-use crate::vm::{ClassId, EnumId, FctId, StructId, TraitId};
+use crate::vm::{ClassId, EnumId, FctId, StructId, TraitId, TupleId};
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum BuiltinType {
@@ -43,7 +43,7 @@ pub enum BuiltinType {
     Struct(StructId, TypeListId),
 
     // some tuple
-    Tuple(TypeListId),
+    Tuple(TupleId),
 
     // some trait object
     Trait(TraitId),
@@ -319,8 +319,8 @@ impl BuiltinType {
                 format!("({}) -> {}", params, ret)
             }
 
-            BuiltinType::Tuple(list_id) => {
-                let types = vm.lists.lock().get(list_id);
+            BuiltinType::Tuple(tuple_id) => {
+                let types = vm.tuples.lock().get(tuple_id);
 
                 let types = types
                     .iter()
@@ -353,14 +353,14 @@ impl BuiltinType {
             BuiltinType::Class(_, _) => {
                 *self == other || other.is_nil() || other.subclass_from(vm, *self)
             }
-            BuiltinType::Tuple(list_id) => match other {
-                BuiltinType::Tuple(other_list_id) => {
-                    if list_id == other_list_id {
+            BuiltinType::Tuple(tuple_id) => match other {
+                BuiltinType::Tuple(other_tuple_id) => {
+                    if tuple_id == other_tuple_id {
                         return true;
                     }
 
-                    let subtypes = vm.lists.lock().get(list_id);
-                    let other_subtypes = vm.lists.lock().get(other_list_id);
+                    let subtypes = vm.tuples.lock().get(tuple_id);
+                    let other_subtypes = vm.tuples.lock().get(other_tuple_id);
 
                     if subtypes.len() != other_subtypes.len() {
                         return false;

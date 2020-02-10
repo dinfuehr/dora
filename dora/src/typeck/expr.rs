@@ -291,10 +291,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             subtypes.push(self.expr_type);
         }
 
-        let list = TypeList::with(subtypes);
-        let list_id = self.vm.lists.lock().insert(list);
+        let tuple_id = self.vm.tuples.lock().insert(self.vm, subtypes);
 
-        let ty = BuiltinType::Tuple(list_id);
+        let ty = BuiltinType::Tuple(tuple_id);
         self.src.set_ty(tuple.id, ty);
         self.expr_type = ty;
     }
@@ -1841,14 +1840,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
         };
 
-        let list_id = match object_type {
-            BuiltinType::Tuple(list_id) => list_id,
+        let tuple_id = match object_type {
+            BuiltinType::Tuple(tuple_id) => tuple_id,
             _ => unreachable!(),
         };
 
-        let list = self.vm.lists.lock().get(list_id);
+        let tuple = self.vm.tuples.lock().get(tuple_id);
 
-        if index >= list.len() as u64 {
+        if index >= tuple.len() as u64 {
             let msg = SemError::IllegalTupleIndex(index, object_type.name(self.vm));
             self.vm.diag.lock().report(self.file, e.pos, msg);
 
@@ -1857,7 +1856,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             return;
         }
 
-        let ty = list[usize::try_from(index).unwrap()];
+        let ty = tuple[usize::try_from(index).unwrap()];
         self.src.set_ty(e.id, ty);
         self.expr_type = ty;
     }
@@ -2324,14 +2323,14 @@ fn arg_allows(
             true
         }
 
-        BuiltinType::Tuple(list_id) => match arg {
-            BuiltinType::Tuple(other_list_id) => {
-                if list_id == other_list_id {
+        BuiltinType::Tuple(tuple_id) => match arg {
+            BuiltinType::Tuple(other_tuple_id) => {
+                if tuple_id == other_tuple_id {
                     return true;
                 }
 
-                let subtypes = vm.lists.lock().get(list_id);
-                let other_subtypes = vm.lists.lock().get(other_list_id);
+                let subtypes = vm.tuples.lock().get(tuple_id);
+                let other_subtypes = vm.tuples.lock().get(other_tuple_id);
 
                 if subtypes.len() != other_subtypes.len() {
                     return false;

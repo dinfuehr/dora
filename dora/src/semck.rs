@@ -356,10 +356,8 @@ pub fn read_type<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> Option<Bui
                     }
                 }
 
-                let list = TypeList::with(subtypes);
-                let list_id = vm.lists.lock().insert(list);
-
-                Some(BuiltinType::Tuple(list_id))
+                let tuple_id = vm.tuples.lock().insert(vm, subtypes);
+                Some(BuiltinType::Tuple(tuple_id))
             }
         }
 
