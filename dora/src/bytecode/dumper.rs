@@ -544,7 +544,7 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg3("TestNeChar", dest, lhs, rhs);
     }
     fn visit_test_gt_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestGtByte", dest, lhs, rhs);
+        self.emit_reg3("TestGtChar", dest, lhs, rhs);
     }
     fn visit_test_ge_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("TestGeChar", dest, lhs, rhs);
