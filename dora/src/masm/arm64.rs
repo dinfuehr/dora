@@ -1,7 +1,7 @@
 use byteorder::{LittleEndian, WriteBytesExt};
 use dora_parser::lexer::position::Position;
 
-use crate::baseline::codegen::{CondCode, ExprStore};
+use crate::baseline::codegen::{AnyReg, CondCode};
 use crate::baseline::fct::{BailoutInfo, GcPoint};
 use crate::cpu::asm;
 use crate::cpu::asm::*;
@@ -199,7 +199,7 @@ impl MacroAssembler {
         ));
     }
 
-    pub fn load_array_elem(&mut self, mode: MachineMode, dest: ExprStore, array: Reg, index: Reg) {
+    pub fn load_array_elem(&mut self, mode: MachineMode, dest: AnyReg, array: Reg, index: Reg) {
         self.load_mem(
             mode,
             dest,
@@ -212,7 +212,7 @@ impl MacroAssembler {
         mode: MachineMode,
         array: Reg,
         index: Reg,
-        value: ExprStore,
+        value: AnyReg,
         write_barrier: bool,
         card_table_offset: usize,
     ) {
@@ -726,7 +726,7 @@ impl MacroAssembler {
     pub fn load_field(
         &mut self,
         mode: MachineMode,
-        dest: ExprStore,
+        dest: AnyReg,
         base: Reg,
         offset: i32,
         line: i32,
@@ -734,7 +734,7 @@ impl MacroAssembler {
         self.load_base(mode, dest, base, offset, Some(line));
     }
 
-    pub fn load_mem(&mut self, mode: MachineMode, dest: ExprStore, mem: Mem) {
+    pub fn load_mem(&mut self, mode: MachineMode, dest: AnyReg, mem: Mem) {
         match mem {
             Mem::Local(offset) => {
                 let scratch = self.get_scratch();
@@ -800,7 +800,7 @@ impl MacroAssembler {
     fn load_base(
         &mut self,
         mode: MachineMode,
-        dest: ExprStore,
+        dest: AnyReg,
         base: Reg,
         disp: i32,
         check_nil: Option<i32>,
@@ -836,7 +836,7 @@ impl MacroAssembler {
         mode: MachineMode,
         base: Reg,
         disp: i32,
-        src: ExprStore,
+        src: AnyReg,
         line: i32,
         write_barrier: bool,
         card_table_offset: usize,
@@ -861,7 +861,7 @@ impl MacroAssembler {
         mode: MachineMode,
         base: Reg,
         disp: i32,
-        src: ExprStore,
+        src: AnyReg,
         check_nil: Option<i32>,
     ) {
         let scratch = self.get_scratch();
@@ -909,7 +909,7 @@ impl MacroAssembler {
         self.emit_u32(inst);
     }
 
-    pub fn store_mem(&mut self, mode: MachineMode, mem: Mem, src: ExprStore) {
+    pub fn store_mem(&mut self, mode: MachineMode, mem: Mem, src: AnyReg) {
         match mem {
             Mem::Local(offset) => {
                 let scratch = self.get_scratch();

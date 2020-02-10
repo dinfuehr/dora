@@ -11,7 +11,7 @@ use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 use crate::baseline::{Arg, CallSite, InternalArg, ManagedStackFrame, ManagedStackSlot};
 use crate::compiler::asm::BaselineAssembler;
 use crate::compiler::codegen::{
-    ensure_native_stub, register_for_mode, should_emit_debug, AllocationSize, ExprStore,
+    ensure_native_stub, register_for_mode, should_emit_debug, AllocationSize, AnyReg,
 };
 use crate::compiler::fct::{CatchType, Code, GcPoint, JitDescriptor};
 use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
@@ -643,7 +643,7 @@ where
         Some((finally_pos, offset))
     }
 
-    fn emit_expr_result_reg(&mut self, e: &'ast Expr) -> ExprStore {
+    fn emit_expr_result_reg(&mut self, e: &'ast Expr) -> AnyReg {
         let ty = self
             .src
             .map_tys
@@ -658,7 +658,7 @@ where
         dest
     }
 
-    fn emit_call_site_old(&mut self, call_site: &CallSite<'ast>, pos: Position) -> ExprStore {
+    fn emit_call_site_old(&mut self, call_site: &CallSite<'ast>, pos: Position) -> AnyReg {
         let callee = self.vm.fcts.idx(call_site.callee);
         let callee = callee.read();
         let return_type = self.specialize_type(callee.return_type);
@@ -670,7 +670,7 @@ where
         dest
     }
 
-    fn emit_expr(&mut self, e: &'ast Expr, dest: ExprStore) {
+    fn emit_expr(&mut self, e: &'ast Expr, dest: AnyReg) {
         match *e {
             ExprLitChar(ref expr) => self.emit_lit_char(expr, dest.reg()),
             ExprLitInt(ref expr) => self.emit_lit_int(expr, dest.reg()),
@@ -698,7 +698,7 @@ where
         }
     }
 
-    fn emit_if(&mut self, e: &'ast ExprIfType, dest: ExprStore) {
+    fn emit_if(&mut self, e: &'ast ExprIfType, dest: AnyReg) {
         let lbl_end = self.asm.create_label();
         let lbl_else = if let Some(_) = e.else_block {
             self.asm.create_label()
@@ -722,7 +722,7 @@ where
         self.asm.bind_label(lbl_end);
     }
 
-    fn emit_block(&mut self, block: &'ast ExprBlockType, dest: ExprStore) {
+    fn emit_block(&mut self, block: &'ast ExprBlockType, dest: AnyReg) {
         self.managed_stack.push_scope();
 
         for stmt in &block.stmts {
@@ -736,7 +736,7 @@ where
         self.managed_stack.pop_scope(self.vm);
     }
 
-    fn emit_try(&mut self, e: &'ast ExprTryType, dest: ExprStore) {
+    fn emit_try(&mut self, e: &'ast ExprTryType, dest: AnyReg) {
         match e.mode {
             TryMode::Normal => {
                 self.emit_expr(&e.expr, dest);
@@ -1058,7 +1058,7 @@ where
         }
     }
 
-    fn emit_self(&mut self, dest: ExprStore) {
+    fn emit_self(&mut self, dest: AnyReg) {
         let var = self.src.var_self();
 
         self.asm.emit_comment("load self".into());
@@ -1072,7 +1072,7 @@ where
         self.asm.load_nil(dest);
     }
 
-    fn emit_dot(&mut self, expr: &'ast ExprDotType, dest: ExprStore) {
+    fn emit_dot(&mut self, expr: &'ast ExprDotType, dest: AnyReg) {
         let (ty, field) = {
             let ident_type = self.src.map_idents.get(expr.id).unwrap();
 
@@ -1094,7 +1094,7 @@ where
         ty: BuiltinType,
         fieldid: FieldId,
         src: Reg,
-        dest: ExprStore,
+        dest: AnyReg,
     ) {
         let cls_id = specialize_class_ty(self.vm, ty);
         let cls = self.vm.class_defs.idx(cls_id);
@@ -1164,7 +1164,7 @@ where
         self.asm.load_constpool(dest, disp + pos);
     }
 
-    fn emit_ident(&mut self, e: &'ast ExprIdentType, dest: ExprStore) {
+    fn emit_ident(&mut self, e: &'ast ExprIdentType, dest: AnyReg) {
         let ident = self.src.map_idents.get(e.id).unwrap();
 
         match ident {
@@ -1219,7 +1219,7 @@ where
         }
     }
 
-    fn emit_const(&mut self, const_id: ConstId, dest: ExprStore) {
+    fn emit_const(&mut self, const_id: ConstId, dest: AnyReg) {
         let xconst = self.vm.consts.idx(const_id);
         let xconst = xconst.lock();
         let ty = xconst.ty;
@@ -1255,7 +1255,7 @@ where
         }
     }
 
-    fn emit_intrinsic_unary(&mut self, e: &'ast Expr, dest: ExprStore, intrinsic: Intrinsic) {
+    fn emit_intrinsic_unary(&mut self, e: &'ast Expr, dest: AnyReg, intrinsic: Intrinsic) {
         self.emit_expr(&e, dest);
 
         match intrinsic {
@@ -1382,7 +1382,7 @@ where
         }
     }
 
-    fn emit_unary_operator(&mut self, e: &'ast ExprUnType, dest: ExprStore) {
+    fn emit_unary_operator(&mut self, e: &'ast ExprUnType, dest: AnyReg) {
         if let Some(intrinsic) = self.get_intrinsic(e.id) {
             self.emit_intrinsic_unary(&e.opnd, dest, intrinsic);
         } else {
@@ -1582,7 +1582,7 @@ where
         }
     }
 
-    fn emit_bin(&mut self, e: &'ast ExprBinType, dest: ExprStore) {
+    fn emit_bin(&mut self, e: &'ast ExprBinType, dest: AnyReg) {
         if e.op.is_any_assign() {
             self.emit_assign(e);
         } else if let Some(intrinsic) = self.get_intrinsic(e.id) {
@@ -1755,7 +1755,7 @@ where
         }
     }
 
-    fn emit_path(&mut self, e: &'ast ExprPathType, dest: ExprStore) {
+    fn emit_path(&mut self, e: &'ast ExprPathType, dest: AnyReg) {
         let ident_type = self.src.map_idents.get(e.id).unwrap();
 
         match ident_type {
@@ -1768,7 +1768,7 @@ where
         }
     }
 
-    fn emit_call(&mut self, e: &'ast ExprCallType, dest: ExprStore) {
+    fn emit_call(&mut self, e: &'ast ExprCallType, dest: AnyReg) {
         let call_type = self.src.map_calls.get(e.id).unwrap().clone();
 
         if let Some(intrinsic) = self.get_intrinsic(e.id) {
@@ -1907,7 +1907,7 @@ where
         pos: Position,
         args: &[&'ast Expr],
         intrinsic: Intrinsic,
-        dest: ExprStore,
+        dest: AnyReg,
     ) {
         match intrinsic {
             Intrinsic::GenericArrayLen => self.emit_intrinsic_len(pos, args[0], dest.reg()),
@@ -2199,7 +2199,7 @@ where
         }
     }
 
-    fn emit_intrinsic_default_value(&mut self, id: NodeId, dest: ExprStore) {
+    fn emit_intrinsic_default_value(&mut self, id: NodeId, dest: AnyReg) {
         let ty = self.ty(id);
 
         match ty {
@@ -2302,7 +2302,7 @@ where
         mode: MachineMode,
         object: &'ast Expr,
         index: &'ast Expr,
-        dest: ExprStore,
+        dest: AnyReg,
     ) {
         self.emit_expr(object, REG_RESULT.into());
         let slot = self.add_temp_node(object);
@@ -2516,7 +2516,7 @@ where
         &mut self,
         lhs: &'ast Expr,
         rhs: &'ast Expr,
-        dest: ExprStore,
+        dest: AnyReg,
         intr: Intrinsic,
         pos: Position,
     ) {
@@ -2527,7 +2527,7 @@ where
         &mut self,
         lhs: &'ast Expr,
         rhs: &'ast Expr,
-        dest: ExprStore,
+        dest: AnyReg,
         intr: Intrinsic,
         op: Option<BinOp>,
         pos: Position,
@@ -2661,7 +2661,7 @@ where
 
     fn emit_intrinsic_float(
         &mut self,
-        dest: ExprStore,
+        dest: AnyReg,
         lhs: FReg,
         rhs: FReg,
         intr: Intrinsic,
@@ -2715,7 +2715,7 @@ where
         }
     }
 
-    fn emit_delegation(&mut self, e: &'ast ExprDelegationType, dest: ExprStore) {
+    fn emit_delegation(&mut self, e: &'ast ExprDelegationType, dest: AnyReg) {
         let mut args = e.args.iter().map(|arg| Arg::Expr(arg)).collect::<Vec<_>>();
         args.insert(0, Arg::Selfie);
 
@@ -2723,7 +2723,7 @@ where
         self.emit_call_site(&call_site, e.pos, dest);
     }
 
-    pub fn emit_call_site(&mut self, csite: &CallSite<'ast>, pos: Position, dest: ExprStore) {
+    pub fn emit_call_site(&mut self, csite: &CallSite<'ast>, pos: Position, dest: AnyReg) {
         let mut temps: Vec<SlotOrOffset> = Vec::new();
         let mut alloc_cls_id: Option<ClassDefId> = None;
 
@@ -3324,7 +3324,7 @@ impl<'a, 'ast> visit::Visitor<'ast> for AstCodeGen<'a, 'ast> {
     }
 }
 
-fn result_reg(mode: MachineMode) -> ExprStore {
+fn result_reg(mode: MachineMode) -> AnyReg {
     if mode.is_float() {
         FREG_RESULT.into()
     } else {
@@ -3332,7 +3332,7 @@ fn result_reg(mode: MachineMode) -> ExprStore {
     }
 }
 
-fn result_reg_ty(ty: BuiltinType) -> ExprStore {
+fn result_reg_ty(ty: BuiltinType) -> AnyReg {
     if ty.is_float() {
         FREG_RESULT.into()
     } else {

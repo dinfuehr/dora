@@ -1,5 +1,5 @@
 use crate::asm::Register as AsmRegister;
-use crate::compiler::codegen::ExprStore;
+use crate::compiler::codegen::AnyReg;
 use crate::compiler::fct::LazyCompilationSite;
 use crate::cpu::*;
 use crate::gc::swiper::CARD_SIZE_BITS;
@@ -135,7 +135,7 @@ impl MacroAssembler {
         ));
     }
 
-    pub fn load_array_elem(&mut self, mode: MachineMode, dest: ExprStore, array: Reg, index: Reg) {
+    pub fn load_array_elem(&mut self, mode: MachineMode, dest: AnyReg, array: Reg, index: Reg) {
         self.load_mem(
             mode,
             dest,
@@ -148,7 +148,7 @@ impl MacroAssembler {
         mode: MachineMode,
         array: Reg,
         index: Reg,
-        value: ExprStore,
+        value: AnyReg,
         write_barrier: bool,
         card_table_offset: usize,
     ) {
@@ -683,7 +683,7 @@ impl MacroAssembler {
     pub fn load_field(
         &mut self,
         mode: MachineMode,
-        dest: ExprStore,
+        dest: AnyReg,
         base: Reg,
         offset: i32,
         pos: Position,
@@ -692,7 +692,7 @@ impl MacroAssembler {
         self.load_mem(mode, dest, Mem::Base(base, offset));
     }
 
-    pub fn load_mem(&mut self, mode: MachineMode, dest: ExprStore, mem: Mem) {
+    pub fn load_mem(&mut self, mode: MachineMode, dest: AnyReg, mem: Mem) {
         match mem {
             Mem::Local(offset) => match mode {
                 MachineMode::Int8 => asm::emit_movzbl_memq_reg(self, RBP, offset, dest.reg()),
@@ -741,7 +741,7 @@ impl MacroAssembler {
         mode: MachineMode,
         base: Reg,
         offset: i32,
-        src: ExprStore,
+        src: AnyReg,
         pos: Position,
         write_barrier: bool,
         card_table_offset: usize,
@@ -768,7 +768,7 @@ impl MacroAssembler {
         }
     }
 
-    pub fn store_mem(&mut self, mode: MachineMode, mem: Mem, src: ExprStore) {
+    pub fn store_mem(&mut self, mode: MachineMode, mem: Mem, src: AnyReg) {
         match mem {
             Mem::Local(offset) => match mode {
                 MachineMode::Int8 => asm::emit_movb_reg_memq(self, src.reg(), RBP, offset),

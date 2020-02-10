@@ -5,7 +5,7 @@ use crate::bytecode::{
     self, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeVisitor, ConstPoolIdx, Register,
 };
 use crate::compiler::asm::BaselineAssembler;
-use crate::compiler::codegen::{ensure_native_stub, should_emit_debug, AllocationSize, ExprStore};
+use crate::compiler::codegen::{ensure_native_stub, should_emit_debug, AllocationSize, AnyReg};
 use crate::compiler::fct::{Code, GcPoint, JitDescriptor};
 use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
 use crate::cpu::{Mem, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_TMP1};
@@ -1126,7 +1126,7 @@ where
         start_reg: Register,
         num: u32,
         bytecode_type: Option<BytecodeType>,
-    ) -> ExprStore {
+    ) -> AnyReg {
         assert!(num > 0);
 
         let bytecode_type_self = self.bytecode.register_type(start_reg);
@@ -1202,7 +1202,7 @@ where
         start_reg: Register,
         num: u32,
         bytecode_type: Option<BytecodeType>,
-    ) -> ExprStore {
+    ) -> AnyReg {
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
 
@@ -2162,7 +2162,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
 }
 
-fn result_reg(bytecode_type: BytecodeType) -> ExprStore {
+fn result_reg(bytecode_type: BytecodeType) -> AnyReg {
     if bytecode_type.mode().is_float() {
         FREG_RESULT.into()
     } else {

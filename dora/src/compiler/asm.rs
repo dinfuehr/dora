@@ -2,7 +2,7 @@ use std::mem;
 
 use dora_parser::lexer::position::Position;
 
-use crate::compiler::codegen::{ensure_native_stub, AllocationSize, ExprStore};
+use crate::compiler::codegen::{ensure_native_stub, AllocationSize, AnyReg};
 use crate::compiler::fct::{CatchType, Code, GcPoint, JitDescriptor};
 use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
 use crate::cpu::{
@@ -129,11 +129,11 @@ where
         self.masm.throw(exception, pos);
     }
 
-    pub fn store_mem(&mut self, mode: MachineMode, mem: Mem, src: ExprStore) {
+    pub fn store_mem(&mut self, mode: MachineMode, mem: Mem, src: AnyReg) {
         self.masm.store_mem(mode, mem, src);
     }
 
-    pub fn load_mem(&mut self, mode: MachineMode, dest: ExprStore, mem: Mem) {
+    pub fn load_mem(&mut self, mode: MachineMode, dest: AnyReg, mem: Mem) {
         self.masm.load_mem(mode, dest, mem);
     }
 
@@ -371,7 +371,7 @@ where
     pub fn load_field(
         &mut self,
         mode: MachineMode,
-        dest: ExprStore,
+        dest: AnyReg,
         base: Reg,
         offset: i32,
         pos: Position,
@@ -384,7 +384,7 @@ where
         mode: MachineMode,
         base: Reg,
         offset: i32,
-        src: ExprStore,
+        src: AnyReg,
         pos: Position,
         write_barrier: bool,
         card_table_offset: usize,
@@ -400,7 +400,7 @@ where
         );
     }
 
-    pub fn load_array_elem(&mut self, mode: MachineMode, dest: ExprStore, array: Reg, index: Reg) {
+    pub fn load_array_elem(&mut self, mode: MachineMode, dest: AnyReg, array: Reg, index: Reg) {
         self.masm.load_array_elem(mode, dest, array, index);
     }
 
@@ -409,7 +409,7 @@ where
         mode: MachineMode,
         array: Reg,
         index: Reg,
-        value: ExprStore,
+        value: AnyReg,
         write_barrier: bool,
         card_table_offset: usize,
     ) {
@@ -421,7 +421,7 @@ where
         self.masm.float_sqrt(mode, dest, src);
     }
 
-    pub fn copy(&mut self, mode: MachineMode, dest: ExprStore, src: ExprStore) {
+    pub fn copy(&mut self, mode: MachineMode, dest: AnyReg, src: AnyReg) {
         self.masm.copy(mode, dest, src);
     }
 
@@ -489,11 +489,11 @@ where
         self.masm.emit_position(position);
     }
 
-    pub fn var_store(&mut self, offset: i32, ty: BuiltinType, src: ExprStore) {
+    pub fn var_store(&mut self, offset: i32, ty: BuiltinType, src: AnyReg) {
         self.masm.store_mem(ty.mode(), Mem::Local(offset), src);
     }
 
-    pub fn var_load(&mut self, offset: i32, ty: BuiltinType, dest: ExprStore) {
+    pub fn var_load(&mut self, offset: i32, ty: BuiltinType, dest: AnyReg) {
         self.masm.load_mem(ty.mode(), dest, Mem::Local(offset));
     }
 
@@ -507,7 +507,7 @@ where
         internal_fct: NativeFct,
         pos: Position,
         gcpoint: GcPoint,
-        dest: ExprStore,
+        dest: AnyReg,
     ) {
         let ty = internal_fct.return_type;
         let ptr = ensure_native_stub(self.vm, None, internal_fct);
@@ -525,7 +525,7 @@ where
         pos: Position,
         gcpoint: GcPoint,
         ty: BuiltinType,
-        dest: ExprStore,
+        dest: AnyReg,
     ) {
         self.masm.direct_call(fct_id, ptr, cls_tps, fct_tps);
         self.call_epilog(pos, ty, dest, gcpoint);
@@ -538,29 +538,29 @@ where
         gcpoint: GcPoint,
         return_type: BuiltinType,
         cls_type_params: TypeList,
-        dest: ExprStore,
+        dest: AnyReg,
     ) {
         self.masm.indirect_call(pos, index, cls_type_params);
         self.call_epilog(pos, return_type, dest, gcpoint);
     }
 
-    fn call_epilog(&mut self, pos: Position, ty: BuiltinType, dest: ExprStore, gcpoint: GcPoint) {
+    fn call_epilog(&mut self, pos: Position, ty: BuiltinType, dest: AnyReg, gcpoint: GcPoint) {
         self.masm.emit_position(pos);
         self.masm.emit_gcpoint(gcpoint);
         self.copy_result(ty, dest);
     }
 
-    fn copy_result(&mut self, ty: BuiltinType, dest: ExprStore) {
+    fn copy_result(&mut self, ty: BuiltinType, dest: AnyReg) {
         if ty.is_unit() {
             return;
         }
 
         match dest {
-            ExprStore::Reg(dest) => {
+            AnyReg::Reg(dest) => {
                 self.masm.copy_reg(ty.mode(), dest, REG_RESULT);
             }
 
-            ExprStore::FReg(dest) => {
+            AnyReg::FReg(dest) => {
                 self.masm.copy_freg(ty.mode(), dest, FREG_RESULT);
             }
         }

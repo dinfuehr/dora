@@ -3,7 +3,7 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 use crate::asm::Assembler;
-use crate::compiler::codegen::ExprStore;
+use crate::compiler::codegen::AnyReg;
 use crate::compiler::fct::{
     CatchType, Code, Comments, GcPoint, GcPoints, Handler, JitDescriptor, LazyCompilationData,
     LazyCompilationSite, PositionTable,
@@ -242,7 +242,7 @@ impl MacroAssembler {
             .unwrap();
     }
 
-    pub fn copy(&mut self, mode: MachineMode, dest: ExprStore, src: ExprStore) {
+    pub fn copy(&mut self, mode: MachineMode, dest: AnyReg, src: AnyReg) {
         assert!(dest.is_reg() == src.is_reg());
 
         if dest.is_reg() {

@@ -261,7 +261,7 @@ pub fn dump_asm<'ast>(
     writeln!(&mut w).unwrap();
 }
 
-pub fn register_for_mode(mode: MachineMode) -> ExprStore {
+pub fn register_for_mode(mode: MachineMode) -> AnyReg {
     if mode.is_float() {
         FREG_RESULT.into()
     } else {
@@ -316,50 +316,50 @@ pub fn fct_pattern_match(vm: &VM, fct: &Fct, pattern: &str) -> bool {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum ExprStore {
+pub enum AnyReg {
     Reg(Reg),
     FReg(FReg),
 }
 
-impl ExprStore {
+impl AnyReg {
     pub fn is_reg(&self) -> bool {
         match self {
-            &ExprStore::Reg(_) => true,
+            &AnyReg::Reg(_) => true,
             _ => false,
         }
     }
 
     pub fn is_freg(&self) -> bool {
         match self {
-            &ExprStore::FReg(_) => true,
+            &AnyReg::FReg(_) => true,
             _ => false,
         }
     }
 
     pub fn reg(&self) -> Reg {
         match self {
-            &ExprStore::Reg(reg) => reg,
+            &AnyReg::Reg(reg) => reg,
             _ => panic!("fp-register accessed as gp-register."),
         }
     }
 
     pub fn freg(&self) -> FReg {
         match self {
-            &ExprStore::FReg(reg) => reg,
+            &AnyReg::FReg(reg) => reg,
             _ => panic!("gp-register accessed as fp-register."),
         }
     }
 }
 
-impl From<Reg> for ExprStore {
-    fn from(reg: Reg) -> ExprStore {
-        ExprStore::Reg(reg)
+impl From<Reg> for AnyReg {
+    fn from(reg: Reg) -> AnyReg {
+        AnyReg::Reg(reg)
     }
 }
 
-impl From<FReg> for ExprStore {
-    fn from(reg: FReg) -> ExprStore {
-        ExprStore::FReg(reg)
+impl From<FReg> for AnyReg {
+    fn from(reg: FReg) -> AnyReg {
+        AnyReg::FReg(reg)
     }
 }
 
