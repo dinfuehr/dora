@@ -18,6 +18,10 @@ pub struct Tuple {
 }
 
 impl Tuple {
+    pub fn offsets(&self) -> &[i32] {
+        &self.offsets
+    }
+
     pub fn size(&self) -> i32 {
         self.size
     }

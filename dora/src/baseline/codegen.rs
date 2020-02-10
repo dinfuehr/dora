@@ -27,7 +27,7 @@ use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, MachineMode, TypeList, TypeParamId};
 use crate::vm::{
     CallType, ClassDef, ClassDefId, ConstId, Fct, FctId, FctKind, FctParent, FctSrc, FieldId,
-    IdentType, Intrinsic, TraitId, Trap, VarId, VM,
+    IdentType, Intrinsic, TraitId, Trap, TupleId, VarId, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
@@ -497,7 +497,8 @@ where
     }
 
     fn emit_stmt_expr(&mut self, s: &'ast StmtExprType) {
-        self.emit_expr_result_reg(&s.expr);
+        let store = self.emit_expr_result_reg(&s.expr);
+        self.free_expr_store(store);
     }
 
     fn emit_stmt_var(&mut self, s: &'ast StmtVarType) {
@@ -514,14 +515,39 @@ where
         assert!(self.var_to_slot.insert(var, slot_var).is_none());
 
         if let Some(value) = value {
-            self.asm
-                .var_store(self.var_offset(var), ty, value.any_reg());
+            if let Some(tuple_id) = ty.tuple_id() {
+                self.copy_tuple(tuple_id, self.var_offset(var), value.stack_offset());
+            } else {
+                self.asm
+                    .var_store(self.var_offset(var), ty, value.any_reg());
+            }
+            self.free_expr_store(value);
         } else if ty.reference_type() {
             // uninitialized variables which reference objects need to be initialized to null
             // otherwise the GC can't know if the stored value is a valid pointer
             self.asm.load_nil(REG_RESULT);
             self.asm
                 .var_store(self.var_offset(var), ty, REG_RESULT.into());
+        }
+    }
+
+    fn copy_tuple(&mut self, tuple_id: TupleId, dest_offset: i32, src_offset: i32) {
+        let subtypes = self.vm.tuples.lock().get(tuple_id);
+        let offsets = self
+            .vm
+            .tuples
+            .lock()
+            .get_tuple(tuple_id)
+            .offsets()
+            .to_owned();
+
+        for (&subtype, offset) in subtypes.iter().zip(&offsets) {
+            let dest = result_reg_ty(subtype);
+            let mode = subtype.mode();
+            self.asm
+                .load_mem(mode, dest.any_reg(), Mem::Local(src_offset + offset));
+            self.asm
+                .store_mem(mode, Mem::Local(dest_offset + offset), dest.any_reg());
         }
     }
 
@@ -661,7 +687,7 @@ where
             .expect("no type found");
 
         let ty = self.specialize_type(ty);
-        let dest = result_reg_ty(ty);
+        let dest = self.alloc_expr_store(ty);
         self.emit_expr(e, dest);
 
         dest
@@ -702,7 +728,28 @@ where
             ExprLambda(_) => unimplemented!(),
             ExprBlock(ref expr) => self.emit_block(expr, dest),
             ExprIf(ref expr) => self.emit_if(expr, dest),
-            ExprTuple(_) => unimplemented!(),
+            ExprTuple(ref expr) => self.emit_tuple(expr, dest),
+        }
+    }
+
+    fn emit_tuple(&mut self, e: &'ast ExprTupleType, dest: ExprStore) {
+        let ty = self.ty(e.id);
+        let offsets = self
+            .vm
+            .tuples
+            .lock()
+            .get_tuple(ty.tuple_id().unwrap())
+            .offsets()
+            .to_owned();
+        let tupple_offset = dest.stack_offset();
+
+        for (value, offset) in e.values.iter().zip(&offsets) {
+            let ty = self.ty(value.id());
+            let mode = ty.mode();
+            let dest = result_reg_ty(ty);
+            self.emit_expr(value, dest);
+            self.asm
+                .store_mem(mode, Mem::Local(tupple_offset + offset), dest.any_reg());
         }
     }
 

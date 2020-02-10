@@ -160,6 +160,13 @@ impl BuiltinType {
         }
     }
 
+    pub fn tuple_id(&self) -> Option<TupleId> {
+        match *self {
+            BuiltinType::Tuple(tuple_id) => Some(tuple_id),
+            _ => None,
+        }
+    }
+
     pub fn implements_trait(&self, vm: &VM, trait_id: TraitId) -> bool {
         if let Some(cls_id) = self.cls_id(vm) {
             let cls = vm.classes.idx(cls_id);
