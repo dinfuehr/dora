@@ -1,0 +1,22 @@
+fun main() {    
+    assert(!eq(Foo::A, Foo::B));
+    assert(eq(Foo::B, Foo::B));
+    assert(!eq(Foo::B, Foo::A));
+
+    assert(ne(Foo::A, Foo::B));
+    assert(!ne(Foo::B, Foo::B));
+    assert(ne(Foo::B, Foo::A));
+}
+
+@cannon fun eq(x: Foo, y: Foo) -> Bool {
+    return x == y;
+}
+
+@cannon fun ne(x: Foo, y: Foo) -> Bool {
+    return x != y;
+}
+
+enum Foo {
+    A,
+    B
+}
