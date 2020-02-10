@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
+use crate::compiler::codegen::AnyReg;
 use crate::compiler::{Code, GcPoint};
-use crate::cpu::STACK_FRAME_ALIGNMENT;
+use crate::cpu::{FReg, Reg, STACK_FRAME_ALIGNMENT};
 use crate::mem;
 use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{Fct, FctId, FctSrc, VM};
@@ -352,6 +353,56 @@ impl FreeSlot {
 
     fn size(self) -> u32 {
         self.size
+    }
+}
+
+#[derive(Copy, Clone)]
+enum ExprStore {
+    Stack(ManagedStackSlot),
+    Reg(Reg),
+    FloatReg(FReg),
+}
+
+impl ExprStore {
+    fn stack_offset(&self) -> i32 {
+        match self {
+            ExprStore::Stack(slot) => slot.offset(),
+            _ => unreachable!(),
+        }
+    }
+
+    fn reg(&self) -> Reg {
+        match self {
+            ExprStore::Reg(reg) => *reg,
+            _ => unreachable!(),
+        }
+    }
+
+    fn freg(&self) -> FReg {
+        match self {
+            ExprStore::FloatReg(reg) => *reg,
+            _ => unreachable!(),
+        }
+    }
+
+    fn any_reg(&self) -> AnyReg {
+        match self {
+            &ExprStore::Reg(reg) => reg.into(),
+            &ExprStore::FloatReg(reg) => reg.into(),
+            &ExprStore::Stack(_) => unreachable!(),
+        }
+    }
+}
+
+impl From<Reg> for ExprStore {
+    fn from(reg: Reg) -> ExprStore {
+        ExprStore::Reg(reg)
+    }
+}
+
+impl From<FReg> for ExprStore {
+    fn from(reg: FReg) -> ExprStore {
+        ExprStore::FloatReg(reg)
     }
 }
 

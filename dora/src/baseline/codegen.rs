@@ -8,11 +8,9 @@ use dora_parser::ast::*;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 
-use crate::baseline::{Arg, CallSite, InternalArg, ManagedStackFrame, ManagedStackSlot};
+use crate::baseline::{Arg, CallSite, ExprStore, InternalArg, ManagedStackFrame, ManagedStackSlot};
 use crate::compiler::asm::BaselineAssembler;
-use crate::compiler::codegen::{
-    ensure_native_stub, register_for_mode, should_emit_debug, AllocationSize, AnyReg,
-};
+use crate::compiler::codegen::{ensure_native_stub, should_emit_debug, AllocationSize, AnyReg};
 use crate::compiler::fct::{CatchType, Code, GcPoint, JitDescriptor};
 use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
 use crate::cpu::{
@@ -258,8 +256,11 @@ where
             if len > 0 {
                 let offset = self.ensure_eh_return_value();
                 let rmode = return_type.mode();
-                self.asm
-                    .store_mem(rmode, Mem::Local(offset), register_for_mode(rmode));
+                self.asm.store_mem(
+                    rmode,
+                    Mem::Local(offset),
+                    result_reg_ty(return_type).any_reg(),
+                );
             }
         }
 
@@ -285,8 +286,11 @@ where
             if s.expr.is_some() {
                 let offset = self.ensure_eh_return_value();
                 let rmode = return_type.mode();
-                self.asm
-                    .load_mem(rmode, register_for_mode(rmode), Mem::Local(offset));
+                self.asm.load_mem(
+                    rmode,
+                    result_reg_ty(return_type).any_reg(),
+                    Mem::Local(offset),
+                );
             }
 
             self.lbl_return = None;
@@ -352,8 +356,11 @@ where
         let iterator_slot = self
             .managed_stack
             .add_scope(for_type_info.iterator_type, self.vm);
-        self.asm
-            .store_mem(MachineMode::Ptr, Mem::Local(iterator_slot.offset()), dest);
+        self.asm.store_mem(
+            MachineMode::Ptr,
+            Mem::Local(iterator_slot.offset()),
+            dest.any_reg(),
+        );
 
         let lbl_start = self.asm.create_label();
         let lbl_end = self.asm.create_label();
@@ -390,7 +397,8 @@ where
         let slot_var = self.managed_stack.add_scope(var_ty, self.vm);
         assert!(self.var_to_slot.insert(for_var_id, slot_var).is_none());
 
-        self.asm.var_store(slot_var.offset(), var_ty, dest);
+        self.asm
+            .var_store(slot_var.offset(), var_ty, dest.any_reg());
 
         self.save_label_state(lbl_end, lbl_start, |this| {
             // execute while body, then jump back to condition
@@ -506,7 +514,8 @@ where
         assert!(self.var_to_slot.insert(var, slot_var).is_none());
 
         if let Some(value) = value {
-            self.asm.var_store(self.var_offset(var), ty, value);
+            self.asm
+                .var_store(self.var_offset(var), ty, value.any_reg());
         } else if ty.reference_type() {
             // uninitialized variables which reference objects need to be initialized to null
             // otherwise the GC can't know if the stored value is a valid pointer
@@ -643,7 +652,7 @@ where
         Some((finally_pos, offset))
     }
 
-    fn emit_expr_result_reg(&mut self, e: &'ast Expr) -> AnyReg {
+    fn emit_expr_result_reg(&mut self, e: &'ast Expr) -> ExprStore {
         let ty = self
             .src
             .map_tys
@@ -658,19 +667,18 @@ where
         dest
     }
 
-    fn emit_call_site_old(&mut self, call_site: &CallSite<'ast>, pos: Position) -> AnyReg {
+    fn emit_call_site_old(&mut self, call_site: &CallSite<'ast>, pos: Position) -> ExprStore {
         let callee = self.vm.fcts.idx(call_site.callee);
         let callee = callee.read();
         let return_type = self.specialize_type(callee.return_type);
-
-        let dest = register_for_mode(return_type.mode());
+        let dest = result_reg_ty(return_type);
 
         self.emit_call_site(call_site, pos, dest);
 
         dest
     }
 
-    fn emit_expr(&mut self, e: &'ast Expr, dest: AnyReg) {
+    fn emit_expr(&mut self, e: &'ast Expr, dest: ExprStore) {
         match *e {
             ExprLitChar(ref expr) => self.emit_lit_char(expr, dest.reg()),
             ExprLitInt(ref expr) => self.emit_lit_int(expr, dest.reg()),
@@ -698,7 +706,7 @@ where
         }
     }
 
-    fn emit_if(&mut self, e: &'ast ExprIfType, dest: AnyReg) {
+    fn emit_if(&mut self, e: &'ast ExprIfType, dest: ExprStore) {
         let lbl_end = self.asm.create_label();
         let lbl_else = if let Some(_) = e.else_block {
             self.asm.create_label()
@@ -722,7 +730,7 @@ where
         self.asm.bind_label(lbl_end);
     }
 
-    fn emit_block(&mut self, block: &'ast ExprBlockType, dest: AnyReg) {
+    fn emit_block(&mut self, block: &'ast ExprBlockType, dest: ExprStore) {
         self.managed_stack.push_scope();
 
         for stmt in &block.stmts {
@@ -736,7 +744,7 @@ where
         self.managed_stack.pop_scope(self.vm);
     }
 
-    fn emit_try(&mut self, e: &'ast ExprTryType, dest: AnyReg) {
+    fn emit_try(&mut self, e: &'ast ExprTryType, dest: ExprStore) {
         match e.mode {
             TryMode::Normal => {
                 self.emit_expr(&e.expr, dest);
@@ -814,12 +822,12 @@ where
             } else {
                 let ty = self.ty(part.id());
 
-                let dest = result_reg(ty.mode());
+                let dest = result_reg_ty(ty);
                 self.emit_expr(part, dest);
 
                 if ty.cls_id(self.vm) != Some(self.vm.vips.string_class) {
                     let object_slot = self.managed_stack.add_temp(ty, self.vm);
-                    self.asm.var_store(object_slot.offset(), ty, dest);
+                    self.asm.var_store(object_slot.offset(), ty, dest.any_reg());
 
                     // build toString() call
                     let cls_id = ty.cls_id(self.vm).expect("no cls_id found for type");
@@ -1058,21 +1066,21 @@ where
         }
     }
 
-    fn emit_self(&mut self, dest: AnyReg) {
+    fn emit_self(&mut self, dest: ExprStore) {
         let var = self.src.var_self();
 
         self.asm.emit_comment("load self".into());
 
         let offset = self.var_offset(var.id);
         self.asm
-            .load_mem(var.ty.mode(), dest.into(), Mem::Local(offset));
+            .load_mem(var.ty.mode(), dest.any_reg(), Mem::Local(offset));
     }
 
     fn emit_nil(&mut self, dest: Reg) {
         self.asm.load_nil(dest);
     }
 
-    fn emit_dot(&mut self, expr: &'ast ExprDotType, dest: AnyReg) {
+    fn emit_dot(&mut self, expr: &'ast ExprDotType, dest: ExprStore) {
         let (ty, field) = {
             let ident_type = self.src.map_idents.get(expr.id).unwrap();
 
@@ -1085,7 +1093,7 @@ where
         let ty = self.specialize_type(ty);
 
         self.emit_expr(&expr.lhs, REG_RESULT.into());
-        self.emit_field_access(expr.pos, ty, field, REG_RESULT, dest);
+        self.emit_field_access(expr.pos, ty, field, REG_RESULT, dest.any_reg());
     }
 
     fn emit_field_access(
@@ -1164,7 +1172,7 @@ where
         self.asm.load_constpool(dest, disp + pos);
     }
 
-    fn emit_ident(&mut self, e: &'ast ExprIdentType, dest: AnyReg) {
+    fn emit_ident(&mut self, e: &'ast ExprIdentType, dest: ExprStore) {
         let ident = self.src.map_idents.get(e.id).unwrap();
 
         match ident {
@@ -1175,7 +1183,8 @@ where
                     self.asm.emit_comment(format!("load var {}", name));
                 }
                 let ty = self.var_ty(varid);
-                self.asm.var_load(self.var_offset(varid), ty, dest)
+                self.asm
+                    .var_load(self.var_offset(varid), ty, dest.any_reg())
             }
 
             &IdentType::Global(gid) => {
@@ -1191,12 +1200,12 @@ where
                 self.asm.load_constpool(REG_TMP1, disp + pos);
 
                 self.asm
-                    .load_mem(glob.ty.mode(), dest, Mem::Base(REG_TMP1, 0));
+                    .load_mem(glob.ty.mode(), dest.any_reg(), Mem::Base(REG_TMP1, 0));
             }
 
             &IdentType::Field(cls, field) => {
                 self.emit_self(REG_RESULT.into());
-                self.emit_field_access(e.pos, cls, field, REG_RESULT, dest);
+                self.emit_field_access(e.pos, cls, field, REG_RESULT, dest.any_reg());
             }
 
             &IdentType::Struct(_) => {
@@ -1204,7 +1213,7 @@ where
             }
 
             &IdentType::Const(const_id) => {
-                self.emit_const(const_id, dest);
+                self.emit_const(const_id, dest.any_reg());
             }
 
             &IdentType::Enum(_) | &IdentType::EnumValue(_, _) => unreachable!(),
@@ -1255,7 +1264,7 @@ where
         }
     }
 
-    fn emit_intrinsic_unary(&mut self, e: &'ast Expr, dest: AnyReg, intrinsic: Intrinsic) {
+    fn emit_intrinsic_unary(&mut self, e: &'ast Expr, dest: ExprStore, intrinsic: Intrinsic) {
         self.emit_expr(&e, dest);
 
         match intrinsic {
@@ -1382,7 +1391,7 @@ where
         }
     }
 
-    fn emit_unary_operator(&mut self, e: &'ast ExprUnType, dest: AnyReg) {
+    fn emit_unary_operator(&mut self, e: &'ast ExprUnType, dest: ExprStore) {
         if let Some(intrinsic) = self.get_intrinsic(e.id) {
             self.emit_intrinsic_unary(&e.opnd, dest, intrinsic);
         } else {
@@ -1441,7 +1450,7 @@ where
         match ident_type {
             &IdentType::Var(varid) => {
                 let ty = self.var_ty(varid);
-                let dest = result_reg(ty.mode());
+                let dest = result_reg_ty(ty);
                 self.emit_expr(&e.rhs, dest);
 
                 {
@@ -1450,7 +1459,8 @@ where
                     self.asm.emit_comment(format!("store var {}", name));
                 }
 
-                self.asm.var_store(self.var_offset(varid), ty, dest);
+                self.asm
+                    .var_store(self.var_offset(varid), ty, dest.any_reg());
             }
 
             &IdentType::Global(gid) => {
@@ -1460,7 +1470,7 @@ where
                     (glob.address_value, glob.ty)
                 };
 
-                let dest = result_reg(ty.mode());
+                let dest = result_reg_ty(ty);
                 self.emit_expr(&e.rhs, dest);
 
                 let disp = self.asm.add_addr(address_value.to_ptr());
@@ -1471,7 +1481,8 @@ where
 
                 self.asm.load_constpool(REG_TMP1, disp + pos);
 
-                self.asm.store_mem(ty.mode(), Mem::Base(REG_TMP1, 0), dest);
+                self.asm
+                    .store_mem(ty.mode(), Mem::Base(REG_TMP1, 0), dest.any_reg());
             }
 
             &IdentType::Field(ty, fieldid) => {
@@ -1498,7 +1509,7 @@ where
                     REG_RESULT.into(),
                 );
 
-                let reg = result_reg(field.ty.mode());
+                let reg = result_reg_ty(field.ty);
                 let verify_refs = self.vm.args.flag_gc_verify_write && field.ty.reference_type();
                 let value_slot = if verify_refs {
                     Some(self.add_temp_node(&e.rhs))
@@ -1510,7 +1521,7 @@ where
                     self.asm.store_mem(
                         field.ty.mode(),
                         Mem::Local(value_slot.unwrap().offset()),
-                        reg,
+                        reg.any_reg(),
                     );
                 }
                 self.asm.load_mem(
@@ -1537,7 +1548,7 @@ where
                     field.ty.mode(),
                     REG_TMP1,
                     field.offset,
-                    reg,
+                    reg.any_reg(),
                     e.pos,
                     write_barrier,
                     card_table_offset,
@@ -1582,7 +1593,7 @@ where
         }
     }
 
-    fn emit_bin(&mut self, e: &'ast ExprBinType, dest: AnyReg) {
+    fn emit_bin(&mut self, e: &'ast ExprBinType, dest: ExprStore) {
         if e.op.is_any_assign() {
             self.emit_assign(e);
         } else if let Some(intrinsic) = self.get_intrinsic(e.id) {
@@ -1755,7 +1766,7 @@ where
         }
     }
 
-    fn emit_path(&mut self, e: &'ast ExprPathType, dest: AnyReg) {
+    fn emit_path(&mut self, e: &'ast ExprPathType, dest: ExprStore) {
         let ident_type = self.src.map_idents.get(e.id).unwrap();
 
         match ident_type {
@@ -1768,7 +1779,7 @@ where
         }
     }
 
-    fn emit_call(&mut self, e: &'ast ExprCallType, dest: AnyReg) {
+    fn emit_call(&mut self, e: &'ast ExprCallType, dest: ExprStore) {
         let call_type = self.src.map_calls.get(e.id).unwrap().clone();
 
         if let Some(intrinsic) = self.get_intrinsic(e.id) {
@@ -1907,13 +1918,13 @@ where
         pos: Position,
         args: &[&'ast Expr],
         intrinsic: Intrinsic,
-        dest: AnyReg,
+        dest: ExprStore,
     ) {
         match intrinsic {
             Intrinsic::GenericArrayLen => self.emit_intrinsic_len(pos, args[0], dest.reg()),
             Intrinsic::GenericArrayGet => {
                 let element_type = self.ty(args[0].id()).type_params(self.vm)[0];
-                self.emit_array_get(pos, element_type.mode(), args[0], args[1], dest)
+                self.emit_array_get(pos, element_type.mode(), args[0], args[1], dest.any_reg())
             }
             Intrinsic::GenericArraySet => {
                 let element_type = self.ty(args[0].id()).type_params(self.vm)[0];
@@ -1931,7 +1942,7 @@ where
             Intrinsic::Shl => self.emit_intrinsic_shl(args[0], args[1], dest.reg()),
             Intrinsic::StrLen => self.emit_intrinsic_len(pos, args[0], dest.reg()),
             Intrinsic::StrGet => {
-                self.emit_array_get(pos, MachineMode::Int8, args[0], args[1], dest)
+                self.emit_array_get(pos, MachineMode::Int8, args[0], args[1], dest.any_reg())
             }
 
             Intrinsic::BoolToInt | Intrinsic::ByteToInt => {
@@ -2199,7 +2210,7 @@ where
         }
     }
 
-    fn emit_intrinsic_default_value(&mut self, id: NodeId, dest: AnyReg) {
+    fn emit_intrinsic_default_value(&mut self, id: NodeId, dest: ExprStore) {
         let ty = self.ty(id);
 
         match ty {
@@ -2252,12 +2263,12 @@ where
             REG_RESULT.into(),
         );
 
-        let res = result_reg(mode);
+        let res = result_reg_mode(mode);
 
         self.emit_expr(rhs, res);
         let slot_value = self.add_temp_node(rhs);
         self.asm
-            .store_mem(mode, Mem::Local(slot_value.offset()), res);
+            .store_mem(mode, Mem::Local(slot_value.offset()), res.any_reg());
 
         self.asm.load_mem(
             MachineMode::Ptr,
@@ -2277,7 +2288,7 @@ where
         }
 
         self.asm
-            .load_mem(mode, res, Mem::Local(slot_value.offset()));
+            .load_mem(mode, res.any_reg(), Mem::Local(slot_value.offset()));
 
         let write_barrier = self.vm.gc.needs_write_barrier() && element_type.reference_type();
         let card_table_offset = self.vm.gc.card_table_offset();
@@ -2286,7 +2297,7 @@ where
             mode,
             REG_TMP1,
             REG_TMP2,
-            res,
+            res.any_reg(),
             write_barrier,
             card_table_offset,
         );
@@ -2326,14 +2337,15 @@ where
                 .check_index_out_of_bounds(pos, REG_RESULT, REG_TMP1);
         }
 
-        let res = result_reg(mode);
+        let res = result_reg_mode(mode);
 
-        self.asm.load_array_elem(mode, res, REG_RESULT, REG_TMP1);
+        self.asm
+            .load_array_elem(mode, res.any_reg(), REG_RESULT, REG_TMP1);
 
         self.managed_stack.free_temp(slot, self.vm);
 
-        if dest != res {
-            self.asm.copy(mode, dest, res);
+        if dest != res.any_reg() {
+            self.asm.copy(mode, dest, res.any_reg());
         }
     }
 
@@ -2516,7 +2528,7 @@ where
         &mut self,
         lhs: &'ast Expr,
         rhs: &'ast Expr,
-        dest: AnyReg,
+        dest: ExprStore,
         intr: Intrinsic,
         pos: Position,
     ) {
@@ -2527,7 +2539,7 @@ where
         &mut self,
         lhs: &'ast Expr,
         rhs: &'ast Expr,
-        dest: AnyReg,
+        dest: ExprStore,
         intr: Intrinsic,
         op: Option<BinOp>,
         pos: Position,
@@ -2543,11 +2555,13 @@ where
         self.emit_expr(lhs, lhs_reg);
         let slot = self.add_temp_node(lhs);
 
-        self.asm.store_mem(mode, Mem::Local(slot.offset()), lhs_reg);
+        self.asm
+            .store_mem(mode, Mem::Local(slot.offset()), lhs_reg.any_reg());
 
         self.emit_expr(rhs, rhs_reg);
 
-        self.asm.load_mem(mode, lhs_reg, Mem::Local(slot.offset()));
+        self.asm
+            .load_mem(mode, lhs_reg.any_reg(), Mem::Local(slot.offset()));
 
         if mode.is_float() {
             let lhs_reg = lhs_reg.freg();
@@ -2661,7 +2675,7 @@ where
 
     fn emit_intrinsic_float(
         &mut self,
-        dest: AnyReg,
+        dest: ExprStore,
         lhs: FReg,
         rhs: FReg,
         intr: Intrinsic,
@@ -2715,7 +2729,7 @@ where
         }
     }
 
-    fn emit_delegation(&mut self, e: &'ast ExprDelegationType, dest: AnyReg) {
+    fn emit_delegation(&mut self, e: &'ast ExprDelegationType, dest: ExprStore) {
         let mut args = e.args.iter().map(|arg| Arg::Expr(arg)).collect::<Vec<_>>();
         args.insert(0, Arg::Selfie);
 
@@ -2723,7 +2737,7 @@ where
         self.emit_call_site(&call_site, e.pos, dest);
     }
 
-    pub fn emit_call_site(&mut self, csite: &CallSite<'ast>, pos: Position, dest: AnyReg) {
+    pub fn emit_call_site(&mut self, csite: &CallSite<'ast>, pos: Position, dest: ExprStore) {
         let mut temps: Vec<SlotOrOffset> = Vec::new();
         let mut alloc_cls_id: Option<ClassDefId> = None;
 
@@ -2732,8 +2746,8 @@ where
         let fct = fct.read();
 
         for (idx, arg) in csite.args.iter().enumerate() {
-            let mode = arg.ty().mode();
-            let dest = register_for_mode(mode);
+            let ty = arg.ty();
+            let dest = result_reg_ty(ty);
 
             let slot_or_offset = match *arg {
                 InternalArg::Expr(ast, ty) => {
@@ -2755,12 +2769,13 @@ where
 
                     let slot = self.add_temp_arg(arg);
                     self.asm
-                        .store_mem(arg.ty().mode(), Mem::Local(slot.offset()), dest);
+                        .store_mem(arg.ty().mode(), Mem::Local(slot.offset()), dest.any_reg());
                     SlotOrOffset::Slot(slot)
                 }
 
                 InternalArg::Stack(offset, ty) => {
-                    self.asm.load_mem(ty.mode(), dest, Mem::Local(offset));
+                    self.asm
+                        .load_mem(ty.mode(), dest.any_reg(), Mem::Local(offset));
                     SlotOrOffset::Offset(offset)
                 }
 
@@ -2886,7 +2901,7 @@ where
                 pos,
                 gcpoint,
                 return_type,
-                dest,
+                dest.any_reg(),
             );
         } else if fct.is_virtual() {
             let vtable_index = fct.vtable_index.unwrap();
@@ -2900,7 +2915,7 @@ where
                 gcpoint,
                 return_type,
                 cls_type_params,
-                dest,
+                dest.any_reg(),
             );
         } else {
             let ptr = self.ptr_for_fct_id(fid, cls_type_params.clone(), fct_type_params.clone());
@@ -2915,7 +2930,7 @@ where
                 pos,
                 gcpoint,
                 return_type,
-                dest,
+                dest.any_reg(),
             );
         }
 
@@ -2923,7 +2938,7 @@ where
             if let InternalArg::SelfieNew(ty) = csite.args[0] {
                 let temp = &temps[0];
                 self.asm
-                    .load_mem(ty.mode(), dest, Mem::Local(temp.offset()));
+                    .load_mem(ty.mode(), dest.any_reg(), Mem::Local(temp.offset()));
             }
         }
 
@@ -3300,6 +3315,25 @@ where
         let ty = self.src.vars[id].ty;
         self.specialize_type(ty)
     }
+
+    fn alloc_expr_store(&mut self, ty: BuiltinType) -> ExprStore {
+        if ty.is_tuple() {
+            let slot = self.managed_stack.add_temp(ty, self.vm);
+            ExprStore::Stack(slot)
+        } else if ty.is_float() {
+            ExprStore::FloatReg(FREG_RESULT)
+        } else {
+            ExprStore::Reg(REG_RESULT)
+        }
+    }
+
+    fn free_expr_store(&mut self, store: ExprStore) {
+        match store {
+            ExprStore::Stack(slot) => self.managed_stack.free_temp(slot, self.vm),
+            ExprStore::FloatReg(_) => {}
+            ExprStore::Reg(_) => {}
+        }
+    }
 }
 
 impl<'a, 'ast> visit::Visitor<'ast> for AstCodeGen<'a, 'ast> {
@@ -3324,19 +3358,19 @@ impl<'a, 'ast> visit::Visitor<'ast> for AstCodeGen<'a, 'ast> {
     }
 }
 
-fn result_reg(mode: MachineMode) -> AnyReg {
+fn result_reg_mode(mode: MachineMode) -> ExprStore {
     if mode.is_float() {
-        FREG_RESULT.into()
+        ExprStore::FloatReg(FREG_RESULT)
     } else {
-        REG_RESULT.into()
+        ExprStore::Reg(REG_RESULT)
     }
 }
 
-fn result_reg_ty(ty: BuiltinType) -> AnyReg {
+fn result_reg_ty(ty: BuiltinType) -> ExprStore {
     if ty.is_float() {
-        FREG_RESULT.into()
+        ExprStore::FloatReg(FREG_RESULT)
     } else {
-        REG_RESULT.into()
+        ExprStore::Reg(REG_RESULT)
     }
 }
 
