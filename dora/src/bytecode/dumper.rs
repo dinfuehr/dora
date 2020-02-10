@@ -556,6 +556,13 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg3("TestLeChar", dest, lhs, rhs);
     }
 
+    fn visit_test_eq_enum(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestEqEnum", dest, lhs, rhs);
+    }
+    fn visit_test_ne_enum(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestNeEnum", dest, lhs, rhs);
+    }
+
     fn visit_test_eq_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("TestEqInt", dest, lhs, rhs);
     }

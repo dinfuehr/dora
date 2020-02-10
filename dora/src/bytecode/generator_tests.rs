@@ -2485,6 +2485,9 @@ pub enum Bytecode {
     TestLtChar(Register, Register, Register),
     TestLeChar(Register, Register, Register),
 
+    TestEqEnum(Register, Register, Register),
+    TestNeEnum(Register, Register, Register),
+
     TestEqInt(Register, Register, Register),
     TestNeInt(Register, Register, Register),
     TestGtInt(Register, Register, Register),
@@ -3082,6 +3085,13 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_test_le_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::TestLeChar(dest, lhs, rhs));
+    }
+
+    fn visit_test_eq_enum(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestEqEnum(dest, lhs, rhs));
+    }
+    fn visit_test_ne_enum(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestNeEnum(dest, lhs, rhs));
     }
 
     fn visit_test_eq_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
