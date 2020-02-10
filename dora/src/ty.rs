@@ -436,7 +436,7 @@ impl BuiltinType {
             BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_, _) => {
                 panic!("no size for type variable.")
             }
-            BuiltinType::Tuple(_) => unimplemented!(),
+            BuiltinType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).size(),
         }
     }
 
@@ -470,7 +470,7 @@ impl BuiltinType {
             BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_, _) => {
                 panic!("no alignment for type variable.")
             }
-            BuiltinType::Tuple(_) => unimplemented!(),
+            BuiltinType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).align(),
         }
     }
 

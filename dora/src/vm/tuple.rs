@@ -17,6 +17,16 @@ pub struct Tuple {
     align: i32,
 }
 
+impl Tuple {
+    pub fn size(&self) -> i32 {
+        self.size
+    }
+
+    pub fn align(&self) -> i32 {
+        self.size
+    }
+}
+
 pub struct Tuples {
     all: Vec<Tuple>,
     map: HashMap<Arc<Vec<BuiltinType>>, TupleId>,
@@ -28,6 +38,10 @@ impl Tuples {
             all: Vec::new(),
             map: HashMap::new(),
         }
+    }
+
+    pub fn get_tuple(&self, id: TupleId) -> &Tuple {
+        &self.all[id.0 as usize]
     }
 
     pub fn get(&self, id: TupleId) -> Arc<Vec<BuiltinType>> {
