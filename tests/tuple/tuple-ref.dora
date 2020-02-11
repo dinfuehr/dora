@@ -1,5 +1,5 @@
 class Foo(let value: Int) {
-    // forceCollect();
+    forceCollect();
 }
 
 fun main() {

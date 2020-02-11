@@ -734,6 +734,24 @@ where
 
     fn emit_tuple(&mut self, e: &'ast ExprTupleType, dest: ExprStore) {
         let ty = self.ty(e.id);
+        let mut slots = Vec::new();
+
+        for value in &e.values {
+            let ty = self.ty(value.id());
+            let dest = self.emit_expr_result_reg(value);
+
+            let slot = self.managed_stack.add_temp(ty, self.vm);
+            slots.push(slot);
+
+            if let Some(tuple_id) = ty.tuple_id() {
+                self.copy_tuple(tuple_id, slot.offset, dest.stack_offset());
+            } else {
+                self.asm.var_store(slot.offset, ty, dest.any_reg());
+            }
+
+            self.free_expr_store(dest);
+        }
+
         let offsets = self
             .vm
             .tuples
@@ -743,13 +761,23 @@ where
             .to_owned();
         let tuple_offset = dest.stack_offset();
 
-        for (value, offset) in e.values.iter().zip(&offsets) {
+        for (value, (slot, &offset)) in e.values.iter().zip(slots.iter().zip(&offsets)) {
             let ty = self.ty(value.id());
-            let mode = ty.mode();
-            let dest = result_reg_ty(ty);
-            self.emit_expr(value, dest);
-            self.asm
-                .store_mem(mode, Mem::Local(tuple_offset + offset), dest.any_reg());
+
+            if let Some(tuple_id) = ty.tuple_id() {
+                self.copy_tuple(tuple_id, tuple_offset + offset, slot.offset);
+            } else {
+                let mode = ty.mode();
+                let temp = result_reg_ty(ty);
+                self.asm
+                    .load_mem(mode, temp.any_reg(), Mem::Local(slot.offset));
+                self.asm
+                    .store_mem(mode, Mem::Local(tuple_offset + offset), temp.any_reg());
+            }
+        }
+
+        for slot in slots {
+            self.managed_stack.free_temp(slot, self.vm);
         }
 
         let slot = dest.stack_slot();
