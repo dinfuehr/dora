@@ -1128,6 +1128,13 @@ where
     }
 
     fn emit_dot(&mut self, expr: &'ast ExprDotType, dest: ExprStore) {
+        let object_ty = self.ty(expr.lhs.id());
+
+        if let Some(tuple_id) = object_ty.tuple_id() {
+            self.emit_dot_tuple(expr, tuple_id, dest);
+            return;
+        }
+
         let (ty, field) = {
             let ident_type = self.src.map_idents.get(expr.id).unwrap();
 
@@ -1141,6 +1148,20 @@ where
 
         self.emit_expr(&expr.lhs, REG_RESULT.into());
         self.emit_field_access(expr.pos, ty, field, REG_RESULT, dest.any_reg());
+    }
+
+    fn emit_dot_tuple(&mut self, expr: &'ast ExprDotType, tuple_id: TupleId, dest: ExprStore) {
+        let tuple = self.emit_expr_result_reg(&expr.lhs);
+
+        let idx = expr.rhs.to_lit_int().unwrap().value as usize;
+        let (ty, offset) = self.vm.tuples.lock().get_at(tuple_id, idx);
+
+        self.asm.load_mem(
+            ty.mode(),
+            dest.any_reg(),
+            Mem::Local(tuple.stack_offset() + offset),
+        );
+        self.free_expr_store(tuple);
     }
 
     fn emit_field_access(
@@ -1230,8 +1251,13 @@ where
                     self.asm.emit_comment(format!("load var {}", name));
                 }
                 let ty = self.var_ty(varid);
-                self.asm
-                    .var_load(self.var_offset(varid), ty, dest.any_reg())
+
+                if let Some(tuple_id) = ty.tuple_id() {
+                    self.copy_tuple(tuple_id, dest.stack_offset(), self.var_offset(varid));
+                } else {
+                    self.asm
+                        .var_load(self.var_offset(varid), ty, dest.any_reg());
+                }
             }
 
             &IdentType::Global(gid) => {

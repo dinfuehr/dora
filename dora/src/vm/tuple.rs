@@ -44,6 +44,11 @@ impl Tuples {
         }
     }
 
+    pub fn get_at(&self, id: TupleId, idx: usize) -> (BuiltinType, i32) {
+        let tuple = self.get_tuple(id);
+        (tuple.args[idx], tuple.offsets[idx])
+    }
+
     pub fn get_tuple(&self, id: TupleId) -> &Tuple {
         &self.all[id.0 as usize]
     }

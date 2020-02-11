@@ -1,0 +1,26 @@
+fun main() {
+    assert(tpl1() == 1.0F);
+    assert(tpl2() == 2.0F);
+    assert(tpl3() == 3.0F);
+    assert(tplsum() == 6.0F);
+}
+
+fun tpl1() -> Float {
+    let x = (1.0F, 2.0F, 3.0F);
+    x.0
+}
+
+fun tpl2() -> Float {
+    let x = (1.0F, 2.0F, 3.0F);
+    x.1
+}
+
+fun tpl3() -> Float {
+    let x = (1.0F, 2.0F, 3.0F);
+    x.2
+}
+
+fun tplsum() -> Float {
+    let x = (1.0F, 2.0F, 3.0F);
+    x.0 + x.1 + x.2
+}
