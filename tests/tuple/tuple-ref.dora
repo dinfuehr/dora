@@ -1,0 +1,34 @@
+//= ignore
+
+class Foo(let value: Int)
+
+fun main() {
+    assert(tpl1() == 1);
+    assert(tpl2() == 2);
+    assert(tpl3() == 3);
+    assert(tplsum() == 6);
+}
+
+fun tpl1() -> Int {
+    let x = (Foo(1), Foo(2), Foo(3));
+    forceCollect();
+    x.0.value
+}
+
+fun tpl2() -> Int {
+    let x = (Foo(1), Foo(2), Foo(3));
+    forceCollect();
+    x.1.value
+}
+
+fun tpl3() -> Int {
+    let x = (Foo(1), Foo(2), Foo(3));
+    forceCollect();
+    x.2.value
+}
+
+fun tplsum() -> Int {
+    let x = (Foo(1), Foo(2), Foo(3));
+    forceCollect();
+    x.0.value + x.1.value + x.2.value
+}
