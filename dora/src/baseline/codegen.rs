@@ -433,7 +433,7 @@ where
     }
 
     fn create_gcpoint(&mut self) -> GcPoint {
-        self.managed_stack.gcpoint()
+        self.managed_stack.gcpoint(self.vm)
     }
 
     fn save_label_state<F>(&mut self, lbl_break: Label, lbl_continue: Label, f: F)
@@ -741,7 +741,7 @@ where
             .get_tuple(ty.tuple_id().unwrap())
             .offsets()
             .to_owned();
-        let tupple_offset = dest.stack_offset();
+        let tuple_offset = dest.stack_offset();
 
         for (value, offset) in e.values.iter().zip(&offsets) {
             let ty = self.ty(value.id());
@@ -749,8 +749,11 @@ where
             let dest = result_reg_ty(ty);
             self.emit_expr(value, dest);
             self.asm
-                .store_mem(mode, Mem::Local(tupple_offset + offset), dest.any_reg());
+                .store_mem(mode, Mem::Local(tuple_offset + offset), dest.any_reg());
         }
+
+        let slot = dest.stack_slot();
+        self.managed_stack.mark_initialized(slot.var);
     }
 
     fn emit_if(&mut self, e: &'ast ExprIfType, dest: ExprStore) {
@@ -3391,7 +3394,7 @@ where
 
     fn alloc_expr_store(&mut self, ty: BuiltinType) -> ExprStore {
         if ty.is_tuple() {
-            let slot = self.managed_stack.add_temp(ty, self.vm);
+            let slot = self.managed_stack.add_temp_uninitialized(ty, self.vm);
             ExprStore::Stack(slot)
         } else if ty.is_float() {
             ExprStore::FloatReg(FREG_RESULT)

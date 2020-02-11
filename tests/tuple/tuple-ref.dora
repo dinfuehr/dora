@@ -1,6 +1,6 @@
-//= ignore
-
-class Foo(let value: Int)
+class Foo(let value: Int) {
+    // forceCollect();
+}
 
 fun main() {
     assert(tpl1() == 1);

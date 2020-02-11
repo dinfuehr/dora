@@ -13,6 +13,7 @@ pub struct TupleId(u32);
 pub struct Tuple {
     args: Arc<Vec<BuiltinType>>,
     offsets: Vec<i32>,
+    references: Vec<i32>,
     size: i32,
     align: i32,
 }
@@ -20,6 +21,10 @@ pub struct Tuple {
 impl Tuple {
     pub fn offsets(&self) -> &[i32] {
         &self.offsets
+    }
+
+    pub fn references(&self) -> &[i32] {
+        &self.references
     }
 
     pub fn size(&self) -> i32 {
@@ -64,11 +69,12 @@ impl Tuples {
             return tuple_id;
         }
 
-        let (offsets, size, align) = determine_tuple_size(vm, &*args);
+        let (offsets, references, size, align) = determine_tuple_size(vm, &*args);
 
         self.all.push(Tuple {
             args: args.clone(),
             offsets,
+            references,
             size,
             align,
         });
@@ -80,14 +86,15 @@ impl Tuples {
     }
 }
 
-fn determine_tuple_size<'ast>(vm: &VM, subtypes: &[BuiltinType]) -> (Vec<i32>, i32, i32) {
+fn determine_tuple_size<'ast>(vm: &VM, subtypes: &[BuiltinType]) -> (Vec<i32>, Vec<i32>, i32, i32) {
     let mut size = 0;
     let mut offsets = Vec::new();
+    let mut references = Vec::new();
     let mut align = 0;
 
     for ty in subtypes {
         if !ty.is_concrete_type(vm) {
-            return (Vec::new(), 0, 0);
+            return (Vec::new(), Vec::new(), 0, 0);
         }
 
         let element_size = ty.size(vm);
@@ -96,10 +103,14 @@ fn determine_tuple_size<'ast>(vm: &VM, subtypes: &[BuiltinType]) -> (Vec<i32>, i
         let element_offset = mem::align_i32(size, element_align);
         offsets.push(element_offset);
 
+        if ty.reference_type() {
+            references.push(element_offset);
+        }
+
         size = element_offset + element_size;
         align = max(align, element_align);
     }
 
     size = mem::align_i32(size, align);
-    (offsets, size, align)
+    (offsets, references, size, align)
 }

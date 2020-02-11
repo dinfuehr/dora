@@ -67,6 +67,12 @@ struct CallSite<'ast> {
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 struct ManagedVar(usize);
 
+struct ManagedVarData {
+    ty: BuiltinType,
+    offset: i32,
+    initialized: bool,
+}
+
 #[derive(Copy, Clone)]
 struct ManagedStackSlot {
     var: ManagedVar,
@@ -80,7 +86,7 @@ impl ManagedStackSlot {
 }
 
 struct ManagedStackFrame {
-    vars: HashMap<ManagedVar, (BuiltinType, i32)>,
+    vars: HashMap<ManagedVar, ManagedVarData>,
     scopes: Vec<ManagedStackScope>,
     next_var: ManagedVar,
 
@@ -117,7 +123,7 @@ impl ManagedStackFrame {
     }
 
     fn add_scope(&mut self, ty: BuiltinType, vm: &VM) -> ManagedStackSlot {
-        let var_and_offset = self.alloc(ty, vm);
+        let var_and_offset = self.alloc(ty, vm, true);
         let scope = self.scopes.last_mut().expect("no active scope");
         scope.add_var(var_and_offset.var);
 
@@ -125,14 +131,18 @@ impl ManagedStackFrame {
     }
 
     fn add_temp(&mut self, ty: BuiltinType, vm: &VM) -> ManagedStackSlot {
-        self.alloc(ty, vm)
+        self.alloc(ty, vm, true)
+    }
+
+    fn add_temp_uninitialized(&mut self, ty: BuiltinType, vm: &VM) -> ManagedStackSlot {
+        self.alloc(ty, vm, false)
     }
 
     fn free_temp(&mut self, temp: ManagedStackSlot, vm: &VM) {
         self.free(temp.var, vm)
     }
 
-    fn alloc(&mut self, ty: BuiltinType, vm: &VM) -> ManagedStackSlot {
+    fn alloc(&mut self, ty: BuiltinType, vm: &VM, initialized: bool) -> ManagedStackSlot {
         let var = self.next_var;
         self.next_var = ManagedVar(var.0 + 1);
 
@@ -150,8 +160,20 @@ impl ManagedStackFrame {
             self.extend_stack(size, alignment)
         };
 
-        self.vars.insert(var, (ty, offset));
+        self.vars.insert(
+            var,
+            ManagedVarData {
+                ty,
+                offset,
+                initialized,
+            },
+        );
         ManagedStackSlot { var, offset }
+    }
+
+    fn mark_initialized(&mut self, var: ManagedVar) {
+        let data = self.vars.get_mut(&var).unwrap();
+        data.initialized = true;
     }
 
     fn extend_stack(&mut self, size: i32, alignment: i32) -> i32 {
@@ -165,13 +187,13 @@ impl ManagedStackFrame {
     }
 
     fn free(&mut self, var: ManagedVar, vm: &VM) {
-        if let Some((ty, offset)) = self.vars.remove(&var) {
-            let size = if ty.is_nil() {
+        if let Some(data) = self.vars.remove(&var) {
+            let size = if data.ty.is_nil() {
                 mem::ptr_width()
             } else {
-                ty.size(vm)
+                data.ty.size(vm)
             };
-            let start = -(offset + size);
+            let start = -(data.offset + size);
             self.free_slots
                 .free(FreeSlot::new(start as u32, size as u32));
         } else {
@@ -179,12 +201,22 @@ impl ManagedStackFrame {
         }
     }
 
-    fn gcpoint(&self) -> GcPoint {
+    fn gcpoint(&self, vm: &VM) -> GcPoint {
         let mut offsets: Vec<i32> = Vec::new();
 
-        for (_, (ty, offset)) in &self.vars {
-            if ty.reference_type() {
-                offsets.push(*offset);
+        for (_, data) in &self.vars {
+            if !data.initialized {
+                continue;
+            }
+
+            if data.ty.reference_type() {
+                offsets.push(data.offset);
+            } else if let Some(tuple_id) = data.ty.tuple_id() {
+                let tuples = vm.tuples.lock();
+                let tuple_references = tuples.get_tuple(tuple_id).references();
+                for &offset in tuple_references {
+                    offsets.push(data.offset + offset);
+                }
             }
         }
 
@@ -364,6 +396,13 @@ enum ExprStore {
 }
 
 impl ExprStore {
+    fn stack_slot(&self) -> ManagedStackSlot {
+        match self {
+            &ExprStore::Stack(slot) => slot,
+            _ => unreachable!(),
+        }
+    }
+
     fn stack_offset(&self) -> i32 {
         match self {
             ExprStore::Stack(slot) => slot.offset(),
