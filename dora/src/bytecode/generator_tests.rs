@@ -856,6 +856,26 @@ fn gen_expr_test_greaterthanequal_char() {
 }
 
 #[test]
+fn gen_expr_test_equal_enum() {
+    let result = code(
+        "fun f(a: Foo, b: Foo) -> Bool { return a == b; }
+         enum Foo { A, B }",
+    );
+    let expected = vec![TestEqEnum(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_notequal_enum() {
+    let result = code(
+        "fun f(a: Foo, b: Foo) -> Bool { return a != b; }
+         enum Foo { A, B }",
+    );
+    let expected = vec![TestNeEnum(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
 fn gen_expr_test_equal_int() {
     let result = code("fun f(a: Int, b: Int) -> Bool { return a == b; }");
     let expected = vec![TestEqInt(r(2), r(0), r(1)), RetBool(r(2))];
@@ -2485,6 +2505,9 @@ pub enum Bytecode {
     TestLtChar(Register, Register, Register),
     TestLeChar(Register, Register, Register),
 
+    TestEqEnum(Register, Register, Register),
+    TestNeEnum(Register, Register, Register),
+
     TestEqInt(Register, Register, Register),
     TestNeInt(Register, Register, Register),
     TestGtInt(Register, Register, Register),
@@ -3082,6 +3105,13 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_test_le_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::TestLeChar(dest, lhs, rhs));
+    }
+
+    fn visit_test_eq_enum(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestEqEnum(dest, lhs, rhs));
+    }
+    fn visit_test_ne_enum(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestNeEnum(dest, lhs, rhs));
     }
 
     fn visit_test_eq_int(&mut self, dest: Register, lhs: Register, rhs: Register) {

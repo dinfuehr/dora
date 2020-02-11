@@ -512,6 +512,10 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestEqChar, dest, lhs, rhs);
     }
 
+    pub fn emit_test_eq_enum(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestEqEnum, dest, lhs, rhs);
+    }
+
     pub fn emit_test_eq_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::TestEqInt, dest, lhs, rhs);
     }
@@ -534,6 +538,10 @@ impl BytecodeWriter {
 
     pub fn emit_test_ne_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::TestNeChar, dest, lhs, rhs);
+    }
+
+    pub fn emit_test_ne_enum(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestNeEnum, dest, lhs, rhs);
     }
 
     pub fn emit_test_ne_int(&mut self, dest: Register, lhs: Register, rhs: Register) {

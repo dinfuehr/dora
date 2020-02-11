@@ -669,6 +669,18 @@ where
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_le_char(dest, lhs, rhs);
             }
+            BytecodeOpcode::TestEqEnum => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_test_eq_enum(dest, lhs, rhs);
+            }
+            BytecodeOpcode::TestNeEnum => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_test_ne_enum(dest, lhs, rhs);
+            }
             BytecodeOpcode::TestEqInt => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
@@ -1618,6 +1630,12 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_test_le_char(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_eq_enum(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_ne_enum(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
     fn visit_test_eq_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
