@@ -934,11 +934,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 BinOp::Cmp(CmpOp::Ge) => self.gen.emit_test_ge_char(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
-            Intrinsic::EnumEq | Intrinsic::EnumNe => match op {
-                BinOp::Cmp(CmpOp::Eq) => self.gen.emit_test_eq_enum(dest, lhs_reg, rhs_reg),
-                BinOp::Cmp(CmpOp::Ne) => self.gen.emit_test_ne_enum(dest, lhs_reg, rhs_reg),
-                _ => unreachable!(),
-            },
+            Intrinsic::EnumEq => self.gen.emit_test_eq_enum(dest, lhs_reg, rhs_reg),
+            Intrinsic::EnumNe => self.gen.emit_test_ne_enum(dest, lhs_reg, rhs_reg),
             Intrinsic::IntEq => match op {
                 BinOp::Cmp(CmpOp::Eq) => self.gen.emit_test_eq_int(dest, lhs_reg, rhs_reg),
                 BinOp::Cmp(CmpOp::Ne) => self.gen.emit_test_ne_int(dest, lhs_reg, rhs_reg),
