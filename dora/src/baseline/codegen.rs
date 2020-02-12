@@ -2850,11 +2850,9 @@ where
         let fct = fct.read();
 
         for (idx, arg) in csite.args.iter().enumerate() {
-            let ty = arg.ty();
-            let dest = result_reg_ty(ty);
-
             let slot_or_offset = match *arg {
                 InternalArg::Expr(ast, ty) => {
+                    let dest = result_reg_ty(ty);
                     self.emit_expr(ast, dest);
 
                     // check first argument for nil for method calls
@@ -2877,11 +2875,7 @@ where
                     SlotOrOffset::Slot(slot)
                 }
 
-                InternalArg::Stack(offset, ty) => {
-                    self.asm
-                        .load_mem(ty.mode(), dest.any_reg(), Mem::Local(offset));
-                    SlotOrOffset::Offset(offset)
-                }
+                InternalArg::Stack(offset, _) => SlotOrOffset::Offset(offset),
 
                 InternalArg::Selfie(_) => {
                     let var = self.src.var_self();
