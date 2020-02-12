@@ -335,7 +335,7 @@ where
                 }
 
                 self.free_expr_store(dest);
-            } else {
+            } else if return_type.is_tuple() {
                 temp = Some(dest.stack_slot());
             }
         }
