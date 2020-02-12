@@ -57,6 +57,7 @@ pub(super) fn generate<'a, 'ast: 'a>(
         var_to_slot: HashMap::new(),
         var_to_offset: HashMap::new(),
         eh_return_value: None,
+        return_value: None,
 
         cls_type_params,
         fct_type_params,
@@ -99,7 +100,12 @@ struct AstCodeGen<'a, 'ast: 'a> {
     managed_stack: ManagedStackFrame,
     stacksize_offset: usize,
 
+    // Temporary storage for return value while executing finally blocks.
     eh_return_value: Option<ManagedStackSlot>,
+
+    // Used in case return value doesn't fit into single register. Stores
+    // address of return value in caller frame.
+    return_value: Option<ManagedStackSlot>,
 
     var_to_slot: HashMap<VarId, ManagedStackSlot>,
     var_to_offset: HashMap<VarId, i32>,
@@ -132,12 +138,27 @@ where
 
             if let Some(ref value) = block.expr {
                 let return_type = self.specialize_type(self.fct.return_type);
-                let reg = result_reg_ty(return_type);
-                self.emit_expr(value, reg);
+                let dest = self.alloc_expr_store(return_type);
+                self.emit_expr(value, dest);
 
                 if !always_returns {
+                    if let Some(tuple_id) = return_type.tuple_id() {
+                        self.asm.load_mem(
+                            MachineMode::Ptr,
+                            REG_TMP1.into(),
+                            Mem::Local(self.return_value.unwrap().offset),
+                        );
+                        self.copy_tuple(
+                            tuple_id,
+                            RegOrOffset::Reg(REG_TMP1),
+                            RegOrOffset::Offset(dest.stack_offset()),
+                        );
+                    }
+
                     self.emit_epilog();
                 }
+
+                self.free_expr_store(dest);
             }
         }
 
@@ -167,6 +188,19 @@ where
     fn store_register_params_on_stack(&mut self) {
         let mut reg_idx = 0;
         let mut freg_idx = 0;
+
+        let return_type = self.specialize_type(self.fct.return_type);
+
+        if return_type.is_tuple() {
+            let slot = self.managed_stack.add_scope(BuiltinType::Ptr, self.vm);
+            self.asm.store_mem(
+                MachineMode::Ptr,
+                Mem::Local(slot.offset()),
+                REG_PARAMS[reg_idx].into(),
+            );
+            self.return_value = Some(slot);
+            reg_idx += 1;
+        }
 
         if self.fct.has_self() {
             let var = self.src.var_self();
@@ -215,11 +249,19 @@ where
                         REG_TMP1.into(),
                         REG_PARAMS[reg_idx].into(),
                     );
-                    self.copy_tuple_reg(tuple_id, self.var_offset(varid), REG_TMP1);
+                    self.copy_tuple(
+                        tuple_id,
+                        RegOrOffset::Offset(self.var_offset(varid)),
+                        RegOrOffset::Reg(REG_TMP1),
+                    );
                 } else {
                     self.asm
                         .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(param_offset));
-                    self.copy_tuple_reg(tuple_id, self.var_offset(varid), REG_TMP1);
+                    self.copy_tuple(
+                        tuple_id,
+                        RegOrOffset::Offset(self.var_offset(varid)),
+                        RegOrOffset::Reg(REG_TMP1),
+                    );
                     param_offset = next_param_offset(param_offset, ty);
                 }
             } else if ty.is_float() && freg_idx < FREG_PARAMS.len() {
@@ -272,17 +314,29 @@ where
         let len = self.active_upper.unwrap_or(self.active_finallys.len());
         let return_type = self.specialize_type(self.fct.return_type);
 
+        let mut temp: Option<ManagedStackSlot> = None;
+
         if let Some(ref expr) = s.expr {
-            self.emit_expr_result_reg(expr);
+            let dest = self.emit_expr_result_reg(expr);
 
             if len > 0 {
                 let offset = self.ensure_eh_return_value();
-                let rmode = return_type.mode();
-                self.asm.store_mem(
-                    rmode,
-                    Mem::Local(offset),
-                    result_reg_ty(return_type).any_reg(),
-                );
+
+                if let Some(tuple_id) = return_type.tuple_id() {
+                    self.copy_tuple(
+                        tuple_id,
+                        RegOrOffset::Offset(offset),
+                        RegOrOffset::Offset(dest.stack_offset()),
+                    );
+                } else {
+                    let rmode = return_type.mode();
+                    self.asm
+                        .store_mem(rmode, Mem::Local(offset), dest.any_reg());
+                }
+
+                self.free_expr_store(dest);
+            } else {
+                temp = Some(dest.stack_slot());
             }
         }
 
@@ -307,15 +361,45 @@ where
 
             if s.expr.is_some() {
                 let offset = self.ensure_eh_return_value();
-                let rmode = return_type.mode();
-                self.asm.load_mem(
-                    rmode,
-                    result_reg_ty(return_type).any_reg(),
-                    Mem::Local(offset),
-                );
+
+                if let Some(tuple_id) = return_type.tuple_id() {
+                    self.asm.load_mem(
+                        MachineMode::Ptr,
+                        REG_TMP1.into(),
+                        Mem::Local(self.return_value.unwrap().offset),
+                    );
+                    self.copy_tuple(
+                        tuple_id,
+                        RegOrOffset::Reg(REG_TMP1),
+                        RegOrOffset::Offset(offset),
+                    );
+                } else {
+                    let rmode = return_type.mode();
+                    self.asm.load_mem(
+                        rmode,
+                        result_reg_ty(return_type).any_reg(),
+                        Mem::Local(offset),
+                    );
+                }
             }
 
             self.lbl_return = None;
+        } else if let Some(tuple_id) = return_type.tuple_id() {
+            self.asm.load_mem(
+                MachineMode::Ptr,
+                REG_TMP1.into(),
+                Mem::Local(self.return_value.unwrap().offset),
+            );
+
+            self.copy_tuple(
+                tuple_id,
+                RegOrOffset::Reg(REG_TMP1),
+                RegOrOffset::Offset(temp.unwrap().offset),
+            );
+        }
+
+        if let Some(temp) = temp {
+            self.managed_stack.free_temp(temp, self.vm);
         }
 
         self.emit_epilog();
@@ -538,7 +622,11 @@ where
 
         if let Some(value) = value {
             if let Some(tuple_id) = ty.tuple_id() {
-                self.copy_tuple(tuple_id, self.var_offset(var), value.stack_offset());
+                self.copy_tuple(
+                    tuple_id,
+                    RegOrOffset::Offset(self.var_offset(var)),
+                    RegOrOffset::Offset(value.stack_offset()),
+                );
             } else {
                 self.asm
                     .var_store(self.var_offset(var), ty, value.any_reg());
@@ -553,7 +641,7 @@ where
         }
     }
 
-    fn copy_tuple_reg(&mut self, tuple_id: TupleId, dest_offset: i32, src: Reg) {
+    fn copy_tuple(&mut self, tuple_id: TupleId, dest: RegOrOffset, src: RegOrOffset) {
         let subtypes = self.vm.tuples.lock().get(tuple_id);
         let offsets = self
             .vm
@@ -563,33 +651,19 @@ where
             .offsets()
             .to_owned();
 
-        for (&subtype, &offset) in subtypes.iter().zip(&offsets) {
-            let dest = result_reg_ty(subtype);
+        for (&subtype, &subtype_offset) in subtypes.iter().zip(&offsets) {
+            let tmp = result_reg_ty(subtype);
             let mode = subtype.mode();
-            self.asm
-                .load_mem(mode, dest.any_reg(), Mem::Base(src, offset));
-            self.asm
-                .store_mem(mode, Mem::Local(dest_offset + offset), dest.any_reg());
-        }
-    }
-
-    fn copy_tuple(&mut self, tuple_id: TupleId, dest_offset: i32, src_offset: i32) {
-        let subtypes = self.vm.tuples.lock().get(tuple_id);
-        let offsets = self
-            .vm
-            .tuples
-            .lock()
-            .get_tuple(tuple_id)
-            .offsets()
-            .to_owned();
-
-        for (&subtype, offset) in subtypes.iter().zip(&offsets) {
-            let dest = result_reg_ty(subtype);
-            let mode = subtype.mode();
-            self.asm
-                .load_mem(mode, dest.any_reg(), Mem::Local(src_offset + offset));
-            self.asm
-                .store_mem(mode, Mem::Local(dest_offset + offset), dest.any_reg());
+            let src = match src {
+                RegOrOffset::Reg(reg) => Mem::Base(reg, subtype_offset),
+                RegOrOffset::Offset(tuple_offset) => Mem::Local(tuple_offset + subtype_offset),
+            };
+            self.asm.load_mem(mode, tmp.any_reg(), src);
+            let dest = match dest {
+                RegOrOffset::Reg(reg) => Mem::Base(reg, subtype_offset),
+                RegOrOffset::Offset(tuple_offset) => Mem::Local(tuple_offset + subtype_offset),
+            };
+            self.asm.store_mem(mode, dest, tmp.any_reg());
         }
     }
 
@@ -786,7 +860,11 @@ where
             slots.push(slot);
 
             if let Some(tuple_id) = ty.tuple_id() {
-                self.copy_tuple(tuple_id, slot.offset, dest.stack_offset());
+                self.copy_tuple(
+                    tuple_id,
+                    RegOrOffset::Offset(slot.offset),
+                    RegOrOffset::Offset(dest.stack_offset()),
+                );
             } else {
                 self.asm.var_store(slot.offset, ty, dest.any_reg());
             }
@@ -807,7 +885,11 @@ where
             let ty = self.ty(value.id());
 
             if let Some(tuple_id) = ty.tuple_id() {
-                self.copy_tuple(tuple_id, tuple_offset + offset, slot.offset);
+                self.copy_tuple(
+                    tuple_id,
+                    RegOrOffset::Offset(tuple_offset + offset),
+                    RegOrOffset::Offset(slot.offset),
+                );
             } else {
                 let mode = ty.mode();
                 let temp = result_reg_ty(ty);
@@ -1326,7 +1408,11 @@ where
                 let ty = self.var_ty(varid);
 
                 if let Some(tuple_id) = ty.tuple_id() {
-                    self.copy_tuple(tuple_id, dest.stack_offset(), self.var_offset(varid));
+                    self.copy_tuple(
+                        tuple_id,
+                        RegOrOffset::Offset(dest.stack_offset()),
+                        RegOrOffset::Offset(self.var_offset(varid)),
+                    );
                 } else {
                     self.asm
                         .var_load(self.var_offset(varid), ty, dest.any_reg());
@@ -2976,6 +3062,14 @@ where
             0
         };
 
+        let return_type = self.specialize_type(csite.return_type);
+
+        if return_type.is_tuple() {
+            self.asm
+                .lea(REG_PARAMS[reg_idx], Mem::Local(dest.stack_offset()));
+            reg_idx += 1;
+        }
+
         for arg in csite.args.iter().skip(skip) {
             let ty = arg.ty();
             let offset = temps[idx].offset();
@@ -3032,7 +3126,6 @@ where
             idx += 1;
         }
 
-        let return_type = self.specialize_type(csite.return_type);
         let cls_type_params = TypeList::with(
             csite
                 .cls_type_params
@@ -3055,6 +3148,12 @@ where
             .iter()
             .all(|ty| !ty.contains_type_param(self.vm)));
 
+        let (result, result_type): (AnyReg, BuiltinType) = if return_type.is_tuple() {
+            (REG_RESULT.into(), BuiltinType::Unit)
+        } else {
+            (dest.any_reg(), return_type)
+        };
+
         if csite.super_call {
             let ptr = self.ptr_for_fct_id(fid, cls_type_params.clone(), fct_type_params.clone());
             let name = fct.full_name(self.vm);
@@ -3067,8 +3166,8 @@ where
                 fct_type_params,
                 pos,
                 gcpoint,
-                return_type,
-                dest.any_reg(),
+                result_type,
+                result,
             );
         } else if fct.is_virtual() {
             let vtable_index = fct.vtable_index.unwrap();
@@ -3080,9 +3179,9 @@ where
                 vtable_index,
                 pos,
                 gcpoint,
-                return_type,
+                result_type,
                 cls_type_params,
-                dest.any_reg(),
+                result,
             );
         } else {
             let ptr = self.ptr_for_fct_id(fid, cls_type_params.clone(), fct_type_params.clone());
@@ -3096,8 +3195,8 @@ where
                 fct_type_params,
                 pos,
                 gcpoint,
-                return_type,
-                dest.any_reg(),
+                result_type,
+                result,
             );
         }
 
@@ -3113,6 +3212,10 @@ where
             if let SlotOrOffset::Slot(slot) = temp {
                 self.managed_stack.free_temp(slot, self.vm);
             }
+        }
+
+        if csite.return_type.is_tuple() {
+            self.managed_stack.mark_initialized(dest.stack_slot().var);
         }
 
         self.asm.decrease_stack_frame(argsize);
@@ -3523,6 +3626,11 @@ impl<'a, 'ast> visit::Visitor<'ast> for AstCodeGen<'a, 'ast> {
     fn visit_expr(&mut self, _: &'ast Expr) {
         unreachable!("should not be invoked");
     }
+}
+
+enum RegOrOffset {
+    Reg(Reg),
+    Offset(i32),
 }
 
 fn result_reg_mode(mode: MachineMode) -> ExprStore {
