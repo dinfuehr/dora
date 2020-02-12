@@ -133,6 +133,10 @@ where
         self.masm.store_mem(mode, mem, src);
     }
 
+    pub fn lea(&mut self, dest: Reg, mem: Mem) {
+        self.masm.lea(dest, mem);
+    }
+
     pub fn load_mem(&mut self, mode: MachineMode, dest: AnyReg, mem: Mem) {
         self.masm.load_mem(mode, dest, mem);
     }

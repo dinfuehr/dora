@@ -1,0 +1,42 @@
+fun main() {
+    assert(3 == tpl1((1, 2)));
+    assert(6 == tpl2(1, (2, 3)));
+    assert(10 == tpl3(1, 2, (3, 4)));
+    assert(15 == tpl4(1, 2, 3, (4, 5)));
+    assert(21 == tpl5(1, 2, 3, 4, (5, 6)));
+    assert(28 == tpl6(1, 2, 3, 4, 5, (6, 7)));
+    assert(36 == tpl7(1, 2, 3, 4, 5, 6, (7, 8)));
+    assert(45 == tpl8(1, 2, 3, 4, 5, 6, 7, (8, 9)));
+}
+
+fun tpl1(x: (Int, Int)) -> Int {
+    x.0 + x.1
+}
+
+fun tpl2(a0: Int, x: (Int, Int)) -> Int {
+    a0 + x.0 + x.1
+}
+
+fun tpl3(a0: Int, a1: Int, x: (Int, Int)) -> Int {
+    a0 + a1 + x.0 + x.1
+}
+
+fun tpl4(a0: Int, a1: Int, a2: Int, x: (Int, Int)) -> Int {
+    a0 + a1 + a2 + x.0 + x.1
+}
+
+fun tpl5(a0: Int, a1: Int, a2: Int, a3: Int, x: (Int, Int)) -> Int {
+    a0 + a1 + a2 + a3 + x.0 + x.1
+}
+
+fun tpl6(a0: Int, a1: Int, a2: Int, a3: Int, a4: Int, x: (Int, Int)) -> Int {
+    a0 + a1 + a2 + a3 + a4 + x.0 + x.1
+}
+
+fun tpl7(a0: Int, a1: Int, a2: Int, a3: Int, a4: Int, a5: Int, x: (Int, Int)) -> Int {
+    a0 + a1 + a2 + a3 + a4 + a5 + x.0 + x.1
+}
+
+fun tpl8(a0: Int, a1: Int, a2: Int, a3: Int, a4: Int, a5: Int, a6: Int, x: (Int, Int)) -> Int {
+    a0 + a1 + a2 + a3 + a4 + a5 + a6 + x.0 + x.1
+}

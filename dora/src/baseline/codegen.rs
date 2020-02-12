@@ -198,9 +198,31 @@ where
         for p in &self.ast.params {
             let varid = *self.src.map_vars.get(p.id).unwrap();
             let ty = self.var_ty(varid);
-            let is_float = ty.mode().is_float();
 
-            if is_float && freg_idx < FREG_PARAMS.len() {
+            if let Some(tuple_id) = ty.tuple_id() {
+                let slot_param = self.managed_stack.add_scope(ty, self.vm);
+                assert!(self.var_to_slot.insert(varid, slot_param).is_none());
+
+                {
+                    let var = &self.src.vars[varid];
+                    let name = self.vm.interner.str(var.name);
+                    self.asm.emit_comment(format!("store tuple param {}", name));
+                }
+
+                if reg_idx < REG_PARAMS.len() {
+                    self.asm.copy(
+                        MachineMode::Ptr,
+                        REG_TMP1.into(),
+                        REG_PARAMS[reg_idx].into(),
+                    );
+                    self.copy_tuple_reg(tuple_id, self.var_offset(varid), REG_TMP1);
+                } else {
+                    self.asm
+                        .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(param_offset));
+                    self.copy_tuple_reg(tuple_id, self.var_offset(varid), REG_TMP1);
+                    param_offset = next_param_offset(param_offset, ty);
+                }
+            } else if ty.is_float() && freg_idx < FREG_PARAMS.len() {
                 let reg = FREG_PARAMS[freg_idx];
 
                 let slot_param = self.managed_stack.add_scope(ty, self.vm);
@@ -214,7 +236,7 @@ where
                 self.asm.var_store(self.var_offset(varid), ty, reg.into());
 
                 freg_idx += 1;
-            } else if !is_float && reg_idx < REG_PARAMS.len() {
+            } else if !ty.is_float() && reg_idx < REG_PARAMS.len() {
                 let reg = REG_PARAMS[reg_idx];
 
                 let slot_param = self.managed_stack.add_scope(ty, self.vm);
@@ -528,6 +550,26 @@ where
             self.asm.load_nil(REG_RESULT);
             self.asm
                 .var_store(self.var_offset(var), ty, REG_RESULT.into());
+        }
+    }
+
+    fn copy_tuple_reg(&mut self, tuple_id: TupleId, dest_offset: i32, src: Reg) {
+        let subtypes = self.vm.tuples.lock().get(tuple_id);
+        let offsets = self
+            .vm
+            .tuples
+            .lock()
+            .get_tuple(tuple_id)
+            .offsets()
+            .to_owned();
+
+        for (&subtype, &offset) in subtypes.iter().zip(&offsets) {
+            let dest = result_reg_ty(subtype);
+            let mode = subtype.mode();
+            self.asm
+                .load_mem(mode, dest.any_reg(), Mem::Base(src, offset));
+            self.asm
+                .store_mem(mode, Mem::Local(dest_offset + offset), dest.any_reg());
         }
     }
 
@@ -2852,7 +2894,8 @@ where
         for (idx, arg) in csite.args.iter().enumerate() {
             let slot_or_offset = match *arg {
                 InternalArg::Expr(ast, ty) => {
-                    let dest = result_reg_ty(ty);
+                    let ty = self.specialize_type(ty);
+                    let dest = self.alloc_expr_store(ty);
                     self.emit_expr(ast, dest);
 
                     // check first argument for nil for method calls
@@ -2869,10 +2912,17 @@ where
                         self.asm.test_if_nil_bailout(pos, dest.reg(), Trap::NIL);
                     }
 
-                    let slot = self.add_temp_arg(arg);
-                    self.asm
-                        .store_mem(arg.ty().mode(), Mem::Local(slot.offset()), dest.any_reg());
-                    SlotOrOffset::Slot(slot)
+                    if ty.is_tuple() {
+                        SlotOrOffset::Slot(dest.stack_slot())
+                    } else {
+                        let slot = self.add_temp_arg(arg);
+                        self.asm.store_mem(
+                            arg.ty().mode(),
+                            Mem::Local(slot.offset()),
+                            dest.any_reg(),
+                        );
+                        SlotOrOffset::Slot(slot)
+                    }
                 }
 
                 InternalArg::Stack(offset, _) => SlotOrOffset::Offset(offset),
@@ -2904,6 +2954,7 @@ where
 
         let skip = if csite.args.len() > 0 && alloc_cls_id.is_some() {
             assert!(csite.args[0].is_selfie_new());
+            assert!(temps[idx].is_uninitialized());
 
             let slot = self.emit_allocation(pos, &temps, alloc_cls_id.unwrap());
 
@@ -2927,11 +2978,27 @@ where
 
         for arg in csite.args.iter().skip(skip) {
             let ty = arg.ty();
-            let mode = ty.mode();
-            let is_float = mode.is_float();
             let offset = temps[idx].offset();
 
-            if is_float {
+            if ty.is_tuple() {
+                if reg_idx < REG_PARAMS.len() {
+                    let reg = REG_PARAMS[reg_idx];
+                    self.asm.lea(reg, Mem::Local(offset));
+
+                    reg_idx += 1;
+                } else {
+                    self.asm.lea(REG_TMP1, Mem::Local(offset));
+                    self.asm.store_mem(
+                        MachineMode::Ptr,
+                        Mem::Base(REG_SP, sp_offset),
+                        REG_TMP1.into(),
+                    );
+
+                    sp_offset += 8;
+                }
+            } else if ty.is_float() {
+                let mode = ty.mode();
+
                 if freg_idx < FREG_PARAMS.len() {
                     let freg = FREG_PARAMS[freg_idx];
                     self.asm.load_mem(mode, freg.into(), Mem::Local(offset));
@@ -2946,6 +3013,8 @@ where
                     sp_offset += 8;
                 }
             } else {
+                let mode = ty.mode();
+
                 if reg_idx < REG_PARAMS.len() {
                     let reg = REG_PARAMS[reg_idx];
                     self.asm.load_mem(mode, reg.into(), Mem::Local(offset));
@@ -3534,6 +3603,13 @@ enum SlotOrOffset {
 }
 
 impl SlotOrOffset {
+    fn is_uninitialized(&self) -> bool {
+        match self {
+            &SlotOrOffset::Uninitialized => true,
+            _ => false,
+        }
+    }
+
     fn offset(&self) -> i32 {
         match *self {
             SlotOrOffset::Uninitialized => panic!("uninitialized"),
