@@ -35,7 +35,7 @@ class StringBuffer(var buf: Array[Byte], var len: Int) {
       len = 4;
     }
 
-    let c1 = (len + reserve + 7) & !8;
+    let c1 = (len + reserve + 7) & !7;
     let c2 = len * 2;
 
     if c1 > c2 {
