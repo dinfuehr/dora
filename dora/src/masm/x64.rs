@@ -754,7 +754,7 @@ impl MacroAssembler {
         }
     }
 
-    fn emit_barrier(&mut self, src: Reg, card_table_offset: usize) {
+    pub fn emit_barrier(&mut self, src: Reg, card_table_offset: usize) {
         asm::emit_shr_reg_imm(self, 1, src, CARD_SIZE_BITS as u8);
 
         // test if card table offset fits into displacement of memory store

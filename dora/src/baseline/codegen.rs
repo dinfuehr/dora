@@ -20,7 +20,7 @@ use crate::cpu::{
 use crate::gc::Address;
 use crate::masm::*;
 use crate::mem;
-use crate::object::{Header, Str};
+use crate::object::{offset_of_array_data, Header, Str};
 use crate::semck::always_returns;
 use crate::semck::specialize::{specialize_class_ty, specialize_for_call_type};
 use crate::size::InstanceSize;
@@ -656,11 +656,17 @@ where
             let mode = subtype.mode();
             let src = match src {
                 RegOrOffset::Reg(reg) => Mem::Base(reg, subtype_offset),
+                RegOrOffset::RegWithOffset(reg, tuple_offset) => {
+                    Mem::Base(reg, tuple_offset + subtype_offset)
+                }
                 RegOrOffset::Offset(tuple_offset) => Mem::Local(tuple_offset + subtype_offset),
             };
             self.asm.load_mem(mode, tmp.any_reg(), src);
             let dest = match dest {
                 RegOrOffset::Reg(reg) => Mem::Base(reg, subtype_offset),
+                RegOrOffset::RegWithOffset(reg, tuple_offset) => {
+                    Mem::Base(reg, tuple_offset + subtype_offset)
+                }
                 RegOrOffset::Offset(tuple_offset) => Mem::Local(tuple_offset + subtype_offset),
             };
             self.asm.store_mem(mode, dest, tmp.any_reg());
@@ -1301,8 +1307,8 @@ where
 
         let ty = self.specialize_type(ty);
 
-        self.emit_expr(&expr.lhs, REG_RESULT.into());
-        self.emit_field_access(expr.pos, ty, field, REG_RESULT, dest.any_reg());
+        self.emit_expr(&expr.lhs, REG_TMP1.into());
+        self.emit_field_access(expr.pos, ty, field, REG_TMP1, dest);
     }
 
     fn emit_dot_tuple(&mut self, expr: &'ast ExprDotType, tuple_id: TupleId, dest: ExprStore) {
@@ -1322,12 +1328,12 @@ where
     fn emit_field_access(
         &mut self,
         pos: Position,
-        ty: BuiltinType,
+        cls_ty: BuiltinType,
         fieldid: FieldId,
         src: Reg,
-        dest: AnyReg,
+        dest: ExprStore,
     ) {
-        let cls_id = specialize_class_ty(self.vm, ty);
+        let cls_id = specialize_class_ty(self.vm, cls_ty);
         let cls = self.vm.class_defs.idx(cls_id);
         let cls = cls.read();
         let field = &cls.fields[fieldid.idx()];
@@ -1344,8 +1350,16 @@ where
                 .emit_comment(format!("load field {}.{}", cname, fname));
         }
 
-        self.asm
-            .load_field(field.ty.mode(), dest, src, field.offset, pos);
+        if let Some(tuple_id) = field.ty.tuple_id() {
+            self.copy_tuple(
+                tuple_id,
+                RegOrOffset::Offset(dest.stack_offset()),
+                RegOrOffset::RegWithOffset(src, field.offset),
+            );
+        } else {
+            self.asm
+                .load_field(field.ty.mode(), dest.any_reg(), src, field.offset, pos);
+        }
     }
 
     fn emit_lit_char(&mut self, lit: &'ast ExprLitCharType, dest: Reg) {
@@ -1435,10 +1449,7 @@ where
                     .load_mem(glob.ty.mode(), dest.any_reg(), Mem::Base(REG_TMP1, 0));
             }
 
-            &IdentType::Field(cls, field) => {
-                self.emit_self(REG_RESULT.into());
-                self.emit_field_access(e.pos, cls, field, REG_RESULT, dest.any_reg());
-            }
+            &IdentType::Field(_, _) => unreachable!(),
 
             &IdentType::Struct(_) => {
                 unimplemented!();
@@ -1741,21 +1752,7 @@ where
                     REG_RESULT.into(),
                 );
 
-                let reg = result_reg_ty(field.ty);
-                let verify_refs = self.vm.args.flag_gc_verify_write && field.ty.reference_type();
-                let value_slot = if verify_refs {
-                    Some(self.add_temp_node(&e.rhs))
-                } else {
-                    None
-                };
-                self.emit_expr(&e.rhs, reg);
-                if verify_refs {
-                    self.asm.store_mem(
-                        field.ty.mode(),
-                        Mem::Local(value_slot.unwrap().offset()),
-                        reg.any_reg(),
-                    );
-                }
+                let value = self.emit_expr_result_reg(&e.rhs);
                 self.asm.load_mem(
                     MachineMode::Ptr,
                     REG_TMP1.into(),
@@ -1773,36 +1770,36 @@ where
                         .emit_comment(format!("store field {}.{}", cname, fname));
                 }
 
-                let write_barrier = self.vm.gc.needs_write_barrier() && field.ty.reference_type();
-                let card_table_offset = self.vm.gc.card_table_offset();
+                self.asm.test_if_nil_bailout(e.pos, REG_TMP1, Trap::NIL);
 
-                self.asm.store_field(
-                    field.ty.mode(),
-                    REG_TMP1,
-                    field.offset,
-                    reg.any_reg(),
-                    e.pos,
-                    write_barrier,
-                    card_table_offset,
-                );
+                let needs_write_barrier = if let Some(tuple_id) = field.ty.tuple_id() {
+                    self.copy_tuple(
+                        tuple_id,
+                        RegOrOffset::RegWithOffset(REG_TMP1, field.offset),
+                        RegOrOffset::Offset(value.stack_offset()),
+                    );
 
-                if verify_refs {
-                    let gcpoint = self.create_gcpoint();
-                    self.asm.load_mem(
-                        MachineMode::Ptr,
-                        REG_PARAMS[0].into(),
-                        Mem::Local(object_slot.offset()),
+                    self.vm
+                        .tuples
+                        .lock()
+                        .get_tuple(tuple_id)
+                        .contains_references()
+                } else {
+                    self.asm.store_mem(
+                        field.ty.mode(),
+                        Mem::Base(REG_TMP1, field.offset),
+                        value.any_reg(),
                     );
-                    self.asm.load_mem(
-                        MachineMode::Ptr,
-                        REG_PARAMS[1].into(),
-                        Mem::Local(value_slot.unwrap().offset()),
-                    );
-                    self.asm
-                        .verify_refs(REG_PARAMS[0], REG_PARAMS[1], e.pos, gcpoint);
-                    self.managed_stack.free_temp(value_slot.unwrap(), self.vm);
+
+                    field.ty.reference_type()
+                };
+
+                if self.vm.gc.needs_write_barrier() && needs_write_barrier {
+                    let card_table_offset = self.vm.gc.card_table_offset();
+                    self.asm.emit_barrier(REG_TMP1, card_table_offset);
                 }
 
+                self.free_expr_store(value);
                 self.managed_stack.free_temp(object_slot, self.vm);
             }
 
@@ -2495,21 +2492,22 @@ where
             REG_RESULT.into(),
         );
 
-        let res = result_reg_mode(mode);
-
-        self.emit_expr(rhs, res);
+        let value = self.emit_expr_result_reg(rhs);
         let slot_value = self.add_temp_node(rhs);
         self.asm
-            .store_mem(mode, Mem::Local(slot_value.offset()), res.any_reg());
+            .store_mem(mode, Mem::Local(slot_value.offset()), value.any_reg());
+
+        let array = REG_TMP1;
+        let index = REG_TMP2;
 
         self.asm.load_mem(
             MachineMode::Ptr,
-            REG_TMP1.into(),
+            array.into(),
             Mem::Local(slot_object.offset()),
         );
         self.asm.load_mem(
             MachineMode::Int32,
-            REG_TMP2.into(),
+            index.into(),
             Mem::Local(slot_index.offset()),
         );
 
@@ -2519,20 +2517,26 @@ where
             self.asm.check_index_out_of_bounds(pos, REG_TMP1, REG_TMP2);
         }
 
+        let value = result_reg_ty(element_type);
+
         self.asm
-            .load_mem(mode, res.any_reg(), Mem::Local(slot_value.offset()));
+            .load_mem(mode, value.any_reg(), Mem::Local(slot_value.offset()));
 
-        let write_barrier = self.vm.gc.needs_write_barrier() && element_type.reference_type();
-        let card_table_offset = self.vm.gc.card_table_offset();
-
-        self.asm.store_array_elem(
+        self.asm.store_mem(
             mode,
-            REG_TMP1,
-            REG_TMP2,
-            res.any_reg(),
-            write_barrier,
-            card_table_offset,
+            Mem::Index(array, index, mode.size(), offset_of_array_data()),
+            value.any_reg(),
         );
+
+        if self.vm.gc.needs_write_barrier() && element_type.reference_type() {
+            let card_table_offset = self.vm.gc.card_table_offset();
+            let scratch = self.asm.get_scratch();
+            self.asm.lea(
+                *scratch,
+                Mem::Index(array, index, mode.size(), offset_of_array_data()),
+            );
+            self.asm.emit_barrier(*scratch, card_table_offset);
+        }
 
         self.managed_stack.free_temp(slot_object, self.vm);
         self.managed_stack.free_temp(slot_index, self.vm);
@@ -3630,6 +3634,7 @@ impl<'a, 'ast> visit::Visitor<'ast> for AstCodeGen<'a, 'ast> {
 
 enum RegOrOffset {
     Reg(Reg),
+    RegWithOffset(Reg, i32),
     Offset(i32),
 }
 

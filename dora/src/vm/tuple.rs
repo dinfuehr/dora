@@ -23,6 +23,10 @@ impl Tuple {
         &self.offsets
     }
 
+    pub fn contains_references(&self) -> bool {
+        !self.references.is_empty()
+    }
+
     pub fn references(&self) -> &[i32] {
         &self.references
     }

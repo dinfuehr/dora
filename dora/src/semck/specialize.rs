@@ -255,7 +255,14 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
 
             csize = offset + field_size;
 
-            if ty.reference_type() {
+            if let Some(tuple_id) = ty.tuple_id() {
+                let tuples = vm.tuples.lock();
+                let tuple = tuples.get_tuple(tuple_id);
+
+                for &ref_offset in tuple.references() {
+                    ref_fields.push(offset + ref_offset);
+                }
+            } else if ty.reference_type() {
                 ref_fields.push(offset);
             }
         }

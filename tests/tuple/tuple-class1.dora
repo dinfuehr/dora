@@ -1,0 +1,16 @@
+//= vm-args "--gc=copy --disable-tlab --gc-stress"
+
+class TupleClass {
+    var value: (Foo, Long);
+}
+
+class Foo(let value: Int)
+
+fun main() {
+    let tpl = TupleClass();
+    forceCollect();
+    tpl.value = (Foo(4711), 4712L);
+    forceCollect();
+    assert(tpl.value.0.value == 4711);
+    assert(tpl.value.1 == 4712L);
+}
