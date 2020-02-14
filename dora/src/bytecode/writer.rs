@@ -424,6 +424,14 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::SarInt, dest, lhs, rhs);
     }
 
+    pub fn emit_rotate_left_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::RotateLeftInt, dest, lhs, rhs);
+    }
+
+    pub fn emit_rotate_right_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::RotateRightInt, dest, lhs, rhs);
+    }
+
     pub fn emit_sub_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::SubInt, dest, lhs, rhs);
     }

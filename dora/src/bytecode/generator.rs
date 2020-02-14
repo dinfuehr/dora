@@ -376,6 +376,16 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         if let Some(intrinsic) = self.get_intrinsic(expr.id) {
             match intrinsic {
                 Intrinsic::Assert => self.visit_expr_assert(expr, dest),
+                Intrinsic::IntRotateLeft | Intrinsic::IntRotateRight => {
+                    return self.emit_intrinsic_bin(
+                        expr.object().expect("value needed"),
+                        &*expr.args[0],
+                        intrinsic,
+                        None,
+                        expr.pos,
+                        dest,
+                    );
+                }
                 _ => unimplemented!(),
             }
             return Register::invalid();
@@ -780,7 +790,14 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         } else if expr.op == BinOp::And {
             self.emit_bin_and(expr, dest)
         } else if let Some(intrinsic) = self.get_intrinsic(expr.id) {
-            self.emit_intrinsic_bin(&expr.lhs, &expr.rhs, intrinsic, expr.op, expr.pos, dest)
+            self.emit_intrinsic_bin(
+                &expr.lhs,
+                &expr.rhs,
+                intrinsic,
+                Some(expr.op),
+                expr.pos,
+                dest,
+            )
         } else {
             unimplemented!();
         }
@@ -859,7 +876,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         lhs: &Expr,
         rhs: &Expr,
         intrinsic: Intrinsic,
-        op: BinOp,
+        op: Option<BinOp>,
         pos: Position,
         dest: DataDest,
     ) -> Register {
@@ -874,7 +891,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             | Intrinsic::IntXor
             | Intrinsic::IntShl
             | Intrinsic::IntShr
-            | Intrinsic::IntSar => BytecodeType::Int,
+            | Intrinsic::IntSar
+            | Intrinsic::IntRotateLeft
+            | Intrinsic::IntRotateRight => BytecodeType::Int,
             Intrinsic::FloatAdd
             | Intrinsic::FloatSub
             | Intrinsic::FloatDiv
@@ -906,46 +925,46 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.gen.set_position(pos);
         match intrinsic {
             Intrinsic::BoolEq => match op {
-                BinOp::Cmp(CmpOp::Eq) => self.gen.emit_test_eq_bool(dest, lhs_reg, rhs_reg),
-                BinOp::Cmp(CmpOp::Ne) => self.gen.emit_test_ne_bool(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Eq)) => self.gen.emit_test_eq_bool(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ne)) => self.gen.emit_test_ne_bool(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             Intrinsic::ByteEq => match op {
-                BinOp::Cmp(CmpOp::Eq) => self.gen.emit_test_eq_byte(dest, lhs_reg, rhs_reg),
-                BinOp::Cmp(CmpOp::Ne) => self.gen.emit_test_ne_byte(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Eq)) => self.gen.emit_test_eq_byte(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ne)) => self.gen.emit_test_ne_byte(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             Intrinsic::ByteCmp => match op {
-                BinOp::Cmp(CmpOp::Lt) => self.gen.emit_test_lt_byte(dest, lhs_reg, rhs_reg),
-                BinOp::Cmp(CmpOp::Le) => self.gen.emit_test_le_byte(dest, lhs_reg, rhs_reg),
-                BinOp::Cmp(CmpOp::Gt) => self.gen.emit_test_gt_byte(dest, lhs_reg, rhs_reg),
-                BinOp::Cmp(CmpOp::Ge) => self.gen.emit_test_ge_byte(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Lt)) => self.gen.emit_test_lt_byte(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Le)) => self.gen.emit_test_le_byte(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Gt)) => self.gen.emit_test_gt_byte(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ge)) => self.gen.emit_test_ge_byte(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             Intrinsic::CharEq => match op {
-                BinOp::Cmp(CmpOp::Eq) => self.gen.emit_test_eq_char(dest, lhs_reg, rhs_reg),
-                BinOp::Cmp(CmpOp::Ne) => self.gen.emit_test_ne_char(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Eq)) => self.gen.emit_test_eq_char(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ne)) => self.gen.emit_test_ne_char(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             Intrinsic::CharCmp => match op {
-                BinOp::Cmp(CmpOp::Lt) => self.gen.emit_test_lt_char(dest, lhs_reg, rhs_reg),
-                BinOp::Cmp(CmpOp::Le) => self.gen.emit_test_le_char(dest, lhs_reg, rhs_reg),
-                BinOp::Cmp(CmpOp::Gt) => self.gen.emit_test_gt_char(dest, lhs_reg, rhs_reg),
-                BinOp::Cmp(CmpOp::Ge) => self.gen.emit_test_ge_char(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Lt)) => self.gen.emit_test_lt_char(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Le)) => self.gen.emit_test_le_char(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Gt)) => self.gen.emit_test_gt_char(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ge)) => self.gen.emit_test_ge_char(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             Intrinsic::EnumEq => self.gen.emit_test_eq_enum(dest, lhs_reg, rhs_reg),
             Intrinsic::EnumNe => self.gen.emit_test_ne_enum(dest, lhs_reg, rhs_reg),
             Intrinsic::IntEq => match op {
-                BinOp::Cmp(CmpOp::Eq) => self.gen.emit_test_eq_int(dest, lhs_reg, rhs_reg),
-                BinOp::Cmp(CmpOp::Ne) => self.gen.emit_test_ne_int(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Eq)) => self.gen.emit_test_eq_int(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ne)) => self.gen.emit_test_ne_int(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             Intrinsic::IntCmp => match op {
-                BinOp::Cmp(CmpOp::Lt) => self.gen.emit_test_lt_int(dest, lhs_reg, rhs_reg),
-                BinOp::Cmp(CmpOp::Le) => self.gen.emit_test_le_int(dest, lhs_reg, rhs_reg),
-                BinOp::Cmp(CmpOp::Gt) => self.gen.emit_test_gt_int(dest, lhs_reg, rhs_reg),
-                BinOp::Cmp(CmpOp::Ge) => self.gen.emit_test_ge_int(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Lt)) => self.gen.emit_test_lt_int(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Le)) => self.gen.emit_test_le_int(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Gt)) => self.gen.emit_test_gt_int(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ge)) => self.gen.emit_test_ge_int(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             Intrinsic::IntAdd => self.gen.emit_add_int(dest, lhs_reg, rhs_reg),
@@ -959,20 +978,22 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             Intrinsic::IntShl => self.gen.emit_shl_int(dest, lhs_reg, rhs_reg),
             Intrinsic::IntShr => self.gen.emit_shr_int(dest, lhs_reg, rhs_reg),
             Intrinsic::IntSar => self.gen.emit_sar_int(dest, lhs_reg, rhs_reg),
+            Intrinsic::IntRotateLeft => self.gen.emit_rotate_left_int(dest, lhs_reg, rhs_reg),
+            Intrinsic::IntRotateRight => self.gen.emit_rotate_right_int(dest, lhs_reg, rhs_reg),
             Intrinsic::FloatAdd => self.gen.emit_add_float(dest, lhs_reg, rhs_reg),
             Intrinsic::FloatSub => self.gen.emit_sub_float(dest, lhs_reg, rhs_reg),
             Intrinsic::FloatMul => self.gen.emit_mul_float(dest, lhs_reg, rhs_reg),
             Intrinsic::FloatDiv => self.gen.emit_div_float(dest, lhs_reg, rhs_reg),
             Intrinsic::FloatEq => match op {
-                BinOp::Cmp(CmpOp::Eq) => self.gen.emit_test_eq_float(dest, lhs_reg, rhs_reg),
-                BinOp::Cmp(CmpOp::Ne) => self.gen.emit_test_ne_float(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Eq)) => self.gen.emit_test_eq_float(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ne)) => self.gen.emit_test_ne_float(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             Intrinsic::FloatCmp => match op {
-                BinOp::Cmp(CmpOp::Lt) => self.gen.emit_test_lt_float(dest, lhs_reg, rhs_reg),
-                BinOp::Cmp(CmpOp::Le) => self.gen.emit_test_le_float(dest, lhs_reg, rhs_reg),
-                BinOp::Cmp(CmpOp::Gt) => self.gen.emit_test_gt_float(dest, lhs_reg, rhs_reg),
-                BinOp::Cmp(CmpOp::Ge) => self.gen.emit_test_ge_float(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Lt)) => self.gen.emit_test_lt_float(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Le)) => self.gen.emit_test_le_float(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Gt)) => self.gen.emit_test_gt_float(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ge)) => self.gen.emit_test_ge_float(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             _ => unimplemented!(),

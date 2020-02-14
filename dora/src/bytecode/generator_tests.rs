@@ -2423,6 +2423,9 @@ pub enum Bytecode {
     ShrLong(Register, Register, Register),
     SarLong(Register, Register, Register),
 
+    RotateLeftInt(Register, Register, Register),
+    RotateRightInt(Register, Register, Register),
+
     MovBool(Register, Register),
     MovByte(Register, Register),
     MovChar(Register, Register),
@@ -2768,6 +2771,13 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_sar_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::SarLong(dest, lhs, rhs));
+    }
+
+    fn visit_rotate_left_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::RotateLeftInt(dest, lhs, rhs));
+    }
+    fn visit_rotate_right_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::RotateRightInt(dest, lhs, rhs));
     }
 
     fn visit_mov_bool(&mut self, dest: Register, src: Register) {
