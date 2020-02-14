@@ -1,0 +1,17 @@
+fun main() {
+    assert(rotateLeft(-12, 1) == -23);
+    assert(rotateLeft(-12, 32) == -12);
+    assert(rotateLeft(-12, -1) == 2147483642);    
+
+    assert(rotateRight(-12, 1) == 2147483642);
+    assert(rotateRight(-12, 32) == -12);
+    assert(rotateRight(-12, -1) == -23);        
+}
+
+@cannon fun rotateLeft(x: Int, y: Int) -> Int {
+    return x.rotateLeft(y);
+}
+
+@cannon fun rotateRight(x: Int, y: Int) -> Int {
+    return x.rotateRight(y);
+}
