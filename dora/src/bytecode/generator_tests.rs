@@ -2079,6 +2079,196 @@ fn gen_method_call_ptr_with_3_args() {
 }
 
 #[test]
+fn gen_virtual_method_call_void_check_correct_self() {
+    gen(
+        "
+            fun f(i: Int, foo: Foo) { foo.g(); }
+            @open @abstract class Bar {
+                @open @abstract fun g();
+            }
+            class Foo : Bar {
+                @override fun g() {}
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(2), r(1)),
+                InvokeVirtualVoid(fct_id, r(2), 1),
+                RetVoid,
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_virtual_method_call_void_with_0_args() {
+    gen(
+        "
+            fun f(foo: Foo) { foo.g(); }
+            @open @abstract class Bar {
+                @open @abstract fun g();
+            }
+            class Foo : Bar {
+                @override fun g() {}
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(1), r(0)),
+                InvokeVirtualVoid(fct_id, r(1), 1),
+                RetVoid,
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_virtual_method_call_void_with_1_arg() {
+    gen(
+        "
+            fun f(foo: Foo) { foo.g(1); }
+            @open @abstract class Bar {
+                @open @abstract fun g(a: Int);
+            }
+            class Foo : Bar {
+                @override fun g(a: Int) {}
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(1), r(0)),
+                ConstInt(r(2), 1),
+                InvokeVirtualVoid(fct_id, r(1), 2),
+                RetVoid,
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_virtual_method_call_void_with_3_args() {
+    gen(
+        "
+            fun f(foo: Foo) { foo.g(1, 2, 3); }
+            @open @abstract class Bar {
+                @open @abstract fun g(a: Int, b: Int, c: Int);
+            }
+            class Foo : Bar {
+                @override fun g(a: Int, b: Int, c: Int) {}
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(1), r(0)),
+                ConstInt(r(2), 1),
+                ConstInt(r(3), 2),
+                ConstInt(r(4), 3),
+                InvokeVirtualVoid(fct_id, r(1), 4),
+                RetVoid,
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_virtual_method_call_int_with_0_args() {
+    gen(
+        "
+            fun f(foo: Foo) { foo.g(); }
+            @open @abstract class Bar {
+                @open @abstract fun g() -> Int;
+            }
+            class Foo : Bar {
+                @override fun g() -> Int { 1 }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(1), r(0)),
+                InvokeVirtualVoid(fct_id, r(1), 1),
+                RetVoid,
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_virtual_method_call_int_with_1_arg() {
+    gen(
+        "
+            fun f(foo: Foo) { foo.g(1); }
+            @open @abstract class Bar {
+                @open @abstract fun g(a: Int) -> Int;
+            }
+            class Foo : Bar {
+                @override fun g(a: Int) -> Int { 1 }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(1), r(0)),
+                ConstInt(r(2), 1),
+                InvokeVirtualVoid(fct_id, r(1), 2),
+                RetVoid,
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_virtual_method_call_int_with_3_args() {
+    gen(
+        "
+            fun f(foo: Foo) { foo.g(1, 2, 3); }
+            @open @abstract class Bar {
+                @open @abstract fun g(a: Int, b: Int, c: Int) -> Int;
+            }
+            class Foo : Bar {
+                @override fun g(a: Int, b: Int, c: Int) -> Int { 1 }
+            }
+            ",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_by_name("Foo", "g", false)
+                .expect("g not found");
+            let expected = vec![
+                MovPtr(r(1), r(0)),
+                ConstInt(r(2), 1),
+                ConstInt(r(3), 2),
+                ConstInt(r(4), 3),
+                InvokeVirtualVoid(fct_id, r(1), 4),
+                RetVoid,
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
 fn gen_new_object() {
     gen("fun f() -> Object { return Object(); }", |vm, code| {
         let cls_id = vm.cls_def_by_name("Object");
