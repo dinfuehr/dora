@@ -397,7 +397,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
 
-        let callee_id = if fct.kind.is_definition() {
+        let callee_id = if fct.kind.is_definition() && !fct.is_virtual() {
             unimplemented!()
         } else {
             fct_id
@@ -461,38 +461,16 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             }
 
             CallType::Method(_, _, _) => {
-                if return_type.is_unit() {
-                    self.gen
-                        .emit_invoke_direct_void(callee_id, start_reg, num_args);
+                if fct.is_virtual() {
+                    self.visit_call_virtual(
+                        return_type,
+                        callee_id,
+                        start_reg,
+                        num_args,
+                        return_reg,
+                    );
                 } else {
-                    let return_type: BytecodeType = return_type.into();
-
-                    match return_type.into() {
-                        BytecodeType::Bool => self
-                            .gen
-                            .emit_invoke_direct_bool(return_reg, callee_id, start_reg, num_args),
-                        BytecodeType::Byte => self
-                            .gen
-                            .emit_invoke_direct_byte(return_reg, callee_id, start_reg, num_args),
-                        BytecodeType::Char => self
-                            .gen
-                            .emit_invoke_direct_char(return_reg, callee_id, start_reg, num_args),
-                        BytecodeType::Int => self
-                            .gen
-                            .emit_invoke_direct_int(return_reg, callee_id, start_reg, num_args),
-                        BytecodeType::Long => self
-                            .gen
-                            .emit_invoke_direct_long(return_reg, callee_id, start_reg, num_args),
-                        BytecodeType::Float => self
-                            .gen
-                            .emit_invoke_direct_float(return_reg, callee_id, start_reg, num_args),
-                        BytecodeType::Double => self
-                            .gen
-                            .emit_invoke_direct_double(return_reg, callee_id, start_reg, num_args),
-                        BytecodeType::Ptr => self
-                            .gen
-                            .emit_invoke_direct_ptr(return_reg, callee_id, start_reg, num_args),
-                    }
+                    self.visit_call_direct(return_type, callee_id, start_reg, num_args, return_reg);
                 }
             }
             CallType::Expr(_, _) => unimplemented!(),
@@ -549,6 +527,92 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             }
         } else {
             return_reg
+        }
+    }
+
+    fn visit_call_virtual(
+        &mut self,
+        return_type: BuiltinType,
+        callee_id: FctId,
+        start_reg: Register,
+        num_args: usize,
+        return_reg: Register,
+    ) {
+        if return_type.is_unit() {
+            self.gen
+                .emit_invoke_virtual_void(callee_id, start_reg, num_args);
+        } else {
+            let return_type: BytecodeType = return_type.into();
+
+            match return_type.into() {
+                BytecodeType::Bool => self
+                    .gen
+                    .emit_invoke_virtual_bool(return_reg, callee_id, start_reg, num_args),
+                BytecodeType::Byte => self
+                    .gen
+                    .emit_invoke_virtual_byte(return_reg, callee_id, start_reg, num_args),
+                BytecodeType::Char => self
+                    .gen
+                    .emit_invoke_virtual_char(return_reg, callee_id, start_reg, num_args),
+                BytecodeType::Int => self
+                    .gen
+                    .emit_invoke_virtual_int(return_reg, callee_id, start_reg, num_args),
+                BytecodeType::Long => self
+                    .gen
+                    .emit_invoke_virtual_long(return_reg, callee_id, start_reg, num_args),
+                BytecodeType::Float => self
+                    .gen
+                    .emit_invoke_virtual_float(return_reg, callee_id, start_reg, num_args),
+                BytecodeType::Double => self
+                    .gen
+                    .emit_invoke_virtual_double(return_reg, callee_id, start_reg, num_args),
+                BytecodeType::Ptr => self
+                    .gen
+                    .emit_invoke_virtual_ptr(return_reg, callee_id, start_reg, num_args),
+            }
+        }
+    }
+
+    fn visit_call_direct(
+        &mut self,
+        return_type: BuiltinType,
+        callee_id: FctId,
+        start_reg: Register,
+        num_args: usize,
+        return_reg: Register,
+    ) {
+        if return_type.is_unit() {
+            self.gen
+                .emit_invoke_direct_void(callee_id, start_reg, num_args);
+        } else {
+            let return_type: BytecodeType = return_type.into();
+
+            match return_type.into() {
+                BytecodeType::Bool => self
+                    .gen
+                    .emit_invoke_direct_bool(return_reg, callee_id, start_reg, num_args),
+                BytecodeType::Byte => self
+                    .gen
+                    .emit_invoke_direct_byte(return_reg, callee_id, start_reg, num_args),
+                BytecodeType::Char => self
+                    .gen
+                    .emit_invoke_direct_char(return_reg, callee_id, start_reg, num_args),
+                BytecodeType::Int => self
+                    .gen
+                    .emit_invoke_direct_int(return_reg, callee_id, start_reg, num_args),
+                BytecodeType::Long => self
+                    .gen
+                    .emit_invoke_direct_long(return_reg, callee_id, start_reg, num_args),
+                BytecodeType::Float => self
+                    .gen
+                    .emit_invoke_direct_float(return_reg, callee_id, start_reg, num_args),
+                BytecodeType::Double => self
+                    .gen
+                    .emit_invoke_direct_double(return_reg, callee_id, start_reg, num_args),
+                BytecodeType::Ptr => self
+                    .gen
+                    .emit_invoke_direct_ptr(return_reg, callee_id, start_reg, num_args),
+            }
         }
     }
 
