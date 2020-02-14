@@ -758,6 +758,20 @@ fn gen_expr_bit_ashiftr() {
 }
 
 #[test]
+fn gen_expr_bit_rotate_left() {
+    let result = code("fun f(a: Int, b: Int) -> Int { return a.rotateLeft(b); }");
+    let expected = vec![RotateLeftInt(r(2), r(0), r(1)), RetInt(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_bit_rotate_right() {
+    let result = code("fun f(a: Int, b: Int) -> Int { return a.rotateRight(b); }");
+    let expected = vec![RotateRightInt(r(2), r(0), r(1)), RetInt(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
 fn gen_expr_test_equal_bool() {
     let result = code("fun f(a: Bool, b: Bool) -> Bool { return a == b; }");
     let expected = vec![TestEqBool(r(2), r(0), r(1)), RetBool(r(2))];
