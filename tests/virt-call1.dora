@@ -1,3 +1,4 @@
+//= cannon
 @open @abstract class Foo {
     @open @abstract fun test() -> Int;
 }
