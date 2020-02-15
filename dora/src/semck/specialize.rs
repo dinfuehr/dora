@@ -19,45 +19,7 @@ pub fn specialize_type(
     cls_type_params: &TypeList,
     fct_type_params: &TypeList,
 ) -> BuiltinType {
-    match ty {
-        BuiltinType::ClassTypeParam(_, id) => cls_type_params[id.idx()],
-
-        BuiltinType::FctTypeParam(_, id) => fct_type_params[id.idx()],
-
-        BuiltinType::Struct(struct_id, list_id) => {
-            let params = vm.lists.lock().get(list_id);
-
-            let params = TypeList::with(
-                params
-                    .iter()
-                    .map(|t| specialize_type(vm, t, cls_type_params, fct_type_params))
-                    .collect::<Vec<_>>(),
-            );
-
-            let list_id = vm.lists.lock().insert(params);
-
-            BuiltinType::Struct(struct_id, list_id)
-        }
-
-        BuiltinType::Class(cls_id, list_id) => {
-            let params = vm.lists.lock().get(list_id);
-
-            let params = TypeList::with(
-                params
-                    .iter()
-                    .map(|t| specialize_type(vm, t, cls_type_params, fct_type_params))
-                    .collect(),
-            );
-
-            let list_id = vm.lists.lock().insert(params);
-
-            BuiltinType::Class(cls_id, list_id)
-        }
-
-        BuiltinType::Lambda(_) => unimplemented!(),
-
-        _ => ty,
-    }
+    replace_type_param(vm, ty, cls_type_params, fct_type_params, None)
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -381,6 +343,24 @@ pub fn replace_type_param(
         BuiltinType::This => self_ty.expect("no type for Self given"),
 
         BuiltinType::Lambda(_) => unimplemented!(),
+
+        BuiltinType::Tuple(tuple_id) => {
+            let mut tuples = vm.tuples.lock();
+            let tuple = tuples.get_tuple(tuple_id);
+
+            if tuple.is_concrete_type() {
+                ty
+            } else {
+                let args = tuple.args();
+                let new_args = args
+                    .iter()
+                    .map(|&t| replace_type_param(vm, t, cls_tp, fct_tp, self_ty))
+                    .collect::<Vec<_>>();
+
+                let tuple_id = tuples.insert(vm, new_args);
+                BuiltinType::Tuple(tuple_id)
+            }
+        }
 
         _ => ty,
     }

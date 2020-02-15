@@ -164,7 +164,7 @@ end
 def number_processors
   return $processors if $processors > 0
 
-  case $RUBY_PLATFORM
+  case RUBY_PLATFORM
   when /linux/
     num = num_from_shell("nproc --all")
     return num if num > 0

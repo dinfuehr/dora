@@ -10,33 +10,45 @@ use crate::vm::VM;
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct TupleId(u32);
 
-pub struct Tuple {
-    args: Arc<Vec<BuiltinType>>,
+pub struct ConcreteTuple {
     offsets: Vec<i32>,
     references: Vec<i32>,
     size: i32,
     align: i32,
 }
 
+pub struct Tuple {
+    args: Arc<Vec<BuiltinType>>,
+    concrete: Option<ConcreteTuple>,
+}
+
 impl Tuple {
+    pub fn is_concrete_type(&self) -> bool {
+        self.concrete.is_some()
+    }
+
+    pub fn args(&self) -> Arc<Vec<BuiltinType>> {
+        self.args.clone()
+    }
+
     pub fn offsets(&self) -> &[i32] {
-        &self.offsets
+        &self.concrete.as_ref().unwrap().offsets
     }
 
     pub fn contains_references(&self) -> bool {
-        !self.references.is_empty()
+        !self.concrete.as_ref().unwrap().references.is_empty()
     }
 
     pub fn references(&self) -> &[i32] {
-        &self.references
+        &self.concrete.as_ref().unwrap().references
     }
 
     pub fn size(&self) -> i32 {
-        self.size
+        self.concrete.as_ref().unwrap().size
     }
 
     pub fn align(&self) -> i32 {
-        self.size
+        self.concrete.as_ref().unwrap().align
     }
 }
 
@@ -55,7 +67,10 @@ impl Tuples {
 
     pub fn get_at(&self, id: TupleId, idx: usize) -> (BuiltinType, i32) {
         let tuple = self.get_tuple(id);
-        (tuple.args[idx], tuple.offsets[idx])
+        (
+            tuple.args[idx],
+            tuple.concrete.as_ref().unwrap().offsets[idx],
+        )
     }
 
     pub fn get_tuple(&self, id: TupleId) -> &Tuple {
@@ -73,14 +88,11 @@ impl Tuples {
             return tuple_id;
         }
 
-        let (offsets, references, size, align) = determine_tuple_size(vm, &*args);
+        let concrete = determine_tuple_size(vm, &*args);
 
         self.all.push(Tuple {
             args: args.clone(),
-            offsets,
-            references,
-            size,
-            align,
+            concrete,
         });
 
         let id = TupleId((self.all.len() - 1).try_into().unwrap());
@@ -90,7 +102,7 @@ impl Tuples {
     }
 }
 
-fn determine_tuple_size<'ast>(vm: &VM, subtypes: &[BuiltinType]) -> (Vec<i32>, Vec<i32>, i32, i32) {
+fn determine_tuple_size<'ast>(vm: &VM, subtypes: &[BuiltinType]) -> Option<ConcreteTuple> {
     let mut size = 0;
     let mut offsets = Vec::new();
     let mut references = Vec::new();
@@ -98,7 +110,7 @@ fn determine_tuple_size<'ast>(vm: &VM, subtypes: &[BuiltinType]) -> (Vec<i32>, V
 
     for ty in subtypes {
         if !ty.is_concrete_type(vm) {
-            return (Vec::new(), Vec::new(), 0, 0);
+            return None;
         }
 
         let element_size = ty.size(vm);
@@ -116,5 +128,10 @@ fn determine_tuple_size<'ast>(vm: &VM, subtypes: &[BuiltinType]) -> (Vec<i32>, V
     }
 
     size = mem::align_i32(size, align);
-    (offsets, references, size, align)
+    Some(ConcreteTuple {
+        offsets,
+        references,
+        size,
+        align,
+    })
 }

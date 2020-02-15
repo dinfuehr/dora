@@ -22,12 +22,12 @@ use crate::masm::*;
 use crate::mem;
 use crate::object::{offset_of_array_data, Header, Str};
 use crate::semck::always_returns;
-use crate::semck::specialize::{specialize_class_ty, specialize_for_call_type};
+use crate::semck::specialize::{replace_type_param, specialize_class_ty, specialize_for_call_type};
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, MachineMode, TypeList, TypeParamId};
 use crate::vm::{
-    CallType, ClassDef, ClassDefId, ConstId, Fct, FctId, FctKind, FctParent, FctSrc, FieldId,
-    IdentType, Intrinsic, TraitId, Trap, TupleId, VarId, VM,
+    CallType, ClassDef, ClassDefId, ConstId, Fct, FctId, FctKind, FctSrc, FieldId, IdentType,
+    Intrinsic, TraitId, Trap, TupleId, VarId, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
@@ -3396,31 +3396,13 @@ where
     }
 
     fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
-        match ty {
-            BuiltinType::ClassTypeParam(cls_id, id) => {
-                assert!(self.fct.parent == FctParent::Class(cls_id));
-                self.cls_type_params[id.idx()]
-            }
-
-            BuiltinType::FctTypeParam(fct_id, id) => {
-                assert!(self.fct.id == fct_id);
-                self.fct_type_params[id.idx()]
-            }
-
-            BuiltinType::Class(cls_id, list_id) => {
-                let params = self.vm.lists.lock().get(list_id);
-
-                let params: Vec<_> = params.iter().map(|t| self.specialize_type(t)).collect();
-                let params = TypeList::with(params);
-                let list_id = self.vm.lists.lock().insert(params);
-
-                BuiltinType::Class(cls_id, list_id)
-            }
-
-            BuiltinType::Lambda(_) => unimplemented!(),
-
-            _ => ty,
-        }
+        replace_type_param(
+            self.vm,
+            ty,
+            self.cls_type_params,
+            self.fct_type_params,
+            None,
+        )
     }
 
     fn determine_call_stack(&mut self, args: &[InternalArg<'ast>]) -> i32 {

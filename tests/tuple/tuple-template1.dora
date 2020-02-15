@@ -1,0 +1,9 @@
+fun main() {
+    let result = tpl[String]("test");
+    assert(result.0 == "test");
+    assert(result.1);
+}
+
+fun tpl[T](value: T) -> (T, Bool) {
+    (value, true)
+}

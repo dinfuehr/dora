@@ -100,7 +100,20 @@ impl<'a, 'ast> TypeParamCheck<'a, 'ast> {
             }
         }
 
-        let cls_id = ty.cls_id(self.vm).unwrap();
+        let cls_id = ty.cls_id(self.vm);
+
+        if cls_id.is_none() {
+            // Only classes can implement traits at the moment, non-classes
+            // cannot fulfill any of the trait-bounds.
+            for &trait_bound in &tp.trait_bounds {
+                self.fail_trait_bound(trait_bound, ty);
+                succeeded = false;
+            }
+
+            return succeeded;
+        }
+
+        let cls_id = cls_id.unwrap();
         let cls = self.vm.classes.idx(cls_id);
         let cls = cls.read();
 
