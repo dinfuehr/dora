@@ -1,0 +1,6 @@
+fun main() {
+    let x = Array[()](7);
+    assert(x.length() == 7);
+    let y: () = x(0);
+    x(5) = ();
+}

@@ -1,167 +1,27 @@
 class HashSet[K: Hash + Equals] {
-    // BitSet.size == capacity * 2
-    // [bit 0: inserted; bit 1: deleted] * capacity
-    var inserted_and_deleted: BitSet = BitSet(0);
-    var keys: Array[K] = arrayEmpty[K]();
-    var size: Int = 0;
-    var cap: Int = 0;
+    let map: HashMap[K, ()] = HashMap[K, ()]();
 
     fun insert(key: K) {
-        self.ensureCapacity(1);
-        assert(self.size < self.cap);
-
-        var hash = key.hash();
-        var idx = hash & (self.cap - 1);
-
-        while true {
-            if self.isLive(idx) {
-                let current_key = self.keys.get(idx);
-
-                if current_key.hash() == hash && current_key.equals(key) {
-                    return;
-                }
-
-            } else {
-                self.inserted_and_deleted.insert(2 * idx);
-                self.inserted_and_deleted.remove(2 * idx + 1);
-
-                self.keys.set(idx, key);
-
-                self.size = self.size + 1;
-                return;
-            }
-
-            idx = (idx + 1) & (self.cap - 1);
-        }
+        self.map.insert(key, ());
     }
 
     fun contains(key: K) -> Bool {
-        assert(self.size < self.cap);
-
-        var hash = key.hash();
-        var idx = hash & (self.cap - 1);
-
-        while true {
-            if self.isLive(idx) {
-                let current_key = self.keys.get(idx);
-
-                if current_key.hash() == hash && current_key.equals(key) {
-                    return true;
-                }
-            } else {
-                break;
-            }
-
-            idx = (idx + 1) & (self.cap - 1);
-        }
-
-        return false;
+        self.map.contains(key)
     }
 
     fun remove(key: K) {
-        self.shrink();
-
-        var hash = key.hash();
-        var idx = hash & (self.cap - 1);
-
-        while true {
-            if self.isLive(idx) {
-                let current_key = self.keys.get(idx);
-
-                if current_key.hash() == hash && current_key.equals(key) {
-                    self.inserted_and_deleted.insert(2 * idx + 1);
-
-                    self.keys.set(idx, defaultValue[K]());
-
-                    self.size = self.size - 1;
-                    return;
-                }
-            } else {
-                break;
-            }
-
-            idx = (idx + 1) & (self.cap - 1);
-        }
-
-        return;
-    }
-
-    fun ensureCapacity(elements_to_add: Int) {
-        if self.size + elements_to_add < self.cap {
-            if self.size <= (self.cap - (self.cap / 4)) {
-                return;
-            }
-        }
-
-        var new_capacity = 4;
-        let old_capacity = self.cap;
-
-        if old_capacity > 0 {
-            new_capacity = old_capacity * 2;
-        }
-
-        assert(self.size + elements_to_add < new_capacity);
-
-        self.rehash(new_capacity);
-    }
-
-    fun shrink() {
-        if self.size > (self.cap / 4) {
-            return;
-        }
-
-        let new_capacity = self.cap / 2;
-
-        if new_capacity < 4 {
-            return;
-        }
-
-        assert(self.size < new_capacity);
-
-        self.rehash(new_capacity);
-    }
-
-    fun rehash(new_capacity: Int) {
-        let old_capacity = self.cap;
-
-        let newSet = HashSet[K]();
-        newSet.inserted_and_deleted = BitSet(2 * new_capacity);
-        newSet.keys = Array[K](new_capacity);
-        newSet.size = 0;
-        newSet.cap = new_capacity;
-
-        var idx = 0;
-
-        while idx < old_capacity {
-            if self.isLive(idx) {
-                let key = self.keys.get(idx);
-
-                newSet.insert(key);
-            }
-
-            idx = idx + 1;
-        }
-
-        self.inserted_and_deleted = newSet.inserted_and_deleted;
-        self.keys = newSet.keys;
-        self.size = newSet.size;
-        self.cap = new_capacity;
-    }
-
-    fun isLive(idx: Int) -> Bool {
-        return self.inserted_and_deleted.contains(2 * idx) &&
-               !self.inserted_and_deleted.contains(2 * idx + 1);
+        self.map.remove(key);
     }
 
     fun length() -> Int {
-        return self.size;
+        self.map.length()
     }
 
     fun isEmpty() -> Bool {
-        return self.size == 0;
+        self.map.isEmpty()
     }
 
     fun capacity() -> Int {
-        return self.cap;
+        self.map.capacity()
     }
 }

@@ -1687,24 +1687,12 @@ where
                 match intrinsic {
                     Intrinsic::GenericArraySet => {
                         let element_type = self.ty(object.id()).type_params(self.vm)[0];
-                        self.emit_array_set(
-                            e.pos,
-                            element_type,
-                            element_type.mode(),
-                            object,
-                            index,
-                            value,
-                        )
+                        self.emit_array_set(e.pos, element_type, object, index, value)
                     }
 
-                    Intrinsic::StrSet => self.emit_array_set(
-                        e.pos,
-                        BuiltinType::Byte,
-                        MachineMode::Int8,
-                        object,
-                        index,
-                        value,
-                    ),
+                    Intrinsic::StrSet => {
+                        self.emit_array_set(e.pos, BuiltinType::Byte, object, index, value)
+                    }
 
                     _ => panic!("unexpected intrinsic {:?}", intrinsic),
                 }
@@ -2184,18 +2172,11 @@ where
             Intrinsic::GenericArrayLen => self.emit_intrinsic_len(pos, args[0], dest.reg()),
             Intrinsic::GenericArrayGet => {
                 let element_type = self.ty(args[0].id()).type_params(self.vm)[0];
-                self.emit_array_get(pos, element_type.mode(), args[0], args[1], dest.any_reg())
+                self.emit_array_get(pos, element_type, args[0], args[1], dest)
             }
             Intrinsic::GenericArraySet => {
                 let element_type = self.ty(args[0].id()).type_params(self.vm)[0];
-                self.emit_array_set(
-                    pos,
-                    element_type,
-                    element_type.mode(),
-                    args[0],
-                    args[1],
-                    args[2],
-                )
+                self.emit_array_set(pos, element_type, args[0], args[1], args[2])
             }
             Intrinsic::Assert => {
                 assert!(dest.is_none());
@@ -2205,7 +2186,7 @@ where
             Intrinsic::Shl => self.emit_intrinsic_shl(args[0], args[1], dest.reg()),
             Intrinsic::StrLen => self.emit_intrinsic_len(pos, args[0], dest.reg()),
             Intrinsic::StrGet => {
-                self.emit_array_get(pos, MachineMode::Int8, args[0], args[1], dest.any_reg())
+                self.emit_array_get(pos, BuiltinType::Byte, args[0], args[1], dest)
             }
 
             Intrinsic::BoolToInt | Intrinsic::ByteToInt => {
@@ -2477,6 +2458,9 @@ where
         let ty = self.ty(id);
 
         match ty {
+            BuiltinType::Unit => {
+                assert!(dest.is_none());
+            }
             BuiltinType::Bool
             | BuiltinType::Byte
             | BuiltinType::Int
@@ -2505,7 +2489,6 @@ where
         &mut self,
         pos: Position,
         element_type: BuiltinType,
-        mode: MachineMode,
         object: &'ast Expr,
         index: &'ast Expr,
         rhs: &'ast Expr,
@@ -2527,9 +2510,18 @@ where
         );
 
         let value = self.emit_expr_result_reg(rhs);
-        let slot_value = self.add_temp_node(rhs);
-        self.asm
-            .store_mem(mode, Mem::Local(slot_value.offset()), value.any_reg());
+
+        let slot_value = if element_type.is_unit() {
+            None
+        } else {
+            let slot_value = self.add_temp_node(rhs);
+            self.asm.store_mem(
+                element_type.mode(),
+                Mem::Local(slot_value.offset()),
+                value.any_reg(),
+            );
+            Some(slot_value)
+        };
 
         let array = REG_TMP1;
         let index = REG_TMP2;
@@ -2551,39 +2543,46 @@ where
             self.asm.check_index_out_of_bounds(pos, REG_TMP1, REG_TMP2);
         }
 
-        let value = result_reg_ty(element_type);
+        if !element_type.is_unit() {
+            let slot_value = slot_value.unwrap();
+            let value = result_reg_ty(element_type);
+            let mode = element_type.mode();
 
-        self.asm
-            .load_mem(mode, value.any_reg(), Mem::Local(slot_value.offset()));
+            self.asm
+                .load_mem(mode, value.any_reg(), Mem::Local(slot_value.offset()));
 
-        self.asm.store_mem(
-            mode,
-            Mem::Index(array, index, mode.size(), offset_of_array_data()),
-            value.any_reg(),
-        );
-
-        if self.vm.gc.needs_write_barrier() && element_type.reference_type() {
-            let card_table_offset = self.vm.gc.card_table_offset();
-            let scratch = self.asm.get_scratch();
-            self.asm.lea(
-                *scratch,
+            self.asm.store_mem(
+                mode,
                 Mem::Index(array, index, mode.size(), offset_of_array_data()),
+                value.any_reg(),
             );
-            self.asm.emit_barrier(*scratch, card_table_offset);
+
+            if self.vm.gc.needs_write_barrier() && element_type.reference_type() {
+                let card_table_offset = self.vm.gc.card_table_offset();
+                let scratch = self.asm.get_scratch();
+                self.asm.lea(
+                    *scratch,
+                    Mem::Index(array, index, mode.size(), offset_of_array_data()),
+                );
+                self.asm.emit_barrier(*scratch, card_table_offset);
+            }
         }
 
         self.managed_stack.free_temp(slot_object, self.vm);
         self.managed_stack.free_temp(slot_index, self.vm);
-        self.managed_stack.free_temp(slot_value, self.vm);
+
+        if let Some(slot_value) = slot_value {
+            self.managed_stack.free_temp(slot_value, self.vm);
+        }
     }
 
     fn emit_array_get(
         &mut self,
         pos: Position,
-        mode: MachineMode,
+        element_type: BuiltinType,
         object: &'ast Expr,
         index: &'ast Expr,
-        dest: AnyReg,
+        dest: ExprStore,
     ) {
         self.emit_expr(object, REG_RESULT.into());
         let slot = self.add_temp_node(object);
@@ -2607,16 +2606,19 @@ where
                 .check_index_out_of_bounds(pos, REG_RESULT, REG_TMP1);
         }
 
-        let res = result_reg_mode(mode);
-
-        self.asm
-            .load_array_elem(mode, res.any_reg(), REG_RESULT, REG_TMP1);
+        if element_type.is_unit() {
+            assert!(dest.is_none());
+        } else {
+            let res = result_reg_ty(element_type).any_reg();
+            let dest = dest.any_reg();
+            self.asm
+                .load_array_elem(element_type.mode(), res, REG_RESULT, REG_TMP1);
+            if dest != res {
+                self.asm.copy(element_type.mode(), dest, res);
+            }
+        }
 
         self.managed_stack.free_temp(slot, self.vm);
-
-        if dest != res.any_reg() {
-            self.asm.copy(mode, dest, res.any_reg());
-        }
     }
 
     fn emit_intrinsic_is_nan(&mut self, e: &'ast Expr, dest: Reg, intrinsic: Intrinsic) {

@@ -1,0 +1,6 @@
+//= error array
+
+fun main() {
+    let x = Array[()](7);
+    x(10) = ();
+}
