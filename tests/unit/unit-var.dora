@@ -1,0 +1,6 @@
+fun main() {
+    var x = ();
+    var y: ();
+    y = ();
+    x = y;
+}

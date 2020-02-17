@@ -233,7 +233,9 @@ where
             let varid = *self.src.map_vars.get(p.id).unwrap();
             let ty = self.var_ty(varid);
 
-            if let Some(tuple_id) = ty.tuple_id() {
+            if ty.is_unit() {
+                // nothing
+            } else if let Some(tuple_id) = ty.tuple_id() {
                 let slot_param = self.managed_stack.add_scope(ty, self.vm);
                 assert!(self.var_to_slot.insert(varid, slot_param).is_none());
 
@@ -617,6 +619,10 @@ where
             None
         };
 
+        if ty.is_unit() {
+            return;
+        }
+
         let slot_var = self.managed_stack.add_scope(ty, self.vm);
         assert!(self.var_to_slot.insert(var, slot_var).is_none());
 
@@ -627,6 +633,8 @@ where
                     RegOrOffset::Offset(self.var_offset(var)),
                     RegOrOffset::Offset(value.stack_offset()),
                 );
+            } else if ty.is_unit() {
+                // do nothing
             } else {
                 self.asm
                     .var_store(self.var_offset(var), ty, value.any_reg());
@@ -855,6 +863,11 @@ where
     }
 
     fn emit_tuple(&mut self, e: &'ast ExprTupleType, dest: ExprStore) {
+        if e.values.is_empty() {
+            assert!(dest.is_none());
+            return;
+        }
+
         let ty = self.ty(e.id);
         let mut slots = Vec::new();
 
@@ -1350,15 +1363,22 @@ where
                 .emit_comment(format!("load field {}.{}", cname, fname));
         }
 
+        self.asm.test_if_nil_bailout(pos, src, Trap::NIL);
+
         if let Some(tuple_id) = field.ty.tuple_id() {
             self.copy_tuple(
                 tuple_id,
                 RegOrOffset::Offset(dest.stack_offset()),
                 RegOrOffset::RegWithOffset(src, field.offset),
             );
+        } else if field.ty.is_unit() {
+            assert!(dest.is_none());
         } else {
-            self.asm
-                .load_field(field.ty.mode(), dest.any_reg(), src, field.offset, pos);
+            self.asm.load_mem(
+                field.ty.mode(),
+                dest.any_reg(),
+                Mem::Base(src, field.offset),
+            );
         }
     }
 
@@ -1414,22 +1434,27 @@ where
 
         match ident {
             &IdentType::Var(varid) => {
-                {
-                    let var = &self.src.vars[varid];
-                    let name = self.vm.interner.str(var.name);
-                    self.asm.emit_comment(format!("load var {}", name));
-                }
                 let ty = self.var_ty(varid);
 
-                if let Some(tuple_id) = ty.tuple_id() {
-                    self.copy_tuple(
-                        tuple_id,
-                        RegOrOffset::Offset(dest.stack_offset()),
-                        RegOrOffset::Offset(self.var_offset(varid)),
-                    );
+                if ty.is_unit() {
+                    assert!(dest.is_none());
                 } else {
-                    self.asm
-                        .var_load(self.var_offset(varid), ty, dest.any_reg());
+                    {
+                        let var = &self.src.vars[varid];
+                        let name = self.vm.interner.str(var.name);
+                        self.asm.emit_comment(format!("load var {}", name));
+                    }
+
+                    if let Some(tuple_id) = ty.tuple_id() {
+                        self.copy_tuple(
+                            tuple_id,
+                            RegOrOffset::Offset(dest.stack_offset()),
+                            RegOrOffset::Offset(self.var_offset(varid)),
+                        );
+                    } else {
+                        self.asm
+                            .var_load(self.var_offset(varid), ty, dest.any_reg());
+                    }
                 }
             }
 
@@ -1437,16 +1462,20 @@ where
                 let glob = self.vm.globals.idx(gid);
                 let glob = glob.lock();
 
-                let disp = self.asm.add_addr(glob.address_value.to_ptr());
-                let pos = self.asm.pos() as i32;
+                if glob.ty.is_unit() {
+                    assert!(glob.ty.is_unit());
+                } else {
+                    let disp = self.asm.add_addr(glob.address_value.to_ptr());
+                    let pos = self.asm.pos() as i32;
 
-                let name = self.vm.interner.str(glob.name);
-                self.asm.emit_comment(format!("load global {}", name));
+                    let name = self.vm.interner.str(glob.name);
+                    self.asm.emit_comment(format!("load global {}", name));
 
-                self.asm.load_constpool(REG_TMP1, disp + pos);
+                    self.asm.load_constpool(REG_TMP1, disp + pos);
 
-                self.asm
-                    .load_mem(glob.ty.mode(), dest.any_reg(), Mem::Base(REG_TMP1, 0));
+                    self.asm
+                        .load_mem(glob.ty.mode(), dest.any_reg(), Mem::Base(REG_TMP1, 0));
+                }
             }
 
             &IdentType::Field(_, _) => unreachable!(),
@@ -1696,14 +1725,15 @@ where
                 let dest = result_reg_ty(ty);
                 self.emit_expr(&e.rhs, dest);
 
-                {
-                    let var = &self.src.vars[varid];
-                    let name = self.vm.interner.str(var.name);
-                    self.asm.emit_comment(format!("store var {}", name));
+                if !ty.is_unit() {
+                    {
+                        let var = &self.src.vars[varid];
+                        let name = self.vm.interner.str(var.name);
+                        self.asm.emit_comment(format!("store var {}", name));
+                    }
+                    self.asm
+                        .var_store(self.var_offset(varid), ty, dest.any_reg());
                 }
-
-                self.asm
-                    .var_store(self.var_offset(varid), ty, dest.any_reg());
             }
 
             &IdentType::Global(gid) => {
@@ -1716,16 +1746,15 @@ where
                 let dest = result_reg_ty(ty);
                 self.emit_expr(&e.rhs, dest);
 
-                let disp = self.asm.add_addr(address_value.to_ptr());
-                let pos = self.asm.pos() as i32;
-
-                let name = self.vm.interner.str(glob.lock().name);
-                self.asm.emit_comment(format!("store global {}", name));
-
-                self.asm.load_constpool(REG_TMP1, disp + pos);
-
-                self.asm
-                    .store_mem(ty.mode(), Mem::Base(REG_TMP1, 0), dest.any_reg());
+                if !ty.is_unit() {
+                    let disp = self.asm.add_addr(address_value.to_ptr());
+                    let pos = self.asm.pos() as i32;
+                    let name = self.vm.interner.str(glob.lock().name);
+                    self.asm.emit_comment(format!("store global {}", name));
+                    self.asm.load_constpool(REG_TMP1, disp + pos);
+                    self.asm
+                        .store_mem(ty.mode(), Mem::Base(REG_TMP1, 0), dest.any_reg());
+                }
             }
 
             &IdentType::Field(ty, fieldid) => {
@@ -1784,6 +1813,8 @@ where
                         .lock()
                         .get_tuple(tuple_id)
                         .contains_references()
+                } else if field.ty.is_unit() {
+                    false
                 } else {
                     self.asm.store_mem(
                         field.ty.mode(),
@@ -2166,7 +2197,10 @@ where
                     args[2],
                 )
             }
-            Intrinsic::Assert => self.emit_intrinsic_assert(pos, args[0], dest.reg()),
+            Intrinsic::Assert => {
+                assert!(dest.is_none());
+                self.emit_intrinsic_assert(pos, args[0])
+            }
             Intrinsic::Debug => self.emit_intrinsic_debug(),
             Intrinsic::Shl => self.emit_intrinsic_shl(args[0], args[1], dest.reg()),
             Intrinsic::StrLen => self.emit_intrinsic_len(pos, args[0], dest.reg()),
@@ -2607,7 +2641,7 @@ where
         );
     }
 
-    fn emit_intrinsic_assert(&mut self, pos: Position, e: &'ast Expr, _: Reg) {
+    fn emit_intrinsic_assert(&mut self, pos: Position, e: &'ast Expr) {
         // throw Error("assert failed") if assertion failed
         let lbl_assert = self.asm.create_label();
         self.emit_expr(e, REG_RESULT.into());
@@ -3004,6 +3038,8 @@ where
 
                     if ty.is_tuple() {
                         SlotOrOffset::Slot(dest.stack_slot())
+                    } else if ty.is_unit() {
+                        SlotOrOffset::Uninitialized
                     } else {
                         let slot = self.add_temp_arg(arg);
                         self.asm.store_mem(
@@ -3076,6 +3112,12 @@ where
 
         for arg in csite.args.iter().skip(skip) {
             let ty = arg.ty();
+
+            if ty.is_unit() {
+                assert!(temps[idx].is_uninitialized());
+                continue;
+            }
+
             let offset = temps[idx].offset();
 
             if ty.is_tuple() {
@@ -3153,6 +3195,8 @@ where
             .all(|ty| !ty.contains_type_param(self.vm)));
 
         let (result, result_type): (AnyReg, BuiltinType) = if return_type.is_tuple() {
+            (REG_RESULT.into(), BuiltinType::Unit)
+        } else if return_type.is_unit() {
             (REG_RESULT.into(), BuiltinType::Unit)
         } else {
             (dest.any_reg(), return_type)
@@ -3243,6 +3287,7 @@ where
         }
 
         let alloc_size;
+        let array_header_size = Header::size() as usize + mem::ptr_width_usize();
 
         match cls.size {
             InstanceSize::Fixed(size) => {
@@ -3258,11 +3303,15 @@ where
                     Mem::Local(temps[1].offset()),
                 );
 
-                self.asm
-                    .determine_array_size(REG_TMP1, REG_TMP1, esize, true);
-
                 store_length = true;
-                alloc_size = AllocationSize::Dynamic(REG_TMP1);
+
+                alloc_size = if esize == 0 {
+                    AllocationSize::Fixed(array_header_size)
+                } else {
+                    self.asm
+                        .determine_array_size(REG_TMP1, REG_TMP1, esize, true);
+                    AllocationSize::Dynamic(REG_TMP1)
+                };
             }
 
             InstanceSize::ObjArray if temps.len() > 1 => {
@@ -3293,9 +3342,8 @@ where
             }
 
             InstanceSize::Array(_) | InstanceSize::ObjArray | InstanceSize::Str => {
-                let size = Header::size() as usize + mem::ptr_width_usize();
                 store_length = true;
-                alloc_size = AllocationSize::Fixed(size);
+                alloc_size = AllocationSize::Fixed(array_header_size);
             }
 
             InstanceSize::FreeArray => unreachable!(),
@@ -3382,10 +3430,12 @@ where
                     InstanceSize::FreeArray => unreachable!(),
                 };
 
-                self.asm
-                    .determine_array_size(temp, temp, element_size, false);
-                self.asm.int_add(MachineMode::Ptr, temp, temp, dest);
-                self.asm.fill_zero_dynamic(dest, temp);
+                if element_size != 0 {
+                    self.asm
+                        .determine_array_size(temp, temp, element_size, false);
+                    self.asm.int_add(MachineMode::Ptr, temp, temp, dest);
+                    self.asm.fill_zero_dynamic(dest, temp);
+                }
             }
 
             // arrays with length 0 do not need to clear any data
@@ -3576,6 +3626,8 @@ where
         if ty.is_tuple() {
             let slot = self.managed_stack.add_temp_uninitialized(ty, self.vm);
             ExprStore::Stack(slot)
+        } else if ty.is_unit() {
+            ExprStore::None
         } else if ty.is_float() {
             ExprStore::FloatReg(FREG_RESULT)
         } else {
@@ -3588,6 +3640,7 @@ where
             ExprStore::Stack(slot) => self.managed_stack.free_temp(slot, self.vm),
             ExprStore::FloatReg(_) => {}
             ExprStore::Reg(_) => {}
+            ExprStore::None => {}
         }
     }
 }
@@ -3629,7 +3682,9 @@ fn result_reg_mode(mode: MachineMode) -> ExprStore {
 }
 
 fn result_reg_ty(ty: BuiltinType) -> ExprStore {
-    if ty.is_float() {
+    if ty.is_unit() {
+        ExprStore::None
+    } else if ty.is_float() {
         ExprStore::FloatReg(FREG_RESULT)
     } else {
         ExprStore::Reg(REG_RESULT)

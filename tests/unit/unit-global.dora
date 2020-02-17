@@ -1,0 +1,10 @@
+var x: ();
+
+fun main() {
+    x = ();
+    foo();
+}
+
+fun foo() -> () {
+    x
+}

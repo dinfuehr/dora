@@ -393,6 +393,7 @@ enum ExprStore {
     Stack(ManagedStackSlot),
     Reg(Reg),
     FloatReg(FReg),
+    None,
 }
 
 impl ExprStore {
@@ -429,6 +430,14 @@ impl ExprStore {
             &ExprStore::Reg(reg) => reg.into(),
             &ExprStore::FloatReg(reg) => reg.into(),
             &ExprStore::Stack(_) => unreachable!(),
+            &ExprStore::None => unreachable!(),
+        }
+    }
+
+    fn is_none(&self) -> bool {
+        match self {
+            ExprStore::None => true,
+            _ => false,
         }
     }
 }

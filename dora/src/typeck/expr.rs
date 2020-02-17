@@ -286,6 +286,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_tuple(&mut self, tuple: &'ast ExprTupleType) {
         let mut subtypes = Vec::new();
 
+        if tuple.values.is_empty() {
+            self.src.set_ty(tuple.id, BuiltinType::Unit);
+            self.expr_type = BuiltinType::Unit;
+            return;
+        }
+
         for value in &tuple.values {
             self.visit_expr(value);
             subtypes.push(self.expr_type);

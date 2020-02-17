@@ -1664,6 +1664,18 @@ impl<'a> Parser<'a> {
         let pos = self.token.position;
         let start = self.token.span.start();
         self.expect_token(TokenKind::LParen)?;
+
+        if self.token.is(TokenKind::RParen) {
+            self.advance_token()?;
+            let span = self.span_from(start);
+            return Ok(Box::new(Expr::create_tuple(
+                self.generate_id(),
+                pos,
+                span,
+                Vec::new(),
+            )));
+        }
+
         let expr = self.parse_expression()?;
 
         if self.token.kind == TokenKind::Comma {
