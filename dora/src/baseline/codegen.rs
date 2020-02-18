@@ -1463,7 +1463,7 @@ where
                 let glob = glob.lock();
 
                 if glob.ty.is_unit() {
-                    assert!(glob.ty.is_unit());
+                    assert!(dest.is_none());
                 } else {
                     let disp = self.asm.add_addr(glob.address_value.to_ptr());
                     let pos = self.asm.pos() as i32;
@@ -1473,8 +1473,16 @@ where
 
                     self.asm.load_constpool(REG_TMP1, disp + pos);
 
-                    self.asm
-                        .load_mem(glob.ty.mode(), dest.any_reg(), Mem::Base(REG_TMP1, 0));
+                    if let Some(tuple_id) = glob.ty.tuple_id() {
+                        self.copy_tuple(
+                            tuple_id,
+                            RegOrOffset::Offset(dest.stack_offset()),
+                            RegOrOffset::Reg(REG_TMP1),
+                        );
+                    } else {
+                        self.asm
+                            .load_mem(glob.ty.mode(), dest.any_reg(), Mem::Base(REG_TMP1, 0));
+                    }
                 }
             }
 
@@ -1710,8 +1718,7 @@ where
         match ident_type {
             &IdentType::Var(varid) => {
                 let ty = self.var_ty(varid);
-                let dest = result_reg_ty(ty);
-                self.emit_expr(&e.rhs, dest);
+                let value = self.emit_expr_result_reg(&e.rhs);
 
                 if !ty.is_unit() {
                     {
@@ -1719,9 +1726,21 @@ where
                         let name = self.vm.interner.str(var.name);
                         self.asm.emit_comment(format!("store var {}", name));
                     }
-                    self.asm
-                        .var_store(self.var_offset(varid), ty, dest.any_reg());
+
+                    let offset = self.var_offset(varid);
+
+                    if let Some(tuple_id) = ty.tuple_id() {
+                        self.copy_tuple(
+                            tuple_id,
+                            RegOrOffset::Offset(offset),
+                            RegOrOffset::Offset(value.stack_offset()),
+                        );
+                    } else {
+                        self.asm.var_store(offset, ty, value.any_reg());
+                    }
                 }
+
+                self.free_expr_store(value);
             }
 
             &IdentType::Global(gid) => {
@@ -1731,8 +1750,7 @@ where
                     (glob.address_value, glob.ty)
                 };
 
-                let dest = result_reg_ty(ty);
-                self.emit_expr(&e.rhs, dest);
+                let value = self.emit_expr_result_reg(&e.rhs);
 
                 if !ty.is_unit() {
                     let disp = self.asm.add_addr(address_value.to_ptr());
@@ -1740,9 +1758,20 @@ where
                     let name = self.vm.interner.str(glob.lock().name);
                     self.asm.emit_comment(format!("store global {}", name));
                     self.asm.load_constpool(REG_TMP1, disp + pos);
-                    self.asm
-                        .store_mem(ty.mode(), Mem::Base(REG_TMP1, 0), dest.any_reg());
+
+                    if let Some(tuple_id) = ty.tuple_id() {
+                        self.copy_tuple(
+                            tuple_id,
+                            RegOrOffset::Reg(REG_TMP1),
+                            RegOrOffset::Offset(value.stack_offset()),
+                        );
+                    } else {
+                        self.asm
+                            .store_mem(ty.mode(), Mem::Base(REG_TMP1, 0), value.any_reg());
+                    }
                 }
+
+                self.free_expr_store(value);
             }
 
             &IdentType::Field(ty, fieldid) => {

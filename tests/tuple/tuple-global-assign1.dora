@@ -1,0 +1,18 @@
+var x: (String, Bool);
+var y: (String, Bool);
+var tmp: (String, Bool);
+
+fun main() {
+    x = ("my string", true);
+    y = ("another string", false);
+    tmp = x;
+
+    x = y;
+    y = tmp;
+
+    assert(y.0 == "my string");
+    assert(y.1);
+
+    assert(x.0 == "another string");
+    assert(!x.1);
+}

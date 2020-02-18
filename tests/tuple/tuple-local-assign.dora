@@ -1,0 +1,11 @@
+fun main() {
+    var x = ("my string", true);
+    var y = ("another string", false);
+    var tmp = x;
+    x = y;
+    y = tmp;
+    assert(y.0 == "my string");
+    assert(y.1);
+    assert(x.0 == "another string");
+    assert(!x.1);
+}

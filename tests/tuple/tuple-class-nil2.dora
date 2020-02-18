@@ -1,0 +1,13 @@
+//= error nil
+
+class TupleClass {
+    var value: (Long, Long);
+}
+
+fun main() {
+    foo(nil);
+}
+
+fun foo(x: TupleClass) {
+    x.value = (0L, 1L)
+}

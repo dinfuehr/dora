@@ -1,0 +1,16 @@
+//= vm-args "--gc=copy --disable-tlab --gc-stress"
+//= ignore
+
+var x: (Foo, Foo);
+
+fun main() {
+    forceCollect();
+    x = (Foo(17), Foo(42));
+    assert(x.0.value == 17);
+    assert(x.1.value == 42);
+    forceCollect();
+    assert(x.0.value == 17);
+    assert(x.1.value == 42);
+}
+
+class Foo(let value: Int)

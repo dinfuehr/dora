@@ -30,12 +30,19 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
     for glob in vm.globals.iter() {
         let glob = glob.lock();
 
-        if !glob.ty.reference_type() {
-            continue;
-        }
+        if glob.ty.reference_type() {
+            let slot = Slot::at(glob.address_value);
+            rootset.push(slot);
+        } else if let Some(tuple_id) = glob.ty.tuple_id() {
+            let tuples = vm.tuples.lock();
+            let tuple = tuples.get_tuple(tuple_id);
 
-        let slot = Slot::at(glob.address_value);
-        rootset.push(slot);
+            for &offset in tuple.offsets() {
+                let slot_address = glob.address_value.offset(offset as usize);
+                let slot = Slot::at(slot_address);
+                rootset.push(slot);
+            }
+        }
     }
 }
 
