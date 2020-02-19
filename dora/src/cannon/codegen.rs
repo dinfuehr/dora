@@ -677,7 +677,7 @@ where
             .store_mem(bytecode_type.mode(), Mem::Local(offset), REG_RESULT.into());
     }
 
-    fn emit_rotate_left_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    fn emit_rol_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert_eq!(
             self.bytecode.register_type(lhs),
             self.bytecode.register_type(rhs)
@@ -706,7 +706,7 @@ where
             .store_mem(bytecode_type.mode(), Mem::Local(offset), REG_RESULT.into());
     }
 
-    fn emit_rotate_right_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    fn emit_ror_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert_eq!(
             self.bytecode.register_type(lhs),
             self.bytecode.register_type(rhs)
@@ -1575,11 +1575,11 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         unimplemented!();
     }
 
-    fn visit_rotate_left_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_rotate_left_int(dest, lhs, rhs);
+    fn visit_rol_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_rol_int(dest, lhs, rhs);
     }
-    fn visit_rotate_right_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_rotate_right_int(dest, lhs, rhs);
+    fn visit_ror_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_ror_int(dest, lhs, rhs);
     }
 
     fn visit_mov_bool(&mut self, dest: Register, src: Register) {

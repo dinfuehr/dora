@@ -235,11 +235,11 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg3("SarLong", dest, lhs, rhs);
     }
 
-    fn visit_rotate_left_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("RotateLeftInt", dest, lhs, rhs);
+    fn visit_rol_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("RolInt", dest, lhs, rhs);
     }
-    fn visit_rotate_right_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("RotateRightInt", dest, lhs, rhs);
+    fn visit_ror_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("RorInt", dest, lhs, rhs);
     }
 
     fn visit_mov_bool(&mut self, dest: Register, src: Register) {

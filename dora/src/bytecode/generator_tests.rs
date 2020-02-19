@@ -758,16 +758,16 @@ fn gen_expr_bit_ashiftr() {
 }
 
 #[test]
-fn gen_expr_bit_rotate_left() {
+fn gen_expr_bit_rol() {
     let result = code("fun f(a: Int, b: Int) -> Int { return a.rotateLeft(b); }");
-    let expected = vec![RotateLeftInt(r(2), r(0), r(1)), RetInt(r(2))];
+    let expected = vec![RolInt(r(2), r(0), r(1)), RetInt(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
-fn gen_expr_bit_rotate_right() {
+fn gen_expr_bit_ror() {
     let result = code("fun f(a: Int, b: Int) -> Int { return a.rotateRight(b); }");
-    let expected = vec![RotateRightInt(r(2), r(0), r(1)), RetInt(r(2))];
+    let expected = vec![RorInt(r(2), r(0), r(1)), RetInt(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -2627,8 +2627,8 @@ pub enum Bytecode {
     ShrLong(Register, Register, Register),
     SarLong(Register, Register, Register),
 
-    RotateLeftInt(Register, Register, Register),
-    RotateRightInt(Register, Register, Register),
+    RolInt(Register, Register, Register),
+    RorInt(Register, Register, Register),
 
     MovBool(Register, Register),
     MovByte(Register, Register),
@@ -2977,11 +2977,11 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::SarLong(dest, lhs, rhs));
     }
 
-    fn visit_rotate_left_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::RotateLeftInt(dest, lhs, rhs));
+    fn visit_rol_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::RolInt(dest, lhs, rhs));
     }
-    fn visit_rotate_right_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::RotateRightInt(dest, lhs, rhs));
+    fn visit_ror_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::RorInt(dest, lhs, rhs));
     }
 
     fn visit_mov_bool(&mut self, dest: Register, src: Register) {

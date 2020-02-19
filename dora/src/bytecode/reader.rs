@@ -264,17 +264,17 @@ where
                 self.visitor.visit_sar_long(dest, lhs, rhs);
             }
 
-            BytecodeOpcode::RotateLeftInt => {
+            BytecodeOpcode::RolInt => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_rotate_left_int(dest, lhs, rhs);
+                self.visitor.visit_rol_int(dest, lhs, rhs);
             }
-            BytecodeOpcode::RotateRightInt => {
+            BytecodeOpcode::RorInt => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_rotate_right_int(dest, lhs, rhs);
+                self.visitor.visit_ror_int(dest, lhs, rhs);
             }
 
             BytecodeOpcode::MovBool => {
@@ -1327,10 +1327,10 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_rotate_left_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_rol_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_rotate_right_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_ror_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 

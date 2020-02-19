@@ -145,8 +145,8 @@ pub enum BytecodeOpcode {
     ShrLong,
     SarLong,
 
-    RotateLeftInt,
-    RotateRightInt,
+    RolInt,
+    RorInt,
 
     MovBool,
     MovByte,
