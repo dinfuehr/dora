@@ -122,7 +122,7 @@ class Block() {
 
     fun addBackEdge(block: Block) {
         if self.loopHeader.isNone() {
-            self.loopHeader = some[LoopHeader](LoopHeader());
+            self.loopHeader = some[LoopHeader](LoopHeader(block));
         }
         self.loopHeader.unwrap().addBackEdge(block);
     }
@@ -136,11 +136,19 @@ impl Equals for Block {
   fun equals(other: Block) -> Bool = self === other;
 }
 
-class LoopHeader {
+class LoopHeader(let header: Block) {
     var backEdges: Vec[Block] = Vec[Block]();
+
+    fun getHeader() -> Block {
+        self.header
+    }
 
     fun addBackEdge(block: Block) {
         self.backEdges.push(block);
+    }
+
+    fun numberBackEdges() -> Int {
+        self.backEdges.length()
     }
 }
 
