@@ -54,6 +54,9 @@ fun readBytecode(code: Array[Byte], visitor: BytecodeVisitor) {
     @open fun visitShrLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitSarLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
+    @open fun visitRolInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitRorInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+
     @open fun visitMovBool(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitMovByte(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitMovChar(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
@@ -135,6 +138,9 @@ fun readBytecode(code: Array[Byte], visitor: BytecodeVisitor) {
     @open fun visitTestGeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitTestLtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitTestLeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+
+    @open fun visitTestEqEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestNeEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
     @open fun visitTestEqInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitTestNeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
@@ -408,6 +414,17 @@ class BytecodeReader(let data: Array[Byte], let visitor: BytecodeVisitor) {
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitSarInt(dest, lhs, rhs);
+
+        } else if opcode == BC_ROL_INT {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitRolInt(dest, lhs, rhs);
+        } else if opcode == BC_ROR_INT {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitRorInt(dest, lhs, rhs);
 
         } else if opcode == BC_SHL_LONG {
             let dest = self.readRegister(wide);
@@ -761,6 +778,17 @@ class BytecodeReader(let data: Array[Byte], let visitor: BytecodeVisitor) {
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitTestLeChar(dest, lhs, rhs);
+
+        } else if opcode == BC_TEST_EQ_ENUM {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitTestEqEnum(dest, lhs, rhs);
+        } else if opcode == BC_TEST_NE_ENUM {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitTestNeEnum(dest, lhs, rhs);
 
         } else if opcode == BC_TEST_EQ_INT {
             let dest = self.readRegister(wide);
