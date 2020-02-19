@@ -57,6 +57,8 @@ class Block() {
     var predecessors: Vec[Block] = Vec[Block]();
     var successors: Vec[Block] = Vec[Block]();
 
+    var loopHeader: Option[LoopHeader] = none[LoopHeader]();
+
     fun getDominator() -> Block {
         self.dominator
     }
@@ -117,6 +119,13 @@ class Block() {
         inst.registerUses();
         return inst;
     }
+
+    fun addBackEdge(block: Block) {
+        if self.loopHeader.isNone() {
+            self.loopHeader = some[LoopHeader](LoopHeader());
+        }
+        self.loopHeader.unwrap().addBackEdge(block);
+    }
 }
 
 impl Hash for Block {
@@ -125,6 +134,14 @@ impl Hash for Block {
 
 impl Equals for Block {
   fun equals(other: Block) -> Bool = self === other;
+}
+
+class LoopHeader {
+    var backEdges: Vec[Block] = Vec[Block]();
+
+    fun addBackEdge(block: Block) {
+        self.backEdges.push(block);
+    }
 }
 
 class Input {
