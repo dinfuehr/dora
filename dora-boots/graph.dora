@@ -52,10 +52,37 @@ class Block() {
     var graph: Graph;
 
     var dominator: Block = nil;
-    var dominated_blocks: Vec[Block] = Vec[Block]();
+    var dominatedBlocks: Vec[Block] = Vec[Block]();
 
     var predecessors: Vec[Block] = Vec[Block]();
     var successors: Vec[Block] = Vec[Block]();
+
+    fun getDominator() -> Block {
+        self.dominator
+    }
+
+    fun setDominator(block: Block) {
+        self.dominator = block;
+    }
+
+    fun dominates(other: Block) -> Bool {
+        var current = other;
+
+        while current !== nil {
+            if self === current { return true; }
+            current = current.getDominator();
+        }
+
+        false
+    }
+
+    fun getDominatedBlocks() -> Vec[Block] {
+        self.dominatedBlocks
+    }
+
+    fun addDominatedBlock(block: Block) {
+        self.dominatedBlocks.push(block);
+    }
 
     fun addPredecessor(block: Block) {
         self.predecessors.push(block);
