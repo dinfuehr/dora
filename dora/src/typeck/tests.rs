@@ -1253,35 +1253,6 @@ fn test_unary_minus_byte() {
 }
 
 #[test]
-fn test_generic_class_bounds() {
-    ok("class Foo
-            class A[T: Foo]
-            fun f() -> A[Foo] { return nil; }");
-
-    ok("@open class Foo
-            class Bar: Foo
-            class A[T: Foo]
-            fun f() -> A[Bar] { return nil; }");
-
-    err(
-        "class Foo
-            class Bar
-            class A[T: Foo]
-            fun f() -> A[Bar] { return nil; }",
-        pos(4, 24),
-        SemError::ClassBoundNotSatisfied("Bar".into(), "Foo".into()),
-    );
-
-    err(
-        "class Foo
-            fun f[T: Foo]() {}
-            fun t() { f[Int](); }",
-        pos(3, 29),
-        SemError::ClassBoundNotSatisfied("Int".into(), "Foo".into()),
-    );
-}
-
-#[test]
 fn test_generic_trait_bounds() {
     ok("trait Foo {}
             class X

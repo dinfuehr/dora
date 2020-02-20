@@ -83,15 +83,6 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
                     let ty = semck::read_type(self.vm, cls.file, bound);
 
                     match ty {
-                        Some(BuiltinType::Class(cls_id, _)) => {
-                            if let None = cls.type_params[type_param_id].class_bound {
-                                cls.type_params[type_param_id].class_bound = Some(cls_id);
-                            } else {
-                                let msg = SemError::MultipleClassBounds;
-                                self.vm.diag.lock().report(cls.file, type_param.pos, msg);
-                            }
-                        }
-
                         Some(BuiltinType::Trait(trait_id)) => {
                             if !cls.type_params[type_param_id].trait_bounds.insert(trait_id) {
                                 let msg = SemError::DuplicateTraitBound;
@@ -582,18 +573,12 @@ mod tests {
             pos(1, 12),
             SemError::UnknownType("Foo".into()),
         );
-        ok("class Foo class A[T: Foo]");
-        ok("trait Foo {} class A[T: Foo]");
-    }
-
-    #[test]
-    fn test_generic_multiple_class_bounds() {
         err(
-            "class Foo class Bar
-            class A[T: Foo + Bar]",
-            pos(2, 21),
-            SemError::MultipleClassBounds,
+            "class Foo class A[T: Foo]",
+            pos(1, 22),
+            SemError::BoundExpected,
         );
+        ok("trait Foo {} class A[T: Foo]");
     }
 
     #[test]
