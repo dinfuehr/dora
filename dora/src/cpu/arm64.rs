@@ -1,6 +1,3 @@
-use crate::execstate::ExecState;
-use crate::object::{Obj, Ref};
-
 pub use self::param::*;
 pub use self::reg::*;
 
@@ -58,20 +55,6 @@ pub fn cacheline_sizes() -> (usize, usize) {
     let data = 4 << ((value >> 16) & 0xF);
 
     (insn, data)
-}
-
-pub fn fp_from_execstate(es: &ExecState) -> usize {
-    es.regs[REG_FP.asm() as usize]
-}
-
-pub fn get_exception_object(es: &ExecState) -> Ref<Obj> {
-    let obj: Ref<Obj> = es.regs[REG_RESULT.asm() as usize].into();
-
-    obj
-}
-
-pub fn ra_from_execstate(es: &ExecState) -> usize {
-    es.regs[REG_LR.asm() as usize]
 }
 
 pub fn has_round() -> bool {

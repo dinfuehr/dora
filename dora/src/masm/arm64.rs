@@ -1,21 +1,20 @@
 use byteorder::{LittleEndian, WriteBytesExt};
 use dora_parser::lexer::position::Position;
 
-use crate::baseline::codegen::{AnyReg, CondCode};
-use crate::baseline::fct::{BailoutInfo, GcPoint};
+use crate::compiler::codegen::AnyReg;
+use crate::compiler::fct::LazyCompilationSite;
 use crate::cpu::asm;
 use crate::cpu::asm::*;
 use crate::cpu::reg::*;
 use crate::cpu::{FReg, Mem, Reg};
 use crate::gc::swiper::CARD_SIZE_BITS;
 use crate::gc::Address;
-use crate::masm::{Label, MacroAssembler};
+use crate::masm::{CondCode, Label, MacroAssembler};
 use crate::mem::ptr_width;
 use crate::object::{offset_of_array_data, offset_of_array_length, Header};
-use crate::os::signal::Trap;
 use crate::threads::ThreadLocalData;
 use crate::ty::{MachineMode, TypeList};
-use crate::vm::{get_vm, FctId};
+use crate::vm::{get_vm, FctId, Trap};
 use crate::vtable::VTable;
 
 impl MacroAssembler {
@@ -100,16 +99,6 @@ impl MacroAssembler {
         self.jump_if(CondCode::UnsignedGreater, lbl_overflow);
     }
 
-    pub fn epilog_with_polling(&mut self, polling_page: Address) {
-        self.epilog_without_return();
-        self.check_polling_page(polling_page);
-
-        let gcpoint = GcPoint::new();
-        self.emit_gcpoint(gcpoint);
-
-        self.emit_u32(asm::ret());
-    }
-
     pub fn epilog(&mut self) {
         self.epilog_without_return();
         self.emit_u32(asm::ret());
@@ -157,7 +146,12 @@ impl MacroAssembler {
         self.emit_u32(asm::blr(*scratch));
 
         let pos = self.pos() as i32;
-        self.emit_bailout_info(BailoutInfo::Compile(fct_id, disp + pos, cls_tps, fct_tps));
+        self.emit_lazy_compilation_site(LazyCompilationSite::Compile(
+            fct_id,
+            disp + pos,
+            cls_tps,
+            fct_tps,
+        ));
     }
 
     pub fn raw_call(&mut self, ptr: *const u8) {
@@ -170,7 +164,7 @@ impl MacroAssembler {
         self.emit_u32(asm::blr(*scratch));
     }
 
-    pub fn indirect_call(&mut self, line: i32, index: u32, cls_type_params: TypeList) {
+    pub fn indirect_call(&mut self, pos: Position, index: u32, cls_type_params: TypeList) {
         let obj = REG_PARAMS[0];
 
         // need to use scratch register instead of REG_RESULT for calculations
@@ -178,7 +172,7 @@ impl MacroAssembler {
         let scratch = self.get_scratch();
 
         // scratch = [obj] (load vtable)
-        self.load_base(MachineMode::Ptr, scratch.reg().into(), obj, 0, Some(line));
+        self.load_base(MachineMode::Ptr, scratch.reg().into(), obj, 0, Some(pos));
 
         // calculate offset of VTable entry
         let disp = VTable::offset_of_method_table() + (index as i32) * ptr_width();
@@ -192,7 +186,7 @@ impl MacroAssembler {
 
         // call *scratch
         self.emit_u32(asm::blr(*scratch));
-        self.emit_bailout_info(BailoutInfo::VirtCompile(
+        self.emit_lazy_compilation_site(LazyCompilationSite::VirtCompile(
             index,
             cls_type_params,
             TypeList::empty(),
@@ -343,7 +337,7 @@ impl MacroAssembler {
         self.emit_u32(asm::br(reg));
     }
 
-    pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+    pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, _pos: Position) {
         let x64 = match mode {
             MachineMode::Int32 => 0,
             MachineMode::Int64 => 1,
@@ -353,7 +347,7 @@ impl MacroAssembler {
         self.emit_u32(asm::sdiv(x64, dest, lhs, rhs));
     }
 
-    pub fn int_mod(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+    pub fn int_mod(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, _pos: Position) {
         let scratch = self.get_scratch();
         let x64 = match mode {
             MachineMode::Int32 => 0,
@@ -442,6 +436,14 @@ impl MacroAssembler {
         self.emit_u32(asm::asrv(x64, dest, lhs, rhs));
     }
 
+    pub fn int_rol(&mut self, _mode: MachineMode, _dest: Reg, _lhs: Reg, _rhs: Reg) {
+        unimplemented!();
+    }
+
+    pub fn int_ror(&mut self, _mode: MachineMode, _dest: Reg, _lhs: Reg, _rhs: Reg) {
+        unimplemented!();
+    }
+
     pub fn int_or(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         let x64 = match mode {
             MachineMode::Int32 => 0,
@@ -470,6 +472,30 @@ impl MacroAssembler {
         };
 
         self.emit_u32(asm::eor_shreg(x64, dest, lhs, rhs, Shift::LSL, 0));
+    }
+
+    pub fn count_bits(&mut self, _mode: MachineMode, _dest: Reg, _src: Reg, _count_one_bits: bool) {
+        unimplemented!();
+    }
+
+    pub fn count_bits_leading(
+        &mut self,
+        _mode: MachineMode,
+        _dest: Reg,
+        _src: Reg,
+        _count_one_bits: bool,
+    ) {
+        unimplemented!();
+    }
+
+    pub fn count_bits_trailing(
+        &mut self,
+        _mode: MachineMode,
+        _dest: Reg,
+        _src: Reg,
+        _count_one_bits: bool,
+    ) {
+        unimplemented!();
     }
 
     pub fn int_to_float(
@@ -729,9 +755,9 @@ impl MacroAssembler {
         dest: AnyReg,
         base: Reg,
         offset: i32,
-        line: i32,
+        pos: Position,
     ) {
-        self.load_base(mode, dest, base, offset, Some(line));
+        self.load_base(mode, dest, base, offset, Some(pos));
     }
 
     pub fn load_mem(&mut self, mode: MachineMode, dest: AnyReg, mem: Mem) {
@@ -803,7 +829,7 @@ impl MacroAssembler {
         dest: AnyReg,
         base: Reg,
         disp: i32,
-        check_nil: Option<i32>,
+        pos: Option<Position>,
     ) {
         let scratch = self.get_scratch();
         let reg = if disp == 0 {
@@ -823,9 +849,8 @@ impl MacroAssembler {
             MachineMode::Float64 => asm::ldrd_ind(dest.freg(), base, reg, LdStExtend::LSL, 0),
         };
 
-        if let Some(line) = check_nil {
-            self.emit_nil_check();
-            self.emit_lineno_if_missing(line);
+        if let Some(pos) = pos {
+            self.test_if_nil_bailout(pos, base, Trap::NIL);
         }
 
         self.emit_u32(inst);
@@ -837,18 +862,23 @@ impl MacroAssembler {
         base: Reg,
         disp: i32,
         src: AnyReg,
-        line: i32,
+        pos: Position,
         write_barrier: bool,
         card_table_offset: usize,
     ) {
-        self.store_base(mode, base, disp, src, Some(line));
+        self.test_if_nil_bailout(pos, base, Trap::NIL);
+        self.store_base(mode, base, disp, src, Some(pos));
 
         if write_barrier {
             self.emit_barrier(base, card_table_offset);
         }
     }
 
-    fn emit_barrier(&mut self, src: Reg, card_table_offset: usize) {
+    pub fn lea(&mut self, _dest: Reg, _mem: Mem) {
+        unimplemented!();
+    }
+
+    pub fn emit_barrier(&mut self, src: Reg, card_table_offset: usize) {
         self.emit_u32(asm::lsr_imm(1, src, src, CARD_SIZE_BITS as u32));
         let scratch = self.get_scratch();
         self.load_int_const(MachineMode::Ptr, *scratch, card_table_offset as i64);
@@ -862,7 +892,7 @@ impl MacroAssembler {
         base: Reg,
         disp: i32,
         src: AnyReg,
-        check_nil: Option<i32>,
+        pos: Option<Position>,
     ) {
         let scratch = self.get_scratch();
         let reg = if disp == 0 {
@@ -901,9 +931,8 @@ impl MacroAssembler {
             MachineMode::Float64 => asm::strd_ind(src.freg(), base, reg, LdStExtend::LSL, 0),
         };
 
-        if let Some(line) = check_nil {
-            self.emit_nil_check();
-            self.emit_lineno_if_missing(line);
+        if let Some(pos) = pos {
+            self.test_if_nil_bailout(pos, base, Trap::NIL);
         }
 
         self.emit_u32(inst);
@@ -1127,14 +1156,14 @@ impl MacroAssembler {
         let vm = get_vm();
         self.load_int_const(MachineMode::Int32, REG_PARAMS[0], trap.int() as i64);
         self.raw_call(vm.trap_stub().to_ptr());
-        self.emit_lineno(pos.line as i32);
+        self.emit_position(pos);
     }
 
     pub fn throw(&mut self, receiver: Reg, pos: Position) {
         let vm = get_vm();
         self.copy_reg(MachineMode::Ptr, REG_PARAMS[0], receiver);
         self.raw_call(vm.throw_stub().to_ptr());
-        self.emit_lineno(pos.line as i32);
+        self.emit_position(pos);
     }
 
     pub fn nop(&mut self) {
@@ -1153,7 +1182,7 @@ impl MacroAssembler {
                 JumpType::JumpIf(cond) => asm::b_cond_imm(cond.into(), diff),
             };
 
-            let mut slice = &mut self.data[jmp.at..];
+            let mut slice = &mut self.asm.code_mut()[jmp.at..];
             slice.write_u32::<LittleEndian>(insn).unwrap();
         }
     }

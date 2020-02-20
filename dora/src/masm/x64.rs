@@ -1,3 +1,6 @@
+use byteorder::{LittleEndian, WriteBytesExt};
+use dora_parser::lexer::position::Position;
+
 use crate::asm::Register as AsmRegister;
 use crate::compiler::codegen::AnyReg;
 use crate::compiler::fct::LazyCompilationSite;
@@ -9,12 +12,8 @@ use crate::mem::{fits_i32, ptr_width};
 use crate::object::{offset_of_array_data, offset_of_array_length, Header};
 use crate::threads::ThreadLocalData;
 use crate::ty::{MachineMode, TypeList};
-use crate::vm::get_vm;
-use crate::vm::FctId;
-use crate::vm::Trap;
+use crate::vm::{get_vm, FctId, Trap};
 use crate::vtable::VTable;
-use byteorder::{LittleEndian, WriteBytesExt};
-use dora_parser::lexer::position::Position;
 
 impl MacroAssembler {
     pub fn prolog_size(&mut self, stacksize: i32) {

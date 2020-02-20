@@ -1,6 +1,6 @@
-use crate::baseline::codegen::CondCode;
 use crate::cpu::arm64::reg::*;
 use crate::cpu::{FReg, Reg};
+use crate::masm::CondCode;
 
 pub fn ret() -> u32 {
     cls_uncond_branch_reg(0b0010, 0b11111, 0, REG_LR, 0)

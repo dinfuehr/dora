@@ -1,7 +1,11 @@
 use crate::cpu::{FReg, Reg};
 
-pub const REG_COUNT: usize = 31;
 pub static REG_PARAMS: [Reg; 8] = [R0, R1, R2, R3, R4, R5, R6, R7];
+pub static FREG_PARAMS: [FReg; 8] = [F0, F1, F2, F3, F4, F5, F6, F7];
+
+pub static CCALL_REG_PARAMS: [Reg; 8] = [R0, R1, R2, R3, R4, R5, R6, R7];
+pub static CCALL_FREG_PARAMS: [FReg; 8] = [F0, F1, F2, F3, F4, F5, F6, F7];
+
 pub static SCRATCH: [Reg; 5] = [R9, R12, R13, R14, R15];
 
 pub const REG_RESULT: Reg = R0;
@@ -11,10 +15,15 @@ pub const REG_FP: Reg = R29;
 pub const REG_LR: Reg = R30;
 pub const REG_THREAD: Reg = R28;
 
-pub const STACK_FRAME_ALIGNMENT: usize = 16;
-
 pub const REG_SP: Reg = Reg(32);
 pub const REG_ZERO: Reg = Reg(33);
+
+pub const FREG_RESULT: FReg = F0;
+
+// shall not overlap with param registers
+pub const FREG_TMP1: FReg = F16;
+
+pub const STACK_FRAME_ALIGNMENT: usize = 16;
 
 pub const R0: Reg = Reg(0);
 pub const R1: Reg = Reg(1);
@@ -47,13 +56,6 @@ pub const R27: Reg = Reg(27);
 pub const R28: Reg = Reg(28);
 pub const R29: Reg = Reg(29);
 pub const R30: Reg = Reg(30);
-
-pub const FREG_RESULT: FReg = F0;
-
-// shall not overlap with param registers
-pub const FREG_TMP1: FReg = F16;
-
-pub static FREG_PARAMS: [FReg; 8] = [F0, F1, F2, F3, F4, F5, F6, F7];
 
 pub const F0: FReg = FReg(0);
 pub const F1: FReg = FReg(1);
