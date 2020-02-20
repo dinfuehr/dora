@@ -1,18 +1,12 @@
-use libc;
-
-use std::fs::OpenOptions;
-use std::io::{self, BufWriter, Write};
-use std::slice;
 use std::sync::Arc;
-
-use capstone::prelude::*;
 
 use crate::baseline;
 use crate::boots;
 use crate::cannon;
 use crate::compiler::JitFct;
-use crate::compiler::{native_stub, Code, CodeDescriptor, NativeFct};
+use crate::compiler::{native_stub, CodeDescriptor, NativeFct};
 use crate::cpu::{FReg, Reg, FREG_RESULT, REG_RESULT};
+use crate::disassembler;
 use crate::driver::cmd::{AsmSyntax, CompilerName};
 use crate::gc::Address;
 use crate::masm::*;
@@ -81,7 +75,7 @@ pub fn generate_fct<'ast>(
     }
 
     if should_emit_asm(vm, &*fct) {
-        dump_asm(
+        disassembler::disassemble(
             vm,
             &*fct,
             cls_type_params,
@@ -122,145 +116,6 @@ pub fn generate_fct<'ast>(
     fct_ptr
 }
 
-#[cfg(target_arch = "x86_64")]
-fn get_engine(asm_syntax: AsmSyntax) -> CsResult<Capstone> {
-    let arch_syntax = match asm_syntax {
-        AsmSyntax::Intel => arch::x86::ArchSyntax::Intel,
-        AsmSyntax::Att => arch::x86::ArchSyntax::Att,
-    };
-
-    Capstone::new()
-        .x86()
-        .mode(arch::x86::ArchMode::Mode64)
-        .syntax(arch_syntax)
-        .build()
-}
-
-#[cfg(target_arch = "aarch64")]
-fn get_engine(_asm_syntax: AsmSyntax) -> CsResult<Capstone> {
-    unimplemented!()
-}
-
-pub fn dump_asm<'ast>(
-    vm: &VM<'ast>,
-    fct: &Fct<'ast>,
-    cls_type_params: &TypeList,
-    fct_type_params: &TypeList,
-    code: &Code,
-    fct_src: Option<&FctSrc>,
-    asm_syntax: AsmSyntax,
-) {
-    let instruction_length = code.instruction_end().offset_from(code.instruction_start());
-    let buf: &[u8] =
-        unsafe { slice::from_raw_parts(code.instruction_start().to_ptr(), instruction_length) };
-
-    let engine = get_engine(asm_syntax).expect("cannot create capstone engine");
-
-    let mut w: Box<dyn Write> = if vm.args.flag_emit_asm_file {
-        let pid = unsafe { libc::getpid() };
-        let name = format!("code-{}.asm", pid);
-        let file = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&name)
-            .expect("couldn't append to asm file");
-
-        Box::new(BufWriter::new(file))
-    } else {
-        Box::new(io::stdout())
-    };
-
-    let start_addr = code.instruction_start().to_usize() as u64;
-    let end_addr = code.instruction_end().to_usize() as u64;
-
-    let instrs = engine
-        .disasm_all(buf, start_addr)
-        .expect("could not disassemble code");
-
-    let name = fct.full_name(vm);
-
-    let cls_type_params: String = if cls_type_params.len() > 0 {
-        let mut ty_names = Vec::new();
-
-        for ty in cls_type_params.iter() {
-            ty_names.push(ty.name(vm));
-        }
-
-        format!(" CLS[{}]", ty_names.join(", "))
-    } else {
-        "".into()
-    };
-
-    let fct_type_params: String = if fct_type_params.len() > 0 {
-        let mut ty_names = Vec::new();
-
-        for ty in fct_type_params.iter() {
-            ty_names.push(ty.name(vm));
-        }
-
-        format!(" FCT[{}]", ty_names.join(", "))
-    } else {
-        "".into()
-    };
-
-    writeln!(
-        &mut w,
-        "fun {}{}{} {:#x} {:#x}",
-        &name, cls_type_params, fct_type_params, start_addr, end_addr
-    )
-    .unwrap();
-
-    if let Some(fct_src) = fct_src {
-        for var in &fct_src.vars {
-            let name = vm.interner.str(var.name);
-            writeln!(&mut w, "  var `{}`: type {}", name, var.ty.name(vm)).unwrap();
-        }
-
-        if fct_src.vars.len() > 0 {
-            writeln!(&mut w).unwrap();
-        }
-    }
-
-    for instr in instrs.iter() {
-        let addr = (instr.address() - start_addr) as u32;
-
-        if let Some(gc_point) = code.gcpoint_for_offset(addr) {
-            write!(&mut w, "\t\t  ; gc point = (").unwrap();
-            let mut first = true;
-
-            for &offset in &gc_point.offsets {
-                if !first {
-                    write!(&mut w, ", ").unwrap();
-                }
-
-                if offset < 0 {
-                    write!(&mut w, "-").unwrap();
-                }
-
-                write!(&mut w, "0x{:x}", offset.abs()).unwrap();
-                first = false;
-            }
-
-            writeln!(&mut w, ")").unwrap();
-        }
-
-        if let Some(comment) = code.comment_for_offset(addr as u32) {
-            writeln!(&mut w, "\t\t  // {}", comment).unwrap();
-        }
-
-        writeln!(
-            &mut w,
-            "  {:#06x}: {}\t\t{}",
-            instr.address(),
-            instr.mnemonic().expect("no mnmemonic found"),
-            instr.op_str().expect("no op_str found"),
-        )
-        .unwrap();
-    }
-
-    writeln!(&mut w).unwrap();
-}
-
 pub fn register_for_mode(mode: MachineMode) -> AnyReg {
     if mode.is_float() {
         FREG_RESULT.into()
@@ -284,6 +139,10 @@ pub fn should_emit_debug(vm: &VM, fct: &Fct) -> bool {
 }
 
 pub fn should_emit_asm(vm: &VM, fct: &Fct) -> bool {
+    if !disassembler::supported() {
+        return false;
+    }
+
     if let Some(ref dbg_names) = vm.args.flag_emit_asm {
         fct_pattern_match(vm, fct, dbg_names)
     } else {
@@ -393,7 +252,7 @@ pub fn ensure_native_stub(vm: &VM, fct_id: Option<FctId>, internal_fct: NativeFc
             let fct = vm.fcts.idx(fct_id);
             let fct = fct.read();
             if should_emit_asm(vm, &*fct) {
-                dump_asm(
+                disassembler::disassemble(
                     vm,
                     &*fct,
                     &TypeList::empty(),

@@ -25,6 +25,7 @@ mod bytecode;
 mod cannon;
 mod compiler;
 mod cpu;
+mod disassembler;
 mod driver;
 mod dseg;
 mod error;
