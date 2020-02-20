@@ -2125,3 +2125,37 @@ fn test_type_params_with_bounds_in_subclass_wrong_order() {
         SemError::TraitBoundNotSatisfied("Int".into(), "SomeTrait".into()),
     );
 }
+
+#[test]
+fn test_type_without_make_iterator() {
+    err(
+        "
+        class Foo
+        fun bar(x: Foo) {
+            for i in x {
+                let x: Foo = i;
+            }
+        }
+    ",
+        pos(4, 13),
+        SemError::UnknownMethod("Foo".into(), "makeIterator".into(), vec![]),
+    );
+}
+
+#[test]
+fn test_type_make_iterator_not_implementing_iterator() {
+    err(
+        "
+        class Foo {
+            fun makeIterator() -> Int { 0 }
+        }
+        fun bar(x: Foo) {
+            for i in x {
+                let x: Foo = i;
+            }
+        }
+    ",
+        pos(6, 22),
+        SemError::MakeIteratorReturnType("Int".into()),
+    );
+}

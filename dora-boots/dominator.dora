@@ -1,0 +1,47 @@
+fun findBackEdges(graph: Graph) {
+    let worklist = Vec[Block]();
+    let successorsVisited = arrayNew[Int](graph.numberBlocks());
+
+    // all blocks that have been fully visited (including successors)
+    let visited = BitSet(graph.numberBlocks());
+
+    // all blocks in worklist
+    let visiting = BitSet(graph.numberBlocks());
+
+    worklist.push(graph.getEntryBlock());
+    visiting.insert(graph.getEntryBlock().id);
+
+    while !worklist.isEmpty() {
+        let block = worklist.last().unwrap();
+        let successorIndex = successorsVisited(block.id);
+
+        if successorIndex == block.successors.length() {
+            worklist.pop();
+            visiting.remove(block.id);
+            visited.insert(block.id);
+        } else {
+            successorsVisited(block.id) = successorIndex + 1;
+            let successor = block.successors.get(successorIndex);
+
+            if visiting.contains(successor.id) {
+                successor.addBackEdge(block);
+            } else if visited.contains(successor.id) {
+                // already visited
+            } else {
+                worklist.push(successor);
+                visiting.insert(successor.id);
+            }
+        }
+    }
+
+    let it = graph.blocks.makeIterator();
+    while it.hasNext() {
+        let block = it.next();
+        // assume for now that all blocks are reachable
+        assert(visited.contains(block.id));
+    }
+}
+
+fun determineDominators(graph: Graph) {
+
+}

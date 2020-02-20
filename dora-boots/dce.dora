@@ -7,7 +7,7 @@ fun find_reachable_blocks(graph: Graph) -> BitSet {
     worklist.push(graph.entryBlock);
 
     while !worklist.isEmpty() {
-        let block = worklist.last();
+        let block = worklist.last().unwrap();
 
         if successors_processed(block.id) == block.successors.length() {
             worklist.pop();

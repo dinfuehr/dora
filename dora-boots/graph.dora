@@ -20,6 +20,10 @@ class Graph {
         self.entryBlock = block;
     }
 
+    fun getEntryBlock() -> Block {
+        self.entryBlock
+    }
+
     fun setExitBlock(block: Block) {
         self.exitBlock = block;
     }
@@ -51,7 +55,7 @@ class Block() {
 
     var graph: Graph;
 
-    var dominator: Block = nil;
+    var dominator: Option[Block] = none[Block]();
     var dominatedBlocks: Vec[Block] = Vec[Block]();
 
     var predecessors: Vec[Block] = Vec[Block]();
@@ -59,20 +63,20 @@ class Block() {
 
     var loopHeader: Option[LoopHeader] = none[LoopHeader]();
 
-    fun getDominator() -> Block {
+    fun getDominator() -> Option[Block] {
         self.dominator
     }
 
     fun setDominator(block: Block) {
-        self.dominator = block;
+        self.dominator = some[Block](block);
     }
 
     fun dominates(other: Block) -> Bool {
-        var current = other;
+        var current = other.getDominator();
 
-        while current !== nil {
-            if self === current { return true; }
-            current = current.getDominator();
+        while current.isSome() {
+            if self === current.unwrap() { return true; }
+            current = current.unwrap().getDominator();
         }
 
         false
@@ -122,7 +126,7 @@ class Block() {
 
     fun addBackEdge(block: Block) {
         if self.loopHeader.isNone() {
-            self.loopHeader = some[LoopHeader](LoopHeader(block));
+            self.loopHeader = some[LoopHeader](LoopHeader(self));
         }
         self.loopHeader.unwrap().addBackEdge(block);
     }

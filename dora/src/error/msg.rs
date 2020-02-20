@@ -132,6 +132,7 @@ pub enum SemError {
     MissingAbstractOverride(String, String),
     ModifierNotAllowedForStaticMethod(String),
     GlobalInitializerNotSupported,
+    MakeIteratorNotFound(String),
     MakeIteratorReturnType(String),
     UnknownStructField(String, String),
     StructFieldNotInitialized(String, String),
@@ -449,6 +450,9 @@ impl SemError {
             }
             SemError::GlobalInitializerNotSupported => {
                 "global variables do no support initial assignment for now.".into()
+            }
+            SemError::MakeIteratorNotFound(ref ty) => {
+                format!("`{}` does not support `makeIterator` method.", ty)
             }
             SemError::MakeIteratorReturnType(ref ty) => format!(
                 "makeIterator() returns `{}` which does not implement Iterator.",

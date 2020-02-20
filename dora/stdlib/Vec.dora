@@ -100,15 +100,36 @@ class Vec[T] {
     return self.array.length();
   }
 
-  fun first() -> T {
-    assert(self.len > 0);
-    return self.array.get(0);
+  fun first() -> Option[T] {
+    if self.len == 0 {
+      none[T]()
+    } else {
+      some[T](self.array.get(0))
+    }
   }
 
-  fun last() -> T {
-    let len = self.len;
-    assert(len > 0);
-    return self.array.get(len-1);
+  fun last() -> Option[T] {
+    if self.len == 0 {
+      none[T]()
+    } else {
+      some[T](self.array.get(self.len - 1))
+    }
+  }
+
+  fun makeIterator() -> VecIter[T] {
+    VecIter[T](self)
+  }
+}
+
+class VecIter[T](let data: Vec[T]) {
+  var idx: Int = 0;
+
+  fun hasNext() -> Bool {
+    self.idx < self.data.length()
+  }
+
+  fun next() -> T {
+    self.data.get(self.idx)
   }
 }
 

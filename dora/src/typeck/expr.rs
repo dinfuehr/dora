@@ -187,7 +187,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let ret = make_iterator_ret.name(self.vm);
                 let msg = SemError::MakeIteratorReturnType(ret);
                 self.vm.diag.lock().report(self.file, s.expr.pos(), msg);
+
+                // set invalid error type
+                let var_id = *self.src.map_vars.get(s.id).unwrap();
+                self.src.vars[var_id].ty = BuiltinType::Error;
             }
+        } else {
+            // set invalid error type
+            let var_id = *self.src.map_vars.get(s.id).unwrap();
+            self.src.vars[var_id].ty = BuiltinType::Error;
         }
 
         self.visit_stmt(&s.block);
@@ -1823,10 +1831,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
 
         // field not found, report error
-        let field_name = self.vm.interner.str(name).to_string();
-        let expr_name = object_type.name(self.vm);
-        let msg = SemError::UnknownField(field_name, expr_name);
-        self.vm.diag.lock().report(self.file, e.pos, msg);
+        if !object_type.is_error() {
+            let field_name = self.vm.interner.str(name).to_string();
+            let expr_name = object_type.name(self.vm);
+            let msg = SemError::UnknownField(field_name, expr_name);
+            self.vm.diag.lock().report(self.file, e.pos, msg);
+        }
 
         self.src.set_ty(e.id, BuiltinType::Error);
         self.expr_type = BuiltinType::Error;
