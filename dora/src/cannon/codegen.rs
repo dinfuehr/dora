@@ -904,6 +904,31 @@ where
             .store_mem(bytecode_type.mode(), Mem::Local(offset), reg);
     }
 
+    fn emit_store_global_field(&mut self, src: Register, global_id: GlobalId) {
+        let glob = self.vm.globals.idx(global_id);
+        let glob = glob.lock();
+
+        assert_eq!(self.bytecode.register_type(src), glob.ty.into());
+
+        let disp = self.asm.add_addr(glob.address_value.to_ptr());
+        let pos = self.asm.pos() as i32;
+
+        let name = self.vm.interner.str(glob.name);
+        self.asm.emit_comment(format!("store global {}", name));
+        self.asm.load_constpool(REG_TMP1, disp + pos);
+
+        let bytecode_type = self.bytecode.register_type(src);
+        let offset = self.bytecode.register_offset(src);
+
+        let reg = result_reg(bytecode_type);
+
+        self.asm
+            .load_mem(bytecode_type.mode(), reg, Mem::Local(offset));
+
+        self.asm
+            .store_mem(glob.ty.mode(), Mem::Base(REG_TMP1, 0), reg);
+    }
+
     fn emit_const_nil(&mut self, dest: Register) {
         assert_eq!(self.bytecode.register_type(dest), BytecodeType::Ptr);
 
@@ -1800,29 +1825,29 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_load_global_field(dest, glob);
     }
 
-    fn visit_store_global_bool(&mut self, _src: Register, _glob: GlobalId) {
-        unimplemented!();
+    fn visit_store_global_bool(&mut self, src: Register, glob: GlobalId) {
+        self.emit_store_global_field(src, glob);
     }
-    fn visit_store_global_byte(&mut self, _src: Register, _glob: GlobalId) {
-        unimplemented!();
+    fn visit_store_global_byte(&mut self, src: Register, glob: GlobalId) {
+        self.emit_store_global_field(src, glob);
     }
-    fn visit_store_global_char(&mut self, _src: Register, _glob: GlobalId) {
-        unimplemented!();
+    fn visit_store_global_char(&mut self, src: Register, glob: GlobalId) {
+        self.emit_store_global_field(src, glob);
     }
-    fn visit_store_global_int(&mut self, _src: Register, _glob: GlobalId) {
-        unimplemented!();
+    fn visit_store_global_int(&mut self, src: Register, glob: GlobalId) {
+        self.emit_store_global_field(src, glob);
     }
-    fn visit_store_global_long(&mut self, _src: Register, _glob: GlobalId) {
-        unimplemented!();
+    fn visit_store_global_long(&mut self, src: Register, glob: GlobalId) {
+        self.emit_store_global_field(src, glob);
     }
-    fn visit_store_global_float(&mut self, _src: Register, _glob: GlobalId) {
-        unimplemented!();
+    fn visit_store_global_float(&mut self, src: Register, glob: GlobalId) {
+        self.emit_store_global_field(src, glob);
     }
-    fn visit_store_global_double(&mut self, _src: Register, _glob: GlobalId) {
-        unimplemented!();
+    fn visit_store_global_double(&mut self, src: Register, glob: GlobalId) {
+        self.emit_store_global_field(src, glob);
     }
-    fn visit_store_global_ptr(&mut self, _src: Register, _glob: GlobalId) {
-        unimplemented!();
+    fn visit_store_global_ptr(&mut self, src: Register, glob: GlobalId) {
+        self.emit_store_global_field(src, glob);
     }
 
     fn visit_const_nil(&mut self, dest: Register) {
