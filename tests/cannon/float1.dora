@@ -4,6 +4,9 @@ fun main() {
     assert(test_with_epsilon(mul(20F, 5F, 2F), 200F));
     assert(test_with_epsilon(div(20F, 5F, 2F), 2F));
 
+    assert(neg(20F) == -20F);
+    assert(neg(-5F) == 5F);
+
     assert(!eq(20F, 5F));
     assert(eq(5F, 5F));
     assert(!eq(5F, 20F));
@@ -73,4 +76,8 @@ fun test_with_epsilon(expected: Float, value: Float) -> Bool {
 
 @cannon fun gt(x: Float, y: Float) -> Bool {
     return x > y;
+}
+
+@cannon fun neg(x: Float) -> Float {
+    return -x;
 }
