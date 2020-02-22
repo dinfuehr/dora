@@ -1,0 +1,6 @@
+fun main() {
+    let arr = Array[(Int, Long)](10);
+    assert(arr.length() == 10);
+    let arr = Array[(Int, Long)](0);
+    assert(arr.length() == 0);
+}

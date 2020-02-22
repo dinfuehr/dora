@@ -425,6 +425,10 @@ where
             .store_array_elem(mode, array, index, value, write_barrier, card_table_offset);
     }
 
+    pub fn array_address(&mut self, dest: Reg, obj: Reg, index: Reg, element_size: i32) {
+        self.masm.array_address(dest, obj, index, element_size);
+    }
+
     pub fn float_sqrt(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
         self.masm.float_sqrt(mode, dest, src);
     }

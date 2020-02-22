@@ -1,0 +1,7 @@
+//= ignore
+//= error array
+
+fun main() {
+    let x = Array[(Int, Long)](7);
+    let y: (Int, Long) = x(10);
+}

@@ -2542,6 +2542,8 @@ where
 
         let slot_value = if element_type.is_unit() {
             None
+        } else if element_type.is_tuple() {
+            Some(value.stack_slot())
         } else {
             let slot_value = self.add_temp_node(rhs);
             self.asm.store_mem(
@@ -2572,7 +2574,21 @@ where
             self.asm.check_index_out_of_bounds(pos, REG_TMP1, REG_TMP2);
         }
 
-        if !element_type.is_unit() {
+        if element_type.is_unit() {
+            // nothing
+        } else if let Some(tuple_id) = element_type.tuple_id() {
+            let element_size = self.vm.tuples.lock().get_tuple(tuple_id).size();
+            let slot_value = slot_value.unwrap();
+            // self.asm.debug();
+            self.asm
+                .array_address(REG_TMP1, REG_TMP1, REG_TMP2, element_size);
+
+            self.copy_tuple(
+                tuple_id,
+                RegOrOffset::Reg(REG_TMP1),
+                RegOrOffset::Offset(slot_value.offset()),
+            );
+        } else {
             let slot_value = slot_value.unwrap();
             let value = result_reg_ty(element_type);
             let mode = element_type.mode();
@@ -2637,6 +2653,16 @@ where
 
         if element_type.is_unit() {
             assert!(dest.is_none());
+        } else if let Some(tuple_id) = element_type.tuple_id() {
+            let element_size = self.vm.tuples.lock().get_tuple(tuple_id).size();
+            self.asm
+                .array_address(REG_TMP1, REG_RESULT, REG_TMP1, element_size);
+
+            self.copy_tuple(
+                tuple_id,
+                RegOrOffset::Offset(dest.stack_offset()),
+                RegOrOffset::Reg(REG_TMP1),
+            );
         } else {
             let res = result_reg_ty(element_type).any_reg();
             let dest = dest.any_reg();

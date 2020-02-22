@@ -639,8 +639,6 @@ impl MacroAssembler {
         element_size: i32,
         with_header: bool,
     ) {
-        assert!(element_size == 1 || element_size == 2 || element_size == 4 || element_size == 8);
-
         let header_size = if with_header {
             Header::size() + ptr_width()
         } else {
@@ -654,11 +652,30 @@ impl MacroAssembler {
                 0
             };
 
-        asm::lea(self, dest, Mem::Offset(length, element_size, size));
+        if element_size == 1 || element_size == 2 || element_size == 4 || element_size == 8 {
+            asm::lea(self, dest, Mem::Offset(length, element_size, size));
+        } else {
+            let scratch = self.get_scratch();
+            self.load_int_const(MachineMode::Ptr, *scratch, element_size as i64);
+            asm::emit_imul_reg_reg(self, 1, length, *scratch);
+            asm::emit_addq_imm_reg(self, size, *scratch);
+            self.asm.movq_rr(dest.into(), (*scratch).into());
+        }
 
         if element_size != ptr_width() {
             asm::emit_andq_imm_reg(self, -ptr_width(), dest);
         }
+    }
+
+    pub fn array_address(&mut self, dest: Reg, obj: Reg, index: Reg, element_size: i32) {
+        let offset = Header::size() + ptr_width();
+        let scratch = self.get_scratch();
+
+        self.load_int_const(MachineMode::Ptr, *scratch, element_size as i64);
+        asm::emit_imul_reg_reg(self, 1, index, *scratch);
+        asm::emit_addq_imm_reg(self, offset, *scratch);
+        self.asm.addq_rr((*scratch).into(), obj.into());
+        self.asm.movq_rr(dest.into(), (*scratch).into());
     }
 
     pub fn check_index_out_of_bounds(&mut self, pos: Position, array: Reg, index: Reg) {
