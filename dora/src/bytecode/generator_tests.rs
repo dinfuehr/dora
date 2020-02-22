@@ -400,6 +400,13 @@ fn gen_add_float() {
 }
 
 #[test]
+fn gen_add_double() {
+    let result = code("fun f(a: Double, b: Double) -> Double { return a + b; }");
+    let expected = vec![AddDouble(r(2), r(0), r(1)), RetDouble(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
 fn gen_id_int() {
     let result = code("fun f(a: Int) -> Int { return a; }");
     let expected = vec![RetInt(r(0))];
@@ -442,6 +449,13 @@ fn gen_sub_float() {
 }
 
 #[test]
+fn gen_sub_double() {
+    let result = code("fun f(a: Double, b: Double) -> Double { return a - b; }");
+    let expected = vec![SubDouble(r(2), r(0), r(1)), RetDouble(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
 fn gen_div_int() {
     let result = code("fun f(a: Int, b: Int) -> Int { return a / b; }");
     let expected = vec![DivInt(r(2), r(0), r(1)), RetInt(r(2))];
@@ -463,6 +477,13 @@ fn gen_div_float() {
 }
 
 #[test]
+fn gen_div_double() {
+    let result = code("fun f(a: Double, b: Double) -> Double { return a / b; }");
+    let expected = vec![DivDouble(r(2), r(0), r(1)), RetDouble(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
 fn gen_mul_int() {
     let result = code("fun f(a: Int, b: Int) -> Int { return a * b; }");
     let expected = vec![MulInt(r(2), r(0), r(1)), RetInt(r(2))];
@@ -473,6 +494,13 @@ fn gen_mul_int() {
 fn gen_mul_float() {
     let result = code("fun f(a: Float, b: Float) -> Float { return a * b; }");
     let expected = vec![MulFloat(r(2), r(0), r(1)), RetFloat(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_mul_double() {
+    let result = code("fun f(a: Double, b: Double) -> Double { return a * b; }");
+    let expected = vec![MulDouble(r(2), r(0), r(1)), RetDouble(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -970,6 +998,48 @@ fn gen_expr_test_greaterthan_float() {
 fn gen_expr_test_greaterthanequal_float() {
     let result = code("fun f(a: Float, b: Float) -> Bool { return a >= b; }");
     let expected = vec![TestGeFloat(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_equal_double() {
+    let result = code("fun f(a: Double, b: Double) -> Bool { return a == b; }");
+    let expected = vec![TestEqDouble(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_notequal_double() {
+    let result = code("fun f(a: Double, b: Double) -> Bool { return a != b; }");
+    let expected = vec![TestNeDouble(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_lessthan_double() {
+    let result = code("fun f(a: Double, b: Double) -> Bool { return a < b; }");
+    let expected = vec![TestLtDouble(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_lessthanequal_double() {
+    let result = code("fun f(a: Double, b: Double) -> Bool { return a <= b; }");
+    let expected = vec![TestLeDouble(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_greaterthan_double() {
+    let result = code("fun f(a: Double, b: Double) -> Bool { return a > b; }");
+    let expected = vec![TestGtDouble(r(2), r(0), r(1)), RetBool(r(2))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_expr_test_greaterthanequal_double() {
+    let result = code("fun f(a: Double, b: Double) -> Bool { return a >= b; }");
+    let expected = vec![TestGeDouble(r(2), r(0), r(1)), RetBool(r(2))];
     assert_eq!(expected, result);
 }
 

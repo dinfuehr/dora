@@ -1,0 +1,83 @@
+fun main() {
+    assert(test_with_epsilon(add(20D, 5D, 2D), 27D));
+    assert(test_with_epsilon(sub(20D, 5D, 2D), 13D));
+    assert(test_with_epsilon(mul(20D, 5D, 2D), 200D));
+    assert(test_with_epsilon(div(20D, 5D, 2D), 2D));
+
+    assert(neg(20D) == -20D);
+    assert(neg(-5D) == 5D);
+
+    assert(!eq(20D, 5D));
+    assert(eq(5D, 5D));
+    assert(!eq(5D, 20D));
+
+    assert(ne(20D, 5D));
+    assert(!ne(5D, 5D));
+    assert(ne(5D, 20D));
+
+
+    assert(!lt(20D, 5D));
+    assert(!lt(5D, 5D));
+    assert(lt(5D, 20D));
+
+    assert(!le(20D, 5D));
+    assert(le(5D, 5D));
+    assert(le(5D, 20D));
+
+    assert(ge(20D, 5D));
+    assert(ge(5D, 5D));
+    assert(!ge(5D, 20D));
+
+    assert(gt(20D, 5D));
+    assert(!gt(5D, 5D));
+    assert(!gt(5D, 20D));
+}
+
+fun test_with_epsilon(expected: Double, value: Double) -> Bool {
+    let epsilon = 0.01D;
+    return value >= (expected-epsilon) && value <= (expected+epsilon);
+}
+
+@cannon fun add(x: Double, y: Double, z: Double) -> Double {
+    return x+y+z;
+}
+
+@cannon fun sub(x: Double, y: Double, z: Double) -> Double {
+    return x-y-z;
+}
+
+@cannon fun mul(x: Double, y: Double, z: Double) -> Double {
+    return x*y*z;
+}
+
+@cannon fun div(x: Double, y: Double, z: Double) -> Double {
+    return x/y/z;
+}
+
+@cannon fun eq(x: Double, y: Double) -> Bool {
+    return x == y;
+}
+
+@cannon fun ne(x: Double, y: Double) -> Bool {
+    return x != y;
+}
+
+@cannon fun lt(x: Double, y: Double) -> Bool {
+    return x < y;
+}
+
+@cannon fun le(x: Double, y: Double) -> Bool {
+    return x <= y;
+}
+
+@cannon fun ge(x: Double, y: Double) -> Bool {
+    return x >= y;
+}
+
+@cannon fun gt(x: Double, y: Double) -> Bool {
+    return x > y;
+}
+
+@cannon fun neg(x: Double) -> Double {
+    return -x;
+}

@@ -840,7 +840,13 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
                     dest
                 }
+                Intrinsic::DoubleNeg => {
+                    let dest = self.ensure_register(dest, BytecodeType::Double);
+                    let src = self.visit_expr(&expr.opnd, DataDest::Alloc);
+                    self.gen.emit_neg_double(dest, src);
 
+                    dest
+                }
                 _ => unimplemented!(),
             }
         } else {
@@ -966,6 +972,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             | Intrinsic::FloatSub
             | Intrinsic::FloatDiv
             | Intrinsic::FloatMul => BytecodeType::Float,
+            Intrinsic::DoubleAdd
+            | Intrinsic::DoubleSub
+            | Intrinsic::DoubleDiv
+            | Intrinsic::DoubleMul => BytecodeType::Double,
             Intrinsic::BoolEq
             | Intrinsic::ByteEq
             | Intrinsic::ByteCmp
@@ -976,7 +986,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             | Intrinsic::IntEq
             | Intrinsic::IntCmp
             | Intrinsic::FloatEq
-            | Intrinsic::FloatCmp => BytecodeType::Bool,
+            | Intrinsic::FloatCmp
+            | Intrinsic::DoubleEq
+            | Intrinsic::DoubleCmp => BytecodeType::Bool,
             _ => unimplemented!(),
         };
 
@@ -1062,6 +1074,22 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 Some(BinOp::Cmp(CmpOp::Le)) => self.gen.emit_test_le_float(dest, lhs_reg, rhs_reg),
                 Some(BinOp::Cmp(CmpOp::Gt)) => self.gen.emit_test_gt_float(dest, lhs_reg, rhs_reg),
                 Some(BinOp::Cmp(CmpOp::Ge)) => self.gen.emit_test_ge_float(dest, lhs_reg, rhs_reg),
+                _ => unreachable!(),
+            },
+            Intrinsic::DoubleAdd => self.gen.emit_add_double(dest, lhs_reg, rhs_reg),
+            Intrinsic::DoubleSub => self.gen.emit_sub_double(dest, lhs_reg, rhs_reg),
+            Intrinsic::DoubleMul => self.gen.emit_mul_double(dest, lhs_reg, rhs_reg),
+            Intrinsic::DoubleDiv => self.gen.emit_div_double(dest, lhs_reg, rhs_reg),
+            Intrinsic::DoubleEq => match op {
+                Some(BinOp::Cmp(CmpOp::Eq)) => self.gen.emit_test_eq_double(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ne)) => self.gen.emit_test_ne_double(dest, lhs_reg, rhs_reg),
+                _ => unreachable!(),
+            },
+            Intrinsic::DoubleCmp => match op {
+                Some(BinOp::Cmp(CmpOp::Lt)) => self.gen.emit_test_lt_double(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Le)) => self.gen.emit_test_le_double(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Gt)) => self.gen.emit_test_gt_double(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ge)) => self.gen.emit_test_ge_double(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             _ => unimplemented!(),
