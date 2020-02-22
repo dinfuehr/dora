@@ -1516,8 +1516,8 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_mul_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_mul_int(dest, lhs, rhs);
     }
-    fn visit_mul_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
+    fn visit_mul_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_mul_int(dest, lhs, rhs);
     }
     fn visit_mul_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_mul_float(dest, lhs, rhs);
@@ -1529,8 +1529,8 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_div_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_div_int(dest, lhs, rhs);
     }
-    fn visit_div_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
+    fn visit_div_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_div_int(dest, lhs, rhs);
     }
     fn visit_div_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_div_float(dest, lhs, rhs);
@@ -1542,8 +1542,8 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_mod_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_mod_int(dest, lhs, rhs);
     }
-    fn visit_mod_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
+    fn visit_mod_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_mod_int(dest, lhs, rhs);
     }
 
     fn visit_and_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
