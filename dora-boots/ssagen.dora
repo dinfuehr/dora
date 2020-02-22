@@ -1,20 +1,22 @@
 fun createGraph(bc: BytecodeFunction) -> Graph {
     let basicBlocks = BasicBlockFinder(bc);
-    let basicBlockStarts = basicBlocks.starts;
+    basicBlocks.analyze();
+    let starts = basicBlocks.starts;
+    let blocks = basicBlocks.blocks;
 
-    let ssagen = SsaGen(bc, basicBlockStarts);
+    let ssagen = SsaGen(bc, starts, blocks);
     ssagen.prepare();
     readBytecode(bc.code, ssagen);
     ssagen.graph
 }
 
-class SsaGen(let bc: BytecodeFunction, let basicBlockStarts: BitSet): BytecodeVisitor {
+class SsaGen(let bc: BytecodeFunction, let starts: BitSet, let blocks: Int): BytecodeVisitor {
     let graph: Graph = Graph();
     var currentBlock: Block;
     var currentJoinBlock: Block;
     var offset: Int = 0;
     var currentDef: Array[HashMap[Block, Inst]];
-    var incompletePhis: Array[HashMap[Block, Inst]];
+    var incompletePhis: Array[HashMap[BytecodeRegister, Inst]];
 
     fun prepare() {
         self.currentBlock = Block();
@@ -22,7 +24,7 @@ class SsaGen(let bc: BytecodeFunction, let basicBlockStarts: BitSet): BytecodeVi
         self.graph.setEntryBlock(self.currentBlock);
         self.graph.setExitBlock(self.currentBlock);
         self.currentDef = Array[HashMap[Block, Inst]](self.bc.registers.length());
-        self.incompletePhis = Array[HashMap[Block, Inst]](self.bc.registers.length());
+        self.incompletePhis = Array[HashMap[BytecodeRegister, Inst]](self.blocks);
 
         for i in range(0, self.currentDef.length()) {
             self.currentDef(i) = HashMap[Block, Inst]();
@@ -45,7 +47,7 @@ class SsaGen(let bc: BytecodeFunction, let basicBlockStarts: BitSet): BytecodeVi
         let value: Inst = if !self.isSealed(block) {
             let phi = PhiInst();
             block.appendPhi(phi);
-            self.incompletePhis.get(register.value).insert(block, phi);
+            self.incompletePhis.get(block.id).insert(register, phi);
             phi as Inst
         } else if block.predecessors.length() == 1 {
             self.readVariable(register, block.predecessors.first().unwrap())
@@ -314,6 +316,15 @@ class SsaGen(let bc: BytecodeFunction, let basicBlockStarts: BitSet): BytecodeVi
 class BasicBlockFinder(let bc: BytecodeFunction): BytecodeVisitor {
     var offset: Int = 0;
     var starts: BitSet = BitSet(bc.code.length());
+    var blocks: Int = 0;
+
+    fun analyze() {
+        // First instruction starts entry basic block
+        self.insert(0);
+
+        // iterate all bytecodes
+        readBytecode(self.bc.code, self);
+    }
 
     @override fun visitInstruction(offset: Int) { self.offset = offset; }
 
@@ -532,7 +543,12 @@ class BasicBlockFinder(let bc: BytecodeFunction): BytecodeVisitor {
     @override fun visitRetPtr(opnd: BytecodeRegister) {}
 
     fun insert(offset: Int) {
+        if self.starts.contains(offset) {
+            return;
+        }
+
         self.starts.insert(offset);
+        self.blocks = self.blocks + 1;
     }
 }
 
