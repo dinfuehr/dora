@@ -1167,6 +1167,78 @@ fn gen_load_global_ptr() {
 }
 
 #[test]
+fn gen_store_global_bool() {
+    gen("var a: Bool; fun f(x: Bool) { a = x; }", |vm, code| {
+        let gid = vm.global_by_name("a");
+        let expected = vec![StoreGlobalBool(r(0), gid), RetVoid];
+        assert_eq!(expected, code);
+    });
+}
+
+#[test]
+fn gen_store_global_byte() {
+    gen("var a: Byte; fun f(x: Byte) { a = x; }", |vm, code| {
+        let gid = vm.global_by_name("a");
+        let expected = vec![StoreGlobalByte(r(0), gid), RetVoid];
+        assert_eq!(expected, code);
+    });
+}
+
+#[test]
+fn gen_store_global_char() {
+    gen("var a: Char; fun f(x: Char) { a = x; }", |vm, code| {
+        let gid = vm.global_by_name("a");
+        let expected = vec![StoreGlobalChar(r(0), gid), RetVoid];
+        assert_eq!(expected, code);
+    });
+}
+
+#[test]
+fn gen_store_global_int() {
+    gen("var a: Int; fun f(x: Int) { a = x; }", |vm, code| {
+        let gid = vm.global_by_name("a");
+        let expected = vec![StoreGlobalInt(r(0), gid), RetVoid];
+        assert_eq!(expected, code);
+    });
+}
+
+#[test]
+fn gen_store_global_long() {
+    gen("var a: Long; fun f(x: Long) { a = x; }", |vm, code| {
+        let gid = vm.global_by_name("a");
+        let expected = vec![StoreGlobalLong(r(0), gid), RetVoid];
+        assert_eq!(expected, code);
+    });
+}
+
+#[test]
+fn gen_store_global_float() {
+    gen("var a: Float; fun f(x: Float) { a = x; }", |vm, code| {
+        let gid = vm.global_by_name("a");
+        let expected = vec![StoreGlobalFloat(r(0), gid), RetVoid];
+        assert_eq!(expected, code);
+    });
+}
+
+#[test]
+fn gen_store_global_double() {
+    gen("var a: Double; fun f(x: Double) { a = x; }", |vm, code| {
+        let gid = vm.global_by_name("a");
+        let expected = vec![StoreGlobalDouble(r(0), gid), RetVoid];
+        assert_eq!(expected, code);
+    });
+}
+
+#[test]
+fn gen_store_global_ptr() {
+    gen("var a: Object; fun f(x: Object) { a = x; }", |vm, code| {
+        let gid = vm.global_by_name("a");
+        let expected = vec![StoreGlobalPtr(r(0), gid), RetVoid];
+        assert_eq!(expected, code);
+    });
+}
+
+#[test]
 fn gen_side_effect() {
     let result = code("fun f(a: Int) { 1; 2; 3 * a; \"foo\"; 1.0F; 1.0D; a; }");
     let expected = vec![RetVoid];
