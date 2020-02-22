@@ -124,6 +124,10 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::DivInt, dest, lhs, rhs);
     }
 
+    pub fn emit_div_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::DivLong, dest, lhs, rhs);
+    }
+
     pub fn emit_div_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::DivFloat, dest, lhs, rhs);
     }
@@ -400,8 +404,16 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::ModInt, dest, lhs, rhs);
     }
 
+    pub fn emit_mod_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::ModLong, dest, lhs, rhs);
+    }
+
     pub fn emit_mul_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::MulInt, dest, lhs, rhs);
+    }
+
+    pub fn emit_mul_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::MulLong, dest, lhs, rhs);
     }
 
     pub fn emit_mul_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -450,6 +462,10 @@ impl BytecodeWriter {
 
     pub fn emit_sub_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::SubInt, dest, lhs, rhs);
+    }
+
+    pub fn emit_sub_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::SubLong, dest, lhs, rhs);
     }
 
     pub fn emit_sub_float(&mut self, dest: Register, lhs: Register, rhs: Register) {

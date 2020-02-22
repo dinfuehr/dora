@@ -968,6 +968,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             | Intrinsic::IntSar
             | Intrinsic::IntRotateLeft
             | Intrinsic::IntRotateRight => BytecodeType::Int,
+            Intrinsic::LongAdd
+            | Intrinsic::LongSub
+            | Intrinsic::LongMul
+            | Intrinsic::LongDiv
+            | Intrinsic::LongMod => BytecodeType::Long,
             Intrinsic::FloatAdd
             | Intrinsic::FloatSub
             | Intrinsic::FloatDiv
@@ -1060,6 +1065,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             Intrinsic::IntSar => self.gen.emit_sar_int(dest, lhs_reg, rhs_reg),
             Intrinsic::IntRotateLeft => self.gen.emit_rol_int(dest, lhs_reg, rhs_reg),
             Intrinsic::IntRotateRight => self.gen.emit_ror_int(dest, lhs_reg, rhs_reg),
+            Intrinsic::LongAdd => self.gen.emit_add_long(dest, lhs_reg, rhs_reg),
+            Intrinsic::LongSub => self.gen.emit_sub_long(dest, lhs_reg, rhs_reg),
+            Intrinsic::LongMul => self.gen.emit_mul_long(dest, lhs_reg, rhs_reg),
+            Intrinsic::LongDiv => self.gen.emit_div_long(dest, lhs_reg, rhs_reg),
+            Intrinsic::LongMod => self.gen.emit_mod_long(dest, lhs_reg, rhs_reg),
             Intrinsic::FloatAdd => self.gen.emit_add_float(dest, lhs_reg, rhs_reg),
             Intrinsic::FloatSub => self.gen.emit_sub_float(dest, lhs_reg, rhs_reg),
             Intrinsic::FloatMul => self.gen.emit_mul_float(dest, lhs_reg, rhs_reg),
