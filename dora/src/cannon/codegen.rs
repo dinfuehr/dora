@@ -323,6 +323,26 @@ where
             .store_mem(bytecode_type.mode(), Mem::Local(offset), REG_RESULT.into());
     }
 
+    fn emit_neg_float(&mut self, dest: Register, src: Register) {
+        assert_eq!(
+            self.bytecode.register_type(src),
+            self.bytecode.register_type(dest)
+        );
+
+        let bytecode_type = self.bytecode.register_type(src);
+        let offset = self.bytecode.register_offset(src);
+        self.asm
+            .load_mem(bytecode_type.mode(), FREG_RESULT.into(), Mem::Local(offset));
+
+        let bytecode_type = self.bytecode.register_type(dest);
+        let offset = self.bytecode.register_offset(dest);
+        self.asm
+            .float_neg(bytecode_type.mode(), FREG_RESULT, FREG_RESULT);
+
+        self.asm
+            .store_mem(bytecode_type.mode(), Mem::Local(offset), FREG_RESULT.into());
+    }
+
     fn emit_mul_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert_eq!(
             self.bytecode.register_type(lhs),
@@ -1484,8 +1504,8 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_neg_long(&mut self, dest: Register, src: Register) {
         self.emit_neg_int(dest, src);
     }
-    fn visit_neg_float(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
+    fn visit_neg_float(&mut self, dest: Register, src: Register) {
+        self.emit_neg_float(dest, src);
     }
     fn visit_neg_double(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
