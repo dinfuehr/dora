@@ -8,6 +8,9 @@ fun main() {
     
     assert(mod(20, 7) == 6);
 
+    assert(neg(20) == -20);
+    assert(neg(-5) == 5);
+
     assert(or(20, 5) == 21);
     assert(xor(20, 5) == 17);
     assert(and(20, 5) == 4);
@@ -112,4 +115,8 @@ fun main() {
 
 @cannon fun gt(x: Int, y: Int) -> Bool {
     return x > y;
+}
+
+@cannon fun neg(x: Int) -> Int {
+    return -x;
 }
