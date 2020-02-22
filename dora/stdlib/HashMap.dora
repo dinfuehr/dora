@@ -216,15 +216,11 @@ class HashMapIter[K: Hash + Equals, V](let map: HashMap[K, V]) {
         false
     }
 
-    fun nextKey() -> K {
+    fun next() -> (K, V) {
         assert(self.map.isLive(self.idx));
         let key = self.map.keys.get(self.idx);
+        let value = self.map.values.get(self.idx);
         self.idx = self.idx + 1;
-        key
-    }
-
-    fun nextValue() -> V {
-        assert(self.map.isLive(self.idx - 1));
-        self.map.values.get(self.idx - 1)
+        (key, value)
     }
 }

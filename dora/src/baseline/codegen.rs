@@ -209,9 +209,9 @@ where
             self.asm.emit_comment("store param self".into());
 
             let dest = if mode.is_float() {
-                FREG_PARAMS[0].into()
+                FREG_PARAMS[freg_idx].into()
             } else {
-                REG_PARAMS[0].into()
+                REG_PARAMS[reg_idx].into()
             };
 
             let slot_param = self.managed_stack.add_scope(var.ty, self.vm);

@@ -4,23 +4,7 @@ fun main() {
     map.insert(10000, "b");
     map.insert(7, "c");
 
-    {
-        let it = map.makeIterator();
-        while it.hasNext() {
-            let key = it.nextKey();
-            let value = it.nextValue();
-
-            if key == 1 {
-                assert(value == "a");
-            } else if key == 10000 {
-                assert(value == "b");
-            } else if key == 7 {
-                assert(value == "c");
-            } else {
-                unreachable();
-            }
-        }
-    }
+    check_iterator1(map);
 
     assert(map.get(1).unwrap() == "a");
     assert(map.get(10000).unwrap() == "b");
@@ -47,19 +31,62 @@ fun main() {
     assert(!map.contains(10000));
     assert(map.contains(7));
 
-    {
-        let it = map.makeIterator();
-        while it.hasNext() {
-            let key = it.nextKey();
-            let value = it.nextValue();
+    check_iterator2(map);
+}
 
-            if key == 1 {
-                assert(value == "a");
-            } else if key == 7 {
-                assert(value == "c");
-            } else {
-                unreachable();
-            }
+fun check_iterator1(map: HashMap[Int, String]) {
+    let it = map.makeIterator();
+    let set = BitSet(3);
+
+    while it.hasNext() {
+        let key_and_value = it.next();
+        let key = key_and_value.0;
+        let value = key_and_value.1;
+
+        if key == 1 {
+            assert(value == "a");
+            assert(!set.contains(0));
+            set.insert(0);
+        } else if key == 10000 {
+            assert(value == "b");
+            assert(!set.contains(1));
+            set.insert(1);
+        } else if key == 7 {
+            assert(value == "c");
+            assert(!set.contains(2));
+            set.insert(2);
+        } else {
+            unreachable();
         }
     }
+
+    assert(set.contains(0));
+    assert(set.contains(1));
+    assert(set.contains(2));
+}
+
+fun check_iterator2(map: HashMap[Int, String]) {
+    let it = map.makeIterator();
+    let set = BitSet(3);
+
+    while it.hasNext() {
+        let key_and_value = it.next();
+        let key = key_and_value.0;
+        let value = key_and_value.1;
+
+        if key == 1 {
+            assert(value == "a");
+            assert(!set.contains(0));
+            set.insert(0);
+        } else if key == 7 {
+            assert(value == "c");
+            assert(!set.contains(1));
+            set.insert(1);
+        } else {
+            unreachable();
+        }
+    }
+
+    assert(set.contains(0));
+    assert(set.contains(1));
 }
