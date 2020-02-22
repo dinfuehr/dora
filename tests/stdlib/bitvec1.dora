@@ -11,6 +11,7 @@ fun main() {
         i = i + 1;
     }
 
+    assert(set.capacity() == 64);
     assert(!set.contains(64));
     assert(!set.contains(128));
 
@@ -40,4 +41,8 @@ fun main() {
     assert(!set.contains(63));
     assert(!set.contains(64));
     assert(!set.contains(128));
+    assert(set.capacity() == 64);
+
+    set.insert(64);
+    assert(set.capacity() == 96);
 }

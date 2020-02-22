@@ -56,10 +56,14 @@ class BitVec {
             return;
         }
 
-        let newcap = (newcap + 31) * 32;
+        let newcap = (newcap + 31) / 32;
 
         let newarray = Array[Int](newcap);
         arrayCopy[Int](self.data, 0, newarray, 0, self.data.length());
         self.data = newarray;
+    }
+
+    fun capacity() -> Int {
+        self.data.length() * 32
     }
 }
