@@ -10,8 +10,9 @@ fun main() {
     assert(loadString(FooString("1")) == "1");
 
     let ptr = FooInt(1);
-    assert(loadPtr(ptr) === ptr);
-    assert(loadPtr(ptr).y == 1)
+    let fooPtr = FooPtr(ptr);
+    assert(loadPtr(fooPtr) === ptr);
+    assert(loadPtr(fooPtr).y == 1);
 }
 
 @cannon fun loadBool(x: FooBool) -> Bool {
@@ -38,8 +39,8 @@ fun main() {
 @cannon fun loadString(x: FooString) -> String {
     return x.y;
 }
-@cannon fun loadPtr(x: FooInt) -> FooInt {
-    return x;
+@cannon fun loadPtr(x: FooPtr) -> FooInt {
+    return x.y;
 }
 
 class FooBool(let y: Bool)
