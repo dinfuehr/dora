@@ -128,6 +128,10 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::DivFloat, dest, lhs, rhs);
     }
 
+    pub fn emit_div_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::DivDouble, dest, lhs, rhs);
+    }
+
     pub fn emit_load_field_bool(
         &mut self,
         dest: Register,
@@ -404,6 +408,10 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::MulFloat, dest, lhs, rhs);
     }
 
+    pub fn emit_mul_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::MulDouble, dest, lhs, rhs);
+    }
+
     pub fn emit_neg_int(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::NegInt, dest, src);
     }
@@ -414,6 +422,10 @@ impl BytecodeWriter {
 
     pub fn emit_neg_float(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::NegFloat, dest, src);
+    }
+
+    pub fn emit_neg_double(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::NegDouble, dest, src);
     }
 
     pub fn emit_shl_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -442,6 +454,10 @@ impl BytecodeWriter {
 
     pub fn emit_sub_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::SubFloat, dest, lhs, rhs);
+    }
+
+    pub fn emit_sub_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::SubDouble, dest, lhs, rhs);
     }
 
     pub fn emit_mov_bool(&mut self, dest: Register, src: Register) {
@@ -536,6 +552,10 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestEqFloat, dest, lhs, rhs);
     }
 
+    pub fn emit_test_eq_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestEqDouble, dest, lhs, rhs);
+    }
+
     pub fn emit_test_eq_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::TestEqPtr, dest, lhs, rhs);
     }
@@ -564,6 +584,10 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestNeFloat, dest, lhs, rhs);
     }
 
+    pub fn emit_test_ne_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestNeDouble, dest, lhs, rhs);
+    }
+
     pub fn emit_test_ne_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::TestNePtr, dest, lhs, rhs);
     }
@@ -584,6 +608,10 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestGtFloat, dest, lhs, rhs);
     }
 
+    pub fn emit_test_gt_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestGtDouble, dest, lhs, rhs);
+    }
+
     pub fn emit_test_ge_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::TestGeByte, dest, lhs, rhs);
     }
@@ -598,6 +626,10 @@ impl BytecodeWriter {
 
     pub fn emit_test_ge_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::TestGeFloat, dest, lhs, rhs);
+    }
+
+    pub fn emit_test_ge_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestGeDouble, dest, lhs, rhs);
     }
 
     pub fn emit_test_lt_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -616,6 +648,10 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestLtFloat, dest, lhs, rhs);
     }
 
+    pub fn emit_test_lt_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestLtDouble, dest, lhs, rhs);
+    }
+
     pub fn emit_test_le_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::TestLeByte, dest, lhs, rhs);
     }
@@ -630,6 +666,10 @@ impl BytecodeWriter {
 
     pub fn emit_test_le_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::TestLeFloat, dest, lhs, rhs);
+    }
+
+    pub fn emit_test_le_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestLeDouble, dest, lhs, rhs);
     }
 
     pub fn emit_load_global_bool(&mut self, dest: Register, gid: GlobalId) {
