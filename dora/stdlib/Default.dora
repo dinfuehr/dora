@@ -1,5 +1,5 @@
 trait Default {
-  @static fun default() -> Self; // should be `let` instead of `fun`
+  @static fun default() -> Self;
 }
 
 impl Default for Bool {
@@ -8,6 +8,10 @@ impl Default for Bool {
 
 impl Default for Byte {
   @static fun default() -> Byte = 0Y;
+}
+
+impl Default for Char {
+  @static fun default() -> Char = '\0';
 }
 
 impl Default for Int {
@@ -29,3 +33,10 @@ impl Default for Double {
 impl Default for String {
   @static fun default() -> String = "";
 }
+
+// feature not implemented yet
+/*
+impl Default for Option[T] {
+  @static fun default() -> Option[T] = ...;
+}
+*/
