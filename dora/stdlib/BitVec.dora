@@ -1,0 +1,65 @@
+class BitVec {
+    var data: Array[Int] = arrayEmpty[Int]();
+
+    fun contains(idx: Int) -> Bool {
+        if idx < 0 {
+            fatalError("index out of bounds");
+        }
+
+        if idx >= self.data.length() * 32 {
+            return false;
+        }
+
+        let entry_idx = idx / 32;
+        let value = self.data.get(entry_idx);
+        let value_idx = idx - entry_idx;
+
+        return value & (1 << value_idx) != 0;
+    }
+
+    fun insert(idx: Int) {
+        if idx < 0 {
+            fatalError("index out of bounds");
+        }
+
+        self.ensureCapacity(idx+1);
+
+        let entry_idx = idx / 32;
+        var value = self.data.get(entry_idx);
+        let value_idx = idx - entry_idx;
+
+        value = value | (1 << value_idx);
+
+        self.data.set(entry_idx, value);
+    }
+
+    fun remove(idx: Int) {
+        if idx < 0 {
+            fatalError("index out of bounds");
+        }
+
+        if idx >= self.data.length() * 32 {
+            return;
+        }
+
+        let entry_idx = idx / 32;
+        var value = self.data.get(entry_idx);
+        let value_idx = idx - entry_idx;
+
+        value = value & !(1 << value_idx);
+
+        self.data.set(entry_idx, value);
+    }
+
+    fun ensureCapacity(newcap: Int) {
+        if newcap < self.data.length() * 32 || newcap == 0 {
+            return;
+        }
+
+        let newcap = (newcap + 31) * 32;
+
+        let newarray = Array[Int](newcap);
+        arrayCopy[Int](self.data, 0, newarray, 0, self.data.length());
+        self.data = newarray;
+    }
+}
