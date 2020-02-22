@@ -412,6 +412,10 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::NegLong, dest, src);
     }
 
+    pub fn emit_neg_float(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::NegFloat, dest, src);
+    }
+
     pub fn emit_shl_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::ShlInt, dest, lhs, rhs);
     }
