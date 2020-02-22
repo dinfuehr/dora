@@ -853,8 +853,10 @@ where
         let bytecode_type = self.bytecode.register_type(src);
         let offset = self.bytecode.register_offset(src);
 
+        let result_reg = result_reg(bytecode_type);
+
         self.asm
-            .load_mem(bytecode_type.mode(), REG_RESULT.into(), Mem::Local(offset));
+            .load_mem(bytecode_type.mode(), result_reg, Mem::Local(offset));
 
         let bytecode_type = self.bytecode.register_type(obj);
         let offset = self.bytecode.register_offset(obj);
@@ -870,7 +872,7 @@ where
             field.ty.mode(),
             REG_TMP1,
             field.offset,
-            REG_RESULT.into(),
+            result_reg.into(),
             pos,
             write_barrier,
             card_table_offset,
