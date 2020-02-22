@@ -1,0 +1,38 @@
+var glob_bool: Bool;
+var glob_char: Char;
+var glob_byte: Byte;
+var glob_int: Int;
+var glob_long: Long;
+var glob_float: Float;
+var glob_double: Double;
+var glob_string: String;
+var glob_obj: Foo;
+
+fun main() {
+    let obj = Foo();
+    init_globs(true, '5', 5Y, 5, 5L, 5F, 5D, "5", obj);
+    
+    assert(glob_bool == true);
+    assert(glob_char == '5');
+    assert(glob_byte == 5Y);
+    assert(glob_int == 5);
+    assert(glob_long == 5L);
+    assert(glob_float == 5F);
+    assert(glob_double == 5D);
+    assert(glob_string == "5");
+    assert(glob_obj === obj);
+}
+
+@cannon fun init_globs(bool: Bool, char: Char, byte: Byte, int: Int, long: Long, float: Float, double: Double, string: String, obj: Foo) {
+    glob_bool = bool;
+    glob_char = char;
+    glob_byte = byte;
+    glob_int = int;
+    glob_long = long;
+    glob_float = float;
+    glob_double = double;
+    glob_string = string;
+    glob_obj = obj;  
+}
+
+class Foo()
