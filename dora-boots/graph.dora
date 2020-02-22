@@ -9,9 +9,9 @@ class Graph {
     var nextInstIdValue: Int = 0;
 
     fun addBlock(block: Block) {
-        assert(block.graph === nil && block.id == -1);
+        assert(block.graph.isNone() && block.id == -1);
 
-        block.graph = self;
+        block.graph = some[Graph](self);
         block.id = self.nextBlockId();
         self.blocks.push(block);
     }
@@ -53,7 +53,7 @@ class Block() {
     var phis: Vec[Inst] = Vec[Inst]();
     var instructions: InstLinkedList = InstLinkedList();
 
-    var graph: Graph;
+    var graph: Option[Graph] = none[Graph]();
 
     var dominator: Option[Block] = none[Block]();
     var dominatedBlocks: Vec[Block] = Vec[Block]();
@@ -101,10 +101,10 @@ class Block() {
     }
 
     fun appendPhi(phi: PhiInst) -> PhiInst {
-        assert(phi.block === nil && phi.id == -1);
+        assert(phi.block.isNone() && phi.id == -1);
 
-        phi.block = self;
-        phi.id = self.graph.nextInstId();
+        phi.block = some[Block](self);
+        phi.id = self.graph.unwrap().nextInstId();
 
         self.phis.push(phi);
         phi.registerUses();
@@ -113,10 +113,10 @@ class Block() {
     }
 
     fun appendInst(inst: Inst) -> Inst {
-        assert(inst.block === nil && inst.id == -1);
+        assert(inst.block.isNone() && inst.id == -1);
 
-        inst.block = self;
-        inst.id = self.graph.nextInstId();
+        inst.block = some[Block](self);
+        inst.id = self.graph.unwrap().nextInstId();
 
         self.instructions.appendInst(inst);
 
@@ -156,17 +156,17 @@ class LoopHeader(let header: Block) {
     }
 }
 
-class Input(var usedAt: Int, var value: Inst, var usedBy: Inst) {
+class Input(var idx: Int, var value: Inst, var usedBy: Inst) {
     var previousUse: Option[Input] = none[Input]();
     var nextUse: Option[Input] = none[Input]();
 }
 
 @abstract @open class Inst {
     var id: Int = -1;
-    var block: Block = nil;
+    var block: Option[Block] = none[Block]();
 
-    var previous: Inst = nil;
-    var next: Inst = nil;
+    var previous: Option[Inst] = none[Inst]();
+    var next: Option[Inst] = none[Inst]();
 
     var ty: Type = nil;
 
@@ -185,6 +185,8 @@ class Input(var usedAt: Int, var value: Inst, var usedBy: Inst) {
     }
 
     fun addUse(input: Input) {
+        assert(input.value === self);
+
         if self.useListHead.isNone() {
             input.previousUse = none[Input]();
             input.nextUse = none[Input]();
@@ -197,6 +199,27 @@ class Input(var usedAt: Int, var value: Inst, var usedBy: Inst) {
 
             self.useListTail = some[Input](input);
         }
+    }
+
+    fun removeUse(input: Input) {
+        assert(input.value === self);
+
+        if input.previousUse.isNone() && input.nextUse.isNone() {
+            self.useListHead = none[Input]();
+            self.useListTail = none[Input]();
+        } else if input.previousUse.isNone() {
+            self.useListHead = input.nextUse;
+            input.nextUse.unwrap().previousUse = none[Input]();
+        } else if input.nextUse.isNone() {
+            self.useListTail = input.previousUse;
+            input.previousUse.unwrap().previousUse = none[Input]();
+        } else {
+            input.previousUse.unwrap().nextUse = input.nextUse;
+            input.nextUse.unwrap().previousUse = input.previousUse;
+        }
+
+        input.previousUse = none[Input]();
+        input.nextUse = none[Input]();
     }
 
     fun registerUses() {
@@ -216,14 +239,32 @@ class Input(var usedAt: Int, var value: Inst, var usedBy: Inst) {
         result
     }
 
+    fun replaceWith(replacement: Inst) {
+        while self.useListHead.isSome() {
+            let input = self.useListHead.unwrap();
+            input.usedBy.replaceInput(replacement, input.idx);
+        }
+    }
+
+    fun replaceInput(replacement: Inst, idx: Int) {
+        let input = self.inputs.get(idx);
+
+        if input.value === replacement {
+            return;
+        }
+
+        input.value.removeUse(input);
+        input.value = replacement;
+        replacement.addUse(input);
+    }
+
     fun users() -> Array[Inst] {
         let data = Vec[Inst]();
-        var current = self.useListTail;
+        var current = self.useListHead;
 
         while current.isSome() {
             let cur = current.unwrap();
-            data.push(cur.value);
-            assert(cur.usedBy === self);
+            data.push(cur.usedBy);
             current = cur.nextUse;
         }
 
@@ -291,70 +332,63 @@ enum UnOp {
 }
 
 class InstLinkedList {
-    var first_inst: Inst;
-    var last_inst: Inst;
+    var first: Option[Inst] = none[Inst]();
+    var last: Option[Inst] = none[Inst]();
 
     fun isEmpty() -> Bool {
-        self.first_inst === nil
+        self.first.isNone()
     }
 
-    fun firstInst() -> Inst {
-        self.first_inst
+    fun firstInst() -> Option[Inst] {
+        self.first
     }
 
-    fun lastInst() -> Inst {
-        self.last_inst
+    fun lastInst() -> Option[Inst] {
+        self.last
     }
 
     fun appendInst(inst: Inst) {
-        if self.first_inst === nil {
-            inst.previous = nil;
-            inst.next = nil;
+        if self.first.isNone() {
+            inst.previous = none[Inst]();
+            inst.next = none[Inst]();
 
-            self.first_inst = inst;
-            self.last_inst = inst;
+            self.first = some[Inst](inst);
+            self.last = some[Inst](inst);
         } else {
-            self.last_inst.next = inst;
+            self.last.unwrap().next = some[Inst](inst);
 
-            inst.previous = self.last_inst;
-            inst.next = nil;
+            inst.previous = self.last;
+            inst.next = none[Inst]();
 
-            self.last_inst = inst;
+            self.last = some[Inst](inst);
         }
     }
 }
 
 class InstIterator(block: Block) {
-    var inst: Inst = block.instructions.firstInst();
+    var current: Option[Inst] = block.instructions.first;
 
-    fun current() -> Inst { self.inst }
-    fun isDone() -> Bool { self.inst === nil }
-    fun next() {
-        if self.inst !== nil {
-            self.inst = self.inst.next;
-        }
+    fun hasNext() -> Bool {
+        self.current.isSome()
+    }
+
+    fun next() -> Inst {
+        let inst = self.current.unwrap();
+        self.current = inst.next;
+        inst
     }
 }
 
 class BackwardInstIterator(block: Block) {
-    var inst: Inst = block.instructions.lastInst();
+    var current: Option[Inst] = block.instructions.last;
 
-    fun current() -> Inst { self.inst }
-    fun isDone() -> Bool { self.inst === nil }
-    fun next() {
-        if self.inst !== nil {
-            self.inst = self.inst.previous;
-        }
+    fun hasNext() -> Bool {
+        self.current.isSome()
     }
-}
 
-class BlockIterator(graph: Graph) {
-    let blocks: Vec[Block] = graph.blocks;
-    var idx: Int = 0;
-
-    fun current() -> Block { self.blocks.get(self.idx) }
-    fun isDone() -> Bool { self.idx >= self.blocks.length() }
-    fun next() {
-        self.idx = self.idx + 1;
+    fun next() -> Inst {
+        let inst = self.current.unwrap();
+        self.current = inst.previous;
+        inst
     }
 }
