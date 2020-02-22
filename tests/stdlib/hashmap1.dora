@@ -4,6 +4,24 @@ fun main() {
     map.insert(10000, "b");
     map.insert(7, "c");
 
+    {
+        let it = map.makeIterator();
+        while it.hasNext() {
+            let key = it.nextKey();
+            let value = it.nextValue();
+
+            if key == 1 {
+                assert(value == "a");
+            } else if key == 10000 {
+                assert(value == "b");
+            } else if key == 7 {
+                assert(value == "c");
+            } else {
+                unreachable();
+            }
+        }
+    }
+
     assert(map.get(1).unwrap() == "a");
     assert(map.get(10000).unwrap() == "b");
     assert(map.get(7).unwrap() == "c");
@@ -28,4 +46,20 @@ fun main() {
     assert(map.contains(1));
     assert(!map.contains(10000));
     assert(map.contains(7));
+
+    {
+        let it = map.makeIterator();
+        while it.hasNext() {
+            let key = it.nextKey();
+            let value = it.nextValue();
+
+            if key == 1 {
+                assert(value == "a");
+            } else if key == 7 {
+                assert(value == "c");
+            } else {
+                unreachable();
+            }
+        }
+    }
 }

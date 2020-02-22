@@ -195,4 +195,36 @@ class HashMap[K: Hash + Equals, V] {
     fun capacity() -> Int {
         return self.cap;
     }
+
+    fun makeIterator() -> HashMapIter[K, V] {
+        HashMapIter[K, V](self)
+    }
+}
+
+class HashMapIter[K: Hash + Equals, V](let map: HashMap[K, V]) {
+    var idx: Int = 0;
+
+    fun hasNext() -> Bool {
+        while self.idx < self.map.capacity() {
+            if self.map.isLive(self.idx) {
+                return true;
+            }
+
+            self.idx = self.idx + 1;
+        }
+
+        false
+    }
+
+    fun nextKey() -> K {
+        assert(self.map.isLive(self.idx));
+        let key = self.map.keys.get(self.idx);
+        self.idx = self.idx + 1;
+        key
+    }
+
+    fun nextValue() -> V {
+        assert(self.map.isLive(self.idx - 1));
+        self.map.values.get(self.idx - 1)
+    }
 }

@@ -2130,3 +2130,17 @@ fn test_type_make_iterator_not_implementing_iterator() {
         SemError::MakeIteratorReturnType("Int".into()),
     );
 }
+
+#[test]
+fn test_incompatible_branches() {
+    err(
+        "
+        class Foo
+        fun bar() -> Int {
+            if true { 1 } else { Foo(1) }
+        }
+    ",
+        pos(4, 37),
+        SemError::UnknownCtor("Foo".into(), vec!["Int".into()]),
+    );
+}

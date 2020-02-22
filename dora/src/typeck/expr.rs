@@ -332,6 +332,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 else_type
             } else if expr_always_returns(else_block) {
                 then_type
+            } else if then_type.is_error() {
+                else_type
+            } else if else_type.is_error() {
+                then_type
             } else if !then_type.allows(self.vm, else_type) {
                 let then_type_name = then_type.name(self.vm);
                 let else_type_name = else_type.name(self.vm);

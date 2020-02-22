@@ -156,14 +156,9 @@ class LoopHeader(let header: Block) {
     }
 }
 
-class Input {
-    var idx: Int;
-
-    var value: Inst;
-    var used_by: Inst;
-
-    var previous_use: Input;
-    var next_use: Input;
+class Input(var usedAt: Int, var value: Inst, var usedBy: Inst) {
+    var previousUse: Option[Input] = none[Input]();
+    var nextUse: Option[Input] = none[Input]();
 }
 
 @abstract @open class Inst {
@@ -175,8 +170,8 @@ class Input {
 
     var ty: Type = nil;
 
-    var useListHead: Input = nil;
-    var useListTail: Input = nil;
+    var useListHead: Option[Input] = none[Input]();
+    var useListTail: Option[Input] = none[Input]();
 
     var inputs: Vec[Input] = Vec[Input]();
 
@@ -185,26 +180,22 @@ class Input {
     }
 
     fun addInput(inst: Inst) {
-        let input = Input();
-        input.value = inst;
-        input.used_by = self;
-        input.idx = self.inputs.length();
-
+        let input = Input(self.inputs.length(), inst, self);
         self.inputs.push(input);
     }
 
     fun addUse(input: Input) {
-        if self.useListHead === nil {
-            input.previous_use = nil;
-            input.next_use = nil;
+        if self.useListHead.isNone() {
+            input.previousUse = none[Input]();
+            input.nextUse = none[Input]();
 
-            self.useListHead = input;
-            self.useListTail = input;
+            self.useListHead = some[Input](input);
+            self.useListTail = some[Input](input);
         } else {
-            input.previous_use = self.useListTail;
-            input.next_use = nil;
+            input.previousUse = self.useListTail;
+            input.nextUse = none[Input]();
 
-            self.useListTail = input;
+            self.useListTail = some[Input](input);
         }
     }
 
@@ -220,7 +211,23 @@ class Input {
     }
 
     fun hasUses() -> Bool {
-        self.useListHead !== nil
+        let result = self.useListHead.isSome();
+        assert(result == self.useListTail.isSome());
+        result
+    }
+
+    fun users() -> Array[Inst] {
+        let data = Vec[Inst]();
+        var current = self.useListTail;
+
+        while current.isSome() {
+            let cur = current.unwrap();
+            data.push(cur.value);
+            assert(cur.usedBy === self);
+            current = cur.nextUse;
+        }
+
+        data.toArray()
     }
 }
 
@@ -239,10 +246,9 @@ class BinaryInst(let op: BinOp, let lhs: Inst, let rhs: Inst): Inst {
     self.addInput(rhs);
 }
 
-class PhiInst(): Inst {
-    let inputs: Vec[PhiArg] = Vec[PhiArg]();
-}
-class PhiArg(let value: Inst, let block: Block)
+class Undef: Inst
+
+class PhiInst: Inst
 
 class ArrayGet(let array: Inst, let index: Inst): Inst {
     self.addInput(array);

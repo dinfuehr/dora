@@ -14,7 +14,7 @@ class SsaGen(let bc: BytecodeFunction, let basicBlockStarts: BitSet): BytecodeVi
     var currentJoinBlock: Block;
     var offset: Int = 0;
     var currentDef: Array[HashMap[Block, Inst]];
-    var incompletePhis: Vec[HashMap[BytecodeRegister, Inst]] = Vec[HashMap[BytecodeRegister, Inst]]();
+    var incompletePhis: Array[HashMap[Block, Inst]];
 
     fun prepare() {
         self.currentBlock = Block();
@@ -22,6 +22,7 @@ class SsaGen(let bc: BytecodeFunction, let basicBlockStarts: BitSet): BytecodeVi
         self.graph.setEntryBlock(self.currentBlock);
         self.graph.setExitBlock(self.currentBlock);
         self.currentDef = Array[HashMap[Block, Inst]](self.bc.registers.length());
+        self.incompletePhis = Array[HashMap[Block, Inst]](self.bc.registers.length());
 
         for i in range(0, self.currentDef.length()) {
             self.currentDef(i) = HashMap[Block, Inst]();
@@ -41,19 +42,57 @@ class SsaGen(let bc: BytecodeFunction, let basicBlockStarts: BitSet): BytecodeVi
     }
 
     fun readVariableRecursive(register: BytecodeRegister, block: Block) -> Inst {
-        nil
-
-/*        let value = if !self.isSealed(block) {
-            let value = PhiInst();
-            unimplemented();
+        let value: Inst = if !self.isSealed(block) {
+            let phi = PhiInst();
+            block.appendPhi(phi);
+            self.incompletePhis.get(register.value).insert(block, phi);
+            phi as Inst
         } else if block.predecessors.length() == 1 {
-            self.readVariable(register, block.predecessors.first())
+            self.readVariable(register, block.predecessors.first().unwrap())
         } else {
-            unimplemented();
+            let phi = PhiInst();
+            block.appendPhi(phi);
+            self.writeVariable(register, block, phi);
+            self.addPhiOperands(register, phi)
         };
 
         self.writeVariable(register, block, value);
-        value*/
+        value
+    }
+
+    fun addPhiOperands(register: BytecodeRegister, phi: PhiInst) -> Inst {
+        let it = phi.block.predecessors.makeIterator();
+        while it.hasNext() {
+            let pred = it.next();
+            phi.addInput(self.readVariable(register, pred));
+        }
+        self.tryRemoveTrivialPhi(phi)
+    }
+
+    fun tryRemoveTrivialPhi(phi: PhiInst) -> Inst {
+        var same = none[Inst]();
+
+        let it = phi.inputs.makeIterator();
+        while it.hasNext() {
+            let op = it.next().value;
+
+            if (same.isSome() && same.unwrap() === op) || op === phi {
+                continue;
+            }
+
+            if same.isSome() {
+                return phi;
+            }
+
+            same = some[Inst](op);
+        }
+
+        if same.isNone() {
+            same = some[Inst](Undef());
+        }
+
+        unimplemented();
+        nil
     }
 
     fun isSealed(block: Block) -> Bool {
