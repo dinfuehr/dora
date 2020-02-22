@@ -812,7 +812,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 | Intrinsic::LongPlus
                 | Intrinsic::FloatPlus
                 | Intrinsic::DoublePlus => self.visit_expr(&expr.opnd, dest),
-
                 Intrinsic::IntNeg => {
                     let dest = self.ensure_register(dest, BytecodeType::Int);
                     let src = self.visit_expr(&expr.opnd, DataDest::Alloc);
@@ -820,7 +819,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
                     dest
                 }
-
                 Intrinsic::LongNeg => {
                     let dest = self.ensure_register(dest, BytecodeType::Long);
                     let src = self.visit_expr(&expr.opnd, DataDest::Alloc);
@@ -828,11 +826,17 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
                     dest
                 }
-
                 Intrinsic::BoolNot => {
                     let dest = self.ensure_register(dest, BytecodeType::Bool);
                     let src = self.visit_expr(&expr.opnd, DataDest::Alloc);
                     self.gen.emit_not_bool(dest, src);
+
+                    dest
+                }
+                Intrinsic::FloatNeg => {
+                    let dest = self.ensure_register(dest, BytecodeType::Float);
+                    let src = self.visit_expr(&expr.opnd, DataDest::Alloc);
+                    self.gen.emit_neg_float(dest, src);
 
                     dest
                 }
