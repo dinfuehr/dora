@@ -1569,22 +1569,22 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_and_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_and_int(dest, lhs, rhs);
     }
-    fn visit_and_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
+    fn visit_and_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_and_int(dest, lhs, rhs);
     }
 
     fn visit_or_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_or_int(dest, lhs, rhs)
     }
-    fn visit_or_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
+    fn visit_or_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_or_int(dest, lhs, rhs)
     }
 
     fn visit_xor_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_xor_int(dest, lhs, rhs);
     }
-    fn visit_xor_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
+    fn visit_xor_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_xor_int(dest, lhs, rhs);
     }
 
     fn visit_not_bool(&mut self, dest: Register, src: Register) {
@@ -1607,20 +1607,27 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_sar_int(dest, lhs, rhs);
     }
 
-    fn visit_shl_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
+    fn visit_shl_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_shl_int(dest, lhs, rhs);
     }
-    fn visit_shr_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
+    fn visit_shr_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_shr_int(dest, lhs, rhs);
     }
-    fn visit_sar_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
+    fn visit_sar_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_sar_int(dest, lhs, rhs);
     }
 
     fn visit_rol_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_rol_int(dest, lhs, rhs);
     }
     fn visit_ror_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_ror_int(dest, lhs, rhs);
+    }
+
+    fn visit_rol_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_rol_int(dest, lhs, rhs);
+    }
+    fn visit_ror_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_ror_int(dest, lhs, rhs);
     }
 
