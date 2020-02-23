@@ -610,11 +610,28 @@ where
             .store_mem(bytecode_type.mode(), Mem::Local(offset), REG_RESULT.into());
     }
 
-    fn emit_shl_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    fn emit_not_int(&mut self, dest: Register, src: Register) {
         assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(rhs)
+            self.bytecode.register_type(src),
+            self.bytecode.register_type(dest)
         );
+
+        let bytecode_type = self.bytecode.register_type(src);
+        let offset = self.bytecode.register_offset(src);
+        self.asm
+            .load_mem(bytecode_type.mode(), REG_RESULT.into(), Mem::Local(offset));
+
+        let bytecode_type = self.bytecode.register_type(dest);
+        let offset = self.bytecode.register_offset(dest);
+        self.asm
+            .int_not(bytecode_type.mode(), REG_RESULT, REG_RESULT);
+
+        self.asm
+            .store_mem(bytecode_type.mode(), Mem::Local(offset), REG_RESULT.into());
+    }
+
+    fn emit_shl_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        assert_eq!(BytecodeType::Int, self.bytecode.register_type(rhs));
         assert_eq!(
             self.bytecode.register_type(lhs),
             self.bytecode.register_type(dest)
@@ -640,10 +657,7 @@ where
     }
 
     fn emit_shr_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(rhs)
-        );
+        assert_eq!(BytecodeType::Int, self.bytecode.register_type(rhs));
         assert_eq!(
             self.bytecode.register_type(lhs),
             self.bytecode.register_type(dest)
@@ -669,10 +683,7 @@ where
     }
 
     fn emit_sar_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(rhs)
-        );
+        assert_eq!(BytecodeType::Int, self.bytecode.register_type(rhs));
         assert_eq!(
             self.bytecode.register_type(lhs),
             self.bytecode.register_type(dest)
@@ -698,10 +709,7 @@ where
     }
 
     fn emit_rol_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(rhs)
-        );
+        assert_eq!(BytecodeType::Int, self.bytecode.register_type(rhs));
         assert_eq!(
             self.bytecode.register_type(lhs),
             self.bytecode.register_type(dest)
@@ -727,10 +735,7 @@ where
     }
 
     fn emit_ror_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(rhs)
-        );
+        assert_eq!(BytecodeType::Int, self.bytecode.register_type(rhs));
         assert_eq!(
             self.bytecode.register_type(lhs),
             self.bytecode.register_type(dest)
@@ -1541,8 +1546,8 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_mul_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_mul_int(dest, lhs, rhs);
     }
-    fn visit_mul_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
+    fn visit_mul_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_mul_int(dest, lhs, rhs);
     }
     fn visit_mul_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_mul_float(dest, lhs, rhs);
@@ -1554,8 +1559,8 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_div_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_div_int(dest, lhs, rhs);
     }
-    fn visit_div_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
+    fn visit_div_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_div_int(dest, lhs, rhs);
     }
     fn visit_div_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_div_float(dest, lhs, rhs);
@@ -1567,29 +1572,29 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_mod_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_mod_int(dest, lhs, rhs);
     }
-    fn visit_mod_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
+    fn visit_mod_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_mod_int(dest, lhs, rhs);
     }
 
     fn visit_and_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_and_int(dest, lhs, rhs);
     }
-    fn visit_and_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
+    fn visit_and_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_and_int(dest, lhs, rhs);
     }
 
     fn visit_or_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_or_int(dest, lhs, rhs)
     }
-    fn visit_or_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
+    fn visit_or_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_or_int(dest, lhs, rhs)
     }
 
     fn visit_xor_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_xor_int(dest, lhs, rhs);
     }
-    fn visit_xor_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
+    fn visit_xor_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_xor_int(dest, lhs, rhs);
     }
 
     fn visit_not_bool(&mut self, dest: Register, src: Register) {
@@ -1598,8 +1603,8 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_not_int(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
-    fn visit_not_long(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
+    fn visit_not_long(&mut self, dest: Register, src: Register) {
+        self.emit_not_int(dest, src);
     }
 
     fn visit_shl_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -1612,20 +1617,27 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_sar_int(dest, lhs, rhs);
     }
 
-    fn visit_shl_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
+    fn visit_shl_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_shl_int(dest, lhs, rhs);
     }
-    fn visit_shr_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
+    fn visit_shr_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_shr_int(dest, lhs, rhs);
     }
-    fn visit_sar_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
+    fn visit_sar_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_sar_int(dest, lhs, rhs);
     }
 
     fn visit_rol_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_rol_int(dest, lhs, rhs);
     }
     fn visit_ror_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_ror_int(dest, lhs, rhs);
+    }
+
+    fn visit_rol_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_rol_int(dest, lhs, rhs);
+    }
+    fn visit_ror_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_ror_int(dest, lhs, rhs);
     }
 

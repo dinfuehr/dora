@@ -1,0 +1,122 @@
+fun main() {
+    assert(not(20L) == -21L);
+
+    assert(add(20L, 7L) == 27L);
+    assert(sub(20L, 7L) == 13L);
+    assert(mul(20L, 7L) == 140L);
+    assert(div(20L, 7L) == 2L);
+    
+    assert(mod(20L, 7L) == 6L);
+
+    assert(neg(20L) == -20L);
+    assert(neg(-5L) == 5L);
+
+    assert(or(20L, 5L) == 21L);
+    assert(xor(20L, 5L) == 17L);
+    assert(and(20L, 5L) == 4L);
+
+    assert(shl(20L, 2) == 80L);
+    assert(shr(20L, 2) == 5L);
+    assert(sar(20L, 2) == 5L);
+
+    assert(!eq(20L, 5L));
+    assert(eq(5L, 5L));
+    assert(!eq(5L, 20L));
+
+    assert(ne(20L, 5L));
+    assert(!ne(5L, 5L));
+    assert(ne(5L, 20L));
+
+
+    assert(!lt(20L, 5L));
+    assert(!lt(5L, 5L));
+    assert(lt(5L, 20L));
+
+    assert(!le(20L, 5L));
+    assert(le(5L, 5L));
+    assert(le(5L, 20L));
+
+    assert(ge(20L, 5L));
+    assert(ge(5L, 5L));
+    assert(!ge(5L, 20L));
+
+    assert(gt(20L, 5L));
+    assert(!gt(5L, 5L));
+    assert(!gt(5L, 20L));
+}
+
+@cannon fun not(x: Long) -> Long {
+    return !x;
+}
+
+@cannon fun add(x: Long, y: Long) -> Long {
+    return x+y;
+}
+
+@cannon fun sub(x: Long, y: Long) -> Long {
+    return x-y;
+}
+
+@cannon fun mul(x: Long, y: Long) -> Long {
+    return x*y;
+}
+
+@cannon fun div(x: Long, y: Long) -> Long {
+    return x/y;
+}
+
+@cannon fun mod(y: Long, z: Long) -> Long {
+    return y%z;
+}
+
+@cannon fun or(x: Long, y: Long) -> Long {
+    return x | y;
+}
+
+@cannon fun xor(x: Long, y: Long) -> Long {
+    return x ^ y;
+}
+
+@cannon fun and(x: Long, y: Long) -> Long {
+    return x & y;
+}
+
+@cannon fun shl(x: Long, y: Int) -> Long {
+    return x << y;
+}
+
+@cannon fun shr(x: Long, y: Int) -> Long {
+    return x >>> y;
+}
+
+@cannon fun sar(x: Long, y: Int) -> Long {
+    return x >> y;
+}
+
+@cannon fun eq(x: Long, y: Long) -> Bool {
+    return x == y;
+}
+
+@cannon fun ne(x: Long, y: Long) -> Bool {
+    return x != y;
+}
+
+@cannon fun lt(x: Long, y: Long) -> Bool {
+    return x < y;
+}
+
+@cannon fun le(x: Long, y: Long) -> Bool {
+    return x <= y;
+}
+
+@cannon fun ge(x: Long, y: Long) -> Bool {
+    return x >= y;
+}
+
+@cannon fun gt(x: Long, y: Long) -> Bool {
+    return x > y;
+}
+
+@cannon fun neg(x: Long) -> Long {
+    return -x;
+}

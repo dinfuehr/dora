@@ -112,16 +112,32 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::AndInt, dest, lhs, rhs);
     }
 
+    pub fn emit_and_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::AndLong, dest, lhs, rhs);
+    }
+
     pub fn emit_or_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::OrInt, dest, lhs, rhs);
+    }
+
+    pub fn emit_or_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::OrLong, dest, lhs, rhs);
     }
 
     pub fn emit_xor_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::XorInt, dest, lhs, rhs);
     }
 
+    pub fn emit_xor_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::XorLong, dest, lhs, rhs);
+    }
+
     pub fn emit_div_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::DivInt, dest, lhs, rhs);
+    }
+
+    pub fn emit_div_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::DivLong, dest, lhs, rhs);
     }
 
     pub fn emit_div_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -362,6 +378,10 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::NotBool, dest, src);
     }
 
+    pub fn emit_not_long(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::NotLong, dest, src);
+    }
+
     pub fn emit_jump_if_false(&mut self, opnd: Register, lbl: Label) {
         assert!(self.lookup_label(lbl).is_none());
 
@@ -400,8 +420,16 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::ModInt, dest, lhs, rhs);
     }
 
+    pub fn emit_mod_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::ModLong, dest, lhs, rhs);
+    }
+
     pub fn emit_mul_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::MulInt, dest, lhs, rhs);
+    }
+
+    pub fn emit_mul_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::MulLong, dest, lhs, rhs);
     }
 
     pub fn emit_mul_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -432,24 +460,48 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::ShlInt, dest, lhs, rhs);
     }
 
+    pub fn emit_shl_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::ShlLong, dest, lhs, rhs);
+    }
+
     pub fn emit_shr_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::ShrInt, dest, lhs, rhs);
+    }
+
+    pub fn emit_shr_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::ShrLong, dest, lhs, rhs);
     }
 
     pub fn emit_sar_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::SarInt, dest, lhs, rhs);
     }
 
+    pub fn emit_sar_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::SarLong, dest, lhs, rhs);
+    }
+
     pub fn emit_rol_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::RolInt, dest, lhs, rhs);
+    }
+
+    pub fn emit_rol_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::RolLong, dest, lhs, rhs);
     }
 
     pub fn emit_ror_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::RorInt, dest, lhs, rhs);
     }
 
+    pub fn emit_ror_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::RorLong, dest, lhs, rhs);
+    }
+
     pub fn emit_sub_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::SubInt, dest, lhs, rhs);
+    }
+
+    pub fn emit_sub_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::SubLong, dest, lhs, rhs);
     }
 
     pub fn emit_sub_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -548,6 +600,10 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestEqInt, dest, lhs, rhs);
     }
 
+    pub fn emit_test_eq_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestEqLong, dest, lhs, rhs);
+    }
+
     pub fn emit_test_eq_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::TestEqFloat, dest, lhs, rhs);
     }
@@ -580,6 +636,10 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestNeInt, dest, lhs, rhs);
     }
 
+    pub fn emit_test_ne_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestNeLong, dest, lhs, rhs);
+    }
+
     pub fn emit_test_ne_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::TestNeFloat, dest, lhs, rhs);
     }
@@ -604,6 +664,10 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestGtInt, dest, lhs, rhs);
     }
 
+    pub fn emit_test_gt_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestGtLong, dest, lhs, rhs);
+    }
+
     pub fn emit_test_gt_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::TestGtFloat, dest, lhs, rhs);
     }
@@ -622,6 +686,10 @@ impl BytecodeWriter {
 
     pub fn emit_test_ge_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::TestGeInt, dest, lhs, rhs);
+    }
+
+    pub fn emit_test_ge_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestGeLong, dest, lhs, rhs);
     }
 
     pub fn emit_test_ge_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -644,6 +712,10 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestLtInt, dest, lhs, rhs);
     }
 
+    pub fn emit_test_lt_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestLtLong, dest, lhs, rhs);
+    }
+
     pub fn emit_test_lt_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::TestLtFloat, dest, lhs, rhs);
     }
@@ -662,6 +734,10 @@ impl BytecodeWriter {
 
     pub fn emit_test_le_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::TestLeInt, dest, lhs, rhs);
+    }
+
+    pub fn emit_test_le_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestLeLong, dest, lhs, rhs);
     }
 
     pub fn emit_test_le_float(&mut self, dest: Register, lhs: Register, rhs: Register) {

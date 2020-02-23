@@ -2772,6 +2772,9 @@ pub enum Bytecode {
     RolInt(Register, Register, Register),
     RorInt(Register, Register, Register),
 
+    RolLong(Register, Register, Register),
+    RorLong(Register, Register, Register),
+
     MovBool(Register, Register),
     MovByte(Register, Register),
     MovChar(Register, Register),
@@ -3124,6 +3127,12 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_ror_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::RorInt(dest, lhs, rhs));
+    }
+    fn visit_rol_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::RolLong(dest, lhs, rhs));
+    }
+    fn visit_ror_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::RorLong(dest, lhs, rhs));
     }
 
     fn visit_mov_bool(&mut self, dest: Register, src: Register) {

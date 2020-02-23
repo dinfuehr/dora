@@ -242,6 +242,13 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg3("RorInt", dest, lhs, rhs);
     }
 
+    fn visit_rol_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("RolLong", dest, lhs, rhs);
+    }
+    fn visit_ror_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("RorLong", dest, lhs, rhs);
+    }
+
     fn visit_mov_bool(&mut self, dest: Register, src: Register) {
         self.emit_reg2("MovBool", dest, src);
     }
