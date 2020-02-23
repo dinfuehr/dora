@@ -631,10 +631,7 @@ where
     }
 
     fn emit_shl_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(rhs)
-        );
+        assert_eq!(BytecodeType::Int, self.bytecode.register_type(rhs));
         assert_eq!(
             self.bytecode.register_type(lhs),
             self.bytecode.register_type(dest)
@@ -660,10 +657,7 @@ where
     }
 
     fn emit_shr_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(rhs)
-        );
+        assert_eq!(BytecodeType::Int, self.bytecode.register_type(rhs));
         assert_eq!(
             self.bytecode.register_type(lhs),
             self.bytecode.register_type(dest)
@@ -689,10 +683,7 @@ where
     }
 
     fn emit_sar_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(rhs)
-        );
+        assert_eq!(BytecodeType::Int, self.bytecode.register_type(rhs));
         assert_eq!(
             self.bytecode.register_type(lhs),
             self.bytecode.register_type(dest)
@@ -718,10 +709,7 @@ where
     }
 
     fn emit_rol_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(rhs)
-        );
+        assert_eq!(BytecodeType::Int, self.bytecode.register_type(rhs));
         assert_eq!(
             self.bytecode.register_type(lhs),
             self.bytecode.register_type(dest)
@@ -747,10 +735,7 @@ where
     }
 
     fn emit_ror_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(rhs)
-        );
+        assert_eq!(BytecodeType::Int, self.bytecode.register_type(rhs));
         assert_eq!(
             self.bytecode.register_type(lhs),
             self.bytecode.register_type(dest)
