@@ -376,7 +376,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         if let Some(intrinsic) = self.get_intrinsic(expr.id) {
             match intrinsic {
                 Intrinsic::Assert => self.visit_expr_assert(expr, dest),
-                Intrinsic::IntRotateLeft | Intrinsic::IntRotateRight => {
+                Intrinsic::IntRotateLeft
+                | Intrinsic::IntRotateRight
+                | Intrinsic::LongRotateLeft
+                | Intrinsic::LongRotateRight => {
                     return self.emit_intrinsic_bin(
                         expr.object().expect("value needed"),
                         &*expr.args[0],
@@ -979,7 +982,15 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             | Intrinsic::LongSub
             | Intrinsic::LongMul
             | Intrinsic::LongDiv
-            | Intrinsic::LongMod => BytecodeType::Long,
+            | Intrinsic::LongMod
+            | Intrinsic::LongOr
+            | Intrinsic::LongAnd
+            | Intrinsic::LongXor
+            | Intrinsic::LongShl
+            | Intrinsic::LongShr
+            | Intrinsic::LongSar
+            | Intrinsic::LongRotateLeft
+            | Intrinsic::LongRotateRight => BytecodeType::Long,
             Intrinsic::FloatAdd
             | Intrinsic::FloatSub
             | Intrinsic::FloatDiv
@@ -1077,6 +1088,14 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             Intrinsic::LongMul => self.gen.emit_mul_long(dest, lhs_reg, rhs_reg),
             Intrinsic::LongDiv => self.gen.emit_div_long(dest, lhs_reg, rhs_reg),
             Intrinsic::LongMod => self.gen.emit_mod_long(dest, lhs_reg, rhs_reg),
+            Intrinsic::LongOr => self.gen.emit_or_long(dest, lhs_reg, rhs_reg),
+            Intrinsic::LongAnd => self.gen.emit_and_long(dest, lhs_reg, rhs_reg),
+            Intrinsic::LongXor => self.gen.emit_xor_long(dest, lhs_reg, rhs_reg),
+            Intrinsic::LongShl => self.gen.emit_shl_long(dest, lhs_reg, rhs_reg),
+            Intrinsic::LongShr => self.gen.emit_shr_long(dest, lhs_reg, rhs_reg),
+            Intrinsic::LongSar => self.gen.emit_sar_long(dest, lhs_reg, rhs_reg),
+            Intrinsic::LongRotateLeft => self.gen.emit_rol_long(dest, lhs_reg, rhs_reg),
+            Intrinsic::LongRotateRight => self.gen.emit_ror_long(dest, lhs_reg, rhs_reg),
             Intrinsic::FloatAdd => self.gen.emit_add_float(dest, lhs_reg, rhs_reg),
             Intrinsic::FloatSub => self.gen.emit_sub_float(dest, lhs_reg, rhs_reg),
             Intrinsic::FloatMul => self.gen.emit_mul_float(dest, lhs_reg, rhs_reg),

@@ -112,12 +112,24 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::AndInt, dest, lhs, rhs);
     }
 
+    pub fn emit_and_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::AndLong, dest, lhs, rhs);
+    }
+
     pub fn emit_or_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::OrInt, dest, lhs, rhs);
     }
 
+    pub fn emit_or_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::OrLong, dest, lhs, rhs);
+    }
+
     pub fn emit_xor_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::XorInt, dest, lhs, rhs);
+    }
+
+    pub fn emit_xor_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::XorLong, dest, lhs, rhs);
     }
 
     pub fn emit_div_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -448,20 +460,40 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::ShlInt, dest, lhs, rhs);
     }
 
+    pub fn emit_shl_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::ShlLong, dest, lhs, rhs);
+    }
+
     pub fn emit_shr_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::ShrInt, dest, lhs, rhs);
+    }
+
+    pub fn emit_shr_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::ShrLong, dest, lhs, rhs);
     }
 
     pub fn emit_sar_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::SarInt, dest, lhs, rhs);
     }
 
+    pub fn emit_sar_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::SarLong, dest, lhs, rhs);
+    }
+
     pub fn emit_rol_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::RolInt, dest, lhs, rhs);
     }
 
+    pub fn emit_rol_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::RolLong, dest, lhs, rhs);
+    }
+
     pub fn emit_ror_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::RorInt, dest, lhs, rhs);
+    }
+
+    pub fn emit_ror_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::RorLong, dest, lhs, rhs);
     }
 
     pub fn emit_sub_int(&mut self, dest: Register, lhs: Register, rhs: Register) {

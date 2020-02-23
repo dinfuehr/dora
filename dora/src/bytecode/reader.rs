@@ -277,6 +277,19 @@ where
                 self.visitor.visit_ror_int(dest, lhs, rhs);
             }
 
+            BytecodeOpcode::RolLong => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_rol_long(dest, lhs, rhs);
+            }
+            BytecodeOpcode::RorLong => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_ror_long(dest, lhs, rhs);
+            }
+
             BytecodeOpcode::MovBool => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
@@ -1331,6 +1344,13 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_ror_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+
+    fn visit_rol_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_ror_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 
