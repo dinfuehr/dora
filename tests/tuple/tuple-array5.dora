@@ -1,0 +1,13 @@
+//= ignore
+//= vm-args "--gc=copy --disable-tlab --gc-stress"
+
+class Foo (let value: Int)
+
+fun main() {
+    let x = Array[(Int, Foo)](7);
+    x(0) = (1, Foo(1));
+    x(4) = (4, Foo(4));
+    forceCollect();
+    assert(x(0).0 == x(0).1.value);
+    assert(x(4).0 == x(4).1.value);
+}

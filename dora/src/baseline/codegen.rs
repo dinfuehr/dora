@@ -3385,6 +3385,10 @@ where
                 alloc_size = AllocationSize::Dynamic(REG_TMP1);
             }
 
+            InstanceSize::TupleArray => {
+                unimplemented!();
+            }
+
             InstanceSize::Str if temps.len() > 1 => {
                 self.asm.load_mem(
                     MachineMode::Int32,
@@ -3485,6 +3489,7 @@ where
                     InstanceSize::Str => 1,
                     InstanceSize::Fixed(_) => unreachable!(),
                     InstanceSize::FreeArray => unreachable!(),
+                    InstanceSize::TupleArray => unreachable!(),
                 };
 
                 if element_size != 0 {

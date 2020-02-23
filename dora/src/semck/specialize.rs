@@ -248,6 +248,7 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
         InstanceSize::ObjArray => (0, mem::ptr_width_usize()),
         InstanceSize::FreeArray => (0, mem::ptr_width_usize()),
         InstanceSize::Str => (0, 1),
+        InstanceSize::TupleArray => unimplemented!(),
     };
 
     let clsptr = (&*cls_def) as *const ClassDef as *mut ClassDef;
