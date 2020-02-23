@@ -1600,8 +1600,8 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_not_bool(&mut self, dest: Register, src: Register) {
         self.emit_not_bool(dest, src);
     }
-    fn visit_not_int(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
+    fn visit_not_int(&mut self, dest: Register, src: Register) {
+        self.emit_not_int(dest, src);
     }
     fn visit_not_long(&mut self, dest: Register, src: Register) {
         self.emit_not_int(dest, src);
