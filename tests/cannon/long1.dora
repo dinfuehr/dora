@@ -1,5 +1,5 @@
 fun main() {
-    // assert(not(20L) == 245L);
+    assert(not(20L) == -21L);
 
     assert(add(20L, 7L) == 27L);
     assert(sub(20L, 7L) == 13L);
@@ -8,41 +8,41 @@ fun main() {
     
     assert(mod(20L, 7L) == 6L);
 
-    // assert(neg(20L) == 20L);
-    // assert(neg(-5L) == 5L);
+    assert(neg(20L) == -20L);
+    assert(neg(-5L) == 5L);
 
-    // assert(or(20L, 5L) == 21L);
-    // assert(xor(20L, 5L) == 17L);
-    // assert(and(20L, 5L) == 4L);
+    assert(or(20L, 5L) == 21L);
+    assert(xor(20L, 5L) == 17L);
+    assert(and(20L, 5L) == 4L);
 
-    // assert(shl(20L, 2) == 80L);
-    // assert(shr(20L, 2) == 5L);
-    // assert(sar(20L, 2) == 5L);
+    assert(shl(20L, 2) == 80L);
+    assert(shr(20L, 2) == 5L);
+    assert(sar(20L, 2) == 5L);
 
-    // assert(!eq(20L, 5L));
-    // assert(eq(5L, 5L));
-    // assert(!eq(5L, 20L));
+    assert(!eq(20L, 5L));
+    assert(eq(5L, 5L));
+    assert(!eq(5L, 20L));
 
-    // assert(ne(20L, 5L));
-    // assert(!ne(5L, 5L));
-    // assert(ne(5L, 20L));
+    assert(ne(20L, 5L));
+    assert(!ne(5L, 5L));
+    assert(ne(5L, 20L));
 
 
-    // assert(!lt(20L, 5L));
-    // assert(!lt(5L, 5L));
-    // assert(lt(5L, 20L));
+    assert(!lt(20L, 5L));
+    assert(!lt(5L, 5L));
+    assert(lt(5L, 20L));
 
-    // assert(!le(20L, 5L));
-    // assert(le(5L, 5L));
-    // assert(le(5L, 20L));
+    assert(!le(20L, 5L));
+    assert(le(5L, 5L));
+    assert(le(5L, 20L));
 
-    // assert(ge(20L, 5L));
-    // assert(ge(5L, 5L));
-    // assert(!ge(5L, 20L));
+    assert(ge(20L, 5L));
+    assert(ge(5L, 5L));
+    assert(!ge(5L, 20L));
 
-    // assert(gt(20L, 5L));
-    // assert(!gt(5L, 5L));
-    // assert(!gt(5L, 20L));
+    assert(gt(20L, 5L));
+    assert(!gt(5L, 5L));
+    assert(!gt(5L, 20L));
 }
 
 @cannon fun not(x: Long) -> Long {
