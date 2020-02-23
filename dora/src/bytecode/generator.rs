@@ -850,6 +850,13 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
                     dest
                 }
+                Intrinsic::IntNot => {
+                    let dest = self.ensure_register(dest, BytecodeType::Int);
+                    let src = self.visit_expr(&expr.opnd, DataDest::Alloc);
+                    self.gen.emit_not_int(dest, src);
+
+                    dest
+                }
                 Intrinsic::LongNot => {
                     let dest = self.ensure_register(dest, BytecodeType::Long);
                     let src = self.visit_expr(&expr.opnd, DataDest::Alloc);

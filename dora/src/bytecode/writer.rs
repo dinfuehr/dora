@@ -378,6 +378,10 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::NotBool, dest, src);
     }
 
+    pub fn emit_not_int(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::NotInt, dest, src);
+    }
+
     pub fn emit_not_long(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::NotLong, dest, src);
     }
