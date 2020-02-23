@@ -826,13 +826,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
                     dest
                 }
-                Intrinsic::BoolNot => {
-                    let dest = self.ensure_register(dest, BytecodeType::Bool);
-                    let src = self.visit_expr(&expr.opnd, DataDest::Alloc);
-                    self.gen.emit_not_bool(dest, src);
-
-                    dest
-                }
                 Intrinsic::FloatNeg => {
                     let dest = self.ensure_register(dest, BytecodeType::Float);
                     let src = self.visit_expr(&expr.opnd, DataDest::Alloc);
@@ -844,6 +837,20 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     let dest = self.ensure_register(dest, BytecodeType::Double);
                     let src = self.visit_expr(&expr.opnd, DataDest::Alloc);
                     self.gen.emit_neg_double(dest, src);
+
+                    dest
+                }
+                Intrinsic::BoolNot => {
+                    let dest = self.ensure_register(dest, BytecodeType::Bool);
+                    let src = self.visit_expr(&expr.opnd, DataDest::Alloc);
+                    self.gen.emit_not_bool(dest, src);
+
+                    dest
+                }
+                Intrinsic::LongNot => {
+                    let dest = self.ensure_register(dest, BytecodeType::Long);
+                    let src = self.visit_expr(&expr.opnd, DataDest::Alloc);
+                    self.gen.emit_not_long(dest, src);
 
                     dest
                 }
