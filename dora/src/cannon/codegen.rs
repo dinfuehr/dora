@@ -610,6 +610,26 @@ where
             .store_mem(bytecode_type.mode(), Mem::Local(offset), REG_RESULT.into());
     }
 
+    fn emit_not_int(&mut self, dest: Register, src: Register) {
+        assert_eq!(
+            self.bytecode.register_type(src),
+            self.bytecode.register_type(dest)
+        );
+
+        let bytecode_type = self.bytecode.register_type(src);
+        let offset = self.bytecode.register_offset(src);
+        self.asm
+            .load_mem(bytecode_type.mode(), REG_RESULT.into(), Mem::Local(offset));
+
+        let bytecode_type = self.bytecode.register_type(dest);
+        let offset = self.bytecode.register_offset(dest);
+        self.asm
+            .int_not(bytecode_type.mode(), REG_RESULT, REG_RESULT);
+
+        self.asm
+            .store_mem(bytecode_type.mode(), Mem::Local(offset), REG_RESULT.into());
+    }
+
     fn emit_shl_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert_eq!(
             self.bytecode.register_type(lhs),
@@ -1573,8 +1593,8 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_not_int(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
-    fn visit_not_long(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
+    fn visit_not_long(&mut self, dest: Register, src: Register) {
+        self.emit_not_int(dest, src);
     }
 
     fn visit_shl_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
