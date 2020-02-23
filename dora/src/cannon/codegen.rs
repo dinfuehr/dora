@@ -879,7 +879,7 @@ where
         );
     }
 
-    fn emit_load_global_field(&mut self, dest: Register, global_id: GlobalId) {
+    fn emit_load_global(&mut self, dest: Register, global_id: GlobalId) {
         let glob = self.vm.globals.idx(global_id);
         let glob = glob.lock();
 
@@ -904,7 +904,7 @@ where
             .store_mem(bytecode_type.mode(), Mem::Local(offset), reg);
     }
 
-    fn emit_store_global_field(&mut self, src: Register, global_id: GlobalId) {
+    fn emit_store_global(&mut self, src: Register, global_id: GlobalId) {
         let glob = self.vm.globals.idx(global_id);
         let glob = glob.lock();
 
@@ -1801,53 +1801,53 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
 
     fn visit_load_global_bool(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_load_global_field(dest, glob);
+        self.emit_load_global(dest, glob);
     }
     fn visit_load_global_byte(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_load_global_field(dest, glob);
+        self.emit_load_global(dest, glob);
     }
     fn visit_load_global_char(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_load_global_field(dest, glob);
+        self.emit_load_global(dest, glob);
     }
     fn visit_load_global_int(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_load_global_field(dest, glob);
+        self.emit_load_global(dest, glob);
     }
     fn visit_load_global_long(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_load_global_field(dest, glob);
+        self.emit_load_global(dest, glob);
     }
     fn visit_load_global_float(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_load_global_field(dest, glob);
+        self.emit_load_global(dest, glob);
     }
     fn visit_load_global_double(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_load_global_field(dest, glob);
+        self.emit_load_global(dest, glob);
     }
     fn visit_load_global_ptr(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_load_global_field(dest, glob);
+        self.emit_load_global(dest, glob);
     }
 
     fn visit_store_global_bool(&mut self, src: Register, glob: GlobalId) {
-        self.emit_store_global_field(src, glob);
+        self.emit_store_global(src, glob);
     }
     fn visit_store_global_byte(&mut self, src: Register, glob: GlobalId) {
-        self.emit_store_global_field(src, glob);
+        self.emit_store_global(src, glob);
     }
     fn visit_store_global_char(&mut self, src: Register, glob: GlobalId) {
-        self.emit_store_global_field(src, glob);
+        self.emit_store_global(src, glob);
     }
     fn visit_store_global_int(&mut self, src: Register, glob: GlobalId) {
-        self.emit_store_global_field(src, glob);
+        self.emit_store_global(src, glob);
     }
     fn visit_store_global_long(&mut self, src: Register, glob: GlobalId) {
-        self.emit_store_global_field(src, glob);
+        self.emit_store_global(src, glob);
     }
     fn visit_store_global_float(&mut self, src: Register, glob: GlobalId) {
-        self.emit_store_global_field(src, glob);
+        self.emit_store_global(src, glob);
     }
     fn visit_store_global_double(&mut self, src: Register, glob: GlobalId) {
-        self.emit_store_global_field(src, glob);
+        self.emit_store_global(src, glob);
     }
     fn visit_store_global_ptr(&mut self, src: Register, glob: GlobalId) {
-        self.emit_store_global_field(src, glob);
+        self.emit_store_global(src, glob);
     }
 
     fn visit_const_nil(&mut self, dest: Register) {
