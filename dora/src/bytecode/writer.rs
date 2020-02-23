@@ -704,6 +704,38 @@ impl BytecodeWriter {
         self.emit_load_global(BytecodeOpcode::LoadGlobalPtr, dest, gid);
     }
 
+    pub fn emit_store_global_bool(&mut self, src: Register, gid: GlobalId) {
+        self.emit_store_global(BytecodeOpcode::StoreGlobalBool, src, gid);
+    }
+
+    pub fn emit_store_global_byte(&mut self, src: Register, gid: GlobalId) {
+        self.emit_store_global(BytecodeOpcode::StoreGlobalByte, src, gid);
+    }
+
+    pub fn emit_store_global_char(&mut self, src: Register, gid: GlobalId) {
+        self.emit_store_global(BytecodeOpcode::StoreGlobalChar, src, gid);
+    }
+
+    pub fn emit_store_global_int(&mut self, src: Register, gid: GlobalId) {
+        self.emit_store_global(BytecodeOpcode::StoreGlobalInt, src, gid);
+    }
+
+    pub fn emit_store_global_long(&mut self, src: Register, gid: GlobalId) {
+        self.emit_store_global(BytecodeOpcode::StoreGlobalLong, src, gid);
+    }
+
+    pub fn emit_store_global_float(&mut self, src: Register, gid: GlobalId) {
+        self.emit_store_global(BytecodeOpcode::StoreGlobalFloat, src, gid);
+    }
+
+    pub fn emit_store_global_double(&mut self, src: Register, gid: GlobalId) {
+        self.emit_store_global(BytecodeOpcode::StoreGlobalDouble, src, gid);
+    }
+
+    pub fn emit_store_global_ptr(&mut self, src: Register, gid: GlobalId) {
+        self.emit_store_global(BytecodeOpcode::StoreGlobalPtr, src, gid);
+    }
+
     pub fn emit_invoke_direct_void(&mut self, fid: FctId, start: Register, num: usize) {
         self.emit_fct_void(BytecodeOpcode::InvokeDirectVoid, fid, start, num);
     }
@@ -1097,6 +1129,11 @@ impl BytecodeWriter {
     }
 
     fn emit_load_global(&mut self, inst: BytecodeOpcode, r1: Register, gid: GlobalId) {
+        let values = [r1.to_usize() as u32, gid.to_usize() as u32];
+        self.emit_values(inst, &values);
+    }
+
+    fn emit_store_global(&mut self, inst: BytecodeOpcode, r1: Register, gid: GlobalId) {
         let values = [r1.to_usize() as u32, gid.to_usize() as u32];
         self.emit_values(inst, &values);
     }

@@ -1109,7 +1109,25 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     self.visit_expr(&expr.rhs, DataDest::Reg(var_reg));
                 }
 
-                &IdentType::Global(_) => unimplemented!(),
+                &IdentType::Global(gid) => {
+                    let glob = self.vm.globals.idx(gid);
+                    let glob = glob.lock();
+
+                    let ty: BytecodeType = glob.ty.into();
+
+                    let src = self.visit_expr(&expr.rhs, DataDest::Alloc);
+
+                    match ty {
+                        BytecodeType::Bool => self.gen.emit_store_global_bool(src, gid),
+                        BytecodeType::Byte => self.gen.emit_store_global_byte(src, gid),
+                        BytecodeType::Char => self.gen.emit_store_global_char(src, gid),
+                        BytecodeType::Int => self.gen.emit_store_global_int(src, gid),
+                        BytecodeType::Long => self.gen.emit_store_global_long(src, gid),
+                        BytecodeType::Float => self.gen.emit_store_global_float(src, gid),
+                        BytecodeType::Double => self.gen.emit_store_global_double(src, gid),
+                        BytecodeType::Ptr => self.gen.emit_store_global_ptr(src, gid),
+                    }
+                }
                 &IdentType::Field(_, _) => unimplemented!(),
 
                 &IdentType::Struct(_) => unimplemented!(),
