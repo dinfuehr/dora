@@ -1,0 +1,59 @@
+// Implementations of the `Zero` trait indicate that zero-initialized memory of the appropriate size can be allocated to
+// represent a valid value of that type.¹
+//
+//   let numbers: Array[Int] = Array.ofZero[Int](4)
+//   assert(numbers == Array(0, 0, 0, 0)
+//
+//   let strings: Array[Option[String]] = Array.ofZero[Option[String]](2)
+//   assert(strings == Array(None, None)
+//
+// `Zero` is a special trait whose implementations are automatically derived for qualifying types.
+// It cannot be implemented manually.
+// A type qualifies if it is either `Option`, or obeys all of the following rules ...
+// - The type is a struct.
+// - The type does not contain any reference-types directly or transitively.
+//
+// ¹ This means that implementations of `Zero` may make full use of the operating system's optimization of `calloc`
+//   (lazy allocation, lazy zeroing, copy on write, etc.), unlike implementations of the `Default` trait –
+//   which invoke an user-defined function to initialize each individual element (malloc & loop with function calls).
+
+
+// @restricted / @internal
+trait Zero {
+  @static fun zero() -> Self; // should be `let` instead of `fun`
+}
+
+impl Zero for Bool {
+  @static fun zero() -> Bool = false;
+}
+
+impl Zero for Byte {
+  @static fun zero() -> Byte = 0Y;
+}
+
+impl Zero for Char {
+  @static fun zero() -> Char = '\0';
+}
+
+impl Zero for Int {
+  @static fun zero() -> Int = 0;
+}
+
+impl Zero for Long {
+  @static fun zero() -> Long = 0L;
+}
+
+impl Zero for Float {
+  @static fun zero() -> Float = 0.0F;
+}
+
+impl Zero for Double {
+  @static fun zero() -> Double = 0.0;
+}
+
+// feature not implemented yet
+/*
+impl Zero for Option[T] {
+  @static fun zero() -> Option[T] = ...;
+}
+*/

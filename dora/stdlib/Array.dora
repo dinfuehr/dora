@@ -68,6 +68,8 @@ fun arrayNew[T: Default](len: Int) -> Array[T] {
   return array;
 }
 
+fun arrayZero[T: Zero](len: Int) -> Array[T] = return Array[T](len);
+
 fun arrayCopy[T](src: Array[T], srcPos: Int, dest: Array[T], destPos: Int, len: Int) {
   var i = 0;
 
