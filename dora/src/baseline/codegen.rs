@@ -3385,7 +3385,12 @@ where
                 alloc_size = AllocationSize::Dynamic(REG_TMP1);
             }
 
-            InstanceSize::TupleArray => {
+            InstanceSize::UnitArray => {
+                store_length = true;
+                alloc_size = AllocationSize::Fixed(array_header_size);
+            }
+
+            InstanceSize::TupleArray(_) => {
                 unimplemented!();
             }
 
@@ -3475,6 +3480,10 @@ where
                 self.asm.fill_zero(dest, size as usize);
             }
 
+            InstanceSize::UnitArray => {
+                // Array[()] never contains any data, so no zeroing needed.
+            }
+
             _ if temps.len() > 1 => {
                 self.asm.int_add_imm(
                     MachineMode::Ptr,
@@ -3489,15 +3498,14 @@ where
                     InstanceSize::Str => 1,
                     InstanceSize::Fixed(_) => unreachable!(),
                     InstanceSize::FreeArray => unreachable!(),
-                    InstanceSize::TupleArray => unreachable!(),
+                    InstanceSize::TupleArray(_) => unreachable!(),
+                    InstanceSize::UnitArray => unreachable!(),
                 };
 
-                if element_size != 0 {
-                    self.asm
-                        .determine_array_size(temp, temp, element_size, false);
-                    self.asm.int_add(MachineMode::Ptr, temp, temp, dest);
-                    self.asm.fill_zero_dynamic(dest, temp);
-                }
+                self.asm
+                    .determine_array_size(temp, temp, element_size, false);
+                self.asm.int_add(MachineMode::Ptr, temp, temp, dest);
+                self.asm.fill_zero_dynamic(dest, temp);
             }
 
             // arrays with length 0 do not need to clear any data

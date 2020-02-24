@@ -169,10 +169,23 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
         ref_fields = Vec::new();
 
         size = if cls.is_array {
-            if type_params[0].reference_type() {
+            let element_ty = type_params[0];
+
+            if element_ty.is_unit() {
+                InstanceSize::UnitArray
+            } else if element_ty.reference_type() {
                 InstanceSize::ObjArray
+            } else if let Some(tuple_id) = element_ty.tuple_id() {
+                let tuples = vm.tuples.lock();
+                let tuple = tuples.get_tuple(tuple_id);
+
+                if tuple.contains_references() {
+                    unreachable!()
+                } else {
+                    InstanceSize::Array(tuple.size())
+                }
             } else {
-                InstanceSize::Array(type_params[0].size(vm))
+                InstanceSize::Array(element_ty.size(vm))
             }
         } else {
             InstanceSize::Str
@@ -246,9 +259,10 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
         InstanceSize::Fixed(instance_size) => (instance_size as usize, 0),
         InstanceSize::Array(element_size) => (0, element_size as usize),
         InstanceSize::ObjArray => (0, mem::ptr_width_usize()),
+        InstanceSize::UnitArray => (Header::size() as usize + mem::ptr_width_usize(), 0),
         InstanceSize::FreeArray => (0, mem::ptr_width_usize()),
         InstanceSize::Str => (0, 1),
-        InstanceSize::TupleArray => unimplemented!(),
+        InstanceSize::TupleArray(_) => unimplemented!(),
     };
 
     let clsptr = (&*cls_def) as *const ClassDef as *mut ClassDef;
