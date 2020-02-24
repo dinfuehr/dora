@@ -3390,8 +3390,18 @@ where
                 alloc_size = AllocationSize::Fixed(array_header_size);
             }
 
-            InstanceSize::TupleArray(_) => {
-                unimplemented!();
+            InstanceSize::TupleArray(element_size) if temps.len() > 1 => {
+                self.asm.load_mem(
+                    MachineMode::Int32,
+                    REG_TMP1.into(),
+                    Mem::Local(temps[1].offset()),
+                );
+
+                self.asm
+                    .determine_array_size(REG_TMP1, REG_TMP1, element_size, true);
+
+                store_length = true;
+                alloc_size = AllocationSize::Dynamic(REG_TMP1);
             }
 
             InstanceSize::Str if temps.len() > 1 => {
@@ -3407,7 +3417,10 @@ where
                 alloc_size = AllocationSize::Dynamic(REG_TMP1);
             }
 
-            InstanceSize::Array(_) | InstanceSize::ObjArray | InstanceSize::Str => {
+            InstanceSize::TupleArray(_)
+            | InstanceSize::Array(_)
+            | InstanceSize::ObjArray
+            | InstanceSize::Str => {
                 store_length = true;
                 alloc_size = AllocationSize::Fixed(array_header_size);
             }
@@ -3498,7 +3511,7 @@ where
                     InstanceSize::Str => 1,
                     InstanceSize::Fixed(_) => unreachable!(),
                     InstanceSize::FreeArray => unreachable!(),
-                    InstanceSize::TupleArray(_) => unreachable!(),
+                    InstanceSize::TupleArray(esize) => esize,
                     InstanceSize::UnitArray => unreachable!(),
                 };
 

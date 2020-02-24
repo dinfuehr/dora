@@ -14,7 +14,7 @@ use crate::handle::{root, Handle};
 use crate::mem;
 use crate::size::InstanceSize;
 use crate::stdlib::throw_native;
-use crate::vm::{ClassDefId, VM};
+use crate::vm::{ClassDef, ClassDefId, VM};
 use crate::vtable::VTable;
 
 #[repr(C)]
@@ -257,68 +257,24 @@ impl Obj {
         self.size_for_vtblptr(self.header().vtblptr())
     }
 
-    pub fn visit_reference_fields<F>(&mut self, mut f: F)
+    pub fn visit_reference_fields<F>(&mut self, f: F)
     where
         F: FnMut(Slot),
     {
         let classptr = self.header().vtbl().classptr;
         let cls = unsafe { &*classptr };
 
-        if let InstanceSize::ObjArray = cls.size {
-            let array = unsafe { &*(self as *const _ as *const StrArray) };
-
-            // walk through all objects in array
-            let mut ptr = Address::from_ptr(array.data());
-            let last = ptr.add_ptr(array.len() as usize);
-
-            while ptr < last {
-                f(Slot::at(ptr));
-                ptr = ptr.add_ptr(1);
-            }
-
-            return;
-        }
-
-        let addr = self.address();
-
-        for &offset in &cls.ref_fields {
-            let obj = addr.offset(offset as usize);
-            f(Slot::at(obj));
-        }
+        visit_refs(self.address(), cls, None, f);
     }
 
-    pub fn visit_reference_fields_within<F>(&mut self, limit: Address, mut f: F)
+    pub fn visit_reference_fields_within<F>(&mut self, limit: Address, f: F)
     where
         F: FnMut(Slot),
     {
         let classptr = self.header().vtbl().classptr;
         let cls = unsafe { &*classptr };
 
-        if let InstanceSize::ObjArray = cls.size {
-            let array = unsafe { &*(self as *const _ as *const StrArray) };
-
-            // walk through all objects in array
-            let mut ptr = Address::from_ptr(array.data());
-            let last = ptr.add_ptr(array.len() as usize);
-
-            // visit elements until `limit` reached
-            let limit = cmp::min(last, limit);
-
-            while ptr < limit {
-                f(Slot::at(ptr));
-                ptr = ptr.add_ptr(1);
-            }
-
-            return;
-        }
-
-        let addr = self.address();
-
-        // visit the whole object all the time
-        for &offset in &cls.ref_fields {
-            let obj = addr.offset(offset as usize);
-            f(Slot::at(obj));
-        }
+        visit_refs(self.address(), cls, Some(limit), f);
     }
 
     pub fn copy_to(&self, dest: Address, size: usize) {
@@ -329,6 +285,85 @@ impl Obj {
                 size,
             );
         }
+    }
+}
+
+fn visit_refs<F>(object: Address, cls: &ClassDef, limit: Option<Address>, f: F)
+where
+    F: FnMut(Slot),
+{
+    match cls.size {
+        InstanceSize::ObjArray => {
+            visit_object_array_refs(object, limit, f);
+        }
+
+        InstanceSize::TupleArray(element_size) => {
+            visit_tuple_array_refs(object, cls, element_size, f);
+        }
+
+        InstanceSize::UnitArray
+        | InstanceSize::Array(_)
+        | InstanceSize::Str
+        | InstanceSize::FreeArray => {}
+
+        InstanceSize::Fixed(_) => {
+            visit_fixed_object(object, cls, f);
+        }
+    }
+}
+
+fn visit_fixed_object<F>(object: Address, cls: &ClassDef, mut f: F)
+where
+    F: FnMut(Slot),
+{
+    for &offset in &cls.ref_fields {
+        f(Slot::at(object.offset(offset as usize)));
+    }
+}
+
+fn visit_object_array_refs<F>(object: Address, limit: Option<Address>, mut f: F)
+where
+    F: FnMut(Slot),
+{
+    let array = unsafe { &*object.to_ptr::<StrArray>() };
+
+    // walk through all objects in array
+    let mut ptr = Address::from_ptr(array.data());
+    let last = ptr.add_ptr(array.len() as usize);
+
+    // visit elements until `limit` reached
+    let limit = if let Some(limit) = limit {
+        cmp::min(last, limit)
+    } else {
+        last
+    };
+
+    while ptr < limit {
+        f(Slot::at(ptr));
+        ptr = ptr.add_ptr(1);
+    }
+}
+
+fn visit_tuple_array_refs<F>(object: Address, cls: &ClassDef, element_size: i32, mut f: F)
+where
+    F: FnMut(Slot),
+{
+    let array = unsafe { &*object.to_ptr::<StrArray>() };
+
+    if cls.ref_fields.is_empty() {
+        return;
+    }
+
+    // walk through all elements in array
+    let mut ptr = Address::from_ptr(array.data());
+    let last = ptr.offset(element_size as usize * array.len() as usize);
+
+    while ptr < last {
+        // each of those elements might have multiple references
+        for &offset in &cls.ref_fields {
+            f(Slot::at(ptr.offset(offset as usize)));
+        }
+        ptr = ptr.offset(element_size as usize);
     }
 }
 
@@ -452,12 +487,6 @@ impl Str {
         let view = self.content();
 
         CString::new(view).unwrap()
-    }
-
-    pub fn size(&self) -> usize {
-        Header::size() as usize         // Object header
-            + mem::ptr_width() as usize // length field
-            + self.len() // string content
     }
 
     pub fn empty(vm: &VM) -> Ref<Str> {
@@ -698,12 +727,6 @@ where
         unsafe {
             *self.data_mut().offset(idx as isize) = val;
         }
-    }
-
-    pub fn size(&self) -> usize {
-        Header::size() as usize         // Object header
-            + mem::ptr_width() as usize // length field
-            + self.len() * std::mem::size_of::<T>() // array content
     }
 
     pub fn alloc(vm: &VM, len: usize, elem: T, clsid: ClassDefId) -> Ref<Array<T>> {
