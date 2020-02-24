@@ -1,5 +1,5 @@
 fun main() {
-    // assert(not(20) == 245);
+    assert(not(20) == -21);
 
     assert(add(20, 7) == 27);
     assert(sub(20, 7) == 13);
