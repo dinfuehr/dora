@@ -180,7 +180,7 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
                 let tuple = tuples.get_tuple(tuple_id);
 
                 if tuple.contains_references() {
-                    for &offset in tuple.offsets() {
+                    for &offset in tuple.references() {
                         ref_fields.push(offset);
                     }
 

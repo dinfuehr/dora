@@ -2579,7 +2579,6 @@ where
         } else if let Some(tuple_id) = element_type.tuple_id() {
             let element_size = self.vm.tuples.lock().get_tuple(tuple_id).size();
             let slot_value = slot_value.unwrap();
-            // self.asm.debug();
             self.asm
                 .array_address(REG_TMP1, REG_TMP1, REG_TMP2, element_size);
 
@@ -2588,6 +2587,24 @@ where
                 RegOrOffset::Reg(REG_TMP1),
                 RegOrOffset::Offset(slot_value.offset()),
             );
+
+            let write_barrier = self
+                .vm
+                .tuples
+                .lock()
+                .get_tuple(tuple_id)
+                .contains_references();
+
+            if self.vm.gc.needs_write_barrier() && write_barrier {
+                self.asm.load_mem(
+                    MachineMode::Ptr,
+                    array.into(),
+                    Mem::Local(slot_object.offset()),
+                );
+
+                let card_table_offset = self.vm.gc.card_table_offset();
+                self.asm.emit_barrier(array, card_table_offset);
+            }
         } else {
             let slot_value = slot_value.unwrap();
             let value = result_reg_ty(element_type);
