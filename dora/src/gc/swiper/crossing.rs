@@ -39,7 +39,7 @@ impl CrossingMap {
         }
     }
 
-    pub fn set_no_references(&self, card: CardIdx) {
+    fn set_no_references(&self, card: CardIdx) {
         self.set(card, 64);
     }
 
@@ -48,12 +48,12 @@ impl CrossingMap {
         self.set(card, words as u8);
     }
 
-    pub fn set_array_start(&self, card: CardIdx, words: usize) {
+    fn set_array_start(&self, card: CardIdx, words: usize) {
         assert!(words == 1 || words == 2);
         self.set(card, (128 + words) as u8);
     }
 
-    pub fn set_references_at_start(&self, card: CardIdx, refs: usize) {
+    fn set_references_at_start(&self, card: CardIdx, refs: usize) {
         assert!(refs > 0 && refs <= 64);
         self.set(card, 64 + (refs as u8));
     }
