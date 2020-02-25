@@ -378,6 +378,9 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
                 CrossingEntry::ArrayStart(offset) => {
                     return card_start.sub_ptr(offset as usize);
                 }
+
+                CrossingEntry::PreviousObjectWords(_) => unimplemented!(),
+                CrossingEntry::PreviousObjectCards(_) => unimplemented!(),
             }
         }
 

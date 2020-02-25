@@ -171,4 +171,6 @@ pub enum CrossingEntry {
     LeadingRefs(u8),
     FirstObject(u8),
     ArrayStart(u8),
+    PreviousObjectWords(u8),
+    PreviousObjectCards(u8),
 }

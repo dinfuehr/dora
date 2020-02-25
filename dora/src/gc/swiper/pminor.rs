@@ -645,6 +645,9 @@ where
                 self.copy_old_card(card_idx, first_object, region, false);
             }
 
+            CrossingEntry::PreviousObjectWords(_) => unimplemented!(),
+            CrossingEntry::PreviousObjectCards(_) => unimplemented!(),
+
             CrossingEntry::ArrayStart(offset) => {
                 let first_object = card_start.sub_ptr(offset as usize);
 
