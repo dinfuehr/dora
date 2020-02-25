@@ -725,7 +725,8 @@ where
                 continue;
             }
 
-            object.visit_reference_fields_within(end, |field| {
+            let range = Region::new(ptr, end);
+            object.visit_reference_fields_within(range, |field| {
                 let field_ptr = field.get();
 
                 if self.young.contains(field_ptr) {

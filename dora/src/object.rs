@@ -9,7 +9,7 @@ use std::str;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::gc::root::Slot;
-use crate::gc::Address;
+use crate::gc::{Address, Region};
 use crate::handle::{root, Handle};
 use crate::mem;
 use crate::size::InstanceSize;
@@ -267,14 +267,14 @@ impl Obj {
         visit_refs(self.address(), cls, None, f);
     }
 
-    pub fn visit_reference_fields_within<F>(&mut self, limit: Address, f: F)
+    pub fn visit_reference_fields_within<F>(&mut self, range: Region, f: F)
     where
         F: FnMut(Slot),
     {
         let classptr = self.header().vtbl().classptr;
         let cls = unsafe { &*classptr };
 
-        visit_refs(self.address(), cls, Some(limit), f);
+        visit_refs(self.address(), cls, Some(range), f);
     }
 
     pub fn copy_to(&self, dest: Address, size: usize) {
@@ -288,17 +288,17 @@ impl Obj {
     }
 }
 
-fn visit_refs<F>(object: Address, cls: &ClassDef, limit: Option<Address>, f: F)
+fn visit_refs<F>(object: Address, cls: &ClassDef, range: Option<Region>, f: F)
 where
     F: FnMut(Slot),
 {
     match cls.size {
         InstanceSize::ObjArray => {
-            visit_object_array_refs(object, limit, f);
+            visit_object_array_refs(object, range, f);
         }
 
         InstanceSize::TupleArray(element_size) => {
-            visit_tuple_array_refs(object, cls, element_size, f);
+            visit_tuple_array_refs(object, cls, element_size as usize, range, f);
         }
 
         InstanceSize::UnitArray
@@ -321,7 +321,7 @@ where
     }
 }
 
-fn visit_object_array_refs<F>(object: Address, limit: Option<Address>, mut f: F)
+fn visit_object_array_refs<F>(object: Address, range: Option<Region>, mut f: F)
 where
     F: FnMut(Slot),
 {
@@ -329,14 +329,13 @@ where
 
     // walk through all objects in array
     let mut ptr = Address::from_ptr(array.data());
-    let last = ptr.add_ptr(array.len() as usize);
+    let mut limit = ptr.add_ptr(array.len() as usize);
 
     // visit elements until `limit` reached
-    let limit = if let Some(limit) = limit {
-        cmp::min(last, limit)
-    } else {
-        last
-    };
+    if let Some(range) = range {
+        ptr = cmp::max(ptr, range.start);
+        limit = cmp::min(limit, range.end);
+    }
 
     while ptr < limit {
         f(Slot::at(ptr));
@@ -344,8 +343,13 @@ where
     }
 }
 
-fn visit_tuple_array_refs<F>(object: Address, cls: &ClassDef, element_size: i32, mut f: F)
-where
+fn visit_tuple_array_refs<F>(
+    object: Address,
+    cls: &ClassDef,
+    element_size: usize,
+    range: Option<Region>,
+    mut f: F,
+) where
     F: FnMut(Slot),
 {
     let array = unsafe { &*object.to_ptr::<StrArray>() };
@@ -355,10 +359,23 @@ where
     }
 
     // walk through all elements in array
-    let mut ptr = Address::from_ptr(array.data());
-    let last = ptr.offset(element_size as usize * array.len() as usize);
+    let array_start = array.data_address();
+    let array_size_without_header = element_size * array.len() as usize;
+    let array_limit = array_start.offset(array_size_without_header);
 
-    while ptr < last {
+    let mut ptr = array_start;
+    let mut limit = array_limit;
+
+    if let Some(range) = range {
+        if ptr < range.start {
+            let skip = (range.start.offset_from(ptr) + element_size - 1) / element_size;
+            ptr = ptr.offset(skip * element_size);
+        }
+
+        limit = cmp::min(limit, range.end);
+    }
+
+    while ptr < limit {
         // each of those elements might have multiple references
         for &offset in &cls.ref_fields {
             f(Slot::at(ptr.offset(offset as usize)));
@@ -713,6 +730,10 @@ where
 
     pub fn data(&self) -> *const T {
         &self.data as *const u8 as *const T
+    }
+
+    pub fn data_address(&self) -> Address {
+        Address::from_ptr(self.data())
     }
 
     pub fn data_mut(&mut self) -> *mut T {
