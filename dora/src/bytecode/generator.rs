@@ -459,48 +459,18 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     .emit_invoke_direct_void(fct_id, start_reg, num_args);
             }
 
-            CallType::Method(_, _, _) if nil_check => {
+            CallType::Method(_, _, _) => {
                 if fct.is_virtual() {
                     self.visit_call_virtual(return_type, fct_id, start_reg, num_args, return_reg);
+                } else if !nil_check {
+                    self.visit_call_static(return_type, fct_id, start_reg, num_args, return_reg);
                 } else {
                     self.visit_call_direct(return_type, fct_id, start_reg, num_args, return_reg);
                 }
             }
             CallType::Expr(_, _) => unimplemented!(),
-            CallType::Method(_, _, _) | CallType::Fct(_, _, _) => {
-                if return_type.is_unit() {
-                    self.gen
-                        .emit_invoke_static_void(fct_id, start_reg, num_args);
-                } else {
-                    let return_type: BytecodeType = return_type.into();
-
-                    match return_type.into() {
-                        BytecodeType::Bool => self
-                            .gen
-                            .emit_invoke_static_bool(return_reg, fct_id, start_reg, num_args),
-                        BytecodeType::Byte => self
-                            .gen
-                            .emit_invoke_static_byte(return_reg, fct_id, start_reg, num_args),
-                        BytecodeType::Char => self
-                            .gen
-                            .emit_invoke_static_char(return_reg, fct_id, start_reg, num_args),
-                        BytecodeType::Int => self
-                            .gen
-                            .emit_invoke_static_int(return_reg, fct_id, start_reg, num_args),
-                        BytecodeType::Long => self
-                            .gen
-                            .emit_invoke_static_long(return_reg, fct_id, start_reg, num_args),
-                        BytecodeType::Float => self
-                            .gen
-                            .emit_invoke_static_float(return_reg, fct_id, start_reg, num_args),
-                        BytecodeType::Double => self
-                            .gen
-                            .emit_invoke_static_double(return_reg, fct_id, start_reg, num_args),
-                        BytecodeType::Ptr => self
-                            .gen
-                            .emit_invoke_static_ptr(return_reg, fct_id, start_reg, num_args),
-                    }
-                }
+            CallType::Fct(_, _, _) => {
+                self.visit_call_static(return_type, fct_id, start_reg, num_args, return_reg);
             }
 
             CallType::Trait(_, _) => unimplemented!(),
@@ -604,6 +574,49 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 BytecodeType::Ptr => self
                     .gen
                     .emit_invoke_direct_ptr(return_reg, callee_id, start_reg, num_args),
+            }
+        }
+    }
+
+    fn visit_call_static(
+        &mut self,
+        return_type: BuiltinType,
+        callee_id: FctId,
+        start_reg: Register,
+        num_args: usize,
+        return_reg: Register,
+    ) {
+        if return_type.is_unit() {
+            self.gen
+                .emit_invoke_static_void(callee_id, start_reg, num_args);
+        } else {
+            let return_type: BytecodeType = return_type.into();
+
+            match return_type.into() {
+                BytecodeType::Bool => self
+                    .gen
+                    .emit_invoke_static_bool(return_reg, callee_id, start_reg, num_args),
+                BytecodeType::Byte => self
+                    .gen
+                    .emit_invoke_static_byte(return_reg, callee_id, start_reg, num_args),
+                BytecodeType::Char => self
+                    .gen
+                    .emit_invoke_static_char(return_reg, callee_id, start_reg, num_args),
+                BytecodeType::Int => self
+                    .gen
+                    .emit_invoke_static_int(return_reg, callee_id, start_reg, num_args),
+                BytecodeType::Long => self
+                    .gen
+                    .emit_invoke_static_long(return_reg, callee_id, start_reg, num_args),
+                BytecodeType::Float => self
+                    .gen
+                    .emit_invoke_static_float(return_reg, callee_id, start_reg, num_args),
+                BytecodeType::Double => self
+                    .gen
+                    .emit_invoke_static_double(return_reg, callee_id, start_reg, num_args),
+                BytecodeType::Ptr => self
+                    .gen
+                    .emit_invoke_static_ptr(return_reg, callee_id, start_reg, num_args),
             }
         }
     }
