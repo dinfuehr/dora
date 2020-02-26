@@ -22,38 +22,3 @@
 trait Zero {
   @static fun zero() -> Self; // should be `let` instead of `fun`
 }
-
-impl Zero for Bool {
-  @static fun zero() -> Bool = false;
-}
-
-impl Zero for Byte {
-  @static fun zero() -> Byte = 0Y;
-}
-
-impl Zero for Char {
-  @static fun zero() -> Char = '\0';
-}
-
-impl Zero for Int {
-  @static fun zero() -> Int = 0;
-}
-
-impl Zero for Long {
-  @static fun zero() -> Long = 0L;
-}
-
-impl Zero for Float {
-  @static fun zero() -> Float = 0.0F;
-}
-
-impl Zero for Double {
-  @static fun zero() -> Double = 0.0;
-}
-
-// feature not implemented yet
-/*
-impl Zero for Option[T] {
-  @static fun zero() -> Option[T] = ...;
-}
-*/

@@ -1,0 +1,29 @@
+fun main() {
+    let array = arrayZero[Bool](10);
+    assert(array(0) == false);
+    assert(array(9) == false);
+
+    let array = arrayZero[Byte](10);
+    assert(array(0) == 0Y);
+    assert(array(9) == 0Y);
+
+    let array = arrayZero[Char](10);
+    assert(array(0) == '\0');
+    assert(array(9) == '\0');
+
+    let array = arrayZero[Int](10);
+    assert(array(0) == 0);
+    assert(array(9) == 0);
+
+    let array = arrayZero[Long](10);
+    assert(array(0) == 0L);
+    assert(array(9) == 0L);
+
+    let array = arrayZero[Float](10);
+    assert(array(0) == 0.0F);
+    assert(array(9) == 0.0F);
+
+    let array = arrayZero[Double](10);
+    assert(array(0) == 0.0);
+    assert(array(9) == 0.0);
+}

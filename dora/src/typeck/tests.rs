@@ -2144,3 +2144,17 @@ fn test_incompatible_branches() {
         SemError::UnknownCtor("Foo".into(), vec!["Int".into()]),
     );
 }
+
+#[test]
+fn zero_trait_ok() {
+    ok("fun f() { arrayZero[Int](12); }");
+}
+
+#[test]
+fn zero_trait_err() {
+    err(
+        "fun f() { arrayZero[String](12); }",
+        pos(1, 28),
+        SemError::TraitBoundNotSatisfied("String".into(), "Zero".into()),
+    );
+}

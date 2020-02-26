@@ -173,6 +173,7 @@ impl<'ast> VM<'ast> {
                 comparable_trait: empty_trait_id,
                 stringable_trait: empty_trait_id,
                 iterator_trait: Mutex::new(None),
+                zero_trait: empty_trait_id,
 
                 byte_array_def: Mutex::new(None),
                 int_array_def: Mutex::new(None),

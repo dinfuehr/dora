@@ -171,7 +171,7 @@ impl BuiltinType {
         if let Some(cls_id) = self.cls_id(vm) {
             let cls = vm.classes.idx(cls_id);
             let cls = cls.read();
-            return cls.traits.contains(&trait_id);
+            return cls.implements_trait(vm, trait_id);
         }
 
         false
