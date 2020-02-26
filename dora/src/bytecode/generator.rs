@@ -400,7 +400,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
 
-        if let FctKind::Builtin(_intrinsic) = fct.kind {
+        if (fct.kind.is_definition() && !fct.is_virtual()) || fct.kind.is_intrinsic() {
             unimplemented!()
         }
 
