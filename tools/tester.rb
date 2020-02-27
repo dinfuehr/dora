@@ -19,6 +19,9 @@ $ARGS.delete_if do |arg|
   if (m = /\A\-j(\d)+\z/.match(arg))
     $processors = m[1].to_i
     true
+  elsif (m = /\A\-\-binary\=(\S+)\z/.match(arg))
+    $binary = m[1].to_s
+    true
   else
     false
   end
@@ -44,7 +47,6 @@ class TestCase
                 :test_file,
                 :vm_args,
                 :args,
-                :target,
                 :expectation,
                 :optional_configs,
                 :results
@@ -55,7 +57,6 @@ class TestCase
     self.optional_configs = [:main]
     self.results = {}
     self.args = self.vm_args = ""
-    self.target = $release ? "release" : "debug"
   end
 
   def run(mutex)
@@ -101,7 +102,7 @@ class TestCase
   private
   def run_test(optional_vm_args, mutex)
     temp_out = Tempfile.new("dora-test-runner")
-    cmdline = "target/#{target}/dora #{vm_args} #{optional_vm_args} #{test_file} #{args}"
+    cmdline = "#{binary} #{vm_args} #{optional_vm_args} #{test_file} #{args}"
     stdout, stderr, status = Open3.capture3(cmdline)
     result = check_test_run_result(stdout, stderr, status)
     if $no_capture || result != true
@@ -115,6 +116,12 @@ class TestCase
       end
     end
     result
+  end
+
+  def binary
+    return $binary if $binary
+    dir = $release ? "release" : "debug"
+    "target/#{dir}/dora"
   end
 
   def check_test_run_result(stdout, stderr, status)
