@@ -731,6 +731,10 @@ impl MacroAssembler {
         }
     }
 
+    pub fn array_address(&mut self, _dest: Reg, _obj: Reg, _index: Reg, _element_size: i32) {
+        unimplemented!();
+    }
+
     pub fn check_index_out_of_bounds(&mut self, pos: Position, array: Reg, index: Reg) {
         let scratch = self.get_scratch();
         self.load_mem(
