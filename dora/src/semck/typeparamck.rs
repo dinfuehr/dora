@@ -118,7 +118,7 @@ impl<'a, 'ast> TypeParamCheck<'a, 'ast> {
         let cls = cls.read();
 
         for &trait_bound in &tp.trait_bounds {
-            if !cls.traits.contains(&trait_bound) {
+            if !cls.implements_trait(self.vm, trait_bound) {
                 self.fail_trait_bound(trait_bound, ty);
                 succeeded = false;
             }

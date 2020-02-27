@@ -30,6 +30,7 @@ pub struct KnownElements {
     pub comparable_trait: TraitId,
     pub stringable_trait: TraitId,
     pub iterator_trait: Mutex<Option<TraitId>>,
+    pub zero_trait: TraitId,
 
     pub byte_array_def: Mutex<Option<ClassDefId>>,
     pub int_array_def: Mutex<Option<ClassDefId>>,

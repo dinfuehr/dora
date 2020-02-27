@@ -257,7 +257,7 @@ pub fn read_type<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> Option<Bui
                                 let cls = cls.read();
 
                                 for &trait_bound in &tp.trait_bounds {
-                                    if !cls.traits.contains(&trait_bound) {
+                                    if !cls.implements_trait(vm, trait_bound) {
                                         let bound = vm.traits[trait_bound].read();
                                         let name = ty.name(vm);
                                         let trait_name = vm.interner.str(bound.name).to_string();
