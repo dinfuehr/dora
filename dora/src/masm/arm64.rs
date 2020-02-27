@@ -878,8 +878,34 @@ impl MacroAssembler {
         }
     }
 
-    pub fn lea(&mut self, _dest: Reg, _mem: Mem) {
-        unimplemented!();
+    pub fn lea(&mut self, dest: Reg, mem: Mem) {
+        match mem {
+            Mem::Local(offset) => {
+                if fits_u12(offset as u32) {
+                    self.emit_u32(asm::add_imm(1, dest, REG_FP, offset as u32, 0));
+                } else {
+                    let scratch = self.get_scratch();
+                    self.load_int_const(MachineMode::Ptr, *scratch, offset as i64);
+                    self.emit_u32(asm::add_shreg(1, dest, REG_FP, *scratch, Shift::LSL, 0));
+                }
+            }
+
+            Mem::Base(base, disp) => {
+                if fits_u12(disp as u32) {
+                    self.emit_u32(asm::add_imm(1, dest, base, disp as u32, 0));
+                } else {
+                    let scratch = self.get_scratch();
+                    self.load_int_const(MachineMode::Ptr, *scratch, disp as i64);
+                    self.emit_u32(asm::add_shreg(1, dest, base, *scratch, Shift::LSL, 0));
+                }
+            }
+
+            Mem::Index(_base, _index, _scale, _disp) => {
+                unimplemented!();
+            }
+
+            Mem::Offset(_, _, _) => unimplemented!(),
+        }
     }
 
     pub fn emit_barrier(&mut self, src: Reg, card_table_offset: usize) {
@@ -1006,14 +1032,18 @@ impl MacroAssembler {
     }
 
     pub fn copy_reg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
-        self.emit_u32(orr_shreg(
-            size_flag(mode),
-            dest,
-            REG_ZERO,
-            src,
-            Shift::LSL,
-            0,
-        ));
+        if dest == REG_SP || src == REG_SP {
+            self.emit_u32(asm::add_imm(size_flag(mode), dest, src, 0, 0));
+        } else {
+            self.emit_u32(asm::orr_shreg(
+                size_flag(mode),
+                dest,
+                REG_ZERO,
+                src,
+                Shift::LSL,
+                0,
+            ));
+        }
     }
 
     pub fn copy_sp(&mut self, dest: Reg) {
