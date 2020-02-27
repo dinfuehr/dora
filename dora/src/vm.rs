@@ -34,6 +34,7 @@ pub use self::class::{
 pub use self::cnst::{ConstData, ConstId, ConstValue};
 pub use self::enums::{EnumData, EnumId};
 pub use self::exception::{exception_get_and_clear, exception_set};
+pub use self::extension::{ExtensionData, ExtensionId};
 pub use self::fct::{Fct, FctId, FctKind, FctParent, Intrinsic};
 pub use self::field::{Field, FieldDef, FieldId};
 pub use self::global::{GlobalData, GlobalId};
@@ -51,6 +52,7 @@ pub mod class;
 mod cnst;
 mod enums;
 mod exception;
+mod extension;
 mod fct;
 mod field;
 mod global;
@@ -95,6 +97,7 @@ pub struct VM<'ast> {
     pub struct_defs: GrowableVec<Mutex<StructDef>>, // stores all struct definitions
     pub classes: GrowableVec<RwLock<Class>>,   // stores all class source definitions
     pub class_defs: GrowableVec<RwLock<ClassDef>>, // stores all class definitions
+    pub extensions: Vec<RwLock<ExtensionData>>, // stores all extension definitions
     pub tuples: Mutex<Tuples>,                 // stores all tuple definitions
     pub modules: GrowableVec<RwLock<Module>>,  // stores all module source definitions
     pub module_defs: GrowableVec<RwLock<ModuleDef>>, // stores all module definitions
@@ -132,6 +135,7 @@ impl<'ast> VM<'ast> {
             struct_defs: GrowableVec::new(),
             classes: GrowableVec::new(),
             class_defs: GrowableVec::new(),
+            extensions: Vec::new(),
             tuples: Mutex::new(Tuples::new()),
             modules: GrowableVec::new(),
             module_defs: GrowableVec::new(),

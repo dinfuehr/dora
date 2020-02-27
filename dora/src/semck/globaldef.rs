@@ -11,9 +11,9 @@ use crate::sym::SymLevel;
 use crate::ty::BuiltinType;
 use crate::vm::module::ModuleId;
 use crate::vm::{
-    class, module, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, Fct, FctId, FctKind,
-    FctParent, FctSrc, FileId, GlobalData, GlobalId, ImplData, ImplId, NodeMap, StructData,
-    StructId, TraitData, TraitId, TypeParam, VM,
+    class, module, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData,
+    ExtensionId, Fct, FctId, FctKind, FctParent, FctSrc, FileId, GlobalData, GlobalId, ImplData,
+    ImplId, NodeMap, StructData, StructId, TraitData, TraitId, TypeParam, VM,
 };
 use dora_parser::ast::visit::*;
 use dora_parser::ast::*;
@@ -30,6 +30,7 @@ pub fn check<'ast>(
     map_global_defs: &mut NodeMap<GlobalId>,
     map_const_defs: &mut NodeMap<ConstId>,
     map_enum_defs: &mut NodeMap<EnumId>,
+    map_extension_defs: &mut NodeMap<ExtensionId>,
 ) {
     let ast = vm.ast;
     let mut gdef = GlobalDef {
@@ -43,6 +44,7 @@ pub fn check<'ast>(
         map_global_defs,
         map_const_defs,
         map_enum_defs,
+        map_extension_defs,
     };
 
     gdef.visit_ast(ast);
@@ -59,6 +61,7 @@ struct GlobalDef<'x, 'ast: 'x> {
     map_global_defs: &'x mut NodeMap<GlobalId>,
     map_const_defs: &'x mut NodeMap<ConstId>,
     map_enum_defs: &'x mut NodeMap<EnumId>,
+    map_extension_defs: &'x mut NodeMap<ExtensionId>,
 }
 
 impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
@@ -117,18 +120,33 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
     }
 
     fn visit_impl(&mut self, i: &'ast Impl) {
-        let id: ImplId = (self.vm.impls.len() as u32).into();
-        let ximpl = ImplData {
-            id,
-            file: self.file_id.into(),
-            pos: i.pos,
-            trait_id: None,
-            class_id: None,
-            methods: Vec::new(),
-        };
-
-        self.vm.impls.push(RwLock::new(ximpl));
-        self.map_impl_defs.insert(i.id, id);
+        if i.trait_type.is_some() {
+            let id: ImplId = (self.vm.impls.len() as u32).into();
+            let ximpl = ImplData {
+                id,
+                file: self.file_id.into(),
+                pos: i.pos,
+                trait_id: None,
+                class_id: None,
+                methods: Vec::new(),
+            };
+            self.vm.impls.push(RwLock::new(ximpl));
+            self.map_impl_defs.insert(i.id, id);
+        } else {
+            let id: ExtensionId = self.vm.extensions.len().into();
+            let extension = ExtensionData {
+                id,
+                file: self.file_id.into(),
+                pos: i.pos,
+                type_params: Vec::new(),
+                class_ty: BuiltinType::Error,
+                methods: Vec::new(),
+                instance_names: HashMap::new(),
+                static_names: HashMap::new(),
+            };
+            self.vm.extensions.push(RwLock::new(extension));
+            self.map_extension_defs.insert(i.id, id);
+        }
     }
 
     fn visit_module(&mut self, m: &'ast Module) {
@@ -224,6 +242,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
                 traits: Vec::new(),
                 impls: Vec::new(),
+                extensions: Vec::new(),
 
                 type_params: Vec::new(),
                 specializations: RwLock::new(HashMap::new()),

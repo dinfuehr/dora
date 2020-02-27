@@ -11,6 +11,7 @@ mod abstractck;
 mod clsdefck;
 mod constdefck;
 mod enumck;
+mod extensiondefck;
 mod fctdefck;
 mod flowck;
 mod globaldef;
@@ -44,6 +45,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
     let mut map_global_defs = NodeMap::new(); // get GlobalId from ast node
     let mut map_const_defs = NodeMap::new(); // get ConstId from ast node
     let mut map_enum_defs = NodeMap::new(); // get EnumId from ast node
+    let mut map_extension_defs = NodeMap::new(); // get ExtensionId from ast node
 
     // add user defined fcts and classes to vm
     // this check does not look into fct or class bodies
@@ -57,6 +59,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
         &mut map_global_defs,
         &mut map_const_defs,
         &mut map_enum_defs,
+        &mut map_extension_defs,
     );
     return_on_error!(vm);
 
@@ -74,6 +77,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
     globaldefck::check(vm, &vm.ast, &map_global_defs);
     constdefck::check(vm, &vm.ast, &map_const_defs);
     enumck::check(vm, &vm.ast, &map_enum_defs);
+    extensiondefck::check(vm, &vm.ast, &map_extension_defs);
     return_on_error!(vm);
 
     // check super class definition of classes
@@ -251,7 +255,7 @@ pub fn read_type<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> Option<Bui
                                         let trait_name = vm.interner.str(bound.name).to_string();
                                         let msg =
                                             SemError::TraitBoundNotSatisfied(name, trait_name);
-                                        vm.diag.lock().report(file, bound.pos, msg);
+                                        vm.diag.lock().report(file, t.pos(), msg);
                                     }
                                 }
                             }
@@ -370,6 +374,115 @@ pub fn read_type<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> Option<Bui
             let ty = BuiltinType::Lambda(ty);
 
             Some(ty)
+        }
+    }
+}
+
+pub fn read_type_unchecked<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> BuiltinType {
+    match *t {
+        TypeSelf(_) => BuiltinType::This,
+
+        TypeBasic(ref basic) => {
+            let sym = vm.sym.lock().get(basic.name);
+            if let Some(sym) = sym {
+                match sym {
+                    SymClass(cls_id) => {
+                        if basic.params.len() > 0 {
+                            let mut type_params = Vec::new();
+
+                            for param in &basic.params {
+                                let param = read_type_unchecked(vm, file, param);
+                                type_params.push(param);
+                            }
+
+                            let list = TypeList::with(type_params);
+                            let list_id = vm.lists.lock().insert(list);
+                            BuiltinType::Class(cls_id, list_id)
+                        } else {
+                            BuiltinType::from_cls(cls_id, vm)
+                        }
+                    }
+
+                    SymTrait(trait_id) => {
+                        if basic.params.len() > 0 {
+                            let msg = SemError::NoTypeParamsExpected;
+                            vm.diag.lock().report(file, basic.pos, msg);
+                        }
+
+                        BuiltinType::Trait(trait_id)
+                    }
+
+                    SymStruct(struct_id) => {
+                        if basic.params.len() > 0 {
+                            let msg = SemError::NoTypeParamsExpected;
+                            vm.diag.lock().report(file, basic.pos, msg);
+                        }
+
+                        let list_id = vm.lists.lock().insert(TypeList::empty());
+                        BuiltinType::Struct(struct_id, list_id)
+                    }
+
+                    SymEnum(enum_id) => {
+                        if basic.params.len() > 0 {
+                            let msg = SemError::NoTypeParamsExpected;
+                            vm.diag.lock().report(file, basic.pos, msg);
+                        }
+
+                        BuiltinType::Enum(enum_id)
+                    }
+
+                    SymClassTypeParam(cls_id, type_param_id) => {
+                        if basic.params.len() > 0 {
+                            let msg = SemError::NoTypeParamsExpected;
+                            vm.diag.lock().report(file, basic.pos, msg);
+                        }
+
+                        BuiltinType::ClassTypeParam(cls_id, type_param_id)
+                    }
+
+                    SymFctTypeParam(fct_id, type_param_id) => {
+                        if basic.params.len() > 0 {
+                            let msg = SemError::NoTypeParamsExpected;
+                            vm.diag.lock().report(file, basic.pos, msg);
+                        }
+
+                        BuiltinType::FctTypeParam(fct_id, type_param_id)
+                    }
+
+                    _ => {
+                        let name = vm.interner.str(basic.name).to_string();
+                        let msg = SemError::ExpectedType(name);
+                        vm.diag.lock().report(file, basic.pos, msg);
+
+                        BuiltinType::Error
+                    }
+                }
+            } else {
+                let name = vm.interner.str(basic.name).to_string();
+                let msg = SemError::UnknownType(name);
+                vm.diag.lock().report(file, basic.pos, msg);
+
+                BuiltinType::Error
+            }
+        }
+
+        TypeTuple(ref tuple) => {
+            if tuple.subtypes.len() == 0 {
+                BuiltinType::Unit
+            } else {
+                let mut subtypes = Vec::new();
+
+                for subtype in &tuple.subtypes {
+                    subtypes.push(read_type_unchecked(vm, file, subtype));
+                }
+
+                let tuple_id = vm.tuples.lock().insert(vm, subtypes);
+                BuiltinType::Tuple(tuple_id)
+            }
+        }
+
+        TypeLambda(_) => {
+            unimplemented!();
         }
     }
 }

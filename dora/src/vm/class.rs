@@ -11,7 +11,7 @@ use crate::sym::SymLevel;
 use crate::ty::{BuiltinType, TypeList};
 use crate::utils::GrowableVec;
 use crate::vm::VM;
-use crate::vm::{FctId, Field, FieldDef, FieldId, FileId, ImplId, TraitId};
+use crate::vm::{ExtensionId, FctId, Field, FieldDef, FieldId, FileId, ImplId, TraitId};
 use crate::vtable::VTableBox;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
@@ -68,6 +68,7 @@ pub struct Class {
 
     pub traits: Vec<TraitId>,
     pub impls: Vec<ImplId>,
+    pub extensions: Vec<ExtensionId>,
 
     pub type_params: Vec<TypeParam>,
 

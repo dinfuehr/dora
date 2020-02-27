@@ -1265,7 +1265,7 @@ fn test_generic_trait_bounds() {
             class X
             class A[T: Foo]
             fun f() -> A[X] { return nil; }",
-        pos(1, 1),
+        pos(4, 24),
         SemError::TraitBoundNotSatisfied("X".into(), "Foo".into()),
     );
 
@@ -2066,7 +2066,7 @@ fn test_is_types() {
             return f is Foo[Int];
         }
     ",
-        pos(2, 9),
+        pos(5, 25),
         SemError::TraitBoundNotSatisfied("Int".into(), "SomeTrait".into()),
     );
 }

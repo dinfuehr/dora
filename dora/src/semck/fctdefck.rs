@@ -52,6 +52,14 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                 }
             }
 
+            FctParent::Extension(extension_id) => {
+                let extension = vm.extensions[extension_id].read();
+
+                if fct.has_self() {
+                    fct.param_types.push(extension.class_ty);
+                }
+            }
+
             FctParent::Module(_) => {}
 
             FctParent::Trait(_) => {

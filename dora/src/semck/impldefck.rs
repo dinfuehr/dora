@@ -26,7 +26,6 @@ struct ImplCheck<'x, 'ast: 'x> {
     ast: &'ast ast::Ast,
     map_impl_defs: &'x NodeMap<ImplId>,
     file_id: u32,
-
     impl_id: Option<ImplId>,
 }
 
@@ -34,15 +33,9 @@ impl<'x, 'ast> ImplCheck<'x, 'ast> {
     fn check(&mut self) {
         self.visit_ast(self.ast);
     }
-}
 
-impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
-    fn visit_file(&mut self, f: &'ast ast::File) {
-        visit::walk_file(self, f);
-        self.file_id += 1;
-    }
-
-    fn visit_impl(&mut self, i: &'ast ast::Impl) {
+    fn add_impl(&mut self, i: &'ast ast::Impl) {
+        assert!(i.trait_type.is_some());
         self.impl_id = Some(*self.map_impl_defs.get(i.id).unwrap());
 
         visit::walk_impl(self, i);
@@ -100,11 +93,26 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
 
         self.impl_id = None;
     }
+}
+
+impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
+    fn visit_file(&mut self, f: &'ast ast::File) {
+        visit::walk_file(self, f);
+        self.file_id += 1;
+    }
+
+    fn visit_impl(&mut self, i: &'ast ast::Impl) {
+        if i.trait_type.is_some() {
+            self.add_impl(i);
+        }
+    }
 
     fn visit_method(&mut self, f: &'ast ast::Function) {
         if self.impl_id.is_none() {
             return;
         }
+
+        let impl_id = self.impl_id.unwrap();
 
         if f.block.is_none() && !f.internal {
             report(
@@ -121,6 +129,8 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
             FctKind::Source(RwLock::new(FctSrc::new()))
         };
 
+        let parent = FctParent::Impl(impl_id);
+
         let fct = Fct {
             id: FctId(0),
             ast: f,
@@ -128,7 +138,7 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
             name: f.name,
             param_types: Vec::new(),
             return_type: BuiltinType::Unit,
-            parent: FctParent::Impl(self.impl_id.unwrap()),
+            parent: parent,
             has_override: f.has_override,
             has_open: f.has_open,
             has_final: f.has_final,
@@ -154,7 +164,7 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
 
         let fctid = self.vm.add_fct(fct);
 
-        let mut ximpl = self.vm.impls[self.impl_id.unwrap()].write();
+        let mut ximpl = self.vm.impls[impl_id].write();
         ximpl.methods.push(fctid);
     }
 }

@@ -10,7 +10,7 @@ use crate::gc::Address;
 use crate::ty::BuiltinType;
 use crate::utils::GrowableVec;
 use crate::vm::module::ModuleId;
-use crate::vm::{ClassId, FctSrc, FileId, ImplId, TraitId, TypeParam, VM};
+use crate::vm::{ClassId, ExtensionId, FctSrc, FileId, ImplId, TraitId, TypeParam, VM};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct FctId(pub usize);
@@ -199,6 +199,7 @@ pub enum FctParent {
     Trait(TraitId),
     Module(ModuleId),
     Impl(ImplId),
+    Extension(ExtensionId),
     None,
 }
 

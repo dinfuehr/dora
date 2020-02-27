@@ -92,25 +92,8 @@ impl<'a, 'ast> TypeParamCheck<'a, 'ast> {
     fn type_against_definition(&self, tp: &TypeParam, ty: BuiltinType) -> bool {
         let mut succeeded = true;
 
-        let cls_id = ty.cls_id(self.vm);
-
-        if cls_id.is_none() {
-            // Only classes can implement traits at the moment, non-classes
-            // cannot fulfill any of the trait-bounds.
-            for &trait_bound in &tp.trait_bounds {
-                self.fail_trait_bound(trait_bound, ty);
-                succeeded = false;
-            }
-
-            return succeeded;
-        }
-
-        let cls_id = cls_id.unwrap();
-        let cls = self.vm.classes.idx(cls_id);
-        let cls = cls.read();
-
         for &trait_bound in &tp.trait_bounds {
-            if !cls.implements_trait(self.vm, trait_bound) {
+            if !ty.implements_trait(self.vm, trait_bound) {
                 self.fail_trait_bound(trait_bound, ty);
                 succeeded = false;
             }
