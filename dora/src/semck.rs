@@ -235,18 +235,6 @@ pub fn read_type<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> Option<Bui
                             }
 
                             for (tp, ty) in cls.type_params.iter().zip(type_params.iter()) {
-                                if let Some(cls_id) = tp.class_bound {
-                                    let cls = vm.cls(cls_id);
-
-                                    if !ty.subclass_from(vm, cls) {
-                                        let name = ty.name(vm);
-                                        let cls = cls.name(vm);
-
-                                        let msg = SemError::ClassBoundNotSatisfied(name, cls);
-                                        vm.diag.lock().report(file, basic.pos, msg);
-                                    }
-                                }
-
                                 let cls_id = if let Some(cls_id) = ty.cls_id(vm) {
                                     cls_id
                                 } else {

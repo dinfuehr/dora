@@ -351,15 +351,4 @@ mod tests {
     fn test_generic_bound() {
         ok("module Foo class A[T: Foo]");
     }
-
-    #[ignore]
-    #[test]
-    fn test_generic_multiple_module_bounds() {
-        err(
-            "module Foo class Bar
-            class A[T: Foo + Bar]",
-            pos(2, 24),
-            SemError::MultipleClassBounds,
-        );
-    }
 }

@@ -4,7 +4,7 @@ use std::collections::hash_set::HashSet;
 
 use crate::error::msg::SemError;
 use crate::ty::{BuiltinType, TypeList};
-use crate::vm::{ClassId, FileId, TraitId, TypeParam, VM};
+use crate::vm::{FileId, TraitId, TypeParam, VM};
 
 pub fn check_type(vm: &VM, file: FileId, pos: Position, object_type: BuiltinType) -> bool {
     let tp_defs = {
@@ -92,14 +92,6 @@ impl<'a, 'ast> TypeParamCheck<'a, 'ast> {
     fn type_against_definition(&self, tp: &TypeParam, ty: BuiltinType) -> bool {
         let mut succeeded = true;
 
-        if let Some(cls_id) = tp.class_bound {
-            let cls = self.vm.cls(cls_id);
-            if !ty.subclass_from(self.vm, cls) {
-                self.fail_cls_bound(cls_id, ty);
-                succeeded = false;
-            }
-        }
-
         let cls_id = ty.cls_id(self.vm);
 
         if cls_id.is_none() {
@@ -130,13 +122,6 @@ impl<'a, 'ast> TypeParamCheck<'a, 'ast> {
     fn tp_against_definition(&self, tp: &TypeParam, arg: &TypeParam, arg_ty: BuiltinType) -> bool {
         let mut succeeded = true;
 
-        if let Some(cls_id) = tp.class_bound {
-            if tp.class_bound != arg.class_bound {
-                self.fail_cls_bound(cls_id, arg_ty);
-                succeeded = false;
-            }
-        }
-
         if tp.trait_bounds.len() == 0 {
             return succeeded;
         }
@@ -150,16 +135,6 @@ impl<'a, 'ast> TypeParamCheck<'a, 'ast> {
             }
         }
         succeeded
-    }
-
-    fn fail_cls_bound(&self, cls_id: ClassId, ty: BuiltinType) {
-        let name = ty.name(self.vm);
-        let cls = self.vm.classes.idx(cls_id);
-        let cls = cls.read();
-        let cls = self.vm.interner.str(cls.name).to_string();
-
-        let msg = SemError::ClassBoundNotSatisfied(name, cls);
-        self.vm.diag.lock().report(self.file, self.pos, msg);
     }
 
     fn fail_trait_bound(&self, trait_id: TraitId, ty: BuiltinType) {

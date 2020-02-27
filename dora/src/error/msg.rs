@@ -122,9 +122,7 @@ pub enum SemError {
     AssignmentToConst,
     BoundExpected,
     NoTypeParamsExpected,
-    MultipleClassBounds,
     DuplicateTraitBound,
-    ClassBoundNotSatisfied(String, String),
     TraitBoundNotSatisfied(String, String),
     AbstractMethodNotInAbstractClass,
     AbstractMethodWithImplementation,
@@ -426,11 +424,7 @@ impl SemError {
             SemError::AssignmentToConst => "cannot assign to const variable.".into(),
             SemError::BoundExpected => "class or trait bound expected".into(),
             SemError::NoTypeParamsExpected => "no type params allowed".into(),
-            SemError::MultipleClassBounds => "multiple class bounds not allowed".into(),
             SemError::DuplicateTraitBound => "duplicate trait bound".into(),
-            SemError::ClassBoundNotSatisfied(ref name, ref xclass) => {
-                format!("type `{}` not a subclass of `{}`.", name, xclass)
-            }
             SemError::TraitBoundNotSatisfied(ref name, ref xtrait) => {
                 format!("type `{}` does not implement trait `{}`.", name, xtrait)
             }

@@ -1128,10 +1128,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             _ => unreachable!(),
         };
 
-        if let Some(_) = type_param.class_bound {
-            unimplemented!();
-        }
-
         for &trait_id in &type_param.trait_bounds {
             let xtrait = self.vm.traits[trait_id].read();
 

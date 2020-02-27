@@ -328,7 +328,6 @@ pub fn find_methods_in_class(
 #[derive(Clone, Debug)]
 pub struct TypeParam {
     pub name: Name,
-    pub class_bound: Option<ClassId>,
     pub trait_bounds: HashSet<TraitId>,
 }
 
@@ -336,7 +335,6 @@ impl TypeParam {
     pub fn new(name: Name) -> TypeParam {
         TypeParam {
             name,
-            class_bound: None,
             trait_bounds: HashSet::new(),
         }
     }
