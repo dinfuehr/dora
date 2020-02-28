@@ -117,14 +117,28 @@ impl MacroAssembler {
     pub fn increase_stack_frame(&mut self, size: i32) {
         if size > 0 {
             self.load_int_const(MachineMode::Ptr, REG_TMP1, size as i64);
-            self.emit_u32(asm::sub_reg(1, REG_SP, REG_SP, REG_TMP1));
+            self.emit_u32(asm::sub_extreg(
+                1,
+                REG_SP,
+                REG_SP,
+                REG_TMP1,
+                Extend::UXTX,
+                0,
+            ));
         }
     }
 
     pub fn decrease_stack_frame(&mut self, size: i32) {
         if size > 0 {
             self.load_int_const(MachineMode::Ptr, REG_TMP1, size as i64);
-            self.emit_u32(asm::add_reg(1, REG_SP, REG_SP, REG_TMP1));
+            self.emit_u32(asm::add_extreg(
+                1,
+                REG_SP,
+                REG_SP,
+                REG_TMP1,
+                Extend::UXTX,
+                0,
+            ));
         }
     }
 
@@ -335,26 +349,57 @@ impl MacroAssembler {
         self.emit_u32(asm::br(reg));
     }
 
-    pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, _pos: Position) {
-        let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
-            _ => panic!("unimplemented mode {:?}", mode),
-        };
-
-        self.emit_u32(asm::sdiv(x64, dest, lhs, rhs));
+    pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, pos: Position) {
+        self.divmod_common(mode, dest, lhs, rhs, pos, true);
     }
 
-    pub fn int_mod(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, _pos: Position) {
-        let scratch = self.get_scratch();
+    pub fn int_mod(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, pos: Position) {
+        self.divmod_common(mode, dest, lhs, rhs, pos, false);
+    }
+
+    fn divmod_common(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        pos: Position,
+        is_div: bool,
+    ) {
         let x64 = match mode {
             MachineMode::Int32 => 0,
             MachineMode::Int64 => 1,
             _ => panic!("unimplemented mode {:?}", mode),
         };
 
-        self.emit_u32(asm::sdiv(x64, *scratch, lhs, rhs));
-        self.emit_u32(asm::msub(x64, dest, *scratch, rhs, lhs));
+        let lbl_zero = self.create_label();
+        let lbl_done = self.create_label();
+        let lbl_div = self.create_label();
+
+        self.cmp_reg_imm(mode, rhs, 0);
+        self.jump_if(CondCode::Equal, lbl_zero);
+        self.emit_bailout(lbl_zero, Trap::DIV0, pos);
+
+        self.cmp_reg_imm(mode, rhs, -1);
+        self.jump_if(CondCode::NotEqual, lbl_div);
+        if is_div {
+            self.int_neg(mode, dest, lhs);
+        } else {
+            self.load_int_const(mode, dest, 0);
+        }
+        self.jump(lbl_done);
+
+        self.bind_label(lbl_div);
+
+        if is_div {
+            self.emit_u32(asm::sdiv(x64, dest, lhs, rhs));
+        } else {
+            let scratch = self.get_scratch();
+            self.emit_u32(asm::sdiv(x64, *scratch, lhs, rhs));
+            self.emit_u32(asm::msub(x64, dest, *scratch, rhs, lhs));
+        }
+
+        self.bind_label(lbl_done);
     }
 
     pub fn int_mul(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
@@ -434,12 +479,33 @@ impl MacroAssembler {
         self.emit_u32(asm::asrv(x64, dest, lhs, rhs));
     }
 
-    pub fn int_rol(&mut self, _mode: MachineMode, _dest: Reg, _lhs: Reg, _rhs: Reg) {
-        unimplemented!();
+    pub fn int_rol(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => panic!("unimplemented mode {:?}", mode),
+        };
+
+        let max = match mode {
+            MachineMode::Int32 => 32,
+            MachineMode::Int64 => 64,
+            _ => panic!("unimplemented mode {:?}", mode),
+        };
+
+        let scratch = self.get_scratch();
+        self.load_int_const(mode, *scratch, max);
+        self.emit_u32(asm::sub_reg(x64, *scratch, *scratch, rhs));
+        self.emit_u32(asm::rorv(x64, dest, lhs, *scratch));
     }
 
-    pub fn int_ror(&mut self, _mode: MachineMode, _dest: Reg, _lhs: Reg, _rhs: Reg) {
-        unimplemented!();
+    pub fn int_ror(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => panic!("unimplemented mode {:?}", mode),
+        };
+
+        self.emit_u32(asm::rorv(x64, dest, lhs, rhs));
     }
 
     pub fn int_or(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
@@ -940,7 +1006,15 @@ impl MacroAssembler {
                     self.emit_u32(asm::add_shreg(1, *scratch, base, *scratch, Shift::LSL, 0));
                 }
 
-                let inst = asm::add_shreg(1, dest, *scratch, index, Shift::LSL, scale as u32);
+                let shift = match scale {
+                    1 => 0,
+                    2 => 1,
+                    4 => 2,
+                    8 => 3,
+                    _ => unimplemented!(),
+                };
+
+                let inst = asm::add_shreg(1, dest, *scratch, index, Shift::LSL, shift);
                 self.emit_u32(inst);
             }
 
@@ -949,10 +1023,11 @@ impl MacroAssembler {
     }
 
     pub fn emit_barrier(&mut self, src: Reg, card_table_offset: usize) {
-        self.emit_u32(asm::lsr_imm(1, src, src, CARD_SIZE_BITS as u32));
-        let scratch = self.get_scratch();
-        self.load_int_const(MachineMode::Ptr, *scratch, card_table_offset as i64);
-        let inst = asm::strb_ind(REG_ZERO, src, *scratch, LdStExtend::LSL, 0);
+        let scratch1 = self.get_scratch();
+        self.emit_u32(asm::lsr_imm(1, *scratch1, src, CARD_SIZE_BITS as u32));
+        let scratch2 = self.get_scratch();
+        self.load_int_const(MachineMode::Ptr, *scratch2, card_table_offset as i64);
+        let inst = asm::strb_ind(REG_ZERO, *scratch1, *scratch2, LdStExtend::LSL, 0);
         self.emit_u32(inst);
     }
 
@@ -1233,9 +1308,13 @@ impl MacroAssembler {
         self.emit_position(pos);
     }
 
-    pub fn throw(&mut self, receiver: Reg, pos: Position) {
+    pub fn throw(&mut self, exception: Reg, pos: Position) {
         let vm = get_vm();
-        self.copy_reg(MachineMode::Ptr, REG_PARAMS[0], receiver);
+        self.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(REG_THREAD, ThreadLocalData::exception_object_offset()),
+            exception.into(),
+        );
         self.raw_call(vm.throw_stub().to_ptr());
         self.emit_position(pos);
     }
