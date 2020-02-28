@@ -78,6 +78,7 @@ pub fn set_vm(vm: &VM) {
     }
 }
 
+#[inline(never)]
 pub fn stack_pointer() -> Address {
     let local: i32 = 0;
     Address::from_ptr(&local as *const i32)

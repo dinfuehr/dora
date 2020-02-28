@@ -917,6 +917,14 @@ pub fn fcvtzs(sf: u32, ty: u32, rd: Reg, rn: FReg) -> u32 {
     cls_fp_int(sf, 0, ty, 0b11, 0b000, rn.asm(), rd.asm())
 }
 
+pub fn fmov_fs(sf: u32, ty: u32, rd: FReg, rn: Reg) -> u32 {
+    cls_fp_int(sf, 0, ty, 0b00, 0b111, rn.asm(), rd.asm())
+}
+
+pub fn fmov_sf(sf: u32, ty: u32, rd: Reg, rn: FReg) -> u32 {
+    cls_fp_int(sf, 0, ty, 0b00, 0b110, rn.asm(), rd.asm())
+}
+
 fn cls_fp_int(sf: u32, s: u32, ty: u32, rmode: u32, opcode: u32, rn: u32, rd: u32) -> u32 {
     assert!(fits_bit(sf));
     assert!(fits_bit(s));

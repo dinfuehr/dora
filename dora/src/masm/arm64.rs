@@ -77,16 +77,14 @@ impl MacroAssembler {
         );
         self.emit_u32_at(
             (patch_offset + 4) as i32,
-            asm::movk(1, REG_TMP1, (stacksize >> 16) & 0xFFFF, 0),
+            asm::movk(1, REG_TMP1, (stacksize >> 16) & 0xFFFF, 1),
         );
     }
 
     pub fn check_stack_pointer(&mut self, lbl_overflow: Label) {
-        self.emit_u32(asm::ldrx_imm(
-            REG_TMP1,
-            REG_THREAD,
-            ThreadLocalData::stack_limit_offset() as u32,
-        ));
+        let offset = ThreadLocalData::stack_limit_offset() as u32;
+        assert!(offset % 8 == 0);
+        self.emit_u32(asm::ldrx_imm(REG_TMP1, REG_THREAD, offset / 8));
         self.emit_u32(asm::add_extreg(
             1,
             REG_TMP2,
@@ -553,25 +551,49 @@ impl MacroAssembler {
     pub fn int_as_float(
         &mut self,
         dest_mode: MachineMode,
-        _dest: FReg,
+        dest: FReg,
         src_mode: MachineMode,
-        _src: Reg,
+        src: Reg,
     ) {
         assert!(src_mode.size() == dest_mode.size());
 
-        unimplemented!();
+        let x64 = match src_mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unreachable!(),
+        };
+
+        let flt = match dest_mode {
+            MachineMode::Float32 => 0,
+            MachineMode::Float64 => 1,
+            _ => unreachable!(),
+        };
+
+        self.emit_u32(asm::fmov_fs(x64, flt, dest, src));
     }
 
     pub fn float_as_int(
         &mut self,
         dest_mode: MachineMode,
-        _dest: Reg,
+        dest: Reg,
         src_mode: MachineMode,
-        _src: FReg,
+        src: FReg,
     ) {
         assert!(src_mode.size() == dest_mode.size());
 
-        unimplemented!();
+        let x64 = match dest_mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unreachable!(),
+        };
+
+        let flt = match src_mode {
+            MachineMode::Float32 => 0,
+            MachineMode::Float64 => 1,
+            _ => unreachable!(),
+        };
+
+        self.emit_u32(asm::fmov_sf(x64, flt, dest, src));
     }
 
     pub fn float_add(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
@@ -696,8 +718,6 @@ impl MacroAssembler {
         element_size: i32,
         with_header: bool,
     ) {
-        assert!(element_size == 1 || element_size == 2 || element_size == 4 || element_size == 8);
-
         let header_size = if with_header {
             Header::size() + ptr_width()
         } else {
@@ -711,7 +731,9 @@ impl MacroAssembler {
                 0
             };
 
-        if element_size != 1 {
+        if element_size == 1 {
+            self.emit_u32(asm::add_imm(1, dest, length, size as u32, 0));
+        } else if element_size == 2 || element_size == 4 || element_size == 8 {
             let shift = match element_size {
                 2 => 1,
                 4 => 2,
@@ -720,19 +742,27 @@ impl MacroAssembler {
             };
 
             self.emit_u32(asm::lsl_imm(1, dest, length, shift));
+            self.emit_u32(asm::add_imm(1, dest, dest, size as u32, 0));
         } else {
-            self.copy_reg(MachineMode::Ptr, dest, length);
+            let scratch = self.get_scratch();
+            self.load_int_const(MachineMode::Ptr, *scratch, element_size as i64);
+            self.emit_u32(asm::mul(1, dest, length, *scratch));
+            self.emit_u32(asm::add_imm(1, dest, dest, size as u32, 0));
         }
-
-        self.emit_u32(asm::add_imm(1, dest, dest, size as u32, 0));
 
         if element_size != ptr_width() {
             self.emit_u32(asm::and_imm(1, dest, dest, -ptr_width() as u64));
         }
     }
 
-    pub fn array_address(&mut self, _dest: Reg, _obj: Reg, _index: Reg, _element_size: i32) {
-        unimplemented!();
+    pub fn array_address(&mut self, dest: Reg, obj: Reg, index: Reg, element_size: i32) {
+        let offset = Header::size() + ptr_width();
+        let scratch = self.get_scratch();
+
+        self.load_int_const(MachineMode::Ptr, *scratch, element_size as i64);
+        self.emit_u32(asm::mul(1, *scratch, index, *scratch));
+        self.emit_u32(asm::add_imm(1, *scratch, *scratch, offset as u32, 0));
+        self.emit_u32(asm::add_reg(1, dest, obj, *scratch));
     }
 
     pub fn check_index_out_of_bounds(&mut self, pos: Position, array: Reg, index: Reg) {
@@ -900,8 +930,18 @@ impl MacroAssembler {
                 }
             }
 
-            Mem::Index(_base, _index, _scale, _disp) => {
-                unimplemented!();
+            Mem::Index(base, index, scale, disp) => {
+                let scratch = self.get_scratch();
+
+                if fits_u12(disp as u32) {
+                    self.emit_u32(asm::add_imm(1, *scratch, base, disp as u32, 0));
+                } else {
+                    self.load_int_const(MachineMode::Ptr, *scratch, disp as i64);
+                    self.emit_u32(asm::add_shreg(1, *scratch, base, *scratch, Shift::LSL, 0));
+                }
+
+                let inst = asm::add_shreg(1, dest, *scratch, index, Shift::LSL, scale as u32);
+                self.emit_u32(inst);
             }
 
             Mem::Offset(_, _, _) => unimplemented!(),

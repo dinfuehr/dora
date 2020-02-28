@@ -3,12 +3,12 @@ use std::mem::size_of;
 
 use dora_parser::lexer::position::Position;
 
-use crate::compiler::codegen::register_for_mode;
+use crate::compiler::codegen::AnyReg;
 use crate::compiler::CodeDescriptor;
 use crate::compiler::{Code, GcPoint, JitDescriptor, JitFct, JitFctId};
 use crate::cpu::{
-    FReg, Mem, Reg, CCALL_FREG_PARAMS, CCALL_REG_PARAMS, FREG_PARAMS, PARAM_OFFSET, REG_FP,
-    REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
+    FReg, Mem, Reg, CCALL_FREG_PARAMS, CCALL_REG_PARAMS, FREG_PARAMS, FREG_TMP1, PARAM_OFFSET,
+    REG_FP, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1,
 };
 use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
@@ -199,7 +199,12 @@ where
                         .load_mem(mode, reg.into(), Mem::Base(REG_SP, sp_offset));
                 }
                 ArgumentDestination::Offset(mode, offset) => {
-                    let reg = register_for_mode(mode);
+                    let reg: AnyReg = if mode.is_float() {
+                        FREG_TMP1.into()
+                    } else {
+                        REG_TMP1.into()
+                    };
+
                     self.masm
                         .load_mem(mode, reg.into(), Mem::Base(REG_SP, sp_offset));
                     self.masm.store_mem(
@@ -214,11 +219,11 @@ where
                 }
                 ArgumentDestination::HandleOffset(offset) => {
                     offsets.push(sp_offset - framesize);
-                    self.masm.lea(REG_RESULT, Mem::Base(REG_SP, sp_offset));
+                    self.masm.lea(REG_TMP1, Mem::Base(REG_SP, sp_offset));
                     self.masm.store_mem(
                         MachineMode::Ptr,
                         Mem::Base(REG_SP, offset as i32 * mem::ptr_width()),
-                        REG_RESULT.into(),
+                        REG_TMP1.into(),
                     );
                 }
             }

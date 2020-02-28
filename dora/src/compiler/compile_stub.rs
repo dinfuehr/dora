@@ -141,6 +141,8 @@ where
             REG_TMP1.into(),
         );
 
+        self.masm.copy_reg(MachineMode::Ptr, REG_TMP1, REG_RESULT);
+
         // restore argument registers from the stack
         self.load_params(offset_params);
 
@@ -148,7 +150,7 @@ where
         self.masm.epilog_without_return();
 
         // jump to compiled function
-        self.masm.jump_reg(REG_RESULT);
+        self.masm.jump_reg(REG_TMP1);
 
         self.masm
             .jit(self.vm, framesize, JitDescriptor::CompileStub, false)
