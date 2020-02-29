@@ -366,46 +366,131 @@ fn cls_ldst_regoffset(
 }
 
 pub fn ldrb_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
-    cls_ldst_regimm(0b00, 0, 0b01, imm12, rn, rt)
+    assert!(rt.is_gpr());
+    cls_ldst_regimm(0b00, 0, 0b01, imm12, rn, rt.asm())
 }
 
 pub fn ldrh_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
-    cls_ldst_regimm(0b01, 0, 0b01, imm12, rn, rt)
+    assert!(rt.is_gpr());
+    cls_ldst_regimm(0b01, 0, 0b01, imm12, rn, rt.asm())
 }
 
 pub fn ldrw_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
-    cls_ldst_regimm(0b10, 0, 0b01, imm12, rn, rt)
+    assert!(rt.is_gpr());
+    cls_ldst_regimm(0b10, 0, 0b01, imm12, rn, rt.asm())
 }
 
 pub fn ldrx_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
-    cls_ldst_regimm(0b11, 0, 0b01, imm12, rn, rt)
+    assert!(rt.is_gpr());
+    cls_ldst_regimm(0b11, 0, 0b01, imm12, rn, rt.asm())
+}
+
+pub fn ldrs_imm(rt: FReg, rn: Reg, imm12: u32) -> u32 {
+    cls_ldst_regimm(0b11, 0, 0b01, imm12, rn, rt.asm())
+}
+
+pub fn ldrd_imm(rt: FReg, rn: Reg, imm12: u32) -> u32 {
+    cls_ldst_regimm(0b11, 0, 0b01, imm12, rn, rt.asm())
 }
 
 pub fn strb_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
-    cls_ldst_regimm(0b00, 0, 0b00, imm12, rn, rt)
+    assert!(rt.is_gpr());
+    cls_ldst_regimm(0b00, 0, 0b00, imm12, rn, rt.asm())
 }
 
 pub fn strh_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
-    cls_ldst_regimm(0b01, 0, 0b00, imm12, rn, rt)
+    assert!(rt.is_gpr());
+    cls_ldst_regimm(0b01, 0, 0b00, imm12, rn, rt.asm())
 }
 
 pub fn strw_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
-    cls_ldst_regimm(0b10, 0, 0b00, imm12, rn, rt)
+    assert!(rt.is_gpr());
+    cls_ldst_regimm(0b10, 0, 0b00, imm12, rn, rt.asm())
 }
 
 pub fn strx_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
-    cls_ldst_regimm(0b11, 0, 0b00, imm12, rn, rt)
+    assert!(rt.is_gpr());
+    cls_ldst_regimm(0b11, 0, 0b00, imm12, rn, rt.asm())
 }
 
-fn cls_ldst_regimm(size: u32, v: u32, opc: u32, imm12: u32, rn: Reg, rt: Reg) -> u32 {
+fn cls_ldst_regimm(size: u32, v: u32, opc: u32, imm12: u32, rn: Reg, rt: u32) -> u32 {
     assert!(fits_u2(size));
     assert!(fits_bit(v));
     assert!(fits_u2(opc));
     assert!(fits_u12(imm12));
-    assert!(rn.is_gpr());
-    assert!(rt.is_gpr_or_zero());
+    assert!(rn.is_gpr_or_sp());
+    assert!(fits_u5(rt));
 
-    0b111001u32 << 24 | size << 30 | v << 26 | opc << 22 | imm12 << 10 | rn.asm() << 5 | rt.asm()
+    0b111001u32 << 24 | size << 30 | v << 26 | opc << 22 | imm12 << 10 | rn.asm() << 5 | rt
+}
+
+pub fn ldrb_unscaled_imm(rt: Reg, rn: Reg, imm9: i32) -> u32 {
+    assert!(rt.is_gpr());
+    cls_ldst_reg_unscaledimm(0b00, 0, 0b01, imm9, rn, rt.asm())
+}
+
+pub fn ldrh_unscaled_imm(rt: Reg, rn: Reg, imm9: i32) -> u32 {
+    assert!(rt.is_gpr());
+    cls_ldst_reg_unscaledimm(0b01, 0, 0b01, imm9, rn, rt.asm())
+}
+
+pub fn ldrw_unscaled_imm(rt: Reg, rn: Reg, imm9: i32) -> u32 {
+    assert!(rt.is_gpr());
+    cls_ldst_reg_unscaledimm(0b10, 0, 0b01, imm9, rn, rt.asm())
+}
+
+pub fn ldrx_unscaled_imm(rt: Reg, rn: Reg, imm9: i32) -> u32 {
+    assert!(rt.is_gpr());
+    cls_ldst_reg_unscaledimm(0b11, 0, 0b01, imm9, rn, rt.asm())
+}
+
+pub fn ldrs_unscaled_imm(rt: FReg, rn: Reg, imm9: i32) -> u32 {
+    cls_ldst_reg_unscaledimm(0b10, 1, 0b01, imm9, rn, rt.asm())
+}
+
+pub fn ldrd_unscaled_imm(rt: FReg, rn: Reg, imm9: i32) -> u32 {
+    cls_ldst_reg_unscaledimm(0b11, 1, 0b01, imm9, rn, rt.asm())
+}
+
+pub fn strb_unscaled_imm(rt: Reg, rn: Reg, imm9: i32) -> u32 {
+    assert!(rt.is_gpr());
+    cls_ldst_reg_unscaledimm(0b00, 0, 0b00, imm9, rn, rt.asm())
+}
+
+pub fn strh_unscaled_imm(rt: Reg, rn: Reg, imm9: i32) -> u32 {
+    assert!(rt.is_gpr());
+    cls_ldst_reg_unscaledimm(0b01, 0, 0b00, imm9, rn, rt.asm())
+}
+
+pub fn strw_unscaled_imm(rt: Reg, rn: Reg, imm9: i32) -> u32 {
+    assert!(rt.is_gpr());
+    cls_ldst_reg_unscaledimm(0b10, 0, 0b00, imm9, rn, rt.asm())
+}
+
+pub fn strx_unscaled_imm(rt: Reg, rn: Reg, imm9: i32) -> u32 {
+    assert!(rt.is_gpr());
+    cls_ldst_reg_unscaledimm(0b11, 0, 0b00, imm9, rn, rt.asm())
+}
+
+pub fn strs_unscaled_imm(rt: FReg, rn: Reg, imm9: i32) -> u32 {
+    cls_ldst_reg_unscaledimm(0b10, 1, 0b00, imm9, rn, rt.asm())
+}
+
+pub fn strd_unscaled_imm(rt: FReg, rn: Reg, imm9: i32) -> u32 {
+    cls_ldst_reg_unscaledimm(0b11, 1, 0b00, imm9, rn, rt.asm())
+}
+
+fn cls_ldst_reg_unscaledimm(size: u32, v: u32, opc: u32, imm9: i32, rn: Reg, rt: u32) -> u32 {
+    assert!(fits_u2(size));
+    assert!(fits_bit(v));
+    assert!(fits_u2(opc));
+    assert!(fits_i9(imm9));
+    assert!(rn.is_gpr_or_sp());
+    assert!(fits_u5(rt));
+
+    let imm = (imm9 as u32) & 0x1FF;
+
+    size << 30 | 0b111 << 27 | v << 26 | opc << 22 | imm << 12 | rn.asm() << 5 | rt
 }
 
 pub fn ldrw_literal(rt: Reg, imm19: i32) -> u32 {
@@ -1175,6 +1260,10 @@ fn fits_i7(imm: i32) -> bool {
 
 pub fn fits_u12(imm: u32) -> bool {
     imm < 4096
+}
+
+pub fn fits_i9(imm: i32) -> bool {
+    -256 <= imm && imm < 256
 }
 
 fn fits_i12(imm: i32) -> bool {
