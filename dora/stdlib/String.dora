@@ -91,7 +91,6 @@
     if data == 0L { return "0"; }
     let array = Array[Byte](16);
     var at = array.length();
-    array(at) = '0'.toInt().toByte();
     while (data != 0L) {
       let digit = (data & 0xFL).toInt();
 
