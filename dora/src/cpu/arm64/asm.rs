@@ -705,6 +705,40 @@ fn cls_dataproc2(sf: u32, s: u32, rm: Reg, opcode: u32, rn: Reg, rd: Reg) -> u32
         | rd.asm()
 }
 
+pub fn rbit(sf: u32, rd: Reg, rn: Reg) -> u32 {
+    cls_dataproc1(sf, 0, 0b00000, 0b000000, rn, rd)
+}
+
+pub fn rev(sf: u32, rd: Reg, rn: Reg) -> u32 {
+    cls_dataproc1(sf, 0, 0b00000, 0b000001, rn, rd)
+}
+
+pub fn clz(sf: u32, rd: Reg, rn: Reg) -> u32 {
+    cls_dataproc1(sf, 0, 0b00000, 0b000100, rn, rd)
+}
+
+pub fn cls(sf: u32, rd: Reg, rn: Reg) -> u32 {
+    cls_dataproc1(sf, 0, 0b00000, 0b000101, rn, rd)
+}
+
+fn cls_dataproc1(sf: u32, s: u32, opcode2: u32, opcode: u32, rn: Reg, rd: Reg) -> u32 {
+    assert!(fits_bit(sf));
+    assert!(fits_bit(sf));
+    assert!(fits_u5(opcode2));
+    assert!(fits_u6(opcode));
+    assert!(rn.is_gpr());
+    assert!(rd.is_gpr());
+
+    sf << 31
+        | 1 << 30
+        | s << 29
+        | 0b11010110 << 21
+        | opcode2 << 16
+        | opcode << 10
+        | rn.asm() << 5
+        | rd.asm()
+}
+
 pub fn madd(sf: u32, rd: Reg, rn: Reg, rm: Reg, ra: Reg) -> u32 {
     cls_dataproc3(sf, 0, 0, rm, 0, ra, rn, rd)
 }
@@ -1028,6 +1062,48 @@ fn cls_fp_int(sf: u32, s: u32, ty: u32, rmode: u32, opcode: u32, rn: u32, rd: u3
         | opcode << 16
         | rn << 5
         | rd
+}
+
+pub fn cnt(q: u32, size: u32, rd: FReg, rn: FReg) -> u32 {
+    cls_simd_2regs_misc(q, 0, size, 0b00101, rn, rd)
+}
+
+fn cls_simd_2regs_misc(q: u32, u: u32, size: u32, opcode: u32, rn: FReg, rd: FReg) -> u32 {
+    assert!(fits_bit(q));
+    assert!(fits_bit(u));
+    assert!(fits_u2(size));
+    assert!(fits_u5(opcode));
+
+    q << 30
+        | u << 29
+        | 0b01110 << 24
+        | size << 22
+        | 0b10000 << 17
+        | opcode << 12
+        | 0b10 << 10
+        | rn.asm() << 5
+        | rd.asm()
+}
+
+pub fn addv(q: u32, size: u32, rd: FReg, rn: FReg) -> u32 {
+    cls_simd_across_lanes(q, 0, size, 0b11011, rn, rd)
+}
+
+fn cls_simd_across_lanes(q: u32, u: u32, size: u32, opcode: u32, rn: FReg, rd: FReg) -> u32 {
+    assert!(fits_bit(q));
+    assert!(fits_bit(u));
+    assert!(fits_u2(size));
+    assert!(fits_u5(opcode));
+
+    q << 30
+        | u << 29
+        | 0b01110 << 24
+        | size << 22
+        | 0b11000 << 17
+        | opcode << 12
+        | 0b10 << 10
+        | rn.asm() << 5
+        | rd.asm()
 }
 
 pub fn fcmp(ty: u32, rn: FReg, rm: FReg) -> u32 {

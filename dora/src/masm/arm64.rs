@@ -538,28 +538,76 @@ impl MacroAssembler {
         self.emit_u32(asm::eor_shreg(x64, dest, lhs, rhs, Shift::LSL, 0));
     }
 
-    pub fn count_bits(&mut self, _mode: MachineMode, _dest: Reg, _src: Reg, _count_one_bits: bool) {
-        unimplemented!();
+    pub fn count_bits(&mut self, mode: MachineMode, dest: Reg, src: Reg, count_one_bits: bool) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => panic!("unimplemented mode {:?}", mode),
+        };
+
+        let fty = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => panic!("unimplemented mode {:?}", mode),
+        };
+
+        let scratch = FREG_TMP1;
+        let scratch_src = self.get_scratch();
+
+        let src = if count_one_bits {
+            src
+        } else {
+            self.int_not(mode, *scratch_src, src);
+            *scratch_src
+        };
+
+        self.emit_u32(asm::fmov_fs(x64, fty, scratch, src));
+        self.emit_u32(asm::cnt(0, 0b00, scratch, scratch));
+        self.emit_u32(asm::addv(0, 0b00, scratch, scratch));
+        self.emit_u32(asm::fmov_sf(x64, fty, dest, scratch));
     }
 
     pub fn count_bits_leading(
         &mut self,
-        _mode: MachineMode,
-        _dest: Reg,
-        _src: Reg,
-        _count_one_bits: bool,
+        mode: MachineMode,
+        dest: Reg,
+        src: Reg,
+        count_one_bits: bool,
     ) {
-        unimplemented!();
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => panic!("unimplemented mode {:?}", mode),
+        };
+
+        if count_one_bits {
+            self.int_not(mode, dest, src);
+            self.emit_u32(asm::clz(x64, dest, dest));
+        } else {
+            self.emit_u32(asm::clz(x64, dest, src));
+        }
     }
 
     pub fn count_bits_trailing(
         &mut self,
-        _mode: MachineMode,
-        _dest: Reg,
-        _src: Reg,
-        _count_one_bits: bool,
+        mode: MachineMode,
+        dest: Reg,
+        src: Reg,
+        count_one_bits: bool,
     ) {
-        unimplemented!();
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => panic!("unimplemented mode {:?}", mode),
+        };
+
+        self.emit_u32(asm::rbit(x64, dest, src));
+
+        if count_one_bits {
+            self.int_not(mode, dest, dest);
+        }
+
+        self.emit_u32(asm::clz(x64, dest, dest));
     }
 
     pub fn int_to_float(
