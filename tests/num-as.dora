@@ -6,14 +6,14 @@ fun main() {
     assert(4.2E-45F.asInt() == 3);
     assert((-1F).asInt() == (-1082130432));
     assert((-0F).asInt() == (-2147483648));
-    assert((0.0F/0.0F).asInt() == (-4194304));
+    assert((0.0F/0.0F).asInt() & !(1 << 31) == 0x7FC0_0000);
 
     assert(0.0.asLong() == 0L);
     assert(1.4E-45.asLong() == 3936137728114922858L);
     assert(4.2E-45.asLong() == 3942895214107701263L);
     assert((-1.0).asLong() == (-4616189618054758400L));
     assert((-0.0).asLong() == (-9223372036854775808L));
-    assert((0.0/0.0).asLong() == (-2251799813685248L));
+    assert((0.0/0.0).asLong() & !(1L << 63) == 0x7FF8_0000_0000_0000L);
 
     assert(0.0F == 0.asFloat());
     assert(1.4E-45F == 1.asFloat());
