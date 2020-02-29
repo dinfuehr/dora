@@ -428,23 +428,18 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             Register::zero()
         };
         self.gen.set_position(expr.pos);
-        let (arg_start_reg, nil_check) = match *call_type {
+        let arg_start_reg = match *call_type {
             CallType::CtorNew(ty, _) => {
                 let cls_id = specialize_class_ty(self.vm, ty);
                 self.gen.emit_new_object(start_reg, cls_id);
-                (start_reg.offset(1), true)
+                start_reg.offset(1)
             }
             CallType::Method(_, _, _) => {
-                let nil_check = match arg_types[0] {
-                    BytecodeType::Ptr => true,
-                    _ => false,
-                };
-
                 let obj_expr = expr.object().expect("method target required");
                 self.visit_expr(obj_expr, DataDest::Reg(start_reg));
-                (start_reg.offset(1), nil_check)
+                start_reg.offset(1)
             }
-            _ => (start_reg, false),
+            _ => start_reg,
         };
 
         for (idx, arg) in expr.args.iter().enumerate() {
@@ -462,7 +457,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             CallType::Method(_, _, _) => {
                 if fct.is_virtual() {
                     self.visit_call_virtual(return_type, fct_id, start_reg, num_args, return_reg);
-                } else if !nil_check {
+                } else if arg_types[0] != BytecodeType::Ptr {
                     self.visit_call_static(return_type, fct_id, start_reg, num_args, return_reg);
                 } else {
                     self.visit_call_direct(return_type, fct_id, start_reg, num_args, return_reg);
