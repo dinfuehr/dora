@@ -373,23 +373,10 @@ impl MacroAssembler {
         };
 
         let lbl_zero = self.create_label();
-        let lbl_done = self.create_label();
-        let lbl_div = self.create_label();
 
         self.cmp_reg_imm(mode, rhs, 0);
         self.jump_if(CondCode::Equal, lbl_zero);
         self.emit_bailout(lbl_zero, Trap::DIV0, pos);
-
-        self.cmp_reg_imm(mode, rhs, -1);
-        self.jump_if(CondCode::NotEqual, lbl_div);
-        if is_div {
-            self.int_neg(mode, dest, lhs);
-        } else {
-            self.load_int_const(mode, dest, 0);
-        }
-        self.jump(lbl_done);
-
-        self.bind_label(lbl_div);
 
         if is_div {
             self.emit_u32(asm::sdiv(x64, dest, lhs, rhs));
@@ -398,8 +385,6 @@ impl MacroAssembler {
             self.emit_u32(asm::sdiv(x64, *scratch, lhs, rhs));
             self.emit_u32(asm::msub(x64, dest, *scratch, rhs, lhs));
         }
-
-        self.bind_label(lbl_done);
     }
 
     pub fn int_mul(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
@@ -957,7 +942,7 @@ impl MacroAssembler {
         base: Reg,
         disp: i32,
     ) {
-        /*if disp >= 0 && disp % mode.size() == 0 && asm::fits_u12((disp / mode.size()) as u32) {
+        if disp >= 0 && disp % mode.size() == 0 && asm::fits_u12((disp / mode.size()) as u32) {
             let disp = (disp / mode.size()) as u32;
             let inst = match mode {
                 MachineMode::Int8 => asm::ldrb_imm(dest.reg(), base, disp),
@@ -967,8 +952,7 @@ impl MacroAssembler {
                 MachineMode::Float64 => asm::ldrd_imm(dest.freg(), base, disp),
             };
             self.emit_u32(inst);
-        } else*/
-        if asm::fits_i9(disp) {
+        } else if asm::fits_i9(disp) {
             let inst = match mode {
                 MachineMode::Int8 => asm::ldrb_unscaled_imm(dest.reg(), base, disp),
                 MachineMode::Int32 => asm::ldrw_unscaled_imm(dest.reg(), base, disp),
@@ -1208,7 +1192,18 @@ impl MacroAssembler {
         base: Reg,
         offset: i32,
     ) {
-        if asm::fits_i9(offset) {
+        if offset >= 0 && offset % mode.size() == 0 && asm::fits_u12((offset / mode.size()) as u32)
+        {
+            let offset = (offset / mode.size()) as u32;
+            let inst = match mode {
+                MachineMode::Int8 => asm::strb_imm(src.reg(), base, offset),
+                MachineMode::Int32 => asm::strw_imm(src.reg(), base, offset),
+                MachineMode::Int64 | MachineMode::Ptr => asm::strx_imm(src.reg(), base, offset),
+                MachineMode::Float32 => asm::strs_imm(src.freg(), base, offset),
+                MachineMode::Float64 => asm::strd_imm(src.freg(), base, offset),
+            };
+            self.emit_u32(inst);
+        } else if asm::fits_i9(offset) {
             let inst = match mode {
                 MachineMode::Int8 => asm::strb_unscaled_imm(src.reg(), base, offset),
                 MachineMode::Int32 => asm::strw_unscaled_imm(src.reg(), base, offset),

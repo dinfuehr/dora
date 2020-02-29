@@ -386,11 +386,11 @@ pub fn ldrx_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
 }
 
 pub fn ldrs_imm(rt: FReg, rn: Reg, imm12: u32) -> u32 {
-    cls_ldst_regimm(0b11, 0, 0b01, imm12, rn, rt.asm())
+    cls_ldst_regimm(0b10, 1, 0b01, imm12, rn, rt.asm())
 }
 
 pub fn ldrd_imm(rt: FReg, rn: Reg, imm12: u32) -> u32 {
-    cls_ldst_regimm(0b11, 0, 0b01, imm12, rn, rt.asm())
+    cls_ldst_regimm(0b11, 1, 0b01, imm12, rn, rt.asm())
 }
 
 pub fn strb_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
@@ -411,6 +411,14 @@ pub fn strw_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
 pub fn strx_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
     assert!(rt.is_gpr());
     cls_ldst_regimm(0b11, 0, 0b00, imm12, rn, rt.asm())
+}
+
+pub fn strs_imm(rt: FReg, rn: Reg, imm12: u32) -> u32 {
+    cls_ldst_regimm(0b10, 1, 0b00, imm12, rn, rt.asm())
+}
+
+pub fn strd_imm(rt: FReg, rn: Reg, imm12: u32) -> u32 {
+    cls_ldst_regimm(0b11, 1, 0b00, imm12, rn, rt.asm())
 }
 
 fn cls_ldst_regimm(size: u32, v: u32, opc: u32, imm12: u32, rn: Reg, rt: u32) -> u32 {
