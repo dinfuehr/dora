@@ -376,38 +376,6 @@ where
         self.masm.fill_zero_dynamic(obj, obj_end);
     }
 
-    pub fn load_field(
-        &mut self,
-        mode: MachineMode,
-        dest: AnyReg,
-        base: Reg,
-        offset: i32,
-        pos: Position,
-    ) {
-        self.masm.load_field(mode, dest, base, offset, pos);
-    }
-
-    pub fn store_field(
-        &mut self,
-        mode: MachineMode,
-        base: Reg,
-        offset: i32,
-        src: AnyReg,
-        pos: Position,
-        write_barrier: bool,
-        card_table_offset: usize,
-    ) {
-        self.masm.store_field(
-            mode,
-            base,
-            offset,
-            src,
-            pos,
-            write_barrier,
-            card_table_offset,
-        );
-    }
-
     pub fn load_array_elem(&mut self, mode: MachineMode, dest: AnyReg, array: Reg, index: Reg) {
         self.masm.load_array_elem(mode, dest, array, index);
     }

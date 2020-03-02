@@ -808,23 +808,25 @@ where
                 .emit_comment(format!("load field {}.{}", cname, fname));
         }
 
-        let bytecode_type = self.bytecode.register_type(obj);
+        assert!(self.bytecode.register_type(obj).is_ptr());
         let offset = self.bytecode.register_offset(obj);
 
+        let obj_reg = REG_RESULT;
         self.asm
-            .load_mem(bytecode_type.mode(), REG_RESULT.into(), Mem::Local(offset));
+            .load_mem(MachineMode::Ptr, obj_reg.into(), Mem::Local(offset));
 
         let bytecode_type = self.bytecode.register_type(dest);
         let offset = self.bytecode.register_offset(dest);
 
-        let reg = result_reg(bytecode_type);
+        let dest_reg = result_reg(bytecode_type);
         let pos = self.bytecode.offset_position(self.current_offset.to_u32());
 
+        self.asm.test_if_nil_bailout(pos, obj_reg, Trap::NIL);
         self.asm
-            .load_field(field.ty.mode(), reg, REG_RESULT, field.offset, pos);
+            .load_mem(field.ty.mode(), dest_reg, Mem::Base(obj_reg, field.offset));
 
         self.asm
-            .store_mem(bytecode_type.mode(), Mem::Local(offset), reg);
+            .store_mem(bytecode_type.mode(), Mem::Local(offset), dest_reg);
     }
 
     fn emit_store_field(
@@ -858,30 +860,29 @@ where
         let bytecode_type = self.bytecode.register_type(src);
         let offset = self.bytecode.register_offset(src);
 
-        let result_reg = result_reg(bytecode_type);
+        let value = result_reg(bytecode_type);
 
         self.asm
-            .load_mem(bytecode_type.mode(), result_reg, Mem::Local(offset));
+            .load_mem(bytecode_type.mode(), value, Mem::Local(offset));
 
-        let bytecode_type = self.bytecode.register_type(obj);
+        assert!(self.bytecode.register_type(obj).is_ptr());
         let offset = self.bytecode.register_offset(obj);
 
+        let obj_reg = REG_TMP1;
         self.asm
-            .load_mem(bytecode_type.mode(), REG_TMP1.into(), Mem::Local(offset));
+            .load_mem(MachineMode::Ptr, obj_reg.into(), Mem::Local(offset));
 
         let write_barrier = self.vm.gc.needs_write_barrier() && field.ty.reference_type();
         let card_table_offset = self.vm.gc.card_table_offset();
         let pos = self.bytecode.offset_position(self.current_offset.to_u32());
 
-        self.asm.store_field(
-            field.ty.mode(),
-            REG_TMP1,
-            field.offset,
-            result_reg.into(),
-            pos,
-            write_barrier,
-            card_table_offset,
-        );
+        self.asm.test_if_nil_bailout(pos, obj_reg, Trap::NIL);
+        self.asm
+            .store_mem(field.ty.mode(), Mem::Base(obj_reg, field.offset), value);
+
+        if write_barrier {
+            self.asm.emit_barrier(obj_reg, card_table_offset);
+        }
     }
 
     fn emit_load_global(&mut self, dest: Register, global_id: GlobalId) {

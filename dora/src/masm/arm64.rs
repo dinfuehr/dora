@@ -179,12 +179,14 @@ impl MacroAssembler {
     pub fn indirect_call(&mut self, pos: Position, index: u32, cls_type_params: TypeList) {
         let obj = REG_PARAMS[0];
 
+        self.test_if_nil_bailout(pos, obj, Trap::NIL);
+
         // need to use scratch register instead of REG_RESULT for calculations
         // since REG_RESULT (x0) is also the first parameter
         let scratch = self.get_scratch();
 
         // scratch = [obj] (load vtable)
-        self.load_base(MachineMode::Ptr, scratch.reg().into(), obj, 0, Some(pos));
+        self.load_mem(MachineMode::Ptr, (*scratch).into(), Mem::Base(obj, 0));
 
         // calculate offset of VTable entry
         let disp = VTable::offset_of_method_table() + (index as i32) * ptr_width();
@@ -882,17 +884,6 @@ impl MacroAssembler {
         self.emit_u32(movz(1, dest, 0, 0));
     }
 
-    pub fn load_field(
-        &mut self,
-        mode: MachineMode,
-        dest: AnyReg,
-        base: Reg,
-        offset: i32,
-        pos: Position,
-    ) {
-        self.load_base(mode, dest, base, offset, Some(pos));
-    }
-
     pub fn load_mem(&mut self, mode: MachineMode, dest: AnyReg, mem: Mem) {
         match mem {
             Mem::Local(offset) => {
@@ -983,57 +974,6 @@ impl MacroAssembler {
         }
     }
 
-    fn load_base(
-        &mut self,
-        mode: MachineMode,
-        dest: AnyReg,
-        base: Reg,
-        disp: i32,
-        pos: Option<Position>,
-    ) {
-        let scratch = self.get_scratch();
-        let reg = if disp == 0 {
-            REG_ZERO
-        } else {
-            self.load_int_const(MachineMode::Ptr, *scratch, disp as i64);
-            *scratch
-        };
-
-        let inst = match mode {
-            MachineMode::Int8 => asm::ldrb_ind(dest.reg(), base, reg, LdStExtend::LSL, 0),
-            MachineMode::Int32 => asm::ldrw_ind(dest.reg(), base, reg, LdStExtend::LSL, 0),
-            MachineMode::Int64 | MachineMode::Ptr => {
-                asm::ldrx_ind(dest.reg(), base, reg, LdStExtend::LSL, 0)
-            }
-            MachineMode::Float32 => asm::ldrs_ind(dest.freg(), base, reg, LdStExtend::LSL, 0),
-            MachineMode::Float64 => asm::ldrd_ind(dest.freg(), base, reg, LdStExtend::LSL, 0),
-        };
-
-        if let Some(pos) = pos {
-            self.test_if_nil_bailout(pos, base, Trap::NIL);
-        }
-
-        self.emit_u32(inst);
-    }
-
-    pub fn store_field(
-        &mut self,
-        mode: MachineMode,
-        base: Reg,
-        disp: i32,
-        src: AnyReg,
-        pos: Position,
-        write_barrier: bool,
-        card_table_offset: usize,
-    ) {
-        self.test_if_nil_bailout(pos, base, Trap::NIL);
-        self.store_base(mode, base, disp, src, Some(pos));
-
-        if write_barrier {
-            self.emit_barrier(base, card_table_offset);
-        }
-    }
-
     pub fn lea(&mut self, dest: Reg, mem: Mem) {
         match mem {
             Mem::Local(offset) => {
@@ -1088,58 +1028,6 @@ impl MacroAssembler {
         let scratch2 = self.get_scratch();
         self.load_int_const(MachineMode::Ptr, *scratch2, card_table_offset as i64);
         let inst = asm::strb_ind(REG_ZERO, *scratch1, *scratch2, LdStExtend::LSL, 0);
-        self.emit_u32(inst);
-    }
-
-    fn store_base(
-        &mut self,
-        mode: MachineMode,
-        base: Reg,
-        disp: i32,
-        src: AnyReg,
-        pos: Option<Position>,
-    ) {
-        let scratch = self.get_scratch();
-        let reg = if disp == 0 {
-            REG_ZERO
-        } else {
-            self.load_int_const(MachineMode::Ptr, *scratch, disp as i64);
-            *scratch
-        };
-
-        let src_reg = if src.is_reg() && src.reg() == REG_SP {
-            let src_reg = self.get_scratch();
-            self.emit_u32(asm::add_extreg(
-                1,
-                *src_reg,
-                REG_SP,
-                REG_ZERO,
-                Extend::UXTX,
-                0,
-            ));
-            Some(src_reg)
-        } else {
-            None
-        };
-
-        let inst = match mode {
-            MachineMode::Int8 => asm::strb_ind(src.reg(), base, reg, LdStExtend::LSL, 0),
-            MachineMode::Int32 => asm::strw_ind(src.reg(), base, reg, LdStExtend::LSL, 0),
-            MachineMode::Int64 | MachineMode::Ptr => asm::strx_ind(
-                src_reg.map_or(src.reg(), |x| *x),
-                base,
-                reg,
-                LdStExtend::LSL,
-                0,
-            ),
-            MachineMode::Float32 => asm::strs_ind(src.freg(), base, reg, LdStExtend::LSL, 0),
-            MachineMode::Float64 => asm::strd_ind(src.freg(), base, reg, LdStExtend::LSL, 0),
-        };
-
-        if let Some(pos) = pos {
-            self.test_if_nil_bailout(pos, base, Trap::NIL);
-        }
-
         self.emit_u32(inst);
     }
 

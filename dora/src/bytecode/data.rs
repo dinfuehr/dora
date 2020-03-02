@@ -56,6 +56,13 @@ impl BytecodeType {
             BytecodeType::Ptr => MachineMode::Ptr,
         }
     }
+
+    pub fn is_ptr(&self) -> bool {
+        match self {
+            BytecodeType::Ptr => true,
+            _ => false,
+        }
+    }
 }
 
 impl From<BuiltinType> for BytecodeType {

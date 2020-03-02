@@ -696,18 +696,6 @@ impl MacroAssembler {
         asm::emit_movl_imm_reg(self, 0, dest);
     }
 
-    pub fn load_field(
-        &mut self,
-        mode: MachineMode,
-        dest: AnyReg,
-        base: Reg,
-        offset: i32,
-        pos: Position,
-    ) {
-        self.test_if_nil_bailout(pos, base, Trap::NIL);
-        self.load_mem(mode, dest, Mem::Base(base, offset));
-    }
-
     pub fn load_mem(&mut self, mode: MachineMode, dest: AnyReg, mem: Mem) {
         match mem {
             Mem::Local(offset) => match mode {
@@ -750,24 +738,6 @@ impl MacroAssembler {
 
     pub fn lea(&mut self, dest: Reg, mem: Mem) {
         asm::lea(self, dest, mem);
-    }
-
-    pub fn store_field(
-        &mut self,
-        mode: MachineMode,
-        base: Reg,
-        offset: i32,
-        src: AnyReg,
-        pos: Position,
-        write_barrier: bool,
-        card_table_offset: usize,
-    ) {
-        self.test_if_nil_bailout(pos, base, Trap::NIL);
-        self.store_mem(mode, Mem::Base(base, offset), src);
-
-        if write_barrier {
-            self.emit_barrier(base, card_table_offset);
-        }
     }
 
     pub fn emit_barrier(&mut self, src: Reg, card_table_offset: usize) {
