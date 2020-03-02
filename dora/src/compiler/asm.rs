@@ -45,8 +45,11 @@ where
         let lbl_stack_overflow = self.masm.create_label();
         self.masm.check_stack_pointer(lbl_stack_overflow);
 
-        self.slow_paths
-            .push(SlowPathKind::StackOverflow(lbl_stack_overflow, pos));
+        self.slow_paths.push(SlowPathKind::StackOverflow(
+            lbl_stack_overflow,
+            pos,
+            GcPoint::new(),
+        ));
     }
 
     pub fn prolog(&mut self, pos: Position) -> usize {
@@ -55,8 +58,11 @@ where
         let lbl_stack_overflow = self.masm.create_label();
         self.masm.check_stack_pointer(lbl_stack_overflow);
 
-        self.slow_paths
-            .push(SlowPathKind::StackOverflow(lbl_stack_overflow, pos));
+        self.slow_paths.push(SlowPathKind::StackOverflow(
+            lbl_stack_overflow,
+            pos,
+            GcPoint::new(),
+        ));
 
         patch_offset
     }
@@ -716,8 +722,8 @@ where
                     );
                 }
 
-                SlowPathKind::StackOverflow(lbl_stack_overflow, pos) => {
-                    self.slow_path_stack_overflow(lbl_stack_overflow, pos);
+                SlowPathKind::StackOverflow(lbl_stack_overflow, pos, gcpoint) => {
+                    self.slow_path_stack_overflow(lbl_stack_overflow, pos, gcpoint);
                 }
             }
         }
@@ -742,14 +748,21 @@ where
         self.masm.jump(lbl_return);
     }
 
-    fn slow_path_stack_overflow(&mut self, lbl_stack_overflow: Label, pos: Position) {
+    fn slow_path_stack_overflow(
+        &mut self,
+        lbl_stack_overflow: Label,
+        pos: Position,
+        gcpoint: GcPoint,
+    ) {
         self.masm.bind_label(lbl_stack_overflow);
         self.masm.emit_comment("slow path stack overflow".into());
-        self.masm.trap(Trap::STACK_OVERFLOW, pos);
+        self.masm.raw_call(self.vm.guard_check_stub().to_ptr());
+        self.masm.emit_gcpoint(gcpoint);
+        self.masm.emit_position(pos);
     }
 }
 
 enum SlowPathKind {
     TlabAllocationFailure(Label, Label, Reg, AllocationSize, Position, bool, GcPoint),
-    StackOverflow(Label, Position),
+    StackOverflow(Label, Position, GcPoint),
 }

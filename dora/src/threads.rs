@@ -16,6 +16,9 @@ thread_local! {
 pub struct Threads {
     pub threads: Mutex<Vec<Arc<DoraThread>>>,
     pub cond_join: Condvar,
+
+    pub stopped: Mutex<usize>,
+    pub reached_zero: Condvar,
 }
 
 impl Threads {
@@ -23,6 +26,8 @@ impl Threads {
         Threads {
             threads: Mutex::new(Vec::new()),
             cond_join: Condvar::new(),
+            stopped: Mutex::new(0),
+            reached_zero: Condvar::new(),
         }
     }
 
@@ -157,7 +162,8 @@ pub struct ThreadLocalData {
     tlab_top: AtomicUsize,
     tlab_end: AtomicUsize,
     concurrent_marking: AtomicBool,
-    stack_limit: AtomicUsize,
+    guard_stack_limit: AtomicUsize,
+    real_stack_limit: AtomicUsize,
     exception_object: AtomicUsize,
     dtn: AtomicUsize,
 }
@@ -168,7 +174,8 @@ impl ThreadLocalData {
             tlab_top: AtomicUsize::new(0),
             tlab_end: AtomicUsize::new(0),
             concurrent_marking: AtomicBool::new(false),
-            stack_limit: AtomicUsize::new(0),
+            guard_stack_limit: AtomicUsize::new(0),
+            real_stack_limit: AtomicUsize::new(0),
             exception_object: AtomicUsize::new(0),
             dtn: AtomicUsize::new(0),
         }
@@ -196,7 +203,9 @@ impl ThreadLocalData {
     }
 
     pub fn set_stack_limit(&self, stack_limit: Address) {
-        self.stack_limit
+        self.guard_stack_limit
+            .store(stack_limit.to_usize(), Ordering::Relaxed);
+        self.real_stack_limit
             .store(stack_limit.to_usize(), Ordering::Relaxed);
     }
 
@@ -225,11 +234,28 @@ impl ThreadLocalData {
         offset_of!(ThreadLocalData, concurrent_marking) as i32
     }
 
-    pub fn stack_limit_offset() -> i32 {
-        offset_of!(ThreadLocalData, stack_limit) as i32
+    pub fn guard_stack_limit_offset() -> i32 {
+        offset_of!(ThreadLocalData, guard_stack_limit) as i32
+    }
+
+    pub fn real_stack_limit(&self) -> Address {
+        Address::from(self.real_stack_limit.load(Ordering::Relaxed))
+    }
+
+    pub fn real_stack_limit_offset() -> i32 {
+        offset_of!(ThreadLocalData, real_stack_limit) as i32
     }
 
     pub fn dtn_offset() -> i32 {
         offset_of!(ThreadLocalData, dtn) as i32
+    }
+
+    pub fn arm_stack_guard(&self) {
+        self.guard_stack_limit.store(!0, Ordering::Relaxed);
+    }
+
+    pub fn unarm_stack_guard(&self) {
+        let limit = self.real_stack_limit.load(Ordering::Relaxed);
+        self.guard_stack_limit.store(limit, Ordering::Relaxed);
     }
 }

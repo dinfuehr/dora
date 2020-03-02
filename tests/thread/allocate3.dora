@@ -1,0 +1,30 @@
+//= stdout "done\ndone\n"
+//= vm-args "--gc-young-size=64M --max-heap-size=128M"
+//= ignore
+
+class MyThread() : Thread {
+    @override fun run() {
+        allocator();
+        println("done");
+    }
+}
+
+fun main() {
+    let thread = MyThread();
+    thread.start();
+
+    allocator();
+    println("done");
+}
+
+fun allocator() {
+    var i = 0;
+
+    while i < 10_000 {
+        Foo();
+        if i % 500 == 0 { forceMinorCollect(); }
+        i = i + 1;
+    }
+}
+
+class Foo

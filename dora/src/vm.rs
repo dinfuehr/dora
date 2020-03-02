@@ -15,6 +15,7 @@ use crate::error::diag::Diagnostic;
 use crate::exception::DoraToNativeInfo;
 use crate::gc::{Address, Gc};
 use crate::object::{Ref, Testing};
+use crate::safepoint;
 use crate::stdlib;
 use crate::sym::Sym::*;
 use crate::sym::*;
@@ -116,6 +117,7 @@ pub struct VM<'ast> {
     pub compile_stub: Mutex<Address>,
     pub dora_stub: Mutex<Address>,
     pub trap_stub: Mutex<Address>,
+    pub guard_check_stub: Mutex<Address>,
     pub throw_stub: Mutex<Address>,
     pub threads: Threads,
 }
@@ -204,6 +206,7 @@ impl<'ast> VM<'ast> {
             compile_stub: Mutex::new(Address::null()),
             dora_stub: Mutex::new(Address::null()),
             trap_stub: Mutex::new(Address::null()),
+            guard_check_stub: Mutex::new(Address::null()),
             throw_stub: Mutex::new(Address::null()),
             threads: Threads::new(),
         });
@@ -459,6 +462,26 @@ impl<'ast> VM<'ast> {
         }
 
         *trap_stub_address
+    }
+
+    pub fn guard_check_stub(&self) -> Address {
+        let mut guard_check_stub_address = self.guard_check_stub.lock();
+
+        if guard_check_stub_address.is_null() {
+            let ifct = NativeFct {
+                ptr: Address::from_ptr(safepoint::guard_check as *const u8),
+                args: &[],
+                return_type: BuiltinType::Unit,
+                throws: false,
+                desc: NativeFctDescriptor::GuardCheckStub,
+            };
+            let jit_fct_id = native_stub::generate(self, ifct, false);
+            let jit_fct = self.jit_fcts.idx(jit_fct_id);
+            let fct_ptr = jit_fct.instruction_start();
+            *guard_check_stub_address = fct_ptr;
+        }
+
+        *guard_check_stub_address
     }
 
     pub fn file(&self, idx: FileId) -> &File {

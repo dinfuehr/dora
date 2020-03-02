@@ -45,6 +45,7 @@ pub enum NativeFctDescriptor {
     AllocStub,
     VerifyStub,
     TrapStub,
+    GuardCheckStub,
 }
 
 pub struct NativeFct<'a> {
@@ -75,6 +76,7 @@ pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>, fct: NativeFct, dbg: bool) -> Ji
         NativeFctDescriptor::TrapStub => CodeDescriptor::TrapStub,
         NativeFctDescriptor::VerifyStub => CodeDescriptor::VerifyStub,
         NativeFctDescriptor::AllocStub => CodeDescriptor::AllocStub,
+        NativeFctDescriptor::GuardCheckStub => CodeDescriptor::GuardCheckStub,
     };
 
     vm.insert_code_map(jit_start, jit_end, code_desc);
@@ -263,6 +265,7 @@ where
             NativeFctDescriptor::AllocStub => JitDescriptor::AllocStub,
             NativeFctDescriptor::VerifyStub => JitDescriptor::VerifyStub,
             NativeFctDescriptor::TrapStub => JitDescriptor::TrapStub,
+            NativeFctDescriptor::GuardCheckStub => JitDescriptor::GuardCheckStub,
         };
 
         self.masm.jit(self.vm, framesize, desc, self.fct.throws)

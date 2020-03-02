@@ -82,7 +82,7 @@ impl MacroAssembler {
     }
 
     pub fn check_stack_pointer(&mut self, lbl_overflow: Label) {
-        let offset = ThreadLocalData::stack_limit_offset() as u32;
+        let offset = ThreadLocalData::guard_stack_limit_offset() as u32;
         assert!(offset % 8 == 0);
         self.emit_u32(asm::ldrx_imm(REG_TMP1, REG_THREAD, offset / 8));
         self.emit_u32(asm::add_extreg(

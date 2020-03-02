@@ -43,6 +43,7 @@ impl CodeMap {
                     println!("native stub {}", fct.full_name(vm));
                 }
                 &CodeDescriptor::DoraStub => println!("dora_stub"),
+                &CodeDescriptor::GuardCheckStub => println!("guard_check_stub"),
             }
         }
 
@@ -71,6 +72,7 @@ pub enum CodeDescriptor {
     VerifyStub,
     NativeStub(JitFctId),
     DoraStub,
+    GuardCheckStub,
 }
 
 #[derive(Copy, Clone, Debug)]

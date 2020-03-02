@@ -45,7 +45,7 @@ impl MacroAssembler {
             self,
             MachineMode::Ptr,
             REG_THREAD,
-            ThreadLocalData::stack_limit_offset(),
+            ThreadLocalData::guard_stack_limit_offset(),
             RSP,
         );
 

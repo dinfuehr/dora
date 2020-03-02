@@ -173,6 +173,7 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, vm: &VM, pc: usize) -> boo
         }
 
         Some(CodeDescriptor::TrapStub) => true,
+        Some(CodeDescriptor::GuardCheckStub) => true,
         Some(CodeDescriptor::ThrowStub) => true,
         Some(CodeDescriptor::AllocStub) => true,
         Some(CodeDescriptor::DoraStub) => false,
