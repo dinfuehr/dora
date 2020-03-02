@@ -44,9 +44,12 @@ where
 
         let lbl_stack_overflow = self.masm.create_label();
         self.masm.check_stack_pointer(lbl_stack_overflow);
+        let lbl_return = self.masm.create_label();
+        self.masm.bind_label(lbl_return);
 
         self.slow_paths.push(SlowPathKind::StackOverflow(
             lbl_stack_overflow,
+            lbl_return,
             pos,
             GcPoint::new(),
         ));
@@ -57,9 +60,12 @@ where
 
         let lbl_stack_overflow = self.masm.create_label();
         self.masm.check_stack_pointer(lbl_stack_overflow);
+        let lbl_return = self.masm.create_label();
+        self.masm.bind_label(lbl_return);
 
         self.slow_paths.push(SlowPathKind::StackOverflow(
             lbl_stack_overflow,
+            lbl_return,
             pos,
             GcPoint::new(),
         ));
@@ -484,6 +490,7 @@ where
     }
 
     pub fn jit(mut self, stacksize: i32, desc: JitDescriptor, throws: bool) -> Code {
+        self.masm.debug();
         self.slow_paths();
         self.masm.jit(self.vm, stacksize, desc, throws)
     }
@@ -722,13 +729,13 @@ where
                     );
                 }
 
-                SlowPathKind::StackOverflow(lbl_stack_overflow, pos, gcpoint) => {
-                    self.slow_path_stack_overflow(lbl_stack_overflow, pos, gcpoint);
+                SlowPathKind::StackOverflow(lbl_start, lbl_return, pos, gcpoint) => {
+                    self.slow_path_stack_overflow(lbl_start, lbl_return, pos, gcpoint);
                 }
             }
         }
 
-        self.masm.nop();
+        self.masm.debug();
         assert!(self.slow_paths.is_empty());
     }
 
@@ -751,6 +758,7 @@ where
     fn slow_path_stack_overflow(
         &mut self,
         lbl_stack_overflow: Label,
+        lbl_return: Label,
         pos: Position,
         gcpoint: GcPoint,
     ) {
@@ -759,10 +767,11 @@ where
         self.masm.raw_call(self.vm.guard_check_stub().to_ptr());
         self.masm.emit_gcpoint(gcpoint);
         self.masm.emit_position(pos);
+        self.masm.jump(lbl_return);
     }
 }
 
 enum SlowPathKind {
     TlabAllocationFailure(Label, Label, Reg, AllocationSize, Position, bool, GcPoint),
-    StackOverflow(Label, Position, GcPoint),
+    StackOverflow(Label, Label, Position, GcPoint),
 }
