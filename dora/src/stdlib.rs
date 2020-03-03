@@ -292,7 +292,7 @@ pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
     use crate::exception::DoraToNativeInfo;
 
     let vm = get_vm();
-    let thread = DoraThread::new();
+    let thread = DoraThread::new(vm);
 
     vm.threads.attach_thread(thread.clone());
     let obj = obj.direct();

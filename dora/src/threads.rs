@@ -1,16 +1,19 @@
 use parking_lot::{Condvar, Mutex};
 use std::cell::RefCell;
+use std::convert::From;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use crate::exception::DoraToNativeInfo;
 use crate::gc::{Address, Region, K};
 use crate::handle::HandleMemory;
+use crate::safepoint;
+use crate::vm::{get_vm, VM};
 
 pub const STACK_SIZE: usize = 500 * K;
 
 thread_local! {
-    pub static THREAD: RefCell<Arc<DoraThread>> = RefCell::new(DoraThread::new());
+    pub static THREAD: RefCell<Arc<DoraThread>> = RefCell::new(DoraThread::main());
 }
 
 pub struct Threads {
@@ -19,6 +22,9 @@ pub struct Threads {
 
     pub stopped: Mutex<usize>,
     pub reached_zero: Condvar,
+
+    pub next_id: AtomicUsize,
+    pub barrier: Barrier,
 }
 
 impl Threads {
@@ -28,6 +34,8 @@ impl Threads {
             cond_join: Condvar::new(),
             stopped: Mutex::new(0),
             reached_zero: Condvar::new(),
+            next_id: AtomicUsize::new(1),
+            barrier: Barrier::new(),
         }
     }
 
@@ -43,11 +51,17 @@ impl Threads {
         threads.push(thread);
     }
 
+    pub fn next_id(&self) -> usize {
+        self.next_id.fetch_add(1, Ordering::SeqCst)
+    }
+
     pub fn detach_current_thread(&self) {
         THREAD.with(|thread| {
+            thread.borrow().park(get_vm());
             let mut threads = self.threads.lock();
             threads.retain(|elem| !Arc::ptr_eq(elem, &*thread.borrow()));
             self.cond_join.notify_all();
+            thread.borrow().unpark(get_vm());
         });
     }
 
@@ -72,6 +86,7 @@ impl Threads {
 }
 
 pub struct DoraThread {
+    pub id: AtomicUsize,
     pub handles: HandleMemory,
     pub tld: ThreadLocalData,
     pub state: AtomicUsize,
@@ -83,14 +98,103 @@ unsafe impl Sync for DoraThread {}
 unsafe impl Send for DoraThread {}
 
 impl DoraThread {
-    pub fn new() -> Arc<DoraThread> {
+    pub fn new(vm: &VM) -> Arc<DoraThread> {
+        DoraThread::with_id(vm.threads.next_id())
+    }
+
+    pub fn main() -> Arc<DoraThread> {
+        DoraThread::with_id(0)
+    }
+
+    fn with_id(id: usize) -> Arc<DoraThread> {
         Arc::new(DoraThread {
+            id: AtomicUsize::new(id),
             handles: HandleMemory::new(),
             tld: ThreadLocalData::new(),
-            state: AtomicUsize::new(ThreadState::Uninitialized as usize),
+            state: AtomicUsize::new(ThreadState::Unparked as usize),
             saved_pc: AtomicUsize::new(0),
             saved_fp: AtomicUsize::new(0),
         })
+    }
+
+    pub fn id(&self) -> usize {
+        self.id.load(Ordering::Relaxed)
+    }
+
+    pub fn park(&self, vm: &VM) {
+        let result = self.state.compare_exchange(
+            ThreadState::Unparked.to_usize(),
+            ThreadState::Parked.to_usize(),
+            Ordering::SeqCst,
+            Ordering::SeqCst,
+        );
+
+        if let Err(value) = result {
+            let state: ThreadState = value.into();
+            assert!(state.is_gc_requested());
+            safepoint::enter_safepoint_from_native_park(vm);
+        }
+    }
+
+    pub fn unpark(&self, vm: &VM) {
+        let result = self.state.compare_exchange(
+            ThreadState::Parked.to_usize(),
+            ThreadState::Unparked.to_usize(),
+            Ordering::SeqCst,
+            Ordering::SeqCst,
+        );
+
+        if let Err(value) = result {
+            let state: ThreadState = value.into();
+            assert!(state.is_gc_requested());
+            safepoint::enter_safepoint_from_native_unpark(vm);
+        }
+    }
+
+    pub fn block(&self) -> bool {
+        let mut old_state: ThreadState = self.state.load(Ordering::Relaxed).into();
+
+        loop {
+            let new_state = match old_state {
+                ThreadState::Unparked => ThreadState::GcRequestedInUnparked,
+                ThreadState::Parked => ThreadState::GcRequestedInParked,
+                ThreadState::GcRequestedInUnparked | ThreadState::GcRequestedInParked => {
+                    unreachable!()
+                }
+            };
+
+            let result = self.state.compare_exchange_weak(
+                old_state.to_usize(),
+                new_state.to_usize(),
+                Ordering::SeqCst,
+                Ordering::Relaxed,
+            );
+
+            match result {
+                Ok(_) => return old_state.is_unparked(),
+                Err(x) => old_state = x.into(),
+            }
+        }
+    }
+
+    pub fn unblock(&self) {
+        let old_state: ThreadState = self.state.load(Ordering::Relaxed).into();
+
+        let new_state = match old_state {
+            ThreadState::GcRequestedInUnparked => ThreadState::Unparked,
+            ThreadState::GcRequestedInParked => ThreadState::Parked,
+            ThreadState::Unparked => unreachable!(),
+            ThreadState::Parked => unreachable!(),
+        };
+
+        let result = self.state.compare_exchange_weak(
+            old_state.to_usize(),
+            new_state.to_usize(),
+            Ordering::SeqCst,
+            Ordering::Relaxed,
+        );
+
+        assert!(result.is_ok());
     }
 
     pub fn dtn(&self) -> *const DoraToNativeInfo {
@@ -127,34 +231,58 @@ impl DoraThread {
         let dtn = unsafe { &*current_dtn };
         self.set_dtn(dtn.last);
     }
+}
 
-    pub fn state(&self) -> ThreadState {
-        let state = self.state.load(Ordering::Relaxed);
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum ThreadState {
+    Unparked = 0,
+    Parked = 1,
+    GcRequestedInUnparked = 2,
+    GcRequestedInParked = 3,
+}
 
-        match state {
-            0 => ThreadState::Uninitialized,
-            1 => ThreadState::Native,
-            2 => ThreadState::Dora,
-            3 => ThreadState::Blocked,
+impl From<usize> for ThreadState {
+    fn from(value: usize) -> ThreadState {
+        match value {
+            0 => ThreadState::Unparked,
+            1 => ThreadState::Parked,
+            2 => ThreadState::GcRequestedInUnparked,
+            3 => ThreadState::GcRequestedInParked,
             _ => unreachable!(),
         }
     }
-
-    pub fn set_state(&self, state: ThreadState) {
-        self.state.store(state as usize, Ordering::Relaxed);
-    }
 }
 
-pub enum ThreadState {
-    Uninitialized = 0,
-    Native = 1,
-    Dora = 2,
-    Blocked = 3,
+impl ThreadState {
+    fn is_unparked(&self) -> bool {
+        match *self {
+            ThreadState::Unparked => true,
+            _ => false,
+        }
+    }
+
+    fn is_parked(&self) -> bool {
+        match *self {
+            ThreadState::Parked => true,
+            _ => false,
+        }
+    }
+
+    fn is_gc_requested(&self) -> bool {
+        match *self {
+            ThreadState::GcRequestedInUnparked | ThreadState::GcRequestedInParked => true,
+            _ => false,
+        }
+    }
+
+    fn to_usize(&self) -> usize {
+        *self as usize
+    }
 }
 
 impl Default for ThreadState {
     fn default() -> ThreadState {
-        ThreadState::Uninitialized
+        ThreadState::Unparked
     }
 }
 
@@ -257,5 +385,40 @@ impl ThreadLocalData {
     pub fn unarm_stack_guard(&self) {
         let limit = self.real_stack_limit.load(Ordering::Relaxed);
         self.guard_stack_limit.store(limit, Ordering::Relaxed);
+    }
+}
+
+pub struct Barrier {
+    active: Mutex<bool>,
+    done: Condvar,
+}
+
+impl Barrier {
+    pub fn new() -> Barrier {
+        Barrier {
+            active: Mutex::new(false),
+            done: Condvar::new(),
+        }
+    }
+
+    pub fn guard(&self) {
+        let mut active = self.active.lock();
+        assert_eq!(*active, false);
+        *active = true;
+    }
+
+    pub fn resume(&self) {
+        let mut active = self.active.lock();
+        assert_eq!(*active, true);
+        *active = false;
+        self.done.notify_all();
+    }
+
+    pub fn wait(&self) {
+        let mut active = self.active.lock();
+
+        while *active {
+            self.done.wait(&mut active);
+        }
     }
 }
