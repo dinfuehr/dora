@@ -126,6 +126,7 @@ where
         self.managed_stack.push_scope();
         self.emit_prolog();
         self.store_register_params_on_stack();
+        self.asm.stack_guard(self.fct.ast.pos);
 
         let always_returns = self.src.always_returns;
 
@@ -304,7 +305,7 @@ where
     }
 
     fn emit_prolog(&mut self) {
-        self.stacksize_offset = self.asm.prolog(self.fct.ast.pos);
+        self.stacksize_offset = self.asm.prolog();
     }
 
     fn emit_epilog(&mut self) {

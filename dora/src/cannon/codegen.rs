@@ -116,6 +116,7 @@ where
 
         self.emit_prolog();
         self.store_params_on_stack();
+        self.asm.stack_guard(self.fct.ast.pos);
 
         bytecode::read(self.bytecode.code(), &mut self);
 
@@ -178,8 +179,7 @@ where
     }
 
     fn emit_prolog(&mut self) {
-        self.asm
-            .prolog_size(self.bytecode.stacksize(), self.fct.ast.pos);
+        self.asm.prolog_size(self.bytecode.stacksize());
     }
 
     fn emit_epilog(&mut self) {

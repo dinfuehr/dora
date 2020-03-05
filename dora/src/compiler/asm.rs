@@ -39,25 +39,15 @@ where
         self.masm.debug();
     }
 
-    pub fn prolog_size(&mut self, stacksize: i32, pos: Position) {
+    pub fn prolog_size(&mut self, stacksize: i32) {
         self.masm.prolog_size(stacksize);
-
-        let lbl_stack_overflow = self.masm.create_label();
-        self.masm.check_stack_pointer(lbl_stack_overflow);
-        let lbl_return = self.masm.create_label();
-        self.masm.bind_label(lbl_return);
-
-        self.slow_paths.push(SlowPathKind::StackOverflow(
-            lbl_stack_overflow,
-            lbl_return,
-            pos,
-            GcPoint::new(),
-        ));
     }
 
-    pub fn prolog(&mut self, pos: Position) -> usize {
-        let patch_offset = self.masm.prolog();
+    pub fn prolog(&mut self) -> usize {
+        self.masm.prolog()
+    }
 
+    pub fn stack_guard(&mut self, pos: Position) {
         let lbl_stack_overflow = self.masm.create_label();
         self.masm.check_stack_pointer(lbl_stack_overflow);
         let lbl_return = self.masm.create_label();
@@ -69,8 +59,6 @@ where
             pos,
             GcPoint::new(),
         ));
-
-        patch_offset
     }
 
     pub fn patch_stacksize(&mut self, patch_offset: usize, stacksize: i32) {
