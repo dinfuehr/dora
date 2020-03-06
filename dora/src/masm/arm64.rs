@@ -97,7 +97,7 @@ impl MacroAssembler {
         self.jump_if(CondCode::UnsignedGreater, lbl_overflow);
     }
 
-    pub fn fixup(&mut self, _result: Reg, _mode: MachineMode) {
+    pub fn fix_result(&mut self, _result: Reg, _mode: MachineMode) {
         // nothing to do on ARM64, see version for x64 for more info.
     }
 
