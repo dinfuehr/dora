@@ -1,8 +1,0 @@
-fun main() {
-  do {
-    try testThrowFromNative(false);
-    assert(true);
-  } catch e: Exception {
-    assert(false);
-  }
-}

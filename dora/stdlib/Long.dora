@@ -1,10 +1,10 @@
 @internal class Long {
   @internal fun toByte() -> Byte;
-  fun toChar() throws -> Char {
+  fun toChar() -> Option[Char] {
     if self >= 0L && self <= 0x10FFFFL && (self < 0xD800L || self > 0xDFFFL) {
-      return self.toCharUnchecked();
+      some[Char](self.toCharUnchecked())
     } else {
-      throw "invalid code point";
+      none[Char]()
     }
   }
   @internal fun toCharUnchecked() -> Char;

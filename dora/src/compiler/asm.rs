@@ -65,6 +65,15 @@ where
         self.masm.patch_stacksize(patch_offset, stacksize);
     }
 
+    pub fn assert(&mut self, value: Reg, pos: Position) {
+        let lbl_assert = self.masm.create_label();
+        self.masm.emit_comment("check assert".into());
+        self.masm
+            .test_and_jump_if(CondCode::Zero, value, lbl_assert);
+
+        self.slow_paths.push(SlowPathKind::Assert(lbl_assert, pos));
+    }
+
     pub fn safepoint(&mut self, polling_page: Address) {
         self.masm.safepoint(polling_page);
     }
@@ -538,11 +547,15 @@ where
 
         match dest {
             AnyReg::Reg(dest) => {
-                self.masm.copy_reg(ty.mode(), dest, REG_RESULT);
+                if dest != REG_RESULT {
+                    self.masm.copy_reg(ty.mode(), dest, REG_RESULT);
+                }
             }
 
             AnyReg::FReg(dest) => {
-                self.masm.copy_freg(ty.mode(), dest, FREG_RESULT);
+                if dest != FREG_RESULT {
+                    self.masm.copy_freg(ty.mode(), dest, FREG_RESULT);
+                }
             }
         }
     }
@@ -720,6 +733,10 @@ where
                 SlowPathKind::StackOverflow(lbl_start, lbl_return, pos, gcpoint) => {
                     self.slow_path_stack_overflow(lbl_start, lbl_return, pos, gcpoint);
                 }
+
+                SlowPathKind::Assert(lbl_start, pos) => {
+                    self.slow_path_assert(lbl_start, pos);
+                }
             }
         }
 
@@ -757,9 +774,20 @@ where
         self.masm.emit_position(pos);
         self.masm.jump(lbl_return);
     }
+
+    fn slow_path_assert(&mut self, lbl_assert: Label, pos: Position) {
+        self.masm.bind_label(lbl_assert);
+        self.masm.emit_comment("slow path assert".into());
+        self.masm
+            .load_int_const(MachineMode::Int32, REG_PARAMS[0], Trap::ASSERT.int() as i64);
+        self.masm.raw_call(self.vm.trap_stub().to_ptr());
+        self.masm.emit_gcpoint(GcPoint::new());
+        self.masm.emit_position(pos);
+    }
 }
 
 enum SlowPathKind {
     TlabAllocationFailure(Label, Label, Reg, AllocationSize, Position, bool, GcPoint),
     StackOverflow(Label, Label, Position, GcPoint),
+    Assert(Label, Position),
 }

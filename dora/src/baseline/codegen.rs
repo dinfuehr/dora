@@ -2717,38 +2717,8 @@ where
     }
 
     fn emit_intrinsic_assert(&mut self, pos: Position, e: &'ast Expr) {
-        // throw Error("assert failed") if assertion failed
-        let lbl_assert = self.asm.create_label();
         self.emit_expr(e, REG_RESULT.into());
-
-        self.asm.emit_comment("check assert".into());
-        self.asm
-            .test_and_jump_if(CondCode::NonZero, REG_RESULT, lbl_assert);
-
-        // message = "assert failed"
-        self.emit_lit_str_value(&"assert failed".to_string(), REG_RESULT);
-        let message_slot = self.managed_stack.add_temp(BuiltinType::Ptr, self.vm);
-        self.asm.store_mem(
-            MachineMode::Ptr,
-            Mem::Local(message_slot.offset()),
-            REG_RESULT.into(),
-        );
-
-        // throw Error(message)
-        let cls_id = self.vm.vips.error_class;
-        let cls = self.vm.classes.idx(cls_id);
-        let cls = cls.read();
-        let args = vec![Arg::SelfieNew, Arg::Stack(message_slot.offset())];
-        let ctor_id = cls.constructor.expect("missing ctor for Error");
-        let cls_ty = self.vm.cls(cls_id);
-        let call_type = CallType::CtorNew(cls_ty, ctor_id);
-        let csite = self.build_call_site(&call_type, ctor_id, args);
-        self.emit_call_site(&csite, pos, REG_RESULT.into());
-
-        self.asm.throw(REG_RESULT, pos);
-        self.asm.bind_label(lbl_assert);
-
-        self.managed_stack.free_temp(message_slot, self.vm);
+        self.asm.assert(REG_RESULT, pos);
     }
 
     fn emit_intrinsic_debug(&mut self) {

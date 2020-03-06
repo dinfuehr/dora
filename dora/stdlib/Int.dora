@@ -1,10 +1,11 @@
+
 @internal class Int {
   @internal fun toByte() -> Byte;
-  fun toChar() throws -> Char {
+  fun toChar() -> Option[Char] {
     if self >= 0 && self <= 0x10FFFF && (self < 0xD800 || self > 0xDFFF) {
-      return self.toCharUnchecked();
+      some[Char](self.toCharUnchecked())
     } else {
-      throw "invalid code point";
+      none[Char]()
     }
   }
   @internal fun toCharUnchecked() -> Char;

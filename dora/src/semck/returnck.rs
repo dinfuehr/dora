@@ -157,7 +157,6 @@ mod tests {
         test_always_returns("fun f() {}", false);
         test_always_returns("fun f() { return; }", true);
         test_always_returns("fun f() -> Int { return 1; }", true);
-        test_always_returns("fun f() -> Int { throw \"abc\"; }", true);
         test_always_returns(
             "fun f() -> Int { if true { return 1; } else { return 2; } }",
             true,
@@ -189,25 +188,5 @@ mod tests {
         ok("fun f() -> Int { loop { return 1; } }");
         ok("fun f() -> Int { if true { return 1; } else { return 2; } }");
         ok("fun f() -> Int { return 1; 1+2; }");
-        ok("fun f(x: Int) -> Int { if x == 0 { throw \"abc\"; } else { return -x; } }");
-    }
-
-    #[test]
-    fn do_returns() {
-        ok("fun f() -> Int { do { return 1; } catch x: String { return 2; } }");
-        ok("fun f() -> Int { do { } catch x: String { return 2; } return 1; }");
-        ok("fun f() -> Int { do { return 2; } catch x: String { } return 1; }");
-        ok("fun f() -> Int { do { } catch x: String { } return 1; }");
-        ok("fun f() -> Int { do { } catch x: String { } finally { return 1; } }");
-        err(
-            "fun f() -> Int { do { return 1; } catch x: String { } }",
-            pos(1, 16),
-            SemError::ReturnType("Int".into(), "()".into()),
-        );
-        err(
-            "fun f() -> Int { do { } catch x: String { return 1; } }",
-            pos(1, 16),
-            SemError::ReturnType("Int".into(), "()".into()),
-        );
     }
 }

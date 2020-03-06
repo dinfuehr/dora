@@ -167,16 +167,6 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     native_fct(vm, "sleep", stdlib::sleep as *const u8);
 
     native_fct(vm, "call", stdlib::call as *const u8);
-    native_fct(
-        vm,
-        "testThrowFromNative",
-        stdlib::test_throw_native as *const u8,
-    );
-    native_fct(
-        vm,
-        "testThrowFromNativeButNotThrows",
-        stdlib::test_throw_native as *const u8,
-    );
 
     intrinsic_fct(vm, "defaultValue", Intrinsic::DefaultValue);
 
@@ -278,15 +268,17 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     native_method(
         vm,
         clsid,
-        "toIntOrThrow",
-        stdlib::str_to_int_or_throw as *const u8,
+        "toIntSuccess",
+        stdlib::str_to_int_success as *const u8,
     );
     native_method(
         vm,
         clsid,
-        "toLongOrThrow",
-        stdlib::str_to_long_or_throw as *const u8,
+        "toLongSuccess",
+        stdlib::str_to_long_success as *const u8,
     );
+    native_method(vm, clsid, "toIntOrZero", stdlib::str_to_int as *const u8);
+    native_method(vm, clsid, "toLongOrZero", stdlib::str_to_long as *const u8);
     native_method(vm, clsid, "plus", stdlib::strcat as *const u8);
 
     intrinsic_method(vm, clsid, "length", Intrinsic::StrLen);

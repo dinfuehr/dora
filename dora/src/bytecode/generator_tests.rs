@@ -2690,29 +2690,6 @@ fn gen_position_assert() {
     assert_eq!(expected, result);
 }
 
-#[test]
-fn gen_throw() {
-    gen("fun f() { throw Exception(\"exception\"); }", |vm, code| {
-        let cls_id = vm.cls_def_by_name("Exception");
-        let ctor_id = vm.ctor_def_by_name("Exception");
-        let expected = vec![
-            NewObject(r(0), cls_id),
-            ConstString(r(1), "exception".to_string()),
-            InvokeDirectVoid(ctor_id, r(0), 2),
-            Throw(r(0)),
-            RetVoid,
-        ];
-        assert_eq!(expected, code);
-    });
-}
-
-#[test]
-fn gen_position_throw() {
-    let expected = vec![(0, p(1, 23))];
-    let result = position("fun f(a: Exception) { throw a; }");
-    assert_eq!(expected, result);
-}
-
 fn p(line: u32, column: u32) -> Position {
     Position { line, column }
 }

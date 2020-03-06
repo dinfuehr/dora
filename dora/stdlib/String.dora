@@ -24,20 +24,26 @@
   @internal fun compareTo(rhs: String) -> Int;
 
   @internal fun length() -> Int;
-  @internal fun toIntOrThrow() throws -> Int;
+
+  @internal fun toIntSuccess() -> Bool;
+  @internal fun toLongSuccess() -> Bool;
+
+  @internal fun toIntOrZero() -> Int;
+  @internal fun toLongOrZero() -> Long;
+
   fun toInt() -> Option[Int] {
-    do {
-      return some[Int](try self.toIntOrThrow());
-    } catch e: Exception {
-      return none[Int]();
+    if self.toIntSuccess() {
+      some[Int](self.toIntOrZero())
+    } else {
+      none[Int]()
     }
   }
-  @internal fun toLongOrThrow() throws -> Long;
+
   fun toLong() -> Option[Long] {
-    do {
-      return some[Long](try self.toLongOrThrow());
-    } catch e: Exception {
-      return none[Long]();
+    if self.toLongSuccess() {
+      some[Long](self.toLongOrZero())
+    } else {
+      none[Long]()
     }
   }
 
@@ -46,30 +52,36 @@
   @internal fun getByte(idx: Int) -> Byte;
   @internal fun clone() -> String;
 
-  @internal @static fun fromBytesPartOrNull(val: Array[Byte], offset: Int, len: Int) throws -> String;
-  @internal @static fun fromStringPartOrNull(val: String, offset: Int, len: Int) throws -> String;
+  @internal @static fun fromBytesPartOrNull(val: Array[Byte], offset: Int, len: Int) -> String;
+  @internal @static fun fromStringPartOrNull(val: String, offset: Int, len: Int) -> String;
 
   @static fun fromBytesPart(val: Array[Byte], offset: Int, len: Int) -> Option[String] {
-    do {
-      return some[String](try String::fromBytesPartOrNull(val, offset, len));
-    } catch e: Exception {
-      return none[String]();
+    let value = String::fromBytesPartOrNull(val, offset, len);
+
+    if value === nil {
+      none[String]()
+    } else {
+      some[String](value)
     }
   }
 
   @static fun fromBytes(val: Array[Byte]) -> Option[String] {
-    do {
-      return some[String](try String::fromBytesPartOrNull(val, 0, val.length()));
-    } catch e: Exception {
-      return none[String]();
+    let value = String::fromBytesPartOrNull(val, 0, val.length());
+  
+    if value === nil {
+      none[String]()
+    } else {
+      some[String](value)
     }
   }
 
   @static fun fromStringPart(val: String, offset: Int, len: Int) -> Option[String] {
-    do {
-      return some[String](try String::fromStringPartOrNull(val, offset, len));
-    } catch e: Exception {
-      return none[String]();
+    let value = String::fromStringPartOrNull(val, offset, len);
+
+    if value === nil {
+      none[String]()
+    } else {
+      some[String](value)
     }
   }
 

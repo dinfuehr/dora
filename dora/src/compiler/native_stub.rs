@@ -8,7 +8,7 @@ use crate::compiler::CodeDescriptor;
 use crate::compiler::{Code, GcPoint, JitDescriptor, JitFct, JitFctId};
 use crate::cpu::{
     FReg, Mem, Reg, CCALL_FREG_PARAMS, CCALL_REG_PARAMS, FREG_PARAMS, FREG_TMP1, PARAM_OFFSET,
-    REG_FP, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1,
+    REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
 };
 use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
@@ -233,6 +233,11 @@ where
 
         self.masm.raw_call(self.fct.ptr.to_ptr());
         self.masm.emit_only_gcpoint(GcPoint::from_offsets(offsets));
+
+        if !self.fct.return_type.is_unit() {
+            self.masm
+                .fix_result(REG_RESULT, self.fct.return_type.mode());
+        }
 
         self.masm.load_mem(
             MachineMode::Ptr,

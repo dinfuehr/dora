@@ -1,9 +1,0 @@
-//= error exception
-
-fun main() {
-    do {
-        testThrowFromNativeButNotThrows(true);
-    } catch e: Exception {
-        assert(false);
-    }
-}

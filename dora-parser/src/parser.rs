@@ -788,7 +788,6 @@ impl<'a> Parser<'a> {
         let ident = self.expect_identifier()?;
         let type_params = self.parse_type_params()?;
         let params = self.parse_function_params()?;
-        let throws = self.parse_throws()?;
         let return_type = self.parse_function_type()?;
         let block = self.parse_function_block()?;
         let span = self.span_from(start);
@@ -812,21 +811,11 @@ impl<'a> Parser<'a> {
             is_test: modifiers.contains(Modifier::Test),
             use_cannon: modifiers.contains(Modifier::Cannon),
             params,
-            throws,
+            throws: false,
             return_type,
             block,
             type_params,
         })
-    }
-
-    fn parse_throws(&mut self) -> Result<bool, ParseErrorAndPos> {
-        if self.token.is(TokenKind::Throws) {
-            self.advance_token()?;
-
-            return Ok(true);
-        }
-
-        Ok(false)
     }
 
     fn parse_function_params(&mut self) -> Result<Vec<Param>, ParseErrorAndPos> {
@@ -939,17 +928,6 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::Eq)?;
 
         match self.token.kind {
-            TokenKind::Throw => {
-                let stmt = self.parse_throw()?;
-                Ok(Box::new(ExprBlockType {
-                    id: self.generate_id(),
-                    pos: stmt.pos(),
-                    span: stmt.span(),
-                    stmts: vec![stmt],
-                    expr: None,
-                }))
-            }
-
             TokenKind::Return => {
                 let stmt = self.parse_return()?;
                 Ok(Box::new(ExprBlockType {
@@ -1065,21 +1043,6 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_throw(&mut self) -> StmtResult {
-        let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Throw)?.position;
-        let expr = self.parse_expression()?;
-        self.expect_semicolon()?;
-        let span = self.span_from(start);
-
-        Ok(Box::new(Stmt::create_throw(
-            self.generate_id(),
-            pos,
-            span,
-            expr,
-        )))
-    }
-
     fn parse_defer(&mut self) -> StmtResult {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::Defer)?.position;
@@ -1093,54 +1056,6 @@ impl<'a> Parser<'a> {
             span,
             expr,
         )))
-    }
-
-    fn parse_do(&mut self) -> StmtResult {
-        let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Do)?.position;
-        let try_block = self.parse_block_stmt()?;
-        let mut catch_blocks = Vec::new();
-
-        while self.token.is(TokenKind::Catch) {
-            catch_blocks.push(self.parse_catch()?);
-        }
-
-        let finally_block = if self.token.is(TokenKind::Finally) {
-            Some(self.parse_finally()?)
-        } else {
-            None
-        };
-
-        let span = self.span_from(start);
-
-        Ok(Box::new(Stmt::create_do(
-            self.generate_id(),
-            pos,
-            span,
-            try_block,
-            catch_blocks,
-            finally_block,
-        )))
-    }
-
-    fn parse_catch(&mut self) -> Result<CatchBlock, ParseErrorAndPos> {
-        let id = self.generate_id();
-        let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Catch)?.position;
-        let name = self.expect_identifier()?;
-        self.expect_token(TokenKind::Colon)?;
-        let data_type = self.parse_type()?;
-        let block = self.parse_block_stmt()?;
-        let span = self.span_from(start);
-
-        Ok(CatchBlock::new(id, name, pos, span, data_type, block))
-    }
-
-    fn parse_finally(&mut self) -> Result<FinallyBlock, ParseErrorAndPos> {
-        self.expect_token(TokenKind::Finally)?;
-        let block = self.parse_block_stmt()?;
-
-        Ok(FinallyBlock::new(block))
     }
 
     fn parse_var(&mut self) -> StmtResult {
@@ -1256,9 +1171,7 @@ impl<'a> Parser<'a> {
                 self.token.position,
                 ParseError::MisplacedElse,
             )),
-            TokenKind::Throw => Ok(StmtOrExpr::Stmt(self.parse_throw()?)),
             TokenKind::Defer => Ok(StmtOrExpr::Stmt(self.parse_defer()?)),
-            TokenKind::Do => Ok(StmtOrExpr::Stmt(self.parse_do()?)),
             TokenKind::For => Ok(StmtOrExpr::Stmt(self.parse_for()?)),
             _ => {
                 let expr = self.parse_expression()?;
@@ -1636,8 +1549,6 @@ impl<'a> Parser<'a> {
             TokenKind::Nil => self.parse_nil(),
             TokenKind::This => self.parse_this(),
             TokenKind::Super => self.parse_super(),
-            TokenKind::Try => self.parse_try(),
-            TokenKind::TryForce | TokenKind::TryOpt => self.parse_try_op(),
             TokenKind::BitOr | TokenKind::Or => self.parse_lambda(),
             _ => Err(ParseErrorAndPos::new(
                 self.token.position,
@@ -1712,53 +1623,6 @@ impl<'a> Parser<'a> {
 
             Ok(expr)
         }
-    }
-
-    fn parse_try_op(&mut self) -> ExprResult {
-        let start = self.token.span.start();
-        let tok = self.advance_token()?;
-        let exp = self.parse_expression()?;
-
-        let mode = if tok.is(TokenKind::TryForce) {
-            TryMode::Force
-        } else {
-            TryMode::Opt
-        };
-
-        let span = self.span_from(start);
-
-        Ok(Box::new(Expr::create_try(
-            self.generate_id(),
-            tok.position,
-            span,
-            exp,
-            mode,
-        )))
-    }
-
-    fn parse_try(&mut self) -> ExprResult {
-        let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Try)?.position;
-        let exp = self.parse_expression()?;
-
-        let mode = if self.token.is(TokenKind::Else) {
-            self.advance_token()?;
-            let alt_exp = self.parse_expression()?;
-
-            TryMode::Else(alt_exp)
-        } else {
-            TryMode::Normal
-        };
-
-        let span = self.span_from(start);
-
-        Ok(Box::new(Expr::create_try(
-            self.generate_id(),
-            pos,
-            span,
-            exp,
-            mode,
-        )))
     }
 
     fn parse_lit_char(&mut self) -> ExprResult {
@@ -3241,61 +3105,11 @@ mod tests {
     }
 
     #[test]
-    fn parse_function_without_throws() {
-        let (prog, _) = parse("fun f(a: int) {}");
-        let fct = prog.fct0();
-        assert!(!fct.throws);
-    }
-
-    #[test]
-    fn parse_function_throws() {
-        let (prog, _) = parse("fun f(a: int) throws {}");
-        let fct = prog.fct0();
-        assert!(fct.throws);
-    }
-
-    #[test]
-    fn parse_function_throws_with_return_type() {
-        let (prog, _) = parse("fun f(a: int) throws -> int { return 0; }");
-        let fct = prog.fct0();
-        assert!(fct.throws);
-    }
-
-    #[test]
-    fn parse_throw() {
-        let stmt = parse_stmt("throw 1;");
-        let throw = stmt.to_throw().unwrap();
-
-        assert!(throw.expr.is_lit_int());
-    }
-
-    #[test]
     fn parse_defer() {
         let stmt = parse_stmt("defer foo();");
         let defer = stmt.to_defer().unwrap();
 
         assert!(defer.expr.is_call());
-    }
-
-    #[test]
-    fn parse_do() {
-        let stmt = parse_stmt(
-            "do { 1; } catch e: String { 2; }
-                                          catch e: IntArray { 3; } finally { 4; }",
-        );
-        let r#try = stmt.to_do().unwrap();
-
-        assert_eq!(2, r#try.catch_blocks.len());
-        assert!(r#try.finally_block.is_some());
-    }
-
-    #[test]
-    fn parse_do_without_catch() {
-        let stmt = parse_stmt("do { 1; }");
-        let r#try = stmt.to_do().unwrap();
-
-        assert_eq!(0, r#try.catch_blocks.len());
-        assert!(r#try.finally_block.is_none());
     }
 
     #[test]
@@ -3401,62 +3215,6 @@ mod tests {
         let (prog, _) = parse("@internal class Foo {}");
         let cls = prog.cls0();
         assert!(cls.internal);
-    }
-
-    #[test]
-    fn parse_try_function() {
-        let (expr, _) = parse_expr("try foo()");
-        let r#try = expr.to_try().unwrap();
-        let call = r#try.expr.to_call().unwrap();
-
-        assert!(r#try.mode.is_normal());
-        assert!(call.callee.is_ident());
-        assert_eq!(0, call.args.len());
-    }
-
-    #[test]
-    fn parse_try_method() {
-        let (expr, _) = parse_expr("try obj.foo()");
-        let r#try = expr.to_try().unwrap();
-        let call = r#try.expr.to_call().unwrap();
-
-        assert!(r#try.mode.is_normal());
-        assert!(call.callee.is_dot());
-        assert_eq!(0, call.args.len());
-    }
-
-    #[test]
-    fn parse_try_expr() {
-        // although `try 1` does not make sense it should parse correctly
-        let (expr, _) = parse_expr("try 1");
-        let r#try = expr.to_try().unwrap();
-
-        assert!(r#try.mode.is_normal());
-        assert!(r#try.expr.is_lit_int());
-    }
-
-    #[test]
-    fn parse_try_with_else() {
-        let (expr, _) = parse_expr("try foo() else 2");
-        let r#try = expr.to_try().unwrap();
-
-        assert!(r#try.mode.is_else());
-    }
-
-    #[test]
-    fn parse_try_force() {
-        let (expr, _) = parse_expr("try! foo()");
-        let r#try = expr.to_try().unwrap();
-
-        assert!(r#try.mode.is_force());
-    }
-
-    #[test]
-    fn parse_try_opt() {
-        let (expr, _) = parse_expr("try? foo()");
-        let r#try = expr.to_try().unwrap();
-
-        assert!(r#try.mode.is_opt());
     }
 
     #[test]

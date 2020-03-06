@@ -30,7 +30,7 @@ fun bar_byte(a: Byte) -> Byte {
 }
 fun bar_char(a: Char) -> Char {
   assert(a == '3');
-  return try! (3+a.toInt()).toChar();  
+  return (3+a.toInt()).toChar().unwrap();
 }
 
 @cannon fun foo_int() -> Int {

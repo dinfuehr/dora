@@ -1,9 +1,0 @@
-fun main() {
-  do {
-    throw arrayFill[Int](5, 1);
-
-  } catch x: Array[Int] {
-    forceCollect();
-    assert(x.length() == 5);
-  }
-}

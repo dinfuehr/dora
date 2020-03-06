@@ -1,6 +1,0 @@
-//= error nil
-
-fun main() {
-  let x: String = nil;
-  throw x;
-}

@@ -148,9 +148,9 @@ fun intToHexString(var val: Int, padding: Int) -> String {
         val = val >>> 4;
 
         let digit = if digit < 10 {
-            try! (48 + digit).toChar()
+            (48 + digit).toChar().unwrap()
         } else {
-            try! (65 + digit - 10).toChar()
+            (65 + digit - 10).toChar().unwrap()
         };
 
         result = "${digit}${result}";

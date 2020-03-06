@@ -5,6 +5,3 @@ class Testing {
         self.failed = true;
     }
 }
-
-@internal fun testThrowFromNative(val: Bool) throws;
-@internal fun testThrowFromNativeButNotThrows(val: Bool);

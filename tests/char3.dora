@@ -1,7 +1,7 @@
 fun main() {
-    let x = try! 97.toChar();
+    let x = 97.toChar().unwrap();
     assert(x == 'a');
 
-    let y = try! 65L.toChar();
+    let y = 65L.toChar().unwrap();
     assert(y == 'A');
 }

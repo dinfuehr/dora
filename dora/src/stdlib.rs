@@ -7,14 +7,14 @@ use std::str;
 use std::thread;
 use std::time::Duration;
 
-use crate::exception::{alloc_exception, stacktrace_from_last_dtn};
+use crate::exception::stacktrace_from_last_dtn;
 use crate::gc::{Address, GcReason};
-use crate::handle::{root, scope as handle_scope, Handle};
+use crate::handle::{scope as handle_scope, Handle};
 use crate::object::{ByteArray, Obj, Ref, Str};
 use crate::sym::Sym::SymFct;
 use crate::threads::{DoraThread, STACK_SIZE, THREAD};
 use crate::ty::TypeList;
-use crate::vm::{exception_set, get_vm, stack_pointer, Trap};
+use crate::vm::{get_vm, stack_pointer, Trap};
 
 pub extern "C" fn byte_to_string(val: u8) -> Ref<Str> {
     handle_scope(|| {
@@ -115,23 +115,6 @@ pub extern "C" fn println(val: Handle<Str>) {
 pub extern "C" fn sleep(seconds: i32) {
     assert!(seconds >= 0);
     thread::sleep(Duration::from_secs(seconds as u64));
-}
-
-pub extern "C" fn throw_native() {
-    handle_scope(|| {
-        let vm = get_vm();
-        let msg = root(Str::empty(vm));
-        let obj = alloc_exception(vm, msg);
-        let obj = root(obj);
-
-        exception_set(obj.direct().address())
-    })
-}
-
-pub extern "C" fn test_throw_native(val: bool) {
-    if val {
-        throw_native()
-    }
 }
 
 pub extern "C" fn call(fct: Handle<Str>) {
@@ -239,28 +222,32 @@ pub extern "C" fn argv(ind: i32) -> Ref<Str> {
     panic!("argument does not exist");
 }
 
-pub extern "C" fn str_to_int_or_throw(val: Handle<Str>) -> i32 {
+pub extern "C" fn str_to_int_success(val: Handle<Str>) -> bool {
     let slice = val.content();
     let val = str::from_utf8(slice).unwrap();
 
-    let result = val.parse::<i32>();
-    if result.is_ok() {
-        return result.unwrap();
-    }
-    throw_native();
-    0
+    val.parse::<i32>().is_ok()
 }
 
-pub extern "C" fn str_to_long_or_throw(val: Handle<Str>) -> i64 {
+pub extern "C" fn str_to_int(val: Handle<Str>) -> i32 {
     let slice = val.content();
     let val = str::from_utf8(slice).unwrap();
 
-    let result = val.parse::<i64>();
-    if result.is_ok() {
-        return result.unwrap();
-    }
-    throw_native();
-    0
+    val.parse::<i32>().unwrap_or(0)
+}
+
+pub extern "C" fn str_to_long_success(val: Handle<Str>) -> bool {
+    let slice = val.content();
+    let val = str::from_utf8(slice).unwrap();
+
+    val.parse::<i64>().is_ok()
+}
+
+pub extern "C" fn str_to_long(val: Handle<Str>) -> i64 {
+    let slice = val.content();
+    let val = str::from_utf8(slice).unwrap();
+
+    val.parse::<i64>().unwrap_or(0)
 }
 
 pub extern "C" fn trap(trap_id: u32) {

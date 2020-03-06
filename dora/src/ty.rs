@@ -565,6 +565,13 @@ impl MachineMode {
         }
     }
 
+    pub fn is_int8(self) -> bool {
+        match self {
+            MachineMode::Int8 => true,
+            _ => false,
+        }
+    }
+
     pub fn is_float(self) -> bool {
         match self {
             MachineMode::Float32 | MachineMode::Float64 => true,

@@ -431,16 +431,6 @@ mod tests {
     }
 
     #[test]
-    fn test_override_with_missing_throws() {
-        err(
-            "@open class A { @open fun f() throws {} }
-             class B: A { @override fun f() {} }",
-            pos(2, 37),
-            SemError::ThrowsDifference("f".into()),
-        );
-    }
-
-    #[test]
     fn test_wrong_parameters_in_override() {
         err(
             "

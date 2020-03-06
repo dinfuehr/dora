@@ -522,18 +522,6 @@ fn type_array_assign() {
 }
 
 #[test]
-fn type_throw() {
-    ok("fun f() { throw \"abc\"; }");
-    ok("fun f() { throw Array[Int](0); }");
-    err(
-        "fun f() { throw 1; }",
-        pos(1, 11),
-        SemError::ReferenceTypeExpected("Int".into()),
-    );
-    err("fun f() { throw nil; }", pos(1, 11), SemError::ThrowNil);
-}
-
-#[test]
 fn type_defer() {
     ok("fun foo() { }
             fun f() { defer foo(); }");
@@ -548,54 +536,6 @@ fn type_defer() {
         "fun f() { defer 1; }",
         pos(1, 11),
         SemError::FctCallExpected,
-    );
-}
-
-#[test]
-fn type_catch_variable() {
-    ok("fun f() { do {} catch a: String { print(a); } }");
-    ok("fun f() { var x = 0; do {} catch a: Array[Int] { x=a.length(); } }");
-}
-
-#[test]
-fn try_value_type() {
-    err(
-        "fun f() { do {} catch a: Int {} }",
-        pos(1, 26),
-        SemError::ReferenceTypeExpected("Int".into()),
-    );
-}
-
-#[test]
-fn try_missing_catch() {
-    err(
-        "fun f() { do {} }",
-        pos(1, 11),
-        SemError::CatchOrFinallyExpected,
-    );
-}
-
-#[test]
-fn try_check_blocks() {
-    err(
-        "fun f() { do {} catch a: Array[Int] {} a.len(); }",
-        pos(1, 40),
-        SemError::UnknownIdentifier("a".into()),
-    );
-    err(
-        "fun f() { do {} catch a: Array[Int] {} finally { a.len(); } }",
-        pos(1, 50),
-        SemError::UnknownIdentifier("a".into()),
-    );
-    err(
-        "fun f() { do { return a; } catch a: Array[Int] {} }",
-        pos(1, 23),
-        SemError::UnknownIdentifier("a".into()),
-    );
-    err(
-        "fun f() { do { } catch a: Array[Int] { return a; } }",
-        pos(1, 40),
-        SemError::ReturnType("()".into(), "Array[Int]".into()),
     );
 }
 
@@ -629,21 +569,6 @@ fn reassign_field() {
     err(
         "class Foo(let x: Int) fun foo(var f: Foo) { f.x = 1; }",
         pos(1, 49),
-        SemError::LetReassigned,
-    );
-}
-
-#[test]
-fn reassign_catch() {
-    err(
-        "fun f() {
-               do {
-                 throw \"test\";
-               } catch x: Array[Int] {
-                 x = Array[Int](0);
-               }
-             }",
-        pos(5, 20),
         SemError::LetReassigned,
     );
 }
@@ -782,79 +707,6 @@ fn super_as_normal_expression() {
             class B: A { fun me() { let x = super; } }",
         pos(2, 45),
         SemError::SuperNeedsMethodCall,
-    );
-}
-
-#[test]
-fn try_with_non_call() {
-    err("fun me() { try 1; }", pos(1, 12), SemError::TryNeedsCall);
-}
-
-#[test]
-fn try_fct() {
-    ok("fun one() throws -> Int { return 1; } fun me() -> Int { return try one(); }");
-}
-
-#[test]
-fn throws_fct_without_try() {
-    err(
-        "fun one() throws -> Int { return 1; } fun me() -> Int { return one(); }",
-        pos(1, 67),
-        SemError::ThrowingCallWithoutTry,
-    );
-}
-
-#[test]
-fn try_fct_non_throwing() {
-    err(
-        "fun one() -> Int { return 1; }
-             fun me() -> Int { return try one(); }",
-        pos(2, 39),
-        SemError::TryCallNonThrowing,
-    );
-}
-
-#[test]
-fn try_method() {
-    ok("class Foo { fun one() throws -> Int { return 1; } }
-            fun me() -> Int { return try Foo().one(); }");
-}
-
-#[test]
-fn throws_method_without_try() {
-    err(
-        "class Foo { fun one() throws -> Int { return 1; } }
-             fun me() -> Int { return Foo().one(); }",
-        pos(2, 48),
-        SemError::ThrowingCallWithoutTry,
-    );
-}
-
-#[test]
-fn try_method_non_throwing() {
-    err(
-        "class Foo() { fun one() -> Int { return 1; } }
-             fun me() -> Int { return try Foo().one(); }",
-        pos(2, 39),
-        SemError::TryCallNonThrowing,
-    );
-}
-
-#[test]
-fn try_else() {
-    ok("fun one() throws -> Int { return 1; }
-            fun me() -> Int { return try one() else 0; }");
-    err(
-        "fun one() throws -> Int { return 1; }
-             fun me() -> Int { return try one() else \"bla\"; }",
-        pos(2, 39),
-        SemError::TypesIncompatible("Int".into(), "String".into()),
-    );
-    err(
-        "fun one() throws -> Int { return 1; }
-             fun me() -> Int { return try one() else false; }",
-        pos(2, 39),
-        SemError::TypesIncompatible("Int".into(), "Bool".into()),
     );
 }
 
@@ -1374,36 +1226,6 @@ fn generic_trait_method_call() {
             class A[T: Foo](let t: T) {
                 fun baz() { self.t.bar(); }
             }");
-
-    err(
-        "trait Foo { fun bar() throws; }
-            fun f[T: Foo](t: T) { t.bar(); }",
-        pos(2, 40),
-        SemError::ThrowingCallWithoutTry,
-    );
-    err(
-        "trait Foo { fun bar() throws; }
-            class A[T: Foo](let t: T) {
-                fun baz() { self.t.bar(); }
-            }",
-        pos(3, 39),
-        SemError::ThrowingCallWithoutTry,
-    );
-
-    err(
-        "trait Foo { fun bar(); }
-            fun f[T: Foo](t: T) { try t.bar(); }",
-        pos(2, 35),
-        SemError::TryCallNonThrowing,
-    );
-    err(
-        "trait Foo { fun bar(); }
-            class A[T: Foo](let t: T) {
-                fun baz() { try self.t.bar(); }
-            }",
-        pos(3, 29),
-        SemError::TryCallNonThrowing,
-    );
 }
 
 #[test]
@@ -1512,20 +1334,6 @@ fn test_new_call_fct() {
 }
 
 #[test]
-fn test_new_call_fct_throws() {
-    ok("fun g() throws {} fun f() { try g(); }");
-}
-
-#[test]
-fn test_new_call_fct_without_try() {
-    err(
-        "fun g() throws {} fun f() { g(); }",
-        pos(1, 30),
-        SemError::ThrowingCallWithoutTry,
-    );
-}
-
-#[test]
 fn test_new_call_fct_wrong_params() {
     err(
         "fun g() {} fun f() { g(1); }",
@@ -1616,15 +1424,6 @@ fn test_new_call_method_wrong_params() {
         "class X { fun f() {} } fun f(x: X) { x.f(1); }",
         pos(1, 41),
         SemError::ParamTypesIncompatible("f".into(), Vec::new(), vec!["Int".into()]),
-    );
-}
-
-#[test]
-fn test_new_call_method_without_try() {
-    err(
-        "class X { fun f() throws {} } fun f(x: X) { x.f(); }",
-        pos(1, 48),
-        SemError::ThrowingCallWithoutTry,
     );
 }
 
@@ -1809,13 +1608,6 @@ fn test_static_method_call_with_type_param() {
         SemError::ParamTypesIncompatible("foo".into(), Vec::new(), vec!["Int".into()]),
     );
 
-    err(
-        "trait X { @static fun foo() throws -> Int; }
-        fun f[T: X]() -> Int { return T::foo(); }",
-        pos(2, 45),
-        SemError::ThrowingCallWithoutTry,
-    );
-
     ok("trait X { @static fun foo() -> Int; }
         fun f[T: X]() -> Int { return T::foo(); }");
 }
@@ -1826,14 +1618,6 @@ fn test_type_param_with_let() {
         let tmp: T = val;
         return tmp;
     }");
-
-    err(
-        "fun myid[T](val: T) {
-        do {} catch x: T {}
-    }",
-        pos(2, 24),
-        SemError::ReferenceTypeExpected("T".into()),
-    );
 }
 
 #[test]

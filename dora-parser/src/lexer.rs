@@ -118,29 +118,13 @@ impl Lexer {
         }
 
         let lookup = self.keywords.get(&value[..]).cloned();
-        let mut ttype;
-
-        if let Some(tok_type) = lookup {
-            ttype = tok_type;
-
-            if ttype == TokenKind::Try {
-                if let Some(ch) = self.curr() {
-                    if ch == '!' || ch == '?' {
-                        self.read_char();
-
-                        ttype = if ch == '!' {
-                            TokenKind::TryForce
-                        } else {
-                            TokenKind::TryOpt
-                        };
-                    }
-                }
-            }
+        let ttype = if let Some(tok_type) = lookup {
+            tok_type
         } else if value == "_" {
-            ttype = TokenKind::Underscore;
+            TokenKind::Underscore
         } else {
-            ttype = TokenKind::Identifier(value);
-        }
+            TokenKind::Identifier(value)
+        };
 
         let span = self.span_from(idx);
         Ok(Token::new(ttype, pos, span))
@@ -592,12 +576,6 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("struct", TokenKind::Struct);
     keywords.insert("trait", TokenKind::Trait);
     keywords.insert("module", TokenKind::Module);
-    keywords.insert("throws", TokenKind::Throws);
-    keywords.insert("throw", TokenKind::Throw);
-    keywords.insert("try", TokenKind::Try);
-    keywords.insert("do", TokenKind::Do);
-    keywords.insert("catch", TokenKind::Catch);
-    keywords.insert("finally", TokenKind::Finally);
     keywords.insert("defer", TokenKind::Defer);
     keywords.insert("is", TokenKind::Is);
     keywords.insert("as", TokenKind::As);
@@ -1092,16 +1070,6 @@ mod tests {
 
         let mut reader = Lexer::from_str("->");
         assert_tok(&mut reader, TokenKind::Arrow, 1, 1);
-
-        let mut reader = Lexer::from_str("try!try?1");
-        assert_tok(&mut reader, TokenKind::TryForce, 1, 1);
-        assert_tok(&mut reader, TokenKind::TryOpt, 1, 5);
-        assert_tok(
-            &mut reader,
-            TokenKind::LitInt("1".into(), IntBase::Dec, IntSuffix::Int),
-            1,
-            9,
-        );
 
         let mut reader = Lexer::from_str(">><<>>>_::");
         assert_tok(&mut reader, TokenKind::GtGt, 1, 1);
