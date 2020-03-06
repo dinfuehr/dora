@@ -36,7 +36,7 @@ pub use self::cnst::{ConstData, ConstId, ConstValue};
 pub use self::enums::{EnumData, EnumId};
 pub use self::exception::{exception_get_and_clear, exception_set};
 pub use self::extension::{ExtensionData, ExtensionId};
-pub use self::fct::{Fct, FctId, FctKind, FctParent, Intrinsic};
+pub use self::fct::{Fct, FctDef, FctDefId, FctId, FctKind, FctParent, Intrinsic};
 pub use self::field::{Field, FieldDef, FieldId};
 pub use self::global::{GlobalData, GlobalId};
 pub use self::impls::{ImplData, ImplId};
@@ -103,8 +103,9 @@ pub struct VM<'ast> {
     pub tuples: Mutex<Tuples>,                 // stores all tuple definitions
     pub modules: GrowableVec<RwLock<Module>>,  // stores all module source definitions
     pub module_defs: GrowableVec<RwLock<ModuleDef>>, // stores all module definitions
-    pub fcts: GrowableVec<RwLock<Fct<'ast>>>,  // stores all function definitions
+    pub fcts: GrowableVec<RwLock<Fct<'ast>>>,  // stores all function source definitions
     pub jit_fcts: GrowableVec<JitFct>,         // stores all function implementations
+    pub fct_defs: GrowableVec<RwLock<FctDef>>, // stores all function definitions
     pub enums: Vec<RwLock<EnumData>>,          // store all enum definitions
     pub traits: Vec<RwLock<TraitData>>,        // stores all trait definitions
     pub impls: Vec<RwLock<ImplData>>,          // stores all impl definitions
@@ -199,6 +200,7 @@ impl<'ast> VM<'ast> {
             sym: Mutex::new(SymTable::new()),
             fcts: GrowableVec::new(),
             jit_fcts: GrowableVec::new(),
+            fct_defs: GrowableVec::new(),
             code_map: Mutex::new(CodeMap::new()),
             lists: Mutex::new(TypeLists::new()),
             lambda_types: Mutex::new(LambdaTypes::new()),
