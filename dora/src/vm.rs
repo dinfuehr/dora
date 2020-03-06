@@ -371,7 +371,7 @@ impl<'ast> VM<'ast> {
             let fct = self.fcts.idx(fct_id);
             let fct = fct.read();
             let fct_def = fct
-                .specializations_fct_def
+                .specializations
                 .read()
                 .get(&(TypeList::Empty, TypeList::Empty))
                 .and_then(|fct_def_id| Some(*fct_def_id));
@@ -427,7 +427,7 @@ impl<'ast> VM<'ast> {
         let fct = self.fcts.idx(fct_id);
         let fct = fct.read();
         let fct_def = fct
-            .specializations_fct_def
+            .specializations
             .read()
             .get(&(TypeList::Empty, TypeList::Empty))
             .and_then(|fct_def_id| Some(*fct_def_id));
@@ -456,7 +456,7 @@ impl<'ast> VM<'ast> {
         let fct = self.fcts.idx(fct_id);
         let fct = fct.read();
         let fct_def = fct
-            .specializations_fct_def
+            .specializations
             .read()
             .get(&(TypeList::Empty, TypeList::Empty))
             .and_then(|fct_def_id| Some(*fct_def_id))

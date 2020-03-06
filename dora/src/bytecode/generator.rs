@@ -1414,7 +1414,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let (cls_type_params, fct_type_params) = self.determine_call_type_params(call_type);
 
         if let Some(&id) = fct
-            .specializations_fct_def
+            .specializations
             .read()
             .get(&(cls_type_params.clone(), fct_type_params.clone()))
         {
@@ -1437,7 +1437,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             fct_type_params: fct_type_params.clone(),
         });
 
-        let old = fct.specializations_fct_def.write().insert(
+        let old = fct.specializations.write().insert(
             (cls_type_params.clone(), fct_type_params.clone()),
             fct_def_id,
         );

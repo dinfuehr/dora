@@ -284,7 +284,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
             type_params: Vec::new(),
             kind,
 
-            specializations_fct_def: RwLock::new(HashMap::new()),
+            specializations: RwLock::new(HashMap::new()),
         };
 
         let fctid = self.vm.add_fct(fct);
@@ -338,7 +338,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
             type_params: Vec::new(),
             kind,
 
-            specializations_fct_def: RwLock::new(HashMap::new()),
+            specializations: RwLock::new(HashMap::new()),
         };
 
         let fctid = self.vm.add_fct(fct);

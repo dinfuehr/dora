@@ -67,7 +67,7 @@ pub struct Fct<'ast> {
     pub type_params: Vec<TypeParam>,
     pub kind: FctKind,
 
-    pub specializations_fct_def: RwLock<HashMap<(TypeList, TypeList), FctDefId>>,
+    pub specializations: RwLock<HashMap<(TypeList, TypeList), FctDefId>>,
 }
 
 impl<'ast> Fct<'ast> {
