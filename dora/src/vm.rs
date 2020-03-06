@@ -36,7 +36,7 @@ pub use self::cnst::{ConstData, ConstId, ConstValue};
 pub use self::enums::{EnumData, EnumId};
 pub use self::exception::{exception_get_and_clear, exception_set};
 pub use self::extension::{ExtensionData, ExtensionId};
-pub use self::fct::{Fct, FctId, FctKind, FctParent, Intrinsic};
+pub use self::fct::{Fct, FctDef, FctDefId, FctId, FctKind, FctParent, Intrinsic};
 pub use self::field::{Field, FieldDef, FieldId};
 pub use self::global::{GlobalData, GlobalId};
 pub use self::impls::{ImplData, ImplId};
@@ -103,8 +103,9 @@ pub struct VM<'ast> {
     pub tuples: Mutex<Tuples>,                 // stores all tuple definitions
     pub modules: GrowableVec<RwLock<Module>>,  // stores all module source definitions
     pub module_defs: GrowableVec<RwLock<ModuleDef>>, // stores all module definitions
-    pub fcts: GrowableVec<RwLock<Fct<'ast>>>,  // stores all function definitions
+    pub fcts: GrowableVec<RwLock<Fct<'ast>>>,  // stores all function source definitions
     pub jit_fcts: GrowableVec<JitFct>,         // stores all function implementations
+    pub fct_defs: GrowableVec<RwLock<FctDef>>, // stores all function definitions
     pub enums: Vec<RwLock<EnumData>>,          // store all enum definitions
     pub traits: Vec<RwLock<TraitData>>,        // stores all trait definitions
     pub impls: Vec<RwLock<ImplData>>,          // stores all impl definitions
@@ -199,6 +200,7 @@ impl<'ast> VM<'ast> {
             sym: Mutex::new(SymTable::new()),
             fcts: GrowableVec::new(),
             jit_fcts: GrowableVec::new(),
+            fct_defs: GrowableVec::new(),
             code_map: Mutex::new(CodeMap::new()),
             lists: Mutex::new(TypeLists::new()),
             lambda_types: Mutex::new(LambdaTypes::new()),
@@ -298,6 +300,17 @@ impl<'ast> VM<'ast> {
         }
     }
 
+    pub fn add_fct_def(&self, mut fct_def: FctDef) -> FctDefId {
+        let mut fct_defs = self.fct_defs.lock();
+        let fid = FctDefId(fct_defs.len());
+
+        fct_def.id = fid;
+
+        fct_defs.push(Arc::new(RwLock::new(fct_def)));
+
+        fid
+    }
+
     #[cfg(test)]
     pub fn cls_by_name(&self, name: &'static str) -> ClassId {
         let name = self.interner.intern(name);
@@ -330,6 +343,40 @@ impl<'ast> VM<'ast> {
         let candidates = find_methods_in_class(self, cls, function_name, is_static);
         if candidates.len() == 1 {
             Some(candidates[0].1)
+        } else {
+            None
+        }
+    }
+
+    #[cfg(test)]
+    pub fn cls_method_def_by_name(
+        &self,
+        class_name: &'static str,
+        function_name: &'static str,
+        is_static: bool,
+    ) -> Option<FctDefId> {
+        let class_name = self.interner.intern(class_name);
+        let function_name = self.interner.intern(function_name);
+
+        let cls_id = self
+            .sym
+            .lock()
+            .get_class(class_name)
+            .expect("class not found");
+        let cls = self.cls(cls_id);
+
+        let candidates = find_methods_in_class(self, cls, function_name, is_static);
+        if candidates.len() == 1 {
+            let fct_id = candidates[0].1;
+            let fct = self.fcts.idx(fct_id);
+            let fct = fct.read();
+            let fct_def = fct
+                .specializations
+                .read()
+                .get(&(TypeList::Empty, TypeList::Empty))
+                .and_then(|fct_def_id| Some(*fct_def_id));
+
+            fct_def
         } else {
             None
         }
@@ -375,6 +422,20 @@ impl<'ast> VM<'ast> {
     }
 
     #[cfg(test)]
+    pub fn fct_def_by_name(&self, name: &str) -> Option<FctDefId> {
+        let fct_id = self.fct_by_name(name).expect("function not found");
+        let fct = self.fcts.idx(fct_id);
+        let fct = fct.read();
+        let fct_def = fct
+            .specializations
+            .read()
+            .get(&(TypeList::Empty, TypeList::Empty))
+            .and_then(|fct_def_id| Some(*fct_def_id));
+
+        fct_def
+    }
+
+    #[cfg(test)]
     pub fn ctor_by_name(&self, name: &str) -> FctId {
         let name = self.interner.intern(name);
         let cls_id = self.sym.lock().get_class(name).expect("class not found");
@@ -382,6 +443,26 @@ impl<'ast> VM<'ast> {
         let cls = cls.read();
 
         cls.constructor.expect("no ctor found")
+    }
+
+    #[cfg(test)]
+    pub fn ctor_def_by_name(&self, name: &str) -> FctDefId {
+        let name = self.interner.intern(name);
+        let cls_id = self.sym.lock().get_class(name).expect("class not found");
+        let cls = self.classes.idx(cls_id);
+        let cls = cls.read();
+
+        let fct_id = cls.constructor.expect("no ctor found");
+        let fct = self.fcts.idx(fct_id);
+        let fct = fct.read();
+        let fct_def = fct
+            .specializations
+            .read()
+            .get(&(TypeList::Empty, TypeList::Empty))
+            .and_then(|fct_def_id| Some(*fct_def_id))
+            .expect("no ctor definition found");
+
+        fct_def
     }
 
     #[cfg(test)]

@@ -334,6 +334,8 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
             type_params: Vec::new(),
             kind,
+
+            specializations: RwLock::new(HashMap::new()),
         };
 
         if let Err(sym) = self.vm.add_fct_to_sym(fct) {

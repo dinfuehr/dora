@@ -1,7 +1,7 @@
 use num_traits::cast::FromPrimitive;
 
 use crate::bytecode::{BytecodeOffset, BytecodeOpcode, ConstPoolIdx, Register};
-use crate::vm::{ClassDefId, FctId, FieldId, GlobalId};
+use crate::vm::{ClassDefId, FctDefId, FieldId, GlobalId};
 
 pub fn read<T: BytecodeVisitor>(data: &[u8], visitor: &mut T) {
     BytecodeReader::new(data, visitor).read();
@@ -1153,7 +1153,7 @@ where
         Register(self.read_index(wide) as usize)
     }
 
-    fn read_fct(&mut self, wide: bool) -> FctId {
+    fn read_fct(&mut self, wide: bool) -> FctDefId {
         (self.read_index(wide) as usize).into()
     }
 
@@ -1776,13 +1776,13 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_invoke_direct_void(&mut self, _fct: FctId, _start: Register, _count: u32) {
+    fn visit_invoke_direct_void(&mut self, _fctdef: FctDefId, _start: Register, _count: u32) {
         unimplemented!();
     }
     fn visit_invoke_direct_bool(
         &mut self,
         _dest: Register,
-        _fct: FctId,
+        _fctdef: FctDefId,
         _start: Register,
         _count: u32,
     ) {
@@ -1791,7 +1791,7 @@ pub trait BytecodeVisitor {
     fn visit_invoke_direct_byte(
         &mut self,
         _dest: Register,
-        _fct: FctId,
+        _fctdef: FctDefId,
         _start: Register,
         _count: u32,
     ) {
@@ -1800,7 +1800,7 @@ pub trait BytecodeVisitor {
     fn visit_invoke_direct_char(
         &mut self,
         _dest: Register,
-        _fct: FctId,
+        _fctdef: FctDefId,
         _start: Register,
         _count: u32,
     ) {
@@ -1809,7 +1809,7 @@ pub trait BytecodeVisitor {
     fn visit_invoke_direct_int(
         &mut self,
         _dest: Register,
-        _fct: FctId,
+        _fctdef: FctDefId,
         _start: Register,
         _count: u32,
     ) {
@@ -1818,7 +1818,7 @@ pub trait BytecodeVisitor {
     fn visit_invoke_direct_long(
         &mut self,
         _dest: Register,
-        _fct: FctId,
+        _fctdef: FctDefId,
         _start: Register,
         _count: u32,
     ) {
@@ -1827,7 +1827,7 @@ pub trait BytecodeVisitor {
     fn visit_invoke_direct_float(
         &mut self,
         _dest: Register,
-        _fct: FctId,
+        _fctdef: FctDefId,
         _start: Register,
         _count: u32,
     ) {
@@ -1836,7 +1836,7 @@ pub trait BytecodeVisitor {
     fn visit_invoke_direct_double(
         &mut self,
         _dest: Register,
-        _fct: FctId,
+        _fctdef: FctDefId,
         _start: Register,
         _count: u32,
     ) {
@@ -1845,20 +1845,20 @@ pub trait BytecodeVisitor {
     fn visit_invoke_direct_ptr(
         &mut self,
         _dest: Register,
-        _fct: FctId,
+        _fctdef: FctDefId,
         _start: Register,
         _count: u32,
     ) {
         unimplemented!();
     }
 
-    fn visit_invoke_virtual_void(&mut self, _fct: FctId, _start: Register, _count: u32) {
+    fn visit_invoke_virtual_void(&mut self, _fctdef: FctDefId, _start: Register, _count: u32) {
         unimplemented!();
     }
     fn visit_invoke_virtual_bool(
         &mut self,
         _dest: Register,
-        _fct: FctId,
+        _fctdef: FctDefId,
         _start: Register,
         _count: u32,
     ) {
@@ -1867,7 +1867,7 @@ pub trait BytecodeVisitor {
     fn visit_invoke_virtual_byte(
         &mut self,
         _dest: Register,
-        _fct: FctId,
+        _fctdef: FctDefId,
         _start: Register,
         _count: u32,
     ) {
@@ -1876,7 +1876,7 @@ pub trait BytecodeVisitor {
     fn visit_invoke_virtual_char(
         &mut self,
         _dest: Register,
-        _fct: FctId,
+        _fctdef: FctDefId,
         _start: Register,
         _count: u32,
     ) {
@@ -1885,7 +1885,7 @@ pub trait BytecodeVisitor {
     fn visit_invoke_virtual_int(
         &mut self,
         _dest: Register,
-        _fct: FctId,
+        _fctdef: FctDefId,
         _start: Register,
         _count: u32,
     ) {
@@ -1894,7 +1894,7 @@ pub trait BytecodeVisitor {
     fn visit_invoke_virtual_long(
         &mut self,
         _dest: Register,
-        _fct: FctId,
+        _fctdef: FctDefId,
         _start: Register,
         _count: u32,
     ) {
@@ -1903,7 +1903,7 @@ pub trait BytecodeVisitor {
     fn visit_invoke_virtual_float(
         &mut self,
         _dest: Register,
-        _fct: FctId,
+        _fctdef: FctDefId,
         _start: Register,
         _count: u32,
     ) {
@@ -1912,7 +1912,7 @@ pub trait BytecodeVisitor {
     fn visit_invoke_virtual_double(
         &mut self,
         _dest: Register,
-        _fct: FctId,
+        _fctdef: FctDefId,
         _start: Register,
         _count: u32,
     ) {
@@ -1921,20 +1921,20 @@ pub trait BytecodeVisitor {
     fn visit_invoke_virtual_ptr(
         &mut self,
         _dest: Register,
-        _fct: FctId,
+        _fctdef: FctDefId,
         _start: Register,
         _count: u32,
     ) {
         unimplemented!();
     }
 
-    fn visit_invoke_static_void(&mut self, _fct: FctId, _start: Register, _count: u32) {
+    fn visit_invoke_static_void(&mut self, _fctdef: FctDefId, _start: Register, _count: u32) {
         unimplemented!();
     }
     fn visit_invoke_static_bool(
         &mut self,
         _dest: Register,
-        _fct: FctId,
+        _fctdef: FctDefId,
         _start: Register,
         _count: u32,
     ) {
@@ -1943,7 +1943,7 @@ pub trait BytecodeVisitor {
     fn visit_invoke_static_byte(
         &mut self,
         _dest: Register,
-        _fct: FctId,
+        _fctdef: FctDefId,
         _start: Register,
         _count: u32,
     ) {
@@ -1952,7 +1952,7 @@ pub trait BytecodeVisitor {
     fn visit_invoke_static_char(
         &mut self,
         _dest: Register,
-        _fct: FctId,
+        _fctdef: FctDefId,
         _start: Register,
         _count: u32,
     ) {
@@ -1961,7 +1961,7 @@ pub trait BytecodeVisitor {
     fn visit_invoke_static_int(
         &mut self,
         _dest: Register,
-        _fct: FctId,
+        _fctdef: FctDefId,
         _start: Register,
         _count: u32,
     ) {
@@ -1970,7 +1970,7 @@ pub trait BytecodeVisitor {
     fn visit_invoke_static_long(
         &mut self,
         _dest: Register,
-        _fct: FctId,
+        _fctdef: FctDefId,
         _start: Register,
         _count: u32,
     ) {
@@ -1979,7 +1979,7 @@ pub trait BytecodeVisitor {
     fn visit_invoke_static_float(
         &mut self,
         _dest: Register,
-        _fct: FctId,
+        _fctdef: FctDefId,
         _start: Register,
         _count: u32,
     ) {
@@ -1988,7 +1988,7 @@ pub trait BytecodeVisitor {
     fn visit_invoke_static_double(
         &mut self,
         _dest: Register,
-        _fct: FctId,
+        _fctdef: FctDefId,
         _start: Register,
         _count: u32,
     ) {
@@ -1997,7 +1997,7 @@ pub trait BytecodeVisitor {
     fn visit_invoke_static_ptr(
         &mut self,
         _dest: Register,
-        _fct: FctId,
+        _fctdef: FctDefId,
         _start: Register,
         _count: u32,
     ) {
