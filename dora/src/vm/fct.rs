@@ -1,3 +1,5 @@
+use crate::compiler::fct::JitFctId;
+use crate::ty::TypeList;
 use parking_lot::RwLock;
 
 use std::sync::Arc;
@@ -413,4 +415,34 @@ pub enum Intrinsic {
     DoubleArrayLen,
     DoubleArrayGet,
     DoubleArraySet,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct FctDefId(pub usize);
+
+impl FctDefId {
+    pub fn to_usize(self) -> usize {
+        self.0
+    }
+}
+
+impl From<usize> for FctDefId {
+    fn from(data: usize) -> FctDefId {
+        FctDefId(data)
+    }
+}
+
+impl<'ast> GrowableVec<RwLock<FctDef>> {
+    pub fn idx(&self, index: FctDefId) -> Arc<RwLock<FctDef>> {
+        self.idx_usize(index.0)
+    }
+}
+
+#[derive(Debug)]
+pub struct FctDef {
+    pub id: FctDefId,
+    pub fct_id: FctId,
+    pub cls_type_params: TypeList,
+    pub type_params: TypeList,
+    pub jit_fct_id: Option<JitFctId>,
 }
