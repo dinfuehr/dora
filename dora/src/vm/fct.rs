@@ -446,6 +446,6 @@ pub struct FctDef {
     pub id: FctDefId,
     pub fct_id: FctId,
     pub cls_type_params: TypeList,
-    pub type_params: TypeList,
+    pub fct_type_params: TypeList,
     pub jit_fct_id: Option<JitFctId>,
 }

@@ -1333,7 +1333,7 @@ where
         self.emit_invoke_arguments(start_reg, num);
 
         let cls_type_params = fct_def.cls_type_params.clone();
-        let fct_type_params = fct_def.type_params.clone();
+        let fct_type_params = fct_def.fct_type_params.clone();
 
         let name = fct.full_name(self.vm);
         self.asm.emit_comment(format!("call direct {}", name));
@@ -1395,7 +1395,7 @@ where
         self.emit_invoke_arguments(start_reg, num);
 
         let cls_type_params = fct_def.cls_type_params.clone();
-        let fct_type_params = fct_def.type_params.clone();
+        let fct_type_params = fct_def.fct_type_params.clone();
 
         let name = fct.full_name(self.vm);
         self.asm.emit_comment(format!("call direct {}", name));
