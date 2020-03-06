@@ -349,6 +349,40 @@ impl<'ast> VM<'ast> {
     }
 
     #[cfg(test)]
+    pub fn cls_method_def_by_name(
+        &self,
+        class_name: &'static str,
+        function_name: &'static str,
+        is_static: bool,
+    ) -> Option<FctDefId> {
+        let class_name = self.interner.intern(class_name);
+        let function_name = self.interner.intern(function_name);
+
+        let cls_id = self
+            .sym
+            .lock()
+            .get_class(class_name)
+            .expect("class not found");
+        let cls = self.cls(cls_id);
+
+        let candidates = find_methods_in_class(self, cls, function_name, is_static);
+        if candidates.len() == 1 {
+            let fct_id = candidates[0].1;
+            let fct = self.fcts.idx(fct_id);
+            let fct = fct.read();
+            let fct_def = fct
+                .specializations_fct_def
+                .read()
+                .get(&(TypeList::Empty, TypeList::Empty))
+                .and_then(|fct_def_id| Some(*fct_def_id));
+
+            fct_def
+        } else {
+            None
+        }
+    }
+
+    #[cfg(test)]
     pub fn cls_def_by_name(&self, name: &'static str) -> ClassDefId {
         use crate::semck::specialize::specialize_class_id;
 
@@ -388,6 +422,20 @@ impl<'ast> VM<'ast> {
     }
 
     #[cfg(test)]
+    pub fn fct_def_by_name(&self, name: &str) -> Option<FctDefId> {
+        let fct_id = self.fct_by_name(name).expect("function not found");
+        let fct = self.fcts.idx(fct_id);
+        let fct = fct.read();
+        let fct_def = fct
+            .specializations_fct_def
+            .read()
+            .get(&(TypeList::Empty, TypeList::Empty))
+            .and_then(|fct_def_id| Some(*fct_def_id));
+
+        fct_def
+    }
+
+    #[cfg(test)]
     pub fn ctor_by_name(&self, name: &str) -> FctId {
         let name = self.interner.intern(name);
         let cls_id = self.sym.lock().get_class(name).expect("class not found");
@@ -395,6 +443,26 @@ impl<'ast> VM<'ast> {
         let cls = cls.read();
 
         cls.constructor.expect("no ctor found")
+    }
+
+    #[cfg(test)]
+    pub fn ctor_def_by_name(&self, name: &str) -> FctDefId {
+        let name = self.interner.intern(name);
+        let cls_id = self.sym.lock().get_class(name).expect("class not found");
+        let cls = self.classes.idx(cls_id);
+        let cls = cls.read();
+
+        let fct_id = cls.constructor.expect("no ctor found");
+        let fct = self.fcts.idx(fct_id);
+        let fct = fct.read();
+        let fct_def = fct
+            .specializations_fct_def
+            .read()
+            .get(&(TypeList::Empty, TypeList::Empty))
+            .and_then(|fct_def_id| Some(*fct_def_id))
+            .expect("no ctor definition found");
+
+        fct_def
     }
 
     #[cfg(test)]
