@@ -1435,7 +1435,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             fct_id: fct.id,
             cls_type_params: cls_type_params.clone(),
             fct_type_params: fct_type_params.clone(),
-            jit_fct_id: None,
         });
 
         let old = fct.specializations_fct_def.write().insert(

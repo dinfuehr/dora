@@ -1,4 +1,3 @@
-use crate::compiler::fct::JitFctId;
 use crate::ty::TypeList;
 use parking_lot::RwLock;
 use std::collections::HashMap;
@@ -447,5 +446,4 @@ pub struct FctDef {
     pub fct_id: FctId,
     pub cls_type_params: TypeList,
     pub fct_type_params: TypeList,
-    pub jit_fct_id: Option<JitFctId>,
 }
