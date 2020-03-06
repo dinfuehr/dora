@@ -7,7 +7,7 @@ use crate::bytecode::{
 };
 use crate::test;
 use crate::ty::TypeList;
-use crate::vm::{ClassDefId, FctId, FieldId, GlobalId, VM};
+use crate::vm::{ClassDefId, FctDefId, FieldId, GlobalId, VM};
 use dora_parser::lexer::position::Position;
 
 fn code(code: &'static str) -> Vec<Bytecode> {
@@ -1253,7 +1253,7 @@ fn gen_fct_call_void_with_0_args() {
             fun g() { }
             ",
         |vm, code| {
-            let fct_id = vm.fct_by_name("g").expect("g not found");
+            let fct_id = vm.fct_def_by_name("g").expect("g not found");
             let expected = vec![InvokeStaticVoid(fct_id, r(0), 0), RetVoid];
             assert_eq!(expected, code);
         },
@@ -1268,7 +1268,7 @@ fn gen_fct_call_int_with_0_args() {
             fun g() -> Int { return 1; }
             ",
         |vm, code| {
-            let fct_id = vm.fct_by_name("g").expect("g not found");
+            let fct_id = vm.fct_def_by_name("g").expect("g not found");
             let expected = vec![InvokeStaticInt(r(0), fct_id, r(0), 0), RetInt(r(0))];
             assert_eq!(expected, code);
         },
@@ -1283,7 +1283,7 @@ fn gen_fct_call_int_with_0_args_and_unused_result() {
             fun g() -> Int { return 1; }
             ",
         |vm, code| {
-            let fct_id = vm.fct_by_name("g").expect("g not found");
+            let fct_id = vm.fct_def_by_name("g").expect("g not found");
             let expected = vec![InvokeStaticVoid(fct_id, r(0), 0), RetVoid];
             assert_eq!(expected, code);
         },
@@ -1298,7 +1298,7 @@ fn gen_fct_call_void_with_1_arg() {
             fun g(a: Int) { }
             ",
         |vm, code| {
-            let fct_id = vm.fct_by_name("g").expect("g not found");
+            let fct_id = vm.fct_def_by_name("g").expect("g not found");
             let expected = vec![
                 ConstInt(r(0), 1),
                 InvokeStaticVoid(fct_id, r(0), 1),
@@ -1317,7 +1317,7 @@ fn gen_fct_call_void_with_3_args() {
             fun g(a: Int, b: Int, c: Int) { }
             ",
         |vm, code| {
-            let fct_id = vm.fct_by_name("g").expect("g not found");
+            let fct_id = vm.fct_def_by_name("g").expect("g not found");
             let expected = vec![
                 ConstInt(r(0), 1),
                 ConstInt(r(1), 2),
@@ -1338,7 +1338,7 @@ fn gen_fct_call_int_with_1_arg() {
             fun g(a: Int) -> Int { return a; }
             ",
         |vm, code| {
-            let fct_id = vm.fct_by_name("g").expect("g not found");
+            let fct_id = vm.fct_def_by_name("g").expect("g not found");
             let expected = vec![
                 ConstInt(r(1), 1),
                 InvokeStaticInt(r(0), fct_id, r(1), 1),
@@ -1357,7 +1357,7 @@ fn gen_fct_call_int_with_3_args() {
             fun g(a: Int, b: Int, c: Int) -> Int { return 1; }
             ",
         |vm, code| {
-            let fct_id = vm.fct_by_name("g").expect("g not found");
+            let fct_id = vm.fct_def_by_name("g").expect("g not found");
             let expected = vec![
                 ConstInt(r(1), 1),
                 ConstInt(r(2), 2),
@@ -1381,7 +1381,7 @@ fn gen_method_call_void_check_correct_self() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(1)),
@@ -1404,7 +1404,7 @@ fn gen_method_call_void_with_0_args() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(1), r(0)),
@@ -1427,7 +1427,7 @@ fn gen_method_call_void_with_1_arg() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(1), r(0)),
@@ -1451,7 +1451,7 @@ fn gen_method_call_void_with_3_args() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(1), r(0)),
@@ -1477,7 +1477,7 @@ fn gen_method_call_bool_with_0_args() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(0)),
@@ -1500,7 +1500,7 @@ fn gen_method_call_bool_with_0_args_and_unused_result() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(1), r(0)),
@@ -1523,7 +1523,7 @@ fn gen_method_call_bool_with_1_arg() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(0)),
@@ -1547,7 +1547,7 @@ fn gen_method_call_bool_with_3_args() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(0)),
@@ -1573,7 +1573,7 @@ fn gen_method_call_byte_with_0_args() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(0)),
@@ -1596,7 +1596,7 @@ fn gen_method_call_byte_with_0_args_and_unused_result() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(1), r(0)),
@@ -1619,7 +1619,7 @@ fn gen_method_call_byte_with_1_arg() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(0)),
@@ -1643,7 +1643,7 @@ fn gen_method_call_byte_with_3_args() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(0)),
@@ -1669,7 +1669,7 @@ fn gen_method_call_char_with_0_args() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(0)),
@@ -1692,7 +1692,7 @@ fn gen_method_call_char_with_0_args_and_unused_result() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(1), r(0)),
@@ -1715,7 +1715,7 @@ fn gen_method_call_char_with_1_arg() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(0)),
@@ -1739,7 +1739,7 @@ fn gen_method_call_char_with_3_args() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(0)),
@@ -1765,7 +1765,7 @@ fn gen_method_call_int_with_0_args() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(0)),
@@ -1788,7 +1788,7 @@ fn gen_method_call_int_with_0_args_and_unused_result() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(1), r(0)),
@@ -1811,7 +1811,7 @@ fn gen_method_call_int_with_1_arg() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(0)),
@@ -1835,7 +1835,7 @@ fn gen_method_call_int_with_3_args() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(0)),
@@ -1861,7 +1861,7 @@ fn gen_method_call_long_with_0_args() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(0)),
@@ -1884,7 +1884,7 @@ fn gen_method_call_long_with_0_args_and_unused_result() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(1), r(0)),
@@ -1907,7 +1907,7 @@ fn gen_method_call_long_with_1_arg() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(0)),
@@ -1931,7 +1931,7 @@ fn gen_method_call_long_with_3_args() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(0)),
@@ -1957,7 +1957,7 @@ fn gen_method_call_float_with_0_args() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(0)),
@@ -1980,7 +1980,7 @@ fn gen_method_call_float_with_0_args_and_unused_result() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(1), r(0)),
@@ -2003,7 +2003,7 @@ fn gen_method_call_float_with_1_arg() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(0)),
@@ -2027,7 +2027,7 @@ fn gen_method_call_float_with_3_args() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(0)),
@@ -2053,7 +2053,7 @@ fn gen_method_call_double_with_0_args() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(0)),
@@ -2076,7 +2076,7 @@ fn gen_method_call_double_with_0_args_and_unused_result() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(1), r(0)),
@@ -2099,7 +2099,7 @@ fn gen_method_call_double_with_1_arg() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(0)),
@@ -2123,7 +2123,7 @@ fn gen_method_call_double_with_3_args() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(0)),
@@ -2149,7 +2149,7 @@ fn gen_method_call_ptr_with_0_args() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(0)),
@@ -2172,7 +2172,7 @@ fn gen_method_call_ptr_with_0_args_and_unused_result() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(1), r(0)),
@@ -2195,7 +2195,7 @@ fn gen_method_call_ptr_with_1_arg() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(0)),
@@ -2219,7 +2219,7 @@ fn gen_method_call_ptr_with_3_args() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(0)),
@@ -2248,7 +2248,7 @@ fn gen_virtual_method_call_void_check_correct_self() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(2), r(1)),
@@ -2274,7 +2274,7 @@ fn gen_virtual_method_call_void_with_0_args() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(1), r(0)),
@@ -2300,7 +2300,7 @@ fn gen_virtual_method_call_void_with_1_arg() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(1), r(0)),
@@ -2327,7 +2327,7 @@ fn gen_virtual_method_call_void_with_3_args() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(1), r(0)),
@@ -2356,7 +2356,7 @@ fn gen_virtual_method_call_int_with_0_args() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(1), r(0)),
@@ -2382,7 +2382,7 @@ fn gen_virtual_method_call_int_with_1_arg() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(1), r(0)),
@@ -2409,7 +2409,7 @@ fn gen_virtual_method_call_int_with_3_args() {
             ",
         |vm, code| {
             let fct_id = vm
-                .cls_method_by_name("Foo", "g", false)
+                .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
                 MovPtr(r(1), r(0)),
@@ -2428,7 +2428,7 @@ fn gen_virtual_method_call_int_with_3_args() {
 fn gen_new_object() {
     gen("fun f() -> Object { return Object(); }", |vm, code| {
         let cls_id = vm.cls_def_by_name("Object");
-        let ctor_id = vm.ctor_by_name("Object");
+        let ctor_id = vm.ctor_def_by_name("Object");
         let expected = vec![
             NewObject(r(0), cls_id),
             InvokeDirectVoid(ctor_id, r(0), 1),
@@ -2444,7 +2444,7 @@ fn gen_new_object_assign_to_var() {
         "fun f() -> Object { let obj = Object(); return obj; }",
         |vm, code| {
             let cls_id = vm.cls_def_by_name("Object");
-            let ctor_id = vm.ctor_by_name("Object");
+            let ctor_id = vm.ctor_def_by_name("Object");
             let expected = vec![
                 NewObject(r(1), cls_id),
                 InvokeDirectVoid(ctor_id, r(1), 1),
@@ -2472,7 +2472,7 @@ fn gen_new_object_with_multiple_args() {
             ",
         |vm, code| {
             let cls_id = vm.cls_def_by_name("Foo");
-            let ctor_id = vm.ctor_by_name("Foo");
+            let ctor_id = vm.ctor_def_by_name("Foo");
             let expected = vec![
                 NewObject(r(0), cls_id),
                 ConstInt(r(1), 1),
@@ -2669,7 +2669,7 @@ fn gen_self_assign_for_string() {
 fn gen_assert() {
     gen("fun f() { assert(true); }", |vm, code| {
         let cls_id = vm.cls_def_by_name("Error");
-        let ctor_id = vm.ctor_by_name("Error");
+        let ctor_id = vm.ctor_def_by_name("Error");
         let expected = vec![
             ConstTrue(r(0)),
             JumpIfTrue(r(0), 6),
@@ -2694,7 +2694,7 @@ fn gen_position_assert() {
 fn gen_throw() {
     gen("fun f() { throw Exception(\"exception\"); }", |vm, code| {
         let cls_id = vm.cls_def_by_name("Exception");
-        let ctor_id = vm.ctor_by_name("Exception");
+        let ctor_id = vm.ctor_def_by_name("Exception");
         let expected = vec![
             NewObject(r(0), cls_id),
             ConstString(r(1), "exception".to_string()),
@@ -2893,35 +2893,35 @@ pub enum Bytecode {
     JumpIfFalse(Register, usize),
     JumpIfTrue(Register, usize),
 
-    InvokeDirectVoid(FctId, Register, u32),
-    InvokeDirectBool(Register, FctId, Register, u32),
-    InvokeDirectByte(Register, FctId, Register, u32),
-    InvokeDirectChar(Register, FctId, Register, u32),
-    InvokeDirectInt(Register, FctId, Register, u32),
-    InvokeDirectLong(Register, FctId, Register, u32),
-    InvokeDirectFloat(Register, FctId, Register, u32),
-    InvokeDirectDouble(Register, FctId, Register, u32),
-    InvokeDirectPtr(Register, FctId, Register, u32),
+    InvokeDirectVoid(FctDefId, Register, u32),
+    InvokeDirectBool(Register, FctDefId, Register, u32),
+    InvokeDirectByte(Register, FctDefId, Register, u32),
+    InvokeDirectChar(Register, FctDefId, Register, u32),
+    InvokeDirectInt(Register, FctDefId, Register, u32),
+    InvokeDirectLong(Register, FctDefId, Register, u32),
+    InvokeDirectFloat(Register, FctDefId, Register, u32),
+    InvokeDirectDouble(Register, FctDefId, Register, u32),
+    InvokeDirectPtr(Register, FctDefId, Register, u32),
 
-    InvokeVirtualVoid(FctId, Register, u32),
-    InvokeVirtualBool(Register, FctId, Register, u32),
-    InvokeVirtualByte(Register, FctId, Register, u32),
-    InvokeVirtualChar(Register, FctId, Register, u32),
-    InvokeVirtualInt(Register, FctId, Register, u32),
-    InvokeVirtualLong(Register, FctId, Register, u32),
-    InvokeVirtualFloat(Register, FctId, Register, u32),
-    InvokeVirtualDouble(Register, FctId, Register, u32),
-    InvokeVirtualPtr(Register, FctId, Register, u32),
+    InvokeVirtualVoid(FctDefId, Register, u32),
+    InvokeVirtualBool(Register, FctDefId, Register, u32),
+    InvokeVirtualByte(Register, FctDefId, Register, u32),
+    InvokeVirtualChar(Register, FctDefId, Register, u32),
+    InvokeVirtualInt(Register, FctDefId, Register, u32),
+    InvokeVirtualLong(Register, FctDefId, Register, u32),
+    InvokeVirtualFloat(Register, FctDefId, Register, u32),
+    InvokeVirtualDouble(Register, FctDefId, Register, u32),
+    InvokeVirtualPtr(Register, FctDefId, Register, u32),
 
-    InvokeStaticVoid(FctId, Register, u32),
-    InvokeStaticBool(Register, FctId, Register, u32),
-    InvokeStaticByte(Register, FctId, Register, u32),
-    InvokeStaticChar(Register, FctId, Register, u32),
-    InvokeStaticInt(Register, FctId, Register, u32),
-    InvokeStaticLong(Register, FctId, Register, u32),
-    InvokeStaticFloat(Register, FctId, Register, u32),
-    InvokeStaticDouble(Register, FctId, Register, u32),
-    InvokeStaticPtr(Register, FctId, Register, u32),
+    InvokeStaticVoid(FctDefId, Register, u32),
+    InvokeStaticBool(Register, FctDefId, Register, u32),
+    InvokeStaticByte(Register, FctDefId, Register, u32),
+    InvokeStaticChar(Register, FctDefId, Register, u32),
+    InvokeStaticInt(Register, FctDefId, Register, u32),
+    InvokeStaticLong(Register, FctDefId, Register, u32),
+    InvokeStaticFloat(Register, FctDefId, Register, u32),
+    InvokeStaticDouble(Register, FctDefId, Register, u32),
+    InvokeStaticPtr(Register, FctDefId, Register, u32),
 
     NewObject(Register, ClassDefId),
 
@@ -3588,208 +3588,232 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.visit_jump(value as u32);
     }
 
-    fn visit_invoke_direct_void(&mut self, fct: FctId, start: Register, count: u32) {
-        self.emit(Bytecode::InvokeDirectVoid(fct, start, count));
+    fn visit_invoke_direct_void(&mut self, fctdef: FctDefId, start: Register, count: u32) {
+        self.emit(Bytecode::InvokeDirectVoid(fctdef, start, count));
     }
     fn visit_invoke_direct_bool(
         &mut self,
         dest: Register,
-        fct: FctId,
+        fctdef: FctDefId,
         start: Register,
         count: u32,
     ) {
-        self.emit(Bytecode::InvokeDirectBool(dest, fct, start, count));
+        self.emit(Bytecode::InvokeDirectBool(dest, fctdef, start, count));
     }
     fn visit_invoke_direct_byte(
         &mut self,
         dest: Register,
-        fct: FctId,
+        fctdef: FctDefId,
         start: Register,
         count: u32,
     ) {
-        self.emit(Bytecode::InvokeDirectByte(dest, fct, start, count));
+        self.emit(Bytecode::InvokeDirectByte(dest, fctdef, start, count));
     }
     fn visit_invoke_direct_char(
         &mut self,
         dest: Register,
-        fct: FctId,
+        fctdef: FctDefId,
         start: Register,
         count: u32,
     ) {
-        self.emit(Bytecode::InvokeDirectChar(dest, fct, start, count));
+        self.emit(Bytecode::InvokeDirectChar(dest, fctdef, start, count));
     }
-    fn visit_invoke_direct_int(&mut self, dest: Register, fct: FctId, start: Register, count: u32) {
-        self.emit(Bytecode::InvokeDirectInt(dest, fct, start, count));
+    fn visit_invoke_direct_int(
+        &mut self,
+        dest: Register,
+        fctdef: FctDefId,
+        start: Register,
+        count: u32,
+    ) {
+        self.emit(Bytecode::InvokeDirectInt(dest, fctdef, start, count));
     }
     fn visit_invoke_direct_long(
         &mut self,
         dest: Register,
-        fct: FctId,
+        fctdef: FctDefId,
         start: Register,
         count: u32,
     ) {
-        self.emit(Bytecode::InvokeDirectLong(dest, fct, start, count));
+        self.emit(Bytecode::InvokeDirectLong(dest, fctdef, start, count));
     }
     fn visit_invoke_direct_float(
         &mut self,
         dest: Register,
-        fct: FctId,
+        fctdef: FctDefId,
         start: Register,
         count: u32,
     ) {
-        self.emit(Bytecode::InvokeDirectFloat(dest, fct, start, count));
+        self.emit(Bytecode::InvokeDirectFloat(dest, fctdef, start, count));
     }
     fn visit_invoke_direct_double(
         &mut self,
         dest: Register,
-        fct: FctId,
+        fctdef: FctDefId,
         start: Register,
         count: u32,
     ) {
-        self.emit(Bytecode::InvokeDirectDouble(dest, fct, start, count));
+        self.emit(Bytecode::InvokeDirectDouble(dest, fctdef, start, count));
     }
-    fn visit_invoke_direct_ptr(&mut self, dest: Register, fct: FctId, start: Register, count: u32) {
-        self.emit(Bytecode::InvokeDirectPtr(dest, fct, start, count));
+    fn visit_invoke_direct_ptr(
+        &mut self,
+        dest: Register,
+        fctdef: FctDefId,
+        start: Register,
+        count: u32,
+    ) {
+        self.emit(Bytecode::InvokeDirectPtr(dest, fctdef, start, count));
     }
 
-    fn visit_invoke_virtual_void(&mut self, fct: FctId, start: Register, count: u32) {
-        self.emit(Bytecode::InvokeVirtualVoid(fct, start, count));
+    fn visit_invoke_virtual_void(&mut self, fctdef: FctDefId, start: Register, count: u32) {
+        self.emit(Bytecode::InvokeVirtualVoid(fctdef, start, count));
     }
     fn visit_invoke_virtual_bool(
         &mut self,
         dest: Register,
-        fct: FctId,
+        fctdef: FctDefId,
         start: Register,
         count: u32,
     ) {
-        self.emit(Bytecode::InvokeVirtualBool(dest, fct, start, count));
+        self.emit(Bytecode::InvokeVirtualBool(dest, fctdef, start, count));
     }
     fn visit_invoke_virtual_byte(
         &mut self,
         dest: Register,
-        fct: FctId,
+        fctdef: FctDefId,
         start: Register,
         count: u32,
     ) {
-        self.emit(Bytecode::InvokeVirtualByte(dest, fct, start, count));
+        self.emit(Bytecode::InvokeVirtualByte(dest, fctdef, start, count));
     }
     fn visit_invoke_virtual_char(
         &mut self,
         dest: Register,
-        fct: FctId,
+        fctdef: FctDefId,
         start: Register,
         count: u32,
     ) {
-        self.emit(Bytecode::InvokeVirtualChar(dest, fct, start, count));
+        self.emit(Bytecode::InvokeVirtualChar(dest, fctdef, start, count));
     }
     fn visit_invoke_virtual_int(
         &mut self,
         dest: Register,
-        fct: FctId,
+        fctdef: FctDefId,
         start: Register,
         count: u32,
     ) {
-        self.emit(Bytecode::InvokeVirtualInt(dest, fct, start, count));
+        self.emit(Bytecode::InvokeVirtualInt(dest, fctdef, start, count));
     }
     fn visit_invoke_virtual_long(
         &mut self,
         dest: Register,
-        fct: FctId,
+        fctdef: FctDefId,
         start: Register,
         count: u32,
     ) {
-        self.emit(Bytecode::InvokeVirtualLong(dest, fct, start, count));
+        self.emit(Bytecode::InvokeVirtualLong(dest, fctdef, start, count));
     }
     fn visit_invoke_virtual_float(
         &mut self,
         dest: Register,
-        fct: FctId,
+        fctdef: FctDefId,
         start: Register,
         count: u32,
     ) {
-        self.emit(Bytecode::InvokeVirtualFloat(dest, fct, start, count));
+        self.emit(Bytecode::InvokeVirtualFloat(dest, fctdef, start, count));
     }
     fn visit_invoke_virtual_double(
         &mut self,
         dest: Register,
-        fct: FctId,
+        fctdef: FctDefId,
         start: Register,
         count: u32,
     ) {
-        self.emit(Bytecode::InvokeVirtualDouble(dest, fct, start, count));
+        self.emit(Bytecode::InvokeVirtualDouble(dest, fctdef, start, count));
     }
     fn visit_invoke_virtual_ptr(
         &mut self,
         dest: Register,
-        fct: FctId,
+        fctdef: FctDefId,
         start: Register,
         count: u32,
     ) {
-        self.emit(Bytecode::InvokeVirtualPtr(dest, fct, start, count));
+        self.emit(Bytecode::InvokeVirtualPtr(dest, fctdef, start, count));
     }
 
-    fn visit_invoke_static_void(&mut self, fct: FctId, start: Register, count: u32) {
-        self.emit(Bytecode::InvokeStaticVoid(fct, start, count));
+    fn visit_invoke_static_void(&mut self, fctdef: FctDefId, start: Register, count: u32) {
+        self.emit(Bytecode::InvokeStaticVoid(fctdef, start, count));
     }
     fn visit_invoke_static_bool(
         &mut self,
         dest: Register,
-        fct: FctId,
+        fctdef: FctDefId,
         start: Register,
         count: u32,
     ) {
-        self.emit(Bytecode::InvokeStaticBool(dest, fct, start, count));
+        self.emit(Bytecode::InvokeStaticBool(dest, fctdef, start, count));
     }
     fn visit_invoke_static_byte(
         &mut self,
         dest: Register,
-        fct: FctId,
+        fctdef: FctDefId,
         start: Register,
         count: u32,
     ) {
-        self.emit(Bytecode::InvokeStaticByte(dest, fct, start, count));
+        self.emit(Bytecode::InvokeStaticByte(dest, fctdef, start, count));
     }
     fn visit_invoke_static_char(
         &mut self,
         dest: Register,
-        fct: FctId,
+        fctdef: FctDefId,
         start: Register,
         count: u32,
     ) {
-        self.emit(Bytecode::InvokeStaticChar(dest, fct, start, count));
+        self.emit(Bytecode::InvokeStaticChar(dest, fctdef, start, count));
     }
-    fn visit_invoke_static_int(&mut self, dest: Register, fct: FctId, start: Register, count: u32) {
-        self.emit(Bytecode::InvokeStaticInt(dest, fct, start, count));
+    fn visit_invoke_static_int(
+        &mut self,
+        dest: Register,
+        fctdef: FctDefId,
+        start: Register,
+        count: u32,
+    ) {
+        self.emit(Bytecode::InvokeStaticInt(dest, fctdef, start, count));
     }
     fn visit_invoke_static_long(
         &mut self,
         dest: Register,
-        fct: FctId,
+        fctdef: FctDefId,
         start: Register,
         count: u32,
     ) {
-        self.emit(Bytecode::InvokeStaticLong(dest, fct, start, count));
+        self.emit(Bytecode::InvokeStaticLong(dest, fctdef, start, count));
     }
     fn visit_invoke_static_float(
         &mut self,
         dest: Register,
-        fct: FctId,
+        fctdef: FctDefId,
         start: Register,
         count: u32,
     ) {
-        self.emit(Bytecode::InvokeStaticFloat(dest, fct, start, count));
+        self.emit(Bytecode::InvokeStaticFloat(dest, fctdef, start, count));
     }
     fn visit_invoke_static_double(
         &mut self,
         dest: Register,
-        fct: FctId,
+        fctdef: FctDefId,
         start: Register,
         count: u32,
     ) {
-        self.emit(Bytecode::InvokeStaticDouble(dest, fct, start, count));
+        self.emit(Bytecode::InvokeStaticDouble(dest, fctdef, start, count));
     }
-    fn visit_invoke_static_ptr(&mut self, dest: Register, fct: FctId, start: Register, count: u32) {
-        self.emit(Bytecode::InvokeStaticPtr(dest, fct, start, count));
+    fn visit_invoke_static_ptr(
+        &mut self,
+        dest: Register,
+        fctdef: FctDefId,
+        start: Register,
+        count: u32,
+    ) {
+        self.emit(Bytecode::InvokeStaticPtr(dest, fctdef, start, count));
     }
 
     fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {
