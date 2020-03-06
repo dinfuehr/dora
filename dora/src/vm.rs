@@ -300,6 +300,17 @@ impl<'ast> VM<'ast> {
         }
     }
 
+    pub fn add_fct_def(&self, mut fct_def: FctDef) -> FctDefId {
+        let mut fct_defs = self.fct_defs.lock();
+        let fid = FctDefId(fct_defs.len());
+
+        fct_def.id = fid;
+
+        fct_defs.push(Arc::new(RwLock::new(fct_def)));
+
+        fid
+    }
+
     #[cfg(test)]
     pub fn cls_by_name(&self, name: &'static str) -> ClassId {
         let name = self.interner.intern(name);

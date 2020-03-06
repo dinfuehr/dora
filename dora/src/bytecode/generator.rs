@@ -10,7 +10,9 @@ use crate::bytecode::{BytecodeFunction, BytecodeType, BytecodeWriter, Label, Reg
 use crate::semck::expr_block_always_returns;
 use crate::semck::specialize::{specialize_class_id_params, specialize_class_ty, specialize_type};
 use crate::ty::{BuiltinType, TypeList};
-use crate::vm::{CallType, Fct, FctId, FctKind, FctSrc, IdentType, Intrinsic, VarId, VM};
+use crate::vm::{
+    CallType, Fct, FctDef, FctDefId, FctId, FctKind, FctSrc, IdentType, Intrinsic, VarId, VM,
+};
 
 pub struct LoopLabels {
     cond: Label,
@@ -1341,6 +1343,85 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             DataDest::Effect | DataDest::Alloc => self.gen.add_register(ty),
             DataDest::Reg(reg) => reg,
         }
+    }
+
+    fn determine_call_type_params(&self, call_type: &CallType) -> (TypeList, TypeList) {
+        let cls_type_params;
+        let fct_type_params;
+
+        match *call_type {
+            CallType::Ctor(ty, _) | CallType::CtorNew(ty, _) => {
+                cls_type_params = ty.type_params(self.vm);
+                fct_type_params = TypeList::empty();
+            }
+
+            CallType::Method(ty, _, ref type_params) => {
+                let ty = self.specialize_type(ty);
+
+                cls_type_params = ty.type_params(self.vm);
+                fct_type_params = type_params.clone();
+            }
+
+            CallType::Fct(_, ref cls_tps, ref fct_tps) => {
+                cls_type_params = cls_tps.clone();
+                fct_type_params = fct_tps.clone();
+            }
+
+            CallType::Expr(ty, _) => {
+                let ty = self.specialize_type(ty);
+
+                cls_type_params = ty.type_params(self.vm);
+                fct_type_params = TypeList::empty();
+            }
+
+            CallType::Trait(_, _) => unimplemented!(),
+
+            CallType::TraitStatic(_, _, _) => {
+                cls_type_params = TypeList::empty();
+                fct_type_params = TypeList::empty();
+            }
+
+            CallType::Intrinsic(_) => unreachable!(),
+        }
+
+        (cls_type_params, fct_type_params)
+    }
+
+    fn specialize_call(&self, fct: &Fct, call_type: &CallType) -> FctDefId {
+        let (cls_type_params, fct_type_params) = self.determine_call_type_params(call_type);
+
+        if let Some(&id) = fct
+            .specializations_fct_def
+            .read()
+            .get(&(cls_type_params.clone(), fct_type_params.clone()))
+        {
+            return id;
+        }
+
+        self.create_specialized_call(fct, &cls_type_params, &fct_type_params)
+    }
+
+    fn create_specialized_call(
+        &self,
+        fct: &Fct,
+        cls_type_params: &TypeList,
+        fct_type_params: &TypeList,
+    ) -> FctDefId {
+        let fct_def_id = self.vm.add_fct_def(FctDef {
+            id: FctDefId(0),
+            fct_id: fct.id,
+            cls_type_params: cls_type_params.clone(),
+            type_params: fct_type_params.clone(),
+            jit_fct_id: None,
+        });
+
+        let old = fct.specializations_fct_def.write().insert(
+            (cls_type_params.clone(), fct_type_params.clone()),
+            fct_def_id,
+        );
+        assert!(old.is_none());
+
+        fct_def_id
     }
 
     fn specialize_type_for_call(&self, call_type: &CallType, ty: BuiltinType) -> BuiltinType {
