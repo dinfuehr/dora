@@ -1,8 +1,6 @@
 use crate::ast::*;
-
 use crate::interner::*;
 use crate::lexer::position::{Position, Span};
-
 use crate::parser::NodeIdGenerator;
 
 pub struct Builder<'a> {
@@ -81,7 +79,7 @@ pub struct BuilderFct<'a> {
     is_public: bool,
     is_constructor: bool,
     return_type: Option<Type>,
-    params: Vec<Param>,
+    params: Option<Vec<Param>>,
     block: Option<Box<ExprBlockType>>,
 }
 
@@ -94,7 +92,7 @@ impl<'a> BuilderFct<'a> {
             is_public: false,
             is_constructor: false,
             return_type: None,
-            params: Vec::new(),
+            params: None,
             block: None,
         }
     }
@@ -108,9 +106,12 @@ impl<'a> BuilderFct<'a> {
     ) -> &mut BuilderFct<'a> {
         let id = self.id_generator.next();
 
+        if self.params.is_none() {
+            self.params = Some(Vec::new());
+        }
         let param = Param {
             id,
-            idx: self.params.len() as u32,
+            idx: self.params.as_ref().unwrap().len() as u32,
             name,
             variadic,
             pos,
@@ -118,7 +119,7 @@ impl<'a> BuilderFct<'a> {
             data_type: ty,
         };
 
-        self.params.push(param);
+        self.params.as_mut().unwrap().push(param);
         self
     }
 

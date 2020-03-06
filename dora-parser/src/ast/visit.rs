@@ -204,7 +204,7 @@ pub fn walk_field<V: Visitor>(v: &mut V, f: &Field) {
 }
 
 pub fn walk_fct<V: Visitor>(v: &mut V, f: &Function) {
-    for p in &f.params {
+    for p in iter_some(&f.params) {
         v.visit_param(p);
     }
 
@@ -381,5 +381,12 @@ pub fn walk_expr<V: Visitor>(v: &mut V, e: &Expr) {
         Expr::LitStr(_) => {}
         Expr::LitBool(_) => {}
         Expr::Ident(_) => {}
+    }
+}
+
+fn iter_some<T>(opt: &Option<Vec<T>>) -> impl Iterator<Item = &T> {
+    match opt {
+        Some(opt) => opt.iter(),
+        None => (&[]).iter(),
     }
 }

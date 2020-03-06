@@ -3,6 +3,14 @@ use std::convert::TryFrom;
 use std::sync::Arc;
 use std::{f32, f64};
 
+use fixedbitset::FixedBitSet;
+
+use dora_parser::ast;
+use dora_parser::ast::visit::Visitor;
+use dora_parser::interner::Name;
+use dora_parser::lexer::position::Position;
+use dora_parser::lexer::token::{FloatSuffix, IntBase, IntSuffix};
+
 use crate::error::msg::SemError;
 use crate::semck::fctbodyck::lookup::MethodLookup;
 use crate::semck::specialize::replace_type_param;
@@ -11,22 +19,16 @@ use crate::semck::{always_returns, expr_always_returns, read_type, AllowSelf};
 use crate::semck::{report_sym_shadow, TypeParamContext};
 use crate::sym::{NestedSymTable, Sym};
 use crate::ty::{implements_trait, SourceType, SourceTypeArray};
+use crate::utils::iter_some;
 use crate::vm::{
     self, class_accessible_from, class_field_accessible_from, const_accessible_from, ensure_tuple,
-    enum_accessible_from, fct_accessible_from, find_field_in_class, find_methods_in_class,
-    find_methods_in_enum, find_methods_in_struct, global_accessible_from, method_accessible_from,
-    namespace_accessible_from, struct_accessible_from, struct_field_accessible_from, AnalysisData,
-    CallType, ClassId, ConvInfo, EnumId, Fct, FctId, FctParent, FileId, ForTypeInfo, IdentType,
-    Intrinsic, NamespaceId, StructData, StructId, TypeParam, TypeParamDefinition, TypeParamId, Var,
-    VarId, VM,
+    enum_accessible_from, fct_accessible_from, find_field_in_class, find_method_in_class,
+    find_methods_in_class, find_methods_in_enum, find_methods_in_struct, global_accessible_from,
+    method_accessible_from, namespace_accessible_from, struct_accessible_from,
+    struct_field_accessible_from, AnalysisData, CallType, ClassId, ConvInfo, EnumId, Fct, FctId,
+    FctParent, FileId, ForTypeInfo, IdentType, Intrinsic, NamespaceId, StructData, StructId,
+    TypeParam, TypeParamDefinition, TypeParamId, Var, VarId, VM,
 };
-
-use dora_parser::ast;
-use dora_parser::ast::visit::Visitor;
-use dora_parser::interner::Name;
-use dora_parser::lexer::position::Position;
-use dora_parser::lexer::token::{FloatSuffix, IntBase, IntSuffix};
-use fixedbitset::FixedBitSet;
 
 pub struct TypeCheck<'a> {
     pub vm: &'a VM,
@@ -89,19 +91,18 @@ impl<'a> TypeCheck<'a> {
 
         let self_count = if self.fct.has_self() { 1 } else { 0 };
         debug_assert_eq!(
-            self.ast.params.len() + self_count,
+            self.ast.params.as_ref().unwrap_or(&Vec::new()).len() + self_count,
             self.fct.param_types.len()
         );
 
-        for (ind, (param, ty)) in self
-            .ast
-            .params
-            .iter()
+        for (ind, (param, ty)) in iter_some(&self.ast.params)
             .zip(self.fct.param_types.iter().skip(self_count))
             .enumerate()
         {
             // is this last argument of function with variadic arguments?
-            let ty = if self.fct.variadic_arguments && ind == self.ast.params.len() - 1 {
+            let ty = if self.fct.variadic_arguments
+                && ind == &self.ast.params.as_ref().unwrap_or(&Vec::new()).len() - 1
+            {
                 // type of variable is Array[T]
                 self.vm.known.array_ty(self.vm, ty.clone())
             } else {
@@ -2903,6 +2904,37 @@ impl<'a> TypeCheck<'a> {
                 self.analysis.set_ty(e.id, fty.clone());
                 return fty;
             }
+
+            if let Some((cls_ty, method_id)) =
+                find_method_in_class(self.vm, object_type.clone(), name)
+            {
+                //  check that the function is defined without () ...
+                /*
+                let fct = self.vm.fcts.idx(method_id);
+                let fct = fct.read();
+                fct. ...
+                */
+
+                let call_type = Arc::new(CallType::Method(
+                    cls_ty.clone(),
+                    method_id,
+                    SourceTypeArray::Empty,
+                ));
+                self.analysis.map_calls.insert_or_replace(e.id, call_type);
+
+                let method = self.vm.fcts.idx(method_id);
+                let method = method.read();
+                let class_type_params = cls_ty.type_params(self.vm);
+                let fty = replace_type_param(
+                    self.vm,
+                    method.return_type.clone(),
+                    &class_type_params,
+                    None,
+                );
+
+                self.analysis.set_ty(e.id, fty.clone());
+                return fty;
+            }
         }
 
         // field not found, report error
@@ -2988,9 +3020,7 @@ impl<'a> TypeCheck<'a> {
             SourceType::Unit
         };
 
-        let params = e
-            .params
-            .iter()
+        let params = iter_some(&e.params)
             .map(|p| self.read_type(&p.data_type))
             .collect::<Vec<_>>();
 

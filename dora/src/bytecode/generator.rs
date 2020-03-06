@@ -1,8 +1,8 @@
-use dora_parser::lexer::position::Position;
 use std::collections::HashMap;
 use std::convert::TryInto;
 
 use dora_parser::ast::*;
+use dora_parser::lexer::position::Position;
 
 use crate::bytecode::{
     BytecodeBuilder, BytecodeFunction, BytecodeType, ConstPoolIdx, Label, Register,
@@ -10,6 +10,7 @@ use crate::bytecode::{
 use crate::semck::specialize::specialize_type;
 use crate::semck::{expr_always_returns, expr_block_always_returns};
 use crate::ty::{find_impl, SourceType, SourceTypeArray};
+use crate::utils::iter_some;
 use crate::vm::{
     AnalysisData, CallType, ConstId, EnumId, Fct, FctId, GlobalId, IdentType, Intrinsic, StructId,
     TupleId, VarId, VM,
@@ -75,7 +76,7 @@ impl<'a> AstBytecodeGen<'a> {
             }
         }
 
-        for param in &ast.params {
+        for param in iter_some(&ast.params) {
             let var_id = *self.src.map_vars.get(param.id).unwrap();
             let ty = self.var_ty(var_id);
 
@@ -932,6 +933,25 @@ impl<'a> AstBytecodeGen<'a> {
         if let Some(struct_id) = object_ty.struct_id() {
             let type_params = object_ty.type_params(self.vm);
             return self.visit_expr_dot_struct(expr, struct_id, type_params, dest);
+        }
+
+        let call_type = self.src.map_calls.get(expr.id);
+        if call_type.map(|c| c.is_method()).contains(&true) {
+            let dot = ExprDotType {
+                id: expr.id,
+                pos: expr.pos,
+                span: expr.span,
+                lhs: expr.lhs.clone(),
+                rhs: expr.rhs.clone(),
+            };
+            let call = ExprCallType {
+                id: expr.id,
+                pos: expr.pos,
+                span: expr.span,
+                callee: Box::new(Expr::Dot(dot)),
+                args: Vec::new(),
+            };
+            return self.visit_expr_call(&call, dest);
         }
 
         let (cls_ty, field_id) = {

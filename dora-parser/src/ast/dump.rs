@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use crate::ast::*;
-
 use crate::interner::{ArcStr, Interner, Name};
 
 macro_rules! dump {
@@ -372,12 +371,15 @@ impl<'a> AstDumper<'a> {
             dump!(d, "internal = {}", fct.internal);
             dump!(d, "params");
             d.indent(|d| {
-                if fct.params.is_empty() {
-                    dump!(d, "no params");
-                } else {
-                    for param in &fct.params {
-                        d.dump_param(param);
+                if fct.params.is_some() {
+                    let params = fct.params.as_ref().unwrap();
+                    if !params.is_empty() {
+                        for param in params {
+                            d.dump_param(param);
+                        }
                     }
+                } else {
+                    dump!(d, "no params");
                 }
             });
 

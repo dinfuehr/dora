@@ -4,6 +4,7 @@ use crate::error::msg::SemError;
 use crate::semck::{self, AllowSelf, TypeParamContext};
 use crate::sym::{NestedSymTable, Sym};
 use crate::ty::SourceType;
+use crate::utils::iter_some;
 use crate::vm::{self, Fct, FctId, FctParent, TypeParamId, VM};
 
 pub fn check(vm: &VM) {
@@ -138,7 +139,7 @@ pub fn check(vm: &VM) {
             }
         }
 
-        for p in &ast.params {
+        for p in iter_some(&ast.params) {
             if fct.variadic_arguments {
                 vm.diag
                     .lock()

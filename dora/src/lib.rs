@@ -5,6 +5,7 @@
 #![feature(allocator_api)]
 #![feature(llvm_asm)]
 #![feature(new_uninit)]
+#![feature(option_result_contains)]
 
 extern crate alloc;
 

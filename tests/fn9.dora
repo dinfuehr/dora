@@ -1,0 +1,7 @@
+fun main() {
+  assert(Foo(22).b == 23);
+}
+
+class Foo(let a: Int32) {
+  fun b: Int32 = self.a + 1;
+}

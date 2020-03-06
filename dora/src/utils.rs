@@ -1,5 +1,13 @@
-use parking_lot::{Mutex, MutexGuard};
 use std::sync::Arc;
+
+use parking_lot::{Mutex, MutexGuard};
+
+pub fn iter_some<T>(opt: &Option<Vec<T>>) -> impl Iterator<Item = &T> {
+    match opt {
+        Some(opt) => opt.iter(),
+        None => (&[]).iter(),
+    }
+}
 
 pub struct GrowableVec<T> {
     elements: Mutex<Vec<Arc<T>>>,

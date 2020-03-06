@@ -6,9 +6,7 @@ use crate::ast;
 use crate::ast::*;
 use crate::builder::Builder;
 use crate::error::{ParseError, ParseErrorAndPos};
-
 use crate::interner::*;
-
 use crate::lexer::position::{Position, Span};
 use crate::lexer::reader::Reader;
 use crate::lexer::token::*;
@@ -1059,17 +1057,21 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_function_params(&mut self) -> Result<Vec<Param>, ParseErrorAndPos> {
-        self.expect_token(TokenKind::LParen)?;
-        self.param_idx = 0;
+    fn parse_function_params(&mut self) -> Result<Option<Vec<Param>>, ParseErrorAndPos> {
+        if self.token.is(TokenKind::LParen) {
+            self.advance_token()?;
+            self.param_idx = 0;
 
-        let params = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
-            p.param_idx += 1;
+            let params = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
+                p.param_idx += 1;
 
-            p.parse_function_param()
-        })?;
+                p.parse_function_param()
+            })?;
 
-        Ok(params)
+            Ok(Some(params))
+        } else {
+            Ok(None)
+        }
     }
 
     fn parse_list<F, R>(
@@ -2253,7 +2255,7 @@ impl<'a> Parser<'a> {
             is_abstract: false,
             is_constructor: false,
             is_test: false,
-            params,
+            params: Some(params),
             return_type,
             block,
             type_params: None,
@@ -2414,9 +2416,8 @@ impl NodeIdGenerator {
 #[cfg(test)]
 mod tests {
     use crate::ast::*;
-    use crate::interner::*;
-
     use crate::error::ParseError;
+    use crate::interner::*;
     use crate::lexer::position::Position;
     use crate::lexer::reader::Reader;
     use crate::parser::{NodeIdGenerator, Parser};
@@ -2948,7 +2949,7 @@ mod tests {
         let fct = prog.fct0();
 
         assert_eq!("b", *interner.str(fct.name));
-        assert_eq!(0, fct.params.len());
+        assert_eq!(0, fct.params.as_ref().unwrap().len());
         assert!(fct.return_type.is_none());
         assert_eq!(Position::new(1, 1), fct.pos);
     }
@@ -2961,11 +2962,14 @@ mod tests {
         let (p2, interner2) = parse("fun f(a:int,) { }");
         let f2 = p2.fct0();
 
-        assert_eq!(f1.params.len(), 1);
-        assert_eq!(f2.params.len(), 1);
+        let ps1 = f1.params.as_ref().unwrap();
+        let ps2 = f2.params.as_ref().unwrap();
 
-        let p1 = &f1.params[0];
-        let p2 = &f2.params[0];
+        assert_eq!(ps1.len(), 1);
+        assert_eq!(ps2.len(), 1);
+
+        let p1 = &ps1[0];
+        let p2 = &ps2[0];
 
         assert_eq!("a", *interner1.str(p1.name));
         assert_eq!("a", *interner2.str(p2.name));
@@ -2988,10 +2992,10 @@ mod tests {
         let (p2, interner2) = parse("fun f(a:int, b:str,) { }");
         let f2 = p2.fct0();
 
-        let p1a = &f1.params[0];
-        let p1b = &f1.params[1];
-        let p2a = &f2.params[0];
-        let p2b = &f2.params[1];
+        let p1a = &f1.params.as_ref().unwrap()[0];
+        let p1b = &f1.params.as_ref().unwrap()[1];
+        let p2a = &f2.params.as_ref().unwrap()[0];
+        let p2b = &f2.params.as_ref().unwrap()[1];
 
         assert_eq!("a", *interner1.str(p1a.name));
         assert_eq!("a", *interner2.str(p2a.name));
@@ -3369,6 +3373,13 @@ mod tests {
     }
 
     #[test]
+    fn parse_method_nullary() {
+        let (prog, _) = parse("fun zero: Int32 = 0;");
+        let fct = prog.fct0();
+        assert_eq!(true, fct.params.is_none());
+    }
+
+    #[test]
     fn parse_method() {
         let (prog, interner) = parse(
             "class Foo {
@@ -3383,7 +3394,7 @@ mod tests {
 
         let mtd1 = &cls.methods[0];
         assert_eq!("zero", *interner.str(mtd1.name));
-        assert_eq!(0, mtd1.params.len());
+        assert_eq!(0, mtd1.params.as_ref().unwrap().len());
         assert_eq!(true, mtd1.method);
         let rt1 = mtd1
             .return_type
@@ -3396,7 +3407,7 @@ mod tests {
 
         let mtd2 = &cls.methods[1];
         assert_eq!("id", *interner.str(mtd2.name));
-        assert_eq!(1, mtd2.params.len());
+        assert_eq!(1, mtd2.params.as_ref().unwrap().len());
         assert_eq!(true, mtd2.method);
         let rt2 = mtd2
             .return_type
@@ -3468,7 +3479,8 @@ mod tests {
 
         assert_eq!(0, class.fields.len());
         assert_eq!(true, class.has_constructor);
-        assert_eq!(1, ctor.params.len());
+        let params = ctor.params.as_ref().unwrap();
+        assert_eq!(1, params.len());
     }
 
     #[test]
@@ -3479,7 +3491,17 @@ mod tests {
         assert_eq!(1, class.fields.len());
         assert_eq!(true, class.fields[0].mutable);
         assert_eq!(true, class.has_constructor);
-        assert_eq!(1, class.constructor.clone().unwrap().params.len());
+        assert_eq!(
+            1,
+            class
+                .constructor
+                .clone()
+                .unwrap()
+                .params
+                .as_ref()
+                .unwrap()
+                .len()
+        );
     }
 
     #[test]
@@ -3491,7 +3513,8 @@ mod tests {
         assert_eq!(1, class.fields.len());
         assert_eq!(false, class.fields[0].mutable);
         assert_eq!(true, class.has_constructor);
-        assert_eq!(1, ctor.params.len());
+        let params = ctor.params.as_ref().unwrap();
+        assert_eq!(1, params.len());
     }
 
     #[test]
@@ -3500,7 +3523,17 @@ mod tests {
         let class = prog.cls0();
 
         assert_eq!(0, class.fields.len());
-        assert_eq!(2, class.constructor.clone().unwrap().params.len());
+        assert_eq!(
+            2,
+            class
+                .constructor
+                .clone()
+                .unwrap()
+                .params
+                .as_ref()
+                .unwrap()
+                .len()
+        );
     }
 
     #[test]
@@ -4035,9 +4068,9 @@ mod tests {
         let (expr, interner) = parse_expr("|a: A| -> B {}");
         let lambda = expr.to_lambda().unwrap();
 
-        assert_eq!(1, lambda.params.len());
+        assert_eq!(1, lambda.params.as_ref().unwrap().len());
 
-        let param = &lambda.params[0];
+        let param = &lambda.params.as_ref().unwrap()[0];
         assert_eq!("a", *interner.str(param.name));
         let basic = param.data_type.to_basic().unwrap();
         assert_eq!("A", *interner.str(basic.name()));
@@ -4053,14 +4086,14 @@ mod tests {
         let (expr, interner) = parse_expr("|a: A, b: B| -> C {}");
         let lambda = expr.to_lambda().unwrap();
 
-        assert_eq!(2, lambda.params.len());
+        assert_eq!(2, lambda.params.as_ref().unwrap().len());
 
-        let param = &lambda.params[0];
+        let param = &lambda.params.as_ref().unwrap()[0];
         assert_eq!("a", *interner.str(param.name));
         let basic = param.data_type.to_basic().unwrap();
         assert_eq!("A", *interner.str(basic.name()));
 
-        let param = &lambda.params[1];
+        let param = &lambda.params.as_ref().unwrap()[1];
         assert_eq!("b", *interner.str(param.name));
         let basic = param.data_type.to_basic().unwrap();
         assert_eq!("B", *interner.str(basic.name()));
