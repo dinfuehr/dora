@@ -1497,63 +1497,27 @@ mod tests {
     }
 
     #[test]
-    fn test_load_mem_local_ptr() {
-        let i1 = asm::movz(1, R9, 1, 0);
-        let i2 = asm::ldrx_ind(R1, REG_FP, R9, LdStExtend::LSL, 0);
-
-        let mut masm = MacroAssembler::new();
-        masm.load_mem(Ptr, R1.into(), Mem::Local(1));
-        assert_emit!(i1, i2; masm);
-    }
-
-    #[test]
-    fn test_load_mem_local_int32() {
-        let i1 = asm::movz(1, R9, 2, 0);
-        let i2 = asm::ldrw_ind(R1, REG_FP, R9, LdStExtend::LSL, 0);
-
-        let mut masm = MacroAssembler::new();
-        masm.load_mem(Int32, R1.into(), Mem::Local(2));
-        assert_emit!(i1, i2; masm);
-    }
-
-    #[test]
-    fn test_load_mem_local_int8() {
-        let i1 = asm::movz(1, R9, 3, 0);
-        let i2 = asm::ldrb_ind(R1, REG_FP, R9, LdStExtend::LSL, 0);
-
-        let mut masm = MacroAssembler::new();
-        masm.load_mem(Int8, R1.into(), Mem::Local(3));
-        assert_emit!(i1, i2; masm);
-    }
-
-    #[test]
     fn test_load_mem_base_ptr() {
-        let i1 = asm::movz(1, R9, 1, 0);
-        let i2 = asm::ldrx_ind(R1, R10, R9, LdStExtend::LSL, 0);
-
+        let i1 = asm::ldrx_imm(R1, R10, 1);
         let mut masm = MacroAssembler::new();
-        masm.load_mem(Ptr, R1.into(), Mem::Base(R10, 1));
-        assert_emit!(i1, i2; masm);
+        masm.load_mem(Ptr, R1.into(), Mem::Base(R10, 8));
+        assert_emit!(i1; masm);
     }
 
     #[test]
     fn test_load_mem_base_int32() {
-        let i1 = asm::movz(1, R9, 2, 0);
-        let i2 = asm::ldrw_ind(R1, R2, R9, LdStExtend::LSL, 0);
-
+        let i1 = asm::ldrw_imm(R1, R2, 2);
         let mut masm = MacroAssembler::new();
-        masm.load_mem(Int32, R1.into(), Mem::Base(R2, 2));
-        assert_emit!(i1, i2; masm);
+        masm.load_mem(Int32, R1.into(), Mem::Base(R2, 8));
+        assert_emit!(i1; masm);
     }
 
     #[test]
     fn test_load_mem_base_int8() {
-        let i1 = asm::movz(1, R9, 3, 0);
-        let i2 = asm::ldrb_ind(R1, R3, R9, LdStExtend::LSL, 0);
-
+        let i1 = asm::ldrb_imm(R1, R3, 3);
         let mut masm = MacroAssembler::new();
         masm.load_mem(Int8, R1.into(), Mem::Base(R3, 3));
-        assert_emit!(i1, i2; masm);
+        assert_emit!(i1; masm);
     }
 
     #[test]

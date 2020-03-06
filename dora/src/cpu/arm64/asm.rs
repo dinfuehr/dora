@@ -1999,11 +1999,6 @@ mod tests {
     }
 
     #[test]
-    fn test_ldr_into_zero_register() {
-        assert_eq!(0xf940003f, ldrx_imm(REG_ZERO, R1, 0));
-    }
-
-    #[test]
     fn test_is_shifted_mask() {
         assert_eq!(true, is_shifted_mask(8));
         assert_eq!(true, is_shifted_mask(6));
