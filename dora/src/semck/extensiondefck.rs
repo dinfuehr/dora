@@ -1,4 +1,5 @@
 use parking_lot::RwLock;
+use std::collections::HashMap;
 
 use crate::error::msg::SemError;
 use crate::semck;
@@ -133,6 +134,8 @@ impl<'x, 'ast> Visitor<'ast> for ExtensionCheck<'x, 'ast> {
 
             type_params: Vec::new(),
             kind,
+
+            specializations_fct_def: RwLock::new(HashMap::new()),
         };
 
         let fctid = self.vm.add_fct(fct);

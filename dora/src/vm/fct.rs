@@ -1,6 +1,7 @@
 use crate::compiler::fct::JitFctId;
 use crate::ty::TypeList;
 use parking_lot::RwLock;
+use std::collections::HashMap;
 
 use std::sync::Arc;
 
@@ -66,6 +67,8 @@ pub struct Fct<'ast> {
 
     pub type_params: Vec<TypeParam>,
     pub kind: FctKind,
+
+    pub specializations_fct_def: RwLock<HashMap<(TypeList, TypeList), FctDefId>>,
 }
 
 impl<'ast> Fct<'ast> {
