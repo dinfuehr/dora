@@ -4,10 +4,10 @@ use std::convert::From;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 
-use crate::exception::DoraToNativeInfo;
 use crate::gc::{Address, Region, K};
 use crate::handle::HandleMemory;
 use crate::safepoint;
+use crate::stack::DoraToNativeInfo;
 use crate::vm::{get_vm, VM};
 
 pub const STACK_SIZE: usize = 500 * K;

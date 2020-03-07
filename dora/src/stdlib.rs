@@ -7,10 +7,10 @@ use std::str;
 use std::thread;
 use std::time::Duration;
 
-use crate::exception::stacktrace_from_last_dtn;
 use crate::gc::{Address, GcReason};
 use crate::handle::{scope as handle_scope, Handle};
 use crate::object::{ByteArray, Obj, Ref, Str};
+use crate::stack::stacktrace_from_last_dtn;
 use crate::sym::Sym::SymFct;
 use crate::threads::{DoraThread, STACK_SIZE, THREAD};
 use crate::ty::TypeList;
@@ -275,7 +275,7 @@ pub extern "C" fn trap(trap_id: u32) {
 
 pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
     use crate::compiler;
-    use crate::exception::DoraToNativeInfo;
+    use crate::stack::DoraToNativeInfo;
 
     let vm = get_vm();
     let thread = DoraThread::new(vm);

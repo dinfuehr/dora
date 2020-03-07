@@ -7,11 +7,11 @@ use crate::cpu::{
     Mem, CCALL_REG_PARAMS, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD,
     REG_TMP1,
 };
-use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
 use crate::masm::MacroAssembler;
 use crate::mem;
 use crate::object::Obj;
+use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
 use crate::ty::{MachineMode, TypeList};
 use crate::vm::FctId;

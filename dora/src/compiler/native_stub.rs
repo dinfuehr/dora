@@ -8,10 +8,10 @@ use crate::cpu::{
     FReg, Mem, Reg, CCALL_FREG_PARAMS, CCALL_REG_PARAMS, FREG_PARAMS, FREG_TMP1, PARAM_OFFSET,
     REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
 };
-use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
 use crate::masm::MacroAssembler;
 use crate::mem;
+use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
 use crate::ty::{BuiltinType, MachineMode};
 use crate::vm::FctId;

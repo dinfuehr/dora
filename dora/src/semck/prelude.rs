@@ -2,11 +2,11 @@ use parking_lot::RwLock;
 use std::sync::Arc;
 
 use crate::cpu::{has_lzcnt, has_popcnt, has_tzcnt};
-use crate::exception;
 use crate::gc::Address;
 use crate::mem;
 use crate::object::Header;
 use crate::size::InstanceSize;
+use crate::stack;
 use crate::stdlib;
 use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{ClassDef, ClassDefId, ClassId, FctId, FctKind, Intrinsic, TraitId, VM};
@@ -349,13 +349,13 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
         vm,
         clsid,
         "retrieveStacktrace",
-        exception::retrieve_stack_trace as *const u8,
+        stack::retrieve_stack_trace as *const u8,
     );
     native_method(
         vm,
         clsid,
         "getStacktraceElement",
-        exception::stack_element as *const u8,
+        stack::stack_element as *const u8,
     );
 
     let iname = vm.interner.intern("Thread");

@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use crate::compiler::map::CodeDescriptor;
-use crate::exception::DoraToNativeInfo;
 use crate::gc::Address;
+use crate::stack::DoraToNativeInfo;
 use crate::threads::DoraThread;
 use crate::vm::VM;
 
