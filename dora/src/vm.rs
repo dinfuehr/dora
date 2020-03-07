@@ -569,7 +569,6 @@ pub enum Trap {
     INDEX_OUT_OF_BOUNDS,
     NIL,
     CAST,
-    UNEXPECTED,
     OOM,
     STACK_OVERFLOW,
 }
@@ -582,9 +581,8 @@ impl Trap {
             Trap::INDEX_OUT_OF_BOUNDS => 3,
             Trap::NIL => 4,
             Trap::CAST => 5,
-            Trap::UNEXPECTED => 6,
-            Trap::OOM => 7,
-            Trap::STACK_OVERFLOW => 8,
+            Trap::OOM => 6,
+            Trap::STACK_OVERFLOW => 7,
         }
     }
 
@@ -595,9 +593,8 @@ impl Trap {
             3 => Some(Trap::INDEX_OUT_OF_BOUNDS),
             4 => Some(Trap::NIL),
             5 => Some(Trap::CAST),
-            6 => Some(Trap::UNEXPECTED),
-            7 => Some(Trap::OOM),
-            8 => Some(Trap::STACK_OVERFLOW),
+            6 => Some(Trap::OOM),
+            7 => Some(Trap::STACK_OVERFLOW),
             _ => None,
         }
     }

@@ -191,7 +191,7 @@ pub struct ThrowResume {
 
 pub extern "C" fn retrieve_stack_trace(obj: Handle<Stacktrace>) {
     let vm = get_vm();
-    set_exception_backtrace(vm, obj, true);
+    set_backtrace(vm, obj, true);
 }
 
 pub extern "C" fn stack_element(obj: Handle<Stacktrace>, ind: i32) -> Ref<StacktraceElement> {
@@ -218,7 +218,7 @@ pub extern "C" fn stack_element(obj: Handle<Stacktrace>, ind: i32) -> Ref<Stackt
     ste.direct()
 }
 
-fn set_exception_backtrace(vm: &VM, mut obj: Handle<Stacktrace>, via_retrieve: bool) {
+fn set_backtrace(vm: &VM, mut obj: Handle<Stacktrace>, via_retrieve: bool) {
     let stacktrace = stacktrace_from_last_dtn(vm);
     let mut skip = 0;
 
