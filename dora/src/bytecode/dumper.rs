@@ -653,6 +653,10 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg3("TestLeDouble", dest, lhs, rhs);
     }
 
+    fn visit_assert(&mut self, value: Register) {
+        self.emit_reg1("Assert", value);
+    }
+
     fn visit_jump_if_false(&mut self, opnd: Register, offset: u32) {
         self.emit_reg1_u32("JumpIfFalse", opnd, offset);
     }
@@ -905,9 +909,6 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
 
     fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {
         self.emit_new("NewObject", dest, cls);
-    }
-    fn visit_throw(&mut self, opnd: Register) {
-        self.emit_reg1("Throw", opnd);
     }
 
     fn visit_ret_void(&mut self) {

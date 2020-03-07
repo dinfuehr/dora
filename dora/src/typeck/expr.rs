@@ -246,24 +246,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_stmt_throw(&mut self, s: &'ast StmtThrowType) {
-        self.visit_expr(&s.expr);
-        let ty = self.expr_type;
-
-        if ty.is_nil() {
-            self.vm
-                .diag
-                .lock()
-                .report(self.file, s.pos, SemError::ThrowNil);
-        } else if !ty.reference_type() {
-            let tyname = ty.name(self.vm);
-            self.vm
-                .diag
-                .lock()
-                .report(self.file, s.pos, SemError::ReferenceTypeExpected(tyname));
-        }
-    }
-
     fn check_stmt_defer(&mut self, s: &'ast StmtDeferType) {
         self.visit_expr(&s.expr);
 
@@ -351,39 +333,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         self.src.set_ty(expr.id, merged_type);
         self.expr_type = merged_type;
-    }
-
-    fn check_stmt_do(&mut self, s: &'ast StmtDoType) {
-        self.visit_stmt(&s.do_block);
-
-        for catch in &s.catch_blocks {
-            let ty = self.src.ty(catch.data_type.id());
-
-            let var = *self.src.map_vars.get(catch.id).unwrap();
-            self.src.vars[var].ty = ty;
-
-            if !ty.is_error() && !ty.reference_type() {
-                let ty = ty.name(self.vm);
-                self.vm.diag.lock().report(
-                    self.fct.file,
-                    catch.data_type.pos(),
-                    SemError::ReferenceTypeExpected(ty),
-                );
-            }
-
-            self.visit_stmt(&catch.block);
-        }
-
-        if let Some(ref finally_block) = s.finally_block {
-            self.visit_stmt(&finally_block.block);
-        }
-
-        if s.catch_blocks.is_empty() && s.finally_block.is_none() {
-            self.vm
-                .diag
-                .lock()
-                .report(self.fct.file, s.pos, SemError::CatchOrFinallyExpected);
-        }
     }
 
     fn check_expr_ident(&mut self, e: &'ast ExprIdentType) {
@@ -1002,7 +951,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_expr_call(&mut self, e: &'ast ExprCallType, in_try: bool) {
+    fn check_expr_call(&mut self, e: &'ast ExprCallType) {
         self.used_in_call.insert(e.callee.id());
 
         self.visit_expr(&e.callee);
@@ -1020,19 +969,19 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         match ident_type {
             Some(IdentType::Fct(fct_id)) => {
-                self.check_expr_call_ident(e, fct_id, TypeList::empty(), &arg_types, in_try);
+                self.check_expr_call_ident(e, fct_id, TypeList::empty(), &arg_types);
             }
 
             Some(IdentType::FctType(fct_id, type_params)) => {
-                self.check_expr_call_ident(e, fct_id, type_params, &arg_types, in_try);
+                self.check_expr_call_ident(e, fct_id, type_params, &arg_types);
             }
 
             Some(IdentType::Class(cls_id)) => {
-                self.check_expr_call_ctor(e, cls_id, TypeList::empty(), &arg_types, in_try);
+                self.check_expr_call_ctor(e, cls_id, TypeList::empty(), &arg_types);
             }
 
             Some(IdentType::ClassType(cls_id, type_params)) => {
-                self.check_expr_call_ctor(e, cls_id, type_params, &arg_types, in_try);
+                self.check_expr_call_ctor(e, cls_id, type_params, &arg_types);
             }
 
             Some(IdentType::Method(object_type, method_name)) => {
@@ -1042,19 +991,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     method_name,
                     TypeList::empty(),
                     &arg_types,
-                    in_try,
                 );
             }
 
             Some(IdentType::MethodType(object_type, method_name, type_params)) => {
-                self.check_expr_call_method(
-                    e,
-                    object_type,
-                    method_name,
-                    type_params,
-                    &arg_types,
-                    in_try,
-                );
+                self.check_expr_call_method(e, object_type, method_name, type_params, &arg_types);
             }
 
             Some(IdentType::StaticMethod(object_type, method_name)) => self
@@ -1064,7 +1005,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     method_name,
                     TypeList::empty(),
                     &arg_types,
-                    in_try,
                 ),
 
             Some(IdentType::StaticMethodType(object_type, method_name, type_params)) => self
@@ -1074,11 +1014,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     method_name,
                     type_params,
                     &arg_types,
-                    in_try,
                 ),
 
             Some(IdentType::TypeParamStaticMethod(ty, name)) => {
-                self.check_expr_call_generic_static_method(e, ty, name, &arg_types, in_try)
+                self.check_expr_call_generic_static_method(e, ty, name, &arg_types)
             }
 
             Some(IdentType::TypeParam(_)) => {
@@ -1098,7 +1037,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     return;
                 }
 
-                self.check_expr_call_expr(e, expr_type, &arg_types, in_try);
+                self.check_expr_call_expr(e, expr_type, &arg_types);
             }
         }
     }
@@ -1109,7 +1048,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         tp: BuiltinType,
         name: Name,
         arg_types: &[BuiltinType],
-        in_try: bool,
     ) {
         let mut fcts = Vec::new();
 
@@ -1184,11 +1122,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.vm.diag.lock().report(self.file, e.pos, msg);
         }
 
-        if !in_try && fct.throws {
-            let msg = SemError::ThrowingCallWithoutTry;
-            self.vm.diag.lock().report(self.file, e.pos, msg);
-        }
-
         let call_type = CallType::TraitStatic(TypeParamId::Fct(tp_id), trait_id, fct_id);
         self.src.map_calls.insert(e.id, Arc::new(call_type));
 
@@ -1209,7 +1142,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         e: &'ast ExprCallType,
         expr_type: BuiltinType,
         arg_types: &[BuiltinType],
-        _in_try: bool,
     ) {
         let get = self.vm.interner.intern("get");
 
@@ -1235,7 +1167,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         fct_id: FctId,
         type_params: TypeList,
         arg_types: &[BuiltinType],
-        in_try: bool,
     ) {
         let mut lookup = MethodLookup::new(self.vm, self.file)
             .pos(e.pos)
@@ -1246,17 +1177,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let ty = if lookup.find() {
             let call_type = CallType::Fct(fct_id, TypeList::empty(), type_params.clone());
             self.src.map_calls.insert(e.id, Arc::new(call_type));
-
-            if !in_try {
-                let fct = self.vm.fcts.idx(fct_id);
-                let fct = fct.read();
-                let throws = fct.throws;
-
-                if throws {
-                    let msg = SemError::ThrowingCallWithoutTry;
-                    self.vm.diag.lock().report(self.file, e.pos, msg);
-                }
-            }
 
             lookup.found_ret().unwrap()
         } else {
@@ -1274,7 +1194,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         method_name: Name,
         type_params: TypeList,
         arg_types: &[BuiltinType],
-        in_try: bool,
     ) {
         let cls_id = object_type.cls_id(self.vm).unwrap();
         let cls_type_params = object_type.type_params(self.vm);
@@ -1299,17 +1218,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             self.src.set_ty(e.id, return_type);
             self.expr_type = return_type;
-
-            if !in_try {
-                let fct = self.vm.fcts.idx(fct_id);
-                let fct = fct.read();
-                let throws = fct.throws;
-
-                if throws {
-                    let msg = SemError::ThrowingCallWithoutTry;
-                    self.vm.diag.lock().report(self.file, e.pos, msg);
-                }
-            }
         } else {
             self.src.set_ty(e.id, BuiltinType::Error);
             self.expr_type = BuiltinType::Error;
@@ -1323,11 +1231,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         method_name: Name,
         type_params: TypeList,
         arg_types: &[BuiltinType],
-        in_try: bool,
     ) {
         if object_type.is_type_param() {
             assert_eq!(type_params.len(), 0);
-            self.check_expr_call_generic(e, object_type, method_name, arg_types, in_try);
+            self.check_expr_call_generic(e, object_type, method_name, arg_types);
             return;
         }
 
@@ -1361,17 +1268,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 .insert_or_replace(e.id, Arc::new(call_type));
             self.src.set_ty(e.id, return_type);
             self.expr_type = return_type;
-
-            if !in_try {
-                let fct = self.vm.fcts.idx(fct_id);
-                let fct = fct.read();
-                let throws = fct.throws;
-
-                if throws {
-                    let msg = SemError::ThrowingCallWithoutTry;
-                    self.vm.diag.lock().report(self.file, e.pos, msg);
-                }
-            }
         } else {
             self.src.set_ty(e.id, BuiltinType::Error);
             self.expr_type = BuiltinType::Error;
@@ -1384,7 +1280,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         cls_id: ClassId,
         type_params: TypeList,
         arg_types: &[BuiltinType],
-        _in_try: bool,
     ) {
         let mut lookup = MethodLookup::new(self.vm, self.file)
             .pos(e.pos)
@@ -1421,33 +1316,18 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         object_type: BuiltinType,
         name: Name,
         arg_types: &[BuiltinType],
-        in_try: bool,
     ) {
         match object_type {
             BuiltinType::FctTypeParam(_, tpid) => {
                 let tp = &self.fct.type_params[tpid.idx()];
-                self.check_expr_call_generic_type_param(
-                    e,
-                    object_type,
-                    tp,
-                    name,
-                    arg_types,
-                    in_try,
-                );
+                self.check_expr_call_generic_type_param(e, object_type, tp, name, arg_types);
             }
 
             BuiltinType::ClassTypeParam(cls_id, tpid) => {
                 let cls = self.vm.classes.idx(cls_id);
                 let cls = cls.read();
                 let tp = &cls.type_params[tpid.idx()];
-                self.check_expr_call_generic_type_param(
-                    e,
-                    object_type,
-                    tp,
-                    name,
-                    arg_types,
-                    in_try,
-                );
+                self.check_expr_call_generic_type_param(e, object_type, tp, name, arg_types);
             }
 
             _ => unreachable!(),
@@ -1461,7 +1341,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         tp: &vm::TypeParam,
         name: Name,
         args: &[BuiltinType],
-        in_try: bool,
     ) {
         let mut found_fcts = Vec::new();
 
@@ -1481,11 +1360,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let fct = self.vm.fcts.idx(fid);
             let fct = fct.read();
             let return_type = fct.return_type;
-
-            if fct.throws && !in_try {
-                let msg = SemError::ThrowingCallWithoutTry;
-                self.vm.diag.lock().report(self.file, e.pos, msg);
-            }
 
             self.src.set_ty(e.id, return_type);
             self.expr_type = return_type;
@@ -1917,64 +1791,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.expr_type = BuiltinType::Nil;
     }
 
-    fn check_expr_try(&mut self, e: &'ast ExprTryType) {
-        let expr_type;
-
-        match *e.expr {
-            ExprCall(ref call) => {
-                self.check_expr_call(call, true);
-                expr_type = self.expr_type;
-            }
-
-            _ => {
-                self.vm
-                    .diag
-                    .lock()
-                    .report(self.file, e.pos, SemError::TryNeedsCall);
-
-                self.expr_type = BuiltinType::Unit;
-                self.src.set_ty(e.id, BuiltinType::Unit);
-                return;
-            }
-        }
-
-        self.src.set_ty(e.id, expr_type);
-
-        if let Some(call_type) = self.src.map_calls.get(e.expr.id()) {
-            let fct_id = call_type.fct_id().unwrap();
-            let fct = self.vm.fcts.idx(fct_id);
-            let fct = fct.read();
-            let throws = fct.throws;
-
-            if !throws {
-                self.vm
-                    .diag
-                    .lock()
-                    .report(self.file, e.pos, SemError::TryCallNonThrowing);
-            }
-        }
-
-        match e.mode {
-            TryMode::Normal => {}
-            TryMode::Else(ref alt_expr) => {
-                self.visit_expr(alt_expr);
-                let alt_type = self.expr_type;
-
-                if !expr_type.allows(self.vm, alt_type) {
-                    let expr_type = expr_type.name(self.vm);
-                    let alt_type = alt_type.name(self.vm);
-                    let msg = SemError::TypesIncompatible(expr_type, alt_type);
-                    self.vm.diag.lock().report(self.file, e.pos, msg);
-                }
-            }
-
-            TryMode::Force => {}
-            TryMode::Opt => panic!("unsupported"),
-        }
-
-        self.expr_type = expr_type;
-    }
-
     fn check_expr_lambda(&mut self, e: &'ast ExprLambdaType) {
         let ret = if let Some(ref ty) = e.ret {
             self.src.ty(ty.id())
@@ -2146,7 +1962,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprIdent(ref expr) => self.check_expr_ident(expr),
             ExprUn(ref expr) => self.check_expr_un(expr),
             ExprBin(ref expr) => self.check_expr_bin(expr),
-            ExprCall(ref expr) => self.check_expr_call(expr, false),
+            ExprCall(ref expr) => self.check_expr_call(expr),
             ExprTypeParam(ref expr) => self.check_expr_type_param(expr),
             ExprPath(ref expr) => self.check_expr_path(expr),
             ExprDelegation(ref expr) => self.check_expr_delegation(expr),
@@ -2155,7 +1971,6 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprSuper(ref expr) => self.check_expr_super(expr),
             ExprNil(ref expr) => self.check_expr_nil(expr),
             ExprConv(ref expr) => self.check_expr_conv(expr),
-            ExprTry(ref expr) => self.check_expr_try(expr),
             ExprLambda(ref expr) => self.check_expr_lambda(expr),
             ExprBlock(ref expr) => self.check_expr_block(expr),
             ExprIf(ref expr) => self.check_expr_if(expr),
@@ -2169,9 +1984,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             StmtWhile(ref stmt) => self.check_stmt_while(stmt),
             StmtFor(ref stmt) => self.check_stmt_for(stmt),
             StmtReturn(ref stmt) => self.check_stmt_return(stmt),
-            StmtThrow(ref stmt) => self.check_stmt_throw(stmt),
             StmtDefer(ref stmt) => self.check_stmt_defer(stmt),
-            StmtDo(ref stmt) => self.check_stmt_do(stmt),
 
             // for the rest of the statements, no special handling is necessary
             StmtBreak(_) => visit::walk_stmt(self, s),

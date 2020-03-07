@@ -326,7 +326,6 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             internal: f.internal,
             internal_resolved: false,
             overrides: None,
-            throws: f.throws,
             is_constructor: false,
             vtable_index: None,
             initialized: false,

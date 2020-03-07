@@ -371,11 +371,10 @@ def parse_test_file(file)
         when "assert" then test_case.expectation.code = 102
         when "array" then test_case.expectation.code = 103
         when "nil" then test_case.expectation.code = 104
-        when "exception" then test_case.expectation.code = 105
-        when "cast" then test_case.expectation.code = 106
-        when "unexpected" then test_case.expectation.code = 107
-        when "oom" then test_case.expectation.code = 108
-        when "stack-overflow" then test_case.expectation.code = 109
+        when "cast" then test_case.expectation.code = 105
+        when "unexpected" then test_case.expectation.code = 106
+        when "oom" then test_case.expectation.code = 107
+        when "stack-overflow" then test_case.expectation.code = 108
         when "fail"
           # do nothing
         else

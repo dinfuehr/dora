@@ -8,8 +8,8 @@ use crate::dseg::DSeg;
 use crate::gc::Address;
 use crate::ty::TypeList;
 use crate::utils::GrowableVec;
+use crate::vm::FctId;
 use crate::vm::VM;
-use crate::vm::{ClassDef, FctId};
 
 use dora_parser::Position;
 
@@ -93,20 +93,6 @@ impl JitFct {
         }
     }
 
-    pub fn throws(&self) -> bool {
-        match self {
-            &JitFct::Compiled(ref base) => base.throws(),
-            &JitFct::Uncompiled => unreachable!(),
-        }
-    }
-
-    pub fn handlers(&self) -> &[Handler] {
-        match self {
-            &JitFct::Compiled(ref base) => base.handlers(),
-            &JitFct::Uncompiled => unreachable!(),
-        }
-    }
-
     pub fn gcpoint_for_offset(&self, offset: u32) -> Option<&GcPoint> {
         match self {
             &JitFct::Compiled(ref base) => base.gcpoint_for_offset(offset),
@@ -140,7 +126,6 @@ impl JitFct {
 pub enum JitDescriptor {
     DoraFct(FctId),
     CompileStub,
-    ThrowStub,
     TrapStub,
     AllocStub,
     VerifyStub,
@@ -154,7 +139,6 @@ pub struct Code {
     code_end: Address,
 
     desc: JitDescriptor,
-    throws: bool,
 
     // pointer to beginning of function
     instruction_start: Address,
@@ -165,16 +149,10 @@ pub struct Code {
     gcpoints: GcPoints,
     comments: Comments,
     positions: PositionTable,
-    handlers: Vec<Handler>,
 }
 
 impl Code {
-    pub fn from_optimized_buffer(
-        vm: &VM,
-        buffer: &[u8],
-        desc: JitDescriptor,
-        throws: bool,
-    ) -> Code {
+    pub fn from_optimized_buffer(vm: &VM, buffer: &[u8], desc: JitDescriptor) -> Code {
         let dseg = DSeg::new();
 
         Code::from_buffer(
@@ -187,8 +165,6 @@ impl Code {
             Comments::new(),
             PositionTable::new(),
             desc,
-            throws,
-            Vec::new(),
         )
     }
 
@@ -202,8 +178,6 @@ impl Code {
         comments: Comments,
         positions: PositionTable,
         desc: JitDescriptor,
-        throws: bool,
-        mut handlers: Vec<Handler>,
     ) -> Code {
         let size = dseg.size() as usize + buffer.len();
         let ptr = vm.gc.alloc_code(size);
@@ -227,12 +201,6 @@ impl Code {
 
         flush_icache(ptr.to_ptr(), size);
 
-        for handler in &mut handlers {
-            handler.try_start = instruction_start.offset(handler.try_start).to_usize();
-            handler.try_end = instruction_start.offset(handler.try_end).to_usize();
-            handler.catch = instruction_start.offset(handler.catch).to_usize();
-        }
-
         Code {
             code_start: ptr,
             code_end: ptr.offset(size as usize),
@@ -244,8 +212,6 @@ impl Code {
             instruction_end,
             positions,
             desc,
-            throws,
-            handlers,
         }
     }
 
@@ -255,10 +221,6 @@ impl Code {
 
     pub fn gcpoint_for_offset(&self, offset: u32) -> Option<&GcPoint> {
         self.gcpoints.get(offset)
-    }
-
-    pub fn handlers(&self) -> &[Handler] {
-        &self.handlers
     }
 
     pub fn ptr_start(&self) -> Address {
@@ -287,10 +249,6 @@ impl Code {
 
     pub fn framesize(&self) -> i32 {
         self.framesize
-    }
-
-    pub fn throws(&self) -> bool {
-        self.throws
     }
 
     pub fn comment_for_offset(&self, offset: u32) -> Option<&String> {
@@ -438,21 +396,6 @@ impl PositionTable {
             Err(_) => None,
         }
     }
-}
-
-#[derive(Debug)]
-pub struct Handler {
-    pub try_start: usize,
-    pub try_end: usize,
-    pub catch: usize,
-    pub offset: Option<i32>,
-    pub catch_type: CatchType,
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum CatchType {
-    Any,
-    Class(*const ClassDef),
 }
 
 #[derive(Debug)]

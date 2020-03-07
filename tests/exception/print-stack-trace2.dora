@@ -1,7 +1,0 @@
-//= vm-args "--gc=copy --gc-stress --disable-tlab"
-//= stdout "Exception: foo\n0: main(): 5\n"
-
-fun main() {
-  let e = Exception("foo");
-  e.printStackTrace();
-}

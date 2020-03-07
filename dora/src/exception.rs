@@ -1,21 +1,19 @@
 use std::ptr;
 
-use crate::compiler::fct::{CatchType, JitFctId};
+use crate::compiler::fct::JitFctId;
 use crate::compiler::map::CodeDescriptor;
-use crate::gc::Address;
 use crate::handle::{root, Handle};
-use crate::object::{alloc, Array, IntArray, Obj, Ref, StackTraceElement, Str, Throwable};
-use crate::stdlib;
+use crate::object::{alloc, Array, IntArray, Ref, Stacktrace, StacktraceElement, Str};
 use crate::threads::THREAD;
-use crate::vm::{get_vm, FctParent, Trap, VM};
+use crate::vm::{get_vm, FctParent, VM};
 
-pub struct Stacktrace {
+pub struct NativeStacktrace {
     elems: Vec<StackElem>,
 }
 
-impl Stacktrace {
-    pub fn new() -> Stacktrace {
-        Stacktrace { elems: Vec::new() }
+impl NativeStacktrace {
+    pub fn new() -> NativeStacktrace {
+        NativeStacktrace { elems: Vec::new() }
     }
 
     pub fn len(&self) -> usize {
@@ -102,13 +100,13 @@ impl DoraToNativeInfo {
     }
 }
 
-pub fn stacktrace_from_last_dtn(vm: &VM) -> Stacktrace {
-    let mut stacktrace = Stacktrace::new();
+pub fn stacktrace_from_last_dtn(vm: &VM) -> NativeStacktrace {
+    let mut stacktrace = NativeStacktrace::new();
     frames_from_dtns(&mut stacktrace, vm);
     return stacktrace;
 }
 
-fn frames_from_dtns(stacktrace: &mut Stacktrace, vm: &VM) {
+fn frames_from_dtns(stacktrace: &mut NativeStacktrace, vm: &VM) {
     let mut dtn_ptr = THREAD.with(|thread| {
         let thread = thread.borrow();
         let dtn = thread.dtn();
@@ -128,7 +126,7 @@ fn frames_from_dtns(stacktrace: &mut Stacktrace, vm: &VM) {
     }
 }
 
-fn frames_from_pc(stacktrace: &mut Stacktrace, vm: &VM, pc: usize, mut fp: usize) {
+fn frames_from_pc(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize, mut fp: usize) {
     if !determine_stack_entry(stacktrace, vm, pc) {
         return;
     }
@@ -144,7 +142,7 @@ fn frames_from_pc(stacktrace: &mut Stacktrace, vm: &VM, pc: usize, mut fp: usize
     }
 }
 
-fn determine_stack_entry(stacktrace: &mut Stacktrace, vm: &VM, pc: usize) -> bool {
+fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) -> bool {
     let code_map = vm.code_map.lock();
     let data = code_map.get(pc.into());
 
@@ -174,7 +172,6 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, vm: &VM, pc: usize) -> boo
 
         Some(CodeDescriptor::TrapStub) => true,
         Some(CodeDescriptor::GuardCheckStub) => true,
-        Some(CodeDescriptor::ThrowStub) => true,
         Some(CodeDescriptor::AllocStub) => true,
         Some(CodeDescriptor::DoraStub) => false,
 
@@ -186,141 +183,18 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, vm: &VM, pc: usize) -> boo
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
-enum HandlerFound {
-    Yes,
-    No,
-    Stop,
-}
-
 pub struct ThrowResume {
     pc: usize,
     sp: usize,
     fp: usize,
 }
 
-pub extern "C" fn throw(resume: &mut ThrowResume) {
-    let vm = get_vm();
-
-    let exception: Ref<Obj> = THREAD.with(|thread| {
-        let thread = thread.borrow();
-        thread.tld.exception_object().into()
-    });
-
-    let dtn = THREAD.with(|thread| {
-        let thread = thread.borrow();
-        let dtn = thread.dtn();
-
-        dtn
-    });
-    let dtn = unsafe { &*dtn };
-
-    let mut pc: usize = dtn.pc;
-    let mut fp: usize = dtn.fp;
-
-    while fp != 0 {
-        let res = find_handler(vm, exception, pc, fp, resume);
-
-        match res {
-            HandlerFound::Yes => {
-                // handler found, resume from there
-                THREAD.with(|thread| {
-                    let thread = thread.borrow();
-                    thread.tld.set_exception_object(Address::null());
-                });
-
-                return;
-            }
-
-            HandlerFound::Stop => {
-                // no handler found
-                stdlib::trap(Trap::THROW.int());
-            }
-
-            HandlerFound::No => {
-                // try next stack frame
-            }
-        }
-
-        pc = unsafe { *((fp + 8) as *const usize) };
-        fp = unsafe { *(fp as *const usize) };
-    }
-}
-
-fn find_handler(
-    vm: &VM,
-    exception: Ref<Obj>,
-    pc: usize,
-    fp: usize,
-    resume: &mut ThrowResume,
-) -> HandlerFound {
-    let data = {
-        let code_map = vm.code_map.lock();
-        code_map.get(pc.into())
-    };
-
-    match data {
-        Some(CodeDescriptor::DoraFct(fct_id)) | Some(CodeDescriptor::NativeStub(fct_id)) => {
-            let jit_fct = vm.jit_fcts.idx(fct_id);
-            let clsptr = exception.header().vtbl().classptr();
-
-            for entry in jit_fct.handlers() {
-                // println!("entry = {:x} to {:x} for {:?}",
-                //          entry.try_start, entry.try_end, entry.catch_type);
-
-                if entry.try_start < pc
-                    && pc <= entry.try_end
-                    && (entry.catch_type == CatchType::Any
-                        || entry.catch_type == CatchType::Class(clsptr))
-                {
-                    let stacksize = jit_fct.framesize() as usize;
-
-                    if let Some(offset) = entry.offset {
-                        let arg = (fp as isize + offset as isize) as usize;
-
-                        unsafe {
-                            *(arg as *mut usize) = exception.raw() as usize;
-                        }
-                    }
-
-                    resume.pc = entry.catch;
-                    resume.sp = fp - stacksize;
-                    resume.fp = fp;
-
-                    return HandlerFound::Yes;
-                } else if pc > entry.try_end {
-                    // exception handlers are sorted, no more possible handlers
-                    // in this function
-
-                    return HandlerFound::No;
-                }
-            }
-
-            // exception can only bubble up in stacktrace if current function
-            // is allowed to throw exceptions
-            if !jit_fct.throws() {
-                return HandlerFound::Stop;
-            }
-
-            HandlerFound::No
-        }
-
-        Some(CodeDescriptor::DoraStub) => HandlerFound::Stop,
-        Some(CodeDescriptor::ThrowStub) => HandlerFound::No,
-
-        _ => {
-            println!("data = {:?}", data);
-            panic!("invalid stack frame");
-        }
-    }
-}
-
-pub extern "C" fn retrieve_stack_trace(obj: Handle<Throwable>) {
+pub extern "C" fn retrieve_stack_trace(obj: Handle<Stacktrace>) {
     let vm = get_vm();
     set_exception_backtrace(vm, obj, true);
 }
 
-pub extern "C" fn stack_element(obj: Handle<Throwable>, ind: i32) -> Ref<StackTraceElement> {
+pub extern "C" fn stack_element(obj: Handle<Stacktrace>, ind: i32) -> Ref<StacktraceElement> {
     let vm = get_vm();
     let array = obj.backtrace;
 
@@ -330,7 +204,7 @@ pub extern "C" fn stack_element(obj: Handle<Throwable>, ind: i32) -> Ref<StackTr
     let fct_id = array.get_at(ind + 1);
     let cls_def_id = vm.vips.stack_trace_element(vm);
 
-    let ste: Ref<StackTraceElement> = alloc(vm, cls_def_id).cast();
+    let ste: Ref<StacktraceElement> = alloc(vm, cls_def_id).cast();
     let mut ste = root(ste);
     ste.line = lineno;
 
@@ -344,25 +218,14 @@ pub extern "C" fn stack_element(obj: Handle<Throwable>, ind: i32) -> Ref<StackTr
     ste.direct()
 }
 
-pub fn alloc_exception(vm: &VM, msg: Handle<Str>) -> Ref<Throwable> {
-    let cls_id = vm.vips.exception(vm);
-    let obj: Ref<Throwable> = alloc(vm, cls_id).cast();
-    let mut obj = root(obj);
-
-    obj.msg = msg.direct();
-    set_exception_backtrace(vm, obj, false);
-
-    obj.direct()
-}
-
-fn set_exception_backtrace(vm: &VM, mut obj: Handle<Throwable>, via_retrieve: bool) {
+fn set_exception_backtrace(vm: &VM, mut obj: Handle<Stacktrace>, via_retrieve: bool) {
     let stacktrace = stacktrace_from_last_dtn(vm);
     let mut skip = 0;
 
     let mut skip_retrieve_stack = false;
     let mut skip_constructor = false;
 
-    // ignore every element until first not inside susubclass of Throwable (ctor of Exception)
+    // ignore every element until first not inside susubclass of Stacktrace (ctor of Exception)
     if via_retrieve {
         for elem in stacktrace.elems.iter() {
             let jit_fct_id = JitFctId::from(elem.fct_id.idx() as usize);
@@ -372,11 +235,11 @@ fn set_exception_backtrace(vm: &VM, mut obj: Handle<Throwable>, via_retrieve: bo
             let fct = fct.read();
 
             if !skip_retrieve_stack {
-                let throwable_cls = vm.classes.idx(vm.vips.throwable_class);
-                let throwable_cls = throwable_cls.read();
-                let retrieve_stacktrace_fct_id = throwable_cls
-                    .find_method(vm, vm.interner.intern("retrieveStackTrace"), false)
-                    .expect("retrieveStackTrace not found in Throwable");
+                let stacktrace_cls = vm.classes.idx(vm.vips.stacktrace_class);
+                let stacktrace_cls = stacktrace_cls.read();
+                let retrieve_stacktrace_fct_id = stacktrace_cls
+                    .find_method(vm, vm.interner.intern("retrieveStacktrace"), false)
+                    .expect("retrieveStacktrace not found in Stacktrace");
 
                 if retrieve_stacktrace_fct_id == fct_id {
                     skip += 1;

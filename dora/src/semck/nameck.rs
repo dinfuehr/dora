@@ -214,47 +214,6 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         self.vm.sym.lock().pop_level();
     }
 
-    fn check_stmt_do(&mut self, r#try: &'ast StmtDoType) {
-        self.visit_stmt(&r#try.do_block);
-
-        for catch in &r#try.catch_blocks {
-            self.vm.sym.lock().push_level();
-
-            let var_ctxt = Var {
-                id: VarId(0),
-                name: catch.name,
-                ty: BuiltinType::Unit,
-                reassignable: false,
-                node_id: r#try.id,
-            };
-
-            // variables are not allowed to replace types, other variables
-            // and functions can be replaced
-            match self.add_var(var_ctxt, |sym| !sym.is_class()) {
-                Ok(var_id) => {
-                    self.src.map_vars.insert(catch.id, var_id);
-                }
-
-                Err(_) => {
-                    let name = str(self.vm, catch.name);
-                    report(
-                        self.vm,
-                        self.fct.file,
-                        catch.pos,
-                        SemError::ShadowClass(name),
-                    );
-                }
-            }
-
-            self.visit_stmt(&catch.block);
-            self.vm.sym.lock().pop_level();
-        }
-
-        if let Some(ref finally_block) = r#try.finally_block {
-            self.visit_stmt(&finally_block.block);
-        }
-    }
-
     fn check_expr_ident(&mut self, ident: &'ast ExprIdentType) {
         let sym = self.vm.sym.lock().get(ident.name);
 
@@ -375,7 +334,6 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         match *s {
             StmtVar(ref stmt) => self.check_stmt_var(stmt),
-            StmtDo(ref stmt) => self.check_stmt_do(stmt),
             StmtFor(ref stmt) => self.check_stmt_for(stmt),
 
             // no need to handle rest of statements

@@ -289,7 +289,6 @@ impl<'a> AstDumper<'a> {
             dump!(d, "override = {}", fct.has_override);
             dump!(d, "final = {}", fct.has_final);
             dump!(d, "internal = {}", fct.internal);
-            dump!(d, "throws = {}", fct.throws);
             dump!(d, "params");
             d.indent(|d| {
                 if fct.params.is_empty() {
@@ -348,9 +347,7 @@ impl<'a> AstDumper<'a> {
             StmtVar(ref stmt) => self.dump_stmt_var(stmt),
             StmtWhile(ref stmt) => self.dump_stmt_while(stmt),
             StmtLoop(ref stmt) => self.dump_stmt_loop(stmt),
-            StmtThrow(ref stmt) => self.dump_stmt_throw(stmt),
             StmtDefer(ref stmt) => self.dump_stmt_defer(stmt),
-            StmtDo(ref stmt) => self.dump_stmt_do(stmt),
             StmtFor(ref stmt) => self.dump_stmt_for(stmt),
         }
     }
@@ -451,32 +448,9 @@ impl<'a> AstDumper<'a> {
         dump!(self, "continue @ {} {}", stmt.pos, stmt.id);
     }
 
-    fn dump_stmt_throw(&mut self, stmt: &StmtThrowType) {
-        dump!(self, "throw @ {} {}", stmt.pos, stmt.id);
-        self.indent(|d| d.dump_expr(&stmt.expr));
-    }
-
     fn dump_stmt_defer(&mut self, stmt: &StmtDeferType) {
         dump!(self, "defer @ {} {}", stmt.pos, stmt.id);
         self.indent(|d| d.dump_expr(&stmt.expr));
-    }
-
-    fn dump_stmt_do(&mut self, stmt: &StmtDoType) {
-        dump!(self, "try @ {} {}", stmt.pos, stmt.id);
-        self.indent(|d| d.dump_stmt(&stmt.do_block));
-
-        for catch in &stmt.catch_blocks {
-            dump!(self, "catch (var={})", self.str(catch.name));
-            self.indent(|d| {
-                d.dump_type(&catch.data_type);
-                d.dump_stmt(&catch.block);
-            });
-        }
-
-        if let Some(ref finally_block) = stmt.finally_block {
-            dump!(self, "finally");
-            self.dump_stmt(&finally_block.block);
-        }
     }
 
     fn dump_expr(&mut self, expr: &Expr) {
@@ -499,7 +473,6 @@ impl<'a> AstDumper<'a> {
             ExprSuper(ref expr) => self.dump_expr_super(expr),
             ExprNil(ref nil) => self.dump_expr_nil(nil),
             ExprConv(ref expr) => self.dump_expr_conv(expr),
-            ExprTry(ref expr) => self.dump_expr_try(expr),
             ExprLambda(ref expr) => self.dump_expr_lambda(expr),
             ExprBlock(ref expr) => self.dump_expr_block(expr),
             ExprIf(ref expr) => self.dump_expr_if(expr),
@@ -557,11 +530,6 @@ impl<'a> AstDumper<'a> {
         let op = if expr.is { "is" } else { "as" };
         dump!(self, "{} @ {} {}", op, expr.pos, expr.id);
         self.indent(|d| d.dump_type(&expr.data_type));
-    }
-
-    fn dump_expr_try(&mut self, expr: &ExprTryType) {
-        dump!(self, "try @ {} {}", expr.pos, expr.id);
-        self.indent(|d| d.dump_expr(&expr.expr));
     }
 
     fn dump_expr_delegation(&mut self, expr: &ExprDelegationType) {

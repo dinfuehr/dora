@@ -8,7 +8,7 @@ use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 
 use crate::bytecode::{BytecodeFunction, BytecodeType, BytecodeWriter, Label, Register};
 use crate::semck::expr_block_always_returns;
-use crate::semck::specialize::{specialize_class_id_params, specialize_class_ty, specialize_type};
+use crate::semck::specialize::{specialize_class_ty, specialize_type};
 use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{
     CallType, Fct, FctDef, FctDefId, FctId, FctKind, FctSrc, IdentType, Intrinsic, VarId, VM,
@@ -131,9 +131,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             StmtVar(ref stmt) => self.visit_stmt_var(stmt),
             StmtWhile(ref stmt) => self.visit_stmt_while(stmt),
             StmtLoop(ref stmt) => self.visit_stmt_loop(stmt),
-            StmtThrow(ref stmt) => self.visit_stmt_throw(stmt),
             // StmtDefer(ref stmt) => {},
-            // StmtDo(ref stmt) => {},
             // StmtSpawn(ref stmt) => {},
             // StmtFor(ref stmt) => {},
             _ => unimplemented!(),
@@ -172,12 +170,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.loops.pop();
         self.gen.emit_jump(start_lbl);
         self.gen.bind_label(end_lbl);
-    }
-
-    fn visit_stmt_throw(&mut self, stmt: &StmtThrowType) {
-        let exception_reg = self.visit_expr(&stmt.expr, DataDest::Alloc);
-        self.gen.set_position(stmt.pos);
-        self.gen.emit_throw(exception_reg);
     }
 
     fn visit_stmt_expr(&mut self, stmt: &StmtExprType) {
@@ -331,48 +323,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         dest
     }
 
-    fn visit_expr_assert(&mut self, expr: &ExprCallType, _dest: DataDest) {
-        let lbl_assert = self.gen.create_label();
-
+    fn visit_expr_assert(&mut self, expr: &ExprCallType, dest: DataDest) {
+        assert!(dest.is_effect());
         let assert_reg = self.visit_expr(&*expr.args[0], DataDest::Alloc);
-        self.gen.emit_jump_if_true(assert_reg, lbl_assert);
-
-        let cls_id = self.vm.vips.error_class;
-        let cls_ty = self.vm.cls(cls_id);
-        let cls = self.vm.classes.idx(cls_id);
-        let cls = cls.read();
-
-        let fct_id = cls.constructor.expect("constructor is missing");
-        let fct = self.vm.fcts.idx(fct_id);
-        let fct = fct.read();
-
-        let call_type = CallType::CtorNew(cls_ty, fct_id);
-
-        let fct_def_id = self.specialize_call(&fct, &call_type);
-
-        let arg_types = fct
-            .params_with_self()
-            .iter()
-            .map(|&arg| self.specialize_type_for_call(&call_type, arg).into())
-            .collect::<Vec<BytecodeType>>();
-        let num_args = arg_types.len();
-
-        let start_reg = self.gen.add_register_chain(&arg_types);
-        let cls_id = specialize_class_id_params(self.vm, cls_id, &TypeList::Empty);
-
         self.gen.set_position(expr.pos);
-        self.gen.emit_new_object(start_reg, cls_id);
-
-        let error_string_reg = start_reg.offset(1);
-        self.gen
-            .emit_const_string(error_string_reg, "assert failed".to_string());
-
-        self.gen
-            .emit_invoke_direct_void(fct_def_id, start_reg, num_args);
-
-        self.gen.emit_throw(start_reg);
-
-        self.gen.bind_label(lbl_assert);
+        self.gen.emit_assert(assert_reg);
     }
 
     fn visit_expr_call(&mut self, expr: &ExprCallType, dest: DataDest) -> Register {

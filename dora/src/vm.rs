@@ -9,7 +9,6 @@ use crate::compiler::dora_stub;
 use crate::compiler::fct::JitFct;
 use crate::compiler::map::{CodeDescriptor, CodeMap};
 use crate::compiler::native_stub::{self, NativeFct, NativeFctDescriptor, NativeStubs};
-use crate::compiler::throw_stub;
 use crate::driver::cmd::Args;
 use crate::error::diag::Diagnostic;
 use crate::exception::DoraToNativeInfo;
@@ -34,7 +33,6 @@ pub use self::class::{
 };
 pub use self::cnst::{ConstData, ConstId, ConstValue};
 pub use self::enums::{EnumData, EnumId};
-pub use self::exception::{exception_get_and_clear, exception_set};
 pub use self::extension::{ExtensionData, ExtensionId};
 pub use self::fct::{Fct, FctDef, FctDefId, FctId, FctKind, FctParent, Intrinsic};
 pub use self::field::{Field, FieldDef, FieldId};
@@ -52,7 +50,6 @@ use crate::vm::module::{Module, ModuleDef, ModuleId};
 pub mod class;
 mod cnst;
 mod enums;
-mod exception;
 mod extension;
 mod fct;
 mod field;
@@ -119,7 +116,6 @@ pub struct VM<'ast> {
     pub dora_stub: Mutex<Address>,
     pub trap_stub: Mutex<Address>,
     pub guard_check_stub: Mutex<Address>,
-    pub throw_stub: Mutex<Address>,
     pub threads: Threads,
 }
 
@@ -172,10 +168,8 @@ impl<'ast> VM<'ast> {
                 },
 
                 testing_class: empty_class_id,
-                throwable_class: empty_class_id,
-                error_class: empty_class_id,
-                exception_class: empty_class_id,
-                stack_trace_element_class: empty_class_id,
+                stacktrace_class: empty_class_id,
+                stacktrace_element_class: empty_class_id,
 
                 equals_trait: empty_trait_id,
                 comparable_trait: empty_trait_id,
@@ -209,7 +203,6 @@ impl<'ast> VM<'ast> {
             dora_stub: Mutex::new(Address::null()),
             trap_stub: Mutex::new(Address::null()),
             guard_check_stub: Mutex::new(Address::null()),
-            throw_stub: Mutex::new(Address::null()),
             threads: Threads::new(),
         });
 
@@ -505,16 +498,6 @@ impl<'ast> VM<'ast> {
         *dora_stub_address
     }
 
-    pub fn throw_stub(&self) -> Address {
-        let mut throw_stub_address = self.throw_stub.lock();
-
-        if throw_stub_address.is_null() {
-            *throw_stub_address = throw_stub::generate(self);
-        }
-
-        *throw_stub_address
-    }
-
     pub fn compile_stub(&self) -> Address {
         let mut compile_stub_address = self.compile_stub.lock();
 
@@ -533,7 +516,6 @@ impl<'ast> VM<'ast> {
                 ptr: Address::from_ptr(stdlib::trap as *const u8),
                 args: &[BuiltinType::Int],
                 return_type: BuiltinType::Unit,
-                throws: false,
                 desc: NativeFctDescriptor::TrapStub,
             };
             let jit_fct_id = native_stub::generate(self, ifct, false);
@@ -553,7 +535,6 @@ impl<'ast> VM<'ast> {
                 ptr: Address::from_ptr(safepoint::guard_check as *const u8),
                 args: &[],
                 return_type: BuiltinType::Unit,
-                throws: false,
                 desc: NativeFctDescriptor::GuardCheckStub,
             };
             let jit_fct_id = native_stub::generate(self, ifct, false);
@@ -587,7 +568,6 @@ pub enum Trap {
     ASSERT,
     INDEX_OUT_OF_BOUNDS,
     NIL,
-    THROW,
     CAST,
     UNEXPECTED,
     OOM,
@@ -601,11 +581,10 @@ impl Trap {
             Trap::ASSERT => 2,
             Trap::INDEX_OUT_OF_BOUNDS => 3,
             Trap::NIL => 4,
-            Trap::THROW => 5,
-            Trap::CAST => 6,
-            Trap::UNEXPECTED => 7,
-            Trap::OOM => 8,
-            Trap::STACK_OVERFLOW => 9,
+            Trap::CAST => 5,
+            Trap::UNEXPECTED => 6,
+            Trap::OOM => 7,
+            Trap::STACK_OVERFLOW => 8,
         }
     }
 
@@ -615,11 +594,10 @@ impl Trap {
             2 => Some(Trap::ASSERT),
             3 => Some(Trap::INDEX_OUT_OF_BOUNDS),
             4 => Some(Trap::NIL),
-            5 => Some(Trap::THROW),
-            6 => Some(Trap::CAST),
-            7 => Some(Trap::UNEXPECTED),
-            8 => Some(Trap::OOM),
-            9 => Some(Trap::STACK_OVERFLOW),
+            5 => Some(Trap::CAST),
+            6 => Some(Trap::UNEXPECTED),
+            7 => Some(Trap::OOM),
+            8 => Some(Trap::STACK_OVERFLOW),
             _ => None,
         }
     }

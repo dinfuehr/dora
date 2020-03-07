@@ -292,7 +292,6 @@ pub struct ThreadLocalData {
     concurrent_marking: AtomicBool,
     guard_stack_limit: AtomicUsize,
     real_stack_limit: AtomicUsize,
-    exception_object: AtomicUsize,
     dtn: AtomicUsize,
 }
 
@@ -304,7 +303,6 @@ impl ThreadLocalData {
             concurrent_marking: AtomicBool::new(false),
             guard_stack_limit: AtomicUsize::new(0),
             real_stack_limit: AtomicUsize::new(0),
-            exception_object: AtomicUsize::new(0),
             dtn: AtomicUsize::new(0),
         }
     }
@@ -337,25 +335,12 @@ impl ThreadLocalData {
             .store(stack_limit.to_usize(), Ordering::Relaxed);
     }
 
-    pub fn set_exception_object(&self, obj: Address) {
-        self.exception_object
-            .store(obj.to_usize(), Ordering::Relaxed);
-    }
-
-    pub fn exception_object(&self) -> Address {
-        Address::from(self.exception_object.load(Ordering::Relaxed))
-    }
-
     pub fn tlab_top_offset() -> i32 {
         offset_of!(ThreadLocalData, tlab_top) as i32
     }
 
     pub fn tlab_end_offset() -> i32 {
         offset_of!(ThreadLocalData, tlab_end) as i32
-    }
-
-    pub fn exception_object_offset() -> i32 {
-        offset_of!(ThreadLocalData, exception_object) as i32
     }
 
     pub fn concurrent_marking_offset() -> i32 {

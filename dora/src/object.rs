@@ -806,30 +806,13 @@ pub fn alloc(vm: &VM, clsid: ClassDefId) -> Ref<Obj> {
     handle
 }
 
-pub struct Throwable {
+pub struct Stacktrace {
     pub header: Header,
-    pub msg: Ref<Str>,
     pub backtrace: Ref<IntArray>,
     pub elements: Ref<Obj>,
 }
 
-// Error is subclass of Throwable, possibly there is a better way to represent that
-pub struct Error {
-    pub header: Header,
-    pub msg: Ref<Str>,
-    pub backtrace: Ref<IntArray>,
-    pub elements: Ref<Obj>,
-}
-
-// Exception is subclass of Throwable, possibly there is a better way to represent that
-pub struct Exception {
-    pub header: Header,
-    pub msg: Ref<Str>,
-    pub backtrace: Ref<IntArray>,
-    pub elements: Ref<Obj>,
-}
-
-pub struct StackTraceElement {
+pub struct StacktraceElement {
     pub header: Header,
     pub name: Ref<Str>,
     pub line: i32,

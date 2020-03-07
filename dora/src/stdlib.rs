@@ -260,7 +260,6 @@ pub extern "C" fn trap(trap_id: u32) {
         Trap::INDEX_OUT_OF_BOUNDS => "array index out of bounds",
         Trap::NIL => "nil check failed",
         Trap::CAST => "cast failed",
-        Trap::THROW => "uncaught exception",
         Trap::UNEXPECTED => "unexpected exception",
         Trap::OOM => "out of memory",
         Trap::STACK_OVERFLOW => "stack overflow",

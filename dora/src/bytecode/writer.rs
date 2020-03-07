@@ -752,6 +752,10 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestLeDouble, dest, lhs, rhs);
     }
 
+    pub fn emit_assert(&mut self, value: Register) {
+        self.emit_reg1(BytecodeOpcode::Assert, value);
+    }
+
     pub fn emit_load_global_bool(&mut self, dest: Register, gid: GlobalId) {
         self.emit_load_global(BytecodeOpcode::LoadGlobalBool, dest, gid);
     }
@@ -1066,10 +1070,6 @@ impl BytecodeWriter {
         num: usize,
     ) {
         self.emit_fct(BytecodeOpcode::InvokeStaticPtr, dest, fid, start, num);
-    }
-
-    pub fn emit_throw(&mut self, opnd: Register) {
-        self.emit_reg1(BytecodeOpcode::Throw, opnd);
     }
 
     pub fn emit_new_object(&mut self, dest: Register, cls_id: ClassDefId) {

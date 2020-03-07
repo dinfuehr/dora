@@ -544,7 +544,6 @@ pub struct Function {
     pub is_constructor: bool,
 
     pub params: Vec<Param>,
-    pub throws: bool,
 
     pub return_type: Option<Type>,
     pub block: Option<Box<ExprBlockType>>,
@@ -642,9 +641,7 @@ pub enum Stmt {
     StmtBreak(StmtBreakType),
     StmtContinue(StmtContinueType),
     StmtReturn(StmtReturnType),
-    StmtThrow(StmtThrowType),
     StmtDefer(StmtDeferType),
-    StmtDo(StmtDoType),
     StmtFor(StmtForType),
 }
 
@@ -744,16 +741,6 @@ impl Stmt {
         })
     }
 
-    pub fn create_throw(id: NodeId, pos: Position, span: Span, expr: Box<Expr>) -> Stmt {
-        Stmt::StmtThrow(StmtThrowType {
-            id,
-            pos,
-            span,
-
-            expr,
-        })
-    }
-
     pub fn create_defer(id: NodeId, pos: Position, span: Span, expr: Box<Expr>) -> Stmt {
         Stmt::StmtDefer(StmtDeferType {
             id,
@@ -761,25 +748,6 @@ impl Stmt {
             span,
 
             expr,
-        })
-    }
-
-    pub fn create_do(
-        id: NodeId,
-        pos: Position,
-        span: Span,
-        do_block: Box<Stmt>,
-        catch_blocks: Vec<CatchBlock>,
-        finally_block: Option<FinallyBlock>,
-    ) -> Stmt {
-        Stmt::StmtDo(StmtDoType {
-            id,
-            pos,
-            span,
-
-            do_block,
-            catch_blocks,
-            finally_block,
         })
     }
 
@@ -793,9 +761,7 @@ impl Stmt {
             Stmt::StmtBreak(ref stmt) => stmt.id,
             Stmt::StmtContinue(ref stmt) => stmt.id,
             Stmt::StmtReturn(ref stmt) => stmt.id,
-            Stmt::StmtThrow(ref stmt) => stmt.id,
             Stmt::StmtDefer(ref stmt) => stmt.id,
-            Stmt::StmtDo(ref stmt) => stmt.id,
         }
     }
 
@@ -809,9 +775,7 @@ impl Stmt {
             Stmt::StmtBreak(ref stmt) => stmt.pos,
             Stmt::StmtContinue(ref stmt) => stmt.pos,
             Stmt::StmtReturn(ref stmt) => stmt.pos,
-            Stmt::StmtThrow(ref stmt) => stmt.pos,
             Stmt::StmtDefer(ref stmt) => stmt.pos,
-            Stmt::StmtDo(ref stmt) => stmt.pos,
         }
     }
 
@@ -825,23 +789,7 @@ impl Stmt {
             Stmt::StmtBreak(ref stmt) => stmt.span,
             Stmt::StmtContinue(ref stmt) => stmt.span,
             Stmt::StmtReturn(ref stmt) => stmt.span,
-            Stmt::StmtThrow(ref stmt) => stmt.span,
             Stmt::StmtDefer(ref stmt) => stmt.span,
-            Stmt::StmtDo(ref stmt) => stmt.span,
-        }
-    }
-
-    pub fn to_throw(&self) -> Option<&StmtThrowType> {
-        match *self {
-            Stmt::StmtThrow(ref val) => Some(val),
-            _ => None,
-        }
-    }
-
-    pub fn is_throw(&self) -> bool {
-        match *self {
-            Stmt::StmtThrow(_) => true,
-            _ => false,
         }
     }
 
@@ -855,20 +803,6 @@ impl Stmt {
     pub fn is_defer(&self) -> bool {
         match *self {
             Stmt::StmtDefer(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn to_do(&self) -> Option<&StmtDoType> {
-        match *self {
-            Stmt::StmtDo(ref val) => Some(val),
-            _ => None,
-        }
-    }
-
-    pub fn is_try(&self) -> bool {
-        match *self {
-            Stmt::StmtDo(_) => true,
             _ => false,
         }
     }
@@ -1062,75 +996,12 @@ pub struct StmtContinueType {
 }
 
 #[derive(Clone, Debug)]
-pub struct StmtThrowType {
-    pub id: NodeId,
-    pub pos: Position,
-    pub span: Span,
-
-    pub expr: Box<Expr>,
-}
-
-#[derive(Clone, Debug)]
 pub struct StmtDeferType {
     pub id: NodeId,
     pub pos: Position,
     pub span: Span,
 
     pub expr: Box<Expr>,
-}
-
-#[derive(Clone, Debug)]
-pub struct StmtDoType {
-    pub id: NodeId,
-    pub pos: Position,
-    pub span: Span,
-
-    pub do_block: Box<Stmt>,
-    pub catch_blocks: Vec<CatchBlock>,
-    pub finally_block: Option<FinallyBlock>,
-}
-
-#[derive(Clone, Debug)]
-pub struct CatchBlock {
-    pub id: NodeId,
-    pub name: Name,
-    pub pos: Position,
-    pub span: Span,
-
-    pub data_type: Type,
-    pub block: Box<Stmt>,
-}
-
-impl CatchBlock {
-    pub fn new(
-        id: NodeId,
-        name: Name,
-        pos: Position,
-        span: Span,
-        data_type: Type,
-        block: Box<Stmt>,
-    ) -> CatchBlock {
-        CatchBlock {
-            id,
-            name,
-            pos,
-            span,
-
-            data_type,
-            block,
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct FinallyBlock {
-    pub block: Box<Stmt>,
-}
-
-impl FinallyBlock {
-    pub fn new(block: Box<Stmt>) -> FinallyBlock {
-        FinallyBlock { block }
-    }
 }
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
@@ -1252,7 +1123,6 @@ pub enum Expr {
     ExprSuper(ExprSuperType),
     ExprNil(ExprNilType),
     ExprConv(ExprConvType),
-    ExprTry(ExprTryType),
     ExprLambda(ExprLambdaType),
     ExprBlock(ExprBlockType),
     ExprIf(ExprIfType),
@@ -1304,23 +1174,6 @@ impl Expr {
 
             op,
             opnd,
-        })
-    }
-
-    pub fn create_try(
-        id: NodeId,
-        pos: Position,
-        span: Span,
-        expr: Box<Expr>,
-        mode: TryMode,
-    ) -> Expr {
-        Expr::ExprTry(ExprTryType {
-            id,
-            pos,
-            span,
-
-            expr,
-            mode,
         })
     }
 
@@ -1817,20 +1670,6 @@ impl Expr {
         }
     }
 
-    pub fn to_try(&self) -> Option<&ExprTryType> {
-        match *self {
-            Expr::ExprTry(ref val) => Some(val),
-            _ => None,
-        }
-    }
-
-    pub fn is_try(&self) -> bool {
-        match *self {
-            Expr::ExprTry(_) => true,
-            _ => false,
-        }
-    }
-
     pub fn to_lambda(&self) -> Option<&ExprLambdaType> {
         match *self {
             Expr::ExprLambda(ref val) => Some(val),
@@ -1915,7 +1754,6 @@ impl Expr {
             Expr::ExprSuper(ref val) => val.pos,
             Expr::ExprNil(ref val) => val.pos,
             Expr::ExprConv(ref val) => val.pos,
-            Expr::ExprTry(ref val) => val.pos,
             Expr::ExprLambda(ref val) => val.pos,
             Expr::ExprBlock(ref val) => val.pos,
             Expr::ExprIf(ref val) => val.pos,
@@ -1943,7 +1781,6 @@ impl Expr {
             Expr::ExprSuper(ref val) => val.span,
             Expr::ExprNil(ref val) => val.span,
             Expr::ExprConv(ref val) => val.span,
-            Expr::ExprTry(ref val) => val.span,
             Expr::ExprLambda(ref val) => val.span,
             Expr::ExprBlock(ref val) => val.span,
             Expr::ExprIf(ref val) => val.span,
@@ -1971,7 +1808,6 @@ impl Expr {
             Expr::ExprSuper(ref val) => val.id,
             Expr::ExprNil(ref val) => val.id,
             Expr::ExprConv(ref val) => val.id,
-            Expr::ExprTry(ref val) => val.id,
             Expr::ExprLambda(ref val) => val.id,
             Expr::ExprBlock(ref val) => val.id,
             Expr::ExprIf(ref val) => val.id,
@@ -2009,54 +1845,6 @@ pub struct ExprConvType {
     pub object: Box<Expr>,
     pub is: bool,
     pub data_type: Box<Type>,
-}
-
-#[derive(Clone, Debug)]
-pub struct ExprTryType {
-    pub id: NodeId,
-    pub pos: Position,
-    pub span: Span,
-
-    pub expr: Box<Expr>,
-    pub mode: TryMode,
-}
-
-#[derive(Clone, Debug)]
-pub enum TryMode {
-    Normal,
-    Else(Box<Expr>),
-    Opt,
-    Force,
-}
-
-impl TryMode {
-    pub fn is_normal(&self) -> bool {
-        match self {
-            &TryMode::Normal => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_else(&self) -> bool {
-        match self {
-            &TryMode::Else(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_force(&self) -> bool {
-        match self {
-            &TryMode::Force => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_opt(&self) -> bool {
-        match self {
-            &TryMode::Opt => true,
-            _ => false,
-        }
-    }
 }
 
 #[derive(Clone, Debug)]

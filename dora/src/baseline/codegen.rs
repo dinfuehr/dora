@@ -11,7 +11,7 @@ use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 use crate::baseline::{Arg, CallSite, ExprStore, InternalArg, ManagedStackFrame, ManagedStackSlot};
 use crate::compiler::asm::BaselineAssembler;
 use crate::compiler::codegen::{ensure_native_stub, should_emit_debug, AllocationSize, AnyReg};
-use crate::compiler::fct::{CatchType, Code, GcPoint, JitDescriptor};
+use crate::compiler::fct::{Code, GcPoint, JitDescriptor};
 use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
 use crate::cpu::{
     next_param_offset, FReg, Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, PARAM_OFFSET,
@@ -21,13 +21,12 @@ use crate::gc::Address;
 use crate::masm::*;
 use crate::mem;
 use crate::object::{offset_of_array_data, Header, Str};
-use crate::semck::always_returns;
 use crate::semck::specialize::{replace_type_param, specialize_class_ty, specialize_for_call_type};
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, MachineMode, TypeList, TypeParamId};
 use crate::vm::{
-    CallType, ClassDef, ClassDefId, ConstId, Fct, FctId, FctKind, FctSrc, FieldId, IdentType,
-    Intrinsic, TraitId, Trap, TupleId, VarId, VM,
+    CallType, ClassDefId, ConstId, Fct, FctId, FctKind, FctSrc, FieldId, IdentType, Intrinsic,
+    TraitId, Trap, TupleId, VarId, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
@@ -180,7 +179,6 @@ where
         let jit_fct = self.asm.jit(
             self.managed_stack.stacksize(),
             JitDescriptor::DoraFct(self.fct.id),
-            self.ast.throws,
         );
 
         jit_fct
@@ -682,133 +680,6 @@ where
         }
     }
 
-    fn emit_stmt_throw(&mut self, s: &'ast StmtThrowType) {
-        self.emit_expr_result_reg(&s.expr);
-        self.asm.test_if_nil_bailout(s.pos, REG_RESULT, Trap::NIL);
-
-        self.asm.throw(REG_RESULT, s.pos);
-    }
-
-    fn emit_stmt_do(&mut self, s: &'ast StmtDoType) {
-        let lbl_after = self.asm.create_label();
-
-        let do_span = self.stmt_with_finally(s, &s.do_block, lbl_after);
-        let catch_spans = self.emit_do_catch_blocks(s, do_span, lbl_after);
-        let finally_start = self.emit_do_finally_block(s);
-
-        self.asm.bind_label(lbl_after);
-
-        if let Some((finally_start, finally_offset)) = finally_start {
-            self.asm.emit_exception_handler(
-                do_span,
-                finally_start,
-                Some(finally_offset),
-                CatchType::Any,
-            );
-
-            for &catch_span in &catch_spans {
-                self.asm.emit_exception_handler(
-                    catch_span,
-                    finally_start,
-                    Some(finally_offset),
-                    CatchType::Any,
-                );
-            }
-        }
-    }
-
-    fn emit_do_catch_blocks(
-        &mut self,
-        s: &'ast StmtDoType,
-        try_span: (usize, usize),
-        lbl_after: Label,
-    ) -> Vec<(usize, usize)> {
-        let mut ret = Vec::new();
-
-        for catch in &s.catch_blocks {
-            let varid = *self.src.map_vars.get(catch.id).unwrap();
-
-            let slot_var = self.managed_stack.add_scope(BuiltinType::Ptr, self.vm);
-            assert!(self.var_to_slot.insert(varid, slot_var).is_none());
-
-            self.managed_stack.push_scope();
-            let catch_span = self.stmt_with_finally(s, &catch.block, lbl_after);
-            self.managed_stack.pop_scope(self.vm);
-
-            let ty = self.src.ty(catch.data_type.id());
-            let ty = self.specialize_type(ty);
-            let cls_def_id = specialize_class_ty(self.vm, ty);
-            let cls_def = self.vm.class_defs.idx(cls_def_id);
-            let cls_def = cls_def.read();
-
-            let catch_type = CatchType::Class(&*cls_def as *const ClassDef);
-            self.asm.emit_exception_handler(
-                try_span,
-                catch_span.0,
-                Some(slot_var.offset()),
-                catch_type,
-            );
-
-            ret.push(catch_span);
-        }
-
-        ret
-    }
-
-    fn stmt_with_finally(
-        &mut self,
-        s: &'ast StmtDoType,
-        stmt: &'ast Stmt,
-        lbl_after: Label,
-    ) -> (usize, usize) {
-        if s.finally_block.is_some() {
-            let finally = &*s.finally_block.as_ref().unwrap().block;
-            self.active_finallys.push(finally);
-        }
-
-        let start = self.asm.pos();
-        self.visit_stmt(stmt);
-        let end = self.asm.pos();
-
-        if s.finally_block.is_some() {
-            self.active_finallys.pop();
-        }
-
-        if !always_returns(stmt) {
-            if let Some(ref finally_block) = s.finally_block {
-                self.visit_stmt(&finally_block.block);
-            }
-
-            self.asm.jump(lbl_after);
-        }
-
-        (start, end)
-    }
-
-    fn emit_do_finally_block(&mut self, s: &'ast StmtDoType) -> Option<(usize, i32)> {
-        if s.finally_block.is_none() {
-            return None;
-        }
-        let finally_block = s.finally_block.as_ref().unwrap();
-
-        let finally_pos = self.asm.pos();
-
-        self.managed_stack.push_scope();
-
-        let slot = self.managed_stack.add_scope(BuiltinType::Ptr, self.vm);
-        let offset = slot.offset();
-
-        self.visit_stmt(&finally_block.block);
-
-        self.asm
-            .load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Local(offset));
-        self.asm.throw(REG_RESULT, s.pos);
-
-        self.managed_stack.pop_scope(self.vm);
-
-        Some((finally_pos, offset))
-    }
-
     fn emit_expr_result_reg(&mut self, e: &'ast Expr) -> ExprStore {
         let ty = self
             .src
@@ -855,7 +726,6 @@ where
             ExprNil(_) => self.emit_nil(dest.reg()),
             ExprConv(ref expr) => self.emit_conv(expr, dest.reg()),
             ExprTemplate(ref expr) => self.emit_template(expr, dest.reg()),
-            ExprTry(ref expr) => self.emit_try(expr, dest),
             ExprLambda(_) => unimplemented!(),
             ExprBlock(ref expr) => self.emit_block(expr, dest),
             ExprIf(ref expr) => self.emit_if(expr, dest),
@@ -964,68 +834,6 @@ where
         }
 
         self.managed_stack.pop_scope(self.vm);
-    }
-
-    fn emit_try(&mut self, e: &'ast ExprTryType, dest: ExprStore) {
-        match e.mode {
-            TryMode::Normal => {
-                self.emit_expr(&e.expr, dest);
-            }
-
-            TryMode::Else(ref alt_expr) => {
-                let lbl_after = self.asm.create_label();
-
-                let try_span = {
-                    let start = self.asm.pos();
-                    self.emit_expr(&e.expr, dest);
-                    let end = self.asm.pos();
-
-                    self.asm.jump(lbl_after);
-
-                    (start, end)
-                };
-
-                let catch_span = {
-                    let start = self.asm.pos();
-                    self.emit_expr(alt_expr, dest);
-                    let end = self.asm.pos();
-
-                    (start, end)
-                };
-
-                self.asm
-                    .emit_exception_handler(try_span, catch_span.0, None, CatchType::Any);
-                self.asm.bind_label(lbl_after);
-            }
-
-            TryMode::Force => {
-                let lbl_after = self.asm.create_label();
-
-                let try_span = {
-                    let start = self.asm.pos();
-                    self.emit_expr(&e.expr, dest);
-                    let end = self.asm.pos();
-
-                    self.asm.jump(lbl_after);
-
-                    (start, end)
-                };
-
-                let catch_span = {
-                    let start = self.asm.pos();
-                    self.asm.emit_bailout_inplace(Trap::UNEXPECTED, e.pos);
-                    let end = self.asm.pos();
-
-                    (start, end)
-                };
-
-                self.asm
-                    .emit_exception_handler(try_span, catch_span.0, None, CatchType::Any);
-                self.asm.bind_label(lbl_after);
-            }
-
-            TryMode::Opt => panic!("unsupported"),
-        }
     }
 
     fn emit_template(&mut self, e: &'ast ExprTemplateType, dest: Reg) {
@@ -2031,7 +1839,6 @@ where
                         ptr,
                         args: fct.params_with_self(),
                         return_type: fct.return_type,
-                        throws: fct.ast.throws,
                         desc: NativeFctDescriptor::NativeStub(fid),
                     };
 
@@ -3727,9 +3534,7 @@ impl<'a, 'ast> visit::Visitor<'ast> for AstCodeGen<'a, 'ast> {
             StmtBreak(ref stmt) => self.emit_stmt_break(stmt),
             StmtContinue(ref stmt) => self.emit_stmt_continue(stmt),
             StmtVar(ref stmt) => self.emit_stmt_var(stmt),
-            StmtThrow(ref stmt) => self.emit_stmt_throw(stmt),
             StmtDefer(_) => unimplemented!(),
-            StmtDo(ref stmt) => self.emit_stmt_do(stmt),
         }
     }
 

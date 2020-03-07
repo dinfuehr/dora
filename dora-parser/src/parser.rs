@@ -811,7 +811,6 @@ impl<'a> Parser<'a> {
             is_test: modifiers.contains(Modifier::Test),
             use_cannon: modifiers.contains(Modifier::Cannon),
             params,
-            throws: false,
             return_type,
             block,
             type_params,

@@ -54,10 +54,5 @@ pub fn compile<'a, 'ast: 'a>(
         );
     }
 
-    Code::from_optimized_buffer(
-        vm,
-        &machine_code_array,
-        JitDescriptor::DoraFct(fct.id),
-        fct.throws,
-    )
+    Code::from_optimized_buffer(vm, &machine_code_array, JitDescriptor::DoraFct(fct.id))
 }

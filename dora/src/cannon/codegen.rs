@@ -125,7 +125,6 @@ where
         let jit_fct = self.asm.jit(
             self.bytecode.stacksize(),
             JitDescriptor::DoraFct(self.fct.id),
-            self.ast.throws,
         );
 
         jit_fct
@@ -1198,19 +1197,6 @@ where
         self.references.push(offset);
     }
 
-    fn emit_throw(&mut self, exception: Register) {
-        assert_eq!(self.bytecode.register_type(exception), BytecodeType::Ptr);
-
-        let bytecode_type = self.bytecode.register_type(exception);
-        let offset = self.bytecode.register_offset(exception);
-
-        self.asm
-            .load_mem(bytecode_type.mode(), REG_RESULT.into(), Mem::Local(offset));
-
-        let position = self.bytecode.offset_position(self.current_offset.to_u32());
-        self.asm.throw(REG_RESULT, position);
-    }
-
     fn emit_invoke_virtual_void(&mut self, fct_id: FctDefId, start_reg: Register, num: u32) {
         self.emit_invoke_virtual(fct_id, start_reg, num, None);
     }
@@ -1492,7 +1478,6 @@ where
                         ptr,
                         args: fct.params_with_self(),
                         return_type: fct.return_type,
-                        throws: fct.ast.throws,
                         desc: NativeFctDescriptor::NativeStub(fid),
                     };
 
@@ -2085,6 +2070,15 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_test_float(dest, lhs, rhs, CondCode::LessEq);
     }
 
+    fn visit_assert(&mut self, value: Register) {
+        assert_eq!(self.bytecode.register_type(value), BytecodeType::Bool);
+        let offset = self.bytecode.register_offset(value);
+        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+        self.asm
+            .load_mem(MachineMode::Int8, REG_RESULT.into(), Mem::Local(offset));
+        self.asm.assert(REG_RESULT, position);
+    }
+
     fn visit_jump_if_false(&mut self, opnd: Register, offset: u32) {
         let target = BytecodeOffset(self.current_offset.to_u32() + offset);
         self.emit_jump_if(opnd, target, false);
@@ -2356,9 +2350,6 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
 
     fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {
         self.emit_new_object(dest, cls)
-    }
-    fn visit_throw(&mut self, exception: Register) {
-        self.emit_throw(exception)
     }
 
     fn visit_ret_void(&mut self) {

@@ -271,6 +271,8 @@ pub enum BytecodeOpcode {
     TestLtDouble,
     TestLeDouble,
 
+    Assert,
+
     // Backward jump
     JumpLoop,
 
@@ -313,8 +315,6 @@ pub enum BytecodeOpcode {
     InvokeStaticPtr,
 
     NewObject,
-
-    Throw,
 
     RetVoid,
     RetBool,
@@ -378,7 +378,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeStaticDouble
             | BytecodeOpcode::InvokeStaticPtr
             | BytecodeOpcode::NewObject
-            | BytecodeOpcode::Throw => true,
+            | BytecodeOpcode::Assert => true,
             _ => false,
         }
     }

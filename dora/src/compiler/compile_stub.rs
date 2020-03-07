@@ -153,7 +153,7 @@ where
         self.masm.jump_reg(REG_TMP1);
 
         self.masm
-            .jit(self.vm, framesize, JitDescriptor::CompileStub, false)
+            .jit(self.vm, framesize, JitDescriptor::CompileStub)
     }
 
     fn store_params(&mut self, mut offset: i32) {

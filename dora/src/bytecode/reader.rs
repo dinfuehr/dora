@@ -853,6 +853,10 @@ where
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_le_double(dest, lhs, rhs);
             }
+            BytecodeOpcode::Assert => {
+                let value = self.read_register(wide);
+                self.visitor.visit_assert(value);
+            }
 
             BytecodeOpcode::JumpLoop => {
                 let offset = self.read_offset(wide);
@@ -1104,11 +1108,6 @@ where
                 let dest = self.read_register(wide);
                 let cls = self.read_class(wide);
                 self.visitor.visit_new_object(dest, cls);
-            }
-
-            BytecodeOpcode::Throw => {
-                let opnd = self.read_register(wide);
-                self.visitor.visit_throw(opnd);
             }
 
             BytecodeOpcode::RetVoid => {
@@ -1753,6 +1752,9 @@ pub trait BytecodeVisitor {
     fn visit_test_le_double(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
+    fn visit_assert(&mut self, _value: Register) {
+        unimplemented!();
+    }
 
     fn visit_jump_if_false(&mut self, _opnd: Register, _offset: u32) {
         unimplemented!();
@@ -2005,9 +2007,6 @@ pub trait BytecodeVisitor {
     }
 
     fn visit_new_object(&mut self, _dest: Register, _cls: ClassDefId) {
-        unimplemented!();
-    }
-    fn visit_throw(&mut self, _opnd: Register) {
         unimplemented!();
     }
 

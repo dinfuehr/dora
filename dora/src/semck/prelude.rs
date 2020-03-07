@@ -39,10 +39,8 @@ pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {
 
     vm.vips.testing_class = internal_class(vm, "Testing", None);
 
-    vm.vips.throwable_class = internal_class(vm, "Throwable", None);
-    vm.vips.error_class = internal_class(vm, "Error", None);
-    vm.vips.exception_class = internal_class(vm, "Exception", None);
-    vm.vips.stack_trace_element_class = internal_class(vm, "StackTraceElement", None);
+    vm.vips.stacktrace_class = internal_class(vm, "Stacktrace", None);
+    vm.vips.stacktrace_element_class = internal_class(vm, "StacktraceElement", None);
 
     vm.vips.stringable_trait = find_trait(vm, "Stringable");
     vm.vips.zero_trait = find_trait(vm, "Zero");
@@ -346,17 +344,17 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_method(vm, clsid, "get", Intrinsic::GenericArrayGet);
     intrinsic_method(vm, clsid, "set", Intrinsic::GenericArraySet);
 
-    let clsid = vm.vips.throwable_class;
+    let clsid = vm.vips.stacktrace_class;
     native_method(
         vm,
         clsid,
-        "retrieveStackTrace",
+        "retrieveStacktrace",
         exception::retrieve_stack_trace as *const u8,
     );
     native_method(
         vm,
         clsid,
-        "getStackTraceElement",
+        "getStacktraceElement",
         exception::stack_element as *const u8,
     );
 

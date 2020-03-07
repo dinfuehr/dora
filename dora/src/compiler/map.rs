@@ -31,7 +31,6 @@ impl CodeMap {
                     println!("dora {}", fct.full_name(vm));
                 }
                 &CodeDescriptor::CompileStub => println!("compile_stub"),
-                &CodeDescriptor::ThrowStub => println!("throw_stub"),
                 &CodeDescriptor::TrapStub => println!("trap_stub"),
                 &CodeDescriptor::AllocStub => println!("alloc_stub"),
                 &CodeDescriptor::VerifyStub => println!("verify_stub"),
@@ -66,7 +65,6 @@ impl CodeMap {
 pub enum CodeDescriptor {
     DoraFct(JitFctId),
     CompileStub,
-    ThrowStub,
     TrapStub,
     AllocStub,
     VerifyStub,

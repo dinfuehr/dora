@@ -255,25 +255,8 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
             }
         }
 
-        StmtThrow(ref value) => {
-            v.visit_expr(&value.expr);
-        }
-
         StmtDefer(ref value) => {
             v.visit_expr(&value.expr);
-        }
-
-        StmtDo(ref value) => {
-            v.visit_stmt(&value.do_block);
-
-            for catch in &value.catch_blocks {
-                v.visit_type(&catch.data_type);
-                v.visit_stmt(&catch.block);
-            }
-
-            if let Some(ref finally_block) = value.finally_block {
-                v.visit_stmt(&finally_block.block);
-            }
         }
 
         StmtBreak(_) => {}
@@ -327,10 +310,6 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
         ExprConv(ref value) => {
             v.visit_expr(&value.object);
             v.visit_type(&value.data_type);
-        }
-
-        ExprTry(ref value) => {
-            v.visit_expr(&value.expr);
         }
 
         ExprLambda(ref value) => {

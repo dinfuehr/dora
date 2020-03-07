@@ -21,10 +21,8 @@ pub struct KnownElements {
     pub fct: KnownFunctions,
 
     pub testing_class: ClassId,
-    pub throwable_class: ClassId,
-    pub error_class: ClassId,
-    pub exception_class: ClassId,
-    pub stack_trace_element_class: ClassId,
+    pub stacktrace_class: ClassId,
+    pub stacktrace_element_class: ClassId,
 
     pub equals_trait: TraitId,
     pub comparable_trait: TraitId,
@@ -116,20 +114,8 @@ impl KnownElements {
         if let Some(cls_id) = *ste_class_def {
             cls_id
         } else {
-            let cls_id = specialize_class_id(vm, self.stack_trace_element_class);
+            let cls_id = specialize_class_id(vm, self.stacktrace_element_class);
             *ste_class_def = Some(cls_id);
-            cls_id
-        }
-    }
-
-    pub fn exception(&self, vm: &VM) -> ClassDefId {
-        let mut ex_class_def = self.ex_class_def.lock();
-
-        if let Some(cls_id) = *ex_class_def {
-            cls_id
-        } else {
-            let cls_id = specialize_class_id(vm, self.exception_class);
-            *ex_class_def = Some(cls_id);
             cls_id
         }
     }

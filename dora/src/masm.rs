@@ -5,8 +5,8 @@ use std::rc::Rc;
 use crate::asm::Assembler;
 use crate::compiler::codegen::AnyReg;
 use crate::compiler::fct::{
-    CatchType, Code, Comments, GcPoint, GcPoints, Handler, JitDescriptor, LazyCompilationData,
-    LazyCompilationSite, PositionTable,
+    Code, Comments, GcPoint, GcPoints, JitDescriptor, LazyCompilationData, LazyCompilationSite,
+    PositionTable,
 };
 use crate::cpu::{Mem, Reg, SCRATCH};
 use crate::dseg::DSeg;
@@ -40,7 +40,6 @@ pub struct MacroAssembler {
     gcpoints: GcPoints,
     comments: Comments,
     positions: PositionTable,
-    exception_handlers: Vec<Handler>,
     scratch_registers: ScratchRegisters,
 }
 
@@ -56,12 +55,11 @@ impl MacroAssembler {
             gcpoints: GcPoints::new(),
             comments: Comments::new(),
             positions: PositionTable::new(),
-            exception_handlers: Vec::new(),
             scratch_registers: ScratchRegisters::new(),
         }
     }
 
-    pub fn jit(mut self, vm: &VM, stacksize: i32, desc: JitDescriptor, throws: bool) -> Code {
+    pub fn jit(mut self, vm: &VM, stacksize: i32, desc: JitDescriptor) -> Code {
         self.finish();
 
         // align data such that code starts at address that is
@@ -78,8 +76,6 @@ impl MacroAssembler {
             self.comments,
             self.positions,
             desc,
-            throws,
-            self.exception_handlers,
         )
     }
 
@@ -193,22 +189,6 @@ impl MacroAssembler {
 
     pub fn emit_bailout_inplace(&mut self, trap: Trap, pos: Position) {
         self.trap(trap, pos);
-    }
-
-    pub fn emit_exception_handler(
-        &mut self,
-        span: (usize, usize),
-        catch: usize,
-        offset: Option<i32>,
-        catch_type: CatchType,
-    ) {
-        self.exception_handlers.push(Handler {
-            try_start: span.0,
-            try_end: span.1,
-            catch,
-            offset,
-            catch_type,
-        });
     }
 
     pub fn get_scratch(&self) -> ScratchReg {

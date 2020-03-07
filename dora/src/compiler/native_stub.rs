@@ -1,8 +1,6 @@
 use std::collections::hash_map::HashMap;
 use std::mem::size_of;
 
-use dora_parser::lexer::position::Position;
-
 use crate::compiler::codegen::AnyReg;
 use crate::compiler::CodeDescriptor;
 use crate::compiler::{Code, GcPoint, JitDescriptor, JitFct, JitFctId};
@@ -52,7 +50,6 @@ pub struct NativeFct<'a> {
     pub ptr: Address,
     pub args: &'a [BuiltinType],
     pub return_type: BuiltinType,
-    pub throws: bool,
     pub desc: NativeFctDescriptor,
 }
 
@@ -251,18 +248,7 @@ where
             REG_TMP1.into(),
         );
 
-        self.masm.load_mem(
-            MachineMode::Ptr,
-            REG_TMP1.into(),
-            Mem::Base(REG_THREAD, ThreadLocalData::exception_object_offset()),
-        );
-
-        let lbl_exception = self.masm.test_if_not_nil(REG_TMP1);
-
         self.masm.epilog();
-
-        self.masm.bind_label(lbl_exception);
-        self.masm.throw(REG_TMP1, Position::new(1, 1));
         self.masm.nop();
 
         let desc = match self.fct.desc {
@@ -273,7 +259,7 @@ where
             NativeFctDescriptor::GuardCheckStub => JitDescriptor::GuardCheckStub,
         };
 
-        self.masm.jit(self.vm, framesize, desc, self.fct.throws)
+        self.masm.jit(self.vm, framesize, desc)
     }
 }
 

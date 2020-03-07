@@ -1,0 +1,45 @@
+class Stacktrace() {
+  var backtrace: Array[Int] = nil;
+  var elements: Array[StacktraceElement] = nil;
+
+  self.retrieveStacktrace();
+
+  fun getStacktrace() -> Array[StacktraceElement] {
+    if self.elements !== nil {
+      return self.elements;
+    }
+
+    if self.backtrace === nil {
+      self.elements = arrayEmpty[StacktraceElement]();
+      return self.elements;
+    }
+
+    var i = 0;
+    let len = self.backtrace.length() / 2;
+    self.elements = Array[StacktraceElement](len);
+
+    while i < len {
+      self.elements.set(i, self.getStacktraceElement(i));
+      i = i + 1;
+    }
+
+    return self.elements;
+  }
+
+  fun printStacktrace() {
+    let x = self.getStacktrace();
+    var i = 0;
+
+    while i < x.length() {
+      println(i.toString() + ": " + x.get(i).toString());
+      i = i + 1;
+    }
+  }
+
+  @internal fun retrieveStacktrace();
+  @internal fun getStacktraceElement(idx: Int) -> StacktraceElement;
+}
+
+class StacktraceElement(let name: String, let line: Int) {
+  fun toString() -> String = self.name + ": " + self.line.toString();
+}

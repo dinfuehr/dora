@@ -1,5 +1,5 @@
 //= vm-args "--gc=copy --gc-stress --disable-tlab"
-//= stdout "Exception: bar\n0: b() -> Exception: 19\n1: a() -> Exception: 15\n2: main(): 5\n"
+//= stdout "0: b() -> Stacktrace: 19\n1: a() -> Stacktrace: 15\n2: main(): 5\n"
 
 fun main() {
   let e = a();
@@ -8,13 +8,13 @@ fun main() {
   // by retrieveStackTrace (as Array[Int])
   forceCollect();
 
-  e.printStackTrace();
+  e.printStacktrace();
 }
 
-fun a() -> Exception {
+fun a() -> Stacktrace {
   return b();
 }
 
-fun b() -> Exception {
-  return Exception("bar");
+fun b() -> Stacktrace {
+  return Stacktrace();
 }

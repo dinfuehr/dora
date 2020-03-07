@@ -69,7 +69,6 @@ where
         );
         self.masm.epilog();
 
-        self.masm
-            .jit(self.vm, framesize, JitDescriptor::DoraStub, false)
+        self.masm.jit(self.vm, framesize, JitDescriptor::DoraStub)
     }
 }

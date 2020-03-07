@@ -215,13 +215,6 @@ fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &Fct<'ast>) -> Opti
                 .report(fct.file, fct.pos(), SemError::MethodNotOverridable(name));
         }
 
-        if super_method.throws != fct.throws {
-            let name = vm.interner.str(fct.name).to_string();
-            vm.diag
-                .lock()
-                .report(fct.file, fct.pos(), SemError::ThrowsDifference(name));
-        }
-
         let cls_type_params = super_type.type_params(vm);
 
         let super_method_params: Vec<_> = super_method

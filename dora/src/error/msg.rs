@@ -55,8 +55,6 @@ pub enum SemError {
     SuperUnavailable,
     SuperNeedsMethodCall,
     ReferenceTypeExpected(String),
-    ThrowNil,
-    CatchOrFinallyExpected,
     LetMissingInitialization,
     LetReassigned,
     FctReassigned,
@@ -73,7 +71,6 @@ pub enum SemError {
     SuperfluousOverride(String),
     SuperfluousOpen(String),
     MissingOverride(String),
-    ThrowsDifference(String),
     MethodNotOverridable(String),
     TypesIncompatible(String, String),
     ReturnTypeMismatch(String, String),
@@ -107,9 +104,6 @@ pub enum SemError {
     NoSuperClass(String),
     RecursiveStructure,
     TraitMethodWithBody,
-    TryNeedsCall,
-    TryCallNonThrowing,
-    ThrowingCallWithoutTry,
     TypeParamsExpected,
     TypeParamNameNotUnique(String),
     StaticMethodNotInTrait(String, String, Vec<String>),
@@ -280,8 +274,6 @@ impl SemError {
             SemError::ReferenceTypeExpected(ref name) => {
                 format!("`{}` is not a reference type.", name)
             }
-            SemError::ThrowNil => "throwing `nil` is not allowed.".into(),
-            SemError::CatchOrFinallyExpected => "`try` without `catch` or `finally`.".into(),
             SemError::LetMissingInitialization => "`let` binding is missing initialization.".into(),
             SemError::LetReassigned => "`let` binding cannot be reassigned.".into(),
             SemError::FctReassigned => "function cannot be reassigned.".into(),
@@ -306,9 +298,6 @@ impl SemError {
             SemError::MissingOverride(_) => "method `{}` is missing modifier `override`.".into(),
             SemError::SuperfluousOpen(_) => {
                 "method `{}` uses modifier `open` but class allows no subclasses.".into()
-            }
-            SemError::ThrowsDifference(_) => {
-                "use of `throws` in method `{}`needs to match super class".into()
             }
             SemError::MethodNotOverridable(ref name) => {
                 format!("method `{}` in super class not overridable.", name)
@@ -372,13 +361,6 @@ impl SemError {
             SemError::RecursiveStructure => "recursive structure is not allowed.".into(),
             SemError::TraitMethodWithBody => {
                 "trait method is not allowed to have definition".into()
-            }
-            SemError::TryNeedsCall => "`try` expects function or method call.".into(),
-            SemError::TryCallNonThrowing => {
-                "given function or method call for `try` does not throw.".into()
-            }
-            SemError::ThrowingCallWithoutTry => {
-                "function or method call that is able to throw, needs `try`.".into()
             }
             SemError::TypeParamsExpected => "type params expected.".into(),
             SemError::TypeParamNameNotUnique(ref name) => {

@@ -62,7 +62,6 @@ pub struct Fct<'ast> {
     pub vtable_index: Option<u32>,
     pub impl_for: Option<FctId>,
     pub initialized: bool,
-    pub throws: bool,
 
     pub type_params: Vec<TypeParam>,
     pub kind: FctKind,

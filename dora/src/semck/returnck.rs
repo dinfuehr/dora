@@ -65,9 +65,7 @@ pub fn returns_value(s: &Stmt) -> Result<(), Position> {
         StmtContinue(ref stmt) => Err(stmt.pos),
         StmtVar(ref stmt) => Err(stmt.pos),
         StmtExpr(ref stmt) => expr_returns_value(&stmt.expr),
-        StmtThrow(_) => Ok(()),
         StmtDefer(ref stmt) => Err(stmt.pos),
-        StmtDo(ref stmt) => do_returns_value(stmt),
     }
 }
 
@@ -103,25 +101,6 @@ fn expr_if_returns_value(e: &ExprIfType) -> Result<(), Position> {
         Some(ref block) => expr_returns_value(block),
         None => Err(e.pos),
     }
-}
-
-fn do_returns_value(s: &StmtDoType) -> Result<(), Position> {
-    // return in finally-block is good enough
-    if let Some(ref finally_block) = s.finally_block {
-        if returns_value(&finally_block.block).is_ok() {
-            return Ok(());
-        }
-    }
-
-    // if no finally block given or finally does not return,
-    // do and all catch-blocks need to return
-    returns_value(&s.do_block)?;
-
-    for catch in &s.catch_blocks {
-        returns_value(&catch.block)?;
-    }
-
-    Ok(())
 }
 
 #[cfg(test)]

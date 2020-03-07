@@ -1288,17 +1288,6 @@ impl MacroAssembler {
         self.emit_position(pos);
     }
 
-    pub fn throw(&mut self, exception: Reg, pos: Position) {
-        let vm = get_vm();
-        self.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(REG_THREAD, ThreadLocalData::exception_object_offset()),
-            exception.into(),
-        );
-        self.raw_call(vm.throw_stub().to_ptr());
-        self.emit_position(pos);
-    }
-
     pub fn nop(&mut self) {
         self.emit_u32(asm::nop());
     }

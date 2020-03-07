@@ -3,7 +3,7 @@ use std::path::Path;
 
 use crate::error::msg::SemError;
 use crate::vm::VM;
-use crate::vm::{exception_get_and_clear, Fct, FctId};
+use crate::vm::{Fct, FctId};
 use dora_parser::ast::{self, Ast};
 
 use crate::driver::cmd;
@@ -176,10 +176,7 @@ fn run_test<'ast>(vm: &VM<'ast>, fct: FctId) -> bool {
     let testing = object::alloc(vm, testing_class).cast();
     vm.run_test(fct, testing);
 
-    // see if test failed with exception
-    let exception = exception_get_and_clear();
-
-    exception.is_null() && !testing.has_failed()
+    !testing.has_failed()
 }
 
 fn is_test_fct<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) -> bool {

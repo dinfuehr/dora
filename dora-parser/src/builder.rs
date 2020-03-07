@@ -162,7 +162,6 @@ impl<'a> BuilderFct<'a> {
             is_test: false,
             use_cannon: self.use_cannon,
             params: self.params,
-            throws: false,
             return_type: self.return_type,
             block: self.block,
             type_params: None,

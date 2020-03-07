@@ -2667,26 +2667,15 @@ fn gen_self_assign_for_string() {
 
 #[test]
 fn gen_assert() {
-    gen("fun f() { assert(true); }", |vm, code| {
-        let cls_id = vm.cls_def_by_name("Error");
-        let ctor_id = vm.ctor_def_by_name("Error");
-        let expected = vec![
-            ConstTrue(r(0)),
-            JumpIfTrue(r(0), 6),
-            NewObject(r(1), cls_id),
-            ConstString(r(2), "assert failed".to_string()),
-            InvokeDirectVoid(ctor_id, r(1), 2),
-            Throw(r(1)),
-            RetVoid,
-        ];
-        assert_eq!(expected, code);
-    });
+    let result = code("fun f() { assert(true); }");
+    let expected = vec![ConstTrue(r(0)), Assert(r(0)), RetVoid];
+    assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_assert() {
     let result = position("fun f() { assert(true); }");
-    let expected = vec![(5, p(1, 17))];
+    let expected = vec![(2, p(1, 17))];
     assert_eq!(expected, result);
 }
 
@@ -2865,6 +2854,8 @@ pub enum Bytecode {
     TestLtDouble(Register, Register, Register),
     TestLeDouble(Register, Register, Register),
 
+    Assert(Register),
+
     JumpLoop(usize),
     Jump(usize),
     JumpIfFalse(Register, usize),
@@ -2901,8 +2892,6 @@ pub enum Bytecode {
     InvokeStaticPtr(Register, FctDefId, Register, u32),
 
     NewObject(Register, ClassDefId),
-
-    Throw(Register),
 
     RetVoid,
     RetBool(Register),
@@ -3532,6 +3521,10 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::TestLeDouble(dest, lhs, rhs));
     }
 
+    fn visit_assert(&mut self, value: Register) {
+        self.emit(Bytecode::Assert(value));
+    }
+
     fn visit_jump_if_false(&mut self, opnd: Register, offset: u32) {
         let offset = BytecodeOffset(self.pc.to_u32() + offset);
         self.jumps.push((self.next_idx - 1, offset));
@@ -3795,9 +3788,6 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
 
     fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {
         self.emit(Bytecode::NewObject(dest, cls));
-    }
-    fn visit_throw(&mut self, opnd: Register) {
-        self.emit(Bytecode::Throw(opnd));
     }
 
     fn visit_ret_void(&mut self) {

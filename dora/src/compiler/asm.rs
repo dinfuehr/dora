@@ -3,7 +3,7 @@ use std::mem;
 use dora_parser::lexer::position::Position;
 
 use crate::compiler::codegen::{ensure_native_stub, AllocationSize, AnyReg};
-use crate::compiler::fct::{CatchType, Code, GcPoint, JitDescriptor};
+use crate::compiler::fct::{Code, GcPoint, JitDescriptor};
 use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
 use crate::cpu::{
     FReg, Mem, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1, REG_TMP2,
@@ -134,10 +134,6 @@ where
         self.masm.pos()
     }
 
-    pub fn throw(&mut self, exception: Reg, pos: Position) {
-        self.masm.throw(exception, pos);
-    }
-
     pub fn store_mem(&mut self, mode: MachineMode, mem: Mem, src: AnyReg) {
         self.masm.store_mem(mode, mem, src);
     }
@@ -196,17 +192,6 @@ where
 
     pub fn emit_bailout_inplace(&mut self, trap: Trap, pos: Position) {
         self.masm.emit_bailout_inplace(trap, pos)
-    }
-
-    pub fn emit_exception_handler(
-        &mut self,
-        span: (usize, usize),
-        catch: usize,
-        offset: Option<i32>,
-        catch_type: CatchType,
-    ) {
-        self.masm
-            .emit_exception_handler(span, catch, offset, catch_type);
     }
 
     pub fn get_scratch(&self) -> ScratchReg {
@@ -486,10 +471,10 @@ where
         self.masm.load_mem(ty.mode(), dest, Mem::Local(offset));
     }
 
-    pub fn jit(mut self, stacksize: i32, desc: JitDescriptor, throws: bool) -> Code {
+    pub fn jit(mut self, stacksize: i32, desc: JitDescriptor) -> Code {
         self.masm.debug();
         self.slow_paths();
-        self.masm.jit(self.vm, stacksize, desc, throws)
+        self.masm.jit(self.vm, stacksize, desc)
     }
 
     pub fn native_call(
@@ -589,7 +574,6 @@ where
             ptr: Address::from_ptr(stdlib::gc_alloc as *const u8),
             args: &[BuiltinType::Long, BuiltinType::Bool],
             return_type: BuiltinType::Ptr,
-            throws: false,
             desc: NativeFctDescriptor::AllocStub,
         };
 
