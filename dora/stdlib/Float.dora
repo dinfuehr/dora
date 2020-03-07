@@ -7,7 +7,13 @@
   @internal fun asInt() -> Int;
 
   @internal fun equals(rhs: Float) -> Bool;
-  @internal fun compareTo(rhs: Float) -> Int;
+  fun compareTo(rhs: Float) -> Int {
+    if self.isNan() || rhs.isNan() {
+      Int::minValue()
+    } else {
+      self.sortsAs(rhs)
+    }
+  }
   fun sortsAs(rhs: Float) -> Int {
     var ix = self.asInt();
     var iy = rhs.asInt();

@@ -306,7 +306,6 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_method(vm, clsid, "asInt", Intrinsic::FloatAsInt);
 
     intrinsic_method(vm, clsid, "equals", Intrinsic::FloatEq);
-    intrinsic_method(vm, clsid, "compareTo", Intrinsic::FloatCmp);
 
     intrinsic_method(vm, clsid, "plus", Intrinsic::FloatAdd);
     intrinsic_method(vm, clsid, "minus", Intrinsic::FloatSub);
@@ -328,7 +327,6 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_method(vm, clsid, "asLong", Intrinsic::DoubleAsLong);
 
     intrinsic_method(vm, clsid, "equals", Intrinsic::DoubleEq);
-    intrinsic_method(vm, clsid, "compareTo", Intrinsic::DoubleCmp);
 
     intrinsic_method(vm, clsid, "plus", Intrinsic::DoubleAdd);
     intrinsic_method(vm, clsid, "minus", Intrinsic::DoubleSub);

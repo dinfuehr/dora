@@ -1,0 +1,85 @@
+fun main() {
+    assert(0.0F.compareTo(0.0F) == 0);
+    assert((-0.0F).compareTo(-0.0F) == 0);
+    assert(1.0F.compareTo(1.0F) == 0);
+    assert(0.0F.compareTo(1.0F) == -1);
+    assert(1.0F.compareTo(0.0F) == 1);
+    assert((-0.0F).compareTo(0.0F) == -1);
+    assert(0.0F.compareTo(-0.0F) == 1);
+    assert((0.0F/0.0F).compareTo(0.0F/0.0F) == Int::minValue());
+
+    assert(0.0.compareTo(0.0) == 0);
+    assert((-0.0).compareTo(-0.0) == 0);
+    assert(1.0.compareTo(1.0) == 0);
+    assert(0.0.compareTo(1.0) == -1);
+    assert(1.0.compareTo(0.0) == 1);
+    assert((-0.0).compareTo(0.0) == -1);
+    assert(0.0.compareTo(-0.0) == 1);
+    assert((0.0/0.0).compareTo(0.0/0.0) == Int::minValue());
+
+    // 11111111110000000000000000000000
+    let nanQuietNegative = (-4194304).asFloat();
+    // 11111111100000000000000000000001
+    let nanSignaNegative = (-8388607).asFloat();
+    // 11111111100000000000000000000000
+    let infNegative = (-8388608).asFloat();
+    // negative numbers
+    // positive numbers
+    // 01111111100000000000000000000000
+    let infPositive = 2139095040.asFloat();
+    // 01111111100000000000000000000001
+    let nanSignaPositive = 2139095041.asFloat();
+    // 01111111110000000000000000000000
+    let nanQuietPositive = 2143289344.asFloat();
+
+    assert(nanQuietNegative.compareTo(nanSignaNegative) == Int::minValue());
+    assert(nanSignaNegative.compareTo(infNegative) == Int::minValue());
+    assert(infNegative.compareTo(infPositive) == -1);
+    assert(infPositive.compareTo(nanSignaPositive) == Int::minValue());
+    assert(nanSignaPositive.compareTo(nanQuietPositive) == Int::minValue());
+
+    assert(nanQuietNegative.compareTo(-1.0F) == Int::minValue());
+    assert(nanSignaNegative.compareTo(-1.0F) == Int::minValue());
+    assert(infNegative.compareTo(-1.0F) == -1);
+    assert(infPositive.compareTo(-1.0F) == 1);
+    assert(nanSignaPositive.compareTo(-1.0F) == Int::minValue());
+
+    assert(nanQuietNegative.compareTo(1.0F) == Int::minValue());
+    assert(nanSignaNegative.compareTo(1.0F) == Int::minValue());
+    assert(infNegative.compareTo(1.0F) == -1);
+    assert(infPositive.compareTo(1.0F) == 1);
+    assert(nanSignaPositive.compareTo(1.0F) == Int::minValue());
+
+    // 1111111111111000000000000000000000000000000000000000000000000000
+    let nanQuietNegative = (-2251799813685248L).asDouble();
+    // 1111111111110000000000000000000000000000000000000000000000000001
+    let nanSignaNegative = (-4503599627370495L).asDouble();
+    // 1111111111110000000000000000000000000000000000000000000000000000
+    let infNegative = (-4503599627370496L).asDouble();
+    // negative numbers
+    // positive numbers
+    // 0111111111110000000000000000000000000000000000000000000000000000
+    let infPositive = 9218868437227405312L.asDouble();
+    // 0111111111110000000000000000000000000000000000000000000000000001
+    let nanSignaPositive = 9218868437227405313L.asDouble();
+    // 0111111111111000000000000000000000000000000000000000000000000000
+    let nanQuietPositive = 9221120237041090560L.asDouble();
+
+    assert(nanQuietNegative.compareTo(nanSignaNegative) == Int::minValue());
+    assert(nanSignaNegative.compareTo(infNegative) == Int::minValue());
+    assert(infNegative.compareTo(infPositive) == -1);
+    assert(infPositive.compareTo(nanSignaPositive) == Int::minValue());
+    assert(nanSignaPositive.compareTo(nanQuietPositive) == Int::minValue());
+
+    assert(nanQuietNegative.compareTo(-1.0) == Int::minValue());
+    assert(nanSignaNegative.compareTo(-1.0) == Int::minValue());
+    assert(infNegative.compareTo(-1.0) == -1);
+    assert(infPositive.compareTo(-1.0) == 1);
+    assert(nanSignaPositive.compareTo(-1.0) == Int::minValue());
+
+    assert(nanQuietNegative.compareTo(1.0) == Int::minValue());
+    assert(nanSignaNegative.compareTo(1.0) == Int::minValue());
+    assert(infNegative.compareTo(1.0) == -1);
+    assert(infPositive.compareTo(1.0) == 1);
+    assert(nanSignaPositive.compareTo(1.0) == Int::minValue());
+}
