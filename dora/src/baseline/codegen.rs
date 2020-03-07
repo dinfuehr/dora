@@ -46,16 +46,11 @@ pub(super) fn generate<'a, 'ast: 'a>(
 
         lbl_break: None,
         lbl_continue: None,
-        lbl_return: None,
 
-        active_finallys: Vec::new(),
-        active_upper: None,
-        active_loop: None,
         stacksize_offset: 0,
         managed_stack: ManagedStackFrame::new(),
         var_to_slot: HashMap::new(),
         var_to_offset: HashMap::new(),
-        eh_return_value: None,
         return_value: None,
 
         cls_type_params,
@@ -74,33 +69,8 @@ struct AstCodeGen<'a, 'ast: 'a> {
     lbl_break: Option<Label>,
     lbl_continue: Option<Label>,
 
-    // stores all active finally blocks
-    active_finallys: Vec<&'ast Stmt>,
-
-    // label to jump instead of emitting epilog for return
-    // needed for return's in finally blocks
-    // return in finally needs to execute to next finally block and not
-    // leave the current function
-    lbl_return: Option<Label>,
-
-    // length of active_finallys in last loop
-    // default: 0
-    // break/continue need to emit finally blocks up to the last loop
-    // see tests/finally/break-while.dora
-    active_loop: Option<usize>,
-
-    // upper length of active_finallys in emitting finally-blocks for break/continue
-    // default: active_finallys.len()
-    // break/continue needs to execute finally-blocks in loop, return in these blocks
-    // would dump all active_finally-entries from the loop but we need an upper bound.
-    // see emit_finallys_within_loop and tests/finally/continue-return.dora
-    active_upper: Option<usize>,
-
     managed_stack: ManagedStackFrame,
     stacksize_offset: usize,
-
-    // Temporary storage for return value while executing finally blocks.
-    eh_return_value: Option<ManagedStackSlot>,
 
     // Used in case return value doesn't fit into single register. Stores
     // address of return value in caller frame.
@@ -125,7 +95,7 @@ where
         self.managed_stack.push_scope();
         self.emit_prolog();
         self.store_register_params_on_stack();
-        self.asm.stack_guard(self.fct.ast.pos);
+        self.emit_stack_guard();
 
         let always_returns = self.src.always_returns;
 
@@ -160,10 +130,6 @@ where
 
                 self.free_expr_store(dest);
             }
-        }
-
-        if let Some(slot) = self.eh_return_value {
-            self.managed_stack.free_temp(slot, self.vm);
         }
 
         self.managed_stack.pop_scope(self.vm);
@@ -306,13 +272,17 @@ where
         self.stacksize_offset = self.asm.prolog();
     }
 
+    fn emit_stack_guard(&mut self) {
+        let gcpoint = self.create_gcpoint();
+        self.asm.stack_guard(self.fct.ast.pos, gcpoint);
+    }
+
     fn emit_epilog(&mut self) {
         self.asm.emit_comment("epilog".into());
         self.asm.epilog();
     }
 
     fn emit_stmt_return(&mut self, s: &'ast StmtReturnType) {
-        let len = self.active_upper.unwrap_or(self.active_finallys.len());
         let return_type = self.specialize_type(self.fct.return_type);
 
         let mut temp: Option<ManagedStackSlot> = None;
@@ -320,72 +290,12 @@ where
         if let Some(ref expr) = s.expr {
             let dest = self.emit_expr_result_reg(expr);
 
-            if len > 0 {
-                let offset = self.ensure_eh_return_value();
-
-                if let Some(tuple_id) = return_type.tuple_id() {
-                    self.copy_tuple(
-                        tuple_id,
-                        RegOrOffset::Offset(offset),
-                        RegOrOffset::Offset(dest.stack_offset()),
-                    );
-                } else {
-                    let rmode = return_type.mode();
-                    self.asm
-                        .store_mem(rmode, Mem::Local(offset), dest.any_reg());
-                }
-
-                self.free_expr_store(dest);
-            } else if return_type.is_tuple() {
+            if return_type.is_tuple() {
                 temp = Some(dest.stack_slot());
             }
         }
 
-        if let Some(lbl_return) = self.lbl_return {
-            self.asm.jump(lbl_return);
-            return;
-        }
-
-        if len > 0 {
-            let mut ind = 0;
-            while ind < len {
-                let lbl = self.asm.create_label();
-                self.lbl_return = Some(lbl);
-
-                let finally = self.active_finallys[len - 1 - ind];
-                self.visit_stmt(finally);
-
-                self.asm.bind_label(lbl);
-
-                ind += 1;
-            }
-
-            if s.expr.is_some() {
-                let offset = self.ensure_eh_return_value();
-
-                if let Some(tuple_id) = return_type.tuple_id() {
-                    self.asm.load_mem(
-                        MachineMode::Ptr,
-                        REG_TMP1.into(),
-                        Mem::Local(self.return_value.unwrap().offset),
-                    );
-                    self.copy_tuple(
-                        tuple_id,
-                        RegOrOffset::Reg(REG_TMP1),
-                        RegOrOffset::Offset(offset),
-                    );
-                } else {
-                    let rmode = return_type.mode();
-                    self.asm.load_mem(
-                        rmode,
-                        result_reg_ty(return_type).any_reg(),
-                        Mem::Local(offset),
-                    );
-                }
-            }
-
-            self.lbl_return = None;
-        } else if let Some(tuple_id) = return_type.tuple_id() {
+        if let Some(tuple_id) = return_type.tuple_id() {
             self.asm.load_mem(
                 MachineMode::Ptr,
                 REG_TMP1.into(),
@@ -406,24 +316,10 @@ where
         self.emit_epilog();
     }
 
-    fn ensure_eh_return_value(&mut self) -> i32 {
-        if let Some(slot) = self.eh_return_value {
-            slot.offset()
-        } else {
-            let return_type = self.specialize_type(self.fct.return_type);
-            let slot = self.managed_stack.add_temp(return_type, self.vm);
-            self.eh_return_value = Some(slot);
-            slot.offset()
-        }
-    }
-
     fn emit_stmt_while(&mut self, s: &'ast StmtWhileType) {
         let lbl_start = self.asm.create_label();
         let lbl_end = self.asm.create_label();
 
-        let saved_active_loop = self.active_loop;
-
-        self.active_loop = Some(self.active_finallys.len());
         self.asm.bind_label(lbl_start);
 
         if s.cond.is_lit_true() {
@@ -440,11 +336,11 @@ where
             // execute while body, then jump back to condition
             this.visit_stmt(&s.block);
 
+            this.emit_stack_guard();
             this.asm.jump(lbl_start);
         });
 
         self.asm.bind_label(lbl_end);
-        self.active_loop = saved_active_loop;
     }
 
     fn emit_stmt_for(&mut self, stmt: &'ast StmtForType) {
@@ -472,9 +368,6 @@ where
         let lbl_start = self.asm.create_label();
         let lbl_end = self.asm.create_label();
 
-        let saved_active_loop = self.active_loop;
-
-        self.active_loop = Some(self.active_finallys.len());
         self.asm.bind_label(lbl_start);
 
         // emit: iterator.hasNext() & jump to lbl_end if false
@@ -511,32 +404,29 @@ where
             // execute while body, then jump back to condition
             this.visit_stmt(&stmt.block);
 
+            this.emit_stack_guard();
             this.asm.jump(lbl_start);
         });
 
         self.managed_stack.pop_scope(&self.vm);
 
         self.asm.bind_label(lbl_end);
-        self.active_loop = saved_active_loop;
     }
 
     fn emit_stmt_loop(&mut self, s: &'ast StmtLoopType) {
         let lbl_start = self.asm.create_label();
         let lbl_end = self.asm.create_label();
 
-        let saved_active_loop = self.active_loop;
-
-        self.active_loop = Some(self.active_finallys.len());
         self.asm.bind_label(lbl_start);
 
         self.save_label_state(lbl_end, lbl_start, |this| {
             this.visit_stmt(&s.block);
 
+            this.emit_stack_guard();
             this.asm.jump(lbl_start);
         });
 
         self.asm.bind_label(lbl_end);
-        self.active_loop = saved_active_loop;
     }
 
     fn create_gcpoint(&mut self) -> GcPoint {
@@ -560,47 +450,17 @@ where
     }
 
     fn emit_stmt_break(&mut self, _: &'ast StmtBreakType) {
-        // emit finallys between loop and break
-        self.emit_finallys_within_loop();
-
         // now jump out of loop
         let lbl_break = self.lbl_break.unwrap();
         self.asm.jump(lbl_break);
     }
 
     fn emit_stmt_continue(&mut self, _: &'ast StmtContinueType) {
-        // emit finallys between loop and continue
-        self.emit_finallys_within_loop();
+        self.emit_stack_guard();
 
         // now jump to start of loop
         let lbl_continue = self.lbl_continue.unwrap();
         self.asm.jump(lbl_continue);
-    }
-
-    fn emit_finallys_within_loop(&mut self) {
-        let finallys_len = self.active_upper.unwrap_or(self.active_finallys.len());
-        let start = self.active_loop.unwrap_or(0);
-
-        if finallys_len == 0 || start >= finallys_len {
-            return;
-        }
-
-        let mut ind = 0;
-        let end = finallys_len - start;
-
-        let saved_active_upper = self.active_upper;
-
-        while ind < end {
-            let idx = finallys_len - 1 - ind;
-            self.active_upper = Some(idx);
-
-            let finally = self.active_finallys[idx];
-            self.visit_stmt(finally);
-
-            ind += 1;
-        }
-
-        self.active_upper = saved_active_upper;
     }
 
     fn emit_stmt_expr(&mut self, s: &'ast StmtExprType) {

@@ -47,7 +47,7 @@ where
         self.masm.prolog()
     }
 
-    pub fn stack_guard(&mut self, pos: Position) {
+    pub fn stack_guard(&mut self, pos: Position, gcpoint: GcPoint) {
         let lbl_stack_overflow = self.masm.create_label();
         self.masm.check_stack_pointer(lbl_stack_overflow);
         let lbl_return = self.masm.create_label();
@@ -57,7 +57,7 @@ where
             lbl_stack_overflow,
             lbl_return,
             pos,
-            GcPoint::new(),
+            gcpoint,
         ));
     }
 

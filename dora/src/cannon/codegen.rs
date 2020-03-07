@@ -116,7 +116,7 @@ where
 
         self.emit_prolog();
         self.store_params_on_stack();
-        self.asm.stack_guard(self.fct.ast.pos);
+        self.emit_stack_guard();
 
         bytecode::read(self.bytecode.code(), &mut self);
 
@@ -179,6 +179,11 @@ where
 
     fn emit_prolog(&mut self) {
         self.asm.prolog_size(self.bytecode.stacksize());
+    }
+
+    fn emit_stack_guard(&mut self) {
+        let gcpoint = GcPoint::from_offsets(self.references.clone());
+        self.asm.stack_guard(self.fct.ast.pos, gcpoint);
     }
 
     fn emit_epilog(&mut self) {
@@ -2105,6 +2110,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
     fn visit_jump_loop(&mut self, offset: u32) {
         let target = BytecodeOffset(self.current_offset.to_u32() - offset);
+        self.emit_stack_guard();
         self.emit_jump(target);
     }
     fn visit_jump(&mut self, offset: u32) {
