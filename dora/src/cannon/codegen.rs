@@ -2358,6 +2358,10 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_new_object(dest, cls)
     }
 
+    fn visit_new_array(&mut self, dest: Register, cls: ClassDefId, length: Register) {
+        unimplemented!();
+    }
+
     fn visit_ret_void(&mut self) {
         self.emit_epilog();
     }

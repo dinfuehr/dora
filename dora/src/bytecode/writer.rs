@@ -1076,6 +1076,10 @@ impl BytecodeWriter {
         self.emit_new(BytecodeOpcode::NewObject, dest, cls_id);
     }
 
+    pub fn emit_new_array(&mut self, dest: Register, cls_id: ClassDefId, length: Register) {
+        self.emit_new_arr(BytecodeOpcode::NewArray, dest, cls_id, length);
+    }
+
     pub fn generate(mut self) -> BytecodeFunction {
         self.resolve_forward_jumps();
 
@@ -1166,6 +1170,15 @@ impl BytecodeWriter {
 
     fn emit_new(&mut self, inst: BytecodeOpcode, r1: Register, cid: ClassDefId) {
         let values = [r1.to_usize() as u32, cid.to_usize() as u32];
+        self.emit_values(inst, &values);
+    }
+
+    fn emit_new_arr(&mut self, inst: BytecodeOpcode, r1: Register, cid: ClassDefId, lth: Register) {
+        let values = [
+            r1.to_usize() as u32,
+            cid.to_usize() as u32,
+            lth.to_usize() as u32,
+        ];
         self.emit_values(inst, &values);
     }
 

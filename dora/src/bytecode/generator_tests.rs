@@ -2892,6 +2892,7 @@ pub enum Bytecode {
     InvokeStaticPtr(Register, FctDefId, Register, u32),
 
     NewObject(Register, ClassDefId),
+    NewArray(Register, ClassDefId, Register),
 
     RetVoid,
     RetBool(Register),
@@ -3788,6 +3789,9 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
 
     fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {
         self.emit(Bytecode::NewObject(dest, cls));
+    }
+    fn visit_new_array(&mut self, dest: Register, cls: ClassDefId, length: Register) {
+        self.emit(Bytecode::NewArray(dest, cls, length));
     }
 
     fn visit_ret_void(&mut self) {

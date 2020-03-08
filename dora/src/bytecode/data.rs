@@ -315,6 +315,7 @@ pub enum BytecodeOpcode {
     InvokeStaticPtr,
 
     NewObject,
+    NewArray,
 
     RetVoid,
     RetBool,
@@ -378,6 +379,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeStaticDouble
             | BytecodeOpcode::InvokeStaticPtr
             | BytecodeOpcode::NewObject
+            | BytecodeOpcode::NewArray
             | BytecodeOpcode::Assert => true,
             _ => false,
         }
