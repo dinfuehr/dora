@@ -1430,8 +1430,8 @@ fn gen_method_call_void_with_1_arg() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(1), r(0)),
                 ConstInt(r(2), 1),
+                MovPtr(r(1), r(0)),
                 InvokeDirectVoid(fct_id, r(1), 2),
                 RetVoid,
             ];
@@ -1454,10 +1454,10 @@ fn gen_method_call_void_with_3_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(1), r(0)),
                 ConstInt(r(2), 1),
                 ConstInt(r(3), 2),
                 ConstInt(r(4), 3),
+                MovPtr(r(1), r(0)),
                 InvokeDirectVoid(fct_id, r(1), 4),
                 RetVoid,
             ];
@@ -1526,8 +1526,8 @@ fn gen_method_call_bool_with_1_arg() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
                 ConstTrue(r(3)),
+                MovPtr(r(2), r(0)),
                 InvokeDirectBool(r(1), fct_id, r(2), 2),
                 RetBool(r(1)),
             ];
@@ -1550,10 +1550,10 @@ fn gen_method_call_bool_with_3_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
                 ConstTrue(r(3)),
                 ConstFalse(r(4)),
                 ConstTrue(r(5)),
+                MovPtr(r(2), r(0)),
                 InvokeDirectBool(r(1), fct_id, r(2), 4),
                 RetBool(r(1)),
             ];
@@ -1622,8 +1622,8 @@ fn gen_method_call_byte_with_1_arg() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
                 ConstByte(r(3), 1),
+                MovPtr(r(2), r(0)),
                 InvokeDirectByte(r(1), fct_id, r(2), 2),
                 RetByte(r(1)),
             ];
@@ -1646,10 +1646,10 @@ fn gen_method_call_byte_with_3_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
                 ConstByte(r(3), 1),
                 ConstByte(r(4), 2),
                 ConstByte(r(5), 3),
+                MovPtr(r(2), r(0)),
                 InvokeDirectByte(r(1), fct_id, r(2), 4),
                 RetByte(r(1)),
             ];
@@ -1718,8 +1718,8 @@ fn gen_method_call_char_with_1_arg() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
                 ConstChar(r(3), '1'),
+                MovPtr(r(2), r(0)),
                 InvokeDirectChar(r(1), fct_id, r(2), 2),
                 RetChar(r(1)),
             ];
@@ -1742,10 +1742,10 @@ fn gen_method_call_char_with_3_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
                 ConstChar(r(3), '1'),
                 ConstChar(r(4), '2'),
                 ConstChar(r(5), '3'),
+                MovPtr(r(2), r(0)),
                 InvokeDirectChar(r(1), fct_id, r(2), 4),
                 RetChar(r(1)),
             ];
@@ -1814,8 +1814,8 @@ fn gen_method_call_int_with_1_arg() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
                 ConstInt(r(3), 1),
+                MovPtr(r(2), r(0)),
                 InvokeDirectInt(r(1), fct_id, r(2), 2),
                 RetInt(r(1)),
             ];
@@ -1838,10 +1838,10 @@ fn gen_method_call_int_with_3_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
                 ConstInt(r(3), 1),
                 ConstInt(r(4), 2),
                 ConstInt(r(5), 3),
+                MovPtr(r(2), r(0)),
                 InvokeDirectInt(r(1), fct_id, r(2), 4),
                 RetInt(r(1)),
             ];
@@ -1910,8 +1910,8 @@ fn gen_method_call_long_with_1_arg() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
                 ConstLong(r(3), 1),
+                MovPtr(r(2), r(0)),
                 InvokeDirectLong(r(1), fct_id, r(2), 2),
                 RetLong(r(1)),
             ];
@@ -1934,10 +1934,10 @@ fn gen_method_call_long_with_3_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
                 ConstLong(r(3), 1),
                 ConstLong(r(4), 2),
                 ConstLong(r(5), 3),
+                MovPtr(r(2), r(0)),
                 InvokeDirectLong(r(1), fct_id, r(2), 4),
                 RetLong(r(1)),
             ];
@@ -2006,8 +2006,8 @@ fn gen_method_call_float_with_1_arg() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
                 ConstFloat(r(3), 1_f32),
+                MovPtr(r(2), r(0)),
                 InvokeDirectFloat(r(1), fct_id, r(2), 2),
                 RetFloat(r(1)),
             ];
@@ -2030,10 +2030,10 @@ fn gen_method_call_float_with_3_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
                 ConstFloat(r(3), 1_f32),
                 ConstFloat(r(4), 2_f32),
                 ConstFloat(r(5), 3_f32),
+                MovPtr(r(2), r(0)),
                 InvokeDirectFloat(r(1), fct_id, r(2), 4),
                 RetFloat(r(1)),
             ];
@@ -2102,8 +2102,8 @@ fn gen_method_call_double_with_1_arg() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
                 ConstDouble(r(3), 1_f64),
+                MovPtr(r(2), r(0)),
                 InvokeDirectDouble(r(1), fct_id, r(2), 2),
                 RetDouble(r(1)),
             ];
@@ -2126,10 +2126,10 @@ fn gen_method_call_double_with_3_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
                 ConstDouble(r(3), 1_f64),
                 ConstDouble(r(4), 2_f64),
                 ConstDouble(r(5), 3_f64),
+                MovPtr(r(2), r(0)),
                 InvokeDirectDouble(r(1), fct_id, r(2), 4),
                 RetDouble(r(1)),
             ];
@@ -2198,8 +2198,8 @@ fn gen_method_call_ptr_with_1_arg() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
                 ConstString(r(3), "1".to_string()),
+                MovPtr(r(2), r(0)),
                 InvokeDirectPtr(r(1), fct_id, r(2), 2),
                 RetPtr(r(1)),
             ];
@@ -2222,10 +2222,10 @@ fn gen_method_call_ptr_with_3_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
                 ConstString(r(3), "1".to_string()),
                 ConstString(r(4), "2".to_string()),
                 ConstString(r(5), "3".to_string()),
+                MovPtr(r(2), r(0)),
                 InvokeDirectPtr(r(1), fct_id, r(2), 4),
                 RetPtr(r(1)),
             ];
@@ -2303,8 +2303,8 @@ fn gen_virtual_method_call_void_with_1_arg() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(1), r(0)),
                 ConstInt(r(2), 1),
+                MovPtr(r(1), r(0)),
                 InvokeVirtualVoid(fct_id, r(1), 2),
                 RetVoid,
             ];
@@ -2330,10 +2330,10 @@ fn gen_virtual_method_call_void_with_3_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(1), r(0)),
                 ConstInt(r(2), 1),
                 ConstInt(r(3), 2),
                 ConstInt(r(4), 3),
+                MovPtr(r(1), r(0)),
                 InvokeVirtualVoid(fct_id, r(1), 4),
                 RetVoid,
             ];
@@ -2385,8 +2385,8 @@ fn gen_virtual_method_call_int_with_1_arg() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(1), r(0)),
                 ConstInt(r(2), 1),
+                MovPtr(r(1), r(0)),
                 InvokeVirtualVoid(fct_id, r(1), 2),
                 RetVoid,
             ];
@@ -2412,10 +2412,10 @@ fn gen_virtual_method_call_int_with_3_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(1), r(0)),
                 ConstInt(r(2), 1),
                 ConstInt(r(3), 2),
                 ConstInt(r(4), 3),
+                MovPtr(r(1), r(0)),
                 InvokeVirtualVoid(fct_id, r(1), 4),
                 RetVoid,
             ];
@@ -2474,10 +2474,10 @@ fn gen_new_object_with_multiple_args() {
             let cls_id = vm.cls_def_by_name("Foo");
             let ctor_id = vm.ctor_def_by_name("Foo");
             let expected = vec![
-                NewObject(r(0), cls_id),
                 ConstInt(r(1), 1),
                 ConstInt(r(2), 2),
                 ConstInt(r(3), 3),
+                NewObject(r(0), cls_id),
                 InvokeDirectVoid(ctor_id, r(0), 4),
                 RetPtr(r(0)),
             ];
@@ -2493,7 +2493,7 @@ fn gen_position_new_object_with_multiple_args() {
             class Foo(a: Int, b: Int, c: Int)
             fun f() -> Foo { return Foo(1, 2, 3); }",
     );
-    let expected = vec![(0, p(3, 40))];
+    let expected = vec![(9, p(3, 40))];
     assert_eq!(expected, result);
 }
 
