@@ -63,7 +63,6 @@ impl<'a, 'ast> FlowCheck<'a, 'ast> {
 impl<'a, 'ast> Visitor<'ast> for FlowCheck<'a, 'ast> {
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         match *s {
-            StmtLoop(_) => self.handle_loop(s),
             StmtWhile(_) => self.handle_loop(s),
             StmtFor(_) => self.handle_loop(s),
             StmtBreak(_) => self.handle_flow(s),
@@ -83,14 +82,7 @@ mod tests {
     fn flowck_break() {
         ok("fun a() { while true { break; } }");
         ok("fun a() { while true { if true { break; } } }");
-        ok("fun a() { loop { break; } }");
-        ok("fun a() { loop { if true { break; } } }");
         err("fun a() { break; }", pos(1, 11), SemError::OutsideLoop);
-        err(
-            "fun a() { loop { } break; }",
-            pos(1, 20),
-            SemError::OutsideLoop,
-        );
         err(
             "fun a() { while true { } break; }",
             pos(1, 26),
@@ -107,14 +99,7 @@ mod tests {
     fn flowck_continue() {
         ok("fun a() { while true { continue; } }");
         ok("fun a() { while true { if true { continue; } } }");
-        ok("fun a() { loop { continue; } }");
-        ok("fun a() { loop { if true { continue; } } }");
         err("fun a() { continue; }", pos(1, 11), SemError::OutsideLoop);
-        err(
-            "fun a() { loop { } continue; }",
-            pos(1, 20),
-            SemError::OutsideLoop,
-        );
         err(
             "fun a() { while true { } continue; }",
             pos(1, 26),

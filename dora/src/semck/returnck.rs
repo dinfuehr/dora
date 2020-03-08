@@ -58,7 +58,6 @@ impl<'a, 'ast> Visitor<'ast> for ReturnCheck<'a, 'ast> {
 pub fn returns_value(s: &Stmt) -> Result<(), Position> {
     match *s {
         StmtReturn(_) => Ok(()),
-        StmtLoop(ref stmt) => returns_value(&stmt.block),
         StmtFor(ref stmt) => Err(stmt.pos),
         StmtWhile(ref stmt) => Err(stmt.pos),
         StmtBreak(ref stmt) => Err(stmt.pos),
@@ -128,7 +127,6 @@ mod tests {
         ok("fun f() {}");
         ok("fun f() { if true { return; } }");
         ok("fun f() { while true { return; } }");
-        ok("fun f() { loop { return; } }");
     }
 
     #[test]
@@ -164,7 +162,6 @@ mod tests {
             pos(1, 16),
             SemError::ReturnType("Int".into(), "()".into()),
         );
-        ok("fun f() -> Int { loop { return 1; } }");
         ok("fun f() -> Int { if true { return 1; } else { return 2; } }");
         ok("fun f() -> Int { return 1; 1+2; }");
     }

@@ -413,22 +413,6 @@ where
         self.asm.bind_label(lbl_end);
     }
 
-    fn emit_stmt_loop(&mut self, s: &'ast StmtLoopType) {
-        let lbl_start = self.asm.create_label();
-        let lbl_end = self.asm.create_label();
-
-        self.asm.bind_label(lbl_start);
-
-        self.save_label_state(lbl_end, lbl_start, |this| {
-            this.visit_stmt(&s.block);
-
-            this.emit_stack_guard();
-            this.asm.jump(lbl_start);
-        });
-
-        self.asm.bind_label(lbl_end);
-    }
-
     fn create_gcpoint(&mut self) -> GcPoint {
         self.managed_stack.gcpoint(self.vm)
     }
@@ -3387,7 +3371,6 @@ impl<'a, 'ast> visit::Visitor<'ast> for AstCodeGen<'a, 'ast> {
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         match *s {
             StmtExpr(ref stmt) => self.emit_stmt_expr(stmt),
-            StmtLoop(ref stmt) => self.emit_stmt_loop(stmt),
             StmtWhile(ref stmt) => self.emit_stmt_while(stmt),
             StmtFor(ref stmt) => self.emit_stmt_for(stmt),
             StmtReturn(ref stmt) => self.emit_stmt_return(stmt),
