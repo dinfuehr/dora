@@ -1,3 +1,4 @@
+use crate::semck::specialize::specialize_for_call_type;
 use dora_parser::lexer::position::Position;
 use std::collections::HashMap;
 
@@ -377,22 +378,30 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             Register::zero()
         };
         self.gen.set_position(expr.pos);
+
         let arg_start_reg = match *call_type {
-            CallType::CtorNew(ty, _) => {
+            CallType::CtorNew(_, _) | CallType::Method(_, _, _) => 1,
+            _ => 0,
+        };
+
+        match *call_type {
+            CallType::CtorNew(_, _) => {
+                let ty = fct.params_with_self()[0];
+                let ty = specialize_for_call_type(&call_type, ty, self.vm);
+                let ty = self.specialize_type(ty);
                 let cls_id = specialize_class_ty(self.vm, ty);
+
                 self.gen.emit_new_object(start_reg, cls_id);
-                start_reg.offset(1)
             }
             CallType::Method(_, _, _) => {
                 let obj_expr = expr.object().expect("method target required");
                 self.visit_expr(obj_expr, DataDest::Reg(start_reg));
-                start_reg.offset(1)
             }
-            _ => start_reg,
+            _ => {}
         };
 
         for (idx, arg) in expr.args.iter().enumerate() {
-            let arg_reg = arg_start_reg.offset(idx);
+            let arg_reg = start_reg.offset(idx + arg_start_reg);
             self.visit_expr(arg, DataDest::Reg(arg_reg));
         }
         self.gen.set_position(expr.pos);
