@@ -1,0 +1,50 @@
+fun main() {
+  let x = Long::minValue().toStringBinary();
+  assert(x == "1000000000000000000000000000000000000000000000000000000000000000");
+
+  let x = Long::maxValue().toStringBinary();
+  assert(x == "111111111111111111111111111111111111111111111111111111111111111");
+
+  let x = 0L.toStringBinary();
+  assert(x == "0");
+
+  let x = 12L.toStringBinary();
+  assert(x == "1100");
+
+  let x = 67L.toStringBinary();
+  assert(x == "1000011");
+
+  let x = 129L.toStringBinary();
+  assert(x == "10000001");
+
+  let x = (-1L).toStringBinary();
+  assert(x == "1111111111111111111111111111111111111111111111111111111111111111");
+
+  let x = (-129L).toStringBinary();
+  assert(x == "1111111111111111111111111111111111111111111111111111111101111111");
+
+
+  let x = Long::minValue().toStringHex();
+  assert(x == "8000000000000000");
+
+  let x = Long::maxValue().toStringHex();
+  assert(x == "7FFFFFFFFFFFFFFF");
+
+  let x = 0L.toStringHex();
+  assert(x == "0");
+
+  let x = 12L.toStringHex();
+  assert(x == "C");
+
+  let x = 67L.toStringHex();
+  assert(x == "43");
+
+  let x = 129L.toStringHex();
+  assert(x == "81");
+
+  let x = (-1L).toStringHex();
+  assert(x == "FFFFFFFFFFFFFFFF");
+
+  let x = (-129L).toStringHex();
+  assert(x == "FFFFFFFFFFFFFF7F");
+}

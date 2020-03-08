@@ -3,7 +3,4 @@ fun main() {
   assert(false.toInt() == 0);
   assert(true.not() == false);
   assert(false.not() == true);
-
-  assert(true.toStringBinary() == "1");
-  assert(false.toStringBinary() == "0");
 }
