@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::stdlib;
-use crate::threads::{DoraThread, THREAD};
+use crate::threads::{DoraThread, ThreadState, THREAD};
 use crate::vm::{get_vm, stack_pointer, Trap, VM};
 
 pub fn stop_the_world<F, R>(vm: &VM, f: F) -> R
@@ -9,11 +9,17 @@ where
     F: FnOnce(&[Arc<DoraThread>]) -> R,
 {
     THREAD.with(|thread| thread.borrow().park(vm));
-    // lock threads from starting or exiting
+
     let threads = vm.threads.threads.lock();
-    stop_threads(vm, &*threads);
+    if threads.len() == 1 {
+        let ret = f(&*threads);
+        THREAD.with(|thread| thread.borrow().unpark(vm));
+        return ret;
+    }
+
+    let safepoint_id = stop_threads(vm, &*threads);
     let ret = f(&*threads);
-    resume_threads(vm, &*threads);
+    resume_threads(vm, &*threads, safepoint_id);
     THREAD.with(|thread| thread.borrow().unpark(vm));
     ret
 }
@@ -22,53 +28,52 @@ fn current_thread_id() -> usize {
     THREAD.with(|thread| thread.borrow().id())
 }
 
-fn stop_threads(vm: &VM, threads: &[Arc<DoraThread>]) {
+fn stop_threads(vm: &VM, threads: &[Arc<DoraThread>]) -> usize {
     let thread_self = THREAD.with(|thread| thread.borrow().clone());
-    let mut stopped = vm.threads.stopped.lock();
+    let safepoint_id = vm.threads.request_safepoint();
 
-    vm.threads.barrier.guard();
+    vm.threads.barrier.guard(safepoint_id);
 
     for thread in threads.iter() {
         thread.tld.arm_stack_guard();
     }
 
-    let mut thread_count = 0;
+    while !all_threads_blocked(vm, &thread_self, threads, safepoint_id) {
+        // do nothing
+    }
 
-    for thread in threads.iter() {
-        if Arc::ptr_eq(&thread_self, thread) {
+    safepoint_id
+}
+
+fn all_threads_blocked(
+    _vm: &VM,
+    thread_self: &Arc<DoraThread>,
+    threads: &[Arc<DoraThread>],
+    safepoint_id: usize,
+) -> bool {
+    let mut all_blocked = true;
+
+    for thread in threads {
+        if Arc::ptr_eq(thread, thread_self) {
+            assert!(thread.state().is_parked());
             continue;
         }
 
-        if thread.block() {
-            thread_count = thread_count + 1;
-        } else {
-            // thread is already in safepoint
+        if !thread.in_safepoint(safepoint_id) {
+            all_blocked = false;
         }
     }
 
-    *stopped = thread_count;
-
-    while *stopped > 0 {
-        vm.threads.reached_zero.wait(&mut stopped);
-    }
+    all_blocked
 }
 
-fn resume_threads(vm: &VM, threads: &[Arc<DoraThread>]) {
+fn resume_threads(vm: &VM, threads: &[Arc<DoraThread>], safepoint_id: usize) {
     for thread in threads.iter() {
         thread.tld.unarm_stack_guard();
     }
 
-    let thread_self = THREAD.with(|thread| thread.borrow().clone());
-
-    for thread in threads.iter() {
-        if Arc::ptr_eq(&thread_self, thread) {
-            continue;
-        }
-
-        thread.unblock();
-    }
-
-    vm.threads.barrier.resume();
+    vm.threads.barrier.resume(safepoint_id);
+    vm.threads.clear_safepoint_request();
 }
 
 pub extern "C" fn guard_check() {
@@ -78,31 +83,24 @@ pub extern "C" fn guard_check() {
     if stack_overflow {
         stdlib::trap(Trap::STACK_OVERFLOW.int());
     } else {
-        enter_safepoint_from_dora(get_vm());
+        block(get_vm(), &thread);
     }
 }
 
-fn enter_safepoint_from_dora(vm: &VM) {
-    decrement_stopped(vm);
-    vm.threads.barrier.wait();
-}
+pub fn block(vm: &VM, thread: &DoraThread) {
+    let safepoint_id = vm.threads.safepoint_id();
+    assert_ne!(safepoint_id, 0);
+    let state = thread.state();
 
-pub fn enter_safepoint_from_native_park(vm: &VM) {
-    decrement_stopped(vm);
-    vm.threads.barrier.wait();
-}
+    match state {
+        ThreadState::Running | ThreadState::Parked => {
+            thread.block(safepoint_id);
+        }
+        ThreadState::Blocked => {
+            panic!("illegal thread state: thread #{} {:?}", thread.id(), state);
+        }
+    };
 
-pub fn enter_safepoint_from_native_unpark(vm: &VM) {
-    vm.threads.barrier.wait();
-}
-
-fn decrement_stopped(vm: &VM) {
-    let mut stopped = vm.threads.stopped.lock();
-
-    assert!(*stopped > 0);
-    *stopped -= 1;
-
-    if *stopped == 0 {
-        vm.threads.reached_zero.notify_all();
-    }
+    let _mtx = vm.threads.barrier.wait(safepoint_id);
+    thread.unblock();
 }

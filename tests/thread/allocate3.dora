@@ -1,6 +1,5 @@
 //= stdout "done\ndone\n"
 //= vm-args "--gc-young-size=64M --max-heap-size=128M"
-//= ignore
 
 class MyThread() : Thread {
     @override fun run() {
@@ -21,10 +20,14 @@ fun allocator() {
     var i = 0;
 
     while i < 10_000 {
-        Foo();
+        let v1 = Foo(none[Foo]());
+        let v2 = Foo(some[Foo](v1));
+        let v3 = Foo(some[Foo](v2));
+        let v4 = Foo(some[Foo](v3));
+        let v5 = Foo(some[Foo](v4));
         if i % 500 == 0 { forceMinorCollect(); }
         i = i + 1;
     }
 }
 
-class Foo
+class Foo(let next: Option[Foo])
