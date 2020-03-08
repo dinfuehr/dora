@@ -1,5 +1,5 @@
 //= stdout "done\ndone\n"
-//= vm-args "--gc-young-size=64M --max-heap-size=128M"
+//= vm-args "--gc-young-size=64M --max-heap-size=128M --gc-verify"
 
 class MyThread() : Thread {
     @override fun run() {
