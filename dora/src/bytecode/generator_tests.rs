@@ -6,7 +6,7 @@ use crate::bytecode::{
     self, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolIdx, Register,
 };
 use crate::test;
-use crate::ty::TypeList;
+use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{ClassDefId, FctDefId, FieldId, GlobalId, VM};
 use dora_parser::lexer::position::Position;
 
@@ -2460,6 +2460,33 @@ fn gen_new_object_assign_to_var() {
 fn gen_position_new_object() {
     let result = position("fun f() -> Object { return Object(); }");
     let expected = vec![(0, p(1, 34))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_new_array() {
+    gen(
+        "fun f() -> Array[Int] { return Array[Int](1); }",
+        |vm, code| {
+            let cls_id = vm
+                .cls_def_by_name_with_type_params("Array", TypeList::with(vec![BuiltinType::Int]));
+            let ctor_id = vm
+                .ctor_def_by_name_with_type_params("Array", TypeList::with(vec![BuiltinType::Int]));
+            let expected = vec![
+                ConstInt(r(1), 1),
+                NewArray(r(0), cls_id, r(1)),
+                InvokeDirectVoid(ctor_id, r(0), 2),
+                RetPtr(r(0)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_position_new_array() {
+    let result = position("fun f() -> Array[Int] { return Array[Int](1); }");
+    let expected = vec![(3, p(1, 42))];
     assert_eq!(expected, result);
 }
 
