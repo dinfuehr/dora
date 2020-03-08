@@ -1202,6 +1202,104 @@ where
         self.references.push(offset);
     }
 
+    fn emit_new_array(&mut self, dest: Register, class_def_id: ClassDefId, length: Register) {
+        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Ptr);
+
+        let cls = self.vm.class_defs.idx(class_def_id);
+        let cls = cls.read();
+
+        {
+            let name = cls.name(self.vm);
+            self.asm
+                .emit_comment(format!("allocate array of type {}", name));
+        }
+
+        let length_bytecode_type = self.bytecode.register_type(length);
+        let length_offset = self.bytecode.register_offset(length);
+        self.asm.load_mem(
+            length_bytecode_type.mode(),
+            REG_TMP1.into(),
+            Mem::Local(length_offset),
+        );
+        let array_header_size = Header::size() as usize + mem::ptr_width_usize();
+
+        let alloc_size = match cls.size {
+            InstanceSize::Array(size) => {
+                if size == 0 {
+                    AllocationSize::Fixed(array_header_size)
+                } else {
+                    self.asm
+                        .determine_array_size(REG_TMP1, REG_TMP1, size, true);
+                    AllocationSize::Dynamic(REG_TMP1)
+                }
+            }
+            _ => unreachable!("class size type {:?} for new array not supported", cls.size),
+        };
+
+        let array_ref = match cls.size {
+            InstanceSize::ObjArray => true,
+            _ => false,
+        };
+
+        let gcpoint = GcPoint::from_offsets(self.references.clone());
+        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+        self.asm
+            .allocate(REG_RESULT.into(), alloc_size, position, array_ref, gcpoint);
+
+        let bytecode_type = self.bytecode.register_type(dest);
+        let offset = self.bytecode.register_offset(dest);
+
+        // store gc object in temporary storage
+        self.asm
+            .store_mem(bytecode_type.mode(), Mem::Local(offset), REG_RESULT.into());
+
+        // store classptr in object
+        let cptr = (&**cls.vtable.as_ref().unwrap()) as *const VTable as *const u8;
+        let disp = self.asm.add_addr(cptr);
+        let pos = self.asm.pos() as i32;
+
+        let name = cls.name(self.vm);
+        self.asm
+            .emit_comment(format!("store vtable ptr for class {} in object", name));
+        self.asm.load_constpool(REG_TMP1.into(), disp + pos);
+        self.asm
+            .store_mem(MachineMode::Ptr, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
+
+        // clear mark/fwdptr word in header
+        assert!(Header::size() == 2 * mem::ptr_width());
+        self.asm.load_int_const(MachineMode::Ptr, REG_TMP1, 0);
+        self.asm.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(REG_RESULT, mem::ptr_width()),
+            REG_TMP1.into(),
+        );
+
+        // store length in object
+        self.asm.load_mem(
+            length_bytecode_type.mode(),
+            REG_TMP1.into(),
+            Mem::Local(length_offset),
+        );
+        self.asm.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(REG_RESULT, Header::size()),
+            REG_TMP1.into(),
+        );
+
+        match cls.size {
+            InstanceSize::Array(size) => {
+                self.asm
+                    .determine_array_size(REG_TMP1, REG_TMP1, size, false);
+                self.asm
+                    .int_add(MachineMode::Ptr, REG_TMP1, REG_TMP1, REG_RESULT);
+                self.asm.fill_zero_dynamic(REG_RESULT, REG_TMP1);
+            }
+            _ => unreachable!(),
+        }
+
+        self.references.push(offset);
+    }
+
     fn emit_invoke_virtual_void(&mut self, fct_id: FctDefId, start_reg: Register, num: u32) {
         self.emit_invoke_virtual(fct_id, start_reg, num, None);
     }
@@ -2359,7 +2457,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
 
     fn visit_new_array(&mut self, dest: Register, cls: ClassDefId, length: Register) {
-        unimplemented!();
+        self.emit_new_array(dest, cls, length);
     }
 
     fn visit_ret_void(&mut self) {
