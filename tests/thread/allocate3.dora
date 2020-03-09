@@ -20,14 +20,29 @@ fun allocator() {
     var i = 0;
 
     while i < 10_000 {
-        let v1 = Foo(none[Foo]());
-        let v2 = Foo(some[Foo](v1));
-        let v3 = Foo(some[Foo](v2));
-        let v4 = Foo(some[Foo](v3));
-        let v5 = Foo(some[Foo](v4));
+        let foo = {
+            let v1 = Foo(i, none[Foo]());
+            let v2 = Foo(i + 1, some[Foo](v1));
+            let v3 = Foo(i + 2, some[Foo](v2));
+            let v4 = Foo(i + 3, some[Foo](v3));
+            Foo(i + 4, some[Foo](v4))
+        };
+
         if i % 500 == 0 { forceMinorCollect(); }
+
+        var tmp = foo;
+        assert(tmp.value == i + 4);
+        tmp = tmp.next.unwrap();
+        assert(tmp.value == i + 3);
+        tmp = tmp.next.unwrap();
+        assert(tmp.value == i + 2);
+        tmp = tmp.next.unwrap();
+        assert(tmp.value == i + 1);
+        tmp = tmp.next.unwrap();
+        assert(tmp.value == i);
+
         i = i + 1;
     }
 }
 
-class Foo(let next: Option[Foo])
+class Foo(let value: Int, let next: Option[Foo])
