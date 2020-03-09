@@ -77,7 +77,7 @@ pub struct Swiper {
     min_heap_size: usize,
     max_heap_size: usize,
 
-    threadpool: Mutex<Pool>,
+    threadpool: Option<Mutex<Pool>>,
     config: SharedHeapConfig,
 }
 
@@ -180,6 +180,12 @@ impl Swiper {
             .unaligned_start
             .region_start(reservation.unaligned_size);
 
+        let threadpool = if args.parallel_minor() || args.parallel_full() {
+            Some(Mutex::new(Pool::new(nworkers as u32)))
+        } else {
+            None
+        };
+
         Swiper {
             heap: Region::new(heap_start, heap_end),
             reserved_area,
@@ -199,7 +205,7 @@ impl Swiper {
             min_heap_size,
             max_heap_size,
 
-            threadpool: Mutex::new(Pool::new(nworkers as u32)),
+            threadpool,
         }
     }
 
@@ -273,7 +279,8 @@ impl Swiper {
             .collect::<Vec<_>>();
 
         let promotion_failed = if vm.args.parallel_minor() {
-            let mut pool = self.threadpool.lock();
+            let pool = self.threadpool.as_ref().unwrap();
+            let mut pool = pool.lock();
             let mut collector = ParallelMinorCollector::new(
                 vm,
                 &self.young,
@@ -347,7 +354,8 @@ impl Swiper {
         );
 
         if vm.args.parallel_full() {
-            let mut pool = self.threadpool.lock();
+            let pool = self.threadpool.as_ref().unwrap();
+            let mut pool = pool.lock();
             let mut collector = ParallelFullCollector::new(
                 vm,
                 self.heap.clone(),
