@@ -701,10 +701,10 @@ impl<'a> Parser<'a> {
                 "test" => Modifier::Test,
                 "cannon" => Modifier::Cannon,
                 "optimize_immediately" => Modifier::OptimizeImmediately,
-                _ => {
+                annotation => {
                     return Err(ParseErrorAndPos::new(
                         self.token.position,
-                        ParseError::UnknownAnnotation(self.token.to_string()),
+                        ParseError::UnknownAnnotation(annotation.into()),
                     ));
                 }
             };
@@ -712,7 +712,7 @@ impl<'a> Parser<'a> {
             if modifiers.contains(modifier) {
                 return Err(ParseErrorAndPos::new(
                     self.token.position,
-                    ParseError::RedundantAnnotation(self.token.name()),
+                    ParseError::RedundantAnnotation(modifier.name().into()),
                 ));
             }
 
