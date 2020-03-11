@@ -134,6 +134,8 @@ class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
 
     @override fun visitRolInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("RolInt", dest, lhs, rhs); }
     @override fun visitRorInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("RorInt", dest, lhs, rhs); }
+    @override fun visitRolLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("RolLong", dest, lhs, rhs); }
+    @override fun visitRorLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("RorLong", dest, lhs, rhs); }
 
     @override fun visitMovBool(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("MovBool", dest, src); }
     @override fun visitMovByte(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("MovByte", dest, src); }

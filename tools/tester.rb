@@ -407,7 +407,7 @@ def parse_test_file(file)
         test_case.optional_configs.push(:cannon)
 
       when "boots"
-        test_case.args += '--boots=dora-boots'
+        test_case.args += '--boots=dora-boots --gc-verify'
 
         # ignore boots tests on arm64
         case RUBY_PLATFORM

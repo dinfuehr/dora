@@ -56,6 +56,8 @@ fun readBytecode(code: Array[Byte], visitor: BytecodeVisitor) {
 
     @open fun visitRolInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitRorInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitRolLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitRorLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
     @open fun visitMovBool(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitMovByte(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
@@ -169,6 +171,8 @@ fun readBytecode(code: Array[Byte], visitor: BytecodeVisitor) {
     @open fun visitTestGeDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitTestLtDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitTestLeDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+
+    @open fun visitAssert(value: BytecodeRegister) { unimplemented(); }
 
     @open fun visitJumpLoop(offset: Int) { unimplemented(); }
     
@@ -425,6 +429,16 @@ class BytecodeReader(let data: Array[Byte], let visitor: BytecodeVisitor) {
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitRorInt(dest, lhs, rhs);
+        } else if opcode == BC_ROL_LONG {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitRolLong(dest, lhs, rhs);
+        } else if opcode == BC_ROR_LONG {
+            let dest = self.readRegister(wide);
+            let lhs = self.readRegister(wide);
+            let rhs = self.readRegister(wide);
+            self.visitor.visitRorLong(dest, lhs, rhs);
 
         } else if opcode == BC_SHL_LONG {
             let dest = self.readRegister(wide);
@@ -914,6 +928,10 @@ class BytecodeReader(let data: Array[Byte], let visitor: BytecodeVisitor) {
             let rhs = self.readRegister(wide);
             self.visitor.visitTestLeDouble(dest, lhs, rhs);
 
+        } else if opcode == BC_ASSERT {
+            let value = self.readRegister(wide);
+            self.visitor.visitAssert(value);
+
         } else if opcode == BC_JUMP_LOOP {
             let offset = self.readOffset(wide);
             self.visitor.visitJumpLoop(offset);
@@ -1107,10 +1125,6 @@ class BytecodeReader(let data: Array[Byte], let visitor: BytecodeVisitor) {
             let dest = self.readRegister(wide);
             let cls = self.readClassDefId(wide);
             self.visitor.visitNewObject(dest, cls);
-
-        } else if opcode == BC_THROW {
-            let opnd = self.readRegister(wide);
-            self.visitor.visitThrow(opnd);
 
         } else if opcode == BC_RET_VOID {
             self.visitor.visitRetVoid();

@@ -182,6 +182,14 @@ class BytecodeWriter {
         self.emitReg3(BC_ROR_INT, dest, lhs, rhs);
     }
 
+    fun emitRolLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_ROL_LONG, dest, lhs, rhs);
+    }
+
+    fun emitRorLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_ROR_LONG, dest, lhs, rhs);
+    }
+
     fun emitMovBool(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_MOV_BOOL, dest, src);
     }
@@ -580,6 +588,10 @@ class BytecodeWriter {
         self.emitReg3(BC_TEST_LE_DOUBLE, dest, lhs, rhs);
     }
 
+    fun emitAssert(value: BytecodeRegister) {
+        self.emitReg1(BC_ASSERT, value);
+    }
+
     fun emitJumpLoop(lbl: BytecodeLabel) {
         assert(lbl.isBound());
         let offset = self.code.length() - lbl.offset();
@@ -711,10 +723,6 @@ class BytecodeWriter {
 
     fun emitNewObject(dest: BytecodeRegister, cls: ClassDefId) {
         self.emitVal3(BC_NEW_OBJECT, dest.value, cls.value);
-    }
-
-    fun emitThrow(opnd: BytecodeRegister) {
-        self.emitReg1(BC_THROW, opnd);
     }
 
     fun emitRetVoid() {
