@@ -1,0 +1,7 @@
+fun main() {
+  assert(true.toStringBinary() == "1");
+  assert(false.toStringBinary() == "0");
+
+  assert(true.toStringHex() == "1");
+  assert(false.toStringHex() == "0");
+}

@@ -4,8 +4,8 @@
   fun hash() -> Int = self.toInt();
 
   fun toString() -> String = if self { "true" } else { "false" };
-
   fun toStringBinary() -> String = if self { "1" } else { "0" };
+  fun toStringHex() -> String = if self { "1" } else { "0" };
 
   @internal fun equals(rhs: Bool) -> Bool;
   @internal fun not() -> Bool;

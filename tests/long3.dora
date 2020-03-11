@@ -62,9 +62,6 @@ fun main() {
     let x = 3L;
     assert(x.toInt() == 3);
 
-    let x = (-12L).toStringBinary();
-    assert(x == "1111111111111111111111111111111111111111111111111111111111110100");
-
     assert(2L != 3L);
     assert(5L == 5L);
     assert(2L > 1L);
