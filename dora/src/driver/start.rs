@@ -236,13 +236,15 @@ fn should_file_be_parsed(path: &Path) -> bool {
         return false;
     }
 
-    if path.extension().unwrap() != "dora" {
+    let name = path.to_string_lossy();
+
+    if !name.ends_with(".dora") {
         return false;
     }
 
-    if path.ends_with("_x64.dora") {
+    if name.ends_with("_x64.dora") {
         cfg!(target_arch = "x86_64")
-    } else if path.ends_with("_arm64.dora") {
+    } else if name.ends_with("_arm64.dora") {
         cfg!(target_arch = "aarch64")
     } else {
         true

@@ -1,0 +1,3 @@
+class AssemblerArm64: Assembler {
+    let buffer: AssemblerBuffer = AssemblerBuffer();
+}
