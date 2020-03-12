@@ -218,7 +218,7 @@ fn parse_dir(dirname: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
         for entry in fs::read_dir(path).unwrap() {
             let path = entry.unwrap().path();
 
-            if path.is_file() && path.extension().unwrap() == "dora" {
+            if should_file_be_parsed(&path) {
                 parse_file(path.to_str().unwrap(), vm, ast)?;
             }
         }
@@ -228,6 +228,24 @@ fn parse_dir(dirname: &str, vm: &mut VM, ast: &mut Ast) -> Result<(), i32> {
         println!("directory `{}` does not exist.", dirname);
 
         Err(1)
+    }
+}
+
+fn should_file_be_parsed(path: &Path) -> bool {
+    if !path.is_file() {
+        return false;
+    }
+
+    if path.extension().unwrap() != "dora" {
+        return false;
+    }
+
+    if path.ends_with("_x64.dora") {
+        cfg!(target_arch = "x86_64")
+    } else if path.ends_with("_arm64.dora") {
+        cfg!(target_arch = "aarch64")
+    } else {
+        true
     }
 }
 

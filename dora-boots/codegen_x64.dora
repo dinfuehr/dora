@@ -1,0 +1,20 @@
+class CodeGen {
+    let asm: AssemblerX64 = AssemblerX64();
+
+    fun prolog() {
+        self.asm.pushqr(RBP);
+        self.asm.movqrr(RBP, RSP);
+    }
+
+    fun epilog() {
+        self.asm.movqrr(RSP, RBP);
+        self.asm.popqr(RBP);
+        self.asm.retq();
+    }
+
+    fun generate() -> Array[Byte] {
+        self.prolog();
+        self.epilog();
+        self.asm.finalize()
+    }
+}
