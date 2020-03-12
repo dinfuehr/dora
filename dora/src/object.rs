@@ -621,7 +621,7 @@ pub fn byte_array_from_buffer(vm: &VM, buf: &[u8]) -> Ref<ByteArray> {
 fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<ByteArray> {
     let size = Header::size() as usize      // Object header
                 + mem::ptr_width() as usize // length field
-                + len; // string content
+                + len; // array content
 
     let size = mem::align_usize(size, mem::ptr_width() as usize);
     let ptr = vm.gc.alloc(vm, size, false);
@@ -631,6 +631,24 @@ fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<ByteArray> {
     let cls = cls.read();
     let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
     let mut handle: Ref<ByteArray> = ptr.into();
+    handle.header_mut().set_vtblptr(Address::from_ptr(vtable));
+
+    handle
+}
+
+pub fn int_array_alloc_heap(vm: &VM, len: usize) -> Ref<IntArray> {
+    let size = Header::size() as usize      // Object header
+                + mem::ptr_width() as usize // length field
+                + len * 4; // array content
+
+    let size = mem::align_usize(size, mem::ptr_width() as usize);
+    let ptr = vm.gc.alloc(vm, size, false);
+
+    let clsid = vm.vips.int_array(vm);
+    let cls = vm.class_defs.idx(clsid);
+    let cls = cls.read();
+    let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
+    let mut handle: Ref<IntArray> = ptr.into();
     handle.header_mut().set_vtblptr(Address::from_ptr(vtable));
 
     handle
