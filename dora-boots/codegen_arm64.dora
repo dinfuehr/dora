@@ -1,0 +1,8 @@
+class CodeGen {
+    let asm: AssemblerArm64 = AssemblerArm64();
+
+    fun generate() -> Array[Byte] {
+      unimplemented();
+      arrayEmpty[Byte]()
+    }
+}
