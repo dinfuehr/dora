@@ -636,7 +636,6 @@ pub struct Param {
 pub enum Stmt {
     StmtVar(StmtVarType),
     StmtWhile(StmtWhileType),
-    StmtLoop(StmtLoopType),
     StmtExpr(StmtExprType),
     StmtBreak(StmtBreakType),
     StmtContinue(StmtContinueType),
@@ -703,16 +702,6 @@ impl Stmt {
         })
     }
 
-    pub fn create_loop(id: NodeId, pos: Position, span: Span, block: Box<Stmt>) -> Stmt {
-        Stmt::StmtLoop(StmtLoopType {
-            id,
-            pos,
-            span,
-
-            block,
-        })
-    }
-
     pub fn create_expr(id: NodeId, pos: Position, span: Span, expr: Box<Expr>) -> Stmt {
         Stmt::StmtExpr(StmtExprType {
             id,
@@ -756,7 +745,6 @@ impl Stmt {
             Stmt::StmtVar(ref stmt) => stmt.id,
             Stmt::StmtWhile(ref stmt) => stmt.id,
             Stmt::StmtFor(ref stmt) => stmt.id,
-            Stmt::StmtLoop(ref stmt) => stmt.id,
             Stmt::StmtExpr(ref stmt) => stmt.id,
             Stmt::StmtBreak(ref stmt) => stmt.id,
             Stmt::StmtContinue(ref stmt) => stmt.id,
@@ -770,7 +758,6 @@ impl Stmt {
             Stmt::StmtVar(ref stmt) => stmt.pos,
             Stmt::StmtWhile(ref stmt) => stmt.pos,
             Stmt::StmtFor(ref stmt) => stmt.pos,
-            Stmt::StmtLoop(ref stmt) => stmt.pos,
             Stmt::StmtExpr(ref stmt) => stmt.pos,
             Stmt::StmtBreak(ref stmt) => stmt.pos,
             Stmt::StmtContinue(ref stmt) => stmt.pos,
@@ -784,7 +771,6 @@ impl Stmt {
             Stmt::StmtVar(ref stmt) => stmt.span,
             Stmt::StmtWhile(ref stmt) => stmt.span,
             Stmt::StmtFor(ref stmt) => stmt.span,
-            Stmt::StmtLoop(ref stmt) => stmt.span,
             Stmt::StmtExpr(ref stmt) => stmt.span,
             Stmt::StmtBreak(ref stmt) => stmt.span,
             Stmt::StmtContinue(ref stmt) => stmt.span,
@@ -845,20 +831,6 @@ impl Stmt {
     pub fn is_for(&self) -> bool {
         match *self {
             Stmt::StmtFor(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn to_loop(&self) -> Option<&StmtLoopType> {
-        match *self {
-            Stmt::StmtLoop(ref val) => Some(val),
-            _ => None,
-        }
-    }
-
-    pub fn is_loop(&self) -> bool {
-        match *self {
-            Stmt::StmtLoop(_) => true,
             _ => false,
         }
     }
@@ -951,15 +923,6 @@ pub struct StmtWhileType {
     pub span: Span,
 
     pub cond: Box<Expr>,
-    pub block: Box<Stmt>,
-}
-
-#[derive(Clone, Debug)]
-pub struct StmtLoopType {
-    pub id: NodeId,
-    pub pos: Position,
-    pub span: Span,
-
     pub block: Box<Stmt>,
 }
 

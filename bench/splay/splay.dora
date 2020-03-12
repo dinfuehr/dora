@@ -100,7 +100,7 @@ class Benchmark {
     fun insertNewNode() -> Int {
         var key: Int = 0;
 
-        loop {
+        while true {
             key = self.generateKey();
 
             if self.splayTree.find(key) === nil {
@@ -273,7 +273,7 @@ class SplayTree {
 
         var current = self.root;
 
-        loop {
+        while true {
             if key < current.key {
                 if current.left === nil {
                     break;

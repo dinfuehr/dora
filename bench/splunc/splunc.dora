@@ -15,7 +15,7 @@
         var l: Node = node;
         var r: Node = node;
 
-        loop {
+        while true {
             if node.value <= tree.value {
                 if tree.left === nil {
                     break;

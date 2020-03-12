@@ -1989,7 +1989,6 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             // for the rest of the statements, no special handling is necessary
             StmtBreak(_) => visit::walk_stmt(self, s),
             StmtContinue(_) => visit::walk_stmt(self, s),
-            StmtLoop(_) => visit::walk_stmt(self, s),
             StmtExpr(_) => visit::walk_stmt(self, s),
         }
 
