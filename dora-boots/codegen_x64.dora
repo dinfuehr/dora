@@ -1,4 +1,4 @@
-class CodeGen {
+class CodeGen(let info: CompilationInfo) {
     let asm: AssemblerX64 = AssemblerX64();
 
     fun prolog() {

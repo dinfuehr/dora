@@ -13,7 +13,8 @@ use crate::gc::{Address, Region};
 use crate::handle::{root, Handle};
 use crate::mem;
 use crate::size::InstanceSize;
-use crate::vm::{ClassDef, ClassDefId, VM};
+use crate::ty::BuiltinType;
+use crate::vm::{ClassDef, ClassDefId, FieldId, VM};
 use crate::vtable::VTable;
 
 #[repr(C)]
@@ -154,6 +155,11 @@ impl Header {
                 Err((result & !1).into())
             }
         }
+    }
+
+    #[inline(always)]
+    pub fn clear_fwdptr(&self) {
+        self.fwdptr.store(0, Ordering::Relaxed);
     }
 
     #[inline(always)]
@@ -632,6 +638,8 @@ fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<ByteArray> {
     let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
     let mut handle: Ref<ByteArray> = ptr.into();
     handle.header_mut().set_vtblptr(Address::from_ptr(vtable));
+    handle.header_mut().clear_fwdptr();
+    handle.length = len;
 
     handle
 }
@@ -650,6 +658,8 @@ pub fn int_array_alloc_heap(vm: &VM, len: usize) -> Ref<IntArray> {
     let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
     let mut handle: Ref<IntArray> = ptr.into();
     handle.header_mut().set_vtblptr(Address::from_ptr(vtable));
+    handle.header_mut().clear_fwdptr();
+    handle.length = len;
 
     handle
 }
@@ -776,6 +786,7 @@ where
         let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
         let mut handle: Ref<Array<T>> = ptr.into();
         handle.header_mut().set_vtblptr(Address::from_ptr(vtable));
+        handle.header_mut().clear_fwdptr();
         handle.length = len;
 
         for i in 0..handle.len() {
@@ -820,8 +831,33 @@ pub fn alloc(vm: &VM, clsid: ClassDefId) -> Ref<Obj> {
     let vtable: *const VTable = &**cls_def.vtable.as_ref().unwrap();
     let mut handle: Ref<Obj> = ptr.into();
     handle.header_mut().set_vtblptr(Address::from_ptr(vtable));
+    handle.header_mut().clear_fwdptr();
 
     handle
+}
+
+pub fn write_ref(vm: &VM, obj: Ref<Obj>, cls_id: ClassDefId, fid: FieldId, value: Ref<Obj>) {
+    let cls_def = vm.class_defs.idx(cls_id);
+    let cls_def = cls_def.read();
+    let field = &cls_def.fields[fid.idx()];
+    let slot = obj.address().offset(field.offset as usize);
+    assert!(field.ty.reference_type());
+
+    unsafe {
+        *slot.to_mut_ptr::<Address>() = value.address();
+    }
+}
+
+pub fn write_int(vm: &VM, obj: Ref<Obj>, cls_id: ClassDefId, fid: FieldId, value: i32) {
+    let cls_def = vm.class_defs.idx(cls_id);
+    let cls_def = cls_def.read();
+    let field = &cls_def.fields[fid.idx()];
+    let slot = obj.address().offset(field.offset as usize);
+    assert_eq!(field.ty, BuiltinType::Int);
+
+    unsafe {
+        *slot.to_mut_ptr::<i32>() = value;
+    }
 }
 
 pub struct Stacktrace {

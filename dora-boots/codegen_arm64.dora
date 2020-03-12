@@ -1,4 +1,4 @@
-class CodeGen {
+class CodeGen(let info: CompilationInfo) {
     let asm: AssemblerArm64 = AssemblerArm64();
 
     fun generate() -> Array[Byte] {

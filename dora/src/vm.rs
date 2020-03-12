@@ -375,7 +375,6 @@ impl<'ast> VM<'ast> {
         }
     }
 
-    #[cfg(test)]
     pub fn cls_def_by_name(&self, name: &'static str) -> ClassDefId {
         use crate::semck::specialize::specialize_class_id;
 
@@ -383,6 +382,18 @@ impl<'ast> VM<'ast> {
         let cls_id = self.sym.lock().get_class(name).expect("class not found");
 
         specialize_class_id(self, cls_id)
+    }
+
+    pub fn field_in_class(&self, cls_def_id: ClassDefId, name: &'static str) -> FieldId {
+        let cls_def = self.class_defs.idx(cls_def_id);
+        let cls_def = cls_def.read();
+
+        let cls_id = cls_def.cls_id.unwrap();
+        let cls = self.classes.idx(cls_id);
+        let cls = cls.read();
+
+        let name = self.interner.intern(name);
+        cls.field_by_name(name)
     }
 
     #[cfg(test)]

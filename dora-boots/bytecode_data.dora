@@ -25,14 +25,33 @@ class BytecodeFunction(let code: Array[Byte], let const_pool: Array[ConstPoolEnt
             none[Int]()
         }
     }
+
+    @abstract fun toString() -> String;
 }
 
-class ConstPoolInt(let value: Int): ConstPoolEntry
-class ConstPoolLong(let value: Long): ConstPoolEntry
-class ConstPoolFloat(let value: Float): ConstPoolEntry
-class ConstPoolDouble(let value: Double): ConstPoolEntry
-class ConstPoolString(let value: String): ConstPoolEntry
-class ConstPoolChar(let value: Char): ConstPoolEntry
+class ConstPoolInt(let value: Int): ConstPoolEntry {
+    @override fun toString() -> String { "Int ${self.value}" }
+}
+
+class ConstPoolLong(let value: Long): ConstPoolEntry {
+    @override fun toString() -> String { "Long ${self.value}" }
+}
+
+class ConstPoolFloat(let value: Float): ConstPoolEntry {
+    @override fun toString() -> String { "Float ${self.value}" }
+}
+
+class ConstPoolDouble(let value: Double): ConstPoolEntry {
+    @override fun toString() -> String { "Double ${self.value}" }
+}
+
+class ConstPoolString(let value: String): ConstPoolEntry {
+    @override fun toString() -> String { "String '${self.value}'" }
+}
+
+class ConstPoolChar(let value: Char): ConstPoolEntry {
+    @override fun toString() -> String { "Char ${self.value.toInt()}" }
+}
 
 class BytecodeRegister(let value: Int) {
     fun equals(rhs: BytecodeRegister) -> Bool {
@@ -84,4 +103,8 @@ class BytecodeType(let value: Int) {
     fun isFloat() -> Bool = self.value == BC_TYPE_FLOAT;
     fun isDouble() -> Bool = self.value == BC_TYPE_DOUBLE;
     fun isPtr() -> Bool = self.value == BC_TYPE_PTR;
+}
+
+impl Stringable for BytecodeType {
+    fun toString() -> String { bytecodeTypeName(self.value) }
 }

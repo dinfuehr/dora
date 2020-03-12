@@ -84,7 +84,6 @@ impl Class {
         self.type_params.len() > 0
     }
 
-    #[cfg(test)]
     pub fn field_by_name(&self, name: Name) -> FieldId {
         for field in &self.fields {
             if field.name == name {

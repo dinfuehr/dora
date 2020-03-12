@@ -195,6 +195,13 @@ const BC_TYPE_FLOAT: Int = 5;
 const BC_TYPE_DOUBLE: Int = 6;
 const BC_TYPE_PTR: Int = 7;
 
+const CONSTPOOL_OPCODE_STRING: Int = 0;
+const CONSTPOOL_OPCODE_FLOAT: Int = 1;
+const CONSTPOOL_OPCODE_DOUBLE: Int = 2;
+const CONSTPOOL_OPCODE_INT: Int = 3;
+const CONSTPOOL_OPCODE_LONG: Int = 4;
+const CONSTPOOL_OPCODE_CHAR: Int = 5;
+
 fun bytecodeName(opcode: Int) -> String {
   if opcode == BC_WIDE { return "Wide"; }
   if opcode == BC_ADD_INT { return "AddInt"; }

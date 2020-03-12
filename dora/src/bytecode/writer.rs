@@ -332,12 +332,12 @@ impl BytecodeWriter {
     }
 
     pub fn emit_const_float(&mut self, dest: Register, value: f32) {
-        let idx = self.add_const(ConstPoolEntry::Float32(value));
+        let idx = self.add_const(ConstPoolEntry::Float(value));
         self.emit_reg1_idx(BytecodeOpcode::ConstFloat, dest, idx);
     }
 
     pub fn emit_const_double(&mut self, dest: Register, value: f64) {
-        let idx = self.add_const(ConstPoolEntry::Float64(value));
+        let idx = self.add_const(ConstPoolEntry::Double(value));
         self.emit_reg1_idx(BytecodeOpcode::ConstDouble, dest, idx);
     }
 

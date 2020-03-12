@@ -472,6 +472,10 @@ impl BytecodeFunction {
         self.arguments
     }
 
+    pub fn const_pool_entries(&self) -> &[ConstPoolEntry] {
+        &self.const_pool
+    }
+
     pub fn const_pool(&self, idx: ConstPoolIdx) -> &ConstPoolEntry {
         &self.const_pool[idx.to_usize()]
     }
@@ -499,10 +503,20 @@ fn determine_offsets(registers: &Vec<BytecodeType>) -> (Vec<i32>, i32) {
     (offset, stacksize)
 }
 
+#[derive(FromPrimitive, ToPrimitive)]
+pub enum ConstPoolOpcode {
+    String,
+    Float,
+    Double,
+    Int,
+    Long,
+    Char,
+}
+
 pub enum ConstPoolEntry {
     String(String),
-    Float32(f32),
-    Float64(f64),
+    Float(f32),
+    Double(f64),
     Int(i32),
     Long(i64),
     Char(char),
@@ -518,14 +532,14 @@ impl ConstPoolEntry {
 
     pub fn to_float(&self) -> Option<f32> {
         match self {
-            ConstPoolEntry::Float32(value) => Some(*value),
+            ConstPoolEntry::Float(value) => Some(*value),
             _ => None,
         }
     }
 
     pub fn to_double(&self) -> Option<f64> {
         match self {
-            ConstPoolEntry::Float64(value) => Some(*value),
+            ConstPoolEntry::Double(value) => Some(*value),
             _ => None,
         }
     }

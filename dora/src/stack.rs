@@ -172,6 +172,7 @@ fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) 
 
         Some(CodeDescriptor::TrapStub) => true,
         Some(CodeDescriptor::GuardCheckStub) => true,
+        Some(CodeDescriptor::CompileStub) => true,
         Some(CodeDescriptor::AllocStub) => true,
         Some(CodeDescriptor::DoraStub) => false,
 

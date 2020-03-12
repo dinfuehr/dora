@@ -1,6 +1,20 @@
 fun bytecodeDump(bc: BytecodeFunction) {
     let dumper = BytecodeDumper(bc);
     readBytecode(bc.code, dumper);
+
+    var i = 0;
+    while i < bc.const_pool.length() {
+        let entry = bc.const_pool.get(i);
+        println("@${i} = ${entry.toString()}");
+        i = i + 1;
+    }
+
+    i = 0;
+    while i < bc.registers.length() {
+        let ty = bc.registers.get(i);
+        println("r${i} = ${ty}");
+        i = i + 1;
+    }
 }
 
 class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {

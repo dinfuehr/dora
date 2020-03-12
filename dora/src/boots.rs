@@ -1,12 +1,14 @@
 use std::mem;
 use std::ptr;
 
-use crate::bytecode::{self, BytecodeFunction};
+use crate::bytecode::{self, BytecodeFunction, ConstPoolEntry, ConstPoolOpcode};
 use crate::compiler::codegen::should_emit_bytecode;
 use crate::compiler::fct::{Code, JitDescriptor};
 use crate::gc::Address;
-use crate::handle::root;
-use crate::object::{byte_array_from_buffer, int_array_alloc_heap, ByteArray, IntArray, Ref};
+use crate::handle::{root, Handle};
+use crate::object::{
+    self, byte_array_from_buffer, int_array_alloc_heap, ByteArray, IntArray, Obj, Ref,
+};
 use crate::threads::THREAD;
 use crate::ty::TypeList;
 use crate::vm::{Fct, FctSrc, VM};
@@ -28,7 +30,16 @@ pub fn compile<'a, 'ast: 'a>(
     let compile_fct = vm.ensure_compiled(compile_fct_id);
 
     let bytecode_array = root(byte_array_from_buffer(vm, bytecode_fct.code()));
-    let _register_array = root(allocate_register_array(vm, &bytecode_fct));
+    let constpool_array = root(allocate_constpool_array(vm, &bytecode_fct));
+    let registers_array = root(allocate_registers_array(vm, &bytecode_fct));
+
+    let encoded_compilation_info = root(allocate_encoded_compilation_info(
+        vm,
+        bytecode_array,
+        constpool_array,
+        registers_array,
+        bytecode_fct.arguments() as i32,
+    ));
 
     let tld_address = THREAD.with(|thread| {
         let thread = thread.borrow();
@@ -38,14 +49,13 @@ pub fn compile<'a, 'ast: 'a>(
     });
 
     let dora_stub_address = vm.dora_stub();
-    let compile_fct_ptr: extern "C" fn(Address, Address, Ref<ByteArray>, i32) -> Ref<ByteArray> =
+    let compile_fct_ptr: extern "C" fn(Address, Address, Ref<Obj>) -> Ref<ByteArray> =
         unsafe { mem::transmute(dora_stub_address) };
 
     let machine_code = root(compile_fct_ptr(
         tld_address,
         compile_fct,
-        bytecode_array.direct(),
-        bytecode_fct.arguments() as i32,
+        encoded_compilation_info.direct(),
     ));
     let mut machine_code_array = vec![0; machine_code.len()];
 
@@ -60,7 +70,7 @@ pub fn compile<'a, 'ast: 'a>(
     Code::from_optimized_buffer(vm, &machine_code_array, JitDescriptor::DoraFct(fct.id))
 }
 
-fn allocate_register_array(vm: &VM, fct: &BytecodeFunction) -> Ref<IntArray> {
+fn allocate_registers_array(vm: &VM, fct: &BytecodeFunction) -> Ref<IntArray> {
     let mut array = int_array_alloc_heap(vm, fct.registers().len());
 
     for (idx, &ty) in fct.registers().iter().enumerate() {
@@ -68,4 +78,71 @@ fn allocate_register_array(vm: &VM, fct: &BytecodeFunction) -> Ref<IntArray> {
     }
 
     array
+}
+
+fn allocate_constpool_array(vm: &VM, fct: &BytecodeFunction) -> Ref<ByteArray> {
+    use byteorder::{LittleEndian, WriteBytesExt};
+    let mut buffer = Vec::new();
+
+    for const_entry in fct.const_pool_entries() {
+        match const_entry {
+            ConstPoolEntry::String(ref value) => {
+                buffer.push(ConstPoolOpcode::Float as u8);
+                buffer
+                    .write_u32::<LittleEndian>(value.len() as u32)
+                    .unwrap();
+
+                for byte in value.bytes() {
+                    buffer.push(byte);
+                }
+            }
+            &ConstPoolEntry::Float(value) => {
+                buffer.push(ConstPoolOpcode::Float as u8);
+                buffer.write_u32::<LittleEndian>(value.to_bits()).unwrap();
+            }
+            &ConstPoolEntry::Double(value) => {
+                buffer.push(ConstPoolOpcode::Double as u8);
+                buffer.write_u64::<LittleEndian>(value.to_bits()).unwrap();
+            }
+            &ConstPoolEntry::Int(value) => {
+                buffer.push(ConstPoolOpcode::Int as u8);
+                buffer.write_u32::<LittleEndian>(value as u32).unwrap();
+            }
+            &ConstPoolEntry::Long(value) => {
+                buffer.push(ConstPoolOpcode::Long as u8);
+                buffer.write_u64::<LittleEndian>(value as u64).unwrap();
+            }
+            &ConstPoolEntry::Char(value) => {
+                buffer.push(ConstPoolOpcode::Char as u8);
+                buffer.write_u32::<LittleEndian>(value as u32).unwrap();
+            }
+        }
+    }
+
+    byte_array_from_buffer(vm, &buffer)
+}
+
+fn allocate_encoded_compilation_info(
+    vm: &VM,
+    bytecode_array: Handle<ByteArray>,
+    constpool_array: Handle<ByteArray>,
+    registers_array: Handle<IntArray>,
+    arguments: i32,
+) -> Ref<Obj> {
+    let cls_id = vm.cls_def_by_name("EncodedCompilationInfo");
+    let obj = object::alloc(vm, cls_id);
+
+    let fid = vm.field_in_class(cls_id, "code");
+    object::write_ref(vm, obj, cls_id, fid, bytecode_array.direct().cast::<Obj>());
+
+    let fid = vm.field_in_class(cls_id, "constpool");
+    object::write_ref(vm, obj, cls_id, fid, constpool_array.direct().cast::<Obj>());
+
+    let fid = vm.field_in_class(cls_id, "registers");
+    object::write_ref(vm, obj, cls_id, fid, registers_array.direct().cast::<Obj>());
+
+    let fid = vm.field_in_class(cls_id, "arguments");
+    object::write_int(vm, obj, cls_id, fid, arguments);
+
+    obj
 }

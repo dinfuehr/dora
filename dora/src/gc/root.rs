@@ -119,6 +119,7 @@ fn determine_rootset(rootset: &mut Vec<Slot>, vm: &VM, fp: usize, pc: usize) -> 
         Some(CodeDescriptor::AllocStub) => true,
         Some(CodeDescriptor::DoraStub) => false,
         Some(CodeDescriptor::GuardCheckStub) => true,
+        Some(CodeDescriptor::CompileStub) => true,
 
         _ => {
             println!("data = {:?}", data);
