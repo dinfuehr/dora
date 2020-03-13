@@ -817,17 +817,21 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_function_params(&mut self) -> Result<Vec<Param>, ParseErrorAndPos> {
-        self.expect_token(TokenKind::LParen)?;
-        self.param_idx = 0;
+    fn parse_function_params(&mut self) -> Result<Option<Vec<Param>>, ParseErrorAndPos> {
+        if self.token.is(TokenKind::LParen) {
+            self.advance_token()?;
+            self.param_idx = 0;
 
-        let params = self.parse_comma_list(TokenKind::RParen, |p| {
-            p.param_idx += 1;
+            let params = self.parse_comma_list(TokenKind::RParen, |p| {
+                p.param_idx += 1;
 
-            p.parse_function_param()
-        })?;
+                p.parse_function_param()
+            })?;
 
-        Ok(params)
+            Ok(Some(params))
+        } else {
+            Ok(None)
+        }
     }
 
     fn parse_comma_list<F, R>(
@@ -2515,7 +2519,7 @@ mod tests {
         let fct = prog.fct0();
 
         assert_eq!("b", *interner.str(fct.name));
-        assert_eq!(0, fct.params.len());
+        assert_eq!(0, fct.params.as_ref().unwrap().len());
         assert!(fct.return_type.is_none());
         assert_eq!(Position::new(1, 1), fct.pos);
     }
@@ -2528,8 +2532,8 @@ mod tests {
         let (p2, interner2) = parse("fun f(a:int,) { }");
         let f2 = p2.fct0();
 
-        let p1 = &f1.params[0];
-        let p2 = &f2.params[0];
+        let p1 = &f1.params.as_ref().unwrap()[0];
+        let p2 = &f2.params.as_ref().unwrap()[0];
 
         assert_eq!(NodeId(2), p1.id);
         assert_eq!(NodeId(2), p2.id);
@@ -2549,10 +2553,10 @@ mod tests {
         let (p2, interner2) = parse("fun f(a:int, b:str,) { }");
         let f2 = p2.fct0();
 
-        let p1a = &f1.params[0];
-        let p1b = &f1.params[1];
-        let p2a = &f2.params[0];
-        let p2b = &f2.params[1];
+        let p1a = &f1.params.as_ref().unwrap()[0];
+        let p1b = &f1.params.as_ref().unwrap()[1];
+        let p2a = &f2.params.as_ref().unwrap()[0];
+        let p2b = &f2.params.as_ref().unwrap()[1];
 
         assert_eq!("a", *interner1.str(p1a.name));
         assert_eq!("a", *interner2.str(p2a.name));
@@ -2875,6 +2879,13 @@ mod tests {
     }
 
     #[test]
+    fn parse_method_nullary() {
+        let (prog, _) = parse("fun zero -> int = 0;");
+        let fct = prog.fct0();
+        assert_eq!(true, fct.params.is_none());
+    }
+
+    #[test]
     fn parse_method() {
         let (prog, interner) = parse(
             "class Foo {
@@ -2889,14 +2900,14 @@ mod tests {
 
         let mtd1 = &cls.methods[0];
         assert_eq!("zero", *interner.str(mtd1.name));
-        assert_eq!(0, mtd1.params.len());
+        assert_eq!(0, mtd1.params.as_ref().unwrap().len());
         assert_eq!(true, mtd1.method);
         let rt1 = mtd1.return_type.as_ref().unwrap().to_basic().unwrap().name;
         assert_eq!("int", *interner.str(rt1));
 
         let mtd2 = &cls.methods[1];
         assert_eq!("id", *interner.str(mtd2.name));
-        assert_eq!(1, mtd2.params.len());
+        assert_eq!(1, mtd2.params.as_ref().unwrap().len());
         assert_eq!(true, mtd2.method);
         let rt2 = mtd2.return_type.as_ref().unwrap().to_basic().unwrap().name;
         assert_eq!("String", *interner.str(rt2));
@@ -2962,8 +2973,9 @@ mod tests {
 
         assert_eq!(0, class.fields.len());
         assert_eq!(true, class.has_constructor);
-        assert_eq!(1, ctor.params.len());
-        assert_eq!(false, ctor.params[0].reassignable);
+        let params = ctor.params.unwrap();
+        assert_eq!(1, params.len());
+        assert_eq!(false, params[0].reassignable);
     }
 
     #[test]
@@ -2974,7 +2986,7 @@ mod tests {
         assert_eq!(1, class.fields.len());
         assert_eq!(true, class.fields[0].reassignable);
         assert_eq!(true, class.has_constructor);
-        assert_eq!(1, class.constructor.clone().unwrap().params.len());
+        assert_eq!(1, class.constructor.clone().unwrap().params.unwrap().len());
     }
 
     #[test]
@@ -2986,8 +2998,9 @@ mod tests {
         assert_eq!(1, class.fields.len());
         assert_eq!(false, class.fields[0].reassignable);
         assert_eq!(true, class.has_constructor);
-        assert_eq!(1, ctor.params.len());
-        assert_eq!(false, ctor.params[0].reassignable);
+        let params = ctor.params.unwrap();
+        assert_eq!(1, params.len());
+        assert_eq!(false, params[0].reassignable);
     }
 
     #[test]
@@ -2996,7 +3009,7 @@ mod tests {
         let class = prog.cls0();
 
         assert_eq!(0, class.fields.len());
-        assert_eq!(2, class.constructor.clone().unwrap().params.len());
+        assert_eq!(2, class.constructor.clone().unwrap().params.unwrap().len());
     }
 
     #[test]

@@ -543,7 +543,7 @@ pub struct Function {
     pub internal: bool,
     pub is_constructor: bool,
 
-    pub params: Vec<Param>,
+    pub params: Option<Vec<Param>>,
 
     pub return_type: Option<Type>,
     pub block: Option<Box<ExprBlockType>>,

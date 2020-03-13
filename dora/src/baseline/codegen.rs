@@ -24,6 +24,7 @@ use crate::object::{offset_of_array_data, Header, Str};
 use crate::semck::specialize::{replace_type_param, specialize_class_ty, specialize_for_call_type};
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, MachineMode, TypeList, TypeParamId};
+use crate::utils::iter_some;
 use crate::vm::{
     CallType, ClassDefId, ConstId, Fct, FctId, FctKind, FctSrc, FieldId, IdentType, Intrinsic,
     TraitId, Trap, TupleId, VarId, VM,
@@ -194,7 +195,7 @@ where
 
         let mut param_offset = PARAM_OFFSET;
 
-        for p in &self.ast.params {
+        for p in iter_some(&self.ast.params) {
             let varid = *self.src.map_vars.get(p.id).unwrap();
             let ty = self.var_ty(varid);
 
@@ -962,19 +963,27 @@ where
             return;
         }
 
-        let (ty, field) = {
-            let ident_type = self.src.map_idents.get(expr.id).unwrap();
+        let ident_type = self.src.map_idents.get(expr.id);
+        if ident_type.is_some() {
+            match ident_type.unwrap() {
+                &IdentType::Field(ty, field) => {
+                    let ty = self.specialize_type(ty);
 
-            match ident_type {
-                &IdentType::Field(ty, field) => (ty, field),
+                    self.emit_expr(&expr.lhs, REG_TMP1.into());
+                    self.emit_field_access(expr.pos, ty, field, REG_TMP1, dest);
+                    return;
+                }
                 _ => unreachable!(),
             }
-        };
+        }
 
-        let ty = self.specialize_type(ty);
+        let call_type = self.src.map_calls.get(expr.id);
+        if call_type.map(|c| c.is_method()).contains(&true) {
+            self.emit_dot_call(expr.id, expr.pos, &expr.lhs, dest);
+            return;
+        }
 
-        self.emit_expr(&expr.lhs, REG_TMP1.into());
-        self.emit_field_access(expr.pos, ty, field, REG_TMP1, dest);
+        unreachable!()
     }
 
     fn emit_dot_tuple(&mut self, expr: &'ast ExprDotType, tuple_id: TupleId, dest: ExprStore) {
@@ -1813,6 +1822,49 @@ where
 
             let call_site = self.build_call_site_id(e.id, args, Some(callee_id));
             self.emit_call_site(&call_site, e.pos, dest);
+        }
+    }
+
+    fn emit_dot_call(
+        &mut self,
+        id: NodeId,
+        pos: Position,
+        object: &'ast Box<Expr>,
+        dest: ExprStore,
+    ) {
+        let call_type = self.src.map_calls.get(id).unwrap().clone();
+
+        if let Some(intrinsic) = self.get_intrinsic(id) {
+            let args: Vec<&'ast Expr> = vec![object];
+            self.emit_call_intrinsic(id, pos, &args, intrinsic, dest);
+        } else {
+            let mut args = Vec::new();
+            let fct_id: FctId = match *call_type {
+                CallType::Method(_, fct_id, _) => {
+                    args.push(Arg::Expr(object));
+
+                    let fct = self.vm.fcts.idx(fct_id);
+                    let fct = fct.read();
+
+                    if fct.parent.is_trait() {
+                        // This happens for calls like (T: SomeTrait).method()
+                        // Find the exact method that is called
+                        let trait_id = fct.trait_id();
+                        let object_type = match *call_type {
+                            CallType::Method(ty, _, _) => ty,
+                            _ => unreachable!(),
+                        };
+                        let object_type = self.specialize_type(object_type);
+                        self.find_trait_impl(fct_id, trait_id, object_type)
+                    } else {
+                        fct_id
+                    }
+                }
+                _ => unreachable!(),
+            };
+
+            let call_site = self.build_call_site_id(id, args, Some(fct_id));
+            self.emit_call_site(&call_site, pos, dest);
         }
     }
 

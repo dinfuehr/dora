@@ -66,6 +66,7 @@ impl<'x, 'ast> Visitor<'ast> for TraitCheck<'x, 'ast> {
             ast: f,
             pos: f.pos,
             name: f.name,
+            has_parentheses: f.params.is_some(),
             param_types: Vec::new(),
             return_type: BuiltinType::Unit,
             parent: FctParent::Trait(self.trait_id.unwrap()),

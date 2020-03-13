@@ -11,6 +11,7 @@ use dora_parser::lexer::position::Position;
 use crate::sym::Sym;
 use crate::sym::Sym::*;
 use crate::ty::BuiltinType;
+use crate::utils::iter_some;
 
 pub fn check<'ast>(vm: &VM<'ast>) {
     for fct in vm.fcts.iter() {
@@ -72,7 +73,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             }
         }
 
-        for p in &self.ast.params {
+        for p in iter_some(&self.ast.params) {
             self.visit_param(p);
         }
 

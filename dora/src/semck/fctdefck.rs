@@ -4,6 +4,7 @@ use crate::error::msg::SemError;
 use crate::semck;
 use crate::sym::Sym;
 use crate::ty::BuiltinType;
+use crate::utils::iter_some;
 use crate::vm::{self, Fct, FctId, FctParent, FctSrc, VM};
 use dora_parser::ast::visit::*;
 use dora_parser::ast::*;
@@ -117,7 +118,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
             }
         }
 
-        for p in &ast.params {
+        for p in iter_some(&ast.params) {
             let ty = semck::read_type(vm, fct.file, &p.data_type).unwrap_or(BuiltinType::Unit);
 
             if ty == BuiltinType::This && !fct.in_trait() {

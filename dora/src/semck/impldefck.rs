@@ -137,6 +137,7 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
             ast: f,
             pos: f.pos,
             name: f.name,
+            has_parentheses: f.params.is_some(),
             param_types: Vec::new(),
             return_type: BuiltinType::Unit,
             parent: parent,

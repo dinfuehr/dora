@@ -10,6 +10,7 @@ use crate::bytecode::{BytecodeFunction, BytecodeType, BytecodeWriter, Label, Reg
 use crate::semck::expr_block_always_returns;
 use crate::semck::specialize::{specialize_class_ty, specialize_type};
 use crate::ty::{BuiltinType, TypeList};
+use crate::utils::iter_some;
 use crate::vm::{
     CallType, Fct, FctDef, FctDefId, FctId, FctKind, FctSrc, IdentType, Intrinsic, VarId, VM,
 };
@@ -87,7 +88,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             arguments += 1;
         }
 
-        for param in &self.ast.params {
+        for param in iter_some(&self.ast.params) {
             let var_id = *self.src.map_vars.get(param.id).unwrap();
             let var = &self.src.vars[var_id];
             let ty: BytecodeType = self.specialize_type(var.ty).into();

@@ -1942,3 +1942,21 @@ fn zero_trait_err() {
         SemError::TraitBoundNotSatisfied("String".into(), "Zero".into()),
     );
 }
+
+#[test]
+fn method_with_parentheses_called_without() {
+    err(
+        "class Foo { fun f() -> Int = 1; } fun x() -> Int = Foo().f;",
+        pos(1, 57),
+        SemError::MethodDeclaredWithParenthesesCalledWithoutParentheses("f".into()),
+    );
+}
+
+#[test]
+fn method_without_parentheses_called_with() {
+    err(
+        "class Foo { fun f -> Int = 1; } fun x() -> Int = Foo().f();",
+        pos(1, 57),
+        SemError::MethodDeclaredWithoutParenthesesCalledWithParentheses("f".into()),
+    );
+}

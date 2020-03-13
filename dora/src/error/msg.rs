@@ -110,6 +110,8 @@ pub enum SemError {
     MethodNotInTrait(String, String, Vec<String>),
     StaticMethodMissingFromTrait(String, String, Vec<String>),
     MethodMissingFromTrait(String, String, Vec<String>),
+    MethodDeclaredWithParenthesesCalledWithoutParentheses(String),
+    MethodDeclaredWithoutParenthesesCalledWithParentheses(String),
     WrongNumberTypeParams(usize, usize),
     ClassExpected(String),
     ClassExpectedAsTypeParam,
@@ -396,6 +398,18 @@ impl SemError {
                 format!(
                     "trait `{}` defines method `{}({})` but is missing in `impl`.",
                     trait_name, mtd_name, args
+                )
+            }
+            SemError::MethodDeclaredWithParenthesesCalledWithoutParentheses(ref mtd_name) => {
+                format!(
+                    "method `{}` defined with parentheses but called without parentheses.",
+                    mtd_name
+                )
+            }
+            SemError::MethodDeclaredWithoutParenthesesCalledWithParentheses(ref mtd_name) => {
+                format!(
+                    "method `{}` defined without parentheses but called with parentheses.",
+                    mtd_name
                 )
             }
             SemError::WrongNumberTypeParams(exp, actual) => {

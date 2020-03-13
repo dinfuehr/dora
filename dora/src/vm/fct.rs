@@ -54,6 +54,7 @@ pub struct Fct<'ast> {
     pub internal: bool,
     pub internal_resolved: bool,
     pub overrides: Option<FctId>,
+    pub has_parentheses: bool,
     pub param_types: Vec<BuiltinType>,
     pub return_type: BuiltinType,
     pub is_constructor: bool,
