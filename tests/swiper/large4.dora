@@ -5,13 +5,13 @@ class Foo(let x: Int)
 fun main() {
     let x = LargeObject();
     forceCollect();
-    assert(x.field0.x === 0);
-    assert(x.field16383.x === 1);
+    assert(x.field0 === nil);
+    assert(x.field16383 === nil);
 
     x.field0 = Foo(1);
     forceMinorCollect();
     assert(x.field0.x == 1);
-    assert(x.field16383.x === 1);
+    assert(x.field16383 === nil);
 
     x.field16383 = Foo(2);
     forceMinorCollect();
@@ -24,7 +24,7 @@ fun main() {
 }
 
 class LargeObject {
-    var field0: Foo = Foo(0);
+    var field0: Foo;
     var field1: Long;
     var field2: Long;
     var field3: Long;
@@ -16407,5 +16407,5 @@ class LargeObject {
     var field16380: Long;
     var field16381: Long;
     var field16382: Long;
-    var field16383: Foo = Foo(1);
+    var field16383: Foo;
 }

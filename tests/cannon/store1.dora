@@ -81,8 +81,8 @@ class FooDouble() {
     var y: Double;
 }
 class FooString() {
-    var y: String = "";
+    var y: String;
 }
 class FooPtr() {
-    var y: FooInt = FooInt();
+    var y: FooInt;
 }

@@ -591,7 +591,7 @@ class BasicBlockFinder(let bc: BytecodeFunction): BytecodeVisitor {
 
     let graph = createGraph(fct);
     assert(graph.numberBlocks() == 1);
-    let block = graph.getEntryBlock();
+    let block = graph.entryBlock;
     let it = InstIterator(block);
     assert(it.next() is ReturnVoidInst);
     assert(!it.hasNext());
@@ -606,7 +606,7 @@ class BasicBlockFinder(let bc: BytecodeFunction): BytecodeVisitor {
 
     let graph = createGraph(fct);
     assert(graph.numberBlocks() == 1);
-    let block = graph.getEntryBlock();
+    let block = graph.entryBlock;
     let it = InstIterator(block);
     let val = it.next();
     assert((val as IntConst).value == 4711);

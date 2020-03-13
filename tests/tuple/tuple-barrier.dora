@@ -1,7 +1,7 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 class TupleClass {
-    var value: (Foo, Long) = (Foo(0), 0L);
+    var value: (Foo, Long);
 }
 
 class Foo(let value: Int)
