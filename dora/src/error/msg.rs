@@ -56,6 +56,7 @@ pub enum SemError {
     SuperNeedsMethodCall,
     ReferenceTypeExpected(String),
     LetMissingInitialization,
+    FieldMissingInitialization,
     LetReassigned,
     FctReassigned,
     ClassReassigned,
@@ -275,6 +276,7 @@ impl SemError {
                 format!("`{}` is not a reference type.", name)
             }
             SemError::LetMissingInitialization => "`let` binding is missing initialization.".into(),
+            SemError::FieldMissingInitialization => "field is missing initialization.".into(),
             SemError::LetReassigned => "`let` binding cannot be reassigned.".into(),
             SemError::FctReassigned => "function cannot be reassigned.".into(),
             SemError::ClassReassigned => "class cannot be reassigned.".into(),
