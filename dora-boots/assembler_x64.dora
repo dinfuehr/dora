@@ -1,41 +1,20 @@
-var RAX: Register;
-var RCX: Register;
-var RDX: Register;
-var RBX: Register;
-var RSP: Register;
-var RBP: Register;
-var RSI: Register;
-var RDI: Register;
+var RAX: Register = Register(0);
+var RCX: Register = Register(1);
+var RDX: Register = Register(2);
+var RBX: Register = Register(3);
+var RSP: Register = Register(4);
+var RBP: Register = Register(5);
+var RSI: Register = Register(6);
+var RDI: Register = Register(7);
 
-var R8: Register;
-var R9: Register;
-var R10: Register;
-var R11: Register;
-var R12: Register;
-var R13: Register;
-var R14: Register;
-var R15: Register;
-
-fun setupAssemblerRegisters() {
-    if RAX !== nil { return; }
-    RAX = Register(0);
-    RCX = Register(1);
-    RDX = Register(2);
-    RBX = Register(3);
-    RSP = Register(4);
-    RBP = Register(5);
-    RSI = Register(6);
-    RDI = Register(7);
-
-    R8 = Register(8);
-    R9 = Register(9);
-    R10 = Register(10);
-    R11 = Register(11);
-    R12 = Register(12);
-    R13 = Register(13);
-    R14 = Register(14);
-    R15 = Register(15);
-}
+var R8: Register = Register(8);
+var R9: Register = Register(9);
+var R10: Register = Register(10);
+var R11: Register = Register(11);
+var R12: Register = Register(12);
+var R13: Register = Register(13);
+var R14: Register = Register(14);
+var R15: Register = Register(15);
 
 class AssemblerX64: Assembler {
     let buffer: AssemblerBuffer = AssemblerBuffer();
@@ -189,13 +168,9 @@ class AssemblerX64: Assembler {
     fun finalize() -> Array[Byte] {
         self.buffer.toArray()
     }
-
-    setupAssemblerRegisters();
 }
 
 @test fun testAsmRegisters() {
-    setupAssemblerRegisters();
-
     assert(RAX.lowBits() == 0 && !RAX.needsRexBit());
     assert(RCX.lowBits() == 1 && !RCX.needsRexBit());
     assert(RDX.lowBits() == 2 && !RDX.needsRexBit());

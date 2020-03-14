@@ -1134,7 +1134,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
                 &IdentType::Global(gid) => {
                     let glob = self.vm.globals.idx(gid);
-                    let glob = glob.lock();
+                    let glob = glob.read();
 
                     let ty: BytecodeType = glob.ty.into();
 
@@ -1263,7 +1263,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 }
 
                 let glob = self.vm.globals.idx(gid);
-                let glob = glob.lock();
+                let glob = glob.read();
 
                 let ty: BytecodeType = glob.ty.into();
                 let dest = self.ensure_register(dest, ty);

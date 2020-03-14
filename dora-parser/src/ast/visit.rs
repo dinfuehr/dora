@@ -107,8 +107,8 @@ pub fn walk_file<'v, V: Visitor<'v>>(v: &mut V, f: &'v File) {
 pub fn walk_global<'v, V: Visitor<'v>>(v: &mut V, g: &'v Global) {
     v.visit_type(&g.data_type);
 
-    if let Some(ref expr) = g.expr {
-        v.visit_expr(expr);
+    if let Some(ref initializer) = g.initializer {
+        v.visit_fct(initializer);
     }
 }
 

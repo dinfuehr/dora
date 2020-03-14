@@ -1,6 +1,6 @@
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
-use parking_lot::Mutex;
+use parking_lot::RwLock;
 use std::sync::Arc;
 
 use crate::gc::Address;
@@ -31,13 +31,23 @@ pub struct GlobalData {
     pub ty: BuiltinType,
     pub reassignable: bool,
     pub name: Name,
-    pub getter: Option<FctId>,
+    pub initializer: Option<FctId>,
     pub address_init: Address,
     pub address_value: Address,
 }
 
-impl GrowableVec<Mutex<GlobalData>> {
-    pub fn idx(&self, index: GlobalId) -> Arc<Mutex<GlobalData>> {
+impl GlobalData {
+    pub fn needs_initialization(&self) -> bool {
+        self.initializer.is_some() && !self.is_initialized()
+    }
+
+    fn is_initialized(&self) -> bool {
+        unsafe { *self.address_init.to_ptr::<bool>() }
+    }
+}
+
+impl GrowableVec<RwLock<GlobalData>> {
+    pub fn idx(&self, index: GlobalId) -> Arc<RwLock<GlobalData>> {
         self.idx_usize(index.0 as usize)
     }
 }

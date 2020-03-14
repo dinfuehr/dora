@@ -32,7 +32,7 @@ impl<'a> Builder<'a> {
         }))
     }
 
-    pub fn build_assign(&self, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {
+    pub fn build_initializer_assign(&self, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {
         let id = self.id_generator.next();
 
         Box::new(Expr::ExprBin(ExprBinType {
@@ -41,6 +41,7 @@ impl<'a> Builder<'a> {
             span: Span::invalid(),
 
             op: BinOp::Assign,
+            initializer: true,
             lhs,
             rhs,
         }))

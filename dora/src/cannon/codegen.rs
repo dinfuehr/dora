@@ -891,7 +891,7 @@ where
 
     fn emit_load_global(&mut self, dest: Register, global_id: GlobalId) {
         let glob = self.vm.globals.idx(global_id);
-        let glob = glob.lock();
+        let glob = glob.read();
 
         assert_eq!(self.bytecode.register_type(dest), glob.ty.into());
 
@@ -916,7 +916,7 @@ where
 
     fn emit_store_global(&mut self, src: Register, global_id: GlobalId) {
         let glob = self.vm.globals.idx(global_id);
-        let glob = glob.lock();
+        let glob = glob.read();
 
         assert_eq!(self.bytecode.register_type(src), glob.ty.into());
 

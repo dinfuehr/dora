@@ -184,23 +184,27 @@ fn init_global_addresses<'ast>(vm: &VM<'ast>) {
     let mut offsets = Vec::with_capacity(globals.len());
 
     for glob in globals.iter() {
-        let glob = glob.lock();
+        let glob = glob.read();
+
+        let initialized = size;
+        size += BuiltinType::Bool.size(vm);
 
         let ty_size = glob.ty.size(vm);
         let ty_align = glob.ty.align(vm);
 
-        let offset = mem::align_i32(size, ty_align);
-        offsets.push(offset);
-        size = offset + ty_size;
+        let value = mem::align_i32(size, ty_align);
+        offsets.push((initialized, value));
+        size = value + ty_size;
     }
 
     let ptr = vm.gc.alloc_perm(size as usize);
 
     for (ind, glob) in globals.iter().enumerate() {
-        let mut glob = glob.lock();
-        let offset = offsets[ind];
+        let mut glob = glob.write();
+        let (initialized, value) = offsets[ind];
 
-        glob.address_value = ptr.offset(offset as usize);
+        glob.address_init = ptr.offset(initialized as usize);
+        glob.address_value = ptr.offset(value as usize);
     }
 }
 

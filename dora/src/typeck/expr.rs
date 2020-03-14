@@ -347,7 +347,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             &IdentType::Global(globalid) => {
                 let glob = self.vm.globals.idx(globalid);
-                let ty = glob.lock().ty;
+                let ty = glob.read().ty;
                 self.src.set_ty(e.id, ty);
                 self.expr_type = ty;
             }
@@ -466,9 +466,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                     &IdentType::Global(gid) => {
                         let glob = self.vm.globals.idx(gid);
-                        let glob = glob.lock();
+                        let glob = glob.read();
 
-                        if !glob.reassignable {
+                        if !e.initializer && !glob.reassignable {
                             self.vm
                                 .diag
                                 .lock()
@@ -648,7 +648,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     None,
                 );
 
-                if !self.fct.is_constructor && !field.reassignable {
+                if !e.initializer && !field.reassignable {
                     self.vm
                         .diag
                         .lock()

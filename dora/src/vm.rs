@@ -107,7 +107,7 @@ pub struct VM<'ast> {
     pub traits: Vec<RwLock<TraitData>>,        // stores all trait definitions
     pub impls: Vec<RwLock<ImplData>>,          // stores all impl definitions
     pub code_map: Mutex<CodeMap>,              // stores all compiled functions
-    pub globals: GrowableVec<Mutex<GlobalData>>, // stores all global variables
+    pub globals: GrowableVec<RwLock<GlobalData>>, // stores all global variables
     pub gc: Gc,                                // garbage collector
     pub native_stubs: Mutex<NativeStubs>,
     pub lists: Mutex<TypeLists>,

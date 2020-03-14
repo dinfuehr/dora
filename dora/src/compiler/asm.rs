@@ -15,7 +15,7 @@ use crate::stdlib;
 use crate::threads::ThreadLocalData;
 use crate::ty::{BuiltinType, MachineMode, TypeList};
 use crate::vm::FctId;
-use crate::vm::{Trap, VM};
+use crate::vm::{GlobalData, Trap, VM};
 
 pub struct BaselineAssembler<'a, 'ast: 'a> {
     masm: MacroAssembler,
@@ -695,6 +695,34 @@ where
         }
     }
 
+    pub fn ensure_global(
+        &mut self,
+        glob: &GlobalData,
+        fid: FctId,
+        ptr: Address,
+        position: Position,
+        gcpoint: GcPoint,
+    ) {
+        let lbl_global = self.masm.create_label();
+        let lbl_return = self.masm.create_label();
+
+        let disp = self.masm.add_addr(glob.address_init.to_ptr());
+        let pos = self.masm.pos() as i32;
+        self.masm.load_constpool(REG_RESULT, disp + pos);
+        self.masm.load_mem(
+            MachineMode::Int8,
+            REG_RESULT.into(),
+            Mem::Base(REG_RESULT, 0),
+        );
+        self.masm.cmp_reg_imm(MachineMode::Ptr, REG_RESULT, 0);
+        self.masm.jump_if(CondCode::Zero, lbl_global);
+        self.masm.bind_label(lbl_return);
+
+        self.slow_paths.push(SlowPathKind::InitializeGlobal(
+            lbl_global, lbl_return, fid, ptr, position, gcpoint,
+        ));
+    }
+
     fn slow_paths(&mut self) {
         let slow_paths = mem::replace(&mut self.slow_paths, Vec::new());
 
@@ -716,6 +744,17 @@ where
 
                 SlowPathKind::StackOverflow(lbl_start, lbl_return, pos, gcpoint) => {
                     self.slow_path_stack_overflow(lbl_start, lbl_return, pos, gcpoint);
+                }
+
+                SlowPathKind::InitializeGlobal(
+                    lbl_start,
+                    lbl_return,
+                    fct_id,
+                    ptr,
+                    pos,
+                    gcpoint,
+                ) => {
+                    self.slow_path_global(lbl_start, lbl_return, fct_id, ptr, pos, gcpoint);
                 }
 
                 SlowPathKind::Assert(lbl_start, pos) => {
@@ -759,6 +798,29 @@ where
         self.masm.jump(lbl_return);
     }
 
+    fn slow_path_global(
+        &mut self,
+        lbl_start: Label,
+        lbl_return: Label,
+        fct_id: FctId,
+        ptr: Address,
+        pos: Position,
+        gcpoint: GcPoint,
+    ) {
+        self.masm.bind_label(lbl_start);
+        self.direct_call(
+            fct_id,
+            ptr.to_ptr(),
+            TypeList::empty(),
+            TypeList::empty(),
+            pos,
+            gcpoint,
+            BuiltinType::Unit,
+            REG_RESULT.into(),
+        );
+        self.masm.jump(lbl_return);
+    }
+
     fn slow_path_assert(&mut self, lbl_assert: Label, pos: Position) {
         self.masm.bind_label(lbl_assert);
         self.masm.emit_comment("slow path assert".into());
@@ -774,4 +836,5 @@ enum SlowPathKind {
     TlabAllocationFailure(Label, Label, Reg, AllocationSize, Position, bool, GcPoint),
     StackOverflow(Label, Label, Position, GcPoint),
     Assert(Label, Position),
+    InitializeGlobal(Label, Label, FctId, Address, Position, GcPoint),
 }

@@ -28,7 +28,7 @@ fn determine_rootset_from_handles(rootset: &mut Vec<Slot>, threads: &[Arc<DoraTh
 
 fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
     for glob in vm.globals.iter() {
-        let glob = glob.lock();
+        let glob = glob.read();
 
         if glob.ty.reference_type() {
             let slot = Slot::at(glob.address_value);

@@ -269,7 +269,6 @@ impl<'a> Parser<'a> {
 
         let expr = if self.token.is(TokenKind::Eq) {
             self.advance_token()?;
-
             Some(self.parse_expression()?)
         } else {
             None
@@ -278,15 +277,20 @@ impl<'a> Parser<'a> {
         self.expect_semicolon()?;
         let span = self.span_from(start);
 
-        let global = Global {
+        let mut global = Global {
             id: self.generate_id(),
             name,
             pos,
             span,
             data_type,
             reassignable,
-            expr,
+            initializer: None,
         };
+
+        if let Some(expr) = expr {
+            let initializer = self.generate_global_initializer(&global, expr);
+            global.initializer = Some(initializer);
+        }
 
         elements.push(ElemGlobal(global));
 
@@ -1883,6 +1887,20 @@ impl<'a> Parser<'a> {
         Span::new(start, self.last_end.unwrap() - start)
     }
 
+    fn generate_global_initializer(&mut self, global: &Global, initializer: Box<Expr>) -> Function {
+        let builder = Builder::new(self.id_generator);
+        let mut block = builder.build_block();
+
+        let var = builder.build_ident(global.name);
+        let assignment = builder.build_initializer_assign(var, initializer);
+
+        block.add_expr(assignment);
+
+        let mut fct = builder.build_fct(global.name);
+        fct.block(block.build());
+        fct.build()
+    }
+
     fn generate_constructor(
         &mut self,
         cls: &mut Class,
@@ -1907,7 +1925,7 @@ impl<'a> Parser<'a> {
             let this = builder.build_this();
             let lhs = builder.build_dot(this, builder.build_ident(param.name));
             let rhs = builder.build_ident(param.name);
-            let ass = builder.build_assign(lhs, rhs);
+            let ass = builder.build_initializer_assign(lhs, rhs);
 
             block.add_expr(ass);
         }
@@ -1915,7 +1933,7 @@ impl<'a> Parser<'a> {
         for field in cls.fields.iter().filter(|field| field.expr.is_some()) {
             let this = builder.build_this();
             let lhs = builder.build_dot(this, builder.build_ident(field.name));
-            let ass = builder.build_assign(lhs, field.expr.as_ref().unwrap().clone());
+            let ass = builder.build_initializer_assign(lhs, field.expr.as_ref().unwrap().clone());
 
             block.add_expr(ass);
         }

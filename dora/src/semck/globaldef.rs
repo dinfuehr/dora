@@ -101,12 +101,12 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
                 name: g.name,
                 ty: BuiltinType::Unit,
                 reassignable: g.reassignable,
-                getter: None,
+                initializer: None,
                 address_init: Address::null(),
                 address_value: Address::null(),
             };
 
-            globals.push(Arc::new(Mutex::new(global)));
+            globals.push(Arc::new(RwLock::new(global)));
 
             id
         };

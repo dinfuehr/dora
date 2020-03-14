@@ -274,7 +274,7 @@ where
 
     fn emit_stack_guard(&mut self) {
         let gcpoint = self.create_gcpoint();
-        self.asm.stack_guard(self.fct.ast.pos, gcpoint);
+        self.asm.stack_guard(self.fct.pos(), gcpoint);
     }
 
     fn emit_epilog(&mut self) {
@@ -1113,11 +1113,18 @@ where
 
             &IdentType::Global(gid) => {
                 let glob = self.vm.globals.idx(gid);
-                let glob = glob.lock();
+                let glob = glob.read();
 
                 if glob.ty.is_unit() {
                     assert!(dest.is_none());
                 } else {
+                    if glob.needs_initialization() {
+                        let fid = glob.initializer.unwrap();
+                        let ptr = self.ptr_for_fct_id(fid, TypeList::empty(), TypeList::empty());
+                        let gcpoint = self.create_gcpoint();
+                        self.asm.ensure_global(&*glob, fid, ptr, glob.pos, gcpoint);
+                    }
+
                     let disp = self.asm.add_addr(glob.address_value.to_ptr());
                     let pos = self.asm.pos() as i32;
 
@@ -1398,17 +1405,15 @@ where
 
             &IdentType::Global(gid) => {
                 let glob = self.vm.globals.idx(gid);
-                let (address_value, ty) = {
-                    let glob = glob.lock();
-                    (glob.address_value, glob.ty)
-                };
+                let glob = glob.read();
+                let ty = glob.ty;
 
                 let value = self.emit_expr_result_reg(&e.rhs);
 
                 if !ty.is_unit() {
-                    let disp = self.asm.add_addr(address_value.to_ptr());
+                    let disp = self.asm.add_addr(glob.address_value.to_ptr());
                     let pos = self.asm.pos() as i32;
-                    let name = self.vm.interner.str(glob.lock().name);
+                    let name = self.vm.interner.str(glob.name);
                     self.asm.emit_comment(format!("store global {}", name));
                     self.asm.load_constpool(REG_TMP1, disp + pos);
 
@@ -1421,6 +1426,18 @@ where
                     } else {
                         self.asm
                             .store_mem(ty.mode(), Mem::Base(REG_TMP1, 0), value.any_reg());
+                    }
+
+                    if glob.needs_initialization() {
+                        let disp = self.asm.add_addr(glob.address_init.to_ptr());
+                        let pos = self.asm.pos() as i32;
+                        self.asm.load_constpool(REG_RESULT, disp + pos);
+                        self.asm.load_int_const(MachineMode::Int8, REG_TMP1, 1);
+                        self.asm.store_mem(
+                            MachineMode::Int8,
+                            Mem::Base(REG_RESULT, 0),
+                            REG_TMP1.into(),
+                        );
                     }
                 }
 

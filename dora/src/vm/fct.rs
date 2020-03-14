@@ -165,7 +165,7 @@ impl<'ast> Fct<'ast> {
     }
 
     pub fn pos(&self) -> Position {
-        self.ast.pos
+        self.pos
     }
 
     pub fn src(&self) -> &RwLock<FctSrc> {

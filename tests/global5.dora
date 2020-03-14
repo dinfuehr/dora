@@ -1,0 +1,18 @@
+//= stdout "before\nx = 19\nmiddle\nx = 19\nafter\n"
+
+var x: Int = foo();
+
+fun main() {
+    println("before");
+    x = 19;
+    println("x = ${x}");
+    println("middle");
+    println("x = ${x}");
+    println("after");
+    x;
+}
+
+fun foo() -> Int {
+    println("foo");
+    17
+}

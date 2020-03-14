@@ -94,8 +94,8 @@ impl<'a> AstDumper<'a> {
         self.indent(|d| {
             d.dump_type(&global.data_type);
 
-            if let Some(ref expr) = global.expr {
-                d.dump_expr(expr);
+            if let Some(ref initializer) = global.initializer {
+                d.dump_fct(initializer);
             } else {
                 dump!(d, "<no expr given>");
             }

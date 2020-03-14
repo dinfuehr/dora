@@ -198,7 +198,7 @@ pub struct Global {
     pub name: Name,
     pub reassignable: bool,
     pub data_type: Type,
-    pub expr: Option<Box<Expr>>,
+    pub initializer: Option<Function>,
 }
 
 #[derive(Clone, Debug)]
@@ -1154,6 +1154,7 @@ impl Expr {
             span,
 
             op,
+            initializer: false,
             lhs,
             rhs,
         })
@@ -1836,6 +1837,7 @@ pub struct ExprBinType {
     pub span: Span,
 
     pub op: BinOp,
+    pub initializer: bool,
     pub lhs: Box<Expr>,
     pub rhs: Box<Expr>,
 }
