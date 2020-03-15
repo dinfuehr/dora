@@ -1,3 +1,104 @@
+let R0: Register = Register(0);
+let R1: Register = Register(1);
+let R2: Register = Register(2);
+let R3: Register = Register(3);
+let R4: Register = Register(4);
+let R5: Register = Register(5);
+let R6: Register = Register(6);
+let R7: Register = Register(7);
+let R8: Register = Register(8);
+let R9: Register = Register(9);
+let R10: Register = Register(10);
+let R11: Register = Register(11);
+let R12: Register = Register(12);
+let R13: Register = Register(13);
+let R14: Register = Register(14);
+let R15: Register = Register(15);
+
+let R16: Register = Register(16);
+let R17: Register = Register(17);
+let R18: Register = Register(18);
+let R19: Register = Register(19);
+let R20: Register = Register(20);
+let R21: Register = Register(21);
+let R22: Register = Register(22);
+let R23: Register = Register(23);
+let R24: Register = Register(24);
+let R25: Register = Register(25);
+let R26: Register = Register(26);
+let R27: Register = Register(27);
+let R28: Register = Register(28);
+let R29: Register = Register(29);
+let R30: Register = Register(30);
+
+let REG_ZERO: Register = Register(32);
+let REG_SP: Register = Register(33);
+
+let REG_FP: Register = R29;
+let REG_LR: Register = R30;
+
 class AssemblerArm64: Assembler {
     let buffer: AssemblerBuffer = AssemblerBuffer();
+
+    fun ret() {
+        let inst = clsUncondBranchReg(0b0010, 0b11111, 0, REG_LR, 0);
+        self.buffer.emitInt(inst);
+    }
+
+    fun retReg(rn: Register) {
+        let inst = clsUncondBranchReg(0b0010, 0b11111, 0, rn, 0);
+        self.buffer.emitInt(inst);
+    }
+
+    fun br(rn: Register) {
+        let inst = clsUncondBranchReg(0b0000, 0b11111, 0, rn, 0);
+        self.buffer.emitInt(inst);
+    }
+
+    fun blr(rn: Register) {
+        let inst = clsUncondBranchReg(0b0001, 0b11111, 0, rn, 0);
+        self.buffer.emitInt(inst);
+    }
+
+    fun finalize() -> Array[Byte] {
+        self.buffer.toArray()
+    }
+}
+
+impl Register {
+    fun isGpr() -> Bool {
+        self.value <= 30
+    }
+
+    fun isGprOrZero() -> Bool {
+        self.isGpr() || self == REG_ZERO
+    }
+
+    fun isGprOrSp() -> Bool {
+        self.isGpr() || self == REG_SP
+    }
+
+    fun int() -> Int {
+        if self == REG_ZERO || self == REG_SP {
+            31
+        } else {
+            assert(self.value <= 30);
+            self.value
+        }
+    }
+}
+
+fun clsUncondBranchReg(opc: Int, op2: Int, op3: Int, rn: Register, op4: Int) -> Int {
+    assert(fitsUnsigned(opc, 4));
+    assert(fitsUnsigned(op2, 5));
+    assert(fitsUnsigned(op3, 6));
+    assert(rn.isGpr());
+    assert(fitsUnsigned(op4, 5));
+
+    0b1101011 << 25 | opc << 21 | op2 << 16 | op3 << 10 | rn.int() << 5 | op4
+}
+
+fun fitsUnsigned(value: Int, bits: Int) -> Bool {
+    assert(bits < 32);
+    value >= 0 && value < (1 << bits)
 }

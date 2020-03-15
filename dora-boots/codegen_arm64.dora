@@ -2,7 +2,7 @@ class CodeGen(let info: CompilationInfo) {
     let asm: AssemblerArm64 = AssemblerArm64();
 
     fun generate() -> Array[Byte] {
-      unimplemented();
-      arrayEmpty[Byte]()
+      self.asm.ret();
+      self.asm.finalize()
     }
 }

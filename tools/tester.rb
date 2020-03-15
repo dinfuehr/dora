@@ -409,12 +409,6 @@ def parse_test_file(file)
       when "boots"
         test_case.args += '--boots=dora-boots --gc-verify'
 
-        # ignore boots tests on arm64
-        case RUBY_PLATFORM
-        when /aarch64/
-          test_case.expectation = :ignore
-        end
-
       else
         raise "unkown expectation in #{file}: #{line}"
 

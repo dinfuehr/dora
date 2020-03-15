@@ -1,20 +1,20 @@
-var RAX: Register = Register(0);
-var RCX: Register = Register(1);
-var RDX: Register = Register(2);
-var RBX: Register = Register(3);
-var RSP: Register = Register(4);
-var RBP: Register = Register(5);
-var RSI: Register = Register(6);
-var RDI: Register = Register(7);
+let RAX: Register = Register(0);
+let RCX: Register = Register(1);
+let RDX: Register = Register(2);
+let RBX: Register = Register(3);
+let RSP: Register = Register(4);
+let RBP: Register = Register(5);
+let RSI: Register = Register(6);
+let RDI: Register = Register(7);
 
-var R8: Register = Register(8);
-var R9: Register = Register(9);
-var R10: Register = Register(10);
-var R11: Register = Register(11);
-var R12: Register = Register(12);
-var R13: Register = Register(13);
-var R14: Register = Register(14);
-var R15: Register = Register(15);
+let R8: Register = Register(8);
+let R9: Register = Register(9);
+let R10: Register = Register(10);
+let R11: Register = Register(11);
+let R12: Register = Register(12);
+let R13: Register = Register(13);
+let R14: Register = Register(14);
+let R15: Register = Register(15);
 
 class AssemblerX64: Assembler {
     let buffer: AssemblerBuffer = AssemblerBuffer();
