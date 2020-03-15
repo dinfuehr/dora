@@ -266,7 +266,7 @@ mod tests {
     }
 
     #[test]
-    fn extension_defined_twice_with_type_params() {
+    fn extension_defined_twice_with_type_params_in_class() {
         err(
             "class Foo[T]
             impl Foo[Int] { fun foo() {} }
@@ -278,5 +278,17 @@ mod tests {
         ok("class Foo[T]
             impl Foo[Int] { fun foo() {} }
             impl Foo[Long] { fun foo() {} }");
+    }
+
+    #[test]
+    fn extension_with_illegal_type_param_in_class() {
+        err(
+            "trait MyTrait {}
+            class Foo[T: MyTrait]
+            impl Foo[String] {}
+        ",
+            pos(3, 18),
+            SemError::TraitBoundNotSatisfied("String".into(), "MyTrait".into()),
+        );
     }
 }
