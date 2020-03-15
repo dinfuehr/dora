@@ -294,6 +294,26 @@ pub fn find_methods_in_class(
         }
     }
 
+    // Find extension methods
+    {
+        let cls_id = object_type.cls_id(vm).expect("no class");
+        let cls = vm.classes.idx(cls_id);
+        let cls = cls.read();
+
+        for &extension_id in &cls.extensions {
+            let extension = vm.extensions[extension_id].read();
+            let table = if is_static {
+                &extension.static_names
+            } else {
+                &extension.instance_names
+            };
+
+            if let Some(&fct_id) = table.get(&name) {
+                return vec![(extension.class_ty, fct_id)];
+            }
+        }
+    }
+
     let mut class_type = object_type;
 
     loop {

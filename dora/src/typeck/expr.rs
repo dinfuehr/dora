@@ -1770,6 +1770,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.expr_type = ty;
             }
 
+            FctParent::Extension(extension_id) => {
+                let extension = self.vm.extensions[extension_id].read();
+                let ty = extension.class_ty;
+                self.src.set_ty(e.id, ty);
+                self.expr_type = ty;
+            }
+
             _ => {
                 let msg = SemError::ThisUnavailable;
                 self.vm.diag.lock().report(self.file, e.pos, msg);

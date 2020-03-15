@@ -1942,3 +1942,12 @@ fn zero_trait_err() {
         SemError::TraitBoundNotSatisfied("String".into(), "Zero".into()),
     );
 }
+
+#[test]
+fn extension_method_call() {
+    ok("
+        class Foo(let value: Int)
+        impl Foo { fun foo() -> Int { self.value } }
+        fun bar(x: Foo) -> Int { x.foo() }
+    ");
+}

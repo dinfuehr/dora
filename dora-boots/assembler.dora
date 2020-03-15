@@ -55,14 +55,6 @@ class AssemblerBuffer {
 @open @abstract class Assembler
 
 class Register(let value: Int) {
-    fun lowBits() -> Int {
-        self.value & 0b111
-    }
-
-    fun needsRexBit() -> Bool {
-        self.value > 7
-    }
-
     fun equals(rhs: Register) -> Bool {
         self.value == rhs.value
     }

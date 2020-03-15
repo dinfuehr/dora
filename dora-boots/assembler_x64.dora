@@ -170,6 +170,16 @@ class AssemblerX64: Assembler {
     }
 }
 
+impl Register {
+    fun lowBits() -> Int {
+        self.value & 0b111
+    }
+
+    fun needsRexBit() -> Bool {
+        self.value > 7
+    }
+}
+
 @test fun testAsmRegisters() {
     assert(RAX.lowBits() == 0 && !RAX.needsRexBit());
     assert(RCX.lowBits() == 1 && !RCX.needsRexBit());

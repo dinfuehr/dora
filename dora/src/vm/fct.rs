@@ -177,7 +177,10 @@ impl<'ast> Fct<'ast> {
 
     pub fn has_self(&self) -> bool {
         match self.parent {
-            FctParent::Class(_) | FctParent::Trait(_) | FctParent::Impl(_) => !self.is_static,
+            FctParent::Class(_)
+            | FctParent::Trait(_)
+            | FctParent::Impl(_)
+            | FctParent::Extension(_) => !self.is_static,
 
             _ => false,
         }

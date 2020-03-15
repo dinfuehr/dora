@@ -52,6 +52,11 @@ impl<'x, 'ast> ExtensionCheck<'x, 'ast> {
 
         if let Some(class_ty) = semck::read_type(self.vm, self.file_id.into(), &i.class_type) {
             extension.class_ty = class_ty;
+
+            let cls_id = extension.class_ty.cls_id(self.vm).unwrap();
+            let cls = self.vm.classes.idx(cls_id);
+            let mut cls = cls.write();
+            cls.extensions.push(extension.id);
         } else {
             extension.class_ty = BuiltinType::Error;
         }
@@ -137,10 +142,27 @@ impl<'x, 'ast> Visitor<'ast> for ExtensionCheck<'x, 'ast> {
             specializations: RwLock::new(HashMap::new()),
         };
 
-        let fctid = self.vm.add_fct(fct);
+        let fct_id = self.vm.add_fct(fct);
 
         let mut extension = self.vm.extensions[extension_id].write();
-        extension.methods.push(fctid);
+        extension.methods.push(fct_id);
+
+        let table = if f.is_static {
+            &mut extension.static_names
+        } else {
+            &mut extension.instance_names
+        };
+
+        if let Some(&method_id) = table.get(&f.name) {
+            let method = self.vm.fcts.idx(method_id);
+            let method = method.read();
+
+            let method_name = self.vm.interner.str(method.name).to_string();
+            let msg = SemError::MethodExists(method_name, method.pos);
+            self.vm.diag.lock().report(self.file_id.into(), f.pos, msg);
+        } else {
+            table.insert(f.name, fct_id);
+        }
     }
 }
 
@@ -168,6 +190,16 @@ mod tests {
             "class A[T: Zero] impl A[Int] {} impl A[String] {}",
             pos(1, 38),
             SemError::TraitBoundNotSatisfied("String".into(), "Zero".into()),
+        );
+    }
+
+    #[test]
+    fn extension_method() {
+        ok("class A impl A { fun foo() {} fun bar() {} }");
+        err(
+            "class A impl A { fun foo() {} fun foo() {} }",
+            pos(1, 31),
+            SemError::MethodExists("foo".into(), pos(1, 18)),
         );
     }
 }
