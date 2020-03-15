@@ -302,6 +302,11 @@ pub fn find_methods_in_class(
 
         for &extension_id in &cls.extensions {
             let extension = vm.extensions[extension_id].read();
+
+            if extension.class_ty.type_params(vm) != object_type.type_params(vm) {
+                continue;
+            }
+
             let table = if is_static {
                 &extension.static_names
             } else {

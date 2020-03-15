@@ -1,0 +1,22 @@
+class Foo[T]
+
+impl Foo[Int] {
+    fun foo() -> Int { 1 }
+}
+
+impl Foo[Long] {
+    fun foo() -> Int { 2 }
+}
+
+fun main() {
+    assert(f1(Foo[Int]()) == 1);
+    assert(f2(Foo[Long]()) == 2);
+}
+
+fun f1(x: Foo[Int]) -> Int {
+    x.foo()
+}
+
+fun f2(x: Foo[Long]) -> Int {
+    x.foo()
+}
