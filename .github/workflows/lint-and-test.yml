@@ -43,7 +43,7 @@ jobs:
         run: rustup target add aarch64-unknown-linux-gnu
 
       - name: Build ARM64
-        run: cd dmdoc && cargo check --target=aarch64-unknown-linux-gnu --no-default-features
+        run: cd dora && cargo check --target=aarch64-unknown-linux-gnu --no-default-features
 
   test:
     name: test ${{ matrix.os }}
