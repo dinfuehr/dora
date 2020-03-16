@@ -129,7 +129,9 @@ class VecIter[T](let data: Vec[T]) {
   }
 
   fun next() -> T {
-    self.data.get(self.idx)
+    let result = self.data.get(self.idx);
+    self.idx = self.idx + 1;
+    result
   }
 }
 

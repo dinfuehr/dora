@@ -1,7 +1,26 @@
-fun dumpGraph(graph: Graph) -> String {
-    ""
+fun dumpGraph(graph: Graph) {
+    GraphDumper(graph).dump();
 }
 
 class GraphDumper(let graph: Graph) {
+    fun dump() {
+        let iter = self.graph.blocks.makeIterator();
+        while iter.hasNext() {
+            let block = iter.next();
+            self.dumpBlock(block);
+        }
+    }
 
+    fun dumpBlock(block: Block) {
+        println("block ${block.id}:");
+        let iter = InstIterator(block);
+        while iter.hasNext() {
+            let inst = iter.next();
+            self.dumpInst(inst);
+        }
+    }
+
+    fun dumpInst(inst: Inst) {
+        println("  inst ${inst.id}");
+    }
 }
