@@ -32,6 +32,10 @@ pub fn has_tzcnt() -> bool {
     *HAS_TZCNT
 }
 
+pub(crate) fn has_x_ops() -> bool {
+    *HAS_X_OPS
+}
+
 lazy_static! {
 static ref FEATURES: FeatureInfo = CpuId::new().get_feature_info().unwrap();
 static ref FEATURES_EXTENDED: ExtendedFeatures = CpuId::new().get_extended_feature_info().unwrap();
