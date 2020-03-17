@@ -1954,10 +1954,23 @@ fn extension_method_call() {
 
 #[test]
 fn impl_class_type_params() {
-    err("
+    err(
+        "
         trait MyTrait { fun bar(); }
         class Foo[T]
         impl MyTrait for Foo[String] { fun bar() {} }
         fun bar(x: Foo[Int]) { x.bar(); }
-    ", pos(5, 37), SemError::UnknownMethod("Foo[Int]".into(), "bar".into(), Vec::new()));
+    ",
+        pos(5, 37),
+        SemError::UnknownMethod("Foo[Int]".into(), "bar".into(), Vec::new()),
+    );
+}
+
+#[test]
+fn method_call_on_unit() {
+    err(
+        "fun foo(a: ()) { a.foo(); }",
+        pos(1, 23),
+        SemError::UnknownMethod("()".into(), "foo".into(), Vec::new()),
+    );
 }

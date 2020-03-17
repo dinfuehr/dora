@@ -6,6 +6,7 @@ use crate::vm::{ClassDefId, ClassId, FctId, TraitId, VM};
 
 #[derive(Debug)]
 pub struct KnownElements {
+    pub unit_class: ClassId,
     pub bool_class: ClassId,
     pub byte_class: ClassId,
     pub char_class: ClassId,

@@ -76,7 +76,12 @@ impl<'x, 'ast> ImplCheck<'x, 'ast> {
             if class_ty.cls_id(self.vm).is_some() {
                 ximpl.class_ty = class_ty;
             } else {
-                report(self.vm, ximpl.file, i.class_type.pos(), SemError::ClassExpected);
+                report(
+                    self.vm,
+                    ximpl.file,
+                    i.class_type.pos(),
+                    SemError::ClassExpected,
+                );
             }
         }
 

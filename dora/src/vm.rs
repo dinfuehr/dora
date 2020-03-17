@@ -145,6 +145,7 @@ impl<'ast> VM<'ast> {
             globals: GrowableVec::new(),
             interner: Interner::new(),
             vips: KnownElements {
+                unit_class: empty_class_id,
                 bool_class: empty_class_id,
                 byte_class: empty_class_id,
                 char_class: empty_class_id,

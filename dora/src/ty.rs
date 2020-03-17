@@ -137,6 +137,7 @@ impl BuiltinType {
     pub fn cls_id(&self, vm: &VM) -> Option<ClassId> {
         match *self {
             BuiltinType::Class(cls_id, _) => Some(cls_id),
+            BuiltinType::Unit => Some(vm.vips.unit_class),
             BuiltinType::Bool => Some(vm.vips.bool_class),
             BuiltinType::Byte => Some(vm.vips.byte_class),
             BuiltinType::Char => Some(vm.vips.char_class),

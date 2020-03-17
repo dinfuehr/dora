@@ -13,6 +13,7 @@ use crate::vm::{ClassDef, ClassDefId, ClassId, FctId, FctKind, Intrinsic, TraitI
 use crate::vtable::VTableBox;
 
 pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {
+    vm.vips.unit_class = internal_class(vm, "Unit", Some(BuiltinType::Unit));
     vm.vips.bool_class = internal_class(vm, "Bool", Some(BuiltinType::Bool));
 
     vm.vips.byte_class = internal_class(vm, "Byte", Some(BuiltinType::Byte));
