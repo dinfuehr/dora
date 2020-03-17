@@ -1,0 +1,7 @@
+class Foo(var value: (Int, Int, (Int, Int)))
+
+fun main() {
+    let x = (1, 2, (3, 4));
+    let foo = Foo(x);
+    foo.value = (10, 11, (12, 13));
+}
