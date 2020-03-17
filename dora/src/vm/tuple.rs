@@ -80,26 +80,32 @@ impl Tuples {
     pub fn get(&self, id: TupleId) -> Arc<Vec<BuiltinType>> {
         self.all[id.0 as usize].args.clone()
     }
+}
 
-    pub fn insert(&mut self, vm: &VM, args: Vec<BuiltinType>) -> TupleId {
-        let args = Arc::new(args);
+pub fn ensure_tuple(vm: &VM, args: Vec<BuiltinType>) -> TupleId {
+    let args = Arc::new(args);
 
-        if let Some(&tuple_id) = self.map.get(&args) {
-            return tuple_id;
-        }
-
-        let concrete = determine_tuple_size(vm, &*args);
-
-        self.all.push(Tuple {
-            args: args.clone(),
-            concrete,
-        });
-
-        let id = TupleId((self.all.len() - 1).try_into().unwrap());
-        self.map.insert(args, id);
-
-        id
+    if let Some(&tuple_id) = vm.tuples.lock().map.get(&args) {
+        return tuple_id;
     }
+
+    let concrete = determine_tuple_size(vm, &*args);
+
+    let mut tuples = vm.tuples.lock();
+
+    if let Some(&tuple_id) = tuples.map.get(&args) {
+        return tuple_id;
+    }
+
+    tuples.all.push(Tuple {
+        args: args.clone(),
+        concrete,
+    });
+
+    let id = TupleId((tuples.all.len() - 1).try_into().unwrap());
+    tuples.map.insert(args, id);
+
+    id
 }
 
 fn determine_tuple_size<'ast>(vm: &VM, subtypes: &[BuiltinType]) -> Option<ConcreteTuple> {

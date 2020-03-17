@@ -11,8 +11,8 @@ use crate::sym::Sym::SymClass;
 use crate::ty::{BuiltinType, TypeList, TypeParamId};
 use crate::typeck::lookup::MethodLookup;
 use crate::vm::{
-    self, find_field_in_class, find_methods_in_class, CallType, ClassId, ConvInfo, Fct, FctId,
-    FctParent, FctSrc, FileId, ForTypeInfo, IdentType, Intrinsic, VM,
+    self, ensure_tuple, find_field_in_class, find_methods_in_class, CallType, ClassId, ConvInfo,
+    Fct, FctId, FctParent, FctSrc, FileId, ForTypeInfo, IdentType, Intrinsic, VM,
 };
 
 use dora_parser::ast::visit::Visitor;
@@ -287,7 +287,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             subtypes.push(self.expr_type);
         }
 
-        let tuple_id = self.vm.tuples.lock().insert(self.vm, subtypes);
+        let tuple_id = ensure_tuple(self.vm, subtypes);
 
         let ty = BuiltinType::Tuple(tuple_id);
         self.src.set_ty(tuple.id, ty);

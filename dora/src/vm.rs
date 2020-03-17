@@ -43,7 +43,7 @@ pub use self::strct::{
     StructData, StructDef, StructDefId, StructFieldData, StructFieldDef, StructId,
 };
 pub use self::traits::{TraitData, TraitId};
-pub use self::tuple::{TupleId, Tuples};
+pub use self::tuple::{ensure_tuple, TupleId, Tuples};
 pub use self::vip::{KnownClasses, KnownElements, KnownFunctions};
 use crate::vm::module::{Module, ModuleDef, ModuleId};
 

@@ -8,8 +8,8 @@ use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{
-    CallType, Class, ClassDef, ClassDefId, ClassId, FieldDef, StructData, StructDef, StructDefId,
-    StructFieldDef, StructId, VM,
+    ensure_tuple, CallType, Class, ClassDef, ClassDefId, ClassId, FieldDef, StructData, StructDef,
+    StructDefId, StructFieldDef, StructId, VM,
 };
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
 
@@ -364,21 +364,24 @@ pub fn replace_type_param(
         BuiltinType::Lambda(_) => unimplemented!(),
 
         BuiltinType::Tuple(tuple_id) => {
-            let mut tuples = vm.tuples.lock();
-            let tuple = tuples.get_tuple(tuple_id);
+            let subtypes = {
+                let tuples = vm.tuples.lock();
+                let tuple = tuples.get_tuple(tuple_id);
 
-            if tuple.is_concrete_type() {
-                ty
-            } else {
-                let args = tuple.args();
-                let new_args = args
-                    .iter()
-                    .map(|&t| replace_type_param(vm, t, cls_tp, fct_tp, self_ty))
-                    .collect::<Vec<_>>();
+                if tuple.is_concrete_type() {
+                    return ty;
+                }
 
-                let tuple_id = tuples.insert(vm, new_args);
-                BuiltinType::Tuple(tuple_id)
-            }
+                tuple.args()
+            };
+
+            let new_subtypes = subtypes
+                .iter()
+                .map(|&t| replace_type_param(vm, t, cls_tp, fct_tp, self_ty))
+                .collect::<Vec<_>>();
+
+            let tuple_id = ensure_tuple(vm, new_subtypes);
+            BuiltinType::Tuple(tuple_id)
         }
 
         _ => ty,

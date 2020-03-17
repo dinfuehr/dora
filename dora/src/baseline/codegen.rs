@@ -503,24 +503,48 @@ where
             .to_owned();
 
         for (&subtype, &subtype_offset) in subtypes.iter().zip(&offsets) {
-            let tmp = result_reg_ty(subtype);
-            let mode = subtype.mode();
-            let src = match src {
-                RegOrOffset::Reg(reg) => Mem::Base(reg, subtype_offset),
-                RegOrOffset::RegWithOffset(reg, tuple_offset) => {
-                    Mem::Base(reg, tuple_offset + subtype_offset)
-                }
-                RegOrOffset::Offset(tuple_offset) => Mem::Local(tuple_offset + subtype_offset),
-            };
-            self.asm.load_mem(mode, tmp.any_reg(), src);
-            let dest = match dest {
-                RegOrOffset::Reg(reg) => Mem::Base(reg, subtype_offset),
-                RegOrOffset::RegWithOffset(reg, tuple_offset) => {
-                    Mem::Base(reg, tuple_offset + subtype_offset)
-                }
-                RegOrOffset::Offset(tuple_offset) => Mem::Local(tuple_offset + subtype_offset),
-            };
-            self.asm.store_mem(mode, dest, tmp.any_reg());
+            if let Some(tuple_id) = subtype.tuple_id() {
+                let src = match src {
+                    RegOrOffset::Reg(reg) => RegOrOffset::RegWithOffset(reg, subtype_offset),
+                    RegOrOffset::RegWithOffset(reg, tuple_offset) => {
+                        RegOrOffset::RegWithOffset(reg, tuple_offset + subtype_offset)
+                    }
+                    RegOrOffset::Offset(tuple_offset) => {
+                        RegOrOffset::Offset(tuple_offset + subtype_offset)
+                    }
+                };
+                let dest = match dest {
+                    RegOrOffset::Reg(reg) => RegOrOffset::RegWithOffset(reg, subtype_offset),
+                    RegOrOffset::RegWithOffset(reg, tuple_offset) => {
+                        RegOrOffset::RegWithOffset(reg, tuple_offset + subtype_offset)
+                    }
+                    RegOrOffset::Offset(tuple_offset) => {
+                        RegOrOffset::Offset(tuple_offset + subtype_offset)
+                    }
+                };
+                self.copy_tuple(tuple_id, dest, src);
+            } else if subtype.is_unit() {
+                // nothing
+            } else {
+                let tmp = result_reg_ty(subtype);
+                let mode = subtype.mode();
+                let src = match src {
+                    RegOrOffset::Reg(reg) => Mem::Base(reg, subtype_offset),
+                    RegOrOffset::RegWithOffset(reg, tuple_offset) => {
+                        Mem::Base(reg, tuple_offset + subtype_offset)
+                    }
+                    RegOrOffset::Offset(tuple_offset) => Mem::Local(tuple_offset + subtype_offset),
+                };
+                self.asm.load_mem(mode, tmp.any_reg(), src);
+                let dest = match dest {
+                    RegOrOffset::Reg(reg) => Mem::Base(reg, subtype_offset),
+                    RegOrOffset::RegWithOffset(reg, tuple_offset) => {
+                        Mem::Base(reg, tuple_offset + subtype_offset)
+                    }
+                    RegOrOffset::Offset(tuple_offset) => Mem::Local(tuple_offset + subtype_offset),
+                };
+                self.asm.store_mem(mode, dest, tmp.any_reg());
+            }
         }
     }
 
@@ -599,6 +623,8 @@ where
                     RegOrOffset::Offset(slot.offset),
                     RegOrOffset::Offset(dest.stack_offset()),
                 );
+            } else if ty.is_unit() {
+                // nothing to do
             } else {
                 self.asm.var_store(slot.offset, ty, dest.any_reg());
             }
@@ -624,6 +650,8 @@ where
                     RegOrOffset::Offset(tuple_offset + offset),
                     RegOrOffset::Offset(slot.offset),
                 );
+            } else if ty.is_unit() {
+                // do nothing
             } else {
                 let mode = ty.mode();
                 let temp = result_reg_ty(ty);
@@ -983,11 +1011,22 @@ where
         let idx = expr.rhs.to_lit_int().unwrap().value as usize;
         let (ty, offset) = self.vm.tuples.lock().get_at(tuple_id, idx);
 
-        self.asm.load_mem(
-            ty.mode(),
-            dest.any_reg(),
-            Mem::Local(tuple.stack_offset() + offset),
-        );
+        if let Some(tuple_id) = ty.tuple_id() {
+            self.copy_tuple(
+                tuple_id,
+                RegOrOffset::Offset(dest.stack_offset()),
+                RegOrOffset::Offset(tuple.stack_offset() + offset),
+            );
+        } else if ty.is_unit() {
+            assert!(dest.is_none());
+        } else {
+            self.asm.load_mem(
+                ty.mode(),
+                dest.any_reg(),
+                Mem::Local(tuple.stack_offset() + offset),
+            );
+        }
+
         self.free_expr_store(tuple);
     }
 

@@ -3,7 +3,7 @@ use crate::mem;
 use crate::sym::Sym::{SymClass, SymClassTypeParam, SymEnum, SymFctTypeParam, SymStruct, SymTrait};
 use crate::ty::{BuiltinType, TypeList};
 use crate::typeck;
-use crate::vm::{FileId, NodeMap, VM};
+use crate::vm::{ensure_tuple, FileId, NodeMap, VM};
 use dora_parser::ast::Type::{TypeBasic, TypeLambda, TypeSelf, TypeTuple};
 use dora_parser::ast::{Expr, ExprBlockType, Stmt, Type};
 
@@ -352,7 +352,7 @@ pub fn read_type<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> Option<Bui
                     }
                 }
 
-                let tuple_id = vm.tuples.lock().insert(vm, subtypes);
+                let tuple_id = ensure_tuple(vm, subtypes);
                 Some(BuiltinType::Tuple(tuple_id))
             }
         }
@@ -480,7 +480,7 @@ pub fn read_type_unchecked<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> 
                     subtypes.push(read_type_unchecked(vm, file, subtype));
                 }
 
-                let tuple_id = vm.tuples.lock().insert(vm, subtypes);
+                let tuple_id = ensure_tuple(vm, subtypes);
                 BuiltinType::Tuple(tuple_id)
             }
         }
