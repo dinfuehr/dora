@@ -32,19 +32,19 @@ impl<'x, 'ast> Visitor<'ast> for EnumCheck<'x, 'ast> {
 
         let mut xenum = self.vm.enums[enum_id].write();
         let mut enum_value_int: u32 = 0;
+        assert!(e.type_params.is_none());
 
         for value in &e.values {
-            let ident = value.to_ident().expect("ident expected");
-
-            xenum.values.push(ident.name);
-            let result = xenum.name_to_value.insert(ident.name, enum_value_int);
+            xenum.values.push(value.name);
+            let result = xenum.name_to_value.insert(value.name, enum_value_int);
+            assert!(value.types.is_none());
 
             if result.is_some() {
-                let name = self.vm.interner.str(ident.name).to_string();
+                let name = self.vm.interner.str(value.name).to_string();
                 self.vm
                     .diag
                     .lock()
-                    .report(xenum.file, ident.pos, SemError::ShadowEnumValue(name));
+                    .report(xenum.file, value.pos, SemError::ShadowEnumValue(name));
             }
 
             enum_value_int += 1;

@@ -217,7 +217,17 @@ pub struct Enum {
     pub pos: Position,
     pub span: Span,
     pub name: Name,
-    pub values: Vec<Box<Expr>>,
+    pub type_params: Option<Vec<TypeParam>>,
+    pub values: Vec<EnumValue>,
+}
+
+#[derive(Clone, Debug)]
+pub struct EnumValue {
+    pub id: NodeId,
+    pub pos: Position,
+    pub span: Span,
+    pub name: Name,
+    pub types: Option<Vec<Type>>,
 }
 
 #[derive(Clone, Debug)]

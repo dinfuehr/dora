@@ -128,9 +128,13 @@ impl<'a> AstDumper<'a> {
 
         self.indent(|d| {
             for value in &xenum.values {
-                d.dump_expr(value)
+                d.dump_enum_value(value);
             }
         });
+    }
+
+    fn dump_enum_value(&mut self, value: &EnumValue) {
+        dump!(self, "{} {} {}", value.pos, value.id, self.str(value.name));
     }
 
     fn dump_impl(&mut self, ximpl: &Impl) {

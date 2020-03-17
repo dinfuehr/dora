@@ -179,9 +179,10 @@ impl<'a> Parser<'a> {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::Enum)?.position;
         let name = self.expect_identifier()?;
+        let type_params = self.parse_type_params()?;
 
         self.expect_token(TokenKind::LBrace)?;
-        let values = self.parse_comma_list(TokenKind::RBrace, |p| p.parse_identifier())?;
+        let values = self.parse_comma_list(TokenKind::RBrace, |p| p.parse_enum_value())?;
         let span = self.span_from(start);
 
         Ok(Enum {
@@ -189,7 +190,30 @@ impl<'a> Parser<'a> {
             pos,
             span,
             name,
+            type_params,
             values,
+        })
+    }
+
+    fn parse_enum_value(&mut self) -> Result<EnumValue, ParseErrorAndPos> {
+        let start = self.token.span.start();
+        let pos = self.token.position;
+        let name = self.expect_identifier()?;
+
+        let types = if self.token.is(TokenKind::LParen) {
+            Some(self.parse_comma_list(TokenKind::RParen, |p| p.parse_type())?)
+        } else {
+            None
+        };
+
+        let span = self.span_from(start);
+
+        Ok(EnumValue {
+            id: self.generate_id(),
+            pos,
+            span,
+            name,
+            types,
         })
     }
 
