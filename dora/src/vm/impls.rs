@@ -5,6 +5,7 @@ use std::ops::Index;
 use dora_parser::lexer::position::Position;
 
 use crate::vm::{ClassId, FctId, FileId, TraitId, VM};
+use crate::ty::BuiltinType;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ImplId(u32);
@@ -21,7 +22,7 @@ pub struct ImplData {
     pub file: FileId,
     pub pos: Position,
     pub trait_id: Option<TraitId>,
-    pub class_id: Option<ClassId>,
+    pub class_ty: BuiltinType,
     pub methods: Vec<FctId>,
 }
 
@@ -30,8 +31,8 @@ impl ImplData {
         self.trait_id.expect("trait_id not initialized yet.")
     }
 
-    pub fn cls_id(&self) -> ClassId {
-        self.class_id.expect("trait_id not initialized yet.")
+    pub fn cls_id(&self, vm: &VM) -> ClassId {
+        self.class_ty.cls_id(vm).expect("class_ty not initialized yet.")
     }
 
     pub fn find_implements(&self, vm: &VM, fct_id: FctId) -> Option<FctId> {

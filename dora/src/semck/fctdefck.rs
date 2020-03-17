@@ -44,7 +44,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
 
             FctParent::Impl(impl_id) => {
                 let ximpl = vm.impls[impl_id].read();
-                let cls = vm.classes.idx(ximpl.cls_id());
+                let cls = vm.classes.idx(ximpl.cls_id(vm));
                 let cls = cls.read();
 
                 if fct.has_self() {

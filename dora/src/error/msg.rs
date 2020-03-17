@@ -111,7 +111,7 @@ pub enum SemError {
     StaticMethodMissingFromTrait(String, String, Vec<String>),
     MethodMissingFromTrait(String, String, Vec<String>),
     WrongNumberTypeParams(usize, usize),
-    ClassExpected(String),
+    ClassExpected,
     ClassExpectedAsTypeParam,
     AssignmentToConst,
     BoundExpected,
@@ -401,7 +401,7 @@ impl SemError {
             SemError::WrongNumberTypeParams(exp, actual) => {
                 format!("expected {} type parameters but got {}.", exp, actual)
             }
-            SemError::ClassExpected(ref name) => format!("`{}` is not a class.", name),
+            SemError::ClassExpected => "expected class.".into(),
             SemError::ClassExpectedAsTypeParam => "class as type parameter expected.".into(),
             SemError::AssignmentToConst => "cannot assign to const variable.".into(),
             SemError::BoundExpected => "class or trait bound expected".into(),

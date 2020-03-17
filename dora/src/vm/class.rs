@@ -329,6 +329,10 @@ pub fn find_methods_in_class(
         for &impl_id in &cls.impls {
             let ximpl = vm.impls[impl_id].read();
 
+            if ximpl.class_ty.type_params(vm) != class_type.type_params(vm) {
+                continue;
+            }
+
             for &method in &ximpl.methods {
                 let method = vm.fcts.idx(method);
                 let method = method.read();

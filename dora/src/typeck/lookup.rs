@@ -226,7 +226,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             FctParent::Class(cls_id) => Some(cls_id),
             FctParent::Impl(impl_id) => {
                 let ximpl = self.vm.impls[impl_id].read();
-                Some(ximpl.cls_id())
+                Some(ximpl.cls_id(self.vm))
             }
             _ => None,
         };

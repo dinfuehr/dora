@@ -10,7 +10,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
     for ximpl in &vm.impls {
         let ximpl = ximpl.read();
         let xtrait = vm.traits[ximpl.trait_id()].read();
-        let cls = vm.classes.idx(ximpl.cls_id());
+        let cls = vm.classes.idx(ximpl.cls_id(vm));
         let cls = cls.read();
         let cls = cls.ty;
 

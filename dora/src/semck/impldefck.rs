@@ -2,6 +2,7 @@ use parking_lot::RwLock;
 use std::collections::HashMap;
 
 use crate::error::msg::SemError;
+use crate::semck;
 use crate::sym::Sym;
 use crate::ty::BuiltinType;
 use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, FileId, ImplId, NodeMap, VM};
@@ -71,22 +72,16 @@ impl<'x, 'ast> ImplCheck<'x, 'ast> {
             return;
         }
 
-        if let Some(class_name) = i.class_type.to_basic_without_type_params() {
-            if let Some(Sym::SymClass(class_id)) = self.vm.sym.lock().get(class_name) {
-                ximpl.class_id = Some(class_id);
+        if let Some(class_ty) = semck::read_type(self.vm, self.file_id.into(), &i.class_type) {
+            if class_ty.cls_id(self.vm).is_some() {
+                ximpl.class_ty = class_ty;
             } else {
-                let name = self.vm.interner.str(class_name).to_string();
-                report(self.vm, ximpl.file, i.pos, SemError::ExpectedClass(name));
+                report(self.vm, ximpl.file, i.class_type.pos(), SemError::ClassExpected);
             }
-        } else {
-            // We don't support type parameters for the class yet.
-            report(self.vm, ximpl.file, i.pos, SemError::Unimplemented);
-            self.impl_id = None;
-            return;
         }
 
-        if ximpl.trait_id.is_some() && ximpl.class_id.is_some() {
-            let cls = self.vm.classes.idx(ximpl.cls_id());
+        if ximpl.trait_id.is_some() && !ximpl.class_ty.is_error() {
+            let cls = self.vm.classes.idx(ximpl.cls_id(self.vm));
             let mut cls = cls.write();
             cls.traits.push(ximpl.trait_id());
             cls.impls.push(ximpl.id);
@@ -224,8 +219,14 @@ mod tests {
     fn impl_for_unknown_class() {
         err(
             "trait Foo {} impl Foo for A {}",
-            pos(1, 14),
-            SemError::ExpectedClass("A".into()),
+            pos(1, 27),
+            SemError::UnknownType("A".into()),
+        );
+
+        err(
+            "trait Foo {} trait A {} impl Foo for A {}",
+            pos(1, 38),
+            SemError::ClassExpected,
         );
     }
 
@@ -235,5 +236,10 @@ mod tests {
         ok("trait Foo { fun toBool() -> Bool; }
             class A {}
             impl Foo for A { fun toBool() -> Bool { return false; } }");
+    }
+
+    #[test]
+    fn impl_class_type_params() {
+        ok("trait MyTrait {} class Foo[T] impl MyTrait for Foo[String] {}");
     }
 }

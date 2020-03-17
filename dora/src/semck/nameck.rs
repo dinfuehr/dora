@@ -102,7 +102,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
             FctParent::Impl(impl_id) => {
                 let ximpl = self.vm.impls[impl_id].read();
-                let cls = self.vm.classes.idx(ximpl.cls_id());
+                let cls = self.vm.classes.idx(ximpl.cls_id(self.vm));
                 let cls = cls.read();
 
                 cls.ty

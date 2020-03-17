@@ -1452,8 +1452,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             _ => {}
         }
 
-        let name = self.vm.interner.str(class).to_string();
-        let msg = SemError::ClassExpected(name);
+        let msg = SemError::ClassExpected;
         self.vm.diag.lock().report(self.file, e.pos, msg);
 
         self.src.set_ty(e.id, BuiltinType::Error);
@@ -1763,7 +1762,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             FctParent::Impl(impl_id) => {
                 let ximpl = self.vm.impls[impl_id].read();
-                let cls = self.vm.classes.idx(ximpl.cls_id());
+                let cls = self.vm.classes.idx(ximpl.cls_id(self.vm));
                 let cls = cls.read();
                 let ty = cls.ty;
                 self.src.set_ty(e.id, ty);
@@ -2323,7 +2322,7 @@ pub fn lookup_method<'ast>(
                 FctParent::Class(cls_id) => cls_id,
                 FctParent::Impl(impl_id) => {
                     let ximpl = vm.impls[impl_id].read();
-                    ximpl.cls_id()
+                    ximpl.cls_id(vm)
                 }
 
                 _ => unreachable!(),

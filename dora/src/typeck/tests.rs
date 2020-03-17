@@ -1951,3 +1951,13 @@ fn extension_method_call() {
         fun bar(x: Foo) -> Int { x.foo() }
     ");
 }
+
+#[test]
+fn impl_class_type_params() {
+    err("
+        trait MyTrait { fun bar(); }
+        class Foo[T]
+        impl MyTrait for Foo[String] { fun bar() {} }
+        fun bar(x: Foo[Int]) { x.bar(); }
+    ", pos(5, 37), SemError::UnknownMethod("Foo[Int]".into(), "bar".into(), Vec::new()));
+}

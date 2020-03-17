@@ -127,7 +127,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
                 file: self.file_id.into(),
                 pos: i.pos,
                 trait_id: None,
-                class_id: None,
+                class_ty: BuiltinType::Error,
                 methods: Vec::new(),
             };
             self.vm.impls.push(RwLock::new(ximpl));
