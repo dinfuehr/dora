@@ -536,12 +536,8 @@ impl BuiltinType {
 
                 true
             }
-            BuiltinType::Tuple(tuple_id) => {
-                vm.tuples.lock().get_tuple(tuple_id).is_concrete_type()
-            }
-            BuiltinType::Lambda(_) | BuiltinType::Struct(_, _) => {
-                unimplemented!()
-            }
+            BuiltinType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).is_concrete_type(),
+            BuiltinType::Lambda(_) | BuiltinType::Struct(_, _) => unimplemented!(),
             BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_, _) => false,
         }
     }
