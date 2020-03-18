@@ -127,14 +127,22 @@ impl<'a> AstDumper<'a> {
         );
 
         self.indent(|d| {
-            for value in &xenum.values {
+            for value in &xenum.variants {
                 d.dump_enum_value(value);
             }
         });
     }
 
-    fn dump_enum_value(&mut self, value: &EnumValue) {
+    fn dump_enum_value(&mut self, value: &EnumVariant) {
         dump!(self, "{} {} {}", value.pos, value.id, self.str(value.name));
+
+        if let Some(ref types) = value.types {
+            self.indent(|d| {
+                for ty in types {
+                    d.dump_type(ty);
+                }
+            });
+        }
     }
 
     fn dump_impl(&mut self, ximpl: &Impl) {

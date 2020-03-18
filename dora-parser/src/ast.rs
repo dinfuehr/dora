@@ -51,6 +51,11 @@ impl Ast {
     }
 
     #[cfg(test)]
+    pub fn enum0(&self) -> &Enum {
+        self.files.last().unwrap().elements[0].to_enum().unwrap()
+    }
+
+    #[cfg(test)]
     pub fn trai(&self, index: usize) -> &Trait {
         self.files.last().unwrap().elements[index]
             .to_trait()
@@ -147,6 +152,13 @@ impl Elem {
         }
     }
 
+    pub fn to_enum(&self) -> Option<&Enum> {
+        match self {
+            &ElemEnum(ref xenum) => Some(xenum),
+            _ => None,
+        }
+    }
+
     pub fn to_struct(&self) -> Option<&Struct> {
         match self {
             &ElemStruct(ref struc) => Some(struc),
@@ -218,11 +230,11 @@ pub struct Enum {
     pub span: Span,
     pub name: Name,
     pub type_params: Option<Vec<TypeParam>>,
-    pub values: Vec<EnumValue>,
+    pub variants: Vec<EnumVariant>,
 }
 
 #[derive(Clone, Debug)]
-pub struct EnumValue {
+pub struct EnumVariant {
     pub id: NodeId,
     pub pos: Position,
     pub span: Span,

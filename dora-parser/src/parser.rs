@@ -182,7 +182,7 @@ impl<'a> Parser<'a> {
         let type_params = self.parse_type_params()?;
 
         self.expect_token(TokenKind::LBrace)?;
-        let values = self.parse_comma_list(TokenKind::RBrace, |p| p.parse_enum_value())?;
+        let variants = self.parse_comma_list(TokenKind::RBrace, |p| p.parse_enum_variant())?;
         let span = self.span_from(start);
 
         Ok(Enum {
@@ -191,16 +191,17 @@ impl<'a> Parser<'a> {
             span,
             name,
             type_params,
-            values,
+            variants,
         })
     }
 
-    fn parse_enum_value(&mut self) -> Result<EnumValue, ParseErrorAndPos> {
+    fn parse_enum_variant(&mut self) -> Result<EnumVariant, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.token.position;
         let name = self.expect_identifier()?;
 
         let types = if self.token.is(TokenKind::LParen) {
+            self.advance_token()?;
             Some(self.parse_comma_list(TokenKind::RParen, |p| p.parse_type())?)
         } else {
             None
@@ -208,7 +209,7 @@ impl<'a> Parser<'a> {
 
         let span = self.span_from(start);
 
-        Ok(EnumValue {
+        Ok(EnumVariant {
             id: self.generate_id(),
             pos,
             span,
@@ -3678,5 +3679,21 @@ mod tests {
 
         let (expr, _) = parse_expr("(1,2,3,4,)");
         assert_eq!(expr.to_tuple().unwrap().values.len(), 4);
+    }
+
+    #[test]
+    fn parse_enum() {
+        let (prog, _) = parse("enum Foo { A, B, C }");
+        let xenum = prog.enum0();
+        assert_eq!(xenum.variants.len(), 3);
+    }
+
+    #[test]
+    fn parse_enum_with_type_params() {
+        let (prog, _) = parse("enum MyOption[T] { None, Some(T), }");
+        let xenum = prog.enum0();
+        assert_eq!(xenum.variants.len(), 2);
+        assert!(xenum.variants[0].types.is_none());
+        assert_eq!(xenum.variants[1].types.as_ref().unwrap().len(), 1);
     }
 }

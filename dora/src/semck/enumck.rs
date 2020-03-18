@@ -34,7 +34,7 @@ impl<'x, 'ast> Visitor<'ast> for EnumCheck<'x, 'ast> {
         let mut enum_value_int: u32 = 0;
         assert!(e.type_params.is_none());
 
-        for value in &e.values {
+        for value in &e.variants {
             xenum.values.push(value.name);
             let result = xenum.name_to_value.insert(value.name, enum_value_int);
             assert!(value.types.is_none());
@@ -50,7 +50,7 @@ impl<'x, 'ast> Visitor<'ast> for EnumCheck<'x, 'ast> {
             enum_value_int += 1;
         }
 
-        if e.values.is_empty() {
+        if e.variants.is_empty() {
             self.vm
                 .diag
                 .lock()
