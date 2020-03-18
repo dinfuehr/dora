@@ -381,7 +381,13 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.gen.set_position(expr.pos);
 
         let arg_start_reg = match *call_type {
-            CallType::CtorNew(_, _) | CallType::Method(_, _, _) => 1,
+            CallType::CtorNew(_, _) => 1,
+            CallType::Method(_, _, _) => {
+                let obj_expr = expr.object().expect("method target required");
+                self.visit_expr(obj_expr, DataDest::Reg(start_reg));
+
+                1
+            }
             _ => 0,
         };
 
@@ -412,10 +418,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                         unimplemented!();
                     }
                 }
-            }
-            CallType::Method(_, _, _) => {
-                let obj_expr = expr.object().expect("method target required");
-                self.visit_expr(obj_expr, DataDest::Reg(start_reg));
             }
             _ => {}
         };
