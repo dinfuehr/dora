@@ -1,4 +1,3 @@
-use crate::semck::specialize::specialize_for_call_type;
 use dora_parser::lexer::position::Position;
 use std::collections::HashMap;
 
@@ -397,10 +396,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
 
         match *call_type {
-            CallType::CtorNew(_, _) => {
-                let ty = fct.params_with_self()[0];
-                let ty = specialize_for_call_type(&call_type, ty, self.vm);
-                let ty = self.specialize_type(ty);
+            CallType::CtorNew(ty, _) => {
                 let cls_id = specialize_class_ty(self.vm, ty);
 
                 let cls = self.vm.class_defs.idx(cls_id);
