@@ -7,7 +7,8 @@ use std::ops::Index;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::vm::FileId;
+use crate::ty::BuiltinType;
+use crate::vm::{FileId, TypeParam};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct EnumId(u32);
@@ -32,6 +33,13 @@ pub struct EnumData {
     pub file: FileId,
     pub pos: Position,
     pub name: Name,
-    pub values: Vec<Name>,
+    pub type_params: Vec<TypeParam>,
+    pub variants: Vec<EnumVariant>,
     pub name_to_value: HashMap<Name, u32>,
+}
+
+#[derive(Debug)]
+pub struct EnumVariant {
+    pub name: Name,
+    pub types: Vec<BuiltinType>,
 }

@@ -2,7 +2,7 @@ use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{Ast, Enum};
 
 use crate::error::msg::SemError;
-use crate::vm::{EnumId, NodeMap, VM};
+use crate::vm::{EnumId, EnumVariant, NodeMap, VM};
 
 pub fn check<'ast>(vm: &mut VM<'ast>, ast: &'ast Ast, map_enum_defs: &NodeMap<EnumId>) {
     let mut enumck = EnumCheck {
@@ -35,7 +35,11 @@ impl<'x, 'ast> Visitor<'ast> for EnumCheck<'x, 'ast> {
         assert!(e.type_params.is_none());
 
         for value in &e.variants {
-            xenum.values.push(value.name);
+            let variant = EnumVariant {
+                name: value.name,
+                types: Vec::new(),
+            };
+            xenum.variants.push(variant);
             let result = xenum.name_to_value.insert(value.name, enum_value_int);
             assert!(value.types.is_none());
 

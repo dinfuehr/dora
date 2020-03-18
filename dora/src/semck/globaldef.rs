@@ -349,7 +349,8 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             file: self.file_id.into(),
             pos: e.pos,
             name: e.name,
-            values: Vec::new(),
+            type_params: Vec::new(),
+            variants: Vec::new(),
             name_to_value: HashMap::new(),
         };
 
