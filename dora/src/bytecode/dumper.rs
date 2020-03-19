@@ -102,6 +102,12 @@ impl<'a> BytecodeDumper<'a> {
         writeln!(self.w, " {}, {}", r1, cls.to_usize()).expect("write! failed");
     }
 
+    fn emit_new_array(&mut self, name: &str, r1: Register, cls: ClassDefId, length: Register) {
+        self.emit_start(name);
+        writeln!(self.w, " {}, {}, {}", r1, cls.to_usize(), length.to_usize())
+            .expect("write! failed");
+    }
+
     fn emit_start(&mut self, name: &str) {
         write!(self.w, "{}: {}", self.pos.to_usize(), name).expect("write! failed");
     }
@@ -909,6 +915,9 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
 
     fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {
         self.emit_new("NewObject", dest, cls);
+    }
+    fn visit_new_array(&mut self, dest: Register, cls: ClassDefId, length: Register) {
+        self.emit_new_array("NewArray", dest, cls, length);
     }
 
     fn visit_ret_void(&mut self) {

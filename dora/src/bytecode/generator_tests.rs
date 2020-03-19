@@ -6,7 +6,7 @@ use crate::bytecode::{
     self, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolIdx, Register,
 };
 use crate::test;
-use crate::ty::TypeList;
+use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{ClassDefId, FctDefId, FieldId, GlobalId, VM};
 use dora_parser::lexer::position::Position;
 
@@ -2464,6 +2464,33 @@ fn gen_position_new_object() {
 }
 
 #[test]
+fn gen_new_array() {
+    gen(
+        "fun f() -> Array[Int] { return Array[Int](1); }",
+        |vm, code| {
+            let cls_id = vm
+                .cls_def_by_name_with_type_params("Array", TypeList::with(vec![BuiltinType::Int]));
+            let ctor_id = vm
+                .ctor_def_by_name_with_type_params("Array", TypeList::with(vec![BuiltinType::Int]));
+            let expected = vec![
+                ConstInt(r(1), 1),
+                NewArray(r(0), cls_id, r(1)),
+                InvokeDirectVoid(ctor_id, r(0), 2),
+                RetPtr(r(0)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_position_new_array() {
+    let result = position("fun f() -> Array[Int] { return Array[Int](1); }");
+    let expected = vec![(3, p(1, 42))];
+    assert_eq!(expected, result);
+}
+
+#[test]
 fn gen_new_object_with_multiple_args() {
     gen(
         "
@@ -2474,10 +2501,10 @@ fn gen_new_object_with_multiple_args() {
             let cls_id = vm.cls_def_by_name("Foo");
             let ctor_id = vm.ctor_def_by_name("Foo");
             let expected = vec![
-                NewObject(r(0), cls_id),
                 ConstInt(r(1), 1),
                 ConstInt(r(2), 2),
                 ConstInt(r(3), 3),
+                NewObject(r(0), cls_id),
                 InvokeDirectVoid(ctor_id, r(0), 4),
                 RetPtr(r(0)),
             ];
@@ -2493,7 +2520,7 @@ fn gen_position_new_object_with_multiple_args() {
             class Foo(a: Int, b: Int, c: Int)
             fun f() -> Foo { return Foo(1, 2, 3); }",
     );
-    let expected = vec![(0, p(3, 40))];
+    let expected = vec![(9, p(3, 40))];
     assert_eq!(expected, result);
 }
 
@@ -2892,6 +2919,7 @@ pub enum Bytecode {
     InvokeStaticPtr(Register, FctDefId, Register, u32),
 
     NewObject(Register, ClassDefId),
+    NewArray(Register, ClassDefId, Register),
 
     RetVoid,
     RetBool(Register),
@@ -3788,6 +3816,9 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
 
     fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {
         self.emit(Bytecode::NewObject(dest, cls));
+    }
+    fn visit_new_array(&mut self, dest: Register, cls: ClassDefId, length: Register) {
+        self.emit(Bytecode::NewArray(dest, cls, length));
     }
 
     fn visit_ret_void(&mut self) {

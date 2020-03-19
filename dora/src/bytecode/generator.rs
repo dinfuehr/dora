@@ -9,6 +9,7 @@ use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 use crate::bytecode::{BytecodeFunction, BytecodeType, BytecodeWriter, Label, Register};
 use crate::semck::expr_block_always_returns;
 use crate::semck::specialize::{specialize_class_ty, specialize_type};
+use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{
     CallType, Fct, FctDef, FctDefId, FctId, FctKind, FctSrc, IdentType, Intrinsic, VarId, VM,
@@ -377,24 +378,46 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             Register::zero()
         };
         self.gen.set_position(expr.pos);
+
         let arg_start_reg = match *call_type {
-            CallType::CtorNew(ty, _) => {
-                let cls_id = specialize_class_ty(self.vm, ty);
-                self.gen.emit_new_object(start_reg, cls_id);
-                start_reg.offset(1)
-            }
+            CallType::CtorNew(_, _) => 1,
             CallType::Method(_, _, _) => {
                 let obj_expr = expr.object().expect("method target required");
                 self.visit_expr(obj_expr, DataDest::Reg(start_reg));
-                start_reg.offset(1)
+
+                1
             }
-            _ => start_reg,
+            _ => 0,
         };
 
         for (idx, arg) in expr.args.iter().enumerate() {
-            let arg_reg = arg_start_reg.offset(idx);
+            let arg_reg = start_reg.offset(idx + arg_start_reg);
             self.visit_expr(arg, DataDest::Reg(arg_reg));
         }
+
+        match *call_type {
+            CallType::CtorNew(ty, _) => {
+                let cls_id = specialize_class_ty(self.vm, ty);
+
+                let cls = self.vm.class_defs.idx(cls_id);
+                let cls = cls.read();
+
+                match cls.size {
+                    InstanceSize::Fixed(_) => {
+                        self.gen.emit_new_object(start_reg, cls_id);
+                    }
+                    InstanceSize::Array(_) => {
+                        let length_arg = start_reg.offset(1);
+                        self.gen.emit_new_array(start_reg, cls_id, length_arg);
+                    }
+                    _ => {
+                        unimplemented!();
+                    }
+                }
+            }
+            _ => {}
+        }
+
         self.gen.set_position(expr.pos);
 
         match *call_type {

@@ -385,6 +385,19 @@ impl<'ast> VM<'ast> {
         specialize_class_id(self, cls_id)
     }
 
+    pub fn cls_def_by_name_with_type_params(
+        &self,
+        name: &'static str,
+        cls_type_params: TypeList,
+    ) -> ClassDefId {
+        use crate::semck::specialize::specialize_class_id_params;
+
+        let name = self.interner.intern(name);
+        let cls_id = self.sym.lock().get_class(name).expect("class not found");
+
+        specialize_class_id_params(self, cls_id, &cls_type_params)
+    }
+
     pub fn field_in_class(&self, cls_def_id: ClassDefId, name: &'static str) -> FieldId {
         let cls_def = self.class_defs.idx(cls_def_id);
         let cls_def = cls_def.read();
@@ -464,6 +477,30 @@ impl<'ast> VM<'ast> {
             .specializations
             .read()
             .get(&(TypeList::Empty, TypeList::Empty))
+            .and_then(|fct_def_id| Some(*fct_def_id))
+            .expect("no ctor definition found");
+
+        fct_def
+    }
+
+    #[cfg(test)]
+    pub fn ctor_def_by_name_with_type_params(
+        &self,
+        name: &str,
+        cls_type_params: TypeList,
+    ) -> FctDefId {
+        let name = self.interner.intern(name);
+        let cls_id = self.sym.lock().get_class(name).expect("class not found");
+        let cls = self.classes.idx(cls_id);
+        let cls = cls.read();
+
+        let fct_id = cls.constructor.expect("no ctor found");
+        let fct = self.fcts.idx(fct_id);
+        let fct = fct.read();
+        let fct_def = fct
+            .specializations
+            .read()
+            .get(&(cls_type_params, TypeList::empty()))
             .and_then(|fct_def_id| Some(*fct_def_id))
             .expect("no ctor definition found");
 
