@@ -13,6 +13,7 @@ use crate::gc::Address;
 use crate::masm::*;
 use crate::mem;
 use crate::object::{Header, Str};
+use crate::semck::specialize::specialize_type;
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, MachineMode, TypeList};
 use crate::vm::{ClassDefId, Fct, FctDefId, FctId, FctKind, FctSrc, FieldId, GlobalId, Trap, VM};
@@ -136,39 +137,49 @@ where
         let mut sp_offset = 16;
         let mut idx = 0;
 
-        for param in self.fct.params_with_self() {
+        for &param_ty in self.fct.params_with_self() {
+            let param_ty = self.specialize_type(param_ty);
+
+            if param_ty.is_unit() {
+                continue;
+            }
+
             let dest = Register(idx);
-            assert_eq!(self.bytecode.register_type(dest), (*param).into());
+            assert_eq!(self.bytecode.register_type(dest), param_ty.into());
 
-            // let bytecode_type = bytecode.register_type(dest);
             let offset = self.bytecode.register_offset(dest);
+            let mode = param_ty.mode();
 
-            let reg = match param.mode().is_float() {
-                true if freg_idx < FREG_PARAMS.len() => {
+            let register = if mode.is_float() {
+                if freg_idx < FREG_PARAMS.len() {
                     let freg = FREG_PARAMS[freg_idx].into();
                     freg_idx += 1;
                     Some(freg)
+                } else {
+                    None
                 }
-                false if reg_idx < REG_PARAMS.len() => {
+            } else {
+                if reg_idx < REG_PARAMS.len() {
                     let reg = REG_PARAMS[reg_idx].into();
                     reg_idx += 1;
                     Some(reg)
+                } else {
+                    None
                 }
-                _ => None,
             };
 
-            match reg {
+            match register {
                 Some(dest) => {
-                    self.asm.store_mem(param.mode(), Mem::Local(offset), dest);
+                    self.asm.store_mem(mode, Mem::Local(offset), dest);
                 }
                 None => {
-                    let dest = if param.mode().is_float() {
+                    let dest = if mode.is_float() {
                         FREG_RESULT.into()
                     } else {
                         REG_RESULT.into()
                     };
-                    self.asm.load_mem(param.mode(), dest, Mem::Local(sp_offset));
-                    self.asm.store_mem(param.mode(), Mem::Local(offset), dest);
+                    self.asm.load_mem(mode, dest, Mem::Local(sp_offset));
+                    self.asm.store_mem(mode, Mem::Local(offset), dest);
                     sp_offset += 8;
                 }
             }
@@ -1591,6 +1602,10 @@ where
                 FctKind::Builtin(_) => panic!("intrinsic fct call"),
             }
         }
+    }
+
+    fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
+        specialize_type(self.vm, ty, self.cls_type_params, self.fct_type_params)
     }
 }
 
