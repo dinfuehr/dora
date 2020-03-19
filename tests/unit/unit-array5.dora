@@ -1,0 +1,5 @@
+//= cannon
+
+fun main() {
+    let x = Array[()](7);
+}

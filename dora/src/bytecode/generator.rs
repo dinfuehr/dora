@@ -338,24 +338,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     fn visit_expr_call(&mut self, expr: &ExprCallType, dest: DataDest) -> Register {
         if let Some(intrinsic) = self.get_intrinsic(expr.id) {
-            match intrinsic {
-                Intrinsic::Assert => self.visit_expr_assert(expr, dest),
-                Intrinsic::IntRotateLeft
-                | Intrinsic::IntRotateRight
-                | Intrinsic::LongRotateLeft
-                | Intrinsic::LongRotateRight => {
-                    return self.emit_intrinsic_bin(
-                        expr.object().expect("value needed"),
-                        &*expr.args[0],
-                        intrinsic,
-                        None,
-                        expr.pos,
-                        dest,
-                    );
-                }
-                _ => unimplemented!(),
-            }
-            return Register::invalid();
+            return self.emit_intrinsic_call(expr, intrinsic, dest);
         }
 
         let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
@@ -438,7 +421,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     InstanceSize::Fixed(_) => {
                         self.gen.emit_new_object(start_reg, cls_id);
                     }
-                    InstanceSize::Array(_) => {
+                    InstanceSize::Array(_) | InstanceSize::UnitArray => {
                         let length_arg = start_reg.offset(1);
                         self.gen.emit_new_array(start_reg, cls_id, length_arg);
                     }
@@ -922,6 +905,32 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         } else {
             unimplemented!();
         }
+    }
+
+    fn emit_intrinsic_call(
+        &mut self,
+        expr: &ExprCallType,
+        intrinsic: Intrinsic,
+        dest: DataDest,
+    ) -> Register {
+        match intrinsic {
+            Intrinsic::Assert => self.visit_expr_assert(expr, dest),
+            Intrinsic::IntRotateLeft
+            | Intrinsic::IntRotateRight
+            | Intrinsic::LongRotateLeft
+            | Intrinsic::LongRotateRight => {
+                return self.emit_intrinsic_bin(
+                    expr.object().expect("value needed"),
+                    &*expr.args[0],
+                    intrinsic,
+                    None,
+                    expr.pos,
+                    dest,
+                );
+            }
+            _ => unimplemented!(),
+        }
+        return Register::invalid();
     }
 
     fn emit_bin_is(&mut self, expr: &ExprBinType, dest: DataDest) -> Register {

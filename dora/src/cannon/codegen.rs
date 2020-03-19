@@ -1236,14 +1236,12 @@ where
 
         let alloc_size = match cls.size {
             InstanceSize::Array(size) => {
-                if size == 0 {
-                    AllocationSize::Fixed(array_header_size)
-                } else {
-                    self.asm
-                        .determine_array_size(REG_TMP1, REG_TMP1, size, true);
-                    AllocationSize::Dynamic(REG_TMP1)
-                }
+                assert_ne!(size, 0);
+                self.asm
+                    .determine_array_size(REG_TMP1, REG_TMP1, size, true);
+                AllocationSize::Dynamic(REG_TMP1)
             }
+            InstanceSize::UnitArray => AllocationSize::Fixed(array_header_size),
             _ => unreachable!("class size type {:?} for new array not supported", cls.size),
         };
 
@@ -1305,6 +1303,7 @@ where
                     .int_add(MachineMode::Ptr, REG_TMP1, REG_TMP1, REG_RESULT);
                 self.asm.fill_zero_dynamic(REG_RESULT, REG_TMP1);
             }
+            InstanceSize::UnitArray => {}
             _ => unreachable!(),
         }
 
