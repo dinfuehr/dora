@@ -1,15 +1,16 @@
+//= cannon
 //= stdout "Foo\nsomeInt\nbar\n"
 
-@cannon class Foo() {
+class Foo() {
   println("Foo");
   fun bar(x: Int) { println("bar"); }
 }
 
-@cannon fun main() {
+fun main() {
   Foo().bar(someInt())
 }
 
-@cannon fun someInt() -> Int {
+fun someInt() -> Int {
   println("someInt");
   return 1;
 }
