@@ -2491,6 +2491,20 @@ fn gen_position_new_array() {
 }
 
 #[test]
+fn gen_array_length() {
+    let result = code("fun f(a: Array[Int]) -> Int { return a.length(); }");
+    let expected = vec![ArrayLength(r(1), r(0)), RetInt(r(1))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_array_length() {
+    let result = position("fun f(a: Array[Int]) -> Int { return a.length(); }");
+    let expected = vec![(0, p(1, 46))];
+    assert_eq!(expected, result);
+}
+
+#[test]
 fn gen_new_object_with_multiple_args() {
     gen(
         "
@@ -2953,6 +2967,9 @@ pub enum Bytecode {
 
     NewObject(Register, ClassDefId),
     NewArray(Register, ClassDefId, Register),
+
+    ArrayLength(Register, Register),
+    ArrayBoundCheck(Register),
 
     RetVoid,
     RetBool(Register),
