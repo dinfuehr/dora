@@ -1138,6 +1138,16 @@ where
                 self.visitor.visit_new_array(dest, cls, length);
             }
 
+            BytecodeOpcode::ArrayLength => {
+                let dest = self.read_register(wide);
+                let array = self.read_register(wide);
+                self.visitor.visit_array_length(dest, array);
+            }
+            BytecodeOpcode::ArrayBoundCheck => {
+                let array = self.read_register(wide);
+                self.visitor.visit_array_bound_check(array);
+            }
+
             BytecodeOpcode::RetVoid => {
                 self.visitor.visit_ret_void();
             }
@@ -2052,6 +2062,13 @@ pub trait BytecodeVisitor {
     }
 
     fn visit_new_array(&mut self, _dest: Register, _cls: ClassDefId, _length: Register) {
+        unimplemented!();
+    }
+
+    fn visit_array_length(&mut self, _dest: Register, _arr: Register) {
+        unimplemented!();
+    }
+    fn visit_array_bound_check(&mut self, _arr: Register) {
         unimplemented!();
     }
 

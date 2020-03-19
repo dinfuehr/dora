@@ -3884,6 +3884,13 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::NewArray(dest, cls, length));
     }
 
+    fn visit_array_length(&mut self, dest: Register, arr: Register) {
+        self.emit(Bytecode::ArrayLength(dest, arr));
+    }
+    fn visit_array_bound_check(&mut self, arr: Register) {
+        self.emit(Bytecode::ArrayBoundCheck(arr));
+    }
+
     fn visit_ret_void(&mut self) {
         self.emit(Bytecode::RetVoid);
     }
