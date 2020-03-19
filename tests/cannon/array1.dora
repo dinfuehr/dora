@@ -1,0 +1,9 @@
+fun main() {
+  let array = createArray(5);
+  assert(getLength(array) == 5);
+}
+
+
+@cannon fun createArray(a: Int) -> Array[Byte] { return Array[Byte](a); }
+
+@cannon fun getLength(a: Array[Byte]) -> Int { return a.length(); }
