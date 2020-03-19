@@ -1096,6 +1096,10 @@ impl BytecodeWriter {
         self.emit_new_arr(BytecodeOpcode::NewArray, dest, cls_id, length);
     }
 
+    pub fn emit_array_length(&mut self, dest: Register, array: Register) {
+        self.emit_reg2(BytecodeOpcode::ArrayLength, dest, array);
+    }
+
     pub fn generate(mut self) -> BytecodeFunction {
         self.resolve_forward_jumps();
 
