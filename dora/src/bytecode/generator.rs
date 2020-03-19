@@ -416,7 +416,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 }
             }
             _ => {}
-        };
+        }
 
         self.gen.set_position(expr.pos);
 
