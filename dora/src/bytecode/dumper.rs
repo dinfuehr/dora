@@ -104,8 +104,7 @@ impl<'a> BytecodeDumper<'a> {
 
     fn emit_new_array(&mut self, name: &str, r1: Register, cls: ClassDefId, length: Register) {
         self.emit_start(name);
-        writeln!(self.w, " {}, {}, {}", r1, cls.to_usize(), length.to_usize())
-            .expect("write! failed");
+        writeln!(self.w, " {}, {}, {}", r1, cls.to_usize(), length).expect("write! failed");
     }
 
     fn emit_start(&mut self, name: &str) {
