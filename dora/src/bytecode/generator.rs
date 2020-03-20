@@ -1078,18 +1078,18 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn emit_intrinsic_array_len(&mut self, arr: &Expr, pos: Position, dest: DataDest) -> Register {
-        if dest.is_effect() {
-            self.visit_expr(arr, dest);
-            return Register::invalid();
-        }
-
-        let dest = self.ensure_register(dest, BytecodeType::Int);
         let arr_reg = self.visit_expr(arr, DataDest::Alloc);
-
         self.gen.set_position(pos);
-        self.gen.emit_array_length(dest, arr_reg);
 
-        dest
+        if dest.is_effect() {
+            self.gen.emit_nil_check(arr_reg);
+            return Register::invalid();
+        } else {
+            let dest = self.ensure_register(dest, BytecodeType::Int);
+            self.gen.emit_array_length(dest, arr_reg);
+
+            return dest;
+        }
     }
 
     fn emit_intrinsic_bin(

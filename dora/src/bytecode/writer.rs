@@ -1091,9 +1091,12 @@ impl BytecodeWriter {
     pub fn emit_new_object(&mut self, dest: Register, cls_id: ClassDefId) {
         self.emit_new(BytecodeOpcode::NewObject, dest, cls_id);
     }
-
     pub fn emit_new_array(&mut self, dest: Register, cls_id: ClassDefId, length: Register) {
         self.emit_new_arr(BytecodeOpcode::NewArray, dest, cls_id, length);
+    }
+
+    pub fn emit_nil_check(&mut self, obj: Register) {
+        self.emit_reg1(BytecodeOpcode::NilCheck, obj);
     }
 
     pub fn emit_array_length(&mut self, dest: Register, array: Register) {

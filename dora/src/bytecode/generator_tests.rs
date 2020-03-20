@@ -2505,6 +2505,13 @@ fn gen_position_array_length() {
 }
 
 #[test]
+fn gen_array_length_effect() {
+    let result = code("fun f(a: Array[Int]) { a.length(); }");
+    let expected = vec![NilCheck(r(0)), RetVoid];
+    assert_eq!(expected, result);
+}
+
+#[test]
 fn gen_store_array_byte() {
     let result = code("fun f(a: Array[Byte], b: Byte) { a(0) = b; }");
     let expected = vec![
@@ -3055,6 +3062,8 @@ pub enum Bytecode {
 
     NewObject(Register, ClassDefId),
     NewArray(Register, ClassDefId, Register),
+
+    NilCheck(Register),
 
     ArrayLength(Register, Register),
     ArrayBoundCheck(Register, Register),
@@ -3988,6 +3997,10 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_new_array(&mut self, dest: Register, cls: ClassDefId, length: Register) {
         self.emit(Bytecode::NewArray(dest, cls, length));
+    }
+
+    fn visit_nil_check(&mut self, obj: Register) {
+        self.emit(Bytecode::NilCheck(obj));
     }
 
     fn visit_array_length(&mut self, dest: Register, arr: Register) {

@@ -322,6 +322,8 @@ pub enum BytecodeOpcode {
     NewObject,
     NewArray,
 
+    NilCheck,
+
     ArrayLength,
     ArrayBoundCheck,
 
@@ -406,6 +408,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeStaticPtr
             | BytecodeOpcode::NewObject
             | BytecodeOpcode::NewArray
+            | BytecodeOpcode::NilCheck
             | BytecodeOpcode::ArrayLength
             | BytecodeOpcode::ArrayBoundCheck
             | BytecodeOpcode::LoadArrayBool

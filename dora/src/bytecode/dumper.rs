@@ -933,6 +933,10 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_new_array("NewArray", dest, cls, length);
     }
 
+    fn visit_nil_check(&mut self, obj: Register) {
+        self.emit_reg1("NilCheck", obj);
+    }
+
     fn visit_load_array_bool(&mut self, dest: Register, arr: Register, idx: Register) {
         self.emit_reg3("LoadArrayBool", dest, arr, idx);
     }
