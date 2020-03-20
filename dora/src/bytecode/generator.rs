@@ -1517,6 +1517,13 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         cls_type_params: &TypeList,
         fct_type_params: &TypeList,
     ) -> FctDefId {
+        debug_assert!(cls_type_params
+            .iter()
+            .all(|ty| ty.is_concrete_type(self.vm)));
+        debug_assert!(fct_type_params
+            .iter()
+            .all(|ty| ty.is_concrete_type(self.vm)));
+
         let fct_def_id = self.vm.add_fct_def(FctDef {
             id: FctDefId(0),
             fct_id: fct.id,
