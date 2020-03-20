@@ -1277,6 +1277,7 @@ where
 
     fn emit_new_array(&mut self, dest: Register, class_def_id: ClassDefId, length: Register) {
         assert_eq!(self.bytecode.register_type(dest), BytecodeType::Ptr);
+        assert_eq!(self.bytecode.register_type(length), BytecodeType::Int);
 
         let cls = self.vm.class_defs.idx(class_def_id);
         let cls = cls.read();
@@ -1359,6 +1360,12 @@ where
 
         match cls.size {
             InstanceSize::Array(size) => {
+                self.asm.int_add_imm(
+                    MachineMode::Ptr,
+                    REG_RESULT,
+                    REG_RESULT,
+                    (Header::size() + mem::ptr_width()) as i64,
+                );
                 self.asm
                     .determine_array_size(REG_TMP1, REG_TMP1, size, false);
                 self.asm
