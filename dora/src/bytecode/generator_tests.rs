@@ -2505,6 +2505,94 @@ fn gen_position_array_length() {
 }
 
 #[test]
+fn gen_store_array_byte() {
+    let result = code("fun f(a: Array[Byte], b: Byte) { a(0) = b; }");
+    let expected = vec![
+        ConstZeroInt(Register(2)),
+        StoreArrayByte(r(1), r(0), r(2)),
+        RetVoid,
+    ];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_store_array_bool() {
+    let result = code("fun f(a: Array[Bool], b: Bool) { a(0) = b; }");
+    let expected = vec![
+        ConstZeroInt(Register(2)),
+        StoreArrayBool(r(1), r(0), r(2)),
+        RetVoid,
+    ];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_store_array_char() {
+    let result = code("fun f(a: Array[Char], b: Char) { a(0) = b; }");
+    let expected = vec![
+        ConstZeroInt(Register(2)),
+        StoreArrayChar(r(1), r(0), r(2)),
+        RetVoid,
+    ];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_store_array_int() {
+    let result = code("fun f(a: Array[Int], b: Int) { a(0) = b; }");
+    let expected = vec![
+        ConstZeroInt(Register(2)),
+        StoreArrayInt(r(1), r(0), r(2)),
+        RetVoid,
+    ];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_store_array_long() {
+    let result = code("fun f(a: Array[Long], b: Long) { a(0) = b; }");
+    let expected = vec![
+        ConstZeroInt(Register(2)),
+        StoreArrayLong(r(1), r(0), r(2)),
+        RetVoid,
+    ];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_store_array_float() {
+    let result = code("fun f(a: Array[Float], b: Float) { a(0) = b; }");
+    let expected = vec![
+        ConstZeroInt(Register(2)),
+        StoreArrayFloat(r(1), r(0), r(2)),
+        RetVoid,
+    ];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_store_array_double() {
+    let result = code("fun f(a: Array[Double], b: Double) { a(0) = b; }");
+    let expected = vec![
+        ConstZeroInt(Register(2)),
+        StoreArrayDouble(r(1), r(0), r(2)),
+        RetVoid,
+    ];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_store_array_ptr() {
+    let result = code("fun f(a: Array[Object], b: Object) { a(0) = b; }");
+    let expected = vec![
+        ConstZeroInt(Register(2)),
+        StoreArrayPtr(r(1), r(0), r(2)),
+        RetVoid,
+    ];
+    assert_eq!(expected, result);
+}
+
+#[test]
 fn gen_new_object_with_multiple_args() {
     gen(
         "
@@ -2970,6 +3058,24 @@ pub enum Bytecode {
 
     ArrayLength(Register, Register),
     ArrayBoundCheck(Register, Register),
+
+    LoadArrayBool(Register, Register, Register),
+    LoadArrayByte(Register, Register, Register),
+    LoadArrayChar(Register, Register, Register),
+    LoadArrayInt(Register, Register, Register),
+    LoadArrayLong(Register, Register, Register),
+    LoadArrayFloat(Register, Register, Register),
+    LoadArrayDouble(Register, Register, Register),
+    LoadArrayPtr(Register, Register, Register),
+
+    StoreArrayBool(Register, Register, Register),
+    StoreArrayByte(Register, Register, Register),
+    StoreArrayChar(Register, Register, Register),
+    StoreArrayInt(Register, Register, Register),
+    StoreArrayLong(Register, Register, Register),
+    StoreArrayFloat(Register, Register, Register),
+    StoreArrayDouble(Register, Register, Register),
+    StoreArrayPtr(Register, Register, Register),
 
     RetVoid,
     RetBool(Register),
@@ -3889,6 +3995,56 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_array_bound_check(&mut self, arr: Register, idx: Register) {
         self.emit(Bytecode::ArrayBoundCheck(arr, idx));
+    }
+
+    fn visit_load_array_bool(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit(Bytecode::LoadArrayBool(dest, arr, idx));
+    }
+    fn visit_load_array_byte(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit(Bytecode::LoadArrayByte(dest, arr, idx));
+    }
+    fn visit_load_array_char(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit(Bytecode::LoadArrayChar(dest, arr, idx));
+    }
+    fn visit_load_array_int(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit(Bytecode::LoadArrayInt(dest, arr, idx));
+    }
+    fn visit_load_array_long(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit(Bytecode::LoadArrayLong(dest, arr, idx));
+    }
+    fn visit_load_array_float(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit(Bytecode::LoadArrayFloat(dest, arr, idx));
+    }
+    fn visit_load_array_double(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit(Bytecode::LoadArrayDouble(dest, arr, idx));
+    }
+    fn visit_load_array_ptr(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit(Bytecode::LoadArrayPtr(dest, arr, idx));
+    }
+
+    fn visit_store_array_bool(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit(Bytecode::StoreArrayBool(src, arr, idx));
+    }
+    fn visit_store_array_byte(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit(Bytecode::StoreArrayByte(src, arr, idx));
+    }
+    fn visit_store_array_char(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit(Bytecode::StoreArrayChar(src, arr, idx));
+    }
+    fn visit_store_array_int(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit(Bytecode::StoreArrayInt(src, arr, idx));
+    }
+    fn visit_store_array_long(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit(Bytecode::StoreArrayLong(src, arr, idx));
+    }
+    fn visit_store_array_float(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit(Bytecode::StoreArrayFloat(src, arr, idx));
+    }
+    fn visit_store_array_double(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit(Bytecode::StoreArrayDouble(src, arr, idx));
+    }
+    fn visit_store_array_ptr(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit(Bytecode::StoreArrayPtr(src, arr, idx));
     }
 
     fn visit_ret_void(&mut self) {
