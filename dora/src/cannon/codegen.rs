@@ -1372,6 +1372,18 @@ where
         self.references.push(offset);
     }
 
+    fn emit_nil_check(&mut self, obj: Register) {
+        assert_eq!(self.bytecode.register_type(obj), BytecodeType::Ptr);
+
+        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+        let offset = self.bytecode.register_offset(obj);
+
+        self.asm
+            .load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Local(offset));
+        self.asm
+            .test_if_nil_bailout(position, REG_RESULT, Trap::NIL);
+    }
+
     fn emit_array_length(&mut self, dest: Register, arr: Register) {
         assert_eq!(self.bytecode.register_type(dest), BytecodeType::Int);
         assert_eq!(self.bytecode.register_type(arr), BytecodeType::Ptr);
@@ -2624,9 +2636,12 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {
         self.emit_new_object(dest, cls)
     }
-
     fn visit_new_array(&mut self, dest: Register, cls: ClassDefId, length: Register) {
         self.emit_new_array(dest, cls, length);
+    }
+
+    fn visit_nil_check(&mut self, obj: Register) {
+        self.emit_nil_check(obj);
     }
 
     fn visit_array_length(&mut self, _dest: Register, _arr: Register) {
