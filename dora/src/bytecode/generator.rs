@@ -1013,7 +1013,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     dest,
                 );
             }
-            _ => unimplemented!(),
+            _ => {
+                panic!("unimplemented intrinsic {:?}", intrinsic);
+            }
         }
     }
 
