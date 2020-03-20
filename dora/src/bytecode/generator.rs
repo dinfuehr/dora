@@ -1439,11 +1439,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                         }
                     }
                 }
-                ExprCall(ref _call) => {
+                ExprCall(ref call) => {
                     if let Some(intrinsic) = self.get_intrinsic(expr.id) {
                         match intrinsic {
                             Intrinsic::GenericArraySet => {
-                                let object = &_call.callee;
+                                let object = &call.callee;
 
                                 let ty = self.src.ty(object.id());
                                 let ty = self.specialize_type(ty);
@@ -1452,7 +1452,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                                 let ty: BytecodeType = ty.into();
 
                                 let arr = self.visit_expr(object, DataDest::Alloc);
-                                let idx = self.visit_expr(&_call.args[0], DataDest::Alloc);
+                                let idx = self.visit_expr(&call.args[0], DataDest::Alloc);
                                 let src = self.visit_expr(&expr.rhs, DataDest::Alloc);
 
                                 self.gen.set_position(expr.pos);
