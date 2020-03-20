@@ -163,6 +163,19 @@ pub enum BytecodeOpcode {
     ReinterpretDoubleAsLong,
     ReinterpretLongAsDouble,
 
+    ExtendIntToLong,
+    CastLongToInt,
+
+    ConvertIntToFloat,
+    ConvertIntToDouble,
+    ConvertLongToFloat,
+    ConvertLongToDouble,
+
+    TruncateFloatToInt,
+    TruncateFloatToLong,
+    TruncateDoubleToInt,
+    TruncateDoubleToLong,
+
     MovBool,
     MovByte,
     MovChar,

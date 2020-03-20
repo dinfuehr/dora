@@ -998,23 +998,100 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
                 dest
             }
-            Intrinsic::GenericArrayLen => {
-                return self.emit_intrinsic_array_len(
-                    expr.object().expect("array required"),
-                    expr.pos,
-                    dest,
-                );
-            }
+            Intrinsic::GenericArrayLen => self.emit_intrinsic_array_len(
+                expr.object().expect("array required"),
+                expr.pos,
+                dest,
+            ),
             Intrinsic::GenericArrayGet => {
-                return self.emit_intrinsic_array_get(
-                    &*expr.callee,
-                    &*expr.args[0],
-                    expr.pos,
-                    dest,
-                );
+                self.emit_intrinsic_array_get(&*expr.callee, &*expr.args[0], expr.pos, dest)
+            }
+            Intrinsic::FloatIsNan => {
+                let dest = self.ensure_register(dest, BytecodeType::Bool);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_test_ne_float(dest, src, src);
+
+                dest
+            }
+            Intrinsic::DoubleIsNan => {
+                let dest = self.ensure_register(dest, BytecodeType::Bool);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_test_ne_double(dest, src, src);
+
+                dest
+            }
+            Intrinsic::IntToLong => {
+                let dest = self.ensure_register(dest, BytecodeType::Long);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_extend_int_to_long(dest, src);
+
+                dest
+            }
+            Intrinsic::LongToInt => {
+                let dest = self.ensure_register(dest, BytecodeType::Int);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_cast_long_to_int(dest, src);
+
+                dest
+            }
+            Intrinsic::IntToFloat => {
+                let dest = self.ensure_register(dest, BytecodeType::Float);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_convert_int_to_float(dest, src);
+
+                dest
+            }
+            Intrinsic::IntToDouble => {
+                let dest = self.ensure_register(dest, BytecodeType::Double);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_convert_int_to_double(dest, src);
+
+                dest
+            }
+            Intrinsic::LongToFloat => {
+                let dest = self.ensure_register(dest, BytecodeType::Float);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_convert_long_to_float(dest, src);
+
+                dest
+            }
+            Intrinsic::LongToDouble => {
+                let dest = self.ensure_register(dest, BytecodeType::Double);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_convert_long_to_double(dest, src);
+
+                dest
+            }
+            Intrinsic::FloatToInt => {
+                let dest = self.ensure_register(dest, BytecodeType::Int);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_truncate_float_to_int(dest, src);
+
+                dest
+            }
+            Intrinsic::FloatToLong => {
+                let dest = self.ensure_register(dest, BytecodeType::Long);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_truncate_float_to_long(dest, src);
+
+                dest
+            }
+            Intrinsic::DoubleToInt => {
+                let dest = self.ensure_register(dest, BytecodeType::Int);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_truncate_double_to_int(dest, src);
+
+                dest
+            }
+            Intrinsic::DoubleToLong => {
+                let dest = self.ensure_register(dest, BytecodeType::Long);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_truncate_double_to_long(dest, src);
+
+                dest
             }
             _ => {
-                panic!("unimplemented intrinsic {:?}", intrinsic);
+                panic!("unimplemented intrinsic {:?} at {}", intrinsic, expr.pos);
             }
         }
     }

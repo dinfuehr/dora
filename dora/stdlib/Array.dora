@@ -48,7 +48,7 @@ fun arrayFill[T](len: Int, value: T) -> Array[T] {
   var i = 0;
 
   while i < len {
-    array.set(i, value);
+    array(i) = value;
     i = i + 1;
   }
 

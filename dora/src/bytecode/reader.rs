@@ -311,6 +311,59 @@ where
                 self.visitor.visit_reinterpret_long_as_double(dest, src);
             }
 
+            BytecodeOpcode::ExtendIntToLong => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_extend_int_to_long(dest, src);
+            }
+            BytecodeOpcode::CastLongToInt => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_cast_long_to_int(dest, src);
+            }
+
+            BytecodeOpcode::ConvertIntToFloat => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_convert_int_to_float(dest, src);
+            }
+            BytecodeOpcode::ConvertIntToDouble => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_convert_int_to_double(dest, src);
+            }
+            BytecodeOpcode::ConvertLongToFloat => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_convert_long_to_float(dest, src);
+            }
+            BytecodeOpcode::ConvertLongToDouble => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_convert_long_to_double(dest, src);
+            }
+
+            BytecodeOpcode::TruncateFloatToInt => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_truncate_float_to_int(dest, src);
+            }
+            BytecodeOpcode::TruncateFloatToLong => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_truncate_float_to_long(dest, src);
+            }
+            BytecodeOpcode::TruncateDoubleToInt => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_truncate_double_to_int(dest, src);
+            }
+            BytecodeOpcode::TruncateDoubleToLong => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_truncate_double_to_long(dest, src);
+            }
+
             BytecodeOpcode::MovBool => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
@@ -1504,6 +1557,39 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_reinterpret_long_as_double(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+
+    fn visit_extend_int_to_long(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_cast_long_to_int(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+
+    fn visit_convert_int_to_float(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_convert_int_to_double(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_convert_long_to_float(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_convert_long_to_double(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+
+    fn visit_truncate_float_to_int(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_truncate_float_to_long(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_truncate_double_to_int(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_truncate_double_to_long(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
 

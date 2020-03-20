@@ -3036,6 +3036,90 @@ fn gen_reinterpret_long_as_double() {
     assert_eq!(expected, result);
 }
 
+#[test]
+fn gen_float_is_nan() {
+    let result = code("fun f(a: Float) -> Bool { a.isNan() }");
+    let expected = vec![TestNeFloat(r(1), r(0), r(0)), RetBool(r(1))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_double_is_nan() {
+    let result = code("fun f(a: Double) -> Bool { a.isNan() }");
+    let expected = vec![TestNeDouble(r(1), r(0), r(0)), RetBool(r(1))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_extend_int_to_long() {
+    let result = code("fun f(a: Int) -> Long { a.toLong() }");
+    let expected = vec![ExtendIntToLong(r(1), r(0)), RetLong(r(1))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_cast_long_to_int() {
+    let result = code("fun f(a: Long) -> Int { a.toInt() }");
+    let expected = vec![CastLongToInt(r(1), r(0)), RetInt(r(1))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_convert_int_to_float() {
+    let result = code("fun f(a: Int) -> Float { a.toFloat() }");
+    let expected = vec![ConvertIntToFloat(r(1), r(0)), RetFloat(r(1))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_convert_int_to_double() {
+    let result = code("fun f(a: Int) -> Double { a.toDouble() }");
+    let expected = vec![ConvertIntToDouble(r(1), r(0)), RetDouble(r(1))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_convert_long_to_float() {
+    let result = code("fun f(a: Long) -> Float { a.toFloat() }");
+    let expected = vec![ConvertLongToFloat(r(1), r(0)), RetFloat(r(1))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_convert_long_to_double() {
+    let result = code("fun f(a: Long) -> Double { a.toDouble() }");
+    let expected = vec![ConvertLongToDouble(r(1), r(0)), RetDouble(r(1))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_truncate_float_to_int() {
+    let result = code("fun f(a: Float) -> Int { a.toInt() }");
+    let expected = vec![TruncateFloatToInt(r(1), r(0)), RetInt(r(1))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_truncate_float_to_long() {
+    let result = code("fun f(a: Float) -> Long { a.toLong() }");
+    let expected = vec![TruncateFloatToLong(r(1), r(0)), RetLong(r(1))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_truncate_double_to_int() {
+    let result = code("fun f(a: Double) -> Int { a.toInt() }");
+    let expected = vec![TruncateDoubleToInt(r(1), r(0)), RetInt(r(1))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_truncate_double_to_long() {
+    let result = code("fun f(a: Double) -> Long { a.toLong() }");
+    let expected = vec![TruncateDoubleToLong(r(1), r(0)), RetLong(r(1))];
+    assert_eq!(expected, result);
+}
+
 fn p(line: u32, column: u32) -> Position {
     Position { line, column }
 }
@@ -3102,6 +3186,19 @@ pub enum Bytecode {
     ReinterpretIntAsFloat(Register, Register),
     ReinterpretDoubleAsLong(Register, Register),
     ReinterpretLongAsDouble(Register, Register),
+
+    ExtendIntToLong(Register, Register),
+    CastLongToInt(Register, Register),
+
+    ConvertIntToFloat(Register, Register),
+    ConvertIntToDouble(Register, Register),
+    ConvertLongToFloat(Register, Register),
+    ConvertLongToDouble(Register, Register),
+
+    TruncateFloatToInt(Register, Register),
+    TruncateFloatToLong(Register, Register),
+    TruncateDoubleToInt(Register, Register),
+    TruncateDoubleToLong(Register, Register),
 
     MovBool(Register, Register),
     MovByte(Register, Register),
@@ -3498,6 +3595,39 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_reinterpret_long_as_double(&mut self, dest: Register, src: Register) {
         self.emit(Bytecode::ReinterpretLongAsDouble(dest, src));
+    }
+
+    fn visit_extend_int_to_long(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::ExtendIntToLong(dest, src));
+    }
+    fn visit_cast_long_to_int(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::CastLongToInt(dest, src));
+    }
+
+    fn visit_convert_int_to_float(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::ConvertIntToFloat(dest, src));
+    }
+    fn visit_convert_int_to_double(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::ConvertIntToDouble(dest, src));
+    }
+    fn visit_convert_long_to_float(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::ConvertLongToFloat(dest, src));
+    }
+    fn visit_convert_long_to_double(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::ConvertLongToDouble(dest, src));
+    }
+
+    fn visit_truncate_float_to_int(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::TruncateFloatToInt(dest, src));
+    }
+    fn visit_truncate_float_to_long(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::TruncateFloatToLong(dest, src));
+    }
+    fn visit_truncate_double_to_int(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::TruncateDoubleToInt(dest, src));
+    }
+    fn visit_truncate_double_to_long(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::TruncateDoubleToLong(dest, src));
     }
 
     fn visit_mov_bool(&mut self, dest: Register, src: Register) {

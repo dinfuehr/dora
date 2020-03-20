@@ -837,6 +837,85 @@ where
             .store_mem(dest_type.mode(), Mem::Local(offset), dest_register.into());
     }
 
+    fn emit_int_to_long(&mut self, dest: Register, src: Register) {
+        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Long);
+        assert_eq!(self.bytecode.register_type(src), BytecodeType::Int);
+
+        let offset = self.bytecode.register_offset(src);
+        self.asm
+            .load_mem(MachineMode::Int32, REG_RESULT.into(), Mem::Local(offset));
+        self.asm.extend_int_long(REG_RESULT, REG_RESULT);
+
+        let offset = self.bytecode.register_offset(dest);
+        self.asm
+            .store_mem(MachineMode::Int64, Mem::Local(offset), REG_RESULT.into());
+    }
+
+    fn emit_long_to_int(&mut self, dest: Register, src: Register) {
+        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Long);
+        assert_eq!(self.bytecode.register_type(src), BytecodeType::Int);
+
+        let offset = self.bytecode.register_offset(src);
+        self.asm
+            .load_mem(MachineMode::Int64, REG_RESULT.into(), Mem::Local(offset));
+
+        let offset = self.bytecode.register_offset(dest);
+        self.asm
+            .store_mem(MachineMode::Int32, Mem::Local(offset), REG_RESULT.into());
+    }
+
+    fn emit_int_to_float(&mut self, dest: Register, src: Register) {
+        let src_type = self.bytecode.register_type(src);
+        let dest_type = self.bytecode.register_type(dest);
+
+        let (dest_mode, src_mode) = match (dest_type, src_type) {
+            (BytecodeType::Float, BytecodeType::Int) => (MachineMode::Float32, MachineMode::Int32),
+            (BytecodeType::Float, BytecodeType::Long) => (MachineMode::Float32, MachineMode::Int64),
+            (BytecodeType::Double, BytecodeType::Int) => (MachineMode::Float64, MachineMode::Int32),
+            (BytecodeType::Double, BytecodeType::Long) => {
+                (MachineMode::Float64, MachineMode::Int64)
+            }
+            _ => unreachable!(),
+        };
+
+        let offset = self.bytecode.register_offset(src);
+        self.asm
+            .load_mem(src_mode, REG_RESULT.into(), Mem::Local(offset));
+
+        self.asm
+            .int_to_float(dest_mode, FREG_RESULT, src_mode, REG_RESULT);
+
+        let offset = self.bytecode.register_offset(dest);
+        self.asm
+            .store_mem(dest_mode, Mem::Local(offset), FREG_RESULT.into());
+    }
+
+    fn emit_float_to_int(&mut self, dest: Register, src: Register) {
+        let src_type = self.bytecode.register_type(src);
+        let dest_type = self.bytecode.register_type(dest);
+
+        let (dest_mode, src_mode) = match (dest_type, src_type) {
+            (BytecodeType::Int, BytecodeType::Float) => (MachineMode::Int32, MachineMode::Float32),
+            (BytecodeType::Int, BytecodeType::Double) => (MachineMode::Int32, MachineMode::Float64),
+            (BytecodeType::Long, BytecodeType::Float) => (MachineMode::Int64, MachineMode::Float32),
+            (BytecodeType::Long, BytecodeType::Double) => {
+                (MachineMode::Int64, MachineMode::Float64)
+            }
+            _ => unreachable!(),
+        };
+
+        let offset = self.bytecode.register_offset(src);
+        self.asm
+            .load_mem(src_mode, FREG_RESULT.into(), Mem::Local(offset));
+
+        self.asm
+            .float_to_int(dest_mode, REG_RESULT, src_mode, FREG_RESULT);
+
+        let offset = self.bytecode.register_offset(dest);
+        self.asm
+            .store_mem(dest_mode, Mem::Local(offset), REG_RESULT.into());
+    }
+
     fn emit_mov_generic(&mut self, dest: Register, src: Register) {
         assert_eq!(
             self.bytecode.register_type(src),
@@ -1436,26 +1515,30 @@ where
                 .check_index_out_of_bounds(position, REG_RESULT, REG_TMP1);
         }
 
-        let bytecode_type = self.bytecode.register_type(src);
+        let src_type = self.bytecode.register_type(src);
         let src_offset = self.bytecode.register_offset(src);
-        self.asm.load_mem(
-            bytecode_type.mode(),
-            REG_TMP2.into(),
-            Mem::Local(src_offset),
-        );
+
+        let value_reg: AnyReg = if src_type.mode().is_float() {
+            FREG_RESULT.into()
+        } else {
+            REG_TMP2.into()
+        };
+
+        self.asm
+            .load_mem(src_type.mode(), value_reg, Mem::Local(src_offset));
 
         self.asm.store_mem(
-            bytecode_type.mode(),
+            src_type.mode(),
             Mem::Index(
                 REG_RESULT,
                 REG_TMP1,
-                bytecode_type.mode().size(),
+                src_type.mode().size(),
                 offset_of_array_data(),
             ),
-            REG_TMP2.into(),
+            value_reg,
         );
 
-        if self.vm.gc.needs_write_barrier() && bytecode_type.is_ptr() {
+        if self.vm.gc.needs_write_barrier() && src_type.is_ptr() {
             let card_table_offset = self.vm.gc.card_table_offset();
             let scratch = self.asm.get_scratch();
             self.asm.lea(
@@ -1463,7 +1546,7 @@ where
                 Mem::Index(
                     REG_RESULT,
                     REG_TMP1,
-                    bytecode_type.mode().size(),
+                    src_type.mode().size(),
                     offset_of_array_data(),
                 ),
             );
@@ -1493,16 +1576,14 @@ where
                 .check_index_out_of_bounds(position, REG_RESULT, REG_TMP1);
         }
 
-        let bytecode_type = self.bytecode.register_type(dest);
+        let dest_type = self.bytecode.register_type(dest);
         let dest_offset = self.bytecode.register_offset(dest);
 
+        let register = result_reg(dest_type);
         self.asm
-            .load_array_elem(bytecode_type.mode(), REG_TMP2.into(), REG_RESULT, REG_TMP1);
-        self.asm.store_mem(
-            bytecode_type.mode(),
-            Mem::Local(dest_offset),
-            REG_TMP2.into(),
-        );
+            .load_array_elem(dest_type.mode(), register, REG_RESULT, REG_TMP1);
+        self.asm
+            .store_mem(dest_type.mode(), Mem::Local(dest_offset), register);
     }
 
     fn emit_invoke_virtual_void(&mut self, fct_id: FctDefId, start_reg: Register, num: u32) {
@@ -1957,6 +2038,39 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
     fn visit_reinterpret_long_as_double(&mut self, dest: Register, src: Register) {
         self.emit_reinterpret(dest, src);
+    }
+
+    fn visit_extend_int_to_long(&mut self, dest: Register, src: Register) {
+        self.emit_int_to_long(dest, src);
+    }
+    fn visit_cast_long_to_int(&mut self, dest: Register, src: Register) {
+        self.emit_long_to_int(dest, src);
+    }
+
+    fn visit_convert_int_to_float(&mut self, dest: Register, src: Register) {
+        self.emit_int_to_float(dest, src);
+    }
+    fn visit_convert_int_to_double(&mut self, dest: Register, src: Register) {
+        self.emit_int_to_float(dest, src);
+    }
+    fn visit_convert_long_to_float(&mut self, dest: Register, src: Register) {
+        self.emit_int_to_float(dest, src);
+    }
+    fn visit_convert_long_to_double(&mut self, dest: Register, src: Register) {
+        self.emit_int_to_float(dest, src);
+    }
+
+    fn visit_truncate_float_to_int(&mut self, dest: Register, src: Register) {
+        self.emit_float_to_int(dest, src);
+    }
+    fn visit_truncate_float_to_long(&mut self, dest: Register, src: Register) {
+        self.emit_float_to_int(dest, src);
+    }
+    fn visit_truncate_double_to_int(&mut self, dest: Register, src: Register) {
+        self.emit_float_to_int(dest, src);
+    }
+    fn visit_truncate_double_to_long(&mut self, dest: Register, src: Register) {
+        self.emit_float_to_int(dest, src);
     }
 
     fn visit_mov_bool(&mut self, dest: Register, src: Register) {

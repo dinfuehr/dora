@@ -516,6 +516,40 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::ReinterpretLongAsDouble, dest, src);
     }
 
+    pub fn emit_extend_int_to_long(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::ExtendIntToLong, dest, src);
+    }
+
+    pub fn emit_cast_long_to_int(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::CastLongToInt, dest, src);
+    }
+
+    pub fn emit_convert_int_to_float(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::ConvertIntToFloat, dest, src);
+    }
+    pub fn emit_convert_int_to_double(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::ConvertIntToDouble, dest, src);
+    }
+    pub fn emit_convert_long_to_float(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::ConvertLongToFloat, dest, src);
+    }
+    pub fn emit_convert_long_to_double(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::ConvertLongToDouble, dest, src);
+    }
+
+    pub fn emit_truncate_float_to_int(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::TruncateFloatToInt, dest, src);
+    }
+    pub fn emit_truncate_float_to_long(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::TruncateFloatToLong, dest, src);
+    }
+    pub fn emit_truncate_double_to_int(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::TruncateDoubleToInt, dest, src);
+    }
+    pub fn emit_truncate_double_to_long(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::TruncateDoubleToLong, dest, src);
+    }
+
     pub fn emit_sub_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::SubInt, dest, lhs, rhs);
     }

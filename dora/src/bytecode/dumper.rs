@@ -267,6 +267,13 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg2("ReinterpretLongAsDouble", dest, src);
     }
 
+    fn visit_extend_int_to_long(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("ExtendIntToLong", dest, src);
+    }
+    fn visit_cast_long_to_int(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("CastLongToInt", dest, src);
+    }
+
     fn visit_mov_bool(&mut self, dest: Register, src: Register) {
         self.emit_reg2("MovBool", dest, src);
     }

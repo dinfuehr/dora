@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let x = 1F;
     assert(-x < x);
