@@ -8,11 +8,13 @@ use crate::compiler::asm::BaselineAssembler;
 use crate::compiler::codegen::{ensure_native_stub, should_emit_debug, AllocationSize, AnyReg};
 use crate::compiler::fct::{Code, GcPoint, JitDescriptor};
 use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
-use crate::cpu::{Mem, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_TMP1};
+use crate::cpu::{
+    Mem, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_TMP1, REG_TMP2,
+};
 use crate::gc::Address;
 use crate::masm::*;
 use crate::mem;
-use crate::object::{Header, Str};
+use crate::object::{offset_of_array_data, Header, Str};
 use crate::semck::specialize::specialize_type;
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, MachineMode, TypeList};
@@ -1379,9 +1381,9 @@ where
 
         self.asm
             .load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Local(offset));
-
         self.asm
             .test_if_nil_bailout(position, REG_RESULT, Trap::NIL);
+
         self.asm.load_mem(
             MachineMode::Ptr,
             REG_RESULT.into(),
@@ -1389,9 +1391,65 @@ where
         );
 
         let offset = self.bytecode.register_offset(dest);
-
         self.asm
             .store_mem(MachineMode::Int32, Mem::Local(offset), REG_RESULT.into());
+    }
+
+    fn emit_store_array(&mut self, src: Register, arr: Register, idx: Register) {
+        assert_eq!(self.bytecode.register_type(idx), BytecodeType::Int);
+        assert_eq!(self.bytecode.register_type(arr), BytecodeType::Ptr);
+
+        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+        let arr_offset = self.bytecode.register_offset(arr);
+
+        self.asm
+            .load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Local(arr_offset));
+        self.asm
+            .test_if_nil_bailout(position, REG_RESULT, Trap::NIL);
+
+        let idx_offset = self.bytecode.register_offset(idx);
+
+        self.asm
+            .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(idx_offset));
+
+        if !self.vm.args.flag_omit_bounds_check {
+            self.asm
+                .check_index_out_of_bounds(position, REG_RESULT, REG_TMP1);
+        }
+
+        let bytecode_type = self.bytecode.register_type(src);
+        let src_offset = self.bytecode.register_offset(src);
+        self.asm.load_mem(
+            bytecode_type.mode(),
+            REG_TMP2.into(),
+            Mem::Local(src_offset),
+        );
+
+        self.asm.store_mem(
+            bytecode_type.mode(),
+            Mem::Index(
+                REG_RESULT,
+                REG_TMP1,
+                bytecode_type.mode().size(),
+                offset_of_array_data(),
+            ),
+            REG_TMP2.into(),
+        );
+
+        if self.vm.gc.needs_write_barrier() && bytecode_type.is_ptr() {
+            let card_table_offset = self.vm.gc.card_table_offset();
+            let scratch = self.asm.get_scratch();
+            self.asm.lea(
+                *scratch,
+                Mem::Index(
+                    REG_RESULT,
+                    REG_TMP1,
+                    bytecode_type.mode().size(),
+                    offset_of_array_data(),
+                ),
+            );
+            self.asm.emit_barrier(*scratch, card_table_offset);
+        }
     }
 
     fn emit_invoke_virtual_void(&mut self, fct_id: FctDefId, start_reg: Register, num: u32) {
@@ -2576,6 +2634,56 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
     fn visit_array_bound_check(&mut self, _arr: Register, _idx: Register) {
         unimplemented!();
+    }
+
+    fn visit_load_array_bool(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_load_array_byte(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_load_array_char(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_load_array_int(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_load_array_long(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_load_array_float(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_load_array_double(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_load_array_ptr(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+
+    fn visit_store_array_bool(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit_store_array(src, arr, idx);
+    }
+    fn visit_store_array_byte(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit_store_array(src, arr, idx);
+    }
+    fn visit_store_array_char(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit_store_array(src, arr, idx);
+    }
+    fn visit_store_array_int(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit_store_array(src, arr, idx);
+    }
+    fn visit_store_array_long(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit_store_array(src, arr, idx);
+    }
+    fn visit_store_array_float(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit_store_array(src, arr, idx);
+    }
+    fn visit_store_array_double(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit_store_array(src, arr, idx);
+    }
+    fn visit_store_array_ptr(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit_store_array(src, arr, idx);
     }
 
     fn visit_ret_void(&mut self) {
