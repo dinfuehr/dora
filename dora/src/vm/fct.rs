@@ -302,7 +302,7 @@ pub enum Intrinsic {
     IntToLong,
     IntToFloat,
     IntToDouble,
-    IntAsFloat,
+    ReinterpretIntAsFloat,
 
     EnumEq,
     EnumNe,
@@ -343,7 +343,7 @@ pub enum Intrinsic {
     LongToByte,
     LongToFloat,
     LongToDouble,
-    LongAsDouble,
+    ReinterpretLongAsDouble,
 
     LongEq,
     LongCmp,

@@ -2706,6 +2706,34 @@ fn gen_position_assert() {
     assert_eq!(expected, result);
 }
 
+#[test]
+fn gen_reinterpret_float_as_int() {
+    let result = code("fun f(a: Float) -> Int { a.asInt() }");
+    let expected = vec![ReinterpretFloatAsInt(r(1), r(0)), RetInt(r(1))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_reinterpret_int_as_float() {
+    let result = code("fun f(a: Int) -> Float { a.asFloat() }");
+    let expected = vec![ReinterpretIntAsFloat(r(1), r(0)), RetFloat(r(1))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_reinterpret_double_as_long() {
+    let result = code("fun f(a: Double) -> Long { a.asLong() }");
+    let expected = vec![ReinterpretDoubleAsLong(r(1), r(0)), RetLong(r(1))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_reinterpret_long_as_double() {
+    let result = code("fun f(a: Long) -> Double { a.asDouble() }");
+    let expected = vec![ReinterpretLongAsDouble(r(1), r(0)), RetDouble(r(1))];
+    assert_eq!(expected, result);
+}
+
 fn p(line: u32, column: u32) -> Position {
     Position { line, column }
 }
@@ -2767,6 +2795,11 @@ pub enum Bytecode {
 
     RolLong(Register, Register, Register),
     RorLong(Register, Register, Register),
+
+    ReinterpretFloatAsInt(Register, Register),
+    ReinterpretIntAsFloat(Register, Register),
+    ReinterpretDoubleAsLong(Register, Register),
+    ReinterpretLongAsDouble(Register, Register),
 
     MovBool(Register, Register),
     MovByte(Register, Register),
@@ -3127,6 +3160,19 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_ror_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::RorLong(dest, lhs, rhs));
+    }
+
+    fn visit_reinterpret_float_as_int(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::ReinterpretFloatAsInt(dest, src));
+    }
+    fn visit_reinterpret_int_as_float(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::ReinterpretIntAsFloat(dest, src));
+    }
+    fn visit_reinterpret_double_as_long(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::ReinterpretDoubleAsLong(dest, src));
+    }
+    fn visit_reinterpret_long_as_double(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::ReinterpretLongAsDouble(dest, src));
     }
 
     fn visit_mov_bool(&mut self, dest: Register, src: Register) {

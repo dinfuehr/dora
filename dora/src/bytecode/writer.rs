@@ -500,6 +500,22 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::RorLong, dest, lhs, rhs);
     }
 
+    pub fn emit_reinterpret_float_as_int(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::ReinterpretFloatAsInt, dest, src);
+    }
+
+    pub fn emit_reinterpret_int_as_float(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::ReinterpretIntAsFloat, dest, src);
+    }
+
+    pub fn emit_reinterpret_double_as_long(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::ReinterpretDoubleAsLong, dest, src);
+    }
+
+    pub fn emit_reinterpret_long_as_double(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::ReinterpretLongAsDouble, dest, src);
+    }
+
     pub fn emit_sub_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::SubInt, dest, lhs, rhs);
     }

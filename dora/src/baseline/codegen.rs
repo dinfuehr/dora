@@ -1943,7 +1943,7 @@ where
                 self.emit_intrinsic_int_to_float(args[0], dest.freg(), intrinsic)
             }
 
-            Intrinsic::LongAsDouble => {
+            Intrinsic::ReinterpretLongAsDouble => {
                 self.emit_intrinsic_int_as_float(args[0], dest.freg(), intrinsic)
             }
 
@@ -1994,7 +1994,7 @@ where
                 self.emit_intrinsic_int_to_float(args[0], dest.freg(), intrinsic)
             }
 
-            Intrinsic::IntAsFloat => {
+            Intrinsic::ReinterpretIntAsFloat => {
                 self.emit_intrinsic_int_as_float(args[0], dest.freg(), intrinsic)
             }
 
@@ -2532,8 +2532,8 @@ where
         self.emit_expr(e, REG_RESULT.into());
 
         let (src_mode, dest_mode) = match intrinsic {
-            Intrinsic::IntAsFloat => (MachineMode::Int32, MachineMode::Float32),
-            Intrinsic::LongAsDouble => (MachineMode::Int64, MachineMode::Float64),
+            Intrinsic::ReinterpretIntAsFloat => (MachineMode::Int32, MachineMode::Float32),
+            Intrinsic::ReinterpretLongAsDouble => (MachineMode::Int64, MachineMode::Float64),
             _ => unreachable!(),
         };
 

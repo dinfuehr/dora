@@ -255,6 +255,19 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg3("RorLong", dest, lhs, rhs);
     }
 
+    fn visit_reinterpret_int_as_float(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("ReinterpretIntAsFloat", dest, src);
+    }
+    fn visit_reinterpret_float_as_int(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("ReinterpretFloatAsInt", dest, src);
+    }
+    fn visit_reinterpret_double_as_long(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("ReinterpretDoubleAsLong", dest, src);
+    }
+    fn visit_reinterpret_long_as_double(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("ReinterpretLongAsDouble", dest, src);
+    }
+
     fn visit_mov_bool(&mut self, dest: Register, src: Register) {
         self.emit_reg2("MovBool", dest, src);
     }

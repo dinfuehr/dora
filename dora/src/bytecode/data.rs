@@ -158,6 +158,11 @@ pub enum BytecodeOpcode {
     RolLong,
     RorLong,
 
+    ReinterpretFloatAsInt,
+    ReinterpretIntAsFloat,
+    ReinterpretDoubleAsLong,
+    ReinterpretLongAsDouble,
+
     MovBool,
     MovByte,
     MovChar,

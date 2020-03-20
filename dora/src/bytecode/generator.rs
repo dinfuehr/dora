@@ -963,7 +963,34 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
                 dest
             }
-            Intrinsic::ReinterpretFloatAsInt => unimplemented!(),
+            Intrinsic::ReinterpretFloatAsInt => {
+                let dest = self.ensure_register(dest, BytecodeType::Int);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_reinterpret_float_as_int(dest, src);
+
+                dest
+            }
+            Intrinsic::ReinterpretIntAsFloat => {
+                let dest = self.ensure_register(dest, BytecodeType::Float);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_reinterpret_int_as_float(dest, src);
+
+                dest
+            }
+            Intrinsic::ReinterpretDoubleAsLong => {
+                let dest = self.ensure_register(dest, BytecodeType::Long);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_reinterpret_double_as_long(dest, src);
+
+                dest
+            }
+            Intrinsic::ReinterpretLongAsDouble => {
+                let dest = self.ensure_register(dest, BytecodeType::Double);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_reinterpret_long_as_double(dest, src);
+
+                dest
+            }
             Intrinsic::FloatNeg => {
                 let dest = self.ensure_register(dest, BytecodeType::Float);
                 let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);

@@ -290,6 +290,27 @@ where
                 self.visitor.visit_ror_long(dest, lhs, rhs);
             }
 
+            BytecodeOpcode::ReinterpretFloatAsInt => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_reinterpret_float_as_int(dest, src);
+            }
+            BytecodeOpcode::ReinterpretIntAsFloat => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_reinterpret_int_as_float(dest, src);
+            }
+            BytecodeOpcode::ReinterpretDoubleAsLong => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_reinterpret_double_as_long(dest, src);
+            }
+            BytecodeOpcode::ReinterpretLongAsDouble => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_reinterpret_long_as_double(dest, src);
+            }
+
             BytecodeOpcode::MovBool => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
@@ -1357,6 +1378,19 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_ror_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+
+    fn visit_reinterpret_float_as_int(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_reinterpret_int_as_float(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_reinterpret_double_as_long(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_reinterpret_long_as_double(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
 
