@@ -1145,7 +1145,8 @@ where
             }
             BytecodeOpcode::ArrayBoundCheck => {
                 let array = self.read_register(wide);
-                self.visitor.visit_array_bound_check(array);
+                let index = self.read_register(wide);
+                self.visitor.visit_array_bound_check(array, index);
             }
 
             BytecodeOpcode::RetVoid => {
@@ -2068,7 +2069,7 @@ pub trait BytecodeVisitor {
     fn visit_array_length(&mut self, _dest: Register, _arr: Register) {
         unimplemented!();
     }
-    fn visit_array_bound_check(&mut self, _arr: Register) {
+    fn visit_array_bound_check(&mut self, _arr: Register, _idx: Register) {
         unimplemented!();
     }
 

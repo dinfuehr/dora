@@ -2574,7 +2574,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_array_length(&mut self, _dest: Register, _arr: Register) {
         self.emit_array_length(_dest, _arr);
     }
-    fn visit_array_bound_check(&mut self, _arr: Register) {
+    fn visit_array_bound_check(&mut self, _arr: Register, _idx: Register) {
         unimplemented!();
     }
 

@@ -2969,7 +2969,7 @@ pub enum Bytecode {
     NewArray(Register, ClassDefId, Register),
 
     ArrayLength(Register, Register),
-    ArrayBoundCheck(Register),
+    ArrayBoundCheck(Register, Register),
 
     RetVoid,
     RetBool(Register),
@@ -3887,8 +3887,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_array_length(&mut self, dest: Register, arr: Register) {
         self.emit(Bytecode::ArrayLength(dest, arr));
     }
-    fn visit_array_bound_check(&mut self, arr: Register) {
-        self.emit(Bytecode::ArrayBoundCheck(arr));
+    fn visit_array_bound_check(&mut self, arr: Register, idx: Register) {
+        self.emit(Bytecode::ArrayBoundCheck(arr, idx));
     }
 
     fn visit_ret_void(&mut self) {
