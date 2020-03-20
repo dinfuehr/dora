@@ -138,6 +138,8 @@ pub fn specialize_class(vm: &VM, cls: &Class, type_params: &TypeList) -> ClassDe
 }
 
 fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> ClassDefId {
+    debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(vm)));
+
     let id = {
         let mut class_defs = vm.class_defs.lock();
         let id: ClassDefId = class_defs.len().into();
@@ -204,6 +206,7 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
         let mut csize;
 
         if let Some(parent_class) = cls.parent_class {
+            let parent_class = specialize_type(vm, parent_class, type_params, &TypeList::empty());
             let id = specialize_class_ty(vm, parent_class);
             let cls_def = vm.class_defs.idx(id);
             let cls_def = cls_def.read();

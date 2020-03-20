@@ -97,17 +97,18 @@ impl Class {
     pub fn long_name(&self, vm: &VM) -> String {
         let name = vm.interner.str(self.name);
 
-        let params = if self.type_params.len() > 0 {
-            self.type_params
+        if self.type_params.len() > 0 {
+            let type_params = self
+                .type_params
                 .iter()
                 .map(|p| vm.interner.str(p.name).to_string())
                 .collect::<Vec<_>>()
-                .join(", ")
-        } else {
-            return name.to_string();
-        };
+                .join(", ");
 
-        format!("{}<{}>", name, params)
+            format!("{}[{}]", name, type_params)
+        } else {
+            name.to_string()
+        }
     }
 
     pub fn find_impl_for_trait(&self, vm: &VM, trait_id: TraitId) -> Option<ImplId> {
