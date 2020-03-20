@@ -1150,52 +1150,52 @@ where
             }
 
             BytecodeOpcode::LoadArrayBool => {
-                let src = self.read_register(wide);
+                let dest = self.read_register(wide);
                 let array = self.read_register(wide);
                 let index = self.read_register(wide);
-                self.visitor.visit_load_array_bool(src, array, index);
+                self.visitor.visit_load_array_bool(dest, array, index);
             }
             BytecodeOpcode::LoadArrayByte => {
-                let src = self.read_register(wide);
+                let dest = self.read_register(wide);
                 let array = self.read_register(wide);
                 let index = self.read_register(wide);
-                self.visitor.visit_load_array_byte(src, array, index);
+                self.visitor.visit_load_array_byte(dest, array, index);
             }
             BytecodeOpcode::LoadArrayChar => {
-                let src = self.read_register(wide);
+                let dest = self.read_register(wide);
                 let array = self.read_register(wide);
                 let index = self.read_register(wide);
-                self.visitor.visit_load_array_char(src, array, index);
+                self.visitor.visit_load_array_char(dest, array, index);
             }
             BytecodeOpcode::LoadArrayInt => {
-                let src = self.read_register(wide);
+                let dest = self.read_register(wide);
                 let array = self.read_register(wide);
                 let index = self.read_register(wide);
-                self.visitor.visit_load_array_int(src, array, index);
+                self.visitor.visit_load_array_int(dest, array, index);
             }
             BytecodeOpcode::LoadArrayLong => {
-                let src = self.read_register(wide);
+                let dest = self.read_register(wide);
                 let array = self.read_register(wide);
                 let index = self.read_register(wide);
-                self.visitor.visit_load_array_long(src, array, index);
+                self.visitor.visit_load_array_long(dest, array, index);
             }
             BytecodeOpcode::LoadArrayFloat => {
-                let src = self.read_register(wide);
+                let dest = self.read_register(wide);
                 let array = self.read_register(wide);
                 let index = self.read_register(wide);
-                self.visitor.visit_load_array_float(src, array, index);
+                self.visitor.visit_load_array_float(dest, array, index);
             }
             BytecodeOpcode::LoadArrayDouble => {
-                let src = self.read_register(wide);
+                let dest = self.read_register(wide);
                 let array = self.read_register(wide);
                 let index = self.read_register(wide);
-                self.visitor.visit_load_array_double(src, array, index);
+                self.visitor.visit_load_array_double(dest, array, index);
             }
             BytecodeOpcode::LoadArrayPtr => {
-                let src = self.read_register(wide);
+                let dest = self.read_register(wide);
                 let array = self.read_register(wide);
                 let index = self.read_register(wide);
-                self.visitor.visit_load_array_ptr(src, array, index);
+                self.visitor.visit_load_array_ptr(dest, array, index);
             }
 
             BytecodeOpcode::StoreArrayBool => {
