@@ -1411,6 +1411,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                                 let idx = self.visit_expr(&_call.args[0], DataDest::Alloc);
                                 let src = self.visit_expr(&expr.rhs, DataDest::Alloc);
 
+                                self.gen.set_position(expr.pos);
+
                                 match ty {
                                     BytecodeType::Byte => {
                                         self.gen.emit_store_array_byte(src, arr, idx)

@@ -408,6 +408,22 @@ impl BytecodeOpcode {
             | BytecodeOpcode::NewArray
             | BytecodeOpcode::ArrayLength
             | BytecodeOpcode::ArrayBoundCheck
+            | BytecodeOpcode::LoadArrayBool
+            | BytecodeOpcode::LoadArrayByte
+            | BytecodeOpcode::LoadArrayChar
+            | BytecodeOpcode::LoadArrayInt
+            | BytecodeOpcode::LoadArrayLong
+            | BytecodeOpcode::LoadArrayFloat
+            | BytecodeOpcode::LoadArrayDouble
+            | BytecodeOpcode::LoadArrayPtr
+            | BytecodeOpcode::StoreArrayBool
+            | BytecodeOpcode::StoreArrayByte
+            | BytecodeOpcode::StoreArrayChar
+            | BytecodeOpcode::StoreArrayInt
+            | BytecodeOpcode::StoreArrayLong
+            | BytecodeOpcode::StoreArrayFloat
+            | BytecodeOpcode::StoreArrayDouble
+            | BytecodeOpcode::StoreArrayPtr
             | BytecodeOpcode::Assert => true,
             _ => false,
         }
