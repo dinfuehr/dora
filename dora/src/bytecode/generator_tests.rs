@@ -2512,6 +2512,13 @@ fn gen_array_length_effect() {
 }
 
 #[test]
+fn gen_position_array_length_effect() {
+    let result = position("fun f(a: Array[Int]) { a.length(); }");
+    let expected = vec![(0, p(1, 32))];
+    assert_eq!(expected, result);
+}
+
+#[test]
 fn gen_store_array_byte() {
     let result = code("fun f(a: Array[Byte], b: Byte) { a(0) = b; }");
     let expected = vec![
@@ -2596,6 +2603,55 @@ fn gen_store_array_ptr() {
         StoreArrayPtr(r(1), r(0), r(2)),
         RetVoid,
     ];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_store_array_bool() {
+    let result = position("fun f(a: Array[Bool], b: Bool) { a(0) = b; }");
+    let expected = vec![(2, p(1, 39))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_store_array_char() {
+    let result = position("fun f(a: Array[Char], b: Char) { a(0) = b; }");
+    let expected = vec![(2, p(1, 39))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_store_array_int() {
+    let result = position("fun f(a: Array[Int], b: Int) { a(0) = b; }");
+    let expected = vec![(2, p(1, 37))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_store_array_long() {
+    let result = position("fun f(a: Array[Long], b: Long) { a(0) = b; }");
+    let expected = vec![(2, p(1, 39))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_store_array_float() {
+    let result = position("fun f(a: Array[Float], b: Float) { a(0) = b; }");
+    let expected = vec![(2, p(1, 41))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_store_array_double() {
+    let result = position("fun f(a: Array[Double], b: Double) { a(0) = b; }");
+    let expected = vec![(2, p(1, 43))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_store_array_ptr() {
+    let result = position("fun f(a: Array[Object], b: Object) { a(0) = b; }");
+    let expected = vec![(2, p(1, 43))];
     assert_eq!(expected, result);
 }
 
