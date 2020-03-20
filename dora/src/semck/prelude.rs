@@ -300,9 +300,9 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     native_method(vm, clsid, "toString", stdlib::float_to_string as *const u8);
     intrinsic_method(vm, clsid, "toInt", Intrinsic::FloatToInt);
     intrinsic_method(vm, clsid, "toLong", Intrinsic::FloatToLong);
-    intrinsic_method(vm, clsid, "toDouble", Intrinsic::FloatToDouble);
+    intrinsic_method(vm, clsid, "toDouble", Intrinsic::PromoteFloatToDouble);
 
-    intrinsic_method(vm, clsid, "asInt", Intrinsic::FloatAsInt);
+    intrinsic_method(vm, clsid, "asInt", Intrinsic::ReinterpretFloatAsInt);
 
     intrinsic_method(vm, clsid, "equals", Intrinsic::FloatEq);
     intrinsic_method(vm, clsid, "compareTo", Intrinsic::FloatCmp);
@@ -322,9 +322,9 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     native_method(vm, clsid, "toString", stdlib::double_to_string as *const u8);
     intrinsic_method(vm, clsid, "toInt", Intrinsic::DoubleToInt);
     intrinsic_method(vm, clsid, "toLong", Intrinsic::DoubleToLong);
-    intrinsic_method(vm, clsid, "toFloat", Intrinsic::DoubleToFloat);
+    intrinsic_method(vm, clsid, "toFloat", Intrinsic::DemoteDoubleToFloat);
 
-    intrinsic_method(vm, clsid, "asLong", Intrinsic::DoubleAsLong);
+    intrinsic_method(vm, clsid, "asLong", Intrinsic::ReinterpretDoubleAsLong);
 
     intrinsic_method(vm, clsid, "equals", Intrinsic::DoubleEq);
     intrinsic_method(vm, clsid, "compareTo", Intrinsic::DoubleCmp);

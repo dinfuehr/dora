@@ -378,8 +378,8 @@ pub enum Intrinsic {
 
     FloatToInt,
     FloatToLong,
-    FloatToDouble,
-    FloatAsInt,
+    PromoteFloatToDouble,
+    ReinterpretFloatAsInt,
 
     FloatEq,
     FloatCmp,
@@ -400,8 +400,8 @@ pub enum Intrinsic {
 
     DoubleToInt,
     DoubleToLong,
-    DoubleToFloat,
-    DoubleAsLong,
+    DemoteDoubleToFloat,
+    ReinterpretDoubleAsLong,
 
     DoubleEq,
     DoubleCmp,

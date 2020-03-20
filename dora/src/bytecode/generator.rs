@@ -914,23 +914,66 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         dest: DataDest,
     ) -> Register {
         match intrinsic {
-            Intrinsic::Assert => self.visit_expr_assert(expr, dest),
+            Intrinsic::Assert => {
+                self.visit_expr_assert(expr, dest);
+                Register::invalid()
+            }
             Intrinsic::IntRotateLeft
             | Intrinsic::IntRotateRight
             | Intrinsic::LongRotateLeft
-            | Intrinsic::LongRotateRight => {
-                return self.emit_intrinsic_bin(
-                    expr.object().expect("value needed"),
-                    &*expr.args[0],
-                    intrinsic,
-                    None,
-                    expr.pos,
-                    dest,
-                );
+            | Intrinsic::LongRotateRight => self.emit_intrinsic_bin(
+                expr.object().expect("value needed"),
+                &*expr.args[0],
+                intrinsic,
+                None,
+                expr.pos,
+                dest,
+            ),
+            Intrinsic::FloatPlus => self.visit_expr(expr.object().unwrap(), dest),
+            Intrinsic::FloatAdd => {
+                let dest = self.ensure_register(dest, BytecodeType::Float);
+                let lhs_reg = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                let rhs_reg = self.visit_expr(&expr.args[0], DataDest::Alloc);
+                self.gen.emit_add_float(dest, lhs_reg, rhs_reg);
+
+                dest
             }
-            _ => unimplemented!(),
+            Intrinsic::FloatSub => {
+                let dest = self.ensure_register(dest, BytecodeType::Float);
+                let lhs_reg = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                let rhs_reg = self.visit_expr(&expr.args[0], DataDest::Alloc);
+                self.gen.emit_sub_float(dest, lhs_reg, rhs_reg);
+
+                dest
+            }
+            Intrinsic::FloatMul => {
+                let dest = self.ensure_register(dest, BytecodeType::Float);
+                let lhs_reg = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                let rhs_reg = self.visit_expr(&expr.args[0], DataDest::Alloc);
+                self.gen.emit_mul_float(dest, lhs_reg, rhs_reg);
+
+                dest
+            }
+            Intrinsic::FloatDiv => {
+                let dest = self.ensure_register(dest, BytecodeType::Float);
+                let lhs_reg = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                let rhs_reg = self.visit_expr(&expr.args[0], DataDest::Alloc);
+                self.gen.emit_div_float(dest, lhs_reg, rhs_reg);
+
+                dest
+            }
+            Intrinsic::ReinterpretFloatAsInt => unimplemented!(),
+            Intrinsic::FloatNeg => {
+                let dest = self.ensure_register(dest, BytecodeType::Float);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_neg_float(dest, src);
+
+                dest
+            }
+            _ => {
+                panic!("unimplemented intrinsic {:?}", intrinsic);
+            }
         }
-        return Register::invalid();
     }
 
     fn emit_bin_is(&mut self, expr: &ExprBinType, dest: DataDest) -> Register {
