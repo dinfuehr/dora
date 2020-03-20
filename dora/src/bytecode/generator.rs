@@ -1005,6 +1005,14 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     dest,
                 );
             }
+            Intrinsic::GenericArrayGet => {
+                return self.emit_intrinsic_array_get(
+                    &*expr.callee,
+                    &*expr.args[0],
+                    expr.pos,
+                    dest,
+                );
+            }
             _ => unimplemented!(),
         }
     }
@@ -1090,6 +1098,40 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
             return dest;
         }
+    }
+
+    fn emit_intrinsic_array_get(
+        &mut self,
+        arr: &Expr,
+        idx: &Expr,
+        pos: Position,
+        dest: DataDest,
+    ) -> Register {
+        let ty = self.src.ty(arr.id());
+        let ty = self.specialize_type(ty);
+        let ty = ty.type_params(self.vm);
+        let ty = ty[0];
+        let ty: BytecodeType = ty.into();
+
+        let dest = self.ensure_register(dest, ty);
+
+        let arr = self.visit_expr(arr, DataDest::Alloc);
+        let idx = self.visit_expr(idx, DataDest::Alloc);
+
+        self.gen.set_position(pos);
+
+        match ty {
+            BytecodeType::Byte => self.gen.emit_load_array_byte(dest, arr, idx),
+            BytecodeType::Bool => self.gen.emit_load_array_bool(dest, arr, idx),
+            BytecodeType::Char => self.gen.emit_load_array_char(dest, arr, idx),
+            BytecodeType::Int => self.gen.emit_load_array_int(dest, arr, idx),
+            BytecodeType::Long => self.gen.emit_load_array_long(dest, arr, idx),
+            BytecodeType::Float => self.gen.emit_load_array_float(dest, arr, idx),
+            BytecodeType::Double => self.gen.emit_load_array_double(dest, arr, idx),
+            BytecodeType::Ptr => self.gen.emit_load_array_ptr(dest, arr, idx),
+        }
+
+        dest
     }
 
     fn emit_intrinsic_bin(
