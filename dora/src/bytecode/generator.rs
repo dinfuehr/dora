@@ -411,7 +411,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
 
         match *call_type {
-            CallType::CtorNew(ty, _) => {
+            CallType::CtorNew(_, _) => {
+                let ty = arg_types.first().cloned().unwrap();
                 let cls_id = specialize_class_ty(self.vm, ty);
 
                 let cls = self.vm.class_defs.idx(cls_id);
@@ -1499,6 +1500,20 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     fn specialize_call(&self, fct: &Fct, call_type: &CallType) -> FctDefId {
         let (cls_type_params, fct_type_params) = self.determine_call_type_params(call_type);
+
+        let cls_type_params = TypeList::with(
+            cls_type_params
+                .iter()
+                .map(|ty| self.specialize_type(ty))
+                .collect::<Vec<_>>(),
+        );
+
+        let fct_type_params = TypeList::with(
+            fct_type_params
+                .iter()
+                .map(|ty| self.specialize_type(ty))
+                .collect::<Vec<_>>(),
+        );
 
         if let Some(&id) = fct
             .specializations

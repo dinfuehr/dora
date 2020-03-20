@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     foo[Int](1);
     foo[Float](3F);
