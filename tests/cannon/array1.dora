@@ -6,6 +6,9 @@ fun main() {
   
   setArray(array, 2, 50);
   assert(array(2) == 50);
+
+  array(3) = 40;
+  assert(getArray(array, 3) == 40);
 }
 
 @cannon fun createArray(a: Int) -> Array[Int] { return Array[Int](a); }
