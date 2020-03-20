@@ -1149,6 +1149,104 @@ where
                 self.visitor.visit_array_bound_check(array, index);
             }
 
+            BytecodeOpcode::LoadArrayBool => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_load_array_bool(src, array, index);
+            }
+            BytecodeOpcode::LoadArrayByte => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_load_array_byte(src, array, index);
+            }
+            BytecodeOpcode::LoadArrayChar => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_load_array_char(src, array, index);
+            }
+            BytecodeOpcode::LoadArrayInt => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_load_array_int(src, array, index);
+            }
+            BytecodeOpcode::LoadArrayLong => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_load_array_long(src, array, index);
+            }
+            BytecodeOpcode::LoadArrayFloat => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_load_array_float(src, array, index);
+            }
+            BytecodeOpcode::LoadArrayDouble => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_load_array_double(src, array, index);
+            }
+            BytecodeOpcode::LoadArrayPtr => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_load_array_ptr(src, array, index);
+            }
+
+            BytecodeOpcode::StoreArrayBool => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_store_array_bool(src, array, index);
+            }
+            BytecodeOpcode::StoreArrayByte => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_store_array_byte(src, array, index);
+            }
+            BytecodeOpcode::StoreArrayChar => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_store_array_char(src, array, index);
+            }
+            BytecodeOpcode::StoreArrayInt => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_store_array_int(src, array, index);
+            }
+            BytecodeOpcode::StoreArrayLong => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_store_array_long(src, array, index);
+            }
+            BytecodeOpcode::StoreArrayFloat => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_store_array_float(src, array, index);
+            }
+            BytecodeOpcode::StoreArrayDouble => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_store_array_double(src, array, index);
+            }
+            BytecodeOpcode::StoreArrayPtr => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_store_array_ptr(src, array, index);
+            }
+
             BytecodeOpcode::RetVoid => {
                 self.visitor.visit_ret_void();
             }
@@ -2070,6 +2168,56 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_array_bound_check(&mut self, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+
+    fn visit_load_array_bool(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_load_array_byte(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_load_array_char(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_load_array_int(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_load_array_long(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_load_array_float(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_load_array_double(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_load_array_ptr(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+
+    fn visit_store_array_bool(&mut self, _src: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_store_array_byte(&mut self, _src: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_store_array_char(&mut self, _src: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_store_array_int(&mut self, _src: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_store_array_long(&mut self, _src: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_store_array_float(&mut self, _src: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_store_array_double(&mut self, _src: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_store_array_ptr(&mut self, _src: Register, _arr: Register, _idx: Register) {
         unimplemented!();
     }
 
