@@ -1,0 +1,17 @@
+fun main() {
+  let array = createArray(5);
+
+  assert(array.length() == 5);
+  assert(getLength(array) == 5);
+  
+  setArray(array, 2, 50L);
+  assert(array(2) == 50L);
+
+  array(3) = 40L;
+  assert(getArray(array, 3) == 40L);
+}
+
+@cannon fun createArray(a: Int) -> Array[Long] { return Array[Long](a); }
+@cannon fun getLength(a: Array[Long]) -> Int { return a.length(); }
+@cannon fun setArray(arr: Array[Long], idx: Int, value: Long) { arr(idx) = value; }
+@cannon fun getArray(arr: Array[Long], idx: Int) -> Long { return arr(idx); }

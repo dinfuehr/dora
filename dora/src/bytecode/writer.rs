@@ -1091,9 +1091,66 @@ impl BytecodeWriter {
     pub fn emit_new_object(&mut self, dest: Register, cls_id: ClassDefId) {
         self.emit_new(BytecodeOpcode::NewObject, dest, cls_id);
     }
-
     pub fn emit_new_array(&mut self, dest: Register, cls_id: ClassDefId, length: Register) {
         self.emit_new_arr(BytecodeOpcode::NewArray, dest, cls_id, length);
+    }
+
+    pub fn emit_nil_check(&mut self, obj: Register) {
+        self.emit_reg1(BytecodeOpcode::NilCheck, obj);
+    }
+
+    pub fn emit_array_length(&mut self, dest: Register, array: Register) {
+        self.emit_reg2(BytecodeOpcode::ArrayLength, dest, array);
+    }
+
+    pub fn emit_store_array_byte(&mut self, src: Register, array: Register, idx: Register) {
+        self.emit_reg3(BytecodeOpcode::StoreArrayByte, src, array, idx);
+    }
+    pub fn emit_store_array_bool(&mut self, src: Register, array: Register, index: Register) {
+        self.emit_reg3(BytecodeOpcode::StoreArrayBool, src, array, index);
+    }
+    pub fn emit_store_array_char(&mut self, src: Register, array: Register, index: Register) {
+        self.emit_reg3(BytecodeOpcode::StoreArrayChar, src, array, index);
+    }
+    pub fn emit_store_array_int(&mut self, src: Register, array: Register, index: Register) {
+        self.emit_reg3(BytecodeOpcode::StoreArrayInt, src, array, index);
+    }
+    pub fn emit_store_array_long(&mut self, src: Register, array: Register, index: Register) {
+        self.emit_reg3(BytecodeOpcode::StoreArrayLong, src, array, index);
+    }
+    pub fn emit_store_array_float(&mut self, src: Register, array: Register, index: Register) {
+        self.emit_reg3(BytecodeOpcode::StoreArrayFloat, src, array, index);
+    }
+    pub fn emit_store_array_double(&mut self, src: Register, array: Register, index: Register) {
+        self.emit_reg3(BytecodeOpcode::StoreArrayDouble, src, array, index);
+    }
+    pub fn emit_store_array_ptr(&mut self, src: Register, array: Register, index: Register) {
+        self.emit_reg3(BytecodeOpcode::StoreArrayPtr, src, array, index);
+    }
+
+    pub fn emit_load_array_byte(&mut self, dest: Register, array: Register, idx: Register) {
+        self.emit_reg3(BytecodeOpcode::LoadArrayByte, dest, array, idx);
+    }
+    pub fn emit_load_array_bool(&mut self, dest: Register, array: Register, index: Register) {
+        self.emit_reg3(BytecodeOpcode::LoadArrayBool, dest, array, index);
+    }
+    pub fn emit_load_array_char(&mut self, dest: Register, array: Register, index: Register) {
+        self.emit_reg3(BytecodeOpcode::LoadArrayChar, dest, array, index);
+    }
+    pub fn emit_load_array_int(&mut self, dest: Register, array: Register, index: Register) {
+        self.emit_reg3(BytecodeOpcode::LoadArrayInt, dest, array, index);
+    }
+    pub fn emit_load_array_long(&mut self, dest: Register, array: Register, index: Register) {
+        self.emit_reg3(BytecodeOpcode::LoadArrayLong, dest, array, index);
+    }
+    pub fn emit_load_array_float(&mut self, dest: Register, array: Register, index: Register) {
+        self.emit_reg3(BytecodeOpcode::LoadArrayFloat, dest, array, index);
+    }
+    pub fn emit_load_array_double(&mut self, dest: Register, array: Register, index: Register) {
+        self.emit_reg3(BytecodeOpcode::LoadArrayDouble, dest, array, index);
+    }
+    pub fn emit_load_array_ptr(&mut self, dest: Register, array: Register, index: Register) {
+        self.emit_reg3(BytecodeOpcode::LoadArrayPtr, dest, array, index);
     }
 
     pub fn generate(mut self) -> BytecodeFunction {

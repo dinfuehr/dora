@@ -1130,12 +1130,125 @@ where
                 let cls = self.read_class(wide);
                 self.visitor.visit_new_object(dest, cls);
             }
-
             BytecodeOpcode::NewArray => {
                 let dest = self.read_register(wide);
                 let cls = self.read_class(wide);
                 let length = self.read_register(wide);
                 self.visitor.visit_new_array(dest, cls, length);
+            }
+
+            BytecodeOpcode::NilCheck => {
+                let obj = self.read_register(wide);
+                self.visitor.visit_nil_check(obj);
+            }
+
+            BytecodeOpcode::ArrayLength => {
+                let dest = self.read_register(wide);
+                let array = self.read_register(wide);
+                self.visitor.visit_array_length(dest, array);
+            }
+            BytecodeOpcode::ArrayBoundCheck => {
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_array_bound_check(array, index);
+            }
+
+            BytecodeOpcode::LoadArrayBool => {
+                let dest = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_load_array_bool(dest, array, index);
+            }
+            BytecodeOpcode::LoadArrayByte => {
+                let dest = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_load_array_byte(dest, array, index);
+            }
+            BytecodeOpcode::LoadArrayChar => {
+                let dest = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_load_array_char(dest, array, index);
+            }
+            BytecodeOpcode::LoadArrayInt => {
+                let dest = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_load_array_int(dest, array, index);
+            }
+            BytecodeOpcode::LoadArrayLong => {
+                let dest = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_load_array_long(dest, array, index);
+            }
+            BytecodeOpcode::LoadArrayFloat => {
+                let dest = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_load_array_float(dest, array, index);
+            }
+            BytecodeOpcode::LoadArrayDouble => {
+                let dest = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_load_array_double(dest, array, index);
+            }
+            BytecodeOpcode::LoadArrayPtr => {
+                let dest = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_load_array_ptr(dest, array, index);
+            }
+
+            BytecodeOpcode::StoreArrayBool => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_store_array_bool(src, array, index);
+            }
+            BytecodeOpcode::StoreArrayByte => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_store_array_byte(src, array, index);
+            }
+            BytecodeOpcode::StoreArrayChar => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_store_array_char(src, array, index);
+            }
+            BytecodeOpcode::StoreArrayInt => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_store_array_int(src, array, index);
+            }
+            BytecodeOpcode::StoreArrayLong => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_store_array_long(src, array, index);
+            }
+            BytecodeOpcode::StoreArrayFloat => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_store_array_float(src, array, index);
+            }
+            BytecodeOpcode::StoreArrayDouble => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_store_array_double(src, array, index);
+            }
+            BytecodeOpcode::StoreArrayPtr => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_store_array_ptr(src, array, index);
             }
 
             BytecodeOpcode::RetVoid => {
@@ -2050,8 +2163,68 @@ pub trait BytecodeVisitor {
     fn visit_new_object(&mut self, _dest: Register, _cls: ClassDefId) {
         unimplemented!();
     }
-
     fn visit_new_array(&mut self, _dest: Register, _cls: ClassDefId, _length: Register) {
+        unimplemented!();
+    }
+
+    fn visit_nil_check(&mut self, _obj: Register) {
+        unimplemented!();
+    }
+
+    fn visit_array_length(&mut self, _dest: Register, _arr: Register) {
+        unimplemented!();
+    }
+    fn visit_array_bound_check(&mut self, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+
+    fn visit_load_array_bool(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_load_array_byte(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_load_array_char(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_load_array_int(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_load_array_long(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_load_array_float(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_load_array_double(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_load_array_ptr(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+
+    fn visit_store_array_bool(&mut self, _src: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_store_array_byte(&mut self, _src: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_store_array_char(&mut self, _src: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_store_array_int(&mut self, _src: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_store_array_long(&mut self, _src: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_store_array_float(&mut self, _src: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_store_array_double(&mut self, _src: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_store_array_ptr(&mut self, _src: Register, _arr: Register, _idx: Register) {
         unimplemented!();
     }
 

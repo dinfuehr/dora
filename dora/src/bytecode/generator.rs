@@ -998,6 +998,21 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
                 dest
             }
+            Intrinsic::GenericArrayLen => {
+                return self.emit_intrinsic_array_len(
+                    expr.object().expect("array required"),
+                    expr.pos,
+                    dest,
+                );
+            }
+            Intrinsic::GenericArrayGet => {
+                return self.emit_intrinsic_array_get(
+                    &*expr.callee,
+                    &*expr.args[0],
+                    expr.pos,
+                    dest,
+                );
+            }
             _ => {
                 panic!("unimplemented intrinsic {:?}", intrinsic);
             }
@@ -1070,6 +1085,55 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
             dest
         }
+    }
+
+    fn emit_intrinsic_array_len(&mut self, arr: &Expr, pos: Position, dest: DataDest) -> Register {
+        let arr_reg = self.visit_expr(arr, DataDest::Alloc);
+        self.gen.set_position(pos);
+
+        if dest.is_effect() {
+            self.gen.emit_nil_check(arr_reg);
+            return Register::invalid();
+        } else {
+            let dest = self.ensure_register(dest, BytecodeType::Int);
+            self.gen.emit_array_length(dest, arr_reg);
+
+            return dest;
+        }
+    }
+
+    fn emit_intrinsic_array_get(
+        &mut self,
+        arr: &Expr,
+        idx: &Expr,
+        pos: Position,
+        dest: DataDest,
+    ) -> Register {
+        let ty = self.src.ty(arr.id());
+        let ty = self.specialize_type(ty);
+        let ty = ty.type_params(self.vm);
+        let ty = ty[0];
+        let ty: BytecodeType = ty.into();
+
+        let dest = self.ensure_register(dest, ty);
+
+        let arr = self.visit_expr(arr, DataDest::Alloc);
+        let idx = self.visit_expr(idx, DataDest::Alloc);
+
+        self.gen.set_position(pos);
+
+        match ty {
+            BytecodeType::Byte => self.gen.emit_load_array_byte(dest, arr, idx),
+            BytecodeType::Bool => self.gen.emit_load_array_bool(dest, arr, idx),
+            BytecodeType::Char => self.gen.emit_load_array_char(dest, arr, idx),
+            BytecodeType::Int => self.gen.emit_load_array_int(dest, arr, idx),
+            BytecodeType::Long => self.gen.emit_load_array_long(dest, arr, idx),
+            BytecodeType::Float => self.gen.emit_load_array_float(dest, arr, idx),
+            BytecodeType::Double => self.gen.emit_load_array_double(dest, arr, idx),
+            BytecodeType::Ptr => self.gen.emit_load_array_ptr(dest, arr, idx),
+        }
+
+        dest
     }
 
     fn emit_intrinsic_bin(
@@ -1375,7 +1439,58 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                         }
                     }
                 }
-                _ => unreachable!(),
+                ExprCall(ref call) => {
+                    if let Some(intrinsic) = self.get_intrinsic(expr.id) {
+                        match intrinsic {
+                            Intrinsic::GenericArraySet => {
+                                let object = &call.callee;
+
+                                let ty = self.src.ty(object.id());
+                                let ty = self.specialize_type(ty);
+                                let ty = ty.type_params(self.vm);
+                                let ty = ty[0];
+                                let ty: BytecodeType = ty.into();
+
+                                let arr = self.visit_expr(object, DataDest::Alloc);
+                                let idx = self.visit_expr(&call.args[0], DataDest::Alloc);
+                                let src = self.visit_expr(&expr.rhs, DataDest::Alloc);
+
+                                self.gen.set_position(expr.pos);
+
+                                match ty {
+                                    BytecodeType::Byte => {
+                                        self.gen.emit_store_array_byte(src, arr, idx)
+                                    }
+                                    BytecodeType::Bool => {
+                                        self.gen.emit_store_array_bool(src, arr, idx)
+                                    }
+                                    BytecodeType::Char => {
+                                        self.gen.emit_store_array_char(src, arr, idx)
+                                    }
+                                    BytecodeType::Int => {
+                                        self.gen.emit_store_array_int(src, arr, idx)
+                                    }
+                                    BytecodeType::Long => {
+                                        self.gen.emit_store_array_long(src, arr, idx)
+                                    }
+                                    BytecodeType::Float => {
+                                        self.gen.emit_store_array_float(src, arr, idx)
+                                    }
+                                    BytecodeType::Double => {
+                                        self.gen.emit_store_array_double(src, arr, idx)
+                                    }
+                                    BytecodeType::Ptr => {
+                                        self.gen.emit_store_array_ptr(src, arr, idx)
+                                    }
+                                }
+                            }
+                            _ => panic!("unexpected intrinsic {:?}", intrinsic),
+                        }
+                    } else {
+                        unimplemented!();
+                    }
+                }
+                _ => unreachable!("{:?}", expr),
             };
         }
 

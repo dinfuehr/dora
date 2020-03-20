@@ -104,8 +104,7 @@ impl<'a> BytecodeDumper<'a> {
 
     fn emit_new_array(&mut self, name: &str, r1: Register, cls: ClassDefId, length: Register) {
         self.emit_start(name);
-        writeln!(self.w, " {}, {}, {}", r1, cls.to_usize(), length.to_usize())
-            .expect("write! failed");
+        writeln!(self.w, " {}, {}, {}", r1, cls.to_usize(), length).expect("write! failed");
     }
 
     fn emit_start(&mut self, name: &str) {
@@ -931,6 +930,67 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     }
     fn visit_new_array(&mut self, dest: Register, cls: ClassDefId, length: Register) {
         self.emit_new_array("NewArray", dest, cls, length);
+    }
+
+    fn visit_nil_check(&mut self, obj: Register) {
+        self.emit_reg1("NilCheck", obj);
+    }
+
+    fn visit_load_array_bool(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit_reg3("LoadArrayBool", dest, arr, idx);
+    }
+    fn visit_load_array_byte(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit_reg3("LoadArrayByte", dest, arr, idx);
+    }
+    fn visit_load_array_char(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit_reg3("LoadArrayChar", dest, arr, idx);
+    }
+    fn visit_load_array_int(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit_reg3("LoadArrayInt", dest, arr, idx);
+    }
+    fn visit_load_array_long(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit_reg3("LoadArrayLong", dest, arr, idx);
+    }
+    fn visit_load_array_float(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit_reg3("LoadArrayFloat", dest, arr, idx);
+    }
+    fn visit_load_array_double(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit_reg3("LoadArrayDouble", dest, arr, idx);
+    }
+    fn visit_load_array_ptr(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit_reg3("LoadArrayPtr", dest, arr, idx);
+    }
+
+    fn visit_store_array_bool(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit_reg3("StoreArrayBool", src, arr, idx);
+    }
+    fn visit_store_array_byte(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit_reg3("StoreArrayByte", src, arr, idx);
+    }
+    fn visit_store_array_char(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit_reg3("StoreArrayChar", src, arr, idx);
+    }
+    fn visit_store_array_int(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit_reg3("StoreArrayInt", src, arr, idx);
+    }
+    fn visit_store_array_long(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit_reg3("StoreArrayLong", src, arr, idx);
+    }
+    fn visit_store_array_float(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit_reg3("StoreArrayFloat", src, arr, idx);
+    }
+    fn visit_store_array_double(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit_reg3("StoreArrayDouble", src, arr, idx);
+    }
+    fn visit_store_array_ptr(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit_reg3("StoreArrayPtr", src, arr, idx);
+    }
+
+    fn visit_array_length(&mut self, dest: Register, arr: Register) {
+        self.emit_reg2("ArrayLength", dest, arr);
+    }
+    fn visit_array_bound_check(&mut self, arr: Register, idx: Register) {
+        self.emit_reg2("ArrayBoundCheck", arr, idx);
     }
 
     fn visit_ret_void(&mut self) {

@@ -322,6 +322,29 @@ pub enum BytecodeOpcode {
     NewObject,
     NewArray,
 
+    NilCheck,
+
+    ArrayLength,
+    ArrayBoundCheck,
+
+    LoadArrayBool,
+    LoadArrayByte,
+    LoadArrayChar,
+    LoadArrayInt,
+    LoadArrayLong,
+    LoadArrayFloat,
+    LoadArrayDouble,
+    LoadArrayPtr,
+
+    StoreArrayBool,
+    StoreArrayByte,
+    StoreArrayChar,
+    StoreArrayInt,
+    StoreArrayLong,
+    StoreArrayFloat,
+    StoreArrayDouble,
+    StoreArrayPtr,
+
     RetVoid,
     RetBool,
     RetByte,
@@ -385,6 +408,25 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeStaticPtr
             | BytecodeOpcode::NewObject
             | BytecodeOpcode::NewArray
+            | BytecodeOpcode::NilCheck
+            | BytecodeOpcode::ArrayLength
+            | BytecodeOpcode::ArrayBoundCheck
+            | BytecodeOpcode::LoadArrayBool
+            | BytecodeOpcode::LoadArrayByte
+            | BytecodeOpcode::LoadArrayChar
+            | BytecodeOpcode::LoadArrayInt
+            | BytecodeOpcode::LoadArrayLong
+            | BytecodeOpcode::LoadArrayFloat
+            | BytecodeOpcode::LoadArrayDouble
+            | BytecodeOpcode::LoadArrayPtr
+            | BytecodeOpcode::StoreArrayBool
+            | BytecodeOpcode::StoreArrayByte
+            | BytecodeOpcode::StoreArrayChar
+            | BytecodeOpcode::StoreArrayInt
+            | BytecodeOpcode::StoreArrayLong
+            | BytecodeOpcode::StoreArrayFloat
+            | BytecodeOpcode::StoreArrayDouble
+            | BytecodeOpcode::StoreArrayPtr
             | BytecodeOpcode::Assert => true,
             _ => false,
         }

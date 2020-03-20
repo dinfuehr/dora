@@ -394,10 +394,6 @@ pub enum Intrinsic {
     FloatIsNan,
     FloatSqrt,
 
-    FloatArrayLen,
-    FloatArrayGet,
-    FloatArraySet,
-
     DoubleToInt,
     DoubleToLong,
     DemoteDoubleToFloat,
@@ -415,10 +411,6 @@ pub enum Intrinsic {
     DoubleNeg,
     DoubleIsNan,
     DoubleSqrt,
-
-    DoubleArrayLen,
-    DoubleArrayGet,
-    DoubleArraySet,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
