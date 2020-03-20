@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let x = 1;
     assert(1F == x.toFloat());

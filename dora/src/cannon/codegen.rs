@@ -1247,9 +1247,8 @@ where
 
     fn emit_jump(&mut self, offset: BytecodeOffset) {
         let lbl = self.asm.create_label();
-        self.asm.jump(lbl);
-
         self.resolve_label(offset, lbl);
+        self.asm.jump(lbl);
     }
 
     fn resolve_label(&mut self, target: BytecodeOffset, lbl: Label) {

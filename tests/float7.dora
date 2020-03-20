@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let array = arrayEmpty[Float]();
     assert(0 == array.length());

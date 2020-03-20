@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     test(1F, 2D, 3, 4L, 5F, 6D);
 }
