@@ -2519,6 +2519,143 @@ fn gen_position_array_length_effect() {
 }
 
 #[test]
+fn gen_load_array_byte() {
+    let result = code("fun f(a: Array[Byte]) -> Byte { return a(0); }");
+    let expected = vec![
+        ConstZeroInt(r(2)),
+        LoadArrayByte(r(1), r(0), r(2)),
+        RetByte(r(1)),
+    ];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_load_array_bool() {
+    let result = code("fun f(a: Array[Bool]) -> Bool { return a(0); }");
+    let expected = vec![
+        ConstZeroInt(r(2)),
+        LoadArrayBool(r(1), r(0), r(2)),
+        RetBool(r(1)),
+    ];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_load_array_char() {
+    let result = code("fun f(a: Array[Char]) -> Char { return a(0); }");
+    let expected = vec![
+        ConstZeroInt(r(2)),
+        LoadArrayChar(r(1), r(0), r(2)),
+        RetChar(r(1)),
+    ];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_load_array_int() {
+    let result = code("fun f(a: Array[Int]) -> Int { return a(0); }");
+    let expected = vec![
+        ConstZeroInt(r(2)),
+        LoadArrayInt(r(1), r(0), r(2)),
+        RetInt(r(1)),
+    ];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_load_array_long() {
+    let result = code("fun f(a: Array[Long]) -> Long { return a(0); }");
+    let expected = vec![
+        ConstZeroInt(r(2)),
+        LoadArrayLong(r(1), r(0), r(2)),
+        RetLong(r(1)),
+    ];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_load_array_float() {
+    let result = code("fun f(a: Array[Float]) -> Float { return a(0); }");
+    let expected = vec![
+        ConstZeroInt(r(2)),
+        LoadArrayFloat(r(1), r(0), r(2)),
+        RetFloat(r(1)),
+    ];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_load_array_double() {
+    let result = code("fun f(a: Array[Double]) -> Double { return a(0); }");
+    let expected = vec![
+        ConstZeroInt(r(2)),
+        LoadArrayDouble(r(1), r(0), r(2)),
+        RetDouble(r(1)),
+    ];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_load_array_ptr() {
+    let result = code("fun f(a: Array[Object]) -> Object { return a(0); }");
+    let expected = vec![
+        ConstZeroInt(r(2)),
+        LoadArrayPtr(r(1), r(0), r(2)),
+        RetPtr(r(1)),
+    ];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_load_array_bool() {
+    let result = position("fun f(a: Array[Bool]) -> Bool { return a(0); }");
+    let expected = vec![(2, p(1, 41))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_load_array_char() {
+    let result = position("fun f(a: Array[Char]) -> Char { return a(0); }");
+    let expected = vec![(2, p(1, 41))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_load_array_int() {
+    let result = position("fun f(a: Array[Int]) -> Int { return a(0); }");
+    let expected = vec![(2, p(1, 39))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_load_array_long() {
+    let result = position("fun f(a: Array[Long]) -> Long { return a(0); }");
+    let expected = vec![(2, p(1, 41))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_load_array_float() {
+    let result = position("fun f(a: Array[Float]) -> Float { return a(0); }");
+    let expected = vec![(2, p(1, 43))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_load_array_double() {
+    let result = position("fun f(a: Array[Double]) -> Double { return a(0); }");
+    let expected = vec![(2, p(1, 45))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_position_load_array_ptr() {
+    let result = position("fun f(a: Array[Object]) -> Object { return a(0); }");
+    let expected = vec![(2, p(1, 45))];
+    assert_eq!(expected, result);
+}
+
+#[test]
 fn gen_store_array_byte() {
     let result = code("fun f(a: Array[Byte], b: Byte) { a(0) = b; }");
     let expected = vec![
