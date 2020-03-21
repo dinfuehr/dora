@@ -12,7 +12,8 @@ use crate::semck::{expr_always_returns, expr_block_always_returns};
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{
-    CallType, Fct, FctDef, FctDefId, FctId, FctKind, FctSrc, IdentType, Intrinsic, VarId, VM,
+    CallType, Fct, FctDef, FctDefId, FctId, FctKind, FctSrc, IdentType, Intrinsic, TraitId, VarId,
+    VM,
 };
 
 pub struct LoopLabels {
@@ -345,17 +346,92 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
 
         let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
-        let fct_id = call_type.fct_id().unwrap();
 
-        let fct = self.vm.fcts.idx(fct_id);
-        let fct = fct.read();
+        // Find method that is called
+        let callee_id = self.determine_callee(&call_type);
 
-        let fct_def_id = self.specialize_call(&fct, &call_type);
+        let callee = self.vm.fcts.idx(callee_id);
+        let callee = callee.read();
 
-        if (fct.kind.is_definition() && !fct.is_virtual()) || fct.kind.is_intrinsic() {
-            unimplemented!()
+        // Create FctDefId for this Fct
+        let callee_def_id = self.specialize_call(&callee, &call_type);
+
+        // Determine types for arguments and return values
+        let (arg_types, arg_bytecode_types, return_type) =
+            self.determine_callee_types(&call_type, &*callee, dest);
+
+        let num_args = arg_bytecode_types.len();
+
+        // Allocate register for result
+        let return_reg = if return_type.is_unit() {
+            Register::invalid()
+        } else {
+            self.ensure_register(dest, return_type.into())
+        };
+
+        // Allocate registers for arguments
+        let start_reg = if num_args > 0 {
+            self.gen.add_register_chain(&arg_bytecode_types)
+        } else {
+            Register::zero()
+        };
+
+        // Evaluate object/self argument
+        self.emit_call_object_argument(expr, &call_type, start_reg);
+
+        // Evaluate function arguments
+        self.emit_call_arguments(expr, &call_type, &arg_types, start_reg);
+
+        // Allocte object or array for constructor calls
+        self.emit_call_allocate(expr.pos, &call_type, &arg_types, start_reg);
+
+        // Emit the actual Invoke(Direct|Static|Virtual)XXX instruction
+        self.emit_call_inst(
+            &*callee,
+            &call_type,
+            &arg_bytecode_types,
+            return_type,
+            expr.pos,
+            callee_def_id,
+            start_reg,
+            num_args,
+            return_reg,
+        );
+
+        // Store result
+        self.emit_call_result(&call_type, dest, return_reg, start_reg)
+    }
+
+    fn determine_callee(&mut self, call_type: &CallType) -> FctId {
+        match *call_type {
+            CallType::Method(_, fct_id, _) => {
+                let fct = self.vm.fcts.idx(fct_id);
+                let fct = fct.read();
+
+                if fct.parent.is_trait() {
+                    // This happens for calls like (T: SomeTrait).method()
+                    // Find the exact method that is called
+                    let trait_id = fct.trait_id();
+                    let object_type = match *call_type {
+                        CallType::Method(ty, _, _) => ty,
+                        _ => unreachable!(),
+                    };
+                    let object_type = self.specialize_type(object_type);
+                    self.find_trait_impl(fct_id, trait_id, object_type)
+                } else {
+                    fct_id
+                }
+            }
+            _ => call_type.fct_id().unwrap(),
         }
+    }
 
+    fn determine_callee_types(
+        &mut self,
+        call_type: &CallType,
+        fct: &Fct,
+        dest: DataDest,
+    ) -> (Vec<BuiltinType>, Vec<BytecodeType>, BuiltinType) {
         let return_type = if dest.is_effect() {
             BuiltinType::Unit
         } else {
@@ -374,29 +450,33 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             .map(|&ty| ty.into())
             .collect::<Vec<BytecodeType>>();
 
-        let num_args = arg_bytecode_types.len();
+        (arg_types, arg_bytecode_types, return_type)
+    }
 
-        let return_reg = if return_type.is_unit() {
-            Register::invalid()
-        } else {
-            self.ensure_register(dest, return_type.into())
-        };
-
-        let start_reg = if num_args > 0 {
-            self.gen.add_register_chain(&arg_bytecode_types)
-        } else {
-            Register::zero()
-        };
-        self.gen.set_position(expr.pos);
-
-        let arg_start_offset = match *call_type {
-            CallType::CtorNew(_, _) => 1,
+    fn emit_call_object_argument(
+        &mut self,
+        expr: &ExprCallType,
+        call_type: &CallType,
+        start_reg: Register,
+    ) {
+        match *call_type {
             CallType::Method(_, _, _) => {
                 let obj_expr = expr.object().expect("method target required");
                 self.visit_expr(obj_expr, DataDest::Reg(start_reg));
-
-                1
             }
+            _ => {}
+        };
+    }
+
+    fn emit_call_arguments(
+        &mut self,
+        expr: &ExprCallType,
+        call_type: &CallType,
+        arg_types: &[BuiltinType],
+        start_reg: Register,
+    ) {
+        let arg_start_offset = match *call_type {
+            CallType::CtorNew(_, _) | CallType::Method(_, _, _) => 1,
             _ => 0,
         };
 
@@ -412,22 +492,32 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
             self.visit_expr(arg, dest);
         }
+    }
 
+    fn emit_call_allocate(
+        &mut self,
+        pos: Position,
+        call_type: &CallType,
+        arg_types: &[BuiltinType],
+        start_reg: Register,
+    ) {
         match *call_type {
             CallType::CtorNew(_, _) => {
                 let ty = arg_types.first().cloned().unwrap();
-                let cls_id = specialize_class_ty(self.vm, ty);
+                let cls_def_id = specialize_class_ty(self.vm, ty);
 
-                let cls = self.vm.class_defs.idx(cls_id);
+                let cls = self.vm.class_defs.idx(cls_def_id);
                 let cls = cls.read();
+
+                self.gen.set_position(pos);
 
                 match cls.size {
                     InstanceSize::Fixed(_) => {
-                        self.gen.emit_new_object(start_reg, cls_id);
+                        self.gen.emit_new_object(start_reg, cls_def_id);
                     }
                     InstanceSize::Array(_) | InstanceSize::UnitArray => {
                         let length_arg = start_reg.offset(1);
-                        self.gen.emit_new_array(start_reg, cls_id, length_arg);
+                        self.gen.emit_new_array(start_reg, cls_def_id, length_arg);
                     }
                     _ => {
                         unimplemented!();
@@ -436,8 +526,21 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             }
             _ => {}
         }
+    }
 
-        self.gen.set_position(expr.pos);
+    fn emit_call_inst(
+        &mut self,
+        fct: &Fct,
+        call_type: &CallType,
+        arg_bytecode_types: &[BytecodeType],
+        return_type: BuiltinType,
+        pos: Position,
+        fct_def_id: FctDefId,
+        start_reg: Register,
+        num_args: usize,
+        return_reg: Register,
+    ) {
+        self.gen.set_position(pos);
 
         match *call_type {
             CallType::Ctor(_, _) | CallType::CtorNew(_, _) => {
@@ -481,7 +584,15 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             CallType::TraitStatic(_, _, _) => unimplemented!(),
             CallType::Intrinsic(_) => unreachable!(),
         }
+    }
 
+    fn emit_call_result(
+        &mut self,
+        call_type: &CallType,
+        dest: DataDest,
+        return_reg: Register,
+        start_reg: Register,
+    ) -> Register {
         if call_type.is_ctor_new() || call_type.is_ctor() {
             match dest {
                 DataDest::Effect => Register::invalid(),
@@ -1719,6 +1830,31 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 unreachable!()
             }
         }
+    }
+
+    fn find_trait_impl(&self, fct_id: FctId, trait_id: TraitId, object_type: BuiltinType) -> FctId {
+        let cls_id = object_type.cls_id(self.vm).unwrap();
+        let cls = self.vm.classes.idx(cls_id);
+        let cls = cls.read();
+
+        for &impl_id in &cls.impls {
+            let ximpl = self.vm.impls[impl_id].read();
+
+            if ximpl.trait_id() != trait_id {
+                continue;
+            }
+
+            for &mtd_id in &ximpl.methods {
+                let mtd = self.vm.fcts.idx(mtd_id);
+                let mtd = mtd.read();
+
+                if mtd.impl_for == Some(fct_id) {
+                    return mtd_id;
+                }
+            }
+        }
+
+        panic!("no impl found for generic trait call")
     }
 
     fn var_reg(&self, var_id: VarId) -> Register {
