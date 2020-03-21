@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     assert(Bar[String]().value == 10);
     assert(Bar[Float]().value == 10);

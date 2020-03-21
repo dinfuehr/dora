@@ -298,36 +298,42 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn visit_expr_dot(&mut self, expr: &ExprDotType, dest: DataDest) -> Register {
-        let (class, field_id) = {
+        let (cls_ty, field_id) = {
             let ident_type = self.src.map_idents.get(expr.id).unwrap();
 
             match ident_type {
-                &IdentType::Field(class, field) => (class, field),
+                &IdentType::Field(ty, field) => (ty, field),
                 _ => unreachable!(),
             }
         };
 
-        let class = self.specialize_type(class);
-        let cls_id = specialize_class_ty(self.vm, class);
-        let cls = self.vm.class_defs.idx(cls_id);
-        let cls = cls.read();
-        let field = &cls.fields[field_id.idx()];
-        let ty: BytecodeType = field.ty.into();
+        let cls_ty = self.specialize_type(cls_ty);
+        let cls_def_id = specialize_class_ty(self.vm, cls_ty);
 
-        let dest = self.ensure_register(dest, ty);
+        let field_ty = {
+            let cls = self.vm.class_defs.idx(cls_def_id);
+            let cls = cls.read();
+
+            let field = &cls.fields[field_id.idx()];
+            field.ty
+        };
+
+        let field_bc_ty: BytecodeType = field_ty.into();
+
+        let dest = self.ensure_register(dest, field_bc_ty);
         let obj = self.visit_expr(&expr.lhs, DataDest::Alloc);
 
         self.gen.set_position(expr.pos);
 
-        match ty {
-            BytecodeType::Byte => self.gen.emit_load_field_byte(dest, obj, cls_id, field_id),
-            BytecodeType::Bool => self.gen.emit_load_field_bool(dest, obj, cls_id, field_id),
-            BytecodeType::Char => self.gen.emit_load_field_char(dest, obj, cls_id, field_id),
-            BytecodeType::Int => self.gen.emit_load_field_int(dest, obj, cls_id, field_id),
-            BytecodeType::Long => self.gen.emit_load_field_long(dest, obj, cls_id, field_id),
-            BytecodeType::Float => self.gen.emit_load_field_float(dest, obj, cls_id, field_id),
-            BytecodeType::Double => self.gen.emit_load_field_double(dest, obj, cls_id, field_id),
-            BytecodeType::Ptr => self.gen.emit_load_field_ptr(dest, obj, cls_id, field_id),
+        match field_bc_ty {
+            BytecodeType::Byte => self.gen.emit_load_field_byte(dest, obj, cls_def_id, field_id),
+            BytecodeType::Bool => self.gen.emit_load_field_bool(dest, obj, cls_def_id, field_id),
+            BytecodeType::Char => self.gen.emit_load_field_char(dest, obj, cls_def_id, field_id),
+            BytecodeType::Int => self.gen.emit_load_field_int(dest, obj, cls_def_id, field_id),
+            BytecodeType::Long => self.gen.emit_load_field_long(dest, obj, cls_def_id, field_id),
+            BytecodeType::Float => self.gen.emit_load_field_float(dest, obj, cls_def_id, field_id),
+            BytecodeType::Double => self.gen.emit_load_field_double(dest, obj, cls_def_id, field_id),
+            BytecodeType::Ptr => self.gen.emit_load_field_ptr(dest, obj, cls_def_id, field_id),
         }
 
         dest
