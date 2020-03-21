@@ -221,7 +221,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.gen.emit_jump_loop(cond);
     }
 
-    // TODO - implement other expressions
     fn visit_expr(&mut self, expr: &Expr, dest: DataDest) -> Register {
         match *expr {
             ExprUn(ref un) => self.visit_expr_un(un, dest),
@@ -229,24 +228,23 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             ExprDot(ref field) => self.visit_expr_dot(field, dest),
             ExprBlock(ref block) => self.visit_expr_block(block, dest),
             ExprIf(ref expr) => self.visit_expr_if(expr, dest),
-            // ExprArray(ref array) => {},
+            ExprTemplate(_) => unimplemented!(),
+            ExprTypeParam(_) => unreachable!(),
+            ExprPath(_) => unimplemented!(),
             ExprLitChar(ref lit) => self.visit_expr_lit_char(lit, dest),
             ExprLitInt(ref lit) => self.visit_expr_lit_int(lit, dest),
             ExprLitFloat(ref lit) => self.visit_expr_lit_float(lit, dest),
             ExprLitStr(ref lit) => self.visit_expr_lit_string(lit, dest),
-            // ExprLitStruct(ref lit) => {},
             ExprLitBool(ref lit) => self.visit_expr_lit_bool(lit, dest),
             ExprIdent(ref ident) => self.visit_expr_ident(ident, dest),
             ExprCall(ref call) => self.visit_expr_call(call, dest),
             ExprDelegation(ref call) => self.visit_expr_delegation(call, dest),
-            ExprSelf(ref selfie) => self.visit_expr_self(selfie, dest),
-            // ExprSuper(ref expr) => {},
+            ExprSelf(_) => self.visit_expr_self(dest),
+            ExprSuper(_) => self.visit_expr_self(dest),
+            ExprConv(_) => unimplemented!(),
             ExprNil(ref nil) => self.visit_expr_nil(nil, dest),
             ExprTuple(ref tuple) => self.visit_expr_tuple(tuple, dest),
-            // ExprConv(ref expr) => {},
-            // ExprTry(ref expr) => {},
-            // ExprLambda(ref expr) => {},
-            _ => unimplemented!(),
+            ExprLambda(_) => unimplemented!(),
         }
     }
 
@@ -409,6 +407,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         // Emit the actual Invoke(Direct|Static|Virtual)XXX instruction
         self.emit_call_inst(
+            expr,
             &*callee,
             &call_type,
             &arg_bytecode_types,
@@ -552,6 +551,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     fn emit_call_inst(
         &mut self,
+        expr: &ExprCallType,
         fct: &Fct,
         call_type: &CallType,
         arg_bytecode_types: &[BytecodeType],
@@ -571,7 +571,20 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             }
 
             CallType::Method(_, _, _) => {
-                if fct.is_virtual() {
+                let is_super_call = expr
+                    .object()
+                    .map(|object| object.is_super())
+                    .unwrap_or(false);
+
+                if is_super_call {
+                    self.visit_call_direct(
+                        return_type,
+                        fct_def_id,
+                        start_reg,
+                        num_args,
+                        return_reg,
+                    );
+                } else if fct.is_virtual() {
                     self.visit_call_virtual(
                         return_type,
                         fct_def_id,
@@ -816,7 +829,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         dest
     }
 
-    fn visit_expr_self(&mut self, _selfie: &ExprSelfType, dest: DataDest) -> Register {
+    fn visit_expr_self(&mut self, dest: DataDest) -> Register {
         if dest.is_effect() {
             return Register::invalid();
         }

@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
   let b = B();
 
