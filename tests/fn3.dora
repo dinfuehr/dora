@@ -1,4 +1,5 @@
 //= error code 2
+//= cannon
 
 fun main() -> Int {
   return 2;

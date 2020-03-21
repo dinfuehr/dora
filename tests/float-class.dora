@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let f = Foo(1.0);
     assert(f.x * 2.0 == 2.0);

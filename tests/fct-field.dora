@@ -1,5 +1,6 @@
 //= error nil
-//= stderr "nil check failed\n2: f(Foo): 10\n1: main(): 6\n"
+//= stderr "nil check failed\n2: f(Foo): 11\n1: main(): 7\n"
+//= cannon
 
 fun main() {
   f(Foo(1));

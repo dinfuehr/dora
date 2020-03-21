@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
   let result = 1 + myzero();
   assert(result == 1);
