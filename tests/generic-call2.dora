@@ -1,4 +1,5 @@
 //= stdout "world\n"
+//= cannon
 
 trait Foo {
     fun bar() -> Int;

@@ -1,4 +1,5 @@
 //= stdout "hello\n"
+//= cannon
 
 trait Foo {
     fun bar();
