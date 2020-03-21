@@ -7,8 +7,8 @@ use dora_parser::ast::*;
 use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 
 use crate::bytecode::{BytecodeFunction, BytecodeType, BytecodeWriter, Label, Register};
-use crate::semck::{expr_always_returns, expr_block_always_returns};
 use crate::semck::specialize::{specialize_class_ty, specialize_type};
+use crate::semck::{expr_always_returns, expr_block_always_returns};
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{

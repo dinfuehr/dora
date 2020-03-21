@@ -546,10 +546,12 @@ fn gen_stmt_if_else_with_return() {
 
 #[test]
 fn gen_stmt_if_else_without_return() {
-    let result = code("fun f(var a: Bool) -> Bool {
+    let result = code(
+        "fun f(var a: Bool) -> Bool {
         if a { a = false; } else { a = true; }
         return a;
-    }");
+    }",
+    );
     let expected = vec![
         JumpIfFalse(r(0), 3),
         ConstFalse(r(0)),
