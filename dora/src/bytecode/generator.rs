@@ -326,14 +326,30 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.gen.set_position(expr.pos);
 
         match field_bc_ty {
-            BytecodeType::Byte => self.gen.emit_load_field_byte(dest, obj, cls_def_id, field_id),
-            BytecodeType::Bool => self.gen.emit_load_field_bool(dest, obj, cls_def_id, field_id),
-            BytecodeType::Char => self.gen.emit_load_field_char(dest, obj, cls_def_id, field_id),
-            BytecodeType::Int => self.gen.emit_load_field_int(dest, obj, cls_def_id, field_id),
-            BytecodeType::Long => self.gen.emit_load_field_long(dest, obj, cls_def_id, field_id),
-            BytecodeType::Float => self.gen.emit_load_field_float(dest, obj, cls_def_id, field_id),
-            BytecodeType::Double => self.gen.emit_load_field_double(dest, obj, cls_def_id, field_id),
-            BytecodeType::Ptr => self.gen.emit_load_field_ptr(dest, obj, cls_def_id, field_id),
+            BytecodeType::Byte => self
+                .gen
+                .emit_load_field_byte(dest, obj, cls_def_id, field_id),
+            BytecodeType::Bool => self
+                .gen
+                .emit_load_field_bool(dest, obj, cls_def_id, field_id),
+            BytecodeType::Char => self
+                .gen
+                .emit_load_field_char(dest, obj, cls_def_id, field_id),
+            BytecodeType::Int => self
+                .gen
+                .emit_load_field_int(dest, obj, cls_def_id, field_id),
+            BytecodeType::Long => self
+                .gen
+                .emit_load_field_long(dest, obj, cls_def_id, field_id),
+            BytecodeType::Float => self
+                .gen
+                .emit_load_field_float(dest, obj, cls_def_id, field_id),
+            BytecodeType::Double => self
+                .gen
+                .emit_load_field_double(dest, obj, cls_def_id, field_id),
+            BytecodeType::Ptr => self
+                .gen
+                .emit_load_field_ptr(dest, obj, cls_def_id, field_id),
         }
 
         dest
