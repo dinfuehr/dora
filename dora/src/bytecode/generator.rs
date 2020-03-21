@@ -248,8 +248,82 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
     }
 
-    fn visit_expr_template(&mut self, _expr: &ExprTemplateType, _dest: DataDest) -> Register {
-        unimplemented!()
+    fn visit_expr_template(&mut self, expr: &ExprTemplateType, dest: DataDest) -> Register {
+        let buffer_register = self.ensure_register(dest, BytecodeType::Ptr);
+        self.gen.set_position(expr.pos);
+
+        // build StringBuffer::empty() call
+        let fct_id = self.vm.vips.fct.string_buffer_empty;
+        self.gen.emit_invoke_static_ptr(
+            buffer_register,
+            FctDef::fct_id(self.vm, fct_id),
+            Register::zero(),
+            0,
+        );
+
+        let part_register = self.gen.add_register(BytecodeType::Ptr);
+
+        for part in &expr.parts {
+            if let Some(ref lit_str) = part.to_lit_str() {
+                let value = lit_str.value.clone();
+                self.gen.emit_const_string(part_register, value);
+            } else {
+                let ty = self.ty(part.id());
+
+                if ty.cls_id(self.vm) == Some(self.vm.vips.string_class) {
+                    self.visit_expr(part, DataDest::Reg(part_register));
+                } else {
+                    let expr_register = self.visit_expr(part, DataDest::Alloc);
+
+                    // build toString() call
+                    let cls_id = ty.cls_id(self.vm).expect("no cls_id found for type");
+                    let cls = self.vm.classes.idx(cls_id);
+                    let cls = cls.read();
+                    let name = self.vm.interner.intern("toString");
+                    let to_string_id = cls
+                        .find_trait_method(self.vm, self.vm.vips.stringable_trait, name, false)
+                        .expect("toString() method not found");
+
+                    if ty.reference_type() {
+                        self.gen.emit_invoke_direct_ptr(
+                            part_register,
+                            FctDef::fct_id(self.vm, to_string_id),
+                            expr_register,
+                            1,
+                        );
+                    } else {
+                        self.gen.emit_invoke_static_ptr(
+                            part_register,
+                            FctDef::fct_id(self.vm, to_string_id),
+                            expr_register,
+                            1,
+                        );
+                    }
+                }
+            }
+
+            // build StringBuffer::append() call
+            let fct_id = self.vm.vips.fct.string_buffer_append;
+            let start_register = self
+                .gen
+                .add_register_chain(&[BytecodeType::Ptr, BytecodeType::Ptr]);
+            self.gen.emit_mov_ptr(start_register, buffer_register);
+            self.gen
+                .emit_mov_ptr(start_register.offset(1), part_register);
+            self.gen
+                .emit_invoke_direct_void(FctDef::fct_id(self.vm, fct_id), start_register, 2);
+        }
+
+        // build StringBuffer::toString() call
+        let fct_id = self.vm.vips.fct.string_buffer_to_string;
+        self.gen.emit_invoke_static_ptr(
+            buffer_register,
+            FctDef::fct_id(self.vm, fct_id),
+            buffer_register,
+            1,
+        );
+
+        buffer_register
     }
 
     fn visit_expr_path(&mut self, expr: &ExprPathType, dest: DataDest) -> Register {
@@ -1248,14 +1322,30 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
                 dest
             }
-            Intrinsic::GenericArrayLen => self.emit_intrinsic_array_len(
+            Intrinsic::GenericArrayLen | Intrinsic::StrLen => self.emit_intrinsic_array_len(
                 expr.object().expect("array required"),
                 expr.pos,
                 dest,
             ),
-            Intrinsic::GenericArrayGet => {
-                self.emit_intrinsic_array_get(&*expr.callee, &*expr.args[0], expr.pos, dest)
-            }
+            Intrinsic::GenericArrayGet => self.emit_intrinsic_array_get(
+                expr.object_or_callee(),
+                &*expr.args[0],
+                expr.pos,
+                dest,
+            ),
+            Intrinsic::StrGet => self.emit_intrinsic_array_get(
+                expr.object().unwrap(),
+                &*expr.args[0],
+                expr.pos,
+                dest,
+            ),
+            Intrinsic::GenericArraySet => self.emit_intrinsic_array_set(
+                expr.object().unwrap(),
+                &expr.args[0],
+                &expr.args[1],
+                expr.pos,
+                dest,
+            ),
             Intrinsic::FloatIsNan => {
                 let dest = self.ensure_register(dest, BytecodeType::Bool);
                 let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
@@ -1438,9 +1528,13 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     ) -> Register {
         let ty = self.src.ty(arr.id());
         let ty = self.specialize_type(ty);
-        let ty = ty.type_params(self.vm);
-        let ty = ty[0];
-        let ty: BytecodeType = ty.into();
+
+        let ty: BytecodeType = if ty.cls_id(self.vm) == Some(self.vm.vips.string_class) {
+            BytecodeType::Byte
+        } else {
+            let ty = ty.type_params(self.vm);
+            ty[0].into()
+        };
 
         let dest = self.ensure_register(dest, ty);
 
@@ -1461,6 +1555,42 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
 
         dest
+    }
+
+    fn emit_intrinsic_array_set(
+        &mut self,
+        arr: &Expr,
+        idx: &Expr,
+        src: &Expr,
+        pos: Position,
+        dest: DataDest,
+    ) -> Register {
+        assert!(dest.is_effect());
+
+        let ty = self.src.ty(arr.id());
+        let ty = self.specialize_type(ty);
+        let ty = ty.type_params(self.vm);
+        let ty = ty[0];
+        let ty: BytecodeType = ty.into();
+
+        let arr = self.visit_expr(arr, DataDest::Alloc);
+        let idx = self.visit_expr(idx, DataDest::Alloc);
+        let src = self.visit_expr(src, DataDest::Alloc);
+
+        self.gen.set_position(pos);
+
+        match ty {
+            BytecodeType::Byte => self.gen.emit_store_array_byte(src, arr, idx),
+            BytecodeType::Bool => self.gen.emit_store_array_bool(src, arr, idx),
+            BytecodeType::Char => self.gen.emit_store_array_char(src, arr, idx),
+            BytecodeType::Int => self.gen.emit_store_array_int(src, arr, idx),
+            BytecodeType::Long => self.gen.emit_store_array_long(src, arr, idx),
+            BytecodeType::Float => self.gen.emit_store_array_float(src, arr, idx),
+            BytecodeType::Double => self.gen.emit_store_array_double(src, arr, idx),
+            BytecodeType::Ptr => self.gen.emit_store_array_ptr(src, arr, idx),
+        }
+
+        Register::invalid()
     }
 
     fn emit_intrinsic_bin(
@@ -1772,44 +1902,13 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                             Intrinsic::GenericArraySet => {
                                 let object = &call.callee;
 
-                                let ty = self.src.ty(object.id());
-                                let ty = self.specialize_type(ty);
-                                let ty = ty.type_params(self.vm);
-                                let ty = ty[0];
-                                let ty: BytecodeType = ty.into();
-
-                                let arr = self.visit_expr(object, DataDest::Alloc);
-                                let idx = self.visit_expr(&call.args[0], DataDest::Alloc);
-                                let src = self.visit_expr(&expr.rhs, DataDest::Alloc);
-
-                                self.gen.set_position(expr.pos);
-
-                                match ty {
-                                    BytecodeType::Byte => {
-                                        self.gen.emit_store_array_byte(src, arr, idx)
-                                    }
-                                    BytecodeType::Bool => {
-                                        self.gen.emit_store_array_bool(src, arr, idx)
-                                    }
-                                    BytecodeType::Char => {
-                                        self.gen.emit_store_array_char(src, arr, idx)
-                                    }
-                                    BytecodeType::Int => {
-                                        self.gen.emit_store_array_int(src, arr, idx)
-                                    }
-                                    BytecodeType::Long => {
-                                        self.gen.emit_store_array_long(src, arr, idx)
-                                    }
-                                    BytecodeType::Float => {
-                                        self.gen.emit_store_array_float(src, arr, idx)
-                                    }
-                                    BytecodeType::Double => {
-                                        self.gen.emit_store_array_double(src, arr, idx)
-                                    }
-                                    BytecodeType::Ptr => {
-                                        self.gen.emit_store_array_ptr(src, arr, idx)
-                                    }
-                                }
+                                self.emit_intrinsic_array_set(
+                                    object,
+                                    &call.args[0],
+                                    &expr.rhs,
+                                    expr.pos,
+                                    dest,
+                                );
                             }
                             _ => panic!("unexpected intrinsic {:?}", intrinsic),
                         }
@@ -2009,44 +2108,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 .collect::<Vec<_>>(),
         );
 
-        if let Some(&id) = fct
-            .specializations
-            .read()
-            .get(&(cls_type_params.clone(), fct_type_params.clone()))
-        {
-            return id;
-        }
-
-        self.create_specialized_call(fct, &cls_type_params, &fct_type_params)
-    }
-
-    fn create_specialized_call(
-        &self,
-        fct: &Fct,
-        cls_type_params: &TypeList,
-        fct_type_params: &TypeList,
-    ) -> FctDefId {
-        debug_assert!(cls_type_params
-            .iter()
-            .all(|ty| ty.is_concrete_type(self.vm)));
-        debug_assert!(fct_type_params
-            .iter()
-            .all(|ty| ty.is_concrete_type(self.vm)));
-
-        let fct_def_id = self.vm.add_fct_def(FctDef {
-            id: FctDefId(0),
-            fct_id: fct.id,
-            cls_type_params: cls_type_params.clone(),
-            fct_type_params: fct_type_params.clone(),
-        });
-
-        let old = fct.specializations.write().insert(
-            (cls_type_params.clone(), fct_type_params.clone()),
-            fct_def_id,
-        );
-        assert!(old.is_none());
-
-        fct_def_id
+        FctDef::with(self.vm, fct, cls_type_params, fct_type_params)
     }
 
     fn specialize_type_for_call(&self, call_type: &CallType, ty: BuiltinType) -> BuiltinType {

@@ -3182,6 +3182,53 @@ fn gen_enum_value() {
     assert_eq!(expected, result);
 }
 
+#[test]
+fn gen_string_length() {
+    let result = code("fun f(x: String) -> Int { x.length() }");
+    let expected = vec![ArrayLength(r(1), r(0)), RetInt(r(1))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_string_get_byte() {
+    let result = code("fun f(x: String, idx: Int) -> Byte { x.getByte(0) }");
+    let expected = vec![
+        ConstZeroInt(r(3)),
+        LoadArrayByte(r(2), r(0), r(3)),
+        RetByte(r(2)),
+    ];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_array_get() {
+    let result = code("fun f(x: Array[Float], idx: Int) -> Float { x(0) }");
+    let expected = vec![
+        ConstZeroInt(r(3)),
+        LoadArrayFloat(r(2), r(0), r(3)),
+        RetFloat(r(2)),
+    ];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_array_get_method() {
+    let result = code("fun f(x: Array[Float], idx: Int) -> Float { x.get(0) }");
+    let expected = vec![
+        ConstZeroInt(r(3)),
+        LoadArrayFloat(r(2), r(0), r(3)),
+        RetFloat(r(2)),
+    ];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_array_set_method() {
+    let result = code("fun f(x: Array[Float], idx: Int, value: Float) { x.set(idx, value); }");
+    let expected = vec![StoreArrayFloat(r(2), r(0), r(1)), RetVoid];
+    assert_eq!(expected, result);
+}
+
 fn p(line: u32, column: u32) -> Position {
     Position { line, column }
 }

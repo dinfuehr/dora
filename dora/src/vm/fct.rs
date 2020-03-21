@@ -441,3 +441,48 @@ pub struct FctDef {
     pub cls_type_params: TypeList,
     pub fct_type_params: TypeList,
 }
+
+impl FctDef {
+    pub fn fct(vm: &VM, fct: &Fct) -> FctDefId {
+        FctDef::with(vm, fct, TypeList::empty(), TypeList::empty())
+    }
+
+    pub fn fct_id(vm: &VM, fct_id: FctId) -> FctDefId {
+        let fct = vm.fcts.idx(fct_id);
+        let fct = fct.read();
+
+        FctDef::fct(vm, &*fct)
+    }
+
+    pub fn with(
+        vm: &VM,
+        fct: &Fct,
+        cls_type_params: TypeList,
+        fct_type_params: TypeList,
+    ) -> FctDefId {
+        debug_assert!(cls_type_params.iter().all(|ty| ty.is_concrete_type(vm)));
+        debug_assert!(fct_type_params.iter().all(|ty| ty.is_concrete_type(vm)));
+
+        let mut specializations = fct.specializations.write();
+        let type_params = (cls_type_params.clone(), fct_type_params.clone());
+
+        if let Some(&id) = specializations.get(&type_params) {
+            return id;
+        }
+
+        let fct_def_id = vm.add_fct_def(FctDef {
+            id: FctDefId(0),
+            fct_id: fct.id,
+            cls_type_params: cls_type_params.clone(),
+            fct_type_params: fct_type_params.clone(),
+        });
+
+        let old = specializations.insert(
+            (cls_type_params.clone(), fct_type_params.clone()),
+            fct_def_id,
+        );
+        assert!(old.is_none());
+
+        fct_def_id
+    }
+}

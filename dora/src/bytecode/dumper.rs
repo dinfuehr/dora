@@ -119,7 +119,7 @@ impl<'a> BytecodeDumper<'a> {
     }
 
     fn emit_start(&mut self, name: &str) {
-        write!(self.w, "{}: {}", self.pos.to_usize(), name).expect("write! failed");
+        write!(self.w, "{:3}: {}", self.pos.to_usize(), name).expect("write! failed");
     }
 }
 
