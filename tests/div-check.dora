@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
   let result = Int::minValue() / -1;
   assert(result == Int::minValue());
