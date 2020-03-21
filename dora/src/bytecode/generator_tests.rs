@@ -3175,6 +3175,13 @@ fn gen_checked_cast_effect() {
     );
 }
 
+#[test]
+fn gen_enum_value() {
+    let result = code("enum MyEnum { A, B } fun f() -> MyEnum { MyEnum::A }");
+    let expected = vec![ConstInt(r(0), 0), RetInt(r(0))];
+    assert_eq!(expected, result);
+}
+
 fn p(line: u32, column: u32) -> Position {
     Position { line, column }
 }

@@ -228,9 +228,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             ExprDot(ref field) => self.visit_expr_dot(field, dest),
             ExprBlock(ref block) => self.visit_expr_block(block, dest),
             ExprIf(ref expr) => self.visit_expr_if(expr, dest),
-            ExprTemplate(_) => unimplemented!(),
+            ExprTemplate(ref template) => self.visit_expr_template(template, dest),
             ExprTypeParam(_) => unreachable!(),
-            ExprPath(_) => unimplemented!(),
+            ExprPath(ref path) => self.visit_expr_path(path, dest),
             ExprLitChar(ref lit) => self.visit_expr_lit_char(lit, dest),
             ExprLitInt(ref lit) => self.visit_expr_lit_int(lit, dest),
             ExprLitFloat(ref lit) => self.visit_expr_lit_float(lit, dest),
@@ -245,6 +245,24 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             ExprNil(ref nil) => self.visit_expr_nil(nil, dest),
             ExprTuple(ref tuple) => self.visit_expr_tuple(tuple, dest),
             ExprLambda(_) => unimplemented!(),
+        }
+    }
+
+    fn visit_expr_template(&mut self, _expr: &ExprTemplateType, _dest: DataDest) -> Register {
+        unimplemented!()
+    }
+
+    fn visit_expr_path(&mut self, expr: &ExprPathType, dest: DataDest) -> Register {
+        let ident_type = self.src.map_idents.get(expr.id).unwrap();
+
+        match ident_type {
+            &IdentType::EnumValue(_, value) => {
+                let dest = self.ensure_register(dest, BytecodeType::Int);
+                self.gen.emit_const_int(dest, value as i32);
+                dest
+            }
+
+            _ => unreachable!(),
         }
     }
 
