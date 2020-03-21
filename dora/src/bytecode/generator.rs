@@ -930,36 +930,82 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 expr.pos,
                 dest,
             ),
-            Intrinsic::FloatPlus => self.visit_expr(expr.object().unwrap(), dest),
-            Intrinsic::FloatAdd => {
-                let dest = self.ensure_register(dest, BytecodeType::Float);
+            Intrinsic::FloatPlus | Intrinsic::DoublePlus => {
+                self.visit_expr(expr.object().unwrap(), dest)
+            }
+            Intrinsic::FloatAdd | Intrinsic::DoubleAdd => {
+                let ty = match intrinsic {
+                    Intrinsic::FloatAdd => BytecodeType::Float,
+                    Intrinsic::DoubleAdd => BytecodeType::Double,
+                    _ => unreachable!(),
+                };
+
+                let dest = self.ensure_register(dest, ty);
                 let lhs_reg = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
                 let rhs_reg = self.visit_expr(&expr.args[0], DataDest::Alloc);
-                self.gen.emit_add_float(dest, lhs_reg, rhs_reg);
+
+                match intrinsic {
+                    Intrinsic::FloatAdd => self.gen.emit_add_float(dest, lhs_reg, rhs_reg),
+                    Intrinsic::DoubleAdd => self.gen.emit_add_double(dest, lhs_reg, rhs_reg),
+                    _ => unreachable!(),
+                }
 
                 dest
             }
-            Intrinsic::FloatSub => {
-                let dest = self.ensure_register(dest, BytecodeType::Float);
+            Intrinsic::FloatSub | Intrinsic::DoubleSub => {
+                let ty = match intrinsic {
+                    Intrinsic::FloatSub => BytecodeType::Float,
+                    Intrinsic::DoubleSub => BytecodeType::Double,
+                    _ => unreachable!(),
+                };
+
+                let dest = self.ensure_register(dest, ty);
                 let lhs_reg = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
                 let rhs_reg = self.visit_expr(&expr.args[0], DataDest::Alloc);
-                self.gen.emit_sub_float(dest, lhs_reg, rhs_reg);
+
+                match intrinsic {
+                    Intrinsic::FloatSub => self.gen.emit_sub_float(dest, lhs_reg, rhs_reg),
+                    Intrinsic::DoubleSub => self.gen.emit_sub_double(dest, lhs_reg, rhs_reg),
+                    _ => unreachable!(),
+                }
 
                 dest
             }
-            Intrinsic::FloatMul => {
-                let dest = self.ensure_register(dest, BytecodeType::Float);
+            Intrinsic::FloatMul | Intrinsic::DoubleMul => {
+                let ty = match intrinsic {
+                    Intrinsic::FloatMul => BytecodeType::Float,
+                    Intrinsic::DoubleMul => BytecodeType::Double,
+                    _ => unreachable!(),
+                };
+
+                let dest = self.ensure_register(dest, ty);
                 let lhs_reg = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
                 let rhs_reg = self.visit_expr(&expr.args[0], DataDest::Alloc);
-                self.gen.emit_mul_float(dest, lhs_reg, rhs_reg);
+
+                match intrinsic {
+                    Intrinsic::FloatMul => self.gen.emit_mul_float(dest, lhs_reg, rhs_reg),
+                    Intrinsic::DoubleMul => self.gen.emit_mul_double(dest, lhs_reg, rhs_reg),
+                    _ => unreachable!(),
+                }
 
                 dest
             }
-            Intrinsic::FloatDiv => {
-                let dest = self.ensure_register(dest, BytecodeType::Float);
+            Intrinsic::FloatDiv | Intrinsic::DoubleDiv => {
+                let ty = match intrinsic {
+                    Intrinsic::FloatDiv => BytecodeType::Float,
+                    Intrinsic::DoubleDiv => BytecodeType::Double,
+                    _ => unreachable!(),
+                };
+
+                let dest = self.ensure_register(dest, ty);
                 let lhs_reg = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
                 let rhs_reg = self.visit_expr(&expr.args[0], DataDest::Alloc);
-                self.gen.emit_div_float(dest, lhs_reg, rhs_reg);
+
+                match intrinsic {
+                    Intrinsic::FloatDiv => self.gen.emit_div_float(dest, lhs_reg, rhs_reg),
+                    Intrinsic::DoubleDiv => self.gen.emit_div_double(dest, lhs_reg, rhs_reg),
+                    _ => unreachable!(),
+                }
 
                 dest
             }
@@ -991,10 +1037,21 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
                 dest
             }
-            Intrinsic::FloatNeg => {
-                let dest = self.ensure_register(dest, BytecodeType::Float);
+            Intrinsic::FloatNeg | Intrinsic::DoubleNeg => {
+                let ty = match intrinsic {
+                    Intrinsic::FloatNeg => BytecodeType::Float,
+                    Intrinsic::DoubleNeg => BytecodeType::Double,
+                    _ => unreachable!(),
+                };
+
+                let dest = self.ensure_register(dest, ty);
                 let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
-                self.gen.emit_neg_float(dest, src);
+
+                match intrinsic {
+                    Intrinsic::FloatNeg => self.gen.emit_neg_float(dest, src),
+                    Intrinsic::DoubleNeg => self.gen.emit_neg_double(dest, src),
+                    _ => unreachable!(),
+                }
 
                 dest
             }
