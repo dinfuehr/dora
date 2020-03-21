@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
   assert(!isl7(L1()));
   assert(!isl7(L2()));

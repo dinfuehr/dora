@@ -550,6 +550,14 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::TruncateDoubleToLong, dest, src);
     }
 
+    pub fn emit_instance_of(&mut self, dest: Register, src: Register, cls_id: ClassDefId) {
+        self.emit_reg2_cls(BytecodeOpcode::InstanceOf, dest, src, cls_id);
+    }
+
+    pub fn emit_checked_cast(&mut self, src: Register, cls_id: ClassDefId) {
+        self.emit_reg1_cls(BytecodeOpcode::CheckedCast, src, cls_id);
+    }
+
     pub fn emit_sub_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::SubInt, dest, lhs, rhs);
     }
@@ -1253,8 +1261,28 @@ impl BytecodeWriter {
         self.emit_values(inst, &values);
     }
 
+    fn emit_reg2_cls(
+        &mut self,
+        inst: BytecodeOpcode,
+        r1: Register,
+        r2: Register,
+        cls_id: ClassDefId,
+    ) {
+        let values = [
+            r1.to_usize() as u32,
+            r2.to_usize() as u32,
+            cls_id.to_usize() as u32,
+        ];
+        self.emit_values(inst, &values);
+    }
+
     fn emit_reg1(&mut self, inst: BytecodeOpcode, r1: Register) {
         let values = [r1.to_usize() as u32];
+        self.emit_values(inst, &values);
+    }
+
+    fn emit_reg1_cls(&mut self, inst: BytecodeOpcode, r1: Register, cls_id: ClassDefId) {
+        let values = [r1.to_usize() as u32, cls_id.to_usize() as u32];
         self.emit_values(inst, &values);
     }
 

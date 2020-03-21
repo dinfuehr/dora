@@ -1,4 +1,6 @@
+//= cannon
 //= error cast
+//= stderr "cast failed\n2: asb(A) -> B: 12\n1: main(): 8\n"
 
 fun main() {
   let a = A();

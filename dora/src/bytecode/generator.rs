@@ -241,10 +241,36 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             ExprDelegation(ref call) => self.visit_expr_delegation(call, dest),
             ExprSelf(_) => self.visit_expr_self(dest),
             ExprSuper(_) => self.visit_expr_self(dest),
-            ExprConv(_) => unimplemented!(),
+            ExprConv(ref conv) => self.visit_expr_conv(conv, dest),
             ExprNil(ref nil) => self.visit_expr_nil(nil, dest),
             ExprTuple(ref tuple) => self.visit_expr_tuple(tuple, dest),
             ExprLambda(_) => unimplemented!(),
+        }
+    }
+
+    fn visit_expr_conv(&mut self, expr: &ExprConvType, dest: DataDest) -> Register {
+        let conv = *self.src.map_convs.get(expr.id).unwrap();
+        let ty = self.specialize_type(conv.check_type);
+        let cls_def_id = specialize_class_ty(self.vm, ty);
+
+        self.gen.set_position(expr.pos);
+
+        if expr.is {
+            let object = self.visit_expr(&expr.object, DataDest::Alloc);
+            let result = self.ensure_register(dest, BytecodeType::Bool);
+            self.gen.emit_instance_of(result, object, cls_def_id);
+
+            result
+        } else {
+            let dest = match dest {
+                DataDest::Effect => DataDest::Alloc,
+                DataDest::Reg(reg) => DataDest::Reg(reg),
+                DataDest::Alloc => DataDest::Alloc,
+            };
+
+            let object = self.visit_expr(&expr.object, dest);
+            self.gen.emit_checked_cast(object, cls_def_id);
+            object
         }
     }
 

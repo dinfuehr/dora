@@ -37,9 +37,19 @@ impl<'a> BytecodeDumper<'a> {
         writeln!(self.w, " {}, {}", r1, r2).expect("write! failed");
     }
 
+    fn emit_reg2_cls(&mut self, name: &str, r1: Register, r2: Register, cls_id: ClassDefId) {
+        self.emit_start(name);
+        writeln!(self.w, " {}, {}, {}", r1, r2, cls_id.to_usize()).expect("write! failed");
+    }
+
     fn emit_reg1(&mut self, name: &str, r1: Register) {
         self.emit_start(name);
         writeln!(self.w, " {}", r1).expect("write! failed");
+    }
+
+    fn emit_reg1_cls(&mut self, name: &str, r1: Register, cls_id: ClassDefId) {
+        self.emit_start(name);
+        writeln!(self.w, " {}, {}", r1, cls_id.to_usize()).expect("write! failed");
     }
 
     fn emit_reg1_idx(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
@@ -273,6 +283,39 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     }
     fn visit_cast_long_to_int(&mut self, dest: Register, src: Register) {
         self.emit_reg2("CastLongToInt", dest, src);
+    }
+
+    fn visit_convert_int_to_float(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("ConvertIntToFloat", dest, src);
+    }
+    fn visit_convert_int_to_double(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("ConvertIntToDouble", dest, src);
+    }
+    fn visit_convert_long_to_float(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("ConvertLongToFloat", dest, src);
+    }
+    fn visit_convert_long_to_double(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("ConvertLongToDouble", dest, src);
+    }
+
+    fn visit_truncate_float_to_int(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("TruncateFloatToInt", dest, src);
+    }
+    fn visit_truncate_float_to_long(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("TruncateFloatToLong", dest, src);
+    }
+    fn visit_truncate_double_to_int(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("TruncateDoubleToInt", dest, src);
+    }
+    fn visit_truncate_double_to_long(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("TruncateDoubleToLong", dest, src);
+    }
+
+    fn visit_instance_of(&mut self, dest: Register, src: Register, cls_id: ClassDefId) {
+        self.emit_reg2_cls("InstanceOf", dest, src, cls_id);
+    }
+    fn visit_checked_cast(&mut self, src: Register, cls_id: ClassDefId) {
+        self.emit_reg1_cls("CheckedCast", src, cls_id);
     }
 
     fn visit_mov_bool(&mut self, dest: Register, src: Register) {

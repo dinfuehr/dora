@@ -19,7 +19,7 @@ use crate::semck::specialize::specialize_type;
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, MachineMode, TypeList};
 use crate::vm::{ClassDefId, Fct, FctDefId, FctId, FctKind, FctSrc, FieldId, GlobalId, Trap, VM};
-use crate::vtable::VTable;
+use crate::vtable::{VTable, DISPLAY_SIZE};
 
 struct ForwardJump {
     label: Label,
@@ -914,6 +914,153 @@ where
         let offset = self.bytecode.register_offset(dest);
         self.asm
             .store_mem(dest_mode, Mem::Local(offset), REG_RESULT.into());
+    }
+
+    fn emit_instanceof(
+        &mut self,
+        dest: Register,
+        src: Register,
+        cls_id: ClassDefId,
+        instanceof: bool,
+    ) {
+        let cls = self.vm.class_defs.idx(cls_id);
+        let cls = cls.read();
+
+        let vtable: &VTable = cls.vtable.as_ref().unwrap();
+        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+
+        // object instanceof T
+
+        // tmp1 = <vtable of object>
+        let src_offset = self.bytecode.register_offset(src);
+        self.asm
+            .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(src_offset));
+        let lbl_nil = self.asm.test_if_nil(REG_TMP1);
+        self.asm
+            .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Base(REG_TMP1, 0));
+
+        let disp = self.asm.add_addr(vtable as *const _ as *mut u8);
+        let pos = self.asm.pos() as i32;
+
+        // tmp2 = <vtable of T>
+        self.asm.load_constpool(REG_TMP2, disp + pos);
+
+        if vtable.subtype_depth >= DISPLAY_SIZE {
+            // cmp [tmp1 + offset T.vtable.subtype_depth], tmp3
+            self.asm.cmp_mem_imm(
+                MachineMode::Int32,
+                Mem::Base(REG_TMP1, VTable::offset_of_depth()),
+                vtable.subtype_depth as i32,
+            );
+
+            // jnz lbl_false
+            let lbl_false = self.asm.create_label();
+            self.asm.jump_if(CondCode::Less, lbl_false);
+
+            // tmp1 = tmp1.subtype_overflow
+            self.asm.load_mem(
+                MachineMode::Ptr,
+                REG_TMP1.into(),
+                Mem::Base(REG_TMP1, VTable::offset_of_overflow()),
+            );
+
+            let overflow_offset = mem::ptr_width() * (vtable.subtype_depth - DISPLAY_SIZE) as i32;
+
+            // cmp [tmp1 + 8*(vtable.subtype_depth - DISPLAY_SIZE) ], tmp2
+            self.asm.cmp_mem(
+                MachineMode::Ptr,
+                Mem::Base(REG_TMP1, overflow_offset),
+                REG_TMP2,
+            );
+
+            if instanceof {
+                // dest = if zero then true else false
+                self.asm.set(REG_RESULT, CondCode::Equal);
+
+                let dest_offset = self.bytecode.register_offset(dest);
+                self.asm.store_mem(
+                    MachineMode::Int8,
+                    Mem::Local(dest_offset),
+                    REG_RESULT.into(),
+                );
+            } else {
+                // jump to lbl_false if cmp did not succeed
+                self.asm.jump_if(CondCode::NonZero, lbl_false);
+            }
+
+            // jmp lbl_finished
+            let lbl_finished = self.asm.create_label();
+            self.asm.jump(lbl_finished);
+
+            // lbl_false:
+            self.asm.bind_label(lbl_false);
+
+            if instanceof {
+                // dest = false
+                self.asm.load_false(REG_RESULT);
+
+                let dest_offset = self.bytecode.register_offset(dest);
+                self.asm.store_mem(
+                    MachineMode::Int8,
+                    Mem::Local(dest_offset),
+                    REG_RESULT.into(),
+                );
+            } else {
+                // bailout
+                self.asm.emit_bailout_inplace(Trap::CAST, position);
+            }
+
+            // lbl_finished:
+            self.asm.bind_label(lbl_finished);
+        } else {
+            let display_entry =
+                VTable::offset_of_display() + vtable.subtype_depth as i32 * mem::ptr_width();
+
+            // tmp1 = vtable of object
+            // tmp2 = vtable of T
+            // cmp [tmp1 + offset], tmp2
+            self.asm.cmp_mem(
+                MachineMode::Ptr,
+                Mem::Base(REG_TMP1, display_entry),
+                REG_TMP2,
+            );
+
+            if instanceof {
+                self.asm.set(REG_RESULT, CondCode::Equal);
+
+                let dest_offset = self.bytecode.register_offset(dest);
+                self.asm.store_mem(
+                    MachineMode::Int8,
+                    Mem::Local(dest_offset),
+                    REG_RESULT.into(),
+                );
+            } else {
+                let lbl_bailout = self.asm.create_label();
+                self.asm.jump_if(CondCode::NotEqual, lbl_bailout);
+                self.asm.emit_bailout(lbl_bailout, Trap::CAST, position);
+            }
+        }
+
+        if instanceof {
+            let lbl_end = self.asm.create_label();
+            self.asm.jump(lbl_end);
+
+            self.asm.bind_label(lbl_nil);
+
+            // dest = false
+            self.asm.load_false(REG_RESULT);
+
+            let dest_offset = self.bytecode.register_offset(dest);
+            self.asm.store_mem(
+                MachineMode::Int8,
+                Mem::Local(dest_offset),
+                REG_RESULT.into(),
+            );
+
+            self.asm.bind_label(lbl_end);
+        } else {
+            self.asm.bind_label(lbl_nil);
+        }
     }
 
     fn emit_mov_generic(&mut self, dest: Register, src: Register) {
@@ -2070,6 +2217,13 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
     fn visit_truncate_double_to_long(&mut self, dest: Register, src: Register) {
         self.emit_float_to_int(dest, src);
+    }
+
+    fn visit_instance_of(&mut self, dest: Register, src: Register, cls_id: ClassDefId) {
+        self.emit_instanceof(dest, src, cls_id, true);
+    }
+    fn visit_checked_cast(&mut self, src: Register, cls_id: ClassDefId) {
+        self.emit_instanceof(Register::invalid(), src, cls_id, false);
     }
 
     fn visit_mov_bool(&mut self, dest: Register, src: Register) {

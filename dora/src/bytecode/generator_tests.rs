@@ -3137,6 +3137,44 @@ fn gen_truncate_double_to_long() {
     assert_eq!(expected, result);
 }
 
+#[test]
+fn gen_instanceof() {
+    gen(
+        "@open class A class B: A fun f(a: A) -> Bool { a is B }",
+        |vm, code| {
+            let cls_id = vm.cls_def_by_name("B");
+            let expected = vec![InstanceOf(r(1), r(0), cls_id), RetBool(r(1))];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_checked_cast() {
+    gen(
+        "@open class A class B: A fun f(a: A) -> B { a as B }",
+        |vm, code| {
+            let cls_id = vm.cls_def_by_name("B");
+            let expected = vec![CheckedCast(r(0), cls_id), RetPtr(r(0))];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_checked_cast_effect() {
+    gen(
+        "@open class A
+        class B: A
+        fun f(a: A) -> B { let b = a as B; b }",
+        |vm, code| {
+            let cls_id = vm.cls_def_by_name("B");
+            let expected = vec![MovPtr(r(1), r(0)), CheckedCast(r(1), cls_id), RetPtr(r(1))];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
 fn p(line: u32, column: u32) -> Position {
     Position { line, column }
 }
@@ -3216,6 +3254,9 @@ pub enum Bytecode {
     TruncateFloatToLong(Register, Register),
     TruncateDoubleToInt(Register, Register),
     TruncateDoubleToLong(Register, Register),
+
+    InstanceOf(Register, Register, ClassDefId),
+    CheckedCast(Register, ClassDefId),
 
     MovBool(Register, Register),
     MovByte(Register, Register),
@@ -3645,6 +3686,13 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_truncate_double_to_long(&mut self, dest: Register, src: Register) {
         self.emit(Bytecode::TruncateDoubleToLong(dest, src));
+    }
+
+    fn visit_instance_of(&mut self, dest: Register, src: Register, cls_id: ClassDefId) {
+        self.emit(Bytecode::InstanceOf(dest, src, cls_id));
+    }
+    fn visit_checked_cast(&mut self, src: Register, cls_id: ClassDefId) {
+        self.emit(Bytecode::CheckedCast(src, cls_id));
     }
 
     fn visit_mov_bool(&mut self, dest: Register, src: Register) {

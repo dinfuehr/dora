@@ -176,6 +176,9 @@ pub enum BytecodeOpcode {
     TruncateDoubleToInt,
     TruncateDoubleToLong,
 
+    InstanceOf,
+    CheckedCast,
+
     MovBool,
     MovByte,
     MovChar,
@@ -376,6 +379,8 @@ impl BytecodeOpcode {
             | BytecodeOpcode::DivLong
             | BytecodeOpcode::ModInt
             | BytecodeOpcode::ModLong
+            | BytecodeOpcode::InstanceOf
+            | BytecodeOpcode::CheckedCast
             | BytecodeOpcode::LoadFieldBool
             | BytecodeOpcode::LoadFieldByte
             | BytecodeOpcode::LoadFieldChar

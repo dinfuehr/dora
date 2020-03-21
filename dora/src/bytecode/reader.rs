@@ -364,6 +364,18 @@ where
                 self.visitor.visit_truncate_double_to_long(dest, src);
             }
 
+            BytecodeOpcode::InstanceOf => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                let cls_id = self.read_class(wide);
+                self.visitor.visit_instance_of(dest, src, cls_id);
+            }
+            BytecodeOpcode::CheckedCast => {
+                let src = self.read_register(wide);
+                let cls_id = self.read_class(wide);
+                self.visitor.visit_checked_cast(src, cls_id);
+            }
+
             BytecodeOpcode::MovBool => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
@@ -1590,6 +1602,14 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_truncate_double_to_long(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+
+    fn visit_instance_of(&mut self, _dest: Register, _src: Register, _cls_id: ClassDefId) {
+        unimplemented!();
+    }
+
+    fn visit_checked_cast(&mut self, _src: Register, _cls_id: ClassDefId) {
         unimplemented!();
     }
 

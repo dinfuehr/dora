@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     assert(test(B(10)));
     assert(!test(B(0)));
