@@ -57,9 +57,10 @@ impl<'a> BytecodeDumper<'a> {
         writeln!(self.w, " {}, 0x{:x}/{}", r1, value, value).expect("write! failed");
     }
 
-    fn emit_u32(&mut self, name: &str, value: u32) {
+    fn emit_jump(&mut self, name: &str, offset: i32) {
         self.emit_start(name);
-        writeln!(self.w, " 0x{:x}/{}", value, value).expect("write! failed");
+        let bc_target = self.pos.to_u32() as i32 + offset;
+        writeln!(self.w, " #{}", bc_target).expect("write! failed");
     }
 
     fn emit_field(
@@ -695,10 +696,10 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg1_idx("JumpIfTrueConst", opnd, idx);
     }
     fn visit_jump_loop(&mut self, offset: u32) {
-        self.emit_u32("JumpLoop", offset);
+        self.emit_jump("JumpLoop", -(offset as i32));
     }
     fn visit_jump(&mut self, offset: u32) {
-        self.emit_u32("Jump", offset);
+        self.emit_jump("Jump", offset as i32);
     }
     fn visit_jump_const(&mut self, idx: ConstPoolIdx) {
         self.emit_idx("JumpConst", idx);

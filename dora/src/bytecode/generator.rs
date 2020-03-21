@@ -7,7 +7,7 @@ use dora_parser::ast::*;
 use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 
 use crate::bytecode::{BytecodeFunction, BytecodeType, BytecodeWriter, Label, Register};
-use crate::semck::expr_block_always_returns;
+use crate::semck::{expr_always_returns, expr_block_always_returns};
 use crate::semck::specialize::{specialize_class_ty, specialize_type};
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, TypeList};
@@ -265,7 +265,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             self.gen.emit_jump_if_false(cond_reg, else_lbl);
 
             self.visit_expr(&expr.then_block, DataDest::Reg(dest));
-            self.gen.emit_jump(end_lbl);
+
+            if !expr_always_returns(&expr.then_block) {
+                self.gen.emit_jump(end_lbl);
+            }
 
             self.gen.bind_label(else_lbl);
             self.visit_expr(else_block, DataDest::Reg(dest));

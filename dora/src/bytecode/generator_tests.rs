@@ -532,15 +532,30 @@ fn gen_stmt_if() {
 }
 
 #[test]
-fn gen_stmt_if_else() {
+fn gen_stmt_if_else_with_return() {
     let result = code("fun f(a: Bool) -> Int { if a { return 1; } else { return 2; } }");
     let expected = vec![
-        JumpIfFalse(r(0), 4),
+        JumpIfFalse(r(0), 3),
         ConstInt(r(1), 1),
         RetInt(r(1)),
-        Jump(6),
         ConstInt(r(2), 2),
         RetInt(r(2)),
+    ];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_stmt_if_else_without_return() {
+    let result = code("fun f(var a: Bool) -> Bool {
+        if a { a = false; } else { a = true; }
+        return a;
+    }");
+    let expected = vec![
+        JumpIfFalse(r(0), 3),
+        ConstFalse(r(0)),
+        Jump(4),
+        ConstTrue(r(0)),
+        RetBool(r(0)),
     ];
     assert_eq!(expected, result);
 }
