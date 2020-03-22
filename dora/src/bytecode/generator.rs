@@ -130,7 +130,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.gen.generate()
     }
 
-    // TODO - implement other statements
     fn visit_stmt(&mut self, stmt: &Stmt) {
         match *stmt {
             StmtReturn(ref ret) => self.visit_stmt_return(ret),
@@ -139,10 +138,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             StmtExpr(ref expr) => self.visit_stmt_expr(expr),
             StmtVar(ref stmt) => self.visit_stmt_var(stmt),
             StmtWhile(ref stmt) => self.visit_stmt_while(stmt),
-            // StmtDefer(ref stmt) => {},
-            // StmtSpawn(ref stmt) => {},
-            // StmtFor(ref stmt) => {},
-            _ => unimplemented!(),
+            StmtDefer(_) => unimplemented!(),
+            StmtFor(_) => unimplemented!(),
         }
     }
 
@@ -1222,6 +1219,31 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     expr.pos,
                     dest,
                 ),
+
+                Intrinsic::DefaultValue => {
+                    let ty = self.ty(expr.id);
+
+                    if ty.is_unit() || dest.is_effect() {
+                        assert!(dest.is_effect());
+                        return Register::invalid();
+                    }
+
+                    let ty: BytecodeType = ty.into();
+                    let dest = self.ensure_register(dest, ty);
+
+                    match ty {
+                        BytecodeType::Bool => self.gen.emit_const_false(dest),
+                        BytecodeType::Byte => self.gen.emit_const_byte(dest, 0),
+                        BytecodeType::Int => self.gen.emit_const_int(dest, 0),
+                        BytecodeType::Long => self.gen.emit_const_long(dest, 0),
+                        BytecodeType::Char => self.gen.emit_const_char(dest, '\0'),
+                        BytecodeType::Float => self.gen.emit_const_float(dest, 0.0),
+                        BytecodeType::Double => self.gen.emit_const_double(dest, 0.0),
+                        BytecodeType::Ptr => self.gen.emit_const_nil(dest),
+                    }
+
+                    dest
+                }
 
                 _ => panic!("unimplemented intrinsic {:?}", intrinsic),
             }
