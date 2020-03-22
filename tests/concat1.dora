@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let x = "hello " + "world";
     assert(x.length() == 11);

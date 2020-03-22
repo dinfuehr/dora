@@ -1,3 +1,4 @@
+//= cannon
 //= stdout "a\n"
 
 fun main() {

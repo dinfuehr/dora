@@ -1,3 +1,5 @@
+//= cannon
+
 class X(a: Int, b: Int) {
     var ma : Int = a;
     var mb : Int = b;

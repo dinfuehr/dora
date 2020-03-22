@@ -3304,6 +3304,61 @@ fn gen_cmp_strings() {
     );
 }
 
+#[test]
+fn gen_extend_byte() {
+    let result = code("fun f(x: Byte) -> Int { x.toInt() }");
+    let expected = vec![ExtendByteToInt(r(1), r(0)), RetInt(r(1))];
+    assert_eq!(expected, result);
+
+    let result = code("fun f(x: Byte) -> Long { x.toLong() }");
+    let expected = vec![ExtendByteToLong(r(1), r(0)), RetLong(r(1))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_extend_int() {
+    let result = code("fun f(x: Int) -> Long { x.toLong() }");
+    let expected = vec![ExtendIntToLong(r(1), r(0)), RetLong(r(1))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_cast_char() {
+    let result = code("fun f(x: Char) -> Int { x.toInt() }");
+    let expected = vec![CastCharToInt(r(1), r(0)), RetInt(r(1))];
+    assert_eq!(expected, result);
+
+    let result = code("fun f(x: Char) -> Long { x.toLong() }");
+    let expected = vec![ExtendCharToLong(r(1), r(0)), RetLong(r(1))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_cast_int() {
+    let result = code("fun f(x: Int) -> Byte { x.toByte() }");
+    let expected = vec![CastIntToByte(r(1), r(0)), RetByte(r(1))];
+    assert_eq!(expected, result);
+
+    let result = code("fun f(x: Int) -> Char { x.toCharUnchecked() }");
+    let expected = vec![CastIntToChar(r(1), r(0)), RetChar(r(1))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_cast_long() {
+    let result = code("fun f(x: Long) -> Byte { x.toByte() }");
+    let expected = vec![CastLongToByte(r(1), r(0)), RetByte(r(1))];
+    assert_eq!(expected, result);
+
+    let result = code("fun f(x: Long) -> Char { x.toCharUnchecked() }");
+    let expected = vec![CastLongToChar(r(1), r(0)), RetChar(r(1))];
+    assert_eq!(expected, result);
+
+    let result = code("fun f(x: Long) -> Int { x.toInt() }");
+    let expected = vec![CastLongToInt(r(1), r(0)), RetInt(r(1))];
+    assert_eq!(expected, result);
+}
+
 fn p(line: u32, column: u32) -> Position {
     Position { line, column }
 }
@@ -3371,7 +3426,15 @@ pub enum Bytecode {
     ReinterpretDoubleAsLong(Register, Register),
     ReinterpretLongAsDouble(Register, Register),
 
+    ExtendByteToInt(Register, Register),
+    ExtendByteToLong(Register, Register),
     ExtendIntToLong(Register, Register),
+    ExtendCharToLong(Register, Register),
+    CastCharToInt(Register, Register),
+    CastIntToByte(Register, Register),
+    CastIntToChar(Register, Register),
+    CastLongToByte(Register, Register),
+    CastLongToChar(Register, Register),
     CastLongToInt(Register, Register),
 
     ConvertIntToFloat(Register, Register),
@@ -3784,8 +3847,32 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::ReinterpretLongAsDouble(dest, src));
     }
 
+    fn visit_extend_byte_to_int(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::ExtendByteToInt(dest, src));
+    }
+    fn visit_extend_byte_to_long(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::ExtendByteToLong(dest, src));
+    }
     fn visit_extend_int_to_long(&mut self, dest: Register, src: Register) {
         self.emit(Bytecode::ExtendIntToLong(dest, src));
+    }
+    fn visit_extend_char_to_long(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::ExtendCharToLong(dest, src));
+    }
+    fn visit_cast_char_to_int(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::CastCharToInt(dest, src));
+    }
+    fn visit_cast_int_to_byte(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::CastIntToByte(dest, src));
+    }
+    fn visit_cast_int_to_char(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::CastIntToChar(dest, src));
+    }
+    fn visit_cast_long_to_byte(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::CastLongToByte(dest, src));
+    }
+    fn visit_cast_long_to_char(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::CastLongToChar(dest, src));
     }
     fn visit_cast_long_to_int(&mut self, dest: Register, src: Register) {
         self.emit(Bytecode::CastLongToInt(dest, src));

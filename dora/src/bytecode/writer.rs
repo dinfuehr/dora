@@ -516,10 +516,34 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::ReinterpretLongAsDouble, dest, src);
     }
 
+    pub fn emit_extend_byte_to_int(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::ExtendByteToInt, dest, src);
+    }
+    pub fn emit_extend_byte_to_long(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::ExtendByteToLong, dest, src);
+    }
+    pub fn emit_extend_char_to_long(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::ExtendCharToLong, dest, src);
+    }
     pub fn emit_extend_int_to_long(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::ExtendIntToLong, dest, src);
     }
 
+    pub fn emit_cast_char_to_int(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::CastCharToInt, dest, src);
+    }
+    pub fn emit_cast_int_to_byte(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::CastIntToByte, dest, src);
+    }
+    pub fn emit_cast_int_to_char(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::CastIntToChar, dest, src);
+    }
+    pub fn emit_cast_long_to_byte(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::CastLongToByte, dest, src);
+    }
+    pub fn emit_cast_long_to_char(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::CastLongToChar, dest, src);
+    }
     pub fn emit_cast_long_to_int(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::CastLongToInt, dest, src);
     }

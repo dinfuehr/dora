@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let x = 97.toChar().unwrap();
     assert(x == 'a');

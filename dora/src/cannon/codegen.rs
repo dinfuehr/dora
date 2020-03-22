@@ -837,6 +837,32 @@ where
             .store_mem(dest_type.mode(), Mem::Local(offset), dest_register.into());
     }
 
+    fn emit_extend_byte(&mut self, dest: Register, src: Register, mode: MachineMode) {
+        assert_eq!(self.bytecode.register_type(src), BytecodeType::Byte);
+
+        let offset = self.bytecode.register_offset(src);
+        self.asm
+            .load_mem(MachineMode::Int8, REG_RESULT.into(), Mem::Local(offset));
+        let offset = self.bytecode.register_offset(dest);
+        self.asm
+            .store_mem(mode, Mem::Local(offset), REG_RESULT.into());
+    }
+
+    fn emit_shrink(
+        &mut self,
+        dest: Register,
+        dest_mode: MachineMode,
+        src: Register,
+        src_mode: MachineMode,
+    ) {
+        let offset = self.bytecode.register_offset(src);
+        self.asm
+            .load_mem(src_mode, REG_RESULT.into(), Mem::Local(offset));
+        let offset = self.bytecode.register_offset(dest);
+        self.asm
+            .store_mem(dest_mode, Mem::Local(offset), REG_RESULT.into());
+    }
+
     fn emit_int_to_long(&mut self, dest: Register, src: Register) {
         assert_eq!(self.bytecode.register_type(dest), BytecodeType::Long);
         assert_eq!(self.bytecode.register_type(src), BytecodeType::Int);
@@ -2186,8 +2212,32 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_reinterpret(dest, src);
     }
 
+    fn visit_extend_byte_to_int(&mut self, dest: Register, src: Register) {
+        self.emit_extend_byte(dest, src, MachineMode::Int32);
+    }
+    fn visit_extend_byte_to_long(&mut self, dest: Register, src: Register) {
+        self.emit_extend_byte(dest, src, MachineMode::Int64);
+    }
     fn visit_extend_int_to_long(&mut self, dest: Register, src: Register) {
         self.emit_int_to_long(dest, src);
+    }
+    fn visit_extend_char_to_long(&mut self, dest: Register, src: Register) {
+        self.emit_shrink(dest, MachineMode::Int64, src, MachineMode::Int32);
+    }
+    fn visit_cast_char_to_int(&mut self, dest: Register, src: Register) {
+        self.emit_shrink(dest, MachineMode::Int32, src, MachineMode::Int32);
+    }
+    fn visit_cast_int_to_byte(&mut self, dest: Register, src: Register) {
+        self.emit_shrink(dest, MachineMode::Int8, src, MachineMode::Int32);
+    }
+    fn visit_cast_int_to_char(&mut self, dest: Register, src: Register) {
+        self.emit_shrink(dest, MachineMode::Int32, src, MachineMode::Int32);
+    }
+    fn visit_cast_long_to_byte(&mut self, dest: Register, src: Register) {
+        self.emit_shrink(dest, MachineMode::Int8, src, MachineMode::Int64);
+    }
+    fn visit_cast_long_to_char(&mut self, dest: Register, src: Register) {
+        self.emit_shrink(dest, MachineMode::Int32, src, MachineMode::Int64);
     }
     fn visit_cast_long_to_int(&mut self, dest: Register, src: Register) {
         self.emit_long_to_int(dest, src);

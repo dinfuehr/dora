@@ -285,8 +285,32 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg2("ReinterpretLongAsDouble", dest, src);
     }
 
+    fn visit_extend_byte_to_int(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("ExtendByteToInt", dest, src);
+    }
+    fn visit_extend_byte_to_long(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("ExtendByteToLong", dest, src);
+    }
     fn visit_extend_int_to_long(&mut self, dest: Register, src: Register) {
         self.emit_reg2("ExtendIntToLong", dest, src);
+    }
+    fn visit_extend_char_to_long(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("ExtendCharToLong", dest, src);
+    }
+    fn visit_cast_char_to_int(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("CastCharToInt", dest, src);
+    }
+    fn visit_cast_int_to_byte(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("CastIntToByte", dest, src);
+    }
+    fn visit_cast_int_to_char(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("CastIntToChar", dest, src);
+    }
+    fn visit_cast_long_to_byte(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("CastLongToByte", dest, src);
+    }
+    fn visit_cast_long_to_char(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("CastLongToChar", dest, src);
     }
     fn visit_cast_long_to_int(&mut self, dest: Register, src: Register) {
         self.emit_reg2("CastLongToInt", dest, src);

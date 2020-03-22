@@ -311,10 +311,50 @@ where
                 self.visitor.visit_reinterpret_long_as_double(dest, src);
             }
 
+            BytecodeOpcode::ExtendByteToInt => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_extend_byte_to_int(dest, src);
+            }
+            BytecodeOpcode::ExtendByteToLong => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_extend_byte_to_long(dest, src);
+            }
             BytecodeOpcode::ExtendIntToLong => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
                 self.visitor.visit_extend_int_to_long(dest, src);
+            }
+            BytecodeOpcode::ExtendCharToLong => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_extend_char_to_long(dest, src);
+            }
+            BytecodeOpcode::CastCharToInt => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_cast_char_to_int(dest, src);
+            }
+            BytecodeOpcode::CastIntToByte => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_cast_int_to_byte(dest, src);
+            }
+            BytecodeOpcode::CastIntToChar => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_cast_int_to_char(dest, src);
+            }
+            BytecodeOpcode::CastLongToByte => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_cast_long_to_byte(dest, src);
+            }
+            BytecodeOpcode::CastLongToChar => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_cast_long_to_char(dest, src);
             }
             BytecodeOpcode::CastLongToInt => {
                 let dest = self.read_register(wide);
@@ -1572,7 +1612,31 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
+    fn visit_extend_byte_to_int(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_extend_byte_to_long(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
     fn visit_extend_int_to_long(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_extend_char_to_long(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_cast_char_to_int(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_cast_int_to_byte(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_cast_int_to_char(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_cast_long_to_byte(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_cast_long_to_char(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
     fn visit_cast_long_to_int(&mut self, _dest: Register, _src: Register) {

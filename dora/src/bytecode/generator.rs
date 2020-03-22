@@ -1372,6 +1372,76 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
                 dest
             }
+            Intrinsic::ByteToInt => {
+                let dest = self.ensure_register(dest, BytecodeType::Int);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_extend_byte_to_int(dest, src);
+
+                dest
+            }
+            Intrinsic::ByteToLong => {
+                let dest = self.ensure_register(dest, BytecodeType::Long);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_extend_byte_to_long(dest, src);
+
+                dest
+            }
+            Intrinsic::IntToLong => {
+                let dest = self.ensure_register(dest, BytecodeType::Long);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_extend_int_to_long(dest, src);
+
+                dest
+            }
+            Intrinsic::CharToInt => {
+                let dest = self.ensure_register(dest, BytecodeType::Int);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_cast_char_to_int(dest, src);
+
+                dest
+            }
+            Intrinsic::CharToLong => {
+                let dest = self.ensure_register(dest, BytecodeType::Long);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_extend_char_to_long(dest, src);
+
+                dest
+            }
+            Intrinsic::IntToByte => {
+                let dest = self.ensure_register(dest, BytecodeType::Byte);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_cast_int_to_byte(dest, src);
+
+                dest
+            }
+            Intrinsic::IntToChar => {
+                let dest = self.ensure_register(dest, BytecodeType::Char);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_cast_int_to_char(dest, src);
+
+                dest
+            }
+            Intrinsic::LongToByte => {
+                let dest = self.ensure_register(dest, BytecodeType::Byte);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_cast_long_to_byte(dest, src);
+
+                dest
+            }
+            Intrinsic::LongToChar => {
+                let dest = self.ensure_register(dest, BytecodeType::Char);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_cast_long_to_char(dest, src);
+
+                dest
+            }
+            Intrinsic::LongToInt => {
+                let dest = self.ensure_register(dest, BytecodeType::Int);
+                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
+                self.gen.emit_cast_long_to_int(dest, src);
+
+                dest
+            }
             Intrinsic::FloatNeg | Intrinsic::DoubleNeg => {
                 let ty = match intrinsic {
                     Intrinsic::FloatNeg => BytecodeType::Float,
@@ -1425,20 +1495,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 let dest = self.ensure_register(dest, BytecodeType::Bool);
                 let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
                 self.gen.emit_test_ne_double(dest, src, src);
-
-                dest
-            }
-            Intrinsic::IntToLong => {
-                let dest = self.ensure_register(dest, BytecodeType::Long);
-                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
-                self.gen.emit_extend_int_to_long(dest, src);
-
-                dest
-            }
-            Intrinsic::LongToInt => {
-                let dest = self.ensure_register(dest, BytecodeType::Int);
-                let src = self.visit_expr(expr.object().unwrap(), DataDest::Alloc);
-                self.gen.emit_cast_long_to_int(dest, src);
 
                 dest
             }
