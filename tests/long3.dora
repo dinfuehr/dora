@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let x = 1L.unaryPlus();
     assert(x == +1L);

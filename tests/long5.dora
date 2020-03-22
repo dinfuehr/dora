@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let ba = Array[Long](0);
     assert(ba.length() == 0);

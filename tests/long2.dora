@@ -1,5 +1,8 @@
+//= cannon
+
 fun main() {
     let x: Long = 1L;
     let y = 2L;
     let z = x.plus(y);
+    assert(3L == z);
 }

@@ -878,8 +878,8 @@ where
     }
 
     fn emit_long_to_int(&mut self, dest: Register, src: Register) {
-        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Long);
-        assert_eq!(self.bytecode.register_type(src), BytecodeType::Int);
+        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Int);
+        assert_eq!(self.bytecode.register_type(src), BytecodeType::Long);
 
         let offset = self.bytecode.register_offset(src);
         self.asm

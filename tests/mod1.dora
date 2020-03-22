@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     assert(8 % 2 == 0);
     assert(7 % 2 == 1);

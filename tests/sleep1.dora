@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     sleep(1);
 }

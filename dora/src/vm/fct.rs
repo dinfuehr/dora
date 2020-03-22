@@ -8,6 +8,7 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
+use crate::bytecode::BytecodeType;
 use crate::gc::Address;
 use crate::ty::BuiltinType;
 use crate::utils::GrowableVec;
@@ -424,6 +425,99 @@ pub enum Intrinsic {
     DoubleNeg,
     DoubleIsNan,
     DoubleSqrt,
+}
+
+impl Intrinsic {
+    pub fn result_type(self) -> BytecodeType {
+        match self {
+            Intrinsic::IntAdd
+            | Intrinsic::IntSub
+            | Intrinsic::IntMul
+            | Intrinsic::IntDiv
+            | Intrinsic::IntMod
+            | Intrinsic::IntOr
+            | Intrinsic::IntAnd
+            | Intrinsic::IntXor
+            | Intrinsic::IntShl
+            | Intrinsic::IntShr
+            | Intrinsic::IntSar
+            | Intrinsic::IntRotateLeft
+            | Intrinsic::IntRotateRight
+            | Intrinsic::IntNot
+            | Intrinsic::IntPlus
+            | Intrinsic::IntNeg
+            | Intrinsic::ReinterpretFloatAsInt
+            | Intrinsic::GenericArrayLen
+            | Intrinsic::StrLen
+            | Intrinsic::CharToInt
+            | Intrinsic::LongToInt
+            | Intrinsic::ByteToInt
+            | Intrinsic::FloatToInt
+            | Intrinsic::DoubleToInt
+            | Intrinsic::BoolToInt
+            | Intrinsic::ByteCmp
+            | Intrinsic::CharCmp
+            | Intrinsic::IntCmp
+            | Intrinsic::LongCmp
+            | Intrinsic::FloatCmp
+            | Intrinsic::DoubleCmp => BytecodeType::Int,
+            Intrinsic::LongAdd
+            | Intrinsic::LongSub
+            | Intrinsic::LongMul
+            | Intrinsic::LongDiv
+            | Intrinsic::LongMod
+            | Intrinsic::LongOr
+            | Intrinsic::LongAnd
+            | Intrinsic::LongXor
+            | Intrinsic::LongShl
+            | Intrinsic::LongShr
+            | Intrinsic::LongSar
+            | Intrinsic::LongRotateLeft
+            | Intrinsic::LongRotateRight
+            | Intrinsic::LongNot
+            | Intrinsic::LongPlus
+            | Intrinsic::LongNeg
+            | Intrinsic::CharToLong
+            | Intrinsic::ByteToLong
+            | Intrinsic::IntToLong
+            | Intrinsic::FloatToLong
+            | Intrinsic::DoubleToLong
+            | Intrinsic::ReinterpretDoubleAsLong => BytecodeType::Long,
+            Intrinsic::FloatAdd
+            | Intrinsic::FloatSub
+            | Intrinsic::FloatDiv
+            | Intrinsic::FloatMul
+            | Intrinsic::FloatNeg
+            | Intrinsic::FloatPlus
+            | Intrinsic::ReinterpretIntAsFloat
+            | Intrinsic::IntToFloat
+            | Intrinsic::LongToFloat => BytecodeType::Float,
+            Intrinsic::DoubleAdd
+            | Intrinsic::DoubleSub
+            | Intrinsic::DoubleDiv
+            | Intrinsic::DoubleMul
+            | Intrinsic::DoubleNeg
+            | Intrinsic::DoublePlus
+            | Intrinsic::IntToDouble
+            | Intrinsic::LongToDouble
+            | Intrinsic::ReinterpretLongAsDouble => BytecodeType::Double,
+            Intrinsic::BoolEq
+            | Intrinsic::ByteEq
+            | Intrinsic::CharEq
+            | Intrinsic::EnumEq
+            | Intrinsic::EnumNe
+            | Intrinsic::IntEq
+            | Intrinsic::LongEq
+            | Intrinsic::FloatEq
+            | Intrinsic::DoubleEq
+            | Intrinsic::BoolNot
+            | Intrinsic::DoubleIsNan
+            | Intrinsic::FloatIsNan => BytecodeType::Bool,
+            Intrinsic::IntToByte | Intrinsic::LongToByte => BytecodeType::Byte,
+            Intrinsic::IntToChar | Intrinsic::LongToChar => BytecodeType::Char,
+            _ => panic!("no return type for {:?}", self),
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

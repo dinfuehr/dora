@@ -1,3 +1,4 @@
+//= cannon
 //= stdout "abc!xyz"
 
 class X(let msg: String) {

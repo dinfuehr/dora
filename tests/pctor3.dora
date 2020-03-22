@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let y = Y(101, 3);
 

@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     assert(-2147483648 == Int::minValue());
     assert(2147483647 == Int::maxValue());

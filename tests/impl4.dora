@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let x = A::default();
     assert(x === nil);
