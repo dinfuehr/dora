@@ -1,3 +1,4 @@
+//= cannon
 //= stdout "ABC"
 
 @open class A { @open fun foo() { print("A"); } }

@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
   assert(true.toStringBinary() == "1");
   assert(false.toStringBinary() == "0");

@@ -3359,6 +3359,21 @@ fn gen_cast_long() {
     assert_eq!(expected, result);
 }
 
+#[test]
+fn gen_compare_to_method() {
+    let result = code("fun f(a: Long, b: Long) -> Int { a.compareTo(b) }");
+    let expected = vec![
+        SubLong(r(3), r(0), r(1)),
+        CastLongToInt(r(2), r(3)),
+        RetInt(r(2)),
+    ];
+    assert_eq!(expected, result);
+
+    let result = code("fun f(a: Int, b: Int) -> Int { a.compareTo(b) }");
+    let expected = vec![SubInt(r(2), r(0), r(1)), RetInt(r(2))];
+    assert_eq!(expected, result);
+}
+
 fn p(line: u32, column: u32) -> Position {
     Position { line, column }
 }

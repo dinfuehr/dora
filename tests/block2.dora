@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     assert(myid[Int](1) == 1);
     assert(myid[Int](100) == 100);
