@@ -1168,50 +1168,79 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 dest,
             )
         } else {
-            let lhs_type: BytecodeType = self.ty(expr.lhs.id()).into();
-            let rhs_type: BytecodeType = self.ty(expr.rhs.id()).into();
-
-            let lhs = self.visit_expr(&expr.lhs, DataDest::Alloc);
-            let rhs = self.visit_expr(&expr.rhs, DataDest::Alloc);
-
-            let call_type = self.src.map_calls.get(expr.id).unwrap();
-            let fct_id = self.determine_callee(call_type);
-            let fct_def_id = FctDef::fct_id(self.vm, fct_id);
-
-            let fct = self.vm.fcts.idx(fct_id);
-            let fct = fct.read();
-
-            let return_type: BuiltinType =
-                self.specialize_type_for_call(call_type, fct.return_type);
-            let dest = self.ensure_register(dest, return_type.into());
-
-            let start_reg = self.gen.add_register_chain(&[lhs_type, rhs_type]);
-
-            self.emit_mov(lhs_type, start_reg, lhs);
-            self.emit_mov(rhs_type, start_reg.offset(1), rhs);
-
-            self.gen.set_position(expr.pos);
-
-            if lhs_type == BytecodeType::Ptr {
-                self.emit_call_direct(return_type, fct_def_id, start_reg, 2, dest);
-            } else {
-                self.emit_call_static(return_type, fct_def_id, start_reg, 2, dest);
-            }
-
-            match expr.op {
-                BinOp::Cmp(CmpOp::Eq) => {}
-                BinOp::Cmp(CmpOp::Ne) => {
-                    self.gen.emit_not_bool(dest, dest);
-                }
-
-                BinOp::Cmp(_) => {
-                    unimplemented!();
-                }
-                _ => {}
-            }
-
-            dest
+            self.visit_expr_bin_method(expr, dest)
         }
+    }
+
+    fn visit_expr_bin_method(&mut self, expr: &ExprBinType, dest: DataDest) -> Register {
+        let lhs_type: BytecodeType = self.ty(expr.lhs.id()).into();
+        let rhs_type: BytecodeType = self.ty(expr.rhs.id()).into();
+
+        let lhs = self.visit_expr(&expr.lhs, DataDest::Alloc);
+        let rhs = self.visit_expr(&expr.rhs, DataDest::Alloc);
+
+        let call_type = self.src.map_calls.get(expr.id).unwrap();
+        let fct_id = self.determine_callee(call_type);
+        let fct_def_id = FctDef::fct_id(self.vm, fct_id);
+
+        let fct = self.vm.fcts.idx(fct_id);
+        let fct = fct.read();
+
+        let function_return_type: BuiltinType =
+            self.specialize_type_for_call(call_type, fct.return_type);
+
+        let function_return_type_bc: BytecodeType = function_return_type.into();
+
+        let return_type = match expr.op {
+            BinOp::Cmp(_) => BytecodeType::Bool,
+            _ => function_return_type_bc,
+        };
+
+        let dest = self.ensure_register(dest, return_type);
+
+        let result = if function_return_type_bc == return_type {
+            dest
+        } else {
+            self.gen.add_register(function_return_type_bc)
+        };
+
+        let start_reg = self.gen.add_register_chain(&[lhs_type, rhs_type]);
+
+        self.emit_mov(lhs_type, start_reg, lhs);
+        self.emit_mov(rhs_type, start_reg.offset(1), rhs);
+
+        self.gen.set_position(expr.pos);
+
+        if lhs_type == BytecodeType::Ptr {
+            self.emit_call_direct(function_return_type, fct_def_id, start_reg, 2, result);
+        } else {
+            self.emit_call_static(function_return_type, fct_def_id, start_reg, 2, result);
+        }
+
+        match expr.op {
+            BinOp::Cmp(CmpOp::Eq) => assert_eq!(result, dest),
+            BinOp::Cmp(CmpOp::Ne) => {
+                assert_eq!(result, dest);
+                self.gen.emit_not_bool(dest, dest);
+            }
+
+            BinOp::Cmp(op) => {
+                assert_ne!(result, dest);
+                let zero = self.gen.add_register(BytecodeType::Int);
+                self.gen.emit_const_int(zero, 0);
+
+                match op {
+                    CmpOp::Lt => self.gen.emit_test_lt_int(dest, result, zero),
+                    CmpOp::Le => self.gen.emit_test_le_int(dest, result, zero),
+                    CmpOp::Gt => self.gen.emit_test_gt_int(dest, result, zero),
+                    CmpOp::Ge => self.gen.emit_test_ge_int(dest, result, zero),
+                    CmpOp::Eq | CmpOp::Ne | CmpOp::Is | CmpOp::IsNot => unreachable!(),
+                }
+            }
+            _ => assert_eq!(result, dest),
+        }
+
+        dest
     }
 
     fn emit_intrinsic_call(

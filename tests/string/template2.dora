@@ -1,3 +1,5 @@
+//= cannon
+
 fun stringify[T: Stringable](t: T) -> String {
     return "${t}";
 }

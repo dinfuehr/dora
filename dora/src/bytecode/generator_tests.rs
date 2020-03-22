@@ -3283,6 +3283,27 @@ fn gen_bool_to_string() {
     });
 }
 
+#[test]
+fn gen_cmp_strings() {
+    gen(
+        "fun f(a: String, b: String) -> Bool { a < b }",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_def_by_name("String", "compareTo", false)
+                .expect("String::compareTo not found");
+            let expected = vec![
+                MovPtr(r(4), r(0)),
+                MovPtr(r(5), r(1)),
+                InvokeDirectInt(r(3), fct_id, r(4), 2),
+                ConstInt(r(6), 0),
+                TestLtInt(r(2), r(3), r(6)),
+                RetBool(r(2)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
 fn p(line: u32, column: u32) -> Position {
     Position { line, column }
 }
