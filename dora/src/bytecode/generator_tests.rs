@@ -3229,6 +3229,60 @@ fn gen_array_set_method() {
     assert_eq!(expected, result);
 }
 
+#[test]
+fn gen_string_concat() {
+    gen(
+        "fun f(a: String, b: String) -> String { a + b }",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_def_by_name("String", "plus", false)
+                .expect("String::plus not found");
+            let expected = vec![
+                MovPtr(r(3), r(0)),
+                MovPtr(r(4), r(1)),
+                InvokeDirectPtr(r(2), fct_id, r(3), 2),
+                RetPtr(r(2)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_string_equals() {
+    gen(
+        "fun f(a: String, b: String) -> Bool { a != b }",
+        |vm, code| {
+            let fct_id = vm
+                .cls_method_def_by_name("String", "equals", false)
+                .expect("String::equals not found");
+            let expected = vec![
+                MovPtr(r(3), r(0)),
+                MovPtr(r(4), r(1)),
+                InvokeDirectBool(r(2), fct_id, r(3), 2),
+                NotBool(r(2), r(2)),
+                RetBool(r(2)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_bool_to_string() {
+    gen("fun f(a: Bool) -> String { a.toString() }", |vm, code| {
+        let fct_id = vm
+            .cls_method_def_by_name("Bool", "toString", false)
+            .expect("Bool::toString not found");
+        let expected = vec![
+            MovBool(r(2), r(0)),
+            InvokeStaticPtr(r(1), fct_id, r(2), 1),
+            RetPtr(r(1)),
+        ];
+        assert_eq!(expected, code);
+    });
+}
+
 fn p(line: u32, column: u32) -> Position {
     Position { line, column }
 }

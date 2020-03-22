@@ -13,6 +13,13 @@ pub fn dump(bc: &BytecodeFunction) {
         w: &mut stdout,
     };
     read(bc.code(), &mut visitor);
+    print!("Registers:");
+
+    for (idx, ty) in bc.registers().iter().enumerate() {
+        print!(" {}={:?}", idx, ty);
+    }
+
+    println!("");
 }
 
 struct BytecodeDumper<'a> {

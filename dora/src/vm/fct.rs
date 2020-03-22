@@ -105,17 +105,30 @@ impl<'ast> Fct<'ast> {
     pub fn full_name(&self, vm: &VM) -> String {
         let mut repr = String::new();
 
-        if let FctParent::Class(class_id) = self.parent {
-            let cls = vm.classes.idx(class_id);
-            let cls = cls.read();
-            let name = cls.name;
-            repr.push_str(&vm.interner.str(name));
-
-            if self.is_static {
-                repr.push_str("::");
-            } else {
-                repr.push_str(".");
+        match self.parent {
+            FctParent::Class(class_id) => {
+                let cls = vm.classes.idx(class_id);
+                let cls = cls.read();
+                let name = cls.name;
+                repr.push_str(&vm.interner.str(name));
+                if self.is_static {
+                    repr.push_str("::");
+                } else {
+                    repr.push_str(".");
+                }
             }
+
+            FctParent::Trait(trait_id) => {
+                let xtrait = vm.traits[trait_id].read();
+                repr.push_str(&vm.interner.str(xtrait.name));
+                if self.is_static {
+                    repr.push_str("::");
+                } else {
+                    repr.push_str(".");
+                }
+            }
+
+            _ => {}
         }
 
         repr.push_str(&vm.interner.str(self.name));

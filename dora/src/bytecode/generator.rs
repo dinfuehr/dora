@@ -83,8 +83,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let mut arguments = 0;
 
         if self.fct.has_self() {
-            let var_id = self.src.var_self().id;
-            let reg = self.gen.add_register(BytecodeType::Ptr);
+            let var_self = self.src.var_self();
+            let var_ty = self.specialize_type(var_self.ty);
+            let var_id = var_self.id;
+            let reg = self.gen.add_register(var_ty.into());
             self.var_registers.insert(var_id, reg);
             arguments += 1;
         }
@@ -695,15 +697,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     .unwrap_or(false);
 
                 if is_super_call {
-                    self.visit_call_direct(
-                        return_type,
-                        fct_def_id,
-                        start_reg,
-                        num_args,
-                        return_reg,
-                    );
+                    self.emit_call_direct(return_type, fct_def_id, start_reg, num_args, return_reg);
                 } else if fct.is_virtual() {
-                    self.visit_call_virtual(
+                    self.emit_call_virtual(
                         return_type,
                         fct_def_id,
                         start_reg,
@@ -711,26 +707,14 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                         return_reg,
                     );
                 } else if arg_bytecode_types[0] != BytecodeType::Ptr {
-                    self.visit_call_static(
-                        return_type,
-                        fct_def_id,
-                        start_reg,
-                        num_args,
-                        return_reg,
-                    );
+                    self.emit_call_static(return_type, fct_def_id, start_reg, num_args, return_reg);
                 } else {
-                    self.visit_call_direct(
-                        return_type,
-                        fct_def_id,
-                        start_reg,
-                        num_args,
-                        return_reg,
-                    );
+                    self.emit_call_direct(return_type, fct_def_id, start_reg, num_args, return_reg);
                 }
             }
             CallType::Expr(_, _) => unimplemented!(),
             CallType::Fct(_, _, _) => {
-                self.visit_call_static(return_type, fct_def_id, start_reg, num_args, return_reg);
+                self.emit_call_static(return_type, fct_def_id, start_reg, num_args, return_reg);
             }
 
             CallType::Trait(_, _) => unimplemented!(),
@@ -760,7 +744,20 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
     }
 
-    fn visit_call_virtual(
+    fn emit_mov(&mut self, ty: BytecodeType, dest: Register, src: Register) {
+        match ty {
+            BytecodeType::Bool => self.gen.emit_mov_bool(dest, src),
+            BytecodeType::Byte => self.gen.emit_mov_byte(dest, src),
+            BytecodeType::Char => self.gen.emit_mov_char(dest, src),
+            BytecodeType::Double => self.gen.emit_mov_double(dest, src),
+            BytecodeType::Float => self.gen.emit_mov_float(dest, src),
+            BytecodeType::Int => self.gen.emit_mov_int(dest, src),
+            BytecodeType::Long => self.gen.emit_mov_long(dest, src),
+            BytecodeType::Ptr => self.gen.emit_mov_ptr(dest, src),
+        }
+    }
+
+    fn emit_call_virtual(
         &mut self,
         return_type: BuiltinType,
         callee_id: FctDefId,
@@ -803,7 +800,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
     }
 
-    fn visit_call_direct(
+    fn emit_call_direct(
         &mut self,
         return_type: BuiltinType,
         callee_id: FctDefId,
@@ -846,7 +843,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
     }
 
-    fn visit_call_static(
+    fn emit_call_static(
         &mut self,
         return_type: BuiltinType,
         callee_id: FctDefId,
@@ -1171,7 +1168,49 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 dest,
             )
         } else {
-            unimplemented!();
+            let lhs_type: BytecodeType = self.ty(expr.lhs.id()).into();
+            let rhs_type: BytecodeType = self.ty(expr.rhs.id()).into();
+
+            let lhs = self.visit_expr(&expr.lhs, DataDest::Alloc);
+            let rhs = self.visit_expr(&expr.rhs, DataDest::Alloc);
+
+            let call_type = self.src.map_calls.get(expr.id).unwrap();
+            let fct_id = self.determine_callee(call_type);
+            let fct_def_id = FctDef::fct_id(self.vm, fct_id);
+
+            let fct = self.vm.fcts.idx(fct_id);
+            let fct = fct.read();
+
+            let return_type: BuiltinType =
+                self.specialize_type_for_call(call_type, fct.return_type);
+            let dest = self.ensure_register(dest, return_type.into());
+
+            let start_reg = self.gen.add_register_chain(&[lhs_type, rhs_type]);
+
+            self.emit_mov(lhs_type, start_reg, lhs);
+            self.emit_mov(rhs_type, start_reg.offset(1), rhs);
+
+            self.gen.set_position(expr.pos);
+
+            if lhs_type == BytecodeType::Ptr {
+                self.emit_call_direct(return_type, fct_def_id, start_reg, 2, dest);
+            } else {
+                self.emit_call_static(return_type, fct_def_id, start_reg, 2, dest);
+            }
+
+            match expr.op {
+                BinOp::Cmp(CmpOp::Eq) => {}
+                BinOp::Cmp(CmpOp::Ne) => {
+                    self.gen.emit_not_bool(dest, dest);
+                }
+
+                BinOp::Cmp(_) => {
+                    unimplemented!();
+                }
+                _ => {}
+            }
+
+            dest
         }
     }
 
