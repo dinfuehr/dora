@@ -17,12 +17,12 @@ fun main() {
 class NBodySystem {
     let bodies: Array[Body] = Array[Body](5);
 
-    init() {
-        bodies(0) = Body::sun();
-        bodies(1) = Body::jupiter();
-        bodies(2) = Body::saturn();
-        bodies(3) = Body::uranus();
-        bodies(4) = Body::neptune();
+    {
+        self.bodies(0) = Body::sun();
+        self.bodies(1) = Body::jupiter();
+        self.bodies(2) = Body::saturn();
+        self.bodies(3) = Body::uranus();
+        self.bodies(4) = Body::neptune();
 
         var px = 0.0;
         var py = 0.0;
@@ -30,40 +30,40 @@ class NBodySystem {
 
         var i = 0;
 
-        while i < bodies.length() {
-            px = px + bodies[i].vx * bodies[i].mass;
-            py = py + bodies[i].vy * bodies[i].mass;
-            pz = pz + bodies[i].vz * bodies[i].mass;
+        while i < self.bodies.length() {
+            px = px + self.bodies.get(i).vx * self.bodies.get(i).mass;
+            py = py + self.bodies.get(i).vy * self.bodies.get(i).mass;
+            pz = pz + self.bodies.get(i).vz * self.bodies.get(i).mass;
 
             i = i + 1;
         }
 
-        bodies(0).offsetMomentum(px, py, pz);
+        self.bodies.get(0).offsetMomentum(px, py, pz);
     }
 
     fun advance(dt: Double) {
         var i = 0;
 
         while i < self.bodies.length() {
-            let iBody = self.bodies(i);
+            let iBody = self.bodies.get(i);
             var j = i + 1;
 
             while j < self.bodies.length() {
-                let dx = iBody.x - bodies[j].x;
-                let dy = iBody.y - bodies[j].y;
-                let dz = iBody.z - bodies[j].z;
+                let dx = iBody.x - self.bodies.get(j).x;
+                let dy = iBody.y - self.bodies.get(j).y;
+                let dz = iBody.z - self.bodies.get(j).z;
 
                 let dSquared = dx * dx + dy * dy + dz * dz;
                 let distance = dSquared.sqrt();
                 let mag = dt / (dSquared * distance);
 
-                iBody.vx = iBody.vx - dx * bodies[j].mass * mag;
-                iBody.vy = iBody.vy - dy * bodies[j].mass * mag;
-                iBody.vz = iBody.vz - dz * bodies[j].mass * mag;
+                iBody.vx = iBody.vx - dx * self.bodies.get(j).mass * mag;
+                iBody.vy = iBody.vy - dy * self.bodies.get(j).mass * mag;
+                iBody.vz = iBody.vz - dz * self.bodies.get(j).mass * mag;
 
-                bodies[j].vx = bodies[j].vx + dx * iBody.mass * mag;
-                bodies[j].vy = bodies[j].vy + dy * iBody.mass * mag;
-                bodies[j].vz = bodies[j].vz + dz * iBody.mass * mag;
+                self.bodies.get(j).vx = self.bodies.get(j).vx + dx * iBody.mass * mag;
+                self.bodies.get(j).vy = self.bodies.get(j).vy + dy * iBody.mass * mag;
+                self.bodies.get(j).vz = self.bodies.get(j).vz + dz * iBody.mass * mag;
 
                 j = j + 1;
             }
@@ -74,7 +74,7 @@ class NBodySystem {
         var i = 0;
 
         while i < self.bodies.length() {
-            let body = self.bodies(i);
+            let body = self.bodies.get(i);
 
             body.x = body.x + dt * body.vx;
             body.y = body.y + dt * body.vy;
@@ -94,7 +94,7 @@ class NBodySystem {
       var i = 0;
 
       while i < self.bodies.length() {
-         let iBody = bodies(i);
+         let iBody = self.bodies.get(i);
          e = e + 0.5 * iBody.mass *
             ( iBody.vx * iBody.vx
                 + iBody.vy * iBody.vy
@@ -103,7 +103,7 @@ class NBodySystem {
         var j = i+1;
 
         while j < self.bodies.length() {
-            let jBody = bodies(j);
+            let jBody = self.bodies.get(j);
 
             dx = iBody.x - jBody.x;
             dy = iBody.y - jBody.y;
