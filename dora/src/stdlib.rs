@@ -11,7 +11,7 @@ use crate::gc::{Address, GcReason};
 use crate::handle::{scope as handle_scope, Handle};
 use crate::object::{ByteArray, Obj, Ref, Str};
 use crate::stack::stacktrace_from_last_dtn;
-use crate::sym::Sym::SymFct;
+use crate::sym::TermSym::SymFct;
 use crate::threads::{DoraThread, STACK_SIZE, THREAD};
 use crate::ty::TypeList;
 use crate::vm::{get_vm, stack_pointer, Trap};
@@ -124,7 +124,7 @@ pub extern "C" fn call(fct: Handle<Str>) {
     let vm = get_vm();
     let name = vm.interner.intern(fct_name);
 
-    let sym = vm.sym.lock().get(name);
+    let sym = vm.sym.lock().get_term(name);
 
     match sym {
         Some(SymFct(fct_id)) => {

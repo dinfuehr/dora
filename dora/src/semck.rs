@@ -1,6 +1,8 @@
 use crate::error::msg::SemError;
 use crate::mem;
-use crate::sym::Sym::{SymClass, SymClassTypeParam, SymEnum, SymFctTypeParam, SymStruct, SymTrait};
+use crate::sym::TypeSym::{
+    SymClass, SymClassTypeParam, SymEnum, SymFctTypeParam, SymStruct, SymTrait,
+};
 use crate::ty::{BuiltinType, TypeList};
 use crate::typeck;
 use crate::vm::{ensure_tuple, FileId, NodeMap, VM};
@@ -213,7 +215,7 @@ pub fn read_type<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> Option<Bui
         TypeSelf(_) => Some(BuiltinType::This),
 
         TypeBasic(ref basic) => {
-            let sym = vm.sym.lock().get(basic.name);
+            let sym = vm.sym.lock().get_type(basic.name);
             if let Some(sym) = sym {
                 match sym {
                     SymClass(cls_id) => {
@@ -323,12 +325,6 @@ pub fn read_type<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> Option<Bui
 
                         return Some(BuiltinType::FctTypeParam(fct_id, type_param_id));
                     }
-
-                    _ => {
-                        let name = vm.interner.str(basic.name).to_string();
-                        let msg = SemError::ExpectedType(name);
-                        vm.diag.lock().report(file, basic.pos, msg);
-                    }
                 }
             } else {
                 let name = vm.interner.str(basic.name).to_string();
@@ -388,7 +384,7 @@ pub fn read_type_unchecked<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> 
         TypeSelf(_) => BuiltinType::This,
 
         TypeBasic(ref basic) => {
-            let sym = vm.sym.lock().get(basic.name);
+            let sym = vm.sym.lock().get_type(basic.name);
             if let Some(sym) = sym {
                 match sym {
                     SymClass(cls_id) => {
@@ -453,14 +449,6 @@ pub fn read_type_unchecked<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> 
                         }
 
                         BuiltinType::FctTypeParam(fct_id, type_param_id)
-                    }
-
-                    _ => {
-                        let name = vm.interner.str(basic.name).to_string();
-                        let msg = SemError::ExpectedType(name);
-                        vm.diag.lock().report(file, basic.pos, msg);
-
-                        BuiltinType::Error
                     }
                 }
             } else {

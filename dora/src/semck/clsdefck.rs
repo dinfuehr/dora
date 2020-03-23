@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::semck::typeparamck;
-use crate::sym::{Sym, SymLevel};
+use crate::sym::{SymLevel, TermSym, TypeSym};
 use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{
     ClassId, Fct, FctId, FctKind, FctParent, FctSrc, Field, FieldId, FileId, NodeMap, VM,
@@ -58,7 +58,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
         self.check_if_symbol_exists(name, pos, &cls.table);
 
         cls.fields.push(field);
-        cls.table.insert(name, Sym::SymField(fid));
+        cls.table.insert_term(name, TermSym::SymField(fid));
     }
 
     fn check_type_params(&mut self, c: &'ast ast::Class, type_params: &'ast [ast::TypeParam]) {
@@ -101,8 +101,8 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
                     }
                 }
 
-                let sym = Sym::SymClassTypeParam(cls.id, type_param_id.into());
-                self.vm.sym.lock().insert(type_param.name, sym);
+                let sym = TypeSym::SymClassTypeParam(cls.id, type_param_id.into());
+                self.vm.sym.lock().insert_type(type_param.name, sym);
                 type_param_id += 1;
             }
 
@@ -117,10 +117,10 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
 
     fn check_parent_class(&mut self, parent_class: &'ast ast::ParentClass) {
         let name = self.vm.interner.str(parent_class.name).to_string();
-        let sym = self.vm.sym.lock().get(parent_class.name);
+        let sym = self.vm.sym.lock().get_type(parent_class.name);
 
         match sym {
-            Some(Sym::SymClass(cls_id)) => {
+            Some(TypeSym::SymClass(cls_id)) => {
                 let super_cls = self.vm.classes.idx(cls_id);
                 let super_cls = super_cls.read();
 
@@ -174,12 +174,12 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
     }
 
     fn check_if_symbol_exists(&mut self, name: Name, pos: Position, table: &SymLevel) {
-        if table.contains(name) {
-            let sym = table.get(name).unwrap();
+        if table.contains_term(name) {
+            let sym = table.get_term(name).unwrap();
             let file: FileId = self.file_id.into();
 
             match sym {
-                &Sym::SymFct(method) => {
+                &TermSym::SymFct(method) => {
                     let method = self.vm.fcts.idx(method);
                     let method = method.read();
 
@@ -188,7 +188,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
                     self.vm.diag.lock().report(file, pos, msg);
                 }
 
-                &Sym::SymField(_) => {
+                &TermSym::SymField(_) => {
                     let name = self.vm.interner.str(name).to_string();
                     self.vm
                         .diag
@@ -346,10 +346,10 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
 
         if f.is_static {
             self.check_if_symbol_exists(f.name, f.pos, &cls.static_table);
-            cls.static_table.insert(f.name, Sym::SymFct(fctid));
+            cls.static_table.insert_term(f.name, TermSym::SymFct(fctid));
         } else {
             self.check_if_symbol_exists(f.name, f.pos, &cls.table);
-            cls.table.insert(f.name, Sym::SymFct(fctid));
+            cls.table.insert_term(f.name, TermSym::SymFct(fctid));
         }
 
         cls.methods.push(fctid);
@@ -414,29 +414,6 @@ impl<'x, 'ast> Visitor<'ast> for ClsSuperDefinitionCheck<'x, 'ast> {
 mod tests {
     use crate::error::msg::SemError;
     use crate::semck::tests::*;
-
-    #[test]
-    fn test_multiple_definition() {
-        err(
-            "class Foo class Foo",
-            pos(1, 11),
-            SemError::ShadowClass("Foo".into()),
-        );
-    }
-
-    #[test]
-    fn test_class_and_function() {
-        err(
-            "fun Foo() {} class Foo",
-            pos(1, 14),
-            SemError::ShadowFunction("Foo".into()),
-        );
-        err(
-            "class Foo fun Foo() {}",
-            pos(1, 11),
-            SemError::ShadowClass("Foo".into()),
-        );
-    }
 
     #[test]
     fn test_class_definition() {
@@ -524,6 +501,10 @@ mod tests {
             pos(1, 25),
             SemError::ShadowField("a".into()),
         );
+    }
+
+    #[test]
+    fn field_defined_twice_via_constructor() {
         err(
             "class Foo(let a: Int) { var a: Int; }",
             pos(1, 25),

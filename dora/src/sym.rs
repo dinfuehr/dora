@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
-use self::Sym::*;
+use self::TypeSym::*;
 
+use crate::sym::TermSym::{SymConst, SymFct, SymGlobal, SymModule, SymVar};
 use crate::ty::TypeListId;
 use crate::vm::module::ModuleId;
 use crate::vm::{ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, StructId, TraitId, VarId};
@@ -33,9 +34,19 @@ impl SymTable {
         self.levels.len()
     }
 
-    pub fn get(&self, name: Name) -> Option<Sym> {
+    pub fn get_type(&self, name: Name) -> Option<TypeSym> {
         for level in self.levels.iter().rev() {
-            if let Some(val) = level.get(name) {
+            if let Some(val) = level.get_type(name) {
+                return Some(val.clone());
+            }
+        }
+
+        None
+    }
+
+    pub fn get_term(&self, name: Name) -> Option<TermSym> {
+        for level in self.levels.iter().rev() {
+            if let Some(val) = level.get_term(name) {
                 return Some(val.clone());
             }
         }
@@ -44,118 +55,113 @@ impl SymTable {
     }
 
     pub fn get_class(&self, name: Name) -> Option<ClassId> {
-        self.get(name).and_then(|n| n.to_class())
+        self.get_type(name).and_then(|n| n.to_class())
     }
 
     pub fn get_const(&self, name: Name) -> Option<ConstId> {
-        self.get(name).and_then(|n| n.to_const())
+        self.get_term(name).and_then(|n| n.to_const())
     }
 
     pub fn get_fct(&self, name: Name) -> Option<FctId> {
-        self.get(name).and_then(|n| n.to_fct())
+        self.get_term(name).and_then(|n| n.to_fct())
     }
 
     pub fn get_struct(&self, name: Name) -> Option<StructId> {
-        self.get(name).and_then(|n| n.to_struct())
+        self.get_type(name).and_then(|n| n.to_struct())
     }
 
     pub fn get_trait(&self, name: Name) -> Option<TraitId> {
-        self.get(name).and_then(|n| n.to_trait())
+        self.get_type(name).and_then(|n| n.to_trait())
     }
 
     pub fn get_module(&self, name: Name) -> Option<ModuleId> {
-        self.get(name).and_then(|n| n.to_module())
+        self.get_term(name).and_then(|n| n.to_module())
     }
 
     pub fn get_enum(&self, name: Name) -> Option<EnumId> {
-        self.get(name).and_then(|n| n.to_enum())
+        self.get_type(name).and_then(|n| n.to_enum())
     }
 
     pub fn get_global(&self, name: Name) -> Option<GlobalId> {
-        self.get(name).and_then(|n| n.to_global())
+        self.get_term(name).and_then(|n| n.to_global())
     }
 
     pub fn get_var(&self, name: Name) -> Option<VarId> {
-        self.get(name).and_then(|n| n.to_var())
+        self.get_term(name).and_then(|n| n.to_var())
     }
 
-    pub fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
-        self.levels.last_mut().unwrap().insert(name, sym)
+    pub fn insert_type(&mut self, name: Name, sym: TypeSym) -> Option<TypeSym> {
+        self.levels.last_mut().unwrap().insert_type(name, sym)
+    }
+
+    pub fn insert_term(&mut self, name: Name, sym: TermSym) -> Option<TermSym> {
+        self.levels.last_mut().unwrap().insert_term(name, sym)
     }
 }
 
 #[derive(Debug)]
 pub struct SymLevel {
-    map: HashMap<Name, Sym>,
+    types: HashMap<Name, TypeSym>,
+    terms: HashMap<Name, TermSym>,
 }
 
 impl SymLevel {
     // creates a new table
     pub fn new() -> SymLevel {
         SymLevel {
-            map: HashMap::new(),
+            types: HashMap::new(),
+            terms: HashMap::new(),
         }
     }
 
-    pub fn contains(&self, name: Name) -> bool {
-        self.map.contains_key(&name)
+    pub fn contains_type(&self, name: Name) -> bool {
+        self.types.contains_key(&name)
     }
 
-    // finds symbol in table
-    pub fn get(&self, name: Name) -> Option<&Sym> {
-        self.map.get(&name)
+    pub fn get_type(&self, name: Name) -> Option<&TypeSym> {
+        self.types.get(&name)
     }
 
-    pub fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
-        self.map.insert(name, sym)
+    pub fn insert_type(&mut self, name: Name, sym: TypeSym) -> Option<TypeSym> {
+        self.types.insert(name, sym)
+    }
+
+    pub fn contains_term(&self, name: Name) -> bool {
+        self.terms.contains_key(&name)
+    }
+
+    pub fn get_term(&self, name: Name) -> Option<&TermSym> {
+        self.terms.get(&name)
+    }
+
+    pub fn insert_term(&mut self, name: Name, sym: TermSym) -> Option<TermSym> {
+        self.terms.insert(name, sym)
     }
 }
 
 #[derive(Debug, Clone)]
-pub enum Sym {
-    SymField(FieldId),
-    SymFct(FctId),
-    SymVar(VarId),
+pub enum TypeSym {
     SymClass(ClassId),
     SymStruct(StructId),
     SymTrait(TraitId),
-    SymModule(ModuleId),
-    SymGlobal(GlobalId),
     SymClassTypeParam(ClassId, TypeListId),
     SymFctTypeParam(FctId, TypeListId),
-    SymConst(ConstId),
     SymEnum(EnumId),
 }
 
-impl Sym {
-    pub fn is_fct(&self) -> bool {
-        match *self {
-            SymFct(_) => true,
-            _ => false,
-        }
-    }
+#[derive(Debug, Clone)]
+pub enum TermSym {
+    SymField(FieldId),
+    SymFct(FctId),
+    SymVar(VarId),
+    SymModule(ModuleId),
+    SymGlobal(GlobalId),
+    SymConst(ConstId),
+    SymClassConstructor(ClassId),
+    SymStructConstructor(StructId),
+}
 
-    pub fn to_fct(&self) -> Option<FctId> {
-        match *self {
-            SymFct(id) => Some(id),
-            _ => None,
-        }
-    }
-
-    pub fn is_var(&self) -> bool {
-        match *self {
-            SymVar(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn to_var(&self) -> Option<VarId> {
-        match *self {
-            SymVar(id) => Some(id),
-            _ => None,
-        }
-    }
-
+impl TypeSym {
     pub fn is_class(&self) -> bool {
         match *self {
             SymClass(_) => true,
@@ -198,16 +204,68 @@ impl Sym {
         }
     }
 
-    pub fn is_module(&self) -> bool {
+    pub fn is_type_param(&self) -> bool {
         match *self {
-            SymModule(_) => true,
+            SymClassTypeParam(_, _) => true,
+            SymFctTypeParam(_, _) => true,
             _ => false,
         }
     }
 
-    pub fn to_module(&self) -> Option<ModuleId> {
+    pub fn is_enum(&self) -> bool {
         match *self {
-            SymModule(id) => Some(id),
+            SymEnum(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_enum(&self) -> Option<EnumId> {
+        match *self {
+            SymEnum(id) => Some(id),
+            _ => None,
+        }
+    }
+}
+
+impl TermSym {
+    pub fn is_fct(&self) -> bool {
+        match *self {
+            SymFct(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_fct(&self) -> Option<FctId> {
+        match *self {
+            SymFct(id) => Some(id),
+            _ => None,
+        }
+    }
+
+    pub fn is_var(&self) -> bool {
+        match *self {
+            SymVar(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_var(&self) -> Option<VarId> {
+        match *self {
+            SymVar(id) => Some(id),
+            _ => None,
+        }
+    }
+
+    pub fn is_const(&self) -> bool {
+        match *self {
+            SymConst(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_const(&self) -> Option<ConstId> {
+        match *self {
+            SymConst(id) => Some(id),
             _ => None,
         }
     }
@@ -226,38 +284,16 @@ impl Sym {
         }
     }
 
-    pub fn is_type_param(&self) -> bool {
+    pub fn is_module(&self) -> bool {
         match *self {
-            SymClassTypeParam(_, _) => true,
-            SymFctTypeParam(_, _) => true,
+            SymModule(_) => true,
             _ => false,
         }
     }
 
-    pub fn is_const(&self) -> bool {
+    pub fn to_module(&self) -> Option<ModuleId> {
         match *self {
-            SymConst(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn to_const(&self) -> Option<ConstId> {
-        match *self {
-            SymConst(id) => Some(id),
-            _ => None,
-        }
-    }
-
-    pub fn is_enum(&self) -> bool {
-        match *self {
-            SymEnum(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn to_enum(&self) -> Option<EnumId> {
-        match *self {
-            SymEnum(id) => Some(id),
+            SymModule(id) => Some(id),
             _ => None,
         }
     }
