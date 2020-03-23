@@ -1665,6 +1665,29 @@ where
             .store_mem(MachineMode::Int32, Mem::Local(offset), REG_RESULT.into());
     }
 
+    fn emit_array_bound_check(&mut self, arr: Register, idx: Register) {
+        assert_eq!(self.bytecode.register_type(arr), BytecodeType::Ptr);
+        assert_eq!(self.bytecode.register_type(idx), BytecodeType::Int);
+
+        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+        let arr_offset = self.bytecode.register_offset(arr);
+
+        self.asm
+            .load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Local(arr_offset));
+        self.asm
+            .test_if_nil_bailout(position, REG_RESULT, Trap::NIL);
+
+        let idx_offset = self.bytecode.register_offset(idx);
+
+        self.asm
+            .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(idx_offset));
+
+        if !self.vm.args.flag_omit_bounds_check {
+            self.asm
+                .check_index_out_of_bounds(position, REG_RESULT, REG_TMP1);
+        }
+    }
+
     fn emit_store_array(&mut self, src: Register, arr: Register, idx: Register) {
         assert_eq!(self.bytecode.register_type(idx), BytecodeType::Int);
         assert_eq!(self.bytecode.register_type(arr), BytecodeType::Ptr);
@@ -3002,11 +3025,11 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_nil_check(obj);
     }
 
-    fn visit_array_length(&mut self, _dest: Register, _arr: Register) {
-        self.emit_array_length(_dest, _arr);
+    fn visit_array_length(&mut self, dest: Register, arr: Register) {
+        self.emit_array_length(dest, arr);
     }
-    fn visit_array_bound_check(&mut self, _arr: Register, _idx: Register) {
-        unimplemented!();
+    fn visit_array_bound_check(&mut self, arr: Register, idx: Register) {
+        self.emit_array_bound_check(arr, idx);
     }
 
     fn visit_load_array_bool(&mut self, dest: Register, arr: Register, idx: Register) {

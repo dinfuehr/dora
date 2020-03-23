@@ -485,6 +485,14 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             field.ty
         };
 
+        if field_ty.is_unit() {
+            assert!(dest.is_unit());
+            let obj = self.visit_expr(&expr.lhs, DataDest::Alloc);
+            self.gen.set_position(expr.pos);
+            self.gen.emit_nil_check(obj);
+            return Register::invalid();
+        }
+
         let field_bc_ty: BytecodeType = field_ty.into();
 
         let dest = self.ensure_register(dest, field_bc_ty);
@@ -523,7 +531,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn visit_expr_assert(&mut self, expr: &ExprCallType, dest: DataDest) {
-        assert!(dest.is_effect());
+        assert!(dest.is_unit());
         let assert_reg = self.visit_expr(&*expr.args[0], DataDest::Alloc);
         self.gen.set_position(expr.pos);
         self.gen.emit_assert(assert_reg);
@@ -953,7 +961,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn visit_expr_delegation(&mut self, expr: &ExprDelegationType, dest: DataDest) -> Register {
-        assert!(dest.is_effect());
+        assert!(dest.is_unit());
         let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
         let fct_id = call_type.fct_id().unwrap();
 
@@ -1140,7 +1148,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     fn visit_expr_tuple(&mut self, e: &ExprTupleType, dest: DataDest) -> Register {
         if e.values.is_empty() {
-            assert!(dest.is_effect());
+            assert!(dest.is_unit());
             return Register::invalid();
         }
 
@@ -1293,7 +1301,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     let ty = self.ty(expr.id);
 
                     if ty.is_unit() || dest.is_effect() {
-                        assert!(dest.is_effect());
+                        assert!(dest.is_unit());
                         return Register::invalid();
                     }
 
@@ -1446,19 +1454,26 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         pos: Position,
         dest: DataDest,
     ) -> Register {
-        assert!(dest.is_effect());
+        assert!(dest.is_unit());
 
         let ty = self.src.ty(arr.id());
         let ty = self.specialize_type(ty);
         let ty = ty.type_params(self.vm);
         let ty = ty[0];
-        let ty: BytecodeType = ty.into();
+        let ty: Option<BytecodeType> = if ty.is_unit() { None } else { Some(ty.into()) };
 
         let arr = self.visit_expr(arr, DataDest::Alloc);
         let idx = self.visit_expr(idx, DataDest::Alloc);
         let src = self.visit_expr(src, DataDest::Alloc);
 
         self.gen.set_position(pos);
+
+        if ty.is_none() {
+            self.gen.emit_array_bound_check(arr, idx);
+            return Register::invalid();
+        }
+
+        let ty = ty.unwrap();
 
         match ty {
             BytecodeType::Byte => self.gen.emit_store_array_byte(src, arr, idx),
@@ -1578,19 +1593,36 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             Intrinsic::GenericArrayGet | Intrinsic::StrGet => {
                 let ty = self.src.ty(lhs.id());
                 let ty = self.specialize_type(ty);
-                let ty: BytecodeType = if ty.cls_id(self.vm) == Some(self.vm.vips.string_class) {
-                    BytecodeType::Byte
-                } else {
-                    let ty = ty.type_params(self.vm);
-                    ty[0].into()
-                };
+                let ty: Option<BytecodeType> =
+                    if ty.cls_id(self.vm) == Some(self.vm.vips.string_class) {
+                        Some(BytecodeType::Byte)
+                    } else {
+                        let ty = ty.type_params(self.vm);
+                        let ty = ty[0];
 
-                let dest = self.ensure_register(dest, ty);
+                        if ty.is_unit() {
+                            assert!(dest.is_unit());
+                            None
+                        } else {
+                            Some(ty.into())
+                        }
+                    };
+
+                let dest = ty.map(|ty| self.ensure_register(dest, ty));
 
                 let arr = self.visit_expr(lhs, DataDest::Alloc);
                 let idx = self.visit_expr(rhs, DataDest::Alloc);
 
                 self.gen.set_position(pos);
+
+                if ty.is_none() {
+                    self.gen.emit_array_bound_check(arr, idx);
+                    return Register::invalid();
+                }
+
+                let ty = ty.unwrap();
+                let dest = dest.unwrap();
+
                 match ty {
                     BytecodeType::Byte => self.gen.emit_load_array_byte(dest, arr, idx),
                     BytecodeType::Bool => self.gen.emit_load_array_bool(dest, arr, idx),
@@ -1771,7 +1803,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn visit_expr_assign(&mut self, expr: &ExprBinType, dest: DataDest) -> Register {
-        assert!(dest.is_effect());
+        assert!(dest.is_unit());
 
         if expr.lhs.is_ident() {
             let ident_type = self.src.map_idents.get(expr.lhs.id()).unwrap();
@@ -1846,14 +1878,23 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     let cls = self.vm.class_defs.idx(cls_id);
                     let cls = cls.read();
                     let field = &cls.fields[field_id.idx()];
-                    let ty: BytecodeType = field.ty.into();
+                    let ty: Option<BytecodeType> = if field.ty.is_unit() {
+                        None
+                    } else {
+                        Some(field.ty.into())
+                    };
 
                     let obj = self.visit_expr(&dot.lhs, DataDest::Alloc);
                     let src = self.visit_expr(&expr.rhs, DataDest::Alloc);
 
                     self.gen.set_position(expr.pos);
 
-                    match ty {
+                    if ty.is_none() {
+                        self.gen.emit_nil_check(obj);
+                        return Register::invalid();
+                    }
+
+                    match ty.unwrap() {
                         BytecodeType::Byte => {
                             self.gen.emit_store_field_byte(src, obj, cls_id, field_id)
                         }
@@ -2175,6 +2216,14 @@ enum DataDest {
 }
 
 impl DataDest {
+    fn is_unit(&self) -> bool {
+        match self {
+            DataDest::Effect => true,
+            DataDest::Reg(_) => false,
+            DataDest::Alloc => true,
+        }
+    }
+
     fn is_effect(&self) -> bool {
         match self {
             DataDest::Effect => true,

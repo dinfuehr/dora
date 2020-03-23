@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let x = Array[()](7);
     assert(x.length() == 7);
