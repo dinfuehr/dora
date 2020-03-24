@@ -187,6 +187,12 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         let type_sym = self.vm.sym.lock().get_type(ident.name);
 
         match (term_sym, type_sym) {
+            (Some(SymModule(module_id)), Some(SymClass(class_id))) => {
+                self.src
+                    .map_idents
+                    .insert(ident.id, IdentType::ClassAndModule(class_id, module_id));
+            }
+
             (Some(SymVar(id)), None) => {
                 self.src.map_idents.insert(ident.id, IdentType::Var(id));
             }

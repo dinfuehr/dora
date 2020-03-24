@@ -164,8 +164,11 @@ pub enum IdentType {
     // name of class with type params: SomeClass[T1, T2, ...]
     ClassType(ClassId, TypeList),
 
-    // name of method
+    // name of module
     Module(ModuleId),
+
+    // name of class and module
+    ClassAndModule(ClassId, ModuleId),
 
     // method expression: <expr>.<method_name>
     Method(BuiltinType, Name),
@@ -254,6 +257,9 @@ pub enum CallType {
     // Direct or virtual method calls, e.g. obj.method(<args>)
     Method(BuiltinType, FctId, TypeList),
 
+    // Module method call, e.g. Module::method(<args>)
+    ModuleMethod(BuiltinType, FctId, TypeList),
+
     // Constructor call Class(<args>)
     CtorNew(BuiltinType, FctId),
     Ctor(BuiltinType, FctId),
@@ -311,6 +317,7 @@ impl CallType {
         match *self {
             CallType::Fct(fctid, _, _) => Some(fctid),
             CallType::Method(_, fctid, _) => Some(fctid),
+            CallType::ModuleMethod(_, fctid, _) => Some(fctid),
             CallType::CtorNew(_, fctid) => Some(fctid),
             CallType::Ctor(_, fctid) => Some(fctid),
             CallType::Expr(_, fctid) => Some(fctid),

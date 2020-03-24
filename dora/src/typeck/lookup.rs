@@ -292,7 +292,6 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                 let list_id = self.vm.lists.lock().insert(cls_tps);
                 BuiltinType::Class(cls_id, list_id)
             }
-
             _ => replace_type_param(self.vm, fct.return_type, &cls_tps, &fct_tps, None),
         };
 

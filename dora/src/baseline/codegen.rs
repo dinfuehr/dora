@@ -1342,6 +1342,7 @@ where
             &IdentType::Fct(_) | &IdentType::FctType(_, _) => unreachable!(),
             &IdentType::Class(_) | &IdentType::ClassType(_, _) => unreachable!(),
             &IdentType::Module(_) => unreachable!(),
+            &IdentType::ClassAndModule(_, _) => unreachable!(),
             &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
             &IdentType::TypeParam(_) | &IdentType::TypeParamStaticMethod(_, _) => unreachable!(),
             &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => {
@@ -1716,6 +1717,7 @@ where
             &IdentType::Fct(_) | &IdentType::FctType(_, _) => unreachable!(),
             &IdentType::Class(_) | &IdentType::ClassType(_, _) => unreachable!(),
             &IdentType::Module(_) => unreachable!(),
+            &IdentType::ClassAndModule(_, _) => unreachable!(),
             &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
             &IdentType::TypeParam(_) | &IdentType::TypeParamStaticMethod(_, _) => unreachable!(),
             &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => {
@@ -1963,6 +1965,8 @@ where
                         fct_id
                     }
                 }
+
+                CallType::ModuleMethod(_, fct_id, _) => fct_id,
 
                 CallType::Fct(fid, _, _) => fid,
 
@@ -3639,6 +3643,13 @@ where
             }
 
             CallType::Method(ty, _, ref type_params) => {
+                let ty = self.specialize_type(ty);
+
+                cls_type_params = ty.type_params(self.vm);
+                fct_type_params = type_params.clone();
+            }
+
+            CallType::ModuleMethod(ty, _, ref type_params) => {
                 let ty = self.specialize_type(ty);
 
                 cls_type_params = ty.type_params(self.vm);

@@ -719,7 +719,7 @@ impl Index<usize> for TypeList {
 
     fn index(&self, idx: usize) -> &BuiltinType {
         match self {
-            &TypeList::Empty => panic!("out-of-bounds"),
+            &TypeList::Empty => panic!("type list index out-of-bounds"),
             &TypeList::List(ref params) => &params[idx],
         }
     }

@@ -421,7 +421,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 BuiltinType::Error
             }
 
-            &IdentType::Module(module_id) => {
+            &IdentType::Module(module_id) | &IdentType::ClassAndModule(_, module_id) => {
                 let module = self.vm.modules.idx(module_id);
                 let ty = module.read().ty;
                 self.src.set_ty(e.id, ty);
@@ -554,6 +554,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             &IdentType::Module(_) => unreachable!(),
+
+            &IdentType::ClassAndModule(_, _) => unreachable!(),
 
             &IdentType::TypeParam(_) | &IdentType::TypeParamStaticMethod(_, _) => {
                 self.vm
@@ -991,7 +993,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.check_expr_call_ident(e, fct_id, type_params, &arg_types)
             }
 
-            Some(IdentType::Class(cls_id)) => {
+            Some(IdentType::Class(cls_id)) | Some(IdentType::ClassAndModule(cls_id, _)) => {
                 self.check_expr_call_ctor(e, cls_id, TypeList::empty(), &arg_types)
             }
 
@@ -1336,7 +1338,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 CallType::Trait(trait_id, fct_id)
             } else {
                 let method_type = lookup.found_class_type().unwrap();
-                CallType::Method(method_type, fct_id, type_params.clone())
+                if method_type.is_module() {
+                    CallType::ModuleMethod(method_type, fct_id, type_params.clone())
+                } else {
+                    CallType::Method(method_type, fct_id, type_params.clone())
+                }
             };
 
             self.src
@@ -1628,7 +1634,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 IdentType::StaticMethod(cls_ty, name)
             }
 
-            Some(&IdentType::Module(module_id)) => {
+            Some(&IdentType::Module(module_id))
+            | Some(&IdentType::ClassAndModule(_, module_id)) => {
                 let module_ty = BuiltinType::Module(module_id);
 
                 IdentType::Method(module_ty, name)
@@ -1722,7 +1729,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let type_params: TypeList = TypeList::with(type_params);
 
         match ident_type {
-            Some(IdentType::Class(cls_id)) => {
+            Some(IdentType::Class(cls_id)) | Some(IdentType::ClassAndModule(cls_id, _)) => {
                 self.src
                     .map_idents
                     .insert(e.id, IdentType::ClassType(cls_id, type_params));

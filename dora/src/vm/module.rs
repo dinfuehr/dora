@@ -71,7 +71,7 @@ pub fn find_methods_in_module(
     let mut module_type = object_type;
 
     loop {
-        let module_id = module_type.module_id().expect("no class");
+        let module_id = module_type.module_id().expect("no module");
         let module = vm.modules.idx(module_id);
         let module = module.read();
 

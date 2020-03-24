@@ -182,8 +182,14 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         self.map_module_defs.insert(m.id, id);
 
         let sym = SymModule(id);
-        if let Some(sym) = self.vm.sym.lock().insert_term(m.name, sym) {
-            report_term_shadow(self.vm, m.name, self.file_id.into(), m.pos, sym);
+        let term_sym = self.vm.sym.lock().get_term(m.name);
+        match term_sym {
+            None | Some(SymClassConstructor(_)) => {
+                self.vm.sym.lock().insert_term(m.name, sym);
+            }
+            Some(sym) => {
+                report_term_shadow(self.vm, m.name, self.file_id.into(), m.pos, sym);
+            }
         }
     }
 
@@ -270,8 +276,12 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         }
 
         let sym = SymClassConstructor(id);
-        match self.vm.sym.lock().insert_term(c.name, sym) {
-            Some(SymModule(_)) | None => {}
+        let term_sym = self.vm.sym.lock().get_term(c.name);
+        match term_sym {
+            Some(SymModule(_)) => {}
+            None => {
+                self.vm.sym.lock().insert_term(c.name, sym);
+            }
             Some(sym) => {
                 report_term_shadow(self.vm, c.name, self.file_id.into(), c.pos, sym);
             }
@@ -305,8 +315,12 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         }
 
         let sym = SymStructConstructor(id);
-        match self.vm.sym.lock().insert_term(s.name, sym) {
-            Some(SymModule(_)) | None => {}
+        let term_sym = self.vm.sym.lock().get_term(s.name);
+        match term_sym {
+            Some(SymModule(_)) => {}
+            None => {
+                self.vm.sym.lock().insert_term(s.name, sym);
+            }
             Some(sym) => {
                 report_term_shadow(self.vm, s.name, self.file_id.into(), s.pos, sym);
             }
