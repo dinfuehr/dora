@@ -12,8 +12,8 @@ use crate::semck::{expr_always_returns, expr_block_always_returns};
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{
-    CallType, Fct, FctDef, FctDefId, FctId, FctKind, FctSrc, IdentType, Intrinsic, TraitId, VarId,
-    VM,
+    CallType, ConstId, Fct, FctDef, FctDefId, FctId, FctKind, FctSrc, GlobalId, IdentType,
+    Intrinsic, TraitId, VarId, VM,
 };
 
 pub struct LoopLabels {
@@ -713,12 +713,12 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     InstanceSize::Fixed(_) => {
                         self.gen.emit_new_object(start_reg, cls_def_id);
                     }
-                    InstanceSize::Array(_) | InstanceSize::UnitArray => {
+                    InstanceSize::ObjArray | InstanceSize::Array(_) | InstanceSize::UnitArray => {
                         let length_arg = start_reg.offset(1);
                         self.gen.emit_new_array(start_reg, cls_def_id, length_arg);
                     }
                     _ => {
-                        unimplemented!();
+                        panic!("unimplemented size {:?}", cls.size);
                     }
                 }
             }
@@ -1952,76 +1952,12 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let ident_type = self.src.map_idents.get(ident.id).unwrap();
 
         match ident_type {
-            &IdentType::Var(var_id) => {
-                if dest.is_effect() {
-                    return Register::invalid();
-                }
-
-                let ty = self.var_ty(var_id);
-
-                if ty.is_unit() {
-                    assert!(dest.is_alloc());
-                    return Register::invalid();
-                }
-
-                let var_reg = self.var_reg(var_id);
-                let ty: BytecodeType = self.specialize_type(ty).into();
-
-                if dest.is_alloc() {
-                    return var_reg;
-                }
-
-                let dest = dest.reg();
-
-                if dest != var_reg {
-                    match ty {
-                        BytecodeType::Bool => self.gen.emit_mov_bool(dest, var_reg),
-                        BytecodeType::Byte => self.gen.emit_mov_byte(dest, var_reg),
-                        BytecodeType::Char => self.gen.emit_mov_char(dest, var_reg),
-                        BytecodeType::Int => self.gen.emit_mov_int(dest, var_reg),
-                        BytecodeType::Long => self.gen.emit_mov_long(dest, var_reg),
-                        BytecodeType::Float => self.gen.emit_mov_float(dest, var_reg),
-                        BytecodeType::Double => self.gen.emit_mov_double(dest, var_reg),
-                        BytecodeType::Ptr => self.gen.emit_mov_ptr(dest, var_reg),
-                    }
-                }
-
-                dest
-            }
-
-            &IdentType::Global(gid) => {
-                if dest.is_effect() {
-                    return Register::invalid();
-                }
-
-                let glob = self.vm.globals.idx(gid);
-                let glob = glob.read();
-
-                if glob.ty.is_unit() {
-                    assert!(dest.is_alloc());
-                    return Register::invalid();
-                }
-
-                let ty: BytecodeType = glob.ty.into();
-                let dest = self.ensure_register(dest, ty);
-
-                match ty {
-                    BytecodeType::Bool => self.gen.emit_load_global_bool(dest, gid),
-                    BytecodeType::Byte => self.gen.emit_load_global_byte(dest, gid),
-                    BytecodeType::Char => self.gen.emit_load_global_char(dest, gid),
-                    BytecodeType::Int => self.gen.emit_load_global_int(dest, gid),
-                    BytecodeType::Long => self.gen.emit_load_global_long(dest, gid),
-                    BytecodeType::Float => self.gen.emit_load_global_float(dest, gid),
-                    BytecodeType::Double => self.gen.emit_load_global_double(dest, gid),
-                    BytecodeType::Ptr => self.gen.emit_load_global_ptr(dest, gid),
-                }
-
-                dest
-            }
+            &IdentType::Var(varid) => self.visit_expr_ident_var(varid, dest),
+            &IdentType::Global(gid) => self.visit_expr_ident_global(gid, dest),
 
             &IdentType::Field(_, _) => unimplemented!(),
             &IdentType::Struct(_) => unimplemented!(),
-            &IdentType::Const(_) => unimplemented!(),
+            &IdentType::Const(cid) => self.visit_expr_ident_const(cid, dest),
 
             &IdentType::Enum(_) | &IdentType::EnumValue(_, _) => unreachable!(),
             &IdentType::Fct(_) | &IdentType::FctType(_, _) => unreachable!(),
@@ -2033,6 +1969,124 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 unreachable!()
             }
         }
+    }
+
+    fn visit_expr_ident_const(&mut self, const_id: ConstId, dest: DataDest) -> Register {
+        if dest.is_effect() {
+            return Register::invalid();
+        }
+
+        let xconst = self.vm.consts.idx(const_id);
+        let xconst = xconst.lock();
+        let ty = xconst.ty;
+
+        let dest = self.ensure_register(dest, ty.into());
+
+        match ty {
+            BuiltinType::Bool => {
+                if xconst.value.to_bool() {
+                    self.gen.emit_const_true(dest);
+                } else {
+                    self.gen.emit_const_false(dest);
+                }
+            }
+
+            BuiltinType::Char => {
+                self.gen.emit_const_char(dest, xconst.value.to_char());
+            }
+
+            BuiltinType::Byte => {
+                self.gen.emit_const_byte(dest, xconst.value.to_int() as u8);
+            }
+
+            BuiltinType::Int => {
+                self.gen.emit_const_int(dest, xconst.value.to_int() as i32);
+            }
+
+            BuiltinType::Long => {
+                self.gen.emit_const_long(dest, xconst.value.to_int());
+            }
+
+            BuiltinType::Float => {
+                self.gen
+                    .emit_const_float(dest, xconst.value.to_float() as f32);
+            }
+
+            BuiltinType::Double => {
+                self.gen.emit_const_double(dest, xconst.value.to_float());
+            }
+
+            _ => unimplemented!(),
+        }
+
+        dest
+    }
+
+    fn visit_expr_ident_global(&mut self, gid: GlobalId, dest: DataDest) -> Register {
+        if dest.is_effect() {
+            return Register::invalid();
+        }
+
+        let glob = self.vm.globals.idx(gid);
+        let glob = glob.read();
+
+        if glob.ty.is_unit() {
+            assert!(dest.is_alloc());
+            return Register::invalid();
+        }
+
+        let ty: BytecodeType = glob.ty.into();
+        let dest = self.ensure_register(dest, ty);
+
+        match ty {
+            BytecodeType::Bool => self.gen.emit_load_global_bool(dest, gid),
+            BytecodeType::Byte => self.gen.emit_load_global_byte(dest, gid),
+            BytecodeType::Char => self.gen.emit_load_global_char(dest, gid),
+            BytecodeType::Int => self.gen.emit_load_global_int(dest, gid),
+            BytecodeType::Long => self.gen.emit_load_global_long(dest, gid),
+            BytecodeType::Float => self.gen.emit_load_global_float(dest, gid),
+            BytecodeType::Double => self.gen.emit_load_global_double(dest, gid),
+            BytecodeType::Ptr => self.gen.emit_load_global_ptr(dest, gid),
+        }
+
+        dest
+    }
+
+    fn visit_expr_ident_var(&mut self, var_id: VarId, dest: DataDest) -> Register {
+        if dest.is_effect() {
+            return Register::invalid();
+        }
+
+        let ty = self.var_ty(var_id);
+
+        if ty.is_unit() {
+            assert!(dest.is_alloc());
+            return Register::invalid();
+        }
+
+        let var_reg = self.var_reg(var_id);
+        let ty: BytecodeType = self.specialize_type(ty).into();
+
+        if dest.is_alloc() {
+            return var_reg;
+        }
+
+        let dest = dest.reg();
+
+        if dest != var_reg {
+            match ty {
+                BytecodeType::Bool => self.gen.emit_mov_bool(dest, var_reg),
+                BytecodeType::Byte => self.gen.emit_mov_byte(dest, var_reg),
+                BytecodeType::Char => self.gen.emit_mov_char(dest, var_reg),
+                BytecodeType::Int => self.gen.emit_mov_int(dest, var_reg),
+                BytecodeType::Long => self.gen.emit_mov_long(dest, var_reg),
+                BytecodeType::Float => self.gen.emit_mov_float(dest, var_reg),
+                BytecodeType::Double => self.gen.emit_mov_double(dest, var_reg),
+                BytecodeType::Ptr => self.gen.emit_mov_ptr(dest, var_reg),
+            }
+        }
+
+        dest
     }
 
     fn find_trait_impl(&self, fct_id: FctId, trait_id: TraitId, object_type: BuiltinType) -> FctId {

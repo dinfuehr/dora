@@ -9,7 +9,7 @@ use crate::compiler::codegen::{ensure_native_stub, should_emit_debug, Allocation
 use crate::compiler::fct::{Code, GcPoint, JitDescriptor};
 use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
 use crate::cpu::{
-    Mem, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_TMP1, REG_TMP2,
+    Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_TMP1, REG_TMP2,
 };
 use crate::gc::Address;
 use crate::masm::*;
@@ -1555,6 +1555,11 @@ where
                     .determine_array_size(REG_TMP1, REG_TMP1, size, true);
                 AllocationSize::Dynamic(REG_TMP1)
             }
+            InstanceSize::ObjArray => {
+                self.asm
+                    .determine_array_size(REG_TMP1, REG_TMP1, mem::ptr_width(), true);
+                AllocationSize::Dynamic(REG_TMP1)
+            }
             InstanceSize::UnitArray => AllocationSize::Fixed(array_header_size),
             _ => unreachable!("class size type {:?} for new array not supported", cls.size),
         };
@@ -1611,23 +1616,38 @@ where
 
         match cls.size {
             InstanceSize::Array(size) => {
-                self.asm.int_add_imm(
-                    MachineMode::Ptr,
-                    REG_RESULT,
-                    REG_RESULT,
-                    (Header::size() + mem::ptr_width()) as i64,
-                );
-                self.asm
-                    .determine_array_size(REG_TMP1, REG_TMP1, size, false);
-                self.asm
-                    .int_add(MachineMode::Ptr, REG_TMP1, REG_TMP1, REG_RESULT);
-                self.asm.fill_zero_dynamic(REG_RESULT, REG_TMP1);
+                self.emit_array_initialization(REG_RESULT, REG_TMP1, size);
+            }
+            InstanceSize::ObjArray => {
+                self.emit_array_initialization(REG_RESULT, REG_TMP1, mem::ptr_width());
             }
             InstanceSize::UnitArray => {}
             _ => unreachable!(),
         }
 
         self.references.push(offset);
+    }
+
+    fn emit_array_initialization(&mut self, object_start: Reg, array_length: Reg, size: i32) {
+        let array_data_start = object_start;
+        self.asm.int_add_imm(
+            MachineMode::Ptr,
+            array_data_start,
+            object_start,
+            (Header::size() + mem::ptr_width()) as i64,
+        );
+        let size_without_header = array_length;
+        self.asm
+            .determine_array_size(size_without_header, array_length, size, false);
+        let array_data_limit = array_length;
+        self.asm.int_add(
+            MachineMode::Ptr,
+            array_data_limit,
+            size_without_header,
+            REG_RESULT,
+        );
+        self.asm
+            .fill_zero_dynamic(array_data_start, array_data_limit);
     }
 
     fn emit_nil_check(&mut self, obj: Register) {

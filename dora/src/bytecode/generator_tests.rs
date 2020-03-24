@@ -3374,6 +3374,13 @@ fn gen_compare_to_method() {
     assert_eq!(expected, result);
 }
 
+#[test]
+fn gen_const_int() {
+    let result = code("const X: Int = 1; fun f() -> Int { X }");
+    let expected = vec![ConstInt(r(0), 1), RetInt(r(0))];
+    assert_eq!(expected, result);
+}
+
 fn p(line: u32, column: u32) -> Position {
     Position { line, column }
 }
