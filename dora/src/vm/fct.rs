@@ -491,7 +491,8 @@ impl Intrinsic {
             | Intrinsic::FloatPlus
             | Intrinsic::ReinterpretIntAsFloat
             | Intrinsic::IntToFloat
-            | Intrinsic::LongToFloat => BytecodeType::Float,
+            | Intrinsic::LongToFloat
+            | Intrinsic::FloatSqrt => BytecodeType::Float,
             Intrinsic::DoubleAdd
             | Intrinsic::DoubleSub
             | Intrinsic::DoubleDiv
@@ -500,7 +501,8 @@ impl Intrinsic {
             | Intrinsic::DoublePlus
             | Intrinsic::IntToDouble
             | Intrinsic::LongToDouble
-            | Intrinsic::ReinterpretLongAsDouble => BytecodeType::Double,
+            | Intrinsic::ReinterpretLongAsDouble
+            | Intrinsic::DoubleSqrt => BytecodeType::Double,
             Intrinsic::BoolEq
             | Intrinsic::ByteEq
             | Intrinsic::CharEq

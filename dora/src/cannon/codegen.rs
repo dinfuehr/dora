@@ -18,7 +18,10 @@ use crate::object::{offset_of_array_data, Header, Str};
 use crate::semck::specialize::specialize_type;
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, MachineMode, TypeList};
-use crate::vm::{ClassDefId, Fct, FctDefId, FctId, FctKind, FctSrc, FieldId, GlobalId, Trap, VM};
+use crate::vm::{
+    ClassDefId, Fct, FctDef, FctDefId, FctId, FctKind, FctSrc, FieldId, GlobalId, Intrinsic, Trap,
+    VM,
+};
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
 struct ForwardJump {
@@ -1982,6 +1985,10 @@ where
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
 
+        if let FctKind::Builtin(intrinsic) = fct.kind {
+            return self.emit_invoke_intrinsic(&*fct, &*fct_def, intrinsic, start_reg, num);
+        }
+
         self.emit_invoke_arguments(start_reg, num);
 
         let cls_type_params = fct_def.cls_type_params.clone();
@@ -2010,6 +2017,36 @@ where
         );
 
         reg
+    }
+
+    fn emit_invoke_intrinsic(
+        &mut self,
+        _fct: &Fct,
+        _fct_def: &FctDef,
+        intrinsic: Intrinsic,
+        start_reg: Register,
+        num: u32,
+    ) -> AnyReg {
+        match intrinsic {
+            Intrinsic::FloatSqrt | Intrinsic::DoubleSqrt => {
+                assert_eq!(num, 1);
+
+                let mode = match intrinsic {
+                    Intrinsic::FloatSqrt => MachineMode::Float32,
+                    Intrinsic::DoubleSqrt => MachineMode::Float64,
+                    _ => unreachable!(),
+                };
+
+                let offset = self.bytecode.register_offset(start_reg);
+                self.asm
+                    .load_mem(mode, FREG_RESULT.into(), Mem::Local(offset));
+                self.asm.float_sqrt(mode, FREG_RESULT, FREG_RESULT);
+
+                FREG_RESULT.into()
+            }
+
+            _ => unreachable!(),
+        }
     }
 
     fn emit_invoke_arguments(&mut self, start_reg: Register, num: u32) {

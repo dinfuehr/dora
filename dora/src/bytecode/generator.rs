@@ -538,8 +538,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn visit_expr_call(&mut self, expr: &ExprCallType, dest: DataDest) -> Register {
-        if let Some(intrinsic) = self.get_intrinsic(expr.id) {
-            return self.emit_intrinsic_call(expr, intrinsic, dest);
+        if let Some(info) = self.get_intrinsic(expr.id) {
+            return self.emit_intrinsic_call(expr, info, dest);
         }
 
         let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
@@ -1172,15 +1172,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             self.emit_bin_or(expr, dest)
         } else if expr.op == BinOp::And {
             self.emit_bin_and(expr, dest)
-        } else if let Some(intrinsic) = self.get_intrinsic(expr.id) {
-            self.emit_intrinsic_bin(
-                &expr.lhs,
-                &expr.rhs,
-                intrinsic,
-                Some(expr.op),
-                expr.pos,
-                dest,
-            )
+        } else if let Some(info) = self.get_intrinsic(expr.id) {
+            self.emit_intrinsic_bin(&expr.lhs, &expr.rhs, info, Some(expr.op), expr.pos, dest)
         } else {
             self.visit_expr_bin_method(expr, dest)
         }
@@ -1260,15 +1253,15 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     fn emit_intrinsic_call(
         &mut self,
         expr: &ExprCallType,
-        intrinsic: Intrinsic,
+        info: IntrinsicInfo,
         dest: DataDest,
     ) -> Register {
+        let intrinsic = info.intrinsic;
+
         if let Some(object) = expr.object() {
             match expr.args.len() {
-                0 => self.emit_intrinsic_un(object, intrinsic, expr.pos, dest),
-                1 => {
-                    self.emit_intrinsic_bin(object, &expr.args[0], intrinsic, None, expr.pos, dest)
-                }
+                0 => self.emit_intrinsic_un(object, info, expr.pos, dest),
+                1 => self.emit_intrinsic_bin(object, &expr.args[0], info, None, expr.pos, dest),
                 2 => {
                     assert_eq!(intrinsic, Intrinsic::GenericArraySet);
                     self.emit_intrinsic_array_set(
@@ -1288,14 +1281,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     Register::invalid()
                 }
 
-                Intrinsic::GenericArrayGet => self.emit_intrinsic_bin(
-                    &expr.callee,
-                    &expr.args[0],
-                    intrinsic,
-                    None,
-                    expr.pos,
-                    dest,
-                ),
+                Intrinsic::GenericArrayGet => {
+                    self.emit_intrinsic_bin(&expr.callee, &expr.args[0], info, None, expr.pos, dest)
+                }
 
                 Intrinsic::DefaultValue => {
                     let ty = self.ty(expr.id);
@@ -1492,10 +1480,12 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     fn emit_intrinsic_un(
         &mut self,
         opnd: &Expr,
-        intrinsic: Intrinsic,
+        info: IntrinsicInfo,
         pos: Position,
         dest: DataDest,
     ) -> Register {
+        let intrinsic = info.intrinsic;
+
         if dest.is_effect() {
             match intrinsic {
                 Intrinsic::GenericArrayLen | Intrinsic::StrLen => {
@@ -1574,6 +1564,22 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 self.gen.emit_const_int(dest, 0);
                 self.gen.bind_label(lbl_end);
             }
+            Intrinsic::FloatSqrt => {
+                self.gen.emit_invoke_static_float(
+                    dest,
+                    FctDef::fct_id(self.vm, info.fct_id.unwrap()),
+                    src,
+                    1,
+                );
+            }
+            Intrinsic::DoubleSqrt => {
+                self.gen.emit_invoke_static_double(
+                    dest,
+                    FctDef::fct_id(self.vm, info.fct_id.unwrap()),
+                    src,
+                    1,
+                );
+            }
             _ => unimplemented!(),
         }
 
@@ -1584,11 +1590,13 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         &mut self,
         lhs: &Expr,
         rhs: &Expr,
-        intrinsic: Intrinsic,
+        info: IntrinsicInfo,
         op: Option<BinOp>,
         pos: Position,
         dest: DataDest,
     ) -> Register {
+        let intrinsic = info.intrinsic;
+
         match intrinsic {
             Intrinsic::GenericArrayGet | Intrinsic::StrGet => {
                 let ty = self.src.ty(lhs.id());
@@ -1922,8 +1930,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     }
                 }
                 ExprCall(ref call) => {
-                    if let Some(intrinsic) = self.get_intrinsic(expr.id) {
-                        match intrinsic {
+                    if let Some(info) = self.get_intrinsic(expr.id) {
+                        match info.intrinsic {
                             Intrinsic::GenericArraySet => {
                                 let object = &call.callee;
 
@@ -1935,7 +1943,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                                     dest,
                                 );
                             }
-                            _ => panic!("unexpected intrinsic {:?}", intrinsic),
+                            _ => panic!("unexpected intrinsic {:?}", info.intrinsic),
                         }
                     } else {
                         unimplemented!();
@@ -2232,11 +2240,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.specialize_type(ty)
     }
 
-    fn get_intrinsic(&self, id: NodeId) -> Option<Intrinsic> {
+    fn get_intrinsic(&self, id: NodeId) -> Option<IntrinsicInfo> {
         let call_type = self.src.map_calls.get(id).unwrap();
 
         if let Some(intrinsic) = call_type.to_intrinsic() {
-            return Some(intrinsic);
+            return Some(intrinsic.into());
         }
 
         let fid = call_type.fct_id().unwrap();
@@ -2250,8 +2258,31 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let fct = fct.read();
 
         match fct.kind {
-            FctKind::Builtin(intr) => Some(intr),
+            FctKind::Builtin(intr) => Some(IntrinsicInfo::with_fct(intr, fid)),
             _ => None,
+        }
+    }
+}
+
+struct IntrinsicInfo {
+    intrinsic: Intrinsic,
+    fct_id: Option<FctId>,
+}
+
+impl IntrinsicInfo {
+    fn with_fct(intrinsic: Intrinsic, fct_id: FctId) -> IntrinsicInfo {
+        IntrinsicInfo {
+            intrinsic,
+            fct_id: Some(fct_id),
+        }
+    }
+}
+
+impl From<Intrinsic> for IntrinsicInfo {
+    fn from(intrinsic: Intrinsic) -> IntrinsicInfo {
+        IntrinsicInfo {
+            intrinsic,
+            fct_id: None,
         }
     }
 }
