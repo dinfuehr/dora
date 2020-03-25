@@ -3381,6 +3381,13 @@ fn gen_const_int() {
     assert_eq!(expected, result);
 }
 
+#[test]
+fn gen_while_with_break() {
+    let result = code("fun f(x: Bool) { while x { break; } }");
+    let expected = vec![JumpIfFalse(r(0), 3), Jump(3), JumpLoop(0), RetVoid];
+    assert_eq!(expected, result);
+}
+
 fn p(line: u32, column: u32) -> Position {
     Position { line, column }
 }
