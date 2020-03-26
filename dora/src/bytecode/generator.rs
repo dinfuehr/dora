@@ -10,7 +10,7 @@ use crate::bytecode::{BytecodeFunction, BytecodeType, BytecodeWriter, Label, Reg
 use crate::semck::specialize::{specialize_class_ty, specialize_type};
 use crate::semck::{expr_always_returns, expr_block_always_returns};
 use crate::size::InstanceSize;
-use crate::ty::{BuiltinType, TypeList};
+use crate::ty::{BuiltinType, TypeList, TypeParamId};
 use crate::vm::{
     CallType, ConstId, Fct, FctDef, FctDefId, FctId, FctKind, FctSrc, GlobalId, IdentType,
     Intrinsic, TraitId, VarId, VM,
@@ -620,6 +620,40 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     fct_id
                 }
             }
+            CallType::TraitStatic(tp_id, trait_id, trait_fct_id) => {
+                let list_id = match tp_id {
+                    TypeParamId::Fct(list_id) => list_id,
+                    TypeParamId::Class(_) => unimplemented!(),
+                };
+
+                let ty = self.fct_type_params[list_id.idx()];
+                let cls_id = ty.cls_id(self.vm).expect("no cls_id for type");
+
+                let cls = self.vm.classes.idx(cls_id);
+                let cls = cls.read();
+
+                let mut impl_fct_id: Option<FctId> = None;
+
+                for &impl_id in &cls.impls {
+                    let ximpl = self.vm.impls[impl_id].read();
+
+                    if ximpl.trait_id != Some(trait_id) {
+                        continue;
+                    }
+
+                    for &fid in &ximpl.methods {
+                        let method = self.vm.fcts.idx(fid);
+                        let method = method.read();
+
+                        if method.impl_for == Some(trait_fct_id) {
+                            impl_fct_id = Some(fid);
+                            break;
+                        }
+                    }
+                }
+
+                impl_fct_id.expect("no impl_fct_id found")
+            }
             _ => call_type.fct_id().unwrap(),
         }
     }
@@ -792,7 +826,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             }
             CallType::Expr(_, _) => unimplemented!(),
             CallType::Trait(_, _) => unimplemented!(),
-            CallType::TraitStatic(_, _, _) => unimplemented!(),
+            CallType::TraitStatic(_, _, _) => {
+                self.emit_invoke_static(return_type, return_reg, fct_def_id, start_reg, num_args);
+            }
             CallType::Intrinsic(_) => unreachable!(),
         }
     }
@@ -2247,7 +2283,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 specialize_type(self.vm, ty, &type_params, &TypeList::empty())
             }
 
-            CallType::Trait(_, _) | CallType::TraitStatic(_, _, _) => unimplemented!(),
+            CallType::Trait(_, _) => unimplemented!(),
+            CallType::TraitStatic(_, _, _) => {
+                specialize_type(self.vm, ty, &TypeList::empty(), &TypeList::empty())
+            }
             CallType::Intrinsic(_) => unreachable!(),
         };
 

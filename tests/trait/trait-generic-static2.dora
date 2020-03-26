@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     assert("x${f[Bar]()}y${f[Baz]()}z" == "xBAR1yBAZ2z");
 }
