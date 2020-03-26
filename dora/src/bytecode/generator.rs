@@ -202,7 +202,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let dest = if ty.is_unit() {
             DataDest::Effect
         } else {
-            let ty: BytecodeType = self.specialize_type(ty).into();
+            let ty: BytecodeType = ty.into();
             let var_reg = self.gen.add_register(ty);
 
             self.var_registers.insert(var_id, var_reg);

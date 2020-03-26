@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     assert(test_call() == 1);
 }

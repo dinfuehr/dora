@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let set = HashSet[Int]();
     assert(set.isEmpty());

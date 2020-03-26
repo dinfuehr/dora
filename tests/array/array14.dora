@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let x = Array[String](1);
     x(0) = nil;

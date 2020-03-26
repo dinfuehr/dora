@@ -1,3 +1,5 @@
+//= cannon
+
 module Foo {
   fun foo() -> String = "bar";
 }

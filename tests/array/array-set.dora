@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
   let x = arrayFill[Int](2, 100);
   int_array_set(x, 1, 200);

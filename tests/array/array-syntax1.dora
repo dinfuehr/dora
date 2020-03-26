@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let a = Array[Int](10);
     assert(array_get(a, 0) == 0);

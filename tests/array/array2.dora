@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
   assert(0 == len(arrayEmpty[Int]()));
 }

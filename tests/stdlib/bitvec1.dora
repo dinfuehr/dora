@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let set = BitVec();
     set.insert(0);

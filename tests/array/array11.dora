@@ -1,4 +1,6 @@
+//= cannon
 //= error nil
+//= stderr "nil check failed\n2: first(Array[Int]) -> Int: 10\n1: main(): 6\n"
 
 fun main() {
     first(nil);

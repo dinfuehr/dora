@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let x = range(0, 5).makeIterator();
 

@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let buffer = write('$');
     assert(buffer(0) == 0x24Y);

@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
   let x = arrayFill[Int](5, 100);
   assert(x(0) == 100);

@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let buf = StringBuffer::empty();
     buf.appendChar('a');
