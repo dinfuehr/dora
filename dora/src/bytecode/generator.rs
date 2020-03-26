@@ -824,7 +824,33 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             CallType::Fct(_, _, _) => {
                 self.emit_invoke_static(return_type, return_reg, fct_def_id, start_reg, num_args);
             }
-            CallType::Expr(_, _) => unimplemented!(),
+            CallType::Expr(_, _) => {
+                if fct.is_virtual() {
+                    self.emit_invoke_virtual(
+                        return_type,
+                        return_reg,
+                        fct_def_id,
+                        start_reg,
+                        num_args,
+                    );
+                } else if arg_bytecode_types[0] != BytecodeType::Ptr {
+                    self.emit_invoke_static(
+                        return_type,
+                        return_reg,
+                        fct_def_id,
+                        start_reg,
+                        num_args,
+                    );
+                } else {
+                    self.emit_invoke_direct(
+                        return_type,
+                        return_reg,
+                        fct_def_id,
+                        start_reg,
+                        num_args,
+                    );
+                }
+            }
             CallType::Trait(_, _) => unimplemented!(),
             CallType::TraitStatic(_, _, _) => {
                 self.emit_invoke_static(return_type, return_reg, fct_def_id, start_reg, num_args);
@@ -1880,144 +1906,121 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         if expr.lhs.is_ident() {
             let ident_type = self.src.map_idents.get(expr.lhs.id()).unwrap();
             match ident_type {
-                &IdentType::Var(var_id) => {
-                    let ty = self.var_ty(var_id);
-
-                    let dest = if ty.is_unit() {
-                        DataDest::Effect
-                    } else {
-                        let var_reg = self.var_reg(var_id);
-                        DataDest::Reg(var_reg)
-                    };
-
-                    self.visit_expr(&expr.rhs, dest);
-                }
-
-                &IdentType::Global(gid) => {
-                    let glob = self.vm.globals.idx(gid);
-                    let glob = glob.read();
-
-                    let dest = if glob.ty.is_unit() {
-                        DataDest::Effect
-                    } else {
-                        DataDest::Alloc
-                    };
-
-                    let src = self.visit_expr(&expr.rhs, dest);
-
-                    if !glob.ty.is_unit() {
-                        let ty: BytecodeType = glob.ty.into();
-                        match ty {
-                            BytecodeType::Bool => self.gen.emit_store_global_bool(src, gid),
-                            BytecodeType::Byte => self.gen.emit_store_global_byte(src, gid),
-                            BytecodeType::Char => self.gen.emit_store_global_char(src, gid),
-                            BytecodeType::Int => self.gen.emit_store_global_int(src, gid),
-                            BytecodeType::Long => self.gen.emit_store_global_long(src, gid),
-                            BytecodeType::Float => self.gen.emit_store_global_float(src, gid),
-                            BytecodeType::Double => self.gen.emit_store_global_double(src, gid),
-                            BytecodeType::Ptr => self.gen.emit_store_global_ptr(src, gid),
-                        }
-                    }
-                }
-                &IdentType::Field(_, _) => unimplemented!(),
-
-                &IdentType::Struct(_) => unimplemented!(),
-                &IdentType::Enum(_) | &IdentType::EnumValue(_, _) => unreachable!(),
-                &IdentType::Const(_) => unreachable!(),
-                &IdentType::Fct(_) | &IdentType::FctType(_, _) => unreachable!(),
-                &IdentType::Class(_) | &IdentType::ClassType(_, _) => unimplemented!(),
-                &IdentType::Module(_) => unimplemented!(),
-                &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unimplemented!(),
-                &IdentType::TypeParam(_) | &IdentType::TypeParamStaticMethod(_, _) => {
-                    unreachable!()
-                }
-                &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => {
-                    unreachable!()
-                }
+                &IdentType::Var(var_id) => self.visit_expr_assign_var(expr, var_id),
+                &IdentType::Global(gid) => self.visit_expr_assign_global(expr, gid),
+                _ => unreachable!(),
             }
         } else {
             match *expr.lhs {
-                ExprDot(ref dot) => {
-                    let (class, field_id) = {
-                        let ident_type = self.src.map_idents.get(dot.id).unwrap();
-                        match ident_type {
-                            &IdentType::Field(class, field) => (class, field),
-                            _ => unreachable!(),
-                        }
-                    };
-                    let class = self.specialize_type(class);
-                    let cls_id = specialize_class_ty(self.vm, class);
-                    let cls = self.vm.class_defs.idx(cls_id);
-                    let cls = cls.read();
-                    let field = &cls.fields[field_id.idx()];
-                    let ty: Option<BytecodeType> = if field.ty.is_unit() {
-                        None
-                    } else {
-                        Some(field.ty.into())
-                    };
-
-                    let obj = self.visit_expr(&dot.lhs, DataDest::Alloc);
-                    let src = self.visit_expr(&expr.rhs, DataDest::Alloc);
-
-                    self.gen.set_position(expr.pos);
-
-                    if ty.is_none() {
-                        self.gen.emit_nil_check(obj);
-                        return Register::invalid();
-                    }
-
-                    match ty.unwrap() {
-                        BytecodeType::Byte => {
-                            self.gen.emit_store_field_byte(src, obj, cls_id, field_id)
-                        }
-                        BytecodeType::Bool => {
-                            self.gen.emit_store_field_bool(src, obj, cls_id, field_id)
-                        }
-                        BytecodeType::Char => {
-                            self.gen.emit_store_field_char(src, obj, cls_id, field_id)
-                        }
-                        BytecodeType::Int => {
-                            self.gen.emit_store_field_int(src, obj, cls_id, field_id)
-                        }
-                        BytecodeType::Long => {
-                            self.gen.emit_store_field_long(src, obj, cls_id, field_id)
-                        }
-                        BytecodeType::Float => {
-                            self.gen.emit_store_field_float(src, obj, cls_id, field_id)
-                        }
-                        BytecodeType::Double => {
-                            self.gen.emit_store_field_double(src, obj, cls_id, field_id)
-                        }
-                        BytecodeType::Ptr => {
-                            self.gen.emit_store_field_ptr(src, obj, cls_id, field_id)
-                        }
-                    }
-                }
-                ExprCall(ref call) => {
-                    if let Some(info) = self.get_intrinsic(expr.id) {
-                        match info.intrinsic {
-                            Intrinsic::GenericArraySet => {
-                                let object = &call.callee;
-
-                                self.emit_intrinsic_array_set(
-                                    object,
-                                    &call.args[0],
-                                    &expr.rhs,
-                                    expr.pos,
-                                    dest,
-                                );
-                            }
-                            _ => panic!("unexpected intrinsic {:?}", info.intrinsic),
-                        }
-                    } else {
-                        unimplemented!();
-                    }
-                }
-                _ => unreachable!("{:?}", expr),
+                ExprDot(ref dot) => self.visit_expr_assign_dot(expr, dot),
+                ExprCall(ref call) => self.visit_expr_assign_call(expr, call),
+                _ => unreachable!(),
             };
         }
 
         Register::invalid()
+    }
+
+    fn visit_expr_assign_call(&mut self, expr: &ExprBinType, call: &ExprCallType) {
+        if let Some(info) = self.get_intrinsic(expr.id) {
+            match info.intrinsic {
+                Intrinsic::GenericArraySet => {
+                    let object = &call.callee;
+
+                    self.emit_intrinsic_array_set(
+                        object,
+                        &call.args[0],
+                        &expr.rhs,
+                        expr.pos,
+                        DataDest::Effect,
+                    );
+                }
+                _ => panic!("unexpected intrinsic {:?}", info.intrinsic),
+            }
+        } else {
+            unimplemented!();
+        }
+    }
+
+    fn visit_expr_assign_dot(&mut self, expr: &ExprBinType, dot: &ExprDotType) {
+        let (class, field_id) = {
+            let ident_type = self.src.map_idents.get(dot.id).unwrap();
+            match ident_type {
+                &IdentType::Field(class, field) => (class, field),
+                _ => unreachable!(),
+            }
+        };
+        let class = self.specialize_type(class);
+        let cls_id = specialize_class_ty(self.vm, class);
+        let cls = self.vm.class_defs.idx(cls_id);
+        let cls = cls.read();
+        let field = &cls.fields[field_id.idx()];
+        let ty: Option<BytecodeType> = if field.ty.is_unit() {
+            None
+        } else {
+            Some(field.ty.into())
+        };
+
+        let obj = self.visit_expr(&dot.lhs, DataDest::Alloc);
+        let src = self.visit_expr(&expr.rhs, DataDest::Alloc);
+
+        self.gen.set_position(expr.pos);
+
+        if ty.is_none() {
+            self.gen.emit_nil_check(obj);
+            return;
+        }
+
+        match ty.unwrap() {
+            BytecodeType::Byte => self.gen.emit_store_field_byte(src, obj, cls_id, field_id),
+            BytecodeType::Bool => self.gen.emit_store_field_bool(src, obj, cls_id, field_id),
+            BytecodeType::Char => self.gen.emit_store_field_char(src, obj, cls_id, field_id),
+            BytecodeType::Int => self.gen.emit_store_field_int(src, obj, cls_id, field_id),
+            BytecodeType::Long => self.gen.emit_store_field_long(src, obj, cls_id, field_id),
+            BytecodeType::Float => self.gen.emit_store_field_float(src, obj, cls_id, field_id),
+            BytecodeType::Double => self.gen.emit_store_field_double(src, obj, cls_id, field_id),
+            BytecodeType::Ptr => self.gen.emit_store_field_ptr(src, obj, cls_id, field_id),
+        }
+    }
+
+    fn visit_expr_assign_var(&mut self, expr: &ExprBinType, var_id: VarId) {
+        let ty = self.var_ty(var_id);
+
+        let dest = if ty.is_unit() {
+            DataDest::Effect
+        } else {
+            let var_reg = self.var_reg(var_id);
+            DataDest::Reg(var_reg)
+        };
+
+        self.visit_expr(&expr.rhs, dest);
+    }
+
+    fn visit_expr_assign_global(&mut self, expr: &ExprBinType, gid: GlobalId) {
+        let glob = self.vm.globals.idx(gid);
+        let glob = glob.read();
+
+        let dest = if glob.ty.is_unit() {
+            DataDest::Effect
+        } else {
+            DataDest::Alloc
+        };
+
+        let src = self.visit_expr(&expr.rhs, dest);
+
+        if !glob.ty.is_unit() {
+            let ty: BytecodeType = glob.ty.into();
+            match ty {
+                BytecodeType::Bool => self.gen.emit_store_global_bool(src, gid),
+                BytecodeType::Byte => self.gen.emit_store_global_byte(src, gid),
+                BytecodeType::Char => self.gen.emit_store_global_char(src, gid),
+                BytecodeType::Int => self.gen.emit_store_global_int(src, gid),
+                BytecodeType::Long => self.gen.emit_store_global_long(src, gid),
+                BytecodeType::Float => self.gen.emit_store_global_float(src, gid),
+                BytecodeType::Double => self.gen.emit_store_global_double(src, gid),
+                BytecodeType::Ptr => self.gen.emit_store_global_ptr(src, gid),
+            }
+        }
     }
 
     fn visit_expr_ident(&mut self, ident: &ExprIdentType, dest: DataDest) -> Register {
