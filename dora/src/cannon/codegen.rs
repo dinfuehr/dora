@@ -2045,6 +2045,86 @@ where
                 FREG_RESULT.into()
             }
 
+            Intrinsic::IntCountZeroBits
+            | Intrinsic::IntCountZeroBitsLeading
+            | Intrinsic::IntCountZeroBitsTrailing
+            | Intrinsic::IntCountOneBits
+            | Intrinsic::IntCountOneBitsLeading
+            | Intrinsic::IntCountOneBitsTrailing => {
+                let offset = self.bytecode.register_offset(start_reg);
+                self.asm
+                    .load_mem(MachineMode::Int32, REG_RESULT.into(), Mem::Local(offset));
+                let dest = REG_RESULT;
+
+                match intrinsic {
+                    Intrinsic::IntCountZeroBits => {
+                        self.asm.count_bits(MachineMode::Int32, dest, dest, false)
+                    }
+                    Intrinsic::IntCountOneBits => {
+                        self.asm.count_bits(MachineMode::Int32, dest, dest, true)
+                    }
+                    Intrinsic::IntCountZeroBitsLeading => {
+                        self.asm
+                            .count_bits_leading(MachineMode::Int32, dest, dest, false)
+                    }
+                    Intrinsic::IntCountOneBitsLeading => {
+                        self.asm
+                            .count_bits_leading(MachineMode::Int32, dest, dest, true)
+                    }
+                    Intrinsic::IntCountZeroBitsTrailing => {
+                        self.asm
+                            .count_bits_trailing(MachineMode::Int32, dest, dest, false)
+                    }
+                    Intrinsic::IntCountOneBitsTrailing => {
+                        self.asm
+                            .count_bits_trailing(MachineMode::Int32, dest, dest, true)
+                    }
+                    _ => unreachable!(),
+                }
+
+                dest.into()
+            }
+
+            Intrinsic::LongCountZeroBits
+            | Intrinsic::LongCountZeroBitsLeading
+            | Intrinsic::LongCountZeroBitsTrailing
+            | Intrinsic::LongCountOneBits
+            | Intrinsic::LongCountOneBitsLeading
+            | Intrinsic::LongCountOneBitsTrailing => {
+                let offset = self.bytecode.register_offset(start_reg);
+                self.asm
+                    .load_mem(MachineMode::Int64, REG_RESULT.into(), Mem::Local(offset));
+                let dest = REG_RESULT;
+
+                match intrinsic {
+                    Intrinsic::LongCountZeroBits => {
+                        self.asm.count_bits(MachineMode::Int64, dest, dest, false)
+                    }
+                    Intrinsic::LongCountOneBits => {
+                        self.asm.count_bits(MachineMode::Int64, dest, dest, true)
+                    }
+                    Intrinsic::LongCountZeroBitsLeading => {
+                        self.asm
+                            .count_bits_leading(MachineMode::Int64, dest, dest, false)
+                    }
+                    Intrinsic::LongCountOneBitsLeading => {
+                        self.asm
+                            .count_bits_leading(MachineMode::Int64, dest, dest, true)
+                    }
+                    Intrinsic::LongCountZeroBitsTrailing => {
+                        self.asm
+                            .count_bits_trailing(MachineMode::Int64, dest, dest, false)
+                    }
+                    Intrinsic::LongCountOneBitsTrailing => {
+                        self.asm
+                            .count_bits_trailing(MachineMode::Int64, dest, dest, true)
+                    }
+                    _ => unreachable!(),
+                }
+
+                dest.into()
+            }
+
             _ => unreachable!(),
         }
     }

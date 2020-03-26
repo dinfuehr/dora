@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
   let x = 0.countZeroBits();
   assert(x == 32);

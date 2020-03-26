@@ -460,7 +460,19 @@ impl Intrinsic {
             | Intrinsic::IntCmp
             | Intrinsic::LongCmp
             | Intrinsic::FloatCmp
-            | Intrinsic::DoubleCmp => BytecodeType::Int,
+            | Intrinsic::DoubleCmp
+            | Intrinsic::IntCountZeroBits
+            | Intrinsic::IntCountZeroBitsLeading
+            | Intrinsic::IntCountZeroBitsTrailing
+            | Intrinsic::IntCountOneBits
+            | Intrinsic::IntCountOneBitsLeading
+            | Intrinsic::IntCountOneBitsTrailing
+            | Intrinsic::LongCountZeroBits
+            | Intrinsic::LongCountZeroBitsLeading
+            | Intrinsic::LongCountZeroBitsTrailing
+            | Intrinsic::LongCountOneBits
+            | Intrinsic::LongCountOneBitsLeading
+            | Intrinsic::LongCountOneBitsTrailing => BytecodeType::Int,
             Intrinsic::LongAdd
             | Intrinsic::LongSub
             | Intrinsic::LongMul

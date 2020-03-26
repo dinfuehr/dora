@@ -1580,7 +1580,35 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     1,
                 );
             }
-            _ => unimplemented!(),
+            Intrinsic::IntCountZeroBits
+            | Intrinsic::IntCountZeroBitsLeading
+            | Intrinsic::IntCountZeroBitsTrailing
+            | Intrinsic::IntCountOneBits
+            | Intrinsic::IntCountOneBitsLeading
+            | Intrinsic::IntCountOneBitsTrailing => {
+                self.gen.emit_invoke_static_int(
+                    dest,
+                    FctDef::fct_id(self.vm, info.fct_id.unwrap()),
+                    src,
+                    1,
+                );
+            }
+            Intrinsic::LongCountZeroBits
+            | Intrinsic::LongCountZeroBitsLeading
+            | Intrinsic::LongCountZeroBitsTrailing
+            | Intrinsic::LongCountOneBits
+            | Intrinsic::LongCountOneBitsLeading
+            | Intrinsic::LongCountOneBitsTrailing => {
+                self.gen.emit_invoke_static_long(
+                    dest,
+                    FctDef::fct_id(self.vm, info.fct_id.unwrap()),
+                    src,
+                    1,
+                );
+            }
+            _ => {
+                panic!("unimplemented intrinsic {:?}", intrinsic);
+            }
         }
 
         dest
