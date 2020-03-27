@@ -516,6 +516,9 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::ReinterpretLongAsDouble, dest, src);
     }
 
+    pub fn emit_extend_byte_to_char(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::ExtendByteToChar, dest, src);
+    }
     pub fn emit_extend_byte_to_int(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::ExtendByteToInt, dest, src);
     }

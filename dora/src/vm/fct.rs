@@ -303,6 +303,7 @@ pub enum Intrinsic {
     ByteEq,
     ByteCmp,
     ByteNot,
+    ByteToChar,
     ByteToInt,
     ByteToLong,
 
@@ -528,7 +529,9 @@ impl Intrinsic {
             | Intrinsic::DoubleIsNan
             | Intrinsic::FloatIsNan => BytecodeType::Bool,
             Intrinsic::IntToByte | Intrinsic::LongToByte => BytecodeType::Byte,
-            Intrinsic::IntToChar | Intrinsic::LongToChar => BytecodeType::Char,
+            Intrinsic::IntToChar | Intrinsic::LongToChar | Intrinsic::ByteToChar => {
+                BytecodeType::Char
+            }
             _ => panic!("no return type for {:?}", self),
         }
     }

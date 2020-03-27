@@ -133,36 +133,34 @@ fun assertGraph(graph: Graph, output: String) {
 }
 
 fun compareStrings(lhs: String, rhs: String) -> Bool {
-    var lhsIdx = 0;
-    var rhsIdx = 0;
+    var lhsIterator = lhs.codePoints();
+    var rhsIterator = rhs.codePoints();
 
     while true {
-        if lhs.length() == lhsIdx && rhs.length() == rhsIdx {
+        if !lhsIterator.hasNext() && !rhsIterator.hasNext() {
             return true;
-        } else if lhs.length() == lhsIdx || rhs.length() == rhsIdx {
+        } else if !lhsIterator.hasNext() || !rhsIterator.hasNext() {
             return false;
         }
 
-        var lhsByte = lhs.getByte(lhsIdx);
+        var lhsChar = lhsIterator.next();
+        var rhsChar = rhsIterator.next();
 
-        if lhsByte == 0xDY && lhsIdx + 1 < lhs.length() && lhs.getByte(lhsIdx + 1) == 0xAY {
-            lhsByte = 0xAY;
-            lhsIdx = lhsIdx + 1;
+        if lhsChar == rhsChar {
+            continue;
         }
 
-        var rhsByte = rhs.getByte(rhsIdx);
-
-        if rhsByte == 0xDY && rhsIdx + 1 < rhs.length() && rhs.getByte(rhsIdx + 1) == 0xAY {
-            rhsByte = 0xAY;
-            rhsIdx = rhsIdx + 1;
+        if lhsChar == 0xDY.toChar() && lhsIterator.hasNext() && lhsIterator.peek() == 0xAY.toChar() {
+            lhsChar = lhsIterator.next();
         }
 
-        if lhsByte != rhsByte {
+        if rhsChar == 0xDY.toChar() && rhsIterator.hasNext() && rhsIterator.peek() == 0xAY.toChar() {
+            rhsChar = rhsIterator.next();
+        }
+
+        if lhsChar != rhsChar {
             return false;
         }
-
-        lhsIdx = lhsIdx + 1;
-        rhsIdx = rhsIdx + 1;
     }
 
     false

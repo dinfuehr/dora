@@ -1926,7 +1926,7 @@ where
                 self.emit_array_get(pos, BuiltinType::Byte, args[0], args[1], dest)
             }
 
-            Intrinsic::BoolToInt | Intrinsic::ByteToInt => {
+            Intrinsic::BoolToInt | Intrinsic::ByteToInt | Intrinsic::ByteToChar => {
                 self.emit_intrinsic_byte_to_int(args[0], dest.reg())
             }
             Intrinsic::BoolToLong | Intrinsic::ByteToLong => {

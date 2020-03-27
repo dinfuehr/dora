@@ -173,6 +173,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     native_method(vm, clsid, "toString", stdlib::byte_to_string as *const u8);
     intrinsic_method(vm, clsid, "toLong", Intrinsic::ByteToLong);
     intrinsic_method(vm, clsid, "toInt", Intrinsic::ByteToInt);
+    intrinsic_method(vm, clsid, "toChar", Intrinsic::ByteToChar);
 
     intrinsic_method(vm, clsid, "equals", Intrinsic::ByteEq);
     intrinsic_method(vm, clsid, "compareTo", Intrinsic::ByteCmp);

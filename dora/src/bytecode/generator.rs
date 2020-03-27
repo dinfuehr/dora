@@ -1602,6 +1602,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             Intrinsic::ReinterpretLongAsDouble => {
                 self.gen.emit_reinterpret_long_as_double(dest, src)
             }
+            Intrinsic::ByteToChar => self.gen.emit_extend_byte_to_char(dest, src),
             Intrinsic::ByteToInt => self.gen.emit_extend_byte_to_int(dest, src),
             Intrinsic::ByteToLong => self.gen.emit_extend_byte_to_long(dest, src),
             Intrinsic::IntToLong => self.gen.emit_extend_int_to_long(dest, src),

@@ -163,6 +163,7 @@ pub enum BytecodeOpcode {
     ReinterpretDoubleAsLong,
     ReinterpretLongAsDouble,
 
+    ExtendByteToChar,
     ExtendByteToInt,
     ExtendByteToLong,
     ExtendIntToLong,

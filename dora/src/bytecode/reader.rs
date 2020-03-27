@@ -311,6 +311,11 @@ where
                 self.visitor.visit_reinterpret_long_as_double(dest, src);
             }
 
+            BytecodeOpcode::ExtendByteToChar => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_extend_byte_to_char(dest, src);
+            }
             BytecodeOpcode::ExtendByteToInt => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
@@ -1612,6 +1617,9 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
+    fn visit_extend_byte_to_char(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
     fn visit_extend_byte_to_int(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }

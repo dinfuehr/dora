@@ -3435,6 +3435,13 @@ fn gen_vec_store() {
     );
 }
 
+#[test]
+fn gen_byte_to_char() {
+    let result = code("fun f(x: Byte) -> Char { x.toChar() }");
+    let expected = vec![ExtendByteToChar(r(1), r(0)), RetChar(r(1))];
+    assert_eq!(expected, result);
+}
+
 fn p(line: u32, column: u32) -> Position {
     Position { line, column }
 }
@@ -3502,6 +3509,7 @@ pub enum Bytecode {
     ReinterpretDoubleAsLong(Register, Register),
     ReinterpretLongAsDouble(Register, Register),
 
+    ExtendByteToChar(Register, Register),
     ExtendByteToInt(Register, Register),
     ExtendByteToLong(Register, Register),
     ExtendIntToLong(Register, Register),
@@ -3923,6 +3931,9 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::ReinterpretLongAsDouble(dest, src));
     }
 
+    fn visit_extend_byte_to_char(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::ExtendByteToChar(dest, src));
+    }
     fn visit_extend_byte_to_int(&mut self, dest: Register, src: Register) {
         self.emit(Bytecode::ExtendByteToInt(dest, src));
     }

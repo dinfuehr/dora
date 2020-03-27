@@ -285,6 +285,9 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg2("ReinterpretLongAsDouble", dest, src);
     }
 
+    fn visit_extend_byte_to_char(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("ExtendByteToChar", dest, src);
+    }
     fn visit_extend_byte_to_int(&mut self, dest: Register, src: Register) {
         self.emit_reg2("ExtendByteToInt", dest, src);
     }

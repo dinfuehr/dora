@@ -1,4 +1,5 @@
 @internal class Byte {
+  @internal fun toChar() -> Char;
   @internal fun toInt() -> Int;
   @internal fun toLong() -> Long;
   @internal fun toString() -> String;

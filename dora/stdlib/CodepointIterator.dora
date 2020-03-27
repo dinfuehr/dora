@@ -40,6 +40,41 @@ class CodepointIterator(let value: String, var start: Int) {
         return '\0';
     }
 
+    fun peek() -> Char {
+        var ch = self.value.getByte(self.start);
+
+        if ch <= 0x7FY {
+            return ch.toInt().toCharUnchecked();
+        }
+
+        if ch <= 0xBFY {
+            fatalError("unexpected continuation byte");
+        }
+
+        if ch <= 0xDFY {
+            let cp = (ch.toInt() & 0x1F) << 6 | (self.value.getByte(self.start + 1).toInt() & 0x3F);
+            return cp.toCharUnchecked();
+        }
+
+        if ch <= 0xEFY {
+            let cp = (ch.toInt() & 0xF) << 12 |
+                 (self.value.getByte(self.start + 1).toInt() & 0x3F) << 6 |
+                 (self.value.getByte(self.start + 2).toInt() & 0x3F);
+            return cp.toCharUnchecked();
+        }
+
+        if ch <= 0xF7Y {
+            let cp = (ch.toInt() & 0x3) << 18 |
+                 (self.value.getByte(self.start + 1).toInt() & 0x3F) << 12 |
+                 (self.value.getByte(self.start + 2).toInt() & 0x3F) << 6 |
+                 (self.value.getByte(self.start + 3).toInt() & 0x3F);
+            return cp.toCharUnchecked();
+        }
+
+        fatalError("invalid utf8: " + ch.toInt().toString());
+        return '\0';
+    }
+
     fun length() -> Int {
         var i = 0;
 

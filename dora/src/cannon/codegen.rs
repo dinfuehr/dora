@@ -2428,6 +2428,9 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_reinterpret(dest, src);
     }
 
+    fn visit_extend_byte_to_char(&mut self, dest: Register, src: Register) {
+        self.emit_extend_byte(dest, src, MachineMode::Int32);
+    }
     fn visit_extend_byte_to_int(&mut self, dest: Register, src: Register) {
         self.emit_extend_byte(dest, src, MachineMode::Int32);
     }
