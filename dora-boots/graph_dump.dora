@@ -106,3 +106,64 @@ class GraphDumper(let graph: Graph) {
         self.buffer.appendNewline();
     }
 }
+
+fun assertGraph(graph: Graph, output: String) {
+    let graphOutput = dumpGraph(graph);
+
+    if !compareStrings(graphOutput, output) {
+        println("expected: \"${graphOutput}\"");
+        println("expected: \"${output}\"");
+
+        for idx in range(0, graphOutput.length()) {
+            let value = graphOutput.getByte(idx);
+            print("${value.toInt().toStringHex()} ");
+        }
+
+        println("");
+
+        for idx in range(0, output.length()) {
+            let value = output.getByte(idx);
+            print("${value.toInt().toStringHex()} ");
+        }
+
+        println("");
+
+        fatalError("output does not match");
+    }
+}
+
+fun compareStrings(lhs: String, rhs: String) -> Bool {
+    var lhsIdx = 0;
+    var rhsIdx = 0;
+
+    while true {
+        if lhs.length() == lhsIdx && rhs.length() == rhsIdx {
+            return true;
+        } else if lhs.length() == lhsIdx || rhs.length() == rhsIdx {
+            return false;
+        }
+
+        var lhsByte = lhs.getByte(lhsIdx);
+
+        if lhsByte == 0xDY && lhsIdx + 1 < lhs.length() && lhs.getByte(lhsIdx + 1) == 0xAY {
+            lhsByte = 0xAY;
+            lhsIdx = lhsIdx + 1;
+        }
+
+        var rhsByte = rhs.getByte(rhsIdx);
+
+        if rhsByte == 0xDY && rhsIdx + 1 < rhs.length() && rhs.getByte(rhsIdx + 1) == 0xAY {
+            rhsByte = 0xAY;
+            rhsIdx = rhsIdx + 1;
+        }
+
+        if lhsByte != rhsByte {
+            return false;
+        }
+
+        lhsIdx = lhsIdx + 1;
+        rhsIdx = rhsIdx + 1;
+    }
+
+    false
+}

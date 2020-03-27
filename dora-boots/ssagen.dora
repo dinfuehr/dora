@@ -597,31 +597,6 @@ class BasicBlockFinder(let bc: BytecodeFunction): BytecodeVisitor {
 ");
 }
 
-fun assertGraph(graph: Graph, output: String) {
-    let graphOutput = dumpGraph(graph);
-
-    if graphOutput != output {
-        println("expected: \"${graphOutput}\"");
-        println("expected: \"${output}\"");
-
-        for idx in range(0, graphOutput.length()) {
-            let value = graphOutput.getByte(idx);
-            print("${value.toInt().toStringHex()} ");
-        }
-
-        println("");
-
-        for idx in range(0, output.length()) {
-            let value = output.getByte(idx);
-            print("${value.toInt().toStringHex()} ");
-        }
-
-        println("");
-    }
-
-    assert(graphOutput == output);
-}
-
 @test fun testSsaGenRetInt(_x: Testing) {
     let writer = BytecodeWriter();
     let tmp = writer.addRegister(BytecodeType::int());
