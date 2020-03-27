@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let vec = Vec[Int]();
     assert(vec.length() == 0);

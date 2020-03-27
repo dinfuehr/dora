@@ -568,11 +568,32 @@ impl FctDef {
         FctDef::with(vm, fct, TypeList::empty(), TypeList::empty())
     }
 
+    pub fn fct_types(
+        vm: &VM,
+        fct: &Fct,
+        cls_type_params: TypeList,
+        fct_type_params: TypeList,
+    ) -> FctDefId {
+        FctDef::with(vm, fct, cls_type_params, fct_type_params)
+    }
+
     pub fn fct_id(vm: &VM, fct_id: FctId) -> FctDefId {
         let fct = vm.fcts.idx(fct_id);
         let fct = fct.read();
 
         FctDef::fct(vm, &*fct)
+    }
+
+    pub fn fct_id_types(
+        vm: &VM,
+        fct_id: FctId,
+        cls_type_params: TypeList,
+        fct_type_params: TypeList,
+    ) -> FctDefId {
+        let fct = vm.fcts.idx(fct_id);
+        let fct = fct.read();
+
+        FctDef::fct_types(vm, &*fct, cls_type_params, fct_type_params)
     }
 
     pub fn with(

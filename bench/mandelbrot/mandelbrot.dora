@@ -6,23 +6,21 @@ const BUFFER_SIZE: Int = 8192;
 
 class Mandelbrot(let size: Int) {
     let fac: Double = 2.0 / size.toDouble();
-    var shift: Int;
+    var shift: Int = 0;
     let buf: Array[Byte] = Array[Byte](BUFFER_SIZE);
-    var bufLen: Int;
+    var bufferLen: Int;
 
-    init(size: Int): self(size) {
-        if size % 8 == 0 {
-            shift = 0;
-        } else {
-            shift = (8 - size % 8);
-        }
+    if size % 8 == 0 {
+        self.shift = 0;
+    } else {
+        self.shift = (8 - size % 8);
     }
     
     fun compute() {
         var y = 0;
 
         println("P4");
-        let s = size.toString();
+        let s = self.size.toString();
         println(s + " " + s);
 
         while y < self.size {
@@ -30,13 +28,13 @@ class Mandelbrot(let size: Int) {
             y = y + 1;
         }
 
-        write(self.buf, 0, self.bufLen);
+        write(self.buf, 0, self.bufferLen);
     }
 
     fun computeRow(y: Int) {
         var bits = 0;
         let Ci = (y.toDouble() * self.fac - 1.0);
-        let bufLocal = buf;
+        let bufferVar = self.buf;
 
         var x = 0;
 
@@ -73,12 +71,12 @@ class Mandelbrot(let size: Int) {
             }
 
             if x % 8 == 7 {
-                bufLocal[bufLen] = bits.toByte();
-                bufLen = bufLen + 1;
+                bufferVar(self.bufferLen) = bits.toByte();
+                self.bufferLen = self.bufferLen + 1;
 
-                if bufLen == BUFFER_SIZE {
-                    write(bufLocal, 0, BUFFER_SIZE);
-                    bufLen = 0;
+                if self.bufferLen == BUFFER_SIZE {
+                    write(bufferVar, 0, BUFFER_SIZE);
+                    self.bufferLen = 0;
                 }
 
                 bits = 0;
@@ -87,13 +85,13 @@ class Mandelbrot(let size: Int) {
             x = x + 1;
         }
 
-        if shift != 0 {
-            bits = bits << shift;
-            bufLocal[bufLen] = bits.toByte();
-            bufLen = bufLen + 1;
+        if self.shift != 0 {
+            bits = bits << self.shift;
+            bufferVar(self.bufferLen) = bits.toByte();
+            self.bufferLen = self.bufferLen + 1;
 
-            if bufLen == BUFFER_SIZE {
-                write(bufLocal, 0, BUFFER_SIZE);
+            if self.bufferLen == BUFFER_SIZE {
+                write(bufferVar, 0, BUFFER_SIZE);
             }
         }
     }

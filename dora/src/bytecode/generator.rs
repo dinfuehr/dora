@@ -696,6 +696,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 let obj_expr = expr.object().expect("method target required");
                 self.visit_expr(obj_expr, DataDest::Reg(start_reg));
             }
+            CallType::Expr(_, _) => {
+                self.visit_expr(&expr.callee, DataDest::Reg(start_reg));
+            }
             _ => {}
         };
     }
@@ -708,7 +711,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         start_reg: Register,
     ) {
         let arg_start_offset = match *call_type {
-            CallType::CtorNew(_, _) | CallType::Method(_, _, _) => 1,
+            CallType::CtorNew(_, _) | CallType::Method(_, _, _) | CallType::Expr(_, _) => 1,
             _ => 0,
         };
 
@@ -1921,24 +1924,45 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         Register::invalid()
     }
 
-    fn visit_expr_assign_call(&mut self, expr: &ExprBinType, call: &ExprCallType) {
+    fn visit_expr_assign_call(&mut self, expr: &ExprBinType, call_expr: &ExprCallType) {
+        let object = &call_expr.callee;
+        let index = &call_expr.args[0];
+        let value = &expr.rhs;
+
         if let Some(info) = self.get_intrinsic(expr.id) {
             match info.intrinsic {
                 Intrinsic::GenericArraySet => {
-                    let object = &call.callee;
-
-                    self.emit_intrinsic_array_set(
-                        object,
-                        &call.args[0],
-                        &expr.rhs,
-                        expr.pos,
-                        DataDest::Effect,
-                    );
+                    self.emit_intrinsic_array_set(object, index, value, expr.pos, DataDest::Effect);
                 }
                 _ => panic!("unexpected intrinsic {:?}", info.intrinsic),
             }
         } else {
-            unimplemented!();
+            let call_type = self.src.map_calls.get(expr.id).unwrap();
+            let fct_id = call_type.fct_id().unwrap();
+
+            let obj_reg = self.visit_expr(object, DataDest::Alloc);
+            let idx_reg = self.visit_expr(index, DataDest::Alloc);
+            let val_reg = self.visit_expr(value, DataDest::Alloc);
+
+            let obj_ty = self.ty(object.id());
+            let idx_ty = self.ty(index.id());
+            let val_ty = self.ty(value.id());
+
+            let start_reg =
+                self.gen
+                    .add_register_chain(&[obj_ty.into(), idx_ty.into(), val_ty.into()]);
+
+            self.emit_mov(obj_ty.into(), start_reg, obj_reg);
+            self.emit_mov(idx_ty.into(), start_reg.offset(1), idx_reg);
+            self.emit_mov(val_ty.into(), start_reg.offset(2), val_reg);
+
+            let callee_id = FctDef::fct_id_types(
+                self.vm,
+                fct_id,
+                obj_ty.type_params(self.vm),
+                TypeList::empty(),
+            );
+            self.gen.emit_invoke_direct_void(callee_id, start_reg, 3);
         }
     }
 
@@ -2281,8 +2305,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 specialize_type(self.vm, ty, &cls_type_params, &TypeList::empty())
             }
 
-            CallType::Expr(ty, _) => {
-                let type_params = ty.type_params(self.vm);
+            CallType::Expr(object_ty, _) => {
+                let type_params = object_ty.type_params(self.vm);
                 specialize_type(self.vm, ty, &type_params, &TypeList::empty())
             }
 

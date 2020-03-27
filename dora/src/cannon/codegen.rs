@@ -9,7 +9,8 @@ use crate::compiler::codegen::{ensure_native_stub, should_emit_debug, Allocation
 use crate::compiler::fct::{Code, GcPoint, JitDescriptor};
 use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
 use crate::cpu::{
-    Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_TMP1, REG_TMP2,
+    Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_SP, REG_TMP1,
+    REG_TMP2, STACK_FRAME_ALIGNMENT,
 };
 use crate::gc::Address;
 use crate::masm::*;
@@ -1851,7 +1852,7 @@ where
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
 
-        self.emit_invoke_arguments(start_reg, num);
+        let argsize = self.emit_invoke_arguments(start_reg, num);
 
         // handling of class and function type parameters has to implemented
         let cls_type_params = fct_def.cls_type_params.clone();
@@ -1868,6 +1869,8 @@ where
 
         self.asm
             .indirect_call(vtable_index, position, gcpoint, ty, cls_type_params, reg);
+
+        self.asm.decrease_stack_frame(argsize);
 
         reg
     }
@@ -1923,7 +1926,7 @@ where
 
         assert!(fct.type_params.is_empty());
 
-        self.emit_invoke_arguments(start_reg, num);
+        let argsize = self.emit_invoke_arguments(start_reg, num);
 
         let cls_type_params = fct_def.cls_type_params.clone();
         let fct_type_params = fct_def.fct_type_params.clone();
@@ -1947,6 +1950,8 @@ where
             ty,
             reg,
         );
+
+        self.asm.decrease_stack_frame(argsize);
 
         reg
     }
@@ -1989,7 +1994,7 @@ where
             return self.emit_invoke_intrinsic(&*fct, &*fct_def, intrinsic, start_reg, num);
         }
 
-        self.emit_invoke_arguments(start_reg, num);
+        let argsize = self.emit_invoke_arguments(start_reg, num);
 
         let cls_type_params = fct_def.cls_type_params.clone();
         let fct_type_params = fct_def.fct_type_params.clone();
@@ -2015,6 +2020,8 @@ where
             ty,
             reg,
         );
+
+        self.asm.decrease_stack_frame(argsize);
 
         reg
     }
@@ -2129,48 +2136,97 @@ where
         }
     }
 
-    fn emit_invoke_arguments(&mut self, start_reg: Register, num: u32) {
-        if num > 0 {
-            let Register(start) = start_reg;
+    fn emit_invoke_arguments(&mut self, start_reg: Register, num: u32) -> i32 {
+        if num == 0 {
+            return 0;
+        }
 
-            let mut idx = 0;
-            let mut reg_idx = 0;
-            let mut freg_idx = 0;
+        let argsize = self.determine_argsize(start_reg, num);
 
-            while idx < num {
-                let src = Register((idx as usize) + start);
-                let bytecode_type = self.bytecode.register_type(src);
-                let offset = self.bytecode.register_offset(src);
+        self.asm.increase_stack_frame(argsize);
 
-                match bytecode_type {
-                    BytecodeType::Float | BytecodeType::Double => {
-                        if freg_idx < FREG_PARAMS.len() {
-                            self.asm.load_mem(
-                                bytecode_type.mode(),
-                                FREG_PARAMS[freg_idx].into(),
-                                Mem::Local(offset),
-                            );
-                            freg_idx += 1;
-                        } else {
-                            unimplemented!("invoke argument should be written on stack");
-                        }
-                    }
-                    _ => {
-                        if reg_idx < REG_PARAMS.len() {
-                            self.asm.load_mem(
-                                bytecode_type.mode(),
-                                REG_PARAMS[reg_idx].into(),
-                                Mem::Local(offset),
-                            );
-                            reg_idx += 1;
-                        } else {
-                            unimplemented!("invoke argument should be written on stack");
-                        }
+        let mut idx = 0;
+        let mut reg_idx = 0;
+        let mut freg_idx = 0;
+        let mut sp_offset = 0;
+
+        while idx < num {
+            let src = start_reg.offset(idx as usize);
+            let bytecode_type = self.bytecode.register_type(src);
+            let offset = self.bytecode.register_offset(src);
+            let mode = bytecode_type.mode();
+
+            match bytecode_type {
+                BytecodeType::Float | BytecodeType::Double => {
+                    if freg_idx < FREG_PARAMS.len() {
+                        self.asm.load_mem(
+                            bytecode_type.mode(),
+                            FREG_PARAMS[freg_idx].into(),
+                            Mem::Local(offset),
+                        );
+                        freg_idx += 1;
+                    } else {
+                        self.asm
+                            .load_mem(mode, FREG_TMP1.into(), Mem::Local(offset));
+                        self.asm
+                            .store_mem(mode, Mem::Base(REG_SP, sp_offset), FREG_TMP1.into());
+
+                        sp_offset += 8;
                     }
                 }
-                idx += 1;
+                _ => {
+                    if reg_idx < REG_PARAMS.len() {
+                        self.asm.load_mem(
+                            bytecode_type.mode(),
+                            REG_PARAMS[reg_idx].into(),
+                            Mem::Local(offset),
+                        );
+                        reg_idx += 1;
+                    } else {
+                        self.asm.load_mem(mode, REG_TMP1.into(), Mem::Local(offset));
+                        self.asm
+                            .store_mem(mode, Mem::Base(REG_SP, sp_offset), REG_TMP1.into());
+                        sp_offset += 8;
+                    }
+                }
             }
+            idx += 1;
         }
+
+        argsize
+    }
+
+    fn determine_argsize(&mut self, start_reg: Register, num: u32) -> i32 {
+        let mut idx = 0;
+        let mut reg_idx = 0;
+        let mut freg_idx = 0;
+        let mut argsize = 0;
+
+        while idx < num {
+            let src = start_reg.offset(idx as usize);
+            let bytecode_type = self.bytecode.register_type(src);
+
+            match bytecode_type {
+                BytecodeType::Float | BytecodeType::Double => {
+                    if freg_idx >= FREG_PARAMS.len() {
+                        argsize += 8;
+                    }
+
+                    freg_idx += 1;
+                }
+                _ => {
+                    if reg_idx >= REG_PARAMS.len() {
+                        argsize += 8;
+                    }
+
+                    reg_idx += 1;
+                }
+            }
+
+            idx += 1;
+        }
+
+        mem::align_i32(argsize, STACK_FRAME_ALIGNMENT as i32)
     }
 
     fn ptr_for_fct_id(

@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let vec = Vec[Int]();
     vec.push(1);

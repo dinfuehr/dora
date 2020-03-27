@@ -7,7 +7,7 @@ use crate::bytecode::{
 };
 use crate::test;
 use crate::ty::{BuiltinType, TypeList};
-use crate::vm::{ClassDefId, FctDefId, FieldId, GlobalId, VM};
+use crate::vm::{ClassDefId, FctDef, FctDefId, FieldId, GlobalId, VM};
 use dora_parser::lexer::position::Position;
 
 fn code(code: &'static str) -> Vec<Bytecode> {
@@ -3386,6 +3386,53 @@ fn gen_while_with_break() {
     let result = code("fun f(x: Bool) { while x { break; } }");
     let expected = vec![JumpIfFalse(r(0), 3), Jump(3), JumpLoop(0), RetVoid];
     assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_vec_load() {
+    gen(
+        "fun f(x: Vec[Int], idx: Int) -> Int { x(idx) }",
+        |vm, code| {
+            let fct_id = vm.cls_method_by_name("Vec", "get", false).unwrap();
+            let fct_def_id = FctDef::fct_id_types(
+                vm,
+                fct_id,
+                TypeList::single(BuiltinType::Int),
+                TypeList::empty(),
+            );
+            let expected = vec![
+                MovPtr(r(3), r(0)),
+                MovInt(r(4), r(1)),
+                InvokeDirectInt(r(2), fct_def_id, r(3), 2),
+                RetInt(r(2)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_vec_store() {
+    gen(
+        "fun f(x: Vec[Int], idx: Int, value: Int) { x(idx) = value; }",
+        |vm, code| {
+            let fct_id = vm.cls_method_by_name("Vec", "set", false).unwrap();
+            let fct_def_id = FctDef::fct_id_types(
+                vm,
+                fct_id,
+                TypeList::single(BuiltinType::Int),
+                TypeList::empty(),
+            );
+            let expected = vec![
+                MovPtr(r(3), r(0)),
+                MovInt(r(4), r(1)),
+                MovInt(r(5), r(2)),
+                InvokeDirectVoid(fct_def_id, r(3), 3),
+                RetVoid,
+            ];
+            assert_eq!(expected, code);
+        },
+    );
 }
 
 fn p(line: u32, column: u32) -> Position {

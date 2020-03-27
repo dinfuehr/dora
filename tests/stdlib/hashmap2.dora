@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let map = HashMap[Int, String]();
     assert(map.isEmpty());
