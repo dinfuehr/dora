@@ -28,7 +28,7 @@ class GraphDumper(let graph: Graph) {
                 let pred = it.next();
 
                 if first {
-                    self.buffer.append("${pred.id}, ");
+                    self.buffer.append("${pred.id}");
                 } else {
                     self.buffer.append(", ${pred.id}");
                 }
@@ -50,7 +50,7 @@ class GraphDumper(let graph: Graph) {
                 if first {
                     self.buffer.append("${succ.id}");
                 } else {
-                    self.buffer.append("${succ.id}, ");
+                    self.buffer.append(", ${succ.id}");
                 }
 
                 first = false;

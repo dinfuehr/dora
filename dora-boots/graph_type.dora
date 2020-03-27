@@ -1,23 +1,34 @@
+let typeUnit: Type = Type(TypeKind::Unit);
+let typeByte: Type = Type(TypeKind::Byte);
+let typeInt: Type = Type(TypeKind::Int);
+let typeLong: Type = Type(TypeKind::Long);
+let typeFloat: Type = Type(TypeKind::Float);
+let typeDouble: Type = Type(TypeKind::Double);
+let typeReference: Type = Type(TypeKind::Reference);
+
+
 class Type(let kind: TypeKind) {
-    @static fun unit() -> Type { return Type(TypeKind::Unit); }
-    @static fun int() -> Type { return Type(TypeKind::Int); }
-    @static fun long() -> Type { return Type(TypeKind::Long); }
-    @static fun float() -> Type { return Type(TypeKind::Float); }
-    @static fun double() -> Type { return Type(TypeKind::Double); }
-    @static fun reference() -> Type { return Type(TypeKind::Reference); }
+    @static fun unit() -> Type { return typeUnit; }
+    @static fun byte() -> Type { return typeByte; }
+    @static fun int() -> Type { return typeInt; }
+    @static fun long() -> Type { return typeLong; }
+    @static fun float() -> Type { return typeFloat; }
+    @static fun double() -> Type { return typeDouble; }
+    @static fun reference() -> Type { return typeReference; }
 
     fun is_unit() -> Bool { return self.kind == TypeKind::Unit; }
+    fun is_byte() -> Bool { return self.kind == TypeKind::Byte; }
     fun is_int() -> Bool { return self.kind == TypeKind::Int; }
     fun is_long() -> Bool { return self.kind == TypeKind::Long; }
     fun is_float() -> Bool { return self.kind == TypeKind::Float; }
     fun is_double() -> Bool { return self.kind == TypeKind::Double; }
     fun is_reference() -> Bool { return self.kind == TypeKind::Reference; }
 
-    fun is_floating_point() -> Bool {
+    fun is_float_or_double() -> Bool {
         return self.kind == TypeKind::Float || self.kind == TypeKind::Double;
     }
 }
 
 enum TypeKind {
-    Unit, Int, Long, Float, Double, Reference
+    Unit, Byte, Int, Long, Float, Double, Reference
 }
