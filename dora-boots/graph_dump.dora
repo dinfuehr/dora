@@ -1,18 +1,66 @@
-fun dumpGraph(graph: Graph) {
-    GraphDumper(graph).dump();
+fun dumpGraph(graph: Graph) -> String {
+    GraphDumper(graph).dump()
 }
 
 class GraphDumper(let graph: Graph) {
-    fun dump() {
+    let buffer: StringBuffer = StringBuffer();
+
+    fun dump() -> String {
         let iter = self.graph.blocks.makeIterator();
+
         while iter.hasNext() {
             let block = iter.next();
             self.dumpBlock(block);
         }
+
+        self.buffer.toString()
     }
 
     fun dumpBlock(block: Block) {
-        println("block ${block.id}:");
+        self.buffer.append("Block ${block.id}:");
+
+        if !block.predecessors.isEmpty() {
+            self.buffer.append(" pred = [");
+            var first: Bool = true;
+
+            let it = block.predecessors.makeIterator();
+            while it.hasNext() {
+                let pred = it.next();
+
+                if first {
+                    self.buffer.append("${pred.id}, ");
+                } else {
+                    self.buffer.append(", ${pred.id}");
+                }
+
+                first = false;
+            }
+
+            self.buffer.append("]");
+        }
+
+        if !block.successors.isEmpty() {
+            self.buffer.append(" succ = [");
+            var first: Bool = true;
+
+            let it = block.successors.makeIterator();
+            while it.hasNext() {
+                let succ = it.next();
+
+                if first {
+                    self.buffer.append("${succ.id}");
+                } else {
+                    self.buffer.append("${succ.id}, ");
+                }
+
+                first = false;
+            }
+
+            self.buffer.append("]");
+        }
+
+        self.buffer.appendNewline();
+
         let iter = InstIterator(block);
         while iter.hasNext() {
             let inst = iter.next();
@@ -21,6 +69,40 @@ class GraphDumper(let graph: Graph) {
     }
 
     fun dumpInst(inst: Inst) {
-        println("  inst ${inst.id}");
+        self.buffer.append("  ${inst.id}: ${inst.dumpName()}");
+
+        if !inst.inputs.isEmpty() {
+            let it = inst.inputs.makeIterator();
+            var first = true;
+
+            while it.hasNext() {
+                let inp = it.next();
+
+                if first {
+                    self.buffer.append(" ${inp.value.id}");
+                } else {
+                    self.buffer.append(", ${inp.value.id}");
+                }
+
+                first = false;
+            }
+        }
+
+        if inst.hasUses() {
+            var current = inst.useListHead;
+
+            self.buffer.append(" [");
+
+            while current.isSome() {
+                let c = current.unwrap();
+
+                self.buffer.append("${c.usedBy.id}");
+                current = c.nextUse;
+            }
+
+            self.buffer.append("]");
+        }
+
+        self.buffer.appendNewline();
     }
 }

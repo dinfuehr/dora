@@ -1,5 +1,8 @@
-class StringBuffer(var buf: Array[Byte], var len: Int) {
-  @static fun empty() -> StringBuffer = StringBuffer(Array[Byte](0), 0);
+class StringBuffer() {
+  var buf: Array[Byte] = arrayEmpty[Byte]();
+  var len: Int = 0;
+
+  @static fun empty() -> StringBuffer = StringBuffer();
 
   fun length() -> Int {
     return self.len;
@@ -66,6 +69,10 @@ class StringBuffer(var buf: Array[Byte], var len: Int) {
 
     self.len = self.len + value.length();
     return self;
+  }
+
+  fun appendNewline() -> StringBuffer {
+    self.appendChar('\n')
   }
 
   fun toString() -> String = String::fromBytesPart(self.buf, 0, self.length()).unwrap();

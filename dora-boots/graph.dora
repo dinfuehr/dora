@@ -270,65 +270,130 @@ class Input(var idx: Int, var value: Inst, var usedBy: Inst) {
 
         data.toArray()
     }
+
+    @open @abstract fun dumpName() -> String;
 }
 
 @abstract @open class Const: Inst
-class IntConst(let value: Int): Const
-class LongConst(let value: Long): Const
-class FloatConst(let value: Float): Const
-class DoubleConst(let value: Double): Const
+
+class IntConst(let value: Int): Const {
+    @override fun dumpName() -> String { "Int(${self.value})" }
+}
+
+class LongConst(let value: Long): Const {
+    @override fun dumpName() -> String { "Long(${self.value})" }
+}
+
+class FloatConst(let value: Float): Const {
+    @override fun dumpName() -> String { "Float(${self.value})" }
+}
+
+class DoubleConst(let value: Double): Const {
+    @override fun dumpName() -> String { "Double(${self.value})" }
+}
 
 class UnaryInst(let op: UnOp, let opnd: Inst): Inst {
     self.addInput(opnd);
+
+    @override fun dumpName() -> String { unOpName(self.op) }
 }
 
 class BinaryInst(let op: BinOp, let lhs: Inst, let rhs: Inst): Inst {
     self.addInput(lhs);
     self.addInput(rhs);
+
+    @override fun dumpName() -> String { binOpName(self.op) }
 }
 
-class Undef: Inst
+class UndefInst: Inst {
+    @override fun dumpName() -> String { "Undef" }
+}
 
-class PhiInst: Inst
+class PhiInst: Inst {
+    @override fun dumpName() -> String { "Phi" }
+}
 
 class ArrayGet(let array: Inst, let index: Inst): Inst {
     self.addInput(array);
     self.addInput(index);
+
+    @override fun dumpName() -> String { "ArrayGet" }
 }
 
 class ArraySet(let array: Inst, let index: Inst, let value: Inst): Inst {
     self.addInput(array);
     self.addInput(index);
     self.addInput(value);
+
+    @override fun dumpName() -> String { "ArraySet" }
 }
 
 class ArrayLength(let array: Inst): Inst {
     self.addInput(array);
+
+    @override fun dumpName() -> String { "ArrayLength" }
 }
 
 class ParamInst(let index: Int, ty: Type): Inst {
     self.ty = ty;
+
+    @override fun dumpName() -> String { "Param(${self.index})" }
 }
 
 class ReturnInst(let value: Inst): Inst {
     self.addInput(value);
+
+    @override fun dumpName() -> String { "Ret" }
 }
 
-class ReturnVoidInst: Inst
+class ReturnVoidInst: Inst {
+    @override fun dumpName() -> String { "RetVoid" }
+}
 
 class CondInst(let cond: Inst, let true_block: Block, let false_block: Block): Inst {
     self.addInput(cond);
+
+    @override fun dumpName() -> String { "CondInst" }
 }
 
-class GotoInst(let block: Block): Inst
+class GotoInst(let block: Block): Inst {
+    @override fun dumpName() -> String { "GotoInst" }
+}
 
 enum BinOp {
     Add, Sub, Mul, Div, Mod,
-    FAdd, FSub, FMul, FDiv,
+}
+
+fun binOpName(op: BinOp) -> String {
+    if op == BinOp::Add {
+        "Add"
+    } else if op == BinOp::Sub {
+        "Sub"
+    } else if op == BinOp::Mul {
+        "Mul"
+    } else if op == BinOp::Div {
+        "Div"
+    } else if op == BinOp::Mod {
+        "Mod"
+    } else {
+        unreachable();
+        ""
+    }
 }
 
 enum UnOp {
     Neg, FNeg, Not,
+}
+
+fun unOpName(op: UnOp) -> String {
+    if op == UnOp::Neg {
+        "Neg"
+    } else if op == UnOp::Not {
+        "Not"
+    } else {
+        unreachable();
+        ""
+    }
 }
 
 class InstLinkedList {

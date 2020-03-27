@@ -1936,7 +1936,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     _ => self.expr_type.implements_trait(self.vm, stringable_trait),
                 };
 
-                if implements_stringable {
+                if implements_stringable || self.expr_type.is_error() {
                     continue;
                 }
 

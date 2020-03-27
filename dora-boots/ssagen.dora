@@ -96,7 +96,7 @@ class SsaGen(let bc: BytecodeFunction, let starts: BitSet, let blocks: Int): Byt
         }
 
         if same.isNone() {
-            same = some[Inst](Undef());
+            same = some[Inst](UndefInst());
         }
 
         let users = phi.users();
@@ -589,12 +589,23 @@ class BasicBlockFinder(let bc: BytecodeFunction): BytecodeVisitor {
     writer.emitRetVoid();
     let fct = writer.generate();
 
+
     let graph = createGraph(fct);
-    assert(graph.numberBlocks() == 1);
-    let block = graph.entryBlock;
-    let it = InstIterator(block);
-    assert(it.next() is ReturnVoidInst);
-    assert(!it.hasNext());
+
+    assertGraph(graph, "Block 0:
+  0: RetVoid
+");
+}
+
+fun assertGraph(graph: Graph, output: String) {
+    let graphOutput = dumpGraph(graph);
+
+    if graphOutput != output {
+        println("expected: \"${graphOutput}\"");
+        println("expected: \"${output}\"");
+    }
+
+    assert(graphOutput == output);
 }
 
 @test fun testSsaGenRetInt(_x: Testing) {
@@ -605,11 +616,9 @@ class BasicBlockFinder(let bc: BytecodeFunction): BytecodeVisitor {
     let fct = writer.generate();
 
     let graph = createGraph(fct);
-    assert(graph.numberBlocks() == 1);
-    let block = graph.entryBlock;
-    let it = InstIterator(block);
-    let val = it.next();
-    assert((val as IntConst).value == 4711);
-    assert((it.next() as ReturnInst).value === val);
-    assert(!it.hasNext());
+
+    assertGraph(graph, "Block 0:
+  0: Int(4711) [1]
+  1: Ret 0
+");
 }
