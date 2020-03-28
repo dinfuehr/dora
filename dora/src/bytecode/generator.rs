@@ -201,6 +201,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         let dest = if ty.is_unit() {
             DataDest::Effect
+        } else if let Some(_tuple_id) = ty.tuple_id() {
+            unimplemented!();
         } else {
             let ty: BytecodeType = ty.into();
             let var_reg = self.gen.add_register(ty);

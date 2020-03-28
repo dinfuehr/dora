@@ -7,7 +7,7 @@ use crate::bytecode::{
 };
 use crate::test;
 use crate::ty::{BuiltinType, TypeList};
-use crate::vm::{ClassDefId, FctDef, FctDefId, FieldId, GlobalId, VM};
+use crate::vm::{ensure_tuple, ClassDefId, FctDef, FctDefId, FieldId, GlobalId, TupleId, VM};
 use dora_parser::lexer::position::Position;
 
 fn code(code: &'static str) -> Vec<Bytecode> {
@@ -3442,6 +3442,21 @@ fn gen_byte_to_char() {
     assert_eq!(expected, result);
 }
 
+#[test]
+#[ignore]
+fn gen_tuple_var() {
+    gen("fun f() { let x = (1, 2); }", |vm, code| {
+        let tuple_id = ensure_tuple(vm, vec![BuiltinType::Int, BuiltinType::Int]);
+        let expected = vec![
+            ConstInt(r(1), 1),
+            ConstInt(r(2), 2),
+            StoreTupleElement(r(1), r(0), tuple_id, 0),
+            StoreTupleElement(r(2), r(0), tuple_id, 1),
+        ];
+        assert_eq!(expected, code);
+    });
+}
+
 fn p(line: u32, column: u32) -> Position {
     Position { line, column }
 }
@@ -3542,6 +3557,10 @@ pub enum Bytecode {
     MovFloat(Register, Register),
     MovDouble(Register, Register),
     MovPtr(Register, Register),
+    MovTuple(Register, Register, TupleId),
+
+    StoreTupleElement(Register, Register, TupleId, u32),
+    LoadTupleElement(Register, Register, TupleId, u32),
 
     LoadFieldBool(Register, Register, ClassDefId, FieldId),
     LoadFieldByte(Register, Register, ClassDefId, FieldId),
@@ -4021,6 +4040,29 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_mov_ptr(&mut self, dest: Register, src: Register) {
         self.emit(Bytecode::MovPtr(dest, src));
+    }
+    fn visit_mov_tuple(&mut self, dest: Register, src: Register, tuple_id: TupleId) {
+        self.emit(Bytecode::MovTuple(dest, src, tuple_id))
+    }
+
+    fn visit_store_tuple_element(
+        &mut self,
+        src: Register,
+        dest: Register,
+        tuple_id: TupleId,
+        element: u32,
+    ) {
+        self.emit(Bytecode::StoreTupleElement(src, dest, tuple_id, element));
+    }
+
+    fn visit_load_tuple_element(
+        &mut self,
+        src: Register,
+        dest: Register,
+        tuple_id: TupleId,
+        element: u32,
+    ) {
+        self.emit(Bytecode::LoadTupleElement(src, dest, tuple_id, element));
     }
 
     fn visit_load_field_bool(

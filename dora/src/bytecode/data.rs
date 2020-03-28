@@ -196,6 +196,10 @@ pub enum BytecodeOpcode {
     MovFloat,
     MovDouble,
     MovPtr,
+    MovTuple,
+
+    LoadTupleElement,
+    StoreTupleElement,
 
     LoadFieldBool,
     LoadFieldByte,

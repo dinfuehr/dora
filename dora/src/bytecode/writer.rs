@@ -6,7 +6,7 @@ use crate::bytecode::{
     BytecodeFunction, BytecodeOffset, BytecodeOpcode, BytecodeType, ConstPoolEntry, ConstPoolIdx,
     Register,
 };
-use crate::vm::{ClassDefId, FctDefId, FieldId, GlobalId};
+use crate::vm::{ClassDefId, FctDefId, FieldId, GlobalId, TupleId};
 
 use dora_parser::lexer::position::Position;
 
@@ -631,6 +631,42 @@ impl BytecodeWriter {
 
     pub fn emit_mov_ptr(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::MovPtr, dest, src);
+    }
+
+    pub fn emit_mov_tuple(&mut self, dest: Register, src: Register, tuple_id: TupleId) {
+        self.emit_reg2_tuple(BytecodeOpcode::MovPtr, dest, src, tuple_id);
+    }
+
+    pub fn emit_load_tuple_element(
+        &mut self,
+        dest: Register,
+        src: Register,
+        tuple_id: TupleId,
+        element: u32,
+    ) {
+        self.emit_access_tuple(
+            BytecodeOpcode::LoadTupleElement,
+            dest,
+            src,
+            tuple_id,
+            element,
+        );
+    }
+
+    pub fn emit_store_tuple_element(
+        &mut self,
+        src: Register,
+        dest: Register,
+        tuple_id: TupleId,
+        element: u32,
+    ) {
+        self.emit_access_tuple(
+            BytecodeOpcode::LoadTupleElement,
+            dest,
+            src,
+            tuple_id,
+            element,
+        );
     }
 
     pub fn emit_ret_bool(&mut self, src: Register) {
@@ -1291,6 +1327,21 @@ impl BytecodeWriter {
         self.emit_values(inst, &values);
     }
 
+    fn emit_reg2_tuple(
+        &mut self,
+        inst: BytecodeOpcode,
+        r1: Register,
+        r2: Register,
+        tuple_id: TupleId,
+    ) {
+        let values = [
+            r1.to_usize() as u32,
+            r2.to_usize() as u32,
+            tuple_id.to_usize() as u32,
+        ];
+        self.emit_values(inst, &values);
+    }
+
     fn emit_reg2_cls(
         &mut self,
         inst: BytecodeOpcode,
@@ -1382,6 +1433,23 @@ impl BytecodeWriter {
             r2.to_usize() as u32,
             cid.to_usize() as u32,
             fid.to_usize() as u32,
+        ];
+        self.emit_values(inst, &values);
+    }
+
+    fn emit_access_tuple(
+        &mut self,
+        inst: BytecodeOpcode,
+        r1: Register,
+        r2: Register,
+        tuple_id: TupleId,
+        element: u32,
+    ) {
+        let values = [
+            r1.to_usize() as u32,
+            r2.to_usize() as u32,
+            tuple_id.to_usize() as u32,
+            element,
         ];
         self.emit_values(inst, &values);
     }
