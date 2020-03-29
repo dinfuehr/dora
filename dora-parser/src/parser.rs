@@ -67,7 +67,10 @@ impl<'a> Parser<'a> {
 
     pub fn parse(mut self) -> Result<LexerFile, ParseErrorAndPos> {
         self.init()?;
-        let mut elements = vec![];
+
+        let package: Option<Package> = self.parse_package()?;
+        let imports: Vec<Import> = self.parse_imports()?;
+        let mut elements: Vec<Elem> = vec![];
 
         while !self.token.is_eof() {
             self.parse_top_level_element(&mut elements)?;
@@ -77,6 +80,8 @@ impl<'a> Parser<'a> {
 
         self.ast.files.push(ast::File {
             path: file.name.clone(),
+            package,
+            imports,
             elements,
         });
 
@@ -87,6 +92,49 @@ impl<'a> Parser<'a> {
         self.advance_token()?;
 
         Ok(())
+    }
+
+    fn parse_package(&mut self) -> Result<Option<Package>, ParseErrorAndPos> {
+        let mut package = None;
+        if self.token.is(TokenKind::Package) {
+            let pos = self.token.position;
+            let span = self.token.span;
+            self.advance_token()?;
+            let path = self.parse_list(TokenKind::Sep, TokenKind::Semicolon, |p| {
+                p.expect_identifier()
+            })?;
+            package = Some(Package {
+                id: self.generate_id(),
+                pos,
+                span,
+                path,
+            })
+        }
+        Ok(package)
+    }
+
+    fn parse_imports(&mut self) -> Result<Vec<Import>, ParseErrorAndPos> {
+        let mut imports: Vec<Import> = vec![];
+        while self.token.is(TokenKind::Import) {
+            imports.push(self.parse_import()?);
+        }
+        Ok(imports)
+    }
+
+    fn parse_import(&mut self) -> Result<Import, ParseErrorAndPos> {
+        let pos = self.token.position;
+        let span = self.token.span;
+        self.advance_token()?;
+        let path = self.parse_list(TokenKind::Sep, TokenKind::Semicolon, |p| {
+            p.expect_identifier()
+        })?;
+        let import = Import {
+            id: self.generate_id(),
+            pos,
+            span,
+            path,
+        };
+        Ok(import)
     }
 
     fn parse_top_level_element(
@@ -182,7 +230,9 @@ impl<'a> Parser<'a> {
         let type_params = self.parse_type_params()?;
 
         self.expect_token(TokenKind::LBrace)?;
-        let variants = self.parse_comma_list(TokenKind::RBrace, |p| p.parse_enum_variant())?;
+        let variants = self.parse_list(TokenKind::Comma, TokenKind::RBrace, |p| {
+            p.parse_enum_variant()
+        })?;
         let span = self.span_from(start);
 
         Ok(Enum {
@@ -202,7 +252,7 @@ impl<'a> Parser<'a> {
 
         let types = if self.token.is(TokenKind::LParen) {
             self.advance_token()?;
-            Some(self.parse_comma_list(TokenKind::RParen, |p| p.parse_type())?)
+            Some(self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| p.parse_type())?)
         } else {
             None
         };
@@ -357,7 +407,9 @@ impl<'a> Parser<'a> {
         let ident = self.expect_identifier()?;
 
         self.expect_token(TokenKind::LBrace)?;
-        let fields = self.parse_comma_list(TokenKind::RBrace, |p| p.parse_struct_field())?;
+        let fields = self.parse_list(TokenKind::Comma, TokenKind::RBrace, |p| {
+            p.parse_struct_field()
+        })?;
         let span = self.span_from(start);
 
         Ok(Struct {
@@ -453,7 +505,7 @@ impl<'a> Parser<'a> {
 
         if self.token.is(TokenKind::LBracket) {
             self.advance_token()?;
-            types = self.parse_comma_list(TokenKind::RBracket, |p| p.parse_type())?;
+            types = self.parse_list(TokenKind::Comma, TokenKind::RBracket, |p| p.parse_type())?;
         }
 
         Ok(types)
@@ -503,7 +555,9 @@ impl<'a> Parser<'a> {
     fn parse_type_params(&mut self) -> Result<Option<Vec<TypeParam>>, ParseErrorAndPos> {
         if self.token.is(TokenKind::LBracket) {
             self.advance_token()?;
-            let params = self.parse_comma_list(TokenKind::RBracket, |p| p.parse_type_param())?;
+            let params = self.parse_list(TokenKind::Comma, TokenKind::RBracket, |p| {
+                p.parse_type_param()
+            })?;
 
             Ok(Some(params))
         } else {
@@ -553,7 +607,9 @@ impl<'a> Parser<'a> {
 
         self.expect_token(TokenKind::LParen)?;
 
-        let params = self.parse_comma_list(TokenKind::RParen, |p| p.parse_expression())?;
+        let params = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
+            p.parse_expression()
+        })?;
 
         Ok(params)
     }
@@ -569,8 +625,9 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::LParen)?;
         cls.has_constructor = true;
 
-        let params =
-            self.parse_comma_list(TokenKind::RParen, |p| p.parse_constructor_param(cls))?;
+        let params = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
+            p.parse_constructor_param(cls)
+        })?;
 
         Ok(params)
     }
@@ -850,7 +907,7 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::LParen)?;
         self.param_idx = 0;
 
-        let params = self.parse_comma_list(TokenKind::RParen, |p| {
+        let params = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
             p.param_idx += 1;
 
             p.parse_function_param()
@@ -859,8 +916,9 @@ impl<'a> Parser<'a> {
         Ok(params)
     }
 
-    fn parse_comma_list<F, R>(
+    fn parse_list<F, R>(
         &mut self,
+        sep: TokenKind,
         stop: TokenKind,
         mut parse: F,
     ) -> Result<Vec<R>, ParseErrorAndPos>
@@ -874,14 +932,14 @@ impl<'a> Parser<'a> {
             if !comma {
                 return Err(ParseErrorAndPos::new(
                     self.token.position,
-                    ParseError::ExpectedToken(TokenKind::Comma.name().into(), self.token.name()),
+                    ParseError::ExpectedToken(sep.name().into(), self.token.name()),
                 ));
             }
 
             let entry = parse(self)?;
             data.push(entry);
 
-            comma = self.token.is(TokenKind::Comma);
+            comma = self.token.is(sep.clone());
             if comma {
                 self.advance_token()?;
             }
@@ -997,7 +1055,9 @@ impl<'a> Parser<'a> {
 
                 let params = if self.token.is(TokenKind::LBracket) {
                     self.advance_token()?;
-                    self.parse_comma_list(TokenKind::RBracket, |p| Ok(Box::new(p.parse_type()?)))?
+                    self.parse_list(TokenKind::Comma, TokenKind::RBracket, |p| {
+                        Ok(Box::new(p.parse_type()?))
+                    })?
                 } else {
                     Vec::new()
                 };
@@ -1015,7 +1075,7 @@ impl<'a> Parser<'a> {
             TokenKind::LParen => {
                 let start = self.token.span.start();
                 let token = self.advance_token()?;
-                let subtypes = self.parse_comma_list(TokenKind::RParen, |p| {
+                let subtypes = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
                     let ty = p.parse_type()?;
 
                     Ok(Box::new(ty))
@@ -1454,8 +1514,9 @@ impl<'a> Parser<'a> {
 
                 TokenKind::LParen => {
                     let tok = self.advance_token()?;
-                    let args =
-                        self.parse_comma_list(TokenKind::RParen, |p| p.parse_expression())?;
+                    let args = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
+                        p.parse_expression()
+                    })?;
                     let span = self.span_from(start);
 
                     Box::new(Expr::create_call(
@@ -1469,7 +1530,8 @@ impl<'a> Parser<'a> {
 
                 TokenKind::LBracket => {
                     let tok = self.advance_token()?;
-                    let types = self.parse_comma_list(TokenKind::RBracket, |p| p.parse_type())?;
+                    let types =
+                        self.parse_list(TokenKind::Comma, TokenKind::RBracket, |p| p.parse_type())?;
                     let span = self.span_from(start);
 
                     Box::new(Expr::create_type_param(
@@ -1835,7 +1897,7 @@ impl<'a> Parser<'a> {
             Vec::new()
         } else {
             self.param_idx = 0;
-            self.parse_comma_list(TokenKind::BitOr, |p| {
+            self.parse_list(TokenKind::Comma, TokenKind::BitOr, |p| {
                 p.param_idx += 1;
                 p.parse_function_param()
             })?
@@ -2550,6 +2612,42 @@ mod tests {
             let lit = call.args[i as usize].to_lit_int().unwrap();
             assert_eq!(i + 1, lit.value);
         }
+    }
+
+    #[test]
+    fn parse_package() {
+        let (prog, interner) = parse("package foo;");
+        let package = prog.package();
+
+        assert_eq!("foo", *interner.str(package.path[0]));
+        assert_eq!(1, package.path.len());
+
+        let (prog, interner) = parse("package foo::bar::baz;");
+        let package = prog.package();
+
+        assert_eq!("foo", *interner.str(package.path[0]));
+        assert_eq!("bar", *interner.str(package.path[1]));
+        assert_eq!("baz", *interner.str(package.path[2]));
+        assert_eq!(3, package.path.len());
+    }
+
+    #[test]
+    fn parse_import() {
+        let (prog, interner) = parse("import foo;");
+        let import = prog.import(0);
+
+        assert_eq!("foo", *interner.str(import.path[0]));
+        assert_eq!(1, import.path.len());
+
+        let (prog, interner) = parse("import foo; import foo::bar::baz;");
+        let import = prog.import(0);
+        assert_eq!("foo", *interner.str(import.path[0]));
+        assert_eq!(1, import.path.len());
+        let import = prog.import(1);
+        assert_eq!("foo", *interner.str(import.path[0]));
+        assert_eq!("bar", *interner.str(import.path[1]));
+        assert_eq!("baz", *interner.str(import.path[2]));
+        assert_eq!(3, import.path.len());
     }
 
     #[test]
@@ -3683,7 +3781,7 @@ mod tests {
 
     #[test]
     fn parse_enum() {
-        let (prog, _) = parse("enum Foo { A, B, C }");
+        let (prog, _) = parse("package foo; import bar::baz; enum Foo { A, B, C }");
         let xenum = prog.enum0();
         assert_eq!(xenum.variants.len(), 3);
     }

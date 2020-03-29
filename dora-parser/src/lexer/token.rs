@@ -18,6 +18,10 @@ pub enum TokenKind {
     At,
     End,
 
+    // namespacing
+    Package,
+    Import,
+
     // "big" shapes
     Class,
     Enum,
@@ -117,6 +121,10 @@ impl TokenKind {
 
             TokenKind::Identifier(_) => "identifier",
             TokenKind::End => "<<EOF>>",
+
+            // namespacing
+            TokenKind::Package => "package",
+            TokenKind::Import => "import",
 
             // Keywords
             TokenKind::Class => "class",
