@@ -353,6 +353,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             variants: Vec::new(),
             name_to_value: HashMap::new(),
             extensions: Vec::new(),
+            specializations: RwLock::new(HashMap::new()),
         };
 
         self.vm.enums.push(RwLock::new(xenum));

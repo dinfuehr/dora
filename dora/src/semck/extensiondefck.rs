@@ -52,7 +52,7 @@ impl<'x, 'ast> ExtensionCheck<'x, 'ast> {
             self.extension_ty = class_ty;
 
             match class_ty {
-                BuiltinType::Enum(enum_id) => {
+                BuiltinType::Enum(enum_id, _) => {
                     let mut xenum = self.vm.enums[enum_id].write();
                     xenum.extensions.push(self.extension_id.unwrap());
                 }
@@ -222,7 +222,7 @@ impl<'x, 'ast> Visitor<'ast> for ExtensionCheck<'x, 'ast> {
         }
 
         let success = match self.extension_ty {
-            BuiltinType::Enum(enum_id) => self.check_in_enum(f, enum_id),
+            BuiltinType::Enum(enum_id, _) => self.check_in_enum(f, enum_id),
             _ => self.check_in_class(f),
         };
 

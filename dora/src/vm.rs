@@ -32,7 +32,7 @@ pub use self::class::{
     ClassId, TypeParam,
 };
 pub use self::cnst::{ConstData, ConstId, ConstValue};
-pub use self::enums::{find_methods_in_enum, EnumData, EnumId, EnumVariant};
+pub use self::enums::{find_methods_in_enum, EnumData, EnumDef, EnumDefId, EnumId, EnumVariant};
 pub use self::extension::{ExtensionData, ExtensionId};
 pub use self::fct::{Fct, FctDef, FctDefId, FctId, FctKind, FctParent, Intrinsic};
 pub use self::field::{Field, FieldDef, FieldId};
@@ -103,7 +103,8 @@ pub struct VM<'ast> {
     pub fcts: GrowableVec<RwLock<Fct<'ast>>>,  // stores all function source definitions
     pub jit_fcts: GrowableVec<JitFct>,         // stores all function implementations
     pub fct_defs: GrowableVec<RwLock<FctDef>>, // stores all function definitions
-    pub enums: Vec<RwLock<EnumData>>,          // store all enum definitions
+    pub enums: Vec<RwLock<EnumData>>,          // store all enum source definitions
+    pub enum_defs: GrowableVec<RwLock<EnumDef>>, // stores all enum definitions
     pub traits: Vec<RwLock<TraitData>>,        // stores all trait definitions
     pub impls: Vec<RwLock<ImplData>>,          // stores all impl definitions
     pub code_map: Mutex<CodeMap>,              // stores all compiled functions
@@ -140,6 +141,7 @@ impl<'ast> VM<'ast> {
             modules: GrowableVec::new(),
             module_defs: GrowableVec::new(),
             enums: Vec::new(),
+            enum_defs: GrowableVec::new(),
             traits: Vec::new(),
             impls: Vec::new(),
             globals: GrowableVec::new(),

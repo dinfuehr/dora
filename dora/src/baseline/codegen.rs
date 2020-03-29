@@ -3481,7 +3481,7 @@ fn check_for_nil(ty: BuiltinType) -> bool {
         | BuiltinType::Float
         | BuiltinType::Double
         | BuiltinType::Bool
-        | BuiltinType::Enum(_) => false,
+        | BuiltinType::Enum(_, _) => false,
         BuiltinType::Nil | BuiltinType::Ptr => true,
         BuiltinType::Class(_, _) => true,
         BuiltinType::Struct(_, _) => false,

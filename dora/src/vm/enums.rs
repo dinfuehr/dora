@@ -3,11 +3,13 @@ use parking_lot::RwLock;
 use std::collections::hash_map::HashMap;
 use std::convert::TryInto;
 use std::ops::Index;
+use std::sync::Arc;
 
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::ty::BuiltinType;
+use crate::ty::{BuiltinType, TypeList};
+use crate::utils::GrowableVec;
 use crate::vm::{ExtensionId, FctId, FileId, TypeParam, VM};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -37,12 +39,37 @@ pub struct EnumData {
     pub variants: Vec<EnumVariant>,
     pub name_to_value: HashMap<Name, u32>,
     pub extensions: Vec<ExtensionId>,
+    pub specializations: RwLock<HashMap<TypeList, EnumDefId>>,
 }
 
 #[derive(Debug)]
 pub struct EnumVariant {
     pub name: Name,
     pub types: Vec<BuiltinType>,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct EnumDefId(u32);
+
+impl From<usize> for EnumDefId {
+    fn from(data: usize) -> EnumDefId {
+        EnumDefId(data as u32)
+    }
+}
+
+impl<'ast> GrowableVec<RwLock<EnumDef>> {
+    pub fn idx(&self, index: EnumDefId) -> Arc<RwLock<EnumDef>> {
+        self.idx_usize(index.0 as usize)
+    }
+}
+
+#[derive(Debug)]
+pub struct EnumDef {
+    pub id: EnumDefId,
+    pub enum_id: EnumId,
+    pub type_params: TypeList,
+    pub size: i32,
+    pub align: i32,
 }
 
 pub fn find_methods_in_enum(

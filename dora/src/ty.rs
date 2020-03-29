@@ -59,7 +59,7 @@ pub enum BuiltinType {
     Lambda(LambdaId),
 
     // some enum
-    Enum(EnumId),
+    Enum(EnumId, TypeListId),
 }
 
 impl BuiltinType {
@@ -72,7 +72,7 @@ impl BuiltinType {
 
     pub fn is_enum(&self) -> bool {
         match *self {
-            BuiltinType::Enum(_) => true,
+            BuiltinType::Enum(_, _) => true,
             _ => false,
         }
     }
@@ -163,7 +163,7 @@ impl BuiltinType {
 
     pub fn enum_id(&self) -> Option<EnumId> {
         match *self {
-            BuiltinType::Enum(enum_id) => Some(enum_id),
+            BuiltinType::Enum(enum_id, _) => Some(enum_id),
             _ => None,
         }
     }
@@ -187,7 +187,9 @@ impl BuiltinType {
 
     pub fn type_params(&self, vm: &VM) -> TypeList {
         match self {
-            &BuiltinType::Class(_, list_id) => vm.lists.lock().get(list_id),
+            &BuiltinType::Class(_, list_id)
+            | &BuiltinType::Enum(_, list_id)
+            | &BuiltinType::Struct(_, list_id) => vm.lists.lock().get(list_id),
             _ => TypeList::empty(),
         }
     }
@@ -293,16 +295,30 @@ impl BuiltinType {
                         .collect::<Vec<_>>()
                         .join(", ");
 
-                    format!("{}<{}>", name, params)
+                    format!("{}[{}]", name, params)
                 }
             }
             BuiltinType::Trait(tid) => {
                 let xtrait = vm.traits[tid].read();
                 vm.interner.str(xtrait.name).to_string()
             }
-            BuiltinType::Enum(id) => {
+            BuiltinType::Enum(id, list_id) => {
                 let xenum = vm.enums[id].read();
-                vm.interner.str(xenum.name).to_string()
+                let name = vm.interner.str(xenum.name).to_string();
+
+                let params = vm.lists.lock().get(list_id);
+
+                if params.len() == 0 {
+                    name
+                } else {
+                    let params = params
+                        .iter()
+                        .map(|ty| ty.name(vm))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+
+                    format!("{}[{}]", name, params)
+                }
             }
             BuiltinType::Module(id) => {
                 let module = vm.modules.idx(id);
@@ -399,7 +415,7 @@ impl BuiltinType {
             },
             BuiltinType::Trait(_) => unimplemented!(),
             BuiltinType::Module(_) => *self == other,
-            BuiltinType::Enum(_) => *self == other,
+            BuiltinType::Enum(_, _) => *self == other,
 
             BuiltinType::ClassTypeParam(_, _) => *self == other,
             BuiltinType::FctTypeParam(_, _) => *self == other,
@@ -432,7 +448,7 @@ impl BuiltinType {
             BuiltinType::Long => 8,
             BuiltinType::Float => 4,
             BuiltinType::Double => 8,
-            BuiltinType::Enum(_) => 4,
+            BuiltinType::Enum(_, _) => 4,
             BuiltinType::Nil => panic!("no size for nil."),
             BuiltinType::This => panic!("no size for Self."),
             BuiltinType::Class(_, _)
@@ -468,7 +484,7 @@ impl BuiltinType {
             BuiltinType::Double => 8,
             BuiltinType::Nil => panic!("no alignment for nil."),
             BuiltinType::This => panic!("no alignment for Self."),
-            BuiltinType::Enum(_) => 4,
+            BuiltinType::Enum(_, _) => 4,
             BuiltinType::Class(_, _)
             | BuiltinType::Module(_)
             | BuiltinType::Lambda(_)
@@ -500,7 +516,7 @@ impl BuiltinType {
             BuiltinType::Long => MachineMode::Int64,
             BuiltinType::Float => MachineMode::Float32,
             BuiltinType::Double => MachineMode::Float64,
-            BuiltinType::Enum(_) => MachineMode::Int32,
+            BuiltinType::Enum(_, _) => MachineMode::Int32,
             BuiltinType::Nil => panic!("no machine mode for nil."),
             BuiltinType::This => panic!("no machine mode for Self."),
             BuiltinType::Class(_, _)
@@ -527,7 +543,7 @@ impl BuiltinType {
             | BuiltinType::Long
             | BuiltinType::Float
             | BuiltinType::Double
-            | BuiltinType::Enum(_)
+            | BuiltinType::Enum(_, _)
             | BuiltinType::Module(_)
             | BuiltinType::Ptr
             | BuiltinType::Trait(_)

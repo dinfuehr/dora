@@ -1573,8 +1573,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         .report(self.file, e.pos, SemError::UnknownEnumValue(name));
                 }
 
-                self.src.set_ty(e.id, BuiltinType::Enum(id));
-                self.expr_type = BuiltinType::Enum(id);
+                let list_id = self.vm.lists.lock().insert(TypeList::empty());
+                let ty = BuiltinType::Enum(id, list_id);
+                self.src.set_ty(e.id, ty);
+                self.expr_type = ty;
                 return;
             }
 
@@ -2049,7 +2051,7 @@ fn arg_allows(
         | BuiltinType::Long
         | BuiltinType::Float
         | BuiltinType::Double
-        | BuiltinType::Enum(_) => def == arg,
+        | BuiltinType::Enum(_, _) => def == arg,
         BuiltinType::Nil => panic!("nil should not occur in fct definition."),
         BuiltinType::Ptr => panic!("ptr should not occur in fct definition."),
         BuiltinType::This => {

@@ -76,7 +76,7 @@ impl From<BuiltinType> for BytecodeType {
             BuiltinType::Float => BytecodeType::Float,
             BuiltinType::Double => BytecodeType::Double,
             BuiltinType::Class(_, _) => BytecodeType::Ptr,
-            BuiltinType::Enum(_) => BytecodeType::Int,
+            BuiltinType::Enum(_, _) => BytecodeType::Int,
             _ => panic!("BuiltinType {:?} cannot converted to BytecodeType", ty),
         }
     }

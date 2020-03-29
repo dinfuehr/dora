@@ -302,7 +302,8 @@ pub fn read_type<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> Option<Bui
                             vm.diag.lock().report(file, basic.pos, msg);
                         }
 
-                        return Some(BuiltinType::Enum(enum_id));
+                        let list_id = vm.lists.lock().insert(TypeList::empty());
+                        return Some(BuiltinType::Enum(enum_id, list_id));
                     }
 
                     SymClassTypeParam(cls_id, type_param_id) => {
@@ -432,7 +433,8 @@ pub fn read_type_unchecked<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> 
                             vm.diag.lock().report(file, basic.pos, msg);
                         }
 
-                        BuiltinType::Enum(enum_id)
+                        let list_id = vm.lists.lock().insert(TypeList::empty());
+                        BuiltinType::Enum(enum_id, list_id)
                     }
 
                     SymClassTypeParam(cls_id, type_param_id) => {
