@@ -5,94 +5,112 @@ use crate::lexer::position::{Position, Span};
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum TokenKind {
+    // literals
     StringTail(String),
     StringExpr(String),
     LitChar(char),
     LitInt(String, IntBase, IntSuffix),
     LitFloat(String, FloatSuffix),
     Identifier(String),
-    End,
-
-    // Keywords
-    Class,
-    This,
-    CapitalThis,
-    Super,
-    Fun,
-    Let,
-    Var,
-    While,
-    If,
-    Else,
-    For,
-    In,
-    Break,
-    Continue,
-    Return,
     True,
     False,
     Nil,
-    At,
+    End,
 
+    // "big" shapes
+    Class,
     Enum,
-    Type,
-    Alias,
     Struct,
     Trait,
     Impl,
     Module,
+
+    // "small" shapes
+    Fun,
+    Let,
+    Var,
     Const,
 
-    Underscore,
-    Defer,
+    // control flow
+    Return,
+    If,
+    Else,
+    While,
+    For,
+    In,
+    Break,
+    Continue,
 
-    // Operators
+    // qualifiers
+    This,
+    Super,
+
+    // casting
+    Is,
+    As,
+
+    // operators – numbers
     Add,
-    AddEq,
     Sub,
     Mul,
     Div,
     Mod,
+
+    // operators – logic
     Not,
-    LParen,
-    RParen,
-    LBracket,
-    RBracket,
-    LBrace,
-    RBrace,
-    Comma,
-    Semicolon,
-    Dot,
-    Colon,
-    Sep, // ::
-    Arrow,
-    Tilde,
     BitOr,
     BitAnd,
     Caret,
     And,
     Or,
 
-    Eq,
+    // operators – comparisons
     EqEq,
-    Ne,
+    NotEq,
+    EqEqEq,
+    NeEqEq,
     Lt,
     Le,
     Gt,
     Ge,
-    EqEqEq,
-    NeEqEq,
-    Is,
-    As,
 
+    // operators – shifts
     GtGt,
     GtGtGt,
     LtLt,
+
+    // basic syntax
+    Eq,
+    Comma,
+    Semicolon,
+    Dot,
+    Colon,
+    ColonColon,
+    At,
+    Arrow,
+
+    // brackets
+    LParen,
+    RParen,
+    LBracket,
+    RBracket,
+    LBrace,
+    RBrace,
+
+    // unused
+    AddEq,
+    Tilde,
+    Type,
+    Alias,
+    CapitalThis,
+    Underscore,
+    Defer,
 }
 
 impl TokenKind {
     pub fn name(&self) -> &str {
         match *self {
+            // literals
             TokenKind::StringTail(_) => "string tail",
             TokenKind::StringExpr(_) => "string epxr",
             TokenKind::LitInt(_, _, suffix) => match suffix {
@@ -100,93 +118,107 @@ impl TokenKind {
                 IntSuffix::Int => "int number",
                 IntSuffix::Long => "long number",
             },
-
             TokenKind::LitChar(_) => "char",
-
             TokenKind::LitFloat(_, suffix) => match suffix {
                 FloatSuffix::Float => "float number",
                 FloatSuffix::Double => "double number",
             },
-
             TokenKind::Identifier(_) => "identifier",
-            TokenKind::End => "<<EOF>>",
-
-            // Keywords
-            TokenKind::Class => "class",
-            TokenKind::This => "self",
-            TokenKind::CapitalThis => "Self",
-            TokenKind::Super => "super",
-            TokenKind::Fun => "fun",
-            TokenKind::Let => "let",
-            TokenKind::Var => "var",
-            TokenKind::While => "while",
-            TokenKind::If => "if",
-            TokenKind::Else => "else",
-            TokenKind::For => "for",
-            TokenKind::In => "in",
-            TokenKind::Break => "break",
-            TokenKind::Continue => "continue",
-            TokenKind::Return => "return",
             TokenKind::True => "true",
             TokenKind::False => "false",
             TokenKind::Nil => "nil",
-            TokenKind::At => "@",
 
+            // "big" shapes
+            TokenKind::Class => "class",
             TokenKind::Enum => "enum",
-            TokenKind::Type => "type",
-            TokenKind::Alias => "alias",
             TokenKind::Struct => "struct",
             TokenKind::Trait => "trait",
             TokenKind::Impl => "impl",
             TokenKind::Module => "module",
+
+            // "small" shapes
+            TokenKind::Fun => "fun",
+            TokenKind::Let => "let",
+            TokenKind::Var => "var",
             TokenKind::Const => "const",
 
-            TokenKind::Underscore => "_",
-            TokenKind::Defer => "defer",
+            // control flow
+            TokenKind::Return => "return",
+            TokenKind::If => "if",
+            TokenKind::Else => "else",
+            TokenKind::While => "while",
+            TokenKind::For => "for",
+            TokenKind::In => "in",
+            TokenKind::Break => "break",
+            TokenKind::Continue => "continue",
 
-            // Operators
+            // qualifiers
+            TokenKind::This => "self",
+            TokenKind::Super => "super",
+
+            // casting
+            TokenKind::Is => "is",
+            TokenKind::As => "as",
+
+            // operators – arithmetic
             TokenKind::Add => "+",
-            TokenKind::AddEq => "+=",
             TokenKind::Sub => "-",
             TokenKind::Mul => "*",
             TokenKind::Div => "/",
             TokenKind::Mod => "%",
+
+            // operators – logic
             TokenKind::Not => "!",
-            TokenKind::LParen => "(",
-            TokenKind::RParen => ")",
-            TokenKind::LBracket => "[",
-            TokenKind::RBracket => "]",
-            TokenKind::LBrace => "{",
-            TokenKind::RBrace => "}",
-            TokenKind::Comma => ",",
-            TokenKind::Semicolon => ";",
-            TokenKind::Dot => ".",
-            TokenKind::Colon => ":",
-            TokenKind::Sep => "::",
-            TokenKind::Arrow => "=>",
-            TokenKind::Tilde => "~",
             TokenKind::BitOr => "|",
             TokenKind::BitAnd => "&",
             TokenKind::Caret => "^",
             TokenKind::And => "&&",
             TokenKind::Or => "||",
 
-            TokenKind::Eq => "=",
+            // operators – comparisons
             TokenKind::EqEq => "==",
-            TokenKind::Ne => "!=",
+            TokenKind::NotEq => "!=",
+            TokenKind::EqEqEq => "===",
+            TokenKind::NeEqEq => "!==",
             TokenKind::Lt => "<",
             TokenKind::Le => "<=",
             TokenKind::Gt => ">",
             TokenKind::Ge => ">=",
 
+            // operators – shifts
             TokenKind::GtGt => ">>",
             TokenKind::GtGtGt => ">>>",
             TokenKind::LtLt => "<<",
 
-            TokenKind::EqEqEq => "===",
-            TokenKind::NeEqEq => "!==",
-            TokenKind::Is => "is",
-            TokenKind::As => "as",
+            // basic syntax
+            TokenKind::Eq => "=",
+            TokenKind::Comma => ",",
+            TokenKind::Semicolon => ";",
+            TokenKind::Dot => ".",
+            TokenKind::Colon => ":",
+            TokenKind::ColonColon => "::",
+            TokenKind::At => "@",
+            TokenKind::Arrow => "=>",
+
+            // brackets
+            TokenKind::LParen => "(",
+            TokenKind::RParen => ")",
+            TokenKind::LBracket => "[",
+            TokenKind::RBracket => "]",
+            TokenKind::LBrace => "{",
+            TokenKind::RBrace => "}",
+
+            // unused
+            TokenKind::AddEq => "+=",
+            TokenKind::Tilde => "~",
+            TokenKind::Type => "type",
+            TokenKind::Alias => "alias",
+            TokenKind::CapitalThis => "Self",
+            TokenKind::Underscore => "_",
+            TokenKind::Defer => "defer",
+
+            // end of file
+            TokenKind::End => "<<EOF>>",
         }
     }
 }

@@ -290,7 +290,7 @@ impl Lexer {
             ':' => {
                 if nch == ':' {
                     self.read_char();
-                    TokenKind::Sep
+                    TokenKind::ColonColon
                 } else {
                     TokenKind::Colon
                 }
@@ -352,7 +352,7 @@ impl Lexer {
                         self.read_char();
                         TokenKind::NeEqEq
                     } else {
-                        TokenKind::Ne
+                        TokenKind::NotEq
                     }
                 } else {
                     TokenKind::Not
@@ -548,37 +548,50 @@ fn is_identifier(ch: Option<char>) -> bool {
 }
 
 fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
-    let mut keywords = HashMap::new();
+    let mut keywords = HashMap::with_capacity(30);
 
-    keywords.insert("class", TokenKind::Class);
-    keywords.insert("self", TokenKind::This);
-    keywords.insert("Self", TokenKind::CapitalThis);
-    keywords.insert("super", TokenKind::Super);
-    keywords.insert("fun", TokenKind::Fun);
-    keywords.insert("let", TokenKind::Let);
-    keywords.insert("var", TokenKind::Var);
-    keywords.insert("while", TokenKind::While);
-    keywords.insert("if", TokenKind::If);
-    keywords.insert("else", TokenKind::Else);
-    keywords.insert("for", TokenKind::For);
-    keywords.insert("in", TokenKind::In);
-    keywords.insert("impl", TokenKind::Impl);
-    keywords.insert("break", TokenKind::Break);
-    keywords.insert("continue", TokenKind::Continue);
-    keywords.insert("return", TokenKind::Return);
+    // literals
     keywords.insert("true", TokenKind::True);
     keywords.insert("false", TokenKind::False);
     keywords.insert("nil", TokenKind::Nil);
+
+    // "big" shapes
+    keywords.insert("class", TokenKind::Class);
     keywords.insert("enum", TokenKind::Enum);
-    keywords.insert("type", TokenKind::Type);
-    keywords.insert("alias", TokenKind::Alias);
     keywords.insert("struct", TokenKind::Struct);
     keywords.insert("trait", TokenKind::Trait);
+    keywords.insert("impl", TokenKind::Impl);
     keywords.insert("module", TokenKind::Module);
-    keywords.insert("defer", TokenKind::Defer);
+
+    // "small" shapes
+    keywords.insert("fun", TokenKind::Fun);
+    keywords.insert("let", TokenKind::Let);
+    keywords.insert("var", TokenKind::Var);
+    keywords.insert("const", TokenKind::Const);
+
+    // control flow
+    keywords.insert("return", TokenKind::Return);
+    keywords.insert("if", TokenKind::If);
+    keywords.insert("else", TokenKind::Else);
+    keywords.insert("while", TokenKind::While);
+    keywords.insert("for", TokenKind::For);
+    keywords.insert("in", TokenKind::In);
+    keywords.insert("break", TokenKind::Break);
+    keywords.insert("continue", TokenKind::Continue);
+
+    // qualifiers
+    keywords.insert("self", TokenKind::This);
+    keywords.insert("super", TokenKind::Super);
+
+    // casting
     keywords.insert("is", TokenKind::Is);
     keywords.insert("as", TokenKind::As);
-    keywords.insert("const", TokenKind::Const);
+
+    // unused
+    keywords.insert("type", TokenKind::Type);
+    keywords.insert("alias", TokenKind::Alias);
+    keywords.insert("Self", TokenKind::CapitalThis);
+    keywords.insert("defer", TokenKind::Defer);
 
     keywords
 }
@@ -1063,7 +1076,7 @@ mod tests {
         assert_tok(&mut reader, TokenKind::Not, 1, 7);
 
         let mut reader = Lexer::from_str("!=!");
-        assert_tok(&mut reader, TokenKind::Ne, 1, 1);
+        assert_tok(&mut reader, TokenKind::NotEq, 1, 1);
         assert_tok(&mut reader, TokenKind::Not, 1, 3);
 
         let mut reader = Lexer::from_str("->");
@@ -1074,6 +1087,6 @@ mod tests {
         assert_tok(&mut reader, TokenKind::LtLt, 1, 3);
         assert_tok(&mut reader, TokenKind::GtGtGt, 1, 5);
         assert_tok(&mut reader, TokenKind::Underscore, 1, 8);
-        assert_tok(&mut reader, TokenKind::Sep, 1, 9);
+        assert_tok(&mut reader, TokenKind::ColonColon, 1, 9);
     }
 }

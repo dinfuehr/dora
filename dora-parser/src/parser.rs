@@ -1363,7 +1363,7 @@ impl<'a> Parser<'a> {
                 TokenKind::And => 2,
                 TokenKind::Eq | TokenKind::AddEq => 3,
                 TokenKind::EqEq
-                | TokenKind::Ne
+                | TokenKind::NotEq
                 | TokenKind::Lt
                 | TokenKind::Le
                 | TokenKind::Gt
@@ -1481,7 +1481,7 @@ impl<'a> Parser<'a> {
                     ))
                 }
 
-                TokenKind::Sep => {
+                TokenKind::ColonColon => {
                     let tok = self.advance_token()?;
                     let rhs = self.parse_factor()?;
                     let span = self.span_from(start);
@@ -1514,7 +1514,7 @@ impl<'a> Parser<'a> {
             TokenKind::Or => BinOp::Or,
             TokenKind::And => BinOp::And,
             TokenKind::EqEq => BinOp::Cmp(CmpOp::Eq),
-            TokenKind::Ne => BinOp::Cmp(CmpOp::Ne),
+            TokenKind::NotEq => BinOp::Cmp(CmpOp::Ne),
             TokenKind::Lt => BinOp::Cmp(CmpOp::Lt),
             TokenKind::Le => BinOp::Cmp(CmpOp::Le),
             TokenKind::Gt => BinOp::Cmp(CmpOp::Gt),
