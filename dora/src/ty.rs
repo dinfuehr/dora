@@ -161,6 +161,13 @@ impl BuiltinType {
         }
     }
 
+    pub fn enum_id(&self) -> Option<EnumId> {
+        match *self {
+            BuiltinType::Enum(enum_id) => Some(enum_id),
+            _ => None,
+        }
+    }
+
     pub fn tuple_id(&self) -> Option<TupleId> {
         match *self {
             BuiltinType::Tuple(tuple_id) => Some(tuple_id),

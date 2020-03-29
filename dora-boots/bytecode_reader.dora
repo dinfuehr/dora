@@ -59,6 +59,37 @@ fun readBytecode(code: Array[Byte], visitor: BytecodeVisitor) {
     @open fun visitRolLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitRorLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
+    @open fun visitReinterpretFloatAsInt(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitReinterpretIntAsFloat(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitReinterpretDoubleAsLong(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitReinterpretLongAsDouble(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+
+    @open fun visitExtendByteToChar(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitExtendByteToInt(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitExtendByteToLong(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitExtendIntToLong(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitExtendCharToLong(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+
+    @open fun visitCastCharToInt(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitCastIntToByte(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitCastIntToChar(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitCastLongToByte(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitCastLongToChar(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitCastLongToInt(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+
+    @open fun visitConvertIntToFloat(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitConvertIntToDouble(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitConvertLongToFloat(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitConvertLongToDouble(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+
+    @open fun visitTruncateFloatToInt(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitTruncateFloatToLong(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitTruncateDoubleToInt(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitTruncateDoubleToLong(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+
+    @open fun visitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
+    @open fun visitCheckedCast(src: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
+
     @open fun visitMovBool(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitMovByte(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitMovChar(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
@@ -439,6 +470,132 @@ class BytecodeReader(let data: Array[Byte], let visitor: BytecodeVisitor) {
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitRorLong(dest, lhs, rhs);
+
+        } else if opcode == BC_REINTERPRET_FLOAT_AS_INT {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitReinterpretFloatAsInt(dest, src);
+
+        } else if opcode == BC_REINTERPRET_INT_AS_FLOAT {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitReinterpretIntAsFloat(dest, src);
+
+        } else if opcode == BC_REINTERPRET_DOUBLE_AS_LONG {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitReinterpretDoubleAsLong(dest, src);
+
+        } else if opcode == BC_REINTERPRET_LONG_AS_DOUBLE {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitReinterpretLongAsDouble(dest, src);
+
+        } else if opcode == BC_EXTEND_BYTE_TO_CHAR {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitExtendByteToChar(dest, src);
+
+        } else if opcode == BC_EXTEND_BYTE_TO_INT {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitExtendByteToInt(dest, src);
+
+        } else if opcode == BC_EXTEND_BYTE_TO_LONG {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitExtendByteToLong(dest, src);
+
+        } else if opcode == BC_EXTEND_INT_TO_LONG {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitExtendIntToLong(dest, src);
+
+        } else if opcode == BC_EXTEND_CHAR_TO_LONG {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitExtendCharToLong(dest, src);
+
+        } else if opcode == BC_CAST_CHAR_TO_INT {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitCastCharToInt(dest, src);
+
+        } else if opcode == BC_CAST_INT_TO_BYTE {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitCastIntToByte(dest, src);
+
+        } else if opcode == BC_CAST_INT_TO_CHAR {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitCastIntToChar(dest, src);
+
+        } else if opcode == BC_CAST_LONG_TO_BYTE {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitCastLongToByte(dest, src);
+
+        } else if opcode == BC_CAST_LONG_TO_CHAR {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitCastLongToChar(dest, src);
+
+        } else if opcode == BC_CAST_LONG_TO_INT {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitCastLongToInt(dest, src);
+
+        } else if opcode == BC_CONVERT_INT_TO_FLOAT {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitConvertIntToFloat(dest, src);
+
+        } else if opcode == BC_CONVERT_INT_TO_DOUBLE {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitConvertIntToDouble(dest, src);
+
+        } else if opcode == BC_CONVERT_LONG_TO_FLOAT {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitConvertLongToFloat(dest, src);
+
+        } else if opcode == BC_CONVERT_LONG_TO_DOUBLE {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitConvertLongToDouble(dest, src);
+
+        } else if opcode == BC_TRUNCATE_FLOAT_TO_INT {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitTruncateFloatToInt(dest, src);
+
+        } else if opcode == BC_TRUNCATE_FLOAT_TO_LONG {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitTruncateFloatToLong(dest, src);
+
+        } else if opcode == BC_TRUNCATE_DOUBLE_TO_INT {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitTruncateDoubleToInt(dest, src);
+
+        } else if opcode == BC_TRUNCATE_DOUBLE_TO_LONG {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            self.visitor.visitTruncateDoubleToLong(dest, src);
+
+        } else if opcode == BC_INSTANCE_OF {
+            let dest = self.readRegister(wide);
+            let src = self.readRegister(wide);
+            let cls = self.readClassDefId(wide);
+            self.visitor.visitInstanceOf(dest, src, cls);
+
+        } else if opcode == BC_CHECKED_CAST {
+            let src = self.readRegister(wide);
+            let cls = self.readClassDefId(wide);
+            self.visitor.visitCheckedCast(src, cls);
 
         } else if opcode == BC_SHL_LONG {
             let dest = self.readRegister(wide);

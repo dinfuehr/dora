@@ -3,7 +3,10 @@ use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck;
 use crate::ty::{BuiltinType, TypeList};
 use crate::typeck::expr::args_compatible;
-use crate::vm::{find_methods_in_class, ClassId, FctId, FctParent, FileId, TraitId, TypeParam, VM};
+use crate::vm::{
+    find_methods_in_class, find_methods_in_enum, ClassId, FctId, FctParent, FileId, TraitId,
+    TypeParam, VM,
+};
 
 use crate::vm::module::find_methods_in_module;
 use dora_parser::interner::Name;
@@ -76,6 +79,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         } else if let BuiltinType::Trait(trait_id) = obj {
             Some(LookupKind::Trait(trait_id))
         } else if obj.is_nil() {
+            Some(LookupKind::Method(obj))
+        } else if obj.is_enum() {
             Some(LookupKind::Method(obj))
         } else {
             panic!("neither object nor trait object: {:?}", obj);
@@ -343,6 +348,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
         let candidates = if object_type.is_module() {
             find_methods_in_module(self.vm, object_type, name)
+        } else if object_type.is_enum() {
+            find_methods_in_enum(self.vm, object_type, name, is_static)
         } else {
             find_methods_in_class(self.vm, object_type, name, is_static)
         };

@@ -1974,3 +1974,12 @@ fn method_call_on_unit() {
         SemError::UnknownMethod("()".into(), "foo".into(), Vec::new()),
     );
 }
+
+#[test]
+fn method_on_enum() {
+    ok("
+        enum MyEnum { A, B }
+        impl MyEnum { fun foo() {} }
+        fun f(x: MyEnum) { x.foo(); }
+    ");
+}

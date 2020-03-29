@@ -35,9 +35,19 @@ class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
         println(" ${r1}, ${r2}");
     }
 
+    fun emitReg2AndCls(name: String, r1: BytecodeRegister, r2: BytecodeRegister, cls: ClassDefId) {
+        self.emitStart(name);
+        println(" ${r1}, ${r2}, ${cls.value}");
+    }
+
     fun emitReg1(name: String, r1: BytecodeRegister) {
         self.emitStart(name);
         println(" ${r1}")
+    }
+
+    fun emitReg1AndCls(name: String, r1: BytecodeRegister, cls: ClassDefId) {
+        self.emitStart(name);
+        println(" ${r1}, ${cls.value}")
     }
 
     fun emitReg1AndIdx(name: String, r1: BytecodeRegister, idx: ConstPoolId) {
@@ -150,6 +160,37 @@ class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
     @override fun visitRorInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("RorInt", dest, lhs, rhs); }
     @override fun visitRolLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("RolLong", dest, lhs, rhs); }
     @override fun visitRorLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("RorLong", dest, lhs, rhs); }
+
+    @override fun visitReinterpretFloatAsInt(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ReinterpretFloatAsInt", dest, src); }
+    @override fun visitReinterpretIntAsFloat(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ReinterpretIntAsFloat", dest, src); }
+    @override fun visitReinterpretDoubleAsLong(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ReinterpretDoubleAsLong", dest, src); }
+    @override fun visitReinterpretLongAsDouble(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ReinterpretLongAsDouble", dest, src); }
+
+    @override fun visitExtendByteToChar(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ExtendByteToChar", dest, src); }
+    @override fun visitExtendByteToInt(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ExtendByteToInt", dest, src); }
+    @override fun visitExtendByteToLong(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ExtendByteToLong", dest, src); }
+    @override fun visitExtendIntToLong(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ExtendIntToLong", dest, src); }
+    @override fun visitExtendCharToLong(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ExtendCharToLong", dest, src); }
+
+    @override fun visitCastCharToInt(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("CastCharToInt", dest, src); }
+    @override fun visitCastIntToByte(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("CastIntToByte", dest, src); }
+    @override fun visitCastIntToChar(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("CastIntToChar", dest, src); }
+    @override fun visitCastLongToByte(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("CastLongToByte", dest, src); }
+    @override fun visitCastLongToChar(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("CastLongToChar", dest, src); }
+    @override fun visitCastLongToInt(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("CastLongToInt", dest, src); }
+
+    @override fun visitConvertIntToFloat(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ConvertIntToFloat", dest, src); }
+    @override fun visitConvertIntToDouble(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ConvertIntToDouble", dest, src); }
+    @override fun visitConvertLongToFloat(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ConvertLongToFloat", dest, src); }
+    @override fun visitConvertLongToDouble(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("ConvertLongToDouble", dest, src); }
+
+    @override fun visitTruncateFloatToInt(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("TruncateFloatToInt", dest, src); }
+    @override fun visitTruncateFloatToLong(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("TruncateFloatToLong", dest, src); }
+    @override fun visitTruncateDoubleToInt(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("TruncateDoubleToInt", dest, src); }
+    @override fun visitTruncateDoubleToLong(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("TruncateDoubleToLong", dest, src); }
+
+    @override fun visitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) { self.emitReg2AndCls("InstanceOf", dest, src, cls); }
+    @override fun visitCheckedCast(dest: BytecodeRegister, cls: ClassDefId) { self.emitReg1AndCls("CheckedCast", dest, cls); }
 
     @override fun visitMovBool(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("MovBool", dest, src); }
     @override fun visitMovByte(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("MovByte", dest, src); }

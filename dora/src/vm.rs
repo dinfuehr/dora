@@ -32,7 +32,7 @@ pub use self::class::{
     ClassId, TypeParam,
 };
 pub use self::cnst::{ConstData, ConstId, ConstValue};
-pub use self::enums::{EnumData, EnumId, EnumVariant};
+pub use self::enums::{find_methods_in_enum, EnumData, EnumId, EnumVariant};
 pub use self::extension::{ExtensionData, ExtensionId};
 pub use self::fct::{Fct, FctDef, FctDefId, FctId, FctKind, FctParent, Intrinsic};
 pub use self::field::{Field, FieldDef, FieldId};

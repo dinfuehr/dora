@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use crate::error::msg::SemError;
 use crate::semck;
 use crate::ty::BuiltinType;
-use crate::vm::{ExtensionId, Fct, FctId, FctKind, FctParent, FctSrc, FileId, NodeMap, VM};
+use crate::vm::{EnumId, ExtensionId, Fct, FctId, FctKind, FctParent, FctSrc, FileId, NodeMap, VM};
 
 use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::ast::{self, Ast};
@@ -51,10 +51,19 @@ impl<'x, 'ast> ExtensionCheck<'x, 'ast> {
         if let Some(class_ty) = semck::read_type(self.vm, self.file_id.into(), &i.class_type) {
             self.extension_ty = class_ty;
 
-            let cls_id = class_ty.cls_id(self.vm).unwrap();
-            let cls = self.vm.classes.idx(cls_id);
-            let mut cls = cls.write();
-            cls.extensions.push(self.extension_id.unwrap());
+            match class_ty {
+                BuiltinType::Enum(enum_id) => {
+                    let mut xenum = self.vm.enums[enum_id].write();
+                    xenum.extensions.push(self.extension_id.unwrap());
+                }
+
+                _ => {
+                    let cls_id = class_ty.cls_id(self.vm).unwrap();
+                    let cls = self.vm.classes.idx(cls_id);
+                    let mut cls = cls.write();
+                    cls.extensions.push(self.extension_id.unwrap());
+                }
+            }
 
             let mut extension = self.vm.extensions[self.extension_id.unwrap()].write();
             extension.class_ty = class_ty;
@@ -72,6 +81,69 @@ impl<'x, 'ast> ExtensionCheck<'x, 'ast> {
         _type_params: &'ast [ast::TypeParam],
     ) {
         unimplemented!();
+    }
+
+    fn check_in_enum(&self, f: &ast::Function, enum_id: EnumId) -> bool {
+        let xenum = self.vm.enums[enum_id].read();
+
+        for &extension_id in &xenum.extensions {
+            if !self.check_extension(f, extension_id) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    fn check_in_class(&self, f: &ast::Function) -> bool {
+        let cls_id = self.extension_ty.cls_id(self.vm).unwrap();
+        let cls = self.vm.classes.idx(cls_id);
+        let cls = cls.read();
+
+        for &method in &cls.methods {
+            let method = self.vm.fcts.idx(method);
+            let method = method.read();
+
+            if method.name == f.name && method.is_static == f.is_static {
+                let method_name = self.vm.interner.str(method.name).to_string();
+                let msg = SemError::MethodExists(method_name, method.pos);
+                self.vm.diag.lock().report(self.file_id.into(), f.pos, msg);
+                return false;
+            }
+        }
+
+        for &extension_id in &cls.extensions {
+            if !self.check_extension(f, extension_id) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    fn check_extension(&self, f: &ast::Function, extension_id: ExtensionId) -> bool {
+        let extension = self.vm.extensions[extension_id].read();
+
+        if extension.class_ty.type_params(self.vm) != self.extension_ty.type_params(self.vm) {
+            return true;
+        }
+
+        let table = if f.is_static {
+            &extension.static_names
+        } else {
+            &extension.instance_names
+        };
+
+        if let Some(&method_id) = table.get(&f.name) {
+            let method = self.vm.fcts.idx(method_id);
+            let method = method.read();
+            let method_name = self.vm.interner.str(method.name).to_string();
+            let msg = SemError::MethodExists(method_name, method.pos);
+            self.vm.diag.lock().report(self.file_id.into(), f.pos, msg);
+            false
+        } else {
+            true
+        }
     }
 }
 
@@ -144,68 +216,31 @@ impl<'x, 'ast> Visitor<'ast> for ExtensionCheck<'x, 'ast> {
         };
 
         let fct_id = self.vm.add_fct(fct);
-        let mut success = true;
 
-        if !self.extension_ty.is_error() {
-            let cls_id = self.extension_ty.cls_id(self.vm).unwrap();
-            let cls = self.vm.classes.idx(cls_id);
-            let cls = cls.read();
-
-            for &method in &cls.methods {
-                let method = self.vm.fcts.idx(method);
-                let method = method.read();
-
-                if method.name == f.name && method.is_static == f.is_static {
-                    let method_name = self.vm.interner.str(method.name).to_string();
-                    let msg = SemError::MethodExists(method_name, method.pos);
-                    self.vm.diag.lock().report(self.file_id.into(), f.pos, msg);
-                    success = false;
-                    break;
-                }
-            }
-
-            if success {
-                for &extension_id in &cls.extensions {
-                    let extension = self.vm.extensions[extension_id].read();
-
-                    if extension.class_ty.type_params(self.vm)
-                        != self.extension_ty.type_params(self.vm)
-                    {
-                        continue;
-                    }
-
-                    let table = if f.is_static {
-                        &extension.static_names
-                    } else {
-                        &extension.instance_names
-                    };
-
-                    if let Some(&method_id) = table.get(&f.name) {
-                        let method = self.vm.fcts.idx(method_id);
-                        let method = method.read();
-                        let method_name = self.vm.interner.str(method.name).to_string();
-                        let msg = SemError::MethodExists(method_name, method.pos);
-                        self.vm.diag.lock().report(self.file_id.into(), f.pos, msg);
-                        success = false;
-                        break;
-                    }
-                }
-            }
+        if self.extension_ty.is_error() {
+            return;
         }
 
-        if success {
-            let mut extension = self.vm.extensions[extension_id].write();
-            extension.methods.push(fct_id);
+        let success = match self.extension_ty {
+            BuiltinType::Enum(enum_id) => self.check_in_enum(f, enum_id),
+            _ => self.check_in_class(f),
+        };
 
-            let table = if f.is_static {
-                &mut extension.static_names
-            } else {
-                &mut extension.instance_names
-            };
+        if !success {
+            return;
+        }
 
-            if !table.contains_key(&f.name) {
-                table.insert(f.name, fct_id);
-            }
+        let mut extension = self.vm.extensions[extension_id].write();
+        extension.methods.push(fct_id);
+
+        let table = if f.is_static {
+            &mut extension.static_names
+        } else {
+            &mut extension.instance_names
+        };
+
+        if !table.contains_key(&f.name) {
+            table.insert(f.name, fct_id);
         }
     }
 }
@@ -289,6 +324,19 @@ mod tests {
         ",
             pos(3, 18),
             SemError::TraitBoundNotSatisfied("String".into(), "MyTrait".into()),
+        );
+    }
+
+    #[test]
+    fn extension_enum() {
+        ok("enum MyEnum { A, B } impl MyEnum {}");
+        ok("enum MyEnum { A, B } impl MyEnum {} impl MyEnum {}");
+        ok("enum MyEnum { A, B } impl MyEnum { fun foo() {} fun bar() {} }");
+
+        err(
+            "enum MyEnum { A, B } impl MyEnum { fun foo() {} fun foo() {} }",
+            pos(1, 49),
+            SemError::MethodExists("foo".into(), pos(1, 36)),
         );
     }
 }

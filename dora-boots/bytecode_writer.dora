@@ -190,6 +190,106 @@ class BytecodeWriter {
         self.emitReg3(BC_ROR_LONG, dest, lhs, rhs);
     }
 
+    fun emitReinterpretFloatAsInt(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_REINTERPRET_FLOAT_AS_INT, dest, src);
+    }
+
+    fun emitReinterpretIntAsFloat(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_REINTERPRET_INT_AS_FLOAT, dest, src);
+    }
+
+    fun emitReinterpretDoubleAsLong(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_REINTERPRET_DOUBLE_AS_LONG, dest, src);
+    }
+
+    fun emitReinterpretLongAsDouble(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_REINTERPRET_LONG_AS_DOUBLE, dest, src);
+    }
+
+    fun emitExtendByteToChar(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_EXTEND_BYTE_TO_CHAR, dest, src);
+    }
+
+    fun emitExtendByteToInt(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_EXTEND_BYTE_TO_INT, dest, src);
+    }
+
+    fun emitExtendByteToLong(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_EXTEND_BYTE_TO_LONG, dest, src);
+    }
+
+    fun emitExtendIntToLong(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_EXTEND_INT_TO_LONG, dest, src);
+    }
+
+    fun emitExtendCharToLong(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_EXTEND_CHAR_TO_LONG, dest, src);
+    }
+
+    fun emitCastCharToInt(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_CAST_CHAR_TO_INT, dest, src);
+    }
+
+    fun emitCastIntToByte(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_CAST_INT_TO_BYTE, dest, src);
+    }
+
+    fun emitCastIntToChar(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_CAST_INT_TO_CHAR, dest, src);
+    }
+
+    fun emitCastLongToByte(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_CAST_LONG_TO_BYTE, dest, src);
+    }
+
+    fun emitCastLongToChar(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_CAST_LONG_TO_CHAR, dest, src);
+    }
+
+    fun emitCastLongToInt(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_CAST_LONG_TO_INT, dest, src);
+    }
+
+    fun emitConvertIntToFloat(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_CONVERT_INT_TO_FLOAT, dest, src);
+    }
+
+    fun emitConvertIntToDouble(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_CONVERT_INT_TO_DOUBLE, dest, src);
+    }
+
+    fun emitConvertLongToFloat(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_CONVERT_LONG_TO_FLOAT, dest, src);
+    }
+
+    fun emitConvertLongToDouble(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_CONVERT_LONG_TO_DOUBLE, dest, src);
+    }
+
+    fun emitTruncateFloatToInt(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_TRUNCATE_FLOAT_TO_INT, dest, src);
+    }
+
+    fun emitTruncateFloatToLong(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_TRUNCATE_FLOAT_TO_LONG, dest, src);
+    }
+
+    fun emitTruncateDoubleToInt(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_TRUNCATE_DOUBLE_TO_INT, dest, src);
+    }
+
+    fun emitTruncateDoubleToLong(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_TRUNCATE_DOUBLE_TO_LONG, dest, src);
+    }
+
+    fun emitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) {
+        self.emitReg2AndCls(BC_INSTANCE_OF, dest, src, cls);
+    }
+
+    fun emitCheckedCast(src: BytecodeRegister, cls: ClassDefId) {
+        self.emitReg1AndCls(BC_CHECKED_CAST, src, cls);
+    }
+
     fun emitMovBool(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_MOV_BOOL, dest, src);
     }
@@ -872,8 +972,16 @@ class BytecodeWriter {
         self.emitByte(offset.toInt());
     }
 
+    fun emitReg1AndCls(inst: Int, r1: BytecodeRegister, cls: ClassDefId) {
+        self.emitVal3(inst, r1.value, cls.value);
+    }
+
     fun emitReg2(inst: Int, r1: BytecodeRegister, r2: BytecodeRegister) {
         self.emitVal3(inst, r1.value, r2.value);
+    }
+
+    fun emitReg2AndCls(inst: Int, r1: BytecodeRegister, r2: BytecodeRegister, cls: ClassDefId) {
+        self.emitVal4(inst, r1.value, r2.value, cls.value);
     }
 
     fun emitReg3(inst: Int, r1: BytecodeRegister, r2: BytecodeRegister, r3: BytecodeRegister) {
