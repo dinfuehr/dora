@@ -107,8 +107,8 @@ fn create_specialized_struct(vm: &VM, struc: &StructData, type_params: TypeList)
 }
 
 pub fn specialize_enum_id_params(vm: &VM, enum_id: EnumId, type_params: TypeList) -> EnumDefId {
-    let xenum = vm.enums.idx(enum_id);
-    let xenum = xenum.lock();
+    let xenum = &vm.enums[enum_id];
+    let xenum = xenum.read();
     specialize_enum(vm, &*xenum, type_params)
 }
 
