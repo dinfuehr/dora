@@ -8,8 +8,8 @@ use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{
-    ensure_tuple, CallType, Class, ClassDef, ClassDefId, ClassId, FieldDef, StructData, StructDef,
-    StructDefId, StructFieldDef, StructId, VM,
+    ensure_tuple, CallType, Class, ClassDef, ClassDefId, ClassId, EnumData, EnumDef, EnumDefId,
+    EnumId, EnumLayout, FieldDef, StructData, StructDef, StructDefId, StructFieldDef, StructId, VM,
 };
 use crate::vtable::{VTableBox, DISPLAY_SIZE};
 
@@ -102,6 +102,52 @@ fn create_specialized_struct(vm: &VM, struc: &StructData, type_params: TypeList)
     struct_def.align = align;
     struct_def.fields = fields;
     struct_def.ref_fields = ref_fields;
+
+    id
+}
+
+pub fn specialize_enum_id_params(vm: &VM, enum_id: EnumId, type_params: TypeList) -> EnumDefId {
+    let xenum = vm.enums.idx(enum_id);
+    let xenum = xenum.lock();
+    specialize_enum(vm, &*xenum, type_params)
+}
+
+pub fn specialize_enum(vm: &VM, xenum: &EnumData, type_params: TypeList) -> EnumDefId {
+    if let Some(&id) = xenum.specializations.read().get(&type_params) {
+        return id;
+    }
+
+    create_specialized_enum(vm, xenum, type_params)
+}
+
+fn create_specialized_enum(vm: &VM, xenum: &EnumData, type_params: TypeList) -> EnumDefId {
+    let id = {
+        let mut enum_defs = vm.enum_defs.lock();
+        let id: EnumDefId = enum_defs.len().into();
+
+        let old = xenum
+            .specializations
+            .write()
+            .insert(type_params.clone(), id);
+        assert!(old.is_none());
+
+        enum_defs.push(Arc::new(RwLock::new(EnumDef {
+            id,
+            enum_id: xenum.id,
+            type_params,
+            size: 0,
+            align: 0,
+            layout: EnumLayout::Int,
+        })));
+
+        id
+    };
+
+    let enum_def = vm.enum_defs.idx(id);
+    let mut enum_def = enum_def.write();
+    enum_def.size = 4;
+    enum_def.align = 4;
+    enum_def.layout = EnumLayout::Int;
 
     id
 }

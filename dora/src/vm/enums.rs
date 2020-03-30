@@ -70,6 +70,19 @@ pub struct EnumDef {
     pub type_params: TypeList,
     pub size: i32,
     pub align: i32,
+    pub layout: EnumLayout,
+}
+
+#[derive(Debug)]
+pub enum EnumLayout {
+    Int,
+    Ptr,
+    Tagged,
+}
+
+#[derive(Debug)]
+pub struct EnumDefVariant {
+    pub types: Vec<BuiltinType>,
 }
 
 pub fn find_methods_in_enum(
