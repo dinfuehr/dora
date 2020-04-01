@@ -73,6 +73,30 @@ class AssemblerX64: Assembler {
         self.emitModRmReg(src, dest);
     }
 
+    fun orlrr(dest: Register, src: Register) {
+        self.emitRex32ModRmOptional(src, dest);
+        self.emitByte(0x09Y);
+        self.emitModRmReg(src, dest);
+    }
+
+    fun orqrr(dest: Register, src: Register) {
+        self.emitRex64ModRm(src, dest);
+        self.emitByte(0x09Y);
+        self.emitModRmReg(src, dest);
+    }
+
+    fun andlrr(dest: Register, src: Register) {
+        self.emitRex32ModRmOptional(src, dest);
+        self.emitByte(0x21Y);
+        self.emitModRmReg(src, dest);
+    }
+
+    fun andqrr(dest: Register, src: Register) {
+        self.emitRex64ModRm(src, dest);
+        self.emitByte(0x21Y);
+        self.emitModRmReg(src, dest);
+    }
+
     fun retq() {
         self.emitByte(0xC3Y);
     }
@@ -345,4 +369,56 @@ impl Register {
     let buffer = asm.finalize();
     asm1(buffer, 0, 0x99Y);
     assert(buffer.length() == 3);
+}
+
+@test fun testAsmOrlrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.orlrr(RAX, R15);
+    asm.orlrr(RAX, RCX);
+    asm.orlrr(R15, RAX);
+    let buffer = asm.finalize();
+
+    asm3(buffer, 0, 0x44Y, 0x09Y, 0xF8Y);
+    asm2(buffer, 3, 0x09Y, 0xc8Y);
+    asm3(buffer, 5, 0x41Y, 0x09Y, 0xC7Y);
+    assert(buffer.length() == 8);
+}
+
+@test fun testAsmOrqrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.orqrr(RAX, R15);
+    asm.orqrr(RAX, RCX);
+    asm.orqrr(R15, RAX);
+    let buffer = asm.finalize();
+
+    asm3(buffer, 0, 0x4CY, 0x09Y, 0xF8Y);
+    asm3(buffer, 3, 0x48Y, 0x09Y, 0xC8Y);
+    asm3(buffer, 6, 0x49Y, 0x09Y, 0xC7Y);
+    assert(buffer.length() == 9);
+}
+
+@test fun testAsmAndlrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.andlrr(RAX, R15);
+    asm.andlrr(RAX, RCX);
+    asm.andlrr(R15, RAX);
+    let buffer = asm.finalize();
+
+    asm3(buffer, 0, 0x44Y, 0x21Y, 0xF8Y);
+    asm2(buffer, 3, 0x21Y, 0xC8Y);
+    asm3(buffer, 5, 0x41Y, 0x21Y, 0xC7Y);
+    assert(buffer.length() == 8);
+}
+
+@test fun testAsmAndqrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.andqrr(RAX, R15);
+    asm.andqrr(RAX, RCX);
+    asm.andqrr(R15, RAX);
+    let buffer = asm.finalize();
+
+    asm3(buffer, 0, 0x4CY, 0x21Y, 0xF8Y);
+    asm3(buffer, 3, 0x48Y, 0x21Y, 0xC8Y);
+    asm3(buffer, 6, 0x49Y, 0x21Y, 0xC7Y);
+    assert(buffer.length() == 9);
 }
