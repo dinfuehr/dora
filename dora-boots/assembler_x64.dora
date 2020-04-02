@@ -135,6 +135,18 @@ class AssemblerX64: Assembler {
         self.emitModRmReg(dest, src);
     }
 
+    fun idivlr(src: Register) {
+        self.emitRex32RmFieldOptional(src);
+        self.emitByte(0xF7Y);
+        self.emitModRmOpcode(0b111, src);
+    }
+
+    fun idivqr(src: Register) {
+        self.emitRex64RmField(src);
+        self.emitByte(0xF7Y);
+        self.emitModRmOpcode(0b111, src);
+    }
+
     fun retq() {
         self.emitByte(0xC3Y);
     }
@@ -190,6 +202,12 @@ class AssemblerX64: Assembler {
         }
     }
 
+    fun emitRex32RmFieldOptional(reg: Register) {
+        if reg.needsRexBit() {
+            self.emitRex(false, false, false, reg.needsRexBit());
+        }
+    }
+
     fun emitRex64() {
         self.emitRex(true, false, false, false);
     }
@@ -205,6 +223,10 @@ class AssemblerX64: Assembler {
 
     fun emitModRmReg(reg: Register, rm: Register) {
         self.emitModRm(0b11, reg.lowBits(), rm.lowBits());
+    }
+
+    fun emitModRmOpcode(opcode: Int, rm: Register) {
+        self.emitModRm(0b11, opcode, rm.lowBits());
     }
 
     fun emitModRm(mode: Int, reg: Int, rm: Int) {
@@ -533,4 +555,26 @@ impl Register {
     asm4(buffer, 0, 0x48Y, 0x0FY, 0xAFY, 0xC3Y);
     asm4(buffer, 4, 0x49Y, 0x0FY, 0xAFY, 0xCFY);
     assert(buffer.length() == 8);
+}
+
+@test fun testAsmIdivlrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.idivlr(RAX);
+    asm.idivlr(R15);
+    let buffer = asm.finalize();
+
+    asm2(buffer, 0, 0xF7Y, 0xF8Y);
+    asm3(buffer, 2, 0x41Y, 0xF7Y, 0xFFY);
+    assert(buffer.length() == 5);
+}
+
+@test fun testAsmIdivqrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.idivqr(RAX);
+    asm.idivqr(R15);
+    let buffer = asm.finalize();
+
+    asm3(buffer, 0, 0x48Y, 0xF7Y, 0xF8Y);
+    asm3(buffer, 3, 0x49Y, 0xF7Y, 0xFFY);
+    assert(buffer.length() == 6);
 }
