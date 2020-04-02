@@ -97,6 +97,44 @@ class AssemblerX64: Assembler {
         self.emitModRmReg(src, dest);
     }
 
+    fun xorlrr(dest: Register, src: Register) {
+        self.emitRex32ModRmOptional(src, dest);
+        self.emitByte(0x31Y);
+        self.emitModRmReg(src, dest);
+    }
+
+    fun xorqrr(dest: Register, src: Register) {
+        self.emitRex64ModRm(src, dest);
+        self.emitByte(0x31Y);
+        self.emitModRmReg(src, dest);
+    }
+
+    fun cmplrr(dest: Register, src: Register) {
+        self.emitRex32ModRmOptional(src, dest);
+        self.emitByte(0x39Y);
+        self.emitModRmReg(src, dest);
+    }
+
+    fun cmpqrr(dest: Register, src: Register) {
+        self.emitRex64ModRm(src, dest);
+        self.emitByte(0x39Y);
+        self.emitModRmReg(src, dest);
+    }
+
+    fun imullrr(dest: Register, src: Register) {
+        self.emitRex32ModRmOptional(dest, src);
+        self.emitByte(0x0FY);
+        self.emitByte(0xAFY);
+        self.emitModRmReg(dest, src);
+    }
+
+    fun imulqrr(dest: Register, src: Register) {
+        self.emitRex64ModRm(dest, src);
+        self.emitByte(0x0FY);
+        self.emitByte(0xAFY);
+        self.emitModRmReg(dest, src);
+    }
+
     fun retq() {
         self.emitByte(0xC3Y);
     }
@@ -421,4 +459,78 @@ impl Register {
     asm3(buffer, 3, 0x48Y, 0x21Y, 0xC8Y);
     asm3(buffer, 6, 0x49Y, 0x21Y, 0xC7Y);
     assert(buffer.length() == 9);
+}
+
+@test fun testAsmXorlrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.xorlrr(RAX, R15);
+    asm.xorlrr(RAX, RCX);
+    asm.xorlrr(R15, RAX);
+    let buffer = asm.finalize();
+
+    asm3(buffer, 0, 0x44Y, 0x31Y, 0xF8Y);
+    asm2(buffer, 3, 0x31Y, 0xC8Y);
+    asm3(buffer, 5, 0x41Y, 0x31Y, 0xC7Y);
+    assert(buffer.length() == 8);
+}
+
+@test fun testAsmXorqrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.xorqrr(RAX, R15);
+    asm.xorqrr(RAX, RCX);
+    asm.xorqrr(R15, RAX);
+    let buffer = asm.finalize();
+
+    asm3(buffer, 0, 0x4CY, 0x31Y, 0xF8Y);
+    asm3(buffer, 3, 0x48Y, 0x31Y, 0xC8Y);
+    asm3(buffer, 6, 0x49Y, 0x31Y, 0xC7Y);
+    assert(buffer.length() == 9);
+}
+
+@test fun testAsmCmplrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.cmplrr(RAX, R15);
+    asm.cmplrr(R15, RBX);
+    asm.cmplrr(RAX, RBX);
+    let buffer = asm.finalize();
+
+    asm3(buffer, 0, 0x44Y, 0x39Y, 0xF8Y);
+    asm3(buffer, 3, 0x41Y, 0x39Y, 0xDFY);
+    asm2(buffer, 6, 0x39Y, 0xD8Y);
+    assert(buffer.length() == 8);
+}
+
+@test fun testAsmCmpqrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.cmpqrr(RAX, R15);
+    asm.cmpqrr(R15, RBX);
+    asm.cmpqrr(RAX, RBX);
+    let buffer = asm.finalize();
+
+    asm3(buffer, 0, 0x4CY, 0x39Y, 0xF8Y);
+    asm3(buffer, 3, 0x49Y, 0x39Y, 0xDFY);
+    asm3(buffer, 6, 0x48Y, 0x39Y, 0xD8Y);
+    assert(buffer.length() == 9);
+}
+
+@test fun testAsmImullrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.imullrr(RAX, RBX);
+    asm.imullrr(RCX, R15);
+    let buffer = asm.finalize();
+
+    asm3(buffer, 0, 0x0FY, 0xAFY, 0xC3Y);
+    asm4(buffer, 3, 0x41Y, 0x0FY, 0xAFY, 0xCFY);
+    assert(buffer.length() == 7);
+}
+
+@test fun testAsmImulqrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.imulqrr(RAX, RBX);
+    asm.imulqrr(RCX, R15);
+    let buffer = asm.finalize();
+
+    asm4(buffer, 0, 0x48Y, 0x0FY, 0xAFY, 0xC3Y);
+    asm4(buffer, 4, 0x49Y, 0x0FY, 0xAFY, 0xCFY);
+    assert(buffer.length() == 8);
 }
