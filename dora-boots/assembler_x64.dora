@@ -147,6 +147,16 @@ class AssemblerX64: Assembler {
         self.emitModRmOpcode(0b111, src);
     }
 
+    fun setccr(condition: Condition, dest: Register) {
+        if dest.needsRexBit() || dest.lowBits() > 3 {
+            self.emitRex(false, false, false, dest.needsRexBit());
+        }
+
+        self.emitByte(0x0FY);
+        self.emitByte((0x90 + condition.toInt()).toByte());
+        self.emitModRmOpcode(0, dest);
+    }
+
     fun retq() {
         self.emitByte(0xC3Y);
     }
@@ -252,6 +262,149 @@ class AssemblerX64: Assembler {
     fun finalize() -> Array[Byte] {
         self.buffer.toArray()
     }
+}
+
+enum Condition {
+    Overflow,
+    NoOverflow,
+    Below,
+    NeitherAboveNorEqual,
+    NotBelow,
+    AboveOrEqual,
+    Equal,
+    Zero,
+    NotEqual,
+    NotZero,
+    BelowOrEqual,
+    NotAbove,
+    NeitherBelowNorEqual,
+    Above,
+    Sign,
+    NoSign,
+    Parity,
+    ParityEven,
+    NoParity,
+    ParityOdd,
+    Less,
+    NeitherGreaterNorEqual,
+    NotLess,
+    GreaterOrEqual,
+    LessOrEqual,
+    NotGreater,
+    NeitherLessNorEqual,
+    Greater,
+}
+
+impl Condition {
+    fun toInt() -> Int {
+        if self == Condition::Overflow {
+            0b0000
+        } else if self == Condition::NoOverflow {
+            0b0001
+        } else if self == Condition::Below {
+            0b0010
+        } else if self == Condition::NeitherAboveNorEqual {
+            0b0010
+        } else if self == Condition::NotBelow {
+            0b0011
+        } else if self == Condition::AboveOrEqual {
+            0b0011
+        } else if self == Condition::Equal {
+            0b0100
+        } else if self == Condition::Zero {
+            0b0100
+        } else if self == Condition::NotEqual {
+            0b0101
+        } else if self == Condition::NotZero {
+            0b0101
+        } else if self == Condition::BelowOrEqual {
+            0b0110
+        } else if self == Condition::NotAbove {
+            0b0110
+        } else if self == Condition::NeitherBelowNorEqual {
+            0b0111
+        } else if self == Condition::Above {
+            0b0111
+        } else if self == Condition::Sign {
+            0b1000
+        } else if self == Condition::NoSign {
+            0b1001
+        } else if self == Condition::Parity {
+            0b1010
+        } else if self == Condition::ParityEven {
+            0b1010
+        } else if self == Condition::NoParity {
+            0b1011
+        } else if self == Condition::ParityOdd {
+            0b1011
+        } else if self == Condition::Less {
+            0b1100
+        } else if self == Condition::NeitherGreaterNorEqual {
+            0b1100
+        } else if self == Condition::NotLess {
+            0b1101
+        } else if self == Condition::GreaterOrEqual {
+            0b1101
+        } else if self == Condition::LessOrEqual {
+            0b1110
+        } else if self == Condition::NotGreater {
+            0b1110
+        } else if self == Condition::NeitherLessNorEqual {
+            0b1111
+        } else if self == Condition::Greater {
+            0b1111
+        } else {
+            unreachable();
+            0
+        }
+    }
+}
+
+@test fun testConditionCodes() {
+    assert(Condition::Overflow.toInt() == 0b0000);
+
+    assert(Condition::NoOverflow.toInt() == 0b0001);
+
+    assert(Condition::Below.toInt() == 0b0010);
+    assert(Condition::NeitherAboveNorEqual.toInt() == 0b0010);
+
+    assert(Condition::NotBelow.toInt() == 0b0011);
+    assert(Condition::AboveOrEqual.toInt() == 0b0011);
+
+    assert(Condition::Equal.toInt() == 0b0100);
+    assert(Condition::Zero.toInt() == 0b0100);
+
+    assert(Condition::NotEqual.toInt() == 0b0101);
+    assert(Condition::NotZero.toInt() == 0b0101);
+
+    assert(Condition::BelowOrEqual.toInt() == 0b0110);
+    assert(Condition::NotAbove.toInt() == 0b0110);
+
+    assert(Condition::NeitherBelowNorEqual.toInt() == 0b0111);
+    assert(Condition::Above.toInt() == 0b0111);
+
+    assert(Condition::Sign.toInt() == 0b1000);
+
+    assert(Condition::NoSign.toInt() == 0b1001);
+
+    assert(Condition::Parity.toInt() == 0b1010);
+    assert(Condition::ParityEven.toInt() == 0b1010);
+
+    assert(Condition::NoParity.toInt() == 0b1011);
+    assert(Condition::ParityOdd.toInt() == 0b1011);
+
+    assert(Condition::Less.toInt() == 0b1100);
+    assert(Condition::NeitherGreaterNorEqual.toInt() == 0b1100);
+
+    assert(Condition::NotLess.toInt() == 0b1101);
+    assert(Condition::GreaterOrEqual.toInt() == 0b1101);
+
+    assert(Condition::LessOrEqual.toInt() == 0b1110);
+    assert(Condition::NotGreater.toInt() == 0b1110);
+
+    assert(Condition::NeitherLessNorEqual.toInt() == 0b1111);
+    assert(Condition::Greater.toInt() == 0b1111);
+
 }
 
 impl Register {
@@ -577,4 +730,23 @@ impl Register {
     asm3(buffer, 0, 0x48Y, 0xF7Y, 0xF8Y);
     asm3(buffer, 3, 0x49Y, 0xF7Y, 0xFFY);
     assert(buffer.length() == 6);
+}
+
+@test fun testAsmSetccr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.setccr(Condition::Equal, RAX);
+    asm.setccr(Condition::NotEqual, R15);
+    asm.setccr(Condition::GreaterOrEqual, RCX);
+    asm.setccr(Condition::Greater, RDX);
+    asm.setccr(Condition::LessOrEqual, RSI);
+    asm.setccr(Condition::Less, RDI);
+    let buffer = asm.finalize();
+
+    asm3(buffer, 0, 0x0FY, 0x94Y, 0xC0Y);
+    asm4(buffer, 3, 0x41Y, 0x0FY, 0x95Y, 0xC7Y);
+    asm3(buffer, 7, 0x0FY, 0x9DY, 0xC1Y);
+    asm3(buffer, 10, 0x0FY, 0x9FY, 0xC2Y);
+    asm4(buffer, 13, 0x40Y, 0x0FY, 0x9EY, 0xC6Y);
+    asm4(buffer, 17, 0x40Y, 0x0FY, 0x9CY, 0xC7Y);
+    assert(buffer.length() == 21);
 }
