@@ -820,15 +820,6 @@ pub fn emit_setb_reg_parity(buf: &mut MacroAssembler, reg: Reg, parity: bool) {
     emit_modrm(buf, 0b11, 0, reg.and7());
 }
 
-pub fn emit_movb_reg_reg(buf: &mut MacroAssembler, src: Reg, dest: Reg) {
-    if src.msb() != 0 || dest.msb() != 0 || !src.is_basic_reg() {
-        emit_rex(buf, false, dest.msb(), 0, src.msb());
-    }
-
-    emit_op(buf, 0x88);
-    emit_modrm(buf, 0b11, src.and7(), dest.and7());
-}
-
 pub fn emit_movzbl_reg_reg(buf: &mut MacroAssembler, src: Reg, dest: Reg) {
     if src.msb() != 0 || dest.msb() != 0 || !src.is_basic_reg() {
         emit_rex(buf, false, dest.msb(), 0, src.msb());
@@ -1697,15 +1688,6 @@ mod tests {
         assert_emit!(0x0f, 0x9f, 0xc2; emit_setb_reg(CondCode::Greater, RDX));
         assert_emit!(0x40, 0x0f, 0x9e, 0xc6; emit_setb_reg(CondCode::LessEq, RSI));
         assert_emit!(0x40, 0x0f, 0x9c, 0xc7; emit_setb_reg(CondCode::Less, RDI));
-    }
-
-    #[test]
-    fn test_movb_reg_reg() {
-        assert_emit!(0x88, 0xd8; emit_movb_reg_reg(RBX, RAX));
-        assert_emit!(0x88, 0xd1; emit_movb_reg_reg(RDX, RCX));
-        assert_emit!(0x45, 0x88, 0xd1; emit_movb_reg_reg(R10, R9));
-        assert_emit!(0x40, 0x88, 0xfe; emit_movb_reg_reg(RDI, RSI));
-        assert_emit!(0x45, 0x88, 0xf7; emit_movb_reg_reg(R14, R15));
     }
 
     #[test]

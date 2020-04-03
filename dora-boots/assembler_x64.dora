@@ -67,6 +67,26 @@ class AssemblerX64: Assembler {
         self.emitModRmReg(src, dest);
     }
 
+    fun movqri(dest: Register, imm: Immediate) {
+        if imm.isInt32() {
+            self.emitRex64RmField(dest);
+            self.emitByte(0xC7Y);
+            self.emitModRmOpcode(0, dest);
+            self.emitInt32(imm.toInt32());
+        } else {
+            self.emitRex64RmField(dest);
+            self.emitByte((0xB8 + dest.lowBits()).toByte());
+            self.emitInt64(imm.toInt64());
+        }
+    }
+
+    fun movlri(dest: Register, imm: Immediate) {
+        assert(imm.isInt32());
+        self.emitRex32RmFieldOptional(dest);
+        self.emitByte((0xB8 + dest.lowBits()).toByte());
+        self.emitInt32(imm.toInt32());
+    }
+
     fun movlrr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x89Y);
@@ -157,6 +177,26 @@ class AssemblerX64: Assembler {
         self.emitModRmOpcode(0, dest);
     }
 
+    fun callr(src: Register) {
+        self.emitRex32RmFieldOptional(src);
+        self.emitByte(0xFFY);
+        self.emitModRmOpcode(0b010, src);
+    }
+
+    fun cmovl(condition: Condition, dest: Register, src: Register) {
+        self.emitRex32ModRmOptional(dest, src);
+        self.emitByte(0x0FY);
+        self.emitByte((0x40 + condition.toInt()).toByte());
+        self.emitModRmReg(dest, src);
+    }
+
+    fun cmovq(condition: Condition, dest: Register, src: Register) {
+        self.emitRex64ModRm(dest, src);
+        self.emitByte(0x0FY);
+        self.emitByte((0x40 + condition.toInt()).toByte());
+        self.emitModRmReg(dest, src);
+    }
+
     fun retq() {
         self.emitByte(0xC3Y);
     }
@@ -175,7 +215,7 @@ class AssemblerX64: Assembler {
     }
 
     fun emitAlu64Imm(reg: Register, imm: Immediate, modrm_reg: Int, rax_opcode: Byte) {
-        assert(imm.isInt());
+        assert(imm.isInt32());
         self.emitRex64RmField(reg);
 
         if imm.isInt8() {
@@ -184,11 +224,11 @@ class AssemblerX64: Assembler {
             self.emitByte(imm.toByte());
         } else if reg == RAX {
             self.emitByte(rax_opcode);
-            self.emitInt(imm.toInt());
+            self.emitInt32(imm.toInt32());
         } else {
             self.emitByte(0x81Y);
             self.emitModRm(0b11, modrm_reg, reg.lowBits());
-            self.emitInt(imm.toInt());
+            self.emitInt32(imm.toInt32());
         }
     }
 
@@ -255,8 +295,12 @@ class AssemblerX64: Assembler {
         self.buffer.emitByte(value);
     }
 
-    fun emitInt(value: Int) {
-        self.buffer.emitInt(value);
+    fun emitInt32(value: Int) {
+        self.buffer.emitInt32(value);
+    }
+
+    fun emitInt64(value: Long) {
+        self.buffer.emitInt64(value);
     }
 
     fun finalize() -> Array[Byte] {
@@ -357,6 +401,30 @@ impl Condition {
             unreachable();
             0
         }
+    }
+}
+
+class Immediate(let value: Long) {
+    fun isInt8() -> Bool {
+        let limit = 1L << 8;
+        -limit <= self.value && self.value < limit
+    }
+
+    fun isInt32() -> Bool {
+        let limit = 1L << 32;
+        -limit <= self.value && self.value < limit
+    }
+
+    fun toByte() -> Byte {
+        self.value.toByte()
+    }
+
+    fun toInt32() -> Int {
+        self.value.toInt()
+    }
+
+    fun toInt64() -> Long {
+        self.value
     }
 }
 
@@ -749,4 +817,65 @@ impl Register {
     asm4(buffer, 13, 0x40Y, 0x0FY, 0x9EY, 0xC6Y);
     asm4(buffer, 17, 0x40Y, 0x0FY, 0x9CY, 0xC7Y);
     assert(buffer.length() == 21);
+}
+
+@test fun testAsmCallr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.callr(RAX);
+    asm.callr(R15);
+    let buffer = asm.finalize();
+
+    asm2(buffer, 0, 0xFFY, 0xD0Y);
+    asm3(buffer, 2, 0x41Y, 0xFFY, 0xD7Y);
+    assert(buffer.length() == 5);
+}
+
+@test fun testAsmCmovl(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.cmovl(Condition::Equal, R15, RAX);
+    asm.cmovl(Condition::NotEqual, RAX, R13);
+    let buffer = asm.finalize();
+
+    asm4(buffer, 0, 0x44Y, 0x0FY, 0x44Y, 0xF8Y);
+    asm4(buffer, 4, 0x41Y, 0x0FY, 0x45Y, 0xC5Y);
+    assert(buffer.length() == 8);
+}
+
+@test fun testAsmCmovq(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.cmovq(Condition::Greater, RAX, RCX);
+    asm.cmovq(Condition::Equal, R15, RAX);
+    asm.cmovq(Condition::NotEqual, RAX, R13);
+    let buffer = asm.finalize();
+
+    asm4(buffer, 0, 0x48Y, 0x0FY, 0x4FY, 0xC1Y);
+    asm4(buffer, 4, 0x4CY, 0x0FY, 0x44Y, 0xF8Y);
+    asm4(buffer, 8, 0x49Y, 0x0FY, 0x45Y, 0xC5Y);
+    assert(buffer.length() == 12);
+}
+
+@test fun testAsmMovlri(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.movlri(RAX, Immediate(2L));
+    asm.movlri(R14, Immediate(3L));
+    let buffer = asm.finalize();
+
+    asm1(buffer, 0, 0xB8Y);
+    asmInt(buffer, 1, 2);
+    asm2(buffer, 5, 0x41Y, 0xBEY);
+    asmInt(buffer, 7, 3);
+    assert(buffer.length() == 11);
+}
+
+@test fun testAsmMovqri(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.movqri(RAX, Immediate(1L));
+    asm.movqri(R15, Immediate(-1L));
+    let buffer = asm.finalize();
+
+    asm3(buffer, 0, 0x48Y, 0xC7Y, 0xC0Y);
+    asmInt(buffer, 3, 1);
+    asm3(buffer, 7, 0x49Y, 0xC7Y, 0xC7Y);
+    asmInt(buffer, 10, -1);
+    assert(buffer.length() == 14);
 }

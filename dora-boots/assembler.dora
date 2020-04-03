@@ -1,20 +1,20 @@
 class AssemblerBuffer {
     let buffer: Vec[Byte] = Vec[Byte]();
-    let slow_paths: Vec[SlowPath] = Vec[SlowPath]();
 
     fun emitByte(value: Byte) {
         self.buffer.push(value);
     }
 
-    fun emitInt(value: Int) {
+    fun emitInt32(value: Int) {
         self.emitByte((value & 0xFF).toByte());
         self.emitByte(((value >>> 8) & 0xFF).toByte());
         self.emitByte(((value >>> 16) & 0xFF).toByte());
         self.emitByte(((value >>> 24) & 0xFF).toByte());
     }
 
-    fun addSlowPath(slow_path: SlowPath) {
-        self.slow_paths.push(slow_path);
+    fun emitInt64(value: Long) {
+        self.emitInt32(value.toInt());
+        self.emitInt32((value >>> 32).toInt());
     }
 
     fun length() -> Int {
@@ -39,7 +39,7 @@ class AssemblerBuffer {
 
 @test fun testAssemblerBufferEmitInt(_x: Testing) {
     let asm = AssemblerBuffer();
-    asm.emitInt(0x11223344);
+    asm.emitInt32(0x11223344);
     let buffer = asm.toArray();
     assert(buffer(0) == 0x44Y);
     assert(buffer(1) == 0x33Y);
@@ -57,32 +57,6 @@ class AssemblerBuffer {
 class Register(let value: Int) {
     fun equals(rhs: Register) -> Bool {
         self.value == rhs.value
-    }
-}
-
-class Immediate(let value: Long) {
-    fun isInt8() -> Bool {
-        self.value >= -128L && self.value <= 127L
-    }
-
-    fun isByte() -> Bool {
-        self.value >= Byte::minValue().toLong() && self.value <= Byte::maxValue().toLong()
-    }
-
-    fun isInt() -> Bool {
-        self.value >= Int::minValue().toLong() && self.value <= Int::maxValue().toLong()
-    }
-
-    fun toByte() -> Byte {
-        self.value.toByte()
-    }
-
-    fun toInt() -> Int {
-        self.value.toInt()
-    }
-
-    fun toLong() -> Long {
-        self.value
     }
 }
 
@@ -115,10 +89,23 @@ fun asm4(buffer: Array[Byte], index: Int, val1: Byte, val2: Byte, val3: Byte, va
 }
 
 fun asmInt(buffer: Array[Byte], index: Int, value: Int) {
-    assert(buffer(index) == (value & 0xFF).toByte());
-    assert(buffer(index+1) == ((value >>> 8) & 0xFF).toByte());
-    assert(buffer(index+2) == ((value >>> 16) & 0xFF).toByte());
-    assert(buffer(index+3) == ((value >>> 24) & 0xFF).toByte());
+    let b1 = buffer(index).toInt();
+    let b2 = buffer(index+1).toInt();
+    let b3 = buffer(index+2).toInt();
+    let b4 = buffer(index+3).toInt();
+
+    let got = (b4 << 24) | (b3 << 16) | (b2 << 8) | b1;
+
+    if value != got {
+        println("expected ${value.toStringHex()} but got ${got.toStringHex()}");
+    }
+
+    assert(value == got);
+}
+
+fun asmLong(buffer: Array[Byte], index: Int, value: Long) {
+    asmInt(buffer, index, value.toInt());
+    asmInt(buffer, index, (value >>> 32).toInt());
 }
 
 fun printBuffer(buffer: Array[Byte]) {
