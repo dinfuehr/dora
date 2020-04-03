@@ -47,6 +47,16 @@ impl Assembler {
         self.emit_u8(0x90);
     }
 
+    pub fn setcc_r(&mut self, condition: Condition, dest: Register) {
+        if dest.needs_rex() || dest.low_bits() > 3 {
+            self.emit_rex(false, false, false, dest.needs_rex());
+        }
+
+        self.emit_u8(0x0F);
+        self.emit_u8((0x90 + condition.int()) as u8);
+        self.emit_modrm_opcode(0, dest);
+    }
+
     pub fn movq_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex64_modrm(src, dest);
         self.emit_u8(0x89);
@@ -69,6 +79,78 @@ impl Assembler {
         self.emit_rex32_optional(src, dest);
         self.emit_u8(0x01);
         self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn subq_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex64_modrm(src, dest);
+        self.emit_u8(0x29);
+        self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn subl_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex32_optional(src, dest);
+        self.emit_u8(0x29);
+        self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn andl_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex32_optional(src, dest);
+        self.emit_u8(0x21);
+        self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn andq_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex64_modrm(src, dest);
+        self.emit_u8(0x21);
+        self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn cmpl_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex32_optional(src, dest);
+        self.emit_u8(0x39);
+        self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn cmpq_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex64_modrm(src, dest);
+        self.emit_u8(0x39);
+        self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn orl_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex32_optional(src, dest);
+        self.emit_u8(0x09);
+        self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn orq_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex64_modrm(src, dest);
+        self.emit_u8(0x09);
+        self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn xorl_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex32_optional(src, dest);
+        self.emit_u8(0x31);
+        self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn xorq_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex64_modrm(src, dest);
+        self.emit_u8(0x31);
+        self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn testl_rr(&mut self, lhs: Register, rhs: Register) {
+        self.emit_rex32_optional(rhs, lhs);
+        self.emit_u8(0x85);
+        self.emit_modrm_registers(rhs, lhs);
+    }
+
+    pub fn testq_rr(&mut self, lhs: Register, rhs: Register) {
+        self.emit_rex64_modrm(rhs, lhs);
+        self.emit_u8(0x85);
+        self.emit_modrm_registers(rhs, lhs);
     }
 
     pub fn cdq(&mut self) {
@@ -113,6 +195,10 @@ impl Assembler {
         self.emit_modrm(0b11, reg.low_bits(), rm.low_bits());
     }
 
+    fn emit_modrm_opcode(&mut self, opcode: u8, reg: Register) {
+        self.emit_modrm(0b11, opcode, reg.low_bits());
+    }
+
     fn emit_modrm(&mut self, mode: u8, reg: u8, rm: u8) {
         assert!(mode < 4);
         assert!(reg < 8);
@@ -125,6 +211,61 @@ impl Assembler {
         assert!(index < 8);
         assert!(base < 8);
         self.emit_u8(scale << 6 | index << 3 | base);
+    }
+}
+
+#[derive(Copy, Clone)]
+pub enum Condition {
+    Overflow,
+    NoOverflow,
+    Below,
+    NeitherAboveNorEqual,
+    NotBelow,
+    AboveOrEqual,
+    Equal,
+    Zero,
+    NotEqual,
+    NotZero,
+    BelowOrEqual,
+    NotAbove,
+    NeitherBelowNorEqual,
+    Above,
+    Sign,
+    NoSign,
+    Parity,
+    ParityEven,
+    NoParity,
+    ParityOdd,
+    Less,
+    NeitherGreaterNorEqual,
+    NotLess,
+    GreaterOrEqual,
+    LessOrEqual,
+    NotGreater,
+    NeitherLessNorEqual,
+    Greater,
+}
+
+impl Condition {
+    pub fn int(self) -> i32 {
+        match self {
+            Condition::Overflow => 0b0000,
+            Condition::NoOverflow => 0b0001,
+            Condition::Below | Condition::NeitherAboveNorEqual => 0b0010,
+            Condition::NotBelow | Condition::AboveOrEqual => 0b0011,
+            Condition::Equal | Condition::Zero => 0b0100,
+            Condition::NotEqual | Condition::NotZero => 0b0101,
+            Condition::BelowOrEqual | Condition::NotAbove => 0b0110,
+            Condition::NeitherBelowNorEqual | Condition::Above => 0b0111,
+            Condition::Sign => 0b1000,
+            Condition::NoSign => 0b1001,
+            Condition::Parity | Condition::ParityEven => 0b1010,
+            Condition::NoParity | Condition::ParityOdd => 0b1011,
+            Condition::Less | Condition::NeitherGreaterNorEqual => 0b1100,
+            Condition::NotLess | Condition::GreaterOrEqual => 0b1101,
+            Condition::LessOrEqual | Condition::NotGreater => 0b1110,
+            Condition::NeitherLessNorEqual | Condition::Greater => 0b1111,
+        }
     }
 }
 
@@ -239,5 +380,97 @@ mod tests {
     fn test_cdq_cqo() {
         assert_emit!(0x99; cdq);
         assert_emit!(0x48, 0x99; cqo);
+    }
+
+    #[test]
+    fn test_setcc_r() {
+        assert_emit!(0x0f, 0x94, 0xc0; setcc_r(Condition::Equal, RAX));
+        assert_emit!(0x41, 0x0f, 0x95, 0xc7; setcc_r(Condition::NotEqual, R15));
+        assert_emit!(0x0f, 0x9d, 0xc1; setcc_r(Condition::GreaterOrEqual, RCX));
+        assert_emit!(0x0f, 0x9f, 0xc2; setcc_r(Condition::Greater, RDX));
+        assert_emit!(0x40, 0x0f, 0x9e, 0xc6; setcc_r(Condition::LessOrEqual, RSI));
+        assert_emit!(0x40, 0x0f, 0x9c, 0xc7; setcc_r(Condition::Less, RDI));
+    }
+
+    #[test]
+    fn test_xorl_rr() {
+        assert_emit!(0x44, 0x31, 0xf8; xorl_rr(RAX, R15));
+        assert_emit!(0x31, 0xc8; xorl_rr(RAX, RCX));
+        assert_emit!(0x41, 0x31, 0xc7; xorl_rr(R15, RAX));
+    }
+
+    #[test]
+    fn test_xorq_rr() {
+        assert_emit!(0x4C, 0x31, 0xf8; xorq_rr(RAX, R15));
+        assert_emit!(0x48, 0x31, 0xc8; xorq_rr(RAX, RCX));
+        assert_emit!(0x49, 0x31, 0xc7; xorq_rr(R15, RAX));
+    }
+
+    #[test]
+    fn test_testl_rr() {
+        assert_emit!(0x85, 0xc0; testl_rr(RAX, RAX));
+        assert_emit!(0x85, 0xc6; testl_rr(RSI, RAX));
+        assert_emit!(0x41, 0x85, 0xc7; testl_rr(R15, RAX));
+    }
+
+    #[test]
+    fn test_testq_rr() {
+        assert_emit!(0x48, 0x85, 0xc0; testq_rr(RAX, RAX));
+        assert_emit!(0x48, 0x85, 0xc6; testq_rr(RSI, RAX));
+        assert_emit!(0x49, 0x85, 0xc7; testq_rr(R15, RAX));
+    }
+
+    #[test]
+    fn test_subl_rr() {
+        assert_emit!(0x29, 0xd8; subl_rr(RAX, RBX));
+        assert_emit!(0x44, 0x29, 0xf9; subl_rr(RCX, R15));
+    }
+
+    #[test]
+    fn test_subq_rr() {
+        assert_emit!(0x48, 0x29, 0xd8; subq_rr(RAX, RBX));
+        assert_emit!(0x4c, 0x29, 0xf9; subq_rr(RCX, R15));
+    }
+
+    #[test]
+    fn test_andl_rr() {
+        assert_emit!(0x44, 0x21, 0xf8; andl_rr(RAX, R15));
+        assert_emit!(0x21, 0xc8; andl_rr(RAX, RCX));
+        assert_emit!(0x41, 0x21, 0xc7; andl_rr(R15, RAX));
+    }
+
+    #[test]
+    fn test_andq_rr() {
+        assert_emit!(0x4C, 0x21, 0xf8; andq_rr(RAX, R15));
+        assert_emit!(0x48, 0x21, 0xc8; andq_rr(RAX, RCX));
+        assert_emit!(0x49, 0x21, 0xc7; andq_rr(R15, RAX));
+    }
+
+    #[test]
+    fn test_orl_rr() {
+        assert_emit!(0x44, 0x09, 0xf8; orl_rr(RAX, R15));
+        assert_emit!(0x09, 0xc8; orl_rr(RAX, RCX));
+        assert_emit!(0x41, 0x09, 0xc7; orl_rr(R15, RAX));
+    }
+
+    #[test]
+    fn test_orq_rr() {
+        assert_emit!(0x4c, 0x09, 0xf8; orq_rr(RAX, R15));
+        assert_emit!(0x48, 0x09, 0xc8; orq_rr(RAX, RCX));
+        assert_emit!(0x49, 0x09, 0xc7; orq_rr(R15, RAX));
+    }
+
+    #[test]
+    fn test_cmpl_rr() {
+        assert_emit!(0x44, 0x39, 0xf8; cmpl_rr(RAX, R15));
+        assert_emit!(0x41, 0x39, 0xdf; cmpl_rr(R15, RBX));
+        assert_emit!(0x39, 0xd8; cmpl_rr(RAX, RBX));
+    }
+
+    #[test]
+    fn test_cmpq_rr() {
+        assert_emit!(0x4C, 0x39, 0xf8; cmpq_rr(RAX, R15));
+        assert_emit!(0x49, 0x39, 0xdf; cmpq_rr(R15, RBX));
+        assert_emit!(0x48, 0x39, 0xd8; cmpq_rr(RAX, RBX));
     }
 }
