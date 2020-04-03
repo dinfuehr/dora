@@ -8,7 +8,7 @@ use dora_parser::ast::*;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::semck::globaldef::{report_term_shadow, report_type_shadow};
+use crate::semck::globaldef::report_term_shadow;
 use crate::sym::TermSym::{
     SymClassConstructor, SymConst, SymFct, SymGlobal, SymModule, SymStructConstructor, SymVar,
 };
@@ -158,16 +158,8 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             self.visit_expr(expr);
         }
 
-        let type_sym = self.vm.sym.lock().get_type(var.name);
-        match type_sym {
-            Some(SymClass(_)) | Some(SymStruct(_)) => {
-                report_type_shadow(self.vm, var.name, self.fct.file, var.pos, type_sym.unwrap())
-            }
-            _ => {
-                let var_id = self.add_var(var_ctxt);
-                self.src.map_vars.insert(var.id, var_id)
-            }
-        }
+        let var_id = self.add_var(var_ctxt);
+        self.src.map_vars.insert(var.id, var_id)
     }
 
     fn check_stmt_for(&mut self, fl: &'ast StmtForType) {
@@ -182,16 +174,9 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             ty: BuiltinType::Unit,
             node_id: fl.id,
         };
-        let type_sym = self.vm.sym.lock().get_type(fl.name);
-        match type_sym {
-            Some(SymClass(_)) | Some(SymStruct(_)) => {
-                report_type_shadow(self.vm, fl.name, self.fct.file, fl.pos, type_sym.unwrap())
-            }
-            _ => {
-                let var_id = self.add_var(var_ctxt);
-                self.src.map_vars.insert(fl.id, var_id);
-            }
-        }
+
+        let var_id = self.add_var(var_ctxt);
+        self.src.map_vars.insert(fl.id, var_id);
 
         self.visit_stmt(&fl.block);
         self.vm.sym.lock().pop_level();
@@ -389,11 +374,7 @@ mod tests {
 
     #[test]
     fn shadow_type_with_var() {
-        err(
-            "fun test() { let String = 3; }",
-            pos(1, 14),
-            SemError::ShadowClass("String".into()),
-        );
+        ok("fun test() { let String = 3; }");
     }
 
     #[test]

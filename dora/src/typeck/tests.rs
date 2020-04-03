@@ -619,6 +619,7 @@ fn access_super_class_field() {
 #[test]
 fn same_names() {
     ok("class Foo { var Foo: Foo = Foo(); }");
+    ok("class Foo fun foo() { let Foo: Int = 1; }");
     err(
         "class Foo { var Foo: Foo = Foo(); } module Foo { fun Foo() -> Foo = nil; }",
         pos(1, 37),
