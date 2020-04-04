@@ -383,7 +383,11 @@ impl MacroAssembler {
             self.asm.cdq();
         }
 
-        asm::emit_idiv_reg_reg(self, mode.is64(), rhs);
+        if mode.is64() {
+            self.asm.idivq_r(rhs.into());
+        } else {
+            self.asm.idivl_r(rhs.into());
+        }
 
         if dest != result {
             self.mov_rr(mode.is64(), dest.into(), result.into());
@@ -393,7 +397,11 @@ impl MacroAssembler {
     }
 
     pub fn int_mul(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        asm::emit_imul_reg_reg(self, mode.is64(), rhs, lhs);
+        if mode.is64() {
+            self.asm.imulq_rr(lhs.into(), rhs.into());
+        } else {
+            self.asm.imull_rr(lhs.into(), rhs.into());
+        }
 
         if dest != lhs {
             self.mov_rr(mode.is64(), dest.into(), lhs.into());
@@ -696,7 +704,7 @@ impl MacroAssembler {
         } else {
             let scratch = self.get_scratch();
             self.load_int_const(MachineMode::Ptr, *scratch, element_size as i64);
-            asm::emit_imul_reg_reg(self, true, length, *scratch);
+            self.asm.imulq_rr((*scratch).into(), length.into());
             asm::emit_addq_imm_reg(self, size, *scratch);
             self.asm.movq_rr(dest.into(), (*scratch).into());
         }
@@ -711,7 +719,7 @@ impl MacroAssembler {
         let scratch = self.get_scratch();
 
         self.load_int_const(MachineMode::Ptr, *scratch, element_size as i64);
-        asm::emit_imul_reg_reg(self, true, index, *scratch);
+        self.asm.imulq_rr((*scratch).into(), index.into());
         asm::emit_addq_imm_reg(self, offset, *scratch);
         self.asm.addq_rr((*scratch).into(), obj.into());
         self.asm.movq_rr(dest.into(), (*scratch).into());
@@ -872,7 +880,7 @@ impl MacroAssembler {
     }
 
     pub fn call_reg(&mut self, reg: Reg) {
-        asm::emit_callq_reg(self, reg);
+        self.asm.call_r(reg.into());
     }
 
     // emit debug instruction

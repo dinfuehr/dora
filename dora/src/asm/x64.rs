@@ -30,12 +30,12 @@ pub const R15: Register = Register(15);
 
 impl Assembler {
     pub fn pushq_r(&mut self, reg: Register) {
-        self.emit_rex_optional(reg);
+        self.emit_rex32_rm_optional(reg);
         self.emit_u8(0x50 + reg.low_bits());
     }
 
     pub fn popq_r(&mut self, reg: Register) {
-        self.emit_rex_optional(reg);
+        self.emit_rex32_rm_optional(reg);
         self.emit_u8(0x58 + reg.low_bits());
     }
 
@@ -153,6 +153,38 @@ impl Assembler {
         self.emit_modrm_registers(rhs, lhs);
     }
 
+    pub fn imull_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex32_optional(dest, src);
+        self.emit_u8(0x0F);
+        self.emit_u8(0xAF);
+        self.emit_modrm_registers(dest, src);
+    }
+
+    pub fn imulq_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex64_modrm(dest, src);
+        self.emit_u8(0x0F);
+        self.emit_u8(0xAF);
+        self.emit_modrm_registers(dest, src);
+    }
+
+    pub fn idivl_r(&mut self, reg: Register) {
+        self.emit_rex32_rm_optional(reg);
+        self.emit_u8(0xF7);
+        self.emit_modrm_opcode(0b111, reg);
+    }
+
+    pub fn idivq_r(&mut self, src: Register) {
+        self.emit_rex64_rm(src);
+        self.emit_u8(0xF7);
+        self.emit_modrm_opcode(0b111, src);
+    }
+
+    pub fn call_r(&mut self, reg: Register) {
+        self.emit_rex32_rm_optional(reg);
+        self.emit_u8(0xFF);
+        self.emit_modrm_opcode(0b010, reg);
+    }
+
     pub fn cdq(&mut self) {
         self.emit_u8(0x99);
     }
@@ -162,7 +194,7 @@ impl Assembler {
         self.emit_u8(0x99);
     }
 
-    fn emit_rex_optional(&mut self, reg: Register) {
+    fn emit_rex32_rm_optional(&mut self, reg: Register) {
         if reg.needs_rex() {
             self.emit_rex(false, false, false, true);
         }
@@ -176,6 +208,10 @@ impl Assembler {
 
     fn emit_rex64(&mut self) {
         self.emit_rex(true, false, false, false);
+    }
+
+    fn emit_rex64_rm(&mut self, rm: Register) {
+        self.emit_rex(true, false, false, rm.needs_rex());
     }
 
     fn emit_rex64_modrm(&mut self, reg: Register, rm: Register) {
@@ -472,5 +508,35 @@ mod tests {
         assert_emit!(0x4C, 0x39, 0xf8; cmpq_rr(RAX, R15));
         assert_emit!(0x49, 0x39, 0xdf; cmpq_rr(R15, RBX));
         assert_emit!(0x48, 0x39, 0xd8; cmpq_rr(RAX, RBX));
+    }
+
+    #[test]
+    fn test_imull_rr() {
+        assert_emit!(0x0f, 0xaf, 0xc3; imull_rr(RAX, RBX));
+        assert_emit!(0x41, 0x0f, 0xaf, 0xcf; imull_rr(RCX, R15));
+    }
+
+    #[test]
+    fn test_imulq_rr() {
+        assert_emit!(0x48, 0x0f, 0xaf, 0xc3; imulq_rr(RAX, RBX));
+        assert_emit!(0x49, 0x0f, 0xaf, 0xcf; imulq_rr(RCX, R15));
+    }
+
+    #[test]
+    fn test_idivl_r() {
+        assert_emit!(0xf7, 0xf8; idivl_r(RAX));
+        assert_emit!(0x41, 0xf7, 0xff; idivl_r(R15));
+    }
+
+    #[test]
+    fn test_idivq_r() {
+        assert_emit!(0x48, 0xf7, 0xf8; idivq_r(RAX));
+        assert_emit!(0x49, 0xf7, 0xff; idivq_r(R15));
+    }
+
+    #[test]
+    fn test_call_r() {
+        assert_emit!(0xff, 0xd0; call_r(RAX));
+        assert_emit!(0x41, 0xff, 0xd7; call_r(R15));
     }
 }
