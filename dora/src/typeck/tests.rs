@@ -429,7 +429,7 @@ fn type_function_params() {
 #[test]
 fn type_return_nil() {
     ok("fun foo() -> String { return nil; }");
-    ok("class Foo fun foo() -> Foo { return nil; }");
+    ok("class Bar fun foo() -> Bar { return nil; }");
     err(
         "fun foo() -> Int { return nil; }",
         pos(1, 20),
@@ -614,6 +614,17 @@ fn super_class() {
 fn access_super_class_field() {
     ok("@open class A(var a: Int) class B(x: Int): A(x*2)
             fun foo(b: B) { b.a = b.a + 10; }");
+}
+
+#[test]
+fn same_names() {
+    ok("class Foo { var Foo: Foo = Foo(); }");
+    ok("class Foo fun foo() { let Foo: Int = 1; }");
+    err(
+        "class Foo { var Foo: Foo = Foo(); } module Foo { fun Foo() -> Foo = nil; }",
+        pos(1, 37),
+        SemError::ShadowClassConstructor("Foo".into()),
+    );
 }
 
 #[test]

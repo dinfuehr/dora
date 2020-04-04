@@ -8,8 +8,11 @@ use dora_parser::ast::*;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::sym::Sym;
-use crate::sym::Sym::*;
+use crate::semck::globaldef::report_term_shadow;
+use crate::sym::TermSym::{
+    SymClassConstructor, SymConst, SymFct, SymGlobal, SymModule, SymStructConstructor, SymVar,
+};
+use crate::sym::TypeSym::{SymClass, SymClassTypeParam, SymEnum, SymFctTypeParam, SymStruct};
 use crate::ty::BuiltinType;
 
 pub fn check<'ast>(vm: &VM<'ast>) {
@@ -59,7 +62,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                 self.vm
                     .sym
                     .lock()
-                    .insert(tp.name, SymClassTypeParam(cls_id, tpid.into()));
+                    .insert_type(tp.name, SymClassTypeParam(cls_id, tpid.into()));
             }
         }
 
@@ -68,7 +71,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                 self.vm
                     .sym
                     .lock()
-                    .insert(tp.name, SymFctTypeParam(self.fct.id, tpid.into()));
+                    .insert_type(tp.name, SymFctTypeParam(self.fct.id, tpid.into()));
             }
         }
 
@@ -130,33 +133,16 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         self.src.vars.push(var);
     }
 
-    pub fn add_var<F>(&mut self, mut var: Var, replaceable: F) -> Result<VarId, Sym>
-    where
-        F: FnOnce(&Sym) -> bool,
-    {
+    pub fn add_var(&mut self, mut var: Var) -> VarId {
         let name = var.name;
         let var_id = VarId(self.src.vars.len());
 
         var.id = var_id;
 
-        let result = match self.vm.sym.lock().get(name) {
-            Some(sym) => {
-                if replaceable(&sym) {
-                    Ok(var_id)
-                } else {
-                    Err(sym)
-                }
-            }
-            None => Ok(var_id),
-        };
-
-        if result.is_ok() {
-            self.vm.sym.lock().insert(name, SymVar(var_id));
-        }
-
+        self.vm.sym.lock().insert_term(name, SymVar(var_id));
         self.src.vars.push(var);
 
-        result
+        var_id
     }
 
     fn check_stmt_var(&mut self, var: &'ast StmtVarType) {
@@ -172,104 +158,90 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             self.visit_expr(expr);
         }
 
-        // variables are not allowed to replace types, other variables
-        // and functions can be replaced
-        match self.add_var(var_ctxt, |sym| !sym.is_class()) {
-            Ok(var_id) => {
-                self.src.map_vars.insert(var.id, var_id);
-            }
-
-            Err(_) => {
-                let name = str(self.vm, var.name);
-                report(self.vm, self.fct.file, var.pos, SemError::ShadowClass(name));
-            }
-        }
+        let var_id = self.add_var(var_ctxt);
+        self.src.map_vars.insert(var.id, var_id)
     }
 
-    fn check_stmt_for(&mut self, for_loop: &'ast StmtForType) {
-        self.visit_expr(&for_loop.expr);
+    fn check_stmt_for(&mut self, fl: &'ast StmtForType) {
+        self.visit_expr(&fl.expr);
 
         self.vm.sym.lock().push_level();
 
         let var_ctxt = Var {
             id: VarId(0),
-            name: for_loop.name,
+            name: fl.name,
             reassignable: false,
             ty: BuiltinType::Unit,
-            node_id: for_loop.id,
+            node_id: fl.id,
         };
 
-        match self.add_var(var_ctxt, |sym| !sym.is_class()) {
-            Ok(var_id) => {
-                self.src.map_vars.insert(for_loop.id, var_id);
-            }
+        let var_id = self.add_var(var_ctxt);
+        self.src.map_vars.insert(fl.id, var_id);
 
-            Err(_) => {
-                let name = str(self.vm, for_loop.name);
-                report(
-                    self.vm,
-                    self.fct.file,
-                    for_loop.pos,
-                    SemError::ShadowClass(name),
-                );
-            }
-        }
-
-        self.visit_stmt(&for_loop.block);
+        self.visit_stmt(&fl.block);
         self.vm.sym.lock().pop_level();
     }
 
     fn check_expr_ident(&mut self, ident: &'ast ExprIdentType) {
-        let sym = self.vm.sym.lock().get(ident.name);
+        let term_sym = self.vm.sym.lock().get_term(ident.name);
+        let type_sym = self.vm.sym.lock().get_type(ident.name);
 
-        match sym {
-            Some(SymVar(id)) => {
+        match (term_sym, type_sym) {
+            (Some(SymVar(id)), None) => {
                 self.src.map_idents.insert(ident.id, IdentType::Var(id));
             }
 
-            Some(SymGlobal(id)) => {
+            (Some(SymGlobal(id)), None) => {
                 self.src.map_idents.insert(ident.id, IdentType::Global(id));
             }
 
-            Some(SymStruct(id)) => {
-                self.src.map_idents.insert(ident.id, IdentType::Struct(id));
-            }
-
-            Some(SymConst(id)) => {
+            (Some(SymConst(id)), None) => {
                 self.src.map_idents.insert(ident.id, IdentType::Const(id));
             }
 
-            Some(SymFct(id)) => {
+            (Some(SymFct(id)), None) => {
                 self.src.map_idents.insert(ident.id, IdentType::Fct(id));
             }
 
-            Some(SymClass(id)) => {
-                self.src.map_idents.insert(ident.id, IdentType::Class(id));
-            }
-
-            Some(SymModule(id)) => {
+            (Some(SymModule(id)), None) => {
                 self.src.map_idents.insert(ident.id, IdentType::Module(id));
             }
 
-            Some(SymFctTypeParam(fct_id, id)) => {
+            (None, Some(SymStruct(id))) => {
+                self.src.map_idents.insert(ident.id, IdentType::Struct(id));
+            }
+
+            (None, Some(SymClass(id))) => {
+                self.src.map_idents.insert(ident.id, IdentType::Class(id));
+            }
+
+            (None, Some(SymFctTypeParam(fct_id, id))) => {
                 let ty = BuiltinType::FctTypeParam(fct_id, id);
                 self.src
                     .map_idents
                     .insert(ident.id, IdentType::TypeParam(ty));
             }
 
-            Some(SymClassTypeParam(cls_id, id)) => {
+            (None, Some(SymClassTypeParam(cls_id, id))) => {
                 let ty = BuiltinType::ClassTypeParam(cls_id, id);
                 self.src
                     .map_idents
                     .insert(ident.id, IdentType::TypeParam(ty));
             }
 
-            Some(SymEnum(id)) => {
+            (None, Some(SymEnum(id))) => {
                 self.src.map_idents.insert(ident.id, IdentType::Enum(id));
             }
 
-            _ => {
+            (Some(SymClassConstructor(id)), _) => {
+                self.src.map_idents.insert(ident.id, IdentType::Class(id))
+            }
+
+            (Some(SymStructConstructor(id)), _) => {
+                self.src.map_idents.insert(ident.id, IdentType::Struct(id))
+            }
+
+            (None, None) => {
                 let name = self.vm.interner.str(ident.name).to_string();
                 report(
                     self.vm,
@@ -278,6 +250,8 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                     SemError::UnknownIdentifier(name),
                 );
             }
+
+            _ => unreachable!(),
         }
     }
 
@@ -316,22 +290,15 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
             node_id: p.id,
         };
 
-        // params are only allowed to replace functions,
-        // types and vars cannot be replaced
-        match self.add_var(var_ctxt, |sym| sym.is_fct()) {
-            Ok(var_id) => {
-                self.src.map_vars.insert(p.id, var_id);
+        // params are only allowed to replace functions, vars cannot be replaced
+        let term_sym = self.vm.sym.lock().get_term(p.name);
+        match term_sym {
+            Some(SymFct(_)) | None => {
+                let var_id = self.add_var(var_ctxt);
+                self.src.map_vars.insert(p.id, var_id)
             }
-
-            Err(sym) => {
-                let name = str(self.vm, p.name);
-                let msg = if sym.is_class() {
-                    SemError::ShadowClass(name)
-                } else {
-                    SemError::ShadowParam(name)
-                };
-
-                report(self.vm, self.fct.file, p.pos, msg);
+            Some(conflict_sym) => {
+                report_term_shadow(self.vm, p.name, self.fct.file, p.pos, conflict_sym)
             }
         }
     }
@@ -370,6 +337,7 @@ fn str(vm: &VM, name: Name) -> String {
 #[cfg(test)]
 mod tests {
     use crate::error::msg::SemError;
+    use crate::error::msg::SemError::ShadowClassConstructor;
     use crate::semck::tests::*;
 
     #[test]
@@ -391,7 +359,7 @@ mod tests {
         err(
             "fun Int() {}",
             pos(1, 1),
-            SemError::ShadowClass("Int".into()),
+            SemError::ShadowClassConstructor("Int".into()),
         );
     }
 
@@ -400,17 +368,13 @@ mod tests {
         err(
             "fun test(Bool: String) {}",
             pos(1, 10),
-            SemError::ShadowClass("Bool".into()),
+            ShadowClassConstructor("Bool".into()),
         );
     }
 
     #[test]
     fn shadow_type_with_var() {
-        err(
-            "fun test() { let String = 3; }",
-            pos(1, 14),
-            SemError::ShadowClass("String".into()),
-        );
+        ok("fun test() { let String = 3; }");
     }
 
     #[test]

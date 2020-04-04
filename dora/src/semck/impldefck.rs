@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::error::msg::SemError;
 use crate::semck;
-use crate::sym::Sym;
+use crate::sym::TypeSym;
 use crate::ty::BuiltinType;
 use crate::vm::{Fct, FctId, FctKind, FctParent, FctSrc, FileId, ImplId, NodeMap, VM};
 
@@ -53,7 +53,7 @@ impl<'x, 'ast> ImplCheck<'x, 'ast> {
 
         if let Some(ref trait_type) = i.trait_type {
             if let Some(trait_name) = trait_type.to_basic_without_type_params() {
-                if let Some(Sym::SymTrait(trait_id)) = self.vm.sym.lock().get(trait_name) {
+                if let Some(TypeSym::SymTrait(trait_id)) = self.vm.sym.lock().get_type(trait_name) {
                     ximpl.trait_id = Some(trait_id);
                 } else {
                     let name = self.vm.interner.str(trait_name).to_string();

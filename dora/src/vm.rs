@@ -16,11 +16,12 @@ use crate::object::{Ref, Testing};
 use crate::safepoint;
 use crate::stack::DoraToNativeInfo;
 use crate::stdlib;
-use crate::sym::Sym::*;
-use crate::sym::*;
+use crate::sym::TermSym::SymFct;
+use crate::sym::{SymTable, TermSym};
 use crate::threads::{Threads, STACK_SIZE, THREAD};
 use crate::ty::{BuiltinType, LambdaTypes, TypeList, TypeLists, TypeParamId};
 use crate::utils::GrowableVec;
+use crate::vm::module::{Module, ModuleDef, ModuleId};
 
 use dora_parser::ast;
 use dora_parser::interner::*;
@@ -47,7 +48,6 @@ pub use self::strct::{
 pub use self::traits::{TraitData, TraitId};
 pub use self::tuple::{ensure_tuple, TupleId, Tuples};
 pub use self::vip::{KnownClasses, KnownElements, KnownFunctions};
-use crate::vm::module::{Module, ModuleDef, ModuleId};
 
 pub mod class;
 mod cnst;
@@ -282,16 +282,16 @@ impl<'ast> VM<'ast> {
         fctid
     }
 
-    pub fn add_fct_to_sym(&mut self, fct: Fct<'ast>) -> Result<FctId, Sym> {
+    pub fn add_fct_to_sym(&mut self, fct: Fct<'ast>) -> Result<FctId, TermSym> {
         let name = fct.name;
         let fctid = self.add_fct(fct);
 
         let mut sym = self.sym.lock();
 
-        match sym.get(name) {
+        match sym.get_term(name) {
             Some(sym) => Err(sym),
             None => {
-                assert!(sym.insert(name, SymFct(fctid)).is_none());
+                assert!(sym.insert_term(name, SymFct(fctid)).is_none());
 
                 Ok(fctid)
             }

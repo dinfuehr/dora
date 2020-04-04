@@ -7,7 +7,7 @@ use crate::error::msg::SemError;
 use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck;
 use crate::semck::{always_returns, expr_always_returns};
-use crate::sym::Sym::SymClass;
+use crate::sym::TypeSym::SymClass;
 use crate::ty::{BuiltinType, TypeList, TypeParamId};
 use crate::typeck::lookup::MethodLookup;
 use crate::vm::{
@@ -1421,7 +1421,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             return;
         }
 
-        match self.vm.sym.lock().get(class) {
+        match self.vm.sym.lock().get_type(class) {
             Some(SymClass(cls_id)) => {
                 let mut lookup = MethodLookup::new(self.vm, self.file)
                     .pos(e.pos)

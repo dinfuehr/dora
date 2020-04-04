@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::error::msg::SemError;
 use crate::semck;
-use crate::sym::Sym;
+use crate::sym::TypeSym;
 use crate::ty::BuiltinType;
 use crate::vm::{self, Fct, FctId, FctParent, FctSrc, VM};
 use dora_parser::ast::visit::*;
@@ -32,8 +32,8 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                 let mut type_param_id = 0;
 
                 for param in &cls.type_params {
-                    let sym = Sym::SymClassTypeParam(cls.id, type_param_id.into());
-                    vm.sym.lock().insert(param.name, sym);
+                    let sym = TypeSym::SymClassTypeParam(cls.id, type_param_id.into());
+                    vm.sym.lock().insert_type(param.name, sym);
                     type_param_id += 1;
                 }
 
@@ -107,8 +107,8 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                         }
                     }
 
-                    let sym = Sym::SymFctTypeParam(fct.id, type_param_id.into());
-                    vm.sym.lock().insert(type_param.name, sym);
+                    let sym = TypeSym::SymFctTypeParam(fct.id, type_param_id.into());
+                    vm.sym.lock().insert_type(type_param.name, sym);
                     type_param_id += 1;
                 }
             } else {

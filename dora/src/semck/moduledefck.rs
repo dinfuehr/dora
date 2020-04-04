@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::error::msg::SemError;
 use crate::semck;
-use crate::sym::Sym;
+use crate::sym::TypeSym;
 use crate::ty::{BuiltinType, TypeList};
 
 use crate::vm::module::ModuleId;
@@ -66,10 +66,10 @@ impl<'x, 'ast> ModuleCheck<'x, 'ast> {
 
     fn check_parent_class(&mut self, parent_class: &'ast ast::ParentClass) {
         let name = self.vm.interner.str(parent_class.name).to_string();
-        let sym = self.vm.sym.lock().get(parent_class.name);
+        let sym = self.vm.sym.lock().get_type(parent_class.name);
 
         match sym {
-            Some(Sym::SymClass(cls_id)) => {
+            Some(TypeSym::SymClass(cls_id)) => {
                 let super_cls = self.vm.classes.idx(cls_id);
                 let super_cls = super_cls.read();
 

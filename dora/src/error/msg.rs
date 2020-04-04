@@ -25,7 +25,9 @@ pub enum SemError {
     ShadowFunction(String),
     ShadowParam(String),
     ShadowClass(String),
+    ShadowClassConstructor(String),
     ShadowStruct(String),
+    ShadowStructConstructor(String),
     ShadowTrait(String),
     ShadowField(String),
     ShadowGlobal(String),
@@ -207,7 +209,13 @@ impl SemError {
             SemError::ShadowFunction(ref name) => format!("can not shadow function `{}`.", name),
             SemError::ShadowParam(ref name) => format!("can not shadow param `{}`.", name),
             SemError::ShadowClass(ref name) => format!("can not shadow class `{}`.", name),
+            SemError::ShadowClassConstructor(ref name) => {
+                format!("can not shadow constructor of class `{}`.", name)
+            }
             SemError::ShadowStruct(ref name) => format!("can not shadow struct `{}`.", name),
+            SemError::ShadowStructConstructor(ref name) => {
+                format!("can not shadow constructor of struct `{}`.", name)
+            }
             SemError::ShadowTrait(ref name) => format!("can not shadow trait `{}`.", name),
             SemError::ShadowField(ref name) => {
                 format!("field with name `{}` already exists.", name)
