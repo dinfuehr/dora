@@ -32,7 +32,6 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
             src: &mut src,
             ast,
             expr_type: BuiltinType::Unit,
-            negative_expr_id: NodeId(0),
             used_in_call: HashSet::new(),
         };
 

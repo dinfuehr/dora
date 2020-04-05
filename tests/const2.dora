@@ -1,13 +1,13 @@
 const i: Int = -1;
-const l: Long = -(-2L);
+const l: Long = -2L;
 const no: Bool = false;
 const f: Float = -3.0F;
-const d: Double = -(-4.0);
+const d: Double = -4.0;
 
 fun main() {
     assert(i == -1);
-    assert(l == 2L);
+    assert(l == -2L);
     assert(no == false);
     assert(f == -3.0F);
-    assert(d == 4.0);
+    assert(d == -4.0);
 }

@@ -30,7 +30,6 @@ pub struct TypeCheck<'a, 'ast: 'a> {
     pub src: &'a mut FctSrc,
     pub ast: &'ast Function,
     pub expr_type: BuiltinType,
-    pub negative_expr_id: NodeId,
     pub used_in_call: HashSet<NodeId>,
 }
 
@@ -721,10 +720,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_un(&mut self, e: &'ast ExprUnType) {
-        if e.op == UnOp::Neg {
-            if self.negative_expr_id != e.id {
-                self.negative_expr_id = e.opnd.id();
-            }
+        if e.op == UnOp::Neg && e.opnd.is_lit_int() {
+            self.check_expr_lit_int(e.opnd.to_lit_int().unwrap(), true);
+            self.src.set_ty(e.id, self.expr_type);
+            return;
         }
 
         self.visit_expr(&e.opnd);
@@ -1882,15 +1881,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.expr_type = ty;
     }
 
-    fn check_expr_lit_int(&mut self, e: &'ast ExprLitIntType) {
-        let (ty, _) = check_lit_int(self.vm, self.file, e, self.negative_expr_id);
+    fn check_expr_lit_int(&mut self, e: &'ast ExprLitIntType, negate: bool) {
+        let (ty, _) = check_lit_int(self.vm, self.file, e, negate);
 
         self.src.set_ty(e.id, ty);
         self.expr_type = ty;
     }
 
-    fn check_expr_lit_float(&mut self, e: &'ast ExprLitFloatType) {
-        let (ty, _) = check_lit_float(self.vm, self.file, e, self.negative_expr_id);
+    fn check_expr_lit_float(&mut self, e: &'ast ExprLitFloatType, negate: bool) {
+        let (ty, _) = check_lit_float(self.vm, self.file, e, negate);
 
         self.src.set_ty(e.id, ty);
         self.expr_type = ty;
@@ -1962,8 +1961,8 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
     fn visit_expr(&mut self, e: &'ast Expr) {
         match *e {
             ExprLitChar(ref expr) => self.check_expr_lit_char(expr),
-            ExprLitInt(ref expr) => self.check_expr_lit_int(expr),
-            ExprLitFloat(ref expr) => self.check_expr_lit_float(expr),
+            ExprLitInt(ref expr) => self.check_expr_lit_int(expr, false),
+            ExprLitFloat(ref expr) => self.check_expr_lit_float(expr, false),
             ExprLitStr(ref expr) => self.check_expr_lit_str(expr),
             ExprTemplate(ref expr) => self.check_expr_template(expr),
             ExprLitBool(ref expr) => self.check_expr_lit_bool(expr),
@@ -2213,7 +2212,7 @@ pub fn check_lit_int(
     vm: &VM,
     file: FileId,
     e: &ExprLitIntType,
-    negative_expr_id: NodeId,
+    negate: bool,
 ) -> (BuiltinType, i64) {
     let ty = match e.suffix {
         IntSuffix::Byte => BuiltinType::Byte,
@@ -2228,7 +2227,6 @@ pub fn check_lit_int(
     };
 
     let val = e.value;
-    let negative = e.suffix != IntSuffix::Byte && negative_expr_id == e.id;
 
     if e.base == IntBase::Dec {
         let max = match e.suffix {
@@ -2237,7 +2235,7 @@ pub fn check_lit_int(
             IntSuffix::Long => (1u64 << 63),
         };
 
-        if (negative && val > max) || (!negative && val >= max) {
+        if (negate && val > max) || (!negate && val >= max) {
             vm.diag
                 .lock()
                 .report(file, e.pos, SemError::NumberOverflow(ty_name.into()));
@@ -2256,8 +2254,8 @@ pub fn check_lit_int(
         }
     }
 
-    let val = if negative {
-        (!val + 1) as i64
+    let val = if negate {
+        (val as i64).wrapping_neg()
     } else {
         val as i64
     };
@@ -2269,7 +2267,7 @@ pub fn check_lit_float(
     vm: &VM,
     file: FileId,
     e: &ExprLitFloatType,
-    negative_expr_id: NodeId,
+    negate: bool,
 ) -> (BuiltinType, f64) {
     let ty = match e.suffix {
         FloatSuffix::Float => BuiltinType::Float,
@@ -2281,11 +2279,7 @@ pub fn check_lit_float(
         FloatSuffix::Double => (f64::MIN, f64::MAX),
     };
 
-    let value = if negative_expr_id == e.id {
-        -e.value
-    } else {
-        e.value
-    };
+    let value = if negate { -e.value } else { e.value };
 
     if value < min || value > max {
         let ty = match e.suffix {
