@@ -577,7 +577,7 @@ where
     fn emit_expr(&mut self, e: &'ast Expr, dest: ExprStore) {
         match *e {
             ExprLitChar(ref expr) => self.emit_lit_char(expr, dest.reg()),
-            ExprLitInt(ref expr) => self.emit_lit_int(expr, dest.reg()),
+            ExprLitInt(ref expr) => self.emit_lit_int(expr, dest.reg(), false),
             ExprLitFloat(ref expr) => self.emit_lit_float(expr, dest.freg()),
             ExprLitBool(ref expr) => self.emit_lit_bool(expr, dest.reg()),
             ExprLitStr(ref expr) => self.emit_lit_str(expr, dest.reg()),
@@ -1079,14 +1079,20 @@ where
             .load_int_const(MachineMode::Int32, dest, lit.value as i64);
     }
 
-    fn emit_lit_int(&mut self, lit: &'ast ExprLitIntType, dest: Reg) {
+    fn emit_lit_int(&mut self, lit: &'ast ExprLitIntType, dest: Reg, negate: bool) {
         let ty = match lit.suffix {
             IntSuffix::Byte => MachineMode::Int8,
             IntSuffix::Int => MachineMode::Int32,
             IntSuffix::Long => MachineMode::Int64,
         };
 
-        self.asm.load_int_const(ty, dest, lit.value as i64);
+        let value = if negate {
+            (lit.value as i64).wrapping_neg()
+        } else {
+            lit.value as i64
+        };
+
+        self.asm.load_int_const(ty, dest, value);
     }
 
     fn emit_lit_float(&mut self, lit: &'ast ExprLitFloatType, dest: FReg) {
@@ -1371,7 +1377,9 @@ where
     }
 
     fn emit_unary_operator(&mut self, e: &'ast ExprUnType, dest: ExprStore) {
-        if let Some(intrinsic) = self.get_intrinsic(e.id) {
+        if e.op == UnOp::Neg && e.opnd.is_lit_int() {
+            self.emit_lit_int(e.opnd.to_lit_int().unwrap(), dest.reg(), true);
+        } else if let Some(intrinsic) = self.get_intrinsic(e.id) {
             self.emit_intrinsic_unary(&e.opnd, dest, intrinsic);
         } else {
             let args = vec![Arg::Expr(&e.opnd)];

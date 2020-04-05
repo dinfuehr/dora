@@ -3443,6 +3443,34 @@ fn gen_byte_to_char() {
 }
 
 #[test]
+fn gen_int_min_value() {
+    let result = code("fun f() -> Int { -2147483648 }");
+    let expected = vec![ConstInt(r(0), -2147483648), RetInt(r(0))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_int_max_value() {
+    let result = code("fun f() -> Int { 2147483647 }");
+    let expected = vec![ConstInt(r(0), 2147483647), RetInt(r(0))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_long_min_value() {
+    let result = code("fun f() -> Long { -9223372036854775808L }");
+    let expected = vec![ConstLong(r(0), -9223372036854775808), RetLong(r(0))];
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn gen_long_max_value() {
+    let result = code("fun f() -> Long { 9223372036854775807L }");
+    let expected = vec![ConstLong(r(0), 9223372036854775807), RetLong(r(0))];
+    assert_eq!(expected, result);
+}
+
+#[test]
 #[ignore]
 fn gen_tuple_var() {
     gen("fun f() { let x = (1, 2); }", |vm, code| {

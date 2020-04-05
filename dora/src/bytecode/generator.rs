@@ -285,7 +285,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             ExprTypeParam(_) => unreachable!(),
             ExprPath(ref path) => self.visit_expr_path(path, dest),
             ExprLitChar(ref lit) => self.visit_expr_lit_char(lit, dest),
-            ExprLitInt(ref lit) => self.visit_expr_lit_int(lit, dest),
+            ExprLitInt(ref lit) => self.visit_expr_lit_int(lit, dest, false),
             ExprLitFloat(ref lit) => self.visit_expr_lit_float(lit, dest),
             ExprLitStr(ref lit) => self.visit_expr_lit_string(lit, dest),
             ExprLitBool(ref lit) => self.visit_expr_lit_bool(lit, dest),
@@ -1125,7 +1125,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         dest
     }
 
-    fn visit_expr_lit_int(&mut self, lit: &ExprLitIntType, dest: DataDest) -> Register {
+    fn visit_expr_lit_int(&mut self, lit: &ExprLitIntType, dest: DataDest, neg: bool) -> Register {
         if dest.is_effect() {
             return Register::invalid();
         }
@@ -1146,10 +1146,16 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 _ => unreachable!(),
             }
         } else {
+            let value = if neg {
+                (lit.value as i64).wrapping_neg()
+            } else {
+                lit.value as i64
+            };
+
             match ty {
-                BytecodeType::Byte => self.gen.emit_const_byte(dest, lit.value as u8),
-                BytecodeType::Int => self.gen.emit_const_int(dest, lit.value as i32),
-                BytecodeType::Long => self.gen.emit_const_long(dest, lit.value as i64),
+                BytecodeType::Byte => self.gen.emit_const_byte(dest, value as u8),
+                BytecodeType::Int => self.gen.emit_const_int(dest, value as i32),
+                BytecodeType::Long => self.gen.emit_const_long(dest, value),
                 _ => unreachable!(),
             }
         }
@@ -1223,7 +1229,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn visit_expr_un(&mut self, expr: &ExprUnType, dest: DataDest) -> Register {
-        if let Some(intrinsic) = self.get_intrinsic(expr.id) {
+        if expr.op == UnOp::Neg && expr.opnd.is_lit_int() {
+            self.visit_expr_lit_int(expr.opnd.to_lit_int().unwrap(), dest, true)
+        } else if let Some(intrinsic) = self.get_intrinsic(expr.id) {
             self.emit_intrinsic_un(&expr.opnd, intrinsic, expr.pos, dest)
         } else {
             unimplemented!()

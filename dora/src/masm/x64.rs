@@ -891,14 +891,10 @@ impl MacroAssembler {
     pub fn load_int_const(&mut self, mode: MachineMode, dest: Reg, imm: i64) {
         match mode {
             MachineMode::Int8 | MachineMode::Int32 => {
-                asm::emit_movl_imm_reg(self, imm as i32, dest)
+                self.asm.movl_ri(dest.into(), Immediate(imm));
             }
             MachineMode::Int64 | MachineMode::Ptr => {
-                if fits_i32(imm) {
-                    asm::emit_movq_imm_reg(self, imm as i32, dest);
-                } else {
-                    asm::emit_movq_imm64_reg(self, imm, dest);
-                }
+                self.asm.movq_ri(dest.into(), Immediate(imm));
             }
             MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
         }

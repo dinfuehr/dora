@@ -15,29 +15,6 @@ pub const VEXP_66: u8 = 1;
 pub const VEXP_F3: u8 = 2;
 pub const VEXP_F2: u8 = 3;
 
-pub fn emit_movl_imm_reg(buf: &mut MacroAssembler, imm: i32, reg: Reg) {
-    if reg.msb() != 0 {
-        emit_rex(buf, false, 0, 0, 1);
-    }
-
-    emit_op(buf, (0xB8 as u8) + reg.and7());
-    emit_u32(buf, imm as u32);
-}
-
-// mov 32bit immediate and sign-extend into 64bit-register
-pub fn emit_movq_imm_reg(buf: &mut MacroAssembler, imm: i32, reg: Reg) {
-    emit_rex(buf, true, 0, 0, reg.msb());
-    emit_op(buf, 0xc7);
-    emit_modrm(buf, 0b11, 0, reg.and7());
-    emit_u32(buf, imm as u32);
-}
-
-pub fn emit_movq_imm64_reg(buf: &mut MacroAssembler, imm: i64, reg: Reg) {
-    emit_rex(buf, true, 0, 0, reg.msb());
-    emit_op(buf, 0xb8 + reg.and7());
-    emit_u64(buf, imm as u64);
-}
-
 pub fn emit_movb_memq_reg(buf: &mut MacroAssembler, src: Reg, disp: i32, dest: Reg) {
     let rex_prefix = if dest != RAX && dest != RBX && dest != RCX && dest != RDX {
         1
@@ -1225,18 +1202,6 @@ mod tests {
     }
 
     #[test]
-    fn test_emit_movl_imm_reg() {
-        assert_emit!(0xb8, 2, 0, 0, 0; emit_movl_imm_reg(2, RAX));
-        assert_emit!(0x41, 0xbe, 3, 0, 0, 0; emit_movl_imm_reg(3, R14));
-    }
-
-    #[test]
-    fn test_emit_movq_imm_reg() {
-        assert_emit!(0x48, 0xc7, 0xc0, 1, 0, 0, 0; emit_movq_imm_reg(1, RAX));
-        assert_emit!(0x49, 0xc7, 0xc7, 0xFF, 0xFF, 0xFF, 0xFF; emit_movq_imm_reg(-1, R15));
-    }
-
-    #[test]
     fn test_emit_subq_imm_reg() {
         assert_emit!(0x48, 0x83, 0xe8, 0x11; emit_subq_imm_reg(0x11, RAX));
         assert_emit!(0x49, 0x83, 0xef, 0x11; emit_subq_imm_reg(0x11, R15));
@@ -1788,16 +1753,6 @@ mod tests {
         assert_emit!(0x4c, 0x63, 0xf8; emit_movsx(RAX, R15));
         assert_emit!(0x49, 0x63, 0xc2; emit_movsx(R10, RAX));
         assert_emit!(0x4d, 0x63, 0xfe; emit_movsx(R14, R15));
-    }
-
-    #[test]
-    fn test_emit_mov_imm64() {
-        assert_emit!(0x48, 0xb8, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11;
-            emit_movq_imm64_reg(0x1122334455667788, RAX));
-        assert_emit!(0x49, 0xbf, 0, 0x55, 0x44, 0x33, 0x22, 0x11, 0, 0;
-            emit_movq_imm64_reg(0x0000112233445500, R15));
-        assert_emit!(0x48, 0xbc, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0;
-            emit_movq_imm64_reg(0x0011223344556677, RSP));
     }
 
     #[test]
