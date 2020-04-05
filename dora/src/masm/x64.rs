@@ -885,8 +885,7 @@ impl MacroAssembler {
 
     // emit debug instruction
     pub fn debug(&mut self) {
-        // emit int3 = 0xCC
-        asm::emit_op(self, 0xCC);
+        self.asm.int3();
     }
 
     pub fn load_int_const(&mut self, mode: MachineMode, dest: Reg, imm: i64) {

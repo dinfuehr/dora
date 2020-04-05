@@ -39,6 +39,10 @@ impl Assembler {
         self.emit_u8(0x58 + reg.low_bits());
     }
 
+    pub fn int3(&mut self) {
+        self.emit_u8(0xCC);
+    }
+
     pub fn retq(&mut self) {
         self.emit_u8(0xC3);
     }
