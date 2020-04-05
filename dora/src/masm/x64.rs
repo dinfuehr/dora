@@ -22,7 +22,7 @@ impl MacroAssembler {
         debug_assert!(stacksize as usize % STACK_FRAME_ALIGNMENT == 0);
 
         if stacksize > 0 {
-            asm::emit_subq_imm_reg(self, stacksize, RSP);
+            self.asm.subq_ri(RSP.into(), Immediate(stacksize as i64));
         }
     }
 
@@ -30,7 +30,7 @@ impl MacroAssembler {
         self.asm.pushq_r(RBP.into());
         self.asm.movq_rr(RBP.into(), RSP.into());
 
-        asm::emit_subq_immd_reg(self, 0, RSP);
+        self.asm.subq_ri32(RSP.into(), Immediate(0));
         let patch_offset = self.pos() - 4;
 
         patch_offset
@@ -57,7 +57,7 @@ impl MacroAssembler {
         // on x64 keeps booleans in 32-bit registers. Fix result of
         // native call up.
         if mode.is_int8() {
-            asm::emit_andq_imm_reg(self, 0xFF, result);
+            self.asm.andq_ri(result.into(), Immediate(0xFF));
         }
     }
 
@@ -76,13 +76,13 @@ impl MacroAssembler {
         debug_assert!(size as usize % STACK_FRAME_ALIGNMENT == 0);
 
         if size > 0 {
-            asm::emit_subq_imm_reg(self, size, RSP);
+            self.asm.subq_ri(RSP.into(), Immediate(size as i64));
         }
     }
 
     pub fn decrease_stack_frame(&mut self, size: i32) {
         if size > 0 {
-            asm::emit_addq_imm_reg(self, size, RSP);
+            self.asm.addq_ri(RSP.into(), Immediate(size as i64));
         }
     }
 
@@ -223,7 +223,11 @@ impl MacroAssembler {
     }
 
     pub fn cmp_reg_imm(&mut self, mode: MachineMode, lhs: Reg, imm: i32) {
-        asm::emit_cmp_imm_reg(self, mode, imm, lhs);
+        if mode.is64() {
+            self.asm.cmpq_ri(lhs.into(), Immediate(imm as i64))
+        } else {
+            self.asm.cmpl_ri(lhs.into(), Immediate(imm as i64))
+        }
     }
 
     pub fn float_cmp(
@@ -312,7 +316,11 @@ impl MacroAssembler {
     }
 
     pub fn cmp_zero(&mut self, mode: MachineMode, lhs: Reg) {
-        asm::emit_cmp_imm_reg(self, mode, 0, lhs);
+        if mode.is64() {
+            self.asm.testq_rr(lhs.into(), lhs.into());
+        } else {
+            self.asm.testl_rr(lhs.into(), lhs.into());
+        }
     }
 
     pub fn test_and_jump_if(&mut self, cond: CondCode, reg: Reg, lbl: Label) {
@@ -352,7 +360,11 @@ impl MacroAssembler {
         is_div: bool,
         pos: Position,
     ) {
-        asm::emit_cmp_imm_reg(self, mode, 0, rhs);
+        if mode.is64() {
+            self.asm.testq_rr(rhs.into(), rhs.into());
+        } else {
+            self.asm.testl_rr(rhs.into(), rhs.into());
+        }
         let lbl_zero = self.create_label();
         let lbl_done = self.create_label();
         let lbl_div = self.create_label();
@@ -360,7 +372,11 @@ impl MacroAssembler {
         self.jump_if(CondCode::Zero, lbl_zero);
         self.emit_bailout(lbl_zero, Trap::DIV0, pos);
 
-        asm::emit_cmp_imm_reg(self, mode, -1, rhs);
+        if mode.is64() {
+            self.asm.cmpq_ri(rhs.into(), Immediate(-1));
+        } else {
+            self.asm.cmpl_ri(rhs.into(), Immediate(-1));
+        }
         self.jump_if(CondCode::NotEqual, lbl_div);
 
         if is_div {
@@ -430,7 +446,7 @@ impl MacroAssembler {
         }
 
         assert!(mode.is64());
-        asm::emit_addq_imm_reg(self, value as i32, lhs);
+        self.asm.addq_ri(lhs.into(), Immediate(value));
 
         if dest != lhs {
             self.mov_rr(mode.is64(), dest.into(), lhs.into());
@@ -705,12 +721,13 @@ impl MacroAssembler {
             let scratch = self.get_scratch();
             self.load_int_const(MachineMode::Ptr, *scratch, element_size as i64);
             self.asm.imulq_rr((*scratch).into(), length.into());
-            asm::emit_addq_imm_reg(self, size, *scratch);
+            self.asm.addq_ri((*scratch).into(), Immediate(size as i64));
             self.asm.movq_rr(dest.into(), (*scratch).into());
         }
 
         if element_size != ptr_width() {
-            asm::emit_andq_imm_reg(self, -ptr_width(), dest);
+            self.asm
+                .andq_ri(dest.into(), Immediate(-ptr_width() as i64));
         }
     }
 
@@ -720,7 +737,8 @@ impl MacroAssembler {
 
         self.load_int_const(MachineMode::Ptr, *scratch, element_size as i64);
         self.asm.imulq_rr((*scratch).into(), index.into());
-        asm::emit_addq_imm_reg(self, offset, *scratch);
+        self.asm
+            .addq_ri((*scratch).into(), Immediate(offset as i64));
         self.asm.addq_rr((*scratch).into(), obj.into());
         self.asm.movq_rr(dest.into(), (*scratch).into());
     }

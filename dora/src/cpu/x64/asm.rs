@@ -201,57 +201,6 @@ fn emit_membase(buf: &mut MacroAssembler, base: Reg, disp: i32, dest: Reg) {
     }
 }
 
-pub fn emit_cmp_imm_reg(buf: &mut MacroAssembler, mode: MachineMode, imm: i32, reg: Reg) {
-    emit_aluq_imm_reg(buf, mode.is64(), imm, false, reg, 0x3d, 0b111);
-}
-
-pub fn emit_subq_imm_reg(buf: &mut MacroAssembler, imm: i32, reg: Reg) {
-    emit_aluq_imm_reg(buf, true, imm, false, reg, 0x2d, 0b101);
-}
-
-pub fn emit_subq_immd_reg(buf: &mut MacroAssembler, imm: i32, reg: Reg) {
-    emit_aluq_imm_reg(buf, true, imm, true, reg, 0x2d, 0b101);
-}
-
-pub fn emit_addq_imm_reg(buf: &mut MacroAssembler, imm: i32, reg: Reg) {
-    emit_aluq_imm_reg(buf, true, imm, false, reg, 0x05, 0);
-}
-
-pub fn emit_addq_immd_reg(buf: &mut MacroAssembler, imm: i32, reg: Reg) {
-    emit_aluq_imm_reg(buf, true, imm, true, reg, 0x05, 0);
-}
-
-pub fn emit_andq_imm_reg(buf: &mut MacroAssembler, imm: i32, reg: Reg) {
-    emit_aluq_imm_reg(buf, true, imm, false, reg, 0x25, 4);
-}
-
-fn emit_aluq_imm_reg(
-    buf: &mut MacroAssembler,
-    x64: bool,
-    imm: i32,
-    force_32: bool,
-    reg: Reg,
-    rax_opcode: u8,
-    modrm_reg: u8,
-) {
-    if x64 || reg.msb() != 0 {
-        emit_rex(buf, x64, 0, 0, reg.msb());
-    }
-
-    if fits_i8(imm) && !force_32 {
-        emit_op(buf, 0x83);
-        emit_modrm(buf, 0b11, modrm_reg, reg.and7());
-        emit_u8(buf, imm as u8);
-    } else if reg == RAX {
-        emit_op(buf, rax_opcode);
-        emit_u32(buf, imm as u32);
-    } else {
-        emit_op(buf, 0x81);
-        emit_modrm(buf, 0b11, modrm_reg, reg.and7());
-        emit_u32(buf, imm as u32);
-    }
-}
-
 pub fn emit_neg_reg(buf: &mut MacroAssembler, x64: bool, reg: Reg) {
     emit_alul_reg(buf, 0xf7, 0b11, x64, reg);
 }
@@ -1202,24 +1151,6 @@ mod tests {
     }
 
     #[test]
-    fn test_emit_subq_imm_reg() {
-        assert_emit!(0x48, 0x83, 0xe8, 0x11; emit_subq_imm_reg(0x11, RAX));
-        assert_emit!(0x49, 0x83, 0xef, 0x11; emit_subq_imm_reg(0x11, R15));
-        assert_emit!(0x48, 0x2d, 0x11, 0x22, 0, 0; emit_subq_imm_reg(0x2211, RAX));
-        assert_emit!(0x48, 0x81, 0xe9, 0x11, 0x22, 0, 0; emit_subq_imm_reg(0x2211, RCX));
-        assert_emit!(0x49, 0x81, 0xef, 0x11, 0x22, 0, 0; emit_subq_imm_reg(0x2211, R15));
-    }
-
-    #[test]
-    fn test_emit_addq_imm_reg() {
-        assert_emit!(0x48, 0x83, 0xc0, 0x11; emit_addq_imm_reg(0x11, RAX));
-        assert_emit!(0x49, 0x83, 0xc7, 0x11; emit_addq_imm_reg(0x11, R15));
-        assert_emit!(0x48, 0x05, 0x11, 0x22, 0, 0; emit_addq_imm_reg(0x2211, RAX));
-        assert_emit!(0x48, 0x81, 0xc1, 0x11, 0x22, 0, 0; emit_addq_imm_reg(0x2211, RCX));
-        assert_emit!(0x49, 0x81, 0xc7, 0x11, 0x22, 0, 0; emit_addq_imm_reg(0x2211, R15));
-    }
-
-    #[test]
     fn test_testl_reg_mem() {
         assert_emit!(0x85, 0x05, 0xf6, 0xff, 0xff, 0xff; testl_reg_mem(RAX, Mem::Base(RIP, -10)));
         assert_emit!(0x44, 0x85, 0x3d, 0xf6, 0xff, 0xff, 0xff;
@@ -1736,17 +1667,6 @@ mod tests {
     }
 
     #[test]
-    fn test_cmp_imm_reg() {
-        assert_emit!(0x48, 0x83, 0xf8, 0; emit_cmp_imm_reg(MachineMode::Ptr, 0, RAX));
-        assert_emit!(0x48, 0x83, 0xf8, 0; emit_cmp_imm_reg(MachineMode::Int64, 0, RAX));
-        assert_emit!(0x83, 0xf8, 0; emit_cmp_imm_reg(MachineMode::Int32, 0, RAX));
-        assert_emit!(0x49, 0x83, 0xff, 0; emit_cmp_imm_reg(MachineMode::Ptr, 0, R15));
-        assert_emit!(0x41, 0x83, 0xff, 0; emit_cmp_imm_reg(MachineMode::Int32, 0, R15));
-        assert_emit!(0x49, 0x83, 0xf9, 0; emit_cmp_imm_reg(MachineMode::Ptr, 0, R9));
-        assert_emit!(0x41, 0x83, 0xf9, 0; emit_cmp_imm_reg(MachineMode::Int32, 0, R9));
-    }
-
-    #[test]
     fn test_emit_movsx() {
         assert_emit!(0x48, 0x63, 0xc0; emit_movsx(RAX, RAX));
         assert_emit!(0x4c, 0x63, 0xc8; emit_movsx(RAX, R9));
@@ -2035,21 +1955,6 @@ mod tests {
         // lea rax,[r9*8+16]
         assert_emit!(0x4a, 0x8d, 0x04, 0xcd, 0x10, 0, 0, 0;
                      lea(RAX, Mem::Offset(R9, 8, 16)));
-    }
-
-    #[test]
-    fn test_andq_imm_reg() {
-        // and rax, -8
-        assert_emit!(0x48, 0x83, 0xe0, 0xf8; emit_andq_imm_reg(-8, RAX));
-
-        // and rax, 128
-        assert_emit!(0x48, 0x25, 0x80, 0, 0, 0; emit_andq_imm_reg(128, RAX));
-
-        // and r9, -8
-        assert_emit!(0x49, 0x83, 0xe1, 0xf8; emit_andq_imm_reg(-8, R9));
-
-        // and r9, 128
-        assert_emit!(0x49, 0x81, 0xe1, 0x80, 0, 0, 0; emit_andq_imm_reg(128, R9));
     }
 
     #[test]

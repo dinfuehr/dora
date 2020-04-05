@@ -99,6 +99,10 @@ impl Assembler {
         self.emit_modrm_registers(src, dest);
     }
 
+    pub fn addq_ri(&mut self, dest: Register, imm: Immediate) {
+        self.emit_alu64_imm(dest, imm, 0b000, 0x05, false);
+    }
+
     pub fn addl_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex32_optional(src, dest);
         self.emit_u8(0x01);
@@ -109,6 +113,14 @@ impl Assembler {
         self.emit_rex64_modrm(src, dest);
         self.emit_u8(0x29);
         self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn subq_ri(&mut self, dest: Register, imm: Immediate) {
+        self.emit_alu64_imm(dest, imm, 0b101, 0x2D, false);
+    }
+
+    pub fn subq_ri32(&mut self, dest: Register, imm: Immediate) {
+        self.emit_alu64_imm(dest, imm, 0b101, 0x2D, true);
     }
 
     pub fn subl_rr(&mut self, dest: Register, src: Register) {
@@ -129,6 +141,10 @@ impl Assembler {
         self.emit_modrm_registers(src, dest);
     }
 
+    pub fn andq_ri(&mut self, dest: Register, imm: Immediate) {
+        self.emit_alu64_imm(dest, imm, 0b100, 0x25, false);
+    }
+
     pub fn cmpl_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex32_optional(src, dest);
         self.emit_u8(0x39);
@@ -139,6 +155,14 @@ impl Assembler {
         self.emit_rex64_modrm(src, dest);
         self.emit_u8(0x39);
         self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn cmpq_ri(&mut self, reg: Register, imm: Immediate) {
+        self.emit_alu64_imm(reg, imm, 0b111, 0x3d, false);
+    }
+
+    pub fn cmpl_ri(&mut self, reg: Register, imm: Immediate) {
+        self.emit_alu32_imm(reg, imm, 0b111, 0x3d, false);
     }
 
     pub fn orl_rr(&mut self, dest: Register, src: Register) {
@@ -272,6 +296,56 @@ impl Assembler {
         assert!(base < 8);
         self.emit_u8(scale << 6 | index << 3 | base);
     }
+
+    fn emit_alu64_imm(
+        &mut self,
+        reg: Register,
+        imm: Immediate,
+        modrm_reg: u8,
+        rax_opcode: u8,
+        force32: bool,
+    ) {
+        assert!(imm.is_int32());
+        self.emit_rex64_rm(reg);
+
+        if imm.is_int8() && !force32 {
+            self.emit_u8(0x83);
+            self.emit_modrm_opcode(modrm_reg, reg);
+            self.emit_u8(imm.int8() as u8);
+        } else if reg == RAX {
+            self.emit_u8(rax_opcode);
+            self.emit_u32(imm.int32() as u32);
+        } else {
+            self.emit_u8(0x81);
+            self.emit_modrm_opcode(modrm_reg, reg);
+            self.emit_u32(imm.int32() as u32);
+        }
+    }
+
+    fn emit_alu32_imm(
+        &mut self,
+        reg: Register,
+        imm: Immediate,
+        modrm_reg: u8,
+        rax_opcode: u8,
+        force32: bool,
+    ) {
+        assert!(imm.is_int32());
+        self.emit_rex32_rm_optional(reg);
+
+        if imm.is_int8() && !force32 {
+            self.emit_u8(0x83);
+            self.emit_modrm_opcode(modrm_reg, reg);
+            self.emit_u8(imm.int8() as u8);
+        } else if reg == RAX {
+            self.emit_u8(rax_opcode);
+            self.emit_u32(imm.int32() as u32);
+        } else {
+            self.emit_u8(0x81);
+            self.emit_modrm_opcode(modrm_reg, reg);
+            self.emit_u32(imm.int32() as u32);
+        }
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -332,9 +406,18 @@ impl Condition {
 pub struct Immediate(pub i64);
 
 impl Immediate {
+    pub fn is_int8(&self) -> bool {
+        let limit = 1i64 << 7;
+        -limit <= self.0 && self.0 < limit
+    }
+
     pub fn is_int32(&self) -> bool {
         let limit = 1i64 << 31;
         -limit <= self.0 && self.0 < limit
+    }
+
+    pub fn int8(&self) -> i8 {
+        self.0 as i8
     }
 
     pub fn int32(&self) -> i32 {
@@ -592,5 +675,45 @@ mod tests {
         assert_emit!(0x48, 0xc7, 0xc0, 1, 0, 0, 0; movq_ri(RAX, Immediate(1)));
         assert_emit!(0x49, 0xc7, 0xc7, 0xFF, 0xFF, 0xFF, 0xFF; movq_ri(R15, Immediate(-1)));
         assert_emit!(0x48, 0xb8, 0, 0, 0, 0, 1, 0, 0, 0; movq_ri(RAX, Immediate(1 << 32)));
+    }
+
+    #[test]
+    fn test_subq_ri() {
+        assert_emit!(0x48, 0x83, 0xe8, 0x11; subq_ri(RAX, Immediate(0x11)));
+        assert_emit!(0x49, 0x83, 0xef, 0x11; subq_ri(R15, Immediate(0x11)));
+        assert_emit!(0x48, 0x2d, 0x11, 0x22, 0, 0; subq_ri(RAX, Immediate(0x2211)));
+        assert_emit!(0x48, 0x81, 0xe9, 0x11, 0x22, 0, 0; subq_ri(RCX, Immediate(0x2211)));
+        assert_emit!(0x49, 0x81, 0xef, 0x11, 0x22, 0, 0; subq_ri(R15, Immediate(0x2211)));
+    }
+
+    #[test]
+    fn test_addq_ri() {
+        assert_emit!(0x48, 0x83, 0xc0, 0x11; addq_ri(RAX, Immediate(0x11)));
+        assert_emit!(0x49, 0x83, 0xc7, 0x11; addq_ri(R15, Immediate(0x11)));
+        assert_emit!(0x48, 0x05, 0x11, 0x22, 0, 0; addq_ri(RAX, Immediate(0x2211)));
+        assert_emit!(0x48, 0x81, 0xc1, 0x11, 0x22, 0, 0; addq_ri(RCX, Immediate(0x2211)));
+        assert_emit!(0x49, 0x81, 0xc7, 0x11, 0x22, 0, 0; addq_ri(R15, Immediate(0x2211)));
+    }
+
+    #[test]
+    fn test_andq_ri() {
+        assert_emit!(0x48, 0x83, 0xe0, 0xf8; andq_ri(RAX, Immediate(-8)));
+        assert_emit!(0x48, 0x25, 0x80, 0, 0, 0; andq_ri(RAX, Immediate(128)));
+        assert_emit!(0x49, 0x83, 0xe1, 0xf8; andq_ri(R9, Immediate(-8)));
+        assert_emit!(0x49, 0x81, 0xe1, 0x80, 0, 0, 0; andq_ri(R9, Immediate(128)));
+    }
+
+    #[test]
+    fn test_cmpq_ri() {
+        assert_emit!(0x48, 0x83, 0xf8, 0x7f; cmpq_ri(RAX, Immediate(127)));
+        assert_emit!(0x49, 0x83, 0xff, 0x80; cmpq_ri(R15, Immediate(-128)));
+        assert_emit!(0x49, 0x83, 0xf9, 0; cmpq_ri(R9, Immediate(0)));
+    }
+
+    #[test]
+    fn test_cmpl_ri() {
+        assert_emit!(0x83, 0xf8, 0; cmpl_ri(RAX, Immediate(0)));
+        assert_emit!(0x41, 0x83, 0xff, 0; cmpl_ri(R15, Immediate(0)));
+        assert_emit!(0x41, 0x83, 0xf9, 0; cmpl_ri(R9, Immediate(0)));
     }
 }

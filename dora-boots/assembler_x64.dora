@@ -418,7 +418,7 @@ impl Condition {
 
 class Immediate(let value: Long) {
     fun isInt8() -> Bool {
-        let limit = 1L << 8;
+        let limit = 1L << 7;
         -limit <= self.value && self.value < limit
     }
 
