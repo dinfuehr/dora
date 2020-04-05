@@ -21,7 +21,7 @@ pub struct BytecodeWriter {
     unresolved_jump_offsets: Vec<(BytecodeOffset, BytecodeOffset, Label)>,
     unresolved_jump_consts: Vec<(BytecodeOffset, ConstPoolIdx, Label)>,
 
-    registers: Vec<BytecodeType>,
+    registers: ManagedRegister,
     const_pool: Vec<ConstPoolEntry>,
 
     positions: Vec<(u32, Position)>,
@@ -38,7 +38,7 @@ impl BytecodeWriter {
             unresolved_jump_offsets: Vec::new(),
             unresolved_jump_consts: Vec::new(),
 
-            registers: Vec::new(),
+            registers: ManagedRegister::new(),
             const_pool: Vec::new(),
 
             positions: Vec::new(),
@@ -47,16 +47,16 @@ impl BytecodeWriter {
     }
 
     pub fn add_register(&mut self, ty: BytecodeType) -> Register {
-        self.registers.push(ty);
-        Register(self.registers.len() - 1)
+        self.registers.add_register(ty)
     }
 
     pub fn add_register_chain(&mut self, types: &[BytecodeType]) -> Register {
         assert!(types.len() > 0);
-        let start = Register(self.registers.len());
 
-        for &ty in types {
-            self.registers.push(ty);
+        let start = self.registers.add_register(types[0]);
+
+        for &ty in &types[1..] {
+            self.registers.add_register(ty);
         }
 
         start
@@ -1267,7 +1267,7 @@ impl BytecodeWriter {
         BytecodeFunction::new(
             self.code,
             self.const_pool,
-            self.registers,
+            self.registers.registers,
             self.arguments,
             self.positions,
         )
@@ -1585,4 +1585,46 @@ impl BytecodeWriter {
 
 fn fits_u8(value: u32) -> bool {
     value <= u8::max_value() as u32
+}
+
+struct ManagedRegister {
+    registers: Vec<BytecodeType>,
+    free: Vec<FreeRegister>,
+}
+
+impl ManagedRegister {
+    fn new() -> ManagedRegister {
+        ManagedRegister {
+            registers: Vec::new(),
+            free: Vec::new(),
+        }
+    }
+
+    fn add_register(&mut self, ty: BytecodeType) -> Register {
+        if !self.free.is_empty() {
+            // get from free list
+        }
+
+        let next = self.registers.len();
+        let reg = Register::align(next, ty);
+        let alignment = (reg.to_usize() - next) as i32;
+
+        if alignment != 0 {
+            self.free.push(FreeRegister {
+                start: self.registers.len() as u32,
+                length: alignment as u32,
+            });
+        };
+
+        for _ in 0..(alignment + ty.width()) {
+            self.registers.push(ty);
+        }
+
+        reg
+    }
+}
+
+struct FreeRegister {
+    start: u32,
+    length: u32,
 }

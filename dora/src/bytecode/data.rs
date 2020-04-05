@@ -588,13 +588,12 @@ impl BytecodeFunction {
 fn determine_offsets(registers: &Vec<BytecodeType>) -> (Vec<i32>, i32) {
     let mut offset: Vec<i32> = vec![0; registers.len()];
     let mut stacksize: i32 = 0;
-    for (index, ty) in registers.iter().enumerate() {
-        stacksize = align_i32(stacksize + ty.size(), ty.size());
+    for (index, _) in registers.iter().enumerate() {
+        stacksize = align_i32(stacksize + Register::width(), Register::width());
         offset[index] = -stacksize;
     }
 
     stacksize = align_i32(stacksize, STACK_FRAME_ALIGNMENT as i32);
-
     (offset, stacksize)
 }
 

@@ -361,8 +361,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 .gen
                 .add_register_chain(&[BytecodeType::Ptr, BytecodeType::Ptr]);
             self.gen.emit_mov_ptr(start_register, buffer_register);
-            self.gen
-                .emit_mov_ptr(start_register.offset(1), part_register);
+            self.gen.emit_mov_ptr(
+                start_register.offset(BytecodeType::Ptr.width() as usize),
+                part_register,
+            );
             self.gen
                 .emit_invoke_direct_void(FctDef::fct_id(self.vm, fct_id), start_register, 2);
         }
@@ -712,18 +714,26 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         arg_types: &[BuiltinType],
         start_reg: Register,
     ) {
-        let arg_start_offset = match *call_type {
+        let arg_type_offset = match *call_type {
             CallType::CtorNew(_, _) | CallType::Method(_, _, _) | CallType::Expr(_, _) => 1,
             _ => 0,
         };
 
+        let mut reg_offset = start_reg.to_usize();
+        if arg_type_offset != 0 {
+            let bytecode_type: BytecodeType = arg_types[0].into();
+            reg_offset += arg_type_offset * bytecode_type.width() as usize;
+        };
+
         for (idx, arg) in expr.args.iter().enumerate() {
-            let ty = arg_types[idx + arg_start_offset];
+            let ty = arg_types[idx + arg_type_offset];
 
             let dest = if ty.is_unit() {
                 DataDest::Effect
             } else {
-                let arg_reg = start_reg.offset(idx + arg_start_offset);
+                let bytecode_type: BytecodeType = ty.into();
+                let arg_reg = Register::align(reg_offset, bytecode_type);
+                reg_offset = arg_reg.to_usize() + bytecode_type.width() as usize;
                 DataDest::Reg(arg_reg)
             };
 
@@ -753,7 +763,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                         self.gen.emit_new_object(start_reg, cls_def_id);
                     }
                     InstanceSize::ObjArray | InstanceSize::Array(_) | InstanceSize::UnitArray => {
-                        let length_arg = start_reg.offset(1);
+                        let length_arg = start_reg.offset(BytecodeType::Ptr.width() as usize);
                         self.gen.emit_new_array(start_reg, cls_def_id, length_arg);
                     }
                     _ => {
@@ -1053,10 +1063,13 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let self_id = self.src.var_self().id;
         let self_reg = self.var_reg(self_id);
         self.gen.emit_mov_ptr(start_reg, self_reg);
-        let arg_start_reg = start_reg.offset(1);
 
+        let mut reg_offset = start_reg.to_usize() + BytecodeType::Ptr.width() as usize;
         for (idx, arg) in expr.args.iter().enumerate() {
-            let arg_reg = arg_start_reg.offset(idx);
+            let bytecode_type = arg_types[idx + 1];
+
+            let arg_reg = Register::align(reg_offset, bytecode_type);
+            reg_offset = arg_reg.to_usize() + bytecode_type.width() as usize;
             self.visit_expr(arg, DataDest::Reg(arg_reg));
         }
 
@@ -1289,7 +1302,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let start_reg = self.gen.add_register_chain(&[lhs_type, rhs_type]);
 
         self.emit_mov(lhs_type, start_reg, lhs);
-        self.emit_mov(rhs_type, start_reg.offset(1), rhs);
+        self.emit_mov(
+            rhs_type,
+            Register::align(start_reg.to_usize() + lhs_type.width() as usize, rhs_type),
+            rhs,
+        );
 
         self.gen.set_position(expr.pos);
 
@@ -1959,13 +1976,27 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             let idx_ty = self.ty(index.id());
             let val_ty = self.ty(value.id());
 
-            let start_reg =
-                self.gen
-                    .add_register_chain(&[obj_ty.into(), idx_ty.into(), val_ty.into()]);
+            let obj_bytecode_type: BytecodeType = obj_ty.into();
+            let idx_bytecode_type: BytecodeType = idx_ty.into();
+            let val_bytecode_type: BytecodeType = val_ty.into();
 
-            self.emit_mov(obj_ty.into(), start_reg, obj_reg);
-            self.emit_mov(idx_ty.into(), start_reg.offset(1), idx_reg);
-            self.emit_mov(val_ty.into(), start_reg.offset(2), val_reg);
+            let start_reg = self.gen.add_register_chain(&[
+                obj_bytecode_type,
+                idx_bytecode_type,
+                val_bytecode_type,
+            ]);
+
+            self.emit_mov(obj_bytecode_type, start_reg, obj_reg);
+            self.emit_mov(
+                idx_bytecode_type,
+                start_reg.offset(obj_bytecode_type.width() as usize),
+                idx_reg,
+            );
+            self.emit_mov(
+                val_bytecode_type,
+                start_reg.offset((obj_bytecode_type.width() + idx_bytecode_type.width()) as usize),
+                val_reg,
+            );
 
             let callee_id = FctDef::fct_id_types(
                 self.vm,
