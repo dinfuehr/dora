@@ -44,6 +44,10 @@ impl BytecodeType {
         }
     }
 
+    pub fn width(&self) -> i32 {
+        (self.size() + Register::width() - 1) / Register::width()
+    }
+
     pub fn mode(&self) -> MachineMode {
         match self {
             BytecodeType::Bool => MachineMode::Int8,
@@ -468,12 +472,23 @@ impl BytecodeOpcode {
 pub struct Register(pub usize);
 
 impl Register {
+    /// return width of register. currently fixed size constant
+    #[inline(always)]
+    pub fn width() -> i32 {
+        4
+    }
+
     pub fn invalid() -> Register {
         Register(usize::max_value())
     }
 
     pub fn zero() -> Register {
         Register(0)
+    }
+
+    pub fn align(value: usize, ty: BytecodeType) -> Register {
+        let type_width = ty.width() as usize;
+        Register(((value + type_width - 1) / type_width) * type_width)
     }
 
     pub fn to_usize(&self) -> usize {
