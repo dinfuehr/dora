@@ -63,10 +63,30 @@ impl Assembler {
         self.emit_modrm_registers(src, dest);
     }
 
+    pub fn movq_ri(&mut self, dest: Register, imm: Immediate) {
+        if imm.is_int32() {
+            self.emit_rex64_rm(dest);
+            self.emit_u8(0xC7);
+            self.emit_modrm_opcode(0, dest);
+            self.emit_u32(imm.int32() as u32);
+        } else {
+            self.emit_rex64_rm(dest);
+            self.emit_u8(0xB8 + dest.low_bits());
+            self.emit_u64(imm.int64() as u64);
+        }
+    }
+
     pub fn movl_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex32_optional(src, dest);
         self.emit_u8(0x89);
         self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn movl_ri(&mut self, dest: Register, imm: Immediate) {
+        assert!(imm.is_int32());
+        self.emit_rex32_rm_optional(dest);
+        self.emit_u8(0xB8 + dest.low_bits());
+        self.emit_u32(imm.int32() as u32);
     }
 
     pub fn addq_rr(&mut self, dest: Register, src: Register) {
@@ -305,6 +325,23 @@ impl Condition {
     }
 }
 
+pub struct Immediate(pub i64);
+
+impl Immediate {
+    pub fn is_int32(&self) -> bool {
+        let limit = 1i64 << 31;
+        -limit <= self.0 && self.0 < limit
+    }
+
+    pub fn int32(&self) -> i32 {
+        self.0 as i32
+    }
+
+    pub fn int64(&self) -> i64 {
+        self.0
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::asm::*;
@@ -538,5 +575,18 @@ mod tests {
     fn test_call_r() {
         assert_emit!(0xff, 0xd0; call_r(RAX));
         assert_emit!(0x41, 0xff, 0xd7; call_r(R15));
+    }
+
+    #[test]
+    fn test_movl_ri() {
+        assert_emit!(0xb8, 2, 0, 0, 0; movl_ri(RAX, Immediate(2)));
+        assert_emit!(0x41, 0xbe, 3, 0, 0, 0; movl_ri(R14, Immediate(3)));
+    }
+
+    #[test]
+    fn test_movq_ri() {
+        assert_emit!(0x48, 0xc7, 0xc0, 1, 0, 0, 0; movq_ri(RAX, Immediate(1)));
+        assert_emit!(0x49, 0xc7, 0xc7, 0xFF, 0xFF, 0xFF, 0xFF; movq_ri(R15, Immediate(-1)));
+        assert_emit!(0x48, 0xb8, 0, 0, 0, 0, 1, 0, 0, 0; movq_ri(RAX, Immediate(1 << 32)));
     }
 }

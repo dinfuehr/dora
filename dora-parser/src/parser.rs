@@ -1660,32 +1660,32 @@ impl<'a> Parser<'a> {
         let tok = self.advance_token()?;
         let pos = tok.position;
 
-        if let TokenKind::LitInt(value, base, suffix) = tok.kind {
-            let filtered = value.chars().filter(|&ch| ch != '_').collect::<String>();
-            let parsed = u64::from_str_radix(&filtered, base.num());
+        let (value, base, suffix) = match tok.kind {
+            TokenKind::LitInt(value, base, suffix) => (value, base, suffix),
+            _ => unreachable!(),
+        };
 
-            match parsed {
-                Ok(num) => {
-                    let expr =
-                        Expr::create_lit_int(self.generate_id(), pos, span, num, base, suffix);
-                    Ok(Box::new(expr))
-                }
+        let filtered = value.chars().filter(|&ch| ch != '_').collect::<String>();
+        let parsed = u64::from_str_radix(&filtered, base.num());
 
-                _ => {
-                    let bits = match suffix {
-                        IntSuffix::Byte => "byte",
-                        IntSuffix::Int => "int",
-                        IntSuffix::Long => "long",
-                    };
-
-                    Err(ParseErrorAndPos::new(
-                        pos,
-                        ParseError::NumberOverflow(bits.into()),
-                    ))
-                }
+        match parsed {
+            Ok(num) => {
+                let expr = Expr::create_lit_int(self.generate_id(), pos, span, num, base, suffix);
+                Ok(Box::new(expr))
             }
-        } else {
-            unreachable!();
+
+            _ => {
+                let bits = match suffix {
+                    IntSuffix::Byte => "byte",
+                    IntSuffix::Int => "int",
+                    IntSuffix::Long => "long",
+                };
+
+                Err(ParseErrorAndPos::new(
+                    pos,
+                    ParseError::NumberOverflow(bits.into()),
+                ))
+            }
         }
     }
 
@@ -1694,17 +1694,18 @@ impl<'a> Parser<'a> {
         let tok = self.advance_token()?;
         let pos = tok.position;
 
-        if let TokenKind::LitFloat(value, suffix) = tok.kind {
-            let filtered = value.chars().filter(|&ch| ch != '_').collect::<String>();
-            let parsed = filtered.parse::<f64>();
+        let (value, suffix) = match tok.kind {
+            TokenKind::LitFloat(value, suffix) => (value, suffix),
+            _ => unreachable!(),
+        };
 
-            if let Ok(num) = parsed {
-                let expr = Expr::create_lit_float(self.generate_id(), pos, span, num, suffix);
-                return Ok(Box::new(expr));
-            }
-        }
+        let filtered = value.chars().filter(|&ch| ch != '_').collect::<String>();
+        let parsed = filtered.parse::<f64>();
 
-        unreachable!()
+        let num = parsed.expect("unparsable float");
+
+        let expr = Expr::create_lit_float(self.generate_id(), pos, span, num, suffix);
+        Ok(Box::new(expr))
     }
 
     fn parse_string(&mut self) -> ExprResult {

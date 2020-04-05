@@ -1,7 +1,7 @@
 use byteorder::{LittleEndian, WriteBytesExt};
 use dora_parser::lexer::position::Position;
 
-use crate::asm::{Condition, Register as AsmRegister};
+use crate::asm::{Condition, Immediate, Register as AsmRegister};
 use crate::compiler::codegen::AnyReg;
 use crate::compiler::fct::LazyCompilationSite;
 use crate::cpu::*;
@@ -740,7 +740,7 @@ impl MacroAssembler {
     }
 
     pub fn load_nil(&mut self, dest: Reg) {
-        asm::emit_movl_imm_reg(self, 0, dest);
+        self.asm.xorl_rr(dest.into(), dest.into());
     }
 
     pub fn load_mem(&mut self, mode: MachineMode, dest: AnyReg, mem: Mem) {
@@ -925,11 +925,11 @@ impl MacroAssembler {
     }
 
     pub fn load_true(&mut self, dest: Reg) {
-        asm::emit_movl_imm_reg(self, 1, dest);
+        self.asm.movl_ri(dest.into(), Immediate(1));
     }
 
     pub fn load_false(&mut self, dest: Reg) {
-        asm::emit_movl_imm_reg(self, 0, dest);
+        self.asm.xorl_rr(dest.into(), dest.into());
     }
 
     pub fn int_neg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
