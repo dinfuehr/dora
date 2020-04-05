@@ -77,7 +77,7 @@ fn gen_load_field_byte() {
         "class Foo(let bar: Byte) fun f(a: Foo) -> Byte { return a.bar; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldByte(r(1), r(0), cls, field), RetByte(r(1))];
+            let expected = vec![LoadFieldByte(r(2), r(0), cls, field), RetByte(r(2))];
             assert_eq!(expected, code);
         },
     );
@@ -89,7 +89,7 @@ fn gen_load_field_bool() {
         "class Foo(let bar: Bool) fun f(a: Foo) -> Bool { return a.bar; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldBool(r(1), r(0), cls, field), RetBool(r(1))];
+            let expected = vec![LoadFieldBool(r(2), r(0), cls, field), RetBool(r(2))];
             assert_eq!(expected, code);
         },
     );
@@ -101,7 +101,7 @@ fn gen_load_field_char() {
         "class Foo(let bar: Char) fun f(a: Foo) -> Char { return a.bar; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldChar(r(1), r(0), cls, field), RetChar(r(1))];
+            let expected = vec![LoadFieldChar(r(2), r(0), cls, field), RetChar(r(2))];
             assert_eq!(expected, code);
         },
     );
@@ -113,7 +113,7 @@ fn gen_load_field_int() {
         "class Foo(let bar: Int) fun f(a: Foo) -> Int { return a.bar; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldInt(r(1), r(0), cls, field), RetInt(r(1))];
+            let expected = vec![LoadFieldInt(r(2), r(0), cls, field), RetInt(r(2))];
             assert_eq!(expected, code);
         },
     );
@@ -125,7 +125,7 @@ fn gen_load_field_long() {
         "class Foo(let bar: Long) fun f(a: Foo) -> Long { return a.bar; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldLong(r(1), r(0), cls, field), RetLong(r(1))];
+            let expected = vec![LoadFieldLong(r(2), r(0), cls, field), RetLong(r(2))];
             assert_eq!(expected, code);
         },
     );
@@ -137,7 +137,7 @@ fn gen_load_field_float() {
         "class Foo(let bar: Float) fun f(a: Foo) -> Float { return a.bar; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldFloat(r(1), r(0), cls, field), RetFloat(r(1))];
+            let expected = vec![LoadFieldFloat(r(2), r(0), cls, field), RetFloat(r(2))];
             assert_eq!(expected, code);
         },
     );
@@ -149,7 +149,7 @@ fn gen_load_field_double() {
         "class Foo(let bar: Double) fun f(a: Foo) -> Double { return a.bar; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldDouble(r(1), r(0), cls, field), RetDouble(r(1))];
+            let expected = vec![LoadFieldDouble(r(2), r(0), cls, field), RetDouble(r(2))];
             assert_eq!(expected, code);
         },
     );
@@ -161,7 +161,7 @@ fn gen_load_field_ptr() {
         "class Foo(let bar: Object) fun f(a: Foo) -> Object { return a.bar; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldPtr(r(1), r(0), cls, field), RetPtr(r(1))];
+            let expected = vec![LoadFieldPtr(r(2), r(0), cls, field), RetPtr(r(2))];
             assert_eq!(expected, code);
         },
     );
@@ -229,7 +229,7 @@ fn gen_store_field_byte() {
         "class Foo(var bar: Byte) fun f(a: Foo, b: Byte) { a.bar = b; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![StoreFieldByte(r(1), r(0), cls, field), RetVoid];
+            let expected = vec![StoreFieldByte(r(2), r(0), cls, field), RetVoid];
             assert_eq!(expected, code);
         },
     );
@@ -241,7 +241,7 @@ fn gen_store_field_bool() {
         "class Foo(var bar: Bool) fun f(a: Foo, b: Bool) { a.bar = b; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![StoreFieldBool(r(1), r(0), cls, field), RetVoid];
+            let expected = vec![StoreFieldBool(r(2), r(0), cls, field), RetVoid];
             assert_eq!(expected, code);
         },
     );
@@ -253,7 +253,7 @@ fn gen_store_field_char() {
         "class Foo(var bar: Char) fun f(a: Foo, b: Char) { a.bar = b; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![StoreFieldChar(r(1), r(0), cls, field), RetVoid];
+            let expected = vec![StoreFieldChar(r(2), r(0), cls, field), RetVoid];
             assert_eq!(expected, code);
         },
     );
@@ -265,7 +265,7 @@ fn gen_store_field_int() {
         "class Foo(var bar: Int) fun f(a: Foo, b: Int) { a.bar = b; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![StoreFieldInt(r(1), r(0), cls, field), RetVoid];
+            let expected = vec![StoreFieldInt(r(2), r(0), cls, field), RetVoid];
             assert_eq!(expected, code);
         },
     );
@@ -277,7 +277,7 @@ fn gen_store_field_long() {
         "class Foo(var bar: Long) fun f(a: Foo, b: Long) { a.bar = b; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![StoreFieldLong(r(1), r(0), cls, field), RetVoid];
+            let expected = vec![StoreFieldLong(r(2), r(0), cls, field), RetVoid];
             assert_eq!(expected, code);
         },
     );
@@ -289,7 +289,7 @@ fn gen_store_field_float() {
         "class Foo(var bar: Float) fun f(a: Foo, b: Float) { a.bar = b; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![StoreFieldFloat(r(1), r(0), cls, field), RetVoid];
+            let expected = vec![StoreFieldFloat(r(2), r(0), cls, field), RetVoid];
             assert_eq!(expected, code);
         },
     );
@@ -301,7 +301,7 @@ fn gen_store_field_double() {
         "class Foo(var bar: Double) fun f(a: Foo, b: Double) { a.bar = b; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![StoreFieldDouble(r(1), r(0), cls, field), RetVoid];
+            let expected = vec![StoreFieldDouble(r(2), r(0), cls, field), RetVoid];
             assert_eq!(expected, code);
         },
     );
@@ -313,7 +313,7 @@ fn gen_store_field_ptr() {
         "class Foo(var bar: Object) fun f(a: Foo, b: Object) { a.bar = b; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![StoreFieldPtr(r(1), r(0), cls, field), RetVoid];
+            let expected = vec![StoreFieldPtr(r(2), r(0), cls, field), RetVoid];
             assert_eq!(expected, code);
         },
     );
@@ -402,7 +402,7 @@ fn gen_add_float() {
 #[test]
 fn gen_add_double() {
     let result = code("fun f(a: Double, b: Double) -> Double { return a + b; }");
-    let expected = vec![AddDouble(r(2), r(0), r(1)), RetDouble(r(2))];
+    let expected = vec![AddDouble(r(4), r(0), r(2)), RetDouble(r(4))];
     assert_eq!(expected, result);
 }
 
@@ -423,14 +423,14 @@ fn gen_id_ptr() {
 #[test]
 fn gen_ptr_is() {
     let result = code("fun f(a: Object, b: Object) -> Bool { return a === b; }");
-    let expected = vec![TestEqPtr(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestEqPtr(r(4), r(0), r(2)), RetBool(r(4))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_ptr_is_not() {
     let result = code("fun f(a: Object, b: Object) -> Bool { return a !== b; }");
-    let expected = vec![TestNePtr(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestNePtr(r(4), r(0), r(2)), RetBool(r(4))];
     assert_eq!(expected, result);
 }
 
@@ -451,7 +451,7 @@ fn gen_sub_float() {
 #[test]
 fn gen_sub_double() {
     let result = code("fun f(a: Double, b: Double) -> Double { return a - b; }");
-    let expected = vec![SubDouble(r(2), r(0), r(1)), RetDouble(r(2))];
+    let expected = vec![SubDouble(r(4), r(0), r(2)), RetDouble(r(4))];
     assert_eq!(expected, result);
 }
 
@@ -479,7 +479,7 @@ fn gen_div_float() {
 #[test]
 fn gen_div_double() {
     let result = code("fun f(a: Double, b: Double) -> Double { return a / b; }");
-    let expected = vec![DivDouble(r(2), r(0), r(1)), RetDouble(r(2))];
+    let expected = vec![DivDouble(r(4), r(0), r(2)), RetDouble(r(4))];
     assert_eq!(expected, result);
 }
 
@@ -500,7 +500,7 @@ fn gen_mul_float() {
 #[test]
 fn gen_mul_double() {
     let result = code("fun f(a: Double, b: Double) -> Double { return a * b; }");
-    let expected = vec![MulDouble(r(2), r(0), r(1)), RetDouble(r(2))];
+    let expected = vec![MulDouble(r(4), r(0), r(2)), RetDouble(r(4))];
     assert_eq!(expected, result);
 }
 
@@ -649,7 +649,7 @@ fn gen_expr_lit_string_duplicate() {
     let result = code("fun f() { let a = \"z\"; let b = \"z\"; }");
     let expected = vec![
         ConstString(r(0), "z".to_string()),
-        ConstString(r(1), "z".to_string()),
+        ConstString(r(2), "z".to_string()),
         RetVoid,
     ];
     assert_eq!(expected, result);
@@ -660,7 +660,7 @@ fn gen_expr_lit_string_multiple() {
     let result = code("fun f() { let a = \"z\"; let b = \"y\"; }");
     let expected = vec![
         ConstString(r(0), "z".to_string()),
-        ConstString(r(1), "y".to_string()),
+        ConstString(r(2), "y".to_string()),
         RetVoid,
     ];
     assert_eq!(expected, result);
@@ -1021,42 +1021,42 @@ fn gen_expr_test_greaterthanequal_float() {
 #[test]
 fn gen_expr_test_equal_double() {
     let result = code("fun f(a: Double, b: Double) -> Bool { return a == b; }");
-    let expected = vec![TestEqDouble(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestEqDouble(r(4), r(0), r(2)), RetBool(r(4))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_notequal_double() {
     let result = code("fun f(a: Double, b: Double) -> Bool { return a != b; }");
-    let expected = vec![TestNeDouble(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestNeDouble(r(4), r(0), r(2)), RetBool(r(4))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_lessthan_double() {
     let result = code("fun f(a: Double, b: Double) -> Bool { return a < b; }");
-    let expected = vec![TestLtDouble(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestLtDouble(r(4), r(0), r(2)), RetBool(r(4))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_lessthanequal_double() {
     let result = code("fun f(a: Double, b: Double) -> Bool { return a <= b; }");
-    let expected = vec![TestLeDouble(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestLeDouble(r(4), r(0), r(2)), RetBool(r(4))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_greaterthan_double() {
     let result = code("fun f(a: Double, b: Double) -> Bool { return a > b; }");
-    let expected = vec![TestGtDouble(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestGtDouble(r(4), r(0), r(2)), RetBool(r(4))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_greaterthanequal_double() {
     let result = code("fun f(a: Double, b: Double) -> Bool { return a >= b; }");
-    let expected = vec![TestGeDouble(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestGeDouble(r(4), r(0), r(2)), RetBool(r(4))];
     assert_eq!(expected, result);
 }
 
@@ -1084,7 +1084,7 @@ fn gen_expr_self() {
 #[test]
 fn gen_expr_self_assign() {
     let result = code_method("class Foo() { fun f() { let x = self; } }");
-    let expected = vec![MovPtr(r(1), r(0)), RetVoid];
+    let expected = vec![MovPtr(r(2), r(0)), RetVoid];
     assert_eq!(expected, result);
 }
 
@@ -1401,8 +1401,8 @@ fn gen_method_call_void_check_correct_self() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(1)),
-                InvokeDirectVoid(fct_id, r(2), 1),
+                MovPtr(r(4), r(2)),
+                InvokeDirectVoid(fct_id, r(4), 1),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -1424,8 +1424,8 @@ fn gen_method_call_void_with_0_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(1), r(0)),
-                InvokeDirectVoid(fct_id, r(1), 1),
+                MovPtr(r(2), r(0)),
+                InvokeDirectVoid(fct_id, r(2), 1),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -1447,9 +1447,9 @@ fn gen_method_call_void_with_1_arg() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(1), r(0)),
-                ConstInt(r(2), 1),
-                InvokeDirectVoid(fct_id, r(1), 2),
+                MovPtr(r(2), r(0)),
+                ConstInt(r(4), 1),
+                InvokeDirectVoid(fct_id, r(2), 2),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -1471,11 +1471,11 @@ fn gen_method_call_void_with_3_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(1), r(0)),
-                ConstInt(r(2), 1),
-                ConstInt(r(3), 2),
-                ConstInt(r(4), 3),
-                InvokeDirectVoid(fct_id, r(1), 4),
+                MovPtr(r(2), r(0)),
+                ConstInt(r(4), 1),
+                ConstInt(r(5), 2),
+                ConstInt(r(6), 3),
+                InvokeDirectVoid(fct_id, r(2), 4),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -1497,9 +1497,9 @@ fn gen_method_call_bool_with_0_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
-                InvokeDirectBool(r(1), fct_id, r(2), 1),
-                RetBool(r(1)),
+                MovPtr(r(4), r(0)),
+                InvokeDirectBool(r(2), fct_id, r(4), 1),
+                RetBool(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -1520,8 +1520,8 @@ fn gen_method_call_bool_with_0_args_and_unused_result() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(1), r(0)),
-                InvokeDirectVoid(fct_id, r(1), 1),
+                MovPtr(r(2), r(0)),
+                InvokeDirectVoid(fct_id, r(2), 1),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -1543,10 +1543,10 @@ fn gen_method_call_bool_with_1_arg() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
-                ConstTrue(r(3)),
-                InvokeDirectBool(r(1), fct_id, r(2), 2),
-                RetBool(r(1)),
+                MovPtr(r(4), r(0)),
+                ConstTrue(r(6)),
+                InvokeDirectBool(r(2), fct_id, r(4), 2),
+                RetBool(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -1567,12 +1567,12 @@ fn gen_method_call_bool_with_3_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
-                ConstTrue(r(3)),
-                ConstFalse(r(4)),
-                ConstTrue(r(5)),
-                InvokeDirectBool(r(1), fct_id, r(2), 4),
-                RetBool(r(1)),
+                MovPtr(r(4), r(0)),
+                ConstTrue(r(6)),
+                ConstFalse(r(7)),
+                ConstTrue(r(8)),
+                InvokeDirectBool(r(2), fct_id, r(4), 4),
+                RetBool(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -1593,9 +1593,9 @@ fn gen_method_call_byte_with_0_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
-                InvokeDirectByte(r(1), fct_id, r(2), 1),
-                RetByte(r(1)),
+                MovPtr(r(4), r(0)),
+                InvokeDirectByte(r(2), fct_id, r(4), 1),
+                RetByte(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -1616,8 +1616,8 @@ fn gen_method_call_byte_with_0_args_and_unused_result() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(1), r(0)),
-                InvokeDirectVoid(fct_id, r(1), 1),
+                MovPtr(r(2), r(0)),
+                InvokeDirectVoid(fct_id, r(2), 1),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -1639,10 +1639,10 @@ fn gen_method_call_byte_with_1_arg() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
-                ConstByte(r(3), 1),
-                InvokeDirectByte(r(1), fct_id, r(2), 2),
-                RetByte(r(1)),
+                MovPtr(r(4), r(0)),
+                ConstByte(r(6), 1),
+                InvokeDirectByte(r(2), fct_id, r(4), 2),
+                RetByte(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -1663,12 +1663,12 @@ fn gen_method_call_byte_with_3_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
-                ConstByte(r(3), 1),
-                ConstByte(r(4), 2),
-                ConstByte(r(5), 3),
-                InvokeDirectByte(r(1), fct_id, r(2), 4),
-                RetByte(r(1)),
+                MovPtr(r(4), r(0)),
+                ConstByte(r(6), 1),
+                ConstByte(r(7), 2),
+                ConstByte(r(8), 3),
+                InvokeDirectByte(r(2), fct_id, r(4), 4),
+                RetByte(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -1689,9 +1689,9 @@ fn gen_method_call_char_with_0_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
-                InvokeDirectChar(r(1), fct_id, r(2), 1),
-                RetChar(r(1)),
+                MovPtr(r(4), r(0)),
+                InvokeDirectChar(r(2), fct_id, r(4), 1),
+                RetChar(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -1712,8 +1712,8 @@ fn gen_method_call_char_with_0_args_and_unused_result() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(1), r(0)),
-                InvokeDirectVoid(fct_id, r(1), 1),
+                MovPtr(r(2), r(0)),
+                InvokeDirectVoid(fct_id, r(2), 1),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -1735,10 +1735,10 @@ fn gen_method_call_char_with_1_arg() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
-                ConstChar(r(3), '1'),
-                InvokeDirectChar(r(1), fct_id, r(2), 2),
-                RetChar(r(1)),
+                MovPtr(r(4), r(0)),
+                ConstChar(r(6), '1'),
+                InvokeDirectChar(r(2), fct_id, r(4), 2),
+                RetChar(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -1759,12 +1759,12 @@ fn gen_method_call_char_with_3_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
-                ConstChar(r(3), '1'),
-                ConstChar(r(4), '2'),
-                ConstChar(r(5), '3'),
-                InvokeDirectChar(r(1), fct_id, r(2), 4),
-                RetChar(r(1)),
+                MovPtr(r(4), r(0)),
+                ConstChar(r(6), '1'),
+                ConstChar(r(7), '2'),
+                ConstChar(r(8), '3'),
+                InvokeDirectChar(r(2), fct_id, r(4), 4),
+                RetChar(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -1785,9 +1785,9 @@ fn gen_method_call_int_with_0_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
-                InvokeDirectInt(r(1), fct_id, r(2), 1),
-                RetInt(r(1)),
+                MovPtr(r(4), r(0)),
+                InvokeDirectInt(r(2), fct_id, r(4), 1),
+                RetInt(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -1808,8 +1808,8 @@ fn gen_method_call_int_with_0_args_and_unused_result() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(1), r(0)),
-                InvokeDirectVoid(fct_id, r(1), 1),
+                MovPtr(r(2), r(0)),
+                InvokeDirectVoid(fct_id, r(2), 1),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -1831,10 +1831,10 @@ fn gen_method_call_int_with_1_arg() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
-                ConstInt(r(3), 1),
-                InvokeDirectInt(r(1), fct_id, r(2), 2),
-                RetInt(r(1)),
+                MovPtr(r(4), r(0)),
+                ConstInt(r(6), 1),
+                InvokeDirectInt(r(2), fct_id, r(4), 2),
+                RetInt(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -1855,12 +1855,12 @@ fn gen_method_call_int_with_3_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
-                ConstInt(r(3), 1),
-                ConstInt(r(4), 2),
-                ConstInt(r(5), 3),
-                InvokeDirectInt(r(1), fct_id, r(2), 4),
-                RetInt(r(1)),
+                MovPtr(r(4), r(0)),
+                ConstInt(r(6), 1),
+                ConstInt(r(7), 2),
+                ConstInt(r(8), 3),
+                InvokeDirectInt(r(2), fct_id, r(4), 4),
+                RetInt(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -1881,9 +1881,9 @@ fn gen_method_call_long_with_0_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
-                InvokeDirectLong(r(1), fct_id, r(2), 1),
-                RetLong(r(1)),
+                MovPtr(r(4), r(0)),
+                InvokeDirectLong(r(2), fct_id, r(4), 1),
+                RetLong(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -1904,8 +1904,8 @@ fn gen_method_call_long_with_0_args_and_unused_result() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(1), r(0)),
-                InvokeDirectVoid(fct_id, r(1), 1),
+                MovPtr(r(2), r(0)),
+                InvokeDirectVoid(fct_id, r(2), 1),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -1927,10 +1927,10 @@ fn gen_method_call_long_with_1_arg() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
-                ConstLong(r(3), 1),
-                InvokeDirectLong(r(1), fct_id, r(2), 2),
-                RetLong(r(1)),
+                MovPtr(r(4), r(0)),
+                ConstLong(r(6), 1),
+                InvokeDirectLong(r(2), fct_id, r(4), 2),
+                RetLong(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -1951,12 +1951,12 @@ fn gen_method_call_long_with_3_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
-                ConstLong(r(3), 1),
-                ConstLong(r(4), 2),
-                ConstLong(r(5), 3),
-                InvokeDirectLong(r(1), fct_id, r(2), 4),
-                RetLong(r(1)),
+                MovPtr(r(4), r(0)),
+                ConstLong(r(6), 1),
+                ConstLong(r(8), 2),
+                ConstLong(r(10), 3),
+                InvokeDirectLong(r(2), fct_id, r(4), 4),
+                RetLong(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -1977,9 +1977,9 @@ fn gen_method_call_float_with_0_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
-                InvokeDirectFloat(r(1), fct_id, r(2), 1),
-                RetFloat(r(1)),
+                MovPtr(r(4), r(0)),
+                InvokeDirectFloat(r(2), fct_id, r(4), 1),
+                RetFloat(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -2000,8 +2000,8 @@ fn gen_method_call_float_with_0_args_and_unused_result() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(1), r(0)),
-                InvokeDirectVoid(fct_id, r(1), 1),
+                MovPtr(r(2), r(0)),
+                InvokeDirectVoid(fct_id, r(2), 1),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -2023,10 +2023,10 @@ fn gen_method_call_float_with_1_arg() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
-                ConstFloat(r(3), 1_f32),
-                InvokeDirectFloat(r(1), fct_id, r(2), 2),
-                RetFloat(r(1)),
+                MovPtr(r(4), r(0)),
+                ConstFloat(r(6), 1_f32),
+                InvokeDirectFloat(r(2), fct_id, r(4), 2),
+                RetFloat(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -2047,12 +2047,12 @@ fn gen_method_call_float_with_3_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
-                ConstFloat(r(3), 1_f32),
-                ConstFloat(r(4), 2_f32),
-                ConstFloat(r(5), 3_f32),
-                InvokeDirectFloat(r(1), fct_id, r(2), 4),
-                RetFloat(r(1)),
+                MovPtr(r(4), r(0)),
+                ConstFloat(r(6), 1_f32),
+                ConstFloat(r(7), 2_f32),
+                ConstFloat(r(8), 3_f32),
+                InvokeDirectFloat(r(2), fct_id, r(4), 4),
+                RetFloat(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -2073,9 +2073,9 @@ fn gen_method_call_double_with_0_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
-                InvokeDirectDouble(r(1), fct_id, r(2), 1),
-                RetDouble(r(1)),
+                MovPtr(r(4), r(0)),
+                InvokeDirectDouble(r(2), fct_id, r(4), 1),
+                RetDouble(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -2096,8 +2096,8 @@ fn gen_method_call_double_with_0_args_and_unused_result() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(1), r(0)),
-                InvokeDirectVoid(fct_id, r(1), 1),
+                MovPtr(r(2), r(0)),
+                InvokeDirectVoid(fct_id, r(2), 1),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -2119,10 +2119,10 @@ fn gen_method_call_double_with_1_arg() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
-                ConstDouble(r(3), 1_f64),
-                InvokeDirectDouble(r(1), fct_id, r(2), 2),
-                RetDouble(r(1)),
+                MovPtr(r(4), r(0)),
+                ConstDouble(r(6), 1_f64),
+                InvokeDirectDouble(r(2), fct_id, r(4), 2),
+                RetDouble(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -2143,12 +2143,12 @@ fn gen_method_call_double_with_3_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
-                ConstDouble(r(3), 1_f64),
-                ConstDouble(r(4), 2_f64),
-                ConstDouble(r(5), 3_f64),
-                InvokeDirectDouble(r(1), fct_id, r(2), 4),
-                RetDouble(r(1)),
+                MovPtr(r(4), r(0)),
+                ConstDouble(r(6), 1_f64),
+                ConstDouble(r(8), 2_f64),
+                ConstDouble(r(10), 3_f64),
+                InvokeDirectDouble(r(2), fct_id, r(4), 4),
+                RetDouble(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -2169,9 +2169,9 @@ fn gen_method_call_ptr_with_0_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
-                InvokeDirectPtr(r(1), fct_id, r(2), 1),
-                RetPtr(r(1)),
+                MovPtr(r(4), r(0)),
+                InvokeDirectPtr(r(2), fct_id, r(4), 1),
+                RetPtr(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -2192,8 +2192,8 @@ fn gen_method_call_ptr_with_0_args_and_unused_result() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(1), r(0)),
-                InvokeDirectVoid(fct_id, r(1), 1),
+                MovPtr(r(2), r(0)),
+                InvokeDirectVoid(fct_id, r(2), 1),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -2215,10 +2215,10 @@ fn gen_method_call_ptr_with_1_arg() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
-                ConstString(r(3), "1".to_string()),
-                InvokeDirectPtr(r(1), fct_id, r(2), 2),
-                RetPtr(r(1)),
+                MovPtr(r(4), r(0)),
+                ConstString(r(6), "1".to_string()),
+                InvokeDirectPtr(r(2), fct_id, r(4), 2),
+                RetPtr(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -2239,12 +2239,12 @@ fn gen_method_call_ptr_with_3_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(0)),
-                ConstString(r(3), "1".to_string()),
-                ConstString(r(4), "2".to_string()),
-                ConstString(r(5), "3".to_string()),
-                InvokeDirectPtr(r(1), fct_id, r(2), 4),
-                RetPtr(r(1)),
+                MovPtr(r(4), r(0)),
+                ConstString(r(6), "1".to_string()),
+                ConstString(r(8), "2".to_string()),
+                ConstString(r(10), "3".to_string()),
+                InvokeDirectPtr(r(2), fct_id, r(4), 4),
+                RetPtr(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -2268,8 +2268,8 @@ fn gen_virtual_method_call_void_check_correct_self() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(2), r(1)),
-                InvokeVirtualVoid(fct_id, r(2), 1),
+                MovPtr(r(4), r(2)),
+                InvokeVirtualVoid(fct_id, r(4), 1),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -2294,8 +2294,8 @@ fn gen_virtual_method_call_void_with_0_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(1), r(0)),
-                InvokeVirtualVoid(fct_id, r(1), 1),
+                MovPtr(r(2), r(0)),
+                InvokeVirtualVoid(fct_id, r(2), 1),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -2320,9 +2320,9 @@ fn gen_virtual_method_call_void_with_1_arg() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(1), r(0)),
-                ConstInt(r(2), 1),
-                InvokeVirtualVoid(fct_id, r(1), 2),
+                MovPtr(r(2), r(0)),
+                ConstInt(r(4), 1),
+                InvokeVirtualVoid(fct_id, r(2), 2),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -2347,11 +2347,11 @@ fn gen_virtual_method_call_void_with_3_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(1), r(0)),
-                ConstInt(r(2), 1),
-                ConstInt(r(3), 2),
-                ConstInt(r(4), 3),
-                InvokeVirtualVoid(fct_id, r(1), 4),
+                MovPtr(r(2), r(0)),
+                ConstInt(r(4), 1),
+                ConstInt(r(5), 2),
+                ConstInt(r(6), 3),
+                InvokeVirtualVoid(fct_id, r(2), 4),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -2376,8 +2376,8 @@ fn gen_virtual_method_call_int_with_0_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(1), r(0)),
-                InvokeVirtualVoid(fct_id, r(1), 1),
+                MovPtr(r(2), r(0)),
+                InvokeVirtualVoid(fct_id, r(2), 1),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -2402,9 +2402,9 @@ fn gen_virtual_method_call_int_with_1_arg() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(1), r(0)),
-                ConstInt(r(2), 1),
-                InvokeVirtualVoid(fct_id, r(1), 2),
+                MovPtr(r(2), r(0)),
+                ConstInt(r(4), 1),
+                InvokeVirtualVoid(fct_id, r(2), 2),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -2429,11 +2429,11 @@ fn gen_virtual_method_call_int_with_3_args() {
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
             let expected = vec![
-                MovPtr(r(1), r(0)),
-                ConstInt(r(2), 1),
-                ConstInt(r(3), 2),
-                ConstInt(r(4), 3),
-                InvokeVirtualVoid(fct_id, r(1), 4),
+                MovPtr(r(2), r(0)),
+                ConstInt(r(4), 1),
+                ConstInt(r(5), 2),
+                ConstInt(r(6), 3),
+                InvokeVirtualVoid(fct_id, r(2), 4),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -2463,9 +2463,9 @@ fn gen_new_object_assign_to_var() {
             let cls_id = vm.cls_def_by_name("Object");
             let ctor_id = vm.ctor_def_by_name("Object");
             let expected = vec![
-                NewObject(r(1), cls_id),
-                InvokeDirectVoid(ctor_id, r(1), 1),
-                MovPtr(r(0), r(1)),
+                NewObject(r(2), cls_id),
+                InvokeDirectVoid(ctor_id, r(2), 1),
+                MovPtr(r(0), r(2)),
                 RetPtr(r(0)),
             ];
             assert_eq!(expected, code);
@@ -2490,8 +2490,8 @@ fn gen_new_array() {
             let ctor_id = vm
                 .ctor_def_by_name_with_type_params("Array", TypeList::with(vec![BuiltinType::Int]));
             let expected = vec![
-                ConstInt(r(1), 1),
-                NewArray(r(0), cls_id, r(1)),
+                ConstInt(r(2), 1),
+                NewArray(r(0), cls_id, r(2)),
                 InvokeDirectVoid(ctor_id, r(0), 2),
                 RetPtr(r(0)),
             ];
@@ -2510,7 +2510,7 @@ fn gen_position_new_array() {
 #[test]
 fn gen_array_length() {
     let result = code("fun f(a: Array[Int]) -> Int { return a.length(); }");
-    let expected = vec![ArrayLength(r(1), r(0)), RetInt(r(1))];
+    let expected = vec![ArrayLength(r(2), r(0)), RetInt(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -2539,9 +2539,9 @@ fn gen_position_array_length_effect() {
 fn gen_load_array_byte() {
     let result = code("fun f(a: Array[Byte]) -> Byte { return a(0); }");
     let expected = vec![
-        ConstZeroInt(r(2)),
-        LoadArrayByte(r(1), r(0), r(2)),
-        RetByte(r(1)),
+        ConstZeroInt(r(3)),
+        LoadArrayByte(r(2), r(0), r(3)),
+        RetByte(r(2)),
     ];
     assert_eq!(expected, result);
 }
@@ -2550,9 +2550,9 @@ fn gen_load_array_byte() {
 fn gen_load_array_bool() {
     let result = code("fun f(a: Array[Bool]) -> Bool { return a(0); }");
     let expected = vec![
-        ConstZeroInt(r(2)),
-        LoadArrayBool(r(1), r(0), r(2)),
-        RetBool(r(1)),
+        ConstZeroInt(r(3)),
+        LoadArrayBool(r(2), r(0), r(3)),
+        RetBool(r(2)),
     ];
     assert_eq!(expected, result);
 }
@@ -2561,9 +2561,9 @@ fn gen_load_array_bool() {
 fn gen_load_array_char() {
     let result = code("fun f(a: Array[Char]) -> Char { return a(0); }");
     let expected = vec![
-        ConstZeroInt(r(2)),
-        LoadArrayChar(r(1), r(0), r(2)),
-        RetChar(r(1)),
+        ConstZeroInt(r(3)),
+        LoadArrayChar(r(2), r(0), r(3)),
+        RetChar(r(2)),
     ];
     assert_eq!(expected, result);
 }
@@ -2572,9 +2572,9 @@ fn gen_load_array_char() {
 fn gen_load_array_int() {
     let result = code("fun f(a: Array[Int]) -> Int { return a(0); }");
     let expected = vec![
-        ConstZeroInt(r(2)),
-        LoadArrayInt(r(1), r(0), r(2)),
-        RetInt(r(1)),
+        ConstZeroInt(r(3)),
+        LoadArrayInt(r(2), r(0), r(3)),
+        RetInt(r(2)),
     ];
     assert_eq!(expected, result);
 }
@@ -2583,9 +2583,9 @@ fn gen_load_array_int() {
 fn gen_load_array_long() {
     let result = code("fun f(a: Array[Long]) -> Long { return a(0); }");
     let expected = vec![
-        ConstZeroInt(r(2)),
-        LoadArrayLong(r(1), r(0), r(2)),
-        RetLong(r(1)),
+        ConstZeroInt(r(4)),
+        LoadArrayLong(r(2), r(0), r(4)),
+        RetLong(r(2)),
     ];
     assert_eq!(expected, result);
 }
@@ -2594,9 +2594,9 @@ fn gen_load_array_long() {
 fn gen_load_array_float() {
     let result = code("fun f(a: Array[Float]) -> Float { return a(0); }");
     let expected = vec![
-        ConstZeroInt(r(2)),
-        LoadArrayFloat(r(1), r(0), r(2)),
-        RetFloat(r(1)),
+        ConstZeroInt(r(3)),
+        LoadArrayFloat(r(2), r(0), r(3)),
+        RetFloat(r(2)),
     ];
     assert_eq!(expected, result);
 }
@@ -2605,9 +2605,9 @@ fn gen_load_array_float() {
 fn gen_load_array_double() {
     let result = code("fun f(a: Array[Double]) -> Double { return a(0); }");
     let expected = vec![
-        ConstZeroInt(r(2)),
-        LoadArrayDouble(r(1), r(0), r(2)),
-        RetDouble(r(1)),
+        ConstZeroInt(r(4)),
+        LoadArrayDouble(r(2), r(0), r(4)),
+        RetDouble(r(2)),
     ];
     assert_eq!(expected, result);
 }
@@ -2616,9 +2616,9 @@ fn gen_load_array_double() {
 fn gen_load_array_ptr() {
     let result = code("fun f(a: Array[Object]) -> Object { return a(0); }");
     let expected = vec![
-        ConstZeroInt(r(2)),
-        LoadArrayPtr(r(1), r(0), r(2)),
-        RetPtr(r(1)),
+        ConstZeroInt(r(4)),
+        LoadArrayPtr(r(2), r(0), r(4)),
+        RetPtr(r(2)),
     ];
     assert_eq!(expected, result);
 }
@@ -2676,8 +2676,8 @@ fn gen_position_load_array_ptr() {
 fn gen_store_array_byte() {
     let result = code("fun f(a: Array[Byte], b: Byte) { a(0) = b; }");
     let expected = vec![
-        ConstZeroInt(Register(2)),
-        StoreArrayByte(r(1), r(0), r(2)),
+        ConstZeroInt(Register(3)),
+        StoreArrayByte(r(2), r(0), r(3)),
         RetVoid,
     ];
     assert_eq!(expected, result);
@@ -2687,8 +2687,8 @@ fn gen_store_array_byte() {
 fn gen_store_array_bool() {
     let result = code("fun f(a: Array[Bool], b: Bool) { a(0) = b; }");
     let expected = vec![
-        ConstZeroInt(Register(2)),
-        StoreArrayBool(r(1), r(0), r(2)),
+        ConstZeroInt(Register(3)),
+        StoreArrayBool(r(2), r(0), r(3)),
         RetVoid,
     ];
     assert_eq!(expected, result);
@@ -2698,8 +2698,8 @@ fn gen_store_array_bool() {
 fn gen_store_array_char() {
     let result = code("fun f(a: Array[Char], b: Char) { a(0) = b; }");
     let expected = vec![
-        ConstZeroInt(Register(2)),
-        StoreArrayChar(r(1), r(0), r(2)),
+        ConstZeroInt(Register(3)),
+        StoreArrayChar(r(2), r(0), r(3)),
         RetVoid,
     ];
     assert_eq!(expected, result);
@@ -2709,8 +2709,8 @@ fn gen_store_array_char() {
 fn gen_store_array_int() {
     let result = code("fun f(a: Array[Int], b: Int) { a(0) = b; }");
     let expected = vec![
-        ConstZeroInt(Register(2)),
-        StoreArrayInt(r(1), r(0), r(2)),
+        ConstZeroInt(Register(3)),
+        StoreArrayInt(r(2), r(0), r(3)),
         RetVoid,
     ];
     assert_eq!(expected, result);
@@ -2720,8 +2720,8 @@ fn gen_store_array_int() {
 fn gen_store_array_long() {
     let result = code("fun f(a: Array[Long], b: Long) { a(0) = b; }");
     let expected = vec![
-        ConstZeroInt(Register(2)),
-        StoreArrayLong(r(1), r(0), r(2)),
+        ConstZeroInt(Register(4)),
+        StoreArrayLong(r(2), r(0), r(4)),
         RetVoid,
     ];
     assert_eq!(expected, result);
@@ -2731,8 +2731,8 @@ fn gen_store_array_long() {
 fn gen_store_array_float() {
     let result = code("fun f(a: Array[Float], b: Float) { a(0) = b; }");
     let expected = vec![
-        ConstZeroInt(Register(2)),
-        StoreArrayFloat(r(1), r(0), r(2)),
+        ConstZeroInt(Register(3)),
+        StoreArrayFloat(r(2), r(0), r(3)),
         RetVoid,
     ];
     assert_eq!(expected, result);
@@ -2742,8 +2742,8 @@ fn gen_store_array_float() {
 fn gen_store_array_double() {
     let result = code("fun f(a: Array[Double], b: Double) { a(0) = b; }");
     let expected = vec![
-        ConstZeroInt(Register(2)),
-        StoreArrayDouble(r(1), r(0), r(2)),
+        ConstZeroInt(Register(4)),
+        StoreArrayDouble(r(2), r(0), r(4)),
         RetVoid,
     ];
     assert_eq!(expected, result);
@@ -2753,8 +2753,8 @@ fn gen_store_array_double() {
 fn gen_store_array_ptr() {
     let result = code("fun f(a: Array[Object], b: Object) { a(0) = b; }");
     let expected = vec![
-        ConstZeroInt(Register(2)),
-        StoreArrayPtr(r(1), r(0), r(2)),
+        ConstZeroInt(Register(4)),
+        StoreArrayPtr(r(2), r(0), r(4)),
         RetVoid,
     ];
     assert_eq!(expected, result);
@@ -2820,9 +2820,9 @@ fn gen_new_object_with_multiple_args() {
             let cls_id = vm.cls_def_by_name("Foo");
             let ctor_id = vm.ctor_def_by_name("Foo");
             let expected = vec![
-                ConstInt(r(1), 1),
-                ConstInt(r(2), 2),
-                ConstInt(r(3), 3),
+                ConstInt(r(2), 1),
+                ConstInt(r(3), 2),
+                ConstInt(r(4), 3),
                 NewObject(r(0), cls_id),
                 InvokeDirectVoid(ctor_id, r(0), 4),
                 RetPtr(r(0)),
@@ -2971,7 +2971,7 @@ fn gen_self_assign_for_long() {
             ",
         "Long",
     );
-    let expected = vec![MovLong(r(1), r(0)), RetVoid];
+    let expected = vec![MovLong(r(2), r(0)), RetVoid];
     assert_eq!(expected, result);
 }
 
@@ -2995,7 +2995,7 @@ fn gen_self_assign_for_double() {
             ",
         "Double",
     );
-    let expected = vec![MovDouble(r(1), r(0)), RetVoid];
+    let expected = vec![MovDouble(r(2), r(0)), RetVoid];
     assert_eq!(expected, result);
 }
 
@@ -3007,7 +3007,7 @@ fn gen_self_assign_for_string() {
             ",
         "String",
     );
-    let expected = vec![MovPtr(r(1), r(0)), RetVoid];
+    let expected = vec![MovPtr(r(2), r(0)), RetVoid];
     assert_eq!(expected, result);
 }
 
@@ -3042,14 +3042,14 @@ fn gen_reinterpret_int_as_float() {
 #[test]
 fn gen_reinterpret_double_as_long() {
     let result = code("fun f(a: Double) -> Long { a.asLong() }");
-    let expected = vec![ReinterpretDoubleAsLong(r(1), r(0)), RetLong(r(1))];
+    let expected = vec![ReinterpretDoubleAsLong(r(2), r(0)), RetLong(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_reinterpret_long_as_double() {
     let result = code("fun f(a: Long) -> Double { a.asDouble() }");
-    let expected = vec![ReinterpretLongAsDouble(r(1), r(0)), RetDouble(r(1))];
+    let expected = vec![ReinterpretLongAsDouble(r(2), r(0)), RetDouble(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -3063,21 +3063,21 @@ fn gen_float_is_nan() {
 #[test]
 fn gen_double_is_nan() {
     let result = code("fun f(a: Double) -> Bool { a.isNan() }");
-    let expected = vec![TestNeDouble(r(1), r(0), r(0)), RetBool(r(1))];
+    let expected = vec![TestNeDouble(r(2), r(0), r(0)), RetBool(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_extend_int_to_long() {
     let result = code("fun f(a: Int) -> Long { a.toLong() }");
-    let expected = vec![ExtendIntToLong(r(1), r(0)), RetLong(r(1))];
+    let expected = vec![ExtendIntToLong(r(2), r(0)), RetLong(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_cast_long_to_int() {
     let result = code("fun f(a: Long) -> Int { a.toInt() }");
-    let expected = vec![CastLongToInt(r(1), r(0)), RetInt(r(1))];
+    let expected = vec![CastLongToInt(r(2), r(0)), RetInt(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -3091,21 +3091,21 @@ fn gen_convert_int_to_float() {
 #[test]
 fn gen_convert_int_to_double() {
     let result = code("fun f(a: Int) -> Double { a.toDouble() }");
-    let expected = vec![ConvertIntToDouble(r(1), r(0)), RetDouble(r(1))];
+    let expected = vec![ConvertIntToDouble(r(2), r(0)), RetDouble(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_convert_long_to_float() {
     let result = code("fun f(a: Long) -> Float { a.toFloat() }");
-    let expected = vec![ConvertLongToFloat(r(1), r(0)), RetFloat(r(1))];
+    let expected = vec![ConvertLongToFloat(r(2), r(0)), RetFloat(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_convert_long_to_double() {
     let result = code("fun f(a: Long) -> Double { a.toDouble() }");
-    let expected = vec![ConvertLongToDouble(r(1), r(0)), RetDouble(r(1))];
+    let expected = vec![ConvertLongToDouble(r(2), r(0)), RetDouble(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -3119,21 +3119,21 @@ fn gen_truncate_float_to_int() {
 #[test]
 fn gen_truncate_float_to_long() {
     let result = code("fun f(a: Float) -> Long { a.toLong() }");
-    let expected = vec![TruncateFloatToLong(r(1), r(0)), RetLong(r(1))];
+    let expected = vec![TruncateFloatToLong(r(2), r(0)), RetLong(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_truncate_double_to_int() {
     let result = code("fun f(a: Double) -> Int { a.toInt() }");
-    let expected = vec![TruncateDoubleToInt(r(1), r(0)), RetInt(r(1))];
+    let expected = vec![TruncateDoubleToInt(r(2), r(0)), RetInt(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_truncate_double_to_long() {
     let result = code("fun f(a: Double) -> Long { a.toLong() }");
-    let expected = vec![TruncateDoubleToLong(r(1), r(0)), RetLong(r(1))];
+    let expected = vec![TruncateDoubleToLong(r(2), r(0)), RetLong(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -3143,7 +3143,7 @@ fn gen_instanceof() {
         "@open class A class B: A fun f(a: A) -> Bool { a is B }",
         |vm, code| {
             let cls_id = vm.cls_def_by_name("B");
-            let expected = vec![InstanceOf(r(1), r(0), cls_id), RetBool(r(1))];
+            let expected = vec![InstanceOf(r(2), r(0), cls_id), RetBool(r(2))];
             assert_eq!(expected, code);
         },
     );
@@ -3169,7 +3169,7 @@ fn gen_checked_cast_effect() {
         fun f(a: A) -> B { let b = a as B; b }",
         |vm, code| {
             let cls_id = vm.cls_def_by_name("B");
-            let expected = vec![MovPtr(r(1), r(0)), CheckedCast(r(1), cls_id), RetPtr(r(1))];
+            let expected = vec![MovPtr(r(2), r(0)), CheckedCast(r(2), cls_id), RetPtr(r(2))];
             assert_eq!(expected, code);
         },
     );
@@ -3185,7 +3185,7 @@ fn gen_enum_value() {
 #[test]
 fn gen_string_length() {
     let result = code("fun f(x: String) -> Int { x.length() }");
-    let expected = vec![ArrayLength(r(1), r(0)), RetInt(r(1))];
+    let expected = vec![ArrayLength(r(2), r(0)), RetInt(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -3193,9 +3193,9 @@ fn gen_string_length() {
 fn gen_string_get_byte() {
     let result = code("fun f(x: String, idx: Int) -> Byte { x.getByte(0) }");
     let expected = vec![
-        ConstZeroInt(r(3)),
-        LoadArrayByte(r(2), r(0), r(3)),
-        RetByte(r(2)),
+        ConstZeroInt(r(4)),
+        LoadArrayByte(r(3), r(0), r(4)),
+        RetByte(r(3)),
     ];
     assert_eq!(expected, result);
 }
@@ -3204,9 +3204,9 @@ fn gen_string_get_byte() {
 fn gen_array_get() {
     let result = code("fun f(x: Array[Float], idx: Int) -> Float { x(0) }");
     let expected = vec![
-        ConstZeroInt(r(3)),
-        LoadArrayFloat(r(2), r(0), r(3)),
-        RetFloat(r(2)),
+        ConstZeroInt(r(4)),
+        LoadArrayFloat(r(3), r(0), r(4)),
+        RetFloat(r(3)),
     ];
     assert_eq!(expected, result);
 }
@@ -3215,9 +3215,9 @@ fn gen_array_get() {
 fn gen_array_get_method() {
     let result = code("fun f(x: Array[Float], idx: Int) -> Float { x.get(0) }");
     let expected = vec![
-        ConstZeroInt(r(3)),
-        LoadArrayFloat(r(2), r(0), r(3)),
-        RetFloat(r(2)),
+        ConstZeroInt(r(4)),
+        LoadArrayFloat(r(3), r(0), r(4)),
+        RetFloat(r(3)),
     ];
     assert_eq!(expected, result);
 }
@@ -3225,7 +3225,7 @@ fn gen_array_get_method() {
 #[test]
 fn gen_array_set_method() {
     let result = code("fun f(x: Array[Float], idx: Int, value: Float) { x.set(idx, value); }");
-    let expected = vec![StoreArrayFloat(r(2), r(0), r(1)), RetVoid];
+    let expected = vec![StoreArrayFloat(r(3), r(0), r(2)), RetVoid];
     assert_eq!(expected, result);
 }
 
@@ -3238,10 +3238,10 @@ fn gen_string_concat() {
                 .cls_method_def_by_name("String", "plus", false)
                 .expect("String::plus not found");
             let expected = vec![
-                MovPtr(r(3), r(0)),
-                MovPtr(r(4), r(1)),
-                InvokeDirectPtr(r(2), fct_id, r(3), 2),
-                RetPtr(r(2)),
+                MovPtr(r(6), r(0)),
+                MovPtr(r(8), r(2)),
+                InvokeDirectPtr(r(4), fct_id, r(6), 2),
+                RetPtr(r(4)),
             ];
             assert_eq!(expected, code);
         },
@@ -3257,11 +3257,11 @@ fn gen_string_equals() {
                 .cls_method_def_by_name("String", "equals", false)
                 .expect("String::equals not found");
             let expected = vec![
-                MovPtr(r(3), r(0)),
-                MovPtr(r(4), r(1)),
-                InvokeDirectBool(r(2), fct_id, r(3), 2),
-                NotBool(r(2), r(2)),
-                RetBool(r(2)),
+                MovPtr(r(6), r(0)),
+                MovPtr(r(8), r(2)),
+                InvokeDirectBool(r(4), fct_id, r(6), 2),
+                NotBool(r(4), r(4)),
+                RetBool(r(4)),
             ];
             assert_eq!(expected, code);
         },
@@ -3275,9 +3275,9 @@ fn gen_bool_to_string() {
             .cls_method_def_by_name("Bool", "toString", false)
             .expect("Bool::toString not found");
         let expected = vec![
-            MovBool(r(2), r(0)),
-            InvokeStaticPtr(r(1), fct_id, r(2), 1),
-            RetPtr(r(1)),
+            MovBool(r(4), r(0)),
+            InvokeStaticPtr(r(2), fct_id, r(4), 1),
+            RetPtr(r(2)),
         ];
         assert_eq!(expected, code);
     });
@@ -3292,12 +3292,12 @@ fn gen_cmp_strings() {
                 .cls_method_def_by_name("String", "compareTo", false)
                 .expect("String::compareTo not found");
             let expected = vec![
-                MovPtr(r(4), r(0)),
-                MovPtr(r(5), r(1)),
-                InvokeDirectInt(r(3), fct_id, r(4), 2),
-                ConstInt(r(6), 0),
-                TestLtInt(r(2), r(3), r(6)),
-                RetBool(r(2)),
+                MovPtr(r(6), r(0)),
+                MovPtr(r(8), r(2)),
+                InvokeDirectInt(r(5), fct_id, r(6), 2),
+                ConstInt(r(10), 0),
+                TestLtInt(r(4), r(5), r(10)),
+                RetBool(r(4)),
             ];
             assert_eq!(expected, code);
         },
@@ -3311,14 +3311,14 @@ fn gen_extend_byte() {
     assert_eq!(expected, result);
 
     let result = code("fun f(x: Byte) -> Long { x.toLong() }");
-    let expected = vec![ExtendByteToLong(r(1), r(0)), RetLong(r(1))];
+    let expected = vec![ExtendByteToLong(r(2), r(0)), RetLong(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_extend_int() {
     let result = code("fun f(x: Int) -> Long { x.toLong() }");
-    let expected = vec![ExtendIntToLong(r(1), r(0)), RetLong(r(1))];
+    let expected = vec![ExtendIntToLong(r(2), r(0)), RetLong(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -3329,7 +3329,7 @@ fn gen_cast_char() {
     assert_eq!(expected, result);
 
     let result = code("fun f(x: Char) -> Long { x.toLong() }");
-    let expected = vec![ExtendCharToLong(r(1), r(0)), RetLong(r(1))];
+    let expected = vec![ExtendCharToLong(r(2), r(0)), RetLong(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -3347,15 +3347,15 @@ fn gen_cast_int() {
 #[test]
 fn gen_cast_long() {
     let result = code("fun f(x: Long) -> Byte { x.toByte() }");
-    let expected = vec![CastLongToByte(r(1), r(0)), RetByte(r(1))];
+    let expected = vec![CastLongToByte(r(2), r(0)), RetByte(r(2))];
     assert_eq!(expected, result);
 
     let result = code("fun f(x: Long) -> Char { x.toCharUnchecked() }");
-    let expected = vec![CastLongToChar(r(1), r(0)), RetChar(r(1))];
+    let expected = vec![CastLongToChar(r(2), r(0)), RetChar(r(2))];
     assert_eq!(expected, result);
 
     let result = code("fun f(x: Long) -> Int { x.toInt() }");
-    let expected = vec![CastLongToInt(r(1), r(0)), RetInt(r(1))];
+    let expected = vec![CastLongToInt(r(2), r(0)), RetInt(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -3363,9 +3363,9 @@ fn gen_cast_long() {
 fn gen_compare_to_method() {
     let result = code("fun f(a: Long, b: Long) -> Int { a.compareTo(b) }");
     let expected = vec![
-        SubLong(r(3), r(0), r(1)),
-        CastLongToInt(r(2), r(3)),
-        RetInt(r(2)),
+        SubLong(r(6), r(0), r(2)),
+        CastLongToInt(r(4), r(6)),
+        RetInt(r(4)),
     ];
     assert_eq!(expected, result);
 
@@ -3401,10 +3401,10 @@ fn gen_vec_load() {
                 TypeList::empty(),
             );
             let expected = vec![
-                MovPtr(r(3), r(0)),
-                MovInt(r(4), r(1)),
-                InvokeDirectInt(r(2), fct_def_id, r(3), 2),
-                RetInt(r(2)),
+                MovPtr(r(4), r(0)),
+                MovInt(r(6), r(2)),
+                InvokeDirectInt(r(3), fct_def_id, r(4), 2),
+                RetInt(r(3)),
             ];
             assert_eq!(expected, code);
         },
@@ -3424,10 +3424,10 @@ fn gen_vec_store() {
                 TypeList::empty(),
             );
             let expected = vec![
-                MovPtr(r(3), r(0)),
-                MovInt(r(4), r(1)),
-                MovInt(r(5), r(2)),
-                InvokeDirectVoid(fct_def_id, r(3), 3),
+                MovPtr(r(4), r(0)),
+                MovInt(r(6), r(2)),
+                MovInt(r(7), r(3)),
+                InvokeDirectVoid(fct_def_id, r(4), 3),
                 RetVoid,
             ];
             assert_eq!(expected, code);
