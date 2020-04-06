@@ -107,6 +107,13 @@ impl Assembler {
         self.emit_u32(imm.int32() as u32);
     }
 
+    pub fn movzxb_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex32_byte_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0xb6);
+        self.emit_modrm_registers(dest, src);
+    }
+
     pub fn addq_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex64_modrm(src, dest);
         self.emit_u8(0x01);
@@ -283,6 +290,12 @@ impl Assembler {
     fn emit_rex32_rm_optional(&mut self, reg: Register) {
         if reg.needs_rex() {
             self.emit_rex(false, false, false, true);
+        }
+    }
+
+    fn emit_rex32_byte_optional(&mut self, reg: Register, rm: Register) {
+        if reg.needs_rex() || rm.needs_rex() || rm.0 > 3 {
+            self.emit_rex(false, reg.needs_rex(), false, rm.needs_rex());
         }
     }
 
@@ -784,5 +797,15 @@ mod tests {
     fn test_negq() {
         assert_emit!(0x48, 0xf7, 0xd8; negq(RAX));
         assert_emit!(0x49, 0xf7, 0xdf; negq(R15));
+    }
+
+    #[test]
+    fn test_movzxb_rr() {
+        assert_emit!(0x0f, 0xb6, 0xc0; movzxb_rr(RAX, RAX));
+        assert_emit!(0x40, 0x0f, 0xb6, 0xc7; movzxb_rr(RAX, RDI));
+        assert_emit!(0x0f, 0xb6, 0xf8; movzxb_rr(RDI, RAX));
+        assert_emit!(0x41, 0x0f, 0xb6, 0xc7; movzxb_rr(RAX, R15));
+        assert_emit!(0x44, 0x0f, 0xb6, 0xfb; movzxb_rr(R15, RBX));
+        assert_emit!(0x40, 0x0f, 0xb6, 0xce; movzxb_rr(RCX, RSI));
     }
 }

@@ -621,33 +621,6 @@ fn emit_membase_with_index_and_scale(
     }
 }
 
-pub fn emit_movzbl_reg_reg(buf: &mut MacroAssembler, src: Reg, dest: Reg) {
-    if src.msb() != 0 || dest.msb() != 0 || !src.is_basic_reg() {
-        emit_rex(buf, false, dest.msb(), 0, src.msb());
-    }
-
-    emit_op(buf, 0x0f);
-    emit_op(buf, 0xb6);
-
-    emit_modrm(buf, 0b11, dest.and7(), src.and7());
-}
-
-pub fn emit_cmpb_imm_reg(buf: &mut MacroAssembler, imm: u8, dest: Reg) {
-    if dest == RAX {
-        emit_op(buf, 0x3c);
-        emit_u8(buf, imm);
-        return;
-    }
-
-    if dest.msb() != 0 || !dest.is_basic_reg() {
-        emit_rex(buf, false, 0, 0, dest.msb());
-    }
-
-    emit_op(buf, 0x80);
-    emit_modrm(buf, 0b11, 0b111, dest.and7());
-    emit_u8(buf, imm);
-}
-
 pub fn emit_shlx(buf: &mut MacroAssembler, x64: bool, dest: Reg, lhs: Reg, rhs: Reg) {
     emit_vex3_rxbm(buf, dest.msb(), 0, lhs.msb(), VEXM_0F38);
     emit_vex3_wvlp(buf, x64, rhs.int(), VEXL_Z, VEXP_66);
@@ -740,16 +713,6 @@ pub fn emit_ror_reg_cl(buf: &mut MacroAssembler, x64: bool, dest: Reg) {
     }
     emit_op(buf, 0xD3);
     emit_modrm(buf, 0b11, 0b001, dest.and7());
-}
-
-pub fn emit_movzx_byte(buf: &mut MacroAssembler, x64: bool, src: Reg, dest: Reg) {
-    if src.msb() != 0 || dest.msb() != 0 || x64 {
-        emit_rex(buf, x64, dest.msb(), 0, src.msb());
-    }
-
-    emit_op(buf, 0x0f);
-    emit_op(buf, 0xb6);
-    emit_modrm(buf, 0b11, dest.and7(), src.and7());
 }
 
 pub fn addss(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
@@ -1326,22 +1289,6 @@ mod tests {
     }
 
     #[test]
-    fn test_movzbl_reg_reg() {
-        assert_emit!(0x0f, 0xb6, 0xc0; emit_movzbl_reg_reg(RAX, RAX));
-        assert_emit!(0x41, 0x0f, 0xb6, 0xc7; emit_movzbl_reg_reg(R15, RAX));
-        assert_emit!(0x44, 0x0f, 0xb6, 0xfb; emit_movzbl_reg_reg(RBX, R15));
-        assert_emit!(0x40, 0x0f, 0xb6, 0xce; emit_movzbl_reg_reg(RSI, RCX));
-    }
-
-    #[test]
-    fn test_emit_cmpb_imm_reg() {
-        assert_emit!(0x3c, 0; emit_cmpb_imm_reg(0, RAX));
-        assert_emit!(0x80, 0xf9, 0; emit_cmpb_imm_reg(0, RCX));
-        assert_emit!(0x41, 0x80, 0xff, 0; emit_cmpb_imm_reg(0, R15));
-        assert_emit!(0x40, 0x80, 0xfe, 0; emit_cmpb_imm_reg(0, RSI));
-    }
-
-    #[test]
     fn test_movq_ar() {
         assert_emit!(0x48, 0x8b, 0x0C, 0xD8; emit_movq_ar(RAX, RBX, 8, RCX));
         assert_emit!(0x48, 0x8b, 0x1C, 0x81; emit_movq_ar(RCX, RAX, 4, RBX));
@@ -1611,14 +1558,6 @@ mod tests {
         assert_emit!(0x4c, 0x63, 0xf8; emit_movsx(RAX, R15));
         assert_emit!(0x49, 0x63, 0xc2; emit_movsx(R10, RAX));
         assert_emit!(0x4d, 0x63, 0xfe; emit_movsx(R14, R15));
-    }
-
-    #[test]
-    fn test_emit_movzx_byte() {
-        assert_emit!(0x0f, 0xb6, 0xc0; emit_movzx_byte(false, RAX, RAX));
-        assert_emit!(0x48, 0x0f, 0xb6, 0xc0; emit_movzx_byte(true, RAX, RAX));
-        assert_emit!(0x44, 0x0f, 0xb6, 0xf9; emit_movzx_byte(false, RCX, R15));
-        assert_emit!(0x4d, 0x0f, 0xb6, 0xf9; emit_movzx_byte(true, R9, R15));
     }
 
     #[test]

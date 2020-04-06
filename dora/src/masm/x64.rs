@@ -191,7 +191,7 @@ impl MacroAssembler {
         };
 
         self.asm.setcc_r(cond, dest.into());
-        asm::emit_movzbl_reg_reg(self, dest, dest);
+        self.asm.movzxb_rr(dest.into(), dest.into());
     }
 
     pub fn cmp_mem(&mut self, mode: MachineMode, mem: Mem, rhs: Reg) {
@@ -899,8 +899,8 @@ impl MacroAssembler {
         asm::emit_movsx(self, src, dest);
     }
 
-    pub fn extend_byte(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
-        asm::emit_movzx_byte(self, mode.is64(), src, dest);
+    pub fn extend_byte(&mut self, _mode: MachineMode, dest: Reg, src: Reg) {
+        self.asm.movzxb_rr(dest.into(), src.into());
     }
 
     pub fn load_constpool(&mut self, dest: Reg, disp: i32) {
