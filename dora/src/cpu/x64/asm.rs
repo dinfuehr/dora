@@ -201,27 +201,6 @@ fn emit_membase(buf: &mut MacroAssembler, base: Reg, disp: i32, dest: Reg) {
     }
 }
 
-pub fn emit_neg_reg(buf: &mut MacroAssembler, x64: bool, reg: Reg) {
-    emit_alul_reg(buf, 0xf7, 0b11, x64, reg);
-}
-
-pub fn emit_not_reg(buf: &mut MacroAssembler, x64: bool, reg: Reg) {
-    emit_alul_reg(buf, 0xf7, 0b10, x64, reg);
-}
-
-pub fn emit_not_reg_byte(buf: &mut MacroAssembler, reg: Reg) {
-    emit_alul_reg(buf, 0xf6, 0b10, false, reg);
-}
-
-fn emit_alul_reg(buf: &mut MacroAssembler, opcode: u8, modrm_reg: u8, x64: bool, reg: Reg) {
-    if reg.msb() != 0 || x64 {
-        emit_rex(buf, x64, 0, 0, reg.msb());
-    }
-
-    emit_op(buf, opcode);
-    emit_modrm(buf, 0b11, modrm_reg, reg.and7());
-}
-
 pub fn emit_xorb_imm_reg(buf: &mut MacroAssembler, imm: u8, dest: Reg) {
     emit_alub_imm_reg(buf, 0x80, 0x34, 0b110, imm, dest);
 }
@@ -667,29 +646,6 @@ pub fn emit_cmpb_imm_reg(buf: &mut MacroAssembler, imm: u8, dest: Reg) {
     emit_op(buf, 0x80);
     emit_modrm(buf, 0b11, 0b111, dest.and7());
     emit_u8(buf, imm);
-}
-
-pub fn cmov(buf: &mut MacroAssembler, x64: bool, dest: Reg, src: Reg, cond: CondCode) {
-    let opcode = match cond {
-        CondCode::Zero | CondCode::Equal => 0x44,
-        CondCode::NonZero | CondCode::NotEqual => 0x45,
-        CondCode::Greater => 0x4F,
-        CondCode::GreaterEq => 0x4D,
-        CondCode::Less => 0x4C,
-        CondCode::LessEq => 0x4E,
-        CondCode::UnsignedGreater => 0x47,   // above
-        CondCode::UnsignedGreaterEq => 0x43, // above or equal
-        CondCode::UnsignedLess => 0x42,      // below
-        CondCode::UnsignedLessEq => 0x46,    // below or equal
-    };
-
-    if src.msb() != 0 || dest.msb() != 0 || x64 {
-        emit_rex(buf, x64, dest.msb(), 0, src.msb());
-    }
-
-    emit_op(buf, 0x0f);
-    emit_op(buf, opcode);
-    emit_modrm(buf, 0b11, dest.and7(), src.and7());
 }
 
 pub fn emit_shlx(buf: &mut MacroAssembler, x64: bool, dest: Reg, lhs: Reg, rhs: Reg) {
@@ -1349,24 +1305,6 @@ mod tests {
     }
 
     #[test]
-    fn test_neg_reg() {
-        assert_emit!(0xf7, 0xd8; emit_neg_reg(false, RAX));
-        assert_emit!(0x41, 0xf7, 0xdf; emit_neg_reg(false, R15));
-
-        assert_emit!(0x48, 0xf7, 0xd8; emit_neg_reg(true, RAX));
-        assert_emit!(0x49, 0xf7, 0xdf; emit_neg_reg(true, R15));
-    }
-
-    #[test]
-    fn test_not_reg() {
-        assert_emit!(0xf7, 0xd0; emit_not_reg(false, RAX));
-        assert_emit!(0x41, 0xf7, 0xd7; emit_not_reg(false, R15));
-
-        assert_emit!(0x48, 0xf7, 0xd0; emit_not_reg(true, RAX));
-        assert_emit!(0x49, 0xf7, 0xd7; emit_not_reg(true, R15));
-    }
-
-    #[test]
     fn test_xorb_imm_reg() {
         assert_emit!(0x34, 1; emit_xorb_imm_reg(1, RAX));
         assert_emit!(0x80, 0xf3, 1; emit_xorb_imm_reg(1, RBX));
@@ -1676,13 +1614,6 @@ mod tests {
     }
 
     #[test]
-    fn test_emit_not_reg() {
-        assert_emit!(0xf6, 0xd0; emit_not_reg_byte(RAX));
-        assert_emit!(0x41, 0xf6, 0xd1; emit_not_reg_byte(R9));
-        assert_emit!(0x41, 0xf6, 0xd7; emit_not_reg_byte(R15));
-    }
-
-    #[test]
     fn test_emit_movzx_byte() {
         assert_emit!(0x0f, 0xb6, 0xc0; emit_movzx_byte(false, RAX, RAX));
         assert_emit!(0x48, 0x0f, 0xb6, 0xc0; emit_movzx_byte(true, RAX, RAX));
@@ -1921,13 +1852,6 @@ mod tests {
     fn test_movss_store() {
         assert_emit!(0xf3, 0x0f, 0x11, 0x40, 1; movss_store(Mem::Base(RAX, 1), XMM0));
         assert_emit!(0xf2, 0x44, 0x0f, 0x11, 0x78, 1; movsd_store(Mem::Base(RAX, 1), XMM15));
-    }
-
-    #[test]
-    fn test_cmov() {
-        assert_emit!(0x44, 0x0f, 0x44, 0xf8; cmov(false, R15, RAX, CondCode::Equal));
-        assert_emit!(0x41, 0x0f, 0x45, 0xc5; cmov(false, RAX, R13, CondCode::NotEqual));
-        assert_emit!(0x48, 0x0f, 0x4f, 0xc1; cmov(true, RAX, RCX, CondCode::Greater));
     }
 
     #[test]

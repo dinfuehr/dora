@@ -61,6 +61,20 @@ impl Assembler {
         self.emit_modrm_opcode(0, dest);
     }
 
+    pub fn cmovl(&mut self, condition: Condition, dest: Register, src: Register) {
+        self.emit_rex32_optional(dest, src);
+        self.emit_u8(0x0F);
+        self.emit_u8((0x40 + condition.int()) as u8);
+        self.emit_modrm_registers(dest, src);
+    }
+
+    pub fn cmovq(&mut self, condition: Condition, dest: Register, src: Register) {
+        self.emit_rex64_modrm(dest, src);
+        self.emit_u8(0x0F);
+        self.emit_u8((0x40 + condition.int()) as u8);
+        self.emit_modrm_registers(dest, src);
+    }
+
     pub fn movq_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex64_modrm(src, dest);
         self.emit_u8(0x89);
@@ -240,6 +254,30 @@ impl Assembler {
     pub fn cqo(&mut self) {
         self.emit_rex64();
         self.emit_u8(0x99);
+    }
+
+    pub fn negl(&mut self, reg: Register) {
+        self.emit_rex32_rm_optional(reg);
+        self.emit_u8(0xF7);
+        self.emit_modrm_opcode(0b011, reg);
+    }
+
+    pub fn negq(&mut self, reg: Register) {
+        self.emit_rex64_rm(reg);
+        self.emit_u8(0xF7);
+        self.emit_modrm_opcode(0b011, reg);
+    }
+
+    pub fn notl(&mut self, reg: Register) {
+        self.emit_rex32_rm_optional(reg);
+        self.emit_u8(0xF7);
+        self.emit_modrm_opcode(0b010, reg);
+    }
+
+    pub fn notq(&mut self, reg: Register) {
+        self.emit_rex64_rm(reg);
+        self.emit_u8(0xF7);
+        self.emit_modrm_opcode(0b010, reg);
     }
 
     fn emit_rex32_rm_optional(&mut self, reg: Register) {
@@ -715,5 +753,36 @@ mod tests {
         assert_emit!(0x83, 0xf8, 0; cmpl_ri(RAX, Immediate(0)));
         assert_emit!(0x41, 0x83, 0xff, 0; cmpl_ri(R15, Immediate(0)));
         assert_emit!(0x41, 0x83, 0xf9, 0; cmpl_ri(R9, Immediate(0)));
+    }
+
+    #[test]
+    fn test_cmov() {
+        assert_emit!(0x44, 0x0f, 0x44, 0xf8; cmovl(Condition::Equal, R15, RAX));
+        assert_emit!(0x41, 0x0f, 0x45, 0xc5; cmovl(Condition::NotEqual, RAX, R13));
+        assert_emit!(0x48, 0x0f, 0x4f, 0xc1; cmovq(Condition::Greater, RAX, RCX));
+    }
+
+    #[test]
+    fn test_notl() {
+        assert_emit!(0xf7, 0xd0; notl(RAX));
+        assert_emit!(0x41, 0xf7, 0xd7; notl(R15));
+    }
+
+    #[test]
+    fn test_notq() {
+        assert_emit!(0x48, 0xf7, 0xd0; notq(RAX));
+        assert_emit!(0x49, 0xf7, 0xd7; notq(R15));
+    }
+
+    #[test]
+    fn test_negl() {
+        assert_emit!(0xf7, 0xd8; negl(RAX));
+        assert_emit!(0x41, 0xf7, 0xdf; negl(R15));
+    }
+
+    #[test]
+    fn test_negq() {
+        assert_emit!(0x48, 0xf7, 0xd8; negq(RAX));
+        assert_emit!(0x49, 0xf7, 0xdf; negq(R15));
     }
 }

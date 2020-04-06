@@ -260,7 +260,8 @@ impl MacroAssembler {
                 };
 
                 self.asm.setcc_r(parity, dest.into());
-                asm::cmov(self, false, dest, *scratch, CondCode::NotEqual);
+                self.asm
+                    .cmovl(Condition::NotEqual, dest.into(), (*scratch).into());
             }
 
             CondCode::Greater | CondCode::GreaterEq => {
@@ -588,7 +589,11 @@ impl MacroAssembler {
         if count_one_bits {
             asm::popcnt(self, mode.is64(), dest, src);
         } else {
-            asm::emit_not_reg(self, mode.is64(), src);
+            if mode.is64() {
+                self.asm.notq(src.into());
+            } else {
+                self.asm.notl(src.into());
+            }
             asm::popcnt(self, mode.is64(), dest, src);
         }
     }
@@ -601,7 +606,11 @@ impl MacroAssembler {
         count_one_bits: bool,
     ) {
         if count_one_bits {
-            asm::emit_not_reg(self, mode.is64(), src);
+            if mode.is64() {
+                self.asm.notq(src.into());
+            } else {
+                self.asm.notl(src.into());
+            }
             asm::lzcnt(self, mode.is64(), dest, src);
         } else {
             asm::lzcnt(self, mode.is64(), dest, src);
@@ -616,7 +625,11 @@ impl MacroAssembler {
         count_one_bits: bool,
     ) {
         if count_one_bits {
-            asm::emit_not_reg(self, mode.is64(), src);
+            if mode.is64() {
+                self.asm.notq(src.into());
+            } else {
+                self.asm.notl(src.into());
+            }
             asm::tzcnt(self, mode.is64(), dest, src);
         } else {
             asm::tzcnt(self, mode.is64(), dest, src);
@@ -946,7 +959,11 @@ impl MacroAssembler {
     }
 
     pub fn int_neg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
-        asm::emit_neg_reg(self, mode.is64(), src);
+        if mode.is64() {
+            self.asm.negq(src.into());
+        } else {
+            self.asm.negl(src.into());
+        }
 
         if dest != src {
             self.mov_rr(mode.is64(), dest.into(), src.into());
@@ -954,21 +971,11 @@ impl MacroAssembler {
     }
 
     pub fn int_not(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
-        match mode {
-            MachineMode::Int8 => {
-                asm::emit_not_reg_byte(self, src);
-            }
-
-            MachineMode::Int32 => {
-                asm::emit_not_reg(self, false, src);
-            }
-
-            MachineMode::Int64 => {
-                asm::emit_not_reg(self, true, src);
-            }
-
-            _ => unimplemented!(),
-        };
+        if mode.is64() {
+            self.asm.notq(src.into());
+        } else {
+            self.asm.notl(src.into());
+        }
 
         if dest != src {
             self.mov_rr(mode.is64(), dest.into(), src.into());
