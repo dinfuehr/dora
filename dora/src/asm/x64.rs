@@ -94,6 +94,12 @@ impl Assembler {
         }
     }
 
+    pub fn movq_ra(&mut self, dest: Register, src: Address) {
+        self.emit_rex64_modrm_address(dest, src);
+        self.emit_u8(0x8B);
+        self.emit_address(dest.low_bits(), src);
+    }
+
     pub fn movl_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex32_optional(src, dest);
         self.emit_u8(0x89);
@@ -313,6 +319,11 @@ impl Assembler {
         self.emit_rex(true, false, false, rm.needs_rex());
     }
 
+    fn emit_rex64_modrm_address(&mut self, reg: Register, address: Address) {
+        let rex = 0x48 | address.rex | if reg.needs_rex() { 0x04 } else { 0 };
+        self.emit_u8(rex);
+    }
+
     fn emit_rex64_modrm(&mut self, reg: Register, rm: Register) {
         self.emit_rex(true, reg.needs_rex(), false, rm.needs_rex());
     }
@@ -346,6 +357,19 @@ impl Assembler {
         assert!(index < 8);
         assert!(base < 8);
         self.emit_u8(scale << 6 | index << 3 | base);
+    }
+
+    fn emit_address(&mut self, reg_or_opcode: u8, address: Address) {
+        assert!(reg_or_opcode < 8);
+
+        let bytes = address.encoded_bytes();
+
+        // emit modrm-byte with the given rm value
+        self.emit_u8(reg_or_opcode << 3 | bytes[0]);
+
+        for &byte in &bytes[1..] {
+            self.emit_u8(byte);
+        }
     }
 
     fn emit_alu64_imm(
@@ -477,6 +501,117 @@ impl Immediate {
 
     pub fn int64(&self) -> i64 {
         self.0
+    }
+}
+
+#[derive(Copy, Clone)]
+pub enum ScaleFactor {
+    One,
+    Two,
+    Four,
+    Eight,
+}
+
+impl ScaleFactor {
+    fn value(self) -> u8 {
+        match self {
+            ScaleFactor::One => 0,
+            ScaleFactor::Two => 1,
+            ScaleFactor::Four => 2,
+            ScaleFactor::Eight => 3,
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct Address {
+    rex: u8,
+    length: u8,
+    bytes: [u8; 6],
+}
+
+impl Address {
+    fn new() -> Address {
+        Address {
+            rex: 0,
+            length: 0,
+            bytes: [0; 6],
+        }
+    }
+
+    fn set_modrm(&mut self, mode: u8, reg: Register) {
+        assert!(mode < 4);
+        assert_eq!(self.length, 0);
+
+        if reg.needs_rex() {
+            self.rex |= 0x41;
+        }
+
+        self.bytes[0] = mode << 6 | reg.low_bits();
+        self.length += 1;
+    }
+
+    fn set_sib(&mut self, scale: ScaleFactor, index: Register, base: Register) {
+        assert_eq!(self.length, 1);
+
+        if base.needs_rex() {
+            self.rex |= 0x41;
+        }
+
+        if index.needs_rex() {
+            self.rex |= 0x42;
+        }
+
+        self.bytes[1] = scale.value() << 6 | index.low_bits() << 3 | base.low_bits();
+        self.length += 1;
+    }
+
+    fn set_disp8(&mut self, imm: i8) {
+        assert!(self.length == 1 || self.length == 2);
+        self.bytes[self.length as usize] = imm as u8;
+        self.length += 1;
+    }
+
+    fn set_disp32(&mut self, imm: i32) {
+        assert!(self.length == 1 || self.length == 2);
+        let idx = self.length as usize;
+        let imm = imm as u32;
+        self.bytes[idx] = imm as u8;
+        self.bytes[idx + 1] = (imm >> 8) as u8;
+        self.bytes[idx + 2] = (imm >> 16) as u8;
+        self.bytes[idx + 3] = (imm >> 24) as u8;
+        self.length += 4;
+    }
+
+    pub fn offset(base: Register, offset: i32) -> Address {
+        let mut address = Address::new();
+
+        let mode = if offset == 0 && base != RBP {
+            0b00
+        } else if -128 <= offset && offset < 128 {
+            0b01
+        } else {
+            0b10
+        };
+
+        address.set_modrm(mode, base);
+
+        if base == RSP {
+            address.set_sib(ScaleFactor::One, RSP, base);
+        }
+
+        match mode {
+            0b00 => {}
+            0b01 => address.set_disp8(offset as i8),
+            0b10 => address.set_disp32(offset),
+            _ => unreachable!(),
+        }
+
+        address
+    }
+
+    pub fn encoded_bytes(&self) -> &[u8] {
+        &self.bytes[0..self.length as usize]
     }
 }
 
@@ -807,5 +942,23 @@ mod tests {
         assert_emit!(0x41, 0x0f, 0xb6, 0xc7; movzxb_rr(RAX, R15));
         assert_emit!(0x44, 0x0f, 0xb6, 0xfb; movzxb_rr(R15, RBX));
         assert_emit!(0x40, 0x0f, 0xb6, 0xce; movzxb_rr(RCX, RSI));
+    }
+
+    #[test]
+    fn test_movq_ra() {
+        assert_emit!(0x48, 0x8b, 0x04, 0x24; movq_ra(RAX, Address::offset(RSP, 0)));
+        assert_emit!(0x48, 0x8b, 0x44, 0x24, 1; movq_ra(RAX, Address::offset(RSP, 1)));
+
+        assert_emit!(0x4c, 0x8b, 0x3c, 0x24; movq_ra(R15, Address::offset(RSP, 0)));
+        assert_emit!(0x4c, 0x8b, 0x7c, 0x24, 1; movq_ra(R15, Address::offset(RSP, 1)));
+
+        assert_emit!(0x4c, 0x8b, 0x7c, 0x24, 0x7f; movq_ra(R15, Address::offset(RSP, 127)));
+        assert_emit!(0x4c, 0x8b, 0x7c, 0x24, 0x80; movq_ra(R15, Address::offset(RSP, -128)));
+
+        assert_emit!(0x4c, 0x8b, 0xbc, 0x24, 0x80, 0, 0, 0; movq_ra(R15, Address::offset(RSP, 128)));
+        assert_emit!(0x4c, 0x8b, 0xbc, 0x24, 0x7f, 0xff, 0xff, 0xff; movq_ra(R15, Address::offset(RSP, -129)));
+
+        assert_emit!(0x48, 0x8b, 0x45, 0; movq_ra(RAX, Address::offset(RBP, 0)));
+        assert_emit!(0x48, 0x8b, 0x45, 1; movq_ra(RAX, Address::offset(RBP, 1)));
     }
 }
