@@ -1,7 +1,7 @@
 use byteorder::{LittleEndian, WriteBytesExt};
 use dora_parser::lexer::position::Position;
 
-use crate::asm::{Condition, Immediate, Register as AsmRegister};
+use crate::asm::{Address as AsmAddress, Condition, Immediate, Register as AsmRegister};
 use crate::compiler::codegen::AnyReg;
 use crate::compiler::fct::LazyCompilationSite;
 use crate::cpu::*;
@@ -778,20 +778,24 @@ impl MacroAssembler {
         match mem {
             Mem::Local(offset) => match mode {
                 MachineMode::Int8 => asm::emit_movzbl_memq_reg(self, RBP, offset, dest.reg()),
-                MachineMode::Int32 => asm::emit_movl_memq_reg(self, RBP, offset, dest.reg()),
-                MachineMode::Int64 | MachineMode::Ptr => {
-                    asm::emit_movq_memq_reg(self, RBP, offset, dest.reg())
-                }
+                MachineMode::Int32 => self
+                    .asm
+                    .movl_ra(dest.reg().into(), AsmAddress::offset(RBP.into(), offset)),
+                MachineMode::Int64 | MachineMode::Ptr => self
+                    .asm
+                    .movq_ra(dest.reg().into(), AsmAddress::offset(RBP.into(), offset)),
                 MachineMode::Float32 => asm::movss_load(self, dest.freg(), mem),
                 MachineMode::Float64 => asm::movsd_load(self, dest.freg(), mem),
             },
 
             Mem::Base(base, disp) => match mode {
                 MachineMode::Int8 => asm::emit_movzbl_memq_reg(self, base, disp, dest.reg()),
-                MachineMode::Int32 => asm::emit_movl_memq_reg(self, base, disp, dest.reg()),
-                MachineMode::Int64 | MachineMode::Ptr => {
-                    asm::emit_movq_memq_reg(self, base, disp, dest.reg())
-                }
+                MachineMode::Int32 => self
+                    .asm
+                    .movl_ra(dest.reg().into(), AsmAddress::offset(base.into(), disp)),
+                MachineMode::Int64 | MachineMode::Ptr => self
+                    .asm
+                    .movq_ra(dest.reg().into(), AsmAddress::offset(base.into(), disp)),
                 MachineMode::Float32 => asm::movss_load(self, dest.freg(), mem),
                 MachineMode::Float64 => asm::movsd_load(self, dest.freg(), mem),
             },
@@ -836,20 +840,24 @@ impl MacroAssembler {
         match mem {
             Mem::Local(offset) => match mode {
                 MachineMode::Int8 => asm::emit_movb_reg_memq(self, src.reg(), RBP, offset),
-                MachineMode::Int32 => asm::emit_movl_reg_memq(self, src.reg(), RBP, offset),
-                MachineMode::Int64 | MachineMode::Ptr => {
-                    asm::emit_movq_reg_memq(self, src.reg(), RBP, offset)
-                }
+                MachineMode::Int32 => self
+                    .asm
+                    .movl_ar(AsmAddress::offset(RBP.into(), offset), src.reg().into()),
+                MachineMode::Int64 | MachineMode::Ptr => self
+                    .asm
+                    .movq_ar(AsmAddress::offset(RBP.into(), offset), src.reg().into()),
                 MachineMode::Float32 => asm::movss_store(self, mem, src.freg()),
                 MachineMode::Float64 => asm::movsd_store(self, mem, src.freg()),
             },
 
             Mem::Base(base, disp) => match mode {
                 MachineMode::Int8 => asm::emit_movb_reg_memq(self, src.reg(), base, disp),
-                MachineMode::Int32 => asm::emit_movl_reg_memq(self, src.reg(), base, disp),
-                MachineMode::Int64 | MachineMode::Ptr => {
-                    asm::emit_movq_reg_memq(self, src.reg(), base, disp)
-                }
+                MachineMode::Int32 => self
+                    .asm
+                    .movl_ar(AsmAddress::offset(base.into(), disp), src.reg().into()),
+                MachineMode::Int64 | MachineMode::Ptr => self
+                    .asm
+                    .movq_ar(AsmAddress::offset(base.into(), disp), src.reg().into()),
                 MachineMode::Float32 => asm::movss_store(self, mem, src.freg()),
                 MachineMode::Float64 => asm::movsd_store(self, mem, src.freg()),
             },
@@ -907,7 +915,7 @@ impl MacroAssembler {
         // next instruction has 7 bytes
         let disp = -(disp + 7);
 
-        asm::emit_movq_memq_reg(self, RIP, disp, dest); // 7 bytes
+        self.asm.movq_ra(dest.into(), AsmAddress::rip(disp)); // 7 bytes
     }
 
     pub fn call_reg(&mut self, reg: Reg) {

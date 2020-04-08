@@ -15,20 +15,6 @@ pub const VEXP_66: u8 = 1;
 pub const VEXP_F3: u8 = 2;
 pub const VEXP_F2: u8 = 3;
 
-pub fn emit_movb_memq_reg(buf: &mut MacroAssembler, src: Reg, disp: i32, dest: Reg) {
-    let rex_prefix = if dest != RAX && dest != RBX && dest != RCX && dest != RDX {
-        1
-    } else {
-        0
-    };
-
-    emit_mov_memq_reg(buf, rex_prefix, false, 0x8a, src, disp, dest);
-}
-
-pub fn emit_movl_memq_reg(buf: &mut MacroAssembler, src: Reg, disp: i32, dest: Reg) {
-    emit_mov_memq_reg(buf, 0, false, 0x8b, src, disp, dest);
-}
-
 pub fn emit_movzbl_memq_reg(buf: &mut MacroAssembler, src: Reg, disp: i32, dest: Reg) {
     let src_msb = if src == RIP { 0 } else { src.msb() };
 
@@ -39,37 +25,6 @@ pub fn emit_movzbl_memq_reg(buf: &mut MacroAssembler, src: Reg, disp: i32, dest:
     emit_op(buf, 0x0F);
     emit_op(buf, 0xB6);
     emit_membase(buf, src, disp, dest);
-}
-
-pub fn emit_movq_memq_reg(buf: &mut MacroAssembler, src: Reg, disp: i32, dest: Reg) {
-    emit_mov_memq_reg(buf, 0, true, 0x8b, src, disp, dest);
-}
-
-fn emit_mov_memq_reg(
-    buf: &mut MacroAssembler,
-    rex_prefix: u8,
-    x64: bool,
-    opcode: u8,
-    src: Reg,
-    disp: i32,
-    dest: Reg,
-) {
-    let src_msb = if src == RIP { 0 } else { src.msb() };
-
-    if src_msb != 0 || dest.msb() != 0 || x64 || rex_prefix != 0 {
-        emit_rex(buf, x64, dest.msb(), 0, src_msb);
-    }
-
-    emit_op(buf, opcode);
-    emit_membase(buf, src, disp, dest);
-}
-
-pub fn emit_movq_reg_memq(buf: &mut MacroAssembler, src: Reg, dest: Reg, disp: i32) {
-    emit_mov_reg_memq(buf, 0x89, true, src, dest, disp);
-}
-
-pub fn emit_movl_reg_memq(buf: &mut MacroAssembler, src: Reg, dest: Reg, disp: i32) {
-    emit_mov_reg_memq(buf, 0x89, false, src, dest, disp);
 }
 
 pub fn emit_movb_reg_memq(buf: &mut MacroAssembler, src: Reg, dest: Reg, disp: i32) {
@@ -110,67 +65,6 @@ pub fn emit_movb_imm_memscaleq(
     emit_modrm(buf, 0b00, 0b000, 0b100);
     emit_sib(buf, scale, index.and7(), base.and7());
     emit_u8(buf, imm);
-}
-
-pub fn emit_movq_ar(buf: &mut MacroAssembler, base: Reg, index: Reg, scale: u8, dest: Reg) {
-    emit_mov_ar(buf, true, 0x8b, base, index, scale, dest);
-}
-
-pub fn emit_movl_ar(buf: &mut MacroAssembler, base: Reg, index: Reg, scale: u8, dest: Reg) {
-    emit_mov_ar(buf, false, 0x8b, base, index, scale, dest);
-}
-
-pub fn emit_movq_ra(buf: &mut MacroAssembler, src: Reg, base: Reg, index: Reg, scale: u8) {
-    emit_mov_ar(buf, true, 0x89, base, index, scale, src);
-}
-
-pub fn emit_movl_ra(buf: &mut MacroAssembler, src: Reg, base: Reg, index: Reg, scale: u8) {
-    emit_mov_ar(buf, false, 0x89, base, index, scale, src);
-}
-
-fn emit_mov_ar(
-    buf: &mut MacroAssembler,
-    x64: bool,
-    opcode: u8,
-    base: Reg,
-    index: Reg,
-    scale: u8,
-    dest: Reg,
-) {
-    assert!(scale == 8 || scale == 4 || scale == 2 || scale == 1);
-
-    if x64 || dest.msb() != 0 || index.msb() != 0 || base.msb() != 0 {
-        emit_rex(buf, x64, dest.msb(), index.msb(), base.msb());
-    }
-
-    let scale = match scale {
-        8 => 3,
-        4 => 2,
-        2 => 1,
-        _ => 0,
-    };
-
-    emit_op(buf, opcode);
-    emit_modrm(buf, 0b00, dest.and7(), 0b100);
-    emit_sib(buf, scale, index.and7(), base.and7());
-}
-
-fn emit_mov_reg_memq(
-    buf: &mut MacroAssembler,
-    opcode: u8,
-    x64: bool,
-    src: Reg,
-    dest: Reg,
-    disp: i32,
-) {
-    let dest_msb = if dest == RIP { 0 } else { dest.msb() };
-
-    if dest_msb != 0 || src.msb() != 0 || x64 {
-        emit_rex(buf, x64, src.msb(), 0, dest_msb);
-    }
-
-    emit_op(buf, opcode);
-    emit_membase(buf, dest, disp, src);
 }
 
 fn emit_membase(buf: &mut MacroAssembler, base: Reg, disp: i32, dest: Reg) {
@@ -1188,17 +1082,6 @@ mod tests {
     }
 
     #[test]
-    fn test_emit_movl_memq_reg() {
-        assert_emit!(0x8b, 0x44, 0x24, 1; emit_movl_memq_reg(RSP, 1, RAX));
-        assert_emit!(0x8b, 0x04, 0x24; emit_movl_memq_reg(RSP, 0, RAX));
-
-        assert_emit!(0x44, 0x8b, 0x45, 0; emit_movl_memq_reg(RBP, 0, R8));
-
-        assert_emit!(0x8b, 0x05, 0, 0, 0, 0; emit_movl_memq_reg(RIP, 0, RAX));
-        assert_emit!(0x8b, 0x0d, 0, 0, 0, 0; emit_movl_memq_reg(RIP, 0, RCX));
-    }
-
-    #[test]
     fn test_emit_movzbl_memq_reg() {
         assert_emit!(0x0f, 0xb6, 0x45, 0; emit_movzbl_memq_reg(RBP, 0, RAX));
         assert_emit!(0x0F, 0xB6, 0x71, 0x11; emit_movzbl_memq_reg(RCX, 0x11, RSI));
@@ -1208,45 +1091,6 @@ mod tests {
 
         assert_emit!(0x44, 0x0F, 0xB6, 0x94, 0x24, 0x22, 0x11, 0, 0;
             emit_movzbl_memq_reg(RSP, 0x1122, R10));
-    }
-
-    #[test]
-    fn test_emit_movq_memq_reg() {
-        assert_emit!(0x48, 0x8b, 0x44, 0x24, 1; emit_movq_memq_reg(RSP, 1, RAX));
-
-        assert_emit!(0x48, 0x8b, 0x05, 0xff, 0xff, 0xff, 0xff; emit_movq_memq_reg(RIP, -1, RAX));
-        assert_emit!(0x48, 0x8b, 0x05, 0, 0, 0, 0; emit_movq_memq_reg(RIP, 0, RAX));
-        assert_emit!(0x48, 0x8b, 0x05, 1, 0, 0, 0; emit_movq_memq_reg(RIP, 1, RAX));
-        assert_emit!(0x48, 0x8b, 0; emit_movq_memq_reg(RAX, 0, RAX));
-    }
-
-    #[test]
-    fn test_emit_movb_memq_reg() {
-        assert_emit!(0x8a, 0x45, 1; emit_movb_memq_reg(RBP, 1, RAX));
-        assert_emit!(0x8a, 0x44, 0x24, 1; emit_movb_memq_reg(RSP, 1, RAX));
-        assert_emit!(0x8a, 0x44, 0x24, 0xff; emit_movb_memq_reg(RSP, -1, RAX));
-        assert_emit!(0x8a, 0x5d, 1; emit_movb_memq_reg(RBP, 1, RBX));
-        assert_emit!(0x8a, 0x4d, 1; emit_movb_memq_reg(RBP, 1, RCX));
-        assert_emit!(0x8a, 0x55, 1; emit_movb_memq_reg(RBP, 1, RDX));
-        assert_emit!(0x44, 0x8a, 0x7d, 1; emit_movb_memq_reg(RBP, 1, R15));
-        assert_emit!(0x40, 0x8a, 0x75, 1; emit_movb_memq_reg(RBP, 1, RSI));
-        assert_emit!(0x40, 0x8a, 0x7d, 1; emit_movb_memq_reg(RBP, 1, RDI));
-    }
-
-    #[test]
-    fn test_emit_movl_reg_memq() {
-        assert_emit!(0x89, 0x0d, 0, 0, 0, 0; emit_movl_reg_memq(RCX, RIP, 0));
-        assert_emit!(0x89, 0x48, 3; emit_movl_reg_memq(RCX, RAX, 3));
-    }
-
-    #[test]
-    fn test_emit_movq_reg_memq() {
-        assert_emit!(0x48, 0x89, 0x0d, 0, 0, 0, 0; emit_movq_reg_memq(RCX, RIP, 0));
-        assert_emit!(0x48, 0x89, 0x48, 3; emit_movq_reg_memq(RCX, RAX, 3));
-        assert_emit!(0x4c, 0x89, 0x42, 0x08; emit_movq_reg_memq(R8, RDX, 8));
-        assert_emit!(0x4d, 0x89, 0x42, 0x08; emit_movq_reg_memq(R8, R10, 8));
-        assert_emit!(0x49, 0x89, 0x42, 0x08; emit_movq_reg_memq(RAX, R10, 8));
-        assert_emit!(0x48, 0x89, 0x42, 0x08; emit_movq_reg_memq(RAX, RDX, 8));
     }
 
     #[test]
@@ -1286,38 +1130,6 @@ mod tests {
         assert_emit!(0x80, 0xe1, 2; emit_andb_imm_reg(2, RCX));
         assert_emit!(0x41, 0x80, 0xe0, 3; emit_andb_imm_reg(3, R8));
         assert_emit!(0x41, 0x80, 0xe7, 4; emit_andb_imm_reg(4, R15));
-    }
-
-    #[test]
-    fn test_movq_ar() {
-        assert_emit!(0x48, 0x8b, 0x0C, 0xD8; emit_movq_ar(RAX, RBX, 8, RCX));
-        assert_emit!(0x48, 0x8b, 0x1C, 0x81; emit_movq_ar(RCX, RAX, 4, RBX));
-        assert_emit!(0x48, 0x8b, 0x04, 0x4B; emit_movq_ar(RBX, RCX, 2, RAX));
-        assert_emit!(0x4D, 0x8b, 0x3C, 0x03; emit_movq_ar(R11, RAX, 1, R15));
-    }
-
-    #[test]
-    fn test_movl_ar() {
-        assert_emit!(0x8b, 0x0c, 0xd8; emit_movl_ar(RAX, RBX, 8, RCX));
-        assert_emit!(0x8b, 0x1C, 0x81; emit_movl_ar(RCX, RAX, 4, RBX));
-        assert_emit!(0x8b, 0x04, 0x4B; emit_movl_ar(RBX, RCX, 2, RAX));
-        assert_emit!(0x45, 0x8b, 0x3C, 0x03; emit_movl_ar(R11, RAX, 1, R15));
-    }
-
-    #[test]
-    fn test_movq_ra() {
-        assert_emit!(0x48, 0x89, 0x0C, 0xD8; emit_movq_ra(RCX, RAX, RBX, 8));
-        assert_emit!(0x48, 0x89, 0x1C, 0x81; emit_movq_ra(RBX, RCX, RAX, 4));
-        assert_emit!(0x48, 0x89, 0x04, 0x4B; emit_movq_ra(RAX, RBX, RCX, 2));
-        assert_emit!(0x4D, 0x89, 0x3C, 0x03; emit_movq_ra(R15, R11, RAX, 1));
-    }
-
-    #[test]
-    fn test_movl_ra() {
-        assert_emit!(0x89, 0x0c, 0xd8; emit_movl_ra(RCX, RAX, RBX, 8));
-        assert_emit!(0x89, 0x1C, 0x81; emit_movl_ra(RBX, RCX, RAX, 4));
-        assert_emit!(0x89, 0x04, 0x4B; emit_movl_ra(RAX, RBX, RCX, 2));
-        assert_emit!(0x45, 0x89, 0x3C, 0x03; emit_movl_ra(R15, R11, RAX, 1));
     }
 
     #[test]
