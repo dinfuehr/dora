@@ -8,7 +8,6 @@ use crate::cpu::asm::*;
 use crate::cpu::reg::*;
 use crate::cpu::{FReg, Mem, Reg};
 use crate::gc::swiper::CARD_SIZE_BITS;
-use crate::gc::Address;
 use crate::masm::{CondCode, Label, MacroAssembler};
 use crate::mem::ptr_width;
 use crate::object::{offset_of_array_data, offset_of_array_length, Header};

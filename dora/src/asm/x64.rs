@@ -110,6 +110,12 @@ impl Assembler {
         self.emit_address(dest.low_bits(), src);
     }
 
+    pub fn movb_ar(&mut self, dest: Address, src: Register) {
+        self.emit_rex32_byte_address(src, dest);
+        self.emit_u8(0x88);
+        self.emit_address(src.low_bits(), dest);
+    }
+
     pub fn movq_ar(&mut self, dest: Address, src: Register) {
         self.emit_rex64_modrm_address(src, dest);
         self.emit_u8(0x89);
@@ -145,6 +151,27 @@ impl Assembler {
         self.emit_rex32_byte_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0xb6);
+        self.emit_modrm_registers(dest, src);
+    }
+
+    pub fn movzxb_ra(&mut self, dest: Register, src: Address) {
+        self.emit_rex32_modrm_address(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0xb6);
+        self.emit_address(dest.low_bits(), src);
+    }
+
+    pub fn movsxbl_rr(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+
+    pub fn movsxbq_rr(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+
+    pub fn movsxlq_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex64_modrm(dest, src);
+        self.emit_u8(0x63);
         self.emit_modrm_registers(dest, src);
     }
 
@@ -423,6 +450,12 @@ impl Assembler {
 
     fn emit_rex32_modrm_address(&mut self, reg: Register, address: Address) {
         if address.rex != 0 || reg.needs_rex() {
+            self.emit_u8(0x40 | address.rex | if reg.needs_rex() { 0x04 } else { 0 });
+        }
+    }
+
+    fn emit_rex32_byte_address(&mut self, reg: Register, address: Address) {
+        if address.rex != 0 || reg.value() > 3 {
             self.emit_u8(0x40 | address.rex | if reg.needs_rex() { 0x04 } else { 0 });
         }
     }
@@ -1245,5 +1278,25 @@ mod tests {
         assert_emit!(0x48, 0x8d, 0x40, 1; lea(RAX, Address::offset(RAX, 1)));
         assert_emit!(0x49, 0x8d, 0x00; lea(RAX, Address::offset(R8, 0)));
         assert_emit!(0x4c, 0x8d, 0x00; lea(R8, Address::offset(RAX, 0)));
+    }
+
+    #[test]
+    fn test_movb_ar() {
+        assert_emit!(0x88, 0x04, 0x24; movb_ar(Address::offset(RSP, 0), RAX));
+        assert_emit!(0x40, 0x88, 0x34, 0x24; movb_ar(Address::offset(RSP, 0), RSI));
+        assert_emit!(0x44, 0x88, 0x04, 0x24; movb_ar(Address::offset(RSP, 0), R8));
+    }
+
+    #[test]
+    fn test_movzxb_ra() {
+        assert_emit!(0x0f, 0xb6, 0x00; movzxb_ra(RAX, Address::offset(RAX, 0)));
+        assert_emit!(0x44, 0x0f, 0xb6, 0x00; movzxb_ra(R8, Address::offset(RAX, 0)));
+        assert_emit!(0x41, 0x0f, 0xb6, 0x00; movzxb_ra(RAX, Address::offset(R8, 0)));
+    }
+
+    #[test]
+    fn test_movsxlq_rr() {
+        assert_emit!(0x4c, 0x63, 0xf8; movsxlq_rr(R15, RAX));
+        assert_emit!(0x49, 0x63, 0xc7; movsxlq_rr(RAX, R15));
     }
 }

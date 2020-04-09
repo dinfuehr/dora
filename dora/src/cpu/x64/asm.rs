@@ -236,12 +236,6 @@ pub fn emit_jmp_reg(buf: &mut MacroAssembler, reg: Reg) {
     emit_modrm(buf, 0b11, 0b100, reg.and7());
 }
 
-pub fn testl_reg_mem(buf: &mut MacroAssembler, dest: Reg, src: Mem) {
-    emit_rex_mem(buf, false, dest, &src);
-    emit_op(buf, 0x85);
-    emit_mem(buf, dest, &src);
-}
-
 pub fn lea(buf: &mut MacroAssembler, dest: Reg, src: Mem) {
     emit_rex_mem(buf, true, dest, &src);
     emit_op(buf, 0x8D);
@@ -943,14 +937,6 @@ mod tests {
     fn test_shll_reg() {
         assert_emit!(0xC1, 0xE0, 0x02; emit_shll_reg(2, RAX));
         assert_emit!(0x41, 0xC1, 0xE4, 0x07; emit_shll_reg(7, R12));
-    }
-
-    #[test]
-    fn test_testl_reg_mem() {
-        assert_emit!(0x85, 0x05, 0xf6, 0xff, 0xff, 0xff; testl_reg_mem(RAX, Mem::Base(RIP, -10)));
-        assert_emit!(0x44, 0x85, 0x3d, 0xf6, 0xff, 0xff, 0xff;
-                     testl_reg_mem(R15, Mem::Base(RIP, -10)));
-        assert_emit!(0x44, 0x85, 0x79, 0xf6; testl_reg_mem(R15, Mem::Base(RCX, -10)));
     }
 
     #[test]
