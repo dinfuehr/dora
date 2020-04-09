@@ -41,12 +41,12 @@ impl MacroAssembler {
     }
 
     pub fn check_stack_pointer(&mut self, lbl_overflow: Label) {
-        asm::emit_cmp_mem_reg(
-            self,
-            MachineMode::Ptr,
-            REG_THREAD,
-            ThreadLocalData::guard_stack_limit_offset(),
-            RSP,
+        self.asm.cmpq_ar(
+            AsmAddress::offset(
+                REG_THREAD.into(),
+                ThreadLocalData::guard_stack_limit_offset(),
+            ),
+            RSP.into(),
         );
 
         asm::emit_jcc(self, CondCode::UnsignedGreater, lbl_overflow);

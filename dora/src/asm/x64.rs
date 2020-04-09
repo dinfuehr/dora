@@ -196,10 +196,22 @@ impl Assembler {
         self.emit_modrm_registers(src, dest);
     }
 
-    pub fn cmpq_rr(&mut self, dest: Register, src: Register) {
-        self.emit_rex64_modrm(src, dest);
+    pub fn cmpl_ar(&mut self, lhs: Address, rhs: Register) {
+        self.emit_rex32_modrm_address(rhs, lhs);
         self.emit_u8(0x39);
-        self.emit_modrm_registers(src, dest);
+        self.emit_address(rhs.low_bits(), lhs);
+    }
+
+    pub fn cmpq_rr(&mut self, lhs: Register, rhs: Register) {
+        self.emit_rex64_modrm(rhs, lhs);
+        self.emit_u8(0x39);
+        self.emit_modrm_registers(rhs, lhs);
+    }
+
+    pub fn cmpq_ar(&mut self, lhs: Address, rhs: Register) {
+        self.emit_rex64_modrm_address(rhs, lhs);
+        self.emit_u8(0x39);
+        self.emit_address(rhs.low_bits(), lhs);
     }
 
     pub fn cmpq_ri(&mut self, reg: Register, imm: Immediate) {
@@ -1078,5 +1090,21 @@ mod tests {
     fn test_movl_ra() {
         assert_emit!(0x8b, 0x45, 0; movl_ra(RAX, Address::offset(RBP, 0)));
         assert_emit!(0x8b, 0x05, 0, 0, 0, 0; movl_ra(RAX, Address::rip(0)));
+    }
+
+    #[test]
+    fn test_cmpq_ar() {
+        assert_emit!(0x48, 0x39, 0x43, 1; cmpq_ar(Address::offset(RBX, 1), RAX));
+        assert_emit!(0x48, 0x39, 0x83, 0, 1, 0, 0; cmpq_ar(Address::offset(RBX, 256), RAX));
+        assert_emit!(0x48, 0x39, 0x47, 1; cmpq_ar(Address::offset(RDI, 1), RAX));
+        assert_emit!(0x49, 0x39, 0x41, 1; cmpq_ar(Address::offset(R9, 1), RAX));
+        assert_emit!(0x4c, 0x39, 0x57, 1; cmpq_ar(Address::offset(RDI, 1), R10));
+        assert_emit!(0x48, 0x39, 0x05, 1, 0, 0, 0; cmpq_ar(Address::rip(1), RAX));
+    }
+
+    #[test]
+    fn test_cmpl_ar() {
+        assert_emit!(0x39, 0x43, 1; cmpl_ar(Address::offset(RBX, 1), RAX));
+        assert_emit!(0x44, 0x39, 0x53, 1; cmpl_ar(Address::offset(RBX, 1), R10));
     }
 }
