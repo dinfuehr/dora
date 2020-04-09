@@ -5,6 +5,10 @@ impl Register {
         self.0 & 0b111
     }
 
+    fn value(self) -> u8 {
+        self.0
+    }
+
     fn needs_rex(self) -> bool {
         self.0 > 7
     }
@@ -73,6 +77,12 @@ impl Assembler {
         self.emit_u8(0x0F);
         self.emit_u8((0x40 + condition.int()) as u8);
         self.emit_modrm_registers(dest, src);
+    }
+
+    pub fn lea(&mut self, dest: Register, src: Address) {
+        self.emit_rex64_modrm_address(dest, src);
+        self.emit_u8(0x8D);
+        self.emit_address(dest.low_bits(), src);
     }
 
     pub fn movq_rr(&mut self, dest: Register, src: Register) {
@@ -252,10 +262,63 @@ impl Assembler {
         self.emit_modrm_registers(rhs, lhs);
     }
 
+    pub fn testl_ri(&mut self, lhs: Register, rhs: Immediate) {
+        assert!(rhs.is_int32());
+
+        if rhs.is_uint8() {
+            if lhs == RAX {
+                self.emit_u8(0xa8);
+            } else if lhs.value() < 4 {
+                self.emit_u8(0xf6);
+                self.emit_modrm_opcode(0b000, lhs);
+            } else {
+                self.emit_rex(false, false, false, lhs.needs_rex());
+                self.emit_u8(0xf6);
+                self.emit_modrm_opcode(0b000, lhs);
+            }
+            self.emit_u8(rhs.uint8());
+        } else if lhs == RAX {
+            self.emit_u8(0xa9);
+            self.emit_u32(rhs.int32() as u32);
+        } else {
+            self.emit_u8(0xf7);
+            self.emit_modrm_opcode(0b000, lhs);
+            self.emit_u32(rhs.int32() as u32);
+        }
+    }
+
+    pub fn testl_ar(&mut self, lhs: Address, rhs: Register) {
+        self.emit_rex32_modrm_address(rhs, lhs);
+        self.emit_u8(0x85);
+        self.emit_address(rhs.low_bits(), lhs);
+    }
+
+    pub fn testl_ai(&mut self, lhs: Address, rhs: Immediate) {
+        assert!(rhs.is_int32());
+        self.emit_rex32_address(lhs);
+        self.emit_u8(0xf7);
+        self.emit_address(0b000, lhs);
+        self.emit_u32(rhs.int32() as u32);
+    }
+
     pub fn testq_rr(&mut self, lhs: Register, rhs: Register) {
         self.emit_rex64_modrm(rhs, lhs);
         self.emit_u8(0x85);
         self.emit_modrm_registers(rhs, lhs);
+    }
+
+    pub fn testq_ar(&mut self, lhs: Address, rhs: Register) {
+        self.emit_rex64_modrm_address(rhs, lhs);
+        self.emit_u8(0x85);
+        self.emit_address(rhs.low_bits(), lhs);
+    }
+
+    pub fn testq_ai(&mut self, lhs: Address, rhs: Immediate) {
+        assert!(rhs.is_int32());
+        self.emit_rex64_address(lhs);
+        self.emit_u8(0xf7);
+        self.emit_address(0b000, lhs);
+        self.emit_u32(rhs.int32() as u32);
     }
 
     pub fn imull_rr(&mut self, dest: Register, src: Register) {
@@ -354,9 +417,19 @@ impl Assembler {
         self.emit_u8(rex);
     }
 
+    fn emit_rex64_address(&mut self, address: Address) {
+        self.emit_u8(0x48 | address.rex);
+    }
+
     fn emit_rex32_modrm_address(&mut self, reg: Register, address: Address) {
         if address.rex != 0 || reg.needs_rex() {
             self.emit_u8(0x40 | address.rex | if reg.needs_rex() { 0x04 } else { 0 });
+        }
+    }
+
+    fn emit_rex32_address(&mut self, address: Address) {
+        if address.rex != 0 {
+            self.emit_u8(0x40 | address.rex);
         }
     }
 
@@ -525,6 +598,14 @@ impl Immediate {
     pub fn is_int32(&self) -> bool {
         let limit = 1i64 << 31;
         -limit <= self.0 && self.0 < limit
+    }
+
+    pub fn is_uint8(&self) -> bool {
+        0 <= self.0 && self.0 < 256
+    }
+
+    pub fn uint8(&self) -> u8 {
+        self.0 as u8
     }
 
     pub fn int8(&self) -> i8 {
@@ -1106,5 +1187,63 @@ mod tests {
     fn test_cmpl_ar() {
         assert_emit!(0x39, 0x43, 1; cmpl_ar(Address::offset(RBX, 1), RAX));
         assert_emit!(0x44, 0x39, 0x53, 1; cmpl_ar(Address::offset(RBX, 1), R10));
+    }
+
+    #[test]
+    fn test_testl_ar() {
+        assert_emit!(0x85, 0x47, 1; testl_ar(Address::offset(RDI, 1), RAX));
+        assert_emit!(0x85, 0x07; testl_ar(Address::offset(RDI, 0), RAX));
+
+        assert_emit!(0x41, 0x85, 0x00; testl_ar(Address::offset(R8, 0), RAX));
+        assert_emit!(0x41, 0x85, 0x40, 1; testl_ar(Address::offset(R8, 1), RAX));
+        assert_emit!(0x45, 0x85, 0x38; testl_ar(Address::offset(R8, 0), R15));
+
+        assert_emit!(0x44, 0x85, 0x38; testl_ar(Address::offset(RAX, 0), R15));
+    }
+
+    #[test]
+    fn test_testq_ar() {
+        assert_emit!(0x48, 0x85, 0x47, 1; testq_ar(Address::offset(RDI, 1), RAX));
+        assert_emit!(0x4D, 0x85, 0x38; testq_ar(Address::offset(R8, 0), R15));
+    }
+
+    #[test]
+    fn test_testl_ai() {
+        assert_emit!(0xf7, 0x00, 1, 0, 0, 0; testl_ai(Address::offset(RAX, 0), Immediate(1)));
+        assert_emit!(0xf7, 0x40, 1, 1, 0, 0, 0; testl_ai(Address::offset(RAX, 1), Immediate(1)));
+
+        assert_emit!(0x41, 0xf7, 0x00, 1, 0, 0, 0; testl_ai(Address::offset(R8, 0), Immediate(1)));
+    }
+
+    #[test]
+    fn test_testq_ai() {
+        assert_emit!(0x48, 0xf7, 0x00, 1, 0, 0, 0; testq_ai(Address::offset(RAX, 0), Immediate(1)));
+        assert_emit!(0x48, 0xf7, 0x40, 1, 1, 0, 0, 0; testq_ai(Address::offset(RAX, 1), Immediate(1)));
+
+        assert_emit!(0x49, 0xf7, 0x00, 1, 0, 0, 0; testq_ai(Address::offset(R8, 0), Immediate(1)));
+    }
+
+    #[test]
+    fn test_testl_ri() {
+        assert_emit!(0xa8, 1; testl_ri(RAX, Immediate(1)));
+        assert_emit!(0xf6, 0xc1, 255; testl_ri(RCX, Immediate(255)));
+        assert_emit!(0xf6, 0xc2, 1; testl_ri(RDX, Immediate(1)));
+        assert_emit!(0xf6, 0xc3, 1; testl_ri(RBX, Immediate(1)));
+
+        assert_emit!(0x40, 0xf6, 0xc6, 1; testl_ri(RSI, Immediate(1)));
+        assert_emit!(0x40, 0xf6, 0xc7, 1; testl_ri(RDI, Immediate(1)));
+        assert_emit!(0x41, 0xf6, 0xc0, 1; testl_ri(R8, Immediate(1)));
+        assert_emit!(0x41, 0xf6, 0xc7, 1; testl_ri(R15, Immediate(1)));
+
+        assert_emit!(0xa9, 0, 1, 0, 0; testl_ri(RAX, Immediate(256)));
+        assert_emit!(0xf7, 0xc7, 0, 1, 0, 0; testl_ri(RDI, Immediate(256)));
+    }
+
+    #[test]
+    fn test_lea() {
+        assert_emit!(0x48, 0x8d, 0x00; lea(RAX, Address::offset(RAX, 0)));
+        assert_emit!(0x48, 0x8d, 0x40, 1; lea(RAX, Address::offset(RAX, 1)));
+        assert_emit!(0x49, 0x8d, 0x00; lea(RAX, Address::offset(R8, 0)));
+        assert_emit!(0x4c, 0x8d, 0x00; lea(R8, Address::offset(RAX, 0)));
     }
 }

@@ -74,10 +74,6 @@ where
         self.slow_paths.push(SlowPathKind::Assert(lbl_assert, pos));
     }
 
-    pub fn safepoint(&mut self, polling_page: Address) {
-        self.masm.safepoint(polling_page);
-    }
-
     pub fn epilog(&mut self) {
         self.masm.epilog();
     }
@@ -100,10 +96,6 @@ where
 
     pub fn copy_freg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
         self.masm.copy_freg(mode, dest, src);
-    }
-
-    pub fn check_polling_page(&mut self, page: Address) {
-        self.masm.check_polling_page(page);
     }
 
     pub fn emit_gcpoint(&mut self, gcpoint: GcPoint) {
@@ -372,19 +364,6 @@ where
 
     pub fn load_array_elem(&mut self, mode: MachineMode, dest: AnyReg, array: Reg, index: Reg) {
         self.masm.load_array_elem(mode, dest, array, index);
-    }
-
-    pub fn store_array_elem(
-        &mut self,
-        mode: MachineMode,
-        array: Reg,
-        index: Reg,
-        value: AnyReg,
-        write_barrier: bool,
-        card_table_offset: usize,
-    ) {
-        self.masm
-            .store_array_elem(mode, array, index, value, write_barrier, card_table_offset);
     }
 
     pub fn array_address(&mut self, dest: Reg, obj: Reg, index: Reg, element_size: i32) {

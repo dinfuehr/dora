@@ -1,12 +1,11 @@
 use byteorder::{LittleEndian, WriteBytesExt};
 use dora_parser::lexer::position::Position;
 
-use crate::asm::{Address as AsmAddress, Condition, Immediate, Register as AsmRegister};
+use crate::asm::{Address, Condition, Immediate, Register as AsmRegister, ScaleFactor};
 use crate::compiler::codegen::AnyReg;
 use crate::compiler::fct::LazyCompilationSite;
 use crate::cpu::*;
 use crate::gc::swiper::CARD_SIZE_BITS;
-use crate::gc::Address;
 use crate::masm::{CondCode, Label, MacroAssembler};
 use crate::mem::{fits_i32, ptr_width};
 use crate::object::{offset_of_array_data, offset_of_array_length, Header};
@@ -42,7 +41,7 @@ impl MacroAssembler {
 
     pub fn check_stack_pointer(&mut self, lbl_overflow: Label) {
         self.asm.cmpq_ar(
-            AsmAddress::offset(
+            Address::offset(
                 REG_THREAD.into(),
                 ThreadLocalData::guard_stack_limit_offset(),
             ),
@@ -149,32 +148,6 @@ impl MacroAssembler {
             dest,
             Mem::Index(array, index, mode.size(), offset_of_array_data()),
         );
-    }
-
-    pub fn store_array_elem(
-        &mut self,
-        mode: MachineMode,
-        array: Reg,
-        index: Reg,
-        value: AnyReg,
-        write_barrier: bool,
-        card_table_offset: usize,
-    ) {
-        self.store_mem(
-            mode,
-            Mem::Index(array, index, mode.size(), offset_of_array_data()),
-            value,
-        );
-
-        if write_barrier {
-            let scratch = self.get_scratch();
-            asm::lea(
-                self,
-                *scratch,
-                Mem::Index(array, index, mode.size(), offset_of_array_data()),
-            );
-            self.emit_barrier(*scratch, card_table_offset);
-        }
     }
 
     pub fn set(&mut self, dest: Reg, op: CondCode) {
@@ -729,7 +702,15 @@ impl MacroAssembler {
             };
 
         if element_size == 1 || element_size == 2 || element_size == 4 || element_size == 8 {
-            asm::lea(self, dest, Mem::Offset(length, element_size, size));
+            let scale = match element_size {
+                1 => ScaleFactor::One,
+                2 => ScaleFactor::Two,
+                4 => ScaleFactor::Four,
+                8 => ScaleFactor::Eight,
+                _ => unreachable!(),
+            };
+            self.asm
+                .lea(dest.into(), Address::index(length.into(), scale, size));
         } else {
             let scratch = self.get_scratch();
             self.load_int_const(MachineMode::Ptr, *scratch, element_size as i64);
@@ -763,7 +744,7 @@ impl MacroAssembler {
             (*scratch).into(),
             Mem::Base(array, offset_of_array_length()),
         );
-        self.cmp_reg(MachineMode::Int32, index, *scratch);
+        self.asm.cmpl_rr(index.into(), (*scratch).into());
 
         let lbl = self.create_label();
         self.jump_if(CondCode::UnsignedGreaterEq, lbl);
@@ -780,10 +761,10 @@ impl MacroAssembler {
                 MachineMode::Int8 => asm::emit_movzbl_memq_reg(self, RBP, offset, dest.reg()),
                 MachineMode::Int32 => self
                     .asm
-                    .movl_ra(dest.reg().into(), AsmAddress::offset(RBP.into(), offset)),
+                    .movl_ra(dest.reg().into(), Address::offset(RBP.into(), offset)),
                 MachineMode::Int64 | MachineMode::Ptr => self
                     .asm
-                    .movq_ra(dest.reg().into(), AsmAddress::offset(RBP.into(), offset)),
+                    .movq_ra(dest.reg().into(), Address::offset(RBP.into(), offset)),
                 MachineMode::Float32 => asm::movss_load(self, dest.freg(), mem),
                 MachineMode::Float64 => asm::movsd_load(self, dest.freg(), mem),
             },
@@ -792,10 +773,10 @@ impl MacroAssembler {
                 MachineMode::Int8 => asm::emit_movzbl_memq_reg(self, base, disp, dest.reg()),
                 MachineMode::Int32 => self
                     .asm
-                    .movl_ra(dest.reg().into(), AsmAddress::offset(base.into(), disp)),
+                    .movl_ra(dest.reg().into(), Address::offset(base.into(), disp)),
                 MachineMode::Int64 | MachineMode::Ptr => self
                     .asm
-                    .movq_ra(dest.reg().into(), AsmAddress::offset(base.into(), disp)),
+                    .movq_ra(dest.reg().into(), Address::offset(base.into(), disp)),
                 MachineMode::Float32 => asm::movss_load(self, dest.freg(), mem),
                 MachineMode::Float64 => asm::movsd_load(self, dest.freg(), mem),
             },
@@ -842,10 +823,10 @@ impl MacroAssembler {
                 MachineMode::Int8 => asm::emit_movb_reg_memq(self, src.reg(), RBP, offset),
                 MachineMode::Int32 => self
                     .asm
-                    .movl_ar(AsmAddress::offset(RBP.into(), offset), src.reg().into()),
+                    .movl_ar(Address::offset(RBP.into(), offset), src.reg().into()),
                 MachineMode::Int64 | MachineMode::Ptr => self
                     .asm
-                    .movq_ar(AsmAddress::offset(RBP.into(), offset), src.reg().into()),
+                    .movq_ar(Address::offset(RBP.into(), offset), src.reg().into()),
                 MachineMode::Float32 => asm::movss_store(self, mem, src.freg()),
                 MachineMode::Float64 => asm::movsd_store(self, mem, src.freg()),
             },
@@ -854,10 +835,10 @@ impl MacroAssembler {
                 MachineMode::Int8 => asm::emit_movb_reg_memq(self, src.reg(), base, disp),
                 MachineMode::Int32 => self
                     .asm
-                    .movl_ar(AsmAddress::offset(base.into(), disp), src.reg().into()),
+                    .movl_ar(Address::offset(base.into(), disp), src.reg().into()),
                 MachineMode::Int64 | MachineMode::Ptr => self
                     .asm
-                    .movq_ar(AsmAddress::offset(base.into(), disp), src.reg().into()),
+                    .movq_ar(Address::offset(base.into(), disp), src.reg().into()),
                 MachineMode::Float32 => asm::movss_store(self, mem, src.freg()),
                 MachineMode::Float64 => asm::movsd_store(self, mem, src.freg()),
             },
@@ -880,7 +861,7 @@ impl MacroAssembler {
     }
 
     pub fn copy_pc(&mut self, dest: Reg) {
-        asm::lea(self, dest, Mem::Base(RIP, 0));
+        self.asm.lea(dest.into(), Address::rip(0));
     }
 
     pub fn copy_ra(&mut self, dest: Reg) {
@@ -915,7 +896,7 @@ impl MacroAssembler {
         // next instruction has 7 bytes
         let disp = -(disp + 7);
 
-        self.asm.movq_ra(dest.into(), AsmAddress::rip(disp)); // 7 bytes
+        self.asm.movq_ra(dest.into(), Address::rip(disp)); // 7 bytes
     }
 
     pub fn call_reg(&mut self, reg: Reg) {
@@ -1131,16 +1112,6 @@ impl MacroAssembler {
             let mut slice = &mut self.asm.code_mut()[jmp.at..];
             slice.write_u32::<LittleEndian>(diff as u32).unwrap();
         }
-    }
-
-    pub fn check_polling_page(&mut self, page: Address) {
-        let disp = self.dseg.add_addr_reuse(page.to_ptr());
-        let pos = self.pos() as i32;
-
-        let scratch = self.get_scratch();
-        self.load_constpool(*scratch, disp + pos);
-
-        asm::testl_reg_mem(self, RAX, Mem::Base(*scratch, 0));
     }
 
     fn mov_rr(&mut self, x64: bool, lhs: AsmRegister, rhs: AsmRegister) {

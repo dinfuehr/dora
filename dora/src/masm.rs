@@ -10,7 +10,6 @@ use crate::compiler::fct::{
 };
 use crate::cpu::{Mem, Reg, SCRATCH};
 use crate::dseg::DSeg;
-use crate::gc::Address;
 use crate::mem;
 use crate::object::Header;
 use crate::ty::MachineMode;
@@ -277,12 +276,6 @@ impl MacroAssembler {
         // jump to begin of loop
         self.jump(start);
         self.bind_label(done);
-    }
-
-    pub fn safepoint(&mut self, polling_page: Address) {
-        self.check_polling_page(polling_page);
-        let gcpoint = GcPoint::new();
-        self.emit_gcpoint(gcpoint);
     }
 }
 

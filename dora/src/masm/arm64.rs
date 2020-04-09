@@ -219,44 +219,6 @@ impl MacroAssembler {
         );
     }
 
-    pub fn store_array_elem(
-        &mut self,
-        mode: MachineMode,
-        array: Reg,
-        index: Reg,
-        value: AnyReg,
-        write_barrier: bool,
-        card_table_offset: usize,
-    ) {
-        self.store_mem(
-            mode,
-            Mem::Index(array, index, mode.size(), offset_of_array_data()),
-            value,
-        );
-
-        if write_barrier {
-            let scratch = self.get_scratch();
-            self.emit_u32(asm::add_imm(
-                1,
-                *scratch,
-                array,
-                offset_of_array_data() as u32,
-                0,
-            ));
-
-            let shift = match mode {
-                MachineMode::Int8 => 0,
-                MachineMode::Int32 | MachineMode::Float32 => 2,
-                MachineMode::Int64 | MachineMode::Ptr | MachineMode::Float64 => 3,
-            };
-
-            let inst = asm::add_shreg(1, *scratch, *scratch, index, Shift::LSL, shift);
-            self.emit_u32(inst);
-
-            self.emit_barrier(*scratch, card_table_offset);
-        }
-    }
-
     pub fn set(&mut self, dest: Reg, op: CondCode) {
         self.emit_u32(asm::cset(0, dest, op.into()));
     }
@@ -1307,16 +1269,6 @@ impl MacroAssembler {
             let mut slice = &mut self.asm.code_mut()[jmp.at..];
             slice.write_u32::<LittleEndian>(insn).unwrap();
         }
-    }
-
-    pub fn check_polling_page(&mut self, page: Address) {
-        let disp = self.dseg.add_addr_reuse(page.to_ptr());
-        let pos = self.pos() as i32;
-
-        let scratch = self.get_scratch();
-        self.load_constpool(*scratch, disp + pos);
-
-        self.emit_u32(asm::ldrx_imm(*scratch, *scratch, 0));
     }
 }
 
