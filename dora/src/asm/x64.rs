@@ -426,6 +426,21 @@ impl Assembler {
         self.emit_modrm_registers(src, dest);
     }
 
+    pub fn xorps(&mut self, dest: XmmRegister, src: Address) {
+        self.emit_rex_sse_address_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x57);
+        self.emit_address(dest.low_bits(), src);
+    }
+
+    pub fn xorpd(&mut self, dest: XmmRegister, src: Address) {
+        self.emit_u8(0x66);
+        self.emit_rex_sse_address_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x57);
+        self.emit_address(dest.low_bits(), src);
+    }
+
     pub fn testl_rr(&mut self, lhs: Register, rhs: Register) {
         self.emit_rex32_optional(rhs, lhs);
         self.emit_u8(0x85);
@@ -826,15 +841,15 @@ impl XmmRegister {
         XmmRegister(value)
     }
 
-    fn low_bits(self) -> u8 {
+    pub fn low_bits(self) -> u8 {
         self.0 & 0b111
     }
 
-    fn value(self) -> u8 {
+    pub fn value(self) -> u8 {
         self.0
     }
 
-    fn needs_rex(self) -> bool {
+    pub fn needs_rex(self) -> bool {
         self.0 > 7
     }
 }

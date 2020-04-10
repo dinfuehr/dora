@@ -995,19 +995,20 @@ impl MacroAssembler {
         let disp = self.dseg.add_i32(fst);
 
         let pos = self.pos() as i32;
-        let mem = Mem::Base(RIP, 0);
+
+        let xmm_reg: XmmRegister = src.into();
+
+        let inst_size = 7
+            + if mode == MachineMode::Float64 { 1 } else { 0 }
+            + if xmm_reg.needs_rex() { 1 } else { 0 };
+
+        let address = Address::rip(-(disp + pos + inst_size));
 
         match mode {
-            MachineMode::Float32 => asm::xorps(self, src, mem),
-            MachineMode::Float64 => asm::xorpd(self, src, mem),
+            MachineMode::Float32 => self.asm.xorps(src.into(), address),
+            MachineMode::Float64 => self.asm.xorpd(src.into(), address),
             _ => unimplemented!(),
         }
-
-        let after = self.pos() as i32;
-        let len = after - pos;
-
-        let offset = -(disp + pos + len);
-        self.emit_u32_at(after - 4, offset as u32);
 
         if dest != src {
             self.copy_freg(mode, dest, src);

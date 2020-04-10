@@ -14,34 +14,6 @@ pub const VEXP_66: u8 = 1;
 pub const VEXP_F3: u8 = 2;
 pub const VEXP_F2: u8 = 3;
 
-fn emit_membase(buf: &mut MacroAssembler, base: Reg, disp: i32, dest: Reg) {
-    if base == RSP || base == R12 {
-        if disp == 0 {
-            emit_modrm(buf, 0, dest.and7(), RSP.and7());
-            emit_sib(buf, 0, RSP.and7(), RSP.and7());
-        } else if fits_i8(disp) {
-            emit_modrm(buf, 1, dest.and7(), RSP.and7());
-            emit_sib(buf, 0, RSP.and7(), RSP.and7());
-            emit_u8(buf, disp as u8);
-        } else {
-            emit_modrm(buf, 2, dest.and7(), RSP.and7());
-            emit_sib(buf, 0, RSP.and7(), RSP.and7());
-            emit_u32(buf, disp as u32);
-        }
-    } else if disp == 0 && base != RBP && base != R13 && base != RIP {
-        emit_modrm(buf, 0, dest.and7(), base.and7());
-    } else if base == RIP {
-        emit_modrm(buf, 0, dest.and7(), RBP.and7());
-        emit_u32(buf, disp as u32);
-    } else if fits_i8(disp) {
-        emit_modrm(buf, 1, dest.and7(), base.and7());
-        emit_u8(buf, disp as u8);
-    } else {
-        emit_modrm(buf, 2, dest.and7(), base.and7());
-        emit_u32(buf, disp as u32);
-    }
-}
-
 pub fn emit_u64(buf: &mut MacroAssembler, val: u64) {
     buf.emit_u64(val)
 }
@@ -136,96 +108,6 @@ pub fn emit_jcc(buf: &mut MacroAssembler, cond: CondCode, lbl: Label) {
 pub fn emit_jmp(buf: &mut MacroAssembler, lbl: Label) {
     emit_op(buf, 0xe9);
     buf.emit_label(lbl);
-}
-
-fn emit_rex_mem(buf: &mut MacroAssembler, x64: bool, dest: Reg, src: &Mem) {
-    let (base_msb, index_msb) = match src {
-        &Mem::Local(_) => (RBP.msb(), 0),
-        &Mem::Base(base, _) => {
-            let base_msb = if base == RIP { 0 } else { base.msb() };
-
-            (base_msb, 0)
-        }
-
-        &Mem::Index(base, index, _, _) => (base.msb(), index.msb()),
-        &Mem::Offset(index, _, _) => (0, index.msb()),
-    };
-
-    if dest.msb() != 0 || index_msb != 0 || base_msb != 0 || x64 {
-        emit_rex(buf, x64, dest.msb(), index_msb, base_msb);
-    }
-}
-
-fn emit_mem(buf: &mut MacroAssembler, dest: Reg, src: &Mem) {
-    match src {
-        &Mem::Local(offset) => {
-            emit_membase(buf, RBP, offset, dest);
-        }
-
-        &Mem::Base(base, disp) => {
-            emit_membase(buf, base, disp, dest);
-        }
-
-        &Mem::Index(base, index, scale, disp) => {
-            emit_membase_with_index_and_scale(buf, base, index, scale, disp, dest);
-        }
-
-        &Mem::Offset(index, scale, disp) => {
-            emit_membase_without_base(buf, index, scale, disp, dest);
-        }
-    }
-}
-
-fn emit_membase_without_base(
-    buf: &mut MacroAssembler,
-    index: Reg,
-    scale: i32,
-    disp: i32,
-    dest: Reg,
-) {
-    assert!(scale == 8 || scale == 4 || scale == 2 || scale == 1);
-
-    let scale = match scale {
-        8 => 3,
-        4 => 2,
-        2 => 1,
-        _ => 0,
-    };
-
-    emit_modrm(buf, 0, dest.and7(), 4);
-    emit_sib(buf, scale, index.and7(), 5);
-    emit_u32(buf, disp as u32);
-}
-
-fn emit_membase_with_index_and_scale(
-    buf: &mut MacroAssembler,
-    base: Reg,
-    index: Reg,
-    scale: i32,
-    disp: i32,
-    dest: Reg,
-) {
-    assert!(scale == 8 || scale == 4 || scale == 2 || scale == 1);
-
-    let scale = match scale {
-        8 => 3,
-        4 => 2,
-        2 => 1,
-        _ => 0,
-    };
-
-    if disp == 0 {
-        emit_modrm(buf, 0, dest.and7(), 4);
-        emit_sib(buf, scale, index.and7(), base.and7());
-    } else if fits_i8(disp) {
-        emit_modrm(buf, 1, dest.and7(), 4);
-        emit_sib(buf, scale, index.and7(), base.and7());
-        emit_u8(buf, disp as u8);
-    } else {
-        emit_modrm(buf, 2, dest.and7(), 4);
-        emit_sib(buf, scale, index.and7(), base.and7());
-        emit_u32(buf, disp as u32);
-    }
 }
 
 pub fn emit_shlx(buf: &mut MacroAssembler, x64: bool, dest: Reg, lhs: Reg, rhs: Reg) {
@@ -402,14 +284,6 @@ pub fn movd_i2f(buf: &mut MacroAssembler, x64: bool, dest: FReg, src: Reg) {
     sse_movd_reg_freg(buf, 0x6e, x64, dest, src);
 }
 
-pub fn xorps(buf: &mut MacroAssembler, dest: FReg, src: Mem) {
-    sse_float_freg_mem_66(buf, false, 0x57, dest, src);
-}
-
-pub fn xorpd(buf: &mut MacroAssembler, dest: FReg, src: Mem) {
-    sse_float_freg_mem_66(buf, true, 0x57, dest, src);
-}
-
 fn sse_float_freg_freg(buf: &mut MacroAssembler, dbl: bool, op: u8, dest: FReg, src: FReg) {
     let prefix = if dbl { 0xf2 } else { 0xf3 };
 
@@ -422,17 +296,6 @@ fn sse_float_freg_freg(buf: &mut MacroAssembler, dbl: bool, op: u8, dest: FReg, 
     emit_op(buf, 0x0f);
     emit_op(buf, op);
     emit_modrm(buf, 0b11, dest.and7(), src.and7());
-}
-
-fn sse_float_freg_mem_66(buf: &mut MacroAssembler, dbl: bool, op: u8, dest: FReg, src: Mem) {
-    if dbl {
-        emit_op(buf, 0x66);
-    }
-
-    emit_rex_mem(buf, false, Reg(dest.0), &src);
-    emit_op(buf, 0x0f);
-    emit_op(buf, op);
-    emit_mem(buf, Reg(dest.0), &src);
 }
 
 fn sse_float_freg_reg(
@@ -1028,13 +891,5 @@ mod tests {
     fn test_tzcnt() {
         assert_emit!(0xf3, 0x48, 0x0f, 0xbc, 0xc7; tzcnt(true, RDI, RAX));
         assert_emit!(0xf3, 0x0f, 0xbc, 0xc7; tzcnt(false, RDI, RAX));
-    }
-
-    #[test]
-    fn test_xorps() {
-        assert_emit!(0x0f, 0x57, 0x05, 0xf6, 0xff, 0xff, 0xff;
-                     xorps(XMM0, Mem::Base(RIP, -10)));
-        assert_emit!(0x66, 0x0f, 0x57, 0x05, 0xf6, 0xff, 0xff, 0xff;
-                     xorpd(XMM0, Mem::Base(RIP, -10)));
     }
 }
