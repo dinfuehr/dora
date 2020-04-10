@@ -168,13 +168,13 @@ impl MacroAssembler {
     }
 
     pub fn cmp_mem(&mut self, mode: MachineMode, mem: Mem, rhs: Reg) {
-        match mem {
-            Mem::Local(offset) => asm::emit_cmp_mem_reg(self, mode, REG_FP, offset, rhs),
-            Mem::Base(base, disp) => asm::emit_cmp_mem_reg(self, mode, base, disp, rhs),
-            Mem::Index(base, index, scale, disp) => {
-                asm::emit_cmp_memindex_reg(self, mode, base, index, scale, disp, rhs)
+        match mode {
+            MachineMode::Int8 => self.asm.cmpb_ar(address_from_mem(mem), rhs.into()),
+            MachineMode::Int32 => self.asm.cmpl_ar(address_from_mem(mem), rhs.into()),
+            MachineMode::Int64 | MachineMode::Ptr => {
+                self.asm.cmpq_ar(address_from_mem(mem), rhs.into())
             }
-            Mem::Offset(_, _, _) => unimplemented!(),
+            _ => unimplemented!(),
         }
     }
 
@@ -1178,6 +1178,33 @@ impl MachineMode {
             MachineMode::Int8 | MachineMode::Int32 => false,
             MachineMode::Int64 | MachineMode::Ptr => true,
             _ => unreachable!(),
+        }
+    }
+}
+
+fn address_from_mem(mem: Mem) -> Address {
+    match mem {
+        Mem::Local(offset) => Address::offset(REG_FP.into(), offset),
+        Mem::Base(base, disp) => Address::offset(base.into(), disp),
+        Mem::Index(base, index, scale, disp) => {
+            let factor = match scale {
+                1 => ScaleFactor::One,
+                2 => ScaleFactor::Two,
+                4 => ScaleFactor::Four,
+                8 => ScaleFactor::Eight,
+                _ => unreachable!(),
+            };
+            Address::array(base.into(), index.into(), factor, disp)
+        }
+        Mem::Offset(index, scale, disp) => {
+            let factor = match scale {
+                1 => ScaleFactor::One,
+                2 => ScaleFactor::Two,
+                4 => ScaleFactor::Four,
+                8 => ScaleFactor::Eight,
+                _ => unreachable!(),
+            };
+            Address::index(index.into(), factor, disp)
         }
     }
 }

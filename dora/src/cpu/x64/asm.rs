@@ -190,31 +190,6 @@ fn emit_mem(buf: &mut MacroAssembler, dest: Reg, src: &Mem) {
     }
 }
 
-pub fn emit_cmp_mem_reg(
-    buf: &mut MacroAssembler,
-    mode: MachineMode,
-    base: Reg,
-    disp: i32,
-    dest: Reg,
-) {
-    let base_msb = if base == RIP { 0 } else { base.msb() };
-
-    let (x64, opcode) = match mode {
-        MachineMode::Int8 => (false, 0x38),
-        MachineMode::Int32 => (false, 0x39),
-        MachineMode::Int64 => unimplemented!(),
-        MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
-        MachineMode::Ptr => (true, 0x39),
-    };
-
-    if x64 || dest.msb() != 0 || base_msb != 0 {
-        emit_rex(buf, x64, dest.msb(), 0, base_msb);
-    }
-
-    emit_op(buf, opcode);
-    emit_membase(buf, base, disp, dest);
-}
-
 pub fn emit_cmp_mem_imm(
     buf: &mut MacroAssembler,
     mode: MachineMode,
@@ -250,33 +225,6 @@ pub fn emit_cmp_mem_imm(
 
         emit_u32(buf, imm as u32);
     }
-}
-
-pub fn emit_cmp_memindex_reg(
-    buf: &mut MacroAssembler,
-    mode: MachineMode,
-    base: Reg,
-    index: Reg,
-    scale: i32,
-    disp: i32,
-    dest: Reg,
-) {
-    assert!(scale == 8 || scale == 4 || scale == 2 || scale == 1);
-
-    let (x64, opcode) = match mode {
-        MachineMode::Int8 => (false, 0x38),
-        MachineMode::Int32 => (false, 0x39),
-        MachineMode::Int64 => unimplemented!(),
-        MachineMode::Ptr => (true, 0x39),
-        MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
-    };
-
-    if x64 || dest.msb() != 0 || index.msb() != 0 || base.msb() != 0 {
-        emit_rex(buf, x64, dest.msb(), index.msb(), base.msb());
-    }
-
-    emit_op(buf, opcode);
-    emit_membase_with_index_and_scale(buf, base, index, scale, disp, dest);
 }
 
 fn emit_membase_without_base(
@@ -949,86 +897,6 @@ mod tests {
     }
 
     #[test]
-    fn test_cmp_memindex_reg() {
-        let p = MachineMode::Ptr;
-
-        // cmp [rax+rbx*8+1],rcx
-        assert_emit!(0x48, 0x39, 0x4c, 0xd8, 1; emit_cmp_memindex_reg(p, RAX, RBX, 8, 1, RCX));
-
-        // cmp [rax+rbx*8],rcx
-        assert_emit!(0x48, 0x39, 0x0c, 0xd8; emit_cmp_memindex_reg(p, RAX, RBX, 8, 0, RCX));
-
-        // cmp [rax+rbx*8+256],rcx
-        assert_emit!(0x48, 0x39, 0x8c, 0xd8, 0, 1, 0, 0;
-                     emit_cmp_memindex_reg(p, RAX, RBX, 8, 256, RCX));
-
-        // cmp [r8+rbp*1],rsp
-        assert_emit!(0x49, 0x39, 0x24, 0x28;
-                     emit_cmp_memindex_reg(p, R8, RBP, 1, 0, RSP));
-
-        // cmp [rsi+r9*1],rdi
-        assert_emit!(0x4a, 0x39, 0x3c, 0x0e; emit_cmp_memindex_reg(p, RSI, R9, 1, 0, RDI));
-
-        // cmp [rsp+rsi*1],r15
-        assert_emit!(0x4c, 0x39, 0x3c, 0x34; emit_cmp_memindex_reg(p, RSP, RSI, 1, 0, R15));
-
-        // cmp [rsp+rbp],rax
-        assert_emit!(0x48, 0x39, 0x04, 0x2c; emit_cmp_memindex_reg(p, RSP, RBP, 1, 0, RAX));
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_cmp_memindex_reg_base_rip() {
-        let mut buf = MacroAssembler::new();
-        emit_cmp_memindex_reg(&mut buf, MachineMode::Ptr, RIP, RAX, 1, 0, RAX);
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_cmp_memindex_reg_index_rip() {
-        let mut buf = MacroAssembler::new();
-        emit_cmp_memindex_reg(&mut buf, MachineMode::Ptr, RAX, RIP, 1, 0, RAX);
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_cmp_memindex_reg_dest_rip() {
-        let mut buf = MacroAssembler::new();
-        emit_cmp_memindex_reg(&mut buf, MachineMode::Ptr, RAX, RBX, 1, 0, RIP);
-    }
-
-    #[test]
-    fn test_cmp_mem_reg() {
-        let p = MachineMode::Ptr;
-
-        // cmp [rbx+1],rax
-        assert_emit!(0x48, 0x39, 0x43, 1; emit_cmp_mem_reg(p, RBX, 1, RAX));
-
-        // cmp [rbx+256],rax
-        assert_emit!(0x48, 0x39, 0x83, 0, 1, 0, 0; emit_cmp_mem_reg(p, RBX, 256, RAX));
-
-        // cmp [rdi+1],rax
-        assert_emit!(0x48, 0x39, 0x47, 1; emit_cmp_mem_reg(p, RDI, 1, RAX));
-
-        // cmp [r9+1],rax
-        assert_emit!(0x49, 0x39, 0x41, 1; emit_cmp_mem_reg(p, R9, 1, RAX));
-
-        // cmp [rdi+1],r10
-        assert_emit!(0x4c, 0x39, 0x57, 1; emit_cmp_mem_reg(p, RDI, 1, R10));
-
-        // cmp [rip+1], rax
-        assert_emit!(0x48, 0x39, 0x05, 1, 0, 0, 0; emit_cmp_mem_reg(p, RIP, 1, RAX));
-
-        let i = MachineMode::Int32;
-
-        // cmp [rbx+1], eax
-        assert_emit!(0x39, 0x43, 1; emit_cmp_mem_reg(i, RBX, 1, RAX));
-
-        // cmp [rbx+1], r10d
-        assert_emit!(0x44, 0x39, 0x53, 1; emit_cmp_mem_reg(i, RBX, 1, R10));
-    }
-
-    #[test]
     fn test_cmp_mem_imm() {
         let p = MachineMode::Ptr;
 
@@ -1066,13 +934,6 @@ mod tests {
     fn test_cmp_mem_imm_i32_for_i8() {
         let mut buf = MacroAssembler::new();
         emit_cmp_mem_imm(&mut buf, MachineMode::Int8, R15, 256, 256);
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_cmp_mem_reg_dest_rip() {
-        let mut buf = MacroAssembler::new();
-        emit_cmp_mem_reg(&mut buf, MachineMode::Ptr, RAX, 1, RIP);
     }
 
     #[test]

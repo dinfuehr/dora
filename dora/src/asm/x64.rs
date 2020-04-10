@@ -255,6 +255,12 @@ impl Assembler {
         self.emit_alu64_imm(dest, imm, 0b100, 0x25, false);
     }
 
+    pub fn cmpb_ar(&mut self, lhs: Address, rhs: Register) {
+        self.emit_rex32_byte_address(rhs, lhs);
+        self.emit_u8(0x38);
+        self.emit_address(rhs.low_bits(), lhs);
+    }
+
     pub fn cmpl_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex32_optional(src, dest);
         self.emit_u8(0x39);
@@ -1417,5 +1423,15 @@ mod tests {
     fn test_jmp_r() {
         assert_emit!(0xFF, 0xE0; jmp_r(RAX));
         assert_emit!(0x41, 0xFF, 0xE0; jmp_r(R8));
+    }
+
+    #[test]
+    fn test_cmpb_ar() {
+        assert_emit!(0x38, 0x00; cmpb_ar(Address::offset(RAX, 0), RAX));
+        assert_emit!(0x38, 0x18; cmpb_ar(Address::offset(RAX, 0), RBX));
+        assert_emit!(0x40, 0x38, 0x20; cmpb_ar(Address::offset(RAX, 0), RSP));
+        assert_emit!(0x40, 0x38, 0x38; cmpb_ar(Address::offset(RAX, 0), RDI));
+        assert_emit!(0x44, 0x38, 0x00; cmpb_ar(Address::offset(RAX, 0), R8));
+        assert_emit!(0x41, 0x38, 0x00; cmpb_ar(Address::offset(R8, 0), RAX));
     }
 }
