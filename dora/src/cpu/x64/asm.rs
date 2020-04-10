@@ -204,35 +204,6 @@ pub fn emit_ror_reg_cl(buf: &mut MacroAssembler, x64: bool, dest: Reg) {
     emit_modrm(buf, 0b11, 0b001, dest.and7());
 }
 
-pub fn cvttss2si(buf: &mut MacroAssembler, x64: bool, dest: Reg, src: FReg) {
-    sse_float_reg_freg(buf, false, 0x2c, x64, dest, src);
-}
-
-pub fn cvttsd2si(buf: &mut MacroAssembler, x64: bool, dest: Reg, src: FReg) {
-    sse_float_reg_freg(buf, true, 0x2c, x64, dest, src);
-}
-
-fn sse_float_reg_freg(
-    buf: &mut MacroAssembler,
-    dbl: bool,
-    op: u8,
-    x64: bool,
-    dest: Reg,
-    src: FReg,
-) {
-    let prefix = if dbl { 0xf2 } else { 0xf3 };
-
-    emit_op(buf, prefix);
-
-    if x64 || dest.msb() != 0 || src.msb() != 0 {
-        emit_rex(buf, x64, dest.msb(), 0, src.msb());
-    }
-
-    emit_op(buf, 0x0f);
-    emit_op(buf, op);
-    emit_modrm(buf, 0b11, dest.and7(), src.and7());
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -477,27 +448,5 @@ mod tests {
 
         assert_emit!(0x48, 0xD3, 0xF8; emit_sar_reg_cl(true, RAX));
         assert_emit!(0x49, 0xD3, 0xF9; emit_sar_reg_cl(true, R9));
-    }
-
-    #[test]
-    fn test_cvttss2si() {
-        assert_emit!(0xf3, 0x0f, 0x2c, 0xc8; cvttss2si(false, RCX, XMM0));
-        assert_emit!(0xf3, 0x44, 0x0f, 0x2c, 0xfb; cvttss2si(false, R15, XMM3));
-        assert_emit!(0xf3, 0x41, 0x0f, 0x2c, 0xe0; cvttss2si(false, RSP, XMM8));
-
-        assert_emit!(0xf3, 0x48, 0x0f, 0x2c, 0xc8; cvttss2si(true, RCX, XMM0));
-        assert_emit!(0xf3, 0x4c, 0x0f, 0x2c, 0xfb; cvttss2si(true, R15, XMM3));
-        assert_emit!(0xf3, 0x49, 0x0f, 0x2c, 0xe0; cvttss2si(true, RSP, XMM8));
-    }
-
-    #[test]
-    fn test_cvttsd2si() {
-        assert_emit!(0xf2, 0x0f, 0x2c, 0xc8; cvttsd2si(false, RCX, XMM0));
-        assert_emit!(0xf2, 0x44, 0x0f, 0x2c, 0xfb; cvttsd2si(false, R15, XMM3));
-        assert_emit!(0xf2, 0x41, 0x0f, 0x2c, 0xe0; cvttsd2si(false, RSP, XMM8));
-
-        assert_emit!(0xf2, 0x48, 0x0f, 0x2c, 0xc8; cvttsd2si(true, RCX, XMM0));
-        assert_emit!(0xf2, 0x4c, 0x0f, 0x2c, 0xfb; cvttsd2si(true, R15, XMM3));
-        assert_emit!(0xf2, 0x49, 0x0f, 0x2c, 0xe0; cvttsd2si(true, RSP, XMM8));
     }
 }

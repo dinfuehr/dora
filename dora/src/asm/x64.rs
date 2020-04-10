@@ -792,6 +792,38 @@ impl Assembler {
         self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
+    pub fn cvttss2sid_rr(&mut self, dest: Register, src: XmmRegister) {
+        self.emit_u8(0xf3);
+        self.emit_rex_optional(false, dest.needs_rex(), false, src.needs_rex());
+        self.emit_u8(0x0f);
+        self.emit_u8(0x2c);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
+    }
+
+    pub fn cvttss2siq_rr(&mut self, dest: Register, src: XmmRegister) {
+        self.emit_u8(0xf3);
+        self.emit_rex_optional(true, dest.needs_rex(), false, src.needs_rex());
+        self.emit_u8(0x0f);
+        self.emit_u8(0x2c);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
+    }
+
+    pub fn cvttsd2sid_rr(&mut self, dest: Register, src: XmmRegister) {
+        self.emit_u8(0xf2);
+        self.emit_rex_optional(false, dest.needs_rex(), false, src.needs_rex());
+        self.emit_u8(0x0f);
+        self.emit_u8(0x2c);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
+    }
+
+    pub fn cvttsd2siq_rr(&mut self, dest: Register, src: XmmRegister) {
+        self.emit_u8(0xf2);
+        self.emit_rex_optional(true, dest.needs_rex(), false, src.needs_rex());
+        self.emit_u8(0x0f);
+        self.emit_u8(0x2c);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
+    }
+
     pub fn movd_rx(&mut self, dest: Register, src: XmmRegister) {
         self.emit_u8(0x66);
         self.emit_rex_optional(false, src.needs_rex(), false, dest.needs_rex());
@@ -2124,5 +2156,33 @@ mod tests {
         assert_emit!(0xf2, 0x48, 0x0f, 0x2a, 0xc1; cvtsi2sdq_rr(XMM0, RCX));
         assert_emit!(0xf2, 0x49, 0x0f, 0x2a, 0xdf; cvtsi2sdq_rr(XMM3, R15));
         assert_emit!(0xf2, 0x4c, 0x0f, 0x2a, 0xc4; cvtsi2sdq_rr(XMM8, RSP));
+    }
+
+    #[test]
+    fn test_cvttss2sid_rr() {
+        assert_emit!(0xf3, 0x0f, 0x2c, 0xc8; cvttss2sid_rr(RCX, XMM0));
+        assert_emit!(0xf3, 0x44, 0x0f, 0x2c, 0xfb; cvttss2sid_rr(R15, XMM3));
+        assert_emit!(0xf3, 0x41, 0x0f, 0x2c, 0xe0; cvttss2sid_rr(RSP, XMM8));
+    }
+
+    #[test]
+    fn test_cvttss2siq_rr() {
+        assert_emit!(0xf3, 0x48, 0x0f, 0x2c, 0xc8; cvttss2siq_rr(RCX, XMM0));
+        assert_emit!(0xf3, 0x4c, 0x0f, 0x2c, 0xfb; cvttss2siq_rr(R15, XMM3));
+        assert_emit!(0xf3, 0x49, 0x0f, 0x2c, 0xe0; cvttss2siq_rr(RSP, XMM8));
+    }
+
+    #[test]
+    fn test_cvttsd2sid_rr() {
+        assert_emit!(0xf2, 0x0f, 0x2c, 0xc8; cvttsd2sid_rr(RCX, XMM0));
+        assert_emit!(0xf2, 0x44, 0x0f, 0x2c, 0xfb; cvttsd2sid_rr(R15, XMM3));
+        assert_emit!(0xf2, 0x41, 0x0f, 0x2c, 0xe0; cvttsd2sid_rr(RSP, XMM8));
+    }
+
+    #[test]
+    fn test_cvttsd2siq_rr() {
+        assert_emit!(0xf2, 0x48, 0x0f, 0x2c, 0xc8; cvttsd2siq_rr(RCX, XMM0));
+        assert_emit!(0xf2, 0x4c, 0x0f, 0x2c, 0xfb; cvttsd2siq_rr(R15, XMM3));
+        assert_emit!(0xf2, 0x49, 0x0f, 0x2c, 0xe0; cvttsd2siq_rr(RSP, XMM8));
     }
 }
