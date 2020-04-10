@@ -14,23 +14,11 @@ pub const VEXP_66: u8 = 1;
 pub const VEXP_F3: u8 = 2;
 pub const VEXP_F2: u8 = 3;
 
-pub fn emit_u64(buf: &mut MacroAssembler, val: u64) {
-    buf.emit_u64(val)
-}
-
-pub fn emit_u32(buf: &mut MacroAssembler, val: u32) {
-    buf.emit_u32(val)
-}
-
-pub fn emit_u8(buf: &mut MacroAssembler, val: u8) {
+fn emit_u8(buf: &mut MacroAssembler, val: u8) {
     buf.emit_u8(val)
 }
 
-pub fn emit_op(buf: &mut MacroAssembler, opcode: u8) {
-    buf.emit_u8(opcode);
-}
-
-pub fn emit_vex3_rxbm(buf: &mut MacroAssembler, r: u8, x: u8, b: u8, m: u8) {
+fn emit_vex3_rxbm(buf: &mut MacroAssembler, r: u8, x: u8, b: u8, m: u8) {
     assert!(r == 0 || r == 1);
     assert!(x == 0 || x == 1);
     assert!(b == 0 || b == 1);
@@ -40,7 +28,7 @@ pub fn emit_vex3_rxbm(buf: &mut MacroAssembler, r: u8, x: u8, b: u8, m: u8) {
     buf.emit_u8(!r << 7 | (!x << 6) & 0b1000000 | (!b << 5) & 0b100000 | m);
 }
 
-pub fn emit_vex3_wvlp(buf: &mut MacroAssembler, w: bool, v: u8, l: u8, p: u8) {
+fn emit_vex3_wvlp(buf: &mut MacroAssembler, w: bool, v: u8, l: u8, p: u8) {
     assert!(v < 16);
     assert!(l == 0 || l == 1);
     assert!(p < 4);
@@ -48,42 +36,12 @@ pub fn emit_vex3_wvlp(buf: &mut MacroAssembler, w: bool, v: u8, l: u8, p: u8) {
     buf.emit_u8((w as u8) << 7 | (!v << 3) & 0b1111000 | l << 2 | p);
 }
 
-pub fn emit_vex2(buf: &mut MacroAssembler, r: u8, v: u8, l: u8, p: u8) {
-    assert!(r == 0 || r == 1);
-    assert!(v < 16);
-    assert!(l == 0 || l == 1);
-    assert!(p < 4);
-
-    buf.emit_u8(0b11000101);
-    buf.emit_u8(!r << 7 | (!v << 3) & 0b1111000 | l << 2 | p);
-}
-
-pub fn emit_rex(buf: &mut MacroAssembler, w: bool, r: u8, x: u8, b: u8) {
-    assert!(r == 0 || r == 1);
-    assert!(x == 0 || x == 1);
-    assert!(b == 0 || b == 1);
-
-    buf.emit_u8(0x40 | (w as u8) << 3 | r << 2 | x << 1 | b);
-}
-
-pub fn emit_modrm(buf: &mut MacroAssembler, mode: u8, reg: u8, rm: u8) {
+fn emit_modrm(buf: &mut MacroAssembler, mode: u8, reg: u8, rm: u8) {
     assert!(mode < 4);
     assert!(reg < 8);
     assert!(rm < 8);
 
     buf.emit_u8(mode << 6 | reg << 3 | rm);
-}
-
-pub fn emit_sib(buf: &mut MacroAssembler, scale: u8, index: u8, base: u8) {
-    assert!(scale < 4);
-    assert!(index < 8);
-    assert!(base < 8);
-
-    buf.emit_u8(scale << 6 | index << 3 | base);
-}
-
-pub fn fits_i8(imm: i32) -> bool {
-    imm == (imm as i8) as i32
 }
 
 pub fn emit_jcc(buf: &mut MacroAssembler, cond: CondCode, lbl: Label) {
@@ -100,13 +58,13 @@ pub fn emit_jcc(buf: &mut MacroAssembler, cond: CondCode, lbl: Label) {
         CondCode::UnsignedLessEq => 0x86,    // below or equal
     };
 
-    emit_op(buf, 0x0f);
-    emit_op(buf, opcode);
+    emit_u8(buf, 0x0f);
+    emit_u8(buf, opcode);
     buf.emit_label(lbl);
 }
 
 pub fn emit_jmp(buf: &mut MacroAssembler, lbl: Label) {
-    emit_op(buf, 0xe9);
+    emit_u8(buf, 0xe9);
     buf.emit_label(lbl);
 }
 
@@ -182,18 +140,6 @@ mod tests {
                 panic!("emitted code wrong.");
             }
         }};
-    }
-
-    #[test]
-    fn test_fits8() {
-        assert!(fits_i8(1));
-        assert!(fits_i8(0));
-        assert!(fits_i8(-1));
-        assert!(fits_i8(127));
-        assert!(fits_i8(-128));
-
-        assert!(!fits_i8(128));
-        assert!(!fits_i8(-129));
     }
 
     #[test]
