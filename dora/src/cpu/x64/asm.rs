@@ -204,22 +204,6 @@ pub fn emit_ror_reg_cl(buf: &mut MacroAssembler, x64: bool, dest: Reg) {
     emit_modrm(buf, 0b11, 0b001, dest.and7());
 }
 
-pub fn sqrtss(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
-    sse_float_freg_freg(buf, false, 0x51, dest, src);
-}
-
-pub fn sqrtsd(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
-    sse_float_freg_freg(buf, true, 0x51, dest, src);
-}
-
-pub fn cvtsd2ss(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
-    sse_float_freg_freg(buf, true, 0x5a, dest, src);
-}
-
-pub fn cvtss2sd(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
-    sse_float_freg_freg(buf, false, 0x5a, dest, src);
-}
-
 pub fn cvtsi2ss(buf: &mut MacroAssembler, dest: FReg, x64: bool, src: Reg) {
     sse_float_freg_reg(buf, false, 0x2a, dest, x64, src);
 }
@@ -242,20 +226,6 @@ pub fn movd_f2i(buf: &mut MacroAssembler, x64: bool, dest: Reg, src: FReg) {
 
 pub fn movd_i2f(buf: &mut MacroAssembler, x64: bool, dest: FReg, src: Reg) {
     sse_movd_reg_freg(buf, 0x6e, x64, dest, src);
-}
-
-fn sse_float_freg_freg(buf: &mut MacroAssembler, dbl: bool, op: u8, dest: FReg, src: FReg) {
-    let prefix = if dbl { 0xf2 } else { 0xf3 };
-
-    emit_op(buf, prefix);
-
-    if dest.msb() != 0 || src.msb() != 0 {
-        emit_rex(buf, false, dest.msb(), 0, src.msb());
-    }
-
-    emit_op(buf, 0x0f);
-    emit_op(buf, op);
-    emit_modrm(buf, 0b11, dest.and7(), src.and7());
 }
 
 fn sse_float_freg_reg(
@@ -321,54 +291,6 @@ fn sse_movd_freg_reg(buf: &mut MacroAssembler, op: u8, x64: bool, dest: Reg, src
 
     emit_op(buf, 0x0f);
     emit_op(buf, op);
-    emit_modrm(buf, 0b11, src.and7(), dest.and7());
-}
-
-pub fn pxor(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
-    emit_op(buf, 0x66);
-
-    if dest.msb() != 0 || src.msb() != 0 {
-        emit_rex(buf, false, dest.msb(), 0, src.msb());
-    }
-
-    emit_op(buf, 0x0f);
-    emit_op(buf, 0xef);
-    emit_modrm(buf, 0b11, dest.and7(), src.and7());
-}
-
-pub fn popcnt(buf: &mut MacroAssembler, x64: bool, dest: Reg, src: Reg) {
-    emit_op(buf, 0xf3);
-
-    if x64 || src.msb() != 0 || dest.msb() != 0 {
-        emit_rex(buf, x64, src.msb(), 0, dest.msb());
-    }
-
-    emit_op(buf, 0x0f);
-    emit_op(buf, 0xb8);
-    emit_modrm(buf, 0b11, src.and7(), dest.and7());
-}
-
-pub fn lzcnt(buf: &mut MacroAssembler, x64: bool, dest: Reg, src: Reg) {
-    emit_op(buf, 0xf3);
-
-    if x64 || src.msb() != 0 || dest.msb() != 0 {
-        emit_rex(buf, x64, src.msb(), 0, dest.msb());
-    }
-
-    emit_op(buf, 0x0f);
-    emit_op(buf, 0xbd);
-    emit_modrm(buf, 0b11, src.and7(), dest.and7());
-}
-
-pub fn tzcnt(buf: &mut MacroAssembler, x64: bool, dest: Reg, src: Reg) {
-    emit_op(buf, 0xf3);
-
-    if x64 || src.msb() != 0 || dest.msb() != 0 {
-        emit_rex(buf, x64, src.msb(), 0, dest.msb());
-    }
-
-    emit_op(buf, 0x0f);
-    emit_op(buf, 0xbc);
     emit_modrm(buf, 0b11, src.and7(), dest.and7());
 }
 
@@ -619,20 +541,6 @@ mod tests {
     }
 
     #[test]
-    fn test_cvtss2sd() {
-        assert_emit!(0xf3, 0x0f, 0x5a, 0xc1; cvtss2sd(XMM0, XMM1));
-        assert_emit!(0xf3, 0x41, 0x0f, 0x5a, 0xdf; cvtss2sd(XMM3, XMM15));
-        assert_emit!(0xf3, 0x44, 0x0f, 0x5a, 0xc4; cvtss2sd(XMM8, XMM4));
-    }
-
-    #[test]
-    fn test_cvtsd2ss() {
-        assert_emit!(0xf2, 0x0f, 0x5a, 0xc1; cvtsd2ss(XMM0, XMM1));
-        assert_emit!(0xf2, 0x41, 0x0f, 0x5a, 0xdf; cvtsd2ss(XMM3, XMM15));
-        assert_emit!(0xf2, 0x44, 0x0f, 0x5a, 0xc4; cvtsd2ss(XMM8, XMM4));
-    }
-
-    #[test]
     fn test_cvtsi2ss() {
         assert_emit!(0xf3, 0x0f, 0x2a, 0xc1; cvtsi2ss(XMM0, false, RCX));
         assert_emit!(0xf3, 0x41, 0x0f, 0x2a, 0xdf; cvtsi2ss(XMM3, false, R15));
@@ -720,30 +628,5 @@ mod tests {
         assert_emit!(0x66, 0x49, 0x0F, 0x6E, 0xFF; movd_i2f(true, XMM7, R15));
         assert_emit!(0x66, 0x4D, 0x0F, 0x6E, 0xC7; movd_i2f(true, XMM8, R15));
         assert_emit!(0x66, 0x4D, 0x0F, 0x6E, 0xFF; movd_i2f(true, XMM15, R15));
-    }
-
-    #[test]
-    fn test_pxor() {
-        assert_emit!(0x66, 0x0f, 0xef, 0xc8; pxor(XMM1, XMM0));
-        assert_emit!(0x66, 0x44, 0x0f, 0xef, 0xfb; pxor(XMM15, XMM3));
-        assert_emit!(0x66, 0x41, 0x0f, 0xef, 0xe0; pxor(XMM4, XMM8));
-    }
-
-    #[test]
-    fn test_popcnt() {
-        assert_emit!(0xf3, 0x48, 0x0f, 0xb8, 0xc7; popcnt(true, RDI, RAX));
-        assert_emit!(0xf3, 0x0f, 0xb8, 0xc7; popcnt(false, RDI, RAX));
-    }
-
-    #[test]
-    fn test_lzcnt() {
-        assert_emit!(0xf3, 0x48, 0x0f, 0xbd, 0xc7; lzcnt(true, RDI, RAX));
-        assert_emit!(0xf3, 0x0f, 0xbd, 0xc7; lzcnt(false, RDI, RAX));
-    }
-
-    #[test]
-    fn test_tzcnt() {
-        assert_emit!(0xf3, 0x48, 0x0f, 0xbc, 0xc7; tzcnt(true, RDI, RAX));
-        assert_emit!(0xf3, 0x0f, 0xbc, 0xc7; tzcnt(false, RDI, RAX));
     }
 }

@@ -564,14 +564,19 @@ impl MacroAssembler {
 
     pub fn count_bits(&mut self, mode: MachineMode, dest: Reg, src: Reg, count_one_bits: bool) {
         if count_one_bits {
-            asm::popcnt(self, mode.is64(), dest, src);
+            if mode.is64() {
+                self.asm.popcntq_rr(dest.into(), src.into());
+            } else {
+                self.asm.popcntl_rr(dest.into(), src.into());
+            }
         } else {
             if mode.is64() {
                 self.asm.notq(src.into());
+                self.asm.popcntq_rr(dest.into(), src.into());
             } else {
                 self.asm.notl(src.into());
+                self.asm.popcntl_rr(dest.into(), src.into());
             }
-            asm::popcnt(self, mode.is64(), dest, src);
         }
     }
 
@@ -585,12 +590,17 @@ impl MacroAssembler {
         if count_one_bits {
             if mode.is64() {
                 self.asm.notq(src.into());
+                self.asm.lzcntq_rr(dest.into(), src.into());
             } else {
                 self.asm.notl(src.into());
+                self.asm.lzcntl_rr(dest.into(), src.into());
             }
-            asm::lzcnt(self, mode.is64(), dest, src);
         } else {
-            asm::lzcnt(self, mode.is64(), dest, src);
+            if mode.is64() {
+                self.asm.lzcntq_rr(dest.into(), src.into());
+            } else {
+                self.asm.lzcntl_rr(dest.into(), src.into());
+            }
         }
     }
 
@@ -604,12 +614,17 @@ impl MacroAssembler {
         if count_one_bits {
             if mode.is64() {
                 self.asm.notq(src.into());
+                self.asm.tzcntq_rr(dest.into(), src.into());
             } else {
                 self.asm.notl(src.into());
+                self.asm.tzcntl_rr(dest.into(), src.into());
             }
-            asm::tzcnt(self, mode.is64(), dest, src);
         } else {
-            asm::tzcnt(self, mode.is64(), dest, src);
+            if mode.is64() {
+                self.asm.tzcntq_rr(dest.into(), src.into());
+            } else {
+                self.asm.tzcntl_rr(dest.into(), src.into());
+            }
         }
     }
 
@@ -620,7 +635,7 @@ impl MacroAssembler {
         src_mode: MachineMode,
         src: Reg,
     ) {
-        asm::pxor(self, dest, dest);
+        self.asm.pxor_rr(dest.into(), dest.into());
 
         match dest_mode {
             MachineMode::Float32 => asm::cvtsi2ss(self, dest, src_mode.is64(), src),
@@ -644,11 +659,11 @@ impl MacroAssembler {
     }
 
     pub fn float_to_double(&mut self, dest: FReg, src: FReg) {
-        asm::cvtss2sd(self, dest, src);
+        self.asm.cvtss2sd_rr(dest.into(), src.into());
     }
 
     pub fn double_to_float(&mut self, dest: FReg, src: FReg) {
-        asm::cvtsd2ss(self, dest, src);
+        self.asm.cvtsd2ss_rr(dest.into(), src.into());
     }
 
     pub fn int_as_float(
@@ -1017,8 +1032,8 @@ impl MacroAssembler {
 
     pub fn float_sqrt(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
         match mode {
-            MachineMode::Float32 => asm::sqrtss(self, dest, src),
-            MachineMode::Float64 => asm::sqrtsd(self, dest, src),
+            MachineMode::Float32 => self.asm.sqrtss_rr(dest.into(), src.into()),
+            MachineMode::Float64 => self.asm.sqrtsd_rr(dest.into(), src.into()),
             _ => unreachable!(),
         }
     }
