@@ -758,7 +758,9 @@ impl MacroAssembler {
     pub fn load_mem(&mut self, mode: MachineMode, dest: AnyReg, mem: Mem) {
         match mem {
             Mem::Local(offset) => match mode {
-                MachineMode::Int8 => asm::emit_movzbl_memq_reg(self, RBP, offset, dest.reg()),
+                MachineMode::Int8 => self
+                    .asm
+                    .movzxb_ra(dest.reg().into(), Address::offset(RBP.into(), offset)),
                 MachineMode::Int32 => self
                     .asm
                     .movl_ra(dest.reg().into(), Address::offset(RBP.into(), offset)),
@@ -770,7 +772,9 @@ impl MacroAssembler {
             },
 
             Mem::Base(base, disp) => match mode {
-                MachineMode::Int8 => asm::emit_movzbl_memq_reg(self, base, disp, dest.reg()),
+                MachineMode::Int8 => self
+                    .asm
+                    .movzxb_ra(dest.reg().into(), Address::offset(base.into(), disp)),
                 MachineMode::Int32 => self
                     .asm
                     .movl_ra(dest.reg().into(), Address::offset(base.into(), disp)),
@@ -784,7 +788,11 @@ impl MacroAssembler {
             Mem::Index(base, index, scale, disp) => match mode {
                 MachineMode::Int8 => {
                     assert!(scale == 1);
-                    asm::emit_movzx_memindex_byte_reg(self, false, base, index, disp, dest.reg())
+
+                    self.asm.movzxb_ra(
+                        dest.reg().into(),
+                        Address::array(base.into(), index.into(), ScaleFactor::One, disp),
+                    )
                 }
 
                 MachineMode::Int32 | MachineMode::Int64 | MachineMode::Ptr => {
@@ -809,18 +817,26 @@ impl MacroAssembler {
         // test if card table offset fits into displacement of memory store
         if card_table_offset <= 0x7FFF_FFFF {
             // emit mov [card_table_offset + base], 0
-            asm::emit_movb_imm_memq(self, 0, src, card_table_offset as i32);
+            self.asm.movb_ai(
+                Address::offset(src.into(), card_table_offset as i32),
+                Immediate(0),
+            );
         } else {
             let scratch = self.get_scratch();
             self.load_int_const(MachineMode::Ptr, *scratch, card_table_offset as i64);
-            asm::emit_movb_imm_memscaleq(self, 0, src, *scratch, 0);
+            self.asm.movb_ai(
+                Address::array(src.into(), (*scratch).into(), ScaleFactor::One, 0),
+                Immediate(0),
+            );
         }
     }
 
     pub fn store_mem(&mut self, mode: MachineMode, mem: Mem, src: AnyReg) {
         match mem {
             Mem::Local(offset) => match mode {
-                MachineMode::Int8 => asm::emit_movb_reg_memq(self, src.reg(), RBP, offset),
+                MachineMode::Int8 => self
+                    .asm
+                    .movb_ar(Address::offset(RBP.into(), offset), src.reg().into()),
                 MachineMode::Int32 => self
                     .asm
                     .movl_ar(Address::offset(RBP.into(), offset), src.reg().into()),
@@ -832,7 +848,9 @@ impl MacroAssembler {
             },
 
             Mem::Base(base, disp) => match mode {
-                MachineMode::Int8 => asm::emit_movb_reg_memq(self, src.reg(), base, disp),
+                MachineMode::Int8 => self
+                    .asm
+                    .movb_ar(Address::offset(base.into(), disp), src.reg().into()),
                 MachineMode::Int32 => self
                     .asm
                     .movl_ar(Address::offset(base.into(), disp), src.reg().into()),
