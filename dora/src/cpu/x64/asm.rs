@@ -43,36 +43,6 @@ fn emit_membase(buf: &mut MacroAssembler, base: Reg, disp: i32, dest: Reg) {
     }
 }
 
-pub fn emit_xorb_imm_reg(buf: &mut MacroAssembler, imm: u8, dest: Reg) {
-    emit_alub_imm_reg(buf, 0x80, 0x34, 0b110, imm, dest);
-}
-
-pub fn emit_andb_imm_reg(buf: &mut MacroAssembler, imm: u8, dest: Reg) {
-    emit_alub_imm_reg(buf, 0x80, 0x24, 0b100, imm, dest);
-}
-
-fn emit_alub_imm_reg(
-    buf: &mut MacroAssembler,
-    opcode: u8,
-    rax_opcode: u8,
-    modrm_reg: u8,
-    imm: u8,
-    dest: Reg,
-) {
-    if dest == RAX {
-        emit_op(buf, rax_opcode);
-        emit_u8(buf, imm);
-    } else {
-        if dest.msb() != 0 || !dest.is_basic_reg() {
-            emit_rex(buf, false, 0, 0, dest.msb());
-        }
-
-        emit_op(buf, opcode);
-        emit_modrm(buf, 0b11, modrm_reg, dest.and7());
-        emit_u8(buf, imm);
-    }
-}
-
 pub fn emit_u64(buf: &mut MacroAssembler, val: u64) {
     buf.emit_u64(val)
 }
@@ -251,59 +221,6 @@ pub fn emit_cmp_mem_reg(
 
     emit_op(buf, opcode);
     emit_membase(buf, base, disp, dest);
-}
-
-pub fn emit_mov_memindex_reg(
-    buf: &mut MacroAssembler,
-    mode: MachineMode,
-    base: Reg,
-    index: Reg,
-    scale: i32,
-    disp: i32,
-    dest: Reg,
-) {
-    assert!(scale == 8 || scale == 4 || scale == 2 || scale == 1);
-    assert!(mode.size() == scale);
-
-    let (x64, opcode) = match mode {
-        MachineMode::Int8 => (false, 0x8a),
-        MachineMode::Int32 => (false, 0x8b),
-        MachineMode::Int64 | MachineMode::Ptr => (true, 0x8b),
-        MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
-    };
-
-    if x64 || dest.msb() != 0 || index.msb() != 0 || base.msb() != 0 {
-        emit_rex(buf, x64, dest.msb(), index.msb(), base.msb());
-    }
-
-    emit_op(buf, opcode);
-    emit_membase_with_index_and_scale(buf, base, index, scale, disp, dest);
-}
-
-pub fn emit_mov_reg_memindex(
-    buf: &mut MacroAssembler,
-    mode: MachineMode,
-    src: Reg,
-    base: Reg,
-    index: Reg,
-    scale: i32,
-    disp: i32,
-) {
-    assert!(scale == 8 || scale == 4 || scale == 2 || scale == 1);
-
-    let (x64, opcode) = match mode {
-        MachineMode::Int8 => (false, 0x88),
-        MachineMode::Int32 => (false, 0x89),
-        MachineMode::Int64 | MachineMode::Ptr => (true, 0x89),
-        MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
-    };
-
-    if x64 || src.msb() != 0 || index.msb() != 0 || base.msb() != 0 {
-        emit_rex(buf, x64, src.msb(), index.msb(), base.msb());
-    }
-
-    emit_op(buf, opcode);
-    emit_membase_with_index_and_scale(buf, base, index, scale, disp, src);
 }
 
 pub fn emit_cmp_mem_imm(
@@ -981,27 +898,6 @@ mod tests {
     }
 
     #[test]
-    fn test_xorb_imm_reg() {
-        assert_emit!(0x34, 1; emit_xorb_imm_reg(1, RAX));
-        assert_emit!(0x80, 0xf3, 1; emit_xorb_imm_reg(1, RBX));
-        assert_emit!(0x80, 0xf1, 1; emit_xorb_imm_reg(1, RCX));
-        assert_emit!(0x80, 0xf2, 1; emit_xorb_imm_reg(1, RDX));
-        assert_emit!(0x40, 0x80, 0xf6, 1; emit_xorb_imm_reg(1, RSI));
-        assert_emit!(0x40, 0x80, 0xf7, 1; emit_xorb_imm_reg(1, RDI));
-
-        assert_emit!(0x41, 0x80, 0xf0, 3; emit_xorb_imm_reg(3, R8));
-        assert_emit!(0x41, 0x80, 0xf7, 4; emit_xorb_imm_reg(4, R15));
-    }
-
-    #[test]
-    fn test_andb_imm_reg() {
-        assert_emit!(0x24, 1; emit_andb_imm_reg(1, RAX));
-        assert_emit!(0x80, 0xe1, 2; emit_andb_imm_reg(2, RCX));
-        assert_emit!(0x41, 0x80, 0xe0, 3; emit_andb_imm_reg(3, R8));
-        assert_emit!(0x41, 0x80, 0xe7, 4; emit_andb_imm_reg(4, R15));
-    }
-
-    #[test]
     fn test_int_shlx() {
         assert_emit!(0xC4, 0xE2, 0xE1, 0xF7, 0xC2; emit_shlx(true, RAX, RDX, RBX));
         assert_emit!(0xC4, 0x42, 0x29, 0xF7, 0xC1; emit_shlx(false, R8, R9, R10));
@@ -1185,34 +1081,6 @@ mod tests {
     fn test_cmp_mem_reg_dest_rip() {
         let mut buf = MacroAssembler::new();
         emit_cmp_mem_reg(&mut buf, MachineMode::Ptr, RAX, 1, RIP);
-    }
-
-    #[test]
-    fn test_mov_memindex_reg() {
-        assert_emit!(0x48, 0x8b, 0x54, 0xc8, 0x0c;
-            emit_mov_memindex_reg(MachineMode::Ptr, RAX, RCX, 8, 12, RDX));
-        assert_emit!(0x8b, 0x54, 0x88, 0x0c;
-            emit_mov_memindex_reg(MachineMode::Int32, RAX, RCX, 4, 12, RDX));
-        assert_emit!(0x8a, 0x54, 0x08, 0x0c;
-            emit_mov_memindex_reg(MachineMode::Int8, RAX, RCX, 1, 12, RDX));
-        assert_emit!(0x8a, 0x44, 0x08, 0x20;
-            emit_mov_memindex_reg(MachineMode::Int8, RAX, RCX, 1, 0x20, RAX));
-
-        assert_emit!(0x4f, 0x8b, 0x6c, 0xfe, 0x10;
-            emit_mov_memindex_reg(MachineMode::Ptr, R14, R15, 8, 16, R13));
-    }
-
-    #[test]
-    fn test_mov_reg_memindex() {
-        assert_emit!(0x48, 0x89, 0x54, 0x88, 0x0c;
-            emit_mov_reg_memindex(MachineMode::Ptr, RDX, RAX, RCX, 4, 12));
-        assert_emit!(0x89, 0x54, 0x88, 0x0c;
-            emit_mov_reg_memindex(MachineMode::Int32, RDX, RAX, RCX, 4, 12));
-        assert_emit!(0x88, 0x54, 0x88, 0x0c;
-            emit_mov_reg_memindex(MachineMode::Int8, RDX, RAX, RCX, 4, 12));
-
-        assert_emit!(0x4f, 0x89, 0x6c, 0xfe, 0x10;
-            emit_mov_reg_memindex(MachineMode::Ptr, R13, R14, R15, 8, 16));
     }
 
     #[test]

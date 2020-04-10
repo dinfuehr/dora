@@ -305,6 +305,25 @@ impl Assembler {
         self.emit_modrm_registers(src, dest);
     }
 
+    pub fn xorl_ri(&mut self, lhs: Register, rhs: Immediate) {
+        assert!(rhs.is_int32());
+
+        if rhs.is_int8() {
+            self.emit_rex32_rm_optional(lhs);
+            self.emit_u8(0x83);
+            self.emit_modrm_opcode(0b110, lhs);
+            self.emit_u8(rhs.int8() as u8);
+        } else if lhs == RAX {
+            self.emit_u8(0x35);
+            self.emit_u32(rhs.int32() as u32);
+        } else {
+            self.emit_rex32_rm_optional(lhs);
+            self.emit_u8(0x81);
+            self.emit_modrm_opcode(0b110, lhs);
+            self.emit_u32(rhs.int32() as u32);
+        }
+    }
+
     pub fn xorq_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex64_modrm(src, dest);
         self.emit_u8(0x31);
@@ -1375,5 +1394,16 @@ mod tests {
         assert_emit!(0xc6, 0x00, 0xff; movb_ai(Address::offset(RAX, 0), Immediate(255)));
         assert_emit!(0xc6, 0x00, 0x80; movb_ai(Address::offset(RAX, 0), Immediate(-128)));
         assert_emit!(0xc6, 0x00, 0x80; movb_ai(Address::offset(RAX, 0), Immediate(128)));
+    }
+
+    #[test]
+    fn test_xorl_ri() {
+        assert_emit!(0x83, 0xf0, 1; xorl_ri(RAX, Immediate(1)));
+        assert_emit!(0x41, 0x83, 0xf0, 0x7f; xorl_ri(R8, Immediate(127)));
+        assert_emit!(0x41, 0x83, 0xf7, 0x80; xorl_ri(R15, Immediate(-128)));
+
+        assert_emit!(0x35, 0x80, 0, 0, 0; xorl_ri(RAX, Immediate(128)));
+        assert_emit!(0x41, 0x81, 0xf0, 0x7f, 0xff, 0xff, 0xff; xorl_ri(R8, Immediate(-129)));
+        assert_emit!(0x41, 0x81, 0xf7, 0x80, 0, 0, 0; xorl_ri(R15, Immediate(128)));
     }
 }

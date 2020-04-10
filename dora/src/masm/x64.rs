@@ -787,7 +787,7 @@ impl MacroAssembler {
 
             Mem::Index(base, index, scale, disp) => match mode {
                 MachineMode::Int8 => {
-                    assert!(scale == 1);
+                    assert_eq!(scale, 1);
 
                     self.asm.movzxb_ra(
                         dest.reg().into(),
@@ -795,8 +795,20 @@ impl MacroAssembler {
                     )
                 }
 
-                MachineMode::Int32 | MachineMode::Int64 | MachineMode::Ptr => {
-                    asm::emit_mov_memindex_reg(self, mode, base, index, scale, disp, dest.reg())
+                MachineMode::Int32 => {
+                    assert_eq!(scale, 4);
+                    self.asm.movl_ra(
+                        dest.reg().into(),
+                        Address::array(base.into(), index.into(), ScaleFactor::Four, disp),
+                    )
+                }
+
+                MachineMode::Int64 | MachineMode::Ptr => {
+                    assert_eq!(scale, 8);
+                    self.asm.movq_ra(
+                        dest.reg().into(),
+                        Address::array(base.into(), index.into(), ScaleFactor::Eight, disp),
+                    )
                 }
 
                 MachineMode::Float32 => asm::movss_load(self, dest.freg(), mem),
@@ -862,8 +874,28 @@ impl MacroAssembler {
             },
 
             Mem::Index(base, index, scale, disp) => match mode {
-                MachineMode::Int8 | MachineMode::Int32 | MachineMode::Int64 | MachineMode::Ptr => {
-                    asm::emit_mov_reg_memindex(self, mode, src.reg(), base, index, scale, disp)
+                MachineMode::Int8 => {
+                    assert_eq!(scale, 1);
+                    self.asm.movb_ar(
+                        Address::array(base.into(), index.into(), ScaleFactor::One, disp),
+                        src.reg().into(),
+                    )
+                }
+
+                MachineMode::Int32 => {
+                    assert_eq!(scale, 4);
+                    self.asm.movl_ar(
+                        Address::array(base.into(), index.into(), ScaleFactor::Four, disp),
+                        src.reg().into(),
+                    )
+                }
+
+                MachineMode::Int64 | MachineMode::Ptr => {
+                    assert_eq!(scale, 8);
+                    self.asm.movq_ar(
+                        Address::array(base.into(), index.into(), ScaleFactor::Eight, disp),
+                        src.reg().into(),
+                    )
                 }
 
                 MachineMode::Float32 => asm::movss_store(self, mem, src.freg()),
@@ -990,8 +1022,7 @@ impl MacroAssembler {
     }
 
     pub fn bool_not(&mut self, dest: Reg, src: Reg) {
-        asm::emit_xorb_imm_reg(self, 1, src);
-        asm::emit_andb_imm_reg(self, 1, src);
+        self.asm.xorl_ri(src.into(), Immediate(1));
 
         if dest != src {
             self.asm.movl_rr(dest.into(), src.into());
