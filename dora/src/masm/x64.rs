@@ -174,16 +174,18 @@ impl MacroAssembler {
             MachineMode::Int64 | MachineMode::Ptr => {
                 self.asm.cmpq_ar(address_from_mem(mem), rhs.into())
             }
-            _ => unimplemented!(),
+            _ => unreachable!(),
         }
     }
 
     pub fn cmp_mem_imm(&mut self, mode: MachineMode, mem: Mem, imm: i32) {
-        match mem {
-            Mem::Local(_) => unimplemented!(),
-            Mem::Base(base, disp) => asm::emit_cmp_mem_imm(self, mode, base, disp, imm),
-            Mem::Index(_, _, _, _) => unimplemented!(),
-            Mem::Offset(_, _, _) => unimplemented!(),
+        let imm = Immediate(imm as i64);
+
+        match mode {
+            MachineMode::Int8 => self.asm.cmpb_ai(address_from_mem(mem), imm),
+            MachineMode::Int32 => self.asm.cmpl_ai(address_from_mem(mem), imm),
+            MachineMode::Int64 | MachineMode::Ptr => self.asm.cmpq_ai(address_from_mem(mem), imm),
+            _ => unreachable!(),
         }
     }
 
@@ -820,7 +822,7 @@ impl MacroAssembler {
     }
 
     pub fn lea(&mut self, dest: Reg, mem: Mem) {
-        asm::lea(self, dest, mem);
+        self.asm.lea(dest.into(), address_from_mem(mem));
     }
 
     pub fn emit_barrier(&mut self, src: Reg, card_table_offset: usize) {
@@ -935,7 +937,7 @@ impl MacroAssembler {
     }
 
     pub fn extend_int_long(&mut self, dest: Reg, src: Reg) {
-        asm::emit_movsx(self, src, dest);
+        self.asm.movsxlq_rr(dest.into(), src.into());
     }
 
     pub fn extend_byte(&mut self, _mode: MachineMode, dest: Reg, src: Reg) {

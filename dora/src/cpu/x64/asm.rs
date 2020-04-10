@@ -1,6 +1,5 @@
 use crate::cpu::*;
 use crate::masm::{CondCode, Label, MacroAssembler};
-use crate::ty::MachineMode;
 
 pub const VEXM_0F: u8 = 1;
 pub const VEXM_0F38: u8 = 2;
@@ -134,22 +133,9 @@ pub fn emit_jcc(buf: &mut MacroAssembler, cond: CondCode, lbl: Label) {
     buf.emit_label(lbl);
 }
 
-pub fn emit_movsx(buf: &mut MacroAssembler, src: Reg, dest: Reg) {
-    emit_rex(buf, true, dest.msb(), 0, src.msb());
-
-    emit_op(buf, 0x63);
-    emit_modrm(buf, 0b11, dest.and7(), src.and7());
-}
-
 pub fn emit_jmp(buf: &mut MacroAssembler, lbl: Label) {
     emit_op(buf, 0xe9);
     buf.emit_label(lbl);
-}
-
-pub fn lea(buf: &mut MacroAssembler, dest: Reg, src: Mem) {
-    emit_rex_mem(buf, true, dest, &src);
-    emit_op(buf, 0x8D);
-    emit_mem(buf, dest, &src);
 }
 
 fn emit_rex_mem(buf: &mut MacroAssembler, x64: bool, dest: Reg, src: &Mem) {
@@ -187,43 +173,6 @@ fn emit_mem(buf: &mut MacroAssembler, dest: Reg, src: &Mem) {
         &Mem::Offset(index, scale, disp) => {
             emit_membase_without_base(buf, index, scale, disp, dest);
         }
-    }
-}
-
-pub fn emit_cmp_mem_imm(
-    buf: &mut MacroAssembler,
-    mode: MachineMode,
-    base: Reg,
-    disp: i32,
-    imm: i32,
-) {
-    let base_msb = if base == RIP { 0 } else { base.msb() };
-
-    let opcode = if fits_i8(imm) { 0x83 } else { 0x81 };
-
-    let (x64, opcode) = match mode {
-        MachineMode::Int8 => (false, 0x80),
-        MachineMode::Int32 => (false, opcode),
-        MachineMode::Int64 => unimplemented!(),
-        MachineMode::Ptr => (true, opcode),
-        MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
-    };
-
-    if x64 || base_msb != 0 {
-        emit_rex(buf, x64, 0, 0, base_msb);
-    }
-
-    emit_op(buf, opcode);
-    emit_membase(buf, base, disp, RDI);
-
-    if fits_i8(imm) {
-        emit_u8(buf, imm as u8);
-    } else {
-        if mode == MachineMode::Int8 {
-            panic!("Int8 does not support 32 bit values");
-        }
-
-        emit_u32(buf, imm as u32);
     }
 }
 
@@ -651,9 +600,7 @@ fn sse_cmp(buf: &mut MacroAssembler, dbl: bool, dest: FReg, src: FReg) {
 #[cfg(test)]
 mod tests {
     use super::*;
-
     use crate::masm::{CondCode, MacroAssembler};
-    use crate::ty::MachineMode;
 
     macro_rules! assert_emit {
         (
@@ -897,55 +844,6 @@ mod tests {
     }
 
     #[test]
-    fn test_cmp_mem_imm() {
-        let p = MachineMode::Ptr;
-
-        // cmp [rbx+1], 2
-        assert_emit!(0x48, 0x83, 0x7b, 1, 2; emit_cmp_mem_imm(p, RBX, 1, 2));
-
-        // cmp [rbx+256], 2
-        assert_emit!(0x48, 0x83, 0xBB, 0, 1, 0, 0, 2; emit_cmp_mem_imm(p, RBX, 256, 2));
-
-        // cmp [rdi+1], 256
-        assert_emit!(0x48, 0x81, 0x7F, 1, 0, 1, 0, 0; emit_cmp_mem_imm(p, RDI, 1, 256));
-
-        // cmp [r9+1], 2
-        assert_emit!(0x49, 0x83, 0x79, 1, 2; emit_cmp_mem_imm(p, R9, 1, 2));
-
-        let i = MachineMode::Int32;
-
-        // cmp [rbx+1], 2
-        assert_emit!(0x83, 0x7B, 1, 2; emit_cmp_mem_imm(i, RBX, 1, 2));
-
-        // cmp [rbx+1], 256
-        assert_emit!(0x81, 0x7B, 1, 0, 1, 0, 0; emit_cmp_mem_imm(i, RBX, 1, 256));
-
-        let b = MachineMode::Int8;
-
-        // cmp [rbx+1], 2
-        assert_emit!(0x80, 0x7B, 1, 2; emit_cmp_mem_imm(b, RBX, 1, 2));
-
-        // cmp [R15+256], 2
-        assert_emit!(0x41, 0x80, 0xBF, 0, 1, 0, 0, 2; emit_cmp_mem_imm(b, R15, 256, 2));
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_cmp_mem_imm_i32_for_i8() {
-        let mut buf = MacroAssembler::new();
-        emit_cmp_mem_imm(&mut buf, MachineMode::Int8, R15, 256, 256);
-    }
-
-    #[test]
-    fn test_emit_movsx() {
-        assert_emit!(0x48, 0x63, 0xc0; emit_movsx(RAX, RAX));
-        assert_emit!(0x4c, 0x63, 0xc8; emit_movsx(RAX, R9));
-        assert_emit!(0x4c, 0x63, 0xf8; emit_movsx(RAX, R15));
-        assert_emit!(0x49, 0x63, 0xc2; emit_movsx(R10, RAX));
-        assert_emit!(0x4d, 0x63, 0xfe; emit_movsx(R14, R15));
-    }
-
-    #[test]
     fn test_addss() {
         assert_emit!(0xf3, 0x0f, 0x58, 0xc1; addss(XMM0, XMM1));
         assert_emit!(0xf3, 0x41, 0x0f, 0x58, 0xdf; addss(XMM3, XMM15));
@@ -1184,24 +1082,5 @@ mod tests {
                      xorps(XMM0, Mem::Base(RIP, -10)));
         assert_emit!(0x66, 0x0f, 0x57, 0x05, 0xf6, 0xff, 0xff, 0xff;
                      xorpd(XMM0, Mem::Base(RIP, -10)));
-    }
-
-    #[test]
-    fn test_lea() {
-        // lea rax, [rax*8]
-        assert_emit!(0x48, 0x8d, 0x04, 0xc5, 0, 0, 0, 0;
-                     lea(RAX, Mem::Offset(RAX, 8, 0)));
-
-        // lea rax, [rax*8+16]
-        assert_emit!(0x48, 0x8d, 0x04, 0xc5, 0x10, 0, 0, 0;
-                     lea(RAX, Mem::Offset(RAX, 8, 16)));
-
-        // lea r9,[rax*8+16]
-        assert_emit!(0x4c, 0x8d, 0x0c, 0xc5, 0x10, 0, 0, 0;
-                     lea(R9, Mem::Offset(RAX, 8, 16)));
-
-        // lea rax,[r9*8+16]
-        assert_emit!(0x4a, 0x8d, 0x04, 0xcd, 0x10, 0, 0, 0;
-                     lea(RAX, Mem::Offset(R9, 8, 16)));
     }
 }

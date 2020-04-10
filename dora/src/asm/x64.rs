@@ -261,6 +261,14 @@ impl Assembler {
         self.emit_address(rhs.low_bits(), lhs);
     }
 
+    pub fn cmpb_ai(&mut self, lhs: Address, rhs: Immediate) {
+        assert!(rhs.is_int8() || rhs.is_uint8());
+        self.emit_rex32_address_optional(lhs);
+        self.emit_u8(0x80);
+        self.emit_address(0b111, lhs);
+        self.emit_u8(rhs.uint8());
+    }
+
     pub fn cmpl_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex32_optional(src, dest);
         self.emit_u8(0x39);
@@ -273,6 +281,22 @@ impl Assembler {
         self.emit_address(rhs.low_bits(), lhs);
     }
 
+    pub fn cmpl_ai(&mut self, lhs: Address, rhs: Immediate) {
+        assert!(rhs.is_int32() || rhs.is_uint32());
+
+        if rhs.is_int8() {
+            self.emit_rex32_address_optional(lhs);
+            self.emit_u8(0x83);
+            self.emit_address(0b111, lhs);
+            self.emit_u8(rhs.int8() as u8);
+        } else {
+            self.emit_rex32_address_optional(lhs);
+            self.emit_u8(0x81);
+            self.emit_address(0b111, lhs);
+            self.emit_u32(rhs.uint32());
+        }
+    }
+
     pub fn cmpq_rr(&mut self, lhs: Register, rhs: Register) {
         self.emit_rex64_modrm(rhs, lhs);
         self.emit_u8(0x39);
@@ -283,6 +307,22 @@ impl Assembler {
         self.emit_rex64_modrm_address(rhs, lhs);
         self.emit_u8(0x39);
         self.emit_address(rhs.low_bits(), lhs);
+    }
+
+    pub fn cmpq_ai(&mut self, lhs: Address, rhs: Immediate) {
+        assert!(rhs.is_int32());
+
+        if rhs.is_int8() {
+            self.emit_rex64_address(lhs);
+            self.emit_u8(0x83);
+            self.emit_address(0b111, lhs);
+            self.emit_u8(rhs.int8() as u8);
+        } else {
+            self.emit_rex64_address(lhs);
+            self.emit_u8(0x81);
+            self.emit_address(0b111, lhs);
+            self.emit_u32(rhs.int32() as u32);
+        }
     }
 
     pub fn cmpq_ri(&mut self, reg: Register, imm: Immediate) {
@@ -696,6 +736,11 @@ impl Immediate {
         0 <= self.0 && self.0 < 256
     }
 
+    pub fn is_uint32(&self) -> bool {
+        let limit = 1i64 << 32;
+        0 <= self.0 && self.0 < limit
+    }
+
     pub fn uint8(&self) -> u8 {
         self.0 as u8
     }
@@ -706,6 +751,10 @@ impl Immediate {
 
     pub fn int32(&self) -> i32 {
         self.0 as i32
+    }
+
+    pub fn uint32(&self) -> u32 {
+        self.0 as u32
     }
 
     pub fn int64(&self) -> i64 {
@@ -1433,5 +1482,30 @@ mod tests {
         assert_emit!(0x40, 0x38, 0x38; cmpb_ar(Address::offset(RAX, 0), RDI));
         assert_emit!(0x44, 0x38, 0x00; cmpb_ar(Address::offset(RAX, 0), R8));
         assert_emit!(0x41, 0x38, 0x00; cmpb_ar(Address::offset(R8, 0), RAX));
+    }
+
+    #[test]
+    fn test_cmpb_ai() {
+        assert_emit!(0x80, 0x38, 1; cmpb_ai(Address::offset(RAX, 0), Immediate(1)));
+        assert_emit!(0x80, 0x38, 0x7f; cmpb_ai(Address::offset(RAX, 0), Immediate(127)));
+        assert_emit!(0x80, 0x38, 0x80; cmpb_ai(Address::offset(RAX, 0), Immediate(-128)));
+        assert_emit!(0x80, 0x38, 0xff; cmpb_ai(Address::offset(RAX, 0), Immediate(255)));
+        assert_emit!(0x41, 0x80, 0x38, 0xff; cmpb_ai(Address::offset(R8, 0), Immediate(255)));
+    }
+
+    #[test]
+    fn test_cmpl_ai() {
+        assert_emit!(0x83, 0x38, 0x7f; cmpl_ai(Address::offset(RAX, 0), Immediate(127)));
+        assert_emit!(0x83, 0x38, 0x80; cmpl_ai(Address::offset(RAX, 0), Immediate(-128)));
+        assert_emit!(0x81, 0x38, 0x80, 0, 0, 0; cmpl_ai(Address::offset(RAX, 0), Immediate(128)));
+        assert_emit!(0x41, 0x81, 0x38, 0x80, 0, 0, 0; cmpl_ai(Address::offset(R8, 0), Immediate(128)));
+    }
+
+    #[test]
+    fn test_cmpq_ai() {
+        assert_emit!(0x48, 0x83, 0x38, 0x7f; cmpq_ai(Address::offset(RAX, 0), Immediate(127)));
+        assert_emit!(0x48, 0x83, 0x38, 0x80; cmpq_ai(Address::offset(RAX, 0), Immediate(-128)));
+        assert_emit!(0x48, 0x81, 0x38, 0x80, 0, 0, 0; cmpq_ai(Address::offset(RAX, 0), Immediate(128)));
+        assert_emit!(0x49, 0x81, 0x38, 0x80, 0, 0, 0; cmpq_ai(Address::offset(R8, 0), Immediate(128)));
     }
 }
