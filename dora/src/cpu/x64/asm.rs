@@ -366,24 +366,8 @@ pub fn movss(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
     sse_float_freg_freg(buf, false, 0x10, dest, src);
 }
 
-pub fn movss_load(buf: &mut MacroAssembler, dest: FReg, mem: Mem) {
-    sse_float_freg_mem(buf, false, 0x10, dest, mem);
-}
-
-pub fn movss_store(buf: &mut MacroAssembler, mem: Mem, src: FReg) {
-    sse_float_freg_mem(buf, false, 0x11, src, mem);
-}
-
 pub fn movsd(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
     sse_float_freg_freg(buf, true, 0x10, dest, src);
-}
-
-pub fn movsd_load(buf: &mut MacroAssembler, dest: FReg, mem: Mem) {
-    sse_float_freg_mem(buf, true, 0x10, dest, mem);
-}
-
-pub fn movsd_store(buf: &mut MacroAssembler, mem: Mem, src: FReg) {
-    sse_float_freg_mem(buf, true, 0x11, src, mem);
 }
 
 pub fn cvtsd2ss(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
@@ -438,16 +422,6 @@ fn sse_float_freg_freg(buf: &mut MacroAssembler, dbl: bool, op: u8, dest: FReg, 
     emit_op(buf, 0x0f);
     emit_op(buf, op);
     emit_modrm(buf, 0b11, dest.and7(), src.and7());
-}
-
-fn sse_float_freg_mem(buf: &mut MacroAssembler, dbl: bool, op: u8, dest: FReg, src: Mem) {
-    let prefix = if dbl { 0xf2 } else { 0xf3 };
-
-    emit_op(buf, prefix);
-    emit_rex_mem(buf, false, Reg(dest.0), &src);
-    emit_op(buf, 0x0f);
-    emit_op(buf, op);
-    emit_mem(buf, Reg(dest.0), &src);
 }
 
 fn sse_float_freg_mem_66(buf: &mut MacroAssembler, dbl: bool, op: u8, dest: FReg, src: Mem) {
@@ -1054,26 +1028,6 @@ mod tests {
     fn test_tzcnt() {
         assert_emit!(0xf3, 0x48, 0x0f, 0xbc, 0xc7; tzcnt(true, RDI, RAX));
         assert_emit!(0xf3, 0x0f, 0xbc, 0xc7; tzcnt(false, RDI, RAX));
-    }
-
-    #[test]
-    fn test_movss_load() {
-        assert_emit!(0xf3, 0x0f, 0x10, 0x44, 0x88, 1; movss_load(XMM0, Mem::Index(RAX, RCX, 4, 1)));
-        assert_emit!(0xf2, 0x0f, 0x10, 0x48, 1; movsd_load(XMM1, Mem::Base(RAX, 1)));
-        assert_emit!(0xf3, 0x44, 0x0f, 0x10, 0xbc, 0x88, 0, 1, 0, 0;
-                     movss_load(XMM15, Mem::Index(RAX, RCX, 4, 256)));
-        assert_emit!(0xf3, 0x41, 0x0f, 0x10, 0x4c, 0x8f, 1;
-                     movss_load(XMM1, Mem::Index(R15, RCX, 4, 1)));
-        assert_emit!(0xf2, 0x43, 0x0f, 0x10, 0x4c, 0xbf, 2;
-                     movsd_load(XMM1, Mem::Index(R15, R15, 4, 2)));
-        assert_emit!(0xf3, 0x0f, 0x10, 0x05, 0xec, 0xff, 0xff, 0xff;
-                     movss_load(XMM0, Mem::Base(RIP, -20)));
-    }
-
-    #[test]
-    fn test_movss_store() {
-        assert_emit!(0xf3, 0x0f, 0x11, 0x40, 1; movss_store(Mem::Base(RAX, 1), XMM0));
-        assert_emit!(0xf2, 0x44, 0x0f, 0x11, 0x78, 1; movsd_store(Mem::Base(RAX, 1), XMM15));
     }
 
     #[test]

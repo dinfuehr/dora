@@ -1,7 +1,9 @@
 use byteorder::{LittleEndian, WriteBytesExt};
 use dora_parser::lexer::position::Position;
 
-use crate::asm::{Address, Condition, Immediate, Register as AsmRegister, ScaleFactor};
+use crate::asm::{
+    Address, Condition, Immediate, Register as AsmRegister, ScaleFactor, XmmRegister,
+};
 use crate::compiler::codegen::AnyReg;
 use crate::compiler::fct::LazyCompilationSite;
 use crate::cpu::*;
@@ -758,66 +760,14 @@ impl MacroAssembler {
     }
 
     pub fn load_mem(&mut self, mode: MachineMode, dest: AnyReg, mem: Mem) {
-        match mem {
-            Mem::Local(offset) => match mode {
-                MachineMode::Int8 => self
-                    .asm
-                    .movzxb_ra(dest.reg().into(), Address::offset(RBP.into(), offset)),
-                MachineMode::Int32 => self
-                    .asm
-                    .movl_ra(dest.reg().into(), Address::offset(RBP.into(), offset)),
-                MachineMode::Int64 | MachineMode::Ptr => self
-                    .asm
-                    .movq_ra(dest.reg().into(), Address::offset(RBP.into(), offset)),
-                MachineMode::Float32 => asm::movss_load(self, dest.freg(), mem),
-                MachineMode::Float64 => asm::movsd_load(self, dest.freg(), mem),
-            },
-
-            Mem::Base(base, disp) => match mode {
-                MachineMode::Int8 => self
-                    .asm
-                    .movzxb_ra(dest.reg().into(), Address::offset(base.into(), disp)),
-                MachineMode::Int32 => self
-                    .asm
-                    .movl_ra(dest.reg().into(), Address::offset(base.into(), disp)),
-                MachineMode::Int64 | MachineMode::Ptr => self
-                    .asm
-                    .movq_ra(dest.reg().into(), Address::offset(base.into(), disp)),
-                MachineMode::Float32 => asm::movss_load(self, dest.freg(), mem),
-                MachineMode::Float64 => asm::movsd_load(self, dest.freg(), mem),
-            },
-
-            Mem::Index(base, index, scale, disp) => match mode {
-                MachineMode::Int8 => {
-                    assert_eq!(scale, 1);
-
-                    self.asm.movzxb_ra(
-                        dest.reg().into(),
-                        Address::array(base.into(), index.into(), ScaleFactor::One, disp),
-                    )
-                }
-
-                MachineMode::Int32 => {
-                    assert_eq!(scale, 4);
-                    self.asm.movl_ra(
-                        dest.reg().into(),
-                        Address::array(base.into(), index.into(), ScaleFactor::Four, disp),
-                    )
-                }
-
-                MachineMode::Int64 | MachineMode::Ptr => {
-                    assert_eq!(scale, 8);
-                    self.asm.movq_ra(
-                        dest.reg().into(),
-                        Address::array(base.into(), index.into(), ScaleFactor::Eight, disp),
-                    )
-                }
-
-                MachineMode::Float32 => asm::movss_load(self, dest.freg(), mem),
-                MachineMode::Float64 => asm::movsd_load(self, dest.freg(), mem),
-            },
-
-            Mem::Offset(_, _, _) => unimplemented!(),
+        match mode {
+            MachineMode::Int8 => self.asm.movzxb_ra(dest.reg().into(), address_from_mem(mem)),
+            MachineMode::Int32 => self.asm.movl_ra(dest.reg().into(), address_from_mem(mem)),
+            MachineMode::Int64 | MachineMode::Ptr => {
+                self.asm.movq_ra(dest.reg().into(), address_from_mem(mem))
+            }
+            MachineMode::Float32 => self.asm.movss_ra(dest.freg().into(), address_from_mem(mem)),
+            MachineMode::Float64 => self.asm.movsd_ra(dest.freg().into(), address_from_mem(mem)),
         }
     }
 
@@ -846,65 +796,14 @@ impl MacroAssembler {
     }
 
     pub fn store_mem(&mut self, mode: MachineMode, mem: Mem, src: AnyReg) {
-        match mem {
-            Mem::Local(offset) => match mode {
-                MachineMode::Int8 => self
-                    .asm
-                    .movb_ar(Address::offset(RBP.into(), offset), src.reg().into()),
-                MachineMode::Int32 => self
-                    .asm
-                    .movl_ar(Address::offset(RBP.into(), offset), src.reg().into()),
-                MachineMode::Int64 | MachineMode::Ptr => self
-                    .asm
-                    .movq_ar(Address::offset(RBP.into(), offset), src.reg().into()),
-                MachineMode::Float32 => asm::movss_store(self, mem, src.freg()),
-                MachineMode::Float64 => asm::movsd_store(self, mem, src.freg()),
-            },
-
-            Mem::Base(base, disp) => match mode {
-                MachineMode::Int8 => self
-                    .asm
-                    .movb_ar(Address::offset(base.into(), disp), src.reg().into()),
-                MachineMode::Int32 => self
-                    .asm
-                    .movl_ar(Address::offset(base.into(), disp), src.reg().into()),
-                MachineMode::Int64 | MachineMode::Ptr => self
-                    .asm
-                    .movq_ar(Address::offset(base.into(), disp), src.reg().into()),
-                MachineMode::Float32 => asm::movss_store(self, mem, src.freg()),
-                MachineMode::Float64 => asm::movsd_store(self, mem, src.freg()),
-            },
-
-            Mem::Index(base, index, scale, disp) => match mode {
-                MachineMode::Int8 => {
-                    assert_eq!(scale, 1);
-                    self.asm.movb_ar(
-                        Address::array(base.into(), index.into(), ScaleFactor::One, disp),
-                        src.reg().into(),
-                    )
-                }
-
-                MachineMode::Int32 => {
-                    assert_eq!(scale, 4);
-                    self.asm.movl_ar(
-                        Address::array(base.into(), index.into(), ScaleFactor::Four, disp),
-                        src.reg().into(),
-                    )
-                }
-
-                MachineMode::Int64 | MachineMode::Ptr => {
-                    assert_eq!(scale, 8);
-                    self.asm.movq_ar(
-                        Address::array(base.into(), index.into(), ScaleFactor::Eight, disp),
-                        src.reg().into(),
-                    )
-                }
-
-                MachineMode::Float32 => asm::movss_store(self, mem, src.freg()),
-                MachineMode::Float64 => asm::movsd_store(self, mem, src.freg()),
-            },
-
-            Mem::Offset(_, _, _) => unimplemented!(),
+        match mode {
+            MachineMode::Int8 => self.asm.movb_ar(address_from_mem(mem), src.reg().into()),
+            MachineMode::Int32 => self.asm.movl_ar(address_from_mem(mem), src.reg().into()),
+            MachineMode::Int64 | MachineMode::Ptr => {
+                self.asm.movq_ar(address_from_mem(mem), src.reg().into())
+            }
+            MachineMode::Float32 => self.asm.movss_ar(address_from_mem(mem), src.freg().into()),
+            MachineMode::Float64 => self.asm.movsd_ar(address_from_mem(mem), src.freg().into()),
         }
     }
 
@@ -979,12 +878,14 @@ impl MacroAssembler {
         match mode {
             MachineMode::Float32 => {
                 let off = self.dseg.add_f32(imm as f32);
-                asm::movss_load(self, dest, Mem::Base(RIP, -(off + pos + inst_size)));
+                self.asm
+                    .movss_ra(dest.into(), Address::rip(-(off + pos + inst_size)))
             }
 
             MachineMode::Float64 => {
                 let off = self.dseg.add_f64(imm);
-                asm::movsd_load(self, dest, Mem::Base(RIP, -(off + pos + inst_size)));
+                self.asm
+                    .movsd_ra(dest.into(), Address::rip(-(off + pos + inst_size)))
             }
 
             _ => unreachable!(),
@@ -1171,6 +1072,12 @@ impl MacroAssembler {
         } else {
             self.asm.movl_rr(lhs, rhs);
         }
+    }
+}
+
+impl From<FReg> for XmmRegister {
+    fn from(reg: FReg) -> XmmRegister {
+        XmmRegister::new(reg.0)
     }
 }
 
