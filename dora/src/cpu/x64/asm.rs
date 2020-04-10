@@ -117,32 +117,6 @@ pub fn emit_shlx(buf: &mut MacroAssembler, x64: bool, dest: Reg, lhs: Reg, rhs: 
     emit_modrm(buf, 0b11, dest.and7(), lhs.and7());
 }
 
-pub fn emit_shlq_reg(buf: &mut MacroAssembler, imm: u8, dest: Reg) {
-    emit_rex(buf, true, 0, 0, dest.msb());
-    emit_op(buf, 0xC1);
-    emit_modrm(buf, 0b11, 0b100, dest.and7());
-    emit_u8(buf, imm);
-}
-
-pub fn emit_shll_reg(buf: &mut MacroAssembler, imm: u8, dest: Reg) {
-    if dest.msb() != 0 {
-        emit_rex(buf, false, 0, 0, dest.msb());
-    }
-
-    emit_op(buf, 0xC1);
-    emit_modrm(buf, 0b11, 0b100, dest.and7());
-    emit_u8(buf, imm);
-}
-
-pub fn emit_shl_reg_cl(buf: &mut MacroAssembler, x64: bool, dest: Reg) {
-    if dest.msb() != 0 || x64 {
-        emit_rex(buf, x64, 0, 0, dest.msb());
-    }
-
-    emit_op(buf, 0xD3);
-    emit_modrm(buf, 0b11, 0b100, dest.and7());
-}
-
 pub fn emit_shrx(buf: &mut MacroAssembler, x64: bool, dest: Reg, lhs: Reg, rhs: Reg) {
     emit_vex3_rxbm(buf, dest.msb(), 0, lhs.msb(), VEXM_0F38);
     emit_vex3_wvlp(buf, x64, rhs.int(), VEXL_Z, VEXP_F2);
@@ -150,58 +124,11 @@ pub fn emit_shrx(buf: &mut MacroAssembler, x64: bool, dest: Reg, lhs: Reg, rhs: 
     emit_modrm(buf, 0b11, dest.and7(), lhs.and7());
 }
 
-pub fn emit_shr_reg_cl(buf: &mut MacroAssembler, x64: bool, dest: Reg) {
-    if dest.msb() != 0 || x64 {
-        emit_rex(buf, x64, 0, 0, dest.msb());
-    }
-
-    emit_op(buf, 0xD3);
-    emit_modrm(buf, 0b11, 0b101, dest.and7());
-}
-
-pub fn emit_shr_reg_imm(buf: &mut MacroAssembler, x64: bool, dest: Reg, imm: u8) {
-    if dest.msb() != 0 || x64 {
-        emit_rex(buf, x64, 0, 0, dest.msb());
-    }
-
-    emit_op(buf, if imm == 1 { 0xD1 } else { 0xC1 });
-    emit_modrm(buf, 0b11, 0b101, dest.and7());
-
-    if imm != 1 {
-        emit_u8(buf, imm);
-    }
-}
-
 pub fn emit_sarx(buf: &mut MacroAssembler, x64: bool, dest: Reg, lhs: Reg, rhs: Reg) {
     emit_vex3_rxbm(buf, dest.msb(), 0, lhs.msb(), VEXM_0F38);
     emit_vex3_wvlp(buf, x64, rhs.int(), VEXL_Z, VEXP_F3);
     emit_u8(buf, 0xF7);
     emit_modrm(buf, 0b11, dest.and7(), lhs.and7());
-}
-
-pub fn emit_sar_reg_cl(buf: &mut MacroAssembler, x64: bool, dest: Reg) {
-    if dest.msb() != 0 || x64 {
-        emit_rex(buf, x64, 0, 0, dest.msb());
-    }
-
-    emit_op(buf, 0xD3);
-    emit_modrm(buf, 0b11, 0b111, dest.and7());
-}
-
-pub fn emit_rol_reg_cl(buf: &mut MacroAssembler, x64: bool, dest: Reg) {
-    if dest.msb() != 0 || x64 {
-        emit_rex(buf, x64, dest.msb(), 0, dest.msb());
-    }
-    emit_op(buf, 0xD3);
-    emit_modrm(buf, 0b11, 0b000, dest.and7());
-}
-
-pub fn emit_ror_reg_cl(buf: &mut MacroAssembler, x64: bool, dest: Reg) {
-    if dest.msb() != 0 || x64 {
-        emit_rex(buf, x64, dest.msb(), 0, dest.msb());
-    }
-    emit_op(buf, 0xD3);
-    emit_modrm(buf, 0b11, 0b001, dest.and7());
 }
 
 #[cfg(test)]
@@ -267,18 +194,6 @@ mod tests {
 
         assert!(!fits_i8(128));
         assert!(!fits_i8(-129));
-    }
-
-    #[test]
-    fn test_shlq_reg() {
-        assert_emit!(0x48, 0xC1, 0xE0, 0x02; emit_shlq_reg(2, RAX));
-        assert_emit!(0x49, 0xC1, 0xE4, 0x07; emit_shlq_reg(7, R12));
-    }
-
-    #[test]
-    fn test_shll_reg() {
-        assert_emit!(0xC1, 0xE0, 0x02; emit_shll_reg(2, RAX));
-        assert_emit!(0x41, 0xC1, 0xE4, 0x07; emit_shll_reg(7, R12));
     }
 
     #[test]
@@ -407,46 +322,5 @@ mod tests {
     fn test_int_sarx() {
         assert_emit!(0xC4, 0xE2, 0xE2, 0xF7, 0xC2; emit_sarx(true, RAX, RDX, RBX));
         assert_emit!(0xC4, 0x42, 0x22, 0xF7, 0xCA; emit_sarx(false, R9, R10, R11));
-    }
-
-    #[test]
-    fn test_shl_reg_cl() {
-        assert_emit!(0xD3, 0xE0; emit_shl_reg_cl(false, RAX));
-        assert_emit!(0x41, 0xD3, 0xE1; emit_shl_reg_cl(false, R9));
-
-        assert_emit!(0x48, 0xD3, 0xE0; emit_shl_reg_cl(true, RAX));
-        assert_emit!(0x49, 0xD3, 0xE1; emit_shl_reg_cl(true, R9));
-    }
-
-    #[test]
-    fn test_shr_reg_reg() {
-        assert_emit!(0xD3, 0xE8; emit_shr_reg_cl(false, RAX));
-        assert_emit!(0x41, 0xD3, 0xE9; emit_shr_reg_cl(false, R9));
-
-        assert_emit!(0x48, 0xD3, 0xE8; emit_shr_reg_cl(true, RAX));
-        assert_emit!(0x49, 0xD3, 0xE9; emit_shr_reg_cl(true, R9));
-    }
-
-    #[test]
-    fn test_shr_reg_imm() {
-        assert_emit!(0x48, 0xC1, 0xE8, 0x02; emit_shr_reg_imm(true, RAX, 2));
-        assert_emit!(0x48, 0xC1, 0xE8, 0x09; emit_shr_reg_imm(true, RAX, 9));
-        assert_emit!(0x49, 0xC1, 0xEA, 0x09; emit_shr_reg_imm(true, R10, 9));
-        assert_emit!(0x49, 0xC1, 0xEF, 0x09; emit_shr_reg_imm(true, R15, 9));
-
-        assert_emit!(0xC1, 0xE8, 0x09; emit_shr_reg_imm(false, RAX, 9));
-        assert_emit!(0x41, 0xC1, 0xE9, 0x09; emit_shr_reg_imm(false, R9, 9));
-
-        assert_emit!(0xD1, 0xE8; emit_shr_reg_imm(false, RAX, 1));
-        assert_emit!(0x41, 0xD1, 0xE9; emit_shr_reg_imm(false, R9, 1));
-    }
-
-    #[test]
-    fn test_sar_reg_reg() {
-        assert_emit!(0xD3, 0xF8; emit_sar_reg_cl(false, RAX));
-        assert_emit!(0x41, 0xD3, 0xF9; emit_sar_reg_cl(false, R9));
-
-        assert_emit!(0x48, 0xD3, 0xF8; emit_sar_reg_cl(true, RAX));
-        assert_emit!(0x49, 0xD3, 0xF9; emit_sar_reg_cl(true, R9));
     }
 }

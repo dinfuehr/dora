@@ -856,6 +856,114 @@ impl Assembler {
         self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
+    pub fn shrl_ri(&mut self, lhs: Register, rhs: Immediate) {
+        assert!(rhs.is_int8());
+        self.emit_rex32_rm_optional(lhs);
+        self.emit_u8(0xc1);
+        self.emit_modrm_opcode(0b101, lhs);
+        self.emit_u8(rhs.int8() as u8);
+    }
+
+    pub fn shrl_r(&mut self, lhs: Register) {
+        self.emit_rex32_rm_optional(lhs);
+        self.emit_u8(0xd3);
+        self.emit_modrm_opcode(0b101, lhs);
+    }
+
+    pub fn shll_r(&mut self, lhs: Register) {
+        self.emit_rex32_rm_optional(lhs);
+        self.emit_u8(0xd3);
+        self.emit_modrm_opcode(0b100, lhs);
+    }
+
+    pub fn sarl_r(&mut self, lhs: Register) {
+        self.emit_rex32_rm_optional(lhs);
+        self.emit_u8(0xd3);
+        self.emit_modrm_opcode(0b111, lhs);
+    }
+
+    pub fn shrq_ri(&mut self, lhs: Register, rhs: Immediate) {
+        assert!(rhs.is_int8());
+        self.emit_rex64_rm(lhs);
+        self.emit_u8(0xc1);
+        self.emit_modrm_opcode(0b101, lhs);
+        self.emit_u8(rhs.int8() as u8);
+    }
+
+    pub fn shrq_r(&mut self, lhs: Register) {
+        self.emit_rex64_rm(lhs);
+        self.emit_u8(0xd3);
+        self.emit_modrm_opcode(0b101, lhs);
+    }
+
+    pub fn sarq_r(&mut self, lhs: Register) {
+        self.emit_rex64_rm(lhs);
+        self.emit_u8(0xd3);
+        self.emit_modrm_opcode(0b111, lhs);
+    }
+
+    pub fn sarl_ri(&mut self, lhs: Register, rhs: Immediate) {
+        assert!(rhs.is_int8());
+        self.emit_rex32_rm_optional(lhs);
+        self.emit_u8(0xc1);
+        self.emit_modrm_opcode(0b111, lhs);
+        self.emit_u8(rhs.int8() as u8);
+    }
+
+    pub fn sarq_ri(&mut self, lhs: Register, rhs: Immediate) {
+        assert!(rhs.is_int8());
+        self.emit_rex64_rm(lhs);
+        self.emit_u8(0xc1);
+        self.emit_modrm_opcode(0b111, lhs);
+        self.emit_u8(rhs.int8() as u8);
+    }
+
+    pub fn shll_ri(&mut self, lhs: Register, rhs: Immediate) {
+        assert!(rhs.is_int8());
+        self.emit_rex32_rm_optional(lhs);
+        self.emit_u8(0xc1);
+        self.emit_modrm_opcode(0b100, lhs);
+        self.emit_u8(rhs.int8() as u8);
+    }
+
+    pub fn shlq_r(&mut self, lhs: Register) {
+        self.emit_rex64_rm(lhs);
+        self.emit_u8(0xd3);
+        self.emit_modrm_opcode(0b100, lhs);
+    }
+
+    pub fn shlq_ri(&mut self, lhs: Register, rhs: Immediate) {
+        assert!(rhs.is_int8());
+        self.emit_rex64_rm(lhs);
+        self.emit_u8(0xc1);
+        self.emit_modrm_opcode(0b100, lhs);
+        self.emit_u8(rhs.int8() as u8);
+    }
+
+    pub fn roll_r(&mut self, opnd: Register) {
+        self.emit_rex32_rm_optional(opnd);
+        self.emit_u8(0xd3);
+        self.emit_modrm_opcode(0b000, opnd);
+    }
+
+    pub fn rolq_r(&mut self, opnd: Register) {
+        self.emit_rex64_rm(opnd);
+        self.emit_u8(0xd3);
+        self.emit_modrm_opcode(0b000, opnd);
+    }
+
+    pub fn rorl_r(&mut self, opnd: Register) {
+        self.emit_rex32_rm_optional(opnd);
+        self.emit_u8(0xd3);
+        self.emit_modrm_opcode(0b001, opnd);
+    }
+
+    pub fn rorq_r(&mut self, opnd: Register) {
+        self.emit_rex64_rm(opnd);
+        self.emit_u8(0xd3);
+        self.emit_modrm_opcode(0b001, opnd);
+    }
+
     fn emit_rex_sse_modrm_optional(&mut self, reg: XmmRegister, rm: XmmRegister) {
         if reg.needs_rex() || rm.needs_rex() {
             self.emit_rex(false, reg.needs_rex(), false, rm.needs_rex());
@@ -2184,5 +2292,101 @@ mod tests {
         assert_emit!(0xf2, 0x48, 0x0f, 0x2c, 0xc8; cvttsd2siq_rr(RCX, XMM0));
         assert_emit!(0xf2, 0x4c, 0x0f, 0x2c, 0xfb; cvttsd2siq_rr(R15, XMM3));
         assert_emit!(0xf2, 0x49, 0x0f, 0x2c, 0xe0; cvttsd2siq_rr(RSP, XMM8));
+    }
+
+    #[test]
+    fn test_shrl_ri() {
+        assert_emit!(0xc1, 0xe8, 2; shrl_ri(RAX, Immediate(2)));
+        assert_emit!(0x41, 0xc1, 0xe8, 2; shrl_ri(R8, Immediate(2)));
+    }
+
+    #[test]
+    fn test_shrl_r() {
+        assert_emit!(0xd3, 0xe8; shrl_r(RAX));
+        assert_emit!(0x41, 0xd3, 0xe8; shrl_r(R8));
+    }
+
+    #[test]
+    fn test_shrq_ri() {
+        assert_emit!(0x48, 0xc1, 0xe8, 2; shrq_ri(RAX, Immediate(2)));
+        assert_emit!(0x49, 0xc1, 0xe8, 2; shrq_ri(R8, Immediate(2)));
+    }
+
+    #[test]
+    fn test_shrq_r() {
+        assert_emit!(0x48, 0xd3, 0xe8; shrq_r(RAX));
+        assert_emit!(0x49, 0xd3, 0xe8; shrq_r(R8));
+    }
+
+    #[test]
+    fn test_sarl_ri() {
+        assert_emit!(0xc1, 0xf8, 2; sarl_ri(RAX, Immediate(2)));
+        assert_emit!(0x41, 0xc1, 0xf8, 2; sarl_ri(R8, Immediate(2)));
+    }
+
+    #[test]
+    fn test_sarq_ri() {
+        assert_emit!(0x48, 0xc1, 0xf8, 2; sarq_ri(RAX, Immediate(2)));
+        assert_emit!(0x49, 0xc1, 0xf8, 2; sarq_ri(R8, Immediate(2)));
+    }
+
+    #[test]
+    fn test_shll_ri() {
+        assert_emit!(0xc1, 0xe0, 2; shll_ri(RAX, Immediate(2)));
+        assert_emit!(0x41, 0xc1, 0xe0, 2; shll_ri(R8, Immediate(2)));
+    }
+
+    #[test]
+    fn test_shlq_ri() {
+        assert_emit!(0x48, 0xc1, 0xe0, 2; shlq_ri(RAX, Immediate(2)));
+        assert_emit!(0x49, 0xc1, 0xe0, 2; shlq_ri(R8, Immediate(2)));
+    }
+
+    #[test]
+    fn test_sarl_r() {
+        assert_emit!(0xd3, 0xf8; sarl_r(RAX));
+        assert_emit!(0x41, 0xd3, 0xf8; sarl_r(R8));
+    }
+
+    #[test]
+    fn test_sarq_r() {
+        assert_emit!(0x48, 0xd3, 0xf8; sarq_r(RAX));
+        assert_emit!(0x49, 0xd3, 0xf8; sarq_r(R8));
+    }
+
+    #[test]
+    fn test_shll_r() {
+        assert_emit!(0xd3, 0xe0; shll_r(RAX));
+        assert_emit!(0x41, 0xd3, 0xe0; shll_r(R8));
+    }
+
+    #[test]
+    fn test_shlq_r() {
+        assert_emit!(0x48, 0xd3, 0xe0; shlq_r(RAX));
+        assert_emit!(0x49, 0xd3, 0xe0; shlq_r(R8));
+    }
+
+    #[test]
+    fn test_roll_r() {
+        assert_emit!(0xd3, 0xc0; roll_r(RAX));
+        assert_emit!(0x41, 0xd3, 0xc0; roll_r(R8));
+    }
+
+    #[test]
+    fn test_rolq_r() {
+        assert_emit!(0x48, 0xd3, 0xc0; rolq_r(RAX));
+        assert_emit!(0x49, 0xd3, 0xc0; rolq_r(R8));
+    }
+
+    #[test]
+    fn test_rorl_r() {
+        assert_emit!(0xd3, 0xc8; rorl_r(RAX));
+        assert_emit!(0x41, 0xd3, 0xc8; rorl_r(R8));
+    }
+
+    #[test]
+    fn test_rorq_r() {
+        assert_emit!(0x48, 0xd3, 0xc8; rorq_r(RAX));
+        assert_emit!(0x49, 0xd3, 0xc8; rorq_r(R8));
     }
 }

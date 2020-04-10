@@ -454,7 +454,11 @@ impl MacroAssembler {
             self.mov_rr(mode.is64(), RCX.into(), rhs.into());
         }
 
-        asm::emit_shl_reg_cl(self, mode.is64(), lhs);
+        if mode.is64() {
+            self.asm.shlq_r(lhs.into());
+        } else {
+            self.asm.shll_r(lhs.into());
+        }
 
         if dest != lhs {
             self.mov_rr(mode.is64(), dest.into(), lhs.into());
@@ -472,7 +476,11 @@ impl MacroAssembler {
             self.mov_rr(mode.is64(), RCX.into(), rhs.into());
         }
 
-        asm::emit_shr_reg_cl(self, mode.is64(), lhs);
+        if mode.is64() {
+            self.asm.shrq_r(lhs.into());
+        } else {
+            self.asm.shrl_r(lhs.into());
+        }
 
         if dest != lhs {
             self.mov_rr(mode.is64(), dest.into(), lhs.into());
@@ -490,7 +498,11 @@ impl MacroAssembler {
             self.mov_rr(mode.is64(), RCX.into(), rhs.into());
         }
 
-        asm::emit_sar_reg_cl(self, mode.is64(), lhs);
+        if mode.is64() {
+            self.asm.sarq_r(lhs.into());
+        } else {
+            self.asm.sarl_r(lhs.into());
+        }
 
         if dest != lhs {
             self.mov_rr(mode.is64(), dest.into(), lhs.into());
@@ -503,7 +515,11 @@ impl MacroAssembler {
             self.mov_rr(mode.is64(), RCX.into(), rhs.into());
         }
 
-        asm::emit_rol_reg_cl(self, mode.is64(), lhs);
+        if mode.is64() {
+            self.asm.rolq_r(lhs.into());
+        } else {
+            self.asm.roll_r(lhs.into());
+        }
 
         if dest != lhs {
             self.mov_rr(mode.is64(), dest.into(), lhs.into());
@@ -519,7 +535,11 @@ impl MacroAssembler {
             self.mov_rr(mode.is64(), RCX.into(), rhs.into());
         }
 
-        asm::emit_ror_reg_cl(self, mode.is64(), lhs);
+        if mode.is64() {
+            self.asm.rorq_r(lhs.into());
+        } else {
+            self.asm.rorl_r(lhs.into());
+        }
 
         if dest != lhs {
             self.mov_rr(mode.is64(), dest.into(), lhs.into());
@@ -813,7 +833,8 @@ impl MacroAssembler {
     }
 
     pub fn emit_barrier(&mut self, src: Reg, card_table_offset: usize) {
-        asm::emit_shr_reg_imm(self, true, src, CARD_SIZE_BITS as u8);
+        self.asm
+            .shrq_ri(src.into(), Immediate(CARD_SIZE_BITS as i64));
 
         // test if card table offset fits into displacement of memory store
         if card_table_offset <= 0x7FFF_FFFF {
