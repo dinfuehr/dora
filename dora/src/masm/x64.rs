@@ -638,8 +638,20 @@ impl MacroAssembler {
         self.asm.pxor_rr(dest.into(), dest.into());
 
         match dest_mode {
-            MachineMode::Float32 => asm::cvtsi2ss(self, dest, src_mode.is64(), src),
-            MachineMode::Float64 => asm::cvtsi2sd(self, dest, src_mode.is64(), src),
+            MachineMode::Float32 => {
+                if src_mode.is64() {
+                    self.asm.cvtsi2ssq_rr(dest.into(), src.into());
+                } else {
+                    self.asm.cvtsi2ssd_rr(dest.into(), src.into());
+                }
+            }
+            MachineMode::Float64 => {
+                if src_mode.is64() {
+                    self.asm.cvtsi2sdq_rr(dest.into(), src.into());
+                } else {
+                    self.asm.cvtsi2sdd_rr(dest.into(), src.into());
+                }
+            }
             _ => unreachable!(),
         }
     }

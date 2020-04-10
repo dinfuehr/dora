@@ -204,41 +204,12 @@ pub fn emit_ror_reg_cl(buf: &mut MacroAssembler, x64: bool, dest: Reg) {
     emit_modrm(buf, 0b11, 0b001, dest.and7());
 }
 
-pub fn cvtsi2ss(buf: &mut MacroAssembler, dest: FReg, x64: bool, src: Reg) {
-    sse_float_freg_reg(buf, false, 0x2a, dest, x64, src);
-}
-
-pub fn cvtsi2sd(buf: &mut MacroAssembler, dest: FReg, x64: bool, src: Reg) {
-    sse_float_freg_reg(buf, true, 0x2a, dest, x64, src);
-}
-
 pub fn cvttss2si(buf: &mut MacroAssembler, x64: bool, dest: Reg, src: FReg) {
     sse_float_reg_freg(buf, false, 0x2c, x64, dest, src);
 }
 
 pub fn cvttsd2si(buf: &mut MacroAssembler, x64: bool, dest: Reg, src: FReg) {
     sse_float_reg_freg(buf, true, 0x2c, x64, dest, src);
-}
-
-fn sse_float_freg_reg(
-    buf: &mut MacroAssembler,
-    dbl: bool,
-    op: u8,
-    dest: FReg,
-    x64: bool,
-    src: Reg,
-) {
-    let prefix = if dbl { 0xf2 } else { 0xf3 };
-
-    emit_op(buf, prefix);
-
-    if x64 || dest.msb() != 0 || src.msb() != 0 {
-        emit_rex(buf, x64, dest.msb(), 0, src.msb());
-    }
-
-    emit_op(buf, 0x0f);
-    emit_op(buf, op);
-    emit_modrm(buf, 0b11, dest.and7(), src.and7());
 }
 
 fn sse_float_reg_freg(
@@ -260,30 +231,6 @@ fn sse_float_reg_freg(
     emit_op(buf, 0x0f);
     emit_op(buf, op);
     emit_modrm(buf, 0b11, dest.and7(), src.and7());
-}
-
-fn sse_movd_reg_freg(buf: &mut MacroAssembler, op: u8, x64: bool, dest: FReg, src: Reg) {
-    emit_op(buf, 0x66);
-
-    if x64 || dest.msb() != 0 || src.msb() != 0 {
-        emit_rex(buf, x64, dest.msb(), 0, src.msb());
-    }
-
-    emit_op(buf, 0x0f);
-    emit_op(buf, op);
-    emit_modrm(buf, 0b11, dest.and7(), src.and7());
-}
-
-fn sse_movd_freg_reg(buf: &mut MacroAssembler, op: u8, x64: bool, dest: Reg, src: FReg) {
-    emit_op(buf, 0x66);
-
-    if x64 || dest.msb() != 0 || src.msb() != 0 {
-        emit_rex(buf, x64, src.msb(), 0, dest.msb());
-    }
-
-    emit_op(buf, 0x0f);
-    emit_op(buf, op);
-    emit_modrm(buf, 0b11, src.and7(), dest.and7());
 }
 
 #[cfg(test)]
@@ -530,28 +477,6 @@ mod tests {
 
         assert_emit!(0x48, 0xD3, 0xF8; emit_sar_reg_cl(true, RAX));
         assert_emit!(0x49, 0xD3, 0xF9; emit_sar_reg_cl(true, R9));
-    }
-
-    #[test]
-    fn test_cvtsi2ss() {
-        assert_emit!(0xf3, 0x0f, 0x2a, 0xc1; cvtsi2ss(XMM0, false, RCX));
-        assert_emit!(0xf3, 0x41, 0x0f, 0x2a, 0xdf; cvtsi2ss(XMM3, false, R15));
-        assert_emit!(0xf3, 0x44, 0x0f, 0x2a, 0xc4; cvtsi2ss(XMM8, false, RSP));
-
-        assert_emit!(0xf3, 0x48, 0x0f, 0x2a, 0xc1; cvtsi2ss(XMM0, true, RCX));
-        assert_emit!(0xf3, 0x49, 0x0f, 0x2a, 0xdf; cvtsi2ss(XMM3, true, R15));
-        assert_emit!(0xf3, 0x4c, 0x0f, 0x2a, 0xc4; cvtsi2ss(XMM8, true, RSP));
-    }
-
-    #[test]
-    fn test_cvtsi2sd() {
-        assert_emit!(0xf2, 0x0f, 0x2a, 0xc1; cvtsi2sd(XMM0, false, RCX));
-        assert_emit!(0xf2, 0x41, 0x0f, 0x2a, 0xdf; cvtsi2sd(XMM3, false, R15));
-        assert_emit!(0xf2, 0x44, 0x0f, 0x2a, 0xc4; cvtsi2sd(XMM8, false, RSP));
-
-        assert_emit!(0xf2, 0x48, 0x0f, 0x2a, 0xc1; cvtsi2sd(XMM0, true, RCX));
-        assert_emit!(0xf2, 0x49, 0x0f, 0x2a, 0xdf; cvtsi2sd(XMM3, true, R15));
-        assert_emit!(0xf2, 0x4c, 0x0f, 0x2a, 0xc4; cvtsi2sd(XMM8, true, RSP));
     }
 
     #[test]

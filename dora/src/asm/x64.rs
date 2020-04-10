@@ -760,6 +760,38 @@ impl Assembler {
         self.emit_modrm_sse_registers(dest, src);
     }
 
+    pub fn cvtsi2ssd_rr(&mut self, dest: XmmRegister, src: Register) {
+        self.emit_u8(0xf3);
+        self.emit_rex_optional(false, dest.needs_rex(), false, src.needs_rex());
+        self.emit_u8(0x0f);
+        self.emit_u8(0x2a);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
+    }
+
+    pub fn cvtsi2ssq_rr(&mut self, dest: XmmRegister, src: Register) {
+        self.emit_u8(0xf3);
+        self.emit_rex_optional(true, dest.needs_rex(), false, src.needs_rex());
+        self.emit_u8(0x0f);
+        self.emit_u8(0x2a);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
+    }
+
+    pub fn cvtsi2sdd_rr(&mut self, dest: XmmRegister, src: Register) {
+        self.emit_u8(0xf2);
+        self.emit_rex_optional(false, dest.needs_rex(), false, src.needs_rex());
+        self.emit_u8(0x0f);
+        self.emit_u8(0x2a);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
+    }
+
+    pub fn cvtsi2sdq_rr(&mut self, dest: XmmRegister, src: Register) {
+        self.emit_u8(0xf2);
+        self.emit_rex_optional(true, dest.needs_rex(), false, src.needs_rex());
+        self.emit_u8(0x0f);
+        self.emit_u8(0x2a);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
+    }
+
     pub fn movd_rx(&mut self, dest: Register, src: XmmRegister) {
         self.emit_u8(0x66);
         self.emit_rex_optional(false, src.needs_rex(), false, dest.needs_rex());
@@ -2064,5 +2096,33 @@ mod tests {
         assert_emit!(0x66, 0x49, 0x0F, 0x7E, 0xFF; movq_rx(R15, XMM7));
         assert_emit!(0x66, 0x4D, 0x0F, 0x7E, 0xC7; movq_rx(R15, XMM8));
         assert_emit!(0x66, 0x4D, 0x0F, 0x7E, 0xFF; movq_rx(R15, XMM15));
+    }
+
+    #[test]
+    fn test_cvtsi2ssd_rr() {
+        assert_emit!(0xf3, 0x0f, 0x2a, 0xc1; cvtsi2ssd_rr(XMM0, RCX));
+        assert_emit!(0xf3, 0x41, 0x0f, 0x2a, 0xdf; cvtsi2ssd_rr(XMM3, R15));
+        assert_emit!(0xf3, 0x44, 0x0f, 0x2a, 0xc4; cvtsi2ssd_rr(XMM8, RSP));
+    }
+
+    #[test]
+    fn test_cvtsi2ssq_rr() {
+        assert_emit!(0xf3, 0x48, 0x0f, 0x2a, 0xc1; cvtsi2ssq_rr(XMM0, RCX));
+        assert_emit!(0xf3, 0x49, 0x0f, 0x2a, 0xdf; cvtsi2ssq_rr(XMM3, R15));
+        assert_emit!(0xf3, 0x4c, 0x0f, 0x2a, 0xc4; cvtsi2ssq_rr(XMM8, RSP));
+    }
+
+    #[test]
+    fn test_cvtsi2sdd_rr() {
+        assert_emit!(0xf2, 0x0f, 0x2a, 0xc1; cvtsi2sdd_rr(XMM0, RCX));
+        assert_emit!(0xf2, 0x41, 0x0f, 0x2a, 0xdf; cvtsi2sdd_rr(XMM3, R15));
+        assert_emit!(0xf2, 0x44, 0x0f, 0x2a, 0xc4; cvtsi2sdd_rr(XMM8, RSP));
+    }
+
+    #[test]
+    fn test_cvtsi2sdq_rr() {
+        assert_emit!(0xf2, 0x48, 0x0f, 0x2a, 0xc1; cvtsi2sdq_rr(XMM0, RCX));
+        assert_emit!(0xf2, 0x49, 0x0f, 0x2a, 0xdf; cvtsi2sdq_rr(XMM3, R15));
+        assert_emit!(0xf2, 0x4c, 0x0f, 0x2a, 0xc4; cvtsi2sdq_rr(XMM8, RSP));
     }
 }
