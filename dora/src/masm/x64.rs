@@ -829,8 +829,8 @@ impl MacroAssembler {
 
     pub fn copy_freg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
         match mode {
-            MachineMode::Float32 => asm::movss(self, dest, src),
-            MachineMode::Float64 => asm::movsd(self, dest, src),
+            MachineMode::Float32 => self.asm.movss_rr(dest.into(), src.into()),
+            MachineMode::Float64 => self.asm.movsd_rr(dest.into(), src.into()),
             _ => unreachable!(),
         }
     }
@@ -934,8 +934,8 @@ impl MacroAssembler {
 
     pub fn float_add(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
         match mode {
-            MachineMode::Float32 => asm::addss(self, lhs, rhs),
-            MachineMode::Float64 => asm::addsd(self, lhs, rhs),
+            MachineMode::Float32 => self.asm.addss_rr(lhs.into(), rhs.into()),
+            MachineMode::Float64 => self.asm.addsd_rr(lhs.into(), rhs.into()),
             _ => unimplemented!(),
         }
 
@@ -946,8 +946,8 @@ impl MacroAssembler {
 
     pub fn float_sub(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
         match mode {
-            MachineMode::Float32 => asm::subss(self, lhs, rhs),
-            MachineMode::Float64 => asm::subsd(self, lhs, rhs),
+            MachineMode::Float32 => self.asm.subss_rr(lhs.into(), rhs.into()),
+            MachineMode::Float64 => self.asm.subsd_rr(lhs.into(), rhs.into()),
             _ => unimplemented!(),
         }
 
@@ -958,8 +958,8 @@ impl MacroAssembler {
 
     pub fn float_mul(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
         match mode {
-            MachineMode::Float32 => asm::mulss(self, lhs, rhs),
-            MachineMode::Float64 => asm::mulsd(self, lhs, rhs),
+            MachineMode::Float32 => self.asm.mulss_rr(lhs.into(), rhs.into()),
+            MachineMode::Float64 => self.asm.mulsd_rr(lhs.into(), rhs.into()),
             _ => unimplemented!(),
         }
 
@@ -970,8 +970,8 @@ impl MacroAssembler {
 
     pub fn float_div(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
         match mode {
-            MachineMode::Float32 => asm::divss(self, lhs, rhs),
-            MachineMode::Float64 => asm::divsd(self, lhs, rhs),
+            MachineMode::Float32 => self.asm.divss_rr(lhs.into(), rhs.into()),
+            MachineMode::Float64 => self.asm.divsd_rr(lhs.into(), rhs.into()),
             _ => unimplemented!(),
         }
 

@@ -204,52 +204,12 @@ pub fn emit_ror_reg_cl(buf: &mut MacroAssembler, x64: bool, dest: Reg) {
     emit_modrm(buf, 0b11, 0b001, dest.and7());
 }
 
-pub fn addss(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
-    sse_float_freg_freg(buf, false, 0x58, dest, src);
-}
-
-pub fn addsd(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
-    sse_float_freg_freg(buf, true, 0x58, dest, src);
-}
-
-pub fn subss(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
-    sse_float_freg_freg(buf, false, 0x5c, dest, src);
-}
-
-pub fn subsd(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
-    sse_float_freg_freg(buf, true, 0x5c, dest, src);
-}
-
-pub fn mulss(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
-    sse_float_freg_freg(buf, false, 0x59, dest, src);
-}
-
-pub fn mulsd(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
-    sse_float_freg_freg(buf, true, 0x59, dest, src);
-}
-
-pub fn divss(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
-    sse_float_freg_freg(buf, false, 0x5e, dest, src);
-}
-
-pub fn divsd(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
-    sse_float_freg_freg(buf, true, 0x5e, dest, src);
-}
-
 pub fn sqrtss(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
     sse_float_freg_freg(buf, false, 0x51, dest, src);
 }
 
 pub fn sqrtsd(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
     sse_float_freg_freg(buf, true, 0x51, dest, src);
-}
-
-pub fn movss(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
-    sse_float_freg_freg(buf, false, 0x10, dest, src);
-}
-
-pub fn movsd(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
-    sse_float_freg_freg(buf, true, 0x10, dest, src);
 }
 
 pub fn cvtsd2ss(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
@@ -678,76 +638,6 @@ mod tests {
 
         assert_emit!(0x48, 0xD3, 0xF8; emit_sar_reg_cl(true, RAX));
         assert_emit!(0x49, 0xD3, 0xF9; emit_sar_reg_cl(true, R9));
-    }
-
-    #[test]
-    fn test_addss() {
-        assert_emit!(0xf3, 0x0f, 0x58, 0xc1; addss(XMM0, XMM1));
-        assert_emit!(0xf3, 0x41, 0x0f, 0x58, 0xdf; addss(XMM3, XMM15));
-        assert_emit!(0xf3, 0x44, 0x0f, 0x58, 0xc4; addss(XMM8, XMM4));
-    }
-
-    #[test]
-    fn test_addsd() {
-        assert_emit!(0xf2, 0x0f, 0x58, 0xc1; addsd(XMM0, XMM1));
-        assert_emit!(0xf2, 0x41, 0x0f, 0x58, 0xdf; addsd(XMM3, XMM15));
-        assert_emit!(0xf2, 0x44, 0x0f, 0x58, 0xc4; addsd(XMM8, XMM4));
-    }
-
-    #[test]
-    fn test_subss() {
-        assert_emit!(0xf3, 0x0f, 0x5c, 0xc1; subss(XMM0, XMM1));
-        assert_emit!(0xf3, 0x41, 0x0f, 0x5c, 0xdf; subss(XMM3, XMM15));
-        assert_emit!(0xf3, 0x44, 0x0f, 0x5c, 0xc4; subss(XMM8, XMM4));
-    }
-
-    #[test]
-    fn test_subsd() {
-        assert_emit!(0xf2, 0x0f, 0x5c, 0xc1; subsd(XMM0, XMM1));
-        assert_emit!(0xf2, 0x41, 0x0f, 0x5c, 0xdf; subsd(XMM3, XMM15));
-        assert_emit!(0xf2, 0x44, 0x0f, 0x5c, 0xc4; subsd(XMM8, XMM4));
-    }
-
-    #[test]
-    fn test_mulss() {
-        assert_emit!(0xf3, 0x0f, 0x59, 0xc1; mulss(XMM0, XMM1));
-        assert_emit!(0xf3, 0x41, 0x0f, 0x59, 0xdf; mulss(XMM3, XMM15));
-        assert_emit!(0xf3, 0x44, 0x0f, 0x59, 0xc4; mulss(XMM8, XMM4));
-    }
-
-    #[test]
-    fn test_mulsd() {
-        assert_emit!(0xf2, 0x0f, 0x59, 0xc1; mulsd(XMM0, XMM1));
-        assert_emit!(0xf2, 0x41, 0x0f, 0x59, 0xdf; mulsd(XMM3, XMM15));
-        assert_emit!(0xf2, 0x44, 0x0f, 0x59, 0xc4; mulsd(XMM8, XMM4));
-    }
-
-    #[test]
-    fn test_divss() {
-        assert_emit!(0xf3, 0x0f, 0x5e, 0xc1; divss(XMM0, XMM1));
-        assert_emit!(0xf3, 0x41, 0x0f, 0x5e, 0xdf; divss(XMM3, XMM15));
-        assert_emit!(0xf3, 0x44, 0x0f, 0x5e, 0xc4; divss(XMM8, XMM4));
-    }
-
-    #[test]
-    fn test_divsd() {
-        assert_emit!(0xf2, 0x0f, 0x5e, 0xc1; divsd(XMM0, XMM1));
-        assert_emit!(0xf2, 0x41, 0x0f, 0x5e, 0xdf; divsd(XMM3, XMM15));
-        assert_emit!(0xf2, 0x44, 0x0f, 0x5e, 0xc4; divsd(XMM8, XMM4));
-    }
-
-    #[test]
-    fn test_movss() {
-        assert_emit!(0xf3, 0x0f, 0x10, 0xc1; movss(XMM0, XMM1));
-        assert_emit!(0xf3, 0x41, 0x0f, 0x10, 0xdf; movss(XMM3, XMM15));
-        assert_emit!(0xf3, 0x44, 0x0f, 0x10, 0xc4; movss(XMM8, XMM4));
-    }
-
-    #[test]
-    fn test_movsd() {
-        assert_emit!(0xf2, 0x0f, 0x10, 0xc1; movsd(XMM0, XMM1));
-        assert_emit!(0xf2, 0x41, 0x0f, 0x10, 0xdf; movsd(XMM3, XMM15));
-        assert_emit!(0xf2, 0x44, 0x0f, 0x10, 0xc4; movsd(XMM8, XMM4));
     }
 
     #[test]

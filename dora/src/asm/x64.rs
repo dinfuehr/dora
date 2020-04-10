@@ -221,6 +221,14 @@ impl Assembler {
         self.emit_modrm_registers(dest, src);
     }
 
+    pub fn movss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_u8(0xf3);
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x10);
+        self.emit_modrm_sse_registers(dest, src);
+    }
+
     pub fn movss_ra(&mut self, dest: XmmRegister, src: Address) {
         self.emit_u8(0xf3);
         self.emit_rex_sse_address_optional(dest, src);
@@ -235,6 +243,14 @@ impl Assembler {
         self.emit_u8(0x0f);
         self.emit_u8(0x11);
         self.emit_address(src.low_bits(), dest);
+    }
+
+    pub fn movsd_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_u8(0xf2);
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x10);
+        self.emit_modrm_sse_registers(dest, src);
     }
 
     pub fn movsd_ra(&mut self, dest: XmmRegister, src: Address) {
@@ -269,6 +285,22 @@ impl Assembler {
         self.emit_modrm_registers(src, dest);
     }
 
+    pub fn addss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_u8(0xf3);
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x58);
+        self.emit_modrm_sse_registers(dest, src);
+    }
+
+    pub fn addsd_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_u8(0xf2);
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x58);
+        self.emit_modrm_sse_registers(dest, src);
+    }
+
     pub fn subq_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex64_modrm(src, dest);
         self.emit_u8(0x29);
@@ -287,6 +319,22 @@ impl Assembler {
         self.emit_rex32_optional(src, dest);
         self.emit_u8(0x29);
         self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn subss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_u8(0xf3);
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x5c);
+        self.emit_modrm_sse_registers(dest, src);
+    }
+
+    pub fn subsd_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_u8(0xf2);
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x5c);
+        self.emit_modrm_sse_registers(dest, src);
     }
 
     pub fn andl_rr(&mut self, dest: Register, src: Register) {
@@ -520,6 +568,38 @@ impl Assembler {
         self.emit_modrm_registers(dest, src);
     }
 
+    pub fn mulss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_u8(0xf3);
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x59);
+        self.emit_modrm_sse_registers(dest, src);
+    }
+
+    pub fn mulsd_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_u8(0xf2);
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x59);
+        self.emit_modrm_sse_registers(dest, src);
+    }
+
+    pub fn divss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_u8(0xf3);
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x5e);
+        self.emit_modrm_sse_registers(dest, src);
+    }
+
+    pub fn divsd_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_u8(0xf2);
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x5e);
+        self.emit_modrm_sse_registers(dest, src);
+    }
+
     pub fn idivl_r(&mut self, reg: Register) {
         self.emit_rex32_rm_optional(reg);
         self.emit_u8(0xF7);
@@ -575,6 +655,12 @@ impl Assembler {
         self.emit_rex32_rm_optional(reg);
         self.emit_u8(0xff);
         self.emit_modrm_opcode(0b100, reg);
+    }
+
+    fn emit_rex_sse_modrm_optional(&mut self, reg: XmmRegister, rm: XmmRegister) {
+        if reg.needs_rex() || rm.needs_rex() {
+            self.emit_rex(false, reg.needs_rex(), false, rm.needs_rex());
+        }
     }
 
     fn emit_rex_sse_address_optional(&mut self, reg: XmmRegister, address: Address) {
@@ -650,6 +736,10 @@ impl Assembler {
     }
 
     fn emit_modrm_registers(&mut self, reg: Register, rm: Register) {
+        self.emit_modrm(0b11, reg.low_bits(), rm.low_bits());
+    }
+
+    fn emit_modrm_sse_registers(&mut self, reg: XmmRegister, rm: XmmRegister) {
         self.emit_modrm(0b11, reg.low_bits(), rm.low_bits());
     }
 
@@ -1635,5 +1725,75 @@ mod tests {
     fn test_movsd_ar() {
         assert_emit!(0xf2, 0x0f, 0x11, 0x00; movsd_ar(Address::offset(RAX, 0), XMM0));
         assert_emit!(0xf2, 0x44, 0x0f, 0x11, 0x00; movsd_ar(Address::offset(RAX, 0), XMM8));
+    }
+
+    #[test]
+    fn test_movss_rr() {
+        assert_emit!(0xf3, 0x0f, 0x10, 0xc1; movss_rr(XMM0, XMM1));
+        assert_emit!(0xf3, 0x44, 0x0f, 0x10, 0xc1; movss_rr(XMM8, XMM1));
+        assert_emit!(0xf3, 0x41, 0x0f, 0x10, 0xc1; movss_rr(XMM0, XMM9));
+    }
+
+    #[test]
+    fn test_movsd_rr() {
+        assert_emit!(0xf2, 0x0f, 0x10, 0xc1; movsd_rr(XMM0, XMM1));
+        assert_emit!(0xf2, 0x44, 0x0f, 0x10, 0xc1; movsd_rr(XMM8, XMM1));
+        assert_emit!(0xf2, 0x41, 0x0f, 0x10, 0xc1; movsd_rr(XMM0, XMM9));
+    }
+
+    #[test]
+    fn test_addss_rr() {
+        assert_emit!(0xf3, 0x0f, 0x58, 0xc1; addss_rr(XMM0, XMM1));
+        assert_emit!(0xf3, 0x41, 0x0f, 0x58, 0xdf; addss_rr(XMM3, XMM15));
+        assert_emit!(0xf3, 0x44, 0x0f, 0x58, 0xc4; addss_rr(XMM8, XMM4));
+    }
+
+    #[test]
+    fn test_addsd_rr() {
+        assert_emit!(0xf2, 0x0f, 0x58, 0xc1; addsd_rr(XMM0, XMM1));
+        assert_emit!(0xf2, 0x41, 0x0f, 0x58, 0xdf; addsd_rr(XMM3, XMM15));
+        assert_emit!(0xf2, 0x44, 0x0f, 0x58, 0xc4; addsd_rr(XMM8, XMM4));
+    }
+
+    #[test]
+    fn test_subss_rr() {
+        assert_emit!(0xf3, 0x0f, 0x5c, 0xc1; subss_rr(XMM0, XMM1));
+        assert_emit!(0xf3, 0x41, 0x0f, 0x5c, 0xdf; subss_rr(XMM3, XMM15));
+        assert_emit!(0xf3, 0x44, 0x0f, 0x5c, 0xc4; subss_rr(XMM8, XMM4));
+    }
+
+    #[test]
+    fn test_subsd_rr() {
+        assert_emit!(0xf2, 0x0f, 0x5c, 0xc1; subsd_rr(XMM0, XMM1));
+        assert_emit!(0xf2, 0x41, 0x0f, 0x5c, 0xdf; subsd_rr(XMM3, XMM15));
+        assert_emit!(0xf2, 0x44, 0x0f, 0x5c, 0xc4; subsd_rr(XMM8, XMM4));
+    }
+
+    #[test]
+    fn test_mulss_rr() {
+        assert_emit!(0xf3, 0x0f, 0x59, 0xc1; mulss_rr(XMM0, XMM1));
+        assert_emit!(0xf3, 0x41, 0x0f, 0x59, 0xdf; mulss_rr(XMM3, XMM15));
+        assert_emit!(0xf3, 0x44, 0x0f, 0x59, 0xc4; mulss_rr(XMM8, XMM4));
+    }
+
+    #[test]
+    fn test_mulsd_rr() {
+        assert_emit!(0xf2, 0x0f, 0x59, 0xc1; mulsd_rr(XMM0, XMM1));
+        assert_emit!(0xf2, 0x41, 0x0f, 0x59, 0xdf; mulsd_rr(XMM3, XMM15));
+        assert_emit!(0xf2, 0x44, 0x0f, 0x59, 0xc4; mulsd_rr(XMM8, XMM4));
+    }
+
+    #[test]
+    fn test_divss_rr() {
+        assert_emit!(0xf3, 0x0f, 0x5e, 0xc1; divss_rr(XMM0, XMM1));
+        assert_emit!(0xf3, 0x41, 0x0f, 0x5e, 0xdf; divss_rr(XMM3, XMM15));
+        assert_emit!(0xf3, 0x44, 0x0f, 0x5e, 0xc4; divss_rr(XMM8, XMM4));
+    }
+
+    #[test]
+    fn test_divsd_rr() {
+        assert_emit!(0xf2, 0x0f, 0x5e, 0xc1; divsd_rr(XMM0, XMM1));
+        assert_emit!(0xf2, 0x41, 0x0f, 0x5e, 0xdf; divsd_rr(XMM3, XMM15));
+        assert_emit!(0xf2, 0x44, 0x0f, 0x5e, 0xc4; divsd_rr(XMM8, XMM4));
     }
 }
