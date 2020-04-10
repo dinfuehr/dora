@@ -760,6 +760,38 @@ impl Assembler {
         self.emit_modrm_sse_registers(dest, src);
     }
 
+    pub fn movd_rx(&mut self, dest: Register, src: XmmRegister) {
+        self.emit_u8(0x66);
+        self.emit_rex_optional(false, src.needs_rex(), false, dest.needs_rex());
+        self.emit_u8(0x0f);
+        self.emit_u8(0x7e);
+        self.emit_modrm(0b11, src.low_bits(), dest.low_bits());
+    }
+
+    pub fn movd_xr(&mut self, dest: XmmRegister, src: Register) {
+        self.emit_u8(0x66);
+        self.emit_rex_optional(false, dest.needs_rex(), false, src.needs_rex());
+        self.emit_u8(0x0f);
+        self.emit_u8(0x6e);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
+    }
+
+    pub fn movq_rx(&mut self, dest: Register, src: XmmRegister) {
+        self.emit_u8(0x66);
+        self.emit_rex_optional(true, src.needs_rex(), false, dest.needs_rex());
+        self.emit_u8(0x0f);
+        self.emit_u8(0x7e);
+        self.emit_modrm(0b11, src.low_bits(), dest.low_bits());
+    }
+
+    pub fn movq_xr(&mut self, dest: XmmRegister, src: Register) {
+        self.emit_u8(0x66);
+        self.emit_rex_optional(true, dest.needs_rex(), false, src.needs_rex());
+        self.emit_u8(0x0f);
+        self.emit_u8(0x6e);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
+    }
+
     fn emit_rex_sse_modrm_optional(&mut self, reg: XmmRegister, rm: XmmRegister) {
         if reg.needs_rex() || rm.needs_rex() {
             self.emit_rex(false, reg.needs_rex(), false, rm.needs_rex());
@@ -836,6 +868,12 @@ impl Assembler {
         // b - extension of modrm-rm/sib base/opcode reg field
         let opcode = 0x40 | (w as u8) << 3 | (r as u8) << 2 | (x as u8) << 1 | b as u8;
         self.emit_u8(opcode);
+    }
+
+    fn emit_rex_optional(&mut self, w: bool, r: bool, x: bool, b: bool) {
+        if w || r || x || b {
+            self.emit_rex(w, r, x, b);
+        }
     }
 
     fn emit_modrm_registers(&mut self, reg: Register, rm: Register) {
@@ -1974,5 +2012,57 @@ mod tests {
         assert_emit!(0xf2, 0x0f, 0x5a, 0xc1; cvtsd2ss_rr(XMM0, XMM1));
         assert_emit!(0xf2, 0x41, 0x0f, 0x5a, 0xdf; cvtsd2ss_rr(XMM3, XMM15));
         assert_emit!(0xf2, 0x44, 0x0f, 0x5a, 0xc4; cvtsd2ss_rr(XMM8, XMM4));
+    }
+
+    #[test]
+    fn test_movd_xr() {
+        assert_emit!(0x66, 0x0F, 0x6E, 0xC0; movd_xr(XMM0, RAX));
+        assert_emit!(0x66, 0x41, 0x0F, 0x6E, 0xC0; movd_xr(XMM0, R8));
+        assert_emit!(0x66, 0x41, 0x0F, 0x6E, 0xF8; movd_xr(XMM7, R8));
+        assert_emit!(0x66, 0x45, 0x0F, 0x6E, 0xC0; movd_xr(XMM8, R8));
+        assert_emit!(0x66, 0x45, 0x0F, 0x6E, 0xF8; movd_xr(XMM15, R8));
+        assert_emit!(0x66, 0x41, 0x0F, 0x6E, 0xC7; movd_xr(XMM0, R15));
+        assert_emit!(0x66, 0x41, 0x0F, 0x6E, 0xFF; movd_xr(XMM7, R15));
+        assert_emit!(0x66, 0x45, 0x0F, 0x6E, 0xC7; movd_xr(XMM8, R15));
+        assert_emit!(0x66, 0x45, 0x0F, 0x6E, 0xFF; movd_xr(XMM15, R15));
+    }
+
+    #[test]
+    fn test_movq_xr() {
+        assert_emit!(0x66, 0x48, 0x0F, 0x6E, 0xC0; movq_xr(XMM0, RAX));
+        assert_emit!(0x66, 0x49, 0x0F, 0x6E, 0xC0; movq_xr(XMM0, R8));
+        assert_emit!(0x66, 0x49, 0x0F, 0x6E, 0xF8; movq_xr(XMM7, R8));
+        assert_emit!(0x66, 0x4D, 0x0F, 0x6E, 0xC0; movq_xr(XMM8, R8));
+        assert_emit!(0x66, 0x4D, 0x0F, 0x6E, 0xF8; movq_xr(XMM15, R8));
+        assert_emit!(0x66, 0x49, 0x0F, 0x6E, 0xC7; movq_xr(XMM0, R15));
+        assert_emit!(0x66, 0x49, 0x0F, 0x6E, 0xFF; movq_xr(XMM7, R15));
+        assert_emit!(0x66, 0x4D, 0x0F, 0x6E, 0xC7; movq_xr(XMM8, R15));
+        assert_emit!(0x66, 0x4D, 0x0F, 0x6E, 0xFF; movq_xr(XMM15, R15));
+    }
+
+    #[test]
+    fn test_movd_rx() {
+        assert_emit!(0x66, 0x0F, 0x7E, 0xC7; movd_rx(RDI, XMM0));
+        assert_emit!(0x66, 0x41, 0x0F, 0x7E, 0xC0; movd_rx(R8, XMM0));
+        assert_emit!(0x66, 0x41, 0x0F, 0x7E, 0xF8; movd_rx(R8, XMM7));
+        assert_emit!(0x66, 0x45, 0x0F, 0x7E, 0xC0; movd_rx(R8, XMM8));
+        assert_emit!(0x66, 0x45, 0x0F, 0x7E, 0xF8; movd_rx(R8, XMM15));
+        assert_emit!(0x66, 0x41, 0x0F, 0x7E, 0xC7; movd_rx(R15, XMM0));
+        assert_emit!(0x66, 0x41, 0x0F, 0x7E, 0xFF; movd_rx(R15, XMM7));
+        assert_emit!(0x66, 0x45, 0x0F, 0x7E, 0xC7; movd_rx(R15, XMM8));
+        assert_emit!(0x66, 0x45, 0x0F, 0x7E, 0xFF; movd_rx(R15, XMM15));
+    }
+
+    #[test]
+    fn test_movq_rx() {
+        assert_emit!(0x66, 0x48, 0x0F, 0x7E, 0xC7; movq_rx(RDI, XMM0));
+        assert_emit!(0x66, 0x49, 0x0F, 0x7E, 0xC0; movq_rx(R8, XMM0));
+        assert_emit!(0x66, 0x49, 0x0F, 0x7E, 0xF8; movq_rx(R8, XMM7));
+        assert_emit!(0x66, 0x4D, 0x0F, 0x7E, 0xC0; movq_rx(R8, XMM8));
+        assert_emit!(0x66, 0x4D, 0x0F, 0x7E, 0xF8; movq_rx(R8, XMM15));
+        assert_emit!(0x66, 0x49, 0x0F, 0x7E, 0xC7; movq_rx(R15, XMM0));
+        assert_emit!(0x66, 0x49, 0x0F, 0x7E, 0xFF; movq_rx(R15, XMM7));
+        assert_emit!(0x66, 0x4D, 0x0F, 0x7E, 0xC7; movq_rx(R15, XMM8));
+        assert_emit!(0x66, 0x4D, 0x0F, 0x7E, 0xFF; movq_rx(R15, XMM15));
     }
 }

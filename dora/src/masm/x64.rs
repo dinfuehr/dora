@@ -676,9 +676,8 @@ impl MacroAssembler {
         assert!(src_mode.size() == dest_mode.size());
 
         match dest_mode {
-            MachineMode::Float32 | MachineMode::Float64 => {
-                asm::movd_i2f(self, src_mode.is64(), dest, src)
-            }
+            MachineMode::Float32 => self.asm.movd_xr(dest.into(), src.into()),
+            MachineMode::Float64 => self.asm.movq_xr(dest.into(), src.into()),
             _ => unreachable!(),
         }
     }
@@ -693,9 +692,8 @@ impl MacroAssembler {
         assert!(src_mode.size() == dest_mode.size());
 
         match src_mode {
-            MachineMode::Float32 | MachineMode::Float64 => {
-                asm::movd_f2i(self, dest_mode.is64(), dest, src)
-            }
+            MachineMode::Float32 => self.asm.movd_rx(dest.into(), src.into()),
+            MachineMode::Float64 => self.asm.movq_rx(dest.into(), src.into()),
             _ => unreachable!(),
         }
     }
