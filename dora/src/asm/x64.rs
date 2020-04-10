@@ -431,6 +431,21 @@ impl Assembler {
         self.emit_alu32_imm(reg, imm, 0b111, 0x3d, false);
     }
 
+    pub fn ucomiss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x2e);
+        self.emit_modrm_sse_registers(dest, src);
+    }
+
+    pub fn ucomisd_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_u8(0x66);
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x2e);
+        self.emit_modrm_sse_registers(dest, src);
+    }
+
     pub fn orl_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex32_optional(src, dest);
         self.emit_u8(0x09);
@@ -1795,5 +1810,19 @@ mod tests {
         assert_emit!(0xf2, 0x0f, 0x5e, 0xc1; divsd_rr(XMM0, XMM1));
         assert_emit!(0xf2, 0x41, 0x0f, 0x5e, 0xdf; divsd_rr(XMM3, XMM15));
         assert_emit!(0xf2, 0x44, 0x0f, 0x5e, 0xc4; divsd_rr(XMM8, XMM4));
+    }
+
+    #[test]
+    fn test_ucomiss_rr() {
+        assert_emit!(0x0f, 0x2e, 0xc8; ucomiss_rr(XMM1, XMM0));
+        assert_emit!(0x44, 0x0f, 0x2e, 0xfb; ucomiss_rr(XMM15, XMM3));
+        assert_emit!(0x41, 0x0f, 0x2e, 0xe0; ucomiss_rr(XMM4, XMM8));
+    }
+
+    #[test]
+    fn test_ucomisd_rr() {
+        assert_emit!(0x66, 0x0f, 0x2e, 0xc8; ucomisd_rr(XMM1, XMM0));
+        assert_emit!(0x66, 0x44, 0x0f, 0x2e, 0xfb; ucomisd_rr(XMM15, XMM3));
+        assert_emit!(0x66, 0x41, 0x0f, 0x2e, 0xe0; ucomisd_rr(XMM4, XMM8));
     }
 }

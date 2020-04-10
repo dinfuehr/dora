@@ -225,8 +225,8 @@ impl MacroAssembler {
                 self.asm.xorl_rr(dest.into(), dest.into());
 
                 match mode {
-                    MachineMode::Float32 => asm::ucomiss(self, lhs, rhs),
-                    MachineMode::Float64 => asm::ucomisd(self, lhs, rhs),
+                    MachineMode::Float32 => self.asm.ucomiss_rr(lhs.into(), rhs.into()),
+                    MachineMode::Float64 => self.asm.ucomisd_rr(lhs.into(), rhs.into()),
                     _ => unreachable!(),
                 }
 
@@ -245,8 +245,8 @@ impl MacroAssembler {
                 self.load_int_const(MachineMode::Int32, dest, 0);
 
                 match mode {
-                    MachineMode::Float32 => asm::ucomiss(self, lhs, rhs),
-                    MachineMode::Float64 => asm::ucomisd(self, lhs, rhs),
+                    MachineMode::Float32 => self.asm.ucomiss_rr(lhs.into(), rhs.into()),
+                    MachineMode::Float64 => self.asm.ucomisd_rr(lhs.into(), rhs.into()),
                     _ => unreachable!(),
                 }
 
@@ -263,8 +263,8 @@ impl MacroAssembler {
                 self.asm.xorl_rr(dest.into(), dest.into());
 
                 match mode {
-                    MachineMode::Float32 => asm::ucomiss(self, rhs, lhs),
-                    MachineMode::Float64 => asm::ucomisd(self, rhs, lhs),
+                    MachineMode::Float32 => self.asm.ucomiss_rr(rhs.into(), lhs.into()),
+                    MachineMode::Float64 => self.asm.ucomisd_rr(rhs.into(), lhs.into()),
                     _ => unreachable!(),
                 }
 
@@ -285,8 +285,8 @@ impl MacroAssembler {
         self.asm.xorl_rr(dest.into(), dest.into());
 
         match mode {
-            MachineMode::Float32 => asm::ucomiss(self, src, src),
-            MachineMode::Float64 => asm::ucomisd(self, src, src),
+            MachineMode::Float32 => self.asm.ucomiss_rr(src.into(), src.into()),
+            MachineMode::Float64 => self.asm.ucomisd_rr(src.into(), src.into()),
             _ => unreachable!(),
         }
 

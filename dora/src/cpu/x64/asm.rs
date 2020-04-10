@@ -336,14 +336,6 @@ pub fn pxor(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
     emit_modrm(buf, 0b11, dest.and7(), src.and7());
 }
 
-pub fn ucomiss(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
-    sse_cmp(buf, false, dest, src);
-}
-
-pub fn ucomisd(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
-    sse_cmp(buf, true, dest, src);
-}
-
 pub fn popcnt(buf: &mut MacroAssembler, x64: bool, dest: Reg, src: Reg) {
     emit_op(buf, 0xf3);
 
@@ -378,20 +370,6 @@ pub fn tzcnt(buf: &mut MacroAssembler, x64: bool, dest: Reg, src: Reg) {
     emit_op(buf, 0x0f);
     emit_op(buf, 0xbc);
     emit_modrm(buf, 0b11, src.and7(), dest.and7());
-}
-
-fn sse_cmp(buf: &mut MacroAssembler, dbl: bool, dest: FReg, src: FReg) {
-    if dbl {
-        emit_op(buf, 0x66);
-    }
-
-    if dest.msb() != 0 || src.msb() != 0 {
-        emit_rex(buf, false, dest.msb(), 0, src.msb());
-    }
-
-    emit_op(buf, 0x0f);
-    emit_op(buf, 0x2e);
-    emit_modrm(buf, 0b11, dest.and7(), src.and7());
 }
 
 #[cfg(test)]
@@ -749,20 +727,6 @@ mod tests {
         assert_emit!(0x66, 0x0f, 0xef, 0xc8; pxor(XMM1, XMM0));
         assert_emit!(0x66, 0x44, 0x0f, 0xef, 0xfb; pxor(XMM15, XMM3));
         assert_emit!(0x66, 0x41, 0x0f, 0xef, 0xe0; pxor(XMM4, XMM8));
-    }
-
-    #[test]
-    fn test_ucomiss() {
-        assert_emit!(0x0f, 0x2e, 0xc8; ucomiss(XMM1, XMM0));
-        assert_emit!(0x44, 0x0f, 0x2e, 0xfb; ucomiss(XMM15, XMM3));
-        assert_emit!(0x41, 0x0f, 0x2e, 0xe0; ucomiss(XMM4, XMM8));
-    }
-
-    #[test]
-    fn test_ucomisd() {
-        assert_emit!(0x66, 0x0f, 0x2e, 0xc8; ucomisd(XMM1, XMM0));
-        assert_emit!(0x66, 0x44, 0x0f, 0x2e, 0xfb; ucomisd(XMM15, XMM3));
-        assert_emit!(0x66, 0x41, 0x0f, 0x2e, 0xe0; ucomisd(XMM4, XMM8));
     }
 
     #[test]
