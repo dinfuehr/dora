@@ -313,7 +313,7 @@ impl MacroAssembler {
     }
 
     pub fn jump_reg(&mut self, reg: Reg) {
-        asm::emit_jmp_reg(self, reg);
+        self.asm.jmp_r(reg.into());
     }
 
     pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, pos: Position) {

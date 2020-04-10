@@ -460,6 +460,12 @@ impl Assembler {
         self.emit_modrm_opcode(0b010, reg);
     }
 
+    pub fn jmp_r(&mut self, reg: Register) {
+        self.emit_rex32_rm_optional(reg);
+        self.emit_u8(0xff);
+        self.emit_modrm_opcode(0b100, reg);
+    }
+
     fn emit_rex32_rm_optional(&mut self, reg: Register) {
         if reg.needs_rex() {
             self.emit_rex(false, false, false, true);
@@ -1405,5 +1411,11 @@ mod tests {
         assert_emit!(0x35, 0x80, 0, 0, 0; xorl_ri(RAX, Immediate(128)));
         assert_emit!(0x41, 0x81, 0xf0, 0x7f, 0xff, 0xff, 0xff; xorl_ri(R8, Immediate(-129)));
         assert_emit!(0x41, 0x81, 0xf7, 0x80, 0, 0, 0; xorl_ri(R15, Immediate(128)));
+    }
+
+    #[test]
+    fn test_jmp_r() {
+        assert_emit!(0xFF, 0xE0; jmp_r(RAX));
+        assert_emit!(0x41, 0xFF, 0xE0; jmp_r(R8));
     }
 }

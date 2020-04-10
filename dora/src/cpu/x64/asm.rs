@@ -146,14 +146,6 @@ pub fn emit_jmp(buf: &mut MacroAssembler, lbl: Label) {
     buf.emit_label(lbl);
 }
 
-pub fn emit_jmp_reg(buf: &mut MacroAssembler, reg: Reg) {
-    if reg.msb() != 0 {
-        emit_rex(buf, false, 0, 0, reg.msb());
-    }
-    emit_op(buf, 0xFF);
-    emit_modrm(buf, 0b11, 0b100, reg.and7());
-}
-
 pub fn lea(buf: &mut MacroAssembler, dest: Reg, src: Mem) {
     emit_rex_mem(buf, true, dest, &src);
     emit_op(buf, 0x8D);
@@ -1350,17 +1342,5 @@ mod tests {
         // lea rax,[r9*8+16]
         assert_emit!(0x4a, 0x8d, 0x04, 0xcd, 0x10, 0, 0, 0;
                      lea(RAX, Mem::Offset(R9, 8, 16)));
-    }
-
-    #[test]
-    fn test_emit_jmp_reg() {
-        assert_emit!(0xFF, 0xE0;
-                     emit_jmp_reg(RAX));
-        assert_emit!(0x41, 0xFF, 0xE2;
-                     emit_jmp_reg(R10));
-        assert_emit!(0x41, 0xFF, 0xE1;
-                     emit_jmp_reg(R9));
-        assert_emit!(0xFF, 0xE2;
-                     emit_jmp_reg(RDX));
     }
 }
