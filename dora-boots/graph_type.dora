@@ -1,20 +1,24 @@
 let typeUnit: Type = Type(TypeKind::Unit);
+let typeBool: Type = Type(TypeKind::Bool);
 let typeByte: Type = Type(TypeKind::Byte);
+let typeChar: Type = Type(TypeKind::Char);
 let typeInt: Type = Type(TypeKind::Int);
 let typeLong: Type = Type(TypeKind::Long);
 let typeFloat: Type = Type(TypeKind::Float);
 let typeDouble: Type = Type(TypeKind::Double);
-let typeReference: Type = Type(TypeKind::Reference);
+let typePtr: Type = Type(TypeKind::Ptr);
 
 
 class Type(let kind: TypeKind) {
     @static fun unit() -> Type { return typeUnit; }
+    @static fun bool() -> Type { return typeBool; }
     @static fun byte() -> Type { return typeByte; }
+    @static fun char() -> Type { return typeChar; }
     @static fun int() -> Type { return typeInt; }
     @static fun long() -> Type { return typeLong; }
     @static fun float() -> Type { return typeFloat; }
     @static fun double() -> Type { return typeDouble; }
-    @static fun reference() -> Type { return typeReference; }
+    @static fun ptr() -> Type { return typePtr; }
 
     fun is_unit() -> Bool { return self.kind == TypeKind::Unit; }
     fun is_byte() -> Bool { return self.kind == TypeKind::Byte; }
@@ -22,9 +26,9 @@ class Type(let kind: TypeKind) {
     fun is_long() -> Bool { return self.kind == TypeKind::Long; }
     fun is_float() -> Bool { return self.kind == TypeKind::Float; }
     fun is_double() -> Bool { return self.kind == TypeKind::Double; }
-    fun is_reference() -> Bool { return self.kind == TypeKind::Reference; }
+    fun is_ptr() -> Bool { return self.kind == TypeKind::Ptr; }
 
-    fun is_float_or_double() -> Bool {
+    fun is_any_float() -> Bool {
         return self.kind == TypeKind::Float || self.kind == TypeKind::Double;
     }
 }
@@ -36,13 +40,15 @@ impl Stringable for Type {
 }
 
 enum TypeKind {
-    Unit, Byte, Int, Long, Float, Double, Reference
+    Unit, Bool, Byte, Char, Int, Long, Float, Double, Ptr
 }
 
 impl TypeKind {
     fun toString() -> String {
         if self == TypeKind::Unit {
             "Unit"
+        } else if self == TypeKind::Bool {
+            "Bool"
         } else if self == TypeKind::Byte {
             "Byte"
         } else if self == TypeKind::Int {
@@ -53,8 +59,8 @@ impl TypeKind {
             "Float"
         } else if self == TypeKind::Double {
             "Double"
-        } else if self == TypeKind::Reference {
-            "Ref"
+        } else if self == TypeKind::Ptr {
+            "Ptr"
         } else {
             unreachable();
             ""

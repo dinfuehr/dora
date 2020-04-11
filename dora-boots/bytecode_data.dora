@@ -26,6 +26,30 @@ class BytecodeFunction(let code: Array[Byte], let const_pool: Array[ConstPoolEnt
         }
     }
 
+    fun toLong() -> Option[Long] {
+        if self is ConstPoolLong {
+            some[Long]((self as ConstPoolLong).value)
+        } else {
+            none[Long]()
+        }
+    }
+
+    fun toFloat() -> Option[Float] {
+        if self is ConstPoolFloat {
+            some[Float]((self as ConstPoolFloat).value)
+        } else {
+            none[Float]()
+        }
+    }
+
+    fun toDouble() -> Option[Double] {
+        if self is ConstPoolDouble {
+            some[Double]((self as ConstPoolDouble).value)
+        } else {
+            none[Double]()
+        }
+    }
+
     @abstract fun toString() -> String;
 }
 

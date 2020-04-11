@@ -24,7 +24,7 @@
     let const2 = IntConst(2);
     block.appendInst(const2);
 
-    let inst = BinaryInst(BinOp::Add, const1, const2);
+    let inst = BinaryInst(BinOp::Add, Type::int(), const1, const2);
     block.appendInst(inst);
 
     let inst = ReturnVoidInst();

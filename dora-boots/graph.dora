@@ -292,25 +292,19 @@ class DoubleConst(let value: Double): Const {
     @override fun dumpName() -> String { "Double(${self.value})" }
 }
 
-class UnaryInst(let op: UnOp, let opnd: Inst): Inst {
+class UnaryInst(let op: UnOp, ty: Type, let opnd: Inst): Inst {
     self.addInput(opnd);
+    self.ty = ty;
 
-    @override fun dumpName() -> String { unOpName(self.op) }
+    @override fun dumpName() -> String { "${unOpName(self.op)}.${self.ty}" }
 }
 
-class AddInst(ty: Type, let lhs: Inst, let rhs: Inst): Inst {
+class BinaryInst(let op: BinOp, ty: Type, let lhs: Inst, let rhs: Inst): Inst {
     self.addInput(lhs);
     self.addInput(rhs);
     self.ty = ty;
 
-    @override fun dumpName() -> String { "Add.${self.ty}" }
-}
-
-class BinaryInst(let op: BinOp, let lhs: Inst, let rhs: Inst): Inst {
-    self.addInput(lhs);
-    self.addInput(rhs);
-
-    @override fun dumpName() -> String { binOpName(self.op) }
+    @override fun dumpName() -> String { "${binOpName(self.op)}.${self.ty}" }
 }
 
 class UndefInst: Inst {
@@ -370,7 +364,7 @@ class GotoInst(let block: Block): Inst {
 }
 
 enum BinOp {
-    Add, Sub, Mul, Div, Mod,
+    Add, Sub, Mul, Div, Mod, And, Or, Xor, Shl, Shr, Sar
 }
 
 fun binOpName(op: BinOp) -> String {
@@ -384,6 +378,18 @@ fun binOpName(op: BinOp) -> String {
         "Div"
     } else if op == BinOp::Mod {
         "Mod"
+    } else if op == BinOp::And {
+        "And"
+    } else if op == BinOp::Or {
+        "Or"
+    } else if op == BinOp::Xor {
+        "Xor"
+    } else if op == BinOp::Shl {
+        "Shl"
+    } else if op == BinOp::Shr {
+        "Shr"
+    } else if op == BinOp::Sar {
+        "Sar"
     } else {
         unreachable();
         ""

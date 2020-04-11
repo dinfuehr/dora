@@ -147,59 +147,142 @@ class SsaGen(let bc: BytecodeFunction, let starts: BitSet, let blocks: Int): Byt
     @override fun visitInstruction(offset: Int) { self.offset = offset; }
 
     @override fun visitAddInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Add, Type::int());
+    }
+    @override fun visitAddLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Add, Type::long());
+    }
+    @override fun visitAddFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Add, Type::float());
+    }
+    @override fun visitAddDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Add, Type::double());
+    }
+
+    fun emitBin(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: BinOp, ty: Type) {
         let lhsInst = self.readVariable(lhs, self.currentBlock);
         let rhsInst = self.readVariable(rhs, self.currentBlock);
-        let destInst = AddInst(Type::int(), lhsInst, rhsInst);
+        let destInst = BinaryInst(op, ty, lhsInst, rhsInst);
         self.currentBlock.appendInst(destInst);
         self.writeVariable(dest, self.currentBlock, destInst);
     }
-    @override fun visitAddLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitAddFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitAddDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @override fun visitSubInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitSubLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitSubFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitSubDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @override fun visitSubInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Sub, Type::int());
+    }
+    @override fun visitSubLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Sub, Type::long());
+    }
+    @override fun visitSubFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Sub, Type::float());
+    }
+    @override fun visitSubDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Sub, Type::double());
+    }
 
-    @override fun visitNegInt(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @override fun visitNegLong(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @override fun visitNegFloat(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @override fun visitNegDouble(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @override fun visitNegInt(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitUn(dest, src, UnOp::Neg, Type::int());
+    }
+    @override fun visitNegLong(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitUn(dest, src, UnOp::Neg, Type::long());
+    }
+    @override fun visitNegFloat(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitUn(dest, src, UnOp::Neg, Type::float());
+    }
+    @override fun visitNegDouble(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitUn(dest, src, UnOp::Neg, Type::double());
+    }
 
-    @override fun visitMulInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitMulLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitMulFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitMulDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    fun emitUn(dest: BytecodeRegister, src: BytecodeRegister, op: UnOp, ty: Type) {
+        let srcInst = self.readVariable(src, self.currentBlock);
+        let destInst = UnaryInst(op, ty, srcInst);
+        self.currentBlock.appendInst(destInst);
+        self.writeVariable(dest, self.currentBlock, destInst);
+    }
 
-    @override fun visitDivInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitDivLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitDivFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitDivDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @override fun visitMulInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Mul, Type::int());
+    }
+    @override fun visitMulLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Mul, Type::long());
+    }
+    @override fun visitMulFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Mul, Type::float());
+    }
+    @override fun visitMulDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Mul, Type::double());
+    }
 
-    @override fun visitModInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitModLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @override fun visitDivInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Div, Type::int());
+    }
+    @override fun visitDivLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Div, Type::long());
+    }
+    @override fun visitDivFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Div, Type::float());
+    }
+    @override fun visitDivDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Div, Type::double());
+    }
 
-    @override fun visitAndInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitAndLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @override fun visitModInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Mod, Type::int());
+    }
+    @override fun visitModLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Mod, Type::long());
+    }
 
-    @override fun visitOrInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitOrLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @override fun visitAndInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::And, Type::int());
+    }
+    @override fun visitAndLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::And, Type::long());
+    }
 
-    @override fun visitXorInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitXorLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @override fun visitOrInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Or, Type::int());
+    }
+    @override fun visitOrLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Or, Type::long());
+    }
 
-    @override fun visitNotBool(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @override fun visitNotInt(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @override fun visitNotLong(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @override fun visitXorInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Xor, Type::int());
+    }
+    @override fun visitXorLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Xor, Type::long());
+    }
 
-    @override fun visitShlInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitShrInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitSarInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @override fun visitNotBool(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitUn(dest, src, UnOp::Not, Type::bool());
+    }
+    @override fun visitNotInt(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitUn(dest, src, UnOp::Not, Type::int());
+    }
+    @override fun visitNotLong(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitUn(dest, src, UnOp::Not, Type::long());
+    }
 
-    @override fun visitShlLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitShrLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitSarLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @override fun visitShlInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Shl, Type::int());
+    }
+    @override fun visitShrInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Shr, Type::int());
+    }
+    @override fun visitSarInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Sar, Type::int());
+    }
+
+    @override fun visitShlLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Shl, Type::long());
+    }
+    @override fun visitShrLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Shr, Type::long());
+    }
+    @override fun visitSarLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitBin(dest, lhs, rhs, BinOp::Sar, Type::long());
+    }
 
     @override fun visitMovBool(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @override fun visitMovByte(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
@@ -263,9 +346,24 @@ class SsaGen(let bc: BytecodeFunction, let starts: BitSet, let blocks: Int): Byt
         self.currentBlock.appendInst(inst);
         self.writeVariable(dest, self.currentBlock, inst);
     }
-    @override fun visitConstLong(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
-    @override fun visitConstFloat(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
-    @override fun visitConstDouble(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @override fun visitConstLong(dest: BytecodeRegister, idx: ConstPoolId) {
+        let value = self.bc.constPool(idx).toLong().unwrap();
+        let inst = LongConst(value);
+        self.currentBlock.appendInst(inst);
+        self.writeVariable(dest, self.currentBlock, inst);
+    }
+    @override fun visitConstFloat(dest: BytecodeRegister, idx: ConstPoolId) {
+        let value = self.bc.constPool(idx).toFloat().unwrap();
+        let inst = FloatConst(value);
+        self.currentBlock.appendInst(inst);
+        self.writeVariable(dest, self.currentBlock, inst);
+    }
+    @override fun visitConstDouble(dest: BytecodeRegister, idx: ConstPoolId) {
+        let value = self.bc.constPool(idx).toDouble().unwrap();
+        let inst = DoubleConst(value);
+        self.currentBlock.appendInst(inst);
+        self.writeVariable(dest, self.currentBlock, inst);
+    }
     @override fun visitConstString(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
 
     @override fun visitTestEqPtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
@@ -340,26 +438,41 @@ class SsaGen(let bc: BytecodeFunction, let starts: BitSet, let blocks: Int): Byt
 
     @override fun visitNewObject(dest: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
 
-    @override fun visitThrow(opnd: BytecodeRegister) { unimplemented(); }
-
     @override fun visitRetVoid() {
         let inst = ReturnVoidInst();
         self.currentBlock.appendInst(inst);
     }
 
-    @override fun visitRetBool(opnd: BytecodeRegister) { unimplemented(); }
-    @override fun visitRetByte(opnd: BytecodeRegister) { unimplemented(); }
-    @override fun visitRetChar(opnd: BytecodeRegister) { unimplemented(); }
+    @override fun visitRetBool(opnd: BytecodeRegister) {
+        self.emitRet(opnd, Type::bool());
+    }
+    @override fun visitRetByte(opnd: BytecodeRegister) {
+        self.emitRet(opnd, Type::byte());
+    }
+    @override fun visitRetChar(opnd: BytecodeRegister) {
+        self.emitRet(opnd, Type::char());
+    }
     @override fun visitRetInt(opnd: BytecodeRegister) {
-        let value = self.readVariable(opnd, self.currentBlock);
-        let inst = ReturnInst(value, Type::int());
-        self.currentBlock.appendInst(inst);
+        self.emitRet(opnd, Type::int());
+    }
+    @override fun visitRetLong(opnd: BytecodeRegister) {
+        self.emitRet(opnd, Type::long());
+    }
+    @override fun visitRetFloat(opnd: BytecodeRegister) {
+        self.emitRet(opnd, Type::float());
+    }
+    @override fun visitRetDouble(opnd: BytecodeRegister) {
+        self.emitRet(opnd, Type::double());
+    }
+    @override fun visitRetPtr(opnd: BytecodeRegister) {
+        self.emitRet(opnd, Type::ptr());
     }
 
-    @override fun visitRetLong(opnd: BytecodeRegister) { unimplemented(); }
-    @override fun visitRetFloat(opnd: BytecodeRegister) { unimplemented(); }
-    @override fun visitRetDouble(opnd: BytecodeRegister) { unimplemented(); }
-    @override fun visitRetPtr(opnd: BytecodeRegister) { unimplemented(); }
+    fun emitRet(opnd: BytecodeRegister, ty: Type) {
+        let value = self.readVariable(opnd, self.currentBlock);
+        let inst = ReturnInst(value, ty);
+        self.currentBlock.appendInst(inst);
+    }
 }
 
 class BasicBlockFinder(let bc: BytecodeFunction): BytecodeVisitor {

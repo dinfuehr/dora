@@ -9,8 +9,8 @@
 
 fun bcSsaGenRetVoid() {}
 
-@test fun testSsaGenRetInt(_x: Testing) {
-    let fct = bytecode("bcSsaGenRetInt");
+@test fun testSsaGenRetIntConst(_x: Testing) {
+    let fct = bytecode("bcSsaGenRetIntConst");
     let graph = createGraph(fct);
 
     assertGraph(graph, "Block 0:
@@ -19,7 +19,19 @@ fun bcSsaGenRetVoid() {}
 ");
 }
 
-fun bcSsaGenRetInt() -> Int { 4711 }
+fun bcSsaGenRetIntConst() -> Int { 4711 }
+
+@test fun testSsaGenRetLongConst(_x: Testing) {
+    let fct = bytecode("bcSsaGenRetLongConst");
+    let graph = createGraph(fct);
+
+    assertGraph(graph, "Block 0:
+  0: Long(4711) [1]
+  1: Ret.Long 0
+");
+}
+
+fun bcSsaGenRetLongConst() -> Long { 4711L }
 
 @test fun testSsaGenIdInt(_x: Testing) {
     let fct = bytecode("bcSsaGenIdInt");
@@ -46,3 +58,44 @@ fun bcSsaGenIdInt(x: Int) -> Int { x }
 }
 
 fun bcSsaGenAddIntArguments(a: Int, b: Int) -> Int { a + b }
+
+@test fun testSsaGenSubIntArguments(_x: Testing) {
+    let fct = bytecode("bcSsaGenSubIntArguments");
+    let graph = createGraph(fct);
+
+    assertGraph(graph, "Block 0:
+  0: Arg.Int(0) [2]
+  1: Arg.Int(1) [2]
+  2: Sub.Int 0, 1 [3]
+  3: Ret.Int 2
+");
+}
+
+fun bcSsaGenSubIntArguments(a: Int, b: Int) -> Int { a - b }
+
+@test fun testSsaGenNegIntArgument(_x: Testing) {
+    let fct = bytecode("bcSsaGenNegIntArgument");
+    let graph = createGraph(fct);
+
+    assertGraph(graph, "Block 0:
+  0: Arg.Int(0) [1]
+  1: Neg.Int 0 [2]
+  2: Ret.Int 1
+");
+}
+
+fun bcSsaGenNegIntArgument(a: Int) -> Int { -a }
+
+@test fun testSsaGenMulIntArguments(_x: Testing) {
+    let fct = bytecode("bcSsaGenMulIntArguments");
+    let graph = createGraph(fct);
+
+    assertGraph(graph, "Block 0:
+  0: Arg.Int(0) [2]
+  1: Arg.Int(1) [2]
+  2: Mul.Int 0, 1 [3]
+  3: Ret.Int 2
+");
+}
+
+fun bcSsaGenMulIntArguments(a: Int, b: Int) -> Int { a * b }
