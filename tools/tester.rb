@@ -166,7 +166,7 @@ class TestCase
     self.optional_configs = [:main]
     self.results = {}
     self.args = self.vm_args = ""
-    self.timeout = nil
+    self.timeout = 60
   end
 
   def run(mutex)
@@ -213,17 +213,7 @@ class TestCase
   def run_test(optional_vm_args, mutex)
     temp_out = Tempfile.new("dora-test-runner")
     cmdline = "#{binary} #{vm_args} #{optional_vm_args} #{test_file} #{args}"
-    if timeout != nil
-      process_result = TestUtility.capture3_with_timeout(cmdline, :timeout => self.timeout)
-    else
-      stdout, stderr, status = Open3.capture3(cmdline)
-      process_result = {
-        :stdout => stdout,
-        :stderr => stderr,
-        :status => status,
-        :timeout => false
-      }
-    end
+    process_result = TestUtility.capture3_with_timeout(cmdline, :timeout => self.timeout)
     result = check_test_run_result(process_result)
     if $no_capture || result != true
       mutex.synchronize do
