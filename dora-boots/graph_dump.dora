@@ -111,7 +111,7 @@ fun assertGraph(graph: Graph, output: String) {
     let graphOutput = dumpGraph(graph);
 
     if !compareStrings(graphOutput, output) {
-        println("expected: \"${graphOutput}\"");
+        println("got: \"${graphOutput}\"");
         println("expected: \"${output}\"");
 
         for idx in range(0, graphOutput.length()) {
