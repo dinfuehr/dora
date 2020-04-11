@@ -29,17 +29,7 @@ pub fn compile<'a, 'ast: 'a>(
     let compile_fct_id = vm.fct_by_name("compile").expect("compile()-method missing");
     let compile_fct = vm.ensure_compiled(compile_fct_id);
 
-    let bytecode_array = root(byte_array_from_buffer(vm, bytecode_fct.code()));
-    let constpool_array = root(allocate_constpool_array(vm, &bytecode_fct));
-    let registers_array = root(allocate_registers_array(vm, &bytecode_fct));
-
-    let encoded_compilation_info = root(allocate_encoded_compilation_info(
-        vm,
-        bytecode_array,
-        constpool_array,
-        registers_array,
-        bytecode_fct.arguments() as i32,
-    ));
+    let encoded_compilation_info = root(allocate_compilation_info(vm, &bytecode_fct));
 
     let tld_address = THREAD.with(|thread| {
         let thread = thread.borrow();
@@ -68,6 +58,37 @@ pub fn compile<'a, 'ast: 'a>(
     }
 
     Code::from_optimized_buffer(vm, &machine_code_array, JitDescriptor::DoraFct(fct.id))
+}
+
+pub fn bytecode(vm: &VM, name: &str) -> Ref<Obj> {
+    let bc_fct_id = vm.fct_by_name(name).expect("compile()-method missing");
+
+    let fct = vm.fcts.idx(bc_fct_id);
+    let fct = fct.read();
+    let src = fct.src();
+    let src = src.read();
+
+    let bytecode_fct = bytecode::generate(vm, &*fct, &*src, &TypeList::empty(), &TypeList::empty());
+
+    if should_emit_bytecode(vm, &*fct) {
+        bytecode::dump(&bytecode_fct);
+    }
+
+    allocate_compilation_info(vm, &bytecode_fct)
+}
+
+fn allocate_compilation_info(vm: &VM, bytecode_fct: &BytecodeFunction) -> Ref<Obj> {
+    let bytecode_array = root(byte_array_from_buffer(vm, bytecode_fct.code()));
+    let constpool_array = root(allocate_constpool_array(vm, &bytecode_fct));
+    let registers_array = root(allocate_registers_array(vm, &bytecode_fct));
+
+    allocate_encoded_compilation_info(
+        vm,
+        bytecode_array,
+        constpool_array,
+        registers_array,
+        bytecode_fct.arguments() as i32,
+    )
 }
 
 fn allocate_registers_array(vm: &VM, fct: &BytecodeFunction) -> Ref<IntArray> {

@@ -164,6 +164,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
         stdlib::gc_minor_collect as *const u8,
     );
     native_fct(vm, "sleep", stdlib::sleep as *const u8);
+    native_fct(vm, "encodedBytecode", stdlib::bytecode as *const u8);
 
     native_fct(vm, "call", stdlib::call as *const u8);
 

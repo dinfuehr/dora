@@ -6,6 +6,7 @@ fun createGraph(bc: BytecodeFunction) -> Graph {
 
     let ssagen = SsaGen(bc, starts, blocks);
     ssagen.prepare();
+    ssagen.createArguments();
     readBytecode(bc.code, ssagen);
     ssagen.graph
 }
@@ -34,6 +35,16 @@ class SsaGen(let bc: BytecodeFunction, let starts: BitSet, let blocks: Int): Byt
 
         for i in range(0, self.incompletePhis.length()) {
             self.incompletePhis(i) = HashMap[BytecodeRegister, PhiInst]();
+        }
+    }
+
+    fun createArguments() {
+        var i = 0;
+        while i < self.bc.arguments {
+            let argInst = ArgInst(i, Type::int());
+            self.currentBlock.appendInst(argInst);
+            self.writeVariable(BytecodeRegister(i), self.currentBlock, argInst);
+            i = i + 1;
         }
     }
 
@@ -135,7 +146,13 @@ class SsaGen(let bc: BytecodeFunction, let starts: BitSet, let blocks: Int): Byt
 
     @override fun visitInstruction(offset: Int) { self.offset = offset; }
 
-    @override fun visitAddInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @override fun visitAddInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        let lhsInst = self.readVariable(lhs, self.currentBlock);
+        let rhsInst = self.readVariable(rhs, self.currentBlock);
+        let destInst = AddInst(Type::int(), lhsInst, rhsInst);
+        self.currentBlock.appendInst(destInst);
+        self.writeVariable(dest, self.currentBlock, destInst);
+    }
     @override fun visitAddLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @override fun visitAddFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @override fun visitAddDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
@@ -335,7 +352,7 @@ class SsaGen(let bc: BytecodeFunction, let starts: BitSet, let blocks: Int): Byt
     @override fun visitRetChar(opnd: BytecodeRegister) { unimplemented(); }
     @override fun visitRetInt(opnd: BytecodeRegister) {
         let value = self.readVariable(opnd, self.currentBlock);
-        let inst = ReturnInst(value);
+        let inst = ReturnInst(value, Type::int());
         self.currentBlock.appendInst(inst);
     }
 
@@ -582,32 +599,4 @@ class BasicBlockFinder(let bc: BytecodeFunction): BytecodeVisitor {
         self.starts.insert(offset);
         self.blocks = self.blocks + 1;
     }
-}
-
-@test fun testSsaGenRetVoid(_x: Testing) {
-    let writer = BytecodeWriter();
-    writer.emitRetVoid();
-    let fct = writer.generate();
-
-
-    let graph = createGraph(fct);
-
-    assertGraph(graph, "Block 0:
-  0: RetVoid
-");
-}
-
-@test fun testSsaGenRetInt(_x: Testing) {
-    let writer = BytecodeWriter();
-    let tmp = writer.addRegister(BytecodeType::int());
-    writer.emitConstInt(tmp, 4711);
-    writer.emitRetInt(tmp);
-    let fct = writer.generate();
-
-    let graph = createGraph(fct);
-
-    assertGraph(graph, "Block 0:
-  0: Int(4711) [1]
-  1: Ret 0
-");
 }

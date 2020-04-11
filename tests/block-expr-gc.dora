@@ -1,0 +1,16 @@
+//= vm-args "--gc=copy --disable-tlab --gc-stress"
+
+class Foo(let value: Int)
+
+fun main() {
+    let tpl: Foo = if false {
+        createFoo()
+    } else {
+        forceCollect();
+        createFoo()
+    };
+}
+
+fun createFoo() -> Foo {
+    Foo(1)
+}

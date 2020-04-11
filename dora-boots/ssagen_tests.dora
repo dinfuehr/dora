@@ -1,0 +1,48 @@
+@test fun testSsaGenRetVoid(_x: Testing) {
+    let fct = bytecode("bcSsaGenRetVoid");
+    let graph = createGraph(fct);
+
+    assertGraph(graph, "Block 0:
+  0: Ret.Void
+");
+}
+
+fun bcSsaGenRetVoid() {}
+
+@test fun testSsaGenRetInt(_x: Testing) {
+    let fct = bytecode("bcSsaGenRetInt");
+    let graph = createGraph(fct);
+
+    assertGraph(graph, "Block 0:
+  0: Int(4711) [1]
+  1: Ret.Int 0
+");
+}
+
+fun bcSsaGenRetInt() -> Int { 4711 }
+
+@test fun testSsaGenIdInt(_x: Testing) {
+    let fct = bytecode("bcSsaGenIdInt");
+    let graph = createGraph(fct);
+
+    assertGraph(graph, "Block 0:
+  0: Arg.Int(0) [1]
+  1: Ret.Int 0
+");
+}
+
+fun bcSsaGenIdInt(x: Int) -> Int { x }
+
+@test fun testSsaGenAddIntArguments(_x: Testing) {
+    let fct = bytecode("bcSsaGenAddIntArguments");
+    let graph = createGraph(fct);
+
+    assertGraph(graph, "Block 0:
+  0: Arg.Int(0) [2]
+  1: Arg.Int(1) [2]
+  2: Add.Int 0, 1 [3]
+  3: Ret.Int 2
+");
+}
+
+fun bcSsaGenAddIntArguments(a: Int, b: Int) -> Int { a + b }

@@ -298,6 +298,14 @@ class UnaryInst(let op: UnOp, let opnd: Inst): Inst {
     @override fun dumpName() -> String { unOpName(self.op) }
 }
 
+class AddInst(ty: Type, let lhs: Inst, let rhs: Inst): Inst {
+    self.addInput(lhs);
+    self.addInput(rhs);
+    self.ty = ty;
+
+    @override fun dumpName() -> String { "Add.${self.ty}" }
+}
+
 class BinaryInst(let op: BinOp, let lhs: Inst, let rhs: Inst): Inst {
     self.addInput(lhs);
     self.addInput(rhs);
@@ -334,20 +342,21 @@ class ArrayLength(let array: Inst): Inst {
     @override fun dumpName() -> String { "ArrayLength" }
 }
 
-class ParamInst(let index: Int, ty: Type): Inst {
+class ArgInst(let index: Int, ty: Type): Inst {
     self.ty = ty;
 
-    @override fun dumpName() -> String { "Param(${self.index})" }
+    @override fun dumpName() -> String { "Arg.${self.ty}(${self.index})" }
 }
 
-class ReturnInst(let value: Inst): Inst {
+class ReturnInst(let value: Inst, ty: Type): Inst {
+    self.ty = ty;
     self.addInput(value);
 
-    @override fun dumpName() -> String { "Ret" }
+    @override fun dumpName() -> String { "Ret.${self.ty}" }
 }
 
 class ReturnVoidInst: Inst {
-    @override fun dumpName() -> String { "RetVoid" }
+    @override fun dumpName() -> String { "Ret.Void" }
 }
 
 class CondInst(let cond: Inst, let true_block: Block, let false_block: Block): Inst {

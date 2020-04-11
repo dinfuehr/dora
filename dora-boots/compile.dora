@@ -4,6 +4,13 @@ fun compile(info: EncodedCompilationInfo) -> Array[Byte] {
     CodeGen(info).generate()
 }
 
+@internal fun encodedBytecode(fct: String) -> EncodedCompilationInfo;
+
+fun bytecode(fct: String) -> BytecodeFunction {
+    let encoded = encodedBytecode(fct);
+    BytecodeFunction(encoded.code, decodeConstPool(encoded.constpool), decodeRegisters(encoded.registers), encoded.arguments)
+}
+
 class CompilationInfo(encoded: EncodedCompilationInfo) {
     let bc: BytecodeFunction = BytecodeFunction(encoded.code, decodeConstPool(encoded.constpool), decodeRegisters(encoded.registers), encoded.arguments);
 }

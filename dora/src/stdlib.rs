@@ -7,6 +7,7 @@ use std::str;
 use std::thread;
 use std::time::Duration;
 
+use crate::boots;
 use crate::gc::{Address, GcReason};
 use crate::handle::{scope as handle_scope, Handle};
 use crate::object::{ByteArray, Obj, Ref, Str};
@@ -148,6 +149,15 @@ pub extern "C" fn call(fct: Handle<Str>) {
             process::exit(1);
         }
     }
+}
+
+pub extern "C" fn bytecode(name: Handle<Str>) -> Ref<Obj> {
+    let fct_name = name.to_cstring();
+    let fct_name = fct_name.to_str().unwrap();
+
+    let vm = get_vm();
+
+    boots::bytecode(vm, &fct_name)
 }
 
 pub extern "C" fn strcmp(lhs: Handle<Str>, rhs: Handle<Str>) -> i32 {
