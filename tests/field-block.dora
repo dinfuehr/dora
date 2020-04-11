@@ -1,0 +1,15 @@
+//= cannon
+
+fun main() {
+  let a = A::empty();
+
+  assert(a.lx == 1);
+  assert(a.vx == 2);
+}
+
+class A(le: Int, va: Int) {
+  let lx: Int = { le + 1 };
+  var vx: Int = { va + 1 };
+
+  @static fun empty() -> A = A(0, 1);
+}
