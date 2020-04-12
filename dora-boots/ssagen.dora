@@ -333,23 +333,67 @@ class SsaGen(let bc: BytecodeFunction, let starts: BitSet, let blocks: Int): Byt
     @override fun visitStoreFieldDouble(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
     @override fun visitStoreFieldPtr(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
 
-    @override fun visitLoadGlobalBool(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
-    @override fun visitLoadGlobalByte(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
-    @override fun visitLoadGlobalChar(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
-    @override fun visitLoadGlobalInt(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
-    @override fun visitLoadGlobalLong(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
-    @override fun visitLoadGlobalFloat(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
-    @override fun visitLoadGlobalDouble(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
-    @override fun visitLoadGlobalPtr(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
+    @override fun visitLoadGlobalBool(dest: BytecodeRegister, glob: GlobalId) {
+        self.emitLoadGlobal(dest, glob, Type::bool());
+    }
+    @override fun visitLoadGlobalByte(dest: BytecodeRegister, glob: GlobalId) {
+        self.emitLoadGlobal(dest, glob, Type::byte());
+    }
+    @override fun visitLoadGlobalChar(dest: BytecodeRegister, glob: GlobalId) {
+        self.emitLoadGlobal(dest, glob, Type::char());
+    }
+    @override fun visitLoadGlobalInt(dest: BytecodeRegister, glob: GlobalId) {
+        self.emitLoadGlobal(dest, glob, Type::int());
+    }
+    @override fun visitLoadGlobalLong(dest: BytecodeRegister, glob: GlobalId) {
+        self.emitLoadGlobal(dest, glob, Type::long());
+    }
+    @override fun visitLoadGlobalFloat(dest: BytecodeRegister, glob: GlobalId) {
+        self.emitLoadGlobal(dest, glob, Type::float());
+    }
+    @override fun visitLoadGlobalDouble(dest: BytecodeRegister, glob: GlobalId) {
+        self.emitLoadGlobal(dest, glob, Type::double());
+    }
+    @override fun visitLoadGlobalPtr(dest: BytecodeRegister, glob: GlobalId) {
+        self.emitLoadGlobal(dest, glob, Type::ptr());
+    }
 
-    @override fun visitStoreGlobalBool(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
-    @override fun visitStoreGlobalByte(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
-    @override fun visitStoreGlobalChar(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
-    @override fun visitStoreGlobalInt(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
-    @override fun visitStoreGlobalLong(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
-    @override fun visitStoreGlobalFloat(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
-    @override fun visitStoreGlobalDouble(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
-    @override fun visitStoreGlobalPtr(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
+    fun emitLoadGlobal(dest: BytecodeRegister, glob: GlobalId, ty: Type) {
+        let globInst = LoadGlobalInst(ty, glob);
+        self.currentBlock.appendInst(globInst);
+        self.writeVariable(dest, self.currentBlock, globInst);
+    }
+
+    @override fun visitStoreGlobalBool(src: BytecodeRegister, glob: GlobalId) {
+        self.emitStoreGlobal(src, glob, Type::bool());
+    }
+    @override fun visitStoreGlobalByte(src: BytecodeRegister, glob: GlobalId) {
+        self.emitStoreGlobal(src, glob, Type::byte());
+    }
+    @override fun visitStoreGlobalChar(src: BytecodeRegister, glob: GlobalId) {
+        self.emitStoreGlobal(src, glob, Type::char());
+    }
+    @override fun visitStoreGlobalInt(src: BytecodeRegister, glob: GlobalId) {
+        self.emitStoreGlobal(src, glob, Type::int());
+    }
+    @override fun visitStoreGlobalLong(src: BytecodeRegister, glob: GlobalId) {
+        self.emitStoreGlobal(src, glob, Type::long());
+    }
+    @override fun visitStoreGlobalFloat(src: BytecodeRegister, glob: GlobalId) {
+        self.emitStoreGlobal(src, glob, Type::float());
+    }
+    @override fun visitStoreGlobalDouble(src: BytecodeRegister, glob: GlobalId) {
+        self.emitStoreGlobal(src, glob, Type::double());
+    }
+    @override fun visitStoreGlobalPtr(src: BytecodeRegister, glob: GlobalId) {
+        self.emitStoreGlobal(src, glob, Type::ptr());
+    }
+
+    fun emitStoreGlobal(src: BytecodeRegister, glob: GlobalId, ty: Type) {
+        let srcInst = self.readVariable(src, self.currentBlock);
+        let globInst = StoreGlobalInst(ty, glob, srcInst);
+        self.currentBlock.appendInst(globInst);
+    }
 
     @override fun visitConstNil(dest: BytecodeRegister) { unimplemented(); }
     @override fun visitConstTrue(dest: BytecodeRegister) { unimplemented(); }

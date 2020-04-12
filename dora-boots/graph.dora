@@ -292,6 +292,20 @@ class DoubleConst(let value: Double): Const {
     @override fun dumpName() -> String { "Double(${self.value})" }
 }
 
+class LoadGlobalInst(ty: Type, let global: GlobalId): Inst {
+    self.ty = ty;
+
+    @override fun dumpName() -> String { "LoadGlobal.${self.ty}(${self.global.value})" }
+}
+
+class StoreGlobalInst(ty: Type, let global: GlobalId, let value: Inst): Inst {
+    self.addInput(value);
+    self.ty = ty;
+
+    @override fun dumpName() -> String { "StoreGlobal.${self.ty}(${self.global.value})" }
+}
+
+
 class UnaryInst(let op: UnOp, ty: Type, let opnd: Inst): Inst {
     self.addInput(opnd);
     self.ty = ty;
