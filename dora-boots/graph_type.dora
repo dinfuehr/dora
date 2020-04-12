@@ -20,6 +20,29 @@ class Type(let kind: TypeKind) {
     @static fun double() -> Type { return typeDouble; }
     @static fun ptr() -> Type { return typePtr; }
 
+    @static fun fromBytecodeType(ty: BytecodeType) -> Type {
+        if ty.isBool() {
+            Type::bool()
+        } else if ty.isByte() {
+            Type::byte()
+        } else if ty.isChar() {
+            Type::char()
+        } else if ty.isInt() {
+            Type::int()
+        } else if ty.isLong() {
+            Type::long()
+        } else if ty.isFloat() {
+            Type::float()
+        } else if ty.isDouble() {
+            Type::double()
+        } else if ty.isPtr() {
+            Type::ptr()
+        } else {
+            unreachable();
+            Type::unit()
+        }
+    }
+
     fun is_unit() -> Bool { return self.kind == TypeKind::Unit; }
     fun is_byte() -> Bool { return self.kind == TypeKind::Byte; }
     fun is_int() -> Bool { return self.kind == TypeKind::Int; }
