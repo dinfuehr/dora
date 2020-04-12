@@ -182,7 +182,9 @@ impl<'a> Parser<'a> {
         let type_params = self.parse_type_params()?;
 
         self.expect_token(TokenKind::LBrace)?;
-        let variants = self.parse_comma_list(TokenKind::RBrace, |p| p.parse_enum_variant())?;
+        let variants = self.parse_list(TokenKind::Comma, TokenKind::RBrace, |p| {
+            p.parse_enum_variant()
+        })?;
         let span = self.span_from(start);
 
         Ok(Enum {
@@ -202,7 +204,7 @@ impl<'a> Parser<'a> {
 
         let types = if self.token.is(TokenKind::LParen) {
             self.advance_token()?;
-            Some(self.parse_comma_list(TokenKind::RParen, |p| p.parse_type())?)
+            Some(self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| p.parse_type())?)
         } else {
             None
         };
@@ -357,7 +359,9 @@ impl<'a> Parser<'a> {
         let ident = self.expect_identifier()?;
 
         self.expect_token(TokenKind::LBrace)?;
-        let fields = self.parse_comma_list(TokenKind::RBrace, |p| p.parse_struct_field())?;
+        let fields = self.parse_list(TokenKind::Comma, TokenKind::RBrace, |p| {
+            p.parse_struct_field()
+        })?;
         let span = self.span_from(start);
 
         Ok(Struct {
@@ -453,7 +457,7 @@ impl<'a> Parser<'a> {
 
         if self.token.is(TokenKind::LBracket) {
             self.advance_token()?;
-            types = self.parse_comma_list(TokenKind::RBracket, |p| p.parse_type())?;
+            types = self.parse_list(TokenKind::Comma, TokenKind::RBracket, |p| p.parse_type())?;
         }
 
         Ok(types)
@@ -503,7 +507,9 @@ impl<'a> Parser<'a> {
     fn parse_type_params(&mut self) -> Result<Option<Vec<TypeParam>>, ParseErrorAndPos> {
         if self.token.is(TokenKind::LBracket) {
             self.advance_token()?;
-            let params = self.parse_comma_list(TokenKind::RBracket, |p| p.parse_type_param())?;
+            let params = self.parse_list(TokenKind::Comma, TokenKind::RBracket, |p| {
+                p.parse_type_param()
+            })?;
 
             Ok(Some(params))
         } else {
@@ -553,7 +559,9 @@ impl<'a> Parser<'a> {
 
         self.expect_token(TokenKind::LParen)?;
 
-        let params = self.parse_comma_list(TokenKind::RParen, |p| p.parse_expression())?;
+        let params = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
+            p.parse_expression()
+        })?;
 
         Ok(params)
     }
@@ -569,8 +577,9 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::LParen)?;
         cls.has_constructor = true;
 
-        let params =
-            self.parse_comma_list(TokenKind::RParen, |p| p.parse_constructor_param(cls))?;
+        let params = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
+            p.parse_constructor_param(cls)
+        })?;
 
         Ok(params)
     }
@@ -850,7 +859,7 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::LParen)?;
         self.param_idx = 0;
 
-        let params = self.parse_comma_list(TokenKind::RParen, |p| {
+        let params = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
             p.param_idx += 1;
 
             p.parse_function_param()
@@ -859,8 +868,9 @@ impl<'a> Parser<'a> {
         Ok(params)
     }
 
-    fn parse_comma_list<F, R>(
+    fn parse_list<F, R>(
         &mut self,
+        sep: TokenKind,
         stop: TokenKind,
         mut parse: F,
     ) -> Result<Vec<R>, ParseErrorAndPos>
@@ -874,14 +884,14 @@ impl<'a> Parser<'a> {
             if !comma {
                 return Err(ParseErrorAndPos::new(
                     self.token.position,
-                    ParseError::ExpectedToken(TokenKind::Comma.name().into(), self.token.name()),
+                    ParseError::ExpectedToken(sep.name().into(), self.token.name()),
                 ));
             }
 
             let entry = parse(self)?;
             data.push(entry);
 
-            comma = self.token.is(TokenKind::Comma);
+            comma = self.token.is(sep.clone());
             if comma {
                 self.advance_token()?;
             }
@@ -997,7 +1007,9 @@ impl<'a> Parser<'a> {
 
                 let params = if self.token.is(TokenKind::LBracket) {
                     self.advance_token()?;
-                    self.parse_comma_list(TokenKind::RBracket, |p| Ok(Box::new(p.parse_type()?)))?
+                    self.parse_list(TokenKind::Comma, TokenKind::RBracket, |p| {
+                        Ok(Box::new(p.parse_type()?))
+                    })?
                 } else {
                     Vec::new()
                 };
@@ -1015,7 +1027,7 @@ impl<'a> Parser<'a> {
             TokenKind::LParen => {
                 let start = self.token.span.start();
                 let token = self.advance_token()?;
-                let subtypes = self.parse_comma_list(TokenKind::RParen, |p| {
+                let subtypes = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
                     let ty = p.parse_type()?;
 
                     Ok(Box::new(ty))
@@ -1454,8 +1466,9 @@ impl<'a> Parser<'a> {
 
                 TokenKind::LParen => {
                     let tok = self.advance_token()?;
-                    let args =
-                        self.parse_comma_list(TokenKind::RParen, |p| p.parse_expression())?;
+                    let args = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
+                        p.parse_expression()
+                    })?;
                     let span = self.span_from(start);
 
                     Box::new(Expr::create_call(
@@ -1469,7 +1482,8 @@ impl<'a> Parser<'a> {
 
                 TokenKind::LBracket => {
                     let tok = self.advance_token()?;
-                    let types = self.parse_comma_list(TokenKind::RBracket, |p| p.parse_type())?;
+                    let types =
+                        self.parse_list(TokenKind::Comma, TokenKind::RBracket, |p| p.parse_type())?;
                     let span = self.span_from(start);
 
                     Box::new(Expr::create_type_param(
@@ -1836,7 +1850,7 @@ impl<'a> Parser<'a> {
             Vec::new()
         } else {
             self.param_idx = 0;
-            self.parse_comma_list(TokenKind::BitOr, |p| {
+            self.parse_list(TokenKind::Comma, TokenKind::BitOr, |p| {
                 p.param_idx += 1;
                 p.parse_function_param()
             })?
