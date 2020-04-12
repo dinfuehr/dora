@@ -51,7 +51,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 returns = true;
             }
 
-            self.visit_expr(value);
+            self.check_expr(value, BuiltinType::Any);
             self.expr_type
         } else {
             BuiltinType::Unit
@@ -66,7 +66,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let var = *self.src.map_vars.get(s.id).unwrap();
 
         let expr_type = s.expr.as_ref().map(|expr| {
-            self.visit_expr(&expr);
+            self.check_expr(&expr, BuiltinType::Any);
             self.expr_type
         });
 
@@ -116,7 +116,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_stmt_for(&mut self, s: &'ast StmtForType) {
-        self.visit_expr(&s.expr);
+        self.check_expr(&s.expr, BuiltinType::Any);
         let object_type = self.expr_type;
 
         let name = self.vm.interner.intern("makeIterator");
@@ -201,7 +201,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_stmt_while(&mut self, s: &'ast StmtWhileType) {
-        self.visit_expr(&s.cond);
+        self.check_expr(&s.cond, BuiltinType::Any);
 
         if !self.expr_type.is_error() && !self.expr_type.is_bool() {
             let expr_type = self.expr_type.name(self.vm);
@@ -217,7 +217,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             .expr
             .as_ref()
             .map(|expr| {
-                self.visit_expr(&expr);
+                self.check_expr(&expr, BuiltinType::Any);
 
                 self.expr_type
             })
@@ -251,7 +251,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
 
         let ty = if let Some(ref expr) = block.expr {
-            self.visit_expr(expr);
+            self.check_expr(expr, BuiltinType::Any);
             self.expr_type
         } else {
             BuiltinType::Unit
@@ -271,7 +271,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
 
         for value in &tuple.values {
-            self.visit_expr(value);
+            self.check_expr(value, BuiltinType::Any);
             subtypes.push(self.expr_type);
         }
 
@@ -283,7 +283,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_if(&mut self, expr: &'ast ExprIfType) {
-        self.visit_expr(&expr.cond);
+        self.check_expr(&expr.cond, BuiltinType::Any);
 
         if !self.expr_type.is_bool() && !self.expr_type.is_error() {
             let expr_type = self.expr_type.name(self.vm);
@@ -291,11 +291,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.vm.diag.lock().report(self.file, expr.pos, msg);
         }
 
-        self.visit_expr(&expr.then_block);
+        self.check_expr(&expr.then_block, BuiltinType::Any);
         let then_type = self.expr_type;
 
         let merged_type = if let Some(ref else_block) = expr.else_block {
-            self.visit_expr(else_block);
+            self.check_expr(else_block, BuiltinType::Any);
             let else_type = self.expr_type;
 
             if expr_always_returns(&expr.then_block) {
@@ -433,7 +433,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         } else if e.lhs.is_ident() {
             let lhs_type;
 
-            self.visit_expr(&e.rhs);
+            self.check_expr(&e.rhs, BuiltinType::Any);
             let rhs_type = self.expr_type;
 
             self.src.set_ty(e.id, BuiltinType::Unit);
@@ -557,19 +557,19 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_assign_call(&mut self, e: &'ast ExprBinType) {
         let call = e.lhs.to_call().unwrap();
 
-        self.visit_expr(&call.callee);
+        self.check_expr(&call.callee, BuiltinType::Any);
         let expr_type = self.expr_type;
 
         let mut arg_types: Vec<BuiltinType> = call
             .args
             .iter()
             .map(|arg| {
-                self.visit_expr(arg);
+                self.check_expr(arg, BuiltinType::Any);
                 self.expr_type
             })
             .collect();
 
-        self.visit_expr(&e.rhs);
+        self.check_expr(&e.rhs, BuiltinType::Any);
         let value_type = self.expr_type;
 
         let name = self.vm.interner.intern("set");
@@ -606,10 +606,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
         };
 
-        self.visit_expr(&field_expr.lhs);
+        self.check_expr(&field_expr.lhs, BuiltinType::Any);
         let object_type = self.expr_type;
 
-        self.visit_expr(&e.rhs);
+        self.check_expr(&e.rhs, BuiltinType::Any);
         let rhs_type = self.expr_type;
 
         if object_type.cls_id(self.vm).is_some() {
@@ -715,7 +715,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             return;
         }
 
-        self.visit_expr(&e.opnd);
+        self.check_expr(&e.opnd, BuiltinType::Any);
         let opnd = self.expr_type;
 
         match e.op {
@@ -763,10 +763,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             return;
         }
 
-        self.visit_expr(&e.lhs);
+        self.check_expr(&e.lhs, BuiltinType::Any);
         let lhs_type = self.expr_type;
 
-        self.visit_expr(&e.rhs);
+        self.check_expr(&e.rhs, BuiltinType::Any);
         let rhs_type = self.expr_type;
 
         if lhs_type.is_error() || rhs_type.is_error() {
@@ -942,7 +942,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_call(&mut self, e: &'ast ExprCallType) {
         self.used_in_call.insert(e.callee.id());
 
-        self.visit_expr(&e.callee);
+        self.check_expr(&e.callee, BuiltinType::Any);
         let expr_type = self.expr_type;
         let ident_type = self.src.map_idents.get(e.callee.id()).cloned();
 
@@ -950,7 +950,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             .args
             .iter()
             .map(|arg| {
-                self.visit_expr(arg);
+                self.check_expr(arg, BuiltinType::Any);
                 self.expr_type
             })
             .collect();
@@ -1452,7 +1452,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             .args
             .iter()
             .map(|arg| {
-                self.visit_expr(arg);
+                self.check_expr(arg, BuiltinType::Any);
                 self.expr_type
             })
             .collect();
@@ -1594,7 +1594,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.used_in_call.insert(e.callee.id());
         }
 
-        self.visit_expr(&e.callee);
+        self.check_expr(&e.callee, BuiltinType::Any);
         let ident_type = self.src.map_idents.get(e.callee.id()).cloned();
 
         let type_params: Vec<BuiltinType> = e.args.iter().map(|p| self.src.ty(p.id())).collect();
@@ -1637,7 +1637,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let object_type = if e.lhs.is_super() {
             self.super_type(e.lhs.pos())
         } else {
-            self.visit_expr(&e.lhs);
+            self.check_expr(&e.lhs, BuiltinType::Any);
             self.expr_type
         };
 
@@ -1808,7 +1808,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_conv(&mut self, e: &'ast ExprConvType) {
-        self.visit_expr(&e.object);
+        self.check_expr(&e.object, BuiltinType::Any);
         let object_type = self.expr_type;
         self.src.set_ty(e.object.id(), object_type);
 
@@ -1905,7 +1905,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         for (idx, part) in e.parts.iter().enumerate() {
             if idx % 2 != 0 {
-                self.visit_expr(part);
+                self.check_expr(part, BuiltinType::Any);
 
                 let implements_stringable = match self.expr_type {
                     BuiltinType::FctTypeParam(fct_id, tp_id) => {
@@ -1944,10 +1944,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.src.set_ty(e.id, str_ty);
         self.expr_type = str_ty;
     }
-}
 
-impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
-    fn visit_expr(&mut self, e: &'ast Expr) {
+    fn check_expr(&mut self, e: &'ast Expr, _expected_ty: BuiltinType) {
         match *e {
             ExprLitChar(ref expr) => self.check_expr_lit_char(expr),
             ExprLitInt(ref expr) => self.check_expr_lit_int(expr, false),
@@ -1973,6 +1971,12 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprTuple(ref expr) => self.check_expr_tuple(expr),
         }
     }
+}
+
+impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
+    fn visit_expr(&mut self, _e: &'ast Expr) {
+        unreachable!();
+    }
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         match *s {
@@ -1984,7 +1988,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             // for the rest of the statements, no special handling is necessary
             StmtBreak(_) => visit::walk_stmt(self, s),
             StmtContinue(_) => visit::walk_stmt(self, s),
-            StmtExpr(_) => visit::walk_stmt(self, s),
+            StmtExpr(ref stmt) => self.check_expr(&stmt.expr, BuiltinType::Any),
         }
 
         self.src.set_ty(s.id(), BuiltinType::Unit);
@@ -2028,7 +2032,7 @@ fn arg_allows(
     self_ty: Option<BuiltinType>,
 ) -> bool {
     match def {
-        BuiltinType::Error => panic!("error shouldn't occur in fct definition."),
+        BuiltinType::Error | BuiltinType::Any => unreachable!(),
         BuiltinType::Unit
         | BuiltinType::Bool
         | BuiltinType::Byte

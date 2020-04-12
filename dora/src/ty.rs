@@ -13,6 +13,9 @@ pub enum BuiltinType {
     // couldn't determine type because of error
     Error,
 
+    // Allow any type here, used for type inference
+    Any,
+
     // type with only one value: ()
     Unit,
 
@@ -249,6 +252,7 @@ impl BuiltinType {
     pub fn name(&self, vm: &VM) -> String {
         match *self {
             BuiltinType::Error => "<error>".into(),
+            BuiltinType::Any => "Any".into(),
             BuiltinType::Unit => "()".into(),
             BuiltinType::Byte => "Byte".into(),
             BuiltinType::Char => "Char".into(),
@@ -370,6 +374,9 @@ impl BuiltinType {
             // don't report too many messages for the same error
             BuiltinType::Error => true,
 
+            // Any allows all other types
+            BuiltinType::Any => true,
+
             BuiltinType::Unit
             | BuiltinType::Bool
             | BuiltinType::Byte
@@ -451,6 +458,7 @@ impl BuiltinType {
             BuiltinType::Enum(_, _) => 4,
             BuiltinType::Nil => panic!("no size for nil."),
             BuiltinType::This => panic!("no size for Self."),
+            BuiltinType::Any => panic!("no size for Any."),
             BuiltinType::Class(_, _)
             | BuiltinType::Module(_)
             | BuiltinType::Lambda(_)
@@ -484,6 +492,7 @@ impl BuiltinType {
             BuiltinType::Double => 8,
             BuiltinType::Nil => panic!("no alignment for nil."),
             BuiltinType::This => panic!("no alignment for Self."),
+            BuiltinType::Any => panic!("no alignment for Any."),
             BuiltinType::Enum(_, _) => 4,
             BuiltinType::Class(_, _)
             | BuiltinType::Module(_)
@@ -519,6 +528,7 @@ impl BuiltinType {
             BuiltinType::Enum(_, _) => MachineMode::Int32,
             BuiltinType::Nil => panic!("no machine mode for nil."),
             BuiltinType::This => panic!("no machine mode for Self."),
+            BuiltinType::Any => panic!("no machine mode for Any."),
             BuiltinType::Class(_, _)
             | BuiltinType::Module(_)
             | BuiltinType::Lambda(_)
@@ -534,7 +544,7 @@ impl BuiltinType {
 
     pub fn is_concrete_type(&self, vm: &VM) -> bool {
         match *self {
-            BuiltinType::Error | BuiltinType::This => false,
+            BuiltinType::Error | BuiltinType::This | BuiltinType::Any => false,
             BuiltinType::Unit
             | BuiltinType::Bool
             | BuiltinType::Byte

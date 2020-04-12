@@ -3479,7 +3479,8 @@ fn result_reg_ty(ty: BuiltinType) -> ExprStore {
 
 fn check_for_nil(ty: BuiltinType) -> bool {
     match ty {
-        BuiltinType::Error => panic!("error shouldn't occur in code generation."),
+        BuiltinType::Error => unreachable!(),
+        BuiltinType::Any => unreachable!(),
         BuiltinType::Unit => false,
         BuiltinType::Byte
         | BuiltinType::Char
