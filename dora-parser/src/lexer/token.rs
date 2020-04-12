@@ -102,7 +102,6 @@ pub enum TokenKind {
     Alias,
     CapitalThis,
     Underscore,
-    Defer,
 }
 
 impl TokenKind {
@@ -211,7 +210,6 @@ impl TokenKind {
             TokenKind::Alias => "alias",
             TokenKind::CapitalThis => "Self",
             TokenKind::Underscore => "_",
-            TokenKind::Defer => "defer",
 
             // end of file
             TokenKind::End => "<<EOF>>",

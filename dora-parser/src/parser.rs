@@ -1083,21 +1083,6 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_defer(&mut self) -> StmtResult {
-        let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Defer)?.position;
-        let expr = self.parse_expression()?;
-        self.expect_semicolon()?;
-        let span = self.span_from(start);
-
-        Ok(Box::new(Stmt::create_defer(
-            self.generate_id(),
-            pos,
-            span,
-            expr,
-        )))
-    }
-
     fn parse_var(&mut self) -> StmtResult {
         let start = self.token.span.start();
         let reassignable = if self.token.is(TokenKind::Let) {
@@ -1210,7 +1195,6 @@ impl<'a> Parser<'a> {
                 self.token.position,
                 ParseError::MisplacedElse,
             )),
-            TokenKind::Defer => Ok(StmtOrExpr::Stmt(self.parse_defer()?)),
             TokenKind::For => Ok(StmtOrExpr::Stmt(self.parse_for()?)),
             _ => {
                 let expr = self.parse_expression()?;
@@ -3136,14 +3120,6 @@ mod tests {
         assert_eq!("a", *interner.str(call.callee.to_ident().unwrap().name));
         assert_eq!(1, call.args.len());
         assert_eq!("b", *interner.str(call.args[0].to_ident().unwrap().name));
-    }
-
-    #[test]
-    fn parse_defer() {
-        let stmt = parse_stmt("defer foo();");
-        let defer = stmt.to_defer().unwrap();
-
-        assert!(defer.expr.is_call());
     }
 
     #[test]

@@ -245,17 +245,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_stmt_defer(&mut self, s: &'ast StmtDeferType) {
-        self.visit_expr(&s.expr);
-
-        if !s.expr.is_call() {
-            self.vm
-                .diag
-                .lock()
-                .report(self.file, s.pos, SemError::FctCallExpected);
-        }
-    }
-
     fn check_expr_block(&mut self, block: &'ast ExprBlockType) {
         for stmt in &block.stmts {
             self.visit_stmt(stmt);
@@ -1991,7 +1980,6 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             StmtWhile(ref stmt) => self.check_stmt_while(stmt),
             StmtFor(ref stmt) => self.check_stmt_for(stmt),
             StmtReturn(ref stmt) => self.check_stmt_return(stmt),
-            StmtDefer(ref stmt) => self.check_stmt_defer(stmt),
 
             // for the rest of the statements, no special handling is necessary
             StmtBreak(_) => visit::walk_stmt(self, s),

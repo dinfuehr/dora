@@ -138,7 +138,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             StmtExpr(ref expr) => self.visit_stmt_expr(expr),
             StmtVar(ref stmt) => self.visit_stmt_var(stmt),
             StmtWhile(ref stmt) => self.visit_stmt_while(stmt),
-            StmtDefer(_) => unimplemented!(),
             StmtFor(ref stmt) => self.visit_stmt_for(stmt),
         }
     }

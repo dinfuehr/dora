@@ -358,7 +358,6 @@ impl<'a> AstDumper<'a> {
             StmtExpr(ref expr) => self.dump_stmt_expr(expr),
             StmtVar(ref stmt) => self.dump_stmt_var(stmt),
             StmtWhile(ref stmt) => self.dump_stmt_while(stmt),
-            StmtDefer(ref stmt) => self.dump_stmt_defer(stmt),
             StmtFor(ref stmt) => self.dump_stmt_for(stmt),
         }
     }
@@ -450,11 +449,6 @@ impl<'a> AstDumper<'a> {
 
     fn dump_stmt_continue(&mut self, stmt: &StmtContinueType) {
         dump!(self, "continue @ {} {}", stmt.pos, stmt.id);
-    }
-
-    fn dump_stmt_defer(&mut self, stmt: &StmtDeferType) {
-        dump!(self, "defer @ {} {}", stmt.pos, stmt.id);
-        self.indent(|d| d.dump_expr(&stmt.expr));
     }
 
     fn dump_expr(&mut self, expr: &Expr) {

@@ -662,7 +662,6 @@ pub enum Stmt {
     StmtBreak(StmtBreakType),
     StmtContinue(StmtContinueType),
     StmtReturn(StmtReturnType),
-    StmtDefer(StmtDeferType),
     StmtFor(StmtForType),
 }
 
@@ -752,16 +751,6 @@ impl Stmt {
         })
     }
 
-    pub fn create_defer(id: NodeId, pos: Position, span: Span, expr: Box<Expr>) -> Stmt {
-        Stmt::StmtDefer(StmtDeferType {
-            id,
-            pos,
-            span,
-
-            expr,
-        })
-    }
-
     pub fn id(&self) -> NodeId {
         match *self {
             Stmt::StmtVar(ref stmt) => stmt.id,
@@ -771,7 +760,6 @@ impl Stmt {
             Stmt::StmtBreak(ref stmt) => stmt.id,
             Stmt::StmtContinue(ref stmt) => stmt.id,
             Stmt::StmtReturn(ref stmt) => stmt.id,
-            Stmt::StmtDefer(ref stmt) => stmt.id,
         }
     }
 
@@ -784,7 +772,6 @@ impl Stmt {
             Stmt::StmtBreak(ref stmt) => stmt.pos,
             Stmt::StmtContinue(ref stmt) => stmt.pos,
             Stmt::StmtReturn(ref stmt) => stmt.pos,
-            Stmt::StmtDefer(ref stmt) => stmt.pos,
         }
     }
 
@@ -797,21 +784,6 @@ impl Stmt {
             Stmt::StmtBreak(ref stmt) => stmt.span,
             Stmt::StmtContinue(ref stmt) => stmt.span,
             Stmt::StmtReturn(ref stmt) => stmt.span,
-            Stmt::StmtDefer(ref stmt) => stmt.span,
-        }
-    }
-
-    pub fn to_defer(&self) -> Option<&StmtDeferType> {
-        match *self {
-            Stmt::StmtDefer(ref val) => Some(val),
-            _ => None,
-        }
-    }
-
-    pub fn is_defer(&self) -> bool {
-        match *self {
-            Stmt::StmtDefer(_) => true,
-            _ => false,
         }
     }
 
@@ -978,15 +950,6 @@ pub struct StmtContinueType {
     pub id: NodeId,
     pub pos: Position,
     pub span: Span,
-}
-
-#[derive(Clone, Debug)]
-pub struct StmtDeferType {
-    pub id: NodeId,
-    pub pos: Position,
-    pub span: Span,
-
-    pub expr: Box<Expr>,
 }
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
