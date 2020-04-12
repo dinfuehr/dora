@@ -99,7 +99,6 @@ pub enum TokenKind {
 
     // unused
     AddEq,
-    Tilde,
     Type,
     Alias,
     CapitalThis,
@@ -210,7 +209,6 @@ impl TokenKind {
 
             // unused
             TokenKind::AddEq => "+=",
-            TokenKind::Tilde => "~",
             TokenKind::Type => "type",
             TokenKind::Alias => "alias",
             TokenKind::CapitalThis => "Self",
