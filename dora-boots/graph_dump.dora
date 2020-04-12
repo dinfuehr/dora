@@ -136,6 +136,9 @@ fun compareStrings(lhs: String, rhs: String) -> Bool {
     var lhsIterator = lhs.codePoints();
     var rhsIterator = rhs.codePoints();
 
+    skipWhite(lhsIterator);
+    skipWhite(rhsIterator);
+
     while true {
         if !lhsIterator.hasNext() && !rhsIterator.hasNext() {
             return true;
@@ -164,4 +167,20 @@ fun compareStrings(lhs: String, rhs: String) -> Bool {
     }
 
     false
+}
+
+fun skipWhite(it: CodepointIterator) {
+    while it.hasNext() {
+        let ch = it.peek();
+
+        if isWhite(ch) {
+            it.next();
+        } else {
+            break;
+        }
+    }
+}
+
+fun isWhite(ch: Char) -> Bool {
+    ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r'
 }
