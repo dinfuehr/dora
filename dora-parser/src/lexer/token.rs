@@ -195,7 +195,7 @@ impl TokenKind {
             TokenKind::Colon => ":",
             TokenKind::ColonColon => "::",
             TokenKind::At => "@",
-            TokenKind::Arrow => "=>",
+            TokenKind::Arrow => "->",
 
             // brackets
             TokenKind::LParen => "(",
