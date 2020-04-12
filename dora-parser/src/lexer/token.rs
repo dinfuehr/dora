@@ -98,7 +98,6 @@ pub enum TokenKind {
     RBrace,
 
     // unused
-    AddEq,
     Type,
     Alias,
     CapitalThis,
@@ -208,7 +207,6 @@ impl TokenKind {
             TokenKind::RBrace => "}",
 
             // unused
-            TokenKind::AddEq => "+=",
             TokenKind::Type => "type",
             TokenKind::Alias => "alias",
             TokenKind::CapitalThis => "Self",

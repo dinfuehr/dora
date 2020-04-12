@@ -1373,7 +1373,7 @@ impl<'a> Parser<'a> {
             let right_precedence = match self.token.kind {
                 TokenKind::Or => 1,
                 TokenKind::And => 2,
-                TokenKind::Eq | TokenKind::AddEq => 3,
+                TokenKind::Eq => 3,
                 TokenKind::EqEq
                 | TokenKind::NotEq
                 | TokenKind::Lt
