@@ -5,46 +5,50 @@ use crate::lexer::position::{Position, Span};
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum TokenKind {
+    // literals
     StringTail(String),
     StringExpr(String),
     LitChar(char),
     LitInt(String, IntBase, IntSuffix),
     LitFloat(String, FloatSuffix),
     Identifier(String),
-    End,
-
-    // Keywords
-    Class,
-    This,
-    CapitalThis,
-    Super,
-    Fun,
-    Let,
-    Var,
-    While,
-    If,
-    Else,
-    For,
-    In,
-    Break,
-    Continue,
-    Return,
     True,
     False,
     Nil,
     At,
+    End,
 
+    // namespacing
+    Package,
+    Import,
+
+    // "big" shapes
+    Class,
     Enum,
-    Type,
-    Alias,
     Struct,
     Trait,
     Impl,
     Module,
+
+    // "small" shapes
+    Fun,
+    Let,
+    Var,
     Const,
 
-    Underscore,
-    Defer,
+    // control flow
+    Return,
+    If,
+    Else,
+    While,
+    For,
+    In,
+    Break,
+    Continue,
+
+    // qualifiers
+    This,
+    Super,
 
     // Operators
     Add,
@@ -88,6 +92,13 @@ pub enum TokenKind {
     GtGt,
     GtGtGt,
     LtLt,
+
+    // unused
+    Type,
+    Alias,
+    CapitalThis,
+    Underscore,
+    Defer,
 }
 
 impl TokenKind {
@@ -110,6 +121,10 @@ impl TokenKind {
 
             TokenKind::Identifier(_) => "identifier",
             TokenKind::End => "<<EOF>>",
+
+            // namespacing
+            TokenKind::Package => "package",
+            TokenKind::Import => "import",
 
             // Keywords
             TokenKind::Class => "class",

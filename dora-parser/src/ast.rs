@@ -20,6 +20,16 @@ impl Ast {
     }
 
     #[cfg(test)]
+    pub fn package(&self) -> &Package {
+        self.files.last().unwrap().package.as_ref().unwrap()
+    }
+
+    #[cfg(test)]
+    pub fn import(&self, index: usize) -> &Import {
+        &self.files.last().unwrap().imports[index]
+    }
+
+    #[cfg(test)]
     pub fn fct0(&self) -> &Function {
         self.files.last().unwrap().elements[0]
             .to_function()
@@ -98,6 +108,8 @@ impl Ast {
 #[derive(Clone, Debug)]
 pub struct File {
     pub path: String,
+    pub package: Option<Package>,
+    pub imports: Vec<Import>,
     pub elements: Vec<Elem>,
 }
 
@@ -108,6 +120,22 @@ impl fmt::Display for NodeId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "#{}", self.0)
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct Package {
+    pub id: NodeId,
+    pub pos: Position,
+    pub span: Span,
+    pub path: Vec<Name>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Import {
+    pub id: NodeId,
+    pub pos: Position,
+    pub span: Span,
+    pub path: Vec<Name>,
 }
 
 #[derive(Clone, Debug)]

@@ -550,6 +550,8 @@ fn is_identifier(ch: Option<char>) -> bool {
 fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     let mut keywords = HashMap::new();
 
+    keywords.insert("package", TokenKind::Package);
+    keywords.insert("import", TokenKind::Import);
     keywords.insert("class", TokenKind::Class);
     keywords.insert("self", TokenKind::This);
     keywords.insert("Self", TokenKind::CapitalThis);
@@ -1001,6 +1003,10 @@ mod tests {
 
     #[test]
     fn test_keywords() {
+        let mut reader = Lexer::from_str("package import");
+        assert_tok(&mut reader, TokenKind::Package, 1, 1);
+        assert_tok(&mut reader, TokenKind::Import, 1, 9);
+
         let mut reader = Lexer::from_str("fun let while if else self class");
         assert_tok(&mut reader, TokenKind::Fun, 1, 1);
         assert_tok(&mut reader, TokenKind::Let, 1, 5);
