@@ -251,10 +251,6 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
             }
         }
 
-        StmtDefer(ref value) => {
-            v.visit_expr(&value.expr);
-        }
-
         StmtBreak(_) => {}
         StmtContinue(_) => {}
     }

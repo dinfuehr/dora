@@ -3445,7 +3445,6 @@ impl<'a, 'ast> visit::Visitor<'ast> for AstCodeGen<'a, 'ast> {
             StmtBreak(ref stmt) => self.emit_stmt_break(stmt),
             StmtContinue(ref stmt) => self.emit_stmt_continue(stmt),
             StmtVar(ref stmt) => self.emit_stmt_var(stmt),
-            StmtDefer(_) => unimplemented!(),
         }
     }
 

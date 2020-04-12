@@ -522,24 +522,6 @@ fn type_array_assign() {
 }
 
 #[test]
-fn type_defer() {
-    ok("fun foo() { }
-            fun f() { defer foo(); }");
-
-    err(
-        "fun foo(a: Int) {} fun f() { defer foo();}",
-        pos(1, 39),
-        SemError::ParamTypesIncompatible("foo".into(), vec!["Int".into()], vec![]),
-    );
-
-    err(
-        "fun f() { defer 1; }",
-        pos(1, 11),
-        SemError::FctCallExpected,
-    );
-}
-
-#[test]
 fn let_without_initialization() {
     err(
         "fun f() { let x: Int; }",
