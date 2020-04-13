@@ -28,6 +28,10 @@ class Graph {
         self.exitBlock = block;
     }
 
+    fun getExitBlock() -> Block {
+        self.exitBlock
+    }
+
     fun nextInstId() -> Int {
         let id = self.nextInstIdValue;
         self.nextInstIdValue = id + 1;
@@ -50,7 +54,7 @@ class Graph {
 class Block() {
     var id: Int = -1;
 
-    var phis: Vec[Inst] = Vec[Inst]();
+    var phis: InstLinkedList = InstLinkedList();
     var instructions: InstLinkedList = InstLinkedList();
 
     var graph: Option[Graph] = none[Graph]();
@@ -92,12 +96,12 @@ class Block() {
 
     fun addPredecessor(block: Block) {
         self.predecessors.push(block);
-        block.successors.push(block);
+        block.successors.push(self);
     }
 
     fun addSuccessor(block: Block) {
         self.successors.push(block);
-        block.predecessors.push(block);
+        block.predecessors.push(self);
     }
 
     fun appendPhi(phi: PhiInst) -> PhiInst {
@@ -106,7 +110,7 @@ class Block() {
         phi.block = some[Block](self);
         phi.id = self.graph.unwrap().nextInstId();
 
-        self.phis.push(phi);
+        self.phis.appendInst(phi);
         phi.registerUses();
 
         phi
@@ -461,6 +465,20 @@ class InstLinkedList {
 
 class InstIterator(block: Block) {
     var current: Option[Inst] = block.instructions.first;
+
+    fun hasNext() -> Bool {
+        self.current.isSome()
+    }
+
+    fun next() -> Inst {
+        let inst = self.current.unwrap();
+        self.current = inst.next;
+        inst
+    }
+}
+
+class PhiInstIterator(block: Block) {
+    var current: Option[Inst] = block.phis.first;
 
     fun hasNext() -> Bool {
         self.current.isSome()

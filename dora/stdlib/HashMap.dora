@@ -39,7 +39,11 @@ class HashMap[K: Hash + Equals, V] {
     }
 
     fun contains(key: K) -> Bool {
-        assert(self.size < self.cap);
+        assert(self.size <= self.cap);
+
+        if self.size == 0 {
+            return false;
+        }
 
         var hash = key.hash();
         var idx = hash & (self.cap - 1);
@@ -62,7 +66,11 @@ class HashMap[K: Hash + Equals, V] {
     }
 
     fun get(key: K) -> Option[V] {
-        assert(self.size < self.cap);
+        assert(self.size <= self.cap);
+
+        if self.size == 0 {
+            return none[V]();
+        }
 
         var hash = key.hash();
         var idx = hash & (self.cap - 1);

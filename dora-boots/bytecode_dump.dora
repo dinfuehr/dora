@@ -343,8 +343,6 @@ class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
 
     @override fun visitNewObject(dest: BytecodeRegister, cls: ClassDefId) { self.emitNew("NewObject", dest, cls); }
     
-    @override fun visitThrow(opnd: BytecodeRegister) { self.emitReg1("Throw", opnd); }
-
     @override fun visitRetVoid() { self.emitInst("RetVoid"); }
     @override fun visitRetBool(opnd: BytecodeRegister) { self.emitReg1("RetBool", opnd); }
     @override fun visitRetByte(opnd: BytecodeRegister) { self.emitReg1("RetByte", opnd); }

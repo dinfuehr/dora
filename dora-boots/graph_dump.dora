@@ -61,6 +61,12 @@ class GraphDumper(let graph: Graph) {
 
         self.buffer.appendNewline();
 
+        let iter = PhiInstIterator(block);
+        while iter.hasNext() {
+            let inst = iter.next();
+            self.dumpInst(inst);
+        }
+
         let iter = InstIterator(block);
         while iter.hasNext() {
             let inst = iter.next();

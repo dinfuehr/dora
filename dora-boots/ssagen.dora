@@ -1,36 +1,29 @@
 fun createGraph(bc: BytecodeFunction) -> Graph {
-    let basicBlocks = BasicBlockAnalysis(bc);
-    basicBlocks.analyze();
-    let startOffsets = basicBlocks.startOffsets;
-    let numberBlocks = basicBlocks.numberBlocks;
+    let graph = Graph();
 
-    let ssagen = SsaGen(bc, startOffsets, numberBlocks);
+    let blockBuilder = BlockBuilder(graph, bc);
+    blockBuilder.createBlocks();
+
+    let ssagen = SsaGen(graph, bc, blockBuilder);
     ssagen.prepare();
     ssagen.setupArguments();
     readBytecode(bc.code, ssagen);
     ssagen.graph
 }
 
-class SsaGen(let bc: BytecodeFunction, let startOffsets: BitSet, let numberBlocks: Int): BytecodeVisitor {
-    let graph: Graph = Graph();
+class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: BlockBuilder): BytecodeVisitor {
     var currentBlock: Block;
-    var currentJoinBlock: Block;
     var offset: Int = 0;
     var currentDef: Array[HashMap[Block, Inst]];
     var incompletePhis: Array[HashMap[BytecodeRegister, PhiInst]];
     var sealedBlocks: BitSet;
-    var blocks: HashMap[Int, Block] = HashMap[Int, Block]();
 
     fun prepare() {
-        self.createBlocks();
-
-        self.currentBlock = self.blocks.get(0).unwrap();
-        self.graph.setEntryBlock(self.currentBlock);
-        self.graph.setExitBlock(self.currentBlock);
+        self.currentBlock = self.blockBuilder.blockAt(0).unwrap();
 
         self.currentDef = Array[HashMap[Block, Inst]](self.bc.registers.length());
-        self.incompletePhis = Array[HashMap[BytecodeRegister, PhiInst]](self.numberBlocks);
-        self.sealedBlocks = BitSet(self.numberBlocks);
+        self.incompletePhis = Array[HashMap[BytecodeRegister, PhiInst]](self.graph.blocks.length());
+        self.sealedBlocks = BitSet(self.graph.blocks.length());
 
         for i in range(0, self.currentDef.length()) {
             self.currentDef(i) = HashMap[Block, Inst]();
@@ -41,26 +34,14 @@ class SsaGen(let bc: BytecodeFunction, let startOffsets: BitSet, let numberBlock
         }
     }
 
-    fun createBlocks() {
-        var i = 0;
-
-        while i < self.startOffsets.length() {
-            if self.startOffsets.contains(i) {
-                let block = Block();
-                self.graph.addBlock(block);
-                self.blocks.insert(i, block);
-            }
-            i = i + 1;
-        }
-    }
-
     fun setupArguments() {
         var i = 0;
+        let entryBlock = self.graph.getEntryBlock();
         while i < self.bc.arguments {
             let ty = Type::fromBytecodeType(self.bc.registers.get(i));
             let argInst = ArgInst(i, ty);
-            self.currentBlock.appendInst(argInst);
-            self.writeVariable(BytecodeRegister(i), self.currentBlock, argInst);
+            entryBlock.appendInst(argInst);
+            self.writeVariable(BytecodeRegister(i), entryBlock, argInst);
             i = i + 1;
         }
     }
@@ -161,27 +142,8 @@ class SsaGen(let bc: BytecodeFunction, let startOffsets: BitSet, let numberBlock
         self.sealedBlocks.insert(block.id);
     }
 
-    fun findNextBlock(offset: Int) -> Block {
-        var i = offset+1;
-
-        while i < self.startOffsets.length() {
-            if self.startOffsets.contains(i) {
-                return self.blocks.get(i).unwrap();
-            }
-
-            i = i + 1;
-        }
-
-        unreachable();
-        nil
-    }
-
     @override fun visitInstruction(offset: Int) {
         self.offset = offset;
-
-        if self.startOffsets.contains(offset) {
-            self.currentBlock = self.blocks.get(offset).unwrap();
-        }
     }
 
     @override fun visitAddInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
@@ -503,12 +465,13 @@ class SsaGen(let bc: BytecodeFunction, let startOffsets: BitSet, let numberBlock
     @override fun visitJumpLoop(offset: Int) { unimplemented(); }
     
     @override fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int) {
-        let opndInst = self.readVariable(opnd, self.currentBlock);
-        let jumpTarget = self.blocks.get(self.offset + offset).unwrap();
-        let fallthroughTarget = self.findNextBlock(self.offset);
+        unimplemented();
+        // let opndInst = self.readVariable(opnd, self.currentBlock);
+        // let jumpTarget = self.blocks.get(self.offset + offset).unwrap();
+        // let fallthroughTarget = self.findNextBlock(self.offset);
 
-        let condInst = CondInst(opndInst, fallthroughTarget, jumpTarget);
-        self.currentBlock.appendInst(condInst);
+        // let condInst = CondInst(opndInst, fallthroughTarget, jumpTarget);
+        // self.currentBlock.appendInst(condInst);
     }
     @override fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
     @override fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int) { unimplemented(); }
@@ -585,26 +548,52 @@ class SsaGen(let bc: BytecodeFunction, let startOffsets: BitSet, let numberBlock
     }
 }
 
-class BasicBlockAnalysis(let bc: BytecodeFunction): BytecodeVisitor {
+class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): BytecodeVisitor {
     var offset: Int = 0;
-    var startOffsets: BitSet = BitSet(bc.code.length());
-    var numberBlocks: Int = 0;
+    var currentBlock: Block;
     var nextInstructionIsBlockStart: Bool = false;
+    var blocks: HashMap[Int, Block] = HashMap[Int, Block]();
 
-    fun analyze() {
-        // first instruction starts entry block
-        self.nextInstructionIsBlockStart = true;
+    fun createBlocks() {
+        let entryBlock = Block();
+        self.graph.addBlock(entryBlock);
+        self.graph.setEntryBlock(entryBlock);
+
+        let exitBlock = Block();
+        self.graph.addBlock(exitBlock);
+        self.graph.setExitBlock(exitBlock);
+
+        // create block for first instruction
+        self.currentBlock = self.ensureBlockAt(0);
 
         // iterate all bytecodes
         readBytecode(self.bc.code, self);
+    }
+
+    fun blockAt(offset: Int) -> Option[Block] {
+        self.blocks.get(offset)
+    }
+
+    fun ensureBlockAt(offset: Int) -> Block {
+        let result = self.blocks.get(offset);
+        if result.isSome() { return result.unwrap(); }
+
+        let block = Block();
+        self.graph.addBlock(block);
+        self.blocks.insert(offset, block);
+
+        block
     }
 
     @override fun visitInstruction(offset: Int) {
         self.offset = offset;
 
         if self.nextInstructionIsBlockStart {
-            self.insert(offset);
+            let fallthroughBlock = self.ensureBlockAt(offset);
+            self.currentBlock.addSuccessor(fallthroughBlock);
+
             self.nextInstructionIsBlockStart = false;
+            self.currentBlock = fallthroughBlock;
         }
     }
 
@@ -751,35 +740,42 @@ class BasicBlockAnalysis(let bc: BytecodeFunction): BytecodeVisitor {
     @override fun visitTestLeDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
     @override fun visitJumpLoop(offset: Int) {
-        self.insert(self.offset - offset);
+        let targetBlock = self.ensureBlockAt(self.offset - offset);
+        self.currentBlock.addSuccessor(targetBlock);
         self.nextInstructionIsBlockStart = true;
     }
 
     @override fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int) {
-        self.insert(self.offset + offset);
+        let targetBlock = self.ensureBlockAt(self.offset + offset);
+        self.currentBlock.addSuccessor(targetBlock);
         self.nextInstructionIsBlockStart = true;
     }
     @override fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) {
         let offset = self.bc.constPool(idx).toInt().unwrap();
-        self.insert(self.offset + offset);
+        let targetBlock = self.ensureBlockAt(self.offset + offset);
+        self.currentBlock.addSuccessor(targetBlock);
         self.nextInstructionIsBlockStart = true;
     }
     @override fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int) {
-        self.insert(self.offset + offset);
+        let targetBlock = self.ensureBlockAt(self.offset + offset);
+        self.currentBlock.addSuccessor(targetBlock);
         self.nextInstructionIsBlockStart = true;
     }
     @override fun visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) {
         let offset = self.bc.constPool(idx).toInt().unwrap();
-        self.insert(self.offset + offset);
+        let targetBlock = self.ensureBlockAt(self.offset + offset);
+        self.currentBlock.addSuccessor(targetBlock);
         self.nextInstructionIsBlockStart = true;
     }
     @override fun visitJump(offset: Int) {
-        self.insert(self.offset + offset);
+        let targetBlock = self.ensureBlockAt(self.offset + offset);
+        self.currentBlock.addSuccessor(targetBlock);
         self.nextInstructionIsBlockStart = true;
     }
     @override fun visitJumpConst(idx: ConstPoolId) {
         let offset = self.bc.constPool(idx).toInt().unwrap();
-        self.insert(self.offset + offset);
+        let targetBlock = self.ensureBlockAt(self.offset + offset);
+        self.currentBlock.addSuccessor(targetBlock);
         self.nextInstructionIsBlockStart = true;
     }
 
@@ -815,44 +811,41 @@ class BasicBlockAnalysis(let bc: BytecodeFunction): BytecodeVisitor {
 
     @override fun visitNewObject(dest: BytecodeRegister, cls: ClassDefId) {}
 
-    @override fun visitThrow(opnd: BytecodeRegister) {}
-
     @override fun visitRetVoid() {
         self.nextInstructionIsBlockStart = true;
     }
 
     @override fun visitRetBool(opnd: BytecodeRegister) {
+        self.currentBlock.addSuccessor(self.graph.getExitBlock());
         self.nextInstructionIsBlockStart = true;
     }
     @override fun visitRetByte(opnd: BytecodeRegister) {
+        self.currentBlock.addSuccessor(self.graph.getExitBlock());
         self.nextInstructionIsBlockStart = true;
     }
     @override fun visitRetChar(opnd: BytecodeRegister) {
+        self.currentBlock.addSuccessor(self.graph.getExitBlock());
         self.nextInstructionIsBlockStart = true;
     }
     @override fun visitRetInt(opnd: BytecodeRegister) {
+        self.currentBlock.addSuccessor(self.graph.getExitBlock());
         self.nextInstructionIsBlockStart = true;
     }
 
     @override fun visitRetLong(opnd: BytecodeRegister) {
+        self.currentBlock.addSuccessor(self.graph.getExitBlock());
         self.nextInstructionIsBlockStart = true;
     }
     @override fun visitRetFloat(opnd: BytecodeRegister) {
+        self.currentBlock.addSuccessor(self.graph.getExitBlock());
         self.nextInstructionIsBlockStart = true;
     }
     @override fun visitRetDouble(opnd: BytecodeRegister) {
+        self.currentBlock.addSuccessor(self.graph.getExitBlock());
         self.nextInstructionIsBlockStart = true;
     }
     @override fun visitRetPtr(opnd: BytecodeRegister) {
+        self.currentBlock.addSuccessor(self.graph.getExitBlock());
         self.nextInstructionIsBlockStart = true;
-    }
-
-    fun insert(offset: Int) {
-        if self.startOffsets.contains(offset) {
-            return;
-        }
-
-        self.startOffsets.insert(offset);
-        self.numberBlocks = self.numberBlocks + 1;
     }
 }

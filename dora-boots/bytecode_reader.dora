@@ -246,8 +246,6 @@ fun readBytecode(code: Array[Byte], visitor: BytecodeVisitor) {
 
     @open fun visitNewObject(dest: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
     
-    @open fun visitThrow(opnd: BytecodeRegister) { unimplemented(); }
-
     @open fun visitRetVoid() { unimplemented(); }
     @open fun visitRetBool(opnd: BytecodeRegister) { unimplemented(); }
     @open fun visitRetByte(opnd: BytecodeRegister) { unimplemented(); }
