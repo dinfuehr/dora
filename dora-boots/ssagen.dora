@@ -1,17 +1,17 @@
 fun createGraph(bc: BytecodeFunction) -> Graph {
-    let basicBlocks = BasicBlockFinder(bc);
+    let basicBlocks = BasicBlockAnalysis(bc);
     basicBlocks.analyze();
-    let starts = basicBlocks.starts;
-    let blocks = basicBlocks.blocks;
+    let startOffsets = basicBlocks.startOffsets;
+    let numberBlocks = basicBlocks.numberBlocks;
 
-    let ssagen = SsaGen(bc, starts, blocks);
+    let ssagen = SsaGen(bc, startOffsets, numberBlocks);
     ssagen.prepare();
     ssagen.setupArguments();
     readBytecode(bc.code, ssagen);
     ssagen.graph
 }
 
-class SsaGen(let bc: BytecodeFunction, let starts: BitSet, let blocks: Int): BytecodeVisitor {
+class SsaGen(let bc: BytecodeFunction, let startOffsets: BitSet, let numberBlocks: Int): BytecodeVisitor {
     let graph: Graph = Graph();
     var currentBlock: Block;
     var currentJoinBlock: Block;
@@ -19,15 +19,18 @@ class SsaGen(let bc: BytecodeFunction, let starts: BitSet, let blocks: Int): Byt
     var currentDef: Array[HashMap[Block, Inst]];
     var incompletePhis: Array[HashMap[BytecodeRegister, PhiInst]];
     var sealedBlocks: BitSet;
+    var blocks: HashMap[Int, Block] = HashMap[Int, Block]();
 
     fun prepare() {
-        self.currentBlock = Block();
-        self.graph.addBlock(self.currentBlock);
+        self.createBlocks();
+
+        self.currentBlock = self.blocks.get(0).unwrap();
         self.graph.setEntryBlock(self.currentBlock);
         self.graph.setExitBlock(self.currentBlock);
+
         self.currentDef = Array[HashMap[Block, Inst]](self.bc.registers.length());
-        self.incompletePhis = Array[HashMap[BytecodeRegister, PhiInst]](self.blocks);
-        self.sealedBlocks = BitSet(self.blocks);
+        self.incompletePhis = Array[HashMap[BytecodeRegister, PhiInst]](self.numberBlocks);
+        self.sealedBlocks = BitSet(self.numberBlocks);
 
         for i in range(0, self.currentDef.length()) {
             self.currentDef(i) = HashMap[Block, Inst]();
@@ -35,6 +38,19 @@ class SsaGen(let bc: BytecodeFunction, let starts: BitSet, let blocks: Int): Byt
 
         for i in range(0, self.incompletePhis.length()) {
             self.incompletePhis(i) = HashMap[BytecodeRegister, PhiInst]();
+        }
+    }
+
+    fun createBlocks() {
+        var i = 0;
+
+        while i < self.startOffsets.length() {
+            if self.startOffsets.contains(i) {
+                let block = Block();
+                self.graph.addBlock(block);
+                self.blocks.insert(i, block);
+            }
+            i = i + 1;
         }
     }
 
@@ -145,7 +161,28 @@ class SsaGen(let bc: BytecodeFunction, let starts: BitSet, let blocks: Int): Byt
         self.sealedBlocks.insert(block.id);
     }
 
-    @override fun visitInstruction(offset: Int) { self.offset = offset; }
+    fun findNextBlock(offset: Int) -> Block {
+        var i = offset+1;
+
+        while i < self.startOffsets.length() {
+            if self.startOffsets.contains(i) {
+                return self.blocks.get(i).unwrap();
+            }
+
+            i = i + 1;
+        }
+
+        unreachable();
+        nil
+    }
+
+    @override fun visitInstruction(offset: Int) {
+        self.offset = offset;
+
+        if self.startOffsets.contains(offset) {
+            self.currentBlock = self.blocks.get(offset).unwrap();
+        }
+    }
 
     @override fun visitAddInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitBin(dest, lhs, rhs, BinOp::Add, Type::int());
@@ -465,7 +502,14 @@ class SsaGen(let bc: BytecodeFunction, let starts: BitSet, let blocks: Int): Byt
 
     @override fun visitJumpLoop(offset: Int) { unimplemented(); }
     
-    @override fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int) { unimplemented(); }
+    @override fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int) {
+        let opndInst = self.readVariable(opnd, self.currentBlock);
+        let jumpTarget = self.blocks.get(self.offset + offset).unwrap();
+        let fallthroughTarget = self.findNextBlock(self.offset);
+
+        let condInst = CondInst(opndInst, fallthroughTarget, jumpTarget);
+        self.currentBlock.appendInst(condInst);
+    }
     @override fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
     @override fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int) { unimplemented(); }
     @override fun visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
@@ -541,20 +585,28 @@ class SsaGen(let bc: BytecodeFunction, let starts: BitSet, let blocks: Int): Byt
     }
 }
 
-class BasicBlockFinder(let bc: BytecodeFunction): BytecodeVisitor {
+class BasicBlockAnalysis(let bc: BytecodeFunction): BytecodeVisitor {
     var offset: Int = 0;
-    var starts: BitSet = BitSet(bc.code.length());
-    var blocks: Int = 0;
+    var startOffsets: BitSet = BitSet(bc.code.length());
+    var numberBlocks: Int = 0;
+    var nextInstructionIsBlockStart: Bool = false;
 
     fun analyze() {
-        // First instruction starts entry basic block
-        self.insert(0);
+        // first instruction starts entry block
+        self.nextInstructionIsBlockStart = true;
 
         // iterate all bytecodes
         readBytecode(self.bc.code, self);
     }
 
-    @override fun visitInstruction(offset: Int) { self.offset = offset; }
+    @override fun visitInstruction(offset: Int) {
+        self.offset = offset;
+
+        if self.nextInstructionIsBlockStart {
+            self.insert(offset);
+            self.nextInstructionIsBlockStart = false;
+        }
+    }
 
     @override fun visitAddInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitAddLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
@@ -700,28 +752,35 @@ class BasicBlockFinder(let bc: BytecodeFunction): BytecodeVisitor {
 
     @override fun visitJumpLoop(offset: Int) {
         self.insert(self.offset - offset);
+        self.nextInstructionIsBlockStart = true;
     }
 
     @override fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int) {
         self.insert(self.offset + offset);
+        self.nextInstructionIsBlockStart = true;
     }
     @override fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) {
         let offset = self.bc.constPool(idx).toInt().unwrap();
         self.insert(self.offset + offset);
+        self.nextInstructionIsBlockStart = true;
     }
     @override fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int) {
         self.insert(self.offset + offset);
+        self.nextInstructionIsBlockStart = true;
     }
     @override fun visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) {
         let offset = self.bc.constPool(idx).toInt().unwrap();
         self.insert(self.offset + offset);
+        self.nextInstructionIsBlockStart = true;
     }
     @override fun visitJump(offset: Int) {
         self.insert(self.offset + offset);
+        self.nextInstructionIsBlockStart = true;
     }
     @override fun visitJumpConst(idx: ConstPoolId) {
         let offset = self.bc.constPool(idx).toInt().unwrap();
         self.insert(self.offset + offset);
+        self.nextInstructionIsBlockStart = true;
     }
 
     @override fun visitInvokeDirectVoid(fct: FctId, start: BytecodeRegister, count: Int) {}
@@ -758,24 +817,42 @@ class BasicBlockFinder(let bc: BytecodeFunction): BytecodeVisitor {
 
     @override fun visitThrow(opnd: BytecodeRegister) {}
 
-    @override fun visitRetVoid() {}
+    @override fun visitRetVoid() {
+        self.nextInstructionIsBlockStart = true;
+    }
 
-    @override fun visitRetBool(opnd: BytecodeRegister) {}
-    @override fun visitRetByte(opnd: BytecodeRegister) {}
-    @override fun visitRetChar(opnd: BytecodeRegister) {}
-    @override fun visitRetInt(opnd: BytecodeRegister) {}
+    @override fun visitRetBool(opnd: BytecodeRegister) {
+        self.nextInstructionIsBlockStart = true;
+    }
+    @override fun visitRetByte(opnd: BytecodeRegister) {
+        self.nextInstructionIsBlockStart = true;
+    }
+    @override fun visitRetChar(opnd: BytecodeRegister) {
+        self.nextInstructionIsBlockStart = true;
+    }
+    @override fun visitRetInt(opnd: BytecodeRegister) {
+        self.nextInstructionIsBlockStart = true;
+    }
 
-    @override fun visitRetLong(opnd: BytecodeRegister) {}
-    @override fun visitRetFloat(opnd: BytecodeRegister) {}
-    @override fun visitRetDouble(opnd: BytecodeRegister) {}
-    @override fun visitRetPtr(opnd: BytecodeRegister) {}
+    @override fun visitRetLong(opnd: BytecodeRegister) {
+        self.nextInstructionIsBlockStart = true;
+    }
+    @override fun visitRetFloat(opnd: BytecodeRegister) {
+        self.nextInstructionIsBlockStart = true;
+    }
+    @override fun visitRetDouble(opnd: BytecodeRegister) {
+        self.nextInstructionIsBlockStart = true;
+    }
+    @override fun visitRetPtr(opnd: BytecodeRegister) {
+        self.nextInstructionIsBlockStart = true;
+    }
 
     fun insert(offset: Int) {
-        if self.starts.contains(offset) {
+        if self.startOffsets.contains(offset) {
             return;
         }
 
-        self.starts.insert(offset);
-        self.blocks = self.blocks + 1;
+        self.startOffsets.insert(offset);
+        self.numberBlocks = self.numberBlocks + 1;
     }
 }

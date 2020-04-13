@@ -8,6 +8,10 @@ class BitSet(capacity: Int) {
         self.capacity = capacity;
     }
 
+    fun length() -> Int {
+        self.capacity
+    }
+
     fun contains(idx: Int) -> Bool {
         if idx < 0 || idx >= self.capacity {
             fatalError("index out of bounds");

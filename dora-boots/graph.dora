@@ -370,7 +370,7 @@ class ReturnVoidInst: Inst {
 class CondInst(let cond: Inst, let true_block: Block, let false_block: Block): Inst {
     self.addInput(cond);
 
-    @override fun dumpName() -> String { "CondInst" }
+    @override fun dumpName() -> String { "CondInst(${self.true_block.id}, ${self.false_block.id})" }
 }
 
 class GotoInst(let block: Block): Inst {

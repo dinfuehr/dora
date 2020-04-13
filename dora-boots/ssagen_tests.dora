@@ -151,17 +151,19 @@ Block 0:
 
 fun bcSsaGenMulIntArguments(a: Int, b: Int) -> Int { a * b }
 
-/*
 @test fun testSsaGenSimpleIf(_x: Testing) {
     let fct = bytecode("bcSsaGenSimpleIf");
     bytecodeDump(fct);
     let graph = createGraph(fct);
 
     assertGraph(graph, "Block 0:
-  0: Arg.Int(0) [2]
-  1: Arg.Int(1) [2]
-  2: Mul.Int 0, 1 [3]
-  3: Ret.Int 2
+  0: Arg.Bool(0) [2]
+  1: Int(1)
+  2: CondInst(1, 2) 0
+Block 1:
+  3: Int(10)
+Block 2:
+  5: Ret.Int 4
 ");
 }
 
@@ -170,4 +172,3 @@ fun bcSsaGenSimpleIf(a: Bool) -> Int {
     if a { result = 10; }
     return result;
 }
-*/
