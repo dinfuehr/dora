@@ -17,6 +17,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     var offset: Int = 0;
     var currentDef: Array[HashMap[Block, Inst]];
     var incompletePhis: Array[HashMap[BytecodeRegister, PhiInst]];
+    var nextInstNeedsGoto: Bool = false;
 
     fun prepare() {
         self.currentBlock = self.blockBuilder.blockAt(0).unwrap();
@@ -127,6 +128,20 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
 
     @override fun visitInstruction(offset: Int) {
         self.offset = offset;
+
+        let block = self.blockBuilder.blockAt(offset);
+
+        if block.isSome() {
+            if self.nextInstNeedsGoto {
+                let gotoInst = GotoInst(block.unwrap());
+                self.currentBlock.appendInst(gotoInst);
+            }
+
+            self.currentBlock = block.unwrap();
+            self.nextInstNeedsGoto = true;
+        }
+
+        assert(self.nextInstNeedsGoto);
     }
 
     @override fun visitAddInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
@@ -445,22 +460,56 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     @override fun visitTestLtDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @override fun visitTestLeDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @override fun visitJumpLoop(offset: Int) { unimplemented(); }
+    @override fun visitJumpLoop(offset: Int) {
+        let targetBlock = self.blockBuilder.blockAt(self.offset - offset).unwrap();
+        let gotoInst = GotoInst(targetBlock);
+        self.currentBlock.appendInst(gotoInst);
+        self.nextInstNeedsGoto = false;
+    }
     
     @override fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int) {
-        unimplemented();
-        // let opndInst = self.readVariable(opnd, self.currentBlock);
-        // let jumpTarget = self.blocks.get(self.offset + offset).unwrap();
-        // let fallthroughTarget = self.findNextBlock(self.offset);
-
-        // let condInst = CondInst(opndInst, fallthroughTarget, jumpTarget);
-        // self.currentBlock.appendInst(condInst);
+        self.emitConditionalJump(opnd, offset, false);
     }
-    @override fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
-    @override fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int) { unimplemented(); }
-    @override fun visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
-    @override fun visitJump(offset: Int) { unimplemented(); }
-    @override fun visitJumpConst(idx: ConstPoolId) { unimplemented(); }
+    @override fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) {
+        let offset = self.bc.constPool(idx).toInt().unwrap();
+        self.emitConditionalJump(opnd, offset, false);
+    }
+    @override fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int) {
+        self.emitConditionalJump(opnd, offset, true);
+    }
+    @override fun visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) {
+        let offset = self.bc.constPool(idx).toInt().unwrap();
+        self.emitConditionalJump(opnd, offset, true);
+    }
+    @override fun visitJump(offset: Int) {
+        self.emitJump(offset);
+    }
+    @override fun visitJumpConst(idx: ConstPoolId) {
+        let offset = self.bc.constPool(idx).toInt().unwrap();
+        self.emitJump(offset);
+    }
+
+    fun emitJump(offset: Int) {
+        let targetBlock = self.blockBuilder.blockAt(self.offset + offset).unwrap();
+        let gotoInst = GotoInst(targetBlock);
+        self.currentBlock.appendInst(gotoInst);
+        self.nextInstNeedsGoto = false;
+    }
+
+    fun emitConditionalJump(opnd: BytecodeRegister, offset: Int, value: Bool) {
+        let opndInst = self.readVariable(opnd, self.currentBlock);
+        let targetBlock = self.blockBuilder.blockAt(self.offset + offset).unwrap();
+        let fallthroughBlock = self.blockBuilder.nextBlockAt(self.offset+1).unwrap();
+
+        let condInst = if value {
+            CondInst(opndInst, targetBlock, fallthroughBlock)
+        } else {
+            CondInst(opndInst, fallthroughBlock, targetBlock)
+        };
+
+        self.currentBlock.appendInst(condInst);
+        self.nextInstNeedsGoto = false;
+    }
 
     @override fun visitInvokeDirectVoid(fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
     @override fun visitInvokeDirectBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
@@ -497,6 +546,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     @override fun visitRetVoid() {
         let inst = ReturnVoidInst();
         self.currentBlock.appendInst(inst);
+        self.nextInstNeedsGoto = false;
     }
 
     @override fun visitRetBool(opnd: BytecodeRegister) {
@@ -528,326 +578,6 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         let value = self.readVariable(opnd, self.currentBlock);
         let inst = ReturnInst(value, ty);
         self.currentBlock.appendInst(inst);
-    }
-}
-
-class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): BytecodeVisitor {
-    var offset: Int = 0;
-    var currentBlock: Block;
-    var nextInstructionIsBlockStart: Bool = false;
-    var fallthrough: Bool = false;
-    var blocks: HashMap[Int, Block] = HashMap[Int, Block]();
-
-    fun createBlocks() {
-        let entryBlock = Block();
-        self.graph.addBlock(entryBlock);
-        self.graph.setEntryBlock(entryBlock);
-
-        let exitBlock = Block();
-        self.graph.addBlock(exitBlock);
-        self.graph.setExitBlock(exitBlock);
-
-        // create block for first instruction
-        let firstBlock = self.ensureBlockAt(0);
-        entryBlock.addSuccessor(firstBlock);
-        self.currentBlock = firstBlock;
-
-        // iterate all bytecodes
-        readBytecode(self.bc.code, self);
-    }
-
-    fun blockAt(offset: Int) -> Option[Block] {
-        self.blocks.get(offset)
-    }
-
-    fun ensureBlockAt(offset: Int) -> Block {
-        let result = self.blocks.get(offset);
-        if result.isSome() { return result.unwrap(); }
-
-        let block = Block();
-        self.graph.addBlock(block);
-        self.blocks.insert(offset, block);
-
-        block
-    }
-
-    fun markNextAsTerminator() {
-        self.nextInstructionIsBlockStart = true;
-        self.fallthrough = false;
-    }
-
-    fun markNextAsTerminatorFallthrough() {
-        self.nextInstructionIsBlockStart = true;
-        self.fallthrough = true;
-    }
-
-    @override fun visitInstruction(offset: Int) {
-        self.offset = offset;
-
-        if self.nextInstructionIsBlockStart {
-            let nextBlock = self.ensureBlockAt(offset);
-
-            if self.fallthrough {
-                self.currentBlock.addSuccessor(nextBlock);
-            }
-
-            self.nextInstructionIsBlockStart = false;
-            self.fallthrough = false;
-
-            self.currentBlock = nextBlock;
-        }
-    }
-
-    @override fun visitAddInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitAddLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitAddFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitAddDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fun visitSubInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitSubLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitSubFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitSubDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fun visitNegInt(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitNegLong(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitNegFloat(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitNegDouble(dest: BytecodeRegister, src: BytecodeRegister) {}
-
-    @override fun visitMulInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitMulLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitMulFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitMulDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fun visitDivInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitDivLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitDivFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitDivDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fun visitModInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitModLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fun visitAndInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitAndLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fun visitOrInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitOrLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fun visitXorInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitXorLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fun visitNotBool(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitNotInt(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitNotLong(dest: BytecodeRegister, src: BytecodeRegister) {}
-
-    @override fun visitShlInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitShrInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitSarInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fun visitShlLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitShrLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitSarLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fun visitMovBool(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitMovByte(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitMovChar(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitMovInt(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitMovLong(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitMovFloat(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitMovDouble(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitMovPtr(dest: BytecodeRegister, src: BytecodeRegister) {}
-
-    @override fun visitLoadFieldBool(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitLoadFieldByte(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitLoadFieldChar(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitLoadFieldInt(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitLoadFieldLong(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitLoadFieldFloat(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitLoadFieldDouble(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitLoadFieldPtr(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-
-    @override fun visitStoreFieldBool(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitStoreFieldByte(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitStoreFieldChar(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitStoreFieldInt(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitStoreFieldLong(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitStoreFieldFloat(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitStoreFieldDouble(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitStoreFieldPtr(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-
-    @override fun visitLoadGlobalBool(dest: BytecodeRegister, glob: GlobalId) {}
-    @override fun visitLoadGlobalByte(dest: BytecodeRegister, glob: GlobalId) {}
-    @override fun visitLoadGlobalChar(dest: BytecodeRegister, glob: GlobalId) {}
-    @override fun visitLoadGlobalInt(dest: BytecodeRegister, glob: GlobalId) {}
-    @override fun visitLoadGlobalLong(dest: BytecodeRegister, glob: GlobalId) {}
-    @override fun visitLoadGlobalFloat(dest: BytecodeRegister, glob: GlobalId) {}
-    @override fun visitLoadGlobalDouble(dest: BytecodeRegister, glob: GlobalId) {}
-    @override fun visitLoadGlobalPtr(dest: BytecodeRegister, glob: GlobalId) {}
-
-    @override fun visitStoreGlobalBool(src: BytecodeRegister, glob: GlobalId) {}
-    @override fun visitStoreGlobalByte(src: BytecodeRegister, glob: GlobalId) {}
-    @override fun visitStoreGlobalChar(src: BytecodeRegister, glob: GlobalId) {}
-    @override fun visitStoreGlobalInt(src: BytecodeRegister, glob: GlobalId) {}
-    @override fun visitStoreGlobalLong(src: BytecodeRegister, glob: GlobalId) {}
-    @override fun visitStoreGlobalFloat(src: BytecodeRegister, glob: GlobalId) {}
-    @override fun visitStoreGlobalDouble(src: BytecodeRegister, glob: GlobalId) {}
-    @override fun visitStoreGlobalPtr(src: BytecodeRegister, glob: GlobalId) {}
-
-    @override fun visitConstNil(dest: BytecodeRegister) {}
-    @override fun visitConstTrue(dest: BytecodeRegister) {}
-    @override fun visitConstFalse(dest: BytecodeRegister) {}
-    @override fun visitConstZeroByte(dest: BytecodeRegister) {}
-    @override fun visitConstZeroChar(dest: BytecodeRegister) {}
-    @override fun visitConstZeroInt(dest: BytecodeRegister) {}
-    @override fun visitConstZeroLong(dest: BytecodeRegister) {}
-    @override fun visitConstZeroFloat(dest: BytecodeRegister) {}
-    @override fun visitConstZeroDouble(dest: BytecodeRegister) {}
-    @override fun visitConstByte(dest: BytecodeRegister, value: Byte) {}
-    @override fun visitConstChar(dest: BytecodeRegister, idx: ConstPoolId) {}
-    @override fun visitConstInt(dest: BytecodeRegister, idx: ConstPoolId) {}
-    @override fun visitConstLong(dest: BytecodeRegister, idx: ConstPoolId) {}
-    @override fun visitConstFloat(dest: BytecodeRegister, idx: ConstPoolId) {}
-    @override fun visitConstDouble(dest: BytecodeRegister, idx: ConstPoolId) {}
-    @override fun visitConstString(dest: BytecodeRegister, idx: ConstPoolId) {}
-
-    @override fun visitTestEqPtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestNePtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fun visitTestEqInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestNeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestGtInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestGeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestLtInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestLeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fun visitTestEqLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestNeLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestGtLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestGeLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestLtLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestLeLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fun visitTestEqFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestNeFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestGtFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestGeFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestLtFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestLeFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fun visitTestEqDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestNeDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestGtDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestGeDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestLtDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestLeDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-
-    @override fun visitJumpLoop(offset: Int) {
-        let targetBlock = self.ensureBlockAt(self.offset - offset);
-        self.currentBlock.addSuccessor(targetBlock);
-        self.markNextAsTerminator();
-    }
-
-    @override fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int) {
-        let targetBlock = self.ensureBlockAt(self.offset + offset);
-        self.currentBlock.addSuccessor(targetBlock);
-        self.markNextAsTerminatorFallthrough();
-    }
-    @override fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) {
-        let offset = self.bc.constPool(idx).toInt().unwrap();
-        let targetBlock = self.ensureBlockAt(self.offset + offset);
-        self.currentBlock.addSuccessor(targetBlock);
-        self.markNextAsTerminatorFallthrough();
-    }
-    @override fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int) {
-        let targetBlock = self.ensureBlockAt(self.offset + offset);
-        self.currentBlock.addSuccessor(targetBlock);
-        self.markNextAsTerminatorFallthrough();
-    }
-    @override fun visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) {
-        let offset = self.bc.constPool(idx).toInt().unwrap();
-        let targetBlock = self.ensureBlockAt(self.offset + offset);
-        self.currentBlock.addSuccessor(targetBlock);
-        self.markNextAsTerminatorFallthrough();
-    }
-    @override fun visitJump(offset: Int) {
-        let targetBlock = self.ensureBlockAt(self.offset + offset);
-        self.currentBlock.addSuccessor(targetBlock);
-        self.markNextAsTerminator();
-    }
-    @override fun visitJumpConst(idx: ConstPoolId) {
-        let offset = self.bc.constPool(idx).toInt().unwrap();
-        let targetBlock = self.ensureBlockAt(self.offset + offset);
-        self.currentBlock.addSuccessor(targetBlock);
-        self.markNextAsTerminator();
-    }
-
-    @override fun visitInvokeDirectVoid(fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeDirectBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeDirectByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeDirectChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeDirectInt(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeDirectLong(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeDirectFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeDirectDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeDirectPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-
-    @override fun visitInvokeVirtualVoid(fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeVirtualBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeVirtualByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeVirtualChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeVirtualInt(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeVirtualLong(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeVirtualFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeVirtualDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeVirtualPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-
-    @override fun visitInvokeStaticVoid(fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeStaticBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeStaticByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeStaticChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeStaticInt(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeStaticLong(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeStaticFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeStaticDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeStaticPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-
-    @override fun visitNewObject(dest: BytecodeRegister, cls: ClassDefId) {}
-
-    @override fun visitRetVoid() {
-        self.currentBlock.addSuccessor(self.graph.getExitBlock());
-        self.markNextAsTerminator();
-    }
-
-    @override fun visitRetBool(opnd: BytecodeRegister) {
-        self.currentBlock.addSuccessor(self.graph.getExitBlock());
-        self.markNextAsTerminator();
-    }
-    @override fun visitRetByte(opnd: BytecodeRegister) {
-        self.currentBlock.addSuccessor(self.graph.getExitBlock());
-        self.markNextAsTerminator();
-    }
-    @override fun visitRetChar(opnd: BytecodeRegister) {
-        self.currentBlock.addSuccessor(self.graph.getExitBlock());
-        self.markNextAsTerminator();
-    }
-    @override fun visitRetInt(opnd: BytecodeRegister) {
-        self.currentBlock.addSuccessor(self.graph.getExitBlock());
-        self.markNextAsTerminator();
-    }
-
-    @override fun visitRetLong(opnd: BytecodeRegister) {
-        self.currentBlock.addSuccessor(self.graph.getExitBlock());
-        self.markNextAsTerminator();
-    }
-    @override fun visitRetFloat(opnd: BytecodeRegister) {
-        self.currentBlock.addSuccessor(self.graph.getExitBlock());
-        self.markNextAsTerminator();
-    }
-    @override fun visitRetDouble(opnd: BytecodeRegister) {
-        self.currentBlock.addSuccessor(self.graph.getExitBlock());
-        self.markNextAsTerminator();
-    }
-    @override fun visitRetPtr(opnd: BytecodeRegister) {
-        self.currentBlock.addSuccessor(self.graph.getExitBlock());
-        self.markNextAsTerminator();
+        self.nextInstNeedsGoto = false;
     }
 }

@@ -1,0 +1,160 @@
+class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVisitor {
+    var offset: Int = 0;
+    var currentBlock: Block;
+    var nextInstructionIsBlockStart: Bool = false;
+    var fallthrough: Bool = false;
+    var blocks: HashMap[Int, Block] = HashMap[Int, Block]();
+
+    fun createBlocks() {
+        let entryBlock = Block();
+        self.graph.addBlock(entryBlock);
+        self.graph.setEntryBlock(entryBlock);
+
+        let exitBlock = Block();
+        self.graph.addBlock(exitBlock);
+        self.graph.setExitBlock(exitBlock);
+
+        // create block for first instruction
+        let firstBlock = self.ensureBlockAt(0);
+        entryBlock.addSuccessor(firstBlock);
+        self.currentBlock = firstBlock;
+
+        // iterate all bytecodes
+        readBytecode(self.bc.code, self);
+    }
+
+    fun blockAt(offset: Int) -> Option[Block] {
+        self.blocks.get(offset)
+    }
+
+    fun nextBlockAt(var offset: Int) -> Option[Block] {
+        while offset < self.bc.code.length() {
+            let result = self.blockAt(offset);
+            if result.isSome() {
+                return result;
+            }
+            offset = offset + 1;
+        }
+
+        none[Block]()
+    }
+
+    fun ensureBlockAt(offset: Int) -> Block {
+        let result = self.blocks.get(offset);
+        if result.isSome() {
+            return result.unwrap();
+        }
+
+        let block = Block();
+        self.graph.addBlock(block);
+        self.blocks.insert(offset, block);
+
+        block
+    }
+
+    fun markNextAsTerminator() {
+        self.nextInstructionIsBlockStart = true;
+        self.fallthrough = false;
+    }
+
+    fun markNextAsTerminatorFallthrough() {
+        self.nextInstructionIsBlockStart = true;
+        self.fallthrough = true;
+    }
+
+    @override fun visitInstruction(offset: Int) {
+        self.offset = offset;
+
+        if self.nextInstructionIsBlockStart {
+            let nextBlock = self.ensureBlockAt(offset);
+
+            if self.fallthrough {
+                self.currentBlock.addSuccessor(nextBlock);
+            }
+
+            self.nextInstructionIsBlockStart = false;
+            self.fallthrough = false;
+
+            self.currentBlock = nextBlock;
+        }
+    }
+
+    @override fun visitJumpLoop(offset: Int) {
+        let targetBlock = self.ensureBlockAt(self.offset - offset);
+        self.currentBlock.addSuccessor(targetBlock);
+        self.markNextAsTerminator();
+    }
+
+    @override fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int) {
+        let targetBlock = self.ensureBlockAt(self.offset + offset);
+        self.currentBlock.addSuccessor(targetBlock);
+        self.markNextAsTerminatorFallthrough();
+    }
+    @override fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) {
+        let offset = self.bc.constPool(idx).toInt().unwrap();
+        let targetBlock = self.ensureBlockAt(self.offset + offset);
+        self.currentBlock.addSuccessor(targetBlock);
+        self.markNextAsTerminatorFallthrough();
+    }
+    @override fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int) {
+        let targetBlock = self.ensureBlockAt(self.offset + offset);
+        self.currentBlock.addSuccessor(targetBlock);
+        self.markNextAsTerminatorFallthrough();
+    }
+    @override fun visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) {
+        let offset = self.bc.constPool(idx).toInt().unwrap();
+        let targetBlock = self.ensureBlockAt(self.offset + offset);
+        self.currentBlock.addSuccessor(targetBlock);
+        self.markNextAsTerminatorFallthrough();
+    }
+    @override fun visitJump(offset: Int) {
+        let targetBlock = self.ensureBlockAt(self.offset + offset);
+        self.currentBlock.addSuccessor(targetBlock);
+        self.markNextAsTerminator();
+    }
+    @override fun visitJumpConst(idx: ConstPoolId) {
+        let offset = self.bc.constPool(idx).toInt().unwrap();
+        let targetBlock = self.ensureBlockAt(self.offset + offset);
+        self.currentBlock.addSuccessor(targetBlock);
+        self.markNextAsTerminator();
+    }
+
+    @override fun visitRetVoid() {
+        self.currentBlock.addSuccessor(self.graph.getExitBlock());
+        self.markNextAsTerminator();
+    }
+
+    @override fun visitRetBool(opnd: BytecodeRegister) {
+        self.currentBlock.addSuccessor(self.graph.getExitBlock());
+        self.markNextAsTerminator();
+    }
+    @override fun visitRetByte(opnd: BytecodeRegister) {
+        self.currentBlock.addSuccessor(self.graph.getExitBlock());
+        self.markNextAsTerminator();
+    }
+    @override fun visitRetChar(opnd: BytecodeRegister) {
+        self.currentBlock.addSuccessor(self.graph.getExitBlock());
+        self.markNextAsTerminator();
+    }
+    @override fun visitRetInt(opnd: BytecodeRegister) {
+        self.currentBlock.addSuccessor(self.graph.getExitBlock());
+        self.markNextAsTerminator();
+    }
+
+    @override fun visitRetLong(opnd: BytecodeRegister) {
+        self.currentBlock.addSuccessor(self.graph.getExitBlock());
+        self.markNextAsTerminator();
+    }
+    @override fun visitRetFloat(opnd: BytecodeRegister) {
+        self.currentBlock.addSuccessor(self.graph.getExitBlock());
+        self.markNextAsTerminator();
+    }
+    @override fun visitRetDouble(opnd: BytecodeRegister) {
+        self.currentBlock.addSuccessor(self.graph.getExitBlock());
+        self.markNextAsTerminator();
+    }
+    @override fun visitRetPtr(opnd: BytecodeRegister) {
+        self.currentBlock.addSuccessor(self.graph.getExitBlock());
+        self.markNextAsTerminator();
+    }
+}

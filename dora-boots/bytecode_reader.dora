@@ -206,7 +206,7 @@ fun readBytecode(code: Array[Byte], visitor: BytecodeVisitor) {
     @open fun visitAssert(value: BytecodeRegister) { unimplemented(); }
 
     @open fun visitJumpLoop(offset: Int) { unimplemented(); }
-    
+
     @open fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int) { unimplemented(); }
     @open fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
     @open fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int) { unimplemented(); }
@@ -255,6 +255,259 @@ fun readBytecode(code: Array[Byte], visitor: BytecodeVisitor) {
     @open fun visitRetFloat(opnd: BytecodeRegister) { unimplemented(); }
     @open fun visitRetDouble(opnd: BytecodeRegister) { unimplemented(); }
     @open fun visitRetPtr(opnd: BytecodeRegister) { unimplemented(); }
+}
+
+@open @abstract class EmptyBytecodeVisitor: BytecodeVisitor {
+    @override fun visitAddInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitAddLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitAddFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitAddDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+
+    @override fun visitSubInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitSubLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitSubFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitSubDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+
+    @override fun visitNegInt(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitNegLong(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitNegFloat(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitNegDouble(dest: BytecodeRegister, src: BytecodeRegister) {}
+
+    @override fun visitMulInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitMulLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitMulFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitMulDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+
+    @override fun visitDivInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitDivLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitDivFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitDivDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+
+    @override fun visitModInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitModLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+
+    @override fun visitAndInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitAndLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+
+    @override fun visitOrInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitOrLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+
+    @override fun visitXorInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitXorLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+
+    @override fun visitNotBool(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitNotInt(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitNotLong(dest: BytecodeRegister, src: BytecodeRegister) {}
+
+    @override fun visitShlInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitShrInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitSarInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+
+    @override fun visitShlLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitShrLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitSarLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+
+    @override fun visitRolInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitRorInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitRolLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitRorLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+
+    @override fun visitReinterpretFloatAsInt(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitReinterpretIntAsFloat(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitReinterpretDoubleAsLong(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitReinterpretLongAsDouble(dest: BytecodeRegister, src: BytecodeRegister) {}
+
+    @override fun visitExtendByteToChar(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitExtendByteToInt(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitExtendByteToLong(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitExtendIntToLong(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitExtendCharToLong(dest: BytecodeRegister, src: BytecodeRegister) {}
+
+    @override fun visitCastCharToInt(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitCastIntToByte(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitCastIntToChar(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitCastLongToByte(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitCastLongToChar(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitCastLongToInt(dest: BytecodeRegister, src: BytecodeRegister) {}
+
+    @override fun visitConvertIntToFloat(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitConvertIntToDouble(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitConvertLongToFloat(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitConvertLongToDouble(dest: BytecodeRegister, src: BytecodeRegister) {}
+
+    @override fun visitTruncateFloatToInt(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitTruncateFloatToLong(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitTruncateDoubleToInt(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitTruncateDoubleToLong(dest: BytecodeRegister, src: BytecodeRegister) {}
+
+    @override fun visitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) {}
+    @override fun visitCheckedCast(src: BytecodeRegister, cls: ClassDefId) {}
+
+    @override fun visitMovBool(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitMovByte(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitMovChar(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitMovInt(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitMovLong(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitMovFloat(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitMovDouble(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitMovPtr(dest: BytecodeRegister, src: BytecodeRegister) {}
+
+    @override fun visitLoadFieldBool(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
+    @override fun visitLoadFieldByte(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
+    @override fun visitLoadFieldChar(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
+    @override fun visitLoadFieldInt(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
+    @override fun visitLoadFieldLong(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
+    @override fun visitLoadFieldFloat(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
+    @override fun visitLoadFieldDouble(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
+    @override fun visitLoadFieldPtr(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
+
+    @override fun visitStoreFieldBool(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
+    @override fun visitStoreFieldByte(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
+    @override fun visitStoreFieldChar(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
+    @override fun visitStoreFieldInt(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
+    @override fun visitStoreFieldLong(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
+    @override fun visitStoreFieldFloat(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
+    @override fun visitStoreFieldDouble(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
+    @override fun visitStoreFieldPtr(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
+
+    @override fun visitLoadGlobalBool(dest: BytecodeRegister, glob: GlobalId) {}
+    @override fun visitLoadGlobalByte(dest: BytecodeRegister, glob: GlobalId) {}
+    @override fun visitLoadGlobalChar(dest: BytecodeRegister, glob: GlobalId) {}
+    @override fun visitLoadGlobalInt(dest: BytecodeRegister, glob: GlobalId) {}
+    @override fun visitLoadGlobalLong(dest: BytecodeRegister, glob: GlobalId) {}
+    @override fun visitLoadGlobalFloat(dest: BytecodeRegister, glob: GlobalId) {}
+    @override fun visitLoadGlobalDouble(dest: BytecodeRegister, glob: GlobalId) {}
+    @override fun visitLoadGlobalPtr(dest: BytecodeRegister, glob: GlobalId) {}
+
+    @override fun visitStoreGlobalBool(src: BytecodeRegister, glob: GlobalId) {}
+    @override fun visitStoreGlobalByte(src: BytecodeRegister, glob: GlobalId) {}
+    @override fun visitStoreGlobalChar(src: BytecodeRegister, glob: GlobalId) {}
+    @override fun visitStoreGlobalInt(src: BytecodeRegister, glob: GlobalId) {}
+    @override fun visitStoreGlobalLong(src: BytecodeRegister, glob: GlobalId) {}
+    @override fun visitStoreGlobalFloat(src: BytecodeRegister, glob: GlobalId) {}
+    @override fun visitStoreGlobalDouble(src: BytecodeRegister, glob: GlobalId) {}
+    @override fun visitStoreGlobalPtr(src: BytecodeRegister, glob: GlobalId) {}
+
+    @override fun visitConstNil(dest: BytecodeRegister) {}
+    @override fun visitConstTrue(dest: BytecodeRegister) {}
+    @override fun visitConstFalse(dest: BytecodeRegister) {}
+    @override fun visitConstZeroByte(dest: BytecodeRegister) {}
+    @override fun visitConstZeroChar(dest: BytecodeRegister) {}
+    @override fun visitConstZeroInt(dest: BytecodeRegister) {}
+    @override fun visitConstZeroLong(dest: BytecodeRegister) {}
+    @override fun visitConstZeroFloat(dest: BytecodeRegister) {}
+    @override fun visitConstZeroDouble(dest: BytecodeRegister) {}
+    @override fun visitConstByte(dest: BytecodeRegister, value: Byte) {}
+    @override fun visitConstChar(dest: BytecodeRegister, idx: ConstPoolId) {}
+    @override fun visitConstInt(dest: BytecodeRegister, idx: ConstPoolId) {}
+    @override fun visitConstLong(dest: BytecodeRegister, idx: ConstPoolId) {}
+    @override fun visitConstFloat(dest: BytecodeRegister, idx: ConstPoolId) {}
+    @override fun visitConstDouble(dest: BytecodeRegister, idx: ConstPoolId) {}
+    @override fun visitConstString(dest: BytecodeRegister, idx: ConstPoolId) {}
+
+    @override fun visitTestEqPtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestNePtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+
+    @override fun visitTestEqBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestNeBool(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+
+    @override fun visitTestEqByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestNeByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestGtByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestGeByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestLtByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestLeByte(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+
+    @override fun visitTestEqChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestNeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestGtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestGeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestLtChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestLeChar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+
+    @override fun visitTestEqEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestNeEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+
+    @override fun visitTestEqInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestNeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestGtInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestGeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestLtInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestLeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+
+    @override fun visitTestEqLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestNeLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestGtLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestGeLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestLtLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestLeLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+
+    @override fun visitTestEqFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestNeFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestGtFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestGeFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestLtFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestLeFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+
+    @override fun visitTestEqDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestNeDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestGtDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestGeDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestLtDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestLeDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+
+    @override fun visitAssert(value: BytecodeRegister) {}
+
+    @override fun visitJumpLoop(offset: Int) {}
+
+    @override fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int) {}
+    @override fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) {}
+    @override fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int) {}
+    @override fun visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) {}
+    @override fun visitJump(offset: Int) {}
+    @override fun visitJumpConst(idx: ConstPoolId) {}
+
+    @override fun visitInvokeDirectVoid(fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeDirectBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeDirectByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeDirectChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeDirectInt(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeDirectLong(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeDirectFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeDirectDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeDirectPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+
+    @override fun visitInvokeVirtualVoid(fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeVirtualBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeVirtualByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeVirtualChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeVirtualInt(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeVirtualLong(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeVirtualFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeVirtualDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeVirtualPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+
+    @override fun visitInvokeStaticVoid(fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeStaticBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeStaticByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeStaticChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeStaticInt(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeStaticLong(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeStaticFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeStaticDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeStaticPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+
+    @override fun visitNewObject(dest: BytecodeRegister, cls: ClassDefId) {}
+    
+    @override fun visitRetVoid() {}
+    @override fun visitRetBool(opnd: BytecodeRegister) {}
+    @override fun visitRetByte(opnd: BytecodeRegister) {}
+    @override fun visitRetChar(opnd: BytecodeRegister) {}
+    @override fun visitRetInt(opnd: BytecodeRegister) {}
+    @override fun visitRetLong(opnd: BytecodeRegister) {}
+    @override fun visitRetFloat(opnd: BytecodeRegister) {}
+    @override fun visitRetDouble(opnd: BytecodeRegister) {}
+    @override fun visitRetPtr(opnd: BytecodeRegister) {}
 }
 
 class BytecodeReader(let data: Array[Byte], let visitor: BytecodeVisitor) {

@@ -378,7 +378,7 @@ class CondInst(let cond: Inst, let true_block: Block, let false_block: Block): I
 }
 
 class GotoInst(let block: Block): Inst {
-    @override fun dumpName() -> String { "GotoInst" }
+    @override fun dumpName() -> String { "GotoInst(${self.block.id})" }
 }
 
 enum BinOp {
