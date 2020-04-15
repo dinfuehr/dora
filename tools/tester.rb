@@ -53,8 +53,6 @@ class TestUtility
       end
     rescue Timeout::Error
       result[:timeout] = true
-      out_reader = out_reader.kill
-      err_reader = err_reader.kill
 
       Process.kill(:TERM, result[:pid])
     ensure
@@ -145,16 +143,15 @@ class TestCase
 
   private
   def run_test(optional_vm_args, mutex)
-    temp_out = Tempfile.new("dora-test-runner")
     cmdline = "#{binary} #{vm_args} #{optional_vm_args} #{test_file} #{args}"
     process_result = TestUtility.spawn_with_timeout(cmdline, self.timeout)
     result = check_test_run_result(process_result)
     if $no_capture || result != true
       mutex.synchronize do
         puts "#==== STDOUT"
-        puts process_result[:stdout] unless process_result[:stdout].to_s.empty?
+        puts process_result[:stdout] unless process_result[:stdout].empty?
         puts "#==== STDERR"
-        puts process_result[:stderr] unless process_result[:stderr].to_s.empty?
+        puts process_result[:stderr] unless process_result[:stderr].empty?
         puts "RUN: #{cmdline}"
         STDOUT.flush
       end
