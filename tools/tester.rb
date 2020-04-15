@@ -41,30 +41,28 @@ class TestUtility
     out_reader = nil
     err_reader = nil
 
-    begin
-      Open3.popen3(cmd) do | stdin, stdout, stderr, wait_thr |
-        Timeout.timeout(timeout) do
-          result[:pid] = wait_thr.pid
+    Open3.popen3(cmd) do | stdin, stdout, stderr, wait_thr |
+      Timeout.timeout(timeout) do
+        result[:pid] = wait_thr.pid
 
-          stdin.close
-          out_reader = Thread.new { stdout.read }
-          err_reader = Thread.new { stderr.read }
+        stdin.close
+        out_reader = Thread.new { stdout.read }
+        err_reader = Thread.new { stderr.read }
 
-          result[:status] = wait_thr.value
-        end
-      rescue Timeout::Error
-        result[:timeout] = true
-        out_reader = out_reader.kill
-        err_reader = err_reader.kill
-
-        Process.kill(:TERM, result[:pid])
-      ensure
-        result[:status] = wait_thr.value if wait_thr
-        result[:stdout] = out_reader.value if out_reader
-        result[:stderr] = err_reader.value if err_reader
-        stdout.close unless stdout.closed?
-        stderr.close unless stderr.closed?
+        result[:status] = wait_thr.value
       end
+    rescue Timeout::Error
+      result[:timeout] = true
+      out_reader = out_reader.kill
+      err_reader = err_reader.kill
+
+      Process.kill(:TERM, result[:pid])
+    ensure
+      result[:status] = wait_thr.value if wait_thr
+      result[:stdout] = out_reader.value if out_reader
+      result[:stderr] = err_reader.value if err_reader
+      stdout.close unless stdout.closed?
+      stderr.close unless stderr.closed?
     end
 
     result
@@ -154,9 +152,9 @@ class TestCase
     if $no_capture || result != true
       mutex.synchronize do
         puts "#==== STDOUT"
-        puts process_result[:stdout] unless process_result[:stdout] == nil || process_result[:stdout].empty?
+        puts process_result[:stdout] unless process_result[:stdout].to_s.empty?
         puts "#==== STDERR"
-        puts process_result[:stderr] unless process_result[:stderr] == nil || process_result[:stderr].empty?
+        puts process_result[:stderr] unless process_result[:stderr].to_s.empty?
         puts "RUN: #{cmdline}"
         STDOUT.flush
       end
