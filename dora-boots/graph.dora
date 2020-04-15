@@ -371,14 +371,14 @@ class ReturnVoidInst: Inst {
     @override fun dumpName() -> String { "Ret.Void" }
 }
 
-class CondInst(let cond: Inst, let true_block: Block, let false_block: Block): Inst {
+class IfInst(let cond: Inst, let true_block: Block, let false_block: Block): Inst {
     self.addInput(cond);
 
-    @override fun dumpName() -> String { "CondInst(${self.true_block.id}, ${self.false_block.id})" }
+    @override fun dumpName() -> String { "If(${self.true_block.id}, ${self.false_block.id})" }
 }
 
 class GotoInst(let block: Block): Inst {
-    @override fun dumpName() -> String { "GotoInst(${self.block.id})" }
+    @override fun dumpName() -> String { "Goto(${self.block.id})" }
 }
 
 enum BinOp {
