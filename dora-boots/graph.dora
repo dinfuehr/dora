@@ -226,6 +226,19 @@ class Input(var idx: Int, var value: Inst, var usedBy: Inst) {
         input.nextUse = none[Input]();
     }
 
+    fun remove() {
+        assert(!self.hasUses());
+        assert(self.block.isSome());
+
+        let block = self.block.unwrap();
+
+        if self is PhiInst {
+            block.phis.removeInst(self);
+        } else {
+            block.instructions.removeInst(self);
+        }
+    }
+
     fun registerUses() {
         let inputs = self.inputs.length();
         var idx = 0;
@@ -459,6 +472,22 @@ class InstLinkedList {
             inst.next = none[Inst]();
 
             self.last = some[Inst](inst);
+        }
+    }
+
+    fun removeInst(inst: Inst) {
+        if inst.previous.isSome() {
+            let previous = inst.previous.unwrap();
+            previous.next = inst.next;
+        } else {
+            self.first = inst.next;
+        }
+
+        if inst.next.isSome() {
+            let next = inst.next.unwrap();
+            next.previous = inst.previous;
+        } else {
+            self.last = inst.previous;
         }
     }
 }

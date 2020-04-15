@@ -104,6 +104,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         let users = phi.users();
 
         phi.replaceWith(same.unwrap());
+        phi.remove();
 
         for i in range(0, users.length()) {
             let user = users(i);
