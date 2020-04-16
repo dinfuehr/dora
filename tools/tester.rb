@@ -281,7 +281,7 @@ def run_tests
         end
 
         mutex.synchronize do
-          faillist.push(test_case) if test_results.any?{|key,value| key == :failed && value > 0}
+          faillist.push(test_case) if test_results.any? { |key,value| key == :failed && value > 0 }
           test_case.print_results
           STDOUT.flush
 
@@ -302,9 +302,9 @@ def run_tests
   if faillist.any?
     puts "failed tests:"
 
-    faillist.each{|test_case| test_case.results
-      .filter{|run_name, run_result| run_result != true}
-      .each_key{|run_name| puts "    #{test_case.file}.#{run_name}" }
+    faillist.each { |test_case| test_case.results
+      .filter { |run_name, run_result| run_result != true }
+      .each_key { |run_name| puts "    #{test_case.file}.#{run_name}" }
     }
   end
 
