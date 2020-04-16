@@ -107,10 +107,10 @@ Block 0: succ = [2]
   1: Goto(2)
 Block 1: pred = [2]
 Block 2: pred = [0] succ = [1]
-  2: Int(42) [3]
+  2: Int(42) [3, 3]
   3: Add.Int 2, 2 [5]
   4: Int(23) [5]
-  5: Add.Int 3, 4 [6]
+  5: Add.Int 3, 4 [6, 7]
   6: Add.Int 5, 0 [7]
   7: Add.Int 5, 6 [8]
   8: Ret.Int 7
@@ -183,7 +183,6 @@ fun bcSsaGenMulIntArguments(a: Int, b: Int) -> Int { a * b }
 
 @test fun testSsaGenSimpleIf(_x: Testing) {
     let fct = bytecode("bcSsaGenSimpleIf");
-    bytecodeDump(fct);
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -192,13 +191,13 @@ Block 0: succ = [2]
   1: Goto(2)
 Block 1: pred = [3]
 Block 2: pred = [0] succ = [3, 4]
-  2: Int(1)
+  2: Int(1) [6]
   3: If(4, 3) 0
 Block 3: pred = [2, 4] succ = [1]
   6: Phi 2, 4 [7]
   7: Ret.Int 6
 Block 4: pred = [2] succ = [3]
-  4: Int(10)
+  4: Int(10) [6]
   5: Goto(3)
 ");
 }
@@ -211,7 +210,6 @@ fun bcSsaGenSimpleIf(a: Bool) -> Int {
 
 @test fun testSsaGenIfReturnInBothBranches(_x: Testing) {
     let fct = bytecode("bcSsaGenIfReturnInBothBranches");
-    bytecodeDump(fct);
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -236,7 +234,6 @@ fun bcSsaGenIfReturnInBothBranches(a: Bool) -> Int {
 
 @test fun testSsaGenIfWithConditionalAssignment(_x: Testing) {
     let fct = bytecode("bcSsaGenIfWithConditionalAssignment");
-    bytecodeDump(fct);
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -245,7 +242,7 @@ Block 0: succ = [2]
   1: Goto(2)
 Block 1: pred = [3]
 Block 2: pred = [0] succ = [3, 4]
-  2: Int(1)
+  2: Int(1) [7]
   3: Int(27) [9]
   4: If(4, 3) 0
 Block 3: pred = [2, 4] succ = [1]
@@ -253,7 +250,7 @@ Block 3: pred = [2, 4] succ = [1]
   9: Add.Int 7, 3 [10]
   10: Ret.Int 9
 Block 4: pred = [2] succ = [3]
-  5: Int(4)
+  5: Int(4) [7]
   6: Goto(3)
 ");
 }

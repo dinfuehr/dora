@@ -98,12 +98,19 @@ class GraphDumper(let graph: Graph) {
             var current = inst.useListHead;
 
             self.buffer.append(" [");
+            var first = true;
 
             while current.isSome() {
                 let c = current.unwrap();
 
-                self.buffer.append("${c.usedBy.id}");
+                if first {
+                    self.buffer.append("${c.usedBy.id}");
+                } else {
+                    self.buffer.append(", ${c.usedBy.id}");
+                }
+
                 current = c.nextUse;
+                first = false;
             }
 
             self.buffer.append("]");

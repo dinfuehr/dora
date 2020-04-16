@@ -123,9 +123,9 @@ class Block() {
         inst.id = self.graph.unwrap().nextInstId();
 
         self.instructions.appendInst(inst);
-
         inst.registerUses();
-        return inst;
+
+        inst
     }
 
     fun addBackEdge(block: Block) {
@@ -192,12 +192,18 @@ class Input(var idx: Int, var value: Inst, var usedBy: Inst) {
         assert(input.value === self);
 
         if self.useListHead.isNone() {
+            assert(self.useListTail.isNone());
             input.previousUse = none[Input]();
             input.nextUse = none[Input]();
 
             self.useListHead = some[Input](input);
             self.useListTail = some[Input](input);
         } else {
+            assert(self.useListHead.isSome());
+            assert(self.useListTail.isSome());
+
+            self.useListTail.unwrap().nextUse = some[Input](input);
+
             input.previousUse = self.useListTail;
             input.nextUse = none[Input]();
 
@@ -208,19 +214,19 @@ class Input(var idx: Int, var value: Inst, var usedBy: Inst) {
     fun removeUse(input: Input) {
         assert(input.value === self);
 
-        if input.previousUse.isNone() && input.nextUse.isNone() {
-            self.useListHead = none[Input]();
-            self.useListTail = none[Input]();
-        } else if input.previousUse.isNone() {
-            self.useListHead = input.nextUse;
-            input.nextUse.unwrap().previousUse = none[Input]();
-        } else if input.nextUse.isNone() {
-            self.useListTail = input.previousUse;
-            input.previousUse.unwrap().previousUse = none[Input]();
-        } else {
+        if input.previousUse.isSome() {
             input.previousUse.unwrap().nextUse = input.nextUse;
-            input.nextUse.unwrap().previousUse = input.previousUse;
+        } else {
+            self.useListHead = input.nextUse;
         }
+
+        if input.nextUse.isSome() {
+            input.nextUse.unwrap().previousUse = input.previousUse;
+        } else {
+            self.useListTail = input.previousUse;
+        }
+
+        assert(self.useListHead.isSome() == self.useListTail.isSome());
 
         input.previousUse = none[Input]();
         input.nextUse = none[Input]();
@@ -230,6 +236,7 @@ class Input(var idx: Int, var value: Inst, var usedBy: Inst) {
         assert(!self.hasUses());
         assert(self.block.isSome());
 
+        self.removeAsUser();
         let block = self.block.unwrap();
 
         if self is PhiInst {
@@ -237,6 +244,8 @@ class Input(var idx: Int, var value: Inst, var usedBy: Inst) {
         } else {
             block.instructions.removeInst(self);
         }
+
+        self.block = none[Block]();
     }
 
     fun registerUses() {
@@ -246,6 +255,17 @@ class Input(var idx: Int, var value: Inst, var usedBy: Inst) {
         while idx < inputs {
             let input = self.inputs.get(idx);
             input.value.addUse(input);
+            idx = idx + 1;
+        }
+    }
+
+    fun removeAsUser() {
+        let inputs = self.inputs.length();
+        var idx = 0;
+
+        while idx < inputs {
+            let input = self.inputs.get(idx);
+            input.value.removeUse(input);
             idx = idx + 1;
         }
     }

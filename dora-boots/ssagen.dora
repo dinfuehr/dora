@@ -76,6 +76,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
             let pred = it.next();
             phi.addInput(self.readVariable(register, pred));
         }
+        phi.registerUses();
         self.tryRemoveTrivialPhi(phi)
     }
 
