@@ -263,6 +263,7 @@ def run_tests
   mutex = Mutex.new
   threads = []
   worklist = test_files.dup
+  faillist = []
 
   number_processors.times do
     thread = Thread.new do
@@ -276,7 +277,13 @@ def run_tests
         test_results.each_pair do |key, value|
           passed += value if key == :passed
           ignore += value if key == :ignore
-          failed += value if key == :failed
+          if key == :failed
+            failed += value
+
+            test_case.results
+              .filter{|run_name, run_result| run_result != true}
+              .each_key{|run_name| faillist.push("#{test_case.file}.#{run_name}")}
+          end
         end
 
         mutex.synchronize do
@@ -295,6 +302,12 @@ def run_tests
   end
 
   ret = failed == 0
+
+
+  if faillist.any?
+    puts "failed tests:"
+    faillist.each{|x| puts "    #{x}"}
+  end
 
   passed = "#{passed} #{test_name(passed)} passed"
   failed = "#{failed} #{test_name(failed)} failed"
