@@ -313,6 +313,10 @@ class Input(var idx: Int, var value: Inst, var usedBy: Inst) {
 
 @abstract @open class Const: Inst
 
+class NullConst(let value: Byte): Const {
+    @override fun dumpName() -> String { "Null" }
+}
+
 class IntConst(let value: Int): Const {
     @override fun dumpName() -> String { "Int(${self.value})" }
 }
@@ -356,6 +360,14 @@ class BinaryInst(let op: BinOp, ty: Type, let lhs: Inst, let rhs: Inst): Inst {
     self.ty = ty;
 
     @override fun dumpName() -> String { "${binOpName(self.op)}.${self.ty}" }
+}
+
+class TestInst(let op: TestOp, ty: Type, let lhs: Inst, let rhs: Inst): Inst {
+    self.addInput(lhs);
+    self.addInput(rhs);
+    self.ty = ty;
+
+    @override fun dumpName() -> String { "${self.op.name()}.${self.ty}" }
 }
 
 class UndefInst: Inst {
@@ -444,6 +456,36 @@ fun binOpName(op: BinOp) -> String {
     } else {
         unreachable();
         ""
+    }
+}
+
+enum TestOp {
+    Equal,
+    NotEqual,
+    Greater,
+    GreaterOrEqual,
+    Less,
+    LessOrEqual
+}
+
+impl TestOp {
+    fun name() -> String {
+        if self == TestOp::Equal {
+            "Equal"
+        } else if self == TestOp::NotEqual {
+            "NotEqual"
+        } else if self == TestOp::Greater {
+            "Greater"
+        } else if self == TestOp::GreaterOrEqual {
+            "GreaterOrEqual"
+        } else if self == TestOp::Less {
+            "Less"
+        } else if self == TestOp::LessOrEqual {
+            "LessOrEqual"
+        } else {
+            unreachable();
+            ""
+        }
     }
 }
 

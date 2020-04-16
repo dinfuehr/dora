@@ -261,3 +261,30 @@ fun bcSsaGenIfWithConditionalAssignment(a: Bool) -> Int {
     if a { x = 4; }
     x + y
 }
+
+@test fun testSsaGenWhileCountDown(_x: Testing) {
+    let fct = bytecode("bcSsaGenWhileCountDown");
+    let graph = createGraph(fct);
+
+    assertGraph(graph, "
+Block 0: succ = [2]
+  0: Arg.Int(0) [4, 9]
+  1: Goto(2)
+Block 1: pred = [3]
+Block 2: pred = [0, 4] succ = [3, 4]
+  2: Int(0) [4]
+  4: Greater.Int 0, 2 [5]
+  5: If(4, 3) 4
+Block 3: pred = [2] succ = [1]
+  9: Ret.Int 0
+Block 4: pred = [2] succ = [2]
+  6: Int(1) [7]
+  7: Sub.Int 3, 6
+  8: Goto(2)
+");
+}
+
+fun bcSsaGenWhileCountDown(var x: Int) -> Int {
+    while x > 0 { x = x - 1; }
+    x
+}

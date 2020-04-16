@@ -396,10 +396,26 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     @override fun visitConstFalse(dest: BytecodeRegister) { unimplemented(); }
     @override fun visitConstZeroByte(dest: BytecodeRegister) { unimplemented(); }
     @override fun visitConstZeroChar(dest: BytecodeRegister) { unimplemented(); }
-    @override fun visitConstZeroInt(dest: BytecodeRegister) { unimplemented(); }
-    @override fun visitConstZeroLong(dest: BytecodeRegister) { unimplemented(); }
-    @override fun visitConstZeroFloat(dest: BytecodeRegister) { unimplemented(); }
-    @override fun visitConstZeroDouble(dest: BytecodeRegister) { unimplemented(); }
+    @override fun visitConstZeroInt(dest: BytecodeRegister) {
+        let inst = IntConst(0);
+        self.currentBlock.appendInst(inst);
+        self.writeVariable(dest, self.currentBlock, inst);
+    }
+    @override fun visitConstZeroLong(dest: BytecodeRegister) {
+        let inst = LongConst(0L);
+        self.currentBlock.appendInst(inst);
+        self.writeVariable(dest, self.currentBlock, inst);
+    }
+    @override fun visitConstZeroFloat(dest: BytecodeRegister) {
+        let inst = FloatConst(0.0F);
+        self.currentBlock.appendInst(inst);
+        self.writeVariable(dest, self.currentBlock, inst);
+    }
+    @override fun visitConstZeroDouble(dest: BytecodeRegister) {
+        let inst = DoubleConst(0.0);
+        self.currentBlock.appendInst(inst);
+        self.writeVariable(dest, self.currentBlock, inst);
+    }
     @override fun visitConstByte(dest: BytecodeRegister, value: Byte) { unimplemented(); }
     @override fun visitConstChar(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
     @override fun visitConstInt(dest: BytecodeRegister, idx: ConstPoolId) {
@@ -428,15 +444,31 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     }
     @override fun visitConstString(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
 
-    @override fun visitTestEqPtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitTestNePtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @override fun visitTestEqPtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitTest(dest, lhs, rhs, TestOp::Equal, Type::ptr());
+    }
+    @override fun visitTestNePtr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitTest(dest, lhs, rhs, TestOp::NotEqual, Type::ptr());
+    }
 
-    @override fun visitTestEqInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitTestNeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitTestGtInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitTestGeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitTestLtInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitTestLeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @override fun visitTestEqInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitTest(dest, lhs, rhs, TestOp::Equal, Type::int());
+    }
+    @override fun visitTestNeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitTest(dest, lhs, rhs, TestOp::NotEqual, Type::int());
+    }
+    @override fun visitTestGtInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitTest(dest, lhs, rhs, TestOp::Greater, Type::int());
+    }
+    @override fun visitTestGeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitTest(dest, lhs, rhs, TestOp::GreaterOrEqual, Type::int());
+    }
+    @override fun visitTestLtInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitTest(dest, lhs, rhs, TestOp::Less, Type::int());
+    }
+    @override fun visitTestLeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitTest(dest, lhs, rhs, TestOp::LessOrEqual, Type::int());
+    }
 
     @override fun visitTestEqLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @override fun visitTestNeLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
@@ -458,6 +490,14 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     @override fun visitTestGeDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @override fun visitTestLtDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @override fun visitTestLeDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+
+    fun emitTest(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: TestOp, ty: Type) {
+        let lhsInst = self.readVariable(lhs, self.currentBlock);
+        let rhsInst = self.readVariable(rhs, self.currentBlock);
+        let destInst = TestInst(op, ty, lhsInst, rhsInst);
+        self.currentBlock.appendInst(destInst);
+        self.writeVariable(dest, self.currentBlock, destInst);
+    }
 
     @override fun visitJumpLoop(offset: Int) {
         let targetBlock = self.blockBuilder.blockAt(self.offset - offset).unwrap();
