@@ -268,18 +268,19 @@ fun bcSsaGenIfWithConditionalAssignment(a: Bool) -> Int {
 
     assertGraph(graph, "
 Block 0: succ = [2]
-  0: Arg.Int(0) [4, 9]
+  0: Arg.Int(0) [3]
   1: Goto(2)
 Block 1: pred = [3]
 Block 2: pred = [0, 4] succ = [3, 4]
+  3: Phi 0, 7 [4, 7, 9]
   2: Int(0) [4]
-  4: Greater.Int 0, 2 [5]
+  4: Greater.Int 3, 2 [5]
   5: If(4, 3) 4
 Block 3: pred = [2] succ = [1]
-  9: Ret.Int 0
+  9: Ret.Int 3
 Block 4: pred = [2] succ = [2]
   6: Int(1) [7]
-  7: Sub.Int 3, 6
+  7: Sub.Int 3, 6 [3]
   8: Goto(2)
 ");
 }

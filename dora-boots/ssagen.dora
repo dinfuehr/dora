@@ -16,16 +16,32 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     var currentDef: Array[HashMap[Block, Inst]];
     var blockTerminated: Bool = false;
 
+    // a block is considered filled when all instructions are inserted
+    var filledBlocks: BitSet = BitSet(0);
+
+    // block is considered sealed when the set of predecessors is final
+    var sealedBlocks: BitSet = BitSet(0);
+
+    let incompletePhis: HashMap[Block, HashMap[BytecodeRegister, PhiInst]] = HashMap[Block, HashMap[BytecodeRegister, PhiInst]]();
+
     fun run() {
         self.prepare();
         self.setupArguments();
+
         readBytecode(self.bc.code, self);
+        assert(self.blockTerminated);
+        self.blockEndReached(nil);
     }
 
     fun prepare() {
         self.currentBlock = self.graph.getEntryBlock();
 
         self.currentDef = Array[HashMap[Block, Inst]](self.bc.registers.length());
+
+        let blockCount = self.graph.blocks.length();
+
+        self.filledBlocks = BitSet(blockCount);
+        self.sealedBlocks = BitSet(blockCount);
 
         for i in range(0, self.currentDef.length()) {
             self.currentDef(i) = HashMap[Block, Inst]();
@@ -57,7 +73,20 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     }
 
     fun readVariableRecursive(register: BytecodeRegister, block: Block) -> Inst {
-        let value: Inst = if block.predecessors.length() == 1 {
+        let value: Inst = if !self.sealedBlocks.contains(block.id) {
+            let incomplete = PhiInst();
+            block.appendPhi(incomplete);
+
+            if self.incompletePhis.contains(block) {
+                self.incompletePhis.get(block).unwrap().insert(register, incomplete);
+            } else {
+                let map = HashMap[BytecodeRegister, PhiInst]();
+                map.insert(register, incomplete);
+                self.incompletePhis.insert(block, map);
+            }
+
+            incomplete as Inst
+        } else if block.predecessors.length() == 1 {
             self.readVariable(register, block.predecessors.first().unwrap())
         } else {
             let phi = PhiInst();
@@ -74,7 +103,8 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         let it = phi.block.unwrap().predecessors.makeIterator();
         while it.hasNext() {
             let pred = it.next();
-            phi.addInput(self.readVariable(register, pred));
+            let inst = self.readVariable(register, pred);
+            phi.addInput(inst);
         }
         phi.registerUses();
         self.tryRemoveTrivialPhi(phi)
@@ -132,15 +162,76 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         let block = self.blockBuilder.blockAt(offset);
 
         if block.isSome() {
-            if !self.blockTerminated {
-                let gotoInst = GotoInst(block.unwrap());
-                self.currentBlock.appendInst(gotoInst);
-            }
-
-            self.currentBlock = block.unwrap();
+            self.blockEndReached(block.unwrap());
         }
 
         self.blockTerminated = false;
+    }
+
+    fun blockEndReached(next: Block) {
+        let block = self.currentBlock;
+
+        if !self.blockTerminated {
+            let gotoInst = GotoInst(next);
+            block.appendInst(gotoInst);
+        }
+
+        // We change the current block, that means all instructions
+        // are inserted. The block is now filled.
+        self.fillBlock(block);
+
+        // We don't really know when to seal a block from the bytecode
+        // Try to seal this block if all predecessors are filled.
+        self.trySealBlock(block);
+
+        // This block might have a back edge to a loop header. Since this
+        // block is now filled, we might be able to seal another block.
+        let it = block.successors.makeIterator();
+
+        while it.hasNext() {
+            let succ = it.next();
+            self.trySealBlock(succ);
+        }
+
+        self.currentBlock = next;
+    }
+
+    fun fillBlock(block: Block) {
+        assert(!self.filledBlocks.contains(block.id));
+        self.filledBlocks.insert(block.id);
+    }
+
+    fun trySealBlock(block: Block) {
+        if self.sealedBlocks.contains(block.id) {
+            return;
+        }
+
+        // all predecessors need to be filled
+        let it = block.predecessors.makeIterator();
+
+        while it.hasNext() {
+            let pred = it.next();
+            if !self.filledBlocks.contains(pred.id) {
+                return;
+            }
+        }
+
+        self.sealBlock(block);
+    }
+
+    fun sealBlock(block: Block) {
+        assert(!self.sealedBlocks.contains(block.id));
+        self.sealedBlocks.insert(block.id);
+
+        let map = self.incompletePhis.get(block);
+        if map.isNone() { return; }
+
+        let it = map.unwrap().makeIterator();
+
+        while it.hasNext() {
+            let variableAndPhi = it.next();
+            self.addPhiOperands(variableAndPhi.0, variableAndPhi.1);
+        }
     }
 
     @override fun visitAddInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
