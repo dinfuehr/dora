@@ -4,6 +4,7 @@ require 'pathname'
 require 'tempfile'
 require 'thread'
 require 'open3'
+require 'timeout'
 
 $config = {
   main: '',
@@ -24,6 +25,45 @@ $ARGS.delete_if do |arg|
     true
   else
     false
+  end
+end
+
+class TestUtility
+  def self.spawn_with_timeout(cmd, timeout)
+    result = {
+      :pid     => nil,
+      :status  => nil,
+      :stdout  => nil,
+      :stderr  => nil,
+      :timeout => false,
+    }
+
+    out_reader = nil
+    err_reader = nil
+
+    Open3.popen3(cmd) do | stdin, stdout, stderr, wait_thr |
+      Timeout.timeout(timeout) do
+        result[:pid] = wait_thr.pid
+
+        stdin.close
+        out_reader = Thread.new { stdout.read }
+        err_reader = Thread.new { stderr.read }
+
+        result[:status] = wait_thr.value
+      end
+    rescue Timeout::Error
+      result[:timeout] = true
+
+      Process.kill(:TERM, result[:pid])
+    ensure
+      result[:status] = wait_thr.value if wait_thr
+      result[:stdout] = out_reader.value if out_reader
+      result[:stderr] = err_reader.value if err_reader
+      stdout.close unless stdout.closed?
+      stderr.close unless stderr.closed?
+    end
+
+    result
   end
 end
 
@@ -49,7 +89,8 @@ class TestCase
                 :args,
                 :expectation,
                 :optional_configs,
-                :results
+                :results,
+                :timeout
 
   def initialize(file, opts = {})
     self.expectation = opts.fetch(:expectation, TestExpectation.new(fail: false))
@@ -57,6 +98,7 @@ class TestCase
     self.optional_configs = [:main]
     self.results = {}
     self.args = self.vm_args = ""
+    self.timeout = 60
   end
 
   def run(mutex)
@@ -101,16 +143,15 @@ class TestCase
 
   private
   def run_test(optional_vm_args, mutex)
-    temp_out = Tempfile.new("dora-test-runner")
     cmdline = "#{binary} #{vm_args} #{optional_vm_args} #{test_file} #{args}"
-    stdout, stderr, status = Open3.capture3(cmdline)
-    result = check_test_run_result(stdout, stderr, status)
+    process_result = TestUtility.spawn_with_timeout(cmdline, self.timeout)
+    result = check_test_run_result(process_result)
     if $no_capture || result != true
       mutex.synchronize do
         puts "#==== STDOUT"
-        puts stdout unless stdout.empty?
+        puts process_result[:stdout] unless process_result[:stdout].empty?
         puts "#==== STDERR"
-        puts stderr unless stdout.empty?
+        puts process_result[:stderr] unless process_result[:stderr].empty?
         puts "RUN: #{cmdline}"
         STDOUT.flush
       end
@@ -124,8 +165,15 @@ class TestCase
     "target/#{dir}/dora"
   end
 
-  def check_test_run_result(stdout, stderr, status)
+  def check_test_run_result(result)
+    status = result[:status]
+    stdout = result[:stdout]
+    stderr = result[:stderr]
+    timeout = result[:timeout]
     exit_code = status.exitstatus
+
+    return "test timed out after #{self.timeout} seconds" if
+      timeout
 
     if self.expectation.fail
       position, message = read_error_message(stderr)
@@ -215,6 +263,7 @@ def run_tests
   mutex = Mutex.new
   threads = []
   worklist = test_files.dup
+  faillist = []
 
   number_processors.times do
     thread = Thread.new do
@@ -232,6 +281,7 @@ def run_tests
         end
 
         mutex.synchronize do
+          faillist.push(test_case) if test_results.any? { |key,value| key == :failed && value > 0 }
           test_case.print_results
           STDOUT.flush
 
@@ -247,6 +297,18 @@ def run_tests
   end
 
   ret = failed == 0
+
+
+  if faillist.any?
+    puts "failed tests:"
+
+    for test_case in faillist
+      for run_name, run_result in test_case.results
+        next if run_result == true
+        puts "    #{test_case.file}.#{run_name}"
+      end
+    end
+  end
 
   passed = "#{passed} #{test_name(passed)} passed"
   failed = "#{failed} #{test_name(failed)} failed"
@@ -408,6 +470,9 @@ def parse_test_file(file)
 
       when "boots"
         test_case.args += '--boots=dora-boots --gc-verify'
+
+      when "timeout"
+        test_case.timeout = arguments[1].to_i
 
       else
         raise "unkown expectation in #{file}: #{line}"
