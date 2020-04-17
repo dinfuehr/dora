@@ -302,10 +302,12 @@ def run_tests
   if faillist.any?
     puts "failed tests:"
 
-    faillist.each { |test_case| test_case.results
-      .filter { |run_name, run_result| run_result != true }
-      .each_key { |run_name| puts "    #{test_case.file}.#{run_name}" }
-    }
+    for test_case in faillist
+      for run_name, run_result in test_case.results
+        next if run_result == true
+        puts "    #{test_case.file}.#{run_name}"
+      end
+    end
   end
 
   passed = "#{passed} #{test_name(passed)} passed"
