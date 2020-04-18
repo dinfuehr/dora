@@ -105,14 +105,14 @@ impl<'a> BytecodeDumper<'a> {
         writeln!(self.w, " {}, {}", r1, gid.to_usize()).expect("write! failed");
     }
 
-    fn emit_fct_void(&mut self, name: &str, fid: FctDefId, r1: Register, cnt: u32) {
+    fn emit_fct_void(&mut self, name: &str, fid: FctDefId, cnt: u32) {
         self.emit_start(name);
-        writeln!(self.w, " {}, {}, {}", fid.to_usize(), r1, cnt).expect("write! failed");
+        writeln!(self.w, " {}, {}", fid.to_usize(), cnt).expect("write! failed");
     }
 
-    fn emit_fct(&mut self, name: &str, r1: Register, fid: FctDefId, r2: Register, cnt: u32) {
+    fn emit_fct(&mut self, name: &str, r1: Register, fid: FctDefId, cnt: u32) {
         self.emit_start(name);
-        writeln!(self.w, " {}, {}, {}, {}", r1, fid.to_usize(), r2, cnt).expect("write! failed");
+        writeln!(self.w, " {}, {}, {}", r1, fid.to_usize(), cnt).expect("write! failed");
     }
 
     fn emit_new(&mut self, name: &str, r1: Register, cls: ClassDefId) {
@@ -573,6 +573,10 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_global("StoreGlobalPtr", src, glob);
     }
 
+    fn visit_push_register(&mut self, src: Register) {
+        self.emit_reg1("PushRegister", src)
+    }
+
     fn visit_const_nil(&mut self, dest: Register) {
         self.emit_reg1("ConstNil", dest);
     }
@@ -782,232 +786,88 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_idx("JumpConst", idx);
     }
 
-    fn visit_invoke_direct_void(&mut self, fctdef: FctDefId, start: Register, count: u32) {
-        self.emit_fct_void("InvokeDirectVoid", fctdef, start, count);
+    fn visit_invoke_direct_void(&mut self, fctdef: FctDefId, count: u32) {
+        self.emit_fct_void("InvokeDirectVoid", fctdef, count);
     }
-    fn visit_invoke_direct_bool(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_fct("InvokeDirectBool", dest, fctdef, start, count);
+    fn visit_invoke_direct_bool(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeDirectBool", dest, fctdef, count);
     }
-    fn visit_invoke_direct_byte(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_fct("InvokeDirectByte", dest, fctdef, start, count);
+    fn visit_invoke_direct_byte(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeDirectByte", dest, fctdef, count);
     }
-    fn visit_invoke_direct_char(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_fct("InvokeDirectChar", dest, fctdef, start, count);
+    fn visit_invoke_direct_char(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeDirectChar", dest, fctdef, count);
     }
-    fn visit_invoke_direct_int(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_fct("InvokeDirectInt", dest, fctdef, start, count);
+    fn visit_invoke_direct_int(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeDirectInt", dest, fctdef, count);
     }
-    fn visit_invoke_direct_long(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_fct("InvokeDirectLong", dest, fctdef, start, count);
+    fn visit_invoke_direct_long(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeDirectLong", dest, fctdef, count);
     }
-    fn visit_invoke_direct_float(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_fct("InvokeDirectFloat", dest, fctdef, start, count);
+    fn visit_invoke_direct_float(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeDirectFloat", dest, fctdef, count);
     }
-    fn visit_invoke_direct_double(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_fct("InvokeDirectDouble", dest, fctdef, start, count);
+    fn visit_invoke_direct_double(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeDirectDouble", dest, fctdef, count);
     }
-    fn visit_invoke_direct_ptr(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_fct("InvokeDirectPtr", dest, fctdef, start, count);
+    fn visit_invoke_direct_ptr(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeDirectPtr", dest, fctdef, count);
     }
 
-    fn visit_invoke_virtual_void(&mut self, fctdef: FctDefId, start: Register, count: u32) {
-        self.emit_fct_void("InvokeVirtualVoid", fctdef, start, count);
+    fn visit_invoke_virtual_void(&mut self, fctdef: FctDefId, count: u32) {
+        self.emit_fct_void("InvokeVirtualVoid", fctdef, count);
     }
-    fn visit_invoke_virtual_bool(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_fct("InvokeVirtualBool", dest, fctdef, start, count);
+    fn visit_invoke_virtual_bool(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeVirtualBool", dest, fctdef, count);
     }
-    fn visit_invoke_virtual_byte(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_fct("InvokeVirtualByte", dest, fctdef, start, count);
+    fn visit_invoke_virtual_byte(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeVirtualByte", dest, fctdef, count);
     }
-    fn visit_invoke_virtual_char(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_fct("InvokeVirtualChar", dest, fctdef, start, count);
+    fn visit_invoke_virtual_char(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeVirtualChar", dest, fctdef, count);
     }
-    fn visit_invoke_virtual_int(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_fct("InvokeVirtualInt", dest, fctdef, start, count);
+    fn visit_invoke_virtual_int(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeVirtualInt", dest, fctdef, count);
     }
-    fn visit_invoke_virtual_long(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_fct("InvokeVirtualLong", dest, fctdef, start, count);
+    fn visit_invoke_virtual_long(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeVirtualLong", dest, fctdef, count);
     }
-    fn visit_invoke_virtual_float(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_fct("InvokeVirtualFloat", dest, fctdef, start, count);
+    fn visit_invoke_virtual_float(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeVirtualFloat", dest, fctdef, count);
     }
-    fn visit_invoke_virtual_double(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_fct("InvokeVirtualDouble", dest, fctdef, start, count);
+    fn visit_invoke_virtual_double(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeVirtualDouble", dest, fctdef, count);
     }
-    fn visit_invoke_virtual_ptr(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_fct("InvokeVirtualPtr", dest, fctdef, start, count);
+    fn visit_invoke_virtual_ptr(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeVirtualPtr", dest, fctdef, count);
     }
 
-    fn visit_invoke_static_void(&mut self, fctdef: FctDefId, start: Register, count: u32) {
-        self.emit_fct_void("InvokeStaticVoid", fctdef, start, count);
+    fn visit_invoke_static_void(&mut self, fctdef: FctDefId, count: u32) {
+        self.emit_fct_void("InvokeStaticVoid", fctdef, count);
     }
-    fn visit_invoke_static_bool(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_fct("InvokeStaticBool", dest, fctdef, start, count);
+    fn visit_invoke_static_bool(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeStaticBool", dest, fctdef, count);
     }
-    fn visit_invoke_static_byte(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_fct("InvokeStaticByte", dest, fctdef, start, count);
+    fn visit_invoke_static_byte(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeStaticByte", dest, fctdef, count);
     }
-    fn visit_invoke_static_char(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_fct("InvokeStaticChar", dest, fctdef, start, count);
+    fn visit_invoke_static_char(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeStaticChar", dest, fctdef, count);
     }
-    fn visit_invoke_static_int(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_fct("InvokeStaticInt", dest, fctdef, start, count);
+    fn visit_invoke_static_int(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeStaticInt", dest, fctdef, count);
     }
-    fn visit_invoke_static_long(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_fct("InvokeStaticLong", dest, fctdef, start, count);
+    fn visit_invoke_static_long(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeStaticLong", dest, fctdef, count);
     }
-    fn visit_invoke_static_float(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_fct("InvokeStaticFloat", dest, fctdef, start, count);
+    fn visit_invoke_static_float(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeStaticFloat", dest, fctdef, count);
     }
-    fn visit_invoke_static_double(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_fct("InvokeStaticDouble", dest, fctdef, start, count);
+    fn visit_invoke_static_double(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeStaticDouble", dest, fctdef, count);
     }
-    fn visit_invoke_static_ptr(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_fct("InvokeStaticPtr", dest, fctdef, start, count);
+    fn visit_invoke_static_ptr(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeStaticPtr", dest, fctdef, count);
     }
 
     fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {

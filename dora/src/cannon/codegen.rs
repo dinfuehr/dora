@@ -2667,232 +2667,88 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.visit_jump(offset as u32);
     }
 
-    fn visit_invoke_direct_void(&mut self, fctdef: FctDefId, start: Register, count: u32) {
-        self.emit_invoke_direct_void(fctdef, start, count)
+    fn visit_invoke_direct_void(&mut self, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_direct_void(fctdef, Register::invalid(), count)
     }
-    fn visit_invoke_direct_bool(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_invoke_direct_generic(dest, fctdef, start, count);
+    fn visit_invoke_direct_bool(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_direct_generic(dest, fctdef, Register::invalid(), count);
     }
-    fn visit_invoke_direct_byte(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_invoke_direct_generic(dest, fctdef, start, count);
+    fn visit_invoke_direct_byte(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_direct_generic(dest, fctdef, Register::invalid(), count);
     }
-    fn visit_invoke_direct_char(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_invoke_direct_generic(dest, fctdef, start, count);
+    fn visit_invoke_direct_char(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_direct_generic(dest, fctdef, Register::invalid(), count);
     }
-    fn visit_invoke_direct_int(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_invoke_direct_generic(dest, fctdef, start, count);
+    fn visit_invoke_direct_int(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_direct_generic(dest, fctdef, Register::invalid(), count);
     }
-    fn visit_invoke_direct_long(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_invoke_direct_generic(dest, fctdef, start, count);
+    fn visit_invoke_direct_long(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_direct_generic(dest, fctdef, Register::invalid(), count);
     }
-    fn visit_invoke_direct_float(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_invoke_direct_generic(dest, fctdef, start, count);
+    fn visit_invoke_direct_float(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_direct_generic(dest, fctdef, Register::invalid(), count);
     }
-    fn visit_invoke_direct_double(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_invoke_direct_generic(dest, fctdef, start, count);
+    fn visit_invoke_direct_double(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_direct_generic(dest, fctdef, Register::invalid(), count);
     }
-    fn visit_invoke_direct_ptr(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_invoke_direct_generic(dest, fctdef, start, count);
+    fn visit_invoke_direct_ptr(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_direct_generic(dest, fctdef, Register::invalid(), count);
     }
 
-    fn visit_invoke_virtual_void(&mut self, fctdef: FctDefId, start: Register, count: u32) {
-        self.emit_invoke_virtual_void(fctdef, start, count);
+    fn visit_invoke_virtual_void(&mut self, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_virtual_void(fctdef, Register::invalid(), count);
     }
-    fn visit_invoke_virtual_bool(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_invoke_virtual_generic(dest, fctdef, start, count);
+    fn visit_invoke_virtual_bool(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_virtual_generic(dest, fctdef, Register::invalid(), count);
     }
-    fn visit_invoke_virtual_byte(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_invoke_virtual_generic(dest, fctdef, start, count);
+    fn visit_invoke_virtual_byte(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_virtual_generic(dest, fctdef, Register::invalid(), count);
     }
-    fn visit_invoke_virtual_char(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_invoke_virtual_generic(dest, fctdef, start, count);
+    fn visit_invoke_virtual_char(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_virtual_generic(dest, fctdef, Register::invalid(), count);
     }
-    fn visit_invoke_virtual_int(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_invoke_virtual_generic(dest, fctdef, start, count);
+    fn visit_invoke_virtual_int(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_virtual_generic(dest, fctdef, Register::invalid(), count);
     }
-    fn visit_invoke_virtual_long(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_invoke_virtual_generic(dest, fctdef, start, count);
+    fn visit_invoke_virtual_long(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_virtual_generic(dest, fctdef, Register::invalid(), count);
     }
-    fn visit_invoke_virtual_float(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_invoke_virtual_generic(dest, fctdef, start, count);
+    fn visit_invoke_virtual_float(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_virtual_generic(dest, fctdef, Register::invalid(), count);
     }
-    fn visit_invoke_virtual_double(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_invoke_virtual_generic(dest, fctdef, start, count);
+    fn visit_invoke_virtual_double(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_virtual_generic(dest, fctdef, Register::invalid(), count);
     }
-    fn visit_invoke_virtual_ptr(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_invoke_virtual_generic(dest, fctdef, start, count);
+    fn visit_invoke_virtual_ptr(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_virtual_generic(dest, fctdef, Register::invalid(), count);
     }
 
-    fn visit_invoke_static_void(&mut self, fctdef: FctDefId, start: Register, count: u32) {
-        self.emit_invoke_static_void(fctdef, start, count)
+    fn visit_invoke_static_void(&mut self, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_static_void(fctdef, Register::invalid(), count)
     }
-    fn visit_invoke_static_bool(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_invoke_static_generic(dest, fctdef, start, count);
+    fn visit_invoke_static_bool(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_static_generic(dest, fctdef, Register::invalid(), count);
     }
-    fn visit_invoke_static_byte(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_invoke_static_generic(dest, fctdef, start, count);
+    fn visit_invoke_static_byte(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_static_generic(dest, fctdef, Register::invalid(), count);
     }
-    fn visit_invoke_static_char(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_invoke_static_generic(dest, fctdef, start, count);
+    fn visit_invoke_static_char(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_static_generic(dest, fctdef, Register::invalid(), count);
     }
-    fn visit_invoke_static_int(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_invoke_static_generic(dest, fctdef, start, count);
+    fn visit_invoke_static_int(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_static_generic(dest, fctdef, Register::invalid(), count);
     }
-    fn visit_invoke_static_long(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_invoke_static_generic(dest, fctdef, start, count);
+    fn visit_invoke_static_long(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_static_generic(dest, fctdef, Register::invalid(), count);
     }
-    fn visit_invoke_static_float(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_invoke_static_generic(dest, fctdef, start, count);
+    fn visit_invoke_static_float(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_static_generic(dest, fctdef, Register::invalid(), count);
     }
-    fn visit_invoke_static_double(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_invoke_static_generic(dest, fctdef, start, count);
+    fn visit_invoke_static_double(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_static_generic(dest, fctdef, Register::invalid(), count);
     }
-    fn visit_invoke_static_ptr(
-        &mut self,
-        dest: Register,
-        fctdef: FctDefId,
-        start: Register,
-        count: u32,
-    ) {
-        self.emit_invoke_static_generic(dest, fctdef, start, count);
+    fn visit_invoke_static_ptr(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_invoke_static_generic(dest, fctdef, Register::invalid(), count);
     }
 
     fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {

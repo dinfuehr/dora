@@ -237,6 +237,8 @@ pub enum BytecodeOpcode {
     StoreGlobalDouble,
     StoreGlobalPtr,
 
+    PushRegister,
+
     ConstNil,
     ConstTrue,
     ConstFalse,
