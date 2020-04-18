@@ -262,8 +262,11 @@ def run_tests
 
   mutex = Mutex.new
   threads = []
-  worklist = test_files.dup
   faillist = []
+
+  # Load all test files and shuffle them around to run tests
+  # in different order
+  worklist = test_files.shuffle
 
   number_processors.times do
     thread = Thread.new do
