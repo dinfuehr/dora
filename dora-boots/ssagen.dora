@@ -74,6 +74,12 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
 
     fun readVariableRecursive(register: BytecodeRegister, block: Block) -> Inst {
         let value: Inst = if !self.sealedBlocks.contains(block.id) {
+            // While all blocks are created with predecessors and successors before
+            // this pass in BlockBuilder already, we still need to handle unsealed blocks.
+            // E.g. Register is accessed in while header and updated in the while body.
+            // In this case the while header is filled before the while body. If we wouldn't
+            // handle unsealed blocks we wouldn't create a Phi instruction, since the
+            // while body predecessor is still empty.
             let incomplete = PhiInst();
             block.appendPhi(incomplete);
 
