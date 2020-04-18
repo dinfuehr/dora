@@ -135,6 +135,8 @@ fun readBytecode(code: Array[Byte], visitor: BytecodeVisitor) {
     @open fun visitStoreGlobalDouble(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
     @open fun visitStoreGlobalPtr(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
 
+    @open fun visitPushRegister(src: BytecodeRegister) { unimplemented(); }
+
     @open fun visitConstNil(dest: BytecodeRegister) { unimplemented(); }
     @open fun visitConstTrue(dest: BytecodeRegister) { unimplemented(); }
     @open fun visitConstFalse(dest: BytecodeRegister) { unimplemented(); }
@@ -214,35 +216,35 @@ fun readBytecode(code: Array[Byte], visitor: BytecodeVisitor) {
     @open fun visitJump(offset: Int) { unimplemented(); }
     @open fun visitJumpConst(idx: ConstPoolId) { unimplemented(); }
 
-    @open fun visitInvokeDirectVoid(fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
-    @open fun visitInvokeDirectBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
-    @open fun visitInvokeDirectByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
-    @open fun visitInvokeDirectChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
-    @open fun visitInvokeDirectInt(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
-    @open fun visitInvokeDirectLong(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
-    @open fun visitInvokeDirectFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
-    @open fun visitInvokeDirectDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
-    @open fun visitInvokeDirectPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeDirectVoid(fct: FctId, count: Int) { unimplemented(); }
+    @open fun visitInvokeDirectBool(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @open fun visitInvokeDirectByte(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @open fun visitInvokeDirectChar(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @open fun visitInvokeDirectInt(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @open fun visitInvokeDirectLong(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @open fun visitInvokeDirectFloat(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @open fun visitInvokeDirectDouble(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @open fun visitInvokeDirectPtr(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
 
-    @open fun visitInvokeVirtualVoid(fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
-    @open fun visitInvokeVirtualBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
-    @open fun visitInvokeVirtualByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
-    @open fun visitInvokeVirtualChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
-    @open fun visitInvokeVirtualInt(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
-    @open fun visitInvokeVirtualLong(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
-    @open fun visitInvokeVirtualFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
-    @open fun visitInvokeVirtualDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
-    @open fun visitInvokeVirtualPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeVirtualVoid(fct: FctId, count: Int) { unimplemented(); }
+    @open fun visitInvokeVirtualBool(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @open fun visitInvokeVirtualByte(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @open fun visitInvokeVirtualChar(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @open fun visitInvokeVirtualInt(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @open fun visitInvokeVirtualLong(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @open fun visitInvokeVirtualFloat(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @open fun visitInvokeVirtualDouble(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @open fun visitInvokeVirtualPtr(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
 
-    @open fun visitInvokeStaticVoid(fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
-    @open fun visitInvokeStaticBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
-    @open fun visitInvokeStaticByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
-    @open fun visitInvokeStaticChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
-    @open fun visitInvokeStaticInt(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
-    @open fun visitInvokeStaticLong(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
-    @open fun visitInvokeStaticFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
-    @open fun visitInvokeStaticDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
-    @open fun visitInvokeStaticPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) { unimplemented(); }
+    @open fun visitInvokeStaticVoid(fct: FctId, count: Int) { unimplemented(); }
+    @open fun visitInvokeStaticBool(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @open fun visitInvokeStaticByte(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @open fun visitInvokeStaticChar(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @open fun visitInvokeStaticInt(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @open fun visitInvokeStaticLong(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @open fun visitInvokeStaticFloat(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @open fun visitInvokeStaticDouble(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @open fun visitInvokeStaticPtr(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
 
     @open fun visitNewObject(dest: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
     
@@ -388,6 +390,8 @@ fun readBytecode(code: Array[Byte], visitor: BytecodeVisitor) {
     @override fun visitStoreGlobalDouble(src: BytecodeRegister, glob: GlobalId) {}
     @override fun visitStoreGlobalPtr(src: BytecodeRegister, glob: GlobalId) {}
 
+    @override fun visitPushRegister(src: BytecodeRegister) {}
+
     @override fun visitConstNil(dest: BytecodeRegister) {}
     @override fun visitConstTrue(dest: BytecodeRegister) {}
     @override fun visitConstFalse(dest: BytecodeRegister) {}
@@ -467,35 +471,35 @@ fun readBytecode(code: Array[Byte], visitor: BytecodeVisitor) {
     @override fun visitJump(offset: Int) {}
     @override fun visitJumpConst(idx: ConstPoolId) {}
 
-    @override fun visitInvokeDirectVoid(fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeDirectBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeDirectByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeDirectChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeDirectInt(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeDirectLong(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeDirectFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeDirectDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeDirectPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeDirectVoid(fct: FctId, count: Int) {}
+    @override fun visitInvokeDirectBool(dest: BytecodeRegister, fct: FctId, count: Int) {}
+    @override fun visitInvokeDirectByte(dest: BytecodeRegister, fct: FctId, count: Int) {}
+    @override fun visitInvokeDirectChar(dest: BytecodeRegister, fct: FctId, count: Int) {}
+    @override fun visitInvokeDirectInt(dest: BytecodeRegister, fct: FctId, count: Int) {}
+    @override fun visitInvokeDirectLong(dest: BytecodeRegister, fct: FctId, count: Int) {}
+    @override fun visitInvokeDirectFloat(dest: BytecodeRegister, fct: FctId, count: Int) {}
+    @override fun visitInvokeDirectDouble(dest: BytecodeRegister, fct: FctId, count: Int) {}
+    @override fun visitInvokeDirectPtr(dest: BytecodeRegister, fct: FctId, count: Int) {}
 
-    @override fun visitInvokeVirtualVoid(fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeVirtualBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeVirtualByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeVirtualChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeVirtualInt(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeVirtualLong(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeVirtualFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeVirtualDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeVirtualPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeVirtualVoid(fct: FctId, count: Int) {}
+    @override fun visitInvokeVirtualBool(dest: BytecodeRegister, fct: FctId, count: Int) {}
+    @override fun visitInvokeVirtualByte(dest: BytecodeRegister, fct: FctId, count: Int) {}
+    @override fun visitInvokeVirtualChar(dest: BytecodeRegister, fct: FctId, count: Int) {}
+    @override fun visitInvokeVirtualInt(dest: BytecodeRegister, fct: FctId, count: Int) {}
+    @override fun visitInvokeVirtualLong(dest: BytecodeRegister, fct: FctId, count: Int) {}
+    @override fun visitInvokeVirtualFloat(dest: BytecodeRegister, fct: FctId, count: Int) {}
+    @override fun visitInvokeVirtualDouble(dest: BytecodeRegister, fct: FctId, count: Int) {}
+    @override fun visitInvokeVirtualPtr(dest: BytecodeRegister, fct: FctId, count: Int) {}
 
-    @override fun visitInvokeStaticVoid(fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeStaticBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeStaticByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeStaticChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeStaticInt(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeStaticLong(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeStaticFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeStaticDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
-    @override fun visitInvokeStaticPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {}
+    @override fun visitInvokeStaticVoid(fct: FctId, count: Int) {}
+    @override fun visitInvokeStaticBool(dest: BytecodeRegister, fct: FctId, count: Int) {}
+    @override fun visitInvokeStaticByte(dest: BytecodeRegister, fct: FctId, count: Int) {}
+    @override fun visitInvokeStaticChar(dest: BytecodeRegister, fct: FctId, count: Int) {}
+    @override fun visitInvokeStaticInt(dest: BytecodeRegister, fct: FctId, count: Int) {}
+    @override fun visitInvokeStaticLong(dest: BytecodeRegister, fct: FctId, count: Int) {}
+    @override fun visitInvokeStaticFloat(dest: BytecodeRegister, fct: FctId, count: Int) {}
+    @override fun visitInvokeStaticDouble(dest: BytecodeRegister, fct: FctId, count: Int) {}
+    @override fun visitInvokeStaticPtr(dest: BytecodeRegister, fct: FctId, count: Int) {}
 
     @override fun visitNewObject(dest: BytecodeRegister, cls: ClassDefId) {}
     
@@ -1061,6 +1065,10 @@ class BytecodeReader(let data: Array[Byte], let visitor: BytecodeVisitor) {
             let glob = self.readGlobalId(wide);
             self.visitor.visitStoreGlobalPtr(src, glob);
 
+        } else if opcode == BC_PUSH_REGISTER {
+            let src = self.readRegister(wide);
+            self.visitor.visitPushRegister(src);
+
         } else if opcode == BC_CONST_NIL {
             let dest = self.readRegister(wide);
             self.visitor.visitConstNil(dest);
@@ -1369,165 +1377,138 @@ class BytecodeReader(let data: Array[Byte], let visitor: BytecodeVisitor) {
 
         } else if opcode == BC_INVOKE_DIRECT_VOID {
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeDirectVoid(fct, start, count);
+            self.visitor.visitInvokeDirectVoid(fct, count);
         } else if opcode == BC_INVOKE_DIRECT_BOOL {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeDirectBool(dest, fct, start, count);
+            self.visitor.visitInvokeDirectBool(dest, fct, count);
         } else if opcode == BC_INVOKE_DIRECT_BYTE {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeDirectByte(dest, fct, start, count);
+            self.visitor.visitInvokeDirectByte(dest, fct, count);
         } else if opcode == BC_INVOKE_DIRECT_CHAR {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeDirectChar(dest, fct, start, count);
+            self.visitor.visitInvokeDirectChar(dest, fct, count);
         } else if opcode == BC_INVOKE_DIRECT_INT {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeDirectInt(dest, fct, start, count);
+            self.visitor.visitInvokeDirectInt(dest, fct, count);
         } else if opcode == BC_INVOKE_DIRECT_LONG {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeDirectLong(dest, fct, start, count);
+            self.visitor.visitInvokeDirectLong(dest, fct, count);
         } else if opcode == BC_INVOKE_DIRECT_FLOAT {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeDirectFloat(dest, fct, start, count);
+            self.visitor.visitInvokeDirectFloat(dest, fct, count);
         } else if opcode == BC_INVOKE_DIRECT_DOUBLE {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeDirectDouble(dest, fct, start, count);
+            self.visitor.visitInvokeDirectDouble(dest, fct, count);
         } else if opcode == BC_INVOKE_DIRECT_PTR {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeDirectPtr(dest, fct, start, count);
+            self.visitor.visitInvokeDirectPtr(dest, fct, count);
 
         } else if opcode == BC_INVOKE_VIRTUAL_VOID {
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeVirtualVoid(fct, start, count);
+            self.visitor.visitInvokeVirtualVoid(fct, count);
         } else if opcode == BC_INVOKE_VIRTUAL_BOOL {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeVirtualBool(dest, fct, start, count);
+            self.visitor.visitInvokeVirtualBool(dest, fct, count);
         } else if opcode == BC_INVOKE_VIRTUAL_BYTE {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeVirtualByte(dest, fct, start, count);
+            self.visitor.visitInvokeVirtualByte(dest, fct, count);
         } else if opcode == BC_INVOKE_VIRTUAL_CHAR {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeVirtualChar(dest, fct, start, count);
+            self.visitor.visitInvokeVirtualChar(dest, fct, count);
         } else if opcode == BC_INVOKE_VIRTUAL_INT {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeVirtualInt(dest, fct, start, count);
+            self.visitor.visitInvokeVirtualInt(dest, fct, count);
         } else if opcode == BC_INVOKE_VIRTUAL_LONG {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeVirtualLong(dest, fct, start, count);
+            self.visitor.visitInvokeVirtualLong(dest, fct, count);
         } else if opcode == BC_INVOKE_VIRTUAL_FLOAT {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeVirtualFloat(dest, fct, start, count);
+            self.visitor.visitInvokeVirtualFloat(dest, fct, count);
         } else if opcode == BC_INVOKE_VIRTUAL_DOUBLE {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeVirtualDouble(dest, fct, start, count);
+            self.visitor.visitInvokeVirtualDouble(dest, fct, count);
         } else if opcode == BC_INVOKE_VIRTUAL_PTR {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeVirtualPtr(dest, fct, start, count);
+            self.visitor.visitInvokeVirtualPtr(dest, fct, count);
 
         } else if opcode == BC_INVOKE_STATIC_VOID {
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeStaticVoid(fct, start, count);
+            self.visitor.visitInvokeStaticVoid(fct, count);
         } else if opcode == BC_INVOKE_STATIC_BOOL {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeStaticBool(dest, fct, start, count);
+            self.visitor.visitInvokeStaticBool(dest, fct, count);
         } else if opcode == BC_INVOKE_STATIC_BYTE {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeStaticByte(dest, fct, start, count);
+            self.visitor.visitInvokeStaticByte(dest, fct, count);
         } else if opcode == BC_INVOKE_STATIC_CHAR {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeStaticChar(dest, fct, start, count);
+            self.visitor.visitInvokeStaticChar(dest, fct, count);
         } else if opcode == BC_INVOKE_STATIC_INT {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeStaticInt(dest, fct, start, count);
+            self.visitor.visitInvokeStaticInt(dest, fct, count);
         } else if opcode == BC_INVOKE_STATIC_LONG {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeStaticLong(dest, fct, start, count);
+            self.visitor.visitInvokeStaticLong(dest, fct, count);
         } else if opcode == BC_INVOKE_STATIC_FLOAT {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeStaticFloat(dest, fct, start, count);
+            self.visitor.visitInvokeStaticFloat(dest, fct, count);
         } else if opcode == BC_INVOKE_STATIC_DOUBLE {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeStaticDouble(dest, fct, start, count);
+            self.visitor.visitInvokeStaticDouble(dest, fct, count);
         } else if opcode == BC_INVOKE_STATIC_PTR {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            let start = self.readRegister(wide);
             let count = self.readIndex(wide);
-            self.visitor.visitInvokeStaticPtr(dest, fct, start, count);
+            self.visitor.visitInvokeStaticPtr(dest, fct, count);
 
         } else if opcode == BC_NEW_OBJECT {
             let dest = self.readRegister(wide);
