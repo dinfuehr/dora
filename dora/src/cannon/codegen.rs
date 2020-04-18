@@ -1535,7 +1535,7 @@ where
         assert!(num > 0);
 
         assert_eq!(self.argument_stack.len() as u32, num);
-        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
+        let arguments = std::mem::replace(&mut self.argument_stack, Vec::new());
         let self_register = arguments[0];
 
         let bytecode_type_self = self.bytecode.register_type(self_register);
@@ -1595,7 +1595,7 @@ where
         assert!(num > 0);
 
         assert_eq!(self.argument_stack.len() as u32, num);
-        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
+        let arguments = std::mem::replace(&mut self.argument_stack, Vec::new());
         let self_register = arguments[0];
 
         let bytecode_type_self = self.bytecode.register_type(self_register);
@@ -1676,7 +1676,7 @@ where
         }
 
         assert_eq!(self.argument_stack.len() as u32, num);
-        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
+        let arguments = std::mem::replace(&mut self.argument_stack, Vec::new());
 
         let argsize = self.emit_invoke_arguments(arguments, num);
 
@@ -1718,7 +1718,7 @@ where
         num: u32,
     ) -> AnyReg {
         assert_eq!(self.argument_stack.len() as u32, num);
-        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
+        let arguments = std::mem::replace(&mut self.argument_stack, Vec::new());
 
         match intrinsic {
             Intrinsic::FloatSqrt | Intrinsic::DoubleSqrt => {
