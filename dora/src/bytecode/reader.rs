@@ -682,6 +682,11 @@ where
                 self.visitor.visit_store_global_ptr(dest, glob);
             }
 
+            BytecodeOpcode::PushRegister => {
+                let src = self.read_register(wide);
+                self.visitor.visit_push_register(src);
+            }
+
             BytecodeOpcode::ConstNil => {
                 let dest = self.read_register(wide);
                 self.visitor.visit_const_nil(dest);
@@ -1048,215 +1053,164 @@ where
 
             BytecodeOpcode::InvokeDirectVoid => {
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor.visit_invoke_direct_void(fct, start, count);
+                self.visitor.visit_invoke_direct_void(fct, count);
             }
             BytecodeOpcode::InvokeDirectBool => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor
-                    .visit_invoke_direct_bool(dest, fct, start, count);
+                self.visitor.visit_invoke_direct_bool(dest, fct, count);
             }
             BytecodeOpcode::InvokeDirectByte => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor
-                    .visit_invoke_direct_byte(dest, fct, start, count);
+                self.visitor.visit_invoke_direct_byte(dest, fct, count);
             }
             BytecodeOpcode::InvokeDirectChar => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor
-                    .visit_invoke_direct_char(dest, fct, start, count);
+                self.visitor.visit_invoke_direct_char(dest, fct, count);
             }
             BytecodeOpcode::InvokeDirectInt => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor
-                    .visit_invoke_direct_int(dest, fct, start, count);
+                self.visitor.visit_invoke_direct_int(dest, fct, count);
             }
             BytecodeOpcode::InvokeDirectLong => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor
-                    .visit_invoke_direct_long(dest, fct, start, count);
+                self.visitor.visit_invoke_direct_long(dest, fct, count);
             }
             BytecodeOpcode::InvokeDirectFloat => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor
-                    .visit_invoke_direct_float(dest, fct, start, count);
+                self.visitor.visit_invoke_direct_float(dest, fct, count);
             }
             BytecodeOpcode::InvokeDirectDouble => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor
-                    .visit_invoke_direct_double(dest, fct, start, count);
+                self.visitor.visit_invoke_direct_double(dest, fct, count);
             }
             BytecodeOpcode::InvokeDirectPtr => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor
-                    .visit_invoke_direct_ptr(dest, fct, start, count);
+                self.visitor.visit_invoke_direct_ptr(dest, fct, count);
             }
 
             BytecodeOpcode::InvokeVirtualVoid => {
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor.visit_invoke_virtual_void(fct, start, count);
+                self.visitor.visit_invoke_virtual_void(fct, count);
             }
             BytecodeOpcode::InvokeVirtualBool => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor
-                    .visit_invoke_virtual_bool(dest, fct, start, count);
+                self.visitor.visit_invoke_virtual_bool(dest, fct, count);
             }
             BytecodeOpcode::InvokeVirtualByte => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor
-                    .visit_invoke_virtual_byte(dest, fct, start, count);
+                self.visitor.visit_invoke_virtual_byte(dest, fct, count);
             }
             BytecodeOpcode::InvokeVirtualChar => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor
-                    .visit_invoke_virtual_char(dest, fct, start, count);
+                self.visitor.visit_invoke_virtual_char(dest, fct, count);
             }
             BytecodeOpcode::InvokeVirtualInt => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor
-                    .visit_invoke_virtual_int(dest, fct, start, count);
+                self.visitor.visit_invoke_virtual_int(dest, fct, count);
             }
             BytecodeOpcode::InvokeVirtualLong => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor
-                    .visit_invoke_virtual_long(dest, fct, start, count);
+                self.visitor.visit_invoke_virtual_long(dest, fct, count);
             }
             BytecodeOpcode::InvokeVirtualFloat => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor
-                    .visit_invoke_virtual_float(dest, fct, start, count);
+                self.visitor.visit_invoke_virtual_float(dest, fct, count);
             }
             BytecodeOpcode::InvokeVirtualDouble => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor
-                    .visit_invoke_virtual_double(dest, fct, start, count);
+                self.visitor.visit_invoke_virtual_double(dest, fct, count);
             }
             BytecodeOpcode::InvokeVirtualPtr => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor
-                    .visit_invoke_virtual_ptr(dest, fct, start, count);
+                self.visitor.visit_invoke_virtual_ptr(dest, fct, count);
             }
 
             BytecodeOpcode::InvokeStaticVoid => {
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor.visit_invoke_static_void(fct, start, count);
+                self.visitor.visit_invoke_static_void(fct, count);
             }
             BytecodeOpcode::InvokeStaticBool => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor
-                    .visit_invoke_static_bool(dest, fct, start, count);
+                self.visitor.visit_invoke_static_bool(dest, fct, count);
             }
             BytecodeOpcode::InvokeStaticByte => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor
-                    .visit_invoke_static_byte(dest, fct, start, count);
+                self.visitor.visit_invoke_static_byte(dest, fct, count);
             }
             BytecodeOpcode::InvokeStaticChar => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor
-                    .visit_invoke_static_char(dest, fct, start, count);
+                self.visitor.visit_invoke_static_char(dest, fct, count);
             }
             BytecodeOpcode::InvokeStaticInt => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor
-                    .visit_invoke_static_int(dest, fct, start, count);
+                self.visitor.visit_invoke_static_int(dest, fct, count);
             }
             BytecodeOpcode::InvokeStaticLong => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor
-                    .visit_invoke_static_long(dest, fct, start, count);
+                self.visitor.visit_invoke_static_long(dest, fct, count);
             }
             BytecodeOpcode::InvokeStaticFloat => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor
-                    .visit_invoke_static_float(dest, fct, start, count);
+                self.visitor.visit_invoke_static_float(dest, fct, count);
             }
             BytecodeOpcode::InvokeStaticDouble => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor
-                    .visit_invoke_static_double(dest, fct, start, count);
+                self.visitor.visit_invoke_static_double(dest, fct, count);
             }
             BytecodeOpcode::InvokeStaticPtr => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                let start = self.read_register(wide);
                 let count = self.read_index(wide);
-                self.visitor
-                    .visit_invoke_static_ptr(dest, fct, start, count);
+                self.visitor.visit_invoke_static_ptr(dest, fct, count);
             }
 
             BytecodeOpcode::NewObject => {
@@ -1957,6 +1911,10 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
+    fn visit_push_register(&mut self, _src: Register) {
+        unimplemented!();
+    }
+
     fn visit_const_nil(&mut self, _dest: Register) {
         unimplemented!();
     }
@@ -2161,231 +2119,87 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_invoke_direct_void(&mut self, _fctdef: FctDefId, _start: Register, _count: u32) {
+    fn visit_invoke_direct_void(&mut self, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_direct_bool(
-        &mut self,
-        _dest: Register,
-        _fctdef: FctDefId,
-        _start: Register,
-        _count: u32,
-    ) {
+    fn visit_invoke_direct_bool(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_direct_byte(
-        &mut self,
-        _dest: Register,
-        _fctdef: FctDefId,
-        _start: Register,
-        _count: u32,
-    ) {
+    fn visit_invoke_direct_byte(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_direct_char(
-        &mut self,
-        _dest: Register,
-        _fctdef: FctDefId,
-        _start: Register,
-        _count: u32,
-    ) {
+    fn visit_invoke_direct_char(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_direct_int(
-        &mut self,
-        _dest: Register,
-        _fctdef: FctDefId,
-        _start: Register,
-        _count: u32,
-    ) {
+    fn visit_invoke_direct_int(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_direct_long(
-        &mut self,
-        _dest: Register,
-        _fctdef: FctDefId,
-        _start: Register,
-        _count: u32,
-    ) {
+    fn visit_invoke_direct_long(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_direct_float(
-        &mut self,
-        _dest: Register,
-        _fctdef: FctDefId,
-        _start: Register,
-        _count: u32,
-    ) {
+    fn visit_invoke_direct_float(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_direct_double(
-        &mut self,
-        _dest: Register,
-        _fctdef: FctDefId,
-        _start: Register,
-        _count: u32,
-    ) {
+    fn visit_invoke_direct_double(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_direct_ptr(
-        &mut self,
-        _dest: Register,
-        _fctdef: FctDefId,
-        _start: Register,
-        _count: u32,
-    ) {
+    fn visit_invoke_direct_ptr(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
 
-    fn visit_invoke_virtual_void(&mut self, _fctdef: FctDefId, _start: Register, _count: u32) {
+    fn visit_invoke_virtual_void(&mut self, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_virtual_bool(
-        &mut self,
-        _dest: Register,
-        _fctdef: FctDefId,
-        _start: Register,
-        _count: u32,
-    ) {
+    fn visit_invoke_virtual_bool(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_virtual_byte(
-        &mut self,
-        _dest: Register,
-        _fctdef: FctDefId,
-        _start: Register,
-        _count: u32,
-    ) {
+    fn visit_invoke_virtual_byte(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_virtual_char(
-        &mut self,
-        _dest: Register,
-        _fctdef: FctDefId,
-        _start: Register,
-        _count: u32,
-    ) {
+    fn visit_invoke_virtual_char(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_virtual_int(
-        &mut self,
-        _dest: Register,
-        _fctdef: FctDefId,
-        _start: Register,
-        _count: u32,
-    ) {
+    fn visit_invoke_virtual_int(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_virtual_long(
-        &mut self,
-        _dest: Register,
-        _fctdef: FctDefId,
-        _start: Register,
-        _count: u32,
-    ) {
+    fn visit_invoke_virtual_long(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_virtual_float(
-        &mut self,
-        _dest: Register,
-        _fctdef: FctDefId,
-        _start: Register,
-        _count: u32,
-    ) {
+    fn visit_invoke_virtual_float(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_virtual_double(
-        &mut self,
-        _dest: Register,
-        _fctdef: FctDefId,
-        _start: Register,
-        _count: u32,
-    ) {
+    fn visit_invoke_virtual_double(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_virtual_ptr(
-        &mut self,
-        _dest: Register,
-        _fctdef: FctDefId,
-        _start: Register,
-        _count: u32,
-    ) {
+    fn visit_invoke_virtual_ptr(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
 
-    fn visit_invoke_static_void(&mut self, _fctdef: FctDefId, _start: Register, _count: u32) {
+    fn visit_invoke_static_void(&mut self, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_static_bool(
-        &mut self,
-        _dest: Register,
-        _fctdef: FctDefId,
-        _start: Register,
-        _count: u32,
-    ) {
+    fn visit_invoke_static_bool(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_static_byte(
-        &mut self,
-        _dest: Register,
-        _fctdef: FctDefId,
-        _start: Register,
-        _count: u32,
-    ) {
+    fn visit_invoke_static_byte(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_static_char(
-        &mut self,
-        _dest: Register,
-        _fctdef: FctDefId,
-        _start: Register,
-        _count: u32,
-    ) {
+    fn visit_invoke_static_char(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_static_int(
-        &mut self,
-        _dest: Register,
-        _fctdef: FctDefId,
-        _start: Register,
-        _count: u32,
-    ) {
+    fn visit_invoke_static_int(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_static_long(
-        &mut self,
-        _dest: Register,
-        _fctdef: FctDefId,
-        _start: Register,
-        _count: u32,
-    ) {
+    fn visit_invoke_static_long(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_static_float(
-        &mut self,
-        _dest: Register,
-        _fctdef: FctDefId,
-        _start: Register,
-        _count: u32,
-    ) {
+    fn visit_invoke_static_float(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_static_double(
-        &mut self,
-        _dest: Register,
-        _fctdef: FctDefId,
-        _start: Register,
-        _count: u32,
-    ) {
+    fn visit_invoke_static_double(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_static_ptr(
-        &mut self,
-        _dest: Register,
-        _fctdef: FctDefId,
-        _start: Register,
-        _count: u32,
-    ) {
+    fn visit_invoke_static_ptr(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
 

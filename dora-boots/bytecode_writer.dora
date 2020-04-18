@@ -450,6 +450,10 @@ class BytecodeWriter {
         self.emitGlobal(BC_LOAD_GLOBAL_PTR, src, glob);
     }
 
+    fun emitPushRegister(src: BytecodeRegister) {
+        self.emitReg1(BC_PUSH_REGISTER, src);
+    }
+
     fun emitConstNil(dest: BytecodeRegister) {
         self.emitReg1(BC_CONST_NIL, dest);
     }
