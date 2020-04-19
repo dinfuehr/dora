@@ -10,6 +10,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::bytecode::BytecodeType;
 use crate::gc::Address;
+use crate::semck::specialize::specialize_type;
 use crate::ty::BuiltinType;
 use crate::utils::GrowableVec;
 use crate::vm::module::ModuleId;
@@ -564,6 +565,7 @@ pub struct FctDef {
     pub fct_id: FctId,
     pub cls_type_params: TypeList,
     pub fct_type_params: TypeList,
+    pub param_types: Vec<BuiltinType>,
 }
 
 impl FctDef {
@@ -611,6 +613,13 @@ impl FctDef {
         let mut specializations = fct.specializations.write();
         let type_params = (cls_type_params.clone(), fct_type_params.clone());
 
+        let param_types = fct
+            .params_with_self()
+            .iter()
+            .map(|&arg| specialize_type(vm, arg, &cls_type_params, &fct_type_params))
+            .collect::<Vec<BuiltinType>>();
+        debug_assert!(param_types.iter().all(|ty| ty.is_concrete_type(vm)));
+
         if let Some(&id) = specializations.get(&type_params) {
             return id;
         }
@@ -620,6 +629,7 @@ impl FctDef {
             fct_id: fct.id,
             cls_type_params: cls_type_params.clone(),
             fct_type_params: fct_type_params.clone(),
+            param_types: param_types,
         });
 
         let old = specializations.insert(
