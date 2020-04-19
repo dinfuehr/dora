@@ -37,7 +37,7 @@ fun findBackEdges(graph: Graph) {
         }
     }
 
-    let it = graph.blocks.makeIterator();
+    let it = graph.insertionOrderIterator();
     while it.hasNext() {
         let block = it.next();
         // assume for now that all blocks are reachable

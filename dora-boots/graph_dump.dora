@@ -6,7 +6,7 @@ class GraphDumper(let graph: Graph) {
     let buffer: StringBuffer = StringBuffer();
 
     fun dump() -> String {
-        let iter = self.graph.blocks.makeIterator();
+        let iter = self.graph.insertionOrderIterator();
 
         while iter.hasNext() {
             let block = iter.next();

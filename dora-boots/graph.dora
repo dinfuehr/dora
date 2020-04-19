@@ -50,6 +50,10 @@ class Graph {
         self.nextBlockIdValue
     }
 
+    fun insertionOrderIterator() -> VecIter[Block] {
+        self.blocks.makeIterator()
+    }
+
     fun postOrderIterator() -> PostOrderIterator {
         PostOrderIterator(self.postOrder)
     }
