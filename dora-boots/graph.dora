@@ -60,7 +60,7 @@ class Graph {
 }
 
 class PostOrderIterator(let postOrder: Vec[Block]) {
-    let idx = 0;
+    var idx: Int = 0;
 
     fun hasNext() -> Bool {
         self.idx < self.postOrder.length()
@@ -74,7 +74,7 @@ class PostOrderIterator(let postOrder: Vec[Block]) {
 }
 
 class ReversePostOrderIterator(let postOrder: Vec[Block]) {
-    let idx = self.postOrder.length() - 1;
+    var idx: Int = self.postOrder.length() - 1;
 
     fun hasNext() -> Bool {
         self.idx != -1

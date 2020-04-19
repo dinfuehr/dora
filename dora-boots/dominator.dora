@@ -45,7 +45,7 @@ fun findBackEdges(graph: Graph) {
     }
 }
 
-fun computePostOrder() {
+fun computePostOrder(graph: Graph) {
     let postOrder = Vec[Block]();
     postOrder.reserve(graph.numberBlocks());
 
