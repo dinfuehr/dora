@@ -18,6 +18,18 @@ class Vec[T] {
     self.array.set(idx, val);
   }
 
+  fun reserve(newcap: Int) {
+    assert(newcap >= 0);
+
+    if self.capacity() >= newcap {
+      return;
+    }
+
+    let newarray = Array[T](newcap);
+    arrayCopy[T](self.array, 0, newarray, 0, self.len);
+    self.array = newarray;
+  }
+
   fun push(val: T) {
     var newcap = self.capacity();
 
@@ -97,7 +109,7 @@ class Vec[T] {
   }
 
   fun capacity() -> Int {
-    return self.array.length();
+    self.array.length()
   }
 
   fun first() -> Option[T] {

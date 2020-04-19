@@ -1,5 +1,8 @@
 fun findBackEdges(graph: Graph) {
+    // worklist contains current path in the graph
     let worklist = Vec[Block]();
+
+    // number of successors visited per block
     let successorsVisited = arrayNew[Int](graph.numberBlocks());
 
     // all blocks that have been fully visited (including successors)
@@ -42,6 +45,44 @@ fun findBackEdges(graph: Graph) {
     }
 }
 
-fun determineDominators(graph: Graph) {
+fun computePostOrder() {
+    let postOrder = Vec[Block]();
+    postOrder.reserve(graph.numberBlocks());
+
+    // worklist contains current path in the graph
+    let worklist = Vec[Block]();
+
+    // number of successors visited per block
+    let successorsVisited = arrayNew[Int](graph.numberBlocks());
+
+    // all blocks that have been visited
+    let visited = BitSet(graph.numberBlocks());
+
+    worklist.push(graph.getEntryBlock());
+
+    while !worklist.isEmpty() {
+        let block = worklist.last().unwrap();
+        let successorIndex = successorsVisited(block.id);
+
+        if successorIndex == block.successors.length() {
+            worklist.pop();
+            postOrder.push(block);
+        } else {
+            successorsVisited(block.id) = successorIndex + 1;
+            let successor = block.successors.get(successorIndex);
+
+            if visited.contains(successor.id) {
+                // block either already visited or back edge
+            } else {
+                worklist.push(successor);
+                visited.insert(successor.id);
+            }
+        }
+    }
+
+    graph.postOrder = postOrder;
+}
+
+fun computeDominators() {
 
 }

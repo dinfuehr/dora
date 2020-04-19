@@ -39,7 +39,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
 
         self.currentDef = Array[HashMap[Block, Inst]](self.bc.registers.length());
 
-        let blockCount = self.graph.blocks.length();
+        let blockCount = self.graph.numberBlocks();
 
         self.filledBlocks = BitSet(blockCount);
         self.sealedBlocks = BitSet(blockCount);

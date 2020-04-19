@@ -3,7 +3,7 @@ class Graph {
     var exitBlock: Block;
 
     var blocks: Vec[Block] = Vec[Block]();
-    var reversePostOrder: Vec[Block] = Vec[Block]();
+    var postOrder: Vec[Block] = Vec[Block]();
 
     var nextBlockIdValue: Int = 0;
     var nextInstIdValue: Int = 0;
@@ -49,6 +49,42 @@ class Graph {
     fun numberBlocks() -> Int {
         self.nextBlockIdValue
     }
+
+    fun postOrderIterator() -> PostOrderIterator {
+        PostOrderIterator(self.postOrder)
+    }
+
+    fun reversePostOrderIterator() -> ReversePostOrderIterator {
+        ReversePostOrderIterator(self.postOrder)
+    }
+}
+
+class PostOrderIterator(let postOrder: Vec[Block]) {
+    let idx = 0;
+
+    fun hasNext() -> Bool {
+        self.idx < self.postOrder.length()
+    }
+
+    fun next() -> Block {
+        let block = self.postOrder.get(self.idx);
+        self.idx = self.idx + 1;
+        block
+    }
+}
+
+class ReversePostOrderIterator(let postOrder: Vec[Block]) {
+    let idx = self.postOrder.length() - 1;
+
+    fun hasNext() -> Bool {
+        self.idx != -1
+    }
+
+    fun next() -> Block {
+        let block = self.postOrder.get(self.idx);
+        self.idx = self.idx - 1;
+        block
+    }
 }
 
 class Block() {
@@ -76,6 +112,14 @@ class Block() {
     }
 
     fun dominates(other: Block) -> Bool {
+        if self == other {
+            true
+        } else {
+            self.strictlyDominates(other)
+        }
+    }
+
+    fun strictlyDominates(other: Block) -> Bool {
         var current = other.getDominator();
 
         while current.isSome() {
