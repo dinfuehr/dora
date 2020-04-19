@@ -945,112 +945,112 @@ impl BytecodeWriter {
         self.emit_reg1(BytecodeOpcode::PushRegister, src);
     }
 
-    pub fn emit_invoke_direct_void(&mut self, fid: FctDefId, num: usize) {
-        self.emit_fct_void(BytecodeOpcode::InvokeDirectVoid, fid, num);
+    pub fn emit_invoke_direct_void(&mut self, fid: FctDefId) {
+        self.emit_fct_void(BytecodeOpcode::InvokeDirectVoid, fid);
     }
 
-    pub fn emit_invoke_direct_bool(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeDirectBool, dest, fid, num);
+    pub fn emit_invoke_direct_bool(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeDirectBool, dest, fid);
     }
 
-    pub fn emit_invoke_direct_byte(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeDirectByte, dest, fid, num);
+    pub fn emit_invoke_direct_byte(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeDirectByte, dest, fid);
     }
 
-    pub fn emit_invoke_direct_char(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeDirectChar, dest, fid, num);
+    pub fn emit_invoke_direct_char(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeDirectChar, dest, fid);
     }
 
-    pub fn emit_invoke_direct_int(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeDirectInt, dest, fid, num);
+    pub fn emit_invoke_direct_int(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeDirectInt, dest, fid);
     }
 
-    pub fn emit_invoke_direct_long(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeDirectLong, dest, fid, num);
+    pub fn emit_invoke_direct_long(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeDirectLong, dest, fid);
     }
 
-    pub fn emit_invoke_direct_float(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeDirectFloat, dest, fid, num);
+    pub fn emit_invoke_direct_float(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeDirectFloat, dest, fid);
     }
 
-    pub fn emit_invoke_direct_double(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeDirectDouble, dest, fid, num);
+    pub fn emit_invoke_direct_double(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeDirectDouble, dest, fid);
     }
 
-    pub fn emit_invoke_direct_ptr(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeDirectPtr, dest, fid, num);
+    pub fn emit_invoke_direct_ptr(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeDirectPtr, dest, fid);
     }
 
-    pub fn emit_invoke_virtual_void(&mut self, fid: FctDefId, num: usize) {
-        self.emit_fct_void(BytecodeOpcode::InvokeVirtualVoid, fid, num);
+    pub fn emit_invoke_virtual_void(&mut self, fid: FctDefId) {
+        self.emit_fct_void(BytecodeOpcode::InvokeVirtualVoid, fid);
     }
 
-    pub fn emit_invoke_virtual_bool(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeVirtualBool, dest, fid, num);
+    pub fn emit_invoke_virtual_bool(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeVirtualBool, dest, fid);
     }
 
-    pub fn emit_invoke_virtual_byte(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeVirtualByte, dest, fid, num);
+    pub fn emit_invoke_virtual_byte(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeVirtualByte, dest, fid);
     }
 
-    pub fn emit_invoke_virtual_char(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeVirtualChar, dest, fid, num);
+    pub fn emit_invoke_virtual_char(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeVirtualChar, dest, fid);
     }
 
-    pub fn emit_invoke_virtual_int(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeVirtualInt, dest, fid, num);
+    pub fn emit_invoke_virtual_int(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeVirtualInt, dest, fid);
     }
 
-    pub fn emit_invoke_virtual_long(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeVirtualLong, dest, fid, num);
+    pub fn emit_invoke_virtual_long(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeVirtualLong, dest, fid);
     }
 
-    pub fn emit_invoke_virtual_float(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeVirtualFloat, dest, fid, num);
+    pub fn emit_invoke_virtual_float(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeVirtualFloat, dest, fid);
     }
 
-    pub fn emit_invoke_virtual_double(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeVirtualDouble, dest, fid, num);
+    pub fn emit_invoke_virtual_double(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeVirtualDouble, dest, fid);
     }
 
-    pub fn emit_invoke_virtual_ptr(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeVirtualPtr, dest, fid, num);
+    pub fn emit_invoke_virtual_ptr(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeVirtualPtr, dest, fid);
     }
 
-    pub fn emit_invoke_static_void(&mut self, fid: FctDefId, num: usize) {
-        self.emit_fct_void(BytecodeOpcode::InvokeStaticVoid, fid, num);
+    pub fn emit_invoke_static_void(&mut self, fid: FctDefId) {
+        self.emit_fct_void(BytecodeOpcode::InvokeStaticVoid, fid);
     }
 
-    pub fn emit_invoke_static_bool(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeStaticBool, dest, fid, num);
+    pub fn emit_invoke_static_bool(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeStaticBool, dest, fid);
     }
 
-    pub fn emit_invoke_static_byte(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeStaticByte, dest, fid, num);
+    pub fn emit_invoke_static_byte(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeStaticByte, dest, fid);
     }
 
-    pub fn emit_invoke_static_char(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeStaticChar, dest, fid, num);
+    pub fn emit_invoke_static_char(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeStaticChar, dest, fid);
     }
 
-    pub fn emit_invoke_static_int(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeStaticInt, dest, fid, num);
+    pub fn emit_invoke_static_int(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeStaticInt, dest, fid);
     }
 
-    pub fn emit_invoke_static_long(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeStaticLong, dest, fid, num);
+    pub fn emit_invoke_static_long(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeStaticLong, dest, fid);
     }
 
-    pub fn emit_invoke_static_float(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeStaticFloat, dest, fid, num);
+    pub fn emit_invoke_static_float(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeStaticFloat, dest, fid);
     }
 
-    pub fn emit_invoke_static_double(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeStaticDouble, dest, fid, num);
+    pub fn emit_invoke_static_double(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeStaticDouble, dest, fid);
     }
 
-    pub fn emit_invoke_static_ptr(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeStaticPtr, dest, fid, num);
+    pub fn emit_invoke_static_ptr(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeStaticPtr, dest, fid);
     }
 
     pub fn emit_new_object(&mut self, dest: Register, cls_id: ClassDefId) {
@@ -1258,13 +1258,13 @@ impl BytecodeWriter {
         self.emit_values(inst, &values);
     }
 
-    fn emit_fct_void(&mut self, inst: BytecodeOpcode, fid: FctDefId, cnt: usize) {
-        let values = [fid.to_usize() as u32, cnt as u32];
+    fn emit_fct_void(&mut self, inst: BytecodeOpcode, fid: FctDefId) {
+        let values = [fid.to_usize() as u32];
         self.emit_values(inst, &values);
     }
 
-    fn emit_fct(&mut self, inst: BytecodeOpcode, r1: Register, fid: FctDefId, cnt: usize) {
-        let values = [r1.to_usize() as u32, fid.to_usize() as u32, cnt as u32];
+    fn emit_fct(&mut self, inst: BytecodeOpcode, r1: Register, fid: FctDefId) {
+        let values = [r1.to_usize() as u32, fid.to_usize() as u32];
         self.emit_values(inst, &values);
     }
 
