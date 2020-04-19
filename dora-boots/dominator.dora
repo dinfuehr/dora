@@ -145,10 +145,12 @@ fun computeDominators(graph: Graph) {
     while it.hasNext() {
         let block = it.next();
 
-        if !block.isEntryBlock() {
-            let dom = block.getDominator().unwrap();
-            dom.addDominatedBlock(block);
+        if block.isEntryBlock() {
+            continue;
         }
+
+        let dom = block.getDominator().unwrap();
+        dom.addDominatedBlock(block);
     }
 }
 

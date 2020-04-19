@@ -73,3 +73,30 @@
     assert(exit.getDominatedBlocks().length() == 0);
     assert(exit.getDominator().unwrap() === condBlock);
 }
+
+@test fun testDominatorWhileCountDown(_x: Testing) {
+    let fct = bytecode("bcSsaGenWhileCountDown");
+    let graph = createGraph(fct);
+    graph.buildDominatorTree();
+
+    let entry = graph.getEntryBlock();
+    let whileHeader = graph.getBlockWithId(2);
+    let whileBody = graph.getBlockWithId(4);
+    let returnBlock = graph.getBlockWithId(3);
+    let exit = graph.getExitBlock();
+
+    assert(entry.getDominatedBlocks().length() == 1);
+    assert(entry.getDominator().isNone());
+
+    assert(whileHeader.getDominator().unwrap() === entry);
+    assert(whileHeader.getDominatedBlocks().length() == 2);
+
+    assert(whileBody.getDominator().unwrap() === whileHeader);
+    assert(whileBody.getDominatedBlocks().length() == 0);
+
+    assert(returnBlock.getDominator().unwrap() === whileHeader);
+    assert(returnBlock.getDominatedBlocks().length() == 1);
+
+    assert(exit.getDominatedBlocks().length() == 0);
+    assert(exit.getDominator().unwrap() === returnBlock);
+}
