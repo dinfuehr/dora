@@ -131,6 +131,10 @@ class Vec[T] {
   fun makeIterator() -> VecIter[T] {
     VecIter[T](self)
   }
+
+  fun makeReverseIterator() -> ReverseVecIter[T] {
+    ReverseVecIter[T](self)
+  }
 }
 
 class VecIter[T](let data: Vec[T]) {
@@ -143,6 +147,20 @@ class VecIter[T](let data: Vec[T]) {
   fun next() -> T {
     let result = self.data.get(self.idx);
     self.idx = self.idx + 1;
+    result
+  }
+}
+
+class ReverseVecIter[T](let data: Vec[T]) {
+  var idx: Int = data.length() - 1;
+
+  fun hasNext() -> Bool {
+    self.idx != -1
+  }
+
+  fun next() -> T {
+    let result = self.data.get(self.idx);
+    self.idx = self.idx - 1;
     result
   }
 }

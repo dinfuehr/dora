@@ -16,6 +16,10 @@ class Graph {
         self.blocks.push(block);
     }
 
+    fun getBlockWithId(id: Int) -> Block {
+        self.blocks.get(id)
+    }
+
     fun setEntryBlock(block: Block) {
         self.entryBlock = block;
     }
@@ -48,6 +52,23 @@ class Graph {
 
     fun numberBlocks() -> Int {
         self.nextBlockIdValue
+    }
+
+    fun setPostOrder(postOrder: Vec[Block]) {
+        self.postOrder = postOrder;
+
+        var idx = 0;
+        while idx < self.postOrder.length() {
+            let block = self.postOrder.get(idx);
+            block.postOrderIdx = idx;
+            idx = idx + 1;
+        }
+    }
+
+    fun buildDominatorTree() {
+        findBackEdges(self);
+        computePostOrder(self);
+        computeDominators(self);
     }
 
     fun insertionOrderIterator() -> VecIter[Block] {
@@ -106,6 +127,8 @@ class Block() {
     var successors: Vec[Block] = Vec[Block]();
 
     var loopHeader: Option[LoopHeader] = none[LoopHeader]();
+
+    var postOrderIdx: Int = -1;
 
     fun getDominator() -> Option[Block] {
         self.dominator
@@ -181,6 +204,22 @@ class Block() {
             self.loopHeader = some[LoopHeader](LoopHeader(self));
         }
         self.loopHeader.unwrap().addBackEdge(block);
+    }
+
+    fun isLoopHeader() -> Bool {
+        self.loopHeader.isSome()
+    }
+
+    fun getLoopHeader() -> Option[LoopHeader] {
+        self.loopHeader
+    }
+
+    fun isEntryBlock() -> Bool {
+        self.graph.unwrap().getEntryBlock() === self
+    }
+
+    fun isExitBlock() -> Bool {
+        self.graph.unwrap().getExitBlock() === self
     }
 }
 

@@ -1,0 +1,75 @@
+@test fun testDominatorRetVoid(_x: Testing) {
+    let fct = bytecode("bcSsaGenMultipleAssignments");
+    let graph = createGraph(fct);
+    graph.buildDominatorTree();
+
+    let entry = graph.getEntryBlock();
+    let middle = graph.getBlockWithId(2);
+    let exit = graph.getExitBlock();
+
+    assert(entry.getDominatedBlocks().length() == 1);
+    assert(entry.getDominatedBlocks()(0) === middle);
+    assert(entry.getDominator().isNone());
+
+    assert(middle.getDominatedBlocks().length() == 1);
+    assert(middle.getDominatedBlocks()(0) === exit);
+    assert(middle.getDominator().unwrap() === entry);
+
+    assert(exit.getDominatedBlocks().length() == 0);
+    assert(exit.getDominator().unwrap() === middle);
+}
+
+@test fun testDominatorSimpleIf(_x: Testing) {
+    let fct = bytecode("bcSsaGenSimpleIf");
+    let graph = createGraph(fct);
+    graph.buildDominatorTree();
+
+    let entry = graph.getEntryBlock();
+    let condBlock = graph.getBlockWithId(2);
+    let thenBlock = graph.getBlockWithId(4);
+    let returnBlock = graph.getBlockWithId(3);
+    let exit = graph.getExitBlock();
+
+    assert(entry.getDominatedBlocks().length() == 1);
+    assert(entry.getDominator().isNone());
+
+    assert(condBlock.getDominator().unwrap() === entry);
+    assert(condBlock.getDominatedBlocks().length() == 2);
+
+    assert(thenBlock.getDominator().unwrap() === condBlock);
+    assert(thenBlock.getDominatedBlocks().length() == 0);
+
+    assert(returnBlock.getDominator().unwrap() === condBlock);
+    assert(returnBlock.getDominatedBlocks().length() == 1);
+    assert(returnBlock.getDominatedBlocks()(0) === exit);
+
+    assert(exit.getDominatedBlocks().length() == 0);
+    assert(exit.getDominator().unwrap() === returnBlock);
+}
+
+@test fun testDominatorIfReturnInBothBranches(_x: Testing) {
+    let fct = bytecode("bcSsaGenIfReturnInBothBranches");
+    let graph = createGraph(fct);
+    graph.buildDominatorTree();
+
+    let entry = graph.getEntryBlock();
+    let condBlock = graph.getBlockWithId(2);
+    let thenBlock = graph.getBlockWithId(4);
+    let elseBlock = graph.getBlockWithId(3);
+    let exit = graph.getExitBlock();
+
+    assert(entry.getDominatedBlocks().length() == 1);
+    assert(entry.getDominator().isNone());
+
+    assert(condBlock.getDominator().unwrap() === entry);
+    assert(condBlock.getDominatedBlocks().length() == 3);
+
+    assert(thenBlock.getDominator().unwrap() === condBlock);
+    assert(thenBlock.getDominatedBlocks().length() == 0);
+
+    assert(elseBlock.getDominator().unwrap() === condBlock);
+    assert(elseBlock.getDominatedBlocks().length() == 0);
+
+    assert(exit.getDominatedBlocks().length() == 0);
+    assert(exit.getDominator().unwrap() === condBlock);
+}

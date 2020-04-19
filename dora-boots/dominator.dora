@@ -80,9 +80,103 @@ fun computePostOrder(graph: Graph) {
         }
     }
 
-    graph.postOrder = postOrder;
+    graph.setPostOrder(postOrder);
 }
 
-fun computeDominators() {
+fun computeDominators(graph: Graph) {
+    // worklist contains current path in the graph
+    let worklist = Vec[Block]();
 
+    // number of successors visited per block
+    let successorsVisited = arrayNew[Int](graph.numberBlocks());
+
+    // all blocks that have been fully visited (including successors)
+    let visited = BitSet(graph.numberBlocks());
+
+    // all blocks in worklist
+    let visiting = BitSet(graph.numberBlocks());
+
+    worklist.push(graph.getEntryBlock());
+    visiting.insert(graph.getEntryBlock().id);
+
+    while !worklist.isEmpty() {
+        let block = worklist.last().unwrap();
+        let successorIndex = successorsVisited(block.id);
+
+        if successorIndex == block.successors.length() {
+            worklist.pop();
+            visiting.remove(block.id);
+            visited.insert(block.id);
+        } else {
+            successorsVisited(block.id) = successorIndex + 1;
+            let successor = block.successors.get(successorIndex);
+
+            if visiting.contains(successor.id) {
+                // ignore back-edges
+            } else if !visited.contains(successor.id) {
+                // first time we see this block
+                successor.setDominator(block);
+                worklist.push(successor);
+                visited.insert(successor.id);
+            } else {
+                updateDominator(block, successor);
+            }
+        }
+    }
+
+    // assert that we have a reducible graph
+    let it = graph.insertionOrderIterator();
+    while it.hasNext() {
+        let block = it.next();
+
+        if block.isLoopHeader() {
+            let loopHeaderBlock = block;
+            let loopHeader = loopHeaderBlock.getLoopHeader().unwrap();
+
+            let it = loopHeader.backEdges.makeIterator();
+            while it.hasNext() {
+                let block = it.next();
+                assert(loopHeaderBlock.dominates(block));
+            }
+        }
+    }
+
+    let it = graph.reversePostOrderIterator();
+    while it.hasNext() {
+        let block = it.next();
+
+        if !block.isEntryBlock() {
+            let dom = block.getDominator().unwrap();
+            dom.addDominatedBlock(block);
+        }
+    }
+}
+
+fun updateDominator(block: Block, successor: Block) -> Bool {
+    let old_dominator = successor.getDominator().unwrap();
+    let new_dominator = commonDominator(old_dominator, block);
+
+    if old_dominator != new_dominator {
+        successor.setDominator(new_dominator);
+        true
+    } else {
+        false
+    }
+}
+
+fun commonDominator(b1: Block, b2: Block) -> Block {
+    var finger1 = b1;
+    var finger2 = b2;
+
+    while finger1 != finger2 {
+        while finger1.postOrderIdx < finger2.postOrderIdx {
+            finger1 = finger1.getDominator().unwrap();
+        }
+
+        while finger2.postOrderIdx < finger1.postOrderIdx {
+            finger2 = finger2.getDominator().unwrap();
+        }
+    }
+
+    finger1
 }
