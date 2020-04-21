@@ -39,6 +39,16 @@ impl Tuple {
         self.concrete.is_some()
     }
 
+    pub fn is_defined_type(&self, vm: &VM) -> bool {
+        for arg in self.args.as_ref() {
+            if !arg.is_defined_type(vm) {
+                return false;
+            }
+        }
+
+        true
+    }
+
     pub fn args(&self) -> Arc<Vec<BuiltinType>> {
         self.args.clone()
     }

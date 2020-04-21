@@ -114,6 +114,7 @@ impl TokenKind {
                 IntSuffix::Byte => "byte number",
                 IntSuffix::Int => "int number",
                 IntSuffix::Long => "long number",
+                IntSuffix::None => "untyped number",
             },
             TokenKind::LitChar(_) => "char",
             TokenKind::LitFloat(_, suffix) => match suffix {
@@ -222,6 +223,7 @@ pub enum IntSuffix {
     Int,
     Long,
     Byte,
+    None,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -261,6 +263,7 @@ impl Token {
                     IntSuffix::Byte => "B",
                     IntSuffix::Int => "",
                     IntSuffix::Long => "L",
+                    IntSuffix::None => "",
                 };
 
                 format!("{}{}", val, suffix)

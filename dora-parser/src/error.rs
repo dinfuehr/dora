@@ -18,7 +18,7 @@ pub enum ParseError {
     ExpectedType(String),
     MisplacedElse,
     ExpectedFactor(String),
-    NumberOverflow(String),
+    NumberOverflow,
     UnclosedStringTemplate,
     ExpectedIdentifier(String),
 }
@@ -48,7 +48,7 @@ impl ParseError {
             ParseError::ExpectedToken(ref exp, ref got) => {
                 format!("expected {} but got {}.", exp, got)
             }
-            ParseError::NumberOverflow(ref ty) => format!("number does not fit into type {}.", ty),
+            ParseError::NumberOverflow => "number too large to be represented.".into(),
             ParseError::ExpectedType(ref got) => format!("type expected but got {}.", got),
             ParseError::MisplacedElse => "misplace else.".into(),
             ParseError::ExpectedFactor(ref got) => format!("factor expected but got {}.", got),

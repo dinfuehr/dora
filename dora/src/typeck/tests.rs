@@ -461,6 +461,11 @@ fn type_nil_for_ctor() {
 fn type_nil_for_local_variable() {
     ok("fun f() { let x: String = nil; }");
     err(
+        "fun f() { let x = nil; }",
+        pos(1, 11),
+        SemError::VarNeedsTypeInfo("x".into()),
+    );
+    err(
         "fun f() { let x: Int = nil; }",
         pos(1, 11),
         SemError::AssignType("x".into(), "Int".into(), "nil".into()),
@@ -1975,4 +1980,22 @@ fn method_on_enum() {
         impl MyEnum { fun foo() {} }
         fun f(x: MyEnum) { x.foo(); }
     ");
+}
+
+#[test]
+fn literal_without_suffix_byte() {
+    ok("fun f() -> Byte { 1 }");
+    // ok("fun f(val: Byte) {} fun g() { f(1); }");
+    err(
+        "fun f() -> Byte { 256 }",
+        pos(1, 19),
+        SemError::NumberOverflow("Byte".into()),
+    );
+    ok("fun f() { let x: Byte = 1; }");
+}
+
+#[test]
+fn literal_without_suffix_long() {
+    ok("fun f() -> Long { 1 }");
+    ok("fun f() { let x: Long = 1; }");
 }

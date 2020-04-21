@@ -6,7 +6,6 @@ use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 use dora_parser::lexer::position::Position;
-use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 
 use crate::baseline::{Arg, CallSite, ExprStore, InternalArg, ManagedStackFrame, ManagedStackSlot};
 use crate::compiler::asm::BaselineAssembler;
@@ -1080,10 +1079,13 @@ where
     }
 
     fn emit_lit_int(&mut self, lit: &'ast ExprLitIntType, dest: Reg, negate: bool) {
-        let ty = match lit.suffix {
-            IntSuffix::Byte => MachineMode::Int8,
-            IntSuffix::Int => MachineMode::Int32,
-            IntSuffix::Long => MachineMode::Int64,
+        let ty = self.src.ty(lit.id);
+
+        let mode = match ty {
+            BuiltinType::Byte => MachineMode::Int8,
+            BuiltinType::Int => MachineMode::Int32,
+            BuiltinType::Long => MachineMode::Int64,
+            _ => unreachable!(),
         };
 
         let value = if negate {
@@ -1092,16 +1094,19 @@ where
             lit.value as i64
         };
 
-        self.asm.load_int_const(ty, dest, value);
+        self.asm.load_int_const(mode, dest, value);
     }
 
     fn emit_lit_float(&mut self, lit: &'ast ExprLitFloatType, dest: FReg) {
-        let ty = match lit.suffix {
-            FloatSuffix::Float => MachineMode::Float32,
-            FloatSuffix::Double => MachineMode::Float64,
+        let ty = self.src.ty(lit.id);
+
+        let mode = match ty {
+            BuiltinType::Float => MachineMode::Float32,
+            BuiltinType::Double => MachineMode::Float64,
+            _ => unreachable!(),
         };
 
-        self.asm.load_float_const(ty, dest, lit.value);
+        self.asm.load_float_const(mode, dest, lit.value);
     }
 
     fn emit_lit_bool(&mut self, lit: &'ast ExprLitBoolType, dest: Reg) {

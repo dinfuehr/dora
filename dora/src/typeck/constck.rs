@@ -18,7 +18,8 @@ impl<'a, 'ast> ConstCheck<'a, 'ast> {
         let (ty, lit) = match expr {
             &ExprLitChar(ref expr) => (BuiltinType::Char, ConstValue::Char(expr.value)),
             &ExprLitInt(ref expr) => {
-                let (ty, val) = check_lit_int(self.vm, self.xconst.file, expr, false);
+                let (ty, val) =
+                    check_lit_int(self.vm, self.xconst.file, expr, false, BuiltinType::Any);
                 (ty, ConstValue::Int(val))
             }
             &ExprLitFloat(ref expr) => {
@@ -41,6 +42,7 @@ impl<'a, 'ast> ConstCheck<'a, 'ast> {
                     self.xconst.file,
                     expr.opnd.to_lit_int().unwrap(),
                     true,
+                    BuiltinType::Any,
                 );
                 (ty, ConstValue::Int(val))
             }

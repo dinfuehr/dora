@@ -51,8 +51,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 returns = true;
             }
 
-            self.check_expr(value, BuiltinType::Any);
-            self.expr_type
+            let return_type = self.fct.return_type;
+            self.check_expr(value, return_type)
         } else {
             BuiltinType::Unit
         };
@@ -65,36 +65,39 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     pub fn check_stmt_var(&mut self, s: &'ast StmtVarType) {
         let var = *self.src.map_vars.get(s.id).unwrap();
 
-        let expr_type = s.expr.as_ref().map(|expr| {
-            self.check_expr(&expr, BuiltinType::Any);
-            self.expr_type
-        });
-
         let defined_type = if let Some(ref data_type) = s.data_type {
-            let ty = self.src.ty(data_type.id());
-            Some(ty)
+            self.src.ty(data_type.id())
+        } else {
+            BuiltinType::Any
+        };
+
+        let expr_type = s
+            .expr
+            .as_ref()
+            .map(|expr| self.check_expr(&expr, defined_type))
+            .unwrap_or(BuiltinType::Any);
+
+        let defined_type = if s.data_type.is_some() {
+            defined_type
         } else {
             expr_type
         };
 
-        let defined_type = match defined_type {
-            Some(ty) => ty,
-            None => {
-                let tyname = self.vm.interner.str(s.name).to_string();
-                self.vm
-                    .diag
-                    .lock()
-                    .report(self.file, s.pos, SemError::VarNeedsTypeInfo(tyname));
+        if !defined_type.is_error() && !defined_type.is_defined_type(self.vm) {
+            let tyname = self.vm.interner.str(s.name).to_string();
+            self.vm
+                .diag
+                .lock()
+                .report(self.file, s.pos, SemError::VarNeedsTypeInfo(tyname));
 
-                return;
-            }
-        };
+            return;
+        }
 
         // update type of variable, necessary when variable is only initialized with
         // an expression
         self.src.vars[var].ty = defined_type;
 
-        if let Some(expr_type) = expr_type {
+        if s.expr.is_some() {
             if !expr_type.is_error()
                 && !defined_type.is_error()
                 && !defined_type.allows(self.vm, expr_type)
@@ -116,8 +119,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_stmt_for(&mut self, s: &'ast StmtForType) {
-        self.check_expr(&s.expr, BuiltinType::Any);
-        let object_type = self.expr_type;
+        let object_type = self.check_expr(&s.expr, BuiltinType::Any);
 
         let name = self.vm.interner.intern("makeIterator");
 
@@ -201,10 +203,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_stmt_while(&mut self, s: &'ast StmtWhileType) {
-        self.check_expr(&s.cond, BuiltinType::Any);
+        let expr_type = self.check_expr(&s.cond, BuiltinType::Any);
 
-        if !self.expr_type.is_error() && !self.expr_type.is_bool() {
-            let expr_type = self.expr_type.name(self.vm);
+        if !expr_type.is_error() && !expr_type.is_bool() {
+            let expr_type = expr_type.name(self.vm);
             let msg = SemError::WhileCondType(expr_type);
             self.vm.diag.lock().report(self.file, s.pos, msg);
         }
@@ -216,11 +218,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let expr_type = s
             .expr
             .as_ref()
-            .map(|expr| {
-                self.check_expr(&expr, BuiltinType::Any);
-
-                self.expr_type
-            })
+            .map(|expr| self.check_expr(&expr, BuiltinType::Any))
             .unwrap_or(BuiltinType::Unit);
 
         self.check_fct_return_type(s.pos, expr_type);
@@ -255,8 +253,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
 
         let ty = if let Some(ref expr) = block.expr {
-            self.check_expr(expr, BuiltinType::Any);
-            self.expr_type
+            self.check_expr(expr, BuiltinType::Any)
         } else {
             BuiltinType::Unit
         };
@@ -264,7 +261,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.src.set_ty(block.id, ty);
         self.expr_type = ty;
 
-        self.expr_type
+        ty
     }
 
     fn check_expr_tuple(
@@ -277,12 +274,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         if tuple.values.is_empty() {
             self.src.set_ty(tuple.id, BuiltinType::Unit);
             self.expr_type = BuiltinType::Unit;
-            return self.expr_type;
+            return BuiltinType::Unit;
         }
 
         for value in &tuple.values {
-            self.check_expr(value, BuiltinType::Any);
-            subtypes.push(self.expr_type);
+            let subtype = self.check_expr(value, BuiltinType::Any);
+            subtypes.push(subtype);
         }
 
         let tuple_id = ensure_tuple(self.vm, subtypes);
@@ -295,20 +292,18 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_if(&mut self, expr: &'ast ExprIfType, _expected_ty: BuiltinType) -> BuiltinType {
-        self.check_expr(&expr.cond, BuiltinType::Any);
+        let expr_type = self.check_expr(&expr.cond, BuiltinType::Any);
 
-        if !self.expr_type.is_bool() && !self.expr_type.is_error() {
-            let expr_type = self.expr_type.name(self.vm);
+        if !expr_type.is_bool() && !expr_type.is_error() {
+            let expr_type = expr_type.name(self.vm);
             let msg = SemError::IfCondType(expr_type);
             self.vm.diag.lock().report(self.file, expr.pos, msg);
         }
 
-        self.check_expr(&expr.then_block, BuiltinType::Any);
-        let then_type = self.expr_type;
+        let then_type = self.check_expr(&expr.then_block, BuiltinType::Any);
 
         let merged_type = if let Some(ref else_block) = expr.else_block {
-            self.check_expr(else_block, BuiltinType::Any);
-            let else_type = self.expr_type;
+            let else_type = self.check_expr(else_block, BuiltinType::Any);
 
             if expr_always_returns(&expr.then_block) {
                 else_type
@@ -334,7 +329,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.src.set_ty(expr.id, merged_type);
         self.expr_type = merged_type;
 
-        self.expr_type
+        merged_type
     }
 
     fn check_expr_ident(
@@ -453,8 +448,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         } else if e.lhs.is_ident() {
             let lhs_type;
 
-            self.check_expr(&e.rhs, BuiltinType::Any);
-            let rhs_type = self.expr_type;
+            let rhs_type = self.check_expr(&e.rhs, BuiltinType::Any);
 
             self.src.set_ty(e.id, BuiltinType::Unit);
             self.expr_type = BuiltinType::Unit;
@@ -576,21 +570,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_assign_call(&mut self, e: &'ast ExprBinType) {
         let call = e.lhs.to_call().unwrap();
-
-        self.check_expr(&call.callee, BuiltinType::Any);
-        let expr_type = self.expr_type;
+        let expr_type = self.check_expr(&call.callee, BuiltinType::Any);
 
         let mut arg_types: Vec<BuiltinType> = call
             .args
             .iter()
-            .map(|arg| {
-                self.check_expr(arg, BuiltinType::Any);
-                self.expr_type
-            })
+            .map(|arg| self.check_expr(arg, BuiltinType::Any))
             .collect();
 
-        self.check_expr(&e.rhs, BuiltinType::Any);
-        let value_type = self.expr_type;
+        let value_type = self.check_expr(&e.rhs, BuiltinType::Any);
 
         let name = self.vm.interner.intern("set");
         arg_types.push(value_type);
@@ -626,11 +614,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
         };
 
-        self.check_expr(&field_expr.lhs, BuiltinType::Any);
-        let object_type = self.expr_type;
-
-        self.check_expr(&e.rhs, BuiltinType::Any);
-        let rhs_type = self.expr_type;
+        let object_type = self.check_expr(&field_expr.lhs, BuiltinType::Any);
+        let rhs_type = self.check_expr(&e.rhs, BuiltinType::Any);
 
         if object_type.cls_id(self.vm).is_some() {
             if let Some((cls_ty, field_id)) = find_field_in_class(self.vm, object_type, name) {
@@ -730,24 +715,28 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_un(&mut self, e: &'ast ExprUnType, _expected_ty: BuiltinType) -> BuiltinType {
         if e.op == UnOp::Neg && e.opnd.is_lit_int() {
-            self.check_expr_lit_int(e.opnd.to_lit_int().unwrap(), true, BuiltinType::Any);
-            self.src.set_ty(e.id, self.expr_type);
-            return self.expr_type;
+            let expr_type =
+                self.check_expr_lit_int(e.opnd.to_lit_int().unwrap(), true, BuiltinType::Any);
+            self.src.set_ty(e.id, expr_type);
+            return expr_type;
         }
 
-        self.check_expr(&e.opnd, BuiltinType::Any);
-        let opnd = self.expr_type;
+        let opnd = self.check_expr(&e.opnd, BuiltinType::Any);
 
         match e.op {
             UnOp::Plus => self.check_expr_un_method(e, e.op, "unaryPlus", opnd),
             UnOp::Neg => self.check_expr_un_method(e, e.op, "unaryMinus", opnd),
             UnOp::Not => self.check_expr_un_method(e, e.op, "not", opnd),
         }
-
-        self.expr_type
     }
 
-    fn check_expr_un_method(&mut self, e: &'ast ExprUnType, op: UnOp, name: &str, ty: BuiltinType) {
+    fn check_expr_un_method(
+        &mut self,
+        e: &'ast ExprUnType,
+        op: UnOp,
+        name: &str,
+        ty: BuiltinType,
+    ) -> BuiltinType {
         let name = self.vm.interner.intern(name);
         let call_types = [];
 
@@ -766,7 +755,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                 self.src.set_ty(e.id, return_type);
                 self.expr_type = return_type;
-                return;
+                return return_type;
             }
 
             let ty = ty.name(self.vm);
@@ -777,24 +766,23 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         self.src.set_ty(e.id, BuiltinType::Error);
         self.expr_type = BuiltinType::Error;
+
+        BuiltinType::Error
     }
 
     fn check_expr_bin(&mut self, e: &'ast ExprBinType, _expected_ty: BuiltinType) -> BuiltinType {
         if e.op.is_any_assign() {
             self.check_expr_assign(e);
-            return self.expr_type;
+            return BuiltinType::Unit;
         }
 
-        self.check_expr(&e.lhs, BuiltinType::Any);
-        let lhs_type = self.expr_type;
-
-        self.check_expr(&e.rhs, BuiltinType::Any);
-        let rhs_type = self.expr_type;
+        let lhs_type = self.check_expr(&e.lhs, BuiltinType::Any);
+        let rhs_type = self.check_expr(&e.rhs, BuiltinType::Any);
 
         if lhs_type.is_error() || rhs_type.is_error() {
             self.src.set_ty(e.id, BuiltinType::Error);
             self.expr_type = BuiltinType::Error;
-            return self.expr_type;
+            return BuiltinType::Error;
         }
 
         match e.op {
@@ -817,8 +805,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
             BinOp::Assign => unreachable!(),
         }
-
-        self.expr_type
     }
 
     fn check_expr_bin_bool(
@@ -827,10 +813,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         op: BinOp,
         lhs_type: BuiltinType,
         rhs_type: BuiltinType,
-    ) {
+    ) -> BuiltinType {
         self.check_type(e, op, lhs_type, rhs_type, BuiltinType::Bool);
         self.src.set_ty(e.id, BuiltinType::Bool);
         self.expr_type = BuiltinType::Bool;
+
+        BuiltinType::Bool
     }
 
     fn check_expr_bin_method(
@@ -840,7 +828,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         name: &str,
         lhs_type: BuiltinType,
         rhs_type: BuiltinType,
-    ) {
+    ) -> BuiltinType {
         let name = self.vm.interner.intern(name);
         let call_types = [rhs_type];
 
@@ -860,6 +848,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             self.src.set_ty(e.id, return_type);
             self.expr_type = return_type;
+
+            return_type
         } else {
             let lhs_type = lhs_type.name(self.vm);
             let rhs_type = rhs_type.name(self.vm);
@@ -869,6 +859,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             self.src.set_ty(e.id, BuiltinType::Error);
             self.expr_type = BuiltinType::Error;
+
+            BuiltinType::Error
         }
     }
 
@@ -878,7 +870,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         cmp: CmpOp,
         lhs_type: BuiltinType,
         rhs_type: BuiltinType,
-    ) {
+    ) -> BuiltinType {
         match cmp {
             CmpOp::Is | CmpOp::IsNot => {
                 if !(lhs_type.is_nil() || lhs_type.allows(self.vm, rhs_type))
@@ -895,22 +887,26 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                 self.src.set_ty(e.id, BuiltinType::Bool);
                 self.expr_type = BuiltinType::Bool;
-                return;
+                return BuiltinType::Bool;
             }
 
             CmpOp::Eq | CmpOp::Ne => {
                 if lhs_type.is_enum() {
                     self.check_expr_cmp_enum(e, cmp, lhs_type, rhs_type)
                 } else {
-                    self.check_expr_bin_method(e, e.op, "equals", lhs_type, rhs_type)
+                    self.check_expr_bin_method(e, e.op, "equals", lhs_type, rhs_type);
                 }
             }
 
-            _ => self.check_expr_bin_method(e, e.op, "compareTo", lhs_type, rhs_type),
+            _ => {
+                self.check_expr_bin_method(e, e.op, "compareTo", lhs_type, rhs_type);
+            }
         }
 
         self.src.set_ty(e.id, BuiltinType::Bool);
         self.expr_type = BuiltinType::Bool;
+
+        BuiltinType::Bool
     }
 
     fn check_expr_cmp_enum(
@@ -966,17 +962,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_call(&mut self, e: &'ast ExprCallType, _expected_ty: BuiltinType) -> BuiltinType {
         self.used_in_call.insert(e.callee.id());
 
-        self.check_expr(&e.callee, BuiltinType::Any);
-        let expr_type = self.expr_type;
+        let expr_type = self.check_expr(&e.callee, BuiltinType::Any);
         let ident_type = self.src.map_idents.get(e.callee.id()).cloned();
 
         let arg_types: Vec<BuiltinType> = e
             .args
             .iter()
-            .map(|arg| {
-                self.check_expr(arg, BuiltinType::Any);
-                self.expr_type
-            })
+            .map(|arg| self.check_expr(arg, BuiltinType::Any))
             .collect();
 
         match ident_type {
@@ -1046,7 +1038,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 if expr_type.is_error() {
                     self.src.set_ty(e.id, expr_type);
                     self.expr_type = expr_type;
-                    return self.expr_type;
+                    return expr_type;
                 }
 
                 self.check_expr_call_expr(e, expr_type, &arg_types);
@@ -1552,7 +1544,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         } else {
             let msg = SemError::NameOfStaticMethodExpected;
             self.vm.diag.lock().report(self.file, e.rhs.pos(), msg);
-            return self.expr_type;
+            return BuiltinType::Error;
         };
 
         let ident_type = match ident_type {
@@ -1597,7 +1589,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let ty = BuiltinType::Enum(id, list_id);
                 self.src.set_ty(e.id, ty);
                 self.expr_type = ty;
-                return self.expr_type;
+                return ty;
             }
 
             _ => {
@@ -1606,7 +1598,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                 self.src.set_ty(e.id, BuiltinType::Error);
                 self.expr_type = BuiltinType::Error;
-                return self.expr_type;
+                return BuiltinType::Error;
             }
         };
 
@@ -1677,13 +1669,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let object_type = if e.lhs.is_super() {
             self.super_type(e.lhs.pos())
         } else {
-            self.check_expr(&e.lhs, BuiltinType::Any);
-            self.expr_type
+            self.check_expr(&e.lhs, BuiltinType::Any)
         };
 
         if object_type.is_tuple() {
-            self.check_expr_dot_tuple(e, object_type);
-            return self.expr_type;
+            return self.check_expr_dot_tuple(e, object_type);
         }
 
         let name = match e.rhs.to_ident() {
@@ -1695,7 +1685,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                 self.src.set_ty(e.id, BuiltinType::Error);
                 self.expr_type = BuiltinType::Error;
-                return self.expr_type;
+                return BuiltinType::Error;
             }
         };
 
@@ -1729,7 +1719,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                 self.src.set_ty(e.id, fty);
                 self.expr_type = fty;
-                return self.expr_type;
+                return fty;
             }
         }
 
@@ -1744,10 +1734,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.src.set_ty(e.id, BuiltinType::Error);
         self.expr_type = BuiltinType::Error;
 
-        self.expr_type
+        BuiltinType::Error
     }
 
-    fn check_expr_dot_tuple(&mut self, e: &'ast ExprDotType, object_type: BuiltinType) {
+    fn check_expr_dot_tuple(
+        &mut self,
+        e: &'ast ExprDotType,
+        object_type: BuiltinType,
+    ) -> BuiltinType {
         let index = match e.rhs.to_lit_int() {
             Some(ident) => ident.value,
 
@@ -1757,7 +1751,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                 self.src.set_ty(e.id, BuiltinType::Error);
                 self.expr_type = BuiltinType::Error;
-                return;
+                return BuiltinType::Error;
             }
         };
 
@@ -1774,12 +1768,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             self.src.set_ty(e.id, BuiltinType::Error);
             self.expr_type = BuiltinType::Error;
-            return;
+            return BuiltinType::Error;
         }
 
         let ty = tuple[usize::try_from(index).unwrap()];
         self.src.set_ty(e.id, ty);
         self.expr_type = ty;
+
+        ty
     }
 
     fn check_expr_this(&mut self, e: &'ast ExprSelfType, _expected_ty: BuiltinType) -> BuiltinType {
@@ -1829,14 +1825,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.src.set_ty(e.id, BuiltinType::Unit);
         self.expr_type = BuiltinType::Unit;
 
-        self.expr_type
+        BuiltinType::Unit
     }
 
     fn check_expr_nil(&mut self, e: &'ast ExprNilType, _expected_ty: BuiltinType) -> BuiltinType {
         self.src.set_ty(e.id, BuiltinType::Nil);
         self.expr_type = BuiltinType::Nil;
 
-        self.expr_type
+        BuiltinType::Nil
     }
 
     fn check_expr_lambda(
@@ -1866,8 +1862,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_conv(&mut self, e: &'ast ExprConvType, _expected_ty: BuiltinType) -> BuiltinType {
-        self.check_expr(&e.object, BuiltinType::Any);
-        let object_type = self.expr_type;
+        let object_type = self.check_expr(&e.object, BuiltinType::Any);
         self.src.set_ty(e.object.id(), object_type);
 
         let check_type = self.src.ty(e.data_type.id());
@@ -1885,7 +1880,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             };
             self.src.set_ty(e.id, ty);
             self.expr_type = ty;
-            return self.expr_type;
+            return ty;
         }
 
         if !typeparamck::check_type(self.vm, self.file, e.data_type.pos(), check_type) {
@@ -1896,7 +1891,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             };
             self.src.set_ty(e.id, ty);
             self.expr_type = ty;
-            return self.expr_type;
+            return ty;
         }
 
         let mut valid = false;
@@ -1935,14 +1930,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         &mut self,
         e: &'ast ExprLitIntType,
         negate: bool,
-        _expected_ty: BuiltinType,
+        expected_ty: BuiltinType,
     ) -> BuiltinType {
-        let (ty, _) = check_lit_int(self.vm, self.file, e, negate);
+        let (ty, _) = check_lit_int(self.vm, self.file, e, negate, expected_ty);
 
         self.src.set_ty(e.id, ty);
         self.expr_type = ty;
 
-        self.expr_type
+        ty
     }
 
     fn check_expr_lit_float(
@@ -1956,7 +1951,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.src.set_ty(e.id, ty);
         self.expr_type = ty;
 
-        self.expr_type
+        ty
     }
 
     fn check_expr_lit_str(
@@ -1968,7 +1963,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.src.set_ty(e.id, str_ty);
         self.expr_type = str_ty;
 
-        self.expr_type
+        str_ty
     }
 
     fn check_expr_lit_bool(
@@ -1979,7 +1974,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.src.set_ty(e.id, BuiltinType::Bool);
         self.expr_type = BuiltinType::Bool;
 
-        self.expr_type
+        BuiltinType::Bool
     }
 
     fn check_expr_lit_char(
@@ -1990,7 +1985,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.src.set_ty(e.id, BuiltinType::Char);
         self.expr_type = BuiltinType::Char;
 
-        self.expr_type
+        BuiltinType::Char
     }
 
     fn check_expr_template(
@@ -2002,9 +1997,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         for (idx, part) in e.parts.iter().enumerate() {
             if idx % 2 != 0 {
-                self.check_expr(part, BuiltinType::Any);
+                let part_expr = self.check_expr(part, BuiltinType::Any);
 
-                let implements_stringable = match self.expr_type {
+                let implements_stringable = match part_expr {
                     BuiltinType::FctTypeParam(fct_id, tp_id) => {
                         assert_eq!(self.fct.id, fct_id);
                         self.fct.type_params[tp_id.idx()]
@@ -2020,14 +2015,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                             .contains(&stringable_trait)
                     }
 
-                    _ => self.expr_type.implements_trait(self.vm, stringable_trait),
+                    _ => part_expr.implements_trait(self.vm, stringable_trait),
                 };
 
-                if implements_stringable || self.expr_type.is_error() {
+                if implements_stringable || part_expr.is_error() {
                     continue;
                 }
 
-                let ty = self.expr_type.name(self.vm);
+                let ty = part_expr.name(self.vm);
                 self.vm
                     .diag
                     .lock()
@@ -2041,7 +2036,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.src.set_ty(e.id, str_ty);
         self.expr_type = str_ty;
 
-        self.expr_type
+        str_ty
     }
 
     fn check_expr(&mut self, e: &'ast Expr, expected_ty: BuiltinType) -> BuiltinType {
@@ -2306,26 +2301,34 @@ pub fn check_lit_int(
     file: FileId,
     e: &ExprLitIntType,
     negate: bool,
+    expected_type: BuiltinType,
 ) -> (BuiltinType, i64) {
     let ty = match e.suffix {
         IntSuffix::Byte => BuiltinType::Byte,
         IntSuffix::Int => BuiltinType::Int,
         IntSuffix::Long => BuiltinType::Long,
+        IntSuffix::None => match expected_type {
+            BuiltinType::Byte => BuiltinType::Byte,
+            BuiltinType::Long => BuiltinType::Long,
+            _ => BuiltinType::Int,
+        },
     };
 
-    let ty_name = match e.suffix {
-        IntSuffix::Byte => "Byte",
-        IntSuffix::Int => "Int",
-        IntSuffix::Long => "Long",
+    let ty_name = match ty {
+        BuiltinType::Byte => "Byte",
+        BuiltinType::Int => "Int",
+        BuiltinType::Long => "Long",
+        _ => unreachable!(),
     };
 
     let val = e.value;
 
     if e.base == IntBase::Dec {
-        let max = match e.suffix {
-            IntSuffix::Byte => 256,
-            IntSuffix::Int => (1u64 << 31),
-            IntSuffix::Long => (1u64 << 63),
+        let max = match ty {
+            BuiltinType::Byte => 256,
+            BuiltinType::Int => (1u64 << 31),
+            BuiltinType::Long => (1u64 << 63),
+            _ => unreachable!(),
         };
 
         if (negate && val > max) || (!negate && val >= max) {
@@ -2334,10 +2337,11 @@ pub fn check_lit_int(
                 .report(file, e.pos, SemError::NumberOverflow(ty_name.into()));
         }
     } else {
-        let max = match e.suffix {
-            IntSuffix::Byte => 256 as u64,
-            IntSuffix::Int => u32::max_value() as u64,
-            IntSuffix::Long => u64::max_value() as u64,
+        let max = match ty {
+            BuiltinType::Byte => 256 as u64,
+            BuiltinType::Int => u32::max_value() as u64,
+            BuiltinType::Long => u64::max_value() as u64,
+            _ => unreachable!(),
         };
 
         if val > max {

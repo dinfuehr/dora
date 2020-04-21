@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
-use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 
 use crate::bytecode::{BytecodeFunction, BytecodeType, BytecodeWriter, Label, Register};
 use crate::semck::specialize::{specialize_class_ty, specialize_type};
@@ -1083,10 +1082,13 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             return Register::invalid();
         }
 
-        let ty = match lit.suffix {
-            IntSuffix::Byte => BytecodeType::Byte,
-            IntSuffix::Int => BytecodeType::Int,
-            IntSuffix::Long => BytecodeType::Long,
+        let ty = self.src.ty(lit.id);
+
+        let ty = match ty {
+            BuiltinType::Byte => BytecodeType::Byte,
+            BuiltinType::Int => BytecodeType::Int,
+            BuiltinType::Long => BytecodeType::Long,
+            _ => unreachable!(),
         };
 
         let dest = self.ensure_register(dest, ty);
@@ -1121,9 +1123,12 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             return Register::invalid();
         }
 
-        let ty = match lit.suffix {
-            FloatSuffix::Float => BytecodeType::Float,
-            FloatSuffix::Double => BytecodeType::Double,
+        let ty = self.src.ty(lit.id);
+
+        let ty = match ty {
+            BuiltinType::Float => BytecodeType::Float,
+            BuiltinType::Double => BytecodeType::Double,
+            _ => unreachable!(),
         };
 
         let dest = self.ensure_register(dest, ty);

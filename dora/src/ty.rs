@@ -542,6 +542,41 @@ impl BuiltinType {
         }
     }
 
+    pub fn is_defined_type(&self, vm: &VM) -> bool {
+        match *self {
+            BuiltinType::Error
+            | BuiltinType::This
+            | BuiltinType::Any
+            | BuiltinType::Ptr
+            | BuiltinType::Nil => false,
+            BuiltinType::Unit
+            | BuiltinType::Bool
+            | BuiltinType::Byte
+            | BuiltinType::Char
+            | BuiltinType::Int
+            | BuiltinType::Long
+            | BuiltinType::Float
+            | BuiltinType::Double
+            | BuiltinType::Enum(_, _)
+            | BuiltinType::Module(_)
+            | BuiltinType::Trait(_)
+            | BuiltinType::Lambda(_) => true,
+            BuiltinType::Class(_, list_id) | BuiltinType::Struct(_, list_id) => {
+                let params = vm.lists.lock().get(list_id);
+
+                for param in params.iter() {
+                    if !param.is_defined_type(vm) {
+                        return false;
+                    }
+                }
+
+                true
+            }
+            BuiltinType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).is_concrete_type(),
+            BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_, _) => true,
+        }
+    }
+
     pub fn is_concrete_type(&self, vm: &VM) -> bool {
         match *self {
             BuiltinType::Error | BuiltinType::This | BuiltinType::Any => false,

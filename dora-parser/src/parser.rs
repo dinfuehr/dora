@@ -1671,19 +1671,7 @@ impl<'a> Parser<'a> {
                 let expr = Expr::create_lit_int(self.generate_id(), pos, span, num, base, suffix);
                 Ok(Box::new(expr))
             }
-
-            _ => {
-                let bits = match suffix {
-                    IntSuffix::Byte => "byte",
-                    IntSuffix::Int => "int",
-                    IntSuffix::Long => "long",
-                };
-
-                Err(ParseErrorAndPos::new(
-                    pos,
-                    ParseError::NumberOverflow(bits.into()),
-                ))
-            }
+            _ => Err(ParseErrorAndPos::new(pos, ParseError::NumberOverflow)),
         }
     }
 
