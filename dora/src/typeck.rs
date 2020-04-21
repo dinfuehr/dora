@@ -1,6 +1,5 @@
 use std::collections::hash_set::HashSet;
 
-use crate::ty::BuiltinType;
 use crate::typeck::constck::ConstCheck;
 use crate::typeck::expr::TypeCheck;
 use crate::vm::VM;
@@ -31,7 +30,6 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
             file: fct.file,
             src: &mut src,
             ast,
-            expr_type: BuiltinType::Unit,
             used_in_call: HashSet::new(),
         };
 
