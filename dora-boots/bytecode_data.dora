@@ -109,6 +109,7 @@ class ConstPoolId(let value: Int) {
 }
 
 class FctId(let value: Int)
+
 class BytecodeType(let value: Int) {
     @static fun bool() -> BytecodeType = BytecodeType(BC_TYPE_BOOL);
     @static fun byte() -> BytecodeType = BytecodeType(BC_TYPE_BYTE);

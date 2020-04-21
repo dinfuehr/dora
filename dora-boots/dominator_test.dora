@@ -1,50 +1,83 @@
-@test fun testDominatorRetVoid(_x: Testing) {
-    let fct = bytecode("bcSsaGenMultipleAssignments");
+fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Vec[Int]) {
     let graph = createGraph(fct);
     graph.buildDominatorTree();
+    let it = idoms.makeIterator();
+    var idx = 1; // Block with id 0 is entry block
 
-    let entry = graph.getEntryBlock();
-    let middle = graph.getBlockWithId(2);
-    let exit = graph.getExitBlock();
+    assert(graph.getEntryBlock().getDominator().isNone());
 
-    assert(entry.getDominatedBlocks().length() == 1);
-    assert(entry.getDominatedBlocks()(0) === middle);
-    assert(entry.getDominator().isNone());
+    while it.hasNext() {
+        let dominatorId = it.next();
+        let block = graph.getBlockWithId(idx);
 
-    assert(middle.getDominatedBlocks().length() == 1);
-    assert(middle.getDominatedBlocks()(0) === exit);
-    assert(middle.getDominator().unwrap() === entry);
+        let dominator = block.getDominator();
 
-    assert(exit.getDominatedBlocks().length() == 0);
-    assert(exit.getDominator().unwrap() === middle);
+        if dominator.isNone() {
+            println("block ${idx}: missing dominator, expected ${dominatorId}");
+        } else if dominator.unwrap().id != dominatorId {
+            println("block ${idx}: idom is ${dominator.unwrap().id}, expected ${dominatorId}");
+            println(dumpGraph(graph));
+        }
+
+        assert(dominator.unwrap().id == dominatorId);
+        idx = idx + 1;
+    }
 }
 
-@test fun testDominatorSimpleIf(_x: Testing) {
-    let fct = bytecode("bcSsaGenSimpleIf");
-    let graph = createGraph(fct);
-    graph.buildDominatorTree();
+@test fun testDominatorRetVoid(_x: Testing) {
+    let writer = BytecodeWriter();
+    writer.emitRetVoid();
+    let fct = writer.generate();
 
-    let entry = graph.getEntryBlock();
-    let condBlock = graph.getBlockWithId(2);
-    let thenBlock = graph.getBlockWithId(4);
-    let returnBlock = graph.getBlockWithId(3);
-    let exit = graph.getExitBlock();
+    let idoms = Vec[Int]();
+    idoms.push(2);
+    idoms.push(0);
 
-    assert(entry.getDominatedBlocks().length() == 1);
-    assert(entry.getDominator().isNone());
+    assertDominatedBlocks(fct, idoms);
+}
 
-    assert(condBlock.getDominator().unwrap() === entry);
-    assert(condBlock.getDominatedBlocks().length() == 2);
+@test fun testDominatorEmptyBlocks(_x: Testing) {
+    let writer = BytecodeWriter();
+    let next = writer.createLabel();
+    writer.emitJump(next);
+    writer.bindLabel(next);
+    let next = writer.createLabel();
+    writer.emitJump(next);
+    writer.bindLabel(next);
+    writer.emitRetVoid();
+    let fct = writer.generate();
 
-    assert(thenBlock.getDominator().unwrap() === condBlock);
-    assert(thenBlock.getDominatedBlocks().length() == 0);
+    let idoms = Vec[Int]();
+    idoms.push(4);
+    idoms.push(0);
+    idoms.push(2);
+    idoms.push(3);
 
-    assert(returnBlock.getDominator().unwrap() === condBlock);
-    assert(returnBlock.getDominatedBlocks().length() == 1);
-    assert(returnBlock.getDominatedBlocks()(0) === exit);
+    assertDominatedBlocks(fct, idoms);
+}
 
-    assert(exit.getDominatedBlocks().length() == 0);
-    assert(exit.getDominator().unwrap() === returnBlock);
+@test fun testDominatorSimple(_x: Testing) {
+    let writer = BytecodeWriter();
+    let arg0 = writer.addRegister(BytecodeType::bool());
+    writer.setArguments(1);
+    let elseBlock = writer.createLabel();
+    writer.emitJumpIfFalse(arg0, elseBlock);
+    let returnBlock = writer.createLabel();
+    writer.emitJump(returnBlock);
+    writer.bindLabel(elseBlock);
+    writer.emitJump(returnBlock);
+    writer.bindLabel(returnBlock);
+    writer.emitRetVoid();
+    let fct = writer.generate();
+
+    let idoms = Vec[Int]();
+    idoms.push(5);
+    idoms.push(0);
+    idoms.push(2);
+    idoms.push(2);
+    idoms.push(2);
+
+    assertDominatedBlocks(fct, idoms);
 }
 
 @test fun testDominatorIfReturnInBothBranches(_x: Testing) {
