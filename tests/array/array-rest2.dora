@@ -1,0 +1,18 @@
+fun main() {
+    assert(sum_args(1, 2) == 3);
+    assert(sum_args(7) == 7);
+    assert(sum_args() == 0);
+    assert(sum_args(1, 2, 3, 4, 5) == 15);
+}
+
+fun sum_args(x: Int...) -> Int {
+    var result = 0;
+    var idx = 0;
+    
+    while idx < x.length() {
+        result = result + x(idx);
+        idx = idx + 1;
+    }
+
+    result
+}

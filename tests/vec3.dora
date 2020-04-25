@@ -1,0 +1,7 @@
+fun main() {
+    let x = vec[Int](1, 2, 3);
+    assert(x.length() == 3);
+    assert(x.pop() == 3);
+    assert(x.pop() == 2);
+    assert(x.pop() == 1);
+}

@@ -117,7 +117,13 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
             }
         }
 
-        for p in &ast.params {
+        for (ind, p) in ast.params.iter().enumerate() {
+            if fct.variadic_arguments {
+                vm.diag
+                    .lock()
+                    .report(fct.file, p.pos, SemError::VariadicParameterNeedsToBeLast);
+            }
+
             let ty = semck::read_type(vm, fct.file, &p.data_type).unwrap_or(BuiltinType::Unit);
 
             if ty == BuiltinType::This && !fct.in_trait() {
@@ -128,9 +134,21 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
 
             fct.param_types.push(ty);
 
+            if p.variadic {
+                fct.variadic_arguments = true;
+            }
+
             if fct.is_src() {
                 let src = fct.src();
                 let mut src = src.write();
+
+                // is this last argument of function with variadic arguments?
+                let ty = if fct.variadic_arguments && ind == ast.params.len() - 1 {
+                    // type of variable is Array[T]
+                    vm.vips.array_ty(vm, ty)
+                } else {
+                    ty
+                };
 
                 let var = *src.map_vars.get(p.id).unwrap();
                 src.vars[var].ty = ty;

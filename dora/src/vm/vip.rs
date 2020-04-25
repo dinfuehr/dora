@@ -59,6 +59,12 @@ impl KnownElements {
         self.iterator_trait.lock().expect("iterator trait not set")
     }
 
+    pub fn array_ty(&self, vm: &VM, element: BuiltinType) -> BuiltinType {
+        let list = TypeList::single(element);
+        let list_id = vm.lists.lock().insert(list);
+        BuiltinType::Class(self.array_class, list_id)
+    }
+
     pub fn byte_array(&self, vm: &VM) -> ClassDefId {
         let mut byte_array_def = self.byte_array_def.lock();
 

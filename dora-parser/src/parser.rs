@@ -917,13 +917,23 @@ impl<'a> Parser<'a> {
         let name = self.expect_identifier()?;
 
         self.expect_token(TokenKind::Colon)?;
+
         let data_type = self.parse_type()?;
+
+        let variadic = if self.token.is(TokenKind::DotDotDot) {
+            self.advance_token()?;
+            true
+        } else {
+            false
+        };
+
         let span = self.span_from(start);
 
         Ok(Param {
             id: self.generate_id(),
             idx: self.param_idx - 1,
             reassignable,
+            variadic,
             name,
             pos,
             span,

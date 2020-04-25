@@ -7,7 +7,10 @@ use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 use dora_parser::lexer::position::Position;
 
-use crate::baseline::{Arg, CallSite, ExprStore, InternalArg, ManagedStackFrame, ManagedStackSlot};
+use crate::baseline::{
+    Arg, CallSite, ExprStore, InternalArg, ManagedStackFrame, ManagedStackSlot,
+    VariadicArrayDescriptor,
+};
 use crate::compiler::asm::BaselineAssembler;
 use crate::compiler::codegen::{ensure_native_stub, should_emit_debug, AllocationSize, AnyReg};
 use crate::compiler::fct::{Code, GcPoint, JitDescriptor};
@@ -2820,6 +2823,26 @@ where
                     }
                 }
 
+                InternalArg::Array(ast, ty) => {
+                    let ty = self.specialize_type(ty);
+                    let dest = self.alloc_expr_store(ty);
+                    self.emit_expr(ast, dest);
+
+                    if ty.is_tuple() {
+                        SlotOrOffset::Slot(dest.stack_slot())
+                    } else if ty.is_unit() {
+                        SlotOrOffset::Uninitialized
+                    } else {
+                        let slot = self.add_temp_arg(arg);
+                        self.asm.store_mem(
+                            arg.ty().mode(),
+                            Mem::Local(slot.offset()),
+                            dest.any_reg(),
+                        );
+                        SlotOrOffset::Slot(slot)
+                    }
+                }
+
                 InternalArg::Stack(offset, _) => SlotOrOffset::Offset(offset),
 
                 InternalArg::Selfie(_) => {
@@ -2839,7 +2862,7 @@ where
             temps.push(slot_or_offset);
         }
 
-        let argsize = self.determine_call_stack(&csite.args);
+        let argsize = self.determine_call_stack(&csite.args, csite.variadic_array.is_some());
         self.asm.increase_stack_frame(argsize);
 
         let mut sp_offset = 0;
@@ -2851,7 +2874,13 @@ where
             assert!(csite.args[0].is_selfie_new());
             assert!(temps[idx].is_uninitialized());
 
-            let slot = self.emit_allocation(pos, &temps, alloc_cls_id.unwrap());
+            let length: ArrayLength = if temps.len() > 1 {
+                ArrayLength::Dynamic(temps[1].clone())
+            } else {
+                ArrayLength::Fixed(0)
+            };
+
+            let slot = self.emit_allocation(pos, length, alloc_cls_id.unwrap());
 
             self.asm.load_mem(
                 MachineMode::Ptr,
@@ -2871,6 +2900,15 @@ where
             0
         };
 
+        let variadic_slot: Option<ManagedStackSlot> =
+            if let Some(ref variadic_array) = csite.variadic_array {
+                let length = ArrayLength::Fixed(variadic_array.count as i32);
+                let slot = self.emit_allocation(pos, length, variadic_array.cls_def_id);
+                Some(slot)
+            } else {
+                None
+            };
+
         let return_type = self.specialize_type(csite.return_type);
 
         if return_type.is_tuple() {
@@ -2884,12 +2922,22 @@ where
 
             if ty.is_unit() {
                 assert!(temps[idx].is_uninitialized());
+                idx += 1;
                 continue;
             }
 
             let offset = temps[idx].offset();
 
-            if ty.is_tuple() {
+            if csite.variadic_array.is_some() && idx >= csite.variadic_array.as_ref().unwrap().start
+            {
+                let array_idx = idx - csite.variadic_array.as_ref().unwrap().start;
+                self.emit_variadic_argument(
+                    ty,
+                    array_idx,
+                    variadic_slot.unwrap(),
+                    temps[idx].clone(),
+                );
+            } else if ty.is_tuple() {
                 if reg_idx < REG_PARAMS.len() {
                     let reg = REG_PARAMS[reg_idx];
                     self.asm.lea(reg, Mem::Local(offset));
@@ -2939,6 +2987,22 @@ where
             }
 
             idx += 1;
+        }
+
+        if let Some(slot) = variadic_slot {
+            if reg_idx < REG_PARAMS.len() {
+                let reg = REG_PARAMS[reg_idx];
+                self.asm
+                    .load_mem(MachineMode::Ptr, reg.into(), Mem::Local(slot.offset()));
+            } else {
+                self.asm
+                    .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(slot.offset()));
+                self.asm.store_mem(
+                    MachineMode::Ptr,
+                    Mem::Base(REG_SP, sp_offset),
+                    REG_TMP1.into(),
+                );
+            }
         }
 
         let cls_type_params = TypeList::with(
@@ -3031,6 +3095,10 @@ where
             }
         }
 
+        if let Some(variadic_slot) = variadic_slot {
+            self.managed_stack.free_temp(variadic_slot, self.vm);
+        }
+
         if csite.return_type.is_tuple() {
             self.managed_stack.mark_initialized(dest.stack_slot().var);
         }
@@ -3038,10 +3106,63 @@ where
         self.asm.decrease_stack_frame(argsize);
     }
 
+    fn emit_variadic_argument(
+        &mut self,
+        ty: BuiltinType,
+        array_idx: usize,
+        array: ManagedStackSlot,
+        arg: SlotOrOffset,
+    ) {
+        // load array
+        self.asm.load_mem(
+            MachineMode::Ptr,
+            REG_TMP1.into(),
+            Mem::Local(array.offset()),
+        );
+
+        let header_size = Header::size() + mem::ptr_width();
+        let array_offset = header_size + array_idx as i32 * ty.size(self.vm);
+
+        let needs_write_barrier = if let Some(tuple_id) = ty.tuple_id() {
+            self.copy_tuple(
+                tuple_id,
+                RegOrOffset::RegWithOffset(REG_TMP1, array_offset),
+                RegOrOffset::Offset(arg.offset()),
+            );
+
+            self.vm
+                .tuples
+                .lock()
+                .get_tuple(tuple_id)
+                .contains_references()
+        } else if ty.is_unit() {
+            false
+        } else if ty.is_float() {
+            let mode = ty.mode();
+            self.asm
+                .load_mem(mode, FREG_TMP1.into(), Mem::Local(arg.offset()));
+            self.asm
+                .store_mem(mode, Mem::Base(REG_TMP1, array_offset), FREG_TMP1.into());
+            false
+        } else {
+            let mode = ty.mode();
+            self.asm
+                .load_mem(mode, REG_RESULT.into(), Mem::Local(arg.offset()));
+            self.asm
+                .store_mem(mode, Mem::Base(REG_TMP1, array_offset), REG_RESULT.into());
+            ty.reference_type()
+        };
+
+        if self.vm.gc.needs_write_barrier() && needs_write_barrier {
+            let card_table_offset = self.vm.gc.card_table_offset();
+            self.asm.emit_barrier(REG_TMP1, card_table_offset);
+        }
+    }
+
     fn emit_allocation(
         &mut self,
         pos: Position,
-        temps: &[SlotOrOffset],
+        length: ArrayLength,
         cls_id: ClassDefId,
     ) -> ManagedStackSlot {
         let cls = self.vm.class_defs.idx(cls_id);
@@ -3055,90 +3176,56 @@ where
                 .emit_comment(format!("allocate object of class {}", &name));
         }
 
-        let alloc_size;
         let array_header_size = Header::size() as usize + mem::ptr_width_usize();
+        let mut array_size = 0;
 
-        match cls.size {
+        let element_size = cls.size.element_size();
+
+        let alloc_size: AllocationSize = match cls.size {
             InstanceSize::Fixed(size) => {
                 self.asm
                     .load_int_const(MachineMode::Int32, REG_PARAMS[0], size as i64);
-                alloc_size = AllocationSize::Fixed(size as usize);
+                AllocationSize::Fixed(size as usize)
             }
 
-            InstanceSize::Array(esize) if temps.len() > 1 => {
-                self.asm.load_mem(
-                    MachineMode::Int32,
-                    REG_TMP1.into(),
-                    Mem::Local(temps[1].offset()),
-                );
-
+            InstanceSize::PrimitiveArray(_)
+            | InstanceSize::Str
+            | InstanceSize::ObjArray
+            | InstanceSize::TupleArray(_) => {
                 store_length = true;
 
-                alloc_size = if esize == 0 {
-                    AllocationSize::Fixed(array_header_size)
-                } else {
-                    self.asm
-                        .determine_array_size(REG_TMP1, REG_TMP1, esize, true);
-                    AllocationSize::Dynamic(REG_TMP1)
-                };
-            }
+                match length.clone() {
+                    ArrayLength::Fixed(length) => {
+                        let unaligned_array_size =
+                            array_header_size + (element_size.unwrap() * length) as usize;
+                        array_size = mem::align_usize(unaligned_array_size, mem::ptr_width_usize());
+                        AllocationSize::Fixed(array_size)
+                    }
 
-            InstanceSize::ObjArray if temps.len() > 1 => {
-                self.asm.load_mem(
-                    MachineMode::Int32,
-                    REG_TMP1.into(),
-                    Mem::Local(temps[1].offset()),
-                );
-
-                self.asm
-                    .determine_array_size(REG_TMP1, REG_TMP1, mem::ptr_width(), true);
-
-                store_length = true;
-                alloc_size = AllocationSize::Dynamic(REG_TMP1);
+                    ArrayLength::Dynamic(slot_or_offset) => {
+                        self.asm.load_mem(
+                            MachineMode::Int32,
+                            REG_TMP1.into(),
+                            Mem::Local(slot_or_offset.offset()),
+                        );
+                        self.asm.determine_array_size(
+                            REG_TMP1,
+                            REG_TMP1,
+                            element_size.unwrap(),
+                            true,
+                        );
+                        AllocationSize::Dynamic(REG_TMP1)
+                    }
+                }
             }
 
             InstanceSize::UnitArray => {
                 store_length = true;
-                alloc_size = AllocationSize::Fixed(array_header_size);
-            }
-
-            InstanceSize::TupleArray(element_size) if temps.len() > 1 => {
-                self.asm.load_mem(
-                    MachineMode::Int32,
-                    REG_TMP1.into(),
-                    Mem::Local(temps[1].offset()),
-                );
-
-                self.asm
-                    .determine_array_size(REG_TMP1, REG_TMP1, element_size, true);
-
-                store_length = true;
-                alloc_size = AllocationSize::Dynamic(REG_TMP1);
-            }
-
-            InstanceSize::Str if temps.len() > 1 => {
-                self.asm.load_mem(
-                    MachineMode::Int32,
-                    REG_TMP1.into(),
-                    Mem::Local(temps[1].offset()),
-                );
-
-                self.asm.determine_array_size(REG_TMP1, REG_TMP1, 1, true);
-
-                store_length = true;
-                alloc_size = AllocationSize::Dynamic(REG_TMP1);
-            }
-
-            InstanceSize::TupleArray(_)
-            | InstanceSize::Array(_)
-            | InstanceSize::ObjArray
-            | InstanceSize::Str => {
-                store_length = true;
-                alloc_size = AllocationSize::Fixed(array_header_size);
+                AllocationSize::Fixed(array_header_size)
             }
 
             InstanceSize::FreeArray => unreachable!(),
-        }
+        };
 
         let array_ref = match cls.size {
             InstanceSize::ObjArray => true,
@@ -3183,14 +3270,19 @@ where
 
         // store length in object
         if store_length {
-            if temps.len() > 1 {
-                self.asm.load_mem(
-                    MachineMode::Int32,
-                    temp.into(),
-                    Mem::Local(temps[1].offset()),
-                );
-            } else {
-                self.asm.load_int_const(MachineMode::Ptr, temp, 0);
+            match length.clone() {
+                ArrayLength::Dynamic(slot_or_offset) => {
+                    self.asm.load_mem(
+                        MachineMode::Int32,
+                        temp.into(),
+                        Mem::Local(slot_or_offset.offset()),
+                    );
+                }
+
+                ArrayLength::Fixed(length) => {
+                    self.asm
+                        .load_int_const(MachineMode::Ptr, temp, length as i64);
+                }
             }
 
             self.asm.store_mem(
@@ -3202,39 +3294,33 @@ where
 
         match cls.size {
             InstanceSize::Fixed(size) => {
-                self.asm.fill_zero(dest, size as usize);
+                self.asm.fill_zero(dest, false, size as usize);
             }
 
             InstanceSize::UnitArray => {
                 // Array[()] never contains any data, so no zeroing needed.
             }
 
-            _ if temps.len() > 1 => {
-                self.asm.int_add_imm(
-                    MachineMode::Ptr,
-                    dest,
-                    dest,
-                    (Header::size() + mem::ptr_width()) as i64,
-                );
+            InstanceSize::PrimitiveArray(_)
+            | InstanceSize::Str
+            | InstanceSize::ObjArray
+            | InstanceSize::TupleArray(_) => match length.clone() {
+                ArrayLength::Fixed(_) => {
+                    self.asm.fill_zero(dest, true, array_size);
+                }
 
-                let element_size = match cls.size {
-                    InstanceSize::Array(esize) => esize,
-                    InstanceSize::ObjArray => mem::ptr_width(),
-                    InstanceSize::Str => 1,
-                    InstanceSize::Fixed(_) => unreachable!(),
-                    InstanceSize::FreeArray => unreachable!(),
-                    InstanceSize::TupleArray(esize) => esize,
-                    InstanceSize::UnitArray => unreachable!(),
-                };
+                ArrayLength::Dynamic(_) => {
+                    self.asm
+                        .int_add_imm(MachineMode::Ptr, dest, dest, array_header_size as i64);
 
-                self.asm
-                    .determine_array_size(temp, temp, element_size, false);
-                self.asm.int_add(MachineMode::Ptr, temp, temp, dest);
-                self.asm.fill_zero_dynamic(dest, temp);
-            }
+                    self.asm
+                        .determine_array_size(temp, temp, element_size.unwrap(), false);
+                    self.asm.int_add(MachineMode::Ptr, temp, temp, dest);
+                    self.asm.fill_zero_dynamic(dest, temp);
+                }
+            },
 
-            // arrays with length 0 do not need to clear any data
-            _ => {}
+            InstanceSize::FreeArray => unreachable!(),
         }
 
         temp_slot
@@ -3250,12 +3336,17 @@ where
         )
     }
 
-    fn determine_call_stack(&mut self, args: &[InternalArg<'ast>]) -> i32 {
+    fn determine_call_stack(
+        &mut self,
+        args: &[InternalArg<'ast>],
+        variadic_arguments: bool,
+    ) -> i32 {
         let mut reg_args: i32 = 0;
         let mut freg_args: i32 = 0;
 
         for arg in args {
             match *arg {
+                InternalArg::Array(_, _) => {}
                 InternalArg::Expr(_, ty) => {
                     if ty.is_float() {
                         freg_args += 1;
@@ -3276,6 +3367,10 @@ where
             }
         }
 
+        if variadic_arguments {
+            reg_args += 1;
+        }
+
         // some register are reserved on stack
         let args_on_stack = max(0, reg_args - REG_PARAMS.len() as i32)
             + max(0, freg_args - FREG_PARAMS.len() as i32);
@@ -3292,13 +3387,14 @@ where
         let callee = self.vm.fcts.idx(callee_id);
         let callee = callee.read();
 
-        let (args, return_type, super_call) =
+        let (args, variadic_array, return_type, super_call) =
             self.determine_call_args_and_types(&*call_type, &*callee, args);
         let (cls_type_params, fct_type_params) = self.determine_call_type_params(&*call_type);
 
         CallSite {
             callee: callee_id,
             args,
+            variadic_array,
             cls_type_params,
             fct_type_params,
             super_call,
@@ -3328,16 +3424,31 @@ where
         call_type: &CallType,
         callee: &Fct<'ast>,
         args: Vec<Arg<'ast>>,
-    ) -> (Vec<InternalArg<'ast>>, BuiltinType, bool) {
+    ) -> (
+        Vec<InternalArg<'ast>>,
+        Option<VariadicArrayDescriptor>,
+        BuiltinType,
+        bool,
+    ) {
         let mut super_call = false;
 
-        assert!(callee.params_with_self().len() == args.len());
+        let callee_params = callee.params_with_self();
+
+        let variadic_argument_start = if callee.variadic_arguments {
+            callee_params.len() - 1
+        } else {
+            args.len()
+        };
 
         let args = args
             .iter()
             .enumerate()
             .map(|(ind, arg)| {
-                let ty = callee.params_with_self()[ind];
+                let ty = if ind >= variadic_argument_start {
+                    callee_params.last().cloned().unwrap()
+                } else {
+                    callee_params[ind]
+                };
                 let ty = self.specialize_type(specialize_for_call_type(call_type, ty, self.vm));
 
                 match *arg {
@@ -3346,9 +3457,12 @@ where
                             super_call = true;
                         }
 
-                        InternalArg::Expr(ast, ty)
+                        if ind >= variadic_argument_start {
+                            InternalArg::Array(ast, ty)
+                        } else {
+                            InternalArg::Expr(ast, ty)
+                        }
                     }
-
                     Arg::Stack(offset) => InternalArg::Stack(offset, ty),
                     Arg::SelfieNew => InternalArg::SelfieNew(ty),
                     Arg::Selfie => InternalArg::Selfie(ty),
@@ -3362,7 +3476,22 @@ where
             self.vm,
         ));
 
-        (args, return_type, super_call)
+        let variadic_array: Option<VariadicArrayDescriptor> = if callee.variadic_arguments {
+            let ty = callee_params.last().cloned().unwrap();
+            let ty = self.specialize_type(specialize_for_call_type(call_type, ty, self.vm));
+            let ty = self.vm.vips.array_ty(self.vm, ty);
+            let cls_def_id = specialize_class_ty(self.vm, ty);
+
+            Some(VariadicArrayDescriptor {
+                cls_def_id,
+                start: variadic_argument_start,
+                count: args.len() - variadic_argument_start,
+            })
+        } else {
+            None
+        };
+
+        (args, variadic_array, return_type, super_call)
     }
 
     fn determine_call_type_params(&mut self, call_type: &CallType) -> (TypeList, TypeList) {
@@ -3458,6 +3587,35 @@ impl<'a, 'ast> visit::Visitor<'ast> for AstCodeGen<'a, 'ast> {
     }
 }
 
+#[derive(Clone)]
+enum ArrayLength {
+    Fixed(i32),
+    Dynamic(SlotOrOffset),
+}
+
+impl ArrayLength {
+    fn is_dynamic(&self) -> bool {
+        match self {
+            ArrayLength::Dynamic(_) => true,
+            ArrayLength::Fixed(_) => false,
+        }
+    }
+
+    fn to_dynamic(&self) -> Option<SlotOrOffset> {
+        match self {
+            ArrayLength::Dynamic(slot_or_offset) => Some(slot_or_offset.clone()),
+            ArrayLength::Fixed(_) => None,
+        }
+    }
+
+    fn to_fixed(&self) -> Option<i32> {
+        match *self {
+            ArrayLength::Fixed(val) => Some(val),
+            ArrayLength::Dynamic(_) => None,
+        }
+    }
+}
+
 enum RegOrOffset {
     Reg(Reg),
     RegWithOffset(Reg, i32),
@@ -3538,6 +3696,7 @@ fn to_cond_code(cmp: CmpOp) -> CondCode {
     }
 }
 
+#[derive(Clone)]
 enum SlotOrOffset {
     Uninitialized,
     Slot(ManagedStackSlot),

@@ -78,3 +78,7 @@ fun arrayCopy[T](src: Array[T], srcPos: Int, dest: Array[T], destPos: Int, len: 
     i = i + 1;
   }
 }
+
+fun array[T](values: T...) -> Array[T] {
+  values
+}

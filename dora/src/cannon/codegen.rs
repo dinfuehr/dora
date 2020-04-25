@@ -1267,7 +1267,7 @@ where
 
         match cls.size {
             InstanceSize::Fixed(size) => {
-                self.asm.fill_zero(REG_RESULT, size as usize);
+                self.asm.fill_zero(REG_RESULT, false, size as usize);
             }
             _ => unreachable!(),
         }
@@ -1294,7 +1294,7 @@ where
         let array_header_size = Header::size() as usize + mem::ptr_width_usize();
 
         let alloc_size = match cls.size {
-            InstanceSize::Array(size) => {
+            InstanceSize::PrimitiveArray(size) => {
                 assert_ne!(size, 0);
                 self.asm
                     .determine_array_size(REG_TMP1, REG_TMP1, size, true);
@@ -1352,7 +1352,7 @@ where
         );
 
         match cls.size {
-            InstanceSize::Array(size) => {
+            InstanceSize::PrimitiveArray(size) => {
                 self.emit_array_initialization(REG_RESULT, REG_TMP1, size);
             }
             InstanceSize::ObjArray => {

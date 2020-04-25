@@ -59,6 +59,7 @@ pub struct Fct<'ast> {
     pub return_type: BuiltinType,
     pub is_constructor: bool,
     pub file: FileId,
+    pub variadic_arguments: bool,
 
     pub vtable_index: Option<u32>,
     pub impl_for: Option<FctId>,

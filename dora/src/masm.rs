@@ -231,10 +231,13 @@ impl MacroAssembler {
         }
     }
 
-    pub fn fill_zero(&mut self, obj: Reg, size: usize) {
-        debug_assert!(size >= (Header::size() as usize));
+    pub fn fill_zero(&mut self, obj: Reg, array: bool, size: usize) {
+        let header_size =
+            (Header::size() as usize) + if array { mem::ptr_width_usize() } else { 0 };
+
+        debug_assert!(size >= header_size);
         debug_assert!(size % mem::ptr_width_usize() == 0);
-        let size = size - (Header::size() as usize);
+        let size = size - header_size;
         let size_words = size / mem::ptr_width_usize();
 
         if size_words == 0 {
@@ -244,15 +247,15 @@ impl MacroAssembler {
             self.load_int_const(MachineMode::Int32, *zero, 0);
 
             for offset in 0..size_words {
-                let offset = Header::size() + offset as i32 * mem::ptr_width();
+                let offset = header_size as i32 + (offset as i32) * mem::ptr_width();
                 self.store_mem(MachineMode::Ptr, Mem::Base(obj, offset), (*zero).into());
             }
         } else {
             let obj_end = self.get_scratch();
             self.copy_reg(MachineMode::Ptr, *obj_end, obj);
-            let offset = Header::size() + (size_words as i32) * mem::ptr_width();
+            let offset = header_size as i32 + (size_words as i32) * mem::ptr_width();
             self.int_add_imm(MachineMode::Ptr, *obj_end, *obj_end, offset as i64);
-            self.int_add_imm(MachineMode::Ptr, obj, obj, Header::size() as i64);
+            self.int_add_imm(MachineMode::Ptr, obj, obj, header_size as i64);
             self.fill_zero_dynamic(obj, *obj_end);
         }
     }

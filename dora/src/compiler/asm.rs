@@ -354,8 +354,8 @@ where
             .determine_array_size(dest, length, element_size, with_header);
     }
 
-    pub fn fill_zero(&mut self, obj: Reg, size: usize) {
-        self.masm.fill_zero(obj, size);
+    pub fn fill_zero(&mut self, obj: Reg, array: bool, size: usize) {
+        self.masm.fill_zero(obj, array, size);
     }
 
     pub fn fill_zero_dynamic(&mut self, obj: Reg, obj_end: Reg) {

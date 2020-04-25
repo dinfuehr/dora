@@ -648,6 +648,7 @@ pub struct Param {
     pub id: NodeId,
     pub idx: u32,
     pub reassignable: bool,
+    pub variadic: bool,
     pub name: Name,
     pub pos: Position,
     pub span: Span,

@@ -307,7 +307,7 @@ where
         }
 
         InstanceSize::UnitArray
-        | InstanceSize::Array(_)
+        | InstanceSize::PrimitiveArray(_)
         | InstanceSize::Str
         | InstanceSize::FreeArray => {}
 

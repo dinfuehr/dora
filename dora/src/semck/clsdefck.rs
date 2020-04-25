@@ -279,6 +279,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
             initialized: false,
             impl_for: None,
             file: self.file_id.into(),
+            variadic_arguments: false,
 
             type_params: Vec::new(),
             kind,
@@ -314,6 +315,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
             parent: FctParent::Class(self.cls_id.unwrap()),
             has_override: f.has_override,
             has_optimize_immediately: f.has_optimize_immediately,
+            variadic_arguments: false,
 
             // abstract for methods also means that method is open to
             // override

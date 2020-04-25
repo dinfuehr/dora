@@ -5,7 +5,7 @@ use crate::compiler::{Code, GcPoint};
 use crate::cpu::{FReg, Reg, STACK_FRAME_ALIGNMENT};
 use crate::mem;
 use crate::ty::{BuiltinType, TypeList};
-use crate::vm::{Fct, FctId, FctSrc, VM};
+use crate::vm::{ClassDefId, Fct, FctId, FctSrc, VM};
 use dora_parser::ast;
 
 mod codegen;
@@ -30,6 +30,7 @@ enum Arg<'ast> {
 
 #[derive(Copy, Clone, Debug)]
 enum InternalArg<'ast> {
+    Array(&'ast ast::Expr, BuiltinType),
     Expr(&'ast ast::Expr, BuiltinType),
     Stack(i32, BuiltinType),
     SelfieNew(BuiltinType),
@@ -39,6 +40,7 @@ enum InternalArg<'ast> {
 impl<'ast> InternalArg<'ast> {
     fn ty(&self) -> BuiltinType {
         match *self {
+            InternalArg::Array(_, ty) => ty,
             InternalArg::Expr(_, ty) => ty,
             InternalArg::Stack(_, ty) => ty,
             InternalArg::Selfie(ty) => ty,
@@ -61,7 +63,15 @@ struct CallSite<'ast> {
     fct_type_params: TypeList,
     args: Vec<InternalArg<'ast>>,
     super_call: bool,
+    variadic_array: Option<VariadicArrayDescriptor>,
     return_type: BuiltinType,
+}
+
+#[derive(Clone, Debug)]
+struct VariadicArrayDescriptor {
+    cls_def_id: ClassDefId,
+    start: usize,
+    count: usize,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]

@@ -757,7 +757,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     InstanceSize::Fixed(_) => {
                         self.gen.emit_new_object(object_reg, cls_def_id);
                     }
-                    InstanceSize::ObjArray | InstanceSize::Array(_) | InstanceSize::UnitArray => {
+                    InstanceSize::ObjArray
+                    | InstanceSize::PrimitiveArray(_)
+                    | InstanceSize::UnitArray => {
                         let length_arg = arg_regs[0];
                         self.gen.emit_new_array(object_reg, cls_def_id, length_arg);
                     }

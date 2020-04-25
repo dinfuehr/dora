@@ -13,6 +13,7 @@ pub enum SemError {
     UnknownMethod(String, String, Vec<String>),
     UnknownEnumValue(String),
     MultipleCandidatesForMethod(String, String, Vec<String>),
+    VariadicParameterNeedsToBeLast,
     UnknownMethodForTypeParam(String, String, Vec<String>),
     MultipleCandidatesForTypeParam(String, String, Vec<String>),
     MultipleCandidatesForStaticMethodWithTypeParam,
@@ -164,6 +165,9 @@ impl SemError {
                     "multiple candidates for definition `{}({})` in class `{}`.",
                     name, args, cls
                 )
+            }
+            SemError::VariadicParameterNeedsToBeLast => {
+                "variadic parameter needs to be last.".into()
             }
             SemError::UnknownMethodForTypeParam(ref tp, ref name, ref args) => {
                 let args = args.join(", ");

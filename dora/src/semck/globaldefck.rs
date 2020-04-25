@@ -69,6 +69,7 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDefCheck<'a, 'ast> {
                 initialized: false,
                 impl_for: None,
                 file: file,
+                variadic_arguments: false,
 
                 type_params: Vec::new(),
                 kind: FctKind::Source(RwLock::new(FctSrc::new())),

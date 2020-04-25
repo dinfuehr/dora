@@ -234,10 +234,10 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
 
                     InstanceSize::TupleArray(tuple.size())
                 } else {
-                    InstanceSize::Array(tuple.size())
+                    InstanceSize::PrimitiveArray(tuple.size())
                 }
             } else {
-                InstanceSize::Array(element_ty.size(vm))
+                InstanceSize::PrimitiveArray(element_ty.size(vm))
             }
         } else {
             InstanceSize::Str
@@ -310,7 +310,7 @@ fn create_specialized_class(vm: &VM, cls: &Class, type_params: &TypeList) -> Cla
 
     let (instance_size, element_size) = match size {
         InstanceSize::Fixed(instance_size) => (instance_size as usize, 0),
-        InstanceSize::Array(element_size) => (0, element_size as usize),
+        InstanceSize::PrimitiveArray(element_size) => (0, element_size as usize),
         InstanceSize::ObjArray => (0, mem::ptr_width_usize()),
         InstanceSize::UnitArray => (Header::size() as usize + mem::ptr_width_usize(), 0),
         InstanceSize::FreeArray => (0, mem::ptr_width_usize()),

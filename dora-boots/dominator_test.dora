@@ -1,13 +1,13 @@
-fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Vec[Int]) {
+fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int...) {
     let graph = createGraph(fct);
     graph.buildDominatorTree();
-    let it = idoms.makeIterator();
+    var idomsIdx = 0;
     var idx = 1; // Block with id 0 is entry block
 
     assert(graph.getEntryBlock().getDominator().isNone());
 
-    while it.hasNext() {
-        let dominatorId = it.next();
+    while idomsIdx < idoms.length() {
+        let dominatorId = idoms(idomsIdx);
         let block = graph.getBlockWithId(idx);
 
         let dominator = block.getDominator();
@@ -21,6 +21,7 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Vec[Int]) {
 
         assert(dominator.unwrap().id == dominatorId);
         idx = idx + 1;
+        idomsIdx = idomsIdx + 1;
     }
 }
 
@@ -29,11 +30,7 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Vec[Int]) {
     writer.emitRetVoid();
     let fct = writer.generate();
 
-    let idoms = Vec[Int]();
-    idoms.push(2);
-    idoms.push(0);
-
-    assertDominatedBlocks(fct, idoms);
+    assertDominatedBlocks(fct, 2, 0);
 }
 
 @test fun testDominatorEmptyBlocks(_x: Testing) {
@@ -47,13 +44,7 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Vec[Int]) {
     writer.emitRetVoid();
     let fct = writer.generate();
 
-    let idoms = Vec[Int]();
-    idoms.push(4);
-    idoms.push(0);
-    idoms.push(2);
-    idoms.push(3);
-
-    assertDominatedBlocks(fct, idoms);
+    assertDominatedBlocks(fct, 4, 0, 2, 3);
 }
 
 @test fun testDominatorSimple(_x: Testing) {
@@ -70,14 +61,7 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Vec[Int]) {
     writer.emitRetVoid();
     let fct = writer.generate();
 
-    let idoms = Vec[Int]();
-    idoms.push(5);
-    idoms.push(0);
-    idoms.push(2);
-    idoms.push(2);
-    idoms.push(2);
-
-    assertDominatedBlocks(fct, idoms);
+    assertDominatedBlocks(fct, 5, 0, 2, 2, 2);
 }
 
 @test fun testDominatorIfReturnInBothBranches(_x: Testing) {

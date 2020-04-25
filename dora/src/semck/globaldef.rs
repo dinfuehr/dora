@@ -345,6 +345,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             vtable_index: None,
             initialized: false,
             impl_for: None,
+            variadic_arguments: false,
 
             type_params: Vec::new(),
             kind,

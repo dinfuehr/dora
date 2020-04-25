@@ -157,6 +157,7 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
             initialized: false,
             impl_for: None,
             file: self.file_id.into(),
+            variadic_arguments: false,
 
             type_params: Vec::new(),
             kind,

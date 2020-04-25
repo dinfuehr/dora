@@ -1999,3 +1999,50 @@ fn literal_without_suffix_long() {
     ok("fun f() -> Long { 1 }");
     ok("fun f() { let x: Long = 1; }");
 }
+
+#[test]
+fn variadic_parameter() {
+    ok("
+        fun f(x: Int...) -> Int {
+            x.length()
+        }
+        fun g() {
+            f(1, 2, 3, 4);
+            f();
+            f(1);
+        }
+    ");
+    err(
+        "
+        fun f(x: Int...) {}
+        fun g() {
+            f(true);
+        }
+    ",
+        pos(4, 14),
+        SemError::ParamTypesIncompatible("f".into(), vec!["Int".into()], vec!["Bool".into()]),
+    );
+    ok("
+        fun f(x: Int, y: Int...) {}
+        fun g() {
+            f(1, 2, 3, 4);
+            f(1, 2);
+            f(1);
+        }
+    ");
+    err(
+        "
+        fun f(x: Int, y: Int...) {}
+        fun g() {
+            f();
+        }
+    ",
+        pos(4, 14),
+        SemError::ParamTypesIncompatible("f".into(), vec!["Int".into(), "Int".into()], Vec::new()),
+    );
+    err(
+        "fun f(x: Int..., y: Int) {}",
+        pos(1, 18),
+        SemError::VariadicParameterNeedsToBeLast,
+    );
+}

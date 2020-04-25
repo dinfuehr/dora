@@ -264,7 +264,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
         if !args_compatible(
             self.vm,
-            &fct.params_without_self(),
+            &*fct,
             args,
             cls_id,
             Some(fct_id),
@@ -321,7 +321,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
             if args_compatible(
                 self.vm,
-                &ctor.params_without_self(),
+                &*ctor,
                 &args,
                 Some(cls_id),
                 None,

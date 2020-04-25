@@ -285,7 +285,16 @@ impl Lexer {
                     TokenKind::Colon
                 }
             }
-            '.' => TokenKind::Dot,
+            '.' => {
+                if nch == '.' && nnch == '.' {
+                    self.read_char();
+                    self.read_char();
+
+                    TokenKind::DotDotDot
+                } else {
+                    TokenKind::Dot
+                }
+            }
             '=' => {
                 if nch == '=' {
                     self.read_char();
@@ -1043,7 +1052,7 @@ mod tests {
 
     #[test]
     fn test_operators() {
-        let mut reader = Lexer::from_str("==-*/%.@");
+        let mut reader = Lexer::from_str("==-*/%.@...,");
         assert_tok(&mut reader, TokenKind::EqEq, 1, 1);
         assert_tok(&mut reader, TokenKind::Sub, 1, 3);
         assert_tok(&mut reader, TokenKind::Mul, 1, 4);
@@ -1051,6 +1060,8 @@ mod tests {
         assert_tok(&mut reader, TokenKind::Mod, 1, 6);
         assert_tok(&mut reader, TokenKind::Dot, 1, 7);
         assert_tok(&mut reader, TokenKind::At, 1, 8);
+        assert_tok(&mut reader, TokenKind::DotDotDot, 1, 9);
+        assert_tok(&mut reader, TokenKind::Comma, 1, 12);
 
         let mut reader = Lexer::from_str("<=<>=><");
         assert_tok(&mut reader, TokenKind::Le, 1, 1);

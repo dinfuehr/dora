@@ -1,0 +1,10 @@
+fun main() {
+    assert(number_args(1, 2) == 2);
+    assert(number_args(7) == 1);
+    assert(number_args() == 0);
+    assert(number_args(1, 2, 3, 4, 5) == 5);
+}
+
+fun number_args(x: Int...) -> Int {
+    x.length()
+}

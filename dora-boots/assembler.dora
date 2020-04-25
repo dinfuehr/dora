@@ -60,35 +60,23 @@ class Register(let value: Int) {
     }
 }
 
-fun asm1(buffer: Array[Byte], index: Int, val: Byte) {
-    if buffer(index) != val {
-        println("expected ${val.toStringHex()} but got ${buffer(index).toStringHex()}")
+fun assertAsm(buffer: Array[Byte], start: Int, bytes: Byte...) {
+    var idx = 0;
+
+    while idx < bytes.length() {
+        let exp = bytes(idx);
+        let got = buffer(start + idx);
+
+        if exp != got {
+            println("expected ${exp.toStringHex()} at index ${start + idx} but got ${got.toStringHex()}")
+        }
+
+        assert(exp == got);
+        idx = idx + 1;
     }
-    assert(buffer(index) == val);
 }
 
-fun asm2(buffer: Array[Byte], index: Int, val1: Byte, val2: Byte) {
-    if buffer(index) != val1 || buffer(index+1) != val2 {
-        println("expected ${val1.toStringHex()} ${val2.toStringHex()} but got ${buffer(index).toStringHex()} ${buffer(index+1).toStringHex()}")
-    }
-    assert(buffer(index) == val1 && buffer(index+1) == val2);
-}
-
-fun asm3(buffer: Array[Byte], index: Int, val1: Byte, val2: Byte, val3: Byte) {
-    if buffer(index) != val1 || buffer(index+1) != val2 || buffer(index+2) != val3 {
-        println("expected ${val1.toStringHex()} ${val2.toStringHex()} ${val3.toStringHex()} but got ${buffer(index).toStringHex()} ${buffer(index+1).toStringHex()} ${buffer(index+2).toStringHex()}")
-    }
-    assert(buffer(index) == val1 && buffer(index+1) == val2 && buffer(index+2) == val3);
-}
-
-fun asm4(buffer: Array[Byte], index: Int, val1: Byte, val2: Byte, val3: Byte, val4: Byte) {
-    if buffer(index) != val1 || buffer(index+1) != val2 || buffer(index+2) != val3 || buffer(index+3) != val4 {
-        println("expected ${val1.toStringHex()} ${val2.toStringHex()} ${val3.toStringHex()} ${val4.toStringHex()} but got ${buffer(index).toStringHex()} ${buffer(index+1).toStringHex()} ${buffer(index+2).toStringHex()} ${buffer(index+3).toStringHex()}")
-    }
-    assert(buffer(index) == val1 && buffer(index+1) == val2 && buffer(index+2) == val3 && buffer(index+3) == val4);
-}
-
-fun asmInt(buffer: Array[Byte], index: Int, value: Int) {
+fun assertAsmInt(buffer: Array[Byte], index: Int, value: Int) {
     let b1 = buffer(index).toInt();
     let b2 = buffer(index+1).toInt();
     let b3 = buffer(index+2).toInt();
@@ -103,9 +91,9 @@ fun asmInt(buffer: Array[Byte], index: Int, value: Int) {
     assert(value == got);
 }
 
-fun asmLong(buffer: Array[Byte], index: Int, value: Long) {
-    asmInt(buffer, index, value.toInt());
-    asmInt(buffer, index, (value >>> 32).toInt());
+fun assertAsmLong(buffer: Array[Byte], index: Int, value: Long) {
+    assertAsmInt(buffer, index, value.toInt());
+    assertAsmInt(buffer, index, (value >>> 32).toInt());
 }
 
 fun printBuffer(buffer: Array[Byte]) {
