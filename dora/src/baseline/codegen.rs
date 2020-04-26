@@ -346,6 +346,135 @@ where
     }
 
     fn emit_stmt_for(&mut self, stmt: &'ast StmtForType) {
+        if self.src.map_fors.get(stmt.id).is_some() {
+            self.emit_stmt_for_iterator(stmt);
+        } else {
+            self.emit_stmt_for_array(stmt);
+        }
+    }
+
+    fn emit_stmt_for_array(&mut self, stmt: &'ast StmtForType) {
+        self.managed_stack.push_scope();
+
+        let lbl_start = self.asm.create_label();
+        let lbl_end = self.asm.create_label();
+
+        let array_slot = self.managed_stack.add_scope(BuiltinType::Ptr, self.vm);
+        let index_slot = self.managed_stack.add_scope(BuiltinType::Int, self.vm);
+        let length_slot = self.managed_stack.add_scope(BuiltinType::Int, self.vm);
+
+        let for_var_id = *self.src.map_vars.get(stmt.id).unwrap();
+        let var_ty = self.var_ty(for_var_id);
+        let var_slot = self.managed_stack.add_scope(var_ty, self.vm);
+        assert!(self.var_to_slot.insert(for_var_id, var_slot).is_none());
+
+        // evaluate and store array
+        self.emit_expr(&stmt.expr, REG_RESULT.into());
+
+        self.asm
+            .test_if_nil_bailout(stmt.expr.pos(), REG_RESULT, Trap::NIL);
+
+        self.asm.store_mem(
+            MachineMode::Ptr,
+            Mem::Local(array_slot.offset()),
+            REG_RESULT.into(),
+        );
+
+        // store length
+        self.asm.load_mem(
+            MachineMode::Ptr,
+            REG_RESULT.into(),
+            Mem::Base(REG_RESULT, Header::size()),
+        );
+
+        self.asm.store_mem(
+            MachineMode::Int32,
+            Mem::Local(length_slot.offset()),
+            REG_RESULT.into(),
+        );
+
+        // set current index to 0
+        self.asm.load_int_const(MachineMode::Int32, REG_RESULT, 0);
+        self.asm.store_mem(
+            MachineMode::Int32,
+            Mem::Local(index_slot.offset()),
+            REG_RESULT.into(),
+        );
+
+        // test if current index < array length
+        self.asm.bind_label(lbl_start);
+        self.asm.load_mem(
+            MachineMode::Int32,
+            REG_TMP1.into(),
+            Mem::Local(index_slot.offset()),
+        );
+
+        self.asm.load_mem(
+            MachineMode::Int32,
+            REG_RESULT.into(),
+            Mem::Local(length_slot.offset()),
+        );
+
+        self.asm.cmp_reg(MachineMode::Int32, REG_TMP1, REG_RESULT);
+        self.asm.jump_if(CondCode::GreaterEq, lbl_end);
+
+        // load current array element into variable
+        self.asm.load_mem(
+            MachineMode::Ptr,
+            REG_RESULT.into(),
+            Mem::Local(array_slot.offset()),
+        );
+
+        if var_ty.is_unit() {
+            // nothing to do
+        } else if let Some(tuple_id) = var_ty.tuple_id() {
+            let element_size = self.vm.tuples.lock().get_tuple(tuple_id).size();
+            self.asm
+                .array_address(REG_TMP1, REG_RESULT, REG_TMP1, element_size);
+
+            self.copy_tuple(
+                tuple_id,
+                RegOrOffset::Offset(var_slot.offset()),
+                RegOrOffset::Reg(REG_TMP1),
+            );
+        } else {
+            let dest = result_reg_ty(var_ty).any_reg();
+            self.asm
+                .load_array_elem(var_ty.mode(), dest, REG_RESULT, REG_TMP1);
+            self.asm
+                .store_mem(var_ty.mode(), Mem::Local(var_slot.offset()), dest);
+        }
+
+        self.save_label_state(lbl_end, lbl_start, |this| {
+            // execute while body, then jump back to condition
+            this.visit_stmt(&stmt.block);
+
+            // increment index by 1
+            this.asm.load_mem(
+                MachineMode::Int32,
+                REG_RESULT.into(),
+                Mem::Local(index_slot.offset()),
+            );
+
+            this.asm
+                .int_add_imm(MachineMode::Int32, REG_RESULT, REG_RESULT, 1);
+
+            this.asm.store_mem(
+                MachineMode::Int32,
+                Mem::Local(index_slot.offset()),
+                REG_RESULT.into(),
+            );
+
+            this.emit_stack_guard();
+            this.asm.jump(lbl_start);
+        });
+
+        self.managed_stack.pop_scope(&self.vm);
+
+        self.asm.bind_label(lbl_end);
+    }
+
+    fn emit_stmt_for_iterator(&mut self, stmt: &'ast StmtForType) {
         let for_type_info = self.src.map_fors.get(stmt.id).unwrap().clone();
 
         self.managed_stack.push_scope();

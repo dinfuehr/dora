@@ -1,0 +1,13 @@
+fun main() {
+    assert(mysum(array[Int]()) == 0);
+    assert(mysum(array[Int](1)) == 1);
+    assert(mysum(array[Int](1, 2, 3, 4, 5)) == 15);
+}
+
+fun mysum(x: Array[Int]) -> Int {
+    var entries = 0;
+    for val in x {
+        entries = entries + val;
+    }
+    entries
+}

@@ -1,0 +1,13 @@
+fun main() {
+    assert(slowLength(array[Int]()) == 0);
+    assert(slowLength(array[Int](1)) == 1);
+    assert(slowLength(array[Int](1, 2)) == 2);
+}
+
+fun slowLength(x: Array[Int]) -> Int {
+    var entries = 0;
+    for val in x {
+        entries = entries + 1;
+    }
+    entries
+}

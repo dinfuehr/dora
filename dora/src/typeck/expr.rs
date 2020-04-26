@@ -120,6 +120,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_stmt_for(&mut self, s: &'ast StmtForType) {
         let object_type = self.check_expr(&s.expr, BuiltinType::Any);
 
+        if let Some(cls_id) = object_type.cls_id(self.vm) {
+            if cls_id == self.vm.vips.array_class {
+                let var_id = *self.src.map_vars.get(s.id).unwrap();
+                let type_list = object_type.type_params(self.vm);
+                self.src.vars[var_id].ty = type_list[0];
+                self.visit_stmt(&s.block);
+                return;
+            }
+        }
+
         let name = self.vm.interner.intern("makeIterator");
 
         let mut lookup = MethodLookup::new(self.vm, self.file)

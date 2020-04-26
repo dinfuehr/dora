@@ -1,0 +1,13 @@
+//= error nil
+
+fun main() {
+    assert(slowLength(nil) == 0);
+}
+
+fun slowLength(x: Array[Int]) -> Int {
+    var entries = 0;
+    for val in x {
+        entries = entries + 1;
+    }
+    entries
+}

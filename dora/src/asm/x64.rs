@@ -275,6 +275,10 @@ impl Assembler {
         self.emit_modrm_registers(src, dest);
     }
 
+    pub fn addl_ri(&mut self, dest: Register, imm: Immediate) {
+        self.emit_alu32_imm(dest, imm, 0b000, 0x05, false);
+    }
+
     pub fn addq_ri(&mut self, dest: Register, imm: Immediate) {
         self.emit_alu64_imm(dest, imm, 0b000, 0x05, false);
     }

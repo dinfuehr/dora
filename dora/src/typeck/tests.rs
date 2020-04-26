@@ -2046,3 +2046,22 @@ fn variadic_parameter() {
         SemError::VariadicParameterNeedsToBeLast,
     );
 }
+
+#[test]
+fn for_with_array() {
+    ok("fun f(x: Array[Int]) -> Int {
+        var result = 0;
+        for i in x {
+            result = result + i;
+        }
+        result
+    }");
+
+    ok("fun f(x: Array[Float]) -> Float {
+        var result = 0.0F;
+        for i in x {
+            result = result + i;
+        }
+        result
+    }");
+}
