@@ -232,3 +232,14 @@ class HashMapIter[K: Hash + Equals, V](let map: HashMap[K, V]) {
         (key, value)
     }
 }
+
+fun hashMap[K: Hash + Equals, V](entries: (K, V)...) -> HashMap[K, V] {
+    let result = HashMap[K, V]();
+    var idx = 0;
+    while idx < entries.length() {
+        let entry = entries(idx);
+        result.insert(entry.0, entry.1);
+        idx = idx + 1;
+    }
+    result
+}

@@ -25,3 +25,13 @@ class HashSet[K: Hash + Equals] {
         self.map.capacity()
     }
 }
+
+fun hashSet[T: Hash + Equals](keys: T...) -> HashSet[T] {
+    let result = HashSet[T]();
+    var idx = 0;
+    while idx < keys.length() {
+        result.insert(keys(idx));
+        idx = idx + 1;
+    }
+    result
+}

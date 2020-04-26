@@ -560,7 +560,9 @@ impl BuiltinType {
             | BuiltinType::Enum(_, _)
             | BuiltinType::Module(_)
             | BuiltinType::Trait(_)
-            | BuiltinType::Lambda(_) => true,
+            | BuiltinType::Lambda(_)
+            | BuiltinType::ClassTypeParam(_, _)
+            | BuiltinType::FctTypeParam(_, _) => true,
             BuiltinType::Class(_, list_id) | BuiltinType::Struct(_, list_id) => {
                 let params = vm.lists.lock().get(list_id);
 
@@ -572,8 +574,17 @@ impl BuiltinType {
 
                 true
             }
-            BuiltinType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).is_concrete_type(),
-            BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_, _) => true,
+            BuiltinType::Tuple(tuple_id) => {
+                let subtypes = vm.tuples.lock().get(tuple_id);
+
+                for ty in subtypes.iter() {
+                    if !ty.is_defined_type(vm) {
+                        return false;
+                    }
+                }
+
+                true
+            }
         }
     }
 

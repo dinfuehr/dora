@@ -1,0 +1,15 @@
+fun main() {
+    let map = hashMap[Int, String]((1, "a"), (2, "b"), (3, "c"), (4, "d"));
+    assert(map.length() == 4);
+
+    assert(map.contains(1));
+    assert(map.contains(2));
+    assert(map.contains(3));
+    assert(map.contains(4));
+    assert(!map.contains(0));
+
+    assert(map.get(1).unwrap() == "a");
+    assert(map.get(2).unwrap() == "b");
+    assert(map.get(3).unwrap() == "c");
+    assert(map.get(4).unwrap() == "d");
+}
