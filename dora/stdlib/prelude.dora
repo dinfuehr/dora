@@ -9,7 +9,6 @@ fun unimplemented() = fatalError("not yet implemented");
 
 @internal fun print(text: String);
 @internal fun println(text: String);
-@internal fun addressOf(object: Object) -> Long;
 @internal fun assert(val: Bool);
 @internal fun debug();
 @internal fun argc() -> Int;
@@ -19,7 +18,7 @@ fun unimplemented() = fatalError("not yet implemented");
 
 @internal fun call(fct: String);
 
-@internal fun timestamp() -> Long;
+@internal fun timestamp() -> Int64;
 
 class Object
 

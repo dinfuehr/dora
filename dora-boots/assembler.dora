@@ -12,7 +12,7 @@ class AssemblerBuffer {
         self.emitByte(((value >>> 24) & 0xFF).toByte());
     }
 
-    fun emitInt64(value: Long) {
+    fun emitInt64(value: Int64) {
         self.emitInt32(value.toInt());
         self.emitInt32((value >>> 32).toInt());
     }
@@ -91,7 +91,7 @@ fun assertAsmInt(buffer: Array[Byte], index: Int, value: Int) {
     assert(value == got);
 }
 
-fun assertAsmLong(buffer: Array[Byte], index: Int, value: Long) {
+fun assertAsmInt64(buffer: Array[Byte], index: Int, value: Int64) {
     assertAsmInt(buffer, index, value.toInt());
     assertAsmInt(buffer, index, (value >>> 32).toInt());
 }

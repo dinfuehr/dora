@@ -9,11 +9,11 @@ fun main() {
   assert(x.length() == 5);
   assert(int_array_len(x) == 5);
 
-  let x = arrayEmpty[Long]();
+  let x = arrayEmpty[Int64]();
   assert(x.length() == 0);
   assert(long_array_len(x) == 0);
 
-  let x = arrayFill[Long](7, 100L);
+  let x = arrayFill[Int64](7, 100L);
   assert(x.length() == 7);
   assert(long_array_len(x) == 7);
 
@@ -54,7 +54,7 @@ fun int_array_len(x: Array[Int]) -> Int {
   return x.length();
 }
 
-fun long_array_len(x: Array[Long]) -> Int {
+fun long_array_len(x: Array[Int64]) -> Int {
   return x.length();
 }
 

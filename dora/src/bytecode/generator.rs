@@ -1089,7 +1089,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let ty = match ty {
             BuiltinType::Byte => BytecodeType::Byte,
             BuiltinType::Int => BytecodeType::Int,
-            BuiltinType::Long => BytecodeType::Long,
+            BuiltinType::Int64 => BytecodeType::Long,
             _ => unreachable!(),
         };
 
@@ -1536,7 +1536,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         match intrinsic {
             Intrinsic::IntPlus
-            | Intrinsic::LongPlus
+            | Intrinsic::Int64Plus
             | Intrinsic::FloatPlus
             | Intrinsic::DoublePlus => {
                 return self.visit_expr(opnd, dest);
@@ -1555,41 +1555,41 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 self.gen.emit_array_length(dest, src);
             }
             Intrinsic::IntNeg => self.gen.emit_neg_int(dest, src),
-            Intrinsic::LongNeg => self.gen.emit_neg_long(dest, src),
+            Intrinsic::Int64Neg => self.gen.emit_neg_long(dest, src),
             Intrinsic::FloatNeg => self.gen.emit_neg_float(dest, src),
             Intrinsic::DoubleNeg => self.gen.emit_neg_double(dest, src),
             Intrinsic::BoolNot => self.gen.emit_not_bool(dest, src),
             Intrinsic::IntNot => self.gen.emit_not_int(dest, src),
-            Intrinsic::LongNot => self.gen.emit_not_long(dest, src),
+            Intrinsic::Int64Not => self.gen.emit_not_long(dest, src),
             Intrinsic::ReinterpretFloatAsInt => self.gen.emit_reinterpret_float_as_int(dest, src),
             Intrinsic::ReinterpretIntAsFloat => self.gen.emit_reinterpret_int_as_float(dest, src),
-            Intrinsic::ReinterpretDoubleAsLong => {
+            Intrinsic::ReinterpretDoubleAsInt64 => {
                 self.gen.emit_reinterpret_double_as_long(dest, src)
             }
-            Intrinsic::ReinterpretLongAsDouble => {
+            Intrinsic::ReinterpretInt64AsDouble => {
                 self.gen.emit_reinterpret_long_as_double(dest, src)
             }
             Intrinsic::ByteToChar => self.gen.emit_extend_byte_to_char(dest, src),
             Intrinsic::ByteToInt => self.gen.emit_extend_byte_to_int(dest, src),
-            Intrinsic::ByteToLong => self.gen.emit_extend_byte_to_long(dest, src),
-            Intrinsic::IntToLong => self.gen.emit_extend_int_to_long(dest, src),
+            Intrinsic::ByteToInt64 => self.gen.emit_extend_byte_to_long(dest, src),
+            Intrinsic::IntToInt64 => self.gen.emit_extend_int_to_long(dest, src),
             Intrinsic::CharToInt => self.gen.emit_cast_char_to_int(dest, src),
-            Intrinsic::CharToLong => self.gen.emit_extend_char_to_long(dest, src),
+            Intrinsic::CharToInt64 => self.gen.emit_extend_char_to_long(dest, src),
             Intrinsic::IntToByte => self.gen.emit_cast_int_to_byte(dest, src),
             Intrinsic::IntToChar => self.gen.emit_cast_int_to_char(dest, src),
-            Intrinsic::LongToByte => self.gen.emit_cast_long_to_byte(dest, src),
-            Intrinsic::LongToChar => self.gen.emit_cast_long_to_char(dest, src),
-            Intrinsic::LongToInt => self.gen.emit_cast_long_to_int(dest, src),
+            Intrinsic::Int64ToByte => self.gen.emit_cast_long_to_byte(dest, src),
+            Intrinsic::Int64ToChar => self.gen.emit_cast_long_to_char(dest, src),
+            Intrinsic::Int64ToInt => self.gen.emit_cast_long_to_int(dest, src),
             Intrinsic::FloatIsNan => self.gen.emit_test_ne_float(dest, src, src),
             Intrinsic::DoubleIsNan => self.gen.emit_test_ne_double(dest, src, src),
             Intrinsic::IntToFloat => self.gen.emit_convert_int_to_float(dest, src),
             Intrinsic::IntToDouble => self.gen.emit_convert_int_to_double(dest, src),
-            Intrinsic::LongToFloat => self.gen.emit_convert_long_to_float(dest, src),
-            Intrinsic::LongToDouble => self.gen.emit_convert_long_to_double(dest, src),
+            Intrinsic::Int64ToFloat => self.gen.emit_convert_long_to_float(dest, src),
+            Intrinsic::Int64ToDouble => self.gen.emit_convert_long_to_double(dest, src),
             Intrinsic::FloatToInt => self.gen.emit_truncate_float_to_int(dest, src),
-            Intrinsic::FloatToLong => self.gen.emit_truncate_float_to_long(dest, src),
+            Intrinsic::FloatToInt64 => self.gen.emit_truncate_float_to_long(dest, src),
             Intrinsic::DoubleToInt => self.gen.emit_truncate_double_to_int(dest, src),
-            Intrinsic::DoubleToLong => self.gen.emit_truncate_double_to_long(dest, src),
+            Intrinsic::DoubleToInt64 => self.gen.emit_truncate_double_to_long(dest, src),
             Intrinsic::BoolToInt => {
                 self.gen.emit_const_int(dest, 1);
                 let lbl_end = self.gen.create_label();
@@ -1626,12 +1626,12 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     1,
                 );
             }
-            Intrinsic::LongCountZeroBits
-            | Intrinsic::LongCountZeroBitsLeading
-            | Intrinsic::LongCountZeroBitsTrailing
-            | Intrinsic::LongCountOneBits
-            | Intrinsic::LongCountOneBitsLeading
-            | Intrinsic::LongCountOneBitsTrailing => {
+            Intrinsic::Int64CountZeroBits
+            | Intrinsic::Int64CountZeroBitsLeading
+            | Intrinsic::Int64CountZeroBitsTrailing
+            | Intrinsic::Int64CountOneBits
+            | Intrinsic::Int64CountOneBitsLeading
+            | Intrinsic::Int64CountOneBitsTrailing => {
                 self.gen.emit_push_register(src);
                 self.gen.emit_invoke_static_long(
                     dest,
@@ -1719,7 +1719,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 Intrinsic::ByteCmp
                 | Intrinsic::CharCmp
                 | Intrinsic::IntCmp
-                | Intrinsic::LongCmp
+                | Intrinsic::Int64Cmp
                 | Intrinsic::FloatCmp
                 | Intrinsic::DoubleCmp => BytecodeType::Bool,
                 _ => intrinsic.result_type(),
@@ -1778,12 +1778,12 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 Some(_) => unreachable!(),
                 None => self.gen.emit_sub_int(dest, lhs_reg, rhs_reg),
             },
-            Intrinsic::LongEq => match op {
+            Intrinsic::Int64Eq => match op {
                 Some(BinOp::Cmp(CmpOp::Eq)) => self.gen.emit_test_eq_long(dest, lhs_reg, rhs_reg),
                 Some(BinOp::Cmp(CmpOp::Ne)) => self.gen.emit_test_ne_long(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
-            Intrinsic::LongCmp => match op {
+            Intrinsic::Int64Cmp => match op {
                 Some(BinOp::Cmp(CmpOp::Lt)) => self.gen.emit_test_lt_long(dest, lhs_reg, rhs_reg),
                 Some(BinOp::Cmp(CmpOp::Le)) => self.gen.emit_test_le_long(dest, lhs_reg, rhs_reg),
                 Some(BinOp::Cmp(CmpOp::Gt)) => self.gen.emit_test_gt_long(dest, lhs_reg, rhs_reg),
@@ -1838,25 +1838,25 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             Intrinsic::IntSar => self.gen.emit_sar_int(dest, lhs_reg, rhs_reg),
             Intrinsic::IntRotateLeft => self.gen.emit_rol_int(dest, lhs_reg, rhs_reg),
             Intrinsic::IntRotateRight => self.gen.emit_ror_int(dest, lhs_reg, rhs_reg),
-            Intrinsic::LongAdd => self.gen.emit_add_long(dest, lhs_reg, rhs_reg),
-            Intrinsic::LongSub => self.gen.emit_sub_long(dest, lhs_reg, rhs_reg),
-            Intrinsic::LongMul => self.gen.emit_mul_long(dest, lhs_reg, rhs_reg),
-            Intrinsic::LongDiv => {
+            Intrinsic::Int64Add => self.gen.emit_add_long(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int64Sub => self.gen.emit_sub_long(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int64Mul => self.gen.emit_mul_long(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int64Div => {
                 self.gen.set_position(pos);
                 self.gen.emit_div_long(dest, lhs_reg, rhs_reg)
             }
-            Intrinsic::LongMod => {
+            Intrinsic::Int64Mod => {
                 self.gen.set_position(pos);
                 self.gen.emit_mod_long(dest, lhs_reg, rhs_reg)
             }
-            Intrinsic::LongOr => self.gen.emit_or_long(dest, lhs_reg, rhs_reg),
-            Intrinsic::LongAnd => self.gen.emit_and_long(dest, lhs_reg, rhs_reg),
-            Intrinsic::LongXor => self.gen.emit_xor_long(dest, lhs_reg, rhs_reg),
-            Intrinsic::LongShl => self.gen.emit_shl_long(dest, lhs_reg, rhs_reg),
-            Intrinsic::LongShr => self.gen.emit_shr_long(dest, lhs_reg, rhs_reg),
-            Intrinsic::LongSar => self.gen.emit_sar_long(dest, lhs_reg, rhs_reg),
-            Intrinsic::LongRotateLeft => self.gen.emit_rol_long(dest, lhs_reg, rhs_reg),
-            Intrinsic::LongRotateRight => self.gen.emit_ror_long(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int64Or => self.gen.emit_or_long(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int64And => self.gen.emit_and_long(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int64Xor => self.gen.emit_xor_long(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int64Shl => self.gen.emit_shl_long(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int64Shr => self.gen.emit_shr_long(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int64Sar => self.gen.emit_sar_long(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int64RotateLeft => self.gen.emit_rol_long(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int64RotateRight => self.gen.emit_ror_long(dest, lhs_reg, rhs_reg),
             Intrinsic::FloatAdd => self.gen.emit_add_float(dest, lhs_reg, rhs_reg),
             Intrinsic::FloatSub => self.gen.emit_sub_float(dest, lhs_reg, rhs_reg),
             Intrinsic::FloatMul => self.gen.emit_mul_float(dest, lhs_reg, rhs_reg),
@@ -2064,7 +2064,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 self.gen.emit_const_int(dest, xconst.value.to_int() as i32);
             }
 
-            BuiltinType::Long => {
+            BuiltinType::Int64 => {
                 self.gen.emit_const_long(dest, xconst.value.to_int());
             }
 

@@ -5,11 +5,11 @@ fun main() {
     assert(1 == x.toInt());
 
     let y = 213.4F;
-    assert(213L == y.toLong());
+    assert(213L == y.toInt64());
 
     let x = 1.1D;
     assert(1 == x.toInt());
 
     let y = 213.4D;
-    assert(213L == y.toLong());
+    assert(213L == y.toInt64());
 }

@@ -1,5 +1,5 @@
 const i: Int = -1;
-const l: Long = -2L;
+const l: Int64 = -2L;
 const no: Bool = false;
 const f: Float = -3.0F;
 const d: Double = -4.0;

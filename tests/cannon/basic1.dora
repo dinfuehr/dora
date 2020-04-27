@@ -3,7 +3,7 @@ fun main() {
     assert(returnChar() == '5');
     assert(returnByte() == 5Y);
     assert(returnInt() == 5);
-    assert(returnLong() == 5L);
+    assert(returnInt64() == 5L);
     assert(returnFloat() == 5F);
     assert(returnDouble() == 5D);
     assert(returnString() == "5");
@@ -25,7 +25,7 @@ fun main() {
     return 5;
 }
 
-@cannon fun returnLong() -> Long {
+@cannon fun returnInt64() -> Int64 {
     return 5L;
 }
 

@@ -41,11 +41,11 @@ fun bar_int(a: Int) -> Int {
   return 3+a;
 }
 
-@cannon fun foo_long() -> Long {
+@cannon fun foo_long() -> Int64 {
   return bar_long(3L);
 }
 
-fun bar_long(a: Long) -> Long {
+fun bar_long(a: Int64) -> Int64 {
   assert(a == 3L);
   return 3L+a;
 }

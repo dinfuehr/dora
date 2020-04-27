@@ -158,16 +158,16 @@
 }
 
 class NodeA: Node {}
-class NodeB: Node { let x1: Long = 0L; }
-class NodeC: Node { let x1: Long = 0L; let x2: Long = 0L; }
+class NodeB: Node { let x1: Int64 = 0L; }
+class NodeC: Node { let x1: Int64 = 0L; let x2: Int64 = 0L; }
 class NodeD: Node { let x1: Double = 0.0; let x2: Double = 0.0; let x3: Double = 0.0; }
 
 class Node40: Node {}
-class Node48: Node { let x1: Long = 0L; }
-class Node56: Node { let x1: Long = 0L; let x2: Long = 0L; }
-class Node64: Node { let x1: Long = 0L; let x2: Long = 0L; let x3: Long = 0L; }
-class Node72: Node { let x1: Long = 0L; let x2: Long = 0L; let x3: Long = 0L; let x4: Long = 0L; }
-class Node80: Node { let x1: Long = 0L; let x2: Long = 0L; let x3: Long = 0L; let x4: Long = 0L; let x5: Long = 0L; }
+class Node48: Node { let x1: Int64 = 0L; }
+class Node56: Node { let x1: Int64 = 0L; let x2: Int64 = 0L; }
+class Node64: Node { let x1: Int64 = 0L; let x2: Int64 = 0L; let x3: Int64 = 0L; }
+class Node72: Node { let x1: Int64 = 0L; let x2: Int64 = 0L; let x3: Int64 = 0L; let x4: Int64 = 0L; }
+class Node80: Node { let x1: Int64 = 0L; let x2: Int64 = 0L; let x3: Int64 = 0L; let x4: Int64 = 0L; let x5: Int64 = 0L; }
 
 fun main() {
     if argc() < 4 {
@@ -175,7 +175,7 @@ fun main() {
         exit(1);
     }
 
-    let rnd = Random(argv(0).toLong().unwrap());
+    let rnd = Random(argv(0).toInt64().unwrap());
     let max_size = argv(1).toInt().unwrap();
     var date = 0;
 

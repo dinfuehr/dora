@@ -13,11 +13,11 @@ fun main() {
   assert(x == 60);
   let x = 1024L.countZeroBits();
   assert(x == 63);
-  let x = Long::maxValue().countZeroBits();
+  let x = Int64::maxValue().countZeroBits();
   assert(x == 1);
   let x = (-1L).countZeroBits();
   assert(x == 0);
-  let x = Long::minValue().countZeroBits();
+  let x = Int64::minValue().countZeroBits();
   assert(x == 63);
 
   let x = 0L.countOneBits();
@@ -32,11 +32,11 @@ fun main() {
   assert(x == 4);
   let x = 1024L.countOneBits();
   assert(x == 1);
-  let x = Long::maxValue().countOneBits();
+  let x = Int64::maxValue().countOneBits();
   assert(x == 63);
   let x = (-1L).countOneBits();
   assert(x == 64);
-  let x = Long::minValue().countOneBits();
+  let x = Int64::minValue().countOneBits();
   assert(x == 1);
 
 
@@ -52,11 +52,11 @@ fun main() {
   assert(x == 58);
   let x = 1024L.countZeroBitsLeading();
   assert(x == 53);
-  let x = Long::maxValue().countZeroBitsLeading();
+  let x = Int64::maxValue().countZeroBitsLeading();
   assert(x == 1);
   let x = (-1L).countZeroBitsLeading();
   assert(x == 0);
-  let x = Long::minValue().countZeroBitsLeading();
+  let x = Int64::minValue().countZeroBitsLeading();
   assert(x == 0);
 
   let x = 0L.countOneBitsLeading();
@@ -71,11 +71,11 @@ fun main() {
   assert(x == 0);
   let x = 1024L.countOneBitsLeading();
   assert(x == 0);
-  let x = Long::maxValue().countOneBitsLeading();
+  let x = Int64::maxValue().countOneBitsLeading();
   assert(x == 0);
   let x = (-1L).countOneBitsLeading();
   assert(x == 64);
-  let x = Long::minValue().countOneBitsLeading();
+  let x = Int64::minValue().countOneBitsLeading();
   assert(x == 1);
 
 
@@ -91,11 +91,11 @@ fun main() {
   assert(x == 0);
   let x = 1024L.countZeroBitsTrailing();
   assert(x == 10);
-  let x = Long::maxValue().countZeroBitsTrailing();
+  let x = Int64::maxValue().countZeroBitsTrailing();
   assert(x == 0);
   let x = (-1L).countZeroBitsTrailing();
   assert(x == 0);
-  let x = Long::minValue().countZeroBitsTrailing();
+  let x = Int64::minValue().countZeroBitsTrailing();
   assert(x == 63);
 
   let x = 0L.countOneBitsTrailing();
@@ -110,10 +110,10 @@ fun main() {
   assert(x == 3);
   let x = 1024L.countOneBitsTrailing();
   assert(x == 0);
-  let x = Long::maxValue().countOneBitsTrailing();
+  let x = Int64::maxValue().countOneBitsTrailing();
   assert(x == 63);
   let x = (-1L).countOneBitsTrailing();
   assert(x == 64);
-  let x = Long::minValue().countOneBitsTrailing();
+  let x = Int64::minValue().countOneBitsTrailing();
   assert(x == 0);
 }

@@ -299,23 +299,23 @@ pub enum Intrinsic {
     BoolEq,
     BoolNot,
     BoolToInt,
-    BoolToLong,
+    BoolToInt64,
 
     ByteEq,
     ByteCmp,
     ByteNot,
     ByteToChar,
     ByteToInt,
-    ByteToLong,
+    ByteToInt64,
 
     CharEq,
     CharCmp,
     CharToInt,
-    CharToLong,
+    CharToInt64,
 
     IntToByte,
     IntToChar,
-    IntToLong,
+    IntToInt64,
     IntToFloat,
     IntToDouble,
     ReinterpretIntAsFloat,
@@ -354,46 +354,46 @@ pub enum Intrinsic {
     IntCountZeroBitsTrailing,
     IntCountOneBitsTrailing,
 
-    LongToInt,
-    LongToChar,
-    LongToByte,
-    LongToFloat,
-    LongToDouble,
-    ReinterpretLongAsDouble,
+    Int64ToInt,
+    Int64ToChar,
+    Int64ToByte,
+    Int64ToFloat,
+    Int64ToDouble,
+    ReinterpretInt64AsDouble,
 
-    LongEq,
-    LongCmp,
+    Int64Eq,
+    Int64Cmp,
 
-    LongAdd,
-    LongSub,
-    LongMul,
-    LongDiv,
-    LongMod,
+    Int64Add,
+    Int64Sub,
+    Int64Mul,
+    Int64Div,
+    Int64Mod,
 
-    LongOr,
-    LongAnd,
-    LongXor,
+    Int64Or,
+    Int64And,
+    Int64Xor,
 
-    LongShl,
-    LongSar,
-    LongShr,
+    Int64Shl,
+    Int64Sar,
+    Int64Shr,
 
-    LongRotateLeft,
-    LongRotateRight,
+    Int64RotateLeft,
+    Int64RotateRight,
 
-    LongNot,
-    LongNeg,
-    LongPlus,
+    Int64Not,
+    Int64Neg,
+    Int64Plus,
 
-    LongCountZeroBits,
-    LongCountOneBits,
-    LongCountZeroBitsLeading,
-    LongCountOneBitsLeading,
-    LongCountZeroBitsTrailing,
-    LongCountOneBitsTrailing,
+    Int64CountZeroBits,
+    Int64CountOneBits,
+    Int64CountZeroBitsLeading,
+    Int64CountOneBitsLeading,
+    Int64CountZeroBitsTrailing,
+    Int64CountOneBitsTrailing,
 
     FloatToInt,
-    FloatToLong,
+    FloatToInt64,
     PromoteFloatToDouble,
     ReinterpretFloatAsInt,
 
@@ -411,9 +411,9 @@ pub enum Intrinsic {
     FloatSqrt,
 
     DoubleToInt,
-    DoubleToLong,
+    DoubleToInt64,
     DemoteDoubleToFloat,
-    ReinterpretDoubleAsLong,
+    ReinterpretDoubleAsInt64,
 
     DoubleEq,
     DoubleCmp,
@@ -452,7 +452,7 @@ impl Intrinsic {
             | Intrinsic::GenericArrayLen
             | Intrinsic::StrLen
             | Intrinsic::CharToInt
-            | Intrinsic::LongToInt
+            | Intrinsic::Int64ToInt
             | Intrinsic::ByteToInt
             | Intrinsic::FloatToInt
             | Intrinsic::DoubleToInt
@@ -460,7 +460,7 @@ impl Intrinsic {
             | Intrinsic::ByteCmp
             | Intrinsic::CharCmp
             | Intrinsic::IntCmp
-            | Intrinsic::LongCmp
+            | Intrinsic::Int64Cmp
             | Intrinsic::FloatCmp
             | Intrinsic::DoubleCmp
             | Intrinsic::IntCountZeroBits
@@ -469,34 +469,34 @@ impl Intrinsic {
             | Intrinsic::IntCountOneBits
             | Intrinsic::IntCountOneBitsLeading
             | Intrinsic::IntCountOneBitsTrailing
-            | Intrinsic::LongCountZeroBits
-            | Intrinsic::LongCountZeroBitsLeading
-            | Intrinsic::LongCountZeroBitsTrailing
-            | Intrinsic::LongCountOneBits
-            | Intrinsic::LongCountOneBitsLeading
-            | Intrinsic::LongCountOneBitsTrailing => BytecodeType::Int,
-            Intrinsic::LongAdd
-            | Intrinsic::LongSub
-            | Intrinsic::LongMul
-            | Intrinsic::LongDiv
-            | Intrinsic::LongMod
-            | Intrinsic::LongOr
-            | Intrinsic::LongAnd
-            | Intrinsic::LongXor
-            | Intrinsic::LongShl
-            | Intrinsic::LongShr
-            | Intrinsic::LongSar
-            | Intrinsic::LongRotateLeft
-            | Intrinsic::LongRotateRight
-            | Intrinsic::LongNot
-            | Intrinsic::LongPlus
-            | Intrinsic::LongNeg
-            | Intrinsic::CharToLong
-            | Intrinsic::ByteToLong
-            | Intrinsic::IntToLong
-            | Intrinsic::FloatToLong
-            | Intrinsic::DoubleToLong
-            | Intrinsic::ReinterpretDoubleAsLong => BytecodeType::Long,
+            | Intrinsic::Int64CountZeroBits
+            | Intrinsic::Int64CountZeroBitsLeading
+            | Intrinsic::Int64CountZeroBitsTrailing
+            | Intrinsic::Int64CountOneBits
+            | Intrinsic::Int64CountOneBitsLeading
+            | Intrinsic::Int64CountOneBitsTrailing => BytecodeType::Int,
+            Intrinsic::Int64Add
+            | Intrinsic::Int64Sub
+            | Intrinsic::Int64Mul
+            | Intrinsic::Int64Div
+            | Intrinsic::Int64Mod
+            | Intrinsic::Int64Or
+            | Intrinsic::Int64And
+            | Intrinsic::Int64Xor
+            | Intrinsic::Int64Shl
+            | Intrinsic::Int64Shr
+            | Intrinsic::Int64Sar
+            | Intrinsic::Int64RotateLeft
+            | Intrinsic::Int64RotateRight
+            | Intrinsic::Int64Not
+            | Intrinsic::Int64Plus
+            | Intrinsic::Int64Neg
+            | Intrinsic::CharToInt64
+            | Intrinsic::ByteToInt64
+            | Intrinsic::IntToInt64
+            | Intrinsic::FloatToInt64
+            | Intrinsic::DoubleToInt64
+            | Intrinsic::ReinterpretDoubleAsInt64 => BytecodeType::Long,
             Intrinsic::FloatAdd
             | Intrinsic::FloatSub
             | Intrinsic::FloatDiv
@@ -505,7 +505,7 @@ impl Intrinsic {
             | Intrinsic::FloatPlus
             | Intrinsic::ReinterpretIntAsFloat
             | Intrinsic::IntToFloat
-            | Intrinsic::LongToFloat
+            | Intrinsic::Int64ToFloat
             | Intrinsic::FloatSqrt => BytecodeType::Float,
             Intrinsic::DoubleAdd
             | Intrinsic::DoubleSub
@@ -514,8 +514,8 @@ impl Intrinsic {
             | Intrinsic::DoubleNeg
             | Intrinsic::DoublePlus
             | Intrinsic::IntToDouble
-            | Intrinsic::LongToDouble
-            | Intrinsic::ReinterpretLongAsDouble
+            | Intrinsic::Int64ToDouble
+            | Intrinsic::ReinterpretInt64AsDouble
             | Intrinsic::DoubleSqrt => BytecodeType::Double,
             Intrinsic::BoolEq
             | Intrinsic::ByteEq
@@ -523,14 +523,14 @@ impl Intrinsic {
             | Intrinsic::EnumEq
             | Intrinsic::EnumNe
             | Intrinsic::IntEq
-            | Intrinsic::LongEq
+            | Intrinsic::Int64Eq
             | Intrinsic::FloatEq
             | Intrinsic::DoubleEq
             | Intrinsic::BoolNot
             | Intrinsic::DoubleIsNan
             | Intrinsic::FloatIsNan => BytecodeType::Bool,
-            Intrinsic::IntToByte | Intrinsic::LongToByte => BytecodeType::Byte,
-            Intrinsic::IntToChar | Intrinsic::LongToChar | Intrinsic::ByteToChar => {
+            Intrinsic::IntToByte | Intrinsic::Int64ToByte => BytecodeType::Byte,
+            Intrinsic::IntToChar | Intrinsic::Int64ToChar | Intrinsic::ByteToChar => {
                 BytecodeType::Char
             }
             _ => panic!("no return type for {:?}", self),

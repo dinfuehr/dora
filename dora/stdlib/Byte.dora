@@ -1,11 +1,11 @@
 @internal class Byte {
   @internal fun toChar() -> Char;
   @internal fun toInt() -> Int;
-  @internal fun toLong() -> Long;
+  @internal fun toInt64() -> Int64;
   @internal fun toString() -> String;
 
-  fun toStringBinary() -> String = String::binary(self.toLong());
-  fun toStringHex() -> String = String::hex(self.toLong());
+  fun toStringBinary() -> String = String::binary(self.toInt64());
+  fun toStringHex() -> String = String::hex(self.toInt64());
 
   @internal fun equals(rhs: Byte) -> Bool;
   @internal fun compareTo(rhs: Byte) -> Int;

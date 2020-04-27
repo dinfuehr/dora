@@ -1,6 +1,6 @@
 //= error array
 
 fun main() {
-    let x = Array[(Int, Long)](7);
+    let x = Array[(Int, Int64)](7);
     x(10) = (12, 4711L);
 }

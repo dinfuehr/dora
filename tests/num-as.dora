@@ -13,12 +13,12 @@ fun main() {
     // by 0.0F/0.0F, be more forgiving here and mask out the sign bit.
     assert((0.0F/0.0F).asInt() & !(1 << 31) == 0x7FC0_0000);
 
-    assert(0.0.asLong() == 0L);
-    assert(1.4E-45.asLong() == 3936137728114922858L);
-    assert(4.2E-45.asLong() == 3942895214107701263L);
-    assert((-1.0).asLong() == (-4616189618054758400L));
-    assert((-0.0).asLong() == (-9223372036854775808L));
-    assert((0.0/0.0).asLong() & !(1L << 63) == 0x7FF8_0000_0000_0000L);
+    assert(0.0.asInt64() == 0L);
+    assert(1.4E-45.asInt64() == 3936137728114922858L);
+    assert(4.2E-45.asInt64() == 3942895214107701263L);
+    assert((-1.0).asInt64() == (-4616189618054758400L));
+    assert((-0.0).asInt64() == (-9223372036854775808L));
+    assert((0.0/0.0).asInt64() & !(1L << 63) == 0x7FF8_0000_0000_0000L);
 
     assert(0.0F == 0.asFloat());
     assert(1.4E-45F == 1.asFloat());
@@ -31,14 +31,14 @@ fun main() {
     assert(4.9E-324 == 1L.asDouble());
     assert(1.5E-323 == 3L.asDouble());
     assert((-1L).asDouble().isNan());
-    assert(Int::minValue().toLong().asDouble().isNan());
-    assert(Int::maxValue().toLong().asDouble() == 1.060997895E-314);
-    assert((-0.0) == Long::minValue().asDouble());
-    assert(Long::maxValue().asDouble().isNan());
+    assert(Int::minValue().toInt64().asDouble().isNan());
+    assert(Int::maxValue().toInt64().asDouble() == 1.060997895E-314);
+    assert((-0.0) == Int64::minValue().asDouble());
+    assert(Int64::maxValue().asDouble().isNan());
 
     let x = 123456789;
     assert(x == x.asFloat().asInt());
-    assert(x.toLong() == x.toLong().asDouble().asLong());
+    assert(x.toInt64() == x.toInt64().asDouble().asInt64());
     assert(x.toFloat() == x.toFloat().asInt().asFloat());
-    assert(x.toDouble() == x.toDouble().asLong().asDouble());
+    assert(x.toDouble() == x.toDouble().asInt64().asDouble());
 }

@@ -15,7 +15,7 @@ impl Hash for Int {
   fun hash() -> Int = self.hash();
 }
 
-impl Hash for Long {
+impl Hash for Int64 {
   fun hash() -> Int = self.hash();
 }
 

@@ -9,11 +9,11 @@
     }
   }
   @internal fun toCharUnchecked() -> Char;
-  @internal fun toLong() -> Long;
+  @internal fun toInt64() -> Int64;
   @internal fun toString() -> String;
 
-  fun toStringBinary() -> String = String::binary(self.toLong() & 0xFFFFFFFFL);
-  fun toStringHex() -> String = String::hex(self.toLong() & 0xFFFFFFFFL);
+  fun toStringBinary() -> String = String::binary(self.toInt64() & 0xFFFFFFFFL);
+  fun toStringHex() -> String = String::hex(self.toInt64() & 0xFFFFFFFFL);
 
   @internal fun toFloat() -> Float;
   @internal fun toDouble() -> Double;

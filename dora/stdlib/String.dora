@@ -26,10 +26,10 @@
   @internal fun length() -> Int;
 
   @internal fun toIntSuccess() -> Bool;
-  @internal fun toLongSuccess() -> Bool;
+  @internal fun toInt64Success() -> Bool;
 
   @internal fun toIntOrZero() -> Int;
-  @internal fun toLongOrZero() -> Long;
+  @internal fun toInt64OrZero() -> Int64;
 
   fun toInt() -> Option[Int] {
     if self.toIntSuccess() {
@@ -39,11 +39,11 @@
     }
   }
 
-  fun toLong() -> Option[Long] {
-    if self.toLongSuccess() {
-      some[Long](self.toLongOrZero())
+  fun toInt64() -> Option[Int64] {
+    if self.toInt64Success() {
+      some[Int64](self.toInt64OrZero())
     } else {
-      none[Long]()
+      none[Int64]()
     }
   }
 
@@ -87,19 +87,19 @@
 
   @static fun fromString(val: String) -> String = val.clone();
 
-  @static fun binary(var data: Long) -> String {
+  @static fun binary(var data: Int64) -> String {
     if data == 0L { return "0"; }
     let array = Array[Byte](64);
     var at = array.length();
     while data != 0L {
-      array(at - 1) = ('0'.toLong() + (data & 1L)).toByte();
+      array(at - 1) = ('0'.toInt64() + (data & 1L)).toByte();
       data = data.shiftRight(1);
       at = at - 1;
     }
     return String::fromBytesPart(array, at, array.length() - at + 1).unwrap();
   }
 
-  @static fun hex(var data: Long) -> String {
+  @static fun hex(var data: Int64) -> String {
     if data == 0L { return "0"; }
     let array = Array[Byte](16);
     var at = array.length();

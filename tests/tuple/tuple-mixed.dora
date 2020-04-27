@@ -19,7 +19,7 @@ fun tpl1() -> Int {
     x.0
 }
 
-fun tpl2() -> Long {
+fun tpl2() -> Int64 {
     let x = (17, 19L, Foo(42), 2.5F, 5.0, true, "text");
     forceCollect();
     x.1

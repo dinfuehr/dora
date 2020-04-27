@@ -1,8 +1,8 @@
 fun main() {
-  let x = Long::minValue().toStringBinary();
+  let x = Int64::minValue().toStringBinary();
   assert(x == "1000000000000000000000000000000000000000000000000000000000000000");
 
-  let x = Long::maxValue().toStringBinary();
+  let x = Int64::maxValue().toStringBinary();
   assert(x == "111111111111111111111111111111111111111111111111111111111111111");
 
   let x = 0L.toStringBinary();
@@ -24,10 +24,10 @@ fun main() {
   assert(x == "1111111111111111111111111111111111111111111111111111111101111111");
 
 
-  let x = Long::minValue().toStringHex();
+  let x = Int64::minValue().toStringHex();
   assert(x == "8000000000000000");
 
-  let x = Long::maxValue().toStringHex();
+  let x = Int64::maxValue().toStringHex();
   assert(x == "7FFFFFFFFFFFFFFF");
 
   let x = 0L.toStringHex();

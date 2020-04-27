@@ -26,11 +26,11 @@ class BytecodeFunction(let code: Array[Byte], let const_pool: Array[ConstPoolEnt
         }
     }
 
-    fun toLong() -> Option[Long] {
-        if self is ConstPoolLong {
-            some[Long]((self as ConstPoolLong).value)
+    fun toInt64() -> Option[Int64] {
+        if self is ConstPoolInt64 {
+            some[Int64]((self as ConstPoolInt64).value)
         } else {
-            none[Long]()
+            none[Int64]()
         }
     }
 
@@ -57,8 +57,8 @@ class ConstPoolInt(let value: Int): ConstPoolEntry {
     @override fun toString() -> String { "Int ${self.value}" }
 }
 
-class ConstPoolLong(let value: Long): ConstPoolEntry {
-    @override fun toString() -> String { "Long ${self.value}" }
+class ConstPoolInt64(let value: Int64): ConstPoolEntry {
+    @override fun toString() -> String { "Int64 ${self.value}" }
 }
 
 class ConstPoolFloat(let value: Float): ConstPoolEntry {

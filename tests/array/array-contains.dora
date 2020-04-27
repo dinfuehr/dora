@@ -5,8 +5,8 @@ fun main() {
   let x = arrayFill[Int](3, 3);
   assert(arrayContains[Int](x, 3));
 
-  let x = arrayFill[Long](3, 3L);
-  assert(arrayContains[Long](x, 3L));
+  let x = arrayFill[Int64](3, 3L);
+  assert(arrayContains[Int64](x, 3L));
 
   let x = arrayFill[Double](3, 0.0/0.0);
   assert(arrayContains[Double](x, 0.0/0.0));

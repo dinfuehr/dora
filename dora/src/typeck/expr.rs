@@ -2141,7 +2141,7 @@ fn arg_allows(
         | BuiltinType::Char
         | BuiltinType::Struct(_, _)
         | BuiltinType::Int
-        | BuiltinType::Long
+        | BuiltinType::Int64
         | BuiltinType::Float
         | BuiltinType::Double
         | BuiltinType::Enum(_, _) => def == arg,
@@ -2312,10 +2312,10 @@ pub fn check_lit_int(
     let ty = match e.suffix {
         IntSuffix::Byte => BuiltinType::Byte,
         IntSuffix::Int => BuiltinType::Int,
-        IntSuffix::Long => BuiltinType::Long,
+        IntSuffix::Long => BuiltinType::Int64,
         IntSuffix::None => match expected_type {
             BuiltinType::Byte => BuiltinType::Byte,
-            BuiltinType::Long => BuiltinType::Long,
+            BuiltinType::Int64 => BuiltinType::Int64,
             _ => BuiltinType::Int,
         },
     };
@@ -2323,7 +2323,7 @@ pub fn check_lit_int(
     let ty_name = match ty {
         BuiltinType::Byte => "Byte",
         BuiltinType::Int => "Int",
-        BuiltinType::Long => "Long",
+        BuiltinType::Int64 => "Int64",
         _ => unreachable!(),
     };
 
@@ -2333,7 +2333,7 @@ pub fn check_lit_int(
         let max = match ty {
             BuiltinType::Byte => 256,
             BuiltinType::Int => (1u64 << 31),
-            BuiltinType::Long => (1u64 << 63),
+            BuiltinType::Int64 => (1u64 << 63),
             _ => unreachable!(),
         };
 
@@ -2346,7 +2346,7 @@ pub fn check_lit_int(
         let max = match ty {
             BuiltinType::Byte => 256 as u64,
             BuiltinType::Int => u32::max_value() as u64,
-            BuiltinType::Long => u64::max_value() as u64,
+            BuiltinType::Int64 => u64::max_value() as u64,
             _ => unreachable!(),
         };
 

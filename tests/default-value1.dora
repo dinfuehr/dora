@@ -11,7 +11,7 @@ fun main() {
   let x = defaultValue[Int]();
   assert(x == 0);
 
-  let x = defaultValue[Long]();
+  let x = defaultValue[Int64]();
   assert(x == 0L);
 
   let x = defaultValue[Float]();

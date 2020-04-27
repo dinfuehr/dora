@@ -4,6 +4,6 @@ fun main() {
     assert(three().toInt() == 3);
 }
 
-fun three() -> Long {
+fun three() -> Int64 {
     return 3L;
 }

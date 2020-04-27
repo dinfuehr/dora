@@ -313,7 +313,7 @@ mod tests {
 
         ok("class Foo[T]
             impl Foo[Int] { fun foo() {} }
-            impl Foo[Long] { fun foo() {} }");
+            impl Foo[Int64] { fun foo() {} }");
     }
 
     #[test]

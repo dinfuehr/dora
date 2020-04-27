@@ -18,8 +18,8 @@ impl Sortable for Int {
   fun sortsAs(other: Int) -> Int = self.compareTo(other);
 }
 
-impl Sortable for Long {
-  fun sortsAs(other: Long) -> Int = self.compareTo(other);
+impl Sortable for Int64 {
+  fun sortsAs(other: Int64) -> Int = self.compareTo(other);
 }
 
 impl Sortable for Float {

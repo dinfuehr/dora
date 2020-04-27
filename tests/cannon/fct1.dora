@@ -37,11 +37,11 @@ fun main() {
   return 3;
 }
 
-@cannon fun foo_long() -> Long {
+@cannon fun foo_long() -> Int64 {
   return bar_long();
 }
 
-@cannon fun bar_long() -> Long {
+@cannon fun bar_long() -> Int64 {
   return 3L;
 }
 

@@ -276,7 +276,7 @@ mod tests {
         );
         assert_eq!(
             InstanceSize::Fixed(Header::size() + 8),
-            class_size("class Foo(let a: Long)", "Foo")
+            class_size("class Foo(let a: Int64)", "Foo")
         );
         assert_eq!(
             InstanceSize::Fixed(Header::size() + mem::ptr_width()),
@@ -304,7 +304,7 @@ mod tests {
             assert_eq!(InstanceSize::Fixed(16), class_size_name(vm, "Bool"));
             assert_eq!(InstanceSize::Fixed(16), class_size_name(vm, "Int"));
             assert_eq!(InstanceSize::Fixed(16), class_size_name(vm, "Byte"));
-            assert_eq!(InstanceSize::Fixed(16), class_size_name(vm, "Long"));
+            assert_eq!(InstanceSize::Fixed(16), class_size_name(vm, "Int64"));
         });
     }
 

@@ -504,8 +504,8 @@ class BytecodeWriter {
         self.emitReg1AndIdx(BC_CONST_INT, dest, idx);
     }
 
-    fun emitConstLong(dest: BytecodeRegister, value: Long) {
-        let idx = self.addConst(ConstPoolLong(value));
+    fun emitConstLong(dest: BytecodeRegister, value: Int64) {
+        let idx = self.addConst(ConstPoolInt64(value));
         self.emitReg1AndIdx(BC_CONST_LONG, dest, idx);
     }
 

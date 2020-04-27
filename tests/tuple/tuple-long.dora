@@ -5,22 +5,22 @@ fun main() {
     assert(tplsum() == 6L);
 }
 
-fun tpl1() -> Long {
+fun tpl1() -> Int64 {
     let x = (1L, 2L, 3L);
     x.0
 }
 
-fun tpl2() -> Long {
+fun tpl2() -> Int64 {
     let x = (1L, 2L, 3L);
     x.1
 }
 
-fun tpl3() -> Long {
+fun tpl3() -> Int64 {
     let x = (1L, 2L, 3L);
     x.2
 }
 
-fun tplsum() -> Long {
+fun tplsum() -> Int64 {
     let x = (1L, 2L, 3L);
     x.0 + x.1 + x.2
 }

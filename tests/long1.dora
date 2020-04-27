@@ -1,7 +1,7 @@
 //= cannon
 
 fun main() {
-    let x = 1.toLong();
+    let x = 1.toInt64();
     let y = id(x);
 
     assert(x == y);
@@ -11,6 +11,6 @@ fun main() {
     assert(!(x < y));
 }
 
-fun id(val: Long) -> Long {
+fun id(val: Int64) -> Int64 {
     return val;
 }

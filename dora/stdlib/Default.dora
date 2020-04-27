@@ -18,8 +18,8 @@ impl Default for Int {
   @static fun default() -> Int = 0;
 }
 
-impl Default for Long {
-  @static fun default() -> Long = 0L;
+impl Default for Int64 {
+  @static fun default() -> Int64 = 0L;
 }
 
 impl Default for Float {

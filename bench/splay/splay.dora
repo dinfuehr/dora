@@ -4,7 +4,7 @@ fun main() {
         exit(1);
     }
 
-    rnd = Random(argv(0).toLong().unwrap());
+    rnd = Random(argv(0).toInt64().unwrap());
     splayTreeSize = argv(1).toInt().unwrap();
     let iterations = argv(2).toInt().unwrap();
 
@@ -29,8 +29,8 @@ const splayTreePayloadDepth: Int = 5;
 class Benchmark {
     var splayTree: SplayTree;
     var splaySamples: Int;
-    var splaySampleTimeStart: Long = 0L;
-    var splaySumOfSquaredPauses: Long = 0L;
+    var splaySampleTimeStart: Int64 = 0L;
+    var splaySumOfSquaredPauses: Int64 = 0L;
 
     fun setup() {
         self.splayTree = SplayTree();
@@ -48,7 +48,7 @@ class Benchmark {
         }
     }
 
-    fun updateStats(time: Long) {
+    fun updateStats(time: Int64) {
         let pause = time - self.splaySampleTimeStart;
         self.splaySampleTimeStart = time;
         self.splaySamples = self.splaySamples + 1;

@@ -19,8 +19,8 @@ impl Comparable for Int {
   fun compareTo(other: Int) -> Int = self.compareTo(other);
 }
 
-impl Comparable for Long {
-  fun compareTo(other: Long) -> Int = self.compareTo(other);
+impl Comparable for Int64 {
+  fun compareTo(other: Int64) -> Int = self.compareTo(other);
 }
 
 impl Comparable for Float {

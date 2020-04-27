@@ -3,7 +3,7 @@ fun main() {
   str[Bool](false);
   str[Byte](1.toByte());
   str[Int](1);
-  str[Long](1L);
+  str[Int64](1L);
   str[Float](1F);
   str[Double](1D);
 }

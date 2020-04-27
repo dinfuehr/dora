@@ -1,7 +1,7 @@
 //= error nil
 
 class TupleClass {
-    var value: (Long, Long);
+    var value: (Int64, Int64);
 }
 
 fun main() {

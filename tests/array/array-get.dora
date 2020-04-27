@@ -5,7 +5,7 @@ fun main() {
   assert(x(0) == 100);
   assert(int_array_get(x, 4) == 100);
 
-  let x = arrayFill[Long](7, 200L);
+  let x = arrayFill[Int64](7, 200L);
   assert(x(6) == 200L);
   assert(long_array_get(x, 0) == 200L);
 
@@ -36,7 +36,7 @@ fun int_array_get(x: Array[Int], idx: Int) -> Int {
   return x(idx);
 }
 
-fun long_array_get(x: Array[Long], idx: Int) -> Long {
+fun long_array_get(x: Array[Int64], idx: Int) -> Int64 {
   return x(idx);
 }
 

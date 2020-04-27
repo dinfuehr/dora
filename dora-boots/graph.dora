@@ -408,8 +408,8 @@ class IntConst(let value: Int): Const {
     @override fun dumpName() -> String { "Int(${self.value})" }
 }
 
-class LongConst(let value: Long): Const {
-    @override fun dumpName() -> String { "Long(${self.value})" }
+class Int64Const(let value: Int64): Const {
+    @override fun dumpName() -> String { "Int64(${self.value})" }
 }
 
 class FloatConst(let value: Float): Const {

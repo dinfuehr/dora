@@ -726,15 +726,15 @@ fn struct_lit() {
 }
 
 #[test]
-fn lit_long() {
-    ok("fun f() -> Long { return 1L; }");
+fn lit_int64() {
+    ok("fun f() -> Int64 { return 1L; }");
     ok("fun f() -> Int { return 1; }");
 
-    let ret = SemError::ReturnType("Int".into(), "Long".into());
+    let ret = SemError::ReturnType("Int".into(), "Int64".into());
     err("fun f() -> Int { return 1L; }", pos(1, 18), ret);
 
-    let ret = SemError::ReturnType("Long".into(), "Int".into());
-    err("fun f() -> Long { return 1; }", pos(1, 19), ret);
+    let ret = SemError::ReturnType("Int64".into(), "Int".into());
+    err("fun f() -> Int64 { return 1; }", pos(1, 20), ret);
 }
 
 #[test]
@@ -822,29 +822,29 @@ fn overload_compare_to() {
 }
 
 #[test]
-fn long_operations() {
-    ok("fun f(a: Long, b: Long) -> Long { return a + b; }");
-    ok("fun f(a: Long, b: Long) -> Long { return a - b; }");
-    ok("fun f(a: Long, b: Long) -> Long { return a * b; }");
-    ok("fun f(a: Long, b: Long) -> Long { return a / b; }");
-    ok("fun f(a: Long, b: Long) -> Long { return a % b; }");
-    ok("fun f(a: Long, b: Long) -> Long { return a | b; }");
-    ok("fun f(a: Long, b: Long) -> Long { return a & b; }");
-    ok("fun f(a: Long, b: Long) -> Long { return a ^ b; }");
-    ok("fun f(a: Long, b: Int ) -> Long { return a << b; }");
-    ok("fun f(a: Long, b: Int)  -> Long { return a >> b; }");
-    ok("fun f(a: Long, b: Int)  -> Long { return a >>> b; }");
-    ok("fun f(a: Long, b: Long) -> Bool { return a == b; }");
-    ok("fun f(a: Long, b: Long) -> Bool { return a != b; }");
-    ok("fun f(a: Long, b: Long) -> Bool { return a === b; }");
-    ok("fun f(a: Long, b: Long) -> Bool { return a !== b; }");
-    ok("fun f(a: Long, b: Long) -> Bool { return a < b; }");
-    ok("fun f(a: Long, b: Long) -> Bool { return a <= b; }");
-    ok("fun f(a: Long, b: Long) -> Bool { return a > b; }");
-    ok("fun f(a: Long, b: Long) -> Bool { return a >= b; }");
-    ok("fun f(a: Long) -> Long { return !a; }");
-    ok("fun f(a: Long) -> Long { return -a; }");
-    ok("fun f(a: Long) -> Long { return +a; }");
+fn int64_operations() {
+    ok("fun f(a: Int64, b: Int64) -> Int64 { return a + b; }");
+    ok("fun f(a: Int64, b: Int64) -> Int64 { return a - b; }");
+    ok("fun f(a: Int64, b: Int64) -> Int64 { return a * b; }");
+    ok("fun f(a: Int64, b: Int64) -> Int64 { return a / b; }");
+    ok("fun f(a: Int64, b: Int64) -> Int64 { return a % b; }");
+    ok("fun f(a: Int64, b: Int64) -> Int64 { return a | b; }");
+    ok("fun f(a: Int64, b: Int64) -> Int64 { return a & b; }");
+    ok("fun f(a: Int64, b: Int64) -> Int64 { return a ^ b; }");
+    ok("fun f(a: Int64, b: Int ) -> Int64 { return a << b; }");
+    ok("fun f(a: Int64, b: Int)  -> Int64 { return a >> b; }");
+    ok("fun f(a: Int64, b: Int)  -> Int64 { return a >>> b; }");
+    ok("fun f(a: Int64, b: Int64) -> Bool { return a == b; }");
+    ok("fun f(a: Int64, b: Int64) -> Bool { return a != b; }");
+    ok("fun f(a: Int64, b: Int64) -> Bool { return a === b; }");
+    ok("fun f(a: Int64, b: Int64) -> Bool { return a !== b; }");
+    ok("fun f(a: Int64, b: Int64) -> Bool { return a < b; }");
+    ok("fun f(a: Int64, b: Int64) -> Bool { return a <= b; }");
+    ok("fun f(a: Int64, b: Int64) -> Bool { return a > b; }");
+    ok("fun f(a: Int64, b: Int64) -> Bool { return a >= b; }");
+    ok("fun f(a: Int64) -> Int64 { return !a; }");
+    ok("fun f(a: Int64) -> Int64 { return -a; }");
+    ok("fun f(a: Int64) -> Int64 { return +a; }");
 }
 
 #[test]
@@ -884,17 +884,17 @@ fn test_literal_bin_int_overflow() {
 }
 
 #[test]
-fn test_literal_long_overflow() {
+fn test_literal_int64_overflow() {
     err(
         "fun f() { let x = 9223372036854775808L; }",
         pos(1, 19),
-        SemError::NumberOverflow("Long".into()),
+        SemError::NumberOverflow("Int64".into()),
     );
     ok("fun f() { let x = 9223372036854775807L; }");
     err(
         "fun f() { let x = -9223372036854775809L; }",
         pos(1, 20),
-        SemError::NumberOverflow("Long".into()),
+        SemError::NumberOverflow("Int64".into()),
     );
     ok("fun f() { let x = -9223372036854775808L; }");
 }
@@ -1005,9 +1005,9 @@ fn test_fct_with_type_params() {
 fn test_const_check() {
     err(
         "const one: Int = 1;
-            fun f() -> Long { return one; }",
-        pos(2, 31),
-        SemError::ReturnType("Long".into(), "Int".into()),
+            fun f() -> Int64 { return one; }",
+        pos(2, 32),
+        SemError::ReturnType("Int64".into(), "Int".into()),
     );
 
     err(
@@ -1024,7 +1024,7 @@ fn test_const_values() {
         "  const yes: Bool = true;
                         const x: Byte = 255Y;
                         const a: Int = 100;
-                        const b: Long = 200L;
+                        const b: Int64 = 200L;
                         const c: Char = 'A';
                         const d: Float = 3.0F;
                         const e: Double = 6.0;",
@@ -1099,7 +1099,7 @@ fn test_unary_minus_byte() {
         SemError::UnOpType("-".into(), "Byte".into()),
     );
     ok("const m1: Int = -1;");
-    ok("const m1: Long = -1L;");
+    ok("const m1: Int64 = -1L;");
 }
 
 #[test]
@@ -1996,8 +1996,8 @@ fn literal_without_suffix_byte() {
 
 #[test]
 fn literal_without_suffix_long() {
-    ok("fun f() -> Long { 1 }");
-    ok("fun f() { let x: Long = 1; }");
+    ok("fun f() -> Int64 { 1 }");
+    ok("fun f() { let x: Int64 = 1; }");
 }
 
 #[test]

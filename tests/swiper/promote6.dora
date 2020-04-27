@@ -3,7 +3,7 @@
 class Foo(let x: Int)
 
 fun main() {
-    let a = Array[Long](70);
+    let a = Array[Int64](70);
     let x = CardSpanningObject();
     forceMinorCollect();
     assert(x.field0 === nil);

@@ -122,7 +122,7 @@ fn gen_load_field_int() {
 #[test]
 fn gen_load_field_long() {
     gen(
-        "class Foo(let bar: Long) fun f(a: Foo) -> Long { return a.bar; }",
+        "class Foo(let bar: Int64) fun f(a: Foo) -> Int64 { return a.bar; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
             let expected = vec![LoadFieldLong(r(1), r(0), cls, field), RetLong(r(1))];
@@ -197,8 +197,8 @@ fn gen_position_load_field_int() {
 
 #[test]
 fn gen_position_load_field_long() {
-    let result = position("class Foo(let bar: Long) fun f(a: Foo) -> Long { return a.bar; }");
-    let expected = vec![(0, p(1, 58))];
+    let result = position("class Foo(let bar: Int64) fun f(a: Foo) -> Int64 { return a.bar; }");
+    let expected = vec![(0, p(1, 60))];
     assert_eq!(expected, result);
 }
 
@@ -274,7 +274,7 @@ fn gen_store_field_int() {
 #[test]
 fn gen_store_field_long() {
     gen(
-        "class Foo(var bar: Long) fun f(a: Foo, b: Long) { a.bar = b; }",
+        "class Foo(var bar: Int64) fun f(a: Foo, b: Int64) { a.bar = b; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
             let expected = vec![StoreFieldLong(r(1), r(0), cls, field), RetVoid];
@@ -349,8 +349,8 @@ fn gen_position_store_field_int() {
 
 #[test]
 fn gen_position_store_field_long() {
-    let result = position("class Foo(var bar: Long) fun f(a: Foo, b: Long) { a.bar = b; }");
-    let expected = vec![(0, p(1, 57))];
+    let result = position("class Foo(var bar: Int64) fun f(a: Foo, b: Int64) { a.bar = b; }");
+    let expected = vec![(0, p(1, 59))];
     assert_eq!(expected, result);
 }
 
@@ -618,7 +618,7 @@ fn gen_expr_lit_byte() {
 
 #[test]
 fn gen_expr_lit_long() {
-    let result = code("fun f() -> Long { return 1L; }");
+    let result = code("fun f() -> Int64 { return 1L; }");
     let expected = vec![ConstLong(r(0), 1), RetLong(r(0))];
     assert_eq!(expected, result);
 }
@@ -682,7 +682,7 @@ fn gen_expr_lit_int_zero() {
 
 #[test]
 fn gen_expr_lit_long_zero() {
-    let result = code("fun f() -> Long { return 0L; }");
+    let result = code("fun f() -> Int64 { return 0L; }");
     let expected = vec![ConstZeroLong(r(0)), RetLong(r(0))];
     assert_eq!(expected, result);
 }
@@ -1140,11 +1140,14 @@ fn gen_load_global_int() {
 
 #[test]
 fn gen_load_global_long() {
-    gen("var a: Long; fun f() -> Long { return a; }", |vm, code| {
-        let gid = vm.global_by_name("a");
-        let expected = vec![LoadGlobalLong(r(0), gid), RetLong(r(0))];
-        assert_eq!(expected, code);
-    });
+    gen(
+        "var a: Int64; fun f() -> Int64 { return a; }",
+        |vm, code| {
+            let gid = vm.global_by_name("a");
+            let expected = vec![LoadGlobalLong(r(0), gid), RetLong(r(0))];
+            assert_eq!(expected, code);
+        },
+    );
 }
 
 #[test]
@@ -1221,7 +1224,7 @@ fn gen_store_global_int() {
 
 #[test]
 fn gen_store_global_long() {
-    gen("var a: Long; fun f(x: Long) { a = x; }", |vm, code| {
+    gen("var a: Int64; fun f(x: Int64) { a = x; }", |vm, code| {
         let gid = vm.global_by_name("a");
         let expected = vec![StoreGlobalLong(r(0), gid), RetVoid];
         assert_eq!(expected, code);
@@ -1875,9 +1878,9 @@ fn gen_method_call_int_with_3_args() {
 fn gen_method_call_long_with_0_args() {
     gen(
         "
-            fun f(foo: Foo) -> Long { return foo.g(); }
+            fun f(foo: Foo) -> Int64 { return foo.g(); }
             class Foo {
-                fun g() -> Long { return 1L; }
+                fun g() -> Int64 { return 1L; }
             }
             ",
         |vm, code| {
@@ -1900,7 +1903,7 @@ fn gen_method_call_long_with_0_args_and_unused_result() {
         "
             fun f(foo: Foo) { foo.g(); }
             class Foo {
-                fun g() -> Long { return 1L; }
+                fun g() -> Int64 { return 1L; }
             }
             ",
         |vm, code| {
@@ -1917,9 +1920,9 @@ fn gen_method_call_long_with_0_args_and_unused_result() {
 fn gen_method_call_long_with_1_arg() {
     gen(
         "
-            fun f(foo: Foo) -> Long { return foo.g(1L); }
+            fun f(foo: Foo) -> Int64 { return foo.g(1L); }
             class Foo {
-                fun g(a: Long) -> Long { return 1L; }
+                fun g(a: Int64) -> Int64 { return 1L; }
             }
             ",
         |vm, code| {
@@ -1942,9 +1945,9 @@ fn gen_method_call_long_with_1_arg() {
 fn gen_method_call_long_with_3_args() {
     gen(
         "
-            fun f(foo: Foo) -> Long { return foo.g(1L, 2L, 3L); }
+            fun f(foo: Foo) -> Int64 { return foo.g(1L, 2L, 3L); }
             class Foo {
-                fun g(a: Long, b: Long, c: Long) -> Long { return 1L; }
+                fun g(a: Int64, b: Int64, c: Int64) -> Int64 { return 1L; }
             }
             ",
         |vm, code| {
@@ -2584,7 +2587,7 @@ fn gen_load_array_int() {
 
 #[test]
 fn gen_load_array_long() {
-    let result = code("fun f(a: Array[Long]) -> Long { return a(0); }");
+    let result = code("fun f(a: Array[Int64]) -> Int64 { return a(0); }");
     let expected = vec![
         ConstZeroInt(r(2)),
         LoadArrayLong(r(1), r(0), r(2)),
@@ -2649,8 +2652,8 @@ fn gen_position_load_array_int() {
 
 #[test]
 fn gen_position_load_array_long() {
-    let result = position("fun f(a: Array[Long]) -> Long { return a(0); }");
-    let expected = vec![(2, p(1, 41))];
+    let result = position("fun f(a: Array[Int64]) -> Int64 { return a(0); }");
+    let expected = vec![(2, p(1, 43))];
     assert_eq!(expected, result);
 }
 
@@ -2721,7 +2724,7 @@ fn gen_store_array_int() {
 
 #[test]
 fn gen_store_array_long() {
-    let result = code("fun f(a: Array[Long], b: Long) { a(0) = b; }");
+    let result = code("fun f(a: Array[Int64], b: Int64) { a(0) = b; }");
     let expected = vec![
         ConstZeroInt(Register(2)),
         StoreArrayLong(r(1), r(0), r(2)),
@@ -2786,8 +2789,8 @@ fn gen_position_store_array_int() {
 
 #[test]
 fn gen_position_store_array_long() {
-    let result = position("fun f(a: Array[Long], b: Long) { a(0) = b; }");
-    let expected = vec![(2, p(1, 39))];
+    let result = position("fun f(a: Array[Int64], b: Int64) { a(0) = b; }");
+    let expected = vec![(2, p(1, 41))];
     assert_eq!(expected, result);
 }
 
@@ -2890,9 +2893,9 @@ fn gen_self_for_int() {
 fn gen_self_for_long() {
     let result = code_method_with_class_name(
         "trait MyId { fun f() -> Self; }
-            impl MyId for Long { fun f() -> Long { return self; } }
+            impl MyId for Int64 { fun f() -> Int64 { return self; } }
             ",
-        "Long",
+        "Int64",
     );
     let expected = vec![RetLong(r(0))];
     assert_eq!(expected, result);
@@ -2974,9 +2977,9 @@ fn gen_self_assign_for_int() {
 fn gen_self_assign_for_long() {
     let result = code_method_with_class_name(
         "trait MyId { fun f(); }
-            impl MyId for Long { fun f() { let x = self; } }
+            impl MyId for Int64 { fun f() { let x = self; } }
             ",
-        "Long",
+        "Int64",
     );
     let expected = vec![MovLong(r(1), r(0)), RetVoid];
     assert_eq!(expected, result);
@@ -3048,14 +3051,14 @@ fn gen_reinterpret_int_as_float() {
 
 #[test]
 fn gen_reinterpret_double_as_long() {
-    let result = code("fun f(a: Double) -> Long { a.asLong() }");
+    let result = code("fun f(a: Double) -> Int64 { a.asInt64() }");
     let expected = vec![ReinterpretDoubleAsLong(r(1), r(0)), RetLong(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_reinterpret_long_as_double() {
-    let result = code("fun f(a: Long) -> Double { a.asDouble() }");
+    let result = code("fun f(a: Int64) -> Double { a.asDouble() }");
     let expected = vec![ReinterpretLongAsDouble(r(1), r(0)), RetDouble(r(1))];
     assert_eq!(expected, result);
 }
@@ -3076,14 +3079,14 @@ fn gen_double_is_nan() {
 
 #[test]
 fn gen_extend_int_to_long() {
-    let result = code("fun f(a: Int) -> Long { a.toLong() }");
+    let result = code("fun f(a: Int) -> Int64 { a.toInt64() }");
     let expected = vec![ExtendIntToLong(r(1), r(0)), RetLong(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_cast_long_to_int() {
-    let result = code("fun f(a: Long) -> Int { a.toInt() }");
+    let result = code("fun f(a: Int64) -> Int { a.toInt() }");
     let expected = vec![CastLongToInt(r(1), r(0)), RetInt(r(1))];
     assert_eq!(expected, result);
 }
@@ -3104,14 +3107,14 @@ fn gen_convert_int_to_double() {
 
 #[test]
 fn gen_convert_long_to_float() {
-    let result = code("fun f(a: Long) -> Float { a.toFloat() }");
+    let result = code("fun f(a: Int64) -> Float { a.toFloat() }");
     let expected = vec![ConvertLongToFloat(r(1), r(0)), RetFloat(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_convert_long_to_double() {
-    let result = code("fun f(a: Long) -> Double { a.toDouble() }");
+    let result = code("fun f(a: Int64) -> Double { a.toDouble() }");
     let expected = vec![ConvertLongToDouble(r(1), r(0)), RetDouble(r(1))];
     assert_eq!(expected, result);
 }
@@ -3125,7 +3128,7 @@ fn gen_truncate_float_to_int() {
 
 #[test]
 fn gen_truncate_float_to_long() {
-    let result = code("fun f(a: Float) -> Long { a.toLong() }");
+    let result = code("fun f(a: Float) -> Int64 { a.toInt64() }");
     let expected = vec![TruncateFloatToLong(r(1), r(0)), RetLong(r(1))];
     assert_eq!(expected, result);
 }
@@ -3139,7 +3142,7 @@ fn gen_truncate_double_to_int() {
 
 #[test]
 fn gen_truncate_double_to_long() {
-    let result = code("fun f(a: Double) -> Long { a.toLong() }");
+    let result = code("fun f(a: Double) -> Int64 { a.toInt64() }");
     let expected = vec![TruncateDoubleToLong(r(1), r(0)), RetLong(r(1))];
     assert_eq!(expected, result);
 }
@@ -3317,14 +3320,14 @@ fn gen_extend_byte() {
     let expected = vec![ExtendByteToInt(r(1), r(0)), RetInt(r(1))];
     assert_eq!(expected, result);
 
-    let result = code("fun f(x: Byte) -> Long { x.toLong() }");
+    let result = code("fun f(x: Byte) -> Int64 { x.toInt64() }");
     let expected = vec![ExtendByteToLong(r(1), r(0)), RetLong(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_extend_int() {
-    let result = code("fun f(x: Int) -> Long { x.toLong() }");
+    let result = code("fun f(x: Int) -> Int64 { x.toInt64() }");
     let expected = vec![ExtendIntToLong(r(1), r(0)), RetLong(r(1))];
     assert_eq!(expected, result);
 }
@@ -3335,7 +3338,7 @@ fn gen_cast_char() {
     let expected = vec![CastCharToInt(r(1), r(0)), RetInt(r(1))];
     assert_eq!(expected, result);
 
-    let result = code("fun f(x: Char) -> Long { x.toLong() }");
+    let result = code("fun f(x: Char) -> Int64 { x.toInt64() }");
     let expected = vec![ExtendCharToLong(r(1), r(0)), RetLong(r(1))];
     assert_eq!(expected, result);
 }
@@ -3353,22 +3356,22 @@ fn gen_cast_int() {
 
 #[test]
 fn gen_cast_long() {
-    let result = code("fun f(x: Long) -> Byte { x.toByte() }");
+    let result = code("fun f(x: Int64) -> Byte { x.toByte() }");
     let expected = vec![CastLongToByte(r(1), r(0)), RetByte(r(1))];
     assert_eq!(expected, result);
 
-    let result = code("fun f(x: Long) -> Char { x.toCharUnchecked() }");
+    let result = code("fun f(x: Int64) -> Char { x.toCharUnchecked() }");
     let expected = vec![CastLongToChar(r(1), r(0)), RetChar(r(1))];
     assert_eq!(expected, result);
 
-    let result = code("fun f(x: Long) -> Int { x.toInt() }");
+    let result = code("fun f(x: Int64) -> Int { x.toInt() }");
     let expected = vec![CastLongToInt(r(1), r(0)), RetInt(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_compare_to_method() {
-    let result = code("fun f(a: Long, b: Long) -> Int { a.compareTo(b) }");
+    let result = code("fun f(a: Int64, b: Int64) -> Int { a.compareTo(b) }");
     let expected = vec![
         SubLong(r(3), r(0), r(1)),
         CastLongToInt(r(2), r(3)),
@@ -3465,14 +3468,14 @@ fn gen_int_max_value() {
 
 #[test]
 fn gen_long_min_value() {
-    let result = code("fun f() -> Long { -9223372036854775808L }");
+    let result = code("fun f() -> Int64 { -9223372036854775808L }");
     let expected = vec![ConstLong(r(0), -9223372036854775808), RetLong(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_long_max_value() {
-    let result = code("fun f() -> Long { 9223372036854775807L }");
+    let result = code("fun f() -> Int64 { 9223372036854775807L }");
     let expected = vec![ConstLong(r(0), 9223372036854775807), RetLong(r(0))];
     assert_eq!(expected, result);
 }

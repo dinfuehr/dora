@@ -10,7 +10,7 @@ fun main() {
     let x = 129Y.toInt();
     assert(x == 129);
 
-    let x = 129Y.toLong();
+    let x = 129Y.toInt64();
     assert(x == 129L);
 
     let x = 65Y.toChar();

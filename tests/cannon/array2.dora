@@ -11,7 +11,7 @@ fun main() {
   assert(getArray(array, 3) == 40L);
 }
 
-@cannon fun createArray(a: Int) -> Array[Long] { return Array[Long](a); }
-@cannon fun getLength(a: Array[Long]) -> Int { return a.length(); }
-@cannon fun setArray(arr: Array[Long], idx: Int, value: Long) { arr(idx) = value; }
-@cannon fun getArray(arr: Array[Long], idx: Int) -> Long { return arr(idx); }
+@cannon fun createArray(a: Int) -> Array[Int64] { return Array[Int64](a); }
+@cannon fun getLength(a: Array[Int64]) -> Int { return a.length(); }
+@cannon fun setArray(arr: Array[Int64], idx: Int, value: Int64) { arr(idx) = value; }
+@cannon fun getArray(arr: Array[Int64], idx: Int) -> Int64 { return arr(idx); }

@@ -25,7 +25,7 @@ pub enum BuiltinType {
     Char,
     Byte,
     Int,
-    Long,
+    Int64,
 
     Float,
     Double,
@@ -145,7 +145,7 @@ impl BuiltinType {
             BuiltinType::Byte => Some(vm.vips.byte_class),
             BuiltinType::Char => Some(vm.vips.char_class),
             BuiltinType::Int => Some(vm.vips.int_class),
-            BuiltinType::Long => Some(vm.vips.long_class),
+            BuiltinType::Int64 => Some(vm.vips.int64_class),
             BuiltinType::Float => Some(vm.vips.float_class),
             BuiltinType::Double => Some(vm.vips.double_class),
             _ => None,
@@ -228,7 +228,7 @@ impl BuiltinType {
             | BuiltinType::Bool
             | BuiltinType::Byte
             | BuiltinType::Int
-            | BuiltinType::Long
+            | BuiltinType::Int64
             | BuiltinType::Float
             | BuiltinType::Double => true,
             _ => false,
@@ -257,7 +257,7 @@ impl BuiltinType {
             BuiltinType::Byte => "Byte".into(),
             BuiltinType::Char => "Char".into(),
             BuiltinType::Int => "Int".into(),
-            BuiltinType::Long => "Long".into(),
+            BuiltinType::Int64 => "Int64".into(),
             BuiltinType::Float => "Float".into(),
             BuiltinType::Double => "Double".into(),
             BuiltinType::Bool => "Bool".into(),
@@ -383,7 +383,7 @@ impl BuiltinType {
             | BuiltinType::Char
             | BuiltinType::Struct(_, _) => *self == other,
             BuiltinType::Int => *self == other,
-            BuiltinType::Long => *self == other,
+            BuiltinType::Int64 => *self == other,
             BuiltinType::Float | BuiltinType::Double => *self == other,
             BuiltinType::Nil => panic!("nil does not allow any other types"),
             BuiltinType::Ptr => panic!("ptr does not allow any other types"),
@@ -452,7 +452,7 @@ impl BuiltinType {
             BuiltinType::Byte => 1,
             BuiltinType::Char => 4,
             BuiltinType::Int => 4,
-            BuiltinType::Long => 8,
+            BuiltinType::Int64 => 8,
             BuiltinType::Float => 4,
             BuiltinType::Double => 8,
             BuiltinType::Enum(_, _) => 4,
@@ -487,7 +487,7 @@ impl BuiltinType {
             BuiltinType::Byte => 1,
             BuiltinType::Char => 4,
             BuiltinType::Int => 4,
-            BuiltinType::Long => 8,
+            BuiltinType::Int64 => 8,
             BuiltinType::Float => 4,
             BuiltinType::Double => 8,
             BuiltinType::Nil => panic!("no alignment for nil."),
@@ -522,7 +522,7 @@ impl BuiltinType {
             BuiltinType::Byte => MachineMode::Int8,
             BuiltinType::Char => MachineMode::Int32,
             BuiltinType::Int => MachineMode::Int32,
-            BuiltinType::Long => MachineMode::Int64,
+            BuiltinType::Int64 => MachineMode::Int64,
             BuiltinType::Float => MachineMode::Float32,
             BuiltinType::Double => MachineMode::Float64,
             BuiltinType::Enum(_, _) => MachineMode::Int32,
@@ -554,7 +554,7 @@ impl BuiltinType {
             | BuiltinType::Byte
             | BuiltinType::Char
             | BuiltinType::Int
-            | BuiltinType::Long
+            | BuiltinType::Int64
             | BuiltinType::Float
             | BuiltinType::Double
             | BuiltinType::Enum(_, _)
@@ -596,7 +596,7 @@ impl BuiltinType {
             | BuiltinType::Byte
             | BuiltinType::Char
             | BuiltinType::Int
-            | BuiltinType::Long
+            | BuiltinType::Int64
             | BuiltinType::Float
             | BuiltinType::Double
             | BuiltinType::Enum(_, _)

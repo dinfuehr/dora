@@ -551,7 +551,7 @@ where
 
         let internal_fct = NativeFct {
             ptr: Address::from_ptr(stdlib::gc_alloc as *const u8),
-            args: &[BuiltinType::Long, BuiltinType::Bool],
+            args: &[BuiltinType::Int64, BuiltinType::Bool],
             return_type: BuiltinType::Ptr,
             desc: NativeFctDescriptor::AllocStub,
         };

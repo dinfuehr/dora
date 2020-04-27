@@ -13,5 +13,5 @@ fun main() {
     assert(ch < ch2);
 
     assert(ch.toInt() == 97);
-    assert(ch.toLong() == 97L);
+    assert(ch.toInt64() == 97L);
 }

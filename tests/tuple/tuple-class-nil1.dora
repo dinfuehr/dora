@@ -1,13 +1,13 @@
 //= error nil
 
 class TupleClass {
-    var value: (Long, Long);
+    var value: (Int64, Int64);
 }
 
 fun main() {
     foo(nil);
 }
 
-fun foo(x: TupleClass) -> (Long, Long) {
+fun foo(x: TupleClass) -> (Int64, Int64) {
     x.value
 }

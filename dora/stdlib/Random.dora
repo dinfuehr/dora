@@ -1,8 +1,8 @@
-const RANDOM_MULTIPLIER: Long = 25214903917L;
-const RANDOM_INCREMENT: Long = 11L;
-const RANDOM_MASK: Long = 0xFF_FF_FF_FF_FF_FFL;
+const RANDOM_MULTIPLIER: Int64 = 25214903917L;
+const RANDOM_INCREMENT: Int64 = 11L;
+const RANDOM_MASK: Int64 = 0xFF_FF_FF_FF_FF_FFL;
 
-class Random(var seed: Long) {
+class Random(var seed: Int64) {
   self.seed = (seed ^ RANDOM_MULTIPLIER) & RANDOM_MASK;
 
   fun nextIntWithBound(bound: Int) -> Int {
@@ -10,8 +10,8 @@ class Random(var seed: Long) {
     let bound_minus_1 = bound - 1;
 
     if (bound & bound_minus_1) == 0 {
-      let num = self.nextInt31().toLong();
-      return ((bound.toLong() * num) >>> 31).toInt();
+      let num = self.nextInt31().toInt64();
+      return ((bound.toInt64() * num) >>> 31).toInt();
     }
 
     var mod = 0;
@@ -37,10 +37,10 @@ class Random(var seed: Long) {
     return self.nextInt() & 0x7F_FF_FF_FF;
   }
 
-  fun nextLong() -> Long {
+  fun nextInt64() -> Int64 {
     let w1 = self.nextInt();
     let w2 = self.nextInt();
 
-    return (w1.toLong() << 32) | w2.toLong();
+    return (w1.toInt64() << 32) | w2.toInt64();
   }
 }

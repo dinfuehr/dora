@@ -68,13 +68,13 @@ fun decodeConstPool(constpool: Array[Byte]) -> Array[ConstPoolEntry] {
             let value = reader.readInt();
             constPool.push(ConstPoolInt(value));
         } else if opcode == CONSTPOOL_OPCODE_LONG {
-            let value = reader.readLong();
-            constPool.push(ConstPoolLong(value));
+            let value = reader.readInt64();
+            constPool.push(ConstPoolInt64(value));
         } else if opcode == CONSTPOOL_OPCODE_FLOAT {
             let value = reader.readInt().asFloat();
             constPool.push(ConstPoolFloat(value));
         } else if opcode == CONSTPOOL_OPCODE_DOUBLE {
-            let value = reader.readLong().asDouble();
+            let value = reader.readInt64().asDouble();
             constPool.push(ConstPoolDouble(value));
         } else if opcode == CONSTPOOL_OPCODE_CHAR {
             let value = reader.readInt().toCharUnchecked();
@@ -116,15 +116,15 @@ class ByteReader(let array: Array[Byte]) {
         (by4 << 24) | (by3 << 16) | (by2 << 8) | by1
     }
 
-    fun readLong() -> Long {
-        let by1 = self.readByte().toLong();
-        let by2 = self.readByte().toLong();
-        let by3 = self.readByte().toLong();
-        let by4 = self.readByte().toLong();
-        let by5 = self.readByte().toLong();
-        let by6 = self.readByte().toLong();
-        let by7 = self.readByte().toLong();
-        let by8 = self.readByte().toLong();
+    fun readInt64() -> Int64 {
+        let by1 = self.readByte().toInt64();
+        let by2 = self.readByte().toInt64();
+        let by3 = self.readByte().toInt64();
+        let by4 = self.readByte().toInt64();
+        let by5 = self.readByte().toInt64();
+        let by6 = self.readByte().toInt64();
+        let by7 = self.readByte().toInt64();
+        let by8 = self.readByte().toInt64();
 
         (by8 << 56) | (by7 << 48) | (by6 << 40) | (by5 << 32) | (by4 << 24) | (by3 << 16) | (by2 << 8) | by1
     }

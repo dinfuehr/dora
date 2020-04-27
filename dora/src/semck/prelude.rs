@@ -19,7 +19,7 @@ pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {
     vm.vips.byte_class = internal_class(vm, "Byte", Some(BuiltinType::Byte));
     vm.vips.char_class = internal_class(vm, "Char", Some(BuiltinType::Char));
     vm.vips.int_class = internal_class(vm, "Int", Some(BuiltinType::Int));
-    vm.vips.long_class = internal_class(vm, "Long", Some(BuiltinType::Long));
+    vm.vips.int64_class = internal_class(vm, "Int64", Some(BuiltinType::Int64));
 
     vm.vips.float_class = internal_class(vm, "Float", Some(BuiltinType::Float));
     vm.vips.double_class = internal_class(vm, "Double", Some(BuiltinType::Double));
@@ -151,7 +151,6 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
 
     native_fct(vm, "print", stdlib::print as *const u8);
     native_fct(vm, "println", stdlib::println as *const u8);
-    native_fct(vm, "addressOf", stdlib::addr as *const u8);
     intrinsic_fct(vm, "assert", Intrinsic::Assert);
     intrinsic_fct(vm, "debug", Intrinsic::Debug);
     native_fct(vm, "argc", stdlib::argc as *const u8);
@@ -172,7 +171,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
 
     let clsid = vm.vips.byte_class;
     native_method(vm, clsid, "toString", stdlib::byte_to_string as *const u8);
-    intrinsic_method(vm, clsid, "toLong", Intrinsic::ByteToLong);
+    intrinsic_method(vm, clsid, "toInt64", Intrinsic::ByteToInt64);
     intrinsic_method(vm, clsid, "toInt", Intrinsic::ByteToInt);
     intrinsic_method(vm, clsid, "toChar", Intrinsic::ByteToChar);
 
@@ -182,7 +181,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
 
     let clsid = vm.vips.char_class;
     native_method(vm, clsid, "toString", stdlib::char_to_string as *const u8);
-    intrinsic_method(vm, clsid, "toLong", Intrinsic::CharToLong);
+    intrinsic_method(vm, clsid, "toInt64", Intrinsic::CharToInt64);
     intrinsic_method(vm, clsid, "toInt", Intrinsic::CharToInt);
 
     intrinsic_method(vm, clsid, "equals", Intrinsic::CharEq);
@@ -191,7 +190,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     let clsid = vm.vips.int_class;
     intrinsic_method(vm, clsid, "toByte", Intrinsic::IntToByte);
     intrinsic_method(vm, clsid, "toCharUnchecked", Intrinsic::IntToChar);
-    intrinsic_method(vm, clsid, "toLong", Intrinsic::IntToLong);
+    intrinsic_method(vm, clsid, "toInt64", Intrinsic::IntToInt64);
     native_method(vm, clsid, "toString", stdlib::int_to_string as *const u8);
 
     intrinsic_method(vm, clsid, "toFloat", Intrinsic::IntToFloat);
@@ -223,44 +222,44 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_method(vm, clsid, "unaryMinus", Intrinsic::IntNeg);
     intrinsic_method(vm, clsid, "not", Intrinsic::IntNot);
 
-    let clsid = vm.vips.long_class;
+    let clsid = vm.vips.int64_class;
     native_method(vm, clsid, "toString", stdlib::long_to_string as *const u8);
-    intrinsic_method(vm, clsid, "toCharUnchecked", Intrinsic::LongToChar);
-    intrinsic_method(vm, clsid, "toInt", Intrinsic::LongToInt);
-    intrinsic_method(vm, clsid, "toByte", Intrinsic::LongToByte);
+    intrinsic_method(vm, clsid, "toCharUnchecked", Intrinsic::Int64ToChar);
+    intrinsic_method(vm, clsid, "toInt", Intrinsic::Int64ToInt);
+    intrinsic_method(vm, clsid, "toByte", Intrinsic::Int64ToByte);
 
-    intrinsic_method(vm, clsid, "toFloat", Intrinsic::LongToFloat);
-    intrinsic_method(vm, clsid, "toDouble", Intrinsic::LongToDouble);
+    intrinsic_method(vm, clsid, "toFloat", Intrinsic::Int64ToFloat);
+    intrinsic_method(vm, clsid, "toDouble", Intrinsic::Int64ToDouble);
 
-    intrinsic_method(vm, clsid, "asDouble", Intrinsic::ReinterpretLongAsDouble);
+    intrinsic_method(vm, clsid, "asDouble", Intrinsic::ReinterpretInt64AsDouble);
 
-    intrinsic_method(vm, clsid, "equals", Intrinsic::LongEq);
-    intrinsic_method(vm, clsid, "compareTo", Intrinsic::LongCmp);
+    intrinsic_method(vm, clsid, "equals", Intrinsic::Int64Eq);
+    intrinsic_method(vm, clsid, "compareTo", Intrinsic::Int64Cmp);
 
-    intrinsic_method(vm, clsid, "plus", Intrinsic::LongAdd);
-    intrinsic_method(vm, clsid, "minus", Intrinsic::LongSub);
-    intrinsic_method(vm, clsid, "times", Intrinsic::LongMul);
-    intrinsic_method(vm, clsid, "div", Intrinsic::LongDiv);
-    intrinsic_method(vm, clsid, "mod", Intrinsic::LongMod);
+    intrinsic_method(vm, clsid, "plus", Intrinsic::Int64Add);
+    intrinsic_method(vm, clsid, "minus", Intrinsic::Int64Sub);
+    intrinsic_method(vm, clsid, "times", Intrinsic::Int64Mul);
+    intrinsic_method(vm, clsid, "div", Intrinsic::Int64Div);
+    intrinsic_method(vm, clsid, "mod", Intrinsic::Int64Mod);
 
-    intrinsic_method(vm, clsid, "bitwiseOr", Intrinsic::LongOr);
-    intrinsic_method(vm, clsid, "bitwiseAnd", Intrinsic::LongAnd);
-    intrinsic_method(vm, clsid, "bitwiseXor", Intrinsic::LongXor);
+    intrinsic_method(vm, clsid, "bitwiseOr", Intrinsic::Int64Or);
+    intrinsic_method(vm, clsid, "bitwiseAnd", Intrinsic::Int64And);
+    intrinsic_method(vm, clsid, "bitwiseXor", Intrinsic::Int64Xor);
 
-    intrinsic_method(vm, clsid, "shiftLeft", Intrinsic::LongShl);
-    intrinsic_method(vm, clsid, "shiftRight", Intrinsic::LongShr);
-    intrinsic_method(vm, clsid, "shiftRightSigned", Intrinsic::LongSar);
+    intrinsic_method(vm, clsid, "shiftLeft", Intrinsic::Int64Shl);
+    intrinsic_method(vm, clsid, "shiftRight", Intrinsic::Int64Shr);
+    intrinsic_method(vm, clsid, "shiftRightSigned", Intrinsic::Int64Sar);
 
-    intrinsic_method(vm, clsid, "rotateLeft", Intrinsic::LongRotateLeft);
-    intrinsic_method(vm, clsid, "rotateRight", Intrinsic::LongRotateRight);
+    intrinsic_method(vm, clsid, "rotateLeft", Intrinsic::Int64RotateLeft);
+    intrinsic_method(vm, clsid, "rotateRight", Intrinsic::Int64RotateRight);
 
-    intrinsic_method(vm, clsid, "unaryPlus", Intrinsic::LongPlus);
-    intrinsic_method(vm, clsid, "unaryMinus", Intrinsic::LongNeg);
-    intrinsic_method(vm, clsid, "not", Intrinsic::LongNot);
+    intrinsic_method(vm, clsid, "unaryPlus", Intrinsic::Int64Plus);
+    intrinsic_method(vm, clsid, "unaryMinus", Intrinsic::Int64Neg);
+    intrinsic_method(vm, clsid, "not", Intrinsic::Int64Not);
 
     let clsid = vm.vips.bool_class;
     intrinsic_method(vm, clsid, "toInt", Intrinsic::BoolToInt);
-    intrinsic_method(vm, clsid, "toLong", Intrinsic::BoolToLong);
+    intrinsic_method(vm, clsid, "toInt64", Intrinsic::BoolToInt64);
     intrinsic_method(vm, clsid, "equals", Intrinsic::BoolEq);
     intrinsic_method(vm, clsid, "not", Intrinsic::BoolNot);
 
@@ -275,11 +274,11 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     native_method(
         vm,
         clsid,
-        "toLongSuccess",
+        "toInt64Success",
         stdlib::str_to_long_success as *const u8,
     );
     native_method(vm, clsid, "toIntOrZero", stdlib::str_to_int as *const u8);
-    native_method(vm, clsid, "toLongOrZero", stdlib::str_to_long as *const u8);
+    native_method(vm, clsid, "toInt64OrZero", stdlib::str_to_long as *const u8);
     native_method(vm, clsid, "plus", stdlib::strcat as *const u8);
 
     intrinsic_method(vm, clsid, "length", Intrinsic::StrLen);
@@ -301,7 +300,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     let clsid = vm.vips.float_class;
     native_method(vm, clsid, "toString", stdlib::float_to_string as *const u8);
     intrinsic_method(vm, clsid, "toInt", Intrinsic::FloatToInt);
-    intrinsic_method(vm, clsid, "toLong", Intrinsic::FloatToLong);
+    intrinsic_method(vm, clsid, "toInt64", Intrinsic::FloatToInt64);
     intrinsic_method(vm, clsid, "toDouble", Intrinsic::PromoteFloatToDouble);
 
     intrinsic_method(vm, clsid, "asInt", Intrinsic::ReinterpretFloatAsInt);
@@ -323,10 +322,10 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     let clsid = vm.vips.double_class;
     native_method(vm, clsid, "toString", stdlib::double_to_string as *const u8);
     intrinsic_method(vm, clsid, "toInt", Intrinsic::DoubleToInt);
-    intrinsic_method(vm, clsid, "toLong", Intrinsic::DoubleToLong);
+    intrinsic_method(vm, clsid, "toInt64", Intrinsic::DoubleToInt64);
     intrinsic_method(vm, clsid, "toFloat", Intrinsic::DemoteDoubleToFloat);
 
-    intrinsic_method(vm, clsid, "asLong", Intrinsic::ReinterpretDoubleAsLong);
+    intrinsic_method(vm, clsid, "asInt64", Intrinsic::ReinterpretDoubleAsInt64);
 
     intrinsic_method(vm, clsid, "equals", Intrinsic::DoubleEq);
     intrinsic_method(vm, clsid, "compareTo", Intrinsic::DoubleCmp);
@@ -517,23 +516,23 @@ pub(crate) fn install_conditional_intrinsics(vm: &mut VM) {
         );
     }
 
-    let clsid = vm.vips.long_class;
+    let clsid = vm.vips.int64_class;
     if has_popcnt() {
-        intrinsic_method(vm, clsid, "countZeroBits", Intrinsic::LongCountZeroBits);
-        intrinsic_method(vm, clsid, "countOneBits", Intrinsic::LongCountOneBits);
+        intrinsic_method(vm, clsid, "countZeroBits", Intrinsic::Int64CountZeroBits);
+        intrinsic_method(vm, clsid, "countOneBits", Intrinsic::Int64CountOneBits);
     }
     if has_lzcnt() {
         intrinsic_method(
             vm,
             clsid,
             "countZeroBitsLeading",
-            Intrinsic::LongCountZeroBitsLeading,
+            Intrinsic::Int64CountZeroBitsLeading,
         );
         intrinsic_method(
             vm,
             clsid,
             "countOneBitsLeading",
-            Intrinsic::LongCountOneBitsLeading,
+            Intrinsic::Int64CountOneBitsLeading,
         );
     }
     if has_tzcnt() {
@@ -541,13 +540,13 @@ pub(crate) fn install_conditional_intrinsics(vm: &mut VM) {
             vm,
             clsid,
             "countZeroBitsTrailing",
-            Intrinsic::LongCountZeroBitsTrailing,
+            Intrinsic::Int64CountZeroBitsTrailing,
         );
         intrinsic_method(
             vm,
             clsid,
             "countOneBitsTrailing",
-            Intrinsic::LongCountOneBitsTrailing,
+            Intrinsic::Int64CountOneBitsTrailing,
         );
     }
 }

@@ -31,6 +31,6 @@ fun main() {
   let x = 9.0 / 8.0;
   assert(x == 1.125);
 
-  let x = (-12.0).asLong().toStringBinary();
+  let x = (-12.0).asInt64().toStringBinary();
   assert(x == "1100000000101000000000000000000000000000000000000000000000000000");
 }

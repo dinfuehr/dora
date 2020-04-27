@@ -6,7 +6,7 @@ fun main() {
   assert(x(0) == 100);
   assert(x(1) == 200);
 
-  let x = arrayFill[Long](2, 200L);
+  let x = arrayFill[Int64](2, 200L);
   long_array_set(x, 1, 100L);
   assert(x(0) == 200L);
   assert(x(1) == 100L);
@@ -36,7 +36,7 @@ fun int_array_set(x: Array[Int], idx: Int, val: Int) {
   x(idx) = val;
 }
 
-fun long_array_set(x: Array[Long], idx: Int, val: Long) {
+fun long_array_set(x: Array[Int64], idx: Int, val: Int64) {
   x(idx) = val;
 }
 

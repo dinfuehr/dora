@@ -1,4 +1,4 @@
-@internal class Long {
+@internal class Int64 {
   @internal fun toByte() -> Byte;
   fun toChar() -> Option[Char] {
     if self >= 0L && self <= 0x10FFFFL && (self < 0xD800L || self > 0xDFFFL) {
@@ -19,29 +19,29 @@
 
   @internal fun asDouble() -> Double;
 
-  @internal fun equals(rhs: Long) -> Bool;
-  @internal fun compareTo(rhs: Long) -> Int;
+  @internal fun equals(rhs: Int64) -> Bool;
+  @internal fun compareTo(rhs: Int64) -> Int;
 
-  @internal fun plus(rhs: Long) -> Long;
-  @internal fun minus(rhs: Long) -> Long;
-  @internal fun times(rhs: Long) -> Long;
-  @internal fun div(rhs: Long) -> Long;
-  @internal fun mod(rhs: Long) -> Long;
+  @internal fun plus(rhs: Int64) -> Int64;
+  @internal fun minus(rhs: Int64) -> Int64;
+  @internal fun times(rhs: Int64) -> Int64;
+  @internal fun div(rhs: Int64) -> Int64;
+  @internal fun mod(rhs: Int64) -> Int64;
 
-  @internal fun bitwiseOr(rhs: Long) -> Long;
-  @internal fun bitwiseAnd(rhs: Long) -> Long;
-  @internal fun bitwiseXor(rhs: Long) -> Long;
+  @internal fun bitwiseOr(rhs: Int64) -> Int64;
+  @internal fun bitwiseAnd(rhs: Int64) -> Int64;
+  @internal fun bitwiseXor(rhs: Int64) -> Int64;
 
-  @internal fun shiftLeft(by: Int) -> Long;
-  @internal fun shiftRightSigned(by: Int) -> Long;
-  @internal fun shiftRight(by: Int) -> Long;
+  @internal fun shiftLeft(by: Int) -> Int64;
+  @internal fun shiftRightSigned(by: Int) -> Int64;
+  @internal fun shiftRight(by: Int) -> Int64;
 
-  @internal fun rotateLeft(by: Int) -> Long;
-  @internal fun rotateRight(by: Int) -> Long;
+  @internal fun rotateLeft(by: Int) -> Int64;
+  @internal fun rotateRight(by: Int) -> Int64;
 
-  @internal fun unaryPlus() -> Long;
-  @internal fun unaryMinus() -> Long;
-  @internal fun not() -> Long;
+  @internal fun unaryPlus() -> Int64;
+  @internal fun unaryMinus() -> Int64;
+  @internal fun not() -> Int64;
 
   @internal fun countZeroBits() -> Int = self.not().countOneBits();
   @internal fun countOneBits() -> Int {
@@ -55,9 +55,9 @@
   }
   @internal fun countZeroBitsLeading() -> Int {
     if self == 0L {
-      return Long::bits();
+      return Int64::bits();
     }
-    var t = 1L.shiftLeft(Long::bits() - 1);
+    var t = 1L.shiftLeft(Int64::bits() - 1);
     var r = 0;
     while (self.bitwiseAnd(t)) == 0L {
       t = t.shiftRight(1);
@@ -68,7 +68,7 @@
   @internal fun countOneBitsLeading() -> Int = self.not().countZeroBitsLeading();
   @internal fun countZeroBitsTrailing() -> Int {
     if self == 0L {
-      return Long::bits();
+      return Int64::bits();
     }
     var t = 1L;
     var r = 0;
@@ -85,9 +85,9 @@
   @static fun bits() -> Int = 64;
   @static fun bytes() -> Int = 8;
 
-  @static fun maxValue() -> Long = 9223372036854775807L;
-  @static fun minValue() -> Long = -9223372036854775808L;
+  @static fun maxValue() -> Int64 = 9223372036854775807L;
+  @static fun minValue() -> Int64 = -9223372036854775808L;
 
-  @static fun min(lhs: Long, rhs: Long) -> Long = if lhs < rhs { lhs } else { rhs };
-  @static fun max(lhs: Long, rhs: Long) -> Long = if lhs < rhs { rhs } else { lhs };
+  @static fun min(lhs: Int64, rhs: Int64) -> Int64 = if lhs < rhs { lhs } else { rhs };
+  @static fun max(lhs: Int64, rhs: Int64) -> Int64 = if lhs < rhs { rhs } else { lhs };
 }

@@ -7,9 +7,9 @@ fun main() {
   let result = Int::minValue() % -1;
   assert(result == 0);
 
-  let result = Long::minValue() / -1L;
-  assert(result == Long::minValue());
+  let result = Int64::minValue() / -1L;
+  assert(result == Int64::minValue());
 
-  let result = Long::minValue() % -1L;
+  let result = Int64::minValue() % -1L;
   assert(result == 0L);
 }

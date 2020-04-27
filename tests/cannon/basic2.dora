@@ -5,7 +5,7 @@ fun main() {
     assert(moveChar('5') == '5');
     assert(moveByte(5Y) == 5Y);
     assert(moveInt(5) == 5);
-    assert(moveLong(5L) == 5L);
+    assert(moveInt64(5L) == 5L);
     assert(moveFloat(5F) == 5F);
     assert(moveDouble(5D) == 5D);
     assert(moveString("5") == "5");
@@ -31,7 +31,7 @@ fun main() {
     return y;
 }
 
-@cannon fun moveLong(x: Long) -> Long {
+@cannon fun moveInt64(x: Int64) -> Int64 {
     let y = x;
     return y;
 }

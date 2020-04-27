@@ -311,7 +311,7 @@ class AssemblerX64: Assembler {
         self.buffer.emitInt32(value);
     }
 
-    fun emitInt64(value: Long) {
+    fun emitInt64(value: Int64) {
         self.buffer.emitInt64(value);
     }
 
@@ -416,7 +416,7 @@ impl Condition {
     }
 }
 
-class Immediate(let value: Long) {
+class Immediate(let value: Int64) {
     fun isInt8() -> Bool {
         let limit = 1L << 7;
         -limit <= self.value && self.value < limit
@@ -435,7 +435,7 @@ class Immediate(let value: Long) {
         self.value.toInt()
     }
 
-    fun toInt64() -> Long {
+    fun toInt64() -> Int64 {
         self.value
     }
 }

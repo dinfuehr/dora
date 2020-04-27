@@ -75,10 +75,6 @@ pub extern "C" fn print(val: Handle<Str>) {
     io::stdout().write(val.content()).unwrap();
 }
 
-pub extern "C" fn addr(val: Handle<Obj>) -> u64 {
-    val.raw() as usize as u64
-}
-
 pub extern "C" fn fatal_error(msg: Handle<Str>) {
     eprint!("fatal error: ");
     io::stderr().write(msg.content()).unwrap();

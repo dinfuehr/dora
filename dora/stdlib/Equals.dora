@@ -14,8 +14,8 @@ impl Equals for Int {
   fun equals(other: Int) -> Bool = self == other;
 }
 
-impl Equals for Long {
-  fun equals(other: Long) -> Bool = self == other;
+impl Equals for Int64 {
+  fun equals(other: Int64) -> Bool = self == other;
 }
 
 impl Equals for Float {

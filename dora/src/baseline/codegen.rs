@@ -1216,7 +1216,7 @@ where
         let mode = match ty {
             BuiltinType::Byte => MachineMode::Int8,
             BuiltinType::Int => MachineMode::Int32,
-            BuiltinType::Long => MachineMode::Int64,
+            BuiltinType::Int64 => MachineMode::Int64,
             _ => unreachable!(),
         };
 
@@ -1372,7 +1372,7 @@ where
                 );
             }
 
-            BuiltinType::Byte | BuiltinType::Int | BuiltinType::Long => {
+            BuiltinType::Byte | BuiltinType::Int | BuiltinType::Int64 => {
                 self.asm
                     .load_int_const(ty.mode(), dest.reg(), xconst.value.to_int());
             }
@@ -1391,11 +1391,11 @@ where
 
         match intrinsic {
             Intrinsic::IntPlus
-            | Intrinsic::LongPlus
+            | Intrinsic::Int64Plus
             | Intrinsic::FloatPlus
             | Intrinsic::DoublePlus => {}
 
-            Intrinsic::IntNeg | Intrinsic::LongNeg => {
+            Intrinsic::IntNeg | Intrinsic::Int64Neg => {
                 let dest = dest.reg();
 
                 let mode = if intrinsic == Intrinsic::IntNeg {
@@ -1424,7 +1424,7 @@ where
                 self.asm.int_not(MachineMode::Int8, dest, dest)
             }
 
-            Intrinsic::IntNot | Intrinsic::LongNot => {
+            Intrinsic::IntNot | Intrinsic::Int64Not => {
                 let dest = dest.reg();
 
                 let mode = if intrinsic == Intrinsic::IntNot {
@@ -1475,35 +1475,35 @@ where
                     .count_bits_trailing(MachineMode::Int32, dest, dest, true)
             }
 
-            Intrinsic::LongCountZeroBits => {
+            Intrinsic::Int64CountZeroBits => {
                 let dest = dest.reg();
                 self.asm.count_bits(MachineMode::Int64, dest, dest, false)
             }
 
-            Intrinsic::LongCountOneBits => {
+            Intrinsic::Int64CountOneBits => {
                 let dest = dest.reg();
                 self.asm.count_bits(MachineMode::Int64, dest, dest, true)
             }
 
-            Intrinsic::LongCountZeroBitsLeading => {
+            Intrinsic::Int64CountZeroBitsLeading => {
                 let dest = dest.reg();
                 self.asm
                     .count_bits_leading(MachineMode::Int64, dest, dest, false)
             }
 
-            Intrinsic::LongCountOneBitsLeading => {
+            Intrinsic::Int64CountOneBitsLeading => {
                 let dest = dest.reg();
                 self.asm
                     .count_bits_leading(MachineMode::Int64, dest, dest, true)
             }
 
-            Intrinsic::LongCountZeroBitsTrailing => {
+            Intrinsic::Int64CountZeroBitsTrailing => {
                 let dest = dest.reg();
                 self.asm
                     .count_bits_trailing(MachineMode::Int64, dest, dest, false)
             }
 
-            Intrinsic::LongCountOneBitsTrailing => {
+            Intrinsic::Int64CountOneBitsTrailing => {
                 let dest = dest.reg();
                 self.asm
                     .count_bits_trailing(MachineMode::Int64, dest, dest, true)
@@ -2074,28 +2074,28 @@ where
             Intrinsic::BoolToInt | Intrinsic::ByteToInt | Intrinsic::ByteToChar => {
                 self.emit_intrinsic_byte_to_int(args[0], dest.reg())
             }
-            Intrinsic::BoolToLong | Intrinsic::ByteToLong => {
+            Intrinsic::BoolToInt64 | Intrinsic::ByteToInt64 => {
                 self.emit_intrinsic_byte_to_long(args[0], dest.reg())
             }
-            Intrinsic::LongToByte => self.emit_intrinsic_long_to_byte(args[0], dest.reg()),
-            Intrinsic::LongToChar | Intrinsic::LongToInt => {
+            Intrinsic::Int64ToByte => self.emit_intrinsic_long_to_byte(args[0], dest.reg()),
+            Intrinsic::Int64ToChar | Intrinsic::Int64ToInt => {
                 self.emit_intrinsic_long_to_int(args[0], dest.reg())
             }
-            Intrinsic::LongToFloat => {
+            Intrinsic::Int64ToFloat => {
                 self.emit_intrinsic_int_to_float(args[0], dest.freg(), intrinsic)
             }
-            Intrinsic::LongToDouble => {
+            Intrinsic::Int64ToDouble => {
                 self.emit_intrinsic_int_to_float(args[0], dest.freg(), intrinsic)
             }
 
-            Intrinsic::ReinterpretLongAsDouble => {
+            Intrinsic::ReinterpretInt64AsDouble => {
                 self.emit_intrinsic_int_as_float(args[0], dest.freg(), intrinsic)
             }
 
             Intrinsic::FloatToInt => {
                 self.emit_intrinsic_float_to_int(args[0], dest.reg(), intrinsic)
             }
-            Intrinsic::FloatToLong => {
+            Intrinsic::FloatToInt64 => {
                 self.emit_intrinsic_float_to_int(args[0], dest.reg(), intrinsic)
             }
             Intrinsic::PromoteFloatToDouble => {
@@ -2108,13 +2108,13 @@ where
             Intrinsic::DoubleToInt => {
                 self.emit_intrinsic_float_to_int(args[0], dest.reg(), intrinsic)
             }
-            Intrinsic::DoubleToLong => {
+            Intrinsic::DoubleToInt64 => {
                 self.emit_intrinsic_float_to_int(args[0], dest.reg(), intrinsic)
             }
             Intrinsic::DemoteDoubleToFloat => {
                 self.emit_intrinsic_double_to_float(args[0], dest.freg())
             }
-            Intrinsic::ReinterpretDoubleAsLong => {
+            Intrinsic::ReinterpretDoubleAsInt64 => {
                 self.emit_intrinsic_float_as_int(args[0], dest.reg(), intrinsic)
             }
 
@@ -2122,7 +2122,7 @@ where
                 self.emit_expr(args[0], dest);
             }
 
-            Intrinsic::CharToLong => self.emit_intrinsic_int_to_long(args[0], dest.reg()),
+            Intrinsic::CharToInt64 => self.emit_intrinsic_int_to_long(args[0], dest.reg()),
             Intrinsic::CharEq => {
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
@@ -2131,7 +2131,7 @@ where
             }
 
             Intrinsic::IntToByte => self.emit_intrinsic_int_to_byte(args[0], dest.reg()),
-            Intrinsic::IntToLong => self.emit_intrinsic_int_to_long(args[0], dest.reg()),
+            Intrinsic::IntToInt64 => self.emit_intrinsic_int_to_long(args[0], dest.reg()),
             Intrinsic::IntToFloat => {
                 self.emit_intrinsic_int_to_float(args[0], dest.freg(), intrinsic)
             }
@@ -2226,71 +2226,71 @@ where
                 self.emit_intrinsic_unary(args[0], dest, intrinsic)
             }
 
-            Intrinsic::LongEq => {
+            Intrinsic::Int64Eq => {
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
-            Intrinsic::LongCmp => {
-                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
-            }
-
-            Intrinsic::LongAdd => {
-                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
-            }
-            Intrinsic::LongSub => {
-                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
-            }
-            Intrinsic::LongMul => {
-                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
-            }
-            Intrinsic::LongDiv => {
-                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
-            }
-            Intrinsic::LongMod => {
-                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
-            }
-            Intrinsic::LongNeg => self.emit_intrinsic_unary(args[0], dest, intrinsic),
-            Intrinsic::LongPlus => self.emit_intrinsic_unary(args[0], dest, intrinsic),
-
-            Intrinsic::LongOr => {
-                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
-            }
-            Intrinsic::LongAnd => {
-                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
-            }
-            Intrinsic::LongXor => {
-                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
-            }
-            Intrinsic::LongNot => self.emit_intrinsic_unary(args[0], dest, intrinsic),
-
-            Intrinsic::LongShl => {
-                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
-            }
-            Intrinsic::LongSar => {
-                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
-            }
-            Intrinsic::LongShr => {
+            Intrinsic::Int64Cmp => {
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
 
-            Intrinsic::LongRotateLeft => {
+            Intrinsic::Int64Add => {
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
-            Intrinsic::LongRotateRight => {
+            Intrinsic::Int64Sub => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::Int64Mul => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::Int64Div => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::Int64Mod => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::Int64Neg => self.emit_intrinsic_unary(args[0], dest, intrinsic),
+            Intrinsic::Int64Plus => self.emit_intrinsic_unary(args[0], dest, intrinsic),
+
+            Intrinsic::Int64Or => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::Int64And => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::Int64Xor => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::Int64Not => self.emit_intrinsic_unary(args[0], dest, intrinsic),
+
+            Intrinsic::Int64Shl => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::Int64Sar => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::Int64Shr => {
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
 
-            Intrinsic::LongCountZeroBits => self.emit_intrinsic_unary(args[0], dest, intrinsic),
-            Intrinsic::LongCountOneBits => self.emit_intrinsic_unary(args[0], dest, intrinsic),
-            Intrinsic::LongCountZeroBitsLeading => {
+            Intrinsic::Int64RotateLeft => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::Int64RotateRight => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+
+            Intrinsic::Int64CountZeroBits => self.emit_intrinsic_unary(args[0], dest, intrinsic),
+            Intrinsic::Int64CountOneBits => self.emit_intrinsic_unary(args[0], dest, intrinsic),
+            Intrinsic::Int64CountZeroBitsLeading => {
                 self.emit_intrinsic_unary(args[0], dest, intrinsic)
             }
-            Intrinsic::LongCountOneBitsLeading => {
+            Intrinsic::Int64CountOneBitsLeading => {
                 self.emit_intrinsic_unary(args[0], dest, intrinsic)
             }
-            Intrinsic::LongCountZeroBitsTrailing => {
+            Intrinsic::Int64CountZeroBitsTrailing => {
                 self.emit_intrinsic_unary(args[0], dest, intrinsic)
             }
-            Intrinsic::LongCountOneBitsTrailing => {
+            Intrinsic::Int64CountOneBitsTrailing => {
                 self.emit_intrinsic_unary(args[0], dest, intrinsic)
             }
 
@@ -2350,7 +2350,7 @@ where
             BuiltinType::Bool
             | BuiltinType::Byte
             | BuiltinType::Int
-            | BuiltinType::Long
+            | BuiltinType::Int64
             | BuiltinType::Char => self.asm.load_int_const(ty.mode(), dest.reg(), 0),
             BuiltinType::Float | BuiltinType::Double => {
                 self.asm.load_float_const(ty.mode(), dest.freg(), 0.0)
@@ -2637,8 +2637,8 @@ where
         let (src_mode, dest_mode) = match intrinsic {
             Intrinsic::IntToFloat => (MachineMode::Int32, MachineMode::Float32),
             Intrinsic::IntToDouble => (MachineMode::Int32, MachineMode::Float64),
-            Intrinsic::LongToFloat => (MachineMode::Int64, MachineMode::Float32),
-            Intrinsic::LongToDouble => (MachineMode::Int64, MachineMode::Float64),
+            Intrinsic::Int64ToFloat => (MachineMode::Int64, MachineMode::Float32),
+            Intrinsic::Int64ToDouble => (MachineMode::Int64, MachineMode::Float64),
             _ => unreachable!(),
         };
 
@@ -2650,9 +2650,9 @@ where
 
         let (src_mode, dest_mode) = match intrinsic {
             Intrinsic::FloatToInt => (MachineMode::Float32, MachineMode::Int32),
-            Intrinsic::FloatToLong => (MachineMode::Float32, MachineMode::Int64),
+            Intrinsic::FloatToInt64 => (MachineMode::Float32, MachineMode::Int64),
             Intrinsic::DoubleToInt => (MachineMode::Float64, MachineMode::Int32),
-            Intrinsic::DoubleToLong => (MachineMode::Float64, MachineMode::Int64),
+            Intrinsic::DoubleToInt64 => (MachineMode::Float64, MachineMode::Int64),
             _ => unreachable!(),
         };
 
@@ -2665,7 +2665,7 @@ where
 
         let (src_mode, dest_mode) = match intrinsic {
             Intrinsic::ReinterpretFloatAsInt => (MachineMode::Float32, MachineMode::Int32),
-            Intrinsic::ReinterpretDoubleAsLong => (MachineMode::Float64, MachineMode::Int64),
+            Intrinsic::ReinterpretDoubleAsInt64 => (MachineMode::Float64, MachineMode::Int64),
             _ => unreachable!(),
         };
 
@@ -2678,7 +2678,7 @@ where
 
         let (src_mode, dest_mode) = match intrinsic {
             Intrinsic::ReinterpretIntAsFloat => (MachineMode::Int32, MachineMode::Float32),
-            Intrinsic::ReinterpretLongAsDouble => (MachineMode::Int64, MachineMode::Float64),
+            Intrinsic::ReinterpretInt64AsDouble => (MachineMode::Int64, MachineMode::Float64),
             _ => unreachable!(),
         };
 
@@ -2763,8 +2763,8 @@ where
             | Intrinsic::BoolEq
             | Intrinsic::CharEq
             | Intrinsic::IntEq
-            | Intrinsic::LongEq => {
-                let mode = if intr == Intrinsic::LongEq {
+            | Intrinsic::Int64Eq => {
+                let mode = if intr == Intrinsic::Int64Eq {
                     MachineMode::Int64
                 } else {
                     MachineMode::Int32
@@ -2789,8 +2789,8 @@ where
                 self.asm.set(dest, cond_code);
             }
 
-            Intrinsic::ByteCmp | Intrinsic::CharCmp | Intrinsic::IntCmp | Intrinsic::LongCmp => {
-                let mode = if intr == Intrinsic::LongCmp {
+            Intrinsic::ByteCmp | Intrinsic::CharCmp | Intrinsic::IntCmp | Intrinsic::Int64Cmp => {
+                let mode = if intr == Intrinsic::Int64Cmp {
                     MachineMode::Int64
                 } else {
                     MachineMode::Int32
@@ -2823,22 +2823,22 @@ where
             Intrinsic::IntRotateLeft => self.asm.int_rol(MachineMode::Int32, dest, lhs, rhs),
             Intrinsic::IntRotateRight => self.asm.int_ror(MachineMode::Int32, dest, lhs, rhs),
 
-            Intrinsic::LongAdd => self.asm.int_add(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongSub => self.asm.int_sub(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongMul => self.asm.int_mul(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongDiv => self.asm.int_div(MachineMode::Int64, dest, lhs, rhs, pos),
-            Intrinsic::LongMod => self.asm.int_mod(MachineMode::Int64, dest, lhs, rhs, pos),
+            Intrinsic::Int64Add => self.asm.int_add(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::Int64Sub => self.asm.int_sub(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::Int64Mul => self.asm.int_mul(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::Int64Div => self.asm.int_div(MachineMode::Int64, dest, lhs, rhs, pos),
+            Intrinsic::Int64Mod => self.asm.int_mod(MachineMode::Int64, dest, lhs, rhs, pos),
 
-            Intrinsic::LongOr => self.asm.int_or(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongAnd => self.asm.int_and(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongXor => self.asm.int_xor(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::Int64Or => self.asm.int_or(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::Int64And => self.asm.int_and(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::Int64Xor => self.asm.int_xor(MachineMode::Int64, dest, lhs, rhs),
 
-            Intrinsic::LongShl => self.asm.int_shl(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongSar => self.asm.int_sar(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongShr => self.asm.int_shr(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::Int64Shl => self.asm.int_shl(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::Int64Sar => self.asm.int_sar(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::Int64Shr => self.asm.int_shr(MachineMode::Int64, dest, lhs, rhs),
 
-            Intrinsic::LongRotateLeft => self.asm.int_rol(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongRotateRight => self.asm.int_ror(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::Int64RotateLeft => self.asm.int_rol(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::Int64RotateRight => self.asm.int_ror(MachineMode::Int64, dest, lhs, rhs),
 
             _ => panic!("unexpected intrinsic {:?}", intr),
         }
@@ -3777,7 +3777,7 @@ fn check_for_nil(ty: BuiltinType) -> bool {
         BuiltinType::Byte
         | BuiltinType::Char
         | BuiltinType::Int
-        | BuiltinType::Long
+        | BuiltinType::Int64
         | BuiltinType::Float
         | BuiltinType::Double
         | BuiltinType::Bool

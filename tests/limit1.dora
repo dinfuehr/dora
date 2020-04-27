@@ -4,6 +4,6 @@ fun main() {
     assert(-2147483648 == Int::minValue());
     assert(2147483647 == Int::maxValue());
 
-    assert(-9223372036854775808L == Long::minValue());
-    assert(9223372036854775807L == Long::maxValue());
+    assert(-9223372036854775808L == Int64::minValue());
+    assert(9223372036854775807L == Int64::maxValue());
 }
