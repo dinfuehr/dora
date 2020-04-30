@@ -49,13 +49,13 @@
 
   @internal fun plus(rhs: String) -> String;
 
-  @internal fun getByte(idx: Int) -> Byte;
+  @internal fun getByte(idx: Int) -> UInt8;
   @internal fun clone() -> String;
 
-  @internal @static fun fromBytesPartOrNull(val: Array[Byte], offset: Int, len: Int) -> String;
+  @internal @static fun fromBytesPartOrNull(val: Array[UInt8], offset: Int, len: Int) -> String;
   @internal @static fun fromStringPartOrNull(val: String, offset: Int, len: Int) -> String;
 
-  @static fun fromBytesPart(val: Array[Byte], offset: Int, len: Int) -> Option[String] {
+  @static fun fromBytesPart(val: Array[UInt8], offset: Int, len: Int) -> Option[String] {
     let value = String::fromBytesPartOrNull(val, offset, len);
 
     if value === nil {
@@ -65,7 +65,7 @@
     }
   }
 
-  @static fun fromBytes(val: Array[Byte]) -> Option[String] {
+  @static fun fromBytes(val: Array[UInt8]) -> Option[String] {
     let value = String::fromBytesPartOrNull(val, 0, val.length());
   
     if value === nil {
@@ -89,10 +89,10 @@
 
   @static fun binary(var data: Int64) -> String {
     if data == 0L { return "0"; }
-    let array = Array[Byte](64);
+    let array = Array[UInt8](64);
     var at = array.length();
     while data != 0L {
-      array(at - 1) = ('0'.toInt64() + (data & 1L)).toByte();
+      array(at - 1) = ('0'.toInt64() + (data & 1L)).toUInt8();
       data = data.shiftRight(1);
       at = at - 1;
     }
@@ -101,15 +101,15 @@
 
   @static fun hex(var data: Int64) -> String {
     if data == 0L { return "0"; }
-    let array = Array[Byte](16);
+    let array = Array[UInt8](16);
     var at = array.length();
     while (data != 0L) {
       let digit = (data & 0xFL).toInt();
 
       if digit < 10 {
-        array(at - 1) = ('0'.toInt() + digit).toByte();
+        array(at - 1) = ('0'.toInt() + digit).toUInt8();
       } else {
-        array(at - 1) = ('A'.toInt() + digit - 10).toByte();
+        array(at - 1) = ('A'.toInt() + digit - 10).toUInt8();
       }
 
       data = data.shiftRight(4);

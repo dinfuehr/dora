@@ -1,4 +1,4 @@
-fun compile(info: EncodedCompilationInfo) -> Array[Byte] {
+fun compile(info: EncodedCompilationInfo) -> Array[UInt8] {
     let info = CompilationInfo(info);
     // bytecodeDump(info.bc);
     CodeGen(info).generate()
@@ -16,8 +16,8 @@ class CompilationInfo(encoded: EncodedCompilationInfo) {
 }
 
 class EncodedCompilationInfo {
-    let code: Array[Byte] = arrayEmpty[Byte]();
-    let constpool: Array[Byte] = arrayEmpty[Byte]();
+    let code: Array[UInt8] = arrayEmpty[UInt8]();
+    let constpool: Array[UInt8] = arrayEmpty[UInt8]();
     let registers: Array[Int] = arrayEmpty[Int]();
     let arguments: Int = 0;
 }
@@ -57,7 +57,7 @@ fun decodeRegisters(registers: Array[Int]) -> Array[BytecodeType] {
     result
 }
 
-fun decodeConstPool(constpool: Array[Byte]) -> Array[ConstPoolEntry] {
+fun decodeConstPool(constpool: Array[UInt8]) -> Array[ConstPoolEntry] {
     let constPool = Vec[ConstPoolEntry]();
     let reader = ByteReader(constpool);
 
@@ -94,14 +94,14 @@ fun decodeConstPool(constpool: Array[Byte]) -> Array[ConstPoolEntry] {
     constPool.toArray()
 }
 
-class ByteReader(let array: Array[Byte]) {
+class ByteReader(let array: Array[UInt8]) {
     var idx: Int = 0;
 
     fun moreBytes() -> Bool {
         self.idx < self.array.length()
     }
 
-    fun readByte() -> Byte {
+    fun readByte() -> UInt8 {
         let value = self.array.get(self.idx);
         self.idx = self.idx + 1;
         value

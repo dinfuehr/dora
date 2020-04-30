@@ -2,7 +2,7 @@ fun main() {
   let x = defaultValue[Bool]();
   assert(x == false);
 
-  let x = defaultValue[Byte]();
+  let x = defaultValue[UInt8]();
   assert(x == 0Y);
 
   let x = defaultValue[Char]();

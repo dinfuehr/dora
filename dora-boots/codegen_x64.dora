@@ -12,7 +12,7 @@ class CodeGen(let info: CompilationInfo) {
         self.asm.retq();
     }
 
-    fun generate() -> Array[Byte] {
+    fun generate() -> Array[UInt8] {
         self.prolog();
         self.epilog();
         self.asm.finalize()

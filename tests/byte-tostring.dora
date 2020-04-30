@@ -1,44 +1,44 @@
 fun main() {
-  let x = Byte::minValue().toStringBinary();
+  let x = UInt8::minValue().toStringBinary();
   assert(x == "0");
 
-  let x = Byte::maxValue().toStringBinary();
+  let x = UInt8::maxValue().toStringBinary();
   assert(x == "11111111");
 
-  let x = 12.toByte().toStringBinary();
+  let x = 12.toUInt8().toStringBinary();
   assert(x == "1100");
 
-  let x = 67.toByte().toStringBinary();
+  let x = 67.toUInt8().toStringBinary();
   assert(x == "1000011");
 
-  let x = 129.toByte().toStringBinary();
+  let x = 129.toUInt8().toStringBinary();
   assert(x == "10000001");
 
-  let x = (-1).toByte().toStringBinary();
+  let x = (-1).toUInt8().toStringBinary();
   assert(x == "11111111");
 
-  let x = (-129).toByte().toStringBinary();
+  let x = (-129).toUInt8().toStringBinary();
   assert(x == "1111111");
 
 
-  let x = Byte::minValue().toStringHex();
+  let x = UInt8::minValue().toStringHex();
   assert(x == "0");
 
-  let x = Byte::maxValue().toStringHex();
+  let x = UInt8::maxValue().toStringHex();
   assert(x == "FF");
 
-  let x = 12.toByte().toStringHex();
+  let x = 12.toUInt8().toStringHex();
   assert(x == "C");
 
-  let x = 67.toByte().toStringHex();
+  let x = 67.toUInt8().toStringHex();
   assert(x == "43");
 
-  let x = 129.toByte().toStringHex();
+  let x = 129.toUInt8().toStringHex();
   assert(x == "81");
 
-  let x = (-1).toByte().toStringHex();
+  let x = (-1).toUInt8().toStringHex();
   assert(x == "FF");
 
-  let x = (-129).toByte().toStringHex();
+  let x = (-129).toUInt8().toStringHex();
   assert(x == "7F");
 }

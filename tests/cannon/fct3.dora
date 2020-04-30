@@ -18,10 +18,10 @@ class Foo {
     return true;
   }
 
-  @cannon fun foo_byte() -> Byte {
+  @cannon fun foo_byte() -> UInt8 {
     return self.bar_byte();
   }
-  @cannon fun bar_byte() -> Byte {
+  @cannon fun bar_byte() -> UInt8 {
     return 3Y;
   }
 

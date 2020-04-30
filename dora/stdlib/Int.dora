@@ -1,6 +1,6 @@
 
 @internal class Int {
-  @internal fun toByte() -> Byte;
+  @internal fun toUInt8() -> UInt8;
   fun toChar() -> Option[Char] {
     if self >= 0 && self <= 0x10FFFF && (self < 0xD800 || self > 0xDFFF) {
       some[Char](self.toCharUnchecked())

@@ -34,7 +34,7 @@ fun main() {
 @cannon fun storeBool(x: FooBool, z: Bool) {
     x.y = z;
 }
-@cannon fun storeByte(x: FooByte, z: Byte) {
+@cannon fun storeByte(x: FooByte, z: UInt8) {
     x.y = z;
 }
 @cannon fun storeChar(x: FooChar, z: Char) {
@@ -63,7 +63,7 @@ class FooBool() {
     var y: Bool;
 }
 class FooByte() {
-    var y: Byte;
+    var y: UInt8;
 }
 class FooChar() {
     var y: Char;

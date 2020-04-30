@@ -74,7 +74,7 @@ where
 #[test]
 fn gen_load_field_byte() {
     gen(
-        "class Foo(let bar: Byte) fun f(a: Foo) -> Byte { return a.bar; }",
+        "class Foo(let bar: UInt8) fun f(a: Foo) -> UInt8 { return a.bar; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
             let expected = vec![LoadFieldByte(r(1), r(0), cls, field), RetByte(r(1))];
@@ -169,8 +169,8 @@ fn gen_load_field_ptr() {
 
 #[test]
 fn gen_position_load_field_byte() {
-    let result = position("class Foo(let bar: Byte) fun f(a: Foo) -> Byte { return a.bar; }");
-    let expected = vec![(0, p(1, 58))];
+    let result = position("class Foo(let bar: UInt8) fun f(a: Foo) -> UInt8 { return a.bar; }");
+    let expected = vec![(0, p(1, 60))];
     assert_eq!(expected, result);
 }
 
@@ -226,7 +226,7 @@ fn gen_position_load_field_ptr() {
 #[test]
 fn gen_store_field_byte() {
     gen(
-        "class Foo(var bar: Byte) fun f(a: Foo, b: Byte) { a.bar = b; }",
+        "class Foo(var bar: UInt8) fun f(a: Foo, b: UInt8) { a.bar = b; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
             let expected = vec![StoreFieldByte(r(1), r(0), cls, field), RetVoid];
@@ -321,8 +321,8 @@ fn gen_store_field_ptr() {
 
 #[test]
 fn gen_position_store_field_byte() {
-    let result = position("class Foo(var bar: Byte) fun f(a: Foo, b: Byte) { a.bar = b; }");
-    let expected = vec![(0, p(1, 57))];
+    let result = position("class Foo(var bar: UInt8) fun f(a: Foo, b: UInt8) { a.bar = b; }");
+    let expected = vec![(0, p(1, 59))];
     assert_eq!(expected, result);
 }
 
@@ -611,7 +611,7 @@ fn gen_expr_lit_int() {
 
 #[test]
 fn gen_expr_lit_byte() {
-    let result = code("fun f() -> Byte { return 1Y; }");
+    let result = code("fun f() -> UInt8 { return 1Y; }");
     let expected = vec![ConstByte(r(0), 1), RetByte(r(0))];
     assert_eq!(expected, result);
 }
@@ -668,7 +668,7 @@ fn gen_expr_lit_string_multiple() {
 
 #[test]
 fn gen_expr_lit_byte_zero() {
-    let result = code("fun f() -> Byte { return 0Y; }");
+    let result = code("fun f() -> UInt8 { return 0Y; }");
     let expected = vec![ConstZeroByte(r(0)), RetByte(r(0))];
     assert_eq!(expected, result);
 }
@@ -832,42 +832,42 @@ fn gen_expr_test_notequal_bool() {
 
 #[test]
 fn gen_expr_test_equal_byte() {
-    let result = code("fun f(a: Byte, b: Byte) -> Bool { return a == b; }");
+    let result = code("fun f(a: UInt8, b: UInt8) -> Bool { return a == b; }");
     let expected = vec![TestEqByte(r(2), r(0), r(1)), RetBool(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_notequal_byte() {
-    let result = code("fun f(a: Byte, b: Byte) -> Bool { return a != b; }");
+    let result = code("fun f(a: UInt8, b: UInt8) -> Bool { return a != b; }");
     let expected = vec![TestNeByte(r(2), r(0), r(1)), RetBool(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_lessthan_byte() {
-    let result = code("fun f(a: Byte, b: Byte) -> Bool { return a < b; }");
+    let result = code("fun f(a: UInt8, b: UInt8) -> Bool { return a < b; }");
     let expected = vec![TestLtByte(r(2), r(0), r(1)), RetBool(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_lessthanequal_byte() {
-    let result = code("fun f(a: Byte, b: Byte) -> Bool { return a <= b; }");
+    let result = code("fun f(a: UInt8, b: UInt8) -> Bool { return a <= b; }");
     let expected = vec![TestLeByte(r(2), r(0), r(1)), RetBool(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_greaterthan_byte() {
-    let result = code("fun f(a: Byte, b: Byte) -> Bool { return a > b; }");
+    let result = code("fun f(a: UInt8, b: UInt8) -> Bool { return a > b; }");
     let expected = vec![TestGtByte(r(2), r(0), r(1)), RetBool(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_greaterthanequal_byte() {
-    let result = code("fun f(a: Byte, b: Byte) -> Bool { return a >= b; }");
+    let result = code("fun f(a: UInt8, b: UInt8) -> Bool { return a >= b; }");
     let expected = vec![TestGeByte(r(2), r(0), r(1)), RetBool(r(2))];
     assert_eq!(expected, result);
 }
@@ -1113,11 +1113,14 @@ fn gen_load_global_bool() {
 
 #[test]
 fn gen_load_global_byte() {
-    gen("var a: Byte; fun f() -> Byte { return a; }", |vm, code| {
-        let gid = vm.global_by_name("a");
-        let expected = vec![LoadGlobalByte(r(0), gid), RetByte(r(0))];
-        assert_eq!(expected, code);
-    });
+    gen(
+        "var a: UInt8; fun f() -> UInt8 { return a; }",
+        |vm, code| {
+            let gid = vm.global_by_name("a");
+            let expected = vec![LoadGlobalByte(r(0), gid), RetByte(r(0))];
+            assert_eq!(expected, code);
+        },
+    );
 }
 
 #[test]
@@ -1197,7 +1200,7 @@ fn gen_store_global_bool() {
 
 #[test]
 fn gen_store_global_byte() {
-    gen("var a: Byte; fun f(x: Byte) { a = x; }", |vm, code| {
+    gen("var a: UInt8; fun f(x: UInt8) { a = x; }", |vm, code| {
         let gid = vm.global_by_name("a");
         let expected = vec![StoreGlobalByte(r(0), gid), RetVoid];
         assert_eq!(expected, code);
@@ -1590,9 +1593,9 @@ fn gen_method_call_bool_with_3_args() {
 fn gen_method_call_byte_with_0_args() {
     gen(
         "
-            fun f(foo: Foo) -> Byte { return foo.g(); }
+            fun f(foo: Foo) -> UInt8 { return foo.g(); }
             class Foo {
-                fun g() -> Byte { return 1Y; }
+                fun g() -> UInt8 { return 1Y; }
             }
             ",
         |vm, code| {
@@ -1615,7 +1618,7 @@ fn gen_method_call_byte_with_0_args_and_unused_result() {
         "
             fun f(foo: Foo) { foo.g(); }
             class Foo {
-                fun g() -> Byte { return 1Y; }
+                fun g() -> UInt8 { return 1Y; }
             }
             ",
         |vm, code| {
@@ -1632,9 +1635,9 @@ fn gen_method_call_byte_with_0_args_and_unused_result() {
 fn gen_method_call_byte_with_1_arg() {
     gen(
         "
-            fun f(foo: Foo) -> Byte { return foo.g(1Y); }
+            fun f(foo: Foo) -> UInt8 { return foo.g(1Y); }
             class Foo {
-                fun g(a: Byte) -> Byte { return 1Y; }
+                fun g(a: UInt8) -> UInt8 { return 1Y; }
             }
             ",
         |vm, code| {
@@ -1657,9 +1660,9 @@ fn gen_method_call_byte_with_1_arg() {
 fn gen_method_call_byte_with_3_args() {
     gen(
         "
-            fun f(foo: Foo) -> Byte { return foo.g(1Y, 2Y, 3Y); }
+            fun f(foo: Foo) -> UInt8 { return foo.g(1Y, 2Y, 3Y); }
             class Foo {
-                fun g(a: Byte, b: Byte, c: Byte) -> Byte { return 1Y; }
+                fun g(a: UInt8, b: UInt8, c: UInt8) -> UInt8 { return 1Y; }
             }
             ",
         |vm, code| {
@@ -2543,7 +2546,7 @@ fn gen_position_array_length_effect() {
 
 #[test]
 fn gen_load_array_byte() {
-    let result = code("fun f(a: Array[Byte]) -> Byte { return a(0); }");
+    let result = code("fun f(a: Array[UInt8]) -> UInt8 { return a(0); }");
     let expected = vec![
         ConstZeroInt(r(2)),
         LoadArrayByte(r(1), r(0), r(2)),
@@ -2680,7 +2683,7 @@ fn gen_position_load_array_ptr() {
 
 #[test]
 fn gen_store_array_byte() {
-    let result = code("fun f(a: Array[Byte], b: Byte) { a(0) = b; }");
+    let result = code("fun f(a: Array[UInt8], b: UInt8) { a(0) = b; }");
     let expected = vec![
         ConstZeroInt(Register(2)),
         StoreArrayByte(r(1), r(0), r(2)),
@@ -2869,9 +2872,9 @@ fn gen_self_for_bool() {
 fn gen_self_for_byte() {
     let result = code_method_with_class_name(
         "trait MyId { fun f() -> Self; }
-            impl MyId for Byte { fun f() -> Byte { return self; } }
+            impl MyId for UInt8 { fun f() -> UInt8 { return self; } }
             ",
-        "Byte",
+        "UInt8",
     );
     let expected = vec![RetByte(r(0))];
     assert_eq!(expected, result);
@@ -2953,9 +2956,9 @@ fn gen_self_assign_for_bool() {
 fn gen_self_assign_for_byte() {
     let result = code_method_with_class_name(
         "trait MyId { fun f(); }
-            impl MyId for Byte { fun f() { let x = self; } }
+            impl MyId for UInt8 { fun f() { let x = self; } }
             ",
-        "Byte",
+        "UInt8",
     );
     let expected = vec![MovByte(r(1), r(0)), RetVoid];
     assert_eq!(expected, result);
@@ -3201,7 +3204,7 @@ fn gen_string_length() {
 
 #[test]
 fn gen_string_get_byte() {
-    let result = code("fun f(x: String, idx: Int) -> Byte { x.getByte(0) }");
+    let result = code("fun f(x: String, idx: Int) -> UInt8 { x.getByte(0) }");
     let expected = vec![
         ConstZeroInt(r(3)),
         LoadArrayByte(r(2), r(0), r(3)),
@@ -3316,11 +3319,11 @@ fn gen_cmp_strings() {
 
 #[test]
 fn gen_extend_byte() {
-    let result = code("fun f(x: Byte) -> Int { x.toInt() }");
+    let result = code("fun f(x: UInt8) -> Int { x.toInt() }");
     let expected = vec![ExtendByteToInt(r(1), r(0)), RetInt(r(1))];
     assert_eq!(expected, result);
 
-    let result = code("fun f(x: Byte) -> Int64 { x.toInt64() }");
+    let result = code("fun f(x: UInt8) -> Int64 { x.toInt64() }");
     let expected = vec![ExtendByteToLong(r(1), r(0)), RetLong(r(1))];
     assert_eq!(expected, result);
 }
@@ -3345,7 +3348,7 @@ fn gen_cast_char() {
 
 #[test]
 fn gen_cast_int() {
-    let result = code("fun f(x: Int) -> Byte { x.toByte() }");
+    let result = code("fun f(x: Int) -> UInt8 { x.toUInt8() }");
     let expected = vec![CastIntToByte(r(1), r(0)), RetByte(r(1))];
     assert_eq!(expected, result);
 
@@ -3356,7 +3359,7 @@ fn gen_cast_int() {
 
 #[test]
 fn gen_cast_long() {
-    let result = code("fun f(x: Int64) -> Byte { x.toByte() }");
+    let result = code("fun f(x: Int64) -> UInt8 { x.toUInt8() }");
     let expected = vec![CastLongToByte(r(1), r(0)), RetByte(r(1))];
     assert_eq!(expected, result);
 
@@ -3447,7 +3450,7 @@ fn gen_vec_store() {
 
 #[test]
 fn gen_byte_to_char() {
-    let result = code("fun f(x: Byte) -> Char { x.toChar() }");
+    let result = code("fun f(x: UInt8) -> Char { x.toChar() }");
     let expected = vec![ExtendByteToChar(r(1), r(0)), RetChar(r(1))];
     assert_eq!(expected, result);
 }

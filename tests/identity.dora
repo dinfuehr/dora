@@ -1,6 +1,6 @@
 fun main() {
-    let b1 = 1.toByte();
-    let b2 = 2.toByte();
+    let b1 = 1.toUInt8();
+    let b2 = 2.toUInt8();
     assert(b1 === b1);
     assert(b1 !== b2);
 

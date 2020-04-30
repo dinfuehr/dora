@@ -24,8 +24,8 @@ fun main() {
     assert(buffer(4) == 0Y);
 }
 
-fun write(ch: Char) -> Array[Byte] {
-    let buffer = Array[Byte](5);
+fun write(ch: Char) -> Array[UInt8] {
+    let buffer = Array[UInt8](5);
     ch.encodeUtf8(buffer, 0);
     return buffer;
 }

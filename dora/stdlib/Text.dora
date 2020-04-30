@@ -11,9 +11,9 @@ class Text(let value: String, let locale: Locale) {
 
   fun toString() -> String = "Text(" + self.value + ", " + self.locale.toString() + ")";
 
-  fun asBytes() -> Array[Byte] {
+  fun asBytes() -> Array[UInt8] {
     unimplemented();
-    return arrayEmpty[Byte]();
+    return arrayEmpty[UInt8]();
   }
 
   fun isEmpty() -> Bool = self.value.isEmpty();

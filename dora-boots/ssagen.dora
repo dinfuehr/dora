@@ -516,7 +516,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         self.currentBlock.appendInst(inst);
         self.writeVariable(dest, self.currentBlock, inst);
     }
-    @override fun visitConstByte(dest: BytecodeRegister, value: Byte) { unimplemented(); }
+    @override fun visitConstByte(dest: BytecodeRegister, value: UInt8) { unimplemented(); }
     @override fun visitConstChar(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
     @override fun visitConstInt(dest: BytecodeRegister, idx: ConstPoolId) {
         let value = self.bc.constPool(idx).toInt().unwrap();

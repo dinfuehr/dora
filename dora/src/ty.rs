@@ -254,7 +254,7 @@ impl BuiltinType {
             BuiltinType::Error => "<error>".into(),
             BuiltinType::Any => "Any".into(),
             BuiltinType::Unit => "()".into(),
-            BuiltinType::Byte => "Byte".into(),
+            BuiltinType::Byte => "UInt8".into(),
             BuiltinType::Char => "Char".into(),
             BuiltinType::Int => "Int".into(),
             BuiltinType::Int64 => "Int64".into(),

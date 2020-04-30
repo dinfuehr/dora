@@ -1,4 +1,4 @@
-class BytecodeFunction(let code: Array[Byte], let const_pool: Array[ConstPoolEntry], let registers: Array[BytecodeType], let arguments: Int) {
+class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEntry], let registers: Array[BytecodeType], let arguments: Int) {
     fun constPool(idx: ConstPoolId) -> ConstPoolEntry {
         self.const_pool.get(idx.value)
     }

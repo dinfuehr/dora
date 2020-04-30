@@ -5,7 +5,7 @@ fun main() {
     assert(array(0) == false);
     assert(array(9) == false);
 
-    let array = arrayZero[Byte](10);
+    let array = arrayZero[UInt8](10);
     assert(array(0) == 0Y);
     assert(array(9) == 0Y);
 

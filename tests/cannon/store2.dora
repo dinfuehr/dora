@@ -1,6 +1,6 @@
 var glob_bool: Bool;
 var glob_char: Char;
-var glob_byte: Byte;
+var glob_byte: UInt8;
 var glob_int: Int;
 var glob_long: Int64;
 var glob_float: Float;
@@ -23,7 +23,7 @@ fun main() {
     assert(glob_obj === obj);
 }
 
-@cannon fun init_globs(bool: Bool, char: Char, byte: Byte, int: Int, long: Int64, float: Float, double: Double, string: String, obj: Foo) {
+@cannon fun init_globs(bool: Bool, char: Char, byte: UInt8, int: Int, long: Int64, float: Float, double: Double, string: String, obj: Foo) {
     glob_bool = bool;
     glob_char = char;
     glob_byte = byte;

@@ -45,18 +45,18 @@ fun bubbleSort[T: Comparable](array: Array[T]) {
   }
 }
 
-fun isValidUtf8(data: Array[Byte]) -> Bool {
+fun isValidUtf8(data: Array[UInt8]) -> Bool {
   var i = 0;
 
   while i < data.length() {
     let by = data.get(i).toInt();
     var codePoint = 0;
-    var nextBytes = 0;
+    var nextUInt8s = 0;
     var min = 0;
     var max = 0;
 
     if by & 0x80 == 0 {
-      nextBytes = 0;
+      nextUInt8s = 0;
       i = i + 1;
       continue;
 
@@ -65,25 +65,25 @@ fun isValidUtf8(data: Array[Byte]) -> Bool {
 
     } else if by & 0xE0 == 0xC0 {
       codePoint = by & 0x1F;
-      nextBytes = 1;
+      nextUInt8s = 1;
       min = 0x80;
       max = 0x7FF;
 
     } else if by & 0xF0 == 0xE0 {
       codePoint = by & 0xF;
-      nextBytes = 2;
+      nextUInt8s = 2;
       min = 0x800;
       max = 0xFFFF;
 
     } else if by & 0xF8 == 0xF0 {
       codePoint = by & 0x7;
-      nextBytes = 3;
+      nextUInt8s = 3;
       min = 0x10000;
       max = 0x10FFFF;
     }
 
-    while nextBytes > 0 {
-      nextBytes = nextBytes - 1;
+    while nextUInt8s > 0 {
+      nextUInt8s = nextUInt8s - 1;
       i = i + 1;
 
       if i >= data.length() {

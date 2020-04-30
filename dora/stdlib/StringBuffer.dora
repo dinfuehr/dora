@@ -1,5 +1,5 @@
 class StringBuffer() {
-  var buf: Array[Byte] = arrayEmpty[Byte]();
+  var buf: Array[UInt8] = arrayEmpty[UInt8]();
   var len: Int = 0;
 
   @static fun empty() -> StringBuffer = StringBuffer();
@@ -20,7 +20,7 @@ class StringBuffer() {
     }
 
     let newcap = self.newCapacity(elements);
-    let newbuf = Array[Byte](newcap);
+    let newbuf = Array[UInt8](newcap);
     var i = 0;
 
     while i < self.buf.length() {

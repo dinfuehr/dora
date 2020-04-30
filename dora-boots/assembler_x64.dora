@@ -21,12 +21,12 @@ class AssemblerX64: Assembler {
 
     fun pushqr(reg: Register) {
         self.emitRexOptional(reg);
-        self.emitByte((0x50 + reg.lowBits()).toByte());
+        self.emitByte((0x50 + reg.lowBits()).toUInt8());
     }
 
     fun popqr(reg: Register) {
         self.emitRexOptional(reg);
-        self.emitByte((0x58 + reg.lowBits()).toByte());
+        self.emitByte((0x58 + reg.lowBits()).toUInt8());
     }
 
     fun addqri(reg: Register, imm: Immediate) {
@@ -75,7 +75,7 @@ class AssemblerX64: Assembler {
             self.emitInt32(imm.toInt32());
         } else {
             self.emitRex64RmField(dest);
-            self.emitByte((0xB8 + dest.lowBits()).toByte());
+            self.emitByte((0xB8 + dest.lowBits()).toUInt8());
             self.emitInt64(imm.toInt64());
         }
     }
@@ -83,7 +83,7 @@ class AssemblerX64: Assembler {
     fun movlri(dest: Register, imm: Immediate) {
         assert(imm.isInt32());
         self.emitRex32RmFieldOptional(dest);
-        self.emitByte((0xB8 + dest.lowBits()).toByte());
+        self.emitByte((0xB8 + dest.lowBits()).toUInt8());
         self.emitInt32(imm.toInt32());
     }
 
@@ -185,7 +185,7 @@ class AssemblerX64: Assembler {
         }
 
         self.emitByte(0x0FY);
-        self.emitByte((0x90 + condition.toInt()).toByte());
+        self.emitByte((0x90 + condition.toInt()).toUInt8());
         self.emitModRmOpcode(0, dest);
     }
 
@@ -198,14 +198,14 @@ class AssemblerX64: Assembler {
     fun cmovl(condition: Condition, dest: Register, src: Register) {
         self.emitRex32ModRmOptional(dest, src);
         self.emitByte(0x0FY);
-        self.emitByte((0x40 + condition.toInt()).toByte());
+        self.emitByte((0x40 + condition.toInt()).toUInt8());
         self.emitModRmReg(dest, src);
     }
 
     fun cmovq(condition: Condition, dest: Register, src: Register) {
         self.emitRex64ModRm(dest, src);
         self.emitByte(0x0FY);
-        self.emitByte((0x40 + condition.toInt()).toByte());
+        self.emitByte((0x40 + condition.toInt()).toUInt8());
         self.emitModRmReg(dest, src);
     }
 
@@ -226,14 +226,14 @@ class AssemblerX64: Assembler {
         self.emitByte(0x99Y);
     }
 
-    fun emitAlu64Imm(reg: Register, imm: Immediate, modrm_reg: Int, rax_opcode: Byte) {
+    fun emitAlu64Imm(reg: Register, imm: Immediate, modrm_reg: Int, rax_opcode: UInt8) {
         assert(imm.isInt32());
         self.emitRex64RmField(reg);
 
         if imm.isInt8() {
             self.emitByte(0x83Y);
             self.emitModRm(0b11, modrm_reg, reg.lowBits());
-            self.emitByte(imm.toByte());
+            self.emitByte(imm.toUInt8());
         } else if reg == RAX {
             self.emitByte(rax_opcode);
             self.emitInt32(imm.toInt32());
@@ -280,7 +280,7 @@ class AssemblerX64: Assembler {
         // x - extension of sib index field
         // b - extension of modrm-rm/sib base/opcode reg field
         let opcode = 0x40 | w.toInt() << 3 | r.toInt() << 2 | x.toInt() << 1 | b.toInt();
-        self.emitByte(opcode.toByte());
+        self.emitByte(opcode.toUInt8());
     }
 
     fun emitModRmReg(reg: Register, rm: Register) {
@@ -293,17 +293,17 @@ class AssemblerX64: Assembler {
 
     fun emitModRm(mode: Int, reg: Int, rm: Int) {
         assert(mode < 4 && reg < 8 && rm < 8);
-        self.emitByte((mode << 6 | reg << 3 | rm).toByte());
+        self.emitByte((mode << 6 | reg << 3 | rm).toUInt8());
     }
 
     fun emitSib(scale: Int, index: Int, base: Int) {
         assert(scale < 4);
         assert(index < 8);
         assert(base < 8);
-        self.emitByte((scale << 6 | index << 3 | base).toByte());
+        self.emitByte((scale << 6 | index << 3 | base).toUInt8());
     }
 
-    fun emitByte(value: Byte) {
+    fun emitByte(value: UInt8) {
         self.buffer.emitByte(value);
     }
 
@@ -315,7 +315,7 @@ class AssemblerX64: Assembler {
         self.buffer.emitInt64(value);
     }
 
-    fun finalize() -> Array[Byte] {
+    fun finalize() -> Array[UInt8] {
         self.buffer.toArray()
     }
 }
@@ -427,8 +427,8 @@ class Immediate(let value: Int64) {
         -limit <= self.value && self.value < limit
     }
 
-    fun toByte() -> Byte {
-        self.value.toByte()
+    fun toUInt8() -> UInt8 {
+        self.value.toUInt8()
     }
 
     fun toInt32() -> Int {

@@ -1,4 +1,4 @@
-@internal class Byte {
+@internal class UInt8 {
   @internal fun toChar() -> Char;
   @internal fun toInt() -> Int;
   @internal fun toInt64() -> Int64;
@@ -7,14 +7,14 @@
   fun toStringBinary() -> String = String::binary(self.toInt64());
   fun toStringHex() -> String = String::hex(self.toInt64());
 
-  @internal fun equals(rhs: Byte) -> Bool;
-  @internal fun compareTo(rhs: Byte) -> Int;
+  @internal fun equals(rhs: UInt8) -> Bool;
+  @internal fun compareTo(rhs: UInt8) -> Int;
 
   fun hash() -> Int = self.toInt();
 
   @static fun bits() -> Int = 8;
   @static fun bytes() -> Int = 1;
 
-  @static fun maxValue() -> Byte = 255Y;
-  @static fun minValue() -> Byte = 0Y;
+  @static fun maxValue() -> UInt8 = 255Y;
+  @static fun minValue() -> UInt8 = 0Y;
 }

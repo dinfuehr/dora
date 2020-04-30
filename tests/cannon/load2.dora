@@ -1,6 +1,6 @@
 var glob_bool: Bool;
 var glob_char: Char;
-var glob_byte: Byte;
+var glob_byte: UInt8;
 var glob_int: Int;
 var glob_long: Int64;
 var glob_float: Float;
@@ -38,7 +38,7 @@ fun init_globs() {
 @cannon fun loadGlobalBool() -> Bool {
     return glob_bool;
 }
-@cannon fun loadGlobalByte() -> Byte {
+@cannon fun loadGlobalByte() -> UInt8 {
     return glob_byte;
 }
 @cannon fun loadGlobalChar() -> Char {

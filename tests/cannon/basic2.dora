@@ -21,7 +21,7 @@ fun main() {
     return y;
 }
 
-@cannon fun moveByte(x: Byte) -> Byte {
+@cannon fun moveByte(x: UInt8) -> UInt8 {
     let y = x;
     return y;
 }

@@ -6,8 +6,8 @@ impl Identity for Bool {
   fun identicalTo(other: Bool) -> Bool = self === other;
 }
 
-impl Identity for Byte {
-  fun identicalTo(other: Byte) -> Bool = self === other;
+impl Identity for UInt8 {
+  fun identicalTo(other: UInt8) -> Bool = self === other;
 }
 
 impl Identity for Int {

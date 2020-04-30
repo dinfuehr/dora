@@ -6,8 +6,8 @@ impl Equals for Bool {
   fun equals(other: Bool) -> Bool = self == other;
 }
 
-impl Equals for Byte {
-  fun equals(other: Byte) -> Bool = self == other;
+impl Equals for UInt8 {
+  fun equals(other: UInt8) -> Bool = self == other;
 }
 
 impl Equals for Int {

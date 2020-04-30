@@ -60,7 +60,7 @@ class AssemblerArm64: Assembler {
         self.buffer.emitInt(inst);
     }
 
-    fun finalize() -> Array[Byte] {
+    fun finalize() -> Array[UInt8] {
         self.buffer.toArray()
     }
 }

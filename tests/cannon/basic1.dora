@@ -17,7 +17,7 @@ fun main() {
     return '5';
 }
 
-@cannon fun returnByte() -> Byte {
+@cannon fun returnByte() -> UInt8 {
     return 5Y;
 }
 

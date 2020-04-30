@@ -1,11 +1,11 @@
 //= cannon
 
 fun main() {
-    let x = 257.toByte();
-    assert(x == 1.toByte());
+    let x = 257.toUInt8();
+    assert(x == 1.toUInt8());
 
-    let x = (-1).toByte();
-    assert(x == 255.toByte());
+    let x = (-1).toUInt8();
+    assert(x == 255.toUInt8());
 
     let x = 129Y.toInt();
     assert(x == 129);

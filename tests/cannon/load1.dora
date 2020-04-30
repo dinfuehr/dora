@@ -18,7 +18,7 @@ fun main() {
 @cannon fun loadBool(x: FooBool) -> Bool {
     return x.y;
 }
-@cannon fun loadByte(x: FooByte) -> Byte {
+@cannon fun loadByte(x: FooByte) -> UInt8 {
     return x.y;
 }
 @cannon fun loadChar(x: FooChar) -> Char {
@@ -44,7 +44,7 @@ fun main() {
 }
 
 class FooBool(let y: Bool)
-class FooByte(let y: Byte)
+class FooByte(let y: UInt8)
 class FooChar(let y: Char)
 class FooInt(let y: Int)
 class FooInt64(let y: Int64)

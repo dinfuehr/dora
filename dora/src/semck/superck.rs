@@ -303,7 +303,7 @@ mod tests {
             assert_eq!(InstanceSize::Str, class_size_name(vm, "String"));
             assert_eq!(InstanceSize::Fixed(16), class_size_name(vm, "Bool"));
             assert_eq!(InstanceSize::Fixed(16), class_size_name(vm, "Int"));
-            assert_eq!(InstanceSize::Fixed(16), class_size_name(vm, "Byte"));
+            assert_eq!(InstanceSize::Fixed(16), class_size_name(vm, "UInt8"));
             assert_eq!(InstanceSize::Fixed(16), class_size_name(vm, "Int64"));
         });
     }

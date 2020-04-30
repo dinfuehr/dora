@@ -1,7 +1,7 @@
 fun main() {
   assert(true.hash() == 1);
   assert(false.hash() == 0);
-  assert(1.toByte().hash() == 1);
+  assert(1.toUInt8().hash() == 1);
   assert(1.hash() == 1);
   assert(1L.hash() == 1);
   assert(1.0F.hash() == 1065353216);

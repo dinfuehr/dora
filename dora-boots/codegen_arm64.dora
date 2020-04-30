@@ -1,7 +1,7 @@
 class CodeGen(let info: CompilationInfo) {
     let asm: AssemblerArm64 = AssemblerArm64();
 
-    fun generate() -> Array[Byte] {
+    fun generate() -> Array[UInt8] {
       self.asm.ret();
       self.asm.finalize()
     }

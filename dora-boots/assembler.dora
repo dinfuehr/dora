@@ -1,15 +1,15 @@
 class AssemblerBuffer {
-    let buffer: Vec[Byte] = Vec[Byte]();
+    let buffer: Vec[UInt8] = Vec[UInt8]();
 
-    fun emitByte(value: Byte) {
+    fun emitByte(value: UInt8) {
         self.buffer.push(value);
     }
 
     fun emitInt32(value: Int) {
-        self.emitByte((value & 0xFF).toByte());
-        self.emitByte(((value >>> 8) & 0xFF).toByte());
-        self.emitByte(((value >>> 16) & 0xFF).toByte());
-        self.emitByte(((value >>> 24) & 0xFF).toByte());
+        self.emitByte((value & 0xFF).toUInt8());
+        self.emitByte(((value >>> 8) & 0xFF).toUInt8());
+        self.emitByte(((value >>> 16) & 0xFF).toUInt8());
+        self.emitByte(((value >>> 24) & 0xFF).toUInt8());
     }
 
     fun emitInt64(value: Int64) {
@@ -25,7 +25,7 @@ class AssemblerBuffer {
         self.buffer.capacity()
     }
 
-    fun toArray() -> Array[Byte] {
+    fun toArray() -> Array[UInt8] {
         self.buffer.toArray()
     }
 }
@@ -60,7 +60,7 @@ class Register(let value: Int) {
     }
 }
 
-fun assertAsm(buffer: Array[Byte], start: Int, bytes: Byte...) {
+fun assertAsm(buffer: Array[UInt8], start: Int, bytes: UInt8...) {
     var idx = 0;
 
     while idx < bytes.length() {
@@ -76,7 +76,7 @@ fun assertAsm(buffer: Array[Byte], start: Int, bytes: Byte...) {
     }
 }
 
-fun assertAsmInt(buffer: Array[Byte], index: Int, value: Int) {
+fun assertAsmInt(buffer: Array[UInt8], index: Int, value: Int) {
     let b1 = buffer(index).toInt();
     let b2 = buffer(index+1).toInt();
     let b3 = buffer(index+2).toInt();
@@ -91,12 +91,12 @@ fun assertAsmInt(buffer: Array[Byte], index: Int, value: Int) {
     assert(value == got);
 }
 
-fun assertAsmInt64(buffer: Array[Byte], index: Int, value: Int64) {
+fun assertAsmInt64(buffer: Array[UInt8], index: Int, value: Int64) {
     assertAsmInt(buffer, index, value.toInt());
     assertAsmInt(buffer, index, (value >>> 32).toInt());
 }
 
-fun printBuffer(buffer: Array[Byte]) {
+fun printBuffer(buffer: Array[UInt8]) {
     var i = 0;
 
     while i < buffer.length() {

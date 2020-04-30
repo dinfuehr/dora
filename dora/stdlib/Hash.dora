@@ -7,7 +7,7 @@ impl Hash for Bool {
   fun hash() -> Int = self.hash();
 }
 
-impl Hash for Byte {
+impl Hash for UInt8 {
   fun hash() -> Int = self.hash();
 }
 

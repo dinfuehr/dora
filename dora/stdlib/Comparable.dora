@@ -11,8 +11,8 @@ impl Comparable for Bool {
   fun compareTo(other: Bool) -> Int = self.compareTo(other);
 }
 
-impl Comparable for Byte {
-  fun compareTo(other: Byte) -> Int = self.compareTo(other);
+impl Comparable for UInt8 {
+  fun compareTo(other: UInt8) -> Int = self.compareTo(other);
 }
 
 impl Comparable for Int {

@@ -1,4 +1,4 @@
-fun readBytecode(code: Array[Byte], visitor: BytecodeVisitor) {
+fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     BytecodeReader(code, visitor).read();
 }
 
@@ -146,7 +146,7 @@ fun readBytecode(code: Array[Byte], visitor: BytecodeVisitor) {
     @open fun visitConstZeroLong(dest: BytecodeRegister) { unimplemented(); }
     @open fun visitConstZeroFloat(dest: BytecodeRegister) { unimplemented(); }
     @open fun visitConstZeroDouble(dest: BytecodeRegister) { unimplemented(); }
-    @open fun visitConstByte(dest: BytecodeRegister, value: Byte) { unimplemented(); }
+    @open fun visitConstByte(dest: BytecodeRegister, value: UInt8) { unimplemented(); }
     @open fun visitConstChar(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
     @open fun visitConstInt(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
     @open fun visitConstLong(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
@@ -401,7 +401,7 @@ fun readBytecode(code: Array[Byte], visitor: BytecodeVisitor) {
     @override fun visitConstZeroLong(dest: BytecodeRegister) {}
     @override fun visitConstZeroFloat(dest: BytecodeRegister) {}
     @override fun visitConstZeroDouble(dest: BytecodeRegister) {}
-    @override fun visitConstByte(dest: BytecodeRegister, value: Byte) {}
+    @override fun visitConstByte(dest: BytecodeRegister, value: UInt8) {}
     @override fun visitConstChar(dest: BytecodeRegister, idx: ConstPoolId) {}
     @override fun visitConstInt(dest: BytecodeRegister, idx: ConstPoolId) {}
     @override fun visitConstLong(dest: BytecodeRegister, idx: ConstPoolId) {}
@@ -514,7 +514,7 @@ fun readBytecode(code: Array[Byte], visitor: BytecodeVisitor) {
     @override fun visitRetPtr(opnd: BytecodeRegister) {}
 }
 
-class BytecodeReader(let data: Array[Byte], let visitor: BytecodeVisitor) {
+class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
     var pos: Int = 0;
     var length: Int = data.length();
 
@@ -789,7 +789,7 @@ class BytecodeReader(let data: Array[Byte], let visitor: BytecodeVisitor) {
         } else if opcode == BC_CAST_LONG_TO_BYTE {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
-            self.visitor.visitCastLongToByte(dest, src);
+            self.visitor.visitCastLongToChar(dest, src);
 
         } else if opcode == BC_CAST_LONG_TO_CHAR {
             let dest = self.readRegister(wide);
@@ -1098,7 +1098,7 @@ class BytecodeReader(let data: Array[Byte], let visitor: BytecodeVisitor) {
             self.visitor.visitConstZeroDouble(dest);
         } else if opcode == BC_CONST_BYTE {
             let dest = self.readRegister(wide);
-            let value = self.readByte().toByte();
+            let value = self.readByte().toUInt8();
             self.visitor.visitConstByte(dest, value);
         } else if opcode == BC_CONST_CHAR {
             let dest = self.readRegister(wide);

@@ -248,7 +248,7 @@ class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
     @override fun visitConstZeroLong(dest: BytecodeRegister) { self.emitReg1("ConstZeroLong", dest); }
     @override fun visitConstZeroFloat(dest: BytecodeRegister) { self.emitReg1("ConstZeroFloat", dest); }
     @override fun visitConstZeroDouble(dest: BytecodeRegister) { self.emitReg1("ConstZeroDouble", dest); }
-    @override fun visitConstByte(dest: BytecodeRegister, value: Byte) { self.emitReg1AndInt("ConstByte", dest, value.toInt()); }
+    @override fun visitConstByte(dest: BytecodeRegister, value: UInt8) { self.emitReg1AndInt("ConstByte", dest, value.toInt()); }
     @override fun visitConstChar(dest: BytecodeRegister, idx: ConstPoolId) { self.emitReg1AndIdx("ConstChar", dest, idx); }
     @override fun visitConstInt(dest: BytecodeRegister, idx: ConstPoolId) { self.emitReg1AndIdx("ConstInt", dest, idx); }
     @override fun visitConstLong(dest: BytecodeRegister, idx: ConstPoolId) { self.emitReg1AndIdx("ConstLong", dest, idx); }

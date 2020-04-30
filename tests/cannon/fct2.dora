@@ -17,12 +17,12 @@ fun bar_bool(a: Bool) -> Bool {
   return !a;
 }
 
-@cannon fun foo_byte() -> Byte {
+@cannon fun foo_byte() -> UInt8 {
   return bar_byte(3Y);
 }
-fun bar_byte(a: Byte) -> Byte {
+fun bar_byte(a: UInt8) -> UInt8 {
   assert(a == 3Y);
-  return (3+a.toInt()).toByte();
+  return (3+a.toInt()).toUInt8();
 }
 
 @cannon fun foo_char() -> Char {

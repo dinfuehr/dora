@@ -2321,7 +2321,7 @@ pub fn check_lit_int(
     };
 
     let ty_name = match ty {
-        BuiltinType::Byte => "Byte",
+        BuiltinType::Byte => "UInt8",
         BuiltinType::Int => "Int",
         BuiltinType::Int64 => "Int64",
         _ => unreachable!(),

@@ -1,5 +1,5 @@
 class BytecodeWriter {
-    let code: Vec[Byte] = Vec[Byte]();
+    let code: Vec[UInt8] = Vec[UInt8]();
     let constPool: Vec[ConstPoolEntry] = Vec[ConstPoolEntry]();
     let registers: Vec[BytecodeType] = Vec[BytecodeType]();
     let unresolvedJumps: Vec[UnresolvedJump] = Vec[UnresolvedJump]();
@@ -230,7 +230,7 @@ class BytecodeWriter {
         self.emitReg2(BC_CAST_CHAR_TO_INT, dest, src);
     }
 
-    fun emitCastIntToByte(dest: BytecodeRegister, src: BytecodeRegister) {
+    fun emitCastInttoUInt8(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_CAST_INT_TO_BYTE, dest, src);
     }
 
@@ -238,7 +238,7 @@ class BytecodeWriter {
         self.emitReg2(BC_CAST_INT_TO_CHAR, dest, src);
     }
 
-    fun emitCastLongToByte(dest: BytecodeRegister, src: BytecodeRegister) {
+    fun emitCastLongtoUInt8(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_CAST_LONG_TO_BYTE, dest, src);
     }
 
@@ -490,7 +490,7 @@ class BytecodeWriter {
         self.emitReg1(BC_CONST_ZERO_DOUBLE, dest);
     }
 
-    fun emitConstByte(dest: BytecodeRegister, value: Byte) {
+    fun emitConstByte(dest: BytecodeRegister, value: UInt8) {
         self.emitReg1AndByte(BC_CONST_BYTE, dest, value);
     }
 
@@ -907,8 +907,8 @@ class BytecodeWriter {
                     -1
                 };
 
-                self.code.set(jump.inst, opcode.toByte());
-                self.code.set(jump.target, offset.toByte());
+                self.code.set(jump.inst, opcode.toUInt8());
+                self.code.set(jump.target, offset.toUInt8());
             }
 
             i = i + 1;
@@ -971,7 +971,7 @@ class BytecodeWriter {
         self.emitVal3(inst, r1.value, idx.value);
     }
 
-    fun emitReg1AndByte(inst: Int, r1: BytecodeRegister, offset: Byte) {
+    fun emitReg1AndByte(inst: Int, r1: BytecodeRegister, offset: UInt8) {
         self.emitVal2(inst, r1.value);
         self.emitByte(offset.toInt());
     }
@@ -1077,7 +1077,7 @@ class BytecodeWriter {
 
     fun emitByte(val: Int) {
         assert(val >= 0 && val <= 255);
-        self.code.push(val.toByte());
+        self.code.push(val.toUInt8());
     }
 
     fun emitInt(val: Int) {
@@ -1090,10 +1090,10 @@ class BytecodeWriter {
 
     fun patchInt(idx: Int, val: Int) {
         assert(val >= 0);
-        self.code.set(idx, (val & 0xFF).toByte());
-        self.code.set(idx + 1, ((val >>> 8) & 0xFF).toByte());
-        self.code.set(idx + 2 , ((val >>> 16) & 0xFF).toByte());
-        self.code.set(idx + 3, ((val >>> 24) & 0xFF).toByte());
+        self.code.set(idx, (val & 0xFF).toUInt8());
+        self.code.set(idx + 1, ((val >>> 8) & 0xFF).toUInt8());
+        self.code.set(idx + 2 , ((val >>> 16) & 0xFF).toUInt8());
+        self.code.set(idx + 3, ((val >>> 24) & 0xFF).toUInt8());
     }
 }
 

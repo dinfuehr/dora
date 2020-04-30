@@ -1,6 +1,6 @@
 let typeUnit: Type = Type(TypeKind::Unit);
 let typeBool: Type = Type(TypeKind::Bool);
-let typeByte: Type = Type(TypeKind::Byte);
+let typeByte: Type = Type(TypeKind::UInt8);
 let typeChar: Type = Type(TypeKind::Char);
 let typeInt: Type = Type(TypeKind::Int);
 let typeLong: Type = Type(TypeKind::Long);
@@ -44,7 +44,7 @@ class Type(let kind: TypeKind) {
     }
 
     fun is_unit() -> Bool { return self.kind == TypeKind::Unit; }
-    fun is_byte() -> Bool { return self.kind == TypeKind::Byte; }
+    fun is_byte() -> Bool { return self.kind == TypeKind::UInt8; }
     fun is_int() -> Bool { return self.kind == TypeKind::Int; }
     fun is_long() -> Bool { return self.kind == TypeKind::Long; }
     fun is_float() -> Bool { return self.kind == TypeKind::Float; }
@@ -63,7 +63,7 @@ impl Stringable for Type {
 }
 
 enum TypeKind {
-    Unit, Bool, Byte, Char, Int, Long, Float, Double, Ptr
+    Unit, Bool, UInt8, Char, Int, Long, Float, Double, Ptr
 }
 
 impl TypeKind {
@@ -72,8 +72,8 @@ impl TypeKind {
             "Unit"
         } else if self == TypeKind::Bool {
             "Bool"
-        } else if self == TypeKind::Byte {
-            "Byte"
+        } else if self == TypeKind::UInt8 {
+            "UInt8"
         } else if self == TypeKind::Int {
             "Int"
         } else if self == TypeKind::Long {

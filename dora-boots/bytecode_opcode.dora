@@ -491,10 +491,10 @@ fun bytecodeName(opcode: Int) -> String {
 
 fun bytecodeTypeName(code: Int) -> String {
   if code == BC_TYPE_BOOL { return "Bool"; }
-  if code == BC_TYPE_BYTE { return "Byte"; }
+  if code == BC_TYPE_BYTE { return "UInt8"; }
   if code == BC_TYPE_CHAR { return "Char"; }
   if code == BC_TYPE_INT { return "Int"; }
-  if code == BC_TYPE_LONG { return "Long"; }
+  if code == BC_TYPE_LONG { return "Int64"; }
   if code == BC_TYPE_FLOAT { return "Float"; }
   if code == BC_TYPE_DOUBLE { return "Double"; }
   if code == BC_TYPE_PTR { return "Ptr"; }

@@ -6,8 +6,8 @@ impl Default for Bool {
   @static fun default() -> Bool = false;
 }
 
-impl Default for Byte {
-  @static fun default() -> Byte = 0Y;
+impl Default for UInt8 {
+  @static fun default() -> UInt8 = 0Y;
 }
 
 impl Default for Char {

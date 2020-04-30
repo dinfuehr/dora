@@ -10,8 +10,8 @@ impl Sortable for Bool {
   fun sortsAs(other: Bool) -> Int = self.compareTo(other);
 }
 
-impl Sortable for Byte {
-  fun sortsAs(other: Byte) -> Int = self.compareTo(other);
+impl Sortable for UInt8 {
+  fun sortsAs(other: UInt8) -> Int = self.compareTo(other);
 }
 
 impl Sortable for Int {

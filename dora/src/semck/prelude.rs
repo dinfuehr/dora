@@ -16,7 +16,7 @@ pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {
     vm.vips.unit_class = internal_class(vm, "Unit", Some(BuiltinType::Unit));
     vm.vips.bool_class = internal_class(vm, "Bool", Some(BuiltinType::Bool));
 
-    vm.vips.byte_class = internal_class(vm, "Byte", Some(BuiltinType::Byte));
+    vm.vips.byte_class = internal_class(vm, "UInt8", Some(BuiltinType::Byte));
     vm.vips.char_class = internal_class(vm, "Char", Some(BuiltinType::Char));
     vm.vips.int_class = internal_class(vm, "Int", Some(BuiltinType::Int));
     vm.vips.int64_class = internal_class(vm, "Int64", Some(BuiltinType::Int64));
@@ -188,7 +188,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_method(vm, clsid, "compareTo", Intrinsic::CharCmp);
 
     let clsid = vm.vips.int_class;
-    intrinsic_method(vm, clsid, "toByte", Intrinsic::IntToByte);
+    intrinsic_method(vm, clsid, "toUInt8", Intrinsic::IntToByte);
     intrinsic_method(vm, clsid, "toCharUnchecked", Intrinsic::IntToChar);
     intrinsic_method(vm, clsid, "toInt64", Intrinsic::IntToInt64);
     native_method(vm, clsid, "toString", stdlib::int_to_string as *const u8);
@@ -226,7 +226,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     native_method(vm, clsid, "toString", stdlib::long_to_string as *const u8);
     intrinsic_method(vm, clsid, "toCharUnchecked", Intrinsic::Int64ToChar);
     intrinsic_method(vm, clsid, "toInt", Intrinsic::Int64ToInt);
-    intrinsic_method(vm, clsid, "toByte", Intrinsic::Int64ToByte);
+    intrinsic_method(vm, clsid, "toUInt8", Intrinsic::Int64ToByte);
 
     intrinsic_method(vm, clsid, "toFloat", Intrinsic::Int64ToFloat);
     intrinsic_method(vm, clsid, "toDouble", Intrinsic::Int64ToDouble);

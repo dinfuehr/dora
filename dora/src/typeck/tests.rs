@@ -1022,7 +1022,7 @@ fn test_const_check() {
 fn test_const_values() {
     ok_with_test(
         "  const yes: Bool = true;
-                        const x: Byte = 255Y;
+                        const x: UInt8 = 255Y;
                         const a: Int = 100;
                         const b: Int64 = 200L;
                         const c: Char = 'A';
@@ -1094,9 +1094,9 @@ fn test_assignment_to_const() {
 #[test]
 fn test_unary_minus_byte() {
     err(
-        "const m1: Byte = -1Y;",
-        pos(1, 18),
-        SemError::UnOpType("-".into(), "Byte".into()),
+        "const m1: UInt8 = -1Y;",
+        pos(1, 19),
+        SemError::UnOpType("-".into(), "UInt8".into()),
     );
     ok("const m1: Int = -1;");
     ok("const m1: Int64 = -1L;");
@@ -1984,14 +1984,14 @@ fn method_on_enum() {
 
 #[test]
 fn literal_without_suffix_byte() {
-    ok("fun f() -> Byte { 1 }");
-    // ok("fun f(val: Byte) {} fun g() { f(1); }");
+    ok("fun f() -> UInt8 { 1 }");
+    // ok("fun f(val: UInt8) {} fun g() { f(1); }");
     err(
-        "fun f() -> Byte { 256 }",
-        pos(1, 19),
-        SemError::NumberOverflow("Byte".into()),
+        "fun f() -> UInt8 { 256 }",
+        pos(1, 20),
+        SemError::NumberOverflow("UInt8".into()),
     );
-    ok("fun f() { let x: Byte = 1; }");
+    ok("fun f() { let x: UInt8 = 1; }");
 }
 
 #[test]

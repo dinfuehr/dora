@@ -400,7 +400,7 @@ class Input(var idx: Int, var value: Inst, var usedBy: Inst) {
 
 @abstract @open class Const: Inst
 
-class NullConst(let value: Byte): Const {
+class NullConst(let value: UInt8): Const {
     @override fun dumpName() -> String { "Null" }
 }
 

@@ -1,7 +1,7 @@
 const i: Int = 1;
 const l: Int64 = 2L;
 const yes: Bool = true;
-const zero: Byte = 0Y;
+const zero: UInt8 = 0Y;
 const f: Float = 3.0F;
 const d: Double = 4.0;
 

@@ -1,7 +1,7 @@
 fun main() {
   str[Bool](true);
   str[Bool](false);
-  str[Byte](1.toByte());
+  str[UInt8](1.toUInt8());
   str[Int](1);
   str[Int64](1L);
   str[Float](1F);
