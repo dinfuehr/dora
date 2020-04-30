@@ -143,7 +143,7 @@ impl BuiltinType {
             BuiltinType::Class(cls_id, _) => Some(cls_id),
             BuiltinType::Unit => Some(vm.vips.unit_class),
             BuiltinType::Bool => Some(vm.vips.bool_class),
-            BuiltinType::UInt8 => Some(vm.vips.byte_class),
+            BuiltinType::UInt8 => Some(vm.vips.uint8_class),
             BuiltinType::Char => Some(vm.vips.char_class),
             BuiltinType::Int => Some(vm.vips.int_class),
             BuiltinType::Int64 => Some(vm.vips.int64_class),

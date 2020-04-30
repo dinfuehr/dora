@@ -8,7 +8,7 @@ use crate::vm::{ClassDefId, ClassId, FctId, TraitId, VM};
 pub struct KnownElements {
     pub unit_class: ClassId,
     pub bool_class: ClassId,
-    pub byte_class: ClassId,
+    pub uint8_class: ClassId,
     pub char_class: ClassId,
     pub int_class: ClassId,
     pub int64_class: ClassId,
@@ -130,7 +130,7 @@ impl KnownElements {
     pub fn find_class(&self, ty: BuiltinType) -> Option<ClassId> {
         match ty {
             BuiltinType::Bool => Some(self.bool_class),
-            BuiltinType::UInt8 => Some(self.byte_class),
+            BuiltinType::UInt8 => Some(self.uint8_class),
             BuiltinType::Char => Some(self.char_class),
             BuiltinType::Int => Some(self.int_class),
             BuiltinType::Int64 => Some(self.int64_class),

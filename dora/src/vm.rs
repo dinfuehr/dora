@@ -151,7 +151,7 @@ impl<'ast> VM<'ast> {
             vips: KnownElements {
                 unit_class: empty_class_id,
                 bool_class: empty_class_id,
-                byte_class: empty_class_id,
+                uint8_class: empty_class_id,
                 char_class: empty_class_id,
                 int_class: empty_class_id,
                 int64_class: empty_class_id,
