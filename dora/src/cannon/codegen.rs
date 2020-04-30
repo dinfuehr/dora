@@ -1740,35 +1740,35 @@ where
                 FREG_RESULT.into()
             }
 
-            Intrinsic::IntCountZeroBits
-            | Intrinsic::IntCountZeroBitsLeading
-            | Intrinsic::IntCountZeroBitsTrailing
-            | Intrinsic::IntCountOneBits
-            | Intrinsic::IntCountOneBitsLeading
-            | Intrinsic::IntCountOneBitsTrailing => {
+            Intrinsic::Int32CountZeroBits
+            | Intrinsic::Int32CountZeroBitsLeading
+            | Intrinsic::Int32CountZeroBitsTrailing
+            | Intrinsic::Int32CountOneBits
+            | Intrinsic::Int32CountOneBitsLeading
+            | Intrinsic::Int32CountOneBitsTrailing => {
                 let dest = REG_RESULT;
                 self.emit_load_register(arguments[0], dest.into());
 
                 match intrinsic {
-                    Intrinsic::IntCountZeroBits => {
+                    Intrinsic::Int32CountZeroBits => {
                         self.asm.count_bits(MachineMode::Int32, dest, dest, false)
                     }
-                    Intrinsic::IntCountOneBits => {
+                    Intrinsic::Int32CountOneBits => {
                         self.asm.count_bits(MachineMode::Int32, dest, dest, true)
                     }
-                    Intrinsic::IntCountZeroBitsLeading => {
+                    Intrinsic::Int32CountZeroBitsLeading => {
                         self.asm
                             .count_bits_leading(MachineMode::Int32, dest, dest, false)
                     }
-                    Intrinsic::IntCountOneBitsLeading => {
+                    Intrinsic::Int32CountOneBitsLeading => {
                         self.asm
                             .count_bits_leading(MachineMode::Int32, dest, dest, true)
                     }
-                    Intrinsic::IntCountZeroBitsTrailing => {
+                    Intrinsic::Int32CountZeroBitsTrailing => {
                         self.asm
                             .count_bits_trailing(MachineMode::Int32, dest, dest, false)
                     }
-                    Intrinsic::IntCountOneBitsTrailing => {
+                    Intrinsic::Int32CountOneBitsTrailing => {
                         self.asm
                             .count_bits_trailing(MachineMode::Int32, dest, dest, true)
                     }

@@ -1390,15 +1390,15 @@ where
         self.emit_expr(&e, dest);
 
         match intrinsic {
-            Intrinsic::IntPlus
+            Intrinsic::Int32Plus
             | Intrinsic::Int64Plus
             | Intrinsic::FloatPlus
             | Intrinsic::DoublePlus => {}
 
-            Intrinsic::IntNeg | Intrinsic::Int64Neg => {
+            Intrinsic::Int32Neg | Intrinsic::Int64Neg => {
                 let dest = dest.reg();
 
-                let mode = if intrinsic == Intrinsic::IntNeg {
+                let mode = if intrinsic == Intrinsic::Int32Neg {
                     MachineMode::Int32
                 } else {
                     MachineMode::Int64
@@ -1424,10 +1424,10 @@ where
                 self.asm.int_not(MachineMode::Int8, dest, dest)
             }
 
-            Intrinsic::IntNot | Intrinsic::Int64Not => {
+            Intrinsic::Int32Not | Intrinsic::Int64Not => {
                 let dest = dest.reg();
 
-                let mode = if intrinsic == Intrinsic::IntNot {
+                let mode = if intrinsic == Intrinsic::Int32Not {
                     MachineMode::Int32
                 } else {
                     MachineMode::Int64
@@ -1441,35 +1441,35 @@ where
                 self.asm.bool_not(dest, dest)
             }
 
-            Intrinsic::IntCountZeroBits => {
+            Intrinsic::Int32CountZeroBits => {
                 let dest = dest.reg();
                 self.asm.count_bits(MachineMode::Int32, dest, dest, false)
             }
 
-            Intrinsic::IntCountOneBits => {
+            Intrinsic::Int32CountOneBits => {
                 let dest = dest.reg();
                 self.asm.count_bits(MachineMode::Int32, dest, dest, true)
             }
 
-            Intrinsic::IntCountZeroBitsLeading => {
+            Intrinsic::Int32CountZeroBitsLeading => {
                 let dest = dest.reg();
                 self.asm
                     .count_bits_leading(MachineMode::Int32, dest, dest, false)
             }
 
-            Intrinsic::IntCountOneBitsLeading => {
+            Intrinsic::Int32CountOneBitsLeading => {
                 let dest = dest.reg();
                 self.asm
                     .count_bits_leading(MachineMode::Int32, dest, dest, true)
             }
 
-            Intrinsic::IntCountZeroBitsTrailing => {
+            Intrinsic::Int32CountZeroBitsTrailing => {
                 let dest = dest.reg();
                 self.asm
                     .count_bits_trailing(MachineMode::Int32, dest, dest, false)
             }
 
-            Intrinsic::IntCountOneBitsTrailing => {
+            Intrinsic::Int32CountOneBitsTrailing => {
                 let dest = dest.reg();
                 self.asm
                     .count_bits_trailing(MachineMode::Int32, dest, dest, true)
@@ -2118,7 +2118,7 @@ where
                 self.emit_intrinsic_float_as_int(args[0], dest.reg(), intrinsic)
             }
 
-            Intrinsic::CharToInt | Intrinsic::IntToChar => {
+            Intrinsic::CharToInt | Intrinsic::Int32ToChar => {
                 self.emit_expr(args[0], dest);
             }
 
@@ -2130,16 +2130,16 @@ where
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
 
-            Intrinsic::IntToByte => self.emit_intrinsic_int_to_byte(args[0], dest.reg()),
-            Intrinsic::IntToInt64 => self.emit_intrinsic_int_to_long(args[0], dest.reg()),
-            Intrinsic::IntToFloat => {
+            Intrinsic::Int32ToByte => self.emit_intrinsic_int_to_byte(args[0], dest.reg()),
+            Intrinsic::Int32ToInt64 => self.emit_intrinsic_int_to_long(args[0], dest.reg()),
+            Intrinsic::Int32ToFloat => {
                 self.emit_intrinsic_int_to_float(args[0], dest.freg(), intrinsic)
             }
-            Intrinsic::IntToDouble => {
+            Intrinsic::Int32ToDouble => {
                 self.emit_intrinsic_int_to_float(args[0], dest.freg(), intrinsic)
             }
 
-            Intrinsic::ReinterpretIntAsFloat => {
+            Intrinsic::ReinterpretInt32AsFloat => {
                 self.emit_intrinsic_int_as_float(args[0], dest.freg(), intrinsic)
             }
 
@@ -2158,71 +2158,71 @@ where
             }
             Intrinsic::BoolNot => self.emit_intrinsic_unary(args[0], dest, intrinsic),
 
-            Intrinsic::IntEq => {
+            Intrinsic::Int32Eq => {
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
-            Intrinsic::IntCmp => {
-                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
-            }
-
-            Intrinsic::IntAdd => {
-                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
-            }
-            Intrinsic::IntSub => {
-                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
-            }
-            Intrinsic::IntMul => {
-                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
-            }
-            Intrinsic::IntDiv => {
-                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
-            }
-            Intrinsic::IntMod => {
-                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
-            }
-            Intrinsic::IntNeg => self.emit_intrinsic_unary(args[0], dest, intrinsic),
-            Intrinsic::IntPlus => self.emit_intrinsic_unary(args[0], dest, intrinsic),
-
-            Intrinsic::IntOr => {
-                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
-            }
-            Intrinsic::IntAnd => {
-                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
-            }
-            Intrinsic::IntXor => {
-                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
-            }
-            Intrinsic::IntNot => self.emit_intrinsic_unary(args[0], dest, intrinsic),
-
-            Intrinsic::IntShl => {
-                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
-            }
-            Intrinsic::IntSar => {
-                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
-            }
-            Intrinsic::IntShr => {
+            Intrinsic::Int32Cmp => {
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
 
-            Intrinsic::IntRotateLeft => {
+            Intrinsic::Int32Add => {
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
-            Intrinsic::IntRotateRight => {
+            Intrinsic::Int32Sub => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::Int32Mul => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::Int32Div => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::Int32Mod => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::Int32Neg => self.emit_intrinsic_unary(args[0], dest, intrinsic),
+            Intrinsic::Int32Plus => self.emit_intrinsic_unary(args[0], dest, intrinsic),
+
+            Intrinsic::Int32Or => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::Int32And => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::Int32Xor => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::Int32Not => self.emit_intrinsic_unary(args[0], dest, intrinsic),
+
+            Intrinsic::Int32Shl => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::Int32Sar => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::Int32Shr => {
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
 
-            Intrinsic::IntCountZeroBits => self.emit_intrinsic_unary(args[0], dest, intrinsic),
-            Intrinsic::IntCountOneBits => self.emit_intrinsic_unary(args[0], dest, intrinsic),
-            Intrinsic::IntCountZeroBitsLeading => {
+            Intrinsic::Int32RotateLeft => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+            Intrinsic::Int32RotateRight => {
+                self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
+            }
+
+            Intrinsic::Int32CountZeroBits => self.emit_intrinsic_unary(args[0], dest, intrinsic),
+            Intrinsic::Int32CountOneBits => self.emit_intrinsic_unary(args[0], dest, intrinsic),
+            Intrinsic::Int32CountZeroBitsLeading => {
                 self.emit_intrinsic_unary(args[0], dest, intrinsic)
             }
-            Intrinsic::IntCountOneBitsLeading => {
+            Intrinsic::Int32CountOneBitsLeading => {
                 self.emit_intrinsic_unary(args[0], dest, intrinsic)
             }
-            Intrinsic::IntCountZeroBitsTrailing => {
+            Intrinsic::Int32CountZeroBitsTrailing => {
                 self.emit_intrinsic_unary(args[0], dest, intrinsic)
             }
-            Intrinsic::IntCountOneBitsTrailing => {
+            Intrinsic::Int32CountOneBitsTrailing => {
                 self.emit_intrinsic_unary(args[0], dest, intrinsic)
             }
 
@@ -2635,8 +2635,8 @@ where
         self.emit_expr(e, REG_RESULT.into());
 
         let (src_mode, dest_mode) = match intrinsic {
-            Intrinsic::IntToFloat => (MachineMode::Int32, MachineMode::Float32),
-            Intrinsic::IntToDouble => (MachineMode::Int32, MachineMode::Float64),
+            Intrinsic::Int32ToFloat => (MachineMode::Int32, MachineMode::Float32),
+            Intrinsic::Int32ToDouble => (MachineMode::Int32, MachineMode::Float64),
             Intrinsic::Int64ToFloat => (MachineMode::Int64, MachineMode::Float32),
             Intrinsic::Int64ToDouble => (MachineMode::Int64, MachineMode::Float64),
             _ => unreachable!(),
@@ -2677,7 +2677,7 @@ where
         self.emit_expr(e, REG_RESULT.into());
 
         let (src_mode, dest_mode) = match intrinsic {
-            Intrinsic::ReinterpretIntAsFloat => (MachineMode::Int32, MachineMode::Float32),
+            Intrinsic::ReinterpretInt32AsFloat => (MachineMode::Int32, MachineMode::Float32),
             Intrinsic::ReinterpretInt64AsDouble => (MachineMode::Int64, MachineMode::Float64),
             _ => unreachable!(),
         };
@@ -2762,7 +2762,7 @@ where
             Intrinsic::ByteEq
             | Intrinsic::BoolEq
             | Intrinsic::CharEq
-            | Intrinsic::IntEq
+            | Intrinsic::Int32Eq
             | Intrinsic::Int64Eq => {
                 let mode = if intr == Intrinsic::Int64Eq {
                     MachineMode::Int64
@@ -2789,7 +2789,7 @@ where
                 self.asm.set(dest, cond_code);
             }
 
-            Intrinsic::ByteCmp | Intrinsic::CharCmp | Intrinsic::IntCmp | Intrinsic::Int64Cmp => {
+            Intrinsic::ByteCmp | Intrinsic::CharCmp | Intrinsic::Int32Cmp | Intrinsic::Int64Cmp => {
                 let mode = if intr == Intrinsic::Int64Cmp {
                     MachineMode::Int64
                 } else {
@@ -2806,22 +2806,22 @@ where
                 }
             }
 
-            Intrinsic::IntAdd => self.asm.int_add(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntSub => self.asm.int_sub(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntMul => self.asm.int_mul(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntDiv => self.asm.int_div(MachineMode::Int32, dest, lhs, rhs, pos),
-            Intrinsic::IntMod => self.asm.int_mod(MachineMode::Int32, dest, lhs, rhs, pos),
+            Intrinsic::Int32Add => self.asm.int_add(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::Int32Sub => self.asm.int_sub(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::Int32Mul => self.asm.int_mul(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::Int32Div => self.asm.int_div(MachineMode::Int32, dest, lhs, rhs, pos),
+            Intrinsic::Int32Mod => self.asm.int_mod(MachineMode::Int32, dest, lhs, rhs, pos),
 
-            Intrinsic::IntOr => self.asm.int_or(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntAnd => self.asm.int_and(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntXor => self.asm.int_xor(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::Int32Or => self.asm.int_or(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::Int32And => self.asm.int_and(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::Int32Xor => self.asm.int_xor(MachineMode::Int32, dest, lhs, rhs),
 
-            Intrinsic::IntShl => self.asm.int_shl(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntSar => self.asm.int_sar(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntShr => self.asm.int_shr(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::Int32Shl => self.asm.int_shl(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::Int32Sar => self.asm.int_sar(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::Int32Shr => self.asm.int_shr(MachineMode::Int32, dest, lhs, rhs),
 
-            Intrinsic::IntRotateLeft => self.asm.int_rol(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntRotateRight => self.asm.int_ror(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::Int32RotateLeft => self.asm.int_rol(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::Int32RotateRight => self.asm.int_ror(MachineMode::Int32, dest, lhs, rhs),
 
             Intrinsic::Int64Add => self.asm.int_add(MachineMode::Int64, dest, lhs, rhs),
             Intrinsic::Int64Sub => self.asm.int_sub(MachineMode::Int64, dest, lhs, rhs),
