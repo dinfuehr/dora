@@ -71,7 +71,7 @@ impl KnownElements {
         if let Some(cls_id) = *byte_array_def {
             cls_id
         } else {
-            let type_args = TypeList::single(BuiltinType::Byte);
+            let type_args = TypeList::single(BuiltinType::UInt8);
             let cls_id = specialize_class_id_params(vm, self.array_class, &type_args);
             *byte_array_def = Some(cls_id);
             cls_id
@@ -130,7 +130,7 @@ impl KnownElements {
     pub fn find_class(&self, ty: BuiltinType) -> Option<ClassId> {
         match ty {
             BuiltinType::Bool => Some(self.bool_class),
-            BuiltinType::Byte => Some(self.byte_class),
+            BuiltinType::UInt8 => Some(self.byte_class),
             BuiltinType::Char => Some(self.char_class),
             BuiltinType::Int => Some(self.int_class),
             BuiltinType::Int64 => Some(self.int64_class),

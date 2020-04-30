@@ -1214,7 +1214,7 @@ where
         let ty = self.src.ty(lit.id);
 
         let mode = match ty {
-            BuiltinType::Byte => MachineMode::Int8,
+            BuiltinType::UInt8 => MachineMode::Int8,
             BuiltinType::Int => MachineMode::Int32,
             BuiltinType::Int64 => MachineMode::Int64,
             _ => unreachable!(),
@@ -1372,7 +1372,7 @@ where
                 );
             }
 
-            BuiltinType::Byte | BuiltinType::Int | BuiltinType::Int64 => {
+            BuiltinType::UInt8 | BuiltinType::Int | BuiltinType::Int64 => {
                 self.asm
                     .load_int_const(ty.mode(), dest.reg(), xconst.value.to_int());
             }
@@ -1543,7 +1543,7 @@ where
                     }
 
                     Intrinsic::StrSet => {
-                        self.emit_array_set(e.pos, BuiltinType::Byte, object, index, value)
+                        self.emit_array_set(e.pos, BuiltinType::UInt8, object, index, value)
                     }
 
                     _ => panic!("unexpected intrinsic {:?}", intrinsic),
@@ -2068,7 +2068,7 @@ where
             Intrinsic::Shl => self.emit_intrinsic_shl(args[0], args[1], dest.reg()),
             Intrinsic::StrLen => self.emit_intrinsic_len(pos, args[0], dest.reg()),
             Intrinsic::StrGet => {
-                self.emit_array_get(pos, BuiltinType::Byte, args[0], args[1], dest)
+                self.emit_array_get(pos, BuiltinType::UInt8, args[0], args[1], dest)
             }
 
             Intrinsic::BoolToInt | Intrinsic::ByteToInt | Intrinsic::ByteToChar => {
@@ -2348,7 +2348,7 @@ where
                 assert!(dest.is_none());
             }
             BuiltinType::Bool
-            | BuiltinType::Byte
+            | BuiltinType::UInt8
             | BuiltinType::Int
             | BuiltinType::Int64
             | BuiltinType::Char => self.asm.load_int_const(ty.mode(), dest.reg(), 0),
@@ -3774,9 +3774,10 @@ fn check_for_nil(ty: BuiltinType) -> bool {
         BuiltinType::Error => unreachable!(),
         BuiltinType::Any => unreachable!(),
         BuiltinType::Unit => false,
-        BuiltinType::Byte
+        BuiltinType::UInt8
         | BuiltinType::Char
         | BuiltinType::Int
+        | BuiltinType::Int32
         | BuiltinType::Int64
         | BuiltinType::Float
         | BuiltinType::Double

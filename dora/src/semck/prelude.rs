@@ -16,7 +16,7 @@ pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {
     vm.vips.unit_class = internal_class(vm, "Unit", Some(BuiltinType::Unit));
     vm.vips.bool_class = internal_class(vm, "Bool", Some(BuiltinType::Bool));
 
-    vm.vips.byte_class = internal_class(vm, "UInt8", Some(BuiltinType::Byte));
+    vm.vips.byte_class = internal_class(vm, "UInt8", Some(BuiltinType::UInt8));
     vm.vips.char_class = internal_class(vm, "Char", Some(BuiltinType::Char));
     vm.vips.int_class = internal_class(vm, "Int", Some(BuiltinType::Int));
     vm.vips.int64_class = internal_class(vm, "Int64", Some(BuiltinType::Int64));

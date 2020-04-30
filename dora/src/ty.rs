@@ -23,9 +23,10 @@ pub enum BuiltinType {
     Bool,
 
     Char,
-    Byte,
-    Int,
+    UInt8,
+    Int32,
     Int64,
+    Int,
 
     Float,
     Double,
@@ -142,7 +143,7 @@ impl BuiltinType {
             BuiltinType::Class(cls_id, _) => Some(cls_id),
             BuiltinType::Unit => Some(vm.vips.unit_class),
             BuiltinType::Bool => Some(vm.vips.bool_class),
-            BuiltinType::Byte => Some(vm.vips.byte_class),
+            BuiltinType::UInt8 => Some(vm.vips.byte_class),
             BuiltinType::Char => Some(vm.vips.char_class),
             BuiltinType::Int => Some(vm.vips.int_class),
             BuiltinType::Int64 => Some(vm.vips.int64_class),
@@ -226,7 +227,7 @@ impl BuiltinType {
         match *self {
             BuiltinType::Unit
             | BuiltinType::Bool
-            | BuiltinType::Byte
+            | BuiltinType::UInt8
             | BuiltinType::Int
             | BuiltinType::Int64
             | BuiltinType::Float
@@ -254,9 +255,10 @@ impl BuiltinType {
             BuiltinType::Error => "<error>".into(),
             BuiltinType::Any => "Any".into(),
             BuiltinType::Unit => "()".into(),
-            BuiltinType::Byte => "UInt8".into(),
+            BuiltinType::UInt8 => "UInt8".into(),
             BuiltinType::Char => "Char".into(),
             BuiltinType::Int => "Int".into(),
+            BuiltinType::Int32 => "Int32".into(),
             BuiltinType::Int64 => "Int64".into(),
             BuiltinType::Float => "Float".into(),
             BuiltinType::Double => "Double".into(),
@@ -379,12 +381,14 @@ impl BuiltinType {
 
             BuiltinType::Unit
             | BuiltinType::Bool
-            | BuiltinType::Byte
+            | BuiltinType::UInt8
             | BuiltinType::Char
             | BuiltinType::Struct(_, _) => *self == other,
-            BuiltinType::Int => *self == other,
-            BuiltinType::Int64 => *self == other,
-            BuiltinType::Float | BuiltinType::Double => *self == other,
+            BuiltinType::Int
+            | BuiltinType::Int32
+            | BuiltinType::Int64
+            | BuiltinType::Float
+            | BuiltinType::Double => *self == other,
             BuiltinType::Nil => panic!("nil does not allow any other types"),
             BuiltinType::Ptr => panic!("ptr does not allow any other types"),
             BuiltinType::This => unreachable!(),
@@ -449,9 +453,10 @@ impl BuiltinType {
             BuiltinType::Error => panic!("no size for error."),
             BuiltinType::Unit => 0,
             BuiltinType::Bool => 1,
-            BuiltinType::Byte => 1,
+            BuiltinType::UInt8 => 1,
             BuiltinType::Char => 4,
             BuiltinType::Int => 4,
+            BuiltinType::Int32 => 8,
             BuiltinType::Int64 => 8,
             BuiltinType::Float => 4,
             BuiltinType::Double => 8,
@@ -484,9 +489,10 @@ impl BuiltinType {
             BuiltinType::Error => panic!("no alignment for error."),
             BuiltinType::Unit => 0,
             BuiltinType::Bool => 1,
-            BuiltinType::Byte => 1,
+            BuiltinType::UInt8 => 1,
             BuiltinType::Char => 4,
             BuiltinType::Int => 4,
+            BuiltinType::Int32 => 4,
             BuiltinType::Int64 => 8,
             BuiltinType::Float => 4,
             BuiltinType::Double => 8,
@@ -519,9 +525,10 @@ impl BuiltinType {
             BuiltinType::Error => panic!("no machine mode for error."),
             BuiltinType::Unit => panic!("no machine mode for ()."),
             BuiltinType::Bool => MachineMode::Int8,
-            BuiltinType::Byte => MachineMode::Int8,
+            BuiltinType::UInt8 => MachineMode::Int8,
             BuiltinType::Char => MachineMode::Int32,
             BuiltinType::Int => MachineMode::Int32,
+            BuiltinType::Int32 => MachineMode::Int32,
             BuiltinType::Int64 => MachineMode::Int64,
             BuiltinType::Float => MachineMode::Float32,
             BuiltinType::Double => MachineMode::Float64,
@@ -551,9 +558,10 @@ impl BuiltinType {
             | BuiltinType::Nil => false,
             BuiltinType::Unit
             | BuiltinType::Bool
-            | BuiltinType::Byte
+            | BuiltinType::UInt8
             | BuiltinType::Char
             | BuiltinType::Int
+            | BuiltinType::Int32
             | BuiltinType::Int64
             | BuiltinType::Float
             | BuiltinType::Double
@@ -593,9 +601,10 @@ impl BuiltinType {
             BuiltinType::Error | BuiltinType::This | BuiltinType::Any => false,
             BuiltinType::Unit
             | BuiltinType::Bool
-            | BuiltinType::Byte
+            | BuiltinType::UInt8
             | BuiltinType::Char
             | BuiltinType::Int
+            | BuiltinType::Int32
             | BuiltinType::Int64
             | BuiltinType::Float
             | BuiltinType::Double

@@ -670,7 +670,7 @@ where
                     src_register.reg(),
                 );
             }
-            BytecodeType::Long => {
+            BytecodeType::Int64 => {
                 assert_eq!(src_type, BytecodeType::Double);
                 self.asm.float_as_int(
                     MachineMode::Int64,
@@ -680,7 +680,7 @@ where
                 );
             }
             BytecodeType::Double => {
-                assert_eq!(src_type, BytecodeType::Long);
+                assert_eq!(src_type, BytecodeType::Int64);
                 self.asm.int_as_float(
                     MachineMode::Float64,
                     dest_register.freg(),
@@ -695,7 +695,7 @@ where
     }
 
     fn emit_extend_byte(&mut self, dest: Register, src: Register, _mode: MachineMode) {
-        assert_eq!(self.bytecode.register_type(src), BytecodeType::Byte);
+        assert_eq!(self.bytecode.register_type(src), BytecodeType::UInt8);
 
         self.emit_load_register(src, REG_RESULT.into());
         self.emit_store_register(REG_RESULT.into(), dest);
@@ -713,7 +713,7 @@ where
     }
 
     fn emit_int_to_long(&mut self, dest: Register, src: Register) {
-        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Long);
+        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Int64);
         assert_eq!(self.bytecode.register_type(src), BytecodeType::Int);
 
         self.emit_load_register(src, REG_RESULT.into());
@@ -724,7 +724,7 @@ where
 
     fn emit_long_to_int(&mut self, dest: Register, src: Register) {
         assert_eq!(self.bytecode.register_type(dest), BytecodeType::Int);
-        assert_eq!(self.bytecode.register_type(src), BytecodeType::Long);
+        assert_eq!(self.bytecode.register_type(src), BytecodeType::Int64);
 
         self.emit_load_register(src, REG_RESULT.into());
 
@@ -737,9 +737,11 @@ where
 
         let (dest_mode, src_mode) = match (dest_type, src_type) {
             (BytecodeType::Float, BytecodeType::Int) => (MachineMode::Float32, MachineMode::Int32),
-            (BytecodeType::Float, BytecodeType::Long) => (MachineMode::Float32, MachineMode::Int64),
+            (BytecodeType::Float, BytecodeType::Int64) => {
+                (MachineMode::Float32, MachineMode::Int64)
+            }
             (BytecodeType::Double, BytecodeType::Int) => (MachineMode::Float64, MachineMode::Int32),
-            (BytecodeType::Double, BytecodeType::Long) => {
+            (BytecodeType::Double, BytecodeType::Int64) => {
                 (MachineMode::Float64, MachineMode::Int64)
             }
             _ => unreachable!(),
@@ -760,8 +762,10 @@ where
         let (dest_mode, src_mode) = match (dest_type, src_type) {
             (BytecodeType::Int, BytecodeType::Float) => (MachineMode::Int32, MachineMode::Float32),
             (BytecodeType::Int, BytecodeType::Double) => (MachineMode::Int32, MachineMode::Float64),
-            (BytecodeType::Long, BytecodeType::Float) => (MachineMode::Int64, MachineMode::Float32),
-            (BytecodeType::Long, BytecodeType::Double) => {
+            (BytecodeType::Int64, BytecodeType::Float) => {
+                (MachineMode::Int64, MachineMode::Float32)
+            }
+            (BytecodeType::Int64, BytecodeType::Double) => {
                 (MachineMode::Int64, MachineMode::Float64)
             }
             _ => unreachable!(),
@@ -1079,9 +1083,9 @@ where
     fn emit_const_int(&mut self, dest: Register, int_const: i64) {
         assert!(
             self.bytecode.register_type(dest) == BytecodeType::Char
-                || self.bytecode.register_type(dest) == BytecodeType::Byte
+                || self.bytecode.register_type(dest) == BytecodeType::UInt8
                 || self.bytecode.register_type(dest) == BytecodeType::Int
-                || self.bytecode.register_type(dest) == BytecodeType::Long
+                || self.bytecode.register_type(dest) == BytecodeType::Int64
         );
 
         let bytecode_type = self.bytecode.register_type(dest);

@@ -32,7 +32,7 @@ impl<'a, 'ast> ConstCheck<'a, 'ast> {
                 let lit_int = expr.opnd.to_lit_int().unwrap();
 
                 if lit_int.suffix == IntSuffix::Byte {
-                    let ty = BuiltinType::Byte.name(self.vm);
+                    let ty = BuiltinType::UInt8.name(self.vm);
                     let msg = SemError::UnOpType(expr.op.as_str().into(), ty);
                     self.vm.diag.lock().report(self.xconst.file, expr.pos, msg);
                 }

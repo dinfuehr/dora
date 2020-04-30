@@ -21,10 +21,10 @@ impl BytecodeOffset {
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum BytecodeType {
     Bool,
-    Byte,
+    UInt8,
     Char,
     Int,
-    Long,
+    Int64,
     Float,
     Double,
     Ptr,
@@ -34,10 +34,10 @@ impl BytecodeType {
     pub fn size(&self) -> i32 {
         match self {
             BytecodeType::Bool => 1,
-            BytecodeType::Byte => 1,
+            BytecodeType::UInt8 => 1,
             BytecodeType::Char => 4,
             BytecodeType::Int => 4,
-            BytecodeType::Long => 8,
+            BytecodeType::Int64 => 8,
             BytecodeType::Float => 4,
             BytecodeType::Double => 8,
             BytecodeType::Ptr => ptr_width(),
@@ -47,10 +47,10 @@ impl BytecodeType {
     pub fn mode(&self) -> MachineMode {
         match self {
             BytecodeType::Bool => MachineMode::Int8,
-            BytecodeType::Byte => MachineMode::Int8,
+            BytecodeType::UInt8 => MachineMode::Int8,
             BytecodeType::Char => MachineMode::Int32,
             BytecodeType::Int => MachineMode::Int32,
-            BytecodeType::Long => MachineMode::Int64,
+            BytecodeType::Int64 => MachineMode::Int64,
             BytecodeType::Float => MachineMode::Float32,
             BytecodeType::Double => MachineMode::Float64,
             BytecodeType::Ptr => MachineMode::Ptr,
@@ -69,10 +69,10 @@ impl From<BuiltinType> for BytecodeType {
     fn from(ty: BuiltinType) -> Self {
         match ty {
             BuiltinType::Bool => BytecodeType::Bool,
-            BuiltinType::Byte => BytecodeType::Byte,
+            BuiltinType::UInt8 => BytecodeType::UInt8,
             BuiltinType::Char => BytecodeType::Char,
             BuiltinType::Int => BytecodeType::Int,
-            BuiltinType::Int64 => BytecodeType::Long,
+            BuiltinType::Int64 => BytecodeType::Int64,
             BuiltinType::Float => BytecodeType::Float,
             BuiltinType::Double => BytecodeType::Double,
             BuiltinType::Class(_, _) => BytecodeType::Ptr,
@@ -86,10 +86,10 @@ impl Into<BuiltinType> for BytecodeType {
     fn into(self) -> BuiltinType {
         match self {
             BytecodeType::Bool => BuiltinType::Bool,
-            BytecodeType::Byte => BuiltinType::Byte,
+            BytecodeType::UInt8 => BuiltinType::UInt8,
             BytecodeType::Char => BuiltinType::Char,
             BytecodeType::Int => BuiltinType::Int,
-            BytecodeType::Long => BuiltinType::Int64,
+            BytecodeType::Int64 => BuiltinType::Int64,
             BytecodeType::Float => BuiltinType::Float,
             BytecodeType::Double => BuiltinType::Double,
             BytecodeType::Ptr => BuiltinType::Ptr,

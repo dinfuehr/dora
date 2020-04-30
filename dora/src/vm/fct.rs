@@ -496,7 +496,7 @@ impl Intrinsic {
             | Intrinsic::IntToInt64
             | Intrinsic::FloatToInt64
             | Intrinsic::DoubleToInt64
-            | Intrinsic::ReinterpretDoubleAsInt64 => BytecodeType::Long,
+            | Intrinsic::ReinterpretDoubleAsInt64 => BytecodeType::Int64,
             Intrinsic::FloatAdd
             | Intrinsic::FloatSub
             | Intrinsic::FloatDiv
@@ -529,7 +529,7 @@ impl Intrinsic {
             | Intrinsic::BoolNot
             | Intrinsic::DoubleIsNan
             | Intrinsic::FloatIsNan => BytecodeType::Bool,
-            Intrinsic::IntToByte | Intrinsic::Int64ToByte => BytecodeType::Byte,
+            Intrinsic::IntToByte | Intrinsic::Int64ToByte => BytecodeType::UInt8,
             Intrinsic::IntToChar | Intrinsic::Int64ToChar | Intrinsic::ByteToChar => {
                 BytecodeType::Char
             }

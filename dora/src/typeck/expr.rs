@@ -2137,10 +2137,11 @@ fn arg_allows(
         BuiltinType::Error | BuiltinType::Any => unreachable!(),
         BuiltinType::Unit
         | BuiltinType::Bool
-        | BuiltinType::Byte
+        | BuiltinType::UInt8
         | BuiltinType::Char
         | BuiltinType::Struct(_, _)
         | BuiltinType::Int
+        | BuiltinType::Int32
         | BuiltinType::Int64
         | BuiltinType::Float
         | BuiltinType::Double
@@ -2310,18 +2311,18 @@ pub fn check_lit_int(
     expected_type: BuiltinType,
 ) -> (BuiltinType, i64) {
     let ty = match e.suffix {
-        IntSuffix::Byte => BuiltinType::Byte,
+        IntSuffix::Byte => BuiltinType::UInt8,
         IntSuffix::Int => BuiltinType::Int,
         IntSuffix::Long => BuiltinType::Int64,
         IntSuffix::None => match expected_type {
-            BuiltinType::Byte => BuiltinType::Byte,
+            BuiltinType::UInt8 => BuiltinType::UInt8,
             BuiltinType::Int64 => BuiltinType::Int64,
             _ => BuiltinType::Int,
         },
     };
 
     let ty_name = match ty {
-        BuiltinType::Byte => "UInt8",
+        BuiltinType::UInt8 => "UInt8",
         BuiltinType::Int => "Int",
         BuiltinType::Int64 => "Int64",
         _ => unreachable!(),
@@ -2331,7 +2332,7 @@ pub fn check_lit_int(
 
     if e.base == IntBase::Dec {
         let max = match ty {
-            BuiltinType::Byte => 256,
+            BuiltinType::UInt8 => 256,
             BuiltinType::Int => (1u64 << 31),
             BuiltinType::Int64 => (1u64 << 63),
             _ => unreachable!(),
@@ -2344,7 +2345,7 @@ pub fn check_lit_int(
         }
     } else {
         let max = match ty {
-            BuiltinType::Byte => 256 as u64,
+            BuiltinType::UInt8 => 256 as u64,
             BuiltinType::Int => u32::max_value() as u64,
             BuiltinType::Int64 => u64::max_value() as u64,
             _ => unreachable!(),
