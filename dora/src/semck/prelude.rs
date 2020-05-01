@@ -172,7 +172,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     let clsid = vm.vips.uint8_class;
     native_method(vm, clsid, "toString", stdlib::byte_to_string as *const u8);
     intrinsic_method(vm, clsid, "toInt64", Intrinsic::ByteToInt64);
-    intrinsic_method(vm, clsid, "toInt", Intrinsic::ByteToInt);
+    intrinsic_method(vm, clsid, "toInt", Intrinsic::ByteToInt32);
     intrinsic_method(vm, clsid, "toChar", Intrinsic::ByteToChar);
 
     intrinsic_method(vm, clsid, "equals", Intrinsic::ByteEq);
@@ -182,7 +182,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     let clsid = vm.vips.char_class;
     native_method(vm, clsid, "toString", stdlib::char_to_string as *const u8);
     intrinsic_method(vm, clsid, "toInt64", Intrinsic::CharToInt64);
-    intrinsic_method(vm, clsid, "toInt", Intrinsic::CharToInt);
+    intrinsic_method(vm, clsid, "toInt", Intrinsic::CharToInt32);
 
     intrinsic_method(vm, clsid, "equals", Intrinsic::CharEq);
     intrinsic_method(vm, clsid, "compareTo", Intrinsic::CharCmp);
@@ -225,7 +225,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     let clsid = vm.vips.int64_class;
     native_method(vm, clsid, "toString", stdlib::long_to_string as *const u8);
     intrinsic_method(vm, clsid, "toCharUnchecked", Intrinsic::Int64ToChar);
-    intrinsic_method(vm, clsid, "toInt", Intrinsic::Int64ToInt);
+    intrinsic_method(vm, clsid, "toInt", Intrinsic::Int64ToInt32);
     intrinsic_method(vm, clsid, "toUInt8", Intrinsic::Int64ToByte);
 
     intrinsic_method(vm, clsid, "toFloat", Intrinsic::Int64ToFloat);
@@ -258,7 +258,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_method(vm, clsid, "not", Intrinsic::Int64Not);
 
     let clsid = vm.vips.bool_class;
-    intrinsic_method(vm, clsid, "toInt", Intrinsic::BoolToInt);
+    intrinsic_method(vm, clsid, "toInt", Intrinsic::BoolToInt32);
     intrinsic_method(vm, clsid, "toInt64", Intrinsic::BoolToInt64);
     intrinsic_method(vm, clsid, "equals", Intrinsic::BoolEq);
     intrinsic_method(vm, clsid, "not", Intrinsic::BoolNot);
@@ -299,7 +299,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
 
     let clsid = vm.vips.float_class;
     native_method(vm, clsid, "toString", stdlib::float_to_string as *const u8);
-    intrinsic_method(vm, clsid, "toInt", Intrinsic::FloatToInt);
+    intrinsic_method(vm, clsid, "toInt", Intrinsic::FloatToInt32);
     intrinsic_method(vm, clsid, "toInt64", Intrinsic::FloatToInt64);
     intrinsic_method(vm, clsid, "toDouble", Intrinsic::PromoteFloatToDouble);
 
@@ -321,7 +321,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
 
     let clsid = vm.vips.double_class;
     native_method(vm, clsid, "toString", stdlib::double_to_string as *const u8);
-    intrinsic_method(vm, clsid, "toInt", Intrinsic::DoubleToInt);
+    intrinsic_method(vm, clsid, "toInt", Intrinsic::DoubleToInt32);
     intrinsic_method(vm, clsid, "toInt64", Intrinsic::DoubleToInt64);
     intrinsic_method(vm, clsid, "toFloat", Intrinsic::DemoteDoubleToFloat);
 

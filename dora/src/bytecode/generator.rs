@@ -1570,27 +1570,27 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 self.gen.emit_reinterpret_long_as_double(dest, src)
             }
             Intrinsic::ByteToChar => self.gen.emit_extend_byte_to_char(dest, src),
-            Intrinsic::ByteToInt => self.gen.emit_extend_byte_to_int(dest, src),
+            Intrinsic::ByteToInt32 => self.gen.emit_extend_byte_to_int(dest, src),
             Intrinsic::ByteToInt64 => self.gen.emit_extend_byte_to_long(dest, src),
             Intrinsic::Int32ToInt64 => self.gen.emit_extend_int_to_long(dest, src),
-            Intrinsic::CharToInt => self.gen.emit_cast_char_to_int(dest, src),
+            Intrinsic::CharToInt32 => self.gen.emit_cast_char_to_int(dest, src),
             Intrinsic::CharToInt64 => self.gen.emit_extend_char_to_long(dest, src),
             Intrinsic::Int32ToByte => self.gen.emit_cast_int_to_byte(dest, src),
             Intrinsic::Int32ToChar => self.gen.emit_cast_int_to_char(dest, src),
             Intrinsic::Int64ToByte => self.gen.emit_cast_long_to_byte(dest, src),
             Intrinsic::Int64ToChar => self.gen.emit_cast_long_to_char(dest, src),
-            Intrinsic::Int64ToInt => self.gen.emit_cast_long_to_int(dest, src),
+            Intrinsic::Int64ToInt32 => self.gen.emit_cast_long_to_int(dest, src),
             Intrinsic::FloatIsNan => self.gen.emit_test_ne_float(dest, src, src),
             Intrinsic::DoubleIsNan => self.gen.emit_test_ne_double(dest, src, src),
             Intrinsic::Int32ToFloat => self.gen.emit_convert_int_to_float(dest, src),
             Intrinsic::Int32ToDouble => self.gen.emit_convert_int_to_double(dest, src),
             Intrinsic::Int64ToFloat => self.gen.emit_convert_long_to_float(dest, src),
             Intrinsic::Int64ToDouble => self.gen.emit_convert_long_to_double(dest, src),
-            Intrinsic::FloatToInt => self.gen.emit_truncate_float_to_int(dest, src),
+            Intrinsic::FloatToInt32 => self.gen.emit_truncate_float_to_int(dest, src),
             Intrinsic::FloatToInt64 => self.gen.emit_truncate_float_to_long(dest, src),
-            Intrinsic::DoubleToInt => self.gen.emit_truncate_double_to_int(dest, src),
+            Intrinsic::DoubleToInt32 => self.gen.emit_truncate_double_to_int(dest, src),
             Intrinsic::DoubleToInt64 => self.gen.emit_truncate_double_to_long(dest, src),
-            Intrinsic::BoolToInt => {
+            Intrinsic::BoolToInt32 => {
                 self.gen.emit_const_int(dest, 1);
                 let lbl_end = self.gen.create_label();
                 self.gen.emit_jump_if_true(src, lbl_end);

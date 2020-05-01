@@ -2071,14 +2071,14 @@ where
                 self.emit_array_get(pos, BuiltinType::UInt8, args[0], args[1], dest)
             }
 
-            Intrinsic::BoolToInt | Intrinsic::ByteToInt | Intrinsic::ByteToChar => {
+            Intrinsic::BoolToInt32 | Intrinsic::ByteToInt32 | Intrinsic::ByteToChar => {
                 self.emit_intrinsic_byte_to_int(args[0], dest.reg())
             }
             Intrinsic::BoolToInt64 | Intrinsic::ByteToInt64 => {
                 self.emit_intrinsic_byte_to_long(args[0], dest.reg())
             }
             Intrinsic::Int64ToByte => self.emit_intrinsic_long_to_byte(args[0], dest.reg()),
-            Intrinsic::Int64ToChar | Intrinsic::Int64ToInt => {
+            Intrinsic::Int64ToChar | Intrinsic::Int64ToInt32 => {
                 self.emit_intrinsic_long_to_int(args[0], dest.reg())
             }
             Intrinsic::Int64ToFloat => {
@@ -2092,7 +2092,7 @@ where
                 self.emit_intrinsic_int_as_float(args[0], dest.freg(), intrinsic)
             }
 
-            Intrinsic::FloatToInt => {
+            Intrinsic::FloatToInt32 => {
                 self.emit_intrinsic_float_to_int(args[0], dest.reg(), intrinsic)
             }
             Intrinsic::FloatToInt64 => {
@@ -2105,7 +2105,7 @@ where
                 self.emit_intrinsic_float_as_int(args[0], dest.reg(), intrinsic)
             }
 
-            Intrinsic::DoubleToInt => {
+            Intrinsic::DoubleToInt32 => {
                 self.emit_intrinsic_float_to_int(args[0], dest.reg(), intrinsic)
             }
             Intrinsic::DoubleToInt64 => {
@@ -2118,7 +2118,7 @@ where
                 self.emit_intrinsic_float_as_int(args[0], dest.reg(), intrinsic)
             }
 
-            Intrinsic::CharToInt | Intrinsic::Int32ToChar => {
+            Intrinsic::CharToInt32 | Intrinsic::Int32ToChar => {
                 self.emit_expr(args[0], dest);
             }
 
@@ -2649,9 +2649,9 @@ where
         self.emit_expr(e, FREG_RESULT.into());
 
         let (src_mode, dest_mode) = match intrinsic {
-            Intrinsic::FloatToInt => (MachineMode::Float32, MachineMode::Int32),
+            Intrinsic::FloatToInt32 => (MachineMode::Float32, MachineMode::Int32),
             Intrinsic::FloatToInt64 => (MachineMode::Float32, MachineMode::Int64),
-            Intrinsic::DoubleToInt => (MachineMode::Float64, MachineMode::Int32),
+            Intrinsic::DoubleToInt32 => (MachineMode::Float64, MachineMode::Int32),
             Intrinsic::DoubleToInt64 => (MachineMode::Float64, MachineMode::Int64),
             _ => unreachable!(),
         };

@@ -298,19 +298,19 @@ pub enum Intrinsic {
 
     BoolEq,
     BoolNot,
-    BoolToInt,
+    BoolToInt32,
     BoolToInt64,
 
     ByteEq,
     ByteCmp,
     ByteNot,
     ByteToChar,
-    ByteToInt,
+    ByteToInt32,
     ByteToInt64,
 
     CharEq,
     CharCmp,
-    CharToInt,
+    CharToInt32,
     CharToInt64,
 
     Int32ToByte,
@@ -354,7 +354,7 @@ pub enum Intrinsic {
     Int32CountZeroBitsTrailing,
     Int32CountOneBitsTrailing,
 
-    Int64ToInt,
+    Int64ToInt32,
     Int64ToChar,
     Int64ToByte,
     Int64ToFloat,
@@ -392,7 +392,7 @@ pub enum Intrinsic {
     Int64CountZeroBitsTrailing,
     Int64CountOneBitsTrailing,
 
-    FloatToInt,
+    FloatToInt32,
     FloatToInt64,
     PromoteFloatToDouble,
     ReinterpretFloatAsInt,
@@ -410,7 +410,7 @@ pub enum Intrinsic {
     FloatIsNan,
     FloatSqrt,
 
-    DoubleToInt,
+    DoubleToInt32,
     DoubleToInt64,
     DemoteDoubleToFloat,
     ReinterpretDoubleAsInt64,
@@ -451,12 +451,12 @@ impl Intrinsic {
             | Intrinsic::ReinterpretFloatAsInt
             | Intrinsic::GenericArrayLen
             | Intrinsic::StrLen
-            | Intrinsic::CharToInt
-            | Intrinsic::Int64ToInt
-            | Intrinsic::ByteToInt
-            | Intrinsic::FloatToInt
-            | Intrinsic::DoubleToInt
-            | Intrinsic::BoolToInt
+            | Intrinsic::CharToInt32
+            | Intrinsic::Int64ToInt32
+            | Intrinsic::ByteToInt32
+            | Intrinsic::FloatToInt32
+            | Intrinsic::DoubleToInt32
+            | Intrinsic::BoolToInt32
             | Intrinsic::ByteCmp
             | Intrinsic::CharCmp
             | Intrinsic::Int32Cmp
