@@ -163,10 +163,10 @@ pub fn fct_pattern_match(vm: &VM, fct: &Fct, pattern: &str) -> bool {
         return true;
     }
 
-    let name = vm.interner.str(fct.name);
+    let fct_name = fct.full_name(vm);
 
     for part in pattern.split(',') {
-        if *name == part {
+        if fct_name.contains(part) {
             return true;
         }
     }
