@@ -3278,9 +3278,9 @@ where
         } else {
             let mode = ty.mode();
             self.asm
-                .load_mem(mode, REG_RESULT.into(), Mem::Local(arg.offset()));
+                .load_mem(mode, REG_TMP2.into(), Mem::Local(arg.offset()));
             self.asm
-                .store_mem(mode, Mem::Base(REG_TMP1, array_offset), REG_RESULT.into());
+                .store_mem(mode, Mem::Base(REG_TMP1, array_offset), REG_TMP2.into());
             ty.reference_type()
         };
 
