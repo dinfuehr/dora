@@ -139,7 +139,7 @@ fn run_tests<'ast>(vm: &VM<'ast>) -> i32 {
     for fct in vm.fcts.iter() {
         let fct = fct.read();
 
-        if !is_test_fct(vm, &*fct) {
+        if !is_test_fct(vm, &*fct) || !test_filter_matches(vm, &*fct) {
             continue;
         }
 
@@ -193,6 +193,17 @@ fn is_test_fct<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) -> bool {
 
     // the function needs to be marked with the @test annotation
     fct.is_test
+}
+
+fn test_filter_matches(vm: &VM, fct: &Fct) -> bool {
+    if vm.args.flag_test_filter.is_none() {
+        return true;
+    }
+
+    let filter = vm.args.flag_test_filter.as_ref().unwrap();
+    let name = fct.full_name(vm);
+
+    name.contains(filter)
 }
 
 fn run_main<'ast>(vm: &VM<'ast>, main: FctId) -> i32 {

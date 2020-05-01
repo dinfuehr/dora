@@ -57,6 +57,7 @@ Options:
     --gc-semi-ratio=<num>   Use fixed ratio of semi space in young generation.
 
     --compiler=<name>       Switch default compiler. Possible values: cannon, baseline [default: baseline].
+    --test-filter=<name>    Filter tests.
 
     --disable-tlab          Disable tlab allocation.
     --disable-barrier       Disable barriers.
@@ -113,6 +114,7 @@ pub struct Args {
     pub flag_disable_barrier: bool,
     pub flag_stdlib: Option<String>,
     pub flag_boots: Option<String>,
+    pub flag_test_filter: Option<String>,
 
     pub cmd_test: bool,
 }
@@ -216,6 +218,7 @@ impl Default for Args {
             flag_disable_barrier: false,
             flag_stdlib: None,
             flag_boots: None,
+            flag_test_filter: None,
 
             cmd_test: false,
         }
