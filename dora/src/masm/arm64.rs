@@ -873,7 +873,7 @@ impl MacroAssembler {
                     MachineMode::Int32 => {
                         asm::ldrw_ind(dest.reg(), *scratch, index, LdStExtend::LSL, 1)
                     }
-                    MachineMode::Int64 | MachineMode::Ptr => {
+                    MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
                         asm::ldrx_ind(dest.reg(), *scratch, index, LdStExtend::LSL, 1)
                     }
                     MachineMode::Float32 => {
@@ -903,7 +903,9 @@ impl MacroAssembler {
             let inst = match mode {
                 MachineMode::Int8 => asm::ldrb_imm(dest.reg(), base, disp),
                 MachineMode::Int32 => asm::ldrw_imm(dest.reg(), base, disp),
-                MachineMode::Int64 | MachineMode::Ptr => asm::ldrx_imm(dest.reg(), base, disp),
+                MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
+                    asm::ldrx_imm(dest.reg(), base, disp)
+                }
                 MachineMode::Float32 => asm::ldrs_imm(dest.freg(), base, disp),
                 MachineMode::Float64 => asm::ldrd_imm(dest.freg(), base, disp),
             };
@@ -912,7 +914,7 @@ impl MacroAssembler {
             let inst = match mode {
                 MachineMode::Int8 => asm::ldrb_unscaled_imm(dest.reg(), base, disp),
                 MachineMode::Int32 => asm::ldrw_unscaled_imm(dest.reg(), base, disp),
-                MachineMode::Int64 | MachineMode::Ptr => {
+                MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
                     asm::ldrx_unscaled_imm(dest.reg(), base, disp)
                 }
                 MachineMode::Float32 => asm::ldrs_unscaled_imm(dest.freg(), base, disp),
@@ -925,7 +927,7 @@ impl MacroAssembler {
             let inst = match mode {
                 MachineMode::Int8 => asm::ldrb_ind(dest.reg(), base, *scratch, LdStExtend::LSL, 0),
                 MachineMode::Int32 => asm::ldrw_ind(dest.reg(), base, *scratch, LdStExtend::LSL, 0),
-                MachineMode::Int64 | MachineMode::Ptr => {
+                MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
                     asm::ldrx_ind(dest.reg(), base, *scratch, LdStExtend::LSL, 0)
                 }
                 MachineMode::Float32 => {
@@ -1020,7 +1022,7 @@ impl MacroAssembler {
                     MachineMode::Int32 => {
                         asm::strw_ind(src.reg(), *scratch, index, LdStExtend::LSL, 1)
                     }
-                    MachineMode::Int64 | MachineMode::Ptr => {
+                    MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
                         asm::strx_ind(src.reg(), *scratch, index, LdStExtend::LSL, 1)
                     }
                     MachineMode::Float32 => {
@@ -1051,7 +1053,9 @@ impl MacroAssembler {
             let inst = match mode {
                 MachineMode::Int8 => asm::strb_imm(src.reg(), base, offset),
                 MachineMode::Int32 => asm::strw_imm(src.reg(), base, offset),
-                MachineMode::Int64 | MachineMode::Ptr => asm::strx_imm(src.reg(), base, offset),
+                MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
+                    asm::strx_imm(src.reg(), base, offset)
+                }
                 MachineMode::Float32 => asm::strs_imm(src.freg(), base, offset),
                 MachineMode::Float64 => asm::strd_imm(src.freg(), base, offset),
             };
@@ -1060,7 +1064,7 @@ impl MacroAssembler {
             let inst = match mode {
                 MachineMode::Int8 => asm::strb_unscaled_imm(src.reg(), base, offset),
                 MachineMode::Int32 => asm::strw_unscaled_imm(src.reg(), base, offset),
-                MachineMode::Int64 | MachineMode::Ptr => {
+                MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
                     asm::strx_unscaled_imm(src.reg(), base, offset)
                 }
                 MachineMode::Float32 => asm::strs_unscaled_imm(src.freg(), base, offset),
@@ -1073,7 +1077,7 @@ impl MacroAssembler {
             let inst = match mode {
                 MachineMode::Int8 => asm::strb_ind(src.reg(), base, *scratch, LdStExtend::LSL, 0),
                 MachineMode::Int32 => asm::strw_ind(src.reg(), base, *scratch, LdStExtend::LSL, 0),
-                MachineMode::Int64 | MachineMode::Ptr => {
+                MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
                     asm::strx_ind(src.reg(), base, *scratch, LdStExtend::LSL, 0)
                 }
                 MachineMode::Float32 => {
@@ -1158,8 +1162,7 @@ impl MacroAssembler {
         let register_size = match mode {
             MachineMode::Int8 => 32,
             MachineMode::Int32 => 32,
-            MachineMode::Int64 => 64,
-            MachineMode::Ptr => 64,
+            MachineMode::IntPtr | MachineMode::Ptr | MachineMode::Int64 => 64,
             MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
         };
         let imm = imm as u64;
@@ -1287,7 +1290,7 @@ enum JumpType {
 fn size_flag(mode: MachineMode) -> u32 {
     match mode {
         MachineMode::Int8 | MachineMode::Int32 => 0,
-        MachineMode::Ptr | MachineMode::Int64 => 1,
+        MachineMode::IntPtr | MachineMode::Ptr | MachineMode::Int64 => 1,
         MachineMode::Float32 | MachineMode::Float64 => unimplemented!(),
     }
 }

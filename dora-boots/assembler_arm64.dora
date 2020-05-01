@@ -42,22 +42,22 @@ class AssemblerArm64: Assembler {
 
     fun ret() {
         let inst = clsUncondBranchReg(0b0010, 0b11111, 0, REG_LR, 0);
-        self.buffer.emitInt(inst);
+        self.buffer.emitInt32(inst);
     }
 
     fun retReg(rn: Register) {
         let inst = clsUncondBranchReg(0b0010, 0b11111, 0, rn, 0);
-        self.buffer.emitInt(inst);
+        self.buffer.emitInt32(inst);
     }
 
     fun br(rn: Register) {
         let inst = clsUncondBranchReg(0b0000, 0b11111, 0, rn, 0);
-        self.buffer.emitInt(inst);
+        self.buffer.emitInt32(inst);
     }
 
     fun blr(rn: Register) {
         let inst = clsUncondBranchReg(0b0001, 0b11111, 0, rn, 0);
-        self.buffer.emitInt(inst);
+        self.buffer.emitInt32(inst);
     }
 
     fun finalize() -> Array[UInt8] {
