@@ -356,20 +356,20 @@ where
                 let src = self.read_register(wide);
                 self.visitor.visit_cast_int_to_int32(dest, src);
             }
-            BytecodeOpcode::CastLongToByte => {
+            BytecodeOpcode::CastInt64ToByte => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
-                self.visitor.visit_cast_long_to_byte(dest, src);
+                self.visitor.visit_cast_int64_to_byte(dest, src);
             }
-            BytecodeOpcode::CastLongToChar => {
+            BytecodeOpcode::CastInt64ToChar => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
-                self.visitor.visit_cast_long_to_char(dest, src);
+                self.visitor.visit_cast_int64_to_char(dest, src);
             }
-            BytecodeOpcode::CastLongToInt => {
+            BytecodeOpcode::CastInt64ToInt => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
-                self.visitor.visit_cast_long_to_int(dest, src);
+                self.visitor.visit_cast_int64_to_int(dest, src);
             }
 
             BytecodeOpcode::ConvertIntToFloat => {
@@ -446,10 +446,10 @@ where
                 let src = self.read_register(wide);
                 self.visitor.visit_mov_int(dest, src);
             }
-            BytecodeOpcode::MovLong => {
+            BytecodeOpcode::MovInt64 => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
-                self.visitor.visit_mov_long(dest, src);
+                self.visitor.visit_mov_int64(dest, src);
             }
             BytecodeOpcode::MovFloat => {
                 let dest = self.read_register(wide);
@@ -498,12 +498,12 @@ where
                 let field = self.read_field(wide);
                 self.visitor.visit_load_field_bool(dest, obj, cls, field);
             }
-            BytecodeOpcode::LoadFieldByte => {
+            BytecodeOpcode::LoadFieldUInt8 => {
                 let dest = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
                 let field = self.read_field(wide);
-                self.visitor.visit_load_field_byte(dest, obj, cls, field);
+                self.visitor.visit_load_field_uint8(dest, obj, cls, field);
             }
             BytecodeOpcode::LoadFieldChar => {
                 let dest = self.read_register(wide);
@@ -519,12 +519,12 @@ where
                 let field = self.read_field(wide);
                 self.visitor.visit_load_field_int(dest, obj, cls, field);
             }
-            BytecodeOpcode::LoadFieldLong => {
+            BytecodeOpcode::LoadFieldInt64 => {
                 let dest = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
                 let field = self.read_field(wide);
-                self.visitor.visit_load_field_long(dest, obj, cls, field);
+                self.visitor.visit_load_field_int64(dest, obj, cls, field);
             }
             BytecodeOpcode::LoadFieldFloat => {
                 let dest = self.read_register(wide);
@@ -555,12 +555,12 @@ where
                 let field = self.read_field(wide);
                 self.visitor.visit_store_field_bool(src, obj, cls, field);
             }
-            BytecodeOpcode::StoreFieldByte => {
+            BytecodeOpcode::StoreFieldUInt8 => {
                 let src = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
                 let field = self.read_field(wide);
-                self.visitor.visit_store_field_byte(src, obj, cls, field);
+                self.visitor.visit_store_field_uint8(src, obj, cls, field);
             }
             BytecodeOpcode::StoreFieldChar => {
                 let src = self.read_register(wide);
@@ -576,12 +576,12 @@ where
                 let field = self.read_field(wide);
                 self.visitor.visit_store_field_int(src, obj, cls, field);
             }
-            BytecodeOpcode::StoreFieldLong => {
+            BytecodeOpcode::StoreFieldInt64 => {
                 let src = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
                 let field = self.read_field(wide);
-                self.visitor.visit_store_field_long(src, obj, cls, field);
+                self.visitor.visit_store_field_int64(src, obj, cls, field);
             }
             BytecodeOpcode::StoreFieldFloat => {
                 let src = self.read_register(wide);
@@ -733,20 +733,20 @@ where
                 let idx = self.read_const_pool_idx(wide);
                 self.visitor.visit_const_char(dest, idx);
             }
-            BytecodeOpcode::ConstByte => {
+            BytecodeOpcode::ConstUInt8 => {
                 let dest = self.read_register(wide);
                 let value = self.read_byte();
-                self.visitor.visit_const_byte(dest, value as u8);
+                self.visitor.visit_const_uint8(dest, value as u8);
             }
             BytecodeOpcode::ConstInt => {
                 let dest = self.read_register(wide);
                 let idx = self.read_const_pool_idx(wide);
                 self.visitor.visit_const_int(dest, idx);
             }
-            BytecodeOpcode::ConstLong => {
+            BytecodeOpcode::ConstInt64 => {
                 let dest = self.read_register(wide);
                 let idx = self.read_const_pool_idx(wide);
-                self.visitor.visit_const_long(dest, idx);
+                self.visitor.visit_const_int64(dest, idx);
             }
             BytecodeOpcode::ConstFloat => {
                 let dest = self.read_register(wide);
@@ -1631,13 +1631,13 @@ pub trait BytecodeVisitor {
     fn visit_cast_int_to_int32(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
-    fn visit_cast_long_to_byte(&mut self, _dest: Register, _src: Register) {
+    fn visit_cast_int64_to_byte(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
-    fn visit_cast_long_to_char(&mut self, _dest: Register, _src: Register) {
+    fn visit_cast_int64_to_char(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
-    fn visit_cast_long_to_int(&mut self, _dest: Register, _src: Register) {
+    fn visit_cast_int64_to_int(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
 
@@ -1687,7 +1687,7 @@ pub trait BytecodeVisitor {
     fn visit_mov_int(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
-    fn visit_mov_long(&mut self, _dest: Register, _src: Register) {
+    fn visit_mov_int64(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
     fn visit_mov_float(&mut self, _dest: Register, _src: Register) {
@@ -1732,7 +1732,7 @@ pub trait BytecodeVisitor {
     ) {
         unimplemented!();
     }
-    fn visit_load_field_byte(
+    fn visit_load_field_uint8(
         &mut self,
         _dest: Register,
         _obj: Register,
@@ -1759,7 +1759,7 @@ pub trait BytecodeVisitor {
     ) {
         unimplemented!();
     }
-    fn visit_load_field_long(
+    fn visit_load_field_int64(
         &mut self,
         _dest: Register,
         _obj: Register,
@@ -1805,7 +1805,7 @@ pub trait BytecodeVisitor {
     ) {
         unimplemented!();
     }
-    fn visit_store_field_byte(
+    fn visit_store_field_uint8(
         &mut self,
         _src: Register,
         _obj: Register,
@@ -1832,7 +1832,7 @@ pub trait BytecodeVisitor {
     ) {
         unimplemented!();
     }
-    fn visit_store_field_long(
+    fn visit_store_field_int64(
         &mut self,
         _src: Register,
         _obj: Register,
@@ -1953,13 +1953,13 @@ pub trait BytecodeVisitor {
     fn visit_const_char(&mut self, _dest: Register, _value: ConstPoolIdx) {
         unimplemented!();
     }
-    fn visit_const_byte(&mut self, _dest: Register, _value: u8) {
+    fn visit_const_uint8(&mut self, _dest: Register, _value: u8) {
         unimplemented!();
     }
     fn visit_const_int(&mut self, _dest: Register, _value: ConstPoolIdx) {
         unimplemented!();
     }
-    fn visit_const_long(&mut self, _dest: Register, _value: ConstPoolIdx) {
+    fn visit_const_int64(&mut self, _dest: Register, _value: ConstPoolIdx) {
         unimplemented!();
     }
     fn visit_const_float(&mut self, _dest: Register, _value: ConstPoolIdx) {

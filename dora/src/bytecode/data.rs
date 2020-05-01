@@ -177,9 +177,9 @@ pub enum BytecodeOpcode {
     CastIntToByte,
     CastIntToChar,
     CastIntToInt32,
-    CastLongToByte,
-    CastLongToChar,
-    CastLongToInt,
+    CastInt64ToByte,
+    CastInt64ToChar,
+    CastInt64ToInt,
 
     ConvertIntToFloat,
     ConvertIntToDouble,
@@ -198,7 +198,7 @@ pub enum BytecodeOpcode {
     MovByte,
     MovChar,
     MovInt,
-    MovLong,
+    MovInt64,
     MovFloat,
     MovDouble,
     MovPtr,
@@ -208,19 +208,19 @@ pub enum BytecodeOpcode {
     StoreTupleElement,
 
     LoadFieldBool,
-    LoadFieldByte,
+    LoadFieldUInt8,
     LoadFieldChar,
     LoadFieldInt,
-    LoadFieldLong,
+    LoadFieldInt64,
     LoadFieldFloat,
     LoadFieldDouble,
     LoadFieldPtr,
 
     StoreFieldBool,
-    StoreFieldByte,
+    StoreFieldUInt8,
     StoreFieldChar,
     StoreFieldInt,
-    StoreFieldLong,
+    StoreFieldInt64,
     StoreFieldFloat,
     StoreFieldDouble,
     StoreFieldPtr,
@@ -254,10 +254,10 @@ pub enum BytecodeOpcode {
     ConstZeroLong,
     ConstZeroFloat,
     ConstZeroDouble,
-    ConstByte,
+    ConstUInt8,
     ConstChar,
     ConstInt,
-    ConstLong,
+    ConstInt64,
     ConstFloat,
     ConstDouble,
     ConstString,
@@ -403,18 +403,18 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InstanceOf
             | BytecodeOpcode::CheckedCast
             | BytecodeOpcode::LoadFieldBool
-            | BytecodeOpcode::LoadFieldByte
+            | BytecodeOpcode::LoadFieldUInt8
             | BytecodeOpcode::LoadFieldChar
             | BytecodeOpcode::LoadFieldInt
-            | BytecodeOpcode::LoadFieldLong
+            | BytecodeOpcode::LoadFieldInt64
             | BytecodeOpcode::LoadFieldFloat
             | BytecodeOpcode::LoadFieldDouble
             | BytecodeOpcode::LoadFieldPtr
             | BytecodeOpcode::StoreFieldBool
-            | BytecodeOpcode::StoreFieldByte
+            | BytecodeOpcode::StoreFieldUInt8
             | BytecodeOpcode::StoreFieldChar
             | BytecodeOpcode::StoreFieldInt
-            | BytecodeOpcode::StoreFieldLong
+            | BytecodeOpcode::StoreFieldInt64
             | BytecodeOpcode::StoreFieldFloat
             | BytecodeOpcode::StoreFieldDouble
             | BytecodeOpcode::StoreFieldPtr

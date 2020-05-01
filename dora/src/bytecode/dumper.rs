@@ -309,14 +309,14 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_cast_int_to_char(&mut self, dest: Register, src: Register) {
         self.emit_reg2("CastIntToChar", dest, src);
     }
-    fn visit_cast_long_to_byte(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("CastLongToByte", dest, src);
+    fn visit_cast_int64_to_byte(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("CastInt64ToByte", dest, src);
     }
-    fn visit_cast_long_to_char(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("CastLongToChar", dest, src);
+    fn visit_cast_int64_to_char(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("CastInt64ToChar", dest, src);
     }
-    fn visit_cast_long_to_int(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("CastLongToInt", dest, src);
+    fn visit_cast_int64_to_int(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("CastInt64ToInt", dest, src);
     }
 
     fn visit_convert_int_to_float(&mut self, dest: Register, src: Register) {
@@ -364,8 +364,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_mov_int(&mut self, dest: Register, src: Register) {
         self.emit_reg2("MovInt", dest, src);
     }
-    fn visit_mov_long(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("MovLong", dest, src);
+    fn visit_mov_int64(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("MovInt64", dest, src);
     }
     fn visit_mov_float(&mut self, dest: Register, src: Register) {
         self.emit_reg2("MovFloat", dest, src);
@@ -386,14 +386,14 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     ) {
         self.emit_field("LoadFieldBool", dest, obj, cls, field);
     }
-    fn visit_load_field_byte(
+    fn visit_load_field_uint8(
         &mut self,
         dest: Register,
         obj: Register,
         cls: ClassDefId,
         field: FieldId,
     ) {
-        self.emit_field("LoadFieldByte", dest, obj, cls, field);
+        self.emit_field("LoadFieldUInt8", dest, obj, cls, field);
     }
     fn visit_load_field_char(
         &mut self,
@@ -413,14 +413,14 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     ) {
         self.emit_field("LoadFieldInt", dest, obj, cls, field);
     }
-    fn visit_load_field_long(
+    fn visit_load_field_int64(
         &mut self,
         dest: Register,
         obj: Register,
         cls: ClassDefId,
         field: FieldId,
     ) {
-        self.emit_field("LoadFieldLong", dest, obj, cls, field);
+        self.emit_field("LoadFieldInt64", dest, obj, cls, field);
     }
     fn visit_load_field_float(
         &mut self,
@@ -459,14 +459,14 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     ) {
         self.emit_field("StoreFieldBool", src, obj, cls, field);
     }
-    fn visit_store_field_byte(
+    fn visit_store_field_uint8(
         &mut self,
         src: Register,
         obj: Register,
         cls: ClassDefId,
         field: FieldId,
     ) {
-        self.emit_field("StoreFieldByte", src, obj, cls, field);
+        self.emit_field("StoreFieldUInt8", src, obj, cls, field);
     }
     fn visit_store_field_char(
         &mut self,
@@ -486,14 +486,14 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     ) {
         self.emit_field("StoreFieldInt", src, obj, cls, field);
     }
-    fn visit_store_field_long(
+    fn visit_store_field_int64(
         &mut self,
         src: Register,
         obj: Register,
         cls: ClassDefId,
         field: FieldId,
     ) {
-        self.emit_field("StoreFieldLong", src, obj, cls, field);
+        self.emit_field("StoreFieldInt64", src, obj, cls, field);
     }
     fn visit_store_field_float(
         &mut self,
@@ -607,14 +607,14 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_const_char(&mut self, dest: Register, value: ConstPoolIdx) {
         self.emit_reg1_idx("ConstChar", dest, value);
     }
-    fn visit_const_byte(&mut self, dest: Register, value: u8) {
-        self.emit_reg1_u32("ConstByte", dest, value as u32);
+    fn visit_const_uint8(&mut self, dest: Register, value: u8) {
+        self.emit_reg1_u32("ConstUInt8", dest, value as u32);
     }
     fn visit_const_int(&mut self, dest: Register, value: ConstPoolIdx) {
         self.emit_reg1_idx("ConstInt", dest, value);
     }
-    fn visit_const_long(&mut self, dest: Register, value: ConstPoolIdx) {
-        self.emit_reg1_idx("ConstLong", dest, value);
+    fn visit_const_int64(&mut self, dest: Register, value: ConstPoolIdx) {
+        self.emit_reg1_idx("ConstInt64", dest, value);
     }
     fn visit_const_float(&mut self, dest: Register, value: ConstPoolIdx) {
         self.emit_reg1_idx("ConstFloat", dest, value);

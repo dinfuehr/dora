@@ -494,7 +494,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         match field_bc_ty {
             BytecodeType::UInt8 => self
                 .gen
-                .emit_load_field_byte(dest, obj, cls_def_id, field_id),
+                .emit_load_field_uint8(dest, obj, cls_def_id, field_id),
             BytecodeType::Bool => self
                 .gen
                 .emit_load_field_bool(dest, obj, cls_def_id, field_id),
@@ -509,7 +509,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 .emit_load_field_int(dest, obj, cls_def_id, field_id),
             BytecodeType::Int64 => self
                 .gen
-                .emit_load_field_long(dest, obj, cls_def_id, field_id),
+                .emit_load_field_int64(dest, obj, cls_def_id, field_id),
             BytecodeType::Float => self
                 .gen
                 .emit_load_field_float(dest, obj, cls_def_id, field_id),
@@ -857,7 +857,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Float => self.gen.emit_mov_float(dest, src),
             BytecodeType::Int => self.gen.emit_mov_int(dest, src),
             BytecodeType::Int32 => self.gen.emit_mov_int(dest, src),
-            BytecodeType::Int64 => self.gen.emit_mov_long(dest, src),
+            BytecodeType::Int64 => self.gen.emit_mov_int64(dest, src),
             BytecodeType::Ptr => self.gen.emit_mov_ptr(dest, src),
         }
     }
@@ -1076,7 +1076,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Float => self.gen.emit_mov_float(dest, var_reg),
             BytecodeType::Int => self.gen.emit_mov_int(dest, var_reg),
             BytecodeType::Int32 => self.gen.emit_mov_int(dest, var_reg),
-            BytecodeType::Int64 => self.gen.emit_mov_long(dest, var_reg),
+            BytecodeType::Int64 => self.gen.emit_mov_int64(dest, var_reg),
             BytecodeType::Ptr => self.gen.emit_mov_ptr(dest, var_reg),
         }
         dest
@@ -1130,7 +1130,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 BytecodeType::UInt8 => self.gen.emit_const_byte(dest, value as u8),
                 BytecodeType::Int => self.gen.emit_const_int(dest, value as i32),
                 BytecodeType::Int32 => self.gen.emit_const_int(dest, value as i32),
-                BytecodeType::Int64 => self.gen.emit_const_long(dest, value),
+                BytecodeType::Int64 => self.gen.emit_const_int64(dest, value),
                 _ => unreachable!(),
             }
         }
@@ -1351,7 +1351,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                         BytecodeType::UInt8 => self.gen.emit_const_byte(dest, 0),
                         BytecodeType::Int => self.gen.emit_const_int(dest, 0),
                         BytecodeType::Int32 => self.gen.emit_const_int(dest, 0),
-                        BytecodeType::Int64 => self.gen.emit_const_long(dest, 0),
+                        BytecodeType::Int64 => self.gen.emit_const_int64(dest, 0),
                         BytecodeType::Char => self.gen.emit_const_char(dest, '\0'),
                         BytecodeType::Float => self.gen.emit_const_float(dest, 0.0),
                         BytecodeType::Double => self.gen.emit_const_double(dest, 0.0),
@@ -1980,12 +1980,12 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
 
         match ty.unwrap() {
-            BytecodeType::UInt8 => self.gen.emit_store_field_byte(src, obj, cls_id, field_id),
+            BytecodeType::UInt8 => self.gen.emit_store_field_uint8(src, obj, cls_id, field_id),
             BytecodeType::Bool => self.gen.emit_store_field_bool(src, obj, cls_id, field_id),
             BytecodeType::Char => self.gen.emit_store_field_char(src, obj, cls_id, field_id),
             BytecodeType::Int => self.gen.emit_store_field_int(src, obj, cls_id, field_id),
             BytecodeType::Int32 => self.gen.emit_store_field_int(src, obj, cls_id, field_id),
-            BytecodeType::Int64 => self.gen.emit_store_field_long(src, obj, cls_id, field_id),
+            BytecodeType::Int64 => self.gen.emit_store_field_int64(src, obj, cls_id, field_id),
             BytecodeType::Float => self.gen.emit_store_field_float(src, obj, cls_id, field_id),
             BytecodeType::Double => self.gen.emit_store_field_double(src, obj, cls_id, field_id),
             BytecodeType::Ptr => self.gen.emit_store_field_ptr(src, obj, cls_id, field_id),
@@ -2093,7 +2093,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             }
 
             BuiltinType::Int64 => {
-                self.gen.emit_const_long(dest, xconst.value.to_int());
+                self.gen.emit_const_int64(dest, xconst.value.to_int());
             }
 
             BuiltinType::Float => {
@@ -2170,7 +2170,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 BytecodeType::Char => self.gen.emit_mov_char(dest, var_reg),
                 BytecodeType::Int => self.gen.emit_mov_int(dest, var_reg),
                 BytecodeType::Int32 => self.gen.emit_mov_int(dest, var_reg),
-                BytecodeType::Int64 => self.gen.emit_mov_long(dest, var_reg),
+                BytecodeType::Int64 => self.gen.emit_mov_int64(dest, var_reg),
                 BytecodeType::Float => self.gen.emit_mov_float(dest, var_reg),
                 BytecodeType::Double => self.gen.emit_mov_double(dest, var_reg),
                 BytecodeType::Ptr => self.gen.emit_mov_ptr(dest, var_reg),

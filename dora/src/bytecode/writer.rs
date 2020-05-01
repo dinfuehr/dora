@@ -158,14 +158,14 @@ impl BytecodeWriter {
         self.emit_access_field(BytecodeOpcode::LoadFieldBool, dest, obj, cls, field);
     }
 
-    pub fn emit_load_field_byte(
+    pub fn emit_load_field_uint8(
         &mut self,
         dest: Register,
         obj: Register,
         cls: ClassDefId,
         field: FieldId,
     ) {
-        self.emit_access_field(BytecodeOpcode::LoadFieldByte, dest, obj, cls, field);
+        self.emit_access_field(BytecodeOpcode::LoadFieldUInt8, dest, obj, cls, field);
     }
 
     pub fn emit_load_field_char(
@@ -188,14 +188,14 @@ impl BytecodeWriter {
         self.emit_access_field(BytecodeOpcode::LoadFieldInt, dest, obj, cls, field);
     }
 
-    pub fn emit_load_field_long(
+    pub fn emit_load_field_int64(
         &mut self,
         dest: Register,
         obj: Register,
         cls: ClassDefId,
         field: FieldId,
     ) {
-        self.emit_access_field(BytecodeOpcode::LoadFieldLong, dest, obj, cls, field);
+        self.emit_access_field(BytecodeOpcode::LoadFieldInt64, dest, obj, cls, field);
     }
 
     pub fn emit_load_field_float(
@@ -238,14 +238,14 @@ impl BytecodeWriter {
         self.emit_access_field(BytecodeOpcode::StoreFieldBool, src, obj, cls, field);
     }
 
-    pub fn emit_store_field_byte(
+    pub fn emit_store_field_uint8(
         &mut self,
         src: Register,
         obj: Register,
         cls: ClassDefId,
         field: FieldId,
     ) {
-        self.emit_access_field(BytecodeOpcode::StoreFieldByte, src, obj, cls, field);
+        self.emit_access_field(BytecodeOpcode::StoreFieldUInt8, src, obj, cls, field);
     }
 
     pub fn emit_store_field_char(
@@ -268,14 +268,14 @@ impl BytecodeWriter {
         self.emit_access_field(BytecodeOpcode::StoreFieldInt, src, obj, cls, field);
     }
 
-    pub fn emit_store_field_long(
+    pub fn emit_store_field_int64(
         &mut self,
         src: Register,
         obj: Register,
         cls: ClassDefId,
         field: FieldId,
     ) {
-        self.emit_access_field(BytecodeOpcode::StoreFieldLong, src, obj, cls, field);
+        self.emit_access_field(BytecodeOpcode::StoreFieldInt64, src, obj, cls, field);
     }
 
     pub fn emit_store_field_float(
@@ -318,7 +318,7 @@ impl BytecodeWriter {
     }
 
     pub fn emit_const_byte(&mut self, dest: Register, value: u8) {
-        self.emit_reg1_byte(BytecodeOpcode::ConstByte, dest, value);
+        self.emit_reg1_byte(BytecodeOpcode::ConstUInt8, dest, value);
     }
 
     pub fn emit_const_int(&mut self, dest: Register, value: i32) {
@@ -326,9 +326,9 @@ impl BytecodeWriter {
         self.emit_reg1_idx(BytecodeOpcode::ConstInt, dest, idx);
     }
 
-    pub fn emit_const_long(&mut self, dest: Register, value: i64) {
+    pub fn emit_const_int64(&mut self, dest: Register, value: i64) {
         let idx = self.add_const(ConstPoolEntry::Long(value as i64));
-        self.emit_reg1_idx(BytecodeOpcode::ConstLong, dest, idx);
+        self.emit_reg1_idx(BytecodeOpcode::ConstInt64, dest, idx);
     }
 
     pub fn emit_const_float(&mut self, dest: Register, value: f32) {
@@ -545,13 +545,13 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::CastIntToInt32, dest, src);
     }
     pub fn emit_cast_long_to_byte(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::CastLongToByte, dest, src);
+        self.emit_reg2(BytecodeOpcode::CastInt64ToByte, dest, src);
     }
     pub fn emit_cast_long_to_char(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::CastLongToChar, dest, src);
+        self.emit_reg2(BytecodeOpcode::CastInt64ToChar, dest, src);
     }
     pub fn emit_cast_long_to_int(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::CastLongToInt, dest, src);
+        self.emit_reg2(BytecodeOpcode::CastInt64ToInt, dest, src);
     }
 
     pub fn emit_convert_int_to_float(&mut self, dest: Register, src: Register) {
@@ -620,8 +620,8 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::MovInt, dest, src);
     }
 
-    pub fn emit_mov_long(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::MovLong, dest, src);
+    pub fn emit_mov_int64(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::MovInt64, dest, src);
     }
 
     pub fn emit_mov_float(&mut self, dest: Register, src: Register) {

@@ -139,7 +139,7 @@ fn test_const_byte() {
         found: bool,
     }
     impl BytecodeVisitor for TestVisitor {
-        fn visit_const_byte(&mut self, dest: Register, value: u8) {
+        fn visit_const_uint8(&mut self, dest: Register, value: u8) {
             assert_eq!(Register(255), dest);
             assert_eq!(255, value);
             self.found = true;
@@ -148,7 +148,7 @@ fn test_const_byte() {
     let mut writer = BytecodeWriter::new();
     writer.emit_const_byte(Register(255), 255);
     let fct = writer.generate();
-    assert_eq!(fct.code(), &[BytecodeOpcode::ConstByte as u8, 255, 255]);
+    assert_eq!(fct.code(), &[BytecodeOpcode::ConstUInt8 as u8, 255, 255]);
     let mut visitor = TestVisitor { found: false };
     read(fct.code(), &mut visitor);
     assert!(visitor.found);
@@ -160,7 +160,7 @@ fn test_const_byte_wide() {
         found: bool,
     }
     impl BytecodeVisitor for TestVisitor {
-        fn visit_const_byte(&mut self, dest: Register, value: u8) {
+        fn visit_const_uint8(&mut self, dest: Register, value: u8) {
             assert_eq!(Register(256), dest);
             assert_eq!(19, value);
             self.found = true;
@@ -173,7 +173,7 @@ fn test_const_byte_wide() {
         fct.code(),
         &[
             BytecodeOpcode::Wide as u8,
-            BytecodeOpcode::ConstByte as u8,
+            BytecodeOpcode::ConstUInt8 as u8,
             0,
             0,
             0,

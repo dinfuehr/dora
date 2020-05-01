@@ -2132,13 +2132,13 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_cast_int_to_int32(&mut self, dest: Register, src: Register) {
         self.emit_shrink(dest, MachineMode::Int32, src, MachineMode::Int32);
     }
-    fn visit_cast_long_to_byte(&mut self, dest: Register, src: Register) {
+    fn visit_cast_int64_to_byte(&mut self, dest: Register, src: Register) {
         self.emit_shrink(dest, MachineMode::Int8, src, MachineMode::Int64);
     }
-    fn visit_cast_long_to_char(&mut self, dest: Register, src: Register) {
+    fn visit_cast_int64_to_char(&mut self, dest: Register, src: Register) {
         self.emit_shrink(dest, MachineMode::Int32, src, MachineMode::Int64);
     }
-    fn visit_cast_long_to_int(&mut self, dest: Register, src: Register) {
+    fn visit_cast_int64_to_int(&mut self, dest: Register, src: Register) {
         self.emit_long_to_int(dest, src);
     }
 
@@ -2187,7 +2187,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_mov_int(&mut self, dest: Register, src: Register) {
         self.emit_mov_generic(dest, src);
     }
-    fn visit_mov_long(&mut self, dest: Register, src: Register) {
+    fn visit_mov_int64(&mut self, dest: Register, src: Register) {
         self.emit_mov_generic(dest, src);
     }
     fn visit_mov_float(&mut self, dest: Register, src: Register) {
@@ -2209,7 +2209,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     ) {
         self.emit_load_field(dest, obj, cls, field);
     }
-    fn visit_load_field_byte(
+    fn visit_load_field_uint8(
         &mut self,
         dest: Register,
         obj: Register,
@@ -2236,7 +2236,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     ) {
         self.emit_load_field(dest, obj, cls, field);
     }
-    fn visit_load_field_long(
+    fn visit_load_field_int64(
         &mut self,
         dest: Register,
         obj: Register,
@@ -2282,7 +2282,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     ) {
         self.emit_store_field(src, obj, cls, field);
     }
-    fn visit_store_field_byte(
+    fn visit_store_field_uint8(
         &mut self,
         src: Register,
         obj: Register,
@@ -2309,7 +2309,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     ) {
         self.emit_store_field(src, obj, cls, field);
     }
-    fn visit_store_field_long(
+    fn visit_store_field_int64(
         &mut self,
         src: Register,
         obj: Register,
@@ -2436,7 +2436,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_const_int(dest, value as i64);
     }
 
-    fn visit_const_byte(&mut self, dest: Register, value: u8) {
+    fn visit_const_uint8(&mut self, dest: Register, value: u8) {
         self.emit_const_int(dest, value as i64);
     }
     fn visit_const_int(&mut self, dest: Register, idx: ConstPoolIdx) {
@@ -2447,7 +2447,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
             .expect("unexpected const pool entry");
         self.emit_const_int(dest, value as i64);
     }
-    fn visit_const_long(&mut self, dest: Register, idx: ConstPoolIdx) {
+    fn visit_const_int64(&mut self, dest: Register, idx: ConstPoolIdx) {
         let value = self
             .bytecode
             .const_pool(idx)
