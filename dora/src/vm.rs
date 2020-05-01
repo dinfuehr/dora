@@ -154,6 +154,7 @@ impl<'ast> VM<'ast> {
                 uint8_class: empty_class_id,
                 char_class: empty_class_id,
                 int_class: empty_class_id,
+                int32_class: empty_class_id,
                 int64_class: empty_class_id,
                 float_class: empty_class_id,
                 double_class: empty_class_id,

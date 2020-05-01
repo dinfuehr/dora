@@ -11,6 +11,7 @@ pub struct KnownElements {
     pub uint8_class: ClassId,
     pub char_class: ClassId,
     pub int_class: ClassId,
+    pub int32_class: ClassId,
     pub int64_class: ClassId,
     pub float_class: ClassId,
     pub double_class: ClassId,

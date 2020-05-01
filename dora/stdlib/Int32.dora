@@ -1,0 +1,36 @@
+@internal class Int32 {
+  @internal fun equals(rhs: Int32) -> Bool;
+  @internal fun compareTo(rhs: Int32) -> Int;
+
+  @internal fun plus(rhs: Int32) -> Int32;
+  @internal fun minus(rhs: Int32) -> Int32;
+  @internal fun times(rhs: Int32) -> Int32;
+  @internal fun div(rhs: Int32) -> Int32;
+  @internal fun mod(rhs: Int32) -> Int32;
+
+  @internal fun bitwiseOr(rhs: Int32) -> Int32;
+  @internal fun bitwiseAnd(rhs: Int32) -> Int32;
+  @internal fun bitwiseXor(rhs: Int32) -> Int32;
+
+  @internal fun shiftLeft(by: Int) -> Int32;
+  @internal fun shiftRightSigned(by: Int) -> Int32;
+  @internal fun shiftRight(by: Int) -> Int32;
+
+  @internal fun rotateLeft(by: Int) -> Int32;
+  @internal fun rotateRight(by: Int) -> Int32;
+
+  @internal fun unaryPlus() -> Int32;
+  @internal fun unaryMinus() -> Int32;
+  @internal fun not() -> Int32;
+
+//   fun hash() -> Int = self.toInt();
+
+  @static fun bits() -> Int = 32;
+  @static fun bytes() -> Int = 4;
+
+//   @static fun maxValue() -> Int32 = 2147483647;
+//   @static fun minValue() -> Int32 = -2147483648;
+
+//   @static fun min(lhs: Int32, rhs: Int32) -> Int32 = if lhs < rhs { lhs } else { rhs };
+//   @static fun max(lhs: Int32, rhs: Int32) -> Int32 = if lhs < rhs { rhs } else { lhs };
+}

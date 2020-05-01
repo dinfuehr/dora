@@ -2129,6 +2129,9 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_cast_int_to_char(&mut self, dest: Register, src: Register) {
         self.emit_shrink(dest, MachineMode::Int32, src, MachineMode::Int32);
     }
+    fn visit_cast_int_to_int32(&mut self, dest: Register, src: Register) {
+        self.emit_shrink(dest, MachineMode::Int32, src, MachineMode::Int32);
+    }
     fn visit_cast_long_to_byte(&mut self, dest: Register, src: Register) {
         self.emit_shrink(dest, MachineMode::Int8, src, MachineMode::Int64);
     }

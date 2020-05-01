@@ -27,7 +27,7 @@ def read_enum(name)
 
         return values if line == "}\n"
 
-        m = line.match(/^\s*([a-zA-Z]+),$/)
+        m = line.match(/^\s*([a-zA-Z0-9]+),$/)
 
         unless m
             raise "illegal line: #{line.inspect}"

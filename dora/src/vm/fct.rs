@@ -313,6 +313,8 @@ pub enum Intrinsic {
     CharToInt32,
     CharToInt64,
 
+    IntPtrToInt32,
+
     Int32ToByte,
     Int32ToChar,
     Int32ToInt64,
@@ -475,6 +477,7 @@ impl Intrinsic {
             | Intrinsic::Int64CountOneBits
             | Intrinsic::Int64CountOneBitsLeading
             | Intrinsic::Int64CountOneBitsTrailing => BytecodeType::Int,
+            Intrinsic::IntPtrToInt32 => BytecodeType::Int32,
             Intrinsic::Int64Add
             | Intrinsic::Int64Sub
             | Intrinsic::Int64Mul

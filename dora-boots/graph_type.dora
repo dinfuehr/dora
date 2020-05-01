@@ -1,9 +1,9 @@
 let typeUnit: Type = Type(TypeKind::Unit);
 let typeBool: Type = Type(TypeKind::Bool);
-let typeByte: Type = Type(TypeKind::UInt8);
+let typeUInt8: Type = Type(TypeKind::UInt8);
 let typeChar: Type = Type(TypeKind::Char);
 let typeInt: Type = Type(TypeKind::Int);
-let typeLong: Type = Type(TypeKind::Long);
+let typeInt64: Type = Type(TypeKind::Int64);
 let typeFloat: Type = Type(TypeKind::Float);
 let typeDouble: Type = Type(TypeKind::Double);
 let typePtr: Type = Type(TypeKind::Ptr);
@@ -12,10 +12,10 @@ let typePtr: Type = Type(TypeKind::Ptr);
 class Type(let kind: TypeKind) {
     @static fun unit() -> Type { return typeUnit; }
     @static fun bool() -> Type { return typeBool; }
-    @static fun byte() -> Type { return typeByte; }
+    @static fun uint8() -> Type { return typeUInt8; }
     @static fun char() -> Type { return typeChar; }
     @static fun int() -> Type { return typeInt; }
-    @static fun long() -> Type { return typeLong; }
+    @static fun int64() -> Type { return typeInt64; }
     @static fun float() -> Type { return typeFloat; }
     @static fun double() -> Type { return typeDouble; }
     @static fun ptr() -> Type { return typePtr; }
@@ -23,14 +23,14 @@ class Type(let kind: TypeKind) {
     @static fun fromBytecodeType(ty: BytecodeType) -> Type {
         if ty.isBool() {
             Type::bool()
-        } else if ty.isByte() {
-            Type::byte()
+        } else if ty.isUInt8() {
+            Type::uint8()
         } else if ty.isChar() {
             Type::char()
         } else if ty.isInt() {
             Type::int()
-        } else if ty.isLong() {
-            Type::long()
+        } else if ty.isInt64() {
+            Type::int64()
         } else if ty.isFloat() {
             Type::float()
         } else if ty.isDouble() {
@@ -43,13 +43,13 @@ class Type(let kind: TypeKind) {
         }
     }
 
-    fun is_unit() -> Bool { return self.kind == TypeKind::Unit; }
-    fun is_byte() -> Bool { return self.kind == TypeKind::UInt8; }
-    fun is_int() -> Bool { return self.kind == TypeKind::Int; }
-    fun is_long() -> Bool { return self.kind == TypeKind::Long; }
-    fun is_float() -> Bool { return self.kind == TypeKind::Float; }
-    fun is_double() -> Bool { return self.kind == TypeKind::Double; }
-    fun is_ptr() -> Bool { return self.kind == TypeKind::Ptr; }
+    fun isUnit() -> Bool { return self.kind == TypeKind::Unit; }
+    fun isUInt8() -> Bool { return self.kind == TypeKind::UInt8; }
+    fun isInt() -> Bool { return self.kind == TypeKind::Int; }
+    fun isInt64() -> Bool { return self.kind == TypeKind::Int64; }
+    fun isFloat() -> Bool { return self.kind == TypeKind::Float; }
+    fun isDouble() -> Bool { return self.kind == TypeKind::Double; }
+    fun isPtr() -> Bool { return self.kind == TypeKind::Ptr; }
 
     fun is_any_float() -> Bool {
         return self.kind == TypeKind::Float || self.kind == TypeKind::Double;
@@ -63,7 +63,7 @@ impl Stringable for Type {
 }
 
 enum TypeKind {
-    Unit, Bool, UInt8, Char, Int, Long, Float, Double, Ptr
+    Unit, Bool, UInt8, Char, Int, Int64, Float, Double, Ptr
 }
 
 impl TypeKind {
@@ -76,8 +76,8 @@ impl TypeKind {
             "UInt8"
         } else if self == TypeKind::Int {
             "Int"
-        } else if self == TypeKind::Long {
-            "Long"
+        } else if self == TypeKind::Int64 {
+            "Int64"
         } else if self == TypeKind::Float {
             "Float"
         } else if self == TypeKind::Double {

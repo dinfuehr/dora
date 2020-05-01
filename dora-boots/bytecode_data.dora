@@ -112,19 +112,19 @@ class FctId(let value: Int)
 
 class BytecodeType(let value: Int) {
     @static fun bool() -> BytecodeType = BytecodeType(BC_TYPE_BOOL);
-    @static fun byte() -> BytecodeType = BytecodeType(BC_TYPE_BYTE);
+    @static fun uint8() -> BytecodeType = BytecodeType(BC_TYPE_U_INT8);
     @static fun char() -> BytecodeType = BytecodeType(BC_TYPE_CHAR);
     @static fun int() -> BytecodeType = BytecodeType(BC_TYPE_INT);
-    @static fun long() -> BytecodeType = BytecodeType(BC_TYPE_LONG);
+    @static fun int64() -> BytecodeType = BytecodeType(BC_TYPE_INT64);
     @static fun float() -> BytecodeType = BytecodeType(BC_TYPE_FLOAT);
     @static fun double() -> BytecodeType = BytecodeType(BC_TYPE_DOUBLE);
     @static fun ptr() -> BytecodeType = BytecodeType(BC_TYPE_PTR);
 
     fun isBool() -> Bool = self.value == BC_TYPE_BOOL;
-    fun isByte() -> Bool = self.value == BC_TYPE_BYTE;
+    fun isUInt8() -> Bool = self.value == BC_TYPE_U_INT8;
     fun isChar() -> Bool = self.value == BC_TYPE_CHAR;
     fun isInt() -> Bool = self.value == BC_TYPE_INT;
-    fun isLong() -> Bool = self.value == BC_TYPE_LONG;
+    fun isInt64() -> Bool = self.value == BC_TYPE_INT64;
     fun isFloat() -> Bool = self.value == BC_TYPE_FLOAT;
     fun isDouble() -> Bool = self.value == BC_TYPE_DOUBLE;
     fun isPtr() -> Bool = self.value == BC_TYPE_PTR;

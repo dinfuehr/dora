@@ -39,7 +39,7 @@ Block 0: succ = [2]
 Block 1: pred = [2]
 Block 2: pred = [0] succ = [1]
   1: Int64(4711) [2]
-  2: Ret.Long 1
+  2: Ret.Int64 1
 ");
 }
 

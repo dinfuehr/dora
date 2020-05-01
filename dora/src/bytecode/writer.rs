@@ -541,6 +541,9 @@ impl BytecodeWriter {
     pub fn emit_cast_int_to_char(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::CastIntToChar, dest, src);
     }
+    pub fn emit_cast_int_to_int32(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::CastIntToInt32, dest, src);
+    }
     pub fn emit_cast_long_to_byte(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::CastLongToByte, dest, src);
     }

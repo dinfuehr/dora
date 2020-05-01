@@ -24,6 +24,7 @@ pub enum BytecodeType {
     UInt8,
     Char,
     Int,
+    Int32,
     Int64,
     Float,
     Double,
@@ -37,6 +38,7 @@ impl BytecodeType {
             BytecodeType::UInt8 => 1,
             BytecodeType::Char => 4,
             BytecodeType::Int => 4,
+            BytecodeType::Int32 => 4,
             BytecodeType::Int64 => 8,
             BytecodeType::Float => 4,
             BytecodeType::Double => 8,
@@ -50,6 +52,7 @@ impl BytecodeType {
             BytecodeType::UInt8 => MachineMode::Int8,
             BytecodeType::Char => MachineMode::Int32,
             BytecodeType::Int => MachineMode::Int32,
+            BytecodeType::Int32 => MachineMode::Int32,
             BytecodeType::Int64 => MachineMode::Int64,
             BytecodeType::Float => MachineMode::Float32,
             BytecodeType::Double => MachineMode::Float64,
@@ -72,6 +75,7 @@ impl From<BuiltinType> for BytecodeType {
             BuiltinType::UInt8 => BytecodeType::UInt8,
             BuiltinType::Char => BytecodeType::Char,
             BuiltinType::Int => BytecodeType::Int,
+            BuiltinType::Int32 => BytecodeType::Int32,
             BuiltinType::Int64 => BytecodeType::Int64,
             BuiltinType::Float => BytecodeType::Float,
             BuiltinType::Double => BytecodeType::Double,
@@ -82,13 +86,14 @@ impl From<BuiltinType> for BytecodeType {
     }
 }
 
-impl Into<BuiltinType> for BytecodeType {
-    fn into(self) -> BuiltinType {
-        match self {
+impl From<BytecodeType> for BuiltinType {
+    fn from(ty: BytecodeType) -> BuiltinType {
+        match ty {
             BytecodeType::Bool => BuiltinType::Bool,
             BytecodeType::UInt8 => BuiltinType::UInt8,
             BytecodeType::Char => BuiltinType::Char,
             BytecodeType::Int => BuiltinType::Int,
+            BytecodeType::Int32 => BuiltinType::Int32,
             BytecodeType::Int64 => BuiltinType::Int64,
             BytecodeType::Float => BuiltinType::Float,
             BytecodeType::Double => BuiltinType::Double,
@@ -171,6 +176,7 @@ pub enum BytecodeOpcode {
     CastCharToInt,
     CastIntToByte,
     CastIntToChar,
+    CastIntToInt32,
     CastLongToByte,
     CastLongToChar,
     CastLongToInt,

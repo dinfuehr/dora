@@ -1,0 +1,70 @@
+//= cannon
+
+fun main() {
+    let x = 1.toInt32().unaryPlus();
+    assert(x == (+1).toInt32());
+
+    let x = 1.toInt32().unaryMinus();
+    assert(x == (-1).toInt32());
+
+    let x = 1.toInt32().plus(2.toInt32());
+    assert(x == 3.toInt32());
+
+    let x = 1.toInt32() + 2.toInt32();
+    assert(x == 3.toInt32());
+
+    let x = 5.toInt32().minus(2.toInt32());
+    assert(x == 3.toInt32());
+
+    let x = 5.toInt32() - 2.toInt32();
+    assert(x == 3.toInt32());
+
+    let x = 3.toInt32().times(4.toInt32());
+    assert(x == 12.toInt32());
+
+    let x = 3.toInt32() * 4.toInt32();
+    assert(x == 12.toInt32());
+
+    let x = 9.toInt32().div(8.toInt32());
+    assert(x == 1.toInt32());
+
+    let x = 9.toInt32() / 8.toInt32();
+    assert(x == 1.toInt32());
+
+    let x = 10.toInt32().mod(8.toInt32());
+    assert(x == 2.toInt32());
+
+    let x = 10.toInt32() % 8.toInt32();
+    assert(x == 2.toInt32());
+
+    let x = 1.toInt32().bitwiseOr(2.toInt32());
+    assert(x == 3.toInt32());
+
+    let x = 1.toInt32() | 2.toInt32();
+    assert(x == 3.toInt32());
+
+    let x = 5.toInt32().bitwiseAnd(6.toInt32());
+    assert(x == 4.toInt32());
+
+    let x = 5.toInt32() & 6.toInt32();
+    assert(x == 4.toInt32());
+
+    let x = 1.toInt32().bitwiseXor(3.toInt32());
+    assert(x == 2.toInt32());
+
+    let x = 1.toInt32() ^ 3.toInt32();
+    assert(x == 2.toInt32());
+
+    let x = 1.toInt32().not();
+    assert(x == (-2).toInt32());
+
+    let x = !1.toInt32();
+    assert(x == (-2).toInt32());
+
+    assert(2.toInt32() != 3.toInt32());
+    assert(5.toInt32() == 5.toInt32());
+    assert(2.toInt32() > 1.toInt32());
+    assert(2.toInt32() >= 1.toInt32());
+    assert(3.toInt32() < 4.toInt32());
+    assert(3.toInt32() <= 4.toInt32());
+}

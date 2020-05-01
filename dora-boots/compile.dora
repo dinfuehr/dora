@@ -31,14 +31,14 @@ fun decodeRegisters(registers: Array[Int]) -> Array[BytecodeType] {
 
         let value = if regtype == BC_TYPE_BOOL {
             BytecodeType::bool()
-        } else if regtype == BC_TYPE_BYTE {
-            BytecodeType::byte()
+        } else if regtype == BC_TYPE_U_INT8 {
+            BytecodeType::uint8()
         } else if regtype == BC_TYPE_CHAR {
             BytecodeType::char()
         } else if regtype == BC_TYPE_INT {
             BytecodeType::int()
-        } else if regtype == BC_TYPE_LONG {
-            BytecodeType::long()
+        } else if regtype == BC_TYPE_INT64 {
+            BytecodeType::int64()
         } else if regtype == BC_TYPE_FLOAT {
             BytecodeType::float()
         } else if regtype == BC_TYPE_DOUBLE {

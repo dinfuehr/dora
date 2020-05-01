@@ -823,7 +823,7 @@ impl MacroAssembler {
         match mode {
             MachineMode::Int8 => self.asm.movzxb_ra(dest.reg().into(), address_from_mem(mem)),
             MachineMode::Int32 => self.asm.movl_ra(dest.reg().into(), address_from_mem(mem)),
-            MachineMode::Int64 | MachineMode::Ptr => {
+            MachineMode::Int64 | MachineMode::Ptr | MachineMode::IntPtr => {
                 self.asm.movq_ra(dest.reg().into(), address_from_mem(mem))
             }
             MachineMode::Float32 => self.asm.movss_ra(dest.freg().into(), address_from_mem(mem)),
@@ -860,7 +860,7 @@ impl MacroAssembler {
         match mode {
             MachineMode::Int8 => self.asm.movb_ar(address_from_mem(mem), src.reg().into()),
             MachineMode::Int32 => self.asm.movl_ar(address_from_mem(mem), src.reg().into()),
-            MachineMode::Int64 | MachineMode::Ptr => {
+            MachineMode::Int64 | MachineMode::Ptr | MachineMode::IntPtr => {
                 self.asm.movq_ar(address_from_mem(mem), src.reg().into())
             }
             MachineMode::Float32 => self.asm.movss_ar(address_from_mem(mem), src.freg().into()),
@@ -925,7 +925,7 @@ impl MacroAssembler {
             MachineMode::Int8 | MachineMode::Int32 => {
                 self.asm.movl_ri(dest.into(), Immediate(imm));
             }
-            MachineMode::Int64 | MachineMode::Ptr => {
+            MachineMode::Int64 | MachineMode::Ptr | MachineMode::IntPtr => {
                 self.asm.movq_ri(dest.into(), Immediate(imm));
             }
             MachineMode::Float32 | MachineMode::Float64 => unreachable!(),

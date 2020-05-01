@@ -351,6 +351,11 @@ where
                 let src = self.read_register(wide);
                 self.visitor.visit_cast_int_to_char(dest, src);
             }
+            BytecodeOpcode::CastIntToInt32 => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_cast_int_to_int32(dest, src);
+            }
             BytecodeOpcode::CastLongToByte => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
@@ -1621,6 +1626,9 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_cast_int_to_char(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_cast_int_to_int32(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
     fn visit_cast_long_to_byte(&mut self, _dest: Register, _src: Register) {
