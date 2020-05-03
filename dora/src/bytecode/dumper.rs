@@ -303,14 +303,14 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_cast_char_to_int(&mut self, dest: Register, src: Register) {
         self.emit_reg2("CastCharToInt", dest, src);
     }
-    fn visit_cast_int_to_byte(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("CastIntToByte", dest, src);
+    fn visit_cast_int_to_uint8(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("CastIntToUInt8", dest, src);
     }
     fn visit_cast_int_to_char(&mut self, dest: Register, src: Register) {
         self.emit_reg2("CastIntToChar", dest, src);
     }
-    fn visit_cast_int64_to_byte(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("CastInt64ToByte", dest, src);
+    fn visit_cast_int64_to_uint8(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("CastInt64ToUInt8", dest, src);
     }
     fn visit_cast_int64_to_char(&mut self, dest: Register, src: Register) {
         self.emit_reg2("CastInt64ToChar", dest, src);
@@ -355,8 +355,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_mov_bool(&mut self, dest: Register, src: Register) {
         self.emit_reg2("MovBool", dest, src);
     }
-    fn visit_mov_byte(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("MovByte", dest, src);
+    fn visit_mov_uint8(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("MovUInt8", dest, src);
     }
     fn visit_mov_char(&mut self, dest: Register, src: Register) {
         self.emit_reg2("MovChar", dest, src);
@@ -526,8 +526,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_load_global_bool(&mut self, dest: Register, glob: GlobalId) {
         self.emit_global("LoadGlobalBool", dest, glob);
     }
-    fn visit_load_global_byte(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_global("LoadGlobalByte", dest, glob);
+    fn visit_load_global_uint8(&mut self, dest: Register, glob: GlobalId) {
+        self.emit_global("LoadGlobalUInt8", dest, glob);
     }
     fn visit_load_global_char(&mut self, dest: Register, glob: GlobalId) {
         self.emit_global("LoadGlobalChar", dest, glob);
@@ -551,8 +551,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_store_global_bool(&mut self, src: Register, glob: GlobalId) {
         self.emit_global("StoreGlobalBool", src, glob);
     }
-    fn visit_store_global_byte(&mut self, src: Register, glob: GlobalId) {
-        self.emit_global("StoreGlobalByte", src, glob);
+    fn visit_store_global_uint8(&mut self, src: Register, glob: GlobalId) {
+        self.emit_global("StoreGlobalUInt8", src, glob);
     }
     fn visit_store_global_char(&mut self, src: Register, glob: GlobalId) {
         self.emit_global("StoreGlobalChar", src, glob);
@@ -586,8 +586,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_const_false(&mut self, dest: Register) {
         self.emit_reg1("ConstFalse", dest);
     }
-    fn visit_const_zero_byte(&mut self, dest: Register) {
-        self.emit_reg1("ConstZeroByte", dest);
+    fn visit_const_zero_uint8(&mut self, dest: Register) {
+        self.emit_reg1("ConstZeroUInt8", dest);
     }
     fn visit_const_zero_char(&mut self, dest: Register) {
         self.emit_reg1("ConstZeroChar", dest);
@@ -639,23 +639,23 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg3("TestNeBool", dest, lhs, rhs);
     }
 
-    fn visit_test_eq_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestEqByte", dest, lhs, rhs);
+    fn visit_test_eq_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestEqUInt8", dest, lhs, rhs);
     }
-    fn visit_test_ne_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestNeByte", dest, lhs, rhs);
+    fn visit_test_ne_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestNeUInt8", dest, lhs, rhs);
     }
-    fn visit_test_gt_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestGtByte", dest, lhs, rhs);
+    fn visit_test_gt_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestGtUInt8", dest, lhs, rhs);
     }
-    fn visit_test_ge_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestGeByte", dest, lhs, rhs);
+    fn visit_test_ge_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestGeUInt8", dest, lhs, rhs);
     }
-    fn visit_test_lt_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestLtByte", dest, lhs, rhs);
+    fn visit_test_lt_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestLtUInt8", dest, lhs, rhs);
     }
-    fn visit_test_le_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestLeByte", dest, lhs, rhs);
+    fn visit_test_le_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestLeUInt8", dest, lhs, rhs);
     }
 
     fn visit_test_eq_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -792,8 +792,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_invoke_direct_bool(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
         self.emit_fct("InvokeDirectBool", dest, fctdef, count);
     }
-    fn visit_invoke_direct_byte(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
-        self.emit_fct("InvokeDirectByte", dest, fctdef, count);
+    fn visit_invoke_direct_uint8(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeDirectUInt8", dest, fctdef, count);
     }
     fn visit_invoke_direct_char(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
         self.emit_fct("InvokeDirectChar", dest, fctdef, count);
@@ -820,8 +820,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_invoke_virtual_bool(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
         self.emit_fct("InvokeVirtualBool", dest, fctdef, count);
     }
-    fn visit_invoke_virtual_byte(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
-        self.emit_fct("InvokeVirtualByte", dest, fctdef, count);
+    fn visit_invoke_virtual_uint8(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeVirtualUInt8", dest, fctdef, count);
     }
     fn visit_invoke_virtual_char(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
         self.emit_fct("InvokeVirtualChar", dest, fctdef, count);
@@ -848,8 +848,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_invoke_static_bool(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
         self.emit_fct("InvokeStaticBool", dest, fctdef, count);
     }
-    fn visit_invoke_static_byte(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
-        self.emit_fct("InvokeStaticByte", dest, fctdef, count);
+    fn visit_invoke_static_uint8(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit_fct("InvokeStaticUInt8", dest, fctdef, count);
     }
     fn visit_invoke_static_char(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
         self.emit_fct("InvokeStaticChar", dest, fctdef, count);
@@ -884,8 +884,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_load_array_bool(&mut self, dest: Register, arr: Register, idx: Register) {
         self.emit_reg3("LoadArrayBool", dest, arr, idx);
     }
-    fn visit_load_array_byte(&mut self, dest: Register, arr: Register, idx: Register) {
-        self.emit_reg3("LoadArrayByte", dest, arr, idx);
+    fn visit_load_array_uint8(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit_reg3("LoadArrayUInt8", dest, arr, idx);
     }
     fn visit_load_array_char(&mut self, dest: Register, arr: Register, idx: Register) {
         self.emit_reg3("LoadArrayChar", dest, arr, idx);
@@ -909,8 +909,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_store_array_bool(&mut self, src: Register, arr: Register, idx: Register) {
         self.emit_reg3("StoreArrayBool", src, arr, idx);
     }
-    fn visit_store_array_byte(&mut self, src: Register, arr: Register, idx: Register) {
-        self.emit_reg3("StoreArrayByte", src, arr, idx);
+    fn visit_store_array_uint8(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit_reg3("StoreArrayUInt8", src, arr, idx);
     }
     fn visit_store_array_char(&mut self, src: Register, arr: Register, idx: Register) {
         self.emit_reg3("StoreArrayChar", src, arr, idx);
@@ -944,8 +944,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_ret_bool(&mut self, opnd: Register) {
         self.emit_reg1("RetBool", opnd);
     }
-    fn visit_ret_byte(&mut self, opnd: Register) {
-        self.emit_reg1("RetByte", opnd);
+    fn visit_ret_uint8(&mut self, opnd: Register) {
+        self.emit_reg1("RetUInt8", opnd);
     }
     fn visit_ret_char(&mut self, opnd: Register) {
         self.emit_reg1("RetChar", opnd);

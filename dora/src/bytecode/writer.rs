@@ -317,8 +317,8 @@ impl BytecodeWriter {
         self.emit_reg1_idx(BytecodeOpcode::ConstChar, dest, idx);
     }
 
-    pub fn emit_const_byte(&mut self, dest: Register, value: u8) {
-        self.emit_reg1_byte(BytecodeOpcode::ConstUInt8, dest, value);
+    pub fn emit_const_uint8(&mut self, dest: Register, value: u8) {
+        self.emit_reg1_uint8(BytecodeOpcode::ConstUInt8, dest, value);
     }
 
     pub fn emit_const_int(&mut self, dest: Register, value: i32) {
@@ -346,8 +346,8 @@ impl BytecodeWriter {
         self.emit_reg1_idx(BytecodeOpcode::ConstString, dest, idx);
     }
 
-    pub fn emit_const_zero_byte(&mut self, dest: Register) {
-        self.emit_reg1(BytecodeOpcode::ConstZeroByte, dest);
+    pub fn emit_const_zero_uint8(&mut self, dest: Register) {
+        self.emit_reg1(BytecodeOpcode::ConstZeroUInt8, dest);
     }
 
     pub fn emit_const_zero_int(&mut self, dest: Register) {
@@ -517,13 +517,13 @@ impl BytecodeWriter {
     }
 
     pub fn emit_extend_byte_to_char(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::ExtendByteToChar, dest, src);
+        self.emit_reg2(BytecodeOpcode::ExtendUInt8ToChar, dest, src);
     }
     pub fn emit_extend_byte_to_int(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::ExtendByteToInt, dest, src);
+        self.emit_reg2(BytecodeOpcode::ExtendUInt8ToInt, dest, src);
     }
     pub fn emit_extend_byte_to_int64(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::ExtendByteToInt64, dest, src);
+        self.emit_reg2(BytecodeOpcode::ExtendUInt8ToInt64, dest, src);
     }
     pub fn emit_extend_char_to_int64(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::ExtendCharToInt64, dest, src);
@@ -535,8 +535,8 @@ impl BytecodeWriter {
     pub fn emit_cast_char_to_int(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::CastCharToInt, dest, src);
     }
-    pub fn emit_cast_int_to_byte(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::CastIntToByte, dest, src);
+    pub fn emit_cast_int_to_uint8(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::CastIntToUInt8, dest, src);
     }
     pub fn emit_cast_int_to_char(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::CastIntToChar, dest, src);
@@ -544,8 +544,8 @@ impl BytecodeWriter {
     pub fn emit_cast_int_to_int32(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::CastIntToInt32, dest, src);
     }
-    pub fn emit_cast_int64_to_byte(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::CastInt64ToByte, dest, src);
+    pub fn emit_cast_int64_to_uint8(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::CastInt64ToUInt8, dest, src);
     }
     pub fn emit_cast_int64_to_char(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::CastInt64ToChar, dest, src);
@@ -608,8 +608,8 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::MovBool, dest, src);
     }
 
-    pub fn emit_mov_byte(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::MovByte, dest, src);
+    pub fn emit_mov_uint8(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::MovUInt8, dest, src);
     }
 
     pub fn emit_mov_char(&mut self, dest: Register, src: Register) {
@@ -676,8 +676,8 @@ impl BytecodeWriter {
         self.emit_reg1(BytecodeOpcode::RetBool, src);
     }
 
-    pub fn emit_ret_byte(&mut self, src: Register) {
-        self.emit_reg1(BytecodeOpcode::RetByte, src);
+    pub fn emit_ret_uint8(&mut self, src: Register) {
+        self.emit_reg1(BytecodeOpcode::RetUInt8, src);
     }
 
     pub fn emit_ret_char(&mut self, src: Register) {
@@ -712,8 +712,8 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestEqBool, dest, lhs, rhs);
     }
 
-    pub fn emit_test_eq_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::TestEqByte, dest, lhs, rhs);
+    pub fn emit_test_eq_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestEqUInt8, dest, lhs, rhs);
     }
 
     pub fn emit_test_eq_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -748,8 +748,8 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestNeBool, dest, lhs, rhs);
     }
 
-    pub fn emit_test_ne_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::TestNeByte, dest, lhs, rhs);
+    pub fn emit_test_ne_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestNeUInt8, dest, lhs, rhs);
     }
 
     pub fn emit_test_ne_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -780,8 +780,8 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestNePtr, dest, lhs, rhs);
     }
 
-    pub fn emit_test_gt_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::TestGtByte, dest, lhs, rhs);
+    pub fn emit_test_gt_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestGtUInt8, dest, lhs, rhs);
     }
 
     pub fn emit_test_gt_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -804,8 +804,8 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestGtDouble, dest, lhs, rhs);
     }
 
-    pub fn emit_test_ge_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::TestGeByte, dest, lhs, rhs);
+    pub fn emit_test_ge_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestGeUInt8, dest, lhs, rhs);
     }
 
     pub fn emit_test_ge_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -828,8 +828,8 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestGeDouble, dest, lhs, rhs);
     }
 
-    pub fn emit_test_lt_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::TestLtByte, dest, lhs, rhs);
+    pub fn emit_test_lt_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestLtUInt8, dest, lhs, rhs);
     }
 
     pub fn emit_test_lt_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -852,8 +852,8 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestLtDouble, dest, lhs, rhs);
     }
 
-    pub fn emit_test_le_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::TestLeByte, dest, lhs, rhs);
+    pub fn emit_test_le_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestLeUInt8, dest, lhs, rhs);
     }
 
     pub fn emit_test_le_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -884,8 +884,8 @@ impl BytecodeWriter {
         self.emit_load_global(BytecodeOpcode::LoadGlobalBool, dest, gid);
     }
 
-    pub fn emit_load_global_byte(&mut self, dest: Register, gid: GlobalId) {
-        self.emit_load_global(BytecodeOpcode::LoadGlobalByte, dest, gid);
+    pub fn emit_load_global_uint8(&mut self, dest: Register, gid: GlobalId) {
+        self.emit_load_global(BytecodeOpcode::LoadGlobalUInt8, dest, gid);
     }
 
     pub fn emit_load_global_char(&mut self, dest: Register, gid: GlobalId) {
@@ -916,8 +916,8 @@ impl BytecodeWriter {
         self.emit_store_global(BytecodeOpcode::StoreGlobalBool, src, gid);
     }
 
-    pub fn emit_store_global_byte(&mut self, src: Register, gid: GlobalId) {
-        self.emit_store_global(BytecodeOpcode::StoreGlobalByte, src, gid);
+    pub fn emit_store_global_uint8(&mut self, src: Register, gid: GlobalId) {
+        self.emit_store_global(BytecodeOpcode::StoreGlobalUInt8, src, gid);
     }
 
     pub fn emit_store_global_char(&mut self, src: Register, gid: GlobalId) {
@@ -956,8 +956,8 @@ impl BytecodeWriter {
         self.emit_fct(BytecodeOpcode::InvokeDirectBool, dest, fid, num);
     }
 
-    pub fn emit_invoke_direct_byte(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeDirectByte, dest, fid, num);
+    pub fn emit_invoke_direct_uint8(&mut self, dest: Register, fid: FctDefId, num: usize) {
+        self.emit_fct(BytecodeOpcode::InvokeDirectUInt8, dest, fid, num);
     }
 
     pub fn emit_invoke_direct_char(&mut self, dest: Register, fid: FctDefId, num: usize) {
@@ -992,8 +992,8 @@ impl BytecodeWriter {
         self.emit_fct(BytecodeOpcode::InvokeVirtualBool, dest, fid, num);
     }
 
-    pub fn emit_invoke_virtual_byte(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeVirtualByte, dest, fid, num);
+    pub fn emit_invoke_virtual_uint8(&mut self, dest: Register, fid: FctDefId, num: usize) {
+        self.emit_fct(BytecodeOpcode::InvokeVirtualUInt8, dest, fid, num);
     }
 
     pub fn emit_invoke_virtual_char(&mut self, dest: Register, fid: FctDefId, num: usize) {
@@ -1028,8 +1028,8 @@ impl BytecodeWriter {
         self.emit_fct(BytecodeOpcode::InvokeStaticBool, dest, fid, num);
     }
 
-    pub fn emit_invoke_static_byte(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeStaticByte, dest, fid, num);
+    pub fn emit_invoke_static_uint8(&mut self, dest: Register, fid: FctDefId, num: usize) {
+        self.emit_fct(BytecodeOpcode::InvokeStaticUInt8, dest, fid, num);
     }
 
     pub fn emit_invoke_static_char(&mut self, dest: Register, fid: FctDefId, num: usize) {
@@ -1074,8 +1074,8 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::ArrayBoundCheck, arr, idx);
     }
 
-    pub fn emit_store_array_byte(&mut self, src: Register, array: Register, idx: Register) {
-        self.emit_reg3(BytecodeOpcode::StoreArrayByte, src, array, idx);
+    pub fn emit_store_array_uint8(&mut self, src: Register, array: Register, idx: Register) {
+        self.emit_reg3(BytecodeOpcode::StoreArrayUInt8, src, array, idx);
     }
     pub fn emit_store_array_bool(&mut self, src: Register, array: Register, index: Register) {
         self.emit_reg3(BytecodeOpcode::StoreArrayBool, src, array, index);
@@ -1099,8 +1099,8 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::StoreArrayPtr, src, array, index);
     }
 
-    pub fn emit_load_array_byte(&mut self, dest: Register, array: Register, idx: Register) {
-        self.emit_reg3(BytecodeOpcode::LoadArrayByte, dest, array, idx);
+    pub fn emit_load_array_uint8(&mut self, dest: Register, array: Register, idx: Register) {
+        self.emit_reg3(BytecodeOpcode::LoadArrayUInt8, dest, array, idx);
     }
     pub fn emit_load_array_bool(&mut self, dest: Register, array: Register, index: Register) {
         self.emit_reg3(BytecodeOpcode::LoadArrayBool, dest, array, index);
@@ -1235,7 +1235,7 @@ impl BytecodeWriter {
         self.emit_values(inst, &values);
     }
 
-    fn emit_reg1_byte(&mut self, inst: BytecodeOpcode, r1: Register, value: u8) {
+    fn emit_reg1_uint8(&mut self, inst: BytecodeOpcode, r1: Register, value: u8) {
         let values = [r1.to_usize() as u32];
         self.emit_values(inst, &values);
         self.emit_u8(value);

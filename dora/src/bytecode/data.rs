@@ -168,16 +168,16 @@ pub enum BytecodeOpcode {
     ReinterpretDoubleAsInt64,
     ReinterpretInt64AsDouble,
 
-    ExtendByteToChar,
-    ExtendByteToInt,
-    ExtendByteToInt64,
+    ExtendUInt8ToChar,
+    ExtendUInt8ToInt,
+    ExtendUInt8ToInt64,
     ExtendIntToInt64,
     ExtendCharToInt64,
     CastCharToInt,
-    CastIntToByte,
+    CastIntToUInt8,
     CastIntToChar,
     CastIntToInt32,
-    CastInt64ToByte,
+    CastInt64ToUInt8,
     CastInt64ToChar,
     CastInt64ToInt,
 
@@ -195,7 +195,7 @@ pub enum BytecodeOpcode {
     CheckedCast,
 
     MovBool,
-    MovByte,
+    MovUInt8,
     MovChar,
     MovInt,
     MovInt64,
@@ -226,7 +226,7 @@ pub enum BytecodeOpcode {
     StoreFieldPtr,
 
     LoadGlobalBool,
-    LoadGlobalByte,
+    LoadGlobalUInt8,
     LoadGlobalChar,
     LoadGlobalInt,
     LoadGlobalInt64,
@@ -235,7 +235,7 @@ pub enum BytecodeOpcode {
     LoadGlobalPtr,
 
     StoreGlobalBool,
-    StoreGlobalByte,
+    StoreGlobalUInt8,
     StoreGlobalChar,
     StoreGlobalInt,
     StoreGlobalInt64,
@@ -248,7 +248,7 @@ pub enum BytecodeOpcode {
     ConstNil,
     ConstTrue,
     ConstFalse,
-    ConstZeroByte,
+    ConstZeroUInt8,
     ConstZeroChar,
     ConstZeroInt,
     ConstZeroInt64,
@@ -268,12 +268,12 @@ pub enum BytecodeOpcode {
     TestEqBool,
     TestNeBool,
 
-    TestEqByte,
-    TestNeByte,
-    TestGtByte,
-    TestGeByte,
-    TestLtByte,
-    TestLeByte,
+    TestEqUInt8,
+    TestNeUInt8,
+    TestGtUInt8,
+    TestGeUInt8,
+    TestLtUInt8,
+    TestLeUInt8,
 
     TestEqChar,
     TestNeChar,
@@ -328,7 +328,7 @@ pub enum BytecodeOpcode {
 
     InvokeDirectVoid,
     InvokeDirectBool,
-    InvokeDirectByte,
+    InvokeDirectUInt8,
     InvokeDirectChar,
     InvokeDirectInt,
     InvokeDirectInt64,
@@ -338,7 +338,7 @@ pub enum BytecodeOpcode {
 
     InvokeVirtualVoid,
     InvokeVirtualBool,
-    InvokeVirtualByte,
+    InvokeVirtualUInt8,
     InvokeVirtualChar,
     InvokeVirtualInt,
     InvokeVirtualInt64,
@@ -348,7 +348,7 @@ pub enum BytecodeOpcode {
 
     InvokeStaticVoid,
     InvokeStaticBool,
-    InvokeStaticByte,
+    InvokeStaticUInt8,
     InvokeStaticChar,
     InvokeStaticInt,
     InvokeStaticInt64,
@@ -365,7 +365,7 @@ pub enum BytecodeOpcode {
     ArrayBoundCheck,
 
     LoadArrayBool,
-    LoadArrayByte,
+    LoadArrayUInt8,
     LoadArrayChar,
     LoadArrayInt,
     LoadArrayInt64,
@@ -374,7 +374,7 @@ pub enum BytecodeOpcode {
     LoadArrayPtr,
 
     StoreArrayBool,
-    StoreArrayByte,
+    StoreArrayUInt8,
     StoreArrayChar,
     StoreArrayInt,
     StoreArrayInt64,
@@ -384,7 +384,7 @@ pub enum BytecodeOpcode {
 
     RetVoid,
     RetBool,
-    RetByte,
+    RetUInt8,
     RetChar,
     RetInt,
     RetInt64,
@@ -420,7 +420,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::StoreFieldPtr
             | BytecodeOpcode::InvokeDirectVoid
             | BytecodeOpcode::InvokeDirectBool
-            | BytecodeOpcode::InvokeDirectByte
+            | BytecodeOpcode::InvokeDirectUInt8
             | BytecodeOpcode::InvokeDirectChar
             | BytecodeOpcode::InvokeDirectInt
             | BytecodeOpcode::InvokeDirectInt64
@@ -429,7 +429,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeDirectPtr
             | BytecodeOpcode::InvokeVirtualVoid
             | BytecodeOpcode::InvokeVirtualBool
-            | BytecodeOpcode::InvokeVirtualByte
+            | BytecodeOpcode::InvokeVirtualUInt8
             | BytecodeOpcode::InvokeVirtualChar
             | BytecodeOpcode::InvokeVirtualInt
             | BytecodeOpcode::InvokeVirtualInt64
@@ -438,7 +438,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeVirtualPtr
             | BytecodeOpcode::InvokeStaticVoid
             | BytecodeOpcode::InvokeStaticBool
-            | BytecodeOpcode::InvokeStaticByte
+            | BytecodeOpcode::InvokeStaticUInt8
             | BytecodeOpcode::InvokeStaticChar
             | BytecodeOpcode::InvokeStaticInt
             | BytecodeOpcode::InvokeStaticInt64
@@ -451,7 +451,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::ArrayLength
             | BytecodeOpcode::ArrayBoundCheck
             | BytecodeOpcode::LoadArrayBool
-            | BytecodeOpcode::LoadArrayByte
+            | BytecodeOpcode::LoadArrayUInt8
             | BytecodeOpcode::LoadArrayChar
             | BytecodeOpcode::LoadArrayInt
             | BytecodeOpcode::LoadArrayInt64
@@ -459,7 +459,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::LoadArrayDouble
             | BytecodeOpcode::LoadArrayPtr
             | BytecodeOpcode::StoreArrayBool
-            | BytecodeOpcode::StoreArrayByte
+            | BytecodeOpcode::StoreArrayUInt8
             | BytecodeOpcode::StoreArrayChar
             | BytecodeOpcode::StoreArrayInt
             | BytecodeOpcode::StoreArrayInt64

@@ -72,12 +72,12 @@ where
 }
 
 #[test]
-fn gen_load_field_byte() {
+fn gen_load_field_uint8() {
     gen(
         "class Foo(let bar: UInt8) fun f(a: Foo) -> UInt8 { return a.bar; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldByte(r(1), r(0), cls, field), RetByte(r(1))];
+            let expected = vec![LoadFieldUInt8(r(1), r(0), cls, field), RetUInt8(r(1))];
             assert_eq!(expected, code);
         },
     );
@@ -168,7 +168,7 @@ fn gen_load_field_ptr() {
 }
 
 #[test]
-fn gen_position_load_field_byte() {
+fn gen_position_load_field_uint8() {
     let result = position("class Foo(let bar: UInt8) fun f(a: Foo) -> UInt8 { return a.bar; }");
     let expected = vec![(0, p(1, 60))];
     assert_eq!(expected, result);
@@ -224,7 +224,7 @@ fn gen_position_load_field_ptr() {
 }
 
 #[test]
-fn gen_store_field_byte() {
+fn gen_store_field_uint8() {
     gen(
         "class Foo(var bar: UInt8) fun f(a: Foo, b: UInt8) { a.bar = b; }",
         |vm, code| {
@@ -320,7 +320,7 @@ fn gen_store_field_ptr() {
 }
 
 #[test]
-fn gen_position_store_field_byte() {
+fn gen_position_store_field_uint8() {
     let result = position("class Foo(var bar: UInt8) fun f(a: Foo, b: UInt8) { a.bar = b; }");
     let expected = vec![(0, p(1, 59))];
     assert_eq!(expected, result);
@@ -610,9 +610,9 @@ fn gen_expr_lit_int() {
 }
 
 #[test]
-fn gen_expr_lit_byte() {
+fn gen_expr_lit_uint8() {
     let result = code("fun f() -> UInt8 { return 1Y; }");
-    let expected = vec![ConstUInt8(r(0), 1), RetByte(r(0))];
+    let expected = vec![ConstUInt8(r(0), 1), RetUInt8(r(0))];
     assert_eq!(expected, result);
 }
 
@@ -669,7 +669,7 @@ fn gen_expr_lit_string_multiple() {
 #[test]
 fn gen_expr_lit_byte_zero() {
     let result = code("fun f() -> UInt8 { return 0Y; }");
-    let expected = vec![ConstZeroByte(r(0)), RetByte(r(0))];
+    let expected = vec![ConstZeroUInt8(r(0)), RetUInt8(r(0))];
     assert_eq!(expected, result);
 }
 
@@ -831,44 +831,44 @@ fn gen_expr_test_notequal_bool() {
 }
 
 #[test]
-fn gen_expr_test_equal_byte() {
+fn gen_expr_test_equal_uint8() {
     let result = code("fun f(a: UInt8, b: UInt8) -> Bool { return a == b; }");
-    let expected = vec![TestEqByte(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestEqUInt8(r(2), r(0), r(1)), RetBool(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
-fn gen_expr_test_notequal_byte() {
+fn gen_expr_test_notequal_uint8() {
     let result = code("fun f(a: UInt8, b: UInt8) -> Bool { return a != b; }");
-    let expected = vec![TestNeByte(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestNeUInt8(r(2), r(0), r(1)), RetBool(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
-fn gen_expr_test_lessthan_byte() {
+fn gen_expr_test_lessthan_uint8() {
     let result = code("fun f(a: UInt8, b: UInt8) -> Bool { return a < b; }");
-    let expected = vec![TestLtByte(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestLtUInt8(r(2), r(0), r(1)), RetBool(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
-fn gen_expr_test_lessthanequal_byte() {
+fn gen_expr_test_lessthanequal_uint8() {
     let result = code("fun f(a: UInt8, b: UInt8) -> Bool { return a <= b; }");
-    let expected = vec![TestLeByte(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestLeUInt8(r(2), r(0), r(1)), RetBool(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
-fn gen_expr_test_greaterthan_byte() {
+fn gen_expr_test_greaterthan_uint8() {
     let result = code("fun f(a: UInt8, b: UInt8) -> Bool { return a > b; }");
-    let expected = vec![TestGtByte(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestGtUInt8(r(2), r(0), r(1)), RetBool(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
-fn gen_expr_test_greaterthanequal_byte() {
+fn gen_expr_test_greaterthanequal_uint8() {
     let result = code("fun f(a: UInt8, b: UInt8) -> Bool { return a >= b; }");
-    let expected = vec![TestGeByte(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestGeUInt8(r(2), r(0), r(1)), RetBool(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -1112,12 +1112,12 @@ fn gen_load_global_bool() {
 }
 
 #[test]
-fn gen_load_global_byte() {
+fn gen_load_global_uint8() {
     gen(
         "var a: UInt8; fun f() -> UInt8 { return a; }",
         |vm, code| {
             let gid = vm.global_by_name("a");
-            let expected = vec![LoadGlobalByte(r(0), gid), RetByte(r(0))];
+            let expected = vec![LoadGlobalUInt8(r(0), gid), RetUInt8(r(0))];
             assert_eq!(expected, code);
         },
     );
@@ -1199,10 +1199,10 @@ fn gen_store_global_bool() {
 }
 
 #[test]
-fn gen_store_global_byte() {
+fn gen_store_global_uint8() {
     gen("var a: UInt8; fun f(x: UInt8) { a = x; }", |vm, code| {
         let gid = vm.global_by_name("a");
-        let expected = vec![StoreGlobalByte(r(0), gid), RetVoid];
+        let expected = vec![StoreGlobalUInt8(r(0), gid), RetVoid];
         assert_eq!(expected, code);
     });
 }
@@ -1604,8 +1604,8 @@ fn gen_method_call_byte_with_0_args() {
                 .expect("g not found");
             let expected = vec![
                 PushRegister(r(0)),
-                InvokeDirectByte(r(1), fct_id, 1),
-                RetByte(r(1)),
+                InvokeDirectUInt8(r(1), fct_id, 1),
+                RetUInt8(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -1648,8 +1648,8 @@ fn gen_method_call_byte_with_1_arg() {
                 ConstUInt8(r(2), 1),
                 PushRegister(r(0)),
                 PushRegister(r(2)),
-                InvokeDirectByte(r(1), fct_id, 2),
-                RetByte(r(1)),
+                InvokeDirectUInt8(r(1), fct_id, 2),
+                RetUInt8(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -1677,8 +1677,8 @@ fn gen_method_call_byte_with_3_args() {
                 PushRegister(r(2)),
                 PushRegister(r(3)),
                 PushRegister(r(4)),
-                InvokeDirectByte(r(1), fct_id, 4),
-                RetByte(r(1)),
+                InvokeDirectUInt8(r(1), fct_id, 4),
+                RetUInt8(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -2545,12 +2545,12 @@ fn gen_position_array_length_effect() {
 }
 
 #[test]
-fn gen_load_array_byte() {
+fn gen_load_array_uint8() {
     let result = code("fun f(a: Array[UInt8]) -> UInt8 { return a(0); }");
     let expected = vec![
         ConstZeroInt(r(2)),
-        LoadArrayByte(r(1), r(0), r(2)),
-        RetByte(r(1)),
+        LoadArrayUInt8(r(1), r(0), r(2)),
+        RetUInt8(r(1)),
     ];
     assert_eq!(expected, result);
 }
@@ -2682,11 +2682,11 @@ fn gen_position_load_array_ptr() {
 }
 
 #[test]
-fn gen_store_array_byte() {
+fn gen_store_array_uint8() {
     let result = code("fun f(a: Array[UInt8], b: UInt8) { a(0) = b; }");
     let expected = vec![
         ConstZeroInt(Register(2)),
-        StoreArrayByte(r(1), r(0), r(2)),
+        StoreArrayUInt8(r(1), r(0), r(2)),
         RetVoid,
     ];
     assert_eq!(expected, result);
@@ -2869,14 +2869,14 @@ fn gen_self_for_bool() {
 }
 
 #[test]
-fn gen_self_for_byte() {
+fn gen_self_for_uint8() {
     let result = code_method_with_class_name(
         "trait MyId { fun f() -> Self; }
             impl MyId for UInt8 { fun f() -> UInt8 { return self; } }
             ",
         "UInt8",
     );
-    let expected = vec![RetByte(r(0))];
+    let expected = vec![RetUInt8(r(0))];
     assert_eq!(expected, result);
 }
 
@@ -2953,14 +2953,14 @@ fn gen_self_assign_for_bool() {
 }
 
 #[test]
-fn gen_self_assign_for_byte() {
+fn gen_self_assign_for_uint8() {
     let result = code_method_with_class_name(
         "trait MyId { fun f(); }
             impl MyId for UInt8 { fun f() { let x = self; } }
             ",
         "UInt8",
     );
-    let expected = vec![MovByte(r(1), r(0)), RetVoid];
+    let expected = vec![MovUInt8(r(1), r(0)), RetVoid];
     assert_eq!(expected, result);
 }
 
@@ -3203,12 +3203,12 @@ fn gen_string_length() {
 }
 
 #[test]
-fn gen_string_get_byte() {
+fn gen_string_get_uint8() {
     let result = code("fun f(x: String, idx: Int) -> UInt8 { x.getByte(0) }");
     let expected = vec![
         ConstZeroInt(r(3)),
-        LoadArrayByte(r(2), r(0), r(3)),
-        RetByte(r(2)),
+        LoadArrayUInt8(r(2), r(0), r(3)),
+        RetUInt8(r(2)),
     ];
     assert_eq!(expected, result);
 }
@@ -3318,7 +3318,7 @@ fn gen_cmp_strings() {
 }
 
 #[test]
-fn gen_extend_byte() {
+fn gen_extend_uint8() {
     let result = code("fun f(x: UInt8) -> Int { x.toInt() }");
     let expected = vec![ExtendByteToInt(r(1), r(0)), RetInt(r(1))];
     assert_eq!(expected, result);
@@ -3349,7 +3349,7 @@ fn gen_cast_char() {
 #[test]
 fn gen_cast_int() {
     let result = code("fun f(x: Int) -> UInt8 { x.toUInt8() }");
-    let expected = vec![CastIntToByte(r(1), r(0)), RetByte(r(1))];
+    let expected = vec![CastIntToUInt8(r(1), r(0)), RetUInt8(r(1))];
     assert_eq!(expected, result);
 
     let result = code("fun f(x: Int) -> Char { x.toCharUnchecked() }");
@@ -3360,7 +3360,7 @@ fn gen_cast_int() {
 #[test]
 fn gen_cast_int64() {
     let result = code("fun f(x: Int64) -> UInt8 { x.toUInt8() }");
-    let expected = vec![CastInt64ToByte(r(1), r(0)), RetByte(r(1))];
+    let expected = vec![CastInt64ToUInt8(r(1), r(0)), RetUInt8(r(1))];
     assert_eq!(expected, result);
 
     let result = code("fun f(x: Int64) -> Char { x.toCharUnchecked() }");
@@ -3571,9 +3571,9 @@ pub enum Bytecode {
     ExtendIntToInt64(Register, Register),
     ExtendCharToInt64(Register, Register),
     CastCharToInt(Register, Register),
-    CastIntToByte(Register, Register),
+    CastIntToUInt8(Register, Register),
     CastIntToChar(Register, Register),
-    CastInt64ToByte(Register, Register),
+    CastInt64ToUInt8(Register, Register),
     CastInt64ToChar(Register, Register),
     CastInt64ToInt(Register, Register),
 
@@ -3591,7 +3591,7 @@ pub enum Bytecode {
     CheckedCast(Register, ClassDefId),
 
     MovBool(Register, Register),
-    MovByte(Register, Register),
+    MovUInt8(Register, Register),
     MovChar(Register, Register),
     MovInt(Register, Register),
     MovInt64(Register, Register),
@@ -3604,7 +3604,7 @@ pub enum Bytecode {
     LoadTupleElement(Register, Register, TupleId, u32),
 
     LoadFieldBool(Register, Register, ClassDefId, FieldId),
-    LoadFieldByte(Register, Register, ClassDefId, FieldId),
+    LoadFieldUInt8(Register, Register, ClassDefId, FieldId),
     LoadFieldChar(Register, Register, ClassDefId, FieldId),
     LoadFieldInt(Register, Register, ClassDefId, FieldId),
     LoadFieldInt64(Register, Register, ClassDefId, FieldId),
@@ -3622,7 +3622,7 @@ pub enum Bytecode {
     StoreFieldPtr(Register, Register, ClassDefId, FieldId),
 
     LoadGlobalBool(Register, GlobalId),
-    LoadGlobalByte(Register, GlobalId),
+    LoadGlobalUInt8(Register, GlobalId),
     LoadGlobalChar(Register, GlobalId),
     LoadGlobalInt(Register, GlobalId),
     LoadGlobalInt64(Register, GlobalId),
@@ -3631,7 +3631,7 @@ pub enum Bytecode {
     LoadGlobalPtr(Register, GlobalId),
 
     StoreGlobalBool(Register, GlobalId),
-    StoreGlobalByte(Register, GlobalId),
+    StoreGlobalUInt8(Register, GlobalId),
     StoreGlobalChar(Register, GlobalId),
     StoreGlobalInt(Register, GlobalId),
     StoreGlobalInt64(Register, GlobalId),
@@ -3644,7 +3644,7 @@ pub enum Bytecode {
     ConstNil(Register),
     ConstTrue(Register),
     ConstFalse(Register),
-    ConstZeroByte(Register),
+    ConstZeroUInt8(Register),
     ConstZeroChar(Register),
     ConstZeroInt(Register),
     ConstZeroInt64(Register),
@@ -3664,12 +3664,12 @@ pub enum Bytecode {
     TestEqBool(Register, Register, Register),
     TestNeBool(Register, Register, Register),
 
-    TestEqByte(Register, Register, Register),
-    TestNeByte(Register, Register, Register),
-    TestGtByte(Register, Register, Register),
-    TestGeByte(Register, Register, Register),
-    TestLtByte(Register, Register, Register),
-    TestLeByte(Register, Register, Register),
+    TestEqUInt8(Register, Register, Register),
+    TestNeUInt8(Register, Register, Register),
+    TestGtUInt8(Register, Register, Register),
+    TestGeUInt8(Register, Register, Register),
+    TestLtUInt8(Register, Register, Register),
+    TestLeUInt8(Register, Register, Register),
 
     TestEqChar(Register, Register, Register),
     TestNeChar(Register, Register, Register),
@@ -3718,7 +3718,7 @@ pub enum Bytecode {
 
     InvokeDirectVoid(FctDefId, u32),
     InvokeDirectBool(Register, FctDefId, u32),
-    InvokeDirectByte(Register, FctDefId, u32),
+    InvokeDirectUInt8(Register, FctDefId, u32),
     InvokeDirectChar(Register, FctDefId, u32),
     InvokeDirectInt(Register, FctDefId, u32),
     InvokeDirectInt64(Register, FctDefId, u32),
@@ -3728,7 +3728,7 @@ pub enum Bytecode {
 
     InvokeVirtualVoid(FctDefId, u32),
     InvokeVirtualBool(Register, FctDefId, u32),
-    InvokeVirtualByte(Register, FctDefId, u32),
+    InvokeVirtualUInt8(Register, FctDefId, u32),
     InvokeVirtualChar(Register, FctDefId, u32),
     InvokeVirtualInt(Register, FctDefId, u32),
     InvokeVirtualInt64(Register, FctDefId, u32),
@@ -3738,7 +3738,7 @@ pub enum Bytecode {
 
     InvokeStaticVoid(FctDefId, u32),
     InvokeStaticBool(Register, FctDefId, u32),
-    InvokeStaticByte(Register, FctDefId, u32),
+    InvokeStaticUInt8(Register, FctDefId, u32),
     InvokeStaticChar(Register, FctDefId, u32),
     InvokeStaticInt(Register, FctDefId, u32),
     InvokeStaticInt64(Register, FctDefId, u32),
@@ -3755,7 +3755,7 @@ pub enum Bytecode {
     ArrayBoundCheck(Register, Register),
 
     LoadArrayBool(Register, Register, Register),
-    LoadArrayByte(Register, Register, Register),
+    LoadArrayUInt8(Register, Register, Register),
     LoadArrayChar(Register, Register, Register),
     LoadArrayInt(Register, Register, Register),
     LoadArrayInt64(Register, Register, Register),
@@ -3764,7 +3764,7 @@ pub enum Bytecode {
     LoadArrayPtr(Register, Register, Register),
 
     StoreArrayBool(Register, Register, Register),
-    StoreArrayByte(Register, Register, Register),
+    StoreArrayUInt8(Register, Register, Register),
     StoreArrayChar(Register, Register, Register),
     StoreArrayInt(Register, Register, Register),
     StoreArrayInt64(Register, Register, Register),
@@ -3774,7 +3774,7 @@ pub enum Bytecode {
 
     RetVoid,
     RetBool(Register),
-    RetByte(Register),
+    RetUInt8(Register),
     RetChar(Register),
     RetInt(Register),
     RetInt64(Register),
@@ -4011,14 +4011,14 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_cast_char_to_int(&mut self, dest: Register, src: Register) {
         self.emit(Bytecode::CastCharToInt(dest, src));
     }
-    fn visit_cast_int_to_byte(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::CastIntToByte(dest, src));
+    fn visit_cast_int_to_uint8(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::CastIntToUInt8(dest, src));
     }
     fn visit_cast_int_to_char(&mut self, dest: Register, src: Register) {
         self.emit(Bytecode::CastIntToChar(dest, src));
     }
-    fn visit_cast_int64_to_byte(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::CastInt64ToByte(dest, src));
+    fn visit_cast_int64_to_uint8(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::CastInt64ToUInt8(dest, src));
     }
     fn visit_cast_int64_to_char(&mut self, dest: Register, src: Register) {
         self.emit(Bytecode::CastInt64ToChar(dest, src));
@@ -4063,8 +4063,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_mov_bool(&mut self, dest: Register, src: Register) {
         self.emit(Bytecode::MovBool(dest, src));
     }
-    fn visit_mov_byte(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::MovByte(dest, src));
+    fn visit_mov_uint8(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::MovUInt8(dest, src));
     }
     fn visit_mov_char(&mut self, dest: Register, src: Register) {
         self.emit(Bytecode::MovChar(dest, src));
@@ -4124,7 +4124,7 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         cls: ClassDefId,
         field: FieldId,
     ) {
-        self.emit(Bytecode::LoadFieldByte(dest, obj, cls, field));
+        self.emit(Bytecode::LoadFieldUInt8(dest, obj, cls, field));
     }
     fn visit_load_field_char(
         &mut self,
@@ -4257,8 +4257,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_load_global_bool(&mut self, dest: Register, glob: GlobalId) {
         self.emit(Bytecode::LoadGlobalBool(dest, glob));
     }
-    fn visit_load_global_byte(&mut self, dest: Register, glob: GlobalId) {
-        self.emit(Bytecode::LoadGlobalByte(dest, glob));
+    fn visit_load_global_uint8(&mut self, dest: Register, glob: GlobalId) {
+        self.emit(Bytecode::LoadGlobalUInt8(dest, glob));
     }
     fn visit_load_global_char(&mut self, dest: Register, glob: GlobalId) {
         self.emit(Bytecode::LoadGlobalChar(dest, glob));
@@ -4282,8 +4282,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_store_global_bool(&mut self, src: Register, glob: GlobalId) {
         self.emit(Bytecode::StoreGlobalBool(src, glob));
     }
-    fn visit_store_global_byte(&mut self, src: Register, glob: GlobalId) {
-        self.emit(Bytecode::StoreGlobalByte(src, glob));
+    fn visit_store_global_uint8(&mut self, src: Register, glob: GlobalId) {
+        self.emit(Bytecode::StoreGlobalUInt8(src, glob));
     }
     fn visit_store_global_char(&mut self, src: Register, glob: GlobalId) {
         self.emit(Bytecode::StoreGlobalChar(src, glob));
@@ -4317,8 +4317,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_const_false(&mut self, dest: Register) {
         self.emit(Bytecode::ConstFalse(dest));
     }
-    fn visit_const_zero_byte(&mut self, dest: Register) {
-        self.emit(Bytecode::ConstZeroByte(dest));
+    fn visit_const_zero_uint8(&mut self, dest: Register) {
+        self.emit(Bytecode::ConstZeroUInt8(dest));
     }
     fn visit_const_zero_char(&mut self, dest: Register) {
         self.emit(Bytecode::ConstZeroChar(dest));
@@ -4386,23 +4386,23 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::TestNeBool(dest, lhs, rhs));
     }
 
-    fn visit_test_eq_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestEqByte(dest, lhs, rhs));
+    fn visit_test_eq_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestEqUInt8(dest, lhs, rhs));
     }
-    fn visit_test_ne_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestNeByte(dest, lhs, rhs));
+    fn visit_test_ne_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestNeUInt8(dest, lhs, rhs));
     }
-    fn visit_test_gt_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestGtByte(dest, lhs, rhs));
+    fn visit_test_gt_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestGtUInt8(dest, lhs, rhs));
     }
-    fn visit_test_ge_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestGeByte(dest, lhs, rhs));
+    fn visit_test_ge_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestGeUInt8(dest, lhs, rhs));
     }
-    fn visit_test_lt_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestLtByte(dest, lhs, rhs));
+    fn visit_test_lt_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestLtUInt8(dest, lhs, rhs));
     }
-    fn visit_test_le_byte(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestLeByte(dest, lhs, rhs));
+    fn visit_test_le_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestLeUInt8(dest, lhs, rhs));
     }
 
     fn visit_test_eq_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -4550,8 +4550,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_invoke_direct_bool(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
         self.emit(Bytecode::InvokeDirectBool(dest, fctdef, count));
     }
-    fn visit_invoke_direct_byte(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
-        self.emit(Bytecode::InvokeDirectByte(dest, fctdef, count));
+    fn visit_invoke_direct_uint8(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit(Bytecode::InvokeDirectUInt8(dest, fctdef, count));
     }
     fn visit_invoke_direct_char(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
         self.emit(Bytecode::InvokeDirectChar(dest, fctdef, count));
@@ -4578,8 +4578,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_invoke_virtual_bool(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
         self.emit(Bytecode::InvokeVirtualBool(dest, fctdef, count));
     }
-    fn visit_invoke_virtual_byte(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
-        self.emit(Bytecode::InvokeVirtualByte(dest, fctdef, count));
+    fn visit_invoke_virtual_uint8(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit(Bytecode::InvokeVirtualUInt8(dest, fctdef, count));
     }
     fn visit_invoke_virtual_char(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
         self.emit(Bytecode::InvokeVirtualChar(dest, fctdef, count));
@@ -4606,8 +4606,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_invoke_static_bool(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
         self.emit(Bytecode::InvokeStaticBool(dest, fctdef, count));
     }
-    fn visit_invoke_static_byte(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
-        self.emit(Bytecode::InvokeStaticByte(dest, fctdef, count));
+    fn visit_invoke_static_uint8(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit(Bytecode::InvokeStaticUInt8(dest, fctdef, count));
     }
     fn visit_invoke_static_char(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
         self.emit(Bytecode::InvokeStaticChar(dest, fctdef, count));
@@ -4649,8 +4649,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_load_array_bool(&mut self, dest: Register, arr: Register, idx: Register) {
         self.emit(Bytecode::LoadArrayBool(dest, arr, idx));
     }
-    fn visit_load_array_byte(&mut self, dest: Register, arr: Register, idx: Register) {
-        self.emit(Bytecode::LoadArrayByte(dest, arr, idx));
+    fn visit_load_array_uint8(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit(Bytecode::LoadArrayUInt8(dest, arr, idx));
     }
     fn visit_load_array_char(&mut self, dest: Register, arr: Register, idx: Register) {
         self.emit(Bytecode::LoadArrayChar(dest, arr, idx));
@@ -4674,8 +4674,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_store_array_bool(&mut self, src: Register, arr: Register, idx: Register) {
         self.emit(Bytecode::StoreArrayBool(src, arr, idx));
     }
-    fn visit_store_array_byte(&mut self, src: Register, arr: Register, idx: Register) {
-        self.emit(Bytecode::StoreArrayByte(src, arr, idx));
+    fn visit_store_array_uint8(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit(Bytecode::StoreArrayUInt8(src, arr, idx));
     }
     fn visit_store_array_char(&mut self, src: Register, arr: Register, idx: Register) {
         self.emit(Bytecode::StoreArrayChar(src, arr, idx));
@@ -4702,8 +4702,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_ret_bool(&mut self, opnd: Register) {
         self.emit(Bytecode::RetBool(opnd));
     }
-    fn visit_ret_byte(&mut self, opnd: Register) {
-        self.emit(Bytecode::RetByte(opnd));
+    fn visit_ret_uint8(&mut self, opnd: Register) {
+        self.emit(Bytecode::RetUInt8(opnd));
     }
     fn visit_ret_char(&mut self, opnd: Register) {
         self.emit(Bytecode::RetChar(opnd));

@@ -146,7 +146,7 @@ fn test_const_byte() {
         }
     }
     let mut writer = BytecodeWriter::new();
-    writer.emit_const_byte(Register(255), 255);
+    writer.emit_const_uint8(Register(255), 255);
     let fct = writer.generate();
     assert_eq!(fct.code(), &[BytecodeOpcode::ConstUInt8 as u8, 255, 255]);
     let mut visitor = TestVisitor { found: false };
@@ -167,7 +167,7 @@ fn test_const_byte_wide() {
         }
     }
     let mut writer = BytecodeWriter::new();
-    writer.emit_const_byte(Register(256), 19);
+    writer.emit_const_uint8(Register(256), 19);
     let fct = writer.generate();
     assert_eq!(
         fct.code(),
