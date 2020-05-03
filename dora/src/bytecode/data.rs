@@ -124,55 +124,55 @@ pub enum BytecodeOpcode {
     NegDouble,
 
     MulInt,
-    MulLong,
+    MulInt64,
     MulFloat,
     MulDouble,
 
     DivInt,
-    DivLong,
+    DivInt64,
     DivFloat,
     DivDouble,
 
     ModInt,
-    ModLong,
+    ModInt64,
 
     AndInt,
-    AndLong,
+    AndInt64,
 
     OrInt,
-    OrLong,
+    OrInt64,
 
     XorInt,
-    XorLong,
+    XorInt64,
 
     NotBool,
     NotInt,
-    NotLong,
+    NotInt64,
 
     ShlInt,
     ShrInt,
     SarInt,
 
-    ShlLong,
-    ShrLong,
-    SarLong,
+    ShlInt64,
+    ShrInt64,
+    SarInt64,
 
     RolInt,
     RorInt,
 
-    RolLong,
-    RorLong,
+    RolInt64,
+    RorInt64,
 
     ReinterpretFloatAsInt,
     ReinterpretIntAsFloat,
-    ReinterpretDoubleAsLong,
-    ReinterpretLongAsDouble,
+    ReinterpretDoubleAsInt64,
+    ReinterpretInt64AsDouble,
 
     ExtendByteToChar,
     ExtendByteToInt,
-    ExtendByteToLong,
-    ExtendIntToLong,
-    ExtendCharToLong,
+    ExtendByteToInt64,
+    ExtendIntToInt64,
+    ExtendCharToInt64,
     CastCharToInt,
     CastIntToByte,
     CastIntToChar,
@@ -183,13 +183,13 @@ pub enum BytecodeOpcode {
 
     ConvertIntToFloat,
     ConvertIntToDouble,
-    ConvertLongToFloat,
-    ConvertLongToDouble,
+    ConvertInt64ToFloat,
+    ConvertInt64ToDouble,
 
     TruncateFloatToInt,
-    TruncateFloatToLong,
+    TruncateFloatToInt64,
     TruncateDoubleToInt,
-    TruncateDoubleToLong,
+    TruncateDoubleToInt64,
 
     InstanceOf,
     CheckedCast,
@@ -229,7 +229,7 @@ pub enum BytecodeOpcode {
     LoadGlobalByte,
     LoadGlobalChar,
     LoadGlobalInt,
-    LoadGlobalLong,
+    LoadGlobalInt64,
     LoadGlobalFloat,
     LoadGlobalDouble,
     LoadGlobalPtr,
@@ -238,7 +238,7 @@ pub enum BytecodeOpcode {
     StoreGlobalByte,
     StoreGlobalChar,
     StoreGlobalInt,
-    StoreGlobalLong,
+    StoreGlobalInt64,
     StoreGlobalFloat,
     StoreGlobalDouble,
     StoreGlobalPtr,
@@ -251,7 +251,7 @@ pub enum BytecodeOpcode {
     ConstZeroByte,
     ConstZeroChar,
     ConstZeroInt,
-    ConstZeroLong,
+    ConstZeroInt64,
     ConstZeroFloat,
     ConstZeroDouble,
     ConstUInt8,
@@ -397,9 +397,9 @@ impl BytecodeOpcode {
     pub fn need_position(&self) -> bool {
         match *self {
             BytecodeOpcode::DivInt
-            | BytecodeOpcode::DivLong
+            | BytecodeOpcode::DivInt64
             | BytecodeOpcode::ModInt
-            | BytecodeOpcode::ModLong
+            | BytecodeOpcode::ModInt64
             | BytecodeOpcode::InstanceOf
             | BytecodeOpcode::CheckedCast
             | BytecodeOpcode::LoadFieldBool
