@@ -125,7 +125,7 @@ fn gen_load_field_long() {
         "class Foo(let bar: Int64) fun f(a: Foo) -> Int64 { return a.bar; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldInt64(r(1), r(0), cls, field), RetLong(r(1))];
+            let expected = vec![LoadFieldInt64(r(1), r(0), cls, field), RetInt64(r(1))];
             assert_eq!(expected, code);
         },
     );
@@ -619,7 +619,7 @@ fn gen_expr_lit_byte() {
 #[test]
 fn gen_expr_lit_long() {
     let result = code("fun f() -> Int64 { return 1L; }");
-    let expected = vec![ConstInt64(r(0), 1), RetLong(r(0))];
+    let expected = vec![ConstInt64(r(0), 1), RetInt64(r(0))];
     assert_eq!(expected, result);
 }
 
@@ -683,7 +683,7 @@ fn gen_expr_lit_int_zero() {
 #[test]
 fn gen_expr_lit_long_zero() {
     let result = code("fun f() -> Int64 { return 0L; }");
-    let expected = vec![ConstZeroLong(r(0)), RetLong(r(0))];
+    let expected = vec![ConstZeroLong(r(0)), RetInt64(r(0))];
     assert_eq!(expected, result);
 }
 
@@ -1147,7 +1147,7 @@ fn gen_load_global_long() {
         "var a: Int64; fun f() -> Int64 { return a; }",
         |vm, code| {
             let gid = vm.global_by_name("a");
-            let expected = vec![LoadGlobalLong(r(0), gid), RetLong(r(0))];
+            let expected = vec![LoadGlobalLong(r(0), gid), RetInt64(r(0))];
             assert_eq!(expected, code);
         },
     );
@@ -1892,8 +1892,8 @@ fn gen_method_call_long_with_0_args() {
                 .expect("g not found");
             let expected = vec![
                 PushRegister(r(0)),
-                InvokeDirectLong(r(1), fct_id, 1),
-                RetLong(r(1)),
+                InvokeDirectInt64(r(1), fct_id, 1),
+                RetInt64(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -1936,8 +1936,8 @@ fn gen_method_call_long_with_1_arg() {
                 ConstInt64(r(2), 1),
                 PushRegister(r(0)),
                 PushRegister(r(2)),
-                InvokeDirectLong(r(1), fct_id, 2),
-                RetLong(r(1)),
+                InvokeDirectInt64(r(1), fct_id, 2),
+                RetInt64(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -1965,8 +1965,8 @@ fn gen_method_call_long_with_3_args() {
                 PushRegister(r(2)),
                 PushRegister(r(3)),
                 PushRegister(r(4)),
-                InvokeDirectLong(r(1), fct_id, 4),
-                RetLong(r(1)),
+                InvokeDirectInt64(r(1), fct_id, 4),
+                RetInt64(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -2589,12 +2589,12 @@ fn gen_load_array_int() {
 }
 
 #[test]
-fn gen_load_array_long() {
+fn gen_load_array_int64() {
     let result = code("fun f(a: Array[Int64]) -> Int64 { return a(0); }");
     let expected = vec![
         ConstZeroInt(r(2)),
-        LoadArrayLong(r(1), r(0), r(2)),
-        RetLong(r(1)),
+        LoadArrayInt64(r(1), r(0), r(2)),
+        RetInt64(r(1)),
     ];
     assert_eq!(expected, result);
 }
@@ -2726,11 +2726,11 @@ fn gen_store_array_int() {
 }
 
 #[test]
-fn gen_store_array_long() {
+fn gen_store_array_int64() {
     let result = code("fun f(a: Array[Int64], b: Int64) { a(0) = b; }");
     let expected = vec![
         ConstZeroInt(Register(2)),
-        StoreArrayLong(r(1), r(0), r(2)),
+        StoreArrayInt64(r(1), r(0), r(2)),
         RetVoid,
     ];
     assert_eq!(expected, result);
@@ -2900,7 +2900,7 @@ fn gen_self_for_long() {
             ",
         "Int64",
     );
-    let expected = vec![RetLong(r(0))];
+    let expected = vec![RetInt64(r(0))];
     assert_eq!(expected, result);
 }
 
@@ -3055,7 +3055,7 @@ fn gen_reinterpret_int_as_float() {
 #[test]
 fn gen_reinterpret_double_as_long() {
     let result = code("fun f(a: Double) -> Int64 { a.asInt64() }");
-    let expected = vec![ReinterpretDoubleAsLong(r(1), r(0)), RetLong(r(1))];
+    let expected = vec![ReinterpretDoubleAsLong(r(1), r(0)), RetInt64(r(1))];
     assert_eq!(expected, result);
 }
 
@@ -3083,7 +3083,7 @@ fn gen_double_is_nan() {
 #[test]
 fn gen_extend_int_to_long() {
     let result = code("fun f(a: Int) -> Int64 { a.toInt64() }");
-    let expected = vec![ExtendIntToLong(r(1), r(0)), RetLong(r(1))];
+    let expected = vec![ExtendIntToLong(r(1), r(0)), RetInt64(r(1))];
     assert_eq!(expected, result);
 }
 
@@ -3132,7 +3132,7 @@ fn gen_truncate_float_to_int() {
 #[test]
 fn gen_truncate_float_to_long() {
     let result = code("fun f(a: Float) -> Int64 { a.toInt64() }");
-    let expected = vec![TruncateFloatToLong(r(1), r(0)), RetLong(r(1))];
+    let expected = vec![TruncateFloatToLong(r(1), r(0)), RetInt64(r(1))];
     assert_eq!(expected, result);
 }
 
@@ -3146,7 +3146,7 @@ fn gen_truncate_double_to_int() {
 #[test]
 fn gen_truncate_double_to_long() {
     let result = code("fun f(a: Double) -> Int64 { a.toInt64() }");
-    let expected = vec![TruncateDoubleToLong(r(1), r(0)), RetLong(r(1))];
+    let expected = vec![TruncateDoubleToLong(r(1), r(0)), RetInt64(r(1))];
     assert_eq!(expected, result);
 }
 
@@ -3324,14 +3324,14 @@ fn gen_extend_byte() {
     assert_eq!(expected, result);
 
     let result = code("fun f(x: UInt8) -> Int64 { x.toInt64() }");
-    let expected = vec![ExtendByteToLong(r(1), r(0)), RetLong(r(1))];
+    let expected = vec![ExtendByteToLong(r(1), r(0)), RetInt64(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_extend_int() {
     let result = code("fun f(x: Int) -> Int64 { x.toInt64() }");
-    let expected = vec![ExtendIntToLong(r(1), r(0)), RetLong(r(1))];
+    let expected = vec![ExtendIntToLong(r(1), r(0)), RetInt64(r(1))];
     assert_eq!(expected, result);
 }
 
@@ -3342,7 +3342,7 @@ fn gen_cast_char() {
     assert_eq!(expected, result);
 
     let result = code("fun f(x: Char) -> Int64 { x.toInt64() }");
-    let expected = vec![ExtendCharToLong(r(1), r(0)), RetLong(r(1))];
+    let expected = vec![ExtendCharToLong(r(1), r(0)), RetInt64(r(1))];
     assert_eq!(expected, result);
 }
 
@@ -3472,14 +3472,14 @@ fn gen_int_max_value() {
 #[test]
 fn gen_long_min_value() {
     let result = code("fun f() -> Int64 { -9223372036854775808L }");
-    let expected = vec![ConstInt64(r(0), -9223372036854775808), RetLong(r(0))];
+    let expected = vec![ConstInt64(r(0), -9223372036854775808), RetInt64(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_long_max_value() {
     let result = code("fun f() -> Int64 { 9223372036854775807L }");
-    let expected = vec![ConstInt64(r(0), 9223372036854775807), RetLong(r(0))];
+    let expected = vec![ConstInt64(r(0), 9223372036854775807), RetInt64(r(0))];
     assert_eq!(expected, result);
 }
 
@@ -3688,12 +3688,12 @@ pub enum Bytecode {
     TestLtInt(Register, Register, Register),
     TestLeInt(Register, Register, Register),
 
-    TestEqLong(Register, Register, Register),
-    TestNeLong(Register, Register, Register),
-    TestGtLong(Register, Register, Register),
-    TestGeLong(Register, Register, Register),
-    TestLtLong(Register, Register, Register),
-    TestLeLong(Register, Register, Register),
+    TestEqInt64(Register, Register, Register),
+    TestNeInt64(Register, Register, Register),
+    TestGtInt64(Register, Register, Register),
+    TestGeInt64(Register, Register, Register),
+    TestLtInt64(Register, Register, Register),
+    TestLeInt64(Register, Register, Register),
 
     TestEqFloat(Register, Register, Register),
     TestNeFloat(Register, Register, Register),
@@ -3721,7 +3721,7 @@ pub enum Bytecode {
     InvokeDirectByte(Register, FctDefId, u32),
     InvokeDirectChar(Register, FctDefId, u32),
     InvokeDirectInt(Register, FctDefId, u32),
-    InvokeDirectLong(Register, FctDefId, u32),
+    InvokeDirectInt64(Register, FctDefId, u32),
     InvokeDirectFloat(Register, FctDefId, u32),
     InvokeDirectDouble(Register, FctDefId, u32),
     InvokeDirectPtr(Register, FctDefId, u32),
@@ -3731,7 +3731,7 @@ pub enum Bytecode {
     InvokeVirtualByte(Register, FctDefId, u32),
     InvokeVirtualChar(Register, FctDefId, u32),
     InvokeVirtualInt(Register, FctDefId, u32),
-    InvokeVirtualLong(Register, FctDefId, u32),
+    InvokeVirtualInt64(Register, FctDefId, u32),
     InvokeVirtualFloat(Register, FctDefId, u32),
     InvokeVirtualDouble(Register, FctDefId, u32),
     InvokeVirtualPtr(Register, FctDefId, u32),
@@ -3741,7 +3741,7 @@ pub enum Bytecode {
     InvokeStaticByte(Register, FctDefId, u32),
     InvokeStaticChar(Register, FctDefId, u32),
     InvokeStaticInt(Register, FctDefId, u32),
-    InvokeStaticLong(Register, FctDefId, u32),
+    InvokeStaticInt64(Register, FctDefId, u32),
     InvokeStaticFloat(Register, FctDefId, u32),
     InvokeStaticDouble(Register, FctDefId, u32),
     InvokeStaticPtr(Register, FctDefId, u32),
@@ -3758,7 +3758,7 @@ pub enum Bytecode {
     LoadArrayByte(Register, Register, Register),
     LoadArrayChar(Register, Register, Register),
     LoadArrayInt(Register, Register, Register),
-    LoadArrayLong(Register, Register, Register),
+    LoadArrayInt64(Register, Register, Register),
     LoadArrayFloat(Register, Register, Register),
     LoadArrayDouble(Register, Register, Register),
     LoadArrayPtr(Register, Register, Register),
@@ -3767,7 +3767,7 @@ pub enum Bytecode {
     StoreArrayByte(Register, Register, Register),
     StoreArrayChar(Register, Register, Register),
     StoreArrayInt(Register, Register, Register),
-    StoreArrayLong(Register, Register, Register),
+    StoreArrayInt64(Register, Register, Register),
     StoreArrayFloat(Register, Register, Register),
     StoreArrayDouble(Register, Register, Register),
     StoreArrayPtr(Register, Register, Register),
@@ -3777,7 +3777,7 @@ pub enum Bytecode {
     RetByte(Register),
     RetChar(Register),
     RetInt(Register),
-    RetLong(Register),
+    RetInt64(Register),
     RetFloat(Register),
     RetDouble(Register),
     RetPtr(Register),
@@ -4450,23 +4450,23 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::TestLeInt(dest, lhs, rhs));
     }
 
-    fn visit_test_eq_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestEqLong(dest, lhs, rhs));
+    fn visit_test_eq_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestEqInt64(dest, lhs, rhs));
     }
-    fn visit_test_ne_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestNeLong(dest, lhs, rhs));
+    fn visit_test_ne_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestNeInt64(dest, lhs, rhs));
     }
-    fn visit_test_gt_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestGtLong(dest, lhs, rhs));
+    fn visit_test_gt_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestGtInt64(dest, lhs, rhs));
     }
-    fn visit_test_ge_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestGeLong(dest, lhs, rhs));
+    fn visit_test_ge_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestGeInt64(dest, lhs, rhs));
     }
-    fn visit_test_lt_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestLtLong(dest, lhs, rhs));
+    fn visit_test_lt_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestLtInt64(dest, lhs, rhs));
     }
-    fn visit_test_le_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::TestLeLong(dest, lhs, rhs));
+    fn visit_test_le_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::TestLeInt64(dest, lhs, rhs));
     }
 
     fn visit_test_eq_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -4559,8 +4559,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_invoke_direct_int(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
         self.emit(Bytecode::InvokeDirectInt(dest, fctdef, count));
     }
-    fn visit_invoke_direct_long(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
-        self.emit(Bytecode::InvokeDirectLong(dest, fctdef, count));
+    fn visit_invoke_direct_int64(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit(Bytecode::InvokeDirectInt64(dest, fctdef, count));
     }
     fn visit_invoke_direct_float(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
         self.emit(Bytecode::InvokeDirectFloat(dest, fctdef, count));
@@ -4587,8 +4587,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_invoke_virtual_int(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
         self.emit(Bytecode::InvokeVirtualInt(dest, fctdef, count));
     }
-    fn visit_invoke_virtual_long(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
-        self.emit(Bytecode::InvokeVirtualLong(dest, fctdef, count));
+    fn visit_invoke_virtual_int64(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit(Bytecode::InvokeVirtualInt64(dest, fctdef, count));
     }
     fn visit_invoke_virtual_float(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
         self.emit(Bytecode::InvokeVirtualFloat(dest, fctdef, count));
@@ -4615,8 +4615,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_invoke_static_int(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
         self.emit(Bytecode::InvokeStaticInt(dest, fctdef, count));
     }
-    fn visit_invoke_static_long(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
-        self.emit(Bytecode::InvokeStaticLong(dest, fctdef, count));
+    fn visit_invoke_static_int64(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+        self.emit(Bytecode::InvokeStaticInt64(dest, fctdef, count));
     }
     fn visit_invoke_static_float(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
         self.emit(Bytecode::InvokeStaticFloat(dest, fctdef, count));
@@ -4658,8 +4658,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_load_array_int(&mut self, dest: Register, arr: Register, idx: Register) {
         self.emit(Bytecode::LoadArrayInt(dest, arr, idx));
     }
-    fn visit_load_array_long(&mut self, dest: Register, arr: Register, idx: Register) {
-        self.emit(Bytecode::LoadArrayLong(dest, arr, idx));
+    fn visit_load_array_int64(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit(Bytecode::LoadArrayInt64(dest, arr, idx));
     }
     fn visit_load_array_float(&mut self, dest: Register, arr: Register, idx: Register) {
         self.emit(Bytecode::LoadArrayFloat(dest, arr, idx));
@@ -4683,8 +4683,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_store_array_int(&mut self, src: Register, arr: Register, idx: Register) {
         self.emit(Bytecode::StoreArrayInt(src, arr, idx));
     }
-    fn visit_store_array_long(&mut self, src: Register, arr: Register, idx: Register) {
-        self.emit(Bytecode::StoreArrayLong(src, arr, idx));
+    fn visit_store_array_int64(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit(Bytecode::StoreArrayInt64(src, arr, idx));
     }
     fn visit_store_array_float(&mut self, src: Register, arr: Register, idx: Register) {
         self.emit(Bytecode::StoreArrayFloat(src, arr, idx));
@@ -4711,8 +4711,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_ret_int(&mut self, opnd: Register) {
         self.emit(Bytecode::RetInt(opnd));
     }
-    fn visit_ret_long(&mut self, opnd: Register) {
-        self.emit(Bytecode::RetLong(opnd));
+    fn visit_ret_int64(&mut self, opnd: Register) {
+        self.emit(Bytecode::RetInt64(opnd));
     }
     fn visit_ret_float(&mut self, opnd: Register) {
         self.emit(Bytecode::RetFloat(opnd));

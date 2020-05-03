@@ -258,7 +258,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Char => self.gen.emit_ret_char(result_reg),
             BytecodeType::Int => self.gen.emit_ret_int(result_reg),
             BytecodeType::Int32 => self.gen.emit_ret_int(result_reg),
-            BytecodeType::Int64 => self.gen.emit_ret_long(result_reg),
+            BytecodeType::Int64 => self.gen.emit_ret_int64(result_reg),
             BytecodeType::Float => self.gen.emit_ret_float(result_reg),
             BytecodeType::Double => self.gen.emit_ret_double(result_reg),
             BytecodeType::Ptr => self.gen.emit_ret_ptr(result_reg),
@@ -892,7 +892,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     .emit_invoke_virtual_int(return_reg, callee_id, num_args),
                 BytecodeType::Int64 => self
                     .gen
-                    .emit_invoke_virtual_long(return_reg, callee_id, num_args),
+                    .emit_invoke_virtual_int64(return_reg, callee_id, num_args),
                 BytecodeType::Float => self
                     .gen
                     .emit_invoke_virtual_float(return_reg, callee_id, num_args),
@@ -936,7 +936,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     .emit_invoke_direct_int(return_reg, callee_id, num_args),
                 BytecodeType::Int64 => self
                     .gen
-                    .emit_invoke_direct_long(return_reg, callee_id, num_args),
+                    .emit_invoke_direct_int64(return_reg, callee_id, num_args),
                 BytecodeType::Float => self
                     .gen
                     .emit_invoke_direct_float(return_reg, callee_id, num_args),
@@ -980,7 +980,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     .emit_invoke_static_int(return_reg, callee_id, num_args),
                 BytecodeType::Int64 => self
                     .gen
-                    .emit_invoke_static_long(return_reg, callee_id, num_args),
+                    .emit_invoke_static_int64(return_reg, callee_id, num_args),
                 BytecodeType::Float => self
                     .gen
                     .emit_invoke_static_float(return_reg, callee_id, num_args),
@@ -1520,7 +1520,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Char => self.gen.emit_store_array_char(src, arr, idx),
             BytecodeType::Int => self.gen.emit_store_array_int(src, arr, idx),
             BytecodeType::Int32 => self.gen.emit_store_array_int(src, arr, idx),
-            BytecodeType::Int64 => self.gen.emit_store_array_long(src, arr, idx),
+            BytecodeType::Int64 => self.gen.emit_store_array_int64(src, arr, idx),
             BytecodeType::Float => self.gen.emit_store_array_float(src, arr, idx),
             BytecodeType::Double => self.gen.emit_store_array_double(src, arr, idx),
             BytecodeType::Ptr => self.gen.emit_store_array_ptr(src, arr, idx),
@@ -1654,7 +1654,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             | Intrinsic::Int64CountOneBitsLeading
             | Intrinsic::Int64CountOneBitsTrailing => {
                 self.gen.emit_push_register(src);
-                self.gen.emit_invoke_static_long(
+                self.gen.emit_invoke_static_int64(
                     dest,
                     FctDef::fct_id(self.vm, info.fct_id.unwrap()),
                     1,
@@ -1719,7 +1719,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     BytecodeType::Char => self.gen.emit_load_array_char(dest, arr, idx),
                     BytecodeType::Int => self.gen.emit_load_array_int(dest, arr, idx),
                     BytecodeType::Int32 => self.gen.emit_load_array_int(dest, arr, idx),
-                    BytecodeType::Int64 => self.gen.emit_load_array_long(dest, arr, idx),
+                    BytecodeType::Int64 => self.gen.emit_load_array_int64(dest, arr, idx),
                     BytecodeType::Float => self.gen.emit_load_array_float(dest, arr, idx),
                     BytecodeType::Double => self.gen.emit_load_array_double(dest, arr, idx),
                     BytecodeType::Ptr => self.gen.emit_load_array_ptr(dest, arr, idx),
@@ -1801,15 +1801,15 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 None => self.gen.emit_sub_int(dest, lhs_reg, rhs_reg),
             },
             Intrinsic::Int64Eq => match op {
-                Some(BinOp::Cmp(CmpOp::Eq)) => self.gen.emit_test_eq_long(dest, lhs_reg, rhs_reg),
-                Some(BinOp::Cmp(CmpOp::Ne)) => self.gen.emit_test_ne_long(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Eq)) => self.gen.emit_test_eq_int64(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ne)) => self.gen.emit_test_ne_int64(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             Intrinsic::Int64Cmp => match op {
-                Some(BinOp::Cmp(CmpOp::Lt)) => self.gen.emit_test_lt_long(dest, lhs_reg, rhs_reg),
-                Some(BinOp::Cmp(CmpOp::Le)) => self.gen.emit_test_le_long(dest, lhs_reg, rhs_reg),
-                Some(BinOp::Cmp(CmpOp::Gt)) => self.gen.emit_test_gt_long(dest, lhs_reg, rhs_reg),
-                Some(BinOp::Cmp(CmpOp::Ge)) => self.gen.emit_test_ge_long(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Lt)) => self.gen.emit_test_lt_int64(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Le)) => self.gen.emit_test_le_int64(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Gt)) => self.gen.emit_test_gt_int64(dest, lhs_reg, rhs_reg),
+                Some(BinOp::Cmp(CmpOp::Ge)) => self.gen.emit_test_ge_int64(dest, lhs_reg, rhs_reg),
                 Some(_) => unreachable!(),
                 None => {
                     let result = self.gen.add_register(BytecodeType::Int64);

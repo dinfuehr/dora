@@ -2558,22 +2558,22 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_test_generic(dest, lhs, rhs, CondCode::LessEq);
     }
 
-    fn visit_test_eq_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    fn visit_test_eq_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
     }
-    fn visit_test_ne_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    fn visit_test_ne_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_test_generic(dest, lhs, rhs, CondCode::NotEqual);
     }
-    fn visit_test_gt_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    fn visit_test_gt_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_test_generic(dest, lhs, rhs, CondCode::Greater);
     }
-    fn visit_test_ge_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    fn visit_test_ge_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_test_generic(dest, lhs, rhs, CondCode::GreaterEq);
     }
-    fn visit_test_lt_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    fn visit_test_lt_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_test_generic(dest, lhs, rhs, CondCode::Less);
     }
-    fn visit_test_le_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    fn visit_test_le_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_test_generic(dest, lhs, rhs, CondCode::LessEq);
     }
 
@@ -2680,7 +2680,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_invoke_direct_int(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
         self.emit_invoke_direct_generic(dest, fctdef, count);
     }
-    fn visit_invoke_direct_long(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+    fn visit_invoke_direct_int64(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
         self.emit_invoke_direct_generic(dest, fctdef, count);
     }
     fn visit_invoke_direct_float(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
@@ -2708,7 +2708,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_invoke_virtual_int(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
         self.emit_invoke_virtual_generic(dest, fctdef, count);
     }
-    fn visit_invoke_virtual_long(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+    fn visit_invoke_virtual_int64(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
         self.emit_invoke_virtual_generic(dest, fctdef, count);
     }
     fn visit_invoke_virtual_float(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
@@ -2736,7 +2736,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_invoke_static_int(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
         self.emit_invoke_static_generic(dest, fctdef, count);
     }
-    fn visit_invoke_static_long(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
+    fn visit_invoke_static_int64(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
         self.emit_invoke_static_generic(dest, fctdef, count);
     }
     fn visit_invoke_static_float(&mut self, dest: Register, fctdef: FctDefId, count: u32) {
@@ -2779,7 +2779,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_load_array_int(&mut self, dest: Register, arr: Register, idx: Register) {
         self.emit_load_array(dest, arr, idx);
     }
-    fn visit_load_array_long(&mut self, dest: Register, arr: Register, idx: Register) {
+    fn visit_load_array_int64(&mut self, dest: Register, arr: Register, idx: Register) {
         self.emit_load_array(dest, arr, idx);
     }
     fn visit_load_array_float(&mut self, dest: Register, arr: Register, idx: Register) {
@@ -2804,7 +2804,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_store_array_int(&mut self, src: Register, arr: Register, idx: Register) {
         self.emit_store_array(src, arr, idx);
     }
-    fn visit_store_array_long(&mut self, src: Register, arr: Register, idx: Register) {
+    fn visit_store_array_int64(&mut self, src: Register, arr: Register, idx: Register) {
         self.emit_store_array(src, arr, idx);
     }
     fn visit_store_array_float(&mut self, src: Register, arr: Register, idx: Register) {
@@ -2832,7 +2832,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_ret_int(&mut self, opnd: Register) {
         self.emit_return_generic(opnd);
     }
-    fn visit_ret_long(&mut self, opnd: Register) {
+    fn visit_ret_int64(&mut self, opnd: Register) {
         self.emit_return_generic(opnd);
     }
     fn visit_ret_float(&mut self, opnd: Register) {

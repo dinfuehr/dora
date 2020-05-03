@@ -688,8 +688,8 @@ impl BytecodeWriter {
         self.emit_reg1(BytecodeOpcode::RetInt, src);
     }
 
-    pub fn emit_ret_long(&mut self, src: Register) {
-        self.emit_reg1(BytecodeOpcode::RetLong, src);
+    pub fn emit_ret_int64(&mut self, src: Register) {
+        self.emit_reg1(BytecodeOpcode::RetInt64, src);
     }
 
     pub fn emit_ret_float(&mut self, src: Register) {
@@ -728,8 +728,8 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestEqInt, dest, lhs, rhs);
     }
 
-    pub fn emit_test_eq_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::TestEqLong, dest, lhs, rhs);
+    pub fn emit_test_eq_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestEqInt64, dest, lhs, rhs);
     }
 
     pub fn emit_test_eq_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -764,8 +764,8 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestNeInt, dest, lhs, rhs);
     }
 
-    pub fn emit_test_ne_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::TestNeLong, dest, lhs, rhs);
+    pub fn emit_test_ne_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestNeInt64, dest, lhs, rhs);
     }
 
     pub fn emit_test_ne_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -792,8 +792,8 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestGtInt, dest, lhs, rhs);
     }
 
-    pub fn emit_test_gt_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::TestGtLong, dest, lhs, rhs);
+    pub fn emit_test_gt_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestGtInt64, dest, lhs, rhs);
     }
 
     pub fn emit_test_gt_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -816,8 +816,8 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestGeInt, dest, lhs, rhs);
     }
 
-    pub fn emit_test_ge_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::TestGeLong, dest, lhs, rhs);
+    pub fn emit_test_ge_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestGeInt64, dest, lhs, rhs);
     }
 
     pub fn emit_test_ge_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -840,8 +840,8 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestLtInt, dest, lhs, rhs);
     }
 
-    pub fn emit_test_lt_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::TestLtLong, dest, lhs, rhs);
+    pub fn emit_test_lt_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestLtInt64, dest, lhs, rhs);
     }
 
     pub fn emit_test_lt_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -864,8 +864,8 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestLeInt, dest, lhs, rhs);
     }
 
-    pub fn emit_test_le_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::TestLeLong, dest, lhs, rhs);
+    pub fn emit_test_le_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestLeInt64, dest, lhs, rhs);
     }
 
     pub fn emit_test_le_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -968,8 +968,8 @@ impl BytecodeWriter {
         self.emit_fct(BytecodeOpcode::InvokeDirectInt, dest, fid, num);
     }
 
-    pub fn emit_invoke_direct_long(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeDirectLong, dest, fid, num);
+    pub fn emit_invoke_direct_int64(&mut self, dest: Register, fid: FctDefId, num: usize) {
+        self.emit_fct(BytecodeOpcode::InvokeDirectInt64, dest, fid, num);
     }
 
     pub fn emit_invoke_direct_float(&mut self, dest: Register, fid: FctDefId, num: usize) {
@@ -1004,8 +1004,8 @@ impl BytecodeWriter {
         self.emit_fct(BytecodeOpcode::InvokeVirtualInt, dest, fid, num);
     }
 
-    pub fn emit_invoke_virtual_long(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeVirtualLong, dest, fid, num);
+    pub fn emit_invoke_virtual_int64(&mut self, dest: Register, fid: FctDefId, num: usize) {
+        self.emit_fct(BytecodeOpcode::InvokeVirtualInt64, dest, fid, num);
     }
 
     pub fn emit_invoke_virtual_float(&mut self, dest: Register, fid: FctDefId, num: usize) {
@@ -1040,8 +1040,8 @@ impl BytecodeWriter {
         self.emit_fct(BytecodeOpcode::InvokeStaticInt, dest, fid, num);
     }
 
-    pub fn emit_invoke_static_long(&mut self, dest: Register, fid: FctDefId, num: usize) {
-        self.emit_fct(BytecodeOpcode::InvokeStaticLong, dest, fid, num);
+    pub fn emit_invoke_static_int64(&mut self, dest: Register, fid: FctDefId, num: usize) {
+        self.emit_fct(BytecodeOpcode::InvokeStaticInt64, dest, fid, num);
     }
 
     pub fn emit_invoke_static_float(&mut self, dest: Register, fid: FctDefId, num: usize) {
@@ -1086,8 +1086,8 @@ impl BytecodeWriter {
     pub fn emit_store_array_int(&mut self, src: Register, array: Register, index: Register) {
         self.emit_reg3(BytecodeOpcode::StoreArrayInt, src, array, index);
     }
-    pub fn emit_store_array_long(&mut self, src: Register, array: Register, index: Register) {
-        self.emit_reg3(BytecodeOpcode::StoreArrayLong, src, array, index);
+    pub fn emit_store_array_int64(&mut self, src: Register, array: Register, index: Register) {
+        self.emit_reg3(BytecodeOpcode::StoreArrayInt64, src, array, index);
     }
     pub fn emit_store_array_float(&mut self, src: Register, array: Register, index: Register) {
         self.emit_reg3(BytecodeOpcode::StoreArrayFloat, src, array, index);
@@ -1111,8 +1111,8 @@ impl BytecodeWriter {
     pub fn emit_load_array_int(&mut self, dest: Register, array: Register, index: Register) {
         self.emit_reg3(BytecodeOpcode::LoadArrayInt, dest, array, index);
     }
-    pub fn emit_load_array_long(&mut self, dest: Register, array: Register, index: Register) {
-        self.emit_reg3(BytecodeOpcode::LoadArrayLong, dest, array, index);
+    pub fn emit_load_array_int64(&mut self, dest: Register, array: Register, index: Register) {
+        self.emit_reg3(BytecodeOpcode::LoadArrayInt64, dest, array, index);
     }
     pub fn emit_load_array_float(&mut self, dest: Register, array: Register, index: Register) {
         self.emit_reg3(BytecodeOpcode::LoadArrayFloat, dest, array, index);

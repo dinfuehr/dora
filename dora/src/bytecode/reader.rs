@@ -908,41 +908,41 @@ where
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_le_int(dest, lhs, rhs);
             }
-            BytecodeOpcode::TestEqLong => {
+            BytecodeOpcode::TestEqInt64 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_eq_long(dest, lhs, rhs);
+                self.visitor.visit_test_eq_int64(dest, lhs, rhs);
             }
-            BytecodeOpcode::TestNeLong => {
+            BytecodeOpcode::TestNeInt64 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_ne_long(dest, lhs, rhs);
+                self.visitor.visit_test_ne_int64(dest, lhs, rhs);
             }
-            BytecodeOpcode::TestGtLong => {
+            BytecodeOpcode::TestGtInt64 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_gt_long(dest, lhs, rhs);
+                self.visitor.visit_test_gt_int64(dest, lhs, rhs);
             }
-            BytecodeOpcode::TestGeLong => {
+            BytecodeOpcode::TestGeInt64 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_ge_long(dest, lhs, rhs);
+                self.visitor.visit_test_ge_int64(dest, lhs, rhs);
             }
-            BytecodeOpcode::TestLtLong => {
+            BytecodeOpcode::TestLtInt64 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_lt_long(dest, lhs, rhs);
+                self.visitor.visit_test_lt_int64(dest, lhs, rhs);
             }
-            BytecodeOpcode::TestLeLong => {
+            BytecodeOpcode::TestLeInt64 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_le_long(dest, lhs, rhs);
+                self.visitor.visit_test_le_int64(dest, lhs, rhs);
             }
 
             BytecodeOpcode::TestEqFloat => {
@@ -1085,11 +1085,11 @@ where
                 let count = self.read_index(wide);
                 self.visitor.visit_invoke_direct_int(dest, fct, count);
             }
-            BytecodeOpcode::InvokeDirectLong => {
+            BytecodeOpcode::InvokeDirectInt64 => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let count = self.read_index(wide);
-                self.visitor.visit_invoke_direct_long(dest, fct, count);
+                self.visitor.visit_invoke_direct_int64(dest, fct, count);
             }
             BytecodeOpcode::InvokeDirectFloat => {
                 let dest = self.read_register(wide);
@@ -1139,11 +1139,11 @@ where
                 let count = self.read_index(wide);
                 self.visitor.visit_invoke_virtual_int(dest, fct, count);
             }
-            BytecodeOpcode::InvokeVirtualLong => {
+            BytecodeOpcode::InvokeVirtualInt64 => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let count = self.read_index(wide);
-                self.visitor.visit_invoke_virtual_long(dest, fct, count);
+                self.visitor.visit_invoke_virtual_int64(dest, fct, count);
             }
             BytecodeOpcode::InvokeVirtualFloat => {
                 let dest = self.read_register(wide);
@@ -1193,11 +1193,11 @@ where
                 let count = self.read_index(wide);
                 self.visitor.visit_invoke_static_int(dest, fct, count);
             }
-            BytecodeOpcode::InvokeStaticLong => {
+            BytecodeOpcode::InvokeStaticInt64 => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 let count = self.read_index(wide);
-                self.visitor.visit_invoke_static_long(dest, fct, count);
+                self.visitor.visit_invoke_static_int64(dest, fct, count);
             }
             BytecodeOpcode::InvokeStaticFloat => {
                 let dest = self.read_register(wide);
@@ -1270,11 +1270,11 @@ where
                 let index = self.read_register(wide);
                 self.visitor.visit_load_array_int(dest, array, index);
             }
-            BytecodeOpcode::LoadArrayLong => {
+            BytecodeOpcode::LoadArrayInt64 => {
                 let dest = self.read_register(wide);
                 let array = self.read_register(wide);
                 let index = self.read_register(wide);
-                self.visitor.visit_load_array_long(dest, array, index);
+                self.visitor.visit_load_array_int64(dest, array, index);
             }
             BytecodeOpcode::LoadArrayFloat => {
                 let dest = self.read_register(wide);
@@ -1319,11 +1319,11 @@ where
                 let index = self.read_register(wide);
                 self.visitor.visit_store_array_int(src, array, index);
             }
-            BytecodeOpcode::StoreArrayLong => {
+            BytecodeOpcode::StoreArrayInt64 => {
                 let src = self.read_register(wide);
                 let array = self.read_register(wide);
                 let index = self.read_register(wide);
-                self.visitor.visit_store_array_long(src, array, index);
+                self.visitor.visit_store_array_int64(src, array, index);
             }
             BytecodeOpcode::StoreArrayFloat => {
                 let src = self.read_register(wide);
@@ -1363,9 +1363,9 @@ where
                 let opnd = self.read_register(wide);
                 self.visitor.visit_ret_int(opnd);
             }
-            BytecodeOpcode::RetLong => {
+            BytecodeOpcode::RetInt64 => {
                 let opnd = self.read_register(wide);
-                self.visitor.visit_ret_long(opnd);
+                self.visitor.visit_ret_int64(opnd);
             }
             BytecodeOpcode::RetFloat => {
                 let opnd = self.read_register(wide);
@@ -2045,22 +2045,22 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_test_eq_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_test_eq_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_test_ne_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_test_ne_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_test_gt_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_test_gt_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_test_ge_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_test_ge_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_test_lt_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_test_lt_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_test_le_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_test_le_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 
@@ -2142,7 +2142,7 @@ pub trait BytecodeVisitor {
     fn visit_invoke_direct_int(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_direct_long(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
+    fn visit_invoke_direct_int64(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
     fn visit_invoke_direct_float(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
@@ -2170,7 +2170,7 @@ pub trait BytecodeVisitor {
     fn visit_invoke_virtual_int(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_virtual_long(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
+    fn visit_invoke_virtual_int64(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
     fn visit_invoke_virtual_float(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
@@ -2198,7 +2198,7 @@ pub trait BytecodeVisitor {
     fn visit_invoke_static_int(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
-    fn visit_invoke_static_long(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
+    fn visit_invoke_static_int64(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
     fn visit_invoke_static_float(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
@@ -2241,7 +2241,7 @@ pub trait BytecodeVisitor {
     fn visit_load_array_int(&mut self, _dest: Register, _arr: Register, _idx: Register) {
         unimplemented!();
     }
-    fn visit_load_array_long(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+    fn visit_load_array_int64(&mut self, _dest: Register, _arr: Register, _idx: Register) {
         unimplemented!();
     }
     fn visit_load_array_float(&mut self, _dest: Register, _arr: Register, _idx: Register) {
@@ -2266,7 +2266,7 @@ pub trait BytecodeVisitor {
     fn visit_store_array_int(&mut self, _src: Register, _arr: Register, _idx: Register) {
         unimplemented!();
     }
-    fn visit_store_array_long(&mut self, _src: Register, _arr: Register, _idx: Register) {
+    fn visit_store_array_int64(&mut self, _src: Register, _arr: Register, _idx: Register) {
         unimplemented!();
     }
     fn visit_store_array_float(&mut self, _src: Register, _arr: Register, _idx: Register) {
@@ -2294,7 +2294,7 @@ pub trait BytecodeVisitor {
     fn visit_ret_int(&mut self, _opnd: Register) {
         unimplemented!();
     }
-    fn visit_ret_long(&mut self, _opnd: Register) {
+    fn visit_ret_int64(&mut self, _opnd: Register) {
         unimplemented!();
     }
     fn visit_ret_float(&mut self, _opnd: Register) {

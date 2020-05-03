@@ -292,12 +292,12 @@ pub enum BytecodeOpcode {
     TestLtInt,
     TestLeInt,
 
-    TestEqLong,
-    TestNeLong,
-    TestGtLong,
-    TestGeLong,
-    TestLtLong,
-    TestLeLong,
+    TestEqInt64,
+    TestNeInt64,
+    TestGtInt64,
+    TestGeInt64,
+    TestLtInt64,
+    TestLeInt64,
 
     TestEqFloat,
     TestNeFloat,
@@ -331,7 +331,7 @@ pub enum BytecodeOpcode {
     InvokeDirectByte,
     InvokeDirectChar,
     InvokeDirectInt,
-    InvokeDirectLong,
+    InvokeDirectInt64,
     InvokeDirectFloat,
     InvokeDirectDouble,
     InvokeDirectPtr,
@@ -341,7 +341,7 @@ pub enum BytecodeOpcode {
     InvokeVirtualByte,
     InvokeVirtualChar,
     InvokeVirtualInt,
-    InvokeVirtualLong,
+    InvokeVirtualInt64,
     InvokeVirtualFloat,
     InvokeVirtualDouble,
     InvokeVirtualPtr,
@@ -351,7 +351,7 @@ pub enum BytecodeOpcode {
     InvokeStaticByte,
     InvokeStaticChar,
     InvokeStaticInt,
-    InvokeStaticLong,
+    InvokeStaticInt64,
     InvokeStaticFloat,
     InvokeStaticDouble,
     InvokeStaticPtr,
@@ -368,7 +368,7 @@ pub enum BytecodeOpcode {
     LoadArrayByte,
     LoadArrayChar,
     LoadArrayInt,
-    LoadArrayLong,
+    LoadArrayInt64,
     LoadArrayFloat,
     LoadArrayDouble,
     LoadArrayPtr,
@@ -377,7 +377,7 @@ pub enum BytecodeOpcode {
     StoreArrayByte,
     StoreArrayChar,
     StoreArrayInt,
-    StoreArrayLong,
+    StoreArrayInt64,
     StoreArrayFloat,
     StoreArrayDouble,
     StoreArrayPtr,
@@ -387,7 +387,7 @@ pub enum BytecodeOpcode {
     RetByte,
     RetChar,
     RetInt,
-    RetLong,
+    RetInt64,
     RetFloat,
     RetDouble,
     RetPtr,
@@ -423,7 +423,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeDirectByte
             | BytecodeOpcode::InvokeDirectChar
             | BytecodeOpcode::InvokeDirectInt
-            | BytecodeOpcode::InvokeDirectLong
+            | BytecodeOpcode::InvokeDirectInt64
             | BytecodeOpcode::InvokeDirectFloat
             | BytecodeOpcode::InvokeDirectDouble
             | BytecodeOpcode::InvokeDirectPtr
@@ -432,7 +432,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeVirtualByte
             | BytecodeOpcode::InvokeVirtualChar
             | BytecodeOpcode::InvokeVirtualInt
-            | BytecodeOpcode::InvokeVirtualLong
+            | BytecodeOpcode::InvokeVirtualInt64
             | BytecodeOpcode::InvokeVirtualFloat
             | BytecodeOpcode::InvokeVirtualDouble
             | BytecodeOpcode::InvokeVirtualPtr
@@ -441,7 +441,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeStaticByte
             | BytecodeOpcode::InvokeStaticChar
             | BytecodeOpcode::InvokeStaticInt
-            | BytecodeOpcode::InvokeStaticLong
+            | BytecodeOpcode::InvokeStaticInt64
             | BytecodeOpcode::InvokeStaticFloat
             | BytecodeOpcode::InvokeStaticDouble
             | BytecodeOpcode::InvokeStaticPtr
@@ -454,7 +454,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::LoadArrayByte
             | BytecodeOpcode::LoadArrayChar
             | BytecodeOpcode::LoadArrayInt
-            | BytecodeOpcode::LoadArrayLong
+            | BytecodeOpcode::LoadArrayInt64
             | BytecodeOpcode::LoadArrayFloat
             | BytecodeOpcode::LoadArrayDouble
             | BytecodeOpcode::LoadArrayPtr
@@ -462,7 +462,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::StoreArrayByte
             | BytecodeOpcode::StoreArrayChar
             | BytecodeOpcode::StoreArrayInt
-            | BytecodeOpcode::StoreArrayLong
+            | BytecodeOpcode::StoreArrayInt64
             | BytecodeOpcode::StoreArrayFloat
             | BytecodeOpcode::StoreArrayDouble
             | BytecodeOpcode::StoreArrayPtr
