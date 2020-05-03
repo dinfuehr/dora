@@ -109,17 +109,17 @@ pub enum BytecodeOpcode {
     Wide,
 
     AddInt,
-    AddLong,
+    AddInt64,
     AddFloat,
     AddDouble,
 
     SubInt,
-    SubLong,
+    SubInt64,
     SubFloat,
     SubDouble,
 
     NegInt,
-    NegLong,
+    NegInt64,
     NegFloat,
     NegDouble,
 
@@ -597,7 +597,7 @@ pub enum ConstPoolOpcode {
     Float,
     Double,
     Int,
-    Long,
+    Int64,
     Char,
 }
 
@@ -606,7 +606,7 @@ pub enum ConstPoolEntry {
     Float(f32),
     Double(f64),
     Int(i32),
-    Long(i64),
+    Int64(i64),
     Char(char),
 }
 
@@ -639,9 +639,9 @@ impl ConstPoolEntry {
         }
     }
 
-    pub fn to_long(&self) -> Option<i64> {
+    pub fn to_int64(&self) -> Option<i64> {
         match self {
-            ConstPoolEntry::Long(value) => Some(*value),
+            ConstPoolEntry::Int64(value) => Some(*value),
             _ => None,
         }
     }

@@ -3376,7 +3376,7 @@ fn gen_cast_long() {
 fn gen_compare_to_method() {
     let result = code("fun f(a: Int64, b: Int64) -> Int { a.compareTo(b) }");
     let expected = vec![
-        SubLong(r(3), r(0), r(1)),
+        SubInt64(r(3), r(0), r(1)),
         CastInt64ToInt(r(2), r(3)),
         RetInt(r(2)),
     ];
@@ -3509,17 +3509,17 @@ fn r(val: usize) -> Register {
 #[derive(PartialEq, Debug)]
 pub enum Bytecode {
     AddInt(Register, Register, Register),
-    AddLong(Register, Register, Register),
+    AddInt64(Register, Register, Register),
     AddFloat(Register, Register, Register),
     AddDouble(Register, Register, Register),
 
     SubInt(Register, Register, Register),
-    SubLong(Register, Register, Register),
+    SubInt64(Register, Register, Register),
     SubFloat(Register, Register, Register),
     SubDouble(Register, Register, Register),
 
     NegInt(Register, Register),
-    NegLong(Register, Register),
+    NegInt64(Register, Register),
     NegFloat(Register, Register),
     NegDouble(Register, Register),
 
@@ -3847,8 +3847,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_add_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::AddInt(dest, lhs, rhs));
     }
-    fn visit_add_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::AddLong(dest, lhs, rhs));
+    fn visit_add_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::AddInt64(dest, lhs, rhs));
     }
     fn visit_add_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::AddFloat(dest, lhs, rhs));
@@ -3860,8 +3860,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_sub_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::SubInt(dest, lhs, rhs));
     }
-    fn visit_sub_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit(Bytecode::SubLong(dest, lhs, rhs));
+    fn visit_sub_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::SubInt64(dest, lhs, rhs));
     }
     fn visit_sub_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::SubFloat(dest, lhs, rhs));
@@ -3873,8 +3873,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_neg_int(&mut self, dest: Register, src: Register) {
         self.emit(Bytecode::NegInt(dest, src));
     }
-    fn visit_neg_long(&mut self, dest: Register, src: Register) {
-        self.emit(Bytecode::NegLong(dest, src));
+    fn visit_neg_int64(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::NegInt64(dest, src));
     }
     fn visit_neg_float(&mut self, dest: Register, src: Register) {
         self.emit(Bytecode::NegFloat(dest, src));
@@ -4347,7 +4347,7 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::ConstInt(dest, value));
     }
     fn visit_const_int64(&mut self, dest: Register, idx: ConstPoolIdx) {
-        let value = self.bc.const_pool(idx).to_long().expect("long expected");
+        let value = self.bc.const_pool(idx).to_int64().expect("long expected");
         self.emit(Bytecode::ConstInt64(dest, value));
     }
     fn visit_const_float(&mut self, dest: Register, idx: ConstPoolIdx) {

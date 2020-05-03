@@ -47,11 +47,11 @@ where
                 let rhs = self.read_register(wide);
                 self.visitor.visit_add_int(dest, lhs, rhs);
             }
-            BytecodeOpcode::AddLong => {
+            BytecodeOpcode::AddInt64 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_add_long(dest, lhs, rhs);
+                self.visitor.visit_add_int64(dest, lhs, rhs);
             }
             BytecodeOpcode::AddFloat => {
                 let dest = self.read_register(wide);
@@ -71,11 +71,11 @@ where
                 let rhs = self.read_register(wide);
                 self.visitor.visit_sub_int(dest, lhs, rhs);
             }
-            BytecodeOpcode::SubLong => {
+            BytecodeOpcode::SubInt64 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_sub_long(dest, lhs, rhs);
+                self.visitor.visit_sub_int64(dest, lhs, rhs);
             }
             BytecodeOpcode::SubFloat => {
                 let dest = self.read_register(wide);
@@ -94,10 +94,10 @@ where
                 let src = self.read_register(wide);
                 self.visitor.visit_neg_int(dest, src);
             }
-            BytecodeOpcode::NegLong => {
+            BytecodeOpcode::NegInt64 => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
-                self.visitor.visit_neg_long(dest, src);
+                self.visitor.visit_neg_int64(dest, src);
             }
             BytecodeOpcode::NegFloat => {
                 let dest = self.read_register(wide);
@@ -1457,7 +1457,7 @@ pub trait BytecodeVisitor {
     fn visit_add_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_add_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_add_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
     fn visit_add_float(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
@@ -1470,7 +1470,7 @@ pub trait BytecodeVisitor {
     fn visit_sub_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_sub_long(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_sub_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
     fn visit_sub_float(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
@@ -1483,7 +1483,7 @@ pub trait BytecodeVisitor {
     fn visit_neg_int(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
-    fn visit_neg_long(&mut self, _dest: Register, _src: Register) {
+    fn visit_neg_int64(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
     fn visit_neg_float(&mut self, _dest: Register, _src: Register) {

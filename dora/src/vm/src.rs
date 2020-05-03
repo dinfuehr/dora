@@ -267,6 +267,7 @@ pub enum CallType {
     // Invoke static trait method on type param, e.g. T::method()
     TraitStatic(TypeParamId, TraitId, FctId),
 
+    // Used for *internal* functions (those are not exposed to Dora as Fct)
     Intrinsic(Intrinsic),
 }
 

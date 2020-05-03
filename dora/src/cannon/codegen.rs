@@ -1958,7 +1958,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_add_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_add_int(dest, lhs, rhs);
     }
-    fn visit_add_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    fn visit_add_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_add_int(dest, lhs, rhs);
     }
     fn visit_add_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -1971,7 +1971,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_sub_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_sub_int(dest, lhs, rhs);
     }
-    fn visit_sub_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    fn visit_sub_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_sub_int(dest, lhs, rhs);
     }
     fn visit_sub_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -1984,7 +1984,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_neg_int(&mut self, dest: Register, src: Register) {
         self.emit_neg_int(dest, src);
     }
-    fn visit_neg_long(&mut self, dest: Register, src: Register) {
+    fn visit_neg_int64(&mut self, dest: Register, src: Register) {
         self.emit_neg_int(dest, src);
     }
     fn visit_neg_float(&mut self, dest: Register, src: Register) {
@@ -2451,7 +2451,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         let value = self
             .bytecode
             .const_pool(idx)
-            .to_long()
+            .to_int64()
             .expect("unexpected const pool entry");
         self.emit_const_int(dest, value);
     }

@@ -138,8 +138,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_add_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("AddInt", dest, lhs, rhs);
     }
-    fn visit_add_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("AddLong", dest, lhs, rhs);
+    fn visit_add_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("AddInt64", dest, lhs, rhs);
     }
     fn visit_add_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("AddFloat", dest, lhs, rhs);
@@ -151,8 +151,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_sub_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("SubInt", dest, lhs, rhs);
     }
-    fn visit_sub_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("SubLong", dest, lhs, rhs);
+    fn visit_sub_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("SubInt64", dest, lhs, rhs);
     }
     fn visit_sub_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("SubFloat", dest, lhs, rhs);
@@ -164,8 +164,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_neg_int(&mut self, dest: Register, src: Register) {
         self.emit_reg2("NegInt", dest, src);
     }
-    fn visit_neg_long(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("NegLong", dest, src);
+    fn visit_neg_int64(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("NegInt64", dest, src);
     }
     fn visit_neg_float(&mut self, dest: Register, src: Register) {
         self.emit_reg2("NegFloat", dest, src);

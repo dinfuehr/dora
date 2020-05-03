@@ -1575,7 +1575,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 self.gen.emit_array_length(dest, src);
             }
             Intrinsic::Int32Neg => self.gen.emit_neg_int(dest, src),
-            Intrinsic::Int64Neg => self.gen.emit_neg_long(dest, src),
+            Intrinsic::Int64Neg => self.gen.emit_neg_int64(dest, src),
             Intrinsic::FloatNeg => self.gen.emit_neg_float(dest, src),
             Intrinsic::DoubleNeg => self.gen.emit_neg_double(dest, src),
             Intrinsic::BoolNot => self.gen.emit_not_bool(dest, src),
@@ -1813,7 +1813,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 Some(_) => unreachable!(),
                 None => {
                     let result = self.gen.add_register(BytecodeType::Int64);
-                    self.gen.emit_sub_long(result, lhs_reg, rhs_reg);
+                    self.gen.emit_sub_int64(result, lhs_reg, rhs_reg);
                     self.gen.emit_cast_long_to_int(dest, result);
                 }
             },
@@ -1860,8 +1860,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             Intrinsic::Int32Sar => self.gen.emit_sar_int(dest, lhs_reg, rhs_reg),
             Intrinsic::Int32RotateLeft => self.gen.emit_rol_int(dest, lhs_reg, rhs_reg),
             Intrinsic::Int32RotateRight => self.gen.emit_ror_int(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int64Add => self.gen.emit_add_long(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int64Sub => self.gen.emit_sub_long(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int64Add => self.gen.emit_add_int64(dest, lhs_reg, rhs_reg),
+            Intrinsic::Int64Sub => self.gen.emit_sub_int64(dest, lhs_reg, rhs_reg),
             Intrinsic::Int64Mul => self.gen.emit_mul_long(dest, lhs_reg, rhs_reg),
             Intrinsic::Int64Div => {
                 self.gen.set_position(pos);

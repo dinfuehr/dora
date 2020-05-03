@@ -96,8 +96,8 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::AddInt, dest, lhs, rhs);
     }
 
-    pub fn emit_add_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::AddLong, dest, lhs, rhs);
+    pub fn emit_add_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::AddInt64, dest, lhs, rhs);
     }
 
     pub fn emit_add_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -327,7 +327,7 @@ impl BytecodeWriter {
     }
 
     pub fn emit_const_int64(&mut self, dest: Register, value: i64) {
-        let idx = self.add_const(ConstPoolEntry::Long(value as i64));
+        let idx = self.add_const(ConstPoolEntry::Int64(value as i64));
         self.emit_reg1_idx(BytecodeOpcode::ConstInt64, dest, idx);
     }
 
@@ -448,8 +448,8 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::NegInt, dest, src);
     }
 
-    pub fn emit_neg_long(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::NegLong, dest, src);
+    pub fn emit_neg_int64(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::NegInt64, dest, src);
     }
 
     pub fn emit_neg_float(&mut self, dest: Register, src: Register) {
@@ -592,8 +592,8 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::SubInt, dest, lhs, rhs);
     }
 
-    pub fn emit_sub_long(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::SubLong, dest, lhs, rhs);
+    pub fn emit_sub_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::SubInt64, dest, lhs, rhs);
     }
 
     pub fn emit_sub_float(&mut self, dest: Register, lhs: Register, rhs: Register) {

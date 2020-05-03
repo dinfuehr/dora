@@ -129,8 +129,8 @@ fn allocate_constpool_array(vm: &VM, fct: &BytecodeFunction) -> Ref<ByteArray> {
                 buffer.push(ConstPoolOpcode::Int as u8);
                 buffer.write_u32::<LittleEndian>(value as u32).unwrap();
             }
-            &ConstPoolEntry::Long(value) => {
-                buffer.push(ConstPoolOpcode::Long as u8);
+            &ConstPoolEntry::Int64(value) => {
+                buffer.push(ConstPoolOpcode::Int64 as u8);
                 buffer.write_u64::<LittleEndian>(value as u64).unwrap();
             }
             &ConstPoolEntry::Char(value) => {
