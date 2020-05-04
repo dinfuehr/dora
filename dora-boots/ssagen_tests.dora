@@ -29,8 +29,8 @@ Block 2: pred = [0] succ = [1]
 
 fun bcSsaGenRetIntConst() -> Int { 4711 }
 
-@test fun testSsaGenRetLongConst(_x: Testing) {
-    let fct = bytecode("bcSsaGenRetLongConst");
+@test fun testSsaGenRetInt64Const(_x: Testing) {
+    let fct = bytecode("bcSsaGenRetInt64Const");
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -43,7 +43,7 @@ Block 2: pred = [0] succ = [1]
 ");
 }
 
-fun bcSsaGenRetLongConst() -> Int64 { 4711L }
+fun bcSsaGenRetInt64Const() -> Int64 { 4711L }
 
 @test fun testSsaGenIdInt(_x: Testing) {
     let fct = bytecode("bcSsaGenIdInt");
