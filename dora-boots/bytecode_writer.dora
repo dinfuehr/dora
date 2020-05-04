@@ -30,7 +30,7 @@ class BytecodeWriter {
         self.emitReg3(BC_ADD_INT, dest, lhs, rhs);
     }
 
-    fun emitAddLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fun emitAddInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_ADD_INT64, dest, lhs, rhs);
     }
 
@@ -46,7 +46,7 @@ class BytecodeWriter {
         self.emitReg3(BC_SUB_INT, dest, lhs, rhs);
     }
 
-    fun emitSubLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fun emitSubInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_SUB_INT64, dest, lhs, rhs);
     }
 
@@ -62,7 +62,7 @@ class BytecodeWriter {
         self.emitReg2(BC_NEG_INT, dest, src);
     }
 
-    fun emitNegLong(dest: BytecodeRegister, src: BytecodeRegister) {
+    fun emitNegInt64(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_NEG_INT64, dest, src);
     }
 
@@ -78,7 +78,7 @@ class BytecodeWriter {
         self.emitReg3(BC_SUB_INT, dest, lhs, rhs);
     }
 
-    fun emitMulLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fun emitMulInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_SUB_INT64, dest, lhs, rhs);
     }
 
@@ -94,7 +94,7 @@ class BytecodeWriter {
         self.emitReg3(BC_DIV_INT, dest, lhs, rhs);
     }
 
-    fun emitDivLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fun emitDivInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_DIV_INT64, dest, lhs, rhs);
     }
 
@@ -110,7 +110,7 @@ class BytecodeWriter {
         self.emitReg3(BC_MOD_INT, dest, lhs, rhs);
     }
 
-    fun emitModLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fun emitModInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_MOD_INT64, dest, lhs, rhs);
     }
 
@@ -118,7 +118,7 @@ class BytecodeWriter {
         self.emitReg3(BC_AND_INT, dest, lhs, rhs);
     }
 
-    fun emitAndLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fun emitAndInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_AND_INT64, dest, lhs, rhs);
     }
 
@@ -126,7 +126,7 @@ class BytecodeWriter {
         self.emitReg3(BC_OR_INT, dest, lhs, rhs);
     }
 
-    fun emitOrLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fun emitOrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_OR_INT64, dest, lhs, rhs);
     }
 
@@ -134,7 +134,7 @@ class BytecodeWriter {
         self.emitReg3(BC_XOR_INT, dest, lhs, rhs);
     }
 
-    fun emitXorLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fun emitXorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_XOR_INT64, dest, lhs, rhs);
     }
 
@@ -146,7 +146,7 @@ class BytecodeWriter {
         self.emitReg2(BC_NOT_INT, dest, src);
     }
 
-    fun emitNotLong(dest: BytecodeRegister, src: BytecodeRegister) {
+    fun emitNotInt64(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_NOT_INT64, dest, src);
     }
 
@@ -162,15 +162,15 @@ class BytecodeWriter {
         self.emitReg3(BC_SAR_INT, dest, lhs, rhs);
     }
 
-    fun emitShlLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fun emitShlInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_SHL_INT64, dest, lhs, rhs);
     }
 
-    fun emitShrLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fun emitShrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_SHR_INT64, dest, lhs, rhs);
     }
 
-    fun emitSarLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fun emitSarInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_SAR_INT64, dest, lhs, rhs);
     }
 
@@ -182,11 +182,11 @@ class BytecodeWriter {
         self.emitReg3(BC_ROR_INT, dest, lhs, rhs);
     }
 
-    fun emitRolLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fun emitRolInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_ROL_INT64, dest, lhs, rhs);
     }
 
-    fun emitRorLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fun emitRorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_ROR_INT64, dest, lhs, rhs);
     }
 
@@ -198,11 +198,11 @@ class BytecodeWriter {
         self.emitReg2(BC_REINTERPRET_INT_AS_FLOAT, dest, src);
     }
 
-    fun emitReinterpretDoubleAsLong(dest: BytecodeRegister, src: BytecodeRegister) {
+    fun emitReinterpretDoubleAsInt64(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_REINTERPRET_DOUBLE_AS_INT64, dest, src);
     }
 
-    fun emitReinterpretLongAsDouble(dest: BytecodeRegister, src: BytecodeRegister) {
+    fun emitReinterpretInt64AsDouble(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_REINTERPRET_INT64_AS_DOUBLE, dest, src);
     }
 
@@ -214,15 +214,15 @@ class BytecodeWriter {
         self.emitReg2(BC_EXTEND_UINT8_TO_INT, dest, src);
     }
 
-    fun emitExtendByteToLong(dest: BytecodeRegister, src: BytecodeRegister) {
+    fun emitExtendByteToInt64(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_EXTEND_UINT8_TO_INT64, dest, src);
     }
 
-    fun emitExtendIntToLong(dest: BytecodeRegister, src: BytecodeRegister) {
+    fun emitExtendIntToInt64(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_EXTEND_INT_TO_INT64, dest, src);
     }
 
-    fun emitExtendCharToLong(dest: BytecodeRegister, src: BytecodeRegister) {
+    fun emitExtendCharToInt64(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_EXTEND_CHAR_TO_INT64, dest, src);
     }
 
@@ -238,15 +238,15 @@ class BytecodeWriter {
         self.emitReg2(BC_CAST_INT_TO_CHAR, dest, src);
     }
 
-    fun emitCastLongtoUInt8(dest: BytecodeRegister, src: BytecodeRegister) {
+    fun emitCastInt64toUInt8(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_CAST_INT64_TO_UINT8, dest, src);
     }
 
-    fun emitCastLongToChar(dest: BytecodeRegister, src: BytecodeRegister) {
+    fun emitCastInt64ToChar(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_CAST_INT64_TO_CHAR, dest, src);
     }
 
-    fun emitCastLongToInt(dest: BytecodeRegister, src: BytecodeRegister) {
+    fun emitCastInt64ToInt(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_CAST_INT64_TO_INT, dest, src);
     }
 
@@ -258,11 +258,11 @@ class BytecodeWriter {
         self.emitReg2(BC_CONVERT_INT_TO_DOUBLE, dest, src);
     }
 
-    fun emitConvertLongToFloat(dest: BytecodeRegister, src: BytecodeRegister) {
+    fun emitConvertInt64ToFloat(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_CONVERT_INT64_TO_FLOAT, dest, src);
     }
 
-    fun emitConvertLongToDouble(dest: BytecodeRegister, src: BytecodeRegister) {
+    fun emitConvertInt64ToDouble(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_CONVERT_INT64_TO_DOUBLE, dest, src);
     }
 
@@ -270,7 +270,7 @@ class BytecodeWriter {
         self.emitReg2(BC_TRUNCATE_FLOAT_TO_INT, dest, src);
     }
 
-    fun emitTruncateFloatToLong(dest: BytecodeRegister, src: BytecodeRegister) {
+    fun emitTruncateFloatToInt64(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_TRUNCATE_FLOAT_TO_INT64, dest, src);
     }
 
@@ -278,7 +278,7 @@ class BytecodeWriter {
         self.emitReg2(BC_TRUNCATE_DOUBLE_TO_INT, dest, src);
     }
 
-    fun emitTruncateDoubleToLong(dest: BytecodeRegister, src: BytecodeRegister) {
+    fun emitTruncateDoubleToInt64(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_TRUNCATE_DOUBLE_TO_INT64, dest, src);
     }
 
@@ -306,7 +306,7 @@ class BytecodeWriter {
         self.emitReg2(BC_MOV_INT, dest, src);
     }
 
-    fun emitMovLong(dest: BytecodeRegister, src: BytecodeRegister) {
+    fun emitMovInt64(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(BC_MOV_INT64, dest, src);
     }
 
@@ -338,7 +338,7 @@ class BytecodeWriter {
         self.emitField(BC_LOAD_FIELD_INT, dest, obj, cls, field);
     }
 
-    fun emitLoadFieldLong(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
+    fun emitLoadFieldInt64(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
         self.emitField(BC_LOAD_FIELD_INT64, dest, obj, cls, field);
     }
 
@@ -370,7 +370,7 @@ class BytecodeWriter {
         self.emitField(BC_STORE_FIELD_INT, src, obj, cls, field);
     }
 
-    fun emitStoreFieldLong(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
+    fun emitStoreFieldInt64(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
         self.emitField(BC_STORE_FIELD_INT64, src, obj, cls, field);
     }
 
@@ -402,7 +402,7 @@ class BytecodeWriter {
         self.emitGlobal(BC_LOAD_GLOBAL_INT, dest, glob);
     }
 
-    fun emitLoadGlobalLong(dest: BytecodeRegister, glob: GlobalId) {
+    fun emitLoadGlobalInt64(dest: BytecodeRegister, glob: GlobalId) {
         self.emitGlobal(BC_LOAD_GLOBAL_INT64, dest, glob);
     }
 
@@ -434,7 +434,7 @@ class BytecodeWriter {
         self.emitGlobal(BC_LOAD_GLOBAL_INT, src, glob);
     }
 
-    fun emitStoreGlobalLong(src: BytecodeRegister, glob: GlobalId) {
+    fun emitStoreGlobalInt64(src: BytecodeRegister, glob: GlobalId) {
         self.emitGlobal(BC_LOAD_GLOBAL_INT64, src, glob);
     }
 
@@ -478,7 +478,7 @@ class BytecodeWriter {
         self.emitReg1(BC_CONST_ZERO_INT, dest);
     }
 
-    fun emitConstZeroLong(dest: BytecodeRegister) {
+    fun emitConstZeroInt64(dest: BytecodeRegister) {
         self.emitReg1(BC_CONST_ZERO_INT64, dest);
     }
 
@@ -504,7 +504,7 @@ class BytecodeWriter {
         self.emitReg1AndIdx(BC_CONST_INT, dest, idx);
     }
 
-    fun emitConstLong(dest: BytecodeRegister, value: Int64) {
+    fun emitConstInt64(dest: BytecodeRegister, value: Int64) {
         let idx = self.addConst(ConstPoolInt64(value));
         self.emitReg1AndIdx(BC_CONST_INT64, dest, idx);
     }
@@ -620,27 +620,27 @@ class BytecodeWriter {
         self.emitReg3(BC_TEST_LE_INT, dest, lhs, rhs);
     }
 
-    fun emitTestEqLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fun emitTestEqInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_EQ_INT64, dest, lhs, rhs);
     }
 
-    fun emitTestNeLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fun emitTestNeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_NE_INT64, dest, lhs, rhs);
     }
 
-    fun emitTestGtLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fun emitTestGtInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_GT_INT64, dest, lhs, rhs);
     }
 
-    fun emitTestGeLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fun emitTestGeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_GE_INT64, dest, lhs, rhs);
     }
 
-    fun emitTestLtLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fun emitTestLtInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_LT_INT64, dest, lhs, rhs);
     }
 
-    fun emitTestLeLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fun emitTestLeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(BC_TEST_LE_INT64, dest, lhs, rhs);
     }
 
@@ -737,7 +737,7 @@ class BytecodeWriter {
         self.emitFct(BC_INVOKE_DIRECT_INT, dest, fct, start, count);
     }
 
-    fun emitInvokeDirectLong(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeDirectInt64(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
         self.emitFct(BC_INVOKE_DIRECT_INT64, dest, fct, start, count);
     }
 
@@ -773,7 +773,7 @@ class BytecodeWriter {
         self.emitFct(BC_INVOKE_VIRTUAL_INT, dest, fct, start, count);
     }
 
-    fun emitInvokeVirtualLong(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeVirtualInt64(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
         self.emitFct(BC_INVOKE_VIRTUAL_INT64, dest, fct, start, count);
     }
 
@@ -809,7 +809,7 @@ class BytecodeWriter {
         self.emitFct(BC_INVOKE_STATIC_INT, dest, fct, start, count);
     }
 
-    fun emitInvokeStaticLong(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeStaticInt64(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
         self.emitFct(BC_INVOKE_STATIC_INT64, dest, fct, start, count);
     }
 
@@ -849,7 +849,7 @@ class BytecodeWriter {
         self.emitReg1(BC_RET_INT, opnd);
     }
 
-    fun emitRetLong(opnd: BytecodeRegister) {
+    fun emitRetInt64(opnd: BytecodeRegister) {
         self.emitReg1(BC_RET_INT64, opnd);
     }
 

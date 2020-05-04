@@ -99,7 +99,7 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVis
         self.currentBlock.addSuccessor(self.graph.getExitBlock());
         self.markBlockTerminated();
     }
-    @override fun visitRetByte(opnd: BytecodeRegister) {
+    @override fun visitRetUInt8(opnd: BytecodeRegister) {
         self.currentBlock.addSuccessor(self.graph.getExitBlock());
         self.markBlockTerminated();
     }
@@ -112,7 +112,7 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVis
         self.markBlockTerminated();
     }
 
-    @override fun visitRetLong(opnd: BytecodeRegister) {
+    @override fun visitRetInt64(opnd: BytecodeRegister) {
         self.currentBlock.addSuccessor(self.graph.getExitBlock());
         self.markBlockTerminated();
     }
@@ -211,7 +211,7 @@ class SsagenCreateBlocks(let graph: Graph, let bc: BytecodeFunction, let blocks:
     @override fun visitRetBool(opnd: BytecodeRegister) {
         self.markNextInstructionAsBlockStart();
     }
-    @override fun visitRetByte(opnd: BytecodeRegister) {
+    @override fun visitRetUInt8(opnd: BytecodeRegister) {
         self.markNextInstructionAsBlockStart();
     }
     @override fun visitRetChar(opnd: BytecodeRegister) {
@@ -220,7 +220,7 @@ class SsagenCreateBlocks(let graph: Graph, let bc: BytecodeFunction, let blocks:
     @override fun visitRetInt(opnd: BytecodeRegister) {
         self.markNextInstructionAsBlockStart();
     }
-    @override fun visitRetLong(opnd: BytecodeRegister) {
+    @override fun visitRetInt64(opnd: BytecodeRegister) {
         self.markNextInstructionAsBlockStart();
     }
     @override fun visitRetFloat(opnd: BytecodeRegister) {

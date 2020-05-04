@@ -244,7 +244,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     @override fun visitAddInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitBin(dest, lhs, rhs, BinOp::Add, Type::int());
     }
-    @override fun visitAddLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    @override fun visitAddInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitBin(dest, lhs, rhs, BinOp::Add, Type::int64());
     }
     @override fun visitAddFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
@@ -265,7 +265,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     @override fun visitSubInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitBin(dest, lhs, rhs, BinOp::Sub, Type::int());
     }
-    @override fun visitSubLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    @override fun visitSubInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitBin(dest, lhs, rhs, BinOp::Sub, Type::int64());
     }
     @override fun visitSubFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
@@ -278,7 +278,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     @override fun visitNegInt(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitUn(dest, src, UnOp::Neg, Type::int());
     }
-    @override fun visitNegLong(dest: BytecodeRegister, src: BytecodeRegister) {
+    @override fun visitNegInt64(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitUn(dest, src, UnOp::Neg, Type::int64());
     }
     @override fun visitNegFloat(dest: BytecodeRegister, src: BytecodeRegister) {
@@ -298,7 +298,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     @override fun visitMulInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitBin(dest, lhs, rhs, BinOp::Mul, Type::int());
     }
-    @override fun visitMulLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    @override fun visitMulInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitBin(dest, lhs, rhs, BinOp::Mul, Type::int64());
     }
     @override fun visitMulFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
@@ -311,7 +311,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     @override fun visitDivInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitBin(dest, lhs, rhs, BinOp::Div, Type::int());
     }
-    @override fun visitDivLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    @override fun visitDivInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitBin(dest, lhs, rhs, BinOp::Div, Type::int64());
     }
     @override fun visitDivFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
@@ -324,28 +324,28 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     @override fun visitModInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitBin(dest, lhs, rhs, BinOp::Mod, Type::int());
     }
-    @override fun visitModLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    @override fun visitModInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitBin(dest, lhs, rhs, BinOp::Mod, Type::int64());
     }
 
     @override fun visitAndInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitBin(dest, lhs, rhs, BinOp::And, Type::int());
     }
-    @override fun visitAndLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    @override fun visitAndInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitBin(dest, lhs, rhs, BinOp::And, Type::int64());
     }
 
     @override fun visitOrInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitBin(dest, lhs, rhs, BinOp::Or, Type::int());
     }
-    @override fun visitOrLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    @override fun visitOrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitBin(dest, lhs, rhs, BinOp::Or, Type::int64());
     }
 
     @override fun visitXorInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitBin(dest, lhs, rhs, BinOp::Xor, Type::int());
     }
-    @override fun visitXorLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    @override fun visitXorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitBin(dest, lhs, rhs, BinOp::Xor, Type::int64());
     }
 
@@ -355,7 +355,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     @override fun visitNotInt(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitUn(dest, src, UnOp::Not, Type::int());
     }
-    @override fun visitNotLong(dest: BytecodeRegister, src: BytecodeRegister) {
+    @override fun visitNotInt64(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitUn(dest, src, UnOp::Not, Type::int64());
     }
 
@@ -369,20 +369,20 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         self.emitBin(dest, lhs, rhs, BinOp::Sar, Type::int());
     }
 
-    @override fun visitShlLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    @override fun visitShlInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitBin(dest, lhs, rhs, BinOp::Shl, Type::int64());
     }
-    @override fun visitShrLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    @override fun visitShrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitBin(dest, lhs, rhs, BinOp::Shr, Type::int64());
     }
-    @override fun visitSarLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    @override fun visitSarInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitBin(dest, lhs, rhs, BinOp::Sar, Type::int64());
     }
 
     @override fun visitMovBool(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitMov(dest, src);
     }
-    @override fun visitMovByte(dest: BytecodeRegister, src: BytecodeRegister) {
+    @override fun visitMovUInt8(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitMov(dest, src);
     }
     @override fun visitMovChar(dest: BytecodeRegister, src: BytecodeRegister) {
@@ -391,7 +391,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     @override fun visitMovInt(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitMov(dest, src);
     }
-    @override fun visitMovLong(dest: BytecodeRegister, src: BytecodeRegister) {
+    @override fun visitMovInt64(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitMov(dest, src);
     }
     @override fun visitMovFloat(dest: BytecodeRegister, src: BytecodeRegister) {
@@ -410,19 +410,19 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     }
 
     @override fun visitLoadFieldBool(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
-    @override fun visitLoadFieldByte(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @override fun visitLoadFieldUInt8(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
     @override fun visitLoadFieldChar(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
     @override fun visitLoadFieldInt(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
-    @override fun visitLoadFieldLong(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @override fun visitLoadFieldInt64(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
     @override fun visitLoadFieldFloat(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
     @override fun visitLoadFieldDouble(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
     @override fun visitLoadFieldPtr(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
 
     @override fun visitStoreFieldBool(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
-    @override fun visitStoreFieldByte(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @override fun visitStoreFieldUInt8(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
     @override fun visitStoreFieldChar(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
     @override fun visitStoreFieldInt(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
-    @override fun visitStoreFieldLong(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @override fun visitStoreFieldInt64(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
     @override fun visitStoreFieldFloat(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
     @override fun visitStoreFieldDouble(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
     @override fun visitStoreFieldPtr(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
@@ -430,7 +430,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     @override fun visitLoadGlobalBool(dest: BytecodeRegister, glob: GlobalId) {
         self.emitLoadGlobal(dest, glob, Type::bool());
     }
-    @override fun visitLoadGlobalByte(dest: BytecodeRegister, glob: GlobalId) {
+    @override fun visitLoadGlobalUInt8(dest: BytecodeRegister, glob: GlobalId) {
         self.emitLoadGlobal(dest, glob, Type::uint8());
     }
     @override fun visitLoadGlobalChar(dest: BytecodeRegister, glob: GlobalId) {
@@ -439,7 +439,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     @override fun visitLoadGlobalInt(dest: BytecodeRegister, glob: GlobalId) {
         self.emitLoadGlobal(dest, glob, Type::int());
     }
-    @override fun visitLoadGlobalLong(dest: BytecodeRegister, glob: GlobalId) {
+    @override fun visitLoadGlobalInt64(dest: BytecodeRegister, glob: GlobalId) {
         self.emitLoadGlobal(dest, glob, Type::int64());
     }
     @override fun visitLoadGlobalFloat(dest: BytecodeRegister, glob: GlobalId) {
@@ -461,7 +461,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     @override fun visitStoreGlobalBool(src: BytecodeRegister, glob: GlobalId) {
         self.emitStoreGlobal(src, glob, Type::bool());
     }
-    @override fun visitStoreGlobalByte(src: BytecodeRegister, glob: GlobalId) {
+    @override fun visitStoreGlobalUInt8(src: BytecodeRegister, glob: GlobalId) {
         self.emitStoreGlobal(src, glob, Type::uint8());
     }
     @override fun visitStoreGlobalChar(src: BytecodeRegister, glob: GlobalId) {
@@ -470,7 +470,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     @override fun visitStoreGlobalInt(src: BytecodeRegister, glob: GlobalId) {
         self.emitStoreGlobal(src, glob, Type::int());
     }
-    @override fun visitStoreGlobalLong(src: BytecodeRegister, glob: GlobalId) {
+    @override fun visitStoreGlobalInt64(src: BytecodeRegister, glob: GlobalId) {
         self.emitStoreGlobal(src, glob, Type::int64());
     }
     @override fun visitStoreGlobalFloat(src: BytecodeRegister, glob: GlobalId) {
@@ -494,14 +494,14 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     @override fun visitConstNil(dest: BytecodeRegister) { unimplemented(); }
     @override fun visitConstTrue(dest: BytecodeRegister) { unimplemented(); }
     @override fun visitConstFalse(dest: BytecodeRegister) { unimplemented(); }
-    @override fun visitConstZeroByte(dest: BytecodeRegister) { unimplemented(); }
+    @override fun visitConstZeroUInt8(dest: BytecodeRegister) { unimplemented(); }
     @override fun visitConstZeroChar(dest: BytecodeRegister) { unimplemented(); }
     @override fun visitConstZeroInt(dest: BytecodeRegister) {
         let inst = IntConst(0);
         self.currentBlock.appendInst(inst);
         self.writeVariable(dest, self.currentBlock, inst);
     }
-    @override fun visitConstZeroLong(dest: BytecodeRegister) {
+    @override fun visitConstZeroInt64(dest: BytecodeRegister) {
         let inst = Int64Const(0L);
         self.currentBlock.appendInst(inst);
         self.writeVariable(dest, self.currentBlock, inst);
@@ -516,7 +516,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         self.currentBlock.appendInst(inst);
         self.writeVariable(dest, self.currentBlock, inst);
     }
-    @override fun visitConstByte(dest: BytecodeRegister, value: UInt8) { unimplemented(); }
+    @override fun visitConstUInt8(dest: BytecodeRegister, value: UInt8) { unimplemented(); }
     @override fun visitConstChar(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
     @override fun visitConstInt(dest: BytecodeRegister, idx: ConstPoolId) {
         let value = self.bc.constPool(idx).toInt().unwrap();
@@ -524,7 +524,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         self.currentBlock.appendInst(inst);
         self.writeVariable(dest, self.currentBlock, inst);
     }
-    @override fun visitConstLong(dest: BytecodeRegister, idx: ConstPoolId) {
+    @override fun visitConstInt64(dest: BytecodeRegister, idx: ConstPoolId) {
         let value = self.bc.constPool(idx).toInt64().unwrap();
         let inst = Int64Const(value);
         self.currentBlock.appendInst(inst);
@@ -570,12 +570,12 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         self.emitTest(dest, lhs, rhs, TestOp::LessOrEqual, Type::int());
     }
 
-    @override fun visitTestEqLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitTestNeLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitTestGtLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitTestGeLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitTestLtLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @override fun visitTestLeLong(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @override fun visitTestEqInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @override fun visitTestNeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @override fun visitTestGtInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @override fun visitTestGeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @override fun visitTestLtInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @override fun visitTestLeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
     @override fun visitTestEqFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @override fun visitTestNeFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
@@ -652,30 +652,30 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
 
     @override fun visitInvokeDirectVoid(fct: FctId, count: Int) { unimplemented(); }
     @override fun visitInvokeDirectBool(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
-    @override fun visitInvokeDirectByte(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @override fun visitInvokeDirectUInt8(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
     @override fun visitInvokeDirectChar(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
     @override fun visitInvokeDirectInt(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
-    @override fun visitInvokeDirectLong(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @override fun visitInvokeDirectInt64(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
     @override fun visitInvokeDirectFloat(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
     @override fun visitInvokeDirectDouble(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
     @override fun visitInvokeDirectPtr(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
 
     @override fun visitInvokeVirtualVoid(fct: FctId, count: Int) { unimplemented(); }
     @override fun visitInvokeVirtualBool(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
-    @override fun visitInvokeVirtualByte(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @override fun visitInvokeVirtualUInt8(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
     @override fun visitInvokeVirtualChar(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
     @override fun visitInvokeVirtualInt(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
-    @override fun visitInvokeVirtualLong(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @override fun visitInvokeVirtualInt64(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
     @override fun visitInvokeVirtualFloat(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
     @override fun visitInvokeVirtualDouble(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
     @override fun visitInvokeVirtualPtr(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
 
     @override fun visitInvokeStaticVoid(fct: FctId, count: Int) { unimplemented(); }
     @override fun visitInvokeStaticBool(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
-    @override fun visitInvokeStaticByte(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @override fun visitInvokeStaticUInt8(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
     @override fun visitInvokeStaticChar(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
     @override fun visitInvokeStaticInt(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
-    @override fun visitInvokeStaticLong(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
+    @override fun visitInvokeStaticInt64(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
     @override fun visitInvokeStaticFloat(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
     @override fun visitInvokeStaticDouble(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
     @override fun visitInvokeStaticPtr(dest: BytecodeRegister, fct: FctId, count: Int) { unimplemented(); }
@@ -691,7 +691,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     @override fun visitRetBool(opnd: BytecodeRegister) {
         self.emitRet(opnd, Type::bool());
     }
-    @override fun visitRetByte(opnd: BytecodeRegister) {
+    @override fun visitRetUInt8(opnd: BytecodeRegister) {
         self.emitRet(opnd, Type::uint8());
     }
     @override fun visitRetChar(opnd: BytecodeRegister) {
@@ -700,7 +700,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     @override fun visitRetInt(opnd: BytecodeRegister) {
         self.emitRet(opnd, Type::int());
     }
-    @override fun visitRetLong(opnd: BytecodeRegister) {
+    @override fun visitRetInt64(opnd: BytecodeRegister) {
         self.emitRet(opnd, Type::int64());
     }
     @override fun visitRetFloat(opnd: BytecodeRegister) {

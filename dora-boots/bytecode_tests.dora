@@ -110,7 +110,7 @@ class TestMovWideVisitor: BytecodeVisitor {
 class TestConstByteVisitor: BytecodeVisitor {
     var found: Bool = false;
 
-    @override fun visitConstByte(dest: BytecodeRegister, value: UInt8) {
+    @override fun visitConstUInt8(dest: BytecodeRegister, value: UInt8) {
         assert(dest == BytecodeRegister(255));
         assert(value == 255Y);
         self.found = true;
@@ -133,7 +133,7 @@ class TestConstByteVisitor: BytecodeVisitor {
 class TestConstByteWideVisitor: BytecodeVisitor {
     var found: Bool = false;
 
-    @override fun visitConstByte(dest: BytecodeRegister, value: UInt8) {
+    @override fun visitConstUInt8(dest: BytecodeRegister, value: UInt8) {
         assert(dest == BytecodeRegister(256));
         assert(value == 255Y);
         self.found = true;
