@@ -67,7 +67,7 @@ fun decodeConstPool(constpool: Array[UInt8]) -> Array[ConstPoolEntry] {
         if opcode == CONSTPOOL_OPCODE_INT {
             let value = reader.readInt();
             constPool.push(ConstPoolInt(value));
-        } else if opcode == CONSTPOOL_OPCODE_LONG {
+        } else if opcode == CONSTPOOL_OPCODE_INT64 {
             let value = reader.readInt64();
             constPool.push(ConstPoolInt64(value));
         } else if opcode == CONSTPOOL_OPCODE_FLOAT {

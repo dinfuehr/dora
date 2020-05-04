@@ -536,7 +536,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitAddInt(dest, lhs, rhs);
-        } else if opcode == BC_ADD_LONG {
+        } else if opcode == BC_ADD_INT64 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
@@ -557,7 +557,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitSubInt(dest, lhs, rhs);
-        } else if opcode == BC_SUB_LONG {
+        } else if opcode == BC_SUB_INT64 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
@@ -577,7 +577,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitNegInt(dest, src);
-        } else if opcode == BC_NEG_LONG {
+        } else if opcode == BC_NEG_INT64 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitNegLong(dest, src);
@@ -595,7 +595,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitMulInt(dest, lhs, rhs);
-        } else if opcode == BC_MUL_LONG {
+        } else if opcode == BC_MUL_INT64 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
@@ -616,7 +616,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitDivInt(dest, lhs, rhs);
-        } else if opcode == BC_DIV_LONG {
+        } else if opcode == BC_DIV_INT64 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
@@ -637,7 +637,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitModInt(dest, lhs, rhs);
-        } else if opcode == BC_MOD_LONG {
+        } else if opcode == BC_MOD_INT64 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
@@ -648,7 +648,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitAndInt(dest, lhs, rhs);
-        } else if opcode == BC_AND_LONG {
+        } else if opcode == BC_AND_INT64 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
@@ -659,7 +659,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitOrInt(dest, lhs, rhs);
-        } else if opcode == BC_OR_LONG {
+        } else if opcode == BC_OR_INT64 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
@@ -670,7 +670,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitXorInt(dest, lhs, rhs);
-        } else if opcode == BC_XOR_LONG {
+        } else if opcode == BC_XOR_INT64 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
@@ -684,7 +684,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitNotInt(dest, src);
-        } else if opcode == BC_NOT_LONG {
+        } else if opcode == BC_NOT_INT64 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitNotLong(dest, src);
@@ -715,12 +715,12 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitRorInt(dest, lhs, rhs);
-        } else if opcode == BC_ROL_LONG {
+        } else if opcode == BC_ROL_INT64 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitRolLong(dest, lhs, rhs);
-        } else if opcode == BC_ROR_LONG {
+        } else if opcode == BC_ROR_INT64 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
@@ -736,37 +736,37 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let src = self.readRegister(wide);
             self.visitor.visitReinterpretIntAsFloat(dest, src);
 
-        } else if opcode == BC_REINTERPRET_DOUBLE_AS_LONG {
+        } else if opcode == BC_REINTERPRET_DOUBLE_AS_INT64 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitReinterpretDoubleAsLong(dest, src);
 
-        } else if opcode == BC_REINTERPRET_LONG_AS_DOUBLE {
+        } else if opcode == BC_REINTERPRET_INT64_AS_DOUBLE {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitReinterpretLongAsDouble(dest, src);
 
-        } else if opcode == BC_EXTEND_BYTE_TO_CHAR {
+        } else if opcode == BC_EXTEND_UINT8_TO_CHAR {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitExtendByteToChar(dest, src);
 
-        } else if opcode == BC_EXTEND_BYTE_TO_INT {
+        } else if opcode == BC_EXTEND_UINT8_TO_INT {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitExtendByteToInt(dest, src);
 
-        } else if opcode == BC_EXTEND_BYTE_TO_LONG {
+        } else if opcode == BC_EXTEND_UINT8_TO_INT64 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitExtendByteToLong(dest, src);
 
-        } else if opcode == BC_EXTEND_INT_TO_LONG {
+        } else if opcode == BC_EXTEND_INT_TO_INT64 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitExtendIntToLong(dest, src);
 
-        } else if opcode == BC_EXTEND_CHAR_TO_LONG {
+        } else if opcode == BC_EXTEND_CHAR_TO_INT64 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitExtendCharToLong(dest, src);
@@ -776,7 +776,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let src = self.readRegister(wide);
             self.visitor.visitCastCharToInt(dest, src);
 
-        } else if opcode == BC_CAST_INT_TO_BYTE {
+        } else if opcode == BC_CAST_INT_TO_UINT8 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitCastIntToByte(dest, src);
@@ -786,17 +786,17 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let src = self.readRegister(wide);
             self.visitor.visitCastIntToChar(dest, src);
 
-        } else if opcode == BC_CAST_LONG_TO_BYTE {
+        } else if opcode == BC_CAST_INT64_TO_UINT8 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitCastLongToChar(dest, src);
 
-        } else if opcode == BC_CAST_LONG_TO_CHAR {
+        } else if opcode == BC_CAST_INT64_TO_CHAR {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitCastLongToChar(dest, src);
 
-        } else if opcode == BC_CAST_LONG_TO_INT {
+        } else if opcode == BC_CAST_INT64_TO_INT {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitCastLongToInt(dest, src);
@@ -811,12 +811,12 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let src = self.readRegister(wide);
             self.visitor.visitConvertIntToDouble(dest, src);
 
-        } else if opcode == BC_CONVERT_LONG_TO_FLOAT {
+        } else if opcode == BC_CONVERT_INT64_TO_FLOAT {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitConvertLongToFloat(dest, src);
 
-        } else if opcode == BC_CONVERT_LONG_TO_DOUBLE {
+        } else if opcode == BC_CONVERT_INT64_TO_DOUBLE {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitConvertLongToDouble(dest, src);
@@ -826,7 +826,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let src = self.readRegister(wide);
             self.visitor.visitTruncateFloatToInt(dest, src);
 
-        } else if opcode == BC_TRUNCATE_FLOAT_TO_LONG {
+        } else if opcode == BC_TRUNCATE_FLOAT_TO_INT64 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitTruncateFloatToLong(dest, src);
@@ -836,7 +836,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let src = self.readRegister(wide);
             self.visitor.visitTruncateDoubleToInt(dest, src);
 
-        } else if opcode == BC_TRUNCATE_DOUBLE_TO_LONG {
+        } else if opcode == BC_TRUNCATE_DOUBLE_TO_INT64 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitTruncateDoubleToLong(dest, src);
@@ -852,17 +852,17 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let cls = self.readClassDefId(wide);
             self.visitor.visitCheckedCast(src, cls);
 
-        } else if opcode == BC_SHL_LONG {
+        } else if opcode == BC_SHL_INT64 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitShlLong(dest, lhs, rhs);
-        } else if opcode == BC_SHR_LONG {
+        } else if opcode == BC_SHR_INT64 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitShrLong(dest, lhs, rhs);
-        } else if opcode == BC_SAR_LONG {
+        } else if opcode == BC_SAR_INT64 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
@@ -872,7 +872,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitMovBool(dest, src);
-        } else if opcode == BC_MOV_BYTE {
+        } else if opcode == BC_MOV_UINT8 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitMovByte(dest, src);
@@ -884,7 +884,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitMovInt(dest, src);
-        } else if opcode == BC_MOV_LONG {
+        } else if opcode == BC_MOV_INT64 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitMovLong(dest, src);
@@ -907,7 +907,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let cls = self.readClassDefId(wide);
             let field = self.readFieldId(wide);
             self.visitor.visitLoadFieldBool(dest, obj, cls, field);
-        } else if opcode == BC_LOAD_FIELD_BYTE {
+        } else if opcode == BC_LOAD_FIELD_UINT8 {
             let dest = self.readRegister(wide);
             let obj = self.readRegister(wide);
             let cls = self.readClassDefId(wide);
@@ -925,7 +925,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let cls = self.readClassDefId(wide);
             let field = self.readFieldId(wide);
             self.visitor.visitLoadFieldInt(dest, obj, cls, field);
-        } else if opcode == BC_LOAD_FIELD_LONG {
+        } else if opcode == BC_LOAD_FIELD_INT64 {
             let dest = self.readRegister(wide);
             let obj = self.readRegister(wide);
             let cls = self.readClassDefId(wide);
@@ -956,7 +956,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let cls = self.readClassDefId(wide);
             let field = self.readFieldId(wide);
             self.visitor.visitStoreFieldBool(src, obj, cls, field);
-        } else if opcode == BC_STORE_FIELD_BYTE {
+        } else if opcode == BC_STORE_FIELD_UINT8 {
             let src = self.readRegister(wide);
             let obj = self.readRegister(wide);
             let cls = self.readClassDefId(wide);
@@ -974,7 +974,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let cls = self.readClassDefId(wide);
             let field = self.readFieldId(wide);
             self.visitor.visitStoreFieldInt(src, obj, cls, field);
-        } else if opcode == BC_STORE_FIELD_LONG {
+        } else if opcode == BC_STORE_FIELD_INT64 {
             let src = self.readRegister(wide);
             let obj = self.readRegister(wide);
             let cls = self.readClassDefId(wide);
@@ -1003,7 +1003,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let dest = self.readRegister(wide);
             let glob = self.readGlobalId(wide);
             self.visitor.visitLoadGlobalBool(dest, glob);
-        } else if opcode == BC_LOAD_GLOBAL_BYTE {
+        } else if opcode == BC_LOAD_GLOBAL_UINT8 {
             let dest = self.readRegister(wide);
             let glob = self.readGlobalId(wide);
             self.visitor.visitLoadGlobalByte(dest, glob);
@@ -1015,7 +1015,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let dest = self.readRegister(wide);
             let glob = self.readGlobalId(wide);
             self.visitor.visitLoadGlobalInt(dest, glob);
-        } else if opcode == BC_LOAD_FIELD_LONG {
+        } else if opcode == BC_LOAD_FIELD_INT64 {
             let dest = self.readRegister(wide);
             let glob = self.readGlobalId(wide);
             self.visitor.visitLoadGlobalLong(dest, glob);
@@ -1036,7 +1036,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let src = self.readRegister(wide);
             let glob = self.readGlobalId(wide);
             self.visitor.visitStoreGlobalBool(src, glob);
-        } else if opcode == BC_STORE_GLOBAL_BYTE {
+        } else if opcode == BC_STORE_GLOBAL_UINT8 {
             let src = self.readRegister(wide);
             let glob = self.readGlobalId(wide);
             self.visitor.visitStoreGlobalByte(src, glob);
@@ -1048,7 +1048,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let src = self.readRegister(wide);
             let glob = self.readGlobalId(wide);
             self.visitor.visitStoreGlobalInt(src, glob);
-        } else if opcode == BC_STORE_FIELD_LONG {
+        } else if opcode == BC_STORE_FIELD_INT64 {
             let src = self.readRegister(wide);
             let glob = self.readGlobalId(wide);
             self.visitor.visitStoreGlobalLong(src, glob);
@@ -1078,7 +1078,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         } else if opcode == BC_CONST_FALSE {
             let dest = self.readRegister(wide);
             self.visitor.visitConstFalse(dest);
-        } else if opcode == BC_CONST_ZERO_BYTE {
+        } else if opcode == BC_CONST_ZERO_UINT8 {
             let dest = self.readRegister(wide);
             self.visitor.visitConstZeroByte(dest);
         } else if opcode == BC_CONST_ZERO_CHAR {
@@ -1087,7 +1087,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         } else if opcode == BC_CONST_ZERO_INT {
             let dest = self.readRegister(wide);
             self.visitor.visitConstZeroInt(dest);
-        } else if opcode == BC_CONST_ZERO_LONG {
+        } else if opcode == BC_CONST_ZERO_INT64 {
             let dest = self.readRegister(wide);
             self.visitor.visitConstZeroLong(dest);
         } else if opcode == BC_CONST_ZERO_FLOAT {
@@ -1096,7 +1096,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         } else if opcode == BC_CONST_ZERO_DOUBLE {
             let dest = self.readRegister(wide);
             self.visitor.visitConstZeroDouble(dest);
-        } else if opcode == BC_CONST_BYTE {
+        } else if opcode == BC_CONST_UINT8 {
             let dest = self.readRegister(wide);
             let value = self.readByte().toUInt8();
             self.visitor.visitConstByte(dest, value);
@@ -1108,7 +1108,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let dest = self.readRegister(wide);
             let idx = self.readConstPoolId(wide);
             self.visitor.visitConstInt(dest, idx);
-        } else if opcode == BC_CONST_LONG {
+        } else if opcode == BC_CONST_INT64 {
             let dest = self.readRegister(wide);
             let idx = self.readConstPoolId(wide);
             self.visitor.visitConstLong(dest, idx);
@@ -1147,32 +1147,32 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let rhs = self.readRegister(wide);
             self.visitor.visitTestNeBool(dest, lhs, rhs);
 
-        } else if opcode == BC_TEST_EQ_BYTE {
+        } else if opcode == BC_TEST_EQ_UINT8 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitTestEqByte(dest, lhs, rhs);
-        } else if opcode == BC_TEST_NE_BYTE {
+        } else if opcode == BC_TEST_NE_UINT8 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitTestNeByte(dest, lhs, rhs);
-        } else if opcode == BC_TEST_GT_BYTE {
+        } else if opcode == BC_TEST_GT_UINT8 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitTestGtByte(dest, lhs, rhs);
-        } else if opcode == BC_TEST_GE_BYTE {
+        } else if opcode == BC_TEST_GE_UINT8 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitTestGeByte(dest, lhs, rhs);
-        } else if opcode == BC_TEST_LT_BYTE {
+        } else if opcode == BC_TEST_LT_UINT8 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitTestLtByte(dest, lhs, rhs);
-        } else if opcode == BC_TEST_LE_BYTE {
+        } else if opcode == BC_TEST_LE_UINT8 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
@@ -1251,32 +1251,32 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let rhs = self.readRegister(wide);
             self.visitor.visitTestLeInt(dest, lhs, rhs);
 
-        } else if opcode == BC_TEST_EQ_LONG {
+        } else if opcode == BC_TEST_EQ_INT64 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitTestEqLong(dest, lhs, rhs);
-        } else if opcode == BC_TEST_NE_LONG {
+        } else if opcode == BC_TEST_NE_INT64 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitTestNeLong(dest, lhs, rhs);
-        } else if opcode == BC_TEST_GT_LONG {
+        } else if opcode == BC_TEST_GT_INT64 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitTestGtLong(dest, lhs, rhs);
-        } else if opcode == BC_TEST_GE_LONG {
+        } else if opcode == BC_TEST_GE_INT64 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitTestGeLong(dest, lhs, rhs);
-        } else if opcode == BC_TEST_LT_LONG {
+        } else if opcode == BC_TEST_LT_INT64 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
             self.visitor.visitTestLtLong(dest, lhs, rhs);
-        } else if opcode == BC_TEST_LE_LONG {
+        } else if opcode == BC_TEST_LE_INT64 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
@@ -1384,7 +1384,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let fct = self.readFctId(wide);
             let count = self.readIndex(wide);
             self.visitor.visitInvokeDirectBool(dest, fct, count);
-        } else if opcode == BC_INVOKE_DIRECT_BYTE {
+        } else if opcode == BC_INVOKE_DIRECT_UINT8 {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
             let count = self.readIndex(wide);
@@ -1399,7 +1399,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let fct = self.readFctId(wide);
             let count = self.readIndex(wide);
             self.visitor.visitInvokeDirectInt(dest, fct, count);
-        } else if opcode == BC_INVOKE_DIRECT_LONG {
+        } else if opcode == BC_INVOKE_DIRECT_INT64 {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
             let count = self.readIndex(wide);
@@ -1429,7 +1429,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let fct = self.readFctId(wide);
             let count = self.readIndex(wide);
             self.visitor.visitInvokeVirtualBool(dest, fct, count);
-        } else if opcode == BC_INVOKE_VIRTUAL_BYTE {
+        } else if opcode == BC_INVOKE_VIRTUAL_UINT8 {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
             let count = self.readIndex(wide);
@@ -1444,7 +1444,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let fct = self.readFctId(wide);
             let count = self.readIndex(wide);
             self.visitor.visitInvokeVirtualInt(dest, fct, count);
-        } else if opcode == BC_INVOKE_VIRTUAL_LONG {
+        } else if opcode == BC_INVOKE_VIRTUAL_INT64 {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
             let count = self.readIndex(wide);
@@ -1474,7 +1474,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let fct = self.readFctId(wide);
             let count = self.readIndex(wide);
             self.visitor.visitInvokeStaticBool(dest, fct, count);
-        } else if opcode == BC_INVOKE_STATIC_BYTE {
+        } else if opcode == BC_INVOKE_STATIC_UINT8 {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
             let count = self.readIndex(wide);
@@ -1489,7 +1489,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let fct = self.readFctId(wide);
             let count = self.readIndex(wide);
             self.visitor.visitInvokeStaticInt(dest, fct, count);
-        } else if opcode == BC_INVOKE_STATIC_LONG {
+        } else if opcode == BC_INVOKE_STATIC_INT64 {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
             let count = self.readIndex(wide);
@@ -1520,7 +1520,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         } else if opcode == BC_RET_BOOL {
             let opnd = self.readRegister(wide);
             self.visitor.visitRetBool(opnd);
-        } else if opcode == BC_RET_BYTE {
+        } else if opcode == BC_RET_UINT8 {
             let opnd = self.readRegister(wide);
             self.visitor.visitRetByte(opnd);
         } else if opcode == BC_RET_CHAR {
@@ -1529,7 +1529,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         } else if opcode == BC_RET_INT {
             let opnd = self.readRegister(wide);
             self.visitor.visitRetInt(opnd);
-        } else if opcode == BC_RET_LONG {
+        } else if opcode == BC_RET_INT64 {
             let opnd = self.readRegister(wide);
             self.visitor.visitRetLong(opnd);
         } else if opcode == BC_RET_FLOAT {

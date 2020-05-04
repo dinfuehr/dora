@@ -2,77 +2,77 @@
 
 const BC_WIDE: Int = 0;
 const BC_ADD_INT: Int = 1;
-const BC_ADD_LONG: Int = 2;
+const BC_ADD_INT64: Int = 2;
 const BC_ADD_FLOAT: Int = 3;
 const BC_ADD_DOUBLE: Int = 4;
 const BC_SUB_INT: Int = 5;
-const BC_SUB_LONG: Int = 6;
+const BC_SUB_INT64: Int = 6;
 const BC_SUB_FLOAT: Int = 7;
 const BC_SUB_DOUBLE: Int = 8;
 const BC_NEG_INT: Int = 9;
-const BC_NEG_LONG: Int = 10;
+const BC_NEG_INT64: Int = 10;
 const BC_NEG_FLOAT: Int = 11;
 const BC_NEG_DOUBLE: Int = 12;
 const BC_MUL_INT: Int = 13;
-const BC_MUL_LONG: Int = 14;
+const BC_MUL_INT64: Int = 14;
 const BC_MUL_FLOAT: Int = 15;
 const BC_MUL_DOUBLE: Int = 16;
 const BC_DIV_INT: Int = 17;
-const BC_DIV_LONG: Int = 18;
+const BC_DIV_INT64: Int = 18;
 const BC_DIV_FLOAT: Int = 19;
 const BC_DIV_DOUBLE: Int = 20;
 const BC_MOD_INT: Int = 21;
-const BC_MOD_LONG: Int = 22;
+const BC_MOD_INT64: Int = 22;
 const BC_AND_INT: Int = 23;
-const BC_AND_LONG: Int = 24;
+const BC_AND_INT64: Int = 24;
 const BC_OR_INT: Int = 25;
-const BC_OR_LONG: Int = 26;
+const BC_OR_INT64: Int = 26;
 const BC_XOR_INT: Int = 27;
-const BC_XOR_LONG: Int = 28;
+const BC_XOR_INT64: Int = 28;
 const BC_NOT_BOOL: Int = 29;
 const BC_NOT_INT: Int = 30;
-const BC_NOT_LONG: Int = 31;
+const BC_NOT_INT64: Int = 31;
 const BC_SHL_INT: Int = 32;
 const BC_SHR_INT: Int = 33;
 const BC_SAR_INT: Int = 34;
-const BC_SHL_LONG: Int = 35;
-const BC_SHR_LONG: Int = 36;
-const BC_SAR_LONG: Int = 37;
+const BC_SHL_INT64: Int = 35;
+const BC_SHR_INT64: Int = 36;
+const BC_SAR_INT64: Int = 37;
 const BC_ROL_INT: Int = 38;
 const BC_ROR_INT: Int = 39;
-const BC_ROL_LONG: Int = 40;
-const BC_ROR_LONG: Int = 41;
+const BC_ROL_INT64: Int = 40;
+const BC_ROR_INT64: Int = 41;
 const BC_REINTERPRET_FLOAT_AS_INT: Int = 42;
 const BC_REINTERPRET_INT_AS_FLOAT: Int = 43;
-const BC_REINTERPRET_DOUBLE_AS_LONG: Int = 44;
-const BC_REINTERPRET_LONG_AS_DOUBLE: Int = 45;
-const BC_EXTEND_BYTE_TO_CHAR: Int = 46;
-const BC_EXTEND_BYTE_TO_INT: Int = 47;
-const BC_EXTEND_BYTE_TO_LONG: Int = 48;
-const BC_EXTEND_INT_TO_LONG: Int = 49;
-const BC_EXTEND_CHAR_TO_LONG: Int = 50;
+const BC_REINTERPRET_DOUBLE_AS_INT64: Int = 44;
+const BC_REINTERPRET_INT64_AS_DOUBLE: Int = 45;
+const BC_EXTEND_UINT8_TO_CHAR: Int = 46;
+const BC_EXTEND_UINT8_TO_INT: Int = 47;
+const BC_EXTEND_UINT8_TO_INT64: Int = 48;
+const BC_EXTEND_INT_TO_INT64: Int = 49;
+const BC_EXTEND_CHAR_TO_INT64: Int = 50;
 const BC_CAST_CHAR_TO_INT: Int = 51;
-const BC_CAST_INT_TO_BYTE: Int = 52;
+const BC_CAST_INT_TO_UINT8: Int = 52;
 const BC_CAST_INT_TO_CHAR: Int = 53;
 const BC_CAST_INT_TO_INT32: Int = 54;
-const BC_CAST_LONG_TO_BYTE: Int = 55;
-const BC_CAST_LONG_TO_CHAR: Int = 56;
-const BC_CAST_LONG_TO_INT: Int = 57;
+const BC_CAST_INT64_TO_UINT8: Int = 55;
+const BC_CAST_INT64_TO_CHAR: Int = 56;
+const BC_CAST_INT64_TO_INT: Int = 57;
 const BC_CONVERT_INT_TO_FLOAT: Int = 58;
 const BC_CONVERT_INT_TO_DOUBLE: Int = 59;
-const BC_CONVERT_LONG_TO_FLOAT: Int = 60;
-const BC_CONVERT_LONG_TO_DOUBLE: Int = 61;
+const BC_CONVERT_INT64_TO_FLOAT: Int = 60;
+const BC_CONVERT_INT64_TO_DOUBLE: Int = 61;
 const BC_TRUNCATE_FLOAT_TO_INT: Int = 62;
-const BC_TRUNCATE_FLOAT_TO_LONG: Int = 63;
+const BC_TRUNCATE_FLOAT_TO_INT64: Int = 63;
 const BC_TRUNCATE_DOUBLE_TO_INT: Int = 64;
-const BC_TRUNCATE_DOUBLE_TO_LONG: Int = 65;
+const BC_TRUNCATE_DOUBLE_TO_INT64: Int = 65;
 const BC_INSTANCE_OF: Int = 66;
 const BC_CHECKED_CAST: Int = 67;
 const BC_MOV_BOOL: Int = 68;
-const BC_MOV_BYTE: Int = 69;
+const BC_MOV_UINT8: Int = 69;
 const BC_MOV_CHAR: Int = 70;
 const BC_MOV_INT: Int = 71;
-const BC_MOV_LONG: Int = 72;
+const BC_MOV_INT64: Int = 72;
 const BC_MOV_FLOAT: Int = 73;
 const BC_MOV_DOUBLE: Int = 74;
 const BC_MOV_PTR: Int = 75;
@@ -80,34 +80,34 @@ const BC_MOV_TUPLE: Int = 76;
 const BC_LOAD_TUPLE_ELEMENT: Int = 77;
 const BC_STORE_TUPLE_ELEMENT: Int = 78;
 const BC_LOAD_FIELD_BOOL: Int = 79;
-const BC_LOAD_FIELD_BYTE: Int = 80;
+const BC_LOAD_FIELD_UINT8: Int = 80;
 const BC_LOAD_FIELD_CHAR: Int = 81;
 const BC_LOAD_FIELD_INT: Int = 82;
-const BC_LOAD_FIELD_LONG: Int = 83;
+const BC_LOAD_FIELD_INT64: Int = 83;
 const BC_LOAD_FIELD_FLOAT: Int = 84;
 const BC_LOAD_FIELD_DOUBLE: Int = 85;
 const BC_LOAD_FIELD_PTR: Int = 86;
 const BC_STORE_FIELD_BOOL: Int = 87;
-const BC_STORE_FIELD_BYTE: Int = 88;
+const BC_STORE_FIELD_UINT8: Int = 88;
 const BC_STORE_FIELD_CHAR: Int = 89;
 const BC_STORE_FIELD_INT: Int = 90;
-const BC_STORE_FIELD_LONG: Int = 91;
+const BC_STORE_FIELD_INT64: Int = 91;
 const BC_STORE_FIELD_FLOAT: Int = 92;
 const BC_STORE_FIELD_DOUBLE: Int = 93;
 const BC_STORE_FIELD_PTR: Int = 94;
 const BC_LOAD_GLOBAL_BOOL: Int = 95;
-const BC_LOAD_GLOBAL_BYTE: Int = 96;
+const BC_LOAD_GLOBAL_UINT8: Int = 96;
 const BC_LOAD_GLOBAL_CHAR: Int = 97;
 const BC_LOAD_GLOBAL_INT: Int = 98;
-const BC_LOAD_GLOBAL_LONG: Int = 99;
+const BC_LOAD_GLOBAL_INT64: Int = 99;
 const BC_LOAD_GLOBAL_FLOAT: Int = 100;
 const BC_LOAD_GLOBAL_DOUBLE: Int = 101;
 const BC_LOAD_GLOBAL_PTR: Int = 102;
 const BC_STORE_GLOBAL_BOOL: Int = 103;
-const BC_STORE_GLOBAL_BYTE: Int = 104;
+const BC_STORE_GLOBAL_UINT8: Int = 104;
 const BC_STORE_GLOBAL_CHAR: Int = 105;
 const BC_STORE_GLOBAL_INT: Int = 106;
-const BC_STORE_GLOBAL_LONG: Int = 107;
+const BC_STORE_GLOBAL_INT64: Int = 107;
 const BC_STORE_GLOBAL_FLOAT: Int = 108;
 const BC_STORE_GLOBAL_DOUBLE: Int = 109;
 const BC_STORE_GLOBAL_PTR: Int = 110;
@@ -115,16 +115,16 @@ const BC_PUSH_REGISTER: Int = 111;
 const BC_CONST_NIL: Int = 112;
 const BC_CONST_TRUE: Int = 113;
 const BC_CONST_FALSE: Int = 114;
-const BC_CONST_ZERO_BYTE: Int = 115;
+const BC_CONST_ZERO_UINT8: Int = 115;
 const BC_CONST_ZERO_CHAR: Int = 116;
 const BC_CONST_ZERO_INT: Int = 117;
-const BC_CONST_ZERO_LONG: Int = 118;
+const BC_CONST_ZERO_INT64: Int = 118;
 const BC_CONST_ZERO_FLOAT: Int = 119;
 const BC_CONST_ZERO_DOUBLE: Int = 120;
-const BC_CONST_BYTE: Int = 121;
+const BC_CONST_UINT8: Int = 121;
 const BC_CONST_CHAR: Int = 122;
 const BC_CONST_INT: Int = 123;
-const BC_CONST_LONG: Int = 124;
+const BC_CONST_INT64: Int = 124;
 const BC_CONST_FLOAT: Int = 125;
 const BC_CONST_DOUBLE: Int = 126;
 const BC_CONST_STRING: Int = 127;
@@ -132,12 +132,12 @@ const BC_TEST_EQ_PTR: Int = 128;
 const BC_TEST_NE_PTR: Int = 129;
 const BC_TEST_EQ_BOOL: Int = 130;
 const BC_TEST_NE_BOOL: Int = 131;
-const BC_TEST_EQ_BYTE: Int = 132;
-const BC_TEST_NE_BYTE: Int = 133;
-const BC_TEST_GT_BYTE: Int = 134;
-const BC_TEST_GE_BYTE: Int = 135;
-const BC_TEST_LT_BYTE: Int = 136;
-const BC_TEST_LE_BYTE: Int = 137;
+const BC_TEST_EQ_UINT8: Int = 132;
+const BC_TEST_NE_UINT8: Int = 133;
+const BC_TEST_GT_UINT8: Int = 134;
+const BC_TEST_GE_UINT8: Int = 135;
+const BC_TEST_LT_UINT8: Int = 136;
+const BC_TEST_LE_UINT8: Int = 137;
 const BC_TEST_EQ_CHAR: Int = 138;
 const BC_TEST_NE_CHAR: Int = 139;
 const BC_TEST_GT_CHAR: Int = 140;
@@ -152,12 +152,12 @@ const BC_TEST_GT_INT: Int = 148;
 const BC_TEST_GE_INT: Int = 149;
 const BC_TEST_LT_INT: Int = 150;
 const BC_TEST_LE_INT: Int = 151;
-const BC_TEST_EQ_LONG: Int = 152;
-const BC_TEST_NE_LONG: Int = 153;
-const BC_TEST_GT_LONG: Int = 154;
-const BC_TEST_GE_LONG: Int = 155;
-const BC_TEST_LT_LONG: Int = 156;
-const BC_TEST_LE_LONG: Int = 157;
+const BC_TEST_EQ_INT64: Int = 152;
+const BC_TEST_NE_INT64: Int = 153;
+const BC_TEST_GT_INT64: Int = 154;
+const BC_TEST_GE_INT64: Int = 155;
+const BC_TEST_LT_INT64: Int = 156;
+const BC_TEST_LE_INT64: Int = 157;
 const BC_TEST_EQ_FLOAT: Int = 158;
 const BC_TEST_NE_FLOAT: Int = 159;
 const BC_TEST_GT_FLOAT: Int = 160;
@@ -180,28 +180,28 @@ const BC_JUMP_IF_TRUE: Int = 176;
 const BC_JUMP_IF_TRUE_CONST: Int = 177;
 const BC_INVOKE_DIRECT_VOID: Int = 178;
 const BC_INVOKE_DIRECT_BOOL: Int = 179;
-const BC_INVOKE_DIRECT_BYTE: Int = 180;
+const BC_INVOKE_DIRECT_UINT8: Int = 180;
 const BC_INVOKE_DIRECT_CHAR: Int = 181;
 const BC_INVOKE_DIRECT_INT: Int = 182;
-const BC_INVOKE_DIRECT_LONG: Int = 183;
+const BC_INVOKE_DIRECT_INT64: Int = 183;
 const BC_INVOKE_DIRECT_FLOAT: Int = 184;
 const BC_INVOKE_DIRECT_DOUBLE: Int = 185;
 const BC_INVOKE_DIRECT_PTR: Int = 186;
 const BC_INVOKE_VIRTUAL_VOID: Int = 187;
 const BC_INVOKE_VIRTUAL_BOOL: Int = 188;
-const BC_INVOKE_VIRTUAL_BYTE: Int = 189;
+const BC_INVOKE_VIRTUAL_UINT8: Int = 189;
 const BC_INVOKE_VIRTUAL_CHAR: Int = 190;
 const BC_INVOKE_VIRTUAL_INT: Int = 191;
-const BC_INVOKE_VIRTUAL_LONG: Int = 192;
+const BC_INVOKE_VIRTUAL_INT64: Int = 192;
 const BC_INVOKE_VIRTUAL_FLOAT: Int = 193;
 const BC_INVOKE_VIRTUAL_DOUBLE: Int = 194;
 const BC_INVOKE_VIRTUAL_PTR: Int = 195;
 const BC_INVOKE_STATIC_VOID: Int = 196;
 const BC_INVOKE_STATIC_BOOL: Int = 197;
-const BC_INVOKE_STATIC_BYTE: Int = 198;
+const BC_INVOKE_STATIC_UINT8: Int = 198;
 const BC_INVOKE_STATIC_CHAR: Int = 199;
 const BC_INVOKE_STATIC_INT: Int = 200;
-const BC_INVOKE_STATIC_LONG: Int = 201;
+const BC_INVOKE_STATIC_INT64: Int = 201;
 const BC_INVOKE_STATIC_FLOAT: Int = 202;
 const BC_INVOKE_STATIC_DOUBLE: Int = 203;
 const BC_INVOKE_STATIC_PTR: Int = 204;
@@ -211,27 +211,27 @@ const BC_NIL_CHECK: Int = 207;
 const BC_ARRAY_LENGTH: Int = 208;
 const BC_ARRAY_BOUND_CHECK: Int = 209;
 const BC_LOAD_ARRAY_BOOL: Int = 210;
-const BC_LOAD_ARRAY_BYTE: Int = 211;
+const BC_LOAD_ARRAY_UINT8: Int = 211;
 const BC_LOAD_ARRAY_CHAR: Int = 212;
 const BC_LOAD_ARRAY_INT: Int = 213;
-const BC_LOAD_ARRAY_LONG: Int = 214;
+const BC_LOAD_ARRAY_INT64: Int = 214;
 const BC_LOAD_ARRAY_FLOAT: Int = 215;
 const BC_LOAD_ARRAY_DOUBLE: Int = 216;
 const BC_LOAD_ARRAY_PTR: Int = 217;
 const BC_STORE_ARRAY_BOOL: Int = 218;
-const BC_STORE_ARRAY_BYTE: Int = 219;
+const BC_STORE_ARRAY_UINT8: Int = 219;
 const BC_STORE_ARRAY_CHAR: Int = 220;
 const BC_STORE_ARRAY_INT: Int = 221;
-const BC_STORE_ARRAY_LONG: Int = 222;
+const BC_STORE_ARRAY_INT64: Int = 222;
 const BC_STORE_ARRAY_FLOAT: Int = 223;
 const BC_STORE_ARRAY_DOUBLE: Int = 224;
 const BC_STORE_ARRAY_PTR: Int = 225;
 const BC_RET_VOID: Int = 226;
 const BC_RET_BOOL: Int = 227;
-const BC_RET_BYTE: Int = 228;
+const BC_RET_UINT8: Int = 228;
 const BC_RET_CHAR: Int = 229;
 const BC_RET_INT: Int = 230;
-const BC_RET_LONG: Int = 231;
+const BC_RET_INT64: Int = 231;
 const BC_RET_FLOAT: Int = 232;
 const BC_RET_DOUBLE: Int = 233;
 const BC_RET_PTR: Int = 234;
@@ -250,83 +250,83 @@ const CONSTPOOL_OPCODE_STRING: Int = 0;
 const CONSTPOOL_OPCODE_FLOAT: Int = 1;
 const CONSTPOOL_OPCODE_DOUBLE: Int = 2;
 const CONSTPOOL_OPCODE_INT: Int = 3;
-const CONSTPOOL_OPCODE_LONG: Int = 4;
+const CONSTPOOL_OPCODE_INT64: Int = 4;
 const CONSTPOOL_OPCODE_CHAR: Int = 5;
 
 fun bytecodeName(opcode: Int) -> String {
   if opcode == BC_WIDE { return "Wide"; }
   if opcode == BC_ADD_INT { return "AddInt"; }
-  if opcode == BC_ADD_LONG { return "AddLong"; }
+  if opcode == BC_ADD_INT64 { return "AddInt64"; }
   if opcode == BC_ADD_FLOAT { return "AddFloat"; }
   if opcode == BC_ADD_DOUBLE { return "AddDouble"; }
   if opcode == BC_SUB_INT { return "SubInt"; }
-  if opcode == BC_SUB_LONG { return "SubLong"; }
+  if opcode == BC_SUB_INT64 { return "SubInt64"; }
   if opcode == BC_SUB_FLOAT { return "SubFloat"; }
   if opcode == BC_SUB_DOUBLE { return "SubDouble"; }
   if opcode == BC_NEG_INT { return "NegInt"; }
-  if opcode == BC_NEG_LONG { return "NegLong"; }
+  if opcode == BC_NEG_INT64 { return "NegInt64"; }
   if opcode == BC_NEG_FLOAT { return "NegFloat"; }
   if opcode == BC_NEG_DOUBLE { return "NegDouble"; }
   if opcode == BC_MUL_INT { return "MulInt"; }
-  if opcode == BC_MUL_LONG { return "MulLong"; }
+  if opcode == BC_MUL_INT64 { return "MulInt64"; }
   if opcode == BC_MUL_FLOAT { return "MulFloat"; }
   if opcode == BC_MUL_DOUBLE { return "MulDouble"; }
   if opcode == BC_DIV_INT { return "DivInt"; }
-  if opcode == BC_DIV_LONG { return "DivLong"; }
+  if opcode == BC_DIV_INT64 { return "DivInt64"; }
   if opcode == BC_DIV_FLOAT { return "DivFloat"; }
   if opcode == BC_DIV_DOUBLE { return "DivDouble"; }
   if opcode == BC_MOD_INT { return "ModInt"; }
-  if opcode == BC_MOD_LONG { return "ModLong"; }
+  if opcode == BC_MOD_INT64 { return "ModInt64"; }
   if opcode == BC_AND_INT { return "AndInt"; }
-  if opcode == BC_AND_LONG { return "AndLong"; }
+  if opcode == BC_AND_INT64 { return "AndInt64"; }
   if opcode == BC_OR_INT { return "OrInt"; }
-  if opcode == BC_OR_LONG { return "OrLong"; }
+  if opcode == BC_OR_INT64 { return "OrInt64"; }
   if opcode == BC_XOR_INT { return "XorInt"; }
-  if opcode == BC_XOR_LONG { return "XorLong"; }
+  if opcode == BC_XOR_INT64 { return "XorInt64"; }
   if opcode == BC_NOT_BOOL { return "NotBool"; }
   if opcode == BC_NOT_INT { return "NotInt"; }
-  if opcode == BC_NOT_LONG { return "NotLong"; }
+  if opcode == BC_NOT_INT64 { return "NotInt64"; }
   if opcode == BC_SHL_INT { return "ShlInt"; }
   if opcode == BC_SHR_INT { return "ShrInt"; }
   if opcode == BC_SAR_INT { return "SarInt"; }
-  if opcode == BC_SHL_LONG { return "ShlLong"; }
-  if opcode == BC_SHR_LONG { return "ShrLong"; }
-  if opcode == BC_SAR_LONG { return "SarLong"; }
+  if opcode == BC_SHL_INT64 { return "ShlInt64"; }
+  if opcode == BC_SHR_INT64 { return "ShrInt64"; }
+  if opcode == BC_SAR_INT64 { return "SarInt64"; }
   if opcode == BC_ROL_INT { return "RolInt"; }
   if opcode == BC_ROR_INT { return "RorInt"; }
-  if opcode == BC_ROL_LONG { return "RolLong"; }
-  if opcode == BC_ROR_LONG { return "RorLong"; }
+  if opcode == BC_ROL_INT64 { return "RolInt64"; }
+  if opcode == BC_ROR_INT64 { return "RorInt64"; }
   if opcode == BC_REINTERPRET_FLOAT_AS_INT { return "ReinterpretFloatAsInt"; }
   if opcode == BC_REINTERPRET_INT_AS_FLOAT { return "ReinterpretIntAsFloat"; }
-  if opcode == BC_REINTERPRET_DOUBLE_AS_LONG { return "ReinterpretDoubleAsLong"; }
-  if opcode == BC_REINTERPRET_LONG_AS_DOUBLE { return "ReinterpretLongAsDouble"; }
-  if opcode == BC_EXTEND_BYTE_TO_CHAR { return "ExtendByteToChar"; }
-  if opcode == BC_EXTEND_BYTE_TO_INT { return "ExtendByteToInt"; }
-  if opcode == BC_EXTEND_BYTE_TO_LONG { return "ExtendByteToLong"; }
-  if opcode == BC_EXTEND_INT_TO_LONG { return "ExtendIntToLong"; }
-  if opcode == BC_EXTEND_CHAR_TO_LONG { return "ExtendCharToLong"; }
+  if opcode == BC_REINTERPRET_DOUBLE_AS_INT64 { return "ReinterpretDoubleAsInt64"; }
+  if opcode == BC_REINTERPRET_INT64_AS_DOUBLE { return "ReinterpretInt64AsDouble"; }
+  if opcode == BC_EXTEND_UINT8_TO_CHAR { return "ExtendUInt8ToChar"; }
+  if opcode == BC_EXTEND_UINT8_TO_INT { return "ExtendUInt8ToInt"; }
+  if opcode == BC_EXTEND_UINT8_TO_INT64 { return "ExtendUInt8ToInt64"; }
+  if opcode == BC_EXTEND_INT_TO_INT64 { return "ExtendIntToInt64"; }
+  if opcode == BC_EXTEND_CHAR_TO_INT64 { return "ExtendCharToInt64"; }
   if opcode == BC_CAST_CHAR_TO_INT { return "CastCharToInt"; }
-  if opcode == BC_CAST_INT_TO_BYTE { return "CastIntToByte"; }
+  if opcode == BC_CAST_INT_TO_UINT8 { return "CastIntToUInt8"; }
   if opcode == BC_CAST_INT_TO_CHAR { return "CastIntToChar"; }
   if opcode == BC_CAST_INT_TO_INT32 { return "CastIntToInt32"; }
-  if opcode == BC_CAST_LONG_TO_BYTE { return "CastLongToByte"; }
-  if opcode == BC_CAST_LONG_TO_CHAR { return "CastLongToChar"; }
-  if opcode == BC_CAST_LONG_TO_INT { return "CastLongToInt"; }
+  if opcode == BC_CAST_INT64_TO_UINT8 { return "CastInt64ToUInt8"; }
+  if opcode == BC_CAST_INT64_TO_CHAR { return "CastInt64ToChar"; }
+  if opcode == BC_CAST_INT64_TO_INT { return "CastInt64ToInt"; }
   if opcode == BC_CONVERT_INT_TO_FLOAT { return "ConvertIntToFloat"; }
   if opcode == BC_CONVERT_INT_TO_DOUBLE { return "ConvertIntToDouble"; }
-  if opcode == BC_CONVERT_LONG_TO_FLOAT { return "ConvertLongToFloat"; }
-  if opcode == BC_CONVERT_LONG_TO_DOUBLE { return "ConvertLongToDouble"; }
+  if opcode == BC_CONVERT_INT64_TO_FLOAT { return "ConvertInt64ToFloat"; }
+  if opcode == BC_CONVERT_INT64_TO_DOUBLE { return "ConvertInt64ToDouble"; }
   if opcode == BC_TRUNCATE_FLOAT_TO_INT { return "TruncateFloatToInt"; }
-  if opcode == BC_TRUNCATE_FLOAT_TO_LONG { return "TruncateFloatToLong"; }
+  if opcode == BC_TRUNCATE_FLOAT_TO_INT64 { return "TruncateFloatToInt64"; }
   if opcode == BC_TRUNCATE_DOUBLE_TO_INT { return "TruncateDoubleToInt"; }
-  if opcode == BC_TRUNCATE_DOUBLE_TO_LONG { return "TruncateDoubleToLong"; }
+  if opcode == BC_TRUNCATE_DOUBLE_TO_INT64 { return "TruncateDoubleToInt64"; }
   if opcode == BC_INSTANCE_OF { return "InstanceOf"; }
   if opcode == BC_CHECKED_CAST { return "CheckedCast"; }
   if opcode == BC_MOV_BOOL { return "MovBool"; }
-  if opcode == BC_MOV_BYTE { return "MovByte"; }
+  if opcode == BC_MOV_UINT8 { return "MovUInt8"; }
   if opcode == BC_MOV_CHAR { return "MovChar"; }
   if opcode == BC_MOV_INT { return "MovInt"; }
-  if opcode == BC_MOV_LONG { return "MovLong"; }
+  if opcode == BC_MOV_INT64 { return "MovInt64"; }
   if opcode == BC_MOV_FLOAT { return "MovFloat"; }
   if opcode == BC_MOV_DOUBLE { return "MovDouble"; }
   if opcode == BC_MOV_PTR { return "MovPtr"; }
@@ -334,34 +334,34 @@ fun bytecodeName(opcode: Int) -> String {
   if opcode == BC_LOAD_TUPLE_ELEMENT { return "LoadTupleElement"; }
   if opcode == BC_STORE_TUPLE_ELEMENT { return "StoreTupleElement"; }
   if opcode == BC_LOAD_FIELD_BOOL { return "LoadFieldBool"; }
-  if opcode == BC_LOAD_FIELD_BYTE { return "LoadFieldByte"; }
+  if opcode == BC_LOAD_FIELD_UINT8 { return "LoadFieldUInt8"; }
   if opcode == BC_LOAD_FIELD_CHAR { return "LoadFieldChar"; }
   if opcode == BC_LOAD_FIELD_INT { return "LoadFieldInt"; }
-  if opcode == BC_LOAD_FIELD_LONG { return "LoadFieldLong"; }
+  if opcode == BC_LOAD_FIELD_INT64 { return "LoadFieldInt64"; }
   if opcode == BC_LOAD_FIELD_FLOAT { return "LoadFieldFloat"; }
   if opcode == BC_LOAD_FIELD_DOUBLE { return "LoadFieldDouble"; }
   if opcode == BC_LOAD_FIELD_PTR { return "LoadFieldPtr"; }
   if opcode == BC_STORE_FIELD_BOOL { return "StoreFieldBool"; }
-  if opcode == BC_STORE_FIELD_BYTE { return "StoreFieldByte"; }
+  if opcode == BC_STORE_FIELD_UINT8 { return "StoreFieldUInt8"; }
   if opcode == BC_STORE_FIELD_CHAR { return "StoreFieldChar"; }
   if opcode == BC_STORE_FIELD_INT { return "StoreFieldInt"; }
-  if opcode == BC_STORE_FIELD_LONG { return "StoreFieldLong"; }
+  if opcode == BC_STORE_FIELD_INT64 { return "StoreFieldInt64"; }
   if opcode == BC_STORE_FIELD_FLOAT { return "StoreFieldFloat"; }
   if opcode == BC_STORE_FIELD_DOUBLE { return "StoreFieldDouble"; }
   if opcode == BC_STORE_FIELD_PTR { return "StoreFieldPtr"; }
   if opcode == BC_LOAD_GLOBAL_BOOL { return "LoadGlobalBool"; }
-  if opcode == BC_LOAD_GLOBAL_BYTE { return "LoadGlobalByte"; }
+  if opcode == BC_LOAD_GLOBAL_UINT8 { return "LoadGlobalUInt8"; }
   if opcode == BC_LOAD_GLOBAL_CHAR { return "LoadGlobalChar"; }
   if opcode == BC_LOAD_GLOBAL_INT { return "LoadGlobalInt"; }
-  if opcode == BC_LOAD_GLOBAL_LONG { return "LoadGlobalLong"; }
+  if opcode == BC_LOAD_GLOBAL_INT64 { return "LoadGlobalInt64"; }
   if opcode == BC_LOAD_GLOBAL_FLOAT { return "LoadGlobalFloat"; }
   if opcode == BC_LOAD_GLOBAL_DOUBLE { return "LoadGlobalDouble"; }
   if opcode == BC_LOAD_GLOBAL_PTR { return "LoadGlobalPtr"; }
   if opcode == BC_STORE_GLOBAL_BOOL { return "StoreGlobalBool"; }
-  if opcode == BC_STORE_GLOBAL_BYTE { return "StoreGlobalByte"; }
+  if opcode == BC_STORE_GLOBAL_UINT8 { return "StoreGlobalUInt8"; }
   if opcode == BC_STORE_GLOBAL_CHAR { return "StoreGlobalChar"; }
   if opcode == BC_STORE_GLOBAL_INT { return "StoreGlobalInt"; }
-  if opcode == BC_STORE_GLOBAL_LONG { return "StoreGlobalLong"; }
+  if opcode == BC_STORE_GLOBAL_INT64 { return "StoreGlobalInt64"; }
   if opcode == BC_STORE_GLOBAL_FLOAT { return "StoreGlobalFloat"; }
   if opcode == BC_STORE_GLOBAL_DOUBLE { return "StoreGlobalDouble"; }
   if opcode == BC_STORE_GLOBAL_PTR { return "StoreGlobalPtr"; }
@@ -369,16 +369,16 @@ fun bytecodeName(opcode: Int) -> String {
   if opcode == BC_CONST_NIL { return "ConstNil"; }
   if opcode == BC_CONST_TRUE { return "ConstTrue"; }
   if opcode == BC_CONST_FALSE { return "ConstFalse"; }
-  if opcode == BC_CONST_ZERO_BYTE { return "ConstZeroByte"; }
+  if opcode == BC_CONST_ZERO_UINT8 { return "ConstZeroUInt8"; }
   if opcode == BC_CONST_ZERO_CHAR { return "ConstZeroChar"; }
   if opcode == BC_CONST_ZERO_INT { return "ConstZeroInt"; }
-  if opcode == BC_CONST_ZERO_LONG { return "ConstZeroLong"; }
+  if opcode == BC_CONST_ZERO_INT64 { return "ConstZeroInt64"; }
   if opcode == BC_CONST_ZERO_FLOAT { return "ConstZeroFloat"; }
   if opcode == BC_CONST_ZERO_DOUBLE { return "ConstZeroDouble"; }
-  if opcode == BC_CONST_BYTE { return "ConstByte"; }
+  if opcode == BC_CONST_UINT8 { return "ConstUInt8"; }
   if opcode == BC_CONST_CHAR { return "ConstChar"; }
   if opcode == BC_CONST_INT { return "ConstInt"; }
-  if opcode == BC_CONST_LONG { return "ConstLong"; }
+  if opcode == BC_CONST_INT64 { return "ConstInt64"; }
   if opcode == BC_CONST_FLOAT { return "ConstFloat"; }
   if opcode == BC_CONST_DOUBLE { return "ConstDouble"; }
   if opcode == BC_CONST_STRING { return "ConstString"; }
@@ -386,12 +386,12 @@ fun bytecodeName(opcode: Int) -> String {
   if opcode == BC_TEST_NE_PTR { return "TestNePtr"; }
   if opcode == BC_TEST_EQ_BOOL { return "TestEqBool"; }
   if opcode == BC_TEST_NE_BOOL { return "TestNeBool"; }
-  if opcode == BC_TEST_EQ_BYTE { return "TestEqByte"; }
-  if opcode == BC_TEST_NE_BYTE { return "TestNeByte"; }
-  if opcode == BC_TEST_GT_BYTE { return "TestGtByte"; }
-  if opcode == BC_TEST_GE_BYTE { return "TestGeByte"; }
-  if opcode == BC_TEST_LT_BYTE { return "TestLtByte"; }
-  if opcode == BC_TEST_LE_BYTE { return "TestLeByte"; }
+  if opcode == BC_TEST_EQ_UINT8 { return "TestEqUInt8"; }
+  if opcode == BC_TEST_NE_UINT8 { return "TestNeUInt8"; }
+  if opcode == BC_TEST_GT_UINT8 { return "TestGtUInt8"; }
+  if opcode == BC_TEST_GE_UINT8 { return "TestGeUInt8"; }
+  if opcode == BC_TEST_LT_UINT8 { return "TestLtUInt8"; }
+  if opcode == BC_TEST_LE_UINT8 { return "TestLeUInt8"; }
   if opcode == BC_TEST_EQ_CHAR { return "TestEqChar"; }
   if opcode == BC_TEST_NE_CHAR { return "TestNeChar"; }
   if opcode == BC_TEST_GT_CHAR { return "TestGtChar"; }
@@ -406,12 +406,12 @@ fun bytecodeName(opcode: Int) -> String {
   if opcode == BC_TEST_GE_INT { return "TestGeInt"; }
   if opcode == BC_TEST_LT_INT { return "TestLtInt"; }
   if opcode == BC_TEST_LE_INT { return "TestLeInt"; }
-  if opcode == BC_TEST_EQ_LONG { return "TestEqLong"; }
-  if opcode == BC_TEST_NE_LONG { return "TestNeLong"; }
-  if opcode == BC_TEST_GT_LONG { return "TestGtLong"; }
-  if opcode == BC_TEST_GE_LONG { return "TestGeLong"; }
-  if opcode == BC_TEST_LT_LONG { return "TestLtLong"; }
-  if opcode == BC_TEST_LE_LONG { return "TestLeLong"; }
+  if opcode == BC_TEST_EQ_INT64 { return "TestEqInt64"; }
+  if opcode == BC_TEST_NE_INT64 { return "TestNeInt64"; }
+  if opcode == BC_TEST_GT_INT64 { return "TestGtInt64"; }
+  if opcode == BC_TEST_GE_INT64 { return "TestGeInt64"; }
+  if opcode == BC_TEST_LT_INT64 { return "TestLtInt64"; }
+  if opcode == BC_TEST_LE_INT64 { return "TestLeInt64"; }
   if opcode == BC_TEST_EQ_FLOAT { return "TestEqFloat"; }
   if opcode == BC_TEST_NE_FLOAT { return "TestNeFloat"; }
   if opcode == BC_TEST_GT_FLOAT { return "TestGtFloat"; }
@@ -434,28 +434,28 @@ fun bytecodeName(opcode: Int) -> String {
   if opcode == BC_JUMP_IF_TRUE_CONST { return "JumpIfTrueConst"; }
   if opcode == BC_INVOKE_DIRECT_VOID { return "InvokeDirectVoid"; }
   if opcode == BC_INVOKE_DIRECT_BOOL { return "InvokeDirectBool"; }
-  if opcode == BC_INVOKE_DIRECT_BYTE { return "InvokeDirectByte"; }
+  if opcode == BC_INVOKE_DIRECT_UINT8 { return "InvokeDirectUInt8"; }
   if opcode == BC_INVOKE_DIRECT_CHAR { return "InvokeDirectChar"; }
   if opcode == BC_INVOKE_DIRECT_INT { return "InvokeDirectInt"; }
-  if opcode == BC_INVOKE_DIRECT_LONG { return "InvokeDirectLong"; }
+  if opcode == BC_INVOKE_DIRECT_INT64 { return "InvokeDirectInt64"; }
   if opcode == BC_INVOKE_DIRECT_FLOAT { return "InvokeDirectFloat"; }
   if opcode == BC_INVOKE_DIRECT_DOUBLE { return "InvokeDirectDouble"; }
   if opcode == BC_INVOKE_DIRECT_PTR { return "InvokeDirectPtr"; }
   if opcode == BC_INVOKE_VIRTUAL_VOID { return "InvokeVirtualVoid"; }
   if opcode == BC_INVOKE_VIRTUAL_BOOL { return "InvokeVirtualBool"; }
-  if opcode == BC_INVOKE_VIRTUAL_BYTE { return "InvokeVirtualByte"; }
+  if opcode == BC_INVOKE_VIRTUAL_UINT8 { return "InvokeVirtualUInt8"; }
   if opcode == BC_INVOKE_VIRTUAL_CHAR { return "InvokeVirtualChar"; }
   if opcode == BC_INVOKE_VIRTUAL_INT { return "InvokeVirtualInt"; }
-  if opcode == BC_INVOKE_VIRTUAL_LONG { return "InvokeVirtualLong"; }
+  if opcode == BC_INVOKE_VIRTUAL_INT64 { return "InvokeVirtualInt64"; }
   if opcode == BC_INVOKE_VIRTUAL_FLOAT { return "InvokeVirtualFloat"; }
   if opcode == BC_INVOKE_VIRTUAL_DOUBLE { return "InvokeVirtualDouble"; }
   if opcode == BC_INVOKE_VIRTUAL_PTR { return "InvokeVirtualPtr"; }
   if opcode == BC_INVOKE_STATIC_VOID { return "InvokeStaticVoid"; }
   if opcode == BC_INVOKE_STATIC_BOOL { return "InvokeStaticBool"; }
-  if opcode == BC_INVOKE_STATIC_BYTE { return "InvokeStaticByte"; }
+  if opcode == BC_INVOKE_STATIC_UINT8 { return "InvokeStaticUInt8"; }
   if opcode == BC_INVOKE_STATIC_CHAR { return "InvokeStaticChar"; }
   if opcode == BC_INVOKE_STATIC_INT { return "InvokeStaticInt"; }
-  if opcode == BC_INVOKE_STATIC_LONG { return "InvokeStaticLong"; }
+  if opcode == BC_INVOKE_STATIC_INT64 { return "InvokeStaticInt64"; }
   if opcode == BC_INVOKE_STATIC_FLOAT { return "InvokeStaticFloat"; }
   if opcode == BC_INVOKE_STATIC_DOUBLE { return "InvokeStaticDouble"; }
   if opcode == BC_INVOKE_STATIC_PTR { return "InvokeStaticPtr"; }
@@ -465,27 +465,27 @@ fun bytecodeName(opcode: Int) -> String {
   if opcode == BC_ARRAY_LENGTH { return "ArrayLength"; }
   if opcode == BC_ARRAY_BOUND_CHECK { return "ArrayBoundCheck"; }
   if opcode == BC_LOAD_ARRAY_BOOL { return "LoadArrayBool"; }
-  if opcode == BC_LOAD_ARRAY_BYTE { return "LoadArrayByte"; }
+  if opcode == BC_LOAD_ARRAY_UINT8 { return "LoadArrayUInt8"; }
   if opcode == BC_LOAD_ARRAY_CHAR { return "LoadArrayChar"; }
   if opcode == BC_LOAD_ARRAY_INT { return "LoadArrayInt"; }
-  if opcode == BC_LOAD_ARRAY_LONG { return "LoadArrayLong"; }
+  if opcode == BC_LOAD_ARRAY_INT64 { return "LoadArrayInt64"; }
   if opcode == BC_LOAD_ARRAY_FLOAT { return "LoadArrayFloat"; }
   if opcode == BC_LOAD_ARRAY_DOUBLE { return "LoadArrayDouble"; }
   if opcode == BC_LOAD_ARRAY_PTR { return "LoadArrayPtr"; }
   if opcode == BC_STORE_ARRAY_BOOL { return "StoreArrayBool"; }
-  if opcode == BC_STORE_ARRAY_BYTE { return "StoreArrayByte"; }
+  if opcode == BC_STORE_ARRAY_UINT8 { return "StoreArrayUInt8"; }
   if opcode == BC_STORE_ARRAY_CHAR { return "StoreArrayChar"; }
   if opcode == BC_STORE_ARRAY_INT { return "StoreArrayInt"; }
-  if opcode == BC_STORE_ARRAY_LONG { return "StoreArrayLong"; }
+  if opcode == BC_STORE_ARRAY_INT64 { return "StoreArrayInt64"; }
   if opcode == BC_STORE_ARRAY_FLOAT { return "StoreArrayFloat"; }
   if opcode == BC_STORE_ARRAY_DOUBLE { return "StoreArrayDouble"; }
   if opcode == BC_STORE_ARRAY_PTR { return "StoreArrayPtr"; }
   if opcode == BC_RET_VOID { return "RetVoid"; }
   if opcode == BC_RET_BOOL { return "RetBool"; }
-  if opcode == BC_RET_BYTE { return "RetByte"; }
+  if opcode == BC_RET_UINT8 { return "RetUInt8"; }
   if opcode == BC_RET_CHAR { return "RetChar"; }
   if opcode == BC_RET_INT { return "RetInt"; }
-  if opcode == BC_RET_LONG { return "RetLong"; }
+  if opcode == BC_RET_INT64 { return "RetInt64"; }
   if opcode == BC_RET_FLOAT { return "RetFloat"; }
   if opcode == BC_RET_DOUBLE { return "RetDouble"; }
   if opcode == BC_RET_PTR { return "RetPtr"; }
