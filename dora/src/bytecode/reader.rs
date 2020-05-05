@@ -30,7 +30,7 @@ where
             self.visitor
                 .visit_instruction(BytecodeOffset(self.pos as u32));
             let wide = self.read_operand_width();
-            let opcode = self.read_opcode(wide);
+            let opcode = self.read_opcode();
             self.read_instruction(wide, opcode)
         }
     }
@@ -46,6 +46,12 @@ where
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_add_int(dest, lhs, rhs);
+            }
+            BytecodeOpcode::AddInt32 => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_add_int32(dest, lhs, rhs);
             }
             BytecodeOpcode::AddInt64 => {
                 let dest = self.read_register(wide);
@@ -71,6 +77,12 @@ where
                 let rhs = self.read_register(wide);
                 self.visitor.visit_sub_int(dest, lhs, rhs);
             }
+            BytecodeOpcode::SubInt32 => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_sub_int32(dest, lhs, rhs);
+            }
             BytecodeOpcode::SubInt64 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
@@ -94,6 +106,11 @@ where
                 let src = self.read_register(wide);
                 self.visitor.visit_neg_int(dest, src);
             }
+            BytecodeOpcode::NegInt32 => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_neg_int32(dest, src);
+            }
             BytecodeOpcode::NegInt64 => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
@@ -114,6 +131,12 @@ where
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_mul_int(dest, lhs, rhs);
+            }
+            BytecodeOpcode::MulInt32 => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_mul_int32(dest, lhs, rhs);
             }
             BytecodeOpcode::MulInt64 => {
                 let dest = self.read_register(wide);
@@ -138,6 +161,12 @@ where
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_div_int(dest, lhs, rhs);
+            }
+            BytecodeOpcode::DivInt32 => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_div_int32(dest, lhs, rhs);
             }
             BytecodeOpcode::DivInt64 => {
                 let dest = self.read_register(wide);
@@ -164,6 +193,12 @@ where
                 let rhs = self.read_register(wide);
                 self.visitor.visit_mod_int(dest, lhs, rhs);
             }
+            BytecodeOpcode::ModInt32 => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_mod_int32(dest, lhs, rhs);
+            }
             BytecodeOpcode::ModInt64 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
@@ -176,6 +211,12 @@ where
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_and_int(dest, lhs, rhs);
+            }
+            BytecodeOpcode::AndInt32 => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_and_int32(dest, lhs, rhs);
             }
             BytecodeOpcode::AndInt64 => {
                 let dest = self.read_register(wide);
@@ -190,6 +231,12 @@ where
                 let rhs = self.read_register(wide);
                 self.visitor.visit_or_int(dest, lhs, rhs);
             }
+            BytecodeOpcode::OrInt32 => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_or_int32(dest, lhs, rhs);
+            }
             BytecodeOpcode::OrInt64 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
@@ -202,6 +249,12 @@ where
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_xor_int(dest, lhs, rhs);
+            }
+            BytecodeOpcode::XorInt32 => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_xor_int32(dest, lhs, rhs);
             }
             BytecodeOpcode::XorInt64 => {
                 let dest = self.read_register(wide);
@@ -219,6 +272,11 @@ where
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
                 self.visitor.visit_not_int(dest, src);
+            }
+            BytecodeOpcode::NotInt32 => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_not_int32(dest, src);
             }
             BytecodeOpcode::NotInt64 => {
                 let dest = self.read_register(wide);
@@ -243,6 +301,25 @@ where
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_sar_int(dest, lhs, rhs);
+            }
+
+            BytecodeOpcode::ShlInt32 => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_shl_int32(dest, lhs, rhs);
+            }
+            BytecodeOpcode::ShrInt32 => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_shr_int32(dest, lhs, rhs);
+            }
+            BytecodeOpcode::SarInt32 => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_sar_int32(dest, lhs, rhs);
             }
 
             BytecodeOpcode::ShlInt64 => {
@@ -275,6 +352,19 @@ where
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_ror_int(dest, lhs, rhs);
+            }
+
+            BytecodeOpcode::RolInt32 => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_rol_int32(dest, lhs, rhs);
+            }
+            BytecodeOpcode::RorInt32 => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_ror_int32(dest, lhs, rhs);
             }
 
             BytecodeOpcode::RolInt64 => {
@@ -446,6 +536,11 @@ where
                 let src = self.read_register(wide);
                 self.visitor.visit_mov_int(dest, src);
             }
+            BytecodeOpcode::MovInt32 => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_mov_int32(dest, src);
+            }
             BytecodeOpcode::MovInt64 => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
@@ -519,6 +614,13 @@ where
                 let field = self.read_field(wide);
                 self.visitor.visit_load_field_int(dest, obj, cls, field);
             }
+            BytecodeOpcode::LoadFieldInt32 => {
+                let dest = self.read_register(wide);
+                let obj = self.read_register(wide);
+                let cls = self.read_class(wide);
+                let field = self.read_field(wide);
+                self.visitor.visit_load_field_int32(dest, obj, cls, field);
+            }
             BytecodeOpcode::LoadFieldInt64 => {
                 let dest = self.read_register(wide);
                 let obj = self.read_register(wide);
@@ -576,6 +678,13 @@ where
                 let field = self.read_field(wide);
                 self.visitor.visit_store_field_int(src, obj, cls, field);
             }
+            BytecodeOpcode::StoreFieldInt32 => {
+                let src = self.read_register(wide);
+                let obj = self.read_register(wide);
+                let cls = self.read_class(wide);
+                let field = self.read_field(wide);
+                self.visitor.visit_store_field_int32(src, obj, cls, field);
+            }
             BytecodeOpcode::StoreFieldInt64 => {
                 let src = self.read_register(wide);
                 let obj = self.read_register(wide);
@@ -625,6 +734,11 @@ where
                 let glob = self.read_global(wide);
                 self.visitor.visit_load_global_int(dest, glob);
             }
+            BytecodeOpcode::LoadGlobalInt32 => {
+                let dest = self.read_register(wide);
+                let glob = self.read_global(wide);
+                self.visitor.visit_load_global_int32(dest, glob);
+            }
             BytecodeOpcode::LoadGlobalInt64 => {
                 let dest = self.read_register(wide);
                 let glob = self.read_global(wide);
@@ -665,6 +779,11 @@ where
                 let dest = self.read_register(wide);
                 let glob = self.read_global(wide);
                 self.visitor.visit_store_global_int(dest, glob);
+            }
+            BytecodeOpcode::StoreGlobalInt32 => {
+                let dest = self.read_register(wide);
+                let glob = self.read_global(wide);
+                self.visitor.visit_store_global_int32(dest, glob);
             }
             BytecodeOpcode::StoreGlobalInt64 => {
                 let dest = self.read_register(wide);
@@ -716,6 +835,10 @@ where
                 let dest = self.read_register(wide);
                 self.visitor.visit_const_zero_int(dest);
             }
+            BytecodeOpcode::ConstZeroInt32 => {
+                let dest = self.read_register(wide);
+                self.visitor.visit_const_zero_int32(dest);
+            }
             BytecodeOpcode::ConstZeroInt64 => {
                 let dest = self.read_register(wide);
                 self.visitor.visit_const_zero_int64(dest);
@@ -742,6 +865,11 @@ where
                 let dest = self.read_register(wide);
                 let idx = self.read_const_pool_idx(wide);
                 self.visitor.visit_const_int(dest, idx);
+            }
+            BytecodeOpcode::ConstInt32 => {
+                let dest = self.read_register(wide);
+                let idx = self.read_const_pool_idx(wide);
+                self.visitor.visit_const_int32(dest, idx);
             }
             BytecodeOpcode::ConstInt64 => {
                 let dest = self.read_register(wide);
@@ -944,6 +1072,42 @@ where
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_le_int64(dest, lhs, rhs);
             }
+            BytecodeOpcode::TestEqInt32 => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_test_eq_int32(dest, lhs, rhs);
+            }
+            BytecodeOpcode::TestNeInt32 => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_test_ne_int32(dest, lhs, rhs);
+            }
+            BytecodeOpcode::TestGtInt32 => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_test_gt_int32(dest, lhs, rhs);
+            }
+            BytecodeOpcode::TestGeInt32 => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_test_ge_int32(dest, lhs, rhs);
+            }
+            BytecodeOpcode::TestLtInt32 => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_test_lt_int32(dest, lhs, rhs);
+            }
+            BytecodeOpcode::TestLeInt32 => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_test_le_int32(dest, lhs, rhs);
+            }
 
             BytecodeOpcode::TestEqFloat => {
                 let dest = self.read_register(wide);
@@ -1085,6 +1249,12 @@ where
                 let count = self.read_index(wide);
                 self.visitor.visit_invoke_direct_int(dest, fct, count);
             }
+            BytecodeOpcode::InvokeDirectInt32 => {
+                let dest = self.read_register(wide);
+                let fct = self.read_fct(wide);
+                let count = self.read_index(wide);
+                self.visitor.visit_invoke_direct_int64(dest, fct, count);
+            }
             BytecodeOpcode::InvokeDirectInt64 => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
@@ -1139,6 +1309,12 @@ where
                 let count = self.read_index(wide);
                 self.visitor.visit_invoke_virtual_int(dest, fct, count);
             }
+            BytecodeOpcode::InvokeVirtualInt32 => {
+                let dest = self.read_register(wide);
+                let fct = self.read_fct(wide);
+                let count = self.read_index(wide);
+                self.visitor.visit_invoke_virtual_int32(dest, fct, count);
+            }
             BytecodeOpcode::InvokeVirtualInt64 => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
@@ -1192,6 +1368,12 @@ where
                 let fct = self.read_fct(wide);
                 let count = self.read_index(wide);
                 self.visitor.visit_invoke_static_int(dest, fct, count);
+            }
+            BytecodeOpcode::InvokeStaticInt32 => {
+                let dest = self.read_register(wide);
+                let fct = self.read_fct(wide);
+                let count = self.read_index(wide);
+                self.visitor.visit_invoke_static_int32(dest, fct, count);
             }
             BytecodeOpcode::InvokeStaticInt64 => {
                 let dest = self.read_register(wide);
@@ -1270,6 +1452,12 @@ where
                 let index = self.read_register(wide);
                 self.visitor.visit_load_array_int(dest, array, index);
             }
+            BytecodeOpcode::LoadArrayInt32 => {
+                let dest = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_load_array_int32(dest, array, index);
+            }
             BytecodeOpcode::LoadArrayInt64 => {
                 let dest = self.read_register(wide);
                 let array = self.read_register(wide);
@@ -1319,6 +1507,12 @@ where
                 let index = self.read_register(wide);
                 self.visitor.visit_store_array_int(src, array, index);
             }
+            BytecodeOpcode::StoreArrayInt32 => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_store_array_int32(src, array, index);
+            }
             BytecodeOpcode::StoreArrayInt64 => {
                 let src = self.read_register(wide);
                 let array = self.read_register(wide);
@@ -1363,6 +1557,10 @@ where
                 let opnd = self.read_register(wide);
                 self.visitor.visit_ret_int(opnd);
             }
+            BytecodeOpcode::RetInt32 => {
+                let opnd = self.read_register(wide);
+                self.visitor.visit_ret_int32(opnd);
+            }
             BytecodeOpcode::RetInt64 => {
                 let opnd = self.read_register(wide);
                 self.visitor.visit_ret_int64(opnd);
@@ -1406,8 +1604,15 @@ where
         self.read_index(wide).into()
     }
 
-    fn read_opcode(&mut self, wide: bool) -> u32 {
-        self.read_index(wide)
+    fn read_opcode(&mut self) -> u32 {
+        let first = self.read_byte();
+
+        if first == 255 {
+            let second = self.read_byte();
+            255 + second
+        } else {
+            first
+        }
     }
 
     fn read_const_pool_idx(&mut self, wide: bool) -> ConstPoolIdx {
@@ -1457,6 +1662,9 @@ pub trait BytecodeVisitor {
     fn visit_add_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
+    fn visit_add_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
     fn visit_add_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
@@ -1468,6 +1676,9 @@ pub trait BytecodeVisitor {
     }
 
     fn visit_sub_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_sub_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
     fn visit_sub_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
@@ -1483,6 +1694,9 @@ pub trait BytecodeVisitor {
     fn visit_neg_int(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
+    fn visit_neg_int32(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
     fn visit_neg_int64(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
@@ -1494,6 +1708,9 @@ pub trait BytecodeVisitor {
     }
 
     fn visit_mul_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_mul_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
     fn visit_mul_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
@@ -1509,6 +1726,9 @@ pub trait BytecodeVisitor {
     fn visit_div_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
+    fn visit_div_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
     fn visit_div_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
@@ -1522,11 +1742,17 @@ pub trait BytecodeVisitor {
     fn visit_mod_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
+    fn visit_mod_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
     fn visit_mod_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 
     fn visit_and_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_and_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
     fn visit_and_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
@@ -1536,11 +1762,17 @@ pub trait BytecodeVisitor {
     fn visit_or_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
+    fn visit_or_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
     fn visit_or_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 
     fn visit_xor_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_xor_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
     fn visit_xor_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
@@ -1551,6 +1783,9 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_not_int(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_not_int32(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
     fn visit_not_int64(&mut self, _dest: Register, _src: Register) {
@@ -1564,6 +1799,16 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_sar_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+
+    fn visit_shl_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_shr_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_sar_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 
@@ -1581,6 +1826,13 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_ror_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+
+    fn visit_rol_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_ror_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 
@@ -1687,6 +1939,9 @@ pub trait BytecodeVisitor {
     fn visit_mov_int(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
+    fn visit_mov_int32(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
     fn visit_mov_int64(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
@@ -1751,6 +2006,15 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_load_field_int(
+        &mut self,
+        _dest: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
+    fn visit_load_field_int32(
         &mut self,
         _dest: Register,
         _obj: Register,
@@ -1832,6 +2096,15 @@ pub trait BytecodeVisitor {
     ) {
         unimplemented!();
     }
+    fn visit_store_field_int32(
+        &mut self,
+        _src: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
     fn visit_store_field_int64(
         &mut self,
         _src: Register,
@@ -1881,6 +2154,9 @@ pub trait BytecodeVisitor {
     fn visit_load_global_int(&mut self, _dest: Register, _glob: GlobalId) {
         unimplemented!();
     }
+    fn visit_load_global_int32(&mut self, _dest: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
     fn visit_load_global_int64(&mut self, _dest: Register, _glob: GlobalId) {
         unimplemented!();
     }
@@ -1904,6 +2180,9 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_store_global_int(&mut self, _src: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
+    fn visit_store_global_int32(&mut self, _src: Register, _glob: GlobalId) {
         unimplemented!();
     }
     fn visit_store_global_int64(&mut self, _src: Register, _glob: GlobalId) {
@@ -1941,6 +2220,9 @@ pub trait BytecodeVisitor {
     fn visit_const_zero_int(&mut self, _dest: Register) {
         unimplemented!();
     }
+    fn visit_const_zero_int32(&mut self, _dest: Register) {
+        unimplemented!();
+    }
     fn visit_const_zero_int64(&mut self, _dest: Register) {
         unimplemented!();
     }
@@ -1957,6 +2239,9 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_const_int(&mut self, _dest: Register, _value: ConstPoolIdx) {
+        unimplemented!();
+    }
+    fn visit_const_int32(&mut self, _dest: Register, _value: ConstPoolIdx) {
         unimplemented!();
     }
     fn visit_const_int64(&mut self, _dest: Register, _value: ConstPoolIdx) {
@@ -2042,6 +2327,25 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_test_le_int(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+
+    fn visit_test_eq_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_ne_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_gt_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_ge_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_lt_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+    fn visit_test_le_int32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 
@@ -2142,6 +2446,9 @@ pub trait BytecodeVisitor {
     fn visit_invoke_direct_int(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
+    fn visit_invoke_direct_int32(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
+        unimplemented!();
+    }
     fn visit_invoke_direct_int64(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
@@ -2170,6 +2477,9 @@ pub trait BytecodeVisitor {
     fn visit_invoke_virtual_int(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
+    fn visit_invoke_virtual_int32(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
+        unimplemented!();
+    }
     fn visit_invoke_virtual_int64(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
@@ -2196,6 +2506,9 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_invoke_static_int(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
+        unimplemented!();
+    }
+    fn visit_invoke_static_int32(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
         unimplemented!();
     }
     fn visit_invoke_static_int64(&mut self, _dest: Register, _fctdef: FctDefId, _count: u32) {
@@ -2241,6 +2554,9 @@ pub trait BytecodeVisitor {
     fn visit_load_array_int(&mut self, _dest: Register, _arr: Register, _idx: Register) {
         unimplemented!();
     }
+    fn visit_load_array_int32(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
     fn visit_load_array_int64(&mut self, _dest: Register, _arr: Register, _idx: Register) {
         unimplemented!();
     }
@@ -2264,6 +2580,9 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_store_array_int(&mut self, _src: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_store_array_int32(&mut self, _src: Register, _arr: Register, _idx: Register) {
         unimplemented!();
     }
     fn visit_store_array_int64(&mut self, _src: Register, _arr: Register, _idx: Register) {
@@ -2292,6 +2611,9 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_ret_int(&mut self, _opnd: Register) {
+        unimplemented!();
+    }
+    fn visit_ret_int32(&mut self, _opnd: Register) {
         unimplemented!();
     }
     fn visit_ret_int64(&mut self, _opnd: Register) {

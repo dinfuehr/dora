@@ -3498,6 +3498,14 @@ fn gen_tuple_var() {
     });
 }
 
+#[test]
+#[ignore]
+fn gen_int32_operations() {
+    let result = code("fun f(a: Int32, b: Int32) -> Int32 { a + b }");
+    let expected = vec![AddInt32(r(2), r(0), r(1)), RetInt32(r(2))];
+    assert_eq!(expected, result);
+}
+
 fn p(line: u32, column: u32) -> Position {
     Position { line, column }
 }
@@ -3509,46 +3517,60 @@ fn r(val: usize) -> Register {
 #[derive(PartialEq, Debug)]
 pub enum Bytecode {
     AddInt(Register, Register, Register),
+    AddInt32(Register, Register, Register),
     AddInt64(Register, Register, Register),
     AddFloat(Register, Register, Register),
     AddDouble(Register, Register, Register),
 
     SubInt(Register, Register, Register),
+    SubInt32(Register, Register, Register),
     SubInt64(Register, Register, Register),
     SubFloat(Register, Register, Register),
     SubDouble(Register, Register, Register),
 
     NegInt(Register, Register),
+    NegInt32(Register, Register),
     NegInt64(Register, Register),
     NegFloat(Register, Register),
     NegDouble(Register, Register),
 
     MulInt(Register, Register, Register),
+    MulInt32(Register, Register, Register),
     MulInt64(Register, Register, Register),
     MulFloat(Register, Register, Register),
     MulDouble(Register, Register, Register),
 
     DivInt(Register, Register, Register),
+    DivInt32(Register, Register, Register),
     DivInt64(Register, Register, Register),
     DivFloat(Register, Register, Register),
     DivDouble(Register, Register, Register),
 
     ModInt(Register, Register, Register),
+    ModInt32(Register, Register, Register),
     ModInt64(Register, Register, Register),
 
     AndInt(Register, Register, Register),
+    AndInt32(Register, Register, Register),
     AndInt64(Register, Register, Register),
     OrInt(Register, Register, Register),
+    OrInt32(Register, Register, Register),
     OrInt64(Register, Register, Register),
     XorInt(Register, Register, Register),
+    XorInt32(Register, Register, Register),
     XorInt64(Register, Register, Register),
     NotBool(Register, Register),
     NotInt(Register, Register),
+    NotInt32(Register, Register),
     NotInt64(Register, Register),
 
     ShlInt(Register, Register, Register),
     ShrInt(Register, Register, Register),
     SarInt(Register, Register, Register),
+
+    ShlInt32(Register, Register, Register),
+    ShrInt32(Register, Register, Register),
+    SarInt32(Register, Register, Register),
 
     ShlInt64(Register, Register, Register),
     ShrInt64(Register, Register, Register),
@@ -3556,6 +3578,9 @@ pub enum Bytecode {
 
     RolInt(Register, Register, Register),
     RorInt(Register, Register, Register),
+
+    RolInt32(Register, Register, Register),
+    RorInt32(Register, Register, Register),
 
     RolInt64(Register, Register, Register),
     RorInt64(Register, Register, Register),
@@ -3777,6 +3802,7 @@ pub enum Bytecode {
     RetUInt8(Register),
     RetChar(Register),
     RetInt(Register),
+    RetInt32(Register),
     RetInt64(Register),
     RetFloat(Register),
     RetDouble(Register),
@@ -3847,6 +3873,9 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_add_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::AddInt(dest, lhs, rhs));
     }
+    fn visit_add_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::AddInt32(dest, lhs, rhs));
+    }
     fn visit_add_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::AddInt64(dest, lhs, rhs));
     }
@@ -3859,6 +3888,9 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
 
     fn visit_sub_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::SubInt(dest, lhs, rhs));
+    }
+    fn visit_sub_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::SubInt32(dest, lhs, rhs));
     }
     fn visit_sub_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::SubInt64(dest, lhs, rhs));
@@ -3873,6 +3905,9 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_neg_int(&mut self, dest: Register, src: Register) {
         self.emit(Bytecode::NegInt(dest, src));
     }
+    fn visit_neg_int32(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::NegInt32(dest, src));
+    }
     fn visit_neg_int64(&mut self, dest: Register, src: Register) {
         self.emit(Bytecode::NegInt64(dest, src));
     }
@@ -3885,6 +3920,9 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
 
     fn visit_mul_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::MulInt(dest, lhs, rhs));
+    }
+    fn visit_mul_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::MulInt32(dest, lhs, rhs));
     }
     fn visit_mul_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::MulInt64(dest, lhs, rhs));
@@ -3899,6 +3937,9 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_div_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::DivInt(dest, lhs, rhs));
     }
+    fn visit_div_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::DivInt32(dest, lhs, rhs));
+    }
     fn visit_div_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::DivInt64(dest, lhs, rhs));
     }
@@ -3912,12 +3953,18 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_mod_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::ModInt(dest, lhs, rhs));
     }
+    fn visit_mod_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::ModInt32(dest, lhs, rhs));
+    }
     fn visit_mod_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::ModInt64(dest, lhs, rhs));
     }
 
     fn visit_and_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::AndInt(dest, lhs, rhs));
+    }
+    fn visit_and_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::AndInt32(dest, lhs, rhs));
     }
     fn visit_and_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::AndInt64(dest, lhs, rhs));
@@ -3926,12 +3973,18 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_or_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::OrInt(dest, lhs, rhs));
     }
+    fn visit_or_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::OrInt32(dest, lhs, rhs));
+    }
     fn visit_or_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::OrInt64(dest, lhs, rhs));
     }
 
     fn visit_xor_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::XorInt(dest, lhs, rhs));
+    }
+    fn visit_xor_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::XorInt32(dest, lhs, rhs));
     }
     fn visit_xor_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::XorInt64(dest, lhs, rhs));
@@ -3942,6 +3995,9 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_not_int(&mut self, dest: Register, src: Register) {
         self.emit(Bytecode::NotInt(dest, src));
+    }
+    fn visit_not_int32(&mut self, dest: Register, src: Register) {
+        self.emit(Bytecode::NotInt32(dest, src));
     }
     fn visit_not_int64(&mut self, dest: Register, src: Register) {
         self.emit(Bytecode::NotInt64(dest, src));
@@ -3955,6 +4011,16 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_sar_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::SarInt(dest, lhs, rhs));
+    }
+
+    fn visit_shl_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::ShlInt32(dest, lhs, rhs));
+    }
+    fn visit_shr_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::ShrInt32(dest, lhs, rhs));
+    }
+    fn visit_sar_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::SarInt32(dest, lhs, rhs));
     }
 
     fn visit_shl_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -3972,6 +4038,12 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_ror_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::RorInt(dest, lhs, rhs));
+    }
+    fn visit_rol_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::RolInt32(dest, lhs, rhs));
+    }
+    fn visit_ror_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::RorInt32(dest, lhs, rhs));
     }
     fn visit_rol_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::RolInt64(dest, lhs, rhs));
@@ -4710,6 +4782,9 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_ret_int(&mut self, opnd: Register) {
         self.emit(Bytecode::RetInt(opnd));
+    }
+    fn visit_ret_int32(&mut self, opnd: Register) {
+        self.emit(Bytecode::RetInt32(opnd));
     }
     fn visit_ret_int64(&mut self, opnd: Register) {
         self.emit(Bytecode::RetInt64(opnd));

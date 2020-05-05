@@ -325,6 +325,43 @@ pub enum Intrinsic {
     EnumEq,
     EnumNe,
 
+    IntPtrToByte,
+    IntPtrToChar,
+    IntPtrToInt64,
+    IntPtrToFloat,
+    IntPtrToDouble,
+
+    IntPtrEq,
+    IntPtrCmp,
+
+    IntPtrAdd,
+    IntPtrSub,
+    IntPtrMul,
+    IntPtrDiv,
+    IntPtrMod,
+
+    IntPtrOr,
+    IntPtrAnd,
+    IntPtrXor,
+
+    IntPtrShl,
+    IntPtrSar,
+    IntPtrShr,
+
+    IntPtrRotateLeft,
+    IntPtrRotateRight,
+
+    IntPtrNot,
+    IntPtrNeg,
+    IntPtrPlus,
+
+    IntPtrCountZeroBits,
+    IntPtrCountOneBits,
+    IntPtrCountZeroBitsLeading,
+    IntPtrCountOneBitsLeading,
+    IntPtrCountZeroBitsTrailing,
+    IntPtrCountOneBitsTrailing,
+
     Int32Eq,
     Int32Cmp,
 
@@ -478,6 +515,22 @@ impl Intrinsic {
             | Intrinsic::Int64CountOneBitsLeading
             | Intrinsic::Int64CountOneBitsTrailing => BytecodeType::Int,
             Intrinsic::IntPtrToInt32 => BytecodeType::Int32,
+            Intrinsic::IntPtrAdd
+            | Intrinsic::IntPtrSub
+            | Intrinsic::IntPtrMul
+            | Intrinsic::IntPtrDiv
+            | Intrinsic::IntPtrMod
+            | Intrinsic::IntPtrOr
+            | Intrinsic::IntPtrAnd
+            | Intrinsic::IntPtrXor
+            | Intrinsic::IntPtrShl
+            | Intrinsic::IntPtrShr
+            | Intrinsic::IntPtrSar
+            | Intrinsic::IntPtrRotateLeft
+            | Intrinsic::IntPtrRotateRight
+            | Intrinsic::IntPtrNot
+            | Intrinsic::IntPtrPlus
+            | Intrinsic::IntPtrNeg => BytecodeType::Int,
             Intrinsic::Int64Add
             | Intrinsic::Int64Sub
             | Intrinsic::Int64Mul

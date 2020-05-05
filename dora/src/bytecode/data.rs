@@ -109,49 +109,63 @@ pub enum BytecodeOpcode {
     Wide,
 
     AddInt,
+    AddInt32,
     AddInt64,
     AddFloat,
     AddDouble,
 
     SubInt,
+    SubInt32,
     SubInt64,
     SubFloat,
     SubDouble,
 
     NegInt,
+    NegInt32,
     NegInt64,
     NegFloat,
     NegDouble,
 
     MulInt,
+    MulInt32,
     MulInt64,
     MulFloat,
     MulDouble,
 
     DivInt,
+    DivInt32,
     DivInt64,
     DivFloat,
     DivDouble,
 
     ModInt,
+    ModInt32,
     ModInt64,
 
     AndInt,
+    AndInt32,
     AndInt64,
 
     OrInt,
+    OrInt32,
     OrInt64,
 
     XorInt,
+    XorInt32,
     XorInt64,
 
     NotBool,
     NotInt,
+    NotInt32,
     NotInt64,
 
     ShlInt,
     ShrInt,
     SarInt,
+
+    ShlInt32,
+    ShrInt32,
+    SarInt32,
 
     ShlInt64,
     ShrInt64,
@@ -159,6 +173,9 @@ pub enum BytecodeOpcode {
 
     RolInt,
     RorInt,
+
+    RolInt32,
+    RorInt32,
 
     RolInt64,
     RorInt64,
@@ -198,6 +215,7 @@ pub enum BytecodeOpcode {
     MovUInt8,
     MovChar,
     MovInt,
+    MovInt32,
     MovInt64,
     MovFloat,
     MovDouble,
@@ -211,6 +229,7 @@ pub enum BytecodeOpcode {
     LoadFieldUInt8,
     LoadFieldChar,
     LoadFieldInt,
+    LoadFieldInt32,
     LoadFieldInt64,
     LoadFieldFloat,
     LoadFieldDouble,
@@ -220,6 +239,7 @@ pub enum BytecodeOpcode {
     StoreFieldUInt8,
     StoreFieldChar,
     StoreFieldInt,
+    StoreFieldInt32,
     StoreFieldInt64,
     StoreFieldFloat,
     StoreFieldDouble,
@@ -229,6 +249,7 @@ pub enum BytecodeOpcode {
     LoadGlobalUInt8,
     LoadGlobalChar,
     LoadGlobalInt,
+    LoadGlobalInt32,
     LoadGlobalInt64,
     LoadGlobalFloat,
     LoadGlobalDouble,
@@ -238,6 +259,7 @@ pub enum BytecodeOpcode {
     StoreGlobalUInt8,
     StoreGlobalChar,
     StoreGlobalInt,
+    StoreGlobalInt32,
     StoreGlobalInt64,
     StoreGlobalFloat,
     StoreGlobalDouble,
@@ -251,12 +273,14 @@ pub enum BytecodeOpcode {
     ConstZeroUInt8,
     ConstZeroChar,
     ConstZeroInt,
+    ConstZeroInt32,
     ConstZeroInt64,
     ConstZeroFloat,
     ConstZeroDouble,
     ConstUInt8,
     ConstChar,
     ConstInt,
+    ConstInt32,
     ConstInt64,
     ConstFloat,
     ConstDouble,
@@ -291,6 +315,13 @@ pub enum BytecodeOpcode {
     TestGeInt,
     TestLtInt,
     TestLeInt,
+
+    TestEqInt32,
+    TestNeInt32,
+    TestGtInt32,
+    TestGeInt32,
+    TestLtInt32,
+    TestLeInt32,
 
     TestEqInt64,
     TestNeInt64,
@@ -331,6 +362,7 @@ pub enum BytecodeOpcode {
     InvokeDirectUInt8,
     InvokeDirectChar,
     InvokeDirectInt,
+    InvokeDirectInt32,
     InvokeDirectInt64,
     InvokeDirectFloat,
     InvokeDirectDouble,
@@ -341,6 +373,7 @@ pub enum BytecodeOpcode {
     InvokeVirtualUInt8,
     InvokeVirtualChar,
     InvokeVirtualInt,
+    InvokeVirtualInt32,
     InvokeVirtualInt64,
     InvokeVirtualFloat,
     InvokeVirtualDouble,
@@ -351,6 +384,7 @@ pub enum BytecodeOpcode {
     InvokeStaticUInt8,
     InvokeStaticChar,
     InvokeStaticInt,
+    InvokeStaticInt32,
     InvokeStaticInt64,
     InvokeStaticFloat,
     InvokeStaticDouble,
@@ -368,6 +402,7 @@ pub enum BytecodeOpcode {
     LoadArrayUInt8,
     LoadArrayChar,
     LoadArrayInt,
+    LoadArrayInt32,
     LoadArrayInt64,
     LoadArrayFloat,
     LoadArrayDouble,
@@ -377,6 +412,7 @@ pub enum BytecodeOpcode {
     StoreArrayUInt8,
     StoreArrayChar,
     StoreArrayInt,
+    StoreArrayInt32,
     StoreArrayInt64,
     StoreArrayFloat,
     StoreArrayDouble,
@@ -387,6 +423,7 @@ pub enum BytecodeOpcode {
     RetUInt8,
     RetChar,
     RetInt,
+    RetInt32,
     RetInt64,
     RetFloat,
     RetDouble,
@@ -397,8 +434,10 @@ impl BytecodeOpcode {
     pub fn need_position(&self) -> bool {
         match *self {
             BytecodeOpcode::DivInt
+            | BytecodeOpcode::DivInt32
             | BytecodeOpcode::DivInt64
             | BytecodeOpcode::ModInt
+            | BytecodeOpcode::ModInt32
             | BytecodeOpcode::ModInt64
             | BytecodeOpcode::InstanceOf
             | BytecodeOpcode::CheckedCast
@@ -406,6 +445,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::LoadFieldUInt8
             | BytecodeOpcode::LoadFieldChar
             | BytecodeOpcode::LoadFieldInt
+            | BytecodeOpcode::LoadFieldInt32
             | BytecodeOpcode::LoadFieldInt64
             | BytecodeOpcode::LoadFieldFloat
             | BytecodeOpcode::LoadFieldDouble
@@ -414,6 +454,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::StoreFieldUInt8
             | BytecodeOpcode::StoreFieldChar
             | BytecodeOpcode::StoreFieldInt
+            | BytecodeOpcode::StoreFieldInt32
             | BytecodeOpcode::StoreFieldInt64
             | BytecodeOpcode::StoreFieldFloat
             | BytecodeOpcode::StoreFieldDouble
@@ -423,6 +464,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeDirectUInt8
             | BytecodeOpcode::InvokeDirectChar
             | BytecodeOpcode::InvokeDirectInt
+            | BytecodeOpcode::InvokeDirectInt32
             | BytecodeOpcode::InvokeDirectInt64
             | BytecodeOpcode::InvokeDirectFloat
             | BytecodeOpcode::InvokeDirectDouble
@@ -432,6 +474,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeVirtualUInt8
             | BytecodeOpcode::InvokeVirtualChar
             | BytecodeOpcode::InvokeVirtualInt
+            | BytecodeOpcode::InvokeVirtualInt32
             | BytecodeOpcode::InvokeVirtualInt64
             | BytecodeOpcode::InvokeVirtualFloat
             | BytecodeOpcode::InvokeVirtualDouble
@@ -441,6 +484,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeStaticUInt8
             | BytecodeOpcode::InvokeStaticChar
             | BytecodeOpcode::InvokeStaticInt
+            | BytecodeOpcode::InvokeStaticInt32
             | BytecodeOpcode::InvokeStaticInt64
             | BytecodeOpcode::InvokeStaticFloat
             | BytecodeOpcode::InvokeStaticDouble
@@ -454,6 +498,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::LoadArrayUInt8
             | BytecodeOpcode::LoadArrayChar
             | BytecodeOpcode::LoadArrayInt
+            | BytecodeOpcode::LoadArrayInt32
             | BytecodeOpcode::LoadArrayInt64
             | BytecodeOpcode::LoadArrayFloat
             | BytecodeOpcode::LoadArrayDouble
@@ -462,6 +507,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::StoreArrayUInt8
             | BytecodeOpcode::StoreArrayChar
             | BytecodeOpcode::StoreArrayInt
+            | BytecodeOpcode::StoreArrayInt32
             | BytecodeOpcode::StoreArrayInt64
             | BytecodeOpcode::StoreArrayFloat
             | BytecodeOpcode::StoreArrayDouble

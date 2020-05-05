@@ -96,6 +96,10 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::AddInt, dest, lhs, rhs);
     }
 
+    pub fn emit_add_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::AddInt32, dest, lhs, rhs);
+    }
+
     pub fn emit_add_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::AddInt64, dest, lhs, rhs);
     }
@@ -112,12 +116,20 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::AndInt, dest, lhs, rhs);
     }
 
+    pub fn emit_and_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::AndInt32, dest, lhs, rhs);
+    }
+
     pub fn emit_and_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::AndInt64, dest, lhs, rhs);
     }
 
     pub fn emit_or_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::OrInt, dest, lhs, rhs);
+    }
+
+    pub fn emit_or_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::OrInt32, dest, lhs, rhs);
     }
 
     pub fn emit_or_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -128,12 +140,20 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::XorInt, dest, lhs, rhs);
     }
 
+    pub fn emit_xor_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::XorInt32, dest, lhs, rhs);
+    }
+
     pub fn emit_xor_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::XorInt64, dest, lhs, rhs);
     }
 
     pub fn emit_div_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::DivInt, dest, lhs, rhs);
+    }
+
+    pub fn emit_div_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::DivInt32, dest, lhs, rhs);
     }
 
     pub fn emit_div_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -382,6 +402,10 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::NotInt, dest, src);
     }
 
+    pub fn emit_not_int32(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::NotInt32, dest, src);
+    }
+
     pub fn emit_not_int64(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::NotInt64, dest, src);
     }
@@ -424,12 +448,20 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::ModInt, dest, lhs, rhs);
     }
 
+    pub fn emit_mod_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::ModInt32, dest, lhs, rhs);
+    }
+
     pub fn emit_mod_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::ModInt64, dest, lhs, rhs);
     }
 
     pub fn emit_mul_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::MulInt, dest, lhs, rhs);
+    }
+
+    pub fn emit_mul_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::MulInt32, dest, lhs, rhs);
     }
 
     pub fn emit_mul_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -448,6 +480,10 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::NegInt, dest, src);
     }
 
+    pub fn emit_neg_int32(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::NegInt32, dest, src);
+    }
+
     pub fn emit_neg_int64(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::NegInt64, dest, src);
     }
@@ -464,12 +500,20 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::ShlInt, dest, lhs, rhs);
     }
 
+    pub fn emit_shl_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::ShlInt32, dest, lhs, rhs);
+    }
+
     pub fn emit_shl_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::ShlInt64, dest, lhs, rhs);
     }
 
     pub fn emit_shr_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::ShrInt, dest, lhs, rhs);
+    }
+
+    pub fn emit_shr_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::ShrInt32, dest, lhs, rhs);
     }
 
     pub fn emit_shr_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -480,6 +524,10 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::SarInt, dest, lhs, rhs);
     }
 
+    pub fn emit_sar_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::SarInt32, dest, lhs, rhs);
+    }
+
     pub fn emit_sar_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::SarInt64, dest, lhs, rhs);
     }
@@ -488,12 +536,20 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::RolInt, dest, lhs, rhs);
     }
 
+    pub fn emit_rol_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::RolInt32, dest, lhs, rhs);
+    }
+
     pub fn emit_rol_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::RolInt64, dest, lhs, rhs);
     }
 
     pub fn emit_ror_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::RorInt, dest, lhs, rhs);
+    }
+
+    pub fn emit_ror_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::RorInt32, dest, lhs, rhs);
     }
 
     pub fn emit_ror_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -592,6 +648,10 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::SubInt, dest, lhs, rhs);
     }
 
+    pub fn emit_sub_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::SubInt32, dest, lhs, rhs);
+    }
+
     pub fn emit_sub_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::SubInt64, dest, lhs, rhs);
     }
@@ -686,6 +746,10 @@ impl BytecodeWriter {
 
     pub fn emit_ret_int(&mut self, src: Register) {
         self.emit_reg1(BytecodeOpcode::RetInt, src);
+    }
+
+    pub fn emit_ret_int32(&mut self, src: Register) {
+        self.emit_reg1(BytecodeOpcode::RetInt32, src);
     }
 
     pub fn emit_ret_int64(&mut self, src: Register) {
@@ -1348,20 +1412,29 @@ impl BytecodeWriter {
             self.emit_position();
         }
 
-        let is_wide = op as u32 > u8::max_value() as u32
-            || values.iter().any(|&val| val > u8::max_value() as u32);
+        let is_wide = values.iter().any(|&val| val > u8::max_value() as u32);
 
         if is_wide {
             self.emit_wide();
-            self.emit_u32(op as u32);
+            self.emit_opcode(op as u32);
             for &value in values {
                 self.emit_u32(value);
             }
         } else {
-            self.emit_u8(op as u8);
+            self.emit_opcode(op as u32);
             for &value in values {
                 self.emit_u8(value as u8);
             }
+        }
+    }
+
+    fn emit_opcode(&mut self, code: u32) {
+        if code >= 255 {
+            self.emit_u8(255);
+            assert!(code < 512);
+            self.emit_u8((code - 255) as u8);
+        } else {
+            self.emit_u8(code as u8);
         }
     }
 
@@ -1388,7 +1461,7 @@ impl BytecodeWriter {
             || !fits_u8(self.const_pool.len() as u32)
         {
             self.emit_wide();
-            self.emit_u32(inst as u32);
+            self.emit_opcode(inst as u32);
             if let Some(cond) = cond {
                 self.emit_u32(cond.to_usize() as u32);
             }
@@ -1396,7 +1469,7 @@ impl BytecodeWriter {
             self.emit_u32(0);
             self.unresolved_jump_offsets.push((start, address, lbl));
         } else {
-            self.emit_u8(inst_const as u8);
+            self.emit_opcode(inst_const as u32);
             if let Some(cond) = cond {
                 self.emit_u8(cond.to_usize() as u8);
             }

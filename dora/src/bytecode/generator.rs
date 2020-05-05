@@ -257,7 +257,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::UInt8 => self.gen.emit_ret_uint8(result_reg),
             BytecodeType::Char => self.gen.emit_ret_char(result_reg),
             BytecodeType::Int => self.gen.emit_ret_int(result_reg),
-            BytecodeType::Int32 => self.gen.emit_ret_int(result_reg),
+            BytecodeType::Int32 => self.gen.emit_ret_int32(result_reg),
             BytecodeType::Int64 => self.gen.emit_ret_int64(result_reg),
             BytecodeType::Float => self.gen.emit_ret_float(result_reg),
             BytecodeType::Double => self.gen.emit_ret_double(result_reg),
@@ -1860,6 +1860,25 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             Intrinsic::Int32Sar => self.gen.emit_sar_int(dest, lhs_reg, rhs_reg),
             Intrinsic::Int32RotateLeft => self.gen.emit_rol_int(dest, lhs_reg, rhs_reg),
             Intrinsic::Int32RotateRight => self.gen.emit_ror_int(dest, lhs_reg, rhs_reg),
+            Intrinsic::IntPtrAdd => self.gen.emit_add_int(dest, lhs_reg, rhs_reg),
+            Intrinsic::IntPtrSub => self.gen.emit_sub_int(dest, lhs_reg, rhs_reg),
+            Intrinsic::IntPtrMul => self.gen.emit_mul_int(dest, lhs_reg, rhs_reg),
+            Intrinsic::IntPtrDiv => {
+                self.gen.set_position(pos);
+                self.gen.emit_div_int(dest, lhs_reg, rhs_reg)
+            }
+            Intrinsic::IntPtrMod => {
+                self.gen.set_position(pos);
+                self.gen.emit_mod_int(dest, lhs_reg, rhs_reg)
+            }
+            Intrinsic::IntPtrOr => self.gen.emit_or_int(dest, lhs_reg, rhs_reg),
+            Intrinsic::IntPtrAnd => self.gen.emit_and_int(dest, lhs_reg, rhs_reg),
+            Intrinsic::IntPtrXor => self.gen.emit_xor_int(dest, lhs_reg, rhs_reg),
+            Intrinsic::IntPtrShl => self.gen.emit_shl_int(dest, lhs_reg, rhs_reg),
+            Intrinsic::IntPtrShr => self.gen.emit_shr_int(dest, lhs_reg, rhs_reg),
+            Intrinsic::IntPtrSar => self.gen.emit_sar_int(dest, lhs_reg, rhs_reg),
+            Intrinsic::IntPtrRotateLeft => self.gen.emit_rol_int(dest, lhs_reg, rhs_reg),
+            Intrinsic::IntPtrRotateRight => self.gen.emit_ror_int(dest, lhs_reg, rhs_reg),
             Intrinsic::Int64Add => self.gen.emit_add_int64(dest, lhs_reg, rhs_reg),
             Intrinsic::Int64Sub => self.gen.emit_sub_int64(dest, lhs_reg, rhs_reg),
             Intrinsic::Int64Mul => self.gen.emit_mul_int64(dest, lhs_reg, rhs_reg),

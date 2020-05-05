@@ -927,22 +927,22 @@ class BytecodeWriter {
         self.emitVal2(inst, offset);
     }
 
-    fun emitJmpForward(inst: Int, inst_const: Int, opnd: Option[BytecodeRegister], lbl: BytecodeLabel) {
+    fun emitJmpForward(inst: Int, instConst: Int, opnd: Option[BytecodeRegister], lbl: BytecodeLabel) {
         assert(!isWide(inst));
-        assert(!isWide(inst_const));
+        assert(!isWide(instConst));
         let start = self.code.length();
         var target: Int = 0;
 
         if (opnd.isSome() && isWide(opnd.unwrap().value)) || isWide(self.constPool.length()) {
             self.emitWide();
-            self.emitInt(inst);
+            self.emitOpcode(inst);
             if opnd.isSome() {
                 self.emitInt(opnd.unwrap().value);
             }
             target = self.code.length();
             self.emitInt(0);
         } else {
-            self.emitByte(inst_const);
+            self.emitOpcode(instConst);
             if opnd.isSome() {
                 self.emitByte(opnd.unwrap().value);
             }
@@ -1006,73 +1006,78 @@ class BytecodeWriter {
         self.emitVal5(inst, r1.value, r2.value, cls.value, field.value);
     }
 
-    fun emitVal1(v1: Int) {
+    fun emitVal1(opcode: Int) {
+        self.emitOpcode(opcode);
+    }
+
+    fun emitVal2(opcode: Int, v1: Int) {
         if isWide(v1) {
             self.emitWide();
+            self.emitOpcode(opcode);
             self.emitInt(v1);
         } else {
+            self.emitOpcode(opcode);
             self.emitByte(v1);
         }
     }
 
-    fun emitVal2(v1: Int, v2: Int) {
+    fun emitVal3(opcode: Int, v1: Int, v2: Int) {
         if isWide(v1) || isWide(v2) {
             self.emitWide();
+            self.emitOpcode(opcode);
             self.emitInt(v1);
             self.emitInt(v2);
         } else {
+            self.emitOpcode(opcode);
             self.emitByte(v1);
             self.emitByte(v2);
         }
     }
 
-    fun emitVal3(v1: Int, v2: Int, v3: Int) {
+    fun emitVal4(opcode: Int, v1: Int, v2: Int, v3: Int) {
         if isWide(v1) || isWide(v2) || isWide(v3) {
             self.emitWide();
+            self.emitOpcode(opcode);
             self.emitInt(v1);
             self.emitInt(v2);
             self.emitInt(v3);
         } else {
+            self.emitOpcode(opcode);
             self.emitByte(v1);
             self.emitByte(v2);
             self.emitByte(v3);
         }
     }
 
-    fun emitVal4(v1: Int, v2: Int, v3: Int, v4: Int) {
+    fun emitVal5(opcode: Int, v1: Int, v2: Int, v3: Int, v4: Int) {
         if isWide(v1) || isWide(v2) || isWide(v3) || isWide(v4) {
             self.emitWide();
+            self.emitOpcode(opcode);
             self.emitInt(v1);
             self.emitInt(v2);
             self.emitInt(v3);
             self.emitInt(v4);
         } else {
+            self.emitOpcode(opcode);
             self.emitByte(v1);
             self.emitByte(v2);
             self.emitByte(v3);
             self.emitByte(v4);
-        }
-    }
-
-    fun emitVal5(v1: Int, v2: Int, v3: Int, v4: Int, v5: Int) {
-        if isWide(v1) || isWide(v2) || isWide(v3) || isWide(v4) || isWide(v5) {
-            self.emitWide();
-            self.emitInt(v1);
-            self.emitInt(v2);
-            self.emitInt(v3);
-            self.emitInt(v4);
-            self.emitInt(v5);
-        } else {
-            self.emitByte(v1);
-            self.emitByte(v2);
-            self.emitByte(v3);
-            self.emitByte(v4);
-            self.emitByte(v5);
         }
     }
 
     fun emitWide() {
         self.emitByte(BC_WIDE);
+    }
+
+    fun emitOpcode(opcode: Int) {
+        if opcode >= 255 {
+            self.emitByte(255);
+            assert(opcode < 512);
+            self.emitByte(opcode - 255);
+        } else {
+            self.emitByte(opcode);
+        }
     }
 
     fun emitByte(val: Int) {

@@ -115,6 +115,7 @@ class BytecodeType(let value: Int) {
     @static fun uint8() -> BytecodeType = BytecodeType(BC_TYPE_U_INT8);
     @static fun char() -> BytecodeType = BytecodeType(BC_TYPE_CHAR);
     @static fun int() -> BytecodeType = BytecodeType(BC_TYPE_INT);
+    @static fun int32() -> BytecodeType = BytecodeType(BC_TYPE_INT32);
     @static fun int64() -> BytecodeType = BytecodeType(BC_TYPE_INT64);
     @static fun float() -> BytecodeType = BytecodeType(BC_TYPE_FLOAT);
     @static fun double() -> BytecodeType = BytecodeType(BC_TYPE_DOUBLE);
@@ -124,6 +125,7 @@ class BytecodeType(let value: Int) {
     fun isUInt8() -> Bool = self.value == BC_TYPE_U_INT8;
     fun isChar() -> Bool = self.value == BC_TYPE_CHAR;
     fun isInt() -> Bool = self.value == BC_TYPE_INT;
+    fun isInt32() -> Bool = self.value == BC_TYPE_INT32;
     fun isInt64() -> Bool = self.value == BC_TYPE_INT64;
     fun isFloat() -> Bool = self.value == BC_TYPE_FLOAT;
     fun isDouble() -> Bool = self.value == BC_TYPE_DOUBLE;
