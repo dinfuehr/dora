@@ -4,6 +4,8 @@
 
   @open @abstract fun has(rhs: T) -> Bool;
   @open @abstract fun unwrap() -> T;
+  @open @abstract fun unwrapNone();
+  @open @abstract fun unwrapOr(value: T) -> T;
 }
 
 class Some[T](let wrapped: T): Option[T] {
@@ -12,6 +14,8 @@ class Some[T](let wrapped: T): Option[T] {
 
   @override fun has(rhs: T) -> Bool = self.wrapped === rhs;
   @override fun unwrap() -> T { self.wrapped }
+  @override fun unwrapNone() { fatalError("cannot unwrap Some."); }
+  @override fun unwrapOr(value: T) -> T { self.wrapped }
 }
 
 class None[T]: Option[T] {
@@ -23,6 +27,8 @@ class None[T]: Option[T] {
     fatalError("cannot unwrap None.");
     defaultValue[T]()
   }
+  @override fun unwrapNone() {}
+  @override fun unwrapOr(value: T) -> T { value }
 }
 
 fun none[T]() -> Option[T] = None[T]();

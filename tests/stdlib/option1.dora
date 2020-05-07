@@ -1,0 +1,9 @@
+//= cannon
+
+fun main() {
+    let x = none[Int]();
+    assert(2 == x.unwrapOr(2));
+
+    let x = some[Int](2);
+    assert(2 == x.unwrapOr(100));
+}
