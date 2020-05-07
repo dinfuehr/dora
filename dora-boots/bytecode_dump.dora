@@ -86,14 +86,14 @@ class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
         println(" ${r1}, ${gid.value}");
     }
 
-    fun emitFctVoid(name: String, fid: FctId, cnt: Int) {
+    fun emitFctVoid(name: String, fid: FctId) {
         self.emitStart(name);
-        println(" ${fid.value}, ${cnt}");
+        println(" ${fid.value}");
     }
 
-    fun emitFct(name: String, r1: BytecodeRegister, fid: FctId, cnt: Int) {
+    fun emitFct(name: String, r1: BytecodeRegister, fid: FctId) {
         self.emitStart(name);
-        println(" ${r1}, ${fid.value}, ${cnt}");
+        println(" ${r1}, ${fid.value}");
     }
 
     fun emitNew(name: String, r1: BytecodeRegister, cls: ClassDefId) {
@@ -313,35 +313,35 @@ class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
     @override fun visitJump(offset: Int) { self.emitInt("Jump", offset); }
     @override fun visitJumpConst(idx: ConstPoolId) { self.emitIdx("JumpConst", idx); }
 
-    @override fun visitInvokeDirectVoid(fct: FctId, count: Int) { self.emitFctVoid("InvokeDirectVoid", fct, count); }
-    @override fun visitInvokeDirectBool(dest: BytecodeRegister, fct: FctId, count: Int) { self.emitFct("InvokeDirectBool", dest, fct, count); }
-    @override fun visitInvokeDirectUInt8(dest: BytecodeRegister, fct: FctId, count: Int) { self.emitFct("InvokeDirectUInt8", dest, fct, count); }
-    @override fun visitInvokeDirectChar(dest: BytecodeRegister, fct: FctId, count: Int) { self.emitFct("InvokeDirectChar", dest, fct, count); }
-    @override fun visitInvokeDirectInt(dest: BytecodeRegister, fct: FctId, count: Int) { self.emitFct("InvokeDirectInt", dest, fct, count); }
-    @override fun visitInvokeDirectInt64(dest: BytecodeRegister, fct: FctId, count: Int) { self.emitFct("InvokeDirectInt64", dest, fct, count); }
-    @override fun visitInvokeDirectFloat(dest: BytecodeRegister, fct: FctId, count: Int) { self.emitFct("InvokeDirectFloat", dest, fct, count); }
-    @override fun visitInvokeDirectDouble(dest: BytecodeRegister, fct: FctId, count: Int) { self.emitFct("InvokeDirectDouble", dest, fct, count); }
-    @override fun visitInvokeDirectPtr(dest: BytecodeRegister, fct: FctId, count: Int) { self.emitFct("InvokeDirectPtr", dest, fct, count); }
+    @override fun visitInvokeDirectVoid(fct: FctId) { self.emitFctVoid("InvokeDirectVoid", fct); }
+    @override fun visitInvokeDirectBool(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeDirectBool", dest, fct); }
+    @override fun visitInvokeDirectUInt8(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeDirectUInt8", dest, fct); }
+    @override fun visitInvokeDirectChar(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeDirectChar", dest, fct); }
+    @override fun visitInvokeDirectInt(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeDirectInt", dest, fct); }
+    @override fun visitInvokeDirectInt64(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeDirectInt64", dest, fct); }
+    @override fun visitInvokeDirectFloat(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeDirectFloat", dest, fct); }
+    @override fun visitInvokeDirectDouble(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeDirectDouble", dest, fct); }
+    @override fun visitInvokeDirectPtr(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeDirectPtr", dest, fct); }
 
-    @override fun visitInvokeVirtualVoid(fct: FctId, count: Int) { self.emitFctVoid("InvokeVirtualVoid", fct, count); }
-    @override fun visitInvokeVirtualBool(dest: BytecodeRegister, fct: FctId, count: Int) { self.emitFct("InvokeVirtualBool", dest, fct, count); }
-    @override fun visitInvokeVirtualUInt8(dest: BytecodeRegister, fct: FctId, count: Int) { self.emitFct("InvokeVirtualUInt8", dest, fct, count); }
-    @override fun visitInvokeVirtualChar(dest: BytecodeRegister, fct: FctId, count: Int) { self.emitFct("InvokeVirtualChar", dest, fct, count); }
-    @override fun visitInvokeVirtualInt(dest: BytecodeRegister, fct: FctId, count: Int) { self.emitFct("InvokeVirtualInt", dest, fct, count); }
-    @override fun visitInvokeVirtualInt64(dest: BytecodeRegister, fct: FctId, count: Int) { self.emitFct("InvokeVirtualInt64", dest, fct, count); }
-    @override fun visitInvokeVirtualFloat(dest: BytecodeRegister, fct: FctId, count: Int) { self.emitFct("InvokeVirtualFloat", dest, fct, count); }
-    @override fun visitInvokeVirtualDouble(dest: BytecodeRegister, fct: FctId, count: Int) { self.emitFct("InvokeVirtualDouble", dest, fct, count); }
-    @override fun visitInvokeVirtualPtr(dest: BytecodeRegister, fct: FctId, count: Int) { self.emitFct("InvokeVirtualPtr", dest, fct, count); }
+    @override fun visitInvokeVirtualVoid(fct: FctId) { self.emitFctVoid("InvokeVirtualVoid", fct); }
+    @override fun visitInvokeVirtualBool(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeVirtualBool", dest, fct); }
+    @override fun visitInvokeVirtualUInt8(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeVirtualUInt8", dest, fct); }
+    @override fun visitInvokeVirtualChar(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeVirtualChar", dest, fct); }
+    @override fun visitInvokeVirtualInt(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeVirtualInt", dest, fct); }
+    @override fun visitInvokeVirtualInt64(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeVirtualInt64", dest, fct); }
+    @override fun visitInvokeVirtualFloat(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeVirtualFloat", dest, fct); }
+    @override fun visitInvokeVirtualDouble(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeVirtualDouble", dest, fct); }
+    @override fun visitInvokeVirtualPtr(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeVirtualPtr", dest, fct); }
 
-    @override fun visitInvokeStaticVoid(fct: FctId, count: Int) { self.emitFctVoid("InvokeStaticVoid", fct, count); }
-    @override fun visitInvokeStaticBool(dest: BytecodeRegister, fct: FctId, count: Int) { self.emitFct("InvokeStaticBool", dest, fct, count); }
-    @override fun visitInvokeStaticUInt8(dest: BytecodeRegister, fct: FctId, count: Int) { self.emitFct("InvokeStaticUInt8", dest, fct, count); }
-    @override fun visitInvokeStaticChar(dest: BytecodeRegister, fct: FctId, count: Int) { self.emitFct("InvokeStaticChar", dest, fct, count); }
-    @override fun visitInvokeStaticInt(dest: BytecodeRegister, fct: FctId, count: Int) { self.emitFct("InvokeStaticInt", dest, fct, count); }
-    @override fun visitInvokeStaticInt64(dest: BytecodeRegister, fct: FctId, count: Int) { self.emitFct("InvokeStaticInt64", dest, fct, count); }
-    @override fun visitInvokeStaticFloat(dest: BytecodeRegister, fct: FctId, count: Int) { self.emitFct("InvokeStaticFloat", dest, fct, count); }
-    @override fun visitInvokeStaticDouble(dest: BytecodeRegister, fct: FctId, count: Int) { self.emitFct("InvokeStaticDouble", dest, fct, count); }
-    @override fun visitInvokeStaticPtr(dest: BytecodeRegister, fct: FctId, count: Int) { self.emitFct("InvokeStaticPtr", dest, fct, count); }
+    @override fun visitInvokeStaticVoid(fct: FctId) { self.emitFctVoid("InvokeStaticVoid", fct); }
+    @override fun visitInvokeStaticBool(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeStaticBool", dest, fct); }
+    @override fun visitInvokeStaticUInt8(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeStaticUInt8", dest, fct); }
+    @override fun visitInvokeStaticChar(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeStaticChar", dest, fct); }
+    @override fun visitInvokeStaticInt(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeStaticInt", dest, fct); }
+    @override fun visitInvokeStaticInt64(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeStaticInt64", dest, fct); }
+    @override fun visitInvokeStaticFloat(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeStaticFloat", dest, fct); }
+    @override fun visitInvokeStaticDouble(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeStaticDouble", dest, fct); }
+    @override fun visitInvokeStaticPtr(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeStaticPtr", dest, fct); }
 
     @override fun visitNewObject(dest: BytecodeRegister, cls: ClassDefId) { self.emitNew("NewObject", dest, cls); }
     
