@@ -517,14 +517,21 @@ impl Assembler {
         self.emit_modrm_registers(src, dest);
     }
 
-    pub fn xorps(&mut self, dest: XmmRegister, src: Address) {
+    pub fn xorps_ra(&mut self, dest: XmmRegister, src: Address) {
         self.emit_rex_sse_address_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0x57);
         self.emit_address(dest.low_bits(), src);
     }
 
-    pub fn xorpd(&mut self, dest: XmmRegister, src: Address) {
+    pub fn xorps_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x57);
+        self.emit_modrm_sse_registers(dest, src);
+    }
+
+    pub fn xorpd_ra(&mut self, dest: XmmRegister, src: Address) {
         self.emit_u8(0x66);
         self.emit_rex_sse_address_optional(dest, src);
         self.emit_u8(0x0f);
@@ -2392,5 +2399,11 @@ mod tests {
     fn test_rorq_r() {
         assert_emit!(0x48, 0xd3, 0xc8; rorq_r(RAX));
         assert_emit!(0x49, 0xd3, 0xc8; rorq_r(R8));
+    }
+
+    #[test]
+    fn test_xorps_rr() {
+        assert_emit!(0x0f, 0x57, 0xc1; xorps_rr(XMM0, XMM1));
+        assert_emit!(0x41, 0x0f, 0x57, 0xf8; xorps_rr(XMM7, XMM8));
     }
 }

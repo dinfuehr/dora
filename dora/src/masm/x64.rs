@@ -921,6 +921,11 @@ impl MacroAssembler {
     }
 
     pub fn load_int_const(&mut self, mode: MachineMode, dest: Reg, imm: i64) {
+        if imm == 0 {
+            self.asm.xorl_rr(dest.into(), dest.into());
+            return;
+        }
+
         match mode {
             MachineMode::Int8 | MachineMode::Int32 => {
                 self.asm.movl_ri(dest.into(), Immediate(imm));
@@ -933,6 +938,11 @@ impl MacroAssembler {
     }
 
     pub fn load_float_const(&mut self, mode: MachineMode, dest: FReg, imm: f64) {
+        if imm == 0.0 {
+            self.asm.xorps_rr(dest.into(), dest.into());
+            return;
+        }
+
         let pos = self.pos() as i32;
         let inst_size = 8 + if dest.msb() != 0 { 1 } else { 0 };
 
@@ -1066,8 +1076,8 @@ impl MacroAssembler {
         let address = Address::rip(-(disp + pos + inst_size));
 
         match mode {
-            MachineMode::Float32 => self.asm.xorps(src.into(), address),
-            MachineMode::Float64 => self.asm.xorpd(src.into(), address),
+            MachineMode::Float32 => self.asm.xorps_ra(src.into(), address),
+            MachineMode::Float64 => self.asm.xorpd_ra(src.into(), address),
             _ => unimplemented!(),
         }
 
