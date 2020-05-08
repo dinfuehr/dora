@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     assert(sum_args(1.0F, 2.0F) == 3.0F);
     assert(sum_args(7.0F) == 7.0F);

@@ -551,7 +551,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let object_argument = self.emit_call_object_argument(expr, &call_type, return_reg, dest);
 
         // Evaluate function arguments
-        let arguments = self.emit_call_arguments(expr, &call_type, &arg_types);
+        let arguments = self.emit_call_arguments(expr, &*callee, &call_type, &arg_types);
 
         // Allocte object or array for constructor calls
         self.emit_call_allocate(
@@ -700,17 +700,27 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     fn emit_call_arguments(
         &mut self,
         expr: &ExprCallType,
+        callee: &Fct,
         call_type: &CallType,
         arg_types: &[BuiltinType],
     ) -> Vec<Register> {
         let mut registers = Vec::new();
 
+        // self was already emitted, needs to be ignored here.
         let arg_start_offset = match *call_type {
             CallType::CtorNew(_, _) | CallType::Method(_, _, _) | CallType::Expr(_, _) => 1,
             _ => 0,
         };
 
-        for (idx, arg) in expr.args.iter().enumerate() {
+        // Calculate number of non-variadic arguments
+        let non_variadic_arguments = if callee.variadic_arguments {
+            arg_types.len() - arg_start_offset - 1
+        } else {
+            arg_types.len()
+        };
+
+        // Evaluate non-variadic arguments and track registers.
+        for (idx, arg) in expr.args.iter().take(non_variadic_arguments).enumerate() {
             let ty = arg_types[idx + arg_start_offset];
 
             if ty.is_unit() {
@@ -721,7 +731,50 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             };
         }
 
+        if callee.variadic_arguments {
+            let array_reg =
+                self.emit_array_with_variadic_arguments(expr, arg_types, non_variadic_arguments);
+            registers.push(array_reg);
+        }
+
         registers
+    }
+
+    fn emit_array_with_variadic_arguments(
+        &mut self,
+        expr: &ExprCallType,
+        arg_types: &[BuiltinType],
+        non_variadic_arguments: usize,
+    ) -> Register {
+        let variadic_arguments = expr.args.len() - non_variadic_arguments;
+
+        // We need array of elements
+        let ty = arg_types.last().cloned().unwrap();
+        let ty = self.vm.vips.array_ty(self.vm, ty);
+        let cls_def_id = specialize_class_ty(self.vm, ty);
+
+        // Store length in a register
+        let length_reg = self.gen.add_register(BytecodeType::Int);
+        self.gen
+            .emit_const_int(length_reg, variadic_arguments as i32);
+
+        // Allocate array of given length
+        let array_reg = self.gen.add_register(BytecodeType::Ptr);
+        self.gen.set_position(expr.pos);
+        self.gen.emit_new_array(array_reg, cls_def_id, length_reg);
+
+        let bytecode_ty: BytecodeType = ty.into();
+        let index_reg = self.gen.add_register(BytecodeType::Int);
+
+        // Evaluate rest arguments and store them in array
+        for (idx, arg) in expr.args.iter().skip(non_variadic_arguments).enumerate() {
+            let arg_reg = self.visit_expr(arg, DataDest::Alloc);
+            self.gen.emit_const_int(index_reg, idx as i32);
+            self.gen.set_position(expr.pos);
+            self.emit_store_array(bytecode_ty, array_reg, index_reg, arg_reg);
+        }
+
+        array_reg
     }
 
     fn emit_call_allocate(
@@ -1441,7 +1494,12 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
 
         let ty = ty.unwrap();
+        self.emit_store_array(ty, arr, idx, src);
 
+        Register::invalid()
+    }
+
+    fn emit_store_array(&mut self, ty: BytecodeType, arr: Register, idx: Register, src: Register) {
         match ty {
             BytecodeType::UInt8 => self.gen.emit_store_array_uint8(src, arr, idx),
             BytecodeType::Bool => self.gen.emit_store_array_bool(src, arr, idx),
@@ -1453,8 +1511,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Double => self.gen.emit_store_array_double(src, arr, idx),
             BytecodeType::Ptr => self.gen.emit_store_array_ptr(src, arr, idx),
         }
-
-        Register::invalid()
     }
 
     fn emit_intrinsic_un(

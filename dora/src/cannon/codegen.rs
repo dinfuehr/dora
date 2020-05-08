@@ -143,9 +143,10 @@ where
         let mut reg_idx = 0;
         let mut freg_idx = 0;
         let mut sp_offset = 16;
-        let mut idx = 0;
 
-        for &param_ty in self.fct.params_with_self() {
+        let params = self.fct.params_with_self();
+
+        for (idx, &param_ty) in params.iter().enumerate() {
             let param_ty = self.specialize_type(param_ty);
 
             if param_ty.is_unit() {
@@ -153,7 +154,14 @@ where
             }
 
             let dest = Register(idx);
-            assert_eq!(self.bytecode.register_type(dest), param_ty.into());
+
+            let param_ty = if idx == params.len() - 1 && self.fct.variadic_arguments {
+                assert_eq!(self.bytecode.register_type(dest), BytecodeType::Ptr);
+                BuiltinType::Ptr
+            } else {
+                assert_eq!(self.bytecode.register_type(dest), param_ty.into());
+                param_ty
+            };
 
             let mode = param_ty.mode();
 
@@ -190,8 +198,6 @@ where
                     sp_offset += 8;
                 }
             }
-
-            idx += 1;
         }
     }
 
