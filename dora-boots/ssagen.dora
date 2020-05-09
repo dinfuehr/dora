@@ -17,10 +17,10 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     var blockTerminated: Bool = false;
 
     // a block is considered filled when all instructions are inserted
-    var filledBlocks: BitSet = BitSet(0);
+    var filledBlocks: BitSet = BitSet(0L);
 
     // block is considered sealed when the set of predecessors is final
-    var sealedBlocks: BitSet = BitSet(0);
+    var sealedBlocks: BitSet = BitSet(0L);
 
     // tracks all incomplete phi instructions inserted into unsealed blocks
     let incompletePhis: HashMap[Block, HashMap[BytecodeRegister, PhiInst]] = HashMap[Block, HashMap[BytecodeRegister, PhiInst]]();
@@ -41,8 +41,8 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
 
         let blockCount = self.graph.numberBlocks();
 
-        self.filledBlocks = BitSet(blockCount);
-        self.sealedBlocks = BitSet(blockCount);
+        self.filledBlocks = BitSet(blockCount.toInt64());
+        self.sealedBlocks = BitSet(blockCount.toInt64());
 
         for i in range(0, self.currentDef.length()) {
             self.currentDef(i) = HashMap[Block, Inst]();
@@ -74,7 +74,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     }
 
     fun readVariableRecursive(register: BytecodeRegister, block: Block) -> Inst {
-        let value: Inst = if !self.sealedBlocks.contains(block.id) {
+        let value: Inst = if !self.sealedBlocks.contains(block.id.toInt64()) {
             // While all blocks are created with predecessors and successors before
             // this pass in BlockBuilder already, we still need to handle unsealed blocks.
             // E.g. Register is accessed in while header and updated in the while body.
@@ -204,12 +204,12 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     }
 
     fun fillBlock(block: Block) {
-        assert(!self.filledBlocks.contains(block.id));
-        self.filledBlocks.insert(block.id);
+        assert(!self.filledBlocks.contains(block.id.toInt64()));
+        self.filledBlocks.insert(block.id.toInt64());
     }
 
     fun trySealBlock(block: Block) {
-        if self.sealedBlocks.contains(block.id) {
+        if self.sealedBlocks.contains(block.id.toInt64()) {
             return;
         }
 
@@ -218,7 +218,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
 
         while it.hasNext() {
             let pred = it.next();
-            if !self.filledBlocks.contains(pred.id) {
+            if !self.filledBlocks.contains(pred.id.toInt64()) {
                 return;
             }
         }
@@ -227,8 +227,8 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     }
 
     fun sealBlock(block: Block) {
-        assert(!self.sealedBlocks.contains(block.id));
-        self.sealedBlocks.insert(block.id);
+        assert(!self.sealedBlocks.contains(block.id.toInt64()));
+        self.sealedBlocks.insert(block.id.toInt64());
 
         let map = self.incompletePhis.get(block);
         if map.isNone() { return; }

@@ -1,54 +1,54 @@
-class BitSet(capacity: Int) {
-    var data: Array[Int] = arrayEmpty[Int]();
-    var capacity: Int = 0;
+class BitSet(capacity: Int64) {
+    var data: Array[Int32] = arrayEmpty[Int32]();
+    var capacity: Int64 = 0L;
 
-    if capacity > 0 {
-        let entries = (capacity + 31) / 32;
-        self.data = Array[Int](entries);
+    if capacity > 0L {
+        let entries = (capacity + 31L) / 32L;
+        self.data = Array[Int32](entries.toInt());
         self.capacity = capacity;
     }
 
-    fun length() -> Int {
+    fun length() -> Int64 {
         self.capacity
     }
 
-    fun contains(idx: Int) -> Bool {
-        if idx < 0 || idx >= self.capacity {
+    fun contains(idx: Int64) -> Bool {
+        if idx < 0L || idx >= self.capacity {
             fatalError("index out of bounds");
         }
 
-        let entry_idx = idx / 32;
-        let value = self.data.get(entry_idx);
+        let entry_idx = idx / 32L;
+        let value = self.data.get(entry_idx.toInt());
         let value_idx = idx - entry_idx;
 
-        return value & (1 << value_idx) != 0;
+        return value & (1I << value_idx.toInt()) != 0I;
     }
 
-    fun insert(idx: Int) {
-        if idx < 0 || idx >= self.capacity {
+    fun insert(idx: Int64) {
+        if idx < 0L || idx >= self.capacity {
             fatalError("index out of bounds");
         }
 
-        let entry_idx = idx / 32;
-        var value = self.data.get(entry_idx);
+        let entry_idx = idx / 32L;
+        var value = self.data.get(entry_idx.toInt());
         let value_idx = idx - entry_idx;
 
-        value = value | (1 << value_idx);
+        value = value | (1I << value_idx.toInt());
 
-        self.data.set(entry_idx, value);
+        self.data.set(entry_idx.toInt(), value);
     }
 
-    fun remove(idx: Int) {
-        if idx < 0 || idx >= self.capacity {
+    fun remove(idx: Int64) {
+        if idx < 0L || idx >= self.capacity {
             fatalError("index out of bounds");
         }
 
-        let entry_idx = idx / 32;
-        var value = self.data.get(entry_idx);
+        let entry_idx = idx / 32L;
+        var value = self.data.get(entry_idx.toInt());
         let value_idx = idx - entry_idx;
 
-        value = value & !(1 << value_idx);
+        value = value & !(1I << value_idx.toInt());
 
-        self.data.set(entry_idx, value);
+        self.data.set(entry_idx.toInt(), value);
     }
 }

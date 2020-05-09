@@ -36,7 +36,7 @@ fun main() {
 
 fun check_iterator1(map: HashMap[Int, String]) {
     let it = map.makeIterator();
-    let set = BitSet(3);
+    let set = BitSet(3L);
 
     while it.hasNext() {
         let key_and_value = it.next();
@@ -45,29 +45,29 @@ fun check_iterator1(map: HashMap[Int, String]) {
 
         if key == 1 {
             assert(value == "a");
-            assert(!set.contains(0));
-            set.insert(0);
+            assert(!set.contains(0L));
+            set.insert(0L);
         } else if key == 10000 {
             assert(value == "b");
-            assert(!set.contains(1));
-            set.insert(1);
+            assert(!set.contains(1L));
+            set.insert(1L);
         } else if key == 7 {
             assert(value == "c");
-            assert(!set.contains(2));
-            set.insert(2);
+            assert(!set.contains(2L));
+            set.insert(2L);
         } else {
             unreachable();
         }
     }
 
-    assert(set.contains(0));
-    assert(set.contains(1));
-    assert(set.contains(2));
+    assert(set.contains(0L));
+    assert(set.contains(1L));
+    assert(set.contains(2L));
 }
 
 fun check_iterator2(map: HashMap[Int, String]) {
     let it = map.makeIterator();
-    let set = BitSet(3);
+    let set = BitSet(3L);
 
     while it.hasNext() {
         let key_and_value = it.next();
@@ -76,17 +76,17 @@ fun check_iterator2(map: HashMap[Int, String]) {
 
         if key == 1 {
             assert(value == "a");
-            assert(!set.contains(0));
-            set.insert(0);
+            assert(!set.contains(0L));
+            set.insert(0L);
         } else if key == 7 {
             assert(value == "c");
-            assert(!set.contains(1));
-            set.insert(1);
+            assert(!set.contains(1L));
+            set.insert(1L);
         } else {
             unreachable();
         }
     }
 
-    assert(set.contains(0));
-    assert(set.contains(1));
+    assert(set.contains(0L));
+    assert(set.contains(1L));
 }

@@ -1,7 +1,7 @@
 class HashMap[K: Hash + Equals, V] {
     // BitSet.size == capacity * 2
     // [bit 0: inserted; bit 1: deleted] * capacity
-    var inserted_and_deleted: BitSet = BitSet(0);
+    var inserted_and_deleted: BitSet = BitSet(0L);
     var keys: Array[K] = arrayEmpty[K]();
     var values: Array[V] = arrayEmpty[V]();
     var size: Int = 0;
@@ -24,8 +24,8 @@ class HashMap[K: Hash + Equals, V] {
                 }
 
             } else {
-                self.inserted_and_deleted.insert(2 * idx);
-                self.inserted_and_deleted.remove(2 * idx + 1);
+                self.inserted_and_deleted.insert((2 * idx).toInt64());
+                self.inserted_and_deleted.remove((2 * idx + 1).toInt64());
 
                 self.keys.set(idx, key);
                 self.values.set(idx, value);
@@ -104,7 +104,7 @@ class HashMap[K: Hash + Equals, V] {
 
                 if current_key.hash() == hash && current_key.equals(key) {
                     let value = self.values.get(idx);
-                    self.inserted_and_deleted.insert(2 * idx + 1);
+                    self.inserted_and_deleted.insert((2 * idx + 1).toInt64());
 
                     self.keys.set(idx, defaultValue[K]());
                     self.values.set(idx, defaultValue[V]());
@@ -161,7 +161,7 @@ class HashMap[K: Hash + Equals, V] {
         let old_capacity = self.cap;
 
         let new_map = HashMap[K, V]();
-        new_map.inserted_and_deleted = BitSet(2 * new_capacity);
+        new_map.inserted_and_deleted = BitSet((2 * new_capacity).toInt64());
         new_map.keys = Array[K](new_capacity);
         new_map.values = Array[V](new_capacity);
         new_map.size = 0;
@@ -188,8 +188,8 @@ class HashMap[K: Hash + Equals, V] {
     }
 
     fun isLive(idx: Int) -> Bool {
-        return self.inserted_and_deleted.contains(2 * idx) &&
-               !self.inserted_and_deleted.contains(2 * idx + 1);
+        return self.inserted_and_deleted.contains((2 * idx).toInt64()) &&
+               !self.inserted_and_deleted.contains((2 * idx + 1).toInt64());
     }
 
     fun length() -> Int {

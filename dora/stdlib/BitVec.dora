@@ -1,69 +1,69 @@
 class BitVec {
-    var data: Array[Int] = arrayEmpty[Int]();
+    var data: Array[Int32] = arrayEmpty[Int32]();
 
-    fun contains(idx: Int) -> Bool {
-        if idx < 0 {
+    fun contains(idx: Int64) -> Bool {
+        if idx < 0L {
             fatalError("index out of bounds");
         }
 
-        if idx >= self.data.length() * 32 {
+        if idx >= self.data.length().toInt64() * 32L {
             return false;
         }
 
-        let entry_idx = idx / 32;
-        let value = self.data.get(entry_idx);
+        let entry_idx = idx / 32L;
+        let value = self.data.get(entry_idx.toInt());
         let value_idx = idx - entry_idx;
 
-        return value & (1 << value_idx) != 0;
+        return value & (1I << value_idx.toInt()) != 0I;
     }
 
-    fun insert(idx: Int) {
-        if idx < 0 {
+    fun insert(idx: Int64) {
+        if idx < 0L {
             fatalError("index out of bounds");
         }
 
-        self.ensureCapacity(idx+1);
+        self.ensureCapacity(idx+1L);
 
-        let entry_idx = idx / 32;
-        var value = self.data.get(entry_idx);
+        let entry_idx = idx / 32L;
+        var value = self.data.get(entry_idx.toInt());
         let value_idx = idx - entry_idx;
 
-        value = value | (1 << value_idx);
+        value = value | (1I << value_idx.toInt());
 
-        self.data.set(entry_idx, value);
+        self.data.set(entry_idx.toInt(), value);
     }
 
-    fun remove(idx: Int) {
-        if idx < 0 {
+    fun remove(idx: Int64) {
+        if idx < 0L {
             fatalError("index out of bounds");
         }
 
-        if idx >= self.data.length() * 32 {
+        if idx >= self.data.length().toInt64() * 32L {
             return;
         }
 
-        let entry_idx = idx / 32;
-        var value = self.data.get(entry_idx);
+        let entry_idx = idx / 32L;
+        var value = self.data.get(entry_idx.toInt());
         let value_idx = idx - entry_idx;
 
-        value = value & !(1 << value_idx);
+        value = value & !(1I << value_idx.toInt());
 
-        self.data.set(entry_idx, value);
+        self.data.set(entry_idx.toInt(), value);
     }
 
-    fun ensureCapacity(newcap: Int) {
-        if newcap < self.data.length() * 32 || newcap == 0 {
+    fun ensureCapacity(newcap: Int64) {
+        if newcap < self.data.length().toInt64() * 32L || newcap == 0L {
             return;
         }
 
-        let newcap = (newcap + 31) / 32;
+        let newcap = (newcap + 31L) / 32L;
 
-        let newarray = Array[Int](newcap);
-        arrayCopy[Int](self.data, 0, newarray, 0, self.data.length());
+        let newarray = Array[Int32](newcap.toInt());
+        arrayCopy[Int32](self.data, 0, newarray, 0, self.data.length());
         self.data = newarray;
     }
 
-    fun capacity() -> Int {
-        self.data.length() * 32
+    fun capacity() -> Int64 {
+        self.data.length().toInt64() * 32L
     }
 }

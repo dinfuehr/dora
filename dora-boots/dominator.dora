@@ -6,13 +6,13 @@ fun findBackEdges(graph: Graph) {
     let successorsVisited = arrayNew[Int](graph.numberBlocks());
 
     // all blocks that have been fully visited (including successors)
-    let visited = BitSet(graph.numberBlocks());
+    let visited = BitSet(graph.numberBlocks().toInt64());
 
     // all blocks in worklist
-    let visiting = BitSet(graph.numberBlocks());
+    let visiting = BitSet(graph.numberBlocks().toInt64());
 
     worklist.push(graph.getEntryBlock());
-    visiting.insert(graph.getEntryBlock().id);
+    visiting.insert(graph.getEntryBlock().id.toInt64());
 
     while !worklist.isEmpty() {
         let block = worklist.last().unwrap();
@@ -20,19 +20,19 @@ fun findBackEdges(graph: Graph) {
 
         if successorIndex == block.successors.length() {
             worklist.pop();
-            visiting.remove(block.id);
-            visited.insert(block.id);
+            visiting.remove(block.id.toInt64());
+            visited.insert(block.id.toInt64());
         } else {
             successorsVisited(block.id) = successorIndex + 1;
             let successor = block.successors.get(successorIndex);
 
-            if visiting.contains(successor.id) {
+            if visiting.contains(successor.id.toInt64()) {
                 successor.addBackEdge(block);
-            } else if visited.contains(successor.id) {
+            } else if visited.contains(successor.id.toInt64()) {
                 // already visited
             } else {
                 worklist.push(successor);
-                visiting.insert(successor.id);
+                visiting.insert(successor.id.toInt64());
             }
         }
     }
@@ -41,7 +41,7 @@ fun findBackEdges(graph: Graph) {
     while it.hasNext() {
         let block = it.next();
         // assume for now that all blocks are reachable
-        assert(visited.contains(block.id));
+        assert(visited.contains(block.id.toInt64()));
     }
 }
 
@@ -56,7 +56,7 @@ fun computePostOrder(graph: Graph) {
     let successorsVisited = arrayNew[Int](graph.numberBlocks());
 
     // all blocks that have been visited
-    let visited = BitSet(graph.numberBlocks());
+    let visited = BitSet(graph.numberBlocks().toInt64());
 
     worklist.push(graph.getEntryBlock());
 
@@ -71,11 +71,11 @@ fun computePostOrder(graph: Graph) {
             successorsVisited(block.id) = successorIndex + 1;
             let successor = block.successors.get(successorIndex);
 
-            if visited.contains(successor.id) {
+            if visited.contains(successor.id.toInt64()) {
                 // block either already visited or back edge
             } else {
                 worklist.push(successor);
-                visited.insert(successor.id);
+                visited.insert(successor.id.toInt64());
             }
         }
     }
@@ -91,13 +91,13 @@ fun computeDominators(graph: Graph) {
     let successorsVisited = arrayNew[Int](graph.numberBlocks());
 
     // all blocks that have been fully visited (including successors)
-    let visited = BitSet(graph.numberBlocks());
+    let visited = BitSet(graph.numberBlocks().toInt64());
 
     // all blocks in worklist
-    let visiting = BitSet(graph.numberBlocks());
+    let visiting = BitSet(graph.numberBlocks().toInt64());
 
     worklist.push(graph.getEntryBlock());
-    visiting.insert(graph.getEntryBlock().id);
+    visiting.insert(graph.getEntryBlock().id.toInt64());
 
     while !worklist.isEmpty() {
         let block = worklist.last().unwrap();
@@ -105,19 +105,19 @@ fun computeDominators(graph: Graph) {
 
         if successorIndex == block.successors.length() {
             worklist.pop();
-            visiting.remove(block.id);
-            visited.insert(block.id);
+            visiting.remove(block.id.toInt64());
+            visited.insert(block.id.toInt64());
         } else {
             successorsVisited(block.id) = successorIndex + 1;
             let successor = block.successors.get(successorIndex);
 
-            if visiting.contains(successor.id) {
+            if visiting.contains(successor.id.toInt64()) {
                 // ignore back-edges
-            } else if !visited.contains(successor.id) {
+            } else if !visited.contains(successor.id.toInt64()) {
                 // first time we see this block
                 successor.setDominator(block);
                 worklist.push(successor);
-                visited.insert(successor.id);
+                visited.insert(successor.id.toInt64());
             } else {
                 updateDominator(block, successor);
             }

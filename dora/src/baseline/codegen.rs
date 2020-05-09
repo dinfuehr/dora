@@ -1215,7 +1215,7 @@ where
 
         let mode = match ty {
             BuiltinType::UInt8 => MachineMode::Int8,
-            BuiltinType::Int => MachineMode::Int32,
+            BuiltinType::Int32 | BuiltinType::Int => MachineMode::Int32,
             BuiltinType::Int64 => MachineMode::Int64,
             _ => unreachable!(),
         };

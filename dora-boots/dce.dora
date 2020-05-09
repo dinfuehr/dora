@@ -1,7 +1,7 @@
 fun find_reachable_blocks(graph: Graph) -> BitSet {
     let worklist = Vec[Block]();
     let blocks = graph.numberBlocks();
-    let visited = BitSet(blocks);
+    let visited = BitSet(blocks.toInt64());
     let successors_processed = arrayFill[Int](blocks, 0);
 
     worklist.push(graph.entryBlock);
@@ -16,7 +16,7 @@ fun find_reachable_blocks(graph: Graph) -> BitSet {
             let successor = block.successors.get(block.id);
             successors_processed(block.id) = idx + 1;
 
-            if !visited.contains(successor.id) {
+            if !visited.contains(successor.id.toInt64()) {
                 worklist.push(successor);
             }
         }

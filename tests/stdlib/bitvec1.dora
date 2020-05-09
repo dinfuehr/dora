@@ -2,49 +2,49 @@
 
 fun main() {
     let set = BitVec();
-    set.insert(0);
-    set.insert(63);
-    assert(set.contains(0));
-    assert(set.contains(63));
+    set.insert(0L);
+    set.insert(63L);
+    assert(set.contains(0L));
+    assert(set.contains(63L));
 
     var i = 1;
     while i < 63 {
-        assert(!set.contains(i));
+        assert(!set.contains(i.toInt64()));
         i = i + 1;
     }
 
-    assert(set.capacity() == 64);
-    assert(!set.contains(64));
-    assert(!set.contains(128));
+    assert(set.capacity() == 64L);
+    assert(!set.contains(64L));
+    assert(!set.contains(128L));
 
-    set.insert(0);
-    set.insert(1);
-    set.insert(31);
-    set.insert(32);
-    set.insert(63);
+    set.insert(0L);
+    set.insert(1L);
+    set.insert(31L);
+    set.insert(32L);
+    set.insert(63L);
 
-    assert(set.contains(0));
-    assert(set.contains(1));
-    assert(!set.contains(2));
-    assert(!set.contains(30));
-    assert(set.contains(31));
-    assert(set.contains(32));
-    assert(!set.contains(33));
-    assert(!set.contains(62));
-    assert(set.contains(63));
+    assert(set.contains(0L));
+    assert(set.contains(1L));
+    assert(!set.contains(2L));
+    assert(!set.contains(30L));
+    assert(set.contains(31L));
+    assert(set.contains(32L));
+    assert(!set.contains(33L));
+    assert(!set.contains(62L));
+    assert(set.contains(63L));
 
-    set.remove(0);
-    set.remove(63);
+    set.remove(0L);
+    set.remove(63L);
 
-    assert(!set.contains(0));
-    assert(set.contains(1));
-    assert(set.contains(31));
-    assert(set.contains(32));
-    assert(!set.contains(63));
-    assert(!set.contains(64));
-    assert(!set.contains(128));
-    assert(set.capacity() == 64);
+    assert(!set.contains(0L));
+    assert(set.contains(1L));
+    assert(set.contains(31L));
+    assert(set.contains(32L));
+    assert(!set.contains(63L));
+    assert(!set.contains(64L));
+    assert(!set.contains(128L));
+    assert(set.capacity() == 64L);
 
-    set.insert(64);
-    assert(set.capacity() == 96);
+    set.insert(64L);
+    assert(set.capacity() == 96L);
 }
