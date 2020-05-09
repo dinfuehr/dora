@@ -1,32 +1,32 @@
 class Vec[T] {
   var array: Array[T] = arrayEmpty[T]();
-  var len: Int = 0;
+  var len: Int64 = 0L;
 
-  fun get(idx: Int) -> T {
-    if idx < 0 || idx >= self.len {
+  fun get(idx: Int64) -> T {
+    if idx < 0L || idx >= self.len {
       fatalError("index out of bounds for vector");
     }
 
-    return self.array.get(idx);
+    return self.array.get(idx.toInt());
   }
 
-  fun set(idx: Int, val: T) {
-    if idx < 0 || idx >= self.len {
+  fun set(idx: Int64, val: T) {
+    if idx < 0L || idx >= self.len {
       fatalError("index out of bounds for vector");
     }
 
-    self.array.set(idx, val);
+    self.array.set(idx.toInt(), val);
   }
 
-  fun reserve(newcap: Int) {
-    assert(newcap >= 0);
+  fun reserve(newcap: Int64) {
+    assert(newcap >= 0L);
 
     if self.capacity() >= newcap {
       return;
     }
 
-    let newarray = Array[T](newcap);
-    arrayCopy[T](self.array, 0, newarray, 0, self.len);
+    let newarray = Array[T](newcap.toInt());
+    arrayCopy[T](self.array, 0, newarray, 0, self.len.toInt());
     self.array = newarray;
   }
 
@@ -34,86 +34,85 @@ class Vec[T] {
     var newcap = self.capacity();
 
     if self.len == newcap {
-      if newcap == 0 {
-        newcap = 4;
+      if newcap == 0L {
+        newcap = 4L;
       } else {
-        newcap = newcap * 2;
+        newcap = newcap * 2L;
       }
 
-      let newarray = Array[T](newcap);
-      arrayCopy[T](self.array, 0, newarray, 0, self.len);
+      let newarray = Array[T](newcap.toInt());
+      arrayCopy[T](self.array, 0, newarray, 0, self.len.toInt());
       self.array = newarray;
     }
 
-    self.array.set(self.len, val);
-    self.len = self.len + 1;
+    self.array.set(self.len.toInt(), val);
+    self.len = self.len + 1L;
   }
 
   fun toArray() -> Array[T] {
-    let newarray = Array[T](self.len);
-    arrayCopy[T](self.array, 0, newarray, 0, self.len);
+    let newarray = Array[T](self.len.toInt());
+    arrayCopy[T](self.array, 0, newarray, 0, self.len.toInt());
     newarray
   }
 
   fun pop() -> T {
-    if self.len == 0 {
+    if self.len == 0L {
       fatalError("no element left to pop");
     }
 
-    let newlength = self.len - 1;
-    let temp = self.array.get(newlength);
+    let newlength = self.len - 1L;
+    let temp = self.array.get(newlength.toInt());
 
     // set popped element to nil so that GC can collect object
     // not necessary for primitive types
-    self.array.set(newlength, defaultValue[T]());
+    self.array.set(newlength.toInt(), defaultValue[T]());
 
     self.len = newlength;
-
-    return temp;
+    temp
   }
 
   fun trimToLen() {
     if self.len != self.capacity() {
-      if self.len == 0 {
+      if self.len == 0L {
         self.array = arrayEmpty[T]();
       } else {
-        let newarray = Array[T](self.len);
-        arrayCopy[T](self.array, 0, newarray, 0, self.len);
+        let newarray = Array[T](self.len.toInt());
+        arrayCopy[T](self.array, 0, newarray, 0, self.len.toInt());
         self.array = newarray;
       }
     }
   }
 
-  fun removeAt(var ind: Int) -> T {
+  fun removeAt(var ind: Int64) -> T {
     assert(ind < self.len);
     let temp = self.get(ind);
     let len = self.len;
 
-    while ind < len - 1 {
-      self.set(ind, self.get(ind+1));
-      ind = ind + 1;
+    while ind < len - 1L {
+      self.set(ind, self.get(ind+1L));
+      ind = ind + 1L;
     }
 
     self.set(ind, defaultValue[T]());
     self.len = ind;
 
-    return temp;
+    temp
   }
 
-  fun length() -> Int {
+  fun length() -> Int64 {
     return self.len;
   }
 
   fun isEmpty() -> Bool {
-    self.len == 0
+    self.len == 0L
   }
 
-  fun capacity() -> Int {
-    self.array.length()
+  fun capacity() -> Int64 {
+    self.array.length().toInt64()
   }
 
   fun first() -> Option[T] {
-    if self.len == 0 {
+    if self.len == 0L {
       none[T]()
     } else {
       some[T](self.array.get(0))
@@ -121,10 +120,10 @@ class Vec[T] {
   }
 
   fun last() -> Option[T] {
-    if self.len == 0 {
+    if self.len == 0L {
       none[T]()
     } else {
-      some[T](self.array.get(self.len - 1))
+      some[T](self.array.get((self.len - 1L).toInt()))
     }
   }
 
@@ -138,7 +137,7 @@ class Vec[T] {
 }
 
 class VecIter[T](let data: Vec[T]) {
-  var idx: Int = 0;
+  var idx: Int64 = 0L;
 
   fun hasNext() -> Bool {
     self.idx < self.data.length()
@@ -146,33 +145,33 @@ class VecIter[T](let data: Vec[T]) {
 
   fun next() -> T {
     let result = self.data.get(self.idx);
-    self.idx = self.idx + 1;
+    self.idx = self.idx + 1L;
     result
   }
 }
 
 class ReverseVecIter[T](let data: Vec[T]) {
-  var idx: Int = data.length() - 1;
+  var idx: Int64 = data.length() - 1L;
 
   fun hasNext() -> Bool {
-    self.idx != -1
+    self.idx != -1L
   }
 
   fun next() -> T {
     let result = self.data.get(self.idx);
-    self.idx = self.idx - 1;
+    self.idx = self.idx - 1L;
     result
   }
 }
 
 fun removeItem[T: Equals](vec: Vec[T], elem: T) {
-  var i = 0;
+  var i = 0L;
 
   while i < vec.length() {
     if vec.get(i).equals(elem) {
       vec.removeAt(i);
     } else {
-      i = i + 1;
+      i = i + 1L;
     }
   }
 }
@@ -180,6 +179,6 @@ fun removeItem[T: Equals](vec: Vec[T], elem: T) {
 fun vec[T](values: T...) -> Vec[T] {
   let result = Vec[T]();
   result.array = values;
-  result.len = values.length();
+  result.len = values.length().toInt64();
   result
 }

@@ -17,11 +17,11 @@ class AssemblerBuffer {
         self.emitInt32((value >>> 32).toInt());
     }
 
-    fun length() -> Int {
+    fun length() -> Int64 {
         self.buffer.length()
     }
 
-    fun capacity() -> Int {
+    fun capacity() -> Int64 {
         self.buffer.capacity()
     }
 
@@ -34,7 +34,7 @@ class AssemblerBuffer {
     let buffer = AssemblerBuffer();
     buffer.emitByte(0x01Y);
     buffer.emitByte(0x02Y);
-    assert(buffer.length() == 2);
+    assert(buffer.length() == 2L);
 }
 
 @test fun testAssemblerBufferEmitInt(_x: Testing) {

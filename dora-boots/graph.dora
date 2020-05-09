@@ -17,7 +17,7 @@ class Graph {
     }
 
     fun getBlockWithId(id: Int) -> Block {
-        self.blocks.get(id)
+        self.blocks.get(id.toInt64())
     }
 
     fun setEntryBlock(block: Block) {
@@ -58,8 +58,8 @@ class Graph {
         self.postOrder = postOrder;
 
         var idx = 0;
-        while idx < self.postOrder.length() {
-            let block = self.postOrder.get(idx);
+        while idx < self.postOrder.length().toInt() {
+            let block = self.postOrder.get(idx.toInt64());
             block.postOrderIdx = idx;
             idx = idx + 1;
         }
@@ -88,25 +88,25 @@ class PostOrderIterator(let postOrder: Vec[Block]) {
     var idx: Int = 0;
 
     fun hasNext() -> Bool {
-        self.idx < self.postOrder.length()
+        self.idx < self.postOrder.length().toInt()
     }
 
     fun next() -> Block {
-        let block = self.postOrder.get(self.idx);
+        let block = self.postOrder.get(self.idx.toInt64());
         self.idx = self.idx + 1;
         block
     }
 }
 
 class ReversePostOrderIterator(let postOrder: Vec[Block]) {
-    var idx: Int = self.postOrder.length() - 1;
+    var idx: Int = self.postOrder.length().toInt() - 1;
 
     fun hasNext() -> Bool {
         self.idx != -1
     }
 
     fun next() -> Block {
-        let block = self.postOrder.get(self.idx);
+        let block = self.postOrder.get(self.idx.toInt64());
         self.idx = self.idx - 1;
         block
     }
@@ -243,7 +243,7 @@ class LoopHeader(let header: Block) {
     }
 
     fun numberBackEdges() -> Int {
-        self.backEdges.length()
+        self.backEdges.length().toInt()
     }
 }
 
@@ -271,7 +271,7 @@ class Input(var idx: Int, var value: Inst, var usedBy: Inst) {
     }
 
     fun addInput(inst: Inst) {
-        let input = Input(self.inputs.length(), inst, self);
+        let input = Input(self.inputs.length().toInt(), inst, self);
         self.inputs.push(input);
     }
 
@@ -336,22 +336,22 @@ class Input(var idx: Int, var value: Inst, var usedBy: Inst) {
     }
 
     fun registerUses() {
-        let inputs = self.inputs.length();
+        let inputs = self.inputs.length().toInt();
         var idx = 0;
 
         while idx < inputs {
-            let input = self.inputs.get(idx);
+            let input = self.inputs.get(idx.toInt64());
             input.value.addUse(input);
             idx = idx + 1;
         }
     }
 
     fun removeAsUser() {
-        let inputs = self.inputs.length();
+        let inputs = self.inputs.length().toInt();
         var idx = 0;
 
         while idx < inputs {
-            let input = self.inputs.get(idx);
+            let input = self.inputs.get(idx.toInt64());
             input.value.removeUse(input);
             idx = idx + 1;
         }
@@ -371,7 +371,7 @@ class Input(var idx: Int, var value: Inst, var usedBy: Inst) {
     }
 
     fun replaceInput(replacement: Inst, idx: Int) {
-        let input = self.inputs.get(idx);
+        let input = self.inputs.get(idx.toInt64());
 
         if input.value === replacement {
             return;

@@ -1,42 +1,42 @@
 //= cannon
 
 fun main() {
-    let vec = Vec[Int]();
-    assert(vec.length() == 0);
-    assert(vec.capacity() == 0);
+    let vec = Vec[Int32]();
+    assert(vec.length() == 0L);
+    assert(vec.capacity() == 0L);
 
-    vec.push(1);
-    vec.push(2);
-    vec.push(3);
-    assert(vec.length() == 3);
-    assert(vec.capacity() == 4);
+    vec.push(1I);
+    vec.push(2I);
+    vec.push(3I);
+    assert(vec.length() == 3L);
+    assert(vec.capacity() == 4L);
 
-    vec.push(4);
-    assert(vec.length() == 4);
-    assert(vec.capacity() == 4);
+    vec.push(4I);
+    assert(vec.length() == 4L);
+    assert(vec.capacity() == 4L);
 
-    vec.push(5);
-    assert(vec.length() == 5);
-    assert(vec.capacity() == 8);
-    assert(vec(0) == 1);
-    assert(vec(1) == 2);
-    assert(vec(2) == 3);
-    assert(vec(3) == 4);
-    assert(vec(4) == 5);
+    vec.push(5I);
+    assert(vec.length() == 5L);
+    assert(vec.capacity() == 8L);
+    assert(vec(0L) == 1I);
+    assert(vec(1L) == 2I);
+    assert(vec(2L) == 3I);
+    assert(vec(3L) == 4I);
+    assert(vec(4L) == 5I);
 
-    vec(0) = vec(0) + 2;
-    vec(1) = vec(0) - 1;
+    vec(0L) = vec(0L) + 2I;
+    vec(1L) = vec(0L) - 1I;
 
-    assert(vec(0) == 3);
-    assert(vec(1) == 2);
+    assert(vec(0L) == 3I);
+    assert(vec(1L) == 2I);
 
     vec.trimToLen();
-    assert(vec.length() == 5);
-    assert(vec.capacity() == 5);
+    assert(vec.length() == 5L);
+    assert(vec.capacity() == 5L);
 
-    assert(vec(0) == 3);
-    assert(vec(1) == 2);
-    assert(vec(2) == 3);
-    assert(vec(3) == 4);
-    assert(vec(4) == 5);
+    assert(vec(0L) == 3I);
+    assert(vec(1L) == 2I);
+    assert(vec(2L) == 3I);
+    assert(vec(3L) == 4I);
+    assert(vec(4L) == 5I);
 }

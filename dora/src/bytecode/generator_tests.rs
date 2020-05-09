@@ -3404,13 +3404,13 @@ fn gen_while_with_break() {
 #[test]
 fn gen_vec_load() {
     gen(
-        "fun f(x: Vec[Int], idx: Int) -> Int { x(idx) }",
+        "fun f(x: Vec[Int32], idx: Int64) -> Int32 { x(idx) }",
         |vm, code| {
             let fct_id = vm.cls_method_by_name("Vec", "get", false).unwrap();
             let fct_def_id = FctDef::fct_id_types(
                 vm,
                 fct_id,
-                TypeList::single(BuiltinType::Int),
+                TypeList::single(BuiltinType::Int32),
                 TypeList::empty(),
             );
             let expected = vec![
@@ -3427,13 +3427,13 @@ fn gen_vec_load() {
 #[test]
 fn gen_vec_store() {
     gen(
-        "fun f(x: Vec[Int], idx: Int, value: Int) { x(idx) = value; }",
+        "fun f(x: Vec[Int32], idx: Int64, value: Int32) { x(idx) = value; }",
         |vm, code| {
             let fct_id = vm.cls_method_by_name("Vec", "set", false).unwrap();
             let fct_def_id = FctDef::fct_id_types(
                 vm,
                 fct_id,
-                TypeList::single(BuiltinType::Int),
+                TypeList::single(BuiltinType::Int32),
                 TypeList::empty(),
             );
             let expected = vec![

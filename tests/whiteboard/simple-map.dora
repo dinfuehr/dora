@@ -1,21 +1,21 @@
 fun main() {
-    let m = SlowMap[Int, String]();
-    assert(m.insert(1, "hello"));
-    assert(m.insert(2, "world"));
+    let m = SlowMap[Int32, String]();
+    assert(m.insert(1I, "hello"));
+    assert(m.insert(2I, "world"));
 
-    assert(m.get(1) == "hello");
-    assert(m.get(2) == "world");
-    assert(m.get(3) === nil);
+    assert(m.get(1I) == "hello");
+    assert(m.get(2I) == "world");
+    assert(m.get(3I) === nil);
 
-    assert(!m.insert(2, "test"));
-    assert(m.get(2) == "test");
+    assert(!m.insert(2I, "test"));
+    assert(m.get(2I) == "test");
 }
 
 class SlowMap[K: Equals, V] {
     var entries: Vec[SlowMapEntry[K, V]] = Vec[SlowMapEntry[K, V]]();
 
     fun insert(key: K, val: V) -> Bool {
-        var i = 0;
+        var i = 0L;
         var len = self.entries.length();
 
         while i < len {
@@ -26,15 +26,15 @@ class SlowMap[K: Equals, V] {
                 return false;
             }
 
-            i = i + 1;
+            i = i + 1L;
         }
 
         self.entries.push(SlowMapEntry[K, V](key, val));
-        return true;
+        true
     }
 
     fun get(key: K) -> V {
-        var i = 0;
+        var i = 0L;
         var len = self.entries.length();
 
         while i < len {
@@ -44,7 +44,7 @@ class SlowMap[K: Equals, V] {
                 return entry.value;
             }
 
-            i = i + 1;
+            i = i + 1L;
         }
 
         return defaultValue[V]();

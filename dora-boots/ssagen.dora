@@ -93,7 +93,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
             }
 
             incomplete as Inst
-        } else if block.predecessors.length() == 1 {
+        } else if block.predecessors.length() == 1L {
             self.readVariable(register, block.predecessors.first().unwrap())
         } else {
             let phi = PhiInst();

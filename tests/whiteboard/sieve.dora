@@ -4,8 +4,8 @@ fun main() {
     let primes = sieve(100);
     var i = 0;
 
-    while i < primes.length() {
-        println(primes(i).toString());
+    while i < primes.length().toInt() {
+        println(primes(i.toInt64()).toString());
         i = i + 1;
     }
 }

@@ -7,7 +7,7 @@ class BytecodeWriter {
 
     fun addRegister(ty: BytecodeType) -> BytecodeRegister {
         self.registers.push(ty);
-        BytecodeRegister(self.registers.length() - 1)
+        BytecodeRegister(self.registers.length().toInt() - 1)
     }
 
     fun createLabel() -> BytecodeLabel {
@@ -15,11 +15,11 @@ class BytecodeWriter {
     }
 
     fun defineLabel() -> BytecodeLabel {
-        BytecodeLabel().bindTo(self.code.length())
+        BytecodeLabel().bindTo(self.code.length().toInt())
     }
 
     fun bindLabel(lbl: BytecodeLabel) {
-        lbl.bindTo(self.code.length());
+        lbl.bindTo(self.code.length().toInt());
     }
 
     fun setArguments(arguments: Int) {
@@ -698,7 +698,7 @@ class BytecodeWriter {
 
     fun emitJumpLoop(lbl: BytecodeLabel) {
         assert(lbl.isBound());
-        let offset = self.code.length() - lbl.offset();
+        let offset = self.code.length().toInt() - lbl.offset();
         self.emitJmp(BC_JUMP_LOOP, offset);
     }
 
@@ -878,22 +878,22 @@ class BytecodeWriter {
     fun resolveJumps() {
         var i = 0;
 
-        while i < self.unresolvedJumps.length() {
-            let jump = self.unresolvedJumps.get(i);
+        while i < self.unresolvedJumps.length().toInt() {
+            let jump = self.unresolvedJumps.get(i.toInt64());
             assert(jump.label.isBound());
 
             assert(jump.label.offset() > jump.inst);
             let offset = jump.label.offset() - jump.inst;
 
-            let opcode = self.code.get(jump.inst).toInt();
+            let opcode = self.code.get(jump.inst.toInt64()).toInt();
 
             if opcode == BC_WIDE {
                 // wide is guaranteed to not use constant pool
                 self.patchInt(jump.target, offset);
             } else if isWide(offset) {
                 // Need to update const pool entry
-                let idx = self.code.get(jump.target).toInt();
-                self.constPool.set(idx, ConstPoolInt32(offset));
+                let idx = self.code.get(jump.target.toInt64()).toInt();
+                self.constPool.set(idx.toInt64(), ConstPoolInt32(offset));
             } else {
                 // Offset fits into byte, replace instruction with jump+immediate
                 let opcode = if opcode == BC_JUMP_CONST {
@@ -907,8 +907,8 @@ class BytecodeWriter {
                     -1
                 };
 
-                self.code.set(jump.inst, opcode.toUInt8());
-                self.code.set(jump.target, offset.toUInt8());
+                self.code.set(jump.inst.toInt64(), opcode.toUInt8());
+                self.code.set(jump.target.toInt64(), offset.toUInt8());
             }
 
             i = i + 1;
@@ -930,16 +930,16 @@ class BytecodeWriter {
     fun emitJmpForward(inst: Int, instConst: Int, opnd: Option[BytecodeRegister], lbl: BytecodeLabel) {
         assert(!isWide(inst));
         assert(!isWide(instConst));
-        let start = self.code.length();
+        let start = self.code.length().toInt();
         var target: Int = 0;
 
-        if (opnd.isSome() && isWide(opnd.unwrap().value)) || isWide(self.constPool.length()) {
+        if (opnd.isSome() && isWide(opnd.unwrap().value)) || isWide(self.constPool.length().toInt()) {
             self.emitWide();
             self.emitOpcode(inst);
             if opnd.isSome() {
                 self.emitInt(opnd.unwrap().value);
             }
-            target = self.code.length();
+            target = self.code.length().toInt();
             self.emitInt(0);
         } else {
             self.emitOpcode(instConst);
@@ -947,7 +947,7 @@ class BytecodeWriter {
                 self.emitByte(opnd.unwrap().value);
             }
             let idx = self.addConst(ConstPoolInt32(0));
-            target = self.code.length();
+            target = self.code.length().toInt();
             self.emitByte(idx.value);
         }
 
@@ -960,7 +960,7 @@ class BytecodeWriter {
 
     fun addConst(entry: ConstPoolEntry) -> ConstPoolId {
         self.constPool.push(entry);
-        ConstPoolId(self.constPool.length() - 1)
+        ConstPoolId(self.constPool.length().toInt() - 1)
     }
 
     fun emitReg1(inst: Int, r1: BytecodeRegister) {
@@ -1095,10 +1095,11 @@ class BytecodeWriter {
 
     fun patchInt(idx: Int, val: Int) {
         assert(val >= 0);
+        let idx = idx.toInt64();
         self.code.set(idx, (val & 0xFF).toUInt8());
-        self.code.set(idx + 1, ((val >>> 8) & 0xFF).toUInt8());
-        self.code.set(idx + 2 , ((val >>> 16) & 0xFF).toUInt8());
-        self.code.set(idx + 3, ((val >>> 24) & 0xFF).toUInt8());
+        self.code.set(idx + 1L, ((val >>> 8) & 0xFF).toUInt8());
+        self.code.set(idx + 2L, ((val >>> 16) & 0xFF).toUInt8());
+        self.code.set(idx + 3L, ((val >>> 24) & 0xFF).toUInt8());
     }
 }
 

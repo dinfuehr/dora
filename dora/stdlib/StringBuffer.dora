@@ -1,79 +1,79 @@
 class StringBuffer() {
   var buf: Array[UInt8] = arrayEmpty[UInt8]();
-  var len: Int = 0;
+  var len: Int64 = 0L;
 
   @static fun empty() -> StringBuffer = StringBuffer();
 
-  fun length() -> Int {
+  fun length() -> Int64 {
     return self.len;
   }
 
-  fun capacity() -> Int {
-    return self.buf.length();
+  fun capacity() -> Int64 {
+    return self.buf.length().toInt64();
   }
 
   // reserve `elements` bytes
   // (capacity - length >= elements)
-  fun reserve(elements: Int) {
+  fun reserve(elements: Int64) {
     if self.capacity() - self.length() >= elements {
       return;
     }
 
     let newcap = self.newCapacity(elements);
-    let newbuf = Array[UInt8](newcap);
-    var i = 0;
+    let newbuf = Array[UInt8](newcap.toInt());
+    var i = 0L;
 
-    while i < self.buf.length() {
-      newbuf.set(i, self.buf.get(i));
-      i = i + 1;
+    while i < self.buf.length().toInt64() {
+      newbuf.set(i.toInt(), self.buf.get(i.toInt()));
+      i = i + 1L;
     }
 
     self.buf = newbuf;
   }
 
-  fun newCapacity(reserve: Int) -> Int {
+  fun newCapacity(reserve: Int64) -> Int64 {
     var len = self.len;
 
-    if len == 0 {
-      len = 4;
+    if len == 0L {
+      len = 4L;
     }
 
-    let c1 = (len + reserve + 7) & !7;
-    let c2 = len * 2;
+    let c1 = (len + reserve + 7L) & !7L;
+    let c2 = len * 2L;
 
     if c1 > c2 {
-      return c1;
-    } else if c2 - c1 > 32 {
-      return c1;
+      c1
+    } else if c2 - c1 > 32L {
+      c1
     } else {
-      return c2;
+      c2
     }
   }
 
   fun appendChar(ch: Char) -> StringBuffer {
     let chLen = ch.lenUtf8();
-    self.reserve(chLen);
-    ch.encodeUtf8(self.buf, self.len);
-    self.len = self.len + chLen;
-    return self;
+    self.reserve(chLen.toInt64());
+    ch.encodeUtf8(self.buf, self.len.toInt());
+    self.len = self.len + chLen.toInt64();
+    self
   }
 
   fun append(value: String) -> StringBuffer {
-    self.reserve(value.length());
-    var i = 0;
+    self.reserve(value.length().toInt64());
+    var i = 0L;
 
-    while i < value.length() {
-      self.buf.set(self.len + i, value.getByte(i));
-      i = i + 1;
+    while i < value.length().toInt64() {
+      self.buf.set((self.len + i).toInt(), value.getByte(i.toInt()));
+      i = i + 1L;
     }
 
-    self.len = self.len + value.length();
-    return self;
+    self.len = self.len + value.length().toInt64();
+    self
   }
 
   fun appendNewline() -> StringBuffer {
     self.appendChar('\n')
   }
 
-  fun toString() -> String = String::fromBytesPart(self.buf, 0, self.length()).unwrap();
+  fun toString() -> String = String::fromBytesPart(self.buf, 0, self.length().toInt()).unwrap();
 }

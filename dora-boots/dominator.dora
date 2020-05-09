@@ -3,7 +3,7 @@ fun findBackEdges(graph: Graph) {
     let worklist = Vec[Block]();
 
     // number of successors visited per block
-    let successorsVisited = arrayNew[Int](graph.numberBlocks());
+    let successorsVisited = arrayNew[Int64](graph.numberBlocks());
 
     // all blocks that have been fully visited (including successors)
     let visited = BitSet(graph.numberBlocks().toInt64());
@@ -23,7 +23,7 @@ fun findBackEdges(graph: Graph) {
             visiting.remove(block.id.toInt64());
             visited.insert(block.id.toInt64());
         } else {
-            successorsVisited(block.id) = successorIndex + 1;
+            successorsVisited(block.id) = successorIndex + 1L;
             let successor = block.successors.get(successorIndex);
 
             if visiting.contains(successor.id.toInt64()) {
@@ -47,13 +47,13 @@ fun findBackEdges(graph: Graph) {
 
 fun computePostOrder(graph: Graph) {
     let postOrder = Vec[Block]();
-    postOrder.reserve(graph.numberBlocks());
+    postOrder.reserve(graph.numberBlocks().toInt64());
 
     // worklist contains current path in the graph
     let worklist = Vec[Block]();
 
     // number of successors visited per block
-    let successorsVisited = arrayNew[Int](graph.numberBlocks());
+    let successorsVisited = arrayNew[Int64](graph.numberBlocks());
 
     // all blocks that have been visited
     let visited = BitSet(graph.numberBlocks().toInt64());
@@ -68,7 +68,7 @@ fun computePostOrder(graph: Graph) {
             worklist.pop();
             postOrder.push(block);
         } else {
-            successorsVisited(block.id) = successorIndex + 1;
+            successorsVisited(block.id) = successorIndex + 1L;
             let successor = block.successors.get(successorIndex);
 
             if visited.contains(successor.id.toInt64()) {
@@ -88,7 +88,7 @@ fun computeDominators(graph: Graph) {
     let worklist = Vec[Block]();
 
     // number of successors visited per block
-    let successorsVisited = arrayNew[Int](graph.numberBlocks());
+    let successorsVisited = arrayNew[Int64](graph.numberBlocks());
 
     // all blocks that have been fully visited (including successors)
     let visited = BitSet(graph.numberBlocks().toInt64());
@@ -108,7 +108,7 @@ fun computeDominators(graph: Graph) {
             visiting.remove(block.id.toInt64());
             visited.insert(block.id.toInt64());
         } else {
-            successorsVisited(block.id) = successorIndex + 1;
+            successorsVisited(block.id) = successorIndex + 1L;
             let successor = block.successors.get(successorIndex);
 
             if visiting.contains(successor.id.toInt64()) {
