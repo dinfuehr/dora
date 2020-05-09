@@ -506,6 +506,7 @@ pub mod tests {
             let errors = diag.errors();
 
             println!("errors = {:?}", errors);
+            println!();
 
             for e in errors {
                 println!("{}", e.message(vm));

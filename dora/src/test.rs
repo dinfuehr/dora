@@ -34,9 +34,25 @@ where
     parse_bundled_stdlib(&mut vm, &mut ast).expect("failed parsing stdlib");
 
     {
-        let reader = Reader::from_string("<<code>>", code);
+        let filename = "<<code>>";
+        let reader = Reader::from_string(filename, code);
         let parser = Parser::new(reader, &vm.id_generator, &mut ast, &mut vm.interner);
-        parser.parse().unwrap();
+        match parser.parse() {
+            Ok(file) => {
+                vm.files.push(file);
+                assert_eq!(ast.files.len(), vm.files.len());
+            }
+
+            Err(error) => {
+                println!(
+                    "error in {} at {}: {}",
+                    filename,
+                    error.pos,
+                    error.error.message()
+                );
+                panic!("error during parsing.");
+            }
+        }
     }
 
     vm.ast = &ast;
