@@ -542,7 +542,6 @@ fn var_without_initialization() {
 
 #[test]
 fn reassign_param() {
-    ok("fun f(var a: Int) { a = 1; }");
     err(
         "fun f(a: Int) { a = 1; }",
         pos(1, 19),
@@ -552,10 +551,10 @@ fn reassign_param() {
 
 #[test]
 fn reassign_field() {
-    ok("class Foo(var x: Int) fun foo(var f: Foo) { f.x = 1; }");
+    ok("class Foo(var x: Int) fun foo(f: Foo) { f.x = 1; }");
     err(
-        "class Foo(let x: Int) fun foo(var f: Foo) { f.x = 1; }",
-        pos(1, 49),
+        "class Foo(let x: Int) fun foo(f: Foo) { f.x = 1; }",
+        pos(1, 45),
         SemError::LetReassigned,
     );
 }

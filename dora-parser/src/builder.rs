@@ -108,7 +108,6 @@ impl<'a> BuilderFct<'a> {
             id,
             idx: self.params.len() as u32,
             name,
-            reassignable: false,
             variadic: false,
             pos: Position::new(1, 1),
             span: Span::invalid(),

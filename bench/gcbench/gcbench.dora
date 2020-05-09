@@ -21,15 +21,16 @@ fun numIters(i: Int) -> Int {
     return 4 * treeSize(stretchTreeDepth) / treeSize(i);
 }
 
-fun populate(var iDepth: Int, thisNode: Node) {
-    if iDepth <= 0 {
+fun populate(depth: Int, thisNode: Node) {
+    var depth = depth;
+    if depth <= 0 {
         return;
     } else {
-        iDepth = iDepth - 1;
+        depth = depth - 1;
         thisNode.left = Node::leaf();
         thisNode.right = Node::leaf();
-        populate(iDepth, thisNode.left);
-        populate(iDepth, thisNode.right);
+        populate(depth, thisNode.left);
+        populate(depth, thisNode.right);
     }
 }
 

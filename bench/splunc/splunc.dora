@@ -4,7 +4,8 @@
     var left: Node;
     var right: Node;
 
-    @static fun splay(var tree: Node, node: Node) -> Node {
+    @static fun splay(tree: Node, node: Node) -> Node {
+        var tree = tree;
         if tree === nil {
             return tree;
         }
@@ -70,7 +71,8 @@
         return tree;
     }
 
-    @static fun insert(var tree: Node, node: Node) -> Node {
+    @static fun insert(tree: Node, node: Node) -> Node {
+        var tree = tree;
         if tree === nil {
             return node;
         }
