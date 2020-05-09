@@ -457,7 +457,7 @@ impl BuiltinType {
             BuiltinType::UInt8 => 1,
             BuiltinType::Char => 4,
             BuiltinType::Int => 4,
-            BuiltinType::Int32 => 8,
+            BuiltinType::Int32 => 4,
             BuiltinType::Int64 => 8,
             BuiltinType::Float => 4,
             BuiltinType::Double => 8,

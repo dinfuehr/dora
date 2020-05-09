@@ -13,7 +13,7 @@ class HashSet[K: Hash + Equals] {
         self.map.remove(key);
     }
 
-    fun length() -> Int {
+    fun length() -> Int64 {
         self.map.length()
     }
 
@@ -21,7 +21,7 @@ class HashSet[K: Hash + Equals] {
         self.map.isEmpty()
     }
 
-    fun capacity() -> Int {
+    fun capacity() -> Int64 {
         self.map.capacity()
     }
 }

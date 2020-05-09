@@ -185,6 +185,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     native_method(vm, clsid, "toString", stdlib::char_to_string as *const u8);
     intrinsic_method(vm, clsid, "toInt64", Intrinsic::CharToInt64);
     intrinsic_method(vm, clsid, "toInt", Intrinsic::CharToInt32);
+    intrinsic_method(vm, clsid, "toInt32", Intrinsic::CharToInt32);
 
     intrinsic_method(vm, clsid, "equals", Intrinsic::CharEq);
     intrinsic_method(vm, clsid, "compareTo", Intrinsic::CharCmp);

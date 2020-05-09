@@ -1,59 +1,59 @@
 //= cannon
 
 fun main() {
-    let map = HashMap[Int, String]();
+    let map = HashMap[Int32, String]();
     assert(map.isEmpty());
 
-    var i = 0;
+    var i = 0I;
 
-    while i < 1000 {
+    while i < 1000I {
         map.insert(i, i.toString());
-        i = i + 1;
+        i = i + 1I;
     }
 
-    assert(map.length() == 1000);
+    assert(map.length() == 1000L);
     assert(map.isEmpty().not());
-    assert(map.capacity() == 2048);
-    assert(!map.contains(-1));
-    assert(!map.contains(1000));
+    assert(map.capacity() == 2048L);
+    assert(!map.contains(-1I));
+    assert(!map.contains(1000I));
 
-    i = 0;
+    i = 0I;
 
-    while i < 1000 {
+    while i < 1000I {
         assert(map.get(i).unwrap() == i.toString());
         assert(map.contains(i));
-        i = i + 1;
+        i = i + 1I;
     }
 
-    i = 900;
+    i = 900I;
 
-    while i < 1000 {
+    while i < 1000I {
         map.remove(i);
         assert(!map.contains(i));
-        i = i + 1;
+        i = i + 1I;
     }
 
-    assert(map.length() == 900);
+    assert(map.length() == 900L);
     assert(map.isEmpty().not());
-    assert(map.capacity() == 2048);
+    assert(map.capacity() == 2048L);
 
-    i = 0;
+    i = 0I;
 
-    while i < 900 {
+    while i < 900I {
         assert(map.get(i).unwrap() == i.toString());
         assert(map.contains(i));
-        i = i + 1;
+        i = i + 1I;
     }
 
-    i = 300;
+    i = 300I;
 
-    while i < 900 {
+    while i < 900I {
         map.remove(i);
         assert(!map.contains(i));
-        i = i + 1;
+        i = i + 1I;
     }
 
-    assert(map.length() == 300);
+    assert(map.length() == 300L);
     assert(map.isEmpty().not());
-    assert(map.capacity() == 1024);
+    assert(map.capacity() == 1024L);
 }

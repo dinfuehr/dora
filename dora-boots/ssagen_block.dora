@@ -15,7 +15,7 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVis
     }
 
     fun blockCount() -> Int {
-        self.blocks.length()
+        self.blocks.length().toInt()
     }
 
     fun blockAt(offset: Int) -> Option[Block] {

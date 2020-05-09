@@ -14,6 +14,10 @@ impl Stringable for Int {
   fun toString() -> String = self.toString();
 }
 
+impl Stringable for Int32 {
+  fun toString() -> String = self.toString();
+}
+
 impl Stringable for Int64 {
   fun toString() -> String = self.toString();
 }

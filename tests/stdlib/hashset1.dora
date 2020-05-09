@@ -1,25 +1,25 @@
 //= cannon
 
 fun main() {
-    let set = HashSet[Int]();
-    set.insert(1);
-    set.insert(10000);
-    set.insert(7);
+    let set = HashSet[Int32]();
+    set.insert(1I);
+    set.insert(10000I);
+    set.insert(7I);
 
-    assert(set.length() == 3);
+    assert(set.length() == 3L);
     assert(set.isEmpty().not());
 
-    assert(set.contains(1));
-    assert(set.contains(10000));
-    assert(set.contains(7));
-    assert(!set.contains(2));
+    assert(set.contains(1I));
+    assert(set.contains(10000I));
+    assert(set.contains(7I));
+    assert(!set.contains(2I));
 
-    set.remove(10000);
+    set.remove(10000I);
 
-    assert(set.length() == 2);
+    assert(set.length() == 2L);
     assert(set.isEmpty().not());
 
-    assert(set.contains(1));
-    assert(!set.contains(10000));
-    assert(set.contains(7));
+    assert(set.contains(1I));
+    assert(!set.contains(10000I));
+    assert(set.contains(7I));
 }
