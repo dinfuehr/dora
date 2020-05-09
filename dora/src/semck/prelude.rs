@@ -225,15 +225,16 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_method(vm, clsid, "not", Intrinsic::Int32Not);
 
     let clsid = vm.vips.int32_class;
-    // intrinsic_method(vm, clsid, "toUInt8", Intrinsic::Int32ToByte);
-    // intrinsic_method(vm, clsid, "toCharUnchecked", Intrinsic::Int32ToChar);
-    // intrinsic_method(vm, clsid, "toInt64", Intrinsic::Int32ToInt64);
-    // native_method(vm, clsid, "toString", stdlib::int_to_string as *const u8);
+    intrinsic_method(vm, clsid, "toUInt8", Intrinsic::Int32ToByte);
+    intrinsic_method(vm, clsid, "toCharUnchecked", Intrinsic::Int32ToChar);
+    intrinsic_method(vm, clsid, "toInt64", Intrinsic::Int32ToInt64);
+    intrinsic_method(vm, clsid, "toInt", Intrinsic::Int32ToInt32);
+    native_method(vm, clsid, "toString", stdlib::int_to_string as *const u8);
 
-    // intrinsic_method(vm, clsid, "toFloat", Intrinsic::Int32ToFloat);
-    // intrinsic_method(vm, clsid, "toDouble", Intrinsic::Int32ToDouble);
+    intrinsic_method(vm, clsid, "toFloat", Intrinsic::Int32ToFloat);
+    intrinsic_method(vm, clsid, "toDouble", Intrinsic::Int32ToDouble);
 
-    // intrinsic_method(vm, clsid, "asFloat", Intrinsic::ReinterpretInt32AsFloat);
+    intrinsic_method(vm, clsid, "asFloat", Intrinsic::ReinterpretInt32AsFloat);
 
     intrinsic_method(vm, clsid, "equals", Intrinsic::Int32Eq);
     intrinsic_method(vm, clsid, "compareTo", Intrinsic::Int32Cmp);

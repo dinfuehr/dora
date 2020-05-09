@@ -554,7 +554,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     }
                 }
 
-                if !lhs_type.allows(self.vm, rhs_type) {
+                if !lhs_type.is_error()
+                    && !rhs_type.is_error()
+                    && !lhs_type.allows(self.vm, rhs_type)
+                {
                     let ident = e.lhs.to_ident().unwrap();
                     let name = self.vm.interner.str(ident.name).to_string();
                     let lhs_type = lhs_type.name(self.vm);
@@ -2312,10 +2315,11 @@ pub fn check_lit_int(
 ) -> (BuiltinType, i64) {
     let ty = match e.suffix {
         IntSuffix::UInt8 => BuiltinType::UInt8,
-        IntSuffix::Int32 => BuiltinType::Int,
+        IntSuffix::Int32 => BuiltinType::Int32,
         IntSuffix::Int64 => BuiltinType::Int64,
         IntSuffix::None => match expected_type {
             BuiltinType::UInt8 => BuiltinType::UInt8,
+            BuiltinType::Int32 => BuiltinType::Int32,
             BuiltinType::Int64 => BuiltinType::Int64,
             _ => BuiltinType::Int,
         },
@@ -2327,7 +2331,7 @@ pub fn check_lit_int(
     if e.base == IntBase::Dec {
         let max = match ty {
             BuiltinType::UInt8 => 256,
-            BuiltinType::Int => (1u64 << 31),
+            BuiltinType::Int | BuiltinType::Int32 => (1u64 << 31),
             BuiltinType::Int64 => (1u64 << 63),
             _ => unreachable!(),
         };
@@ -2342,7 +2346,7 @@ pub fn check_lit_int(
 
         let max = match ty {
             BuiltinType::UInt8 => 256 as u64,
-            BuiltinType::Int => u32::max_value() as u64,
+            BuiltinType::Int | BuiltinType::Int32 => u32::max_value() as u64,
             BuiltinType::Int64 => u64::max_value() as u64,
             _ => unreachable!(),
         };
