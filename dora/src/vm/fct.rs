@@ -513,7 +513,7 @@ impl Intrinsic {
             | Intrinsic::Int64CountZeroBitsTrailing
             | Intrinsic::Int64CountOneBits
             | Intrinsic::Int64CountOneBitsLeading
-            | Intrinsic::Int64CountOneBitsTrailing => BytecodeType::Int,
+            | Intrinsic::Int64CountOneBitsTrailing => BytecodeType::Int32,
             Intrinsic::IntPtrToInt32 => BytecodeType::Int32,
             Intrinsic::IntPtrAdd
             | Intrinsic::IntPtrSub
@@ -530,7 +530,7 @@ impl Intrinsic {
             | Intrinsic::IntPtrRotateRight
             | Intrinsic::IntPtrNot
             | Intrinsic::IntPtrPlus
-            | Intrinsic::IntPtrNeg => BytecodeType::Int,
+            | Intrinsic::IntPtrNeg => BytecodeType::Int32,
             Intrinsic::Int64Add
             | Intrinsic::Int64Sub
             | Intrinsic::Int64Mul

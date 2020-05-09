@@ -304,13 +304,17 @@ impl SemError {
                 format!("type `{}` cannot be used as super class.", name)
             }
             SemError::CycleInHierarchy => "cycle in type hierarchy detected.".into(),
-            SemError::SuperfluousOverride(_) => {
-                "method `{}` uses modifier `override` without overriding a function.".into()
+            SemError::SuperfluousOverride(ref name) => format!(
+                "method `{}` uses modifier `override` without overriding a function.",
+                name
+            ),
+            SemError::MissingOverride(ref name) => {
+                format!("method `{}` is missing modifier `override`.", name)
             }
-            SemError::MissingOverride(_) => "method `{}` is missing modifier `override`.".into(),
-            SemError::SuperfluousOpen(_) => {
-                "method `{}` uses modifier `open` but class allows no subclasses.".into()
-            }
+            SemError::SuperfluousOpen(ref name) => format!(
+                "method `{}` uses modifier `open` but class allows no subclasses.",
+                name
+            ),
             SemError::MethodNotOverridable(ref name) => {
                 format!("method `{}` in super class not overridable.", name)
             }

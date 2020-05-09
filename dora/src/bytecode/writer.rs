@@ -92,10 +92,6 @@ impl BytecodeWriter {
         self.arguments = arguments;
     }
 
-    pub fn emit_add_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::AddInt, dest, lhs, rhs);
-    }
-
     pub fn emit_add_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::AddInt32, dest, lhs, rhs);
     }
@@ -112,20 +108,12 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::AddDouble, dest, lhs, rhs);
     }
 
-    pub fn emit_and_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::AndInt, dest, lhs, rhs);
-    }
-
     pub fn emit_and_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::AndInt32, dest, lhs, rhs);
     }
 
     pub fn emit_and_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::AndInt64, dest, lhs, rhs);
-    }
-
-    pub fn emit_or_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::OrInt, dest, lhs, rhs);
     }
 
     pub fn emit_or_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -136,20 +124,12 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::OrInt64, dest, lhs, rhs);
     }
 
-    pub fn emit_xor_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::XorInt, dest, lhs, rhs);
-    }
-
     pub fn emit_xor_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::XorInt32, dest, lhs, rhs);
     }
 
     pub fn emit_xor_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::XorInt64, dest, lhs, rhs);
-    }
-
-    pub fn emit_div_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::DivInt, dest, lhs, rhs);
     }
 
     pub fn emit_div_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -198,14 +178,14 @@ impl BytecodeWriter {
         self.emit_access_field(BytecodeOpcode::LoadFieldChar, dest, obj, cls, field);
     }
 
-    pub fn emit_load_field_int(
+    pub fn emit_load_field_int32(
         &mut self,
         dest: Register,
         obj: Register,
         cls: ClassDefId,
         field: FieldId,
     ) {
-        self.emit_access_field(BytecodeOpcode::LoadFieldInt, dest, obj, cls, field);
+        self.emit_access_field(BytecodeOpcode::LoadFieldInt32, dest, obj, cls, field);
     }
 
     pub fn emit_load_field_int64(
@@ -278,14 +258,14 @@ impl BytecodeWriter {
         self.emit_access_field(BytecodeOpcode::StoreFieldChar, src, obj, cls, field);
     }
 
-    pub fn emit_store_field_int(
+    pub fn emit_store_field_int32(
         &mut self,
         src: Register,
         obj: Register,
         cls: ClassDefId,
         field: FieldId,
     ) {
-        self.emit_access_field(BytecodeOpcode::StoreFieldInt, src, obj, cls, field);
+        self.emit_access_field(BytecodeOpcode::StoreFieldInt32, src, obj, cls, field);
     }
 
     pub fn emit_store_field_int64(
@@ -341,9 +321,9 @@ impl BytecodeWriter {
         self.emit_reg1_uint8(BytecodeOpcode::ConstUInt8, dest, value);
     }
 
-    pub fn emit_const_int(&mut self, dest: Register, value: i32) {
-        let idx = self.add_const(ConstPoolEntry::Int(value as i32));
-        self.emit_reg1_idx(BytecodeOpcode::ConstInt, dest, idx);
+    pub fn emit_const_int32(&mut self, dest: Register, value: i32) {
+        let idx = self.add_const(ConstPoolEntry::Int32(value as i32));
+        self.emit_reg1_idx(BytecodeOpcode::ConstInt32, dest, idx);
     }
 
     pub fn emit_const_int64(&mut self, dest: Register, value: i64) {
@@ -370,8 +350,8 @@ impl BytecodeWriter {
         self.emit_reg1(BytecodeOpcode::ConstZeroUInt8, dest);
     }
 
-    pub fn emit_const_zero_int(&mut self, dest: Register) {
-        self.emit_reg1(BytecodeOpcode::ConstZeroInt, dest);
+    pub fn emit_const_zero_int32(&mut self, dest: Register) {
+        self.emit_reg1(BytecodeOpcode::ConstZeroInt32, dest);
     }
 
     pub fn emit_const_zero_int64(&mut self, dest: Register) {
@@ -396,10 +376,6 @@ impl BytecodeWriter {
 
     pub fn emit_not_bool(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::NotBool, dest, src);
-    }
-
-    pub fn emit_not_int(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::NotInt, dest, src);
     }
 
     pub fn emit_not_int32(&mut self, dest: Register, src: Register) {
@@ -444,20 +420,12 @@ impl BytecodeWriter {
         self.emit_jmp_forward(BytecodeOpcode::Jump, BytecodeOpcode::JumpConst, None, lbl);
     }
 
-    pub fn emit_mod_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::ModInt, dest, lhs, rhs);
-    }
-
     pub fn emit_mod_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::ModInt32, dest, lhs, rhs);
     }
 
     pub fn emit_mod_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::ModInt64, dest, lhs, rhs);
-    }
-
-    pub fn emit_mul_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::MulInt, dest, lhs, rhs);
     }
 
     pub fn emit_mul_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -476,10 +444,6 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::MulDouble, dest, lhs, rhs);
     }
 
-    pub fn emit_neg_int(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::NegInt, dest, src);
-    }
-
     pub fn emit_neg_int32(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::NegInt32, dest, src);
     }
@@ -496,20 +460,12 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::NegDouble, dest, src);
     }
 
-    pub fn emit_shl_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::ShlInt, dest, lhs, rhs);
-    }
-
     pub fn emit_shl_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::ShlInt32, dest, lhs, rhs);
     }
 
     pub fn emit_shl_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::ShlInt64, dest, lhs, rhs);
-    }
-
-    pub fn emit_shr_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::ShrInt, dest, lhs, rhs);
     }
 
     pub fn emit_shr_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -520,20 +476,12 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::ShrInt64, dest, lhs, rhs);
     }
 
-    pub fn emit_sar_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::SarInt, dest, lhs, rhs);
-    }
-
     pub fn emit_sar_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::SarInt32, dest, lhs, rhs);
     }
 
     pub fn emit_sar_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::SarInt64, dest, lhs, rhs);
-    }
-
-    pub fn emit_rol_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::RolInt, dest, lhs, rhs);
     }
 
     pub fn emit_rol_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -544,10 +492,6 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::RolInt64, dest, lhs, rhs);
     }
 
-    pub fn emit_ror_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::RorInt, dest, lhs, rhs);
-    }
-
     pub fn emit_ror_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::RorInt32, dest, lhs, rhs);
     }
@@ -556,12 +500,12 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::RorInt64, dest, lhs, rhs);
     }
 
-    pub fn emit_reinterpret_float_as_int(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::ReinterpretFloatAsInt, dest, src);
+    pub fn emit_reinterpret_float_as_int32(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::ReinterpretFloatAsInt32, dest, src);
     }
 
-    pub fn emit_reinterpret_int_as_float(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::ReinterpretIntAsFloat, dest, src);
+    pub fn emit_reinterpret_int32_as_float(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::ReinterpretInt32AsFloat, dest, src);
     }
 
     pub fn emit_reinterpret_double_as_int64(&mut self, dest: Register, src: Register) {
@@ -575,8 +519,8 @@ impl BytecodeWriter {
     pub fn emit_extend_byte_to_char(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::ExtendUInt8ToChar, dest, src);
     }
-    pub fn emit_extend_byte_to_int(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::ExtendUInt8ToInt, dest, src);
+    pub fn emit_extend_byte_to_int32(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::ExtendUInt8ToInt32, dest, src);
     }
     pub fn emit_extend_byte_to_int64(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::ExtendUInt8ToInt64, dest, src);
@@ -584,21 +528,18 @@ impl BytecodeWriter {
     pub fn emit_extend_char_to_int64(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::ExtendCharToInt64, dest, src);
     }
-    pub fn emit_extend_int_to_int64(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::ExtendIntToInt64, dest, src);
+    pub fn emit_extend_int32_to_int64(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::ExtendInt32ToInt64, dest, src);
     }
 
-    pub fn emit_cast_char_to_int(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::CastCharToInt, dest, src);
+    pub fn emit_cast_char_to_int32(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::CastCharToInt32, dest, src);
     }
-    pub fn emit_cast_int_to_uint8(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::CastIntToUInt8, dest, src);
+    pub fn emit_cast_int32_to_uint8(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::CastInt32ToUInt8, dest, src);
     }
-    pub fn emit_cast_int_to_char(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::CastIntToChar, dest, src);
-    }
-    pub fn emit_cast_int_to_int32(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::CastIntToInt32, dest, src);
+    pub fn emit_cast_int32_to_char(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::CastInt32ToChar, dest, src);
     }
     pub fn emit_cast_int64_to_uint8(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::CastInt64ToUInt8, dest, src);
@@ -606,15 +547,15 @@ impl BytecodeWriter {
     pub fn emit_cast_int64_to_char(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::CastInt64ToChar, dest, src);
     }
-    pub fn emit_cast_int64_to_int(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::CastInt64ToInt, dest, src);
+    pub fn emit_cast_int64_to_int32(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::CastInt64ToInt32, dest, src);
     }
 
-    pub fn emit_convert_int_to_float(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::ConvertIntToFloat, dest, src);
+    pub fn emit_convert_int32_to_float(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::ConvertInt32ToFloat, dest, src);
     }
-    pub fn emit_convert_int_to_double(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::ConvertIntToDouble, dest, src);
+    pub fn emit_convert_int32_to_double(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::ConvertInt32ToDouble, dest, src);
     }
     pub fn emit_convert_int64_to_float(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::ConvertInt64ToFloat, dest, src);
@@ -623,14 +564,14 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::ConvertInt64ToDouble, dest, src);
     }
 
-    pub fn emit_truncate_float_to_int(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::TruncateFloatToInt, dest, src);
+    pub fn emit_truncate_float_to_int32(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::TruncateFloatToInt32, dest, src);
     }
     pub fn emit_truncate_float_to_int64(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::TruncateFloatToInt64, dest, src);
     }
-    pub fn emit_truncate_double_to_int(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::TruncateDoubleToInt, dest, src);
+    pub fn emit_truncate_double_to_int32(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::TruncateDoubleToInt32, dest, src);
     }
     pub fn emit_truncate_double_to_int64(&mut self, dest: Register, src: Register) {
         self.emit_reg2(BytecodeOpcode::TruncateDoubleToInt64, dest, src);
@@ -642,10 +583,6 @@ impl BytecodeWriter {
 
     pub fn emit_checked_cast(&mut self, src: Register, cls_id: ClassDefId) {
         self.emit_reg1_cls(BytecodeOpcode::CheckedCast, src, cls_id);
-    }
-
-    pub fn emit_sub_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::SubInt, dest, lhs, rhs);
     }
 
     pub fn emit_sub_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -676,8 +613,8 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::MovChar, dest, src);
     }
 
-    pub fn emit_mov_int(&mut self, dest: Register, src: Register) {
-        self.emit_reg2(BytecodeOpcode::MovInt, dest, src);
+    pub fn emit_mov_int32(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::MovInt32, dest, src);
     }
 
     pub fn emit_mov_int64(&mut self, dest: Register, src: Register) {
@@ -744,10 +681,6 @@ impl BytecodeWriter {
         self.emit_reg1(BytecodeOpcode::RetChar, src);
     }
 
-    pub fn emit_ret_int(&mut self, src: Register) {
-        self.emit_reg1(BytecodeOpcode::RetInt, src);
-    }
-
     pub fn emit_ret_int32(&mut self, src: Register) {
         self.emit_reg1(BytecodeOpcode::RetInt32, src);
     }
@@ -788,8 +721,8 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestEqEnum, dest, lhs, rhs);
     }
 
-    pub fn emit_test_eq_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::TestEqInt, dest, lhs, rhs);
+    pub fn emit_test_eq_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestEqInt32, dest, lhs, rhs);
     }
 
     pub fn emit_test_eq_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -824,8 +757,8 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestNeEnum, dest, lhs, rhs);
     }
 
-    pub fn emit_test_ne_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::TestNeInt, dest, lhs, rhs);
+    pub fn emit_test_ne_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestNeInt32, dest, lhs, rhs);
     }
 
     pub fn emit_test_ne_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -852,8 +785,8 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestGtChar, dest, lhs, rhs);
     }
 
-    pub fn emit_test_gt_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::TestGtInt, dest, lhs, rhs);
+    pub fn emit_test_gt_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestGtInt32, dest, lhs, rhs);
     }
 
     pub fn emit_test_gt_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -876,8 +809,8 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestGeChar, dest, lhs, rhs);
     }
 
-    pub fn emit_test_ge_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::TestGeInt, dest, lhs, rhs);
+    pub fn emit_test_ge_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestGeInt32, dest, lhs, rhs);
     }
 
     pub fn emit_test_ge_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -900,8 +833,8 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestLtChar, dest, lhs, rhs);
     }
 
-    pub fn emit_test_lt_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::TestLtInt, dest, lhs, rhs);
+    pub fn emit_test_lt_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestLtInt32, dest, lhs, rhs);
     }
 
     pub fn emit_test_lt_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -924,8 +857,8 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestLeChar, dest, lhs, rhs);
     }
 
-    pub fn emit_test_le_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::TestLeInt, dest, lhs, rhs);
+    pub fn emit_test_le_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::TestLeInt32, dest, lhs, rhs);
     }
 
     pub fn emit_test_le_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -956,8 +889,8 @@ impl BytecodeWriter {
         self.emit_load_global(BytecodeOpcode::LoadGlobalChar, dest, gid);
     }
 
-    pub fn emit_load_global_int(&mut self, dest: Register, gid: GlobalId) {
-        self.emit_load_global(BytecodeOpcode::LoadGlobalInt, dest, gid);
+    pub fn emit_load_global_int32(&mut self, dest: Register, gid: GlobalId) {
+        self.emit_load_global(BytecodeOpcode::LoadGlobalInt32, dest, gid);
     }
 
     pub fn emit_load_global_int64(&mut self, dest: Register, gid: GlobalId) {
@@ -988,8 +921,8 @@ impl BytecodeWriter {
         self.emit_store_global(BytecodeOpcode::StoreGlobalChar, src, gid);
     }
 
-    pub fn emit_store_global_int(&mut self, src: Register, gid: GlobalId) {
-        self.emit_store_global(BytecodeOpcode::StoreGlobalInt, src, gid);
+    pub fn emit_store_global_int32(&mut self, src: Register, gid: GlobalId) {
+        self.emit_store_global(BytecodeOpcode::StoreGlobalInt32, src, gid);
     }
 
     pub fn emit_store_global_int64(&mut self, src: Register, gid: GlobalId) {
@@ -1028,8 +961,8 @@ impl BytecodeWriter {
         self.emit_fct(BytecodeOpcode::InvokeDirectChar, dest, fid);
     }
 
-    pub fn emit_invoke_direct_int(&mut self, dest: Register, fid: FctDefId) {
-        self.emit_fct(BytecodeOpcode::InvokeDirectInt, dest, fid);
+    pub fn emit_invoke_direct_int32(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeDirectInt32, dest, fid);
     }
 
     pub fn emit_invoke_direct_int64(&mut self, dest: Register, fid: FctDefId) {
@@ -1064,8 +997,8 @@ impl BytecodeWriter {
         self.emit_fct(BytecodeOpcode::InvokeVirtualChar, dest, fid);
     }
 
-    pub fn emit_invoke_virtual_int(&mut self, dest: Register, fid: FctDefId) {
-        self.emit_fct(BytecodeOpcode::InvokeVirtualInt, dest, fid);
+    pub fn emit_invoke_virtual_int32(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeVirtualInt32, dest, fid);
     }
 
     pub fn emit_invoke_virtual_int64(&mut self, dest: Register, fid: FctDefId) {
@@ -1100,8 +1033,8 @@ impl BytecodeWriter {
         self.emit_fct(BytecodeOpcode::InvokeStaticChar, dest, fid);
     }
 
-    pub fn emit_invoke_static_int(&mut self, dest: Register, fid: FctDefId) {
-        self.emit_fct(BytecodeOpcode::InvokeStaticInt, dest, fid);
+    pub fn emit_invoke_static_int32(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeStaticInt32, dest, fid);
     }
 
     pub fn emit_invoke_static_int64(&mut self, dest: Register, fid: FctDefId) {
@@ -1147,8 +1080,8 @@ impl BytecodeWriter {
     pub fn emit_store_array_char(&mut self, src: Register, array: Register, index: Register) {
         self.emit_reg3(BytecodeOpcode::StoreArrayChar, src, array, index);
     }
-    pub fn emit_store_array_int(&mut self, src: Register, array: Register, index: Register) {
-        self.emit_reg3(BytecodeOpcode::StoreArrayInt, src, array, index);
+    pub fn emit_store_array_int32(&mut self, src: Register, array: Register, index: Register) {
+        self.emit_reg3(BytecodeOpcode::StoreArrayInt32, src, array, index);
     }
     pub fn emit_store_array_int64(&mut self, src: Register, array: Register, index: Register) {
         self.emit_reg3(BytecodeOpcode::StoreArrayInt64, src, array, index);
@@ -1172,8 +1105,8 @@ impl BytecodeWriter {
     pub fn emit_load_array_char(&mut self, dest: Register, array: Register, index: Register) {
         self.emit_reg3(BytecodeOpcode::LoadArrayChar, dest, array, index);
     }
-    pub fn emit_load_array_int(&mut self, dest: Register, array: Register, index: Register) {
-        self.emit_reg3(BytecodeOpcode::LoadArrayInt, dest, array, index);
+    pub fn emit_load_array_int32(&mut self, dest: Register, array: Register, index: Register) {
+        self.emit_reg3(BytecodeOpcode::LoadArrayInt32, dest, array, index);
     }
     pub fn emit_load_array_int64(&mut self, dest: Register, array: Register, index: Register) {
         self.emit_reg3(BytecodeOpcode::LoadArrayInt64, dest, array, index);
@@ -1235,7 +1168,7 @@ impl BytecodeWriter {
                 self.code[start.to_usize()] = inst_imm as u8;
                 self.code[start.to_usize() + jump_target] = distance as u8;
             } else {
-                self.patch_const(const_idx, ConstPoolEntry::Int(distance as i32));
+                self.patch_const(const_idx, ConstPoolEntry::Int32(distance as i32));
             }
         }
     }
@@ -1473,7 +1406,7 @@ impl BytecodeWriter {
             if let Some(cond) = cond {
                 self.emit_u8(cond.to_usize() as u8);
             }
-            let idx = self.add_const(ConstPoolEntry::Int(0));
+            let idx = self.add_const(ConstPoolEntry::Int32(0));
             self.emit_u8(idx.to_usize() as u8);
             self.unresolved_jump_consts.push((start, idx, lbl));
         }

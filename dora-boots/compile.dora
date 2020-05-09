@@ -35,8 +35,8 @@ fun decodeRegisters(registers: Array[Int]) -> Array[BytecodeType] {
             BytecodeType::uint8()
         } else if regtype == BC_TYPE_CHAR {
             BytecodeType::char()
-        } else if regtype == BC_TYPE_INT {
-            BytecodeType::int()
+        } else if regtype == BC_TYPE_INT32 {
+            BytecodeType::int32()
         } else if regtype == BC_TYPE_INT64 {
             BytecodeType::int64()
         } else if regtype == BC_TYPE_FLOAT {
@@ -64,9 +64,9 @@ fun decodeConstPool(constpool: Array[UInt8]) -> Array[ConstPoolEntry] {
     while reader.moreBytes() {
         let opcode = reader.readByte().toInt();
 
-        if opcode == CONSTPOOL_OPCODE_INT {
+        if opcode == CONSTPOOL_OPCODE_INT32 {
             let value = reader.readInt();
-            constPool.push(ConstPoolInt(value));
+            constPool.push(ConstPoolInt32(value));
         } else if opcode == CONSTPOOL_OPCODE_INT64 {
             let value = reader.readInt64();
             constPool.push(ConstPoolInt64(value));

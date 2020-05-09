@@ -15,10 +15,7 @@ fn test_ret() {
     let mut writer = BytecodeWriter::new();
     writer.emit_ret_void();
     let fct = writer.generate();
-    assert_eq!(
-        fct.code(),
-        &[255, (BytecodeOpcode::RetVoid as u32 - 255) as u8]
-    );
+    assert_eq!(fct.code(), &[BytecodeOpcode::RetVoid as u8]);
     let mut visitor = TestVisitor { found: false };
     read(fct.code(), &mut visitor);
     assert!(visitor.found);
@@ -30,18 +27,15 @@ fn test_ret_int() {
         found: bool,
     }
     impl BytecodeVisitor for TestVisitor {
-        fn visit_ret_int(&mut self, reg: Register) {
+        fn visit_ret_int32(&mut self, reg: Register) {
             assert_eq!(Register(17), reg);
             self.found = true;
         }
     }
     let mut writer = BytecodeWriter::new();
-    writer.emit_ret_int(Register(17));
+    writer.emit_ret_int32(Register(17));
     let fct = writer.generate();
-    assert_eq!(
-        fct.code(),
-        &[255, (BytecodeOpcode::RetInt as u32 - 255) as u8, 17]
-    );
+    assert_eq!(fct.code(), &[BytecodeOpcode::RetInt32 as u8, 17]);
     let mut visitor = TestVisitor { found: false };
     read(fct.code(), &mut visitor);
     assert!(visitor.found);
@@ -53,20 +47,19 @@ fn test_ret_wide() {
         found: bool,
     }
     impl BytecodeVisitor for TestVisitor {
-        fn visit_ret_int(&mut self, reg: Register) {
+        fn visit_ret_int32(&mut self, reg: Register) {
             assert_eq!(Register(256), reg);
             self.found = true;
         }
     }
     let mut writer = BytecodeWriter::new();
-    writer.emit_ret_int(Register(256));
+    writer.emit_ret_int32(Register(256));
     let fct = writer.generate();
     assert_eq!(
         fct.code(),
         &[
             BytecodeOpcode::Wide as u8,
-            255,
-            (BytecodeOpcode::RetInt as u32 - 255) as u8,
+            BytecodeOpcode::RetInt32 as u8,
             0,
             1,
             0,
@@ -258,8 +251,7 @@ fn test_jump_back_one_inst() {
         found: u32,
     }
     impl BytecodeVisitor for TestVisitor {
-        fn visit_jump_loop(&mut self, offset: u32) {
-            assert_eq!(offset, 2);
+        fn visit_jump_loop(&mut self, _offset: u32) {
             self.found += 1;
         }
 
@@ -275,10 +267,9 @@ fn test_jump_back_one_inst() {
     assert_eq!(
         fct.code(),
         &[
-            255,
-            (BytecodeOpcode::RetVoid as u32 - 255) as u8,
+            BytecodeOpcode::RetVoid as u8,
             BytecodeOpcode::JumpLoop as u8,
-            2
+            1
         ]
     );
     let mut visitor = TestVisitor { found: 0 };
@@ -332,19 +323,18 @@ fn test_jump_far() {
     writer.bind_label(label);
     let fct = writer.generate();
     assert_eq!(
-        &fct.code()[..4],
+        &fct.code()[..3],
         &[
             BytecodeOpcode::JumpConst as u8,
             0,
-            255,
-            (BytecodeOpcode::RetVoid as u32 - 255) as u8
+            BytecodeOpcode::RetVoid as u8
         ]
     );
     assert_eq!(
         fct.const_pool(ConstPoolIdx(0))
-            .to_int()
+            .to_int32()
             .expect("int const expected"),
-        510
+        256
     );
     let mut visitor = TestVisitor { found: 0 };
     read(fct.code(), &mut visitor);
@@ -436,13 +426,12 @@ fn test_cond_jump_far() {
     writer.bind_label(label);
     let fct = writer.generate();
     assert_eq!(
-        &fct.code()[..5],
+        &fct.code()[..4],
         &[
             BytecodeOpcode::JumpIfTrueConst as u8,
             7,
             0,
-            255,
-            (BytecodeOpcode::RetVoid as u32 - 255) as u8
+            BytecodeOpcode::RetVoid as u8
         ]
     );
     let mut visitor = TestVisitor { found: 0 };

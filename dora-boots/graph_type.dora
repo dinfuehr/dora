@@ -2,7 +2,6 @@ let typeUnit: Type = Type(TypeKind::Unit);
 let typeBool: Type = Type(TypeKind::Bool);
 let typeUInt8: Type = Type(TypeKind::UInt8);
 let typeChar: Type = Type(TypeKind::Char);
-let typeInt: Type = Type(TypeKind::Int);
 let typeInt32: Type = Type(TypeKind::Int32);
 let typeInt64: Type = Type(TypeKind::Int64);
 let typeFloat: Type = Type(TypeKind::Float);
@@ -15,7 +14,6 @@ class Type(let kind: TypeKind) {
     @static fun bool() -> Type { return typeBool; }
     @static fun uint8() -> Type { return typeUInt8; }
     @static fun char() -> Type { return typeChar; }
-    @static fun int() -> Type { return typeInt; }
     @static fun int32() -> Type { return typeInt32; }
     @static fun int64() -> Type { return typeInt64; }
     @static fun float() -> Type { return typeFloat; }
@@ -29,8 +27,6 @@ class Type(let kind: TypeKind) {
             Type::uint8()
         } else if ty.isChar() {
             Type::char()
-        } else if ty.isInt() {
-            Type::int()
         } else if ty.isInt32() {
             Type::int32()
         } else if ty.isInt64() {
@@ -49,7 +45,7 @@ class Type(let kind: TypeKind) {
 
     fun isUnit() -> Bool { return self.kind == TypeKind::Unit; }
     fun isUInt8() -> Bool { return self.kind == TypeKind::UInt8; }
-    fun isInt() -> Bool { return self.kind == TypeKind::Int; }
+    fun isInt32() -> Bool { return self.kind == TypeKind::Int32; }
     fun isInt64() -> Bool { return self.kind == TypeKind::Int64; }
     fun isFloat() -> Bool { return self.kind == TypeKind::Float; }
     fun isDouble() -> Bool { return self.kind == TypeKind::Double; }
@@ -67,7 +63,7 @@ impl Stringable for Type {
 }
 
 enum TypeKind {
-    Unit, Bool, UInt8, Char, Int, Int32, Int64, Float, Double, Ptr
+    Unit, Bool, UInt8, Char, Int32, Int64, Float, Double, Ptr
 }
 
 impl TypeKind {
@@ -78,8 +74,6 @@ impl TypeKind {
             "Bool"
         } else if self == TypeKind::UInt8 {
             "UInt8"
-        } else if self == TypeKind::Int {
-            "Int"
         } else if self == TypeKind::Int32 {
             "Int32"
         } else if self == TypeKind::Int64 {

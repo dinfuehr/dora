@@ -23,7 +23,6 @@ pub enum BytecodeType {
     Bool,
     UInt8,
     Char,
-    Int,
     Int32,
     Int64,
     Float,
@@ -37,7 +36,6 @@ impl BytecodeType {
             BytecodeType::Bool => 1,
             BytecodeType::UInt8 => 1,
             BytecodeType::Char => 4,
-            BytecodeType::Int => 4,
             BytecodeType::Int32 => 4,
             BytecodeType::Int64 => 8,
             BytecodeType::Float => 4,
@@ -51,7 +49,6 @@ impl BytecodeType {
             BytecodeType::Bool => MachineMode::Int8,
             BytecodeType::UInt8 => MachineMode::Int8,
             BytecodeType::Char => MachineMode::Int32,
-            BytecodeType::Int => MachineMode::Int32,
             BytecodeType::Int32 => MachineMode::Int32,
             BytecodeType::Int64 => MachineMode::Int64,
             BytecodeType::Float => MachineMode::Float32,
@@ -74,13 +71,13 @@ impl From<BuiltinType> for BytecodeType {
             BuiltinType::Bool => BytecodeType::Bool,
             BuiltinType::UInt8 => BytecodeType::UInt8,
             BuiltinType::Char => BytecodeType::Char,
-            BuiltinType::Int => BytecodeType::Int,
+            BuiltinType::Int => BytecodeType::Int32,
             BuiltinType::Int32 => BytecodeType::Int32,
             BuiltinType::Int64 => BytecodeType::Int64,
             BuiltinType::Float => BytecodeType::Float,
             BuiltinType::Double => BytecodeType::Double,
             BuiltinType::Class(_, _) => BytecodeType::Ptr,
-            BuiltinType::Enum(_, _) => BytecodeType::Int,
+            BuiltinType::Enum(_, _) => BytecodeType::Int32,
             _ => panic!("BuiltinType {:?} cannot converted to BytecodeType", ty),
         }
     }
@@ -92,7 +89,6 @@ impl From<BytecodeType> for BuiltinType {
             BytecodeType::Bool => BuiltinType::Bool,
             BytecodeType::UInt8 => BuiltinType::UInt8,
             BytecodeType::Char => BuiltinType::Char,
-            BytecodeType::Int => BuiltinType::Int,
             BytecodeType::Int32 => BuiltinType::Int32,
             BytecodeType::Int64 => BuiltinType::Int64,
             BytecodeType::Float => BuiltinType::Float,
@@ -108,60 +104,46 @@ impl From<BytecodeType> for BuiltinType {
 pub enum BytecodeOpcode {
     Wide,
 
-    AddInt,
     AddInt32,
     AddInt64,
     AddFloat,
     AddDouble,
 
-    SubInt,
     SubInt32,
     SubInt64,
     SubFloat,
     SubDouble,
 
-    NegInt,
     NegInt32,
     NegInt64,
     NegFloat,
     NegDouble,
 
-    MulInt,
     MulInt32,
     MulInt64,
     MulFloat,
     MulDouble,
 
-    DivInt,
     DivInt32,
     DivInt64,
     DivFloat,
     DivDouble,
 
-    ModInt,
     ModInt32,
     ModInt64,
 
-    AndInt,
     AndInt32,
     AndInt64,
 
-    OrInt,
     OrInt32,
     OrInt64,
 
-    XorInt,
     XorInt32,
     XorInt64,
 
     NotBool,
-    NotInt,
     NotInt32,
     NotInt64,
-
-    ShlInt,
-    ShrInt,
-    SarInt,
 
     ShlInt32,
     ShrInt32,
@@ -171,41 +153,37 @@ pub enum BytecodeOpcode {
     ShrInt64,
     SarInt64,
 
-    RolInt,
-    RorInt,
-
     RolInt32,
     RorInt32,
 
     RolInt64,
     RorInt64,
 
-    ReinterpretFloatAsInt,
-    ReinterpretIntAsFloat,
+    ReinterpretFloatAsInt32,
+    ReinterpretInt32AsFloat,
     ReinterpretDoubleAsInt64,
     ReinterpretInt64AsDouble,
 
     ExtendUInt8ToChar,
-    ExtendUInt8ToInt,
+    ExtendUInt8ToInt32,
     ExtendUInt8ToInt64,
-    ExtendIntToInt64,
+    ExtendInt32ToInt64,
     ExtendCharToInt64,
-    CastCharToInt,
-    CastIntToUInt8,
-    CastIntToChar,
-    CastIntToInt32,
+    CastCharToInt32,
+    CastInt32ToUInt8,
+    CastInt32ToChar,
     CastInt64ToUInt8,
     CastInt64ToChar,
-    CastInt64ToInt,
+    CastInt64ToInt32,
 
-    ConvertIntToFloat,
-    ConvertIntToDouble,
+    ConvertInt32ToFloat,
+    ConvertInt32ToDouble,
     ConvertInt64ToFloat,
     ConvertInt64ToDouble,
 
-    TruncateFloatToInt,
+    TruncateFloatToInt32,
     TruncateFloatToInt64,
-    TruncateDoubleToInt,
+    TruncateDoubleToInt32,
     TruncateDoubleToInt64,
 
     InstanceOf,
@@ -214,7 +192,6 @@ pub enum BytecodeOpcode {
     MovBool,
     MovUInt8,
     MovChar,
-    MovInt,
     MovInt32,
     MovInt64,
     MovFloat,
@@ -228,7 +205,6 @@ pub enum BytecodeOpcode {
     LoadFieldBool,
     LoadFieldUInt8,
     LoadFieldChar,
-    LoadFieldInt,
     LoadFieldInt32,
     LoadFieldInt64,
     LoadFieldFloat,
@@ -238,7 +214,6 @@ pub enum BytecodeOpcode {
     StoreFieldBool,
     StoreFieldUInt8,
     StoreFieldChar,
-    StoreFieldInt,
     StoreFieldInt32,
     StoreFieldInt64,
     StoreFieldFloat,
@@ -248,7 +223,6 @@ pub enum BytecodeOpcode {
     LoadGlobalBool,
     LoadGlobalUInt8,
     LoadGlobalChar,
-    LoadGlobalInt,
     LoadGlobalInt32,
     LoadGlobalInt64,
     LoadGlobalFloat,
@@ -258,7 +232,6 @@ pub enum BytecodeOpcode {
     StoreGlobalBool,
     StoreGlobalUInt8,
     StoreGlobalChar,
-    StoreGlobalInt,
     StoreGlobalInt32,
     StoreGlobalInt64,
     StoreGlobalFloat,
@@ -272,14 +245,12 @@ pub enum BytecodeOpcode {
     ConstFalse,
     ConstZeroUInt8,
     ConstZeroChar,
-    ConstZeroInt,
     ConstZeroInt32,
     ConstZeroInt64,
     ConstZeroFloat,
     ConstZeroDouble,
     ConstUInt8,
     ConstChar,
-    ConstInt,
     ConstInt32,
     ConstInt64,
     ConstFloat,
@@ -308,13 +279,6 @@ pub enum BytecodeOpcode {
 
     TestEqEnum,
     TestNeEnum,
-
-    TestEqInt,
-    TestNeInt,
-    TestGtInt,
-    TestGeInt,
-    TestLtInt,
-    TestLeInt,
 
     TestEqInt32,
     TestNeInt32,
@@ -361,7 +325,6 @@ pub enum BytecodeOpcode {
     InvokeDirectBool,
     InvokeDirectUInt8,
     InvokeDirectChar,
-    InvokeDirectInt,
     InvokeDirectInt32,
     InvokeDirectInt64,
     InvokeDirectFloat,
@@ -372,7 +335,6 @@ pub enum BytecodeOpcode {
     InvokeVirtualBool,
     InvokeVirtualUInt8,
     InvokeVirtualChar,
-    InvokeVirtualInt,
     InvokeVirtualInt32,
     InvokeVirtualInt64,
     InvokeVirtualFloat,
@@ -383,7 +345,6 @@ pub enum BytecodeOpcode {
     InvokeStaticBool,
     InvokeStaticUInt8,
     InvokeStaticChar,
-    InvokeStaticInt,
     InvokeStaticInt32,
     InvokeStaticInt64,
     InvokeStaticFloat,
@@ -401,7 +362,6 @@ pub enum BytecodeOpcode {
     LoadArrayBool,
     LoadArrayUInt8,
     LoadArrayChar,
-    LoadArrayInt,
     LoadArrayInt32,
     LoadArrayInt64,
     LoadArrayFloat,
@@ -411,7 +371,6 @@ pub enum BytecodeOpcode {
     StoreArrayBool,
     StoreArrayUInt8,
     StoreArrayChar,
-    StoreArrayInt,
     StoreArrayInt32,
     StoreArrayInt64,
     StoreArrayFloat,
@@ -422,7 +381,6 @@ pub enum BytecodeOpcode {
     RetBool,
     RetUInt8,
     RetChar,
-    RetInt,
     RetInt32,
     RetInt64,
     RetFloat,
@@ -433,10 +391,8 @@ pub enum BytecodeOpcode {
 impl BytecodeOpcode {
     pub fn need_position(&self) -> bool {
         match *self {
-            BytecodeOpcode::DivInt
-            | BytecodeOpcode::DivInt32
+            BytecodeOpcode::DivInt32
             | BytecodeOpcode::DivInt64
-            | BytecodeOpcode::ModInt
             | BytecodeOpcode::ModInt32
             | BytecodeOpcode::ModInt64
             | BytecodeOpcode::InstanceOf
@@ -444,7 +400,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::LoadFieldBool
             | BytecodeOpcode::LoadFieldUInt8
             | BytecodeOpcode::LoadFieldChar
-            | BytecodeOpcode::LoadFieldInt
             | BytecodeOpcode::LoadFieldInt32
             | BytecodeOpcode::LoadFieldInt64
             | BytecodeOpcode::LoadFieldFloat
@@ -453,7 +408,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::StoreFieldBool
             | BytecodeOpcode::StoreFieldUInt8
             | BytecodeOpcode::StoreFieldChar
-            | BytecodeOpcode::StoreFieldInt
             | BytecodeOpcode::StoreFieldInt32
             | BytecodeOpcode::StoreFieldInt64
             | BytecodeOpcode::StoreFieldFloat
@@ -463,7 +417,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeDirectBool
             | BytecodeOpcode::InvokeDirectUInt8
             | BytecodeOpcode::InvokeDirectChar
-            | BytecodeOpcode::InvokeDirectInt
             | BytecodeOpcode::InvokeDirectInt32
             | BytecodeOpcode::InvokeDirectInt64
             | BytecodeOpcode::InvokeDirectFloat
@@ -473,7 +426,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeVirtualBool
             | BytecodeOpcode::InvokeVirtualUInt8
             | BytecodeOpcode::InvokeVirtualChar
-            | BytecodeOpcode::InvokeVirtualInt
             | BytecodeOpcode::InvokeVirtualInt32
             | BytecodeOpcode::InvokeVirtualInt64
             | BytecodeOpcode::InvokeVirtualFloat
@@ -483,7 +435,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeStaticBool
             | BytecodeOpcode::InvokeStaticUInt8
             | BytecodeOpcode::InvokeStaticChar
-            | BytecodeOpcode::InvokeStaticInt
             | BytecodeOpcode::InvokeStaticInt32
             | BytecodeOpcode::InvokeStaticInt64
             | BytecodeOpcode::InvokeStaticFloat
@@ -497,7 +448,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::LoadArrayBool
             | BytecodeOpcode::LoadArrayUInt8
             | BytecodeOpcode::LoadArrayChar
-            | BytecodeOpcode::LoadArrayInt
             | BytecodeOpcode::LoadArrayInt32
             | BytecodeOpcode::LoadArrayInt64
             | BytecodeOpcode::LoadArrayFloat
@@ -506,7 +456,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::StoreArrayBool
             | BytecodeOpcode::StoreArrayUInt8
             | BytecodeOpcode::StoreArrayChar
-            | BytecodeOpcode::StoreArrayInt
             | BytecodeOpcode::StoreArrayInt32
             | BytecodeOpcode::StoreArrayInt64
             | BytecodeOpcode::StoreArrayFloat
@@ -642,7 +591,7 @@ pub enum ConstPoolOpcode {
     String,
     Float,
     Double,
-    Int,
+    Int32,
     Int64,
     Char,
 }
@@ -651,7 +600,7 @@ pub enum ConstPoolEntry {
     String(String),
     Float(f32),
     Double(f64),
-    Int(i32),
+    Int32(i32),
     Int64(i64),
     Char(char),
 }
@@ -678,9 +627,9 @@ impl ConstPoolEntry {
         }
     }
 
-    pub fn to_int(&self) -> Option<i32> {
+    pub fn to_int32(&self) -> Option<i32> {
         match self {
-            ConstPoolEntry::Int(value) => Some(*value),
+            ConstPoolEntry::Int32(value) => Some(*value),
             _ => None,
         }
     }

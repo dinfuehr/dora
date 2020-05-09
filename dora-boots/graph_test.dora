@@ -18,13 +18,13 @@
     graph.setEntryBlock(block);
     graph.setExitBlock(block);
 
-    let const1 = IntConst(1);
+    let const1 = Int32Const(1);
     block.appendInst(const1);
 
-    let const2 = IntConst(2);
+    let const2 = Int32Const(2);
     block.appendInst(const2);
 
-    let inst = BinaryInst(BinOp::Add, Type::int(), const1, const2);
+    let inst = BinaryInst(BinOp::Add, Type::int32(), const1, const2);
     block.appendInst(inst);
 
     let inst = ReturnVoidInst();

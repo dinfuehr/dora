@@ -18,9 +18,9 @@ class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEn
 }
 
 @open @abstract class ConstPoolEntry {
-    fun toInt() -> Option[Int] {
-        if self is ConstPoolInt {
-            some[Int]((self as ConstPoolInt).value)
+    fun toInt32() -> Option[Int] {
+        if self is ConstPoolInt32 {
+            some[Int]((self as ConstPoolInt32).value)
         } else {
             none[Int]()
         }
@@ -53,8 +53,8 @@ class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEn
     @abstract fun toString() -> String;
 }
 
-class ConstPoolInt(let value: Int): ConstPoolEntry {
-    @override fun toString() -> String { "Int ${self.value}" }
+class ConstPoolInt32(let value: Int): ConstPoolEntry {
+    @override fun toString() -> String { "Int32 ${self.value}" }
 }
 
 class ConstPoolInt64(let value: Int64): ConstPoolEntry {
@@ -114,7 +114,6 @@ class BytecodeType(let value: Int) {
     @static fun bool() -> BytecodeType = BytecodeType(BC_TYPE_BOOL);
     @static fun uint8() -> BytecodeType = BytecodeType(BC_TYPE_U_INT8);
     @static fun char() -> BytecodeType = BytecodeType(BC_TYPE_CHAR);
-    @static fun int() -> BytecodeType = BytecodeType(BC_TYPE_INT);
     @static fun int32() -> BytecodeType = BytecodeType(BC_TYPE_INT32);
     @static fun int64() -> BytecodeType = BytecodeType(BC_TYPE_INT64);
     @static fun float() -> BytecodeType = BytecodeType(BC_TYPE_FLOAT);
@@ -124,7 +123,6 @@ class BytecodeType(let value: Int) {
     fun isBool() -> Bool = self.value == BC_TYPE_BOOL;
     fun isUInt8() -> Bool = self.value == BC_TYPE_U_INT8;
     fun isChar() -> Bool = self.value == BC_TYPE_CHAR;
-    fun isInt() -> Bool = self.value == BC_TYPE_INT;
     fun isInt32() -> Bool = self.value == BC_TYPE_INT32;
     fun isInt64() -> Bool = self.value == BC_TYPE_INT64;
     fun isFloat() -> Bool = self.value == BC_TYPE_FLOAT;

@@ -65,7 +65,7 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVis
         self.currentBlock.addSuccessor(targetBlock);
     }
     @override fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) {
-        let offset = self.bc.constPool(idx).toInt().unwrap();
+        let offset = self.bc.constPool(idx).toInt32().unwrap();
         let targetBlock = self.blockAt(self.offset + offset).unwrap();
         self.currentBlock.addSuccessor(targetBlock);
     }
@@ -74,7 +74,7 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVis
         self.currentBlock.addSuccessor(targetBlock);
     }
     @override fun visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) {
-        let offset = self.bc.constPool(idx).toInt().unwrap();
+        let offset = self.bc.constPool(idx).toInt32().unwrap();
         let targetBlock = self.blockAt(self.offset + offset).unwrap();
         self.currentBlock.addSuccessor(targetBlock);
     }
@@ -84,7 +84,7 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVis
         self.markBlockTerminated();
     }
     @override fun visitJumpConst(idx: ConstPoolId) {
-        let offset = self.bc.constPool(idx).toInt().unwrap();
+        let offset = self.bc.constPool(idx).toInt32().unwrap();
         let targetBlock = self.blockAt(self.offset + offset).unwrap();
         self.currentBlock.addSuccessor(targetBlock);
         self.markBlockTerminated();
@@ -107,7 +107,7 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVis
         self.currentBlock.addSuccessor(self.graph.getExitBlock());
         self.markBlockTerminated();
     }
-    @override fun visitRetInt(opnd: BytecodeRegister) {
+    @override fun visitRetInt32(opnd: BytecodeRegister) {
         self.currentBlock.addSuccessor(self.graph.getExitBlock());
         self.markBlockTerminated();
     }
@@ -181,7 +181,7 @@ class SsagenCreateBlocks(let graph: Graph, let bc: BytecodeFunction, let blocks:
         self.markNextInstructionAsBlockStart();
     }
     @override fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) {
-        let offset = self.bc.constPool(idx).toInt().unwrap();
+        let offset = self.bc.constPool(idx).toInt32().unwrap();
         self.ensureBlockAt(self.offset + offset);
         self.markNextInstructionAsBlockStart();
     }
@@ -190,7 +190,7 @@ class SsagenCreateBlocks(let graph: Graph, let bc: BytecodeFunction, let blocks:
         self.markNextInstructionAsBlockStart();
     }
     @override fun visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) {
-        let offset = self.bc.constPool(idx).toInt().unwrap();
+        let offset = self.bc.constPool(idx).toInt32().unwrap();
         self.ensureBlockAt(self.offset + offset);
         self.markNextInstructionAsBlockStart();
     }
@@ -199,7 +199,7 @@ class SsagenCreateBlocks(let graph: Graph, let bc: BytecodeFunction, let blocks:
         self.markNextInstructionAsBlockStart();
     }
     @override fun visitJumpConst(idx: ConstPoolId) {
-        let offset = self.bc.constPool(idx).toInt().unwrap();
+        let offset = self.bc.constPool(idx).toInt32().unwrap();
         self.ensureBlockAt(self.offset + offset);
         self.markNextInstructionAsBlockStart();
     }
@@ -217,7 +217,7 @@ class SsagenCreateBlocks(let graph: Graph, let bc: BytecodeFunction, let blocks:
     @override fun visitRetChar(opnd: BytecodeRegister) {
         self.markNextInstructionAsBlockStart();
     }
-    @override fun visitRetInt(opnd: BytecodeRegister) {
+    @override fun visitRetInt32(opnd: BytecodeRegister) {
         self.markNextInstructionAsBlockStart();
     }
     @override fun visitRetInt64(opnd: BytecodeRegister) {

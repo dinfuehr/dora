@@ -5,60 +5,46 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
 @open @abstract class BytecodeVisitor {
     @open fun visitInstruction(offset: Int) {}
 
-    @open fun visitAddInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitAddInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitAddInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitAddFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitAddDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitSubInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitSubInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitSubInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitSubFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitSubDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitNegInt(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitNegInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitNegInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitNegFloat(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitNegDouble(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitMulInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitMulInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitMulInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitMulFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitMulDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitDivInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitDivInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitDivInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitDivFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitDivDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitModInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitModInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitModInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitAndInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitAndInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitAndInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitOrInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitOrInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitOrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitXorInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitXorInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitXorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
     @open fun visitNotBool(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitNotInt(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitNotInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitNotInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-
-    @open fun visitShlInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitShrInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitSarInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
     @open fun visitShlInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitShrInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
@@ -68,39 +54,37 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fun visitShrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitSarInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitRolInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitRorInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitRolInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitRorInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitRolInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitRorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitReinterpretFloatAsInt(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitReinterpretIntAsFloat(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitReinterpretFloatAsInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitReinterpretInt32AsFloat(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitReinterpretDoubleAsInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitReinterpretInt64AsDouble(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
 
     @open fun visitExtendUInt8ToChar(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitExtendUInt8ToInt(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitExtendUInt8ToInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitExtendUInt8ToInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitExtendIntToInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitExtendInt32ToInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitExtendCharToInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitCastCharToInt(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitCastIntToUInt8(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitCastIntToChar(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitCastCharToInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitCastInt32ToUInt8(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitCastInt32ToChar(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitCastInt64ToUInt8(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitCastInt64ToChar(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitCastInt64ToInt(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitCastInt64ToInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitConvertIntToFloat(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitConvertIntToDouble(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitConvertInt32ToFloat(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitConvertInt32ToDouble(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitConvertInt64ToFloat(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitConvertInt64ToDouble(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitTruncateFloatToInt(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitTruncateFloatToInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitTruncateFloatToInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitTruncateDoubleToInt(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitTruncateDoubleToInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitTruncateDoubleToInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
 
     @open fun visitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
@@ -109,7 +93,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fun visitMovBool(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitMovUInt8(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitMovChar(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
-    @open fun visitMovInt(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
+    @open fun visitMovInt32(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitMovInt64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitMovFloat(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitMovDouble(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
@@ -118,7 +102,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fun visitLoadFieldBool(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
     @open fun visitLoadFieldUInt8(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
     @open fun visitLoadFieldChar(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
-    @open fun visitLoadFieldInt(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @open fun visitLoadFieldInt32(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
     @open fun visitLoadFieldInt64(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
     @open fun visitLoadFieldFloat(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
     @open fun visitLoadFieldDouble(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
@@ -127,7 +111,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fun visitStoreFieldBool(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
     @open fun visitStoreFieldUInt8(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
     @open fun visitStoreFieldChar(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
-    @open fun visitStoreFieldInt(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @open fun visitStoreFieldInt32(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
     @open fun visitStoreFieldInt64(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
     @open fun visitStoreFieldFloat(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
     @open fun visitStoreFieldDouble(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
@@ -136,7 +120,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fun visitLoadGlobalBool(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
     @open fun visitLoadGlobalUInt8(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
     @open fun visitLoadGlobalChar(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
-    @open fun visitLoadGlobalInt(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
+    @open fun visitLoadGlobalInt32(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
     @open fun visitLoadGlobalInt64(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
     @open fun visitLoadGlobalFloat(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
     @open fun visitLoadGlobalDouble(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
@@ -145,7 +129,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fun visitStoreGlobalBool(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
     @open fun visitStoreGlobalUInt8(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
     @open fun visitStoreGlobalChar(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
-    @open fun visitStoreGlobalInt(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
+    @open fun visitStoreGlobalInt32(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
     @open fun visitStoreGlobalInt64(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
     @open fun visitStoreGlobalFloat(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
     @open fun visitStoreGlobalDouble(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
@@ -158,13 +142,13 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fun visitConstFalse(dest: BytecodeRegister) { unimplemented(); }
     @open fun visitConstZeroUInt8(dest: BytecodeRegister) { unimplemented(); }
     @open fun visitConstZeroChar(dest: BytecodeRegister) { unimplemented(); }
-    @open fun visitConstZeroInt(dest: BytecodeRegister) { unimplemented(); }
+    @open fun visitConstZeroInt32(dest: BytecodeRegister) { unimplemented(); }
     @open fun visitConstZeroInt64(dest: BytecodeRegister) { unimplemented(); }
     @open fun visitConstZeroFloat(dest: BytecodeRegister) { unimplemented(); }
     @open fun visitConstZeroDouble(dest: BytecodeRegister) { unimplemented(); }
     @open fun visitConstUInt8(dest: BytecodeRegister, value: UInt8) { unimplemented(); }
     @open fun visitConstChar(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
-    @open fun visitConstInt(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
+    @open fun visitConstInt32(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
     @open fun visitConstInt64(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
     @open fun visitConstFloat(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
     @open fun visitConstDouble(dest: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
@@ -193,12 +177,12 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fun visitTestEqEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitTestNeEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitTestEqInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestNeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestGtInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestGeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestLtInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
-    @open fun visitTestLeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestEqInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestNeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestGtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestGeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestLtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
+    @open fun visitTestLeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
 
     @open fun visitTestEqInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitTestNeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
@@ -236,7 +220,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fun visitInvokeDirectBool(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
     @open fun visitInvokeDirectUInt8(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
     @open fun visitInvokeDirectChar(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @open fun visitInvokeDirectInt(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
+    @open fun visitInvokeDirectInt32(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
     @open fun visitInvokeDirectInt64(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
     @open fun visitInvokeDirectFloat(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
     @open fun visitInvokeDirectDouble(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
@@ -246,7 +230,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fun visitInvokeVirtualBool(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
     @open fun visitInvokeVirtualUInt8(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
     @open fun visitInvokeVirtualChar(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @open fun visitInvokeVirtualInt(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
+    @open fun visitInvokeVirtualInt32(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
     @open fun visitInvokeVirtualInt64(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
     @open fun visitInvokeVirtualFloat(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
     @open fun visitInvokeVirtualDouble(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
@@ -256,7 +240,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fun visitInvokeStaticBool(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
     @open fun visitInvokeStaticUInt8(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
     @open fun visitInvokeStaticChar(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @open fun visitInvokeStaticInt(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
+    @open fun visitInvokeStaticInt32(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
     @open fun visitInvokeStaticInt64(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
     @open fun visitInvokeStaticFloat(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
     @open fun visitInvokeStaticDouble(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
@@ -268,7 +252,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fun visitRetBool(opnd: BytecodeRegister) { unimplemented(); }
     @open fun visitRetUInt8(opnd: BytecodeRegister) { unimplemented(); }
     @open fun visitRetChar(opnd: BytecodeRegister) { unimplemented(); }
-    @open fun visitRetInt(opnd: BytecodeRegister) { unimplemented(); }
+    @open fun visitRetInt32(opnd: BytecodeRegister) { unimplemented(); }
     @open fun visitRetInt64(opnd: BytecodeRegister) { unimplemented(); }
     @open fun visitRetFloat(opnd: BytecodeRegister) { unimplemented(); }
     @open fun visitRetDouble(opnd: BytecodeRegister) { unimplemented(); }
@@ -276,60 +260,46 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
 }
 
 @open @abstract class EmptyBytecodeVisitor: BytecodeVisitor {
-    @override fun visitAddInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitAddInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitAddInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitAddFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitAddDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitSubInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitSubInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitSubInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitSubFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitSubDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitNegInt(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fun visitNegInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fun visitNegInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fun visitNegFloat(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fun visitNegDouble(dest: BytecodeRegister, src: BytecodeRegister) {}
 
-    @override fun visitMulInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitMulInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitMulInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitMulFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitMulDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitDivInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitDivInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitDivInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitDivFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitDivDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitModInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitModInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitModInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitAndInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitAndInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitAndInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitOrInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitOrInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitOrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitXorInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitXorInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitXorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
     @override fun visitNotBool(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitNotInt(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fun visitNotInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fun visitNotInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
-
-    @override fun visitShlInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitShrInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitSarInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
     @override fun visitShlInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitShrInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
@@ -339,39 +309,37 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fun visitShrInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitSarInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitRolInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitRorInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitRolInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitRorInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitRolInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitRorInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitReinterpretFloatAsInt(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitReinterpretIntAsFloat(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitReinterpretFloatAsInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitReinterpretInt32AsFloat(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fun visitReinterpretDoubleAsInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fun visitReinterpretInt64AsDouble(dest: BytecodeRegister, src: BytecodeRegister) {}
 
     @override fun visitExtendUInt8ToChar(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitExtendUInt8ToInt(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitExtendUInt8ToInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fun visitExtendUInt8ToInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitExtendIntToInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitExtendInt32ToInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fun visitExtendCharToInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
 
-    @override fun visitCastCharToInt(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitCastIntToUInt8(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitCastIntToChar(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitCastCharToInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitCastInt32ToUInt8(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitCastInt32ToChar(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fun visitCastInt64ToUInt8(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fun visitCastInt64ToChar(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitCastInt64ToInt(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitCastInt64ToInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
 
-    @override fun visitConvertIntToFloat(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitConvertIntToDouble(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitConvertInt32ToFloat(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitConvertInt32ToDouble(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fun visitConvertInt64ToFloat(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fun visitConvertInt64ToDouble(dest: BytecodeRegister, src: BytecodeRegister) {}
 
-    @override fun visitTruncateFloatToInt(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitTruncateFloatToInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fun visitTruncateFloatToInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitTruncateDoubleToInt(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitTruncateDoubleToInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fun visitTruncateDoubleToInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
 
     @override fun visitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) {}
@@ -380,7 +348,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fun visitMovBool(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fun visitMovUInt8(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fun visitMovChar(dest: BytecodeRegister, src: BytecodeRegister) {}
-    @override fun visitMovInt(dest: BytecodeRegister, src: BytecodeRegister) {}
+    @override fun visitMovInt32(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fun visitMovInt64(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fun visitMovFloat(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fun visitMovDouble(dest: BytecodeRegister, src: BytecodeRegister) {}
@@ -389,7 +357,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fun visitLoadFieldBool(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
     @override fun visitLoadFieldUInt8(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
     @override fun visitLoadFieldChar(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitLoadFieldInt(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
+    @override fun visitLoadFieldInt32(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
     @override fun visitLoadFieldInt64(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
     @override fun visitLoadFieldFloat(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
     @override fun visitLoadFieldDouble(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
@@ -398,7 +366,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fun visitStoreFieldBool(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
     @override fun visitStoreFieldUInt8(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
     @override fun visitStoreFieldChar(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitStoreFieldInt(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
+    @override fun visitStoreFieldInt32(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
     @override fun visitStoreFieldInt64(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
     @override fun visitStoreFieldFloat(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
     @override fun visitStoreFieldDouble(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
@@ -407,7 +375,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fun visitLoadGlobalBool(dest: BytecodeRegister, glob: GlobalId) {}
     @override fun visitLoadGlobalUInt8(dest: BytecodeRegister, glob: GlobalId) {}
     @override fun visitLoadGlobalChar(dest: BytecodeRegister, glob: GlobalId) {}
-    @override fun visitLoadGlobalInt(dest: BytecodeRegister, glob: GlobalId) {}
+    @override fun visitLoadGlobalInt32(dest: BytecodeRegister, glob: GlobalId) {}
     @override fun visitLoadGlobalInt64(dest: BytecodeRegister, glob: GlobalId) {}
     @override fun visitLoadGlobalFloat(dest: BytecodeRegister, glob: GlobalId) {}
     @override fun visitLoadGlobalDouble(dest: BytecodeRegister, glob: GlobalId) {}
@@ -416,7 +384,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fun visitStoreGlobalBool(src: BytecodeRegister, glob: GlobalId) {}
     @override fun visitStoreGlobalUInt8(src: BytecodeRegister, glob: GlobalId) {}
     @override fun visitStoreGlobalChar(src: BytecodeRegister, glob: GlobalId) {}
-    @override fun visitStoreGlobalInt(src: BytecodeRegister, glob: GlobalId) {}
+    @override fun visitStoreGlobalInt32(src: BytecodeRegister, glob: GlobalId) {}
     @override fun visitStoreGlobalInt64(src: BytecodeRegister, glob: GlobalId) {}
     @override fun visitStoreGlobalFloat(src: BytecodeRegister, glob: GlobalId) {}
     @override fun visitStoreGlobalDouble(src: BytecodeRegister, glob: GlobalId) {}
@@ -429,13 +397,13 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fun visitConstFalse(dest: BytecodeRegister) {}
     @override fun visitConstZeroUInt8(dest: BytecodeRegister) {}
     @override fun visitConstZeroChar(dest: BytecodeRegister) {}
-    @override fun visitConstZeroInt(dest: BytecodeRegister) {}
+    @override fun visitConstZeroInt32(dest: BytecodeRegister) {}
     @override fun visitConstZeroInt64(dest: BytecodeRegister) {}
     @override fun visitConstZeroFloat(dest: BytecodeRegister) {}
     @override fun visitConstZeroDouble(dest: BytecodeRegister) {}
     @override fun visitConstUInt8(dest: BytecodeRegister, value: UInt8) {}
     @override fun visitConstChar(dest: BytecodeRegister, idx: ConstPoolId) {}
-    @override fun visitConstInt(dest: BytecodeRegister, idx: ConstPoolId) {}
+    @override fun visitConstInt32(dest: BytecodeRegister, idx: ConstPoolId) {}
     @override fun visitConstInt64(dest: BytecodeRegister, idx: ConstPoolId) {}
     @override fun visitConstFloat(dest: BytecodeRegister, idx: ConstPoolId) {}
     @override fun visitConstDouble(dest: BytecodeRegister, idx: ConstPoolId) {}
@@ -464,12 +432,12 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fun visitTestEqEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitTestNeEnum(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
-    @override fun visitTestEqInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestNeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestGtInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestGeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestLtInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
-    @override fun visitTestLeInt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestEqInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestNeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestGtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestGeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestLtInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
+    @override fun visitTestLeInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
 
     @override fun visitTestEqInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
     @override fun visitTestNeInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {}
@@ -507,7 +475,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fun visitInvokeDirectBool(dest: BytecodeRegister, fct: FctId) {}
     @override fun visitInvokeDirectUInt8(dest: BytecodeRegister, fct: FctId) {}
     @override fun visitInvokeDirectChar(dest: BytecodeRegister, fct: FctId) {}
-    @override fun visitInvokeDirectInt(dest: BytecodeRegister, fct: FctId) {}
+    @override fun visitInvokeDirectInt32(dest: BytecodeRegister, fct: FctId) {}
     @override fun visitInvokeDirectInt64(dest: BytecodeRegister, fct: FctId) {}
     @override fun visitInvokeDirectFloat(dest: BytecodeRegister, fct: FctId) {}
     @override fun visitInvokeDirectDouble(dest: BytecodeRegister, fct: FctId) {}
@@ -517,7 +485,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fun visitInvokeVirtualBool(dest: BytecodeRegister, fct: FctId) {}
     @override fun visitInvokeVirtualUInt8(dest: BytecodeRegister, fct: FctId) {}
     @override fun visitInvokeVirtualChar(dest: BytecodeRegister, fct: FctId) {}
-    @override fun visitInvokeVirtualInt(dest: BytecodeRegister, fct: FctId) {}
+    @override fun visitInvokeVirtualInt32(dest: BytecodeRegister, fct: FctId) {}
     @override fun visitInvokeVirtualInt64(dest: BytecodeRegister, fct: FctId) {}
     @override fun visitInvokeVirtualFloat(dest: BytecodeRegister, fct: FctId) {}
     @override fun visitInvokeVirtualDouble(dest: BytecodeRegister, fct: FctId) {}
@@ -527,7 +495,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fun visitInvokeStaticBool(dest: BytecodeRegister, fct: FctId) {}
     @override fun visitInvokeStaticUInt8(dest: BytecodeRegister, fct: FctId) {}
     @override fun visitInvokeStaticChar(dest: BytecodeRegister, fct: FctId) {}
-    @override fun visitInvokeStaticInt(dest: BytecodeRegister, fct: FctId) {}
+    @override fun visitInvokeStaticInt32(dest: BytecodeRegister, fct: FctId) {}
     @override fun visitInvokeStaticInt64(dest: BytecodeRegister, fct: FctId) {}
     @override fun visitInvokeStaticFloat(dest: BytecodeRegister, fct: FctId) {}
     @override fun visitInvokeStaticDouble(dest: BytecodeRegister, fct: FctId) {}
@@ -539,7 +507,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fun visitRetBool(opnd: BytecodeRegister) {}
     @override fun visitRetUInt8(opnd: BytecodeRegister) {}
     @override fun visitRetChar(opnd: BytecodeRegister) {}
-    @override fun visitRetInt(opnd: BytecodeRegister) {}
+    @override fun visitRetInt32(opnd: BytecodeRegister) {}
     @override fun visitRetInt64(opnd: BytecodeRegister) {}
     @override fun visitRetFloat(opnd: BytecodeRegister) {}
     @override fun visitRetDouble(opnd: BytecodeRegister) {}
@@ -563,11 +531,11 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         if opcode == BC_WIDE {
             fatalError("unexpected WIDE");
 
-        } else if opcode == BC_ADD_INT {
+        } else if opcode == BC_ADD_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
-            self.visitor.visitAddInt(dest, lhs, rhs);
+            self.visitor.visitAddInt32(dest, lhs, rhs);
         } else if opcode == BC_ADD_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
@@ -589,11 +557,11 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let rhs = self.readRegister(wide);
             self.visitor.visitAddDouble(dest, lhs, rhs);
 
-        } else if opcode == BC_SUB_INT {
+        } else if opcode == BC_SUB_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
-            self.visitor.visitSubInt(dest, lhs, rhs);
+            self.visitor.visitSubInt32(dest, lhs, rhs);
         } else if opcode == BC_SUB_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
@@ -615,10 +583,10 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let rhs = self.readRegister(wide);
             self.visitor.visitSubDouble(dest, lhs, rhs);
 
-        } else if opcode == BC_NEG_INT {
+        } else if opcode == BC_NEG_INT32 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
-            self.visitor.visitNegInt(dest, src);
+            self.visitor.visitNegInt32(dest, src);
         } else if opcode == BC_NEG_INT32 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
@@ -636,11 +604,11 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let src = self.readRegister(wide);
             self.visitor.visitNegDouble(dest, src);
 
-        } else if opcode == BC_MUL_INT {
+        } else if opcode == BC_MUL_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
-            self.visitor.visitMulInt(dest, lhs, rhs);
+            self.visitor.visitMulInt32(dest, lhs, rhs);
         } else if opcode == BC_MUL_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
@@ -662,11 +630,11 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let rhs = self.readRegister(wide);
             self.visitor.visitMulDouble(dest, lhs, rhs);
 
-        } else if opcode == BC_DIV_INT {
+        } else if opcode == BC_DIV_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
-            self.visitor.visitDivInt(dest, lhs, rhs);
+            self.visitor.visitDivInt32(dest, lhs, rhs);
         } else if opcode == BC_DIV_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
@@ -688,11 +656,11 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let rhs = self.readRegister(wide);
             self.visitor.visitDivDouble(dest, lhs, rhs);
 
-        } else if opcode == BC_MOD_INT {
+        } else if opcode == BC_MOD_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
-            self.visitor.visitModInt(dest, lhs, rhs);
+            self.visitor.visitModInt32(dest, lhs, rhs);
         } else if opcode == BC_MOD_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
@@ -704,11 +672,11 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let rhs = self.readRegister(wide);
             self.visitor.visitModInt64(dest, lhs, rhs);
 
-        } else if opcode == BC_AND_INT {
+        } else if opcode == BC_AND_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
-            self.visitor.visitAndInt(dest, lhs, rhs);
+            self.visitor.visitAndInt32(dest, lhs, rhs);
         } else if opcode == BC_AND_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
@@ -720,11 +688,11 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let rhs = self.readRegister(wide);
             self.visitor.visitAndInt64(dest, lhs, rhs);
 
-        } else if opcode == BC_OR_INT {
+        } else if opcode == BC_OR_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
-            self.visitor.visitOrInt(dest, lhs, rhs);
+            self.visitor.visitOrInt32(dest, lhs, rhs);
         } else if opcode == BC_OR_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
@@ -736,11 +704,11 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let rhs = self.readRegister(wide);
             self.visitor.visitOrInt64(dest, lhs, rhs);
 
-        } else if opcode == BC_XOR_INT {
+        } else if opcode == BC_XOR_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
-            self.visitor.visitXorInt(dest, lhs, rhs);
+            self.visitor.visitXorInt32(dest, lhs, rhs);
         } else if opcode == BC_XOR_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
@@ -756,10 +724,10 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitNotBool(dest, src);
-        } else if opcode == BC_NOT_INT {
+        } else if opcode == BC_NOT_INT32 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
-            self.visitor.visitNotInt(dest, src);
+            self.visitor.visitNotInt32(dest, src);
         } else if opcode == BC_NOT_INT32 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
@@ -769,21 +737,21 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let src = self.readRegister(wide);
             self.visitor.visitNotInt64(dest, src);
 
-        } else if opcode == BC_SHL_INT {
+        } else if opcode == BC_SHL_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
-            self.visitor.visitShlInt(dest, lhs, rhs);
-        } else if opcode == BC_SHR_INT {
+            self.visitor.visitShlInt32(dest, lhs, rhs);
+        } else if opcode == BC_SHR_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
-            self.visitor.visitShrInt(dest, lhs, rhs);
-        } else if opcode == BC_SAR_INT {
+            self.visitor.visitShrInt32(dest, lhs, rhs);
+        } else if opcode == BC_SAR_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
-            self.visitor.visitSarInt(dest, lhs, rhs);
+            self.visitor.visitSarInt32(dest, lhs, rhs);
 
         } else if opcode == BC_SHL_INT32 {
             let dest = self.readRegister(wide);
@@ -817,16 +785,16 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let rhs = self.readRegister(wide);
             self.visitor.visitSarInt64(dest, lhs, rhs);
 
-        } else if opcode == BC_ROL_INT {
+        } else if opcode == BC_ROL_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
-            self.visitor.visitRolInt(dest, lhs, rhs);
-        } else if opcode == BC_ROR_INT {
+            self.visitor.visitRolInt32(dest, lhs, rhs);
+        } else if opcode == BC_ROR_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
-            self.visitor.visitRorInt(dest, lhs, rhs);
+            self.visitor.visitRorInt32(dest, lhs, rhs);
         } else if opcode == BC_ROL_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
@@ -848,15 +816,15 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let rhs = self.readRegister(wide);
             self.visitor.visitRorInt64(dest, lhs, rhs);
 
-        } else if opcode == BC_REINTERPRET_FLOAT_AS_INT {
+        } else if opcode == BC_REINTERPRET_FLOAT_AS_INT32 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
-            self.visitor.visitReinterpretFloatAsInt(dest, src);
+            self.visitor.visitReinterpretFloatAsInt32(dest, src);
 
-        } else if opcode == BC_REINTERPRET_INT_AS_FLOAT {
+        } else if opcode == BC_REINTERPRET_INT32_AS_FLOAT {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
-            self.visitor.visitReinterpretIntAsFloat(dest, src);
+            self.visitor.visitReinterpretInt32AsFloat(dest, src);
 
         } else if opcode == BC_REINTERPRET_DOUBLE_AS_INT64 {
             let dest = self.readRegister(wide);
@@ -873,40 +841,40 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let src = self.readRegister(wide);
             self.visitor.visitExtendUInt8ToChar(dest, src);
 
-        } else if opcode == BC_EXTEND_UINT8_TO_INT {
+        } else if opcode == BC_EXTEND_UINT8_TO_INT32 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
-            self.visitor.visitExtendUInt8ToInt(dest, src);
+            self.visitor.visitExtendUInt8ToInt32(dest, src);
 
         } else if opcode == BC_EXTEND_UINT8_TO_INT64 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitExtendUInt8ToInt64(dest, src);
 
-        } else if opcode == BC_EXTEND_INT_TO_INT64 {
+        } else if opcode == BC_EXTEND_INT32_TO_INT64 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
-            self.visitor.visitExtendIntToInt64(dest, src);
+            self.visitor.visitExtendInt32ToInt64(dest, src);
 
         } else if opcode == BC_EXTEND_CHAR_TO_INT64 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitExtendCharToInt64(dest, src);
 
-        } else if opcode == BC_CAST_CHAR_TO_INT {
+        } else if opcode == BC_CAST_CHAR_TO_INT32 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
-            self.visitor.visitCastCharToInt(dest, src);
+            self.visitor.visitCastCharToInt32(dest, src);
 
-        } else if opcode == BC_CAST_INT_TO_UINT8 {
+        } else if opcode == BC_CAST_INT32_TO_UINT8 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
-            self.visitor.visitCastIntToUInt8(dest, src);
+            self.visitor.visitCastInt32ToUInt8(dest, src);
 
-        } else if opcode == BC_CAST_INT_TO_CHAR {
+        } else if opcode == BC_CAST_INT32_TO_CHAR {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
-            self.visitor.visitCastIntToChar(dest, src);
+            self.visitor.visitCastInt32ToChar(dest, src);
 
         } else if opcode == BC_CAST_INT64_TO_UINT8 {
             let dest = self.readRegister(wide);
@@ -918,20 +886,20 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let src = self.readRegister(wide);
             self.visitor.visitCastInt64ToChar(dest, src);
 
-        } else if opcode == BC_CAST_INT64_TO_INT {
+        } else if opcode == BC_CAST_INT64_TO_INT32 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
-            self.visitor.visitCastInt64ToInt(dest, src);
+            self.visitor.visitCastInt64ToInt32(dest, src);
 
-        } else if opcode == BC_CONVERT_INT_TO_FLOAT {
+        } else if opcode == BC_CONVERT_INT32_TO_FLOAT {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
-            self.visitor.visitConvertIntToFloat(dest, src);
+            self.visitor.visitConvertInt32ToFloat(dest, src);
 
-        } else if opcode == BC_CONVERT_INT_TO_DOUBLE {
+        } else if opcode == BC_CONVERT_INT32_TO_DOUBLE {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
-            self.visitor.visitConvertIntToDouble(dest, src);
+            self.visitor.visitConvertInt32ToDouble(dest, src);
 
         } else if opcode == BC_CONVERT_INT64_TO_FLOAT {
             let dest = self.readRegister(wide);
@@ -943,20 +911,20 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let src = self.readRegister(wide);
             self.visitor.visitConvertInt64ToDouble(dest, src);
 
-        } else if opcode == BC_TRUNCATE_FLOAT_TO_INT {
+        } else if opcode == BC_TRUNCATE_FLOAT_TO_INT32 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
-            self.visitor.visitTruncateFloatToInt(dest, src);
+            self.visitor.visitTruncateFloatToInt32(dest, src);
 
         } else if opcode == BC_TRUNCATE_FLOAT_TO_INT64 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitTruncateFloatToInt64(dest, src);
 
-        } else if opcode == BC_TRUNCATE_DOUBLE_TO_INT {
+        } else if opcode == BC_TRUNCATE_DOUBLE_TO_INT32 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
-            self.visitor.visitTruncateDoubleToInt(dest, src);
+            self.visitor.visitTruncateDoubleToInt32(dest, src);
 
         } else if opcode == BC_TRUNCATE_DOUBLE_TO_INT64 {
             let dest = self.readRegister(wide);
@@ -1002,10 +970,10 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
             self.visitor.visitMovChar(dest, src);
-        } else if opcode == BC_MOV_INT {
+        } else if opcode == BC_MOV_INT32 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
-            self.visitor.visitMovInt(dest, src);
+            self.visitor.visitMovInt32(dest, src);
         } else if opcode == BC_MOV_INT64 {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);
@@ -1041,12 +1009,12 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let cls = self.readClassDefId(wide);
             let field = self.readFieldId(wide);
             self.visitor.visitLoadFieldChar(dest, obj, cls, field);
-        } else if opcode == BC_LOAD_FIELD_INT {
+        } else if opcode == BC_LOAD_FIELD_INT32 {
             let dest = self.readRegister(wide);
             let obj = self.readRegister(wide);
             let cls = self.readClassDefId(wide);
             let field = self.readFieldId(wide);
-            self.visitor.visitLoadFieldInt(dest, obj, cls, field);
+            self.visitor.visitLoadFieldInt32(dest, obj, cls, field);
         } else if opcode == BC_LOAD_FIELD_INT64 {
             let dest = self.readRegister(wide);
             let obj = self.readRegister(wide);
@@ -1090,12 +1058,12 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let cls = self.readClassDefId(wide);
             let field = self.readFieldId(wide);
             self.visitor.visitStoreFieldChar(src, obj, cls, field);
-        } else if opcode == BC_STORE_FIELD_INT {
+        } else if opcode == BC_STORE_FIELD_INT32 {
             let src = self.readRegister(wide);
             let obj = self.readRegister(wide);
             let cls = self.readClassDefId(wide);
             let field = self.readFieldId(wide);
-            self.visitor.visitStoreFieldInt(src, obj, cls, field);
+            self.visitor.visitStoreFieldInt32(src, obj, cls, field);
         } else if opcode == BC_STORE_FIELD_INT64 {
             let src = self.readRegister(wide);
             let obj = self.readRegister(wide);
@@ -1133,10 +1101,10 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let dest = self.readRegister(wide);
             let glob = self.readGlobalId(wide);
             self.visitor.visitLoadGlobalChar(dest, glob);
-        } else if opcode == BC_LOAD_FIELD_INT {
+        } else if opcode == BC_LOAD_FIELD_INT32 {
             let dest = self.readRegister(wide);
             let glob = self.readGlobalId(wide);
-            self.visitor.visitLoadGlobalInt(dest, glob);
+            self.visitor.visitLoadGlobalInt32(dest, glob);
         } else if opcode == BC_LOAD_FIELD_INT64 {
             let dest = self.readRegister(wide);
             let glob = self.readGlobalId(wide);
@@ -1166,10 +1134,10 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let src = self.readRegister(wide);
             let glob = self.readGlobalId(wide);
             self.visitor.visitStoreGlobalChar(src, glob);
-        } else if opcode == BC_STORE_FIELD_INT {
+        } else if opcode == BC_STORE_FIELD_INT32 {
             let src = self.readRegister(wide);
             let glob = self.readGlobalId(wide);
-            self.visitor.visitStoreGlobalInt(src, glob);
+            self.visitor.visitStoreGlobalInt32(src, glob);
         } else if opcode == BC_STORE_FIELD_INT64 {
             let src = self.readRegister(wide);
             let glob = self.readGlobalId(wide);
@@ -1206,9 +1174,9 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         } else if opcode == BC_CONST_ZERO_CHAR {
             let dest = self.readRegister(wide);
             self.visitor.visitConstZeroChar(dest);
-        } else if opcode == BC_CONST_ZERO_INT {
+        } else if opcode == BC_CONST_ZERO_INT32 {
             let dest = self.readRegister(wide);
-            self.visitor.visitConstZeroInt(dest);
+            self.visitor.visitConstZeroInt32(dest);
         } else if opcode == BC_CONST_ZERO_INT64 {
             let dest = self.readRegister(wide);
             self.visitor.visitConstZeroInt64(dest);
@@ -1226,10 +1194,10 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let dest = self.readRegister(wide);
             let idx = self.readConstPoolId(wide);
             self.visitor.visitConstChar(dest, idx);
-        } else if opcode == BC_CONST_INT {
+        } else if opcode == BC_CONST_INT32 {
             let dest = self.readRegister(wide);
             let idx = self.readConstPoolId(wide);
-            self.visitor.visitConstInt(dest, idx);
+            self.visitor.visitConstInt32(dest, idx);
         } else if opcode == BC_CONST_INT64 {
             let dest = self.readRegister(wide);
             let idx = self.readConstPoolId(wide);
@@ -1342,36 +1310,36 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let rhs = self.readRegister(wide);
             self.visitor.visitTestNeEnum(dest, lhs, rhs);
 
-        } else if opcode == BC_TEST_EQ_INT {
+        } else if opcode == BC_TEST_EQ_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
-            self.visitor.visitTestEqInt(dest, lhs, rhs);
-        } else if opcode == BC_TEST_NE_INT {
+            self.visitor.visitTestEqInt32(dest, lhs, rhs);
+        } else if opcode == BC_TEST_NE_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
-            self.visitor.visitTestNeInt(dest, lhs, rhs);
-        } else if opcode == BC_TEST_GT_INT {
+            self.visitor.visitTestNeInt32(dest, lhs, rhs);
+        } else if opcode == BC_TEST_GT_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
-            self.visitor.visitTestGtInt(dest, lhs, rhs);
-        } else if opcode == BC_TEST_GE_INT {
+            self.visitor.visitTestGtInt32(dest, lhs, rhs);
+        } else if opcode == BC_TEST_GE_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
-            self.visitor.visitTestGeInt(dest, lhs, rhs);
-        } else if opcode == BC_TEST_LT_INT {
+            self.visitor.visitTestGeInt32(dest, lhs, rhs);
+        } else if opcode == BC_TEST_LT_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
-            self.visitor.visitTestLtInt(dest, lhs, rhs);
-        } else if opcode == BC_TEST_LE_INT {
+            self.visitor.visitTestLtInt32(dest, lhs, rhs);
+        } else if opcode == BC_TEST_LE_INT32 {
             let dest = self.readRegister(wide);
             let lhs = self.readRegister(wide);
             let rhs = self.readRegister(wide);
-            self.visitor.visitTestLeInt(dest, lhs, rhs);
+            self.visitor.visitTestLeInt32(dest, lhs, rhs);
 
         } else if opcode == BC_TEST_EQ_INT64 {
             let dest = self.readRegister(wide);
@@ -1512,10 +1480,10 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
             self.visitor.visitInvokeDirectChar(dest, fct);
-        } else if opcode == BC_INVOKE_DIRECT_INT {
+        } else if opcode == BC_INVOKE_DIRECT_INT32 {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            self.visitor.visitInvokeDirectInt(dest, fct);
+            self.visitor.visitInvokeDirectInt32(dest, fct);
         } else if opcode == BC_INVOKE_DIRECT_INT64 {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
@@ -1548,10 +1516,10 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
             self.visitor.visitInvokeVirtualChar(dest, fct);
-        } else if opcode == BC_INVOKE_VIRTUAL_INT {
+        } else if opcode == BC_INVOKE_VIRTUAL_INT32 {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            self.visitor.visitInvokeVirtualInt(dest, fct);
+            self.visitor.visitInvokeVirtualInt32(dest, fct);
         } else if opcode == BC_INVOKE_VIRTUAL_INT64 {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
@@ -1584,10 +1552,10 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
             self.visitor.visitInvokeStaticChar(dest, fct);
-        } else if opcode == BC_INVOKE_STATIC_INT {
+        } else if opcode == BC_INVOKE_STATIC_INT32 {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            self.visitor.visitInvokeStaticInt(dest, fct);
+            self.visitor.visitInvokeStaticInt32(dest, fct);
         } else if opcode == BC_INVOKE_STATIC_INT64 {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
@@ -1621,9 +1589,9 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         } else if opcode == BC_RET_CHAR {
             let opnd = self.readRegister(wide);
             self.visitor.visitRetChar(opnd);
-        } else if opcode == BC_RET_INT {
+        } else if opcode == BC_RET_INT32 {
             let opnd = self.readRegister(wide);
-            self.visitor.visitRetInt(opnd);
+            self.visitor.visitRetInt32(opnd);
         } else if opcode == BC_RET_INT64 {
             let opnd = self.readRegister(wide);
             self.visitor.visitRetInt64(opnd);

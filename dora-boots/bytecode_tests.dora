@@ -11,9 +11,8 @@ class TestRetVoidVisitor: BytecodeVisitor {
     writer.emitRetVoid();
     let fct = writer.generate();
     let visitor = TestRetVoidVisitor();
-    assert(fct.code.get(0).toInt() == 255);
-    assert(fct.code.get(1).toInt() == BC_RET_VOID - 255);
-    assert(fct.code.length() == 2);
+    assert(fct.code.get(0).toInt() == BC_RET_VOID);
+    assert(fct.code.length() == 1);
     readBytecode(fct.code, visitor);
     assert(visitor.found);
 }
@@ -21,7 +20,7 @@ class TestRetVoidVisitor: BytecodeVisitor {
 class TestRetIntVisitor: BytecodeVisitor {
     var found: Bool = false;
 
-    @override fun visitRetInt(opnd: BytecodeRegister) {
+    @override fun visitRetInt32(opnd: BytecodeRegister) {
         assert(opnd == BytecodeRegister(17));
         self.found = true;
     }
@@ -29,13 +28,12 @@ class TestRetIntVisitor: BytecodeVisitor {
 
 @test fun testBytecodeRetInt(_x: Testing) {
     let writer = BytecodeWriter();
-    writer.emitRetInt(BytecodeRegister(17));
+    writer.emitRetInt32(BytecodeRegister(17));
     let fct = writer.generate();
     let visitor = TestRetIntVisitor();
-    assert(fct.code.get(0).toInt() == 255);
-    assert(fct.code.get(1).toInt() == BC_RET_INT - 255);
-    assert(fct.code.get(2).toInt() == 17);
-    assert(fct.code.length() == 3);
+    assert(fct.code.get(0).toInt() == BC_RET_INT32);
+    assert(fct.code.get(1).toInt() == 17);
+    assert(fct.code.length() == 2);
     readBytecode(fct.code, visitor);
     assert(visitor.found);
 }
@@ -43,7 +41,7 @@ class TestRetIntVisitor: BytecodeVisitor {
 class TestRetWideVisitor: BytecodeVisitor {
     var found: Bool = false;
 
-    @override fun visitRetInt(opnd: BytecodeRegister) {
+    @override fun visitRetInt32(opnd: BytecodeRegister) {
         assert(opnd == BytecodeRegister(256));
         self.found = true;
     }
@@ -51,14 +49,13 @@ class TestRetWideVisitor: BytecodeVisitor {
 
 @test fun testBytecodeRetWide(_x: Testing) {
     let writer = BytecodeWriter();
-    writer.emitRetInt(BytecodeRegister(256));
+    writer.emitRetInt32(BytecodeRegister(256));
     let fct = writer.generate();
     let visitor = TestRetWideVisitor();
     assert(fct.codeAt(0) == BC_WIDE);
-    assert(fct.codeAt(1) == 255);
-    assert(fct.codeAt(2) == BC_RET_INT - 255);
-    assert(fct.codeIntAt(3) == 256);
-    assert(fct.code.length() == 7);
+    assert(fct.codeAt(1) == BC_RET_INT32);
+    assert(fct.codeIntAt(2) == 256);
+    assert(fct.code.length() == 6);
     readBytecode(fct.code, visitor);
     assert(visitor.found);
 }
@@ -66,7 +63,7 @@ class TestRetWideVisitor: BytecodeVisitor {
 class TestMovVisitor: BytecodeVisitor {
     var found: Bool = false;
 
-    @override fun visitMovInt(dest: BytecodeRegister, src: BytecodeRegister) {
+    @override fun visitMovInt32(dest: BytecodeRegister, src: BytecodeRegister) {
         assert(dest == BytecodeRegister(0));
         assert(src == BytecodeRegister(1));
         self.found = true;
@@ -75,10 +72,10 @@ class TestMovVisitor: BytecodeVisitor {
 
 @test fun testBytecodeMov(_x: Testing) {
     let writer = BytecodeWriter();
-    writer.emitMovInt(BytecodeRegister(0), BytecodeRegister(1));
+    writer.emitMovInt32(BytecodeRegister(0), BytecodeRegister(1));
     let fct = writer.generate();
     let visitor = TestMovVisitor();
-    assert(fct.codeAt(0) == BC_MOV_INT);
+    assert(fct.codeAt(0) == BC_MOV_INT32);
     assert(fct.codeAt(1) == 0);
     assert(fct.codeAt(2) == 1);
     assert(fct.code.length() == 3);
@@ -89,7 +86,7 @@ class TestMovVisitor: BytecodeVisitor {
 class TestMovWideVisitor: BytecodeVisitor {
     var found: Bool = false;
 
-    @override fun visitMovInt(dest: BytecodeRegister, src: BytecodeRegister) {
+    @override fun visitMovInt32(dest: BytecodeRegister, src: BytecodeRegister) {
         assert(dest == BytecodeRegister(256));
         assert(src == BytecodeRegister(255));
         self.found = true;
@@ -98,11 +95,11 @@ class TestMovWideVisitor: BytecodeVisitor {
 
 @test fun testBytecodeMovWide(_x: Testing) {
     let writer = BytecodeWriter();
-    writer.emitMovInt(BytecodeRegister(256), BytecodeRegister(255));
+    writer.emitMovInt32(BytecodeRegister(256), BytecodeRegister(255));
     let fct = writer.generate();
     let visitor = TestMovWideVisitor();
     assert(fct.codeAt(0) == BC_WIDE);
-    assert(fct.codeAt(1) == BC_MOV_INT);
+    assert(fct.codeAt(1) == BC_MOV_INT32);
     assert(fct.codeIntAt(2) == 256);
     assert(fct.codeIntAt(6) == 255);
     assert(fct.code.length() == 10);
@@ -244,23 +241,21 @@ class TestJumpBackWideVisitor: BytecodeVisitor {
     let writer = BytecodeWriter();
     let lbl = writer.defineLabel();
     var i = 0;
-    while i < 128 {
+    while i < 256 {
         writer.emitRetVoid();
         i = i + 1;
     }
     writer.emitJumpLoop(lbl);
     let fct = writer.generate();
     let visitor = TestJumpBackWideVisitor();
-    assert(fct.codeAt(0) == 255);
-    assert(fct.codeAt(1) == BC_RET_VOID - 255);
-    assert(fct.codeAt(254) == 255);
-    assert(fct.codeAt(255) == BC_RET_VOID - 255);
+    assert(fct.codeAt(0) == BC_RET_VOID);
+    assert(fct.codeAt(255) == BC_RET_VOID);
     assert(fct.codeAt(256) == BC_WIDE);
     assert(fct.codeAt(257) == BC_JUMP_LOOP);
     assert(fct.codeIntAt(258) == 256);
     assert(fct.code.length() == 262);
     readBytecode(fct.code, visitor);
-    assert(visitor.found == 129);
+    assert(visitor.found == 257);
 }
 
 class TestJumpVisitor: BytecodeVisitor {
@@ -304,7 +299,7 @@ class TestJumpFarVisitor: BytecodeVisitor {
     let lbl = writer.createLabel();
     writer.emitJump(lbl);
     var i = 0;
-    while i < 127 {
+    while i < 256 {
         writer.emitRetVoid();
         i = i + 1;
     }
@@ -313,10 +308,10 @@ class TestJumpFarVisitor: BytecodeVisitor {
     let visitor = TestJumpFarVisitor();
     assert(fct.codeAt(0) == BC_JUMP_CONST);
     assert(fct.codeAt(1) == 0);
-    assert(fct.code.length() == 256);
-    assert(fct.constPool(ConstPoolId(0)).toInt().unwrap() == 256);
+    assert(fct.code.length() == 258);
+    assert(fct.constPool(ConstPoolId(0)).toInt32().unwrap() == 258);
     readBytecode(fct.code, visitor);
-    assert(visitor.found == 128);
+    assert(visitor.found == 257);
 }
 
 class TestCondJumpVisitor: BytecodeVisitor {
@@ -363,7 +358,7 @@ class TestCondJumpFarVisitor: BytecodeVisitor {
     let lbl = writer.createLabel();
     writer.emitJumpIfFalse(BytecodeRegister(9), lbl);
     var i = 0;
-    while i < 127 {
+    while i < 256 {
         writer.emitRetVoid();
         i = i + 1;
     }
@@ -373,12 +368,11 @@ class TestCondJumpFarVisitor: BytecodeVisitor {
     assert(fct.codeAt(0) == BC_JUMP_IF_FALSE_CONST);
     assert(fct.codeAt(1) == 9);
     assert(fct.codeAt(2) == 0);
-    assert(fct.codeAt(3) == 255);
-    assert(fct.codeAt(4) == BC_RET_VOID - 255);
-    assert(fct.code.length() == 257);
-    assert(fct.constPool(ConstPoolId(0)).toInt().unwrap() == 257);
+    assert(fct.codeAt(3) == BC_RET_VOID);
+    assert(fct.code.length() == 259);
+    assert(fct.constPool(ConstPoolId(0)).toInt32().unwrap() == 259);
     readBytecode(fct.code, visitor);
-    assert(visitor.found == 128);
+    assert(visitor.found == 257);
 }
 
 class TestCondJumpWideVisitor: BytecodeVisitor {
