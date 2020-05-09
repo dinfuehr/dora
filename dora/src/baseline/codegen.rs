@@ -2101,7 +2101,7 @@ where
             Intrinsic::PromoteFloatToDouble => {
                 self.emit_intrinsic_float_to_double(args[0], dest.freg())
             }
-            Intrinsic::ReinterpretFloatAsInt => {
+            Intrinsic::ReinterpretFloatAsInt32 => {
                 self.emit_intrinsic_float_as_int(args[0], dest.reg(), intrinsic)
             }
 
@@ -2668,7 +2668,7 @@ where
         self.emit_expr(e, FREG_RESULT.into());
 
         let (src_mode, dest_mode) = match intrinsic {
-            Intrinsic::ReinterpretFloatAsInt => (MachineMode::Float32, MachineMode::Int32),
+            Intrinsic::ReinterpretFloatAsInt32 => (MachineMode::Float32, MachineMode::Int32),
             Intrinsic::ReinterpretDoubleAsInt64 => (MachineMode::Float64, MachineMode::Int64),
             _ => unreachable!(),
         };

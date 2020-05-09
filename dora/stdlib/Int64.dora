@@ -9,6 +9,7 @@
   }
   @internal fun toCharUnchecked() -> Char;
   @internal fun toInt() -> Int;
+  @internal fun toInt32() -> Int32;
   @internal fun toString() -> String;
   fun toStringHex() -> String { String::hex(self) }
 
@@ -80,7 +81,7 @@
   }
   @internal fun countOneBitsTrailing() -> Int = self.not().countZeroBitsTrailing();
 
-  fun hash() -> Int = self.toInt();
+  fun hash() -> Int32 = self.toInt32();
 
   @static fun bits() -> Int = 64;
   @static fun bytes() -> Int = 8;

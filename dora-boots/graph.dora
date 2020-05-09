@@ -224,7 +224,7 @@ class Block() {
 }
 
 impl Hash for Block {
-  fun hash() -> Int = self.id.hash();
+  fun hash() -> Int32 = self.id.hash();
 }
 
 impl Equals for Block {

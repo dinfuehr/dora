@@ -397,7 +397,7 @@ pub enum Intrinsic {
     FloatToInt32,
     FloatToInt64,
     PromoteFloatToDouble,
-    ReinterpretFloatAsInt,
+    ReinterpretFloatAsInt32,
 
     FloatEq,
     FloatCmp,
@@ -450,7 +450,7 @@ impl Intrinsic {
             | Intrinsic::Int32Not
             | Intrinsic::Int32Plus
             | Intrinsic::Int32Neg
-            | Intrinsic::ReinterpretFloatAsInt
+            | Intrinsic::ReinterpretFloatAsInt32
             | Intrinsic::GenericArrayLen
             | Intrinsic::StrLen
             | Intrinsic::CharToInt32

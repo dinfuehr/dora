@@ -82,7 +82,7 @@
   }
   @internal fun countOneBitsTrailing() -> Int = self.not().countZeroBitsTrailing();
 
-  fun hash() -> Int = self;
+  fun hash() -> Int32 = self.toInt32();
 
   fun abs() -> Int = if self >= 0 { self } else { -self };
 

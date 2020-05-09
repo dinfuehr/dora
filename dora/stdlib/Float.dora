@@ -1,10 +1,12 @@
 @internal class Float {
   @internal fun toInt() -> Int;
+  @internal fun toInt32() -> Int32;
   @internal fun toInt64() -> Int64;
   @internal fun toDouble() -> Double;
   @internal fun toString() -> String;
 
   @internal fun asInt() -> Int;
+  @internal fun asInt32() -> Int32;
 
   @internal fun equals(rhs: Float) -> Bool;
   @internal fun compareTo(rhs: Float) -> Int;
@@ -33,7 +35,7 @@
   @internal fun isNan() -> Bool;
   @internal fun sqrt() -> Float;
 
-  fun hash() -> Int = self.asInt();
+  fun hash() -> Int32 = self.asInt32();
 
   @static fun bits() -> Int = 32;
   @static fun bytes() -> Int = 4;

@@ -1,6 +1,7 @@
 @internal class UInt8 {
   @internal fun toChar() -> Char;
   @internal fun toInt() -> Int;
+  @internal fun toInt32() -> Int32;
   @internal fun toInt64() -> Int64;
   @internal fun toString() -> String;
 
@@ -10,7 +11,7 @@
   @internal fun equals(rhs: UInt8) -> Bool;
   @internal fun compareTo(rhs: UInt8) -> Int;
 
-  fun hash() -> Int = self.toInt();
+  fun hash() -> Int32 = self.toInt32();
 
   @static fun bits() -> Int = 8;
   @static fun bytes() -> Int = 1;

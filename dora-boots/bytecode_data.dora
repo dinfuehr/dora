@@ -90,8 +90,8 @@ impl Equals for BytecodeRegister {
 }
 
 impl Hash for BytecodeRegister {
-    fun hash() -> Int {
-        self.value
+    fun hash() -> Int32 {
+        self.value.toInt32()
     }
 }
 

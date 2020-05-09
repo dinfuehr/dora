@@ -12,29 +12,29 @@ class HashMap[K: Hash + Equals, V] {
         assert(self.size < self.cap);
 
         var hash = key.hash();
-        var idx = hash & (self.cap - 1);
+        var idx = hash & (self.cap - 1).toInt32();
 
         while true {
             if self.isLive(idx) {
-                let current_key = self.keys.get(idx);
+                let current_key = self.keys.get(idx.toInt());
 
                 if current_key.hash() == hash && current_key.equals(key) {
-                    self.values.set(idx, value);
+                    self.values.set(idx.toInt(), value);
                     return;
                 }
 
             } else {
-                self.inserted_and_deleted.insert((2 * idx).toInt64());
-                self.inserted_and_deleted.remove((2 * idx + 1).toInt64());
+                self.inserted_and_deleted.insert((2I * idx).toInt64());
+                self.inserted_and_deleted.remove((2I * idx + 1I).toInt64());
 
-                self.keys.set(idx, key);
-                self.values.set(idx, value);
+                self.keys.set(idx.toInt(), key);
+                self.values.set(idx.toInt(), value);
 
                 self.size = self.size + 1;
                 return;
             }
 
-            idx = (idx + 1) & (self.cap - 1);
+            idx = (idx + 1I) & (self.cap - 1).toInt32();
         }
     }
 
@@ -46,11 +46,11 @@ class HashMap[K: Hash + Equals, V] {
         }
 
         var hash = key.hash();
-        var idx = hash & (self.cap - 1);
+        var idx = hash & (self.cap - 1).toInt32();
 
         while true {
             if self.isLive(idx) {
-                let current_key = self.keys.get(idx);
+                let current_key = self.keys.get(idx.toInt());
 
                 if current_key.hash() == hash && current_key.equals(key) {
                     return true;
@@ -59,7 +59,7 @@ class HashMap[K: Hash + Equals, V] {
                 break;
             }
 
-            idx = (idx + 1) & (self.cap - 1);
+            idx = (idx + 1I) & (self.cap - 1).toInt32();
         }
 
         return false;
@@ -73,20 +73,20 @@ class HashMap[K: Hash + Equals, V] {
         }
 
         var hash = key.hash();
-        var idx = hash & (self.cap - 1);
+        var idx = hash & (self.cap - 1).toInt32();
 
         while true {
             if self.isLive(idx) {
-                let current_key = self.keys.get(idx);
+                let current_key = self.keys.get(idx.toInt());
 
                 if current_key.hash() == hash && current_key.equals(key) {
-                    return some[V](self.values.get(idx));
+                    return some[V](self.values.get(idx.toInt()));
                 }
             } else {
                 break;
             }
 
-            idx = (idx + 1) & (self.cap - 1);
+            idx = (idx + 1I) & (self.cap - 1).toInt32();
         }
 
         return none[V]();
@@ -96,18 +96,18 @@ class HashMap[K: Hash + Equals, V] {
         self.shrink();
 
         var hash = key.hash();
-        var idx = hash & (self.cap - 1);
+        var idx = hash & (self.cap - 1).toInt32();
 
         while true {
             if self.isLive(idx) {
-                let current_key = self.keys.get(idx);
+                let current_key = self.keys.get(idx.toInt());
 
                 if current_key.hash() == hash && current_key.equals(key) {
-                    let value = self.values.get(idx);
-                    self.inserted_and_deleted.insert((2 * idx + 1).toInt64());
+                    let value = self.values.get(idx.toInt());
+                    self.inserted_and_deleted.insert((2I * idx + 1I).toInt64());
 
-                    self.keys.set(idx, defaultValue[K]());
-                    self.values.set(idx, defaultValue[V]());
+                    self.keys.set(idx.toInt(), defaultValue[K]());
+                    self.values.set(idx.toInt(), defaultValue[V]());
 
                     self.size = self.size - 1;
                     return value;
@@ -116,7 +116,7 @@ class HashMap[K: Hash + Equals, V] {
                 break;
             }
 
-            idx = (idx + 1) & (self.cap - 1);
+            idx = (idx + 1I) & (self.cap - 1).toInt32();
         }
 
         return defaultValue[V]();
@@ -170,7 +170,7 @@ class HashMap[K: Hash + Equals, V] {
         var idx = 0;
 
         while idx < old_capacity {
-            if self.isLive(idx) {
+            if self.isLive(idx.toInt32()) {
                 let key = self.keys.get(idx);
                 let value = self.values.get(idx);
 
@@ -187,9 +187,9 @@ class HashMap[K: Hash + Equals, V] {
         self.cap = new_capacity;
     }
 
-    fun isLive(idx: Int) -> Bool {
-        return self.inserted_and_deleted.contains((2 * idx).toInt64()) &&
-               !self.inserted_and_deleted.contains((2 * idx + 1).toInt64());
+    fun isLive(idx: Int32) -> Bool {
+        return self.inserted_and_deleted.contains((2I * idx).toInt64()) &&
+               !self.inserted_and_deleted.contains((2I * idx + 1I).toInt64());
     }
 
     fun length() -> Int {
@@ -214,7 +214,7 @@ class HashMapIter[K: Hash + Equals, V](let map: HashMap[K, V]) {
 
     fun hasNext() -> Bool {
         while self.idx < self.map.capacity() {
-            if self.map.isLive(self.idx) {
+            if self.map.isLive(self.idx.toInt32()) {
                 return true;
             }
 
@@ -225,7 +225,7 @@ class HashMapIter[K: Hash + Equals, V](let map: HashMap[K, V]) {
     }
 
     fun next() -> (K, V) {
-        assert(self.map.isLive(self.idx));
+        assert(self.map.isLive(self.idx.toInt32()));
         let key = self.map.keys.get(self.idx);
         let value = self.map.values.get(self.idx);
         self.idx = self.idx + 1;
