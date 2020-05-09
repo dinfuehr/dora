@@ -56,6 +56,11 @@ impl Ast {
     }
 
     #[cfg(test)]
+    pub fn alias0(&self) -> &Alias {
+        self.files.last().unwrap().elements[0].to_alias().unwrap()
+    }
+
+    #[cfg(test)]
     pub fn trai(&self, index: usize) -> &Trait {
         self.files.last().unwrap().elements[index]
             .to_trait()
@@ -121,6 +126,7 @@ pub enum Elem {
     ElemGlobal(Global),
     ElemConst(Const),
     ElemEnum(Enum),
+    ElemAlias(Alias),
 }
 
 impl Elem {
@@ -135,6 +141,7 @@ impl Elem {
             &ElemGlobal(ref g) => g.id,
             &ElemConst(ref c) => c.id,
             &ElemEnum(ref e) => e.id,
+            &ElemAlias(ref e) => e.id,
         }
     }
 
@@ -155,6 +162,13 @@ impl Elem {
     pub fn to_enum(&self) -> Option<&Enum> {
         match self {
             &ElemEnum(ref xenum) => Some(xenum),
+            _ => None,
+        }
+    }
+
+    pub fn to_alias(&self) -> Option<&Alias> {
+        match self {
+            &ElemAlias(ref alias) => Some(alias),
             _ => None,
         }
     }
@@ -240,6 +254,15 @@ pub struct EnumVariant {
     pub span: Span,
     pub name: Name,
     pub types: Option<Vec<Type>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Alias {
+    pub id: NodeId,
+    pub pos: Position,
+    pub span: Span,
+    pub name: Name,
+    pub ty: Type,
 }
 
 #[derive(Clone, Debug)]

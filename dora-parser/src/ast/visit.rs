@@ -45,6 +45,10 @@ pub trait Visitor<'v>: Sized {
         walk_enum(self, e);
     }
 
+    fn visit_alias(&mut self, e: &'v Alias) {
+        walk_alias(self, e);
+    }
+
     fn visit_struct_field(&mut self, f: &'v StructField) {
         walk_struct_field(self, f);
     }
@@ -100,6 +104,7 @@ pub fn walk_file<'v, V: Visitor<'v>>(v: &mut V, f: &'v File) {
             ElemGlobal(ref g) => v.visit_global(g),
             ElemConst(ref c) => v.visit_const(c),
             ElemEnum(ref e) => v.visit_enum(e),
+            ElemAlias(ref e) => v.visit_alias(e),
         }
     }
 }
@@ -159,6 +164,10 @@ pub fn walk_const<'v, V: Visitor<'v>>(v: &mut V, c: &'v Const) {
 
 pub fn walk_enum<'v, V: Visitor<'v>>(_v: &mut V, _e: &'v Enum) {
     // nothing to do
+}
+
+pub fn walk_alias<'v, V: Visitor<'v>>(v: &mut V, a: &'v Alias) {
+    v.visit_type(&a.ty);
 }
 
 pub fn walk_struct<'v, V: Visitor<'v>>(v: &mut V, s: &'v Struct) {

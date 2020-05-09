@@ -149,6 +149,12 @@ impl<'a> Parser<'a> {
                 elements.push(ElemModule(module));
             }
 
+            TokenKind::Alias => {
+                self.ban_modifiers(&modifiers)?;
+                let alias = self.parse_alias()?;
+                elements.push(ElemAlias(alias));
+            }
+
             TokenKind::Let | TokenKind::Var => {
                 self.ban_modifiers(&modifiers)?;
                 self.parse_global(elements)?;
@@ -502,6 +508,24 @@ impl<'a> Parser<'a> {
         self.in_class_or_module = false;
 
         Ok(module)
+    }
+
+    fn parse_alias(&mut self) -> Result<Alias, ParseErrorAndPos> {
+        let start = self.token.span.start();
+        let pos = self.expect_token(TokenKind::Alias)?.position;
+        let name = self.expect_identifier()?;
+        self.expect_token(TokenKind::Eq)?;
+        let ty = self.parse_type()?;
+        self.expect_semicolon()?;
+        let span = self.span_from(start);
+
+        Ok(Alias {
+            id: self.generate_id(),
+            pos,
+            name,
+            span,
+            ty,
+        })
     }
 
     fn parse_type_params(&mut self) -> Result<Option<Vec<TypeParam>>, ParseErrorAndPos> {
@@ -3684,5 +3708,11 @@ mod tests {
         assert_eq!(xenum.variants.len(), 2);
         assert!(xenum.variants[0].types.is_none());
         assert_eq!(xenum.variants[1].types.as_ref().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn parse_alias() {
+        let (prog, _) = parse("alias NewType = Int;");
+        let _alias = prog.alias0();
     }
 }

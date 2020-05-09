@@ -78,6 +78,7 @@ impl<'a> AstDumper<'a> {
                 ElemGlobal(ref global) => self.dump_global(global),
                 ElemConst(ref xconst) => self.dump_const(xconst),
                 ElemEnum(ref xenum) => self.dump_enum(xenum),
+                ElemAlias(ref alias) => self.dump_alias(alias),
             }
         }
     }
@@ -114,6 +115,20 @@ impl<'a> AstDumper<'a> {
         self.indent(|d| {
             d.dump_type(&xconst.data_type);
             d.dump_expr(&xconst.expr);
+        });
+    }
+
+    fn dump_alias(&mut self, alias: &Alias) {
+        dump!(
+            self,
+            "alias {} @ {} {}",
+            self.str(alias.name),
+            alias.pos,
+            alias.id
+        );
+
+        self.indent(|d| {
+            d.dump_type(&alias.ty);
         });
     }
 
