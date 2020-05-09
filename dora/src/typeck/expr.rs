@@ -2311,9 +2311,9 @@ pub fn check_lit_int(
     expected_type: BuiltinType,
 ) -> (BuiltinType, i64) {
     let ty = match e.suffix {
-        IntSuffix::Byte => BuiltinType::UInt8,
-        IntSuffix::Int => BuiltinType::Int,
-        IntSuffix::Long => BuiltinType::Int64,
+        IntSuffix::UInt8 => BuiltinType::UInt8,
+        IntSuffix::Int32 => BuiltinType::Int,
+        IntSuffix::Int64 => BuiltinType::Int64,
         IntSuffix::None => match expected_type {
             BuiltinType::UInt8 => BuiltinType::UInt8,
             BuiltinType::Int64 => BuiltinType::Int64,
@@ -2321,14 +2321,8 @@ pub fn check_lit_int(
         },
     };
 
-    let ty_name = match ty {
-        BuiltinType::UInt8 => "UInt8",
-        BuiltinType::Int => "Int",
-        BuiltinType::Int64 => "Int64",
-        _ => unreachable!(),
-    };
-
-    let val = e.value;
+    let ty_name = ty.name(vm);
+    let value = e.value;
 
     if e.base == IntBase::Dec {
         let max = match ty {
@@ -2338,12 +2332,14 @@ pub fn check_lit_int(
             _ => unreachable!(),
         };
 
-        if (negate && val > max) || (!negate && val >= max) {
+        if (negate && value > max) || (!negate && value >= max) {
             vm.diag
                 .lock()
                 .report(file, e.pos, SemError::NumberOverflow(ty_name.into()));
         }
     } else {
+        assert!(!negate);
+
         let max = match ty {
             BuiltinType::UInt8 => 256 as u64,
             BuiltinType::Int => u32::max_value() as u64,
@@ -2351,20 +2347,20 @@ pub fn check_lit_int(
             _ => unreachable!(),
         };
 
-        if val > max {
+        if value > max {
             vm.diag
                 .lock()
                 .report(file, e.pos, SemError::NumberOverflow(ty_name.into()));
         }
     }
 
-    let val = if negate {
-        (val as i64).wrapping_neg()
+    let value = if negate {
+        (value as i64).wrapping_neg()
     } else {
-        val as i64
+        value as i64
     };
 
-    (ty, val)
+    (ty, value)
 }
 
 pub fn check_lit_float(

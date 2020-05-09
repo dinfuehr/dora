@@ -191,7 +191,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     let clsid = vm.vips.int_class;
     intrinsic_method(vm, clsid, "toUInt8", Intrinsic::Int32ToByte);
     intrinsic_method(vm, clsid, "toCharUnchecked", Intrinsic::Int32ToChar);
-    intrinsic_method(vm, clsid, "toInt32", Intrinsic::IntPtrToInt32);
+    intrinsic_method(vm, clsid, "toInt32", Intrinsic::Int32ToInt32);
     intrinsic_method(vm, clsid, "toInt64", Intrinsic::Int32ToInt64);
     native_method(vm, clsid, "toString", stdlib::int_to_string as *const u8);
 

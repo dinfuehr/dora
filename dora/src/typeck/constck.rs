@@ -31,7 +31,7 @@ impl<'a, 'ast> ConstCheck<'a, 'ast> {
             &ExprUn(ref expr) if expr.op == UnOp::Neg && expr.opnd.is_lit_int() => {
                 let lit_int = expr.opnd.to_lit_int().unwrap();
 
-                if lit_int.suffix == IntSuffix::Byte {
+                if lit_int.suffix == IntSuffix::UInt8 {
                     let ty = BuiltinType::UInt8.name(self.vm);
                     let msg = SemError::UnOpType(expr.op.as_str().into(), ty);
                     self.vm.diag.lock().report(self.xconst.file, expr.pos, msg);

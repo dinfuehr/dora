@@ -2158,7 +2158,9 @@ where
             }
             Intrinsic::BoolNot => self.emit_intrinsic_unary(args[0], dest, intrinsic),
 
-            Intrinsic::IntPtrToInt32 => self.emit_intrinsic_long_to_int(args[0], dest.reg()),
+            Intrinsic::Int32ToInt32 => {
+                self.emit_expr(&args[0], dest);
+            }
 
             Intrinsic::Int32Eq => {
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)

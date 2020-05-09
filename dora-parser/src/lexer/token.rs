@@ -112,9 +112,9 @@ impl TokenKind {
             TokenKind::StringTail(_) => "string tail",
             TokenKind::StringExpr(_) => "string epxr",
             TokenKind::LitInt(_, _, suffix) => match suffix {
-                IntSuffix::Byte => "byte number",
-                IntSuffix::Int => "int number",
-                IntSuffix::Long => "long number",
+                IntSuffix::UInt8 => "byte number",
+                IntSuffix::Int32 => "int number",
+                IntSuffix::Int64 => "long number",
                 IntSuffix::None => "untyped number",
             },
             TokenKind::LitChar(_) => "char",
@@ -222,9 +222,9 @@ impl TokenKind {
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum IntSuffix {
-    Int,
-    Long,
-    Byte,
+    UInt8,
+    Int32,
+    Int64,
     None,
 }
 
@@ -262,9 +262,9 @@ impl Token {
         match self.kind {
             TokenKind::LitInt(ref val, _, suffix) => {
                 let suffix = match suffix {
-                    IntSuffix::Byte => "B",
-                    IntSuffix::Int => "",
-                    IntSuffix::Long => "L",
+                    IntSuffix::UInt8 => "B",
+                    IntSuffix::Int32 => "",
+                    IntSuffix::Int64 => "L",
                     IntSuffix::None => "",
                 };
 

@@ -439,17 +439,17 @@ impl Lexer {
         let kind = match self.curr() {
             Some('L') => {
                 self.read_char();
-                TokenKind::LitInt(value, base, IntSuffix::Long)
+                TokenKind::LitInt(value, base, IntSuffix::Int64)
             }
 
             Some('Y') => {
                 self.read_char();
-                TokenKind::LitInt(value, base, IntSuffix::Byte)
+                TokenKind::LitInt(value, base, IntSuffix::UInt8)
             }
 
             Some('I') => {
                 self.read_char();
-                TokenKind::LitInt(value, base, IntSuffix::Int)
+                TokenKind::LitInt(value, base, IntSuffix::Int32)
             }
 
             Some('D') if base == IntBase::Dec => {
@@ -662,13 +662,13 @@ mod tests {
         let mut reader = Lexer::from_str("12Y 300Y 1_000 1__1");
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("12".into(), IntBase::Dec, IntSuffix::Byte),
+            TokenKind::LitInt("12".into(), IntBase::Dec, IntSuffix::UInt8),
             1,
             1,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("300".into(), IntBase::Dec, IntSuffix::Byte),
+            TokenKind::LitInt("300".into(), IntBase::Dec, IntSuffix::UInt8),
             1,
             5,
         );
@@ -840,7 +840,7 @@ mod tests {
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("2".into(), IntBase::Hex, IntSuffix::Long),
+            TokenKind::LitInt("2".into(), IntBase::Hex, IntSuffix::Int64),
             1,
             5,
         );
@@ -852,7 +852,7 @@ mod tests {
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("B1".into(), IntBase::Hex, IntSuffix::Long),
+            TokenKind::LitInt("B1".into(), IntBase::Hex, IntSuffix::Int64),
             1,
             19,
         );
