@@ -1,8 +1,8 @@
 var glob_bool: Bool;
 var glob_char: Char;
 var glob_byte: UInt8;
-var glob_int: Int;
-var glob_long: Int64;
+var glob_int32: Int32;
+var glob_int64: Int64;
 var glob_float: Float;
 var glob_double: Double;
 var glob_string: String;
@@ -10,25 +10,25 @@ var glob_obj: Foo;
 
 fun main() {
     let obj = Foo();
-    init_globs(true, '5', 5Y, 5, 5L, 5F, 5D, "5", obj);
+    init_globs(true, '5', 5Y, 5I, 5L, 5F, 5D, "5", obj);
     
     assert(glob_bool == true);
     assert(glob_char == '5');
     assert(glob_byte == 5Y);
-    assert(glob_int == 5);
-    assert(glob_long == 5L);
+    assert(glob_int32 == 5I);
+    assert(glob_int64 == 5L);
     assert(glob_float == 5F);
     assert(glob_double == 5D);
     assert(glob_string == "5");
     assert(glob_obj === obj);
 }
 
-@cannon fun init_globs(bool: Bool, char: Char, byte: UInt8, int: Int, long: Int64, float: Float, double: Double, string: String, obj: Foo) {
+@cannon fun init_globs(bool: Bool, char: Char, byte: UInt8, int32: Int32, int64: Int64, float: Float, double: Double, string: String, obj: Foo) {
     glob_bool = bool;
     glob_char = char;
     glob_byte = byte;
-    glob_int = int;
-    glob_long = long;
+    glob_int32 = int32;
+    glob_int64 = int64;
     glob_float = float;
     glob_double = double;
     glob_string = string;

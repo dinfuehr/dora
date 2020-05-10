@@ -1,13 +1,13 @@
-@cannon @open class Y(let a: Int) {}
-@cannon class X(let b: Int, a: Int) : Y(a) {}
+@cannon @open class Y(let a: Int32) {}
+@cannon class X(let b: Int32, a: Int32) : Y(a) {}
 
 @cannon fun cannonMain() -> X {
-    return X(2, 4);
+    return X(2I, 4I);
 }
 
 fun main() {
   let x = cannonMain();
 
-  assert(x.a == 4);
-  assert(x.b == 2);
+  assert(x.a == 4I);
+  assert(x.b == 2I);
 }

@@ -15,9 +15,9 @@ fun main() {
     assert(xor(20L, 5L) == 17L);
     assert(and(20L, 5L) == 4L);
 
-    assert(shl(20L, 2) == 80L);
-    assert(shr(20L, 2) == 5L);
-    assert(sar(20L, 2) == 5L);
+    assert(shl(20L, 2I) == 80L);
+    assert(shr(20L, 2I) == 5L);
+    assert(sar(20L, 2I) == 5L);
 
     assert(!eq(20L, 5L));
     assert(eq(5L, 5L));
@@ -81,16 +81,16 @@ fun main() {
     return x & y;
 }
 
-@cannon fun shl(x: Int64, y: Int) -> Int64 {
-    return x << y;
+@cannon fun shl(x: Int64, y: Int32) -> Int64 {
+    return x << y.toInt();
 }
 
-@cannon fun shr(x: Int64, y: Int) -> Int64 {
-    return x >>> y;
+@cannon fun shr(x: Int64, y: Int32) -> Int64 {
+    return x >>> y.toInt();
 }
 
-@cannon fun sar(x: Int64, y: Int) -> Int64 {
-    return x >> y;
+@cannon fun sar(x: Int64, y: Int32) -> Int64 {
+    return x >> y.toInt();
 }
 
 @cannon fun eq(x: Int64, y: Int64) -> Bool {

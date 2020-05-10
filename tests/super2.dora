@@ -10,7 +10,7 @@ class B: A {
     super.bar();
   }
 
-  fun bar() -> Int {
-    return 1;
+  fun bar() -> Int32 {
+    return 1I;
   }
 }

@@ -3,8 +3,8 @@ fun main() {
   assert(foo.foo_bool() == true);
   assert(foo.foo_byte() == 3Y);
   assert(foo.foo_char() == '3');
-  assert(foo.foo_int() == 3);
-  assert(foo.foo_long() == 3L);
+  assert(foo.foo_int32() == 3I);
+  assert(foo.foo_int64() == 3L);
   assert(foo.foo_float() == 3F);
   assert(foo.foo_double() == 3D);
   assert(foo.foo_string() == "3");
@@ -32,18 +32,18 @@ class Foo {
     return '3';
   }
 
-  @cannon fun foo_int() -> Int {
-    return self.bar_int();
+  @cannon fun foo_int32() -> Int32 {
+    return self.bar_int32();
   }
-  @cannon fun bar_int() -> Int {
-    return 3;
-  }
-
-  @cannon fun foo_long() -> Int64 {
-    return self.bar_long();
+  @cannon fun bar_int32() -> Int32 {
+    return 3I;
   }
 
-  @cannon fun bar_long() -> Int64 {
+  @cannon fun foo_int64() -> Int64 {
+    return self.bar_int64();
+  }
+
+  @cannon fun bar_int64() -> Int64 {
     return 3L;
   }
 

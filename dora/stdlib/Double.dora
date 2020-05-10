@@ -1,5 +1,6 @@
 @internal class Double {
   @internal fun toInt() -> Int;
+  @internal fun toInt32() -> Int32;
   @internal fun toInt64() -> Int64;
   @internal fun toFloat() -> Float;
   @internal fun toString() -> String;

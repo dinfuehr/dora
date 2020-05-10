@@ -1,16 +1,16 @@
 //= error assert
 fun main() {
-  var x = Foo(12);
+  var x = Foo(12I);
   x.test();
-  x.test2(1);
+  x.test2(1I);
 }
 
-class Foo(let i: Int) {
+class Foo(let i: Int32) {
   @cannon fun test() {
     var x = self.i;
   }
 
-  @cannon fun test2(i: Int) {
-    assert(i == 2);
+  @cannon fun test2(i: Int32) {
+    assert(i == 2I);
   }
 }

@@ -3,18 +3,18 @@
 fun main() {
   let b = B();
 
-  assert(b.foo(1) == 2);
-  assert(b.foo(2) == 3);
+  assert(b.foo(1I) == 2I);
+  assert(b.foo(2I) == 3I);
 }
 
 @open class A {
-  @open fun foo(a: Int) -> Int {
+  @open fun foo(a: Int32) -> Int32 {
     return a;
   }
 }
 
 class B: A {
-  @override fun foo(a: Int) -> Int {
-    return super.foo(a) + 1;
+  @override fun foo(a: Int32) -> Int32 {
+    return super.foo(a) + 1I;
   }
 }

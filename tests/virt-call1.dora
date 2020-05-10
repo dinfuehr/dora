@@ -1,18 +1,18 @@
 //= cannon
 @open @abstract class Foo {
-    @open @abstract fun test() -> Int;
+    @open @abstract fun test() -> Int32;
 }
 
 class Bar: Foo {
-    @override fun test() -> Int {
-        17
+    @override fun test() -> Int32 {
+        17I
     }
 }
 
-fun test(foo: Foo) -> Int {
+fun test(foo: Foo) -> Int32 {
     foo.test()
 }
 
 fun main() {
-    assert(test(Bar()) == 17);
+    assert(test(Bar()) == 17I);
 }

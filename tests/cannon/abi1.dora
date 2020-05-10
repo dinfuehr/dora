@@ -1,6 +1,6 @@
 fun main() {
-    assert(testInt(3) == 3);
-    assert(testInt(122) == 122);
+    assert(testInt32(3I) == 3I);
+    assert(testInt32(122I) == 122I);
 
     assert(testFloat(3F) == 3F);
     assert(testFloat(122F) == 122F);
@@ -11,7 +11,7 @@ fun main() {
     assert(foo.testSelf() === foo);
 }
 
-@cannon fun testInt(x: Int) -> Int {
+@cannon fun testInt32(x: Int32) -> Int32 {
     return x;
 }
 

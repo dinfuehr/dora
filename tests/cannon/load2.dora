@@ -1,7 +1,7 @@
 var glob_bool: Bool;
 var glob_char: Char;
 var glob_byte: UInt8;
-var glob_int: Int;
+var glob_int: Int32;
 var glob_long: Int64;
 var glob_float: Float;
 var glob_double: Double;
@@ -14,7 +14,7 @@ fun main() {
     assert(loadGlobalBool() == true);
     assert(loadGlobalChar() == '5');
     assert(loadGlobalByte() == 5Y);
-    assert(loadGlobalInt() == 5);
+    assert(loadGlobalInt32() == 5I);
     assert(loadGlobalInt64() == 5L);
     assert(loadGlobalFloat() == 5F);
     assert(loadGlobalDouble() == 5D);
@@ -27,7 +27,7 @@ fun init_globs() {
     glob_bool = true;
     glob_char = '5';
     glob_byte = 5Y;
-    glob_int = 5;
+    glob_int = 5I;
     glob_long = 5L;
     glob_float = 5F;
     glob_double = 5D;
@@ -44,7 +44,7 @@ fun init_globs() {
 @cannon fun loadGlobalChar() -> Char {
     return glob_char;
 }
-@cannon fun loadGlobalInt() -> Int {
+@cannon fun loadGlobalInt32() -> Int32 {
     return glob_int;
 }
 @cannon fun loadGlobalInt64() -> Int64 {

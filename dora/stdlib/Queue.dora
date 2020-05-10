@@ -1,66 +1,66 @@
 class Queue[T] {
   var elements: Array[T] = Array[T](4);
-  var front: Int = 0;
-  var count: Int = 0;
+  var front: Int64 = 0L;
+  var count: Int64 = 0L;
 
   @pub fun enqueue(value: T) {
-    if self.count == self.elements.length() {
+    if self.count == self.elements.length().toInt64() {
       // copy into larger array
       let newelements = Array[T](self.elements.length() * 2);
-      let len = self.elements.length() - self.front;
-      arrayCopy[T](self.elements, self.front, newelements, 0, len);
+      let len = self.elements.length().toInt64() - self.front;
+      arrayCopy[T](self.elements, self.front.toInt(), newelements, 0, len.toInt());
 
       if len < self.count {
-        arrayCopy[T](self.elements, 0, newelements, len, self.count - len);
+        arrayCopy[T](self.elements, 0, newelements, len.toInt(), (self.count - len).toInt());
       }
 
-      self.front = 0;
+      self.front = 0L;
       // self.count stays the same
       self.elements = newelements;
     }
 
     let end = self.getEnd();
-    self.elements.set(end, value);
-    self.count = self.count + 1;
+    self.elements.set(end.toInt(), value);
+    self.count = self.count + 1L;
   }
 
   @pub fun dequeue() -> T {
-    assert(self.count > 0);
+    assert(self.count > 0L);
 
-    let value = self.elements.get(self.front);
-    self.elements.set(self.front, defaultValue[T]());
+    let value = self.elements.get(self.front.toInt());
+    self.elements.set(self.front.toInt(), defaultValue[T]());
 
     self.moveFront();
-    self.count = self.count - 1;
+    self.count = self.count - 1L;
 
     return value;
   }
 
-  fun moveFront() -> Int {
-    self.front = self.front + 1;
+  fun moveFront() -> Int64 {
+    self.front = self.front + 1L;
 
-    if self.front == self.elements.length() {
-      self.front = 0;
+    if self.front == self.elements.length().toInt64() {
+      self.front = 0L;
     }
 
     return self.front;
   }
 
-  fun getEnd() -> Int {
+  fun getEnd() -> Int64 {
     let end = self.front + self.count;
 
-    if end < self.elements.length() {
+    if end < self.elements.length().toInt64() {
       return end;
     } else {
-      return end - self.elements.length();
+      return end - self.elements.length().toInt64();
     }
   }
 
-  @pub fun length() -> Int {
+  @pub fun length() -> Int64 {
     return self.count;
   }
 
   @pub fun isEmpty() -> Bool {
-    return self.count == 0;
+    return self.count == 0L;
   }
 }

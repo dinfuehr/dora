@@ -1,9 +1,9 @@
 //= ignore
 
 struct Foo {
-    a: Int,
+    a: Int32,
 }
 
 fun main() {
-    Foo { a: 1 };
+    Foo { a: 1I };
 }

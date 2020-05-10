@@ -1,14 +1,14 @@
 fun main() {
-    let q = Queue[Int]();
-    assert(q.length() == 0);
+    let q = Queue[Int32]();
+    assert(q.length() == 0L);
     assert(q.isEmpty());
-    q.enqueue(1);
-    assert(q.length() == 1);
+    q.enqueue(1I);
+    assert(q.length() == 1L);
     assert(!q.isEmpty());
-    q.enqueue(2);
-    assert(q.length() == 2);
-    assert(q.dequeue() == 1);
-    assert(q.dequeue() == 2);
-    assert(q.length() == 0);
+    q.enqueue(2I);
+    assert(q.length() == 2L);
+    assert(q.dequeue() == 1I);
+    assert(q.dequeue() == 2I);
+    assert(q.length() == 0L);
     assert(q.isEmpty());
 }
