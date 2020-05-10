@@ -4,4 +4,4 @@ fun main() {
   foo(nil);
 }
 
-fun foo(a: Array[Int]) {}
+fun foo(a: Array[Int32]) {}

@@ -1,7 +1,7 @@
 //= cannon
 
 fun main() {
-  assert(0 == len(arrayEmpty[Int]()));
+  assert(0I == len(arrayEmpty[Int32]()));
 }
 
-fun len(a: Array[Int]) -> Int { return a.length(); }
+fun len(a: Array[Int32]) -> Int32 { return a.length().toInt32(); }

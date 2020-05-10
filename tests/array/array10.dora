@@ -3,6 +3,6 @@
 //= stderr "array index out of bounds\n1: main(): 7\n"
 
 fun main() {
-  let array = arrayEmpty[Int]();
+  let array = arrayEmpty[Int32]();
   array(-1);
 }

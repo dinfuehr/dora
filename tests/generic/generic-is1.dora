@@ -1,7 +1,7 @@
 class Foo[A]
 
 fun is_foo_int(f: Object) -> Bool {
-    return f is Foo[Int];
+    return f is Foo[Int32];
 }
 
 fun main() {
@@ -11,6 +11,6 @@ fun main() {
     let x = Foo[String]() as Object;
     assert(!is_foo_int(x));
 
-    let x = Foo[Int]() as Object;
+    let x = Foo[Int32]() as Object;
     assert(is_foo_int(x));
 }

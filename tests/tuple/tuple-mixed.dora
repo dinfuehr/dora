@@ -1,11 +1,11 @@
-class Foo(let value: Int) {
+class Foo(let value: Int32) {
     forceCollect();
 }
 
 fun main() {
-    assert(tpl1() == 17);
+    assert(tpl1() == 17I);
     assert(tpl2() == 19L);
-    assert(tpl3() == 42);
+    assert(tpl3() == 42I);
     assert(tpl4() == 2.5F);
     assert(tpl5() == 5.0);
     assert(tpl6() == true);
@@ -13,50 +13,50 @@ fun main() {
     assert(tplsum() == "(17, 19, Foo(42), 2.5, 5, true, text)");
 }
 
-fun tpl1() -> Int {
-    let x = (17, 19L, Foo(42), 2.5F, 5.0, true, "text");
+fun tpl1() -> Int32 {
+    let x = (17I, 19L, Foo(42I), 2.5F, 5.0, true, "text");
     forceCollect();
     x.0
 }
 
 fun tpl2() -> Int64 {
-    let x = (17, 19L, Foo(42), 2.5F, 5.0, true, "text");
+    let x = (17I, 19L, Foo(42I), 2.5F, 5.0, true, "text");
     forceCollect();
     x.1
 }
 
-fun tpl3() -> Int {
-    let x = (17, 19L, Foo(42), 2.5F, 5.0, true, "text");
+fun tpl3() -> Int32 {
+    let x = (17I, 19L, Foo(42I), 2.5F, 5.0, true, "text");
     forceCollect();
     x.2.value
 }
 
 fun tpl4() -> Float {
-    let x = (17, 19L, Foo(42), 2.5F, 5.0, true, "text");
+    let x = (17I, 19L, Foo(42I), 2.5F, 5.0, true, "text");
     forceCollect();
     x.3
 }
 
 fun tpl5() -> Double {
-    let x = (17, 19L, Foo(42), 2.5F, 5.0, true, "text");
+    let x = (17I, 19L, Foo(42I), 2.5F, 5.0, true, "text");
     forceCollect();
     x.4
 }
 
 fun tpl6() -> Bool {
-    let x = (17, 19L, Foo(42), 2.5F, 5.0, true, "text");
+    let x = (17I, 19L, Foo(42I), 2.5F, 5.0, true, "text");
     forceCollect();
     x.5
 }
 
 fun tpl7() -> String {
-    let x = (17, 19L, Foo(42), 2.5F, 5.0, true, "text");
+    let x = (17I, 19L, Foo(42I), 2.5F, 5.0, true, "text");
     forceCollect();
     x.6
 }
 
 fun tplsum() -> String {
-    let x = (17, 19L, Foo(42), 2.5F, 5.0, true, "text");
+    let x = (17I, 19L, Foo(42I), 2.5F, 5.0, true, "text");
     forceCollect();
     "(${x.0}, ${x.1}, Foo(${x.2.value}), ${x.3}, ${x.4}, ${x.5}, ${x.6})"
 }

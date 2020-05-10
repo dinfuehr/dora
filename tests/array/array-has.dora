@@ -2,8 +2,8 @@ fun main() {
     let x = arrayFill[Bool](3, true);
     assert(arrayHas[Bool](x, true));
 
-    let x = arrayFill[Int](3, 3);
-    assert(arrayHas[Int](x, 3));
+    let x = arrayFill[Int32](3, 3I);
+    assert(arrayHas[Int32](x, 3I));
 
     let x = arrayFill[Int64](3, 3L);
     assert(arrayHas[Int64](x, 3L));

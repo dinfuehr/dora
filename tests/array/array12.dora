@@ -1,11 +1,11 @@
 //= cannon
 //= error nil
-//= stderr "nil check failed\n2: set_first(Array[Int]): 10\n1: main(): 6\n"
+//= stderr "nil check failed\n2: set_first(Array[Int32]): 10\n1: main(): 6\n"
 
 fun main() {
     set_first(nil);
 }
 
-fun set_first(f: Array[Int]) {
-    f(0) = 0;
+fun set_first(f: Array[Int32]) {
+    f(0) = 0I;
 }

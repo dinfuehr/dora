@@ -1,17 +1,17 @@
 //= cannon
 
 fun main() {
-    let a = Array[Int](10);
-    assert(array_get(a, 0) == 0);
+    let a = Array[Int32](10);
+    assert(array_get(a, 0L) == 0I);
 
-    array_set(a, 0, 7);
-    assert(array_get(a, 0) == 7);
+    array_set(a, 0L, 7I);
+    assert(array_get(a, 0L) == 7I);
 }
 
-fun array_set(a: Array[Int], idx: Int, value: Int) {
-    a(idx) = value;
+fun array_set(a: Array[Int32], idx: Int64, value: Int32) {
+    a(idx.toInt()) = value;
 }
 
-fun array_get(a: Array[Int], idx: Int) -> Int {
-    return a(idx);
+fun array_get(a: Array[Int32], idx: Int64) -> Int32 {
+    return a(idx.toInt());
 }

@@ -16,17 +16,17 @@ fun main() {
     forceCollect();
 }
 
-fun tree(depth: Int) -> Foo {
+fun tree(depth: Int32) -> Foo {
     if depth == 0 {
         return Foo(nil, nil, nil, nil, nil);
     }
 
     return Foo(
-        tree(depth-1),
-        tree(depth-1),
-        tree(depth-1),
-        tree(depth-1),
-        tree(depth-1)
+        tree(depth-1I),
+        tree(depth-1I),
+        tree(depth-1I),
+        tree(depth-1I),
+        tree(depth-1I)
     );
 }
 

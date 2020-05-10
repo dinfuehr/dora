@@ -13,9 +13,9 @@ fun main() {
     assert(array(0) == '\0');
     assert(array(9) == '\0');
 
-    let array = arrayZero[Int](10);
-    assert(array(0) == 0);
-    assert(array(9) == 0);
+    let array = arrayZero[Int32](10);
+    assert(array(0) == 0I);
+    assert(array(9) == 0I);
 
     let array = arrayZero[Int64](10);
     assert(array(0) == 0L);

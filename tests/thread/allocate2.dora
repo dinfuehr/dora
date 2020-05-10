@@ -17,21 +17,21 @@ fun main() {
 }
 
 fun allocator() {
-    var i = 1;
-    var list = Foo(0, nil);
+    var i = 1I;
+    var list = Foo(0I, nil);
 
-    while i < 10_000 {
+    while i < 10_000I {
         list = Foo(i, list);
-        i = i + 1;
+        i = i + 1I;
     }
 
-    i = 10_000;
+    i = 10_000I;
 
-    while i > 0 {
-        i = i - 1;
+    while i > 0I {
+        i = i - 1I;
         assert(list.key == i);
         list = list.prev;
     }
 }
 
-class Foo(let key: Int, let prev: Foo)
+class Foo(let key: Int32, let prev: Foo)

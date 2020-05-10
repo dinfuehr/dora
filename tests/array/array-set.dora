@@ -1,59 +1,59 @@
 //= cannon
 
 fun main() {
-  let x = arrayFill[Int](2, 100);
-  int_array_set(x, 1, 200);
-  assert(x(0) == 100);
-  assert(x(1) == 200);
+  let x = arrayFill[Int32](2, 100I);
+  int32_array_set(x, 1L, 200I);
+  assert(x(0) == 100I);
+  assert(x(1) == 200I);
 
   let x = arrayFill[Int64](2, 200L);
-  long_array_set(x, 1, 100L);
+  int64_array_set(x, 1L, 100L);
   assert(x(0) == 200L);
   assert(x(1) == 100L);
 
   let x = arrayFill[Float](2, 1.0F);
-  float_array_set(x, 1, 2.0F);
+  float_array_set(x, 1L, 2.0F);
   assert(x(0) == 1.0F);
   assert(x(1) == 2.0F);
 
   let x = arrayFill[Double](2, 2.0);
-  double_array_set(x, 1, 1.0);
+  double_array_set(x, 1L, 1.0);
   assert(x(0) == 2.0);
   assert(x(1) == 1.0);
 
   let x = arrayFill[String](2, "hello");
-  str_array_set(x, 1, "abc");
+  str_array_set(x, 1L, "abc");
   assert(x(0) == "hello");
   assert(x(1) == "abc");
 
-  let x = arrayFill[Foo](2, Foo(1));
-  foo_array_set(x, 1, Foo(2));
-  assert(x(0).y == 1);
-  assert(x(1).y == 2);
+  let x = arrayFill[Foo](2, Foo(1I));
+  foo_array_set(x, 1L, Foo(2I));
+  assert(x(0).y == 1I);
+  assert(x(1).y == 2I);
 }
 
-fun int_array_set(x: Array[Int], idx: Int, val: Int) {
-  x(idx) = val;
+fun int32_array_set(x: Array[Int32], idx: Int64, val: Int32) {
+  x(idx.toInt()) = val;
 }
 
-fun long_array_set(x: Array[Int64], idx: Int, val: Int64) {
-  x(idx) = val;
+fun int64_array_set(x: Array[Int64], idx: Int64, val: Int64) {
+  x(idx.toInt()) = val;
 }
 
-fun float_array_set(x: Array[Float], idx: Int, val: Float) {
-  x(idx) = val;
+fun float_array_set(x: Array[Float], idx: Int64, val: Float) {
+  x(idx.toInt()) = val;
 }
 
-fun double_array_set(x: Array[Double], idx: Int, val: Double) {
-  x(idx) = val;
+fun double_array_set(x: Array[Double], idx: Int64, val: Double) {
+  x(idx.toInt()) = val;
 }
 
-fun str_array_set(x: Array[String], idx: Int, val: String) {
-  x(idx) = val;
+fun str_array_set(x: Array[String], idx: Int64, val: String) {
+  x(idx.toInt()) = val;
 }
 
-fun foo_array_set(x: Array[Foo], idx: Int, val: Foo) {
-  x(idx) = val;
+fun foo_array_set(x: Array[Foo], idx: Int64, val: Foo) {
+  x(idx.toInt()) = val;
 }
 
-class Foo(let y: Int)
+class Foo(let y: Int32)

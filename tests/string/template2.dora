@@ -5,7 +5,7 @@ fun stringify[T: Stringable](t: T) -> String {
 }
 
 fun main() {
-    assert(stringify[Int](1) == "1");
+    assert(stringify[Int32](1I) == "1");
     assert(stringify[Float](1.0F) == "1");
     assert(stringify[Double](0.2) == "0.2");
 }

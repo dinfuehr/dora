@@ -1,11 +1,11 @@
 fun main() {
-    assert(mysum(array[Int]()) == 0);
-    assert(mysum(array[Int](1)) == 1);
-    assert(mysum(array[Int](1, 2, 3, 4, 5)) == 15);
+    assert(mysum(array[Int32]()) == 0I);
+    assert(mysum(array[Int32](1I)) == 1I);
+    assert(mysum(array[Int32](1I, 2I, 3I, 4I, 5I)) == 15I);
 }
 
-fun mysum(x: Array[Int]) -> Int {
-    var entries = 0;
+fun mysum(x: Array[Int32]) -> Int32 {
+    var entries = 0I;
     for val in x {
         entries = entries + val;
     }

@@ -5,5 +5,5 @@ fun main() {
 }
 
 @open @abstract class Foo[A]
-class Bar: Foo[Int]
+class Bar: Foo[Int32]
 

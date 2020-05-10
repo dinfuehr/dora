@@ -1,16 +1,16 @@
 //= vm-args "--gc=swiper --max-heap-size=128M"
 
-class Foo (let value: Int)
+class Foo (let value: Int32)
 
 fun main() {
-    let x = Array[(Int, Foo)](32);
+    let x = Array[(Int32, Foo)](32);
     forceMinorCollect();
     forceMinorCollect();
     for i in range(0, x.length()) {
-        x(i) = (i, Foo(i));
+        x(i) = (i.toInt32(), Foo(i.toInt32()));
     }
     forceMinorCollect();
     for i in range(0, x.length()) {
-        assert(x(i).0 == i && x(i).0 == x(i).1.value);
+        assert(x(i).0 == i.toInt32() && x(i).0 == x(i).1.value);
     }
 }

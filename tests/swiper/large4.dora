@@ -1,6 +1,6 @@
 //= vm-args "--gc=swiper --gc-verify"
 
-class Foo(let x: Int)
+class Foo(let x: Int32)
 
 fun main() {
     let x = LargeObject();
@@ -8,19 +8,19 @@ fun main() {
     assert(x.field0 === nil);
     assert(x.field16383 === nil);
 
-    x.field0 = Foo(1);
+    x.field0 = Foo(1I);
     forceMinorCollect();
-    assert(x.field0.x == 1);
+    assert(x.field0.x == 1I);
     assert(x.field16383 === nil);
 
-    x.field16383 = Foo(2);
+    x.field16383 = Foo(2I);
     forceMinorCollect();
-    assert(x.field0.x == 1);
-    assert(x.field16383.x == 2);
+    assert(x.field0.x == 1I);
+    assert(x.field16383.x == 2I);
 
     forceMinorCollect();
-    assert(x.field0.x == 1);
-    assert(x.field16383.x == 2);
+    assert(x.field0.x == 1I);
+    assert(x.field16383.x == 2I);
 }
 
 class LargeObject {

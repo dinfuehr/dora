@@ -1,12 +1,12 @@
 //= cannon
 
 fun main() {
-    assert(number_args(1, 2) == 2);
-    assert(number_args(7) == 1);
-    assert(number_args() == 0);
-    assert(number_args(1, 2, 3, 4, 5) == 5);
+    assert(number_args(1I, 2I) == 2I);
+    assert(number_args(7I) == 1I);
+    assert(number_args() == 0I);
+    assert(number_args(1I, 2I, 3I, 4I, 5I) == 5I);
 }
 
-fun number_args(x: Int...) -> Int {
-    x.length()
+fun number_args(x: Int32...) -> Int32 {
+    x.length().toInt32()
 }

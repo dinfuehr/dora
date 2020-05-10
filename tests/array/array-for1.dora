@@ -1,13 +1,13 @@
 fun main() {
-    assert(slowLength(array[Int]()) == 0);
-    assert(slowLength(array[Int](1)) == 1);
-    assert(slowLength(array[Int](1, 2)) == 2);
+    assert(slowLength(array[Int32]()) == 0L);
+    assert(slowLength(array[Int32](1I)) == 1L);
+    assert(slowLength(array[Int32](1I, 2I)) == 2L);
 }
 
-fun slowLength(x: Array[Int]) -> Int {
-    var entries = 0;
+fun slowLength(x: Array[Int32]) -> Int64 {
+    var entries = 0L;
     for val in x {
-        entries = entries + 1;
+        entries = entries + 1L;
     }
     entries
 }

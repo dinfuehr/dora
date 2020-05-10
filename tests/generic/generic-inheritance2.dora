@@ -2,11 +2,11 @@
 
 fun main() {
     let x = Bar();
-    assert(x.value == 10);
-    x.value = 100;
-    assert(x.value == 100);
+    assert(x.value == 10I);
+    x.value = 100I;
+    assert(x.value == 100I);
 }
 
 @open @abstract class Foo[A](var value: A)
-class Bar: Foo[Int](10)
+class Bar: Foo[Int32](10I)
 

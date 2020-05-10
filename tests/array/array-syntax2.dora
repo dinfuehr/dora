@@ -1,15 +1,15 @@
 //= cannon
 
 fun main() {
-    assert(test_call() == 1);
+    assert(test_call() == 1I);
 }
 
-fun test_call() -> Int {
-    return Foo::bar[Int]();
+fun test_call() -> Int32 {
+    return Foo::bar[Int32]();
 }
 
 class Foo {
-    @static fun bar[T]() -> Int {
-        return 1;
+    @static fun bar[T]() -> Int32 {
+        return 1I;
     }
 }

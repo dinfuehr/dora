@@ -5,12 +5,12 @@ var x: (Foo, Foo);
 
 fun main() {
     forceCollect();
-    x = (Foo(17), Foo(42));
-    assert(x.0.value == 17);
-    assert(x.1.value == 42);
+    x = (Foo(17I), Foo(42I));
+    assert(x.0.value == 17I);
+    assert(x.1.value == 42I);
     forceCollect();
-    assert(x.0.value == 17);
-    assert(x.1.value == 42);
+    assert(x.0.value == 17I);
+    assert(x.1.value == 42I);
 }
 
-class Foo(let value: Int)
+class Foo(let value: Int32)

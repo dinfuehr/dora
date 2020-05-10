@@ -1,7 +1,7 @@
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
 //= ignore
 
-class Foo(let value: Int)
+class Foo(let value: Int32)
 
 fun main() {
     let tpl: (Foo) = if false {
@@ -13,5 +13,5 @@ fun main() {
 }
 
 fun createFoo() -> Foo {
-    Foo(1)
+    Foo(1I)
 }

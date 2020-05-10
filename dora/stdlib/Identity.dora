@@ -14,6 +14,10 @@ impl Identity for Int {
   fun identicalTo(other: Int) -> Bool = self === other;
 }
 
+impl Identity for Int32 {
+  fun identicalTo(other: Int32) -> Bool = self === other;
+}
+
 impl Identity for Int64 {
   fun identicalTo(other: Int64) -> Bool = self === other;
 }

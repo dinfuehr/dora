@@ -1,18 +1,18 @@
 //= cannon
 
 fun main() {
-    assert(Bar[String]().value == 10);
-    assert(Bar[Float]().value == 10);
+    assert(Bar[String]().value == 10I);
+    assert(Bar[Float]().value == 10I);
 
     let x = Baz[Float]();
-    assert(x.test() == 10);
+    assert(x.test() == 10I);
     x.assignMe();
-    assert(x.test() == 20);
+    assert(x.test() == 20I);
 }
 
 @open @abstract class Foo[A](var value: A)
-@open class Bar[A]: Foo[Int](10)
+@open class Bar[A]: Foo[Int32](10I)
 class Baz[A]: Bar[A] {
-    fun test() -> Int { self.value }
-    fun assignMe() { self.value = 20; }
+    fun test() -> Int32 { self.value }
+    fun assignMe() { self.value = 20I; }
 }

@@ -1,7 +1,7 @@
-class Foo(var value: (Int, Int, (Int, Int)))
+class Foo(var value: (Int32, Int32, (Int32, Int32)))
 
 fun main() {
-    let x = (1, 2, (3, 4));
+    let x = (1I, 2I, (3I, 4I));
     let foo = Foo(x);
-    foo.value = (10, 11, (12, 13));
+    foo.value = (10I, 11I, (12I, 13I));
 }

@@ -3,15 +3,15 @@ class A[X] {
     fun t2[Y](x: X, y: Y) -> X { return x; }
 }
 
-fun t1(a: A[Int]) -> String {
-    return a.t1[String](1, "bla");
+fun t1(a: A[Int32]) -> String {
+    return a.t1[String](1I, "bla");
 }
 
-fun t2(a: A[Int]) -> Int {
-    return a.t2[String](1, "bla");
+fun t2(a: A[Int32]) -> Int32 {
+    return a.t2[String](1I, "bla");
 }
 
 fun main() {
-    assert("bla" == t1(A[Int]()));
-    assert(1 == t2(A[Int]()));
+    assert("bla" == t1(A[Int32]()));
+    assert(1I == t2(A[Int32]()));
 }

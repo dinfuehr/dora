@@ -1,24 +1,24 @@
 fun main() {
     let x = tpl1();
-    assert(x.0 == 1);
+    assert(x.0 == 1I);
     let x = tpl1WithoutReturn();
-    assert(x.0 == 1);
-    assert(sumtpl2() == 3);
+    assert(x.0 == 1I);
+    assert(sumtpl2() == 3I);
 }
 
-fun tpl1() -> (Int) {
-    return (1,);
+fun tpl1() -> (Int32) {
+    return (1I,);
 }
 
-fun tpl1WithoutReturn() -> (Int) {
-    (1,)
+fun tpl1WithoutReturn() -> (Int32) {
+    (1I,)
 }
 
-fun sumtpl2() -> Int {
+fun sumtpl2() -> Int32 {
     let x = tpl2();
     x.0 + x.1
 }
 
-fun tpl2() -> (Int, Int) {
-    return (1, 2);
+fun tpl2() -> (Int32, Int32) {
+    return (1I, 2I);
 }

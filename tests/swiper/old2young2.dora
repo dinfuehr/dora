@@ -6,9 +6,9 @@ fun main() {
   forceMinorCollect();
   // array in old generation references object in
   // young generation.
-  x(0) = Foo(2);
+  x(0) = Foo(2I);
   forceMinorCollect();
-  assert(x(0).a == 2);
+  assert(x(0).a == 2I);
 }
 
-class Foo(let a: Int)
+class Foo(let a: Int32)

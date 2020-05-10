@@ -1,0 +1,26 @@
+fun main() {
+    assert(tpl1() == 1I);
+    assert(tpl2() == 2I);
+    assert(tpl3() == 3I);
+    assert(tplsum() == 6I);
+}
+
+fun tpl1() -> Int32 {
+    let x = (1I, 2I, 3I);
+    x.0
+}
+
+fun tpl2() -> Int32 {
+    let x = (1I, 2I, 3I);
+    x.1
+}
+
+fun tpl3() -> Int32 {
+    let x = (1I, 2I, 3I);
+    x.2
+}
+
+fun tplsum() -> Int32 {
+    let x = (1I, 2I, 3I);
+    x.0 + x.1 + x.2
+}

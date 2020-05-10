@@ -82,15 +82,15 @@ fun main() {
 }
 
 @cannon fun shl(x: Int32, y: Int32) -> Int32 {
-    return x << y;
+    return x << y.toInt();
 }
 
 @cannon fun shr(x: Int32, y: Int32) -> Int32 {
-    return x >>> y;
+    return x >>> y.toInt();
 }
 
 @cannon fun sar(x: Int32, y: Int32) -> Int32 {
-    return x >> y;
+    return x >> y.toInt();
 }
 
 @cannon fun eq(x: Int32, y: Int32) -> Bool {

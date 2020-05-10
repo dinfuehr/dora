@@ -19,6 +19,10 @@ impl Comparable for Int {
   fun compareTo(other: Int) -> Int = self.compareTo(other);
 }
 
+impl Comparable for Int32 {
+  fun compareTo(other: Int32) -> Int = self.compareTo(other);
+}
+
 impl Comparable for Int64 {
   fun compareTo(other: Int64) -> Int = self.compareTo(other);
 }

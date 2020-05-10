@@ -1,9 +1,9 @@
 //= cannon
 
 fun main() {
-    let x = none[Int]();
-    assert(2 == x.unwrapOr(2));
+    let x = none[Int32]();
+    assert(2I == x.unwrapOr(2I));
 
-    let x = some[Int](2);
-    assert(2 == x.unwrapOr(100));
+    let x = some[Int32](2I);
+    assert(2I == x.unwrapOr(100I));
 }

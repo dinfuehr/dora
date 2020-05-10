@@ -1,6 +1,6 @@
 fun main() {
-    let arr = Array[(Int, Int64)](10);
+    let arr = Array[(Int32, Int64)](10);
     assert(arr.length() == 10);
-    let arr = Array[(Int, Int64)](0);
+    let arr = Array[(Int32, Int64)](0);
     assert(arr.length() == 0);
 }

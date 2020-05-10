@@ -5,7 +5,7 @@ module Foo {
 }
 
 module Bar {
-  let bar: Int = 0;
+  let bar: Int32 = 0I;
 }
 
 fun main() {

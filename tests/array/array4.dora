@@ -1,6 +1,6 @@
 //= cannon
 
 fun main() {
-  let array = arrayFill[Int](20, 2);
-  assert(2 == array(0));
+  let array = arrayFill[Int32](20, 2I);
+  assert(2I == array(0));
 }

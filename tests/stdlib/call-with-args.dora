@@ -5,6 +5,6 @@ fun main() {
     call("foo");
 }
 
-fun foo(a: Int) {
+fun foo(a: Int32) {
     println(a.toString());
 }

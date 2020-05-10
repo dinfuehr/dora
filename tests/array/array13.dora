@@ -1,8 +1,8 @@
 //= cannon
 
 fun main() {
-    let x = Array[Int](100);
+    let x = Array[Int32](100);
     assert(x.length() == 100);
-    assert(x(0) == 0);
-    assert(x(99) == 0);
+    assert(x(0) == 0I);
+    assert(x(99) == 0I);
 }
