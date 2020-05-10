@@ -21,7 +21,7 @@
   @internal fun asFloat() -> Float;
 
   @internal fun equals(rhs: Int32) -> Bool;
-  @internal fun compareTo(rhs: Int32) -> Int;
+  @internal fun compareTo(rhs: Int32) -> Int32;
 
   @internal fun plus(rhs: Int32) -> Int32;
   @internal fun minus(rhs: Int32) -> Int32;

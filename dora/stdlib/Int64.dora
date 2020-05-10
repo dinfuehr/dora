@@ -21,7 +21,7 @@
   @internal fun asDouble() -> Double;
 
   @internal fun equals(rhs: Int64) -> Bool;
-  @internal fun compareTo(rhs: Int64) -> Int;
+  @internal fun compareTo(rhs: Int64) -> Int32;
 
   @internal fun plus(rhs: Int64) -> Int64;
   @internal fun minus(rhs: Int64) -> Int64;

@@ -1,7 +1,7 @@
 //= cannon
 
 fun main() {
-    assert(5.compareTo(2) == 3);
-    assert(5.compareTo(5) == 0);
-    assert(5.compareTo(7) == -2);
+    assert(5.compareTo(2) == 3I);
+    assert(5.compareTo(5) == 0I);
+    assert(5.compareTo(7) == -2I);
 }

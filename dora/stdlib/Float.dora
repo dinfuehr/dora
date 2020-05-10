@@ -9,10 +9,10 @@
   @internal fun asInt32() -> Int32;
 
   @internal fun equals(rhs: Float) -> Bool;
-  @internal fun compareTo(rhs: Float) -> Int;
-  fun sortsAs(rhs: Float) -> Int {
-    var ix = self.asInt();
-    var iy = rhs.asInt();
+  @internal fun compareTo(rhs: Float) -> Int32;
+  fun sortsAs(rhs: Float) -> Int32 {
+    var ix = self.asInt32();
+    var iy = rhs.asInt32();
 
     let sx = ix.shiftRightSigned(31).shiftRight(1);
     let sy = iy.shiftRightSigned(31).shiftRight(1);
@@ -20,9 +20,9 @@
     ix = ix.bitwiseXor(sx);
     iy = iy.bitwiseXor(sy);
 
-    if ix < iy { return -1; }
-    if ix == iy { return 0; }
-    return 1;
+    if ix < iy { return -1I; }
+    if ix == iy { return 0I; }
+    return 1I;
   }
   @internal fun plus(rhs: Float) -> Float;
   @internal fun minus(rhs: Float) -> Float;

@@ -3374,7 +3374,7 @@ fn gen_cast_int64() {
 
 #[test]
 fn gen_compare_to_method() {
-    let result = code("fun f(a: Int64, b: Int64) -> Int { a.compareTo(b) }");
+    let result = code("fun f(a: Int64, b: Int64) -> Int32 { a.compareTo(b) }");
     let expected = vec![
         SubInt64(r(3), r(0), r(1)),
         CastInt64ToInt32(r(2), r(3)),
@@ -3382,7 +3382,7 @@ fn gen_compare_to_method() {
     ];
     assert_eq!(expected, result);
 
-    let result = code("fun f(a: Int, b: Int) -> Int { a.compareTo(b) }");
+    let result = code("fun f(a: Int32, b: Int32) -> Int32 { a.compareTo(b) }");
     let expected = vec![SubInt32(r(2), r(0), r(1)), RetInt32(r(2))];
     assert_eq!(expected, result);
 }

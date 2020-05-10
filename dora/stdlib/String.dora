@@ -21,7 +21,7 @@
 
   fun toString() -> String = self;
 
-  @internal fun compareTo(rhs: String) -> Int;
+  @internal fun compareTo(rhs: String) -> Int32;
 
   @internal fun length() -> Int;
 

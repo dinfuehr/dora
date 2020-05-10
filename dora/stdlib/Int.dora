@@ -22,7 +22,7 @@
   @internal fun asFloat() -> Float;
 
   @internal fun equals(rhs: Int) -> Bool;
-  @internal fun compareTo(rhs: Int) -> Int;
+  @internal fun compareTo(rhs: Int) -> Int32;
 
   @internal fun plus(rhs: Int) -> Int;
   @internal fun minus(rhs: Int) -> Int;

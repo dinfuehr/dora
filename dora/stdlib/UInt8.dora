@@ -9,7 +9,7 @@
   fun toStringHex() -> String = String::hex(self.toInt64());
 
   @internal fun equals(rhs: UInt8) -> Bool;
-  @internal fun compareTo(rhs: UInt8) -> Int;
+  @internal fun compareTo(rhs: UInt8) -> Int32;
 
   fun hash() -> Int32 = self.toInt32();
 

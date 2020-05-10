@@ -8,8 +8,8 @@
   @internal fun asInt64() -> Int64;
 
   @internal fun equals(rhs: Double) -> Bool;
-  @internal fun compareTo(rhs: Double) -> Int;
-  fun sortsAs(rhs: Double) -> Int {
+  @internal fun compareTo(rhs: Double) -> Int32;
+  fun sortsAs(rhs: Double) -> Int32 {
     var ix = self.asInt64();
     var iy = rhs.asInt64();
 
@@ -19,9 +19,9 @@
     ix = ix.bitwiseXor(sx);
     iy = iy.bitwiseXor(sy);
 
-    if ix < iy { return -1; }
-    if ix == iy { return 0; }
-    return 1;
+    if ix < iy { return -1I; }
+    if ix == iy { return 0I; }
+    return 1I;
   }
 
   @internal fun plus(rhs: Double) -> Double;

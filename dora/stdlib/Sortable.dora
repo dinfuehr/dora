@@ -1,35 +1,39 @@
 /* total order */
 trait Sortable {
-  fun sortsAs(other: Self) -> Int;
-  // fun sortsBefore(other: Self) -> Int;
-  // fun sortsAfter (other: Self) -> Int;
-  // fun sortsSame  (other: Self) -> Int;
+  fun sortsAs(other: Self) -> Int32;
+  // fun sortsBefore(other: Self) -> Int32;
+  // fun sortsAfter (other: Self) -> Int32;
+  // fun sortsSame  (other: Self) -> Int32;
 }
 
 impl Sortable for Bool {
-  fun sortsAs(other: Bool) -> Int = self.compareTo(other);
+  fun sortsAs(other: Bool) -> Int32 = self.compareTo(other);
 }
 
 impl Sortable for UInt8 {
-  fun sortsAs(other: UInt8) -> Int = self.compareTo(other);
+  fun sortsAs(other: UInt8) -> Int32 = self.compareTo(other);
 }
 
 impl Sortable for Int {
-  fun sortsAs(other: Int) -> Int = self.compareTo(other);
+  fun sortsAs(other: Int) -> Int32 = self.compareTo(other);
+}
+
+impl Sortable for Int32 {
+  fun sortsAs(other: Int32) -> Int32 = self.compareTo(other);
 }
 
 impl Sortable for Int64 {
-  fun sortsAs(other: Int64) -> Int = self.compareTo(other);
+  fun sortsAs(other: Int64) -> Int32 = self.compareTo(other);
 }
 
 impl Sortable for Float {
-  fun sortsAs(other: Float) -> Int = self.sortsAs(other);
+  fun sortsAs(other: Float) -> Int32 = self.sortsAs(other);
 }
 
 impl Sortable for Double {
-  fun sortsAs(other: Double) -> Int = self.sortsAs(other);
+  fun sortsAs(other: Double) -> Int32 = self.sortsAs(other);
 }
 
 impl Sortable for String {
-  fun sortsAs(other: String) -> Int = self.compareTo(other);
+  fun sortsAs(other: String) -> Int32 = self.compareTo(other);
 }

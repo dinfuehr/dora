@@ -32,7 +32,7 @@ fun bubbleSort[T: Comparable](array: Array[T]) {
     var i = 1;
 
     while i < len {
-      if array.get(i-1).compareTo(array.get(i)) > 0 {
+      if array.get(i-1).compareTo(array.get(i)) > 0I {
         let temp = array.get(i-1);
         array.set(i-1, array.get(i));
         array.set(i, temp);
