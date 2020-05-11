@@ -5,22 +5,22 @@ const RANDOM_MASK: Int64 = 0xFF_FF_FF_FF_FF_FFL;
 class Random(var seed: Int64) {
   self.seed = (seed ^ RANDOM_MULTIPLIER) & RANDOM_MASK;
 
-  fun nextIntWithBound(bound: Int) -> Int {
-    assert(bound > 0);
-    let bound_minus_1 = bound - 1;
+  fun nextInt32WithBound(bound: Int32) -> Int32 {
+    assert(bound > 0I);
+    let bound_minus_1 = bound - 1I;
 
-    if (bound & bound_minus_1) == 0 {
+    if (bound & bound_minus_1) == 0I {
       let num = self.nextInt31().toInt64();
-      return ((bound.toInt64() * num) >>> 31).toInt();
+      return ((bound.toInt64() * num) >>> 31I).toInt32();
     }
 
-    var mod = 0;
+    var mod = 0I;
 
     while true {
       let num = self.nextInt31();
       mod = num % bound;
 
-      if num - mod + bound_minus_1 >= 0 {
+      if num - mod + bound_minus_1 >= 0I {
         break;
       }
     }
@@ -28,19 +28,19 @@ class Random(var seed: Int64) {
     return mod;
   }
 
-  fun nextInt() -> Int {
+  fun nextInt32() -> Int32 {
     self.seed = (self.seed * RANDOM_MULTIPLIER + RANDOM_INCREMENT) & RANDOM_MASK;
-    return (self.seed >>> 16).toInt();
+    return (self.seed >>> 16I).toInt32();
   }
 
-  fun nextInt31() -> Int {
-    return self.nextInt() & 0x7F_FF_FF_FF;
+  fun nextInt31() -> Int32 {
+    return self.nextInt32() & 0x7F_FF_FF_FFI;
   }
 
   fun nextInt64() -> Int64 {
-    let w1 = self.nextInt();
-    let w2 = self.nextInt();
+    let w1 = self.nextInt32();
+    let w2 = self.nextInt32();
 
-    return (w1.toInt64() << 32) | w2.toInt64();
+    return (w1.toInt64() << 32I) | w2.toInt64();
   }
 }

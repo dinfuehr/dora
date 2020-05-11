@@ -1,40 +1,40 @@
 //= cannon
 
 fun main() {
-    let x = 1.shiftLeft(1);
+    let x = 1.shiftLeft(1I);
     assert(x == 2);
 
-    let x = 1 << 1;
+    let x = 1 << 1I;
     assert(x == 2);
 
-    let x = 6.shiftRightSigned(1);
+    let x = 6.shiftRightSigned(1I);
     assert(x == 3);
 
-    let x = 6 >> 1;
+    let x = 6 >> 1I;
     assert(x == 3);
 
-    let x = 12.shiftRight(2);
+    let x = 12.shiftRight(2I);
     assert(x == 3);
 
-    let x = 12 >> 2;
+    let x = 12 >> 2I;
     assert(x == 3);
 
-    let x = (-12).rotateLeft(1);
+    let x = (-12).rotateLeft(1I);
     assert(x == -23);
 
-    let x = (-12).rotateRight(1);
+    let x = (-12).rotateRight(1I);
     assert(x == 2147483642);
 
     // rotate arg is masked to 5 bits:
-    let x = (-12).rotateLeft(32);
+    let x = (-12).rotateLeft(32I);
     assert(x == -12);
 
-    let x = (-12).rotateRight(32);
+    let x = (-12).rotateRight(32I);
     assert(x == -12);
 
-    let x = (-12).rotateLeft(-1);
+    let x = (-12).rotateLeft(-1I);
     assert(x == 2147483642);
 
-    let x = (-12).rotateRight(-1);
+    let x = (-12).rotateRight(-1I);
     assert(x == -23);
 }

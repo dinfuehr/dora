@@ -33,64 +33,64 @@
   @internal fun bitwiseAnd(rhs: Int32) -> Int32;
   @internal fun bitwiseXor(rhs: Int32) -> Int32;
 
-  @internal fun shiftLeft(by: Int) -> Int32;
-  @internal fun shiftRightSigned(by: Int) -> Int32;
-  @internal fun shiftRight(by: Int) -> Int32;
+  @internal fun shiftLeft(by: Int32) -> Int32;
+  @internal fun shiftRightSigned(by: Int32) -> Int32;
+  @internal fun shiftRight(by: Int32) -> Int32;
 
-  @internal fun rotateLeft(by: Int) -> Int32;
-  @internal fun rotateRight(by: Int) -> Int32;
+  @internal fun rotateLeft(by: Int32) -> Int32;
+  @internal fun rotateRight(by: Int32) -> Int32;
 
   @internal fun unaryPlus() -> Int32;
   @internal fun unaryMinus() -> Int32;
   @internal fun not() -> Int32;
 
-  @internal fun countZeroBits() -> Int = self.not().countOneBits();
-  @internal fun countOneBits() -> Int {
+  @internal fun countZeroBits() -> Int32 = self.not().countOneBits();
+  @internal fun countOneBits() -> Int32 {
     var x = self;
-    var c = 0;
+    var c = 0I;
     while (x != 0I) {
-      c = c + 1;
+      c = c + 1I;
       x = x.bitwiseAnd(x - 1I);
     }
     return c;
   }
-  @internal fun countZeroBitsLeading() -> Int {
+  @internal fun countZeroBitsLeading() -> Int32 {
     if self == 0I {
-      return Int::bits();
+      return Int32::bits();
     }
-    var t = 1I.shiftLeft(Int::bits() - 1);
-    var r = 0;
+    var t = 1I.shiftLeft(Int32::bits() - 1I);
+    var r = 0I;
     while self.bitwiseAnd(t) == 0I {
-      t = t.shiftRight(1);
-      r = r + 1;
+      t = t.shiftRight(1I);
+      r = r + 1I;
     }
     return r;
   }
-  @internal fun countOneBitsLeading() -> Int = self.not().countZeroBitsLeading();
-  @internal fun countZeroBitsTrailing() -> Int {
+  @internal fun countOneBitsLeading() -> Int32 = self.not().countZeroBitsLeading();
+  @internal fun countZeroBitsTrailing() -> Int32 {
     if self == 0I {
-      return Int::bits();
+      return Int32::bits();
     }
     var t = 1I;
-    var r = 0;
+    var r = 0I;
     while self.bitwiseAnd(t) == 0I {
-      t = t.shiftLeft(1);
-      r = r + 1
+      t = t.shiftLeft(1I);
+      r = r + 1I;
     }
     return r;
   }
-  @internal fun countOneBitsTrailing() -> Int = self.not().countZeroBitsTrailing();
+  @internal fun countOneBitsTrailing() -> Int32 = self.not().countZeroBitsTrailing();
 
   fun hash() -> Int32 = self;
 
   fun abs() -> Int32 = if self >= 0I { self } else { -self };
 
-  @static fun bits() -> Int = 32;
-  @static fun bytes() -> Int = 4;
+  @static fun bits() -> Int32 = 32I;
+  @static fun bytes() -> Int32 = 4I;
 
-  @static fun maxValue() -> Int = 2147483647;
-  @static fun minValue() -> Int = -2147483648;
+  @static fun maxValue() -> Int32 = 2147483647I;
+  @static fun minValue() -> Int32 = -2147483648I;
 
-  @static fun min(lhs: Int, rhs: Int) -> Int = if lhs < rhs { lhs } else { rhs };
-  @static fun max(lhs: Int, rhs: Int) -> Int = if lhs < rhs { rhs } else { lhs };
+  @static fun min(lhs: Int32, rhs: Int32) -> Int32 = if lhs < rhs { lhs } else { rhs };
+  @static fun max(lhs: Int32, rhs: Int32) -> Int32 = if lhs < rhs { rhs } else { lhs };
 }

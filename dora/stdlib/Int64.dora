@@ -33,12 +33,12 @@
   @internal fun bitwiseAnd(rhs: Int64) -> Int64;
   @internal fun bitwiseXor(rhs: Int64) -> Int64;
 
-  @internal fun shiftLeft(by: Int) -> Int64;
-  @internal fun shiftRightSigned(by: Int) -> Int64;
-  @internal fun shiftRight(by: Int) -> Int64;
+  @internal fun shiftLeft(by: Int32) -> Int64;
+  @internal fun shiftRightSigned(by: Int32) -> Int64;
+  @internal fun shiftRight(by: Int32) -> Int64;
 
-  @internal fun rotateLeft(by: Int) -> Int64;
-  @internal fun rotateRight(by: Int) -> Int64;
+  @internal fun rotateLeft(by: Int32) -> Int64;
+  @internal fun rotateRight(by: Int32) -> Int64;
 
   @internal fun unaryPlus() -> Int64;
   @internal fun unaryMinus() -> Int64;
@@ -58,10 +58,10 @@
     if self == 0L {
       return Int64::bits();
     }
-    var t = 1L.shiftLeft(Int64::bits() - 1);
+    var t = 1L.shiftLeft(Int64::bits().toInt32() - 1I);
     var r = 0;
     while (self.bitwiseAnd(t)) == 0L {
-      t = t.shiftRight(1);
+      t = t.shiftRight(1I);
       r = r + 1;
     }
     return r;
@@ -74,7 +74,7 @@
     var t = 1L;
     var r = 0;
     while (self.bitwiseAnd(t)) == 0L {
-      t = t.shiftLeft(1);
+      t = t.shiftLeft(1I);
       r = r + 1
     }
     return r;

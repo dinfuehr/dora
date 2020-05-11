@@ -830,9 +830,9 @@ fn int64_operations() {
     ok("fun f(a: Int64, b: Int64) -> Int64 { return a | b; }");
     ok("fun f(a: Int64, b: Int64) -> Int64 { return a & b; }");
     ok("fun f(a: Int64, b: Int64) -> Int64 { return a ^ b; }");
-    ok("fun f(a: Int64, b: Int ) -> Int64 { return a << b; }");
-    ok("fun f(a: Int64, b: Int)  -> Int64 { return a >> b; }");
-    ok("fun f(a: Int64, b: Int)  -> Int64 { return a >>> b; }");
+    ok("fun f(a: Int64, b: Int32) -> Int64 { return a << b; }");
+    ok("fun f(a: Int64, b: Int32)  -> Int64 { return a >> b; }");
+    ok("fun f(a: Int64, b: Int32)  -> Int64 { return a >>> b; }");
     ok("fun f(a: Int64, b: Int64) -> Bool { return a == b; }");
     ok("fun f(a: Int64, b: Int64) -> Bool { return a != b; }");
     ok("fun f(a: Int64, b: Int64) -> Bool { return a === b; }");

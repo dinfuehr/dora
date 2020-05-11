@@ -1088,18 +1088,18 @@ class BytecodeWriter {
     fun emitInt32(val: Int32) {
         assert(val >= 0I);
         self.emitByte(val & 0xFFI);
-        self.emitByte((val >>> 8) & 0xFFI);
-        self.emitByte((val >>> 16) & 0xFFI);
-        self.emitByte((val >>> 24) & 0xFFI);
+        self.emitByte((val >>> 8I) & 0xFFI);
+        self.emitByte((val >>> 16I) & 0xFFI);
+        self.emitByte((val >>> 24I) & 0xFFI);
     }
 
     fun patchInt32(idx: Int32, val: Int32) {
         assert(val >= 0I);
         let idx = idx.toInt64();
         self.code.set(idx, (val & 0xFFI).toUInt8());
-        self.code.set(idx + 1L, ((val >>> 8) & 0xFFI).toUInt8());
-        self.code.set(idx + 2L, ((val >>> 16) & 0xFFI).toUInt8());
-        self.code.set(idx + 3L, ((val >>> 24) & 0xFFI).toUInt8());
+        self.code.set(idx + 1L, ((val >>> 8I) & 0xFFI).toUInt8());
+        self.code.set(idx + 2L, ((val >>> 16I) & 0xFFI).toUInt8());
+        self.code.set(idx + 3L, ((val >>> 24I) & 0xFFI).toUInt8());
     }
 }
 

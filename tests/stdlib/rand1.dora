@@ -3,8 +3,8 @@
 fun main() {
     let rnd = Random(0L);
 
-    assert(rnd.nextInt() == -1155484576);
-    assert(rnd.nextInt() == -723955400);
-    assert(rnd.nextInt() == 1033096058);
-    assert(rnd.nextInt() == -1690734402);
+    assert(rnd.nextInt32() == -1155484576I);
+    assert(rnd.nextInt32() == -723955400I);
+    assert(rnd.nextInt32() == 1033096058I);
+    assert(rnd.nextInt32() == -1690734402I);
 }

@@ -13,7 +13,7 @@ class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEn
         let byte3 = self.codeAt(idx+2I);
         let byte4 = self.codeAt(idx+3I);
 
-        (byte4 << 24) | (byte3 << 16) | (byte2 << 8) | byte1
+        (byte4 << 24I) | (byte3 << 16I) | (byte2 << 8I) | byte1
     }
 }
 

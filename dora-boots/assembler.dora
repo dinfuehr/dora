@@ -7,14 +7,14 @@ class AssemblerBuffer {
 
     fun emitInt32(value: Int32) {
         self.emitByte((value & 0xFFI).toUInt8());
-        self.emitByte(((value >>> 8) & 0xFFI).toUInt8());
-        self.emitByte(((value >>> 16) & 0xFFI).toUInt8());
-        self.emitByte(((value >>> 24) & 0xFFI).toUInt8());
+        self.emitByte(((value >>> 8I) & 0xFFI).toUInt8());
+        self.emitByte(((value >>> 16I) & 0xFFI).toUInt8());
+        self.emitByte(((value >>> 24I) & 0xFFI).toUInt8());
     }
 
     fun emitInt64(value: Int64) {
         self.emitInt32(value.toInt32());
-        self.emitInt32((value >>> 32).toInt32());
+        self.emitInt32((value >>> 32I).toInt32());
     }
 
     fun length() -> Int64 {
@@ -82,7 +82,7 @@ fun assertAsmInt32(buffer: Array[UInt8], index: Int64, value: Int32) {
     let b3 = buffer((index+2L).toInt()).toInt32();
     let b4 = buffer((index+3L).toInt()).toInt32();
 
-    let got = (b4 << 24) | (b3 << 16) | (b2 << 8) | b1;
+    let got = (b4 << 24I) | (b3 << 16I) | (b2 << 8I) | b1;
 
     if value != got {
         println("expected ${value.toStringHex()} but got ${got.toStringHex()}");
@@ -93,7 +93,7 @@ fun assertAsmInt32(buffer: Array[UInt8], index: Int64, value: Int32) {
 
 fun assertAsmInt64(buffer: Array[UInt8], index: Int64, value: Int64) {
     assertAsmInt32(buffer, index, value.toInt32());
-    assertAsmInt32(buffer, index, (value >>> 32).toInt32());
+    assertAsmInt32(buffer, index, (value >>> 32I).toInt32());
 }
 
 fun printBuffer(buffer: Array[UInt8]) {
@@ -113,7 +113,7 @@ fun intToHexString(val: Int32, padding: Int32) -> String {
 
     while val != 0I {
         let digit = val & 0xFI;
-        val = val >>> 4;
+        val = val >>> 4I;
 
         let digit = if digit < 10I {
             (48I + digit).toChar().unwrap()

@@ -21,7 +21,7 @@ class BitSet(capacity: Int64) {
         let value = self.data.get(entry_idx.toInt());
         let value_idx = idx - entry_idx;
 
-        return value & (1I << value_idx.toInt()) != 0I;
+        return value & (1I << value_idx.toInt32()) != 0I;
     }
 
     fun insert(idx: Int64) {
@@ -33,7 +33,7 @@ class BitSet(capacity: Int64) {
         var value = self.data.get(entry_idx.toInt());
         let value_idx = idx - entry_idx;
 
-        value = value | (1I << value_idx.toInt());
+        value = value | (1I << value_idx.toInt32());
 
         self.data.set(entry_idx.toInt(), value);
     }
@@ -47,7 +47,7 @@ class BitSet(capacity: Int64) {
         var value = self.data.get(entry_idx.toInt());
         let value_idx = idx - entry_idx;
 
-        value = value & !(1I << value_idx.toInt());
+        value = value & !(1I << value_idx.toInt32());
 
         self.data.set(entry_idx.toInt(), value);
     }

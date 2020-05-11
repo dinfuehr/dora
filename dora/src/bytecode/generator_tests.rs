@@ -785,35 +785,35 @@ fn gen_expr_bit_xor() {
 
 #[test]
 fn gen_expr_bit_shiftl() {
-    let result = code("fun f(a: Int, b: Int) -> Int { return a << b; }");
+    let result = code("fun f(a: Int32, b: Int32) -> Int32 { return a << b; }");
     let expected = vec![ShlInt32(r(2), r(0), r(1)), RetInt32(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_bit_shiftr() {
-    let result = code("fun f(a: Int, b: Int) -> Int { return a >>> b; }");
+    let result = code("fun f(a: Int32, b: Int32) -> Int32 { return a >>> b; }");
     let expected = vec![ShrInt32(r(2), r(0), r(1)), RetInt32(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_bit_ashiftr() {
-    let result = code("fun f(a: Int, b: Int) -> Int { return a >> b; }");
+    let result = code("fun f(a: Int32, b: Int32) -> Int32 { return a >> b; }");
     let expected = vec![SarInt32(r(2), r(0), r(1)), RetInt32(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_bit_rol() {
-    let result = code("fun f(a: Int, b: Int) -> Int { return a.rotateLeft(b); }");
+    let result = code("fun f(a: Int32, b: Int32) -> Int32 { return a.rotateLeft(b); }");
     let expected = vec![RolInt32(r(2), r(0), r(1)), RetInt32(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_bit_ror() {
-    let result = code("fun f(a: Int, b: Int) -> Int { return a.rotateRight(b); }");
+    let result = code("fun f(a: Int32, b: Int32) -> Int32 { return a.rotateRight(b); }");
     let expected = vec![RorInt32(r(2), r(0), r(1)), RetInt32(r(2))];
     assert_eq!(expected, result);
 }

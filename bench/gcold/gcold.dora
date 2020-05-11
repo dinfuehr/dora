@@ -1,119 +1,119 @@
-class TreeNode(var left: TreeNode, var right: TreeNode, var value: Int)
+class TreeNode(var left: TreeNode, var right: TreeNode, var value: Int32)
 
-const MEG: Int = 1_000_000;
+const MEG: Int32 = 1_000_000I;
 const INSIGNIFICANT: Int64 = 999L;
-const BYTES_PER_WORD: Int = 8;
-const BYTES_PER_NODE: Int = 40;
-const WORDS_DEAD: Int = 100;
+const BYTES_PER_WORD: Int32 = 8I;
+const BYTES_PER_NODE: Int32 = 40I;
+const WORDS_DEAD: Int32 = 100I;
 
-const treeHeight: Int = 14;
+const treeHeight: Int32 = 14I;
 var treeSize: Int64;
 
 var youngBytes: Int64;
 var nodes: Int64;
 var actuallyMut: Int64;
 var mutatorSum: Int64;
-var aexport: Array[Int];
+var aexport: Array[Int32];
 
 var trees: Array[TreeNode];
-var where: Int;
+var where: Int32;
 var rnd: Random;
 
-var size: Int;
-var workUnits: Int;
-var promoteRate: Int;
-var ptrMutRate: Int;
-var steps: Int;
+var size: Int32;
+var workUnits: Int32;
+var promoteRate: Int32;
+var ptrMutRate: Int32;
+var steps: Int32;
 
-fun height(t: TreeNode) -> Int {
+fun height(t: TreeNode) -> Int32 {
     if t === nil {
-        return 0;
+        return 0I;
     } else {
-        return 1 + Int::max(height(t.left), height(t.right));
+        return 1I + Int32::max(height(t.left), height(t.right));
     }
 }
 
-fun shortestPath(t: TreeNode) -> Int {
+fun shortestPath(t: TreeNode) -> Int32 {
     if t === nil {
-        return 0;
+        return 0I;
     } else {
-        return 1 + Int::min(shortestPath(t.left), shortestPath(t.right));
+        return 1I + Int32::min(shortestPath(t.left), shortestPath(t.right));
     }
 }
 
-fun heightToNodes(h: Int) -> Int64 {
+fun heightToNodes(h: Int32) -> Int64 {
     var h = h;
-    if (h == 0) {
+    if (h == 0I) {
         return 0L;
     }
 
     var n: Int64 = 1L;
 
-    while h > 1 {
+    while h > 1I {
         n = n + n;
-        h = h - 1;
+        h = h - 1I;
     }
 
     return n + n - 1L;
 }
 
-fun heightToBytes(h: Int) -> Int64 {
+fun heightToBytes(h: Int32) -> Int64 {
     return BYTES_PER_NODE.toInt64() * heightToNodes(h);
 }
 
-fun nodesToHeight(nnodes: Int64) -> Int {
-    var h = 1;
+fun nodesToHeight(nnodes: Int64) -> Int32 {
+    var h = 1I;
     var n = 1L;
 
     while n + n - 1L <= nnodes {
         n = n + n;
-        h = h + 1;
+        h = h + 1I;
     }
 
-    return h - 1;
+    return h - 1I;
 }
 
-fun bytesToHeight(bytes: Int64) -> Int {
+fun bytesToHeight(bytes: Int64) -> Int32 {
     return nodesToHeight(bytes / BYTES_PER_NODE.toInt64());
 }
 
-fun makeTree(h: Int) -> TreeNode {
-    if h == 0 {
+fun makeTree(h: Int32) -> TreeNode {
+    if h == 0I {
         return nil;
     }
 
-    let res = TreeNode(nil, nil, 0);
+    let res = TreeNode(nil, nil, 0I);
     nodes = nodes + 1L;
-    res.left = makeTree(h-1);
-    res.right = makeTree(h-1);
+    res.left = makeTree(h-1I);
+    res.right = makeTree(h-1I);
     res.value = h;
     return res;
 }
 
 fun initialize() {
-    let ntrees = ((size * MEG).toInt64() / treeSize).toInt();
-    trees = Array[TreeNode](ntrees);
+    let ntrees = (size * MEG).toInt64() / treeSize;
+    trees = Array[TreeNode](ntrees.toInt());
 
     println("Allocating " + ntrees.toString() + " trees.");
-    println("  (" + (ntrees.toInt64() * treeSize).toString() + " bytes)");
+    println("  (" + (ntrees * treeSize).toString() + " bytes)");
 
-    var i = 0;
+    var i = 0L;
 
     while i < ntrees {
-        trees(i) = makeTree(treeHeight);
-        i = i + 1;
+        trees(i.toInt()) = makeTree(treeHeight);
+        i = i + 1L;
     }
 
     println("  (" + nodes.toString() + " nodes)");
 }
 
 fun checkTrees() {
-    let ntrees = trees.length();
+    let ntrees = trees.length().toInt64();
 
-    var i = 0;
+    var i = 0L;
 
     while i < ntrees {
-        let t = trees(i);
+        let t = trees(i.toInt());
 
         let h1 = height(t);
         let h2 = shortestPath(t);
@@ -122,7 +122,7 @@ fun checkTrees() {
             println("**** BUG: " + h1.toString() + " " + h2.toString());
         }
 
-        i = i + 1;
+        i = i + 1L;
     }
 }
 
@@ -150,35 +150,35 @@ fun replaceTreeWork(full: TreeNode, partial: TreeNode, dir: Bool) {
 }
 
 fun replaceTree(full: TreeNode, partial: TreeNode) {
-    let dir = (partial.value % 2) == 0;
+    let dir = (partial.value % 2I) == 0I;
     actuallyMut = actuallyMut + 1L;
     replaceTreeWork(full, partial, dir);
 }
 
 fun oldGenAlloc(n: Int64) {
-    let full = (n / treeSize).toInt();
+    let full = n / treeSize;
     var partial = n % treeSize;
 
-    var i = 0;
+    var i = 0L;
     while i < full {
-        trees(where) = makeTree(treeHeight);
-        where = where + 1;
+        trees(where.toInt()) = makeTree(treeHeight);
+        where = where + 1I;
 
-        if where == trees.length() {
-            where = 0;
+        if where == trees.length().toInt32() {
+            where = 0I;
         }
 
-        i = i + 1;
+        i = i + 1L;
     }
 
     while partial > INSIGNIFICANT {
         let h = bytesToHeight(partial);
         let newTree = makeTree(h);
-        replaceTree(trees(where), newTree);
-        where = where + 1;
+        replaceTree(trees(where.toInt()), newTree);
+        where = where + 1I;
 
-        if where == trees.length() {
-            where = 0;
+        if where == trees.length().toInt32() {
+            where = 0I;
         }
 
         partial = partial - heightToBytes(h);
@@ -186,18 +186,18 @@ fun oldGenAlloc(n: Int64) {
 }
 
 fun oldGenSwapSubtrees() {
-    let index1 = rnd.nextIntWithBound(trees.length());
-    let index2 = rnd.nextIntWithBound(trees.length());
-    let depth = rnd.nextIntWithBound(treeHeight);
-    var path = rnd.nextInt();
+    let index1 = rnd.nextInt32WithBound(trees.length().toInt32());
+    let index2 = rnd.nextInt32WithBound(trees.length().toInt32());
+    let depth = rnd.nextInt32WithBound(treeHeight);
+    var path = rnd.nextInt32();
 
-    var tn1 = trees(index1);
-    var tn2 = trees(index2);
+    var tn1 = trees(index1.toInt());
+    var tn2 = trees(index2.toInt());
 
-    var i = 0;
+    var i = 0I;
 
     while i < depth {
-        if (path & 1) == 0 {
+        if (path & 1I) == 0I {
             tn1 = tn1.left;
             tn2 = tn2.left;
         } else {
@@ -205,11 +205,11 @@ fun oldGenSwapSubtrees() {
             tn2 = tn2.right;
         }
 
-        path = path >> 1;
-        i = i + 1;
+        path = path >> 1I;
+        i = i + 1I;
     }
 
-    if (path & 1) == 0 {
+    if (path & 1I) == 0I {
         let tmp = tn1.left;
         tn1.left = tn2.left;
         tn2.left = tmp;
@@ -231,25 +231,25 @@ fun oldGenMut(n: Int64) {
 }
 
 fun doMutWork(n: Int64) {
-    var sum = 0;
+    var sum = 0I;
     let limit = workUnits.toInt64() * n / 10L;
 
     var k = 0L;
 
     while k < limit {
-        sum = sum + 1;
+        sum = sum + 1I;
         k = k + 1L;
     }
 
     mutatorSum = mutatorSum + sum.toInt64();
 }
 
-fun doYoungGenAlloc(n: Int64, nwords: Int) {
+fun doYoungGenAlloc(n: Int64, nwords: Int32) {
     let nbytes = nwords * BYTES_PER_WORD;
     var allocated = 0L;
 
     while allocated < n {
-        aexport = Array[Int64](nwords);
+        aexport = Array[Int64](nwords.toInt());
         allocated = allocated + nbytes.toInt64();
     }
 
@@ -280,11 +280,11 @@ fun main() {
 
     treeSize = heightToBytes(treeHeight);
 
-    size = argv(0).toInt().unwrap();
-    workUnits = argv(1).toInt().unwrap();
-    promoteRate = argv(2).toInt().unwrap();
-    ptrMutRate = argv(3).toInt().unwrap();
-    steps = argv(4).toInt().unwrap();
+    size = argv(0).toInt32().unwrap();
+    workUnits = argv(1).toInt32().unwrap();
+    promoteRate = argv(2).toInt32().unwrap();
+    ptrMutRate = argv(3).toInt32().unwrap();
+    steps = argv(4).toInt32().unwrap();
 
     println("GCOld: version 1.0");
     println(size.toString() + " megabytes of live storage");
@@ -302,11 +302,11 @@ fun main() {
 
     let start = timestamp();
 
-    var step = 0;
+    var step = 0I;
 
     while step < steps {
         doStep(MEG.toInt64());
-        step = step + 1;
+        step = step + 1I;
     }
 
     let end = timestamp();
@@ -324,7 +324,7 @@ fun main() {
             + " Mb (= " + (promoted / secs).toString() + " Mb/sec)");
     println("    (actually promoted " + ((nodes * BYTES_PER_NODE.toInt64()).toFloat() / MEG.toFloat()).toString() + " megabytes)");
 
-    if ptrMutRate != 0 {
+    if ptrMutRate != 0I {
         println("Mutated " + actuallyMut.toString() +
                 " pointers (= " + (actuallyMut.toFloat() / secs).toString() + " ptrs/sec)");
     }

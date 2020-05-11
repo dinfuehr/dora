@@ -1,6 +1,6 @@
 @open @abstract class Node {
-    var birthday: Int;
-    var value: Int;
+    var birthday: Int32;
+    var value: Int32;
     var left: Node;
     var right: Node;
 
@@ -92,39 +92,39 @@
         return node;
     }
 
-    @static fun trunc(date: Int, tree: Node, depth: Int) {
+    @static fun trunc(date: Int32, tree: Node, depth: Int32) {
         if tree === nil {
             return;
         }
 
         if tree.left !== nil {
-            if depth == 0 {
+            if depth == 0I {
                 /*if tree.left !== nil {
                     println("truncate left");
                 }*/
                 tree.left = nil;
             } else {
-                Node::trunc(date, tree.left, depth-1);
+                Node::trunc(date, tree.left, depth-1I);
             }
         }
 
         if tree.right !== nil {
-            if depth == 0 {
+            if depth == 0I {
                 /*if tree.right !== nil {
                     println("truncate right");
                 }*/
                 tree.right = nil;
             } else {
-                Node::trunc(date, tree.right, depth-1);
+                Node::trunc(date, tree.right, depth-1I);
             }
         }
     }
 
-    fun printAge(date: Int) {
+    fun printAge(date: Int32) {
         println((date - self.birthday).toString());
     }
 
-    fun printAges(date: Int) {
+    fun printAges(date: Int32) {
         self.printAge(date);
 
         if self.left !== nil {
@@ -136,7 +136,7 @@
         }
     }
 
-    fun printTree(date: Int, prefix: String) {
+    fun printTree(date: Int32, prefix: String) {
         print(prefix);
         print("age: " + (date - self.birthday).toString());
         println(" value: " + self.value.toString());
@@ -150,12 +150,12 @@
         }
     }
 
-    @static fun countNodes(node: Node) -> Int {
+    @static fun countNodes(node: Node) -> Int32 {
         if node === nil {
-            return 0;
+            return 0I;
         }
 
-        return 1 + Node::countNodes(node.left) + Node::countNodes(node.right);
+        return 1I + Node::countNodes(node.left) + Node::countNodes(node.right);
     }
 }
 
@@ -178,51 +178,51 @@ fun main() {
     }
 
     let rnd = Random(argv(0).toInt64().unwrap());
-    let max_size = argv(1).toInt().unwrap();
-    var date = 0;
+    let max_size = argv(1).toInt32().unwrap();
+    var date = 0I;
 
     var tree: Node = NodeA();
     tree.birthday = date;
-    date = date + 1;
-    tree.value = rnd.nextIntWithBound(max_size);
+    date = date + 1I;
+    tree.value = rnd.nextInt32WithBound(max_size);
 
-    var j = 2;
+    var j = 2I;
 
-    while j + 2 <= argc() {
-        let n = argv(j).toInt().unwrap();
-        let depth = argv(j+1).toInt().unwrap();
+    while j + 2I <= argc().toInt32() {
+        let n = argv(j.toInt()).toInt32().unwrap();
+        let depth = argv((j+1I).toInt()).toInt32().unwrap();
 
         // println("n = " + n.toString());
         // println("depth = " + depth.toString());
 
-        var i = 0;
+        var i = 0I;
         while i < n {
-            let value = rnd.nextIntWithBound(4);
+            let value = rnd.nextInt32WithBound(4I);
             var node: Node = nil;
 
-            if value == 0 {
+            if value == 0I {
                 node = NodeA();
-            } else if value == 1 {
+            } else if value == 1I {
                 node = NodeB();
-            } else if value == 2 {
+            } else if value == 2I {
                 node = NodeC();
             } else {
-                assert(value == 3);
+                assert(value == 3I);
                 node = NodeD();
             }
 
             node.birthday = date;
-            date = date + 1;
-            node.value = rnd.nextIntWithBound(max_size);
+            date = date + 1I;
+            node.value = rnd.nextInt32WithBound(max_size);
 
             tree = Node::insert(tree, node);
             Node::trunc(date, tree, depth);
 
             // println("nodes in tree: " + Node::countNodes(tree).toString());
 
-            i = i + 1;
+            i = i + 1I;
         }
 
-        j = j + 2;
+        j = j + 2I;
     }
 }

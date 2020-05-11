@@ -1683,6 +1683,6 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         let by3 = self.readByte();
         let by4 = self.readByte();
 
-        (by4 << 24) | (by3 << 16) | (by2 << 8) | by1
+        (by4 << 24I) | (by3 << 16I) | (by2 << 8I) | by1
     }
 }

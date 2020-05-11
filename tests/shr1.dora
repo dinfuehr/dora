@@ -1,27 +1,27 @@
 //= cannon
 
 fun main() {
-  assert(8 == 8 >> 0);
-  assert(4 == 8 >> 1);
-  assert(2 == 8 >> 2);
-  assert(1 == 8 >> 3);
-  assert(0 == 8 >> 4);
+  assert(8 == 8 >> 0I);
+  assert(4 == 8 >> 1I);
+  assert(2 == 8 >> 2I);
+  assert(1 == 8 >> 3I);
+  assert(0 == 8 >> 4I);
 
-  assert(-8 == -8 >> 0);
-  assert(-4 == -8 >> 1);
-  assert(-2 == -8 >> 2);
-  assert(-1 == -8 >> 3);
-  assert(-1 == -8 >> 4);
+  assert(-8 == -8 >> 0I);
+  assert(-4 == -8 >> 1I);
+  assert(-2 == -8 >> 2I);
+  assert(-1 == -8 >> 3I);
+  assert(-1 == -8 >> 4I);
 
-  assert(8 == 8 >>> 0);
-  assert(4 == 8 >>> 1);
-  assert(2 == 8 >>> 2);
-  assert(1 == 8 >>> 3);
-  assert(0 == 8 >>> 4);
+  assert(8 == 8 >>> 0I);
+  assert(4 == 8 >>> 1I);
+  assert(2 == 8 >>> 2I);
+  assert(1 == 8 >>> 3I);
+  assert(0 == 8 >>> 4I);
 
-  assert(-8 == -8 >>> 0);
-  assert(2147483644 == -8 >>> 1);
-  assert(1073741822 == -8 >>> 2);
-  assert(536870911 == -8 >>> 3);
-  assert(268435455 == -8 >>> 4);
+  assert(-8 == -8 >>> 0I);
+  assert(2147483644 == -8 >>> 1I);
+  assert(1073741822 == -8 >>> 2I);
+  assert(536870911 == -8 >>> 3I);
+  assert(268435455 == -8 >>> 4I);
 }

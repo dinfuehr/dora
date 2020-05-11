@@ -14,7 +14,7 @@ const kMinTreeDepth: Int = 4;
 const kMaxTreeDepth: Int = 16;
 
 fun treeSize (i: Int) -> Int {
-    return (1 << (i + 1)) - 1;
+    return (1 << (i.toInt32() + 1I)) - 1;
 }
 
 fun numIters(i: Int) -> Int {

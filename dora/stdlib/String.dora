@@ -26,9 +26,11 @@
   @internal fun length() -> Int;
 
   @internal fun toIntSuccess() -> Bool;
+  @internal fun toInt32Success() -> Bool;
   @internal fun toInt64Success() -> Bool;
 
   @internal fun toIntOrZero() -> Int;
+  @internal fun toInt32OrZero() -> Int32;
   @internal fun toInt64OrZero() -> Int64;
 
   fun toInt() -> Option[Int] {
@@ -36,6 +38,14 @@
       some[Int](self.toIntOrZero())
     } else {
       none[Int]()
+    }
+  }
+
+  fun toInt32() -> Option[Int32] {
+    if self.toInt32Success() {
+      some[Int32](self.toInt32OrZero())
+    } else {
+      none[Int32]()
     }
   }
 
@@ -94,7 +104,7 @@
     var at = array.length();
     while data != 0L {
       array(at - 1) = ('0'.toInt64() + (data & 1L)).toUInt8();
-      data = data.shiftRight(1);
+      data = data.shiftRight(1I);
       at = at - 1;
     }
     return String::fromBytesPart(array, at, array.length() - at + 1).unwrap();
@@ -114,7 +124,7 @@
         array(at - 1) = ('A'.toInt() + digit - 10).toUInt8();
       }
 
-      data = data.shiftRight(4);
+      data = data.shiftRight(4I);
       at = at - 1;
     }
     return String::fromBytesPart(array, at, array.length() - at + 1).unwrap();
@@ -122,5 +132,5 @@
 
   fun isEmpty() -> Bool = self.length() == 0;
 
-  fun codePoints() -> CodepointIterator = CodepointIterator(self, 0);
+  fun codePoints() -> CodepointIterator = CodepointIterator(self, 0L);
 }

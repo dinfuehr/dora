@@ -1,11 +1,11 @@
-class CodepointIterator(let value: String, var start: Int) {
-    fun hasNext() -> Bool = self.start < self.value.length();
+class CodepointIterator(let value: String, var start: Int64) {
+    fun hasNext() -> Bool = self.start < self.value.length().toInt64();
 
     fun next() -> Char {
-        var ch = self.value.getByte(self.start);
+        var ch = self.value.getByte(self.start.toInt());
 
         if ch <= 0x7FY {
-            self.start = self.start + 1;
+            self.start = self.start + 1L;
             return ch.toInt().toCharUnchecked();
         }
 
@@ -14,25 +14,25 @@ class CodepointIterator(let value: String, var start: Int) {
         }
 
         if ch <= 0xDFY {
-            let cp = (ch.toInt() & 0x1F) << 6 | (self.value.getByte(self.start + 1).toInt() & 0x3F);
-            self.start = self.start + 2;
+            let cp = (ch.toInt32() & 0x1FI) << 6I | (self.value.getByte((self.start + 1L).toInt()).toInt32() & 0x3FI);
+            self.start = self.start + 2L;
             return cp.toCharUnchecked();
         }
 
         if ch <= 0xEFY {
-            let cp = (ch.toInt() & 0xF) << 12 |
-                 (self.value.getByte(self.start + 1).toInt() & 0x3F) << 6 |
-                 (self.value.getByte(self.start + 2).toInt() & 0x3F);
-            self.start = self.start + 3;
+            let cp = (ch.toInt32() & 0xFI) << 12I |
+                 (self.value.getByte((self.start + 1L).toInt()).toInt32() & 0x3FI) << 6I |
+                 (self.value.getByte((self.start + 2L).toInt()).toInt32() & 0x3FI);
+            self.start = self.start + 3L;
             return cp.toCharUnchecked();
         }
 
         if ch <= 0xF7Y {
-            let cp = (ch.toInt() & 0x3) << 18 |
-                 (self.value.getByte(self.start + 1).toInt() & 0x3F) << 12 |
-                 (self.value.getByte(self.start + 2).toInt() & 0x3F) << 6 |
-                 (self.value.getByte(self.start + 3).toInt() & 0x3F);
-            self.start = self.start + 4;
+            let cp = (ch.toInt32() & 0x3I) << 18I |
+                 (self.value.getByte((self.start + 1L).toInt()).toInt32() & 0x3FI) << 12I |
+                 (self.value.getByte((self.start + 2L).toInt()).toInt32() & 0x3FI) << 6I |
+                 (self.value.getByte((self.start + 3L).toInt()).toInt32() & 0x3FI);
+            self.start = self.start + 4L;
             return cp.toCharUnchecked();
         }
 
@@ -41,7 +41,7 @@ class CodepointIterator(let value: String, var start: Int) {
     }
 
     fun peek() -> Char {
-        var ch = self.value.getByte(self.start);
+        var ch = self.value.getByte(self.start.toInt());
 
         if ch <= 0x7FY {
             return ch.toInt().toCharUnchecked();
@@ -52,26 +52,26 @@ class CodepointIterator(let value: String, var start: Int) {
         }
 
         if ch <= 0xDFY {
-            let cp = (ch.toInt() & 0x1F) << 6 | (self.value.getByte(self.start + 1).toInt() & 0x3F);
+            let cp = (ch.toInt32() & 0x1FI) << 6I | (self.value.getByte((self.start + 1L).toInt()).toInt32() & 0x3FI);
             return cp.toCharUnchecked();
         }
 
         if ch <= 0xEFY {
-            let cp = (ch.toInt() & 0xF) << 12 |
-                 (self.value.getByte(self.start + 1).toInt() & 0x3F) << 6 |
-                 (self.value.getByte(self.start + 2).toInt() & 0x3F);
+            let cp = (ch.toInt32() & 0xFI) << 12I |
+                 (self.value.getByte((self.start + 1L).toInt()).toInt32() & 0x3FI) << 6I |
+                 (self.value.getByte((self.start + 2L).toInt()).toInt32() & 0x3FI);
             return cp.toCharUnchecked();
         }
 
         if ch <= 0xF7Y {
-            let cp = (ch.toInt() & 0x3) << 18 |
-                 (self.value.getByte(self.start + 1).toInt() & 0x3F) << 12 |
-                 (self.value.getByte(self.start + 2).toInt() & 0x3F) << 6 |
-                 (self.value.getByte(self.start + 3).toInt() & 0x3F);
+            let cp = (ch.toInt32() & 0x3I) << 18I |
+                 (self.value.getByte((self.start + 1L).toInt()).toInt32() & 0x3FI) << 12I |
+                 (self.value.getByte((self.start + 2L).toInt()).toInt32() & 0x3FI) << 6I |
+                 (self.value.getByte((self.start + 3L).toInt()).toInt32() & 0x3FI);
             return cp.toCharUnchecked();
         }
 
-        fatalError("invalid utf8: " + ch.toInt().toString());
+        fatalError("invalid utf8: " + ch.toInt32().toString());
         return '\0';
     }
 
@@ -86,5 +86,5 @@ class CodepointIterator(let value: String, var start: Int) {
         return i;
     }
 
-    fun toString() -> String = String::fromStringPart(self.value, self.start, self.value.length() - self.start).unwrap();
+    fun toString() -> String = String::fromStringPart(self.value, self.start.toInt(), self.value.length() - self.start.toInt()).unwrap();
 }

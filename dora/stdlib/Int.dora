@@ -34,12 +34,12 @@
   @internal fun bitwiseAnd(rhs: Int) -> Int;
   @internal fun bitwiseXor(rhs: Int) -> Int;
 
-  @internal fun shiftLeft(by: Int) -> Int;
-  @internal fun shiftRightSigned(by: Int) -> Int;
-  @internal fun shiftRight(by: Int) -> Int;
+  @internal fun shiftLeft(by: Int32) -> Int;
+  @internal fun shiftRightSigned(by: Int32) -> Int;
+  @internal fun shiftRight(by: Int32) -> Int;
 
-  @internal fun rotateLeft(by: Int) -> Int;
-  @internal fun rotateRight(by: Int) -> Int;
+  @internal fun rotateLeft(by: Int32) -> Int;
+  @internal fun rotateRight(by: Int32) -> Int;
 
   @internal fun unaryPlus() -> Int;
   @internal fun unaryMinus() -> Int;
@@ -59,10 +59,10 @@
     if self == 0 {
       return Int::bits();
     }
-    var t = 1.shiftLeft(Int::bits() - 1);
+    var t = 1.shiftLeft(Int::bits().toInt32() - 1I);
     var r = 0;
     while (self.bitwiseAnd(t)) == 0 {
-      t = t.shiftRight(1);
+      t = t.shiftRight(1I);
       r = r + 1;
     }
     return r;
@@ -75,7 +75,7 @@
     var t = 1;
     var r = 0;
     while (self.bitwiseAnd(t)) == 0 {
-      t = t.shiftLeft(1);
+      t = t.shiftLeft(1I);
       r = r + 1
     }
     return r;

@@ -9,9 +9,9 @@ fun main() {
 }
 
 @cannon fun rotateLeft(x: Int64, y: Int32) -> Int64 {
-    return x.rotateLeft(y.toInt());
+    return x.rotateLeft(y);
 }
 
 @cannon fun rotateRight(x: Int64, y: Int32) -> Int64 {
-    return x.rotateRight(y.toInt());
+    return x.rotateRight(y);
 }
