@@ -22,7 +22,8 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVis
         self.blocks.get(offset)
     }
 
-    fun nextBlockAt(var offset: Int) -> Option[Block] {
+    fun nextBlockAt(offset: Int) -> Option[Block] {
+        var offset = offset;
         while offset < self.bc.code.length() {
             let result = self.blockAt(offset);
             if result.isSome() { return result; }

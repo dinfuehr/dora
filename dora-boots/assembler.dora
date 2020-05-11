@@ -107,7 +107,8 @@ fun printBuffer(buffer: Array[UInt8]) {
     }
 }
 
-fun intToHexString(var val: Int, padding: Int) -> String {
+fun intToHexString(val: Int, padding: Int) -> String {
+    var val = val;
     var result = "";
 
     while val != 0 {

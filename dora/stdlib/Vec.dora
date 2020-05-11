@@ -83,7 +83,8 @@ class Vec[T] {
     }
   }
 
-  fun removeAt(var ind: Int64) -> T {
+  fun removeAt(ind: Int64) -> T {
+    var ind = ind;
     assert(ind < self.len);
     let temp = self.get(ind);
     let len = self.len;

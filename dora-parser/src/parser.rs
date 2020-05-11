@@ -930,14 +930,6 @@ impl<'a> Parser<'a> {
         let start = self.token.span.start();
         let pos = self.token.position;
 
-        let reassignable = if self.token.is(TokenKind::Var) {
-            self.advance_token()?;
-
-            true
-        } else {
-            false
-        };
-
         let name = self.expect_identifier()?;
 
         self.expect_token(TokenKind::Colon)?;
@@ -956,7 +948,6 @@ impl<'a> Parser<'a> {
         Ok(Param {
             id: self.generate_id(),
             idx: self.param_idx - 1,
-            reassignable,
             variadic,
             name,
             pos,
@@ -3027,7 +3018,6 @@ mod tests {
         assert_eq!(0, class.fields.len());
         assert_eq!(true, class.has_constructor);
         assert_eq!(1, ctor.params.len());
-        assert_eq!(false, ctor.params[0].reassignable);
     }
 
     #[test]
@@ -3051,7 +3041,6 @@ mod tests {
         assert_eq!(false, class.fields[0].reassignable);
         assert_eq!(true, class.has_constructor);
         assert_eq!(1, ctor.params.len());
-        assert_eq!(false, ctor.params[0].reassignable);
     }
 
     #[test]

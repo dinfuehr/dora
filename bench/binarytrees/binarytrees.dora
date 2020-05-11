@@ -44,7 +44,8 @@ fun loops(iterations: Int, depth: Int) {
     depth.toString() + "\t check: " + check.toString());
 }
 
-fun createTree(var depth: Int) -> TreeNode {
+fun createTree(depth: Int) -> TreeNode {
+  var depth = depth;
   let node = TreeNode(0, nil, nil);
 
   if depth > 0 {

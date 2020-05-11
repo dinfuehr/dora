@@ -41,7 +41,8 @@ fun shortestPath(t: TreeNode) -> Int {
     }
 }
 
-fun heightToNodes(var h: Int) -> Int64 {
+fun heightToNodes(h: Int) -> Int64 {
+    var h = h;
     if (h == 0) {
         return 0L;
     }

@@ -87,7 +87,8 @@
 
   @static fun fromString(val: String) -> String = val.clone();
 
-  @static fun binary(var data: Int64) -> String {
+  @static fun binary(data: Int64) -> String {
+    var data = data;
     if data == 0L { return "0"; }
     let array = Array[UInt8](64);
     var at = array.length();
@@ -99,7 +100,8 @@
     return String::fromBytesPart(array, at, array.length() - at + 1).unwrap();
   }
 
-  @static fun hex(var data: Int64) -> String {
+  @static fun hex(data: Int64) -> String {
+    var data = data;
     if data == 0L { return "0"; }
     let array = Array[UInt8](16);
     var at = array.length();
