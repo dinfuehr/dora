@@ -1372,7 +1372,7 @@ where
                 );
             }
 
-            BuiltinType::UInt8 | BuiltinType::Int | BuiltinType::Int64 => {
+            BuiltinType::UInt8 | BuiltinType::Int | BuiltinType::Int32 | BuiltinType::Int64 => {
                 self.asm
                     .load_int_const(ty.mode(), dest.reg(), xconst.value.to_int());
             }

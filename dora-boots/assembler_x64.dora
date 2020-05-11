@@ -1,40 +1,40 @@
-let RAX: Register = Register(0);
-let RCX: Register = Register(1);
-let RDX: Register = Register(2);
-let RBX: Register = Register(3);
-let RSP: Register = Register(4);
-let RBP: Register = Register(5);
-let RSI: Register = Register(6);
-let RDI: Register = Register(7);
+let RAX: Register = Register(0I);
+let RCX: Register = Register(1I);
+let RDX: Register = Register(2I);
+let RBX: Register = Register(3I);
+let RSP: Register = Register(4I);
+let RBP: Register = Register(5I);
+let RSI: Register = Register(6I);
+let RDI: Register = Register(7I);
 
-let R8: Register = Register(8);
-let R9: Register = Register(9);
-let R10: Register = Register(10);
-let R11: Register = Register(11);
-let R12: Register = Register(12);
-let R13: Register = Register(13);
-let R14: Register = Register(14);
-let R15: Register = Register(15);
+let R8: Register = Register(8I);
+let R9: Register = Register(9I);
+let R10: Register = Register(10I);
+let R11: Register = Register(11I);
+let R12: Register = Register(12I);
+let R13: Register = Register(13I);
+let R14: Register = Register(14I);
+let R15: Register = Register(15I);
 
 class AssemblerX64: Assembler {
     let buffer: AssemblerBuffer = AssemblerBuffer();
 
     fun pushqr(reg: Register) {
         self.emitRexOptional(reg);
-        self.emitByte((0x50 + reg.lowBits()).toUInt8());
+        self.emitByte((0x50I + reg.lowBits()).toUInt8());
     }
 
     fun popqr(reg: Register) {
         self.emitRexOptional(reg);
-        self.emitByte((0x58 + reg.lowBits()).toUInt8());
+        self.emitByte((0x58I + reg.lowBits()).toUInt8());
     }
 
     fun addqri(reg: Register, imm: Immediate) {
-        self.emitAlu64Imm(reg, imm, 0b000, 0x05Y);
+        self.emitAlu64Imm(reg, imm, 0b000I, 0x05Y);
     }
 
     fun subqri(reg: Register, imm: Immediate) {
-        self.emitAlu64Imm(reg, imm, 0b101, 0x2dY);
+        self.emitAlu64Imm(reg, imm, 0b101I, 0x2dY);
     }
 
     fun addqrr(dest: Register, src: Register) {
@@ -71,11 +71,11 @@ class AssemblerX64: Assembler {
         if imm.isInt32() {
             self.emitRex64RmField(dest);
             self.emitByte(0xC7Y);
-            self.emitModRmOpcode(0, dest);
+            self.emitModRmOpcode(0I, dest);
             self.emitInt32(imm.toInt32());
         } else {
             self.emitRex64RmField(dest);
-            self.emitByte((0xB8 + dest.lowBits()).toUInt8());
+            self.emitByte((0xB8I + dest.lowBits()).toUInt8());
             self.emitInt64(imm.toInt64());
         }
     }
@@ -83,7 +83,7 @@ class AssemblerX64: Assembler {
     fun movlri(dest: Register, imm: Immediate) {
         assert(imm.isInt32());
         self.emitRex32RmFieldOptional(dest);
-        self.emitByte((0xB8 + dest.lowBits()).toUInt8());
+        self.emitByte((0xB8I + dest.lowBits()).toUInt8());
         self.emitInt32(imm.toInt32());
     }
 
@@ -170,42 +170,42 @@ class AssemblerX64: Assembler {
     fun idivlr(src: Register) {
         self.emitRex32RmFieldOptional(src);
         self.emitByte(0xF7Y);
-        self.emitModRmOpcode(0b111, src);
+        self.emitModRmOpcode(0b111I, src);
     }
 
     fun idivqr(src: Register) {
         self.emitRex64RmField(src);
         self.emitByte(0xF7Y);
-        self.emitModRmOpcode(0b111, src);
+        self.emitModRmOpcode(0b111I, src);
     }
 
     fun setccr(condition: Condition, dest: Register) {
-        if dest.needsRexBit() || dest.lowBits() > 3 {
+        if dest.needsRexBit() || dest.lowBits() > 3I {
             self.emitRex(false, false, false, dest.needsRexBit());
         }
 
         self.emitByte(0x0FY);
-        self.emitByte((0x90 + condition.toInt()).toUInt8());
-        self.emitModRmOpcode(0, dest);
+        self.emitByte((0x90I + condition.toInt32()).toUInt8());
+        self.emitModRmOpcode(0I, dest);
     }
 
     fun callr(src: Register) {
         self.emitRex32RmFieldOptional(src);
         self.emitByte(0xFFY);
-        self.emitModRmOpcode(0b010, src);
+        self.emitModRmOpcode(0b010I, src);
     }
 
     fun cmovl(condition: Condition, dest: Register, src: Register) {
         self.emitRex32ModRmOptional(dest, src);
         self.emitByte(0x0FY);
-        self.emitByte((0x40 + condition.toInt()).toUInt8());
+        self.emitByte((0x40I + condition.toInt32()).toUInt8());
         self.emitModRmReg(dest, src);
     }
 
     fun cmovq(condition: Condition, dest: Register, src: Register) {
         self.emitRex64ModRm(dest, src);
         self.emitByte(0x0FY);
-        self.emitByte((0x40 + condition.toInt()).toUInt8());
+        self.emitByte((0x40I + condition.toInt32()).toUInt8());
         self.emitModRmReg(dest, src);
     }
 
@@ -226,20 +226,20 @@ class AssemblerX64: Assembler {
         self.emitByte(0x99Y);
     }
 
-    fun emitAlu64Imm(reg: Register, imm: Immediate, modrm_reg: Int, rax_opcode: UInt8) {
+    fun emitAlu64Imm(reg: Register, imm: Immediate, modrm_reg: Int32, rax_opcode: UInt8) {
         assert(imm.isInt32());
         self.emitRex64RmField(reg);
 
         if imm.isInt8() {
             self.emitByte(0x83Y);
-            self.emitModRm(0b11, modrm_reg, reg.lowBits());
+            self.emitModRm(0b11I, modrm_reg, reg.lowBits());
             self.emitByte(imm.toUInt8());
         } else if reg == RAX {
             self.emitByte(rax_opcode);
             self.emitInt32(imm.toInt32());
         } else {
             self.emitByte(0x81Y);
-            self.emitModRm(0b11, modrm_reg, reg.lowBits());
+            self.emitModRm(0b11I, modrm_reg, reg.lowBits());
             self.emitInt32(imm.toInt32());
         }
     }
@@ -279,27 +279,27 @@ class AssemblerX64: Assembler {
         // r - extension of modrm-reg field
         // x - extension of sib index field
         // b - extension of modrm-rm/sib base/opcode reg field
-        let opcode = 0x40 | w.toInt() << 3 | r.toInt() << 2 | x.toInt() << 1 | b.toInt();
+        let opcode = 0x40I | w.toInt32() << 3 | r.toInt32() << 2 | x.toInt32() << 1 | b.toInt32();
         self.emitByte(opcode.toUInt8());
     }
 
     fun emitModRmReg(reg: Register, rm: Register) {
-        self.emitModRm(0b11, reg.lowBits(), rm.lowBits());
+        self.emitModRm(0b11I, reg.lowBits(), rm.lowBits());
     }
 
-    fun emitModRmOpcode(opcode: Int, rm: Register) {
-        self.emitModRm(0b11, opcode, rm.lowBits());
+    fun emitModRmOpcode(opcode: Int32, rm: Register) {
+        self.emitModRm(0b11I, opcode, rm.lowBits());
     }
 
-    fun emitModRm(mode: Int, reg: Int, rm: Int) {
-        assert(mode < 4 && reg < 8 && rm < 8);
+    fun emitModRm(mode: Int32, reg: Int32, rm: Int32) {
+        assert(mode < 4I && reg < 8I && rm < 8I);
         self.emitByte((mode << 6 | reg << 3 | rm).toUInt8());
     }
 
-    fun emitSib(scale: Int, index: Int, base: Int) {
-        assert(scale < 4);
-        assert(index < 8);
-        assert(base < 8);
+    fun emitSib(scale: Int32, index: Int32, base: Int32) {
+        assert(scale < 4I);
+        assert(index < 8I);
+        assert(base < 8I);
         self.emitByte((scale << 6 | index << 3 | base).toUInt8());
     }
 
@@ -307,7 +307,7 @@ class AssemblerX64: Assembler {
         self.buffer.emitByte(value);
     }
 
-    fun emitInt32(value: Int) {
+    fun emitInt32(value: Int32) {
         self.buffer.emitInt32(value);
     }
 
@@ -352,66 +352,66 @@ enum Condition {
 }
 
 impl Condition {
-    fun toInt() -> Int {
+    fun toInt32() -> Int32 {
         if self == Condition::Overflow {
-            0b0000
+            0b0000I
         } else if self == Condition::NoOverflow {
-            0b0001
+            0b0001I
         } else if self == Condition::Below {
-            0b0010
+            0b0010I
         } else if self == Condition::NeitherAboveNorEqual {
-            0b0010
+            0b0010I
         } else if self == Condition::NotBelow {
-            0b0011
+            0b0011I
         } else if self == Condition::AboveOrEqual {
-            0b0011
+            0b0011I
         } else if self == Condition::Equal {
-            0b0100
+            0b0100I
         } else if self == Condition::Zero {
-            0b0100
+            0b0100I
         } else if self == Condition::NotEqual {
-            0b0101
+            0b0101I
         } else if self == Condition::NotZero {
-            0b0101
+            0b0101I
         } else if self == Condition::BelowOrEqual {
-            0b0110
+            0b0110I
         } else if self == Condition::NotAbove {
-            0b0110
+            0b0110I
         } else if self == Condition::NeitherBelowNorEqual {
-            0b0111
+            0b0111I
         } else if self == Condition::Above {
-            0b0111
+            0b0111I
         } else if self == Condition::Sign {
-            0b1000
+            0b1000I
         } else if self == Condition::NoSign {
-            0b1001
+            0b1001I
         } else if self == Condition::Parity {
-            0b1010
+            0b1010I
         } else if self == Condition::ParityEven {
-            0b1010
+            0b1010I
         } else if self == Condition::NoParity {
-            0b1011
+            0b1011I
         } else if self == Condition::ParityOdd {
-            0b1011
+            0b1011I
         } else if self == Condition::Less {
-            0b1100
+            0b1100I
         } else if self == Condition::NeitherGreaterNorEqual {
-            0b1100
+            0b1100I
         } else if self == Condition::NotLess {
-            0b1101
+            0b1101I
         } else if self == Condition::GreaterOrEqual {
-            0b1101
+            0b1101I
         } else if self == Condition::LessOrEqual {
-            0b1110
+            0b1110I
         } else if self == Condition::NotGreater {
-            0b1110
+            0b1110I
         } else if self == Condition::NeitherLessNorEqual {
-            0b1111
+            0b1111I
         } else if self == Condition::Greater {
-            0b1111
+            0b1111I
         } else {
             unreachable();
-            0
+            0I
         }
     }
 }
@@ -431,8 +431,8 @@ class Immediate(let value: Int64) {
         self.value.toUInt8()
     }
 
-    fun toInt32() -> Int {
-        self.value.toInt()
+    fun toInt32() -> Int32 {
+        self.value.toInt32()
     }
 
     fun toInt64() -> Int64 {
@@ -441,80 +441,80 @@ class Immediate(let value: Int64) {
 }
 
 @test fun testConditionCodes() {
-    assert(Condition::Overflow.toInt() == 0b0000);
+    assert(Condition::Overflow.toInt32() == 0b0000I);
 
-    assert(Condition::NoOverflow.toInt() == 0b0001);
+    assert(Condition::NoOverflow.toInt32() == 0b0001I);
 
-    assert(Condition::Below.toInt() == 0b0010);
-    assert(Condition::NeitherAboveNorEqual.toInt() == 0b0010);
+    assert(Condition::Below.toInt32() == 0b0010I);
+    assert(Condition::NeitherAboveNorEqual.toInt32() == 0b0010I);
 
-    assert(Condition::NotBelow.toInt() == 0b0011);
-    assert(Condition::AboveOrEqual.toInt() == 0b0011);
+    assert(Condition::NotBelow.toInt32() == 0b0011I);
+    assert(Condition::AboveOrEqual.toInt32() == 0b0011I);
 
-    assert(Condition::Equal.toInt() == 0b0100);
-    assert(Condition::Zero.toInt() == 0b0100);
+    assert(Condition::Equal.toInt32() == 0b0100I);
+    assert(Condition::Zero.toInt32() == 0b0100I);
 
-    assert(Condition::NotEqual.toInt() == 0b0101);
-    assert(Condition::NotZero.toInt() == 0b0101);
+    assert(Condition::NotEqual.toInt32() == 0b0101I);
+    assert(Condition::NotZero.toInt32() == 0b0101I);
 
-    assert(Condition::BelowOrEqual.toInt() == 0b0110);
-    assert(Condition::NotAbove.toInt() == 0b0110);
+    assert(Condition::BelowOrEqual.toInt32() == 0b0110I);
+    assert(Condition::NotAbove.toInt32() == 0b0110I);
 
-    assert(Condition::NeitherBelowNorEqual.toInt() == 0b0111);
-    assert(Condition::Above.toInt() == 0b0111);
+    assert(Condition::NeitherBelowNorEqual.toInt32() == 0b0111I);
+    assert(Condition::Above.toInt32() == 0b0111I);
 
-    assert(Condition::Sign.toInt() == 0b1000);
+    assert(Condition::Sign.toInt32() == 0b1000I);
 
-    assert(Condition::NoSign.toInt() == 0b1001);
+    assert(Condition::NoSign.toInt32() == 0b1001I);
 
-    assert(Condition::Parity.toInt() == 0b1010);
-    assert(Condition::ParityEven.toInt() == 0b1010);
+    assert(Condition::Parity.toInt32() == 0b1010I);
+    assert(Condition::ParityEven.toInt32() == 0b1010I);
 
-    assert(Condition::NoParity.toInt() == 0b1011);
-    assert(Condition::ParityOdd.toInt() == 0b1011);
+    assert(Condition::NoParity.toInt32() == 0b1011I);
+    assert(Condition::ParityOdd.toInt32() == 0b1011I);
 
-    assert(Condition::Less.toInt() == 0b1100);
-    assert(Condition::NeitherGreaterNorEqual.toInt() == 0b1100);
+    assert(Condition::Less.toInt32() == 0b1100I);
+    assert(Condition::NeitherGreaterNorEqual.toInt32() == 0b1100I);
 
-    assert(Condition::NotLess.toInt() == 0b1101);
-    assert(Condition::GreaterOrEqual.toInt() == 0b1101);
+    assert(Condition::NotLess.toInt32() == 0b1101I);
+    assert(Condition::GreaterOrEqual.toInt32() == 0b1101I);
 
-    assert(Condition::LessOrEqual.toInt() == 0b1110);
-    assert(Condition::NotGreater.toInt() == 0b1110);
+    assert(Condition::LessOrEqual.toInt32() == 0b1110I);
+    assert(Condition::NotGreater.toInt32() == 0b1110I);
 
-    assert(Condition::NeitherLessNorEqual.toInt() == 0b1111);
-    assert(Condition::Greater.toInt() == 0b1111);
+    assert(Condition::NeitherLessNorEqual.toInt32() == 0b1111I);
+    assert(Condition::Greater.toInt32() == 0b1111I);
 
 }
 
 impl Register {
-    fun lowBits() -> Int {
-        self.value & 0b111
+    fun lowBits() -> Int32 {
+        self.value & 0b111I
     }
 
     fun needsRexBit() -> Bool {
-        self.value > 7
+        self.value > 7I
     }
 }
 
 @test fun testAsmRegisters() {
-    assert(RAX.lowBits() == 0 && !RAX.needsRexBit());
-    assert(RCX.lowBits() == 1 && !RCX.needsRexBit());
-    assert(RDX.lowBits() == 2 && !RDX.needsRexBit());
-    assert(RBX.lowBits() == 3 && !RBX.needsRexBit());
-    assert(RSP.lowBits() == 4 && !RSP.needsRexBit());
-    assert(RBP.lowBits() == 5 && !RBP.needsRexBit());
-    assert(RSI.lowBits() == 6 && !RSI.needsRexBit());
-    assert(RDI.lowBits() == 7 && !RDI.needsRexBit());
+    assert(RAX.lowBits() == 0I && !RAX.needsRexBit());
+    assert(RCX.lowBits() == 1I && !RCX.needsRexBit());
+    assert(RDX.lowBits() == 2I && !RDX.needsRexBit());
+    assert(RBX.lowBits() == 3I && !RBX.needsRexBit());
+    assert(RSP.lowBits() == 4I && !RSP.needsRexBit());
+    assert(RBP.lowBits() == 5I && !RBP.needsRexBit());
+    assert(RSI.lowBits() == 6I && !RSI.needsRexBit());
+    assert(RDI.lowBits() == 7I && !RDI.needsRexBit());
 
-    assert(R8.lowBits() == 0 && R8.needsRexBit());
-    assert(R9.lowBits() == 1 && R9.needsRexBit());
-    assert(R10.lowBits() == 2 && R10.needsRexBit());
-    assert(R11.lowBits() == 3 && R11.needsRexBit());
-    assert(R12.lowBits() == 4 && R12.needsRexBit());
-    assert(R13.lowBits() == 5 && R13.needsRexBit());
-    assert(R14.lowBits() == 6 && R14.needsRexBit());
-    assert(R15.lowBits() == 7 && R15.needsRexBit());
+    assert(R8.lowBits() == 0I && R8.needsRexBit());
+    assert(R9.lowBits() == 1I && R9.needsRexBit());
+    assert(R10.lowBits() == 2I && R10.needsRexBit());
+    assert(R11.lowBits() == 3I && R11.needsRexBit());
+    assert(R12.lowBits() == 4I && R12.needsRexBit());
+    assert(R13.lowBits() == 5I && R13.needsRexBit());
+    assert(R14.lowBits() == 6I && R14.needsRexBit());
+    assert(R15.lowBits() == 7I && R15.needsRexBit());
 }
 
 @test fun testAsmPushqr(_x: Testing) {
@@ -524,10 +524,10 @@ impl Register {
     asm.pushqr(R8);
     asm.pushqr(R15);
     let buffer = asm.finalize();
-    assertAsm(buffer, 0, 0x50Y);
-    assertAsm(buffer, 1, 0x54Y);
-    assertAsm(buffer, 2, 0x41Y, 0x50Y);
-    assertAsm(buffer, 4, 0x41Y, 0x57Y);
+    assertAsm(buffer, 0L, 0x50Y);
+    assertAsm(buffer, 1L, 0x54Y);
+    assertAsm(buffer, 2L, 0x41Y, 0x50Y);
+    assertAsm(buffer, 4L, 0x41Y, 0x57Y);
     assert(buffer.length() == 6);
 }
 
@@ -538,10 +538,10 @@ impl Register {
     asm.popqr(R8);
     asm.popqr(R15);
     let buffer = asm.finalize();
-    assertAsm(buffer, 0, 0x58Y);
-    assertAsm(buffer, 1, 0x5CY);
-    assertAsm(buffer, 2, 0x41Y, 0x58Y);
-    assertAsm(buffer, 4, 0x41Y, 0x5FY);
+    assertAsm(buffer, 0L, 0x58Y);
+    assertAsm(buffer, 1L, 0x5CY);
+    assertAsm(buffer, 2L, 0x41Y, 0x58Y);
+    assertAsm(buffer, 4L, 0x41Y, 0x5FY);
     assert(buffer.length() == 6);
 }
 
@@ -550,8 +550,8 @@ impl Register {
     asm.movqrr(R15, RAX);
     asm.movqrr(RAX, R15);
     let buffer = asm.finalize();
-    assertAsm(buffer, 0, 0x49Y, 0x89Y, 0xC7Y);
-    assertAsm(buffer, 3, 0x4CY, 0x89Y, 0xF8Y);
+    assertAsm(buffer, 0L, 0x49Y, 0x89Y, 0xC7Y);
+    assertAsm(buffer, 3L, 0x4CY, 0x89Y, 0xF8Y);
     assert(buffer.length() == 6);
 }
 
@@ -561,9 +561,9 @@ impl Register {
     asm.movlrr(RAX, R15);
     asm.movlrr(RCX, RAX);
     let buffer = asm.finalize();
-    assertAsm(buffer, 0, 0x41Y, 0x89Y, 0xC7Y);
-    assertAsm(buffer, 3, 0x44Y, 0x89Y, 0xF8Y);
-    assertAsm(buffer, 6, 0x89Y, 0xC1Y);
+    assertAsm(buffer, 0L, 0x41Y, 0x89Y, 0xC7Y);
+    assertAsm(buffer, 3L, 0x44Y, 0x89Y, 0xF8Y);
+    assertAsm(buffer, 6L, 0x89Y, 0xC1Y);
     assert(buffer.length() == 8);
 }
 
@@ -574,10 +574,10 @@ impl Register {
     asm.addqrr(R12, RAX);
     asm.addqrr(R15, RSP);
     let buffer = asm.finalize();
-    assertAsm(buffer, 0, 0x48Y, 0x01Y, 0xD8Y);
-    assertAsm(buffer, 3, 0x4CY, 0x01Y, 0xE0Y);
-    assertAsm(buffer, 6, 0x49Y, 0x01Y, 0xC4Y);
-    assertAsm(buffer, 9, 0x49Y, 0x01Y, 0xE7Y);
+    assertAsm(buffer, 0L, 0x48Y, 0x01Y, 0xD8Y);
+    assertAsm(buffer, 3L, 0x4CY, 0x01Y, 0xE0Y);
+    assertAsm(buffer, 6L, 0x49Y, 0x01Y, 0xC4Y);
+    assertAsm(buffer, 9L, 0x49Y, 0x01Y, 0xE7Y);
     assert(buffer.length() == 12);
 }
 
@@ -586,8 +586,8 @@ impl Register {
     asm.addlrr(RAX, RBX);
     asm.addlrr(RCX, R15);
     let buffer = asm.finalize();
-    assertAsm(buffer, 0, 0x01Y, 0xD8Y);
-    assertAsm(buffer, 2, 0x44Y, 0x01Y, 0xF9Y);
+    assertAsm(buffer, 0L, 0x01Y, 0xD8Y);
+    assertAsm(buffer, 2L, 0x44Y, 0x01Y, 0xF9Y);
     assert(buffer.length() == 5);
 }
 
@@ -599,14 +599,14 @@ impl Register {
     asm.addqri(RCX, Immediate(0x2211L));
     asm.addqri(R15, Immediate(0x2211L));
     let buffer = asm.finalize();
-    assertAsm(buffer, 0, 0x48Y, 0x83Y, 0xC0Y, 0x11Y);
-    assertAsm(buffer, 4, 0x49Y, 0x83Y, 0xC7Y, 0x11Y);
-    assertAsm(buffer, 8, 0x48Y, 0x05Y);
-    assertAsmInt(buffer, 10, 0x2211);
-    assertAsm(buffer, 14, 0x48Y, 0x81Y, 0xC1Y);
-    assertAsmInt(buffer, 17, 0x2211);
-    assertAsm(buffer, 21, 0x49Y, 0x81Y, 0xC7Y);
-    assertAsmInt(buffer, 24, 0x2211);
+    assertAsm(buffer, 0L, 0x48Y, 0x83Y, 0xC0Y, 0x11Y);
+    assertAsm(buffer, 4L, 0x49Y, 0x83Y, 0xC7Y, 0x11Y);
+    assertAsm(buffer, 8L, 0x48Y, 0x05Y);
+    assertAsmInt32(buffer, 10L, 0x2211I);
+    assertAsm(buffer, 14L, 0x48Y, 0x81Y, 0xC1Y);
+    assertAsmInt32(buffer, 17L, 0x2211I);
+    assertAsm(buffer, 21L, 0x49Y, 0x81Y, 0xC7Y);
+    assertAsmInt32(buffer, 24L, 0x2211I);
     assert(buffer.length() == 28);
 }
 
@@ -615,8 +615,8 @@ impl Register {
     asm.subqrr(RAX, RBX);
     asm.subqrr(RCX, R15);
     let buffer = asm.finalize();
-    assertAsm(buffer, 0, 0x48Y, 0x29Y, 0xD8Y);
-    assertAsm(buffer, 3, 0x4CY, 0x29Y, 0xF9Y);
+    assertAsm(buffer, 0L, 0x48Y, 0x29Y, 0xD8Y);
+    assertAsm(buffer, 3L, 0x4CY, 0x29Y, 0xF9Y);
     assert(buffer.length() == 6);
 }
 
@@ -628,14 +628,14 @@ impl Register {
     asm.subqri(RCX, Immediate(0x2211L));
     asm.subqri(R15, Immediate(0x2211L));
     let buffer = asm.finalize();
-    assertAsm(buffer, 0, 0x48Y, 0x83Y, 0xE8Y, 0x11Y);
-    assertAsm(buffer, 4, 0x49Y, 0x83Y, 0xEFY, 0x11Y);
-    assertAsm(buffer, 8, 0x48Y, 0x2DY);
-    assertAsmInt(buffer, 10, 0x2211);
-    assertAsm(buffer, 14, 0x48Y, 0x81Y, 0xE9Y);
-    assertAsmInt(buffer, 17, 0x2211);
-    assertAsm(buffer, 21, 0x49Y, 0x81Y, 0xEFY);
-    assertAsmInt(buffer, 24, 0x2211);
+    assertAsm(buffer, 0L, 0x48Y, 0x83Y, 0xE8Y, 0x11Y);
+    assertAsm(buffer, 4L, 0x49Y, 0x83Y, 0xEFY, 0x11Y);
+    assertAsm(buffer, 8L, 0x48Y, 0x2DY);
+    assertAsmInt32(buffer, 10L, 0x2211I);
+    assertAsm(buffer, 14L, 0x48Y, 0x81Y, 0xE9Y);
+    assertAsmInt32(buffer, 17L, 0x2211I);
+    assertAsm(buffer, 21L, 0x49Y, 0x81Y, 0xEFY);
+    assertAsmInt32(buffer, 24L, 0x2211I);
     assert(buffer.length() == 28);
 }
 
@@ -643,7 +643,7 @@ impl Register {
     let asm = AssemblerX64();
     asm.retq();
     let buffer = asm.finalize();
-    assertAsm(buffer, 0, 0xC3Y);
+    assertAsm(buffer, 0L, 0xC3Y);
     assert(buffer.length() == 1);
 }
 
@@ -651,7 +651,7 @@ impl Register {
     let asm = AssemblerX64();
     asm.nop();
     let buffer = asm.finalize();
-    assertAsm(buffer, 0, 0x90Y);
+    assertAsm(buffer, 0L, 0x90Y);
     assert(buffer.length() == 1);
 }
 
@@ -660,7 +660,7 @@ impl Register {
     asm.cdq();
     asm.cqo();
     let buffer = asm.finalize();
-    assertAsm(buffer, 0, 0x99Y);
+    assertAsm(buffer, 0L, 0x99Y);
     assert(buffer.length() == 3);
 }
 
@@ -671,9 +671,9 @@ impl Register {
     asm.orlrr(R15, RAX);
     let buffer = asm.finalize();
 
-    assertAsm(buffer, 0, 0x44Y, 0x09Y, 0xF8Y);
-    assertAsm(buffer, 3, 0x09Y, 0xc8Y);
-    assertAsm(buffer, 5, 0x41Y, 0x09Y, 0xC7Y);
+    assertAsm(buffer, 0L, 0x44Y, 0x09Y, 0xF8Y);
+    assertAsm(buffer, 3L, 0x09Y, 0xc8Y);
+    assertAsm(buffer, 5L, 0x41Y, 0x09Y, 0xC7Y);
     assert(buffer.length() == 8);
 }
 
@@ -684,9 +684,9 @@ impl Register {
     asm.orqrr(R15, RAX);
     let buffer = asm.finalize();
 
-    assertAsm(buffer, 0, 0x4CY, 0x09Y, 0xF8Y);
-    assertAsm(buffer, 3, 0x48Y, 0x09Y, 0xC8Y);
-    assertAsm(buffer, 6, 0x49Y, 0x09Y, 0xC7Y);
+    assertAsm(buffer, 0L, 0x4CY, 0x09Y, 0xF8Y);
+    assertAsm(buffer, 3L, 0x48Y, 0x09Y, 0xC8Y);
+    assertAsm(buffer, 6L, 0x49Y, 0x09Y, 0xC7Y);
     assert(buffer.length() == 9);
 }
 
@@ -697,9 +697,9 @@ impl Register {
     asm.andlrr(R15, RAX);
     let buffer = asm.finalize();
 
-    assertAsm(buffer, 0, 0x44Y, 0x21Y, 0xF8Y);
-    assertAsm(buffer, 3, 0x21Y, 0xC8Y);
-    assertAsm(buffer, 5, 0x41Y, 0x21Y, 0xC7Y);
+    assertAsm(buffer, 0L, 0x44Y, 0x21Y, 0xF8Y);
+    assertAsm(buffer, 3L, 0x21Y, 0xC8Y);
+    assertAsm(buffer, 5L, 0x41Y, 0x21Y, 0xC7Y);
     assert(buffer.length() == 8);
 }
 
@@ -710,9 +710,9 @@ impl Register {
     asm.andqrr(R15, RAX);
     let buffer = asm.finalize();
 
-    assertAsm(buffer, 0, 0x4CY, 0x21Y, 0xF8Y);
-    assertAsm(buffer, 3, 0x48Y, 0x21Y, 0xC8Y);
-    assertAsm(buffer, 6, 0x49Y, 0x21Y, 0xC7Y);
+    assertAsm(buffer, 0L, 0x4CY, 0x21Y, 0xF8Y);
+    assertAsm(buffer, 3L, 0x48Y, 0x21Y, 0xC8Y);
+    assertAsm(buffer, 6L, 0x49Y, 0x21Y, 0xC7Y);
     assert(buffer.length() == 9);
 }
 
@@ -723,9 +723,9 @@ impl Register {
     asm.xorlrr(R15, RAX);
     let buffer = asm.finalize();
 
-    assertAsm(buffer, 0, 0x44Y, 0x31Y, 0xF8Y);
-    assertAsm(buffer, 3, 0x31Y, 0xC8Y);
-    assertAsm(buffer, 5, 0x41Y, 0x31Y, 0xC7Y);
+    assertAsm(buffer, 0L, 0x44Y, 0x31Y, 0xF8Y);
+    assertAsm(buffer, 3L, 0x31Y, 0xC8Y);
+    assertAsm(buffer, 5L, 0x41Y, 0x31Y, 0xC7Y);
     assert(buffer.length() == 8);
 }
 
@@ -736,9 +736,9 @@ impl Register {
     asm.xorqrr(R15, RAX);
     let buffer = asm.finalize();
 
-    assertAsm(buffer, 0, 0x4CY, 0x31Y, 0xF8Y);
-    assertAsm(buffer, 3, 0x48Y, 0x31Y, 0xC8Y);
-    assertAsm(buffer, 6, 0x49Y, 0x31Y, 0xC7Y);
+    assertAsm(buffer, 0L, 0x4CY, 0x31Y, 0xF8Y);
+    assertAsm(buffer, 3L, 0x48Y, 0x31Y, 0xC8Y);
+    assertAsm(buffer, 6L, 0x49Y, 0x31Y, 0xC7Y);
     assert(buffer.length() == 9);
 }
 
@@ -749,9 +749,9 @@ impl Register {
     asm.cmplrr(RAX, RBX);
     let buffer = asm.finalize();
 
-    assertAsm(buffer, 0, 0x44Y, 0x39Y, 0xF8Y);
-    assertAsm(buffer, 3, 0x41Y, 0x39Y, 0xDFY);
-    assertAsm(buffer, 6, 0x39Y, 0xD8Y);
+    assertAsm(buffer, 0L, 0x44Y, 0x39Y, 0xF8Y);
+    assertAsm(buffer, 3L, 0x41Y, 0x39Y, 0xDFY);
+    assertAsm(buffer, 6L, 0x39Y, 0xD8Y);
     assert(buffer.length() == 8);
 }
 
@@ -762,9 +762,9 @@ impl Register {
     asm.cmpqrr(RAX, RBX);
     let buffer = asm.finalize();
 
-    assertAsm(buffer, 0, 0x4CY, 0x39Y, 0xF8Y);
-    assertAsm(buffer, 3, 0x49Y, 0x39Y, 0xDFY);
-    assertAsm(buffer, 6, 0x48Y, 0x39Y, 0xD8Y);
+    assertAsm(buffer, 0L, 0x4CY, 0x39Y, 0xF8Y);
+    assertAsm(buffer, 3L, 0x49Y, 0x39Y, 0xDFY);
+    assertAsm(buffer, 6L, 0x48Y, 0x39Y, 0xD8Y);
     assert(buffer.length() == 9);
 }
 
@@ -774,8 +774,8 @@ impl Register {
     asm.imullrr(RCX, R15);
     let buffer = asm.finalize();
 
-    assertAsm(buffer, 0, 0x0FY, 0xAFY, 0xC3Y);
-    assertAsm(buffer, 3, 0x41Y, 0x0FY, 0xAFY, 0xCFY);
+    assertAsm(buffer, 0L, 0x0FY, 0xAFY, 0xC3Y);
+    assertAsm(buffer, 3L, 0x41Y, 0x0FY, 0xAFY, 0xCFY);
     assert(buffer.length() == 7);
 }
 
@@ -785,8 +785,8 @@ impl Register {
     asm.imulqrr(RCX, R15);
     let buffer = asm.finalize();
 
-    assertAsm(buffer, 0, 0x48Y, 0x0FY, 0xAFY, 0xC3Y);
-    assertAsm(buffer, 4, 0x49Y, 0x0FY, 0xAFY, 0xCFY);
+    assertAsm(buffer, 0L, 0x48Y, 0x0FY, 0xAFY, 0xC3Y);
+    assertAsm(buffer, 4L, 0x49Y, 0x0FY, 0xAFY, 0xCFY);
     assert(buffer.length() == 8);
 }
 
@@ -796,8 +796,8 @@ impl Register {
     asm.idivlr(R15);
     let buffer = asm.finalize();
 
-    assertAsm(buffer, 0, 0xF7Y, 0xF8Y);
-    assertAsm(buffer, 2, 0x41Y, 0xF7Y, 0xFFY);
+    assertAsm(buffer, 0L, 0xF7Y, 0xF8Y);
+    assertAsm(buffer, 2L, 0x41Y, 0xF7Y, 0xFFY);
     assert(buffer.length() == 5);
 }
 
@@ -807,8 +807,8 @@ impl Register {
     asm.idivqr(R15);
     let buffer = asm.finalize();
 
-    assertAsm(buffer, 0, 0x48Y, 0xF7Y, 0xF8Y);
-    assertAsm(buffer, 3, 0x49Y, 0xF7Y, 0xFFY);
+    assertAsm(buffer, 0L, 0x48Y, 0xF7Y, 0xF8Y);
+    assertAsm(buffer, 3L, 0x49Y, 0xF7Y, 0xFFY);
     assert(buffer.length() == 6);
 }
 
@@ -822,12 +822,12 @@ impl Register {
     asm.setccr(Condition::Less, RDI);
     let buffer = asm.finalize();
 
-    assertAsm(buffer, 0, 0x0FY, 0x94Y, 0xC0Y);
-    assertAsm(buffer, 3, 0x41Y, 0x0FY, 0x95Y, 0xC7Y);
-    assertAsm(buffer, 7, 0x0FY, 0x9DY, 0xC1Y);
-    assertAsm(buffer, 10, 0x0FY, 0x9FY, 0xC2Y);
-    assertAsm(buffer, 13, 0x40Y, 0x0FY, 0x9EY, 0xC6Y);
-    assertAsm(buffer, 17, 0x40Y, 0x0FY, 0x9CY, 0xC7Y);
+    assertAsm(buffer, 0L, 0x0FY, 0x94Y, 0xC0Y);
+    assertAsm(buffer, 3L, 0x41Y, 0x0FY, 0x95Y, 0xC7Y);
+    assertAsm(buffer, 7L, 0x0FY, 0x9DY, 0xC1Y);
+    assertAsm(buffer, 10L, 0x0FY, 0x9FY, 0xC2Y);
+    assertAsm(buffer, 13L, 0x40Y, 0x0FY, 0x9EY, 0xC6Y);
+    assertAsm(buffer, 17L, 0x40Y, 0x0FY, 0x9CY, 0xC7Y);
     assert(buffer.length() == 21);
 }
 
@@ -837,8 +837,8 @@ impl Register {
     asm.callr(R15);
     let buffer = asm.finalize();
 
-    assertAsm(buffer, 0, 0xFFY, 0xD0Y);
-    assertAsm(buffer, 2, 0x41Y, 0xFFY, 0xD7Y);
+    assertAsm(buffer, 0L, 0xFFY, 0xD0Y);
+    assertAsm(buffer, 2L, 0x41Y, 0xFFY, 0xD7Y);
     assert(buffer.length() == 5);
 }
 
@@ -848,8 +848,8 @@ impl Register {
     asm.cmovl(Condition::NotEqual, RAX, R13);
     let buffer = asm.finalize();
 
-    assertAsm(buffer, 0, 0x44Y, 0x0FY, 0x44Y, 0xF8Y);
-    assertAsm(buffer, 4, 0x41Y, 0x0FY, 0x45Y, 0xC5Y);
+    assertAsm(buffer, 0L, 0x44Y, 0x0FY, 0x44Y, 0xF8Y);
+    assertAsm(buffer, 4L, 0x41Y, 0x0FY, 0x45Y, 0xC5Y);
     assert(buffer.length() == 8);
 }
 
@@ -860,9 +860,9 @@ impl Register {
     asm.cmovq(Condition::NotEqual, RAX, R13);
     let buffer = asm.finalize();
 
-    assertAsm(buffer, 0, 0x48Y, 0x0FY, 0x4FY, 0xC1Y);
-    assertAsm(buffer, 4, 0x4CY, 0x0FY, 0x44Y, 0xF8Y);
-    assertAsm(buffer, 8, 0x49Y, 0x0FY, 0x45Y, 0xC5Y);
+    assertAsm(buffer, 0L, 0x48Y, 0x0FY, 0x4FY, 0xC1Y);
+    assertAsm(buffer, 4L, 0x4CY, 0x0FY, 0x44Y, 0xF8Y);
+    assertAsm(buffer, 8L, 0x49Y, 0x0FY, 0x45Y, 0xC5Y);
     assert(buffer.length() == 12);
 }
 
@@ -872,10 +872,10 @@ impl Register {
     asm.movlri(R14, Immediate(3L));
     let buffer = asm.finalize();
 
-    assertAsm(buffer, 0, 0xB8Y);
-    assertAsmInt(buffer, 1, 2);
-    assertAsm(buffer, 5, 0x41Y, 0xBEY);
-    assertAsmInt(buffer, 7, 3);
+    assertAsm(buffer, 0L, 0xB8Y);
+    assertAsmInt32(buffer, 1L, 2I);
+    assertAsm(buffer, 5L, 0x41Y, 0xBEY);
+    assertAsmInt32(buffer, 7L, 3I);
     assert(buffer.length() == 11);
 }
 
@@ -885,10 +885,10 @@ impl Register {
     asm.movqri(R15, Immediate(-1L));
     let buffer = asm.finalize();
 
-    assertAsm(buffer, 0, 0x48Y, 0xC7Y, 0xC0Y);
-    assertAsmInt(buffer, 3, 1);
-    assertAsm(buffer, 7, 0x49Y, 0xC7Y, 0xC7Y);
-    assertAsmInt(buffer, 10, -1);
+    assertAsm(buffer, 0L, 0x48Y, 0xC7Y, 0xC0Y);
+    assertAsmInt32(buffer, 3L, 1I);
+    assertAsm(buffer, 7L, 0x49Y, 0xC7Y, 0xC7Y);
+    assertAsmInt32(buffer, 10L, -1I);
     assert(buffer.length() == 14);
 }
 
@@ -899,9 +899,9 @@ impl Register {
     asm.testlrr(R15, RAX);
     let buffer = asm.finalize();
 
-    assertAsm(buffer, 0, 0x85Y, 0xC0Y);
-    assertAsm(buffer, 2, 0x85Y, 0xC6Y);
-    assertAsm(buffer, 4, 0x41Y, 0x85Y, 0xC7Y);
+    assertAsm(buffer, 0L, 0x85Y, 0xC0Y);
+    assertAsm(buffer, 2L, 0x85Y, 0xC6Y);
+    assertAsm(buffer, 4L, 0x41Y, 0x85Y, 0xC7Y);
     assert(buffer.length() == 7);
 }
 
@@ -912,8 +912,8 @@ impl Register {
     asm.testqrr(R15, RAX);
     let buffer = asm.finalize();
 
-    assertAsm(buffer, 0, 0x48Y, 0x85Y, 0xC0Y);
-    assertAsm(buffer, 3, 0x48Y, 0x85Y, 0xC6Y);
-    assertAsm(buffer, 6, 0x49Y, 0x85Y, 0xC7Y);
+    assertAsm(buffer, 0L, 0x48Y, 0x85Y, 0xC0Y);
+    assertAsm(buffer, 3L, 0x48Y, 0x85Y, 0xC6Y);
+    assertAsm(buffer, 6L, 0x49Y, 0x85Y, 0xC7Y);
     assert(buffer.length() == 9);
 }

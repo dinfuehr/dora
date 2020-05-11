@@ -3,11 +3,11 @@ class BytecodeWriter {
     let constPool: Vec[ConstPoolEntry] = Vec[ConstPoolEntry]();
     let registers: Vec[BytecodeType] = Vec[BytecodeType]();
     let unresolvedJumps: Vec[UnresolvedJump] = Vec[UnresolvedJump]();
-    var arguments: Int = 0;
+    var arguments: Int32 = 0I;
 
     fun addRegister(ty: BytecodeType) -> BytecodeRegister {
         self.registers.push(ty);
-        BytecodeRegister(self.registers.length().toInt() - 1)
+        BytecodeRegister(self.registers.length().toInt32() - 1I)
     }
 
     fun createLabel() -> BytecodeLabel {
@@ -15,14 +15,14 @@ class BytecodeWriter {
     }
 
     fun defineLabel() -> BytecodeLabel {
-        BytecodeLabel().bindTo(self.code.length().toInt())
+        BytecodeLabel().bindTo(self.code.length().toInt32())
     }
 
     fun bindLabel(lbl: BytecodeLabel) {
-        lbl.bindTo(self.code.length().toInt());
+        lbl.bindTo(self.code.length().toInt32());
     }
 
-    fun setArguments(arguments: Int) {
+    fun setArguments(arguments: Int32) {
         self.arguments = arguments;
     }
 
@@ -499,7 +499,7 @@ class BytecodeWriter {
         self.emitReg1AndIdx(BC_CONST_CHAR, dest, idx);
     }
 
-    fun emitConstInt32(dest: BytecodeRegister, value: Int) {
+    fun emitConstInt32(dest: BytecodeRegister, value: Int32) {
         let idx = self.addConst(ConstPoolInt32(value));
         self.emitReg1AndIdx(BC_CONST_INT32, dest, idx);
     }
@@ -698,7 +698,7 @@ class BytecodeWriter {
 
     fun emitJumpLoop(lbl: BytecodeLabel) {
         assert(lbl.isBound());
-        let offset = self.code.length().toInt() - lbl.offset();
+        let offset = self.code.length().toInt32() - lbl.offset();
         self.emitJmp(BC_JUMP_LOOP, offset);
     }
 
@@ -717,111 +717,111 @@ class BytecodeWriter {
         self.emitJmpForward(BC_JUMP, BC_JUMP_CONST, none[BytecodeRegister](), lbl);
     }
 
-    fun emitInvokeDirectVoid(fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeDirectVoid(fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFctVoid(BC_INVOKE_DIRECT_VOID, fct, start, count);
     }
 
-    fun emitInvokeDirectBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeDirectBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_DIRECT_BOOL, dest, fct, start, count);
     }
 
-    fun emitInvokeDirectByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeDirectByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_DIRECT_UINT8, dest, fct, start, count);
     }
 
-    fun emitInvokeDirectChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeDirectChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_DIRECT_CHAR, dest, fct, start, count);
     }
 
-    fun emitInvokeDirectInt32(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeDirectInt32(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_DIRECT_INT32, dest, fct, start, count);
     }
 
-    fun emitInvokeDirectInt64(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeDirectInt64(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_DIRECT_INT64, dest, fct, start, count);
     }
 
-    fun emitInvokeDirectFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeDirectFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_DIRECT_FLOAT, dest, fct, start, count);
     }
 
-    fun emitInvokeDirectDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeDirectDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_DIRECT_DOUBLE, dest, fct, start, count);
     }
 
-    fun emitInvokeDirectPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeDirectPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_DIRECT_PTR, dest, fct, start, count);
     }
 
-    fun emitInvokeVirtualVoid(fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeVirtualVoid(fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFctVoid(BC_INVOKE_VIRTUAL_VOID, fct, start, count);
     }
 
-    fun emitInvokeVirtualBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeVirtualBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_VIRTUAL_BOOL, dest, fct, start, count);
     }
 
-    fun emitInvokeVirtualByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeVirtualByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_VIRTUAL_UINT8, dest, fct, start, count);
     }
 
-    fun emitInvokeVirtualChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeVirtualChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_VIRTUAL_CHAR, dest, fct, start, count);
     }
 
-    fun emitInvokeVirtualInt32(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeVirtualInt32(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_VIRTUAL_INT32, dest, fct, start, count);
     }
 
-    fun emitInvokeVirtualInt64(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeVirtualInt64(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_VIRTUAL_INT64, dest, fct, start, count);
     }
 
-    fun emitInvokeVirtualFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeVirtualFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_VIRTUAL_FLOAT, dest, fct, start, count);
     }
 
-    fun emitInvokeVirtualDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeVirtualDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_VIRTUAL_DOUBLE, dest, fct, start, count);
     }
 
-    fun emitInvokeVirtualPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeVirtualPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_VIRTUAL_PTR, dest, fct, start, count);
     }
 
-    fun emitInvokeStaticVoid(fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeStaticVoid(fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFctVoid(BC_INVOKE_STATIC_VOID, fct, start, count);
     }
 
-    fun emitInvokeStaticBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeStaticBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_STATIC_BOOL, dest, fct, start, count);
     }
 
-    fun emitInvokeStaticByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeStaticByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_STATIC_UINT8, dest, fct, start, count);
     }
 
-    fun emitInvokeStaticChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeStaticChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_STATIC_CHAR, dest, fct, start, count);
     }
 
-    fun emitInvokeStaticInt32(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeStaticInt32(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_STATIC_INT32, dest, fct, start, count);
     }
 
-    fun emitInvokeStaticInt64(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeStaticInt64(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_STATIC_INT64, dest, fct, start, count);
     }
 
-    fun emitInvokeStaticFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeStaticFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_STATIC_FLOAT, dest, fct, start, count);
     }
 
-    fun emitInvokeStaticDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeStaticDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_STATIC_DOUBLE, dest, fct, start, count);
     }
 
-    fun emitInvokeStaticPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitInvokeStaticPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(BC_INVOKE_STATIC_PTR, dest, fct, start, count);
     }
 
@@ -871,28 +871,28 @@ class BytecodeWriter {
         let constPool = self.constPool.toArray();
         let registers = self.registers.toArray();
         let arguments = self.arguments;
-        assert(arguments <= registers.length());
+        assert(arguments <= registers.length().toInt32());
         BytecodeFunction(code, constPool, registers, arguments)
     }
 
     fun resolveJumps() {
-        var i = 0;
+        var i = 0L;
 
-        while i < self.unresolvedJumps.length().toInt() {
-            let jump = self.unresolvedJumps.get(i.toInt64());
+        while i < self.unresolvedJumps.length() {
+            let jump = self.unresolvedJumps.get(i);
             assert(jump.label.isBound());
 
             assert(jump.label.offset() > jump.inst);
             let offset = jump.label.offset() - jump.inst;
 
-            let opcode = self.code.get(jump.inst.toInt64()).toInt();
+            let opcode = self.code.get(jump.inst.toInt64()).toInt32();
 
             if opcode == BC_WIDE {
                 // wide is guaranteed to not use constant pool
-                self.patchInt(jump.target, offset);
+                self.patchInt32(jump.target, offset);
             } else if isWide(offset) {
                 // Need to update const pool entry
-                let idx = self.code.get(jump.target.toInt64()).toInt();
+                let idx = self.code.get(jump.target.toInt64());
                 self.constPool.set(idx.toInt64(), ConstPoolInt32(offset));
             } else {
                 // Offset fits into byte, replace instruction with jump+immediate
@@ -904,100 +904,100 @@ class BytecodeWriter {
                     BC_JUMP_IF_TRUE
                 } else {
                     fatalError("unexpected opcode ${bytecodeName(opcode)} (${opcode})");
-                    -1
+                    -1I
                 };
 
                 self.code.set(jump.inst.toInt64(), opcode.toUInt8());
                 self.code.set(jump.target.toInt64(), offset.toUInt8());
             }
 
-            i = i + 1;
+            i = i + 1L;
         }
     }
 
-    fun emitFctVoid(inst: Int, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitFctVoid(inst: Int32, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitVal4(inst, fct.value, start.value, count);
     }
 
-    fun emitFct(inst: Int, dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int) {
+    fun emitFct(inst: Int32, dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitVal5(inst, dest.value, fct.value, start.value, count);
     }
 
-    fun emitJmp(inst: Int, offset: Int) {
+    fun emitJmp(inst: Int32, offset: Int32) {
         self.emitVal2(inst, offset);
     }
 
-    fun emitJmpForward(inst: Int, instConst: Int, opnd: Option[BytecodeRegister], lbl: BytecodeLabel) {
+    fun emitJmpForward(inst: Int32, instConst: Int32, opnd: Option[BytecodeRegister], lbl: BytecodeLabel) {
         assert(!isWide(inst));
         assert(!isWide(instConst));
-        let start = self.code.length().toInt();
-        var target: Int = 0;
+        let start = self.code.length().toInt32();
+        var target = 0I;
 
-        if (opnd.isSome() && isWide(opnd.unwrap().value)) || isWide(self.constPool.length().toInt()) {
+        if (opnd.isSome() && isWide(opnd.unwrap().value)) || isWide(self.constPool.length().toInt32()) {
             self.emitWide();
             self.emitOpcode(inst);
             if opnd.isSome() {
-                self.emitInt(opnd.unwrap().value);
+                self.emitInt32(opnd.unwrap().value);
             }
-            target = self.code.length().toInt();
-            self.emitInt(0);
+            target = self.code.length().toInt32();
+            self.emitInt32(0I);
         } else {
             self.emitOpcode(instConst);
             if opnd.isSome() {
                 self.emitByte(opnd.unwrap().value);
             }
-            let idx = self.addConst(ConstPoolInt32(0));
-            target = self.code.length().toInt();
+            let idx = self.addConst(ConstPoolInt32(0I));
+            target = self.code.length().toInt32();
             self.emitByte(idx.value);
         }
 
         self.unresolvedJumps.push(UnresolvedJump(start, target, lbl));
     }
 
-    fun emitInst(inst: Int) {
+    fun emitInst(inst: Int32) {
         self.emitVal1(inst);
     }
 
     fun addConst(entry: ConstPoolEntry) -> ConstPoolId {
         self.constPool.push(entry);
-        ConstPoolId(self.constPool.length().toInt() - 1)
+        ConstPoolId(self.constPool.length().toInt32() - 1I)
     }
 
-    fun emitReg1(inst: Int, r1: BytecodeRegister) {
+    fun emitReg1(inst: Int32, r1: BytecodeRegister) {
         self.emitVal2(inst, r1.value);
     }
 
-    fun emitReg1AndIdx(inst: Int, r1: BytecodeRegister, idx: ConstPoolId) {
+    fun emitReg1AndIdx(inst: Int32, r1: BytecodeRegister, idx: ConstPoolId) {
         self.emitVal3(inst, r1.value, idx.value);
     }
 
-    fun emitReg1AndByte(inst: Int, r1: BytecodeRegister, offset: UInt8) {
+    fun emitReg1AndByte(inst: Int32, r1: BytecodeRegister, offset: UInt8) {
         self.emitVal2(inst, r1.value);
-        self.emitByte(offset.toInt());
+        self.emitByte(offset.toInt32());
     }
 
-    fun emitReg1AndCls(inst: Int, r1: BytecodeRegister, cls: ClassDefId) {
+    fun emitReg1AndCls(inst: Int32, r1: BytecodeRegister, cls: ClassDefId) {
         self.emitVal3(inst, r1.value, cls.value);
     }
 
-    fun emitReg2(inst: Int, r1: BytecodeRegister, r2: BytecodeRegister) {
+    fun emitReg2(inst: Int32, r1: BytecodeRegister, r2: BytecodeRegister) {
         self.emitVal3(inst, r1.value, r2.value);
     }
 
-    fun emitReg2AndCls(inst: Int, r1: BytecodeRegister, r2: BytecodeRegister, cls: ClassDefId) {
+    fun emitReg2AndCls(inst: Int32, r1: BytecodeRegister, r2: BytecodeRegister, cls: ClassDefId) {
         self.emitVal4(inst, r1.value, r2.value, cls.value);
     }
 
-    fun emitReg3(inst: Int, r1: BytecodeRegister, r2: BytecodeRegister, r3: BytecodeRegister) {
+    fun emitReg3(inst: Int32, r1: BytecodeRegister, r2: BytecodeRegister, r3: BytecodeRegister) {
         self.emitVal4(inst, r1.value, r2.value, r3.value);
     }
 
-    fun emitGlobal(inst: Int, r1: BytecodeRegister, glob: GlobalId) {
+    fun emitGlobal(inst: Int32, r1: BytecodeRegister, glob: GlobalId) {
         self.emitVal3(inst, r1.value, glob.value);
     }
 
     fun emitField(
-        inst: Int,
+        inst: Int32,
         r1: BytecodeRegister,
         r2: BytecodeRegister,
         cls: ClassDefId,
@@ -1006,27 +1006,27 @@ class BytecodeWriter {
         self.emitVal5(inst, r1.value, r2.value, cls.value, field.value);
     }
 
-    fun emitVal1(opcode: Int) {
+    fun emitVal1(opcode: Int32) {
         self.emitOpcode(opcode);
     }
 
-    fun emitVal2(opcode: Int, v1: Int) {
+    fun emitVal2(opcode: Int32, v1: Int32) {
         if isWide(v1) {
             self.emitWide();
             self.emitOpcode(opcode);
-            self.emitInt(v1);
+            self.emitInt32(v1);
         } else {
             self.emitOpcode(opcode);
             self.emitByte(v1);
         }
     }
 
-    fun emitVal3(opcode: Int, v1: Int, v2: Int) {
+    fun emitVal3(opcode: Int32, v1: Int32, v2: Int32) {
         if isWide(v1) || isWide(v2) {
             self.emitWide();
             self.emitOpcode(opcode);
-            self.emitInt(v1);
-            self.emitInt(v2);
+            self.emitInt32(v1);
+            self.emitInt32(v2);
         } else {
             self.emitOpcode(opcode);
             self.emitByte(v1);
@@ -1034,13 +1034,13 @@ class BytecodeWriter {
         }
     }
 
-    fun emitVal4(opcode: Int, v1: Int, v2: Int, v3: Int) {
+    fun emitVal4(opcode: Int32, v1: Int32, v2: Int32, v3: Int32) {
         if isWide(v1) || isWide(v2) || isWide(v3) {
             self.emitWide();
             self.emitOpcode(opcode);
-            self.emitInt(v1);
-            self.emitInt(v2);
-            self.emitInt(v3);
+            self.emitInt32(v1);
+            self.emitInt32(v2);
+            self.emitInt32(v3);
         } else {
             self.emitOpcode(opcode);
             self.emitByte(v1);
@@ -1049,14 +1049,14 @@ class BytecodeWriter {
         }
     }
 
-    fun emitVal5(opcode: Int, v1: Int, v2: Int, v3: Int, v4: Int) {
+    fun emitVal5(opcode: Int32, v1: Int32, v2: Int32, v3: Int32, v4: Int32) {
         if isWide(v1) || isWide(v2) || isWide(v3) || isWide(v4) {
             self.emitWide();
             self.emitOpcode(opcode);
-            self.emitInt(v1);
-            self.emitInt(v2);
-            self.emitInt(v3);
-            self.emitInt(v4);
+            self.emitInt32(v1);
+            self.emitInt32(v2);
+            self.emitInt32(v3);
+            self.emitInt32(v4);
         } else {
             self.emitOpcode(opcode);
             self.emitByte(v1);
@@ -1070,60 +1070,60 @@ class BytecodeWriter {
         self.emitByte(BC_WIDE);
     }
 
-    fun emitOpcode(opcode: Int) {
-        if opcode >= 255 {
-            self.emitByte(255);
-            assert(opcode < 512);
-            self.emitByte(opcode - 255);
+    fun emitOpcode(opcode: Int32) {
+        if opcode >= 255I {
+            self.emitByte(255I);
+            assert(opcode < 512I);
+            self.emitByte(opcode - 255I);
         } else {
             self.emitByte(opcode);
         }
     }
 
-    fun emitByte(val: Int) {
-        assert(val >= 0 && val <= 255);
+    fun emitByte(val: Int32) {
+        assert(val >= 0I && val <= 255I);
         self.code.push(val.toUInt8());
     }
 
-    fun emitInt(val: Int) {
-        assert(val >= 0);
-        self.emitByte(val & 0xFF);
-        self.emitByte((val >>> 8) & 0xFF);
-        self.emitByte((val >>> 16) & 0xFF);
-        self.emitByte((val >>> 24) & 0xFF);
+    fun emitInt32(val: Int32) {
+        assert(val >= 0I);
+        self.emitByte(val & 0xFFI);
+        self.emitByte((val >>> 8) & 0xFFI);
+        self.emitByte((val >>> 16) & 0xFFI);
+        self.emitByte((val >>> 24) & 0xFFI);
     }
 
-    fun patchInt(idx: Int, val: Int) {
-        assert(val >= 0);
+    fun patchInt32(idx: Int32, val: Int32) {
+        assert(val >= 0I);
         let idx = idx.toInt64();
-        self.code.set(idx, (val & 0xFF).toUInt8());
-        self.code.set(idx + 1L, ((val >>> 8) & 0xFF).toUInt8());
-        self.code.set(idx + 2L, ((val >>> 16) & 0xFF).toUInt8());
-        self.code.set(idx + 3L, ((val >>> 24) & 0xFF).toUInt8());
+        self.code.set(idx, (val & 0xFFI).toUInt8());
+        self.code.set(idx + 1L, ((val >>> 8) & 0xFFI).toUInt8());
+        self.code.set(idx + 2L, ((val >>> 16) & 0xFFI).toUInt8());
+        self.code.set(idx + 3L, ((val >>> 24) & 0xFFI).toUInt8());
     }
 }
 
-fun isWide(val: Int) -> Bool {
-    val > 255
+fun isWide(val: Int32) -> Bool {
+    val > 255I
 }
 
 class BytecodeLabel {
-    var off: Int = -1;
+    var off: Int32 = -1I;
 
-    fun bindTo(offset: Int) -> BytecodeLabel {
-        assert(offset >= 0);
+    fun bindTo(offset: Int32) -> BytecodeLabel {
+        assert(offset >= 0I);
         self.off = offset;
         self
     }
 
     fun isBound() -> Bool {
-        self.off >= 0
+        self.off >= 0I
     }
 
-    fun offset() -> Int {
+    fun offset() -> Int32 {
         assert(self.isBound());
         self.off
     }
 }
 
-class UnresolvedJump(let inst: Int, let target: Int, let label: BytecodeLabel)
+class UnresolvedJump(let inst: Int32, let target: Int32, let label: BytecodeLabel)

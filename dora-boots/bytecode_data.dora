@@ -1,28 +1,28 @@
-class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEntry], let registers: Array[BytecodeType], let arguments: Int) {
+class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEntry], let registers: Array[BytecodeType], let arguments: Int32) {
     fun constPool(idx: ConstPoolId) -> ConstPoolEntry {
-        self.const_pool.get(idx.value)
+        self.const_pool.get(idx.value.toInt())
     }
 
-    fun codeAt(idx: Int) -> Int {
-        self.code.get(idx).toInt()
+    fun codeAt(idx: Int32) -> Int32 {
+        self.code.get(idx.toInt()).toInt32()
     }
 
-    fun codeIntAt(idx: Int) -> Int {
+    fun codeInt32At(idx: Int32) -> Int32 {
         let byte1 = self.codeAt(idx);
-        let byte2 = self.codeAt(idx+1);
-        let byte3 = self.codeAt(idx+2);
-        let byte4 = self.codeAt(idx+3);
+        let byte2 = self.codeAt(idx+1I);
+        let byte3 = self.codeAt(idx+2I);
+        let byte4 = self.codeAt(idx+3I);
 
         (byte4 << 24) | (byte3 << 16) | (byte2 << 8) | byte1
     }
 }
 
 @open @abstract class ConstPoolEntry {
-    fun toInt32() -> Option[Int] {
+    fun toInt32() -> Option[Int32] {
         if self is ConstPoolInt32 {
-            some[Int]((self as ConstPoolInt32).value)
+            some[Int32]((self as ConstPoolInt32).value)
         } else {
-            none[Int]()
+            none[Int32]()
         }
     }
 
@@ -53,7 +53,7 @@ class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEn
     @abstract fun toString() -> String;
 }
 
-class ConstPoolInt32(let value: Int): ConstPoolEntry {
+class ConstPoolInt32(let value: Int32): ConstPoolEntry {
     @override fun toString() -> String { "Int32 ${self.value}" }
 }
 
@@ -77,7 +77,7 @@ class ConstPoolChar(let value: Char): ConstPoolEntry {
     @override fun toString() -> String { "Char ${self.value.toInt()}" }
 }
 
-class BytecodeRegister(let value: Int) {
+class BytecodeRegister(let value: Int32) {
     fun equals(rhs: BytecodeRegister) -> Bool {
         self.value == rhs.value
     }
@@ -91,7 +91,7 @@ impl Equals for BytecodeRegister {
 
 impl Hash for BytecodeRegister {
     fun hash() -> Int32 {
-        self.value.toInt32()
+        self.value
     }
 }
 
@@ -99,18 +99,18 @@ impl Stringable for BytecodeRegister {
     fun toString() -> String = "r${self.value}";
 }
 
-class ClassDefId(let value: Int)
-class FieldId(let value: Int)
-class GlobalId(let value: Int)
-class ConstPoolId(let value: Int) {
+class ClassDefId(let value: Int32)
+class FieldId(let value: Int32)
+class GlobalId(let value: Int32)
+class ConstPoolId(let value: Int32) {
     fun equals(rhs: ConstPoolId) -> Bool {
         self.value == rhs.value
     }
 }
 
-class FctId(let value: Int)
+class FctId(let value: Int32)
 
-class BytecodeType(let value: Int) {
+class BytecodeType(let value: Int32) {
     @static fun bool() -> BytecodeType = BytecodeType(BC_TYPE_BOOL);
     @static fun uint8() -> BytecodeType = BytecodeType(BC_TYPE_U_INT8);
     @static fun char() -> BytecodeType = BytecodeType(BC_TYPE_CHAR);

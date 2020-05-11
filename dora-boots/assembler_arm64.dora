@@ -78,7 +78,7 @@ impl Register {
         self.isGpr() || self == REG_SP
     }
 
-    fun int() -> Int {
+    fun int() -> Int32 {
         if self == REG_ZERO || self == REG_SP {
             31
         } else {
@@ -88,7 +88,7 @@ impl Register {
     }
 }
 
-fun clsUncondBranchReg(opc: Int, op2: Int, op3: Int, rn: Register, op4: Int) -> Int {
+fun clsUncondBranchReg(opc: Int32, op2: Int32, op3: Int32, rn: Register, op4: Int32) -> Int32 {
     assert(fitsUnsigned(opc, 4));
     assert(fitsUnsigned(op2, 5));
     assert(fitsUnsigned(op3, 6));
@@ -98,7 +98,7 @@ fun clsUncondBranchReg(opc: Int, op2: Int, op3: Int, rn: Register, op4: Int) -> 
     0b1101011 << 25 | opc << 21 | op2 << 16 | op3 << 10 | rn.int() << 5 | op4
 }
 
-fun fitsUnsigned(value: Int, bits: Int) -> Bool {
+fun fitsUnsigned(value: Int32, bits: Int32) -> Bool {
     assert(bits < 32);
     value >= 0 && value < (1 << bits)
 }

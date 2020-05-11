@@ -163,7 +163,7 @@ fn allocate_encoded_compilation_info(
     object::write_ref(vm, obj, cls_id, fid, registers_array.direct().cast::<Obj>());
 
     let fid = vm.field_in_class(cls_id, "arguments");
-    object::write_int(vm, obj, cls_id, fid, arguments);
+    object::write_int32(vm, obj, cls_id, fid, arguments);
 
     obj
 }

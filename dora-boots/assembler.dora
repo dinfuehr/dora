@@ -5,16 +5,16 @@ class AssemblerBuffer {
         self.buffer.push(value);
     }
 
-    fun emitInt32(value: Int) {
-        self.emitByte((value & 0xFF).toUInt8());
-        self.emitByte(((value >>> 8) & 0xFF).toUInt8());
-        self.emitByte(((value >>> 16) & 0xFF).toUInt8());
-        self.emitByte(((value >>> 24) & 0xFF).toUInt8());
+    fun emitInt32(value: Int32) {
+        self.emitByte((value & 0xFFI).toUInt8());
+        self.emitByte(((value >>> 8) & 0xFFI).toUInt8());
+        self.emitByte(((value >>> 16) & 0xFFI).toUInt8());
+        self.emitByte(((value >>> 24) & 0xFFI).toUInt8());
     }
 
     fun emitInt64(value: Int64) {
-        self.emitInt32(value.toInt());
-        self.emitInt32((value >>> 32).toInt());
+        self.emitInt32(value.toInt32());
+        self.emitInt32((value >>> 32).toInt32());
     }
 
     fun length() -> Int64 {
@@ -39,7 +39,7 @@ class AssemblerBuffer {
 
 @test fun testAssemblerBufferEmitInt(_x: Testing) {
     let asm = AssemblerBuffer();
-    asm.emitInt32(0x11223344);
+    asm.emitInt32(0x11223344I);
     let buffer = asm.toArray();
     assert(buffer(0) == 0x44Y);
     assert(buffer(1) == 0x33Y);
@@ -54,33 +54,33 @@ class AssemblerBuffer {
 
 @open @abstract class Assembler
 
-class Register(let value: Int) {
+class Register(let value: Int32) {
     fun equals(rhs: Register) -> Bool {
         self.value == rhs.value
     }
 }
 
-fun assertAsm(buffer: Array[UInt8], start: Int, bytes: UInt8...) {
-    var idx = 0;
+fun assertAsm(buffer: Array[UInt8], start: Int64, bytes: UInt8...) {
+    var idx = 0L;
 
-    while idx < bytes.length() {
-        let exp = bytes(idx);
-        let got = buffer(start + idx);
+    while idx < bytes.length().toInt64() {
+        let exp = bytes(idx.toInt());
+        let got = buffer((start + idx).toInt());
 
         if exp != got {
             println("expected ${exp.toStringHex()} at index ${start + idx} but got ${got.toStringHex()}")
         }
 
         assert(exp == got);
-        idx = idx + 1;
+        idx = idx + 1L;
     }
 }
 
-fun assertAsmInt(buffer: Array[UInt8], index: Int, value: Int) {
-    let b1 = buffer(index).toInt();
-    let b2 = buffer(index+1).toInt();
-    let b3 = buffer(index+2).toInt();
-    let b4 = buffer(index+3).toInt();
+fun assertAsmInt32(buffer: Array[UInt8], index: Int64, value: Int32) {
+    let b1 = buffer(index.toInt()).toInt32();
+    let b2 = buffer((index+1L).toInt()).toInt32();
+    let b3 = buffer((index+2L).toInt()).toInt32();
+    let b4 = buffer((index+3L).toInt()).toInt32();
 
     let got = (b4 << 24) | (b3 << 16) | (b2 << 8) | b1;
 
@@ -91,34 +91,34 @@ fun assertAsmInt(buffer: Array[UInt8], index: Int, value: Int) {
     assert(value == got);
 }
 
-fun assertAsmInt64(buffer: Array[UInt8], index: Int, value: Int64) {
-    assertAsmInt(buffer, index, value.toInt());
-    assertAsmInt(buffer, index, (value >>> 32).toInt());
+fun assertAsmInt64(buffer: Array[UInt8], index: Int64, value: Int64) {
+    assertAsmInt32(buffer, index, value.toInt32());
+    assertAsmInt32(buffer, index, (value >>> 32).toInt32());
 }
 
 fun printBuffer(buffer: Array[UInt8]) {
-    var i = 0;
+    var i = 0L;
 
-    while i < buffer.length() {
-        let val = buffer(i);
-        if i > 0 { print(" "); }
-        print(intToHexString(val.toInt(), 2));
-        i = i + 1;
+    while i < buffer.length().toInt64() {
+        let val = buffer(i.toInt());
+        if i > 0L { print(" "); }
+        print(intToHexString(val.toInt32(), 2I));
+        i = i + 1L;
     }
 }
 
-fun intToHexString(val: Int, padding: Int) -> String {
+fun intToHexString(val: Int32, padding: Int32) -> String {
     var val = val;
     var result = "";
 
-    while val != 0 {
-        let digit = val & 0xF;
+    while val != 0I {
+        let digit = val & 0xFI;
         val = val >>> 4;
 
-        let digit = if digit < 10 {
-            (48 + digit).toChar().unwrap()
+        let digit = if digit < 10I {
+            (48I + digit).toChar().unwrap()
         } else {
-            (65 + digit - 10).toChar().unwrap()
+            (65I + digit - 10I).toChar().unwrap()
         };
 
         result = "${digit}${result}";
@@ -128,7 +128,7 @@ fun intToHexString(val: Int, padding: Int) -> String {
         result = "0";
     }
 
-    while result.length() < padding {
+    while result.length().toInt32() < padding {
         result = "0${result}";
     }
 

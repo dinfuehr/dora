@@ -1,8 +1,8 @@
 class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVisitor {
-    var offset: Int = 0;
+    var offset: Int32 = 0I;
     var currentBlock: Block;
     var blockTerminated: Bool = false;
-    var blocks: HashMap[Int, Block] = HashMap[Int, Block]();
+    var blocks: HashMap[Int32, Block] = HashMap[Int32, Block]();
 
     fun run() {
         let blockCreator = SsagenCreateBlocks(self.graph, self.bc, self.blocks);
@@ -14,20 +14,20 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVis
         readBytecode(self.bc.code, self);
     }
 
-    fun blockCount() -> Int {
-        self.blocks.length().toInt()
+    fun blockCount() -> Int32 {
+        self.blocks.length().toInt32()
     }
 
-    fun blockAt(offset: Int) -> Option[Block] {
+    fun blockAt(offset: Int32) -> Option[Block] {
         self.blocks.get(offset)
     }
 
-    fun nextBlockAt(offset: Int) -> Option[Block] {
+    fun nextBlockAt(offset: Int32) -> Option[Block] {
         var offset = offset;
-        while offset < self.bc.code.length() {
+        while offset < self.bc.code.length().toInt32() {
             let result = self.blockAt(offset);
             if result.isSome() { return result; }
-            offset = offset + 1;
+            offset = offset + 1I;
         }
 
         none[Block]()
@@ -37,7 +37,7 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVis
         self.blockTerminated = true;
     }
 
-    @override fun visitInstruction(offset: Int) {
+    @override fun visitInstruction(offset: Int32) {
         self.offset = offset;
 
         let result = self.blocks.get(offset);
@@ -55,13 +55,13 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVis
         self.blockTerminated = false;
     }
 
-    @override fun visitJumpLoop(offset: Int) {
+    @override fun visitJumpLoop(offset: Int32) {
         let targetBlock = self.blockAt(self.offset - offset).unwrap();
         self.currentBlock.addSuccessor(targetBlock);
         self.markBlockTerminated();
     }
 
-    @override fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int) {
+    @override fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int32) {
         let targetBlock = self.blockAt(self.offset + offset).unwrap();
         self.currentBlock.addSuccessor(targetBlock);
     }
@@ -70,7 +70,7 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVis
         let targetBlock = self.blockAt(self.offset + offset).unwrap();
         self.currentBlock.addSuccessor(targetBlock);
     }
-    @override fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int) {
+    @override fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int32) {
         let targetBlock = self.blockAt(self.offset + offset).unwrap();
         self.currentBlock.addSuccessor(targetBlock);
     }
@@ -79,7 +79,7 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVis
         let targetBlock = self.blockAt(self.offset + offset).unwrap();
         self.currentBlock.addSuccessor(targetBlock);
     }
-    @override fun visitJump(offset: Int) {
+    @override fun visitJump(offset: Int32) {
         let targetBlock = self.blockAt(self.offset + offset).unwrap();
         self.currentBlock.addSuccessor(targetBlock);
         self.markBlockTerminated();
@@ -131,8 +131,8 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVis
     }
 }
 
-class SsagenCreateBlocks(let graph: Graph, let bc: BytecodeFunction, let blocks: HashMap[Int, Block]): EmptyBytecodeVisitor {
-    var offset: Int = 0;
+class SsagenCreateBlocks(let graph: Graph, let bc: BytecodeFunction, let blocks: HashMap[Int32, Block]): EmptyBytecodeVisitor {
+    var offset: Int32 = 0I;
     var nextInstructionIsBlockStart: Bool = false;
 
     fun run() {
@@ -145,13 +145,13 @@ class SsagenCreateBlocks(let graph: Graph, let bc: BytecodeFunction, let blocks:
         self.graph.setExitBlock(exitBlock);
 
         // create block for first instruction
-        self.ensureBlockAt(0);
+        self.ensureBlockAt(0I);
 
         // iterate all bytecodes
         readBytecode(self.bc.code, self);
     }
 
-    fun ensureBlockAt(offset: Int) {
+    fun ensureBlockAt(offset: Int32) {
         let result = self.blocks.get(offset);
         if result.isSome() { return; }
 
@@ -164,7 +164,7 @@ class SsagenCreateBlocks(let graph: Graph, let bc: BytecodeFunction, let blocks:
         self.nextInstructionIsBlockStart = true;
     }
 
-    @override fun visitInstruction(offset: Int) {
+    @override fun visitInstruction(offset: Int32) {
         self.offset = offset;
 
         if self.nextInstructionIsBlockStart {
@@ -173,11 +173,11 @@ class SsagenCreateBlocks(let graph: Graph, let bc: BytecodeFunction, let blocks:
         }
     }
 
-    @override fun visitJumpLoop(offset: Int) {
+    @override fun visitJumpLoop(offset: Int32) {
         self.ensureBlockAt(self.offset - offset);
     }
 
-    @override fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int) {
+    @override fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int32) {
         self.ensureBlockAt(self.offset + offset);
         self.markNextInstructionAsBlockStart();
     }
@@ -186,7 +186,7 @@ class SsagenCreateBlocks(let graph: Graph, let bc: BytecodeFunction, let blocks:
         self.ensureBlockAt(self.offset + offset);
         self.markNextInstructionAsBlockStart();
     }
-    @override fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int) {
+    @override fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int32) {
         self.ensureBlockAt(self.offset + offset);
         self.markNextInstructionAsBlockStart();
     }
@@ -195,7 +195,7 @@ class SsagenCreateBlocks(let graph: Graph, let bc: BytecodeFunction, let blocks:
         self.ensureBlockAt(self.offset + offset);
         self.markNextInstructionAsBlockStart();
     }
-    @override fun visitJump(offset: Int) {
+    @override fun visitJump(offset: Int32) {
         self.ensureBlockAt(self.offset + offset);
         self.markNextInstructionAsBlockStart();
     }

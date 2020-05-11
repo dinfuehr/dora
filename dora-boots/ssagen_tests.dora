@@ -27,7 +27,7 @@ Block 2: pred = [0] succ = [1]
 ");
 }
 
-fun bcSsaGenRetIntConst() -> Int { 4711 }
+fun bcSsaGenRetIntConst() -> Int32 { 4711I }
 
 @test fun testSsaGenRetInt64Const(_x: Testing) {
     let fct = bytecode("bcSsaGenRetInt64Const");
@@ -59,7 +59,7 @@ Block 2: pred = [0] succ = [1]
 ");
 }
 
-fun bcSsaGenIdInt(x: Int) -> Int { x }
+fun bcSsaGenIdInt(x: Int32) -> Int32 { x }
 
 @test fun testSsaGenAddIntArguments(_x: Testing) {
     let fct = bytecode("bcSsaGenAddIntArguments");
@@ -77,7 +77,7 @@ Block 2: pred = [0] succ = [1]
 ");
 }
 
-fun bcSsaGenAddIntArguments(a: Int, b: Int) -> Int { a + b }
+fun bcSsaGenAddIntArguments(a: Int32, b: Int32) -> Int32 { a + b }
 
 @test fun testSsaGenAddFloatArguments(_x: Testing) {
     let fct = bytecode("bcSsaGenAddFloatArguments");
@@ -117,12 +117,12 @@ Block 2: pred = [0] succ = [1]
 ");
 }
 
-fun bcSsaGenMultipleAssignments(d: Int) -> Int {
-    var a = 42;
+fun bcSsaGenMultipleAssignments(d: Int32) -> Int32 {
+    var a = 42I;
     var b = a;
     var c = a + b;
 
-    a = c + 23;
+    a = c + 23I;
     c = a + d;
 
     a + c
@@ -144,7 +144,7 @@ Block 2: pred = [0] succ = [1]
 ")
 }
 
-fun bcSsaGenSubIntArguments(a: Int, b: Int) -> Int { a - b }
+fun bcSsaGenSubIntArguments(a: Int32, b: Int32) -> Int32 { a - b }
 
 @test fun testSsaGenNegIntArgument(_x: Testing) {
     let fct = bytecode("bcSsaGenNegIntArgument");
@@ -161,7 +161,7 @@ Block 2: pred = [0] succ = [1]
 ");
 }
 
-fun bcSsaGenNegIntArgument(a: Int) -> Int { -a }
+fun bcSsaGenNegIntArgument(a: Int32) -> Int32 { -a }
 
 @test fun testSsaGenMulIntArguments(_x: Testing) {
     let fct = bytecode("bcSsaGenMulIntArguments");
@@ -179,7 +179,7 @@ Block 2: pred = [0] succ = [1]
 ");
 }
 
-fun bcSsaGenMulIntArguments(a: Int, b: Int) -> Int { a * b }
+fun bcSsaGenMulIntArguments(a: Int32, b: Int32) -> Int32 { a * b }
 
 @test fun testSsaGenSimpleIf(_x: Testing) {
     let fct = bytecode("bcSsaGenSimpleIf");
@@ -202,9 +202,9 @@ Block 4: pred = [2] succ = [3]
 ");
 }
 
-fun bcSsaGenSimpleIf(a: Bool) -> Int {
-    var result = 1;
-    if a { result = 10; }
+fun bcSsaGenSimpleIf(a: Bool) -> Int32 {
+    var result = 1I;
+    if a { result = 10I; }
     return result;
 }
 
@@ -228,8 +228,8 @@ Block 4: pred = [2] succ = [1]
 ");
 }
 
-fun bcSsaGenIfReturnInBothBranches(a: Bool) -> Int {
-    if a { return 1; } else { return 2; }
+fun bcSsaGenIfReturnInBothBranches(a: Bool) -> Int32 {
+    if a { return 1I; } else { return 2I; }
 }
 
 @test fun testSsaGenIfWithConditionalAssignment(_x: Testing) {
@@ -255,10 +255,10 @@ Block 4: pred = [2] succ = [3]
 ");
 }
 
-fun bcSsaGenIfWithConditionalAssignment(a: Bool) -> Int {
-    var x = 1;
-    var y = 27;
-    if a { x = 4; }
+fun bcSsaGenIfWithConditionalAssignment(a: Bool) -> Int32 {
+    var x = 1I;
+    var y = 27I;
+    if a { x = 4I; }
     x + y
 }
 
@@ -287,9 +287,9 @@ Block 5: pred = [2, 4] succ = [3, 4]
 ");
 }
 
-fun bcSsaGenWhileCountDown(x: Int) -> Int {
+fun bcSsaGenWhileCountDown(x: Int32) -> Int32 {
     var x = x;
-    while x > 0 { x = x - 1; }
+    while x > 0I { x = x - 1I; }
     x
 }
 
@@ -321,11 +321,11 @@ Block 5: pred = [2, 4] succ = [3, 4]
 ");
 }
 
-fun bcSsaGenWhileCountDownWithSum(i: Int) -> Int {
-    var x = i;
-    var sum = 0;
-    while x > 0 {
-        x = x - 1;
+fun bcSsaGenWhileCountDownWithSum(x: Int32) -> Int32 {
+    var x = x;
+    var sum = 0I;
+    while x > 0I {
+        x = x - 1I;
         sum = sum + x;
     }
     sum

@@ -848,12 +848,12 @@ pub fn write_ref(vm: &VM, obj: Ref<Obj>, cls_id: ClassDefId, fid: FieldId, value
     }
 }
 
-pub fn write_int(vm: &VM, obj: Ref<Obj>, cls_id: ClassDefId, fid: FieldId, value: i32) {
+pub fn write_int32(vm: &VM, obj: Ref<Obj>, cls_id: ClassDefId, fid: FieldId, value: i32) {
     let cls_def = vm.class_defs.idx(cls_id);
     let cls_def = cls_def.read();
     let field = &cls_def.fields[fid.idx()];
     let slot = obj.address().offset(field.offset as usize);
-    assert_eq!(field.ty, BuiltinType::Int);
+    assert!(field.ty == BuiltinType::Int || field.ty == BuiltinType::Int32);
 
     unsafe {
         *slot.to_mut_ptr::<i32>() = value;

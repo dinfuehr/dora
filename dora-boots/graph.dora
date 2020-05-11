@@ -5,18 +5,18 @@ class Graph {
     var blocks: Vec[Block] = Vec[Block]();
     var postOrder: Vec[Block] = Vec[Block]();
 
-    var nextBlockIdValue: Int = 0;
-    var nextInstIdValue: Int = 0;
+    var nextBlockIdValue: Int32 = 0I;
+    var nextInstIdValue: Int32 = 0I;
 
     fun addBlock(block: Block) {
-        assert(block.graph.isNone() && block.id == -1);
+        assert(block.graph.isNone() && block.id == -1I);
 
         block.graph = some[Graph](self);
         block.id = self.nextBlockId();
         self.blocks.push(block);
     }
 
-    fun getBlockWithId(id: Int) -> Block {
+    fun getBlockWithId(id: Int32) -> Block {
         self.blocks.get(id.toInt64())
     }
 
@@ -36,32 +36,32 @@ class Graph {
         self.exitBlock
     }
 
-    fun nextInstId() -> Int {
+    fun nextInstId() -> Int32 {
         let id = self.nextInstIdValue;
-        self.nextInstIdValue = id + 1;
+        self.nextInstIdValue = id + 1I;
 
         id
     }
 
-    fun nextBlockId() -> Int {
+    fun nextBlockId() -> Int32 {
         let id = self.nextBlockIdValue;
-        self.nextBlockIdValue = id + 1;
+        self.nextBlockIdValue = id + 1I;
 
         id
     }
 
-    fun numberBlocks() -> Int {
+    fun numberBlocks() -> Int32 {
         self.nextBlockIdValue
     }
 
     fun setPostOrder(postOrder: Vec[Block]) {
         self.postOrder = postOrder;
 
-        var idx = 0;
-        while idx < self.postOrder.length().toInt() {
-            let block = self.postOrder.get(idx.toInt64());
-            block.postOrderIdx = idx;
-            idx = idx + 1;
+        var idx = 0L;
+        while idx < self.postOrder.length() {
+            let block = self.postOrder.get(idx);
+            block.postOrderIdx = idx.toInt32();
+            idx = idx + 1L;
         }
     }
 
@@ -85,35 +85,35 @@ class Graph {
 }
 
 class PostOrderIterator(let postOrder: Vec[Block]) {
-    var idx: Int = 0;
+    var idx: Int64 = 0L;
 
     fun hasNext() -> Bool {
-        self.idx < self.postOrder.length().toInt()
+        self.idx < self.postOrder.length()
     }
 
     fun next() -> Block {
-        let block = self.postOrder.get(self.idx.toInt64());
-        self.idx = self.idx + 1;
+        let block = self.postOrder.get(self.idx);
+        self.idx = self.idx + 1L;
         block
     }
 }
 
 class ReversePostOrderIterator(let postOrder: Vec[Block]) {
-    var idx: Int = self.postOrder.length().toInt() - 1;
+    var idx: Int64 = self.postOrder.length() - 1L;
 
     fun hasNext() -> Bool {
-        self.idx != -1
+        self.idx != -1L
     }
 
     fun next() -> Block {
-        let block = self.postOrder.get(self.idx.toInt64());
-        self.idx = self.idx - 1;
+        let block = self.postOrder.get(self.idx);
+        self.idx = self.idx - 1L;
         block
     }
 }
 
 class Block() {
-    var id: Int = -1;
+    var id: Int32 = -1I;
 
     var phis: InstLinkedList = InstLinkedList();
     var instructions: InstLinkedList = InstLinkedList();
@@ -128,7 +128,7 @@ class Block() {
 
     var loopHeader: Option[LoopHeader] = none[LoopHeader]();
 
-    var postOrderIdx: Int = -1;
+    var postOrderIdx: Int32 = -1I;
 
     fun getDominator() -> Option[Block] {
         self.dominator
@@ -176,7 +176,7 @@ class Block() {
     }
 
     fun appendPhi(phi: PhiInst) -> PhiInst {
-        assert(phi.block.isNone() && phi.id == -1);
+        assert(phi.block.isNone() && phi.id == -1I);
 
         phi.block = some[Block](self);
         phi.id = self.graph.unwrap().nextInstId();
@@ -188,7 +188,7 @@ class Block() {
     }
 
     fun appendInst(inst: Inst) -> Inst {
-        assert(inst.block.isNone() && inst.id == -1);
+        assert(inst.block.isNone() && inst.id == -1I);
 
         inst.block = some[Block](self);
         inst.id = self.graph.unwrap().nextInstId();
@@ -242,18 +242,18 @@ class LoopHeader(let header: Block) {
         self.backEdges.push(block);
     }
 
-    fun numberBackEdges() -> Int {
-        self.backEdges.length().toInt()
+    fun numberBackEdges() -> Int32 {
+        self.backEdges.length().toInt32()
     }
 }
 
-class Input(var idx: Int, var value: Inst, var usedBy: Inst) {
+class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
     var previousUse: Option[Input] = none[Input]();
     var nextUse: Option[Input] = none[Input]();
 }
 
 @abstract @open class Inst {
-    var id: Int = -1;
+    var id: Int32 = -1I;
     var block: Option[Block] = none[Block]();
 
     var previous: Option[Inst] = none[Inst]();
@@ -271,7 +271,7 @@ class Input(var idx: Int, var value: Inst, var usedBy: Inst) {
     }
 
     fun addInput(inst: Inst) {
-        let input = Input(self.inputs.length().toInt(), inst, self);
+        let input = Input(self.inputs.length().toInt32(), inst, self);
         self.inputs.push(input);
     }
 
@@ -336,24 +336,24 @@ class Input(var idx: Int, var value: Inst, var usedBy: Inst) {
     }
 
     fun registerUses() {
-        let inputs = self.inputs.length().toInt();
-        var idx = 0;
+        let inputs = self.inputs.length();
+        var idx = 0L;
 
         while idx < inputs {
-            let input = self.inputs.get(idx.toInt64());
+            let input = self.inputs.get(idx);
             input.value.addUse(input);
-            idx = idx + 1;
+            idx = idx + 1L;
         }
     }
 
     fun removeAsUser() {
-        let inputs = self.inputs.length().toInt();
-        var idx = 0;
+        let inputs = self.inputs.length();
+        var idx = 0L;
 
         while idx < inputs {
-            let input = self.inputs.get(idx.toInt64());
+            let input = self.inputs.get(idx);
             input.value.removeUse(input);
-            idx = idx + 1;
+            idx = idx + 1L;
         }
     }
 
@@ -370,7 +370,7 @@ class Input(var idx: Int, var value: Inst, var usedBy: Inst) {
         }
     }
 
-    fun replaceInput(replacement: Inst, idx: Int) {
+    fun replaceInput(replacement: Inst, idx: Int32) {
         let input = self.inputs.get(idx.toInt64());
 
         if input.value === replacement {
@@ -404,7 +404,7 @@ class NullConst(let value: UInt8): Const {
     @override fun dumpName() -> String { "Null" }
 }
 
-class Int32Const(let value: Int): Const {
+class Int32Const(let value: Int32): Const {
     @override fun dumpName() -> String { "Int32(${self.value})" }
 }
 
@@ -486,7 +486,7 @@ class ArrayLength(let array: Inst): Inst {
     @override fun dumpName() -> String { "ArrayLength" }
 }
 
-class ArgInst(let index: Int, ty: Type): Inst {
+class ArgInst(let index: Int32, ty: Type): Inst {
     self.ty = ty;
 
     @override fun dumpName() -> String { "Arg.${self.ty}(${self.index})" }

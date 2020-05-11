@@ -18,16 +18,16 @@ class CompilationInfo(encoded: EncodedCompilationInfo) {
 class EncodedCompilationInfo {
     let code: Array[UInt8] = arrayEmpty[UInt8]();
     let constpool: Array[UInt8] = arrayEmpty[UInt8]();
-    let registers: Array[Int] = arrayEmpty[Int]();
-    let arguments: Int = 0;
+    let registers: Array[Int32] = arrayEmpty[Int32]();
+    let arguments: Int32 = 0I;
 }
 
-fun decodeRegisters(registers: Array[Int]) -> Array[BytecodeType] {
-    var i = 0;
+fun decodeRegisters(registers: Array[Int32]) -> Array[BytecodeType] {
+    var i = 0L;
     let result = arrayFill[BytecodeType](registers.length(), BytecodeType::bool());
 
-    while i < registers.length() {
-        let regtype = registers(i);
+    while i < registers.length().toInt64() {
+        let regtype = registers(i.toInt());
 
         let value = if regtype == BC_TYPE_BOOL {
             BytecodeType::bool()
@@ -50,8 +50,8 @@ fun decodeRegisters(registers: Array[Int]) -> Array[BytecodeType] {
             BytecodeType::bool()
         };
 
-        result(i) = value;
-        i = i + 1;
+        result(i.toInt()) = value;
+        i = i + 1L;
     }
 
     result
@@ -62,29 +62,29 @@ fun decodeConstPool(constpool: Array[UInt8]) -> Array[ConstPoolEntry] {
     let reader = ByteReader(constpool);
 
     while reader.moreBytes() {
-        let opcode = reader.readByte().toInt();
+        let opcode = reader.readUInt8().toInt32();
 
         if opcode == CONSTPOOL_OPCODE_INT32 {
-            let value = reader.readInt();
+            let value = reader.readInt32();
             constPool.push(ConstPoolInt32(value));
         } else if opcode == CONSTPOOL_OPCODE_INT64 {
             let value = reader.readInt64();
             constPool.push(ConstPoolInt64(value));
         } else if opcode == CONSTPOOL_OPCODE_FLOAT {
-            let value = reader.readInt().asFloat();
+            let value = reader.readInt32().asFloat();
             constPool.push(ConstPoolFloat(value));
         } else if opcode == CONSTPOOL_OPCODE_DOUBLE {
             let value = reader.readInt64().asDouble();
             constPool.push(ConstPoolDouble(value));
         } else if opcode == CONSTPOOL_OPCODE_CHAR {
-            let value = reader.readInt().toCharUnchecked();
+            let value = reader.readInt32().toCharUnchecked();
             constPool.push(ConstPoolChar(value));
         } else if opcode == CONSTPOOL_OPCODE_STRING {
-            let length = reader.readInt();
+            let length = reader.readInt32();
             let start = reader.offset();
-            let value = String::fromBytesPart(constpool, start, length).unwrap();
+            let value = String::fromBytesPart(constpool, start.toInt(), length.toInt()).unwrap();
             constPool.push(ConstPoolString(value));
-            reader.skipBytes(length);
+            reader.skipBytes(length.toInt64());
         } else {
             println("opcode = ${opcode}");
             unreachable();
@@ -95,45 +95,45 @@ fun decodeConstPool(constpool: Array[UInt8]) -> Array[ConstPoolEntry] {
 }
 
 class ByteReader(let array: Array[UInt8]) {
-    var idx: Int = 0;
+    var idx: Int64 = 0L;
 
     fun moreBytes() -> Bool {
-        self.idx < self.array.length()
+        self.idx < self.array.length().toInt64()
     }
 
-    fun readByte() -> UInt8 {
-        let value = self.array.get(self.idx);
-        self.idx = self.idx + 1;
+    fun readUInt8() -> UInt8 {
+        let value = self.array.get(self.idx.toInt());
+        self.idx = self.idx + 1L;
         value
     }
 
-    fun readInt() -> Int {
-        let by1 = self.readByte().toInt();
-        let by2 = self.readByte().toInt();
-        let by3 = self.readByte().toInt();
-        let by4 = self.readByte().toInt();
+    fun readInt32() -> Int32 {
+        let by1 = self.readUInt8().toInt32();
+        let by2 = self.readUInt8().toInt32();
+        let by3 = self.readUInt8().toInt32();
+        let by4 = self.readUInt8().toInt32();
 
         (by4 << 24) | (by3 << 16) | (by2 << 8) | by1
     }
 
     fun readInt64() -> Int64 {
-        let by1 = self.readByte().toInt64();
-        let by2 = self.readByte().toInt64();
-        let by3 = self.readByte().toInt64();
-        let by4 = self.readByte().toInt64();
-        let by5 = self.readByte().toInt64();
-        let by6 = self.readByte().toInt64();
-        let by7 = self.readByte().toInt64();
-        let by8 = self.readByte().toInt64();
+        let by1 = self.readUInt8().toInt64();
+        let by2 = self.readUInt8().toInt64();
+        let by3 = self.readUInt8().toInt64();
+        let by4 = self.readUInt8().toInt64();
+        let by5 = self.readUInt8().toInt64();
+        let by6 = self.readUInt8().toInt64();
+        let by7 = self.readUInt8().toInt64();
+        let by8 = self.readUInt8().toInt64();
 
         (by8 << 56) | (by7 << 48) | (by6 << 40) | (by5 << 32) | (by4 << 24) | (by3 << 16) | (by2 << 8) | by1
     }
 
-    fun offset() -> Int {
+    fun offset() -> Int64 {
         self.idx
     }
 
-    fun skipBytes(value: Int) {
+    fun skipBytes(value: Int64) {
         self.idx = self.idx + value;
     }
 }

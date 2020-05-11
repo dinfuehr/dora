@@ -3,7 +3,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
 }
 
 @open @abstract class BytecodeVisitor {
-    @open fun visitInstruction(offset: Int) {}
+    @open fun visitInstruction(offset: Int32) {}
 
     @open fun visitAddInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
     @open fun visitAddInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { unimplemented(); }
@@ -207,13 +207,13 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
 
     @open fun visitAssert(value: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitJumpLoop(offset: Int) { unimplemented(); }
+    @open fun visitJumpLoop(offset: Int32) { unimplemented(); }
 
-    @open fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int) { unimplemented(); }
+    @open fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int32) { unimplemented(); }
     @open fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
-    @open fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int) { unimplemented(); }
+    @open fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int32) { unimplemented(); }
     @open fun visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) { unimplemented(); }
-    @open fun visitJump(offset: Int) { unimplemented(); }
+    @open fun visitJump(offset: Int32) { unimplemented(); }
     @open fun visitJumpConst(idx: ConstPoolId) { unimplemented(); }
 
     @open fun visitInvokeDirectVoid(fct: FctId) { unimplemented(); }
@@ -462,13 +462,13 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
 
     @override fun visitAssert(value: BytecodeRegister) {}
 
-    @override fun visitJumpLoop(offset: Int) {}
+    @override fun visitJumpLoop(offset: Int32) {}
 
-    @override fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int) {}
+    @override fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int32) {}
     @override fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) {}
-    @override fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int) {}
+    @override fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int32) {}
     @override fun visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) {}
-    @override fun visitJump(offset: Int) {}
+    @override fun visitJump(offset: Int32) {}
     @override fun visitJumpConst(idx: ConstPoolId) {}
 
     @override fun visitInvokeDirectVoid(fct: FctId) {}
@@ -515,8 +515,8 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
 }
 
 class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
-    var pos: Int = 0;
-    var length: Int = data.length();
+    var pos: Int32 = 0I;
+    var length: Int32 = data.length().toInt32();
 
     fun read() {
         while self.pos < self.length {
@@ -527,7 +527,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         }
     }
 
-    fun readInstruction(wide: Bool, opcode: Int) {
+    fun readInstruction(wide: Bool, opcode: Int32) {
         if opcode == BC_WIDE {
             fatalError("unexpected WIDE");
 
@@ -1616,22 +1616,22 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
 
     fun hasWideOperands() -> Bool {
         let data = self.data;
-        let value = data(self.pos);
+        let value = data(self.pos.toInt());
 
-        if value.toInt() == BC_WIDE {
-            self.pos = self.pos + 1;
+        if value.toInt32() == BC_WIDE {
+            self.pos = self.pos + 1I;
             true
         } else {
             false
         }
     }
 
-    fun readOpcode() -> Int {
+    fun readOpcode() -> Int32 {
         let first = self.readByte();
 
-        if first == 255 {
+        if first == 255I {
             let second = self.readByte();
-            second + 255
+            second + 255I
         } else {
             first
         }
@@ -1657,11 +1657,11 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         ConstPoolId(self.readIndex(wide))
     }
 
-    fun readOffset(wide: Bool) -> Int {
+    fun readOffset(wide: Bool) -> Int32 {
         self.readIndex(wide)
     }
 
-    fun readIndex(wide: Bool) -> Int {
+    fun readIndex(wide: Bool) -> Int32 {
         if wide {
             self.readInt()
         } else {
@@ -1669,15 +1669,15 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         }
     }
 
-    fun readByte() -> Int {
+    fun readByte() -> Int32 {
         let data = self.data;
-        let value = data(self.pos);
-        self.pos = self.pos + 1;
+        let value = data(self.pos.toInt());
+        self.pos = self.pos + 1I;
 
-        value.toInt()
+        value.toInt32()
     }
 
-    fun readInt() -> Int {
+    fun readInt() -> Int32 {
         let by1 = self.readByte();
         let by2 = self.readByte();
         let by3 = self.readByte();

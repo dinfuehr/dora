@@ -47,7 +47,7 @@ def output(bytecodes, types, constpool_opcodes)
         opcode = 0
 
         for bytecode in bytecodes
-            f.puts "const BC_#{snake_case(bytecode)}: Int = #{opcode};"
+            f.puts "const BC_#{snake_case(bytecode)}: Int32 = #{opcode}I;"
             opcode += 1
         end
 
@@ -55,7 +55,7 @@ def output(bytecodes, types, constpool_opcodes)
         type_code = 0
 
         for type in types
-            f.puts "const BC_TYPE_#{snake_case(type)}: Int = #{type_code};"
+            f.puts "const BC_TYPE_#{snake_case(type)}: Int32 = #{type_code}I;"
             type_code += 1
         end
 
@@ -63,12 +63,12 @@ def output(bytecodes, types, constpool_opcodes)
         code = 0
 
         for opcode in constpool_opcodes
-            f.puts "const CONSTPOOL_OPCODE_#{snake_case(opcode)}: Int = #{code};"
+            f.puts "const CONSTPOOL_OPCODE_#{snake_case(opcode)}: Int32 = #{code}I;"
             code += 1
         end
 
         f.puts
-        f.puts "fun bytecodeName(opcode: Int) -> String {"
+        f.puts "fun bytecodeName(opcode: Int32) -> String {"
 
         for bytecode in bytecodes
             f.puts "  if opcode == BC_#{snake_case(bytecode)} { return #{bytecode.inspect}; }"
@@ -78,7 +78,7 @@ def output(bytecodes, types, constpool_opcodes)
         f.puts "}"
         f.puts
 
-        f.puts "fun bytecodeTypeName(code: Int) -> String {"
+        f.puts "fun bytecodeTypeName(code: Int32) -> String {"
 
         for type in types
             f.puts "  if code == BC_TYPE_#{snake_case(type)} { return #{type.inspect}; }"

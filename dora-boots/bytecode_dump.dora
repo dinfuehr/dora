@@ -18,7 +18,7 @@ fun bytecodeDump(bc: BytecodeFunction) {
 }
 
 class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
-    var pos: Int = 0;
+    var pos: Int32 = 0I;
 
     fun emitInst(name: String) {
         self.emitStart(name);
@@ -60,12 +60,12 @@ class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
         println(" @${idx.value}");
     }
 
-    fun emitReg1AndInt(name: String, r1: BytecodeRegister, value: Int) {
+    fun emitReg1AndInt(name: String, r1: BytecodeRegister, value: Int32) {
         self.emitStart(name);
         println(" ${r1}, ${value}");
     }
 
-    fun emitInt(name: String, value: Int) {
+    fun emitInt(name: String, value: Int32) {
         self.emitStart(name);
         println(" ${value}");
     }
@@ -105,7 +105,7 @@ class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
         print("${self.pos}: ${name}");
     }
 
-    @override fun visitInstruction(offset: Int) { self.pos = offset; }
+    @override fun visitInstruction(offset: Int32) { self.pos = offset; }
 
     @override fun visitAddInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("AddInt32", dest, lhs, rhs); }
     @override fun visitAddInt64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("AddInt64", dest, lhs, rhs); }
@@ -248,7 +248,7 @@ class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
     @override fun visitConstZeroInt64(dest: BytecodeRegister) { self.emitReg1("ConstZeroInt64", dest); }
     @override fun visitConstZeroFloat(dest: BytecodeRegister) { self.emitReg1("ConstZeroFloat", dest); }
     @override fun visitConstZeroDouble(dest: BytecodeRegister) { self.emitReg1("ConstZeroDouble", dest); }
-    @override fun visitConstUInt8(dest: BytecodeRegister, value: UInt8) { self.emitReg1AndInt("ConstUInt8", dest, value.toInt()); }
+    @override fun visitConstUInt8(dest: BytecodeRegister, value: UInt8) { self.emitReg1AndInt("ConstUInt8", dest, value.toInt32()); }
     @override fun visitConstChar(dest: BytecodeRegister, idx: ConstPoolId) { self.emitReg1AndIdx("ConstChar", dest, idx); }
     @override fun visitConstInt32(dest: BytecodeRegister, idx: ConstPoolId) { self.emitReg1AndIdx("ConstInt32", dest, idx); }
     @override fun visitConstInt64(dest: BytecodeRegister, idx: ConstPoolId) { self.emitReg1AndIdx("ConstInt64", dest, idx); }
@@ -304,13 +304,13 @@ class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
     @override fun visitTestLtDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("TestLtDouble", dest, lhs, rhs); }
     @override fun visitTestLeDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) { self.emitReg3("TestLeDouble", dest, lhs, rhs); }
 
-    @override fun visitJumpLoop(offset: Int) { self.emitInt("JumpLoop", offset); }
+    @override fun visitJumpLoop(offset: Int32) { self.emitInt("JumpLoop", offset); }
     
-    @override fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int) { self.emitReg1AndInt("JumpIfFalse", opnd, offset); }
+    @override fun visitJumpIfFalse(opnd: BytecodeRegister, offset: Int32) { self.emitReg1AndInt("JumpIfFalse", opnd, offset); }
     @override fun visitJumpIfFalseConst(opnd: BytecodeRegister, idx: ConstPoolId) { self.emitReg1AndIdx("JumpIfFalseConst", opnd, idx); }
-    @override fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int) { self.emitReg1AndInt("JumpIfTrue", opnd, offset); }
+    @override fun visitJumpIfTrue(opnd: BytecodeRegister, offset: Int32) { self.emitReg1AndInt("JumpIfTrue", opnd, offset); }
     @override fun visitJumpIfTrueConst(opnd: BytecodeRegister, idx: ConstPoolId) { self.emitReg1AndIdx("JumpIfTrueConst", opnd, idx); }
-    @override fun visitJump(offset: Int) { self.emitInt("Jump", offset); }
+    @override fun visitJump(offset: Int32) { self.emitInt("Jump", offset); }
     @override fun visitJumpConst(idx: ConstPoolId) { self.emitIdx("JumpConst", idx); }
 
     @override fun visitInvokeDirectVoid(fct: FctId) { self.emitFctVoid("InvokeDirectVoid", fct); }
