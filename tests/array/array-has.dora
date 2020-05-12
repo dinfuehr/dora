@@ -1,13 +1,13 @@
 fun main() {
-    let x = arrayFill[Bool](3, true);
+    let x = arrayFill[Bool](3L, true);
     assert(arrayHas[Bool](x, true));
 
-    let x = arrayFill[Int32](3, 3I);
+    let x = arrayFill[Int32](3L, 3I);
     assert(arrayHas[Int32](x, 3I));
 
-    let x = arrayFill[Int64](3, 3L);
+    let x = arrayFill[Int64](3L, 3L);
     assert(arrayHas[Int64](x, 3L));
 
-    let x = arrayFill[Double](3, 0.0/0.0);
+    let x = arrayFill[Double](3L, 0.0/0.0);
     assert(arrayHas[Double](x, 0.0/0.0));
 }

@@ -461,6 +461,6 @@ mod tests {
 
     #[test]
     fn for_var() {
-        ok("fun f() { for i in range(0, 4) { i; } }");
+        ok("fun f() { for i in range(0I, 4I) { i; } }");
     }
 }

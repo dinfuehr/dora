@@ -18,19 +18,19 @@ fun main() {
     assert((0.0/0.0).sortsAs(0.0/0.0) == 0I);
 
     // 11111111110000000000000000000000
-    let nanQuietNegative = (-4194304).asFloat();
+    let nanQuietNegative = (-4194304I).asFloat();
     // 11111111100000000000000000000001
-    let nanSignaNegative = (-8388607).asFloat();
+    let nanSignaNegative = (-8388607I).asFloat();
     // 11111111100000000000000000000000
-    let infNegative = (-8388608).asFloat();
+    let infNegative = (-8388608I).asFloat();
     // negative numbers
     // positive numbers
     // 01111111100000000000000000000000
-    let infPositive = 2139095040.asFloat();
+    let infPositive = 2139095040I.asFloat();
     // 01111111100000000000000000000001
-    let nanSignaPositive = 2139095041.asFloat();
+    let nanSignaPositive = 2139095041I.asFloat();
     // 01111111110000000000000000000000
-    let nanQuietPositive = 2143289344.asFloat();
+    let nanQuietPositive = 2143289344I.asFloat();
 
     assert(nanQuietNegative.sortsAs(nanSignaNegative) == -1I);
     assert(nanSignaNegative.sortsAs(infNegative) == -1I);

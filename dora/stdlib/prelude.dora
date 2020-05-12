@@ -1,6 +1,6 @@
 @internal fun fatalError(msg: String);
 @internal fun abort();
-@internal fun exit(status: Int);
+@internal fun exit(status: Int32);
 fun unreachable() {
   fatalError("unreachable code");
 }
@@ -11,8 +11,8 @@ fun unimplemented() = fatalError("not yet implemented");
 @internal fun println(text: String);
 @internal fun assert(val: Bool);
 @internal fun debug();
-@internal fun argc() -> Int;
-@internal fun argv(idx: Int) -> String;
+@internal fun argc() -> Int32;
+@internal fun argv(idx: Int32) -> String;
 @internal fun forceCollect();
 @internal fun forceMinorCollect();
 
@@ -111,4 +111,4 @@ fun isValidUtf8(data: Array[UInt8]) -> Bool {
 
 @internal fun defaultValue[T]() -> T;
 
-@internal fun sleep(seconds: Int);
+@internal fun sleep(seconds: Int32);

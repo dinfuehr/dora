@@ -14,7 +14,7 @@ fun sieve(limit: Int32) -> Vec[Int32] {
     let primes = Vec[Int32]();
 
     if limit >= 2I {
-        let numbers = arrayFill[Bool]((limit+1I).toInt(), true);
+        let numbers = arrayFill[Bool](limit.toInt64()+1L, true);
         let sqrtLimit = limit.toDouble().sqrt().toInt32();
 
         var factor = 2I;

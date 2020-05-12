@@ -172,13 +172,13 @@ class Node72: Node { let x1: Int64 = 0L; let x2: Int64 = 0L; let x3: Int64 = 0L;
 class Node80: Node { let x1: Int64 = 0L; let x2: Int64 = 0L; let x3: Int64 = 0L; let x4: Int64 = 0L; let x5: Int64 = 0L; }
 
 fun main() {
-    if argc() < 4 {
+    if argc() < 4I {
         println("usage: splunc <seed> <max-size> <iterations> <trunc-depth> [<iterations> <trunc-depth>]");
-        exit(1);
+        exit(1I);
     }
 
-    let rnd = Random(argv(0).toInt64().unwrap());
-    let max_size = argv(1).toInt32().unwrap();
+    let rnd = Random(argv(0I).toInt64().unwrap());
+    let max_size = argv(1I).toInt32().unwrap();
     var date = 0I;
 
     var tree: Node = NodeA();
@@ -188,12 +188,9 @@ fun main() {
 
     var j = 2I;
 
-    while j + 2I <= argc().toInt32() {
-        let n = argv(j.toInt()).toInt32().unwrap();
-        let depth = argv((j+1I).toInt()).toInt32().unwrap();
-
-        // println("n = " + n.toString());
-        // println("depth = " + depth.toString());
+    while j + 2I <= argc() {
+        let n = argv(j).toInt32().unwrap();
+        let depth = argv(j).toInt32().unwrap();
 
         var i = 0I;
         while i < n {

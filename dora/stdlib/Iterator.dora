@@ -1,4 +1,4 @@
 trait Iterator {
   fun hasNext() -> Bool;
-  fun next() -> Int; // this should be made generic
+  fun next() -> Int32; // this should be made generic
 }

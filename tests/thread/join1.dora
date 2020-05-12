@@ -2,7 +2,7 @@
 
 class MyThread() : Thread {
     @override fun run() {
-        sleep(2);
+        sleep(2I);
         println("two");
     }
 }

@@ -4,7 +4,7 @@
 fun main() {
   let val = argc().toString();
   println(val);
-  println(argv(0));
-  println(argv(1));
-  println(argv(2));
+  println(argv(0I));
+  println(argv(1I));
+  println(argv(2I));
 }

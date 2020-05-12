@@ -1,10 +1,10 @@
 //= cannon
 
 fun main() {
-    let x = 1;
+    let x = 1I;
     assert(1F == x.toFloat());
 
-    let y = 5;
+    let y = 5I;
     assert(5D == y.toDouble());
 
     let x = 2L;

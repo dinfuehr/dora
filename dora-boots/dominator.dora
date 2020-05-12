@@ -3,7 +3,7 @@ fun findBackEdges(graph: Graph) {
     let worklist = Vec[Block]();
 
     // number of successors visited per block
-    let successorsVisited = arrayNew[Int64](graph.numberBlocks().toInt());
+    let successorsVisited = arrayNew[Int64](graph.numberBlocks().toInt64());
 
     // all blocks that have been fully visited (including successors)
     let visited = BitSet(graph.numberBlocks().toInt64());
@@ -53,7 +53,7 @@ fun computePostOrder(graph: Graph) {
     let worklist = Vec[Block]();
 
     // number of successors visited per block
-    let successorsVisited = arrayNew[Int64](graph.numberBlocks().toInt());
+    let successorsVisited = arrayNew[Int64](graph.numberBlocks().toInt64());
 
     // all blocks that have been visited
     let visited = BitSet(graph.numberBlocks().toInt64());
@@ -88,7 +88,7 @@ fun computeDominators(graph: Graph) {
     let worklist = Vec[Block]();
 
     // number of successors visited per block
-    let successorsVisited = arrayNew[Int64](graph.numberBlocks().toInt());
+    let successorsVisited = arrayNew[Int64](graph.numberBlocks().toInt64());
 
     // all blocks that have been fully visited (including successors)
     let visited = BitSet(graph.numberBlocks().toInt64());

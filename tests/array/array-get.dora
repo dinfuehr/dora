@@ -1,33 +1,33 @@
 //= cannon
 
 fun main() {
-  let x = arrayFill[Int32](5, 100I);
+  let x = arrayFill[Int32](5L, 100I);
   assert(x(0) == 100I);
   assert(int32_array_get(x, 4L) == 100I);
 
-  let x = arrayFill[Int64](7, 200L);
+  let x = arrayFill[Int64](7L, 200L);
   assert(x(6) == 200L);
   assert(int64_array_get(x, 0L) == 200L);
 
-  let x = arrayFill[Float](6, 1.0F);
+  let x = arrayFill[Float](6L, 1.0F);
   assert(x(0) == 1.0F);
   assert(float_array_get(x, 5L) == 1.0F);
 
-  let x = arrayFill[Double](4, 2.0);
+  let x = arrayFill[Double](4L, 2.0);
   assert(x(0) == 2.0);
   assert(double_array_get(x, 3L) == 2.0);
 
-  let x = arrayFill[String](3, "hello");
+  let x = arrayFill[String](3L, "hello");
   assert(x(0) == "hello");
   assert(str_array_get(x, 2L) == "hello");
 
-  let x = arrayFill[Foo](1, Foo(1I));
+  let x = arrayFill[Foo](1L, Foo(1I));
   assert(x(0) !== nil);
   assert(x(0).y == 1I);
   assert(foo_array_get(x, 0L) !== nil);
   assert(foo_array_get(x, 0L).y == 1I);
 
-  let x = arrayFill[Foo](2, nil);
+  let x = arrayFill[Foo](2L, nil);
   assert(x(0) === nil);
   assert(foo_array_get(x, 0L) === nil);
 }

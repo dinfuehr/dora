@@ -20,25 +20,25 @@ fun main() {
     assert((-0.0).asInt64() == (-9223372036854775808L));
     assert((0.0/0.0).asInt64() & !(1L << 63I) == 0x7FF8_0000_0000_0000L);
 
-    assert(0.0F == 0.asFloat());
-    assert(1.4E-45F == 1.asFloat());
-    assert(4.2E-45F == 3.asFloat());
-    assert((-1).asFloat().isNan());
-    assert((-0.0F) == Int::minValue().asFloat());
-    assert(Int::maxValue().asFloat().isNan());
+    assert(0.0F == 0I.asFloat());
+    assert(1.4E-45F == 1I.asFloat());
+    assert(4.2E-45F == 3I.asFloat());
+    assert((-1I).asFloat().isNan());
+    assert((-0.0F) == Int32::minValue().asFloat());
+    assert(Int32::maxValue().asFloat().isNan());
 
     assert(0.0 == 0L.asDouble());
     assert(4.9E-324 == 1L.asDouble());
     assert(1.5E-323 == 3L.asDouble());
     assert((-1L).asDouble().isNan());
-    assert(Int::minValue().toInt64().asDouble().isNan());
-    assert(Int::maxValue().toInt64().asDouble() == 1.060997895E-314);
+    assert(Int32::minValue().toInt64().asDouble().isNan());
+    assert(Int32::maxValue().toInt64().asDouble() == 1.060997895E-314);
     assert((-0.0) == Int64::minValue().asDouble());
     assert(Int64::maxValue().asDouble().isNan());
 
-    let x = 123456789;
-    assert(x == x.asFloat().asInt());
+    let x = 123456789I;
+    assert(x == x.asFloat().asInt32());
     assert(x.toInt64() == x.toInt64().asDouble().asInt64());
-    assert(x.toFloat() == x.toFloat().asInt().asFloat());
+    assert(x.toFloat() == x.toFloat().asInt32().asFloat());
     assert(x.toDouble() == x.toDouble().asInt64().asDouble());
 }

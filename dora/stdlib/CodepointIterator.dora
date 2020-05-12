@@ -6,7 +6,7 @@ class CodepointIterator(let value: String, var start: Int64) {
 
         if ch <= 0x7FY {
             self.start = self.start + 1L;
-            return ch.toInt().toCharUnchecked();
+            return ch.toInt32().toCharUnchecked();
         }
 
         if ch <= 0xBFY {
@@ -44,7 +44,7 @@ class CodepointIterator(let value: String, var start: Int64) {
         var ch = self.value.getByte(self.start.toInt());
 
         if ch <= 0x7FY {
-            return ch.toInt().toCharUnchecked();
+            return ch.toInt32().toCharUnchecked();
         }
 
         if ch <= 0xBFY {

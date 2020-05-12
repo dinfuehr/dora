@@ -1,31 +1,31 @@
 //= cannon
 
 fun main() {
-    let array = arrayZero[Bool](10);
+    let array = arrayZero[Bool](10L);
     assert(array(0) == false);
     assert(array(9) == false);
 
-    let array = arrayZero[UInt8](10);
+    let array = arrayZero[UInt8](10L);
     assert(array(0) == 0Y);
     assert(array(9) == 0Y);
 
-    let array = arrayZero[Char](10);
+    let array = arrayZero[Char](10L);
     assert(array(0) == '\0');
     assert(array(9) == '\0');
 
-    let array = arrayZero[Int32](10);
+    let array = arrayZero[Int32](10L);
     assert(array(0) == 0I);
     assert(array(9) == 0I);
 
-    let array = arrayZero[Int64](10);
+    let array = arrayZero[Int64](10L);
     assert(array(0) == 0L);
     assert(array(9) == 0L);
 
-    let array = arrayZero[Float](10);
+    let array = arrayZero[Float](10L);
     assert(array(0) == 0.0F);
     assert(array(9) == 0.0F);
 
-    let array = arrayZero[Double](10);
+    let array = arrayZero[Double](10L);
     assert(array(0) == 0.0);
     assert(array(9) == 0.0);
 }

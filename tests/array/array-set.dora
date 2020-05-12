@@ -1,32 +1,32 @@
 //= cannon
 
 fun main() {
-  let x = arrayFill[Int32](2, 100I);
+  let x = arrayFill[Int32](2L, 100I);
   int32_array_set(x, 1L, 200I);
   assert(x(0) == 100I);
   assert(x(1) == 200I);
 
-  let x = arrayFill[Int64](2, 200L);
+  let x = arrayFill[Int64](2L, 200L);
   int64_array_set(x, 1L, 100L);
   assert(x(0) == 200L);
   assert(x(1) == 100L);
 
-  let x = arrayFill[Float](2, 1.0F);
+  let x = arrayFill[Float](2L, 1.0F);
   float_array_set(x, 1L, 2.0F);
   assert(x(0) == 1.0F);
   assert(x(1) == 2.0F);
 
-  let x = arrayFill[Double](2, 2.0);
+  let x = arrayFill[Double](2L, 2.0);
   double_array_set(x, 1L, 1.0);
   assert(x(0) == 2.0);
   assert(x(1) == 1.0);
 
-  let x = arrayFill[String](2, "hello");
+  let x = arrayFill[String](2L, "hello");
   str_array_set(x, 1L, "abc");
   assert(x(0) == "hello");
   assert(x(1) == "abc");
 
-  let x = arrayFill[Foo](2, Foo(1I));
+  let x = arrayFill[Foo](2L, Foo(1I));
   foo_array_set(x, 1L, Foo(2I));
   assert(x(0).y == 1I);
   assert(x(1).y == 2I);

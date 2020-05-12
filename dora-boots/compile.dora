@@ -24,7 +24,7 @@ class EncodedCompilationInfo {
 
 fun decodeRegisters(registers: Array[Int32]) -> Array[BytecodeType] {
     var i = 0L;
-    let result = arrayFill[BytecodeType](registers.length(), BytecodeType::bool());
+    let result = arrayFill[BytecodeType](registers.length().toInt64(), BytecodeType::bool());
 
     while i < registers.length().toInt64() {
         let regtype = registers(i.toInt());

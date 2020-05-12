@@ -4,7 +4,7 @@ fun main() {
     let x = arrayEmpty[Char]();
     assert(x.length() == 0);
 
-    let x = arrayFill[Char](10, '\0');
+    let x = arrayFill[Char](10L, '\0');
     assert(x(0) == '\0');
     assert(x(9) == '\0');
 

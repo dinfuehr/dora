@@ -4,7 +4,7 @@ fun main() {
     let array = arrayEmpty[Float]();
     assert(0 == array.length());
 
-    let array = arrayFill[Float](10, 2F);
+    let array = arrayFill[Float](10L, 2F);
     assert(10 == array.length());
     assert(2F == array(0));
     assert(2F == array(9));
@@ -12,7 +12,7 @@ fun main() {
     let array = arrayEmpty[Double]();
     assert(0 == array.length());
 
-    let array = arrayFill[Double](12, 3D);
+    let array = arrayFill[Double](12L, 3D);
     assert(12 == array.length());
     assert(3D == array(0));
     assert(3D == array(11));

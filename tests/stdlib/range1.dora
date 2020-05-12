@@ -1,22 +1,22 @@
 //= cannon
 
 fun main() {
-    let x = range(0, 5).makeIterator();
+    let x = range(0I, 5I).makeIterator();
 
     assert(x.hasNext());
-    assert(x.next() == 0);
+    assert(x.next() == 0I);
 
     assert(x.hasNext());
-    assert(x.next() == 1);
+    assert(x.next() == 1I);
 
     assert(x.hasNext());
-    assert(x.next() == 2);
+    assert(x.next() == 2I);
 
     assert(x.hasNext());
-    assert(x.next() == 3);
+    assert(x.next() == 3I);
 
     assert(x.hasNext());
-    assert(x.next() == 4);
+    assert(x.next() == 4I);
 
     assert(!x.hasNext());
 }

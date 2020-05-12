@@ -268,23 +268,23 @@ fun doStep(n: Int64) {
 fun main() {
     rnd = Random(1234567890L);
 
-    if argc() != 5 {
+    if argc() != 5I {
         println("Usage: java GCOld <size> <work> <ratio> <mutation> <steps>");
         println("  where <size> is the live storage in megabytes");
         println("        <work> is the mutator work per step (arbitrary units)");
         println("        <ratio> is the ratio of short-lived to long-lived allocation");
         println("        <mutation> is the mutations per step");
         println("        <steps> is the number of steps");
-        exit(1);
+        exit(1I);
     }
 
     treeSize = heightToBytes(treeHeight);
 
-    size = argv(0).toInt32().unwrap();
-    workUnits = argv(1).toInt32().unwrap();
-    promoteRate = argv(2).toInt32().unwrap();
-    ptrMutRate = argv(3).toInt32().unwrap();
-    steps = argv(4).toInt32().unwrap();
+    size = argv(0I).toInt32().unwrap();
+    workUnits = argv(1I).toInt32().unwrap();
+    promoteRate = argv(2I).toInt32().unwrap();
+    ptrMutRate = argv(3I).toInt32().unwrap();
+    steps = argv(4I).toInt32().unwrap();
 
     println("GCOld: version 1.0");
     println(size.toString() + " megabytes of live storage");

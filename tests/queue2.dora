@@ -1,11 +1,11 @@
 fun main() {
     let q = Queue[Int32]();
 
-    for i in range(0, 100) {
-        q.enqueue(i.toInt32());
+    for i in range(0I, 100I) {
+        q.enqueue(i);
     }
 
-    for i in range(0, 100) {
-        assert(q.dequeue() == i.toInt32());
+    for i in range(0I, 100I) {
+        assert(q.dequeue() == i);
     }
 }

@@ -4,7 +4,7 @@ fun main() {
     let x = arrayEmpty[String]();
     assert(x.length() == 0);
 
-    let x = arrayFill[String](10, nil);
+    let x = arrayFill[String](10L, nil);
     assert(x.length() == 10);
 
     x(0) = "a" + "b";

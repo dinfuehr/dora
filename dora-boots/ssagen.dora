@@ -44,8 +44,8 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         self.filledBlocks = BitSet(blockCount.toInt64());
         self.sealedBlocks = BitSet(blockCount.toInt64());
 
-        for i in range(0, self.currentDef.length()) {
-            self.currentDef(i) = HashMap[Block, Inst]();
+        for i in range(0I, self.currentDef.length().toInt32()) {
+            self.currentDef(i.toInt()) = HashMap[Block, Inst]();
         }
     }
 
@@ -144,8 +144,8 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         phi.replaceWith(same.unwrap());
         phi.remove();
 
-        for i in range(0, users.length()) {
-            let user = users(i);
+        for i in range(0I, users.length().toInt32()) {
+            let user = users(i.toInt());
 
             if user === phi {
                 continue;

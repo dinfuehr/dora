@@ -1,12 +1,12 @@
 fun main() {
-    if argc() != 3 {
+    if argc() != 3I {
         println("usage: splay <seed> <tree-size> <iterations>");
-        exit(1);
+        exit(1I);
     }
 
-    rnd = Random(argv(0).toInt64().unwrap());
-    splayTreeSize = argv(1).toInt32().unwrap();
-    let iterations = argv(2).toInt32().unwrap();
+    rnd = Random(argv(0I).toInt64().unwrap());
+    splayTreeSize = argv(1I).toInt32().unwrap();
+    let iterations = argv(2I).toInt32().unwrap();
 
     let bench = Benchmark();
     bench.setup();

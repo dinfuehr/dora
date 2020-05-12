@@ -25,21 +25,11 @@
 
   @internal fun length() -> Int;
 
-  @internal fun toIntSuccess() -> Bool;
   @internal fun toInt32Success() -> Bool;
   @internal fun toInt64Success() -> Bool;
 
-  @internal fun toIntOrZero() -> Int;
   @internal fun toInt32OrZero() -> Int32;
   @internal fun toInt64OrZero() -> Int64;
-
-  fun toInt() -> Option[Int] {
-    if self.toIntSuccess() {
-      some[Int](self.toIntOrZero())
-    } else {
-      none[Int]()
-    }
-  }
 
   fun toInt32() -> Option[Int32] {
     if self.toInt32Success() {

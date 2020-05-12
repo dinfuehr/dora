@@ -1,7 +1,7 @@
 //= cannon
 
 fun main() {
-  let array = arrayFill[Int32](5, 1I);
+  let array = arrayFill[Int32](5L, 1I);
   array(0) = 2I;
   assert(array(0) == 2I);
   assert(array(1) == 1I);

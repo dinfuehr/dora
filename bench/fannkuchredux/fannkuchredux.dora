@@ -1,59 +1,59 @@
 fun main() {
-  var n = 7;
-  if argc() > 0 { n = argv(0).toInt().unwrap(); }
+  var n = 7I;
+  if argc() > 0I { n = argv(0I).toInt32().unwrap(); }
   println("Pfannkuchen ("+n.toString()+") = " + fannkuch(n).toString());
 }
 
-fun fannkuch(n: Int) -> Int {
-  let perm = arrayFill[Int](n, 0);
-  let perm1 = arrayFill[Int](n, 0);
-  let count = arrayFill[Int](n, 0);
-  var maxFlipsCount = 0;
-  var permCount = 0;
-  var checksum = 0;
+fun fannkuch(n: Int32) -> Int32 {
+  let perm = arrayFill[Int32](n.toInt64(), 0I);
+  let perm1 = arrayFill[Int32](n.toInt64(), 0I);
+  let count = arrayFill[Int32](n.toInt64(), 0I);
+  var maxFlipsCount = 0I;
+  var permCount = 0I;
+  var checksum = 0I;
 
-  var i = 0;
+  var i = 0I;
   while i < n {
-    perm1(i) = i;
-    i = i + 1;
+    perm1(i.toInt()) = i;
+    i = i + 1I;
   }
 
   var r = n;
 
   while true {
-    while r != 1 {
-      count(r-1) = r;
-      r = r - 1;
+    while r != 1I {
+      count((r-1I).toInt()) = r;
+      r = r - 1I;
     }
 
-    var i = 0;
+    var i = 0I;
     while i < n {
-      perm(i) = perm1(i);
-      i = i + 1;
+      perm(i.toInt()) = perm1(i.toInt());
+      i = i + 1I;
     }
 
-    var flipsCount = 0;
+    var flipsCount = 0I;
     var k = perm(0);
 
-    while k != 0 {
-      let k2 = (k+1) / 2;
+    while k != 0I {
+      let k2 = (k+1I) / 2I;
 
-      var i = 0;
+      var i = 0I;
       while i < k2 {
-        let temp = perm(i);
-        perm(i) = perm(k-i);
-        perm(k-i) = temp;
+        let temp = perm(i.toInt());
+        perm(i.toInt()) = perm((k-i).toInt());
+        perm((k-i).toInt()) = temp;
 
-        i = i + 1;
+        i = i + 1I;
       }
 
-      flipsCount = flipsCount + 1;
+      flipsCount = flipsCount + 1I;
       k = perm(0);
     }
 
-    maxFlipsCount = max(maxFlipsCount, flipsCount);
+    maxFlipsCount = Int32::max(maxFlipsCount, flipsCount);
 
-    if permCount % 2 == 0 {
+    if permCount % 2I == 0I {
       checksum = checksum + flipsCount;
     } else {
       checksum = checksum - flipsCount;
@@ -66,33 +66,25 @@ fun fannkuch(n: Int) -> Int {
       }
 
       let perm0 = perm1(0);
-      var i = 0;
+      var i = 0I;
 
       while i < r {
-        let j = i + 1;
-        perm1(i) = perm1(j);
+        let j = i + 1I;
+        perm1(i.toInt()) = perm1(j.toInt());
         i = j;
       }
 
-      perm1(r) = perm0;
+      perm1(r.toInt()) = perm0;
 
-      count(r) = count(r) - 1;
+      count(r.toInt()) = count(r.toInt()) - 1I;
 
-      if count(r) > 0 { break; }
+      if count(r.toInt()) > 0I { break; }
 
-      r = r + 1;
+      r = r + 1I;
     }
 
-    permCount = permCount + 1;
+    permCount = permCount + 1I;
   }
 
-  return -1;
-}
-
-fun max(a: Int, b: Int) -> Int {
-  if a < b {
-    return b;
-  } else {
-    return a;
-  }
+  return -1I;
 }

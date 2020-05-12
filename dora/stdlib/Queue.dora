@@ -8,10 +8,10 @@ class Queue[T] {
       // copy into larger array
       let newelements = Array[T](self.elements.length() * 2);
       let len = self.elements.length().toInt64() - self.front;
-      arrayCopy[T](self.elements, self.front.toInt(), newelements, 0, len.toInt());
+      arrayCopy[T](self.elements, self.front, newelements, 0L, len);
 
       if len < self.count {
-        arrayCopy[T](self.elements, 0, newelements, len.toInt(), (self.count - len).toInt());
+        arrayCopy[T](self.elements, 0L, newelements, len, self.count - len);
       }
 
       self.front = 0L;

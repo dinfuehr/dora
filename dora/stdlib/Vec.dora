@@ -26,7 +26,7 @@ class Vec[T] {
     }
 
     let newarray = Array[T](newcap.toInt());
-    arrayCopy[T](self.array, 0, newarray, 0, self.len.toInt());
+    arrayCopy[T](self.array, 0L, newarray, 0L, self.len);
     self.array = newarray;
   }
 
@@ -41,7 +41,7 @@ class Vec[T] {
       }
 
       let newarray = Array[T](newcap.toInt());
-      arrayCopy[T](self.array, 0, newarray, 0, self.len.toInt());
+      arrayCopy[T](self.array, 0L, newarray, 0L, self.len);
       self.array = newarray;
     }
 
@@ -51,7 +51,7 @@ class Vec[T] {
 
   fun toArray() -> Array[T] {
     let newarray = Array[T](self.len.toInt());
-    arrayCopy[T](self.array, 0, newarray, 0, self.len.toInt());
+    arrayCopy[T](self.array, 0L, newarray, 0L, self.len);
     newarray
   }
 
@@ -77,7 +77,7 @@ class Vec[T] {
         self.array = arrayEmpty[T]();
       } else {
         let newarray = Array[T](self.len.toInt());
-        arrayCopy[T](self.array, 0, newarray, 0, self.len.toInt());
+        arrayCopy[T](self.array, 0L, newarray, 0L, self.len);
         self.array = newarray;
       }
     }

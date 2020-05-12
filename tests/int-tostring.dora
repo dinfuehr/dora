@@ -1,50 +1,50 @@
 fun main() {
-  let x = Int::minValue().toStringBinary();
+  let x = Int32::minValue().toStringBinary();
   assert(x == "10000000000000000000000000000000");
 
-  let x = Int::maxValue().toStringBinary();
+  let x = Int32::maxValue().toStringBinary();
   assert(x == "1111111111111111111111111111111");
 
-  let x = 0.toStringBinary();
+  let x = 0I.toStringBinary();
   assert(x == "0");
 
-  let x = 12.toStringBinary();
+  let x = 12I.toStringBinary();
   assert(x == "1100");
 
-  let x = 67.toStringBinary();
+  let x = 67I.toStringBinary();
   assert(x == "1000011");
 
-  let x = 129.toStringBinary();
+  let x = 129I.toStringBinary();
   assert(x == "10000001");
 
-  let x = (-1).toStringBinary();
+  let x = (-1I).toStringBinary();
   assert(x == "11111111111111111111111111111111");
 
-  let x = (-129).toStringBinary();
+  let x = (-129I).toStringBinary();
   assert(x == "11111111111111111111111101111111");
 
 
-  let x = Int::minValue().toStringHex();
+  let x = Int32::minValue().toStringHex();
   assert(x == "80000000");
 
-  let x = Int::maxValue().toStringHex();
+  let x = Int32::maxValue().toStringHex();
   assert(x == "7FFFFFFF");
 
-  let x = 0.toStringHex();
+  let x = 0I.toStringHex();
   assert(x == "0");
 
-  let x = 12.toStringHex();
+  let x = 12I.toStringHex();
   assert(x == "C");
 
-  let x = 67.toStringHex();
+  let x = 67I.toStringHex();
   assert(x == "43");
 
-  let x = 129.toStringHex();
+  let x = 129I.toStringHex();
   assert(x == "81");
 
-  let x = (-1).toStringHex();
+  let x = (-1I).toStringHex();
   assert(x == "FFFFFFFF");
 
-  let x = (-129).toStringHex();
+  let x = (-129I).toStringHex();
   assert(x == "FFFFFF7F");
 }

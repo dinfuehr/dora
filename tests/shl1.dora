@@ -1,8 +1,8 @@
 //= cannon
 
 fun main() {
-  assert(1 == 1 << 0I);
-  assert(2 == 1 << 1I);
-  assert(4 == 1 << 2I);
-  assert(8 == 1 << 3I);
+  assert(1I == 1I << 0I);
+  assert(2I == 1I << 1I);
+  assert(4I == 1I << 2I);
+  assert(8I == 1I << 3I);
 }

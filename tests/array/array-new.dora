@@ -1,15 +1,15 @@
 //= cannon
 
 fun main() {
-    let array = arrayNew[String](10);
+    let array = arrayNew[String](10L);
     assert(array(0) == "");
     assert(array(0) == array(9));
 
-    let array = arrayNew[Double](10);
+    let array = arrayNew[Double](10L);
     assert(array(0) == 0.0);
     assert(array(9) == 0.0);
 
-    let array = arrayNew[Float](10);
+    let array = arrayNew[Float](10L);
     assert(array(0) == 0.0F);
     assert(array(9) == 0.0F);
 }

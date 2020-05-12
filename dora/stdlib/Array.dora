@@ -43,39 +43,39 @@ fun arrayHas[T : Identity](array: Array[T], value: T) -> Bool {
 
 fun arrayEmpty[T]() -> Array[T] = Array[T](0);
 
-fun arrayFill[T](len: Int, value: T) -> Array[T] {
-  let array = Array[T](len);
-  var i = 0;
+fun arrayFill[T](len: Int64, value: T) -> Array[T] {
+  let array = Array[T](len.toInt());
+  var i = 0L;
 
   while i < len {
-    array(i) = value;
-    i = i + 1;
+    array(i.toInt()) = value;
+    i = i + 1L;
   }
 
   return array;
 }
 
-fun arrayNew[T: Default](len: Int) -> Array[T] {
-  let array = Array[T](len);
-  var i = 0;
+fun arrayNew[T: Default](len: Int64) -> Array[T] {
+  let array = Array[T](len.toInt());
+  var i = 0L;
   let value = T::default();
 
   while i < len {
-    array.set(i, value);
-    i = i + 1;
+    array.set(i.toInt(), value);
+    i = i + 1L;
   }
 
   return array;
 }
 
-fun arrayZero[T: Zero](len: Int) -> Array[T] = return Array[T](len);
+fun arrayZero[T: Zero](len: Int64) -> Array[T] = return Array[T](len.toInt());
 
-fun arrayCopy[T](src: Array[T], srcPos: Int, dest: Array[T], destPos: Int, len: Int) {
-  var i = 0;
+fun arrayCopy[T](src: Array[T], srcPos: Int64, dest: Array[T], destPos: Int64, len: Int64) {
+  var i = 0L;
 
   while i < len {
-    dest.set(destPos+i, src.get(srcPos+i));
-    i = i + 1;
+    dest.set((destPos+i).toInt(), src.get((srcPos+i).toInt()));
+    i = i + 1L;
   }
 }
 

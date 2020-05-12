@@ -1,55 +1,55 @@
-class Node(let val: Int, var left: Node, var right: Node) {
-  @static fun val(val: Int) -> Node = Node(val, nil, nil);
+class Node(let val: Int32, var left: Node, var right: Node) {
+  @static fun val(val: Int32) -> Node = Node(val, nil, nil);
 }
 
 fun main() {
-  let root = Node(5,
-                  Node(10,
-                       Node::val(20),
-                       Node::val(25)),
-                  Node(15,
-                       Node::val(30),
-                       Node::val(35)));
+  let root = Node(5I,
+                  Node(10I,
+                       Node::val(20I),
+                       Node::val(25I)),
+                  Node(15I,
+                       Node::val(30I),
+                       Node::val(35I)));
 
-  dumpTree(root, 0);
+  dumpTree(root, 0I);
   println(isBalanced(root).toString());
 
-  root.right.right.right = Node(40, nil, Node::val(45));
+  root.right.right.right = Node(40I, nil, Node::val(45I));
 
-  dumpTree(root, 0);
+  dumpTree(root, 0I);
   println(isBalanced(root).toString());
 }
 
-fun dumpTree(root: Node, depth: Int) {
+fun dumpTree(root: Node, depth: Int32) {
   if root === nil {
-    if depth == 0 {
+    if depth == 0I {
       println("nil");
     }
 
     return;
   }
 
-  dumpTree(root.right, depth+1);
+  dumpTree(root.right, depth+1I);
 
-  var i = 0;
+  var i = 0I;
 
   while i < depth {
     print("\t");
-    i = i + 1;
+    i = i + 1I;
   }
 
   println(root.val.toString());
 
-  dumpTree(root.left, depth+1);
+  dumpTree(root.left, depth+1I);
 }
 
 fun isBalanced(root: Node) -> Bool {
-  return height(root) >= 0;
+  return height(root) >= 0I;
 }
 
-fun height(node: Node) -> Int {
+fun height(node: Node) -> Int32 {
   if node === nil {
-    return 0;
+    return 0I;
   }
 
   let l = height(node.left);
@@ -57,14 +57,14 @@ fun height(node: Node) -> Int {
 
   let diff = (l - r).abs();
 
-  if diff > 1 {
-    return -1;
+  if diff > 1I {
+    return -1I;
   } else {
-    return max(l, r) + 1;
+    return max(l, r) + 1I;
   }
 }
 
-fun max(left: Int, right: Int) -> Int {
+fun max(left: Int32, right: Int32) -> Int32 {
   if left >= right {
     return left;
   } else {

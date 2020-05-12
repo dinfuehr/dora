@@ -1,7 +1,7 @@
 //= cannon
 
 fun main() {
-  assert(1L == len(arrayFill[Int32](1, 0I)));
+  assert(1L == len(arrayFill[Int32](1L, 0I)));
 }
 
 fun len(a: Array[Int32]) -> Int64 { return a.length().toInt64(); }

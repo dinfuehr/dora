@@ -120,6 +120,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_stmt_for(&mut self, s: &'ast StmtForType) {
         let object_type = self.check_expr(&s.expr, BuiltinType::Any);
 
+        if object_type.is_error() {
+            let var_id = *self.src.map_vars.get(s.id).unwrap();
+            self.src.vars[var_id].ty = BuiltinType::Error;
+            self.visit_stmt(&s.block);
+            return;
+        }
+
         if let Some(cls_id) = object_type.cls_id(self.vm) {
             if cls_id == self.vm.vips.array_class {
                 let var_id = *self.src.map_vars.get(s.id).unwrap();

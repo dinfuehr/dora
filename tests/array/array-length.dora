@@ -5,7 +5,7 @@ fun main() {
   assert(x.length() == 0);
   assert(int32_array_len(x) == 0L);
 
-  let x = arrayFill[Int32](5, 100I);
+  let x = arrayFill[Int32](5L, 100I);
   assert(x.length() == 5);
   assert(int32_array_len(x) == 5L);
 
@@ -13,7 +13,7 @@ fun main() {
   assert(x.length() == 0);
   assert(int64_array_len(x) == 0L);
 
-  let x = arrayFill[Int64](7, 100L);
+  let x = arrayFill[Int64](7L, 100L);
   assert(x.length() == 7);
   assert(int64_array_len(x) == 7L);
 
@@ -21,7 +21,7 @@ fun main() {
   assert(x.length() == 0);
   assert(float_array_len(x) == 0L);
 
-  let x = arrayFill[Float](6, 1.0F);
+  let x = arrayFill[Float](6L, 1.0F);
   assert(x.length() == 6);
   assert(float_array_len(x) == 6L);
 
@@ -29,7 +29,7 @@ fun main() {
   assert(x.length() == 0);
   assert(double_array_len(x) == 0L);
 
-  let x = arrayFill[Double](4, 1.0);
+  let x = arrayFill[Double](4L, 1.0);
   assert(x.length() == 4);
   assert(double_array_len(x) == 4L);
 
@@ -37,7 +37,7 @@ fun main() {
   assert(x.length() == 0);
   assert(str_array_len(x) == 0L);
 
-  let x = arrayFill[String](3, "hello");
+  let x = arrayFill[String](3L, "hello");
   assert(x.length() == 3);
   assert(str_array_len(x) == 3L);
 
@@ -45,7 +45,7 @@ fun main() {
   assert(x.length() == 0);
   assert(foo_array_len(x) == 0L);
 
-  let x = arrayFill[Foo](1, Foo());
+  let x = arrayFill[Foo](1L, Foo());
   assert(x.length() == 1);
   assert(foo_array_len(x) == 1L);
 }

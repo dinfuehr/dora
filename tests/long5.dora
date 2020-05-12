@@ -4,7 +4,7 @@ fun main() {
     let ba = Array[Int64](0);
     assert(ba.length() == 0);
 
-    let ba = arrayFill[Int64](10, 2L);
+    let ba = arrayFill[Int64](10L, 2L);
     assert(ba.length() == 10);
 
     ba(0) = 10L;

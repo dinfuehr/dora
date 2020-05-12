@@ -2,7 +2,7 @@
 //= stdout "01234"
 
 fun main() {
-    for i in range(0, 5) {
+    for i in range(0I, 5I) {
         print(i.toString());
     }
 }

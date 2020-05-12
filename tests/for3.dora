@@ -2,8 +2,8 @@
 //= stdout "0124"
 
 fun main() {
-    for i in range(0, 5) {
-        if i == 3 { continue; }
+    for i in range(0I, 5I) {
+        if i == 3I { continue; }
         print(i.toString());
     }
 }
