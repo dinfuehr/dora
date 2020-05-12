@@ -75,5 +75,5 @@ class StringBuffer() {
     self.appendChar('\n')
   }
 
-  fun toString() -> String = String::fromBytesPart(self.buf, 0, self.length().toInt()).unwrap();
+  fun toString() -> String = String::fromBytesPart(self.buf, 0L, self.length()).unwrap();
 }

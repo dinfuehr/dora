@@ -52,10 +52,10 @@
   @internal fun getByte(idx: Int) -> UInt8;
   @internal fun clone() -> String;
 
-  @internal @static fun fromBytesPartOrNull(val: Array[UInt8], offset: Int, len: Int) -> String;
-  @internal @static fun fromStringPartOrNull(val: String, offset: Int, len: Int) -> String;
+  @internal @static fun fromBytesPartOrNull(val: Array[UInt8], offset: Int64, len: Int64) -> String;
+  @internal @static fun fromStringPartOrNull(val: String, offset: Int64, len: Int64) -> String;
 
-  @static fun fromBytesPart(val: Array[UInt8], offset: Int, len: Int) -> Option[String] {
+  @static fun fromBytesPart(val: Array[UInt8], offset: Int64, len: Int64) -> Option[String] {
     let value = String::fromBytesPartOrNull(val, offset, len);
 
     if value === nil {
@@ -66,7 +66,7 @@
   }
 
   @static fun fromBytes(val: Array[UInt8]) -> Option[String] {
-    let value = String::fromBytesPartOrNull(val, 0, val.length());
+    let value = String::fromBytesPartOrNull(val, 0L, val.length().toInt64());
   
     if value === nil {
       none[String]()
@@ -75,7 +75,7 @@
     }
   }
 
-  @static fun fromStringPart(val: String, offset: Int, len: Int) -> Option[String] {
+  @static fun fromStringPart(val: String, offset: Int64, len: Int64) -> Option[String] {
     let value = String::fromStringPartOrNull(val, offset, len);
 
     if value === nil {
@@ -91,33 +91,33 @@
     var data = data;
     if data == 0L { return "0"; }
     let array = Array[UInt8](64);
-    var at = array.length();
+    var at = array.length().toInt64();
     while data != 0L {
-      array(at - 1) = ('0'.toInt64() + (data & 1L)).toUInt8();
+      array((at - 1L).toInt()) = ('0'.toInt64() + (data & 1L)).toUInt8();
       data = data.shiftRight(1I);
-      at = at - 1;
+      at = at - 1L;
     }
-    return String::fromBytesPart(array, at, array.length() - at + 1).unwrap();
+    return String::fromBytesPart(array, at, array.length().toInt64() - at + 1L).unwrap();
   }
 
   @static fun hex(data: Int64) -> String {
     var data = data;
     if data == 0L { return "0"; }
     let array = Array[UInt8](16);
-    var at = array.length();
-    while (data != 0L) {
-      let digit = (data & 0xFL).toInt();
+    var at = array.length().toInt64();
+    while data != 0L {
+      let digit = (data & 0xFL).toInt32();
 
-      if digit < 10 {
-        array(at - 1) = ('0'.toInt() + digit).toUInt8();
+      if digit < 10I {
+        array((at - 1L).toInt()) = ('0'.toInt32() + digit).toUInt8();
       } else {
-        array(at - 1) = ('A'.toInt() + digit - 10).toUInt8();
+        array((at - 1L).toInt()) = ('A'.toInt32() + digit - 10I).toUInt8();
       }
 
       data = data.shiftRight(4I);
-      at = at - 1;
+      at = at - 1L;
     }
-    return String::fromBytesPart(array, at, array.length() - at + 1).unwrap();
+    return String::fromBytesPart(array, at, array.length().toInt64() - at + 1L).unwrap();
   }
 
   fun isEmpty() -> Bool = self.length() == 0;

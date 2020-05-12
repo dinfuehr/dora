@@ -1,7 +1,7 @@
 fun main() {
     let val = "abc";
     assert(val.length() == 3);
-    assert(val.codePoints().length() == 3);
+    assert(val.codePoints().length() == 3L);
     let it = val.codePoints();
 
     assert(it.next() == 'a');
@@ -14,7 +14,7 @@ fun main() {
 
     let val = "üß";
     assert(val.length() == 4);
-    assert(val.codePoints().length() == 2);
+    assert(val.codePoints().length() == 2L);
     let it = val.codePoints();
 
     assert(it.next().toInt() == 0xFC);

@@ -82,7 +82,7 @@ fun decodeConstPool(constpool: Array[UInt8]) -> Array[ConstPoolEntry] {
         } else if opcode == CONSTPOOL_OPCODE_STRING {
             let length = reader.readInt32();
             let start = reader.offset();
-            let value = String::fromBytesPart(constpool, start.toInt(), length.toInt()).unwrap();
+            let value = String::fromBytesPart(constpool, start, length.toInt64()).unwrap();
             constPool.push(ConstPoolString(value));
             reader.skipBytes(length.toInt64());
         } else {
