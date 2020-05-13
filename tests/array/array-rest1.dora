@@ -8,5 +8,5 @@ fun main() {
 }
 
 fun number_args(x: Int32...) -> Int64 {
-    x.length().toInt64()
+    x.length()
 }

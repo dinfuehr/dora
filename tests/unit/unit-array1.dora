@@ -2,7 +2,7 @@
 
 fun main() {
     let x = Array[()](7);
-    assert(x.length() == 7);
+    assert(x.length() == 7L);
     let y = arrayEmpty[()]();
-    assert(y.length() == 0);
+    assert(y.length() == 0L);
 }

@@ -1,7 +1,7 @@
 use std::io;
 
 use crate::bytecode::{
-    read, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolIdx, Register,
+    read, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, Register,
 };
 use crate::vm::{ClassDefId, FctDefId, FieldId, GlobalId};
 
@@ -16,10 +16,24 @@ pub fn dump(bc: &BytecodeFunction) {
     print!("Registers:");
 
     for (idx, ty) in bc.registers().iter().enumerate() {
-        print!(" {}={:?}", idx, ty);
+        print!(" r{}={:?}", idx, ty);
     }
 
-    println!("");
+    println!();
+    println!("Constants:");
+
+    for (idx, entry) in bc.const_pool_entries().iter().enumerate() {
+        match entry {
+            ConstPoolEntry::String(ref value) => println!(" {} => String {}", idx, value),
+            ConstPoolEntry::Int32(ref value) => println!(" {} => Int32 {}", idx, value),
+            ConstPoolEntry::Int64(ref value) => println!(" {} => Int64 {}", idx, value),
+            ConstPoolEntry::Float(ref value) => println!(" {} => Float {}", idx, value),
+            ConstPoolEntry::Double(ref value) => println!(" {} => Double {}", idx, value),
+            ConstPoolEntry::Char(ref value) => println!(" {} => Char {}", idx, value),
+        }
+    }
+
+    println!();
 }
 
 struct BytecodeDumper<'a> {

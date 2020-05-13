@@ -1,6 +1,6 @@
 fun main() {
     let x = array[Int32](1, 2, 3);
-    assert(x.length() == 3);
+    assert(x.length() == 3L);
     assert(x(2) == 3);
     assert(x(1) == 2);
     assert(x(0) == 1);

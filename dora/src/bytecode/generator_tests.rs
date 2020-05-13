@@ -2527,18 +2527,14 @@ fn gen_position_new_array() {
 
 #[test]
 fn gen_array_length() {
-    let result = code("fun f(a: Array[Int32]) -> Int64 { return a.length().toInt64(); }");
-    let expected = vec![
-        ArrayLength(r(2), r(0)),
-        ExtendInt32ToInt64(r(1), r(2)),
-        RetInt64(r(1)),
-    ];
+    let result = code("fun f(a: Array[Int32]) -> Int64 { return a.length(); }");
+    let expected = vec![ArrayLength(r(1), r(0)), RetInt64(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_array_length() {
-    let result = position("fun f(a: Array[Int32]) -> Int64 { return a.length().toInt64(); }");
+    let result = position("fun f(a: Array[Int32]) -> Int64 { return a.length(); }");
     let expected = vec![(0, p(1, 50))];
     assert_eq!(expected, result);
 }
@@ -3210,12 +3206,8 @@ fn gen_enum_value() {
 
 #[test]
 fn gen_string_length() {
-    let result = code("fun f(x: String) -> Int64 { x.length().toInt64() }");
-    let expected = vec![
-        ArrayLength(r(2), r(0)),
-        ExtendInt32ToInt64(r(1), r(2)),
-        RetInt64(r(1)),
-    ];
+    let result = code("fun f(x: String) -> Int64 { x.length() }");
+    let expected = vec![ArrayLength(r(1), r(0)), RetInt64(r(1))];
     assert_eq!(expected, result);
 }
 

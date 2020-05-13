@@ -871,7 +871,7 @@ class BytecodeWriter {
         let constPool = self.constPool.toArray();
         let registers = self.registers.toArray();
         let arguments = self.arguments;
-        assert(arguments <= registers.length());
+        assert(arguments.toInt64() <= registers.length());
         BytecodeFunction(code, constPool, registers, arguments)
     }
 

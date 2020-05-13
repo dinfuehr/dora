@@ -23,11 +23,11 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVis
     }
 
     fun nextBlockAt(offset: Int32) -> Option[Block] {
-        var offset = offset;
+        var offset = offset.toInt64();
         while offset < self.bc.code.length() {
-            let result = self.blockAt(offset);
+            let result = self.blockAt(offset.toInt32());
             if result.isSome() { return result; }
-            offset = offset + 1;
+            offset = offset + 1L;
         }
 
         none[Block]()

@@ -9,7 +9,7 @@ class StringBuffer() {
   }
 
   fun capacity() -> Int64 {
-    return self.buf.length().toInt64();
+    return self.buf.length();
   }
 
   // reserve `elements` bytes
@@ -23,7 +23,7 @@ class StringBuffer() {
     let newbuf = Array[UInt8](newcap.toInt32());
     var i = 0L;
 
-    while i < self.buf.length().toInt64() {
+    while i < self.buf.length() {
       newbuf.set(i.toInt32(), self.buf.get(i.toInt32()));
       i = i + 1L;
     }
@@ -59,15 +59,15 @@ class StringBuffer() {
   }
 
   fun append(value: String) -> StringBuffer {
-    self.reserve(value.length().toInt64());
+    self.reserve(value.length());
     var i = 0L;
 
-    while i < value.length().toInt64() {
+    while i < value.length() {
       self.buf.set((self.len + i).toInt32(), value.getByte(i.toInt32()));
       i = i + 1L;
     }
 
-    self.len = self.len + value.length().toInt64();
+    self.len = self.len + value.length();
     self
   }
 

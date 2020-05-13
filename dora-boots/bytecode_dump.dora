@@ -2,18 +2,18 @@ fun bytecodeDump(bc: BytecodeFunction) {
     let dumper = BytecodeDumper(bc);
     readBytecode(bc.code, dumper);
 
-    var i = 0;
+    var i = 0L;
     while i < bc.const_pool.length() {
-        let entry = bc.const_pool.get(i);
+        let entry = bc.const_pool.get(i.toInt32());
         println("@${i} = ${entry.toString()}");
-        i = i + 1;
+        i = i + 1L;
     }
 
-    i = 0;
+    i = 0L;
     while i < bc.registers.length() {
-        let ty = bc.registers.get(i);
+        let ty = bc.registers.get(i.toInt32());
         println("r${i} = ${ty}");
-        i = i + 1;
+        i = i + 1L;
     }
 }
 

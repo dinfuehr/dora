@@ -1,8 +1,8 @@
 //= cannon
 
 fun main() {
-  assert("abc".length() == 3);
+  assert("abc".length() == 3L);
 
   let x = "abcdef";
-  assert(x.length() == 6);
+  assert(x.length() == 6L);
 }

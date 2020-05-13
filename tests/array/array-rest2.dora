@@ -11,7 +11,7 @@ fun sum_args(x: Int32...) -> Int32 {
     var result = 0;
     var idx = 0L;
     
-    while idx < x.length().toInt64() {
+    while idx < x.length() {
         result = result + x(idx.toInt32());
         idx = idx + 1L;
     }

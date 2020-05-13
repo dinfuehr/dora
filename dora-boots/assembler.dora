@@ -45,7 +45,7 @@ class AssemblerBuffer {
     assert(buffer(1) == 0x33Y);
     assert(buffer(2) == 0x22Y);
     assert(buffer(3) == 0x11Y);
-    assert(buffer.length() == 4);
+    assert(buffer.length() == 4L);
 }
 
 @open @abstract class SlowPath {
@@ -63,7 +63,7 @@ class Register(let value: Int32) {
 fun assertAsm(buffer: Array[UInt8], start: Int64, bytes: UInt8...) {
     var idx = 0L;
 
-    while idx < bytes.length().toInt64() {
+    while idx < bytes.length() {
         let exp = bytes(idx.toInt32());
         let got = buffer((start + idx).toInt32());
 
@@ -99,7 +99,7 @@ fun assertAsmInt64(buffer: Array[UInt8], index: Int64, value: Int64) {
 fun printBuffer(buffer: Array[UInt8]) {
     var i = 0L;
 
-    while i < buffer.length().toInt64() {
+    while i < buffer.length() {
         let val = buffer(i.toInt32());
         if i > 0L { print(" "); }
         print(intToHexString(val.toInt32(), 2));
@@ -128,7 +128,7 @@ fun intToHexString(val: Int32, padding: Int32) -> String {
         result = "0";
     }
 
-    while result.length() < padding {
+    while result.length().toInt32() < padding {
         result = "0${result}";
     }
 

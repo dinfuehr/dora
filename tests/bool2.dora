@@ -2,10 +2,10 @@
 
 fun main() {
     let x = arrayEmpty[Bool]();
-    assert(x.length() == 0);
+    assert(x.length() == 0L);
 
     let y = arrayFill[Bool](10L, true);
-    assert(y.length() == 10);
+    assert(y.length() == 10L);
     assert(y(0) == true);
     assert(y(9) == true);
 

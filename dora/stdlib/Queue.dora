@@ -4,10 +4,10 @@ class Queue[T] {
   var count: Int64 = 0L;
 
   @pub fun enqueue(value: T) {
-    if self.count == self.elements.length().toInt64() {
+    if self.count == self.elements.length() {
       // copy into larger array
-      let newelements = Array[T](self.elements.length() * 2);
-      let len = self.elements.length().toInt64() - self.front;
+      let newelements = Array[T]((self.elements.length() * 2L).toInt32());
+      let len = self.elements.length() - self.front;
       arrayCopy[T](self.elements, self.front, newelements, 0L, len);
 
       if len < self.count {
@@ -39,7 +39,7 @@ class Queue[T] {
   fun moveFront() -> Int64 {
     self.front = self.front + 1L;
 
-    if self.front == self.elements.length().toInt64() {
+    if self.front == self.elements.length() {
       self.front = 0L;
     }
 
@@ -49,10 +49,10 @@ class Queue[T] {
   fun getEnd() -> Int64 {
     let end = self.front + self.count;
 
-    if end < self.elements.length().toInt64() {
+    if end < self.elements.length() {
       return end;
     } else {
-      return end - self.elements.length().toInt64();
+      return end - self.elements.length();
     }
   }
 

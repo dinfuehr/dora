@@ -6,7 +6,7 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
 
     assert(graph.getEntryBlock().getDominator().isNone());
 
-    while idomsIdx < idoms.length() {
+    while idomsIdx.toInt64() < idoms.length() {
         let dominatorId = idoms(idomsIdx);
         let block = graph.getBlockWithId(idx);
 

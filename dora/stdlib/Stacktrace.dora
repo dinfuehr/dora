@@ -14,13 +14,13 @@ class Stacktrace() {
       return self.elements;
     }
 
-    var i = 0;
-    let len = self.backtrace.length() / 2;
-    self.elements = Array[StacktraceElement](len);
+    var i = 0L;
+    let len = self.backtrace.length() / 2L;
+    self.elements = Array[StacktraceElement](len.toInt32());
 
     while i < len {
-      self.elements.set(i, self.getStacktraceElement(i));
-      i = i + 1;
+      self.elements.set(i.toInt32(), self.getStacktraceElement(i.toInt32()));
+      i = i + 1L;
     }
 
     return self.elements;
@@ -28,11 +28,11 @@ class Stacktrace() {
 
   fun printStacktrace() {
     let x = self.getStacktrace();
-    var i = 0;
+    var i = 0L;
 
     while i < x.length() {
-      println(i.toString() + ": " + x.get(i).toString());
-      i = i + 1;
+      println(i.toString() + ": " + x.get(i.toInt32()).toString());
+      i = i + 1L;
     }
   }
 

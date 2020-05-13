@@ -2,76 +2,76 @@
 
 fun main() {
   let x = arrayEmpty[Int32]();
-  assert(x.length() == 0);
+  assert(x.length() == 0L);
   assert(int32_array_len(x) == 0L);
 
   let x = arrayFill[Int32](5L, 100);
-  assert(x.length() == 5);
+  assert(x.length() == 5L);
   assert(int32_array_len(x) == 5L);
 
   let x = arrayEmpty[Int64]();
-  assert(x.length() == 0);
+  assert(x.length() == 0L);
   assert(int64_array_len(x) == 0L);
 
   let x = arrayFill[Int64](7L, 100L);
-  assert(x.length() == 7);
+  assert(x.length() == 7L);
   assert(int64_array_len(x) == 7L);
 
   let x = arrayEmpty[Float]();
-  assert(x.length() == 0);
+  assert(x.length() == 0L);
   assert(float_array_len(x) == 0L);
 
   let x = arrayFill[Float](6L, 1.0F);
-  assert(x.length() == 6);
+  assert(x.length() == 6L);
   assert(float_array_len(x) == 6L);
 
   let x = arrayEmpty[Double]();
-  assert(x.length() == 0);
+  assert(x.length() == 0L);
   assert(double_array_len(x) == 0L);
 
   let x = arrayFill[Double](4L, 1.0);
-  assert(x.length() == 4);
+  assert(x.length() == 4L);
   assert(double_array_len(x) == 4L);
 
   let x = arrayEmpty[String]();
-  assert(x.length() == 0);
+  assert(x.length() == 0L);
   assert(str_array_len(x) == 0L);
 
   let x = arrayFill[String](3L, "hello");
-  assert(x.length() == 3);
+  assert(x.length() == 3L);
   assert(str_array_len(x) == 3L);
 
   let x = arrayEmpty[Foo]();
-  assert(x.length() == 0);
+  assert(x.length() == 0L);
   assert(foo_array_len(x) == 0L);
 
   let x = arrayFill[Foo](1L, Foo());
-  assert(x.length() == 1);
+  assert(x.length() == 1L);
   assert(foo_array_len(x) == 1L);
 }
 
 fun int32_array_len(x: Array[Int32]) -> Int64 {
-  return x.length().toInt64();
+  return x.length();
 }
 
 fun int64_array_len(x: Array[Int64]) -> Int64 {
-  return x.length().toInt64();
+  return x.length();
 }
 
 fun float_array_len(x: Array[Float]) -> Int64 {
-  return x.length().toInt64();
+  return x.length();
 }
 
 fun double_array_len(x: Array[Double]) -> Int64 {
-  return x.length().toInt64();
+  return x.length();
 }
 
 fun str_array_len(x: Array[String]) -> Int64 {
-  return x.length().toInt64();
+  return x.length();
 }
 
 fun foo_array_len(x: Array[Foo]) -> Int64 {
-  return x.length().toInt64();
+  return x.length();
 }
 
 class Foo

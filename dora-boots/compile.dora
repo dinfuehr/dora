@@ -24,9 +24,9 @@ class EncodedCompilationInfo {
 
 fun decodeRegisters(registers: Array[Int32]) -> Array[BytecodeType] {
     var i = 0L;
-    let result = arrayFill[BytecodeType](registers.length().toInt64(), BytecodeType::bool());
+    let result = arrayFill[BytecodeType](registers.length(), BytecodeType::bool());
 
-    while i < registers.length().toInt64() {
+    while i < registers.length() {
         let regtype = registers(i.toInt32());
 
         let value = if regtype == BC_TYPE_BOOL {
@@ -98,7 +98,7 @@ class ByteReader(let array: Array[UInt8]) {
     var idx: Int64 = 0L;
 
     fun moreBytes() -> Bool {
-        self.idx < self.array.length().toInt64()
+        self.idx < self.array.length()
     }
 
     fun readUInt8() -> UInt8 {

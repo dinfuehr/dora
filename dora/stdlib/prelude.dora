@@ -29,18 +29,18 @@ fun bubbleSort[T: Comparable](array: Array[T]) {
   while swapped {
     swapped = false;
 
-    var i = 1;
+    var i = 1L;
 
     while i < len {
-      if array.get(i-1).compareTo(array.get(i)) > 0 {
-        let temp = array.get(i-1);
-        array.set(i-1, array.get(i));
-        array.set(i, temp);
+      if array.get((i-1L).toInt32()).compareTo(array.get(i.toInt32())) > 0 {
+        let temp = array.get((i-1L).toInt32());
+        array.set((i-1L).toInt32(), array.get(i.toInt32()));
+        array.set(i.toInt32(), temp);
 
         swapped = true;
       }
 
-      i = i + 1;
+      i = i + 1L;
     }
   }
 }
@@ -48,7 +48,7 @@ fun bubbleSort[T: Comparable](array: Array[T]) {
 fun isValidUtf8(data: Array[UInt8]) -> Bool {
   var i = 0L;
 
-  while i < data.length().toInt64() {
+  while i < data.length() {
     let by = data.get(i.toInt32()).toInt32();
     var codePoint = 0;
     var nextUInt8s = 0;
@@ -86,7 +86,7 @@ fun isValidUtf8(data: Array[UInt8]) -> Bool {
       nextUInt8s = nextUInt8s - 1;
       i = i + 1L;
 
-      if i >= data.length().toInt64() {
+      if i >= data.length() {
         return false;
       }
 

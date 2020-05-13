@@ -1,10 +1,10 @@
 @internal class Array[T](len: Int32) {
 
-  @internal fun length() -> Int32;
+  @internal fun length() -> Int64;
   @internal fun get(idx: Int32) -> T;
   @internal fun set(idx: Int32, val: T);
 
-  fun isEmpty() -> Bool = self.length() == 0;
+  fun isEmpty() -> Bool = self.length() == 0L;
 
 }
 
@@ -15,27 +15,27 @@
 // `[S <: T : Identity + Equals]`. I hope that a better solution can be found.
 
 fun arrayContains[T : Identity + Equals](array: Array[T], value: T) -> Bool {
-  var i = 0;
+  var i = 0L;
 
   while i < array.length() {
-    let x = array.get(i);
+    let x = array.get(i.toInt32());
     if x.identicalTo(value) || x.equals(value) {
       return true;
     }
-    i = i + 1;
+    i = i + 1L;
   }
 
   return false;
 }
 
 fun arrayHas[T : Identity](array: Array[T], value: T) -> Bool {
-  var i = 0;
+  var i = 0L;
 
   while i < array.length() {
-    if array.get(i).identicalTo(value) {
+    if array.get(i.toInt32()).identicalTo(value) {
       return true;
     }
-    i = i + 1;
+    i = i + 1L;
   }
 
   return false;

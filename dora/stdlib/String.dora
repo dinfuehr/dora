@@ -1,6 +1,6 @@
 @internal class String {
   fun equals(rhs: String) -> Bool {
-    var i = 0;
+    var i = 0L;
 
     if self.length() != rhs.length() {
         return false;
@@ -9,11 +9,11 @@
     let len = self.length();
 
     while i < len {
-        if self.getByte(i) != rhs.getByte(i) {
+        if self.getByte(i.toInt32()) != rhs.getByte(i.toInt32()) {
             return false;
         }
 
-        i = i + 1;
+        i = i + 1L;
     }
 
     return true;
@@ -23,7 +23,7 @@
 
   @internal fun compareTo(rhs: String) -> Int32;
 
-  @internal fun length() -> Int32;
+  @internal fun length() -> Int64;
 
   @internal fun toInt32Success() -> Bool;
   @internal fun toInt64Success() -> Bool;
@@ -66,7 +66,7 @@
   }
 
   @static fun fromBytes(val: Array[UInt8]) -> Option[String] {
-    let value = String::fromBytesPartOrNull(val, 0L, val.length().toInt64());
+    let value = String::fromBytesPartOrNull(val, 0L, val.length());
   
     if value === nil {
       none[String]()
@@ -91,20 +91,20 @@
     var data = data;
     if data == 0L { return "0"; }
     let array = Array[UInt8](64);
-    var at = array.length().toInt64();
+    var at = array.length();
     while data != 0L {
       array((at - 1L).toInt32()) = ('0'.toInt64() + (data & 1L)).toUInt8();
       data = data.shiftRight(1);
       at = at - 1L;
     }
-    return String::fromBytesPart(array, at, array.length().toInt64() - at + 1L).unwrap();
+    return String::fromBytesPart(array, at, array.length() - at + 1L).unwrap();
   }
 
   @static fun hex(data: Int64) -> String {
     var data = data;
     if data == 0L { return "0"; }
     let array = Array[UInt8](16);
-    var at = array.length().toInt64();
+    var at = array.length();
     while data != 0L {
       let digit = (data & 0xFL).toInt32();
 
@@ -117,10 +117,10 @@
       data = data.shiftRight(4);
       at = at - 1L;
     }
-    return String::fromBytesPart(array, at, array.length().toInt64() - at + 1L).unwrap();
+    return String::fromBytesPart(array, at, array.length() - at + 1L).unwrap();
   }
 
-  fun isEmpty() -> Bool = self.length() == 0;
+  fun isEmpty() -> Bool = self.length() == 0L;
 
   fun codePoints() -> CodepointIterator = CodepointIterator(self, 0L);
 }

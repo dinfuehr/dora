@@ -2,7 +2,7 @@
 
 fun main() {
     let x = arrayEmpty[Char]();
-    assert(x.length() == 0);
+    assert(x.length() == 0L);
 
     let x = arrayFill[Char](10L, '\0');
     assert(x(0) == '\0');

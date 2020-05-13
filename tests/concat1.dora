@@ -2,5 +2,5 @@
 
 fun main() {
     let x = "hello " + "world";
-    assert(x.length() == 11);
+    assert(x.length() == 11L);
 }

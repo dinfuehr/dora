@@ -4,4 +4,4 @@ fun main() {
   assert(1L == len(arrayFill[Int32](1L, 0)));
 }
 
-fun len(a: Array[Int32]) -> Int64 { return a.length().toInt64(); }
+fun len(a: Array[Int32]) -> Int64 { return a.length(); }

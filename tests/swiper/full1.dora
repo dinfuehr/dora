@@ -2,10 +2,10 @@
 
 fun main() {
     let a = Array[Foo](1_000_000);
-    var i = 0;
+    var i = 0L;
     while i < a.length() {
-        a(i) = Foo();
-        i = i + 1;
+        a(i.toInt32()) = Foo();
+        i = i + 1L;
     }
 
     forceCollect();

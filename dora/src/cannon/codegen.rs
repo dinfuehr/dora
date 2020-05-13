@@ -1417,7 +1417,7 @@ where
     }
 
     fn emit_array_length(&mut self, dest: Register, arr: Register) {
-        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Int32);
+        // assert_eq!(self.bytecode.register_type(dest), BytecodeType::Int32);
         assert_eq!(self.bytecode.register_type(arr), BytecodeType::Ptr);
 
         let position = self.bytecode.offset_position(self.current_offset.to_u32());
@@ -1427,7 +1427,7 @@ where
             .test_if_nil_bailout(position, REG_RESULT, Trap::NIL);
 
         self.asm.load_mem(
-            MachineMode::Ptr,
+            MachineMode::Int64,
             REG_RESULT.into(),
             Mem::Base(REG_RESULT, Header::size()),
         );

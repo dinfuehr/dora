@@ -109,7 +109,7 @@ class Vec[T] {
   }
 
   fun capacity() -> Int64 {
-    self.array.length().toInt64()
+    self.array.length()
   }
 
   fun first() -> Option[T] {
@@ -180,6 +180,6 @@ fun removeItem[T: Equals](vec: Vec[T], elem: T) {
 fun vec[T](values: T...) -> Vec[T] {
   let result = Vec[T]();
   result.array = values;
-  result.len = values.length().toInt64();
+  result.len = values.length();
   result
 }

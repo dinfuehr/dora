@@ -4,8 +4,8 @@ use crate::vm::ConstValue;
 
 #[test]
 fn type_method_len() {
-    ok("fun f(a: String) -> Int32 { return a.length(); }");
-    ok("fun f(a: String) -> Int32 { return \"abc\".length(); }");
+    ok("fun f(a: String) -> Int64 { return a.length(); }");
+    ok("fun f(a: String) -> Int64 { return \"abc\".length(); }");
 }
 
 #[test]
@@ -2002,7 +2002,7 @@ fn literal_without_suffix_long() {
 #[test]
 fn variadic_parameter() {
     ok("
-        fun f(x: Int32...) -> Int32 {
+        fun f(x: Int32...) -> Int64 {
             x.length()
         }
         fun g() {

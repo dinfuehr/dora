@@ -451,8 +451,6 @@ impl Intrinsic {
             | Intrinsic::Int32Plus
             | Intrinsic::Int32Neg
             | Intrinsic::ReinterpretFloatAsInt32
-            | Intrinsic::GenericArrayLen
-            | Intrinsic::StrLen
             | Intrinsic::CharToInt32
             | Intrinsic::Int64ToInt32
             | Intrinsic::ByteToInt32
@@ -499,6 +497,8 @@ impl Intrinsic {
             | Intrinsic::Int32ToInt64
             | Intrinsic::FloatToInt64
             | Intrinsic::DoubleToInt64
+            | Intrinsic::GenericArrayLen
+            | Intrinsic::StrLen
             | Intrinsic::ReinterpretDoubleAsInt64 => BytecodeType::Int64,
             Intrinsic::FloatAdd
             | Intrinsic::FloatSub

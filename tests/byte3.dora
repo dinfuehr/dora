@@ -2,10 +2,10 @@
 
 fun main() {
     let ba = arrayEmpty[UInt8]();
-    assert(ba.length() == 0);
+    assert(ba.length() == 0L);
 
     let ba = arrayFill[UInt8](10L, 2Y);
-    assert(ba.length() == 10);
+    assert(ba.length() == 10L);
 
     ba(0) = 10Y;
     ba(1) = 11Y;
