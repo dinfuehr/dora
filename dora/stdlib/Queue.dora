@@ -20,15 +20,15 @@ class Queue[T] {
     }
 
     let end = self.getEnd();
-    self.elements.set(end.toInt(), value);
+    self.elements.set(end.toInt32(), value);
     self.count = self.count + 1L;
   }
 
   @pub fun dequeue() -> T {
     assert(self.count > 0L);
 
-    let value = self.elements.get(self.front.toInt());
-    self.elements.set(self.front.toInt(), defaultValue[T]());
+    let value = self.elements.get(self.front.toInt32());
+    self.elements.set(self.front.toInt32(), defaultValue[T]());
 
     self.moveFront();
     self.count = self.count - 1L;

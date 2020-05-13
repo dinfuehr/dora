@@ -1,7 +1,7 @@
 fun main() {
-    let x = vec[Int32](1I, 2I, 3I);
+    let x = vec[Int32](1, 2, 3);
     assert(x.length() == 3L);
-    assert(x.pop() == 3I);
-    assert(x.pop() == 2I);
-    assert(x.pop() == 1I);
+    assert(x.pop() == 3);
+    assert(x.pop() == 2);
+    assert(x.pop() == 1);
 }

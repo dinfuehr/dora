@@ -1,10 +1,10 @@
 fun main() {
   let x = arrayFill[Foo](5L, nil);
-  x(0) = Foo(1I);
-  x(4) = Foo(2I);
+  x(0) = Foo(1);
+  x(4) = Foo(2);
   forceCollect();
-  assert(x(0).x == 1I);
-  assert(x(4).x == 2I);
+  assert(x(0).x == 1);
+  assert(x(4).x == 2);
 }
 
 class Foo(let x: Int32)

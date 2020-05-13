@@ -5,5 +5,5 @@ fun main() {
   assert(f2.a == 1);
 }
 
-class Foo1(a: Int)
-class Foo2(let a: Int, b: Int)
+class Foo1(a: Int32)
+class Foo2(let a: Int32, b: Int32)

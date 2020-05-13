@@ -1,5 +1,5 @@
 //= cannon
 
 fun main() { f(); }
-class Foo(i: Int)
+class Foo(i: Int32)
 fun f() { assert(Foo(1) !== Foo(2)); }

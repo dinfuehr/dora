@@ -2,7 +2,7 @@ fun main() {
     assert(returnBool() == true);
     assert(returnChar() == '5');
     assert(returnByte() == 5Y);
-    assert(returnInt32() == 5I);
+    assert(returnInt32() == 5);
     assert(returnInt64() == 5L);
     assert(returnFloat() == 5F);
     assert(returnDouble() == 5D);
@@ -22,7 +22,7 @@ fun main() {
 }
 
 @cannon fun returnInt32() -> Int32 {
-    return 5I;
+    return 5;
 }
 
 @cannon fun returnInt64() -> Int64 {

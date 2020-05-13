@@ -13,9 +13,9 @@ impl Foo {
 
     fun toInt32() -> Int32 {
         if self == Foo::A {
-            0I
+            0
         } else {
-            1I
+            1
         }
     }
 }
@@ -24,8 +24,8 @@ fun main() {
     assert("A" == asString(Foo::A));
     assert("B" == asString(Foo::B));
 
-    assert(0I == asInt(Foo::A));
-    assert(1I == asInt(Foo::B));
+    assert(0 == asInt(Foo::A));
+    assert(1 == asInt(Foo::B));
 }
 
 fun asString(foo: Foo) -> String {

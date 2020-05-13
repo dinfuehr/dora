@@ -3,9 +3,9 @@ fun main() {
     assert(y == 10);
 }
 
-class A(let x: Int)
+class A(let x: Int32)
 
-fun test(a: A) -> Int {
+fun test(a: A) -> Int32 {
     forceCollect();
     return a.x;
 }

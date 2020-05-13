@@ -10,10 +10,6 @@ impl Equals for UInt8 {
   fun equals(other: UInt8) -> Bool = self == other;
 }
 
-impl Equals for Int {
-  fun equals(other: Int) -> Bool = self == other;
-}
-
 impl Equals for Int32 {
   fun equals(other: Int32) -> Bool = self == other;
 }

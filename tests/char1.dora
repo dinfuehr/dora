@@ -12,6 +12,6 @@ fun main() {
     assert(ch != ch2);
     assert(ch < ch2);
 
-    assert(ch.toInt() == 97);
+    assert(ch.toInt32() == 97);
     assert(ch.toInt64() == 97L);
 }

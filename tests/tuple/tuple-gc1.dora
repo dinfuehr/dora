@@ -13,5 +13,5 @@ fun main() {
 }
 
 fun createFoo() -> Foo {
-    Foo(1I)
+    Foo(1)
 }

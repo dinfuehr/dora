@@ -10,10 +10,6 @@ impl Identity for UInt8 {
   fun identicalTo(other: UInt8) -> Bool = self === other;
 }
 
-impl Identity for Int {
-  fun identicalTo(other: Int) -> Bool = self === other;
-}
-
 impl Identity for Int32 {
   fun identicalTo(other: Int32) -> Bool = self === other;
 }

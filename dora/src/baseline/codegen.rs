@@ -360,8 +360,8 @@ where
         let lbl_end = self.asm.create_label();
 
         let array_slot = self.managed_stack.add_scope(BuiltinType::Ptr, self.vm);
-        let index_slot = self.managed_stack.add_scope(BuiltinType::Int, self.vm);
-        let length_slot = self.managed_stack.add_scope(BuiltinType::Int, self.vm);
+        let index_slot = self.managed_stack.add_scope(BuiltinType::Int64, self.vm);
+        let length_slot = self.managed_stack.add_scope(BuiltinType::Int64, self.vm);
 
         let for_var_id = *self.src.map_vars.get(stmt.id).unwrap();
         let var_ty = self.var_ty(for_var_id);
@@ -1215,7 +1215,7 @@ where
 
         let mode = match ty {
             BuiltinType::UInt8 => MachineMode::Int8,
-            BuiltinType::Int32 | BuiltinType::Int => MachineMode::Int32,
+            BuiltinType::Int32 => MachineMode::Int32,
             BuiltinType::Int64 => MachineMode::Int64,
             _ => unreachable!(),
         };
@@ -1372,7 +1372,7 @@ where
                 );
             }
 
-            BuiltinType::UInt8 | BuiltinType::Int | BuiltinType::Int32 | BuiltinType::Int64 => {
+            BuiltinType::UInt8 | BuiltinType::Int32 | BuiltinType::Int64 => {
                 self.asm
                     .load_int_const(ty.mode(), dest.reg(), xconst.value.to_int());
             }
@@ -2353,7 +2353,7 @@ where
             }
             BuiltinType::Bool
             | BuiltinType::UInt8
-            | BuiltinType::Int
+            | BuiltinType::Int32
             | BuiltinType::Int64
             | BuiltinType::Char => self.asm.load_int_const(ty.mode(), dest.reg(), 0),
             BuiltinType::Float | BuiltinType::Double => {
@@ -2570,7 +2570,7 @@ where
         self.emit_expr(e, REG_RESULT.into());
         self.asm.test_if_nil_bailout(pos, REG_RESULT, Trap::NIL);
         self.asm.load_mem(
-            MachineMode::Ptr,
+            MachineMode::Int64,
             dest.into(),
             Mem::Base(REG_RESULT, Header::size()),
         );
@@ -3780,7 +3780,6 @@ fn check_for_nil(ty: BuiltinType) -> bool {
         BuiltinType::Unit => false,
         BuiltinType::UInt8
         | BuiltinType::Char
-        | BuiltinType::Int
         | BuiltinType::Int32
         | BuiltinType::Int64
         | BuiltinType::Float

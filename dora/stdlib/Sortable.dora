@@ -14,10 +14,6 @@ impl Sortable for UInt8 {
   fun sortsAs(other: UInt8) -> Int32 = self.compareTo(other);
 }
 
-impl Sortable for Int {
-  fun sortsAs(other: Int) -> Int32 = self.compareTo(other);
-}
-
 impl Sortable for Int32 {
   fun sortsAs(other: Int32) -> Int32 = self.compareTo(other);
 }

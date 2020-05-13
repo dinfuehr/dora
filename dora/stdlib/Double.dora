@@ -1,5 +1,4 @@
 @internal class Double {
-  @internal fun toInt() -> Int;
   @internal fun toInt32() -> Int32;
   @internal fun toInt64() -> Int64;
   @internal fun toFloat() -> Float;
@@ -13,15 +12,15 @@
     var ix = self.asInt64();
     var iy = rhs.asInt64();
 
-    let sx = ix.shiftRightSigned(63I).shiftRight(1I);
-    let sy = iy.shiftRightSigned(63I).shiftRight(1I);
+    let sx = ix.shiftRightSigned(63).shiftRight(1);
+    let sy = iy.shiftRightSigned(63).shiftRight(1);
 
     ix = ix.bitwiseXor(sx);
     iy = iy.bitwiseXor(sy);
 
-    if ix < iy { return -1I; }
-    if ix == iy { return 0I; }
-    return 1I;
+    if ix < iy { return -1; }
+    if ix == iy { return 0; }
+    return 1;
   }
 
   @internal fun plus(rhs: Double) -> Double;
@@ -37,6 +36,6 @@
 
   fun hash() -> Int32 = self.asInt64().toInt32();
 
-  @static fun bits() -> Int = 64;
-  @static fun bytes() -> Int = 8;
+  @static fun bits() -> Int32 = 64;
+  @static fun bytes() -> Int32 = 8;
 }

@@ -1,4 +1,4 @@
 fun main() {
-    let x: Int = 2147483647;
-    // let y: Int = -2147483648; // should be allowed for int
+    let x: Int32 = 2147483647;
+    let y: Int32 = -2147483648;
 }

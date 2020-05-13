@@ -6,8 +6,8 @@ fun main() {
   assert(x.x == 2);
 }
 
-class X(something: Int) {
-  let x: Int = something;
+class X(something: Int32) {
+  let x: Int32 = something;
 
   @static fun empty() -> X = X(2);
 }

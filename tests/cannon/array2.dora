@@ -1,17 +1,17 @@
 fun main() {
-  let array = createArray(5I);
+  let array = createArray(5);
 
   assert(array.length() == 5);
-  assert(getLength(array) == 5I);
+  assert(getLength(array) == 5L);
   
-  setArray(array, 2I, 50L);
+  setArray(array, 2, 50L);
   assert(array(2) == 50L);
 
   array(3) = 40L;
-  assert(getArray(array, 3I) == 40L);
+  assert(getArray(array, 3) == 40L);
 }
 
-@cannon fun createArray(a: Int32) -> Array[Int64] { return Array[Int64](a.toInt()); }
-@cannon fun getLength(a: Array[Int64]) -> Int32 { return a.length().toInt32(); }
-@cannon fun setArray(arr: Array[Int64], idx: Int32, value: Int64) { arr(idx.toInt()) = value; }
-@cannon fun getArray(arr: Array[Int64], idx: Int32) -> Int64 { return arr(idx.toInt()); }
+@cannon fun createArray(a: Int32) -> Array[Int64] { return Array[Int64](a); }
+@cannon fun getLength(a: Array[Int64]) -> Int64 { return a.length().toInt64(); }
+@cannon fun setArray(arr: Array[Int64], idx: Int32, value: Int64) { arr(idx) = value; }
+@cannon fun getArray(arr: Array[Int64], idx: Int32) -> Int64 { return arr(idx); }

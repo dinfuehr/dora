@@ -1,7 +1,7 @@
 //= cannon
 
 fun main() {
-    foo[Int](1);
+    foo[Int32](1);
     foo[Float](3F);
     foo[String]("hello");
 }

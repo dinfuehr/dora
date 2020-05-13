@@ -1,8 +1,8 @@
-@internal class Array[T](len: Int) {
+@internal class Array[T](len: Int32) {
 
-  @internal fun length() -> Int;
-  @internal fun get(idx: Int) -> T;
-  @internal fun set(idx: Int, val: T);
+  @internal fun length() -> Int32;
+  @internal fun get(idx: Int32) -> T;
+  @internal fun set(idx: Int32, val: T);
 
   fun isEmpty() -> Bool = self.length() == 0;
 
@@ -44,11 +44,11 @@ fun arrayHas[T : Identity](array: Array[T], value: T) -> Bool {
 fun arrayEmpty[T]() -> Array[T] = Array[T](0);
 
 fun arrayFill[T](len: Int64, value: T) -> Array[T] {
-  let array = Array[T](len.toInt());
+  let array = Array[T](len.toInt32());
   var i = 0L;
 
   while i < len {
-    array(i.toInt()) = value;
+    array(i.toInt32()) = value;
     i = i + 1L;
   }
 
@@ -56,25 +56,25 @@ fun arrayFill[T](len: Int64, value: T) -> Array[T] {
 }
 
 fun arrayNew[T: Default](len: Int64) -> Array[T] {
-  let array = Array[T](len.toInt());
+  let array = Array[T](len.toInt32());
   var i = 0L;
   let value = T::default();
 
   while i < len {
-    array.set(i.toInt(), value);
+    array.set(i.toInt32(), value);
     i = i + 1L;
   }
 
   return array;
 }
 
-fun arrayZero[T: Zero](len: Int64) -> Array[T] = return Array[T](len.toInt());
+fun arrayZero[T: Zero](len: Int64) -> Array[T] = return Array[T](len.toInt32());
 
 fun arrayCopy[T](src: Array[T], srcPos: Int64, dest: Array[T], destPos: Int64, len: Int64) {
   var i = 0L;
 
   while i < len {
-    dest.set((destPos+i).toInt(), src.get((srcPos+i).toInt()));
+    dest.set((destPos+i).toInt32(), src.get((srcPos+i).toInt32()));
     i = i + 1L;
   }
 }

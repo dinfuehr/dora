@@ -1,8 +1,8 @@
 //= cannon
 fun main() {
-    var counter = 0I;
-    for i in range(0I, 0I) {
-        counter = counter + 1I;
+    var counter = 0;
+    for i in range(0, 0) {
+        counter = counter + 1;
     }
-    assert(counter == 0I);
+    assert(counter == 0);
 }

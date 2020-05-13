@@ -15,4 +15,4 @@ fun id(x: Foo) -> Foo {
   return x;
 }
 
-class Foo(let y: Int)
+class Foo(let y: Int32)

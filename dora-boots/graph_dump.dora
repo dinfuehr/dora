@@ -127,15 +127,15 @@ fun assertGraph(graph: Graph, output: String) {
         println("got: \"${graphOutput}\"");
         println("expected: \"${output}\"");
 
-        for idx in range(0I, graphOutput.length().toInt32()) {
-            let value = graphOutput.getByte(idx.toInt());
+        for idx in range(0, graphOutput.length()) {
+            let value = graphOutput.getByte(idx);
             print("${value.toInt32().toStringHex()} ");
         }
 
         println("");
 
-        for idx in range(0I, output.length().toInt32()) {
-            let value = output.getByte(idx.toInt());
+        for idx in range(0, output.length()) {
+            let value = output.getByte(idx);
             print("${value.toInt32().toStringHex()} ");
         }
 

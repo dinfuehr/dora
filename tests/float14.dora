@@ -5,11 +5,11 @@ fun main() {
 }
 
 class SomeTest {
-    fun plus(y: Int) -> Float {
+    fun plus(y: Int32) -> Float {
         return 1.0F;
     }
 
-    fun minus(y: Int) -> Float {
+    fun minus(y: Int32) -> Float {
         return 2.0F;
     }
 }

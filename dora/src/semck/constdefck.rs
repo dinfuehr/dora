@@ -54,6 +54,6 @@ mod tests {
             SemError::UnknownType("Foo".into()),
         );
 
-        ok("const x: Int = 0;");
+        ok("const x: Int32 = 0;");
     }
 }

@@ -11,6 +11,6 @@ class B: A {
   }
 
   fun bar() -> Int32 {
-    return 1I;
+    return 1;
   }
 }

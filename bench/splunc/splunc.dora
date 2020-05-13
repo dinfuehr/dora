@@ -98,24 +98,24 @@
         }
 
         if tree.left !== nil {
-            if depth == 0I {
+            if depth == 0 {
                 /*if tree.left !== nil {
                     println("truncate left");
                 }*/
                 tree.left = nil;
             } else {
-                Node::trunc(date, tree.left, depth-1I);
+                Node::trunc(date, tree.left, depth-1);
             }
         }
 
         if tree.right !== nil {
-            if depth == 0I {
+            if depth == 0 {
                 /*if tree.right !== nil {
                     println("truncate right");
                 }*/
                 tree.right = nil;
             } else {
-                Node::trunc(date, tree.right, depth-1I);
+                Node::trunc(date, tree.right, depth-1);
             }
         }
     }
@@ -152,10 +152,10 @@
 
     @static fun countNodes(node: Node) -> Int32 {
         if node === nil {
-            return 0I;
+            return 0;
         }
 
-        return 1I + Node::countNodes(node.left) + Node::countNodes(node.right);
+        return 1 + Node::countNodes(node.left) + Node::countNodes(node.right);
     }
 }
 
@@ -172,44 +172,44 @@ class Node72: Node { let x1: Int64 = 0L; let x2: Int64 = 0L; let x3: Int64 = 0L;
 class Node80: Node { let x1: Int64 = 0L; let x2: Int64 = 0L; let x3: Int64 = 0L; let x4: Int64 = 0L; let x5: Int64 = 0L; }
 
 fun main() {
-    if argc() < 4I {
+    if argc() < 4 {
         println("usage: splunc <seed> <max-size> <iterations> <trunc-depth> [<iterations> <trunc-depth>]");
-        exit(1I);
+        exit(1);
     }
 
-    let rnd = Random(argv(0I).toInt64().unwrap());
-    let max_size = argv(1I).toInt32().unwrap();
-    var date = 0I;
+    let rnd = Random(argv(0).toInt64().unwrap());
+    let max_size = argv(1).toInt32().unwrap();
+    var date = 0;
 
     var tree: Node = NodeA();
     tree.birthday = date;
-    date = date + 1I;
+    date = date + 1;
     tree.value = rnd.nextInt32WithBound(max_size);
 
-    var j = 2I;
+    var j = 2;
 
-    while j + 2I <= argc() {
+    while j + 2 <= argc() {
         let n = argv(j).toInt32().unwrap();
         let depth = argv(j).toInt32().unwrap();
 
-        var i = 0I;
+        var i = 0;
         while i < n {
-            let value = rnd.nextInt32WithBound(4I);
+            let value = rnd.nextInt32WithBound(4);
             var node: Node = nil;
 
-            if value == 0I {
+            if value == 0 {
                 node = NodeA();
-            } else if value == 1I {
+            } else if value == 1 {
                 node = NodeB();
-            } else if value == 2I {
+            } else if value == 2 {
                 node = NodeC();
             } else {
-                assert(value == 3I);
+                assert(value == 3);
                 node = NodeD();
             }
 
             node.birthday = date;
-            date = date + 1I;
+            date = date + 1;
             node.value = rnd.nextInt32WithBound(max_size);
 
             tree = Node::insert(tree, node);
@@ -217,9 +217,9 @@ fun main() {
 
             // println("nodes in tree: " + Node::countNodes(tree).toString());
 
-            i = i + 1I;
+            i = i + 1;
         }
 
-        j = j + 2I;
+        j = j + 2;
     }
 }

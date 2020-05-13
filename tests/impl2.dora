@@ -5,7 +5,7 @@ trait Foo {
     fun bla();
 }
 
-class A(let val: Int)
+class A(let val: Int32)
 
 impl Foo for A {
     fun bla() {

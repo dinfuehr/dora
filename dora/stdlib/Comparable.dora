@@ -15,10 +15,6 @@ impl Comparable for UInt8 {
   fun compareTo(other: UInt8) -> Int32 = self.compareTo(other);
 }
 
-impl Comparable for Int {
-  fun compareTo(other: Int) -> Int32 = self.compareTo(other);
-}
-
 impl Comparable for Int32 {
   fun compareTo(other: Int32) -> Int32 = self.compareTo(other);
 }

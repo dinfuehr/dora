@@ -1,7 +1,7 @@
 //= cannon
 
 fun main() {
-    let x = 97I.toChar().unwrap();
+    let x = 97.toChar().unwrap();
     assert(x == 'a');
 
     let y = 65L.toChar().unwrap();

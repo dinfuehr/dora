@@ -1,11 +1,11 @@
 fun main() {
-    assert(rotateLeft(-12I, 1I) == -23I);
-    assert(rotateLeft(-12I, 32I) == -12I);
-    assert(rotateLeft(-12I, -1I) == 2147483642I);
+    assert(rotateLeft(-12, 1) == -23);
+    assert(rotateLeft(-12, 32) == -12);
+    assert(rotateLeft(-12, -1) == 2147483642);
 
-    assert(rotateRight(-12I, 1I) == 2147483642I);
-    assert(rotateRight(-12I, 32I) == -12I);
-    assert(rotateRight(-12I, -1I) == -23I);
+    assert(rotateRight(-12, 1) == 2147483642);
+    assert(rotateRight(-12, 32) == -12);
+    assert(rotateRight(-12, -1) == -23);
 }
 
 @cannon fun rotateLeft(x: Int32, y: Int32) -> Int32 {

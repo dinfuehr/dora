@@ -1,6 +1,6 @@
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
 
-class Foo(let value: Int)
+class Foo(let value: Int32)
 
 fun main() {
     let tpl: Foo = if false {

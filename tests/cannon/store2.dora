@@ -10,12 +10,12 @@ var glob_obj: Foo;
 
 fun main() {
     let obj = Foo();
-    init_globs(true, '5', 5Y, 5I, 5L, 5F, 5D, "5", obj);
+    init_globs(true, '5', 5Y, 5, 5L, 5F, 5D, "5", obj);
     
     assert(glob_bool == true);
     assert(glob_char == '5');
     assert(glob_byte == 5Y);
-    assert(glob_int32 == 5I);
+    assert(glob_int32 == 5);
     assert(glob_int64 == 5L);
     assert(glob_float == 5F);
     assert(glob_double == 5D);

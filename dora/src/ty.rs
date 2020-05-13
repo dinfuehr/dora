@@ -26,7 +26,6 @@ pub enum BuiltinType {
     UInt8,
     Int32,
     Int64,
-    Int,
 
     Float,
     Double,
@@ -145,7 +144,6 @@ impl BuiltinType {
             BuiltinType::Bool => Some(vm.vips.bool_class),
             BuiltinType::UInt8 => Some(vm.vips.uint8_class),
             BuiltinType::Char => Some(vm.vips.char_class),
-            BuiltinType::Int => Some(vm.vips.int_class),
             BuiltinType::Int32 => Some(vm.vips.int32_class),
             BuiltinType::Int64 => Some(vm.vips.int64_class),
             BuiltinType::Float => Some(vm.vips.float_class),
@@ -229,7 +227,7 @@ impl BuiltinType {
             BuiltinType::Unit
             | BuiltinType::Bool
             | BuiltinType::UInt8
-            | BuiltinType::Int
+            | BuiltinType::Int32
             | BuiltinType::Int64
             | BuiltinType::Float
             | BuiltinType::Double => true,
@@ -258,7 +256,6 @@ impl BuiltinType {
             BuiltinType::Unit => "()".into(),
             BuiltinType::UInt8 => "UInt8".into(),
             BuiltinType::Char => "Char".into(),
-            BuiltinType::Int => "Int".into(),
             BuiltinType::Int32 => "Int32".into(),
             BuiltinType::Int64 => "Int64".into(),
             BuiltinType::Float => "Float".into(),
@@ -385,11 +382,9 @@ impl BuiltinType {
             | BuiltinType::UInt8
             | BuiltinType::Char
             | BuiltinType::Struct(_, _) => *self == other,
-            BuiltinType::Int
-            | BuiltinType::Int32
-            | BuiltinType::Int64
-            | BuiltinType::Float
-            | BuiltinType::Double => *self == other,
+            BuiltinType::Int32 | BuiltinType::Int64 | BuiltinType::Float | BuiltinType::Double => {
+                *self == other
+            }
             BuiltinType::Nil => panic!("nil does not allow any other types"),
             BuiltinType::Ptr => panic!("ptr does not allow any other types"),
             BuiltinType::This => unreachable!(),
@@ -456,7 +451,6 @@ impl BuiltinType {
             BuiltinType::Bool => 1,
             BuiltinType::UInt8 => 1,
             BuiltinType::Char => 4,
-            BuiltinType::Int => 4,
             BuiltinType::Int32 => 4,
             BuiltinType::Int64 => 8,
             BuiltinType::Float => 4,
@@ -492,7 +486,6 @@ impl BuiltinType {
             BuiltinType::Bool => 1,
             BuiltinType::UInt8 => 1,
             BuiltinType::Char => 4,
-            BuiltinType::Int => 4,
             BuiltinType::Int32 => 4,
             BuiltinType::Int64 => 8,
             BuiltinType::Float => 4,
@@ -528,7 +521,6 @@ impl BuiltinType {
             BuiltinType::Bool => MachineMode::Int8,
             BuiltinType::UInt8 => MachineMode::Int8,
             BuiltinType::Char => MachineMode::Int32,
-            BuiltinType::Int => MachineMode::Int32,
             BuiltinType::Int32 => MachineMode::Int32,
             BuiltinType::Int64 => MachineMode::Int64,
             BuiltinType::Float => MachineMode::Float32,
@@ -561,7 +553,6 @@ impl BuiltinType {
             | BuiltinType::Bool
             | BuiltinType::UInt8
             | BuiltinType::Char
-            | BuiltinType::Int
             | BuiltinType::Int32
             | BuiltinType::Int64
             | BuiltinType::Float
@@ -604,7 +595,6 @@ impl BuiltinType {
             | BuiltinType::Bool
             | BuiltinType::UInt8
             | BuiltinType::Char
-            | BuiltinType::Int
             | BuiltinType::Int32
             | BuiltinType::Int64
             | BuiltinType::Float
@@ -874,7 +864,7 @@ mod tests {
     #[test]
     fn mode_for_types() {
         assert_eq!(MachineMode::Int8, BuiltinType::Bool.mode());
-        assert_eq!(MachineMode::Int32, BuiltinType::Int.mode());
+        assert_eq!(MachineMode::Int32, BuiltinType::Int32.mode());
         assert_eq!(MachineMode::Ptr, BuiltinType::Ptr.mode());
     }
 

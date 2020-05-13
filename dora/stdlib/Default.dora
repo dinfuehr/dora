@@ -14,12 +14,8 @@ impl Default for Char {
   @static fun default() -> Char = '\0';
 }
 
-impl Default for Int {
-  @static fun default() -> Int = 0;
-}
-
 impl Default for Int32 {
-  @static fun default() -> Int32 = 0I;
+  @static fun default() -> Int32 = 0;
 }
 
 impl Default for Int64 {

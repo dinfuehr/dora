@@ -357,9 +357,9 @@ mod tests {
     #[test]
     fn shadow_type_with_function() {
         err(
-            "fun Int() {}",
+            "fun Int32() {}",
             pos(1, 1),
-            SemError::ShadowClassConstructor("Int".into()),
+            SemError::ShadowClassConstructor("Int32".into()),
         );
     }
 
@@ -383,7 +383,7 @@ mod tests {
         err(
             "fun f() { let f = 1; f(); }",
             pos(1, 23),
-            SemError::UnknownMethod("Int".into(), "get".into(), Vec::new()),
+            SemError::UnknownMethod("Int32".into(), "get".into(), Vec::new()),
         );
     }
 
@@ -395,15 +395,15 @@ mod tests {
     #[test]
     fn shadow_param() {
         err(
-            "fun f(a: Int, b: Int, a: String) {}",
-            pos(1, 23),
+            "fun f(a: Int32, b: Int32, a: String) {}",
+            pos(1, 27),
             SemError::ShadowParam("a".into()),
         );
     }
 
     #[test]
     fn multiple_params() {
-        ok("fun f(a: Int, b: Int, c:String) {}");
+        ok("fun f(a: Int32, b: Int32, c:String) {}");
     }
 
     #[test]
@@ -445,22 +445,22 @@ mod tests {
     #[test]
     fn variable_outside_of_scope() {
         err(
-            "fun f() -> Int { { let a = 1; } return a; }",
-            pos(1, 40),
+            "fun f() -> Int32 { { let a = 1; } return a; }",
+            pos(1, 42),
             SemError::UnknownIdentifier("a".into()),
         );
 
-        ok("fun f() -> Int { let a = 1; { let a = 2; } return a; }");
+        ok("fun f() -> Int32 { let a = 1; { let a = 2; } return a; }");
     }
 
     #[test]
     fn const_value() {
-        ok("const one: Int = 1;
-            fun f() -> Int { return one; }");
+        ok("const one: Int32 = 1;
+            fun f() -> Int32 { return one; }");
     }
 
     #[test]
     fn for_var() {
-        ok("fun f() { for i in range(0I, 4I) { i; } }");
+        ok("fun f() { for i in range(0, 4) { i; } }");
     }
 }

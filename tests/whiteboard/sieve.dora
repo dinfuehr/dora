@@ -1,45 +1,45 @@
 //= stdout file
 
 fun main() {
-    let primes = sieve(100I);
-    var i = 0;
+    let primes = sieve(100);
+    var i = 0L;
 
-    while i < primes.length().toInt() {
-        println(primes(i.toInt64()).toString());
-        i = i + 1;
+    while i < primes.length() {
+        println(primes(i).toString());
+        i = i + 1L;
     }
 }
 
 fun sieve(limit: Int32) -> Vec[Int32] {
     let primes = Vec[Int32]();
 
-    if limit >= 2I {
+    if limit >= 2 {
         let numbers = arrayFill[Bool](limit.toInt64()+1L, true);
         let sqrtLimit = limit.toDouble().sqrt().toInt32();
 
-        var factor = 2I;
+        var factor = 2;
 
         while factor <= sqrtLimit {
-            if numbers(factor.toInt()) {
+            if numbers(factor) {
                 var multiple = factor * factor;
 
                 while multiple <= limit {
-                    numbers(multiple.toInt()) = false;
+                    numbers(multiple) = false;
                     multiple = multiple + factor;
                 }
             }
 
-            factor = factor + 1I;
+            factor = factor + 1;
         }
 
-        var i = 0I;
+        var i = 0;
 
         while i <= limit {
-            if i >= 2I && numbers(i.toInt()) {
+            if i >= 2 && numbers(i) {
                 primes.push(i);
             }
 
-            i = i + 1I;
+            i = i + 1;
         }
     }
 

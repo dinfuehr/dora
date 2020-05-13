@@ -10,7 +10,6 @@ pub struct KnownElements {
     pub bool_class: ClassId,
     pub uint8_class: ClassId,
     pub char_class: ClassId,
-    pub int_class: ClassId,
     pub int32_class: ClassId,
     pub int64_class: ClassId,
     pub float_class: ClassId,
@@ -85,7 +84,7 @@ impl KnownElements {
         if let Some(cls_id) = *int_array_def {
             cls_id
         } else {
-            let type_args = TypeList::single(BuiltinType::Int);
+            let type_args = TypeList::single(BuiltinType::Int32);
             let cls_id = specialize_class_id_params(vm, self.array_class, &type_args);
             *int_array_def = Some(cls_id);
             cls_id
@@ -133,7 +132,7 @@ impl KnownElements {
             BuiltinType::Bool => Some(self.bool_class),
             BuiltinType::UInt8 => Some(self.uint8_class),
             BuiltinType::Char => Some(self.char_class),
-            BuiltinType::Int => Some(self.int_class),
+            BuiltinType::Int32 => Some(self.int32_class),
             BuiltinType::Int64 => Some(self.int64_class),
             BuiltinType::Float => Some(self.float_class),
             BuiltinType::Double => Some(self.double_class),

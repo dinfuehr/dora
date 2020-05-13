@@ -1,7 +1,7 @@
 //= cannon
 
 fun main() {
-    let a = A[Int]();
+    let a = A[Int32]();
     consume(a.x);
 }
 
@@ -9,6 +9,6 @@ class A[T] {
     let x: Array[T] = nil;
 }
 
-fun consume(x: Array[Int]) {
+fun consume(x: Array[Int32]) {
     assert(x === nil);
 }

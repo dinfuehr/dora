@@ -18,7 +18,6 @@ pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {
 
     vm.vips.uint8_class = internal_class(vm, "UInt8", Some(BuiltinType::UInt8));
     vm.vips.char_class = internal_class(vm, "Char", Some(BuiltinType::Char));
-    vm.vips.int_class = internal_class(vm, "Int", Some(BuiltinType::Int));
     vm.vips.int32_class = internal_class(vm, "Int32", Some(BuiltinType::Int32));
     vm.vips.int64_class = internal_class(vm, "Int64", Some(BuiltinType::Int64));
 
@@ -189,42 +188,6 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
 
     intrinsic_method(vm, clsid, "equals", Intrinsic::CharEq);
     intrinsic_method(vm, clsid, "compareTo", Intrinsic::CharCmp);
-
-    let clsid = vm.vips.int_class;
-    intrinsic_method(vm, clsid, "toUInt8", Intrinsic::Int32ToByte);
-    intrinsic_method(vm, clsid, "toCharUnchecked", Intrinsic::Int32ToChar);
-    intrinsic_method(vm, clsid, "toInt32", Intrinsic::Int32ToInt32);
-    intrinsic_method(vm, clsid, "toInt64", Intrinsic::Int32ToInt64);
-    native_method(vm, clsid, "toString", stdlib::int_to_string as *const u8);
-
-    intrinsic_method(vm, clsid, "toFloat", Intrinsic::Int32ToFloat);
-    intrinsic_method(vm, clsid, "toDouble", Intrinsic::Int32ToDouble);
-
-    intrinsic_method(vm, clsid, "asFloat", Intrinsic::ReinterpretInt32AsFloat);
-
-    intrinsic_method(vm, clsid, "equals", Intrinsic::Int32Eq);
-    intrinsic_method(vm, clsid, "compareTo", Intrinsic::Int32Cmp);
-
-    intrinsic_method(vm, clsid, "plus", Intrinsic::Int32Add);
-    intrinsic_method(vm, clsid, "minus", Intrinsic::Int32Sub);
-    intrinsic_method(vm, clsid, "times", Intrinsic::Int32Mul);
-    intrinsic_method(vm, clsid, "div", Intrinsic::Int32Div);
-    intrinsic_method(vm, clsid, "mod", Intrinsic::Int32Mod);
-
-    intrinsic_method(vm, clsid, "bitwiseOr", Intrinsic::Int32Or);
-    intrinsic_method(vm, clsid, "bitwiseAnd", Intrinsic::Int32And);
-    intrinsic_method(vm, clsid, "bitwiseXor", Intrinsic::Int32Xor);
-
-    intrinsic_method(vm, clsid, "shiftLeft", Intrinsic::Int32Shl);
-    intrinsic_method(vm, clsid, "shiftRight", Intrinsic::Int32Shr);
-    intrinsic_method(vm, clsid, "shiftRightSigned", Intrinsic::Int32Sar);
-
-    intrinsic_method(vm, clsid, "rotateLeft", Intrinsic::Int32RotateLeft);
-    intrinsic_method(vm, clsid, "rotateRight", Intrinsic::Int32RotateRight);
-
-    intrinsic_method(vm, clsid, "unaryPlus", Intrinsic::Int32Plus);
-    intrinsic_method(vm, clsid, "unaryMinus", Intrinsic::Int32Neg);
-    intrinsic_method(vm, clsid, "not", Intrinsic::Int32Not);
 
     let clsid = vm.vips.int32_class;
     intrinsic_method(vm, clsid, "toUInt8", Intrinsic::Int32ToByte);
@@ -534,7 +497,7 @@ fn internal_impl<'ast>(vm: &mut VM<'ast>, clsid: ClassId, tid: TraitId, name: &s
 }
 
 pub(crate) fn install_conditional_intrinsics(vm: &mut VM) {
-    let clsid = vm.vips.int_class;
+    let clsid = vm.vips.int32_class;
     if has_popcnt() {
         intrinsic_method(vm, clsid, "countZeroBits", Intrinsic::Int32CountZeroBits);
         intrinsic_method(vm, clsid, "countOneBits", Intrinsic::Int32CountOneBits);

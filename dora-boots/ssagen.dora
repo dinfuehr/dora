@@ -12,7 +12,7 @@ fun createGraph(bc: BytecodeFunction) -> Graph {
 
 class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: BlockBuilder): BytecodeVisitor {
     var currentBlock: Block;
-    var offset: Int32 = 0I;
+    var offset: Int32 = 0;
     var currentDef: Array[HashMap[Block, Inst]];
     var blockTerminated: Bool = false;
 
@@ -44,30 +44,30 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         self.filledBlocks = BitSet(blockCount.toInt64());
         self.sealedBlocks = BitSet(blockCount.toInt64());
 
-        for i in range(0I, self.currentDef.length().toInt32()) {
-            self.currentDef(i.toInt()) = HashMap[Block, Inst]();
+        for i in range(0, self.currentDef.length()) {
+            self.currentDef(i) = HashMap[Block, Inst]();
         }
     }
 
     fun setupArguments() {
-        var i = 0I;
+        var i = 0;
         let entryBlock = self.graph.getEntryBlock();
         while i < self.bc.arguments {
-            let ty = Type::fromBytecodeType(self.bc.registers.get(i.toInt()));
+            let ty = Type::fromBytecodeType(self.bc.registers.get(i));
             let argInst = ArgInst(i, ty);
             entryBlock.appendInst(argInst);
             self.writeVariable(BytecodeRegister(i), entryBlock, argInst);
-            i = i + 1I;
+            i = i + 1;
         }
     }
 
     fun writeVariable(register: BytecodeRegister, block: Block, value: Inst) {
-        self.currentDef.get(register.value.toInt()).insert(block, value);
+        self.currentDef.get(register.value).insert(block, value);
     }
 
     fun readVariable(register: BytecodeRegister, block: Block) -> Inst {
-        if self.currentDef.get(register.value.toInt()).contains(block) {
-            self.currentDef.get(register.value.toInt()).get(block).unwrap()
+        if self.currentDef.get(register.value).contains(block) {
+            self.currentDef.get(register.value).get(block).unwrap()
         } else {
             self.readVariableRecursive(register, block)
         }
@@ -144,8 +144,8 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         phi.replaceWith(same.unwrap());
         phi.remove();
 
-        for i in range(0I, users.length().toInt32()) {
-            let user = users(i.toInt());
+        for i in range(0, users.length()) {
+            let user = users(i);
 
             if user === phi {
                 continue;
@@ -497,7 +497,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     @override fun visitConstZeroUInt8(dest: BytecodeRegister) { unimplemented(); }
     @override fun visitConstZeroChar(dest: BytecodeRegister) { unimplemented(); }
     @override fun visitConstZeroInt32(dest: BytecodeRegister) {
-        let inst = Int32Const(0I);
+        let inst = Int32Const(0);
         self.currentBlock.appendInst(inst);
         self.writeVariable(dest, self.currentBlock, inst);
     }
@@ -638,7 +638,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     fun emitConditionalJump(opnd: BytecodeRegister, offset: Int32, value: Bool) {
         let opndInst = self.readVariable(opnd, self.currentBlock);
         let targetBlock = self.blockBuilder.blockAt(self.offset + offset).unwrap();
-        let fallthroughBlock = self.blockBuilder.nextBlockAt(self.offset+1I).unwrap();
+        let fallthroughBlock = self.blockBuilder.nextBlockAt(self.offset+1).unwrap();
 
         let cond = if value {
             IfInst(opndInst, targetBlock, fallthroughBlock)

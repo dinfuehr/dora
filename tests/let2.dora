@@ -5,8 +5,8 @@ fun main() {
   let x = X(1);
 }
 
-class X(let a: Int) {
-  fun set(b: Int) {
+class X(let a: Int32) {
+  fun set(b: Int32) {
     self.a = b;
   }
 }

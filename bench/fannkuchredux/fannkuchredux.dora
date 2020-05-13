@@ -1,59 +1,59 @@
 fun main() {
-  var n = 7I;
-  if argc() > 0I { n = argv(0I).toInt32().unwrap(); }
+  var n = 7;
+  if argc() > 0 { n = argv(0).toInt32().unwrap(); }
   println("Pfannkuchen ("+n.toString()+") = " + fannkuch(n).toString());
 }
 
 fun fannkuch(n: Int32) -> Int32 {
-  let perm = arrayFill[Int32](n.toInt64(), 0I);
-  let perm1 = arrayFill[Int32](n.toInt64(), 0I);
-  let count = arrayFill[Int32](n.toInt64(), 0I);
-  var maxFlipsCount = 0I;
-  var permCount = 0I;
-  var checksum = 0I;
+  let perm = arrayFill[Int32](n.toInt64(), 0);
+  let perm1 = arrayFill[Int32](n.toInt64(), 0);
+  let count = arrayFill[Int32](n.toInt64(), 0);
+  var maxFlipsCount = 0;
+  var permCount = 0;
+  var checksum = 0;
 
-  var i = 0I;
+  var i = 0;
   while i < n {
-    perm1(i.toInt()) = i;
-    i = i + 1I;
+    perm1(i) = i;
+    i = i + 1;
   }
 
   var r = n;
 
   while true {
-    while r != 1I {
-      count((r-1I).toInt()) = r;
-      r = r - 1I;
+    while r != 1 {
+      count((r-1)) = r;
+      r = r - 1;
     }
 
-    var i = 0I;
+    var i = 0;
     while i < n {
-      perm(i.toInt()) = perm1(i.toInt());
-      i = i + 1I;
+      perm(i) = perm1(i);
+      i = i + 1;
     }
 
-    var flipsCount = 0I;
+    var flipsCount = 0;
     var k = perm(0);
 
-    while k != 0I {
-      let k2 = (k+1I) / 2I;
+    while k != 0 {
+      let k2 = (k+1) / 2;
 
-      var i = 0I;
+      var i = 0;
       while i < k2 {
-        let temp = perm(i.toInt());
-        perm(i.toInt()) = perm((k-i).toInt());
-        perm((k-i).toInt()) = temp;
+        let temp = perm(i);
+        perm(i) = perm((k-i));
+        perm((k-i)) = temp;
 
-        i = i + 1I;
+        i = i + 1;
       }
 
-      flipsCount = flipsCount + 1I;
+      flipsCount = flipsCount + 1;
       k = perm(0);
     }
 
     maxFlipsCount = Int32::max(maxFlipsCount, flipsCount);
 
-    if permCount % 2I == 0I {
+    if permCount % 2 == 0 {
       checksum = checksum + flipsCount;
     } else {
       checksum = checksum - flipsCount;
@@ -66,25 +66,25 @@ fun fannkuch(n: Int32) -> Int32 {
       }
 
       let perm0 = perm1(0);
-      var i = 0I;
+      var i = 0;
 
       while i < r {
-        let j = i + 1I;
-        perm1(i.toInt()) = perm1(j.toInt());
+        let j = i + 1;
+        perm1(i) = perm1(j);
         i = j;
       }
 
-      perm1(r.toInt()) = perm0;
+      perm1(r) = perm0;
 
-      count(r.toInt()) = count(r.toInt()) - 1I;
+      count(r) = count(r) - 1;
 
-      if count(r.toInt()) > 0I { break; }
+      if count(r) > 0 { break; }
 
-      r = r + 1I;
+      r = r + 1;
     }
 
-    permCount = permCount + 1I;
+    permCount = permCount + 1;
   }
 
-  return -1I;
+  return -1;
 }

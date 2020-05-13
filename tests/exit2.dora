@@ -2,5 +2,5 @@
 //= cannon
 
 fun main() {
-    exit(2I);
+    exit(2);
 }

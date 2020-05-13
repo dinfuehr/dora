@@ -1,15 +1,15 @@
 fun main() {
-  var maxDepth = 6I;
+  var maxDepth = 6;
 
-  if argc() > 0I {
-    maxDepth = argv(0I).toInt32().unwrap();
+  if argc() > 0 {
+    maxDepth = argv(0).toInt32().unwrap();
   }
 
-  if 6I > maxDepth {
-    maxDepth = 6I;
+  if 6 > maxDepth {
+    maxDepth = 6;
   }
 
-  let stretchDepth = maxDepth + 1I;
+  let stretchDepth = maxDepth + 1;
   println("stretch tree of depth " + stretchDepth.toString() +
           "\t check: " + checkTree(createTree(stretchDepth)).toString());
 
@@ -18,13 +18,13 @@ fun main() {
 
 fun trees(maxDepth: Int32) {
   let longLastingNode = createTree(maxDepth);
-  var depth = 4I;
+  var depth = 4;
 
   while depth <= maxDepth {
-    let iterations = 16I << (maxDepth - depth);
+    let iterations = 16 << (maxDepth - depth);
 
     loops(iterations, depth);
-    depth = depth + 2I;
+    depth = depth + 2;
   }
 
   println("long lived tree of depth " + maxDepth.toString()
@@ -32,12 +32,12 @@ fun trees(maxDepth: Int32) {
 }
 
 fun loops(iterations: Int32, depth: Int32) {
-  var check = 0I;
-  var item = 0I;
+  var check = 0;
+  var item = 0;
 
   while item < iterations {
     check = check + checkTree(createTree(depth));
-    item = item + 1I;
+    item = item + 1;
   }
 
   println(iterations.toString() + "\t trees of depth " +
@@ -46,10 +46,10 @@ fun loops(iterations: Int32, depth: Int32) {
 
 fun createTree(depth: Int32) -> TreeNode {
   var depth = depth;
-  let node = TreeNode(0I, nil, nil);
+  let node = TreeNode(0, nil, nil);
 
-  if depth > 0I {
-    depth = depth - 1I;
+  if depth > 0 {
+    depth = depth - 1;
     node.left = createTree(depth);
     node.right = createTree(depth);
   }
@@ -59,10 +59,10 @@ fun createTree(depth: Int32) -> TreeNode {
 
 fun checkTree(node: TreeNode) -> Int32 {
   if node.left === nil {
-    return 1I;
+    return 1;
   }
 
-  return checkTree(node.left) + checkTree(node.right) + 1I;
+  return checkTree(node.left) + checkTree(node.right) + 1;
 }
 
 class TreeNode(let item: Int32, var left: TreeNode, var right: TreeNode)

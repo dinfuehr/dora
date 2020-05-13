@@ -5,38 +5,38 @@ fun main() {
     assert(vec.length() == 0L);
     assert(vec.capacity() == 0L);
 
-    vec.push(1I);
-    vec.push(2I);
-    vec.push(3I);
+    vec.push(1);
+    vec.push(2);
+    vec.push(3);
     assert(vec.length() == 3L);
     assert(vec.capacity() == 4L);
 
-    vec.push(4I);
+    vec.push(4);
     assert(vec.length() == 4L);
     assert(vec.capacity() == 4L);
 
-    vec.push(5I);
+    vec.push(5);
     assert(vec.length() == 5L);
     assert(vec.capacity() == 8L);
-    assert(vec(0L) == 1I);
-    assert(vec(1L) == 2I);
-    assert(vec(2L) == 3I);
-    assert(vec(3L) == 4I);
-    assert(vec(4L) == 5I);
+    assert(vec(0L) == 1);
+    assert(vec(1L) == 2);
+    assert(vec(2L) == 3);
+    assert(vec(3L) == 4);
+    assert(vec(4L) == 5);
 
-    vec(0L) = vec(0L) + 2I;
-    vec(1L) = vec(0L) - 1I;
+    vec(0L) = vec(0L) + 2;
+    vec(1L) = vec(0L) - 1;
 
-    assert(vec(0L) == 3I);
-    assert(vec(1L) == 2I);
+    assert(vec(0L) == 3);
+    assert(vec(1L) == 2);
 
     vec.trimToLen();
     assert(vec.length() == 5L);
     assert(vec.capacity() == 5L);
 
-    assert(vec(0L) == 3I);
-    assert(vec(1L) == 2I);
-    assert(vec(2L) == 3I);
-    assert(vec(3L) == 4I);
-    assert(vec(4L) == 5I);
+    assert(vec(0L) == 3);
+    assert(vec(1L) == 2);
+    assert(vec(2L) == 3);
+    assert(vec(3L) == 4);
+    assert(vec(4L) == 5);
 }

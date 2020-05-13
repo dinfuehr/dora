@@ -2,12 +2,12 @@
 @cannon class X(let b: Int32, a: Int32) : Y(a) {}
 
 @cannon fun cannonMain() -> X {
-    return X(2I, 4I);
+    return X(2, 4);
 }
 
 fun main() {
   let x = cannonMain();
 
-  assert(x.a == 4I);
-  assert(x.b == 2I);
+  assert(x.a == 4);
+  assert(x.b == 2);
 }

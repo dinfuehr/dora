@@ -6,10 +6,10 @@ fun main() {
     forceMinorCollect();
     forceMinorCollect();
     // a(5) = Foo(2);
-    b(5) = Foo(1I);
+    b(5) = Foo(1);
     forceMinorCollect();
     // assert(a(5).a == 2);
-    assert(b(5).a == 1I);
+    assert(b(5).a == 1);
 }
 
 class Foo(let a: Int32)

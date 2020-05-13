@@ -5,11 +5,11 @@ class Graph {
     var blocks: Vec[Block] = Vec[Block]();
     var postOrder: Vec[Block] = Vec[Block]();
 
-    var nextBlockIdValue: Int32 = 0I;
-    var nextInstIdValue: Int32 = 0I;
+    var nextBlockIdValue: Int32 = 0;
+    var nextInstIdValue: Int32 = 0;
 
     fun addBlock(block: Block) {
-        assert(block.graph.isNone() && block.id == -1I);
+        assert(block.graph.isNone() && block.id == -1);
 
         block.graph = some[Graph](self);
         block.id = self.nextBlockId();
@@ -38,14 +38,14 @@ class Graph {
 
     fun nextInstId() -> Int32 {
         let id = self.nextInstIdValue;
-        self.nextInstIdValue = id + 1I;
+        self.nextInstIdValue = id + 1;
 
         id
     }
 
     fun nextBlockId() -> Int32 {
         let id = self.nextBlockIdValue;
-        self.nextBlockIdValue = id + 1I;
+        self.nextBlockIdValue = id + 1;
 
         id
     }
@@ -113,7 +113,7 @@ class ReversePostOrderIterator(let postOrder: Vec[Block]) {
 }
 
 class Block() {
-    var id: Int32 = -1I;
+    var id: Int32 = -1;
 
     var phis: InstLinkedList = InstLinkedList();
     var instructions: InstLinkedList = InstLinkedList();
@@ -128,7 +128,7 @@ class Block() {
 
     var loopHeader: Option[LoopHeader] = none[LoopHeader]();
 
-    var postOrderIdx: Int32 = -1I;
+    var postOrderIdx: Int32 = -1;
 
     fun getDominator() -> Option[Block] {
         self.dominator
@@ -176,7 +176,7 @@ class Block() {
     }
 
     fun appendPhi(phi: PhiInst) -> PhiInst {
-        assert(phi.block.isNone() && phi.id == -1I);
+        assert(phi.block.isNone() && phi.id == -1);
 
         phi.block = some[Block](self);
         phi.id = self.graph.unwrap().nextInstId();
@@ -188,7 +188,7 @@ class Block() {
     }
 
     fun appendInst(inst: Inst) -> Inst {
-        assert(inst.block.isNone() && inst.id == -1I);
+        assert(inst.block.isNone() && inst.id == -1);
 
         inst.block = some[Block](self);
         inst.id = self.graph.unwrap().nextInstId();
@@ -253,7 +253,7 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
 }
 
 @abstract @open class Inst {
-    var id: Int32 = -1I;
+    var id: Int32 = -1;
     var block: Option[Block] = none[Block]();
 
     var previous: Option[Inst] = none[Inst]();

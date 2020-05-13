@@ -265,10 +265,10 @@ mod tests {
             SemError::WrongNumberTypeParams(0, 1),
         );
 
-        ok("class A[T] impl A[Int] {} impl A[String] {}");
+        ok("class A[T] impl A[Int32] {} impl A[String] {}");
         err(
-            "class A[T: Zero] impl A[Int] {} impl A[String] {}",
-            pos(1, 38),
+            "class A[T: Zero] impl A[Int32] {} impl A[String] {}",
+            pos(1, 40),
             SemError::TraitBoundNotSatisfied("String".into(), "Zero".into()),
         );
     }
@@ -305,14 +305,14 @@ mod tests {
     fn extension_defined_twice_with_type_params_in_class() {
         err(
             "class Foo[T]
-            impl Foo[Int] { fun foo() {} }
-            impl Foo[Int] { fun foo() {} }",
-            pos(3, 29),
-            SemError::MethodExists("foo".into(), pos(2, 29)),
+            impl Foo[Int32] { fun foo() {} }
+            impl Foo[Int32] { fun foo() {} }",
+            pos(3, 31),
+            SemError::MethodExists("foo".into(), pos(2, 31)),
         );
 
         ok("class Foo[T]
-            impl Foo[Int] { fun foo() {} }
+            impl Foo[Int32] { fun foo() {} }
             impl Foo[Int64] { fun foo() {} }");
     }
 

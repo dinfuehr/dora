@@ -1,19 +1,19 @@
 //= cannon
 
 fun main() {
-    assert(sum_args(Foo(1I), Foo(2I)) == 3I);
-    assert(sum_args(nil) == 0I);
-    assert(sum_args(Foo(7I)) == 7I);
-    assert(sum_args() == 0I);
+    assert(sum_args(Foo(1), Foo(2)) == 3);
+    assert(sum_args(nil) == 0);
+    assert(sum_args(Foo(7)) == 7);
+    assert(sum_args() == 0);
 }
 
 fun sum_args(x: Foo...) -> Int32 {
-    var result = 0I;
+    var result = 0;
     var idx = 0L;
     
     while idx < x.length().toInt64() {
-        let foo = x(idx.toInt());
-        result = result + if foo === nil { 0I } else { foo.value };
+        let foo = x(idx.toInt32());
+        result = result + if foo === nil { 0 } else { foo.value };
         idx = idx + 1L;
     }
 

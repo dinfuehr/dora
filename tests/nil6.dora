@@ -9,4 +9,4 @@ fun initialize(x: Foo) {
     x.x = 1;
 }
 
-class Foo(var x: Int)
+class Foo(var x: Int32)

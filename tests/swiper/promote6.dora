@@ -9,13 +9,13 @@ fun main() {
     assert(x.field0 === nil);
     assert(x.field64 === nil);
 
-    x.field0 = Foo(1I);
+    x.field0 = Foo(1);
     forceMinorCollect();
-    assert(x.field0.x == 1I);
+    assert(x.field0.x == 1);
     assert(x.field64 === nil);
 
     forceMinorCollect();
-    assert(x.field0.x == 1I);
+    assert(x.field0.x == 1);
     assert(x.field64 === nil);
 }
 

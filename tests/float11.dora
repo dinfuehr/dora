@@ -2,13 +2,13 @@
 
 fun main() {
     let x = 1.1F;
-    assert(1 == x.toInt());
+    assert(1 == x.toInt32());
 
     let y = 213.4F;
     assert(213L == y.toInt64());
 
     let x = 1.1D;
-    assert(1 == x.toInt());
+    assert(1 == x.toInt32());
 
     let y = 213.4D;
     assert(213L == y.toInt64());

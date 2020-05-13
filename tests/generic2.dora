@@ -8,6 +8,6 @@ fun main() {
 
 class A[T](let x: T)
 
-fun foo(a: Int) -> String {
+fun foo(a: Int32) -> String {
   return "hello" + a.toString();
 }

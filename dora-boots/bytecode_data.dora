@@ -1,19 +1,19 @@
 class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEntry], let registers: Array[BytecodeType], let arguments: Int32) {
     fun constPool(idx: ConstPoolId) -> ConstPoolEntry {
-        self.const_pool.get(idx.value.toInt())
+        self.const_pool.get(idx.value)
     }
 
     fun codeAt(idx: Int32) -> Int32 {
-        self.code.get(idx.toInt()).toInt32()
+        self.code.get(idx).toInt32()
     }
 
     fun codeInt32At(idx: Int32) -> Int32 {
         let byte1 = self.codeAt(idx);
-        let byte2 = self.codeAt(idx+1I);
-        let byte3 = self.codeAt(idx+2I);
-        let byte4 = self.codeAt(idx+3I);
+        let byte2 = self.codeAt(idx+1);
+        let byte3 = self.codeAt(idx+2);
+        let byte4 = self.codeAt(idx+3);
 
-        (byte4 << 24I) | (byte3 << 16I) | (byte2 << 8I) | byte1
+        (byte4 << 24) | (byte3 << 16) | (byte2 << 8) | byte1
     }
 }
 
@@ -74,7 +74,7 @@ class ConstPoolString(let value: String): ConstPoolEntry {
 }
 
 class ConstPoolChar(let value: Char): ConstPoolEntry {
-    @override fun toString() -> String { "Char ${self.value.toInt()}" }
+    @override fun toString() -> String { "Char '${self.value}' ${self.value.toInt32()}" }
 }
 
 class BytecodeRegister(let value: Int32) {

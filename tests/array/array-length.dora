@@ -5,7 +5,7 @@ fun main() {
   assert(x.length() == 0);
   assert(int32_array_len(x) == 0L);
 
-  let x = arrayFill[Int32](5L, 100I);
+  let x = arrayFill[Int32](5L, 100);
   assert(x.length() == 5);
   assert(int32_array_len(x) == 5L);
 

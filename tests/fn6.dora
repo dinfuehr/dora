@@ -5,7 +5,7 @@ fun main() {
   let x = Foo1();
   x.f(1, 2, 3, 4, 5, 6, 7, 8);
 
-  let x = Foo2(1,2,3,4,5,6,7,8);
+  let x = Foo2(1, 2, 3, 4, 5, 6, 7, 8);
   assert(x.a == 1);
   assert(x.b == 2);
   assert(x.c == 3);
@@ -16,8 +16,8 @@ fun main() {
   assert(x.h == 8);
 }
 
-fun f(a: Int, b: Int, c: Int, d: Int,
-     e: Int, f: Int, g: Int, h: Int) {
+fun f(a: Int32, b: Int32, c: Int32, d: Int32,
+     e: Int32, f: Int32, g: Int32, h: Int32) {
    assert(a == 1);
    assert(b == 2);
    assert(c == 3);
@@ -41,8 +41,8 @@ fun g(a: String, b: String, c: String, d: String,
 }
 
 class Foo1 {
-  fun f(a: Int, b: Int, c: Int, d: Int,
-       e: Int, f: Int, g: Int, h: Int) {
+  fun f(a: Int32, b: Int32, c: Int32, d: Int32,
+       e: Int32, f: Int32, g: Int32, h: Int32) {
     assert(a == 1);
     assert(b == 2);
     assert(c == 3);
@@ -54,5 +54,5 @@ class Foo1 {
   }
 }
 
-class Foo2(let a: Int, let b: Int, let c: Int, let d: Int,
-           let e: Int, let f: Int, let g: Int, let h: Int)
+class Foo2(let a: Int32, let b: Int32, let c: Int32, let d: Int32,
+           let e: Int32, let f: Int32, let g: Int32, let h: Int32)

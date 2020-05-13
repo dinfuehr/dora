@@ -1,9 +1,9 @@
 //= cannon
 
-fun main() -> Int {
+fun main() -> Int32 {
   return myzero();
 }
 
-fun myzero() -> Int {
+fun myzero() -> Int32 {
   return 0;
 }

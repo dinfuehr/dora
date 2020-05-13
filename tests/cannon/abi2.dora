@@ -1,13 +1,13 @@
 fun main() {
-    assert(abi_1(1I, 2I, 3I, 4I, 5I, 6I, 7I, 8I, 9I) == 1I);
-    assert(abi_2(1I, 2I, 3I, 4I, 5I, 6I, 7I, 8I, 9I) == 2I);
-    assert(abi_3(1I, 2I, 3I, 4I, 5I, 6I, 7I, 8I, 9I) == 3I);
-    assert(abi_4(1I, 2I, 3I, 4I, 5I, 6I, 7I, 8I, 9I) == 4I);
-    assert(abi_5(1I, 2I, 3I, 4I, 5I, 6I, 7I, 8I, 9I) == 5I);
-    assert(abi_6(1I, 2I, 3I, 4I, 5I, 6I, 7I, 8I, 9I) == 6I);
-    assert(abi_7(1I, 2I, 3I, 4I, 5I, 6I, 7I, 8I, 9I) == 7I);
-    assert(abi_8(1I, 2I, 3I, 4I, 5I, 6I, 7I, 8I, 9I) == 8I);
-    assert(abi_9(1I, 2I, 3I, 4I, 5I, 6I, 7I, 8I, 9I) == 9I);
+    assert(abi_1(1, 2, 3, 4, 5, 6, 7, 8, 9) == 1);
+    assert(abi_2(1, 2, 3, 4, 5, 6, 7, 8, 9) == 2);
+    assert(abi_3(1, 2, 3, 4, 5, 6, 7, 8, 9) == 3);
+    assert(abi_4(1, 2, 3, 4, 5, 6, 7, 8, 9) == 4);
+    assert(abi_5(1, 2, 3, 4, 5, 6, 7, 8, 9) == 5);
+    assert(abi_6(1, 2, 3, 4, 5, 6, 7, 8, 9) == 6);
+    assert(abi_7(1, 2, 3, 4, 5, 6, 7, 8, 9) == 7);
+    assert(abi_8(1, 2, 3, 4, 5, 6, 7, 8, 9) == 8);
+    assert(abi_9(1, 2, 3, 4, 5, 6, 7, 8, 9) == 9);
 }
 
 @cannon fun abi_1(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32) -> Int32 {

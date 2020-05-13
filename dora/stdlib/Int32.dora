@@ -1,14 +1,13 @@
 @internal class Int32 {
   @internal fun toUInt8() -> UInt8;
   fun toChar() -> Option[Char] {
-    if self >= 0I && self <= 0x10FFFFI && (self < 0xD800I || self > 0xDFFFI) {
+    if self >= 0 && self <= 0x10FFFFI && (self < 0xD800 || self > 0xDFFFI) {
       some[Char](self.toCharUnchecked())
     } else {
       none[Char]()
     }
   }
   @internal fun toCharUnchecked() -> Char;
-  @internal fun toInt() -> Int;
   @internal fun toInt64() -> Int64;
   @internal fun toString() -> String;
 
@@ -47,35 +46,35 @@
   @internal fun countZeroBits() -> Int32 = self.not().countOneBits();
   @internal fun countOneBits() -> Int32 {
     var x = self;
-    var c = 0I;
-    while (x != 0I) {
-      c = c + 1I;
-      x = x.bitwiseAnd(x - 1I);
+    var c = 0;
+    while (x != 0) {
+      c = c + 1;
+      x = x.bitwiseAnd(x - 1);
     }
     return c;
   }
   @internal fun countZeroBitsLeading() -> Int32 {
-    if self == 0I {
+    if self == 0 {
       return Int32::bits();
     }
-    var t = 1I.shiftLeft(Int32::bits() - 1I);
-    var r = 0I;
-    while self.bitwiseAnd(t) == 0I {
-      t = t.shiftRight(1I);
-      r = r + 1I;
+    var t = 1.shiftLeft(Int32::bits() - 1);
+    var r = 0;
+    while self.bitwiseAnd(t) == 0 {
+      t = t.shiftRight(1);
+      r = r + 1;
     }
     return r;
   }
   @internal fun countOneBitsLeading() -> Int32 = self.not().countZeroBitsLeading();
   @internal fun countZeroBitsTrailing() -> Int32 {
-    if self == 0I {
+    if self == 0 {
       return Int32::bits();
     }
-    var t = 1I;
-    var r = 0I;
-    while self.bitwiseAnd(t) == 0I {
-      t = t.shiftLeft(1I);
-      r = r + 1I;
+    var t = 1;
+    var r = 0;
+    while self.bitwiseAnd(t) == 0 {
+      t = t.shiftLeft(1);
+      r = r + 1;
     }
     return r;
   }
@@ -83,13 +82,13 @@
 
   fun hash() -> Int32 = self;
 
-  fun abs() -> Int32 = if self >= 0I { self } else { -self };
+  fun abs() -> Int32 = if self >= 0 { self } else { -self };
 
-  @static fun bits() -> Int32 = 32I;
-  @static fun bytes() -> Int32 = 4I;
+  @static fun bits() -> Int32 = 32;
+  @static fun bytes() -> Int32 = 4;
 
-  @static fun maxValue() -> Int32 = 2147483647I;
-  @static fun minValue() -> Int32 = -2147483648I;
+  @static fun maxValue() -> Int32 = 2147483647;
+  @static fun minValue() -> Int32 = -2147483648;
 
   @static fun min(lhs: Int32, rhs: Int32) -> Int32 = if lhs < rhs { lhs } else { rhs };
   @static fun max(lhs: Int32, rhs: Int32) -> Int32 = if lhs < rhs { rhs } else { lhs };

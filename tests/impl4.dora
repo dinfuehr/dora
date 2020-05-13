@@ -9,7 +9,7 @@ trait DefaultValue {
     @static fun default() -> Self;
 }
 
-class A(let a: Int)
+class A(let a: Int32)
 
 impl DefaultValue for A {
     @static fun default() -> A {

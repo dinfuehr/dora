@@ -4,7 +4,7 @@ fun main() {
 
     assert(moveChar('5') == '5');
     assert(moveByte(5Y) == 5Y);
-    assert(moveInt32(5I) == 5I);
+    assert(moveInt32(5) == 5);
     assert(moveInt64(5L) == 5L);
     assert(moveFloat(5F) == 5F);
     assert(moveDouble(5D) == 5D);

@@ -12,7 +12,7 @@ fun main() {
     storeBool(fooBool, true);
     storeByte(fooByte, 1Y);
     storeChar(fooChar, '1');
-    storeInt32(fooInt32, 23I);
+    storeInt32(fooInt32, 23);
     storeInt64(fooInt64, 1L);
     storeFloat(fooFloat, 1F);
     storeDouble(fooDouble, 1D);
@@ -22,13 +22,13 @@ fun main() {
     assert(fooBool.y == true);
     assert(fooByte.y == 1Y);
     assert(fooChar.y == '1');
-    assert(fooInt32.y == 23I);
+    assert(fooInt32.y == 23);
     assert(fooInt64.y == 1L);
     assert(fooFloat.y == 1F);
     assert(fooDouble.y == 1D);
     assert(fooString.y == "1");
     assert(fooPtr.y === fooInt32);
-    assert(fooPtr.y.y == 23I)
+    assert(fooPtr.y.y == 23)
 }
 
 @cannon fun storeBool(x: FooBool, z: Bool) {

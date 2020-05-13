@@ -1,5 +1,5 @@
 class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVisitor {
-    var offset: Int32 = 0I;
+    var offset: Int32 = 0;
     var currentBlock: Block;
     var blockTerminated: Bool = false;
     var blocks: HashMap[Int32, Block] = HashMap[Int32, Block]();
@@ -24,10 +24,10 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVis
 
     fun nextBlockAt(offset: Int32) -> Option[Block] {
         var offset = offset;
-        while offset < self.bc.code.length().toInt32() {
+        while offset < self.bc.code.length() {
             let result = self.blockAt(offset);
             if result.isSome() { return result; }
-            offset = offset + 1I;
+            offset = offset + 1;
         }
 
         none[Block]()
@@ -132,7 +132,7 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVis
 }
 
 class SsagenCreateBlocks(let graph: Graph, let bc: BytecodeFunction, let blocks: HashMap[Int32, Block]): EmptyBytecodeVisitor {
-    var offset: Int32 = 0I;
+    var offset: Int32 = 0;
     var nextInstructionIsBlockStart: Bool = false;
 
     fun run() {
@@ -145,7 +145,7 @@ class SsagenCreateBlocks(let graph: Graph, let bc: BytecodeFunction, let blocks:
         self.graph.setExitBlock(exitBlock);
 
         // create block for first instruction
-        self.ensureBlockAt(0I);
+        self.ensureBlockAt(0);
 
         // iterate all bytecodes
         readBytecode(self.bc.code, self);

@@ -412,8 +412,8 @@ mod tests {
     #[test]
     fn lambdas() {
         ok("fun f() { || {}; }");
-        ok("fun f() { |a: Int| {}; }");
-        ok("fun f() { || -> Int { return 2; }; }");
+        ok("fun f() { |a: Int32| {}; }");
+        ok("fun f() { || -> Int32 { return 2; }; }");
 
         err(
             "fun f() { || -> Foo { }; }",

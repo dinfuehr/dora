@@ -2,5 +2,5 @@ fun main() {
     let arr = Array[(Int32, Int64)](10);
     assert(arr.length() == 10);
     let x: (Int32, Int64) = arr(6);
-    assert(x.0 == 0I && x.1 == 0L);
+    assert(x.0 == 0 && x.1 == 0L);
 }

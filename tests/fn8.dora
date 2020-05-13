@@ -5,4 +5,4 @@ fun main() {
   assert(Foo(a+1).a == 2);
 }
 
-class Foo(let a: Int)
+class Foo(let a: Int32)

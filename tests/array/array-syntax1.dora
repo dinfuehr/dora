@@ -2,16 +2,16 @@
 
 fun main() {
     let a = Array[Int32](10);
-    assert(array_get(a, 0L) == 0I);
+    assert(array_get(a, 0L) == 0);
 
-    array_set(a, 0L, 7I);
-    assert(array_get(a, 0L) == 7I);
+    array_set(a, 0L, 7);
+    assert(array_get(a, 0L) == 7);
 }
 
 fun array_set(a: Array[Int32], idx: Int64, value: Int32) {
-    a(idx.toInt()) = value;
+    a(idx.toInt32()) = value;
 }
 
 fun array_get(a: Array[Int32], idx: Int64) -> Int32 {
-    return a(idx.toInt());
+    return a(idx.toInt32());
 }

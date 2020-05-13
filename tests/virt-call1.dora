@@ -5,7 +5,7 @@
 
 class Bar: Foo {
     @override fun test() -> Int32 {
-        17I
+        17
     }
 }
 
@@ -14,5 +14,5 @@ fun test(foo: Foo) -> Int32 {
 }
 
 fun main() {
-    assert(test(Bar()) == 17I);
+    assert(test(Bar()) == 17);
 }

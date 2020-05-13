@@ -1,4 +1,4 @@
-const i: Int = 1;
+const i: Int32 = 1;
 const l: Int64 = 2L;
 const yes: Bool = true;
 const zero: UInt8 = 0Y;

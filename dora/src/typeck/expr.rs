@@ -2150,7 +2150,6 @@ fn arg_allows(
         | BuiltinType::UInt8
         | BuiltinType::Char
         | BuiltinType::Struct(_, _)
-        | BuiltinType::Int
         | BuiltinType::Int32
         | BuiltinType::Int64
         | BuiltinType::Float
@@ -2328,7 +2327,7 @@ pub fn check_lit_int(
             BuiltinType::UInt8 => BuiltinType::UInt8,
             BuiltinType::Int32 => BuiltinType::Int32,
             BuiltinType::Int64 => BuiltinType::Int64,
-            _ => BuiltinType::Int,
+            _ => BuiltinType::Int32,
         },
     };
 
@@ -2338,7 +2337,7 @@ pub fn check_lit_int(
     if e.base == IntBase::Dec {
         let max = match ty {
             BuiltinType::UInt8 => 256,
-            BuiltinType::Int | BuiltinType::Int32 => (1u64 << 31),
+            BuiltinType::Int32 => (1u64 << 31),
             BuiltinType::Int64 => (1u64 << 63),
             _ => unreachable!(),
         };
@@ -2353,7 +2352,7 @@ pub fn check_lit_int(
 
         let max = match ty {
             BuiltinType::UInt8 => 256 as u64,
-            BuiltinType::Int | BuiltinType::Int32 => u32::max_value() as u64,
+            BuiltinType::Int32 => u32::max_value() as u64,
             BuiltinType::Int64 => u64::max_value() as u64,
             _ => unreachable!(),
         };

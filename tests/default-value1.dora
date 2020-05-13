@@ -8,7 +8,7 @@ fun main() {
   let x = defaultValue[Char]();
   assert(x == '\0');
 
-  let x = defaultValue[Int]();
+  let x = defaultValue[Int32]();
   assert(x == 0);
 
   let x = defaultValue[Int64]();
@@ -23,7 +23,7 @@ fun main() {
   let x = defaultValue[String]();
   assert(x === nil);
 
-  let x = defaultValue[Array[Int] ]();
+  let x = defaultValue[Array[Int32]]();
   assert(x === nil);
 
   let x = defaultValue[Array[Float] ]();

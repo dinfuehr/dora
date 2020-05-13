@@ -1,14 +1,14 @@
 fun main() {
     let m = SlowMap[Int32, String]();
-    assert(m.insert(1I, "hello"));
-    assert(m.insert(2I, "world"));
+    assert(m.insert(1, "hello"));
+    assert(m.insert(2, "world"));
 
-    assert(m.get(1I) == "hello");
-    assert(m.get(2I) == "world");
-    assert(m.get(3I) === nil);
+    assert(m.get(1) == "hello");
+    assert(m.get(2) == "world");
+    assert(m.get(3) === nil);
 
-    assert(!m.insert(2I, "test"));
-    assert(m.get(2I) == "test");
+    assert(!m.insert(2, "test"));
+    assert(m.get(2) == "test");
 }
 
 class SlowMap[K: Equals, V] {

@@ -14,8 +14,8 @@ class Baz[A](let baz: A): Foo[Int32] {
 
 fun main() {
     let x: Foo[Int32] = Baz[String]("foo");
-    assert(x.test(2I) == 4I);
+    assert(x.test(2) == 4);
 
-    let x: Foo[Int32] = Bar[Int32](99I);
-    assert(x.test(7I) == 99I);
+    let x: Foo[Int32] = Bar[Int32](99);
+    assert(x.test(7) == 99);
 }

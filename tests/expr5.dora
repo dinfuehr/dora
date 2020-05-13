@@ -4,20 +4,20 @@ fun main() {
   Bar(1).exec();
 }
 
-class Bar(var a: Int) {
+class Bar(var a: Int32) {
   fun exec() {
     Foo(self.f()).a = self.g();
     assert(self.a == 100);
   }
 
-  fun f() -> Int {
+  fun f() -> Int32 {
     assert(self.a == 1);
     self.a = 10;
 
     return self.a;
   }
 
-  fun g() -> Int {
+  fun g() -> Int32 {
     assert(self.a == 10);
     self.a = 100;
 
@@ -25,4 +25,4 @@ class Bar(var a: Int) {
   }
 }
 
-class Foo(var a: Int)
+class Foo(var a: Int32)

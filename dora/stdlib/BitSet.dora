@@ -4,7 +4,7 @@ class BitSet(capacity: Int64) {
 
     if capacity > 0L {
         let entries = (capacity + 31L) / 32L;
-        self.data = Array[Int32](entries.toInt());
+        self.data = Array[Int32](entries.toInt32());
         self.capacity = capacity;
     }
 
@@ -18,10 +18,10 @@ class BitSet(capacity: Int64) {
         }
 
         let entry_idx = idx / 32L;
-        let value = self.data.get(entry_idx.toInt());
+        let value = self.data.get(entry_idx.toInt32());
         let value_idx = idx - entry_idx;
 
-        return value & (1I << value_idx.toInt32()) != 0I;
+        return value & (1 << value_idx.toInt32()) != 0;
     }
 
     fun insert(idx: Int64) {
@@ -30,12 +30,12 @@ class BitSet(capacity: Int64) {
         }
 
         let entry_idx = idx / 32L;
-        var value = self.data.get(entry_idx.toInt());
+        var value = self.data.get(entry_idx.toInt32());
         let value_idx = idx - entry_idx;
 
-        value = value | (1I << value_idx.toInt32());
+        value = value | (1 << value_idx.toInt32());
 
-        self.data.set(entry_idx.toInt(), value);
+        self.data.set(entry_idx.toInt32(), value);
     }
 
     fun remove(idx: Int64) {
@@ -44,11 +44,11 @@ class BitSet(capacity: Int64) {
         }
 
         let entry_idx = idx / 32L;
-        var value = self.data.get(entry_idx.toInt());
+        var value = self.data.get(entry_idx.toInt32());
         let value_idx = idx - entry_idx;
 
-        value = value & !(1I << value_idx.toInt32());
+        value = value & !(1 << value_idx.toInt32());
 
-        self.data.set(entry_idx.toInt(), value);
+        self.data.set(entry_idx.toInt32(), value);
     }
 }

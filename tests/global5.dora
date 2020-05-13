@@ -1,6 +1,6 @@
 //= stdout "before\nx = 19\nmiddle\nx = 19\nafter\n"
 
-var x: Int = foo();
+var x: Int32 = foo();
 
 fun main() {
     println("before");
@@ -12,7 +12,7 @@ fun main() {
     x;
 }
 
-fun foo() -> Int {
+fun foo() -> Int32 {
     println("foo");
     17
 }

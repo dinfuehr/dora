@@ -13,13 +13,13 @@ fun main() {
   assert(f(g(a + h(), b * i()), j()) == 288);
 }
 
-fun h() -> Int { return 3; }
-fun i() -> Int { return 5; }
-fun j() -> Int { return 7; }
+fun h() -> Int32 { return 3; }
+fun i() -> Int32 { return 5; }
+fun j() -> Int32 { return 7; }
 
-fun f(x: Int, y: Int) -> Int {
+fun f(x: Int32, y: Int32) -> Int32 {
   return x * (y+1);
 }
-fun g(x: Int, y: Int) -> Int {
+fun g(x: Int32, y: Int32) -> Int32 {
   return x * (y-1);
 }

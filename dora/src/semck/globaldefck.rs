@@ -90,11 +90,11 @@ mod tests {
 
     #[test]
     fn check_initializer() {
-        ok("let a: Int = 0;");
-        ok("let a: Int = 0; var b: Int = a + 1;");
+        ok("let a: Int32 = 0;");
+        ok("let a: Int32 = 0; var b: Int32 = a + 1;");
         err(
-            "var a: Int = foo;",
-            pos(1, 14),
+            "var a: Int32 = foo;",
+            pos(1, 16),
             SemError::UnknownIdentifier("foo".into()),
         );
     }

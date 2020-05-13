@@ -7,7 +7,7 @@ fun main() {
     assert(x.y == 10);
 }
 
-class X(py: Int) {
-    var x : Int = 1;
-    var y : Int = py;
+class X(py: Int32) {
+    var x : Int32 = 1;
+    var y : Int32 = py;
 }

@@ -16,7 +16,7 @@ fun g(thread: MyThread) {
 
 fun h(thread: MyThread) {
     while !thread.executed {
-        sleep(1I);
+        sleep(1);
     }
 
     println("done");

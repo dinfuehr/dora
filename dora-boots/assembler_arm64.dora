@@ -1,38 +1,38 @@
-let R0: Register = Register(0I);
-let R1: Register = Register(1I);
-let R2: Register = Register(2I);
-let R3: Register = Register(3I);
-let R4: Register = Register(4I);
-let R5: Register = Register(5I);
-let R6: Register = Register(6I);
-let R7: Register = Register(7I);
-let R8: Register = Register(8I);
-let R9: Register = Register(9I);
-let R10: Register = Register(10I);
-let R11: Register = Register(11I);
-let R12: Register = Register(12I);
-let R13: Register = Register(13I);
-let R14: Register = Register(14I);
-let R15: Register = Register(15I);
+let R0: Register = Register(0);
+let R1: Register = Register(1);
+let R2: Register = Register(2);
+let R3: Register = Register(3);
+let R4: Register = Register(4);
+let R5: Register = Register(5);
+let R6: Register = Register(6);
+let R7: Register = Register(7);
+let R8: Register = Register(8);
+let R9: Register = Register(9);
+let R10: Register = Register(10);
+let R11: Register = Register(11);
+let R12: Register = Register(12);
+let R13: Register = Register(13);
+let R14: Register = Register(14);
+let R15: Register = Register(15);
 
-let R16: Register = Register(16I);
-let R17: Register = Register(17I);
-let R18: Register = Register(18I);
-let R19: Register = Register(19I);
-let R20: Register = Register(20I);
-let R21: Register = Register(21I);
-let R22: Register = Register(22I);
-let R23: Register = Register(23I);
-let R24: Register = Register(24I);
-let R25: Register = Register(25I);
-let R26: Register = Register(26I);
-let R27: Register = Register(27I);
-let R28: Register = Register(28I);
-let R29: Register = Register(29I);
-let R30: Register = Register(30I);
+let R16: Register = Register(16);
+let R17: Register = Register(17);
+let R18: Register = Register(18);
+let R19: Register = Register(19);
+let R20: Register = Register(20);
+let R21: Register = Register(21);
+let R22: Register = Register(22);
+let R23: Register = Register(23);
+let R24: Register = Register(24);
+let R25: Register = Register(25);
+let R26: Register = Register(26);
+let R27: Register = Register(27);
+let R28: Register = Register(28);
+let R29: Register = Register(29);
+let R30: Register = Register(30);
 
-let REG_ZERO: Register = Register(32I);
-let REG_SP: Register = Register(33I);
+let REG_ZERO: Register = Register(32);
+let REG_SP: Register = Register(33);
 
 let REG_FP: Register = R29;
 let REG_LR: Register = R30;
@@ -41,22 +41,22 @@ class AssemblerArm64: Assembler {
     let buffer: AssemblerBuffer = AssemblerBuffer();
 
     fun ret() {
-        let inst = clsUncondBranchReg(0b0010I, 0b11111I, 0I, REG_LR, 0I);
+        let inst = clsUncondBranchReg(0b0010, 0b11111, 0, REG_LR, 0);
         self.buffer.emitInt32(inst);
     }
 
     fun retReg(rn: Register) {
-        let inst = clsUncondBranchReg(0b0010I, 0b11111I, 0I, rn, 0I);
+        let inst = clsUncondBranchReg(0b0010, 0b11111, 0, rn, 0);
         self.buffer.emitInt32(inst);
     }
 
     fun br(rn: Register) {
-        let inst = clsUncondBranchReg(0b0000I, 0b11111I, 0I, rn, 0I);
+        let inst = clsUncondBranchReg(0b0000, 0b11111, 0, rn, 0);
         self.buffer.emitInt32(inst);
     }
 
     fun blr(rn: Register) {
-        let inst = clsUncondBranchReg(0b0001I, 0b11111I, 0I, rn, 0I);
+        let inst = clsUncondBranchReg(0b0001, 0b11111, 0, rn, 0);
         self.buffer.emitInt32(inst);
     }
 
@@ -67,7 +67,7 @@ class AssemblerArm64: Assembler {
 
 impl Register {
     fun isGpr() -> Bool {
-        self.value <= 30I
+        self.value <= 30
     }
 
     fun isGprOrZero() -> Bool {
@@ -80,25 +80,25 @@ impl Register {
 
     fun int32() -> Int32 {
         if self == REG_ZERO || self == REG_SP {
-            31I
+            31
         } else {
-            assert(self.value <= 30I);
+            assert(self.value <= 30);
             self.value
         }
     }
 }
 
 fun clsUncondBranchReg(opc: Int32, op2: Int32, op3: Int32, rn: Register, op4: Int32) -> Int32 {
-    assert(fitsUnsigned(opc, 4I));
-    assert(fitsUnsigned(op2, 5I));
-    assert(fitsUnsigned(op3, 6I));
+    assert(fitsUnsigned(opc, 4));
+    assert(fitsUnsigned(op2, 5));
+    assert(fitsUnsigned(op3, 6));
     assert(rn.isGpr());
-    assert(fitsUnsigned(op4, 5I));
+    assert(fitsUnsigned(op4, 5));
 
-    0b1101011I << 25I | opc << 21I | op2 << 16I | op3 << 10I | rn.int32() << 5I | op4
+    0b1101011 << 25 | opc << 21 | op2 << 16 | op3 << 10 | rn.int32() << 5 | op4
 }
 
 fun fitsUnsigned(value: Int32, bits: Int32) -> Bool {
-    assert(bits < 32I);
-    value >= 0I && value < (1I << bits)
+    assert(bits < 32);
+    value >= 0 && value < (1 << bits)
 }

@@ -17,18 +17,18 @@ fun main() {
 }
 
 fun allocator() {
-    var i = 1I;
-    var list = Foo(0I, nil);
+    var i = 1;
+    var list = Foo(0, nil);
 
-    while i < 10_000I {
+    while i < 10_000 {
         list = Foo(i, list);
-        i = i + 1I;
+        i = i + 1;
     }
 
-    i = 10_000I;
+    i = 10_000;
 
-    while i > 0I {
-        i = i - 1I;
+    while i > 0 {
+        i = i - 1;
         assert(list.key == i);
         list = list.prev;
     }

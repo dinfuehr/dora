@@ -2,7 +2,7 @@ fun main() {
   str[Bool](true);
   str[Bool](false);
   str[UInt8](1.toUInt8());
-  str[Int32](1I);
+  str[Int32](1);
   str[Int64](1L);
   str[Float](1F);
   str[Double](1D);

@@ -12,10 +12,10 @@ fun main() {
     assert(bar.b == 124);
 }
 
-class Foo(let b: Int) {
-    let a: Int = b;
+class Foo(let b: Int32) {
+    let a: Int32 = b;
 }
 
-class Bar(var b: Int) {
-    var a: Int = b;
+class Bar(var b: Int32) {
+    var a: Int32 = b;
 }

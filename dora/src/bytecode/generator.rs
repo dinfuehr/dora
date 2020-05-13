@@ -1075,7 +1075,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         let ty = match ty {
             BuiltinType::UInt8 => BytecodeType::UInt8,
-            BuiltinType::Int => BytecodeType::Int32,
             BuiltinType::Int32 => BytecodeType::Int32,
             BuiltinType::Int64 => BytecodeType::Int64,
             _ => unreachable!(),
@@ -2040,13 +2039,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 self.gen.emit_const_char(dest, xconst.value.to_char());
             }
 
-            BuiltinType::Unit => {
+            BuiltinType::UInt8 => {
                 self.gen.emit_const_uint8(dest, xconst.value.to_int() as u8);
-            }
-
-            BuiltinType::Int => {
-                self.gen
-                    .emit_const_int32(dest, xconst.value.to_int() as i32);
             }
 
             BuiltinType::Int32 => {

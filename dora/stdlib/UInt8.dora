@@ -1,6 +1,5 @@
 @internal class UInt8 {
   @internal fun toChar() -> Char;
-  @internal fun toInt() -> Int;
   @internal fun toInt32() -> Int32;
   @internal fun toInt64() -> Int64;
   @internal fun toString() -> String;
@@ -13,8 +12,8 @@
 
   fun hash() -> Int32 = self.toInt32();
 
-  @static fun bits() -> Int = 8;
-  @static fun bytes() -> Int = 1;
+  @static fun bits() -> Int32 = 8;
+  @static fun bytes() -> Int32 = 1;
 
   @static fun maxValue() -> UInt8 = 255Y;
   @static fun minValue() -> UInt8 = 0Y;

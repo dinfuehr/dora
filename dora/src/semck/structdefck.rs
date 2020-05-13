@@ -78,18 +78,18 @@ mod tests {
 
     #[test]
     fn struct_field() {
-        ok("struct Foo { a: Int }");
-        ok("struct Foo { a: Int, b: Int }");
-        ok("struct Foo { a: Int } struct Bar { a: Int }");
-        ok("struct Foo { a: Int, bar: Bar } struct Bar { a: Int }");
+        ok("struct Foo { a: Int32 }");
+        ok("struct Foo { a: Int32, b: Int32 }");
+        ok("struct Foo { a: Int32 } struct Bar { a: Int32 }");
+        ok("struct Foo { a: Int32, bar: Bar } struct Bar { a: Int32 }");
         err(
             "struct Bar { a: Unknown }",
             pos(1, 17),
             SemError::UnknownType("Unknown".into()),
         );
         err(
-            "struct Foo { a: Int, a: Int }",
-            pos(1, 22),
+            "struct Foo { a: Int32, a: Int32 }",
+            pos(1, 24),
             SemError::ShadowField("a".into()),
         );
     }

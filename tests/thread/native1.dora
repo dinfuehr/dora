@@ -15,7 +15,7 @@ fun nativeCalls() {
     var i = 0;
 
     while i < 100_000 {
-        sleep(0I);
+        sleep(0);
         i = i + 1;
     }
 }

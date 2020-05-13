@@ -1,35 +1,35 @@
 fun main() {
     let map = HashMap[Int32, String]();
-    map.insert(1I, "a");
-    map.insert(10000I, "b");
-    map.insert(7I, "c");
+    map.insert(1, "a");
+    map.insert(10000, "b");
+    map.insert(7, "c");
 
     check_iterator1(map);
 
-    assert(map.get(1I).unwrap() == "a");
-    assert(map.get(10000I).unwrap() == "b");
-    assert(map.get(7I).unwrap() == "c");
-    assert(map.get(2I).isNone());
+    assert(map.get(1).unwrap() == "a");
+    assert(map.get(10000).unwrap() == "b");
+    assert(map.get(7).unwrap() == "c");
+    assert(map.get(2).isNone());
     assert(map.length() == 3L);
     assert(map.isEmpty().not());
 
-    assert(map.contains(1I));
-    assert(map.contains(10000I));
-    assert(map.contains(7I));
-    assert(!map.contains(2I));
+    assert(map.contains(1));
+    assert(map.contains(10000));
+    assert(map.contains(7));
+    assert(!map.contains(2));
 
-    map.remove(10000I);
+    map.remove(10000);
 
-    assert(map.get(1I).unwrap() == "a");
-    assert(map.get(10000I).isNone());
-    assert(map.get(7I).unwrap() == "c");
-    assert(map.get(2I).isNone());
+    assert(map.get(1).unwrap() == "a");
+    assert(map.get(10000).isNone());
+    assert(map.get(7).unwrap() == "c");
+    assert(map.get(2).isNone());
     assert(map.length() == 2L);
     assert(map.isEmpty().not());
 
-    assert(map.contains(1I));
-    assert(!map.contains(10000I));
-    assert(map.contains(7I));
+    assert(map.contains(1));
+    assert(!map.contains(10000));
+    assert(map.contains(7));
 
     check_iterator2(map);
 }
@@ -43,15 +43,15 @@ fun check_iterator1(map: HashMap[Int32, String]) {
         let key = key_and_value.0;
         let value = key_and_value.1;
 
-        if key == 1I {
+        if key == 1 {
             assert(value == "a");
             assert(!set.contains(0L));
             set.insert(0L);
-        } else if key == 10000I {
+        } else if key == 10000 {
             assert(value == "b");
             assert(!set.contains(1L));
             set.insert(1L);
-        } else if key == 7I {
+        } else if key == 7 {
             assert(value == "c");
             assert(!set.contains(2L));
             set.insert(2L);
@@ -74,11 +74,11 @@ fun check_iterator2(map: HashMap[Int32, String]) {
         let key = key_and_value.0;
         let value = key_and_value.1;
 
-        if key == 1I {
+        if key == 1 {
             assert(value == "a");
             assert(!set.contains(0L));
             set.insert(0L);
-        } else if key == 7I {
+        } else if key == 7 {
             assert(value == "c");
             assert(!set.contains(1L));
             set.insert(1L);

@@ -1,5 +1,5 @@
 class Stacktrace() {
-  var backtrace: Array[Int] = nil;
+  var backtrace: Array[Int32] = nil;
   var elements: Array[StacktraceElement] = nil;
 
   self.retrieveStacktrace();
@@ -37,9 +37,9 @@ class Stacktrace() {
   }
 
   @internal fun retrieveStacktrace();
-  @internal fun getStacktraceElement(idx: Int) -> StacktraceElement;
+  @internal fun getStacktraceElement(idx: Int32) -> StacktraceElement;
 }
 
-class StacktraceElement(let name: String, let line: Int) {
+class StacktraceElement(let name: String, let line: Int32) {
   fun toString() -> String = self.name + ": " + self.line.toString();
 }

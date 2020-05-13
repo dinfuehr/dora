@@ -3,53 +3,53 @@ class Node(let val: Int32, var left: Node, var right: Node) {
 }
 
 fun main() {
-  let root = Node(5I,
-                  Node(10I,
-                       Node::val(20I),
-                       Node::val(25I)),
-                  Node(15I,
-                       Node::val(30I),
-                       Node::val(35I)));
+  let root = Node(5,
+                  Node(10,
+                       Node::val(20),
+                       Node::val(25)),
+                  Node(15,
+                       Node::val(30),
+                       Node::val(35)));
 
-  dumpTree(root, 0I);
+  dumpTree(root, 0);
   println(isBalanced(root).toString());
 
-  root.right.right.right = Node(40I, nil, Node::val(45I));
+  root.right.right.right = Node(40, nil, Node::val(45));
 
-  dumpTree(root, 0I);
+  dumpTree(root, 0);
   println(isBalanced(root).toString());
 }
 
 fun dumpTree(root: Node, depth: Int32) {
   if root === nil {
-    if depth == 0I {
+    if depth == 0 {
       println("nil");
     }
 
     return;
   }
 
-  dumpTree(root.right, depth+1I);
+  dumpTree(root.right, depth+1);
 
-  var i = 0I;
+  var i = 0;
 
   while i < depth {
     print("\t");
-    i = i + 1I;
+    i = i + 1;
   }
 
   println(root.val.toString());
 
-  dumpTree(root.left, depth+1I);
+  dumpTree(root.left, depth+1);
 }
 
 fun isBalanced(root: Node) -> Bool {
-  return height(root) >= 0I;
+  return height(root) >= 0;
 }
 
 fun height(node: Node) -> Int32 {
   if node === nil {
-    return 0I;
+    return 0;
   }
 
   let l = height(node.left);
@@ -57,10 +57,10 @@ fun height(node: Node) -> Int32 {
 
   let diff = (l - r).abs();
 
-  if diff > 1I {
-    return -1I;
+  if diff > 1 {
+    return -1;
   } else {
-    return max(l, r) + 1I;
+    return max(l, r) + 1;
   }
 }
 

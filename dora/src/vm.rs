@@ -153,7 +153,6 @@ impl<'ast> VM<'ast> {
                 bool_class: empty_class_id,
                 uint8_class: empty_class_id,
                 char_class: empty_class_id,
-                int_class: empty_class_id,
                 int32_class: empty_class_id,
                 int64_class: empty_class_id,
                 float_class: empty_class_id,
@@ -568,7 +567,7 @@ impl<'ast> VM<'ast> {
         if trap_stub_address.is_null() {
             let ifct = NativeFct {
                 ptr: Address::from_ptr(stdlib::trap as *const u8),
-                args: &[BuiltinType::Int],
+                args: &[BuiltinType::Int32],
                 return_type: BuiltinType::Unit,
                 desc: NativeFctDescriptor::TrapStub,
             };

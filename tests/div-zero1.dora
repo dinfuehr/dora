@@ -1,11 +1,11 @@
 //= error div0
-//= stderr "division by 0\n2: divide(Int) -> Int: 10\n1: main(): 6\n"
+//= stderr "division by 0\n2: divide(Int32) -> Int32: 10\n1: main(): 6\n"
 //= cannon
 
 fun main() {
     divide(0);
 }
 
-fun divide(x: Int) -> Int {
+fun divide(x: Int32) -> Int32 {
     4711 / x
 }

@@ -1,40 +1,40 @@
 //= cannon
 
 fun main() {
-    let x = 1I.shiftLeft(1I);
-    assert(x == 2I);
+    let x = 1.shiftLeft(1);
+    assert(x == 2);
 
-    let x = 1I << 1I;
-    assert(x == 2I);
+    let x = 1 << 1;
+    assert(x == 2);
 
-    let x = 6I.shiftRightSigned(1I);
-    assert(x == 3I);
+    let x = 6.shiftRightSigned(1);
+    assert(x == 3);
 
-    let x = 6I >> 1I;
-    assert(x == 3I);
+    let x = 6 >> 1;
+    assert(x == 3);
 
-    let x = 12I.shiftRight(2I);
-    assert(x == 3I);
+    let x = 12.shiftRight(2);
+    assert(x == 3);
 
-    let x = 12I >> 2I;
-    assert(x == 3I);
+    let x = 12 >> 2;
+    assert(x == 3);
 
-    let x = (-12I).rotateLeft(1I);
-    assert(x == -23I);
+    let x = (-12).rotateLeft(1);
+    assert(x == -23);
 
-    let x = (-12I).rotateRight(1I);
-    assert(x == 2147483642I);
+    let x = (-12).rotateRight(1);
+    assert(x == 2147483642);
 
     // rotate arg is masked to 5 bits:
-    let x = (-12I).rotateLeft(32I);
-    assert(x == -12I);
+    let x = (-12).rotateLeft(32);
+    assert(x == -12);
 
-    let x = (-12I).rotateRight(32I);
-    assert(x == -12I);
+    let x = (-12).rotateRight(32);
+    assert(x == -12);
 
-    let x = (-12I).rotateLeft(-1I);
-    assert(x == 2147483642I);
+    let x = (-12).rotateLeft(-1);
+    assert(x == 2147483642);
 
-    let x = (-12I).rotateRight(-1I);
-    assert(x == -23I);
+    let x = (-12).rotateRight(-1);
+    assert(x == -23);
 }

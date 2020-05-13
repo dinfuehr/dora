@@ -1,10 +1,10 @@
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
 
 fun main() {
-    let x = id[(String, Foo)](("f" + "o" + "o", Foo(17I)));
+    let x = id[(String, Foo)](("f" + "o" + "o", Foo(17)));
     forceCollect();
     assert(x.0 == "foo");
-    assert(x.1.value == 17I);
+    assert(x.1.value == 17);
 }
 
 class Foo(let value: Int32)

@@ -4,5 +4,5 @@
 
 fun main() {
   let array = Array[Int32](0);
-  array(0) = 10I;
+  array(0) = 10;
 }

@@ -1,7 +1,7 @@
 //= cannon
 
 fun main() {
-  assert(zero() == 0I);
+  assert(zero() == 0);
 }
 
-fun zero() -> Int32 { return 0I; }
+fun zero() -> Int32 { return 0; }

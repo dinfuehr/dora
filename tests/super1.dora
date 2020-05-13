@@ -3,8 +3,8 @@
 fun main() {
   let b = B();
 
-  assert(b.foo(1I) == 2I);
-  assert(b.foo(2I) == 3I);
+  assert(b.foo(1) == 2);
+  assert(b.foo(2) == 3);
 }
 
 @open class A {
@@ -15,6 +15,6 @@ fun main() {
 
 class B: A {
   @override fun foo(a: Int32) -> Int32 {
-    return super.foo(a) + 1I;
+    return super.foo(a) + 1;
   }
 }

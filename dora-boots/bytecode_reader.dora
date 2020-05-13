@@ -515,8 +515,8 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
 }
 
 class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
-    var pos: Int32 = 0I;
-    var length: Int32 = data.length().toInt32();
+    var pos: Int32 = 0;
+    var length: Int32 = data.length();
 
     fun read() {
         while self.pos < self.length {
@@ -1616,10 +1616,10 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
 
     fun hasWideOperands() -> Bool {
         let data = self.data;
-        let value = data(self.pos.toInt());
+        let value = data(self.pos);
 
         if value.toInt32() == BC_WIDE {
-            self.pos = self.pos + 1I;
+            self.pos = self.pos + 1;
             true
         } else {
             false
@@ -1629,9 +1629,9 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
     fun readOpcode() -> Int32 {
         let first = self.readByte();
 
-        if first == 255I {
+        if first == 255 {
             let second = self.readByte();
-            second + 255I
+            second + 255
         } else {
             first
         }
@@ -1671,8 +1671,8 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
 
     fun readByte() -> Int32 {
         let data = self.data;
-        let value = data(self.pos.toInt());
-        self.pos = self.pos + 1I;
+        let value = data(self.pos);
+        self.pos = self.pos + 1;
 
         value.toInt32()
     }
@@ -1683,6 +1683,6 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         let by3 = self.readByte();
         let by4 = self.readByte();
 
-        (by4 << 24I) | (by3 << 16I) | (by2 << 8I) | by1
+        (by4 << 24) | (by3 << 16) | (by2 << 8) | by1
     }
 }

@@ -6,4 +6,4 @@ fun main() {
     println(root.value.toString());
 }
 
-class Foo(let value: Int)
+class Foo(let value: Int32)

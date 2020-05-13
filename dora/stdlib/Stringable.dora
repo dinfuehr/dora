@@ -10,10 +10,6 @@ impl Stringable for UInt8 {
   fun toString() -> String = self.toString();
 }
 
-impl Stringable for Int {
-  fun toString() -> String = self.toString();
-}
-
 impl Stringable for Int32 {
   fun toString() -> String = self.toString();
 }

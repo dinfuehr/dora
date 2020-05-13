@@ -10,9 +10,9 @@ fun main() {
   assert(101 == a1);
 }
 
-class Foo(var a: Int) {
-  fun a1() -> Int { return self.a; }
-  fun a2() -> Int { return self.a; }
+class Foo(var a: Int32) {
+  fun a1() -> Int32 { return self.a; }
+  fun a2() -> Int32 { return self.a; }
 
-  fun setA(a: Int) { self.a = a; }
+  fun setA(a: Int32) { self.a = a; }
 }

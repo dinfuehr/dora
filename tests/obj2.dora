@@ -4,4 +4,4 @@ fun main() {
   assert(obj.a == 1);
 }
 
-class Foo(let a: Int)
+class Foo(let a: Int32)

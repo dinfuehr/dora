@@ -6,5 +6,5 @@ fun main() {
   assert(a.y == 20);
 }
 
-class A(let x: Int): B(x*2)
-@open class B(let y: Int)
+class A(let x: Int32): B(x*2)
+@open class B(let y: Int32)

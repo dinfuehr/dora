@@ -1,8 +1,8 @@
 //= cannon
 //= stdout "78"
 
-class X(j: Int) {
-  var i: Int;
+class X(j: Int32) {
+  var i: Int32;
   {
     let x = 2;
     let y = 3;

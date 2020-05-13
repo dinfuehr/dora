@@ -5,5 +5,5 @@ struct Foo {
 }
 
 fun main() {
-    Foo { a: 1I };
+    Foo { a: 1 };
 }

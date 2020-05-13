@@ -11,9 +11,9 @@ fun main() {
 
 fun test_multiple_ascii_chars() {
     let bytes = Array[UInt8](3);
-    bytes(0) = 'a'.toInt().toUInt8();
-    bytes(1) = 'b'.toInt().toUInt8();
-    bytes(2) = 'c'.toInt().toUInt8();
+    bytes(0) = 'a'.toInt32().toUInt8();
+    bytes(1) = 'b'.toInt32().toUInt8();
+    bytes(2) = 'c'.toInt32().toUInt8();
 
     let val = String::fromBytes(bytes).unwrap();
     assert(val == "abc");

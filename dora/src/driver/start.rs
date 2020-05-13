@@ -349,7 +349,8 @@ fn find_main<'ast>(vm: &VM<'ast>) -> Option<FctId> {
     let fct = fct.read();
     let ret = fct.return_type;
 
-    if (ret != BuiltinType::Unit && ret != BuiltinType::Int) || fct.params_without_self().len() > 0
+    if (ret != BuiltinType::Unit && ret != BuiltinType::Int32)
+        || fct.params_without_self().len() > 0
     {
         let pos = fct.ast.pos;
         vm.diag

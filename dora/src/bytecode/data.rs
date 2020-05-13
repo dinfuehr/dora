@@ -71,7 +71,6 @@ impl From<BuiltinType> for BytecodeType {
             BuiltinType::Bool => BytecodeType::Bool,
             BuiltinType::UInt8 => BytecodeType::UInt8,
             BuiltinType::Char => BytecodeType::Char,
-            BuiltinType::Int => BytecodeType::Int32,
             BuiltinType::Int32 => BytecodeType::Int32,
             BuiltinType::Int64 => BytecodeType::Int64,
             BuiltinType::Float => BytecodeType::Float,

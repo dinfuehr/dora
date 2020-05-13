@@ -1,8 +1,8 @@
 //= stdout "x = 1\ny = 2\nz = 3\n"
 
-var x: Int;
-var y: Int;
-var z: Int;
+var x: Int32;
+var y: Int32;
+var z: Int32;
 
 fun main() {
     init_globals();

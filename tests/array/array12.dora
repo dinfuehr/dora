@@ -7,5 +7,5 @@ fun main() {
 }
 
 fun set_first(f: Array[Int32]) {
-    f(0) = 0I;
+    f(0) = 0;
 }

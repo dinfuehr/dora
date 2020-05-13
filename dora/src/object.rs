@@ -853,7 +853,7 @@ pub fn write_int32(vm: &VM, obj: Ref<Obj>, cls_id: ClassDefId, fid: FieldId, val
     let cls_def = cls_def.read();
     let field = &cls_def.fields[fid.idx()];
     let slot = obj.address().offset(field.offset as usize);
-    assert!(field.ty == BuiltinType::Int || field.ty == BuiltinType::Int32);
+    assert!(field.ty == BuiltinType::Int32);
 
     unsafe {
         *slot.to_mut_ptr::<i32>() = value;

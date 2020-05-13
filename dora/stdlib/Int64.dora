@@ -8,7 +8,6 @@
     }
   }
   @internal fun toCharUnchecked() -> Char;
-  @internal fun toInt() -> Int;
   @internal fun toInt32() -> Int32;
   @internal fun toString() -> String;
   fun toStringHex() -> String { String::hex(self) }
@@ -44,8 +43,8 @@
   @internal fun unaryMinus() -> Int64;
   @internal fun not() -> Int64;
 
-  @internal fun countZeroBits() -> Int = self.not().countOneBits();
-  @internal fun countOneBits() -> Int {
+  @internal fun countZeroBits() -> Int32 = self.not().countOneBits();
+  @internal fun countOneBits() -> Int32 {
     var x = self;
     var c = 0;
     while (x != 0L) {
@@ -54,37 +53,37 @@
     }
     return c;
   }
-  @internal fun countZeroBitsLeading() -> Int {
+  @internal fun countZeroBitsLeading() -> Int32 {
     if self == 0L {
       return Int64::bits();
     }
-    var t = 1L.shiftLeft(Int64::bits().toInt32() - 1I);
+    var t = 1L.shiftLeft(Int64::bits() - 1);
     var r = 0;
     while (self.bitwiseAnd(t)) == 0L {
-      t = t.shiftRight(1I);
+      t = t.shiftRight(1);
       r = r + 1;
     }
     return r;
   }
-  @internal fun countOneBitsLeading() -> Int = self.not().countZeroBitsLeading();
-  @internal fun countZeroBitsTrailing() -> Int {
+  @internal fun countOneBitsLeading() -> Int32 = self.not().countZeroBitsLeading();
+  @internal fun countZeroBitsTrailing() -> Int32 {
     if self == 0L {
       return Int64::bits();
     }
     var t = 1L;
     var r = 0;
     while (self.bitwiseAnd(t)) == 0L {
-      t = t.shiftLeft(1I);
+      t = t.shiftLeft(1);
       r = r + 1
     }
     return r;
   }
-  @internal fun countOneBitsTrailing() -> Int = self.not().countZeroBitsTrailing();
+  @internal fun countOneBitsTrailing() -> Int32 = self.not().countZeroBitsTrailing();
 
   fun hash() -> Int32 = self.toInt32();
 
-  @static fun bits() -> Int = 64;
-  @static fun bytes() -> Int = 8;
+  @static fun bits() -> Int32 = 64;
+  @static fun bytes() -> Int32 = 8;
 
   @static fun maxValue() -> Int64 = 9223372036854775807L;
   @static fun minValue() -> Int64 = -9223372036854775808L;

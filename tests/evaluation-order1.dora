@@ -3,14 +3,14 @@
 
 class Foo() {
   println("Foo");
-  fun bar(x: Int) { println("bar"); }
+  fun bar(x: Int32) { println("bar"); }
 }
 
 fun main() {
   Foo().bar(someInt())
 }
 
-fun someInt() -> Int {
+fun someInt() -> Int32 {
   println("someInt");
   return 1;
 }

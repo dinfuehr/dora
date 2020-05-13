@@ -1,11 +1,9 @@
 @internal class Float {
-  @internal fun toInt() -> Int;
   @internal fun toInt32() -> Int32;
   @internal fun toInt64() -> Int64;
   @internal fun toDouble() -> Double;
   @internal fun toString() -> String;
 
-  @internal fun asInt() -> Int;
   @internal fun asInt32() -> Int32;
 
   @internal fun equals(rhs: Float) -> Bool;
@@ -14,15 +12,15 @@
     var ix = self.asInt32();
     var iy = rhs.asInt32();
 
-    let sx = ix.shiftRightSigned(31I).shiftRight(1I);
-    let sy = iy.shiftRightSigned(31I).shiftRight(1I);
+    let sx = ix.shiftRightSigned(31).shiftRight(1);
+    let sy = iy.shiftRightSigned(31).shiftRight(1);
 
     ix = ix.bitwiseXor(sx);
     iy = iy.bitwiseXor(sy);
 
-    if ix < iy { return -1I; }
-    if ix == iy { return 0I; }
-    return 1I;
+    if ix < iy { return -1; }
+    if ix == iy { return 0; }
+    return 1;
   }
   @internal fun plus(rhs: Float) -> Float;
   @internal fun minus(rhs: Float) -> Float;
@@ -37,6 +35,6 @@
 
   fun hash() -> Int32 = self.asInt32();
 
-  @static fun bits() -> Int = 32;
-  @static fun bytes() -> Int = 4;
+  @static fun bits() -> Int32 = 32;
+  @static fun bytes() -> Int32 = 4;
 }

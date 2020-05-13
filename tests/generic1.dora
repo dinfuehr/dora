@@ -2,7 +2,7 @@
 //= cannon
 
 fun main() {
-    let a = A[Int](1);
+    let a = A[Int32](1);
     print(a.x.toString());
 }
 

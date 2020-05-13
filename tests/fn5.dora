@@ -5,6 +5,6 @@ fun main() {
   assert(result == 1);
 }
 
-fun myzero() -> Int {
+fun myzero() -> Int32 {
   return 0;
 }

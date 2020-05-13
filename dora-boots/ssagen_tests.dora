@@ -27,7 +27,7 @@ Block 2: pred = [0] succ = [1]
 ");
 }
 
-fun bcSsaGenRetIntConst() -> Int32 { 4711I }
+fun bcSsaGenRetIntConst() -> Int32 { 4711 }
 
 @test fun testSsaGenRetInt64Const(_x: Testing) {
     let fct = bytecode("bcSsaGenRetInt64Const");
@@ -118,11 +118,11 @@ Block 2: pred = [0] succ = [1]
 }
 
 fun bcSsaGenMultipleAssignments(d: Int32) -> Int32 {
-    var a = 42I;
+    var a = 42;
     var b = a;
     var c = a + b;
 
-    a = c + 23I;
+    a = c + 23;
     c = a + d;
 
     a + c
@@ -203,8 +203,8 @@ Block 4: pred = [2] succ = [3]
 }
 
 fun bcSsaGenSimpleIf(a: Bool) -> Int32 {
-    var result = 1I;
-    if a { result = 10I; }
+    var result = 1;
+    if a { result = 10; }
     return result;
 }
 
@@ -229,7 +229,7 @@ Block 4: pred = [2] succ = [1]
 }
 
 fun bcSsaGenIfReturnInBothBranches(a: Bool) -> Int32 {
-    if a { return 1I; } else { return 2I; }
+    if a { return 1; } else { return 2; }
 }
 
 @test fun testSsaGenIfWithConditionalAssignment(_x: Testing) {
@@ -256,9 +256,9 @@ Block 4: pred = [2] succ = [3]
 }
 
 fun bcSsaGenIfWithConditionalAssignment(a: Bool) -> Int32 {
-    var x = 1I;
-    var y = 27I;
-    if a { x = 4I; }
+    var x = 1;
+    var y = 27;
+    if a { x = 4; }
     x + y
 }
 
@@ -289,7 +289,7 @@ Block 5: pred = [2, 4] succ = [3, 4]
 
 fun bcSsaGenWhileCountDown(x: Int32) -> Int32 {
     var x = x;
-    while x > 0I { x = x - 1I; }
+    while x > 0 { x = x - 1; }
     x
 }
 
@@ -323,9 +323,9 @@ Block 5: pred = [2, 4] succ = [3, 4]
 
 fun bcSsaGenWhileCountDownWithSum(x: Int32) -> Int32 {
     var x = x;
-    var sum = 0I;
-    while x > 0I {
-        x = x - 1I;
+    var sum = 0;
+    while x > 0 {
+        x = x - 1;
         sum = sum + x;
     }
     sum

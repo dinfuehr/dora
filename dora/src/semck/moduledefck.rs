@@ -317,17 +317,17 @@ mod tests {
             SemError::UnknownClass("A".into()),
         );
         err(
-            "module B : Int {}",
+            "module B : Int32 {}",
             pos(1, 12),
-            SemError::UnderivableType("Int".into()),
+            SemError::UnderivableType("Int32".into()),
         );
     }
 
     #[test]
     fn field_defined_twice() {
         err(
-            "module Foo { var a: Int; var a: Int; }",
-            pos(1, 26),
+            "module Foo { var a: Int32; var a: Int32; }",
+            pos(1, 28),
             SemError::ShadowField("a".into()),
         );
     }
@@ -335,7 +335,7 @@ mod tests {
     #[test]
     fn let_field_without_initialization() {
         err(
-            "module Foo { let a: Int; }",
+            "module Foo { let a: Int32; }",
             pos(1, 14),
             SemError::LetMissingInitialization,
         );
@@ -345,7 +345,7 @@ mod tests {
     #[test] // should fail but doesn't
     fn field_self_assignment() {
         err(
-            "module Foo { var b: Int = b; }",
+            "module Foo { var b: Int32 = b; }",
             pos(1, 34),
             SemError::UnknownIdentifier("b".into()),
         );

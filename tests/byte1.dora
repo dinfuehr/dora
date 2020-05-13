@@ -7,7 +7,7 @@ fun main() {
     let x = (-1).toUInt8();
     assert(x == 255.toUInt8());
 
-    let x = 129Y.toInt();
+    let x = 129Y.toInt32();
     assert(x == 129);
 
     let x = 129Y.toInt64();

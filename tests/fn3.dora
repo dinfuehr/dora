@@ -1,6 +1,6 @@
 //= error code 2
 //= cannon
 
-fun main() -> Int {
+fun main() -> Int32 {
   return 2;
 }

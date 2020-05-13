@@ -1,13 +1,13 @@
 fun main() {
-    let bar = Bar(101I);
+    let bar = Bar(101);
     call("foo");
-    assert(bar.value == 101I);
+    assert(bar.value == 101);
 }
 
 class Bar(let value: Int32)
 
 fun foo() {
-    let bar2 = Bar(102I);
+    let bar2 = Bar(102);
     forceCollect();
-    assert(bar2.value == 102I);
+    assert(bar2.value == 102);
 }

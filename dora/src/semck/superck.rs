@@ -272,7 +272,7 @@ mod tests {
         );
         assert_eq!(
             InstanceSize::Fixed(Header::size() + mem::ptr_width()),
-            class_size("class Foo(let a: Int)", "Foo")
+            class_size("class Foo(let a: Int32)", "Foo")
         );
         assert_eq!(
             InstanceSize::Fixed(Header::size() + 8),
@@ -302,7 +302,7 @@ mod tests {
         ok_with_test("", |vm| {
             assert_eq!(InstanceSize::Str, class_size_name(vm, "String"));
             assert_eq!(InstanceSize::Fixed(16), class_size_name(vm, "Bool"));
-            assert_eq!(InstanceSize::Fixed(16), class_size_name(vm, "Int"));
+            assert_eq!(InstanceSize::Fixed(16), class_size_name(vm, "Int32"));
             assert_eq!(InstanceSize::Fixed(16), class_size_name(vm, "UInt8"));
             assert_eq!(InstanceSize::Fixed(16), class_size_name(vm, "Int64"));
         });
@@ -367,8 +367,8 @@ mod tests {
             SemError::SuperfluousOverride("f".into()),
         );
         err(
-            "@open class B { @open fun f(a: Int) {} } class A: B { @override fun f() {} }",
-            pos(1, 65),
+            "@open class B { @open fun f(a: Int32) {} } class A: B { @override fun f() {} }",
+            pos(1, 67),
             SemError::OverrideMismatch,
         );
     }
@@ -402,7 +402,7 @@ mod tests {
     fn test_overload_method_in_super_class() {
         errors(
             "@open class A { @open fun f() {} }
-            class B: A { fun f(a: Int) {} }",
+            class B: A { fun f(a: Int32) {} }",
             &[
                 (pos(2, 26), SemError::MissingOverride("f".into())),
                 (pos(2, 26), SemError::OverrideMismatch),
@@ -410,14 +410,14 @@ mod tests {
         );
 
         ok("@open class A { @static fun f() {} }
-            class B: A { @static fun f(a: Int) {} }");
+            class B: A { @static fun f(a: Int32) {} }");
     }
 
     #[test]
     fn test_override_with_wrong_return_type() {
         err(
             "@open class A { @open fun f() {} }
-             class B: A { @override fun f() -> Int { return 1; } }",
+             class B: A { @override fun f() -> Int32 { return 1; } }",
             pos(2, 37),
             SemError::OverrideMismatch,
         );
@@ -428,11 +428,11 @@ mod tests {
         err(
             "
         @open @abstract class Foo {
-            @open fun test(x: Int) -> Int { x * 2 }
+            @open fun test(x: Int32) -> Int32 { x * 2 }
         }
 
         class Bar: Foo {
-            @override fun test(x: String) -> Int { 0 }
+            @override fun test(x: String) -> Int32 { 0 }
         }
     ",
             pos(7, 23),

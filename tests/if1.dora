@@ -14,17 +14,17 @@ fun main() {
     assert(i(false) == "not one");
 }
 
-fun f(x: Bool) -> Int {
+fun f(x: Bool) -> Int32 {
     if x { 1 } else { 2 }
 }
 
-fun g(x: Bool) -> Int {
+fun g(x: Bool) -> Int32 {
     let ret = if x { 1 } else { 2 };
 
     ret
 }
 
-fun h(x: Bool, y: Int) -> String {
+fun h(x: Bool, y: Int32) -> String {
     (if x { "t${y}" } else { "f${y}" }) + { forceCollect(); "end" }
 }
 

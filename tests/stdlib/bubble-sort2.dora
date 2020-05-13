@@ -2,17 +2,17 @@
 
 fun main() {
     let x = Array[Int32](5);
-    x(0) = 5I;
-    x(1) = 1I;
-    x(2) = 4I;
-    x(3) = 2I;
-    x(4) = 8I;
+    x(0) = 5;
+    x(1) = 1;
+    x(2) = 4;
+    x(3) = 2;
+    x(4) = 8;
 
     bubbleSort[Int32](x);
 
-    assert(x(0) == 1I);
-    assert(x(1) == 2I);
-    assert(x(2) == 4I);
-    assert(x(3) == 5I);
-    assert(x(4) == 8I);
+    assert(x(0) == 1);
+    assert(x(1) == 2);
+    assert(x(2) == 4);
+    assert(x(3) == 5);
+    assert(x(4) == 8);
 }

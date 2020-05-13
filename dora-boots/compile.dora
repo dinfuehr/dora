@@ -19,7 +19,7 @@ class EncodedCompilationInfo {
     let code: Array[UInt8] = arrayEmpty[UInt8]();
     let constpool: Array[UInt8] = arrayEmpty[UInt8]();
     let registers: Array[Int32] = arrayEmpty[Int32]();
-    let arguments: Int32 = 0I;
+    let arguments: Int32 = 0;
 }
 
 fun decodeRegisters(registers: Array[Int32]) -> Array[BytecodeType] {
@@ -27,7 +27,7 @@ fun decodeRegisters(registers: Array[Int32]) -> Array[BytecodeType] {
     let result = arrayFill[BytecodeType](registers.length().toInt64(), BytecodeType::bool());
 
     while i < registers.length().toInt64() {
-        let regtype = registers(i.toInt());
+        let regtype = registers(i.toInt32());
 
         let value = if regtype == BC_TYPE_BOOL {
             BytecodeType::bool()
@@ -50,7 +50,7 @@ fun decodeRegisters(registers: Array[Int32]) -> Array[BytecodeType] {
             BytecodeType::bool()
         };
 
-        result(i.toInt()) = value;
+        result(i.toInt32()) = value;
         i = i + 1L;
     }
 
@@ -102,7 +102,7 @@ class ByteReader(let array: Array[UInt8]) {
     }
 
     fun readUInt8() -> UInt8 {
-        let value = self.array.get(self.idx.toInt());
+        let value = self.array.get(self.idx.toInt32());
         self.idx = self.idx + 1L;
         value
     }
@@ -113,7 +113,7 @@ class ByteReader(let array: Array[UInt8]) {
         let by3 = self.readUInt8().toInt32();
         let by4 = self.readUInt8().toInt32();
 
-        (by4 << 24I) | (by3 << 16I) | (by2 << 8I) | by1
+        (by4 << 24) | (by3 << 16) | (by2 << 8) | by1
     }
 
     fun readInt64() -> Int64 {
@@ -126,7 +126,7 @@ class ByteReader(let array: Array[UInt8]) {
         let by7 = self.readUInt8().toInt64();
         let by8 = self.readUInt8().toInt64();
 
-        (by8 << 56I) | (by7 << 48I) | (by6 << 40I) | (by5 << 32I) | (by4 << 24I) | (by3 << 16I) | (by2 << 8I) | by1
+        (by8 << 56) | (by7 << 48) | (by6 << 40) | (by5 << 32) | (by4 << 24) | (by3 << 16) | (by2 << 8) | by1
     }
 
     fun offset() -> Int64 {

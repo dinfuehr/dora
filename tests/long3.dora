@@ -62,7 +62,7 @@ fun main() {
     assert(x == -2L);
 
     let x = 3L;
-    assert(x.toInt() == 3);
+    assert(x.toInt32() == 3);
 
     assert(2L != 3L);
     assert(5L == 5L);

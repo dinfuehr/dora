@@ -4,7 +4,7 @@ trait Adder {
     fun add_me(other: Self) -> Self;
 }
 
-class A(let a: Int)
+class A(let a: Int32)
 
 impl Adder for A {
     fun add_me(other: A) -> A {

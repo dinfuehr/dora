@@ -20,11 +20,11 @@ class StringBuffer() {
     }
 
     let newcap = self.newCapacity(elements);
-    let newbuf = Array[UInt8](newcap.toInt());
+    let newbuf = Array[UInt8](newcap.toInt32());
     var i = 0L;
 
     while i < self.buf.length().toInt64() {
-      newbuf.set(i.toInt(), self.buf.get(i.toInt()));
+      newbuf.set(i.toInt32(), self.buf.get(i.toInt32()));
       i = i + 1L;
     }
 
@@ -53,7 +53,7 @@ class StringBuffer() {
   fun appendChar(ch: Char) -> StringBuffer {
     let chLen = ch.lenUtf8();
     self.reserve(chLen.toInt64());
-    ch.encodeUtf8(self.buf, self.len.toInt());
+    ch.encodeUtf8(self.buf, self.len.toInt32());
     self.len = self.len + chLen.toInt64();
     self
   }
@@ -63,7 +63,7 @@ class StringBuffer() {
     var i = 0L;
 
     while i < value.length().toInt64() {
-      self.buf.set((self.len + i).toInt(), value.getByte(i.toInt()));
+      self.buf.set((self.len + i).toInt32(), value.getByte(i.toInt32()));
       i = i + 1L;
     }
 

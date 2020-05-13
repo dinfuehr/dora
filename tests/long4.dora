@@ -1,7 +1,7 @@
 //= cannon
 
 fun main() {
-    assert(three().toInt() == 3);
+    assert(three().toInt32() == 3);
 }
 
 fun three() -> Int64 {

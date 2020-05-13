@@ -421,8 +421,8 @@ mod tests {
     fn test_class_definition() {
         ok("class Foo");
         ok("class Foo()");
-        ok("class Foo(let a: Int)");
-        ok("class Foo(let a: Int, let b:Int)");
+        ok("class Foo(let a: Int32)");
+        ok("class Foo(let a: Int32, let b:Int32)");
         ok("class Foo(let a: Foo)");
         ok("class Foo(let a: Bar) class Bar");
         err(
@@ -431,8 +431,8 @@ mod tests {
             SemError::UnknownType("Unknown".into()),
         );
         err(
-            "class Foo(let a: Int, let a: Int)",
-            pos(1, 27),
+            "class Foo(let a: Int32, let a: Int32)",
+            pos(1, 29),
             SemError::ShadowField("a".to_string()),
         );
     }
@@ -450,9 +450,9 @@ mod tests {
             SemError::UnknownClass("A".into()),
         );
         err(
-            "class B : Int {}",
+            "class B : Int32 {}",
             pos(1, 11),
-            SemError::UnderivableType("Int".into()),
+            SemError::UnderivableType("Int32".into()),
         );
     }
 
@@ -469,38 +469,38 @@ mod tests {
 
     #[test]
     fn non_field_ctor_arguments() {
-        ok("class Foo(a: Int, b: Int)");
-        ok("class Foo(let a: Int, b: Int)");
-        ok("class Foo(a: Int, var b: Int)");
+        ok("class Foo(a: Int32, b: Int32)");
+        ok("class Foo(let a: Int32, b: Int32)");
+        ok("class Foo(a: Int32, var b: Int32)");
         err(
-            "class Foo(a: Int, a: Int)",
+            "class Foo(a: Int32, a: Int32)",
             pos(1, 1),
             SemError::ShadowParam("a".into()),
         );
         err(
-            "class Foo(a: Int, let a: Int)",
+            "class Foo(a: Int32, let a: Int32)",
             pos(1, 1),
             SemError::ShadowParam("a".into()),
         );
         err(
-            "class Foo(let a: Int, a: Int)",
+            "class Foo(let a: Int32, a: Int32)",
             pos(1, 1),
             SemError::ShadowParam("a".into()),
         );
         err(
-            "class Foo(a: Int) fun f(x: Foo) { x.a = 1; }",
-            pos(1, 36),
+            "class Foo(a: Int32) fun f(x: Foo) { x.a = 1; }",
+            pos(1, 38),
             SemError::UnknownField("a".into(), "Foo".into()),
         );
 
-        ok("class Foo(a: Int) fun foo() -> Foo { return Foo(1); } ");
+        ok("class Foo(a: Int32) fun foo() -> Foo { return Foo(1); } ");
     }
 
     #[test]
     fn field_defined_twice() {
         err(
-            "class Foo { var a: Int; var a: Int; }",
-            pos(1, 25),
+            "class Foo { var a: Int32; var a: Int32; }",
+            pos(1, 27),
             SemError::ShadowField("a".into()),
         );
     }
@@ -508,8 +508,8 @@ mod tests {
     #[test]
     fn field_defined_twice_via_constructor() {
         err(
-            "class Foo(let a: Int) { var a: Int; }",
-            pos(1, 25),
+            "class Foo(let a: Int32) { var a: Int32; }",
+            pos(1, 27),
             SemError::ShadowField("a".into()),
         );
     }
@@ -517,7 +517,7 @@ mod tests {
     #[test]
     fn let_field_without_initialization() {
         err(
-            "class Foo { let a: Int; }",
+            "class Foo { let a: Int32; }",
             pos(1, 13),
             SemError::LetMissingInitialization,
         );
@@ -526,8 +526,8 @@ mod tests {
     #[test]
     fn field_self_assignment() {
         err(
-            "class Foo(a: Int) { var b: Int = b; }",
-            pos(1, 34),
+            "class Foo(a: Int32) { var b: Int32 = b; }",
+            pos(1, 38),
             SemError::UnknownIdentifier("b".into()),
         );
     }
@@ -581,7 +581,7 @@ mod tests {
         err(
             "
             @open class A
-            class B: A[Int] {}",
+            class B: A[Int32] {}",
             pos(3, 22),
             SemError::WrongNumberTypeParams(0, 1),
         );

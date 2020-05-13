@@ -14,7 +14,7 @@ fun main() {
     assert(loadGlobalBool() == true);
     assert(loadGlobalChar() == '5');
     assert(loadGlobalByte() == 5Y);
-    assert(loadGlobalInt32() == 5I);
+    assert(loadGlobalInt32() == 5);
     assert(loadGlobalInt64() == 5L);
     assert(loadGlobalFloat() == 5F);
     assert(loadGlobalDouble() == 5D);
@@ -27,7 +27,7 @@ fun init_globs() {
     glob_bool = true;
     glob_char = '5';
     glob_byte = 5Y;
-    glob_int = 5I;
+    glob_int = 5;
     glob_long = 5L;
     glob_float = 5F;
     glob_double = 5D;

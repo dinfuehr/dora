@@ -2,16 +2,16 @@ fun main() {
     assert(loadBool(FooBool(true)) == true);
     assert(loadByte(FooByte(1Y)) == 1Y);
     assert(loadChar(FooChar('1')) == '1');
-    assert(loadInt32(FooInt32(23I)) == 23I);
+    assert(loadInt32(FooInt32(23)) == 23);
     assert(loadInt64(FooInt64(1L)) == 1L);
     assert(loadFloat(FooFloat(1F)) == 1F);
     assert(loadDouble(FooDouble(1D)) == 1D);
     assert(loadString(FooString("1")) == "1");
 
-    let ptr = FooInt32(1I);
+    let ptr = FooInt32(1);
     let fooPtr = FooPtr(ptr);
     assert(loadPtr(fooPtr) === ptr);
-    assert(loadPtr(fooPtr).y == 1I);
+    assert(loadPtr(fooPtr).y == 1);
 }
 
 @cannon fun loadBool(x: FooBool) -> Bool {

@@ -1,9 +1,9 @@
 //= cannon
 
 fun main() {
-    assert(myid[Int](1) == 1);
-    assert(myid[Int](100) == 100);
-    assert(myid[Int](4) == 4);
+    assert(myid[Int32](1) == 1);
+    assert(myid[Int32](100) == 100);
+    assert(myid[Int32](4) == 4);
 
     assert(myid[Bool](false) == false);
     assert(myid[Bool](true) == true);

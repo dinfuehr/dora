@@ -22,7 +22,7 @@ impl Stringable for Bar {
 
 impl X for Bar {
     @static fun foo() -> Bar {
-        return Bar(1I);
+        return Bar(1);
     }
 }
 
@@ -36,6 +36,6 @@ impl Stringable for Baz {
 
 impl X for Baz {
     @static fun foo() -> Baz {
-        return Baz(2I);
+        return Baz(2);
     }
 }

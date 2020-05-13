@@ -1,23 +1,23 @@
 //= cannon
 
 fun main() {
-  let x = none[Int]();
+  let x = none[Int32]();
   assert(x.isNone());
   assert(!x.isSome());
   assert(!x.has(0));
-  assert(!optionContains[Int](x, 0));
-  assert(optionEquals[Int](x, none[Int]()));
-  assert(!optionEquals[Int](x, some[Int](0)));
-  assert(optionToString[Int](x) == "None");
+  assert(!optionContains[Int32](x, 0));
+  assert(optionEquals[Int32](x, none[Int32]()));
+  assert(!optionEquals[Int32](x, some[Int32](0)));
+  assert(optionToString[Int32](x) == "None");
 
-  let x = some[Int](1);
+  let x = some[Int32](1);
   assert(x.isSome());
   assert(!x.isNone());
   assert(x.unwrap() == 1);
   assert(x.has(1));
-  assert(optionContains[Int](x, 1));
-  assert(optionEquals[Int](x, some[Int](1)));
-  assert(!optionEquals[Int](x, some[Int](2)));
-  assert(!optionEquals[Int](x, none[Int]()));
-  assert(optionToString[Int](x) == "Some(1)");
+  assert(optionContains[Int32](x, 1));
+  assert(optionEquals[Int32](x, some[Int32](1)));
+  assert(!optionEquals[Int32](x, some[Int32](2)));
+  assert(!optionEquals[Int32](x, none[Int32]()));
+  assert(optionToString[Int32](x) == "Some(1)");
 }

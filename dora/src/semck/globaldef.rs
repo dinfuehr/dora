@@ -436,17 +436,17 @@ mod tests {
             SemError::ShadowClassConstructor("Foo".into()),
         );
         err(
-            "class Foo let Foo: Int = 1;",
+            "class Foo let Foo: Int32 = 1;",
             pos(1, 11),
             SemError::ShadowClassConstructor("Foo".into()),
         );
         err(
-            "class Foo var Foo: Int = 1;",
+            "class Foo var Foo: Int32 = 1;",
             pos(1, 11),
             SemError::ShadowClassConstructor("Foo".into()),
         );
         err(
-            "class Foo const Foo: Int = 1;",
+            "class Foo const Foo: Int32 = 1;",
             pos(1, 11),
             SemError::ShadowClassConstructor("Foo".into()),
         );
@@ -481,17 +481,17 @@ mod tests {
             SemError::ShadowStructConstructor("Foo".into()),
         );
         err(
-            "struct Foo {} let Foo: Int = 1;",
+            "struct Foo {} let Foo: Int32 = 1;",
             pos(1, 15),
             SemError::ShadowStructConstructor("Foo".into()),
         );
         err(
-            "struct Foo {} var Foo: Int = 1;",
+            "struct Foo {} var Foo: Int32 = 1;",
             pos(1, 15),
             SemError::ShadowStructConstructor("Foo".into()),
         );
         err(
-            "struct Foo {} const Foo: Int = 1;",
+            "struct Foo {} const Foo: Int32 = 1;",
             pos(1, 15),
             SemError::ShadowStructConstructor("Foo".into()),
         );
@@ -527,30 +527,30 @@ mod tests {
 
     #[test]
     fn test_module_with_fun() {
-        ok("module Foo { fun bar() -> Int = 0; }");
+        ok("module Foo { fun bar() -> Int32 = 0; }");
     }
 
     #[test]
     fn test_module_with_let() {
-        ok("module Foo { let bar: Int = 0; }");
+        ok("module Foo { let bar: Int32 = 0; }");
     }
 
     #[test]
     fn test_const() {
-        ok("const foo: Int = 0;");
+        ok("const foo: Int32 = 0;");
         err(
-            "const foo: Int = 0; fun foo() {}",
-            pos(1, 21),
+            "const foo: Int32 = 0; fun foo() {}",
+            pos(1, 23),
             SemError::ShadowConst("foo".into()),
         );
         err(
-            "const foo: Int = 0; class foo {}",
-            pos(1, 21),
+            "const foo: Int32 = 0; class foo {}",
+            pos(1, 23),
             SemError::ShadowConst("foo".into()),
         );
         err(
-            "const foo: Int = 0; struct foo {}",
-            pos(1, 21),
+            "const foo: Int32 = 0; struct foo {}",
+            pos(1, 23),
             SemError::ShadowConst("foo".into()),
         );
     }

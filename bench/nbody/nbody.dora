@@ -1,14 +1,14 @@
 fun main() {
     SOLAR_MASS = 4.0 * PI * PI;
-    let n = argv(0I).toInt32().unwrap();
+    let n = argv(0).toInt32().unwrap();
     let bodies = NBodySystem();
 
-    var i = 0I;
+    var i = 0;
     println(bodies.energy().toString());
 
     while i < n {
         bodies.advance(0.01);
-        i = i + 1I;
+        i = i + 1;
     }
 
     println(bodies.energy().toString());

@@ -2,7 +2,7 @@ fun main() {
   assert(foo_bool() == true);
   assert(foo_byte() == 3Y);
   assert(foo_char() == '3');
-  assert(foo_int32() == 3I);
+  assert(foo_int32() == 3);
   assert(foo_int64() == 3L);
   assert(foo_float() == 3F);
   assert(foo_double() == 3D);
@@ -34,7 +34,7 @@ fun main() {
   return bar_int32();
 }
 @cannon fun bar_int32() -> Int32 {
-  return 3I;
+  return 3;
 }
 
 @cannon fun foo_int64() -> Int64 {

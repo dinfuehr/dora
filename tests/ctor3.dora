@@ -8,9 +8,9 @@ fun main() {
     assert(x1.mb == x2.ma);
 }
 
-class X(a: Int, b: Int) {
-    var ma: Int = a;
-    var mb: Int = b;
+class X(a: Int32, b: Int32) {
+    var ma: Int32 = a;
+    var mb: Int32 = b;
 
     @static fun empty() -> X = X(3, 1);
 }

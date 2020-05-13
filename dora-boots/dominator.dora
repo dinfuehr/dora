@@ -16,14 +16,14 @@ fun findBackEdges(graph: Graph) {
 
     while !worklist.isEmpty() {
         let block = worklist.last().unwrap();
-        let successorIndex = successorsVisited(block.id.toInt());
+        let successorIndex = successorsVisited(block.id);
 
         if successorIndex == block.successors.length() {
             worklist.pop();
             visiting.remove(block.id.toInt64());
             visited.insert(block.id.toInt64());
         } else {
-            successorsVisited(block.id.toInt()) = successorIndex + 1L;
+            successorsVisited(block.id) = successorIndex + 1L;
             let successor = block.successors.get(successorIndex);
 
             if visiting.contains(successor.id.toInt64()) {
@@ -62,13 +62,13 @@ fun computePostOrder(graph: Graph) {
 
     while !worklist.isEmpty() {
         let block = worklist.last().unwrap();
-        let successorIndex = successorsVisited(block.id.toInt());
+        let successorIndex = successorsVisited(block.id);
 
         if successorIndex == block.successors.length() {
             worklist.pop();
             postOrder.push(block);
         } else {
-            successorsVisited(block.id.toInt()) = successorIndex + 1L;
+            successorsVisited(block.id) = successorIndex + 1L;
             let successor = block.successors.get(successorIndex);
 
             if visited.contains(successor.id.toInt64()) {
@@ -101,14 +101,14 @@ fun computeDominators(graph: Graph) {
 
     while !worklist.isEmpty() {
         let block = worklist.last().unwrap();
-        let successorIndex = successorsVisited(block.id.toInt());
+        let successorIndex = successorsVisited(block.id);
 
         if successorIndex == block.successors.length() {
             worklist.pop();
             visiting.remove(block.id.toInt64());
             visited.insert(block.id.toInt64());
         } else {
-            successorsVisited(block.id.toInt()) = successorIndex + 1L;
+            successorsVisited(block.id) = successorIndex + 1L;
             let successor = block.successors.get(successorIndex);
 
             if visiting.contains(successor.id.toInt64()) {

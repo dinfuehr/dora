@@ -1,16 +1,16 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fun main() {
-  var x = Foo(1I, Foo(2I, Foo(3I, nil)));
+  var x = Foo(1, Foo(2, Foo(3, nil)));
   forceMinorCollect();
-  x.next.next.next = Foo(4I, nil);
-  x = Foo(100I, x);
+  x.next.next.next = Foo(4, nil);
+  x = Foo(100, x);
   forceMinorCollect();
-  assert(x.a == 100I);
-  assert(x.next.a == 1I);
-  assert(x.next.next.a == 2I);
-  assert(x.next.next.next.a == 3I);
-  assert(x.next.next.next.next.a == 4I);
+  assert(x.a == 100);
+  assert(x.next.a == 1);
+  assert(x.next.next.a == 2);
+  assert(x.next.next.next.a == 3);
+  assert(x.next.next.next.next.a == 4);
   assert(x.next.next.next.next.next === nil);
 }
 

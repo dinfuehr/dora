@@ -3,7 +3,7 @@ fun main() {
   assert(foo.foo_bool() == true);
   assert(foo.foo_byte() == 3Y);
   assert(foo.foo_char() == '3');
-  assert(foo.foo_int32() == 3I);
+  assert(foo.foo_int32() == 3);
   assert(foo.foo_int64() == 3L);
   assert(foo.foo_float() == 3F);
   assert(foo.foo_double() == 3D);
@@ -36,7 +36,7 @@ class Foo {
     return self.bar_int32();
   }
   @cannon fun bar_int32() -> Int32 {
-    return 3I;
+    return 3;
   }
 
   @cannon fun foo_int64() -> Int64 {

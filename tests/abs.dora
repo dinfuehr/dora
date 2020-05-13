@@ -1,5 +1,5 @@
 //= cannon
 
 fun main() {
-  assert((-1I).abs() == 1I);
+  assert((-1).abs() == 1);
 }

@@ -1,12 +1,12 @@
 fun main() {
-    assert(3I == tpl1((1I, 2I)));
-    assert(6I == tpl2(1I, (2I, 3I)));
-    assert(10I == tpl3(1I, 2I, (3I, 4I)));
-    assert(15I == tpl4(1I, 2I, 3I, (4I, 5I)));
-    assert(21I == tpl5(1I, 2I, 3I, 4I, (5I, 6I)));
-    assert(28I == tpl6(1I, 2I, 3I, 4I, 5I, (6I, 7I)));
-    assert(36I == tpl7(1I, 2I, 3I, 4I, 5I, 6I, (7I, 8I)));
-    assert(45I == tpl8(1I, 2I, 3I, 4I, 5I, 6I, 7I, (8I, 9I)));
+    assert(3 == tpl1((1, 2)));
+    assert(6 == tpl2(1, (2, 3)));
+    assert(10 == tpl3(1, 2, (3, 4)));
+    assert(15 == tpl4(1, 2, 3, (4, 5)));
+    assert(21 == tpl5(1, 2, 3, 4, (5, 6)));
+    assert(28 == tpl6(1, 2, 3, 4, 5, (6, 7)));
+    assert(36 == tpl7(1, 2, 3, 4, 5, 6, (7, 8)));
+    assert(45 == tpl8(1, 2, 3, 4, 5, 6, 7, (8, 9)));
 }
 
 fun tpl1(x: (Int32, Int32)) -> Int32 {

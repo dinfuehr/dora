@@ -11,10 +11,10 @@ class BitVec {
         }
 
         let entry_idx = idx / 32L;
-        let value = self.data.get(entry_idx.toInt());
+        let value = self.data.get(entry_idx.toInt32());
         let value_idx = idx - entry_idx;
 
-        return value & (1I << value_idx.toInt32()) != 0I;
+        return value & (1 << value_idx.toInt32()) != 0;
     }
 
     fun insert(idx: Int64) {
@@ -25,12 +25,12 @@ class BitVec {
         self.ensureCapacity(idx+1L);
 
         let entry_idx = idx / 32L;
-        var value = self.data.get(entry_idx.toInt());
+        var value = self.data.get(entry_idx.toInt32());
         let value_idx = idx - entry_idx;
 
-        value = value | (1I << value_idx.toInt32());
+        value = value | (1 << value_idx.toInt32());
 
-        self.data.set(entry_idx.toInt(), value);
+        self.data.set(entry_idx.toInt32(), value);
     }
 
     fun remove(idx: Int64) {
@@ -43,12 +43,12 @@ class BitVec {
         }
 
         let entry_idx = idx / 32L;
-        var value = self.data.get(entry_idx.toInt());
+        var value = self.data.get(entry_idx.toInt32());
         let value_idx = idx - entry_idx;
 
-        value = value & !(1I << value_idx.toInt32());
+        value = value & !(1 << value_idx.toInt32());
 
-        self.data.set(entry_idx.toInt(), value);
+        self.data.set(entry_idx.toInt32(), value);
     }
 
     fun ensureCapacity(newcap: Int64) {
@@ -58,7 +58,7 @@ class BitVec {
 
         let newcap = (newcap + 31L) / 32L;
 
-        let newarray = Array[Int32](newcap.toInt());
+        let newarray = Array[Int32](newcap.toInt32());
         arrayCopy[Int32](self.data, 0L, newarray, 0L, self.data.length().toInt64());
         self.data = newarray;
     }

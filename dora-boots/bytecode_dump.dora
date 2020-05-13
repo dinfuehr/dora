@@ -18,7 +18,7 @@ fun bytecodeDump(bc: BytecodeFunction) {
 }
 
 class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
-    var pos: Int32 = 0I;
+    var pos: Int32 = 0;
 
     fun emitInst(name: String) {
         self.emitStart(name);

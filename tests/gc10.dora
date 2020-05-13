@@ -8,8 +8,8 @@ fun main() {
     assert(x == 10);
 }
 
-class A(let a: Int) {
-    fun test() -> Int {
+class A(let a: Int32) {
+    fun test() -> Int32 {
         forceCollect();
         return self.a;
     }

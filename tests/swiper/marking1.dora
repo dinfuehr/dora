@@ -22,11 +22,11 @@ fun tree(depth: Int32) -> Foo {
     }
 
     return Foo(
-        tree(depth-1I),
-        tree(depth-1I),
-        tree(depth-1I),
-        tree(depth-1I),
-        tree(depth-1I)
+        tree(depth-1),
+        tree(depth-1),
+        tree(depth-1),
+        tree(depth-1),
+        tree(depth-1)
     );
 }
 

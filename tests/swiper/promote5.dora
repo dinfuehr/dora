@@ -8,17 +8,17 @@ fun main() {
     assert(x(0) === nil);
     assert(x(63) === nil);
 
-    x(0) = Foo(1I);
+    x(0) = Foo(1);
     forceMinorCollect();
-    assert(x(0).x == 1I);
+    assert(x(0).x == 1);
     assert(x(63) === nil);
 
-    x(63) = Foo(2I);
+    x(63) = Foo(2);
     forceMinorCollect();
-    assert(x(0).x == 1I);
-    assert(x(63).x == 2I);
+    assert(x(0).x == 1);
+    assert(x(63).x == 2);
 
     forceMinorCollect();
-    assert(x(0).x == 1I);
-    assert(x(63).x == 2I);
+    assert(x(0).x == 1);
+    assert(x(63).x == 2);
 }

@@ -1,10 +1,10 @@
 //= cannon
 
 fun main() {
-  let x = arrayFill[Int32](2L, 100I);
-  int32_array_set(x, 1L, 200I);
-  assert(x(0) == 100I);
-  assert(x(1) == 200I);
+  let x = arrayFill[Int32](2L, 100);
+  int32_array_set(x, 1L, 200);
+  assert(x(0) == 100);
+  assert(x(1) == 200);
 
   let x = arrayFill[Int64](2L, 200L);
   int64_array_set(x, 1L, 100L);
@@ -26,34 +26,34 @@ fun main() {
   assert(x(0) == "hello");
   assert(x(1) == "abc");
 
-  let x = arrayFill[Foo](2L, Foo(1I));
-  foo_array_set(x, 1L, Foo(2I));
-  assert(x(0).y == 1I);
-  assert(x(1).y == 2I);
+  let x = arrayFill[Foo](2L, Foo(1));
+  foo_array_set(x, 1L, Foo(2));
+  assert(x(0).y == 1);
+  assert(x(1).y == 2);
 }
 
 fun int32_array_set(x: Array[Int32], idx: Int64, val: Int32) {
-  x(idx.toInt()) = val;
+  x(idx.toInt32()) = val;
 }
 
 fun int64_array_set(x: Array[Int64], idx: Int64, val: Int64) {
-  x(idx.toInt()) = val;
+  x(idx.toInt32()) = val;
 }
 
 fun float_array_set(x: Array[Float], idx: Int64, val: Float) {
-  x(idx.toInt()) = val;
+  x(idx.toInt32()) = val;
 }
 
 fun double_array_set(x: Array[Double], idx: Int64, val: Double) {
-  x(idx.toInt()) = val;
+  x(idx.toInt32()) = val;
 }
 
 fun str_array_set(x: Array[String], idx: Int64, val: String) {
-  x(idx.toInt()) = val;
+  x(idx.toInt32()) = val;
 }
 
 fun foo_array_set(x: Array[Foo], idx: Int64, val: Foo) {
-  x(idx.toInt()) = val;
+  x(idx.toInt32()) = val;
 }
 
 class Foo(let y: Int32)

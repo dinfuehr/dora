@@ -23,7 +23,7 @@
 
   @internal fun compareTo(rhs: String) -> Int32;
 
-  @internal fun length() -> Int;
+  @internal fun length() -> Int32;
 
   @internal fun toInt32Success() -> Bool;
   @internal fun toInt64Success() -> Bool;
@@ -49,7 +49,7 @@
 
   @internal fun plus(rhs: String) -> String;
 
-  @internal fun getByte(idx: Int) -> UInt8;
+  @internal fun getByte(idx: Int32) -> UInt8;
   @internal fun clone() -> String;
 
   @internal @static fun fromBytesPartOrNull(val: Array[UInt8], offset: Int64, len: Int64) -> String;
@@ -93,8 +93,8 @@
     let array = Array[UInt8](64);
     var at = array.length().toInt64();
     while data != 0L {
-      array((at - 1L).toInt()) = ('0'.toInt64() + (data & 1L)).toUInt8();
-      data = data.shiftRight(1I);
+      array((at - 1L).toInt32()) = ('0'.toInt64() + (data & 1L)).toUInt8();
+      data = data.shiftRight(1);
       at = at - 1L;
     }
     return String::fromBytesPart(array, at, array.length().toInt64() - at + 1L).unwrap();
@@ -108,13 +108,13 @@
     while data != 0L {
       let digit = (data & 0xFL).toInt32();
 
-      if digit < 10I {
-        array((at - 1L).toInt()) = ('0'.toInt32() + digit).toUInt8();
+      if digit < 10 {
+        array((at - 1L).toInt32()) = ('0'.toInt32() + digit).toUInt8();
       } else {
-        array((at - 1L).toInt()) = ('A'.toInt32() + digit - 10I).toUInt8();
+        array((at - 1L).toInt32()) = ('A'.toInt32() + digit - 10).toUInt8();
       }
 
-      data = data.shiftRight(4I);
+      data = data.shiftRight(4);
       at = at - 1L;
     }
     return String::fromBytesPart(array, at, array.length().toInt64() - at + 1L).unwrap();

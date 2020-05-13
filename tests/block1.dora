@@ -4,15 +4,15 @@ fun main() {
     t3();
 }
 
-fun g() -> Int { return 1; }
+fun g() -> Int32 { return 1; }
 
 fun t1() {
-    let x: Int = { g() };
+    let x: Int32 = { g() };
     assert(x == 1);
 }
 
 fun t2() {
-    let x: Int = { g(); 1 };
+    let x: Int32 = { g(); 1 };
     assert(x == 1);
 }
 
