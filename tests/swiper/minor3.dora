@@ -6,12 +6,12 @@ fun main() {
 
     while i < 100 {
         if i % 2 == 0 {
-            x.push(Array[Int32](2));
+            x.push(Array[Int32](2L));
         } else {
-            x.push(Array[Int32](4));
+            x.push(Array[Int32](4L));
         }
-        x.push(Array[Int32](512));
-        x.push(Array[Int32](2048));
+        x.push(Array[Int32](512L));
+        x.push(Array[Int32](2048L));
         if i % 5 == 0 {
             forceMinorCollect();
         }

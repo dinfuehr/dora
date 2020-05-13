@@ -750,9 +750,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let cls_def_id = specialize_class_ty(self.vm, ty);
 
         // Store length in a register
-        let length_reg = self.gen.add_register(BytecodeType::Int32);
+        let length_reg = self.gen.add_register(BytecodeType::Int64);
         self.gen
-            .emit_const_int32(length_reg, variadic_arguments as i32);
+            .emit_const_int64(length_reg, variadic_arguments as i64);
 
         // Allocate array of given length
         let array_reg = self.gen.add_register(BytecodeType::Ptr);

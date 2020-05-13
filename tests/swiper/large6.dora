@@ -9,7 +9,7 @@ fun main() {
     var i = 0L;
 
     while i < SIZE {
-        x.push(Array[Int32](32 * 1024));
+        x.push(Array[Int32](32L * 1024L));
         i = i + 1L;
     }
 

@@ -1,7 +1,7 @@
 //= cannon
 
 fun main() {
-    let ba = Array[Int64](0);
+    let ba = Array[Int64](0L);
     assert(ba.length() == 0L);
 
     let ba = arrayFill[Int64](10L, 2L);

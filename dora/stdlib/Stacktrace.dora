@@ -16,7 +16,7 @@ class Stacktrace() {
 
     var i = 0L;
     let len = self.backtrace.length() / 2L;
-    self.elements = Array[StacktraceElement](len.toInt32());
+    self.elements = Array[StacktraceElement](len);
 
     while i < len {
       self.elements.set(i.toInt32(), self.getStacktraceElement(i.toInt32()));

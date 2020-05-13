@@ -58,7 +58,7 @@ class BitVec {
 
         let newcap = (newcap + 31L) / 32L;
 
-        let newarray = Array[Int32](newcap.toInt32());
+        let newarray = Array[Int32](newcap);
         arrayCopy[Int32](self.data, 0L, newarray, 0L, self.data.length());
         self.data = newarray;
     }

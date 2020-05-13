@@ -1,6 +1,6 @@
 //= cannon
 
 fun main() {
-    let x = Array[String](1);
+    let x = Array[String](1L);
     x(0) = nil;
 }

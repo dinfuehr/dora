@@ -1296,7 +1296,7 @@ where
 
     fn emit_new_array(&mut self, dest: Register, class_def_id: ClassDefId, length: Register) {
         assert_eq!(self.bytecode.register_type(dest), BytecodeType::Ptr);
-        assert_eq!(self.bytecode.register_type(length), BytecodeType::Int32);
+        assert_eq!(self.bytecode.register_type(length), BytecodeType::Int64);
 
         let cls = self.vm.class_defs.idx(class_def_id);
         let cls = cls.read();

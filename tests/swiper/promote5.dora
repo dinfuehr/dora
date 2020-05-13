@@ -3,7 +3,7 @@
 class Foo(let x: Int32)
 
 fun main() {
-    let x = Array[Foo](64);
+    let x = Array[Foo](64L);
     forceMinorCollect();
     assert(x(0) === nil);
     assert(x(63) === nil);

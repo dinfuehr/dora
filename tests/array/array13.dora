@@ -1,7 +1,7 @@
 //= cannon
 
 fun main() {
-    let x = Array[Int32](100);
+    let x = Array[Int32](100L);
     assert(x.length() == 100L);
     assert(x(0) == 0);
     assert(x(99) == 0);

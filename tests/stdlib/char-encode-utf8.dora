@@ -25,7 +25,7 @@ fun main() {
 }
 
 fun write(ch: Char) -> Array[UInt8] {
-    let buffer = Array[UInt8](5);
+    let buffer = Array[UInt8](5L);
     ch.encodeUtf8(buffer, 0);
     return buffer;
 }

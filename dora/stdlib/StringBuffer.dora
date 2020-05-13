@@ -20,7 +20,7 @@ class StringBuffer() {
     }
 
     let newcap = self.newCapacity(elements);
-    let newbuf = Array[UInt8](newcap.toInt32());
+    let newbuf = Array[UInt8](newcap);
     var i = 0L;
 
     while i < self.buf.length() {

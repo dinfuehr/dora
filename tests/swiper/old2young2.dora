@@ -1,7 +1,7 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fun main() {
-  let x = Array[Foo](2);
+  let x = Array[Foo](2L);
   forceMinorCollect();
   forceMinorCollect();
   // array in old generation references object in

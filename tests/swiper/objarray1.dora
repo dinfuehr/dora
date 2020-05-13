@@ -3,7 +3,7 @@
 fun main() {
   let x = Foo(100);
   let y = Foo(101);
-  let z = Array[Foo](512);
+  let z = Array[Foo](512L);
   forceMinorCollect();
   forceMinorCollect();
   // write into old object x reference to young object

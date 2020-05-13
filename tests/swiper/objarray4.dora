@@ -1,8 +1,8 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fun main() {
-    let a = Array[Foo](60);
-    let b = Array[Foo](60);
+    let a = Array[Foo](60L);
+    let b = Array[Foo](60L);
     forceMinorCollect();
     forceMinorCollect();
     // a(5) = Foo(2);

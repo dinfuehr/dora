@@ -1,7 +1,7 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fun main() {
-    let a = Array[Foo](16 * 1024);
+    let a = Array[Foo](16L * 1024L);
     a(16 * 1024 - 1) = Foo();
     forceCollect();
 }

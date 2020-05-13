@@ -128,7 +128,7 @@ class Benchmark {
 
 fun generatePayloadTree(depth: Int32, tag: String) -> PayloadNode {
     if depth == 0 {
-        let arr = Array[Int32](10);
+        let arr = Array[Int32](10L);
         var i = 0;
 
         while i < 10 {

@@ -2,6 +2,6 @@
 //= error array
 
 fun main() {
-    let x = Array[()](7);
+    let x = Array[()](7L);
     let y: () = x(10);
 }

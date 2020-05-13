@@ -1,7 +1,7 @@
 //= cannon
 
 fun main() {
-    let x = Array[()](7);
+    let x = Array[()](7L);
     assert(x.length() == 7L);
     let y: () = x(0);
     x(5) = ();

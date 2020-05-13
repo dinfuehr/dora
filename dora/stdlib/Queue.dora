@@ -1,12 +1,12 @@
 class Queue[T] {
-  var elements: Array[T] = Array[T](4);
+  var elements: Array[T] = Array[T](4L);
   var front: Int64 = 0L;
   var count: Int64 = 0L;
 
   @pub fun enqueue(value: T) {
     if self.count == self.elements.length() {
       // copy into larger array
-      let newelements = Array[T]((self.elements.length() * 2L).toInt32());
+      let newelements = Array[T](self.elements.length() * 2L);
       let len = self.elements.length() - self.front;
       arrayCopy[T](self.elements, self.front, newelements, 0L, len);
 

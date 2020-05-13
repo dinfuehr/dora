@@ -1,7 +1,7 @@
 //= cannon
 
 fun main() {
-    let x = Array[Int32](5);
+    let x = Array[Int32](5L);
     x(0) = 5;
     x(1) = 1;
     x(2) = 4;

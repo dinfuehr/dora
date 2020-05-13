@@ -10,7 +10,7 @@ fun main() {
 }
 
 fun test_multiple_ascii_chars() {
-    let bytes = Array[UInt8](3);
+    let bytes = Array[UInt8](3L);
     bytes(0) = 'a'.toInt32().toUInt8();
     bytes(1) = 'b'.toInt32().toUInt8();
     bytes(2) = 'c'.toInt32().toUInt8();
@@ -28,7 +28,7 @@ fun test_multiple_ascii_chars() {
 }
 
 fun test_1byte() {
-    let bytes = Array[UInt8](1);
+    let bytes = Array[UInt8](1L);
     bytes(0) = 0x24Y;
 
     let val = String::fromBytes(bytes).unwrap();
@@ -40,7 +40,7 @@ fun test_1byte() {
 }
 
 fun test_2bytes() {
-    let bytes = Array[UInt8](2);
+    let bytes = Array[UInt8](2L);
     bytes(0) = 0xC2Y;
     bytes(1) = 0xA2Y;
 
@@ -53,7 +53,7 @@ fun test_2bytes() {
 }
 
 fun test_3bytes() {
-    let bytes = Array[UInt8](3);
+    let bytes = Array[UInt8](3L);
     bytes(0) = 0xE2Y;
     bytes(1) = 0x82Y;
     bytes(2) = 0xACY;
@@ -67,7 +67,7 @@ fun test_3bytes() {
 }
 
 fun test_4bytes() {
-    let bytes = Array[UInt8](4);
+    let bytes = Array[UInt8](4L);
     bytes(0) = 0xF0Y;
     bytes(1) = 0x90Y;
     bytes(2) = 0x8DY;
@@ -82,7 +82,7 @@ fun test_4bytes() {
 }
 
 fun test_invalid() {
-    let bytes = Array[UInt8](1);
+    let bytes = Array[UInt8](1L);
     bytes(0) = 0x80Y;
 
     let fail = String::fromBytes(bytes);
