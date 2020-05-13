@@ -2,15 +2,15 @@
 
 fun main() {
     let x = Array[Int32](4L);
-    x(0) = 2;
-    x(1) = 3;
-    x(2) = 0;
-    x(3) = 4;
+    x(0L) = 2;
+    x(1L) = 3;
+    x(2L) = 0;
+    x(3L) = 4;
 
     bubbleSort[Int32](x);
 
-    assert(x(0) == 0);
-    assert(x(1) == 2);
-    assert(x(2) == 3);
-    assert(x(3) == 4);
+    assert(x(0L) == 0);
+    assert(x(1L) == 2);
+    assert(x(2L) == 3);
+    assert(x(3L) == 4);
 }

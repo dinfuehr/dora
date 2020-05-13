@@ -1,10 +1,10 @@
 class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEntry], let registers: Array[BytecodeType], let arguments: Int32) {
     fun constPool(idx: ConstPoolId) -> ConstPoolEntry {
-        self.const_pool.get(idx.value)
+        self.const_pool.get(idx.value.toInt64())
     }
 
     fun codeAt(idx: Int32) -> Int32 {
-        self.code.get(idx).toInt32()
+        self.code.get(idx.toInt64()).toInt32()
     }
 
     fun codeInt32At(idx: Int32) -> Int32 {

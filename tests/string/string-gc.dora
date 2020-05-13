@@ -7,16 +7,16 @@ fun main() {
     let x = arrayFill[String](10L, nil);
     assert(x.length() == 10L);
 
-    x(0) = "a" + "b";
-    x(1) = "x" + "y";
+    x(0L) = "a" + "b";
+    x(1L) = "x" + "y";
 
     forceCollect();
 
-    print(x(0));
-    println(x(1));
+    print(x(0L));
+    println(x(1L));
 
-    assert(x(0) == "ab");
-    assert(x(1) == "xy");
-    assert(x(2) === nil);
-    assert(x(9) === nil);
+    assert(x(0L) == "ab");
+    assert(x(1L) == "xy");
+    assert(x(2L) === nil);
+    assert(x(9L) === nil);
 }

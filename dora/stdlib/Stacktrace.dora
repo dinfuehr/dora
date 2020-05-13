@@ -19,7 +19,7 @@ class Stacktrace() {
     self.elements = Array[StacktraceElement](len);
 
     while i < len {
-      self.elements.set(i.toInt32(), self.getStacktraceElement(i.toInt32()));
+      self.elements.set(i, self.getStacktraceElement(i));
       i = i + 1L;
     }
 
@@ -31,13 +31,13 @@ class Stacktrace() {
     var i = 0L;
 
     while i < x.length() {
-      println(i.toString() + ": " + x.get(i.toInt32()).toString());
+      println(i.toString() + ": " + x.get(i).toString());
       i = i + 1L;
     }
   }
 
   @internal fun retrieveStacktrace();
-  @internal fun getStacktraceElement(idx: Int32) -> StacktraceElement;
+  @internal fun getStacktraceElement(idx: Int64) -> StacktraceElement;
 }
 
 class StacktraceElement(let name: String, let line: Int32) {

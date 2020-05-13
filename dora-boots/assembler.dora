@@ -41,10 +41,10 @@ class AssemblerBuffer {
     let asm = AssemblerBuffer();
     asm.emitInt32(0x11223344);
     let buffer = asm.toArray();
-    assert(buffer(0) == 0x44Y);
-    assert(buffer(1) == 0x33Y);
-    assert(buffer(2) == 0x22Y);
-    assert(buffer(3) == 0x11Y);
+    assert(buffer(0L) == 0x44Y);
+    assert(buffer(1L) == 0x33Y);
+    assert(buffer(2L) == 0x22Y);
+    assert(buffer(3L) == 0x11Y);
     assert(buffer.length() == 4L);
 }
 
@@ -64,8 +64,8 @@ fun assertAsm(buffer: Array[UInt8], start: Int64, bytes: UInt8...) {
     var idx = 0L;
 
     while idx < bytes.length() {
-        let exp = bytes(idx.toInt32());
-        let got = buffer((start + idx).toInt32());
+        let exp = bytes(idx);
+        let got = buffer(start + idx);
 
         if exp != got {
             println("expected ${exp.toStringHex()} at index ${start + idx} but got ${got.toStringHex()}")
@@ -77,10 +77,10 @@ fun assertAsm(buffer: Array[UInt8], start: Int64, bytes: UInt8...) {
 }
 
 fun assertAsmInt32(buffer: Array[UInt8], index: Int64, value: Int32) {
-    let b1 = buffer(index.toInt32()).toInt32();
-    let b2 = buffer((index+1L).toInt32()).toInt32();
-    let b3 = buffer((index+2L).toInt32()).toInt32();
-    let b4 = buffer((index+3L).toInt32()).toInt32();
+    let b1 = buffer(index).toInt32();
+    let b2 = buffer(index+1L).toInt32();
+    let b3 = buffer(index+2L).toInt32();
+    let b4 = buffer(index+3L).toInt32();
 
     let got = (b4 << 24) | (b3 << 16) | (b2 << 8) | b1;
 
@@ -100,7 +100,7 @@ fun printBuffer(buffer: Array[UInt8]) {
     var i = 0L;
 
     while i < buffer.length() {
-        let val = buffer(i.toInt32());
+        let val = buffer(i);
         if i > 0L { print(" "); }
         print(intToHexString(val.toInt32(), 2));
         i = i + 1L;

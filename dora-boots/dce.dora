@@ -9,12 +9,12 @@ fun find_reachable_blocks(graph: Graph) -> BitSet {
     while !worklist.isEmpty() {
         let block = worklist.last().unwrap();
 
-        if successors_processed(block.id) == block.successors.length() {
+        if successors_processed(block.id.toInt64()) == block.successors.length() {
             worklist.pop();
         } else {
-            let idx = successors_processed(block.id);
+            let idx = successors_processed(block.id.toInt64());
             let successor = block.successors.get(block.id.toInt64());
-            successors_processed(block.id) = idx + 1L;
+            successors_processed(block.id.toInt64()) = idx + 1L;
 
             if !visited.contains(successor.id.toInt64()) {
                 worklist.push(successor);

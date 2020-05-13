@@ -128,14 +128,14 @@ fun assertGraph(graph: Graph, output: String) {
         println("expected: \"${output}\"");
 
         for idx in range(0, graphOutput.length().toInt32()) {
-            let value = graphOutput.getByte(idx);
+            let value = graphOutput.getByte(idx.toInt64());
             print("${value.toInt32().toStringHex()} ");
         }
 
         println("");
 
         for idx in range(0, output.length().toInt32()) {
-            let value = output.getByte(idx);
+            let value = output.getByte(idx.toInt64());
             print("${value.toInt32().toStringHex()} ");
         }
 

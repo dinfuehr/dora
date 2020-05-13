@@ -16,10 +16,10 @@ class HashMap[K: Hash + Equals, V] {
 
         while true {
             if self.isLive(idx) {
-                let current_key = self.keys.get(idx.toInt32());
+                let current_key = self.keys.get(idx);
 
                 if current_key.hash() == hash && current_key.equals(key) {
-                    self.values.set(idx.toInt32(), value);
+                    self.values.set(idx, value);
                     return;
                 }
 
@@ -27,8 +27,8 @@ class HashMap[K: Hash + Equals, V] {
                 self.inserted_and_deleted.insert(2L * idx);
                 self.inserted_and_deleted.remove(2L * idx + 1L);
 
-                self.keys.set(idx.toInt32(), key);
-                self.values.set(idx.toInt32(), value);
+                self.keys.set(idx, key);
+                self.values.set(idx, value);
 
                 self.size = self.size + 1L;
                 return;
@@ -50,7 +50,7 @@ class HashMap[K: Hash + Equals, V] {
 
         while true {
             if self.isLive(idx) {
-                let current_key = self.keys.get(idx.toInt32());
+                let current_key = self.keys.get(idx);
 
                 if current_key.hash() == hash && current_key.equals(key) {
                     return true;
@@ -77,10 +77,10 @@ class HashMap[K: Hash + Equals, V] {
 
         while true {
             if self.isLive(idx) {
-                let current_key = self.keys.get(idx.toInt32());
+                let current_key = self.keys.get(idx);
 
                 if current_key.hash() == hash && current_key.equals(key) {
-                    return some[V](self.values.get(idx.toInt32()));
+                    return some[V](self.values.get(idx));
                 }
             } else {
                 break;
@@ -100,14 +100,14 @@ class HashMap[K: Hash + Equals, V] {
 
         while true {
             if self.isLive(idx) {
-                let current_key = self.keys.get(idx.toInt32());
+                let current_key = self.keys.get(idx);
 
                 if current_key.hash() == hash && current_key.equals(key) {
-                    let value = self.values.get(idx.toInt32());
+                    let value = self.values.get(idx);
                     self.inserted_and_deleted.insert(2L * idx + 1L);
 
-                    self.keys.set(idx.toInt32(), defaultValue[K]());
-                    self.values.set(idx.toInt32(), defaultValue[V]());
+                    self.keys.set(idx, defaultValue[K]());
+                    self.values.set(idx, defaultValue[V]());
 
                     self.size = self.size - 1L;
                     return value;
@@ -171,8 +171,8 @@ class HashMap[K: Hash + Equals, V] {
 
         while idx < old_capacity {
             if self.isLive(idx) {
-                let key = self.keys.get(idx.toInt32());
-                let value = self.values.get(idx.toInt32());
+                let key = self.keys.get(idx);
+                let value = self.values.get(idx);
 
                 new_map.insert(key, value);
             }
@@ -226,8 +226,8 @@ class HashMapIter[K: Hash + Equals, V](let map: HashMap[K, V]) {
 
     fun next() -> (K, V) {
         assert(self.map.isLive(self.idx));
-        let key = self.map.keys.get(self.idx.toInt32());
-        let value = self.map.values.get(self.idx.toInt32());
+        let key = self.map.keys.get(self.idx);
+        let value = self.map.values.get(self.idx);
         self.idx = self.idx + 1L;
         (key, value)
     }

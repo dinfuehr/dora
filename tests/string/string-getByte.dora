@@ -3,7 +3,7 @@
 fun main() {
     let x = "ABC";
 
-    assert(x.getByte(0) == 65Y);
-    assert(x.getByte(1) == 66Y);
-    assert(x.getByte(2) == 67Y);
+    assert(x.getByte(0L) == 65Y);
+    assert(x.getByte(1L) == 66Y);
+    assert(x.getByte(2L) == 67Y);
 }

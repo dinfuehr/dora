@@ -4,14 +4,14 @@ fun bytecodeDump(bc: BytecodeFunction) {
 
     var i = 0L;
     while i < bc.const_pool.length() {
-        let entry = bc.const_pool.get(i.toInt32());
+        let entry = bc.const_pool.get(i);
         println("@${i} = ${entry.toString()}");
         i = i + 1L;
     }
 
     i = 0L;
     while i < bc.registers.length() {
-        let ty = bc.registers.get(i.toInt32());
+        let ty = bc.registers.get(i);
         println("r${i} = ${ty}");
         i = i + 1L;
     }

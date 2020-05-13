@@ -745,8 +745,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let variadic_arguments = expr.args.len() - non_variadic_arguments;
 
         // We need array of elements
-        let ty = arg_types.last().cloned().unwrap();
-        let ty = self.vm.vips.array_ty(self.vm, ty);
+        let element_ty = arg_types.last().cloned().unwrap();
+        let ty = self.vm.vips.array_ty(self.vm, element_ty);
         let cls_def_id = specialize_class_ty(self.vm, ty);
 
         // Store length in a register
@@ -759,13 +759,13 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.gen.set_position(expr.pos);
         self.gen.emit_new_array(array_reg, cls_def_id, length_reg);
 
-        let bytecode_ty: BytecodeType = ty.into();
-        let index_reg = self.gen.add_register(BytecodeType::Int32);
+        let bytecode_ty: BytecodeType = element_ty.into();
+        let index_reg = self.gen.add_register(BytecodeType::Int64);
 
         // Evaluate rest arguments and store them in array
         for (idx, arg) in expr.args.iter().skip(non_variadic_arguments).enumerate() {
             let arg_reg = self.visit_expr(arg, DataDest::Alloc);
-            self.gen.emit_const_int32(index_reg, idx as i32);
+            self.gen.emit_const_int64(index_reg, idx as i64);
             self.gen.set_position(expr.pos);
             self.emit_store_array(bytecode_ty, array_reg, index_reg, arg_reg);
         }

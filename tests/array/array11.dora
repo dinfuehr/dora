@@ -7,5 +7,5 @@ fun main() {
 }
 
 fun first(f: Array[Int32]) -> Int32 {
-    return f(0);
+    return f(0L);
 }

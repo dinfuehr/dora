@@ -14,7 +14,7 @@ fun fannkuch(n: Int32) -> Int32 {
 
   var i = 0;
   while i < n {
-    perm1(i) = i;
+    perm1(i.toInt64()) = i;
     i = i + 1;
   }
 
@@ -22,33 +22,33 @@ fun fannkuch(n: Int32) -> Int32 {
 
   while true {
     while r != 1 {
-      count((r-1)) = r;
+      count((r-1).toInt64()) = r;
       r = r - 1;
     }
 
     var i = 0;
     while i < n {
-      perm(i) = perm1(i);
+      perm(i.toInt64()) = perm1(i.toInt64());
       i = i + 1;
     }
 
     var flipsCount = 0;
-    var k = perm(0);
+    var k = perm(0L);
 
     while k != 0 {
       let k2 = (k+1) / 2;
 
       var i = 0;
       while i < k2 {
-        let temp = perm(i);
-        perm(i) = perm((k-i));
-        perm((k-i)) = temp;
+        let temp = perm(i.toInt64());
+        perm(i.toInt64()) = perm((k-i).toInt64());
+        perm((k-i).toInt64()) = temp;
 
         i = i + 1;
       }
 
       flipsCount = flipsCount + 1;
-      k = perm(0);
+      k = perm(0L);
     }
 
     maxFlipsCount = Int32::max(maxFlipsCount, flipsCount);
@@ -65,20 +65,20 @@ fun fannkuch(n: Int32) -> Int32 {
         return maxFlipsCount;
       }
 
-      let perm0 = perm1(0);
+      let perm0 = perm1(0L);
       var i = 0;
 
       while i < r {
         let j = i + 1;
-        perm1(i) = perm1(j);
+        perm1(i.toInt64()) = perm1(j.toInt64());
         i = j;
       }
 
-      perm1(r) = perm0;
+      perm1(r.toInt64()) = perm0;
 
-      count(r) = count(r) - 1;
+      count(r.toInt64()) = count(r.toInt64()) - 1;
 
-      if count(r) > 0 { break; }
+      if count(r.toInt64()) > 0 { break; }
 
       r = r + 1;
     }

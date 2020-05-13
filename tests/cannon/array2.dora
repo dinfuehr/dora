@@ -4,14 +4,14 @@ fun main() {
   assert(array.length() == 5L);
   assert(getLength(array) == 5L);
   
-  setArray(array, 2, 50L);
-  assert(array(2) == 50L);
+  setArray(array, 2L, 50L);
+  assert(array(2L) == 50L);
 
-  array(3) = 40L;
-  assert(getArray(array, 3) == 40L);
+  array(3L) = 40L;
+  assert(getArray(array, 3L) == 40L);
 }
 
 @cannon fun createArray(a: Int64) -> Array[Int64] { return Array[Int64](a); }
 @cannon fun getLength(a: Array[Int64]) -> Int64 { return a.length(); }
-@cannon fun setArray(arr: Array[Int64], idx: Int32, value: Int64) { arr(idx) = value; }
-@cannon fun getArray(arr: Array[Int64], idx: Int32) -> Int64 { return arr(idx); }
+@cannon fun setArray(arr: Array[Int64], idx: Int64, value: Int64) { arr(idx) = value; }
+@cannon fun getArray(arr: Array[Int64], idx: Int64) -> Int64 { return arr(idx); }

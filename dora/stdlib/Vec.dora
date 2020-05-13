@@ -7,7 +7,7 @@ class Vec[T] {
       fatalError("index out of bounds for vector");
     }
 
-    return self.array.get(idx.toInt32());
+    return self.array.get(idx);
   }
 
   fun set(idx: Int64, val: T) {
@@ -15,7 +15,7 @@ class Vec[T] {
       fatalError("index out of bounds for vector");
     }
 
-    self.array.set(idx.toInt32(), val);
+    self.array.set(idx, val);
   }
 
   fun reserve(newcap: Int64) {
@@ -45,7 +45,7 @@ class Vec[T] {
       self.array = newarray;
     }
 
-    self.array.set(self.len.toInt32(), val);
+    self.array.set(self.len, val);
     self.len = self.len + 1L;
   }
 
@@ -61,11 +61,11 @@ class Vec[T] {
     }
 
     let newlength = self.len - 1L;
-    let temp = self.array.get(newlength.toInt32());
+    let temp = self.array.get(newlength);
 
     // set popped element to nil so that GC can collect object
     // not necessary for primitive types
-    self.array.set(newlength.toInt32(), defaultValue[T]());
+    self.array.set(newlength, defaultValue[T]());
 
     self.len = newlength;
     temp
@@ -116,7 +116,7 @@ class Vec[T] {
     if self.len == 0L {
       none[T]()
     } else {
-      some[T](self.array.get(0))
+      some[T](self.array.get(0L))
     }
   }
 
@@ -124,7 +124,7 @@ class Vec[T] {
     if self.len == 0L {
       none[T]()
     } else {
-      some[T](self.array.get((self.len - 1L).toInt32()))
+      some[T](self.array.get(self.len - 1L))
     }
   }
 

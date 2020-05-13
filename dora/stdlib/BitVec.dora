@@ -11,7 +11,7 @@ class BitVec {
         }
 
         let entry_idx = idx / 32L;
-        let value = self.data.get(entry_idx.toInt32());
+        let value = self.data.get(entry_idx);
         let value_idx = idx - entry_idx;
 
         return value & (1 << value_idx.toInt32()) != 0;
@@ -25,12 +25,12 @@ class BitVec {
         self.ensureCapacity(idx+1L);
 
         let entry_idx = idx / 32L;
-        var value = self.data.get(entry_idx.toInt32());
+        var value = self.data.get(entry_idx);
         let value_idx = idx - entry_idx;
 
         value = value | (1 << value_idx.toInt32());
 
-        self.data.set(entry_idx.toInt32(), value);
+        self.data.set(entry_idx, value);
     }
 
     fun remove(idx: Int64) {
@@ -43,12 +43,12 @@ class BitVec {
         }
 
         let entry_idx = idx / 32L;
-        var value = self.data.get(entry_idx.toInt32());
+        var value = self.data.get(entry_idx);
         let value_idx = idx - entry_idx;
 
         value = value & !(1 << value_idx.toInt32());
 
-        self.data.set(entry_idx.toInt32(), value);
+        self.data.set(entry_idx, value);
     }
 
     fun ensureCapacity(newcap: Int64) {

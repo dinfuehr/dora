@@ -1,7 +1,7 @@
 fun main() {
     let x = array[Int32](1, 2, 3);
     assert(x.length() == 3L);
-    assert(x(2) == 3);
-    assert(x(1) == 2);
-    assert(x(0) == 1);
+    assert(x(2L) == 3);
+    assert(x(1L) == 2);
+    assert(x(0L) == 1);
 }

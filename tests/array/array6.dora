@@ -2,7 +2,7 @@
 
 fun main() {
   let array = arrayFill[Int32](5L, 1);
-  array(0) = 2;
-  assert(array(0) == 2);
-  assert(array(1) == 1);
+  array(0L) = 2;
+  assert(array(0L) == 2);
+  assert(array(1L) == 1);
 }

@@ -2,30 +2,30 @@
 
 fun main() {
     let buffer = write('$');
-    assert(buffer(0) == 0x24Y);
-    assert(buffer(1) == 0Y);
+    assert(buffer(0L) == 0x24Y);
+    assert(buffer(1L) == 0Y);
 
     let buffer = write('¢');
-    assert(buffer(0) == 0xC2Y);
-    assert(buffer(1) == 0xA2Y);
-    assert(buffer(2) == 0Y);
+    assert(buffer(0L) == 0xC2Y);
+    assert(buffer(1L) == 0xA2Y);
+    assert(buffer(2L) == 0Y);
 
     let buffer = write('€');
-    assert(buffer(0) == 0xE2Y);
-    assert(buffer(1) == 0x82Y);
-    assert(buffer(2) == 0xACY);
-    assert(buffer(3) == 0Y);
+    assert(buffer(0L) == 0xE2Y);
+    assert(buffer(1L) == 0x82Y);
+    assert(buffer(2L) == 0xACY);
+    assert(buffer(3L) == 0Y);
 
     let buffer = write('𐍈');
-    assert(buffer(0) == 0xF0Y);
-    assert(buffer(1) == 0x90Y);
-    assert(buffer(2) == 0x8DY);
-    assert(buffer(3) == 0x88Y);
-    assert(buffer(4) == 0Y);
+    assert(buffer(0L) == 0xF0Y);
+    assert(buffer(1L) == 0x90Y);
+    assert(buffer(2L) == 0x8DY);
+    assert(buffer(3L) == 0x88Y);
+    assert(buffer(4L) == 0Y);
 }
 
 fun write(ch: Char) -> Array[UInt8] {
     let buffer = Array[UInt8](5L);
-    ch.encodeUtf8(buffer, 0);
+    ch.encodeUtf8(buffer, 0L);
     return buffer;
 }

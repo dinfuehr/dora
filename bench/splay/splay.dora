@@ -132,7 +132,7 @@ fun generatePayloadTree(depth: Int32, tag: String) -> PayloadNode {
         var i = 0;
 
         while i < 10 {
-            arr(i) = i;
+            arr(i.toInt64()) = i;
             i = i + 1;
         }
 

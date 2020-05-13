@@ -2,7 +2,7 @@
 
 fun main() {
     let a = Array[Foo](16L * 1024L);
-    a(16 * 1024 - 1) = Foo();
+    a(16L * 1024L - 1L) = Foo();
     forceCollect();
 }
 

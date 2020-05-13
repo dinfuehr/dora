@@ -1616,7 +1616,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
 
     fun hasWideOperands() -> Bool {
         let data = self.data;
-        let value = data(self.pos);
+        let value = data(self.pos.toInt64());
 
         if value.toInt32() == BC_WIDE {
             self.pos = self.pos + 1;
@@ -1671,7 +1671,7 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
 
     fun readByte() -> Int32 {
         let data = self.data;
-        let value = data(self.pos);
+        let value = data(self.pos.toInt64());
         self.pos = self.pos + 1;
 
         value.toInt32()

@@ -1437,7 +1437,7 @@ where
 
     fn emit_array_bound_check(&mut self, arr: Register, idx: Register) {
         assert_eq!(self.bytecode.register_type(arr), BytecodeType::Ptr);
-        assert_eq!(self.bytecode.register_type(idx), BytecodeType::Int32);
+        assert_eq!(self.bytecode.register_type(idx), BytecodeType::Int64);
 
         let position = self.bytecode.offset_position(self.current_offset.to_u32());
 
@@ -1454,7 +1454,7 @@ where
     }
 
     fn emit_store_array(&mut self, src: Register, arr: Register, idx: Register) {
-        assert_eq!(self.bytecode.register_type(idx), BytecodeType::Int32);
+        assert_eq!(self.bytecode.register_type(idx), BytecodeType::Int64);
         assert_eq!(self.bytecode.register_type(arr), BytecodeType::Ptr);
 
         let position = self.bytecode.offset_position(self.current_offset.to_u32());
@@ -1508,7 +1508,7 @@ where
     }
 
     fn emit_load_array(&mut self, dest: Register, arr: Register, idx: Register) {
-        assert_eq!(self.bytecode.register_type(idx), BytecodeType::Int32);
+        assert_eq!(self.bytecode.register_type(idx), BytecodeType::Int64);
         assert_eq!(self.bytecode.register_type(arr), BytecodeType::Ptr);
 
         let position = self.bytecode.offset_position(self.current_offset.to_u32());

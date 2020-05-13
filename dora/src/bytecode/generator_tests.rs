@@ -2555,9 +2555,9 @@ fn gen_position_array_length_effect() {
 
 #[test]
 fn gen_load_array_uint8() {
-    let result = code("fun f(a: Array[UInt8]) -> UInt8 { return a(0); }");
+    let result = code("fun f(a: Array[UInt8]) -> UInt8 { return a(0L); }");
     let expected = vec![
-        ConstZeroInt32(r(2)),
+        ConstZeroInt64(r(2)),
         LoadArrayUInt8(r(1), r(0), r(2)),
         RetUInt8(r(1)),
     ];
@@ -2566,135 +2566,107 @@ fn gen_load_array_uint8() {
 
 #[test]
 fn gen_load_array_bool() {
-    let result = code("fun f(a: Array[Bool]) -> Bool { return a(0); }");
-    let expected = vec![
-        ConstZeroInt32(r(2)),
-        LoadArrayBool(r(1), r(0), r(2)),
-        RetBool(r(1)),
-    ];
+    let result = code("fun f(a: Array[Bool], idx: Int64) -> Bool { return a(idx); }");
+    let expected = vec![LoadArrayBool(r(2), r(0), r(1)), RetBool(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_load_array_char() {
-    let result = code("fun f(a: Array[Char]) -> Char { return a(0); }");
-    let expected = vec![
-        ConstZeroInt32(r(2)),
-        LoadArrayChar(r(1), r(0), r(2)),
-        RetChar(r(1)),
-    ];
+    let result = code("fun f(a: Array[Char], idx: Int64) -> Char { return a(idx); }");
+    let expected = vec![LoadArrayChar(r(2), r(0), r(1)), RetChar(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_load_array_int32() {
-    let result = code("fun f(a: Array[Int32]) -> Int32 { return a(0); }");
-    let expected = vec![
-        ConstZeroInt32(r(2)),
-        LoadArrayInt32(r(1), r(0), r(2)),
-        RetInt32(r(1)),
-    ];
+    let result = code("fun f(a: Array[Int32], idx: Int64) -> Int32 { return a(idx); }");
+    let expected = vec![LoadArrayInt32(r(2), r(0), r(1)), RetInt32(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_load_array_int64() {
-    let result = code("fun f(a: Array[Int64]) -> Int64 { return a(0); }");
-    let expected = vec![
-        ConstZeroInt32(r(2)),
-        LoadArrayInt64(r(1), r(0), r(2)),
-        RetInt64(r(1)),
-    ];
+    let result = code("fun f(a: Array[Int64], idx: Int64) -> Int64 { return a(idx); }");
+    let expected = vec![LoadArrayInt64(r(2), r(0), r(1)), RetInt64(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_load_array_float() {
-    let result = code("fun f(a: Array[Float]) -> Float { return a(0); }");
-    let expected = vec![
-        ConstZeroInt32(r(2)),
-        LoadArrayFloat(r(1), r(0), r(2)),
-        RetFloat(r(1)),
-    ];
+    let result = code("fun f(a: Array[Float], idx: Int64) -> Float { return a(idx); }");
+    let expected = vec![LoadArrayFloat(r(2), r(0), r(1)), RetFloat(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_load_array_double() {
-    let result = code("fun f(a: Array[Double]) -> Double { return a(0); }");
-    let expected = vec![
-        ConstZeroInt32(r(2)),
-        LoadArrayDouble(r(1), r(0), r(2)),
-        RetDouble(r(1)),
-    ];
+    let result = code("fun f(a: Array[Double], idx: Int64) -> Double { return a(idx); }");
+    let expected = vec![LoadArrayDouble(r(2), r(0), r(1)), RetDouble(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_load_array_ptr() {
-    let result = code("fun f(a: Array[Object]) -> Object { return a(0); }");
-    let expected = vec![
-        ConstZeroInt32(r(2)),
-        LoadArrayPtr(r(1), r(0), r(2)),
-        RetPtr(r(1)),
-    ];
+    let result = code("fun f(a: Array[Object], idx: Int64) -> Object { return a(idx); }");
+    let expected = vec![LoadArrayPtr(r(2), r(0), r(1)), RetPtr(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_load_array_bool() {
-    let result = position("fun f(a: Array[Bool]) -> Bool { return a(0); }");
+    let result = position("fun f(a: Array[Bool]) -> Bool { return a(0L); }");
     let expected = vec![(2, p(1, 41))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_load_array_char() {
-    let result = position("fun f(a: Array[Char]) -> Char { return a(0); }");
+    let result = position("fun f(a: Array[Char]) -> Char { return a(0L); }");
     let expected = vec![(2, p(1, 41))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_load_array_int() {
-    let result = position("fun f(a: Array[Int32]) -> Int32 { return a(0); }");
+    let result = position("fun f(a: Array[Int32]) -> Int32 { return a(0L); }");
     let expected = vec![(2, p(1, 43))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_load_array_int64() {
-    let result = position("fun f(a: Array[Int64]) -> Int64 { return a(0); }");
+    let result = position("fun f(a: Array[Int64]) -> Int64 { return a(0L); }");
     let expected = vec![(2, p(1, 43))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_load_array_float() {
-    let result = position("fun f(a: Array[Float]) -> Float { return a(0); }");
+    let result = position("fun f(a: Array[Float]) -> Float { return a(0L); }");
     let expected = vec![(2, p(1, 43))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_load_array_double() {
-    let result = position("fun f(a: Array[Double]) -> Double { return a(0); }");
+    let result = position("fun f(a: Array[Double]) -> Double { return a(0L); }");
     let expected = vec![(2, p(1, 45))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_load_array_ptr() {
-    let result = position("fun f(a: Array[Object]) -> Object { return a(0); }");
+    let result = position("fun f(a: Array[Object]) -> Object { return a(0L); }");
     let expected = vec![(2, p(1, 45))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_store_array_uint8() {
-    let result = code("fun f(a: Array[UInt8], b: UInt8) { a(0) = b; }");
+    let result = code("fun f(a: Array[UInt8], b: UInt8) { a(0L) = b; }");
     let expected = vec![
-        ConstZeroInt32(Register(2)),
+        ConstZeroInt64(Register(2)),
         StoreArrayUInt8(r(1), r(0), r(2)),
         RetVoid,
     ];
@@ -2703,9 +2675,9 @@ fn gen_store_array_uint8() {
 
 #[test]
 fn gen_store_array_bool() {
-    let result = code("fun f(a: Array[Bool], b: Bool) { a(0) = b; }");
+    let result = code("fun f(a: Array[Bool], b: Bool) { a(0L) = b; }");
     let expected = vec![
-        ConstZeroInt32(Register(2)),
+        ConstZeroInt64(Register(2)),
         StoreArrayBool(r(1), r(0), r(2)),
         RetVoid,
     ];
@@ -2714,9 +2686,9 @@ fn gen_store_array_bool() {
 
 #[test]
 fn gen_store_array_char() {
-    let result = code("fun f(a: Array[Char], b: Char) { a(0) = b; }");
+    let result = code("fun f(a: Array[Char], b: Char) { a(0L) = b; }");
     let expected = vec![
-        ConstZeroInt32(Register(2)),
+        ConstZeroInt64(Register(2)),
         StoreArrayChar(r(1), r(0), r(2)),
         RetVoid,
     ];
@@ -2725,9 +2697,9 @@ fn gen_store_array_char() {
 
 #[test]
 fn gen_store_array_int32() {
-    let result = code("fun f(a: Array[Int32], b: Int32) { a(0) = b; }");
+    let result = code("fun f(a: Array[Int32], b: Int32) { a(0L) = b; }");
     let expected = vec![
-        ConstZeroInt32(Register(2)),
+        ConstZeroInt64(Register(2)),
         StoreArrayInt32(r(1), r(0), r(2)),
         RetVoid,
     ];
@@ -2736,9 +2708,9 @@ fn gen_store_array_int32() {
 
 #[test]
 fn gen_store_array_int64() {
-    let result = code("fun f(a: Array[Int64], b: Int64) { a(0) = b; }");
+    let result = code("fun f(a: Array[Int64], b: Int64) { a(0L) = b; }");
     let expected = vec![
-        ConstZeroInt32(Register(2)),
+        ConstZeroInt64(Register(2)),
         StoreArrayInt64(r(1), r(0), r(2)),
         RetVoid,
     ];
@@ -2747,9 +2719,9 @@ fn gen_store_array_int64() {
 
 #[test]
 fn gen_store_array_float() {
-    let result = code("fun f(a: Array[Float], b: Float) { a(0) = b; }");
+    let result = code("fun f(a: Array[Float], b: Float) { a(0L) = b; }");
     let expected = vec![
-        ConstZeroInt32(Register(2)),
+        ConstZeroInt64(Register(2)),
         StoreArrayFloat(r(1), r(0), r(2)),
         RetVoid,
     ];
@@ -2758,9 +2730,9 @@ fn gen_store_array_float() {
 
 #[test]
 fn gen_store_array_double() {
-    let result = code("fun f(a: Array[Double], b: Double) { a(0) = b; }");
+    let result = code("fun f(a: Array[Double], b: Double) { a(0L) = b; }");
     let expected = vec![
-        ConstZeroInt32(Register(2)),
+        ConstZeroInt64(Register(2)),
         StoreArrayDouble(r(1), r(0), r(2)),
         RetVoid,
     ];
@@ -2769,9 +2741,9 @@ fn gen_store_array_double() {
 
 #[test]
 fn gen_store_array_ptr() {
-    let result = code("fun f(a: Array[Object], b: Object) { a(0) = b; }");
+    let result = code("fun f(a: Array[Object], b: Object) { a(0L) = b; }");
     let expected = vec![
-        ConstZeroInt32(Register(2)),
+        ConstZeroInt64(Register(2)),
         StoreArrayPtr(r(1), r(0), r(2)),
         RetVoid,
     ];
@@ -2780,50 +2752,50 @@ fn gen_store_array_ptr() {
 
 #[test]
 fn gen_position_store_array_bool() {
-    let result = position("fun f(a: Array[Bool], b: Bool) { a(0) = b; }");
-    let expected = vec![(2, p(1, 39))];
+    let result = position("fun f(a: Array[Bool], b: Bool) { a(0L) = b; }");
+    let expected = vec![(2, p(1, 40))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_store_array_char() {
-    let result = position("fun f(a: Array[Char], b: Char) { a(0) = b; }");
-    let expected = vec![(2, p(1, 39))];
+    let result = position("fun f(a: Array[Char], b: Char) { a(0L) = b; }");
+    let expected = vec![(2, p(1, 40))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_store_array_int32() {
-    let result = position("fun f(a: Array[Int32], b: Int32) { a(0) = b; }");
-    let expected = vec![(2, p(1, 41))];
+    let result = position("fun f(a: Array[Int32], b: Int32) { a(0L) = b; }");
+    let expected = vec![(2, p(1, 42))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_store_array_int64() {
-    let result = position("fun f(a: Array[Int64], b: Int64) { a(0) = b; }");
-    let expected = vec![(2, p(1, 41))];
+    let result = position("fun f(a: Array[Int64], b: Int64) { a(0L) = b; }");
+    let expected = vec![(2, p(1, 42))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_store_array_float() {
-    let result = position("fun f(a: Array[Float], b: Float) { a(0) = b; }");
-    let expected = vec![(2, p(1, 41))];
+    let result = position("fun f(a: Array[Float], b: Float) { a(0L) = b; }");
+    let expected = vec![(2, p(1, 42))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_store_array_double() {
-    let result = position("fun f(a: Array[Double], b: Double) { a(0) = b; }");
-    let expected = vec![(2, p(1, 43))];
+    let result = position("fun f(a: Array[Double], b: Double) { a(0L) = b; }");
+    let expected = vec![(2, p(1, 44))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_store_array_ptr() {
-    let result = position("fun f(a: Array[Object], b: Object) { a(0) = b; }");
-    let expected = vec![(2, p(1, 43))];
+    let result = position("fun f(a: Array[Object], b: Object) { a(0L) = b; }");
+    let expected = vec![(2, p(1, 44))];
     assert_eq!(expected, result);
 }
 
@@ -3213,40 +3185,28 @@ fn gen_string_length() {
 
 #[test]
 fn gen_string_get_uint8() {
-    let result = code("fun f(x: String, idx: Int32) -> UInt8 { x.getByte(0) }");
-    let expected = vec![
-        ConstZeroInt32(r(3)),
-        LoadArrayUInt8(r(2), r(0), r(3)),
-        RetUInt8(r(2)),
-    ];
+    let result = code("fun f(x: String, idx: Int64) -> UInt8 { x.getByte(idx) }");
+    let expected = vec![LoadArrayUInt8(r(2), r(0), r(1)), RetUInt8(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_array_get() {
-    let result = code("fun f(x: Array[Float], idx: Int32) -> Float { x(0) }");
-    let expected = vec![
-        ConstZeroInt32(r(3)),
-        LoadArrayFloat(r(2), r(0), r(3)),
-        RetFloat(r(2)),
-    ];
+    let result = code("fun f(x: Array[Float], idx: Int64) -> Float { x(idx) }");
+    let expected = vec![LoadArrayFloat(r(2), r(0), r(1)), RetFloat(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_array_get_method() {
-    let result = code("fun f(x: Array[Float], idx: Int32) -> Float { x.get(0) }");
-    let expected = vec![
-        ConstZeroInt32(r(3)),
-        LoadArrayFloat(r(2), r(0), r(3)),
-        RetFloat(r(2)),
-    ];
+    let result = code("fun f(x: Array[Float], idx: Int64) -> Float { x.get(idx) }");
+    let expected = vec![LoadArrayFloat(r(2), r(0), r(1)), RetFloat(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_array_set_method() {
-    let result = code("fun f(x: Array[Float], idx: Int32, value: Float) { x.set(idx, value); }");
+    let result = code("fun f(x: Array[Float], idx: Int64, value: Float) { x.set(idx, value); }");
     let expected = vec![StoreArrayFloat(r(2), r(0), r(1)), RetVoid];
     assert_eq!(expected, result);
 }

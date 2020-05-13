@@ -9,9 +9,9 @@ fun main() {
 }
 
 fun array_set(a: Array[Int32], idx: Int64, value: Int32) {
-    a(idx.toInt32()) = value;
+    a(idx) = value;
 }
 
 fun array_get(a: Array[Int32], idx: Int64) -> Int32 {
-    return a(idx.toInt32());
+    return a(idx);
 }

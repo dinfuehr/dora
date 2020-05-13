@@ -1,8 +1,8 @@
 @internal class Array[T](len: Int64) {
 
   @internal fun length() -> Int64;
-  @internal fun get(idx: Int32) -> T;
-  @internal fun set(idx: Int32, val: T);
+  @internal fun get(idx: Int64) -> T;
+  @internal fun set(idx: Int64, val: T);
 
   fun isEmpty() -> Bool = self.length() == 0L;
 
@@ -18,7 +18,7 @@ fun arrayContains[T : Identity + Equals](array: Array[T], value: T) -> Bool {
   var i = 0L;
 
   while i < array.length() {
-    let x = array.get(i.toInt32());
+    let x = array.get(i);
     if x.identicalTo(value) || x.equals(value) {
       return true;
     }
@@ -32,7 +32,7 @@ fun arrayHas[T : Identity](array: Array[T], value: T) -> Bool {
   var i = 0L;
 
   while i < array.length() {
-    if array.get(i.toInt32()).identicalTo(value) {
+    if array.get(i).identicalTo(value) {
       return true;
     }
     i = i + 1L;
@@ -48,7 +48,7 @@ fun arrayFill[T](len: Int64, value: T) -> Array[T] {
   var i = 0L;
 
   while i < len {
-    array(i.toInt32()) = value;
+    array(i) = value;
     i = i + 1L;
   }
 
@@ -61,7 +61,7 @@ fun arrayNew[T: Default](len: Int64) -> Array[T] {
   let value = T::default();
 
   while i < len {
-    array.set(i.toInt32(), value);
+    array.set(i, value);
     i = i + 1L;
   }
 
@@ -74,7 +74,7 @@ fun arrayCopy[T](src: Array[T], srcPos: Int64, dest: Array[T], destPos: Int64, l
   var i = 0L;
 
   while i < len {
-    dest.set((destPos+i).toInt32(), src.get((srcPos+i).toInt32()));
+    dest.set(destPos+i, src.get(srcPos+i));
     i = i + 1L;
   }
 }

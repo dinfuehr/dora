@@ -18,11 +18,11 @@ class NBodySystem {
     let bodies: Array[Body] = Array[Body](5L);
 
     {
-        self.bodies(0) = Body::sun();
-        self.bodies(1) = Body::jupiter();
-        self.bodies(2) = Body::saturn();
-        self.bodies(3) = Body::uranus();
-        self.bodies(4) = Body::neptune();
+        self.bodies(0L) = Body::sun();
+        self.bodies(1L) = Body::jupiter();
+        self.bodies(2L) = Body::saturn();
+        self.bodies(3L) = Body::uranus();
+        self.bodies(4L) = Body::neptune();
 
         var px = 0.0;
         var py = 0.0;
@@ -31,39 +31,39 @@ class NBodySystem {
         var i = 0L;
 
         while i < self.bodies.length() {
-            px = px + self.bodies.get(i.toInt32()).vx * self.bodies.get(i.toInt32()).mass;
-            py = py + self.bodies.get(i.toInt32()).vy * self.bodies.get(i.toInt32()).mass;
-            pz = pz + self.bodies.get(i.toInt32()).vz * self.bodies.get(i.toInt32()).mass;
+            px = px + self.bodies.get(i).vx * self.bodies.get(i).mass;
+            py = py + self.bodies.get(i).vy * self.bodies.get(i).mass;
+            pz = pz + self.bodies.get(i).vz * self.bodies.get(i).mass;
 
             i = i + 1L;
         }
 
-        self.bodies.get(0).offsetMomentum(px, py, pz);
+        self.bodies.get(0L).offsetMomentum(px, py, pz);
     }
 
     fun advance(dt: Double) {
         var i = 0L;
 
         while i < self.bodies.length() {
-            let iBody = self.bodies.get(i.toInt32());
+            let iBody = self.bodies.get(i);
             var j = i + 1L;
 
             while j < self.bodies.length() {
-                let dx = iBody.x - self.bodies.get(j.toInt32()).x;
-                let dy = iBody.y - self.bodies.get(j.toInt32()).y;
-                let dz = iBody.z - self.bodies.get(j.toInt32()).z;
+                let dx = iBody.x - self.bodies.get(j).x;
+                let dy = iBody.y - self.bodies.get(j).y;
+                let dz = iBody.z - self.bodies.get(j).z;
 
                 let dSquared = dx * dx + dy * dy + dz * dz;
                 let distance = dSquared.sqrt();
                 let mag = dt / (dSquared * distance);
 
-                iBody.vx = iBody.vx - dx * self.bodies.get(j.toInt32()).mass * mag;
-                iBody.vy = iBody.vy - dy * self.bodies.get(j.toInt32()).mass * mag;
-                iBody.vz = iBody.vz - dz * self.bodies.get(j.toInt32()).mass * mag;
+                iBody.vx = iBody.vx - dx * self.bodies.get(j).mass * mag;
+                iBody.vy = iBody.vy - dy * self.bodies.get(j).mass * mag;
+                iBody.vz = iBody.vz - dz * self.bodies.get(j).mass * mag;
 
-                self.bodies.get(j.toInt32()).vx = self.bodies.get(j.toInt32()).vx + dx * iBody.mass * mag;
-                self.bodies.get(j.toInt32()).vy = self.bodies.get(j.toInt32()).vy + dy * iBody.mass * mag;
-                self.bodies.get(j.toInt32()).vz = self.bodies.get(j.toInt32()).vz + dz * iBody.mass * mag;
+                self.bodies.get(j).vx = self.bodies.get(j).vx + dx * iBody.mass * mag;
+                self.bodies.get(j).vy = self.bodies.get(j).vy + dy * iBody.mass * mag;
+                self.bodies.get(j).vz = self.bodies.get(j).vz + dz * iBody.mass * mag;
 
                 j = j + 1L;
             }
@@ -74,7 +74,7 @@ class NBodySystem {
         var i = 0L;
 
         while i < self.bodies.length() {
-            let body = self.bodies.get(i.toInt32());
+            let body = self.bodies.get(i);
 
             body.x = body.x + dt * body.vx;
             body.y = body.y + dt * body.vy;
@@ -94,7 +94,7 @@ class NBodySystem {
       var i = 0L;
 
       while i < self.bodies.length() {
-         let iBody = self.bodies.get(i.toInt32());
+         let iBody = self.bodies.get(i);
          e = e + 0.5 * iBody.mass *
             ( iBody.vx * iBody.vx
                 + iBody.vy * iBody.vy
@@ -103,7 +103,7 @@ class NBodySystem {
         var j = i+1L;
 
         while j < self.bodies.length() {
-            let jBody = self.bodies.get(j.toInt32());
+            let jBody = self.bodies.get(j);
 
             dx = iBody.x - jBody.x;
             dy = iBody.y - jBody.y;

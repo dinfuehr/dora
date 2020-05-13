@@ -2,58 +2,58 @@
 
 fun main() {
   let x = arrayFill[Int32](5L, 100);
-  assert(x(0) == 100);
+  assert(x(0L) == 100);
   assert(int32_array_get(x, 4L) == 100);
 
   let x = arrayFill[Int64](7L, 200L);
-  assert(x(6) == 200L);
+  assert(x(6L) == 200L);
   assert(int64_array_get(x, 0L) == 200L);
 
   let x = arrayFill[Float](6L, 1.0F);
-  assert(x(0) == 1.0F);
+  assert(x(0L) == 1.0F);
   assert(float_array_get(x, 5L) == 1.0F);
 
   let x = arrayFill[Double](4L, 2.0);
-  assert(x(0) == 2.0);
+  assert(x(0L) == 2.0);
   assert(double_array_get(x, 3L) == 2.0);
 
   let x = arrayFill[String](3L, "hello");
-  assert(x(0) == "hello");
+  assert(x(0L) == "hello");
   assert(str_array_get(x, 2L) == "hello");
 
   let x = arrayFill[Foo](1L, Foo(1));
-  assert(x(0) !== nil);
-  assert(x(0).y == 1);
+  assert(x(0L) !== nil);
+  assert(x(0L).y == 1);
   assert(foo_array_get(x, 0L) !== nil);
   assert(foo_array_get(x, 0L).y == 1);
 
   let x = arrayFill[Foo](2L, nil);
-  assert(x(0) === nil);
+  assert(x(0L) === nil);
   assert(foo_array_get(x, 0L) === nil);
 }
 
 fun int32_array_get(x: Array[Int32], idx: Int64) -> Int32 {
-  return x(idx.toInt32());
+  return x(idx);
 }
 
 fun int64_array_get(x: Array[Int64], idx: Int64) -> Int64 {
-  return x(idx.toInt32());
+  return x(idx);
 }
 
 fun float_array_get(x: Array[Float], idx: Int64) -> Float {
-  return x(idx.toInt32());
+  return x(idx);
 }
 
 fun double_array_get(x: Array[Double], idx: Int64) -> Double {
-  return x(idx.toInt32());
+  return x(idx);
 }
 
 fun str_array_get(x: Array[String], idx: Int64) -> String {
-  return x(idx.toInt32());
+  return x(idx);
 }
 
 fun foo_array_get(x: Array[Foo], idx: Int64) -> Foo {
-  return x(idx.toInt32());
+  return x(idx);
 }
 
 class Foo(let y: Int32)

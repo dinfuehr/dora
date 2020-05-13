@@ -2,5 +2,5 @@
 
 fun main() {
     let x = Array[(Int32, Int64)](7L);
-    x(10) = (12, 4711L);
+    x(10L) = (12, 4711L);
 }

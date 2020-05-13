@@ -5,8 +5,8 @@ fun main() {
     let y = Array[Object](16L * 1024L);
     let z = Array[Object](16L * 1024L);
     forceCollect();
-    assert(x(0) === nil);
-    x(0) = Object();
+    assert(x(0L) === nil);
+    x(0L) = Object();
     forceCollect();
-    assert(x(0) !== nil);
+    assert(x(0L) !== nil);
 }

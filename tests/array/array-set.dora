@@ -3,57 +3,57 @@
 fun main() {
   let x = arrayFill[Int32](2L, 100);
   int32_array_set(x, 1L, 200);
-  assert(x(0) == 100);
-  assert(x(1) == 200);
+  assert(x(0L) == 100);
+  assert(x(1L) == 200);
 
   let x = arrayFill[Int64](2L, 200L);
   int64_array_set(x, 1L, 100L);
-  assert(x(0) == 200L);
-  assert(x(1) == 100L);
+  assert(x(0L) == 200L);
+  assert(x(1L) == 100L);
 
   let x = arrayFill[Float](2L, 1.0F);
   float_array_set(x, 1L, 2.0F);
-  assert(x(0) == 1.0F);
-  assert(x(1) == 2.0F);
+  assert(x(0L) == 1.0F);
+  assert(x(1L) == 2.0F);
 
   let x = arrayFill[Double](2L, 2.0);
   double_array_set(x, 1L, 1.0);
-  assert(x(0) == 2.0);
-  assert(x(1) == 1.0);
+  assert(x(0L) == 2.0);
+  assert(x(1L) == 1.0);
 
   let x = arrayFill[String](2L, "hello");
   str_array_set(x, 1L, "abc");
-  assert(x(0) == "hello");
-  assert(x(1) == "abc");
+  assert(x(0L) == "hello");
+  assert(x(1L) == "abc");
 
   let x = arrayFill[Foo](2L, Foo(1));
   foo_array_set(x, 1L, Foo(2));
-  assert(x(0).y == 1);
-  assert(x(1).y == 2);
+  assert(x(0L).y == 1);
+  assert(x(1L).y == 2);
 }
 
 fun int32_array_set(x: Array[Int32], idx: Int64, val: Int32) {
-  x(idx.toInt32()) = val;
+  x(idx) = val;
 }
 
 fun int64_array_set(x: Array[Int64], idx: Int64, val: Int64) {
-  x(idx.toInt32()) = val;
+  x(idx) = val;
 }
 
 fun float_array_set(x: Array[Float], idx: Int64, val: Float) {
-  x(idx.toInt32()) = val;
+  x(idx) = val;
 }
 
 fun double_array_set(x: Array[Double], idx: Int64, val: Double) {
-  x(idx.toInt32()) = val;
+  x(idx) = val;
 }
 
 fun str_array_set(x: Array[String], idx: Int64, val: String) {
-  x(idx.toInt32()) = val;
+  x(idx) = val;
 }
 
 fun foo_array_set(x: Array[Foo], idx: Int64, val: Foo) {
-  x(idx.toInt32()) = val;
+  x(idx) = val;
 }
 
 class Foo(let y: Int32)

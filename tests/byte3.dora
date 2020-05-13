@@ -7,12 +7,12 @@ fun main() {
     let ba = arrayFill[UInt8](10L, 2Y);
     assert(ba.length() == 10L);
 
-    ba(0) = 10Y;
-    ba(1) = 11Y;
-    ba(2) = 12Y;
+    ba(0L) = 10Y;
+    ba(1L) = 11Y;
+    ba(2L) = 12Y;
 
-    assert(10Y == ba(0));
-    assert(11Y == ba(1));
-    assert(12Y == ba(2));
-    assert(2Y == ba(9));
+    assert(10Y == ba(0L));
+    assert(11Y == ba(1L));
+    assert(12Y == ba(2L));
+    assert(2Y == ba(9L));
 }

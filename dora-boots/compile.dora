@@ -27,7 +27,7 @@ fun decodeRegisters(registers: Array[Int32]) -> Array[BytecodeType] {
     let result = arrayFill[BytecodeType](registers.length(), BytecodeType::bool());
 
     while i < registers.length() {
-        let regtype = registers(i.toInt32());
+        let regtype = registers(i);
 
         let value = if regtype == BC_TYPE_BOOL {
             BytecodeType::bool()
@@ -50,7 +50,7 @@ fun decodeRegisters(registers: Array[Int32]) -> Array[BytecodeType] {
             BytecodeType::bool()
         };
 
-        result(i.toInt32()) = value;
+        result(i) = value;
         i = i + 1L;
     }
 
@@ -102,7 +102,7 @@ class ByteReader(let array: Array[UInt8]) {
     }
 
     fun readUInt8() -> UInt8 {
-        let value = self.array.get(self.idx.toInt32());
+        let value = self.array.get(self.idx);
         self.idx = self.idx + 1L;
         value
     }

@@ -5,19 +5,19 @@ fun main() {
     assert(x.length() == 0L);
 
     let x = arrayFill[Char](10L, '\0');
-    assert(x(0) == '\0');
-    assert(x(9) == '\0');
+    assert(x(0L) == '\0');
+    assert(x(9L) == '\0');
 
-    x(0) = 'a';
-    x(1) = 'b';
-    x(2) = 'c';
-    x(3) = 'd';
-    x(9) = 'z';
+    x(0L) = 'a';
+    x(1L) = 'b';
+    x(2L) = 'c';
+    x(3L) = 'd';
+    x(9L) = 'z';
 
-    println(x(3).toString());
+    println(x(3L).toString());
 
-    assert(x(3) == 'd');
-    assert(x(4) == '\0');
-    assert(x(8) == '\0');
-    assert(x(9) == 'z');
+    assert(x(3L) == 'd');
+    assert(x(4L) == '\0');
+    assert(x(8L) == '\0');
+    assert(x(9L) == 'z');
 }

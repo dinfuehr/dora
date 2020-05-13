@@ -500,9 +500,9 @@ fn type_nil_as_method_argument() {
 
 #[test]
 fn type_array() {
-    ok("fun f(a: Array[Int32]) -> Int32 { return a(1); }");
+    ok("fun f(a: Array[Int32]) -> Int32 { return a(1L); }");
     err(
-        "fun f(a: Array[Int32]) -> String { return a(1); }",
+        "fun f(a: Array[Int32]) -> String { return a(1L); }",
         pos(1, 36),
         SemError::ReturnType("String".into(), "Int32".into()),
     );
@@ -511,17 +511,17 @@ fn type_array() {
 #[test]
 fn type_array_assign() {
     err(
-        "fun f(a: Array[Int32]) -> Int32 { return a(3) = 4; }",
+        "fun f(a: Array[Int32]) -> Int32 { return a(3L) = 4; }",
         pos(1, 35),
         SemError::ReturnType("Int32".into(), "()".into()),
     );
     err(
-        "fun f(a: Array[Int32]) { a(3) = \"b\"; }",
-        pos(1, 31),
+        "fun f(a: Array[Int32]) { a(3L) = \"b\"; }",
+        pos(1, 32),
         SemError::UnknownMethod(
             "Array[Int32]".into(),
             "set".into(),
-            vec!["Int32".into(), "String".into()],
+            vec!["Int64".into(), "String".into()],
         ),
     );
 }
@@ -1452,23 +1452,23 @@ fn test_new_call_method_generic_error_multiple() {
 
 #[test]
 fn test_array_syntax_get() {
-    ok("fun f(t: Array[Int32]) -> Int32 { return t(0); }");
+    ok("fun f(t: Array[Int32]) -> Int32 { return t(0L); }");
 }
 
 #[test]
 fn test_array_syntax_set() {
-    ok("fun f(t: Array[Int32]){ t(0) = 10; }");
+    ok("fun f(t: Array[Int32]){ t(0L) = 10; }");
 }
 
 #[test]
 fn test_array_syntax_set_wrong_value() {
     err(
-        "fun f(t: Array[Int32]){ t(0) = true; }",
-        pos(1, 30),
+        "fun f(t: Array[Int32]){ t(0L) = true; }",
+        pos(1, 31),
         SemError::UnknownMethod(
             "Array[Int32]".into(),
             "set".into(),
-            vec!["Int32".into(), "Bool".into()],
+            vec!["Int64".into(), "Bool".into()],
         ),
     );
 }

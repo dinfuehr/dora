@@ -45,7 +45,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         self.sealedBlocks = BitSet(blockCount.toInt64());
 
         for i in range(0, self.currentDef.length().toInt32()) {
-            self.currentDef(i) = HashMap[Block, Inst]();
+            self.currentDef(i.toInt64()) = HashMap[Block, Inst]();
         }
     }
 
@@ -53,7 +53,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         var i = 0;
         let entryBlock = self.graph.getEntryBlock();
         while i < self.bc.arguments {
-            let ty = Type::fromBytecodeType(self.bc.registers.get(i));
+            let ty = Type::fromBytecodeType(self.bc.registers.get(i.toInt64()));
             let argInst = ArgInst(i, ty);
             entryBlock.appendInst(argInst);
             self.writeVariable(BytecodeRegister(i), entryBlock, argInst);
@@ -62,12 +62,12 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     }
 
     fun writeVariable(register: BytecodeRegister, block: Block, value: Inst) {
-        self.currentDef.get(register.value).insert(block, value);
+        self.currentDef.get(register.value.toInt64()).insert(block, value);
     }
 
     fun readVariable(register: BytecodeRegister, block: Block) -> Inst {
-        if self.currentDef.get(register.value).contains(block) {
-            self.currentDef.get(register.value).get(block).unwrap()
+        if self.currentDef.get(register.value.toInt64()).contains(block) {
+            self.currentDef.get(register.value.toInt64()).get(block).unwrap()
         } else {
             self.readVariableRecursive(register, block)
         }
@@ -145,7 +145,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         phi.remove();
 
         for i in range(0, users.length().toInt32()) {
-            let user = users(i);
+            let user = users(i.toInt64());
 
             if user === phi {
                 continue;
