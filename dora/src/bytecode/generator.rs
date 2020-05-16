@@ -1480,15 +1480,58 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             return Register::invalid();
         }
 
+        let builtin_type = self.ty(expr.lhs.id());
         let dest = self.ensure_register(dest, BytecodeType::Bool);
 
         let lhs_reg = self.visit_expr(&expr.lhs, DataDest::Alloc);
         let rhs_reg = self.visit_expr(&expr.rhs, DataDest::Alloc);
 
-        if expr.op == BinOp::Cmp(CmpOp::Is) {
-            self.gen.emit_test_eq_ptr(dest, lhs_reg, rhs_reg);
+        let cmp_ty: BytecodeType = match builtin_type {
+            BuiltinType::Nil => BytecodeType::Ptr,
+            BuiltinType::Float => BytecodeType::Int32,
+            BuiltinType::Double => BytecodeType::Int64,
+            _ => builtin_type.into(),
+        };
+
+        let cmp_lhs_reg;
+        let cmp_rhs_reg;
+
+        if builtin_type.is_float() {
+            cmp_lhs_reg = self.gen.add_register(cmp_ty);
+            cmp_rhs_reg = self.gen.add_register(cmp_ty);
+
+            if cmp_ty == BytecodeType::Int32 {
+                self.gen
+                    .emit_reinterpret_float_as_int32(cmp_lhs_reg, lhs_reg);
+                self.gen
+                    .emit_reinterpret_float_as_int32(cmp_rhs_reg, rhs_reg);
+            } else {
+                self.gen
+                    .emit_reinterpret_double_as_int64(cmp_lhs_reg, lhs_reg);
+                self.gen
+                    .emit_reinterpret_double_as_int64(cmp_rhs_reg, rhs_reg);
+            }
         } else {
-            self.gen.emit_test_ne_ptr(dest, lhs_reg, rhs_reg);
+            cmp_lhs_reg = lhs_reg;
+            cmp_rhs_reg = rhs_reg;
+        }
+
+        if expr.op == BinOp::Cmp(CmpOp::Is) {
+            match cmp_ty {
+                BytecodeType::UInt8 => self.gen.emit_test_eq_uint8(dest, cmp_lhs_reg, cmp_rhs_reg),
+                BytecodeType::Int32 => self.gen.emit_test_eq_int32(dest, cmp_lhs_reg, cmp_rhs_reg),
+                BytecodeType::Int64 => self.gen.emit_test_eq_int64(dest, cmp_lhs_reg, cmp_rhs_reg),
+                BytecodeType::Ptr => self.gen.emit_test_eq_ptr(dest, cmp_lhs_reg, cmp_rhs_reg),
+                _ => unreachable!(),
+            }
+        } else {
+            match cmp_ty {
+                BytecodeType::UInt8 => self.gen.emit_test_ne_uint8(dest, cmp_lhs_reg, cmp_rhs_reg),
+                BytecodeType::Int32 => self.gen.emit_test_ne_int32(dest, cmp_lhs_reg, cmp_rhs_reg),
+                BytecodeType::Int64 => self.gen.emit_test_ne_int64(dest, cmp_lhs_reg, cmp_rhs_reg),
+                BytecodeType::Ptr => self.gen.emit_test_ne_ptr(dest, cmp_lhs_reg, cmp_rhs_reg),
+                _ => unreachable!(),
+            }
         }
 
         dest
@@ -1712,6 +1755,12 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 self.gen
                     .emit_invoke_static_int64(dest, FctDef::fct_id(self.vm, info.fct_id.unwrap()));
             }
+            Intrinsic::PromoteFloatToDouble => {
+                self.gen.emit_promote_float_to_double(dest, src);
+            }
+            Intrinsic::DemoteDoubleToFloat => {
+                self.gen.emit_truncate_double_to_float(dest, src);
+            }
             _ => {
                 panic!("unimplemented intrinsic {:?}", intrinsic);
             }
@@ -1842,6 +1891,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             Intrinsic::Int32Eq => match op {
                 Some(BinOp::Cmp(CmpOp::Eq)) => self.gen.emit_test_eq_int32(dest, lhs_reg, rhs_reg),
                 Some(BinOp::Cmp(CmpOp::Ne)) => self.gen.emit_test_ne_int32(dest, lhs_reg, rhs_reg),
+                None => self.gen.emit_test_eq_int32(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             Intrinsic::Int32Cmp => match op {
@@ -1855,6 +1905,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             Intrinsic::Int64Eq => match op {
                 Some(BinOp::Cmp(CmpOp::Eq)) => self.gen.emit_test_eq_int64(dest, lhs_reg, rhs_reg),
                 Some(BinOp::Cmp(CmpOp::Ne)) => self.gen.emit_test_ne_int64(dest, lhs_reg, rhs_reg),
+                None => self.gen.emit_test_eq_int64(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             Intrinsic::Int64Cmp => match op {
@@ -1872,6 +1923,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             Intrinsic::FloatEq => match op {
                 Some(BinOp::Cmp(CmpOp::Eq)) => self.gen.emit_test_eq_float(dest, lhs_reg, rhs_reg),
                 Some(BinOp::Cmp(CmpOp::Ne)) => self.gen.emit_test_ne_float(dest, lhs_reg, rhs_reg),
+                None => self.gen.emit_test_eq_float(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             Intrinsic::FloatCmp => match op {
@@ -1884,6 +1936,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             Intrinsic::DoubleEq => match op {
                 Some(BinOp::Cmp(CmpOp::Eq)) => self.gen.emit_test_eq_double(dest, lhs_reg, rhs_reg),
                 Some(BinOp::Cmp(CmpOp::Ne)) => self.gen.emit_test_ne_double(dest, lhs_reg, rhs_reg),
+                None => self.gen.emit_test_eq_double(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
             Intrinsic::DoubleCmp => match op {

@@ -1,3 +1,4 @@
+//= cannon
 //= file bench/nbody/nbody.dora
 //= args 100
 //= stdout "-0.16907516382852447\n-0.1690507623824094\n"

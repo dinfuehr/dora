@@ -886,6 +886,24 @@ where
         self.emit_store_register(REG_RESULT.into(), dest);
     }
 
+    fn emit_promote_float(&mut self, dest: Register, src: Register) {
+        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Double);
+        assert_eq!(self.bytecode.register_type(src), BytecodeType::Float);
+
+        self.emit_load_register(src, FREG_RESULT.into());
+        self.asm.float_to_double(FREG_RESULT, FREG_RESULT);
+        self.emit_store_register(FREG_RESULT.into(), dest);
+    }
+
+    fn emit_demote_double(&mut self, dest: Register, src: Register) {
+        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Float);
+        assert_eq!(self.bytecode.register_type(src), BytecodeType::Double);
+
+        self.emit_load_register(src, FREG_RESULT.into());
+        self.asm.double_to_float(FREG_RESULT, FREG_RESULT);
+        self.emit_store_register(FREG_RESULT.into(), dest);
+    }
+
     fn emit_instanceof(
         &mut self,
         dest: Register,
@@ -2507,6 +2525,13 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
     fn visit_truncate_double_to_int64(&mut self, dest: Register, src: Register) {
         self.emit_float_to_int(dest, src);
+    }
+
+    fn visit_promote_float_to_double(&mut self, dest: Register, src: Register) {
+        self.emit_promote_float(dest, src);
+    }
+    fn visit_truncate_double_to_float(&mut self, dest: Register, src: Register) {
+        self.emit_demote_double(dest, src);
     }
 
     fn visit_instance_of(&mut self, dest: Register, src: Register, cls_id: ClassDefId) {

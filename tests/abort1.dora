@@ -1,5 +1,6 @@
 //= error code 1
 //= stderr "program aborted.\n"
+//= cannon
 
 fun main() {
     abort();

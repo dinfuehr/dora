@@ -509,7 +509,8 @@ impl Intrinsic {
             | Intrinsic::ReinterpretInt32AsFloat
             | Intrinsic::Int32ToFloat
             | Intrinsic::Int64ToFloat
-            | Intrinsic::FloatSqrt => BytecodeType::Float,
+            | Intrinsic::FloatSqrt
+            | Intrinsic::DemoteDoubleToFloat => BytecodeType::Float,
             Intrinsic::DoubleAdd
             | Intrinsic::DoubleSub
             | Intrinsic::DoubleDiv

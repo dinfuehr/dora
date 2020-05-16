@@ -409,6 +409,17 @@ where
                 self.visitor.visit_truncate_double_to_int64(dest, src);
             }
 
+            BytecodeOpcode::PromoteFloatToDouble => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_promote_float_to_double(dest, src);
+            }
+            BytecodeOpcode::TruncateDoubleToFloat => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_truncate_double_to_float(dest, src);
+            }
+
             BytecodeOpcode::InstanceOf => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
@@ -1696,6 +1707,13 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_truncate_double_to_int64(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+
+    fn visit_promote_float_to_double(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_truncate_double_to_float(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
 

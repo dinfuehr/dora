@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
   let x = defaultValue[Bool]();
   assert(x == false);

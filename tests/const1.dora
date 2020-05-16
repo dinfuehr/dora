@@ -1,3 +1,5 @@
+//= cannon
+
 const i: Int32 = 1;
 const l: Int64 = 2L;
 const yes: Bool = true;

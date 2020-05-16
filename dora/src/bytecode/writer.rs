@@ -597,6 +597,13 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::TruncateDoubleToInt64, dest, src);
     }
 
+    pub fn emit_promote_float_to_double(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::PromoteFloatToDouble, dest, src);
+    }
+    pub fn emit_truncate_double_to_float(&mut self, dest: Register, src: Register) {
+        self.emit_reg2(BytecodeOpcode::TruncateDoubleToFloat, dest, src);
+    }
+
     pub fn emit_instance_of(&mut self, dest: Register, src: Register, cls_id: ClassDefId) {
         self.emit_reg2_cls(BytecodeOpcode::InstanceOf, dest, src, cls_id);
     }

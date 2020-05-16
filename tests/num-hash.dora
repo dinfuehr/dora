@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
   assert(true.hash() == 1);
   assert(false.hash() == 0);

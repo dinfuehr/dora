@@ -1,3 +1,4 @@
 //= file bench/fannkuchredux/fannkuchredux.dora
 //= args 6
 //= stdout "49\nPfannkuchen (6) = 10\n"
+//= cannon

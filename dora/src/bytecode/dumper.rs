@@ -382,6 +382,13 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg2("TruncateDoubleToInt64", dest, src);
     }
 
+    fn visit_promote_float_to_double(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("PromoteFloatToDouble", dest, src);
+    }
+    fn visit_truncate_double_to_float(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("TruncateDoubleToFloat", dest, src);
+    }
+
     fn visit_instance_of(&mut self, dest: Register, src: Register, cls_id: ClassDefId) {
         self.emit_reg2_cls("InstanceOf", dest, src, cls_id);
     }

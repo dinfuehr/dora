@@ -227,6 +227,9 @@ pub enum BytecodeOpcode {
     TruncateDoubleToInt32,
     TruncateDoubleToInt64,
 
+    PromoteFloatToDouble,
+    TruncateDoubleToFloat,
+
     InstanceOf,
     CheckedCast,
 
