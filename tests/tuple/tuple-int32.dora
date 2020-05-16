@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     assert(tpl1() == 1);
     assert(tpl2() == 2);

@@ -3,7 +3,7 @@ use std::io;
 use crate::bytecode::{
     read, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, Register,
 };
-use crate::vm::{ClassDefId, FctDefId, FieldId, GlobalId};
+use crate::vm::{ClassDefId, FctDefId, FieldId, GlobalId, TupleId};
 
 pub fn dump(bc: &BytecodeFunction) {
     let mut stdout = io::stdout();
@@ -56,6 +56,24 @@ impl<'a> BytecodeDumper<'a> {
     fn emit_reg2(&mut self, name: &str, r1: Register, r2: Register) {
         self.emit_start(name);
         writeln!(self.w, " {}, {}", r1, r2).expect("write! failed");
+    }
+
+    fn emit_reg2_tuple(&mut self, name: &str, r1: Register, r2: Register, tuple_id: TupleId) {
+        self.emit_start(name);
+        writeln!(self.w, " {}, {}, {}", r1, r2, tuple_id.to_usize()).expect("write! failed");
+    }
+
+    fn emit_tuple_load(
+        &mut self,
+        name: &str,
+        r1: Register,
+        r2: Register,
+        tuple_id: TupleId,
+        idx: u32,
+    ) {
+        self.emit_start(name);
+        writeln!(self.w, " {}, {}, {}, {}", r1, r2, tuple_id.to_usize(), idx)
+            .expect("write! failed");
     }
 
     fn emit_reg2_cls(&mut self, name: &str, r1: Register, r2: Register, cls_id: ClassDefId) {
@@ -137,6 +155,11 @@ impl<'a> BytecodeDumper<'a> {
     fn emit_new_array(&mut self, name: &str, r1: Register, cls: ClassDefId, length: Register) {
         self.emit_start(name);
         writeln!(self.w, " {}, {}, {}", r1, cls.to_usize(), length).expect("write! failed");
+    }
+
+    fn emit_new_tuple(&mut self, name: &str, r1: Register, tuple_id: TupleId) {
+        self.emit_start(name);
+        writeln!(self.w, " {}, {}", r1, tuple_id.to_usize()).expect("write! failed");
     }
 
     fn emit_start(&mut self, name: &str) {
@@ -390,6 +413,19 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_mov_ptr(&mut self, dest: Register, src: Register) {
         self.emit_reg2("MovPtr", dest, src);
     }
+    fn visit_mov_tuple(&mut self, dest: Register, src: Register, tuple_id: TupleId) {
+        self.emit_reg2_tuple("MovTuple", dest, src, tuple_id);
+    }
+
+    fn visit_load_tuple_element(
+        &mut self,
+        dest: Register,
+        src: Register,
+        tuple_id: TupleId,
+        element: u32,
+    ) {
+        self.emit_tuple_load("LoadTupleElement", dest, src, tuple_id, element);
+    }
 
     fn visit_load_field_bool(
         &mut self,
@@ -462,6 +498,15 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         field: FieldId,
     ) {
         self.emit_field("LoadFieldPtr", dest, obj, cls, field);
+    }
+    fn visit_load_field_tuple(
+        &mut self,
+        dest: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_field("LoadFieldTuple", dest, obj, cls, field);
     }
 
     fn visit_store_field_bool(
@@ -536,6 +581,15 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     ) {
         self.emit_field("StoreFieldPtr", src, obj, cls, field);
     }
+    fn visit_store_field_tuple(
+        &mut self,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_field("StoreFieldTuple", src, obj, cls, field);
+    }
 
     fn visit_load_global_bool(&mut self, dest: Register, glob: GlobalId) {
         self.emit_global("LoadGlobalBool", dest, glob);
@@ -561,6 +615,9 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_load_global_ptr(&mut self, dest: Register, glob: GlobalId) {
         self.emit_global("LoadGlobalPtr", dest, glob);
     }
+    fn visit_load_global_tuple(&mut self, dest: Register, glob: GlobalId) {
+        self.emit_global("LoadGlobalTuple", dest, glob);
+    }
 
     fn visit_store_global_bool(&mut self, src: Register, glob: GlobalId) {
         self.emit_global("StoreGlobalBool", src, glob);
@@ -585,6 +642,9 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     }
     fn visit_store_global_ptr(&mut self, src: Register, glob: GlobalId) {
         self.emit_global("StoreGlobalPtr", src, glob);
+    }
+    fn visit_store_global_tuple(&mut self, src: Register, glob: GlobalId) {
+        self.emit_global("StoreGlobalTuple", src, glob);
     }
 
     fn visit_push_register(&mut self, src: Register) {
@@ -827,6 +887,9 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_invoke_direct_ptr(&mut self, dest: Register, fctdef: FctDefId) {
         self.emit_fct("InvokeDirectPtr", dest, fctdef);
     }
+    fn visit_invoke_direct_tuple(&mut self, dest: Register, fctdef: FctDefId) {
+        self.emit_fct("InvokeDirectTuple", dest, fctdef);
+    }
 
     fn visit_invoke_virtual_void(&mut self, fctdef: FctDefId) {
         self.emit_fct_void("InvokeVirtualVoid", fctdef);
@@ -854,6 +917,9 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     }
     fn visit_invoke_virtual_ptr(&mut self, dest: Register, fctdef: FctDefId) {
         self.emit_fct("InvokeVirtualPtr", dest, fctdef);
+    }
+    fn visit_invoke_virtual_tuple(&mut self, dest: Register, fctdef: FctDefId) {
+        self.emit_fct("InvokeVirtualTuple", dest, fctdef);
     }
 
     fn visit_invoke_static_void(&mut self, fctdef: FctDefId) {
@@ -883,12 +949,18 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_invoke_static_ptr(&mut self, dest: Register, fctdef: FctDefId) {
         self.emit_fct("InvokeStaticPtr", dest, fctdef);
     }
+    fn visit_invoke_static_tuple(&mut self, dest: Register, fctdef: FctDefId) {
+        self.emit_fct("InvokeStaticTuple", dest, fctdef);
+    }
 
     fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {
         self.emit_new("NewObject", dest, cls);
     }
     fn visit_new_array(&mut self, dest: Register, cls: ClassDefId, length: Register) {
         self.emit_new_array("NewArray", dest, cls, length);
+    }
+    fn visit_new_tuple(&mut self, dest: Register, tuple_id: TupleId) {
+        self.emit_new_tuple("NewTuple", dest, tuple_id);
     }
 
     fn visit_nil_check(&mut self, obj: Register) {
@@ -919,6 +991,9 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_load_array_ptr(&mut self, dest: Register, arr: Register, idx: Register) {
         self.emit_reg3("LoadArrayPtr", dest, arr, idx);
     }
+    fn visit_load_array_tuple(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit_reg3("LoadArrayTuple", dest, arr, idx);
+    }
 
     fn visit_store_array_bool(&mut self, src: Register, arr: Register, idx: Register) {
         self.emit_reg3("StoreArrayBool", src, arr, idx);
@@ -943,6 +1018,9 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     }
     fn visit_store_array_ptr(&mut self, src: Register, arr: Register, idx: Register) {
         self.emit_reg3("StoreArrayPtr", src, arr, idx);
+    }
+    fn visit_store_array_tuple(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit_reg3("StoreArrayTuple", src, arr, idx);
     }
 
     fn visit_array_length(&mut self, dest: Register, arr: Register) {
@@ -978,5 +1056,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     }
     fn visit_ret_ptr(&mut self, opnd: Register) {
         self.emit_reg1("RetPtr", opnd);
+    }
+    fn visit_ret_tuple(&mut self, opnd: Register) {
+        self.emit_reg1("RetTuple", opnd);
     }
 }

@@ -1,8 +1,8 @@
 use std::fmt;
 
-use crate::cpu::STACK_FRAME_ALIGNMENT;
-use crate::mem::{align_i32, ptr_width};
+use crate::mem::ptr_width;
 use crate::ty::{BuiltinType, MachineMode};
+use crate::vm::{get_vm, TupleId};
 use dora_parser::lexer::position::Position;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -19,6 +19,19 @@ impl BytecodeOffset {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
+pub enum BytecodeTypeKind {
+    Bool,
+    UInt8,
+    Char,
+    Int32,
+    Int64,
+    Float,
+    Double,
+    Ptr,
+    Tuple,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum BytecodeType {
     Bool,
     UInt8,
@@ -28,11 +41,12 @@ pub enum BytecodeType {
     Float,
     Double,
     Ptr,
+    Tuple(TupleId),
 }
 
 impl BytecodeType {
     pub fn size(&self) -> i32 {
-        match self {
+        match *self {
             BytecodeType::Bool => 1,
             BytecodeType::UInt8 => 1,
             BytecodeType::Char => 4,
@@ -41,6 +55,24 @@ impl BytecodeType {
             BytecodeType::Float => 4,
             BytecodeType::Double => 8,
             BytecodeType::Ptr => ptr_width(),
+            BytecodeType::Tuple(tuple_id) => {
+                let vm = get_vm();
+                vm.tuples.lock().get_tuple(tuple_id).size()
+            }
+        }
+    }
+
+    pub fn kind(&self) -> BytecodeTypeKind {
+        match self {
+            BytecodeType::Bool => BytecodeTypeKind::Bool,
+            BytecodeType::UInt8 => BytecodeTypeKind::UInt8,
+            BytecodeType::Char => BytecodeTypeKind::Char,
+            BytecodeType::Int32 => BytecodeTypeKind::Int32,
+            BytecodeType::Int64 => BytecodeTypeKind::Int64,
+            BytecodeType::Float => BytecodeTypeKind::Float,
+            BytecodeType::Double => BytecodeTypeKind::Double,
+            BytecodeType::Ptr => BytecodeTypeKind::Ptr,
+            BytecodeType::Tuple(_) => BytecodeTypeKind::Tuple,
         }
     }
 
@@ -54,6 +86,7 @@ impl BytecodeType {
             BytecodeType::Float => MachineMode::Float32,
             BytecodeType::Double => MachineMode::Float64,
             BytecodeType::Ptr => MachineMode::Ptr,
+            BytecodeType::Tuple(_) => unreachable!(),
         }
     }
 
@@ -61,6 +94,13 @@ impl BytecodeType {
         match self {
             BytecodeType::Ptr => true,
             _ => false,
+        }
+    }
+
+    pub fn tuple_id(&self) -> Option<TupleId> {
+        match *self {
+            BytecodeType::Tuple(tuple_id) => Some(tuple_id),
+            _ => None,
         }
     }
 }
@@ -77,6 +117,7 @@ impl From<BuiltinType> for BytecodeType {
             BuiltinType::Double => BytecodeType::Double,
             BuiltinType::Class(_, _) => BytecodeType::Ptr,
             BuiltinType::Enum(_, _) => BytecodeType::Int32,
+            BuiltinType::Tuple(tuple_id) => BytecodeType::Tuple(tuple_id),
             _ => panic!("BuiltinType {:?} cannot converted to BytecodeType", ty),
         }
     }
@@ -93,6 +134,7 @@ impl From<BytecodeType> for BuiltinType {
             BytecodeType::Float => BuiltinType::Float,
             BytecodeType::Double => BuiltinType::Double,
             BytecodeType::Ptr => BuiltinType::Ptr,
+            BytecodeType::Tuple(tuple_id) => BuiltinType::Tuple(tuple_id),
         }
     }
 }
@@ -209,6 +251,7 @@ pub enum BytecodeOpcode {
     LoadFieldFloat,
     LoadFieldDouble,
     LoadFieldPtr,
+    LoadFieldTuple,
 
     StoreFieldBool,
     StoreFieldUInt8,
@@ -218,6 +261,7 @@ pub enum BytecodeOpcode {
     StoreFieldFloat,
     StoreFieldDouble,
     StoreFieldPtr,
+    StoreFieldTuple,
 
     LoadGlobalBool,
     LoadGlobalUInt8,
@@ -227,6 +271,7 @@ pub enum BytecodeOpcode {
     LoadGlobalFloat,
     LoadGlobalDouble,
     LoadGlobalPtr,
+    LoadGlobalTuple,
 
     StoreGlobalBool,
     StoreGlobalUInt8,
@@ -236,6 +281,7 @@ pub enum BytecodeOpcode {
     StoreGlobalFloat,
     StoreGlobalDouble,
     StoreGlobalPtr,
+    StoreGlobalTuple,
 
     PushRegister,
 
@@ -329,6 +375,7 @@ pub enum BytecodeOpcode {
     InvokeDirectFloat,
     InvokeDirectDouble,
     InvokeDirectPtr,
+    InvokeDirectTuple,
 
     InvokeVirtualVoid,
     InvokeVirtualBool,
@@ -339,6 +386,7 @@ pub enum BytecodeOpcode {
     InvokeVirtualFloat,
     InvokeVirtualDouble,
     InvokeVirtualPtr,
+    InvokeVirtualTuple,
 
     InvokeStaticVoid,
     InvokeStaticBool,
@@ -349,9 +397,11 @@ pub enum BytecodeOpcode {
     InvokeStaticFloat,
     InvokeStaticDouble,
     InvokeStaticPtr,
+    InvokeStaticTuple,
 
     NewObject,
     NewArray,
+    NewTuple,
 
     NilCheck,
 
@@ -366,6 +416,7 @@ pub enum BytecodeOpcode {
     LoadArrayFloat,
     LoadArrayDouble,
     LoadArrayPtr,
+    LoadArrayTuple,
 
     StoreArrayBool,
     StoreArrayUInt8,
@@ -375,6 +426,7 @@ pub enum BytecodeOpcode {
     StoreArrayFloat,
     StoreArrayDouble,
     StoreArrayPtr,
+    StoreArrayTuple,
 
     RetVoid,
     RetBool,
@@ -385,6 +437,7 @@ pub enum BytecodeOpcode {
     RetFloat,
     RetDouble,
     RetPtr,
+    RetTuple,
 }
 
 impl BytecodeOpcode {
@@ -404,6 +457,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::LoadFieldFloat
             | BytecodeOpcode::LoadFieldDouble
             | BytecodeOpcode::LoadFieldPtr
+            | BytecodeOpcode::LoadFieldTuple
             | BytecodeOpcode::StoreFieldBool
             | BytecodeOpcode::StoreFieldUInt8
             | BytecodeOpcode::StoreFieldChar
@@ -412,6 +466,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::StoreFieldFloat
             | BytecodeOpcode::StoreFieldDouble
             | BytecodeOpcode::StoreFieldPtr
+            | BytecodeOpcode::StoreFieldTuple
             | BytecodeOpcode::InvokeDirectVoid
             | BytecodeOpcode::InvokeDirectBool
             | BytecodeOpcode::InvokeDirectUInt8
@@ -421,6 +476,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeDirectFloat
             | BytecodeOpcode::InvokeDirectDouble
             | BytecodeOpcode::InvokeDirectPtr
+            | BytecodeOpcode::InvokeDirectTuple
             | BytecodeOpcode::InvokeVirtualVoid
             | BytecodeOpcode::InvokeVirtualBool
             | BytecodeOpcode::InvokeVirtualUInt8
@@ -430,6 +486,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeVirtualFloat
             | BytecodeOpcode::InvokeVirtualDouble
             | BytecodeOpcode::InvokeVirtualPtr
+            | BytecodeOpcode::InvokeVirtualTuple
             | BytecodeOpcode::InvokeStaticVoid
             | BytecodeOpcode::InvokeStaticBool
             | BytecodeOpcode::InvokeStaticUInt8
@@ -439,6 +496,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeStaticFloat
             | BytecodeOpcode::InvokeStaticDouble
             | BytecodeOpcode::InvokeStaticPtr
+            | BytecodeOpcode::InvokeStaticTuple
             | BytecodeOpcode::NewObject
             | BytecodeOpcode::NewArray
             | BytecodeOpcode::NilCheck
@@ -452,6 +510,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::LoadArrayFloat
             | BytecodeOpcode::LoadArrayDouble
             | BytecodeOpcode::LoadArrayPtr
+            | BytecodeOpcode::LoadArrayTuple
             | BytecodeOpcode::StoreArrayBool
             | BytecodeOpcode::StoreArrayUInt8
             | BytecodeOpcode::StoreArrayChar
@@ -460,6 +519,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::StoreArrayFloat
             | BytecodeOpcode::StoreArrayDouble
             | BytecodeOpcode::StoreArrayPtr
+            | BytecodeOpcode::StoreArrayTuple
             | BytecodeOpcode::Assert => true,
             _ => false,
         }
@@ -501,8 +561,6 @@ pub struct BytecodeFunction {
     code: Vec<u8>,
     registers: Vec<BytecodeType>,
     const_pool: Vec<ConstPoolEntry>,
-    offset: Vec<i32>,
-    stacksize: i32,
     arguments: u32,
     positions: Vec<(u32, Position)>,
 }
@@ -515,13 +573,10 @@ impl BytecodeFunction {
         arguments: u32,
         positions: Vec<(u32, Position)>,
     ) -> BytecodeFunction {
-        let (offset, stacksize) = determine_offsets(&registers);
         BytecodeFunction {
             code,
             const_pool,
             registers,
-            offset,
-            stacksize,
             arguments,
             positions,
         }
@@ -540,14 +595,6 @@ impl BytecodeFunction {
 
     pub fn register_type(&self, register: Register) -> BytecodeType {
         *self.registers.get(register.0).expect("register not found")
-    }
-
-    pub fn register_offset(&self, register: Register) -> i32 {
-        *self.offset.get(register.0).expect("offset not found")
-    }
-
-    pub fn stacksize(&self) -> i32 {
-        self.stacksize
     }
 
     pub fn arguments(&self) -> u32 {
@@ -570,19 +617,6 @@ impl BytecodeFunction {
         };
         self.positions[index].1
     }
-}
-
-fn determine_offsets(registers: &Vec<BytecodeType>) -> (Vec<i32>, i32) {
-    let mut offset: Vec<i32> = vec![0; registers.len()];
-    let mut stacksize: i32 = 0;
-    for (index, ty) in registers.iter().enumerate() {
-        stacksize = align_i32(stacksize + ty.size(), ty.size());
-        offset[index] = -stacksize;
-    }
-
-    stacksize = align_i32(stacksize, STACK_FRAME_ALIGNMENT as i32);
-
-    (offset, stacksize)
 }
 
 #[derive(FromPrimitive, ToPrimitive)]

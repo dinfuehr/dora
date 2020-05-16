@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let arr = Array[(Int32, Int64)](10L);
     assert(arr.length() == 10L);

@@ -12,7 +12,7 @@ use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, TypeList, TypeParamId};
 use crate::vm::{
     CallType, ConstId, Fct, FctDef, FctDefId, FctId, FctKind, FctSrc, GlobalId, IdentType,
-    Intrinsic, TraitId, VarId, VM,
+    Intrinsic, TraitId, TupleId, VarId, VM,
 };
 
 pub struct LoopLabels {
@@ -192,8 +192,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         let dest = if ty.is_unit() {
             DataDest::Effect
-        } else if let Some(_tuple_id) = ty.tuple_id() {
-            unimplemented!();
         } else {
             let ty: BytecodeType = ty.into();
             let var_reg = self.gen.add_register(ty);
@@ -252,6 +250,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Float => self.gen.emit_ret_float(result_reg),
             BytecodeType::Double => self.gen.emit_ret_double(result_reg),
             BytecodeType::Ptr => self.gen.emit_ret_ptr(result_reg),
+            BytecodeType::Tuple(_) => self.gen.emit_ret_tuple(result_reg),
         }
     }
 
@@ -444,6 +443,12 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn visit_expr_dot(&mut self, expr: &ExprDotType, dest: DataDest) -> Register {
+        let object_ty = self.ty(expr.lhs.id());
+
+        if let Some(tuple_id) = object_ty.tuple_id() {
+            return self.visit_expr_dot_tuple(expr, tuple_id, dest);
+        }
+
         let (cls_ty, field_id) = {
             let ident_type = self.src.map_idents.get(expr.id).unwrap();
 
@@ -504,7 +509,33 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Ptr => self
                 .gen
                 .emit_load_field_ptr(dest, obj, cls_def_id, field_id),
+            BytecodeType::Tuple(_) => self
+                .gen
+                .emit_load_field_tuple(dest, obj, cls_def_id, field_id),
         }
+
+        dest
+    }
+
+    fn visit_expr_dot_tuple(
+        &mut self,
+        expr: &ExprDotType,
+        tuple_id: TupleId,
+        dest: DataDest,
+    ) -> Register {
+        let tuple = self.visit_expr(&expr.lhs, DataDest::Alloc);
+        let idx = expr.rhs.to_lit_int().unwrap().value as u32;
+
+        let (ty, _) = self.vm.tuples.lock().get_at(tuple_id, idx as usize);
+
+        if ty.is_unit() {
+            assert!(dest.is_unit());
+            return Register::invalid();
+        }
+
+        let ty: BytecodeType = ty.into();
+        let dest = self.ensure_register(dest, ty);
+        self.gen.emit_load_tuple_element(dest, tuple, tuple_id, idx);
 
         dest
     }
@@ -892,6 +923,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Int32 => self.gen.emit_mov_int32(dest, src),
             BytecodeType::Int64 => self.gen.emit_mov_int64(dest, src),
             BytecodeType::Ptr => self.gen.emit_mov_ptr(dest, src),
+            BytecodeType::Tuple(tuple_id) => self.gen.emit_mov_tuple(dest, src, tuple_id),
         }
     }
 
@@ -915,6 +947,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 BytecodeType::Float => self.gen.emit_invoke_virtual_float(return_reg, callee_id),
                 BytecodeType::Double => self.gen.emit_invoke_virtual_double(return_reg, callee_id),
                 BytecodeType::Ptr => self.gen.emit_invoke_virtual_ptr(return_reg, callee_id),
+                BytecodeType::Tuple(_) => self.gen.emit_invoke_virtual_tuple(return_reg, callee_id),
             }
         }
     }
@@ -939,6 +972,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 BytecodeType::Float => self.gen.emit_invoke_direct_float(return_reg, callee_id),
                 BytecodeType::Double => self.gen.emit_invoke_direct_double(return_reg, callee_id),
                 BytecodeType::Ptr => self.gen.emit_invoke_direct_ptr(return_reg, callee_id),
+                BytecodeType::Tuple(_) => self.gen.emit_invoke_direct_tuple(return_reg, callee_id),
             }
         }
     }
@@ -963,6 +997,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 BytecodeType::Float => self.gen.emit_invoke_static_float(return_reg, callee_id),
                 BytecodeType::Double => self.gen.emit_invoke_static_double(return_reg, callee_id),
                 BytecodeType::Ptr => self.gen.emit_invoke_static_ptr(return_reg, callee_id),
+                BytecodeType::Tuple(_) => self.gen.emit_invoke_static_tuple(return_reg, callee_id),
             }
         }
     }
@@ -1050,6 +1085,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Int32 => self.gen.emit_mov_int32(dest, var_reg),
             BytecodeType::Int64 => self.gen.emit_mov_int64(dest, var_reg),
             BytecodeType::Ptr => self.gen.emit_mov_ptr(dest, var_reg),
+            BytecodeType::Tuple(tuple_id) => self.gen.emit_mov_tuple(dest, var_reg, tuple_id),
         }
         dest
     }
@@ -1172,7 +1208,26 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             return Register::invalid();
         }
 
-        unimplemented!();
+        let ty = self.ty(e.id);
+        let tuple_id = ty.tuple_id().unwrap();
+
+        let result_ty: BytecodeType = BytecodeType::Tuple(tuple_id);
+        let result = self.ensure_register(dest, result_ty);
+
+        let mut values = Vec::with_capacity(e.values.len());
+
+        for value in &e.values {
+            let reg = self.visit_expr(value, DataDest::Alloc);
+            values.push(reg);
+        }
+
+        for value in values {
+            self.gen.emit_push_register(value);
+        }
+
+        self.gen.emit_new_tuple(result, tuple_id);
+
+        result
     }
 
     fn visit_expr_un(&mut self, expr: &ExprUnType, dest: DataDest) -> Register {
@@ -1324,6 +1379,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                         BytecodeType::Float => self.gen.emit_const_float(dest, 0.0),
                         BytecodeType::Double => self.gen.emit_const_double(dest, 0.0),
                         BytecodeType::Ptr => self.gen.emit_const_nil(dest),
+                        BytecodeType::Tuple(_) => unimplemented!(),
                     }
 
                     dest
@@ -1496,6 +1552,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Float => self.gen.emit_store_array_float(src, arr, idx),
             BytecodeType::Double => self.gen.emit_store_array_double(src, arr, idx),
             BytecodeType::Ptr => self.gen.emit_store_array_ptr(src, arr, idx),
+            BytecodeType::Tuple(_) => self.gen.emit_store_array_tuple(src, arr, idx),
         }
     }
 
@@ -1684,6 +1741,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     BytecodeType::Float => self.gen.emit_load_array_float(dest, arr, idx),
                     BytecodeType::Double => self.gen.emit_load_array_double(dest, arr, idx),
                     BytecodeType::Ptr => self.gen.emit_load_array_ptr(dest, arr, idx),
+                    BytecodeType::Tuple(_) => self.gen.emit_load_array_tuple(dest, arr, idx),
                 }
                 return dest;
             }
@@ -1949,6 +2007,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Float => self.gen.emit_store_field_float(src, obj, cls_id, field_id),
             BytecodeType::Double => self.gen.emit_store_field_double(src, obj, cls_id, field_id),
             BytecodeType::Ptr => self.gen.emit_store_field_ptr(src, obj, cls_id, field_id),
+            BytecodeType::Tuple(_) => self.gen.emit_store_field_tuple(src, obj, cls_id, field_id),
         }
     }
 
@@ -1988,6 +2047,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 BytecodeType::Float => self.gen.emit_store_global_float(src, gid),
                 BytecodeType::Double => self.gen.emit_store_global_double(src, gid),
                 BytecodeType::Ptr => self.gen.emit_store_global_ptr(src, gid),
+                BytecodeType::Tuple(_) => self.gen.emit_store_global_tuple(src, gid),
             }
         }
     }
@@ -2092,6 +2152,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Float => self.gen.emit_load_global_float(dest, gid),
             BytecodeType::Double => self.gen.emit_load_global_double(dest, gid),
             BytecodeType::Ptr => self.gen.emit_load_global_ptr(dest, gid),
+            BytecodeType::Tuple(_) => self.gen.emit_load_global_tuple(dest, gid),
         }
 
         dest
@@ -2128,6 +2189,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 BytecodeType::Float => self.gen.emit_mov_float(dest, var_reg),
                 BytecodeType::Double => self.gen.emit_mov_double(dest, var_reg),
                 BytecodeType::Ptr => self.gen.emit_mov_ptr(dest, var_reg),
+                BytecodeType::Tuple(tuple_id) => self.gen.emit_mov_tuple(dest, var_reg, tuple_id),
             }
         }
 

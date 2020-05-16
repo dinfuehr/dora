@@ -95,7 +95,7 @@ fn allocate_registers_array(vm: &VM, fct: &BytecodeFunction) -> Ref<IntArray> {
     let mut array = int_array_alloc_heap(vm, fct.registers().len());
 
     for (idx, &ty) in fct.registers().iter().enumerate() {
-        array.set_at(idx, ty as u32 as i32);
+        array.set_at(idx, ty.kind() as u32 as i32);
     }
 
     array

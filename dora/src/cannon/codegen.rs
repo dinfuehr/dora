@@ -14,14 +14,14 @@ use crate::cpu::{
 };
 use crate::gc::Address;
 use crate::masm::*;
-use crate::mem;
+use crate::mem::{self, align_i32};
 use crate::object::{offset_of_array_data, Header, Str};
 use crate::semck::specialize::specialize_type;
 use crate::size::InstanceSize;
 use crate::ty::{BuiltinType, MachineMode, TypeList};
 use crate::vm::{
     ClassDefId, Fct, FctDef, FctDefId, FctId, FctKind, FctSrc, FieldId, GlobalId, Intrinsic, Trap,
-    VM,
+    TupleId, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
@@ -73,6 +73,9 @@ pub struct CannonCodeGen<'a, 'ast: 'a> {
     argument_stack: Vec<Register>,
 
     references: Vec<i32>,
+
+    offsets: Vec<i32>,
+    stacksize: i32,
 }
 
 impl<'a, 'ast> CannonCodeGen<'a, 'ast>
@@ -115,6 +118,8 @@ where
             current_offset: BytecodeOffset(0),
             argument_stack: Vec::new(),
             references: Vec::new(),
+            offsets: Vec::new(),
+            stacksize: 0,
         }
     }
 
@@ -122,6 +127,8 @@ where
         if should_emit_debug(self.vm, self.fct) {
             self.asm.debug();
         }
+
+        self.calculate_offsets();
 
         self.emit_prolog();
         self.store_params_on_stack();
@@ -131,18 +138,44 @@ where
 
         self.resolve_forward_jumps();
 
-        let jit_fct = self.asm.jit(
-            self.bytecode.stacksize(),
-            JitDescriptor::DoraFct(self.fct.id),
-        );
+        let jit_fct = self
+            .asm
+            .jit(self.stacksize, JitDescriptor::DoraFct(self.fct.id));
 
         jit_fct
+    }
+
+    fn calculate_offsets(&mut self) {
+        let start = if self.has_result_address() {
+            mem::ptr_width()
+        } else {
+            0
+        };
+
+        let registers = self.bytecode.registers();
+        let (offsets, stacksize) = determine_offsets(registers, start);
+        std::mem::replace(&mut self.offsets, offsets);
+        self.stacksize = stacksize;
+    }
+
+    fn has_result_address(&self) -> bool {
+        let return_type = self.specialize_type(self.fct.return_type);
+        return_type.is_tuple()
     }
 
     fn store_params_on_stack(&mut self) {
         let mut reg_idx = 0;
         let mut freg_idx = 0;
         let mut sp_offset = 16;
+
+        if self.has_result_address() {
+            self.asm.store_mem(
+                MachineMode::Ptr,
+                Mem::Local(result_address_offset()),
+                REG_PARAMS[reg_idx].into(),
+            );
+            reg_idx += 1;
+        }
 
         let params = self.fct.params_with_self();
 
@@ -162,6 +195,34 @@ where
                 assert_eq!(self.bytecode.register_type(dest), param_ty.into());
                 param_ty
             };
+
+            if let Some(tuple_id) = param_ty.tuple_id() {
+                let dest_offset = self.register_offset(dest);
+
+                if reg_idx < REG_PARAMS.len() {
+                    self.asm.copy(
+                        MachineMode::Ptr,
+                        REG_TMP1.into(),
+                        REG_PARAMS[reg_idx].into(),
+                    );
+                    self.copy_tuple(
+                        tuple_id,
+                        RegOrOffset::Offset(dest_offset),
+                        RegOrOffset::Reg(REG_TMP1),
+                    );
+                } else {
+                    self.asm
+                        .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(sp_offset));
+                    self.copy_tuple(
+                        tuple_id,
+                        RegOrOffset::Offset(dest_offset),
+                        RegOrOffset::Reg(REG_TMP1),
+                    );
+                    sp_offset += 8;
+                }
+
+                continue;
+            }
 
             let mode = param_ty.mode();
 
@@ -202,7 +263,7 @@ where
     }
 
     fn emit_prolog(&mut self) {
-        self.asm.prolog_size(self.bytecode.stacksize());
+        self.asm.prolog_size(self.stacksize);
     }
 
     fn emit_stack_guard(&mut self) {
@@ -217,20 +278,16 @@ where
 
     fn emit_load_register(&mut self, src: Register, dest: AnyReg) {
         let bytecode_type = self.bytecode.register_type(src);
-        let offset = self.determine_register_offset(src);
+        let offset = self.register_offset(src);
         self.asm
             .load_mem(bytecode_type.mode(), dest, Mem::Local(offset));
     }
 
     fn emit_store_register(&mut self, src: AnyReg, dest: Register) {
         let bytecode_type = self.bytecode.register_type(dest);
-        let offset = self.determine_register_offset(dest);
+        let offset = self.register_offset(dest);
         self.asm
             .store_mem(bytecode_type.mode(), Mem::Local(offset), src);
-    }
-
-    fn determine_register_offset(&mut self, reg: Register) -> i32 {
-        self.bytecode.register_offset(reg)
     }
 
     fn emit_add_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -932,6 +989,100 @@ where
         self.emit_store_register(reg.into(), dest);
     }
 
+    fn emit_mov_tuple(&mut self, dest: Register, src: Register, tuple_id: TupleId) {
+        assert_eq!(
+            self.bytecode.register_type(src),
+            self.bytecode.register_type(dest)
+        );
+
+        let src_offset = self.register_offset(src);
+        let dest_offset = self.register_offset(dest);
+
+        self.copy_tuple(
+            tuple_id,
+            RegOrOffset::Offset(dest_offset),
+            RegOrOffset::Offset(src_offset),
+        );
+    }
+
+    fn emit_tuple_load(&mut self, dest: Register, src: Register, tuple_id: TupleId, idx: u32) {
+        let dest_type = self.bytecode.register_type(dest);
+        let (_ty, offset) = self.vm.tuples.lock().get_at(tuple_id, idx as usize);
+        let src_offset = self.register_offset(src);
+
+        if let Some(_tuple_id) = dest_type.tuple_id() {
+            let dest_offset = self.register_offset(dest);
+
+            self.copy_tuple(
+                tuple_id,
+                RegOrOffset::Offset(dest_offset),
+                RegOrOffset::Offset(src_offset + offset),
+            );
+        } else {
+            let reg = result_reg(dest_type);
+            self.asm
+                .load_mem(dest_type.mode(), reg, Mem::Local(src_offset + offset));
+
+            self.emit_store_register(reg.into(), dest);
+        }
+    }
+
+    fn copy_tuple(&mut self, tuple_id: TupleId, dest: RegOrOffset, src: RegOrOffset) {
+        let subtypes = self.vm.tuples.lock().get(tuple_id);
+        let offsets = self
+            .vm
+            .tuples
+            .lock()
+            .get_tuple(tuple_id)
+            .offsets()
+            .to_owned();
+
+        for (&subtype, &subtype_offset) in subtypes.iter().zip(&offsets) {
+            if let Some(tuple_id) = subtype.tuple_id() {
+                let src = match src {
+                    RegOrOffset::Reg(reg) => RegOrOffset::RegWithOffset(reg, subtype_offset),
+                    RegOrOffset::RegWithOffset(reg, tuple_offset) => {
+                        RegOrOffset::RegWithOffset(reg, tuple_offset + subtype_offset)
+                    }
+                    RegOrOffset::Offset(tuple_offset) => {
+                        RegOrOffset::Offset(tuple_offset + subtype_offset)
+                    }
+                };
+                let dest = match dest {
+                    RegOrOffset::Reg(reg) => RegOrOffset::RegWithOffset(reg, subtype_offset),
+                    RegOrOffset::RegWithOffset(reg, tuple_offset) => {
+                        RegOrOffset::RegWithOffset(reg, tuple_offset + subtype_offset)
+                    }
+                    RegOrOffset::Offset(tuple_offset) => {
+                        RegOrOffset::Offset(tuple_offset + subtype_offset)
+                    }
+                };
+                self.copy_tuple(tuple_id, dest, src);
+            } else if subtype.is_unit() {
+                // nothing
+            } else {
+                let mode = subtype.mode();
+                let tmp = result_reg_mode(mode);
+                let src = match src {
+                    RegOrOffset::Reg(reg) => Mem::Base(reg, subtype_offset),
+                    RegOrOffset::RegWithOffset(reg, tuple_offset) => {
+                        Mem::Base(reg, tuple_offset + subtype_offset)
+                    }
+                    RegOrOffset::Offset(tuple_offset) => Mem::Local(tuple_offset + subtype_offset),
+                };
+                self.asm.load_mem(mode, tmp, src);
+                let dest = match dest {
+                    RegOrOffset::Reg(reg) => Mem::Base(reg, subtype_offset),
+                    RegOrOffset::RegWithOffset(reg, tuple_offset) => {
+                        Mem::Base(reg, tuple_offset + subtype_offset)
+                    }
+                    RegOrOffset::Offset(tuple_offset) => Mem::Local(tuple_offset + subtype_offset),
+                };
+                self.asm.store_mem(mode, dest, tmp);
+            }
+        }
+    }
+
     fn emit_load_field(
         &mut self,
         dest: Register,
@@ -967,14 +1118,24 @@ where
 
         let bytecode_type = self.bytecode.register_type(dest);
 
-        let dest_reg = result_reg(bytecode_type);
         let pos = self.bytecode.offset_position(self.current_offset.to_u32());
 
         self.asm.test_if_nil_bailout(pos, obj_reg, Trap::NIL);
-        self.asm
-            .load_mem(field.ty.mode(), dest_reg, Mem::Base(obj_reg, field.offset));
 
-        self.emit_store_register(dest_reg.into(), dest)
+        if let Some(tuple_id) = bytecode_type.tuple_id() {
+            let dest_offset = self.register_offset(dest);
+            self.copy_tuple(
+                tuple_id,
+                RegOrOffset::Offset(dest_offset),
+                RegOrOffset::RegWithOffset(obj_reg, field.offset),
+            );
+        } else {
+            let dest_reg = result_reg(bytecode_type);
+            self.asm
+                .load_mem(field.ty.mode(), dest_reg, Mem::Base(obj_reg, field.offset));
+
+            self.emit_store_register(dest_reg.into(), dest);
+        }
     }
 
     fn emit_store_field(
@@ -1007,24 +1168,39 @@ where
 
         let bytecode_type = self.bytecode.register_type(src);
 
-        let value = result_reg(bytecode_type);
-
-        self.emit_load_register(src, value.into());
-
         assert!(self.bytecode.register_type(obj).is_ptr());
 
         let obj_reg = REG_TMP1;
         self.emit_load_register(obj, obj_reg.into());
 
-        let write_barrier = self.vm.gc.needs_write_barrier() && field.ty.reference_type();
-        let card_table_offset = self.vm.gc.card_table_offset();
         let pos = self.bytecode.offset_position(self.current_offset.to_u32());
-
         self.asm.test_if_nil_bailout(pos, obj_reg, Trap::NIL);
-        self.asm
-            .store_mem(field.ty.mode(), Mem::Base(obj_reg, field.offset), value);
 
-        if write_barrier {
+        let needs_write_barrier = if let Some(tuple_id) = bytecode_type.tuple_id() {
+            let src_offset = self.register_offset(src);
+            self.copy_tuple(
+                tuple_id,
+                RegOrOffset::RegWithOffset(obj_reg, field.offset),
+                RegOrOffset::Offset(src_offset),
+            );
+
+            self.vm
+                .tuples
+                .lock()
+                .get_tuple(tuple_id)
+                .contains_references()
+        } else {
+            let value = result_reg(bytecode_type);
+
+            self.emit_load_register(src, value.into());
+            self.asm
+                .store_mem(field.ty.mode(), Mem::Base(obj_reg, field.offset), value);
+
+            field.ty.reference_type()
+        };
+
+        if self.vm.gc.needs_write_barrier() && needs_write_barrier {
+            let card_table_offset = self.vm.gc.card_table_offset();
             self.asm.emit_barrier(obj_reg, card_table_offset);
         }
     }
@@ -1044,12 +1220,21 @@ where
 
         let bytecode_type = self.bytecode.register_type(dest);
 
-        let reg = result_reg(bytecode_type);
+        if let Some(tuple_id) = bytecode_type.tuple_id() {
+            let dest_offset = self.register_offset(dest);
+            self.copy_tuple(
+                tuple_id,
+                RegOrOffset::Offset(dest_offset),
+                RegOrOffset::Reg(REG_TMP1),
+            );
+        } else {
+            let reg = result_reg(bytecode_type);
 
-        self.asm
-            .load_mem(glob.ty.mode(), reg, Mem::Base(REG_TMP1, 0));
+            self.asm
+                .load_mem(glob.ty.mode(), reg, Mem::Base(REG_TMP1, 0));
 
-        self.emit_store_register(reg, dest);
+            self.emit_store_register(reg, dest);
+        }
     }
 
     fn emit_store_global(&mut self, src: Register, global_id: GlobalId) {
@@ -1067,12 +1252,21 @@ where
 
         let bytecode_type = self.bytecode.register_type(src);
 
-        let reg = result_reg(bytecode_type);
+        if let Some(tuple_id) = bytecode_type.tuple_id() {
+            let src_offset = self.register_offset(src);
+            self.copy_tuple(
+                tuple_id,
+                RegOrOffset::Reg(REG_TMP1),
+                RegOrOffset::Offset(src_offset),
+            );
+        } else {
+            let reg = result_reg(bytecode_type);
 
-        self.emit_load_register(src, reg);
+            self.emit_load_register(src, reg);
 
-        self.asm
-            .store_mem(glob.ty.mode(), Mem::Base(REG_TMP1, 0), reg);
+            self.asm
+                .store_mem(glob.ty.mode(), Mem::Base(REG_TMP1, 0), reg);
+        }
     }
 
     fn emit_const_nil(&mut self, dest: Register) {
@@ -1217,9 +1411,24 @@ where
     fn emit_return_generic(&mut self, src: Register) {
         let bytecode_type = self.bytecode.register_type(src);
 
-        let reg = result_reg(bytecode_type);
+        if let Some(tuple_id) = bytecode_type.tuple_id() {
+            let src_offset = self.register_offset(src);
 
-        self.emit_load_register(src, reg.into());
+            self.asm.load_mem(
+                MachineMode::Ptr,
+                REG_TMP1.into(),
+                Mem::Local(result_address_offset()),
+            );
+
+            self.copy_tuple(
+                tuple_id,
+                RegOrOffset::Reg(REG_TMP1),
+                RegOrOffset::Offset(src_offset),
+            );
+        } else {
+            let reg = result_reg(bytecode_type);
+            self.emit_load_register(src, reg.into());
+        }
 
         self.emit_epilog();
     }
@@ -1290,7 +1499,7 @@ where
             _ => unreachable!(),
         }
 
-        let ref_offset = self.determine_register_offset(dest);
+        let ref_offset = self.register_offset(dest);
         self.references.push(ref_offset);
     }
 
@@ -1380,7 +1589,7 @@ where
             _ => unreachable!(),
         }
 
-        let ref_offset = self.determine_register_offset(dest);
+        let ref_offset = self.register_offset(dest);
         self.references.push(ref_offset);
     }
 
@@ -1404,6 +1613,49 @@ where
         );
         self.asm
             .fill_zero_dynamic(array_data_start, array_data_limit);
+    }
+
+    fn emit_new_tuple(&mut self, dest: Register, tuple_id: TupleId) {
+        let subtypes = self.vm.tuples.lock().get(tuple_id);
+        let offsets = self
+            .vm
+            .tuples
+            .lock()
+            .get_tuple(tuple_id)
+            .offsets()
+            .to_owned();
+        let dest_offset = self.register_offset(dest);
+        let mut arg_idx = 0;
+        let arguments = std::mem::replace(&mut self.argument_stack, Vec::new());
+
+        for (&subtype, &subtype_offset) in subtypes.iter().zip(&offsets) {
+            if let Some(tuple_id) = subtype.tuple_id() {
+                let src = arguments[arg_idx];
+                let src_offset = self.register_offset(src);
+
+                self.copy_tuple(
+                    tuple_id,
+                    RegOrOffset::Offset(dest_offset + subtype_offset),
+                    RegOrOffset::Offset(src_offset),
+                );
+            } else if subtype.is_unit() {
+                // nothing
+            } else {
+                let subtype_reg = arguments[arg_idx];
+                let dest_type = self.bytecode.register_type(subtype_reg);
+                let tmp = result_reg(dest_type);
+
+                self.emit_load_register(arguments[arg_idx], tmp);
+
+                self.asm.store_mem(
+                    dest_type.mode(),
+                    Mem::Local(dest_offset + subtype_offset),
+                    tmp,
+                );
+
+                arg_idx += 1;
+            }
+        }
     }
 
     fn emit_nil_check(&mut self, obj: Register) {
@@ -1472,38 +1724,65 @@ where
 
         let src_type = self.bytecode.register_type(src);
 
-        let value_reg: AnyReg = if src_type.mode().is_float() {
-            FREG_RESULT.into()
+        if let Some(tuple_id) = src_type.tuple_id() {
+            let element_size = self.vm.tuples.lock().get_tuple(tuple_id).size();
+            self.asm
+                .array_address(REG_TMP1, REG_TMP1, REG_TMP2, element_size);
+            let src_offset = self.register_offset(src);
+
+            self.copy_tuple(
+                tuple_id,
+                RegOrOffset::Reg(REG_TMP1),
+                RegOrOffset::Offset(src_offset),
+            );
+
+            let needs_write_barrier = self
+                .vm
+                .tuples
+                .lock()
+                .get_tuple(tuple_id)
+                .contains_references();
+
+            if self.vm.gc.needs_write_barrier() && needs_write_barrier {
+                let card_table_offset = self.vm.gc.card_table_offset();
+                self.asm.emit_barrier(REG_TMP1, card_table_offset);
+            }
         } else {
-            REG_TMP2.into()
-        };
+            let value_reg: AnyReg = if src_type.mode().is_float() {
+                FREG_RESULT.into()
+            } else {
+                REG_TMP2.into()
+            };
 
-        self.emit_load_register(src, value_reg.into());
+            self.emit_load_register(src, value_reg.into());
 
-        self.asm.store_mem(
-            src_type.mode(),
-            Mem::Index(
-                REG_RESULT,
-                REG_TMP1,
-                src_type.mode().size(),
-                offset_of_array_data(),
-            ),
-            value_reg,
-        );
-
-        if self.vm.gc.needs_write_barrier() && src_type.is_ptr() {
-            let card_table_offset = self.vm.gc.card_table_offset();
-            let scratch = self.asm.get_scratch();
-            self.asm.lea(
-                *scratch,
+            self.asm.store_mem(
+                src_type.mode(),
                 Mem::Index(
                     REG_RESULT,
                     REG_TMP1,
                     src_type.mode().size(),
                     offset_of_array_data(),
                 ),
+                value_reg,
             );
-            self.asm.emit_barrier(*scratch, card_table_offset);
+
+            let needs_write_barrier = src_type.is_ptr();
+
+            if self.vm.gc.needs_write_barrier() && needs_write_barrier {
+                let card_table_offset = self.vm.gc.card_table_offset();
+                let scratch = self.asm.get_scratch();
+                self.asm.lea(
+                    *scratch,
+                    Mem::Index(
+                        REG_RESULT,
+                        REG_TMP1,
+                        src_type.mode().size(),
+                        offset_of_array_data(),
+                    ),
+                );
+                self.asm.emit_barrier(*scratch, card_table_offset);
+            }
         }
     }
 
@@ -1526,10 +1805,23 @@ where
 
         let dest_type = self.bytecode.register_type(dest);
 
-        let register = result_reg(dest_type);
-        self.asm
-            .load_array_elem(dest_type.mode(), register, REG_RESULT, REG_TMP1);
-        self.emit_store_register(register, dest);
+        if let Some(tuple_id) = dest_type.tuple_id() {
+            let element_size = self.vm.tuples.lock().get_tuple(tuple_id).size();
+            self.asm
+                .array_address(REG_TMP1, REG_RESULT, REG_TMP1, element_size);
+            let dest_offset = self.register_offset(dest);
+
+            self.copy_tuple(
+                tuple_id,
+                RegOrOffset::Offset(dest_offset),
+                RegOrOffset::Reg(REG_TMP1),
+            );
+        } else {
+            let register = result_reg(dest_type);
+            self.asm
+                .load_array_elem(dest_type.mode(), register, REG_RESULT, REG_TMP1);
+            self.emit_store_register(register, dest);
+        }
     }
 
     fn emit_invoke_virtual_void(&mut self, fct_id: FctDefId) {
@@ -1549,7 +1841,7 @@ where
         fct_def_id: FctDefId,
         bytecode_type: Option<BytecodeType>,
     ) -> AnyReg {
-        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
+        let arguments = std::mem::replace(&mut self.argument_stack, Vec::new());
         let self_register = arguments[0];
 
         let bytecode_type_self = self.bytecode.register_type(self_register);
@@ -1839,17 +2131,31 @@ where
 
         for src in arguments {
             let bytecode_type = self.bytecode.register_type(src);
-            let offset = self.bytecode.register_offset(src);
-            let mode = bytecode_type.mode();
+            let offset = self.register_offset(src);
 
             match bytecode_type {
-                BytecodeType::Float | BytecodeType::Double => {
-                    if freg_idx < FREG_PARAMS.len() {
-                        self.asm.load_mem(
-                            bytecode_type.mode(),
-                            FREG_PARAMS[freg_idx].into(),
-                            Mem::Local(offset),
+                BytecodeType::Tuple(_tuple_id) => {
+                    if reg_idx < REG_PARAMS.len() {
+                        let reg = REG_PARAMS[reg_idx];
+                        self.asm.lea(reg, Mem::Local(offset));
+                        reg_idx += 1;
+                    } else {
+                        self.asm.lea(REG_TMP1, Mem::Local(offset));
+                        self.asm.store_mem(
+                            MachineMode::Ptr,
+                            Mem::Base(REG_SP, sp_offset),
+                            REG_TMP1.into(),
                         );
+
+                        sp_offset += 8;
+                    }
+                }
+                BytecodeType::Float | BytecodeType::Double => {
+                    let mode = bytecode_type.mode();
+
+                    if freg_idx < FREG_PARAMS.len() {
+                        self.asm
+                            .load_mem(mode, FREG_PARAMS[freg_idx].into(), Mem::Local(offset));
                         freg_idx += 1;
                     } else {
                         self.asm
@@ -1861,12 +2167,11 @@ where
                     }
                 }
                 _ => {
+                    let mode = bytecode_type.mode();
+
                     if reg_idx < REG_PARAMS.len() {
-                        self.asm.load_mem(
-                            bytecode_type.mode(),
-                            REG_PARAMS[reg_idx].into(),
-                            Mem::Local(offset),
-                        );
+                        self.asm
+                            .load_mem(mode, REG_PARAMS[reg_idx].into(), Mem::Local(offset));
                         reg_idx += 1;
                     } else {
                         self.asm.load_mem(mode, REG_TMP1.into(), Mem::Local(offset));
@@ -1950,6 +2255,11 @@ where
 
     fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
         specialize_type(self.vm, ty, self.cls_type_params, self.fct_type_params)
+    }
+
+    fn register_offset(&self, reg: Register) -> i32 {
+        let Register(idx) = reg;
+        self.offsets[idx]
     }
 }
 
@@ -2200,6 +2510,19 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_mov_ptr(&mut self, dest: Register, src: Register) {
         self.emit_mov_generic(dest, src);
     }
+    fn visit_mov_tuple(&mut self, dest: Register, src: Register, tuple_id: TupleId) {
+        self.emit_mov_tuple(dest, src, tuple_id);
+    }
+
+    fn visit_load_tuple_element(
+        &mut self,
+        dest: Register,
+        src: Register,
+        tuple_id: TupleId,
+        idx: u32,
+    ) {
+        self.emit_tuple_load(dest, src, tuple_id, idx);
+    }
 
     fn visit_load_field_bool(
         &mut self,
@@ -2265,6 +2588,15 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_load_field(dest, obj, cls, field);
     }
     fn visit_load_field_ptr(
+        &mut self,
+        dest: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_load_field(dest, obj, cls, field);
+    }
+    fn visit_load_field_tuple(
         &mut self,
         dest: Register,
         obj: Register,
@@ -2346,6 +2678,15 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     ) {
         self.emit_store_field(src, obj, cls, field);
     }
+    fn visit_store_field_tuple(
+        &mut self,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_store_field(src, obj, cls, field);
+    }
 
     fn visit_load_global_bool(&mut self, dest: Register, glob: GlobalId) {
         self.emit_load_global(dest, glob);
@@ -2371,6 +2712,9 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_load_global_ptr(&mut self, dest: Register, glob: GlobalId) {
         self.emit_load_global(dest, glob);
     }
+    fn visit_load_global_tuple(&mut self, dest: Register, glob: GlobalId) {
+        self.emit_load_global(dest, glob);
+    }
 
     fn visit_store_global_bool(&mut self, src: Register, glob: GlobalId) {
         self.emit_store_global(src, glob);
@@ -2394,6 +2738,9 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_store_global(src, glob);
     }
     fn visit_store_global_ptr(&mut self, src: Register, glob: GlobalId) {
+        self.emit_store_global(src, glob);
+    }
+    fn visit_store_global_tuple(&mut self, src: Register, glob: GlobalId) {
         self.emit_store_global(src, glob);
     }
 
@@ -2693,6 +3040,9 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_invoke_direct_ptr(&mut self, dest: Register, fctdef: FctDefId) {
         self.emit_invoke_direct_generic(dest, fctdef);
     }
+    fn visit_invoke_direct_tuple(&mut self, dest: Register, fctdef: FctDefId) {
+        self.emit_invoke_direct_generic(dest, fctdef);
+    }
 
     fn visit_invoke_virtual_void(&mut self, fctdef: FctDefId) {
         self.emit_invoke_virtual_void(fctdef);
@@ -2719,6 +3069,9 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_invoke_virtual_generic(dest, fctdef);
     }
     fn visit_invoke_virtual_ptr(&mut self, dest: Register, fctdef: FctDefId) {
+        self.emit_invoke_virtual_generic(dest, fctdef);
+    }
+    fn visit_invoke_virtual_tuple(&mut self, dest: Register, fctdef: FctDefId) {
         self.emit_invoke_virtual_generic(dest, fctdef);
     }
 
@@ -2749,12 +3102,18 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_invoke_static_ptr(&mut self, dest: Register, fctdef: FctDefId) {
         self.emit_invoke_static_generic(dest, fctdef);
     }
+    fn visit_invoke_static_tuple(&mut self, dest: Register, fctdef: FctDefId) {
+        self.emit_invoke_static_generic(dest, fctdef);
+    }
 
     fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {
         self.emit_new_object(dest, cls)
     }
     fn visit_new_array(&mut self, dest: Register, cls: ClassDefId, length: Register) {
         self.emit_new_array(dest, cls, length);
+    }
+    fn visit_new_tuple(&mut self, dest: Register, tuple_id: TupleId) {
+        self.emit_new_tuple(dest, tuple_id);
     }
 
     fn visit_nil_check(&mut self, obj: Register) {
@@ -2792,6 +3151,9 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_load_array_ptr(&mut self, dest: Register, arr: Register, idx: Register) {
         self.emit_load_array(dest, arr, idx);
     }
+    fn visit_load_array_tuple(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit_load_array(dest, arr, idx);
+    }
 
     fn visit_store_array_bool(&mut self, src: Register, arr: Register, idx: Register) {
         self.emit_store_array(src, arr, idx);
@@ -2815,6 +3177,9 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_store_array(src, arr, idx);
     }
     fn visit_store_array_ptr(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit_store_array(src, arr, idx);
+    }
+    fn visit_store_array_tuple(&mut self, src: Register, arr: Register, idx: Register) {
         self.emit_store_array(src, arr, idx);
     }
 
@@ -2845,10 +3210,21 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_ret_ptr(&mut self, opnd: Register) {
         self.emit_return_generic(opnd);
     }
+    fn visit_ret_tuple(&mut self, opnd: Register) {
+        self.emit_return_generic(opnd);
+    }
 }
 
 fn result_reg(bytecode_type: BytecodeType) -> AnyReg {
     if bytecode_type.mode().is_float() {
+        FREG_RESULT.into()
+    } else {
+        REG_RESULT.into()
+    }
+}
+
+fn result_reg_mode(mode: MachineMode) -> AnyReg {
+    if mode.is_float() {
         FREG_RESULT.into()
     } else {
         REG_RESULT.into()
@@ -2870,4 +3246,27 @@ fn ensure_jit_or_stub_ptr<'ast>(
     }
 
     vm.compile_stub()
+}
+
+fn determine_offsets(registers: &[BytecodeType], start: i32) -> (Vec<i32>, i32) {
+    let mut offset: Vec<i32> = vec![0; registers.len()];
+    let mut stacksize: i32 = start;
+    for (index, ty) in registers.iter().enumerate() {
+        stacksize = align_i32(stacksize + ty.size(), ty.size());
+        offset[index] = -stacksize;
+    }
+
+    stacksize = align_i32(stacksize, STACK_FRAME_ALIGNMENT as i32);
+
+    (offset, stacksize)
+}
+
+enum RegOrOffset {
+    Reg(Reg),
+    RegWithOffset(Reg, i32),
+    Offset(i32),
+}
+
+fn result_address_offset() -> i32 {
+    -mem::ptr_width()
 }

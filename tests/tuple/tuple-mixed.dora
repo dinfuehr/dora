@@ -1,3 +1,5 @@
+//= cannon
+
 class Foo(let value: Int32) {
     forceCollect();
 }

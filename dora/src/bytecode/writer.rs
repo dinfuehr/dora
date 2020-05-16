@@ -228,6 +228,16 @@ impl BytecodeWriter {
         self.emit_access_field(BytecodeOpcode::LoadFieldPtr, dest, obj, cls, field);
     }
 
+    pub fn emit_load_field_tuple(
+        &mut self,
+        dest: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_access_field(BytecodeOpcode::LoadFieldTuple, dest, obj, cls, field);
+    }
+
     pub fn emit_store_field_bool(
         &mut self,
         src: Register,
@@ -306,6 +316,16 @@ impl BytecodeWriter {
         field: FieldId,
     ) {
         self.emit_access_field(BytecodeOpcode::StoreFieldPtr, src, obj, cls, field);
+    }
+
+    pub fn emit_store_field_tuple(
+        &mut self,
+        src: Register,
+        obj: Register,
+        cls: ClassDefId,
+        field: FieldId,
+    ) {
+        self.emit_access_field(BytecodeOpcode::StoreFieldTuple, src, obj, cls, field);
     }
 
     pub fn emit_const_nil(&mut self, dest: Register) {
@@ -634,29 +654,13 @@ impl BytecodeWriter {
     }
 
     pub fn emit_mov_tuple(&mut self, dest: Register, src: Register, tuple_id: TupleId) {
-        self.emit_reg2_tuple(BytecodeOpcode::MovPtr, dest, src, tuple_id);
+        self.emit_reg2_tuple(BytecodeOpcode::MovTuple, dest, src, tuple_id);
     }
 
     pub fn emit_load_tuple_element(
         &mut self,
         dest: Register,
         src: Register,
-        tuple_id: TupleId,
-        element: u32,
-    ) {
-        self.emit_access_tuple(
-            BytecodeOpcode::LoadTupleElement,
-            dest,
-            src,
-            tuple_id,
-            element,
-        );
-    }
-
-    pub fn emit_store_tuple_element(
-        &mut self,
-        src: Register,
-        dest: Register,
         tuple_id: TupleId,
         element: u32,
     ) {
@@ -699,6 +703,10 @@ impl BytecodeWriter {
 
     pub fn emit_ret_ptr(&mut self, src: Register) {
         self.emit_reg1(BytecodeOpcode::RetPtr, src);
+    }
+
+    pub fn emit_ret_tuple(&mut self, src: Register) {
+        self.emit_reg1(BytecodeOpcode::RetTuple, src);
     }
 
     pub fn emit_ret_void(&mut self) {
@@ -909,6 +917,10 @@ impl BytecodeWriter {
         self.emit_load_global(BytecodeOpcode::LoadGlobalPtr, dest, gid);
     }
 
+    pub fn emit_load_global_tuple(&mut self, dest: Register, gid: GlobalId) {
+        self.emit_load_global(BytecodeOpcode::LoadGlobalTuple, dest, gid);
+    }
+
     pub fn emit_store_global_bool(&mut self, src: Register, gid: GlobalId) {
         self.emit_store_global(BytecodeOpcode::StoreGlobalBool, src, gid);
     }
@@ -939,6 +951,10 @@ impl BytecodeWriter {
 
     pub fn emit_store_global_ptr(&mut self, src: Register, gid: GlobalId) {
         self.emit_store_global(BytecodeOpcode::StoreGlobalPtr, src, gid);
+    }
+
+    pub fn emit_store_global_tuple(&mut self, src: Register, gid: GlobalId) {
+        self.emit_store_global(BytecodeOpcode::StoreGlobalTuple, src, gid);
     }
 
     pub fn emit_push_register(&mut self, src: Register) {
@@ -981,6 +997,10 @@ impl BytecodeWriter {
         self.emit_fct(BytecodeOpcode::InvokeDirectPtr, dest, fid);
     }
 
+    pub fn emit_invoke_direct_tuple(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeDirectTuple, dest, fid);
+    }
+
     pub fn emit_invoke_virtual_void(&mut self, fid: FctDefId) {
         self.emit_fct_void(BytecodeOpcode::InvokeVirtualVoid, fid);
     }
@@ -1015,6 +1035,10 @@ impl BytecodeWriter {
 
     pub fn emit_invoke_virtual_ptr(&mut self, dest: Register, fid: FctDefId) {
         self.emit_fct(BytecodeOpcode::InvokeVirtualPtr, dest, fid);
+    }
+
+    pub fn emit_invoke_virtual_tuple(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeVirtualTuple, dest, fid);
     }
 
     pub fn emit_invoke_static_void(&mut self, fid: FctDefId) {
@@ -1053,11 +1077,19 @@ impl BytecodeWriter {
         self.emit_fct(BytecodeOpcode::InvokeStaticPtr, dest, fid);
     }
 
+    pub fn emit_invoke_static_tuple(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeStaticTuple, dest, fid);
+    }
+
     pub fn emit_new_object(&mut self, dest: Register, cls_id: ClassDefId) {
         self.emit_new(BytecodeOpcode::NewObject, dest, cls_id);
     }
     pub fn emit_new_array(&mut self, dest: Register, cls_id: ClassDefId, length: Register) {
         self.emit_new_arr(BytecodeOpcode::NewArray, dest, cls_id, length);
+    }
+    pub fn emit_new_tuple(&mut self, dest: Register, tuple_id: TupleId) {
+        let values = [dest.to_usize() as u32, tuple_id.to_usize() as u32];
+        self.emit_values(BytecodeOpcode::NewTuple, &values);
     }
 
     pub fn emit_nil_check(&mut self, obj: Register) {
@@ -1095,6 +1127,9 @@ impl BytecodeWriter {
     pub fn emit_store_array_ptr(&mut self, src: Register, array: Register, index: Register) {
         self.emit_reg3(BytecodeOpcode::StoreArrayPtr, src, array, index);
     }
+    pub fn emit_store_array_tuple(&mut self, src: Register, array: Register, index: Register) {
+        self.emit_reg3(BytecodeOpcode::StoreArrayTuple, src, array, index);
+    }
 
     pub fn emit_load_array_uint8(&mut self, dest: Register, array: Register, idx: Register) {
         self.emit_reg3(BytecodeOpcode::LoadArrayUInt8, dest, array, idx);
@@ -1119,6 +1154,9 @@ impl BytecodeWriter {
     }
     pub fn emit_load_array_ptr(&mut self, dest: Register, array: Register, index: Register) {
         self.emit_reg3(BytecodeOpcode::LoadArrayPtr, dest, array, index);
+    }
+    pub fn emit_load_array_tuple(&mut self, dest: Register, array: Register, index: Register) {
+        self.emit_reg3(BytecodeOpcode::LoadArrayTuple, dest, array, index);
     }
 
     pub fn generate(mut self) -> BytecodeFunction {

@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     assert(3 == tpl1((1, 2)));
     assert(6 == tpl2(1, (2, 3)));

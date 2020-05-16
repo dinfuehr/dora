@@ -5,7 +5,7 @@ def read_bytecodes
 end
 
 def read_types
-    read_enum("BytecodeType")
+    read_enum("BytecodeTypeKind")
 end
 
 def read_constpool_opcodes

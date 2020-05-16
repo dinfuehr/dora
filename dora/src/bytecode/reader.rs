@@ -542,6 +542,13 @@ where
                 let field = self.read_field(wide);
                 self.visitor.visit_load_field_ptr(dest, obj, cls, field);
             }
+            BytecodeOpcode::LoadFieldTuple => {
+                let dest = self.read_register(wide);
+                let obj = self.read_register(wide);
+                let cls = self.read_class(wide);
+                let field = self.read_field(wide);
+                self.visitor.visit_load_field_tuple(dest, obj, cls, field);
+            }
 
             BytecodeOpcode::StoreFieldBool => {
                 let src = self.read_register(wide);
@@ -599,6 +606,13 @@ where
                 let field = self.read_field(wide);
                 self.visitor.visit_store_field_ptr(src, obj, cls, field);
             }
+            BytecodeOpcode::StoreFieldTuple => {
+                let src = self.read_register(wide);
+                let obj = self.read_register(wide);
+                let cls = self.read_class(wide);
+                let field = self.read_field(wide);
+                self.visitor.visit_store_field_tuple(src, obj, cls, field);
+            }
 
             BytecodeOpcode::LoadGlobalBool => {
                 let dest = self.read_register(wide);
@@ -640,6 +654,11 @@ where
                 let glob = self.read_global(wide);
                 self.visitor.visit_load_global_ptr(dest, glob);
             }
+            BytecodeOpcode::LoadGlobalTuple => {
+                let dest = self.read_register(wide);
+                let glob = self.read_global(wide);
+                self.visitor.visit_load_global_tuple(dest, glob);
+            }
 
             BytecodeOpcode::StoreGlobalBool => {
                 let dest = self.read_register(wide);
@@ -680,6 +699,11 @@ where
                 let dest = self.read_register(wide);
                 let glob = self.read_global(wide);
                 self.visitor.visit_store_global_ptr(dest, glob);
+            }
+            BytecodeOpcode::StoreGlobalTuple => {
+                let dest = self.read_register(wide);
+                let glob = self.read_global(wide);
+                self.visitor.visit_store_global_tuple(dest, glob);
             }
 
             BytecodeOpcode::PushRegister => {
@@ -1095,6 +1119,11 @@ where
                 let fct = self.read_fct(wide);
                 self.visitor.visit_invoke_direct_ptr(dest, fct);
             }
+            BytecodeOpcode::InvokeDirectTuple => {
+                let dest = self.read_register(wide);
+                let fct = self.read_fct(wide);
+                self.visitor.visit_invoke_direct_tuple(dest, fct);
+            }
 
             BytecodeOpcode::InvokeVirtualVoid => {
                 let fct = self.read_fct(wide);
@@ -1139,6 +1168,11 @@ where
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
                 self.visitor.visit_invoke_virtual_ptr(dest, fct);
+            }
+            BytecodeOpcode::InvokeVirtualTuple => {
+                let dest = self.read_register(wide);
+                let fct = self.read_fct(wide);
+                self.visitor.visit_invoke_virtual_tuple(dest, fct);
             }
 
             BytecodeOpcode::InvokeStaticVoid => {
@@ -1185,6 +1219,11 @@ where
                 let fct = self.read_fct(wide);
                 self.visitor.visit_invoke_static_ptr(dest, fct);
             }
+            BytecodeOpcode::InvokeStaticTuple => {
+                let dest = self.read_register(wide);
+                let fct = self.read_fct(wide);
+                self.visitor.visit_invoke_static_tuple(dest, fct);
+            }
 
             BytecodeOpcode::NewObject => {
                 let dest = self.read_register(wide);
@@ -1196,6 +1235,11 @@ where
                 let cls = self.read_class(wide);
                 let length = self.read_register(wide);
                 self.visitor.visit_new_array(dest, cls, length);
+            }
+            BytecodeOpcode::NewTuple => {
+                let dest = self.read_register(wide);
+                let tuple = self.read_tuple(wide);
+                self.visitor.visit_new_tuple(dest, tuple);
             }
 
             BytecodeOpcode::NilCheck => {
@@ -1262,6 +1306,12 @@ where
                 let index = self.read_register(wide);
                 self.visitor.visit_load_array_ptr(dest, array, index);
             }
+            BytecodeOpcode::LoadArrayTuple => {
+                let dest = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_load_array_tuple(dest, array, index);
+            }
 
             BytecodeOpcode::StoreArrayBool => {
                 let src = self.read_register(wide);
@@ -1311,6 +1361,12 @@ where
                 let index = self.read_register(wide);
                 self.visitor.visit_store_array_ptr(src, array, index);
             }
+            BytecodeOpcode::StoreArrayTuple => {
+                let src = self.read_register(wide);
+                let array = self.read_register(wide);
+                let index = self.read_register(wide);
+                self.visitor.visit_store_array_tuple(src, array, index);
+            }
 
             BytecodeOpcode::RetVoid => {
                 self.visitor.visit_ret_void();
@@ -1346,6 +1402,10 @@ where
             BytecodeOpcode::RetPtr => {
                 let opnd = self.read_register(wide);
                 self.visitor.visit_ret_ptr(opnd);
+            }
+            BytecodeOpcode::RetTuple => {
+                let opnd = self.read_register(wide);
+                self.visitor.visit_ret_tuple(opnd);
             }
         }
     }
@@ -1767,6 +1827,15 @@ pub trait BytecodeVisitor {
     ) {
         unimplemented!();
     }
+    fn visit_load_field_tuple(
+        &mut self,
+        _dest: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
 
     fn visit_store_field_bool(
         &mut self,
@@ -1840,6 +1909,15 @@ pub trait BytecodeVisitor {
     ) {
         unimplemented!();
     }
+    fn visit_store_field_tuple(
+        &mut self,
+        _src: Register,
+        _obj: Register,
+        _cls: ClassDefId,
+        _field: FieldId,
+    ) {
+        unimplemented!();
+    }
 
     fn visit_load_global_bool(&mut self, _dest: Register, _glob: GlobalId) {
         unimplemented!();
@@ -1865,6 +1943,9 @@ pub trait BytecodeVisitor {
     fn visit_load_global_ptr(&mut self, _dest: Register, _glob: GlobalId) {
         unimplemented!();
     }
+    fn visit_load_global_tuple(&mut self, _dest: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
 
     fn visit_store_global_bool(&mut self, _src: Register, _glob: GlobalId) {
         unimplemented!();
@@ -1888,6 +1969,9 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_store_global_ptr(&mut self, _src: Register, _glob: GlobalId) {
+        unimplemented!();
+    }
+    fn visit_store_global_tuple(&mut self, _dest: Register, _glob: GlobalId) {
         unimplemented!();
     }
 
@@ -2127,6 +2211,9 @@ pub trait BytecodeVisitor {
     fn visit_invoke_direct_ptr(&mut self, _dest: Register, _fctdef: FctDefId) {
         unimplemented!();
     }
+    fn visit_invoke_direct_tuple(&mut self, _dest: Register, _fctdef: FctDefId) {
+        unimplemented!();
+    }
 
     fn visit_invoke_virtual_void(&mut self, _fctdef: FctDefId) {
         unimplemented!();
@@ -2153,6 +2240,9 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_invoke_virtual_ptr(&mut self, _dest: Register, _fctdef: FctDefId) {
+        unimplemented!();
+    }
+    fn visit_invoke_virtual_tuple(&mut self, _dest: Register, _fctdef: FctDefId) {
         unimplemented!();
     }
 
@@ -2183,11 +2273,17 @@ pub trait BytecodeVisitor {
     fn visit_invoke_static_ptr(&mut self, _dest: Register, _fctdef: FctDefId) {
         unimplemented!();
     }
+    fn visit_invoke_static_tuple(&mut self, _dest: Register, _fctdef: FctDefId) {
+        unimplemented!();
+    }
 
     fn visit_new_object(&mut self, _dest: Register, _cls: ClassDefId) {
         unimplemented!();
     }
     fn visit_new_array(&mut self, _dest: Register, _cls: ClassDefId, _length: Register) {
+        unimplemented!();
+    }
+    fn visit_new_tuple(&mut self, _dest: Register, _tuple: TupleId) {
         unimplemented!();
     }
 
@@ -2226,6 +2322,9 @@ pub trait BytecodeVisitor {
     fn visit_load_array_ptr(&mut self, _dest: Register, _arr: Register, _idx: Register) {
         unimplemented!();
     }
+    fn visit_load_array_tuple(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
 
     fn visit_store_array_bool(&mut self, _src: Register, _arr: Register, _idx: Register) {
         unimplemented!();
@@ -2249,6 +2348,9 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_store_array_ptr(&mut self, _src: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+    fn visit_store_array_tuple(&mut self, _src: Register, _arr: Register, _idx: Register) {
         unimplemented!();
     }
 
@@ -2277,6 +2379,9 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_ret_ptr(&mut self, _opnd: Register) {
+        unimplemented!();
+    }
+    fn visit_ret_tuple(&mut self, _opnd: Register) {
         unimplemented!();
     }
 }

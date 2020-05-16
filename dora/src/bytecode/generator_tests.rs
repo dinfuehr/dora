@@ -3453,26 +3453,37 @@ fn gen_int64_max_value() {
 }
 
 #[test]
-#[ignore]
 fn gen_tuple_var() {
     gen("fun f() { let x = (1, 2); }", |vm, code| {
         let tuple_id = ensure_tuple(vm, vec![BuiltinType::Int32, BuiltinType::Int32]);
         let expected = vec![
             ConstInt32(r(1), 1),
             ConstInt32(r(2), 2),
-            StoreTupleElement(r(1), r(0), tuple_id, 0),
-            StoreTupleElement(r(2), r(0), tuple_id, 1),
+            PushRegister(r(1)),
+            PushRegister(r(2)),
+            NewTuple(r(0), tuple_id),
+            RetVoid,
         ];
         assert_eq!(expected, code);
     });
 }
 
 #[test]
-#[ignore]
-fn gen_int32_operations() {
-    let result = code("fun f(a: Int32, b: Int32) -> Int32 { a + b }");
-    let expected = vec![AddInt32(r(2), r(0), r(1)), RetInt32(r(2))];
-    assert_eq!(expected, result);
+fn gen_tuple_move() {
+    gen("fun f(x: (Int32, Int32)) { let y = x; }", |vm, code| {
+        let tuple_id = ensure_tuple(vm, vec![BuiltinType::Int32, BuiltinType::Int32]);
+        let expected = vec![MovTuple(r(1), r(0), tuple_id), RetVoid];
+        assert_eq!(expected, code);
+    });
+}
+
+#[test]
+fn gen_tuple_element() {
+    gen("fun f(x: (Int32, Int32)) -> Int32 { x.0 }", |vm, code| {
+        let tuple_id = ensure_tuple(vm, vec![BuiltinType::Int32, BuiltinType::Int32]);
+        let expected = vec![LoadTupleElement(r(1), r(0), tuple_id, 0), RetInt32(r(1))];
+        assert_eq!(expected, code);
+    });
 }
 
 fn p(line: u32, column: u32) -> Position {
@@ -3577,7 +3588,6 @@ pub enum Bytecode {
     MovPtr(Register, Register),
     MovTuple(Register, Register, TupleId),
 
-    StoreTupleElement(Register, Register, TupleId, u32),
     LoadTupleElement(Register, Register, TupleId, u32),
 
     LoadFieldBool(Register, Register, ClassDefId, FieldId),
@@ -3725,6 +3735,7 @@ pub enum Bytecode {
 
     NewObject(Register, ClassDefId),
     NewArray(Register, ClassDefId, Register),
+    NewTuple(Register, TupleId),
 
     NilCheck(Register),
 
@@ -4063,16 +4074,6 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_mov_tuple(&mut self, dest: Register, src: Register, tuple_id: TupleId) {
         self.emit(Bytecode::MovTuple(dest, src, tuple_id))
-    }
-
-    fn visit_store_tuple_element(
-        &mut self,
-        src: Register,
-        dest: Register,
-        tuple_id: TupleId,
-        element: u32,
-    ) {
-        self.emit(Bytecode::StoreTupleElement(src, dest, tuple_id, element));
     }
 
     fn visit_load_tuple_element(
@@ -4610,6 +4611,9 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_new_array(&mut self, dest: Register, cls: ClassDefId, length: Register) {
         self.emit(Bytecode::NewArray(dest, cls, length));
+    }
+    fn visit_new_tuple(&mut self, dest: Register, tuple_id: TupleId) {
+        self.emit(Bytecode::NewTuple(dest, tuple_id));
     }
 
     fn visit_nil_check(&mut self, obj: Register) {
