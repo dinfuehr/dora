@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
   let x = arrayFill[Foo](5L, nil);
   x(0L) = Foo(1);

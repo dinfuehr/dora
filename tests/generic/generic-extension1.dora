@@ -1,3 +1,5 @@
+//= cannon
+
 class Foo[T]
 
 impl Foo[Int32] {

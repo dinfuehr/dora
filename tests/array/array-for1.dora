@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     assert(slowLength(array[Int32]()) == 0L);
     assert(slowLength(array[Int32](1)) == 1L);

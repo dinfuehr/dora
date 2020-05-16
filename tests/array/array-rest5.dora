@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     assert(sum_args((1, 2), (3, 4)) == 10);
     assert(sum_args() == 0);
@@ -7,7 +9,7 @@ fun main() {
 fun sum_args(x: (Int32, Int32)...) -> Int32 {
     var result = 0;
     var idx = 0L;
-    
+
     while idx < x.length() {
         let elem = x(idx);
         result = result + elem.0 + elem.1;

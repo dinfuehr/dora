@@ -1775,7 +1775,7 @@ where
         if let Some(tuple_id) = src_type.tuple_id() {
             let element_size = self.vm.tuples.lock().get_tuple(tuple_id).size();
             self.asm
-                .array_address(REG_TMP1, REG_TMP1, REG_TMP2, element_size);
+                .array_address(REG_TMP1, REG_RESULT, REG_TMP1, element_size);
             let src_offset = self.register_offset(src);
 
             self.copy_tuple(

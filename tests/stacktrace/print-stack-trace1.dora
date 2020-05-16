@@ -1,5 +1,6 @@
 //= vm-args "--gc=copy --gc-stress --disable-tlab"
-//= stdout "0: main(): 5\n"
+//= stdout "0: main(): 6\n"
+//= cannon
 
 fun main() {
   let e = Stacktrace();

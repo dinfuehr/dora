@@ -142,6 +142,60 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn visit_stmt_for(&mut self, stmt: &StmtForType) {
+        if self.src.map_fors.get(stmt.id).is_some() {
+            self.visit_stmt_for_iterator(stmt);
+        } else {
+            self.visit_stmt_for_array(stmt);
+        }
+    }
+
+    fn visit_stmt_for_array(&mut self, stmt: &StmtForType) {
+        let array_reg = self.gen.add_register(BytecodeType::Ptr);
+        let index_reg = self.gen.add_register(BytecodeType::Int64);
+        let length_reg = self.gen.add_register(BytecodeType::Int64);
+
+        let for_var_id = *self.src.map_vars.get(stmt.id).unwrap();
+        let var_ty = self.var_ty(for_var_id);
+        let var_ty: BytecodeType = var_ty.into();
+        let var_reg = self.gen.add_register(var_ty);
+        self.var_registers.insert(for_var_id, var_reg);
+
+        // evaluate and store array
+        self.visit_expr(&stmt.expr, DataDest::Reg(array_reg));
+
+        // calculate array length
+        self.gen.set_position(stmt.expr.pos());
+        self.gen.emit_array_length(length_reg, array_reg);
+
+        // initialized index to 0
+        self.gen.emit_const_int64(index_reg, 0);
+
+        let lbl_cond = self.gen.define_label();
+        let lbl_end = self.gen.create_label();
+
+        // if idx >= length then goto end
+        let tmp_reg = self.gen.add_register(BytecodeType::Bool);
+        self.gen.emit_test_lt_int64(tmp_reg, index_reg, length_reg);
+        self.gen.emit_jump_if_false(tmp_reg, lbl_end);
+
+        // load current array element
+        self.emit_load_array(var_ty, var_reg, array_reg, index_reg);
+
+        self.loops.push(LoopLabels::new(lbl_cond, lbl_end));
+        self.visit_stmt(&stmt.block);
+        self.loops.pop().unwrap();
+
+        // increment index
+        let tmp_reg = self.gen.add_register(BytecodeType::Int64);
+        self.gen.emit_const_int64(tmp_reg, 1);
+        self.gen.emit_add_int64(index_reg, index_reg, tmp_reg);
+
+        // jump to loop header
+        self.gen.emit_jump_loop(lbl_cond);
+        self.gen.bind_label(lbl_end);
+    }
+
+    fn visit_stmt_for_iterator(&mut self, stmt: &StmtForType) {
         let for_type_info = self.src.map_fors.get(stmt.id).unwrap().clone();
 
         // Emit: <obj> = <expr> (for <var> in <expr> { ... })
@@ -926,6 +980,20 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
     }
 
+    fn emit_load_array(&mut self, ty: BytecodeType, dest: Register, arr: Register, idx: Register) {
+        match ty {
+            BytecodeType::Bool => self.gen.emit_load_array_bool(dest, arr, idx),
+            BytecodeType::UInt8 => self.gen.emit_load_array_uint8(dest, arr, idx),
+            BytecodeType::Char => self.gen.emit_load_array_char(dest, arr, idx),
+            BytecodeType::Int32 => self.gen.emit_load_array_int32(dest, arr, idx),
+            BytecodeType::Int64 => self.gen.emit_load_array_int64(dest, arr, idx),
+            BytecodeType::Float => self.gen.emit_load_array_float(dest, arr, idx),
+            BytecodeType::Double => self.gen.emit_load_array_double(dest, arr, idx),
+            BytecodeType::Ptr => self.gen.emit_load_array_ptr(dest, arr, idx),
+            BytecodeType::Tuple(_) => self.gen.emit_load_array_tuple(dest, arr, idx),
+        }
+    }
+
     fn emit_invoke_virtual(
         &mut self,
         return_type: BuiltinType,
@@ -1519,6 +1587,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         if expr.op == BinOp::Cmp(CmpOp::Is) {
             match cmp_ty {
                 BytecodeType::UInt8 => self.gen.emit_test_eq_uint8(dest, cmp_lhs_reg, cmp_rhs_reg),
+                BytecodeType::Bool => self.gen.emit_test_eq_bool(dest, cmp_lhs_reg, cmp_rhs_reg),
+                BytecodeType::Char => self.gen.emit_test_eq_char(dest, cmp_lhs_reg, cmp_rhs_reg),
                 BytecodeType::Int32 => self.gen.emit_test_eq_int32(dest, cmp_lhs_reg, cmp_rhs_reg),
                 BytecodeType::Int64 => self.gen.emit_test_eq_int64(dest, cmp_lhs_reg, cmp_rhs_reg),
                 BytecodeType::Ptr => self.gen.emit_test_eq_ptr(dest, cmp_lhs_reg, cmp_rhs_reg),
@@ -1527,6 +1597,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         } else {
             match cmp_ty {
                 BytecodeType::UInt8 => self.gen.emit_test_ne_uint8(dest, cmp_lhs_reg, cmp_rhs_reg),
+                BytecodeType::Bool => self.gen.emit_test_ne_bool(dest, cmp_lhs_reg, cmp_rhs_reg),
+                BytecodeType::Char => self.gen.emit_test_ne_char(dest, cmp_lhs_reg, cmp_rhs_reg),
                 BytecodeType::Int32 => self.gen.emit_test_ne_int32(dest, cmp_lhs_reg, cmp_rhs_reg),
                 BytecodeType::Int64 => self.gen.emit_test_ne_int64(dest, cmp_lhs_reg, cmp_rhs_reg),
                 BytecodeType::Ptr => self.gen.emit_test_ne_ptr(dest, cmp_lhs_reg, cmp_rhs_reg),

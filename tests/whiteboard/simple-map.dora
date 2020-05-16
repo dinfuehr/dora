@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let m = SlowMap[Int32, String]();
     assert(m.insert(1, "hello"));

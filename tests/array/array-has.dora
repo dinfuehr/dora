@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let x = arrayFill[Bool](3L, true);
     assert(arrayHas[Bool](x, true));

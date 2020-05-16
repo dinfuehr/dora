@@ -1,3 +1,5 @@
+//= cannon
+
 class Foo[A]
 
 fun is_foo_int(f: Object) -> Bool {

@@ -804,11 +804,11 @@ impl MacroAssembler {
     pub fn check_index_out_of_bounds(&mut self, pos: Position, array: Reg, index: Reg) {
         let scratch = self.get_scratch();
         self.load_mem(
-            MachineMode::Int32,
+            MachineMode::Int64,
             (*scratch).into(),
             Mem::Base(array, offset_of_array_length()),
         );
-        self.asm.cmpl_rr(index.into(), (*scratch).into());
+        self.asm.cmpq_rr(index.into(), (*scratch).into());
 
         let lbl = self.create_label();
         self.jump_if(CondCode::UnsignedGreaterEq, lbl);

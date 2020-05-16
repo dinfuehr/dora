@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let val = "abc";
     assert(val.length() == 3L);
