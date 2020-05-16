@@ -461,22 +461,26 @@ pub fn ldrd_unscaled_imm(rt: FReg, rn: Reg, imm9: i32) -> u32 {
 }
 
 pub fn strb_unscaled_imm(rt: Reg, rn: Reg, imm9: i32) -> u32 {
-    assert!(rt.is_gpr());
+    assert!(rt.is_gpr_or_zero());
+    assert!(rn.is_gpr_or_sp());
     cls_ldst_reg_unscaledimm(0b00, 0, 0b00, imm9, rn, rt.asm())
 }
 
 pub fn strh_unscaled_imm(rt: Reg, rn: Reg, imm9: i32) -> u32 {
-    assert!(rt.is_gpr());
+    assert!(rt.is_gpr_or_zero());
+    assert!(rn.is_gpr_or_sp());
     cls_ldst_reg_unscaledimm(0b01, 0, 0b00, imm9, rn, rt.asm())
 }
 
 pub fn strw_unscaled_imm(rt: Reg, rn: Reg, imm9: i32) -> u32 {
-    assert!(rt.is_gpr());
+    assert!(rt.is_gpr_or_zero());
+    assert!(rn.is_gpr_or_sp());
     cls_ldst_reg_unscaledimm(0b10, 0, 0b00, imm9, rn, rt.asm())
 }
 
 pub fn strx_unscaled_imm(rt: Reg, rn: Reg, imm9: i32) -> u32 {
-    assert!(rt.is_gpr());
+    assert!(rt.is_gpr_or_zero());
+    assert!(rn.is_gpr_or_sp());
     cls_ldst_reg_unscaledimm(0b11, 0, 0b00, imm9, rn, rt.asm())
 }
 
