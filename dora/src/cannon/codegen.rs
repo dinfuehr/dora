@@ -76,6 +76,7 @@ pub struct CannonCodeGen<'a, 'ast: 'a> {
 
     offsets: Vec<i32>,
     stacksize: i32,
+    register_start_offset: i32,
 }
 
 impl<'a, 'ast> CannonCodeGen<'a, 'ast>
@@ -120,6 +121,7 @@ where
             references: Vec::new(),
             offsets: Vec::new(),
             stacksize: 0,
+            register_start_offset: 0,
         }
     }
 
@@ -129,8 +131,10 @@ where
         }
 
         self.calculate_offsets();
+        self.initialize_references();
 
         self.emit_prolog();
+        self.clear_registers();
         self.store_params_on_stack();
         self.emit_stack_guard();
 
@@ -146,16 +150,48 @@ where
     }
 
     fn calculate_offsets(&mut self) {
-        let start = if self.has_result_address() {
+        self.register_start_offset = if self.has_result_address() {
             mem::ptr_width()
         } else {
             0
         };
 
         let registers = self.bytecode.registers();
-        let (offsets, stacksize) = determine_offsets(registers, start);
+        let (offsets, stacksize) = determine_offsets(registers, self.register_start_offset);
         std::mem::replace(&mut self.offsets, offsets);
         self.stacksize = stacksize;
+    }
+
+    fn clear_registers(&mut self) {
+        let start = self.register_start_offset + mem::ptr_width();
+        let end = self.stacksize + mem::ptr_width();
+        assert!(start <= end);
+
+        if start == end {
+            return;
+        }
+
+        self.asm.emit_comment("clear registers".into());
+
+        // TODO: provide method in MacroAssembler for zeroing memory
+        for word_offset in (start..end).step_by(mem::ptr_width_usize()) {
+            self.asm
+                .store_zero(MachineMode::Ptr, Mem::Local(-word_offset));
+        }
+    }
+
+    fn initialize_references(&mut self) {
+        assert!(self.references.is_empty());
+        for (idx, &ty) in self.bytecode.registers().iter().enumerate() {
+            if ty.is_ptr() {
+                let offset = self.register_offset(Register(idx));
+                self.references.push(offset);
+            }
+        }
+    }
+
+    fn create_gcpoint(&self) -> GcPoint {
+        GcPoint::from_offsets(self.references.clone())
     }
 
     fn has_result_address(&self) -> bool {
@@ -267,7 +303,7 @@ where
     }
 
     fn emit_stack_guard(&mut self) {
-        let gcpoint = GcPoint::from_offsets(self.references.clone());
+        let gcpoint = self.create_gcpoint();
         self.asm.stack_guard(self.fct.ast.pos, gcpoint);
     }
 
@@ -1463,7 +1499,7 @@ where
             ),
         };
 
-        let gcpoint = GcPoint::from_offsets(self.references.clone());
+        let gcpoint = self.create_gcpoint();
         let position = self.bytecode.offset_position(self.current_offset.to_u32());
         self.asm
             .allocate(REG_RESULT.into(), alloc_size, position, false, gcpoint);
@@ -1498,9 +1534,6 @@ where
             }
             _ => unreachable!(),
         }
-
-        let ref_offset = self.register_offset(dest);
-        self.references.push(ref_offset);
     }
 
     fn emit_new_array(&mut self, dest: Register, class_def_id: ClassDefId, length: Register) {
@@ -1541,7 +1574,7 @@ where
             _ => false,
         };
 
-        let gcpoint = GcPoint::from_offsets(self.references.clone());
+        let gcpoint = self.create_gcpoint();
         let position = self.bytecode.offset_position(self.current_offset.to_u32());
         self.asm
             .allocate(REG_RESULT.into(), alloc_size, position, array_ref, gcpoint);
@@ -1588,9 +1621,6 @@ where
             InstanceSize::UnitArray => {}
             _ => unreachable!(),
         }
-
-        let ref_offset = self.register_offset(dest);
-        self.references.push(ref_offset);
     }
 
     fn emit_array_initialization(&mut self, object_start: Reg, array_length: Reg, size: i32) {
@@ -1865,7 +1895,7 @@ where
         let name = fct.full_name(self.vm);
         self.asm.emit_comment(format!("call virtual {}", name));
         let vtable_index = fct.vtable_index.unwrap();
-        let gcpoint = GcPoint::from_offsets(self.references.clone());
+        let gcpoint = self.create_gcpoint();
 
         let (reg, ty) = match bytecode_type {
             Some(bytecode_type) => (result_reg(bytecode_type), bytecode_type.into()),
@@ -1926,7 +1956,7 @@ where
         let name = fct.full_name(self.vm);
         self.asm.emit_comment(format!("call direct {}", name));
         let ptr = self.ptr_for_fct_id(fct_id, cls_type_params.clone(), fct_type_params.clone());
-        let gcpoint = GcPoint::from_offsets(self.references.clone());
+        let gcpoint = self.create_gcpoint();
 
         let (reg, ty) = match bytecode_type {
             Some(bytecode_type) => (result_reg(bytecode_type), bytecode_type.into()),
@@ -1987,7 +2017,7 @@ where
         self.asm.emit_comment(format!("call direct {}", name));
 
         let ptr = self.ptr_for_fct_id(fct_id, cls_type_params.clone(), fct_type_params.clone());
-        let gcpoint = GcPoint::from_offsets(self.references.clone());
+        let gcpoint = self.create_gcpoint();
         let position = self.bytecode.offset_position(self.current_offset.to_u32());
 
         let (reg, ty) = match bytecode_type {

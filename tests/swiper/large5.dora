@@ -1,3 +1,4 @@
+//= cannon
 //= vm-args "--gc=swiper --gc-verify --max-heap-size=32M"
 //= error oom
 

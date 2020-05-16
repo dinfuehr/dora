@@ -575,7 +575,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         };
 
         // Evaluate object/self argument
-        let object_argument = self.emit_call_object_argument(expr, &call_type, return_reg, dest);
+        let object_argument = self.emit_call_object_argument(expr, &call_type);
 
         // Evaluate function arguments
         let arguments = self.emit_call_arguments(expr, &*callee, &call_type, &arg_types);
@@ -701,8 +701,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         &mut self,
         expr: &ExprCallType,
         call_type: &CallType,
-        return_reg: Register,
-        dest: DataDest,
     ) -> Option<Register> {
         match *call_type {
             CallType::Method(_, _, _) => {
@@ -713,12 +711,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             }
             CallType::Expr(_, _) => Some(self.visit_expr(&expr.callee, DataDest::Alloc)),
             CallType::CtorNew(_, _) => {
-                if !return_reg.is_invalid() {
-                    Some(return_reg)
-                } else {
-                    let obj_reg = self.ensure_register(dest, BytecodeType::Ptr);
-                    Some(obj_reg)
-                }
+                // Need to use new register for allocated object.
+                // Otherwise code like `x = SomeClass(x)` would break.
+                Some(self.gen.add_register(BytecodeType::Ptr))
             }
             _ => None,
         }
@@ -906,7 +901,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         if call_type.is_ctor_new() || call_type.is_ctor() {
             match dest {
                 DataDest::Effect => Register::invalid(),
-                DataDest::Reg(_) | DataDest::Alloc => obj_reg.unwrap(),
+                DataDest::Alloc => obj_reg.unwrap(),
+                DataDest::Reg(dest_reg) => {
+                    self.gen.emit_mov_ptr(dest_reg, obj_reg.unwrap());
+                    dest_reg
+                }
             }
         } else {
             return_reg
@@ -1236,8 +1235,39 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         } else if let Some(intrinsic) = self.get_intrinsic(expr.id) {
             self.emit_intrinsic_un(&expr.opnd, intrinsic, expr.pos, dest)
         } else {
-            unimplemented!()
+            self.visit_expr_un_method(expr, dest)
         }
+    }
+
+    fn visit_expr_un_method(&mut self, expr: &ExprUnType, dest: DataDest) -> Register {
+        let opnd = self.visit_expr(&expr.opnd, DataDest::Alloc);
+
+        let call_type = self.src.map_calls.get(expr.id).unwrap();
+        let callee_id = self.determine_callee(call_type);
+
+        let callee = self.vm.fcts.idx(callee_id);
+        let callee = callee.read();
+
+        // Create FctDefId for this callee
+        let callee_def_id = self.specialize_call(&callee, &call_type);
+
+        let function_return_type: BuiltinType =
+            self.specialize_type_for_call(call_type, callee.return_type);
+
+        let function_return_type_bc: BytecodeType = function_return_type.into();
+
+        let dest = self.ensure_register(dest, function_return_type_bc);
+
+        self.gen.emit_push_register(opnd);
+        self.gen.set_position(expr.pos);
+
+        if function_return_type_bc == BytecodeType::Ptr {
+            self.emit_invoke_direct(function_return_type, dest, callee_def_id);
+        } else {
+            self.emit_invoke_static(function_return_type, dest, callee_def_id);
+        }
+
+        dest
     }
 
     fn visit_expr_bin(&mut self, expr: &ExprBinType, dest: DataDest) -> Register {
@@ -1263,14 +1293,16 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let rhs = self.visit_expr(&expr.rhs, DataDest::Alloc);
 
         let call_type = self.src.map_calls.get(expr.id).unwrap();
-        let fct_id = self.determine_callee(call_type);
-        let fct_def_id = FctDef::fct_id(self.vm, fct_id);
+        let callee_id = self.determine_callee(call_type);
 
-        let fct = self.vm.fcts.idx(fct_id);
-        let fct = fct.read();
+        let callee = self.vm.fcts.idx(callee_id);
+        let callee = callee.read();
+
+        // Create FctDefId for this callee
+        let callee_def_id = self.specialize_call(&callee, &call_type);
 
         let function_return_type: BuiltinType =
-            self.specialize_type_for_call(call_type, fct.return_type);
+            self.specialize_type_for_call(call_type, callee.return_type);
 
         let function_return_type_bc: BytecodeType = function_return_type.into();
 
@@ -1293,9 +1325,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.gen.set_position(expr.pos);
 
         if lhs_type == BytecodeType::Ptr {
-            self.emit_invoke_direct(function_return_type, result, fct_def_id);
+            self.emit_invoke_direct(function_return_type, result, callee_def_id);
         } else {
-            self.emit_invoke_static(function_return_type, result, fct_def_id);
+            self.emit_invoke_static(function_return_type, result, callee_def_id);
         }
 
         match expr.op {
@@ -1452,6 +1484,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         let lhs_reg = self.visit_expr(&expr.lhs, DataDest::Alloc);
         let rhs_reg = self.visit_expr(&expr.rhs, DataDest::Alloc);
+
         if expr.op == BinOp::Cmp(CmpOp::Is) {
             self.gen.emit_test_eq_ptr(dest, lhs_reg, rhs_reg);
         } else {

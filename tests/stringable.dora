@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
   str[Bool](true);
   str[Bool](false);

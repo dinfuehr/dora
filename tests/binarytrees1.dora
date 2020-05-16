@@ -1,3 +1,4 @@
+//= cannon
 //= file bench/binarytrees/binarytrees.dora
 //= args 9
 //= stdout file

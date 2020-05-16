@@ -130,6 +130,10 @@ where
         self.masm.store_mem(mode, mem, src);
     }
 
+    pub fn store_zero(&mut self, mode: MachineMode, mem: Mem) {
+        self.masm.store_zero(mode, mem);
+    }
+
     pub fn lea(&mut self, dest: Reg, mem: Mem) {
         self.masm.lea(dest, mem);
     }

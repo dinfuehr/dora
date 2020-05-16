@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
   let x = "hello";
   let y = "world";

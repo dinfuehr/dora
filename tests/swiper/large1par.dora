@@ -1,2 +1,3 @@
 //= file tests/swiper/large1.dora
+//= cannon
 //= vm-args "--gc=swiper --gc-verify --gc-parallel --gc-worker=2"

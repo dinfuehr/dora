@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
   assert(is_nil(nil));
   assert(get_x_or_default(nil, 10) == 10);

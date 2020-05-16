@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let x = SomeTest();
     assert(x+0 == 1.0F);

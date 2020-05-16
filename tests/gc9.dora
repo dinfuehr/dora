@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let x = A(10);
     let y = x;

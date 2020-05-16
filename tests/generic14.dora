@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let x = SomeTest[Int32](1);
     assert(x+0 == 1);

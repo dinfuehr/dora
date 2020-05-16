@@ -1040,6 +1040,10 @@ impl MacroAssembler {
         }
     }
 
+    pub fn store_zero(&mut self, mode: MachineMode, mem: Mem) {
+        self.store_mem(mode, mem, REG_ZERO.into());
+    }
+
     pub fn common_store_base_with_offset(
         &mut self,
         mode: MachineMode,

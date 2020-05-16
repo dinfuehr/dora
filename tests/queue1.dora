@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let q = Queue[Int32]();
     assert(q.length() == 0L);

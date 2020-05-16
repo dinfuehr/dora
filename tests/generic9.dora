@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let a = A[Int32]();
     consume(a.x);

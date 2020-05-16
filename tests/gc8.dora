@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
   let node = Node(10, Node(9, nil, nil), Node(11, nil, nil));
   forceCollect();

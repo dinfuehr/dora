@@ -1,3 +1,4 @@
+//= cannon
 //= stdout "x = 1\ny = 2\nz = 3\n"
 
 var x: Int32;

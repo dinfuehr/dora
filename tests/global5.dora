@@ -1,3 +1,4 @@
+//= cannon
 //= stdout "before\nx = 19\nmiddle\nx = 19\nafter\n"
 
 var x: Int32 = foo();

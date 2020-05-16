@@ -1,3 +1,5 @@
+//= cannon
+
 var a: A;
 
 fun main() {

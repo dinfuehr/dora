@@ -519,7 +519,8 @@ impl Intrinsic {
             | Intrinsic::Int32ToDouble
             | Intrinsic::Int64ToDouble
             | Intrinsic::ReinterpretInt64AsDouble
-            | Intrinsic::DoubleSqrt => BytecodeType::Double,
+            | Intrinsic::DoubleSqrt
+            | Intrinsic::PromoteFloatToDouble => BytecodeType::Double,
             Intrinsic::BoolEq
             | Intrinsic::ByteEq
             | Intrinsic::CharEq

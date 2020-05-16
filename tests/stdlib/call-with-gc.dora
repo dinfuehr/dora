@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let bar = Bar(101);
     call("foo");

@@ -1,4 +1,5 @@
 //= stdout "10\n10\n"
+//= cannon
 
 fun main() {
     let a = A(10);

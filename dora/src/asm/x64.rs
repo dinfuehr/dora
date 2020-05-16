@@ -148,6 +148,14 @@ impl Assembler {
         self.emit_address(src.low_bits(), dest);
     }
 
+    pub fn movq_ai(&mut self, dest: Address, imm: Immediate) {
+        assert!(imm.is_int32());
+        self.emit_rex64_address(dest);
+        self.emit_u8(0xc7);
+        self.emit_address(0b000, dest);
+        self.emit_u32(imm.int32() as u32);
+    }
+
     pub fn movl_ra(&mut self, dest: Register, src: Address) {
         self.emit_rex32_modrm_address(dest, src);
         self.emit_u8(0x8B);
@@ -158,6 +166,14 @@ impl Assembler {
         self.emit_rex32_modrm_address(src, dest);
         self.emit_u8(0x89);
         self.emit_address(src.low_bits(), dest);
+    }
+
+    pub fn movl_ai(&mut self, dest: Address, imm: Immediate) {
+        assert!(imm.is_int32() || imm.is_uint32());
+        self.emit_rex32_address_optional(dest);
+        self.emit_u8(0xc7);
+        self.emit_address(0b000, dest);
+        self.emit_u32(imm.uint32());
     }
 
     pub fn movl_rr(&mut self, dest: Register, src: Register) {
@@ -2405,5 +2421,21 @@ mod tests {
     fn test_xorps_rr() {
         assert_emit!(0x0f, 0x57, 0xc1; xorps_rr(XMM0, XMM1));
         assert_emit!(0x41, 0x0f, 0x57, 0xf8; xorps_rr(XMM7, XMM8));
+    }
+
+    #[test]
+    fn test_movl_ai() {
+        assert_emit!(0xc7, 0x00, 1, 0, 0, 0; movl_ai(Address::offset(RAX, 0), Immediate(1)));
+        assert_emit!(0x41, 0xc7, 0x00, 0xff, 0xff, 0xff, 0xff; movl_ai(Address::offset(R8, 0), Immediate(u32::max_value() as i64)));
+        assert_emit!(0xc7, 0x07, 0xff, 0xff, 0xff, 0x7f; movl_ai(Address::offset(RDI, 0), Immediate(i32::max_value() as i64)));
+        assert_emit!(0x41, 0xc7, 0x07, 0, 0, 0, 0x80; movl_ai(Address::offset(R15, 0), Immediate(i32::min_value() as i64)));
+    }
+
+    #[test]
+    fn test_movq_ai() {
+        assert_emit!(0x48, 0xc7, 0x00, 1, 0, 0, 0; movq_ai(Address::offset(RAX, 0), Immediate(1)));
+        assert_emit!(0x49, 0xc7, 0x00, 0xff, 0xff, 0xff, 0x7f; movq_ai(Address::offset(R8, 0), Immediate(i32::max_value() as i64)));
+        assert_emit!(0x48, 0xc7, 0x07, 0xff, 0xff, 0xff, 0x7f; movq_ai(Address::offset(RDI, 0), Immediate(i32::max_value() as i64)));
+        assert_emit!(0x49, 0xc7, 0x07, 0, 0, 0, 0x80; movq_ai(Address::offset(R15, 0), Immediate(i32::min_value() as i64)));
     }
 }

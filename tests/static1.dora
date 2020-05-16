@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let x = Foo::test(2, 3);
     assert(x == 5);

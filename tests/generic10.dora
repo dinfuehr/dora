@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let bar = Bar[Int32](11);
     assert(bar.x.fst == 11);

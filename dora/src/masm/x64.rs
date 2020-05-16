@@ -868,6 +868,18 @@ impl MacroAssembler {
         }
     }
 
+    pub fn store_zero(&mut self, mode: MachineMode, mem: Mem) {
+        match mode {
+            MachineMode::Int8 => self.asm.movb_ai(address_from_mem(mem), Immediate(0)),
+            MachineMode::Float32 | MachineMode::Int32 => {
+                self.asm.movl_ai(address_from_mem(mem), Immediate(0))
+            }
+            MachineMode::Float64 | MachineMode::Int64 | MachineMode::Ptr | MachineMode::IntPtr => {
+                self.asm.movq_ai(address_from_mem(mem), Immediate(0))
+            }
+        }
+    }
+
     pub fn copy_reg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
         self.mov_rr(mode.is64(), dest.into(), src.into());
     }

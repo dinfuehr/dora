@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     assert(1 == foo[Int32](1));
     assert(3F == foo[Float](3F));

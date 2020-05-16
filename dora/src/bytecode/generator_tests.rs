@@ -2475,9 +2475,10 @@ fn gen_new_object_assign_to_var() {
             let cls_id = vm.cls_def_by_name("Object");
             let ctor_id = vm.ctor_def_by_name("Object");
             let expected = vec![
-                NewObject(r(0), cls_id),
-                PushRegister(r(0)),
+                NewObject(r(1), cls_id),
+                PushRegister(r(1)),
                 InvokeDirectVoid(ctor_id),
+                MovPtr(r(0), r(1)),
                 RetPtr(r(0)),
             ];
             assert_eq!(expected, code);
