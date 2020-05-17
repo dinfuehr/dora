@@ -2068,3 +2068,12 @@ fn for_with_array() {
         result
     }");
 }
+
+#[test]
+fn check_no_type_params_with_generic_type() {
+    err(
+        "class Bar[T] fun f() -> Bar { nil }",
+        pos(1, 25),
+        SemError::WrongNumberTypeParams(1, 0),
+    );
+}

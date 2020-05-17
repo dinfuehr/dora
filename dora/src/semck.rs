@@ -5,9 +5,11 @@ use crate::sym::TypeSym::{
 };
 use crate::ty::{BuiltinType, TypeList};
 use crate::typeck;
-use crate::vm::{ensure_tuple, FileId, NodeMap, VM};
+use crate::vm::{ensure_tuple, ClassId, FileId, NodeMap, VM};
 use dora_parser::ast::Type::{TypeBasic, TypeLambda, TypeSelf, TypeTuple};
-use dora_parser::ast::{Expr, ExprBlockType, Stmt, Type};
+use dora_parser::ast::{
+    Expr, ExprBlockType, Stmt, Type, TypeBasicType, TypeLambdaType, TypeTupleType,
+};
 
 mod abstractck;
 mod clsdefck;
@@ -213,272 +215,186 @@ fn init_global_addresses<'ast>(vm: &VM<'ast>) {
 pub fn read_type<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> Option<BuiltinType> {
     match *t {
         TypeSelf(_) => Some(BuiltinType::This),
+        TypeBasic(ref basic) => read_type_basic(vm, file, basic),
+        TypeTuple(ref tuple) => read_type_tuple(vm, file, tuple),
+        TypeLambda(ref lambda) => read_type_lambda(vm, file, lambda),
+    }
+}
 
-        TypeBasic(ref basic) => {
-            let sym = vm.sym.lock().get_type(basic.name);
-            if let Some(sym) = sym {
-                match sym {
-                    SymClass(cls_id) => {
-                        let ty = if basic.params.len() > 0 {
-                            let mut type_params = Vec::new();
+fn read_type_basic<'ast>(
+    vm: &VM<'ast>,
+    file: FileId,
+    basic: &'ast TypeBasicType,
+) -> Option<BuiltinType> {
+    let sym = vm.sym.lock().get_type(basic.name);
 
-                            for param in &basic.params {
-                                let param = read_type(vm, file, param);
+    if sym.is_none() {
+        let name = vm.interner.str(basic.name).to_string();
+        let msg = SemError::UnknownType(name);
+        vm.diag.lock().report(file, basic.pos, msg);
 
-                                if let Some(param) = param {
-                                    type_params.push(param);
-                                } else {
-                                    return None;
-                                }
-                            }
+        return None;
+    }
 
-                            let cls = vm.classes.idx(cls_id);
-                            let cls = cls.read();
+    let sym = sym.unwrap();
 
-                            if cls.type_params.len() != type_params.len() {
-                                let msg = SemError::WrongNumberTypeParams(
-                                    cls.type_params.len(),
-                                    type_params.len(),
-                                );
-                                vm.diag.lock().report(file, basic.pos, msg);
-                                return None;
-                            }
+    match sym {
+        SymClass(cls_id) => read_type_class(vm, file, basic, cls_id),
 
-                            for (tp, ty) in cls.type_params.iter().zip(type_params.iter()) {
-                                let cls_id = if let Some(cls_id) = ty.cls_id(vm) {
-                                    cls_id
-                                } else {
-                                    continue;
-                                };
-
-                                let cls = vm.classes.idx(cls_id);
-                                let cls = cls.read();
-
-                                for &trait_bound in &tp.trait_bounds {
-                                    if !cls.implements_trait(vm, trait_bound) {
-                                        let bound = vm.traits[trait_bound].read();
-                                        let name = ty.name(vm);
-                                        let trait_name = vm.interner.str(bound.name).to_string();
-                                        let msg =
-                                            SemError::TraitBoundNotSatisfied(name, trait_name);
-                                        vm.diag.lock().report(file, t.pos(), msg);
-                                    }
-                                }
-                            }
-
-                            let list = TypeList::with(type_params);
-                            let list_id = vm.lists.lock().insert(list);
-                            BuiltinType::Class(cls.id, list_id)
-                        } else {
-                            let cls = vm.classes.idx(cls_id);
-                            let cls = cls.read();
-
-                            cls.ty
-                        };
-
-                        return Some(ty);
-                    }
-
-                    SymTrait(trait_id) => {
-                        if basic.params.len() > 0 {
-                            let msg = SemError::NoTypeParamsExpected;
-                            vm.diag.lock().report(file, basic.pos, msg);
-                        }
-
-                        return Some(BuiltinType::Trait(trait_id));
-                    }
-
-                    SymStruct(struct_id) => {
-                        if basic.params.len() > 0 {
-                            let msg = SemError::NoTypeParamsExpected;
-                            vm.diag.lock().report(file, basic.pos, msg);
-                        }
-
-                        let list_id = vm.lists.lock().insert(TypeList::empty());
-                        return Some(BuiltinType::Struct(struct_id, list_id));
-                    }
-
-                    SymEnum(enum_id) => {
-                        if basic.params.len() > 0 {
-                            let msg = SemError::NoTypeParamsExpected;
-                            vm.diag.lock().report(file, basic.pos, msg);
-                        }
-
-                        let list_id = vm.lists.lock().insert(TypeList::empty());
-                        return Some(BuiltinType::Enum(enum_id, list_id));
-                    }
-
-                    SymClassTypeParam(cls_id, type_param_id) => {
-                        if basic.params.len() > 0 {
-                            let msg = SemError::NoTypeParamsExpected;
-                            vm.diag.lock().report(file, basic.pos, msg);
-                        }
-
-                        return Some(BuiltinType::ClassTypeParam(cls_id, type_param_id));
-                    }
-
-                    SymFctTypeParam(fct_id, type_param_id) => {
-                        if basic.params.len() > 0 {
-                            let msg = SemError::NoTypeParamsExpected;
-                            vm.diag.lock().report(file, basic.pos, msg);
-                        }
-
-                        return Some(BuiltinType::FctTypeParam(fct_id, type_param_id));
-                    }
-                }
-            } else {
-                let name = vm.interner.str(basic.name).to_string();
-                let msg = SemError::UnknownType(name);
+        SymTrait(trait_id) => {
+            if basic.params.len() > 0 {
+                let msg = SemError::NoTypeParamsExpected;
                 vm.diag.lock().report(file, basic.pos, msg);
             }
 
-            None
+            Some(BuiltinType::Trait(trait_id))
         }
 
-        TypeTuple(ref tuple) => {
-            if tuple.subtypes.len() == 0 {
-                Some(BuiltinType::Unit)
-            } else {
-                let mut subtypes = Vec::new();
-
-                for subtype in &tuple.subtypes {
-                    if let Some(ty) = read_type(vm, file, subtype) {
-                        subtypes.push(ty);
-                    } else {
-                        return None;
-                    }
-                }
-
-                let tuple_id = ensure_tuple(vm, subtypes);
-                Some(BuiltinType::Tuple(tuple_id))
+        SymStruct(struct_id) => {
+            if basic.params.len() > 0 {
+                let msg = SemError::NoTypeParamsExpected;
+                vm.diag.lock().report(file, basic.pos, msg);
             }
+
+            let list_id = vm.lists.lock().insert(TypeList::empty());
+            Some(BuiltinType::Struct(struct_id, list_id))
         }
 
-        TypeLambda(ref lambda) => {
-            let mut params = vec![];
-
-            for param in &lambda.params {
-                if let Some(p) = read_type(vm, file, param) {
-                    params.push(p);
-                } else {
-                    return None;
-                }
+        SymEnum(enum_id) => {
+            if basic.params.len() > 0 {
+                let msg = SemError::NoTypeParamsExpected;
+                vm.diag.lock().report(file, basic.pos, msg);
             }
 
-            let ret = if let Some(ret) = read_type(vm, file, &lambda.ret) {
-                ret
-            } else {
-                return None;
-            };
+            let list_id = vm.lists.lock().insert(TypeList::empty());
+            Some(BuiltinType::Enum(enum_id, list_id))
+        }
 
-            let ty = vm.lambda_types.lock().insert(params, ret);
-            let ty = BuiltinType::Lambda(ty);
+        SymClassTypeParam(cls_id, type_param_id) => {
+            if basic.params.len() > 0 {
+                let msg = SemError::NoTypeParamsExpected;
+                vm.diag.lock().report(file, basic.pos, msg);
+            }
 
-            Some(ty)
+            Some(BuiltinType::ClassTypeParam(cls_id, type_param_id))
+        }
+
+        SymFctTypeParam(fct_id, type_param_id) => {
+            if basic.params.len() > 0 {
+                let msg = SemError::NoTypeParamsExpected;
+                vm.diag.lock().report(file, basic.pos, msg);
+            }
+
+            Some(BuiltinType::FctTypeParam(fct_id, type_param_id))
         }
     }
 }
 
-pub fn read_type_unchecked<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> BuiltinType {
-    match *t {
-        TypeSelf(_) => BuiltinType::This,
+fn read_type_class<'ast>(
+    vm: &VM<'ast>,
+    file: FileId,
+    basic: &'ast TypeBasicType,
+    cls_id: ClassId,
+) -> Option<BuiltinType> {
+    let mut type_params = Vec::new();
 
-        TypeBasic(ref basic) => {
-            let sym = vm.sym.lock().get_type(basic.name);
-            if let Some(sym) = sym {
-                match sym {
-                    SymClass(cls_id) => {
-                        if basic.params.len() > 0 {
-                            let mut type_params = Vec::new();
+    for param in &basic.params {
+        let param = read_type(vm, file, param);
 
-                            for param in &basic.params {
-                                let param = read_type_unchecked(vm, file, param);
-                                type_params.push(param);
-                            }
-
-                            let list = TypeList::with(type_params);
-                            let list_id = vm.lists.lock().insert(list);
-                            BuiltinType::Class(cls_id, list_id)
-                        } else {
-                            BuiltinType::from_cls(cls_id, vm)
-                        }
-                    }
-
-                    SymTrait(trait_id) => {
-                        if basic.params.len() > 0 {
-                            let msg = SemError::NoTypeParamsExpected;
-                            vm.diag.lock().report(file, basic.pos, msg);
-                        }
-
-                        BuiltinType::Trait(trait_id)
-                    }
-
-                    SymStruct(struct_id) => {
-                        if basic.params.len() > 0 {
-                            let msg = SemError::NoTypeParamsExpected;
-                            vm.diag.lock().report(file, basic.pos, msg);
-                        }
-
-                        let list_id = vm.lists.lock().insert(TypeList::empty());
-                        BuiltinType::Struct(struct_id, list_id)
-                    }
-
-                    SymEnum(enum_id) => {
-                        if basic.params.len() > 0 {
-                            let msg = SemError::NoTypeParamsExpected;
-                            vm.diag.lock().report(file, basic.pos, msg);
-                        }
-
-                        let list_id = vm.lists.lock().insert(TypeList::empty());
-                        BuiltinType::Enum(enum_id, list_id)
-                    }
-
-                    SymClassTypeParam(cls_id, type_param_id) => {
-                        if basic.params.len() > 0 {
-                            let msg = SemError::NoTypeParamsExpected;
-                            vm.diag.lock().report(file, basic.pos, msg);
-                        }
-
-                        BuiltinType::ClassTypeParam(cls_id, type_param_id)
-                    }
-
-                    SymFctTypeParam(fct_id, type_param_id) => {
-                        if basic.params.len() > 0 {
-                            let msg = SemError::NoTypeParamsExpected;
-                            vm.diag.lock().report(file, basic.pos, msg);
-                        }
-
-                        BuiltinType::FctTypeParam(fct_id, type_param_id)
-                    }
-                }
-            } else {
-                let name = vm.interner.str(basic.name).to_string();
-                let msg = SemError::UnknownType(name);
-                vm.diag.lock().report(file, basic.pos, msg);
-
-                BuiltinType::Error
-            }
-        }
-
-        TypeTuple(ref tuple) => {
-            if tuple.subtypes.len() == 0 {
-                BuiltinType::Unit
-            } else {
-                let mut subtypes = Vec::new();
-
-                for subtype in &tuple.subtypes {
-                    subtypes.push(read_type_unchecked(vm, file, subtype));
-                }
-
-                let tuple_id = ensure_tuple(vm, subtypes);
-                BuiltinType::Tuple(tuple_id)
-            }
-        }
-
-        TypeLambda(_) => {
-            unimplemented!();
+        if let Some(param) = param {
+            type_params.push(param);
+        } else {
+            return None;
         }
     }
+
+    let cls = vm.classes.idx(cls_id);
+    let cls = cls.read();
+
+    if cls.type_params.len() != type_params.len() {
+        let msg = SemError::WrongNumberTypeParams(cls.type_params.len(), type_params.len());
+        vm.diag.lock().report(file, basic.pos, msg);
+        return None;
+    }
+
+    if type_params.len() == 0 {
+        return Some(cls.ty);
+    }
+
+    for (tp, ty) in cls.type_params.iter().zip(type_params.iter()) {
+        let cls_id = if let Some(cls_id) = ty.cls_id(vm) {
+            cls_id
+        } else {
+            continue;
+        };
+
+        let cls = vm.classes.idx(cls_id);
+        let cls = cls.read();
+
+        for &trait_bound in &tp.trait_bounds {
+            if !cls.implements_trait(vm, trait_bound) {
+                let bound = vm.traits[trait_bound].read();
+                let name = ty.name(vm);
+                let trait_name = vm.interner.str(bound.name).to_string();
+                let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
+                vm.diag.lock().report(file, basic.pos, msg);
+            }
+        }
+    }
+
+    let list = TypeList::with(type_params);
+    let list_id = vm.lists.lock().insert(list);
+    Some(BuiltinType::Class(cls.id, list_id))
+}
+
+fn read_type_tuple<'ast>(
+    vm: &VM<'ast>,
+    file: FileId,
+    tuple: &'ast TypeTupleType,
+) -> Option<BuiltinType> {
+    if tuple.subtypes.len() == 0 {
+        Some(BuiltinType::Unit)
+    } else {
+        let mut subtypes = Vec::new();
+
+        for subtype in &tuple.subtypes {
+            if let Some(ty) = read_type(vm, file, subtype) {
+                subtypes.push(ty);
+            } else {
+                return None;
+            }
+        }
+
+        let tuple_id = ensure_tuple(vm, subtypes);
+        Some(BuiltinType::Tuple(tuple_id))
+    }
+}
+
+fn read_type_lambda<'ast>(
+    vm: &VM<'ast>,
+    file: FileId,
+    lambda: &'ast TypeLambdaType,
+) -> Option<BuiltinType> {
+    let mut params = vec![];
+
+    for param in &lambda.params {
+        if let Some(p) = read_type(vm, file, param) {
+            params.push(p);
+        } else {
+            return None;
+        }
+    }
+
+    let ret = if let Some(ret) = read_type(vm, file, &lambda.ret) {
+        ret
+    } else {
+        return None;
+    };
+
+    let ty = vm.lambda_types.lock().insert(params, ret);
+    let ty = BuiltinType::Lambda(ty);
+
+    Some(ty)
 }
 
 pub fn always_returns(s: &Stmt) -> bool {
