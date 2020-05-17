@@ -1964,8 +1964,6 @@ where
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
 
-        assert!(fct.type_params.is_empty());
-
         let argsize = self.emit_invoke_arguments(arguments);
 
         let cls_type_params = fct_def.cls_type_params.clone();
