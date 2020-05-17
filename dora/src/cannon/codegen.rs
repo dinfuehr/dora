@@ -2030,7 +2030,7 @@ where
         let fct_type_params = fct_def.fct_type_params.clone();
 
         let name = fct.full_name(self.vm);
-        self.asm.emit_comment(format!("call direct {}", name));
+        self.asm.emit_comment(format!("call static {}", name));
 
         let ptr = self.ptr_for_fct_id(fct_id, cls_type_params.clone(), fct_type_params.clone());
         let gcpoint = self.create_gcpoint();
