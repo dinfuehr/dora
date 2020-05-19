@@ -1265,11 +1265,18 @@ where
 
         assert_eq!(self.bytecode.register_type(dest), glob.ty.into());
 
-        let disp = self.asm.add_addr(glob.address_value.to_ptr());
-        let pos = self.asm.pos() as i32;
-
         let name = self.vm.interner.str(glob.name);
         self.asm.emit_comment(format!("load global {}", name));
+
+        if glob.needs_initialization() {
+            let fid = glob.initializer.unwrap();
+            let ptr = self.ptr_for_fct_id(fid, TypeList::empty(), TypeList::empty());
+            let gcpoint = self.create_gcpoint();
+            self.asm.ensure_global(&*glob, fid, ptr, glob.pos, gcpoint);
+        }
+
+        let disp = self.asm.add_addr(glob.address_value.to_ptr());
+        let pos = self.asm.pos() as i32;
         self.asm.load_constpool(REG_TMP1, disp + pos);
 
         let bytecode_type = self.bytecode.register_type(dest);
@@ -1320,6 +1327,15 @@ where
 
             self.asm
                 .store_mem(glob.ty.mode(), Mem::Base(REG_TMP1, 0), reg);
+        }
+
+        if glob.needs_initialization() {
+            let disp = self.asm.add_addr(glob.address_init.to_ptr());
+            let pos = self.asm.pos() as i32;
+            self.asm.load_constpool(REG_RESULT, disp + pos);
+            self.asm.load_int_const(MachineMode::Int8, REG_TMP1, 1);
+            self.asm
+                .store_mem(MachineMode::Int8, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
         }
     }
 

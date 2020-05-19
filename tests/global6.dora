@@ -1,0 +1,17 @@
+//= cannon
+//= stdout "before\nfoo\nx = 17\nmiddle\nx = 17\nafter\n"
+
+var x: Int32 = foo();
+
+fun main() {
+    println("before");
+    println("x = ${x}");
+    println("middle");
+    println("x = ${x}");
+    println("after");
+}
+
+fun foo() -> Int32 {
+    println("foo");
+    17
+}
