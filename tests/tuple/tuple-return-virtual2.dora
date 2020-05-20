@@ -1,0 +1,19 @@
+//= cannon
+//= error nil
+//= ignore
+
+fun main() {
+    let x = bar(nil);
+}
+
+fun bar(x: Bar) -> (Int32, Foo) {
+    x.tpl1()
+}
+
+@open class Bar(let value: Int32) {
+    @open fun tpl1() -> (Int32, Foo) {
+        (1, Foo(17))
+    }
+}
+
+class Foo(let value: Int32)
