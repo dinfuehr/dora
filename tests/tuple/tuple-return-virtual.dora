@@ -1,0 +1,15 @@
+//= ignore
+
+fun main() {
+    let x = Bar().tpl1();
+    forceCollect();
+    assert(x.1.value == 17);
+}
+
+@open class Bar {
+    @open fun tpl1() -> (Int32, Foo) {
+        (1, Foo(17))
+    }
+}
+
+class Foo(let value: Int32)

@@ -1,0 +1,15 @@
+//= cannon
+
+fun main() {
+    let x = Bar().tpl1();
+    forceCollect();
+    assert(x.1.value == 17);
+}
+
+class Bar {
+    fun tpl1() -> (Int32, Foo) {
+        (1, Foo(17))
+    }
+}
+
+class Foo(let value: Int32)

@@ -1956,23 +1956,13 @@ where
         reg
     }
 
-    fn emit_invoke_direct_void(&mut self, fct_def_id: FctDefId) {
-        self.emit_invoke_direct(fct_def_id, None);
-    }
+    fn emit_invoke_direct(&mut self, dest: Option<Register>, fct_def_id: FctDefId) {
+        let bytecode_type = if let Some(dest) = dest {
+            Some(self.bytecode.register_type(dest))
+        } else {
+            None
+        };
 
-    fn emit_invoke_direct_generic(&mut self, dest: Register, fct_id: FctDefId) {
-        let bytecode_type = self.bytecode.register_type(dest);
-
-        let reg = self.emit_invoke_direct(fct_id, Some(bytecode_type));
-
-        self.emit_store_register(reg, dest);
-    }
-
-    fn emit_invoke_direct(
-        &mut self,
-        fct_def_id: FctDefId,
-        bytecode_type: Option<BytecodeType>,
-    ) -> AnyReg {
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
         let self_register = arguments[0];
 
@@ -1992,10 +1982,18 @@ where
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
 
-        let argsize = self.emit_invoke_arguments(None, arguments);
-
         let cls_type_params = fct_def.cls_type_params.clone();
         let fct_type_params = fct_def.fct_type_params.clone();
+
+        let fct_return_type =
+            specialize_type(self.vm, fct.return_type, &cls_type_params, &fct_type_params);
+
+        let result_register = match fct_return_type {
+            BuiltinType::Tuple(_) => Some(dest.expect("need register for tuple result")),
+            _ => None,
+        };
+
+        let argsize = self.emit_invoke_arguments(result_register, arguments);
 
         let name = fct.full_name(self.vm);
         self.asm.emit_comment(format!("call direct {}", name));
@@ -2003,6 +2001,7 @@ where
         let gcpoint = self.create_gcpoint();
 
         let (reg, ty) = match bytecode_type {
+            Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), BuiltinType::Unit),
             Some(bytecode_type) => (result_reg(bytecode_type), bytecode_type.into()),
             None => (REG_RESULT.into(), BuiltinType::Unit),
         };
@@ -2019,7 +2018,11 @@ where
 
         self.asm.decrease_stack_frame(argsize);
 
-        reg
+        if let Some(dest) = dest {
+            if !fct_return_type.is_tuple() {
+                self.emit_store_register(reg, dest);
+            }
+        }
     }
 
     fn emit_invoke_static(&mut self, dest: Option<Register>, fct_def_id: FctDefId) {
@@ -3110,34 +3113,34 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
 
     fn visit_invoke_direct_void(&mut self, fctdef: FctDefId) {
-        self.emit_invoke_direct_void(fctdef)
+        self.emit_invoke_direct(None, fctdef)
     }
     fn visit_invoke_direct_bool(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_direct_generic(dest, fctdef);
+        self.emit_invoke_direct(Some(dest), fctdef);
     }
     fn visit_invoke_direct_uint8(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_direct_generic(dest, fctdef);
+        self.emit_invoke_direct(Some(dest), fctdef);
     }
     fn visit_invoke_direct_char(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_direct_generic(dest, fctdef);
+        self.emit_invoke_direct(Some(dest), fctdef);
     }
     fn visit_invoke_direct_int32(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_direct_generic(dest, fctdef);
+        self.emit_invoke_direct(Some(dest), fctdef);
     }
     fn visit_invoke_direct_int64(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_direct_generic(dest, fctdef);
+        self.emit_invoke_direct(Some(dest), fctdef);
     }
     fn visit_invoke_direct_float(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_direct_generic(dest, fctdef);
+        self.emit_invoke_direct(Some(dest), fctdef);
     }
     fn visit_invoke_direct_double(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_direct_generic(dest, fctdef);
+        self.emit_invoke_direct(Some(dest), fctdef);
     }
     fn visit_invoke_direct_ptr(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_direct_generic(dest, fctdef);
+        self.emit_invoke_direct(Some(dest), fctdef);
     }
     fn visit_invoke_direct_tuple(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_direct_generic(dest, fctdef);
+        self.emit_invoke_direct(Some(dest), fctdef);
     }
 
     fn visit_invoke_virtual_void(&mut self, fctdef: FctDefId) {
