@@ -186,6 +186,12 @@ where
             if ty.is_ptr() {
                 let offset = self.register_offset(Register(idx));
                 self.references.push(offset);
+            } else if let Some(tuple_id) = ty.tuple_id() {
+                let offset = self.register_offset(Register(idx));
+                let tuples = self.vm.tuples.lock();
+                for &ref_offset in tuples.get_tuple(tuple_id).references() {
+                    self.references.push(offset + ref_offset);
+                }
             }
         }
     }
@@ -1059,7 +1065,13 @@ where
         );
     }
 
-    fn emit_tuple_load(&mut self, dest: Register, src: Register, tuple_id: TupleId, idx: u32) {
+    fn emit_load_tuple_element(
+        &mut self,
+        dest: Register,
+        src: Register,
+        tuple_id: TupleId,
+        idx: u32,
+    ) {
         let dest_type = self.bytecode.register_type(dest);
         let (_ty, offset) = self.vm.tuples.lock().get_at(tuple_id, idx as usize);
         let src_offset = self.register_offset(src);
@@ -1167,7 +1179,7 @@ where
 
         assert!(self.bytecode.register_type(obj).is_ptr());
 
-        let obj_reg = REG_RESULT;
+        let obj_reg = REG_TMP1;
         self.emit_load_register(obj, obj_reg.into());
 
         let bytecode_type = self.bytecode.register_type(dest);
@@ -1588,7 +1600,7 @@ where
         let array_header_size = Header::size() as usize + mem::ptr_width_usize();
 
         let alloc_size = match cls.size {
-            InstanceSize::PrimitiveArray(size) => {
+            InstanceSize::PrimitiveArray(size) | InstanceSize::TupleArray(size) => {
                 assert_ne!(size, 0);
                 self.asm
                     .determine_array_size(REG_TMP1, REG_TMP1, size, true);
@@ -1646,7 +1658,7 @@ where
         );
 
         match cls.size {
-            InstanceSize::PrimitiveArray(size) => {
+            InstanceSize::PrimitiveArray(size) | InstanceSize::TupleArray(size) => {
                 self.emit_array_initialization(REG_RESULT, REG_TMP1, size);
             }
             InstanceSize::ObjArray => {
@@ -1921,7 +1933,7 @@ where
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
 
-        let argsize = self.emit_invoke_arguments(arguments);
+        let argsize = self.emit_invoke_arguments(None, arguments);
 
         // handling of class and function type parameters has to implemented
         let cls_type_params = fct_def.cls_type_params.clone();
@@ -1980,7 +1992,7 @@ where
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
 
-        let argsize = self.emit_invoke_arguments(arguments);
+        let argsize = self.emit_invoke_arguments(None, arguments);
 
         let cls_type_params = fct_def.cls_type_params.clone();
         let fct_type_params = fct_def.fct_type_params.clone();
@@ -2010,23 +2022,7 @@ where
         reg
     }
 
-    fn emit_invoke_static_void(&mut self, fct_id: FctDefId) {
-        self.emit_invoke_static(fct_id, None);
-    }
-
-    fn emit_invoke_static_generic(&mut self, dest: Register, fct_id: FctDefId) {
-        let bytecode_type = self.bytecode.register_type(dest);
-
-        let reg = self.emit_invoke_static(fct_id, Some(bytecode_type));
-
-        self.emit_store_register(reg, dest);
-    }
-
-    fn emit_invoke_static(
-        &mut self,
-        fct_def_id: FctDefId,
-        bytecode_type: Option<BytecodeType>,
-    ) -> AnyReg {
+    fn emit_invoke_static(&mut self, dest: Option<Register>, fct_def_id: FctDefId) {
         let fct_def = self.vm.fct_defs.idx(fct_def_id);
         let fct_def = fct_def.read();
 
@@ -2034,42 +2030,63 @@ where
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
 
-        if let FctKind::Builtin(intrinsic) = fct.kind {
-            return self.emit_invoke_intrinsic(&*fct, &*fct_def, intrinsic);
-        }
-
-        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
-
-        let argsize = self.emit_invoke_arguments(arguments);
-
         let cls_type_params = fct_def.cls_type_params.clone();
         let fct_type_params = fct_def.fct_type_params.clone();
 
-        let name = fct.full_name(self.vm);
-        self.asm.emit_comment(format!("call static {}", name));
+        let fct_return_type =
+            specialize_type(self.vm, fct.return_type, &cls_type_params, &fct_type_params);
 
-        let ptr = self.ptr_for_fct_id(fct_id, cls_type_params.clone(), fct_type_params.clone());
-        let gcpoint = self.create_gcpoint();
-        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+        let reg = if let FctKind::Builtin(intrinsic) = fct.kind {
+            self.emit_invoke_intrinsic(&*fct, &*fct_def, intrinsic)
+        } else {
+            let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
-        let (reg, ty) = match bytecode_type {
-            Some(bytecode_type) => (result_reg(bytecode_type), bytecode_type.into()),
-            None => (REG_RESULT.into(), BuiltinType::Unit),
+            let bytecode_type = if let Some(dest) = dest {
+                Some(self.bytecode.register_type(dest))
+            } else {
+                None
+            };
+
+            let result_register = match fct_return_type {
+                BuiltinType::Tuple(_) => Some(dest.expect("need register for tuple result")),
+                _ => None,
+            };
+
+            let argsize = self.emit_invoke_arguments(result_register, arguments);
+
+            let name = fct.full_name(self.vm);
+            self.asm.emit_comment(format!("call static {}", name));
+
+            let ptr = self.ptr_for_fct_id(fct_id, cls_type_params.clone(), fct_type_params.clone());
+            let gcpoint = self.create_gcpoint();
+            let position = self.bytecode.offset_position(self.current_offset.to_u32());
+
+            let (reg, ty) = match bytecode_type {
+                Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), BuiltinType::Unit),
+                Some(bytecode_type) => (result_reg(bytecode_type), bytecode_type.into()),
+                None => (REG_RESULT.into(), BuiltinType::Unit),
+            };
+            self.asm.direct_call(
+                fct_id,
+                ptr.to_ptr(),
+                cls_type_params,
+                fct_type_params,
+                position,
+                gcpoint,
+                ty,
+                reg,
+            );
+
+            self.asm.decrease_stack_frame(argsize);
+
+            reg
         };
-        self.asm.direct_call(
-            fct_id,
-            ptr.to_ptr(),
-            cls_type_params,
-            fct_type_params,
-            position,
-            gcpoint,
-            ty,
-            reg,
-        );
 
-        self.asm.decrease_stack_frame(argsize);
-
-        reg
+        if let Some(dest) = dest {
+            if !fct_return_type.is_tuple() {
+                self.emit_store_register(reg, dest);
+            }
+        }
     }
 
     fn emit_invoke_intrinsic(
@@ -2178,11 +2195,11 @@ where
         }
     }
 
-    fn emit_invoke_arguments(&mut self, arguments: Vec<Register>) -> i32 {
-        if arguments.len() == 0 {
-            return 0;
-        }
-
+    fn emit_invoke_arguments(
+        &mut self,
+        result_register: Option<Register>,
+        arguments: Vec<Register>,
+    ) -> i32 {
         let argsize = self.determine_argsize(&arguments);
 
         self.asm.increase_stack_frame(argsize);
@@ -2190,6 +2207,16 @@ where
         let mut reg_idx = 0;
         let mut freg_idx = 0;
         let mut sp_offset = 0;
+
+        match result_register {
+            Some(dest) => {
+                let offset = self.register_offset(dest);
+                self.asm.lea(REG_PARAMS[0], Mem::Local(offset));
+                reg_idx += 1;
+            }
+
+            _ => {}
+        }
 
         for src in arguments {
             let bytecode_type = self.bytecode.register_type(src);
@@ -2590,7 +2617,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         tuple_id: TupleId,
         idx: u32,
     ) {
-        self.emit_tuple_load(dest, src, tuple_id, idx);
+        self.emit_load_tuple_element(dest, src, tuple_id, idx);
     }
 
     fn visit_load_field_bool(
@@ -3145,34 +3172,34 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
 
     fn visit_invoke_static_void(&mut self, fctdef: FctDefId) {
-        self.emit_invoke_static_void(fctdef)
+        self.emit_invoke_static(None, fctdef)
     }
     fn visit_invoke_static_bool(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_static_generic(dest, fctdef);
+        self.emit_invoke_static(Some(dest), fctdef);
     }
     fn visit_invoke_static_uint8(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_static_generic(dest, fctdef);
+        self.emit_invoke_static(Some(dest), fctdef);
     }
     fn visit_invoke_static_char(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_static_generic(dest, fctdef);
+        self.emit_invoke_static(Some(dest), fctdef);
     }
     fn visit_invoke_static_int32(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_static_generic(dest, fctdef);
+        self.emit_invoke_static(Some(dest), fctdef);
     }
     fn visit_invoke_static_int64(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_static_generic(dest, fctdef);
+        self.emit_invoke_static(Some(dest), fctdef);
     }
     fn visit_invoke_static_float(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_static_generic(dest, fctdef);
+        self.emit_invoke_static(Some(dest), fctdef);
     }
     fn visit_invoke_static_double(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_static_generic(dest, fctdef);
+        self.emit_invoke_static(Some(dest), fctdef);
     }
     fn visit_invoke_static_ptr(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_static_generic(dest, fctdef);
+        self.emit_invoke_static(Some(dest), fctdef);
     }
     fn visit_invoke_static_tuple(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_static_generic(dest, fctdef);
+        self.emit_invoke_static(Some(dest), fctdef);
     }
 
     fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {

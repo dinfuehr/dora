@@ -1,3 +1,5 @@
+//= cannon
+
 fun main() {
     let result = tpl[String]("test");
     assert(result.0 == "test");

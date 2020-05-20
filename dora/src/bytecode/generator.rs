@@ -619,7 +619,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         // Determine types for arguments and return values
         let (arg_types, arg_bytecode_types, return_type) =
-            self.determine_callee_types(&call_type, &*callee, dest);
+            self.determine_callee_types(&call_type, &*callee);
 
         // Allocate register for result
         let return_reg = if return_type.is_unit() {
@@ -728,13 +728,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         &mut self,
         call_type: &CallType,
         fct: &Fct,
-        dest: DataDest,
     ) -> (Vec<BuiltinType>, Vec<BytecodeType>, BuiltinType) {
-        let return_type = if dest.is_effect() {
-            BuiltinType::Unit
-        } else {
-            self.specialize_type_for_call(&call_type, fct.return_type)
-        };
+        let return_type = self.specialize_type_for_call(&call_type, fct.return_type);
 
         let arg_types = fct
             .params_with_self()
@@ -878,7 +873,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     }
                     InstanceSize::ObjArray
                     | InstanceSize::PrimitiveArray(_)
-                    | InstanceSize::UnitArray => {
+                    | InstanceSize::UnitArray
+                    | InstanceSize::TupleArray(_) => {
                         let length_arg = arg_regs[0];
                         self.gen.emit_new_array(object_reg, cls_def_id, length_arg);
                     }

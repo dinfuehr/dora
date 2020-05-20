@@ -1,5 +1,5 @@
+//= cannon
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
-//= ignore
 
 var x: (Foo, Foo);
 
