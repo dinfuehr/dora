@@ -127,6 +127,11 @@ where
             CCALL_REG_PARAMS[1].into(),
             Mem::Base(REG_SP, offset_params),
         );
+        self.masm.load_mem(
+            MachineMode::Ptr,
+            CCALL_REG_PARAMS[2].into(),
+            Mem::Base(REG_SP, offset_params + mem::ptr_width()),
+        );
         self.masm.raw_call(compile_request as *const u8);
 
         self.masm.load_mem(
@@ -191,7 +196,7 @@ where
     }
 }
 
-fn compile_request(ra: usize, receiver: Address) -> Address {
+fn compile_request(ra: usize, receiver1: Address, receiver2: Address) -> Address {
     let vm = get_vm();
 
     let lazy_compilation_site = {
@@ -219,19 +224,38 @@ fn compile_request(ra: usize, receiver: Address) -> Address {
             patch_fct_call(vm, ra, fct_id, cls_tps, fct_tps, disp)
         }
 
-        LazyCompilationSite::VirtCompile(vtable_index, ref cls_tps, ref fct_tps) => {
-            patch_vtable_call(vm, receiver, vtable_index, cls_tps, fct_tps)
-        }
+        LazyCompilationSite::VirtCompile(
+            receiver_is_first,
+            vtable_index,
+            ref cls_tps,
+            ref fct_tps,
+        ) => patch_vtable_call(
+            vm,
+            receiver_is_first,
+            receiver1,
+            receiver2,
+            vtable_index,
+            cls_tps,
+            fct_tps,
+        ),
     }
 }
 
 fn patch_vtable_call(
     vm: &VM,
-    receiver: Address,
+    receiver_is_first: bool,
+    receiver1: Address,
+    receiver2: Address,
     vtable_index: u32,
     cls_tps: &TypeList,
     fct_tps: &TypeList,
 ) -> Address {
+    let receiver = if receiver_is_first {
+        receiver1
+    } else {
+        receiver2
+    };
+
     let obj = unsafe { &mut *receiver.to_mut_ptr::<Obj>() };
     let vtable = obj.header().vtbl();
     let cls_id = vtable.class().cls_id.expect("no corresponding class");

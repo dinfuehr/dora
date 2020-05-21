@@ -179,9 +179,14 @@ impl MacroAssembler {
         self.emit_u32(asm::blr(*scratch));
     }
 
-    pub fn indirect_call(&mut self, pos: Position, index: u32, cls_type_params: TypeList) {
-        let obj = REG_PARAMS[0];
-
+    pub fn indirect_call(
+        &mut self,
+        pos: Position,
+        vtable_index: u32,
+        self_index: u32,
+        cls_type_params: TypeList,
+    ) {
+        let obj = REG_PARAMS[self_index as usize];
         self.test_if_nil_bailout(pos, obj, Trap::NIL);
 
         // need to use scratch register instead of REG_RESULT for calculations
@@ -192,7 +197,7 @@ impl MacroAssembler {
         self.load_mem(MachineMode::Ptr, (*scratch).into(), Mem::Base(obj, 0));
 
         // calculate offset of VTable entry
-        let disp = VTable::offset_of_method_table() + (index as i32) * ptr_width();
+        let disp = VTable::offset_of_method_table() + (vtable_index as i32) * ptr_width();
 
         // load vtable entry into scratch
         self.load_mem(
@@ -204,7 +209,8 @@ impl MacroAssembler {
         // call *scratch
         self.emit_u32(asm::blr(*scratch));
         self.emit_lazy_compilation_site(LazyCompilationSite::VirtCompile(
-            index,
+            self_index == 0,
+            vtable_index,
             cls_type_params,
             TypeList::empty(),
         ));

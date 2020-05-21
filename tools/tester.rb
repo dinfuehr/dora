@@ -88,14 +88,14 @@ class TestCase
                 :vm_args,
                 :args,
                 :expectation,
-                :optional_configs,
+                :configs,
                 :results,
                 :timeout
 
   def initialize(file, opts = {})
     self.expectation = opts.fetch(:expectation, TestExpectation.new(fail: false))
     self.file = self.test_file = file
-    self.optional_configs = [:main]
+    self.configs = [:main]
     self.results = {}
     self.args = self.vm_args = ""
     self.timeout = 60
@@ -106,7 +106,7 @@ class TestCase
       self.results = :ignore 
       return {:ignore => 1}
     end
-    optional_configs.each do |optional_config|
+    configs.each do |optional_config|
       self.results[optional_config] = run_test($config[optional_config], mutex)
     end
 
@@ -469,7 +469,10 @@ def parse_test_file(file)
         test_case.vm_args = arguments[1..-1].join(" ")
 
       when "cannon"
-        test_case.optional_configs.push(:cannon)
+        test_case.configs.push(:cannon)
+
+      when "cannon-only"
+        test_case.configs = [:cannon]
 
       when "boots"
         test_case.args += '--boots=dora-boots --gc-verify'

@@ -1914,8 +1914,6 @@ where
         let position = self.bytecode.offset_position(self.current_offset.to_u32());
         assert_eq!(bytecode_type_self, BytecodeType::Ptr);
 
-        self.emit_load_register(self_register, REG_RESULT.into());
-
         let fct_def = self.vm.fct_defs.idx(fct_def_id);
         let fct_def = fct_def.read();
 
@@ -1951,8 +1949,16 @@ where
             None => (REG_RESULT.into(), BuiltinType::Unit),
         };
 
-        self.asm
-            .indirect_call(vtable_index, position, gcpoint, ty, cls_type_params, reg);
+        let self_index = if result_register.is_some() { 1 } else { 0 };
+        self.asm.indirect_call(
+            vtable_index,
+            self_index,
+            position,
+            gcpoint,
+            ty,
+            cls_type_params,
+            reg,
+        );
 
         self.asm.decrease_stack_frame(argsize);
 

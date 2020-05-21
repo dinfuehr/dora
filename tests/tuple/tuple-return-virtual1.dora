@@ -1,4 +1,4 @@
-//= ignore
+//= cannon-only
 
 fun main() {
     let x = Bar(42).tpl1();

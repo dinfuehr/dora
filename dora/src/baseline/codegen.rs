@@ -3191,6 +3191,7 @@ where
             let cls_type_params = csite.args[0].ty().type_params(self.vm);
             self.asm.indirect_call(
                 vtable_index,
+                0,
                 pos,
                 gcpoint,
                 result_type,

@@ -117,16 +117,21 @@ impl MacroAssembler {
         self.call_reg(REG_RESULT);
     }
 
-    pub fn indirect_call(&mut self, pos: Position, index: u32, cls_type_params: TypeList) {
-        let obj = REG_PARAMS[0];
-
+    pub fn indirect_call(
+        &mut self,
+        pos: Position,
+        vtable_index: u32,
+        self_index: u32,
+        cls_type_params: TypeList,
+    ) {
+        let obj = REG_PARAMS[self_index as usize];
         self.test_if_nil_bailout(pos, obj, Trap::NIL);
 
         // REG_RESULT = [obj] (load vtable)
         self.load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Base(obj, 0));
 
         // calculate offset of VTable entry
-        let disp = VTable::offset_of_method_table() + (index as i32) * ptr_width();
+        let disp = VTable::offset_of_method_table() + (vtable_index as i32) * ptr_width();
 
         // load vtable entry
         self.load_mem(
@@ -138,7 +143,8 @@ impl MacroAssembler {
         // call *REG_RESULT
         self.call_reg(REG_RESULT);
         self.emit_lazy_compilation_site(LazyCompilationSite::VirtCompile(
-            index,
+            self_index == 0,
+            vtable_index,
             cls_type_params,
             TypeList::empty(),
         ));

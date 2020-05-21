@@ -491,14 +491,16 @@ where
 
     pub fn indirect_call(
         &mut self,
-        index: u32,
+        vtable_index: u32,
+        self_index: u32,
         pos: Position,
         gcpoint: GcPoint,
         return_type: BuiltinType,
         cls_type_params: TypeList,
         dest: AnyReg,
     ) {
-        self.masm.indirect_call(pos, index, cls_type_params);
+        self.masm
+            .indirect_call(pos, vtable_index, self_index, cls_type_params);
         self.call_epilog(pos, return_type, dest, gcpoint);
     }
 

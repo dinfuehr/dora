@@ -1,6 +1,6 @@
-//= cannon
+//= cannon-only
 //= error nil
-//= ignore
+//= stderr "nil check failed\n2: bar(Bar) -> (Int32, Foo): 10\n1: main(): 6\n"
 
 fun main() {
     let x = bar(nil);
