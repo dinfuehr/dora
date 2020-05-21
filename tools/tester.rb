@@ -7,7 +7,7 @@ require 'open3'
 require 'timeout'
 
 $config = {
-  main: '',
+  baseline: '--compiler=baseline',
   cannon: '--compiler=cannon',
 }
 
@@ -95,7 +95,7 @@ class TestCase
   def initialize(file, opts = {})
     self.expectation = opts.fetch(:expectation, TestExpectation.new(fail: false))
     self.file = self.test_file = file
-    self.configs = [:main]
+    self.configs = [:baseline, :cannon]
     self.results = {}
     self.args = self.vm_args = ""
     self.timeout = 60
@@ -469,7 +469,7 @@ def parse_test_file(file)
         test_case.vm_args = arguments[1..-1].join(" ")
 
       when "cannon"
-        test_case.configs.push(:cannon)
+        test_case.configs.push(:cannon) unless test_case.configs.include?(:cannon)
 
       when "cannon-only"
         test_case.configs = [:cannon]

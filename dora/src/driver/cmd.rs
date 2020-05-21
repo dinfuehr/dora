@@ -56,7 +56,7 @@ Options:
     --gc-young-appel        Use Appel dynamic resizing of young generation.
     --gc-semi-ratio=<num>   Use fixed ratio of semi space in young generation.
 
-    --compiler=<name>       Switch default compiler. Possible values: cannon, baseline [default: baseline].
+    --compiler=<name>       Switch default compiler. Possible values: cannon, baseline [default: cannon].
     --test-filter=<name>    Filter tests.
 
     --disable-tlab          Disable tlab allocation.
@@ -170,7 +170,7 @@ impl Args {
     }
 
     pub fn compiler(&self) -> CompilerName {
-        self.flag_compiler.unwrap_or(CompilerName::Baseline)
+        self.flag_compiler.unwrap_or(CompilerName::Cannon)
     }
 }
 
