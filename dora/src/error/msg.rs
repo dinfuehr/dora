@@ -38,6 +38,8 @@ pub enum SemError {
     ShadowEnumValue(String),
     InvalidLhsAssignment,
     NoEnumValue,
+    EnumArgsIncompatible(String, String, Vec<String>, Vec<String>),
+    EnumArgsNoParens(String, String),
     VarNeedsTypeInfo(String),
     ParamTypesIncompatible(String, Vec<String>, Vec<String>),
     WhileCondType(String),
@@ -232,6 +234,18 @@ impl SemError {
             SemError::ShadowEnum(ref name) => format!("can not shadow enum `{}`.", name),
             SemError::ShadowEnumValue(ref name) => format!("can not shadow enum value `{}`.", name),
             SemError::NoEnumValue => "enum needs at least one value.".into(),
+            SemError::EnumArgsIncompatible(ref xenum, ref name, ref def, ref expr) => {
+                let def = def.join(", ");
+                let expr = expr.join(", ");
+
+                format!(
+                    "enum `{}::{}({})` cannot be called as `{}({})`",
+                    xenum, name, def, name, expr
+                )
+            }
+            SemError::EnumArgsNoParens(ref name, ref variant) => {
+                format!("{}::{} needs to be used without parens.", name, variant)
+            }
             SemError::VarNeedsTypeInfo(ref name) => format!(
                 "variable `{}` needs either type declaration or expression.",
                 name

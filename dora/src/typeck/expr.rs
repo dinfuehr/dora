@@ -12,7 +12,7 @@ use crate::ty::{BuiltinType, TypeList, TypeParamId};
 use crate::typeck::lookup::MethodLookup;
 use crate::vm::{
     self, ensure_tuple, find_field_in_class, find_methods_in_class, CallType, ClassId, ConvInfo,
-    Fct, FctId, FctParent, FctSrc, FileId, ForTypeInfo, IdentType, Intrinsic, VM,
+    EnumId, Fct, FctId, FctParent, FctSrc, FileId, ForTypeInfo, IdentType, Intrinsic, VM,
 };
 
 use dora_parser::ast::visit::Visitor;
@@ -1045,6 +1045,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 BuiltinType::Error
             }
 
+            Some(IdentType::EnumValue(enum_id, variant_id)) => {
+                self.check_expr_call_enum(e, enum_id, variant_id, &arg_types)
+            }
+
             _ => {
                 if expr_type.is_error() {
                     self.src.set_ty(e.id, expr_type);
@@ -1054,6 +1058,62 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.check_expr_call_expr(e, expr_type, &arg_types)
             }
         }
+    }
+
+    fn check_expr_call_enum(
+        &mut self,
+        e: &'ast ExprCallType,
+        enum_id: EnumId,
+        variant_id: u32,
+        arg_types: &[BuiltinType],
+    ) -> BuiltinType {
+        let xenum = self.vm.enums[enum_id].read();
+        let variant = &xenum.variants[variant_id as usize];
+
+        if !self.check_expr_call_enum_args(variant, arg_types) {
+            let enum_name = self.vm.interner.str(xenum.name).to_string();
+            let variant_name = self.vm.interner.str(variant.name).to_string();
+            let variant_types = variant
+                .types
+                .iter()
+                .map(|a| a.name(self.vm))
+                .collect::<Vec<_>>();
+            let arg_types = arg_types
+                .iter()
+                .map(|a| a.name(self.vm))
+                .collect::<Vec<_>>();
+            let msg =
+                SemError::EnumArgsIncompatible(enum_name, variant_name, variant_types, arg_types);
+            self.vm.diag.lock().report(self.file, e.pos, msg);
+        } else if variant.types.is_empty() {
+            let enum_name = self.vm.interner.str(xenum.name).to_string();
+            let variant_name = self.vm.interner.str(variant.name).to_string();
+            let msg = SemError::EnumArgsNoParens(enum_name, variant_name);
+            self.vm.diag.lock().report(self.file, e.pos, msg);
+        }
+
+        let list_id = self.vm.lists.lock().insert(TypeList::empty());
+        let ty = BuiltinType::Enum(enum_id, list_id);
+        self.src.set_ty(e.id, ty);
+        return ty;
+    }
+
+    fn check_expr_call_enum_args(
+        &mut self,
+        variant: &vm::EnumVariant,
+        arg_types: &[BuiltinType],
+    ) -> bool {
+        if variant.types.len() != arg_types.len() {
+            return false;
+        }
+
+        for (def_ty, &arg_ty) in variant.types.iter().zip(arg_types) {
+            if !def_ty.allows(self.vm, arg_ty) {
+                return false;
+            }
+        }
+
+        true
     }
 
     fn check_expr_call_generic_static_method(
@@ -1587,6 +1647,26 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let xenum = self.vm.enums[id].read();
 
                 if let Some(&value) = xenum.name_to_value.get(&name) {
+                    let variant = &xenum.variants[value as usize];
+
+                    if !self.used_in_call.contains(&e.id) && !variant.types.is_empty() {
+                        let enum_name = self.vm.interner.str(xenum.name).to_string();
+                        let variant_name = self.vm.interner.str(variant.name).to_string();
+                        let variant_types = variant
+                            .types
+                            .iter()
+                            .map(|a| a.name(self.vm))
+                            .collect::<Vec<_>>();
+                        let arg_types = Vec::new();
+                        let msg = SemError::EnumArgsIncompatible(
+                            enum_name,
+                            variant_name,
+                            variant_types,
+                            arg_types,
+                        );
+                        self.vm.diag.lock().report(self.file, e.pos, msg);
+                    }
+
                     self.src
                         .map_idents
                         .insert(e.id, IdentType::EnumValue(id, value));
