@@ -466,118 +466,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         } else if e.lhs.is_dot() {
             self.check_expr_assign_field(e);
         } else if e.lhs.is_ident() {
-            let lhs_type;
-
-            let rhs_type = self.check_expr(&e.rhs, BuiltinType::Any);
-
-            self.src.set_ty(e.id, BuiltinType::Unit);
-
-            if let Some(ident_type) = self.src.map_idents.get(e.lhs.id()) {
-                match ident_type {
-                    &IdentType::Var(varid) => {
-                        if !self.src.vars[varid].reassignable {
-                            self.vm
-                                .diag
-                                .lock()
-                                .report(self.file, e.pos, SemError::LetReassigned);
-                        }
-
-                        lhs_type = self.src.vars[varid].ty;
-                    }
-
-                    &IdentType::Global(gid) => {
-                        let glob = self.vm.globals.idx(gid);
-                        let glob = glob.read();
-
-                        if !e.initializer && !glob.reassignable {
-                            self.vm
-                                .diag
-                                .lock()
-                                .report(self.file, e.pos, SemError::LetReassigned);
-                        }
-
-                        lhs_type = glob.ty;
-                    }
-
-                    &IdentType::Field(_, _) => {
-                        unreachable!();
-                    }
-
-                    &IdentType::Struct(_) => {
-                        unimplemented!();
-                    }
-
-                    &IdentType::Const(_) => {
-                        self.vm
-                            .diag
-                            .lock()
-                            .report(self.file, e.pos, SemError::AssignmentToConst);
-
-                        return;
-                    }
-
-                    &IdentType::Fct(_) | &IdentType::FctType(_, _) => {
-                        self.vm
-                            .diag
-                            .lock()
-                            .report(self.file, e.pos, SemError::FctReassigned);
-
-                        return;
-                    }
-
-                    &IdentType::Class(_) | &IdentType::ClassType(_, _) => {
-                        self.vm
-                            .diag
-                            .lock()
-                            .report(self.file, e.pos, SemError::ClassReassigned);
-
-                        return;
-                    }
-
-                    &IdentType::Module(_) => unreachable!(),
-
-                    &IdentType::TypeParam(_) | &IdentType::TypeParamStaticMethod(_, _) => {
-                        self.vm
-                            .diag
-                            .lock()
-                            .report(self.file, e.pos, SemError::TypeParamReassigned);
-
-                        return;
-                    }
-
-                    &IdentType::Enum(_) | &IdentType::EnumValue(_, _) => {
-                        self.vm.diag.lock().report(
-                            self.file,
-                            e.pos,
-                            SemError::InvalidLhsAssignment,
-                        );
-
-                        return;
-                    }
-
-                    &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
-                    &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => {
-                        unreachable!()
-                    }
-                }
-
-                if !lhs_type.is_error()
-                    && !rhs_type.is_error()
-                    && !lhs_type.allows(self.vm, rhs_type)
-                {
-                    let ident = e.lhs.to_ident().unwrap();
-                    let name = self.vm.interner.str(ident.name).to_string();
-                    let lhs_type = lhs_type.name(self.vm);
-                    let rhs_type = rhs_type.name(self.vm);
-
-                    self.src.set_ty(e.id, BuiltinType::Unit);
-
-                    let msg = SemError::AssignType(name, lhs_type, rhs_type);
-                    self.vm.diag.lock().report(self.file, e.pos, msg);
-                }
-
-                return;
-            }
+            self.check_expr_assign_ident(e);
         } else {
             self.vm
                 .diag
@@ -586,6 +475,121 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
 
         self.src.set_ty(e.id, BuiltinType::Unit);
+    }
+
+    fn check_expr_assign_ident(&mut self, e: &'ast ExprBinType) {
+        let lhs_type;
+
+        let rhs_type = self.check_expr(&e.rhs, BuiltinType::Any);
+
+        self.src.set_ty(e.id, BuiltinType::Unit);
+
+        let ident_type = self.src.map_idents.get(e.lhs.id());
+
+        if ident_type.is_none() {
+            return;
+        }
+
+        let ident_type = ident_type.unwrap();
+
+        match ident_type {
+            &IdentType::Var(varid) => {
+                if !self.src.vars[varid].reassignable {
+                    self.vm
+                        .diag
+                        .lock()
+                        .report(self.file, e.pos, SemError::LetReassigned);
+                }
+
+                lhs_type = self.src.vars[varid].ty;
+            }
+
+            &IdentType::Global(gid) => {
+                let glob = self.vm.globals.idx(gid);
+                let glob = glob.read();
+
+                if !e.initializer && !glob.reassignable {
+                    self.vm
+                        .diag
+                        .lock()
+                        .report(self.file, e.pos, SemError::LetReassigned);
+                }
+
+                lhs_type = glob.ty;
+            }
+
+            &IdentType::Field(_, _) => {
+                unreachable!();
+            }
+
+            &IdentType::Struct(_) => {
+                unimplemented!();
+            }
+
+            &IdentType::Const(_) => {
+                self.vm
+                    .diag
+                    .lock()
+                    .report(self.file, e.pos, SemError::AssignmentToConst);
+
+                return;
+            }
+
+            &IdentType::Fct(_) | &IdentType::FctType(_, _) => {
+                self.vm
+                    .diag
+                    .lock()
+                    .report(self.file, e.pos, SemError::FctReassigned);
+
+                return;
+            }
+
+            &IdentType::Class(_) | &IdentType::ClassType(_, _) => {
+                self.vm
+                    .diag
+                    .lock()
+                    .report(self.file, e.pos, SemError::ClassReassigned);
+
+                return;
+            }
+
+            &IdentType::Module(_) => unreachable!(),
+
+            &IdentType::TypeParam(_) | &IdentType::TypeParamStaticMethod(_, _) => {
+                self.vm
+                    .diag
+                    .lock()
+                    .report(self.file, e.pos, SemError::TypeParamReassigned);
+
+                return;
+            }
+
+            &IdentType::Enum(_) | &IdentType::EnumValue(_, _) => {
+                self.vm
+                    .diag
+                    .lock()
+                    .report(self.file, e.pos, SemError::InvalidLhsAssignment);
+
+                return;
+            }
+
+            &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
+            &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => {
+                unreachable!()
+            }
+        }
+
+        if !lhs_type.is_error() && !rhs_type.is_error() && !lhs_type.allows(self.vm, rhs_type) {
+            let ident = e.lhs.to_ident().unwrap();
+            let name = self.vm.interner.str(ident.name).to_string();
+            let lhs_type = lhs_type.name(self.vm);
+            let rhs_type = rhs_type.name(self.vm);
+
+            self.src.set_ty(e.id, BuiltinType::Unit);
+
+            let msg = SemError::AssignType(name, lhs_type, rhs_type);
+            self.vm.diag.lock().report(self.file, e.pos, msg);
+        }
     }
 
     fn check_expr_assign_call(&mut self, e: &'ast ExprBinType) {
