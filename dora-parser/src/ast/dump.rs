@@ -584,16 +584,22 @@ impl<'a> AstDumper<'a> {
 
         self.indent(|d| {
             d.indent(|d| {
-                d.dump_expr(&expr.cond);
+                d.dump_expr(&expr.cond_head.expr.as_ref().unwrap());
             });
-            dump!(d, "then");
-            d.indent(|d| {
-                d.dump_expr(&expr.then_block);
-            });
-            dump!(d, "else");
-            d.indent(|d| {
-                d.dump_expr(&expr.then_block);
-            });
+            for branch in &expr.branches {
+                dump!(d, "then");
+                d.indent(|d| {
+                    if let Some(cond_tail) = &branch.cond_tail {
+                        d.dump_expr(cond_tail);
+                    }
+                });
+            }
+            if let Some(else_block) = &expr.else_block {
+                dump!(d, "else");
+                d.indent(|d| {
+                    d.dump_expr(else_block);
+                });
+            }
         });
     }
 

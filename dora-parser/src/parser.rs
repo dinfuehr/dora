@@ -1499,7 +1499,7 @@ impl<'a> Parser<'a> {
 
         let cond = self.parse_expression()?;
 
-        let then_block = self.parse_block()?;
+        let branches = self.parse_branches()?;
 
         let else_block = if self.token.is(TokenKind::Else) {
             self.advance_token()?;
@@ -1515,14 +1515,51 @@ impl<'a> Parser<'a> {
 
         let span = self.span_from(start);
 
+        let let_pattern = LetPattern::Ident(LetIdentType {
+            id: self.generate_id(),
+            pos,
+            span,
+            mutable: false,
+            name: self.interner.intern(TokenKind::DotDotDot.name()),
+        });
+        let let_condition = StmtLetType {
+            id: self.generate_id(),
+            pos,
+            span,
+            pattern: Box::from(let_pattern),
+            mutable: false,
+            data_type: None,
+            expr: Some(cond),
+        };
         Ok(Box::new(Expr::create_if(
             self.generate_id(),
             pos,
             span,
-            cond,
-            then_block,
+            Box::from(let_condition),
+            branches,
             else_block,
         )))
+    }
+
+    fn parse_branches(&mut self) -> Result<Vec<Branch>, ParseErrorAndPos> {
+        let mut branches = Vec::new();
+        if self.token.is(TokenKind::DotDotDot) {
+            while self.token.is(TokenKind::DotDotDot) {
+                let cond_tail = Some(self.parse_expression()?);
+                let then_block = self.parse_block()?;
+                branches.push(Branch {
+                    cond_tail,
+                    then_block,
+                })
+            }
+        } else {
+            let then_block = self.parse_block()?;
+            branches.push(Branch {
+                cond_tail: None,
+                then_block,
+            })
+        }
+        Ok(branches)
     }
 
     fn parse_match(&mut self) -> ExprResult {
@@ -1945,6 +1982,7 @@ impl<'a> Parser<'a> {
             TokenKind::LParen => self.parse_parentheses(),
             TokenKind::LBrace => self.parse_block(),
             TokenKind::If => self.parse_if(),
+            TokenKind::DotDotDot => self.parse_dotdotdot(),
             TokenKind::LitChar(_) => self.parse_lit_char(),
             TokenKind::LitInt(_, _, _) => self.parse_lit_int(),
             TokenKind::LitFloat(_, _) => self.parse_lit_float(),
@@ -1960,6 +1998,20 @@ impl<'a> Parser<'a> {
                 ParseError::ExpectedFactor(self.token.name().clone()),
             )),
         }
+    }
+
+    fn parse_dotdotdot(&mut self) -> ExprResult {
+        let pos = self.token.position;
+        let span = self.token.span;
+        self.expect_token(TokenKind::DotDotDot)?;
+
+        Ok(Box::new(Expr::create_ident(
+            self.generate_id(),
+            pos,
+            span,
+            self.interner.intern(TokenKind::DotDotDot.name()),
+            None,
+        )))
     }
 
     fn parse_identifier(&mut self) -> ExprResult {
@@ -3174,7 +3226,7 @@ mod tests {
         let (expr, _) = parse_expr("if true { 2; } else { 3; }");
         let ifexpr = expr.to_if().unwrap();
 
-        assert!(ifexpr.cond.is_lit_bool());
+        assert!(ifexpr.cond_head.expr.as_ref().unwrap().is_lit_bool());
         assert!(ifexpr.else_block.is_some());
     }
 
@@ -3183,7 +3235,7 @@ mod tests {
         let (expr, _) = parse_expr("if true { 2; }");
         let ifexpr = expr.to_if().unwrap();
 
-        assert!(ifexpr.cond.is_lit_bool());
+        assert!(ifexpr.cond_head.expr.as_ref().unwrap().is_lit_bool());
         assert!(ifexpr.else_block.is_none());
     }
 
@@ -3749,7 +3801,7 @@ mod tests {
     fn parse_struct_lit_if() {
         let (expr, _) = parse_expr("if i < n { }");
         let ifexpr = expr.to_if().unwrap();
-        let bin = ifexpr.cond.to_bin().unwrap();
+        let bin = ifexpr.cond_head.expr.as_ref().unwrap().to_bin().unwrap();
 
         assert!(bin.lhs.is_ident());
         assert!(bin.rhs.is_ident());
@@ -4119,6 +4171,53 @@ mod tests {
             1,
             36,
         );
+    }
+
+    #[test]
+    fn parse_if_pattern() {
+        let (expr, _) = parse_expr(
+            "if true
+          ... == 5 { \"\" }
+          ... == 6.0 { '2' }
+          else { 4 }",
+        );
+
+        let expr = expr.to_if().unwrap();
+
+        let branch0 = &expr.branches[0];
+        let branch0_cond_tail = &branch0.cond_tail.as_ref().unwrap().to_bin().unwrap();
+        assert!(branch0_cond_tail.lhs.is_ident());
+        assert!(branch0_cond_tail.rhs.is_lit_int());
+        assert!(branch0
+            .then_block
+            .to_block()
+            .unwrap()
+            .expr
+            .as_ref()
+            .unwrap()
+            .is_lit_str());
+
+        let branch1 = &expr.branches[1];
+        let branch1_cond_tail = &branch1.cond_tail.as_ref().unwrap().to_bin().unwrap();
+        assert!(branch1_cond_tail.lhs.is_ident());
+        assert!(branch1_cond_tail.rhs.is_lit_float());
+        assert!(branch1
+            .then_block
+            .to_block()
+            .unwrap()
+            .expr
+            .as_ref()
+            .unwrap()
+            .is_lit_char());
+
+        let else_block = expr.else_block.as_ref().unwrap();
+        assert!(else_block
+            .to_block()
+            .unwrap()
+            .expr
+            .as_ref()
+            .unwrap()
+            .is_lit_int())
     }
 
     #[test]

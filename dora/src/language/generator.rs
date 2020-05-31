@@ -123,7 +123,9 @@ impl<'a> AstBytecodeGen<'a> {
             Stmt::Break(ref stmt) => self.visit_stmt_break(stmt),
             Stmt::Continue(ref stmt) => self.visit_stmt_continue(stmt),
             Stmt::Expr(ref expr) => self.visit_stmt_expr(expr),
-            Stmt::Let(ref stmt) => self.visit_stmt_let(stmt),
+            Stmt::Let(ref stmt) => {
+                self.visit_stmt_let(stmt);
+            }
             Stmt::While(ref stmt) => self.visit_stmt_while(stmt),
             Stmt::For(ref stmt) => self.visit_stmt_for(stmt),
         }
@@ -396,23 +398,27 @@ impl<'a> AstBytecodeGen<'a> {
         self.free_if_temp(object_reg);
     }
 
-    fn visit_stmt_let(&mut self, stmt: &StmtLetType) {
+    fn visit_stmt_let(&mut self, stmt: &StmtLetType) -> Option<Register> {
         match &*stmt.pattern {
-            LetPattern::Ident(ref ident) => {
-                self.visit_stmt_let_ident(stmt, ident);
-            }
+            LetPattern::Ident(ref ident) => self.visit_stmt_let_ident(stmt, ident),
 
             LetPattern::Underscore(_) => {
                 self.visit_stmt_let_underscore(stmt);
+                None
             }
 
             LetPattern::Tuple(ref tuple) => {
                 self.visit_stmt_let_pattern(stmt, tuple);
+                None
             }
         }
     }
 
-    fn visit_stmt_let_ident(&mut self, stmt: &StmtLetType, ident: &LetIdentType) {
+    fn visit_stmt_let_ident(
+        &mut self,
+        stmt: &StmtLetType,
+        ident: &LetIdentType,
+    ) -> Option<Register> {
         let var_id = *self.src.map_vars.get(ident.id).unwrap();
         let ty = self.var_ty(var_id);
 
@@ -428,7 +434,9 @@ impl<'a> AstBytecodeGen<'a> {
         };
 
         if let Some(ref expr) = stmt.expr {
-            self.visit_expr(expr, dest);
+            Some(self.visit_expr(expr, dest))
+        } else {
+            None
         }
     }
 
@@ -869,38 +877,62 @@ impl<'a> AstBytecodeGen<'a> {
                 self.ensure_register(dest, BytecodeType::from_ty(self.sa, ty))
             };
 
-            let else_lbl = self.gen.create_label();
+            let mut next_lbl;
             let end_lbl = self.gen.create_label();
 
-            let cond_reg = self.visit_expr(&expr.cond, DataDest::Alloc);
-            self.gen.emit_jump_if_false(cond_reg, else_lbl);
-            self.free_if_temp(cond_reg);
+            let cond_head_reg = self.visit_stmt_let(&expr.cond_head).unwrap();
 
-            self.visit_expr(&expr.then_block, DataDest::Reg(dest));
-
-            if !expr_always_returns(&expr.then_block) {
-                self.gen.emit_jump(end_lbl);
+            for branch in &expr.branches {
+                next_lbl = self.gen.create_label();
+                self.visit_if_branch(cond_head_reg, branch, next_lbl, end_lbl, dest);
             }
 
-            self.gen.bind_label(else_lbl);
             self.visit_expr(else_block, DataDest::Reg(dest));
             self.gen.bind_label(end_lbl);
 
             dest
         } else {
-            // Without else-branch there can't be return value
+            // Without else-branch there can't be return value.
+            // This will assumption will change when we start considering exhaustive types, i. e.
+            // `cond_head` is an enum and all enum members have been covered in preceding branches.
             assert!(ty.is_unit());
 
             let end_lbl = self.gen.create_label();
-            let cond_reg = self.visit_expr(&expr.cond, DataDest::Alloc);
+            let cond_reg = self.visit_expr(&expr.cond_head.expr.as_ref().unwrap(), DataDest::Alloc);
             self.gen.emit_jump_if_false(cond_reg, end_lbl);
             self.free_if_temp(cond_reg);
 
-            self.emit_expr_for_effect(&expr.then_block);
+            for branch in expr.branches.iter() {
+                self.emit_expr_for_effect(&branch.then_block);
+            }
 
             self.gen.bind_label(end_lbl);
             Register::invalid()
         }
+    }
+
+    fn visit_if_branch(
+        &mut self,
+        cond_head: Register,
+        branch: &Branch,
+        next_lbl: Label,
+        end_lbl: Label,
+        dest: Register,
+    ) {
+        let cond_reg = if branch.cond_tail.is_some() {
+            let cond = branch.cond_tail.as_ref().unwrap();
+            self.visit_expr(cond, DataDest::Alloc)
+        } else {
+            cond_head
+        };
+        self.gen.emit_jump_if_false(cond_reg, next_lbl);
+        self.free_if_temp(cond_reg);
+
+        self.visit_expr(&branch.then_block, DataDest::Reg(dest));
+        if !expr_always_returns(&branch.then_block) {
+            self.gen.emit_jump(end_lbl);
+        }
+        self.gen.bind_label(next_lbl);
     }
 
     fn visit_expr_block(&mut self, block: &ExprBlockType, dest: DataDest) -> Register {

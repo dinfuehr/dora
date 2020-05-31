@@ -297,7 +297,7 @@ fn type_if() {
     ok("fun x() { if false { } }");
     err(
         "fun x() { if 4I { } }",
-        pos(1, 11),
+        pos(1, 14),
         SemError::IfCondType("Int32".into()),
     );
 }

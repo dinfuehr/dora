@@ -351,8 +351,13 @@ pub fn walk_expr<V: Visitor>(v: &mut V, e: &Expr) {
         }
 
         Expr::If(ref value) => {
-            v.visit_expr(&value.cond);
-            v.visit_expr(&value.then_block);
+            v.visit_stmt(&Stmt::Let(value.cond_head.as_ref().clone()));
+            for branch in &value.branches {
+                if let Some(cond_tail) = &branch.cond_tail {
+                    v.visit_expr(cond_tail);
+                }
+                v.visit_expr(&branch.then_block);
+            }
 
             if let Some(ref b) = value.else_block {
                 v.visit_expr(b);

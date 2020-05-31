@@ -1,0 +1,20 @@
+import std::fatalError;
+
+fun main() {
+  let x = if check()
+    ... == false { 1 }
+    ... == true { 2 }
+    else { -1 };
+  assert(x == 2);
+}
+
+var checked: Int32 = 0;
+
+fun check(): Bool {
+  if checked != 0 {
+    fatalError("fun ran " + checked.toString() + " times!");
+  } else {
+    checked = checked + 1;
+  }
+  true
+}

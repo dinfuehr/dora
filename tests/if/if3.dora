@@ -1,0 +1,7 @@
+fun main() {
+  let x = if true
+    ... == false { 1 }
+    ... == true { 2 }
+    else { -1 };
+  assert(x == 2);
+}

@@ -39,7 +39,7 @@ pub fn expr_block_returns_value(e: &ExprBlockType) -> Result<(), Position> {
 }
 
 fn expr_if_returns_value(e: &ExprIfType) -> Result<(), Position> {
-    expr_returns_value(&e.then_block)?;
+    expr_returns_value(&e.branches.get(0).unwrap().then_block)?; // fixme
 
     match e.else_block {
         Some(ref block) => expr_returns_value(block),

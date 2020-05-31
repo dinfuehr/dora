@@ -1,0 +1,14 @@
+fun main() {
+  let x = if "abc"
+    ... == "bcd" { 1 }
+    ... != "abc" { 2 }
+    ... .size() == 3L { 3 }
+    else { -1 };
+  assert(x == 3);
+  let x = if "abc"
+    ... == "bcd" { 1 }
+    ... == "abc" { 2 }
+    ... .size() == 4L { 3 }
+    else { -1 };
+  assert(x == 2);
+}

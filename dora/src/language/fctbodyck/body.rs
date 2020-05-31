@@ -26,6 +26,7 @@ use crate::vm::{
 
 use dora_parser::ast;
 use dora_parser::ast::visit::Visitor;
+use dora_parser::ast::Expr;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntBase, IntSuffix};
@@ -748,36 +749,46 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn check_expr_if(&mut self, expr: &ast::ExprIfType, _expected_ty: SourceType) -> SourceType {
-        let expr_type = self.check_expr(&expr.cond, SourceType::Any);
-
-        if !expr_type.is_bool() && !expr_type.is_error() {
-            let expr_type = expr_type.name_fct(self.sa, self.fct);
-            let msg = SemError::IfCondType(expr_type);
-            self.sa.diag.lock().report(self.file_id, expr.pos, msg);
-        }
-
-        let then_type = self.check_expr(&expr.then_block, SourceType::Any);
-
-        let merged_type = if let Some(ref else_block) = expr.else_block {
-            let else_type = self.check_expr(else_block, SourceType::Any);
-
-            if expr_always_returns(&expr.then_block) {
-                else_type
-            } else if expr_always_returns(else_block) {
-                then_type
-            } else if then_type.is_error() {
-                else_type
-            } else if else_type.is_error() {
-                then_type
-            } else if !then_type.allows(self.sa, else_type.clone()) {
-                let then_type_name = then_type.name_fct(self.sa, self.fct);
-                let else_type_name = else_type.name_fct(self.sa, self.fct);
-                let msg = SemError::IfBranchTypesIncompatible(then_type_name, else_type_name);
-                self.sa.diag.lock().report(self.file_id, expr.pos, msg);
-                then_type
+        let let_stmt = expr.cond_head.as_ref();
+        self.check_stmt_let(let_stmt);
+        let mut branch_types = Vec::new();
+        let mut require_cond_head_is_bool = false;
+        for branch in &expr.branches {
+            if branch.cond_tail.is_some() {
+                let cond_tail = branch.cond_tail.as_ref().unwrap();
+                let cond_tail_type = self.check_expr(&cond_tail, SourceType::Any);
+                self.check_if_condition_is_bool(cond_tail_type, cond_tail);
             } else {
-                then_type
+                // if any branch is empty, the condition head needs to be of type bool
+                require_cond_head_is_bool = true;
             }
+
+            branch_types.push((
+                self.check_expr(&branch.then_block, SourceType::Any),
+                expr_always_returns(&branch.then_block),
+            ));
+        }
+        if require_cond_head_is_bool {
+            let cond_expr = let_stmt.expr.as_ref().unwrap();
+            let cond_type = self.analysis.ty(cond_expr.id());
+            self.check_if_condition_is_bool(cond_type, cond_expr);
+        }
+        let merged_type = if expr.else_block.is_some() {
+            let else_block = expr.else_block.as_ref().unwrap();
+            branch_types.push((
+                self.check_expr(else_block, SourceType::Any),
+                expr_always_returns(else_block),
+            ));
+
+            branch_types
+                .iter()
+                .fold((SourceType::Error, true), |t1, t2| {
+                    (
+                        self.merge_branch_types(expr, t1.0, t1.1, t2.clone().0, t2.1),
+                        false,
+                    )
+                })
+                .0
         } else {
             SourceType::Unit
         };
@@ -785,6 +796,41 @@ impl<'a> TypeCheck<'a> {
         self.analysis.set_ty(expr.id, merged_type.clone());
 
         merged_type
+    }
+
+    fn check_if_condition_is_bool(&mut self, cond_type: SourceType, cond: &Box<Expr>) {
+        if !cond_type.is_bool() && !cond_type.is_error() {
+            let expr_type = cond_type.name_fct(self.sa, self.fct);
+            let msg = SemError::IfCondType(expr_type);
+            self.sa.diag.lock().report(self.file_id, cond.pos(), msg);
+        }
+    }
+
+    fn merge_branch_types(
+        &mut self,
+        expr: &ast::ExprIfType,
+        type1: SourceType,
+        always_returns1: bool,
+        type2: SourceType,
+        always_returns2: bool,
+    ) -> SourceType {
+        if always_returns1 {
+            type2
+        } else if always_returns2 {
+            type1
+        } else if type1.is_error() {
+            type2
+        } else if type2.is_error() {
+            type1
+        } else if !type1.allows(self.sa, type2.clone()) {
+            let then_type_name = type1.name_fct(self.sa, self.fct);
+            let else_type_name = type2.name_fct(self.sa, self.fct);
+            let msg = SemError::IfBranchTypesIncompatible(then_type_name, else_type_name);
+            self.sa.diag.lock().report(self.file_id, expr.pos, msg);
+            type1
+        } else {
+            type1
+        }
     }
 
     fn check_expr_ident(&mut self, e: &ast::ExprIdentType, expected_ty: SourceType) -> SourceType {

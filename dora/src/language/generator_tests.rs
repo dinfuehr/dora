@@ -431,11 +431,12 @@ fn gen_stmt_if() {
 fn gen_stmt_if_else_with_return() {
     let result = code("fun f(a: Bool): Int32 { if a { return 1; } else { return 2; } }");
     let expected = vec![
-        JumpIfFalse(r(0), 3),
-        ConstInt32(r(1), 1),
-        Ret(r(1)),
-        ConstInt32(r(1), 2),
-        Ret(r(1)),
+        Mov(Register(1), Register(0)),
+        JumpIfFalse(r(1), 4),
+        ConstInt32(r(2), 1),
+        Ret(r(2)),
+        ConstInt32(r(2), 2),
+        Ret(r(2)),
     ];
     assert_eq!(expected, result);
 }
@@ -451,9 +452,10 @@ fn gen_stmt_if_else_without_return() {
     );
     let expected = vec![
         Mov(r(1), r(0)),
-        JumpIfFalse(r(1), 4),
+        Mov(r(2), r(1)),
+        JumpIfFalse(r(2), 5),
         ConstFalse(r(1)),
-        Jump(5),
+        Jump(6),
         ConstTrue(r(1)),
         Ret(r(1)),
     ];
