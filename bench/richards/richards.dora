@@ -18,9 +18,9 @@ fun main() {
     }
 }
 
-var COUNT: Int32 = 1000;
-var EXPECTED_QUEUE_COUNT: Int32 = 2322;
-var EXPECTED_HOLD_COUNT: Int32 = 928;
+const COUNT: Int32 = 1000;
+const EXPECTED_QUEUE_COUNT: Int32 = 2322;
+const EXPECTED_HOLD_COUNT: Int32 = 928;
 
 class Benchmark() {
     fun runRichards() {
@@ -54,16 +54,16 @@ class Benchmark() {
     }
 }
 
-var ID_IDLE: Int32 = 0;
-var ID_WORKER: Int32 = 1;
-var ID_HANDLER_A: Int32 = 2;
-var ID_HANDLER_B: Int32 = 3;
-var ID_DEVICE_A: Int32 = 4;
-var ID_DEVICE_B: Int32 = 5;
-var NUMBER_OF_IDS: Int32 = 6;
+const ID_IDLE: Int32 = 0;
+const ID_WORKER: Int32 = 1;
+const ID_HANDLER_A: Int32 = 2;
+const ID_HANDLER_B: Int32 = 3;
+const ID_DEVICE_A: Int32 = 4;
+const ID_DEVICE_B: Int32 = 5;
+const NUMBER_OF_IDS: Int32 = 6;
 
-var KIND_DEVICE: Int32 = 0;
-var KIND_WORK: Int32 = 1;
+const KIND_DEVICE: Int32 = 0;
+const KIND_WORK: Int32 = 1;
 
 class Scheduler() {
     var queueCount: Int32 = 0;
@@ -152,10 +152,10 @@ class Scheduler() {
     }
 }
 
-var STATE_RUNNING: Int32 = 0;
-var STATE_RUNNABLE: Int32 = 1;
-var STATE_SUSPENDED: Int32 = 2;
-var STATE_HELD: Int32 = 4;
+const STATE_RUNNING: Int32 = 0;
+const STATE_RUNNABLE: Int32 = 1;
+const STATE_SUSPENDED: Int32 = 2;
+const STATE_HELD: Int32 = 4;
 
 var STATE_SUSPENDED_RUNNABLE: Int32 = STATE_SUSPENDED | STATE_RUNNABLE;
 var STATE_NOT_HELD: Int32 = STATE_HELD.not();
