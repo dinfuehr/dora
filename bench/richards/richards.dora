@@ -3,9 +3,14 @@
 // Used in Octane 2.0 (https://developers.google.com/octane/benchmark)
 
 fun main() {
+    var iterations = 8200;
+
+    if argc() > 0 {
+        iterations = argv(0).toInt32().unwrap();
+    }  
+
     let bench = Benchmark();
 
-    let iterations = 8200;
     var i = 0;
     while i < iterations {
         bench.runRichards();
