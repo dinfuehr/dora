@@ -1,0 +1,352 @@
+// Dora implementation of Richards benchmark. 
+// Originally implemented in BCPL (http://www.cl.cam.ac.uk/~mr10/Bench.html)
+// Used in Octane 2.0 (https://developers.google.com/octane/benchmark)
+
+fun main() {
+    var iterations = 8200;
+
+    if argc() > 0 {
+        iterations = argv(0).toInt32().unwrap();
+    }  
+
+    let bench = Benchmark();
+
+    var i = 0;
+    while i < iterations {
+        bench.runRichards();
+        i = i + 1;
+    }
+}
+
+const COUNT: Int32 = 1000;
+const EXPECTED_QUEUE_COUNT: Int32 = 2322;
+const EXPECTED_HOLD_COUNT: Int32 = 928;
+
+class Benchmark() {
+    fun runRichards() {
+        let scheduler = Scheduler();
+        scheduler.addIdleTask(ID_IDLE, 0, none[Packet](), COUNT);
+
+        var queue = Packet::new(none[Packet](), ID_WORKER, KIND_WORK);
+        queue = Packet::new(some[Packet](queue), ID_WORKER, KIND_WORK);
+        scheduler.addWorkerTask(ID_WORKER, 1000, some[Packet](queue));        
+
+        queue = Packet::new(none[Packet](), ID_DEVICE_A, KIND_DEVICE);
+        queue = Packet::new(some[Packet](queue), ID_DEVICE_A, KIND_DEVICE);
+        queue = Packet::new(some[Packet](queue), ID_DEVICE_A, KIND_DEVICE);
+        scheduler.addHandlerTask(ID_HANDLER_A, 2000, some[Packet](queue));
+
+        queue = Packet::new(none[Packet](), ID_DEVICE_B, KIND_DEVICE);
+        queue = Packet::new(some[Packet](queue), ID_DEVICE_B, KIND_DEVICE);
+        queue = Packet::new(some[Packet](queue), ID_DEVICE_B, KIND_DEVICE);
+        scheduler.addHandlerTask(ID_HANDLER_B, 3000, some[Packet](queue));
+
+        scheduler.addDeviceTask(ID_DEVICE_A, 4000, none[Packet]());
+
+        scheduler.addDeviceTask(ID_DEVICE_B, 5000, none[Packet]());
+
+        scheduler.schedule();
+
+        if scheduler.queueCount != EXPECTED_QUEUE_COUNT || scheduler.holdCount != EXPECTED_HOLD_COUNT {
+            println("Error during execution: queueCount = ${scheduler.queueCount}, holdCount = ${scheduler.holdCount}.");
+            exit(1);
+        }
+    }
+}
+
+const ID_IDLE: Int32 = 0;
+const ID_WORKER: Int32 = 1;
+const ID_HANDLER_A: Int32 = 2;
+const ID_HANDLER_B: Int32 = 3;
+const ID_DEVICE_A: Int32 = 4;
+const ID_DEVICE_B: Int32 = 5;
+const NUMBER_OF_IDS: Int32 = 6;
+
+const KIND_DEVICE: Int32 = 0;
+const KIND_WORK: Int32 = 1;
+
+class Scheduler() {
+    var queueCount: Int32 = 0;
+    var holdCount: Int32 = 0;
+    var blocks: Array[Option[TaskControlBlock]] = arrayFill[Option[TaskControlBlock]](NUMBER_OF_IDS.toInt64(), none[TaskControlBlock]());
+    var currentTcb: Option[TaskControlBlock] = none[TaskControlBlock]();
+    var list: Option[TaskControlBlock] = none[TaskControlBlock]();
+    var currentId: Option[Int32] = none[Int32]();
+
+    fun addIdleTask(id: Int32, priority: Int32, queue: Option[Packet], count: Int32) {
+        self.addRunningTask(id, priority, queue, IdleTask(self, 1, count));
+    }
+
+    fun addWorkerTask(id: Int32, priority: Int32, queue: Option[Packet]) {
+        self.addTask(id, priority, queue, WorkerTask(self, ID_HANDLER_A, 0));
+    }
+
+    fun addHandlerTask(id: Int32, priority: Int32, queue: Option[Packet]) {
+        self.addTask(id, priority, queue, HandlerTask(self));
+    }
+
+    fun addDeviceTask(id: Int32, priority: Int32, queue: Option[Packet]) {
+        self.addTask(id, priority, queue, DeviceTask(self));
+    }
+
+    fun addRunningTask(id: Int32, priority: Int32, queue: Option[Packet], task: Task) {
+        self.addTask(id, priority, queue, task);
+        self.currentTcb.unwrap().setRunning();
+    }
+
+    fun addTask(id: Int32, priority: Int32, queue: Option[Packet], task: Task) {
+        self.currentTcb = some[TaskControlBlock](TaskControlBlock::new(self.list, id, priority, queue, task));
+        self.list = self.currentTcb;
+        self.blocks.set(id.toInt64(), self.currentTcb);
+    }
+
+    fun schedule() {
+        self.currentTcb = self.list;
+        while(self.currentTcb.isSome()) {
+            let tcb = self.currentTcb.unwrap();
+            if tcb.isHeldOrSuspended() {
+                self.currentTcb = tcb.link;
+            } else {
+                self.currentId = some[Int32](tcb.id);
+                self.currentTcb = tcb.run();
+            }
+        }
+    }
+
+    fun release(id: Int32) -> Option[TaskControlBlock] {        
+        let blockTcb = self.blocks.get(id.toInt64());
+        if blockTcb.isNone() {   
+            return none[TaskControlBlock]();
+        }
+        let tcb = blockTcb.unwrap();
+        tcb.markAsNotHeld();
+        if tcb.priority > self.currentTcb.unwrap().priority {
+            return blockTcb;
+        } else {
+            return self.currentTcb;
+        }
+    }
+
+    fun holdCurrent() -> Option[TaskControlBlock] {
+        let tcb = self.currentTcb.unwrap();
+        self.holdCount = self.holdCount + 1;
+        tcb.markAsHeld();
+        return tcb.link;
+    }
+
+    fun suspendCurrent() -> Option[TaskControlBlock] {
+        let tcb = self.currentTcb.unwrap();
+        tcb.markAsSuspended();
+        return some[TaskControlBlock](tcb);
+    }
+
+    fun queue(packet: Packet) -> Option[TaskControlBlock] {
+        let t = self.blocks.get(packet.id.toInt64());
+        if t.isNone() {
+            return none[TaskControlBlock]();
+        }
+        self.queueCount = self.queueCount + 1;
+        packet.link = none[Packet]();
+        packet.id = self.currentId.unwrap();
+        return some[TaskControlBlock](t.unwrap().checkPriorityAdd(self.currentTcb.unwrap(), packet));
+    }
+}
+
+const STATE_RUNNING: Int32 = 0;
+const STATE_RUNNABLE: Int32 = 1;
+const STATE_SUSPENDED: Int32 = 2;
+const STATE_HELD: Int32 = 4;
+
+var STATE_SUSPENDED_RUNNABLE: Int32 = STATE_SUSPENDED | STATE_RUNNABLE;
+var STATE_NOT_HELD: Int32 = STATE_HELD.not();
+
+class TaskControlBlock(let link: Option[TaskControlBlock], let id: Int32, let priority: Int32, var queue: Option[Packet], let task: Task, var state: Int32) {
+    @static fun new(link: Option[TaskControlBlock], id: Int32, priority: Int32, queue: Option[Packet], task: Task) -> TaskControlBlock {
+        if queue.isNone() {
+            return TaskControlBlock(link, id, priority, queue, task, STATE_SUSPENDED);
+        } else {
+            return TaskControlBlock(link, id, priority, queue, task, STATE_SUSPENDED_RUNNABLE);
+        }
+    }
+
+    fun setRunning() { self.state = STATE_RUNNING; }
+    fun markAsNotHeld() { self.state = self.state & STATE_NOT_HELD; }
+    fun markAsHeld() { self.state = self.state | STATE_HELD; }
+    fun isHeldOrSuspended() -> Bool { return (self.state & STATE_HELD) != 0 || (self.state == STATE_SUSPENDED); }
+    fun markAsSuspended() { self.state = self.state | STATE_SUSPENDED; }
+    fun markAsRunnable() { self.state = self.state | STATE_RUNNABLE; }
+
+    fun run() -> Option[TaskControlBlock] {
+        var packet: Option[Packet] = none[Packet]();
+        if self.state == STATE_SUSPENDED_RUNNABLE {
+            packet = self.queue;
+            self.queue = packet.unwrap().link;
+            if self.queue.isNone() {
+                self.state = STATE_RUNNING;
+            } else {
+                self.state = STATE_RUNNABLE;
+            }
+        }
+        return self.task.run(packet);
+    }
+
+    fun checkPriorityAdd(task: TaskControlBlock, packet: Packet) -> TaskControlBlock {
+        if self.queue.isNone() {
+            self.queue = some[Packet](packet);
+            self.markAsRunnable();
+            if self.priority > task.priority {
+                return self;
+            }
+        } else {
+            self.queue = some[Packet](packet.addTo(self.queue));
+        }
+        return task;
+    }
+}
+
+impl Stringable for TaskControlBlock {
+    fun toString() -> String {
+        return "tcb { ${self.task.toString()}@${self.state} }";
+    }
+}
+
+@open @abstract class Task {
+    @abstract fun run(packet: Option[Packet]) -> Option[TaskControlBlock];
+    @abstract fun toString() -> String;
+}
+
+class IdleTask(let scheduler: Scheduler, var seed: Int32, var count: Int32): Task {
+    @override fun run(packet: Option[Packet]) -> Option[TaskControlBlock] {        
+        self.count = self.count - 1;
+        if self.count == 0 {
+            return self.scheduler.holdCurrent();
+        }
+        if self.seed & 1 == 0 {
+            self.seed = self.seed >> 1;
+            return self.scheduler.release(ID_DEVICE_A);
+        } else {
+            self.seed = (self.seed >> 1) ^ 0xD008;
+            return self.scheduler.release(ID_DEVICE_B);
+        }
+    }
+
+    @override fun toString() -> String {
+        return "IdleTask";
+    }
+}
+
+class DeviceTask(let scheduler: Scheduler): Task {
+    var seed: Option[Packet] = none[Packet]();
+
+    @override fun run(packet: Option[Packet]) -> Option[TaskControlBlock] {
+        if packet.isNone() {
+            if self.seed.isNone() {
+                return self.scheduler.suspendCurrent();
+            }
+            let v = self.seed.unwrap();
+            self.seed = none[Packet]();
+            return self.scheduler.queue(v);
+        } else {
+            self.seed = packet;
+            return self.scheduler.holdCurrent();
+        }
+    }
+
+    @override fun toString() -> String {
+        return "DeviceTask";
+    }
+}
+
+class WorkerTask(let scheduler: Scheduler, var v1: Int32, var v2: Int32): Task {
+    @override fun run(packet: Option[Packet]) -> Option[TaskControlBlock] {
+        if packet.isNone() {
+            return self.scheduler.suspendCurrent();
+        } else {
+            let p = packet.unwrap();
+            if self.v1 == ID_HANDLER_A {
+                self.v1 = ID_HANDLER_B;
+            } else {
+                self.v1 = ID_HANDLER_A;
+            }
+            p.id = self.v1;
+            p.a1 = 0;
+            var i = 0;
+            while i < DATA_SIZE {
+                self.v2 = self.v2 + 1;
+                if self.v2 > 26 {
+                    self.v2 = 1;
+                }
+                i = i + 1;
+            }
+            return self.scheduler.queue(p);
+        }
+    }
+
+    @override fun toString() -> String {
+        return "WorkerTask";
+    }
+}
+
+class HandlerTask(let scheduler: Scheduler): Task {
+    var v1: Option[Packet] = none[Packet]();
+    var v2: Option[Packet] = none[Packet]();
+
+    @override fun run(packet: Option[Packet]) -> Option[TaskControlBlock] {
+        if packet.isSome() {
+            let p = packet.unwrap();
+            if p.kind == KIND_WORK {
+                self.v1 = some[Packet](p.addTo(self.v1));
+            } else {
+                self.v2 = some[Packet](p.addTo(self.v2));
+            }             
+        }
+        if self.v1.isSome() {
+            let v1_p = self.v1.unwrap();
+            let count = v1_p.a1;
+            if count < DATA_SIZE {
+                if self.v2.isSome() {                    
+                    let v = self.v2.unwrap();
+                    self.v2 = v.link;
+                    v.a1 = v1_p.a2.get(count.toInt64());
+                    v1_p.a1 = count + 1;
+                    return self.scheduler.queue(v);
+                }
+            } else {
+                self.v1 = v1_p.link;
+                return self.scheduler.queue(v1_p);
+            }
+        }
+        return self.scheduler.suspendCurrent();
+    }
+
+    @override fun toString() -> String {
+        return "HandlerTask";
+    }
+}
+
+var DATA_SIZE: Int32 = 4;
+
+class Packet(var link: Option[Packet], var id: Int32, let kind: Int32, var a1: Int32, let a2: Array[Int32]) {
+    @static fun new(link: Option[Packet], id: Int32, kind: Int32) -> Packet {
+        let array: Array[Int32] = arrayNew[Int32](DATA_SIZE.toInt64());
+        return Packet(link, id, kind, 0, array);
+    }
+
+    fun addTo(queue: Option[Packet]) -> Packet {
+        self.link = none[Packet]();
+        if queue.isNone() {
+            return self;
+        }
+
+        var next: Packet = queue.unwrap();
+        var peek: Option[Packet] = next.link;
+
+        while peek.isSome() {
+            next = peek.unwrap();
+            peek = next.link;
+        }
+
+        next.link = some[Packet](self);
+        return queue.unwrap();
+    }
+}
