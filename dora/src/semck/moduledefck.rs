@@ -341,6 +341,11 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_module_fun_call() {
+        ok("module Foo { fun foo() {} } fun main() { Foo::foo(); }");
+    }
+
     #[ignore]
     #[test] // should fail but doesn't
     fn field_self_assignment() {

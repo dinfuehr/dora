@@ -317,8 +317,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
             has_optimize_immediately: f.has_optimize_immediately,
             variadic_arguments: false,
 
-            // abstract for methods also means that method is open to
-            // override
+            // abstract for methods also means that method is open to override
             has_open: f.has_open || f.is_abstract,
             has_final: f.has_final,
             is_pub: f.is_pub,

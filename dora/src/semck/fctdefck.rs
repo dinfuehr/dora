@@ -186,6 +186,12 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                 check_against_methods(vm, &*fct, &ximpl.methods);
             }
 
+            FctParent::Module(modid) => {
+                let module = vm.modules.idx(modid);
+                let module = module.read();
+                check_against_methods(vm, &*fct, &module.methods);
+            }
+
             _ => {}
         }
 

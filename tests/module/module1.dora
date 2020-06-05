@@ -1,13 +1,30 @@
 //= cannon
 
 module Foo {
-  fun foo() -> String = "bar";
+  fun foo() -> String = "module";
+  fun bar() -> String = Foo().foo();
+  fun baz() -> String = Foo::foo();
 }
 
-module Bar {
-  let bar: Int32 = 0;
+
+class Foo() {
+  fun foo() -> String = "class";
+}
+
+module Qux {
+  fun qux() -> String = "plain_module";
+}
+
+class Qux[T]() {
+  fun qux() -> String = "generic_class";
 }
 
 fun main() {
-  // assert(Foo::foo() == "bar");
+  assert(Foo().foo() == "class");
+  assert(Foo::foo() == "module");
+  assert(Foo::bar() == "class");
+  assert(Foo::baz() == "module");
+
+  assert(Qux[Int32]().qux() == "generic_class");
+  assert(Qux::qux() == "plain_module");
 }

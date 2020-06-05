@@ -70,22 +70,56 @@ fn type_class_method_call() {
 }
 
 #[test]
-fn type_module_method_call_1() {
+fn type_module_method_call() {
     ok("module Foo {
                 fun bar() {}
                 fun baz() -> Int32 { return 1; }
             }
 
-            fun f1() { Foo.bar(); }
+            class Foo() {}
+
             fun f2() { Foo::bar(); }
-            fun g() -> Int32 { return Foo.baz(); }");
+            fun g() -> Int32 { return Foo::baz(); }");
+
+    ok("module Foo {
+                fun bar[T : Equals + Hash](t: T) -> T = t;
+            }
+
+            fun foo() { Foo::bar[Int32](1); }");
+
+    err(
+        "module Foo {
+                 fun foo() -> Bar = Bar();
+               }
+               class Bar[T]",
+        pos(2, 31),
+        SemError::WrongNumberTypeParams(1, 0),
+    );
+
+    err(
+        "module Foo {
+                 fun foo[T]() -> Bar = Bar[T]();
+               }
+               class Bar[T]",
+        pos(2, 34),
+        SemError::WrongNumberTypeParams(1, 0),
+    );
+
+    ok("module Foo {
+                 fun foo[T]() -> Bar[T] = Bar[T]();
+               }
+               class Bar[T]
+
+               fun bar() {
+                 Foo::foo[Int32]();
+               }");
 
     err(
         "module Foo {
                  fun bar() -> Int32 { return 0; }
              }
 
-             fun f() -> String { return Foo.bar(); }",
+             fun f() -> String { return Foo::bar(); }",
         pos(5, 34),
         SemError::ReturnType("String".into(), "Int32".into()),
     );
@@ -606,11 +640,7 @@ fn access_super_class_field() {
 fn same_names() {
     ok("class Foo { var Foo: Foo = Foo(); }");
     ok("class Foo fun foo() { let Foo: Int32 = 1; }");
-    err(
-        "class Foo { var Foo: Foo = Foo(); } module Foo { fun Foo() -> Foo = nil; }",
-        pos(1, 37),
-        SemError::ShadowClassConstructor("Foo".into()),
-    );
+    ok("class Foo { fun Foo() -> Foo { Foo::Foo(); return Foo(); } } module Foo { fun Foo() -> Foo = nil; }");
 }
 
 #[test]

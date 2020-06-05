@@ -452,6 +452,11 @@ pub fn specialize_for_call_type(call_type: &CallType, ty: BuiltinType, vm: &VM) 
             _ => ty,
         },
 
+        CallType::ModuleMethod(mod_ty, _, ref fct_type_params) => {
+            let cls_type_params = mod_ty.type_params(vm);
+            specialize_type(vm, ty, &cls_type_params, fct_type_params)
+        }
+
         CallType::Expr(ty, _) => {
             let cls_type_params = ty.type_params(vm);
             specialize_type(vm, ty, &cls_type_params, &TypeList::empty())

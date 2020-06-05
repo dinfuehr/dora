@@ -779,7 +779,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         // self was already emitted, needs to be ignored here.
         let arg_start_offset = match *call_type {
-            CallType::CtorNew(_, _) | CallType::Method(_, _, _) | CallType::Expr(_, _) => 1,
+            CallType::CtorNew(_, _) | CallType::Expr(_, _) | CallType::Method(_, _, _) => 1,
             _ => 0,
         };
 
@@ -916,6 +916,13 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 } else if fct.is_virtual() {
                     self.emit_invoke_virtual(return_type, return_reg, fct_def_id);
                 } else if arg_bytecode_types[0] != BytecodeType::Ptr {
+                    self.emit_invoke_static(return_type, return_reg, fct_def_id);
+                } else {
+                    self.emit_invoke_direct(return_type, return_reg, fct_def_id);
+                }
+            }
+            CallType::ModuleMethod(_, _, _) => {
+                if arg_bytecode_types.is_empty() || arg_bytecode_types[0] != BytecodeType::Ptr {
                     self.emit_invoke_static(return_type, return_reg, fct_def_id);
                 } else {
                     self.emit_invoke_direct(return_type, return_reg, fct_def_id);
@@ -2221,6 +2228,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             &IdentType::Fct(_) | &IdentType::FctType(_, _) => unreachable!(),
             &IdentType::Class(_) | &IdentType::ClassType(_, _) => unreachable!(),
             &IdentType::Module(_) => unreachable!(),
+            &IdentType::ClassAndModule(_, _) => unreachable!(),
             &IdentType::TypeParam(_) | &IdentType::TypeParamStaticMethod(_, _) => unreachable!(),
             &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
             &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => {
@@ -2406,6 +2414,13 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 fct_type_params = type_params.clone();
             }
 
+            CallType::ModuleMethod(ty, _, ref type_params) => {
+                let ty = self.specialize_type(ty);
+
+                cls_type_params = ty.type_params(self.vm);
+                fct_type_params = type_params.clone();
+            }
+
             CallType::Fct(_, ref cls_tps, ref fct_tps) => {
                 cls_type_params = cls_tps.clone();
                 fct_type_params = fct_tps.clone();
@@ -2458,6 +2473,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             }
 
             CallType::Method(cls_ty, _, ref type_params) => {
+                let cls_type_params = cls_ty.type_params(self.vm);
+                specialize_type(self.vm, ty, &cls_type_params, type_params)
+            }
+
+            CallType::ModuleMethod(cls_ty, _, ref type_params) => {
                 let cls_type_params = cls_ty.type_params(self.vm);
                 specialize_type(self.vm, ty, &cls_type_params, type_params)
             }
