@@ -421,7 +421,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 BuiltinType::Error
             }
 
-            &IdentType::Module(module_id) | &IdentType::ClassAndModule(_, module_id) => {
+            &IdentType::Module(module_id)
+            | &IdentType::ClassAndModule(_, module_id)
+            | &IdentType::StructAndModule(_, module_id) => {
                 let module = self.vm.modules.idx(module_id);
                 let ty = module.read().ty;
                 self.src.set_ty(e.id, ty);
@@ -522,7 +524,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 unreachable!();
             }
 
-            &IdentType::Struct(_) => {
+            &IdentType::Struct(_) | &IdentType::StructAndModule(_, _) => {
                 unimplemented!();
             }
 
@@ -544,7 +546,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 return;
             }
 
-            &IdentType::Class(_) | &IdentType::ClassType(_, _) => {
+            &IdentType::Class(_)
+            | &IdentType::ClassType(_, _)
+            | &IdentType::ClassAndModule(_, _) => {
                 self.vm
                     .diag
                     .lock()
@@ -554,8 +558,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             &IdentType::Module(_) => unreachable!(),
-
-            &IdentType::ClassAndModule(_, _) => unreachable!(),
 
             &IdentType::TypeParam(_) | &IdentType::TypeParamStaticMethod(_, _) => {
                 self.vm

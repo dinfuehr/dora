@@ -640,7 +640,7 @@ fn access_super_class_field() {
 fn same_names() {
     ok("class Foo { var Foo: Foo = Foo(); }");
     ok("class Foo fun foo() { let Foo: Int32 = 1; }");
-    ok("class Foo { fun Foo() -> Foo { Foo::Foo(); return Foo(); } } module Foo { fun Foo() -> Foo = nil; }");
+    ok("class Foo { var Foo: Foo = Foo(); } module Foo { fun Foo() -> Foo = nil; }");
 }
 
 #[test]

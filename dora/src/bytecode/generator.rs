@@ -2228,7 +2228,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             &IdentType::Fct(_) | &IdentType::FctType(_, _) => unreachable!(),
             &IdentType::Class(_) | &IdentType::ClassType(_, _) => unreachable!(),
             &IdentType::Module(_) => unreachable!(),
-            &IdentType::ClassAndModule(_, _) => unreachable!(),
+            &IdentType::ClassAndModule(_, _) | &IdentType::StructAndModule(_, _) => unreachable!(),
             &IdentType::TypeParam(_) | &IdentType::TypeParamStaticMethod(_, _) => unreachable!(),
             &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
             &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => {

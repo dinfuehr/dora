@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use self::TypeSym::*;
 
-use crate::sym::TermSym::{SymConst, SymFct, SymGlobal, SymModule, SymVar};
+use crate::sym::TermSym::{
+    SymClassConstructorAndModule, SymConst, SymFct, SymGlobal, SymModule,
+    SymStructConstructorAndModule, SymVar,
+};
 use crate::ty::TypeListId;
 use crate::vm::module::ModuleId;
 use crate::vm::{ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, StructId, TraitId, VarId};
@@ -155,6 +158,8 @@ pub enum TermSym {
     SymFct(FctId),
     SymVar(VarId),
     SymModule(ModuleId),
+    SymClassConstructorAndModule(ClassId, ModuleId),
+    SymStructConstructorAndModule(StructId, ModuleId),
     SymGlobal(GlobalId),
     SymConst(ConstId),
     SymClassConstructor(ClassId),
@@ -294,6 +299,8 @@ impl TermSym {
     pub fn to_module(&self) -> Option<ModuleId> {
         match *self {
             SymModule(id) => Some(id),
+            SymClassConstructorAndModule(_, id) => Some(id),
+            SymStructConstructorAndModule(_, id) => Some(id),
             _ => None,
         }
     }
