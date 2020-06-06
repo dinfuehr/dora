@@ -34,7 +34,9 @@
   @internal fun sqrt() -> Float;
 
   fun hash() -> Int32 = self.asInt32();
+}
 
-  @static fun bits() -> Int32 = 32;
-  @static fun bytes() -> Int32 = 4;
+module Float {
+  fun bits() -> Int32 = 32;
+  fun bytes() -> Int32 = 4;
 }

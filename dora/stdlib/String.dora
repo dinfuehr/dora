@@ -52,10 +52,16 @@
   @internal fun getByte(idx: Int64) -> UInt8;
   @internal fun clone() -> String;
 
-  @internal @static fun fromBytesPartOrNull(val: Array[UInt8], offset: Int64, len: Int64) -> String;
-  @internal @static fun fromStringPartOrNull(val: String, offset: Int64, len: Int64) -> String;
+  fun isEmpty() -> Bool = self.length() == 0L;
 
-  @static fun fromBytesPart(val: Array[UInt8], offset: Int64, len: Int64) -> Option[String] {
+  fun codePoints() -> CodepointIterator = CodepointIterator(self, 0L);
+}
+
+module String {
+  @internal fun fromBytesPartOrNull(val: Array[UInt8], offset: Int64, len: Int64) -> String;
+  @internal fun fromStringPartOrNull(val: String, offset: Int64, len: Int64) -> String;
+
+  fun fromBytesPart(val: Array[UInt8], offset: Int64, len: Int64) -> Option[String] {
     let value = String::fromBytesPartOrNull(val, offset, len);
 
     if value === nil {
@@ -65,7 +71,7 @@
     }
   }
 
-  @static fun fromBytes(val: Array[UInt8]) -> Option[String] {
+  fun fromBytes(val: Array[UInt8]) -> Option[String] {
     let value = String::fromBytesPartOrNull(val, 0L, val.length());
   
     if value === nil {
@@ -75,7 +81,7 @@
     }
   }
 
-  @static fun fromStringPart(val: String, offset: Int64, len: Int64) -> Option[String] {
+  fun fromStringPart(val: String, offset: Int64, len: Int64) -> Option[String] {
     let value = String::fromStringPartOrNull(val, offset, len);
 
     if value === nil {
@@ -85,9 +91,9 @@
     }
   }
 
-  @static fun fromString(val: String) -> String = val.clone();
+  fun fromString(val: String) -> String = val.clone();
 
-  @static fun binary(data: Int64) -> String {
+  fun binary(data: Int64) -> String {
     var data = data;
     if data == 0L { return "0"; }
     let array = Array[UInt8](64L);
@@ -100,7 +106,7 @@
     return String::fromBytesPart(array, at, array.length() - at + 1L).unwrap();
   }
 
-  @static fun hex(data: Int64) -> String {
+  fun hex(data: Int64) -> String {
     var data = data;
     if data == 0L { return "0"; }
     let array = Array[UInt8](16L);
@@ -119,8 +125,4 @@
     }
     return String::fromBytesPart(array, at, array.length() - at + 1L).unwrap();
   }
-
-  fun isEmpty() -> Bool = self.length() == 0L;
-
-  fun codePoints() -> CodepointIterator = CodepointIterator(self, 0L);
 }
