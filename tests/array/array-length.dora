@@ -1,49 +1,49 @@
 fun main() {
-  let x = arrayEmpty[Int32]();
+  let x = Array::empty[Int32]();
   assert(x.length() == 0L);
   assert(int32_array_len(x) == 0L);
 
-  let x = arrayFill[Int32](5L, 100);
+  let x = Array::fill[Int32](5L, 100);
   assert(x.length() == 5L);
   assert(int32_array_len(x) == 5L);
 
-  let x = arrayEmpty[Int64]();
+  let x = Array::empty[Int64]();
   assert(x.length() == 0L);
   assert(int64_array_len(x) == 0L);
 
-  let x = arrayFill[Int64](7L, 100L);
+  let x = Array::fill[Int64](7L, 100L);
   assert(x.length() == 7L);
   assert(int64_array_len(x) == 7L);
 
-  let x = arrayEmpty[Float]();
+  let x = Array::empty[Float]();
   assert(x.length() == 0L);
   assert(float_array_len(x) == 0L);
 
-  let x = arrayFill[Float](6L, 1.0F);
+  let x = Array::fill[Float](6L, 1.0F);
   assert(x.length() == 6L);
   assert(float_array_len(x) == 6L);
 
-  let x = arrayEmpty[Double]();
+  let x = Array::empty[Double]();
   assert(x.length() == 0L);
   assert(double_array_len(x) == 0L);
 
-  let x = arrayFill[Double](4L, 1.0);
+  let x = Array::fill[Double](4L, 1.0);
   assert(x.length() == 4L);
   assert(double_array_len(x) == 4L);
 
-  let x = arrayEmpty[String]();
+  let x = Array::empty[String]();
   assert(x.length() == 0L);
   assert(str_array_len(x) == 0L);
 
-  let x = arrayFill[String](3L, "hello");
+  let x = Array::fill[String](3L, "hello");
   assert(x.length() == 3L);
   assert(str_array_len(x) == 3L);
 
-  let x = arrayEmpty[Foo]();
+  let x = Array::empty[Foo]();
   assert(x.length() == 0L);
   assert(foo_array_len(x) == 0L);
 
-  let x = arrayFill[Foo](1L, Foo());
+  let x = Array::fill[Foo](1L, Foo());
   assert(x.length() == 1L);
   assert(foo_array_len(x) == 1L);
 }

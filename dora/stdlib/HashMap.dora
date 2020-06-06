@@ -2,8 +2,8 @@ class HashMap[K: Hash + Equals, V] {
     // BitSet.size == capacity * 2
     // [bit 0: inserted; bit 1: deleted] * capacity
     var inserted_and_deleted: BitSet = BitSet(0L);
-    var keys: Array[K] = arrayEmpty[K]();
-    var values: Array[V] = arrayEmpty[V]();
+    var keys: Array[K] = Array::empty[K]();
+    var values: Array[V] = Array::empty[V]();
     var size: Int64 = 0L;
     var cap: Int64 = 0L;
 

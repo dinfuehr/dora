@@ -1,5 +1,5 @@
 class BitSet(capacity: Int64) {
-    var data: Array[Int32] = arrayEmpty[Int32]();
+    var data: Array[Int32] = Array::empty[Int32]();
     var capacity: Int64 = 0L;
 
     if capacity > 0L {

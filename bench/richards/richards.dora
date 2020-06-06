@@ -68,7 +68,7 @@ const KIND_WORK: Int32 = 1;
 class Scheduler() {
     var queueCount: Int32 = 0;
     var holdCount: Int32 = 0;
-    var blocks: Array[Option[TaskControlBlock]] = arrayFill[Option[TaskControlBlock]](NUMBER_OF_IDS.toInt64(), none[TaskControlBlock]());
+    var blocks: Array[Option[TaskControlBlock]] = Array::fill[Option[TaskControlBlock]](NUMBER_OF_IDS.toInt64(), none[TaskControlBlock]());
     var currentTcb: Option[TaskControlBlock] = none[TaskControlBlock]();
     var list: Option[TaskControlBlock] = none[TaskControlBlock]();
     var currentId: Option[Int32] = none[Int32]();
@@ -328,7 +328,7 @@ var DATA_SIZE: Int32 = 4;
 
 class Packet(var link: Option[Packet], var id: Int32, let kind: Int32, var a1: Int32, let a2: Array[Int32]) {
     @static fun new(link: Option[Packet], id: Int32, kind: Int32) -> Packet {
-        let array: Array[Int32] = arrayNew[Int32](DATA_SIZE.toInt64());
+        let array: Array[Int32] = Array::new[Int32](DATA_SIZE.toInt64());
         return Packet(link, id, kind, 0, array);
     }
 

@@ -1,5 +1,5 @@
 class Vec[T] {
-  var array: Array[T] = arrayEmpty[T]();
+  var array: Array[T] = Array::empty[T]();
   var len: Int64 = 0L;
 
   fun get(idx: Int64) -> T {
@@ -26,7 +26,7 @@ class Vec[T] {
     }
 
     let newarray = Array[T](newcap);
-    arrayCopy[T](self.array, 0L, newarray, 0L, self.len);
+    Array::copy[T](self.array, 0L, newarray, 0L, self.len);
     self.array = newarray;
   }
 
@@ -41,7 +41,7 @@ class Vec[T] {
       }
 
       let newarray = Array[T](newcap);
-      arrayCopy[T](self.array, 0L, newarray, 0L, self.len);
+      Array::copy[T](self.array, 0L, newarray, 0L, self.len);
       self.array = newarray;
     }
 
@@ -51,7 +51,7 @@ class Vec[T] {
 
   fun toArray() -> Array[T] {
     let newarray = Array[T](self.len);
-    arrayCopy[T](self.array, 0L, newarray, 0L, self.len);
+    Array::copy[T](self.array, 0L, newarray, 0L, self.len);
     newarray
   }
 
@@ -74,10 +74,10 @@ class Vec[T] {
   fun trimToLen() {
     if self.len != self.capacity() {
       if self.len == 0L {
-        self.array = arrayEmpty[T]();
+        self.array = Array::empty[T]();
       } else {
         let newarray = Array[T](self.len);
-        arrayCopy[T](self.array, 0L, newarray, 0L, self.len);
+        Array::copy[T](self.array, 0L, newarray, 0L, self.len);
         self.array = newarray;
       }
     }
