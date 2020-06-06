@@ -16,15 +16,15 @@ class CompilationInfo(encoded: EncodedCompilationInfo) {
 }
 
 class EncodedCompilationInfo {
-    let code: Array[UInt8] = arrayEmpty[UInt8]();
-    let constpool: Array[UInt8] = arrayEmpty[UInt8]();
-    let registers: Array[Int32] = arrayEmpty[Int32]();
+    let code: Array[UInt8] = Array::empty[UInt8]();
+    let constpool: Array[UInt8] = Array::empty[UInt8]();
+    let registers: Array[Int32] = Array::empty[Int32]();
     let arguments: Int32 = 0;
 }
 
 fun decodeRegisters(registers: Array[Int32]) -> Array[BytecodeType] {
     var i = 0L;
-    let result = arrayFill[BytecodeType](registers.length(), BytecodeType::bool());
+    let result = Array::fill[BytecodeType](registers.length(), BytecodeType::bool());
 
     while i < registers.length() {
         let regtype = registers(i);

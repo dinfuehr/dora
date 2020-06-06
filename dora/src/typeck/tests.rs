@@ -1974,14 +1974,14 @@ fn test_incompatible_branches() {
 
 #[test]
 fn zero_trait_ok() {
-    ok("fun f() { arrayZero[Int32](12L); }");
+    ok("fun f() { Array::zero[Int32](12L); }");
 }
 
 #[test]
 fn zero_trait_err() {
     err(
-        "fun f() { arrayZero[String](12L); }",
-        pos(1, 28),
+        "fun f() { Array::zero[String](12L); }",
+        pos(1, 30),
         SemError::TraitBoundNotSatisfied("String".into(), "Zero".into()),
     );
 }

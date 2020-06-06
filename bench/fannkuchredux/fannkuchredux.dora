@@ -5,9 +5,9 @@ fun main() {
 }
 
 fun fannkuch(n: Int32) -> Int32 {
-  let perm = arrayFill[Int32](n.toInt64(), 0);
-  let perm1 = arrayFill[Int32](n.toInt64(), 0);
-  let count = arrayFill[Int32](n.toInt64(), 0);
+  let perm = Array::fill[Int32](n.toInt64(), 0);
+  let perm1 = Array::fill[Int32](n.toInt64(), 0);
+  let count = Array::fill[Int32](n.toInt64(), 0);
   var maxFlipsCount = 0;
   var permCount = 0;
   var checksum = 0;

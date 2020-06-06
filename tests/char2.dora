@@ -1,8 +1,8 @@
 fun main() {
-    let x = arrayEmpty[Char]();
+    let x = Array::empty[Char]();
     assert(x.length() == 0L);
 
-    let x = arrayFill[Char](10L, '\0');
+    let x = Array::fill[Char](10L, '\0');
     assert(x(0L) == '\0');
     assert(x(9L) == '\0');
 

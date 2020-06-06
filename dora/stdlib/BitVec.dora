@@ -1,5 +1,5 @@
 class BitVec {
-    var data: Array[Int32] = arrayEmpty[Int32]();
+    var data: Array[Int32] = Array::empty[Int32]();
 
     fun contains(idx: Int64) -> Bool {
         if idx < 0L {
@@ -59,7 +59,7 @@ class BitVec {
         let newcap = (newcap + 31L) / 32L;
 
         let newarray = Array[Int32](newcap);
-        arrayCopy[Int32](self.data, 0L, newarray, 0L, self.data.length());
+        Array::copy[Int32](self.data, 0L, newarray, 0L, self.data.length());
         self.data = newarray;
     }
 

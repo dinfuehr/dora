@@ -1,5 +1,5 @@
 class StringBuffer() {
-  var buf: Array[UInt8] = arrayEmpty[UInt8]();
+  var buf: Array[UInt8] = Array::empty[UInt8]();
   var len: Int64 = 0L;
 
   fun length() -> Int64 {

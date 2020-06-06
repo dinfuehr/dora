@@ -1,8 +1,8 @@
 fun main() {
-    let ba = arrayEmpty[UInt8]();
+    let ba = Array::empty[UInt8]();
     assert(ba.length() == 0L);
 
-    let ba = arrayFill[UInt8](10L, 2Y);
+    let ba = Array::fill[UInt8](10L, 2Y);
     assert(ba.length() == 10L);
 
     ba(0L) = 10Y;

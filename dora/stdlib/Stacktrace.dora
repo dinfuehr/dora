@@ -10,7 +10,7 @@ class Stacktrace() {
     }
 
     if self.backtrace === nil {
-      self.elements = arrayEmpty[StacktraceElement]();
+      self.elements = Array::empty[StacktraceElement]();
       return self.elements;
     }
 

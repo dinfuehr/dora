@@ -14,7 +14,7 @@ fun sieve(limit: Int64) -> Vec[Int64] {
     let primes = Vec[Int64]();
 
     if limit >= 2L {
-        let numbers = arrayFill[Bool](limit+1L, true);
+        let numbers = Array::fill[Bool](limit+1L, true);
         let sqrtLimit = limit.toDouble().sqrt().toInt64();
 
         var factor = 2L;
