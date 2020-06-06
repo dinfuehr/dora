@@ -10,17 +10,31 @@ let typePtr: Type = Type(TypeKind::Ptr);
 
 
 class Type(let kind: TypeKind) {
-    @static fun unit() -> Type { return typeUnit; }
-    @static fun bool() -> Type { return typeBool; }
-    @static fun uint8() -> Type { return typeUInt8; }
-    @static fun char() -> Type { return typeChar; }
-    @static fun int32() -> Type { return typeInt32; }
-    @static fun int64() -> Type { return typeInt64; }
-    @static fun float() -> Type { return typeFloat; }
-    @static fun double() -> Type { return typeDouble; }
-    @static fun ptr() -> Type { return typePtr; }
+    fun isUnit() -> Bool { return self.kind == TypeKind::Unit; }
+    fun isUInt8() -> Bool { return self.kind == TypeKind::UInt8; }
+    fun isInt32() -> Bool { return self.kind == TypeKind::Int32; }
+    fun isInt64() -> Bool { return self.kind == TypeKind::Int64; }
+    fun isFloat() -> Bool { return self.kind == TypeKind::Float; }
+    fun isDouble() -> Bool { return self.kind == TypeKind::Double; }
+    fun isPtr() -> Bool { return self.kind == TypeKind::Ptr; }
 
-    @static fun fromBytecodeType(ty: BytecodeType) -> Type {
+    fun is_any_float() -> Bool {
+        return self.kind == TypeKind::Float || self.kind == TypeKind::Double;
+    }
+}
+
+module Type {
+    fun unit() -> Type { return typeUnit; }
+    fun bool() -> Type { return typeBool; }
+    fun uint8() -> Type { return typeUInt8; }
+    fun char() -> Type { return typeChar; }
+    fun int32() -> Type { return typeInt32; }
+    fun int64() -> Type { return typeInt64; }
+    fun float() -> Type { return typeFloat; }
+    fun double() -> Type { return typeDouble; }
+    fun ptr() -> Type { return typePtr; }
+
+    fun fromBytecodeType(ty: BytecodeType) -> Type {
         if ty.isBool() {
             Type::bool()
         } else if ty.isUInt8() {
@@ -41,18 +55,6 @@ class Type(let kind: TypeKind) {
             unreachable();
             Type::unit()
         }
-    }
-
-    fun isUnit() -> Bool { return self.kind == TypeKind::Unit; }
-    fun isUInt8() -> Bool { return self.kind == TypeKind::UInt8; }
-    fun isInt32() -> Bool { return self.kind == TypeKind::Int32; }
-    fun isInt64() -> Bool { return self.kind == TypeKind::Int64; }
-    fun isFloat() -> Bool { return self.kind == TypeKind::Float; }
-    fun isDouble() -> Bool { return self.kind == TypeKind::Double; }
-    fun isPtr() -> Bool { return self.kind == TypeKind::Ptr; }
-
-    fun is_any_float() -> Bool {
-        return self.kind == TypeKind::Float || self.kind == TypeKind::Double;
     }
 }
 
