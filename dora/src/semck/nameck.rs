@@ -10,7 +10,8 @@ use dora_parser::lexer::position::Position;
 
 use crate::semck::globaldef::report_term_shadow;
 use crate::sym::TermSym::{
-    SymClassConstructor, SymConst, SymFct, SymGlobal, SymModule, SymStructConstructor, SymVar,
+    SymClassConstructor, SymClassConstructorAndModule, SymConst, SymFct, SymGlobal, SymModule,
+    SymStructConstructor, SymStructConstructorAndModule, SymVar,
 };
 use crate::sym::TypeSym::{SymClass, SymClassTypeParam, SymEnum, SymFctTypeParam, SymStruct};
 use crate::ty::BuiltinType;
@@ -133,13 +134,16 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         self.src.vars.push(var);
     }
 
-    pub fn add_var(&mut self, mut var: Var) -> VarId {
+    pub fn add_var(&mut self, mut var: Var, pos: Position) -> VarId {
         let name = var.name;
         let var_id = VarId(self.src.vars.len());
 
         var.id = var_id;
 
-        self.vm.sym.lock().insert_term(name, SymVar(var_id));
+        match self.vm.sym.lock().insert_term(name, SymVar(var_id)) {
+            Some(SymVar(_)) | None => {}
+            Some(sym) => report_term_shadow(self.vm, name, self.fct.file, pos, sym),
+        }
         self.src.vars.push(var);
 
         var_id
@@ -158,7 +162,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             self.visit_expr(expr);
         }
 
-        let var_id = self.add_var(var_ctxt);
+        let var_id = self.add_var(var_ctxt, var.pos);
         self.src.map_vars.insert(var.id, var_id)
     }
 
@@ -175,7 +179,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             node_id: fl.id,
         };
 
-        let var_id = self.add_var(var_ctxt);
+        let var_id = self.add_var(var_ctxt, fl.pos);
         self.src.map_vars.insert(fl.id, var_id);
 
         self.visit_stmt(&fl.block);
@@ -187,12 +191,6 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         let type_sym = self.vm.sym.lock().get_type(ident.name);
 
         match (term_sym, type_sym) {
-            (Some(SymModule(module_id)), Some(SymClass(class_id))) => {
-                self.src
-                    .map_idents
-                    .insert(ident.id, IdentType::ClassAndModule(class_id, module_id));
-            }
-
             (Some(SymVar(id)), None) => {
                 self.src.map_idents.insert(ident.id, IdentType::Var(id));
             }
@@ -225,19 +223,24 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                 let ty = BuiltinType::FctTypeParam(fct_id, id);
                 self.src
                     .map_idents
-                    .insert(ident.id, IdentType::TypeParam(ty));
+                    .insert(ident.id, IdentType::TypeParam(ty))
             }
 
             (None, Some(SymClassTypeParam(cls_id, id))) => {
                 let ty = BuiltinType::ClassTypeParam(cls_id, id);
                 self.src
                     .map_idents
-                    .insert(ident.id, IdentType::TypeParam(ty));
+                    .insert(ident.id, IdentType::TypeParam(ty))
             }
 
-            (None, Some(SymEnum(id))) => {
-                self.src.map_idents.insert(ident.id, IdentType::Enum(id));
-            }
+            (None, Some(SymEnum(id))) => self.src.map_idents.insert(ident.id, IdentType::Enum(id)),
+
+            (Some(SymModule(module_id)), Some(SymClass(class_id)))
+            | (Some(SymClassConstructorAndModule(_, module_id)), Some(SymClass(class_id)))
+            | (Some(SymStructConstructorAndModule(_, module_id)), Some(SymClass(class_id))) => self
+                .src
+                .map_idents
+                .insert(ident.id, IdentType::ClassAndModule(class_id, module_id)),
 
             (Some(SymClassConstructor(id)), _) => {
                 self.src.map_idents.insert(ident.id, IdentType::Class(id))
@@ -257,7 +260,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                 );
             }
 
-            _ => unreachable!(),
+            (term_sym, type_sym) => unreachable!(format!("{:?} {:?}", term_sym, type_sym)),
         }
     }
 
@@ -300,7 +303,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
         let term_sym = self.vm.sym.lock().get_term(p.name);
         match term_sym {
             Some(SymFct(_)) | None => {
-                let var_id = self.add_var(var_ctxt);
+                let var_id = self.add_var(var_ctxt, p.pos);
                 self.src.map_vars.insert(p.id, var_id)
             }
             Some(conflict_sym) => {

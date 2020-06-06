@@ -544,7 +544,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 return;
             }
 
-            &IdentType::Class(_) | &IdentType::ClassType(_, _) => {
+            &IdentType::Class(_)
+            | &IdentType::ClassType(_, _)
+            | &IdentType::ClassAndModule(_, _) => {
                 self.vm
                     .diag
                     .lock()
@@ -554,8 +556,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             &IdentType::Module(_) => unreachable!(),
-
-            &IdentType::ClassAndModule(_, _) => unreachable!(),
 
             &IdentType::TypeParam(_) | &IdentType::TypeParamStaticMethod(_, _) => {
                 self.vm
