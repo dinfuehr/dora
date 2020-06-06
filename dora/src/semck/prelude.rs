@@ -301,12 +301,6 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     native_class_method(
         vm,
         clsid,
-        "toIntSuccess",
-        stdlib::str_to_int_success as *const u8,
-    );
-    native_class_method(
-        vm,
-        clsid,
         "toInt32Success",
         stdlib::str_to_int_success as *const u8,
     );
@@ -316,7 +310,6 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
         "toInt64Success",
         stdlib::str_to_long_success as *const u8,
     );
-    native_class_method(vm, clsid, "toIntOrZero", stdlib::str_to_int as *const u8);
     native_class_method(vm, clsid, "toInt32OrZero", stdlib::str_to_int as *const u8);
     native_class_method(vm, clsid, "toInt64OrZero", stdlib::str_to_long as *const u8);
     native_class_method(vm, clsid, "plus", stdlib::strcat as *const u8);
