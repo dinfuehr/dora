@@ -2,9 +2,9 @@
   @internal fun toUInt8() -> UInt8;
   fun toChar() -> Option[Char] {
     if self >= 0 && self <= 0x10FFFFI && (self < 0xD800 || self > 0xDFFFI) {
-      some[Char](self.toCharUnchecked())
+      Option::some[Char](self.toCharUnchecked())
     } else {
-      none[Char]()
+      Option::none[Char]()
     }
   }
   @internal fun toCharUnchecked() -> Char;

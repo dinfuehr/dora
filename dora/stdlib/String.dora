@@ -33,17 +33,17 @@
 
   fun toInt32() -> Option[Int32] {
     if self.toInt32Success() {
-      some[Int32](self.toInt32OrZero())
+      Option::some[Int32](self.toInt32OrZero())
     } else {
-      none[Int32]()
+      Option::none[Int32]()
     }
   }
 
   fun toInt64() -> Option[Int64] {
     if self.toInt64Success() {
-      some[Int64](self.toInt64OrZero())
+      Option::some[Int64](self.toInt64OrZero())
     } else {
-      none[Int64]()
+      Option::none[Int64]()
     }
   }
 
@@ -65,9 +65,9 @@ module String {
     let value = String::fromBytesPartOrNull(val, offset, len);
 
     if value === nil {
-      none[String]()
+      Option::none[String]()
     } else {
-      some[String](value)
+      Option::some[String](value)
     }
   }
 
@@ -75,9 +75,9 @@ module String {
     let value = String::fromBytesPartOrNull(val, 0L, val.length());
   
     if value === nil {
-      none[String]()
+      Option::none[String]()
     } else {
-      some[String](value)
+      Option::some[String](value)
     }
   }
 
@@ -85,9 +85,9 @@ module String {
     let value = String::fromStringPartOrNull(val, offset, len);
 
     if value === nil {
-      none[String]()
+      Option::none[String]()
     } else {
-      some[String](value)
+      Option::some[String](value)
     }
   }
 

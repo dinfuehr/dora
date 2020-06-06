@@ -114,17 +114,17 @@ class Vec[T] {
 
   fun first() -> Option[T] {
     if self.len == 0L {
-      none[T]()
+      Option::none[T]()
     } else {
-      some[T](self.array.get(0L))
+      Option::some[T](self.array.get(0L))
     }
   }
 
   fun last() -> Option[T] {
     if self.len == 0L {
-      none[T]()
+      Option::none[T]()
     } else {
-      some[T](self.array.get(self.len - 1L))
+      Option::some[T](self.array.get(self.len - 1L))
     }
   }
 
