@@ -195,7 +195,7 @@ fn check_fct_modifier<'ast>(vm: &VM<'ast>, cls: &Class, fct: &Fct<'ast>) -> Opti
         return None;
     }
 
-    let result = find_method_in_class(vm, cls.parent_class.unwrap(), fct.name, false);
+    let result = find_method_in_class(vm, cls.parent_class.unwrap(), fct.name);
 
     if let Some((super_type, super_method)) = result {
         let super_method = vm.fcts.idx(super_method);

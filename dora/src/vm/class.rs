@@ -231,7 +231,6 @@ pub fn find_method_in_class(
     vm: &VM,
     mut class: BuiltinType,
     name: Name,
-    is_static: bool,
 ) -> Option<(BuiltinType, FctId)> {
     loop {
         let cls_id = class.cls_id(vm).expect("no class");
@@ -242,7 +241,7 @@ pub fn find_method_in_class(
             let method = vm.fcts.idx(method);
             let method = method.read();
 
-            if method.name == name && method.is_static == is_static {
+            if method.name == name && method.is_static == false {
                 return Some((class, method.id));
             }
         }
