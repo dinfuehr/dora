@@ -1,5 +1,4 @@
-//= cannon
-//= error at 7:13
+//= error at 6:13
 
 fun main() {
     let a = 255Y;

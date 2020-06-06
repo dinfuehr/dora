@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     assert(myid[Int32](1) == 1);
     assert(myid[Int32](100) == 100);

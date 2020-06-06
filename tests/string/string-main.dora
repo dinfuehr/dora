@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     test_multiple_ascii_chars();
 

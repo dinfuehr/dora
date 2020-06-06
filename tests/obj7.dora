@@ -1,4 +1,3 @@
-//= cannon
 fun main() {
   let f1 = Foo1(1);
   let f2 = Foo2(1, 2);

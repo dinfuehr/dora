@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     var x = ("my string", true);
     var y = ("another string", false);

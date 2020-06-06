@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
   let x = X::empty();
 

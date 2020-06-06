@@ -1,5 +1,3 @@
-//= cannon
-
 class A(var value: ())
 
 fun main() {

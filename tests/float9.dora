@@ -1,5 +1,4 @@
 //= stdout "1\n1\n"
-//= cannon
 
 fun main() {
     let x = 1F;

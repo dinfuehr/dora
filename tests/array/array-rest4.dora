@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     assert(sum_args(Foo(1), Foo(2)) == 3);
     assert(sum_args(nil) == 0);

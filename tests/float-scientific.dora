@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     assert(1.0e2 == 100.0);
     assert(0.250e3 == 250.0);

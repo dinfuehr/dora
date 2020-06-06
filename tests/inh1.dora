@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
   let a = A(10);
   assert(a.x == 10);

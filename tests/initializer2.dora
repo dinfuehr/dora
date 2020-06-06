@@ -1,4 +1,3 @@
-//= cannon
 //= error
 
 class X(msg: String) {

@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
   let x = none[Int32]();
   assert(x.isNone());

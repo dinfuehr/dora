@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     let set = HashSet[Int32]();
     set.insert(1);

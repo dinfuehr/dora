@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
   assert("1".toInt32().unwrap() == 1);
   assert("100".toInt32().unwrap() == 100);

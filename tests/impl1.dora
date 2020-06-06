@@ -1,4 +1,3 @@
-//= cannon
 //= stdout "xyz\n"
 
 trait Foo {

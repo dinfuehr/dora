@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
   assert("abc".length() == 3L);
 

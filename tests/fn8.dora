@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
   let a = 1;
   assert(Foo(a+1).a == 2);

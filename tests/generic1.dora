@@ -1,5 +1,4 @@
 //= stdout "1"
-//= cannon
 
 fun main() {
     let a = A[Int32](1);

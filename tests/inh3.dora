@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
   let a = A(Data(10), Data(20));
   forceCollect();

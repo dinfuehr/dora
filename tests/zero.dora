@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
   assert(zero() == 0);
 }

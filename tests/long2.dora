@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     let x: Int64 = 1L;
     let y = 2L;

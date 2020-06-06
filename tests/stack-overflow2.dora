@@ -1,4 +1,3 @@
-//= cannon
 //= error stack-overflow
 
 fun main() {

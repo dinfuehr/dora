@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     let x = tpl1();
     assert(x.0 == 1);

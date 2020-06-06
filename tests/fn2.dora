@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
   var result = fact(5);
   assert(result == 120);

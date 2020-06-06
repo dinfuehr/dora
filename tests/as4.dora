@@ -1,6 +1,5 @@
-//= cannon
 //= error cast
-//= stderr "cast failed\n2: asl7(L1) -> L7: 11\n1: main(): 7\n"
+//= stderr "cast failed\n2: asl7(L1) -> L7: 10\n1: main(): 6\n"
 
 fun main() {
   let l1 = L1();

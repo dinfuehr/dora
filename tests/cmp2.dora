@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     assert(5.compareTo(2) == 3);
     assert(5.compareTo(5) == 0);

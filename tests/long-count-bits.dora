@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
   let x = 0L.countZeroBits();
   assert(x == 64);

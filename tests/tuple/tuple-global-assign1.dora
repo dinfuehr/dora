@@ -1,5 +1,3 @@
-//= cannon
-
 var x: (String, Bool);
 var y: (String, Bool);
 var tmp: (String, Bool);

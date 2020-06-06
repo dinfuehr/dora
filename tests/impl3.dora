@@ -1,5 +1,3 @@
-//= cannon
-
 trait Adder {
     fun add_me(other: Self) -> Self;
 }

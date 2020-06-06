@@ -1,5 +1,3 @@
-//= cannon
-
 @open @abstract class Foo[A] {
     @open fun test(x: A) -> A { x }
 }

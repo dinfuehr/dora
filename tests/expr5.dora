@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
   Bar(1).exec();
 }

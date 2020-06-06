@@ -1,5 +1,4 @@
-//= cannon
-//= error at 5:3
+//= error at 4:3
 
 fun main() {
   let x: Int32 = nil;

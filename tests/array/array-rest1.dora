@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     assert(number_args(1, 2) == 2L);
     assert(number_args(7) == 1L);

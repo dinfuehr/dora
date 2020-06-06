@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     let nan = 0.0 / 0.0;
     assert(!(nan < 0.0));

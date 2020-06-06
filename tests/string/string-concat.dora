@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
   assert(eq("a"));
   assert(!eq("aa"));

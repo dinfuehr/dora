@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
   let foo = Foo[Int32](10);
   assert(foo.x == 10);

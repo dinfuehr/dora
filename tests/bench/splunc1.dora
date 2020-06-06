@@ -1,4 +1,3 @@
-//= cannon
 //= file bench/splunc/splunc.dora
 //= args 1234 100 1000 10
 //= vm-args "--gc=swiper --max-heap-size=128M"

@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     assert('a'.lenUtf8() == 1);
     assert('ü'.lenUtf8() == 2);

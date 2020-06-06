@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     let x = Array[Int32](5L);
     x(0L) = 5;

@@ -468,9 +468,6 @@ def parse_test_file(file)
       when "vm-args"
         test_case.vm_args = arguments[1..-1].join(" ")
 
-      when "cannon"
-        test_case.configs.push(:cannon) unless test_case.configs.include?(:cannon)
-
       when "cannon-only"
         test_case.configs = [:cannon]
 

@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     t1();
     t2();

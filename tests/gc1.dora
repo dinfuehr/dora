@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
   let x = Foo(1);
   forceCollect();

@@ -1,5 +1,4 @@
 //= stdout file
-//= cannon
 
 fun main() {
     let primes = sieve(100L);

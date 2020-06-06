@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
   var i = 0;
   var sum = 0;

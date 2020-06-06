@@ -1,4 +1,3 @@
-//= cannon
 //= vm-args "--max-heap-size=128M --gc-verify"
 
 fun main() {

@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     assert(mysum(array[Int32]()) == 0);
     assert(mysum(array[Int32](1)) == 1);

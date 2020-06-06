@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
   assert(!isb(nil));
   assert(!isb(A()));

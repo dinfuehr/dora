@@ -1,4 +1,3 @@
-//= cannon
 //= stdout "xyz"
 
 class X(msg: String) {

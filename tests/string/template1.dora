@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     let x = "a${1}b${2}c${3}d";
     assert(x == "a1b2c3d");

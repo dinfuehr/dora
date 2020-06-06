@@ -1,4 +1,3 @@
-//= cannon
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
 
 class Foo(let value: Int32)

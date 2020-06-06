@@ -1,5 +1,4 @@
 //= stdout "abxy\n"
-//= cannon
 
 fun main() {
     let x = arrayEmpty[String]();

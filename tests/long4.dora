@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     assert(three().toInt32() == 3);
 }

@@ -1,5 +1,3 @@
-//= cannon
-
 class MyOwnType
 
 impl Equals for MyOwnType {

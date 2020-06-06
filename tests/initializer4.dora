@@ -1,4 +1,3 @@
-//= cannon
 //= stdout "78"
 
 class X(j: Int32) {

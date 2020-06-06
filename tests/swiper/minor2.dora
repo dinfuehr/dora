@@ -1,4 +1,3 @@
-//= cannon
 //= vm-args "--gc-parallel-minor --gc-worker=2 --gc-verify"
 
 fun main() {

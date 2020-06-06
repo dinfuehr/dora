@@ -1,6 +1,5 @@
-//= cannon
 //= error array
-//= stderr "array index out of bounds\n1: main(): 7\n"
+//= stderr "array index out of bounds\n1: main(): 6\n"
 
 fun main() {
   let array = arrayEmpty[Int32]();

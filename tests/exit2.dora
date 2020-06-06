@@ -1,5 +1,4 @@
 //= error code 2
-//= cannon
 
 fun main() {
     exit(2);

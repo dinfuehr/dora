@@ -1,5 +1,4 @@
 //= stdout file
-//= cannon
 
 fun main() {
     var i = 1;

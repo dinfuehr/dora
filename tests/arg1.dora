@@ -1,4 +1,3 @@
-//= cannon
 //= args 1 2 3
 
 fun main() {

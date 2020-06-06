@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
   assert(true.toString() == "true");
   assert(false.toString() == "false");

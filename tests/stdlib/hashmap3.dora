@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     let map = hashMap[Int32, String]((1, "a"), (2, "b"), (3, "c"), (4, "d"));
     assert(map.length() == 4L);

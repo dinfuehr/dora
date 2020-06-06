@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     let array = arrayNew[String](10L);
     assert(array(0L) == "");

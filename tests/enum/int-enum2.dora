@@ -1,5 +1,3 @@
-//= cannon
-
 enum Foo { A, B }
 
 impl Foo {

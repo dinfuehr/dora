@@ -1,4 +1,3 @@
-//= cannon
 //= vm-args "--gc=swiper --gc-verify"
 
 class Foo(let x: Int32)

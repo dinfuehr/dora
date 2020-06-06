@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     var x = ();
     var y: ();

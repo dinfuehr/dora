@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     let b1 = 1.toUInt8();
     let b2 = 2.toUInt8();

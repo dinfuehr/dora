@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
   let l7 = L7();
   assert(asl7(l7) === l7);

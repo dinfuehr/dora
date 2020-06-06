@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
   let x = arrayFill[Int32](5L, 100);
   assert(x(0L) == 100);

@@ -1,4 +1,3 @@
-//= cannon
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
 
 class TupleClass {

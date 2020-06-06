@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     let x = fone();
     assert(1F == x);

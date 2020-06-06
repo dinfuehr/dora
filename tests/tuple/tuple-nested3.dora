@@ -1,5 +1,3 @@
-//= cannon
-
 class Foo(var value: (Int32, Int32, (Int32, Int32)))
 
 fun main() {

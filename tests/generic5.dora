@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     let x: A[Int32] = nil;
     assert(x === nil);

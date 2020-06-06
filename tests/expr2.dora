@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
   let val = 101.toString();
   assert(val == "101");

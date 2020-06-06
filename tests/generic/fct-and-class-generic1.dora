@@ -1,5 +1,3 @@
-//= cannon
-
 class A[X] {
     fun t1[Y](x: X, y: Y) -> Y { return y; }
     fun t2[Y](x: X, y: Y) -> X { return x; }

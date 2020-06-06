@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
   let array = arrayFill[Int32](20L, 2);
   assert(2 == array(0L));

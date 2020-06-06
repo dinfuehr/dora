@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     let x = 1.shiftLeft(1);
     assert(x == 2);

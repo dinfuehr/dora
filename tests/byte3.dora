@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     let ba = arrayEmpty[UInt8]();
     assert(ba.length() == 0L);

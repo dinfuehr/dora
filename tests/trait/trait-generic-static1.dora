@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
     assert(f[Bar]() == 1);
     assert(f[Baz]() == 2);

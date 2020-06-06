@@ -1,5 +1,3 @@
-//= cannon
-
 fun main() {
   assert(Foo::id[Int32](1) == 1);
   assert(Foo::id[String]("hello") == "hel" + "lo");
