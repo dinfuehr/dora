@@ -47,7 +47,7 @@ pub use self::strct::{
 };
 pub use self::traits::{TraitData, TraitId};
 pub use self::tuple::{ensure_tuple, TupleId, Tuples};
-pub use self::vip::{KnownClasses, KnownElements, KnownFunctions};
+pub use self::vip::{KnownClasses, KnownElements, KnownFunctions, KnownModules};
 
 pub mod class;
 mod cnst;
@@ -126,6 +126,7 @@ impl<'ast> VM<'ast> {
     pub fn new(args: Args, ast: &'ast ast::Ast) -> Box<VM<'ast>> {
         let empty_class_id: ClassId = 0.into();
         let empty_class_def_id: ClassDefId = 0.into();
+        let empty_module_id: ModuleId = 0.into();
         let empty_trait_id: TraitId = 0.into();
         let empty_fct_id: FctId = 0.into();
         let gc = Gc::new(&args);
@@ -159,11 +160,16 @@ impl<'ast> VM<'ast> {
                 double_class: empty_class_id,
                 object_class: empty_class_id,
                 string_class: empty_class_id,
+                string_module: empty_module_id,
 
                 array_class: empty_class_id,
 
                 cls: KnownClasses {
                     string_buffer: empty_class_id,
+                },
+
+                mods: KnownModules {
+                    string_buffer: empty_module_id,
                 },
 
                 fct: KnownFunctions {

@@ -2,8 +2,6 @@ class StringBuffer() {
   var buf: Array[UInt8] = arrayEmpty[UInt8]();
   var len: Int64 = 0L;
 
-  @static fun empty() -> StringBuffer = StringBuffer();
-
   fun length() -> Int64 {
     return self.len;
   }
@@ -76,4 +74,8 @@ class StringBuffer() {
   }
 
   fun toString() -> String = String::fromBytesPart(self.buf, 0L, self.length()).unwrap();
+}
+
+module StringBuffer {
+  fun empty() -> StringBuffer = StringBuffer();
 }

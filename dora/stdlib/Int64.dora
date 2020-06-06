@@ -81,13 +81,15 @@
   @internal fun countOneBitsTrailing() -> Int32 = self.not().countZeroBitsTrailing();
 
   fun hash() -> Int32 = self.toInt32();
+}
 
-  @static fun bits() -> Int32 = 64;
-  @static fun bytes() -> Int32 = 8;
+module Int64 {
+  fun bits() -> Int32 = 64;
+  fun bytes() -> Int32 = 8;
 
-  @static fun maxValue() -> Int64 = 9223372036854775807L;
-  @static fun minValue() -> Int64 = -9223372036854775808L;
+  fun maxValue() -> Int64 = 9223372036854775807L;
+  fun minValue() -> Int64 = -9223372036854775808L;
 
-  @static fun min(lhs: Int64, rhs: Int64) -> Int64 = if lhs < rhs { lhs } else { rhs };
-  @static fun max(lhs: Int64, rhs: Int64) -> Int64 = if lhs < rhs { rhs } else { lhs };
+  fun min(lhs: Int64, rhs: Int64) -> Int64 = if lhs < rhs { lhs } else { rhs };
+  fun max(lhs: Int64, rhs: Int64) -> Int64 = if lhs < rhs { rhs } else { lhs };
 }

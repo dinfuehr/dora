@@ -35,7 +35,9 @@
   @internal fun sqrt() -> Double;
 
   fun hash() -> Int32 = self.asInt64().toInt32();
+}
 
-  @static fun bits() -> Int32 = 64;
-  @static fun bytes() -> Int32 = 8;
+module Double {
+  fun bits() -> Int32 = 64;
+  fun bytes() -> Int32 = 8;
 }
