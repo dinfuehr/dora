@@ -69,7 +69,7 @@ class HashMap[K: Hash + Equals, V] {
         assert(self.size <= self.cap);
 
         if self.size == 0L {
-            return none[V]();
+            return Option::none[V]();
         }
 
         var hash = key.hash();
@@ -80,7 +80,7 @@ class HashMap[K: Hash + Equals, V] {
                 let current_key = self.keys.get(idx);
 
                 if current_key.hash() == hash && current_key.equals(key) {
-                    return some[V](self.values.get(idx));
+                    return Option::some[V](self.values.get(idx));
                 }
             } else {
                 break;
@@ -89,7 +89,7 @@ class HashMap[K: Hash + Equals, V] {
             idx = (idx + 1L) & (self.cap - 1L);
         }
 
-        return none[V]();
+        return Option::none[V]();
     }
 
     fun remove(key: K) -> V {
