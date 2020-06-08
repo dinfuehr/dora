@@ -1,0 +1,58 @@
+module Assert {
+  fun string(string: String) -> StringAssert = StringAssert(string);
+  fun set[T : Equals + Hash](set: HashSet[T]) -> SetAssert[T] = SetAssert[T](set);
+}
+
+class StringAssert(let value: String) {
+  /*
+  fun contains(expected: String) -> StringAssert {
+    assert(self.value.contains(expected));
+    return self;
+  }
+  */
+
+  fun hasSize(expected: Int64) -> StringAssert {
+    if self.value.length() != expected {
+      fatalError("unexpected string size (expected: ${expected}, actual: ${self.value.length()})");
+    }
+    return self;
+  }
+
+  fun isEmpty() -> StringAssert {
+    if self.value.isEmpty().not() {
+      fatalError("string not empty (is \"${self.value}\")");
+    }
+    return self;
+  }
+
+  fun isNotEmpty() -> StringAssert {
+    if self.value.isEmpty() {
+      fatalError("string is empty");
+    }
+    return self;
+  }
+}
+
+class SetAssert[T : Equals + Hash](let value: HashSet[T]) {
+  fun contains(expected: T) -> SetAssert[T] {
+    assert(self.value.contains(expected));
+    return self;
+  }
+
+  fun containsAll(expected: T...) -> SetAssert[T] {
+    for value in expected {
+      assert(self.value.contains(value));
+    }
+    return self;
+  }
+
+  fun hasSize(expected: Int64) -> SetAssert[T] {
+    assert(self.value.length() == expected);
+    return self;
+  }
+
+  fun isEmpty() -> SetAssert[T] {
+    assert(self.value.isEmpty());
+    return self;
+  }
+}
