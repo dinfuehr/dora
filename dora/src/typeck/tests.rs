@@ -74,9 +74,20 @@ fn type_module_method_call() {
     ok("module Foo {
                 fun bar() {}
                 fun baz() -> Int32 { return 1; }
+                fun foo() -> Foo = Foo();
+                fun foz() {
+                  let foo = Foo();
+                  foo.x();
+                  foo.y;
+                  foo.z;
+                }
             }
 
-            class Foo() {}
+            class Foo() {
+              fun x() -> Int32 = 1;
+              let y: Int32 = 2;
+              var z: Int32 = 3;
+            }
 
             fun f2() { Foo::bar(); }
             fun g() -> Int32 { return Foo::baz(); }");
@@ -641,6 +652,11 @@ fn same_names() {
     ok("class Foo { var Foo: Foo = Foo(); }");
     ok("class Foo fun foo() { let Foo: Int32 = 1; }");
     ok("class Foo { var Foo: Foo = Foo(); } module Foo { fun Foo() -> Foo = nil; }");
+    ok("class Foo { fun Foo() -> Foo { Foo::Foo(); return Foo(); } } module Foo { fun Foo() -> Foo = nil; }");
+    ok("class Foo { fun Far() -> Foo = Foo::bar(); } module Foo { fun bar() -> Foo = Foo(); }");
+    ok("module Foo { fun Foo() -> Foo = nil; } class Foo { var Foo: Foo = Foo(); }");
+    ok("module Foo { fun Foo() -> Foo = nil; } class Foo { fun Foo() -> Foo { Foo::Foo(); return Foo(); } }");
+    ok("module Foo { fun bar() -> Foo = Foo(); } class Foo { fun Far() -> Foo = Foo::bar(); }");
 }
 
 #[test]
