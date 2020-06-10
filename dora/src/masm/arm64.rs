@@ -612,11 +612,11 @@ impl MacroAssembler {
         self.emit_u32(asm::fcvtzs(x64, flt, dest, src));
     }
 
-    pub fn float_to_double(&mut self, dest: FReg, src: FReg) {
+    pub fn float32_to_float64(&mut self, dest: FReg, src: FReg) {
         self.emit_u32(asm::fcvt_sd(dest, src));
     }
 
-    pub fn double_to_float(&mut self, dest: FReg, src: FReg) {
+    pub fn float64_to_float32(&mut self, dest: FReg, src: FReg) {
         self.emit_u32(asm::fcvt_ds(dest, src));
     }
 

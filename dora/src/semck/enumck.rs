@@ -120,7 +120,7 @@ mod tests {
                 "Foo".into(),
                 "A".into(),
                 vec!["Int32".into()],
-                vec!["Float".into()],
+                vec!["Float32".into()],
             ),
         );
     }
@@ -156,7 +156,7 @@ mod tests {
                 "Foo".into(),
                 "C".into(),
                 Vec::new(),
-                vec!["Float".into()],
+                vec!["Float32".into()],
             ),
         );
     }

@@ -3,7 +3,7 @@ use std::ptr;
 use crate::compiler::fct::JitFctId;
 use crate::compiler::map::CodeDescriptor;
 use crate::handle::{root, Handle};
-use crate::object::{alloc, Array, IntArray, Ref, Stacktrace, StacktraceElement, Str};
+use crate::object::{alloc, Array, Int32Array, Ref, Stacktrace, StacktraceElement, Str};
 use crate::threads::THREAD;
 use crate::vm::{get_vm, FctParent, VM};
 
@@ -289,7 +289,7 @@ fn set_backtrace(vm: &VM, mut obj: Handle<Stacktrace>, via_retrieve: bool) {
     let len = stacktrace.len() - skip;
 
     let cls_id = vm.vips.int_array(vm);
-    let array: Ref<IntArray> = Array::alloc(vm, len * 2, 0, cls_id);
+    let array: Ref<Int32Array> = Array::alloc(vm, len * 2, 0, cls_id);
     let mut array = root(array);
     let mut i = 0;
 

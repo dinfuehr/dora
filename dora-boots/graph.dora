@@ -412,12 +412,12 @@ class Int64Const(let value: Int64): Const {
     @override fun dumpName() -> String { "Int64(${self.value})" }
 }
 
-class FloatConst(let value: Float): Const {
-    @override fun dumpName() -> String { "Float(${self.value})" }
+class Float32Const(let value: Float): Const {
+    @override fun dumpName() -> String { "Float32(${self.value})" }
 }
 
-class DoubleConst(let value: Double): Const {
-    @override fun dumpName() -> String { "Double(${self.value})" }
+class Float64Const(let value: Double): Const {
+    @override fun dumpName() -> String { "Float64(${self.value})" }
 }
 
 class LoadGlobalInst(ty: Type, let global: GlobalId): Inst {

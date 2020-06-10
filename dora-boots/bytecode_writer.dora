@@ -34,12 +34,12 @@ class BytecodeWriter {
         self.emitReg3(BC_ADD_INT64, dest, lhs, rhs);
     }
 
-    fun emitAddFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_ADD_FLOAT, dest, lhs, rhs);
+    fun emitAddFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_ADD_FLOAT32, dest, lhs, rhs);
     }
 
-    fun emitAddDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_ADD_DOUBLE, dest, lhs, rhs);
+    fun emitAddFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_ADD_FLOAT64, dest, lhs, rhs);
     }
 
     fun emitSubInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
@@ -50,12 +50,12 @@ class BytecodeWriter {
         self.emitReg3(BC_SUB_INT64, dest, lhs, rhs);
     }
 
-    fun emitSubFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_SUB_FLOAT, dest, lhs, rhs);
+    fun emitSubFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_SUB_FLOAT32, dest, lhs, rhs);
     }
 
-    fun emitSubDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_SUB_DOUBLE, dest, lhs, rhs);
+    fun emitSubFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_SUB_FLOAT64, dest, lhs, rhs);
     }
 
     fun emitNegInt32(dest: BytecodeRegister, src: BytecodeRegister) {
@@ -66,12 +66,12 @@ class BytecodeWriter {
         self.emitReg2(BC_NEG_INT64, dest, src);
     }
 
-    fun emitNegFloat(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_NEG_FLOAT, dest, src);
+    fun emitNegFloat32(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_NEG_FLOAT32, dest, src);
     }
 
-    fun emitNegDouble(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_NEG_DOUBLE, dest, src);
+    fun emitNegFloat64(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_NEG_FLOAT64, dest, src);
     }
 
     fun emitMulInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
@@ -82,12 +82,12 @@ class BytecodeWriter {
         self.emitReg3(BC_MUL_INT64, dest, lhs, rhs);
     }
 
-    fun emitMulFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_MUL_FLOAT, dest, lhs, rhs);
+    fun emitMulFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_MUL_FLOAT32, dest, lhs, rhs);
     }
 
-    fun emitMulDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_MUL_DOUBLE, dest, lhs, rhs);
+    fun emitMulFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_MUL_FLOAT64, dest, lhs, rhs);
     }
 
     fun emitDivInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
@@ -98,12 +98,12 @@ class BytecodeWriter {
         self.emitReg3(BC_DIV_INT64, dest, lhs, rhs);
     }
 
-    fun emitDivFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_DIV_FLOAT, dest, lhs, rhs);
+    fun emitDivFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_DIV_FLOAT32, dest, lhs, rhs);
     }
 
-    fun emitDivDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_DIV_DOUBLE, dest, lhs, rhs);
+    fun emitDivFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_DIV_FLOAT64, dest, lhs, rhs);
     }
 
     fun emitModInt32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
@@ -190,20 +190,20 @@ class BytecodeWriter {
         self.emitReg3(BC_ROR_INT64, dest, lhs, rhs);
     }
 
-    fun emitReinterpretFloatAsInt32(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_REINTERPRET_FLOAT_AS_INT32, dest, src);
+    fun emitReinterpretFloat32AsInt32(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_REINTERPRET_FLOAT32_AS_INT32, dest, src);
     }
 
-    fun emitReinterpretInt32AsFloat(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_REINTERPRET_INT32_AS_FLOAT, dest, src);
+    fun emitReinterpretInt32AsFloat32(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_REINTERPRET_INT32_AS_FLOAT32, dest, src);
     }
 
-    fun emitReinterpretDoubleAsInt64(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_REINTERPRET_DOUBLE_AS_INT64, dest, src);
+    fun emitReinterpretFloat64AsInt64(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_REINTERPRET_FLOAT64_AS_INT64, dest, src);
     }
 
-    fun emitReinterpretInt64AsDouble(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_REINTERPRET_INT64_AS_DOUBLE, dest, src);
+    fun emitReinterpretInt64AsFloat64(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_REINTERPRET_INT64_AS_FLOAT64, dest, src);
     }
 
     fun emitExtendByteToChar(dest: BytecodeRegister, src: BytecodeRegister) {
@@ -250,36 +250,36 @@ class BytecodeWriter {
         self.emitReg2(BC_CAST_INT64_TO_INT32, dest, src);
     }
 
-    fun emitConvertInt32ToFloat(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_CONVERT_INT32_TO_FLOAT, dest, src);
+    fun emitConvertInt32ToFloat32(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_CONVERT_INT32_TO_FLOAT32, dest, src);
     }
 
-    fun emitConvertInt32ToDouble(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_CONVERT_INT32_TO_DOUBLE, dest, src);
+    fun emitConvertInt32ToFloat64(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_CONVERT_INT32_TO_FLOAT64, dest, src);
     }
 
-    fun emitConvertInt64ToFloat(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_CONVERT_INT64_TO_FLOAT, dest, src);
+    fun emitConvertInt64ToFloat32(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_CONVERT_INT64_TO_FLOAT32, dest, src);
     }
 
-    fun emitConvertInt64ToDouble(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_CONVERT_INT64_TO_DOUBLE, dest, src);
+    fun emitConvertInt64ToFloat64(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_CONVERT_INT64_TO_FLOAT64, dest, src);
     }
 
-    fun emitTruncateFloatToInt32(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_TRUNCATE_FLOAT_TO_INT32, dest, src);
+    fun emitTruncateFloat32ToInt32(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_TRUNCATE_FLOAT32_TO_INT32, dest, src);
     }
 
-    fun emitTruncateFloatToInt64(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_TRUNCATE_FLOAT_TO_INT64, dest, src);
+    fun emitTruncateFloat32ToInt64(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_TRUNCATE_FLOAT32_TO_INT64, dest, src);
     }
 
-    fun emitTruncateDoubleToInt32(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_TRUNCATE_DOUBLE_TO_INT32, dest, src);
+    fun emitTruncateFloat64ToInt32(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_TRUNCATE_FLOAT64_TO_INT32, dest, src);
     }
 
-    fun emitTruncateDoubleToInt64(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_TRUNCATE_DOUBLE_TO_INT64, dest, src);
+    fun emitTruncateFloat64ToInt64(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_TRUNCATE_FLOAT64_TO_INT64, dest, src);
     }
 
     fun emitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) {
@@ -310,12 +310,12 @@ class BytecodeWriter {
         self.emitReg2(BC_MOV_INT64, dest, src);
     }
 
-    fun emitMovFloat(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_MOV_FLOAT, dest, src);
+    fun emitMovFloat32(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_MOV_FLOAT32, dest, src);
     }
 
-    fun emitMovDouble(dest: BytecodeRegister, src: BytecodeRegister) {
-        self.emitReg2(BC_MOV_DOUBLE, dest, src);
+    fun emitMovFloat64(dest: BytecodeRegister, src: BytecodeRegister) {
+        self.emitReg2(BC_MOV_FLOAT64, dest, src);
     }
 
     fun emitMovPtr(dest: BytecodeRegister, src: BytecodeRegister) {
@@ -342,12 +342,12 @@ class BytecodeWriter {
         self.emitField(BC_LOAD_FIELD_INT64, dest, obj, cls, field);
     }
 
-    fun emitLoadFieldFloat(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
-        self.emitField(BC_LOAD_FIELD_FLOAT, dest, obj, cls, field);
+    fun emitLoadFieldFloat32(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
+        self.emitField(BC_LOAD_FIELD_FLOAT32, dest, obj, cls, field);
     }
 
-    fun emitLoadFieldDouble(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
-        self.emitField(BC_LOAD_FIELD_DOUBLE, dest, obj, cls, field);
+    fun emitLoadFieldFloat64(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
+        self.emitField(BC_LOAD_FIELD_FLOAT64, dest, obj, cls, field);
     }
 
     fun emitLoadFieldPtr(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
@@ -374,12 +374,12 @@ class BytecodeWriter {
         self.emitField(BC_STORE_FIELD_INT64, src, obj, cls, field);
     }
 
-    fun emitStoreFieldFloat(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
-        self.emitField(BC_STORE_FIELD_FLOAT, src, obj, cls, field);
+    fun emitStoreFieldFloat32(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
+        self.emitField(BC_STORE_FIELD_FLOAT32, src, obj, cls, field);
     }
 
-    fun emitStoreFieldDouble(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
-        self.emitField(BC_STORE_FIELD_DOUBLE, src, obj, cls, field);
+    fun emitStoreFieldFloat64(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
+        self.emitField(BC_STORE_FIELD_FLOAT64, src, obj, cls, field);
     }
 
     fun emitStoreFieldPtr(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
@@ -406,12 +406,12 @@ class BytecodeWriter {
         self.emitGlobal(BC_LOAD_GLOBAL_INT64, dest, glob);
     }
 
-    fun emitLoadGlobalFloat(dest: BytecodeRegister, glob: GlobalId) {
-        self.emitGlobal(BC_LOAD_GLOBAL_FLOAT, dest, glob);
+    fun emitLoadGlobalFloat32(dest: BytecodeRegister, glob: GlobalId) {
+        self.emitGlobal(BC_LOAD_GLOBAL_FLOAT32, dest, glob);
     }
 
-    fun emitLoadGlobalDouble(dest: BytecodeRegister, glob: GlobalId) {
-        self.emitGlobal(BC_LOAD_GLOBAL_DOUBLE, dest, glob);
+    fun emitLoadGlobalFloat64(dest: BytecodeRegister, glob: GlobalId) {
+        self.emitGlobal(BC_LOAD_GLOBAL_FLOAT64, dest, glob);
     }
 
     fun emitLoadGlobalPtr(dest: BytecodeRegister, glob: GlobalId) {
@@ -438,12 +438,12 @@ class BytecodeWriter {
         self.emitGlobal(BC_LOAD_GLOBAL_INT64, src, glob);
     }
 
-    fun emitStoreGlobalFloat(src: BytecodeRegister, glob: GlobalId) {
-        self.emitGlobal(BC_LOAD_GLOBAL_FLOAT, src, glob);
+    fun emitStoreGlobalFloat32(src: BytecodeRegister, glob: GlobalId) {
+        self.emitGlobal(BC_LOAD_GLOBAL_FLOAT32, src, glob);
     }
 
-    fun emitStoreGlobalDouble(src: BytecodeRegister, glob: GlobalId) {
-        self.emitGlobal(BC_LOAD_GLOBAL_DOUBLE, src, glob);
+    fun emitStoreGlobalFloat64(src: BytecodeRegister, glob: GlobalId) {
+        self.emitGlobal(BC_LOAD_GLOBAL_FLOAT64, src, glob);
     }
 
     fun emitStoreGlobalPtr(src: BytecodeRegister, glob: GlobalId) {
@@ -482,12 +482,12 @@ class BytecodeWriter {
         self.emitReg1(BC_CONST_ZERO_INT64, dest);
     }
 
-    fun emitConstZeroFloat(dest: BytecodeRegister) {
-        self.emitReg1(BC_CONST_ZERO_FLOAT, dest);
+    fun emitConstZeroFloat32(dest: BytecodeRegister) {
+        self.emitReg1(BC_CONST_ZERO_FLOAT32, dest);
     }
 
-    fun emitConstZeroDouble(dest: BytecodeRegister) {
-        self.emitReg1(BC_CONST_ZERO_DOUBLE, dest);
+    fun emitConstZeroFloat64(dest: BytecodeRegister) {
+        self.emitReg1(BC_CONST_ZERO_FLOAT64, dest);
     }
 
     fun emitConstByte(dest: BytecodeRegister, value: UInt8) {
@@ -509,14 +509,14 @@ class BytecodeWriter {
         self.emitReg1AndIdx(BC_CONST_INT64, dest, idx);
     }
 
-    fun emitConstFloat(dest: BytecodeRegister, value: Float) {
-        let idx = self.addConst(ConstPoolFloat(value));
-        self.emitReg1AndIdx(BC_CONST_FLOAT, dest, idx);
+    fun emitConstFloat32(dest: BytecodeRegister, value: Float) {
+        let idx = self.addConst(ConstPoolFloat32(value));
+        self.emitReg1AndIdx(BC_CONST_FLOAT32, dest, idx);
     }
 
-    fun emitConstDouble(dest: BytecodeRegister, value: Double) {
-        let idx = self.addConst(ConstPoolDouble(value));
-        self.emitReg1AndIdx(BC_CONST_DOUBLE, dest, idx);
+    fun emitConstFloat64(dest: BytecodeRegister, value: Double) {
+        let idx = self.addConst(ConstPoolFloat64(value));
+        self.emitReg1AndIdx(BC_CONST_FLOAT64, dest, idx);
     }
 
     fun emitConstString(dest: BytecodeRegister, value: String) {
@@ -644,52 +644,52 @@ class BytecodeWriter {
         self.emitReg3(BC_TEST_LE_INT64, dest, lhs, rhs);
     }
 
-    fun emitTestEqFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_EQ_FLOAT, dest, lhs, rhs);
+    fun emitTestEqFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_EQ_FLOAT32, dest, lhs, rhs);
     }
 
-    fun emitTestNeFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_NE_FLOAT, dest, lhs, rhs);
+    fun emitTestNeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_NE_FLOAT32, dest, lhs, rhs);
     }
 
-    fun emitTestGtFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_GT_FLOAT, dest, lhs, rhs);
+    fun emitTestGtFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_GT_FLOAT32, dest, lhs, rhs);
     }
 
-    fun emitTestGeFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_GE_FLOAT, dest, lhs, rhs);
+    fun emitTestGeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_GE_FLOAT32, dest, lhs, rhs);
     }
 
-    fun emitTestLtFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_LT_FLOAT, dest, lhs, rhs);
+    fun emitTestLtFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_LT_FLOAT32, dest, lhs, rhs);
     }
 
-    fun emitTestLeFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_LE_FLOAT, dest, lhs, rhs);
+    fun emitTestLeFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_LE_FLOAT32, dest, lhs, rhs);
     }
 
-    fun emitTestEqDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_EQ_DOUBLE, dest, lhs, rhs);
+    fun emitTestEqFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_EQ_FLOAT64, dest, lhs, rhs);
     }
 
-    fun emitTestNeDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_NE_DOUBLE, dest, lhs, rhs);
+    fun emitTestNeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_NE_FLOAT64, dest, lhs, rhs);
     }
 
-    fun emitTestGtDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_GT_DOUBLE, dest, lhs, rhs);
+    fun emitTestGtFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_GT_FLOAT64, dest, lhs, rhs);
     }
 
-    fun emitTestGeDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_GE_DOUBLE, dest, lhs, rhs);
+    fun emitTestGeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_GE_FLOAT64, dest, lhs, rhs);
     }
 
-    fun emitTestLtDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_LT_DOUBLE, dest, lhs, rhs);
+    fun emitTestLtFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_LT_FLOAT64, dest, lhs, rhs);
     }
 
-    fun emitTestLeDouble(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        self.emitReg3(BC_TEST_LE_DOUBLE, dest, lhs, rhs);
+    fun emitTestLeFloat64(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        self.emitReg3(BC_TEST_LE_FLOAT64, dest, lhs, rhs);
     }
 
     fun emitAssert(value: BytecodeRegister) {
@@ -741,12 +741,12 @@ class BytecodeWriter {
         self.emitFct(BC_INVOKE_DIRECT_INT64, dest, fct, start, count);
     }
 
-    fun emitInvokeDirectFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_DIRECT_FLOAT, dest, fct, start, count);
+    fun emitInvokeDirectFloat32(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
+        self.emitFct(BC_INVOKE_DIRECT_FLOAT32, dest, fct, start, count);
     }
 
-    fun emitInvokeDirectDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_DIRECT_DOUBLE, dest, fct, start, count);
+    fun emitInvokeDirectFloat64(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
+        self.emitFct(BC_INVOKE_DIRECT_FLOAT64, dest, fct, start, count);
     }
 
     fun emitInvokeDirectPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
@@ -777,12 +777,12 @@ class BytecodeWriter {
         self.emitFct(BC_INVOKE_VIRTUAL_INT64, dest, fct, start, count);
     }
 
-    fun emitInvokeVirtualFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_VIRTUAL_FLOAT, dest, fct, start, count);
+    fun emitInvokeVirtualFloat32(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
+        self.emitFct(BC_INVOKE_VIRTUAL_FLOAT32, dest, fct, start, count);
     }
 
-    fun emitInvokeVirtualDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_VIRTUAL_DOUBLE, dest, fct, start, count);
+    fun emitInvokeVirtualFloat64(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
+        self.emitFct(BC_INVOKE_VIRTUAL_FLOAT64, dest, fct, start, count);
     }
 
     fun emitInvokeVirtualPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
@@ -813,12 +813,12 @@ class BytecodeWriter {
         self.emitFct(BC_INVOKE_STATIC_INT64, dest, fct, start, count);
     }
 
-    fun emitInvokeStaticFloat(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_STATIC_FLOAT, dest, fct, start, count);
+    fun emitInvokeStaticFloat32(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
+        self.emitFct(BC_INVOKE_STATIC_FLOAT32, dest, fct, start, count);
     }
 
-    fun emitInvokeStaticDouble(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_STATIC_DOUBLE, dest, fct, start, count);
+    fun emitInvokeStaticFloat64(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
+        self.emitFct(BC_INVOKE_STATIC_FLOAT64, dest, fct, start, count);
     }
 
     fun emitInvokeStaticPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
@@ -853,12 +853,12 @@ class BytecodeWriter {
         self.emitReg1(BC_RET_INT64, opnd);
     }
 
-    fun emitRetFloat(opnd: BytecodeRegister) {
-        self.emitReg1(BC_RET_FLOAT, opnd);
+    fun emitRetFloat32(opnd: BytecodeRegister) {
+        self.emitReg1(BC_RET_FLOAT32, opnd);
     }
 
-    fun emitRetDouble(opnd: BytecodeRegister) {
-        self.emitReg1(BC_RET_DOUBLE, opnd);
+    fun emitRetFloat64(opnd: BytecodeRegister) {
+        self.emitReg1(BC_RET_FLOAT64, opnd);
     }
 
     fun emitRetPtr(opnd: BytecodeRegister) {

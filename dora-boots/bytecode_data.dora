@@ -34,17 +34,17 @@ class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEn
         }
     }
 
-    fun toFloat() -> Option[Float] {
-        if self is ConstPoolFloat {
-            Option::some[Float]((self as ConstPoolFloat).value)
+    fun toFloat32() -> Option[Float] {
+        if self is ConstPoolFloat32 {
+            Option::some[Float]((self as ConstPoolFloat32).value)
         } else {
             Option::none[Float]()
         }
     }
 
-    fun toDouble() -> Option[Double] {
-        if self is ConstPoolDouble {
-            Option::some[Double]((self as ConstPoolDouble).value)
+    fun toFloat64() -> Option[Double] {
+        if self is ConstPoolFloat64 {
+            Option::some[Double]((self as ConstPoolFloat64).value)
         } else {
             Option::none[Double]()
         }
@@ -61,12 +61,12 @@ class ConstPoolInt64(let value: Int64): ConstPoolEntry {
     @override fun toString() -> String { "Int64 ${self.value}" }
 }
 
-class ConstPoolFloat(let value: Float): ConstPoolEntry {
-    @override fun toString() -> String { "Float ${self.value}" }
+class ConstPoolFloat32(let value: Float): ConstPoolEntry {
+    @override fun toString() -> String { "Float32 ${self.value}" }
 }
 
-class ConstPoolDouble(let value: Double): ConstPoolEntry {
-    @override fun toString() -> String { "Double ${self.value}" }
+class ConstPoolFloat64(let value: Double): ConstPoolEntry {
+    @override fun toString() -> String { "Float64 ${self.value}" }
 }
 
 class ConstPoolString(let value: String): ConstPoolEntry {
@@ -116,8 +116,8 @@ class BytecodeType(let value: Int32) {
     fun isChar() -> Bool = self.value == BC_TYPE_CHAR;
     fun isInt32() -> Bool = self.value == BC_TYPE_INT32;
     fun isInt64() -> Bool = self.value == BC_TYPE_INT64;
-    fun isFloat() -> Bool = self.value == BC_TYPE_FLOAT;
-    fun isDouble() -> Bool = self.value == BC_TYPE_DOUBLE;
+    fun isFloat32() -> Bool = self.value == BC_TYPE_FLOAT32;
+    fun isFloat64() -> Bool = self.value == BC_TYPE_FLOAT64;
     fun isPtr() -> Bool = self.value == BC_TYPE_PTR;
 }
 
@@ -127,8 +127,8 @@ module BytecodeType {
     fun char() -> BytecodeType = BytecodeType(BC_TYPE_CHAR);
     fun int32() -> BytecodeType = BytecodeType(BC_TYPE_INT32);
     fun int64() -> BytecodeType = BytecodeType(BC_TYPE_INT64);
-    fun float() -> BytecodeType = BytecodeType(BC_TYPE_FLOAT);
-    fun double() -> BytecodeType = BytecodeType(BC_TYPE_DOUBLE);
+    fun float32() -> BytecodeType = BytecodeType(BC_TYPE_FLOAT32);
+    fun float64() -> BytecodeType = BytecodeType(BC_TYPE_FLOAT64);
     fun ptr() -> BytecodeType = BytecodeType(BC_TYPE_PTR);
 }
 

@@ -301,8 +301,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Char => self.gen.emit_ret_char(result_reg),
             BytecodeType::Int32 => self.gen.emit_ret_int32(result_reg),
             BytecodeType::Int64 => self.gen.emit_ret_int64(result_reg),
-            BytecodeType::Float => self.gen.emit_ret_float(result_reg),
-            BytecodeType::Double => self.gen.emit_ret_double(result_reg),
+            BytecodeType::Float32 => self.gen.emit_ret_float32(result_reg),
+            BytecodeType::Float64 => self.gen.emit_ret_float64(result_reg),
             BytecodeType::Ptr => self.gen.emit_ret_ptr(result_reg),
             BytecodeType::Tuple(_) => self.gen.emit_ret_tuple(result_reg),
         }
@@ -554,12 +554,12 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Int64 => self
                 .gen
                 .emit_load_field_int64(dest, obj, cls_def_id, field_id),
-            BytecodeType::Float => self
+            BytecodeType::Float32 => self
                 .gen
-                .emit_load_field_float(dest, obj, cls_def_id, field_id),
-            BytecodeType::Double => self
+                .emit_load_field_float32(dest, obj, cls_def_id, field_id),
+            BytecodeType::Float64 => self
                 .gen
-                .emit_load_field_double(dest, obj, cls_def_id, field_id),
+                .emit_load_field_float64(dest, obj, cls_def_id, field_id),
             BytecodeType::Ptr => self
                 .gen
                 .emit_load_field_ptr(dest, obj, cls_def_id, field_id),
@@ -974,8 +974,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Bool => self.gen.emit_mov_bool(dest, src),
             BytecodeType::UInt8 => self.gen.emit_mov_uint8(dest, src),
             BytecodeType::Char => self.gen.emit_mov_char(dest, src),
-            BytecodeType::Double => self.gen.emit_mov_double(dest, src),
-            BytecodeType::Float => self.gen.emit_mov_float(dest, src),
+            BytecodeType::Float64 => self.gen.emit_mov_float64(dest, src),
+            BytecodeType::Float32 => self.gen.emit_mov_float32(dest, src),
             BytecodeType::Int32 => self.gen.emit_mov_int32(dest, src),
             BytecodeType::Int64 => self.gen.emit_mov_int64(dest, src),
             BytecodeType::Ptr => self.gen.emit_mov_ptr(dest, src),
@@ -990,8 +990,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Char => self.gen.emit_load_array_char(dest, arr, idx),
             BytecodeType::Int32 => self.gen.emit_load_array_int32(dest, arr, idx),
             BytecodeType::Int64 => self.gen.emit_load_array_int64(dest, arr, idx),
-            BytecodeType::Float => self.gen.emit_load_array_float(dest, arr, idx),
-            BytecodeType::Double => self.gen.emit_load_array_double(dest, arr, idx),
+            BytecodeType::Float32 => self.gen.emit_load_array_float32(dest, arr, idx),
+            BytecodeType::Float64 => self.gen.emit_load_array_float64(dest, arr, idx),
             BytecodeType::Ptr => self.gen.emit_load_array_ptr(dest, arr, idx),
             BytecodeType::Tuple(_) => self.gen.emit_load_array_tuple(dest, arr, idx),
         }
@@ -1014,8 +1014,12 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 BytecodeType::Char => self.gen.emit_invoke_virtual_char(return_reg, callee_id),
                 BytecodeType::Int32 => self.gen.emit_invoke_virtual_int32(return_reg, callee_id),
                 BytecodeType::Int64 => self.gen.emit_invoke_virtual_int64(return_reg, callee_id),
-                BytecodeType::Float => self.gen.emit_invoke_virtual_float(return_reg, callee_id),
-                BytecodeType::Double => self.gen.emit_invoke_virtual_double(return_reg, callee_id),
+                BytecodeType::Float32 => {
+                    self.gen.emit_invoke_virtual_float32(return_reg, callee_id)
+                }
+                BytecodeType::Float64 => {
+                    self.gen.emit_invoke_virtual_float64(return_reg, callee_id)
+                }
                 BytecodeType::Ptr => self.gen.emit_invoke_virtual_ptr(return_reg, callee_id),
                 BytecodeType::Tuple(_) => self.gen.emit_invoke_virtual_tuple(return_reg, callee_id),
             }
@@ -1039,8 +1043,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 BytecodeType::Char => self.gen.emit_invoke_direct_char(return_reg, callee_id),
                 BytecodeType::Int32 => self.gen.emit_invoke_direct_int32(return_reg, callee_id),
                 BytecodeType::Int64 => self.gen.emit_invoke_direct_int64(return_reg, callee_id),
-                BytecodeType::Float => self.gen.emit_invoke_direct_float(return_reg, callee_id),
-                BytecodeType::Double => self.gen.emit_invoke_direct_double(return_reg, callee_id),
+                BytecodeType::Float32 => self.gen.emit_invoke_direct_float32(return_reg, callee_id),
+                BytecodeType::Float64 => self.gen.emit_invoke_direct_float64(return_reg, callee_id),
                 BytecodeType::Ptr => self.gen.emit_invoke_direct_ptr(return_reg, callee_id),
                 BytecodeType::Tuple(_) => self.gen.emit_invoke_direct_tuple(return_reg, callee_id),
             }
@@ -1064,8 +1068,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 BytecodeType::Char => self.gen.emit_invoke_static_char(return_reg, callee_id),
                 BytecodeType::Int32 => self.gen.emit_invoke_static_int32(return_reg, callee_id),
                 BytecodeType::Int64 => self.gen.emit_invoke_static_int64(return_reg, callee_id),
-                BytecodeType::Float => self.gen.emit_invoke_static_float(return_reg, callee_id),
-                BytecodeType::Double => self.gen.emit_invoke_static_double(return_reg, callee_id),
+                BytecodeType::Float32 => self.gen.emit_invoke_static_float32(return_reg, callee_id),
+                BytecodeType::Float64 => self.gen.emit_invoke_static_float64(return_reg, callee_id),
                 BytecodeType::Ptr => self.gen.emit_invoke_static_ptr(return_reg, callee_id),
                 BytecodeType::Tuple(_) => self.gen.emit_invoke_static_tuple(return_reg, callee_id),
             }
@@ -1150,8 +1154,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Bool => self.gen.emit_mov_bool(dest, var_reg),
             BytecodeType::UInt8 => self.gen.emit_mov_uint8(dest, var_reg),
             BytecodeType::Char => self.gen.emit_mov_char(dest, var_reg),
-            BytecodeType::Double => self.gen.emit_mov_double(dest, var_reg),
-            BytecodeType::Float => self.gen.emit_mov_float(dest, var_reg),
+            BytecodeType::Float64 => self.gen.emit_mov_float64(dest, var_reg),
+            BytecodeType::Float32 => self.gen.emit_mov_float32(dest, var_reg),
             BytecodeType::Int32 => self.gen.emit_mov_int32(dest, var_reg),
             BytecodeType::Int64 => self.gen.emit_mov_int64(dest, var_reg),
             BytecodeType::Ptr => self.gen.emit_mov_ptr(dest, var_reg),
@@ -1221,8 +1225,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let ty = self.src.ty(lit.id);
 
         let ty = match ty {
-            BuiltinType::Float => BytecodeType::Float,
-            BuiltinType::Double => BytecodeType::Double,
+            BuiltinType::Float32 => BytecodeType::Float32,
+            BuiltinType::Float64 => BytecodeType::Float64,
             _ => unreachable!(),
         };
 
@@ -1230,14 +1234,14 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         if lit.value == 0_f64 {
             match ty {
-                BytecodeType::Float => self.gen.emit_const_zero_float(dest),
-                BytecodeType::Double => self.gen.emit_const_zero_double(dest),
+                BytecodeType::Float32 => self.gen.emit_const_zero_float32(dest),
+                BytecodeType::Float64 => self.gen.emit_const_zero_float64(dest),
                 _ => unreachable!(),
             }
         } else {
             match ty {
-                BytecodeType::Float => self.gen.emit_const_float(dest, lit.value as f32),
-                BytecodeType::Double => self.gen.emit_const_double(dest, lit.value),
+                BytecodeType::Float32 => self.gen.emit_const_float32(dest, lit.value as f32),
+                BytecodeType::Float64 => self.gen.emit_const_float64(dest, lit.value),
                 _ => unreachable!(),
             }
         }
@@ -1479,8 +1483,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                         BytecodeType::Int32 => self.gen.emit_const_int32(dest, 0),
                         BytecodeType::Int64 => self.gen.emit_const_int64(dest, 0),
                         BytecodeType::Char => self.gen.emit_const_char(dest, '\0'),
-                        BytecodeType::Float => self.gen.emit_const_float(dest, 0.0),
-                        BytecodeType::Double => self.gen.emit_const_double(dest, 0.0),
+                        BytecodeType::Float32 => self.gen.emit_const_float32(dest, 0.0),
+                        BytecodeType::Float64 => self.gen.emit_const_float64(dest, 0.0),
                         BytecodeType::Ptr => self.gen.emit_const_nil(dest),
                         BytecodeType::Tuple(_) => unimplemented!(),
                     }
@@ -1559,8 +1563,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         let cmp_ty: BytecodeType = match builtin_type {
             BuiltinType::Nil => BytecodeType::Ptr,
-            BuiltinType::Float => BytecodeType::Int32,
-            BuiltinType::Double => BytecodeType::Int64,
+            BuiltinType::Float32 => BytecodeType::Int32,
+            BuiltinType::Float64 => BytecodeType::Int64,
             _ => builtin_type.into(),
         };
 
@@ -1573,14 +1577,14 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
             if cmp_ty == BytecodeType::Int32 {
                 self.gen
-                    .emit_reinterpret_float_as_int32(cmp_lhs_reg, lhs_reg);
+                    .emit_reinterpret_float32_as_int32(cmp_lhs_reg, lhs_reg);
                 self.gen
-                    .emit_reinterpret_float_as_int32(cmp_rhs_reg, rhs_reg);
+                    .emit_reinterpret_float32_as_int32(cmp_rhs_reg, rhs_reg);
             } else {
                 self.gen
-                    .emit_reinterpret_double_as_int64(cmp_lhs_reg, lhs_reg);
+                    .emit_reinterpret_float64_as_int64(cmp_lhs_reg, lhs_reg);
                 self.gen
-                    .emit_reinterpret_double_as_int64(cmp_rhs_reg, rhs_reg);
+                    .emit_reinterpret_float64_as_int64(cmp_rhs_reg, rhs_reg);
             }
         } else {
             cmp_lhs_reg = lhs_reg;
@@ -1700,8 +1704,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Char => self.gen.emit_store_array_char(src, arr, idx),
             BytecodeType::Int32 => self.gen.emit_store_array_int32(src, arr, idx),
             BytecodeType::Int64 => self.gen.emit_store_array_int64(src, arr, idx),
-            BytecodeType::Float => self.gen.emit_store_array_float(src, arr, idx),
-            BytecodeType::Double => self.gen.emit_store_array_double(src, arr, idx),
+            BytecodeType::Float32 => self.gen.emit_store_array_float32(src, arr, idx),
+            BytecodeType::Float64 => self.gen.emit_store_array_float64(src, arr, idx),
             BytecodeType::Ptr => self.gen.emit_store_array_ptr(src, arr, idx),
             BytecodeType::Tuple(_) => self.gen.emit_store_array_tuple(src, arr, idx),
         }
@@ -1735,8 +1739,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         match intrinsic {
             Intrinsic::Int32Plus
             | Intrinsic::Int64Plus
-            | Intrinsic::FloatPlus
-            | Intrinsic::DoublePlus => {
+            | Intrinsic::Float32Plus
+            | Intrinsic::Float64Plus => {
                 return self.visit_expr(opnd, dest);
             }
             _ => {}
@@ -1754,22 +1758,22 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             }
             Intrinsic::Int32Neg => self.gen.emit_neg_int32(dest, src),
             Intrinsic::Int64Neg => self.gen.emit_neg_int64(dest, src),
-            Intrinsic::FloatNeg => self.gen.emit_neg_float(dest, src),
-            Intrinsic::DoubleNeg => self.gen.emit_neg_double(dest, src),
+            Intrinsic::Float32Neg => self.gen.emit_neg_float32(dest, src),
+            Intrinsic::Float64Neg => self.gen.emit_neg_float64(dest, src),
             Intrinsic::BoolNot => self.gen.emit_not_bool(dest, src),
             Intrinsic::Int32Not => self.gen.emit_not_int32(dest, src),
             Intrinsic::Int64Not => self.gen.emit_not_int64(dest, src),
-            Intrinsic::ReinterpretFloatAsInt32 => {
-                self.gen.emit_reinterpret_float_as_int32(dest, src)
+            Intrinsic::ReinterpretFloat32AsInt32 => {
+                self.gen.emit_reinterpret_float32_as_int32(dest, src)
             }
-            Intrinsic::ReinterpretInt32AsFloat => {
-                self.gen.emit_reinterpret_int32_as_float(dest, src)
+            Intrinsic::ReinterpretInt32AsFloat32 => {
+                self.gen.emit_reinterpret_int32_as_float32(dest, src)
             }
-            Intrinsic::ReinterpretDoubleAsInt64 => {
-                self.gen.emit_reinterpret_double_as_int64(dest, src)
+            Intrinsic::ReinterpretFloat64AsInt64 => {
+                self.gen.emit_reinterpret_float64_as_int64(dest, src)
             }
-            Intrinsic::ReinterpretInt64AsDouble => {
-                self.gen.emit_reinterpret_int64_as_double(dest, src)
+            Intrinsic::ReinterpretInt64AsFloat64 => {
+                self.gen.emit_reinterpret_int64_as_float64(dest, src)
             }
             Intrinsic::ByteToChar => self.gen.emit_extend_byte_to_char(dest, src),
             Intrinsic::ByteToInt32 => self.gen.emit_extend_byte_to_int32(dest, src),
@@ -1783,16 +1787,16 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             Intrinsic::Int64ToByte => self.gen.emit_cast_int64_to_uint8(dest, src),
             Intrinsic::Int64ToChar => self.gen.emit_cast_int64_to_char(dest, src),
             Intrinsic::Int64ToInt32 => self.gen.emit_cast_int64_to_int32(dest, src),
-            Intrinsic::FloatIsNan => self.gen.emit_test_ne_float(dest, src, src),
-            Intrinsic::DoubleIsNan => self.gen.emit_test_ne_double(dest, src, src),
-            Intrinsic::Int32ToFloat => self.gen.emit_convert_int32_to_float(dest, src),
-            Intrinsic::Int32ToDouble => self.gen.emit_convert_int32_to_double(dest, src),
-            Intrinsic::Int64ToFloat => self.gen.emit_convert_int64_to_float(dest, src),
-            Intrinsic::Int64ToDouble => self.gen.emit_convert_int64_to_double(dest, src),
-            Intrinsic::FloatToInt32 => self.gen.emit_truncate_float_to_int32(dest, src),
-            Intrinsic::FloatToInt64 => self.gen.emit_truncate_float_to_int64(dest, src),
-            Intrinsic::DoubleToInt32 => self.gen.emit_truncate_double_to_int32(dest, src),
-            Intrinsic::DoubleToInt64 => self.gen.emit_truncate_double_to_int64(dest, src),
+            Intrinsic::Float32IsNan => self.gen.emit_test_ne_float32(dest, src, src),
+            Intrinsic::Float64IsNan => self.gen.emit_test_ne_float64(dest, src, src),
+            Intrinsic::Int32ToFloat32 => self.gen.emit_convert_int32_to_float32(dest, src),
+            Intrinsic::Int32ToFloat64 => self.gen.emit_convert_int32_to_float64(dest, src),
+            Intrinsic::Int64ToFloat32 => self.gen.emit_convert_int64_to_float32(dest, src),
+            Intrinsic::Int64ToFloat64 => self.gen.emit_convert_int64_to_float64(dest, src),
+            Intrinsic::Float32ToInt32 => self.gen.emit_truncate_float32_to_int32(dest, src),
+            Intrinsic::Float32ToInt64 => self.gen.emit_truncate_float32_to_int64(dest, src),
+            Intrinsic::Float64ToInt32 => self.gen.emit_truncate_float64_to_int32(dest, src),
+            Intrinsic::Float64ToInt64 => self.gen.emit_truncate_float64_to_int64(dest, src),
             Intrinsic::BoolToInt32 => {
                 self.gen.emit_const_int32(dest, 1);
                 let lbl_end = self.gen.create_label();
@@ -1800,15 +1804,19 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 self.gen.emit_const_int32(dest, 0);
                 self.gen.bind_label(lbl_end);
             }
-            Intrinsic::FloatSqrt => {
+            Intrinsic::Float32Sqrt => {
                 self.gen.emit_push_register(src);
-                self.gen
-                    .emit_invoke_static_float(dest, FctDef::fct_id(self.vm, info.fct_id.unwrap()));
+                self.gen.emit_invoke_static_float32(
+                    dest,
+                    FctDef::fct_id(self.vm, info.fct_id.unwrap()),
+                );
             }
-            Intrinsic::DoubleSqrt => {
+            Intrinsic::Float64Sqrt => {
                 self.gen.emit_push_register(src);
-                self.gen
-                    .emit_invoke_static_double(dest, FctDef::fct_id(self.vm, info.fct_id.unwrap()));
+                self.gen.emit_invoke_static_float64(
+                    dest,
+                    FctDef::fct_id(self.vm, info.fct_id.unwrap()),
+                );
             }
             Intrinsic::Int32CountZeroBits
             | Intrinsic::Int32CountZeroBitsLeading
@@ -1830,11 +1838,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 self.gen
                     .emit_invoke_static_int64(dest, FctDef::fct_id(self.vm, info.fct_id.unwrap()));
             }
-            Intrinsic::PromoteFloatToDouble => {
-                self.gen.emit_promote_float_to_double(dest, src);
+            Intrinsic::PromoteFloat32ToFloat64 => {
+                self.gen.emit_promote_float32_to_float64(dest, src);
             }
-            Intrinsic::DemoteDoubleToFloat => {
-                self.gen.emit_truncate_double_to_float(dest, src);
+            Intrinsic::DemoteFloat64ToFloat32 => {
+                self.gen.emit_demote_float64_to_float32(dest, src);
             }
             _ => {
                 panic!("unimplemented intrinsic {:?}", intrinsic);
@@ -1895,8 +1903,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     BytecodeType::Char => self.gen.emit_load_array_char(dest, arr, idx),
                     BytecodeType::Int32 => self.gen.emit_load_array_int32(dest, arr, idx),
                     BytecodeType::Int64 => self.gen.emit_load_array_int64(dest, arr, idx),
-                    BytecodeType::Float => self.gen.emit_load_array_float(dest, arr, idx),
-                    BytecodeType::Double => self.gen.emit_load_array_double(dest, arr, idx),
+                    BytecodeType::Float32 => self.gen.emit_load_array_float32(dest, arr, idx),
+                    BytecodeType::Float64 => self.gen.emit_load_array_float64(dest, arr, idx),
                     BytecodeType::Ptr => self.gen.emit_load_array_ptr(dest, arr, idx),
                     BytecodeType::Tuple(_) => self.gen.emit_load_array_tuple(dest, arr, idx),
                 }
@@ -1918,8 +1926,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 | Intrinsic::CharCmp
                 | Intrinsic::Int32Cmp
                 | Intrinsic::Int64Cmp
-                | Intrinsic::FloatCmp
-                | Intrinsic::DoubleCmp => BytecodeType::Bool,
+                | Intrinsic::Float32Cmp
+                | Intrinsic::Float64Cmp => BytecodeType::Bool,
                 _ => intrinsic.result_type(),
             }
         } else {
@@ -1995,30 +2003,54 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     self.gen.emit_cast_int64_to_int32(dest, result);
                 }
             },
-            Intrinsic::FloatEq => match op {
-                Some(BinOp::Cmp(CmpOp::Eq)) => self.gen.emit_test_eq_float(dest, lhs_reg, rhs_reg),
-                Some(BinOp::Cmp(CmpOp::Ne)) => self.gen.emit_test_ne_float(dest, lhs_reg, rhs_reg),
-                None => self.gen.emit_test_eq_float(dest, lhs_reg, rhs_reg),
+            Intrinsic::Float32Eq => match op {
+                Some(BinOp::Cmp(CmpOp::Eq)) => {
+                    self.gen.emit_test_eq_float32(dest, lhs_reg, rhs_reg)
+                }
+                Some(BinOp::Cmp(CmpOp::Ne)) => {
+                    self.gen.emit_test_ne_float32(dest, lhs_reg, rhs_reg)
+                }
+                None => self.gen.emit_test_eq_float32(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
-            Intrinsic::FloatCmp => match op {
-                Some(BinOp::Cmp(CmpOp::Lt)) => self.gen.emit_test_lt_float(dest, lhs_reg, rhs_reg),
-                Some(BinOp::Cmp(CmpOp::Le)) => self.gen.emit_test_le_float(dest, lhs_reg, rhs_reg),
-                Some(BinOp::Cmp(CmpOp::Gt)) => self.gen.emit_test_gt_float(dest, lhs_reg, rhs_reg),
-                Some(BinOp::Cmp(CmpOp::Ge)) => self.gen.emit_test_ge_float(dest, lhs_reg, rhs_reg),
+            Intrinsic::Float32Cmp => match op {
+                Some(BinOp::Cmp(CmpOp::Lt)) => {
+                    self.gen.emit_test_lt_float32(dest, lhs_reg, rhs_reg)
+                }
+                Some(BinOp::Cmp(CmpOp::Le)) => {
+                    self.gen.emit_test_le_float32(dest, lhs_reg, rhs_reg)
+                }
+                Some(BinOp::Cmp(CmpOp::Gt)) => {
+                    self.gen.emit_test_gt_float32(dest, lhs_reg, rhs_reg)
+                }
+                Some(BinOp::Cmp(CmpOp::Ge)) => {
+                    self.gen.emit_test_ge_float32(dest, lhs_reg, rhs_reg)
+                }
                 _ => unreachable!(),
             },
-            Intrinsic::DoubleEq => match op {
-                Some(BinOp::Cmp(CmpOp::Eq)) => self.gen.emit_test_eq_double(dest, lhs_reg, rhs_reg),
-                Some(BinOp::Cmp(CmpOp::Ne)) => self.gen.emit_test_ne_double(dest, lhs_reg, rhs_reg),
-                None => self.gen.emit_test_eq_double(dest, lhs_reg, rhs_reg),
+            Intrinsic::Float64Eq => match op {
+                Some(BinOp::Cmp(CmpOp::Eq)) => {
+                    self.gen.emit_test_eq_float64(dest, lhs_reg, rhs_reg)
+                }
+                Some(BinOp::Cmp(CmpOp::Ne)) => {
+                    self.gen.emit_test_ne_float64(dest, lhs_reg, rhs_reg)
+                }
+                None => self.gen.emit_test_eq_float64(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
-            Intrinsic::DoubleCmp => match op {
-                Some(BinOp::Cmp(CmpOp::Lt)) => self.gen.emit_test_lt_double(dest, lhs_reg, rhs_reg),
-                Some(BinOp::Cmp(CmpOp::Le)) => self.gen.emit_test_le_double(dest, lhs_reg, rhs_reg),
-                Some(BinOp::Cmp(CmpOp::Gt)) => self.gen.emit_test_gt_double(dest, lhs_reg, rhs_reg),
-                Some(BinOp::Cmp(CmpOp::Ge)) => self.gen.emit_test_ge_double(dest, lhs_reg, rhs_reg),
+            Intrinsic::Float64Cmp => match op {
+                Some(BinOp::Cmp(CmpOp::Lt)) => {
+                    self.gen.emit_test_lt_float64(dest, lhs_reg, rhs_reg)
+                }
+                Some(BinOp::Cmp(CmpOp::Le)) => {
+                    self.gen.emit_test_le_float64(dest, lhs_reg, rhs_reg)
+                }
+                Some(BinOp::Cmp(CmpOp::Gt)) => {
+                    self.gen.emit_test_gt_float64(dest, lhs_reg, rhs_reg)
+                }
+                Some(BinOp::Cmp(CmpOp::Ge)) => {
+                    self.gen.emit_test_ge_float64(dest, lhs_reg, rhs_reg)
+                }
                 _ => unreachable!(),
             },
             Intrinsic::Int32Add => self.gen.emit_add_int32(dest, lhs_reg, rhs_reg),
@@ -2059,14 +2091,14 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             Intrinsic::Int64Sar => self.gen.emit_sar_int64(dest, lhs_reg, rhs_reg),
             Intrinsic::Int64RotateLeft => self.gen.emit_rol_int64(dest, lhs_reg, rhs_reg),
             Intrinsic::Int64RotateRight => self.gen.emit_ror_int64(dest, lhs_reg, rhs_reg),
-            Intrinsic::FloatAdd => self.gen.emit_add_float(dest, lhs_reg, rhs_reg),
-            Intrinsic::FloatSub => self.gen.emit_sub_float(dest, lhs_reg, rhs_reg),
-            Intrinsic::FloatMul => self.gen.emit_mul_float(dest, lhs_reg, rhs_reg),
-            Intrinsic::FloatDiv => self.gen.emit_div_float(dest, lhs_reg, rhs_reg),
-            Intrinsic::DoubleAdd => self.gen.emit_add_double(dest, lhs_reg, rhs_reg),
-            Intrinsic::DoubleSub => self.gen.emit_sub_double(dest, lhs_reg, rhs_reg),
-            Intrinsic::DoubleMul => self.gen.emit_mul_double(dest, lhs_reg, rhs_reg),
-            Intrinsic::DoubleDiv => self.gen.emit_div_double(dest, lhs_reg, rhs_reg),
+            Intrinsic::Float32Add => self.gen.emit_add_float32(dest, lhs_reg, rhs_reg),
+            Intrinsic::Float32Sub => self.gen.emit_sub_float32(dest, lhs_reg, rhs_reg),
+            Intrinsic::Float32Mul => self.gen.emit_mul_float32(dest, lhs_reg, rhs_reg),
+            Intrinsic::Float32Div => self.gen.emit_div_float32(dest, lhs_reg, rhs_reg),
+            Intrinsic::Float64Add => self.gen.emit_add_float64(dest, lhs_reg, rhs_reg),
+            Intrinsic::Float64Sub => self.gen.emit_sub_float64(dest, lhs_reg, rhs_reg),
+            Intrinsic::Float64Mul => self.gen.emit_mul_float64(dest, lhs_reg, rhs_reg),
+            Intrinsic::Float64Div => self.gen.emit_div_float64(dest, lhs_reg, rhs_reg),
             _ => unimplemented!(),
         }
 
@@ -2165,8 +2197,12 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Char => self.gen.emit_store_field_char(src, obj, cls_id, field_id),
             BytecodeType::Int32 => self.gen.emit_store_field_int32(src, obj, cls_id, field_id),
             BytecodeType::Int64 => self.gen.emit_store_field_int64(src, obj, cls_id, field_id),
-            BytecodeType::Float => self.gen.emit_store_field_float(src, obj, cls_id, field_id),
-            BytecodeType::Double => self.gen.emit_store_field_double(src, obj, cls_id, field_id),
+            BytecodeType::Float32 => self
+                .gen
+                .emit_store_field_float32(src, obj, cls_id, field_id),
+            BytecodeType::Float64 => self
+                .gen
+                .emit_store_field_float64(src, obj, cls_id, field_id),
             BytecodeType::Ptr => self.gen.emit_store_field_ptr(src, obj, cls_id, field_id),
             BytecodeType::Tuple(_) => self.gen.emit_store_field_tuple(src, obj, cls_id, field_id),
         }
@@ -2205,8 +2241,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 BytecodeType::Char => self.gen.emit_store_global_char(src, gid),
                 BytecodeType::Int32 => self.gen.emit_store_global_int32(src, gid),
                 BytecodeType::Int64 => self.gen.emit_store_global_int64(src, gid),
-                BytecodeType::Float => self.gen.emit_store_global_float(src, gid),
-                BytecodeType::Double => self.gen.emit_store_global_double(src, gid),
+                BytecodeType::Float32 => self.gen.emit_store_global_float32(src, gid),
+                BytecodeType::Float64 => self.gen.emit_store_global_float64(src, gid),
                 BytecodeType::Ptr => self.gen.emit_store_global_ptr(src, gid),
                 BytecodeType::Tuple(_) => self.gen.emit_store_global_tuple(src, gid),
             }
@@ -2274,13 +2310,13 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 self.gen.emit_const_int64(dest, xconst.value.to_int());
             }
 
-            BuiltinType::Float => {
+            BuiltinType::Float32 => {
                 self.gen
-                    .emit_const_float(dest, xconst.value.to_float() as f32);
+                    .emit_const_float32(dest, xconst.value.to_float() as f32);
             }
 
-            BuiltinType::Double => {
-                self.gen.emit_const_double(dest, xconst.value.to_float());
+            BuiltinType::Float64 => {
+                self.gen.emit_const_float64(dest, xconst.value.to_float());
             }
 
             _ => unimplemented!(),
@@ -2311,8 +2347,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             BytecodeType::Char => self.gen.emit_load_global_char(dest, gid),
             BytecodeType::Int32 => self.gen.emit_load_global_int32(dest, gid),
             BytecodeType::Int64 => self.gen.emit_load_global_int64(dest, gid),
-            BytecodeType::Float => self.gen.emit_load_global_float(dest, gid),
-            BytecodeType::Double => self.gen.emit_load_global_double(dest, gid),
+            BytecodeType::Float32 => self.gen.emit_load_global_float32(dest, gid),
+            BytecodeType::Float64 => self.gen.emit_load_global_float64(dest, gid),
             BytecodeType::Ptr => self.gen.emit_load_global_ptr(dest, gid),
             BytecodeType::Tuple(_) => self.gen.emit_load_global_tuple(dest, gid),
         }
@@ -2348,8 +2384,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 BytecodeType::Char => self.gen.emit_mov_char(dest, var_reg),
                 BytecodeType::Int32 => self.gen.emit_mov_int32(dest, var_reg),
                 BytecodeType::Int64 => self.gen.emit_mov_int64(dest, var_reg),
-                BytecodeType::Float => self.gen.emit_mov_float(dest, var_reg),
-                BytecodeType::Double => self.gen.emit_mov_double(dest, var_reg),
+                BytecodeType::Float32 => self.gen.emit_mov_float32(dest, var_reg),
+                BytecodeType::Float64 => self.gen.emit_mov_float64(dest, var_reg),
                 BytecodeType::Ptr => self.gen.emit_mov_ptr(dest, var_reg),
                 BytecodeType::Tuple(tuple_id) => self.gen.emit_mov_tuple(dest, var_reg, tuple_id),
             }

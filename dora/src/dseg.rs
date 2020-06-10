@@ -16,8 +16,8 @@ struct Entry {
 #[derive(Debug, PartialEq)]
 enum Value {
     Ptr(*const u8),
-    Float(f32),
-    Double(f64),
+    Float32(f32),
+    Float64(f64),
     Int(i32),
 }
 
@@ -25,8 +25,8 @@ impl Value {
     fn size(&self) -> i32 {
         match self {
             &Value::Ptr(_) => mem::ptr_width(),
-            &Value::Float(_) => std::mem::size_of::<f32>() as i32,
-            &Value::Double(_) => std::mem::size_of::<f64>() as i32,
+            &Value::Float32(_) => std::mem::size_of::<f32>() as i32,
+            &Value::Float64(_) => std::mem::size_of::<f64>() as i32,
             &Value::Int(_) => std::mem::size_of::<i32>() as i32,
         }
     }
@@ -56,11 +56,11 @@ impl DSeg {
                         *(entry_ptr as *mut *const u8) = v;
                     }
 
-                    Value::Float(v) => {
+                    Value::Float32(v) => {
                         *(entry_ptr as *mut f32) = v;
                     }
 
-                    Value::Double(v) => {
+                    Value::Float64(v) => {
                         *(entry_ptr as *mut f64) = v;
                     }
 
@@ -91,11 +91,11 @@ impl DSeg {
     }
 
     pub fn add_f32(&mut self, value: f32) -> i32 {
-        self.add_value(Value::Float(value))
+        self.add_value(Value::Float32(value))
     }
 
     pub fn add_f64(&mut self, value: f64) -> i32 {
-        self.add_value(Value::Double(value))
+        self.add_value(Value::Float64(value))
     }
 
     fn add_value(&mut self, value: Value) -> i32 {

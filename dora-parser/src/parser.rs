@@ -2241,7 +2241,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_double_neg() {
+    fn parse_neg_twice() {
         let (expr, _) = parse_expr("-(-3)");
 
         let neg1 = expr.to_un().unwrap();
@@ -2254,7 +2254,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_double_neg_without_parentheses() {
+    fn parse_neg_twice_without_parentheses() {
         err_expr("- -2", ParseError::ExpectedFactor("-".into()), 1, 3);
     }
 
@@ -2269,12 +2269,12 @@ mod tests {
     }
 
     #[test]
-    fn parse_double_unary_plus_without_parentheses() {
+    fn parse_unary_plus_twice_without_parentheses() {
         err_expr("+ +4", ParseError::ExpectedFactor("+".into()), 1, 3);
     }
 
     #[test]
-    fn parse_double_unary_plus() {
+    fn parse_unary_plus_twice() {
         let (expr, _) = parse_expr("+(+9)");
 
         let add1 = expr.to_un().unwrap();

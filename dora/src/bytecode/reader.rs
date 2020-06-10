@@ -53,17 +53,17 @@ where
                 let rhs = self.read_register(wide);
                 self.visitor.visit_add_int64(dest, lhs, rhs);
             }
-            BytecodeOpcode::AddFloat => {
+            BytecodeOpcode::AddFloat32 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_add_float(dest, lhs, rhs);
+                self.visitor.visit_add_float32(dest, lhs, rhs);
             }
-            BytecodeOpcode::AddDouble => {
+            BytecodeOpcode::AddFloat64 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_add_double(dest, lhs, rhs);
+                self.visitor.visit_add_float64(dest, lhs, rhs);
             }
             BytecodeOpcode::SubInt32 => {
                 let dest = self.read_register(wide);
@@ -77,17 +77,17 @@ where
                 let rhs = self.read_register(wide);
                 self.visitor.visit_sub_int64(dest, lhs, rhs);
             }
-            BytecodeOpcode::SubFloat => {
+            BytecodeOpcode::SubFloat32 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_sub_float(dest, lhs, rhs);
+                self.visitor.visit_sub_float32(dest, lhs, rhs);
             }
-            BytecodeOpcode::SubDouble => {
+            BytecodeOpcode::SubFloat64 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_sub_double(dest, lhs, rhs);
+                self.visitor.visit_sub_float64(dest, lhs, rhs);
             }
             BytecodeOpcode::NegInt32 => {
                 let dest = self.read_register(wide);
@@ -99,15 +99,15 @@ where
                 let src = self.read_register(wide);
                 self.visitor.visit_neg_int64(dest, src);
             }
-            BytecodeOpcode::NegFloat => {
+            BytecodeOpcode::NegFloat32 => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
-                self.visitor.visit_neg_float(dest, src);
+                self.visitor.visit_neg_float32(dest, src);
             }
-            BytecodeOpcode::NegDouble => {
+            BytecodeOpcode::NegFloat64 => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
-                self.visitor.visit_neg_double(dest, src);
+                self.visitor.visit_neg_float64(dest, src);
             }
             BytecodeOpcode::MulInt32 => {
                 let dest = self.read_register(wide);
@@ -121,17 +121,17 @@ where
                 let rhs = self.read_register(wide);
                 self.visitor.visit_mul_int64(dest, lhs, rhs);
             }
-            BytecodeOpcode::MulFloat => {
+            BytecodeOpcode::MulFloat32 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_mul_float(dest, lhs, rhs);
+                self.visitor.visit_mul_float32(dest, lhs, rhs);
             }
-            BytecodeOpcode::MulDouble => {
+            BytecodeOpcode::MulFloat64 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_mul_double(dest, lhs, rhs);
+                self.visitor.visit_mul_float64(dest, lhs, rhs);
             }
             BytecodeOpcode::DivInt32 => {
                 let dest = self.read_register(wide);
@@ -145,17 +145,17 @@ where
                 let rhs = self.read_register(wide);
                 self.visitor.visit_div_int64(dest, lhs, rhs);
             }
-            BytecodeOpcode::DivFloat => {
+            BytecodeOpcode::DivFloat32 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_div_float(dest, lhs, rhs);
+                self.visitor.visit_div_float32(dest, lhs, rhs);
             }
-            BytecodeOpcode::DivDouble => {
+            BytecodeOpcode::DivFloat64 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_div_double(dest, lhs, rhs);
+                self.visitor.visit_div_float64(dest, lhs, rhs);
             }
 
             BytecodeOpcode::ModInt32 => {
@@ -290,25 +290,25 @@ where
                 self.visitor.visit_ror_int64(dest, lhs, rhs);
             }
 
-            BytecodeOpcode::ReinterpretFloatAsInt32 => {
+            BytecodeOpcode::ReinterpretFloat32AsInt32 => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
-                self.visitor.visit_reinterpret_float_as_int32(dest, src);
+                self.visitor.visit_reinterpret_float32_as_int32(dest, src);
             }
-            BytecodeOpcode::ReinterpretInt32AsFloat => {
+            BytecodeOpcode::ReinterpretInt32AsFloat32 => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
-                self.visitor.visit_reinterpret_int32_as_float(dest, src);
+                self.visitor.visit_reinterpret_int32_as_float32(dest, src);
             }
-            BytecodeOpcode::ReinterpretDoubleAsInt64 => {
+            BytecodeOpcode::ReinterpretFloat64AsInt64 => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
-                self.visitor.visit_reinterpret_double_as_int64(dest, src);
+                self.visitor.visit_reinterpret_float64_as_int64(dest, src);
             }
-            BytecodeOpcode::ReinterpretInt64AsDouble => {
+            BytecodeOpcode::ReinterpretInt64AsFloat64 => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
-                self.visitor.visit_reinterpret_int64_as_double(dest, src);
+                self.visitor.visit_reinterpret_int64_as_float64(dest, src);
             }
 
             BytecodeOpcode::ExtendUInt8ToChar => {
@@ -367,57 +367,57 @@ where
                 self.visitor.visit_cast_int64_to_int32(dest, src);
             }
 
-            BytecodeOpcode::ConvertInt32ToFloat => {
+            BytecodeOpcode::ConvertInt32ToFloat32 => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
-                self.visitor.visit_convert_int32_to_float(dest, src);
+                self.visitor.visit_convert_int32_to_float32(dest, src);
             }
-            BytecodeOpcode::ConvertInt32ToDouble => {
+            BytecodeOpcode::ConvertInt32ToFloat64 => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
-                self.visitor.visit_convert_int32_to_double(dest, src);
+                self.visitor.visit_convert_int32_to_float64(dest, src);
             }
-            BytecodeOpcode::ConvertInt64ToFloat => {
+            BytecodeOpcode::ConvertInt64ToFloat32 => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
-                self.visitor.visit_convert_int64_to_float(dest, src);
+                self.visitor.visit_convert_int64_to_float32(dest, src);
             }
-            BytecodeOpcode::ConvertInt64ToDouble => {
+            BytecodeOpcode::ConvertInt64ToFloat64 => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
-                self.visitor.visit_convert_int64_to_double(dest, src);
-            }
-
-            BytecodeOpcode::TruncateFloatToInt32 => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_truncate_float_to_int32(dest, src);
-            }
-            BytecodeOpcode::TruncateFloatToInt64 => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_truncate_float_to_int64(dest, src);
-            }
-            BytecodeOpcode::TruncateDoubleToInt32 => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_truncate_double_to_int32(dest, src);
-            }
-            BytecodeOpcode::TruncateDoubleToInt64 => {
-                let dest = self.read_register(wide);
-                let src = self.read_register(wide);
-                self.visitor.visit_truncate_double_to_int64(dest, src);
+                self.visitor.visit_convert_int64_to_float64(dest, src);
             }
 
-            BytecodeOpcode::PromoteFloatToDouble => {
+            BytecodeOpcode::TruncateFloat32ToInt32 => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
-                self.visitor.visit_promote_float_to_double(dest, src);
+                self.visitor.visit_truncate_float32_to_int32(dest, src);
             }
-            BytecodeOpcode::TruncateDoubleToFloat => {
+            BytecodeOpcode::TruncateFloat32ToInt64 => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
-                self.visitor.visit_truncate_double_to_float(dest, src);
+                self.visitor.visit_truncate_float32_to_int64(dest, src);
+            }
+            BytecodeOpcode::TruncateFloat64ToInt32 => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_truncate_float64_to_int32(dest, src);
+            }
+            BytecodeOpcode::TruncateFloat64ToInt64 => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_truncate_float64_to_int64(dest, src);
+            }
+
+            BytecodeOpcode::PromoteFloat32ToFloat64 => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_promote_float32_to_float64(dest, src);
+            }
+            BytecodeOpcode::DemoteFloat64ToFloat32 => {
+                let dest = self.read_register(wide);
+                let src = self.read_register(wide);
+                self.visitor.visit_demote_float64_to_float32(dest, src);
             }
 
             BytecodeOpcode::InstanceOf => {
@@ -457,15 +457,15 @@ where
                 let src = self.read_register(wide);
                 self.visitor.visit_mov_int64(dest, src);
             }
-            BytecodeOpcode::MovFloat => {
+            BytecodeOpcode::MovFloat32 => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
-                self.visitor.visit_mov_float(dest, src);
+                self.visitor.visit_mov_float32(dest, src);
             }
-            BytecodeOpcode::MovDouble => {
+            BytecodeOpcode::MovFloat64 => {
                 let dest = self.read_register(wide);
                 let src = self.read_register(wide);
-                self.visitor.visit_mov_double(dest, src);
+                self.visitor.visit_mov_float64(dest, src);
             }
             BytecodeOpcode::MovPtr => {
                 let dest = self.read_register(wide);
@@ -532,19 +532,19 @@ where
                 let field = self.read_field(wide);
                 self.visitor.visit_load_field_int64(dest, obj, cls, field);
             }
-            BytecodeOpcode::LoadFieldFloat => {
+            BytecodeOpcode::LoadFieldFloat32 => {
                 let dest = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
                 let field = self.read_field(wide);
-                self.visitor.visit_load_field_float(dest, obj, cls, field);
+                self.visitor.visit_load_field_float32(dest, obj, cls, field);
             }
-            BytecodeOpcode::LoadFieldDouble => {
+            BytecodeOpcode::LoadFieldFloat64 => {
                 let dest = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
                 let field = self.read_field(wide);
-                self.visitor.visit_load_field_double(dest, obj, cls, field);
+                self.visitor.visit_load_field_float64(dest, obj, cls, field);
             }
             BytecodeOpcode::LoadFieldPtr => {
                 let dest = self.read_register(wide);
@@ -596,19 +596,19 @@ where
                 let field = self.read_field(wide);
                 self.visitor.visit_store_field_int64(src, obj, cls, field);
             }
-            BytecodeOpcode::StoreFieldFloat => {
+            BytecodeOpcode::StoreFieldFloat32 => {
                 let src = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
                 let field = self.read_field(wide);
-                self.visitor.visit_store_field_float(src, obj, cls, field);
+                self.visitor.visit_store_field_float32(src, obj, cls, field);
             }
-            BytecodeOpcode::StoreFieldDouble => {
+            BytecodeOpcode::StoreFieldFloat64 => {
                 let src = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
                 let field = self.read_field(wide);
-                self.visitor.visit_store_field_double(src, obj, cls, field);
+                self.visitor.visit_store_field_float64(src, obj, cls, field);
             }
             BytecodeOpcode::StoreFieldPtr => {
                 let src = self.read_register(wide);
@@ -650,15 +650,15 @@ where
                 let glob = self.read_global(wide);
                 self.visitor.visit_load_global_int64(dest, glob);
             }
-            BytecodeOpcode::LoadGlobalFloat => {
+            BytecodeOpcode::LoadGlobalFloat32 => {
                 let dest = self.read_register(wide);
                 let glob = self.read_global(wide);
-                self.visitor.visit_load_global_float(dest, glob);
+                self.visitor.visit_load_global_float32(dest, glob);
             }
-            BytecodeOpcode::LoadGlobalDouble => {
+            BytecodeOpcode::LoadGlobalFloat64 => {
                 let dest = self.read_register(wide);
                 let glob = self.read_global(wide);
-                self.visitor.visit_load_global_double(dest, glob);
+                self.visitor.visit_load_global_float64(dest, glob);
             }
             BytecodeOpcode::LoadGlobalPtr => {
                 let dest = self.read_register(wide);
@@ -696,15 +696,15 @@ where
                 let glob = self.read_global(wide);
                 self.visitor.visit_store_global_int64(dest, glob);
             }
-            BytecodeOpcode::StoreGlobalFloat => {
+            BytecodeOpcode::StoreGlobalFloat32 => {
                 let dest = self.read_register(wide);
                 let glob = self.read_global(wide);
-                self.visitor.visit_store_global_float(dest, glob);
+                self.visitor.visit_store_global_float32(dest, glob);
             }
-            BytecodeOpcode::StoreGlobalDouble => {
+            BytecodeOpcode::StoreGlobalFloat64 => {
                 let dest = self.read_register(wide);
                 let glob = self.read_global(wide);
-                self.visitor.visit_store_global_double(dest, glob);
+                self.visitor.visit_store_global_float64(dest, glob);
             }
             BytecodeOpcode::StoreGlobalPtr => {
                 let dest = self.read_register(wide);
@@ -750,13 +750,13 @@ where
                 let dest = self.read_register(wide);
                 self.visitor.visit_const_zero_int64(dest);
             }
-            BytecodeOpcode::ConstZeroFloat => {
+            BytecodeOpcode::ConstZeroFloat32 => {
                 let dest = self.read_register(wide);
-                self.visitor.visit_const_zero_float(dest);
+                self.visitor.visit_const_zero_float32(dest);
             }
-            BytecodeOpcode::ConstZeroDouble => {
+            BytecodeOpcode::ConstZeroFloat64 => {
                 let dest = self.read_register(wide);
-                self.visitor.visit_const_zero_double(dest);
+                self.visitor.visit_const_zero_float64(dest);
             }
             BytecodeOpcode::ConstChar => {
                 let dest = self.read_register(wide);
@@ -778,15 +778,15 @@ where
                 let idx = self.read_const_pool_idx(wide);
                 self.visitor.visit_const_int64(dest, idx);
             }
-            BytecodeOpcode::ConstFloat => {
+            BytecodeOpcode::ConstFloat32 => {
                 let dest = self.read_register(wide);
                 let idx = self.read_const_pool_idx(wide);
-                self.visitor.visit_const_float(dest, idx);
+                self.visitor.visit_const_float32(dest, idx);
             }
-            BytecodeOpcode::ConstDouble => {
+            BytecodeOpcode::ConstFloat64 => {
                 let dest = self.read_register(wide);
                 let idx = self.read_const_pool_idx(wide);
-                self.visitor.visit_const_double(dest, idx);
+                self.visitor.visit_const_float64(dest, idx);
             }
             BytecodeOpcode::ConstString => {
                 let dest = self.read_register(wide);
@@ -975,78 +975,78 @@ where
                 self.visitor.visit_test_le_int32(dest, lhs, rhs);
             }
 
-            BytecodeOpcode::TestEqFloat => {
+            BytecodeOpcode::TestEqFloat32 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_eq_float(dest, lhs, rhs);
+                self.visitor.visit_test_eq_float32(dest, lhs, rhs);
             }
-            BytecodeOpcode::TestNeFloat => {
+            BytecodeOpcode::TestNeFloat32 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_ne_float(dest, lhs, rhs);
+                self.visitor.visit_test_ne_float32(dest, lhs, rhs);
             }
-            BytecodeOpcode::TestGtFloat => {
+            BytecodeOpcode::TestGtFloat32 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_gt_float(dest, lhs, rhs);
+                self.visitor.visit_test_gt_float32(dest, lhs, rhs);
             }
-            BytecodeOpcode::TestGeFloat => {
+            BytecodeOpcode::TestGeFloat32 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_ge_float(dest, lhs, rhs);
+                self.visitor.visit_test_ge_float32(dest, lhs, rhs);
             }
-            BytecodeOpcode::TestLtFloat => {
+            BytecodeOpcode::TestLtFloat32 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_lt_float(dest, lhs, rhs);
+                self.visitor.visit_test_lt_float32(dest, lhs, rhs);
             }
-            BytecodeOpcode::TestLeFloat => {
+            BytecodeOpcode::TestLeFloat32 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_le_float(dest, lhs, rhs);
+                self.visitor.visit_test_le_float32(dest, lhs, rhs);
             }
 
-            BytecodeOpcode::TestEqDouble => {
+            BytecodeOpcode::TestEqFloat64 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_eq_double(dest, lhs, rhs);
+                self.visitor.visit_test_eq_float64(dest, lhs, rhs);
             }
-            BytecodeOpcode::TestNeDouble => {
+            BytecodeOpcode::TestNeFloat64 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_ne_double(dest, lhs, rhs);
+                self.visitor.visit_test_ne_float64(dest, lhs, rhs);
             }
-            BytecodeOpcode::TestGtDouble => {
+            BytecodeOpcode::TestGtFloat64 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_gt_double(dest, lhs, rhs);
+                self.visitor.visit_test_gt_float64(dest, lhs, rhs);
             }
-            BytecodeOpcode::TestGeDouble => {
+            BytecodeOpcode::TestGeFloat64 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_ge_double(dest, lhs, rhs);
+                self.visitor.visit_test_ge_float64(dest, lhs, rhs);
             }
-            BytecodeOpcode::TestLtDouble => {
+            BytecodeOpcode::TestLtFloat64 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_lt_double(dest, lhs, rhs);
+                self.visitor.visit_test_lt_float64(dest, lhs, rhs);
             }
-            BytecodeOpcode::TestLeDouble => {
+            BytecodeOpcode::TestLeFloat64 => {
                 let dest = self.read_register(wide);
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
-                self.visitor.visit_test_le_double(dest, lhs, rhs);
+                self.visitor.visit_test_le_float64(dest, lhs, rhs);
             }
             BytecodeOpcode::Assert => {
                 let value = self.read_register(wide);
@@ -1115,15 +1115,15 @@ where
                 let fct = self.read_fct(wide);
                 self.visitor.visit_invoke_direct_int64(dest, fct);
             }
-            BytecodeOpcode::InvokeDirectFloat => {
+            BytecodeOpcode::InvokeDirectFloat32 => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_direct_float(dest, fct);
+                self.visitor.visit_invoke_direct_float32(dest, fct);
             }
-            BytecodeOpcode::InvokeDirectDouble => {
+            BytecodeOpcode::InvokeDirectFloat64 => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_direct_double(dest, fct);
+                self.visitor.visit_invoke_direct_float64(dest, fct);
             }
             BytecodeOpcode::InvokeDirectPtr => {
                 let dest = self.read_register(wide);
@@ -1165,15 +1165,15 @@ where
                 let fct = self.read_fct(wide);
                 self.visitor.visit_invoke_virtual_int64(dest, fct);
             }
-            BytecodeOpcode::InvokeVirtualFloat => {
+            BytecodeOpcode::InvokeVirtualFloat32 => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_virtual_float(dest, fct);
+                self.visitor.visit_invoke_virtual_float32(dest, fct);
             }
-            BytecodeOpcode::InvokeVirtualDouble => {
+            BytecodeOpcode::InvokeVirtualFloat64 => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_virtual_double(dest, fct);
+                self.visitor.visit_invoke_virtual_float64(dest, fct);
             }
             BytecodeOpcode::InvokeVirtualPtr => {
                 let dest = self.read_register(wide);
@@ -1215,15 +1215,15 @@ where
                 let fct = self.read_fct(wide);
                 self.visitor.visit_invoke_static_int64(dest, fct);
             }
-            BytecodeOpcode::InvokeStaticFloat => {
+            BytecodeOpcode::InvokeStaticFloat32 => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_static_float(dest, fct);
+                self.visitor.visit_invoke_static_float32(dest, fct);
             }
-            BytecodeOpcode::InvokeStaticDouble => {
+            BytecodeOpcode::InvokeStaticFloat64 => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_static_double(dest, fct);
+                self.visitor.visit_invoke_static_float64(dest, fct);
             }
             BytecodeOpcode::InvokeStaticPtr => {
                 let dest = self.read_register(wide);
@@ -1299,17 +1299,17 @@ where
                 let index = self.read_register(wide);
                 self.visitor.visit_load_array_int64(dest, array, index);
             }
-            BytecodeOpcode::LoadArrayFloat => {
+            BytecodeOpcode::LoadArrayFloat32 => {
                 let dest = self.read_register(wide);
                 let array = self.read_register(wide);
                 let index = self.read_register(wide);
-                self.visitor.visit_load_array_float(dest, array, index);
+                self.visitor.visit_load_array_float32(dest, array, index);
             }
-            BytecodeOpcode::LoadArrayDouble => {
+            BytecodeOpcode::LoadArrayFloat64 => {
                 let dest = self.read_register(wide);
                 let array = self.read_register(wide);
                 let index = self.read_register(wide);
-                self.visitor.visit_load_array_double(dest, array, index);
+                self.visitor.visit_load_array_float64(dest, array, index);
             }
             BytecodeOpcode::LoadArrayPtr => {
                 let dest = self.read_register(wide);
@@ -1354,17 +1354,17 @@ where
                 let index = self.read_register(wide);
                 self.visitor.visit_store_array_int64(src, array, index);
             }
-            BytecodeOpcode::StoreArrayFloat => {
+            BytecodeOpcode::StoreArrayFloat32 => {
                 let src = self.read_register(wide);
                 let array = self.read_register(wide);
                 let index = self.read_register(wide);
-                self.visitor.visit_store_array_float(src, array, index);
+                self.visitor.visit_store_array_float32(src, array, index);
             }
-            BytecodeOpcode::StoreArrayDouble => {
+            BytecodeOpcode::StoreArrayFloat64 => {
                 let src = self.read_register(wide);
                 let array = self.read_register(wide);
                 let index = self.read_register(wide);
-                self.visitor.visit_store_array_double(src, array, index);
+                self.visitor.visit_store_array_float64(src, array, index);
             }
             BytecodeOpcode::StoreArrayPtr => {
                 let src = self.read_register(wide);
@@ -1402,13 +1402,13 @@ where
                 let opnd = self.read_register(wide);
                 self.visitor.visit_ret_int64(opnd);
             }
-            BytecodeOpcode::RetFloat => {
+            BytecodeOpcode::RetFloat32 => {
                 let opnd = self.read_register(wide);
-                self.visitor.visit_ret_float(opnd);
+                self.visitor.visit_ret_float32(opnd);
             }
-            BytecodeOpcode::RetDouble => {
+            BytecodeOpcode::RetFloat64 => {
                 let opnd = self.read_register(wide);
-                self.visitor.visit_ret_double(opnd);
+                self.visitor.visit_ret_float64(opnd);
             }
             BytecodeOpcode::RetPtr => {
                 let opnd = self.read_register(wide);
@@ -1506,10 +1506,10 @@ pub trait BytecodeVisitor {
     fn visit_add_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_add_float(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_add_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_add_double(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_add_float64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 
@@ -1519,10 +1519,10 @@ pub trait BytecodeVisitor {
     fn visit_sub_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_sub_float(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_sub_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_sub_double(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_sub_float64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 
@@ -1532,10 +1532,10 @@ pub trait BytecodeVisitor {
     fn visit_neg_int64(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
-    fn visit_neg_float(&mut self, _dest: Register, _src: Register) {
+    fn visit_neg_float32(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
-    fn visit_neg_double(&mut self, _dest: Register, _src: Register) {
+    fn visit_neg_float64(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
 
@@ -1545,10 +1545,10 @@ pub trait BytecodeVisitor {
     fn visit_mul_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_mul_float(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_mul_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_mul_double(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_mul_float64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 
@@ -1558,10 +1558,10 @@ pub trait BytecodeVisitor {
     fn visit_div_int64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_div_float(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_div_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_div_double(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_div_float64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 
@@ -1637,16 +1637,16 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_reinterpret_float_as_int32(&mut self, _dest: Register, _src: Register) {
+    fn visit_reinterpret_float32_as_int32(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
-    fn visit_reinterpret_int32_as_float(&mut self, _dest: Register, _src: Register) {
+    fn visit_reinterpret_int32_as_float32(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
-    fn visit_reinterpret_double_as_int64(&mut self, _dest: Register, _src: Register) {
+    fn visit_reinterpret_float64_as_int64(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
-    fn visit_reinterpret_int64_as_double(&mut self, _dest: Register, _src: Register) {
+    fn visit_reinterpret_int64_as_float64(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
 
@@ -1684,36 +1684,36 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_convert_int32_to_float(&mut self, _dest: Register, _src: Register) {
+    fn visit_convert_int32_to_float32(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
-    fn visit_convert_int32_to_double(&mut self, _dest: Register, _src: Register) {
+    fn visit_convert_int32_to_float64(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
-    fn visit_convert_int64_to_float(&mut self, _dest: Register, _src: Register) {
+    fn visit_convert_int64_to_float32(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
-    fn visit_convert_int64_to_double(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-
-    fn visit_truncate_float_to_int32(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_truncate_float_to_int64(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_truncate_double_to_int32(&mut self, _dest: Register, _src: Register) {
-        unimplemented!();
-    }
-    fn visit_truncate_double_to_int64(&mut self, _dest: Register, _src: Register) {
+    fn visit_convert_int64_to_float64(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
 
-    fn visit_promote_float_to_double(&mut self, _dest: Register, _src: Register) {
+    fn visit_truncate_float32_to_int32(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
-    fn visit_truncate_double_to_float(&mut self, _dest: Register, _src: Register) {
+    fn visit_truncate_float32_to_int64(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_truncate_float64_to_int32(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_truncate_float64_to_int64(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+
+    fn visit_promote_float32_to_float64(&mut self, _dest: Register, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_demote_float64_to_float32(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
 
@@ -1740,10 +1740,10 @@ pub trait BytecodeVisitor {
     fn visit_mov_int64(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
-    fn visit_mov_float(&mut self, _dest: Register, _src: Register) {
+    fn visit_mov_float32(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
-    fn visit_mov_double(&mut self, _dest: Register, _src: Register) {
+    fn visit_mov_float64(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
     fn visit_mov_ptr(&mut self, _dest: Register, _src: Register) {
@@ -1818,7 +1818,7 @@ pub trait BytecodeVisitor {
     ) {
         unimplemented!();
     }
-    fn visit_load_field_float(
+    fn visit_load_field_float32(
         &mut self,
         _dest: Register,
         _obj: Register,
@@ -1827,7 +1827,7 @@ pub trait BytecodeVisitor {
     ) {
         unimplemented!();
     }
-    fn visit_load_field_double(
+    fn visit_load_field_float64(
         &mut self,
         _dest: Register,
         _obj: Register,
@@ -1900,7 +1900,7 @@ pub trait BytecodeVisitor {
     ) {
         unimplemented!();
     }
-    fn visit_store_field_float(
+    fn visit_store_field_float32(
         &mut self,
         _src: Register,
         _obj: Register,
@@ -1909,7 +1909,7 @@ pub trait BytecodeVisitor {
     ) {
         unimplemented!();
     }
-    fn visit_store_field_double(
+    fn visit_store_field_float64(
         &mut self,
         _src: Register,
         _obj: Register,
@@ -1952,10 +1952,10 @@ pub trait BytecodeVisitor {
     fn visit_load_global_int64(&mut self, _dest: Register, _glob: GlobalId) {
         unimplemented!();
     }
-    fn visit_load_global_float(&mut self, _dest: Register, _glob: GlobalId) {
+    fn visit_load_global_float32(&mut self, _dest: Register, _glob: GlobalId) {
         unimplemented!();
     }
-    fn visit_load_global_double(&mut self, _dest: Register, _glob: GlobalId) {
+    fn visit_load_global_float64(&mut self, _dest: Register, _glob: GlobalId) {
         unimplemented!();
     }
     fn visit_load_global_ptr(&mut self, _dest: Register, _glob: GlobalId) {
@@ -1980,10 +1980,10 @@ pub trait BytecodeVisitor {
     fn visit_store_global_int64(&mut self, _src: Register, _glob: GlobalId) {
         unimplemented!();
     }
-    fn visit_store_global_float(&mut self, _src: Register, _glob: GlobalId) {
+    fn visit_store_global_float32(&mut self, _src: Register, _glob: GlobalId) {
         unimplemented!();
     }
-    fn visit_store_global_double(&mut self, _src: Register, _glob: GlobalId) {
+    fn visit_store_global_float64(&mut self, _src: Register, _glob: GlobalId) {
         unimplemented!();
     }
     fn visit_store_global_ptr(&mut self, _src: Register, _glob: GlobalId) {
@@ -2018,10 +2018,10 @@ pub trait BytecodeVisitor {
     fn visit_const_zero_int64(&mut self, _dest: Register) {
         unimplemented!();
     }
-    fn visit_const_zero_float(&mut self, _dest: Register) {
+    fn visit_const_zero_float32(&mut self, _dest: Register) {
         unimplemented!();
     }
-    fn visit_const_zero_double(&mut self, _dest: Register) {
+    fn visit_const_zero_float64(&mut self, _dest: Register) {
         unimplemented!();
     }
     fn visit_const_char(&mut self, _dest: Register, _value: ConstPoolIdx) {
@@ -2036,10 +2036,10 @@ pub trait BytecodeVisitor {
     fn visit_const_int64(&mut self, _dest: Register, _value: ConstPoolIdx) {
         unimplemented!();
     }
-    fn visit_const_float(&mut self, _dest: Register, _value: ConstPoolIdx) {
+    fn visit_const_float32(&mut self, _dest: Register, _value: ConstPoolIdx) {
         unimplemented!();
     }
-    fn visit_const_double(&mut self, _dest: Register, _value: ConstPoolIdx) {
+    fn visit_const_float64(&mut self, _dest: Register, _value: ConstPoolIdx) {
         unimplemented!();
     }
     fn visit_const_string(&mut self, _dest: Register, _value: ConstPoolIdx) {
@@ -2139,41 +2139,41 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_test_eq_float(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_test_eq_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_test_ne_float(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_test_ne_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_test_gt_float(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_test_gt_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_test_ge_float(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_test_ge_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_test_lt_float(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_test_lt_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_test_le_float(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_test_le_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 
-    fn visit_test_eq_double(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_test_eq_float64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_test_ne_double(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_test_ne_float64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_test_gt_double(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_test_gt_float64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_test_ge_double(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_test_ge_float64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_test_lt_double(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_test_lt_float64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
-    fn visit_test_le_double(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_test_le_float64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
     fn visit_assert(&mut self, _value: Register) {
@@ -2220,10 +2220,10 @@ pub trait BytecodeVisitor {
     fn visit_invoke_direct_int64(&mut self, _dest: Register, _fctdef: FctDefId) {
         unimplemented!();
     }
-    fn visit_invoke_direct_float(&mut self, _dest: Register, _fctdef: FctDefId) {
+    fn visit_invoke_direct_float32(&mut self, _dest: Register, _fctdef: FctDefId) {
         unimplemented!();
     }
-    fn visit_invoke_direct_double(&mut self, _dest: Register, _fctdef: FctDefId) {
+    fn visit_invoke_direct_float64(&mut self, _dest: Register, _fctdef: FctDefId) {
         unimplemented!();
     }
     fn visit_invoke_direct_ptr(&mut self, _dest: Register, _fctdef: FctDefId) {
@@ -2251,10 +2251,10 @@ pub trait BytecodeVisitor {
     fn visit_invoke_virtual_int64(&mut self, _dest: Register, _fctdef: FctDefId) {
         unimplemented!();
     }
-    fn visit_invoke_virtual_float(&mut self, _dest: Register, _fctdef: FctDefId) {
+    fn visit_invoke_virtual_float32(&mut self, _dest: Register, _fctdef: FctDefId) {
         unimplemented!();
     }
-    fn visit_invoke_virtual_double(&mut self, _dest: Register, _fctdef: FctDefId) {
+    fn visit_invoke_virtual_float64(&mut self, _dest: Register, _fctdef: FctDefId) {
         unimplemented!();
     }
     fn visit_invoke_virtual_ptr(&mut self, _dest: Register, _fctdef: FctDefId) {
@@ -2282,10 +2282,10 @@ pub trait BytecodeVisitor {
     fn visit_invoke_static_int64(&mut self, _dest: Register, _fctdef: FctDefId) {
         unimplemented!();
     }
-    fn visit_invoke_static_float(&mut self, _dest: Register, _fctdef: FctDefId) {
+    fn visit_invoke_static_float32(&mut self, _dest: Register, _fctdef: FctDefId) {
         unimplemented!();
     }
-    fn visit_invoke_static_double(&mut self, _dest: Register, _fctdef: FctDefId) {
+    fn visit_invoke_static_float64(&mut self, _dest: Register, _fctdef: FctDefId) {
         unimplemented!();
     }
     fn visit_invoke_static_ptr(&mut self, _dest: Register, _fctdef: FctDefId) {
@@ -2331,10 +2331,10 @@ pub trait BytecodeVisitor {
     fn visit_load_array_int64(&mut self, _dest: Register, _arr: Register, _idx: Register) {
         unimplemented!();
     }
-    fn visit_load_array_float(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+    fn visit_load_array_float32(&mut self, _dest: Register, _arr: Register, _idx: Register) {
         unimplemented!();
     }
-    fn visit_load_array_double(&mut self, _dest: Register, _arr: Register, _idx: Register) {
+    fn visit_load_array_float64(&mut self, _dest: Register, _arr: Register, _idx: Register) {
         unimplemented!();
     }
     fn visit_load_array_ptr(&mut self, _dest: Register, _arr: Register, _idx: Register) {
@@ -2359,10 +2359,10 @@ pub trait BytecodeVisitor {
     fn visit_store_array_int64(&mut self, _src: Register, _arr: Register, _idx: Register) {
         unimplemented!();
     }
-    fn visit_store_array_float(&mut self, _src: Register, _arr: Register, _idx: Register) {
+    fn visit_store_array_float32(&mut self, _src: Register, _arr: Register, _idx: Register) {
         unimplemented!();
     }
-    fn visit_store_array_double(&mut self, _src: Register, _arr: Register, _idx: Register) {
+    fn visit_store_array_float64(&mut self, _src: Register, _arr: Register, _idx: Register) {
         unimplemented!();
     }
     fn visit_store_array_ptr(&mut self, _src: Register, _arr: Register, _idx: Register) {
@@ -2390,10 +2390,10 @@ pub trait BytecodeVisitor {
     fn visit_ret_int64(&mut self, _opnd: Register) {
         unimplemented!();
     }
-    fn visit_ret_float(&mut self, _opnd: Register) {
+    fn visit_ret_float32(&mut self, _opnd: Register) {
         unimplemented!();
     }
-    fn visit_ret_double(&mut self, _opnd: Register) {
+    fn visit_ret_float64(&mut self, _opnd: Register) {
         unimplemented!();
     }
     fn visit_ret_ptr(&mut self, _opnd: Register) {

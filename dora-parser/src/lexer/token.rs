@@ -113,14 +113,14 @@ impl TokenKind {
             TokenKind::StringExpr(_) => "string epxr",
             TokenKind::LitInt(_, _, suffix) => match suffix {
                 IntSuffix::UInt8 => "byte number",
-                IntSuffix::Int32 => "int number",
-                IntSuffix::Int64 => "long number",
+                IntSuffix::Int32 => "int32 number",
+                IntSuffix::Int64 => "int64 number",
                 IntSuffix::None => "untyped number",
             },
             TokenKind::LitChar(_) => "char",
             TokenKind::LitFloat(_, suffix) => match suffix {
-                FloatSuffix::Float => "float number",
-                FloatSuffix::Double => "double number",
+                FloatSuffix::Float32 => "float32 number",
+                FloatSuffix::Float64 => "float64 number",
             },
             TokenKind::Identifier(_) => "identifier",
             TokenKind::True => "true",
@@ -230,8 +230,8 @@ pub enum IntSuffix {
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum FloatSuffix {
-    Float,
-    Double,
+    Float32,
+    Float64,
 }
 
 #[derive(Debug)]

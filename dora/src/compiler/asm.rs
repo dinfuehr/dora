@@ -394,12 +394,12 @@ where
         self.masm.extend_int_long(dest, src);
     }
 
-    pub fn float_to_double(&mut self, dest: FReg, src: FReg) {
-        self.masm.float_to_double(dest, src);
+    pub fn float32_to_float64(&mut self, dest: FReg, src: FReg) {
+        self.masm.float32_to_float64(dest, src);
     }
 
-    pub fn double_to_float(&mut self, dest: FReg, src: FReg) {
-        self.masm.double_to_float(dest, src);
+    pub fn float64_to_float32(&mut self, dest: FReg, src: FReg) {
+        self.masm.float64_to_float32(dest, src);
     }
 
     pub fn int_to_float(

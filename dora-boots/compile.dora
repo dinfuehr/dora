@@ -39,10 +39,10 @@ fun decodeRegisters(registers: Array[Int32]) -> Array[BytecodeType] {
             BytecodeType::int32()
         } else if regtype == BC_TYPE_INT64 {
             BytecodeType::int64()
-        } else if regtype == BC_TYPE_FLOAT {
-            BytecodeType::float()
-        } else if regtype == BC_TYPE_DOUBLE {
-            BytecodeType::double()
+        } else if regtype == BC_TYPE_FLOAT32 {
+            BytecodeType::float32()
+        } else if regtype == BC_TYPE_FLOAT64 {
+            BytecodeType::float64()
         } else if regtype == BC_TYPE_PTR {
             BytecodeType::ptr()
         } else {
@@ -70,12 +70,12 @@ fun decodeConstPool(constpool: Array[UInt8]) -> Array[ConstPoolEntry] {
         } else if opcode == CONSTPOOL_OPCODE_INT64 {
             let value = reader.readInt64();
             constPool.push(ConstPoolInt64(value));
-        } else if opcode == CONSTPOOL_OPCODE_FLOAT {
+        } else if opcode == CONSTPOOL_OPCODE_FLOAT32 {
             let value = reader.readInt32().asFloat();
-            constPool.push(ConstPoolFloat(value));
-        } else if opcode == CONSTPOOL_OPCODE_DOUBLE {
+            constPool.push(ConstPoolFloat32(value));
+        } else if opcode == CONSTPOOL_OPCODE_FLOAT64 {
             let value = reader.readInt64().asDouble();
-            constPool.push(ConstPoolDouble(value));
+            constPool.push(ConstPoolFloat64(value));
         } else if opcode == CONSTPOOL_OPCODE_CHAR {
             let value = reader.readInt32().toCharUnchecked();
             constPool.push(ConstPoolChar(value));

@@ -390,8 +390,8 @@ fn visit_tuple_array_refs<F>(
 }
 
 fn determine_array_size(obj: &Obj, element_size: usize) -> usize {
-    let handle: Ref<ByteArray> = Ref {
-        ptr: obj as *const Obj as *const ByteArray,
+    let handle: Ref<UInt8Array> = Ref {
+        ptr: obj as *const Obj as *const UInt8Array,
     };
 
     let calc =
@@ -610,7 +610,7 @@ impl Str {
     }
 }
 
-pub fn byte_array_from_buffer(vm: &VM, buf: &[u8]) -> Ref<ByteArray> {
+pub fn byte_array_from_buffer(vm: &VM, buf: &[u8]) -> Ref<UInt8Array> {
     let mut handle = byte_array_alloc_heap(vm, buf.len());
     handle.length = buf.len();
 
@@ -624,7 +624,7 @@ pub fn byte_array_from_buffer(vm: &VM, buf: &[u8]) -> Ref<ByteArray> {
     handle
 }
 
-fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<ByteArray> {
+fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<UInt8Array> {
     let size = Header::size() as usize      // Object header
                 + mem::ptr_width() as usize // length field
                 + len; // array content
@@ -636,7 +636,7 @@ fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<ByteArray> {
     let cls = vm.class_defs.idx(clsid);
     let cls = cls.read();
     let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
-    let mut handle: Ref<ByteArray> = ptr.into();
+    let mut handle: Ref<UInt8Array> = ptr.into();
     handle.header_mut().set_vtblptr(Address::from_ptr(vtable));
     handle.header_mut().clear_fwdptr();
     handle.length = len;
@@ -644,7 +644,7 @@ fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<ByteArray> {
     handle
 }
 
-pub fn int_array_alloc_heap(vm: &VM, len: usize) -> Ref<IntArray> {
+pub fn int_array_alloc_heap(vm: &VM, len: usize) -> Ref<Int32Array> {
     let size = Header::size() as usize      // Object header
                 + mem::ptr_width() as usize // length field
                 + len * 4; // array content
@@ -656,7 +656,7 @@ pub fn int_array_alloc_heap(vm: &VM, len: usize) -> Ref<IntArray> {
     let cls = vm.class_defs.idx(clsid);
     let cls = cls.read();
     let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
-    let mut handle: Ref<IntArray> = ptr.into();
+    let mut handle: Ref<Int32Array> = ptr.into();
     handle.header_mut().set_vtblptr(Address::from_ptr(vtable));
     handle.header_mut().clear_fwdptr();
     handle.length = len;
@@ -808,12 +808,12 @@ pub fn offset_of_array_data() -> i32 {
 }
 
 pub type BoolArray = Array<bool>;
-pub type ByteArray = Array<u8>;
+pub type UInt8Array = Array<u8>;
 pub type CharArray = Array<char>;
-pub type IntArray = Array<i32>;
-pub type LongArray = Array<i64>;
-pub type FloatArray = Array<f32>;
-pub type DoubleArray = Array<f64>;
+pub type Int32Array = Array<i32>;
+pub type Int64Array = Array<i64>;
+pub type Float32Array = Array<f32>;
+pub type Float64Array = Array<f64>;
 pub type StrArray = Array<Ref<Str>>;
 
 pub fn alloc(vm: &VM, clsid: ClassDefId) -> Ref<Obj> {
@@ -862,7 +862,7 @@ pub fn write_int32(vm: &VM, obj: Ref<Obj>, cls_id: ClassDefId, fid: FieldId, val
 
 pub struct Stacktrace {
     pub header: Header,
-    pub backtrace: Ref<IntArray>,
+    pub backtrace: Ref<Int32Array>,
     pub elements: Ref<Obj>,
 }
 

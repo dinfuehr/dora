@@ -711,11 +711,11 @@ impl MacroAssembler {
         }
     }
 
-    pub fn float_to_double(&mut self, dest: FReg, src: FReg) {
+    pub fn float32_to_float64(&mut self, dest: FReg, src: FReg) {
         self.asm.cvtss2sd_rr(dest.into(), src.into());
     }
 
-    pub fn double_to_float(&mut self, dest: FReg, src: FReg) {
+    pub fn float64_to_float32(&mut self, dest: FReg, src: FReg) {
         self.asm.cvtsd2ss_rr(dest.into(), src.into());
     }
 

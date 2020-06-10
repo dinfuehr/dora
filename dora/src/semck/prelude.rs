@@ -22,8 +22,8 @@ pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {
     vm.vips.int32_class = internal_class(vm, "Int32", Some(BuiltinType::Int32));
     vm.vips.int64_class = internal_class(vm, "Int64", Some(BuiltinType::Int64));
 
-    vm.vips.float_class = internal_class(vm, "Float", Some(BuiltinType::Float));
-    vm.vips.double_class = internal_class(vm, "Double", Some(BuiltinType::Double));
+    vm.vips.float32_class = internal_class(vm, "Float", Some(BuiltinType::Float32));
+    vm.vips.float64_class = internal_class(vm, "Double", Some(BuiltinType::Float64));
 
     vm.vips.object_class = internal_class(vm, "Object", None);
     vm.vips.string_class = internal_class(vm, "String", None);
@@ -223,10 +223,10 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_class_method(vm, clsid, "toInt", Intrinsic::Int32ToInt32);
     native_class_method(vm, clsid, "toString", stdlib::int_to_string as *const u8);
 
-    intrinsic_class_method(vm, clsid, "toFloat", Intrinsic::Int32ToFloat);
-    intrinsic_class_method(vm, clsid, "toDouble", Intrinsic::Int32ToDouble);
+    intrinsic_class_method(vm, clsid, "toFloat", Intrinsic::Int32ToFloat32);
+    intrinsic_class_method(vm, clsid, "toDouble", Intrinsic::Int32ToFloat64);
 
-    intrinsic_class_method(vm, clsid, "asFloat", Intrinsic::ReinterpretInt32AsFloat);
+    intrinsic_class_method(vm, clsid, "asFloat", Intrinsic::ReinterpretInt32AsFloat32);
 
     intrinsic_class_method(vm, clsid, "equals", Intrinsic::Int32Eq);
     intrinsic_class_method(vm, clsid, "compareTo", Intrinsic::Int32Cmp);
@@ -259,10 +259,10 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_class_method(vm, clsid, "toInt32", Intrinsic::Int64ToInt32);
     intrinsic_class_method(vm, clsid, "toUInt8", Intrinsic::Int64ToByte);
 
-    intrinsic_class_method(vm, clsid, "toFloat", Intrinsic::Int64ToFloat);
-    intrinsic_class_method(vm, clsid, "toDouble", Intrinsic::Int64ToDouble);
+    intrinsic_class_method(vm, clsid, "toFloat", Intrinsic::Int64ToFloat32);
+    intrinsic_class_method(vm, clsid, "toDouble", Intrinsic::Int64ToFloat64);
 
-    intrinsic_class_method(vm, clsid, "asDouble", Intrinsic::ReinterpretInt64AsDouble);
+    intrinsic_class_method(vm, clsid, "asDouble", Intrinsic::ReinterpretInt64AsFloat64);
 
     intrinsic_class_method(vm, clsid, "equals", Intrinsic::Int64Eq);
     intrinsic_class_method(vm, clsid, "compareTo", Intrinsic::Int64Cmp);
@@ -330,52 +330,52 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
         stdlib::str_from_bytes as *const u8,
     );
 
-    let clsid = vm.vips.float_class;
+    let clsid = vm.vips.float32_class;
     native_class_method(vm, clsid, "toString", stdlib::float_to_string as *const u8);
-    intrinsic_class_method(vm, clsid, "toInt", Intrinsic::FloatToInt32);
-    intrinsic_class_method(vm, clsid, "toInt32", Intrinsic::FloatToInt32);
-    intrinsic_class_method(vm, clsid, "toInt64", Intrinsic::FloatToInt64);
-    intrinsic_class_method(vm, clsid, "toDouble", Intrinsic::PromoteFloatToDouble);
+    intrinsic_class_method(vm, clsid, "toInt", Intrinsic::Float32ToInt32);
+    intrinsic_class_method(vm, clsid, "toInt32", Intrinsic::Float32ToInt32);
+    intrinsic_class_method(vm, clsid, "toInt64", Intrinsic::Float32ToInt64);
+    intrinsic_class_method(vm, clsid, "toDouble", Intrinsic::PromoteFloat32ToFloat64);
 
-    intrinsic_class_method(vm, clsid, "asInt", Intrinsic::ReinterpretFloatAsInt32);
-    intrinsic_class_method(vm, clsid, "asInt32", Intrinsic::ReinterpretFloatAsInt32);
+    intrinsic_class_method(vm, clsid, "asInt", Intrinsic::ReinterpretFloat32AsInt32);
+    intrinsic_class_method(vm, clsid, "asInt32", Intrinsic::ReinterpretFloat32AsInt32);
 
-    intrinsic_class_method(vm, clsid, "equals", Intrinsic::FloatEq);
-    intrinsic_class_method(vm, clsid, "compareTo", Intrinsic::FloatCmp);
+    intrinsic_class_method(vm, clsid, "equals", Intrinsic::Float32Eq);
+    intrinsic_class_method(vm, clsid, "compareTo", Intrinsic::Float32Cmp);
 
-    intrinsic_class_method(vm, clsid, "plus", Intrinsic::FloatAdd);
-    intrinsic_class_method(vm, clsid, "minus", Intrinsic::FloatSub);
-    intrinsic_class_method(vm, clsid, "times", Intrinsic::FloatMul);
-    intrinsic_class_method(vm, clsid, "div", Intrinsic::FloatDiv);
+    intrinsic_class_method(vm, clsid, "plus", Intrinsic::Float32Add);
+    intrinsic_class_method(vm, clsid, "minus", Intrinsic::Float32Sub);
+    intrinsic_class_method(vm, clsid, "times", Intrinsic::Float32Mul);
+    intrinsic_class_method(vm, clsid, "div", Intrinsic::Float32Div);
 
-    intrinsic_class_method(vm, clsid, "unaryPlus", Intrinsic::FloatPlus);
-    intrinsic_class_method(vm, clsid, "unaryMinus", Intrinsic::FloatNeg);
+    intrinsic_class_method(vm, clsid, "unaryPlus", Intrinsic::Float32Plus);
+    intrinsic_class_method(vm, clsid, "unaryMinus", Intrinsic::Float32Neg);
 
-    intrinsic_class_method(vm, clsid, "isNan", Intrinsic::FloatIsNan);
-    intrinsic_class_method(vm, clsid, "sqrt", Intrinsic::FloatSqrt);
+    intrinsic_class_method(vm, clsid, "isNan", Intrinsic::Float32IsNan);
+    intrinsic_class_method(vm, clsid, "sqrt", Intrinsic::Float32Sqrt);
 
-    let clsid = vm.vips.double_class;
+    let clsid = vm.vips.float64_class;
     native_class_method(vm, clsid, "toString", stdlib::double_to_string as *const u8);
-    intrinsic_class_method(vm, clsid, "toInt", Intrinsic::DoubleToInt32);
-    intrinsic_class_method(vm, clsid, "toInt32", Intrinsic::DoubleToInt32);
-    intrinsic_class_method(vm, clsid, "toInt64", Intrinsic::DoubleToInt64);
-    intrinsic_class_method(vm, clsid, "toFloat", Intrinsic::DemoteDoubleToFloat);
+    intrinsic_class_method(vm, clsid, "toInt", Intrinsic::Float64ToInt32);
+    intrinsic_class_method(vm, clsid, "toInt32", Intrinsic::Float64ToInt32);
+    intrinsic_class_method(vm, clsid, "toInt64", Intrinsic::Float64ToInt64);
+    intrinsic_class_method(vm, clsid, "toFloat", Intrinsic::DemoteFloat64ToFloat32);
 
-    intrinsic_class_method(vm, clsid, "asInt64", Intrinsic::ReinterpretDoubleAsInt64);
+    intrinsic_class_method(vm, clsid, "asInt64", Intrinsic::ReinterpretFloat64AsInt64);
 
-    intrinsic_class_method(vm, clsid, "equals", Intrinsic::DoubleEq);
-    intrinsic_class_method(vm, clsid, "compareTo", Intrinsic::DoubleCmp);
+    intrinsic_class_method(vm, clsid, "equals", Intrinsic::Float64Eq);
+    intrinsic_class_method(vm, clsid, "compareTo", Intrinsic::Float64Cmp);
 
-    intrinsic_class_method(vm, clsid, "plus", Intrinsic::DoubleAdd);
-    intrinsic_class_method(vm, clsid, "minus", Intrinsic::DoubleSub);
-    intrinsic_class_method(vm, clsid, "times", Intrinsic::DoubleMul);
-    intrinsic_class_method(vm, clsid, "div", Intrinsic::DoubleDiv);
+    intrinsic_class_method(vm, clsid, "plus", Intrinsic::Float64Add);
+    intrinsic_class_method(vm, clsid, "minus", Intrinsic::Float64Sub);
+    intrinsic_class_method(vm, clsid, "times", Intrinsic::Float64Mul);
+    intrinsic_class_method(vm, clsid, "div", Intrinsic::Float64Div);
 
-    intrinsic_class_method(vm, clsid, "unaryPlus", Intrinsic::DoublePlus);
-    intrinsic_class_method(vm, clsid, "unaryMinus", Intrinsic::DoubleNeg);
+    intrinsic_class_method(vm, clsid, "unaryPlus", Intrinsic::Float64Plus);
+    intrinsic_class_method(vm, clsid, "unaryMinus", Intrinsic::Float64Neg);
 
-    intrinsic_class_method(vm, clsid, "isNan", Intrinsic::DoubleIsNan);
-    intrinsic_class_method(vm, clsid, "sqrt", Intrinsic::DoubleSqrt);
+    intrinsic_class_method(vm, clsid, "isNan", Intrinsic::Float64IsNan);
+    intrinsic_class_method(vm, clsid, "sqrt", Intrinsic::Float64Sqrt);
 
     let clsid = vm.vips.array_class;
     intrinsic_class_method(vm, clsid, "length", Intrinsic::GenericArrayLen);

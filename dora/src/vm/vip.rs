@@ -13,8 +13,8 @@ pub struct KnownElements {
     pub char_class: ClassId,
     pub int32_class: ClassId,
     pub int64_class: ClassId,
-    pub float_class: ClassId,
-    pub double_class: ClassId,
+    pub float32_class: ClassId,
+    pub float64_class: ClassId,
     pub object_class: ClassId,
     pub string_class: ClassId,
     pub string_module: ModuleId,
@@ -142,8 +142,8 @@ impl KnownElements {
             BuiltinType::Char => Some(self.char_class),
             BuiltinType::Int32 => Some(self.int32_class),
             BuiltinType::Int64 => Some(self.int64_class),
-            BuiltinType::Float => Some(self.float_class),
-            BuiltinType::Double => Some(self.double_class),
+            BuiltinType::Float32 => Some(self.float32_class),
+            BuiltinType::Float64 => Some(self.float64_class),
             _ => None,
         }
     }
