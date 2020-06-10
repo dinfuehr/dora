@@ -5,7 +5,8 @@ use std::sync::Arc;
 use crate::error::msg::SemError;
 use crate::gc::Address;
 use crate::sym::TermSym::{
-    SymClassConstructor, SymConst, SymFct, SymGlobal, SymModule, SymStructConstructor, SymVar,
+    SymClassConstructor, SymClassConstructorAndModule, SymConst, SymFct, SymGlobal, SymModule,
+    SymStructConstructor, SymStructConstructorAndModule, SymVar,
 };
 use crate::sym::TypeSym::{SymClass, SymEnum, SymStruct, SymTrait};
 use crate::sym::{SymLevel, TermSym, TypeSym};
@@ -181,15 +182,15 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
         self.map_module_defs.insert(m.id, id);
 
-        let sym = SymModule(id);
-        let term_sym = self.vm.sym.lock().get_term(m.name);
-        match term_sym {
-            None | Some(SymClassConstructor(_)) => {
-                self.vm.sym.lock().insert_term(m.name, sym);
+        let mut sym_table = self.vm.sym.lock();
+        match sym_table.get_term(m.name) {
+            None => {
+                sym_table.insert_term(m.name, SymModule(id));
             }
-            Some(sym) => {
-                report_term_shadow(self.vm, m.name, self.file_id.into(), m.pos, sym);
+            Some(SymClassConstructor(class_id)) => {
+                sym_table.insert_term(m.name, SymClassConstructorAndModule(class_id, id));
             }
+            Some(sym) => report_term_shadow(self.vm, m.name, self.file_id.into(), m.pos, sym),
         }
     }
 
@@ -275,16 +276,15 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             return;
         }
 
-        let sym = SymClassConstructor(id);
-        let term_sym = self.vm.sym.lock().get_term(c.name);
-        match term_sym {
-            Some(SymModule(_)) => {}
+        let mut sym_table = self.vm.sym.lock();
+        match sym_table.get_term(c.name) {
             None => {
-                self.vm.sym.lock().insert_term(c.name, sym);
+                sym_table.insert_term(c.name, SymClassConstructor(id));
             }
-            Some(sym) => {
-                report_term_shadow(self.vm, c.name, self.file_id.into(), c.pos, sym);
+            Some(SymModule(module_id)) => {
+                sym_table.insert_term(c.name, SymClassConstructorAndModule(id, module_id));
             }
+            Some(sym) => report_term_shadow(self.vm, c.name, self.file_id.into(), c.pos, sym),
         }
     }
 
@@ -314,16 +314,15 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             return;
         }
 
-        let sym = SymStructConstructor(id);
-        let term_sym = self.vm.sym.lock().get_term(s.name);
-        match term_sym {
-            Some(SymModule(_)) => {}
+        let mut sym_table = self.vm.sym.lock();
+        match sym_table.get_term(s.name) {
             None => {
-                self.vm.sym.lock().insert_term(s.name, sym);
+                sym_table.insert_term(s.name, SymStructConstructor(id));
             }
-            Some(sym) => {
-                report_term_shadow(self.vm, s.name, self.file_id.into(), s.pos, sym);
+            Some(SymModule(module_id)) => {
+                sym_table.insert_term(s.name, SymStructConstructorAndModule(id, module_id));
             }
+            Some(sym) => report_term_shadow(self.vm, s.name, self.file_id.into(), s.pos, sym),
         }
     }
 
@@ -419,9 +418,13 @@ pub fn report_term_shadow(vm: &VM, name: Name, file: FileId, pos: Position, sym:
         SymConst(_) => SemError::ShadowConst(name),
         SymModule(_) => SemError::ShadowModule(name),
         SymVar(_) => SemError::ShadowParam(name),
-        SymClassConstructor(_) => SemError::ShadowClassConstructor(name),
-        SymStructConstructor(_) => SemError::ShadowStructConstructor(name),
-        _ => unimplemented!(),
+        SymClassConstructor(_) | SymClassConstructorAndModule(_, _) => {
+            SemError::ShadowClassConstructor(name)
+        }
+        SymStructConstructor(_) | SymStructConstructorAndModule(_, _) => {
+            SemError::ShadowStructConstructor(name)
+        }
+        x => unimplemented!("{:?}", x),
     };
 
     vm.diag.lock().report(file, pos, msg);

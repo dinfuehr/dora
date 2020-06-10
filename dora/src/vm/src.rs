@@ -170,6 +170,9 @@ pub enum IdentType {
     // name of class and module
     ClassAndModule(ClassId, ModuleId),
 
+    // name of struct and module
+    StructAndModule(StructId, ModuleId),
+
     // method expression: <expr>.<method_name>
     Method(BuiltinType, Name),
 
