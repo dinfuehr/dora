@@ -1,0 +1,10 @@
+fun main() {
+  let string = "string";
+
+  Assert::string(string).hasSize(6L);
+  Assert::string(string).isNotEmpty();
+
+  Assert::string("")
+    .hasSize(0L)
+    .isEmpty();
+}
