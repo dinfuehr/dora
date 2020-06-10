@@ -13,7 +13,7 @@ class Text(let value: String, let locale: Locale) {
 
   fun asBytes() -> Array[UInt8] {
     unimplemented();
-    return arrayEmpty[UInt8]();
+    return Array::empty[UInt8]();
   }
 
   fun isEmpty() -> Bool = self.value.isEmpty();

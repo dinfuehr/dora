@@ -2,9 +2,9 @@
   @internal fun toUInt8() -> UInt8;
   fun toChar() -> Option[Char] {
     if self >= 0 && self <= 0x10FFFFI && (self < 0xD800 || self > 0xDFFFI) {
-      some[Char](self.toCharUnchecked())
+      Option::some[Char](self.toCharUnchecked())
     } else {
-      none[Char]()
+      Option::none[Char]()
     }
   }
   @internal fun toCharUnchecked() -> Char;
@@ -83,13 +83,15 @@
   fun hash() -> Int32 = self;
 
   fun abs() -> Int32 = if self >= 0 { self } else { -self };
+}
 
-  @static fun bits() -> Int32 = 32;
-  @static fun bytes() -> Int32 = 4;
+module Int32 {
+  fun bits() -> Int32 = 32;
+  fun bytes() -> Int32 = 4;
 
-  @static fun maxValue() -> Int32 = 2147483647;
-  @static fun minValue() -> Int32 = -2147483648;
+  fun maxValue() -> Int32 = 2147483647;
+  fun minValue() -> Int32 = -2147483648;
 
-  @static fun min(lhs: Int32, rhs: Int32) -> Int32 = if lhs < rhs { lhs } else { rhs };
-  @static fun max(lhs: Int32, rhs: Int32) -> Int32 = if lhs < rhs { rhs } else { lhs };
+  fun min(lhs: Int32, rhs: Int32) -> Int32 = if lhs < rhs { lhs } else { rhs };
+  fun max(lhs: Int32, rhs: Int32) -> Int32 = if lhs < rhs { rhs } else { lhs };
 }

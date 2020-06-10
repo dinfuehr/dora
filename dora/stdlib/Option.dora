@@ -31,8 +31,10 @@ class None[T]: Option[T] {
   @override fun unwrapOr(value: T) -> T { value }
 }
 
-fun none[T]() -> Option[T] = None[T]();
-fun some[T](wrapped: T) -> Option[T] = Some[T](wrapped);
+module Option {
+  fun none[T]() -> Option[T] = None[T]();
+  fun some[T](wrapped: T) -> Option[T] = Some[T](wrapped);
+}
 
 fun optionContains[T: Equals](lhs: Option[T], rhs: T) -> Bool {
   if lhs.isSome() {

@@ -33,17 +33,17 @@
 
   fun toInt32() -> Option[Int32] {
     if self.toInt32Success() {
-      some[Int32](self.toInt32OrZero())
+      Option::some[Int32](self.toInt32OrZero())
     } else {
-      none[Int32]()
+      Option::none[Int32]()
     }
   }
 
   fun toInt64() -> Option[Int64] {
     if self.toInt64Success() {
-      some[Int64](self.toInt64OrZero())
+      Option::some[Int64](self.toInt64OrZero())
     } else {
-      none[Int64]()
+      Option::none[Int64]()
     }
   }
 
@@ -52,42 +52,48 @@
   @internal fun getByte(idx: Int64) -> UInt8;
   @internal fun clone() -> String;
 
-  @internal @static fun fromBytesPartOrNull(val: Array[UInt8], offset: Int64, len: Int64) -> String;
-  @internal @static fun fromStringPartOrNull(val: String, offset: Int64, len: Int64) -> String;
+  fun isEmpty() -> Bool = self.length() == 0L;
 
-  @static fun fromBytesPart(val: Array[UInt8], offset: Int64, len: Int64) -> Option[String] {
+  fun codePoints() -> CodepointIterator = CodepointIterator(self, 0L);
+}
+
+module String {
+  @internal fun fromBytesPartOrNull(val: Array[UInt8], offset: Int64, len: Int64) -> String;
+  @internal fun fromStringPartOrNull(val: String, offset: Int64, len: Int64) -> String;
+
+  fun fromBytesPart(val: Array[UInt8], offset: Int64, len: Int64) -> Option[String] {
     let value = String::fromBytesPartOrNull(val, offset, len);
 
     if value === nil {
-      none[String]()
+      Option::none[String]()
     } else {
-      some[String](value)
+      Option::some[String](value)
     }
   }
 
-  @static fun fromBytes(val: Array[UInt8]) -> Option[String] {
+  fun fromBytes(val: Array[UInt8]) -> Option[String] {
     let value = String::fromBytesPartOrNull(val, 0L, val.length());
   
     if value === nil {
-      none[String]()
+      Option::none[String]()
     } else {
-      some[String](value)
+      Option::some[String](value)
     }
   }
 
-  @static fun fromStringPart(val: String, offset: Int64, len: Int64) -> Option[String] {
+  fun fromStringPart(val: String, offset: Int64, len: Int64) -> Option[String] {
     let value = String::fromStringPartOrNull(val, offset, len);
 
     if value === nil {
-      none[String]()
+      Option::none[String]()
     } else {
-      some[String](value)
+      Option::some[String](value)
     }
   }
 
-  @static fun fromString(val: String) -> String = val.clone();
+  fun fromString(val: String) -> String = val.clone();
 
-  @static fun binary(data: Int64) -> String {
+  fun binary(data: Int64) -> String {
     var data = data;
     if data == 0L { return "0"; }
     let array = Array[UInt8](64L);
@@ -100,7 +106,7 @@
     return String::fromBytesPart(array, at, array.length() - at + 1L).unwrap();
   }
 
-  @static fun hex(data: Int64) -> String {
+  fun hex(data: Int64) -> String {
     var data = data;
     if data == 0L { return "0"; }
     let array = Array[UInt8](16L);
@@ -119,8 +125,4 @@
     }
     return String::fromBytesPart(array, at, array.length() - at + 1L).unwrap();
   }
-
-  fun isEmpty() -> Bool = self.length() == 0L;
-
-  fun codePoints() -> CodepointIterator = CodepointIterator(self, 0L);
 }

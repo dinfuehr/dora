@@ -704,17 +704,17 @@ class BytecodeWriter {
 
     fun emitJumpIfFalse(opnd: BytecodeRegister, lbl: BytecodeLabel) {
         assert(!lbl.isBound());
-        self.emitJmpForward(BC_JUMP_IF_FALSE, BC_JUMP_IF_FALSE_CONST, some[BytecodeRegister](opnd), lbl);
+        self.emitJmpForward(BC_JUMP_IF_FALSE, BC_JUMP_IF_FALSE_CONST, Option::some[BytecodeRegister](opnd), lbl);
     }
 
     fun emitJumpIfTrue(opnd: BytecodeRegister, lbl: BytecodeLabel) {
         assert(!lbl.isBound());
-        self.emitJmpForward(BC_JUMP_IF_TRUE, BC_JUMP_IF_TRUE_CONST, some[BytecodeRegister](opnd), lbl);
+        self.emitJmpForward(BC_JUMP_IF_TRUE, BC_JUMP_IF_TRUE_CONST, Option::some[BytecodeRegister](opnd), lbl);
     }
 
     fun emitJump(lbl: BytecodeLabel) {
         assert(!lbl.isBound());
-        self.emitJmpForward(BC_JUMP, BC_JUMP_CONST, none[BytecodeRegister](), lbl);
+        self.emitJmpForward(BC_JUMP, BC_JUMP_CONST, Option::none[BytecodeRegister](), lbl);
     }
 
     fun emitInvokeDirectVoid(fct: FctId, start: BytecodeRegister, count: Int32) {

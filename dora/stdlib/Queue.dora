@@ -8,10 +8,10 @@ class Queue[T] {
       // copy into larger array
       let newelements = Array[T](self.elements.length() * 2L);
       let len = self.elements.length() - self.front;
-      arrayCopy[T](self.elements, self.front, newelements, 0L, len);
+      Array::copy[T](self.elements, self.front, newelements, 0L, len);
 
       if len < self.count {
-        arrayCopy[T](self.elements, 0L, newelements, len, self.count - len);
+        Array::copy[T](self.elements, 0L, newelements, len, self.count - len);
       }
 
       self.front = 0L;

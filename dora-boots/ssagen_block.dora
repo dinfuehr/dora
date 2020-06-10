@@ -30,7 +30,7 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVis
             offset = offset + 1L;
         }
 
-        none[Block]()
+        Option::none[Block]()
     }
 
     fun markBlockTerminated() {

@@ -20,33 +20,33 @@ class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEn
 @open @abstract class ConstPoolEntry {
     fun toInt32() -> Option[Int32] {
         if self is ConstPoolInt32 {
-            some[Int32]((self as ConstPoolInt32).value)
+            Option::some[Int32]((self as ConstPoolInt32).value)
         } else {
-            none[Int32]()
+            Option::none[Int32]()
         }
     }
 
     fun toInt64() -> Option[Int64] {
         if self is ConstPoolInt64 {
-            some[Int64]((self as ConstPoolInt64).value)
+            Option::some[Int64]((self as ConstPoolInt64).value)
         } else {
-            none[Int64]()
+            Option::none[Int64]()
         }
     }
 
     fun toFloat() -> Option[Float] {
         if self is ConstPoolFloat {
-            some[Float]((self as ConstPoolFloat).value)
+            Option::some[Float]((self as ConstPoolFloat).value)
         } else {
-            none[Float]()
+            Option::none[Float]()
         }
     }
 
     fun toDouble() -> Option[Double] {
         if self is ConstPoolDouble {
-            some[Double]((self as ConstPoolDouble).value)
+            Option::some[Double]((self as ConstPoolDouble).value)
         } else {
-            none[Double]()
+            Option::none[Double]()
         }
     }
 
@@ -111,15 +111,6 @@ class ConstPoolId(let value: Int32) {
 class FctId(let value: Int32)
 
 class BytecodeType(let value: Int32) {
-    @static fun bool() -> BytecodeType = BytecodeType(BC_TYPE_BOOL);
-    @static fun uint8() -> BytecodeType = BytecodeType(BC_TYPE_U_INT8);
-    @static fun char() -> BytecodeType = BytecodeType(BC_TYPE_CHAR);
-    @static fun int32() -> BytecodeType = BytecodeType(BC_TYPE_INT32);
-    @static fun int64() -> BytecodeType = BytecodeType(BC_TYPE_INT64);
-    @static fun float() -> BytecodeType = BytecodeType(BC_TYPE_FLOAT);
-    @static fun double() -> BytecodeType = BytecodeType(BC_TYPE_DOUBLE);
-    @static fun ptr() -> BytecodeType = BytecodeType(BC_TYPE_PTR);
-
     fun isBool() -> Bool = self.value == BC_TYPE_BOOL;
     fun isUInt8() -> Bool = self.value == BC_TYPE_U_INT8;
     fun isChar() -> Bool = self.value == BC_TYPE_CHAR;
@@ -128,6 +119,17 @@ class BytecodeType(let value: Int32) {
     fun isFloat() -> Bool = self.value == BC_TYPE_FLOAT;
     fun isDouble() -> Bool = self.value == BC_TYPE_DOUBLE;
     fun isPtr() -> Bool = self.value == BC_TYPE_PTR;
+}
+
+module BytecodeType {
+    fun bool() -> BytecodeType = BytecodeType(BC_TYPE_BOOL);
+    fun uint8() -> BytecodeType = BytecodeType(BC_TYPE_U_INT8);
+    fun char() -> BytecodeType = BytecodeType(BC_TYPE_CHAR);
+    fun int32() -> BytecodeType = BytecodeType(BC_TYPE_INT32);
+    fun int64() -> BytecodeType = BytecodeType(BC_TYPE_INT64);
+    fun float() -> BytecodeType = BytecodeType(BC_TYPE_FLOAT);
+    fun double() -> BytecodeType = BytecodeType(BC_TYPE_DOUBLE);
+    fun ptr() -> BytecodeType = BytecodeType(BC_TYPE_PTR);
 }
 
 impl Stringable for BytecodeType {
