@@ -177,10 +177,10 @@ class TestConstStringVisitor: BytecodeVisitor {
     assert(visitor.found);
 }
 
-class TestSubFloatVisitor: BytecodeVisitor {
+class TestSubFloat32Visitor: BytecodeVisitor {
     var found: Bool = false;
 
-    @override fun visitSubFloat(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    @override fun visitSubFloat32(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         assert(dest == BytecodeRegister(2));
         assert(lhs == BytecodeRegister(9));
         assert(rhs == BytecodeRegister(255));
@@ -188,12 +188,12 @@ class TestSubFloatVisitor: BytecodeVisitor {
     }
 }
 
-@test fun testBytecodeSubFloat(_x: Testing) {
+@test fun testBytecodeSubFloat32(_x: Testing) {
     let writer = BytecodeWriter();
-    writer.emitSubFloat(BytecodeRegister(2), BytecodeRegister(9), BytecodeRegister(255));
+    writer.emitSubFloat32(BytecodeRegister(2), BytecodeRegister(9), BytecodeRegister(255));
     let fct = writer.generate();
-    let visitor = TestSubFloatVisitor();
-    assert(fct.codeAt(0) == BC_SUB_FLOAT);
+    let visitor = TestSubFloat32Visitor();
+    assert(fct.codeAt(0) == BC_SUB_FLOAT32);
     assert(fct.codeAt(1) == 2);
     assert(fct.codeAt(2) == 9);
     assert(fct.codeAt(3) == 255);

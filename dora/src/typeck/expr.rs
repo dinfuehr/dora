@@ -2245,8 +2245,8 @@ fn arg_allows(
         | BuiltinType::Struct(_, _)
         | BuiltinType::Int32
         | BuiltinType::Int64
-        | BuiltinType::Float
-        | BuiltinType::Double
+        | BuiltinType::Float32
+        | BuiltinType::Float64
         | BuiltinType::Enum(_, _) => def == arg,
         BuiltinType::Nil => panic!("nil should not occur in fct definition."),
         BuiltinType::Ptr => panic!("ptr should not occur in fct definition."),
@@ -2473,21 +2473,21 @@ pub fn check_lit_float(
     negate: bool,
 ) -> (BuiltinType, f64) {
     let ty = match e.suffix {
-        FloatSuffix::Float => BuiltinType::Float,
-        FloatSuffix::Double => BuiltinType::Double,
+        FloatSuffix::Float32 => BuiltinType::Float32,
+        FloatSuffix::Float64 => BuiltinType::Float64,
     };
 
     let (min, max) = match e.suffix {
-        FloatSuffix::Float => (f32::MIN as f64, f32::MAX as f64),
-        FloatSuffix::Double => (f64::MIN, f64::MAX),
+        FloatSuffix::Float32 => (f32::MIN as f64, f32::MAX as f64),
+        FloatSuffix::Float64 => (f64::MIN, f64::MAX),
     };
 
     let value = if negate { -e.value } else { e.value };
 
     if value < min || value > max {
         let ty = match e.suffix {
-            FloatSuffix::Float => "Float",
-            FloatSuffix::Double => "Double",
+            FloatSuffix::Float32 => "Float32",
+            FloatSuffix::Float64 => "Float64",
         };
 
         vm.diag

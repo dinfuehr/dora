@@ -79,23 +79,23 @@ Block 2: pred = [0] succ = [1]
 
 fun bcSsaGenAddIntArguments(a: Int32, b: Int32) -> Int32 { a + b }
 
-@test fun testSsaGenAddFloatArguments(_x: Testing) {
-    let fct = bytecode("bcSsaGenAddFloatArguments");
+@test fun testSsaGenAddFloat32Arguments(_x: Testing) {
+    let fct = bytecode("bcSsaGenAddFloat32Arguments");
     let graph = createGraph(fct);
 
     assertGraph(graph, "
 Block 0: succ = [2]
-  0: Arg.Float(0) [3]
-  1: Arg.Float(1) [3]
+  0: Arg.Float32(0) [3]
+  1: Arg.Float32(1) [3]
   2: Goto(2)
 Block 1: pred = [2]
 Block 2: pred = [0] succ = [1]
-  3: Add.Float 0, 1 [4]
-  4: Ret.Float 3
+  3: Add.Float32 0, 1 [4]
+  4: Ret.Float32 3
 ");
 }
 
-fun bcSsaGenAddFloatArguments(a: Float, b: Float) -> Float { a + b }
+fun bcSsaGenAddFloat32Arguments(a: Float, b: Float) -> Float { a + b }
 
 @test fun testSsaGenMultipleAssignments(_x: Testing) {
     let fct = bytecode("bcSsaGenMultipleAssignments");

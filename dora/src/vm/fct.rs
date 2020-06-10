@@ -318,9 +318,9 @@ pub enum Intrinsic {
     Int32ToByte,
     Int32ToChar,
     Int32ToInt64,
-    Int32ToFloat,
-    Int32ToDouble,
-    ReinterpretInt32AsFloat,
+    Int32ToFloat32,
+    Int32ToFloat64,
+    ReinterpretInt32AsFloat32,
 
     EnumEq,
     EnumNe,
@@ -359,9 +359,9 @@ pub enum Intrinsic {
     Int64ToInt32,
     Int64ToChar,
     Int64ToByte,
-    Int64ToFloat,
-    Int64ToDouble,
-    ReinterpretInt64AsDouble,
+    Int64ToFloat32,
+    Int64ToFloat64,
+    ReinterpretInt64AsFloat64,
 
     Int64Eq,
     Int64Cmp,
@@ -394,41 +394,41 @@ pub enum Intrinsic {
     Int64CountZeroBitsTrailing,
     Int64CountOneBitsTrailing,
 
-    FloatToInt32,
-    FloatToInt64,
-    PromoteFloatToDouble,
-    ReinterpretFloatAsInt32,
+    Float32ToInt32,
+    Float32ToInt64,
+    PromoteFloat32ToFloat64,
+    ReinterpretFloat32AsInt32,
 
-    FloatEq,
-    FloatCmp,
+    Float32Eq,
+    Float32Cmp,
 
-    FloatAdd,
-    FloatSub,
-    FloatMul,
-    FloatDiv,
+    Float32Add,
+    Float32Sub,
+    Float32Mul,
+    Float32Div,
 
-    FloatPlus,
-    FloatNeg,
-    FloatIsNan,
-    FloatSqrt,
+    Float32Plus,
+    Float32Neg,
+    Float32IsNan,
+    Float32Sqrt,
 
-    DoubleToInt32,
-    DoubleToInt64,
-    DemoteDoubleToFloat,
-    ReinterpretDoubleAsInt64,
+    Float64ToInt32,
+    Float64ToInt64,
+    DemoteFloat64ToFloat32,
+    ReinterpretFloat64AsInt64,
 
-    DoubleEq,
-    DoubleCmp,
+    Float64Eq,
+    Float64Cmp,
 
-    DoubleAdd,
-    DoubleSub,
-    DoubleMul,
-    DoubleDiv,
+    Float64Add,
+    Float64Sub,
+    Float64Mul,
+    Float64Div,
 
-    DoublePlus,
-    DoubleNeg,
-    DoubleIsNan,
-    DoubleSqrt,
+    Float64Plus,
+    Float64Neg,
+    Float64IsNan,
+    Float64Sqrt,
 }
 
 impl Intrinsic {
@@ -450,19 +450,19 @@ impl Intrinsic {
             | Intrinsic::Int32Not
             | Intrinsic::Int32Plus
             | Intrinsic::Int32Neg
-            | Intrinsic::ReinterpretFloatAsInt32
+            | Intrinsic::ReinterpretFloat32AsInt32
             | Intrinsic::CharToInt32
             | Intrinsic::Int64ToInt32
             | Intrinsic::ByteToInt32
-            | Intrinsic::FloatToInt32
-            | Intrinsic::DoubleToInt32
+            | Intrinsic::Float32ToInt32
+            | Intrinsic::Float64ToInt32
             | Intrinsic::BoolToInt32
             | Intrinsic::ByteCmp
             | Intrinsic::CharCmp
             | Intrinsic::Int32Cmp
             | Intrinsic::Int64Cmp
-            | Intrinsic::FloatCmp
-            | Intrinsic::DoubleCmp
+            | Intrinsic::Float32Cmp
+            | Intrinsic::Float64Cmp
             | Intrinsic::Int32CountZeroBits
             | Intrinsic::Int32CountZeroBitsLeading
             | Intrinsic::Int32CountZeroBitsTrailing
@@ -495,33 +495,33 @@ impl Intrinsic {
             | Intrinsic::CharToInt64
             | Intrinsic::ByteToInt64
             | Intrinsic::Int32ToInt64
-            | Intrinsic::FloatToInt64
-            | Intrinsic::DoubleToInt64
+            | Intrinsic::Float32ToInt64
+            | Intrinsic::Float64ToInt64
             | Intrinsic::GenericArrayLen
             | Intrinsic::StrLen
-            | Intrinsic::ReinterpretDoubleAsInt64 => BytecodeType::Int64,
-            Intrinsic::FloatAdd
-            | Intrinsic::FloatSub
-            | Intrinsic::FloatDiv
-            | Intrinsic::FloatMul
-            | Intrinsic::FloatNeg
-            | Intrinsic::FloatPlus
-            | Intrinsic::ReinterpretInt32AsFloat
-            | Intrinsic::Int32ToFloat
-            | Intrinsic::Int64ToFloat
-            | Intrinsic::FloatSqrt
-            | Intrinsic::DemoteDoubleToFloat => BytecodeType::Float,
-            Intrinsic::DoubleAdd
-            | Intrinsic::DoubleSub
-            | Intrinsic::DoubleDiv
-            | Intrinsic::DoubleMul
-            | Intrinsic::DoubleNeg
-            | Intrinsic::DoublePlus
-            | Intrinsic::Int32ToDouble
-            | Intrinsic::Int64ToDouble
-            | Intrinsic::ReinterpretInt64AsDouble
-            | Intrinsic::DoubleSqrt
-            | Intrinsic::PromoteFloatToDouble => BytecodeType::Double,
+            | Intrinsic::ReinterpretFloat64AsInt64 => BytecodeType::Int64,
+            Intrinsic::Float32Add
+            | Intrinsic::Float32Sub
+            | Intrinsic::Float32Div
+            | Intrinsic::Float32Mul
+            | Intrinsic::Float32Neg
+            | Intrinsic::Float32Plus
+            | Intrinsic::ReinterpretInt32AsFloat32
+            | Intrinsic::Int32ToFloat32
+            | Intrinsic::Int64ToFloat32
+            | Intrinsic::Float32Sqrt
+            | Intrinsic::DemoteFloat64ToFloat32 => BytecodeType::Float32,
+            Intrinsic::Float64Add
+            | Intrinsic::Float64Sub
+            | Intrinsic::Float64Div
+            | Intrinsic::Float64Mul
+            | Intrinsic::Float64Neg
+            | Intrinsic::Float64Plus
+            | Intrinsic::Int32ToFloat64
+            | Intrinsic::Int64ToFloat64
+            | Intrinsic::ReinterpretInt64AsFloat64
+            | Intrinsic::Float64Sqrt
+            | Intrinsic::PromoteFloat32ToFloat64 => BytecodeType::Float64,
             Intrinsic::BoolEq
             | Intrinsic::ByteEq
             | Intrinsic::CharEq
@@ -529,11 +529,11 @@ impl Intrinsic {
             | Intrinsic::EnumNe
             | Intrinsic::Int32Eq
             | Intrinsic::Int64Eq
-            | Intrinsic::FloatEq
-            | Intrinsic::DoubleEq
+            | Intrinsic::Float32Eq
+            | Intrinsic::Float64Eq
             | Intrinsic::BoolNot
-            | Intrinsic::DoubleIsNan
-            | Intrinsic::FloatIsNan => BytecodeType::Bool,
+            | Intrinsic::Float64IsNan
+            | Intrinsic::Float32IsNan => BytecodeType::Bool,
             Intrinsic::Int32ToByte | Intrinsic::Int64ToByte => BytecodeType::UInt8,
             Intrinsic::Int32ToChar | Intrinsic::Int64ToChar | Intrinsic::ByteToChar => {
                 BytecodeType::Char

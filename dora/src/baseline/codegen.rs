@@ -1233,8 +1233,8 @@ where
         let ty = self.src.ty(lit.id);
 
         let mode = match ty {
-            BuiltinType::Float => MachineMode::Float32,
-            BuiltinType::Double => MachineMode::Float64,
+            BuiltinType::Float32 => MachineMode::Float32,
+            BuiltinType::Float64 => MachineMode::Float64,
             _ => unreachable!(),
         };
 
@@ -1378,7 +1378,7 @@ where
                     .load_int_const(ty.mode(), dest.reg(), xconst.value.to_int());
             }
 
-            BuiltinType::Float | BuiltinType::Double => {
+            BuiltinType::Float32 | BuiltinType::Float64 => {
                 self.asm
                     .load_float_const(ty.mode(), dest.freg(), xconst.value.to_float());
             }
@@ -1393,8 +1393,8 @@ where
         match intrinsic {
             Intrinsic::Int32Plus
             | Intrinsic::Int64Plus
-            | Intrinsic::FloatPlus
-            | Intrinsic::DoublePlus => {}
+            | Intrinsic::Float32Plus
+            | Intrinsic::Float64Plus => {}
 
             Intrinsic::Int32Neg | Intrinsic::Int64Neg => {
                 let dest = dest.reg();
@@ -1408,10 +1408,10 @@ where
                 self.asm.int_neg(mode, dest, dest);
             }
 
-            Intrinsic::FloatNeg | Intrinsic::DoubleNeg => {
+            Intrinsic::Float32Neg | Intrinsic::Float64Neg => {
                 let dest = dest.freg();
 
-                let mode = if intrinsic == Intrinsic::FloatNeg {
+                let mode = if intrinsic == Intrinsic::Float32Neg {
                     MachineMode::Float32
                 } else {
                     MachineMode::Float64
@@ -1772,8 +1772,8 @@ where
         let builtin_type = self.ty(e.lhs.id());
         let dest_mode = match builtin_type {
             BuiltinType::Nil => MachineMode::Ptr,
-            BuiltinType::Float => MachineMode::Int32,
-            BuiltinType::Double => MachineMode::Int64,
+            BuiltinType::Float32 => MachineMode::Int32,
+            BuiltinType::Float64 => MachineMode::Int64,
             _ => builtin_type.mode(),
         };
         let slot = if builtin_type.is_float() {
@@ -2085,40 +2085,40 @@ where
             Intrinsic::Int64ToChar | Intrinsic::Int64ToInt32 => {
                 self.emit_intrinsic_long_to_int(args[0], dest.reg())
             }
-            Intrinsic::Int64ToFloat => {
+            Intrinsic::Int64ToFloat32 => {
                 self.emit_intrinsic_int_to_float(args[0], dest.freg(), intrinsic)
             }
-            Intrinsic::Int64ToDouble => {
+            Intrinsic::Int64ToFloat64 => {
                 self.emit_intrinsic_int_to_float(args[0], dest.freg(), intrinsic)
             }
 
-            Intrinsic::ReinterpretInt64AsDouble => {
+            Intrinsic::ReinterpretInt64AsFloat64 => {
                 self.emit_intrinsic_int_as_float(args[0], dest.freg(), intrinsic)
             }
 
-            Intrinsic::FloatToInt32 => {
+            Intrinsic::Float32ToInt32 => {
                 self.emit_intrinsic_float_to_int(args[0], dest.reg(), intrinsic)
             }
-            Intrinsic::FloatToInt64 => {
+            Intrinsic::Float32ToInt64 => {
                 self.emit_intrinsic_float_to_int(args[0], dest.reg(), intrinsic)
             }
-            Intrinsic::PromoteFloatToDouble => {
-                self.emit_intrinsic_float_to_double(args[0], dest.freg())
+            Intrinsic::PromoteFloat32ToFloat64 => {
+                self.emit_intrinsic_float32_to_float64(args[0], dest.freg())
             }
-            Intrinsic::ReinterpretFloatAsInt32 => {
+            Intrinsic::ReinterpretFloat32AsInt32 => {
                 self.emit_intrinsic_float_as_int(args[0], dest.reg(), intrinsic)
             }
 
-            Intrinsic::DoubleToInt32 => {
+            Intrinsic::Float64ToInt32 => {
                 self.emit_intrinsic_float_to_int(args[0], dest.reg(), intrinsic)
             }
-            Intrinsic::DoubleToInt64 => {
+            Intrinsic::Float64ToInt64 => {
                 self.emit_intrinsic_float_to_int(args[0], dest.reg(), intrinsic)
             }
-            Intrinsic::DemoteDoubleToFloat => {
-                self.emit_intrinsic_double_to_float(args[0], dest.freg())
+            Intrinsic::DemoteFloat64ToFloat32 => {
+                self.emit_intrinsic_float64to_float32(args[0], dest.freg())
             }
-            Intrinsic::ReinterpretDoubleAsInt64 => {
+            Intrinsic::ReinterpretFloat64AsInt64 => {
                 self.emit_intrinsic_float_as_int(args[0], dest.reg(), intrinsic)
             }
 
@@ -2136,14 +2136,14 @@ where
 
             Intrinsic::Int32ToByte => self.emit_intrinsic_int_to_byte(args[0], dest.reg()),
             Intrinsic::Int32ToInt64 => self.emit_intrinsic_int_to_long(args[0], dest.reg()),
-            Intrinsic::Int32ToFloat => {
+            Intrinsic::Int32ToFloat32 => {
                 self.emit_intrinsic_int_to_float(args[0], dest.freg(), intrinsic)
             }
-            Intrinsic::Int32ToDouble => {
+            Intrinsic::Int32ToFloat64 => {
                 self.emit_intrinsic_int_to_float(args[0], dest.freg(), intrinsic)
             }
 
-            Intrinsic::ReinterpretInt32AsFloat => {
+            Intrinsic::ReinterpretInt32AsFloat32 => {
                 self.emit_intrinsic_int_as_float(args[0], dest.freg(), intrinsic)
             }
 
@@ -2302,43 +2302,43 @@ where
                 self.emit_intrinsic_unary(args[0], dest, intrinsic)
             }
 
-            Intrinsic::FloatAdd => {
+            Intrinsic::Float32Add => {
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
-            Intrinsic::FloatSub => {
+            Intrinsic::Float32Sub => {
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
-            Intrinsic::FloatMul => {
+            Intrinsic::Float32Mul => {
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
-            Intrinsic::FloatDiv => {
+            Intrinsic::Float32Div => {
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
-            Intrinsic::FloatNeg => self.emit_intrinsic_unary(args[0], dest, intrinsic),
-            Intrinsic::FloatPlus => self.emit_intrinsic_unary(args[0], dest, intrinsic),
-            Intrinsic::FloatIsNan => self.emit_intrinsic_is_nan(args[0], dest.reg(), intrinsic),
-            Intrinsic::FloatSqrt => self.emit_intrinsic_sqrt(args[0], dest.freg(), intrinsic),
-            Intrinsic::FloatEq => {
+            Intrinsic::Float32Neg => self.emit_intrinsic_unary(args[0], dest, intrinsic),
+            Intrinsic::Float32Plus => self.emit_intrinsic_unary(args[0], dest, intrinsic),
+            Intrinsic::Float32IsNan => self.emit_intrinsic_is_nan(args[0], dest.reg(), intrinsic),
+            Intrinsic::Float32Sqrt => self.emit_intrinsic_sqrt(args[0], dest.freg(), intrinsic),
+            Intrinsic::Float32Eq => {
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
 
-            Intrinsic::DoubleAdd => {
+            Intrinsic::Float64Add => {
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
-            Intrinsic::DoubleSub => {
+            Intrinsic::Float64Sub => {
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
-            Intrinsic::DoubleMul => {
+            Intrinsic::Float64Mul => {
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
-            Intrinsic::DoubleDiv => {
+            Intrinsic::Float64Div => {
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
-            Intrinsic::DoubleNeg => self.emit_intrinsic_unary(args[0], dest, intrinsic),
-            Intrinsic::DoublePlus => self.emit_intrinsic_unary(args[0], dest, intrinsic),
-            Intrinsic::DoubleIsNan => self.emit_intrinsic_is_nan(args[0], dest.reg(), intrinsic),
-            Intrinsic::DoubleSqrt => self.emit_intrinsic_sqrt(args[0], dest.freg(), intrinsic),
-            Intrinsic::DoubleEq => {
+            Intrinsic::Float64Neg => self.emit_intrinsic_unary(args[0], dest, intrinsic),
+            Intrinsic::Float64Plus => self.emit_intrinsic_unary(args[0], dest, intrinsic),
+            Intrinsic::Float64IsNan => self.emit_intrinsic_is_nan(args[0], dest.reg(), intrinsic),
+            Intrinsic::Float64Sqrt => self.emit_intrinsic_sqrt(args[0], dest.freg(), intrinsic),
+            Intrinsic::Float64Eq => {
                 self.emit_intrinsic_bin_call(args[0], args[1], dest, intrinsic, pos)
             }
 
@@ -2360,7 +2360,7 @@ where
             | BuiltinType::Int32
             | BuiltinType::Int64
             | BuiltinType::Char => self.asm.load_int_const(ty.mode(), dest.reg(), 0),
-            BuiltinType::Float | BuiltinType::Double => {
+            BuiltinType::Float32 | BuiltinType::Float64 => {
                 self.asm.load_float_const(ty.mode(), dest.freg(), 0.0)
             }
             _ => self.asm.load_nil(dest.reg()),
@@ -2371,8 +2371,8 @@ where
         self.emit_expr(e, dest.into());
 
         let mode = match intrinsic {
-            Intrinsic::FloatSqrt => MachineMode::Float32,
-            Intrinsic::DoubleSqrt => MachineMode::Float64,
+            Intrinsic::Float32Sqrt => MachineMode::Float32,
+            Intrinsic::Float64Sqrt => MachineMode::Float64,
             _ => unreachable!(),
         };
 
@@ -2562,8 +2562,8 @@ where
         self.emit_expr(e, FREG_RESULT.into());
 
         let mode = match intrinsic {
-            Intrinsic::FloatIsNan => MachineMode::Float32,
-            Intrinsic::DoubleIsNan => MachineMode::Float64,
+            Intrinsic::Float32IsNan => MachineMode::Float32,
+            Intrinsic::Float64IsNan => MachineMode::Float64,
             _ => unreachable!(),
         };
 
@@ -2629,24 +2629,24 @@ where
         self.asm.extend_int_long(dest, REG_RESULT);
     }
 
-    fn emit_intrinsic_float_to_double(&mut self, e: &'ast Expr, dest: FReg) {
+    fn emit_intrinsic_float32_to_float64(&mut self, e: &'ast Expr, dest: FReg) {
         self.emit_expr(e, FREG_RESULT.into());
-        self.asm.float_to_double(dest, FREG_RESULT);
+        self.asm.float32_to_float64(dest, FREG_RESULT);
     }
 
-    fn emit_intrinsic_double_to_float(&mut self, e: &'ast Expr, dest: FReg) {
+    fn emit_intrinsic_float64to_float32(&mut self, e: &'ast Expr, dest: FReg) {
         self.emit_expr(e, FREG_RESULT.into());
-        self.asm.double_to_float(dest, FREG_RESULT);
+        self.asm.float64_to_float32(dest, FREG_RESULT);
     }
 
     fn emit_intrinsic_int_to_float(&mut self, e: &'ast Expr, dest: FReg, intrinsic: Intrinsic) {
         self.emit_expr(e, REG_RESULT.into());
 
         let (src_mode, dest_mode) = match intrinsic {
-            Intrinsic::Int32ToFloat => (MachineMode::Int32, MachineMode::Float32),
-            Intrinsic::Int32ToDouble => (MachineMode::Int32, MachineMode::Float64),
-            Intrinsic::Int64ToFloat => (MachineMode::Int64, MachineMode::Float32),
-            Intrinsic::Int64ToDouble => (MachineMode::Int64, MachineMode::Float64),
+            Intrinsic::Int32ToFloat32 => (MachineMode::Int32, MachineMode::Float32),
+            Intrinsic::Int32ToFloat64 => (MachineMode::Int32, MachineMode::Float64),
+            Intrinsic::Int64ToFloat32 => (MachineMode::Int64, MachineMode::Float32),
+            Intrinsic::Int64ToFloat64 => (MachineMode::Int64, MachineMode::Float64),
             _ => unreachable!(),
         };
 
@@ -2657,10 +2657,10 @@ where
         self.emit_expr(e, FREG_RESULT.into());
 
         let (src_mode, dest_mode) = match intrinsic {
-            Intrinsic::FloatToInt32 => (MachineMode::Float32, MachineMode::Int32),
-            Intrinsic::FloatToInt64 => (MachineMode::Float32, MachineMode::Int64),
-            Intrinsic::DoubleToInt32 => (MachineMode::Float64, MachineMode::Int32),
-            Intrinsic::DoubleToInt64 => (MachineMode::Float64, MachineMode::Int64),
+            Intrinsic::Float32ToInt32 => (MachineMode::Float32, MachineMode::Int32),
+            Intrinsic::Float32ToInt64 => (MachineMode::Float32, MachineMode::Int64),
+            Intrinsic::Float64ToInt32 => (MachineMode::Float64, MachineMode::Int32),
+            Intrinsic::Float64ToInt64 => (MachineMode::Float64, MachineMode::Int64),
             _ => unreachable!(),
         };
 
@@ -2672,8 +2672,8 @@ where
         self.emit_expr(e, FREG_RESULT.into());
 
         let (src_mode, dest_mode) = match intrinsic {
-            Intrinsic::ReinterpretFloatAsInt32 => (MachineMode::Float32, MachineMode::Int32),
-            Intrinsic::ReinterpretDoubleAsInt64 => (MachineMode::Float64, MachineMode::Int64),
+            Intrinsic::ReinterpretFloat32AsInt32 => (MachineMode::Float32, MachineMode::Int32),
+            Intrinsic::ReinterpretFloat64AsInt64 => (MachineMode::Float64, MachineMode::Int64),
             _ => unreachable!(),
         };
 
@@ -2685,8 +2685,8 @@ where
         self.emit_expr(e, REG_RESULT.into());
 
         let (src_mode, dest_mode) = match intrinsic {
-            Intrinsic::ReinterpretInt32AsFloat => (MachineMode::Int32, MachineMode::Float32),
-            Intrinsic::ReinterpretInt64AsDouble => (MachineMode::Int64, MachineMode::Float64),
+            Intrinsic::ReinterpretInt32AsFloat32 => (MachineMode::Int32, MachineMode::Float32),
+            Intrinsic::ReinterpretInt64AsFloat64 => (MachineMode::Int64, MachineMode::Float64),
             _ => unreachable!(),
         };
 
@@ -2863,8 +2863,8 @@ where
         use crate::ty::MachineMode::{Float32, Float64};
 
         match intr {
-            Intrinsic::FloatEq | Intrinsic::DoubleEq => {
-                let mode = if intr == Intrinsic::DoubleEq {
+            Intrinsic::Float32Eq | Intrinsic::Float64Eq => {
+                let mode = if intr == Intrinsic::Float64Eq {
                     Float64
                 } else {
                     Float32
@@ -2878,8 +2878,8 @@ where
                 self.asm.float_cmp(mode, dest.reg(), lhs, rhs, cond_code);
             }
 
-            Intrinsic::FloatCmp | Intrinsic::DoubleCmp => {
-                let mode = if intr == Intrinsic::DoubleCmp {
+            Intrinsic::Float32Cmp | Intrinsic::Float64Cmp => {
+                let mode = if intr == Intrinsic::Float64Cmp {
                     Float64
                 } else {
                     Float32
@@ -2894,15 +2894,15 @@ where
                 }
             }
 
-            Intrinsic::FloatAdd => self.asm.float_add(Float32, dest.freg(), lhs, rhs),
-            Intrinsic::FloatSub => self.asm.float_sub(Float32, dest.freg(), lhs, rhs),
-            Intrinsic::FloatMul => self.asm.float_mul(Float32, dest.freg(), lhs, rhs),
-            Intrinsic::FloatDiv => self.asm.float_div(Float32, dest.freg(), lhs, rhs),
+            Intrinsic::Float32Add => self.asm.float_add(Float32, dest.freg(), lhs, rhs),
+            Intrinsic::Float32Sub => self.asm.float_sub(Float32, dest.freg(), lhs, rhs),
+            Intrinsic::Float32Mul => self.asm.float_mul(Float32, dest.freg(), lhs, rhs),
+            Intrinsic::Float32Div => self.asm.float_div(Float32, dest.freg(), lhs, rhs),
 
-            Intrinsic::DoubleAdd => self.asm.float_add(Float64, dest.freg(), lhs, rhs),
-            Intrinsic::DoubleSub => self.asm.float_sub(Float64, dest.freg(), lhs, rhs),
-            Intrinsic::DoubleMul => self.asm.float_mul(Float64, dest.freg(), lhs, rhs),
-            Intrinsic::DoubleDiv => self.asm.float_div(Float64, dest.freg(), lhs, rhs),
+            Intrinsic::Float64Add => self.asm.float_add(Float64, dest.freg(), lhs, rhs),
+            Intrinsic::Float64Sub => self.asm.float_sub(Float64, dest.freg(), lhs, rhs),
+            Intrinsic::Float64Mul => self.asm.float_mul(Float64, dest.freg(), lhs, rhs),
+            Intrinsic::Float64Div => self.asm.float_div(Float64, dest.freg(), lhs, rhs),
 
             _ => panic!("unexpected intrinsic {:?}", intr),
         }
@@ -3794,8 +3794,8 @@ fn check_for_nil(ty: BuiltinType) -> bool {
         | BuiltinType::Char
         | BuiltinType::Int32
         | BuiltinType::Int64
-        | BuiltinType::Float
-        | BuiltinType::Double
+        | BuiltinType::Float32
+        | BuiltinType::Float64
         | BuiltinType::Bool
         | BuiltinType::Enum(_, _) => false,
         BuiltinType::Nil | BuiltinType::Ptr => true,

@@ -4,8 +4,8 @@ let typeUInt8: Type = Type(TypeKind::UInt8);
 let typeChar: Type = Type(TypeKind::Char);
 let typeInt32: Type = Type(TypeKind::Int32);
 let typeInt64: Type = Type(TypeKind::Int64);
-let typeFloat: Type = Type(TypeKind::Float);
-let typeDouble: Type = Type(TypeKind::Double);
+let typeFloat32: Type = Type(TypeKind::Float32);
+let typeFloat64: Type = Type(TypeKind::Float64);
 let typePtr: Type = Type(TypeKind::Ptr);
 
 
@@ -14,12 +14,12 @@ class Type(let kind: TypeKind) {
     fun isUInt8() -> Bool { return self.kind == TypeKind::UInt8; }
     fun isInt32() -> Bool { return self.kind == TypeKind::Int32; }
     fun isInt64() -> Bool { return self.kind == TypeKind::Int64; }
-    fun isFloat() -> Bool { return self.kind == TypeKind::Float; }
-    fun isDouble() -> Bool { return self.kind == TypeKind::Double; }
+    fun isFloat32() -> Bool { return self.kind == TypeKind::Float32; }
+    fun isFloat64() -> Bool { return self.kind == TypeKind::Float64; }
     fun isPtr() -> Bool { return self.kind == TypeKind::Ptr; }
 
-    fun is_any_float() -> Bool {
-        return self.kind == TypeKind::Float || self.kind == TypeKind::Double;
+    fun isAnyFloat() -> Bool {
+        return self.kind == TypeKind::Float32 || self.kind == TypeKind::Float64;
     }
 }
 
@@ -30,8 +30,8 @@ module Type {
     fun char() -> Type { return typeChar; }
     fun int32() -> Type { return typeInt32; }
     fun int64() -> Type { return typeInt64; }
-    fun float() -> Type { return typeFloat; }
-    fun double() -> Type { return typeDouble; }
+    fun float32() -> Type { return typeFloat32; }
+    fun float64() -> Type { return typeFloat64; }
     fun ptr() -> Type { return typePtr; }
 
     fun fromBytecodeType(ty: BytecodeType) -> Type {
@@ -45,10 +45,10 @@ module Type {
             Type::int32()
         } else if ty.isInt64() {
             Type::int64()
-        } else if ty.isFloat() {
-            Type::float()
-        } else if ty.isDouble() {
-            Type::double()
+        } else if ty.isFloat32() {
+            Type::float32()
+        } else if ty.isFloat64() {
+            Type::float64()
         } else if ty.isPtr() {
             Type::ptr()
         } else {
@@ -65,7 +65,7 @@ impl Stringable for Type {
 }
 
 enum TypeKind {
-    Unit, Bool, UInt8, Char, Int32, Int64, Float, Double, Ptr
+    Unit, Bool, UInt8, Char, Int32, Int64, Float32, Float64, Ptr
 }
 
 impl TypeKind {
@@ -80,10 +80,10 @@ impl TypeKind {
             "Int32"
         } else if self == TypeKind::Int64 {
             "Int64"
-        } else if self == TypeKind::Float {
-            "Float"
-        } else if self == TypeKind::Double {
-            "Double"
+        } else if self == TypeKind::Float32 {
+            "Float32"
+        } else if self == TypeKind::Float64 {
+            "Float64"
         } else if self == TypeKind::Ptr {
             "Ptr"
         } else {

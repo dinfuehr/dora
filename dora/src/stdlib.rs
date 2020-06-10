@@ -10,7 +10,7 @@ use std::time::Duration;
 use crate::boots;
 use crate::gc::{Address, GcReason};
 use crate::handle::{scope as handle_scope, Handle};
-use crate::object::{ByteArray, Obj, Ref, Str};
+use crate::object::{Obj, Ref, Str, UInt8Array};
 use crate::stack::stacktrace_from_last_dtn;
 use crate::sym::TermSym::SymFct;
 use crate::threads::{DoraThread, STACK_SIZE, THREAD};
@@ -180,7 +180,7 @@ pub extern "C" fn str_clone(val: Handle<Str>) -> Ref<Str> {
     })
 }
 
-pub extern "C" fn str_from_bytes(val: Handle<ByteArray>, offset: usize, len: usize) -> Ref<Str> {
+pub extern "C" fn str_from_bytes(val: Handle<UInt8Array>, offset: usize, len: usize) -> Ref<Str> {
     handle_scope(|| {
         let vm = get_vm();
         let val: Handle<Str> = val.cast();

@@ -27,8 +27,8 @@ pub fn dump(bc: &BytecodeFunction) {
             ConstPoolEntry::String(ref value) => println!(" {} => String {}", idx, value),
             ConstPoolEntry::Int32(ref value) => println!(" {} => Int32 {}", idx, value),
             ConstPoolEntry::Int64(ref value) => println!(" {} => Int64 {}", idx, value),
-            ConstPoolEntry::Float(ref value) => println!(" {} => Float {}", idx, value),
-            ConstPoolEntry::Double(ref value) => println!(" {} => Double {}", idx, value),
+            ConstPoolEntry::Float32(ref value) => println!(" {} => Float32 {}", idx, value),
+            ConstPoolEntry::Float64(ref value) => println!(" {} => Float64 {}", idx, value),
             ConstPoolEntry::Char(ref value) => println!(" {} => Char {}", idx, value),
         }
     }
@@ -178,11 +178,11 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_add_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("AddInt64", dest, lhs, rhs);
     }
-    fn visit_add_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("AddFloat", dest, lhs, rhs);
+    fn visit_add_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("AddFloat32", dest, lhs, rhs);
     }
-    fn visit_add_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("AddDouble", dest, lhs, rhs);
+    fn visit_add_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("AddFloat64", dest, lhs, rhs);
     }
 
     fn visit_sub_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -191,11 +191,11 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_sub_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("SubInt64", dest, lhs, rhs);
     }
-    fn visit_sub_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("SubFloat", dest, lhs, rhs);
+    fn visit_sub_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("SubFloat32", dest, lhs, rhs);
     }
-    fn visit_sub_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("SubDouble", dest, lhs, rhs);
+    fn visit_sub_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("SubFloat64", dest, lhs, rhs);
     }
 
     fn visit_neg_int32(&mut self, dest: Register, src: Register) {
@@ -204,11 +204,11 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_neg_int64(&mut self, dest: Register, src: Register) {
         self.emit_reg2("NegInt64", dest, src);
     }
-    fn visit_neg_float(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("NegFloat", dest, src);
+    fn visit_neg_float32(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("NegFloat32", dest, src);
     }
-    fn visit_neg_double(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("NegDouble", dest, src);
+    fn visit_neg_float64(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("NegFloat64", dest, src);
     }
 
     fn visit_mul_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -217,11 +217,11 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_mul_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("MulInt64", dest, lhs, rhs);
     }
-    fn visit_mul_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("MulFloat", dest, lhs, rhs);
+    fn visit_mul_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("MulFloat32", dest, lhs, rhs);
     }
-    fn visit_mul_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("MulDouble", dest, lhs, rhs);
+    fn visit_mul_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("MulFloat64", dest, lhs, rhs);
     }
 
     fn visit_div_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -230,11 +230,11 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_div_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("DivInt64", dest, lhs, rhs);
     }
-    fn visit_div_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("DivFloat", dest, lhs, rhs);
+    fn visit_div_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("DivFloat32", dest, lhs, rhs);
     }
-    fn visit_div_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("DivDouble", dest, lhs, rhs);
+    fn visit_div_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("DivFloat64", dest, lhs, rhs);
     }
 
     fn visit_mod_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -309,17 +309,17 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg3("RorInt64", dest, lhs, rhs);
     }
 
-    fn visit_reinterpret_int32_as_float(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("ReinterpretInt32AsFloat", dest, src);
+    fn visit_reinterpret_int32_as_float32(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("ReinterpretInt32AsFloat32", dest, src);
     }
-    fn visit_reinterpret_float_as_int32(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("ReinterpretFloatAsInt32", dest, src);
+    fn visit_reinterpret_float32_as_int32(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("ReinterpretFloat32AsInt32", dest, src);
     }
-    fn visit_reinterpret_double_as_int64(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("ReinterpretDoubleAsInt64", dest, src);
+    fn visit_reinterpret_float64_as_int64(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("ReinterpretFloat64AsInt64", dest, src);
     }
-    fn visit_reinterpret_int64_as_double(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("ReinterpretInt64AsDouble", dest, src);
+    fn visit_reinterpret_int64_as_float64(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("ReinterpretInt64AsFloat64", dest, src);
     }
 
     fn visit_extend_byte_to_char(&mut self, dest: Register, src: Register) {
@@ -356,37 +356,37 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg2("CastInt64ToInt32", dest, src);
     }
 
-    fn visit_convert_int32_to_float(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("ConvertInt32ToFloat", dest, src);
+    fn visit_convert_int32_to_float32(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("ConvertInt32ToFloat32", dest, src);
     }
-    fn visit_convert_int32_to_double(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("ConvertInt32ToDouble", dest, src);
+    fn visit_convert_int32_to_float64(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("ConvertInt32ToFloat64", dest, src);
     }
-    fn visit_convert_int64_to_float(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("ConvertInt64ToFloat", dest, src);
+    fn visit_convert_int64_to_float32(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("ConvertInt64ToFloat32", dest, src);
     }
-    fn visit_convert_int64_to_double(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("ConvertInt64ToDouble", dest, src);
+    fn visit_convert_int64_to_float64(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("ConvertInt64ToFloat64", dest, src);
     }
 
-    fn visit_truncate_float_to_int32(&mut self, dest: Register, src: Register) {
+    fn visit_truncate_float32_to_int32(&mut self, dest: Register, src: Register) {
         self.emit_reg2("TruncateFloatToInt32", dest, src);
     }
-    fn visit_truncate_float_to_int64(&mut self, dest: Register, src: Register) {
+    fn visit_truncate_float32_to_int64(&mut self, dest: Register, src: Register) {
         self.emit_reg2("TruncateFloatToInt64", dest, src);
     }
-    fn visit_truncate_double_to_int32(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("TruncateDoubleToInt32", dest, src);
+    fn visit_truncate_float64_to_int32(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("TruncateFloat64ToInt32", dest, src);
     }
-    fn visit_truncate_double_to_int64(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("TruncateDoubleToInt64", dest, src);
+    fn visit_truncate_float64_to_int64(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("TruncateFloat64ToInt64", dest, src);
     }
 
-    fn visit_promote_float_to_double(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("PromoteFloatToDouble", dest, src);
+    fn visit_promote_float32_to_float64(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("PromoteFloat32ToFloat64", dest, src);
     }
-    fn visit_truncate_double_to_float(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("TruncateDoubleToFloat", dest, src);
+    fn visit_demote_float64_to_float32(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("TruncateFloat64ToFloat32", dest, src);
     }
 
     fn visit_instance_of(&mut self, dest: Register, src: Register, cls_id: ClassDefId) {
@@ -411,11 +411,11 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_mov_int64(&mut self, dest: Register, src: Register) {
         self.emit_reg2("MovInt64", dest, src);
     }
-    fn visit_mov_float(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("MovFloat", dest, src);
+    fn visit_mov_float32(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("MovFloat32", dest, src);
     }
-    fn visit_mov_double(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("MovDouble", dest, src);
+    fn visit_mov_float64(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("MovFloat64", dest, src);
     }
     fn visit_mov_ptr(&mut self, dest: Register, src: Register) {
         self.emit_reg2("MovPtr", dest, src);
@@ -479,23 +479,23 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     ) {
         self.emit_field("LoadFieldInt64", dest, obj, cls, field);
     }
-    fn visit_load_field_float(
+    fn visit_load_field_float32(
         &mut self,
         dest: Register,
         obj: Register,
         cls: ClassDefId,
         field: FieldId,
     ) {
-        self.emit_field("LoadFieldFloat", dest, obj, cls, field);
+        self.emit_field("LoadFieldFloat32", dest, obj, cls, field);
     }
-    fn visit_load_field_double(
+    fn visit_load_field_float64(
         &mut self,
         dest: Register,
         obj: Register,
         cls: ClassDefId,
         field: FieldId,
     ) {
-        self.emit_field("LoadFieldDouble", dest, obj, cls, field);
+        self.emit_field("LoadFieldFloat64", dest, obj, cls, field);
     }
     fn visit_load_field_ptr(
         &mut self,
@@ -561,23 +561,23 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     ) {
         self.emit_field("StoreFieldInt64", src, obj, cls, field);
     }
-    fn visit_store_field_float(
+    fn visit_store_field_float32(
         &mut self,
         src: Register,
         obj: Register,
         cls: ClassDefId,
         field: FieldId,
     ) {
-        self.emit_field("StoreFieldFloat", src, obj, cls, field);
+        self.emit_field("StoreFieldFloat32", src, obj, cls, field);
     }
-    fn visit_store_field_double(
+    fn visit_store_field_float64(
         &mut self,
         src: Register,
         obj: Register,
         cls: ClassDefId,
         field: FieldId,
     ) {
-        self.emit_field("StoreFieldDouble", src, obj, cls, field);
+        self.emit_field("StoreFieldFloat64", src, obj, cls, field);
     }
     fn visit_store_field_ptr(
         &mut self,
@@ -613,11 +613,11 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_load_global_int64(&mut self, dest: Register, glob: GlobalId) {
         self.emit_global("LoadGlobalInt64", dest, glob);
     }
-    fn visit_load_global_float(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_global("LoadGlobalFloat", dest, glob);
+    fn visit_load_global_float32(&mut self, dest: Register, glob: GlobalId) {
+        self.emit_global("LoadGlobalFloat32", dest, glob);
     }
-    fn visit_load_global_double(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_global("LoadGlobalDouble", dest, glob);
+    fn visit_load_global_float64(&mut self, dest: Register, glob: GlobalId) {
+        self.emit_global("LoadGlobalFloat64", dest, glob);
     }
     fn visit_load_global_ptr(&mut self, dest: Register, glob: GlobalId) {
         self.emit_global("LoadGlobalPtr", dest, glob);
@@ -641,11 +641,11 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_store_global_int64(&mut self, src: Register, glob: GlobalId) {
         self.emit_global("StoreGlobalInt64", src, glob);
     }
-    fn visit_store_global_float(&mut self, src: Register, glob: GlobalId) {
-        self.emit_global("StoreGlobalFloat", src, glob);
+    fn visit_store_global_float32(&mut self, src: Register, glob: GlobalId) {
+        self.emit_global("StoreGlobalFloat32", src, glob);
     }
-    fn visit_store_global_double(&mut self, src: Register, glob: GlobalId) {
-        self.emit_global("StoreGlobalDouble", src, glob);
+    fn visit_store_global_float64(&mut self, src: Register, glob: GlobalId) {
+        self.emit_global("StoreGlobalFloat64", src, glob);
     }
     fn visit_store_global_ptr(&mut self, src: Register, glob: GlobalId) {
         self.emit_global("StoreGlobalPtr", src, glob);
@@ -679,11 +679,11 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_const_zero_int64(&mut self, dest: Register) {
         self.emit_reg1("ConstZeroInt64", dest);
     }
-    fn visit_const_zero_float(&mut self, dest: Register) {
-        self.emit_reg1("ConstZeroFloat", dest);
+    fn visit_const_zero_float32(&mut self, dest: Register) {
+        self.emit_reg1("ConstZeroFloat32", dest);
     }
-    fn visit_const_zero_double(&mut self, dest: Register) {
-        self.emit_reg1("ConstZeroDouble", dest);
+    fn visit_const_zero_float64(&mut self, dest: Register) {
+        self.emit_reg1("ConstZeroFloat64", dest);
     }
     fn visit_const_char(&mut self, dest: Register, value: ConstPoolIdx) {
         self.emit_reg1_idx("ConstChar", dest, value);
@@ -697,11 +697,11 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_const_int64(&mut self, dest: Register, value: ConstPoolIdx) {
         self.emit_reg1_idx("ConstInt64", dest, value);
     }
-    fn visit_const_float(&mut self, dest: Register, value: ConstPoolIdx) {
-        self.emit_reg1_idx("ConstFloat", dest, value);
+    fn visit_const_float32(&mut self, dest: Register, value: ConstPoolIdx) {
+        self.emit_reg1_idx("ConstFloat32", dest, value);
     }
-    fn visit_const_double(&mut self, dest: Register, value: ConstPoolIdx) {
-        self.emit_reg1_idx("ConstDouble", dest, value);
+    fn visit_const_float64(&mut self, dest: Register, value: ConstPoolIdx) {
+        self.emit_reg1_idx("ConstFloat64", dest, value);
     }
     fn visit_const_string(&mut self, dest: Register, value: ConstPoolIdx) {
         self.emit_reg1_idx("ConstString", dest, value);
@@ -803,42 +803,42 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg3("TestLeInt64", dest, lhs, rhs);
     }
 
-    fn visit_test_eq_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestEqFloat", dest, lhs, rhs);
+    fn visit_test_eq_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestEqFloat32", dest, lhs, rhs);
     }
-    fn visit_test_ne_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestNeFloat", dest, lhs, rhs);
+    fn visit_test_ne_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestNeFloat32", dest, lhs, rhs);
     }
-    fn visit_test_gt_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestGtFloat", dest, lhs, rhs);
+    fn visit_test_gt_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestGtFloat32", dest, lhs, rhs);
     }
-    fn visit_test_ge_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestGeFloat", dest, lhs, rhs);
+    fn visit_test_ge_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestGeFloat32", dest, lhs, rhs);
     }
-    fn visit_test_lt_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestLtFloat", dest, lhs, rhs);
+    fn visit_test_lt_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestLtFloat32", dest, lhs, rhs);
     }
-    fn visit_test_le_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestLeFloat", dest, lhs, rhs);
+    fn visit_test_le_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestLeFloat32", dest, lhs, rhs);
     }
 
-    fn visit_test_eq_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestEqDouble", dest, lhs, rhs);
+    fn visit_test_eq_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestEqFloat64", dest, lhs, rhs);
     }
-    fn visit_test_ne_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestNeDouble", dest, lhs, rhs);
+    fn visit_test_ne_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestNeFloat64", dest, lhs, rhs);
     }
-    fn visit_test_gt_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestGtDouble", dest, lhs, rhs);
+    fn visit_test_gt_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestGtFloat64", dest, lhs, rhs);
     }
-    fn visit_test_ge_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestGeDouble", dest, lhs, rhs);
+    fn visit_test_ge_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestGeFloat64", dest, lhs, rhs);
     }
-    fn visit_test_lt_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestLtDouble", dest, lhs, rhs);
+    fn visit_test_lt_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestLtFloat64", dest, lhs, rhs);
     }
-    fn visit_test_le_double(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("TestLeDouble", dest, lhs, rhs);
+    fn visit_test_le_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestLeFloat64", dest, lhs, rhs);
     }
 
     fn visit_assert(&mut self, value: Register) {
@@ -885,11 +885,11 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_invoke_direct_int64(&mut self, dest: Register, fctdef: FctDefId) {
         self.emit_fct("InvokeDirectInt64", dest, fctdef);
     }
-    fn visit_invoke_direct_float(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeDirectFloat", dest, fctdef);
+    fn visit_invoke_direct_float32(&mut self, dest: Register, fctdef: FctDefId) {
+        self.emit_fct("InvokeDirectFloat32", dest, fctdef);
     }
-    fn visit_invoke_direct_double(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeDirectDouble", dest, fctdef);
+    fn visit_invoke_direct_float64(&mut self, dest: Register, fctdef: FctDefId) {
+        self.emit_fct("InvokeDirectFloat64", dest, fctdef);
     }
     fn visit_invoke_direct_ptr(&mut self, dest: Register, fctdef: FctDefId) {
         self.emit_fct("InvokeDirectPtr", dest, fctdef);
@@ -916,11 +916,11 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_invoke_virtual_int64(&mut self, dest: Register, fctdef: FctDefId) {
         self.emit_fct("InvokeVirtualInt64", dest, fctdef);
     }
-    fn visit_invoke_virtual_float(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeVirtualFloat", dest, fctdef);
+    fn visit_invoke_virtual_float32(&mut self, dest: Register, fctdef: FctDefId) {
+        self.emit_fct("InvokeVirtualFloat32", dest, fctdef);
     }
-    fn visit_invoke_virtual_double(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeVirtualDouble", dest, fctdef);
+    fn visit_invoke_virtual_float64(&mut self, dest: Register, fctdef: FctDefId) {
+        self.emit_fct("InvokeVirtualFloat64", dest, fctdef);
     }
     fn visit_invoke_virtual_ptr(&mut self, dest: Register, fctdef: FctDefId) {
         self.emit_fct("InvokeVirtualPtr", dest, fctdef);
@@ -947,11 +947,11 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_invoke_static_int64(&mut self, dest: Register, fctdef: FctDefId) {
         self.emit_fct("InvokeStaticInt64", dest, fctdef);
     }
-    fn visit_invoke_static_float(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeStaticFloat", dest, fctdef);
+    fn visit_invoke_static_float32(&mut self, dest: Register, fctdef: FctDefId) {
+        self.emit_fct("InvokeStaticFloat32", dest, fctdef);
     }
-    fn visit_invoke_static_double(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeStaticDouble", dest, fctdef);
+    fn visit_invoke_static_float64(&mut self, dest: Register, fctdef: FctDefId) {
+        self.emit_fct("InvokeStaticFloat64", dest, fctdef);
     }
     fn visit_invoke_static_ptr(&mut self, dest: Register, fctdef: FctDefId) {
         self.emit_fct("InvokeStaticPtr", dest, fctdef);
@@ -989,11 +989,11 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_load_array_int64(&mut self, dest: Register, arr: Register, idx: Register) {
         self.emit_reg3("LoadArrayInt64", dest, arr, idx);
     }
-    fn visit_load_array_float(&mut self, dest: Register, arr: Register, idx: Register) {
-        self.emit_reg3("LoadArrayFloat", dest, arr, idx);
+    fn visit_load_array_float32(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit_reg3("LoadArrayFloat32", dest, arr, idx);
     }
-    fn visit_load_array_double(&mut self, dest: Register, arr: Register, idx: Register) {
-        self.emit_reg3("LoadArrayDouble", dest, arr, idx);
+    fn visit_load_array_float64(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit_reg3("LoadArrayFloat64", dest, arr, idx);
     }
     fn visit_load_array_ptr(&mut self, dest: Register, arr: Register, idx: Register) {
         self.emit_reg3("LoadArrayPtr", dest, arr, idx);
@@ -1017,11 +1017,11 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_store_array_int64(&mut self, src: Register, arr: Register, idx: Register) {
         self.emit_reg3("StoreArrayInt64", src, arr, idx);
     }
-    fn visit_store_array_float(&mut self, src: Register, arr: Register, idx: Register) {
-        self.emit_reg3("StoreArrayFloat", src, arr, idx);
+    fn visit_store_array_float32(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit_reg3("StoreArrayFloat32", src, arr, idx);
     }
-    fn visit_store_array_double(&mut self, src: Register, arr: Register, idx: Register) {
-        self.emit_reg3("StoreArrayDouble", src, arr, idx);
+    fn visit_store_array_float64(&mut self, src: Register, arr: Register, idx: Register) {
+        self.emit_reg3("StoreArrayFloat64", src, arr, idx);
     }
     fn visit_store_array_ptr(&mut self, src: Register, arr: Register, idx: Register) {
         self.emit_reg3("StoreArrayPtr", src, arr, idx);
@@ -1055,11 +1055,11 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_ret_int64(&mut self, opnd: Register) {
         self.emit_reg1("RetInt64", opnd);
     }
-    fn visit_ret_float(&mut self, opnd: Register) {
-        self.emit_reg1("RetFloat", opnd);
+    fn visit_ret_float32(&mut self, opnd: Register) {
+        self.emit_reg1("RetFloat32", opnd);
     }
-    fn visit_ret_double(&mut self, opnd: Register) {
-        self.emit_reg1("RetDouble", opnd);
+    fn visit_ret_float64(&mut self, opnd: Register) {
+        self.emit_reg1("RetFloat64", opnd);
     }
     fn visit_ret_ptr(&mut self, opnd: Register) {
         self.emit_reg1("RetPtr", opnd);

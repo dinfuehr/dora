@@ -7,7 +7,7 @@ use crate::compiler::fct::{Code, JitDescriptor};
 use crate::gc::Address;
 use crate::handle::{root, Handle};
 use crate::object::{
-    self, byte_array_from_buffer, int_array_alloc_heap, ByteArray, IntArray, Obj, Ref,
+    self, byte_array_from_buffer, int_array_alloc_heap, Int32Array, Obj, Ref, UInt8Array,
 };
 use crate::threads::THREAD;
 use crate::ty::TypeList;
@@ -39,7 +39,7 @@ pub fn compile<'a, 'ast: 'a>(
     });
 
     let dora_stub_address = vm.dora_stub();
-    let compile_fct_ptr: extern "C" fn(Address, Address, Ref<Obj>) -> Ref<ByteArray> =
+    let compile_fct_ptr: extern "C" fn(Address, Address, Ref<Obj>) -> Ref<UInt8Array> =
         unsafe { mem::transmute(dora_stub_address) };
 
     let machine_code = root(compile_fct_ptr(
@@ -91,7 +91,7 @@ fn allocate_compilation_info(vm: &VM, bytecode_fct: &BytecodeFunction) -> Ref<Ob
     )
 }
 
-fn allocate_registers_array(vm: &VM, fct: &BytecodeFunction) -> Ref<IntArray> {
+fn allocate_registers_array(vm: &VM, fct: &BytecodeFunction) -> Ref<Int32Array> {
     let mut array = int_array_alloc_heap(vm, fct.registers().len());
 
     for (idx, &ty) in fct.registers().iter().enumerate() {
@@ -101,14 +101,14 @@ fn allocate_registers_array(vm: &VM, fct: &BytecodeFunction) -> Ref<IntArray> {
     array
 }
 
-fn allocate_constpool_array(vm: &VM, fct: &BytecodeFunction) -> Ref<ByteArray> {
+fn allocate_constpool_array(vm: &VM, fct: &BytecodeFunction) -> Ref<UInt8Array> {
     use byteorder::{LittleEndian, WriteBytesExt};
     let mut buffer = Vec::new();
 
     for const_entry in fct.const_pool_entries() {
         match const_entry {
             ConstPoolEntry::String(ref value) => {
-                buffer.push(ConstPoolOpcode::Float as u8);
+                buffer.push(ConstPoolOpcode::Float32 as u8);
                 buffer
                     .write_u32::<LittleEndian>(value.len() as u32)
                     .unwrap();
@@ -117,12 +117,12 @@ fn allocate_constpool_array(vm: &VM, fct: &BytecodeFunction) -> Ref<ByteArray> {
                     buffer.push(byte);
                 }
             }
-            &ConstPoolEntry::Float(value) => {
-                buffer.push(ConstPoolOpcode::Float as u8);
+            &ConstPoolEntry::Float32(value) => {
+                buffer.push(ConstPoolOpcode::Float32 as u8);
                 buffer.write_u32::<LittleEndian>(value.to_bits()).unwrap();
             }
-            &ConstPoolEntry::Double(value) => {
-                buffer.push(ConstPoolOpcode::Double as u8);
+            &ConstPoolEntry::Float64(value) => {
+                buffer.push(ConstPoolOpcode::Float64 as u8);
                 buffer.write_u64::<LittleEndian>(value.to_bits()).unwrap();
             }
             &ConstPoolEntry::Int32(value) => {
@@ -145,9 +145,9 @@ fn allocate_constpool_array(vm: &VM, fct: &BytecodeFunction) -> Ref<ByteArray> {
 
 fn allocate_encoded_compilation_info(
     vm: &VM,
-    bytecode_array: Handle<ByteArray>,
-    constpool_array: Handle<ByteArray>,
-    registers_array: Handle<IntArray>,
+    bytecode_array: Handle<UInt8Array>,
+    constpool_array: Handle<UInt8Array>,
+    registers_array: Handle<Int32Array>,
     arguments: i32,
 ) -> Ref<Obj> {
     let cls_id = vm.cls_def_by_name("EncodedCompilationInfo");

@@ -27,8 +27,8 @@ pub enum BuiltinType {
     Int32,
     Int64,
 
-    Float,
-    Double,
+    Float32,
+    Float64,
 
     // type Nil, only used in typeck until final type is known
     Nil,
@@ -110,7 +110,7 @@ impl BuiltinType {
 
     pub fn is_float(&self) -> bool {
         match self {
-            &BuiltinType::Float | &BuiltinType::Double => true,
+            &BuiltinType::Float32 | &BuiltinType::Float64 => true,
             _ => false,
         }
     }
@@ -146,8 +146,8 @@ impl BuiltinType {
             BuiltinType::Char => Some(vm.vips.char_class),
             BuiltinType::Int32 => Some(vm.vips.int32_class),
             BuiltinType::Int64 => Some(vm.vips.int64_class),
-            BuiltinType::Float => Some(vm.vips.float_class),
-            BuiltinType::Double => Some(vm.vips.double_class),
+            BuiltinType::Float32 => Some(vm.vips.float32_class),
+            BuiltinType::Float64 => Some(vm.vips.float64_class),
             _ => None,
         }
     }
@@ -229,8 +229,8 @@ impl BuiltinType {
             | BuiltinType::UInt8
             | BuiltinType::Int32
             | BuiltinType::Int64
-            | BuiltinType::Float
-            | BuiltinType::Double => true,
+            | BuiltinType::Float32
+            | BuiltinType::Float64 => true,
             _ => false,
         }
     }
@@ -258,8 +258,8 @@ impl BuiltinType {
             BuiltinType::Char => "Char".into(),
             BuiltinType::Int32 => "Int32".into(),
             BuiltinType::Int64 => "Int64".into(),
-            BuiltinType::Float => "Float".into(),
-            BuiltinType::Double => "Double".into(),
+            BuiltinType::Float32 => "Float32".into(),
+            BuiltinType::Float64 => "Float64".into(),
             BuiltinType::Bool => "Bool".into(),
             BuiltinType::Nil => "nil".into(),
             BuiltinType::Ptr => panic!("type Ptr only for internal use."),
@@ -382,9 +382,10 @@ impl BuiltinType {
             | BuiltinType::UInt8
             | BuiltinType::Char
             | BuiltinType::Struct(_, _) => *self == other,
-            BuiltinType::Int32 | BuiltinType::Int64 | BuiltinType::Float | BuiltinType::Double => {
-                *self == other
-            }
+            BuiltinType::Int32
+            | BuiltinType::Int64
+            | BuiltinType::Float32
+            | BuiltinType::Float64 => *self == other,
             BuiltinType::Nil => panic!("nil does not allow any other types"),
             BuiltinType::Ptr => panic!("ptr does not allow any other types"),
             BuiltinType::This => unreachable!(),
@@ -453,8 +454,8 @@ impl BuiltinType {
             BuiltinType::Char => 4,
             BuiltinType::Int32 => 4,
             BuiltinType::Int64 => 8,
-            BuiltinType::Float => 4,
-            BuiltinType::Double => 8,
+            BuiltinType::Float32 => 4,
+            BuiltinType::Float64 => 8,
             BuiltinType::Enum(_, _) => 4,
             BuiltinType::Nil => panic!("no size for nil."),
             BuiltinType::This => panic!("no size for Self."),
@@ -488,8 +489,8 @@ impl BuiltinType {
             BuiltinType::Char => 4,
             BuiltinType::Int32 => 4,
             BuiltinType::Int64 => 8,
-            BuiltinType::Float => 4,
-            BuiltinType::Double => 8,
+            BuiltinType::Float32 => 4,
+            BuiltinType::Float64 => 8,
             BuiltinType::Nil => panic!("no alignment for nil."),
             BuiltinType::This => panic!("no alignment for Self."),
             BuiltinType::Any => panic!("no alignment for Any."),
@@ -523,8 +524,8 @@ impl BuiltinType {
             BuiltinType::Char => MachineMode::Int32,
             BuiltinType::Int32 => MachineMode::Int32,
             BuiltinType::Int64 => MachineMode::Int64,
-            BuiltinType::Float => MachineMode::Float32,
-            BuiltinType::Double => MachineMode::Float64,
+            BuiltinType::Float32 => MachineMode::Float32,
+            BuiltinType::Float64 => MachineMode::Float64,
             BuiltinType::Enum(_, _) => MachineMode::Int32,
             BuiltinType::Nil => panic!("no machine mode for nil."),
             BuiltinType::This => panic!("no machine mode for Self."),
@@ -555,8 +556,8 @@ impl BuiltinType {
             | BuiltinType::Char
             | BuiltinType::Int32
             | BuiltinType::Int64
-            | BuiltinType::Float
-            | BuiltinType::Double
+            | BuiltinType::Float32
+            | BuiltinType::Float64
             | BuiltinType::Enum(_, _)
             | BuiltinType::Module(_)
             | BuiltinType::Trait(_)
@@ -597,8 +598,8 @@ impl BuiltinType {
             | BuiltinType::Char
             | BuiltinType::Int32
             | BuiltinType::Int64
-            | BuiltinType::Float
-            | BuiltinType::Double
+            | BuiltinType::Float32
+            | BuiltinType::Float64
             | BuiltinType::Enum(_, _)
             | BuiltinType::Module(_)
             | BuiltinType::Ptr

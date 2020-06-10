@@ -949,13 +949,13 @@ fn test_literal_float_overflow() {
     err(
         "fun f() { let x = -340282350000000000000000000000000000000F; }",
         pos(1, 20),
-        SemError::NumberOverflow("Float".into()),
+        SemError::NumberOverflow("Float32".into()),
     );
     ok("fun f() { let x = -340282340000000000000000000000000000000F; }");
     err(
         "fun f() { let x = 340282350000000000000000000000000000001F; }",
         pos(1, 19),
-        SemError::NumberOverflow("Float".into()),
+        SemError::NumberOverflow("Float32".into()),
     );
     ok("fun f() { let x = 340282340000000000000000000000000000000F; }");
 }
@@ -1756,7 +1756,7 @@ fn test_tuple() {
     err(
         "fun f(a: (Int32, Bool)) -> (Int32, Float) { return a; }",
         pos(1, 45),
-        SemError::ReturnType("(Int32, Float)".into(), "(Int32, Bool)".into()),
+        SemError::ReturnType("(Int32, Float32)".into(), "(Int32, Bool)".into()),
     );
 }
 

@@ -25,8 +25,8 @@ pub enum BytecodeTypeKind {
     Char,
     Int32,
     Int64,
-    Float,
-    Double,
+    Float32,
+    Float64,
     Ptr,
     Tuple,
 }
@@ -38,8 +38,8 @@ pub enum BytecodeType {
     Char,
     Int32,
     Int64,
-    Float,
-    Double,
+    Float32,
+    Float64,
     Ptr,
     Tuple(TupleId),
 }
@@ -52,8 +52,8 @@ impl BytecodeType {
             BytecodeType::Char => 4,
             BytecodeType::Int32 => 4,
             BytecodeType::Int64 => 8,
-            BytecodeType::Float => 4,
-            BytecodeType::Double => 8,
+            BytecodeType::Float32 => 4,
+            BytecodeType::Float64 => 8,
             BytecodeType::Ptr => ptr_width(),
             BytecodeType::Tuple(tuple_id) => {
                 let vm = get_vm();
@@ -69,8 +69,8 @@ impl BytecodeType {
             BytecodeType::Char => BytecodeTypeKind::Char,
             BytecodeType::Int32 => BytecodeTypeKind::Int32,
             BytecodeType::Int64 => BytecodeTypeKind::Int64,
-            BytecodeType::Float => BytecodeTypeKind::Float,
-            BytecodeType::Double => BytecodeTypeKind::Double,
+            BytecodeType::Float32 => BytecodeTypeKind::Float32,
+            BytecodeType::Float64 => BytecodeTypeKind::Float64,
             BytecodeType::Ptr => BytecodeTypeKind::Ptr,
             BytecodeType::Tuple(_) => BytecodeTypeKind::Tuple,
         }
@@ -83,8 +83,8 @@ impl BytecodeType {
             BytecodeType::Char => MachineMode::Int32,
             BytecodeType::Int32 => MachineMode::Int32,
             BytecodeType::Int64 => MachineMode::Int64,
-            BytecodeType::Float => MachineMode::Float32,
-            BytecodeType::Double => MachineMode::Float64,
+            BytecodeType::Float32 => MachineMode::Float32,
+            BytecodeType::Float64 => MachineMode::Float64,
             BytecodeType::Ptr => MachineMode::Ptr,
             BytecodeType::Tuple(_) => unreachable!(),
         }
@@ -113,8 +113,8 @@ impl From<BuiltinType> for BytecodeType {
             BuiltinType::Char => BytecodeType::Char,
             BuiltinType::Int32 => BytecodeType::Int32,
             BuiltinType::Int64 => BytecodeType::Int64,
-            BuiltinType::Float => BytecodeType::Float,
-            BuiltinType::Double => BytecodeType::Double,
+            BuiltinType::Float32 => BytecodeType::Float32,
+            BuiltinType::Float64 => BytecodeType::Float64,
             BuiltinType::Class(_, _) => BytecodeType::Ptr,
             BuiltinType::Enum(_, _) => BytecodeType::Int32,
             BuiltinType::Tuple(tuple_id) => BytecodeType::Tuple(tuple_id),
@@ -131,8 +131,8 @@ impl From<BytecodeType> for BuiltinType {
             BytecodeType::Char => BuiltinType::Char,
             BytecodeType::Int32 => BuiltinType::Int32,
             BytecodeType::Int64 => BuiltinType::Int64,
-            BytecodeType::Float => BuiltinType::Float,
-            BytecodeType::Double => BuiltinType::Double,
+            BytecodeType::Float32 => BuiltinType::Float32,
+            BytecodeType::Float64 => BuiltinType::Float64,
             BytecodeType::Ptr => BuiltinType::Ptr,
             BytecodeType::Tuple(tuple_id) => BuiltinType::Tuple(tuple_id),
         }
@@ -147,28 +147,28 @@ pub enum BytecodeOpcode {
 
     AddInt32,
     AddInt64,
-    AddFloat,
-    AddDouble,
+    AddFloat32,
+    AddFloat64,
 
     SubInt32,
     SubInt64,
-    SubFloat,
-    SubDouble,
+    SubFloat32,
+    SubFloat64,
 
     NegInt32,
     NegInt64,
-    NegFloat,
-    NegDouble,
+    NegFloat32,
+    NegFloat64,
 
     MulInt32,
     MulInt64,
-    MulFloat,
-    MulDouble,
+    MulFloat32,
+    MulFloat64,
 
     DivInt32,
     DivInt64,
-    DivFloat,
-    DivDouble,
+    DivFloat32,
+    DivFloat64,
 
     ModInt32,
     ModInt64,
@@ -200,10 +200,10 @@ pub enum BytecodeOpcode {
     RolInt64,
     RorInt64,
 
-    ReinterpretFloatAsInt32,
-    ReinterpretInt32AsFloat,
-    ReinterpretDoubleAsInt64,
-    ReinterpretInt64AsDouble,
+    ReinterpretFloat32AsInt32,
+    ReinterpretInt32AsFloat32,
+    ReinterpretFloat64AsInt64,
+    ReinterpretInt64AsFloat64,
 
     ExtendUInt8ToChar,
     ExtendUInt8ToInt32,
@@ -217,18 +217,18 @@ pub enum BytecodeOpcode {
     CastInt64ToChar,
     CastInt64ToInt32,
 
-    ConvertInt32ToFloat,
-    ConvertInt32ToDouble,
-    ConvertInt64ToFloat,
-    ConvertInt64ToDouble,
+    ConvertInt32ToFloat32,
+    ConvertInt32ToFloat64,
+    ConvertInt64ToFloat32,
+    ConvertInt64ToFloat64,
 
-    TruncateFloatToInt32,
-    TruncateFloatToInt64,
-    TruncateDoubleToInt32,
-    TruncateDoubleToInt64,
+    TruncateFloat32ToInt32,
+    TruncateFloat32ToInt64,
+    TruncateFloat64ToInt32,
+    TruncateFloat64ToInt64,
 
-    PromoteFloatToDouble,
-    TruncateDoubleToFloat,
+    PromoteFloat32ToFloat64,
+    DemoteFloat64ToFloat32,
 
     InstanceOf,
     CheckedCast,
@@ -238,8 +238,8 @@ pub enum BytecodeOpcode {
     MovChar,
     MovInt32,
     MovInt64,
-    MovFloat,
-    MovDouble,
+    MovFloat32,
+    MovFloat64,
     MovPtr,
     MovTuple,
 
@@ -251,8 +251,8 @@ pub enum BytecodeOpcode {
     LoadFieldChar,
     LoadFieldInt32,
     LoadFieldInt64,
-    LoadFieldFloat,
-    LoadFieldDouble,
+    LoadFieldFloat32,
+    LoadFieldFloat64,
     LoadFieldPtr,
     LoadFieldTuple,
 
@@ -261,8 +261,8 @@ pub enum BytecodeOpcode {
     StoreFieldChar,
     StoreFieldInt32,
     StoreFieldInt64,
-    StoreFieldFloat,
-    StoreFieldDouble,
+    StoreFieldFloat32,
+    StoreFieldFloat64,
     StoreFieldPtr,
     StoreFieldTuple,
 
@@ -271,8 +271,8 @@ pub enum BytecodeOpcode {
     LoadGlobalChar,
     LoadGlobalInt32,
     LoadGlobalInt64,
-    LoadGlobalFloat,
-    LoadGlobalDouble,
+    LoadGlobalFloat32,
+    LoadGlobalFloat64,
     LoadGlobalPtr,
     LoadGlobalTuple,
 
@@ -281,8 +281,8 @@ pub enum BytecodeOpcode {
     StoreGlobalChar,
     StoreGlobalInt32,
     StoreGlobalInt64,
-    StoreGlobalFloat,
-    StoreGlobalDouble,
+    StoreGlobalFloat32,
+    StoreGlobalFloat64,
     StoreGlobalPtr,
     StoreGlobalTuple,
 
@@ -295,14 +295,14 @@ pub enum BytecodeOpcode {
     ConstZeroChar,
     ConstZeroInt32,
     ConstZeroInt64,
-    ConstZeroFloat,
-    ConstZeroDouble,
+    ConstZeroFloat32,
+    ConstZeroFloat64,
     ConstUInt8,
     ConstChar,
     ConstInt32,
     ConstInt64,
-    ConstFloat,
-    ConstDouble,
+    ConstFloat32,
+    ConstFloat64,
     ConstString,
 
     TestEqPtr,
@@ -342,19 +342,19 @@ pub enum BytecodeOpcode {
     TestLtInt64,
     TestLeInt64,
 
-    TestEqFloat,
-    TestNeFloat,
-    TestGtFloat,
-    TestGeFloat,
-    TestLtFloat,
-    TestLeFloat,
+    TestEqFloat32,
+    TestNeFloat32,
+    TestGtFloat32,
+    TestGeFloat32,
+    TestLtFloat32,
+    TestLeFloat32,
 
-    TestEqDouble,
-    TestNeDouble,
-    TestGtDouble,
-    TestGeDouble,
-    TestLtDouble,
-    TestLeDouble,
+    TestEqFloat64,
+    TestNeFloat64,
+    TestGtFloat64,
+    TestGeFloat64,
+    TestLtFloat64,
+    TestLeFloat64,
 
     Assert,
 
@@ -375,8 +375,8 @@ pub enum BytecodeOpcode {
     InvokeDirectChar,
     InvokeDirectInt32,
     InvokeDirectInt64,
-    InvokeDirectFloat,
-    InvokeDirectDouble,
+    InvokeDirectFloat32,
+    InvokeDirectFloat64,
     InvokeDirectPtr,
     InvokeDirectTuple,
 
@@ -386,8 +386,8 @@ pub enum BytecodeOpcode {
     InvokeVirtualChar,
     InvokeVirtualInt32,
     InvokeVirtualInt64,
-    InvokeVirtualFloat,
-    InvokeVirtualDouble,
+    InvokeVirtualFloat32,
+    InvokeVirtualFloat64,
     InvokeVirtualPtr,
     InvokeVirtualTuple,
 
@@ -397,8 +397,8 @@ pub enum BytecodeOpcode {
     InvokeStaticChar,
     InvokeStaticInt32,
     InvokeStaticInt64,
-    InvokeStaticFloat,
-    InvokeStaticDouble,
+    InvokeStaticFloat32,
+    InvokeStaticFloat64,
     InvokeStaticPtr,
     InvokeStaticTuple,
 
@@ -416,8 +416,8 @@ pub enum BytecodeOpcode {
     LoadArrayChar,
     LoadArrayInt32,
     LoadArrayInt64,
-    LoadArrayFloat,
-    LoadArrayDouble,
+    LoadArrayFloat32,
+    LoadArrayFloat64,
     LoadArrayPtr,
     LoadArrayTuple,
 
@@ -426,8 +426,8 @@ pub enum BytecodeOpcode {
     StoreArrayChar,
     StoreArrayInt32,
     StoreArrayInt64,
-    StoreArrayFloat,
-    StoreArrayDouble,
+    StoreArrayFloat32,
+    StoreArrayFloat64,
     StoreArrayPtr,
     StoreArrayTuple,
 
@@ -437,8 +437,8 @@ pub enum BytecodeOpcode {
     RetChar,
     RetInt32,
     RetInt64,
-    RetFloat,
-    RetDouble,
+    RetFloat32,
+    RetFloat64,
     RetPtr,
     RetTuple,
 }
@@ -457,8 +457,8 @@ impl BytecodeOpcode {
             | BytecodeOpcode::LoadFieldChar
             | BytecodeOpcode::LoadFieldInt32
             | BytecodeOpcode::LoadFieldInt64
-            | BytecodeOpcode::LoadFieldFloat
-            | BytecodeOpcode::LoadFieldDouble
+            | BytecodeOpcode::LoadFieldFloat32
+            | BytecodeOpcode::LoadFieldFloat64
             | BytecodeOpcode::LoadFieldPtr
             | BytecodeOpcode::LoadFieldTuple
             | BytecodeOpcode::StoreFieldBool
@@ -466,8 +466,8 @@ impl BytecodeOpcode {
             | BytecodeOpcode::StoreFieldChar
             | BytecodeOpcode::StoreFieldInt32
             | BytecodeOpcode::StoreFieldInt64
-            | BytecodeOpcode::StoreFieldFloat
-            | BytecodeOpcode::StoreFieldDouble
+            | BytecodeOpcode::StoreFieldFloat32
+            | BytecodeOpcode::StoreFieldFloat64
             | BytecodeOpcode::StoreFieldPtr
             | BytecodeOpcode::StoreFieldTuple
             | BytecodeOpcode::InvokeDirectVoid
@@ -476,8 +476,8 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeDirectChar
             | BytecodeOpcode::InvokeDirectInt32
             | BytecodeOpcode::InvokeDirectInt64
-            | BytecodeOpcode::InvokeDirectFloat
-            | BytecodeOpcode::InvokeDirectDouble
+            | BytecodeOpcode::InvokeDirectFloat32
+            | BytecodeOpcode::InvokeDirectFloat64
             | BytecodeOpcode::InvokeDirectPtr
             | BytecodeOpcode::InvokeDirectTuple
             | BytecodeOpcode::InvokeVirtualVoid
@@ -486,8 +486,8 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeVirtualChar
             | BytecodeOpcode::InvokeVirtualInt32
             | BytecodeOpcode::InvokeVirtualInt64
-            | BytecodeOpcode::InvokeVirtualFloat
-            | BytecodeOpcode::InvokeVirtualDouble
+            | BytecodeOpcode::InvokeVirtualFloat32
+            | BytecodeOpcode::InvokeVirtualFloat64
             | BytecodeOpcode::InvokeVirtualPtr
             | BytecodeOpcode::InvokeVirtualTuple
             | BytecodeOpcode::InvokeStaticVoid
@@ -496,8 +496,8 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeStaticChar
             | BytecodeOpcode::InvokeStaticInt32
             | BytecodeOpcode::InvokeStaticInt64
-            | BytecodeOpcode::InvokeStaticFloat
-            | BytecodeOpcode::InvokeStaticDouble
+            | BytecodeOpcode::InvokeStaticFloat32
+            | BytecodeOpcode::InvokeStaticFloat64
             | BytecodeOpcode::InvokeStaticPtr
             | BytecodeOpcode::InvokeStaticTuple
             | BytecodeOpcode::NewObject
@@ -510,8 +510,8 @@ impl BytecodeOpcode {
             | BytecodeOpcode::LoadArrayChar
             | BytecodeOpcode::LoadArrayInt32
             | BytecodeOpcode::LoadArrayInt64
-            | BytecodeOpcode::LoadArrayFloat
-            | BytecodeOpcode::LoadArrayDouble
+            | BytecodeOpcode::LoadArrayFloat32
+            | BytecodeOpcode::LoadArrayFloat64
             | BytecodeOpcode::LoadArrayPtr
             | BytecodeOpcode::LoadArrayTuple
             | BytecodeOpcode::StoreArrayBool
@@ -519,8 +519,8 @@ impl BytecodeOpcode {
             | BytecodeOpcode::StoreArrayChar
             | BytecodeOpcode::StoreArrayInt32
             | BytecodeOpcode::StoreArrayInt64
-            | BytecodeOpcode::StoreArrayFloat
-            | BytecodeOpcode::StoreArrayDouble
+            | BytecodeOpcode::StoreArrayFloat32
+            | BytecodeOpcode::StoreArrayFloat64
             | BytecodeOpcode::StoreArrayPtr
             | BytecodeOpcode::StoreArrayTuple
             | BytecodeOpcode::Assert => true,
@@ -625,8 +625,8 @@ impl BytecodeFunction {
 #[derive(FromPrimitive, ToPrimitive)]
 pub enum ConstPoolOpcode {
     String,
-    Float,
-    Double,
+    Float32,
+    Float64,
     Int32,
     Int64,
     Char,
@@ -634,8 +634,8 @@ pub enum ConstPoolOpcode {
 
 pub enum ConstPoolEntry {
     String(String),
-    Float(f32),
-    Double(f64),
+    Float32(f32),
+    Float64(f64),
     Int32(i32),
     Int64(i64),
     Char(char),
@@ -649,16 +649,16 @@ impl ConstPoolEntry {
         }
     }
 
-    pub fn to_float(&self) -> Option<f32> {
+    pub fn to_float32(&self) -> Option<f32> {
         match self {
-            ConstPoolEntry::Float(value) => Some(*value),
+            ConstPoolEntry::Float32(value) => Some(*value),
             _ => None,
         }
     }
 
-    pub fn to_double(&self) -> Option<f64> {
+    pub fn to_float64(&self) -> Option<f64> {
         match self {
-            ConstPoolEntry::Double(value) => Some(*value),
+            ConstPoolEntry::Float64(value) => Some(*value),
             _ => None,
         }
     }

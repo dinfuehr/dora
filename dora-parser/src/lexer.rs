@@ -420,15 +420,15 @@ impl Lexer {
             let suffix = match self.curr() {
                 Some('D') => {
                     self.read_char();
-                    FloatSuffix::Double
+                    FloatSuffix::Float64
                 }
 
                 Some('F') => {
                     self.read_char();
-                    FloatSuffix::Float
+                    FloatSuffix::Float32
                 }
 
-                _ => FloatSuffix::Double,
+                _ => FloatSuffix::Float64,
             };
 
             let ttype = TokenKind::LitFloat(value, suffix);
@@ -454,12 +454,12 @@ impl Lexer {
 
             Some('D') if base == IntBase::Dec => {
                 self.read_char();
-                TokenKind::LitFloat(value, FloatSuffix::Double)
+                TokenKind::LitFloat(value, FloatSuffix::Float64)
             }
 
             Some('F') if base == IntBase::Dec => {
                 self.read_char();
-                TokenKind::LitFloat(value, FloatSuffix::Float)
+                TokenKind::LitFloat(value, FloatSuffix::Float32)
             }
 
             _ => TokenKind::LitInt(value, base, IntSuffix::None),
@@ -769,31 +769,31 @@ mod tests {
         let mut reader = Lexer::from_str("1F 1.0 0.1F 1.3D 4D");
         assert_tok(
             &mut reader,
-            TokenKind::LitFloat("1".into(), FloatSuffix::Float),
+            TokenKind::LitFloat("1".into(), FloatSuffix::Float32),
             1,
             1,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitFloat("1.0".into(), FloatSuffix::Double),
+            TokenKind::LitFloat("1.0".into(), FloatSuffix::Float64),
             1,
             4,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitFloat("0.1".into(), FloatSuffix::Float),
+            TokenKind::LitFloat("0.1".into(), FloatSuffix::Float32),
             1,
             8,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitFloat("1.3".into(), FloatSuffix::Double),
+            TokenKind::LitFloat("1.3".into(), FloatSuffix::Float64),
             1,
             13,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitFloat("4".into(), FloatSuffix::Double),
+            TokenKind::LitFloat("4".into(), FloatSuffix::Float64),
             1,
             18,
         );
@@ -804,25 +804,25 @@ mod tests {
         let mut reader = Lexer::from_str("1.0e1 1.0E1 1.0e+1 1.0e-1");
         assert_tok(
             &mut reader,
-            TokenKind::LitFloat("1.0e1".into(), FloatSuffix::Double),
+            TokenKind::LitFloat("1.0e1".into(), FloatSuffix::Float64),
             1,
             1,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitFloat("1.0E1".into(), FloatSuffix::Double),
+            TokenKind::LitFloat("1.0E1".into(), FloatSuffix::Float64),
             1,
             7,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitFloat("1.0e+1".into(), FloatSuffix::Double),
+            TokenKind::LitFloat("1.0e+1".into(), FloatSuffix::Float64),
             1,
             13,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitFloat("1.0e-1".into(), FloatSuffix::Double),
+            TokenKind::LitFloat("1.0e-1".into(), FloatSuffix::Float64),
             1,
             20,
         );
