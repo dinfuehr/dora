@@ -1071,8 +1071,8 @@ fn test_const_values() {
                         const a: Int32 = 100;
                         const b: Int64 = 200L;
                         const c: Char = 'A';
-                        const d: Float = 3.0F;
-                        const e: Double = 6.0;",
+                        const d: Float32 = 3.0F;
+                        const e: Float64 = 6.0;",
         |vm| {
             {
                 let id = vm.const_by_name("yes");
@@ -1734,8 +1734,8 @@ fn test_block_value() {
 #[test]
 fn test_if_expression() {
     ok("fun f() -> Int32 { if true { 1 } else { 2 } }");
-    ok("fun f() -> Float { if true { 1.0F } else { 2.0F } }");
-    ok("fun f() -> Double { if true { 1.0 } else { 2.0 } }");
+    ok("fun f() -> Float32 { if true { 1.0F } else { 2.0F } }");
+    ok("fun f() -> Float64 { if true { 1.0 } else { 2.0 } }");
 
     ok("fun f() -> Int32 { 4 * if true { 1 } else { 2 } }");
 }
@@ -1754,8 +1754,8 @@ fn test_tuple() {
         SemError::ReturnType("(Int32)".into(), "(Int32, Bool)".into()),
     );
     err(
-        "fun f(a: (Int32, Bool)) -> (Int32, Float) { return a; }",
-        pos(1, 45),
+        "fun f(a: (Int32, Bool)) -> (Int32, Float32) { return a; }",
+        pos(1, 47),
         SemError::ReturnType("(Int32, Float32)".into(), "(Int32, Bool)".into()),
     );
 }
@@ -2106,7 +2106,7 @@ fn for_with_array() {
         result
     }");
 
-    ok("fun f(x: Array[Float]) -> Float {
+    ok("fun f(x: Array[Float32]) -> Float32 {
         var result = 0.0F;
         for i in x {
             result = result + i;

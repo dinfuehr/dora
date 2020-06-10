@@ -1,7 +1,7 @@
 fun main() {
     let x = 1.75F;
-    assert(1.75D == x.toDouble());
+    assert(1.75D == x.toFloat64());
 
     let x = 2.5D;
-    assert(2.5F == x.toFloat());
+    assert(2.5F == x.toFloat32());
 }

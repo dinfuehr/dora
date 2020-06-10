@@ -18,19 +18,19 @@ fun main() {
     assert((0.0/0.0).sortsAs(0.0/0.0) == 0);
 
     // 11111111110000000000000000000000
-    let nanQuietNegative = (-4194304).asFloat();
+    let nanQuietNegative = (-4194304).asFloat32();
     // 11111111100000000000000000000001
-    let nanSignaNegative = (-8388607).asFloat();
+    let nanSignaNegative = (-8388607).asFloat32();
     // 11111111100000000000000000000000
-    let infNegative = (-8388608).asFloat();
+    let infNegative = (-8388608).asFloat32();
     // negative numbers
     // positive numbers
     // 01111111100000000000000000000000
-    let infPositive = 2139095040.asFloat();
+    let infPositive = 2139095040.asFloat32();
     // 01111111100000000000000000000001
-    let nanSignaPositive = 2139095041.asFloat();
+    let nanSignaPositive = 2139095041.asFloat32();
     // 01111111110000000000000000000000
-    let nanQuietPositive = 2143289344.asFloat();
+    let nanQuietPositive = 2143289344.asFloat32();
 
     assert(nanQuietNegative.sortsAs(nanSignaNegative) == -1);
     assert(nanSignaNegative.sortsAs(infNegative) == -1);
@@ -51,19 +51,19 @@ fun main() {
     assert(nanSignaPositive.sortsAs(1.0F) == 1);
 
     // 1111111111111000000000000000000000000000000000000000000000000000
-    let nanQuietNegative = (-2251799813685248L).asDouble();
+    let nanQuietNegative = (-2251799813685248L).asFloat64();
     // 1111111111110000000000000000000000000000000000000000000000000001
-    let nanSignaNegative = (-4503599627370495L).asDouble();
+    let nanSignaNegative = (-4503599627370495L).asFloat64();
     // 1111111111110000000000000000000000000000000000000000000000000000
-    let infNegative = (-4503599627370496L).asDouble();
+    let infNegative = (-4503599627370496L).asFloat64();
     // negative numbers
     // positive numbers
     // 0111111111110000000000000000000000000000000000000000000000000000
-    let infPositive = 9218868437227405312L.asDouble();
+    let infPositive = 9218868437227405312L.asFloat64();
     // 0111111111110000000000000000000000000000000000000000000000000001
-    let nanSignaPositive = 9218868437227405313L.asDouble();
+    let nanSignaPositive = 9218868437227405313L.asFloat64();
     // 0111111111111000000000000000000000000000000000000000000000000000
-    let nanQuietPositive = 9221120237041090560L.asDouble();
+    let nanQuietPositive = 9221120237041090560L.asFloat64();
 
     assert(nanQuietNegative.sortsAs(nanSignaNegative) == -1);
     assert(nanSignaNegative.sortsAs(infNegative) == -1);

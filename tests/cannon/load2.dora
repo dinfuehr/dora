@@ -3,8 +3,8 @@ var glob_char: Char;
 var glob_byte: UInt8;
 var glob_int: Int32;
 var glob_long: Int64;
-var glob_float: Float;
-var glob_double: Double;
+var glob_float: Float32;
+var glob_double: Float64;
 var glob_string: String;
 var glob_obj: Foo;
 
@@ -16,8 +16,8 @@ fun main() {
     assert(loadGlobalByte() == 5Y);
     assert(loadGlobalInt32() == 5);
     assert(loadGlobalInt64() == 5L);
-    assert(loadGlobalFloat() == 5F);
-    assert(loadGlobalDouble() == 5D);
+    assert(loadGlobalFloat32() == 5F);
+    assert(loadGlobalFloat64() == 5D);
     assert(loadGlobalString() == "5");
 
     assert(loadGlobalPtr() === glob_obj);
@@ -50,10 +50,10 @@ fun init_globs() {
 @cannon fun loadGlobalInt64() -> Int64 {
     return glob_long;
 }
-@cannon fun loadGlobalFloat() -> Float {
+@cannon fun loadGlobalFloat32() -> Float32 {
     return glob_float;
 }
-@cannon fun loadGlobalDouble() -> Double {
+@cannon fun loadGlobalFloat64() -> Float64 {
     return glob_double;
 }
 @cannon fun loadGlobalString() -> String {

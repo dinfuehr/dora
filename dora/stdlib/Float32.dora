@@ -1,14 +1,14 @@
-@internal class Float {
+@internal class Float32 {
   @internal fun toInt32() -> Int32;
   @internal fun toInt64() -> Int64;
-  @internal fun toDouble() -> Double;
+  @internal fun toFloat64() -> Float64;
   @internal fun toString() -> String;
 
   @internal fun asInt32() -> Int32;
 
-  @internal fun equals(rhs: Float) -> Bool;
-  @internal fun compareTo(rhs: Float) -> Int32;
-  fun sortsAs(rhs: Float) -> Int32 {
+  @internal fun equals(rhs: Float32) -> Bool;
+  @internal fun compareTo(rhs: Float32) -> Int32;
+  fun sortsAs(rhs: Float32) -> Int32 {
     var ix = self.asInt32();
     var iy = rhs.asInt32();
 
@@ -22,16 +22,16 @@
     if ix == iy { return 0; }
     return 1;
   }
-  @internal fun plus(rhs: Float) -> Float;
-  @internal fun minus(rhs: Float) -> Float;
-  @internal fun times(rhs: Float) -> Float;
-  @internal fun div(rhs: Float) -> Float;
+  @internal fun plus(rhs: Float32) -> Float32;
+  @internal fun minus(rhs: Float32) -> Float32;
+  @internal fun times(rhs: Float32) -> Float32;
+  @internal fun div(rhs: Float32) -> Float32;
 
-  @internal fun unaryPlus() -> Float;
-  @internal fun unaryMinus() -> Float;
+  @internal fun unaryPlus() -> Float32;
+  @internal fun unaryMinus() -> Float32;
 
   @internal fun isNan() -> Bool;
-  @internal fun sqrt() -> Float;
+  @internal fun sqrt() -> Float32;
 
   fun hash() -> Int32 = self.asInt32();
 }

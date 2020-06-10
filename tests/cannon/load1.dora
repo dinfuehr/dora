@@ -4,8 +4,8 @@ fun main() {
     assert(loadChar(FooChar('1')) == '1');
     assert(loadInt32(FooInt32(23)) == 23);
     assert(loadInt64(FooInt64(1L)) == 1L);
-    assert(loadFloat(FooFloat(1F)) == 1F);
-    assert(loadDouble(FooDouble(1D)) == 1D);
+    assert(loadFloat32(FooFloat32(1F)) == 1F);
+    assert(loadFloat64(FooFloat64(1D)) == 1D);
     assert(loadString(FooString("1")) == "1");
 
     let ptr = FooInt32(1);
@@ -29,10 +29,10 @@ fun main() {
 @cannon fun loadInt64(x: FooInt64) -> Int64 {
     return x.y;
 }
-@cannon fun loadFloat(x: FooFloat) -> Float {
+@cannon fun loadFloat32(x: FooFloat32) -> Float32 {
     return x.y;
 }
-@cannon fun loadDouble(x: FooDouble) -> Double {
+@cannon fun loadFloat64(x: FooFloat64) -> Float64 {
     return x.y;
 }
 @cannon fun loadString(x: FooString) -> String {
@@ -47,7 +47,7 @@ class FooByte(let y: UInt8)
 class FooChar(let y: Char)
 class FooInt32(let y: Int32)
 class FooInt64(let y: Int64)
-class FooFloat(let y: Float)
-class FooDouble(let y: Double)
+class FooFloat32(let y: Float32)
+class FooFloat64(let y: Float64)
 class FooString(let y: String)
 class FooPtr(let y: FooInt32)

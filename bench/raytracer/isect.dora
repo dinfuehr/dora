@@ -1,5 +1,5 @@
 class Isect {
-    var t: Double;
+    var t: Float64;
     var enter: Int;
     var prim: Primitive;
     var surf: Surface;

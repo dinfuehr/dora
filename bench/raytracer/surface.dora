@@ -1,10 +1,10 @@
 class Surface {
     var color: Vec3;
-    var kd: Double;
-    var ks: Double;
-    var shine: Double;
-    var kt: Double;
-    var ior: Double;
+    var kd: Float64;
+    var ks: Float64;
+    var shine: Float64;
+    var kt: Float64;
+    var ior: Float64;
 
     init() {
         self.color = Vec3(1.0, 0.0, 0.0);

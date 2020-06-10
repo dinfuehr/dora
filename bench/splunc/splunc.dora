@@ -162,7 +162,7 @@
 class NodeA: Node {}
 class NodeB: Node { let x1: Int64 = 0L; }
 class NodeC: Node { let x1: Int64 = 0L; let x2: Int64 = 0L; }
-class NodeD: Node { let x1: Double = 0.0; let x2: Double = 0.0; let x3: Double = 0.0; }
+class NodeD: Node { let x1: Float64 = 0.0; let x2: Float64 = 0.0; let x3: Float64 = 0.0; }
 
 class Node40: Node {}
 class Node48: Node { let x1: Int64 = 0L; }

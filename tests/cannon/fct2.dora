@@ -50,20 +50,20 @@ fun bar_long(a: Int64) -> Int64 {
   return 3L+a;
 }
 
-@cannon fun foo_float() -> Float {
+@cannon fun foo_float() -> Float32 {
   return bar_float(3F);
 }
 
-fun bar_float(a: Float) -> Float {
+fun bar_float(a: Float32) -> Float32 {
   assert(a == 3F);
   return 3F+a;
 }
 
-@cannon fun foo_double() -> Double {
+@cannon fun foo_double() -> Float64 {
   return bar_double(3D);
 }
 
-fun bar_double(a: Double) -> Double {
+fun bar_double(a: Float64) -> Float64 {
   assert(a == 3D);
   return 3D+a;
 }

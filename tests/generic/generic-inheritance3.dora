@@ -1,8 +1,8 @@
 fun main() {
     assert(Bar[String]().value == 10);
-    assert(Bar[Float]().value == 10);
+    assert(Bar[Float32]().value == 10);
 
-    let x = Baz[Float]();
+    let x = Baz[Float32]();
     assert(x.test() == 10);
     x.assignMe();
     assert(x.test() == 20);

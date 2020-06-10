@@ -13,7 +13,7 @@ class Ray {
         self.D = Vec3();
     }
 
-    fun point(t: Double) {
+    fun point(t: Float64) {
         return Vec3(
             self.P.x + self.D.x * t,
             self.P.y + self.D.y * t,

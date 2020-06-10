@@ -19,11 +19,11 @@ fun main() {
     assert(array(0L) == 0L);
     assert(array(9L) == 0L);
 
-    let array = Array::zero[Float](10L);
+    let array = Array::zero[Float32](10L);
     assert(array(0L) == 0.0F);
     assert(array(9L) == 0.0F);
 
-    let array = Array::zero[Double](10L);
+    let array = Array::zero[Float64](10L);
     assert(array(0L) == 0.0);
     assert(array(9L) == 0.0);
 }

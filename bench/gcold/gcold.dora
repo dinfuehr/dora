@@ -310,23 +310,23 @@ fun main() {
     }
 
     let end = timestamp();
-    let secs = (end - start).toFloat() / 1000.0F / 1000.0F / 1000.0F;
+    let secs = (end - start).toFloat32() / 1000.0F / 1000.0F / 1000.0F;
 
     checkTrees();
 
     println("\nTook " + secs.toString() + " sec in steady state.");
     println("Allocated " + steps.toString() + " Mb of young gen garabge"
-            + " (= " + (steps.toFloat() / secs).toString() + " Mb/sec)");
+            + " (= " + (steps.toFloat32() / secs).toString() + " Mb/sec)");
     println("    (actually allocated "
-            + (youngBytes.toFloat() / MEG.toFloat()).toString() + " megabytes)");
-    let promoted = steps.toFloat() / promoteRate.toFloat();
+            + (youngBytes.toFloat32() / MEG.toFloat32()).toString() + " megabytes)");
+    let promoted = steps.toFloat32() / promoteRate.toFloat32();
     println("Promoted " + promoted.toString()
             + " Mb (= " + (promoted / secs).toString() + " Mb/sec)");
-    println("    (actually promoted " + ((nodes * BYTES_PER_NODE.toInt64()).toFloat() / MEG.toFloat()).toString() + " megabytes)");
+    println("    (actually promoted " + ((nodes * BYTES_PER_NODE.toInt64()).toFloat32() / MEG.toFloat32()).toString() + " megabytes)");
 
     if ptrMutRate != 0 {
         println("Mutated " + actuallyMut.toString() +
-                " pointers (= " + (actuallyMut.toFloat() / secs).toString() + " ptrs/sec)");
+                " pointers (= " + (actuallyMut.toFloat32() / secs).toString() + " ptrs/sec)");
     }
 
     println("Checksum = " + (mutatorSum + aexport.length()).toString());

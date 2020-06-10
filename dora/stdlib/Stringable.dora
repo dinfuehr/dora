@@ -18,11 +18,11 @@ impl Stringable for Int64 {
   fun toString() -> String = self.toString();
 }
 
-impl Stringable for Float {
+impl Stringable for Float32 {
   fun toString() -> String = self.toString();
 }
 
-impl Stringable for Double {
+impl Stringable for Float64 {
   fun toString() -> String = self.toString();
 }
 

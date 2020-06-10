@@ -4,8 +4,8 @@ fun main() {
   str[UInt8](1.toUInt8());
   str[Int32](1);
   str[Int64](1L);
-  str[Float](1F);
-  str[Double](1D);
+  str[Float32](1F);
+  str[Float64](1D);
 }
 
 fun str[T : Stringable](val: T) -> String = val.toString();

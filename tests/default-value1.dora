@@ -14,10 +14,10 @@ fun main() {
   let x = defaultValue[Int64]();
   assert(x == 0L);
 
-  let x = defaultValue[Float]();
+  let x = defaultValue[Float32]();
   assert(x == 0.0F);
 
-  let x = defaultValue[Double]();
+  let x = defaultValue[Float64]();
   assert(x == 0.0);
 
   let x = defaultValue[String]();
@@ -26,6 +26,6 @@ fun main() {
   let x = defaultValue[Array[Int32]]();
   assert(x === nil);
 
-  let x = defaultValue[Array[Float] ]();
+  let x = defaultValue[Array[Float32] ]();
   assert(x === nil);
 }

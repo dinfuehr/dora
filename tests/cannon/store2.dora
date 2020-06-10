@@ -3,8 +3,8 @@ var glob_char: Char;
 var glob_byte: UInt8;
 var glob_int32: Int32;
 var glob_int64: Int64;
-var glob_float: Float;
-var glob_double: Double;
+var glob_float: Float32;
+var glob_double: Float64;
 var glob_string: String;
 var glob_obj: Foo;
 
@@ -23,14 +23,14 @@ fun main() {
     assert(glob_obj === obj);
 }
 
-@cannon fun init_globs(bool: Bool, char: Char, byte: UInt8, int32: Int32, int64: Int64, float: Float, double: Double, string: String, obj: Foo) {
+@cannon fun init_globs(bool: Bool, char: Char, byte: UInt8, int32: Int32, int64: Int64, float32: Float32, float64: Float64, string: String, obj: Foo) {
     glob_bool = bool;
     glob_char = char;
     glob_byte = byte;
     glob_int32 = int32;
     glob_int64 = int64;
-    glob_float = float;
-    glob_double = double;
+    glob_float = float32;
+    glob_double = float64;
     glob_string = string;
     glob_obj = obj;  
 }

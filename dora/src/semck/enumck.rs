@@ -99,7 +99,7 @@ mod tests {
     #[test]
     fn enum_with_argument() {
         ok("
-            enum Foo { A(Int32), B(Float), C}
+            enum Foo { A(Int32), B(Float32), C}
             fun give_me_a() -> Foo { Foo::A(1) }
             fun give_me_b() -> Foo { Foo::B(2.0F) }
             fun give_me_c() -> Foo { Foo::C }
@@ -111,7 +111,7 @@ mod tests {
     fn enum_wrong_type() {
         err(
             "
-            enum Foo { A(Int32), B(Float), C}
+            enum Foo { A(Int32), B(Float32), C}
             fun give_me_a() -> Foo { Foo::A(2.0F) }
 
         ",
@@ -129,7 +129,7 @@ mod tests {
     fn enum_missing_args() {
         err(
             "
-            enum Foo { A(Int32), B(Float), C}
+            enum Foo { A(Int32), B(Float32), C}
             fun give_me_a() -> Foo { Foo::A }
 
         ",
@@ -147,7 +147,7 @@ mod tests {
     fn enum_unexpected_args() {
         err(
             "
-            enum Foo { A(Int32), B(Float), C}
+            enum Foo { A(Int32), B(Float32), C}
             fun give_me_c() -> Foo { Foo::C(12.0F) }
 
         ",
@@ -165,7 +165,7 @@ mod tests {
     fn enum_parens_but_no_args() {
         err(
             "
-            enum Foo { A(Int32), B(Float), C}
+            enum Foo { A(Int32), B(Float32), C}
             fun give_me_c() -> Foo { Foo::C() }
         ",
             pos(3, 44),
@@ -176,7 +176,7 @@ mod tests {
     #[test]
     fn enum_copy() {
         ok("
-            enum Foo { A(Int32), B(Float), C}
+            enum Foo { A(Int32), B(Float32), C}
             fun foo_test(y: Foo) -> Foo { let x: Foo = y; x }
         ");
     }

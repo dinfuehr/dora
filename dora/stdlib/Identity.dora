@@ -18,12 +18,12 @@ impl Identity for Int64 {
   fun identicalTo(other: Int64) -> Bool = self === other;
 }
 
-impl Identity for Float {
-  fun identicalTo(other: Float) -> Bool = self === other;
+impl Identity for Float32 {
+  fun identicalTo(other: Float32) -> Bool = self === other;
 }
 
-impl Identity for Double {
-  fun identicalTo(other: Double) -> Bool = self === other;
+impl Identity for Float64 {
+  fun identicalTo(other: Float64) -> Bool = self === other;
 }
 
 impl Identity for String {
