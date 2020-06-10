@@ -1,8 +1,8 @@
 const i: Int32 = -1;
 const l: Int64 = -2L;
 const no: Bool = false;
-const f: Float = -3.0F;
-const d: Double = -4.0;
+const f: Float32 = -3.0F;
+const d: Float64 = -4.0;
 
 fun main() {
     assert(i == -1);

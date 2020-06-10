@@ -18,12 +18,12 @@ impl Equals for Int64 {
   fun equals(other: Int64) -> Bool = self == other;
 }
 
-impl Equals for Float {
-  fun equals(other: Float) -> Bool = self == other;
+impl Equals for Float32 {
+  fun equals(other: Float32) -> Bool = self == other;
 }
 
-impl Equals for Double {
-  fun equals(other: Double) -> Bool = self == other;
+impl Equals for Float64 {
+  fun equals(other: Float64) -> Bool = self == other;
 }
 
 impl Equals for String {

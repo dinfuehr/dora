@@ -1,11 +1,11 @@
 class Sphere: Primitive {
     var c: Vec3;
-    var r: Double;
-    var r2: Double;
+    var r: Float64;
+    var r2: Float64;
     var v: Vec3;
     var b: Vec3;
 
-    init(center: Vec3, radius: Double) {
+    init(center: Vec3, radius: Float64) {
         self.c = center;
         self.r = radius;
         self.r2 = self.r * self.r;

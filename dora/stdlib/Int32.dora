@@ -14,10 +14,10 @@
   fun toStringBinary() -> String = String::binary(self.toInt64() & 0xFFFFFFFFL);
   fun toStringHex() -> String = String::hex(self.toInt64() & 0xFFFFFFFFL);
 
-  @internal fun toFloat() -> Float;
-  @internal fun toDouble() -> Double;
+  @internal fun toFloat32() -> Float32;
+  @internal fun toFloat64() -> Float64;
 
-  @internal fun asFloat() -> Float;
+  @internal fun asFloat32() -> Float32;
 
   @internal fun equals(rhs: Int32) -> Bool;
   @internal fun compareTo(rhs: Int32) -> Int32;

@@ -22,12 +22,12 @@ impl Sortable for Int64 {
   fun sortsAs(other: Int64) -> Int32 = self.compareTo(other);
 }
 
-impl Sortable for Float {
-  fun sortsAs(other: Float) -> Int32 = self.sortsAs(other);
+impl Sortable for Float32 {
+  fun sortsAs(other: Float32) -> Int32 = self.sortsAs(other);
 }
 
-impl Sortable for Double {
-  fun sortsAs(other: Double) -> Int32 = self.sortsAs(other);
+impl Sortable for Float64 {
+  fun sortsAs(other: Float64) -> Int32 = self.sortsAs(other);
 }
 
 impl Sortable for String {

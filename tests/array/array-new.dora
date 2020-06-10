@@ -3,11 +3,11 @@ fun main() {
     assert(array(0L) == "");
     assert(array(0L) == array(9L));
 
-    let array = Array::new[Double](10L);
+    let array = Array::new[Float64](10L);
     assert(array(0L) == 0.0);
     assert(array(9L) == 0.0);
 
-    let array = Array::new[Float](10L);
+    let array = Array::new[Float32](10L);
     assert(array(0L) == 0.0F);
     assert(array(9L) == 0.0F);
 }

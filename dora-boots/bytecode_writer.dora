@@ -509,12 +509,12 @@ class BytecodeWriter {
         self.emitReg1AndIdx(BC_CONST_INT64, dest, idx);
     }
 
-    fun emitConstFloat32(dest: BytecodeRegister, value: Float) {
+    fun emitConstFloat32(dest: BytecodeRegister, value: Float32) {
         let idx = self.addConst(ConstPoolFloat32(value));
         self.emitReg1AndIdx(BC_CONST_FLOAT32, dest, idx);
     }
 
-    fun emitConstFloat64(dest: BytecodeRegister, value: Double) {
+    fun emitConstFloat64(dest: BytecodeRegister, value: Float64) {
         let idx = self.addConst(ConstPoolFloat64(value));
         self.emitReg1AndIdx(BC_CONST_FLOAT64, dest, idx);
     }

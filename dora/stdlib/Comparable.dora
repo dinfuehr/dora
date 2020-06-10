@@ -23,12 +23,12 @@ impl Comparable for Int64 {
   fun compareTo(other: Int64) -> Int32 = self.compareTo(other);
 }
 
-impl Comparable for Float {
-  fun compareTo(other: Float) -> Int32 = self.compareTo(other);
+impl Comparable for Float32 {
+  fun compareTo(other: Float32) -> Int32 = self.compareTo(other);
 }
 
-impl Comparable for Double {
-  fun compareTo(other: Double) -> Int32 = self.compareTo(other);
+impl Comparable for Float64 {
+  fun compareTo(other: Float64) -> Int32 = self.compareTo(other);
 }
 
 impl Comparable for String {

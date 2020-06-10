@@ -15,19 +15,19 @@ fun main() {
   assert(x.length() == 7L);
   assert(int64_array_len(x) == 7L);
 
-  let x = Array::empty[Float]();
+  let x = Array::empty[Float32]();
   assert(x.length() == 0L);
   assert(float_array_len(x) == 0L);
 
-  let x = Array::fill[Float](6L, 1.0F);
+  let x = Array::fill[Float32](6L, 1.0F);
   assert(x.length() == 6L);
   assert(float_array_len(x) == 6L);
 
-  let x = Array::empty[Double]();
+  let x = Array::empty[Float64]();
   assert(x.length() == 0L);
   assert(double_array_len(x) == 0L);
 
-  let x = Array::fill[Double](4L, 1.0);
+  let x = Array::fill[Float64](4L, 1.0);
   assert(x.length() == 4L);
   assert(double_array_len(x) == 4L);
 
@@ -56,11 +56,11 @@ fun int64_array_len(x: Array[Int64]) -> Int64 {
   return x.length();
 }
 
-fun float_array_len(x: Array[Float]) -> Int64 {
+fun float_array_len(x: Array[Float32]) -> Int64 {
   return x.length();
 }
 
-fun double_array_len(x: Array[Double]) -> Int64 {
+fun double_array_len(x: Array[Float64]) -> Int64 {
   return x.length();
 }
 

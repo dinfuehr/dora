@@ -4,8 +4,8 @@ fun main() {
     let fooChar = FooChar();
     let fooInt32 = FooInt32();
     let fooInt64 = FooInt64();
-    let fooFloat = FooFloat();
-    let fooDouble = FooDouble();
+    let fooFloat32 = FooFloat32();
+    let fooFloat64 = FooFloat64();
     let fooString = FooString();
     let fooPtr = FooPtr();
 
@@ -14,8 +14,8 @@ fun main() {
     storeChar(fooChar, '1');
     storeInt32(fooInt32, 23);
     storeInt64(fooInt64, 1L);
-    storeFloat(fooFloat, 1F);
-    storeDouble(fooDouble, 1D);
+    storeFloat32(fooFloat32, 1F);
+    storeFloat64(fooFloat64, 1D);
     storeString(fooString, "1");
     storePtr(fooPtr, fooInt32);
 
@@ -24,8 +24,8 @@ fun main() {
     assert(fooChar.y == '1');
     assert(fooInt32.y == 23);
     assert(fooInt64.y == 1L);
-    assert(fooFloat.y == 1F);
-    assert(fooDouble.y == 1D);
+    assert(fooFloat32.y == 1F);
+    assert(fooFloat64.y == 1D);
     assert(fooString.y == "1");
     assert(fooPtr.y === fooInt32);
     assert(fooPtr.y.y == 23)
@@ -46,10 +46,10 @@ fun main() {
 @cannon fun storeInt64(x: FooInt64, z: Int64) {
     x.y = z;
 }
-@cannon fun storeFloat(x: FooFloat, z: Float) {
+@cannon fun storeFloat32(x: FooFloat32, z: Float32) {
     x.y = z;
 }
-@cannon fun storeDouble(x: FooDouble, z: Double) {
+@cannon fun storeFloat64(x: FooFloat64, z: Float64) {
     x.y = z;
 }
 @cannon fun storeString(x: FooString, z: String) {
@@ -74,11 +74,11 @@ class FooInt32() {
 class FooInt64() {
     var y: Int64;
 }
-class FooFloat() {
-    var y: Float;
+class FooFloat32() {
+    var y: Float32;
 }
-class FooDouble() {
-    var y: Double;
+class FooFloat64() {
+    var y: Float64;
 }
 class FooString() {
     var y: String;

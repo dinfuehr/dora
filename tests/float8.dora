@@ -2,7 +2,7 @@ fun main() {
     test(1F, 2D, 3, 4L, 5F, 6D);
 }
 
-fun test(a: Float, b: Double, c: Int32, d: Int64, e: Float, f: Double) {
+fun test(a: Float32, b: Float64, c: Int32, d: Int64, e: Float32, f: Float64) {
     assert(a == 1F);
     assert(b == 2D);
     assert(c == 3);

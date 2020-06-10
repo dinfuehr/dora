@@ -7,11 +7,11 @@ fun main() {
   assert(x(6L) == 200L);
   assert(int64_array_get(x, 0L) == 200L);
 
-  let x = Array::fill[Float](6L, 1.0F);
+  let x = Array::fill[Float32](6L, 1.0F);
   assert(x(0L) == 1.0F);
   assert(float_array_get(x, 5L) == 1.0F);
 
-  let x = Array::fill[Double](4L, 2.0);
+  let x = Array::fill[Float64](4L, 2.0);
   assert(x(0L) == 2.0);
   assert(double_array_get(x, 3L) == 2.0);
 
@@ -38,11 +38,11 @@ fun int64_array_get(x: Array[Int64], idx: Int64) -> Int64 {
   return x(idx);
 }
 
-fun float_array_get(x: Array[Float], idx: Int64) -> Float {
+fun float_array_get(x: Array[Float32], idx: Int64) -> Float32 {
   return x(idx);
 }
 
-fun double_array_get(x: Array[Double], idx: Int64) -> Double {
+fun double_array_get(x: Array[Float64], idx: Int64) -> Float64 {
   return x(idx);
 }
 

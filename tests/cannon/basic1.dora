@@ -4,8 +4,8 @@ fun main() {
     assert(returnByte() == 5Y);
     assert(returnInt32() == 5);
     assert(returnInt64() == 5L);
-    assert(returnFloat() == 5F);
-    assert(returnDouble() == 5D);
+    assert(returnFloat32() == 5F);
+    assert(returnFloat64() == 5D);
     assert(returnString() == "5");
 }
 
@@ -29,11 +29,11 @@ fun main() {
     return 5L;
 }
 
-@cannon fun returnFloat() -> Float {
+@cannon fun returnFloat32() -> Float32 {
     return 5F;
 }
 
-@cannon fun returnDouble() -> Double {
+@cannon fun returnFloat64() -> Float64 {
     return 5D;
 }
 

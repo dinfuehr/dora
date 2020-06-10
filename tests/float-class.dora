@@ -3,6 +3,6 @@ fun main() {
     assert(f.x * 2.0 == 2.0);
 }
 
-class Foo(x: Double) {
-    var x: Double = x;
+class Foo(x: Float64) {
+    var x: Float64 = x;
 }
