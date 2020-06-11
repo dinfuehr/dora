@@ -53,7 +53,7 @@ pub extern "C" fn long_to_string(val: i64) -> Ref<Str> {
     })
 }
 
-pub extern "C" fn float_to_string(val: f32) -> Ref<Str> {
+pub extern "C" fn float32_to_string(val: f32) -> Ref<Str> {
     handle_scope(|| {
         let buffer = val.to_string();
         let vm = get_vm();
@@ -62,7 +62,7 @@ pub extern "C" fn float_to_string(val: f32) -> Ref<Str> {
     })
 }
 
-pub extern "C" fn double_to_string(val: f64) -> Ref<Str> {
+pub extern "C" fn float64_to_string(val: f64) -> Ref<Str> {
     handle_scope(|| {
         let buffer = val.to_string();
         let vm = get_vm();
