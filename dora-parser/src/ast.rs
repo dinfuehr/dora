@@ -1093,6 +1093,7 @@ pub enum Expr {
     ExprSelf(ExprSelfType),
     ExprSuper(ExprSuperType),
     ExprNil(ExprNilType),
+    ExprConditionContinuation(ExprConditionContinuationType),
     ExprConv(ExprConvType),
     ExprLambda(ExprLambdaType),
     ExprBlock(ExprBlockType),
@@ -1122,8 +1123,8 @@ impl Expr {
         id: NodeId,
         pos: Position,
         span: Span,
-        cond: Box<Expr>,
-        then_block: Box<Expr>,
+        cond_head: Box<Expr>,
+        branches: Vec<Branch>,
         else_block: Option<Box<Expr>>,
     ) -> Expr {
         Expr::ExprIf(ExprIfType {
@@ -1131,8 +1132,8 @@ impl Expr {
             pos,
             span,
 
-            cond,
-            then_block,
+            cond_head,
+            branches,
             else_block,
         })
     }
@@ -1272,6 +1273,10 @@ impl Expr {
 
     pub fn create_nil(id: NodeId, pos: Position, span: Span) -> Expr {
         Expr::ExprNil(ExprNilType { id, pos, span })
+    }
+
+    pub fn create_condition_continuation(id: NodeId, pos: Position, span: Span) -> Expr {
+        Expr::ExprConditionContinuation(ExprConditionContinuationType { id, pos, span })
     }
 
     pub fn create_ident(
@@ -1628,6 +1633,13 @@ impl Expr {
         }
     }
 
+    pub fn is_condition_continuation(&self) -> bool {
+        match *self {
+            Expr::ExprConditionContinuation(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn to_conv(&self) -> Option<&ExprConvType> {
         match *self {
             Expr::ExprConv(ref val) => Some(val),
@@ -1725,6 +1737,7 @@ impl Expr {
             Expr::ExprSelf(ref val) => val.pos,
             Expr::ExprSuper(ref val) => val.pos,
             Expr::ExprNil(ref val) => val.pos,
+            Expr::ExprConditionContinuation(ref val) => val.pos,
             Expr::ExprConv(ref val) => val.pos,
             Expr::ExprLambda(ref val) => val.pos,
             Expr::ExprBlock(ref val) => val.pos,
@@ -1752,6 +1765,7 @@ impl Expr {
             Expr::ExprSelf(ref val) => val.span,
             Expr::ExprSuper(ref val) => val.span,
             Expr::ExprNil(ref val) => val.span,
+            Expr::ExprConditionContinuation(ref val) => val.span,
             Expr::ExprConv(ref val) => val.span,
             Expr::ExprLambda(ref val) => val.span,
             Expr::ExprBlock(ref val) => val.span,
@@ -1779,6 +1793,7 @@ impl Expr {
             Expr::ExprSelf(ref val) => val.id,
             Expr::ExprSuper(ref val) => val.id,
             Expr::ExprNil(ref val) => val.id,
+            Expr::ExprConditionContinuation(ref val) => val.id,
             Expr::ExprConv(ref val) => val.id,
             Expr::ExprLambda(ref val) => val.id,
             Expr::ExprBlock(ref val) => val.id,
@@ -1794,9 +1809,15 @@ pub struct ExprIfType {
     pub pos: Position,
     pub span: Span,
 
-    pub cond: Box<Expr>,
-    pub then_block: Box<Expr>,
+    pub cond_head: Box<Expr>,
+    pub branches: Vec<Branch>,
     pub else_block: Option<Box<Expr>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Branch {
+    pub cond_tail: Option<Box<Expr>>,
+    pub then_block: Box<Expr>
 }
 
 #[derive(Clone, Debug)]
@@ -1933,6 +1954,13 @@ pub struct ExprSelfType {
 
 #[derive(Clone, Debug)]
 pub struct ExprNilType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub struct ExprConditionContinuationType {
     pub id: NodeId,
     pub pos: Position,
     pub span: Span,

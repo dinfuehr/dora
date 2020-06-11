@@ -305,7 +305,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_if(&mut self, expr: &'ast ExprIfType, _expected_ty: BuiltinType) -> BuiltinType {
-        let expr_type = self.check_expr(&expr.cond, BuiltinType::Any);
+        let expr_type = self.check_expr(&expr.cond_head, BuiltinType::Any);
 
         if !expr_type.is_bool() && !expr_type.is_error() {
             let expr_type = expr_type.name(self.vm);
@@ -313,12 +313,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.vm.diag.lock().report(self.file, expr.pos, msg);
         }
 
-        let then_type = self.check_expr(&expr.then_block, BuiltinType::Any);
+        let then_type = self.check_expr(&expr.branches.get(0).unwrap().then_block, BuiltinType::Any);
 
         let merged_type = if let Some(ref else_block) = expr.else_block {
             let else_type = self.check_expr(else_block, BuiltinType::Any);
 
-            if expr_always_returns(&expr.then_block) {
+            if expr_always_returns(&expr.branches.get(0).unwrap().then_block) {
                 else_type
             } else if expr_always_returns(else_block) {
                 then_type
@@ -2142,6 +2142,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             ExprSelf(ref expr) => self.check_expr_this(expr, expected_ty),
             ExprSuper(ref expr) => self.check_expr_super(expr, expected_ty),
             ExprNil(ref expr) => self.check_expr_nil(expr, expected_ty),
+            ExprConditionContinuation(_) => unimplemented!("emit expr for cc"),
             ExprConv(ref expr) => self.check_expr_conv(expr, expected_ty),
             ExprLambda(ref expr) => self.check_expr_lambda(expr, expected_ty),
             ExprBlock(ref expr) => self.check_expr_block(expr, expected_ty),

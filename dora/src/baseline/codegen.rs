@@ -723,6 +723,7 @@ where
             ExprSelf(_) => self.emit_self(dest),
             ExprSuper(_) => self.emit_self(dest),
             ExprNil(_) => self.emit_nil(dest.reg()),
+            ExprConditionContinuation(_) => unimplemented!("emit expr for cc"),
             ExprConv(ref expr) => self.emit_conv(expr, dest.reg()),
             ExprTemplate(ref expr) => self.emit_template(expr, dest.reg()),
             ExprLambda(_) => unimplemented!(),
@@ -809,11 +810,11 @@ where
             lbl_end
         };
 
-        self.emit_expr_result_reg(&e.cond);
+        self.emit_expr_result_reg(&e.cond_head);
         self.asm
             .test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_else);
 
-        self.emit_expr(&e.then_block, dest);
+        self.emit_expr(&e.branches.get(0).unwrap().then_block, dest);
 
         if let Some(ref else_block) = e.else_block {
             self.asm.jump(lbl_end);

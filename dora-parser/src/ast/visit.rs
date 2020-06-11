@@ -342,8 +342,13 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
         }
 
         ExprIf(ref value) => {
-            v.visit_expr(&value.cond);
-            v.visit_expr(&value.then_block);
+            v.visit_expr(&value.cond_head);
+            for branch in &value.branches {
+                if let Some(cond_tail) = &branch.cond_tail {
+                    v.visit_expr(cond_tail);
+                }
+                v.visit_expr(&branch.then_block);
+            }
 
             if let Some(ref b) = value.else_block {
                 v.visit_expr(b);
@@ -365,5 +370,6 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
         ExprLitBool(_) => {}
         ExprIdent(_) => {}
         ExprNil(_) => {}
+        ExprConditionContinuation(_) => {}
     }
 }

@@ -340,6 +340,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             ExprSuper(_) => self.visit_expr_self(dest),
             ExprConv(ref conv) => self.visit_expr_conv(conv, dest),
             ExprNil(ref nil) => self.visit_expr_nil(nil, dest),
+            ExprConditionContinuation(_) => unimplemented!("emit expr for cc"),
             ExprTuple(ref tuple) => self.visit_expr_tuple(tuple, dest),
             ExprLambda(_) => unimplemented!(),
         }
@@ -461,12 +462,12 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             let else_lbl = self.gen.create_label();
             let end_lbl = self.gen.create_label();
 
-            let cond_reg = self.visit_expr(&expr.cond, DataDest::Alloc);
+            let cond_reg = self.visit_expr(&expr.cond_head, DataDest::Alloc);
             self.gen.emit_jump_if_false(cond_reg, else_lbl);
 
-            self.visit_expr(&expr.then_block, DataDest::Reg(dest));
+            self.visit_expr(&expr.branches.get(0).unwrap().then_block, DataDest::Reg(dest));
 
-            if !expr_always_returns(&expr.then_block) {
+            if !expr_always_returns(&expr.branches.get(0).unwrap().then_block) {
                 self.gen.emit_jump(end_lbl);
             }
 
@@ -475,9 +476,9 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             self.gen.bind_label(end_lbl);
         } else {
             let end_lbl = self.gen.create_label();
-            let cond_reg = self.visit_expr(&expr.cond, DataDest::Alloc);
+            let cond_reg = self.visit_expr(&expr.cond_head, DataDest::Alloc);
             self.gen.emit_jump_if_false(cond_reg, end_lbl);
-            self.visit_expr(&expr.then_block, DataDest::Reg(dest));
+            self.visit_expr(&expr.branches.get(0).unwrap().then_block, DataDest::Reg(dest));
             self.gen.bind_label(end_lbl);
         }
 

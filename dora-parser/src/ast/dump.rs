@@ -485,6 +485,7 @@ impl<'a> AstDumper<'a> {
             ExprSelf(ref selfie) => self.dump_expr_self(selfie),
             ExprSuper(ref expr) => self.dump_expr_super(expr),
             ExprNil(ref nil) => self.dump_expr_nil(nil),
+            ExprConditionContinuation(ref cc) => self.dump_expr_condition_continuation(cc),
             ExprConv(ref expr) => self.dump_expr_conv(expr),
             ExprLambda(ref expr) => self.dump_expr_lambda(expr),
             ExprBlock(ref expr) => self.dump_expr_block(expr),
@@ -525,16 +526,22 @@ impl<'a> AstDumper<'a> {
 
         self.indent(|d| {
             d.indent(|d| {
-                d.dump_expr(&expr.cond);
+                d.dump_expr(&expr.cond_head);
             });
-            dump!(d, "then");
-            d.indent(|d| {
-                d.dump_expr(&expr.then_block);
-            });
-            dump!(d, "else");
-            d.indent(|d| {
-                d.dump_expr(&expr.then_block);
-            });
+            for branch in &expr.branches {
+                dump!(d, "then");
+                d.indent(|d| {
+                    if let Some(cond_tail) = &branch.cond_tail {
+                        d.dump_expr(cond_tail);
+                    }
+                });
+            }
+            if let Some(else_block) = &expr.else_block {
+                dump!(d, "else");
+                d.indent(|d| {
+                    d.dump_expr(else_block);
+                });
+            }
         });
     }
 
@@ -565,6 +572,10 @@ impl<'a> AstDumper<'a> {
 
     fn dump_expr_nil(&mut self, nil: &ExprNilType) {
         dump!(self, "nil @ {} {}", nil.pos, nil.id);
+    }
+
+    fn dump_expr_condition_continuation(&mut self, cc: &ExprConditionContinuationType) {
+        dump!(self, "... @ {} {}", cc.pos, cc.id);
     }
 
     fn dump_expr_lit_char(&mut self, lit: &ExprLitCharType) {

@@ -1247,7 +1247,17 @@ impl<'a> Parser<'a> {
 
         let cond = self.parse_expression_no_struct_lit()?;
 
-        let then_block = self.parse_block()?;
+        let mut branches = Vec::new();
+        if self.token.is(TokenKind::DotDotDot) {
+            while self.token.is(TokenKind::DotDotDot) {
+                let cond_tail = Some(self.parse_expression_no_struct_lit()?);
+                let then_block = self.parse_block()?;
+                branches.push(Branch { cond_tail, then_block })
+            }
+        } else {
+            let then_block = self.parse_block()?;
+            branches.push(Branch { cond_tail: None, then_block })
+        }
 
         let else_block = if self.token.is(TokenKind::Else) {
             self.advance_token()?;
@@ -1268,7 +1278,7 @@ impl<'a> Parser<'a> {
             pos,
             span,
             cond,
-            then_block,
+            branches,
             else_block,
         )))
     }
@@ -1585,6 +1595,7 @@ impl<'a> Parser<'a> {
             TokenKind::Nil => self.parse_nil(),
             TokenKind::This => self.parse_this(),
             TokenKind::Super => self.parse_super(),
+            TokenKind::DotDotDot => self.parse_condition_continuation(),
             TokenKind::BitOr | TokenKind::Or => self.parse_lambda(),
             _ => Err(ParseErrorAndPos::new(
                 self.token.position,
@@ -1832,6 +1843,17 @@ impl<'a> Parser<'a> {
         let tok = self.advance_token()?;
 
         Ok(Box::new(Expr::create_nil(
+            self.generate_id(),
+            tok.position,
+            span,
+        )))
+    }
+
+    fn parse_condition_continuation(&mut self) -> ExprResult {
+        let span = self.token.span;
+        let tok = self.advance_token()?;
+
+        Ok(Box::new(Expr::create_condition_continuation(
             self.generate_id(),
             tok.position,
             span,
@@ -2752,7 +2774,7 @@ mod tests {
         let (expr, _) = parse_expr("if true { 2; } else { 3; }");
         let ifexpr = expr.to_if().unwrap();
 
-        assert!(ifexpr.cond.is_lit_bool());
+        assert!(ifexpr.cond_head.is_lit_bool());
         assert!(ifexpr.else_block.is_some());
     }
 
@@ -2761,7 +2783,7 @@ mod tests {
         let (expr, _) = parse_expr("if true { 2; }");
         let ifexpr = expr.to_if().unwrap();
 
-        assert!(ifexpr.cond.is_lit_bool());
+        assert!(ifexpr.cond_head.is_lit_bool());
         assert!(ifexpr.else_block.is_none());
     }
 
@@ -3294,7 +3316,7 @@ mod tests {
     fn parse_struct_lit_if() {
         let (expr, _) = parse_expr("if i < n { }");
         let ifexpr = expr.to_if().unwrap();
-        let bin = ifexpr.cond.to_bin().unwrap();
+        let bin = ifexpr.cond_head.to_bin().unwrap();
 
         assert!(bin.lhs.is_ident());
         assert!(bin.rhs.is_ident());
@@ -3666,6 +3688,31 @@ mod tests {
             1,
             36,
         );
+    }
+
+    #[test]
+    fn parse_if_pattern() {
+        let (expr, _) = parse_expr("if true
+          ... == 5 { \"\" }
+          ... == 6.0 { '2' }
+          else { 4 }");
+
+        let expr = expr.to_if().unwrap();
+
+        let branch0 = &expr.branches[0];
+        let branch0_cond_tail = &branch0.cond_tail.as_ref().unwrap().to_bin().unwrap();
+        assert!(branch0_cond_tail.lhs.is_condition_continuation());
+        assert!(branch0_cond_tail.rhs.is_lit_int());
+        assert!(branch0.then_block.to_block().unwrap().expr.as_ref().unwrap().is_lit_str());
+
+        let branch1 = &expr.branches[1];
+        let branch1_cond_tail = &branch1.cond_tail.as_ref().unwrap().to_bin().unwrap();
+        assert!(branch1_cond_tail.lhs.is_condition_continuation());
+        assert!(branch1_cond_tail.rhs.is_lit_float());
+        assert!(branch1.then_block.to_block().unwrap().expr.as_ref().unwrap().is_lit_char());
+
+        let else_block = expr.else_block.as_ref().unwrap();
+        assert!(else_block.to_block().unwrap().expr.as_ref().unwrap().is_lit_int())
     }
 
     #[test]
