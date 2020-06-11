@@ -1,0 +1,16 @@
+fun main() {
+  Assert.equal[String]("a", "a");
+  //Assert.equal[String]("a", "b"); // values are not equal (actual: a, expected: b)
+  Assert.notEqual[String]("a", "b");
+  //Assert.notEqual[String]("a", "a"); // values are equal (actual: a, expected: a)
+  Assert.notEqual[Float64](0.0/0.0, 0.0/0.0);
+  Assert.equal[Float64](+0.0, -0.0);
+
+  let c = "c";
+  Assert.identical[String](c, c);
+  // Assert.identical[String]("a", "a"); // values are not identical (actual: a, expected: a)
+  Assert.notIdentical[String]("a", "b");
+  Assert.notIdentical[String]("a", "a");
+  Assert.identical[Float64](0.0/0.0, 0.0/0.0);
+  Assert.notIdentical[Float64](+0.0, -0.0);
+}
