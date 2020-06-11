@@ -1,0 +1,17 @@
+fun main() {
+  let map = HashMap[Int32, String]();
+  map.insert(1, "a");
+  map.insert(2, "b");
+  map.insert(3, "c");
+  map.insert(3, "d");
+
+  Assert::map[Int32, String](map)
+    .contains(1)
+    .containsAll(1, 2, 3)
+    .hasSize(3L)
+    .isNotEmpty();
+
+  Assert::map[Int32, String](HashMap[Int32, String]())
+    .hasSize(0L)
+    .isEmpty();
+}

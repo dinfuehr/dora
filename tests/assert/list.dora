@@ -1,0 +1,14 @@
+fun main() {
+  let list = Vec[Int32]();
+  list.push(1);
+  list.push(2);
+  list.push(3);
+  list.push(3);
+
+  Assert::list[Int32](list).hasSize(4L);
+  Assert::list[Int32](list).isNotEmpty();
+
+  Assert::list[Int32](Vec[Int32]())
+    .hasSize(0L)
+    .isEmpty();
+}
