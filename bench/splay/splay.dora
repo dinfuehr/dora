@@ -122,7 +122,7 @@ class Benchmark {
         let pauses = self.splaySumOfSquaredPauses;
         let samples = self.splaySamples;
 
-        (pauses.toDouble() / samples.toDouble());
+        (pauses.toFloat64() / samples.toFloat64());
     }
 }
 

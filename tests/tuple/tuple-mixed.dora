@@ -31,13 +31,13 @@ fun tpl3() -> Int32 {
     x.2.value
 }
 
-fun tpl4() -> Float {
+fun tpl4() -> Float32 {
     let x = (17, 19L, Foo(42), 2.5F, 5.0, true, "text");
     forceCollect();
     x.3
 }
 
-fun tpl5() -> Double {
+fun tpl5() -> Float64 {
     let x = (17, 19L, Foo(42), 2.5F, 5.0, true, "text");
     forceCollect();
     x.4

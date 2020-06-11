@@ -34,19 +34,19 @@ class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEn
         }
     }
 
-    fun toFloat32() -> Option[Float] {
+    fun toFloat32() -> Option[Float32] {
         if self is ConstPoolFloat32 {
-            Option::some[Float]((self as ConstPoolFloat32).value)
+            Option::some[Float32]((self as ConstPoolFloat32).value)
         } else {
-            Option::none[Float]()
+            Option::none[Float32]()
         }
     }
 
-    fun toFloat64() -> Option[Double] {
+    fun toFloat64() -> Option[Float64] {
         if self is ConstPoolFloat64 {
-            Option::some[Double]((self as ConstPoolFloat64).value)
+            Option::some[Float64]((self as ConstPoolFloat64).value)
         } else {
-            Option::none[Double]()
+            Option::none[Float64]()
         }
     }
 
@@ -61,11 +61,11 @@ class ConstPoolInt64(let value: Int64): ConstPoolEntry {
     @override fun toString() -> String { "Int64 ${self.value}" }
 }
 
-class ConstPoolFloat32(let value: Float): ConstPoolEntry {
+class ConstPoolFloat32(let value: Float32): ConstPoolEntry {
     @override fun toString() -> String { "Float32 ${self.value}" }
 }
 
-class ConstPoolFloat64(let value: Double): ConstPoolEntry {
+class ConstPoolFloat64(let value: Float64): ConstPoolEntry {
     @override fun toString() -> String { "Float64 ${self.value}" }
 }
 

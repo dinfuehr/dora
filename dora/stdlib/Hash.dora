@@ -19,10 +19,10 @@ impl Hash for Int64 {
   fun hash() -> Int32 = self.hash();
 }
 
-impl Hash for Float {
+impl Hash for Float32 {
   fun hash() -> Int32 = self.hash();
 }
 
-impl Hash for Double {
+impl Hash for Float64 {
   fun hash() -> Int32 = self.hash();
 }

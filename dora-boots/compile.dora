@@ -71,10 +71,10 @@ fun decodeConstPool(constpool: Array[UInt8]) -> Array[ConstPoolEntry] {
             let value = reader.readInt64();
             constPool.push(ConstPoolInt64(value));
         } else if opcode == CONSTPOOL_OPCODE_FLOAT32 {
-            let value = reader.readInt32().asFloat();
+            let value = reader.readInt32().asFloat32();
             constPool.push(ConstPoolFloat32(value));
         } else if opcode == CONSTPOOL_OPCODE_FLOAT64 {
-            let value = reader.readInt64().asDouble();
+            let value = reader.readInt64().asFloat64();
             constPool.push(ConstPoolFloat64(value));
         } else if opcode == CONSTPOOL_OPCODE_CHAR {
             let value = reader.readInt32().toCharUnchecked();

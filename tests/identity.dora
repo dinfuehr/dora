@@ -36,10 +36,10 @@ fun main() {
     assert(bar[Int32](1, 1));
     assert(!bar[Int32](1, 2));
 
-    assert(bar[Double](1.0, 1.0));
-    assert(!bar[Double](1.0, 2.0));
-    assert(!bar[Double](0.0, (-0.0)));
-    assert(bar[Double](0.0/0.0, 0.0/0.0));
+    assert(bar[Float64](1.0, 1.0));
+    assert(!bar[Float64](1.0, 2.0));
+    assert(!bar[Float64](0.0, (-0.0)));
+    assert(bar[Float64](0.0/0.0, 0.0/0.0));
 
     assert(bar[Foo](f1, f1));
     assert(!bar[Foo](f1, Foo(1)));

@@ -56,7 +56,7 @@ fun timeConstruction(depth: Int32) {
     }
 
     let finish = timestamp();
-    let msecs = (finish - start).toFloat() / 1000.0F / 1000.0F;
+    let msecs = (finish - start).toFloat32() / 1000.0F / 1000.0F;
     println("\tTop down construction took " + msecs.toString() + "ms");
 
     let start = finish;
@@ -69,7 +69,7 @@ fun timeConstruction(depth: Int32) {
     }
 
     let finish = timestamp();
-    let msecs = (finish - start).toFloat() / 1000.0F / 1000.0F;
+    let msecs = (finish - start).toFloat32() / 1000.0F / 1000.0F;
     println("\tBottom up construction took " + msecs.toString() + "ms");
 }
 
@@ -94,12 +94,12 @@ fun main() {
     populate(longLivedTreeDepth, longLivedTree);
 
     println("Creating a long-lived array of " + kArraySize.toString() + " doubles");
-    let array = Array::fill[Double](kArraySize.toInt64(), 0.0);
+    let array = Array::fill[Float64](kArraySize.toInt64(), 0.0);
 
     var i = 0;
 
     while i < kArraySize / 2 {
-        array(i.toInt64()) = 1.0/i.toDouble();
+        array(i.toInt64()) = 1.0/i.toFloat64();
         i = i + 1;
     }
 
@@ -112,6 +112,6 @@ fun main() {
 
     assert(longLivedTree !== nil && array(1000L) == 1.0/1000.0);
     let finish = timestamp();
-    let elapsed = (finish - start).toFloat() / 1000.0F / 1000.0F;
+    let elapsed = (finish - start).toFloat32() / 1000.0F / 1000.0F;
     println("Completed in " + elapsed.toString() + "ms.");
 }

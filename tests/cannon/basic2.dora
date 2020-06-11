@@ -6,8 +6,8 @@ fun main() {
     assert(moveByte(5Y) == 5Y);
     assert(moveInt32(5) == 5);
     assert(moveInt64(5L) == 5L);
-    assert(moveFloat(5F) == 5F);
-    assert(moveDouble(5D) == 5D);
+    assert(moveFloat32(5F) == 5F);
+    assert(moveFloat64(5D) == 5D);
     assert(moveString("5") == "5");
 }
 
@@ -36,12 +36,12 @@ fun main() {
     return y;
 }
 
-@cannon fun moveFloat(x: Float) -> Float {
+@cannon fun moveFloat32(x: Float32) -> Float32 {
     let y = x;
     return y;
 }
 
-@cannon fun moveDouble(x: Double) -> Double {
+@cannon fun moveFloat64(x: Float64) -> Float64 {
     let y = x;
     return y;
 }

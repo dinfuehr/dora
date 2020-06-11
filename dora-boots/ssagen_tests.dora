@@ -95,7 +95,7 @@ Block 2: pred = [0] succ = [1]
 ");
 }
 
-fun bcSsaGenAddFloat32Arguments(a: Float, b: Float) -> Float { a + b }
+fun bcSsaGenAddFloat32Arguments(a: Float32, b: Float32) -> Float32 { a + b }
 
 @test fun testSsaGenMultipleAssignments(_x: Testing) {
     let fct = bytecode("bcSsaGenMultipleAssignments");

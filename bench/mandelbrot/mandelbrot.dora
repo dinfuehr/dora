@@ -5,7 +5,7 @@ fun main() {
 const BUFFER_SIZE: Int = 8192;
 
 class Mandelbrot(let size: Int) {
-    let fac: Double = 2.0 / size.toDouble();
+    let fac: Float64 = 2.0 / size.toFloat64();
     var shift: Int = 0;
     let buf: Array[Byte] = Array[Byte](BUFFER_SIZE);
     var bufferLen: Int;
@@ -33,7 +33,7 @@ class Mandelbrot(let size: Int) {
 
     fun computeRow(y: Int) {
         var bits = 0;
-        let Ci = (y.toDouble() * self.fac - 1.0);
+        let Ci = (y.toFloat64() * self.fac - 1.0);
         let bufferVar = self.buf;
 
         var x = 0;
@@ -41,7 +41,7 @@ class Mandelbrot(let size: Int) {
         while x < self.size {
             var Zr = 0.0;
             var Zi = 0.0;
-            var Cr = (x.toDouble() * self.fac - 1.5);
+            var Cr = (x.toFloat64() * self.fac - 1.5);
 
             var i = 50;
 

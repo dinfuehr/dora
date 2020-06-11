@@ -14,10 +14,10 @@
 
   fun toStringBinary() -> String = String::binary(self);
 
-  @internal fun toFloat() -> Float;
-  @internal fun toDouble() -> Double;
+  @internal fun toFloat32() -> Float32;
+  @internal fun toFloat64() -> Float64;
 
-  @internal fun asDouble() -> Double;
+  @internal fun asFloat64() -> Float64;
 
   @internal fun equals(rhs: Int64) -> Bool;
   @internal fun compareTo(rhs: Int64) -> Int32;

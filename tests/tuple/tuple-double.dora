@@ -5,22 +5,22 @@ fun main() {
     assert(tplsum() == 6.0);
 }
 
-fun tpl1() -> Double {
+fun tpl1() -> Float64 {
     let x = (1.0, 2.0, 3.0);
     x.0
 }
 
-fun tpl2() -> Double {
+fun tpl2() -> Float64 {
     let x = (1.0, 2.0, 3.0);
     x.1
 }
 
-fun tpl3() -> Double {
+fun tpl3() -> Float64 {
     let x = (1.0, 2.0, 3.0);
     x.2
 }
 
-fun tplsum() -> Double {
+fun tplsum() -> Float64 {
     let x = (1.0, 2.0, 3.0);
     x.0 + x.1 + x.2
 }

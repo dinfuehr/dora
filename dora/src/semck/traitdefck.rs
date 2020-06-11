@@ -120,8 +120,8 @@ mod tests {
         ok("trait Foo {}");
         ok("trait Foo { fun toBool() -> Bool; }");
         ok("trait Foo {
-                fun toFloat() -> Float;
-                fun toDouble() -> Double;
+                fun toFloat32() -> Float32;
+                fun toFloat64() -> Float64;
             }");
 
         err(

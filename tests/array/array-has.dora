@@ -8,6 +8,6 @@ fun main() {
     let x = Array::fill[Int64](3L, 3L);
     assert(arrayHas[Int64](x, 3L));
 
-    let x = Array::fill[Double](3L, 0.0/0.0);
-    assert(arrayHas[Double](x, 0.0/0.0));
+    let x = Array::fill[Float64](3L, 0.0/0.0);
+    assert(arrayHas[Float64](x, 0.0/0.0));
 }

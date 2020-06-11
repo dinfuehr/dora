@@ -15,7 +15,7 @@ fun sieve(limit: Int64) -> Vec[Int64] {
 
     if limit >= 2L {
         let numbers = Array::fill[Bool](limit+1L, true);
-        let sqrtLimit = limit.toDouble().sqrt().toInt64();
+        let sqrtLimit = limit.toFloat64().sqrt().toInt64();
 
         var factor = 2L;
 

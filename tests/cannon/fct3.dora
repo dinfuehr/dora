@@ -47,19 +47,19 @@ class Foo {
     return 3L;
   }
 
-  @cannon fun foo_float() -> Float {
+  @cannon fun foo_float() -> Float32 {
     return self.bar_float();
   }
 
-  @cannon fun bar_float() -> Float {
+  @cannon fun bar_float() -> Float32 {
     return 3F;
   }
 
-  @cannon fun foo_double() -> Double {
+  @cannon fun foo_double() -> Float64 {
     return self.bar_double();
   }
 
-  @cannon fun bar_double() -> Double {
+  @cannon fun bar_double() -> Float64 {
     return 3D;
   }
 

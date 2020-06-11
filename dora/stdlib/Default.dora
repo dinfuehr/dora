@@ -22,12 +22,12 @@ impl Default for Int64 {
   @static fun default() -> Int64 = 0L;
 }
 
-impl Default for Float {
-  @static fun default() -> Float = 0.0F;
+impl Default for Float32 {
+  @static fun default() -> Float32 = 0.0F;
 }
 
-impl Default for Double {
-  @static fun default() -> Double = 0.0;
+impl Default for Float64 {
+  @static fun default() -> Float64 = 0.0;
 }
 
 impl Default for String {

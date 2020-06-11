@@ -9,12 +9,12 @@ fun main() {
   assert(x(0L) == 200L);
   assert(x(1L) == 100L);
 
-  let x = Array::fill[Float](2L, 1.0F);
+  let x = Array::fill[Float32](2L, 1.0F);
   float_array_set(x, 1L, 2.0F);
   assert(x(0L) == 1.0F);
   assert(x(1L) == 2.0F);
 
-  let x = Array::fill[Double](2L, 2.0);
+  let x = Array::fill[Float64](2L, 2.0);
   double_array_set(x, 1L, 1.0);
   assert(x(0L) == 2.0);
   assert(x(1L) == 1.0);
@@ -38,11 +38,11 @@ fun int64_array_set(x: Array[Int64], idx: Int64, val: Int64) {
   x(idx) = val;
 }
 
-fun float_array_set(x: Array[Float], idx: Int64, val: Float) {
+fun float_array_set(x: Array[Float32], idx: Int64, val: Float32) {
   x(idx) = val;
 }
 
-fun double_array_set(x: Array[Double], idx: Int64, val: Double) {
+fun double_array_set(x: Array[Float64], idx: Int64, val: Float64) {
   x(idx) = val;
 }
 

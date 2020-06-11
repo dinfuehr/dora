@@ -412,11 +412,11 @@ class Int64Const(let value: Int64): Const {
     @override fun dumpName() -> String { "Int64(${self.value})" }
 }
 
-class Float32Const(let value: Float): Const {
+class Float32Const(let value: Float32): Const {
     @override fun dumpName() -> String { "Float32(${self.value})" }
 }
 
-class Float64Const(let value: Double): Const {
+class Float64Const(let value: Float64): Const {
     @override fun dumpName() -> String { "Float64(${self.value})" }
 }
 

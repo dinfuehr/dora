@@ -27,11 +27,11 @@ class RayTracer {
 
     }
 
-    fun intersect(r: Ray, maxt: Double) -> Bool {
+    fun intersect(r: Ray, maxt: Float64) -> Bool {
 
     }
 
-    fun Shadow(r: Ray, tmax: Double) -> Int {
+    fun Shadow(r: Ray, tmax: Float64) -> Int {
 
     }
 
@@ -39,11 +39,11 @@ class RayTracer {
 
     }
 
-    fun shade(level: Int, weight: Double, p: Vec3, n: Vec3, i: Vec3, hit: Isect) {
+    fun shade(level: Int, weight: Float64, p: Vec3, n: Vec3, i: Vec3, hit: Isect) {
 
     }
 
-    fun trace(level: Int, weight: Double, r: Ray) {
+    fun trace(level: Int, weight: Float64, r: Ray) {
         
     }
 }

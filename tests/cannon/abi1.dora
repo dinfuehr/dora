@@ -2,8 +2,8 @@ fun main() {
     assert(testInt32(3) == 3);
     assert(testInt32(122) == 122);
 
-    assert(testFloat(3F) == 3F);
-    assert(testFloat(122F) == 122F);
+    assert(testFloat32(3F) == 3F);
+    assert(testFloat32(122F) == 122F);
 
     let foo = Foo();
     assert(testPtr(foo) === foo);
@@ -15,7 +15,7 @@ fun main() {
     return x;
 }
 
-@cannon fun testFloat(x: Float) -> Float {
+@cannon fun testFloat32(x: Float32) -> Float32 {
     return x;
 }
 
