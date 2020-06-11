@@ -331,7 +331,12 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     );
 
     let clsid = vm.vips.float32_class;
-    native_class_method(vm, clsid, "toString", stdlib::float32_to_string as *const u8);
+    native_class_method(
+        vm,
+        clsid,
+        "toString",
+        stdlib::float32_to_string as *const u8,
+    );
     intrinsic_class_method(vm, clsid, "toInt", Intrinsic::Float32ToInt32);
     intrinsic_class_method(vm, clsid, "toInt32", Intrinsic::Float32ToInt32);
     intrinsic_class_method(vm, clsid, "toInt64", Intrinsic::Float32ToInt64);
@@ -355,7 +360,12 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_class_method(vm, clsid, "sqrt", Intrinsic::Float32Sqrt);
 
     let clsid = vm.vips.float64_class;
-    native_class_method(vm, clsid, "toString", stdlib::float64_to_string as *const u8);
+    native_class_method(
+        vm,
+        clsid,
+        "toString",
+        stdlib::float64_to_string as *const u8,
+    );
     intrinsic_class_method(vm, clsid, "toInt", Intrinsic::Float64ToInt32);
     intrinsic_class_method(vm, clsid, "toInt32", Intrinsic::Float64ToInt32);
     intrinsic_class_method(vm, clsid, "toInt64", Intrinsic::Float64ToInt64);
