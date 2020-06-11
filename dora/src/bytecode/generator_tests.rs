@@ -210,7 +210,7 @@ fn gen_position_load_field_float32() {
 }
 
 #[test]
-fn gen_position_load_field_float64() 
+fn gen_position_load_field_float64() {
     let result = position("class Foo(let bar: Float64) fun f(a: Foo) -> Float64 { return a.bar; }");
     let expected = vec![(0, p(1, 64))];
     assert_eq!(expected, result);
@@ -357,7 +357,7 @@ fn gen_position_store_field_int64() {
 #[test]
 fn gen_position_store_field_float32() {
     let result = position("class Foo(var bar: Float32) fun f(a: Foo, b: Float32) { a.bar = b; }");
-    let expected = vec![(0, p(1, 63))]
+    let expected = vec![(0, p(1, 63))];
     assert_eq!(expected, result);
 }
 
@@ -3039,7 +3039,7 @@ fn gen_position_assert() {
 }
 
 #[test]
-fn gen_reinterpret_float32_as_int32() 
+fn gen_reinterpret_float32_as_int32() {
     let result = code("fun f(a: Float32) -> Int32 { a.asInt32() }");
     let expected = vec![ReinterpretFloat32AsInt32(r(1), r(0)), RetInt32(r(1))];
     assert_eq!(expected, result);
