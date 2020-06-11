@@ -17,7 +17,7 @@ use crate::threads::{DoraThread, STACK_SIZE, THREAD};
 use crate::ty::TypeList;
 use crate::vm::{get_vm, stack_pointer, Trap};
 
-pub extern "C" fn byte_to_string(val: u8) -> Ref<Str> {
+pub extern "C" fn uint8_to_string(val: u8) -> Ref<Str> {
     handle_scope(|| {
         let buffer = val.to_string();
         let vm = get_vm();
@@ -35,7 +35,7 @@ pub extern "C" fn char_to_string(val: char) -> Ref<Str> {
     })
 }
 
-pub extern "C" fn int_to_string(val: i32) -> Ref<Str> {
+pub extern "C" fn int32_to_string(val: i32) -> Ref<Str> {
     handle_scope(|| {
         let buffer = val.to_string();
         let vm = get_vm();
@@ -44,7 +44,7 @@ pub extern "C" fn int_to_string(val: i32) -> Ref<Str> {
     })
 }
 
-pub extern "C" fn long_to_string(val: i64) -> Ref<Str> {
+pub extern "C" fn int64_to_string(val: i64) -> Ref<Str> {
     handle_scope(|| {
         let buffer = val.to_string();
         let vm = get_vm();
@@ -228,28 +228,28 @@ pub extern "C" fn argv(ind: i32) -> Ref<Str> {
     panic!("argument does not exist");
 }
 
-pub extern "C" fn str_to_int_success(val: Handle<Str>) -> bool {
+pub extern "C" fn str_to_int32_success(val: Handle<Str>) -> bool {
     let slice = val.content();
     let val = str::from_utf8(slice).unwrap();
 
     val.parse::<i32>().is_ok()
 }
 
-pub extern "C" fn str_to_int(val: Handle<Str>) -> i32 {
+pub extern "C" fn str_to_int32(val: Handle<Str>) -> i32 {
     let slice = val.content();
     let val = str::from_utf8(slice).unwrap();
 
     val.parse::<i32>().unwrap_or(0)
 }
 
-pub extern "C" fn str_to_long_success(val: Handle<Str>) -> bool {
+pub extern "C" fn str_to_int64_success(val: Handle<Str>) -> bool {
     let slice = val.content();
     let val = str::from_utf8(slice).unwrap();
 
     val.parse::<i64>().is_ok()
 }
 
-pub extern "C" fn str_to_long(val: Handle<Str>) -> i64 {
+pub extern "C" fn str_to_int64(val: Handle<Str>) -> i64 {
     let slice = val.content();
     let val = str::from_utf8(slice).unwrap();
 
