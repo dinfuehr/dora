@@ -1,6 +1,27 @@
 module Assert {
-  fun string(string: String) -> StringAssert = StringAssert(string);
-  fun set[T : Equals + Hash](set: HashSet[T]) -> SetAssert[T] = SetAssert[T](set);
+  fun equal[T : Equals + Stringable](actual: T, expected: T) {
+    if actual.equals(expected).not() {
+      fatalError("values are not equal (actual: ${actual}, expected: ${expected})");
+    }
+  }
+  fun notEqual[T : Equals + Stringable](actual: T, expected: T) {
+    if actual.equals(expected) {
+      fatalError("values are equal (actual: ${actual}, expected: ${expected})");
+    }
+  }
+  fun identical[T : Identity + Stringable](actual: T, expected: T) {
+    if actual !== expected {
+      fatalError("values are not identical (actual: ${actual}, expected: ${expected})");
+    }
+  }
+  fun notIdentical[T : Identity + Stringable](actual: T, expected: T) {
+    if actual === expected {
+      fatalError("values are identical (actual: ${actual}, expected: ${expected})");
+    }
+  }
+
+  fun string(actual: String) -> StringAssert = StringAssert(actual);
+  fun set[T : Equals + Hash](actual: HashSet[T]) -> SetAssert[T] = SetAssert[T](actual);
 }
 
 class StringAssert(let value: String) {
@@ -13,7 +34,7 @@ class StringAssert(let value: String) {
 
   fun hasSize(expected: Int64) -> StringAssert {
     if self.value.length() != expected {
-      fatalError("unexpected string size (expected: ${expected}, actual: ${self.value.length()})");
+      fatalError("unexpected string size (actual: ${self.value.length()}, expected: ${expected})");
     }
     return self;
   }
