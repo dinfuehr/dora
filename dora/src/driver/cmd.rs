@@ -1,17 +1,18 @@
 use num_cpus;
 use std::cmp::{max, min};
 use std::default::Default;
+use std::fmt;
 use std::ops::Deref;
 
 use crate::gc::M;
 use docopt::Docopt;
-use rustc_serialize;
+use serde::{de, Deserialize, Deserializer};
 
 use crate::gc::{DEFAULT_CODE_SPACE_LIMIT, DEFAULT_PERM_SPACE_LIMIT};
 
 pub fn parse() -> Args {
     Docopt::new(USAGE)
-        .and_then(|d| d.decode())
+        .and_then(|d| d.deserialize())
         .unwrap_or_else(|e| e.exit())
 }
 
@@ -71,7 +72,7 @@ Options:
     --boots=<path>          Load boots source from the given path.
 ";
 
-#[derive(Debug, RustcDecodable)]
+#[derive(Debug, Deserialize)]
 pub struct Args {
     pub arg_argument: Option<Vec<String>>,
     pub arg_file: String,
@@ -225,7 +226,7 @@ impl Default for Args {
     }
 }
 
-#[derive(Copy, Clone, Debug, RustcDecodable)]
+#[derive(Copy, Clone, Debug, Deserialize)]
 pub enum CollectorName {
     Zero,
     Compact,
@@ -235,14 +236,14 @@ pub enum CollectorName {
     SweepSwiper,
 }
 
-#[derive(Copy, Clone, Debug, RustcDecodable)]
+#[derive(Copy, Clone, Debug, Deserialize)]
 pub enum CompilerName {
     Cannon,
     Baseline,
     Boots,
 }
 
-#[derive(Copy, Clone, Debug, RustcDecodable)]
+#[derive(Copy, Clone, Debug, Deserialize)]
 pub enum AsmSyntax {
     Intel,
     Att,
@@ -259,27 +260,48 @@ impl Deref for MemSize {
     }
 }
 
-impl rustc_serialize::Decodable for MemSize {
-    fn decode<D: rustc_serialize::Decoder>(d: &mut D) -> Result<MemSize, D::Error> {
-        let mut size = d.read_str()?;
-        let suffix = if let Some(ch) = size.chars().last() {
-            match ch {
-                'k' | 'K' => 1024,
-                'm' | 'M' => 1024 * 1024,
-                'g' | 'G' => 1024 * 1024 * 1024,
-                _ => 1,
+impl<'de> Deserialize<'de> for MemSize {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct MemSizeVisitor;
+        impl<'de> de::Visitor<'de> for MemSizeVisitor {
+            type Value = MemSize;
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a valid value for mem size. e.g 512M")
             }
-        } else {
-            1
-        };
+            fn visit_str<E>(self, mem_size: &str) -> Result<MemSize, E>
+            where
+                E: de::Error,
+            {
+                let suffix = if let Some(ch) = mem_size.chars().last() {
+                    match ch {
+                        'k' | 'K' => 1024,
+                        'm' | 'M' => 1024 * 1024,
+                        'g' | 'G' => 1024 * 1024 * 1024,
+                        _ => 1,
+                    }
+                } else {
+                    1
+                };
 
-        if suffix != 1 {
-            size.pop();
-        }
+                let prefix = if suffix != 1 {
+                    let (left, _) = mem_size.split_at(mem_size.len() - 1);
+                    left
+                } else {
+                    mem_size
+                };
 
-        match size.parse::<usize>() {
-            Ok(size) => Ok(MemSize(size * suffix)),
-            Err(_) => Err(d.error("cannot parse mem size")),
+                match prefix.parse::<usize>() {
+                    Ok(size) => Ok(MemSize(size * suffix)),
+                    Err(_) => Err(de::Error::custom(format!(
+                        "'{}' is not a valid mem size",
+                        mem_size
+                    ))),
+                }
+            }
         }
+        deserializer.deserialize_str(MemSizeVisitor)
     }
 }
