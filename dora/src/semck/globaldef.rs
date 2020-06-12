@@ -239,7 +239,6 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
                 internal_resolved: false,
                 has_constructor: c.has_constructor,
                 table: SymLevel::new(),
-                static_table: SymLevel::new(),
 
                 constructor: None,
                 fields: Vec::new(),

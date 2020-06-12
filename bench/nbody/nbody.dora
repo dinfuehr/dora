@@ -135,7 +135,16 @@ class Body {
     var vz: Float64;
     var mass: Float64;
 
-    @static fun jupiter() -> Body {
+   fun offsetMomentum(px: Float64, py: Float64, pz: Float64) -> Body {
+      self.vx = -px / SOLAR_MASS;
+      self.vy = -py / SOLAR_MASS;
+      self.vz = -pz / SOLAR_MASS;
+      return self;
+   }
+}
+
+module Body {
+    fun jupiter() -> Body {
         let p = Body();
         p.x = 4.84143144246472090e+00;
         p.y = -1.16032004402742839e+00;
@@ -147,7 +156,7 @@ class Body {
         return p;
     }
 
-   @static fun saturn() -> Body {
+   fun saturn() -> Body {
       let p = Body();
       p.x = 8.34336671824457987e+00;
       p.y = 4.12479856412430479e+00;
@@ -159,7 +168,7 @@ class Body {
       return p;
    }
 
-   @static fun uranus() -> Body {
+   fun uranus() -> Body {
       let p = Body();
       p.x = 1.28943695621391310e+01;
       p.y = -1.51111514016986312e+01;
@@ -171,7 +180,7 @@ class Body {
       return p;
    }
 
-   @static fun neptune() -> Body {
+   fun neptune() -> Body {
       let p = Body();
       p.x = 1.53796971148509165e+01;
       p.y = -2.59193146099879641e+01;
@@ -183,16 +192,9 @@ class Body {
       return p;
    }
 
-   @static fun sun() -> Body {
+   fun sun() -> Body {
       let p = Body();
       p.mass = SOLAR_MASS;
       return p;
-   }
-
-   fun offsetMomentum(px: Float64, py: Float64, pz: Float64) -> Body {
-      self.vx = -px / SOLAR_MASS;
-      self.vy = -py / SOLAR_MASS;
-      self.vz = -pz / SOLAR_MASS;
-      return self;
    }
 }

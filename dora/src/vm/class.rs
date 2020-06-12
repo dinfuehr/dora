@@ -59,7 +59,6 @@ pub struct Class {
     pub internal_resolved: bool,
     pub has_constructor: bool,
     pub table: SymLevel,
-    pub static_table: SymLevel,
 
     pub constructor: Option<FctId>,
     pub fields: Vec<Field>,

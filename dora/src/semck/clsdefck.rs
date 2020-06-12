@@ -345,13 +345,8 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
         let cls = self.vm.classes.idx(self.cls_id.unwrap());
         let mut cls = cls.write();
 
-        if f.is_static {
-            self.check_if_symbol_exists(f.name, f.pos, &cls.static_table);
-            cls.static_table.insert_term(f.name, TermSym::SymFct(fctid));
-        } else {
-            self.check_if_symbol_exists(f.name, f.pos, &cls.table);
-            cls.table.insert_term(f.name, TermSym::SymFct(fctid));
-        }
+        self.check_if_symbol_exists(f.name, f.pos, &cls.table);
+        cls.table.insert_term(f.name, TermSym::SymFct(fctid));
 
         cls.methods.push(fctid);
     }

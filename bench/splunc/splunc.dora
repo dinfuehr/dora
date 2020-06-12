@@ -4,7 +4,39 @@
     var left: Node;
     var right: Node;
 
-    @static fun splay(tree: Node, node: Node) -> Node {
+    fun printAge(date: Int32) {
+        println((date - self.birthday).toString());
+    }
+
+    fun printAges(date: Int32) {
+        self.printAge(date);
+
+        if self.left !== nil {
+            self.left.printAges(date);
+        }
+
+        if self.right !== nil {
+            self.right.printAges(date);
+        }
+    }
+
+    fun printTree(date: Int32, prefix: String) {
+        print(prefix);
+        print("age: " + (date - self.birthday).toString());
+        println(" value: " + self.value.toString());
+
+        if self.left !== nil {
+            self.left.printTree(date, prefix + "  ");
+        }
+
+        if self.right !== nil {
+            self.right.printTree(date, prefix + "  ");
+        }
+    }
+}
+
+module Node {
+    fun splay(tree: Node, node: Node) -> Node {
         var tree = tree;
         if tree === nil {
             return tree;
@@ -71,7 +103,7 @@
         return tree;
     }
 
-    @static fun insert(tree: Node, node: Node) -> Node {
+    fun insert(tree: Node, node: Node) -> Node {
         var tree = tree;
         if tree === nil {
             return node;
@@ -92,7 +124,7 @@
         return node;
     }
 
-    @static fun trunc(date: Int32, tree: Node, depth: Int32) {
+    fun trunc(date: Int32, tree: Node, depth: Int32) {
         if tree === nil {
             return;
         }
@@ -120,37 +152,7 @@
         }
     }
 
-    fun printAge(date: Int32) {
-        println((date - self.birthday).toString());
-    }
-
-    fun printAges(date: Int32) {
-        self.printAge(date);
-
-        if self.left !== nil {
-            self.left.printAges(date);
-        }
-
-        if self.right !== nil {
-            self.right.printAges(date);
-        }
-    }
-
-    fun printTree(date: Int32, prefix: String) {
-        print(prefix);
-        print("age: " + (date - self.birthday).toString());
-        println(" value: " + self.value.toString());
-
-        if self.left !== nil {
-            self.left.printTree(date, prefix + "  ");
-        }
-
-        if self.right !== nil {
-            self.right.printTree(date, prefix + "  ");
-        }
-    }
-
-    @static fun countNodes(node: Node) -> Int32 {
+    fun countNodes(node: Node) -> Int32 {
         if node === nil {
             return 0;
         }

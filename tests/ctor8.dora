@@ -18,7 +18,9 @@ fun main() {
   assert(x.c == 3);
 }
 
-class X(let a: Int32, let b: Int32, let c: Int32) {
-  @static fun one(a: Int32) -> X = X(a, 0, 0);
-  @static fun two(a: Int32, b: Int32) -> X = X(a, b, 0);
+class X(let a: Int32, let b: Int32, let c: Int32) {}
+
+module X {
+  fun one(a: Int32) -> X = X(a, 0, 0);
+  fun two(a: Int32, b: Int32) -> X = X(a, b, 0);
 }

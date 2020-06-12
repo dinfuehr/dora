@@ -1,5 +1,7 @@
-class Node(let val: Int32, var left: Node, var right: Node) {
-  @static fun val(val: Int32) -> Node = Node(val, nil, nil);
+class Node(let val: Int32, var left: Node, var right: Node) {}
+
+module Node {
+  fun val(val: Int32) -> Node = Node(val, nil, nil);
 }
 
 fun main() {

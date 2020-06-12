@@ -338,10 +338,14 @@ mod tests {
 
     #[test]
     fn allow_same_method_as_static_and_non_static() {
-        ok("class Foo {
+        err(
+            "class Foo {
                 @static fun foo() {}
                 fun foo() {}
-            }");
+            }",
+            pos(3, 17),
+            SemError::MethodExists("foo".into(), pos(2, 25)),
+        );
     }
 
     #[test]

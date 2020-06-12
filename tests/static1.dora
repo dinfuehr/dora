@@ -3,8 +3,6 @@ fun main() {
     assert(x == 5);
 }
 
-class Foo {
-    @static fun test(a: Int32, b: Int32) -> Int32 {
-        return a + b;
-    }
+module Foo {
+    fun test(a: Int32, b: Int32) -> Int32 = a + b;
 }
