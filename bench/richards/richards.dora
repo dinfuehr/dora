@@ -161,14 +161,6 @@ var STATE_SUSPENDED_RUNNABLE: Int32 = STATE_SUSPENDED | STATE_RUNNABLE;
 var STATE_NOT_HELD: Int32 = STATE_HELD.not();
 
 class TaskControlBlock(let link: Option[TaskControlBlock], let id: Int32, let priority: Int32, var queue: Option[Packet], let task: Task, var state: Int32) {
-    @static fun new(link: Option[TaskControlBlock], id: Int32, priority: Int32, queue: Option[Packet], task: Task) -> TaskControlBlock {
-        if queue.isNone() {
-            return TaskControlBlock(link, id, priority, queue, task, STATE_SUSPENDED);
-        } else {
-            return TaskControlBlock(link, id, priority, queue, task, STATE_SUSPENDED_RUNNABLE);
-        }
-    }
-
     fun setRunning() { self.state = STATE_RUNNING; }
     fun markAsNotHeld() { self.state = self.state & STATE_NOT_HELD; }
     fun markAsHeld() { self.state = self.state | STATE_HELD; }
@@ -207,6 +199,16 @@ class TaskControlBlock(let link: Option[TaskControlBlock], let id: Int32, let pr
 impl Stringable for TaskControlBlock {
     fun toString() -> String {
         return "tcb { ${self.task.toString()}@${self.state} }";
+    }
+}
+
+module TaskControlBlock {
+    fun new(link: Option[TaskControlBlock], id: Int32, priority: Int32, queue: Option[Packet], task: Task) -> TaskControlBlock {
+        if queue.isNone() {
+            return TaskControlBlock(link, id, priority, queue, task, STATE_SUSPENDED);
+        } else {
+            return TaskControlBlock(link, id, priority, queue, task, STATE_SUSPENDED_RUNNABLE);
+        }
     }
 }
 
@@ -327,11 +329,6 @@ class HandlerTask(let scheduler: Scheduler): Task {
 var DATA_SIZE: Int32 = 4;
 
 class Packet(var link: Option[Packet], var id: Int32, let kind: Int32, var a1: Int32, let a2: Array[Int32]) {
-    @static fun new(link: Option[Packet], id: Int32, kind: Int32) -> Packet {
-        let array: Array[Int32] = Array::new[Int32](DATA_SIZE.toInt64());
-        return Packet(link, id, kind, 0, array);
-    }
-
     fun addTo(queue: Option[Packet]) -> Packet {
         self.link = Option::none[Packet]();
         if queue.isNone() {
@@ -348,5 +345,12 @@ class Packet(var link: Option[Packet], var id: Int32, let kind: Int32, var a1: I
 
         next.link = Option::some[Packet](self);
         return queue.unwrap();
+    }
+}
+
+module Packet {
+    fun new(link: Option[Packet], id: Int32, kind: Int32) -> Packet {
+        let array: Array[Int32] = Array::new[Int32](DATA_SIZE.toInt64());
+        return Packet(link, id, kind, 0, array);
     }
 }

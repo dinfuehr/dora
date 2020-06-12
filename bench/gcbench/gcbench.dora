@@ -3,8 +3,9 @@ class Node(left: Node, right: Node) {
     var j: Int32;
     var left: Node = left;
     var right: Node = right;
-
-    @static fun leaf() -> Node = Node(nil, nil);
+}
+module Node {
+    fun leaf() -> Node = Node(nil, nil);
 }
 
 var stretchTreeDepth: Int32;
