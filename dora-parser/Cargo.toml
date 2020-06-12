@@ -9,4 +9,4 @@ license = "MIT"
 edition = "2018"
 
 [dependencies]
-parking_lot = "0.6"
+parking_lot = "0.9.*"
