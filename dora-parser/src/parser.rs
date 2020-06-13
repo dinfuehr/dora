@@ -254,11 +254,16 @@ impl<'a> Parser<'a> {
 
         let type_name = self.parse_type()?;
 
-        let (class_type, trait_type) = if self.token.is(TokenKind::For) {
+        let (for_type, trait_type) = if self.token.is(TokenKind::For) {
             self.advance_token()?;
-            let class_type = self.parse_type()?;
+            let for_type = if self.token.kind == TokenKind::Module {
+                self.advance_token()?;
+                self.parse_type()?
+            } else {
+                self.parse_type()?
+            };
 
-            (class_type, Some(type_name))
+            (for_type, Some(type_name))
         } else {
             (type_name, None)
         };
@@ -284,7 +289,7 @@ impl<'a> Parser<'a> {
             span,
             type_params,
             trait_type,
-            class_type,
+            for_type,
             methods,
         })
     }
@@ -3391,7 +3396,7 @@ mod tests {
             "Foo",
             ximpl.trait_type.as_ref().unwrap().to_string(&interner)
         );
-        assert_eq!("A", ximpl.class_type.to_string(&interner));
+        assert_eq!("A", ximpl.for_type.to_string(&interner));
         assert_eq!(0, ximpl.methods.len());
     }
 
@@ -3404,7 +3409,7 @@ mod tests {
             "Bar",
             ximpl.trait_type.as_ref().unwrap().to_string(&interner)
         );
-        assert_eq!("B", ximpl.class_type.to_string(&interner));
+        assert_eq!("B", ximpl.for_type.to_string(&interner));
         assert_eq!(1, ximpl.methods.len());
         assert_eq!(false, ximpl.methods[0].is_static);
     }
@@ -3418,7 +3423,7 @@ mod tests {
             "Bar",
             ximpl.trait_type.as_ref().unwrap().to_string(&interner)
         );
-        assert_eq!("B", ximpl.class_type.to_string(&interner));
+        assert_eq!("B", ximpl.for_type.to_string(&interner));
         assert_eq!(1, ximpl.methods.len());
         assert_eq!(true, ximpl.methods[0].is_static);
     }

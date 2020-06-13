@@ -1345,7 +1345,7 @@ where
             &IdentType::ClassAndModule(_, _) | &IdentType::StructAndModule(_, _) => unreachable!(),
             &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
             &IdentType::TypeParam(_) | &IdentType::TypeParamStaticMethod(_, _) => unreachable!(),
-            &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => {
+            &IdentType::ModuleMethod(_, _) | &IdentType::ModuleMethodType(_, _, _) => {
                 unreachable!()
             }
         }
@@ -1720,7 +1720,7 @@ where
             &IdentType::ClassAndModule(_, _) | &IdentType::StructAndModule(_, _) => unreachable!(),
             &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
             &IdentType::TypeParam(_) | &IdentType::TypeParamStaticMethod(_, _) => unreachable!(),
-            &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => {
+            &IdentType::ModuleMethod(_, _) | &IdentType::ModuleMethodType(_, _, _) => {
                 unreachable!()
             }
         }

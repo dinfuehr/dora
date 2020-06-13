@@ -169,7 +169,7 @@ impl<'a> AstDumper<'a> {
                 dump!(d, "for");
             }
 
-            d.dump_type(&ximpl.class_type);
+            d.dump_type(&ximpl.for_type);
 
             for mtd in &ximpl.methods {
                 d.dump_fct(mtd);

@@ -89,7 +89,6 @@ pub fn find_methods_in_enum(
     vm: &VM,
     object_type: BuiltinType,
     name: Name,
-    is_static: bool,
 ) -> Vec<(BuiltinType, FctId)> {
     let enum_id = object_type.enum_id().unwrap();
     let xenum = vm.enums[enum_id].read();
@@ -101,13 +100,7 @@ pub fn find_methods_in_enum(
             continue;
         }
 
-        let table = if is_static {
-            &extension.static_names
-        } else {
-            &extension.instance_names
-        };
-
-        if let Some(&fct_id) = table.get(&name) {
+        if let Some(&fct_id) = &extension.instance_names.get(&name) {
             return vec![(extension.class_ty, fct_id)];
         }
     }

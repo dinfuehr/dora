@@ -332,7 +332,6 @@ impl<'ast> VM<'ast> {
         &self,
         class_name: &'static str,
         function_name: &'static str,
-        is_static: bool,
     ) -> Option<FctId> {
         let class_name = self.interner.intern(class_name);
         let function_name = self.interner.intern(function_name);
@@ -344,7 +343,7 @@ impl<'ast> VM<'ast> {
             .expect("class not found");
         let cls = self.cls(cls_id);
 
-        let candidates = find_methods_in_class(self, cls, function_name, is_static);
+        let candidates = find_methods_in_class(self, cls, function_name);
         if candidates.len() == 1 {
             Some(candidates[0].1)
         } else {
@@ -357,7 +356,6 @@ impl<'ast> VM<'ast> {
         &self,
         class_name: &'static str,
         function_name: &'static str,
-        is_static: bool,
     ) -> Option<FctDefId> {
         let class_name = self.interner.intern(class_name);
         let function_name = self.interner.intern(function_name);
@@ -369,7 +367,7 @@ impl<'ast> VM<'ast> {
             .expect("class not found");
         let cls = self.cls(cls_id);
 
-        let candidates = find_methods_in_class(self, cls, function_name, is_static);
+        let candidates = find_methods_in_class(self, cls, function_name);
         if candidates.len() == 1 {
             let fct_id = candidates[0].1;
             let fct = self.fcts.idx(fct_id);
@@ -543,7 +541,7 @@ impl<'ast> VM<'ast> {
         BuiltinType::Class(cls_id, list_id)
     }
 
-    pub fn modu(&self, mod_id: ModuleId) -> BuiltinType {
+    pub fn module(&self, mod_id: ModuleId) -> BuiltinType {
         BuiltinType::Module(mod_id)
     }
 

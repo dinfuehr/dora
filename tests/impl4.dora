@@ -1,16 +1,21 @@
 fun main() {
     let x = A::default();
+    //let x = A::foo(); // crash
     assert(x === nil);
 }
 
 trait DefaultValue {
-    @static fun default() -> Self;
+    fun default() -> Self;
 }
 
-class A(let a: Int32)
+class A(let a: Int32) {
+  fun foo() -> Int32 = self.a;
+}
 
-impl DefaultValue for A {
-    @static fun default() -> A {
+module A {}
+
+impl DefaultValue for module A {
+    fun default() -> A {
         return nil;
     }
 }

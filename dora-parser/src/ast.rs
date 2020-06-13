@@ -287,6 +287,7 @@ pub struct StructField {
 pub enum Type {
     TypeSelf(TypeSelfType),
     TypeBasic(TypeBasicType),
+    TypeModule(TypeModuleType),
     TypeTuple(TypeTupleType),
     TypeLambda(TypeLambdaType),
 }
@@ -296,6 +297,25 @@ pub struct TypeSelfType {
     pub id: NodeId,
     pub pos: Position,
     pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub struct TypeBasicType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub span: Span,
+
+    pub name: Name,
+    pub params: Vec<Box<Type>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct TypeModuleType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub span: Span,
+
+    pub name: Name,
 }
 
 #[derive(Clone, Debug)]
@@ -315,16 +335,6 @@ pub struct TypeLambdaType {
 
     pub params: Vec<Box<Type>>,
     pub ret: Box<Type>,
-}
-
-#[derive(Clone, Debug)]
-pub struct TypeBasicType {
-    pub id: NodeId,
-    pub pos: Position,
-    pub span: Span,
-
-    pub name: Name,
-    pub params: Vec<Box<Type>>,
 }
 
 impl Type {
@@ -420,6 +430,7 @@ impl Type {
         match *self {
             Type::TypeSelf(_) => "Self".into(),
             Type::TypeBasic(ref val) => format!("{}", *interner.str(val.name)),
+            Type::TypeModule(ref val) => format!("module {}", *interner.str(val.name)),
 
             Type::TypeTuple(ref val) => {
                 let types: Vec<String> =
@@ -441,6 +452,7 @@ impl Type {
         match *self {
             Type::TypeSelf(ref val) => val.pos,
             Type::TypeBasic(ref val) => val.pos,
+            Type::TypeModule(ref val) => val.pos,
             Type::TypeTuple(ref val) => val.pos,
             Type::TypeLambda(ref val) => val.pos,
         }
@@ -450,6 +462,7 @@ impl Type {
         match *self {
             Type::TypeSelf(ref val) => val.id,
             Type::TypeBasic(ref val) => val.id,
+            Type::TypeModule(ref val) => val.id,
             Type::TypeTuple(ref val) => val.id,
             Type::TypeLambda(ref val) => val.id,
         }
@@ -464,7 +477,7 @@ pub struct Impl {
 
     pub type_params: Option<Vec<TypeParam>>,
     pub trait_type: Option<Type>,
-    pub class_type: Type,
+    pub for_type: Type,
     pub methods: Vec<Function>,
 }
 

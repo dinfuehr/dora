@@ -7,7 +7,6 @@ use crate::error::msg::SemError;
 use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck;
 use crate::semck::{always_returns, expr_always_returns};
-use crate::sym::TypeSym::SymClass;
 use crate::ty::{BuiltinType, TypeList, TypeParamId};
 use crate::typeck::lookup::MethodLookup;
 use crate::vm::{
@@ -15,6 +14,7 @@ use crate::vm::{
     EnumId, Fct, FctId, FctParent, FctSrc, FileId, ForTypeInfo, IdentType, Intrinsic, VM,
 };
 
+use crate::vm::module::ModuleId;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
@@ -456,7 +456,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             &IdentType::FctType(_, _) | &IdentType::ClassType(_, _) => unreachable!(),
             &IdentType::TypeParamStaticMethod(_, _) => unreachable!(),
             &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
-            &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => {
+            &IdentType::ModuleMethod(_, _) | &IdentType::ModuleMethodType(_, _, _) => {
                 unreachable!()
             }
         }
@@ -578,7 +578,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             &IdentType::Method(_, _) | &IdentType::MethodType(_, _, _) => unreachable!(),
-            &IdentType::StaticMethod(_, _) | &IdentType::StaticMethodType(_, _, _) => {
+            &IdentType::ModuleMethod(_, _) | &IdentType::ModuleMethodType(_, _, _) => {
                 unreachable!()
             }
         }
@@ -611,14 +611,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let name = self.vm.interner.intern("set");
         arg_types.push(value_type);
 
-        if let Some((_, fct_id, _)) = self.find_method(
-            e.pos,
-            expr_type,
-            false,
-            name,
-            &arg_types,
-            &TypeList::empty(),
-        ) {
+        if let Some((_, fct_id, _)) =
+            self.find_method(e.pos, expr_type, name, &arg_types, &TypeList::empty())
+        {
             let call_type = CallType::Expr(expr_type, fct_id);
             self.src
                 .map_calls
@@ -704,20 +699,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         &mut self,
         pos: Position,
         object_type: BuiltinType,
-        is_static: bool,
         name: Name,
         args: &[BuiltinType],
         fct_type_params: &TypeList,
     ) -> Option<(ClassId, FctId, BuiltinType)> {
-        let result = lookup_method(
-            self.vm,
-            object_type,
-            is_static,
-            name,
-            args,
-            fct_type_params,
-            None,
-        );
+        let result = lookup_method(self.vm, object_type, name, args, fct_type_params, None);
 
         if result.is_none() {
             let type_name = object_type.name(self.vm);
@@ -726,12 +712,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 .iter()
                 .map(|a| a.name(self.vm))
                 .collect::<Vec<String>>();
-            let msg = if is_static {
-                SemError::UnknownStaticMethod(type_name, name, param_names)
-            } else {
-                SemError::UnknownMethod(type_name, name, param_names)
-            };
-
+            let msg = SemError::UnknownMethod(type_name, name, param_names);
             self.vm.diag.lock().report(self.file, pos, msg);
         }
 
@@ -766,15 +747,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let call_types = [];
 
         if !ty.is_error() {
-            if let Some((_, fct_id, return_type)) = lookup_method(
-                self.vm,
-                ty,
-                false,
-                name,
-                &call_types,
-                &TypeList::empty(),
-                None,
-            ) {
+            if let Some((_, fct_id, return_type)) =
+                lookup_method(self.vm, ty, name, &call_types, &TypeList::empty(), None)
+            {
                 let call_type = CallType::Method(ty, fct_id, TypeList::empty());
                 self.src.map_calls.insert(e.id, Arc::new(call_type));
 
@@ -856,7 +831,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         if let Some((_, fct_id, return_type)) = lookup_method(
             self.vm,
             lhs_type,
-            false,
             name,
             &call_types,
             &TypeList::empty(),
@@ -1015,8 +989,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.check_expr_call_method(e, object_type, method_name, type_params, &arg_types)
             }
 
-            Some(IdentType::StaticMethod(object_type, method_name)) => self
-                .check_expr_call_static_method(
+            Some(IdentType::ModuleMethod(object_type, method_name)) => self
+                .check_expr_call_module_method(
                     e,
                     object_type,
                     method_name,
@@ -1024,8 +998,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     &arg_types,
                 ),
 
-            Some(IdentType::StaticMethodType(object_type, method_name, type_params)) => self
-                .check_expr_call_static_method(
+            Some(IdentType::ModuleMethodType(object_type, method_name, type_params)) => self
+                .check_expr_call_module_method(
                     e,
                     object_type,
                     method_name,
@@ -1147,7 +1121,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         for &trait_id in &type_param.trait_bounds {
             let xtrait = self.vm.traits[trait_id].read();
 
-            if let Some(fct_id) = xtrait.find_method(self.vm, name, true) {
+            if let Some(fct_id) = xtrait.find_method(self.vm, name, false) {
                 fcts.push((trait_id, fct_id));
             }
         }
@@ -1223,7 +1197,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let get = self.vm.interner.intern("get");
 
         if let Some((_, fct_id, return_type)) =
-            self.find_method(e.pos, expr_type, false, get, arg_types, &TypeList::empty())
+            self.find_method(e.pos, expr_type, get, arg_types, &TypeList::empty())
         {
             let call_type = CallType::Expr(expr_type, fct_id);
             self.src
@@ -1267,21 +1241,17 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         ty
     }
 
-    fn check_expr_call_static_method(
+    fn check_expr_call_module_method(
         &mut self,
         e: &'ast ExprCallType,
-        object_type: BuiltinType,
+        module_id: ModuleId,
         method_name: Name,
         type_params: TypeList,
         arg_types: &[BuiltinType],
     ) -> BuiltinType {
-        let cls_id = object_type.cls_id(self.vm).unwrap();
-        let cls_type_params = object_type.type_params(self.vm);
-        assert_eq!(cls_type_params.len(), 0);
-
         let mut lookup = MethodLookup::new(self.vm, self.file)
             .pos(e.pos)
-            .static_method(cls_id)
+            .method(self.vm.module(module_id))
             .name(method_name)
             .args(arg_types)
             .fct_type_params(&type_params);
@@ -1472,83 +1442,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_expr_call_path(
-        &mut self,
-        e: &'ast ExprCallType,
-        type_params: TypeList,
-        arg_types: &[BuiltinType],
-    ) -> BuiltinType {
-        let path = e.callee.to_path().unwrap();
-        let class_expr = &path.lhs;
-        let method_name_expr = &path.rhs;
-
-        let class;
-        let method_name;
-
-        if let Some(class_expr) = class_expr.to_ident() {
-            class = class_expr.name;
-        } else {
-            let msg = SemError::ExpectedSomeIdentifier;
-            self.vm.diag.lock().report(self.file, class_expr.pos(), msg);
-
-            self.src.set_ty(e.id, BuiltinType::Error);
-            return BuiltinType::Error;
-        }
-
-        if let Some(method_name_expr) = method_name_expr.to_ident() {
-            method_name = method_name_expr.name;
-        } else {
-            let msg = SemError::ExpectedSomeIdentifier;
-            self.vm
-                .diag
-                .lock()
-                .report(self.file, method_name_expr.pos(), msg);
-
-            self.src.set_ty(e.id, BuiltinType::Error);
-            return BuiltinType::Error;
-        }
-
-        match self.vm.sym.lock().get_type(class) {
-            Some(SymClass(cls_id)) => {
-                let mut lookup = MethodLookup::new(self.vm, self.file)
-                    .pos(e.pos)
-                    .static_method(cls_id)
-                    .name(method_name)
-                    .args(arg_types)
-                    .fct_type_params(&type_params);
-
-                let ty = if lookup.find() {
-                    let fct_id = lookup.found_fct_id().unwrap();
-                    let call_type = Arc::new(CallType::Fct(
-                        fct_id,
-                        TypeList::empty(),
-                        type_params.clone(),
-                    ));
-                    self.src.map_calls.insert(e.id, call_type.clone());
-                    let ty = lookup.found_ret().unwrap();
-                    self.src.set_ty(e.id, ty);
-
-                    ty
-                } else {
-                    self.src.set_ty(e.id, BuiltinType::Error);
-
-                    BuiltinType::Error
-                };
-
-                return ty;
-            }
-
-            _ => {}
-        }
-
-        let msg = SemError::ClassExpected;
-        self.vm.diag.lock().report(self.file, e.pos, msg);
-
-        self.src.set_ty(e.id, BuiltinType::Error);
-
-        BuiltinType::Error
-    }
-
     fn check_expr_delegation(
         &mut self,
         e: &'ast ExprDelegationType,
@@ -1629,25 +1522,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         };
 
         let ident_type = match ident_type {
-            Some(&IdentType::Class(cls_id)) => {
-                let list = self.vm.lists.lock().insert(TypeList::empty());
-                let cls_ty = BuiltinType::Class(cls_id, list);
-
-                IdentType::StaticMethod(cls_ty, name)
-            }
-
             Some(&IdentType::Module(module_id))
             | Some(&IdentType::ClassAndModule(_, module_id)) => {
                 let module_ty = BuiltinType::Module(module_id);
-
                 IdentType::Method(module_ty, name)
-            }
-
-            Some(&IdentType::ClassType(cls_id, ref type_params)) => {
-                let list = self.vm.lists.lock().insert(type_params.clone());
-                let cls_ty = BuiltinType::Class(cls_id, list);
-
-                IdentType::StaticMethod(cls_ty, name)
             }
 
             Some(&IdentType::TypeParam(ty)) => IdentType::TypeParamStaticMethod(ty, name),
@@ -1749,10 +1627,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     .insert(e.id, IdentType::MethodType(ty, name, type_params));
             }
 
-            Some(IdentType::StaticMethod(cls_ty, name)) => {
-                self.src
-                    .map_idents
-                    .insert(e.id, IdentType::StaticMethodType(cls_ty, name, type_params));
+            Some(IdentType::ModuleMethod(module_id, name)) => {
+                self.src.map_idents.insert(
+                    e.id,
+                    IdentType::ModuleMethodType(module_id, name, type_params),
+                );
             }
 
             _ => {
@@ -2501,7 +2380,6 @@ pub fn check_lit_float(
 pub fn lookup_method<'ast>(
     vm: &VM<'ast>,
     object_type: BuiltinType,
-    is_static: bool,
     name: Name,
     args: &[BuiltinType],
     fct_tps: &TypeList,
@@ -2510,7 +2388,7 @@ pub fn lookup_method<'ast>(
     let cls_id = object_type.cls_id(vm);
 
     if cls_id.is_some() {
-        let candidates = find_methods_in_class(vm, object_type, name, is_static);
+        let candidates = find_methods_in_class(vm, object_type, name);
 
         if candidates.len() == 1 {
             let candidate = candidates[0].1;

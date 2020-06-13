@@ -179,11 +179,11 @@ pub enum IdentType {
     // method expression with type params: <expr>.<method_name>[T1, T2, ...]
     MethodType(BuiltinType, Name, TypeList),
 
-    // static method expression: SomeClass[T1, T2, ...]::<name>
-    StaticMethod(BuiltinType, Name),
+    // module method expression: SomeModule::<name>
+    ModuleMethod(ModuleId, Name),
 
-    // static method expression: SomeClass[T1, T2, ...]::<name>[T1, T2, ...]
-    StaticMethodType(BuiltinType, Name, TypeList),
+    // module method expression: SomeModule::<name>[T1, T2, ...]
+    ModuleMethodType(ModuleId, Name, TypeList),
 
     // function or class type param: e.g. T
     TypeParam(BuiltinType),

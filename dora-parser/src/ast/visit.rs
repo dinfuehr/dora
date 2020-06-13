@@ -212,6 +212,7 @@ pub fn walk_type<'v, V: Visitor<'v>>(v: &mut V, t: &'v Type) {
     match *t {
         TypeSelf(_) => {}
         TypeBasic(_) => {}
+        TypeModule(_) => {}
         TypeTuple(ref tuple) => {
             for ty in &tuple.subtypes {
                 v.visit_type(ty);

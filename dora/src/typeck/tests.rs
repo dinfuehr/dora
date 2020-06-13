@@ -1010,20 +1010,24 @@ fn test_generic_arguments_mismatch() {
 fn test_invoke_static_method_as_instance_method() {
     err(
         "class A {
-                @static fun foo() {}
                 fun test() { self.foo(); }
+            }
+            module A {
+              fun foo() {}
             }",
-        pos(3, 38),
+        pos(2, 38),
         SemError::UnknownMethod("A".into(), "foo".into(), vec![]),
     );
 }
 
-#[test]
+// #[test] FIXME #216
 fn test_invoke_method_as_static() {
     err(
         "class A {
                 fun foo() {}
-                @static fun test() { A::foo(); }
+            }
+            module A {
+                fun test() { A::foo(); }
             }",
         pos(3, 44),
         SemError::UnknownStaticMethod("A".into(), "foo".into(), vec![]),
@@ -1200,7 +1204,8 @@ fn test_find_class_method_precedence() {
         SemError::ParamTypesIncompatible("foo".into(), Vec::new(), vec!["Int32".into()]),
     );
 
-    ok("class A { @static fun foo() {} }
+    ok("class A() {}
+            module A { fun foo() {} }
             trait Foo { fun foo(a: Int32); }
             impl Foo for A { fun foo(a:  Int32) {} }
             fun test(a: A) { a.foo(1); }");
@@ -1401,14 +1406,14 @@ fn test_new_call_fct_with_wrong_type_params() {
 
 #[test]
 fn test_new_call_static_method() {
-    ok("class Foo { @static fun bar() {} }
+    ok("module Foo { fun bar() {} }
             fun f() { Foo::bar(); }");
 }
 
 #[test]
 fn test_new_call_static_method_wrong_params() {
     err(
-        "class Foo { @static fun bar() {} }
+        "module Foo { fun bar() {} }
             fun f() { Foo::bar(1); }",
         pos(2, 31),
         SemError::ParamTypesIncompatible("bar".into(), Vec::new(), vec!["Int32".into()]),
@@ -1417,7 +1422,7 @@ fn test_new_call_static_method_wrong_params() {
 
 #[test]
 fn test_new_call_static_method_type_params() {
-    ok("class Foo { @static fun bar[T]() {} }
+    ok("module Foo { fun bar[T]() {} }
             fun f() { Foo::bar[Int32](); }");
 }
 
@@ -1630,28 +1635,28 @@ fn test_type_param_call() {
 #[test]
 fn test_static_method_call_with_type_param() {
     err(
-        "trait X { @static fun bar() -> Int32; }
+        "trait X { fun bar() -> Int32; }
         fun f[T: X]() { T::foo(); }",
         pos(2, 31),
         SemError::UnknownStaticMethodWithTypeParam,
     );
 
     err(
-        "trait X { @static fun foo() -> Int32; }
-        trait Y { @static fun foo() -> String; }
+        "trait X { fun foo() -> Int32; }
+        trait Y { fun foo() -> String; }
         fun f[T: X + Y]() { T::foo(); }",
         pos(3, 35),
         SemError::MultipleCandidatesForStaticMethodWithTypeParam,
     );
 
     err(
-        "trait X { @static fun foo() -> Int32; }
+        "trait X { fun foo() -> Int32; }
         fun f[T: X]() -> Int32 { return T::foo(1); }",
         pos(2, 47),
         SemError::ParamTypesIncompatible("foo".into(), Vec::new(), vec!["Int32".into()]),
     );
 
-    ok("trait X { @static fun foo() -> Int32; }
+    ok("trait X { fun foo() -> Int32; }
         fun f[T: X]() -> Int32 { return T::foo(); }");
 }
 

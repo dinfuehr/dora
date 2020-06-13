@@ -161,7 +161,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
                 name: m.name,
                 file: self.file_id.into(),
                 pos: m.pos,
-                ty: self.vm.modu(id),
+                ty: self.vm.module(id),
                 parent_class: None,
                 internal: m.internal,
                 internal_resolved: false,

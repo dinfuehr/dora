@@ -258,7 +258,6 @@ pub fn find_methods_in_class(
     vm: &VM,
     object_type: BuiltinType,
     name: Name,
-    is_static: bool,
 ) -> Vec<(BuiltinType, FctId)> {
     let mut candidates = Vec::new();
     let mut ignores = HashSet::new();
@@ -274,7 +273,7 @@ pub fn find_methods_in_class(
             let method = vm.fcts.idx(method);
             let method = method.read();
 
-            if method.name == name && method.is_static == is_static {
+            if method.name == name {
                 if let Some(overrides) = method.overrides {
                     ignores.insert(overrides);
                 }
@@ -306,13 +305,7 @@ pub fn find_methods_in_class(
                 continue;
             }
 
-            let table = if is_static {
-                &extension.static_names
-            } else {
-                &extension.instance_names
-            };
-
-            if let Some(&fct_id) = table.get(&name) {
+            if let Some(&fct_id) = &extension.instance_names.get(&name) {
                 return vec![(extension.class_ty, fct_id)];
             }
         }
@@ -336,7 +329,7 @@ pub fn find_methods_in_class(
                 let method = vm.fcts.idx(method);
                 let method = method.read();
 
-                if method.name == name && method.is_static == is_static {
+                if method.name == name {
                     candidates.push((class_type, method.id));
                 }
             }

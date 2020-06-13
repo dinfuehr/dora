@@ -35,7 +35,7 @@ fn code_method(code: &'static str) -> Vec<Bytecode> {
 fn code_method_with_class_name(code: &'static str, class_name: &'static str) -> Vec<Bytecode> {
     test::parse(code, |vm| {
         let fct_id = vm
-            .cls_method_by_name(class_name, "f", false)
+            .cls_method_by_name(class_name, "f")
             .unwrap_or_else(|| panic!("no function `f` in Class `{}`.", class_name));
         let tp = TypeList::empty();
         let fct = bytecode::generate_fct(vm, fct_id, &tp, &tp);
@@ -1422,9 +1422,7 @@ fn gen_method_call_void_check_correct_self() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![PushRegister(r(1)), InvokeDirectVoid(fct_id), RetVoid];
             assert_eq!(expected, code);
         },
@@ -1441,9 +1439,7 @@ fn gen_method_call_void_with_0_args() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![PushRegister(r(0)), InvokeDirectVoid(fct_id), RetVoid];
             assert_eq!(expected, code);
         },
@@ -1460,9 +1456,7 @@ fn gen_method_call_void_with_1_arg() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 ConstInt32(r(1), 1),
                 PushRegister(r(0)),
@@ -1485,9 +1479,7 @@ fn gen_method_call_void_with_3_args() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 ConstInt32(r(1), 1),
                 ConstInt32(r(2), 2),
@@ -1514,9 +1506,7 @@ fn gen_method_call_bool_with_0_args() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirectBool(r(1), fct_id),
@@ -1537,9 +1527,7 @@ fn gen_method_call_bool_with_0_args_and_unused_result() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![PushRegister(r(0)), InvokeDirectBool(r(1), fct_id), RetVoid];
             assert_eq!(expected, code);
         },
@@ -1556,9 +1544,7 @@ fn gen_method_call_bool_with_1_arg() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 ConstTrue(r(2)),
                 PushRegister(r(0)),
@@ -1581,9 +1567,7 @@ fn gen_method_call_bool_with_3_args() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 ConstTrue(r(2)),
                 ConstFalse(r(3)),
@@ -1610,9 +1594,7 @@ fn gen_method_call_byte_with_0_args() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirectUInt8(r(1), fct_id),
@@ -1633,9 +1615,7 @@ fn gen_method_call_byte_with_0_args_and_unused_result() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![PushRegister(r(0)), InvokeDirectUInt8(r(1), fct_id), RetVoid];
             assert_eq!(expected, code);
         },
@@ -1652,9 +1632,7 @@ fn gen_method_call_byte_with_1_arg() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 ConstUInt8(r(2), 1),
                 PushRegister(r(0)),
@@ -1677,9 +1655,7 @@ fn gen_method_call_byte_with_3_args() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 ConstUInt8(r(2), 1),
                 ConstUInt8(r(3), 2),
@@ -1706,9 +1682,7 @@ fn gen_method_call_char_with_0_args() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirectChar(r(1), fct_id),
@@ -1729,9 +1703,7 @@ fn gen_method_call_char_with_0_args_and_unused_result() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![PushRegister(r(0)), InvokeDirectChar(r(1), fct_id), RetVoid];
             assert_eq!(expected, code);
         },
@@ -1748,9 +1720,7 @@ fn gen_method_call_char_with_1_arg() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 ConstChar(r(2), '1'),
                 PushRegister(r(0)),
@@ -1773,9 +1743,7 @@ fn gen_method_call_char_with_3_args() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 ConstChar(r(2), '1'),
                 ConstChar(r(3), '2'),
@@ -1802,9 +1770,7 @@ fn gen_method_call_int_with_0_args() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirectInt32(r(1), fct_id),
@@ -1825,9 +1791,7 @@ fn gen_method_call_int_with_0_args_and_unused_result() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![PushRegister(r(0)), InvokeDirectInt32(r(1), fct_id), RetVoid];
             assert_eq!(expected, code);
         },
@@ -1844,9 +1808,7 @@ fn gen_method_call_int_with_1_arg() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 ConstInt32(r(2), 1),
                 PushRegister(r(0)),
@@ -1869,9 +1831,7 @@ fn gen_method_call_int_with_3_args() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 ConstInt32(r(2), 1),
                 ConstInt32(r(3), 2),
@@ -1898,9 +1858,7 @@ fn gen_method_call_int64_with_0_args() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirectInt64(r(1), fct_id),
@@ -1921,9 +1879,7 @@ fn gen_method_call_int64_with_0_args_and_unused_result() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![PushRegister(r(0)), InvokeDirectInt64(r(1), fct_id), RetVoid];
             assert_eq!(expected, code);
         },
@@ -1940,9 +1896,7 @@ fn gen_method_call_int64_with_1_arg() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 ConstInt64(r(2), 1),
                 PushRegister(r(0)),
@@ -1965,9 +1919,7 @@ fn gen_method_call_int64_with_3_args() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 ConstInt64(r(2), 1),
                 ConstInt64(r(3), 2),
@@ -1994,9 +1946,7 @@ fn gen_method_call_float32_with_0_args() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirectFloat32(r(1), fct_id),
@@ -2017,9 +1967,7 @@ fn gen_method_call_float32_with_0_args_and_unused_result() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirectFloat32(r(1), fct_id),
@@ -2040,9 +1988,7 @@ fn gen_method_call_float32_with_1_arg() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 ConstFloat32(r(2), 1_f32),
                 PushRegister(r(0)),
@@ -2065,9 +2011,7 @@ fn gen_method_call_float32_with_3_args() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 ConstFloat32(r(2), 1_f32),
                 ConstFloat32(r(3), 2_f32),
@@ -2094,9 +2038,7 @@ fn gen_method_call_float64_with_0_args() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirectFloat64(r(1), fct_id),
@@ -2117,9 +2059,7 @@ fn gen_method_call_float64_with_0_args_and_unused_result() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirectFloat64(r(1), fct_id),
@@ -2140,9 +2080,7 @@ fn gen_method_call_float64_with_1_arg() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 ConstFloat64(r(2), 1_f64),
                 PushRegister(r(0)),
@@ -2165,9 +2103,7 @@ fn gen_method_call_float64_with_3_args() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 ConstFloat64(r(2), 1_f64),
                 ConstFloat64(r(3), 2_f64),
@@ -2194,9 +2130,7 @@ fn gen_method_call_ptr_with_0_args() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirectPtr(r(1), fct_id),
@@ -2217,9 +2151,7 @@ fn gen_method_call_ptr_with_0_args_and_unused_result() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![PushRegister(r(0)), InvokeDirectPtr(r(1), fct_id), RetVoid];
             assert_eq!(expected, code);
         },
@@ -2236,9 +2168,7 @@ fn gen_method_call_ptr_with_1_arg() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 ConstString(r(2), "1".to_string()),
                 PushRegister(r(0)),
@@ -2261,9 +2191,7 @@ fn gen_method_call_ptr_with_3_args() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 ConstString(r(2), "1".to_string()),
                 ConstString(r(3), "2".to_string()),
@@ -2293,9 +2221,7 @@ fn gen_virtual_method_call_void_check_correct_self() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![PushRegister(r(1)), InvokeVirtualVoid(fct_id), RetVoid];
             assert_eq!(expected, code);
         },
@@ -2315,9 +2241,7 @@ fn gen_virtual_method_call_void_with_0_args() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![PushRegister(r(0)), InvokeVirtualVoid(fct_id), RetVoid];
             assert_eq!(expected, code);
         },
@@ -2337,9 +2261,7 @@ fn gen_virtual_method_call_void_with_1_arg() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 ConstInt32(r(1), 1),
                 PushRegister(r(0)),
@@ -2365,9 +2287,7 @@ fn gen_virtual_method_call_void_with_3_args() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 ConstInt32(r(1), 1),
                 ConstInt32(r(2), 2),
@@ -2397,9 +2317,7 @@ fn gen_virtual_method_call_int_with_0_args() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeVirtualInt32(r(1), fct_id),
@@ -2423,9 +2341,7 @@ fn gen_virtual_method_call_int_with_1_arg() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 ConstInt32(r(2), 1),
                 PushRegister(r(0)),
@@ -2451,9 +2367,7 @@ fn gen_virtual_method_call_int_with_3_args() {
             }
             ",
         |vm, code| {
-            let fct_id = vm
-                .cls_method_def_by_name("Foo", "g", false)
-                .expect("g not found");
+            let fct_id = vm.cls_method_def_by_name("Foo", "g").expect("g not found");
             let expected = vec![
                 ConstInt32(r(2), 1),
                 ConstInt32(r(3), 2),
@@ -3237,7 +3151,7 @@ fn gen_string_concat() {
         "fun f(a: String, b: String) -> String { a + b }",
         |vm, code| {
             let fct_id = vm
-                .cls_method_def_by_name("String", "plus", false)
+                .cls_method_def_by_name("String", "plus")
                 .expect("String::plus not found");
             let expected = vec![
                 PushRegister(r(0)),
@@ -3256,7 +3170,7 @@ fn gen_string_equals() {
         "fun f(a: String, b: String) -> Bool { a != b }",
         |vm, code| {
             let fct_id = vm
-                .cls_method_def_by_name("String", "equals", false)
+                .cls_method_def_by_name("String", "equals")
                 .expect("String::equals not found");
             let expected = vec![
                 PushRegister(r(0)),
@@ -3274,7 +3188,7 @@ fn gen_string_equals() {
 fn gen_bool_to_string() {
     gen("fun f(a: Bool) -> String { a.toString() }", |vm, code| {
         let fct_id = vm
-            .cls_method_def_by_name("Bool", "toString", false)
+            .cls_method_def_by_name("Bool", "toString")
             .expect("Bool::toString not found");
         let expected = vec![
             PushRegister(r(0)),
@@ -3291,7 +3205,7 @@ fn gen_cmp_strings() {
         "fun f(a: String, b: String) -> Bool { a < b }",
         |vm, code| {
             let fct_id = vm
-                .cls_method_def_by_name("String", "compareTo", false)
+                .cls_method_def_by_name("String", "compareTo")
                 .expect("String::compareTo not found");
             let expected = vec![
                 PushRegister(r(0)),
@@ -3395,7 +3309,7 @@ fn gen_vec_load() {
     gen(
         "fun f(x: Vec[Int32], idx: Int64) -> Int32 { x(idx) }",
         |vm, code| {
-            let fct_id = vm.cls_method_by_name("Vec", "get", false).unwrap();
+            let fct_id = vm.cls_method_by_name("Vec", "get").unwrap();
             let fct_def_id = FctDef::fct_id_types(
                 vm,
                 fct_id,
@@ -3418,7 +3332,7 @@ fn gen_vec_store() {
     gen(
         "fun f(x: Vec[Int32], idx: Int64, value: Int32) { x(idx) = value; }",
         |vm, code| {
-            let fct_id = vm.cls_method_by_name("Vec", "set", false).unwrap();
+            let fct_id = vm.cls_method_by_name("Vec", "set").unwrap();
             let fct_def_id = FctDef::fct_id_types(
                 vm,
                 fct_id,

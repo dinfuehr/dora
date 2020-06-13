@@ -8,15 +8,15 @@ use crate::vm::{
     TypeParam, VM,
 };
 
-use crate::vm::module::find_methods_in_module;
+use crate::vm::module::{find_methods_in_module, ModuleId};
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 #[derive(Copy, Clone)]
 enum LookupKind {
     Fct,
-    Method(BuiltinType),
-    Static(ClassId),
+    Class(BuiltinType),
+    Module(ModuleId),
     Trait(TraitId),
     Callee(FctId),
     Ctor(ClassId),
@@ -73,15 +73,15 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
     pub fn method(mut self, obj: BuiltinType) -> MethodLookup<'a, 'ast> {
         self.kind = if let Some(_) = obj.cls_id(self.vm) {
-            Some(LookupKind::Method(obj))
-        } else if let Some(_) = obj.module_id() {
-            Some(LookupKind::Method(obj))
+            Some(LookupKind::Class(obj))
+        } else if let Some(module_id) = obj.module_id() {
+            Some(LookupKind::Module(module_id))
         } else if let BuiltinType::Trait(trait_id) = obj {
             Some(LookupKind::Trait(trait_id))
         } else if obj.is_nil() {
-            Some(LookupKind::Method(obj))
+            Some(LookupKind::Class(obj))
         } else if obj.is_enum() {
-            Some(LookupKind::Method(obj))
+            Some(LookupKind::Class(obj))
         } else {
             panic!("neither object nor trait object: {:?}", obj);
         };
@@ -89,8 +89,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         self
     }
 
-    pub fn static_method(mut self, cls_id: ClassId) -> MethodLookup<'a, 'ast> {
-        self.kind = Some(LookupKind::Static(cls_id));
+    pub fn static_method(mut self, module_id: ModuleId) -> MethodLookup<'a, 'ast> {
+        self.kind = Some(LookupKind::Module(module_id));
         self
     }
 
@@ -142,9 +142,9 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
             LookupKind::Callee(fct_id) => Some(fct_id),
 
-            LookupKind::Method(obj) => {
+            LookupKind::Class(obj) => {
                 let name = self.name.expect("name not set");
-                self.find_method(obj, name, false)
+                self.find_method(obj, name)
             }
 
             LookupKind::Trait(trait_id) => {
@@ -152,10 +152,10 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                 self.find_method_in_trait(trait_id, name, false)
             }
 
-            LookupKind::Static(cls_id) => {
+            LookupKind::Module(module_id) => {
                 assert!(self.cls_tps.is_none());
                 let name = self.name.expect("name not set");
-                self.find_method(self.vm.cls(cls_id), name, true)
+                self.find_method(self.vm.module(module_id), name)
             }
 
             LookupKind::Ctor(cls_id) => {
@@ -187,7 +187,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             let msg = match kind {
                 LookupKind::Fct => SemError::Unimplemented,
                 LookupKind::Callee(_) => unreachable!(),
-                LookupKind::Method(obj) => {
+                LookupKind::Class(obj) => {
                     let type_name = obj.name(self.vm);
 
                     if self.found_multiple_functions {
@@ -204,8 +204,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                     SemError::UnknownMethod(type_name, name, param_names)
                 }
 
-                LookupKind::Static(cls_id) => {
-                    let type_name = self.vm.cls(cls_id).name(self.vm);
+                LookupKind::Module(module_id) => {
+                    let type_name = self.vm.module(module_id).name(self.vm);
                     SemError::UnknownStaticMethod(type_name, name, param_names)
                 }
 
@@ -238,7 +238,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
         let cls_tps: TypeList = if let Some(cls_tps) = self.cls_tps {
             cls_tps.clone()
-        } else if let LookupKind::Method(obj) = kind {
+        } else if let LookupKind::Class(obj) = kind {
             obj.type_params(self.vm)
         } else {
             TypeList::empty()
@@ -335,12 +335,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         None
     }
 
-    fn find_method(
-        &mut self,
-        object_type: BuiltinType,
-        name: Name,
-        is_static: bool,
-    ) -> Option<FctId> {
+    fn find_method(&mut self, object_type: BuiltinType, name: Name) -> Option<FctId> {
         if object_type.is_nil() {
             return None;
         }
@@ -348,9 +343,9 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         let candidates = if object_type.is_module() {
             find_methods_in_module(self.vm, object_type, name)
         } else if object_type.is_enum() {
-            find_methods_in_enum(self.vm, object_type, name, is_static)
+            find_methods_in_enum(self.vm, object_type, name)
         } else {
-            find_methods_in_class(self.vm, object_type, name, is_static)
+            find_methods_in_class(self.vm, object_type, name)
         };
 
         self.found_multiple_functions = candidates.len() > 1;

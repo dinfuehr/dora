@@ -72,14 +72,14 @@ impl<'x, 'ast> ImplCheck<'x, 'ast> {
             return;
         }
 
-        if let Some(class_ty) = semck::read_type(self.vm, self.file_id.into(), &i.class_type) {
+        if let Some(class_ty) = semck::read_type(self.vm, self.file_id.into(), &i.for_type) {
             if class_ty.cls_id(self.vm).is_some() {
                 ximpl.class_ty = class_ty;
             } else {
                 report(
                     self.vm,
                     ximpl.file,
-                    i.class_type.pos(),
+                    i.for_type.pos(),
                     SemError::ClassExpected,
                 );
             }

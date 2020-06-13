@@ -1,0 +1,13 @@
+fun main() {
+    assert(Num::one().value == 1);
+}
+
+trait One {
+    fun one() -> Self;
+}
+
+impl One for module Num {
+    fun one() -> Num = Num(1);
+}
+
+class Num(let value: Int32) {}

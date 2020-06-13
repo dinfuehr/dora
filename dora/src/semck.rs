@@ -1,14 +1,15 @@
 use crate::error::msg::SemError;
 use crate::mem;
+use crate::sym::TermSym::SymModule;
 use crate::sym::TypeSym::{
     SymClass, SymClassTypeParam, SymEnum, SymFctTypeParam, SymStruct, SymTrait,
 };
 use crate::ty::{BuiltinType, TypeList};
 use crate::typeck;
 use crate::vm::{ensure_tuple, ClassId, FileId, NodeMap, VM};
-use dora_parser::ast::Type::{TypeBasic, TypeLambda, TypeSelf, TypeTuple};
+use dora_parser::ast::Type::{TypeBasic, TypeLambda, TypeModule, TypeSelf, TypeTuple};
 use dora_parser::ast::{
-    Expr, ExprBlockType, Stmt, Type, TypeBasicType, TypeLambdaType, TypeTupleType,
+    Expr, ExprBlockType, Stmt, Type, TypeBasicType, TypeLambdaType, TypeModuleType, TypeTupleType,
 };
 
 mod abstractck;
@@ -216,6 +217,7 @@ pub fn read_type<'ast>(vm: &VM<'ast>, file: FileId, t: &'ast Type) -> Option<Bui
     match *t {
         TypeSelf(_) => Some(BuiltinType::This),
         TypeBasic(ref basic) => read_type_basic(vm, file, basic),
+        TypeModule(ref module) => read_type_module(vm, file, module),
         TypeTuple(ref tuple) => read_type_tuple(vm, file, tuple),
         TypeLambda(ref lambda) => read_type_lambda(vm, file, lambda),
     }
@@ -345,6 +347,25 @@ fn read_type_class<'ast>(
     let list = TypeList::with(type_params);
     let list_id = vm.lists.lock().insert(list);
     Some(BuiltinType::Class(cls.id, list_id))
+}
+
+fn read_type_module<'ast>(
+    vm: &VM<'ast>,
+    file: FileId,
+    module: &'ast TypeModuleType,
+) -> Option<BuiltinType> {
+    let sym = vm.sym.lock().get_term(module.name);
+
+    match sym {
+        Some(SymModule(module_id)) => Some(BuiltinType::Module(module_id)),
+        None => {
+            let name = vm.interner.str(module.name).to_string();
+            let msg = SemError::UnknownModule(name);
+            vm.diag.lock().report(file, module.pos, msg);
+            None
+        }
+        _ => unreachable!(),
+    }
 }
 
 fn read_type_tuple<'ast>(

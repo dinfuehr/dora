@@ -5,6 +5,7 @@ use dora_parser::lexer::position::Position;
 pub enum SemError {
     Unimplemented,
     UnknownClass(String),
+    UnknownModule(String),
     UnknownType(String),
     UnknownIdentifier(String),
     UnknownStruct(String),
@@ -147,6 +148,7 @@ impl SemError {
         match *self {
             SemError::Unimplemented => format!("feature not implemented yet."),
             SemError::UnknownClass(ref name) => format!("class `{}` does not exist.", name),
+            SemError::UnknownModule(ref name) => format!("module `{}` does not exist.", name),
             SemError::UnknownType(ref name) => format!("type `{}` does not exist.", name),
             SemError::UnknownIdentifier(ref name) => format!("unknown identifier `{}`.", name),
             SemError::UnknownStruct(ref name) => format!("unknown struct `{}`.", name),
@@ -471,7 +473,7 @@ impl SemError {
                 format!("field `{}` in struct `{}` not initialized.", field, struc)
             }
             SemError::InvalidLeftSideOfSeparator => {
-                "left hand side of separator is not a class.".into()
+                "left hand side of separator is not a module, type parameter or enum.".into()
             }
             SemError::InvalidUseOfTypeParams => {
                 "type params need to be used on class or function.".into()
