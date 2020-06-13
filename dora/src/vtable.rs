@@ -1,9 +1,7 @@
-use alloc::alloc::{Global, Layout};
-use core::alloc::Alloc;
+use std::alloc::{alloc, dealloc, Layout};
 
 use std::mem::{align_of, size_of};
 use std::ops::{Deref, DerefMut};
-use std::ptr::NonNull;
 use std::{self, fmt, ptr, slice};
 
 use crate::size::InstanceSize;
@@ -32,11 +30,9 @@ impl VTableBox {
             table: [0],
         };
 
-        let mut heap: Global = Default::default();
-
         unsafe {
             let lay = Layout::from_size_align(size, align_of::<VTable>()).unwrap();
-            let ptr = heap.alloc(lay).expect("could not allocate").as_ptr() as *mut VTable;
+            let ptr = alloc(lay) as *mut VTable;
             ptr::write(ptr, vtable);
 
             ptr::copy(entries.as_ptr(), &mut (&mut *ptr).table[0], entries.len());
@@ -74,11 +70,9 @@ impl Drop for VTableBox {
             let len = (&*self.0).table_length;
             ptr::drop_in_place(self.0);
 
-            let mut heap: Global = Default::default();
             let lay = Layout::from_size_align(VTable::size_of(len), align_of::<VTable>()).unwrap();
 
-            let ptr = NonNull::new_unchecked(self.0 as *const _ as *mut u8);
-            heap.dealloc(ptr, lay);
+            dealloc(self.0 as *mut _, lay);
         }
     }
 }
@@ -164,18 +158,15 @@ impl VTable {
         let size = num * size_of::<*const VTable>();
         let align = align_of::<*const VTable>();
 
-        let mut heap: Global = Default::default();
         let lay = Layout::from_size_align(size, align).unwrap();
 
         unsafe {
-            self.subtype_overflow =
-                heap.alloc(lay).expect("could not allocate").as_ptr() as *const _;
+            self.subtype_overflow = alloc(lay) as *const _;
         }
     }
 
     pub fn deallocate_overflow(&mut self, num: usize) {
         assert!(!self.subtype_overflow.is_null());
-        let mut heap: Global = Default::default();
         let lay = Layout::from_size_align(
             num * size_of::<*const VTable>(),
             align_of::<*const VTable>(),
@@ -183,8 +174,7 @@ impl VTable {
         .unwrap();
 
         unsafe {
-            let ptr = NonNull::new_unchecked(self.subtype_overflow as *const _ as *mut u8);
-            heap.dealloc(ptr, lay);
+            dealloc(self.subtype_overflow as *mut _, lay);
         }
     }
 

@@ -325,7 +325,7 @@ impl OldGenProtected {
             }
         }
 
-        std::mem::replace(&mut self.regions, new_regions);
+        self.regions = new_regions;
 
         let mut size = 0;
 

@@ -158,7 +158,7 @@ where
 
         let registers = self.bytecode.registers();
         let (offsets, stacksize) = determine_offsets(registers, self.register_start_offset);
-        std::mem::replace(&mut self.offsets, offsets);
+        self.offsets = offsets;
         self.stacksize = stacksize;
     }
 

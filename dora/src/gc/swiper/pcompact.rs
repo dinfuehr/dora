@@ -463,7 +463,7 @@ impl<'a, 'ast> ParallelFullCollector<'a, 'ast> {
             unreachable!();
         }
 
-        std::mem::replace(&mut self.regions, regions);
+        self.regions = regions;
     }
 
     fn place_young_units(&mut self) {
