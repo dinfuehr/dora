@@ -3,6 +3,7 @@
 #![allow(dead_code)]
 #![allow(non_camel_case_types)]
 #![feature(allocator_api)]
+#![feature(llvm_asm)]
 
 extern crate alloc;
 

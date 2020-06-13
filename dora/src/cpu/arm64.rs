@@ -18,28 +18,28 @@ pub fn flush_icache(start: *const u8, len: usize) {
 
     while ptr < end {
         unsafe {
-            asm!("dc civac, $0":: "r"(ptr) : "memory" : "volatile");
+            llvm_asm!("dc civac, $0":: "r"(ptr) : "memory" : "volatile");
         }
 
         ptr += dcacheline_size;
     }
 
     unsafe {
-        asm!("dsb ish" ::: "memory" : "volatile");
+        llvm_asm!("dsb ish" ::: "memory" : "volatile");
     }
 
     ptr = istart;
 
     while ptr < end {
         unsafe {
-            asm!("ic ivau, $0":: "r"(ptr) : "memory" : "volatile");
+            llvm_asm!("ic ivau, $0":: "r"(ptr) : "memory" : "volatile");
         }
 
         ptr += icacheline_size;
     }
 
     unsafe {
-        asm!("dsb ish
+        llvm_asm!("dsb ish
               isb" ::: "memory" : "volatile");
     }
 }
@@ -48,7 +48,7 @@ pub fn cacheline_sizes() -> (usize, usize) {
     let value: usize;
 
     unsafe {
-        asm!("mrs $0, ctr_el0": "=r"(value)::: "volatile");
+        llvm_asm!("mrs $0, ctr_el0": "=r"(value)::: "volatile");
     }
 
     let insn = 4 << (value & 0xF);
