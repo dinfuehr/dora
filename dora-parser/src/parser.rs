@@ -871,7 +871,6 @@ impl<'a> Parser<'a> {
             has_optimize: modifiers.contains(Modifier::Optimize),
             has_optimize_immediately: modifiers.contains(Modifier::OptimizeImmediately),
             is_pub: modifiers.contains(Modifier::Pub),
-            is_static: modifiers.contains(Modifier::Static),
             internal: modifiers.contains(Modifier::Internal),
             is_abstract: modifiers.contains(Modifier::Abstract),
             is_constructor: false,
@@ -3374,17 +3373,6 @@ mod tests {
 
         assert_eq!("Foo", *interner.str(xtrait.name));
         assert_eq!(1, xtrait.methods.len());
-        assert_eq!(false, xtrait.methods[0].is_static);
-    }
-
-    #[test]
-    fn parse_trait_with_static_function() {
-        let (prog, interner) = parse("trait Foo { @static fun empty(); }");
-        let xtrait = prog.trait0();
-
-        assert_eq!("Foo", *interner.str(xtrait.name));
-        assert_eq!(1, xtrait.methods.len());
-        assert_eq!(true, xtrait.methods[0].is_static);
     }
 
     #[test]
@@ -3411,21 +3399,6 @@ mod tests {
         );
         assert_eq!("B", ximpl.for_type.to_string(&interner));
         assert_eq!(1, ximpl.methods.len());
-        assert_eq!(false, ximpl.methods[0].is_static);
-    }
-
-    #[test]
-    fn parse_impl_with_static_function() {
-        let (prog, interner) = parse("impl Bar for B { @static fun foo(); }");
-        let ximpl = prog.impl0();
-
-        assert_eq!(
-            "Bar",
-            ximpl.trait_type.as_ref().unwrap().to_string(&interner)
-        );
-        assert_eq!("B", ximpl.for_type.to_string(&interner));
-        assert_eq!(1, ximpl.methods.len());
-        assert_eq!(true, ximpl.methods[0].is_static);
     }
 
     #[test]
@@ -3478,20 +3451,6 @@ mod tests {
         let call = expr.to_call().unwrap();
 
         assert!(call.callee.is_ident());
-    }
-
-    #[test]
-    fn parse_static_method() {
-        let (prog, _) = parse(
-            "class A {
-                @static fun test() {}
-              }",
-        );
-        let cls = prog.cls0();
-        assert_eq!(1, cls.methods.len());
-
-        let mtd = &cls.methods[0];
-        assert!(mtd.is_static);
     }
 
     #[test]

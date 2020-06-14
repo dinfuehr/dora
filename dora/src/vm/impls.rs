@@ -22,7 +22,7 @@ pub struct ImplData {
     pub file: FileId,
     pub pos: Position,
     pub trait_id: Option<TraitId>,
-    pub class_ty: BuiltinType,
+    pub target_type: BuiltinType,
     pub methods: Vec<FctId>,
 }
 
@@ -32,7 +32,7 @@ impl ImplData {
     }
 
     pub fn cls_id(&self, vm: &VM) -> ClassId {
-        self.class_ty
+        self.target_type
             .cls_id(vm)
             .expect("class_ty not initialized yet.")
     }

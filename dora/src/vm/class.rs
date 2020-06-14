@@ -122,7 +122,7 @@ impl Class {
         None
     }
 
-    pub fn find_method(&self, vm: &VM, name: Name, is_static: bool) -> Option<FctId> {
+    pub fn find_method(&self, vm: &VM, name: Name) -> Option<FctId> {
         let mut classid = self.id;
 
         loop {
@@ -133,7 +133,7 @@ impl Class {
                 let method = vm.fcts.idx(method);
                 let method = method.read();
 
-                if method.name == name && method.is_static == is_static {
+                if method.name == name {
                     return Some(method.id);
                 }
             }
@@ -151,7 +151,6 @@ impl Class {
         vm: &VM,
         trait_id: TraitId,
         name: Name,
-        is_static: bool,
     ) -> Option<FctId> {
         for &impl_id in &self.impls {
             let ximpl = vm.impls[impl_id].read();
@@ -164,7 +163,7 @@ impl Class {
                 let method = vm.fcts.idx(method);
                 let method = method.read();
 
-                if method.name == name && method.is_static == is_static {
+                if method.name == name {
                     return Some(method.id);
                 }
             }
@@ -240,7 +239,7 @@ pub fn find_method_in_class(
             let method = vm.fcts.idx(method);
             let method = method.read();
 
-            if method.name == name && method.is_static == false {
+            if method.name == name {
                 return Some((class, method.id));
             }
         }
@@ -321,7 +320,7 @@ pub fn find_methods_in_class(
         for &impl_id in &cls.impls {
             let ximpl = vm.impls[impl_id].read();
 
-            if ximpl.class_ty.type_params(vm) != class_type.type_params(vm) {
+            if ximpl.target_type.type_params(vm) != class_type.type_params(vm) {
                 continue;
             }
 

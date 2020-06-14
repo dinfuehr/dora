@@ -375,7 +375,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     let cls = cls.read();
                     let name = self.vm.interner.intern("toString");
                     let to_string_id = cls
-                        .find_trait_method(self.vm, self.vm.vips.stringable_trait, name, false)
+                        .find_trait_method(self.vm, self.vm.vips.stringable_trait, name)
                         .expect("toString() method not found");
 
                     if ty.reference_type() {

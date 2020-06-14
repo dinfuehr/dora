@@ -19,6 +19,4 @@
 
 
 // @restricted / @internal
-trait Zero {
-  @static fun zero() -> Self; // should be `let` instead of `fun`
-}
+trait Zero {}

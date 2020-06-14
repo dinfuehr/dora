@@ -239,7 +239,7 @@ fn set_backtrace(vm: &VM, mut obj: Handle<Stacktrace>, via_retrieve: bool) {
                 let stacktrace_cls = vm.classes.idx(vm.vips.stacktrace_class);
                 let stacktrace_cls = stacktrace_cls.read();
                 let retrieve_stacktrace_fct_id = stacktrace_cls
-                    .find_method(vm, vm.interner.intern("retrieveStacktrace"), false)
+                    .find_method(vm, vm.interner.intern("retrieveStacktrace"))
                     .expect("retrieveStacktrace not found in Stacktrace");
 
                 if retrieve_stacktrace_fct_id == fct_id {

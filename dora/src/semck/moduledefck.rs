@@ -119,18 +119,6 @@ impl<'x, 'ast> ModuleCheck<'x, 'ast> {
             }
         }
     }
-
-    fn use_object_class_as_parent(&mut self) {
-        let object_cls = self.vm.vips.object_class;
-        let module_id = self.module_id.unwrap();
-
-        let module = self.vm.modules.idx(module_id);
-        let mut module = module.write();
-
-        let list = TypeList::empty();
-        let list_id = self.vm.lists.lock().insert(list);
-        module.parent_class = Some(BuiltinType::Class(object_cls, list_id));
-    }
 }
 
 impl<'x, 'ast> Visitor<'ast> for ModuleCheck<'x, 'ast> {
@@ -150,8 +138,6 @@ impl<'x, 'ast> Visitor<'ast> for ModuleCheck<'x, 'ast> {
 
         if let Some(ref parent_class) = m.parent_class {
             self.check_parent_class(parent_class);
-        } else {
-            self.use_object_class_as_parent();
         }
 
         self.module_id = None;
@@ -194,7 +180,6 @@ impl<'x, 'ast> Visitor<'ast> for ModuleCheck<'x, 'ast> {
             has_final: f.has_final,
             has_optimize_immediately: f.has_optimize_immediately,
             is_pub: true,
-            is_static: false,
             is_abstract: false,
             is_test: f.is_test,
             use_cannon: f.use_cannon,
@@ -249,7 +234,6 @@ impl<'x, 'ast> Visitor<'ast> for ModuleCheck<'x, 'ast> {
             has_open: f.has_open || f.is_abstract,
             has_final: f.has_final,
             is_pub: f.is_pub,
-            is_static: f.is_static,
             is_abstract: f.is_abstract,
             is_test: f.is_test,
             use_cannon: f.use_cannon,

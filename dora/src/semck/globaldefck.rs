@@ -57,7 +57,6 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDefCheck<'a, 'ast> {
                 has_final: initializer.has_final,
                 has_optimize_immediately: initializer.has_optimize_immediately,
                 is_pub: initializer.is_pub,
-                is_static: initializer.is_static,
                 is_abstract: initializer.is_abstract,
                 is_test: initializer.is_test,
                 use_cannon: initializer.use_cannon,

@@ -47,7 +47,6 @@ pub struct Fct<'ast> {
     pub has_override: bool,
     pub has_final: bool,
     pub has_optimize_immediately: bool,
-    pub is_static: bool,
     pub is_pub: bool,
     pub is_abstract: bool,
     pub is_test: bool,
@@ -113,21 +112,13 @@ impl<'ast> Fct<'ast> {
                 let cls = cls.read();
                 let name = cls.name;
                 repr.push_str(&vm.interner.str(name));
-                if self.is_static {
-                    repr.push_str("::");
-                } else {
-                    repr.push_str(".");
-                }
+                repr.push_str(".");
             }
 
             FctParent::Trait(trait_id) => {
                 let xtrait = vm.traits[trait_id].read();
                 repr.push_str(&vm.interner.str(xtrait.name));
-                if self.is_static {
-                    repr.push_str("::");
-                } else {
-                    repr.push_str(".");
-                }
+                repr.push_str(".");
             }
 
             _ => {}
@@ -195,7 +186,7 @@ impl<'ast> Fct<'ast> {
             FctParent::Class(_)
             | FctParent::Trait(_)
             | FctParent::Impl(_)
-            | FctParent::Extension(_) => !self.is_static,
+            | FctParent::Extension(_) => true, // FIXME: probably not correct for module impls?
 
             _ => false,
         }

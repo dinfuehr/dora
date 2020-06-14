@@ -134,6 +134,15 @@ fn type_module_method_call() {
         pos(5, 34),
         SemError::ReturnType("String".into(), "Int32".into()),
     );
+    err(
+        "module Foo {
+                 fun bar() -> Int32 { return 0; }
+             }
+
+             fun f() -> String { return Foo::qux(); }",
+        pos(5, 49),
+        SemError::UnknownModuleMethod("Foo".into(), "qux".into(), vec![]),
+    );
 }
 
 #[test]
@@ -1030,7 +1039,7 @@ fn test_invoke_method_as_static() {
                 fun test() { A::foo(); }
             }",
         pos(3, 44),
-        SemError::UnknownStaticMethod("A".into(), "foo".into(), vec![]),
+        SemError::UnknownModuleMethod("A".into(), "foo".into(), vec![]),
     );
 }
 

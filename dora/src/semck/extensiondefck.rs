@@ -104,7 +104,7 @@ impl<'x, 'ast> ExtensionCheck<'x, 'ast> {
             let method = self.vm.fcts.idx(method);
             let method = method.read();
 
-            if method.name == f.name && method.is_static == f.is_static {
+            if method.name == f.name {
                 let method_name = self.vm.interner.str(method.name).to_string();
                 let msg = SemError::MethodExists(method_name, method.pos);
                 self.vm.diag.lock().report(self.file_id.into(), f.pos, msg);
@@ -128,13 +128,7 @@ impl<'x, 'ast> ExtensionCheck<'x, 'ast> {
             return true;
         }
 
-        let table = if f.is_static {
-            &extension.static_names
-        } else {
-            &extension.instance_names
-        };
-
-        if let Some(&method_id) = table.get(&f.name) {
+        if let Some(&method_id) = &extension.instance_names.get(&f.name) {
             let method = self.vm.fcts.idx(method_id);
             let method = method.read();
             let method_name = self.vm.interner.str(method.name).to_string();
@@ -196,7 +190,6 @@ impl<'x, 'ast> Visitor<'ast> for ExtensionCheck<'x, 'ast> {
             has_final: f.has_final,
             has_optimize_immediately: f.has_optimize_immediately,
             is_pub: f.is_pub,
-            is_static: f.is_static,
             is_abstract: false,
             is_test: f.is_test,
             use_cannon: f.use_cannon,
@@ -234,11 +227,7 @@ impl<'x, 'ast> Visitor<'ast> for ExtensionCheck<'x, 'ast> {
         let mut extension = self.vm.extensions[extension_id].write();
         extension.methods.push(fct_id);
 
-        let table = if f.is_static {
-            &mut extension.static_names
-        } else {
-            &mut extension.instance_names
-        };
+        let table = &mut extension.instance_names;
 
         if !table.contains_key(&f.name) {
             table.insert(f.name, fct_id);

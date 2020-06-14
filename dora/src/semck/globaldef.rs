@@ -129,7 +129,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
                 file: self.file_id.into(),
                 pos: i.pos,
                 trait_id: None,
-                class_ty: BuiltinType::Error,
+                target_type: BuiltinType::Error,
                 methods: Vec::new(),
             };
             self.vm.impls.push(RwLock::new(ximpl));
@@ -144,7 +144,6 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
                 class_ty: BuiltinType::Error,
                 methods: Vec::new(),
                 instance_names: HashMap::new(),
-                static_names: HashMap::new(),
             };
             self.vm.extensions.push(RwLock::new(extension));
             self.map_extension_defs.insert(i.id, id);
@@ -173,6 +172,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
                 virtual_fcts: Vec::new(),
 
                 traits: Vec::new(),
+                impls: Vec::new()
             };
 
             modules.push(Arc::new(RwLock::new(module)));
@@ -346,7 +346,6 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             has_final: f.has_final,
             has_optimize_immediately: f.has_optimize_immediately,
             is_pub: true,
-            is_static: false,
             is_abstract: false,
             is_test: f.is_test,
             use_cannon: f.use_cannon,

@@ -6,6 +6,8 @@ trait One {
     fun one() -> Self;
 }
 
+module Num {}
+
 impl One for module Num {
     fun one() -> Num = Num(1);
 }

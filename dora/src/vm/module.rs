@@ -1,11 +1,10 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
-use crate::semck::specialize::replace_type_param;
 use crate::size::InstanceSize;
-use crate::ty::{BuiltinType, TypeList};
+use crate::ty::BuiltinType;
 use crate::utils::GrowableVec;
-use crate::vm::{FctId, Field, FieldDef, FileId, TraitId, VM};
+use crate::vm::{FctId, Field, FieldDef, FileId, TraitId, VM, ImplId};
 
 use crate::vtable::VTableBox;
 use dora_parser::interner::Name;
@@ -14,12 +13,6 @@ use std::collections::HashSet;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ModuleId(usize);
-
-impl ModuleId {
-    pub fn max() -> ModuleId {
-        ModuleId(usize::max_value())
-    }
-}
 
 impl From<ModuleId> for usize {
     fn from(data: ModuleId) -> usize {
@@ -39,8 +32,6 @@ impl GrowableVec<RwLock<Module>> {
     }
 }
 
-pub static DISPLAY_SIZE: usize = 6;
-
 #[derive(Debug)]
 pub struct Module {
     pub id: ModuleId,
@@ -59,6 +50,7 @@ pub struct Module {
     pub virtual_fcts: Vec<FctId>,
 
     pub traits: Vec<TraitId>,
+    pub impls: Vec<ImplId>,
 }
 
 pub fn find_methods_in_module(
@@ -66,40 +58,48 @@ pub fn find_methods_in_module(
     object_type: BuiltinType,
     name: Name,
 ) -> Vec<(BuiltinType, FctId)> {
+    let mut candidates = Vec::new();
     let mut ignores = HashSet::new();
 
-    let mut module_type = object_type;
+    let module_type = object_type;
 
-    loop {
-        let module_id = module_type.module_id().expect("no module");
-        let module = vm.modules.idx(module_id);
-        let module = module.read();
+    let module_id = module_type.module_id().expect("no module");
+    let module = vm.modules.idx(module_id);
+    let module = module.read();
 
-        for &method in &module.methods {
+    for &method in &module.methods {
+        let method = vm.fcts.idx(method);
+        let method = method.read();
+
+        if method.name == name {
+            if let Some(overrides) = method.overrides {
+                ignores.insert(overrides);
+            }
+
+            if !ignores.contains(&method.id) {
+                return vec![(module_type, method.id)];
+            }
+        }
+    }
+
+    for &impl_id in &module.impls {
+        let ximpl = vm.impls[impl_id].read();
+
+        if ximpl.target_type.type_params(vm) != module_type.type_params(vm) {
+            continue;
+        }
+
+        for &method in &ximpl.methods {
             let method = vm.fcts.idx(method);
             let method = method.read();
 
             if method.name == name {
-                if let Some(overrides) = method.overrides {
-                    ignores.insert(overrides);
-                }
-
-                if !ignores.contains(&method.id) {
-                    return vec![(module_type, method.id)];
-                }
+                candidates.push((module_type, method.id));
             }
-        }
-
-        if let Some(parent_class) = module.parent_class {
-            let type_list = module_type.type_params(vm);
-            module_type =
-                replace_type_param(vm, parent_class, &type_list, &TypeList::empty(), None);
-        } else {
-            break;
         }
     }
 
-    Vec::new()
+    candidates
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

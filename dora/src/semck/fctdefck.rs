@@ -17,7 +17,6 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
 
         // check modifiers for function
         check_abstract(vm, &*fct);
-        check_static(vm, &*fct);
 
         if !(fct.is_src() || fct.kind.is_definition()) {
             continue;
@@ -239,28 +238,6 @@ fn check_abstract<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) {
     }
 }
 
-fn check_static<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) {
-    if !fct.is_static {
-        return;
-    }
-
-    // static isn't allowed with these modifiers
-    if fct.is_abstract || fct.has_open || fct.has_override || fct.has_final {
-        let modifier = if fct.is_abstract {
-            "abstract"
-        } else if fct.has_open {
-            "open"
-        } else if fct.has_override {
-            "override"
-        } else {
-            "final"
-        };
-
-        let msg = SemError::ModifierNotAllowedForStaticMethod(modifier.into());
-        vm.diag.lock().report(fct.file, fct.pos, msg);
-    }
-}
-
 fn check_against_methods(vm: &VM, fct: &Fct, methods: &[FctId]) {
     for &method in methods {
         if method == fct.id {
@@ -270,7 +247,7 @@ fn check_against_methods(vm: &VM, fct: &Fct, methods: &[FctId]) {
         let method = vm.fcts.idx(method);
         let method = method.read();
 
-        if method.initialized && method.name == fct.name && method.is_static == fct.is_static {
+        if method.initialized && method.name == fct.name {
             let method_name = vm.interner.str(method.name).to_string();
 
             let msg = SemError::MethodExists(method_name, method.pos);

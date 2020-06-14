@@ -23,7 +23,6 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
 
             if let Some(fid) = xtrait.find_method_with_replace(
                 vm,
-                method.is_static,
                 method.name,
                 Some(cls),
                 method.params_without_self(),
@@ -57,12 +56,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
                 let mtd_name = vm.interner.str(method.name).to_string();
                 let trait_name = vm.interner.str(xtrait.name).to_string();
 
-                let msg = if method.is_static {
-                    SemError::StaticMethodNotInTrait(trait_name, mtd_name, args)
-                } else {
-                    SemError::MethodNotInTrait(trait_name, mtd_name, args)
-                };
-
+                let msg = SemError::MethodNotInTrait(trait_name, mtd_name, args);
                 report(vm, ximpl.file, method.pos, msg);
             }
         }
@@ -79,12 +73,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
             let mtd_name = vm.interner.str(method.name).to_string();
             let trait_name = vm.interner.str(xtrait.name).to_string();
 
-            let msg = if method.is_static {
-                SemError::StaticMethodMissingFromTrait(trait_name, mtd_name, args)
-            } else {
-                SemError::MethodMissingFromTrait(trait_name, mtd_name, args)
-            };
-
+            let msg = SemError::MethodMissingFromTrait(trait_name, mtd_name, args);
             report(vm, ximpl.file, ximpl.pos, msg);
         }
     }

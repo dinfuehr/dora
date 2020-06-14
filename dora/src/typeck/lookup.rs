@@ -3,12 +3,8 @@ use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck;
 use crate::ty::{BuiltinType, TypeList};
 use crate::typeck::expr::args_compatible;
-use crate::vm::{
-    find_methods_in_class, find_methods_in_enum, ClassId, FctId, FctParent, FileId, TraitId,
-    TypeParam, VM,
-};
+use crate::vm::{find_methods_in_class, find_methods_in_enum, ClassId, FctId, FctParent, FileId, TraitId, TypeParam, VM, ModuleId, find_methods_in_module};
 
-use crate::vm::module::{find_methods_in_module, ModuleId};
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
@@ -149,7 +145,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
             LookupKind::Trait(trait_id) => {
                 let name = self.name.expect("name not set");
-                self.find_method_in_trait(trait_id, name, false)
+                self.find_method_in_trait(trait_id, name)
             }
 
             LookupKind::Module(module_id) => {
@@ -206,7 +202,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
                 LookupKind::Module(module_id) => {
                     let type_name = self.vm.module(module_id).name(self.vm);
-                    SemError::UnknownStaticMethod(type_name, name, param_names)
+                    SemError::UnknownModuleMethod(type_name, name, param_names)
                 }
 
                 LookupKind::Ctor(cls_id) => {
@@ -363,12 +359,11 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         &mut self,
         trait_id: TraitId,
         name: Name,
-        is_static: bool,
     ) -> Option<FctId> {
         let xtrait = &self.vm.traits[trait_id];
         let xtrait = xtrait.read();
 
-        xtrait.find_method(self.vm, name, is_static)
+        xtrait.find_method(self.vm, name)
     }
 
     fn check_cls_tps(&self, cls_id: ClassId, tps: &TypeList) -> bool {

@@ -21,7 +21,6 @@ use crate::sym::{SymTable, TermSym};
 use crate::threads::{Threads, STACK_SIZE, THREAD};
 use crate::ty::{BuiltinType, LambdaTypes, TypeList, TypeLists, TypeParamId};
 use crate::utils::GrowableVec;
-use crate::vm::module::{Module, ModuleDef, ModuleId};
 
 use dora_parser::ast;
 use dora_parser::interner::*;
@@ -41,6 +40,7 @@ pub use self::fct::{Fct, FctDef, FctDefId, FctId, FctKind, FctParent, Intrinsic}
 pub use self::field::{Field, FieldDef, FieldId};
 pub use self::global::{GlobalData, GlobalId};
 pub use self::impls::{ImplData, ImplId};
+pub use self::module::{find_methods_in_module, Module, ModuleDef, ModuleId};
 pub use self::src::{CallType, ConvInfo, FctSrc, ForTypeInfo, IdentType, NodeMap, Var, VarId};
 pub use self::strct::{
     StructData, StructDef, StructDefId, StructFieldData, StructFieldDef, StructId,

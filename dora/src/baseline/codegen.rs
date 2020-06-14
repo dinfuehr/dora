@@ -868,7 +868,7 @@ where
                     let cls = cls.read();
                     let name = self.vm.interner.intern("toString");
                     let to_string_id = cls
-                        .find_trait_method(self.vm, self.vm.vips.stringable_trait, name, false)
+                        .find_trait_method(self.vm, self.vm.vips.stringable_trait, name)
                         .expect("toString() method not found");
                     let ctype = CallType::Method(ty, to_string_id, TypeList::empty());
                     let args = vec![Arg::Stack(object_slot.offset())];

@@ -594,7 +594,6 @@ pub struct Function {
     pub has_optimize: bool,
     pub has_optimize_immediately: bool,
     pub is_pub: bool,
-    pub is_static: bool,
     pub is_abstract: bool,
     pub is_test: bool,
     pub use_cannon: bool,

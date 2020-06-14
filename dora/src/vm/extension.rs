@@ -34,7 +34,6 @@ pub struct ExtensionData {
     pub class_ty: BuiltinType,
     pub methods: Vec<FctId>,
     pub instance_names: HashMap<Name, FctId>,
-    pub static_names: HashMap<Name, FctId>,
 }
 
 impl Index<ExtensionId> for Vec<RwLock<ExtensionData>> {

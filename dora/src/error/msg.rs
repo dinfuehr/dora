@@ -19,7 +19,7 @@ pub enum SemError {
     MultipleCandidatesForTypeParam(String, String, Vec<String>),
     MultipleCandidatesForStaticMethodWithTypeParam,
     UnknownStaticMethodWithTypeParam,
-    UnknownStaticMethod(String, String, Vec<String>),
+    UnknownModuleMethod(String, String, Vec<String>),
     UnknownCtor(String, Vec<String>),
     MethodExists(String, Position),
     IncompatibleWithNil(String),
@@ -193,9 +193,9 @@ impl SemError {
             SemError::UnknownStaticMethodWithTypeParam => {
                 "no static method with this name found for type param.".into()
             }
-            SemError::UnknownStaticMethod(ref cls, ref name, ref args) => {
+            SemError::UnknownModuleMethod(ref module, ref name, ref args) => {
                 let args = args.join(", ");
-                format!("no static method `{}::{}({})`.", cls, name, args)
+                format!("no method with definition `{}({})` in module `{}`.", name, args, module)
             }
             SemError::UnknownCtor(ref name, ref args) => {
                 let args = args.join(", ");

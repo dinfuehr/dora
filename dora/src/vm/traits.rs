@@ -26,12 +26,12 @@ pub struct TraitData {
 }
 
 impl TraitData {
-    pub fn find_method(&self, vm: &VM, name: Name, is_static: bool) -> Option<FctId> {
+    pub fn find_method(&self, vm: &VM, name: Name) -> Option<FctId> {
         for &method in &self.methods {
             let method = vm.fcts.idx(method);
             let method = method.read();
 
-            if method.name == name && method.is_static == is_static {
+            if method.name == name {
                 return Some(method.id);
             }
         }
@@ -42,7 +42,6 @@ impl TraitData {
     pub fn find_method_with_replace(
         &self,
         vm: &VM,
-        is_static: bool,
         name: Name,
         replace: Option<BuiltinType>,
         args: &[BuiltinType],
@@ -52,7 +51,6 @@ impl TraitData {
             let method = method.read();
 
             if method.name == name
-                && method.is_static == is_static
                 && params_match(replace, method.params_without_self(), args)
             {
                 return Some(method.id);

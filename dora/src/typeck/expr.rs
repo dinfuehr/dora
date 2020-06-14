@@ -156,10 +156,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let next_name = self.vm.interner.intern("next");
                 let trai = self.vm.traits[iterator_trait_id].read();
                 let next_id = trai
-                    .find_method_with_replace(self.vm, false, next_name, None, &[])
+                    .find_method_with_replace(self.vm, next_name, None, &[])
                     .expect("next() not found");
                 let has_next_id = trai
-                    .find_method_with_replace(self.vm, false, has_next_name, None, &[])
+                    .find_method_with_replace(self.vm, has_next_name, None, &[])
                     .expect("hasNext() not found");
 
                 // find impl for ret that implements Iterator
@@ -1121,7 +1121,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         for &trait_id in &type_param.trait_bounds {
             let xtrait = self.vm.traits[trait_id].read();
 
-            if let Some(fct_id) = xtrait.find_method(self.vm, name, false) {
+            if let Some(fct_id) = xtrait.find_method(self.vm, name) {
                 fcts.push((trait_id, fct_id));
             }
         }
@@ -1404,7 +1404,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         for &trait_id in &tp.trait_bounds {
             let trai = self.vm.traits[trait_id].read();
 
-            if let Some(fid) = trai.find_method_with_replace(self.vm, false, name, None, args) {
+            if let Some(fid) = trai.find_method_with_replace(self.vm, name, None, args) {
                 found_fcts.push(fid);
             }
         }

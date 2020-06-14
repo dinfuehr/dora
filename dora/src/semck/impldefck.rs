@@ -74,7 +74,7 @@ impl<'x, 'ast> ImplCheck<'x, 'ast> {
 
         if let Some(class_ty) = semck::read_type(self.vm, self.file_id.into(), &i.for_type) {
             if class_ty.cls_id(self.vm).is_some() {
-                ximpl.class_ty = class_ty;
+                ximpl.target_type = class_ty;
             } else {
                 report(
                     self.vm,
@@ -85,7 +85,7 @@ impl<'x, 'ast> ImplCheck<'x, 'ast> {
             }
         }
 
-        if ximpl.trait_id.is_some() && !ximpl.class_ty.is_error() {
+        if ximpl.trait_id.is_some() && !ximpl.target_type.is_error() {
             let cls = self.vm.classes.idx(ximpl.cls_id(self.vm));
             let mut cls = cls.write();
             cls.traits.push(ximpl.trait_id());
@@ -145,7 +145,6 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
             has_final: f.has_final,
             has_optimize_immediately: f.has_optimize_immediately,
             is_pub: f.is_pub,
-            is_static: f.is_static,
             is_abstract: false,
             is_test: f.is_test,
             use_cannon: f.use_cannon,
