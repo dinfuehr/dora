@@ -8,7 +8,7 @@ class BitSet(capacity: Int64) {
         self.capacity = capacity;
     }
 
-    fun length() -> Int64 {
+    fun size() -> Int64 {
         self.capacity
     }
 

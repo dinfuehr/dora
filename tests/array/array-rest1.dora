@@ -6,5 +6,5 @@ fun main() {
 }
 
 fun number_args(x: Int32...) -> Int64 {
-    x.length()
+    x.size()
 }

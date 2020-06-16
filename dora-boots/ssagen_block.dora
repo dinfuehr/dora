@@ -15,7 +15,7 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVis
     }
 
     fun blockCount() -> Int32 {
-        self.blocks.length().toInt32()
+        self.blocks.size().toInt32()
     }
 
     fun blockAt(offset: Int32) -> Option[Block] {
@@ -24,7 +24,7 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVis
 
     fun nextBlockAt(offset: Int32) -> Option[Block] {
         var offset = offset.toInt64();
-        while offset < self.bc.code.length() {
+        while offset < self.bc.code.size() {
             let result = self.blockAt(offset.toInt32());
             if result.isSome() { return result; }
             offset = offset + 1L;

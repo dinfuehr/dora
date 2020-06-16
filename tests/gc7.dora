@@ -6,6 +6,6 @@ fun main() {
 
 fun foo() {
   let x = "abc";
-  assert(x.length() == 3L);
+  assert(x.size() == 3L);
   println(x);
 }

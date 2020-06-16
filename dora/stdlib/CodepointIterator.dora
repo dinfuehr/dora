@@ -1,5 +1,5 @@
 class CodepointIterator(let value: String, var start: Int64) {
-    fun hasNext() -> Bool = self.start < self.value.length();
+    fun hasNext() -> Bool = self.start < self.value.size();
 
     fun next() -> Char {
         var ch = self.value.getByte(self.start);
@@ -75,7 +75,7 @@ class CodepointIterator(let value: String, var start: Int64) {
         return '\0';
     }
 
-    fun length() -> Int64 {
+    fun size() -> Int64 {
         var i = 0L;
 
         while self.hasNext() {
@@ -86,5 +86,5 @@ class CodepointIterator(let value: String, var start: Int64) {
         return i;
     }
 
-    fun toString() -> String = String::fromStringPart(self.value, self.start, self.value.length() - self.start).unwrap();
+    fun toString() -> String = String::fromStringPart(self.value, self.start, self.value.size() - self.start).unwrap();
 }

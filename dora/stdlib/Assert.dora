@@ -35,8 +35,8 @@ class StringAssert(let value: String) {
   */
 
   fun hasSize(expected: Int64) -> StringAssert {
-    if self.value.length() != expected {
-      fatalError("unexpected string size (actual: ${self.value.length()}, expected: ${expected})");
+    if self.value.size() != expected {
+      fatalError("unexpected string size (actual: ${self.value.size()}, expected: ${expected})");
     }
     return self;
   }
@@ -58,7 +58,7 @@ class StringAssert(let value: String) {
 
 class ListAssert[T](let value: Vec[T]) {
   fun hasSize(expected: Int64) -> ListAssert[T] {
-    assert(self.value.length() == expected);
+    assert(self.value.size() == expected);
     return self;
   }
 
@@ -91,7 +91,7 @@ class SetAssert[T : Equals + Hash](let value: HashSet[T]) {
   }
 
   fun hasSize(expected: Int64) -> SetAssert[T] {
-    assert(self.value.length() == expected);
+    assert(self.value.size() == expected);
     return self;
   }
 
@@ -124,7 +124,7 @@ class MapAssert[K : Equals + Hash, V](let value: HashMap[K, V]) {
   }
 
   fun hasSize(expected: Int64) -> MapAssert[K, V] {
-    assert(self.value.length() == expected);
+    assert(self.value.size() == expected);
     return self;
   }
 

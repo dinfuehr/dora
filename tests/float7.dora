@@ -1,17 +1,17 @@
 fun main() {
     let array = Array::empty[Float32]();
-    assert(0L == array.length());
+    assert(0L == array.size());
 
     let array = Array::fill[Float32](10L, 2F);
-    assert(10L == array.length());
+    assert(10L == array.size());
     assert(2F == array(0L));
     assert(2F == array(9L));
 
     let array = Array::empty[Float64]();
-    assert(0L == array.length());
+    assert(0L == array.size());
 
     let array = Array::fill[Float64](12L, 3D);
-    assert(12L == array.length());
+    assert(12L == array.size());
     assert(3D == array(0L));
     assert(3D == array(11L));
 }

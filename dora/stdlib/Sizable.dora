@@ -1,0 +1,53 @@
+trait Sizable {
+  fun size() -> Int64;
+}
+
+/*
+impl Sizable for Array[T] {
+  fun size() -> Int64 = self.size();
+}
+*/
+
+impl Sizable for BitSet {
+  fun size() -> Int64 = self.size();
+}
+
+impl Sizable for CodepointIterator {
+  fun size() -> Int64 = self.size();
+}
+
+/*
+impl Sizable for HashMap[K, V] {
+  fun size() -> Int64 = self.size();
+}
+*/
+
+/*
+impl Sizable for HashSet[T] {
+  fun size() -> Int64 = self.size();
+}
+*/
+
+/*
+impl Sizable for Queue[T] {
+  fun size() -> Int64 = self.size();
+}
+*/
+
+impl Sizable for String {
+  fun size() -> Int64 = self.size();
+}
+
+impl Sizable for StringBuffer {
+  fun size() -> Int64 = self.size();
+}
+
+impl Sizable for Text {
+  fun size() -> Int64 = self.size();
+}
+
+/*
+impl Sizable for Vec[T] {
+  fun size() -> Int64 = self.size();
+}
+*/

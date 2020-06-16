@@ -323,7 +323,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     );
     native_class_method(vm, clsid, "plus", stdlib::strcat as *const u8);
 
-    intrinsic_class_method(vm, clsid, "length", Intrinsic::StrLen);
+    intrinsic_class_method(vm, clsid, "size", Intrinsic::StrLen);
     intrinsic_class_method(vm, clsid, "getByte", Intrinsic::StrGet);
     native_class_method(vm, clsid, "clone", stdlib::str_clone as *const u8);
     native_module_method(
@@ -394,7 +394,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_class_method(vm, clsid, "sqrt", Intrinsic::Float64Sqrt);
 
     let clsid = vm.vips.array_class;
-    intrinsic_class_method(vm, clsid, "length", Intrinsic::GenericArrayLen);
+    intrinsic_class_method(vm, clsid, "size", Intrinsic::GenericArrayLen);
     intrinsic_class_method(vm, clsid, "get", Intrinsic::GenericArrayGet);
     intrinsic_class_method(vm, clsid, "set", Intrinsic::GenericArraySet);
 

@@ -4,11 +4,11 @@ class Foo (let value: Int32)
 
 fun main() {
     let x = Array[(Int32, Foo)](1024L);
-    for i in range(0, x.length().toInt32()) {
+    for i in range(0, x.size().toInt32()) {
         x(i.toInt64()) = (i, Foo(i));
     }
     forceCollect();
-    for i in range(0, x.length().toInt32()) {
+    for i in range(0, x.size().toInt32()) {
         assert(x(i.toInt64()).0 == i && x(i.toInt64()).0 == x(i.toInt64()).1.value);
     }
 }

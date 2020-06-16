@@ -4,10 +4,10 @@ fun main() {
     vec.push(2);
     vec.push(3);
     vec.push(1);
-    assert(vec.length() == 4L);
+    assert(vec.size() == 4L);
 
     removeItem[Int32](vec, 1);
-    assert(vec.length() == 2L);
+    assert(vec.size() == 2L);
     assert(vec(0L) == 2);
     assert(vec(1L) == 3);
 }

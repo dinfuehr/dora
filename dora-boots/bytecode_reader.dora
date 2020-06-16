@@ -516,7 +516,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
 
 class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
     var pos: Int32 = 0;
-    var length: Int32 = data.length().toInt32();
+    var length: Int32 = data.size().toInt32();
 
     fun read() {
         while self.pos < self.length {

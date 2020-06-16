@@ -1,7 +1,7 @@
 fun main() {
   let array = createArray(5L);
 
-  assert(array.length() == 5L);
+  assert(array.size() == 5L);
   assert(getLength(array) == 5L);
   
   setArray(array, 2L, 50);
@@ -12,6 +12,6 @@ fun main() {
 }
 
 @cannon fun createArray(a: Int64) -> Array[Int32] { return Array[Int32](a); }
-@cannon fun getLength(a: Array[Int32]) -> Int64 { return a.length(); }
+@cannon fun getLength(a: Array[Int32]) -> Int64 { return a.size(); }
 @cannon fun setArray(arr: Array[Int32], idx: Int64, value: Int32) { arr(idx) = value; }
 @cannon fun getArray(arr: Array[Int32], idx: Int64) -> Int32 { return arr(idx); }

@@ -61,7 +61,7 @@ class Benchmark {
         self.splaySamples = 0;
         self.splaySumOfSquaredPauses = 0L;
 
-        var length = keys.length();
+        var length = keys.size();
 
         if length != splayTreeSize.toInt64() {
             fatalError("Splay tree has wrong sie");

@@ -9,7 +9,7 @@ fun sum_args(x: Float32...) -> Float32 {
     var result = 0.0F;
     var idx = 0L;
     
-    while idx < x.length() {
+    while idx < x.size() {
         result = result + x(idx);
         idx = idx + 1L;
     }

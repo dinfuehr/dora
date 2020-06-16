@@ -6,7 +6,7 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
 
     assert(graph.getEntryBlock().getDominator().isNone());
 
-    while idomsIdx.toInt64() < idoms.length() {
+    while idomsIdx.toInt64() < idoms.size() {
         let dominatorId = idoms(idomsIdx.toInt64());
         let block = graph.getBlockWithId(idx);
 
@@ -75,19 +75,19 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     let elseBlock = graph.getBlockWithId(3);
     let exit = graph.getExitBlock();
 
-    assert(entry.getDominatedBlocks().length() == 1L);
+    assert(entry.getDominatedBlocks().size() == 1L);
     assert(entry.getDominator().isNone());
 
     assert(condBlock.getDominator().unwrap() === entry);
-    assert(condBlock.getDominatedBlocks().length() == 3L);
+    assert(condBlock.getDominatedBlocks().size() == 3L);
 
     assert(thenBlock.getDominator().unwrap() === condBlock);
-    assert(thenBlock.getDominatedBlocks().length() == 0L);
+    assert(thenBlock.getDominatedBlocks().size() == 0L);
 
     assert(elseBlock.getDominator().unwrap() === condBlock);
-    assert(elseBlock.getDominatedBlocks().length() == 0L);
+    assert(elseBlock.getDominatedBlocks().size() == 0L);
 
-    assert(exit.getDominatedBlocks().length() == 0L);
+    assert(exit.getDominatedBlocks().size() == 0L);
     assert(exit.getDominator().unwrap() === condBlock);
 }
 
@@ -103,20 +103,20 @@ fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     let returnBlock = graph.getBlockWithId(3);
     let exit = graph.getExitBlock();
 
-    assert(entry.getDominatedBlocks().length() == 1L);
+    assert(entry.getDominatedBlocks().size() == 1L);
     assert(entry.getDominator().isNone());
 
     assert(varBlock.getDominator().unwrap() == entry);
 
     assert(whileHeader.getDominator().unwrap() === varBlock);
-    assert(whileHeader.getDominatedBlocks().length() == 2L);
+    assert(whileHeader.getDominatedBlocks().size() == 2L);
 
     assert(whileBody.getDominator().unwrap() === whileHeader);
-    assert(whileBody.getDominatedBlocks().length() == 0L);
+    assert(whileBody.getDominatedBlocks().size() == 0L);
 
     assert(returnBlock.getDominator().unwrap() === whileHeader);
-    assert(returnBlock.getDominatedBlocks().length() == 1L);
+    assert(returnBlock.getDominatedBlocks().size() == 1L);
 
-    assert(exit.getDominatedBlocks().length() == 0L);
+    assert(exit.getDominatedBlocks().size() == 0L);
     assert(exit.getDominator().unwrap() === returnBlock);
 }

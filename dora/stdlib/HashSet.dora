@@ -11,8 +11,8 @@ class HashSet[K: Hash + Equals] {
 
     fun remove(key: K) -> Bool = self.map.remove(key).isSome();
 
-    fun length() -> Int64 {
-        self.map.length()
+    fun size() -> Int64 {
+        self.map.size()
     }
 
     fun isEmpty() -> Bool {

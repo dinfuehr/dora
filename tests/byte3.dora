@@ -1,9 +1,9 @@
 fun main() {
     let ba = Array::empty[UInt8]();
-    assert(ba.length() == 0L);
+    assert(ba.size() == 0L);
 
     let ba = Array::fill[UInt8](10L, 2Y);
-    assert(ba.length() == 10L);
+    assert(ba.size() == 10L);
 
     ba(0L) = 10Y;
     ba(1L) = 11Y;

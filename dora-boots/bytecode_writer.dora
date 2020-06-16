@@ -7,7 +7,7 @@ class BytecodeWriter {
 
     fun addRegister(ty: BytecodeType) -> BytecodeRegister {
         self.registers.push(ty);
-        BytecodeRegister(self.registers.length().toInt32() - 1)
+        BytecodeRegister(self.registers.size().toInt32() - 1)
     }
 
     fun createLabel() -> BytecodeLabel {
@@ -15,11 +15,11 @@ class BytecodeWriter {
     }
 
     fun defineLabel() -> BytecodeLabel {
-        BytecodeLabel().bindTo(self.code.length().toInt32())
+        BytecodeLabel().bindTo(self.code.size().toInt32())
     }
 
     fun bindLabel(lbl: BytecodeLabel) {
-        lbl.bindTo(self.code.length().toInt32());
+        lbl.bindTo(self.code.size().toInt32());
     }
 
     fun setArguments(arguments: Int32) {
@@ -698,7 +698,7 @@ class BytecodeWriter {
 
     fun emitJumpLoop(lbl: BytecodeLabel) {
         assert(lbl.isBound());
-        let offset = self.code.length().toInt32() - lbl.offset();
+        let offset = self.code.size().toInt32() - lbl.offset();
         self.emitJmp(BC_JUMP_LOOP, offset);
     }
 
@@ -871,14 +871,14 @@ class BytecodeWriter {
         let constPool = self.constPool.toArray();
         let registers = self.registers.toArray();
         let arguments = self.arguments;
-        assert(arguments.toInt64() <= registers.length());
+        assert(arguments.toInt64() <= registers.size());
         BytecodeFunction(code, constPool, registers, arguments)
     }
 
     fun resolveJumps() {
         var i = 0L;
 
-        while i < self.unresolvedJumps.length() {
+        while i < self.unresolvedJumps.size() {
             let jump = self.unresolvedJumps.get(i);
             assert(jump.label.isBound());
 
@@ -930,16 +930,16 @@ class BytecodeWriter {
     fun emitJmpForward(inst: Int32, instConst: Int32, opnd: Option[BytecodeRegister], lbl: BytecodeLabel) {
         assert(!isWide(inst));
         assert(!isWide(instConst));
-        let start = self.code.length().toInt32();
+        let start = self.code.size().toInt32();
         var target = 0;
 
-        if (opnd.isSome() && isWide(opnd.unwrap().value)) || isWide(self.constPool.length().toInt32()) {
+        if (opnd.isSome() && isWide(opnd.unwrap().value)) || isWide(self.constPool.size().toInt32()) {
             self.emitWide();
             self.emitOpcode(inst);
             if opnd.isSome() {
                 self.emitInt32(opnd.unwrap().value);
             }
-            target = self.code.length().toInt32();
+            target = self.code.size().toInt32();
             self.emitInt32(0);
         } else {
             self.emitOpcode(instConst);
@@ -947,7 +947,7 @@ class BytecodeWriter {
                 self.emitByte(opnd.unwrap().value);
             }
             let idx = self.addConst(ConstPoolInt32(0));
-            target = self.code.length().toInt32();
+            target = self.code.size().toInt32();
             self.emitByte(idx.value);
         }
 
@@ -960,7 +960,7 @@ class BytecodeWriter {
 
     fun addConst(entry: ConstPoolEntry) -> ConstPoolId {
         self.constPool.push(entry);
-        ConstPoolId(self.constPool.length().toInt32() - 1)
+        ConstPoolId(self.constPool.size().toInt32() - 1)
     }
 
     fun emitReg1(inst: Int32, r1: BytecodeRegister) {
