@@ -9,9 +9,7 @@ class HashSet[K: Hash + Equals] {
         self.map.contains(key)
     }
 
-    fun remove(key: K) {
-        self.map.remove(key);
-    }
+    fun remove(key: K) -> Bool = self.map.remove(key).isSome();
 
     fun length() -> Int64 {
         self.map.length()
