@@ -92,7 +92,7 @@ class HashMap[K: Hash + Equals, V] {
         return Option::none[V]();
     }
 
-    fun remove(key: K) -> V {
+    fun remove(key: K) -> Option[V] {
         self.shrink();
 
         var hash = key.hash();
@@ -110,7 +110,7 @@ class HashMap[K: Hash + Equals, V] {
                     self.values.set(idx, defaultValue[V]());
 
                     self.size = self.size - 1L;
-                    return value;
+                    return Option::some[V](value);
                 }
             } else {
                 break;
@@ -119,7 +119,7 @@ class HashMap[K: Hash + Equals, V] {
             idx = (idx + 1L) & (self.cap - 1L);
         }
 
-        return defaultValue[V]();
+        return Option::none[V]();
     }
 
     fun ensureCapacity(elements_to_add: Int64) {
