@@ -4,7 +4,7 @@ fun main() {
     set.insert(10000);
     set.insert(7);
 
-    assert(set.length() == 3L);
+    assert(set.size() == 3L);
     assert(set.isEmpty().not());
 
     assert(set.contains(1));
@@ -14,7 +14,7 @@ fun main() {
 
     set.remove(10000);
 
-    assert(set.length() == 2L);
+    assert(set.size() == 2L);
     assert(set.isEmpty().not());
 
     assert(set.contains(1));

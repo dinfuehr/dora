@@ -17,8 +17,8 @@ class AssemblerBuffer {
         self.emitInt32((value >>> 32).toInt32());
     }
 
-    fun length() -> Int64 {
-        self.buffer.length()
+    fun size() -> Int64 {
+        self.buffer.size()
     }
 
     fun capacity() -> Int64 {
@@ -34,7 +34,7 @@ class AssemblerBuffer {
     let buffer = AssemblerBuffer();
     buffer.emitByte(0x01Y);
     buffer.emitByte(0x02Y);
-    assert(buffer.length() == 2L);
+    assert(buffer.size() == 2L);
 }
 
 @test fun testAssemblerBufferEmitInt(_x: Testing) {
@@ -45,7 +45,7 @@ class AssemblerBuffer {
     assert(buffer(1L) == 0x33Y);
     assert(buffer(2L) == 0x22Y);
     assert(buffer(3L) == 0x11Y);
-    assert(buffer.length() == 4L);
+    assert(buffer.size() == 4L);
 }
 
 @open @abstract class SlowPath {
@@ -63,7 +63,7 @@ class Register(let value: Int32) {
 fun assertAsm(buffer: Array[UInt8], start: Int64, bytes: UInt8...) {
     var idx = 0L;
 
-    while idx < bytes.length() {
+    while idx < bytes.size() {
         let exp = bytes(idx);
         let got = buffer(start + idx);
 
@@ -99,7 +99,7 @@ fun assertAsmInt64(buffer: Array[UInt8], index: Int64, value: Int64) {
 fun printBuffer(buffer: Array[UInt8]) {
     var i = 0L;
 
-    while i < buffer.length() {
+    while i < buffer.size() {
         let val = buffer(i);
         if i > 0L { print(" "); }
         print(intToHexString(val.toInt32(), 2));
@@ -128,7 +128,7 @@ fun intToHexString(val: Int32, padding: Int32) -> String {
         result = "0";
     }
 
-    while result.length().toInt32() < padding {
+    while result.size().toInt32() < padding {
         result = "0${result}";
     }
 

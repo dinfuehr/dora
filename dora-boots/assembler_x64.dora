@@ -528,7 +528,7 @@ impl Register {
     assertAsm(buffer, 1L, 0x54Y);
     assertAsm(buffer, 2L, 0x41Y, 0x50Y);
     assertAsm(buffer, 4L, 0x41Y, 0x57Y);
-    assert(buffer.length() == 6L);
+    assert(buffer.size() == 6L);
 }
 
 @test fun testAsmPopqr(_x: Testing) {
@@ -542,7 +542,7 @@ impl Register {
     assertAsm(buffer, 1L, 0x5CY);
     assertAsm(buffer, 2L, 0x41Y, 0x58Y);
     assertAsm(buffer, 4L, 0x41Y, 0x5FY);
-    assert(buffer.length() == 6L);
+    assert(buffer.size() == 6L);
 }
 
 @test fun testAsmMovqrr(_x: Testing) {
@@ -552,7 +552,7 @@ impl Register {
     let buffer = asm.finalize();
     assertAsm(buffer, 0L, 0x49Y, 0x89Y, 0xC7Y);
     assertAsm(buffer, 3L, 0x4CY, 0x89Y, 0xF8Y);
-    assert(buffer.length() == 6L);
+    assert(buffer.size() == 6L);
 }
 
 @test fun testAsmMovlrr(_x: Testing) {
@@ -564,7 +564,7 @@ impl Register {
     assertAsm(buffer, 0L, 0x41Y, 0x89Y, 0xC7Y);
     assertAsm(buffer, 3L, 0x44Y, 0x89Y, 0xF8Y);
     assertAsm(buffer, 6L, 0x89Y, 0xC1Y);
-    assert(buffer.length() == 8L);
+    assert(buffer.size() == 8L);
 }
 
 @test fun testAsmAddqrr(_x: Testing) {
@@ -578,7 +578,7 @@ impl Register {
     assertAsm(buffer, 3L, 0x4CY, 0x01Y, 0xE0Y);
     assertAsm(buffer, 6L, 0x49Y, 0x01Y, 0xC4Y);
     assertAsm(buffer, 9L, 0x49Y, 0x01Y, 0xE7Y);
-    assert(buffer.length() == 12L);
+    assert(buffer.size() == 12L);
 }
 
 @test fun testAsmAddlrr(_x: Testing) {
@@ -588,7 +588,7 @@ impl Register {
     let buffer = asm.finalize();
     assertAsm(buffer, 0L, 0x01Y, 0xD8Y);
     assertAsm(buffer, 2L, 0x44Y, 0x01Y, 0xF9Y);
-    assert(buffer.length() == 5L);
+    assert(buffer.size() == 5L);
 }
 
 @test fun testAsmAddqri(_x: Testing) {
@@ -607,7 +607,7 @@ impl Register {
     assertAsmInt32(buffer, 17L, 0x2211);
     assertAsm(buffer, 21L, 0x49Y, 0x81Y, 0xC7Y);
     assertAsmInt32(buffer, 24L, 0x2211);
-    assert(buffer.length() == 28L);
+    assert(buffer.size() == 28L);
 }
 
 @test fun testAsmSubqrr(_x: Testing) {
@@ -617,7 +617,7 @@ impl Register {
     let buffer = asm.finalize();
     assertAsm(buffer, 0L, 0x48Y, 0x29Y, 0xD8Y);
     assertAsm(buffer, 3L, 0x4CY, 0x29Y, 0xF9Y);
-    assert(buffer.length() == 6L);
+    assert(buffer.size() == 6L);
 }
 
 @test fun testAsmSubqri(_x: Testing) {
@@ -636,7 +636,7 @@ impl Register {
     assertAsmInt32(buffer, 17L, 0x2211);
     assertAsm(buffer, 21L, 0x49Y, 0x81Y, 0xEFY);
     assertAsmInt32(buffer, 24L, 0x2211);
-    assert(buffer.length() == 28L);
+    assert(buffer.size() == 28L);
 }
 
 @test fun testAsmRetq(_x: Testing) {
@@ -644,7 +644,7 @@ impl Register {
     asm.retq();
     let buffer = asm.finalize();
     assertAsm(buffer, 0L, 0xC3Y);
-    assert(buffer.length() == 1L);
+    assert(buffer.size() == 1L);
 }
 
 @test fun testAsmNop(_x: Testing) {
@@ -652,7 +652,7 @@ impl Register {
     asm.nop();
     let buffer = asm.finalize();
     assertAsm(buffer, 0L, 0x90Y);
-    assert(buffer.length() == 1L);
+    assert(buffer.size() == 1L);
 }
 
 @test fun testAsmCdqCqo(_x: Testing) {
@@ -661,7 +661,7 @@ impl Register {
     asm.cqo();
     let buffer = asm.finalize();
     assertAsm(buffer, 0L, 0x99Y);
-    assert(buffer.length() == 3L);
+    assert(buffer.size() == 3L);
 }
 
 @test fun testAsmOrlrr(_x: Testing) {
@@ -674,7 +674,7 @@ impl Register {
     assertAsm(buffer, 0L, 0x44Y, 0x09Y, 0xF8Y);
     assertAsm(buffer, 3L, 0x09Y, 0xc8Y);
     assertAsm(buffer, 5L, 0x41Y, 0x09Y, 0xC7Y);
-    assert(buffer.length() == 8L);
+    assert(buffer.size() == 8L);
 }
 
 @test fun testAsmOrqrr(_x: Testing) {
@@ -687,7 +687,7 @@ impl Register {
     assertAsm(buffer, 0L, 0x4CY, 0x09Y, 0xF8Y);
     assertAsm(buffer, 3L, 0x48Y, 0x09Y, 0xC8Y);
     assertAsm(buffer, 6L, 0x49Y, 0x09Y, 0xC7Y);
-    assert(buffer.length() == 9L);
+    assert(buffer.size() == 9L);
 }
 
 @test fun testAsmAndlrr(_x: Testing) {
@@ -700,7 +700,7 @@ impl Register {
     assertAsm(buffer, 0L, 0x44Y, 0x21Y, 0xF8Y);
     assertAsm(buffer, 3L, 0x21Y, 0xC8Y);
     assertAsm(buffer, 5L, 0x41Y, 0x21Y, 0xC7Y);
-    assert(buffer.length() == 8L);
+    assert(buffer.size() == 8L);
 }
 
 @test fun testAsmAndqrr(_x: Testing) {
@@ -713,7 +713,7 @@ impl Register {
     assertAsm(buffer, 0L, 0x4CY, 0x21Y, 0xF8Y);
     assertAsm(buffer, 3L, 0x48Y, 0x21Y, 0xC8Y);
     assertAsm(buffer, 6L, 0x49Y, 0x21Y, 0xC7Y);
-    assert(buffer.length() == 9L);
+    assert(buffer.size() == 9L);
 }
 
 @test fun testAsmXorlrr(_x: Testing) {
@@ -726,7 +726,7 @@ impl Register {
     assertAsm(buffer, 0L, 0x44Y, 0x31Y, 0xF8Y);
     assertAsm(buffer, 3L, 0x31Y, 0xC8Y);
     assertAsm(buffer, 5L, 0x41Y, 0x31Y, 0xC7Y);
-    assert(buffer.length() == 8L);
+    assert(buffer.size() == 8L);
 }
 
 @test fun testAsmXorqrr(_x: Testing) {
@@ -739,7 +739,7 @@ impl Register {
     assertAsm(buffer, 0L, 0x4CY, 0x31Y, 0xF8Y);
     assertAsm(buffer, 3L, 0x48Y, 0x31Y, 0xC8Y);
     assertAsm(buffer, 6L, 0x49Y, 0x31Y, 0xC7Y);
-    assert(buffer.length() == 9L);
+    assert(buffer.size() == 9L);
 }
 
 @test fun testAsmCmplrr(_x: Testing) {
@@ -752,7 +752,7 @@ impl Register {
     assertAsm(buffer, 0L, 0x44Y, 0x39Y, 0xF8Y);
     assertAsm(buffer, 3L, 0x41Y, 0x39Y, 0xDFY);
     assertAsm(buffer, 6L, 0x39Y, 0xD8Y);
-    assert(buffer.length() == 8L);
+    assert(buffer.size() == 8L);
 }
 
 @test fun testAsmCmpqrr(_x: Testing) {
@@ -765,7 +765,7 @@ impl Register {
     assertAsm(buffer, 0L, 0x4CY, 0x39Y, 0xF8Y);
     assertAsm(buffer, 3L, 0x49Y, 0x39Y, 0xDFY);
     assertAsm(buffer, 6L, 0x48Y, 0x39Y, 0xD8Y);
-    assert(buffer.length() == 9L);
+    assert(buffer.size() == 9L);
 }
 
 @test fun testAsmImullrr(_x: Testing) {
@@ -776,7 +776,7 @@ impl Register {
 
     assertAsm(buffer, 0L, 0x0FY, 0xAFY, 0xC3Y);
     assertAsm(buffer, 3L, 0x41Y, 0x0FY, 0xAFY, 0xCFY);
-    assert(buffer.length() == 7L);
+    assert(buffer.size() == 7L);
 }
 
 @test fun testAsmImulqrr(_x: Testing) {
@@ -787,7 +787,7 @@ impl Register {
 
     assertAsm(buffer, 0L, 0x48Y, 0x0FY, 0xAFY, 0xC3Y);
     assertAsm(buffer, 4L, 0x49Y, 0x0FY, 0xAFY, 0xCFY);
-    assert(buffer.length() == 8L);
+    assert(buffer.size() == 8L);
 }
 
 @test fun testAsmIdivlrr(_x: Testing) {
@@ -798,7 +798,7 @@ impl Register {
 
     assertAsm(buffer, 0L, 0xF7Y, 0xF8Y);
     assertAsm(buffer, 2L, 0x41Y, 0xF7Y, 0xFFY);
-    assert(buffer.length() == 5L);
+    assert(buffer.size() == 5L);
 }
 
 @test fun testAsmIdivqrr(_x: Testing) {
@@ -809,7 +809,7 @@ impl Register {
 
     assertAsm(buffer, 0L, 0x48Y, 0xF7Y, 0xF8Y);
     assertAsm(buffer, 3L, 0x49Y, 0xF7Y, 0xFFY);
-    assert(buffer.length() == 6L);
+    assert(buffer.size() == 6L);
 }
 
 @test fun testAsmSetccr(_x: Testing) {
@@ -828,7 +828,7 @@ impl Register {
     assertAsm(buffer, 10L, 0x0FY, 0x9FY, 0xC2Y);
     assertAsm(buffer, 13L, 0x40Y, 0x0FY, 0x9EY, 0xC6Y);
     assertAsm(buffer, 17L, 0x40Y, 0x0FY, 0x9CY, 0xC7Y);
-    assert(buffer.length() == 21L);
+    assert(buffer.size() == 21L);
 }
 
 @test fun testAsmCallr(_x: Testing) {
@@ -839,7 +839,7 @@ impl Register {
 
     assertAsm(buffer, 0L, 0xFFY, 0xD0Y);
     assertAsm(buffer, 2L, 0x41Y, 0xFFY, 0xD7Y);
-    assert(buffer.length() == 5L);
+    assert(buffer.size() == 5L);
 }
 
 @test fun testAsmCmovl(_x: Testing) {
@@ -850,7 +850,7 @@ impl Register {
 
     assertAsm(buffer, 0L, 0x44Y, 0x0FY, 0x44Y, 0xF8Y);
     assertAsm(buffer, 4L, 0x41Y, 0x0FY, 0x45Y, 0xC5Y);
-    assert(buffer.length() == 8L);
+    assert(buffer.size() == 8L);
 }
 
 @test fun testAsmCmovq(_x: Testing) {
@@ -863,7 +863,7 @@ impl Register {
     assertAsm(buffer, 0L, 0x48Y, 0x0FY, 0x4FY, 0xC1Y);
     assertAsm(buffer, 4L, 0x4CY, 0x0FY, 0x44Y, 0xF8Y);
     assertAsm(buffer, 8L, 0x49Y, 0x0FY, 0x45Y, 0xC5Y);
-    assert(buffer.length() == 12L);
+    assert(buffer.size() == 12L);
 }
 
 @test fun testAsmMovlri(_x: Testing) {
@@ -876,7 +876,7 @@ impl Register {
     assertAsmInt32(buffer, 1L, 2);
     assertAsm(buffer, 5L, 0x41Y, 0xBEY);
     assertAsmInt32(buffer, 7L, 3);
-    assert(buffer.length() == 11L);
+    assert(buffer.size() == 11L);
 }
 
 @test fun testAsmMovqri(_x: Testing) {
@@ -889,7 +889,7 @@ impl Register {
     assertAsmInt32(buffer, 3L, 1);
     assertAsm(buffer, 7L, 0x49Y, 0xC7Y, 0xC7Y);
     assertAsmInt32(buffer, 10L, -1);
-    assert(buffer.length() == 14L);
+    assert(buffer.size() == 14L);
 }
 
 @test fun testTestlrr(_x: Testing) {
@@ -902,7 +902,7 @@ impl Register {
     assertAsm(buffer, 0L, 0x85Y, 0xC0Y);
     assertAsm(buffer, 2L, 0x85Y, 0xC6Y);
     assertAsm(buffer, 4L, 0x41Y, 0x85Y, 0xC7Y);
-    assert(buffer.length() == 7L);
+    assert(buffer.size() == 7L);
 }
 
 @test fun testTestqrr(_x: Testing) {
@@ -915,5 +915,5 @@ impl Register {
     assertAsm(buffer, 0L, 0x48Y, 0x85Y, 0xC0Y);
     assertAsm(buffer, 3L, 0x48Y, 0x85Y, 0xC6Y);
     assertAsm(buffer, 6L, 0x49Y, 0x85Y, 0xC7Y);
-    assert(buffer.length() == 9L);
+    assert(buffer.size() == 9L);
 }

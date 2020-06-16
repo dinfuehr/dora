@@ -8,12 +8,12 @@ fun main() {
     assert(3 == x.removeAt(2L));
     assert(x(0L) == 1);
     assert(x(1L) == 2);
-    assert(x.length() == 2L);
+    assert(x.size() == 2L);
 
     assert(1 == x.removeAt(0L));
     assert(x(0L) == 2);
-    assert(x.length() == 1L);
+    assert(x.size() == 1L);
 
     assert(2 == x.removeAt(0L));
-    assert(x.length() == 0L);
+    assert(x.size() == 0L);
 }

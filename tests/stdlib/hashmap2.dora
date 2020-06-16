@@ -9,7 +9,7 @@ fun main() {
         i = i + 1;
     }
 
-    assert(map.length() == 1000L);
+    assert(map.size() == 1000L);
     assert(map.isEmpty().not());
     assert(map.capacity() == 2048L);
     assert(!map.contains(-1));
@@ -31,7 +31,7 @@ fun main() {
         i = i + 1;
     }
 
-    assert(map.length() == 900L);
+    assert(map.size() == 900L);
     assert(map.isEmpty().not());
     assert(map.capacity() == 2048L);
 
@@ -51,7 +51,7 @@ fun main() {
         i = i + 1;
     }
 
-    assert(map.length() == 300L);
+    assert(map.size() == 300L);
     assert(map.isEmpty().not());
     assert(map.capacity() == 1024L);
 }

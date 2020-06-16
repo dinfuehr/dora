@@ -9,7 +9,7 @@ fun main() {
         i = i + 1;
     }
 
-    assert(set.length() == 1000L);
+    assert(set.size() == 1000L);
     assert(set.isEmpty().not());
     assert(set.capacity() == 2048L);
     assert(!set.contains(-1));
@@ -30,7 +30,7 @@ fun main() {
         i = i + 1;
     }
 
-    assert(set.length() == 900L);
+    assert(set.size() == 900L);
     assert(set.isEmpty().not());
     assert(set.capacity() == 2048L);
 
@@ -49,7 +49,7 @@ fun main() {
         i = i + 1;
     }
 
-    assert(set.length() == 300L);
+    assert(set.size() == 300L);
     assert(set.isEmpty().not());
     assert(set.capacity() == 1024L);
 }

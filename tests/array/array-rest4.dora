@@ -9,7 +9,7 @@ fun sum_args(x: Foo...) -> Int32 {
     var result = 0;
     var idx = 0L;
     
-    while idx < x.length() {
+    while idx < x.size() {
         let foo = x(idx);
         result = result + if foo === nil { 0 } else { foo.value };
         idx = idx + 1L;

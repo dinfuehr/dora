@@ -2,11 +2,11 @@
   fun equals(rhs: String) -> Bool {
     var i = 0L;
 
-    if self.length() != rhs.length() {
+    if self.size() != rhs.size() {
         return false;
     }
 
-    let len = self.length();
+    let len = self.size();
 
     while i < len {
         if self.getByte(i) != rhs.getByte(i) {
@@ -23,7 +23,7 @@
 
   @internal fun compareTo(rhs: String) -> Int32;
 
-  @internal fun length() -> Int64;
+  @internal fun size() -> Int64;
 
   @internal fun toInt32Success() -> Bool;
   @internal fun toInt64Success() -> Bool;
@@ -52,7 +52,7 @@
   @internal fun getByte(idx: Int64) -> UInt8;
   @internal fun clone() -> String;
 
-  fun isEmpty() -> Bool = self.length() == 0L;
+  fun isEmpty() -> Bool = self.size() == 0L;
 
   fun codePoints() -> CodepointIterator = CodepointIterator(self, 0L);
 }
@@ -72,7 +72,7 @@ module String {
   }
 
   fun fromBytes(val: Array[UInt8]) -> Option[String] {
-    let value = String::fromBytesPartOrNull(val, 0L, val.length());
+    let value = String::fromBytesPartOrNull(val, 0L, val.size());
   
     if value === nil {
       Option::none[String]()
@@ -97,20 +97,20 @@ module String {
     var data = data;
     if data == 0L { return "0"; }
     let array = Array[UInt8](64L);
-    var at = array.length();
+    var at = array.size();
     while data != 0L {
       array(at - 1L) = ('0'.toInt64() + (data & 1L)).toUInt8();
       data = data.shiftRight(1);
       at = at - 1L;
     }
-    return String::fromBytesPart(array, at, array.length() - at + 1L).unwrap();
+    return String::fromBytesPart(array, at, array.size() - at + 1L).unwrap();
   }
 
   fun hex(data: Int64) -> String {
     var data = data;
     if data == 0L { return "0"; }
     let array = Array[UInt8](16L);
-    var at = array.length();
+    var at = array.size();
     while data != 0L {
       let digit = (data & 0xFL).toInt32();
 
@@ -123,6 +123,6 @@ module String {
       data = data.shiftRight(4);
       at = at - 1L;
     }
-    return String::fromBytesPart(array, at, array.length() - at + 1L).unwrap();
+    return String::fromBytesPart(array, at, array.size() - at + 1L).unwrap();
   }
 }

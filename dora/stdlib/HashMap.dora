@@ -4,12 +4,12 @@ class HashMap[K: Hash + Equals, V] {
     var inserted_and_deleted: BitSet = BitSet(0L);
     var keys: Array[K] = Array::empty[K]();
     var values: Array[V] = Array::empty[V]();
-    var size: Int64 = 0L;
+    var entries: Int64 = 0L;
     var cap: Int64 = 0L;
 
     fun insert(key: K, value: V) {
         self.ensureCapacity(1L);
-        assert(self.size < self.cap);
+        assert(self.entries < self.cap);
 
         var hash = key.hash();
         var idx = hash.toInt64() & (self.cap - 1L);
@@ -30,7 +30,7 @@ class HashMap[K: Hash + Equals, V] {
                 self.keys.set(idx, key);
                 self.values.set(idx, value);
 
-                self.size = self.size + 1L;
+                self.entries = self.entries + 1L;
                 return;
             }
 
@@ -39,9 +39,9 @@ class HashMap[K: Hash + Equals, V] {
     }
 
     fun contains(key: K) -> Bool {
-        assert(self.size <= self.cap);
+        assert(self.entries <= self.cap);
 
-        if self.size == 0L {
+        if self.entries == 0L {
             return false;
         }
 
@@ -66,9 +66,9 @@ class HashMap[K: Hash + Equals, V] {
     }
 
     fun get(key: K) -> Option[V] {
-        assert(self.size <= self.cap);
+        assert(self.entries <= self.cap);
 
-        if self.size == 0L {
+        if self.entries == 0L {
             return Option::none[V]();
         }
 
@@ -109,7 +109,7 @@ class HashMap[K: Hash + Equals, V] {
                     self.keys.set(idx, defaultValue[K]());
                     self.values.set(idx, defaultValue[V]());
 
-                    self.size = self.size - 1L;
+                    self.entries = self.entries - 1L;
                     return Option::some[V](value);
                 }
             } else {
@@ -123,8 +123,8 @@ class HashMap[K: Hash + Equals, V] {
     }
 
     fun ensureCapacity(elements_to_add: Int64) {
-        if self.size + elements_to_add < self.cap {
-            if self.size <= (self.cap - (self.cap / 4L)) {
+        if self.entries + elements_to_add < self.cap {
+            if self.entries <= (self.cap - (self.cap / 4L)) {
                 return;
             }
         }
@@ -136,13 +136,13 @@ class HashMap[K: Hash + Equals, V] {
             new_capacity = old_capacity * 2L;
         }
 
-        assert(self.size + elements_to_add < new_capacity);
+        assert(self.entries + elements_to_add < new_capacity);
 
         self.rehash(new_capacity);
     }
 
     fun shrink() {
-        if self.size > (self.cap / 4L) {
+        if self.entries > (self.cap / 4L) {
             return;
         }
 
@@ -152,7 +152,7 @@ class HashMap[K: Hash + Equals, V] {
             return;
         }
 
-        assert(self.size < new_capacity);
+        assert(self.entries < new_capacity);
 
         self.rehash(new_capacity);
     }
@@ -164,7 +164,7 @@ class HashMap[K: Hash + Equals, V] {
         new_map.inserted_and_deleted = BitSet(2L * new_capacity);
         new_map.keys = Array[K](new_capacity);
         new_map.values = Array[V](new_capacity);
-        new_map.size = 0L;
+        new_map.entries = 0L;
         new_map.cap = new_capacity;
 
         var idx = 0L;
@@ -183,7 +183,7 @@ class HashMap[K: Hash + Equals, V] {
         self.inserted_and_deleted = new_map.inserted_and_deleted;
         self.keys = new_map.keys;
         self.values = new_map.values;
-        self.size = new_map.size;
+        self.entries = new_map.entries;
         self.cap = new_capacity;
     }
 
@@ -192,12 +192,12 @@ class HashMap[K: Hash + Equals, V] {
                !self.inserted_and_deleted.contains(2L * idx + 1L);
     }
 
-    fun length() -> Int64 {
-        return self.size;
+    fun size() -> Int64 {
+        return self.entries;
     }
 
     fun isEmpty() -> Bool {
-        return self.size == 0L;
+        return self.entries == 0L;
     }
 
     fun capacity() -> Int64 {

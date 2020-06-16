@@ -8,7 +8,7 @@ fun sum_args(x: (Int32, Int32)...) -> Int32 {
     var result = 0;
     var idx = 0L;
 
-    while idx < x.length() {
+    while idx < x.size() {
         let elem = x(idx);
         result = result + elem.0 + elem.1;
         idx = idx + 1L;

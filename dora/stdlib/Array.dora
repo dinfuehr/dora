@@ -1,10 +1,10 @@
 @internal class Array[T](len: Int64) {
 
-  @internal fun length() -> Int64;
+  @internal fun size() -> Int64;
   @internal fun get(idx: Int64) -> T;
   @internal fun set(idx: Int64, val: T);
 
-  fun isEmpty() -> Bool = self.length() == 0L;
+  fun isEmpty() -> Bool = self.size() == 0L;
 
 }
 
@@ -17,7 +17,7 @@
 fun arrayContains[T : Identity + Equals](array: Array[T], value: T) -> Bool {
   var i = 0L;
 
-  while i < array.length() {
+  while i < array.size() {
     let x = array.get(i);
     if x.identicalTo(value) || x.equals(value) {
       return true;
@@ -31,7 +31,7 @@ fun arrayContains[T : Identity + Equals](array: Array[T], value: T) -> Bool {
 fun arrayHas[T : Identity](array: Array[T], value: T) -> Bool {
   var i = 0L;
 
-  while i < array.length() {
+  while i < array.size() {
     if array.get(i).identicalTo(value) {
       return true;
     }

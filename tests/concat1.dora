@@ -1,4 +1,4 @@
 fun main() {
     let x = "hello " + "world";
-    assert(x.length() == 11L);
+    assert(x.size() == 11L);
 }

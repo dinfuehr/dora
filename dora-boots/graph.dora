@@ -58,7 +58,7 @@ class Graph {
         self.postOrder = postOrder;
 
         var idx = 0L;
-        while idx < self.postOrder.length() {
+        while idx < self.postOrder.size() {
             let block = self.postOrder.get(idx);
             block.postOrderIdx = idx.toInt32();
             idx = idx + 1L;
@@ -88,7 +88,7 @@ class PostOrderIterator(let postOrder: Vec[Block]) {
     var idx: Int64 = 0L;
 
     fun hasNext() -> Bool {
-        self.idx < self.postOrder.length()
+        self.idx < self.postOrder.size()
     }
 
     fun next() -> Block {
@@ -99,7 +99,7 @@ class PostOrderIterator(let postOrder: Vec[Block]) {
 }
 
 class ReversePostOrderIterator(let postOrder: Vec[Block]) {
-    var idx: Int64 = self.postOrder.length() - 1L;
+    var idx: Int64 = self.postOrder.size() - 1L;
 
     fun hasNext() -> Bool {
         self.idx != -1L
@@ -243,7 +243,7 @@ class LoopHeader(let header: Block) {
     }
 
     fun numberBackEdges() -> Int32 {
-        self.backEdges.length().toInt32()
+        self.backEdges.size().toInt32()
     }
 }
 
@@ -271,7 +271,7 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
     }
 
     fun addInput(inst: Inst) {
-        let input = Input(self.inputs.length().toInt32(), inst, self);
+        let input = Input(self.inputs.size().toInt32(), inst, self);
         self.inputs.push(input);
     }
 
@@ -336,7 +336,7 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
     }
 
     fun registerUses() {
-        let inputs = self.inputs.length();
+        let inputs = self.inputs.size();
         var idx = 0L;
 
         while idx < inputs {
@@ -347,7 +347,7 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
     }
 
     fun removeAsUser() {
-        let inputs = self.inputs.length();
+        let inputs = self.inputs.size();
         var idx = 0L;
 
         while idx < inputs {

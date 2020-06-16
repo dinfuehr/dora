@@ -3,7 +3,7 @@
 fun main() {
     let a = Array[Foo](1_000_000L);
     var i = 0L;
-    while i < a.length() {
+    while i < a.size() {
         a(i) = Foo();
         i = i + 1L;
     }

@@ -3,10 +3,10 @@ fun main() {
     buf.appendChar('a');
     buf.appendChar('b');
     buf.appendChar('c');
-    assert(buf.length() == 3L);
+    assert(buf.size() == 3L);
     assert(buf.toString() == "abc");
 
     buf.append("foo123");
-    assert(buf.length() == 9L);
+    assert(buf.size() == 9L);
     assert(buf.toString() == "abcfoo123");
 }

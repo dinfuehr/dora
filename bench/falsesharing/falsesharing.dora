@@ -22,14 +22,14 @@ fun construct(size: Int) -> Array<Foo> {
 
     var i = 0;
 
-    while i < objects.length() {
+    while i < objects.size() {
         objects[i] = Foo(nil, nil);
         i = i + 1;
     }
 
     i = 0;
 
-    while i < objects.length() {
+    while i < objects.size() {
         if i == 0 {
              objects[0].left = objects[size-1];
 	} else {
@@ -50,7 +50,7 @@ fun construct(size: Int) -> Array<Foo> {
 
 class MyThread(let thread_idx: Int, let threads: Int, let iters: Int, let objects: Array<Foo>) : Thread {
     @override fun run() {
-	let size = self.objects.length();
+	let size = self.objects.size();
 	let objects_per_thread = size / self.threads;
 	assert(size % self.threads == 0);
 	let start_idx = self.thread_idx  * objects_per_thread;

@@ -6,7 +6,7 @@ class BitVec {
             fatalError("index out of bounds");
         }
 
-        if idx >= self.data.length() * 32L {
+        if idx >= self.data.size() * 32L {
             return false;
         }
 
@@ -38,7 +38,7 @@ class BitVec {
             fatalError("index out of bounds");
         }
 
-        if idx >= self.data.length() * 32L {
+        if idx >= self.data.size() * 32L {
             return;
         }
 
@@ -52,18 +52,18 @@ class BitVec {
     }
 
     fun ensureCapacity(newcap: Int64) {
-        if newcap < self.data.length() * 32L || newcap == 0L {
+        if newcap < self.data.size() * 32L || newcap == 0L {
             return;
         }
 
         let newcap = (newcap + 31L) / 32L;
 
         let newarray = Array[Int32](newcap);
-        Array::copy[Int32](self.data, 0L, newarray, 0L, self.data.length());
+        Array::copy[Int32](self.data, 0L, newarray, 0L, self.data.size());
         self.data = newarray;
     }
 
     fun capacity() -> Int64 {
-        self.data.length() * 32L
+        self.data.size() * 32L
     }
 }

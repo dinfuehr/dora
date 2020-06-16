@@ -2,10 +2,10 @@
 
 fun main() {
     let x = Array::empty[String]();
-    assert(x.length() == 0L);
+    assert(x.size() == 0L);
 
     let x = Array::fill[String](10L, nil);
-    assert(x.length() == 10L);
+    assert(x.size() == 10L);
 
     x(0L) = "a" + "b";
     x(1L) = "x" + "y";

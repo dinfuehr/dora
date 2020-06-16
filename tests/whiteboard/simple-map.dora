@@ -16,7 +16,7 @@ class SlowMap[K: Equals, V] {
 
     fun insert(key: K, val: V) -> Bool {
         var i = 0L;
-        var len = self.entries.length();
+        var len = self.entries.size();
 
         while i < len {
             let entry = self.entries.get(i);
@@ -35,7 +35,7 @@ class SlowMap[K: Equals, V] {
 
     fun get(key: K) -> V {
         var i = 0L;
-        var len = self.entries.length();
+        var len = self.entries.size();
 
         while i < len {
             let entry = self.entries.get(i);

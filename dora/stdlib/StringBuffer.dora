@@ -2,18 +2,18 @@ class StringBuffer() {
   var buf: Array[UInt8] = Array::empty[UInt8]();
   var len: Int64 = 0L;
 
-  fun length() -> Int64 {
+  fun size() -> Int64 {
     return self.len;
   }
 
   fun capacity() -> Int64 {
-    return self.buf.length();
+    return self.buf.size();
   }
 
   // reserve `elements` bytes
   // (capacity - length >= elements)
   fun reserve(elements: Int64) {
-    if self.capacity() - self.length() >= elements {
+    if self.capacity() - self.size() >= elements {
       return;
     }
 
@@ -21,7 +21,7 @@ class StringBuffer() {
     let newbuf = Array[UInt8](newcap);
     var i = 0L;
 
-    while i < self.buf.length() {
+    while i < self.buf.size() {
       newbuf.set(i, self.buf.get(i));
       i = i + 1L;
     }
@@ -57,15 +57,15 @@ class StringBuffer() {
   }
 
   fun append(value: String) -> StringBuffer {
-    self.reserve(value.length());
+    self.reserve(value.size());
     var i = 0L;
 
-    while i < value.length() {
+    while i < value.size() {
       self.buf.set(self.len + i, value.getByte(i));
       i = i + 1L;
     }
 
-    self.len = self.len + value.length();
+    self.len = self.len + value.size();
     self
   }
 
@@ -73,7 +73,7 @@ class StringBuffer() {
     self.appendChar('\n')
   }
 
-  fun toString() -> String = String::fromBytesPart(self.buf, 0L, self.length()).unwrap();
+  fun toString() -> String = String::fromBytesPart(self.buf, 0L, self.size()).unwrap();
 }
 
 module StringBuffer {

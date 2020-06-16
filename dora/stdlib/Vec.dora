@@ -100,7 +100,7 @@ class Vec[T] {
     temp
   }
 
-  fun length() -> Int64 {
+  fun size() -> Int64 {
     return self.len;
   }
 
@@ -109,7 +109,7 @@ class Vec[T] {
   }
 
   fun capacity() -> Int64 {
-    self.array.length()
+    self.array.size()
   }
 
   fun first() -> Option[T] {
@@ -141,7 +141,7 @@ class VecIter[T](let data: Vec[T]) {
   var idx: Int64 = 0L;
 
   fun hasNext() -> Bool {
-    self.idx < self.data.length()
+    self.idx < self.data.size()
   }
 
   fun next() -> T {
@@ -152,7 +152,7 @@ class VecIter[T](let data: Vec[T]) {
 }
 
 class ReverseVecIter[T](let data: Vec[T]) {
-  var idx: Int64 = data.length() - 1L;
+  var idx: Int64 = data.size() - 1L;
 
   fun hasNext() -> Bool {
     self.idx != -1L
@@ -168,7 +168,7 @@ class ReverseVecIter[T](let data: Vec[T]) {
 fun removeItem[T: Equals](vec: Vec[T], elem: T) {
   var i = 0L;
 
-  while i < vec.length() {
+  while i < vec.size() {
     if vec.get(i).equals(elem) {
       vec.removeAt(i);
     } else {
@@ -180,6 +180,6 @@ fun removeItem[T: Equals](vec: Vec[T], elem: T) {
 fun vec[T](values: T...) -> Vec[T] {
   let result = Vec[T]();
   result.array = values;
-  result.len = values.length();
+  result.len = values.size();
   result
 }

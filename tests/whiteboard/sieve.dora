@@ -4,7 +4,7 @@ fun main() {
     let primes = sieve(100L);
     var i = 0L;
 
-    while i < primes.length() {
+    while i < primes.size() {
         println(primes(i).toString());
         i = i + 1L;
     }

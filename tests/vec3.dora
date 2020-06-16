@@ -1,6 +1,6 @@
 fun main() {
     let x = vec[Int32](1, 2, 3);
-    assert(x.length() == 3L);
+    assert(x.size() == 3L);
     assert(x.pop() == 3);
     assert(x.pop() == 2);
     assert(x.pop() == 1);
