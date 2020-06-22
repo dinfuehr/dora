@@ -1,5 +1,5 @@
 fun main() {
-    let x = vec[Int32](1, 2, 3);
+    let x = Vec[Int32](1, 2, 3);
     assert(x.size() == 3L);
     assert(x.pop() == 3);
     assert(x.pop() == 2);

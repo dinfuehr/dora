@@ -1,6 +1,6 @@
-class Vec[T] {
-  var array: Array[T] = Array::empty[T]();
-  var len: Int64 = 0L;
+class Vec[T](values: T...) {
+  var array: Array[T] = values;
+  var len: Int64 = values.size();
 
   fun get(idx: Int64) -> T {
     if idx < 0L || idx >= self.len {
@@ -175,11 +175,4 @@ fun removeItem[T: Equals](vec: Vec[T], elem: T) {
       i = i + 1L;
     }
   }
-}
-
-fun vec[T](values: T...) -> Vec[T] {
-  let result = Vec[T]();
-  result.array = values;
-  result.len = values.size();
-  result
 }

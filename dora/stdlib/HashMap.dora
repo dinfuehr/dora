@@ -1,4 +1,4 @@
-class HashMap[K: Hash + Equals, V] {
+class HashMap[K: Hash + Equals, V](entries: (K, V)...) {
     // BitSet.size == capacity * 2
     // [bit 0: inserted; bit 1: deleted] * capacity
     var inserted_and_deleted: BitSet = BitSet(0L);
@@ -6,6 +6,9 @@ class HashMap[K: Hash + Equals, V] {
     var values: Array[V] = Array::empty[V]();
     var entries: Int64 = 0L;
     var cap: Int64 = 0L;
+    for entry in entries {
+        self.insert(entry.0, entry.1);
+    }
 
     fun insert(key: K, value: V) {
         self.ensureCapacity(1L);
@@ -231,12 +234,4 @@ class HashMapIter[K: Hash + Equals, V](let map: HashMap[K, V]) {
         self.idx = self.idx + 1L;
         (key, value)
     }
-}
-
-fun hashMap[K: Hash + Equals, V](entries: (K, V)...) -> HashMap[K, V] {
-    let result = HashMap[K, V]();
-    for entry in entries {
-        result.insert(entry.0, entry.1);
-    }
-    result
 }
