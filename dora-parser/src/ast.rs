@@ -527,6 +527,7 @@ pub struct ConstructorParam {
     pub data_type: Type,
     pub field: bool,
     pub reassignable: bool,
+    pub variadic: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -670,11 +671,11 @@ impl Modifier {
 pub struct Param {
     pub id: NodeId,
     pub idx: u32,
-    pub variadic: bool,
     pub name: Name,
     pub pos: Position,
     pub span: Span,
     pub data_type: Type,
+    pub variadic: bool,
 }
 
 #[derive(Clone, Debug)]
