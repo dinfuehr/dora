@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use crate::baseline;
 use crate::boots;
 use crate::cannon;
 use crate::compiler::JitFct;
@@ -64,9 +63,6 @@ pub fn generate_fct<'ast>(
 
     let code = match bc {
         CompilerName::Cannon => cannon::compile(vm, &fct, src, cls_type_params, fct_type_params),
-        CompilerName::Baseline => {
-            baseline::compile(vm, &fct, src, cls_type_params, fct_type_params)
-        }
         CompilerName::Boots => boots::compile(vm, &fct, src, cls_type_params, fct_type_params),
     };
 

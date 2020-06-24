@@ -7,7 +7,6 @@ require 'open3'
 require 'timeout'
 
 $config = {
-  baseline: '--compiler=baseline',
   cannon: '--compiler=cannon',
 }
 
@@ -95,7 +94,7 @@ class TestCase
   def initialize(file, opts = {})
     self.expectation = opts.fetch(:expectation, TestExpectation.new(fail: false))
     self.file = self.test_file = file
-    self.configs = [:baseline, :cannon]
+    self.configs = [:cannon]
     self.results = {}
     self.args = self.vm_args = ""
     self.timeout = 60

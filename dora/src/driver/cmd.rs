@@ -57,7 +57,7 @@ Options:
     --gc-young-appel        Use Appel dynamic resizing of young generation.
     --gc-semi-ratio=<num>   Use fixed ratio of semi space in young generation.
 
-    --compiler=<name>       Switch default compiler. Possible values: cannon, baseline [default: cannon].
+    --compiler=<name>       Switch default compiler. Possible values: cannon [default: cannon].
     --test-filter=<name>    Filter tests.
 
     --disable-tlab          Disable tlab allocation.
@@ -239,7 +239,6 @@ pub enum CollectorName {
 #[derive(Copy, Clone, Debug, Deserialize)]
 pub enum CompilerName {
     Cannon,
-    Baseline,
     Boots,
 }
 

@@ -2,4 +2,4 @@
 
 set -e
 
-cargo run -- --compiler=cannon test dora-boots && cargo run -- --compiler=baseline test dora-boots && ruby tools/tester.rb tests/boots
+cargo run -- --compiler=cannon test dora-boots && ruby tools/tester.rb tests/boots
