@@ -59,6 +59,7 @@ pub fn generate<'ast>(
         gen: BytecodeWriter::new(),
         loops: Vec::new(),
         var_registers: HashMap::new(),
+        registers: Registers::new(),
     };
     ast_bytecode_generator.generate()
 }
@@ -75,6 +76,7 @@ struct AstBytecodeGen<'a, 'ast: 'a> {
     gen: BytecodeWriter,
     loops: Vec<LoopLabels>,
     var_registers: HashMap<VarId, Register>,
+    registers: Registers,
 }
 
 impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
@@ -85,7 +87,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             let var_self = self.src.var_self();
             let var_ty = self.specialize_type(var_self.ty);
             let var_id = var_self.id;
-            let reg = self.gen.add_register(var_ty.into());
+            let reg = self.registers.alloc_register(var_ty.into());
             self.var_registers.insert(var_id, reg);
             arguments += 1;
         }
@@ -98,7 +100,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 // no register needed for unit
             } else {
                 let ty: BytecodeType = ty.into();
-                let reg = self.gen.add_register(ty);
+                let reg = self.registers.alloc_register(ty);
                 self.var_registers.insert(var_id, reg);
                 arguments += 1;
             }
@@ -126,7 +128,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             self.gen.emit_ret_void();
         }
 
-        self.gen.generate()
+        let registers = std::mem::replace(&mut self.registers.all, Vec::new());
+        self.gen.generate_with_registers(registers)
     }
 
     fn visit_stmt(&mut self, stmt: &Stmt) {
@@ -150,14 +153,14 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn visit_stmt_for_array(&mut self, stmt: &StmtForType) {
-        let array_reg = self.gen.add_register(BytecodeType::Ptr);
-        let index_reg = self.gen.add_register(BytecodeType::Int64);
-        let length_reg = self.gen.add_register(BytecodeType::Int64);
+        let array_reg = self.registers.alloc_register(BytecodeType::Ptr);
+        let index_reg = self.registers.alloc_register(BytecodeType::Int64);
+        let length_reg = self.registers.alloc_register(BytecodeType::Int64);
 
         let for_var_id = *self.src.map_vars.get(stmt.id).unwrap();
         let var_ty = self.var_ty(for_var_id);
         let var_ty: BytecodeType = var_ty.into();
-        let var_reg = self.gen.add_register(var_ty);
+        let var_reg = self.registers.alloc_register(var_ty);
         self.var_registers.insert(for_var_id, var_reg);
 
         // evaluate and store array
@@ -174,7 +177,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let lbl_end = self.gen.create_label();
 
         // if idx >= length then goto end
-        let tmp_reg = self.gen.add_register(BytecodeType::Bool);
+        let tmp_reg = self.registers.alloc_register(BytecodeType::Bool);
         self.gen.emit_test_lt_int64(tmp_reg, index_reg, length_reg);
         self.gen.emit_jump_if_false(tmp_reg, lbl_end);
 
@@ -186,7 +189,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.loops.pop().unwrap();
 
         // increment index
-        let tmp_reg = self.gen.add_register(BytecodeType::Int64);
+        let tmp_reg = self.registers.alloc_register(BytecodeType::Int64);
         self.gen.emit_const_int64(tmp_reg, 1);
         self.gen.emit_add_int64(index_reg, index_reg, tmp_reg);
 
@@ -203,7 +206,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.gen.emit_push_register(object_reg);
 
         // Emit: <iterator> = <obj>.makeIterator();
-        let iterator_reg = self.gen.add_register(BytecodeType::Ptr);
+        let iterator_reg = self.registers.alloc_register(BytecodeType::Ptr);
         self.gen.emit_invoke_direct_ptr(
             iterator_reg,
             FctDef::fct_id(self.vm, for_type_info.make_iterator),
@@ -215,7 +218,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let lbl_end = self.gen.create_label();
 
         // Emit: <cond> = <iterator>.hasNext() & jump to lbl_end if false
-        let cond_reg = self.gen.add_register(BytecodeType::Bool);
+        let cond_reg = self.registers.alloc_register(BytecodeType::Bool);
         self.gen
             .emit_invoke_direct_ptr(cond_reg, FctDef::fct_id(self.vm, for_type_info.has_next));
         self.gen.emit_jump_if_false(cond_reg, lbl_end);
@@ -225,7 +228,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let var_ty = self.var_ty(var_id);
 
         let ty: BytecodeType = var_ty.into();
-        let var_reg = self.gen.add_register(ty);
+        let var_reg = self.registers.alloc_register(ty);
         self.var_registers.insert(var_id, var_reg);
 
         self.gen.emit_push_register(iterator_reg);
@@ -248,7 +251,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             DataDest::Effect
         } else {
             let ty: BytecodeType = ty.into();
-            let var_reg = self.gen.add_register(ty);
+            let var_reg = self.registers.alloc_register(ty);
 
             self.var_registers.insert(var_id, var_reg);
 
@@ -354,7 +357,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.gen
             .emit_invoke_static_ptr(buffer_register, FctDef::fct_id(self.vm, fct_id));
 
-        let part_register = self.gen.add_register(BytecodeType::Ptr);
+        let part_register = self.registers.alloc_register(BytecodeType::Ptr);
 
         for part in &expr.parts {
             if let Some(ref lit_str) = part.to_lit_str() {
@@ -762,7 +765,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             CallType::CtorNew(_, _) => {
                 // Need to use new register for allocated object.
                 // Otherwise code like `x = SomeClass(x)` would break.
-                Some(self.gen.add_register(BytecodeType::Ptr))
+                Some(self.registers.alloc_register(BytecodeType::Ptr))
             }
             _ => None,
         }
@@ -825,17 +828,17 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let cls_def_id = specialize_class_ty(self.vm, ty);
 
         // Store length in a register
-        let length_reg = self.gen.add_register(BytecodeType::Int64);
+        let length_reg = self.registers.alloc_register(BytecodeType::Int64);
         self.gen
             .emit_const_int64(length_reg, variadic_arguments as i64);
 
         // Allocate array of given length
-        let array_reg = self.gen.add_register(BytecodeType::Ptr);
+        let array_reg = self.registers.alloc_register(BytecodeType::Ptr);
         self.gen.set_position(expr.pos);
         self.gen.emit_new_array(array_reg, cls_def_id, length_reg);
 
         let bytecode_ty: BytecodeType = element_ty.into();
-        let index_reg = self.gen.add_register(BytecodeType::Int64);
+        let index_reg = self.registers.alloc_register(BytecodeType::Int64);
 
         // Evaluate rest arguments and store them in array
         for (idx, arg) in expr.args.iter().skip(non_variadic_arguments).enumerate() {
@@ -1391,7 +1394,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let result = if function_return_type_bc == return_type {
             dest
         } else {
-            self.gen.add_register(function_return_type_bc)
+            self.registers.alloc_register(function_return_type_bc)
         };
 
         self.gen.emit_push_register(lhs);
@@ -1414,7 +1417,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
             BinOp::Cmp(op) => {
                 assert_ne!(result, dest);
-                let zero = self.gen.add_register(BytecodeType::Int32);
+                let zero = self.registers.alloc_register(BytecodeType::Int32);
                 self.gen.emit_const_int32(zero, 0);
 
                 match op {
@@ -1572,8 +1575,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let cmp_rhs_reg;
 
         if builtin_type.is_float() {
-            cmp_lhs_reg = self.gen.add_register(cmp_ty);
-            cmp_rhs_reg = self.gen.add_register(cmp_ty);
+            cmp_lhs_reg = self.registers.alloc_register(cmp_ty);
+            cmp_rhs_reg = self.registers.alloc_register(cmp_ty);
 
             if cmp_ty == BytecodeType::Int32 {
                 self.gen
@@ -1619,7 +1622,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     fn emit_bin_or(&mut self, expr: &ExprBinType, dest: DataDest) -> Register {
         if dest.is_effect() {
             let end_lbl = self.gen.create_label();
-            let dest = self.gen.add_register(BytecodeType::Bool);
+            let dest = self.registers.alloc_register(BytecodeType::Bool);
 
             self.visit_expr(&expr.lhs, DataDest::Reg(dest));
             self.gen.emit_jump_if_true(dest, end_lbl);
@@ -1643,7 +1646,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     fn emit_bin_and(&mut self, expr: &ExprBinType, dest: DataDest) -> Register {
         if dest.is_effect() {
             let end_lbl = self.gen.create_label();
-            let dest = self.gen.add_register(BytecodeType::Bool);
+            let dest = self.registers.alloc_register(BytecodeType::Bool);
 
             self.visit_expr(&expr.lhs, DataDest::Reg(dest));
             self.gen.emit_jump_if_false(dest, end_lbl);
@@ -1998,7 +2001,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 Some(BinOp::Cmp(CmpOp::Ge)) => self.gen.emit_test_ge_int64(dest, lhs_reg, rhs_reg),
                 Some(_) => unreachable!(),
                 None => {
-                    let result = self.gen.add_register(BytecodeType::Int64);
+                    let result = self.registers.alloc_register(BytecodeType::Int64);
                     self.gen.emit_sub_int64(result, lhs_reg, rhs_reg);
                     self.gen.emit_cast_int64_to_int32(dest, result);
                 }
@@ -2428,7 +2431,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     fn ensure_register(&mut self, dest: DataDest, ty: BytecodeType) -> Register {
         match dest {
-            DataDest::Effect | DataDest::Alloc => self.gen.add_register(ty),
+            DataDest::Effect | DataDest::Alloc => self.registers.alloc_register(ty),
             DataDest::Reg(reg) => reg,
         }
     }
@@ -2642,5 +2645,34 @@ impl DataDest {
             DataDest::Effect | DataDest::Alloc => panic!("not a register"),
             DataDest::Reg(reg) => *reg,
         }
+    }
+}
+
+struct Registers {
+    all: Vec<BytecodeType>,
+    temp_used: HashMap<Register, BytecodeType>,
+    unused: HashMap<BytecodeType, Vec<Register>>,
+}
+
+impl Registers {
+    fn new() -> Registers {
+        Registers {
+            all: Vec::new(),
+            temp_used: HashMap::new(),
+            unused: HashMap::new(),
+        }
+    }
+
+    fn alloc_register(&mut self, ty: BytecodeType) -> Register {
+        self.all.push(ty);
+        Register(self.all.len() - 1)
+    }
+
+    fn alloc_temp_register(&mut self, _ty: BytecodeType) -> Register {
+        unimplemented!()
+    }
+
+    fn free_temp_register(&mut self, _register: Register) {
+        unimplemented!();
     }
 }

@@ -1167,6 +1167,20 @@ impl BytecodeWriter {
         )
     }
 
+    pub fn generate_with_registers(mut self, registers: Vec<BytecodeType>) -> BytecodeFunction {
+        self.resolve_forward_jumps();
+
+        assert!(self.registers.is_empty());
+
+        BytecodeFunction::new(
+            self.code,
+            self.const_pool,
+            registers,
+            self.arguments,
+            self.positions,
+        )
+    }
+
     fn resolve_forward_jumps(&mut self) {
         let unresolved_jumps = mem::replace(&mut self.unresolved_jump_offsets, Vec::new());
 
