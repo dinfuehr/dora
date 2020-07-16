@@ -51,17 +51,6 @@ impl BytecodeWriter {
         Register(self.registers.len() - 1)
     }
 
-    pub fn add_register_chain(&mut self, types: &[BytecodeType]) -> Register {
-        assert!(types.len() > 0);
-        let start = Register(self.registers.len());
-
-        for &ty in types {
-            self.registers.push(ty);
-        }
-
-        start
-    }
-
     pub fn create_label(&mut self) -> Label {
         self.label_offsets.push(None);
         Label(self.label_offsets.len() - 1)
