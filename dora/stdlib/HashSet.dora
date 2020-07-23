@@ -1,5 +1,8 @@
-class HashSet[K: Hash + Equals] {
+class HashSet[K: Hash + Equals](keys: K...) {
     let map: HashMap[K, ()] = HashMap[K, ()]();
+    for key in keys {
+        self.insert(key);
+    }
 
     fun insert(key: K) {
         self.map.insert(key, ());
@@ -22,12 +25,4 @@ class HashSet[K: Hash + Equals] {
     fun capacity() -> Int64 {
         self.map.capacity()
     }
-}
-
-fun hashSet[T: Hash + Equals](keys: T...) -> HashSet[T] {
-    let result = HashSet[T]();
-    for key in keys {
-        result.insert(key);
-    }
-    result
 }

@@ -2094,6 +2094,11 @@ fn variadic_parameter() {
         pos(1, 20),
         SemError::VariadicParameterNeedsToBeLast,
     );
+    err(
+        "class F(x: Int32..., y: Int32) {}",
+        pos(1, 1),
+        SemError::VariadicParameterNeedsToBeLast,
+    );
 }
 
 #[test]

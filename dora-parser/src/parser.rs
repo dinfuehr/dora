@@ -627,6 +627,13 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::Colon)?;
         let data_type = self.parse_type()?;
 
+        let variadic = if self.token.is(TokenKind::DotDotDot) {
+            self.advance_token()?;
+            true
+        } else {
+            false
+        };
+
         let span = self.span_from(start);
 
         if field {
@@ -647,6 +654,7 @@ impl<'a> Parser<'a> {
             pos,
             span,
             data_type,
+            variadic,
             field,
             reassignable,
         })
@@ -1979,8 +1987,8 @@ impl<'a> Parser<'a> {
 
         let mut fct = builder.build_fct(cls.name);
 
-        for field in &ctor_params {
-            fct.add_param(field.name, field.data_type.clone());
+        for param in &ctor_params {
+            fct.add_param(param.name, param.data_type.clone(), param.variadic);
         }
 
         fct.is_method(true)
