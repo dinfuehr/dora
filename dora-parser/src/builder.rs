@@ -101,7 +101,13 @@ impl<'a> BuilderFct<'a> {
         }
     }
 
-    pub fn add_param(&mut self, name: Name, ty: Type, variadic: bool) -> &mut BuilderFct<'a> {
+    pub fn add_param(
+        &mut self,
+        pos: Position,
+        name: Name,
+        ty: Type,
+        variadic: bool,
+    ) -> &mut BuilderFct<'a> {
         let id = self.id_generator.next();
 
         let param = Param {
@@ -109,7 +115,7 @@ impl<'a> BuilderFct<'a> {
             idx: self.params.len() as u32,
             name,
             variadic,
-            pos: Position::new(1, 1),
+            pos,
             span: Span::invalid(),
             data_type: ty,
         };

@@ -468,17 +468,17 @@ mod tests {
         ok("class Foo(a: Int32, var b: Int32)");
         err(
             "class Foo(a: Int32, a: Int32)",
-            pos(1, 1),
+            pos(1, 21),
             SemError::ShadowParam("a".into()),
         );
         err(
             "class Foo(a: Int32, let a: Int32)",
-            pos(1, 1),
+            pos(1, 25),
             SemError::ShadowParam("a".into()),
         );
         err(
             "class Foo(let a: Int32, a: Int32)",
-            pos(1, 1),
+            pos(1, 25),
             SemError::ShadowParam("a".into()),
         );
         err(

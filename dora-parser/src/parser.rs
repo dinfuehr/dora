@@ -1988,7 +1988,12 @@ impl<'a> Parser<'a> {
         let mut fct = builder.build_fct(cls.name);
 
         for param in &ctor_params {
-            fct.add_param(param.name, param.data_type.clone(), param.variadic);
+            fct.add_param(
+                param.pos,
+                param.name,
+                param.data_type.clone(),
+                param.variadic,
+            );
         }
 
         fct.is_method(true)
