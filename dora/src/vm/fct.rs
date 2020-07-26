@@ -285,6 +285,7 @@ pub enum Intrinsic {
     GenericArrayLen,
     GenericArrayGet,
     GenericArraySet,
+    GenericArrayNew,
 
     DefaultValue,
 

@@ -2520,16 +2520,9 @@ fn gen_new_array() {
                 "Array",
                 TypeList::with(vec![BuiltinType::Int32]),
             );
-            let ctor_id = vm.ctor_def_by_name_with_type_params(
-                "Array",
-                TypeList::with(vec![BuiltinType::Int32]),
-            );
             let expected = vec![
                 ConstInt64(r(1), 1),
                 NewArray(r(0), cls_id, r(1)),
-                PushRegister(r(0)),
-                PushRegister(r(1)),
-                InvokeDirectVoid(ctor_id),
                 RetPtr(r(0)),
             ];
             assert_eq!(expected, code);

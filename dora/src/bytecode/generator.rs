@@ -693,14 +693,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         // Evaluate function arguments
         let arguments = self.emit_call_arguments(expr, &*callee, &call_type, &arg_types);
 
-        // Allocte object or array for constructor calls
-        self.emit_call_allocate(
-            expr.pos,
-            &call_type,
-            &arg_types,
-            object_argument,
-            &arguments,
-        );
+        // Allocte object for constructor calls
+        self.emit_call_allocate(expr.pos, &call_type, &arg_types, object_argument);
 
         if let Some(obj_reg) = object_argument {
             self.gen.emit_push_register(obj_reg);
@@ -929,7 +923,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         call_type: &CallType,
         arg_types: &[BuiltinType],
         object_reg: Option<Register>,
-        arg_regs: &[Register],
     ) {
         match *call_type {
             CallType::CtorNew(_, _) => {
@@ -945,13 +938,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 match cls.size {
                     InstanceSize::Fixed(_) => {
                         self.gen.emit_new_object(object_reg, cls_def_id);
-                    }
-                    InstanceSize::ObjArray
-                    | InstanceSize::PrimitiveArray(_)
-                    | InstanceSize::UnitArray
-                    | InstanceSize::TupleArray(_) => {
-                        let length_arg = arg_regs[0];
-                        self.gen.emit_new_array(object_reg, cls_def_id, length_arg);
                     }
                     _ => {
                         panic!("unimplemented size {:?}", cls.size);
@@ -1562,6 +1548,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     self.emit_intrinsic_bin(&expr.callee, &expr.args[0], info, None, expr.pos, dest)
                 }
 
+                Intrinsic::GenericArrayNew => self.emit_intrinsic_new_array(expr, dest),
+
                 Intrinsic::DefaultValue => {
                     let ty = self.ty(expr.id);
 
@@ -1591,6 +1579,35 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 _ => panic!("unimplemented intrinsic {:?}", intrinsic),
             }
         }
+    }
+
+    fn emit_intrinsic_new_array(&mut self, expr: &ExprCallType, dest: DataDest) -> Register {
+        let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
+
+        // Find method that is called
+        let callee_id = self.determine_callee(&call_type);
+
+        let callee = self.vm.fcts.idx(callee_id);
+        let callee = callee.read();
+
+        // Determine types for arguments and return values
+        let (arg_types, _, return_type) = self.determine_callee_types(&call_type, &*callee);
+
+        assert!(return_type.is_unit());
+        assert_eq!(arg_types.len(), 2);
+
+        let ty = arg_types.first().cloned().unwrap();
+        let array_reg = self.ensure_register(dest, BytecodeType::Ptr);
+        let cls_def_id = specialize_class_ty(self.vm, ty);
+
+        let length_reg = self.visit_expr(&expr.args[0], DataDest::Alloc);
+
+        self.gen.set_position(expr.pos);
+        self.gen.emit_new_array(array_reg, cls_def_id, length_reg);
+
+        self.registers.free_if_temp(length_reg);
+
+        array_reg
     }
 
     fn emit_bin_is(&mut self, expr: &ExprBinType, dest: DataDest) -> Register {
@@ -1739,6 +1756,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         if ty.is_none() {
             self.gen.emit_array_bound_check(arr, idx);
+
+            self.registers.free_if_temp(arr);
+            self.registers.free_if_temp(idx);
+            self.registers.free_if_temp(src);
+
             return Register::invalid();
         }
 

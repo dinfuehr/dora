@@ -394,6 +394,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_class_method(vm, clsid, "sqrt", Intrinsic::Float64Sqrt);
 
     let clsid = vm.vips.array_class;
+    intrinsic_ctor(vm, clsid, Intrinsic::GenericArrayNew);
     intrinsic_class_method(vm, clsid, "size", Intrinsic::GenericArrayLen);
     intrinsic_class_method(vm, clsid, "get", Intrinsic::GenericArrayGet);
     intrinsic_class_method(vm, clsid, "set", Intrinsic::GenericArraySet);
@@ -422,6 +423,20 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
 
 fn native_class_method<'ast>(vm: &mut VM<'ast>, clsid: ClassId, name: &str, fctptr: *const u8) {
     internal_class_method(vm, clsid, name, FctKind::Native(Address::from_ptr(fctptr)));
+}
+
+fn intrinsic_ctor(vm: &mut VM, clsid: ClassId, intrinsic: Intrinsic) {
+    let cls = vm.classes.idx(clsid);
+    let cls = cls.read();
+
+    if let Some(ctor_id) = cls.constructor {
+        let ctor = vm.fcts.idx(ctor_id);
+        let mut ctor = ctor.write();
+
+        ctor.kind = FctKind::Builtin(intrinsic);
+    } else {
+        panic!("no constructor");
+    }
 }
 
 fn intrinsic_class_method<'ast>(
