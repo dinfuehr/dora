@@ -31,7 +31,7 @@ pub enum BytecodeTypeKind {
     Tuple,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum BytecodeType {
     Bool,
     UInt8,
@@ -529,7 +529,7 @@ impl BytecodeOpcode {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Eq, Hash)]
 pub struct Register(pub usize);
 
 impl Register {

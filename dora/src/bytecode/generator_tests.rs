@@ -525,8 +525,8 @@ fn gen_stmt_if() {
         JumpIfFalse(r(0), 3),
         ConstInt32(r(1), 1),
         RetInt32(r(1)),
-        ConstZeroInt32(r(2)),
-        RetInt32(r(2)),
+        ConstZeroInt32(r(1)),
+        RetInt32(r(1)),
     ];
     assert_eq!(expected, result);
 }
@@ -538,8 +538,8 @@ fn gen_stmt_if_else_with_return() {
         JumpIfFalse(r(0), 3),
         ConstInt32(r(1), 1),
         RetInt32(r(1)),
-        ConstInt32(r(2), 2),
-        RetInt32(r(2)),
+        ConstInt32(r(1), 2),
+        RetInt32(r(1)),
     ];
     assert_eq!(expected, result);
 }
