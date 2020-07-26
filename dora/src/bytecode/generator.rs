@@ -2002,8 +2002,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
 
         if dest.is_effect() {
-            self.visit_expr(lhs, dest);
-            self.visit_expr(rhs, dest);
+            self.emit_expr_for_effect(lhs);
+            self.emit_expr_for_effect(rhs);
             return Register::invalid();
         }
 
