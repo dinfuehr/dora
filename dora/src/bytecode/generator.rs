@@ -1593,57 +1593,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
     }
 
-    fn emit_bin_intrinsic<F>(
-        &mut self,
-        lhs: &Expr,
-        rhs: &Expr,
-        dest: DataDest,
-        return_type: BytecodeType,
-        fct: F,
-    ) -> Register
-    where
-        F: FnOnce(&mut AstBytecodeGen, Register, Register, Register),
-    {
-        if dest.is_effect() {
-            self.emit_expr_for_effect(lhs);
-            self.emit_expr_for_effect(rhs);
-            return Register::invalid();
-        }
-
-        let dest = self.ensure_register(dest, return_type);
-
-        let lhs_reg = self.visit_expr(lhs, DataDest::Alloc);
-        let rhs_reg = self.visit_expr(rhs, DataDest::Alloc);
-
-        fct(self, dest, lhs_reg, rhs_reg);
-
-        dest
-    }
-
-    fn emit_un_intrinsic<F>(
-        &mut self,
-        opnd: &Expr,
-        dest: DataDest,
-        return_type: BytecodeType,
-        fct: F,
-    ) -> Register
-    where
-        F: FnOnce(&mut AstBytecodeGen, Register, Register),
-    {
-        if dest.is_effect() {
-            self.emit_expr_for_effect(opnd);
-            return Register::invalid();
-        }
-
-        let dest = self.ensure_register(dest, return_type);
-
-        let opnd = self.visit_expr(opnd, DataDest::Alloc);
-
-        fct(self, dest, opnd);
-
-        dest
-    }
-
     fn emit_bin_is(&mut self, expr: &ExprBinType, dest: DataDest) -> Register {
         if dest.is_effect() {
             self.emit_expr_for_effect(&expr.lhs);
