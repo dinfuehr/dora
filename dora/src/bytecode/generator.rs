@@ -133,6 +133,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         assert!(self.registers.scopes.is_empty());
 
+        // TODO: As soon as all registers are properly freed, activate this assertion.
         // assert!(self.registers.temp_used.is_empty());
 
         let registers = std::mem::replace(&mut self.registers.all, Vec::new());
