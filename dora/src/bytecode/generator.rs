@@ -1,5 +1,5 @@
 use dora_parser::lexer::position::Position;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
@@ -134,7 +134,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         assert!(self.registers.scopes.is_empty());
 
         // TODO: As soon as all registers are properly freed, activate this assertion.
-        // assert!(self.registers.temp_used.is_empty());
+        // assert!(self.registers.used.is_empty());
 
         let registers = std::mem::replace(&mut self.registers.all, Vec::new());
         self.gen.generate_with_registers(registers)
@@ -2747,7 +2747,8 @@ impl DataDest {
 struct Registers {
     all: Vec<BytecodeType>,
     scopes: Vec<RegisterScope>,
-    temp_used: HashMap<Register, BytecodeType>,
+    used: HashSet<Register>,
+    temps: HashSet<Register>,
     unused: HashMap<BytecodeType, Vec<Register>>,
 }
 
@@ -2756,7 +2757,8 @@ impl Registers {
         Registers {
             all: Vec::new(),
             scopes: Vec::new(),
-            temp_used: HashMap::new(),
+            used: HashSet::new(),
+            temps: HashSet::new(),
             unused: HashMap::new(),
         }
     }
@@ -2768,36 +2770,36 @@ impl Registers {
     fn pop_scope(&mut self) {
         let scope = self.scopes.pop().expect("missing scope");
 
-        for (reg, ty) in scope.0 {
+        for reg in scope.0 {
+            let ty = self.all[reg.0];
             self.unused.entry(ty).or_insert(Vec::new()).push(reg);
+            assert!(self.used.remove(&reg));
         }
     }
 
     fn alloc_var(&mut self, ty: BytecodeType) -> Register {
         let reg = self.alloc_internal(ty);
-        assert!(self
-            .scopes
-            .last_mut()
-            .expect("missing scope")
-            .0
-            .insert(reg, ty)
-            .is_none());
+        assert!(self.scopes.last_mut().expect("missing scope").0.insert(reg));
+        assert!(self.used.insert(reg));
         reg
     }
 
     fn alloc_temp(&mut self, ty: BytecodeType) -> Register {
         let reg = self.alloc_internal(ty);
-        self.temp_used.insert(reg, ty);
+        assert!(self.temps.insert(reg));
+        assert!(self.used.insert(reg));
         reg
     }
 
     fn free_temp(&mut self, reg: Register) {
-        let ty = self.temp_used.remove(&reg).expect("register unused");
+        assert!(self.temps.remove(&reg));
+        let ty = self.all[reg.0];
         self.unused.entry(ty).or_insert(Vec::new()).push(reg);
+        assert!(self.used.remove(&reg));
     }
 
     fn free_if_temp(&mut self, reg: Register) {
-        if self.temp_used.contains_key(&reg) {
+        if self.temps.contains(&reg) {
             self.free_temp(reg);
         }
     }
@@ -2818,10 +2820,10 @@ impl Registers {
     }
 }
 
-struct RegisterScope(HashMap<Register, BytecodeType>);
+struct RegisterScope(HashSet<Register>);
 
 impl RegisterScope {
     fn new() -> RegisterScope {
-        RegisterScope(HashMap::new())
+        RegisterScope(HashSet::new())
     }
 }
