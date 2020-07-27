@@ -134,9 +134,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.registers.pop_scope();
 
         assert!(self.registers.scopes.is_empty());
-
-        // TODO: As soon as all registers are properly freed, activate this assertion.
-        // assert!(self.registers.used.is_empty());
+        assert!(self.registers.used.is_empty());
 
         let registers = std::mem::replace(&mut self.registers.all, Vec::new());
         self.gen.generate_with_registers(registers)
@@ -1971,6 +1969,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
                 if ty.is_none() {
                     self.gen.emit_array_bound_check(arr, idx);
+
+                    self.registers.free_if_temp(arr);
+                    self.registers.free_if_temp(idx);
+
                     return Register::invalid();
                 }
 
