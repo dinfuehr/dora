@@ -117,14 +117,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fun visitStoreFieldFloat64(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
     @open fun visitStoreFieldPtr(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
 
-    @open fun visitLoadGlobalBool(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
-    @open fun visitLoadGlobalUInt8(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
-    @open fun visitLoadGlobalChar(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
-    @open fun visitLoadGlobalInt32(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
-    @open fun visitLoadGlobalInt64(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
-    @open fun visitLoadGlobalFloat32(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
-    @open fun visitLoadGlobalFloat64(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
-    @open fun visitLoadGlobalPtr(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
+    @open fun visitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
 
     @open fun visitStoreGlobalBool(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
     @open fun visitStoreGlobalUInt8(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
@@ -372,14 +365,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fun visitStoreFieldFloat64(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
     @override fun visitStoreFieldPtr(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
 
-    @override fun visitLoadGlobalBool(dest: BytecodeRegister, glob: GlobalId) {}
-    @override fun visitLoadGlobalUInt8(dest: BytecodeRegister, glob: GlobalId) {}
-    @override fun visitLoadGlobalChar(dest: BytecodeRegister, glob: GlobalId) {}
-    @override fun visitLoadGlobalInt32(dest: BytecodeRegister, glob: GlobalId) {}
-    @override fun visitLoadGlobalInt64(dest: BytecodeRegister, glob: GlobalId) {}
-    @override fun visitLoadGlobalFloat32(dest: BytecodeRegister, glob: GlobalId) {}
-    @override fun visitLoadGlobalFloat64(dest: BytecodeRegister, glob: GlobalId) {}
-    @override fun visitLoadGlobalPtr(dest: BytecodeRegister, glob: GlobalId) {}
+    @override fun visitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) {}
 
     @override fun visitStoreGlobalBool(src: BytecodeRegister, glob: GlobalId) {}
     @override fun visitStoreGlobalUInt8(src: BytecodeRegister, glob: GlobalId) {}
@@ -1089,38 +1075,10 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let field = self.readFieldId(wide);
             self.visitor.visitStoreFieldPtr(src, obj, cls, field);
 
-        } else if opcode == BC_LOAD_GLOBAL_BOOL {
+        } else if opcode == BC_LOAD_GLOBAL {
             let dest = self.readRegister(wide);
             let glob = self.readGlobalId(wide);
-            self.visitor.visitLoadGlobalBool(dest, glob);
-        } else if opcode == BC_LOAD_GLOBAL_UINT8 {
-            let dest = self.readRegister(wide);
-            let glob = self.readGlobalId(wide);
-            self.visitor.visitLoadGlobalUInt8(dest, glob);
-        } else if opcode == BC_LOAD_FIELD_CHAR {
-            let dest = self.readRegister(wide);
-            let glob = self.readGlobalId(wide);
-            self.visitor.visitLoadGlobalChar(dest, glob);
-        } else if opcode == BC_LOAD_FIELD_INT32 {
-            let dest = self.readRegister(wide);
-            let glob = self.readGlobalId(wide);
-            self.visitor.visitLoadGlobalInt32(dest, glob);
-        } else if opcode == BC_LOAD_FIELD_INT64 {
-            let dest = self.readRegister(wide);
-            let glob = self.readGlobalId(wide);
-            self.visitor.visitLoadGlobalInt64(dest, glob);
-        } else if opcode == BC_LOAD_FIELD_FLOAT32{
-            let dest = self.readRegister(wide);
-            let glob = self.readGlobalId(wide);
-            self.visitor.visitLoadGlobalFloat32(dest, glob);
-        } else if opcode == BC_LOAD_FIELD_FLOAT64 {
-            let dest = self.readRegister(wide);
-            let glob = self.readGlobalId(wide);
-            self.visitor.visitLoadGlobalFloat64(dest, glob);
-        } else if opcode == BC_LOAD_FIELD_PTR {
-            let dest = self.readRegister(wide);
-            let glob = self.readGlobalId(wide);
-            self.visitor.visitLoadGlobalPtr(dest, glob);
+            self.visitor.visitLoadGlobal(dest, glob);
 
         } else if opcode == BC_STORE_GLOBAL_BOOL {
             let src = self.readRegister(wide);

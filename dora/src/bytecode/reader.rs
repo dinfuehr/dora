@@ -625,50 +625,10 @@ where
                 self.visitor.visit_store_field_tuple(src, obj, cls, field);
             }
 
-            BytecodeOpcode::LoadGlobalBool => {
+            BytecodeOpcode::LoadGlobal => {
                 let dest = self.read_register(wide);
                 let glob = self.read_global(wide);
-                self.visitor.visit_load_global_bool(dest, glob);
-            }
-            BytecodeOpcode::LoadGlobalUInt8 => {
-                let dest = self.read_register(wide);
-                let glob = self.read_global(wide);
-                self.visitor.visit_load_global_uint8(dest, glob);
-            }
-            BytecodeOpcode::LoadGlobalChar => {
-                let dest = self.read_register(wide);
-                let glob = self.read_global(wide);
-                self.visitor.visit_load_global_char(dest, glob);
-            }
-            BytecodeOpcode::LoadGlobalInt32 => {
-                let dest = self.read_register(wide);
-                let glob = self.read_global(wide);
-                self.visitor.visit_load_global_int32(dest, glob);
-            }
-            BytecodeOpcode::LoadGlobalInt64 => {
-                let dest = self.read_register(wide);
-                let glob = self.read_global(wide);
-                self.visitor.visit_load_global_int64(dest, glob);
-            }
-            BytecodeOpcode::LoadGlobalFloat32 => {
-                let dest = self.read_register(wide);
-                let glob = self.read_global(wide);
-                self.visitor.visit_load_global_float32(dest, glob);
-            }
-            BytecodeOpcode::LoadGlobalFloat64 => {
-                let dest = self.read_register(wide);
-                let glob = self.read_global(wide);
-                self.visitor.visit_load_global_float64(dest, glob);
-            }
-            BytecodeOpcode::LoadGlobalPtr => {
-                let dest = self.read_register(wide);
-                let glob = self.read_global(wide);
-                self.visitor.visit_load_global_ptr(dest, glob);
-            }
-            BytecodeOpcode::LoadGlobalTuple => {
-                let dest = self.read_register(wide);
-                let glob = self.read_global(wide);
-                self.visitor.visit_load_global_tuple(dest, glob);
+                self.visitor.visit_load_global(dest, glob);
             }
 
             BytecodeOpcode::StoreGlobalBool => {
@@ -1940,31 +1900,7 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_load_global_bool(&mut self, _dest: Register, _glob: GlobalId) {
-        unimplemented!();
-    }
-    fn visit_load_global_uint8(&mut self, _dest: Register, _glob: GlobalId) {
-        unimplemented!();
-    }
-    fn visit_load_global_char(&mut self, _dest: Register, _glob: GlobalId) {
-        unimplemented!();
-    }
-    fn visit_load_global_int32(&mut self, _dest: Register, _glob: GlobalId) {
-        unimplemented!();
-    }
-    fn visit_load_global_int64(&mut self, _dest: Register, _glob: GlobalId) {
-        unimplemented!();
-    }
-    fn visit_load_global_float32(&mut self, _dest: Register, _glob: GlobalId) {
-        unimplemented!();
-    }
-    fn visit_load_global_float64(&mut self, _dest: Register, _glob: GlobalId) {
-        unimplemented!();
-    }
-    fn visit_load_global_ptr(&mut self, _dest: Register, _glob: GlobalId) {
-        unimplemented!();
-    }
-    fn visit_load_global_tuple(&mut self, _dest: Register, _glob: GlobalId) {
+    fn visit_load_global(&mut self, _dest: Register, _glob: GlobalId) {
         unimplemented!();
     }
 

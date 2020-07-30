@@ -219,14 +219,7 @@ class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
     @override fun visitStoreFieldFloat64(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { self.emitField("StoreFieldFloat64", src, obj, cls, field); }
     @override fun visitStoreFieldPtr(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { self.emitField("StoreFieldPtr", src, obj, cls, field); }
 
-    @override fun visitLoadGlobalBool(dest: BytecodeRegister, glob: GlobalId) { self.emitGlobal("LoadGlobalBool", dest, glob); }
-    @override fun visitLoadGlobalUInt8(dest: BytecodeRegister, glob: GlobalId) { self.emitGlobal("LoadGlobalUInt8", dest, glob); }
-    @override fun visitLoadGlobalChar(dest: BytecodeRegister, glob: GlobalId) { self.emitGlobal("LoadGlobalChar", dest, glob); }
-    @override fun visitLoadGlobalInt32(dest: BytecodeRegister, glob: GlobalId) { self.emitGlobal("LoadGlobalInt32", dest, glob); }
-    @override fun visitLoadGlobalInt64(dest: BytecodeRegister, glob: GlobalId) { self.emitGlobal("LoadGlobalInt64", dest, glob); }
-    @override fun visitLoadGlobalFloat32(dest: BytecodeRegister, glob: GlobalId) { self.emitGlobal("LoadGlobalFloat32", dest, glob); }
-    @override fun visitLoadGlobalFloat64(dest: BytecodeRegister, glob: GlobalId) { self.emitGlobal("LoadGlobalFloat64", dest, glob); }
-    @override fun visitLoadGlobalPtr(dest: BytecodeRegister, glob: GlobalId) { self.emitGlobal("LoadGlobalPtr", dest, glob); }
+    @override fun visitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) { self.emitGlobal("LoadGlobal", dest, glob); }
 
     @override fun visitStoreGlobalBool(src: BytecodeRegister, glob: GlobalId) { self.emitGlobal("StoreGlobalBool", src, glob); }
     @override fun visitStoreGlobalUInt8(src: BytecodeRegister, glob: GlobalId) { self.emitGlobal("StoreGlobalUInt8", src, glob); }

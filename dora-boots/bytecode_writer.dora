@@ -386,68 +386,12 @@ class BytecodeWriter {
         self.emitField(BC_STORE_FIELD_PTR, src, obj, cls, field);
     }
 
-    fun emitLoadGlobalBool(dest: BytecodeRegister, glob: GlobalId) {
-        self.emitGlobal(BC_LOAD_GLOBAL_BOOL, dest, glob);
+    fun emitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) {
+        self.emitGlobal(BC_LOAD_GLOBAL, dest, glob);
     }
 
-    fun emitLoadGlobalByte(dest: BytecodeRegister, glob: GlobalId) {
-        self.emitGlobal(BC_LOAD_GLOBAL_UINT8, dest, glob);
-    }
-
-    fun emitLoadGlobalChar(dest: BytecodeRegister, glob: GlobalId) {
-        self.emitGlobal(BC_LOAD_GLOBAL_CHAR, dest, glob);
-    }
-
-    fun emitLoadGlobalInt32(dest: BytecodeRegister, glob: GlobalId) {
-        self.emitGlobal(BC_LOAD_GLOBAL_INT32, dest, glob);
-    }
-
-    fun emitLoadGlobalInt64(dest: BytecodeRegister, glob: GlobalId) {
-        self.emitGlobal(BC_LOAD_GLOBAL_INT64, dest, glob);
-    }
-
-    fun emitLoadGlobalFloat32(dest: BytecodeRegister, glob: GlobalId) {
-        self.emitGlobal(BC_LOAD_GLOBAL_FLOAT32, dest, glob);
-    }
-
-    fun emitLoadGlobalFloat64(dest: BytecodeRegister, glob: GlobalId) {
-        self.emitGlobal(BC_LOAD_GLOBAL_FLOAT64, dest, glob);
-    }
-
-    fun emitLoadGlobalPtr(dest: BytecodeRegister, glob: GlobalId) {
-        self.emitGlobal(BC_LOAD_GLOBAL_PTR, dest, glob);
-    }
-
-    fun emitStoreGlobalBool(src: BytecodeRegister, glob: GlobalId) {
-        self.emitGlobal(BC_LOAD_GLOBAL_BOOL, src, glob);
-    }
-
-    fun emitStoreGlobalByte(src: BytecodeRegister, glob: GlobalId) {
-        self.emitGlobal(BC_LOAD_GLOBAL_UINT8, src, glob);
-    }
-
-    fun emitStoreGlobalChar(src: BytecodeRegister, glob: GlobalId) {
-        self.emitGlobal(BC_LOAD_GLOBAL_CHAR, src, glob);
-    }
-
-    fun emitStoreGlobalInt32(src: BytecodeRegister, glob: GlobalId) {
-        self.emitGlobal(BC_LOAD_GLOBAL_INT32, src, glob);
-    }
-
-    fun emitStoreGlobalInt64(src: BytecodeRegister, glob: GlobalId) {
-        self.emitGlobal(BC_LOAD_GLOBAL_INT64, src, glob);
-    }
-
-    fun emitStoreGlobalFloat32(src: BytecodeRegister, glob: GlobalId) {
-        self.emitGlobal(BC_LOAD_GLOBAL_FLOAT32, src, glob);
-    }
-
-    fun emitStoreGlobalFloat64(src: BytecodeRegister, glob: GlobalId) {
-        self.emitGlobal(BC_LOAD_GLOBAL_FLOAT64, src, glob);
-    }
-
-    fun emitStoreGlobalPtr(src: BytecodeRegister, glob: GlobalId) {
-        self.emitGlobal(BC_LOAD_GLOBAL_PTR, src, glob);
+    fun emitStoreGlobal(src: BytecodeRegister, glob: GlobalId) {
+        self.emitGlobal(BC_STORE_GLOBAL_BOOL, src, glob);
     }
 
     fun emitPushRegister(src: BytecodeRegister) {

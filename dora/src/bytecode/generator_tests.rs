@@ -1105,90 +1105,12 @@ fn gen_expr_returnvoid() {
 }
 
 #[test]
-fn gen_load_global_bool() {
-    gen("var a: Bool; fun f() -> Bool { return a; }", |vm, code| {
-        let gid = vm.global_by_name("a");
-        let expected = vec![LoadGlobalBool(r(0), gid), RetBool(r(0))];
-        assert_eq!(expected, code);
-    });
-}
-
-#[test]
-fn gen_load_global_uint8() {
-    gen(
-        "var a: UInt8; fun f() -> UInt8 { return a; }",
-        |vm, code| {
-            let gid = vm.global_by_name("a");
-            let expected = vec![LoadGlobalUInt8(r(0), gid), RetUInt8(r(0))];
-            assert_eq!(expected, code);
-        },
-    );
-}
-
-#[test]
-fn gen_load_global_char() {
-    gen("var a: Char; fun f() -> Char { return a; }", |vm, code| {
-        let gid = vm.global_by_name("a");
-        let expected = vec![LoadGlobalChar(r(0), gid), RetChar(r(0))];
-        assert_eq!(expected, code);
-    });
-}
-
-#[test]
-fn gen_load_global_int() {
+fn gen_load_global() {
     gen(
         "var a: Int32; fun f() -> Int32 { return a; }",
         |vm, code| {
             let gid = vm.global_by_name("a");
-            let expected = vec![LoadGlobalInt32(r(0), gid), RetInt32(r(0))];
-            assert_eq!(expected, code);
-        },
-    );
-}
-
-#[test]
-fn gen_load_global_int64() {
-    gen(
-        "var a: Int64; fun f() -> Int64 { return a; }",
-        |vm, code| {
-            let gid = vm.global_by_name("a");
-            let expected = vec![LoadGlobalInt64(r(0), gid), RetInt64(r(0))];
-            assert_eq!(expected, code);
-        },
-    );
-}
-
-#[test]
-fn gen_load_global_float32() {
-    gen(
-        "var a: Float32; fun f() -> Float32 { return a; }",
-        |vm, code| {
-            let gid = vm.global_by_name("a");
-            let expected = vec![LoadGlobalFloat32(r(0), gid), RetFloat32(r(0))];
-            assert_eq!(expected, code);
-        },
-    );
-}
-
-#[test]
-fn gen_load_global_float64() {
-    gen(
-        "var a: Float64; fun f() -> Float64 { return a; }",
-        |vm, code| {
-            let gid = vm.global_by_name("a");
-            let expected = vec![LoadGlobalFloat64(r(0), gid), RetFloat64(r(0))];
-            assert_eq!(expected, code);
-        },
-    );
-}
-
-#[test]
-fn gen_load_global_ptr() {
-    gen(
-        "var a: Object; fun f() -> Object { return a; }",
-        |vm, code| {
-            let gid = vm.global_by_name("a");
-            let expected = vec![LoadGlobalPtr(r(0), gid), RetPtr(r(0))];
+            let expected = vec![LoadGlobal(r(0), gid), RetInt32(r(0))];
             assert_eq!(expected, code);
         },
     );
@@ -3621,6 +3543,7 @@ pub enum Bytecode {
     StoreFieldFloat64(Register, Register, ClassDefId, FieldId),
     StoreFieldPtr(Register, Register, ClassDefId, FieldId),
 
+    LoadGlobal(Register, GlobalId),
     LoadGlobalBool(Register, GlobalId),
     LoadGlobalUInt8(Register, GlobalId),
     LoadGlobalChar(Register, GlobalId),
@@ -4245,29 +4168,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::StoreFieldPtr(src, obj, cls, field));
     }
 
-    fn visit_load_global_bool(&mut self, dest: Register, glob: GlobalId) {
-        self.emit(Bytecode::LoadGlobalBool(dest, glob));
-    }
-    fn visit_load_global_uint8(&mut self, dest: Register, glob: GlobalId) {
-        self.emit(Bytecode::LoadGlobalUInt8(dest, glob));
-    }
-    fn visit_load_global_char(&mut self, dest: Register, glob: GlobalId) {
-        self.emit(Bytecode::LoadGlobalChar(dest, glob));
-    }
-    fn visit_load_global_int32(&mut self, dest: Register, glob: GlobalId) {
-        self.emit(Bytecode::LoadGlobalInt32(dest, glob));
-    }
-    fn visit_load_global_int64(&mut self, dest: Register, glob: GlobalId) {
-        self.emit(Bytecode::LoadGlobalInt64(dest, glob));
-    }
-    fn visit_load_global_float32(&mut self, dest: Register, glob: GlobalId) {
-        self.emit(Bytecode::LoadGlobalFloat32(dest, glob));
-    }
-    fn visit_load_global_float64(&mut self, dest: Register, glob: GlobalId) {
-        self.emit(Bytecode::LoadGlobalFloat64(dest, glob));
-    }
-    fn visit_load_global_ptr(&mut self, dest: Register, glob: GlobalId) {
-        self.emit(Bytecode::LoadGlobalPtr(dest, glob));
+    fn visit_load_global(&mut self, dest: Register, glob: GlobalId) {
+        self.emit(Bytecode::LoadGlobal(dest, glob));
     }
 
     fn visit_store_global_bool(&mut self, src: Register, glob: GlobalId) {

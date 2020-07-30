@@ -598,32 +598,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_field("StoreFieldTuple", src, obj, cls, field);
     }
 
-    fn visit_load_global_bool(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_global("LoadGlobalBool", dest, glob);
-    }
-    fn visit_load_global_uint8(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_global("LoadGlobalUInt8", dest, glob);
-    }
-    fn visit_load_global_char(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_global("LoadGlobalChar", dest, glob);
-    }
-    fn visit_load_global_int32(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_global("LoadGlobalInt32", dest, glob);
-    }
-    fn visit_load_global_int64(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_global("LoadGlobalInt64", dest, glob);
-    }
-    fn visit_load_global_float32(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_global("LoadGlobalFloat32", dest, glob);
-    }
-    fn visit_load_global_float64(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_global("LoadGlobalFloat64", dest, glob);
-    }
-    fn visit_load_global_ptr(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_global("LoadGlobalPtr", dest, glob);
-    }
-    fn visit_load_global_tuple(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_global("LoadGlobalTuple", dest, glob);
+    fn visit_load_global(&mut self, dest: Register, glob: GlobalId) {
+        self.emit_global("LoadGlobal", dest, glob);
     }
 
     fn visit_store_global_bool(&mut self, src: Register, glob: GlobalId) {
@@ -859,6 +835,9 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     }
     fn visit_jump_loop(&mut self, offset: u32) {
         self.emit_jump("JumpLoop", -(offset as i32));
+    }
+    fn visit_loop_start(&mut self) {
+        self.emit_inst("LoopStart");
     }
     fn visit_jump(&mut self, offset: u32) {
         self.emit_jump("Jump", offset as i32);

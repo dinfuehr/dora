@@ -266,15 +266,7 @@ pub enum BytecodeOpcode {
     StoreFieldPtr,
     StoreFieldTuple,
 
-    LoadGlobalBool,
-    LoadGlobalUInt8,
-    LoadGlobalChar,
-    LoadGlobalInt32,
-    LoadGlobalInt64,
-    LoadGlobalFloat32,
-    LoadGlobalFloat64,
-    LoadGlobalPtr,
-    LoadGlobalTuple,
+    LoadGlobal,
 
     StoreGlobalBool,
     StoreGlobalUInt8,

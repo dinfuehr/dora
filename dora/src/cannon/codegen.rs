@@ -2800,31 +2800,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_store_field(src, obj, cls, field);
     }
 
-    fn visit_load_global_bool(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_load_global(dest, glob);
-    }
-    fn visit_load_global_uint8(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_load_global(dest, glob);
-    }
-    fn visit_load_global_char(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_load_global(dest, glob);
-    }
-    fn visit_load_global_int32(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_load_global(dest, glob);
-    }
-    fn visit_load_global_int64(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_load_global(dest, glob);
-    }
-    fn visit_load_global_float32(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_load_global(dest, glob);
-    }
-    fn visit_load_global_float64(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_load_global(dest, glob);
-    }
-    fn visit_load_global_ptr(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_load_global(dest, glob);
-    }
-    fn visit_load_global_tuple(&mut self, dest: Register, glob: GlobalId) {
+    fn visit_load_global(&mut self, dest: Register, glob: GlobalId) {
         self.emit_load_global(dest, glob);
     }
 
