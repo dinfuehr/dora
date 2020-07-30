@@ -1057,6 +1057,9 @@ where
                 let offset = self.read_offset(wide);
                 self.visitor.visit_jump_loop(offset);
             }
+            BytecodeOpcode::LoopStart => {
+                self.visitor.visit_loop_start();
+            }
             BytecodeOpcode::JumpIfFalse => {
                 let opnd = self.read_register(wide);
                 let offset = self.read_offset(wide);
@@ -2193,6 +2196,9 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_jump_loop(&mut self, _offset: u32) {
+        unimplemented!();
+    }
+    fn visit_loop_start(&mut self) {
         unimplemented!();
     }
     fn visit_jump(&mut self, _offset: u32) {

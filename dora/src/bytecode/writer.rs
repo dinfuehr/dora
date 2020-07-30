@@ -424,6 +424,10 @@ impl BytecodeWriter {
         self.emit_jmp(BytecodeOpcode::JumpLoop, distance);
     }
 
+    pub fn emit_loop_start(&mut self) {
+        self.emit_op(BytecodeOpcode::LoopStart);
+    }
+
     pub fn emit_jump(&mut self, lbl: Label) {
         assert!(self.lookup_label(lbl).is_none());
         self.emit_jmp_forward(BytecodeOpcode::Jump, BytecodeOpcode::JumpConst, None, lbl);

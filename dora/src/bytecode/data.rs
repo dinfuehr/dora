@@ -360,6 +360,7 @@ pub enum BytecodeOpcode {
 
     // Backward jump
     JumpLoop,
+    LoopStart,
 
     // Forward jumps
     Jump,
