@@ -889,40 +889,8 @@ impl BytecodeWriter {
         self.emit_load_global_inst(BytecodeOpcode::LoadGlobal, dest, gid);
     }
 
-    pub fn emit_store_global_bool(&mut self, src: Register, gid: GlobalId) {
-        self.emit_store_global(BytecodeOpcode::StoreGlobalBool, src, gid);
-    }
-
-    pub fn emit_store_global_uint8(&mut self, src: Register, gid: GlobalId) {
-        self.emit_store_global(BytecodeOpcode::StoreGlobalUInt8, src, gid);
-    }
-
-    pub fn emit_store_global_char(&mut self, src: Register, gid: GlobalId) {
-        self.emit_store_global(BytecodeOpcode::StoreGlobalChar, src, gid);
-    }
-
-    pub fn emit_store_global_int32(&mut self, src: Register, gid: GlobalId) {
-        self.emit_store_global(BytecodeOpcode::StoreGlobalInt32, src, gid);
-    }
-
-    pub fn emit_store_global_int64(&mut self, src: Register, gid: GlobalId) {
-        self.emit_store_global(BytecodeOpcode::StoreGlobalInt64, src, gid);
-    }
-
-    pub fn emit_store_global_float32(&mut self, src: Register, gid: GlobalId) {
-        self.emit_store_global(BytecodeOpcode::StoreGlobalFloat32, src, gid);
-    }
-
-    pub fn emit_store_global_float64(&mut self, src: Register, gid: GlobalId) {
-        self.emit_store_global(BytecodeOpcode::StoreGlobalFloat64, src, gid);
-    }
-
-    pub fn emit_store_global_ptr(&mut self, src: Register, gid: GlobalId) {
-        self.emit_store_global(BytecodeOpcode::StoreGlobalPtr, src, gid);
-    }
-
-    pub fn emit_store_global_tuple(&mut self, src: Register, gid: GlobalId) {
-        self.emit_store_global(BytecodeOpcode::StoreGlobalTuple, src, gid);
+    pub fn emit_store_global(&mut self, src: Register, gid: GlobalId) {
+        self.emit_store_global_inst(BytecodeOpcode::StoreGlobal, src, gid);
     }
 
     pub fn emit_push_register(&mut self, src: Register) {
@@ -1327,7 +1295,7 @@ impl BytecodeWriter {
         self.emit_values(inst, &values);
     }
 
-    fn emit_store_global(&mut self, inst: BytecodeOpcode, r1: Register, gid: GlobalId) {
+    fn emit_store_global_inst(&mut self, inst: BytecodeOpcode, r1: Register, gid: GlobalId) {
         let values = [r1.to_usize() as u32, gid.to_usize() as u32];
         self.emit_values(inst, &values);
     }

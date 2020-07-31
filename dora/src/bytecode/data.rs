@@ -267,16 +267,7 @@ pub enum BytecodeOpcode {
     StoreFieldTuple,
 
     LoadGlobal,
-
-    StoreGlobalBool,
-    StoreGlobalUInt8,
-    StoreGlobalChar,
-    StoreGlobalInt32,
-    StoreGlobalInt64,
-    StoreGlobalFloat32,
-    StoreGlobalFloat64,
-    StoreGlobalPtr,
-    StoreGlobalTuple,
+    StoreGlobal,
 
     PushRegister,
 

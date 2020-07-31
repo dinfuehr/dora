@@ -220,6 +220,7 @@ class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
     @override fun visitStoreFieldPtr(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { self.emitField("StoreFieldPtr", src, obj, cls, field); }
 
     @override fun visitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) { self.emitGlobal("LoadGlobal", dest, glob); }
+    @override fun visitStoreGlobal(src: BytecodeRegister, glob: GlobalId) { self.emitGlobal("StoreGlobal", src, glob); }
 
     @override fun visitStoreGlobalBool(src: BytecodeRegister, glob: GlobalId) { self.emitGlobal("StoreGlobalBool", src, glob); }
     @override fun visitStoreGlobalUInt8(src: BytecodeRegister, glob: GlobalId) { self.emitGlobal("StoreGlobalUInt8", src, glob); }

@@ -602,32 +602,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_global("LoadGlobal", dest, glob);
     }
 
-    fn visit_store_global_bool(&mut self, src: Register, glob: GlobalId) {
-        self.emit_global("StoreGlobalBool", src, glob);
-    }
-    fn visit_store_global_uint8(&mut self, src: Register, glob: GlobalId) {
-        self.emit_global("StoreGlobalUInt8", src, glob);
-    }
-    fn visit_store_global_char(&mut self, src: Register, glob: GlobalId) {
-        self.emit_global("StoreGlobalChar", src, glob);
-    }
-    fn visit_store_global_int32(&mut self, src: Register, glob: GlobalId) {
-        self.emit_global("StoreGlobalInt32", src, glob);
-    }
-    fn visit_store_global_int64(&mut self, src: Register, glob: GlobalId) {
-        self.emit_global("StoreGlobalInt64", src, glob);
-    }
-    fn visit_store_global_float32(&mut self, src: Register, glob: GlobalId) {
-        self.emit_global("StoreGlobalFloat32", src, glob);
-    }
-    fn visit_store_global_float64(&mut self, src: Register, glob: GlobalId) {
-        self.emit_global("StoreGlobalFloat64", src, glob);
-    }
-    fn visit_store_global_ptr(&mut self, src: Register, glob: GlobalId) {
-        self.emit_global("StoreGlobalPtr", src, glob);
-    }
-    fn visit_store_global_tuple(&mut self, src: Register, glob: GlobalId) {
-        self.emit_global("StoreGlobalTuple", src, glob);
+    fn visit_store_global(&mut self, src: Register, glob: GlobalId) {
+        self.emit_global("StoreGlobal", src, glob);
     }
 
     fn visit_push_register(&mut self, src: Register) {

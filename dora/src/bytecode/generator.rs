@@ -2331,18 +2331,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let src = self.visit_expr(&expr.rhs, dest);
 
         if !glob.ty.is_unit() {
-            let ty: BytecodeType = glob.ty.into();
-            match ty {
-                BytecodeType::Bool => self.gen.emit_store_global_bool(src, gid),
-                BytecodeType::UInt8 => self.gen.emit_store_global_uint8(src, gid),
-                BytecodeType::Char => self.gen.emit_store_global_char(src, gid),
-                BytecodeType::Int32 => self.gen.emit_store_global_int32(src, gid),
-                BytecodeType::Int64 => self.gen.emit_store_global_int64(src, gid),
-                BytecodeType::Float32 => self.gen.emit_store_global_float32(src, gid),
-                BytecodeType::Float64 => self.gen.emit_store_global_float64(src, gid),
-                BytecodeType::Ptr => self.gen.emit_store_global_ptr(src, gid),
-                BytecodeType::Tuple(_) => self.gen.emit_store_global_tuple(src, gid),
-            }
+            self.gen.emit_store_global(src, gid);
         }
 
         self.registers.free_if_temp(src);

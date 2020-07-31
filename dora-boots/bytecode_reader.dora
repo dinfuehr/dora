@@ -119,6 +119,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
 
     @open fun visitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
 
+    @open fun visitStoreGlobal(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
     @open fun visitStoreGlobalBool(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
     @open fun visitStoreGlobalUInt8(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
     @open fun visitStoreGlobalChar(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
@@ -367,6 +368,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
 
     @override fun visitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) {}
 
+    @override fun visitStoreGlobal(src: BytecodeRegister, glob: GlobalId) {}
     @override fun visitStoreGlobalBool(src: BytecodeRegister, glob: GlobalId) {}
     @override fun visitStoreGlobalUInt8(src: BytecodeRegister, glob: GlobalId) {}
     @override fun visitStoreGlobalChar(src: BytecodeRegister, glob: GlobalId) {}
@@ -1079,15 +1081,11 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let dest = self.readRegister(wide);
             let glob = self.readGlobalId(wide);
             self.visitor.visitLoadGlobal(dest, glob);
+        } else if opcode == BC_STORE_GLOBAL {
+            let src = self.readRegister(wide);
+            let glob = self.readGlobalId(wide);
+            self.visitor.visitStoreGlobal(src, glob);
 
-        } else if opcode == BC_STORE_GLOBAL_BOOL {
-            let src = self.readRegister(wide);
-            let glob = self.readGlobalId(wide);
-            self.visitor.visitStoreGlobalBool(src, glob);
-        } else if opcode == BC_STORE_GLOBAL_UINT8 {
-            let src = self.readRegister(wide);
-            let glob = self.readGlobalId(wide);
-            self.visitor.visitStoreGlobalUInt8(src, glob);
         } else if opcode == BC_STORE_FIELD_CHAR {
             let src = self.readRegister(wide);
             let glob = self.readGlobalId(wide);

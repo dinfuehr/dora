@@ -391,7 +391,7 @@ class BytecodeWriter {
     }
 
     fun emitStoreGlobal(src: BytecodeRegister, glob: GlobalId) {
-        self.emitGlobal(BC_STORE_GLOBAL_BOOL, src, glob);
+        self.emitGlobal(BC_STORE_GLOBAL, src, glob);
     }
 
     fun emitPushRegister(src: BytecodeRegister) {

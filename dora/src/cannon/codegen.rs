@@ -2804,31 +2804,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_load_global(dest, glob);
     }
 
-    fn visit_store_global_bool(&mut self, src: Register, glob: GlobalId) {
-        self.emit_store_global(src, glob);
-    }
-    fn visit_store_global_uint8(&mut self, src: Register, glob: GlobalId) {
-        self.emit_store_global(src, glob);
-    }
-    fn visit_store_global_char(&mut self, src: Register, glob: GlobalId) {
-        self.emit_store_global(src, glob);
-    }
-    fn visit_store_global_int32(&mut self, src: Register, glob: GlobalId) {
-        self.emit_store_global(src, glob);
-    }
-    fn visit_store_global_int64(&mut self, src: Register, glob: GlobalId) {
-        self.emit_store_global(src, glob);
-    }
-    fn visit_store_global_float32(&mut self, src: Register, glob: GlobalId) {
-        self.emit_store_global(src, glob);
-    }
-    fn visit_store_global_float64(&mut self, src: Register, glob: GlobalId) {
-        self.emit_store_global(src, glob);
-    }
-    fn visit_store_global_ptr(&mut self, src: Register, glob: GlobalId) {
-        self.emit_store_global(src, glob);
-    }
-    fn visit_store_global_tuple(&mut self, src: Register, glob: GlobalId) {
+    fn visit_store_global(&mut self, src: Register, glob: GlobalId) {
         self.emit_store_global(src, glob);
     }
 
