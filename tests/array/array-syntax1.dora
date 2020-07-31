@@ -1,5 +1,5 @@
 fun main() {
-    let a = Array[Int32](10L);
+    let a = Array::ofSizeUnsafe[Int32](10L);
     assert(array_get(a, 0L) == 0);
 
     array_set(a, 0L, 7);

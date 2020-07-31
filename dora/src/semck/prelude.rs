@@ -37,6 +37,7 @@ pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {
     cls.is_str = true;
 
     vm.vips.array_class = internal_class(vm, "Array", None);
+    vm.vips.array_module = internal_module(vm, "Array", None);
 
     let cls = vm.classes.idx(vm.vips.array_class);
     let mut cls = cls.write();
@@ -295,7 +296,6 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_class_method(vm, clsid, "not", Intrinsic::BoolNot);
 
     let clsid = vm.vips.string_class;
-    let module_id = vm.vips.string_module;
     native_class_method(vm, clsid, "compareTo", stdlib::strcmp as *const u8);
     native_class_method(
         vm,
@@ -326,18 +326,6 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_class_method(vm, clsid, "size", Intrinsic::StrLen);
     intrinsic_class_method(vm, clsid, "getByte", Intrinsic::StrGet);
     native_class_method(vm, clsid, "clone", stdlib::str_clone as *const u8);
-    native_module_method(
-        vm,
-        module_id,
-        "fromBytesPartOrNull",
-        stdlib::str_from_bytes as *const u8,
-    );
-    native_module_method(
-        vm,
-        module_id,
-        "fromStringPartOrNull",
-        stdlib::str_from_bytes as *const u8,
-    );
 
     let clsid = vm.vips.float32_class;
     native_class_method(
@@ -393,11 +381,28 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     intrinsic_class_method(vm, clsid, "isNan", Intrinsic::Float64IsNan);
     intrinsic_class_method(vm, clsid, "sqrt", Intrinsic::Float64Sqrt);
 
+    let module_id = vm.vips.string_module;
+    native_module_method(
+        vm,
+        module_id,
+        "fromBytesPartOrNull",
+        stdlib::str_from_bytes as *const u8,
+    );
+    native_module_method(
+        vm,
+        module_id,
+        "fromStringPartOrNull",
+        stdlib::str_from_bytes as *const u8,
+    );
+
     let clsid = vm.vips.array_class;
     intrinsic_ctor(vm, clsid, Intrinsic::GenericArrayNew);
     intrinsic_class_method(vm, clsid, "size", Intrinsic::GenericArrayLen);
     intrinsic_class_method(vm, clsid, "get", Intrinsic::GenericArrayGet);
     intrinsic_class_method(vm, clsid, "set", Intrinsic::GenericArraySet);
+
+    let module_id = vm.vips.array_module;
+    intrinsic_module_method(vm, module_id, "ofSizeUnsafe", Intrinsic::GenericArrayNew);
 
     let clsid = vm.vips.stacktrace_class;
     native_class_method(
@@ -501,6 +506,15 @@ fn native_module_method<'ast>(
         name,
         FctKind::Native(Address::from_ptr(fctptr)),
     );
+}
+
+fn intrinsic_module_method<'ast>(
+    vm: &mut VM<'ast>,
+    module_id: ModuleId,
+    name: &str,
+    intrinsic: Intrinsic,
+) {
+    internal_module_method(vm, module_id, name, FctKind::Builtin(intrinsic));
 }
 
 fn internal_module_method<'ast>(vm: &mut VM<'ast>, module_id: ModuleId, name: &str, kind: FctKind) {

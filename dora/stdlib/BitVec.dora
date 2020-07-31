@@ -58,7 +58,7 @@ class BitVec {
 
         let newcap = (newcap + 31L) / 32L;
 
-        let newarray = Array[Int32](newcap);
+        let newarray = Array::zero[Int32](newcap);
         Array::copy[Int32](self.data, 0L, newarray, 0L, self.data.size());
         self.data = newarray;
     }

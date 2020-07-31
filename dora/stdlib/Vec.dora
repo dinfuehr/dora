@@ -25,7 +25,7 @@ class Vec[T](values: T...) {
       return;
     }
 
-    let newarray = Array[T](newcap);
+    let newarray = Array::ofSizeUnsafe[T](newcap);
     Array::copy[T](self.array, 0L, newarray, 0L, self.len);
     self.array = newarray;
   }
@@ -40,7 +40,7 @@ class Vec[T](values: T...) {
         newcap = newcap * 2L;
       }
 
-      let newarray = Array[T](newcap);
+      let newarray = Array::ofSizeUnsafe[T](newcap);
       Array::copy[T](self.array, 0L, newarray, 0L, self.len);
       self.array = newarray;
     }
@@ -50,7 +50,7 @@ class Vec[T](values: T...) {
   }
 
   fun toArray() -> Array[T] {
-    let newarray = Array[T](self.len);
+    let newarray = Array::ofSizeUnsafe[T](self.len);
     Array::copy[T](self.array, 0L, newarray, 0L, self.len);
     newarray
   }
@@ -76,7 +76,7 @@ class Vec[T](values: T...) {
       if self.len == 0L {
         self.array = Array::empty[T]();
       } else {
-        let newarray = Array[T](self.len);
+        let newarray = Array::ofSizeUnsafe[T](self.len);
         Array::copy[T](self.array, 0L, newarray, 0L, self.len);
         self.array = newarray;
       }

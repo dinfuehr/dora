@@ -2367,7 +2367,7 @@ fn gen_position_new_object() {
 #[test]
 fn gen_new_array() {
     gen(
-        "fun f() -> Array[Int32] { return Array[Int32](1L); }",
+        "fun f() -> Array[Int32] { return Array::ofSizeUnsafe[Int32](1L); }",
         |vm, code| {
             let cls_id = vm.cls_def_by_name_with_type_params(
                 "Array",
@@ -2385,8 +2385,8 @@ fn gen_new_array() {
 
 #[test]
 fn gen_position_new_array() {
-    let result = position("fun f() -> Array[Int32] { return Array[Int32](1L); }");
-    let expected = vec![(3, p(1, 46))];
+    let result = position("fun f() -> Array[Int32] { return Array::ofSizeUnsafe[Int32](1L); }");
+    let expected = vec![(3, p(1, 60))];
     assert_eq!(expected, result);
 }
 

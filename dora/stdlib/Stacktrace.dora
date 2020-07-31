@@ -16,7 +16,7 @@ class Stacktrace() {
 
     var i = 0L;
     let len = self.backtrace.size() / 2L;
-    self.elements = Array[StacktraceElement](len);
+    self.elements = Array::ofSizeUnsafe[StacktraceElement](len);
 
     while i < len {
       self.elements.set(i, self.getStacktraceElement(i));

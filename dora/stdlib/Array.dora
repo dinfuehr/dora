@@ -1,4 +1,4 @@
-@internal class Array[T](len: Int64) {
+@internal class Array[T](len: Int64) { // todo: change constructor to vararg in next step
 
   @internal fun size() -> Int64;
   @internal fun get(idx: Int64) -> T;
@@ -42,10 +42,13 @@ fun arrayHas[T : Identity](array: Array[T], value: T) -> Bool {
 }
 
 module Array {
-  fun empty[T]() -> Array[T] = Array[T](0L);
+  fun empty[T]() -> Array[T] = Array::ofSizeUnsafe[T](0L);
+
+  @internal
+  fun ofSizeUnsafe[T](size: Int64) -> Array[T];
 
   fun fill[T](len: Int64, value: T) -> Array[T] {
-    let array = Array[T](len);
+    let array = Array::ofSizeUnsafe[T](len);
     var i = 0L;
 
     while i < len {
@@ -57,7 +60,7 @@ module Array {
   }
 
   fun new[T: Default](len: Int64) -> Array[T] {
-    let array = Array[T](len);
+    let array = Array::ofSizeUnsafe[T](len);
     var i = 0L;
     let value = T::default();
 
@@ -69,7 +72,7 @@ module Array {
     return array;
   }
 
-  fun zero[T: Zero](len: Int64) -> Array[T] = return Array[T](len);
+  fun zero[T: Zero](len: Int64) -> Array[T] = return Array::ofSizeUnsafe[T](len);
 
   fun copy[T](src: Array[T], srcPos: Int64, dest: Array[T], destPos: Int64, len: Int64) {
     var i = 0L;

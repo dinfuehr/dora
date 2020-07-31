@@ -1,7 +1,7 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fun main() {
-  var x = Array[Foo](128L);
+  var x = Array::ofSizeUnsafe[Foo](128L);
   forceMinorCollect();
   x(0L) = Foo(1);
   x(127L) = Foo(2);

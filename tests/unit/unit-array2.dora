@@ -1,5 +1,5 @@
 fun main() {
-    let x = Array[()](7L);
+    let x = Array::ofSizeUnsafe[()](7L);
     assert(x.size() == 7L);
     let y: () = x(0L);
     x(5L) = ();

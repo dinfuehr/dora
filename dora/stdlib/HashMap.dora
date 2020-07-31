@@ -165,8 +165,8 @@ class HashMap[K: Hash + Equals, V](entries: (K, V)...) {
 
         let new_map = HashMap[K, V]();
         new_map.inserted_and_deleted = BitSet(2L * new_capacity);
-        new_map.keys = Array[K](new_capacity);
-        new_map.values = Array[V](new_capacity);
+        new_map.keys = Array::ofSizeUnsafe[K](new_capacity);
+        new_map.values = Array::ofSizeUnsafe[V](new_capacity);
         new_map.entries = 0L;
         new_map.cap = new_capacity;
 

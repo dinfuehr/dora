@@ -4,7 +4,7 @@ class BitSet(capacity: Int64) {
 
     if capacity > 0L {
         let entries = (capacity + 31L) / 32L;
-        self.data = Array[Int32](entries);
+        self.data = Array::zero[Int32](entries);
         self.capacity = capacity;
     }
 

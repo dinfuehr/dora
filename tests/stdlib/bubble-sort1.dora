@@ -1,5 +1,5 @@
 fun main() {
-    let x = Array[Int32](4L);
+    let x = Array::ofSizeUnsafe[Int32](4L);
     x(0L) = 2;
     x(1L) = 3;
     x(2L) = 0;
