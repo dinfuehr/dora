@@ -437,29 +437,8 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         self.writeVariable(dest, self.currentBlock, globInst);
     }
 
-    @override fun visitStoreGlobalBool(src: BytecodeRegister, glob: GlobalId) {
+    @override fun visitStoreGlobal(src: BytecodeRegister, glob: GlobalId) {
         self.emitStoreGlobal(src, glob, Type::bool());
-    }
-    @override fun visitStoreGlobalUInt8(src: BytecodeRegister, glob: GlobalId) {
-        self.emitStoreGlobal(src, glob, Type::uint8());
-    }
-    @override fun visitStoreGlobalChar(src: BytecodeRegister, glob: GlobalId) {
-        self.emitStoreGlobal(src, glob, Type::char());
-    }
-    @override fun visitStoreGlobalInt32(src: BytecodeRegister, glob: GlobalId) {
-        self.emitStoreGlobal(src, glob, Type::int32());
-    }
-    @override fun visitStoreGlobalInt64(src: BytecodeRegister, glob: GlobalId) {
-        self.emitStoreGlobal(src, glob, Type::int64());
-    }
-    @override fun visitStoreGlobalFloat32(src: BytecodeRegister, glob: GlobalId) {
-        self.emitStoreGlobal(src, glob, Type::float32());
-    }
-    @override fun visitStoreGlobalFloat64(src: BytecodeRegister, glob: GlobalId) {
-        self.emitStoreGlobal(src, glob, Type::float64());
-    }
-    @override fun visitStoreGlobalPtr(src: BytecodeRegister, glob: GlobalId) {
-        self.emitStoreGlobal(src, glob, Type::ptr());
     }
 
     fun emitStoreGlobal(src: BytecodeRegister, glob: GlobalId, ty: Type) {

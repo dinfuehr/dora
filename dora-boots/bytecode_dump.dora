@@ -222,15 +222,6 @@ class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
     @override fun visitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) { self.emitGlobal("LoadGlobal", dest, glob); }
     @override fun visitStoreGlobal(src: BytecodeRegister, glob: GlobalId) { self.emitGlobal("StoreGlobal", src, glob); }
 
-    @override fun visitStoreGlobalBool(src: BytecodeRegister, glob: GlobalId) { self.emitGlobal("StoreGlobalBool", src, glob); }
-    @override fun visitStoreGlobalUInt8(src: BytecodeRegister, glob: GlobalId) { self.emitGlobal("StoreGlobalUInt8", src, glob); }
-    @override fun visitStoreGlobalChar(src: BytecodeRegister, glob: GlobalId) { self.emitGlobal("StoreGlobalChar", src, glob); }
-    @override fun visitStoreGlobalInt32(src: BytecodeRegister, glob: GlobalId) { self.emitGlobal("StoreGlobalInt32", src, glob); }
-    @override fun visitStoreGlobalInt64(src: BytecodeRegister, glob: GlobalId) { self.emitGlobal("StoreGlobalInt64", src, glob); }
-    @override fun visitStoreGlobalFloat32(src: BytecodeRegister, glob: GlobalId) { self.emitGlobal("StoreGlobalFloat32", src, glob); }
-    @override fun visitStoreGlobalFloat64(src: BytecodeRegister, glob: GlobalId) { self.emitGlobal("StoreGlobalFloat64", src, glob); }
-    @override fun visitStoreGlobalPtr(src: BytecodeRegister, glob: GlobalId) { self.emitGlobal("StoreGlobalPtr", src, glob); }
-
     @override fun visitPushRegister(src: BytecodeRegister) { self.emitReg1("PushRegister", src); }
 
     @override fun visitConstNil(dest: BytecodeRegister) { self.emitReg1("ConstNil", dest); }
