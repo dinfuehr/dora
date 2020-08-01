@@ -1305,41 +1305,9 @@ where
             BytecodeOpcode::RetVoid => {
                 self.visitor.visit_ret_void();
             }
-            BytecodeOpcode::RetBool => {
+            BytecodeOpcode::Ret => {
                 let opnd = self.read_register(wide);
-                self.visitor.visit_ret_bool(opnd);
-            }
-            BytecodeOpcode::RetUInt8 => {
-                let opnd = self.read_register(wide);
-                self.visitor.visit_ret_uint8(opnd);
-            }
-            BytecodeOpcode::RetChar => {
-                let opnd = self.read_register(wide);
-                self.visitor.visit_ret_char(opnd);
-            }
-            BytecodeOpcode::RetInt32 => {
-                let opnd = self.read_register(wide);
-                self.visitor.visit_ret_int32(opnd);
-            }
-            BytecodeOpcode::RetInt64 => {
-                let opnd = self.read_register(wide);
-                self.visitor.visit_ret_int64(opnd);
-            }
-            BytecodeOpcode::RetFloat32 => {
-                let opnd = self.read_register(wide);
-                self.visitor.visit_ret_float32(opnd);
-            }
-            BytecodeOpcode::RetFloat64 => {
-                let opnd = self.read_register(wide);
-                self.visitor.visit_ret_float64(opnd);
-            }
-            BytecodeOpcode::RetPtr => {
-                let opnd = self.read_register(wide);
-                self.visitor.visit_ret_ptr(opnd);
-            }
-            BytecodeOpcode::RetTuple => {
-                let opnd = self.read_register(wide);
-                self.visitor.visit_ret_tuple(opnd);
+                self.visitor.visit_ret(opnd);
             }
         }
     }
@@ -2253,31 +2221,7 @@ pub trait BytecodeVisitor {
     fn visit_ret_void(&mut self) {
         unimplemented!();
     }
-    fn visit_ret_bool(&mut self, _opnd: Register) {
-        unimplemented!();
-    }
-    fn visit_ret_uint8(&mut self, _opnd: Register) {
-        unimplemented!();
-    }
-    fn visit_ret_char(&mut self, _opnd: Register) {
-        unimplemented!();
-    }
-    fn visit_ret_int32(&mut self, _opnd: Register) {
-        unimplemented!();
-    }
-    fn visit_ret_int64(&mut self, _opnd: Register) {
-        unimplemented!();
-    }
-    fn visit_ret_float32(&mut self, _opnd: Register) {
-        unimplemented!();
-    }
-    fn visit_ret_float64(&mut self, _opnd: Register) {
-        unimplemented!();
-    }
-    fn visit_ret_ptr(&mut self, _opnd: Register) {
-        unimplemented!();
-    }
-    fn visit_ret_tuple(&mut self, _opnd: Register) {
+    fn visit_ret(&mut self, _opnd: Register) {
         unimplemented!();
     }
 }

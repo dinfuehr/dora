@@ -646,29 +646,10 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         self.markBlockTerminated();
     }
 
-    @override fun visitRetBool(opnd: BytecodeRegister) {
-        self.emitRet(opnd, Type::bool());
-    }
-    @override fun visitRetUInt8(opnd: BytecodeRegister) {
-        self.emitRet(opnd, Type::uint8());
-    }
-    @override fun visitRetChar(opnd: BytecodeRegister) {
-        self.emitRet(opnd, Type::char());
-    }
-    @override fun visitRetInt32(opnd: BytecodeRegister) {
-        self.emitRet(opnd, Type::int32());
-    }
-    @override fun visitRetInt64(opnd: BytecodeRegister) {
-        self.emitRet(opnd, Type::int64());
-    }
-    @override fun visitRetFloat32(opnd: BytecodeRegister) {
-        self.emitRet(opnd, Type::float32());
-    }
-    @override fun visitRetFloat64(opnd: BytecodeRegister) {
-        self.emitRet(opnd, Type::float64());
-    }
-    @override fun visitRetPtr(opnd: BytecodeRegister) {
-        self.emitRet(opnd, Type::ptr());
+    @override fun visitRet(opnd: BytecodeRegister) {
+        let ty = self.bc.registers.get(opnd.value.toInt64());
+        let ty = Type::fromBytecodeType(ty);
+        self.emitRet(opnd, ty);
     }
 
     fun emitRet(opnd: BytecodeRegister, ty: Type) {

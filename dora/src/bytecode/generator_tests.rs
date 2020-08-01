@@ -77,7 +77,7 @@ fn gen_load_field_uint8() {
         "class Foo(let bar: UInt8) fun f(a: Foo) -> UInt8 { return a.bar; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldUInt8(r(1), r(0), cls, field), RetUInt8(r(1))];
+            let expected = vec![LoadFieldUInt8(r(1), r(0), cls, field), Ret(r(1))];
             assert_eq!(expected, code);
         },
     );
@@ -89,7 +89,7 @@ fn gen_load_field_bool() {
         "class Foo(let bar: Bool) fun f(a: Foo) -> Bool { return a.bar; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldBool(r(1), r(0), cls, field), RetBool(r(1))];
+            let expected = vec![LoadFieldBool(r(1), r(0), cls, field), Ret(r(1))];
             assert_eq!(expected, code);
         },
     );
@@ -101,7 +101,7 @@ fn gen_load_field_char() {
         "class Foo(let bar: Char) fun f(a: Foo) -> Char { return a.bar; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldChar(r(1), r(0), cls, field), RetChar(r(1))];
+            let expected = vec![LoadFieldChar(r(1), r(0), cls, field), Ret(r(1))];
             assert_eq!(expected, code);
         },
     );
@@ -113,7 +113,7 @@ fn gen_load_field_int32() {
         "class Foo(let bar: Int32) fun f(a: Foo) -> Int32 { return a.bar; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldInt32(r(1), r(0), cls, field), RetInt32(r(1))];
+            let expected = vec![LoadFieldInt32(r(1), r(0), cls, field), Ret(r(1))];
             assert_eq!(expected, code);
         },
     );
@@ -125,7 +125,7 @@ fn gen_load_field_int64() {
         "class Foo(let bar: Int64) fun f(a: Foo) -> Int64 { return a.bar; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldInt64(r(1), r(0), cls, field), RetInt64(r(1))];
+            let expected = vec![LoadFieldInt64(r(1), r(0), cls, field), Ret(r(1))];
             assert_eq!(expected, code);
         },
     );
@@ -137,7 +137,7 @@ fn gen_load_field_float32() {
         "class Foo(let bar: Float32) fun f(a: Foo) -> Float32 { return a.bar; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldFloat32(r(1), r(0), cls, field), RetFloat32(r(1))];
+            let expected = vec![LoadFieldFloat32(r(1), r(0), cls, field), Ret(r(1))];
             assert_eq!(expected, code);
         },
     );
@@ -149,7 +149,7 @@ fn gen_load_field_float64() {
         "class Foo(let bar: Float64) fun f(a: Foo) -> Float64 { return a.bar; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldFloat64(r(1), r(0), cls, field), RetFloat64(r(1))];
+            let expected = vec![LoadFieldFloat64(r(1), r(0), cls, field), Ret(r(1))];
             assert_eq!(expected, code);
         },
     );
@@ -161,7 +161,7 @@ fn gen_load_field_ptr() {
         "class Foo(let bar: Object) fun f(a: Foo) -> Object { return a.bar; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldPtr(r(1), r(0), cls, field), RetPtr(r(1))];
+            let expected = vec![LoadFieldPtr(r(1), r(0), cls, field), Ret(r(1))];
             assert_eq!(expected, code);
         },
     );
@@ -382,7 +382,7 @@ fn gen_add_int() {
         ConstInt32(r(1), 1),
         ConstInt32(r(2), 2),
         AddInt32(r(0), r(1), r(2)),
-        RetInt32(r(0)),
+        Ret(r(0)),
     ];
     assert_eq!(expected, result);
 }
@@ -394,7 +394,7 @@ fn gen_add_float32() {
         ConstFloat32(r(1), 1_f32),
         ConstFloat32(r(2), 2_f32),
         AddFloat32(r(0), r(1), r(2)),
-        RetFloat32(r(0)),
+        Ret(r(0)),
     ];
     assert_eq!(expected, result);
 }
@@ -402,63 +402,63 @@ fn gen_add_float32() {
 #[test]
 fn gen_add_float64() {
     let result = code("fun f(a: Float64, b: Float64) -> Float64 { return a + b; }");
-    let expected = vec![AddFloat64(r(2), r(0), r(1)), RetFloat64(r(2))];
+    let expected = vec![AddFloat64(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_id_int() {
     let result = code("fun f(a: Int32) -> Int32 { return a; }");
-    let expected = vec![RetInt32(r(0))];
+    let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_id_ptr() {
     let result = code("fun f(a: Object) -> Object { return a; }");
-    let expected = vec![RetPtr(r(0))];
+    let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_ptr_is() {
     let result = code("fun f(a: Object, b: Object) -> Bool { return a === b; }");
-    let expected = vec![TestEqPtr(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestEqPtr(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_ptr_is_not() {
     let result = code("fun f(a: Object, b: Object) -> Bool { return a !== b; }");
-    let expected = vec![TestNePtr(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestNePtr(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_sub_int() {
     let result = code("fun f(a: Int32, b: Int32) -> Int32 { return a - b; }");
-    let expected = vec![SubInt32(r(2), r(0), r(1)), RetInt32(r(2))];
+    let expected = vec![SubInt32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_sub_float32() {
     let result = code("fun f(a: Float32, b: Float32) -> Float32 { return a - b; }");
-    let expected = vec![SubFloat32(r(2), r(0), r(1)), RetFloat32(r(2))];
+    let expected = vec![SubFloat32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_sub_float64() {
     let result = code("fun f(a: Float64, b: Float64) -> Float64 { return a - b; }");
-    let expected = vec![SubFloat64(r(2), r(0), r(1)), RetFloat64(r(2))];
+    let expected = vec![SubFloat64(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_div_int() {
     let result = code("fun f(a: Int32, b: Int32) -> Int32 { return a / b; }");
-    let expected = vec![DivInt32(r(2), r(0), r(1)), RetInt32(r(2))];
+    let expected = vec![DivInt32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -472,35 +472,35 @@ fn gen_position_div_int() {
 #[test]
 fn gen_div_float32() {
     let result = code("fun f(a: Float32, b: Float32) -> Float32 { return a / b; }");
-    let expected = vec![DivFloat32(r(2), r(0), r(1)), RetFloat32(r(2))];
+    let expected = vec![DivFloat32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_div_float64() {
     let result = code("fun f(a: Float64, b: Float64) -> Float64 { return a / b; }");
-    let expected = vec![DivFloat64(r(2), r(0), r(1)), RetFloat64(r(2))];
+    let expected = vec![DivFloat64(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_mul_int() {
     let result = code("fun f(a: Int32, b: Int32) -> Int32 { return a * b; }");
-    let expected = vec![MulInt32(r(2), r(0), r(1)), RetInt32(r(2))];
+    let expected = vec![MulInt32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_mul_float32() {
     let result = code("fun f(a: Float32, b: Float32) -> Float32 { return a * b; }");
-    let expected = vec![MulFloat32(r(2), r(0), r(1)), RetFloat32(r(2))];
+    let expected = vec![MulFloat32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_mul_float64() {
     let result = code("fun f(a: Float64, b: Float64) -> Float64 { return a * b; }");
-    let expected = vec![MulFloat64(r(2), r(0), r(1)), RetFloat64(r(2))];
+    let expected = vec![MulFloat64(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -524,9 +524,9 @@ fn gen_stmt_if() {
     let expected = vec![
         JumpIfFalse(r(0), 3),
         ConstInt32(r(1), 1),
-        RetInt32(r(1)),
+        Ret(r(1)),
         ConstZeroInt32(r(1)),
-        RetInt32(r(1)),
+        Ret(r(1)),
     ];
     assert_eq!(expected, result);
 }
@@ -537,9 +537,9 @@ fn gen_stmt_if_else_with_return() {
     let expected = vec![
         JumpIfFalse(r(0), 3),
         ConstInt32(r(1), 1),
-        RetInt32(r(1)),
+        Ret(r(1)),
         ConstInt32(r(1), 2),
-        RetInt32(r(1)),
+        Ret(r(1)),
     ];
     assert_eq!(expected, result);
 }
@@ -559,7 +559,7 @@ fn gen_stmt_if_else_without_return() {
         ConstFalse(r(1)),
         Jump(5),
         ConstTrue(r(1)),
-        RetBool(r(1)),
+        Ret(r(1)),
     ];
     assert_eq!(expected, result);
 }
@@ -593,56 +593,56 @@ fn gen_stmt_continue() {
 #[test]
 fn gen_expr_nil() {
     let result = code("fun f() -> Object { return nil; }");
-    let expected = vec![ConstNil(r(0)), RetPtr(r(0))];
+    let expected = vec![ConstNil(r(0)), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_lit_char() {
     let result = code("fun f() -> Char { return '1'; }");
-    let expected = vec![ConstChar(r(0), '1'), RetChar(r(0))];
+    let expected = vec![ConstChar(r(0), '1'), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_lit_int() {
     let result = code("fun f() -> Int32 { return 1; }");
-    let expected = vec![ConstInt32(r(0), 1), RetInt32(r(0))];
+    let expected = vec![ConstInt32(r(0), 1), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_lit_uint8() {
     let result = code("fun f() -> UInt8 { return 1Y; }");
-    let expected = vec![ConstUInt8(r(0), 1), RetUInt8(r(0))];
+    let expected = vec![ConstUInt8(r(0), 1), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_lit_int64() {
     let result = code("fun f() -> Int64 { return 1L; }");
-    let expected = vec![ConstInt64(r(0), 1), RetInt64(r(0))];
+    let expected = vec![ConstInt64(r(0), 1), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_lit_float32() {
     let result = code("fun f() -> Float32 { return 1F; }");
-    let expected = vec![ConstFloat32(r(0), 1_f32), RetFloat32(r(0))];
+    let expected = vec![ConstFloat32(r(0), 1_f32), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_lit_float64() {
     let result = code("fun f() -> Float64 { return 1D; }");
-    let expected = vec![ConstFloat64(r(0), 1_f64), RetFloat64(r(0))];
+    let expected = vec![ConstFloat64(r(0), 1_f64), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_lit_string() {
     let result = code("fun f() -> String { return \"z\"; }");
-    let expected = vec![ConstString(r(0), "z".to_string()), RetPtr(r(0))];
+    let expected = vec![ConstString(r(0), "z".to_string()), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
@@ -671,35 +671,35 @@ fn gen_expr_lit_string_multiple() {
 #[test]
 fn gen_expr_lit_byte_zero() {
     let result = code("fun f() -> UInt8 { return 0Y; }");
-    let expected = vec![ConstZeroUInt8(r(0)), RetUInt8(r(0))];
+    let expected = vec![ConstZeroUInt8(r(0)), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_lit_int_zero() {
     let result = code("fun f() -> Int32 { return 0; }");
-    let expected = vec![ConstZeroInt32(r(0)), RetInt32(r(0))];
+    let expected = vec![ConstZeroInt32(r(0)), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_lit_int64_zero() {
     let result = code("fun f() -> Int64 { return 0L; }");
-    let expected = vec![ConstZeroInt64(r(0)), RetInt64(r(0))];
+    let expected = vec![ConstZeroInt64(r(0)), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_lit_float32_zero() {
     let result = code("fun f() -> Float32 { return 0F; }");
-    let expected = vec![ConstZeroFloat32(r(0)), RetFloat32(r(0))];
+    let expected = vec![ConstZeroFloat32(r(0)), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_lit_float64_zero() {
     let result = code("fun f() -> Float64 { return 0D; }");
-    let expected = vec![ConstZeroFloat64(r(0)), RetFloat64(r(0))];
+    let expected = vec![ConstZeroFloat64(r(0)), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
@@ -710,7 +710,7 @@ fn gen_expr_or() {
         MovBool(r(2), r(0)),
         JumpIfTrue(r(2), 3),
         MovBool(r(2), r(1)),
-        RetBool(r(2)),
+        Ret(r(2)),
     ];
     assert_eq!(expected, result);
 }
@@ -722,7 +722,7 @@ fn gen_expr_and() {
         MovBool(r(2), r(0)),
         JumpIfFalse(r(2), 3),
         MovBool(r(2), r(1)),
-        RetBool(r(2)),
+        Ret(r(2)),
     ];
     assert_eq!(expected, result);
 }
@@ -730,28 +730,28 @@ fn gen_expr_and() {
 #[test]
 fn gen_expr_plus() {
     let result = code("fun f(a: Int32) -> Int32 { return +a; }");
-    let expected = vec![RetInt32(r(0))];
+    let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_neg() {
     let result = code("fun f(a: Int32) -> Int32 { return -a; }");
-    let expected = vec![NegInt32(r(1), r(0)), RetInt32(r(1))];
+    let expected = vec![NegInt32(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_not() {
     let result = code("fun f(a: Bool) -> Bool { return !a; }");
-    let expected = vec![NotBool(r(1), r(0)), RetBool(r(1))];
+    let expected = vec![NotBool(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_mod() {
     let result = code("fun f(a: Int32, b: Int32) -> Int32 { return a % b; }");
-    let expected = vec![ModInt32(r(2), r(0), r(1)), RetInt32(r(2))];
+    let expected = vec![ModInt32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -765,154 +765,154 @@ fn gen_position_mod_int32() {
 #[test]
 fn gen_expr_bit_or() {
     let result = code("fun f(a: Int32, b: Int32) -> Int32 { return a | b; }");
-    let expected = vec![OrInt32(r(2), r(0), r(1)), RetInt32(r(2))];
+    let expected = vec![OrInt32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_bit_and() {
     let result = code("fun f(a: Int32, b: Int32) -> Int32 { return a & b; }");
-    let expected = vec![AndInt32(r(2), r(0), r(1)), RetInt32(r(2))];
+    let expected = vec![AndInt32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_bit_xor() {
     let result = code("fun f(a: Int32, b: Int32) -> Int32 { return a ^ b; }");
-    let expected = vec![XorInt32(r(2), r(0), r(1)), RetInt32(r(2))];
+    let expected = vec![XorInt32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_bit_shiftl() {
     let result = code("fun f(a: Int32, b: Int32) -> Int32 { return a << b; }");
-    let expected = vec![ShlInt32(r(2), r(0), r(1)), RetInt32(r(2))];
+    let expected = vec![ShlInt32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_bit_shiftr() {
     let result = code("fun f(a: Int32, b: Int32) -> Int32 { return a >>> b; }");
-    let expected = vec![ShrInt32(r(2), r(0), r(1)), RetInt32(r(2))];
+    let expected = vec![ShrInt32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_bit_ashiftr() {
     let result = code("fun f(a: Int32, b: Int32) -> Int32 { return a >> b; }");
-    let expected = vec![SarInt32(r(2), r(0), r(1)), RetInt32(r(2))];
+    let expected = vec![SarInt32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_bit_rol() {
     let result = code("fun f(a: Int32, b: Int32) -> Int32 { return a.rotateLeft(b); }");
-    let expected = vec![RolInt32(r(2), r(0), r(1)), RetInt32(r(2))];
+    let expected = vec![RolInt32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_bit_ror() {
     let result = code("fun f(a: Int32, b: Int32) -> Int32 { return a.rotateRight(b); }");
-    let expected = vec![RorInt32(r(2), r(0), r(1)), RetInt32(r(2))];
+    let expected = vec![RorInt32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_equal_bool() {
     let result = code("fun f(a: Bool, b: Bool) -> Bool { return a == b; }");
-    let expected = vec![TestEqBool(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestEqBool(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_notequal_bool() {
     let result = code("fun f(a: Bool, b: Bool) -> Bool { return a != b; }");
-    let expected = vec![TestNeBool(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestNeBool(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_equal_uint8() {
     let result = code("fun f(a: UInt8, b: UInt8) -> Bool { return a == b; }");
-    let expected = vec![TestEqUInt8(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestEqUInt8(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_notequal_uint8() {
     let result = code("fun f(a: UInt8, b: UInt8) -> Bool { return a != b; }");
-    let expected = vec![TestNeUInt8(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestNeUInt8(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_lessthan_uint8() {
     let result = code("fun f(a: UInt8, b: UInt8) -> Bool { return a < b; }");
-    let expected = vec![TestLtUInt8(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestLtUInt8(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_lessthanequal_uint8() {
     let result = code("fun f(a: UInt8, b: UInt8) -> Bool { return a <= b; }");
-    let expected = vec![TestLeUInt8(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestLeUInt8(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_greaterthan_uint8() {
     let result = code("fun f(a: UInt8, b: UInt8) -> Bool { return a > b; }");
-    let expected = vec![TestGtUInt8(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestGtUInt8(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_greaterthanequal_uint8() {
     let result = code("fun f(a: UInt8, b: UInt8) -> Bool { return a >= b; }");
-    let expected = vec![TestGeUInt8(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestGeUInt8(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_equal_char() {
     let result = code("fun f(a: Char, b: Char) -> Bool { return a == b; }");
-    let expected = vec![TestEqChar(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestEqChar(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_notequal_char() {
     let result = code("fun f(a: Char, b: Char) -> Bool { return a != b; }");
-    let expected = vec![TestNeChar(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestNeChar(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_lessthan_char() {
     let result = code("fun f(a: Char, b: Char) -> Bool { return a < b; }");
-    let expected = vec![TestLtChar(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestLtChar(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_lessthanequal_char() {
     let result = code("fun f(a: Char, b: Char) -> Bool { return a <= b; }");
-    let expected = vec![TestLeChar(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestLeChar(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_greaterthan_char() {
     let result = code("fun f(a: Char, b: Char) -> Bool { return a > b; }");
-    let expected = vec![TestGtChar(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestGtChar(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_greaterthanequal_char() {
     let result = code("fun f(a: Char, b: Char) -> Bool { return a >= b; }");
-    let expected = vec![TestGeChar(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestGeChar(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -922,7 +922,7 @@ fn gen_expr_test_equal_enum() {
         "fun f(a: Foo, b: Foo) -> Bool { return a == b; }
          enum Foo { A, B }",
     );
-    let expected = vec![TestEqEnum(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestEqEnum(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -932,140 +932,140 @@ fn gen_expr_test_notequal_enum() {
         "fun f(a: Foo, b: Foo) -> Bool { return a != b; }
          enum Foo { A, B }",
     );
-    let expected = vec![TestNeEnum(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestNeEnum(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_equal_int() {
     let result = code("fun f(a: Int32, b: Int32) -> Bool { return a == b; }");
-    let expected = vec![TestEqInt32(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestEqInt32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_notequal_int() {
     let result = code("fun f(a: Int32, b: Int32) -> Bool { return a != b; }");
-    let expected = vec![TestNeInt32(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestNeInt32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_lessthan_int() {
     let result = code("fun f(a: Int32, b: Int32) -> Bool { return a < b; }");
-    let expected = vec![TestLtInt32(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestLtInt32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_lessthanequal_int() {
     let result = code("fun f(a: Int32, b: Int32) -> Bool { return a <= b; }");
-    let expected = vec![TestLeInt32(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestLeInt32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_greaterthan_int() {
     let result = code("fun f(a: Int32, b: Int32) -> Bool { return a > b; }");
-    let expected = vec![TestGtInt32(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestGtInt32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_greaterthanequal_int() {
     let result = code("fun f(a: Int32, b: Int32) -> Bool { return a >= b; }");
-    let expected = vec![TestGeInt32(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestGeInt32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_equal_float32() {
     let result = code("fun f(a: Float32, b: Float32) -> Bool { return a == b; }");
-    let expected = vec![TestEqFloat32(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestEqFloat32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_notequal_float32() {
     let result = code("fun f(a: Float32, b: Float32) -> Bool { return a != b; }");
-    let expected = vec![TestNeFloat32(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestNeFloat32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_lessthan_float32() {
     let result = code("fun f(a: Float32, b: Float32) -> Bool { return a < b; }");
-    let expected = vec![TestLtFloat32(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestLtFloat32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_lessthanequal_float32() {
     let result = code("fun f(a: Float32, b: Float32) -> Bool { return a <= b; }");
-    let expected = vec![TestLeFloat32(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestLeFloat32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_greaterthan_float32() {
     let result = code("fun f(a: Float32, b: Float32) -> Bool { return a > b; }");
-    let expected = vec![TestGtFloat32(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestGtFloat32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_greaterthanequal_float32() {
     let result = code("fun f(a: Float32, b: Float32) -> Bool { return a >= b; }");
-    let expected = vec![TestGeFloat32(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestGeFloat32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_equal_float64() {
     let result = code("fun f(a: Float64, b: Float64) -> Bool { return a == b; }");
-    let expected = vec![TestEqFloat64(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestEqFloat64(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_notequal_float64() {
     let result = code("fun f(a: Float64, b: Float64) -> Bool { return a != b; }");
-    let expected = vec![TestNeFloat64(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestNeFloat64(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_lessthan_float64() {
     let result = code("fun f(a: Float64, b: Float64) -> Bool { return a < b; }");
-    let expected = vec![TestLtFloat64(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestLtFloat64(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_lessthanequal_float64() {
     let result = code("fun f(a: Float64, b: Float64) -> Bool { return a <= b; }");
-    let expected = vec![TestLeFloat64(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestLeFloat64(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_greaterthan_float64() {
     let result = code("fun f(a: Float64, b: Float64) -> Bool { return a > b; }");
-    let expected = vec![TestGtFloat64(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestGtFloat64(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_test_greaterthanequal_float64() {
     let result = code("fun f(a: Float64, b: Float64) -> Bool { return a >= b; }");
-    let expected = vec![TestGeFloat64(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![TestGeFloat64(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_ident() {
     let result = code("fun f() -> Int32 { let x = 1; return x; }");
-    let expected = vec![ConstInt32(r(0), 1), RetInt32(r(0))];
+    let expected = vec![ConstInt32(r(0), 1), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
@@ -1079,7 +1079,7 @@ fn gen_expr_assign() {
 #[test]
 fn gen_expr_self() {
     let result = code_method("class Foo() { fun f() -> Foo { return self; } }");
-    let expected = vec![RetPtr(r(0))];
+    let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
@@ -1093,7 +1093,7 @@ fn gen_expr_self_assign() {
 #[test]
 fn gen_expr_return() {
     let result = code("fun f() -> Int32 { return 1; }");
-    let expected = vec![ConstInt32(r(0), 1), RetInt32(r(0))];
+    let expected = vec![ConstInt32(r(0), 1), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
@@ -1110,7 +1110,7 @@ fn gen_load_global() {
         "var a: Int32; fun f() -> Int32 { return a; }",
         |vm, code| {
             let gid = vm.global_by_name("a");
-            let expected = vec![LoadGlobal(r(0), gid), RetInt32(r(0))];
+            let expected = vec![LoadGlobal(r(0), gid), Ret(r(0))];
             assert_eq!(expected, code);
         },
     );
@@ -1156,7 +1156,7 @@ fn gen_fct_call_int_with_0_args() {
             ",
         |vm, code| {
             let fct_id = vm.fct_def_by_name("g").expect("g not found");
-            let expected = vec![InvokeStaticInt32(r(0), fct_id), RetInt32(r(0))];
+            let expected = vec![InvokeStaticInt32(r(0), fct_id), Ret(r(0))];
             assert_eq!(expected, code);
         },
     );
@@ -1234,7 +1234,7 @@ fn gen_fct_call_int_with_1_arg() {
                 ConstInt32(r(1), 1),
                 PushRegister(r(1)),
                 InvokeStaticInt32(r(0), fct_id),
-                RetInt32(r(0)),
+                Ret(r(0)),
             ];
             assert_eq!(expected, code);
         },
@@ -1258,7 +1258,7 @@ fn gen_fct_call_int_with_3_args() {
                 PushRegister(r(2)),
                 PushRegister(r(3)),
                 InvokeStaticInt32(r(0), fct_id),
-                RetInt32(r(0)),
+                Ret(r(0)),
             ];
             assert_eq!(expected, code);
         },
@@ -1373,7 +1373,7 @@ fn gen_method_call_bool_with_0_args() {
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirectBool(r(1), fct_id),
-                RetBool(r(1)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -1417,7 +1417,7 @@ fn gen_method_call_bool_with_1_arg() {
                 PushRegister(r(0)),
                 PushRegister(r(2)),
                 InvokeDirectBool(r(1), fct_id),
-                RetBool(r(1)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -1446,7 +1446,7 @@ fn gen_method_call_bool_with_3_args() {
                 PushRegister(r(3)),
                 PushRegister(r(4)),
                 InvokeDirectBool(r(1), fct_id),
-                RetBool(r(1)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -1469,7 +1469,7 @@ fn gen_method_call_byte_with_0_args() {
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirectUInt8(r(1), fct_id),
-                RetUInt8(r(1)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -1513,7 +1513,7 @@ fn gen_method_call_byte_with_1_arg() {
                 PushRegister(r(0)),
                 PushRegister(r(2)),
                 InvokeDirectUInt8(r(1), fct_id),
-                RetUInt8(r(1)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -1542,7 +1542,7 @@ fn gen_method_call_byte_with_3_args() {
                 PushRegister(r(3)),
                 PushRegister(r(4)),
                 InvokeDirectUInt8(r(1), fct_id),
-                RetUInt8(r(1)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -1565,7 +1565,7 @@ fn gen_method_call_char_with_0_args() {
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirectChar(r(1), fct_id),
-                RetChar(r(1)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -1609,7 +1609,7 @@ fn gen_method_call_char_with_1_arg() {
                 PushRegister(r(0)),
                 PushRegister(r(2)),
                 InvokeDirectChar(r(1), fct_id),
-                RetChar(r(1)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -1638,7 +1638,7 @@ fn gen_method_call_char_with_3_args() {
                 PushRegister(r(3)),
                 PushRegister(r(4)),
                 InvokeDirectChar(r(1), fct_id),
-                RetChar(r(1)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -1661,7 +1661,7 @@ fn gen_method_call_int_with_0_args() {
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirectInt32(r(1), fct_id),
-                RetInt32(r(1)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -1705,7 +1705,7 @@ fn gen_method_call_int_with_1_arg() {
                 PushRegister(r(0)),
                 PushRegister(r(2)),
                 InvokeDirectInt32(r(1), fct_id),
-                RetInt32(r(1)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -1734,7 +1734,7 @@ fn gen_method_call_int_with_3_args() {
                 PushRegister(r(3)),
                 PushRegister(r(4)),
                 InvokeDirectInt32(r(1), fct_id),
-                RetInt32(r(1)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -1757,7 +1757,7 @@ fn gen_method_call_int64_with_0_args() {
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirectInt64(r(1), fct_id),
-                RetInt64(r(1)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -1801,7 +1801,7 @@ fn gen_method_call_int64_with_1_arg() {
                 PushRegister(r(0)),
                 PushRegister(r(2)),
                 InvokeDirectInt64(r(1), fct_id),
-                RetInt64(r(1)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -1830,7 +1830,7 @@ fn gen_method_call_int64_with_3_args() {
                 PushRegister(r(3)),
                 PushRegister(r(4)),
                 InvokeDirectInt64(r(1), fct_id),
-                RetInt64(r(1)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -1853,7 +1853,7 @@ fn gen_method_call_float32_with_0_args() {
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirectFloat32(r(1), fct_id),
-                RetFloat32(r(1)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -1901,7 +1901,7 @@ fn gen_method_call_float32_with_1_arg() {
                 PushRegister(r(0)),
                 PushRegister(r(2)),
                 InvokeDirectFloat32(r(1), fct_id),
-                RetFloat32(r(1)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -1930,7 +1930,7 @@ fn gen_method_call_float32_with_3_args() {
                 PushRegister(r(3)),
                 PushRegister(r(4)),
                 InvokeDirectFloat32(r(1), fct_id),
-                RetFloat32(r(1)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -1953,7 +1953,7 @@ fn gen_method_call_float64_with_0_args() {
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirectFloat64(r(1), fct_id),
-                RetFloat64(r(1)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -2001,7 +2001,7 @@ fn gen_method_call_float64_with_1_arg() {
                 PushRegister(r(0)),
                 PushRegister(r(2)),
                 InvokeDirectFloat64(r(1), fct_id),
-                RetFloat64(r(1)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -2030,7 +2030,7 @@ fn gen_method_call_float64_with_3_args() {
                 PushRegister(r(3)),
                 PushRegister(r(4)),
                 InvokeDirectFloat64(r(1), fct_id),
-                RetFloat64(r(1)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -2050,11 +2050,7 @@ fn gen_method_call_ptr_with_0_args() {
             let fct_id = vm
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirectPtr(r(1), fct_id),
-                RetPtr(r(1)),
-            ];
+            let expected = vec![PushRegister(r(0)), InvokeDirectPtr(r(1), fct_id), Ret(r(1))];
             assert_eq!(expected, code);
         },
     );
@@ -2097,7 +2093,7 @@ fn gen_method_call_ptr_with_1_arg() {
                 PushRegister(r(0)),
                 PushRegister(r(2)),
                 InvokeDirectPtr(r(1), fct_id),
-                RetPtr(r(1)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -2126,7 +2122,7 @@ fn gen_method_call_ptr_with_3_args() {
                 PushRegister(r(3)),
                 PushRegister(r(4)),
                 InvokeDirectPtr(r(1), fct_id),
-                RetPtr(r(1)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -2332,7 +2328,7 @@ fn gen_new_object() {
             NewObject(r(0), cls_id),
             PushRegister(r(0)),
             InvokeDirectVoid(ctor_id),
-            RetPtr(r(0)),
+            Ret(r(0)),
         ];
         assert_eq!(expected, code);
     });
@@ -2350,7 +2346,7 @@ fn gen_new_object_assign_to_var() {
                 PushRegister(r(1)),
                 InvokeDirectVoid(ctor_id),
                 MovPtr(r(0), r(1)),
-                RetPtr(r(0)),
+                Ret(r(0)),
             ];
             assert_eq!(expected, code);
         },
@@ -2373,11 +2369,7 @@ fn gen_new_array() {
                 "Array",
                 TypeList::with(vec![BuiltinType::Int32]),
             );
-            let expected = vec![
-                ConstInt64(r(1), 1),
-                NewArray(r(0), cls_id, r(1)),
-                RetPtr(r(0)),
-            ];
+            let expected = vec![ConstInt64(r(1), 1), NewArray(r(0), cls_id, r(1)), Ret(r(0))];
             assert_eq!(expected, code);
         },
     );
@@ -2393,7 +2385,7 @@ fn gen_position_new_array() {
 #[test]
 fn gen_array_length() {
     let result = code("fun f(a: Array[Int32]) -> Int64 { return a.size(); }");
-    let expected = vec![ArrayLength(r(1), r(0)), RetInt64(r(1))];
+    let expected = vec![ArrayLength(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
@@ -2424,7 +2416,7 @@ fn gen_load_array_uint8() {
     let expected = vec![
         ConstZeroInt64(r(2)),
         LoadArrayUInt8(r(1), r(0), r(2)),
-        RetUInt8(r(1)),
+        Ret(r(1)),
     ];
     assert_eq!(expected, result);
 }
@@ -2432,49 +2424,49 @@ fn gen_load_array_uint8() {
 #[test]
 fn gen_load_array_bool() {
     let result = code("fun f(a: Array[Bool], idx: Int64) -> Bool { return a(idx); }");
-    let expected = vec![LoadArrayBool(r(2), r(0), r(1)), RetBool(r(2))];
+    let expected = vec![LoadArrayBool(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_load_array_char() {
     let result = code("fun f(a: Array[Char], idx: Int64) -> Char { return a(idx); }");
-    let expected = vec![LoadArrayChar(r(2), r(0), r(1)), RetChar(r(2))];
+    let expected = vec![LoadArrayChar(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_load_array_int32() {
     let result = code("fun f(a: Array[Int32], idx: Int64) -> Int32 { return a(idx); }");
-    let expected = vec![LoadArrayInt32(r(2), r(0), r(1)), RetInt32(r(2))];
+    let expected = vec![LoadArrayInt32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_load_array_int64() {
     let result = code("fun f(a: Array[Int64], idx: Int64) -> Int64 { return a(idx); }");
-    let expected = vec![LoadArrayInt64(r(2), r(0), r(1)), RetInt64(r(2))];
+    let expected = vec![LoadArrayInt64(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_load_array_float32() {
     let result = code("fun f(a: Array[Float32], idx: Int64) -> Float32 { return a(idx); }");
-    let expected = vec![LoadArrayFloat32(r(2), r(0), r(1)), RetFloat32(r(2))];
+    let expected = vec![LoadArrayFloat32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_load_array_float64() {
     let result = code("fun f(a: Array[Float64], idx: Int64) -> Float64 { return a(idx); }");
-    let expected = vec![LoadArrayFloat64(r(2), r(0), r(1)), RetFloat64(r(2))];
+    let expected = vec![LoadArrayFloat64(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_load_array_ptr() {
     let result = code("fun f(a: Array[Object], idx: Int64) -> Object { return a(idx); }");
-    let expected = vec![LoadArrayPtr(r(2), r(0), r(1)), RetPtr(r(2))];
+    let expected = vec![LoadArrayPtr(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -2684,7 +2676,7 @@ fn gen_new_object_with_multiple_args() {
                 PushRegister(r(2)),
                 PushRegister(r(3)),
                 InvokeDirectVoid(ctor_id),
-                RetPtr(r(0)),
+                Ret(r(0)),
             ];
             assert_eq!(expected, code);
         },
@@ -2710,7 +2702,7 @@ fn gen_self_for_bool() {
             ",
         "Bool",
     );
-    let expected = vec![RetBool(r(0))];
+    let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
@@ -2722,7 +2714,7 @@ fn gen_self_for_uint8() {
             ",
         "UInt8",
     );
-    let expected = vec![RetUInt8(r(0))];
+    let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
@@ -2734,7 +2726,7 @@ fn gen_self_for_int() {
             ",
         "Int32",
     );
-    let expected = vec![RetInt32(r(0))];
+    let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
@@ -2746,7 +2738,7 @@ fn gen_self_for_int64() {
             ",
         "Int64",
     );
-    let expected = vec![RetInt64(r(0))];
+    let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
@@ -2758,7 +2750,7 @@ fn gen_self_for_float32() {
             ",
         "Float32",
     );
-    let expected = vec![RetFloat32(r(0))];
+    let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
@@ -2770,7 +2762,7 @@ fn gen_self_for_float64() {
             ",
         "Float64",
     );
-    let expected = vec![RetFloat64(r(0))];
+    let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
@@ -2782,7 +2774,7 @@ fn gen_self_for_string() {
             ",
         "String",
     );
-    let expected = vec![RetPtr(r(0))];
+    let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
@@ -2887,112 +2879,112 @@ fn gen_position_assert() {
 #[test]
 fn gen_reinterpret_float32_as_int32() {
     let result = code("fun f(a: Float32) -> Int32 { a.asInt32() }");
-    let expected = vec![ReinterpretFloat32AsInt32(r(1), r(0)), RetInt32(r(1))];
+    let expected = vec![ReinterpretFloat32AsInt32(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_reinterpret_int32_as_float32() {
     let result = code("fun f(a: Int32) -> Float32 { a.asFloat32() }");
-    let expected = vec![ReinterpretInt32AsFloat32(r(1), r(0)), RetFloat32(r(1))];
+    let expected = vec![ReinterpretInt32AsFloat32(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_reinterpret_float64_as_int64() {
     let result = code("fun f(a: Float64) -> Int64 { a.asInt64() }");
-    let expected = vec![ReinterpretFloat64AsInt64(r(1), r(0)), RetInt64(r(1))];
+    let expected = vec![ReinterpretFloat64AsInt64(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_reinterpret_int64_as_float64() {
     let result = code("fun f(a: Int64) -> Float64 { a.asFloat64() }");
-    let expected = vec![ReinterpretInt64AsFloat64(r(1), r(0)), RetFloat64(r(1))];
+    let expected = vec![ReinterpretInt64AsFloat64(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_float32_is_nan() {
     let result = code("fun f(a: Float32) -> Bool { a.isNan() }");
-    let expected = vec![TestNeFloat32(r(1), r(0), r(0)), RetBool(r(1))];
+    let expected = vec![TestNeFloat32(r(1), r(0), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_float64_is_nan() {
     let result = code("fun f(a: Float64) -> Bool { a.isNan() }");
-    let expected = vec![TestNeFloat64(r(1), r(0), r(0)), RetBool(r(1))];
+    let expected = vec![TestNeFloat64(r(1), r(0), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_extend_int_to_int64() {
     let result = code("fun f(a: Int32) -> Int64 { a.toInt64() }");
-    let expected = vec![ExtendInt32ToInt64(r(1), r(0)), RetInt64(r(1))];
+    let expected = vec![ExtendInt32ToInt64(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_cast_int64_to_int() {
     let result = code("fun f(a: Int64) -> Int32 { a.toInt32() }");
-    let expected = vec![CastInt64ToInt32(r(1), r(0)), RetInt32(r(1))];
+    let expected = vec![CastInt64ToInt32(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_convert_int_to_float32() {
     let result = code("fun f(a: Int32) -> Float32 { a.toFloat32() }");
-    let expected = vec![ConvertInt32ToFloat32(r(1), r(0)), RetFloat32(r(1))];
+    let expected = vec![ConvertInt32ToFloat32(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_convert_int_to_float64() {
     let result = code("fun f(a: Int32) -> Float64 { a.toFloat64() }");
-    let expected = vec![ConvertInt32ToFloat64(r(1), r(0)), RetFloat64(r(1))];
+    let expected = vec![ConvertInt32ToFloat64(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_convert_int64_to_float32() {
     let result = code("fun f(a: Int64) -> Float32 { a.toFloat32() }");
-    let expected = vec![ConvertInt64ToFloat32(r(1), r(0)), RetFloat32(r(1))];
+    let expected = vec![ConvertInt64ToFloat32(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_convert_int64_to_float64() {
     let result = code("fun f(a: Int64) -> Float64 { a.toFloat64() }");
-    let expected = vec![ConvertInt64ToFloat64(r(1), r(0)), RetFloat64(r(1))];
+    let expected = vec![ConvertInt64ToFloat64(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_truncate_float32_to_int() {
     let result = code("fun f(a: Float32) -> Int32 { a.toInt32() }");
-    let expected = vec![TruncateFloat32ToInt32(r(1), r(0)), RetInt32(r(1))];
+    let expected = vec![TruncateFloat32ToInt32(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_truncate_float32_to_int64() {
     let result = code("fun f(a: Float32) -> Int64 { a.toInt64() }");
-    let expected = vec![TruncateFloat32ToInt64(r(1), r(0)), RetInt64(r(1))];
+    let expected = vec![TruncateFloat32ToInt64(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_truncate_float64_to_int() {
     let result = code("fun f(a: Float64) -> Int32 { a.toInt32() }");
-    let expected = vec![TruncateFloat64ToInt32(r(1), r(0)), RetInt32(r(1))];
+    let expected = vec![TruncateFloat64ToInt32(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_truncate_float64_to_int64() {
     let result = code("fun f(a: Float64) -> Int64 { a.toInt64() }");
-    let expected = vec![TruncateFloat64ToInt64(r(1), r(0)), RetInt64(r(1))];
+    let expected = vec![TruncateFloat64ToInt64(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
@@ -3002,7 +2994,7 @@ fn gen_instanceof() {
         "@open class A class B: A fun f(a: A) -> Bool { a is B }",
         |vm, code| {
             let cls_id = vm.cls_def_by_name("B");
-            let expected = vec![InstanceOf(r(1), r(0), cls_id), RetBool(r(1))];
+            let expected = vec![InstanceOf(r(1), r(0), cls_id), Ret(r(1))];
             assert_eq!(expected, code);
         },
     );
@@ -3014,7 +3006,7 @@ fn gen_checked_cast() {
         "@open class A class B: A fun f(a: A) -> B { a as B }",
         |vm, code| {
             let cls_id = vm.cls_def_by_name("B");
-            let expected = vec![CheckedCast(r(0), cls_id), RetPtr(r(0))];
+            let expected = vec![CheckedCast(r(0), cls_id), Ret(r(0))];
             assert_eq!(expected, code);
         },
     );
@@ -3028,7 +3020,7 @@ fn gen_checked_cast_effect() {
         fun f(a: A) -> B { let b = a as B; b }",
         |vm, code| {
             let cls_id = vm.cls_def_by_name("B");
-            let expected = vec![MovPtr(r(1), r(0)), CheckedCast(r(1), cls_id), RetPtr(r(1))];
+            let expected = vec![MovPtr(r(1), r(0)), CheckedCast(r(1), cls_id), Ret(r(1))];
             assert_eq!(expected, code);
         },
     );
@@ -3037,35 +3029,35 @@ fn gen_checked_cast_effect() {
 #[test]
 fn gen_enum_value() {
     let result = code("enum MyEnum { A, B } fun f() -> MyEnum { MyEnum::A }");
-    let expected = vec![ConstInt32(r(0), 0), RetInt32(r(0))];
+    let expected = vec![ConstInt32(r(0), 0), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_string_length() {
     let result = code("fun f(x: String) -> Int64 { x.size() }");
-    let expected = vec![ArrayLength(r(1), r(0)), RetInt64(r(1))];
+    let expected = vec![ArrayLength(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_string_get_uint8() {
     let result = code("fun f(x: String, idx: Int64) -> UInt8 { x.getByte(idx) }");
-    let expected = vec![LoadArrayUInt8(r(2), r(0), r(1)), RetUInt8(r(2))];
+    let expected = vec![LoadArrayUInt8(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_array_get() {
     let result = code("fun f(x: Array[Float32], idx: Int64) -> Float32 { x(idx) }");
-    let expected = vec![LoadArrayFloat32(r(2), r(0), r(1)), RetFloat32(r(2))];
+    let expected = vec![LoadArrayFloat32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_array_get_method() {
     let result = code("fun f(x: Array[Float32], idx: Int64) -> Float32 { x.get(idx) }");
-    let expected = vec![LoadArrayFloat32(r(2), r(0), r(1)), RetFloat32(r(2))];
+    let expected = vec![LoadArrayFloat32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -3089,7 +3081,7 @@ fn gen_string_concat() {
                 PushRegister(r(0)),
                 PushRegister(r(1)),
                 InvokeDirectPtr(r(2), fct_id),
-                RetPtr(r(2)),
+                Ret(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -3109,7 +3101,7 @@ fn gen_string_equals() {
                 PushRegister(r(1)),
                 InvokeDirectBool(r(2), fct_id),
                 NotBool(r(2), r(2)),
-                RetBool(r(2)),
+                Ret(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -3122,11 +3114,7 @@ fn gen_bool_to_string() {
         let fct_id = vm
             .cls_method_def_by_name("Bool", "toString", false)
             .expect("Bool::toString not found");
-        let expected = vec![
-            PushRegister(r(0)),
-            InvokeStaticPtr(r(1), fct_id),
-            RetPtr(r(1)),
-        ];
+        let expected = vec![PushRegister(r(0)), InvokeStaticPtr(r(1), fct_id), Ret(r(1))];
         assert_eq!(expected, code);
     });
 }
@@ -3145,7 +3133,7 @@ fn gen_cmp_strings() {
                 InvokeDirectInt32(r(3), fct_id),
                 ConstInt32(r(4), 0),
                 TestLtInt32(r(2), r(3), r(4)),
-                RetBool(r(2)),
+                Ret(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -3155,55 +3143,55 @@ fn gen_cmp_strings() {
 #[test]
 fn gen_extend_uint8() {
     let result = code("fun f(x: UInt8) -> Int32 { x.toInt32() }");
-    let expected = vec![ExtendByteToInt32(r(1), r(0)), RetInt32(r(1))];
+    let expected = vec![ExtendByteToInt32(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 
     let result = code("fun f(x: UInt8) -> Int64 { x.toInt64() }");
-    let expected = vec![ExtendByteToInt64(r(1), r(0)), RetInt64(r(1))];
+    let expected = vec![ExtendByteToInt64(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_extend_int() {
     let result = code("fun f(x: Int32) -> Int64 { x.toInt64() }");
-    let expected = vec![ExtendInt32ToInt64(r(1), r(0)), RetInt64(r(1))];
+    let expected = vec![ExtendInt32ToInt64(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_cast_char() {
     let result = code("fun f(x: Char) -> Int32 { x.toInt32() }");
-    let expected = vec![CastCharToInt32(r(1), r(0)), RetInt32(r(1))];
+    let expected = vec![CastCharToInt32(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 
     let result = code("fun f(x: Char) -> Int64 { x.toInt64() }");
-    let expected = vec![ExtendCharToInt64(r(1), r(0)), RetInt64(r(1))];
+    let expected = vec![ExtendCharToInt64(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_cast_int() {
     let result = code("fun f(x: Int32) -> UInt8 { x.toUInt8() }");
-    let expected = vec![CastInt32ToUInt8(r(1), r(0)), RetUInt8(r(1))];
+    let expected = vec![CastInt32ToUInt8(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 
     let result = code("fun f(x: Int32) -> Char { x.toCharUnchecked() }");
-    let expected = vec![CastInt32ToChar(r(1), r(0)), RetChar(r(1))];
+    let expected = vec![CastInt32ToChar(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_cast_int64() {
     let result = code("fun f(x: Int64) -> UInt8 { x.toUInt8() }");
-    let expected = vec![CastInt64ToUInt8(r(1), r(0)), RetUInt8(r(1))];
+    let expected = vec![CastInt64ToUInt8(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 
     let result = code("fun f(x: Int64) -> Char { x.toCharUnchecked() }");
-    let expected = vec![CastInt64ToChar(r(1), r(0)), RetChar(r(1))];
+    let expected = vec![CastInt64ToChar(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 
     let result = code("fun f(x: Int64) -> Int32 { x.toInt32() }");
-    let expected = vec![CastInt64ToInt32(r(1), r(0)), RetInt32(r(1))];
+    let expected = vec![CastInt64ToInt32(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
@@ -3213,19 +3201,19 @@ fn gen_compare_to_method() {
     let expected = vec![
         SubInt64(r(3), r(0), r(1)),
         CastInt64ToInt32(r(2), r(3)),
-        RetInt32(r(2)),
+        Ret(r(2)),
     ];
     assert_eq!(expected, result);
 
     let result = code("fun f(a: Int32, b: Int32) -> Int32 { a.compareTo(b) }");
-    let expected = vec![SubInt32(r(2), r(0), r(1)), RetInt32(r(2))];
+    let expected = vec![SubInt32(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_const_int() {
     let result = code("const X: Int32 = 1; fun f() -> Int32 { X }");
-    let expected = vec![ConstInt32(r(0), 1), RetInt32(r(0))];
+    let expected = vec![ConstInt32(r(0), 1), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
@@ -3252,7 +3240,7 @@ fn gen_vec_load() {
                 PushRegister(r(0)),
                 PushRegister(r(1)),
                 InvokeDirectInt32(r(2), fct_def_id),
-                RetInt32(r(2)),
+                Ret(r(2)),
             ];
             assert_eq!(expected, code);
         },
@@ -3286,35 +3274,35 @@ fn gen_vec_store() {
 #[test]
 fn gen_byte_to_char() {
     let result = code("fun f(x: UInt8) -> Char { x.toChar() }");
-    let expected = vec![ExtendByteToChar(r(1), r(0)), RetChar(r(1))];
+    let expected = vec![ExtendByteToChar(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_int_min_value() {
     let result = code("fun f() -> Int32 { -2147483648 }");
-    let expected = vec![ConstInt32(r(0), -2147483648), RetInt32(r(0))];
+    let expected = vec![ConstInt32(r(0), -2147483648), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_int_max_value() {
     let result = code("fun f() -> Int32 { 2147483647 }");
-    let expected = vec![ConstInt32(r(0), 2147483647), RetInt32(r(0))];
+    let expected = vec![ConstInt32(r(0), 2147483647), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_int64_min_value() {
     let result = code("fun f() -> Int64 { -9223372036854775808L }");
-    let expected = vec![ConstInt64(r(0), -9223372036854775808), RetInt64(r(0))];
+    let expected = vec![ConstInt64(r(0), -9223372036854775808), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_int64_max_value() {
     let result = code("fun f() -> Int64 { 9223372036854775807L }");
-    let expected = vec![ConstInt64(r(0), 9223372036854775807), RetInt64(r(0))];
+    let expected = vec![ConstInt64(r(0), 9223372036854775807), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
@@ -3347,7 +3335,7 @@ fn gen_tuple_move() {
 fn gen_tuple_element() {
     gen("fun f(x: (Int32, Int32)) -> Int32 { x.0 }", |vm, code| {
         let tuple_id = ensure_tuple(vm, vec![BuiltinType::Int32, BuiltinType::Int32]);
-        let expected = vec![LoadTupleElement(r(1), r(0), tuple_id, 0), RetInt32(r(1))];
+        let expected = vec![LoadTupleElement(r(1), r(0), tuple_id, 0), Ret(r(1))];
         assert_eq!(expected, code);
     });
 }
@@ -3612,6 +3600,7 @@ pub enum Bytecode {
     StoreArrayPtr(Register, Register, Register),
 
     RetVoid,
+    Ret(Register),
     RetBool(Register),
     RetUInt8(Register),
     RetChar(Register),
@@ -4493,28 +4482,7 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_ret_void(&mut self) {
         self.emit(Bytecode::RetVoid);
     }
-    fn visit_ret_bool(&mut self, opnd: Register) {
-        self.emit(Bytecode::RetBool(opnd));
-    }
-    fn visit_ret_uint8(&mut self, opnd: Register) {
-        self.emit(Bytecode::RetUInt8(opnd));
-    }
-    fn visit_ret_char(&mut self, opnd: Register) {
-        self.emit(Bytecode::RetChar(opnd));
-    }
-    fn visit_ret_int32(&mut self, opnd: Register) {
-        self.emit(Bytecode::RetInt32(opnd));
-    }
-    fn visit_ret_int64(&mut self, opnd: Register) {
-        self.emit(Bytecode::RetInt64(opnd));
-    }
-    fn visit_ret_float32(&mut self, opnd: Register) {
-        self.emit(Bytecode::RetFloat32(opnd));
-    }
-    fn visit_ret_float64(&mut self, opnd: Register) {
-        self.emit(Bytecode::RetFloat64(opnd));
-    }
-    fn visit_ret_ptr(&mut self, opnd: Register) {
-        self.emit(Bytecode::RetPtr(opnd));
+    fn visit_ret(&mut self, opnd: Register) {
+        self.emit(Bytecode::Ret(opnd));
     }
 }

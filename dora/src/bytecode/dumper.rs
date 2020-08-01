@@ -995,31 +995,7 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_ret_void(&mut self) {
         self.emit_inst("RetVoid");
     }
-    fn visit_ret_bool(&mut self, opnd: Register) {
-        self.emit_reg1("RetBool", opnd);
-    }
-    fn visit_ret_uint8(&mut self, opnd: Register) {
-        self.emit_reg1("RetUInt8", opnd);
-    }
-    fn visit_ret_char(&mut self, opnd: Register) {
-        self.emit_reg1("RetChar", opnd);
-    }
-    fn visit_ret_int32(&mut self, opnd: Register) {
-        self.emit_reg1("RetInt32", opnd);
-    }
-    fn visit_ret_int64(&mut self, opnd: Register) {
-        self.emit_reg1("RetInt64", opnd);
-    }
-    fn visit_ret_float32(&mut self, opnd: Register) {
-        self.emit_reg1("RetFloat32", opnd);
-    }
-    fn visit_ret_float64(&mut self, opnd: Register) {
-        self.emit_reg1("RetFloat64", opnd);
-    }
-    fn visit_ret_ptr(&mut self, opnd: Register) {
-        self.emit_reg1("RetPtr", opnd);
-    }
-    fn visit_ret_tuple(&mut self, opnd: Register) {
-        self.emit_reg1("RetTuple", opnd);
+    fn visit_ret(&mut self, opnd: Register) {
+        self.emit_reg1("Ret", opnd);
     }
 }

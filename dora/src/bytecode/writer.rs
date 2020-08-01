@@ -673,40 +673,8 @@ impl BytecodeWriter {
         );
     }
 
-    pub fn emit_ret_bool(&mut self, src: Register) {
-        self.emit_reg1(BytecodeOpcode::RetBool, src);
-    }
-
-    pub fn emit_ret_uint8(&mut self, src: Register) {
-        self.emit_reg1(BytecodeOpcode::RetUInt8, src);
-    }
-
-    pub fn emit_ret_char(&mut self, src: Register) {
-        self.emit_reg1(BytecodeOpcode::RetChar, src);
-    }
-
-    pub fn emit_ret_int32(&mut self, src: Register) {
-        self.emit_reg1(BytecodeOpcode::RetInt32, src);
-    }
-
-    pub fn emit_ret_int64(&mut self, src: Register) {
-        self.emit_reg1(BytecodeOpcode::RetInt64, src);
-    }
-
-    pub fn emit_ret_float32(&mut self, src: Register) {
-        self.emit_reg1(BytecodeOpcode::RetFloat32, src);
-    }
-
-    pub fn emit_ret_float64(&mut self, src: Register) {
-        self.emit_reg1(BytecodeOpcode::RetFloat64, src);
-    }
-
-    pub fn emit_ret_ptr(&mut self, src: Register) {
-        self.emit_reg1(BytecodeOpcode::RetPtr, src);
-    }
-
-    pub fn emit_ret_tuple(&mut self, src: Register) {
-        self.emit_reg1(BytecodeOpcode::RetTuple, src);
+    pub fn emit_ret(&mut self, src: Register) {
+        self.emit_reg1(BytecodeOpcode::Ret, src);
     }
 
     pub fn emit_ret_void(&mut self) {

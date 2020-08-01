@@ -416,15 +416,7 @@ pub enum BytecodeOpcode {
     StoreArrayTuple,
 
     RetVoid,
-    RetBool,
-    RetUInt8,
-    RetChar,
-    RetInt32,
-    RetInt64,
-    RetFloat32,
-    RetFloat64,
-    RetPtr,
-    RetTuple,
+    Ret,
 }
 
 impl BytecodeOpcode {

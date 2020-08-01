@@ -235,14 +235,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fun visitNewObject(dest: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
     
     @open fun visitRetVoid() { unimplemented(); }
-    @open fun visitRetBool(opnd: BytecodeRegister) { unimplemented(); }
-    @open fun visitRetUInt8(opnd: BytecodeRegister) { unimplemented(); }
-    @open fun visitRetChar(opnd: BytecodeRegister) { unimplemented(); }
-    @open fun visitRetInt32(opnd: BytecodeRegister) { unimplemented(); }
-    @open fun visitRetInt64(opnd: BytecodeRegister) { unimplemented(); }
-    @open fun visitRetFloat32(opnd: BytecodeRegister) { unimplemented(); }
-    @open fun visitRetFloat64(opnd: BytecodeRegister) { unimplemented(); }
-    @open fun visitRetPtr(opnd: BytecodeRegister) { unimplemented(); }
+    @open fun visitRet(opnd: BytecodeRegister) { unimplemented(); }
 }
 
 @open @abstract class EmptyBytecodeVisitor: BytecodeVisitor {
@@ -475,14 +468,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fun visitNewObject(dest: BytecodeRegister, cls: ClassDefId) {}
     
     @override fun visitRetVoid() {}
-    @override fun visitRetBool(opnd: BytecodeRegister) {}
-    @override fun visitRetUInt8(opnd: BytecodeRegister) {}
-    @override fun visitRetChar(opnd: BytecodeRegister) {}
-    @override fun visitRetInt32(opnd: BytecodeRegister) {}
-    @override fun visitRetInt64(opnd: BytecodeRegister) {}
-    @override fun visitRetFloat32(opnd: BytecodeRegister) {}
-    @override fun visitRetFloat64(opnd: BytecodeRegister) {}
-    @override fun visitRetPtr(opnd: BytecodeRegister) {}
+    @override fun visitRet(opnd: BytecodeRegister) {}
 }
 
 class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
@@ -1494,30 +1480,9 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
 
         } else if opcode == BC_RET_VOID {
             self.visitor.visitRetVoid();
-        } else if opcode == BC_RET_BOOL {
+        } else if opcode == BC_RET {
             let opnd = self.readRegister(wide);
-            self.visitor.visitRetBool(opnd);
-        } else if opcode == BC_RET_UINT8 {
-            let opnd = self.readRegister(wide);
-            self.visitor.visitRetUInt8(opnd);
-        } else if opcode == BC_RET_CHAR {
-            let opnd = self.readRegister(wide);
-            self.visitor.visitRetChar(opnd);
-        } else if opcode == BC_RET_INT32 {
-            let opnd = self.readRegister(wide);
-            self.visitor.visitRetInt32(opnd);
-        } else if opcode == BC_RET_INT64 {
-            let opnd = self.readRegister(wide);
-            self.visitor.visitRetInt64(opnd);
-        } else if opcode == BC_RET_FLOAT32{
-            let opnd = self.readRegister(wide);
-            self.visitor.visitRetFloat32(opnd);
-        } else if opcode == BC_RET_FLOAT64 {
-            let opnd = self.readRegister(wide);
-            self.visitor.visitRetFloat64(opnd);
-        } else if opcode == BC_RET_PTR {
-            let opnd = self.readRegister(wide);
-            self.visitor.visitRetPtr(opnd);
+            self.visitor.visitRet(opnd);
 
         } else {
             fatalError("unkown opcode ${opcode}");

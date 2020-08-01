@@ -777,36 +777,8 @@ class BytecodeWriter {
         self.emitInst(BC_RET_VOID);
     }
 
-    fun emitRetBool(opnd: BytecodeRegister) {
-        self.emitReg1(BC_RET_BOOL, opnd);
-    }
-
-    fun emitRetByte(opnd: BytecodeRegister) {
-        self.emitReg1(BC_RET_UINT8, opnd);
-    }
-
-    fun emitRetChar(opnd: BytecodeRegister) {
-        self.emitReg1(BC_RET_CHAR, opnd);
-    }
-
-    fun emitRetInt32(opnd: BytecodeRegister) {
-        self.emitReg1(BC_RET_INT32, opnd);
-    }
-
-    fun emitRetInt64(opnd: BytecodeRegister) {
-        self.emitReg1(BC_RET_INT64, opnd);
-    }
-
-    fun emitRetFloat32(opnd: BytecodeRegister) {
-        self.emitReg1(BC_RET_FLOAT32, opnd);
-    }
-
-    fun emitRetFloat64(opnd: BytecodeRegister) {
-        self.emitReg1(BC_RET_FLOAT64, opnd);
-    }
-
-    fun emitRetPtr(opnd: BytecodeRegister) {
-        self.emitReg1(BC_RET_PTR, opnd);
+    fun emitRet(opnd: BytecodeRegister) {
+        self.emitReg1(BC_RET, opnd);
     }
 
     fun generate() -> BytecodeFunction {

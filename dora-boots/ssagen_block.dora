@@ -96,36 +96,7 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVis
         self.markBlockTerminated();
     }
 
-    @override fun visitRetBool(opnd: BytecodeRegister) {
-        self.currentBlock.addSuccessor(self.graph.getExitBlock());
-        self.markBlockTerminated();
-    }
-    @override fun visitRetUInt8(opnd: BytecodeRegister) {
-        self.currentBlock.addSuccessor(self.graph.getExitBlock());
-        self.markBlockTerminated();
-    }
-    @override fun visitRetChar(opnd: BytecodeRegister) {
-        self.currentBlock.addSuccessor(self.graph.getExitBlock());
-        self.markBlockTerminated();
-    }
-    @override fun visitRetInt32(opnd: BytecodeRegister) {
-        self.currentBlock.addSuccessor(self.graph.getExitBlock());
-        self.markBlockTerminated();
-    }
-
-    @override fun visitRetInt64(opnd: BytecodeRegister) {
-        self.currentBlock.addSuccessor(self.graph.getExitBlock());
-        self.markBlockTerminated();
-    }
-    @override fun visitRetFloat32(opnd: BytecodeRegister) {
-        self.currentBlock.addSuccessor(self.graph.getExitBlock());
-        self.markBlockTerminated();
-    }
-    @override fun visitRetFloat64(opnd: BytecodeRegister) {
-        self.currentBlock.addSuccessor(self.graph.getExitBlock());
-        self.markBlockTerminated();
-    }
-    @override fun visitRetPtr(opnd: BytecodeRegister) {
+    @override fun visitRet(opnd: BytecodeRegister) {
         self.currentBlock.addSuccessor(self.graph.getExitBlock());
         self.markBlockTerminated();
     }
@@ -209,28 +180,7 @@ class SsagenCreateBlocks(let graph: Graph, let bc: BytecodeFunction, let blocks:
         self.markNextInstructionAsBlockStart();
     }
 
-    @override fun visitRetBool(opnd: BytecodeRegister) {
-        self.markNextInstructionAsBlockStart();
-    }
-    @override fun visitRetUInt8(opnd: BytecodeRegister) {
-        self.markNextInstructionAsBlockStart();
-    }
-    @override fun visitRetChar(opnd: BytecodeRegister) {
-        self.markNextInstructionAsBlockStart();
-    }
-    @override fun visitRetInt32(opnd: BytecodeRegister) {
-        self.markNextInstructionAsBlockStart();
-    }
-    @override fun visitRetInt64(opnd: BytecodeRegister) {
-        self.markNextInstructionAsBlockStart();
-    }
-    @override fun visitRetFloat32(opnd: BytecodeRegister) {
-        self.markNextInstructionAsBlockStart();
-    }
-    @override fun visitRetFloat64(opnd: BytecodeRegister) {
-        self.markNextInstructionAsBlockStart();
-    }
-    @override fun visitRetPtr(opnd: BytecodeRegister) {
+    @override fun visitRet(opnd: BytecodeRegister) {
         self.markNextInstructionAsBlockStart();
     }
 }

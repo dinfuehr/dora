@@ -22,44 +22,24 @@ fn test_ret() {
 }
 
 #[test]
-fn test_ret_int() {
-    struct TestVisitor {
-        found: bool,
-    }
-    impl BytecodeVisitor for TestVisitor {
-        fn visit_ret_int32(&mut self, reg: Register) {
-            assert_eq!(Register(17), reg);
-            self.found = true;
-        }
-    }
-    let mut writer = BytecodeWriter::new();
-    writer.emit_ret_int32(Register(17));
-    let fct = writer.generate();
-    assert_eq!(fct.code(), &[BytecodeOpcode::RetInt32 as u8, 17]);
-    let mut visitor = TestVisitor { found: false };
-    read(fct.code(), &mut visitor);
-    assert!(visitor.found);
-}
-
-#[test]
 fn test_ret_wide() {
     struct TestVisitor {
         found: bool,
     }
     impl BytecodeVisitor for TestVisitor {
-        fn visit_ret_int32(&mut self, reg: Register) {
+        fn visit_ret(&mut self, reg: Register) {
             assert_eq!(Register(256), reg);
             self.found = true;
         }
     }
     let mut writer = BytecodeWriter::new();
-    writer.emit_ret_int32(Register(256));
+    writer.emit_ret(Register(256));
     let fct = writer.generate();
     assert_eq!(
         fct.code(),
         &[
             BytecodeOpcode::Wide as u8,
-            BytecodeOpcode::RetInt32 as u8,
+            BytecodeOpcode::Ret as u8,
             0,
             1,
             0,

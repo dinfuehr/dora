@@ -20,7 +20,7 @@ class TestRetVoidVisitor: BytecodeVisitor {
 class TestRetIntVisitor: BytecodeVisitor {
     var found: Bool = false;
 
-    @override fun visitRetInt32(opnd: BytecodeRegister) {
+    @override fun visitRet(opnd: BytecodeRegister) {
         assert(opnd == BytecodeRegister(17));
         self.found = true;
     }
@@ -28,10 +28,10 @@ class TestRetIntVisitor: BytecodeVisitor {
 
 @test fun testBytecodeRetInt(_x: Testing) {
     let writer = BytecodeWriter();
-    writer.emitRetInt32(BytecodeRegister(17));
+    writer.emitRet(BytecodeRegister(17));
     let fct = writer.generate();
     let visitor = TestRetIntVisitor();
-    assert(fct.codeAt(0) == BC_RET_INT32);
+    assert(fct.codeAt(0) == BC_RET);
     assert(fct.codeAt(1) == 17);
     assert(fct.code.size() == 2L);
     readBytecode(fct.code, visitor);
@@ -41,7 +41,7 @@ class TestRetIntVisitor: BytecodeVisitor {
 class TestRetWideVisitor: BytecodeVisitor {
     var found: Bool = false;
 
-    @override fun visitRetInt32(opnd: BytecodeRegister) {
+    @override fun visitRet(opnd: BytecodeRegister) {
         assert(opnd == BytecodeRegister(256));
         self.found = true;
     }
@@ -49,11 +49,11 @@ class TestRetWideVisitor: BytecodeVisitor {
 
 @test fun testBytecodeRetWide(_x: Testing) {
     let writer = BytecodeWriter();
-    writer.emitRetInt32(BytecodeRegister(256));
+    writer.emitRet(BytecodeRegister(256));
     let fct = writer.generate();
     let visitor = TestRetWideVisitor();
     assert(fct.codeAt(0) == BC_WIDE);
-    assert(fct.codeAt(1) == BC_RET_INT32);
+    assert(fct.codeAt(1) == BC_RET);
     assert(fct.codeInt32At(2) == 256);
     assert(fct.code.size() == 6L);
     readBytecode(fct.code, visitor);

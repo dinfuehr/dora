@@ -223,15 +223,7 @@ const BC_STORE_ARRAY_FLOAT64: Int32 = 219I;
 const BC_STORE_ARRAY_PTR: Int32 = 220I;
 const BC_STORE_ARRAY_TUPLE: Int32 = 221I;
 const BC_RET_VOID: Int32 = 222I;
-const BC_RET_BOOL: Int32 = 223I;
-const BC_RET_UINT8: Int32 = 224I;
-const BC_RET_CHAR: Int32 = 225I;
-const BC_RET_INT32: Int32 = 226I;
-const BC_RET_INT64: Int32 = 227I;
-const BC_RET_FLOAT32: Int32 = 228I;
-const BC_RET_FLOAT64: Int32 = 229I;
-const BC_RET_PTR: Int32 = 230I;
-const BC_RET_TUPLE: Int32 = 231I;
+const BC_RET: Int32 = 223I;
 
 const BC_TYPE_BOOL: Int32 = 0I;
 const BC_TYPE_U_INT8: Int32 = 1I;
@@ -474,15 +466,7 @@ fun bytecodeName(opcode: Int32) -> String {
   if opcode == BC_STORE_ARRAY_PTR { return "StoreArrayPtr"; }
   if opcode == BC_STORE_ARRAY_TUPLE { return "StoreArrayTuple"; }
   if opcode == BC_RET_VOID { return "RetVoid"; }
-  if opcode == BC_RET_BOOL { return "RetBool"; }
-  if opcode == BC_RET_UINT8 { return "RetUInt8"; }
-  if opcode == BC_RET_CHAR { return "RetChar"; }
-  if opcode == BC_RET_INT32 { return "RetInt32"; }
-  if opcode == BC_RET_INT64 { return "RetInt64"; }
-  if opcode == BC_RET_FLOAT32 { return "RetFloat32"; }
-  if opcode == BC_RET_FLOAT64 { return "RetFloat64"; }
-  if opcode == BC_RET_PTR { return "RetPtr"; }
-  if opcode == BC_RET_TUPLE { return "RetTuple"; }
+  if opcode == BC_RET { return "Ret"; }
   "UNKNOWN(${opcode})"
 }
 

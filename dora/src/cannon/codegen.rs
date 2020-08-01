@@ -3250,31 +3250,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_ret_void(&mut self) {
         self.emit_epilog();
     }
-    fn visit_ret_bool(&mut self, opnd: Register) {
-        self.emit_return_generic(opnd);
-    }
-    fn visit_ret_uint8(&mut self, opnd: Register) {
-        self.emit_return_generic(opnd);
-    }
-    fn visit_ret_char(&mut self, opnd: Register) {
-        self.emit_return_generic(opnd);
-    }
-    fn visit_ret_int32(&mut self, opnd: Register) {
-        self.emit_return_generic(opnd);
-    }
-    fn visit_ret_int64(&mut self, opnd: Register) {
-        self.emit_return_generic(opnd);
-    }
-    fn visit_ret_float32(&mut self, opnd: Register) {
-        self.emit_return_generic(opnd);
-    }
-    fn visit_ret_float64(&mut self, opnd: Register) {
-        self.emit_return_generic(opnd);
-    }
-    fn visit_ret_ptr(&mut self, opnd: Register) {
-        self.emit_return_generic(opnd);
-    }
-    fn visit_ret_tuple(&mut self, opnd: Register) {
+    fn visit_ret(&mut self, opnd: Register) {
         self.emit_return_generic(opnd);
     }
 }

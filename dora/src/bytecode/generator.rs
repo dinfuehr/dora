@@ -319,19 +319,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             return;
         }
 
-        let return_type: BytecodeType = ret_ty.into();
-
-        match return_type {
-            BytecodeType::Bool => self.gen.emit_ret_bool(result_reg),
-            BytecodeType::UInt8 => self.gen.emit_ret_uint8(result_reg),
-            BytecodeType::Char => self.gen.emit_ret_char(result_reg),
-            BytecodeType::Int32 => self.gen.emit_ret_int32(result_reg),
-            BytecodeType::Int64 => self.gen.emit_ret_int64(result_reg),
-            BytecodeType::Float32 => self.gen.emit_ret_float32(result_reg),
-            BytecodeType::Float64 => self.gen.emit_ret_float64(result_reg),
-            BytecodeType::Ptr => self.gen.emit_ret_ptr(result_reg),
-            BytecodeType::Tuple(_) => self.gen.emit_ret_tuple(result_reg),
-        }
+        self.gen.emit_ret(result_reg);
     }
 
     fn visit_stmt_break(&mut self, _stmt: &StmtBreakType) {
