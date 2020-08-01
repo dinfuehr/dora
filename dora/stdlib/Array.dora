@@ -1,4 +1,4 @@
-@internal class Array[T](len: Int64) { // todo: change constructor to vararg in next step
+@internal class Array[T](values: T...) {
 
   @internal fun size() -> Int64;
   @internal fun get(idx: Int64) -> T;
@@ -82,8 +82,4 @@ module Array {
       i = i + 1L;
     }
   }
-}
-
-fun array[T](values: T...) -> Array[T] {
-  values
 }

@@ -1,7 +1,7 @@
 fun main() {
-    assert(mysum(array[Int32]()) == 0);
-    assert(mysum(array[Int32](1)) == 1);
-    assert(mysum(array[Int32](1, 2, 3, 4, 5)) == 15);
+    assert(mysum(Array[Int32]()) == 0);
+    assert(mysum(Array[Int32](1)) == 1);
+    assert(mysum(Array[Int32](1, 2, 3, 4, 5)) == 15);
 }
 
 fun mysum(x: Array[Int32]) -> Int32 {
