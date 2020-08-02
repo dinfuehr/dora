@@ -280,10 +280,10 @@ impl FctKind {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Intrinsic {
-    GenericArrayLen,
-    GenericArrayGet,
-    GenericArraySet,
-    GenericArrayNew,
+    ArrayNewOfSize,
+    ArrayLen,
+    ArrayGet,
+    ArraySet,
 
     DefaultValue,
 
@@ -495,7 +495,7 @@ impl Intrinsic {
             | Intrinsic::Int32ToInt64
             | Intrinsic::Float32ToInt64
             | Intrinsic::Float64ToInt64
-            | Intrinsic::GenericArrayLen
+            | Intrinsic::ArrayLen
             | Intrinsic::StrLen
             | Intrinsic::ReinterpretFloat64AsInt64 => BytecodeType::Int64,
             Intrinsic::Float32Add
