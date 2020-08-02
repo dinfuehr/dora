@@ -1379,7 +1379,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let cls = cls.read();
 
             let cls_ty = self.vm.cls_with_type_list(cls_id, type_params.clone());
-            let call_type = CallType::CtorNew(cls_ty, fct_id);
+            let call_type = CallType::Ctor(cls_ty, fct_id);
             self.src.map_calls.insert(e.id, Arc::new(call_type));
 
             if cls.is_abstract {
@@ -1587,7 +1587,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.src.map_tys.insert(e.id, parent_class);
 
                 let cls_ty = self.vm.cls_with_type_list(cls_id, parent_class_type_params);
-                let call_type = CallType::Ctor(cls_ty, ctor.id);
+                let call_type = CallType::CtorParent(cls_ty, ctor.id);
                 self.src.map_calls.insert(e.id, Arc::new(call_type));
                 return BuiltinType::Error;
             }
