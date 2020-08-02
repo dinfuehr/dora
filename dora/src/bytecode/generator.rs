@@ -810,7 +810,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 Some(reg)
             }
             CallType::Expr(_, _) => Some(self.visit_expr(&expr.callee, DataDest::Alloc)),
-            CallType::CtorNew(_, _) => {
+            CallType::Ctor(_, _) => {
                 // Need to use new register for allocated object.
                 // Otherwise code like `x = SomeClass(x)` would break.
                 Some(self.registers.alloc_temp(BytecodeType::Ptr))
@@ -830,7 +830,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         // self was already emitted, needs to be ignored here.
         let arg_start_offset = match *call_type {
-            CallType::CtorNew(_, _) | CallType::Expr(_, _) | CallType::Method(_, _, _) => 1,
+            CallType::Ctor(_, _) | CallType::Expr(_, _) | CallType::Method(_, _, _) => 1,
             _ => 0,
         };
 
@@ -911,7 +911,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         object_reg: Option<Register>,
     ) {
         match *call_type {
-            CallType::CtorNew(_, _) => {
+            CallType::Ctor(_, _) => {
                 let ty = arg_types.first().cloned().unwrap();
                 let object_reg = object_reg.unwrap();
                 let cls_def_id = specialize_class_ty(self.vm, ty);
@@ -948,7 +948,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.gen.set_position(pos);
 
         match *call_type {
-            CallType::Ctor(_, _) | CallType::CtorNew(_, _) => {
+            CallType::CtorParent(_, _) | CallType::Ctor(_, _) => {
                 self.gen.emit_invoke_direct_void(fct_def_id);
             }
 
@@ -1125,7 +1125,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         self.gen.set_position(expr.pos);
         match *call_type {
-            CallType::Ctor(_, _) => {
+            CallType::CtorParent(_, _) => {
                 self.gen.emit_invoke_direct_void(fct_def_id);
             }
 
@@ -2447,7 +2447,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let fct_type_params;
 
         match *call_type {
-            CallType::Ctor(ty, _) | CallType::CtorNew(ty, _) => {
+            CallType::CtorParent(ty, _) | CallType::Ctor(ty, _) => {
                 cls_type_params = ty.type_params(self.vm);
                 fct_type_params = TypeList::empty();
             }
@@ -2527,7 +2527,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 specialize_type(self.vm, ty, &cls_type_params, type_params)
             }
 
-            CallType::Ctor(cls_ty, _) | CallType::CtorNew(cls_ty, _) => {
+            CallType::CtorParent(cls_ty, _) | CallType::Ctor(cls_ty, _) => {
                 let cls_type_params = cls_ty.type_params(self.vm);
                 specialize_type(self.vm, ty, &cls_type_params, &TypeList::empty())
             }
@@ -2610,8 +2610,7 @@ impl From<Intrinsic> for IntrinsicInfo {
 
 #[derive(Copy, Clone, Debug)]
 enum DataDest {
-    // Do not store result. Only interested in side-effects of
-    // expression.
+    // Do not store result. Only interested in side-effects of an expression.
     Effect,
 
     // Allocate a new register and store result in it.

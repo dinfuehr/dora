@@ -264,8 +264,9 @@ pub enum CallType {
     ModuleMethod(BuiltinType, FctId, TypeList),
 
     // Constructor call Class(<args>)
-    CtorNew(BuiltinType, FctId),
     Ctor(BuiltinType, FctId),
+    // Call to parent constructor, i.e. class Foo() : Bar()
+    CtorParent(BuiltinType, FctId),
 
     // Invoke on expression, e.g. <expr>(<args>)
     Expr(BuiltinType, FctId),
@@ -283,14 +284,14 @@ pub enum CallType {
 impl CallType {
     pub fn is_ctor_new(&self) -> bool {
         match *self {
-            CallType::CtorNew(_, _) => true,
+            CallType::Ctor(_, _) => true,
             _ => false,
         }
     }
 
     pub fn is_ctor(&self) -> bool {
         match *self {
-            CallType::Ctor(_, _) => true,
+            CallType::CtorParent(_, _) => true,
             _ => false,
         }
     }
@@ -321,8 +322,8 @@ impl CallType {
             CallType::Fct(fctid, _, _) => Some(fctid),
             CallType::Method(_, fctid, _) => Some(fctid),
             CallType::ModuleMethod(_, fctid, _) => Some(fctid),
-            CallType::CtorNew(_, fctid) => Some(fctid),
             CallType::Ctor(_, fctid) => Some(fctid),
+            CallType::CtorParent(_, fctid) => Some(fctid),
             CallType::Expr(_, fctid) => Some(fctid),
             CallType::Trait(_, fctid) => Some(fctid),
             CallType::TraitStatic(_, _, fctid) => Some(fctid),
