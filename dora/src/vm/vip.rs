@@ -19,6 +19,7 @@ pub struct KnownElements {
     pub string_class: ClassId,
     pub string_module: ModuleId,
     pub array_class: ClassId,
+    pub array_module: ModuleId,
 
     pub cls: KnownClasses,
     pub mods: KnownModules,

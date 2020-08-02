@@ -15,7 +15,7 @@ fun main() {
 }
 
 class NBodySystem {
-    let bodies: Array[Body] = Array[Body](5L);
+    let bodies: Array[Body] = Array::ofSizeUnsafe[Body](5L);
 
     {
         self.bodies(0L) = Body::sun();

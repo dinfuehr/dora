@@ -11,7 +11,7 @@ fun main() {
   assert(getArray(array, 3L) == 40);
 }
 
-@cannon fun createArray(a: Int64) -> Array[Int32] { return Array[Int32](a); }
+@cannon fun createArray(a: Int64) -> Array[Int32] { return Array::ofSizeUnsafe[Int32](a); }
 @cannon fun getLength(a: Array[Int32]) -> Int64 { return a.size(); }
 @cannon fun setArray(arr: Array[Int32], idx: Int64, value: Int32) { arr(idx) = value; }
 @cannon fun getArray(arr: Array[Int32], idx: Int64) -> Int32 { return arr(idx); }

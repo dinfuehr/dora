@@ -18,7 +18,7 @@ class StringBuffer() {
     }
 
     let newcap = self.newCapacity(elements);
-    let newbuf = Array[UInt8](newcap);
+    let newbuf = Array::zero[UInt8](newcap);
     var i = 0L;
 
     while i < self.buf.size() {

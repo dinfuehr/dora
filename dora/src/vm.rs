@@ -159,10 +159,12 @@ impl<'ast> VM<'ast> {
                 float32_class: empty_class_id,
                 float64_class: empty_class_id,
                 object_class: empty_class_id,
+
                 string_class: empty_class_id,
                 string_module: empty_module_id,
 
                 array_class: empty_class_id,
+                array_module: empty_module_id,
 
                 cls: KnownClasses {
                     string_buffer: empty_class_id,
@@ -378,6 +380,39 @@ impl<'ast> VM<'ast> {
                 .specializations
                 .read()
                 .get(&(TypeList::Empty, TypeList::Empty))
+                .and_then(|fct_def_id| Some(*fct_def_id));
+
+            fct_def
+        } else {
+            None
+        }
+    }
+
+    #[cfg(test)]
+    pub fn module_method_def_by_name_with_type_params(
+        &self,
+        module_name: &'static str,
+        function_name: &'static str,
+        type_params: TypeList,
+    ) -> Option<FctDefId> {
+        let module_name = self.interner.intern(module_name);
+        let function_name = self.interner.intern(function_name);
+
+        let module_id = self
+            .sym
+            .lock()
+            .get_module(module_name)
+            .expect("module not found");
+        let module = self.modu(module_id);
+
+        let candidates = module::find_methods_in_module(self, module, function_name);
+        if candidates.len() == 1 {
+            let fct_id = candidates[0].1;
+            let fct = self.fcts.idx(fct_id);
+            let fct = fct.read();
+            let map = fct.specializations.read();
+            let fct_def = map
+                .get(&(TypeList::Empty, type_params))
                 .and_then(|fct_def_id| Some(*fct_def_id));
 
             fct_def

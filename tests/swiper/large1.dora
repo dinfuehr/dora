@@ -1,9 +1,9 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fun main() {
-    let x = Array[Object](16L * 1024L);
-    let y = Array[Object](16L * 1024L);
-    let z = Array[Object](16L * 1024L);
+    let x = Array::ofSizeUnsafe[Object](16L * 1024L);
+    let y = Array::ofSizeUnsafe[Object](16L * 1024L);
+    let z = Array::ofSizeUnsafe[Object](16L * 1024L);
     forceCollect();
     assert(x(0L) === nil);
     x(0L) = Object();

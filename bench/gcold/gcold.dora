@@ -92,7 +92,7 @@ fun makeTree(h: Int32) -> TreeNode {
 
 fun initialize() {
     let ntrees = (size * MEG).toInt64() / treeSize;
-    trees = Array[TreeNode](ntrees);
+    trees = Array::ofSizeUnsafe[TreeNode](ntrees);
 
     println("Allocating " + ntrees.toString() + " trees.");
     println("  (" + (ntrees * treeSize).toString() + " bytes)");
@@ -249,7 +249,7 @@ fun doYoungGenAlloc(n: Int64, nwords: Int32) {
     var allocated = 0L;
 
     while allocated < n {
-        aexport = Array[Int64](nwords.toInt64());
+        aexport = Array::ofSizeUnsafe[Int64](nwords.toInt64());
         allocated = allocated + nbytes.toInt64();
     }
 

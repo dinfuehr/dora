@@ -1,6 +1,6 @@
 //= error array
 
 fun main() {
-    let x = Array[()](7L);
+    let x = Array::ofSizeUnsafe[()](7L);
     x(10L) = ();
 }

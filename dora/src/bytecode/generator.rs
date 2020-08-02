@@ -679,7 +679,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         // Evaluate function arguments
         let arguments = self.emit_call_arguments(expr, &*callee, &call_type, &arg_types);
 
-        // Allocte object for constructor calls
+        // Allocate object for constructor calls
         self.emit_call_allocate(expr.pos, &call_type, &arg_types, object_argument);
 
         if let Some(obj_reg) = object_argument {
@@ -1568,24 +1568,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     }
 
     fn emit_intrinsic_new_array(&mut self, expr: &ExprCallType, dest: DataDest) -> Register {
-        let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
+        // We need array of elements
+        let element_ty = self.ty(expr.id);
+        let cls_def_id = specialize_class_ty(self.vm, element_ty);
 
-        // Find method that is called
-        let callee_id = self.determine_callee(&call_type);
-
-        let callee = self.vm.fcts.idx(callee_id);
-        let callee = callee.read();
-
-        // Determine types for arguments and return values
-        let (arg_types, _, return_type) = self.determine_callee_types(&call_type, &*callee);
-
-        assert!(return_type.is_unit());
-        assert_eq!(arg_types.len(), 2);
-
-        let ty = arg_types.first().cloned().unwrap();
         let array_reg = self.ensure_register(dest, BytecodeType::Ptr);
-        let cls_def_id = specialize_class_ty(self.vm, ty);
-
         let length_reg = self.visit_expr(&expr.args[0], DataDest::Alloc);
 
         self.gen.set_position(expr.pos);

@@ -2,7 +2,7 @@
 //= vm-args "--max-heap-size=256M --gc-verify"
 
 fun main() {
-    let a = Array[Foo](10_000_000L);
+    let a = Array::ofSizeUnsafe[Foo](10_000_000L);
     var i = 0;
     while i < a.size() {
         a(i) = Foo();

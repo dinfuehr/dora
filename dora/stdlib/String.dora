@@ -96,7 +96,7 @@ module String {
   fun binary(data: Int64) -> String {
     var data = data;
     if data == 0L { return "0"; }
-    let array = Array[UInt8](64L);
+    let array = Array::zero[UInt8](64L);
     var at = array.size();
     while data != 0L {
       array(at - 1L) = ('0'.toInt64() + (data & 1L)).toUInt8();
@@ -109,7 +109,7 @@ module String {
   fun hex(data: Int64) -> String {
     var data = data;
     if data == 0L { return "0"; }
-    let array = Array[UInt8](16L);
+    let array = Array::zero[UInt8](16L);
     var at = array.size();
     while data != 0L {
       let digit = (data & 0xFL).toInt32();
