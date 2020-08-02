@@ -1685,8 +1685,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
     ) -> Register {
         assert!(dest.is_unit());
 
-        let ty = self.src.ty(arr.id());
-        let ty = self.specialize_type(ty);
+        let ty = self.ty(arr.id());
         let ty = ty.type_params(self.vm);
         let ty = ty[0];
         let ty: Option<BytecodeType> = if ty.is_unit() { None } else { Some(ty.into()) };
@@ -1884,8 +1883,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         match intrinsic {
             Intrinsic::ArrayGet | Intrinsic::StrGet => {
-                let ty = self.src.ty(lhs.id());
-                let ty = self.specialize_type(ty);
+                let ty = self.ty(lhs.id());
                 let ty: Option<BytecodeType> =
                     if ty.cls_id(self.vm) == Some(self.vm.vips.string_class) {
                         Some(BytecodeType::UInt8)
