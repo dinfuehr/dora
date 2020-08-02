@@ -1,7 +1,7 @@
 fun main() {
-    assert(slowLength(array[Int32]()) == 0L);
-    assert(slowLength(array[Int32](1)) == 1L);
-    assert(slowLength(array[Int32](1, 2)) == 2L);
+    assert(slowLength(Array[Int32]()) == 0L);
+    assert(slowLength(Array[Int32](1)) == 1L);
+    assert(slowLength(Array[Int32](1, 2)) == 2L);
 }
 
 fun slowLength(x: Array[Int32]) -> Int64 {

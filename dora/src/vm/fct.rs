@@ -281,6 +281,7 @@ impl FctKind {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Intrinsic {
     ArrayNewOfSize,
+    ArrayWithValues,
     ArrayLen,
     ArrayGet,
     ArraySet,

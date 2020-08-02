@@ -396,7 +396,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     );
 
     let clsid = vm.vips.array_class;
-    intrinsic_ctor(vm, clsid, Intrinsic::ArrayNewOfSize);
+    intrinsic_ctor(vm, clsid, Intrinsic::ArrayWithValues);
     intrinsic_class_method(vm, clsid, "size", Intrinsic::ArrayLen);
     intrinsic_class_method(vm, clsid, "get", Intrinsic::ArrayGet);
     intrinsic_class_method(vm, clsid, "set", Intrinsic::ArraySet);
