@@ -3087,62 +3087,14 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_invoke_virtual_void(&mut self, fctdef: FctDefId) {
         self.emit_invoke_virtual(None, fctdef);
     }
-    fn visit_invoke_virtual_bool(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_virtual(Some(dest), fctdef);
-    }
-    fn visit_invoke_virtual_uint8(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_virtual(Some(dest), fctdef);
-    }
-    fn visit_invoke_virtual_char(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_virtual(Some(dest), fctdef);
-    }
-    fn visit_invoke_virtual_int32(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_virtual(Some(dest), fctdef);
-    }
-    fn visit_invoke_virtual_int64(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_virtual(Some(dest), fctdef);
-    }
-    fn visit_invoke_virtual_float32(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_virtual(Some(dest), fctdef);
-    }
-    fn visit_invoke_virtual_float64(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_virtual(Some(dest), fctdef);
-    }
-    fn visit_invoke_virtual_ptr(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_virtual(Some(dest), fctdef);
-    }
-    fn visit_invoke_virtual_tuple(&mut self, dest: Register, fctdef: FctDefId) {
+    fn visit_invoke_virtual(&mut self, dest: Register, fctdef: FctDefId) {
         self.emit_invoke_virtual(Some(dest), fctdef);
     }
 
     fn visit_invoke_static_void(&mut self, fctdef: FctDefId) {
         self.emit_invoke_static(None, fctdef)
     }
-    fn visit_invoke_static_bool(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_static(Some(dest), fctdef);
-    }
-    fn visit_invoke_static_uint8(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_static(Some(dest), fctdef);
-    }
-    fn visit_invoke_static_char(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_static(Some(dest), fctdef);
-    }
-    fn visit_invoke_static_int32(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_static(Some(dest), fctdef);
-    }
-    fn visit_invoke_static_int64(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_static(Some(dest), fctdef);
-    }
-    fn visit_invoke_static_float32(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_static(Some(dest), fctdef);
-    }
-    fn visit_invoke_static_float64(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_static(Some(dest), fctdef);
-    }
-    fn visit_invoke_static_ptr(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_static(Some(dest), fctdef);
-    }
-    fn visit_invoke_static_tuple(&mut self, dest: Register, fctdef: FctDefId) {
+    fn visit_invoke_static(&mut self, dest: Register, fctdef: FctDefId) {
         self.emit_invoke_static(Some(dest), fctdef);
     }
 

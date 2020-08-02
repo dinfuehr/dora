@@ -357,26 +357,10 @@ pub enum BytecodeOpcode {
     InvokeDirect,
 
     InvokeVirtualVoid,
-    InvokeVirtualBool,
-    InvokeVirtualUInt8,
-    InvokeVirtualChar,
-    InvokeVirtualInt32,
-    InvokeVirtualInt64,
-    InvokeVirtualFloat32,
-    InvokeVirtualFloat64,
-    InvokeVirtualPtr,
-    InvokeVirtualTuple,
+    InvokeVirtual,
 
     InvokeStaticVoid,
-    InvokeStaticBool,
-    InvokeStaticUInt8,
-    InvokeStaticChar,
-    InvokeStaticInt32,
-    InvokeStaticInt64,
-    InvokeStaticFloat32,
-    InvokeStaticFloat64,
-    InvokeStaticPtr,
-    InvokeStaticTuple,
+    InvokeStatic,
 
     NewObject,
     NewArray,
@@ -441,25 +425,9 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeDirectVoid
             | BytecodeOpcode::InvokeDirect
             | BytecodeOpcode::InvokeVirtualVoid
-            | BytecodeOpcode::InvokeVirtualBool
-            | BytecodeOpcode::InvokeVirtualUInt8
-            | BytecodeOpcode::InvokeVirtualChar
-            | BytecodeOpcode::InvokeVirtualInt32
-            | BytecodeOpcode::InvokeVirtualInt64
-            | BytecodeOpcode::InvokeVirtualFloat32
-            | BytecodeOpcode::InvokeVirtualFloat64
-            | BytecodeOpcode::InvokeVirtualPtr
-            | BytecodeOpcode::InvokeVirtualTuple
+            | BytecodeOpcode::InvokeVirtual
             | BytecodeOpcode::InvokeStaticVoid
-            | BytecodeOpcode::InvokeStaticBool
-            | BytecodeOpcode::InvokeStaticUInt8
-            | BytecodeOpcode::InvokeStaticChar
-            | BytecodeOpcode::InvokeStaticInt32
-            | BytecodeOpcode::InvokeStaticInt64
-            | BytecodeOpcode::InvokeStaticFloat32
-            | BytecodeOpcode::InvokeStaticFloat64
-            | BytecodeOpcode::InvokeStaticPtr
-            | BytecodeOpcode::InvokeStaticTuple
+            | BytecodeOpcode::InvokeStatic
             | BytecodeOpcode::NewObject
             | BytecodeOpcode::NewArray
             | BytecodeOpcode::NilCheck

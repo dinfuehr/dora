@@ -673,72 +673,16 @@ class BytecodeWriter {
         self.emitFctVoid(BC_INVOKE_VIRTUAL_VOID, fct, start, count);
     }
 
-    fun emitInvokeVirtualBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_VIRTUAL_BOOL, dest, fct, start, count);
-    }
-
-    fun emitInvokeVirtualByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_VIRTUAL_UINT8, dest, fct, start, count);
-    }
-
-    fun emitInvokeVirtualChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_VIRTUAL_CHAR, dest, fct, start, count);
-    }
-
-    fun emitInvokeVirtualInt32(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_VIRTUAL_INT32, dest, fct, start, count);
-    }
-
-    fun emitInvokeVirtualInt64(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_VIRTUAL_INT64, dest, fct, start, count);
-    }
-
-    fun emitInvokeVirtualFloat32(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_VIRTUAL_FLOAT32, dest, fct, start, count);
-    }
-
-    fun emitInvokeVirtualFloat64(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_VIRTUAL_FLOAT64, dest, fct, start, count);
-    }
-
-    fun emitInvokeVirtualPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_VIRTUAL_PTR, dest, fct, start, count);
+    fun emitInvokeVirtual(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
+        self.emitFct(BC_INVOKE_VIRTUAL, dest, fct, start, count);
     }
 
     fun emitInvokeStaticVoid(fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFctVoid(BC_INVOKE_STATIC_VOID, fct, start, count);
     }
 
-    fun emitInvokeStaticBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_STATIC_BOOL, dest, fct, start, count);
-    }
-
-    fun emitInvokeStaticByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_STATIC_UINT8, dest, fct, start, count);
-    }
-
-    fun emitInvokeStaticChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_STATIC_CHAR, dest, fct, start, count);
-    }
-
-    fun emitInvokeStaticInt32(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_STATIC_INT32, dest, fct, start, count);
-    }
-
-    fun emitInvokeStaticInt64(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_STATIC_INT64, dest, fct, start, count);
-    }
-
-    fun emitInvokeStaticFloat32(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_STATIC_FLOAT32, dest, fct, start, count);
-    }
-
-    fun emitInvokeStaticFloat64(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_STATIC_FLOAT64, dest, fct, start, count);
-    }
-
-    fun emitInvokeStaticPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_STATIC_PTR, dest, fct, start, count);
+    fun emitInvokeStatic(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
+        self.emitFct(BC_INVOKE_STATIC, dest, fct, start, count);
     }
 
     fun emitNewObject(dest: BytecodeRegister, cls: ClassDefId) {

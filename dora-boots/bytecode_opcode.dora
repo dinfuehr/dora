@@ -171,51 +171,35 @@ const BC_JUMP_IF_TRUE_CONST: Int32 = 167I;
 const BC_INVOKE_DIRECT_VOID: Int32 = 168I;
 const BC_INVOKE_DIRECT: Int32 = 169I;
 const BC_INVOKE_VIRTUAL_VOID: Int32 = 170I;
-const BC_INVOKE_VIRTUAL_BOOL: Int32 = 171I;
-const BC_INVOKE_VIRTUAL_UINT8: Int32 = 172I;
-const BC_INVOKE_VIRTUAL_CHAR: Int32 = 173I;
-const BC_INVOKE_VIRTUAL_INT32: Int32 = 174I;
-const BC_INVOKE_VIRTUAL_INT64: Int32 = 175I;
-const BC_INVOKE_VIRTUAL_FLOAT32: Int32 = 176I;
-const BC_INVOKE_VIRTUAL_FLOAT64: Int32 = 177I;
-const BC_INVOKE_VIRTUAL_PTR: Int32 = 178I;
-const BC_INVOKE_VIRTUAL_TUPLE: Int32 = 179I;
-const BC_INVOKE_STATIC_VOID: Int32 = 180I;
-const BC_INVOKE_STATIC_BOOL: Int32 = 181I;
-const BC_INVOKE_STATIC_UINT8: Int32 = 182I;
-const BC_INVOKE_STATIC_CHAR: Int32 = 183I;
-const BC_INVOKE_STATIC_INT32: Int32 = 184I;
-const BC_INVOKE_STATIC_INT64: Int32 = 185I;
-const BC_INVOKE_STATIC_FLOAT32: Int32 = 186I;
-const BC_INVOKE_STATIC_FLOAT64: Int32 = 187I;
-const BC_INVOKE_STATIC_PTR: Int32 = 188I;
-const BC_INVOKE_STATIC_TUPLE: Int32 = 189I;
-const BC_NEW_OBJECT: Int32 = 190I;
-const BC_NEW_ARRAY: Int32 = 191I;
-const BC_NEW_TUPLE: Int32 = 192I;
-const BC_NIL_CHECK: Int32 = 193I;
-const BC_ARRAY_LENGTH: Int32 = 194I;
-const BC_ARRAY_BOUND_CHECK: Int32 = 195I;
-const BC_LOAD_ARRAY_BOOL: Int32 = 196I;
-const BC_LOAD_ARRAY_UINT8: Int32 = 197I;
-const BC_LOAD_ARRAY_CHAR: Int32 = 198I;
-const BC_LOAD_ARRAY_INT32: Int32 = 199I;
-const BC_LOAD_ARRAY_INT64: Int32 = 200I;
-const BC_LOAD_ARRAY_FLOAT32: Int32 = 201I;
-const BC_LOAD_ARRAY_FLOAT64: Int32 = 202I;
-const BC_LOAD_ARRAY_PTR: Int32 = 203I;
-const BC_LOAD_ARRAY_TUPLE: Int32 = 204I;
-const BC_STORE_ARRAY_BOOL: Int32 = 205I;
-const BC_STORE_ARRAY_UINT8: Int32 = 206I;
-const BC_STORE_ARRAY_CHAR: Int32 = 207I;
-const BC_STORE_ARRAY_INT32: Int32 = 208I;
-const BC_STORE_ARRAY_INT64: Int32 = 209I;
-const BC_STORE_ARRAY_FLOAT32: Int32 = 210I;
-const BC_STORE_ARRAY_FLOAT64: Int32 = 211I;
-const BC_STORE_ARRAY_PTR: Int32 = 212I;
-const BC_STORE_ARRAY_TUPLE: Int32 = 213I;
-const BC_RET_VOID: Int32 = 214I;
-const BC_RET: Int32 = 215I;
+const BC_INVOKE_VIRTUAL: Int32 = 171I;
+const BC_INVOKE_STATIC_VOID: Int32 = 172I;
+const BC_INVOKE_STATIC: Int32 = 173I;
+const BC_NEW_OBJECT: Int32 = 174I;
+const BC_NEW_ARRAY: Int32 = 175I;
+const BC_NEW_TUPLE: Int32 = 176I;
+const BC_NIL_CHECK: Int32 = 177I;
+const BC_ARRAY_LENGTH: Int32 = 178I;
+const BC_ARRAY_BOUND_CHECK: Int32 = 179I;
+const BC_LOAD_ARRAY_BOOL: Int32 = 180I;
+const BC_LOAD_ARRAY_UINT8: Int32 = 181I;
+const BC_LOAD_ARRAY_CHAR: Int32 = 182I;
+const BC_LOAD_ARRAY_INT32: Int32 = 183I;
+const BC_LOAD_ARRAY_INT64: Int32 = 184I;
+const BC_LOAD_ARRAY_FLOAT32: Int32 = 185I;
+const BC_LOAD_ARRAY_FLOAT64: Int32 = 186I;
+const BC_LOAD_ARRAY_PTR: Int32 = 187I;
+const BC_LOAD_ARRAY_TUPLE: Int32 = 188I;
+const BC_STORE_ARRAY_BOOL: Int32 = 189I;
+const BC_STORE_ARRAY_UINT8: Int32 = 190I;
+const BC_STORE_ARRAY_CHAR: Int32 = 191I;
+const BC_STORE_ARRAY_INT32: Int32 = 192I;
+const BC_STORE_ARRAY_INT64: Int32 = 193I;
+const BC_STORE_ARRAY_FLOAT32: Int32 = 194I;
+const BC_STORE_ARRAY_FLOAT64: Int32 = 195I;
+const BC_STORE_ARRAY_PTR: Int32 = 196I;
+const BC_STORE_ARRAY_TUPLE: Int32 = 197I;
+const BC_RET_VOID: Int32 = 198I;
+const BC_RET: Int32 = 199I;
 
 const BC_TYPE_BOOL: Int32 = 0I;
 const BC_TYPE_U_INT8: Int32 = 1I;
@@ -406,25 +390,9 @@ fun bytecodeName(opcode: Int32) -> String {
   if opcode == BC_INVOKE_DIRECT_VOID { return "InvokeDirectVoid"; }
   if opcode == BC_INVOKE_DIRECT { return "InvokeDirect"; }
   if opcode == BC_INVOKE_VIRTUAL_VOID { return "InvokeVirtualVoid"; }
-  if opcode == BC_INVOKE_VIRTUAL_BOOL { return "InvokeVirtualBool"; }
-  if opcode == BC_INVOKE_VIRTUAL_UINT8 { return "InvokeVirtualUInt8"; }
-  if opcode == BC_INVOKE_VIRTUAL_CHAR { return "InvokeVirtualChar"; }
-  if opcode == BC_INVOKE_VIRTUAL_INT32 { return "InvokeVirtualInt32"; }
-  if opcode == BC_INVOKE_VIRTUAL_INT64 { return "InvokeVirtualInt64"; }
-  if opcode == BC_INVOKE_VIRTUAL_FLOAT32 { return "InvokeVirtualFloat32"; }
-  if opcode == BC_INVOKE_VIRTUAL_FLOAT64 { return "InvokeVirtualFloat64"; }
-  if opcode == BC_INVOKE_VIRTUAL_PTR { return "InvokeVirtualPtr"; }
-  if opcode == BC_INVOKE_VIRTUAL_TUPLE { return "InvokeVirtualTuple"; }
+  if opcode == BC_INVOKE_VIRTUAL { return "InvokeVirtual"; }
   if opcode == BC_INVOKE_STATIC_VOID { return "InvokeStaticVoid"; }
-  if opcode == BC_INVOKE_STATIC_BOOL { return "InvokeStaticBool"; }
-  if opcode == BC_INVOKE_STATIC_UINT8 { return "InvokeStaticUInt8"; }
-  if opcode == BC_INVOKE_STATIC_CHAR { return "InvokeStaticChar"; }
-  if opcode == BC_INVOKE_STATIC_INT32 { return "InvokeStaticInt32"; }
-  if opcode == BC_INVOKE_STATIC_INT64 { return "InvokeStaticInt64"; }
-  if opcode == BC_INVOKE_STATIC_FLOAT32 { return "InvokeStaticFloat32"; }
-  if opcode == BC_INVOKE_STATIC_FLOAT64 { return "InvokeStaticFloat64"; }
-  if opcode == BC_INVOKE_STATIC_PTR { return "InvokeStaticPtr"; }
-  if opcode == BC_INVOKE_STATIC_TUPLE { return "InvokeStaticTuple"; }
+  if opcode == BC_INVOKE_STATIC { return "InvokeStatic"; }
   if opcode == BC_NEW_OBJECT { return "NewObject"; }
   if opcode == BC_NEW_ARRAY { return "NewArray"; }
   if opcode == BC_NEW_TUPLE { return "NewTuple"; }

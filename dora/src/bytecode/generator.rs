@@ -371,7 +371,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         // build StringBuffer::empty() call
         let fct_id = self.vm.vips.fct.string_buffer_empty;
         self.gen
-            .emit_invoke_static_ptr(buffer_register, FctDef::fct_id(self.vm, fct_id));
+            .emit_invoke_static(buffer_register, FctDef::fct_id(self.vm, fct_id));
 
         let part_register = self.registers.alloc_temp(BytecodeType::Ptr);
 
@@ -403,7 +403,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                             FctDef::fct_id(self.vm, to_string_id),
                         );
                     } else {
-                        self.gen.emit_invoke_static_ptr(
+                        self.gen.emit_invoke_static(
                             part_register,
                             FctDef::fct_id(self.vm, to_string_id),
                         );
@@ -427,7 +427,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let fct_id = self.vm.vips.fct.string_buffer_to_string;
         self.gen.emit_push_register(buffer_register);
         self.gen
-            .emit_invoke_static_ptr(buffer_register, FctDef::fct_id(self.vm, fct_id));
+            .emit_invoke_static(buffer_register, FctDef::fct_id(self.vm, fct_id));
 
         buffer_register
     }
@@ -1058,23 +1058,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         if return_type.is_unit() {
             self.gen.emit_invoke_virtual_void(callee_id);
         } else {
-            let return_type: BytecodeType = return_type.into();
-
-            match return_type.into() {
-                BytecodeType::Bool => self.gen.emit_invoke_virtual_bool(return_reg, callee_id),
-                BytecodeType::UInt8 => self.gen.emit_invoke_virtual_uint8(return_reg, callee_id),
-                BytecodeType::Char => self.gen.emit_invoke_virtual_char(return_reg, callee_id),
-                BytecodeType::Int32 => self.gen.emit_invoke_virtual_int32(return_reg, callee_id),
-                BytecodeType::Int64 => self.gen.emit_invoke_virtual_int64(return_reg, callee_id),
-                BytecodeType::Float32 => {
-                    self.gen.emit_invoke_virtual_float32(return_reg, callee_id)
-                }
-                BytecodeType::Float64 => {
-                    self.gen.emit_invoke_virtual_float64(return_reg, callee_id)
-                }
-                BytecodeType::Ptr => self.gen.emit_invoke_virtual_ptr(return_reg, callee_id),
-                BytecodeType::Tuple(_) => self.gen.emit_invoke_virtual_tuple(return_reg, callee_id),
-            }
+            self.gen.emit_invoke_virtual(return_reg, callee_id);
         }
     }
 
@@ -1100,19 +1084,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         if return_type.is_unit() {
             self.gen.emit_invoke_static_void(callee_id);
         } else {
-            let return_type: BytecodeType = return_type.into();
-
-            match return_type.into() {
-                BytecodeType::Bool => self.gen.emit_invoke_static_bool(return_reg, callee_id),
-                BytecodeType::UInt8 => self.gen.emit_invoke_static_uint8(return_reg, callee_id),
-                BytecodeType::Char => self.gen.emit_invoke_static_char(return_reg, callee_id),
-                BytecodeType::Int32 => self.gen.emit_invoke_static_int32(return_reg, callee_id),
-                BytecodeType::Int64 => self.gen.emit_invoke_static_int64(return_reg, callee_id),
-                BytecodeType::Float32 => self.gen.emit_invoke_static_float32(return_reg, callee_id),
-                BytecodeType::Float64 => self.gen.emit_invoke_static_float64(return_reg, callee_id),
-                BytecodeType::Ptr => self.gen.emit_invoke_static_ptr(return_reg, callee_id),
-                BytecodeType::Tuple(_) => self.gen.emit_invoke_static_tuple(return_reg, callee_id),
-            }
+            self.gen.emit_invoke_static(return_reg, callee_id);
         }
     }
 
@@ -1845,17 +1817,13 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             }
             Intrinsic::Float32Sqrt => {
                 self.gen.emit_push_register(src);
-                self.gen.emit_invoke_static_float32(
-                    dest,
-                    FctDef::fct_id(self.vm, info.fct_id.unwrap()),
-                );
+                self.gen
+                    .emit_invoke_static(dest, FctDef::fct_id(self.vm, info.fct_id.unwrap()));
             }
             Intrinsic::Float64Sqrt => {
                 self.gen.emit_push_register(src);
-                self.gen.emit_invoke_static_float64(
-                    dest,
-                    FctDef::fct_id(self.vm, info.fct_id.unwrap()),
-                );
+                self.gen
+                    .emit_invoke_static(dest, FctDef::fct_id(self.vm, info.fct_id.unwrap()));
             }
             Intrinsic::Int32CountZeroBits
             | Intrinsic::Int32CountZeroBitsLeading
@@ -1865,7 +1833,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             | Intrinsic::Int32CountOneBitsTrailing => {
                 self.gen.emit_push_register(src);
                 self.gen
-                    .emit_invoke_static_int32(dest, FctDef::fct_id(self.vm, info.fct_id.unwrap()));
+                    .emit_invoke_static(dest, FctDef::fct_id(self.vm, info.fct_id.unwrap()));
             }
             Intrinsic::Int64CountZeroBits
             | Intrinsic::Int64CountZeroBitsLeading
@@ -1875,7 +1843,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             | Intrinsic::Int64CountOneBitsTrailing => {
                 self.gen.emit_push_register(src);
                 self.gen
-                    .emit_invoke_static_int64(dest, FctDef::fct_id(self.vm, info.fct_id.unwrap()));
+                    .emit_invoke_static(dest, FctDef::fct_id(self.vm, info.fct_id.unwrap()));
             }
             Intrinsic::PromoteFloat32ToFloat64 => {
                 self.gen.emit_promote_float32_to_float64(dest, src);

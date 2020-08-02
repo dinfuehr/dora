@@ -612,24 +612,10 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     @override fun visitInvokeDirect(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
 
     @override fun visitInvokeVirtualVoid(fct: FctId) { unimplemented(); }
-    @override fun visitInvokeVirtualBool(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @override fun visitInvokeVirtualUInt8(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @override fun visitInvokeVirtualChar(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @override fun visitInvokeVirtualInt32(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @override fun visitInvokeVirtualInt64(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @override fun visitInvokeVirtualFloat32(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @override fun visitInvokeVirtualFloat64(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @override fun visitInvokeVirtualPtr(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
+    @override fun visitInvokeVirtual(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
 
     @override fun visitInvokeStaticVoid(fct: FctId) { unimplemented(); }
-    @override fun visitInvokeStaticBool(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @override fun visitInvokeStaticUInt8(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @override fun visitInvokeStaticChar(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @override fun visitInvokeStaticInt32(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @override fun visitInvokeStaticInt64(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @override fun visitInvokeStaticFloat32(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @override fun visitInvokeStaticFloat64(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @override fun visitInvokeStaticPtr(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
+    @override fun visitInvokeStatic(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
 
     @override fun visitNewObject(dest: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
 

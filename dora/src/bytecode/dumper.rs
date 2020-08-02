@@ -837,63 +837,15 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_invoke_virtual_void(&mut self, fctdef: FctDefId) {
         self.emit_fct_void("InvokeVirtualVoid", fctdef);
     }
-    fn visit_invoke_virtual_bool(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeVirtualBool", dest, fctdef);
-    }
-    fn visit_invoke_virtual_uint8(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeVirtualUInt8", dest, fctdef);
-    }
-    fn visit_invoke_virtual_char(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeVirtualChar", dest, fctdef);
-    }
-    fn visit_invoke_virtual_int32(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeVirtualInt32", dest, fctdef);
-    }
-    fn visit_invoke_virtual_int64(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeVirtualInt64", dest, fctdef);
-    }
-    fn visit_invoke_virtual_float32(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeVirtualFloat32", dest, fctdef);
-    }
-    fn visit_invoke_virtual_float64(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeVirtualFloat64", dest, fctdef);
-    }
-    fn visit_invoke_virtual_ptr(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeVirtualPtr", dest, fctdef);
-    }
-    fn visit_invoke_virtual_tuple(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeVirtualTuple", dest, fctdef);
+    fn visit_invoke_virtual(&mut self, dest: Register, fctdef: FctDefId) {
+        self.emit_fct("InvokeVirtual", dest, fctdef);
     }
 
     fn visit_invoke_static_void(&mut self, fctdef: FctDefId) {
         self.emit_fct_void("InvokeStaticVoid", fctdef);
     }
-    fn visit_invoke_static_bool(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeStaticBool", dest, fctdef);
-    }
-    fn visit_invoke_static_uint8(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeStaticUInt8", dest, fctdef);
-    }
-    fn visit_invoke_static_char(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeStaticChar", dest, fctdef);
-    }
-    fn visit_invoke_static_int32(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeStaticInt32", dest, fctdef);
-    }
-    fn visit_invoke_static_int64(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeStaticInt64", dest, fctdef);
-    }
-    fn visit_invoke_static_float32(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeStaticFloat32", dest, fctdef);
-    }
-    fn visit_invoke_static_float64(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeStaticFloat64", dest, fctdef);
-    }
-    fn visit_invoke_static_ptr(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeStaticPtr", dest, fctdef);
-    }
-    fn visit_invoke_static_tuple(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeStaticTuple", dest, fctdef);
+    fn visit_invoke_static(&mut self, dest: Register, fctdef: FctDefId) {
+        self.emit_fct("InvokeStatic", dest, fctdef);
     }
 
     fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {

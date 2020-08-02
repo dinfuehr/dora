@@ -1156,7 +1156,7 @@ fn gen_fct_call_int_with_0_args() {
             ",
         |vm, code| {
             let fct_id = vm.fct_def_by_name("g").expect("g not found");
-            let expected = vec![InvokeStaticInt32(r(0), fct_id), Ret(r(0))];
+            let expected = vec![InvokeStatic(r(0), fct_id), Ret(r(0))];
             assert_eq!(expected, code);
         },
     );
@@ -1171,7 +1171,7 @@ fn gen_fct_call_int_with_0_args_and_unused_result() {
             ",
         |vm, code| {
             let fct_id = vm.fct_def_by_name("g").expect("g not found");
-            let expected = vec![InvokeStaticInt32(r(0), fct_id), RetVoid];
+            let expected = vec![InvokeStatic(r(0), fct_id), RetVoid];
             assert_eq!(expected, code);
         },
     );
@@ -1233,7 +1233,7 @@ fn gen_fct_call_int_with_1_arg() {
             let expected = vec![
                 ConstInt32(r(1), 1),
                 PushRegister(r(1)),
-                InvokeStaticInt32(r(0), fct_id),
+                InvokeStatic(r(0), fct_id),
                 Ret(r(0)),
             ];
             assert_eq!(expected, code);
@@ -1257,7 +1257,7 @@ fn gen_fct_call_int_with_3_args() {
                 PushRegister(r(1)),
                 PushRegister(r(2)),
                 PushRegister(r(3)),
-                InvokeStaticInt32(r(0), fct_id),
+                InvokeStatic(r(0), fct_id),
                 Ret(r(0)),
             ];
             assert_eq!(expected, code);
@@ -2213,11 +2213,7 @@ fn gen_virtual_method_call_int_with_0_args() {
             let fct_id = vm
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeVirtualInt32(r(1), fct_id),
-                RetVoid,
-            ];
+            let expected = vec![PushRegister(r(0)), InvokeVirtual(r(1), fct_id), RetVoid];
             assert_eq!(expected, code);
         },
     );
@@ -2243,7 +2239,7 @@ fn gen_virtual_method_call_int_with_1_arg() {
                 ConstInt32(r(2), 1),
                 PushRegister(r(0)),
                 PushRegister(r(2)),
-                InvokeVirtualInt32(r(1), fct_id),
+                InvokeVirtual(r(1), fct_id),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -2275,7 +2271,7 @@ fn gen_virtual_method_call_int_with_3_args() {
                 PushRegister(r(2)),
                 PushRegister(r(3)),
                 PushRegister(r(4)),
-                InvokeVirtualInt32(r(1), fct_id),
+                InvokeVirtual(r(1), fct_id),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -3078,7 +3074,7 @@ fn gen_bool_to_string() {
         let fct_id = vm
             .cls_method_def_by_name("Bool", "toString", false)
             .expect("Bool::toString not found");
-        let expected = vec![PushRegister(r(0)), InvokeStaticPtr(r(1), fct_id), Ret(r(1))];
+        let expected = vec![PushRegister(r(0)), InvokeStatic(r(1), fct_id), Ret(r(1))];
         assert_eq!(expected, code);
     });
 }
@@ -3510,24 +3506,10 @@ pub enum Bytecode {
     InvokeDirect(Register, FctDefId),
 
     InvokeVirtualVoid(FctDefId),
-    InvokeVirtualBool(Register, FctDefId),
-    InvokeVirtualUInt8(Register, FctDefId),
-    InvokeVirtualChar(Register, FctDefId),
-    InvokeVirtualInt32(Register, FctDefId),
-    InvokeVirtualInt64(Register, FctDefId),
-    InvokeVirtualFloat32(Register, FctDefId),
-    InvokeVirtualFloat64(Register, FctDefId),
-    InvokeVirtualPtr(Register, FctDefId),
+    InvokeVirtual(Register, FctDefId),
 
     InvokeStaticVoid(FctDefId),
-    InvokeStaticBool(Register, FctDefId),
-    InvokeStaticUInt8(Register, FctDefId),
-    InvokeStaticChar(Register, FctDefId),
-    InvokeStaticInt32(Register, FctDefId),
-    InvokeStaticInt64(Register, FctDefId),
-    InvokeStaticFloat32(Register, FctDefId),
-    InvokeStaticFloat64(Register, FctDefId),
-    InvokeStaticPtr(Register, FctDefId),
+    InvokeStatic(Register, FctDefId),
 
     NewObject(Register, ClassDefId),
     NewArray(Register, ClassDefId, Register),
@@ -4291,57 +4273,15 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_invoke_virtual_void(&mut self, fctdef: FctDefId) {
         self.emit(Bytecode::InvokeVirtualVoid(fctdef));
     }
-    fn visit_invoke_virtual_bool(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeVirtualBool(dest, fctdef));
-    }
-    fn visit_invoke_virtual_uint8(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeVirtualUInt8(dest, fctdef));
-    }
-    fn visit_invoke_virtual_char(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeVirtualChar(dest, fctdef));
-    }
-    fn visit_invoke_virtual_int32(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeVirtualInt32(dest, fctdef));
-    }
-    fn visit_invoke_virtual_int64(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeVirtualInt64(dest, fctdef));
-    }
-    fn visit_invoke_virtual_float32(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeVirtualFloat32(dest, fctdef));
-    }
-    fn visit_invoke_virtual_float64(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeVirtualFloat64(dest, fctdef));
-    }
-    fn visit_invoke_virtual_ptr(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeVirtualPtr(dest, fctdef));
+    fn visit_invoke_virtual(&mut self, dest: Register, fctdef: FctDefId) {
+        self.emit(Bytecode::InvokeVirtual(dest, fctdef));
     }
 
     fn visit_invoke_static_void(&mut self, fctdef: FctDefId) {
         self.emit(Bytecode::InvokeStaticVoid(fctdef));
     }
-    fn visit_invoke_static_bool(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeStaticBool(dest, fctdef));
-    }
-    fn visit_invoke_static_uint8(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeStaticUInt8(dest, fctdef));
-    }
-    fn visit_invoke_static_char(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeStaticChar(dest, fctdef));
-    }
-    fn visit_invoke_static_int32(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeStaticInt32(dest, fctdef));
-    }
-    fn visit_invoke_static_int64(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeStaticInt64(dest, fctdef));
-    }
-    fn visit_invoke_static_float32(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeStaticFloat32(dest, fctdef));
-    }
-    fn visit_invoke_static_float64(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeStaticFloat64(dest, fctdef));
-    }
-    fn visit_invoke_static_ptr(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeStaticPtr(dest, fctdef));
+    fn visit_invoke_static(&mut self, dest: Register, fctdef: FctDefId) {
+        self.emit(Bytecode::InvokeStatic(dest, fctdef));
     }
 
     fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {

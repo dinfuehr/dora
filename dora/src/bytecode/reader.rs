@@ -1023,100 +1023,20 @@ where
                 let fct = self.read_fct(wide);
                 self.visitor.visit_invoke_virtual_void(fct);
             }
-            BytecodeOpcode::InvokeVirtualBool => {
+            BytecodeOpcode::InvokeVirtual => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_virtual_bool(dest, fct);
-            }
-            BytecodeOpcode::InvokeVirtualUInt8 => {
-                let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_virtual_uint8(dest, fct);
-            }
-            BytecodeOpcode::InvokeVirtualChar => {
-                let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_virtual_char(dest, fct);
-            }
-            BytecodeOpcode::InvokeVirtualInt32 => {
-                let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_virtual_int32(dest, fct);
-            }
-            BytecodeOpcode::InvokeVirtualInt64 => {
-                let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_virtual_int64(dest, fct);
-            }
-            BytecodeOpcode::InvokeVirtualFloat32 => {
-                let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_virtual_float32(dest, fct);
-            }
-            BytecodeOpcode::InvokeVirtualFloat64 => {
-                let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_virtual_float64(dest, fct);
-            }
-            BytecodeOpcode::InvokeVirtualPtr => {
-                let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_virtual_ptr(dest, fct);
-            }
-            BytecodeOpcode::InvokeVirtualTuple => {
-                let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_virtual_tuple(dest, fct);
+                self.visitor.visit_invoke_virtual(dest, fct);
             }
 
             BytecodeOpcode::InvokeStaticVoid => {
                 let fct = self.read_fct(wide);
                 self.visitor.visit_invoke_static_void(fct);
             }
-            BytecodeOpcode::InvokeStaticBool => {
+            BytecodeOpcode::InvokeStatic => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_static_bool(dest, fct);
-            }
-            BytecodeOpcode::InvokeStaticUInt8 => {
-                let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_static_uint8(dest, fct);
-            }
-            BytecodeOpcode::InvokeStaticChar => {
-                let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_static_char(dest, fct);
-            }
-            BytecodeOpcode::InvokeStaticInt32 => {
-                let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_static_int32(dest, fct);
-            }
-            BytecodeOpcode::InvokeStaticInt64 => {
-                let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_static_int64(dest, fct);
-            }
-            BytecodeOpcode::InvokeStaticFloat32 => {
-                let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_static_float32(dest, fct);
-            }
-            BytecodeOpcode::InvokeStaticFloat64 => {
-                let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_static_float64(dest, fct);
-            }
-            BytecodeOpcode::InvokeStaticPtr => {
-                let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_static_ptr(dest, fct);
-            }
-            BytecodeOpcode::InvokeStaticTuple => {
-                let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_static_tuple(dest, fct);
+                self.visitor.visit_invoke_static(dest, fct);
             }
 
             BytecodeOpcode::NewObject => {
@@ -2018,62 +1938,14 @@ pub trait BytecodeVisitor {
     fn visit_invoke_virtual_void(&mut self, _fctdef: FctDefId) {
         unimplemented!();
     }
-    fn visit_invoke_virtual_bool(&mut self, _dest: Register, _fctdef: FctDefId) {
-        unimplemented!();
-    }
-    fn visit_invoke_virtual_uint8(&mut self, _dest: Register, _fctdef: FctDefId) {
-        unimplemented!();
-    }
-    fn visit_invoke_virtual_char(&mut self, _dest: Register, _fctdef: FctDefId) {
-        unimplemented!();
-    }
-    fn visit_invoke_virtual_int32(&mut self, _dest: Register, _fctdef: FctDefId) {
-        unimplemented!();
-    }
-    fn visit_invoke_virtual_int64(&mut self, _dest: Register, _fctdef: FctDefId) {
-        unimplemented!();
-    }
-    fn visit_invoke_virtual_float32(&mut self, _dest: Register, _fctdef: FctDefId) {
-        unimplemented!();
-    }
-    fn visit_invoke_virtual_float64(&mut self, _dest: Register, _fctdef: FctDefId) {
-        unimplemented!();
-    }
-    fn visit_invoke_virtual_ptr(&mut self, _dest: Register, _fctdef: FctDefId) {
-        unimplemented!();
-    }
-    fn visit_invoke_virtual_tuple(&mut self, _dest: Register, _fctdef: FctDefId) {
+    fn visit_invoke_virtual(&mut self, _dest: Register, _fctdef: FctDefId) {
         unimplemented!();
     }
 
     fn visit_invoke_static_void(&mut self, _fctdef: FctDefId) {
         unimplemented!();
     }
-    fn visit_invoke_static_bool(&mut self, _dest: Register, _fctdef: FctDefId) {
-        unimplemented!();
-    }
-    fn visit_invoke_static_uint8(&mut self, _dest: Register, _fctdef: FctDefId) {
-        unimplemented!();
-    }
-    fn visit_invoke_static_char(&mut self, _dest: Register, _fctdef: FctDefId) {
-        unimplemented!();
-    }
-    fn visit_invoke_static_int32(&mut self, _dest: Register, _fctdef: FctDefId) {
-        unimplemented!();
-    }
-    fn visit_invoke_static_int64(&mut self, _dest: Register, _fctdef: FctDefId) {
-        unimplemented!();
-    }
-    fn visit_invoke_static_float32(&mut self, _dest: Register, _fctdef: FctDefId) {
-        unimplemented!();
-    }
-    fn visit_invoke_static_float64(&mut self, _dest: Register, _fctdef: FctDefId) {
-        unimplemented!();
-    }
-    fn visit_invoke_static_ptr(&mut self, _dest: Register, _fctdef: FctDefId) {
-        unimplemented!();
-    }
-    fn visit_invoke_static_tuple(&mut self, _dest: Register, _fctdef: FctDefId) {
+    fn visit_invoke_static(&mut self, _dest: Register, _fctdef: FctDefId) {
         unimplemented!();
     }
 
