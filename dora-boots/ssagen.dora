@@ -609,14 +609,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     }
 
     @override fun visitInvokeDirectVoid(fct: FctId) { unimplemented(); }
-    @override fun visitInvokeDirectBool(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @override fun visitInvokeDirectUInt8(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @override fun visitInvokeDirectChar(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @override fun visitInvokeDirectInt32(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @override fun visitInvokeDirectInt64(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @override fun visitInvokeDirectFloat32(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @override fun visitInvokeDirectFloat64(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @override fun visitInvokeDirectPtr(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
+    @override fun visitInvokeDirect(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
 
     @override fun visitInvokeVirtualVoid(fct: FctId) { unimplemented(); }
     @override fun visitInvokeVirtualBool(dest: BytecodeRegister, fct: FctId) { unimplemented(); }

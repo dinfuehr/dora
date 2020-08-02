@@ -869,40 +869,8 @@ impl BytecodeWriter {
         self.emit_fct_void(BytecodeOpcode::InvokeDirectVoid, fid);
     }
 
-    pub fn emit_invoke_direct_bool(&mut self, dest: Register, fid: FctDefId) {
-        self.emit_fct(BytecodeOpcode::InvokeDirectBool, dest, fid);
-    }
-
-    pub fn emit_invoke_direct_uint8(&mut self, dest: Register, fid: FctDefId) {
-        self.emit_fct(BytecodeOpcode::InvokeDirectUInt8, dest, fid);
-    }
-
-    pub fn emit_invoke_direct_char(&mut self, dest: Register, fid: FctDefId) {
-        self.emit_fct(BytecodeOpcode::InvokeDirectChar, dest, fid);
-    }
-
-    pub fn emit_invoke_direct_int32(&mut self, dest: Register, fid: FctDefId) {
-        self.emit_fct(BytecodeOpcode::InvokeDirectInt32, dest, fid);
-    }
-
-    pub fn emit_invoke_direct_int64(&mut self, dest: Register, fid: FctDefId) {
-        self.emit_fct(BytecodeOpcode::InvokeDirectInt64, dest, fid);
-    }
-
-    pub fn emit_invoke_direct_float32(&mut self, dest: Register, fid: FctDefId) {
-        self.emit_fct(BytecodeOpcode::InvokeDirectFloat32, dest, fid);
-    }
-
-    pub fn emit_invoke_direct_float64(&mut self, dest: Register, fid: FctDefId) {
-        self.emit_fct(BytecodeOpcode::InvokeDirectFloat64, dest, fid);
-    }
-
-    pub fn emit_invoke_direct_ptr(&mut self, dest: Register, fid: FctDefId) {
-        self.emit_fct(BytecodeOpcode::InvokeDirectPtr, dest, fid);
-    }
-
-    pub fn emit_invoke_direct_tuple(&mut self, dest: Register, fid: FctDefId) {
-        self.emit_fct(BytecodeOpcode::InvokeDirectTuple, dest, fid);
+    pub fn emit_invoke_direct(&mut self, dest: Register, fid: FctDefId) {
+        self.emit_fct(BytecodeOpcode::InvokeDirect, dest, fid);
     }
 
     pub fn emit_invoke_virtual_void(&mut self, fid: FctDefId) {

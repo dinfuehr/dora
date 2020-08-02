@@ -666,35 +666,7 @@ class BytecodeWriter {
     }
 
     fun emitInvokeDirectBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_DIRECT_BOOL, dest, fct, start, count);
-    }
-
-    fun emitInvokeDirectByte(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_DIRECT_UINT8, dest, fct, start, count);
-    }
-
-    fun emitInvokeDirectChar(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_DIRECT_CHAR, dest, fct, start, count);
-    }
-
-    fun emitInvokeDirectInt32(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_DIRECT_INT32, dest, fct, start, count);
-    }
-
-    fun emitInvokeDirectInt64(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_DIRECT_INT64, dest, fct, start, count);
-    }
-
-    fun emitInvokeDirectFloat32(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_DIRECT_FLOAT32, dest, fct, start, count);
-    }
-
-    fun emitInvokeDirectFloat64(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_DIRECT_FLOAT64, dest, fct, start, count);
-    }
-
-    fun emitInvokeDirectPtr(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFct(BC_INVOKE_DIRECT_PTR, dest, fct, start, count);
+        self.emitFct(BC_INVOKE_DIRECT, dest, fct, start, count);
     }
 
     fun emitInvokeVirtualVoid(fct: FctId, start: BytecodeRegister, count: Int32) {

@@ -34,6 +34,11 @@ pub fn dump(bc: &BytecodeFunction) {
     }
 
     println!();
+    println!("Positions:");
+    for (bc_offset, pos) in bc.positions().iter() {
+        println!(" offset {} => {}", bc_offset, pos);
+    }
+    println!();
 }
 
 struct BytecodeDumper<'a> {
@@ -825,32 +830,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_invoke_direct_void(&mut self, fctdef: FctDefId) {
         self.emit_fct_void("InvokeDirectVoid", fctdef);
     }
-    fn visit_invoke_direct_bool(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeDirectBool", dest, fctdef);
-    }
-    fn visit_invoke_direct_uint8(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeDirectUInt8", dest, fctdef);
-    }
-    fn visit_invoke_direct_char(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeDirectChar", dest, fctdef);
-    }
-    fn visit_invoke_direct_int32(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeDirectInt32", dest, fctdef);
-    }
-    fn visit_invoke_direct_int64(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeDirectInt64", dest, fctdef);
-    }
-    fn visit_invoke_direct_float32(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeDirectFloat32", dest, fctdef);
-    }
-    fn visit_invoke_direct_float64(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeDirectFloat64", dest, fctdef);
-    }
-    fn visit_invoke_direct_ptr(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeDirectPtr", dest, fctdef);
-    }
-    fn visit_invoke_direct_tuple(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_fct("InvokeDirectTuple", dest, fctdef);
+    fn visit_invoke_direct(&mut self, dest: Register, fctdef: FctDefId) {
+        self.emit_fct("InvokeDirect", dest, fctdef);
     }
 
     fn visit_invoke_virtual_void(&mut self, fctdef: FctDefId) {

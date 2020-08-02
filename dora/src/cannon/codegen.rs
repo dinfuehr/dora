@@ -3080,31 +3080,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_invoke_direct_void(&mut self, fctdef: FctDefId) {
         self.emit_invoke_direct(None, fctdef)
     }
-    fn visit_invoke_direct_bool(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_direct(Some(dest), fctdef);
-    }
-    fn visit_invoke_direct_uint8(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_direct(Some(dest), fctdef);
-    }
-    fn visit_invoke_direct_char(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_direct(Some(dest), fctdef);
-    }
-    fn visit_invoke_direct_int32(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_direct(Some(dest), fctdef);
-    }
-    fn visit_invoke_direct_int64(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_direct(Some(dest), fctdef);
-    }
-    fn visit_invoke_direct_float32(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_direct(Some(dest), fctdef);
-    }
-    fn visit_invoke_direct_float64(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_direct(Some(dest), fctdef);
-    }
-    fn visit_invoke_direct_ptr(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit_invoke_direct(Some(dest), fctdef);
-    }
-    fn visit_invoke_direct_tuple(&mut self, dest: Register, fctdef: FctDefId) {
+    fn visit_invoke_direct(&mut self, dest: Register, fctdef: FctDefId) {
         self.emit_invoke_direct(Some(dest), fctdef);
     }
 

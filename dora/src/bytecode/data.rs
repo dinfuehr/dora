@@ -354,15 +354,7 @@ pub enum BytecodeOpcode {
     JumpIfTrueConst,
 
     InvokeDirectVoid,
-    InvokeDirectBool,
-    InvokeDirectUInt8,
-    InvokeDirectChar,
-    InvokeDirectInt32,
-    InvokeDirectInt64,
-    InvokeDirectFloat32,
-    InvokeDirectFloat64,
-    InvokeDirectPtr,
-    InvokeDirectTuple,
+    InvokeDirect,
 
     InvokeVirtualVoid,
     InvokeVirtualBool,
@@ -447,15 +439,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::StoreFieldPtr
             | BytecodeOpcode::StoreFieldTuple
             | BytecodeOpcode::InvokeDirectVoid
-            | BytecodeOpcode::InvokeDirectBool
-            | BytecodeOpcode::InvokeDirectUInt8
-            | BytecodeOpcode::InvokeDirectChar
-            | BytecodeOpcode::InvokeDirectInt32
-            | BytecodeOpcode::InvokeDirectInt64
-            | BytecodeOpcode::InvokeDirectFloat32
-            | BytecodeOpcode::InvokeDirectFloat64
-            | BytecodeOpcode::InvokeDirectPtr
-            | BytecodeOpcode::InvokeDirectTuple
+            | BytecodeOpcode::InvokeDirect
             | BytecodeOpcode::InvokeVirtualVoid
             | BytecodeOpcode::InvokeVirtualBool
             | BytecodeOpcode::InvokeVirtualUInt8

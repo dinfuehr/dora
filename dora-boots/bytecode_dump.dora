@@ -299,14 +299,7 @@ class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
     @override fun visitJumpConst(idx: ConstPoolId) { self.emitIdx("JumpConst", idx); }
 
     @override fun visitInvokeDirectVoid(fct: FctId) { self.emitFctVoid("InvokeDirectVoid", fct); }
-    @override fun visitInvokeDirectBool(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeDirectBool", dest, fct); }
-    @override fun visitInvokeDirectUInt8(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeDirectUInt8", dest, fct); }
-    @override fun visitInvokeDirectChar(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeDirectChar", dest, fct); }
-    @override fun visitInvokeDirectInt32(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeDirectInt32", dest, fct); }
-    @override fun visitInvokeDirectInt64(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeDirectInt64", dest, fct); }
-    @override fun visitInvokeDirectFloat32(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeDirectFloat32", dest, fct); }
-    @override fun visitInvokeDirectFloat64(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeDirectFloat64", dest, fct); }
-    @override fun visitInvokeDirectPtr(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeDirectPtr", dest, fct); }
+    @override fun visitInvokeDirect(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeDirect", dest, fct); }
 
     @override fun visitInvokeVirtualVoid(fct: FctId) { self.emitFctVoid("InvokeVirtualVoid", fct); }
     @override fun visitInvokeVirtualBool(dest: BytecodeRegister, fct: FctId) { self.emitFct("InvokeVirtualBool", dest, fct); }

@@ -1013,50 +1013,10 @@ where
                 let fct = self.read_fct(wide);
                 self.visitor.visit_invoke_direct_void(fct);
             }
-            BytecodeOpcode::InvokeDirectBool => {
+            BytecodeOpcode::InvokeDirect => {
                 let dest = self.read_register(wide);
                 let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_direct_bool(dest, fct);
-            }
-            BytecodeOpcode::InvokeDirectUInt8 => {
-                let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_direct_uint8(dest, fct);
-            }
-            BytecodeOpcode::InvokeDirectChar => {
-                let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_direct_char(dest, fct);
-            }
-            BytecodeOpcode::InvokeDirectInt32 => {
-                let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_direct_int32(dest, fct);
-            }
-            BytecodeOpcode::InvokeDirectInt64 => {
-                let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_direct_int64(dest, fct);
-            }
-            BytecodeOpcode::InvokeDirectFloat32 => {
-                let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_direct_float32(dest, fct);
-            }
-            BytecodeOpcode::InvokeDirectFloat64 => {
-                let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_direct_float64(dest, fct);
-            }
-            BytecodeOpcode::InvokeDirectPtr => {
-                let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_direct_ptr(dest, fct);
-            }
-            BytecodeOpcode::InvokeDirectTuple => {
-                let dest = self.read_register(wide);
-                let fct = self.read_fct(wide);
-                self.visitor.visit_invoke_direct_tuple(dest, fct);
+                self.visitor.visit_invoke_direct(dest, fct);
             }
 
             BytecodeOpcode::InvokeVirtualVoid => {
@@ -2051,31 +2011,7 @@ pub trait BytecodeVisitor {
     fn visit_invoke_direct_void(&mut self, _fctdef: FctDefId) {
         unimplemented!();
     }
-    fn visit_invoke_direct_bool(&mut self, _dest: Register, _fctdef: FctDefId) {
-        unimplemented!();
-    }
-    fn visit_invoke_direct_uint8(&mut self, _dest: Register, _fctdef: FctDefId) {
-        unimplemented!();
-    }
-    fn visit_invoke_direct_char(&mut self, _dest: Register, _fctdef: FctDefId) {
-        unimplemented!();
-    }
-    fn visit_invoke_direct_int32(&mut self, _dest: Register, _fctdef: FctDefId) {
-        unimplemented!();
-    }
-    fn visit_invoke_direct_int64(&mut self, _dest: Register, _fctdef: FctDefId) {
-        unimplemented!();
-    }
-    fn visit_invoke_direct_float32(&mut self, _dest: Register, _fctdef: FctDefId) {
-        unimplemented!();
-    }
-    fn visit_invoke_direct_float64(&mut self, _dest: Register, _fctdef: FctDefId) {
-        unimplemented!();
-    }
-    fn visit_invoke_direct_ptr(&mut self, _dest: Register, _fctdef: FctDefId) {
-        unimplemented!();
-    }
-    fn visit_invoke_direct_tuple(&mut self, _dest: Register, _fctdef: FctDefId) {
+    fn visit_invoke_direct(&mut self, _dest: Register, _fctdef: FctDefId) {
         unimplemented!();
     }
 

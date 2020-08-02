@@ -222,7 +222,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         // Emit: <iterator> = <obj>.makeIterator();
         let iterator_reg = self.registers.alloc_var(BytecodeType::Ptr);
-        self.gen.emit_invoke_direct_ptr(
+        self.gen.emit_invoke_direct(
             iterator_reg,
             FctDef::fct_id(self.vm, for_type_info.make_iterator),
         );
@@ -235,7 +235,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         // Emit: <cond> = <iterator>.hasNext() & jump to lbl_end if false
         let cond_reg = self.registers.alloc_temp(BytecodeType::Bool);
         self.gen
-            .emit_invoke_direct_ptr(cond_reg, FctDef::fct_id(self.vm, for_type_info.has_next));
+            .emit_invoke_direct(cond_reg, FctDef::fct_id(self.vm, for_type_info.has_next));
         self.gen.emit_jump_if_false(cond_reg, lbl_end);
         self.registers.free_temp(cond_reg);
 
@@ -398,7 +398,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                         .expect("toString() method not found");
 
                     if ty.reference_type() {
-                        self.gen.emit_invoke_direct_ptr(
+                        self.gen.emit_invoke_direct(
                             part_register,
                             FctDef::fct_id(self.vm, to_string_id),
                         );
@@ -1087,19 +1087,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         if return_type.is_unit() {
             self.gen.emit_invoke_direct_void(callee_id);
         } else {
-            let return_type: BytecodeType = return_type.into();
-
-            match return_type {
-                BytecodeType::Bool => self.gen.emit_invoke_direct_bool(return_reg, callee_id),
-                BytecodeType::UInt8 => self.gen.emit_invoke_direct_uint8(return_reg, callee_id),
-                BytecodeType::Char => self.gen.emit_invoke_direct_char(return_reg, callee_id),
-                BytecodeType::Int32 => self.gen.emit_invoke_direct_int32(return_reg, callee_id),
-                BytecodeType::Int64 => self.gen.emit_invoke_direct_int64(return_reg, callee_id),
-                BytecodeType::Float32 => self.gen.emit_invoke_direct_float32(return_reg, callee_id),
-                BytecodeType::Float64 => self.gen.emit_invoke_direct_float64(return_reg, callee_id),
-                BytecodeType::Ptr => self.gen.emit_invoke_direct_ptr(return_reg, callee_id),
-                BytecodeType::Tuple(_) => self.gen.emit_invoke_direct_tuple(return_reg, callee_id),
-            }
+            self.gen.emit_invoke_direct(return_reg, callee_id);
         }
     }
 

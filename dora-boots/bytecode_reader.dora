@@ -203,14 +203,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fun visitJumpConst(idx: ConstPoolId) { unimplemented(); }
 
     @open fun visitInvokeDirectVoid(fct: FctId) { unimplemented(); }
-    @open fun visitInvokeDirectBool(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @open fun visitInvokeDirectUInt8(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @open fun visitInvokeDirectChar(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @open fun visitInvokeDirectInt32(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @open fun visitInvokeDirectInt64(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @open fun visitInvokeDirectFloat32(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @open fun visitInvokeDirectFloat64(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
-    @open fun visitInvokeDirectPtr(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
+    @open fun visitInvokeDirect(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
 
     @open fun visitInvokeVirtualVoid(fct: FctId) { unimplemented(); }
     @open fun visitInvokeVirtualBool(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
@@ -436,14 +429,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fun visitJumpConst(idx: ConstPoolId) {}
 
     @override fun visitInvokeDirectVoid(fct: FctId) {}
-    @override fun visitInvokeDirectBool(dest: BytecodeRegister, fct: FctId) {}
-    @override fun visitInvokeDirectUInt8(dest: BytecodeRegister, fct: FctId) {}
-    @override fun visitInvokeDirectChar(dest: BytecodeRegister, fct: FctId) {}
-    @override fun visitInvokeDirectInt32(dest: BytecodeRegister, fct: FctId) {}
-    @override fun visitInvokeDirectInt64(dest: BytecodeRegister, fct: FctId) {}
-    @override fun visitInvokeDirectFloat32(dest: BytecodeRegister, fct: FctId) {}
-    @override fun visitInvokeDirectFloat64(dest: BytecodeRegister, fct: FctId) {}
-    @override fun visitInvokeDirectPtr(dest: BytecodeRegister, fct: FctId) {}
+    @override fun visitInvokeDirect(dest: BytecodeRegister, fct: FctId) {}
 
     @override fun visitInvokeVirtualVoid(fct: FctId) {}
     @override fun visitInvokeVirtualBool(dest: BytecodeRegister, fct: FctId) {}
@@ -1368,38 +1354,10 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
         } else if opcode == BC_INVOKE_DIRECT_VOID {
             let fct = self.readFctId(wide);
             self.visitor.visitInvokeDirectVoid(fct);
-        } else if opcode == BC_INVOKE_DIRECT_BOOL {
+        } else if opcode == BC_INVOKE_DIRECT {
             let dest = self.readRegister(wide);
             let fct = self.readFctId(wide);
-            self.visitor.visitInvokeDirectBool(dest, fct);
-        } else if opcode == BC_INVOKE_DIRECT_UINT8 {
-            let dest = self.readRegister(wide);
-            let fct = self.readFctId(wide);
-            self.visitor.visitInvokeDirectUInt8(dest, fct);
-        } else if opcode == BC_INVOKE_DIRECT_CHAR {
-            let dest = self.readRegister(wide);
-            let fct = self.readFctId(wide);
-            self.visitor.visitInvokeDirectChar(dest, fct);
-        } else if opcode == BC_INVOKE_DIRECT_INT32 {
-            let dest = self.readRegister(wide);
-            let fct = self.readFctId(wide);
-            self.visitor.visitInvokeDirectInt32(dest, fct);
-        } else if opcode == BC_INVOKE_DIRECT_INT64 {
-            let dest = self.readRegister(wide);
-            let fct = self.readFctId(wide);
-            self.visitor.visitInvokeDirectInt64(dest, fct);
-        } else if opcode == BC_INVOKE_DIRECT_FLOAT32{
-            let dest = self.readRegister(wide);
-            let fct = self.readFctId(wide);
-            self.visitor.visitInvokeDirectFloat32(dest, fct);
-        } else if opcode == BC_INVOKE_DIRECT_FLOAT64 {
-            let dest = self.readRegister(wide);
-            let fct = self.readFctId(wide);
-            self.visitor.visitInvokeDirectFloat64(dest, fct);
-        } else if opcode == BC_INVOKE_DIRECT_PTR {
-            let dest = self.readRegister(wide);
-            let fct = self.readFctId(wide);
-            self.visitor.visitInvokeDirectPtr(dest, fct);
+            self.visitor.visitInvokeDirect(dest, fct);
 
         } else if opcode == BC_INVOKE_VIRTUAL_VOID {
             let fct = self.readFctId(wide);

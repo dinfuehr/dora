@@ -1370,11 +1370,7 @@ fn gen_method_call_bool_with_0_args() {
             let fct_id = vm
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirectBool(r(1), fct_id),
-                Ret(r(1)),
-            ];
+            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), Ret(r(1))];
             assert_eq!(expected, code);
         },
     );
@@ -1393,7 +1389,7 @@ fn gen_method_call_bool_with_0_args_and_unused_result() {
             let fct_id = vm
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeDirectBool(r(1), fct_id), RetVoid];
+            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), RetVoid];
             assert_eq!(expected, code);
         },
     );
@@ -1416,7 +1412,7 @@ fn gen_method_call_bool_with_1_arg() {
                 ConstTrue(r(2)),
                 PushRegister(r(0)),
                 PushRegister(r(2)),
-                InvokeDirectBool(r(1), fct_id),
+                InvokeDirect(r(1), fct_id),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
@@ -1445,7 +1441,7 @@ fn gen_method_call_bool_with_3_args() {
                 PushRegister(r(2)),
                 PushRegister(r(3)),
                 PushRegister(r(4)),
-                InvokeDirectBool(r(1), fct_id),
+                InvokeDirect(r(1), fct_id),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
@@ -1466,11 +1462,7 @@ fn gen_method_call_byte_with_0_args() {
             let fct_id = vm
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirectUInt8(r(1), fct_id),
-                Ret(r(1)),
-            ];
+            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), Ret(r(1))];
             assert_eq!(expected, code);
         },
     );
@@ -1489,7 +1481,7 @@ fn gen_method_call_byte_with_0_args_and_unused_result() {
             let fct_id = vm
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeDirectUInt8(r(1), fct_id), RetVoid];
+            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), RetVoid];
             assert_eq!(expected, code);
         },
     );
@@ -1512,7 +1504,7 @@ fn gen_method_call_byte_with_1_arg() {
                 ConstUInt8(r(2), 1),
                 PushRegister(r(0)),
                 PushRegister(r(2)),
-                InvokeDirectUInt8(r(1), fct_id),
+                InvokeDirect(r(1), fct_id),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
@@ -1541,7 +1533,7 @@ fn gen_method_call_byte_with_3_args() {
                 PushRegister(r(2)),
                 PushRegister(r(3)),
                 PushRegister(r(4)),
-                InvokeDirectUInt8(r(1), fct_id),
+                InvokeDirect(r(1), fct_id),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
@@ -1562,11 +1554,7 @@ fn gen_method_call_char_with_0_args() {
             let fct_id = vm
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirectChar(r(1), fct_id),
-                Ret(r(1)),
-            ];
+            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), Ret(r(1))];
             assert_eq!(expected, code);
         },
     );
@@ -1585,7 +1573,7 @@ fn gen_method_call_char_with_0_args_and_unused_result() {
             let fct_id = vm
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeDirectChar(r(1), fct_id), RetVoid];
+            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), RetVoid];
             assert_eq!(expected, code);
         },
     );
@@ -1608,7 +1596,7 @@ fn gen_method_call_char_with_1_arg() {
                 ConstChar(r(2), '1'),
                 PushRegister(r(0)),
                 PushRegister(r(2)),
-                InvokeDirectChar(r(1), fct_id),
+                InvokeDirect(r(1), fct_id),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
@@ -1637,7 +1625,7 @@ fn gen_method_call_char_with_3_args() {
                 PushRegister(r(2)),
                 PushRegister(r(3)),
                 PushRegister(r(4)),
-                InvokeDirectChar(r(1), fct_id),
+                InvokeDirect(r(1), fct_id),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
@@ -1658,11 +1646,7 @@ fn gen_method_call_int_with_0_args() {
             let fct_id = vm
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirectInt32(r(1), fct_id),
-                Ret(r(1)),
-            ];
+            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), Ret(r(1))];
             assert_eq!(expected, code);
         },
     );
@@ -1681,7 +1665,7 @@ fn gen_method_call_int_with_0_args_and_unused_result() {
             let fct_id = vm
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeDirectInt32(r(1), fct_id), RetVoid];
+            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), RetVoid];
             assert_eq!(expected, code);
         },
     );
@@ -1704,7 +1688,7 @@ fn gen_method_call_int_with_1_arg() {
                 ConstInt32(r(2), 1),
                 PushRegister(r(0)),
                 PushRegister(r(2)),
-                InvokeDirectInt32(r(1), fct_id),
+                InvokeDirect(r(1), fct_id),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
@@ -1733,7 +1717,7 @@ fn gen_method_call_int_with_3_args() {
                 PushRegister(r(2)),
                 PushRegister(r(3)),
                 PushRegister(r(4)),
-                InvokeDirectInt32(r(1), fct_id),
+                InvokeDirect(r(1), fct_id),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
@@ -1754,11 +1738,7 @@ fn gen_method_call_int64_with_0_args() {
             let fct_id = vm
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirectInt64(r(1), fct_id),
-                Ret(r(1)),
-            ];
+            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), Ret(r(1))];
             assert_eq!(expected, code);
         },
     );
@@ -1777,7 +1757,7 @@ fn gen_method_call_int64_with_0_args_and_unused_result() {
             let fct_id = vm
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeDirectInt64(r(1), fct_id), RetVoid];
+            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), RetVoid];
             assert_eq!(expected, code);
         },
     );
@@ -1800,7 +1780,7 @@ fn gen_method_call_int64_with_1_arg() {
                 ConstInt64(r(2), 1),
                 PushRegister(r(0)),
                 PushRegister(r(2)),
-                InvokeDirectInt64(r(1), fct_id),
+                InvokeDirect(r(1), fct_id),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
@@ -1829,7 +1809,7 @@ fn gen_method_call_int64_with_3_args() {
                 PushRegister(r(2)),
                 PushRegister(r(3)),
                 PushRegister(r(4)),
-                InvokeDirectInt64(r(1), fct_id),
+                InvokeDirect(r(1), fct_id),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
@@ -1850,11 +1830,7 @@ fn gen_method_call_float32_with_0_args() {
             let fct_id = vm
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirectFloat32(r(1), fct_id),
-                Ret(r(1)),
-            ];
+            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), Ret(r(1))];
             assert_eq!(expected, code);
         },
     );
@@ -1873,11 +1849,7 @@ fn gen_method_call_float32_with_0_args_and_unused_result() {
             let fct_id = vm
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirectFloat32(r(1), fct_id),
-                RetVoid,
-            ];
+            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), RetVoid];
             assert_eq!(expected, code);
         },
     );
@@ -1900,7 +1872,7 @@ fn gen_method_call_float32_with_1_arg() {
                 ConstFloat32(r(2), 1_f32),
                 PushRegister(r(0)),
                 PushRegister(r(2)),
-                InvokeDirectFloat32(r(1), fct_id),
+                InvokeDirect(r(1), fct_id),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
@@ -1929,7 +1901,7 @@ fn gen_method_call_float32_with_3_args() {
                 PushRegister(r(2)),
                 PushRegister(r(3)),
                 PushRegister(r(4)),
-                InvokeDirectFloat32(r(1), fct_id),
+                InvokeDirect(r(1), fct_id),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
@@ -1950,11 +1922,7 @@ fn gen_method_call_float64_with_0_args() {
             let fct_id = vm
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirectFloat64(r(1), fct_id),
-                Ret(r(1)),
-            ];
+            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), Ret(r(1))];
             assert_eq!(expected, code);
         },
     );
@@ -1973,11 +1941,7 @@ fn gen_method_call_float64_with_0_args_and_unused_result() {
             let fct_id = vm
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirectFloat64(r(1), fct_id),
-                RetVoid,
-            ];
+            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), RetVoid];
             assert_eq!(expected, code);
         },
     );
@@ -2000,7 +1964,7 @@ fn gen_method_call_float64_with_1_arg() {
                 ConstFloat64(r(2), 1_f64),
                 PushRegister(r(0)),
                 PushRegister(r(2)),
-                InvokeDirectFloat64(r(1), fct_id),
+                InvokeDirect(r(1), fct_id),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
@@ -2029,7 +1993,7 @@ fn gen_method_call_float64_with_3_args() {
                 PushRegister(r(2)),
                 PushRegister(r(3)),
                 PushRegister(r(4)),
-                InvokeDirectFloat64(r(1), fct_id),
+                InvokeDirect(r(1), fct_id),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
@@ -2050,7 +2014,7 @@ fn gen_method_call_ptr_with_0_args() {
             let fct_id = vm
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeDirectPtr(r(1), fct_id), Ret(r(1))];
+            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), Ret(r(1))];
             assert_eq!(expected, code);
         },
     );
@@ -2069,7 +2033,7 @@ fn gen_method_call_ptr_with_0_args_and_unused_result() {
             let fct_id = vm
                 .cls_method_def_by_name("Foo", "g", false)
                 .expect("g not found");
-            let expected = vec![PushRegister(r(0)), InvokeDirectPtr(r(1), fct_id), RetVoid];
+            let expected = vec![PushRegister(r(0)), InvokeDirect(r(1), fct_id), RetVoid];
             assert_eq!(expected, code);
         },
     );
@@ -2092,7 +2056,7 @@ fn gen_method_call_ptr_with_1_arg() {
                 ConstString(r(2), "1".to_string()),
                 PushRegister(r(0)),
                 PushRegister(r(2)),
-                InvokeDirectPtr(r(1), fct_id),
+                InvokeDirect(r(1), fct_id),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
@@ -2121,7 +2085,7 @@ fn gen_method_call_ptr_with_3_args() {
                 PushRegister(r(2)),
                 PushRegister(r(3)),
                 PushRegister(r(4)),
-                InvokeDirectPtr(r(1), fct_id),
+                InvokeDirect(r(1), fct_id),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
@@ -3080,7 +3044,7 @@ fn gen_string_concat() {
             let expected = vec![
                 PushRegister(r(0)),
                 PushRegister(r(1)),
-                InvokeDirectPtr(r(2), fct_id),
+                InvokeDirect(r(2), fct_id),
                 Ret(r(2)),
             ];
             assert_eq!(expected, code);
@@ -3099,7 +3063,7 @@ fn gen_string_equals() {
             let expected = vec![
                 PushRegister(r(0)),
                 PushRegister(r(1)),
-                InvokeDirectBool(r(2), fct_id),
+                InvokeDirect(r(2), fct_id),
                 NotBool(r(2), r(2)),
                 Ret(r(2)),
             ];
@@ -3130,7 +3094,7 @@ fn gen_cmp_strings() {
             let expected = vec![
                 PushRegister(r(0)),
                 PushRegister(r(1)),
-                InvokeDirectInt32(r(3), fct_id),
+                InvokeDirect(r(3), fct_id),
                 ConstInt32(r(4), 0),
                 TestLtInt32(r(2), r(3), r(4)),
                 Ret(r(2)),
@@ -3239,7 +3203,7 @@ fn gen_vec_load() {
             let expected = vec![
                 PushRegister(r(0)),
                 PushRegister(r(1)),
-                InvokeDirectInt32(r(2), fct_def_id),
+                InvokeDirect(r(2), fct_def_id),
                 Ret(r(2)),
             ];
             assert_eq!(expected, code);
@@ -3543,14 +3507,7 @@ pub enum Bytecode {
     JumpIfTrue(Register, usize),
 
     InvokeDirectVoid(FctDefId),
-    InvokeDirectBool(Register, FctDefId),
-    InvokeDirectUInt8(Register, FctDefId),
-    InvokeDirectChar(Register, FctDefId),
-    InvokeDirectInt32(Register, FctDefId),
-    InvokeDirectInt64(Register, FctDefId),
-    InvokeDirectFloat32(Register, FctDefId),
-    InvokeDirectFloat64(Register, FctDefId),
-    InvokeDirectPtr(Register, FctDefId),
+    InvokeDirect(Register, FctDefId),
 
     InvokeVirtualVoid(FctDefId),
     InvokeVirtualBool(Register, FctDefId),
@@ -4327,29 +4284,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_invoke_direct_void(&mut self, fctdef: FctDefId) {
         self.emit(Bytecode::InvokeDirectVoid(fctdef));
     }
-    fn visit_invoke_direct_bool(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeDirectBool(dest, fctdef));
-    }
-    fn visit_invoke_direct_uint8(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeDirectUInt8(dest, fctdef));
-    }
-    fn visit_invoke_direct_char(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeDirectChar(dest, fctdef));
-    }
-    fn visit_invoke_direct_int32(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeDirectInt32(dest, fctdef));
-    }
-    fn visit_invoke_direct_int64(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeDirectInt64(dest, fctdef));
-    }
-    fn visit_invoke_direct_float32(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeDirectFloat32(dest, fctdef));
-    }
-    fn visit_invoke_direct_float64(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeDirectFloat64(dest, fctdef));
-    }
-    fn visit_invoke_direct_ptr(&mut self, dest: Register, fctdef: FctDefId) {
-        self.emit(Bytecode::InvokeDirectPtr(dest, fctdef));
+    fn visit_invoke_direct(&mut self, dest: Register, fctdef: FctDefId) {
+        self.emit(Bytecode::InvokeDirect(dest, fctdef));
     }
 
     fn visit_invoke_virtual_void(&mut self, fctdef: FctDefId) {
