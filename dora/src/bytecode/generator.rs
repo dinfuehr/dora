@@ -1472,7 +1472,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 0 => self.emit_intrinsic_un(object, info, expr.pos, dest),
                 1 => self.emit_intrinsic_bin(object, &expr.args[0], info, None, expr.pos, dest),
                 2 => {
-                    assert_eq!(intrinsic, Intrinsic::GenericArraySet);
+                    assert_eq!(intrinsic, Intrinsic::ArraySet);
                     self.emit_intrinsic_array_set(
                         expr.object().unwrap(),
                         &expr.args[0],
@@ -1490,11 +1490,11 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     Register::invalid()
                 }
 
-                Intrinsic::GenericArrayGet => {
+                Intrinsic::ArrayGet => {
                     self.emit_intrinsic_bin(&expr.callee, &expr.args[0], info, None, expr.pos, dest)
                 }
 
-                Intrinsic::GenericArrayNew => self.emit_intrinsic_new_array(expr, dest),
+                Intrinsic::ArrayNewOfSize => self.emit_intrinsic_new_array(expr, dest),
 
                 Intrinsic::DefaultValue => {
                     let ty = self.ty(expr.id);
@@ -1732,7 +1732,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         if dest.is_effect() {
             match intrinsic {
-                Intrinsic::GenericArrayLen | Intrinsic::StrLen => {
+                Intrinsic::ArrayLen | Intrinsic::StrLen => {
                     let src = self.visit_expr(opnd, DataDest::Alloc);
                     self.gen.set_position(pos);
                     self.gen.emit_nil_check(src);
@@ -1763,7 +1763,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let src = self.visit_expr(opnd, DataDest::Alloc);
 
         match intrinsic {
-            Intrinsic::GenericArrayLen | Intrinsic::StrLen => {
+            Intrinsic::ArrayLen | Intrinsic::StrLen => {
                 self.gen.set_position(pos);
                 self.gen.emit_array_length(dest, src);
             }
@@ -1873,7 +1873,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let intrinsic = info.intrinsic;
 
         match intrinsic {
-            Intrinsic::GenericArrayGet | Intrinsic::StrGet => {
+            Intrinsic::ArrayGet | Intrinsic::StrGet => {
                 let ty = self.src.ty(lhs.id());
                 let ty = self.specialize_type(ty);
                 let ty: Option<BytecodeType> =
@@ -2154,7 +2154,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         if let Some(info) = self.get_intrinsic(expr.id) {
             match info.intrinsic {
-                Intrinsic::GenericArraySet => {
+                Intrinsic::ArraySet => {
                     self.emit_intrinsic_array_set(object, index, value, expr.pos, DataDest::Effect);
                 }
                 _ => panic!("unexpected intrinsic {:?}", info.intrinsic),

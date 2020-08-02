@@ -396,13 +396,13 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
     );
 
     let clsid = vm.vips.array_class;
-    intrinsic_ctor(vm, clsid, Intrinsic::GenericArrayNew);
-    intrinsic_class_method(vm, clsid, "size", Intrinsic::GenericArrayLen);
-    intrinsic_class_method(vm, clsid, "get", Intrinsic::GenericArrayGet);
-    intrinsic_class_method(vm, clsid, "set", Intrinsic::GenericArraySet);
+    intrinsic_ctor(vm, clsid, Intrinsic::ArrayNewOfSize);
+    intrinsic_class_method(vm, clsid, "size", Intrinsic::ArrayLen);
+    intrinsic_class_method(vm, clsid, "get", Intrinsic::ArrayGet);
+    intrinsic_class_method(vm, clsid, "set", Intrinsic::ArraySet);
 
     let module_id = vm.vips.array_module;
-    intrinsic_module_method(vm, module_id, "ofSizeUnsafe", Intrinsic::GenericArrayNew);
+    intrinsic_module_method(vm, module_id, "ofSizeUnsafe", Intrinsic::ArrayNewOfSize);
 
     let clsid = vm.vips.stacktrace_class;
     native_class_method(
