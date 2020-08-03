@@ -396,7 +396,7 @@ pub enum BytecodeOpcode {
 }
 
 impl BytecodeOpcode {
-    pub fn need_position(&self) -> bool {
+    pub fn needs_position(&self) -> bool {
         match *self {
             BytecodeOpcode::DivInt32
             | BytecodeOpcode::DivInt64

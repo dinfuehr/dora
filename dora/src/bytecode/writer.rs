@@ -1201,7 +1201,7 @@ impl BytecodeWriter {
     }
 
     fn emit_values(&mut self, op: BytecodeOpcode, values: &[u32]) {
-        if op.need_position() {
+        if op.needs_position() {
             self.emit_position();
         }
 
