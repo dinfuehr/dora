@@ -5,7 +5,7 @@ use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 
-use crate::bytecode::{BytecodeFunction, BytecodeType, BytecodeWriter, Label, Register};
+use crate::bytecode::{BytecodeBuilder, BytecodeFunction, BytecodeType, Label, Register};
 use crate::semck::specialize::{specialize_class_ty, specialize_type};
 use crate::semck::{expr_always_returns, expr_block_always_returns};
 use crate::size::InstanceSize;
@@ -56,7 +56,7 @@ pub fn generate<'ast>(
         cls_type_params,
         fct_type_params,
 
-        gen: BytecodeWriter::new(),
+        gen: BytecodeBuilder::new(),
         loops: Vec::new(),
         var_registers: HashMap::new(),
         registers: Registers::new(),
@@ -73,7 +73,7 @@ struct AstBytecodeGen<'a, 'ast: 'a> {
     cls_type_params: &'a TypeList,
     fct_type_params: &'a TypeList,
 
-    gen: BytecodeWriter,
+    gen: BytecodeBuilder,
     loops: Vec<LoopLabels>,
     var_registers: HashMap<VarId, Register>,
     registers: Registers,
