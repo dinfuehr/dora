@@ -88,13 +88,15 @@ impl BytecodeBuilder {
         self.writer.emit_xor_int64(dest, lhs, rhs);
     }
 
-    pub fn emit_div_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    pub fn emit_div_int32(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
+        self.writer.set_position(pos);
         self.writer.emit_div_int32(dest, lhs, rhs);
     }
 
-    pub fn emit_div_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    pub fn emit_div_int64(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
+        self.writer.set_position(pos);
         self.writer.emit_div_int64(dest, lhs, rhs);
     }
 
