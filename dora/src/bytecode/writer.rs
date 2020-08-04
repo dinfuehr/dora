@@ -1032,6 +1032,7 @@ impl BytecodeWriter {
 
         if let Some(last_position) = last_position {
             if *last_position == position {
+                self.position = None;
                 return;
             }
         }
@@ -1043,6 +1044,8 @@ impl BytecodeWriter {
     fn emit_values(&mut self, op: BytecodeOpcode, values: &[u32]) {
         if op.needs_position() {
             self.emit_position();
+        } else {
+            assert!(self.position.is_none());
         }
 
         let is_wide = values.iter().any(|&val| val > u8::max_value() as u32);

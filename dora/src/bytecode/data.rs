@@ -141,7 +141,7 @@ impl From<BytecodeType> for BuiltinType {
 
 // Keep in sync with dora-boots/bytecode.dora
 
-#[derive(Copy, Clone, PartialEq, Eq, FromPrimitive, ToPrimitive)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, FromPrimitive, ToPrimitive)]
 pub enum BytecodeOpcode {
     Wide,
 
