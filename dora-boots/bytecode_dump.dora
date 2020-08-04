@@ -201,23 +201,8 @@ class BytecodeDumper(let bc: BytecodeFunction): BytecodeVisitor {
     @override fun visitMovFloat64(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("MovFloat64", dest, src); }
     @override fun visitMovPtr(dest: BytecodeRegister, src: BytecodeRegister) { self.emitReg2("MovPtr", dest, src); }
 
-    @override fun visitLoadFieldBool(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { self.emitField("LoadFieldBool", dest, obj, cls, field); }
-    @override fun visitLoadFieldUInt8(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { self.emitField("LoadFieldUInt8", dest, obj, cls, field); }
-    @override fun visitLoadFieldChar(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { self.emitField("LoadFieldChar", dest, obj, cls, field); }
-    @override fun visitLoadFieldInt32(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { self.emitField("LoadFieldInt32", dest, obj, cls, field); }
-    @override fun visitLoadFieldInt64(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { self.emitField("LoadFieldInt64", dest, obj, cls, field); }
-    @override fun visitLoadFieldFloat32(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { self.emitField("LoadFieldFloat32", dest, obj, cls, field); }
-    @override fun visitLoadFieldFloat64(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { self.emitField("LoadFieldFloat64", dest, obj, cls, field); }
-    @override fun visitLoadFieldPtr(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { self.emitField("LoadFieldPtr", dest, obj, cls, field); }
-
-    @override fun visitStoreFieldBool(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { self.emitField("StoreFieldBool", src, obj, cls, field); }
-    @override fun visitStoreFieldUInt8(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { self.emitField("StoreFieldUInt8", src, obj, cls, field); }
-    @override fun visitStoreFieldChar(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { self.emitField("StoreFieldChar", src, obj, cls, field); }
-    @override fun visitStoreFieldInt32(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { self.emitField("StoreFieldInt32", src, obj, cls, field); }
-    @override fun visitStoreFieldInt64(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { self.emitField("StoreFieldInt64", src, obj, cls, field); }
-    @override fun visitStoreFieldFloat32(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { self.emitField("StoreFieldFloat32", src, obj, cls, field); }
-    @override fun visitStoreFieldFloat64(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { self.emitField("StoreFieldFloat64", src, obj, cls, field); }
-    @override fun visitStoreFieldPtr(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { self.emitField("StoreFieldPtr", src, obj, cls, field); }
+    @override fun visitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { self.emitField("LoadField", dest, obj, cls, field); }
+    @override fun visitStoreField(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { self.emitField("StoreField", src, obj, cls, field); }
 
     @override fun visitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) { self.emitGlobal("LoadGlobal", dest, glob); }
     @override fun visitStoreGlobal(src: BytecodeRegister, glob: GlobalId) { self.emitGlobal("StoreGlobal", src, glob); }

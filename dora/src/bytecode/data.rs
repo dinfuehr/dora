@@ -246,25 +246,8 @@ pub enum BytecodeOpcode {
     LoadTupleElement,
     StoreTupleElement,
 
-    LoadFieldBool,
-    LoadFieldUInt8,
-    LoadFieldChar,
-    LoadFieldInt32,
-    LoadFieldInt64,
-    LoadFieldFloat32,
-    LoadFieldFloat64,
-    LoadFieldPtr,
-    LoadFieldTuple,
-
-    StoreFieldBool,
-    StoreFieldUInt8,
-    StoreFieldChar,
-    StoreFieldInt32,
-    StoreFieldInt64,
-    StoreFieldFloat32,
-    StoreFieldFloat64,
-    StoreFieldPtr,
-    StoreFieldTuple,
+    LoadField,
+    StoreField,
 
     LoadGlobal,
     StoreGlobal,
@@ -404,24 +387,8 @@ impl BytecodeOpcode {
             | BytecodeOpcode::ModInt64
             | BytecodeOpcode::InstanceOf
             | BytecodeOpcode::CheckedCast
-            | BytecodeOpcode::LoadFieldBool
-            | BytecodeOpcode::LoadFieldUInt8
-            | BytecodeOpcode::LoadFieldChar
-            | BytecodeOpcode::LoadFieldInt32
-            | BytecodeOpcode::LoadFieldInt64
-            | BytecodeOpcode::LoadFieldFloat32
-            | BytecodeOpcode::LoadFieldFloat64
-            | BytecodeOpcode::LoadFieldPtr
-            | BytecodeOpcode::LoadFieldTuple
-            | BytecodeOpcode::StoreFieldBool
-            | BytecodeOpcode::StoreFieldUInt8
-            | BytecodeOpcode::StoreFieldChar
-            | BytecodeOpcode::StoreFieldInt32
-            | BytecodeOpcode::StoreFieldInt64
-            | BytecodeOpcode::StoreFieldFloat32
-            | BytecodeOpcode::StoreFieldFloat64
-            | BytecodeOpcode::StoreFieldPtr
-            | BytecodeOpcode::StoreFieldTuple
+            | BytecodeOpcode::LoadField
+            | BytecodeOpcode::StoreField
             | BytecodeOpcode::InvokeDirectVoid
             | BytecodeOpcode::InvokeDirect
             | BytecodeOpcode::InvokeVirtualVoid

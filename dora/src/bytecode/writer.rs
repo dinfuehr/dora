@@ -137,184 +137,24 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::DivFloat64, dest, lhs, rhs);
     }
 
-    pub fn emit_load_field_bool(
+    pub fn emit_load_field(
         &mut self,
         dest: Register,
         obj: Register,
         cls: ClassDefId,
         field: FieldId,
     ) {
-        self.emit_access_field(BytecodeOpcode::LoadFieldBool, dest, obj, cls, field);
+        self.emit_access_field(BytecodeOpcode::LoadField, dest, obj, cls, field);
     }
 
-    pub fn emit_load_field_uint8(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit_access_field(BytecodeOpcode::LoadFieldUInt8, dest, obj, cls, field);
-    }
-
-    pub fn emit_load_field_char(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit_access_field(BytecodeOpcode::LoadFieldChar, dest, obj, cls, field);
-    }
-
-    pub fn emit_load_field_int32(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit_access_field(BytecodeOpcode::LoadFieldInt32, dest, obj, cls, field);
-    }
-
-    pub fn emit_load_field_int64(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit_access_field(BytecodeOpcode::LoadFieldInt64, dest, obj, cls, field);
-    }
-
-    pub fn emit_load_field_float32(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit_access_field(BytecodeOpcode::LoadFieldFloat32, dest, obj, cls, field);
-    }
-
-    pub fn emit_load_field_float64(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit_access_field(BytecodeOpcode::LoadFieldFloat64, dest, obj, cls, field);
-    }
-
-    pub fn emit_load_field_ptr(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit_access_field(BytecodeOpcode::LoadFieldPtr, dest, obj, cls, field);
-    }
-
-    pub fn emit_load_field_tuple(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit_access_field(BytecodeOpcode::LoadFieldTuple, dest, obj, cls, field);
-    }
-
-    pub fn emit_store_field_bool(
+    pub fn emit_store_field(
         &mut self,
         src: Register,
         obj: Register,
         cls: ClassDefId,
         field: FieldId,
     ) {
-        self.emit_access_field(BytecodeOpcode::StoreFieldBool, src, obj, cls, field);
-    }
-
-    pub fn emit_store_field_uint8(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit_access_field(BytecodeOpcode::StoreFieldUInt8, src, obj, cls, field);
-    }
-
-    pub fn emit_store_field_char(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit_access_field(BytecodeOpcode::StoreFieldChar, src, obj, cls, field);
-    }
-
-    pub fn emit_store_field_int32(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit_access_field(BytecodeOpcode::StoreFieldInt32, src, obj, cls, field);
-    }
-
-    pub fn emit_store_field_int64(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit_access_field(BytecodeOpcode::StoreFieldInt64, src, obj, cls, field);
-    }
-
-    pub fn emit_store_field_float32(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit_access_field(BytecodeOpcode::StoreFieldFloat32, src, obj, cls, field);
-    }
-
-    pub fn emit_store_field_float64(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit_access_field(BytecodeOpcode::StoreFieldFloat64, src, obj, cls, field);
-    }
-
-    pub fn emit_store_field_ptr(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit_access_field(BytecodeOpcode::StoreFieldPtr, src, obj, cls, field);
-    }
-
-    pub fn emit_store_field_tuple(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit_access_field(BytecodeOpcode::StoreFieldTuple, src, obj, cls, field);
+        self.emit_access_field(BytecodeOpcode::StoreField, src, obj, cls, field);
     }
 
     pub fn emit_const_nil(&mut self, dest: Register) {

@@ -110,7 +110,7 @@ impl BytecodeBuilder {
         self.writer.emit_div_float64(dest, lhs, rhs);
     }
 
-    pub fn emit_load_field_bool(
+    pub fn emit_load_field(
         &mut self,
         dest: Register,
         obj: Register,
@@ -118,98 +118,10 @@ impl BytecodeBuilder {
         field: FieldId,
     ) {
         assert!(self.def(dest) && self.used(obj));
-        self.writer.emit_load_field_bool(dest, obj, cls, field);
+        self.writer.emit_load_field(dest, obj, cls, field);
     }
 
-    pub fn emit_load_field_uint8(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        assert!(self.def(dest) && self.used(obj));
-        self.writer.emit_load_field_uint8(dest, obj, cls, field);
-    }
-
-    pub fn emit_load_field_char(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        assert!(self.def(dest) && self.used(obj));
-        self.writer.emit_load_field_char(dest, obj, cls, field);
-    }
-
-    pub fn emit_load_field_int32(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        assert!(self.def(dest) && self.used(obj));
-        self.writer.emit_load_field_int32(dest, obj, cls, field);
-    }
-
-    pub fn emit_load_field_int64(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        assert!(self.def(dest) && self.used(obj));
-        self.writer.emit_load_field_int64(dest, obj, cls, field);
-    }
-
-    pub fn emit_load_field_float32(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        assert!(self.def(dest) && self.used(obj));
-        self.writer.emit_load_field_float32(dest, obj, cls, field);
-    }
-
-    pub fn emit_load_field_float64(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        assert!(self.def(dest) && self.used(obj));
-        self.writer.emit_load_field_float64(dest, obj, cls, field);
-    }
-
-    pub fn emit_load_field_ptr(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        assert!(self.def(dest) && self.used(obj));
-        self.writer.emit_load_field_ptr(dest, obj, cls, field);
-    }
-
-    pub fn emit_load_field_tuple(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        assert!(self.def(dest) && self.used(obj));
-        self.writer.emit_load_field_tuple(dest, obj, cls, field);
-    }
-
-    pub fn emit_store_field_bool(
+    pub fn emit_store_field(
         &mut self,
         src: Register,
         obj: Register,
@@ -217,95 +129,7 @@ impl BytecodeBuilder {
         field: FieldId,
     ) {
         assert!(self.used(src) && self.used(obj));
-        self.writer.emit_store_field_bool(src, obj, cls, field);
-    }
-
-    pub fn emit_store_field_uint8(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        assert!(self.used(src) && self.used(obj));
-        self.writer.emit_store_field_uint8(src, obj, cls, field);
-    }
-
-    pub fn emit_store_field_char(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        assert!(self.used(src) && self.used(obj));
-        self.writer.emit_store_field_char(src, obj, cls, field);
-    }
-
-    pub fn emit_store_field_int32(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        assert!(self.used(src) && self.used(obj));
-        self.writer.emit_store_field_int32(src, obj, cls, field);
-    }
-
-    pub fn emit_store_field_int64(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        assert!(self.used(src) && self.used(obj));
-        self.writer.emit_store_field_int64(src, obj, cls, field);
-    }
-
-    pub fn emit_store_field_float32(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        assert!(self.used(src) && self.used(obj));
-        self.writer.emit_store_field_float32(src, obj, cls, field);
-    }
-
-    pub fn emit_store_field_float64(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        assert!(self.used(src) && self.used(obj));
-        self.writer.emit_store_field_float64(src, obj, cls, field);
-    }
-
-    pub fn emit_store_field_ptr(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        assert!(self.used(src) && self.used(obj));
-        self.writer.emit_store_field_ptr(src, obj, cls, field);
-    }
-
-    pub fn emit_store_field_tuple(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        assert!(self.used(src) && self.used(obj));
-        self.writer.emit_store_field_tuple(src, obj, cls, field);
+        self.writer.emit_store_field(src, obj, cls, field);
     }
 
     pub fn emit_const_nil(&mut self, dest: Register) {

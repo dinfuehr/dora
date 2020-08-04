@@ -99,26 +99,10 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fun visitMovFloat64(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
     @open fun visitMovPtr(dest: BytecodeRegister, src: BytecodeRegister) { unimplemented(); }
 
-    @open fun visitLoadFieldBool(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
-    @open fun visitLoadFieldUInt8(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
-    @open fun visitLoadFieldChar(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
-    @open fun visitLoadFieldInt32(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
-    @open fun visitLoadFieldInt64(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
-    @open fun visitLoadFieldFloat32(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
-    @open fun visitLoadFieldFloat64(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
-    @open fun visitLoadFieldPtr(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
-
-    @open fun visitStoreFieldBool(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
-    @open fun visitStoreFieldUInt8(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
-    @open fun visitStoreFieldChar(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
-    @open fun visitStoreFieldInt32(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
-    @open fun visitStoreFieldInt64(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
-    @open fun visitStoreFieldFloat32(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
-    @open fun visitStoreFieldFloat64(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
-    @open fun visitStoreFieldPtr(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @open fun visitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
+    @open fun visitStoreField(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) { unimplemented(); }
 
     @open fun visitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) { unimplemented(); }
-
     @open fun visitStoreGlobal(src: BytecodeRegister, glob: GlobalId) { unimplemented(); }
 
     @open fun visitPushRegister(src: BytecodeRegister) { unimplemented(); }
@@ -312,23 +296,8 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fun visitMovFloat64(dest: BytecodeRegister, src: BytecodeRegister) {}
     @override fun visitMovPtr(dest: BytecodeRegister, src: BytecodeRegister) {}
 
-    @override fun visitLoadFieldBool(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitLoadFieldUInt8(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitLoadFieldChar(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitLoadFieldInt32(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitLoadFieldInt64(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitLoadFieldFloat32(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitLoadFieldFloat64(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitLoadFieldPtr(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-
-    @override fun visitStoreFieldBool(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitStoreFieldUInt8(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitStoreFieldChar(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitStoreFieldInt32(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitStoreFieldInt64(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitStoreFieldFloat32(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitStoreFieldFloat64(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
-    @override fun visitStoreFieldPtr(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
+    @override fun visitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
+    @override fun visitStoreField(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {}
 
     @override fun visitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) {}
     @override fun visitStoreGlobal(src: BytecodeRegister, glob: GlobalId) {}
@@ -906,103 +875,18 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let src = self.readRegister(wide);
             self.visitor.visitMovPtr(dest, src);
 
-        } else if opcode == BC_LOAD_FIELD_BOOL {
+        } else if opcode == BC_LOAD_FIELD {
             let dest = self.readRegister(wide);
             let obj = self.readRegister(wide);
             let cls = self.readClassDefId(wide);
             let field = self.readFieldId(wide);
-            self.visitor.visitLoadFieldBool(dest, obj, cls, field);
-        } else if opcode == BC_LOAD_FIELD_UINT8 {
-            let dest = self.readRegister(wide);
-            let obj = self.readRegister(wide);
-            let cls = self.readClassDefId(wide);
-            let field = self.readFieldId(wide);
-            self.visitor.visitLoadFieldUInt8(dest, obj, cls, field);
-        } else if opcode == BC_LOAD_FIELD_CHAR {
-            let dest = self.readRegister(wide);
-            let obj = self.readRegister(wide);
-            let cls = self.readClassDefId(wide);
-            let field = self.readFieldId(wide);
-            self.visitor.visitLoadFieldChar(dest, obj, cls, field);
-        } else if opcode == BC_LOAD_FIELD_INT32 {
-            let dest = self.readRegister(wide);
-            let obj = self.readRegister(wide);
-            let cls = self.readClassDefId(wide);
-            let field = self.readFieldId(wide);
-            self.visitor.visitLoadFieldInt32(dest, obj, cls, field);
-        } else if opcode == BC_LOAD_FIELD_INT64 {
-            let dest = self.readRegister(wide);
-            let obj = self.readRegister(wide);
-            let cls = self.readClassDefId(wide);
-            let field = self.readFieldId(wide);
-            self.visitor.visitLoadFieldInt64(dest, obj, cls, field);
-        } else if opcode == BC_LOAD_FIELD_FLOAT32{
-            let dest = self.readRegister(wide);
-            let obj = self.readRegister(wide);
-            let cls = self.readClassDefId(wide);
-            let field = self.readFieldId(wide);
-            self.visitor.visitLoadFieldFloat32(dest, obj, cls, field);
-        } else if opcode == BC_LOAD_FIELD_FLOAT64 {
-            let dest = self.readRegister(wide);
-            let obj = self.readRegister(wide);
-            let cls = self.readClassDefId(wide);
-            let field = self.readFieldId(wide);
-            self.visitor.visitLoadFieldFloat64(dest, obj, cls, field);
-        } else if opcode == BC_LOAD_FIELD_PTR {
-            let dest = self.readRegister(wide);
-            let obj = self.readRegister(wide);
-            let cls = self.readClassDefId(wide);
-            let field = self.readFieldId(wide);
-            self.visitor.visitLoadFieldPtr(dest, obj, cls, field);
-
-        } else if opcode == BC_STORE_FIELD_BOOL {
+            self.visitor.visitLoadField(dest, obj, cls, field);
+        } else if opcode == BC_STORE_FIELD {
             let src = self.readRegister(wide);
             let obj = self.readRegister(wide);
             let cls = self.readClassDefId(wide);
             let field = self.readFieldId(wide);
-            self.visitor.visitStoreFieldBool(src, obj, cls, field);
-        } else if opcode == BC_STORE_FIELD_UINT8 {
-            let src = self.readRegister(wide);
-            let obj = self.readRegister(wide);
-            let cls = self.readClassDefId(wide);
-            let field = self.readFieldId(wide);
-            self.visitor.visitStoreFieldUInt8(src, obj, cls, field);
-        } else if opcode == BC_STORE_FIELD_CHAR {
-            let src = self.readRegister(wide);
-            let obj = self.readRegister(wide);
-            let cls = self.readClassDefId(wide);
-            let field = self.readFieldId(wide);
-            self.visitor.visitStoreFieldChar(src, obj, cls, field);
-        } else if opcode == BC_STORE_FIELD_INT32 {
-            let src = self.readRegister(wide);
-            let obj = self.readRegister(wide);
-            let cls = self.readClassDefId(wide);
-            let field = self.readFieldId(wide);
-            self.visitor.visitStoreFieldInt32(src, obj, cls, field);
-        } else if opcode == BC_STORE_FIELD_INT64 {
-            let src = self.readRegister(wide);
-            let obj = self.readRegister(wide);
-            let cls = self.readClassDefId(wide);
-            let field = self.readFieldId(wide);
-            self.visitor.visitStoreFieldInt64(src, obj, cls, field);
-        } else if opcode == BC_STORE_FIELD_FLOAT32{
-            let src = self.readRegister(wide);
-            let obj = self.readRegister(wide);
-            let cls = self.readClassDefId(wide);
-            let field = self.readFieldId(wide);
-            self.visitor.visitStoreFieldFloat32(src, obj, cls, field);
-        } else if opcode == BC_STORE_FIELD_FLOAT64 {
-            let src = self.readRegister(wide);
-            let obj = self.readRegister(wide);
-            let cls = self.readClassDefId(wide);
-            let field = self.readFieldId(wide);
-            self.visitor.visitStoreFieldFloat64(src, obj, cls, field);
-        } else if opcode == BC_STORE_FIELD_PTR {
-            let src = self.readRegister(wide);
-            let obj = self.readRegister(wide);
-            let cls = self.readClassDefId(wide);
-            let field = self.readFieldId(wide);
-            self.visitor.visitStoreFieldPtr(src, obj, cls, field);
+            self.visitor.visitStoreField(src, obj, cls, field);
 
         } else if opcode == BC_LOAD_GLOBAL {
             let dest = self.readRegister(wide);

@@ -77,91 +77,7 @@ fn gen_load_field_uint8() {
         "class Foo(let bar: UInt8) fun f(a: Foo) -> UInt8 { return a.bar; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldUInt8(r(1), r(0), cls, field), Ret(r(1))];
-            assert_eq!(expected, code);
-        },
-    );
-}
-
-#[test]
-fn gen_load_field_bool() {
-    gen(
-        "class Foo(let bar: Bool) fun f(a: Foo) -> Bool { return a.bar; }",
-        |vm, code| {
-            let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldBool(r(1), r(0), cls, field), Ret(r(1))];
-            assert_eq!(expected, code);
-        },
-    );
-}
-
-#[test]
-fn gen_load_field_char() {
-    gen(
-        "class Foo(let bar: Char) fun f(a: Foo) -> Char { return a.bar; }",
-        |vm, code| {
-            let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldChar(r(1), r(0), cls, field), Ret(r(1))];
-            assert_eq!(expected, code);
-        },
-    );
-}
-
-#[test]
-fn gen_load_field_int32() {
-    gen(
-        "class Foo(let bar: Int32) fun f(a: Foo) -> Int32 { return a.bar; }",
-        |vm, code| {
-            let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldInt32(r(1), r(0), cls, field), Ret(r(1))];
-            assert_eq!(expected, code);
-        },
-    );
-}
-
-#[test]
-fn gen_load_field_int64() {
-    gen(
-        "class Foo(let bar: Int64) fun f(a: Foo) -> Int64 { return a.bar; }",
-        |vm, code| {
-            let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldInt64(r(1), r(0), cls, field), Ret(r(1))];
-            assert_eq!(expected, code);
-        },
-    );
-}
-
-#[test]
-fn gen_load_field_float32() {
-    gen(
-        "class Foo(let bar: Float32) fun f(a: Foo) -> Float32 { return a.bar; }",
-        |vm, code| {
-            let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldFloat32(r(1), r(0), cls, field), Ret(r(1))];
-            assert_eq!(expected, code);
-        },
-    );
-}
-
-#[test]
-fn gen_load_field_float64() {
-    gen(
-        "class Foo(let bar: Float64) fun f(a: Foo) -> Float64 { return a.bar; }",
-        |vm, code| {
-            let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldFloat64(r(1), r(0), cls, field), Ret(r(1))];
-            assert_eq!(expected, code);
-        },
-    );
-}
-
-#[test]
-fn gen_load_field_ptr() {
-    gen(
-        "class Foo(let bar: Object) fun f(a: Foo) -> Object { return a.bar; }",
-        |vm, code| {
-            let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![LoadFieldPtr(r(1), r(0), cls, field), Ret(r(1))];
+            let expected = vec![LoadField(r(1), r(0), cls, field), Ret(r(1))];
             assert_eq!(expected, code);
         },
     );
@@ -175,145 +91,12 @@ fn gen_position_load_field_uint8() {
 }
 
 #[test]
-fn gen_position_load_field_bool() {
-    let result = position("class Foo(let bar: Bool) fun f(a: Foo) -> Bool { return a.bar; }");
-    let expected = vec![(0, p(1, 58))];
-    assert_eq!(expected, result);
-}
-
-#[test]
-fn gen_position_load_field_char() {
-    let result = position("class Foo(let bar: Char) fun f(a: Foo) -> Char { return a.bar; }");
-    let expected = vec![(0, p(1, 58))];
-    assert_eq!(expected, result);
-}
-
-#[test]
-fn gen_position_load_field_int32() {
-    let result = position("class Foo(let bar: Int32) fun f(a: Foo) -> Int32 { return a.bar; }");
-    let expected = vec![(0, p(1, 60))];
-    assert_eq!(expected, result);
-}
-
-#[test]
-fn gen_position_load_field_int64() {
-    let result = position("class Foo(let bar: Int64) fun f(a: Foo) -> Int64 { return a.bar; }");
-    let expected = vec![(0, p(1, 60))];
-    assert_eq!(expected, result);
-}
-
-#[test]
-fn gen_position_load_field_float32() {
-    let result = position("class Foo(let bar: Float32) fun f(a: Foo) -> Float32 { return a.bar; }");
-    let expected = vec![(0, p(1, 64))];
-    assert_eq!(expected, result);
-}
-
-#[test]
-fn gen_position_load_field_float64() {
-    let result = position("class Foo(let bar: Float64) fun f(a: Foo) -> Float64 { return a.bar; }");
-    let expected = vec![(0, p(1, 64))];
-    assert_eq!(expected, result);
-}
-
-#[test]
-fn gen_position_load_field_ptr() {
-    let result = position("class Foo(let bar: Object) fun f(a: Foo) -> Object { return a.bar; }");
-    let expected = vec![(0, p(1, 62))];
-    assert_eq!(expected, result);
-}
-
-#[test]
 fn gen_store_field_uint8() {
     gen(
         "class Foo(var bar: UInt8) fun f(a: Foo, b: UInt8) { a.bar = b; }",
         |vm, code| {
             let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![StoreFieldUInt8(r(1), r(0), cls, field), RetVoid];
-            assert_eq!(expected, code);
-        },
-    );
-}
-
-#[test]
-fn gen_store_field_bool() {
-    gen(
-        "class Foo(var bar: Bool) fun f(a: Foo, b: Bool) { a.bar = b; }",
-        |vm, code| {
-            let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![StoreFieldBool(r(1), r(0), cls, field), RetVoid];
-            assert_eq!(expected, code);
-        },
-    );
-}
-
-#[test]
-fn gen_store_field_char() {
-    gen(
-        "class Foo(var bar: Char) fun f(a: Foo, b: Char) { a.bar = b; }",
-        |vm, code| {
-            let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![StoreFieldChar(r(1), r(0), cls, field), RetVoid];
-            assert_eq!(expected, code);
-        },
-    );
-}
-
-#[test]
-fn gen_store_field_int32() {
-    gen(
-        "class Foo(var bar: Int32) fun f(a: Foo, b: Int32) { a.bar = b; }",
-        |vm, code| {
-            let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![StoreFieldInt32(r(1), r(0), cls, field), RetVoid];
-            assert_eq!(expected, code);
-        },
-    );
-}
-
-#[test]
-fn gen_store_field_int64() {
-    gen(
-        "class Foo(var bar: Int64) fun f(a: Foo, b: Int64) { a.bar = b; }",
-        |vm, code| {
-            let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![StoreFieldInt64(r(1), r(0), cls, field), RetVoid];
-            assert_eq!(expected, code);
-        },
-    );
-}
-
-#[test]
-fn gen_store_field_float32() {
-    gen(
-        "class Foo(var bar: Float32) fun f(a: Foo, b: Float32) { a.bar = b; }",
-        |vm, code| {
-            let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![StoreFieldFloat32(r(1), r(0), cls, field), RetVoid];
-            assert_eq!(expected, code);
-        },
-    );
-}
-
-#[test]
-fn gen_store_field_float64() {
-    gen(
-        "class Foo(var bar: Float64) fun f(a: Foo, b: Float64) { a.bar = b; }",
-        |vm, code| {
-            let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![StoreFieldFloat64(r(1), r(0), cls, field), RetVoid];
-            assert_eq!(expected, code);
-        },
-    );
-}
-
-#[test]
-fn gen_store_field_ptr() {
-    gen(
-        "class Foo(var bar: Object) fun f(a: Foo, b: Object) { a.bar = b; }",
-        |vm, code| {
-            let (cls, field) = vm.field_by_name("Foo", "bar");
-            let expected = vec![StoreFieldPtr(r(1), r(0), cls, field), RetVoid];
+            let expected = vec![StoreField(r(1), r(0), cls, field), RetVoid];
             assert_eq!(expected, code);
         },
     );
@@ -323,55 +106,6 @@ fn gen_store_field_ptr() {
 fn gen_position_store_field_uint8() {
     let result = position("class Foo(var bar: UInt8) fun f(a: Foo, b: UInt8) { a.bar = b; }");
     let expected = vec![(0, p(1, 59))];
-    assert_eq!(expected, result);
-}
-
-#[test]
-fn gen_position_store_field_bool() {
-    let result = position("class Foo(var bar: Bool) fun f(a: Foo, b: Bool) { a.bar = b; }");
-    let expected = vec![(0, p(1, 57))];
-    assert_eq!(expected, result);
-}
-
-#[test]
-fn gen_position_store_field_char() {
-    let result = position("class Foo(var bar: Char) fun f(a: Foo, b: Char) { a.bar = b; }");
-    let expected = vec![(0, p(1, 57))];
-    assert_eq!(expected, result);
-}
-
-#[test]
-fn gen_position_store_field_int32() {
-    let result = position("class Foo(var bar: Int32) fun f(a: Foo, b: Int32) { a.bar = b; }");
-    let expected = vec![(0, p(1, 59))];
-    assert_eq!(expected, result);
-}
-
-#[test]
-fn gen_position_store_field_int64() {
-    let result = position("class Foo(var bar: Int64) fun f(a: Foo, b: Int64) { a.bar = b; }");
-    let expected = vec![(0, p(1, 59))];
-    assert_eq!(expected, result);
-}
-
-#[test]
-fn gen_position_store_field_float32() {
-    let result = position("class Foo(var bar: Float32) fun f(a: Foo, b: Float32) { a.bar = b; }");
-    let expected = vec![(0, p(1, 63))];
-    assert_eq!(expected, result);
-}
-
-#[test]
-fn gen_position_store_field_float64() {
-    let result = position("class Foo(var bar: Float64) fun f(a: Foo, b: Float64) { a.bar = b; }");
-    let expected = vec![(0, p(1, 63))];
-    assert_eq!(expected, result);
-}
-
-#[test]
-fn gen_position_store_field_ptr() {
-    let result = position("class Foo(var bar: Object) fun f(a: Foo, b: Object) { a.bar = b; }");
-    let expected = vec![(0, p(1, 61))];
     assert_eq!(expected, result);
 }
 
@@ -3404,23 +3138,8 @@ pub enum Bytecode {
 
     LoadTupleElement(Register, Register, TupleId, u32),
 
-    LoadFieldBool(Register, Register, ClassDefId, FieldId),
-    LoadFieldUInt8(Register, Register, ClassDefId, FieldId),
-    LoadFieldChar(Register, Register, ClassDefId, FieldId),
-    LoadFieldInt32(Register, Register, ClassDefId, FieldId),
-    LoadFieldInt64(Register, Register, ClassDefId, FieldId),
-    LoadFieldFloat32(Register, Register, ClassDefId, FieldId),
-    LoadFieldFloat64(Register, Register, ClassDefId, FieldId),
-    LoadFieldPtr(Register, Register, ClassDefId, FieldId),
-
-    StoreFieldBool(Register, Register, ClassDefId, FieldId),
-    StoreFieldUInt8(Register, Register, ClassDefId, FieldId),
-    StoreFieldChar(Register, Register, ClassDefId, FieldId),
-    StoreFieldInt32(Register, Register, ClassDefId, FieldId),
-    StoreFieldInt64(Register, Register, ClassDefId, FieldId),
-    StoreFieldFloat32(Register, Register, ClassDefId, FieldId),
-    StoreFieldFloat64(Register, Register, ClassDefId, FieldId),
-    StoreFieldPtr(Register, Register, ClassDefId, FieldId),
+    LoadField(Register, Register, ClassDefId, FieldId),
+    StoreField(Register, Register, ClassDefId, FieldId),
 
     LoadGlobal(Register, GlobalId),
     StoreGlobal(Register, GlobalId),
@@ -3865,150 +3584,12 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::LoadTupleElement(src, dest, tuple_id, element));
     }
 
-    fn visit_load_field_bool(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit(Bytecode::LoadFieldBool(dest, obj, cls, field));
-    }
-    fn visit_load_field_uint8(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit(Bytecode::LoadFieldUInt8(dest, obj, cls, field));
-    }
-    fn visit_load_field_char(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit(Bytecode::LoadFieldChar(dest, obj, cls, field));
-    }
-    fn visit_load_field_int32(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit(Bytecode::LoadFieldInt32(dest, obj, cls, field));
-    }
-    fn visit_load_field_int64(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit(Bytecode::LoadFieldInt64(dest, obj, cls, field));
-    }
-    fn visit_load_field_float32(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit(Bytecode::LoadFieldFloat32(dest, obj, cls, field));
-    }
-    fn visit_load_field_float64(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit(Bytecode::LoadFieldFloat64(dest, obj, cls, field));
-    }
-    fn visit_load_field_ptr(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit(Bytecode::LoadFieldPtr(dest, obj, cls, field));
+    fn visit_load_field(&mut self, dest: Register, obj: Register, cls: ClassDefId, field: FieldId) {
+        self.emit(Bytecode::LoadField(dest, obj, cls, field));
     }
 
-    fn visit_store_field_bool(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit(Bytecode::StoreFieldBool(src, obj, cls, field));
-    }
-    fn visit_store_field_uint8(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit(Bytecode::StoreFieldUInt8(src, obj, cls, field));
-    }
-    fn visit_store_field_char(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit(Bytecode::StoreFieldChar(src, obj, cls, field));
-    }
-    fn visit_store_field_int32(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit(Bytecode::StoreFieldInt32(src, obj, cls, field));
-    }
-    fn visit_store_field_int64(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit(Bytecode::StoreFieldInt64(src, obj, cls, field));
-    }
-    fn visit_store_field_float32(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit(Bytecode::StoreFieldFloat32(src, obj, cls, field));
-    }
-    fn visit_store_field_float64(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit(Bytecode::StoreFieldFloat64(src, obj, cls, field));
-    }
-    fn visit_store_field_ptr(
-        &mut self,
-        src: Register,
-        obj: Register,
-        cls: ClassDefId,
-        field: FieldId,
-    ) {
-        self.emit(Bytecode::StoreFieldPtr(src, obj, cls, field));
+    fn visit_store_field(&mut self, src: Register, obj: Register, cls: ClassDefId, field: FieldId) {
+        self.emit(Bytecode::StoreField(src, obj, cls, field));
     }
 
     fn visit_load_global(&mut self, dest: Register, glob: GlobalId) {

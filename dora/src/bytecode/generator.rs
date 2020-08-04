@@ -569,37 +569,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let obj = self.visit_expr(&expr.lhs, DataDest::Alloc);
 
         self.gen.set_position(expr.pos);
-
-        match field_bc_ty {
-            BytecodeType::UInt8 => self
-                .gen
-                .emit_load_field_uint8(dest, obj, cls_def_id, field_id),
-            BytecodeType::Bool => self
-                .gen
-                .emit_load_field_bool(dest, obj, cls_def_id, field_id),
-            BytecodeType::Char => self
-                .gen
-                .emit_load_field_char(dest, obj, cls_def_id, field_id),
-            BytecodeType::Int32 => self
-                .gen
-                .emit_load_field_int32(dest, obj, cls_def_id, field_id),
-            BytecodeType::Int64 => self
-                .gen
-                .emit_load_field_int64(dest, obj, cls_def_id, field_id),
-            BytecodeType::Float32 => self
-                .gen
-                .emit_load_field_float32(dest, obj, cls_def_id, field_id),
-            BytecodeType::Float64 => self
-                .gen
-                .emit_load_field_float64(dest, obj, cls_def_id, field_id),
-            BytecodeType::Ptr => self
-                .gen
-                .emit_load_field_ptr(dest, obj, cls_def_id, field_id),
-            BytecodeType::Tuple(_) => self
-                .gen
-                .emit_load_field_tuple(dest, obj, cls_def_id, field_id),
-        }
-
+        self.gen.emit_load_field(dest, obj, cls_def_id, field_id);
         self.free_if_temp(obj);
 
         dest
@@ -2215,21 +2185,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             return;
         }
 
-        match ty.unwrap() {
-            BytecodeType::UInt8 => self.gen.emit_store_field_uint8(src, obj, cls_id, field_id),
-            BytecodeType::Bool => self.gen.emit_store_field_bool(src, obj, cls_id, field_id),
-            BytecodeType::Char => self.gen.emit_store_field_char(src, obj, cls_id, field_id),
-            BytecodeType::Int32 => self.gen.emit_store_field_int32(src, obj, cls_id, field_id),
-            BytecodeType::Int64 => self.gen.emit_store_field_int64(src, obj, cls_id, field_id),
-            BytecodeType::Float32 => self
-                .gen
-                .emit_store_field_float32(src, obj, cls_id, field_id),
-            BytecodeType::Float64 => self
-                .gen
-                .emit_store_field_float64(src, obj, cls_id, field_id),
-            BytecodeType::Ptr => self.gen.emit_store_field_ptr(src, obj, cls_id, field_id),
-            BytecodeType::Tuple(_) => self.gen.emit_store_field_tuple(src, obj, cls_id, field_id),
-        }
+        self.gen.emit_store_field(src, obj, cls_id, field_id);
 
         self.free_if_temp(obj);
         self.free_if_temp(src);

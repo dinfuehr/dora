@@ -497,132 +497,20 @@ where
                     .visit_store_tuple_element(src, dest, tuple, element);
             }
 
-            BytecodeOpcode::LoadFieldBool => {
+            BytecodeOpcode::LoadField => {
                 let dest = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
                 let field = self.read_field(wide);
-                self.visitor.visit_load_field_bool(dest, obj, cls, field);
-            }
-            BytecodeOpcode::LoadFieldUInt8 => {
-                let dest = self.read_register(wide);
-                let obj = self.read_register(wide);
-                let cls = self.read_class(wide);
-                let field = self.read_field(wide);
-                self.visitor.visit_load_field_uint8(dest, obj, cls, field);
-            }
-            BytecodeOpcode::LoadFieldChar => {
-                let dest = self.read_register(wide);
-                let obj = self.read_register(wide);
-                let cls = self.read_class(wide);
-                let field = self.read_field(wide);
-                self.visitor.visit_load_field_char(dest, obj, cls, field);
-            }
-            BytecodeOpcode::LoadFieldInt32 => {
-                let dest = self.read_register(wide);
-                let obj = self.read_register(wide);
-                let cls = self.read_class(wide);
-                let field = self.read_field(wide);
-                self.visitor.visit_load_field_int32(dest, obj, cls, field);
-            }
-            BytecodeOpcode::LoadFieldInt64 => {
-                let dest = self.read_register(wide);
-                let obj = self.read_register(wide);
-                let cls = self.read_class(wide);
-                let field = self.read_field(wide);
-                self.visitor.visit_load_field_int64(dest, obj, cls, field);
-            }
-            BytecodeOpcode::LoadFieldFloat32 => {
-                let dest = self.read_register(wide);
-                let obj = self.read_register(wide);
-                let cls = self.read_class(wide);
-                let field = self.read_field(wide);
-                self.visitor.visit_load_field_float32(dest, obj, cls, field);
-            }
-            BytecodeOpcode::LoadFieldFloat64 => {
-                let dest = self.read_register(wide);
-                let obj = self.read_register(wide);
-                let cls = self.read_class(wide);
-                let field = self.read_field(wide);
-                self.visitor.visit_load_field_float64(dest, obj, cls, field);
-            }
-            BytecodeOpcode::LoadFieldPtr => {
-                let dest = self.read_register(wide);
-                let obj = self.read_register(wide);
-                let cls = self.read_class(wide);
-                let field = self.read_field(wide);
-                self.visitor.visit_load_field_ptr(dest, obj, cls, field);
-            }
-            BytecodeOpcode::LoadFieldTuple => {
-                let dest = self.read_register(wide);
-                let obj = self.read_register(wide);
-                let cls = self.read_class(wide);
-                let field = self.read_field(wide);
-                self.visitor.visit_load_field_tuple(dest, obj, cls, field);
+                self.visitor.visit_load_field(dest, obj, cls, field);
             }
 
-            BytecodeOpcode::StoreFieldBool => {
+            BytecodeOpcode::StoreField => {
                 let src = self.read_register(wide);
                 let obj = self.read_register(wide);
                 let cls = self.read_class(wide);
                 let field = self.read_field(wide);
-                self.visitor.visit_store_field_bool(src, obj, cls, field);
-            }
-            BytecodeOpcode::StoreFieldUInt8 => {
-                let src = self.read_register(wide);
-                let obj = self.read_register(wide);
-                let cls = self.read_class(wide);
-                let field = self.read_field(wide);
-                self.visitor.visit_store_field_uint8(src, obj, cls, field);
-            }
-            BytecodeOpcode::StoreFieldChar => {
-                let src = self.read_register(wide);
-                let obj = self.read_register(wide);
-                let cls = self.read_class(wide);
-                let field = self.read_field(wide);
-                self.visitor.visit_store_field_char(src, obj, cls, field);
-            }
-            BytecodeOpcode::StoreFieldInt32 => {
-                let src = self.read_register(wide);
-                let obj = self.read_register(wide);
-                let cls = self.read_class(wide);
-                let field = self.read_field(wide);
-                self.visitor.visit_store_field_int32(src, obj, cls, field);
-            }
-            BytecodeOpcode::StoreFieldInt64 => {
-                let src = self.read_register(wide);
-                let obj = self.read_register(wide);
-                let cls = self.read_class(wide);
-                let field = self.read_field(wide);
-                self.visitor.visit_store_field_int64(src, obj, cls, field);
-            }
-            BytecodeOpcode::StoreFieldFloat32 => {
-                let src = self.read_register(wide);
-                let obj = self.read_register(wide);
-                let cls = self.read_class(wide);
-                let field = self.read_field(wide);
-                self.visitor.visit_store_field_float32(src, obj, cls, field);
-            }
-            BytecodeOpcode::StoreFieldFloat64 => {
-                let src = self.read_register(wide);
-                let obj = self.read_register(wide);
-                let cls = self.read_class(wide);
-                let field = self.read_field(wide);
-                self.visitor.visit_store_field_float64(src, obj, cls, field);
-            }
-            BytecodeOpcode::StoreFieldPtr => {
-                let src = self.read_register(wide);
-                let obj = self.read_register(wide);
-                let cls = self.read_class(wide);
-                let field = self.read_field(wide);
-                self.visitor.visit_store_field_ptr(src, obj, cls, field);
-            }
-            BytecodeOpcode::StoreFieldTuple => {
-                let src = self.read_register(wide);
-                let obj = self.read_register(wide);
-                let cls = self.read_class(wide);
-                let field = self.read_field(wide);
-                self.visitor.visit_store_field_tuple(src, obj, cls, field);
+                self.visitor.visit_store_field(src, obj, cls, field);
             }
 
             BytecodeOpcode::LoadGlobal => {
@@ -1544,79 +1432,7 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_load_field_bool(
-        &mut self,
-        _dest: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
-    ) {
-        unimplemented!();
-    }
-    fn visit_load_field_uint8(
-        &mut self,
-        _dest: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
-    ) {
-        unimplemented!();
-    }
-    fn visit_load_field_char(
-        &mut self,
-        _dest: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
-    ) {
-        unimplemented!();
-    }
-    fn visit_load_field_int32(
-        &mut self,
-        _dest: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
-    ) {
-        unimplemented!();
-    }
-    fn visit_load_field_int64(
-        &mut self,
-        _dest: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
-    ) {
-        unimplemented!();
-    }
-    fn visit_load_field_float32(
-        &mut self,
-        _dest: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
-    ) {
-        unimplemented!();
-    }
-    fn visit_load_field_float64(
-        &mut self,
-        _dest: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
-    ) {
-        unimplemented!();
-    }
-    fn visit_load_field_ptr(
-        &mut self,
-        _dest: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
-    ) {
-        unimplemented!();
-    }
-    fn visit_load_field_tuple(
+    fn visit_load_field(
         &mut self,
         _dest: Register,
         _obj: Register,
@@ -1626,79 +1442,7 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_store_field_bool(
-        &mut self,
-        _src: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
-    ) {
-        unimplemented!();
-    }
-    fn visit_store_field_uint8(
-        &mut self,
-        _src: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
-    ) {
-        unimplemented!();
-    }
-    fn visit_store_field_char(
-        &mut self,
-        _src: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
-    ) {
-        unimplemented!();
-    }
-    fn visit_store_field_int32(
-        &mut self,
-        _src: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
-    ) {
-        unimplemented!();
-    }
-    fn visit_store_field_int64(
-        &mut self,
-        _src: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
-    ) {
-        unimplemented!();
-    }
-    fn visit_store_field_float32(
-        &mut self,
-        _src: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
-    ) {
-        unimplemented!();
-    }
-    fn visit_store_field_float64(
-        &mut self,
-        _src: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
-    ) {
-        unimplemented!();
-    }
-    fn visit_store_field_ptr(
-        &mut self,
-        _src: Register,
-        _obj: Register,
-        _cls: ClassDefId,
-        _field: FieldId,
-    ) {
-        unimplemented!();
-    }
-    fn visit_store_field_tuple(
+    fn visit_store_field(
         &mut self,
         _src: Register,
         _obj: Register,

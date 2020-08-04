@@ -322,68 +322,12 @@ class BytecodeWriter {
         self.emitReg2(BC_MOV_PTR, dest, src);
     }
 
-    fun emitLoadFieldBool(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
-        self.emitField(BC_LOAD_FIELD_BOOL, dest, obj, cls, field);
+    fun emitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
+        self.emitField(BC_LOAD_FIELD, dest, obj, cls, field);
     }
 
-    fun emitLoadFieldByte(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
-        self.emitField(BC_LOAD_FIELD_UINT8, dest, obj, cls, field);
-    }
-
-    fun emitLoadFieldChar(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
-        self.emitField(BC_LOAD_FIELD_CHAR, dest, obj, cls, field);
-    }
-
-    fun emitLoadFieldInt32(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
-        self.emitField(BC_LOAD_FIELD_INT32, dest, obj, cls, field);
-    }
-
-    fun emitLoadFieldInt64(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
-        self.emitField(BC_LOAD_FIELD_INT64, dest, obj, cls, field);
-    }
-
-    fun emitLoadFieldFloat32(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
-        self.emitField(BC_LOAD_FIELD_FLOAT32, dest, obj, cls, field);
-    }
-
-    fun emitLoadFieldFloat64(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
-        self.emitField(BC_LOAD_FIELD_FLOAT64, dest, obj, cls, field);
-    }
-
-    fun emitLoadFieldPtr(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
-        self.emitField(BC_LOAD_FIELD_PTR, dest, obj, cls, field);
-    }
-
-    fun emitStoreFieldBool(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
-        self.emitField(BC_STORE_FIELD_BOOL, src, obj, cls, field);
-    }
-
-    fun emitStoreFieldByte(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
-        self.emitField(BC_STORE_FIELD_UINT8, src, obj, cls, field);
-    }
-
-    fun emitStoreFieldChar(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
-        self.emitField(BC_STORE_FIELD_CHAR, src, obj, cls, field);
-    }
-
-    fun emitStoreFieldInt32(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
-        self.emitField(BC_STORE_FIELD_INT32, src, obj, cls, field);
-    }
-
-    fun emitStoreFieldInt64(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
-        self.emitField(BC_STORE_FIELD_INT64, src, obj, cls, field);
-    }
-
-    fun emitStoreFieldFloat32(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
-        self.emitField(BC_STORE_FIELD_FLOAT32, src, obj, cls, field);
-    }
-
-    fun emitStoreFieldFloat64(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
-        self.emitField(BC_STORE_FIELD_FLOAT64, src, obj, cls, field);
-    }
-
-    fun emitStoreFieldPtr(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
-        self.emitField(BC_STORE_FIELD_PTR, src, obj, cls, field);
+    fun emitStoreField(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
+        self.emitField(BC_STORE_FIELD, src, obj, cls, field);
     }
 
     fun emitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) {
