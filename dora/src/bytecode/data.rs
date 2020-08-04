@@ -385,7 +385,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::DivInt64
             | BytecodeOpcode::ModInt32
             | BytecodeOpcode::ModInt64
-            | BytecodeOpcode::InstanceOf
             | BytecodeOpcode::CheckedCast
             | BytecodeOpcode::LoadField
             | BytecodeOpcode::StoreField

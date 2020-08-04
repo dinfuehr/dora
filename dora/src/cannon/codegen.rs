@@ -921,7 +921,11 @@ where
         let cls = cls.read();
 
         let vtable: &VTable = cls.vtable.as_ref().unwrap();
-        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+        let position = if instanceof {
+            None
+        } else {
+            Some(self.bytecode.offset_position(self.current_offset.to_u32()))
+        };
 
         // object instanceof T
 
@@ -989,7 +993,7 @@ where
                 self.emit_store_register(REG_RESULT.into(), dest);
             } else {
                 // bailout
-                self.asm.emit_bailout_inplace(Trap::CAST, position);
+                self.asm.emit_bailout_inplace(Trap::CAST, position.unwrap());
             }
 
             // lbl_finished:
@@ -1014,7 +1018,8 @@ where
             } else {
                 let lbl_bailout = self.asm.create_label();
                 self.asm.jump_if(CondCode::NotEqual, lbl_bailout);
-                self.asm.emit_bailout(lbl_bailout, Trap::CAST, position);
+                self.asm
+                    .emit_bailout(lbl_bailout, Trap::CAST, position.unwrap());
             }
         }
 
