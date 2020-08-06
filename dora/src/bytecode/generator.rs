@@ -56,7 +56,7 @@ pub fn generate<'ast>(
         cls_type_params,
         fct_type_params,
 
-        gen: BytecodeBuilder::new(),
+        gen: BytecodeBuilder::new(&vm.args),
         loops: Vec::new(),
         var_registers: HashMap::new(),
     };

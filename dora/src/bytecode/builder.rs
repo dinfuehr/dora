@@ -3,18 +3,21 @@ use std::collections::{HashMap, HashSet};
 use dora_parser::lexer::position::Position;
 
 use crate::bytecode::{BytecodeFunction, BytecodeType, BytecodeWriter, Label, Register};
+use crate::driver::cmd::Args;
 use crate::vm::{ClassDefId, FctDefId, FieldId, GlobalId, TupleId};
 
 pub struct BytecodeBuilder {
     writer: BytecodeWriter,
     registers: Registers,
+    clear_regs: bool,
 }
 
 impl BytecodeBuilder {
-    pub fn new() -> BytecodeBuilder {
+    pub fn new(args: &Args) -> BytecodeBuilder {
         BytecodeBuilder {
             writer: BytecodeWriter::new(),
             registers: Registers::new(),
+            clear_regs: args.flag_clear_regs,
         }
     }
 
@@ -1079,11 +1082,24 @@ impl BytecodeBuilder {
     }
 
     pub fn free_if_temp(&mut self, reg: Register) {
-        self.registers.free_if_temp(reg);
+        if self.registers.free_if_temp(reg) {
+            self.clear_if_ptr(reg);
+        }
     }
 
     pub fn free_temp(&mut self, reg: Register) {
         self.registers.free_temp(reg);
+        self.clear_if_ptr(reg);
+    }
+
+    fn clear_if_ptr(&mut self, reg: Register) {
+        if !self.clear_regs {
+            return;
+        }
+
+        if self.registers.all[reg.0].is_ptr() {
+            self.writer.emit_const_nil(reg);
+        }
     }
 
     fn used(&self, reg: Register) -> bool {
@@ -1095,7 +1111,7 @@ impl BytecodeBuilder {
     }
 }
 
-pub struct Registers {
+struct Registers {
     all: Vec<BytecodeType>,
     scopes: Vec<RegisterScope>,
     used: HashSet<Register>,
@@ -1104,7 +1120,7 @@ pub struct Registers {
 }
 
 impl Registers {
-    pub fn new() -> Registers {
+    fn new() -> Registers {
         Registers {
             all: Vec::new(),
             scopes: Vec::new(),
@@ -1114,11 +1130,11 @@ impl Registers {
         }
     }
 
-    pub fn push_scope(&mut self) {
+    fn push_scope(&mut self) {
         self.scopes.push(RegisterScope::new());
     }
 
-    pub fn pop_scope(&mut self) {
+    fn pop_scope(&mut self) {
         let scope = self.scopes.pop().expect("missing scope");
 
         for reg in scope.0 {
@@ -1128,30 +1144,33 @@ impl Registers {
         }
     }
 
-    pub fn alloc_var(&mut self, ty: BytecodeType) -> Register {
+    fn alloc_var(&mut self, ty: BytecodeType) -> Register {
         let reg = self.alloc_internal(ty);
         assert!(self.scopes.last_mut().expect("missing scope").0.insert(reg));
         assert!(self.used.insert(reg));
         reg
     }
 
-    pub fn alloc_temp(&mut self, ty: BytecodeType) -> Register {
+    fn alloc_temp(&mut self, ty: BytecodeType) -> Register {
         let reg = self.alloc_internal(ty);
         assert!(self.temps.insert(reg));
         assert!(self.used.insert(reg));
         reg
     }
 
-    pub fn free_temp(&mut self, reg: Register) {
+    fn free_temp(&mut self, reg: Register) {
         assert!(self.temps.remove(&reg));
         let ty = self.all[reg.0];
         self.unused.entry(ty).or_insert(Vec::new()).push(reg);
         assert!(self.used.remove(&reg));
     }
 
-    pub fn free_if_temp(&mut self, reg: Register) {
+    fn free_if_temp(&mut self, reg: Register) -> bool {
         if self.temps.contains(&reg) {
             self.free_temp(reg);
+            true
+        } else {
+            false
         }
     }
 
