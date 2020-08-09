@@ -299,6 +299,51 @@ impl MacroAssembler {
         self.asm.setcc_r(Condition::Parity, dest.into());
     }
 
+    pub fn float_srt(&mut self, mode: MachineMode, dest: Reg, lhs: FReg, rhs: FReg) {
+        let bits_to_flip = match mode {
+            MachineMode::Float32 => 31,
+            MachineMode::Float64 => 63,
+            _ => unimplemented!(),
+        };
+
+        let dest_mode = match mode {
+            MachineMode::Float32 => MachineMode::Int32,
+            MachineMode::Float64 => MachineMode::Int64,
+            _ => unimplemented!(),
+        };
+
+        // copy float bits to integer registers
+        self.float_as_int(dest_mode, RAX, mode, lhs);
+        self.float_as_int(dest_mode, RCX, mode, rhs);
+        // create additional copies to work on
+        self.float_as_int(dest_mode, RDX, mode, lhs);
+        self.float_as_int(dest_mode, RSI, mode, rhs);
+        // arithmetic right shift by 31/63 bits to create all-0/all-1 pattern from sign
+        self.load_int_const(dest_mode, REG_TMP1, bits_to_flip);
+        self.int_sar(dest_mode, RDX, RDX, REG_TMP1);
+        self.int_sar(dest_mode, RSI, RSI, REG_TMP1);
+        // logical right shift by 1 bit to zero upper bit of sign patterns
+        self.load_int_const(dest_mode, REG_TMP2, 1);
+        self.int_shr(dest_mode, RDX, RDX, REG_TMP2);
+        self.int_shr(dest_mode, RSI, RSI, REG_TMP2);
+        // xor sign patterns with values to flips bits if sign was 1
+        self.int_xor(dest_mode, RDX, RDX, RAX);
+        self.int_xor(dest_mode, RSI, RSI, RCX);
+        // zeroing register (to avoid performance degradation due to partial register use later)
+        self.int_xor(dest_mode, RCX, RCX, RCX);
+        self.cmp_reg(dest_mode, RDX, RSI);
+        self.set(RCX, CondCode::NotEqual);
+        self.load_int_const(dest_mode, RAX, -1);
+
+        if dest_mode == MachineMode::Int32 {
+            self.asm
+                .cmovl(Condition::GreaterOrEqual, dest.into(), RCX.into());
+        } else {
+            self.asm
+                .cmovq(Condition::GreaterOrEqual, dest.into(), RCX.into());
+        }
+    }
+
     pub fn cmp_zero(&mut self, mode: MachineMode, lhs: Reg) {
         if mode.is64() {
             self.asm.testq_rr(lhs.into(), lhs.into());

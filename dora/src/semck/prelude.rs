@@ -342,6 +342,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
 
     intrinsic_class_method(vm, clsid, "equals", Intrinsic::Float32Eq);
     intrinsic_class_method(vm, clsid, "compareTo", Intrinsic::Float32Cmp);
+    intrinsic_class_method(vm, clsid, "sortsAs", Intrinsic::Float32Srt);
 
     intrinsic_class_method(vm, clsid, "plus", Intrinsic::Float32Add);
     intrinsic_class_method(vm, clsid, "minus", Intrinsic::Float32Sub);
@@ -369,6 +370,7 @@ pub fn internal_functions<'ast>(vm: &mut VM<'ast>) {
 
     intrinsic_class_method(vm, clsid, "equals", Intrinsic::Float64Eq);
     intrinsic_class_method(vm, clsid, "compareTo", Intrinsic::Float64Cmp);
+    intrinsic_class_method(vm, clsid, "sortsAs", Intrinsic::Float64Srt);
 
     intrinsic_class_method(vm, clsid, "plus", Intrinsic::Float64Add);
     intrinsic_class_method(vm, clsid, "minus", Intrinsic::Float64Sub);

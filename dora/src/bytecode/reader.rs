@@ -819,6 +819,12 @@ where
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_le_float32(dest, lhs, rhs);
             }
+            BytecodeOpcode::SrtFloat32 => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_srt_float32(dest, lhs, rhs);
+            }
 
             BytecodeOpcode::TestEqFloat64 => {
                 let dest = self.read_register(wide);
@@ -855,6 +861,12 @@ where
                 let lhs = self.read_register(wide);
                 let rhs = self.read_register(wide);
                 self.visitor.visit_test_le_float64(dest, lhs, rhs);
+            }
+            BytecodeOpcode::SrtFloat64 => {
+                let dest = self.read_register(wide);
+                let lhs = self.read_register(wide);
+                let rhs = self.read_register(wide);
+                self.visitor.visit_srt_float64(dest, lhs, rhs);
             }
             BytecodeOpcode::Assert => {
                 let value = self.read_register(wide);
@@ -1624,6 +1636,9 @@ pub trait BytecodeVisitor {
     fn visit_test_le_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
+    fn visit_srt_float32(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!()
+    }
 
     fn visit_test_eq_float64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
@@ -1643,6 +1658,10 @@ pub trait BytecodeVisitor {
     fn visit_test_le_float64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
+    fn visit_srt_float64(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+        unimplemented!();
+    }
+
     fn visit_assert(&mut self, _value: Register) {
         unimplemented!();
     }

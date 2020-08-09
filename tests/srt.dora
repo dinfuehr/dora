@@ -1,21 +1,21 @@
 fun main() {
-    assert(0.0F.sortsAs(0.0F) == 0);
-    assert((-0.0F).sortsAs(-0.0F) == 0);
-    assert(1.0F.sortsAs(1.0F) == 0);
-    assert(0.0F.sortsAs(1.0F) == -1);
-    assert(1.0F.sortsAs(0.0F) == 1);
-    assert((-0.0F).sortsAs(0.0F) == -1);
-    assert(0.0F.sortsAs(-0.0F) == 1);
-    assert((0.0F/0.0F).sortsAs(0.0F/0.0F) == 0);
+    Assert.equal[Int32](0.0F.sortsAs(0.0F), 0);
+    Assert.equal[Int32]((-0.0F).sortsAs(-0.0F), 0);
+    Assert.equal[Int32](1.0F.sortsAs(1.0F), 0);
+    Assert.equal[Int32](0.0F.sortsAs(1.0F), -1);
+    Assert.equal[Int32](1.0F.sortsAs(0.0F), 1);
+    Assert.equal[Int32]((-0.0F).sortsAs(0.0F), -1);
+    Assert.equal[Int32](0.0F.sortsAs(-0.0F), 1);
+    Assert.equal[Int32]((0.0F/0.0F).sortsAs(0.0F/0.0F), 0);
 
-    assert(0.0.sortsAs(0.0) == 0);
-    assert((-0.0).sortsAs(-0.0) == 0);
-    assert(1.0.sortsAs(1.0) == 0);
-    assert(0.0.sortsAs(1.0) == -1);
-    assert(1.0.sortsAs(0.0) == 1);
-    assert((-0.0).sortsAs(0.0) == -1);
-    assert(0.0.sortsAs(-0.0) == 1);
-    assert((0.0/0.0).sortsAs(0.0/0.0) == 0);
+    Assert.equal[Int32](0.0.sortsAs(0.0), 0);
+    Assert.equal[Int32]((-0.0).sortsAs(-0.0), 0);
+    Assert.equal[Int32](1.0.sortsAs(1.0), 0);
+    Assert.equal[Int32](0.0.sortsAs(1.0), -1);
+    Assert.equal[Int32](1.0.sortsAs(0.0), 1);
+    Assert.equal[Int32]((-0.0).sortsAs(0.0), -1);
+    Assert.equal[Int32](0.0.sortsAs(-0.0), 1);
+    Assert.equal[Int32]((0.0/0.0).sortsAs(0.0/0.0), 0);
 
     // 11111111110000000000000000000000
     let nanQuietNegative = (-4194304).asFloat32();
@@ -32,23 +32,23 @@ fun main() {
     // 01111111110000000000000000000000
     let nanQuietPositive = 2143289344.asFloat32();
 
-    assert(nanQuietNegative.sortsAs(nanSignaNegative) == -1);
-    assert(nanSignaNegative.sortsAs(infNegative) == -1);
-    assert(infNegative.sortsAs(infPositive) == -1);
-    assert(infPositive.sortsAs(nanSignaPositive) == -1);
-    assert(nanSignaPositive.sortsAs(nanQuietPositive) == -1);
+    Assert.equal[Int32](nanQuietNegative.sortsAs(nanSignaNegative), -1);
+    Assert.equal[Int32](nanSignaNegative.sortsAs(infNegative), -1);
+    Assert.equal[Int32](infNegative.sortsAs(infPositive), -1);
+    Assert.equal[Int32](infPositive.sortsAs(nanSignaPositive), -1);
+    Assert.equal[Int32](nanSignaPositive.sortsAs(nanQuietPositive), -1);
 
-    assert(nanQuietNegative.sortsAs(-1.0F) == -1);
-    assert(nanSignaNegative.sortsAs(-1.0F) == -1);
-    assert(infNegative.sortsAs(-1.0F) == -1);
-    assert(infPositive.sortsAs(-1.0F) == 1);
-    assert(nanSignaPositive.sortsAs(-1.0F) == 1);
+    Assert.equal[Int32](nanQuietNegative.sortsAs(-1.0F), -1);
+    Assert.equal[Int32](nanSignaNegative.sortsAs(-1.0F), -1);
+    Assert.equal[Int32](infNegative.sortsAs(-1.0F), -1);
+    Assert.equal[Int32](infPositive.sortsAs(-1.0F), 1);
+    Assert.equal[Int32](nanSignaPositive.sortsAs(-1.0F), 1);
 
-    assert(nanQuietNegative.sortsAs(1.0F) == -1);
-    assert(nanSignaNegative.sortsAs(1.0F) == -1);
-    assert(infNegative.sortsAs(1.0F) == -1);
-    assert(infPositive.sortsAs(1.0F) == 1);
-    assert(nanSignaPositive.sortsAs(1.0F) == 1);
+    Assert.equal[Int32](nanQuietNegative.sortsAs(1.0F), -1);
+    Assert.equal[Int32](nanSignaNegative.sortsAs(1.0F), -1);
+    Assert.equal[Int32](infNegative.sortsAs(1.0F), -1);
+    Assert.equal[Int32](infPositive.sortsAs(1.0F), 1);
+    Assert.equal[Int32](nanSignaPositive.sortsAs(1.0F), 1);
 
     // 1111111111111000000000000000000000000000000000000000000000000000
     let nanQuietNegative = (-2251799813685248L).asFloat64();
@@ -65,21 +65,21 @@ fun main() {
     // 0111111111111000000000000000000000000000000000000000000000000000
     let nanQuietPositive = 9221120237041090560L.asFloat64();
 
-    assert(nanQuietNegative.sortsAs(nanSignaNegative) == -1);
-    assert(nanSignaNegative.sortsAs(infNegative) == -1);
-    assert(infNegative.sortsAs(infPositive) == -1);
-    assert(infPositive.sortsAs(nanSignaPositive) == -1);
-    assert(nanSignaPositive.sortsAs(nanQuietPositive) == -1);
+    Assert.equal[Int32](nanQuietNegative.sortsAs(nanSignaNegative), -1);
+    Assert.equal[Int32](nanSignaNegative.sortsAs(infNegative), -1);
+    Assert.equal[Int32](infNegative.sortsAs(infPositive), -1);
+    Assert.equal[Int32](infPositive.sortsAs(nanSignaPositive), -1);
+    Assert.equal[Int32](nanSignaPositive.sortsAs(nanQuietPositive), -1);
 
-    assert(nanQuietNegative.sortsAs(-1.0) == -1);
-    assert(nanSignaNegative.sortsAs(-1.0) == -1);
-    assert(infNegative.sortsAs(-1.0) == -1);
-    assert(infPositive.sortsAs(-1.0) == 1);
-    assert(nanSignaPositive.sortsAs(-1.0) == 1);
+    Assert.equal[Int32](nanQuietNegative.sortsAs(-1.0), -1);
+    Assert.equal[Int32](nanSignaNegative.sortsAs(-1.0), -1);
+    Assert.equal[Int32](infNegative.sortsAs(-1.0), -1);
+    Assert.equal[Int32](infPositive.sortsAs(-1.0), 1);
+    Assert.equal[Int32](nanSignaPositive.sortsAs(-1.0), 1);
 
-    assert(nanQuietNegative.sortsAs(1.0) == -1);
-    assert(nanSignaNegative.sortsAs(1.0) == -1);
-    assert(infNegative.sortsAs(1.0) == -1);
-    assert(infPositive.sortsAs(1.0) == 1);
-    assert(nanSignaPositive.sortsAs(1.0) == 1);
+    Assert.equal[Int32](nanQuietNegative.sortsAs(1.0), -1);
+    Assert.equal[Int32](nanSignaNegative.sortsAs(1.0), -1);
+    Assert.equal[Int32](infNegative.sortsAs(1.0), -1);
+    Assert.equal[Int32](infPositive.sortsAs(1.0), 1);
+    Assert.equal[Int32](nanSignaPositive.sortsAs(1.0), 1);
 }

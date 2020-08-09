@@ -137,53 +137,55 @@ const BC_TEST_GT_FLOAT32: Int32 = 133I;
 const BC_TEST_GE_FLOAT32: Int32 = 134I;
 const BC_TEST_LT_FLOAT32: Int32 = 135I;
 const BC_TEST_LE_FLOAT32: Int32 = 136I;
-const BC_TEST_EQ_FLOAT64: Int32 = 137I;
-const BC_TEST_NE_FLOAT64: Int32 = 138I;
-const BC_TEST_GT_FLOAT64: Int32 = 139I;
-const BC_TEST_GE_FLOAT64: Int32 = 140I;
-const BC_TEST_LT_FLOAT64: Int32 = 141I;
-const BC_TEST_LE_FLOAT64: Int32 = 142I;
-const BC_ASSERT: Int32 = 143I;
-const BC_JUMP_LOOP: Int32 = 144I;
-const BC_LOOP_START: Int32 = 145I;
-const BC_JUMP: Int32 = 146I;
-const BC_JUMP_CONST: Int32 = 147I;
-const BC_JUMP_IF_FALSE: Int32 = 148I;
-const BC_JUMP_IF_FALSE_CONST: Int32 = 149I;
-const BC_JUMP_IF_TRUE: Int32 = 150I;
-const BC_JUMP_IF_TRUE_CONST: Int32 = 151I;
-const BC_INVOKE_DIRECT_VOID: Int32 = 152I;
-const BC_INVOKE_DIRECT: Int32 = 153I;
-const BC_INVOKE_VIRTUAL_VOID: Int32 = 154I;
-const BC_INVOKE_VIRTUAL: Int32 = 155I;
-const BC_INVOKE_STATIC_VOID: Int32 = 156I;
-const BC_INVOKE_STATIC: Int32 = 157I;
-const BC_NEW_OBJECT: Int32 = 158I;
-const BC_NEW_ARRAY: Int32 = 159I;
-const BC_NEW_TUPLE: Int32 = 160I;
-const BC_NIL_CHECK: Int32 = 161I;
-const BC_ARRAY_LENGTH: Int32 = 162I;
-const BC_ARRAY_BOUND_CHECK: Int32 = 163I;
-const BC_LOAD_ARRAY_BOOL: Int32 = 164I;
-const BC_LOAD_ARRAY_UINT8: Int32 = 165I;
-const BC_LOAD_ARRAY_CHAR: Int32 = 166I;
-const BC_LOAD_ARRAY_INT32: Int32 = 167I;
-const BC_LOAD_ARRAY_INT64: Int32 = 168I;
-const BC_LOAD_ARRAY_FLOAT32: Int32 = 169I;
-const BC_LOAD_ARRAY_FLOAT64: Int32 = 170I;
-const BC_LOAD_ARRAY_PTR: Int32 = 171I;
-const BC_LOAD_ARRAY_TUPLE: Int32 = 172I;
-const BC_STORE_ARRAY_BOOL: Int32 = 173I;
-const BC_STORE_ARRAY_UINT8: Int32 = 174I;
-const BC_STORE_ARRAY_CHAR: Int32 = 175I;
-const BC_STORE_ARRAY_INT32: Int32 = 176I;
-const BC_STORE_ARRAY_INT64: Int32 = 177I;
-const BC_STORE_ARRAY_FLOAT32: Int32 = 178I;
-const BC_STORE_ARRAY_FLOAT64: Int32 = 179I;
-const BC_STORE_ARRAY_PTR: Int32 = 180I;
-const BC_STORE_ARRAY_TUPLE: Int32 = 181I;
-const BC_RET_VOID: Int32 = 182I;
-const BC_RET: Int32 = 183I;
+const BC_SRT_FLOAT32: Int32 = 137I;
+const BC_TEST_EQ_FLOAT64: Int32 = 138I;
+const BC_TEST_NE_FLOAT64: Int32 = 139I;
+const BC_TEST_GT_FLOAT64: Int32 = 140I;
+const BC_TEST_GE_FLOAT64: Int32 = 141I;
+const BC_TEST_LT_FLOAT64: Int32 = 142I;
+const BC_TEST_LE_FLOAT64: Int32 = 143I;
+const BC_SRT_FLOAT64: Int32 = 144I;
+const BC_ASSERT: Int32 = 145I;
+const BC_JUMP_LOOP: Int32 = 146I;
+const BC_LOOP_START: Int32 = 147I;
+const BC_JUMP: Int32 = 148I;
+const BC_JUMP_CONST: Int32 = 149I;
+const BC_JUMP_IF_FALSE: Int32 = 150I;
+const BC_JUMP_IF_FALSE_CONST: Int32 = 151I;
+const BC_JUMP_IF_TRUE: Int32 = 152I;
+const BC_JUMP_IF_TRUE_CONST: Int32 = 153I;
+const BC_INVOKE_DIRECT_VOID: Int32 = 154I;
+const BC_INVOKE_DIRECT: Int32 = 155I;
+const BC_INVOKE_VIRTUAL_VOID: Int32 = 156I;
+const BC_INVOKE_VIRTUAL: Int32 = 157I;
+const BC_INVOKE_STATIC_VOID: Int32 = 158I;
+const BC_INVOKE_STATIC: Int32 = 159I;
+const BC_NEW_OBJECT: Int32 = 160I;
+const BC_NEW_ARRAY: Int32 = 161I;
+const BC_NEW_TUPLE: Int32 = 162I;
+const BC_NIL_CHECK: Int32 = 163I;
+const BC_ARRAY_LENGTH: Int32 = 164I;
+const BC_ARRAY_BOUND_CHECK: Int32 = 165I;
+const BC_LOAD_ARRAY_BOOL: Int32 = 166I;
+const BC_LOAD_ARRAY_UINT8: Int32 = 167I;
+const BC_LOAD_ARRAY_CHAR: Int32 = 168I;
+const BC_LOAD_ARRAY_INT32: Int32 = 169I;
+const BC_LOAD_ARRAY_INT64: Int32 = 170I;
+const BC_LOAD_ARRAY_FLOAT32: Int32 = 171I;
+const BC_LOAD_ARRAY_FLOAT64: Int32 = 172I;
+const BC_LOAD_ARRAY_PTR: Int32 = 173I;
+const BC_LOAD_ARRAY_TUPLE: Int32 = 174I;
+const BC_STORE_ARRAY_BOOL: Int32 = 175I;
+const BC_STORE_ARRAY_UINT8: Int32 = 176I;
+const BC_STORE_ARRAY_CHAR: Int32 = 177I;
+const BC_STORE_ARRAY_INT32: Int32 = 178I;
+const BC_STORE_ARRAY_INT64: Int32 = 179I;
+const BC_STORE_ARRAY_FLOAT32: Int32 = 180I;
+const BC_STORE_ARRAY_FLOAT64: Int32 = 181I;
+const BC_STORE_ARRAY_PTR: Int32 = 182I;
+const BC_STORE_ARRAY_TUPLE: Int32 = 183I;
+const BC_RET_VOID: Int32 = 184I;
+const BC_RET: Int32 = 185I;
 
 const BC_TYPE_BOOL: Int32 = 0I;
 const BC_TYPE_U_INT8: Int32 = 1I;
@@ -340,12 +342,14 @@ fun bytecodeName(opcode: Int32) -> String {
   if opcode == BC_TEST_GE_FLOAT32 { return "TestGeFloat32"; }
   if opcode == BC_TEST_LT_FLOAT32 { return "TestLtFloat32"; }
   if opcode == BC_TEST_LE_FLOAT32 { return "TestLeFloat32"; }
+  if opcode == BC_SRT_FLOAT32 { return "SrtFloat32"; }
   if opcode == BC_TEST_EQ_FLOAT64 { return "TestEqFloat64"; }
   if opcode == BC_TEST_NE_FLOAT64 { return "TestNeFloat64"; }
   if opcode == BC_TEST_GT_FLOAT64 { return "TestGtFloat64"; }
   if opcode == BC_TEST_GE_FLOAT64 { return "TestGeFloat64"; }
   if opcode == BC_TEST_LT_FLOAT64 { return "TestLtFloat64"; }
   if opcode == BC_TEST_LE_FLOAT64 { return "TestLeFloat64"; }
+  if opcode == BC_SRT_FLOAT64 { return "SrtFloat64"; }
   if opcode == BC_ASSERT { return "Assert"; }
   if opcode == BC_JUMP_LOOP { return "JumpLoop"; }
   if opcode == BC_LOOP_START { return "LoopStart"; }

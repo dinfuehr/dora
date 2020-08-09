@@ -765,6 +765,16 @@ impl BytecodeBuilder {
         self.writer.emit_test_le_float64(dest, lhs, rhs);
     }
 
+    pub fn emit_srt_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
+        self.writer.emit_srt_float32(dest, lhs, rhs);
+    }
+
+    pub fn emit_srt_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
+        self.writer.emit_srt_float64(dest, lhs, rhs);
+    }
+
     pub fn emit_assert(&mut self, value: Register, pos: Position) {
         assert!(self.used(value));
         self.writer.set_position(pos);

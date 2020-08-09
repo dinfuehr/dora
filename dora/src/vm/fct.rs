@@ -400,6 +400,7 @@ pub enum Intrinsic {
 
     Float32Eq,
     Float32Cmp,
+    Float32Srt,
 
     Float32Add,
     Float32Sub,
@@ -418,6 +419,7 @@ pub enum Intrinsic {
 
     Float64Eq,
     Float64Cmp,
+    Float64Srt,
 
     Float64Add,
     Float64Sub,
@@ -461,7 +463,9 @@ impl Intrinsic {
             | Intrinsic::Int32Cmp
             | Intrinsic::Int64Cmp
             | Intrinsic::Float32Cmp
+            | Intrinsic::Float32Srt
             | Intrinsic::Float64Cmp
+            | Intrinsic::Float64Srt
             | Intrinsic::Int32CountZeroBits
             | Intrinsic::Int32CountZeroBitsLeading
             | Intrinsic::Int32CountZeroBitsTrailing

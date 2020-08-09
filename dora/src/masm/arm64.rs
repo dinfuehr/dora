@@ -767,6 +767,10 @@ impl MacroAssembler {
         self.emit_u32(asm::cset(0, dest, Cond::VS));
     }
 
+    pub fn float_srt(&mut self, _mode: MachineMode, _dest: Reg, _lhs: FReg, _rhs: FReg) {
+        unimplemented!()
+    }
+
     pub fn load_float_const(&mut self, mode: MachineMode, dest: FReg, imm: f64) {
         let off = match mode {
             MachineMode::Float32 => self.dseg.add_f32(imm as f32),

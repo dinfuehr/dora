@@ -3206,6 +3206,7 @@ pub enum Bytecode {
     TestGeFloat32(Register, Register, Register),
     TestLtFloat32(Register, Register, Register),
     TestLeFloat32(Register, Register, Register),
+    SrtFloat32(Register, Register, Register),
 
     TestEqFloat64(Register, Register, Register),
     TestNeFloat64(Register, Register, Register),
@@ -3213,6 +3214,7 @@ pub enum Bytecode {
     TestGeFloat64(Register, Register, Register),
     TestLtFloat64(Register, Register, Register),
     TestLeFloat64(Register, Register, Register),
+    SrtFloat64(Register, Register, Register),
 
     Assert(Register),
 
@@ -3787,6 +3789,9 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_test_le_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::TestLeFloat32(dest, lhs, rhs));
     }
+    fn visit_srt_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::SrtFloat32(dest, lhs, rhs));
+    }
 
     fn visit_test_eq_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::TestEqFloat64(dest, lhs, rhs));
@@ -3805,6 +3810,9 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_test_le_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::TestLeFloat64(dest, lhs, rhs));
+    }
+    fn visit_srt_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit(Bytecode::SrtFloat64(dest, lhs, rhs));
     }
 
     fn visit_assert(&mut self, value: Register) {

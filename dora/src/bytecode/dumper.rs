@@ -622,6 +622,9 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_test_le_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("TestLeFloat32", dest, lhs, rhs);
     }
+    fn visit_srt_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("SrtFloat32", dest, lhs, rhs);
+    }
 
     fn visit_test_eq_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("TestEqFloat64", dest, lhs, rhs);
@@ -640,6 +643,9 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     }
     fn visit_test_le_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("TestLeFloat64", dest, lhs, rhs);
+    }
+    fn visit_srt_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("SrtFloat64", dest, lhs, rhs);
     }
 
     fn visit_assert(&mut self, value: Register) {

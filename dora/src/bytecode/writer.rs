@@ -689,6 +689,14 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestLeFloat64, dest, lhs, rhs);
     }
 
+    pub fn emit_srt_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::SrtFloat32, dest, lhs, rhs);
+    }
+
+    pub fn emit_srt_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::SrtFloat64, dest, lhs, rhs);
+    }
+
     pub fn emit_assert(&mut self, value: Register) {
         self.emit_reg1(BytecodeOpcode::Assert, value);
     }

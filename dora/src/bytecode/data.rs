@@ -314,6 +314,7 @@ pub enum BytecodeOpcode {
     TestGeFloat32,
     TestLtFloat32,
     TestLeFloat32,
+    SrtFloat32,
 
     TestEqFloat64,
     TestNeFloat64,
@@ -321,6 +322,7 @@ pub enum BytecodeOpcode {
     TestGeFloat64,
     TestLtFloat64,
     TestLeFloat64,
+    SrtFloat64,
 
     Assert,
 

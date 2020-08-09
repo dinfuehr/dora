@@ -8,7 +8,7 @@
 
   @internal fun equals(rhs: Float64) -> Bool;
   @internal fun compareTo(rhs: Float64) -> Int32;
-  fun sortsAs(rhs: Float64) -> Int32 {
+  @internal fun sortsAs(rhs: Float64) -> Int32 {
     var ix = self.asInt64();
     var iy = rhs.asInt64();
 

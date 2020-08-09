@@ -2041,6 +2041,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 }
                 _ => unreachable!(),
             },
+            Intrinsic::Float32Srt => {
+                assert!(op.is_none());
+                self.gen.emit_srt_float32(dest, lhs_reg, rhs_reg);
+            }
             Intrinsic::Float64Eq => match op {
                 Some(BinOp::Cmp(CmpOp::Eq)) => {
                     self.gen.emit_test_eq_float64(dest, lhs_reg, rhs_reg)
@@ -2066,6 +2070,10 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 }
                 _ => unreachable!(),
             },
+            Intrinsic::Float64Srt => {
+                assert!(op.is_none());
+                self.gen.emit_srt_float64(dest, lhs_reg, rhs_reg);
+            }
             Intrinsic::Int32Add => self.gen.emit_add_int32(dest, lhs_reg, rhs_reg),
             Intrinsic::Int32Sub => self.gen.emit_sub_int32(dest, lhs_reg, rhs_reg),
             Intrinsic::Int32Mul => self.gen.emit_mul_int32(dest, lhs_reg, rhs_reg),

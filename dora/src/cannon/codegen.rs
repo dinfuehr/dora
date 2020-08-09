@@ -1456,6 +1456,23 @@ where
         self.emit_store_register(REG_RESULT.into(), dest);
     }
 
+    fn emit_srt_float(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        assert_eq!(
+            self.bytecode.register_type(lhs),
+            self.bytecode.register_type(rhs)
+        );
+        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Int32);
+
+        self.emit_load_register(lhs, FREG_RESULT.into());
+        self.emit_load_register(rhs, FREG_TMP1.into());
+
+        let bytecode_type = self.bytecode.register_type(lhs);
+        self.asm
+            .float_srt(bytecode_type.mode(), REG_RESULT, FREG_RESULT, FREG_TMP1);
+
+        self.emit_store_register(REG_RESULT.into(), dest);
+    }
+
     fn emit_jump_if(&mut self, src: Register, offset: BytecodeOffset, op: bool) {
         assert_eq!(self.bytecode.register_type(src), BytecodeType::Bool);
 
@@ -2856,6 +2873,9 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     fn visit_test_le_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_test_float(dest, lhs, rhs, CondCode::LessEq);
     }
+    fn visit_srt_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_srt_float(dest, lhs, rhs);
+    }
 
     fn visit_test_eq_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_test_float(dest, lhs, rhs, CondCode::Equal);
@@ -2874,6 +2894,9 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
     fn visit_test_le_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_test_float(dest, lhs, rhs, CondCode::LessEq);
+    }
+    fn visit_srt_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_srt_float(dest, lhs, rhs);
     }
 
     fn visit_assert(&mut self, value: Register) {
