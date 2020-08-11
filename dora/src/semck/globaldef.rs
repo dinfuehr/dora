@@ -13,9 +13,9 @@ use crate::sym::{SymLevel, TermSym, TypeSym};
 use crate::ty::BuiltinType;
 use crate::vm::module::ModuleId;
 use crate::vm::{
-    class, module, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, EnumLayout,
-    ExtensionData, ExtensionId, Fct, FctId, FctKind, FctParent, FctSrc, FileId, GlobalData,
-    GlobalId, ImplData, ImplId, NodeMap, StructData, StructId, TraitData, TraitId, TypeParam, VM,
+    class, module, ClassId, ConstData, ConstId, ConstValue, EnumData, EnumId, ExtensionData,
+    ExtensionId, Fct, FctId, FctKind, FctParent, FctSrc, FileId, GlobalData, GlobalId, ImplData,
+    ImplId, NodeMap, StructData, StructId, TraitData, TraitId, TypeParam, VM,
 };
 use dora_parser::ast::visit::*;
 use dora_parser::ast::*;
@@ -382,7 +382,6 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             name_to_value: HashMap::new(),
             extensions: Vec::new(),
             specializations: RwLock::new(HashMap::new()),
-            layout: EnumLayout::Int,
         };
 
         self.vm.enums.push(RwLock::new(xenum));
