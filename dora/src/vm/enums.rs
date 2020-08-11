@@ -40,6 +40,7 @@ pub struct EnumData {
     pub name_to_value: HashMap<Name, u32>,
     pub extensions: Vec<ExtensionId>,
     pub specializations: RwLock<HashMap<TypeList, EnumDefId>>,
+    pub layout: EnumLayout,
 }
 
 #[derive(Debug)]
@@ -77,7 +78,6 @@ pub struct EnumDef {
 pub enum EnumLayout {
     Int,
     Ptr,
-    Tagged,
 }
 
 #[derive(Debug)]

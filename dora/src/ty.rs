@@ -6,7 +6,7 @@ use crate::mem;
 use crate::semck;
 use crate::vm::module::ModuleId;
 use crate::vm::VM;
-use crate::vm::{ClassId, EnumId, FctId, StructId, TraitId, TupleId};
+use crate::vm::{ClassId, EnumId, EnumLayout, FctId, StructId, TraitId, TupleId};
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum BuiltinType {
@@ -456,7 +456,15 @@ impl BuiltinType {
             BuiltinType::Int64 => 8,
             BuiltinType::Float32 => 4,
             BuiltinType::Float64 => 8,
-            BuiltinType::Enum(_, _) => 4,
+            BuiltinType::Enum(id, _) => {
+                let xenum = &vm.enums[id];
+                let xenum = xenum.read();
+
+                match xenum.layout {
+                    EnumLayout::Int => 4,
+                    EnumLayout::Ptr => mem::ptr_width(),
+                }
+            }
             BuiltinType::Nil => panic!("no size for nil."),
             BuiltinType::This => panic!("no size for Self."),
             BuiltinType::Any => panic!("no size for Any."),
@@ -494,11 +502,11 @@ impl BuiltinType {
             BuiltinType::Nil => panic!("no alignment for nil."),
             BuiltinType::This => panic!("no alignment for Self."),
             BuiltinType::Any => panic!("no alignment for Any."),
-            BuiltinType::Enum(_, _) => 4,
             BuiltinType::Class(_, _)
             | BuiltinType::Module(_)
             | BuiltinType::Lambda(_)
             | BuiltinType::Ptr => mem::ptr_width(),
+            BuiltinType::Enum(_, _) => self.size(vm),
             BuiltinType::Struct(sid, list_id) => {
                 let params = vm.lists.lock().get(list_id);
                 let sid = semck::specialize::specialize_struct_id_params(vm, sid, params);
