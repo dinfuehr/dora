@@ -3,56 +3,56 @@ fun main() {
         println("usage: falsesharing <threads> <iterations>");
     }
 
-    let threads = argv(0).toInt().unwrap();
-    let iterations = argv(1).toInt().unwrap();
-    let objects = construct(8096);
+    let threads = argv(0).toInt64().unwrap();
+    let iterations = argv(1).toInt32().unwrap();
+    let objects = construct(8096L);
     forceCollect();
 
-    var i = 0;
+    var i = 0L;
 
     while i < threads {
         let thread = MyThread(i, threads, iterations, objects);
         thread.start();
-        i = i + 1;
+        i = i + 1L;
     }
 }
 
-fun construct(size: Int) -> Array<Foo> {
-    let objects = Array::<Foo>(size);
+fun construct(size: Int64) -> Array[Foo] {
+    let objects: Array[Foo] = Array::ofSizeUnsafe[Foo](size);
 
-    var i = 0;
+    var i = 0L;
 
     while i < objects.size() {
-        objects[i] = Foo(nil, nil);
-        i = i + 1;
+        objects(i) = Foo(nil, nil);
+        i = i + 1L;
     }
 
-    i = 0;
+    i = 0L;
 
     while i < objects.size() {
-        if i == 0 {
-             objects[0].left = objects[size-1];
+        if i == 0L {
+             objects(0L).left = objects(size-1L);
 	} else {
-	     objects[i].left = objects[i-1];
+	     objects(i).left = objects(i-1L);
 	}
 
-	if i == size-1 {
-              objects[i].right = objects[0];
+	if i == size-1L {
+              objects(i).right = objects(0L);
 	} else {
-              objects[i].right = objects[i+1];
+              objects(i).right = objects(i+1L);
 	}
 
-	i = i + 1;
+	i = i + 1L;
     }
 
     return objects;
 }
 
-class MyThread(let thread_idx: Int, let threads: Int, let iters: Int, let objects: Array<Foo>) : Thread {
-    @override fun run() {
+class MyThread(let thread_idx: Int64, let threads: Int64, let iters: Int32, let objects: Array[Foo]) : Thread {
+  @override fun run() {
 	let size = self.objects.size();
 	let objects_per_thread = size / self.threads;
-	assert(size % self.threads == 0);
+	assert(size % self.threads == 0L);
 	let start_idx = self.thread_idx  * objects_per_thread;
 	let end_idx = start_idx + objects_per_thread;
 
@@ -63,15 +63,14 @@ class MyThread(let thread_idx: Int, let threads: Int, let iters: Int, let object
 	    if idx == end_idx {
 	    	idx = start_idx;
 	    }
-	    let o = self.objects[idx];
+	    let o = self.objects.get(idx);
 	    let tmp = o.left;
 	    o.left = o.right;
 	    o.right = tmp;
-	    idx = idx+1;
+	    idx = idx+1L;
 	    i = i+1;
 	}
-
-    }
+  }
 }
 
 class Foo(var left: Foo, var right: Foo)
