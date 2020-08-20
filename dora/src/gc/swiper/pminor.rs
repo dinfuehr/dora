@@ -922,6 +922,14 @@ where
         }
     }
 
+    fn undo_alloc_young(&mut self, size: usize) {
+        if size < CLAB_OBJECT_SIZE {
+            self.young_lab.undo_alloc(size)
+        } else {
+            // can't undo mid-sized objects
+        }
+    }
+
     fn alloc_old(&mut self, size: usize, array_ref: bool) -> Address {
         if size < CLAB_OBJECT_SIZE {
             self.alloc_old_small(size, array_ref)
@@ -965,6 +973,14 @@ where
         } else {
             self.promotion_failed = true;
             Address::null()
+        }
+    }
+
+    fn undo_alloc_old(&mut self, size: usize) {
+        if size < CLAB_OBJECT_SIZE {
+            self.old_lab.undo_alloc(size);
+        } else {
+            // can't undo mid-sized objects
         }
     }
 
@@ -1048,7 +1064,7 @@ where
             }
 
             Err(fwdptr) => {
-                self.young_lab.undo_alloc(obj_size);
+                self.undo_alloc_young(obj_size);
                 fwdptr
             }
         }
@@ -1082,7 +1098,7 @@ where
             }
 
             Err(fwdptr) => {
-                self.old_lab.undo_alloc(obj_size);
+                self.undo_alloc_old(obj_size);
 
                 fwdptr
             }
