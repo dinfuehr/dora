@@ -67,6 +67,12 @@ class AssemblerX64: Assembler {
         self.emitModRmReg(src, dest);
     }
 
+    fun movqra(dest: Register, src: Address) {
+        self.emitRex64ModRmAddress(dest, src);
+        self.emitByte(0x8BY);
+        self.emitAddress(dest.lowBits(), src);
+    }
+
     fun movqri(dest: Register, imm: Immediate) {
         if imm.isInt32() {
             self.emitRex64RmField(dest);
@@ -274,6 +280,11 @@ class AssemblerX64: Assembler {
         }
     }
 
+    fun emitRex64ModRmAddress(reg: Register, address: Address) {
+        let rex = 0x48 | address.rex.toInt32() | if reg.needsRexBit() { 0x04 } else { 0 };
+        self.emitByte(rex.toUInt8());
+    }
+
     fun emitRex64() {
         self.emitRex(true, false, false, false);
     }
@@ -285,6 +296,19 @@ class AssemblerX64: Assembler {
         // b - extension of modrm-rm/sib base/opcode reg field
         let opcode = 0x40 | w.toInt32() << 3 | r.toInt32() << 2 | x.toInt32() << 1 | b.toInt32();
         self.emitByte(opcode.toUInt8());
+    }
+
+    fun emitAddress(reg_or_opcode: Int32, address: Address) {
+        assert(reg_or_opcode < 8);
+
+        self.emitByte((reg_or_opcode << 3 | address.bytes.get(0L).toInt32()).toUInt8());
+
+        var i = 1L;
+
+        while i < address.length {
+            self.emitByte(address.bytes.get(i));
+            i = i + 1L;
+        }
     }
 
     fun emitModRmReg(reg: Register, rm: Register) {
@@ -451,6 +475,23 @@ enum ScaleFactor {
     Eight,
 }
 
+impl ScaleFactor {
+    fun value() -> Int32 {
+        if self == ScaleFactor::One {
+            0
+        } else if self == ScaleFactor::Two {
+            1
+        } else if self == ScaleFactor::Four {
+            2
+        } else if self == ScaleFactor::Eight {
+            3
+        } else {
+            unreachable();
+            -1
+        }
+    }
+}
+
 class Address {
     var rex: UInt8 = 0Y;
     var length: Int64 = 0L;
@@ -479,7 +520,23 @@ class Address {
             self.rex = (self.rex.toInt32() | 0x42).toUInt8();
         }
 
-        unimplemented();
+        self.bytes.set(1L, (scale.value() << 6 | index.lowBits() << 3 | base.lowBits()).toUInt8());
+        self.length = self.length + 1L;
+    }
+
+    fun set_disp8(imm: Int32) {
+        assert(self.length == 1L || self.length == 2L);
+        self.bytes.set(self.length, imm.toUInt8());
+        self.length = self.length + 1L;
+    }
+
+    fun set_disp32(imm: Int32) {
+        assert(self.length == 1L || self.length == 2L);
+        self.bytes.set(self.length, imm.toUInt8());
+        self.bytes.set(self.length + 1L, (imm >> 8).toUInt8());
+        self.bytes.set(self.length + 2L, (imm >> 16).toUInt8());
+        self.bytes.set(self.length + 3L, (imm >> 24).toUInt8());
+        self.length = self.length + 4L;
     }
 }
 
@@ -496,6 +553,70 @@ module Address {
         };
 
         address.set_modrm(mode, base);
+
+        if base == RSP {
+            address.set_sib(ScaleFactor::One, RSP, base);
+        }
+
+        if mode == 0b00 {
+            // nothing to do
+        } else if mode == 0b01 {
+            address.set_disp8(offset);
+        } else if mode == 0b10 {
+            address.set_disp32(offset);
+        } else {
+            unreachable();
+        }
+
+        address
+    }
+
+    fun index(index: Register, factor: ScaleFactor, disp: Int32) -> Address {
+        let address = Address();
+
+        address.set_modrm(0b00, RSP);
+        assert(index != RSP);
+
+        address.set_sib(factor, index, RBP);
+        address.set_disp32(disp);
+
+        address
+    }
+
+    fun array(base: Register, index: Register, factor: ScaleFactor, disp: Int32) -> Address {
+        let address = Address();
+
+        let mode = if disp == 0 && base != RBP {
+            0b00
+        } else if -128 <= disp && disp < 128 {
+            0b01
+        } else {
+            0b10
+        };
+
+        address.set_modrm(mode, RSP);
+        assert(index != RSP);
+
+        address.set_sib(factor, index, base);
+
+        if mode == 0b00 {
+            // nothing to do
+        } else if mode == 0b01 {
+            address.set_disp8(disp);
+        } else if mode == 0b10 {
+            address.set_disp32(disp);
+        } else {
+            unreachable();
+        }
+
+        address
+    }
+
+    fun rip(disp: Int32) -> Address {
+        let address = Address();
+
+        address.set_modrm(0b00, RBP);
+        address.set_disp32(disp);
 
         address
     }
@@ -977,4 +1098,41 @@ impl Register {
     assertAsm(buffer, 3L, 0x48Y, 0x85Y, 0xC6Y);
     assertAsm(buffer, 6L, 0x49Y, 0x85Y, 0xC7Y);
     assert(buffer.size() == 9L);
+}
+
+@test fun testAsmMovqra(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.movqra(RAX, Address::offset(RSP, 0));
+    asm.movqra(RAX, Address::offset(RSP, 1));
+
+    asm.movqra(R15, Address::offset(RSP, 0));
+    asm.movqra(R15, Address::offset(RSP, 1));
+
+    asm.movqra(R15, Address::offset(RSP, 127));
+    asm.movqra(R15, Address::offset(RSP, -128));
+
+    asm.movqra(R15, Address::offset(RSP, 128));
+    asm.movqra(R15, Address::offset(RSP, -129));
+
+    asm.movqra(RAX, Address::offset(RBP, 0));
+    asm.movqra(RAX, Address::offset(RBP, 1));
+
+    let buffer = asm.finalize();
+
+    assertAsm(buffer, 0L, 0x48Y, 0x8bY, 0x04Y, 0x24Y);
+    assertAsm(buffer, 4L, 0x48Y, 0x8bY, 0x44Y, 0x24Y, 1Y);
+
+    assertAsm(buffer, 9L, 0x4cY, 0x8bY, 0x3cY, 0x24Y);
+    assertAsm(buffer, 13L, 0x4cY, 0x8bY, 0x7cY, 0x24Y, 1Y);
+
+    assertAsm(buffer, 18L, 0x4cY, 0x8bY, 0x7cY, 0x24Y, 0x7fY);
+    assertAsm(buffer, 23L, 0x4cY, 0x8bY, 0x7cY, 0x24Y, 0x80Y);
+
+    assertAsm(buffer, 28L, 0x4cY, 0x8bY, 0xbcY, 0x24Y, 0x80Y, 0Y, 0Y, 0Y);
+    assertAsm(buffer, 36L, 0x4cY, 0x8bY, 0xbcY, 0x24Y, 0x7fY, 0xffY, 0xffY, 0xffY);
+
+    assertAsm(buffer, 44L, 0x48Y, 0x8bY, 0x45Y, 0Y);
+    assertAsm(buffer, 48L, 0x48Y, 0x8bY, 0x45Y, 1Y);
+
+    assert(buffer.size() == 52L);
 }

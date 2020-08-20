@@ -68,7 +68,29 @@ fun assertAsm(buffer: Array[UInt8], start: Int64, bytes: UInt8...) {
         let got = buffer(start + idx);
 
         if exp != got {
-            println("expected ${exp.toStringHex()} at index ${start + idx} but got ${got.toStringHex()}")
+            println("expected ${exp.toStringHex()} at index ${start + idx} but got ${got.toStringHex()}");
+
+            idx = 0L;
+            print("buffer:   ");
+
+            while idx < bytes.size() {
+                if idx > 0L { print(", "); }
+                let value = buffer(start + idx);
+                print("${value.toStringHex()}");
+                idx = idx + 1L;
+            }
+
+            idx = 0L;
+            println("");
+            print("expected: ");
+
+            while idx < bytes.size() {
+                if idx > 0L { print(", "); }
+                let value = bytes(idx);
+                print("${value.toStringHex()}");
+                idx = idx + 1L;
+            }
+            println("");
         }
 
         assert(exp == got);
