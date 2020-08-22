@@ -73,6 +73,24 @@ class AssemblerX64: Assembler {
         self.emitAddress(dest.lowBits(), src);
     }
 
+    fun movqar(dest: Address, src: Register) {
+        self.emitRex64ModRmAddress(src, dest);
+        self.emitByte(0x89Y);
+        self.emitAddress(src.lowBits(), dest);
+    }
+
+    fun movlra(dest: Register, src: Address) {
+        self.emitRex32ModRmAddress(dest, src);
+        self.emitByte(0x8BY);
+        self.emitAddress(dest.lowBits(), src);
+    }
+
+    fun movlar(dest: Address, src: Register) {
+        self.emitRex32ModRmAddress(src, dest);
+        self.emitByte(0x89Y);
+        self.emitAddress(src.lowBits(), dest);
+    }
+
     fun movqri(dest: Register, imm: Immediate) {
         if imm.isInt32() {
             self.emitRex64RmField(dest);
@@ -215,6 +233,12 @@ class AssemblerX64: Assembler {
         self.emitModRmReg(dest, src);
     }
 
+    fun lea(dest: Register, src: Address) {
+        self.emitRex64ModRmAddress(dest, src);
+        self.emitByte(0x8DY);
+        self.emitAddress(dest.lowBits(), src);
+    }
+
     fun retq() {
         self.emitByte(0xC3Y);
     }
@@ -278,6 +302,13 @@ class AssemblerX64: Assembler {
         if reg.needsRexBit() {
             self.emitRex(false, false, false, reg.needsRexBit());
         }
+    }
+
+    fun emitRex32ModRmAddress(reg: Register, address: Address) {
+        if address.rex != 0Y || reg.needsRexBit() {
+            let rex = 0x40 | address.rex.toInt32() | if reg.needsRexBit() { 0x04 } else { 0 };
+            self.emitByte(rex.toUInt8());
+        };
     }
 
     fun emitRex64ModRmAddress(reg: Register, address: Address) {
@@ -1135,4 +1166,61 @@ impl Register {
     assertAsm(buffer, 48L, 0x48Y, 0x8bY, 0x45Y, 1Y);
 
     assert(buffer.size() == 52L);
+}
+
+@test fun testAsmMovqar(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.movqar(Address::offset(RBP, 0), RAX);
+    asm.movqar(Address::array(RAX, RBP, ScaleFactor::Four, 1), RAX);
+
+    let buffer = asm.finalize();
+
+    assertAsm(buffer, 0L, 0x48Y, 0x89Y, 0x45Y, 0Y);
+    assertAsm(buffer, 4L, 0x48Y, 0x89Y, 0x44Y, 0xa8Y, 1Y);
+}
+
+@test fun testAsmMovlra(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.movlra(RAX, Address::offset(RBP, 0));
+    asm.movlra(RAX, Address::rip(0));
+
+    let buffer = asm.finalize();
+
+    assertAsm(buffer, 0L, 0x8bY, 0x45Y, 0Y);
+    assertAsm(buffer, 3L, 0x8bY, 0x05Y, 0Y, 0Y, 0Y, 0Y);
+    assert(buffer.size() == 9L);
+}
+
+@test fun testAsmMovlar(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.movlar(Address::offset(RBP, 0), RAX);
+    asm.movlar(Address::offset(RBP, 0), R15);
+    asm.movlar(Address::offset(R8, 0), R15);
+    asm.movlar(Address::array(R8, R9, ScaleFactor::Four, 0), R15);
+    asm.movlar(Address::array(RAX, RBP, ScaleFactor::Four, 1), RAX);
+
+    let buffer = asm.finalize();
+
+    assertAsm(buffer, 0L, 0x89Y, 0x45Y, 0Y);
+    assertAsm(buffer, 3L, 0x44Y, 0x89Y, 0x7dY, 0Y);
+    assertAsm(buffer, 7L, 0x45Y, 0x89Y, 0x38Y);
+    assertAsm(buffer, 10L, 0x47Y, 0x89Y, 0x3cY, 0x88Y);
+    assertAsm(buffer, 14L, 0x89Y, 0x44Y, 0xa8Y, 1Y);
+    assert(buffer.size() == 18L);
+}
+
+@test fun testAsmLea(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.lea(RAX, Address::offset(RAX, 0));
+    asm.lea(RAX, Address::offset(RAX, 1));
+    asm.lea(RAX, Address::offset(R8, 0));
+    asm.lea(R8, Address::offset(RAX, 0));
+
+    let buffer = asm.finalize();
+
+    assertAsm(buffer, 0L, 0x48Y, 0x8dY, 0x00Y);
+    assertAsm(buffer, 3L, 0x48Y, 0x8dY, 0x40Y, 1Y);
+    assertAsm(buffer, 7L, 0x49Y, 0x8dY, 0x00Y);
+    assertAsm(buffer, 10L, 0x4cY, 0x8dY, 0x00Y);
+    assert(buffer.size() == 13L);
 }
