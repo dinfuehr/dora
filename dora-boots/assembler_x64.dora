@@ -238,6 +238,13 @@ class AssemblerX64: Assembler {
         self.emitModRmReg(src, dest);
     }
 
+    fun movsxblra(dest: Register, src: Address) {
+        self.emitRex32ModRmAddressOptional(dest, src);
+        self.emitByte(0x0fY);
+        self.emitByte(0xbeY);
+        self.emitAddress(dest.lowBits(), src);
+    }
+
     fun movsxblrr(dest: Register, src: Register) {
         self.emitRex32ModRmByteOptional(dest, src);
         self.emitByte(0x0fY);
@@ -245,11 +252,18 @@ class AssemblerX64: Assembler {
         self.emitModRmReg(dest, src);
     }
 
-    fun movsxblra(dest: Register, src: Address) {
-        self.emitRex32ModRmAddressOptional(dest, src);
+    fun movsxbqra(dest: Register, src: Address) {
+        self.emitRex64ModRmAddress(dest, src);
         self.emitByte(0x0fY);
         self.emitByte(0xbeY);
         self.emitAddress(dest.lowBits(), src);
+    }
+
+    fun movsxbqrr(dest: Register, src: Register) {
+        self.emitRex64ModRm(dest, src);
+        self.emitByte(0x0fY);
+        self.emitByte(0xbeY);
+        self.emitModRmReg(dest, src);
     }
 
     fun movzxbrr(dest: Register, src: Register) {
@@ -1627,5 +1641,45 @@ impl Register {
     assertAsm(buffer, 0x44Y, 0x0fY, 0xbeY, 0x00Y);
     assertAsm(buffer, 0x0fY, 0xbeY, 0x20Y);
     assertAsm(buffer, 0x0fY, 0xbeY, 0x38Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmMovsxbqrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.movsxbqrr(RAX, RAX);
+    asm.movsxbqrr(RAX, R8);
+    asm.movsxbqrr(RSP, RAX);
+    asm.movsxbqrr(R15, RAX);
+
+    asm.movsxbqrr(RAX, RBX);
+    asm.movsxbqrr(RAX, RSP);
+    asm.movsxbqrr(RAX, RDI);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x48Y, 0x0fY, 0xbeY, 0xc0Y);
+    assertAsm(buffer, 0x49Y, 0x0fY, 0xbeY, 0xc0Y);
+    assertAsm(buffer, 0x48Y, 0x0fY, 0xbeY, 0xe0Y);
+    assertAsm(buffer, 0x4cY, 0x0fY, 0xbeY, 0xf8Y);
+
+    assertAsm(buffer, 0x48Y, 0x0fY, 0xbeY, 0xc3Y);
+    assertAsm(buffer, 0x48Y, 0x0fY, 0xbeY, 0xc4Y);
+    assertAsm(buffer, 0x48Y, 0x0fY, 0xbeY, 0xc7Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmMovsxbqra(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.movsxbqra(RAX, Address::offset(RAX, 0));
+    asm.movsxbqra(R8, Address::offset(RAX, 0));
+    asm.movsxbqra(RSP, Address::offset(RAX, 0));
+    asm.movsxbqra(RDI, Address::offset(RAX, 0));
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x48Y, 0x0fY, 0xbeY, 0x00Y);
+    assertAsm(buffer, 0x4cY, 0x0fY, 0xbeY, 0x00Y);
+    assertAsm(buffer, 0x48Y, 0x0fY, 0xbeY, 0x20Y);
+    assertAsm(buffer, 0x48Y, 0x0fY, 0xbeY, 0x38Y);
     assertAsmEnd(buffer);
 }
