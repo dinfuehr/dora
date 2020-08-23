@@ -317,6 +317,20 @@ class AssemblerX64: Assembler {
         self.emitModRmReg(rhs, lhs);
     }
 
+    fun testqai(lhs: Address, rhs: Immediate) {
+        assert(rhs.isInt32());
+        self.emitRex64Address(lhs);
+        self.emitByte(0xf7Y);
+        self.emitAddress(0b000, lhs);
+        self.emitInt32(rhs.toInt32());
+    }
+
+    fun testqar(lhs: Address, rhs: Register) {
+        self.emitRex64ModRmAddress(rhs, lhs);
+        self.emitByte(0x85Y);
+        self.emitAddress(rhs.lowBits(), lhs);
+    }
+
     fun xorlrr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x31Y);
@@ -1454,4 +1468,32 @@ impl Register {
 
     assertAsm(buffer, 13L, 0x41Y, 0xf7Y, 0x00Y, 1Y, 0Y, 0Y, 0Y);
     assert(buffer.size() == 20L);
+}
+
+@test fun testAsmTestqai(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.testqai(Address::offset(RAX, 0), Immediate(1L));
+    asm.testqai(Address::offset(RAX, 1), Immediate(1L));
+
+    asm.testqai(Address::offset(R8, 0), Immediate(1L));
+
+    let buffer = asm.finalize();
+
+    assertAsm(buffer, 0L, 0x48Y, 0xf7Y, 0x00Y, 1Y, 0Y, 0Y, 0Y);
+    assertAsm(buffer, 7L, 0x48Y, 0xf7Y, 0x40Y, 1Y, 1Y, 0Y, 0Y, 0Y);
+
+    assertAsm(buffer, 15L, 0x49Y, 0xf7Y, 0x00Y, 1Y, 0Y, 0Y, 0Y);
+    assert(buffer.size() == 22L);
+}
+
+@test fun testAsmTestqar(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.testqar(Address::offset(RDI, 1), RAX);
+    asm.testqar(Address::offset(R8, 0), R15);
+
+    let buffer = asm.finalize();
+
+    assertAsm(buffer, 0L, 0x48Y, 0x85Y, 0x47Y, 1Y);
+    assertAsm(buffer, 4L, 0x4DY, 0x85Y, 0x38Y);
+    assert(buffer.size() == 7L);
 }
