@@ -60,6 +60,56 @@ class Register(let value: Int32) {
     }
 }
 
+class MachineCode(let bytes: Array[UInt8]) {
+    var start: Int64 = 0L;
+}
+
+fun assertAsmCode(code: MachineCode, bytes: UInt8...) {
+    var idx = 0L;
+
+    assert(code.start + bytes.size() <= code.bytes.size());
+
+    while idx < bytes.size() {
+        let exp = bytes(idx);
+        let got = code.bytes.get(code.start + idx);
+
+        if exp != got {
+            println("expected ${exp.toStringHex()} at index ${code.start + idx} but got ${got.toStringHex()}");
+
+            var i = 0L;
+            print("buffer:   ");
+
+            while i < bytes.size() {
+                if i > 0L { print(", "); }
+                let value = bytes(i);
+                print("${value.toStringHex()}");
+                i = i + 1L;
+            }
+
+            i = 0L;
+            println("");
+            print("expected: ");
+
+            while i < bytes.size() {
+                if i > 0L { print(", "); }
+                let value = code.bytes.get(code.start + i);
+                print("${value.toStringHex()}");
+                i = i + 1L;
+            }
+            println("");
+        }
+
+        assert(exp == got);
+        idx = idx + 1L;
+    }
+
+    code.start = code.start + bytes.size();
+}
+
+fun assertAsmEnd(code: MachineCode) {
+    assert(code.start == code.bytes.size());
+}
+
 fun assertAsm(buffer: Array[UInt8], start: Int64, bytes: UInt8...) {
     var idx = 0L;
 
