@@ -80,13 +80,13 @@ class AssemblerX64: Assembler {
     }
 
     fun movlra(dest: Register, src: Address) {
-        self.emitRex32ModRmAddress(dest, src);
+        self.emitRex32ModRmAddressOptional(dest, src);
         self.emitByte(0x8BY);
         self.emitAddress(dest.lowBits(), src);
     }
 
     fun movlar(dest: Address, src: Register) {
-        self.emitRex32ModRmAddress(src, dest);
+        self.emitRex32ModRmAddressOptional(src, dest);
         self.emitByte(0x89Y);
         self.emitAddress(src.lowBits(), dest);
     }
@@ -115,6 +115,20 @@ class AssemblerX64: Assembler {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x89Y);
         self.emitModRmReg(src, dest);
+    }
+
+    fun movbar(dest: Address, src: Register) {
+        self.emitRex32ModRmAddressByteOptional(src, dest);
+        self.emitByte(0x88Y);
+        self.emitAddress(src.lowBits(), dest);
+    }
+
+    fun movbai(dest: Address, src: Immediate) {
+        assert(src.isInt8() || src.isUInt8());
+        self.emitRex32AddressByteOptional(dest);
+        self.emitByte(0xc6Y);
+        self.emitAddress(0b000, dest);
+        self.emitByte(src.toUInt8());
     }
 
     fun orlrr(dest: Register, src: Register) {
@@ -304,11 +318,24 @@ class AssemblerX64: Assembler {
         }
     }
 
-    fun emitRex32ModRmAddress(reg: Register, address: Address) {
+    fun emitRex32ModRmAddressOptional(reg: Register, address: Address) {
         if address.rex != 0Y || reg.needsRexBit() {
             let rex = 0x40 | address.rex.toInt32() | if reg.needsRexBit() { 0x04 } else { 0 };
             self.emitByte(rex.toUInt8());
         };
+    }
+
+    fun emitRex32ModRmAddressByteOptional(reg: Register, address: Address) {
+        if address.rex != 0Y || reg.value > 3 {
+            let rex = 0x40 | address.rex.toInt32() | if reg.needsRexBit() { 0x04 } else { 0 };
+            self.emitByte(rex.toUInt8());
+        };
+    }
+
+    fun emitRex32AddressByteOptional(address: Address) {
+        if address.rex != 0Y {
+            self.emitByte((0x40 | address.rex.toInt32()).toUInt8());
+        }
     }
 
     fun emitRex64ModRmAddress(reg: Register, address: Address) {
@@ -479,6 +506,10 @@ class Immediate(let value: Int64) {
     fun isInt8() -> Bool {
         let limit = 1L << 7;
         -limit <= self.value && self.value < limit
+    }
+
+    fun isUInt8() -> Bool {
+        0L <= self.value && self.value < 256L
     }
 
     fun isInt32() -> Bool {
@@ -1223,4 +1254,36 @@ impl Register {
     assertAsm(buffer, 7L, 0x49Y, 0x8dY, 0x00Y);
     assertAsm(buffer, 10L, 0x4cY, 0x8dY, 0x00Y);
     assert(buffer.size() == 13L);
+}
+
+@test fun testAsmMovbar(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.movbar(Address::offset(RSP, 0), RAX);
+    asm.movbar(Address::offset(RSP, 0), RSI);
+    asm.movbar(Address::offset(RSP, 0), R8);
+
+    let buffer = asm.finalize();
+
+    assertAsm(buffer, 0L, 0x88Y, 0x04Y, 0x24Y);
+    assertAsm(buffer, 3L, 0x40Y, 0x88Y, 0x34Y, 0x24Y);
+    assertAsm(buffer, 7L, 0x44Y, 0x88Y, 0x04Y, 0x24Y);
+    assert(buffer.size() == 11L);
+}
+
+@test fun testAsmMovbai(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.movbai(Address::offset(RAX, 0), Immediate(1L));
+    asm.movbai(Address::offset(RAX, 0), Immediate(127L));
+    asm.movbai(Address::offset(RAX, 0), Immediate(255L));
+    asm.movbai(Address::offset(RAX, 0), Immediate(-128L));
+    asm.movbai(Address::offset(RAX, 0), Immediate(128L));
+
+    let buffer = asm.finalize();
+
+    assertAsm(buffer, 0L, 0xc6Y, 0x00Y, 1Y);
+    assertAsm(buffer, 3L, 0xc6Y, 0x00Y, 0x7fY);
+    assertAsm(buffer, 6L, 0xc6Y, 0x00Y, 0xffY);
+    assertAsm(buffer, 9L, 0xc6Y, 0x00Y, 0x80Y);
+    assertAsm(buffer, 12L, 0xc6Y, 0x00Y, 0x80Y);
+    assert(buffer.size() == 15L);
 }
