@@ -19,127 +19,19 @@ let R15: Register = Register(15);
 class AssemblerX64: Assembler {
     let buffer: AssemblerBuffer = AssemblerBuffer();
 
-    fun pushqr(reg: Register) {
-        self.emitRexOptional(reg);
-        self.emitByte((0x50 + reg.lowBits()).toUInt8());
-    }
-
-    fun popqr(reg: Register) {
-        self.emitRexOptional(reg);
-        self.emitByte((0x58 + reg.lowBits()).toUInt8());
-    }
-
-    fun addqri(reg: Register, imm: Immediate) {
-        self.emitAlu64mm(reg, imm, 0b000, 0x05Y);
-    }
-
-    fun subqri(reg: Register, imm: Immediate) {
-        self.emitAlu64mm(reg, imm, 0b101, 0x2dY);
-    }
-
-    fun addqrr(dest: Register, src: Register) {
-        self.emitRex64ModRm(src, dest);
-        self.emitByte(0x01Y);
-        self.emitModRmReg(src, dest);
-    }
-
     fun addlrr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x01Y);
         self.emitModRmReg(src, dest);
     }
 
-    fun subqrr(dest: Register, src: Register) {
+    fun addqri(reg: Register, imm: Immediate) {
+        self.emitAlu64mm(reg, imm, 0b000, 0x05Y);
+    }
+
+    fun addqrr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
-        self.emitByte(0x29Y);
-        self.emitModRmReg(src, dest);
-    }
-
-    fun sublrr(dest: Register, src: Register) {
-        self.emitRex32ModRmOptional(src, dest);
-        self.emitByte(0x29Y);
-        self.emitModRmReg(src, dest);
-    }
-
-    fun movqrr(dest: Register, src: Register) {
-        self.emitRex64ModRm(src, dest);
-        self.emitByte(0x89Y);
-        self.emitModRmReg(src, dest);
-    }
-
-    fun movqra(dest: Register, src: Address) {
-        self.emitRex64ModRmAddress(dest, src);
-        self.emitByte(0x8BY);
-        self.emitAddress(dest.lowBits(), src);
-    }
-
-    fun movqar(dest: Address, src: Register) {
-        self.emitRex64ModRmAddress(src, dest);
-        self.emitByte(0x89Y);
-        self.emitAddress(src.lowBits(), dest);
-    }
-
-    fun movlra(dest: Register, src: Address) {
-        self.emitRex32ModRmAddressOptional(dest, src);
-        self.emitByte(0x8BY);
-        self.emitAddress(dest.lowBits(), src);
-    }
-
-    fun movlar(dest: Address, src: Register) {
-        self.emitRex32ModRmAddressOptional(src, dest);
-        self.emitByte(0x89Y);
-        self.emitAddress(src.lowBits(), dest);
-    }
-
-    fun movqri(dest: Register, imm: Immediate) {
-        if imm.isInt32() {
-            self.emitRex64RmField(dest);
-            self.emitByte(0xC7Y);
-            self.emitModRmOpcode(0, dest);
-            self.emitInt32(imm.toInt32());
-        } else {
-            self.emitRex64RmField(dest);
-            self.emitByte((0xB8 + dest.lowBits()).toUInt8());
-            self.emitInt64(imm.toInt64());
-        }
-    }
-
-    fun movlri(dest: Register, imm: Immediate) {
-        assert(imm.isInt32());
-        self.emitRex32RmFieldOptional(dest);
-        self.emitByte((0xB8 + dest.lowBits()).toUInt8());
-        self.emitInt32(imm.toInt32());
-    }
-
-    fun movlrr(dest: Register, src: Register) {
-        self.emitRex32ModRmOptional(src, dest);
-        self.emitByte(0x89Y);
-        self.emitModRmReg(src, dest);
-    }
-
-    fun movbar(dest: Address, src: Register) {
-        self.emitRex32ModRmAddressByteOptional(src, dest);
-        self.emitByte(0x88Y);
-        self.emitAddress(src.lowBits(), dest);
-    }
-
-    fun movbai(dest: Address, src: Immediate) {
-        assert(src.isInt8() || src.isUInt8());
-        self.emitRex32AddressByteOptional(dest);
-        self.emitByte(0xc6Y);
-        self.emitAddress(0b000, dest);
-        self.emitByte(src.toUInt8());
-    }
-
-    fun orlrr(dest: Register, src: Register) {
-        self.emitRex32ModRmOptional(src, dest);
-        self.emitByte(0x09Y);
-        self.emitModRmReg(src, dest);
-    }
-
-    fun orqrr(dest: Register, src: Register) {
-        self.emitRex64ModRm(src, dest);
-        self.emitByte(0x09Y);
+        self.emitByte(0x01Y);
         self.emitModRmReg(src, dest);
     }
 
@@ -155,82 +47,14 @@ class AssemblerX64: Assembler {
         self.emitModRmReg(src, dest);
     }
 
-    fun xorlrr(dest: Register, src: Register) {
-        self.emitRex32ModRmOptional(src, dest);
-        self.emitByte(0x31Y);
-        self.emitModRmReg(src, dest);
-    }
-
-    fun xorqrr(dest: Register, src: Register) {
-        self.emitRex64ModRm(src, dest);
-        self.emitByte(0x31Y);
-        self.emitModRmReg(src, dest);
-    }
-
-    fun testlrr(lhs: Register, rhs: Register) {
-        self.emitRex32ModRmOptional(rhs, lhs);
-        self.emitByte(0x85Y);
-        self.emitModRmReg(rhs, lhs);
-    }
-
-    fun testqrr(lhs: Register, rhs: Register) {
-        self.emitRex64ModRm(rhs, lhs);
-        self.emitByte(0x85Y);
-        self.emitModRmReg(rhs, lhs);
-    }
-
-    fun cmplrr(dest: Register, src: Register) {
-        self.emitRex32ModRmOptional(src, dest);
-        self.emitByte(0x39Y);
-        self.emitModRmReg(src, dest);
-    }
-
-    fun cmpqrr(dest: Register, src: Register) {
-        self.emitRex64ModRm(src, dest);
-        self.emitByte(0x39Y);
-        self.emitModRmReg(src, dest);
-    }
-
-    fun imullrr(dest: Register, src: Register) {
-        self.emitRex32ModRmOptional(dest, src);
-        self.emitByte(0x0FY);
-        self.emitByte(0xAFY);
-        self.emitModRmReg(dest, src);
-    }
-
-    fun imulqrr(dest: Register, src: Register) {
-        self.emitRex64ModRm(dest, src);
-        self.emitByte(0x0FY);
-        self.emitByte(0xAFY);
-        self.emitModRmReg(dest, src);
-    }
-
-    fun idivlr(src: Register) {
-        self.emitRex32RmFieldOptional(src);
-        self.emitByte(0xF7Y);
-        self.emitModRmOpcode(0b111, src);
-    }
-
-    fun idivqr(src: Register) {
-        self.emitRex64RmField(src);
-        self.emitByte(0xF7Y);
-        self.emitModRmOpcode(0b111, src);
-    }
-
-    fun setccr(condition: Condition, dest: Register) {
-        if dest.needsRexBit() || dest.lowBits() > 3 {
-            self.emitRex(false, false, false, dest.needsRexBit());
-        }
-
-        self.emitByte(0x0FY);
-        self.emitByte((0x90 + condition.toInt32()).toUInt8());
-        self.emitModRmOpcode(0, dest);
-    }
-
     fun callr(src: Register) {
         self.emitRex32RmFieldOptional(src);
         self.emitByte(0xFFY);
         self.emitModRmOpcode(0b010, src);
+    }
+
+    fun cdq() {
+        self.emitByte(0x99Y);
     }
 
     fun cmovl(condition: Condition, dest: Register, src: Register) {
@@ -247,31 +71,207 @@ class AssemblerX64: Assembler {
         self.emitModRmReg(dest, src);
     }
 
-    fun lea(dest: Register, src: Address) {
-        self.emitRex64ModRmAddress(dest, src);
-        self.emitByte(0x8DY);
-        self.emitAddress(dest.lowBits(), src);
+    fun cmplrr(dest: Register, src: Register) {
+        self.emitRex32ModRmOptional(src, dest);
+        self.emitByte(0x39Y);
+        self.emitModRmReg(src, dest);
     }
 
-    fun retq() {
-        self.emitByte(0xC3Y);
+    fun cmpqrr(dest: Register, src: Register) {
+        self.emitRex64ModRm(src, dest);
+        self.emitByte(0x39Y);
+        self.emitModRmReg(src, dest);
+    }
+
+    fun cqo() {
+        self.emitRex64();
+        self.emitByte(0x99Y);
+    }
+
+    fun idivlr(src: Register) {
+        self.emitRex32RmFieldOptional(src);
+        self.emitByte(0xF7Y);
+        self.emitModRmOpcode(0b111, src);
+    }
+
+    fun idivqr(src: Register) {
+        self.emitRex64RmField(src);
+        self.emitByte(0xF7Y);
+        self.emitModRmOpcode(0b111, src);
+    }
+
+    fun imullrr(dest: Register, src: Register) {
+        self.emitRex32ModRmOptional(dest, src);
+        self.emitByte(0x0FY);
+        self.emitByte(0xAFY);
+        self.emitModRmReg(dest, src);
+    }
+
+    fun imulqrr(dest: Register, src: Register) {
+        self.emitRex64ModRm(dest, src);
+        self.emitByte(0x0FY);
+        self.emitByte(0xAFY);
+        self.emitModRmReg(dest, src);
     }
 
     fun int3() {
         self.emitByte(0xCCY);
     }
 
+    fun lea(dest: Register, src: Address) {
+        self.emitRex64ModRmAddress(dest, src);
+        self.emitByte(0x8DY);
+        self.emitAddress(dest.lowBits(), src);
+    }
+
+    fun movbai(dest: Address, src: Immediate) {
+        assert(src.isInt8() || src.isUInt8());
+        self.emitRex32AddressByteOptional(dest);
+        self.emitByte(0xc6Y);
+        self.emitAddress(0b000, dest);
+        self.emitByte(src.toUInt8());
+    }
+
+    fun movbar(dest: Address, src: Register) {
+        self.emitRex32ModRmAddressByteOptional(src, dest);
+        self.emitByte(0x88Y);
+        self.emitAddress(src.lowBits(), dest);
+    }
+
+    fun movlar(dest: Address, src: Register) {
+        self.emitRex32ModRmAddressOptional(src, dest);
+        self.emitByte(0x89Y);
+        self.emitAddress(src.lowBits(), dest);
+    }
+
+    fun movlra(dest: Register, src: Address) {
+        self.emitRex32ModRmAddressOptional(dest, src);
+        self.emitByte(0x8BY);
+        self.emitAddress(dest.lowBits(), src);
+    }
+
+    fun movlri(dest: Register, imm: Immediate) {
+        assert(imm.isInt32());
+        self.emitRex32RmFieldOptional(dest);
+        self.emitByte((0xB8 + dest.lowBits()).toUInt8());
+        self.emitInt32(imm.toInt32());
+    }
+
+    fun movlrr(dest: Register, src: Register) {
+        self.emitRex32ModRmOptional(src, dest);
+        self.emitByte(0x89Y);
+        self.emitModRmReg(src, dest);
+    }
+
+    fun movqar(dest: Address, src: Register) {
+        self.emitRex64ModRmAddress(src, dest);
+        self.emitByte(0x89Y);
+        self.emitAddress(src.lowBits(), dest);
+    }
+
+    fun movqra(dest: Register, src: Address) {
+        self.emitRex64ModRmAddress(dest, src);
+        self.emitByte(0x8BY);
+        self.emitAddress(dest.lowBits(), src);
+    }
+
+    fun movqri(dest: Register, imm: Immediate) {
+        if imm.isInt32() {
+            self.emitRex64RmField(dest);
+            self.emitByte(0xC7Y);
+            self.emitModRmOpcode(0, dest);
+            self.emitInt32(imm.toInt32());
+        } else {
+            self.emitRex64RmField(dest);
+            self.emitByte((0xB8 + dest.lowBits()).toUInt8());
+            self.emitInt64(imm.toInt64());
+        }
+    }
+
+    fun movqrr(dest: Register, src: Register) {
+        self.emitRex64ModRm(src, dest);
+        self.emitByte(0x89Y);
+        self.emitModRmReg(src, dest);
+    }
+
     fun nop() {
         self.emitByte(0x90Y);
     }
 
-    fun cdq() {
-        self.emitByte(0x99Y);
+    fun orlrr(dest: Register, src: Register) {
+        self.emitRex32ModRmOptional(src, dest);
+        self.emitByte(0x09Y);
+        self.emitModRmReg(src, dest);
     }
 
-    fun cqo() {
-        self.emitRex64();
-        self.emitByte(0x99Y);
+    fun orqrr(dest: Register, src: Register) {
+        self.emitRex64ModRm(src, dest);
+        self.emitByte(0x09Y);
+        self.emitModRmReg(src, dest);
+    }
+
+    fun pushqr(reg: Register) {
+        self.emitRexOptional(reg);
+        self.emitByte((0x50 + reg.lowBits()).toUInt8());
+    }
+
+    fun popqr(reg: Register) {
+        self.emitRexOptional(reg);
+        self.emitByte((0x58 + reg.lowBits()).toUInt8());
+    }
+
+    fun retq() {
+        self.emitByte(0xC3Y);
+    }
+
+    fun setccr(condition: Condition, dest: Register) {
+        if dest.needsRexBit() || dest.lowBits() > 3 {
+            self.emitRex(false, false, false, dest.needsRexBit());
+        }
+
+        self.emitByte(0x0FY);
+        self.emitByte((0x90 + condition.toInt32()).toUInt8());
+        self.emitModRmOpcode(0, dest);
+    }
+
+    fun sublrr(dest: Register, src: Register) {
+        self.emitRex32ModRmOptional(src, dest);
+        self.emitByte(0x29Y);
+        self.emitModRmReg(src, dest);
+    }
+
+    fun subqri(reg: Register, imm: Immediate) {
+        self.emitAlu64mm(reg, imm, 0b101, 0x2dY);
+    }
+
+    fun subqrr(dest: Register, src: Register) {
+        self.emitRex64ModRm(src, dest);
+        self.emitByte(0x29Y);
+        self.emitModRmReg(src, dest);
+    }
+
+    fun testlrr(lhs: Register, rhs: Register) {
+        self.emitRex32ModRmOptional(rhs, lhs);
+        self.emitByte(0x85Y);
+        self.emitModRmReg(rhs, lhs);
+    }
+
+    fun testqrr(lhs: Register, rhs: Register) {
+        self.emitRex64ModRm(rhs, lhs);
+        self.emitByte(0x85Y);
+        self.emitModRmReg(rhs, lhs);
+    }
+
+    fun xorlrr(dest: Register, src: Register) {
+        self.emitRex32ModRmOptional(src, dest);
+        self.emitByte(0x31Y);
+        self.emitModRmReg(src, dest);
+    }
+
+    fun xorqrr(dest: Register, src: Register) {
+        self.emitRex64ModRm(src, dest);
+        self.emitByte(0x31Y);
+        self.emitModRmReg(src, dest);
     }
 
     fun emitAlu64mm(reg: Register, imm: Immediate, modrm_reg: Int32, rax_opcode: UInt8) {
