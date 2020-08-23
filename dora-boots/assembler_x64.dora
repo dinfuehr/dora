@@ -898,10 +898,10 @@ impl Register {
     asm.pushqr(R8);
     asm.pushqr(R15);
     let buffer = asm.finalizeTesting();
-    assertAsmCode(buffer, 0x50Y);
-    assertAsmCode(buffer, 0x54Y);
-    assertAsmCode(buffer, 0x41Y, 0x50Y);
-    assertAsmCode(buffer, 0x41Y, 0x57Y);
+    assertAsm(buffer, 0x50Y);
+    assertAsm(buffer, 0x54Y);
+    assertAsm(buffer, 0x41Y, 0x50Y);
+    assertAsm(buffer, 0x41Y, 0x57Y);
     assertAsmEnd(buffer);
 }
 
@@ -912,10 +912,10 @@ impl Register {
     asm.popqr(R8);
     asm.popqr(R15);
     let buffer = asm.finalizeTesting();
-    assertAsmCode(buffer, 0x58Y);
-    assertAsmCode(buffer, 0x5CY);
-    assertAsmCode(buffer, 0x41Y, 0x58Y);
-    assertAsmCode(buffer, 0x41Y, 0x5FY);
+    assertAsm(buffer, 0x58Y);
+    assertAsm(buffer, 0x5CY);
+    assertAsm(buffer, 0x41Y, 0x58Y);
+    assertAsm(buffer, 0x41Y, 0x5FY);
     assertAsmEnd(buffer);
 }
 
@@ -924,8 +924,8 @@ impl Register {
     asm.movqrr(R15, RAX);
     asm.movqrr(RAX, R15);
     let buffer = asm.finalizeTesting();
-    assertAsmCode(buffer, 0x49Y, 0x89Y, 0xC7Y);
-    assertAsmCode(buffer, 0x4CY, 0x89Y, 0xF8Y);
+    assertAsm(buffer, 0x49Y, 0x89Y, 0xC7Y);
+    assertAsm(buffer, 0x4CY, 0x89Y, 0xF8Y);
     assertAsmEnd(buffer);
 }
 
@@ -935,9 +935,9 @@ impl Register {
     asm.movlrr(RAX, R15);
     asm.movlrr(RCX, RAX);
     let buffer = asm.finalizeTesting();
-    assertAsmCode(buffer, 0x41Y, 0x89Y, 0xC7Y);
-    assertAsmCode(buffer, 0x44Y, 0x89Y, 0xF8Y);
-    assertAsmCode(buffer, 0x89Y, 0xC1Y);
+    assertAsm(buffer, 0x41Y, 0x89Y, 0xC7Y);
+    assertAsm(buffer, 0x44Y, 0x89Y, 0xF8Y);
+    assertAsm(buffer, 0x89Y, 0xC1Y);
     assertAsmEnd(buffer);
 }
 
@@ -948,10 +948,10 @@ impl Register {
     asm.addqrr(R12, RAX);
     asm.addqrr(R15, RSP);
     let buffer = asm.finalizeTesting();
-    assertAsmCode(buffer, 0x48Y, 0x01Y, 0xD8Y);
-    assertAsmCode(buffer, 0x4CY, 0x01Y, 0xE0Y);
-    assertAsmCode(buffer, 0x49Y, 0x01Y, 0xC4Y);
-    assertAsmCode(buffer, 0x49Y, 0x01Y, 0xE7Y);
+    assertAsm(buffer, 0x48Y, 0x01Y, 0xD8Y);
+    assertAsm(buffer, 0x4CY, 0x01Y, 0xE0Y);
+    assertAsm(buffer, 0x49Y, 0x01Y, 0xC4Y);
+    assertAsm(buffer, 0x49Y, 0x01Y, 0xE7Y);
     assertAsmEnd(buffer);
 }
 
@@ -960,8 +960,8 @@ impl Register {
     asm.addlrr(RAX, RBX);
     asm.addlrr(RCX, R15);
     let buffer = asm.finalizeTesting();
-    assertAsmCode(buffer, 0x01Y, 0xD8Y);
-    assertAsmCode(buffer, 0x44Y, 0x01Y, 0xF9Y);
+    assertAsm(buffer, 0x01Y, 0xD8Y);
+    assertAsm(buffer, 0x44Y, 0x01Y, 0xF9Y);
     assertAsmEnd(buffer);
 }
 
@@ -973,11 +973,11 @@ impl Register {
     asm.addqri(RCX, Immediate(0x2211L));
     asm.addqri(R15, Immediate(0x2211L));
     let buffer = asm.finalizeTesting();
-    assertAsmCode(buffer, 0x48Y, 0x83Y, 0xC0Y, 0x11Y);
-    assertAsmCode(buffer, 0x49Y, 0x83Y, 0xC7Y, 0x11Y);
-    assertAsmCode(buffer, 0x48Y, 0x05Y, 0x11Y, 0x22Y, 0Y, 0Y);
-    assertAsmCode(buffer, 0x48Y, 0x81Y, 0xC1Y, 0x11Y, 0x22Y, 0Y, 0Y);
-    assertAsmCode(buffer, 0x49Y, 0x81Y, 0xC7Y, 0x11Y, 0x22Y, 0Y, 0Y);
+    assertAsm(buffer, 0x48Y, 0x83Y, 0xC0Y, 0x11Y);
+    assertAsm(buffer, 0x49Y, 0x83Y, 0xC7Y, 0x11Y);
+    assertAsm(buffer, 0x48Y, 0x05Y, 0x11Y, 0x22Y, 0Y, 0Y);
+    assertAsm(buffer, 0x48Y, 0x81Y, 0xC1Y, 0x11Y, 0x22Y, 0Y, 0Y);
+    assertAsm(buffer, 0x49Y, 0x81Y, 0xC7Y, 0x11Y, 0x22Y, 0Y, 0Y);
     assertAsmEnd(buffer);
 }
 
@@ -986,8 +986,8 @@ impl Register {
     asm.subqrr(RAX, RBX);
     asm.subqrr(RCX, R15);
     let buffer = asm.finalizeTesting();
-    assertAsmCode(buffer, 0x48Y, 0x29Y, 0xD8Y);
-    assertAsmCode(buffer, 0x4CY, 0x29Y, 0xF9Y);
+    assertAsm(buffer, 0x48Y, 0x29Y, 0xD8Y);
+    assertAsm(buffer, 0x4CY, 0x29Y, 0xF9Y);
     assertAsmEnd(buffer);
 }
 
@@ -999,11 +999,11 @@ impl Register {
     asm.subqri(RCX, Immediate(0x2211L));
     asm.subqri(R15, Immediate(0x2211L));
     let buffer = asm.finalizeTesting();
-    assertAsmCode(buffer, 0x48Y, 0x83Y, 0xE8Y, 0x11Y);
-    assertAsmCode(buffer, 0x49Y, 0x83Y, 0xEFY, 0x11Y);
-    assertAsmCode(buffer, 0x48Y, 0x2DY, 0x11Y, 0x22Y, 0Y, 0Y);
-    assertAsmCode(buffer, 0x48Y, 0x81Y, 0xE9Y, 0x11Y, 0x22Y, 0Y, 0Y);
-    assertAsmCode(buffer, 0x49Y, 0x81Y, 0xEFY, 0x11Y, 0x22Y, 0Y, 0Y);
+    assertAsm(buffer, 0x48Y, 0x83Y, 0xE8Y, 0x11Y);
+    assertAsm(buffer, 0x49Y, 0x83Y, 0xEFY, 0x11Y);
+    assertAsm(buffer, 0x48Y, 0x2DY, 0x11Y, 0x22Y, 0Y, 0Y);
+    assertAsm(buffer, 0x48Y, 0x81Y, 0xE9Y, 0x11Y, 0x22Y, 0Y, 0Y);
+    assertAsm(buffer, 0x49Y, 0x81Y, 0xEFY, 0x11Y, 0x22Y, 0Y, 0Y);
     assertAsmEnd(buffer);
 }
 
@@ -1011,7 +1011,7 @@ impl Register {
     let asm = AssemblerX64();
     asm.retq();
     let buffer = asm.finalizeTesting();
-    assertAsmCode(buffer, 0xC3Y);
+    assertAsm(buffer, 0xC3Y);
     assertAsmEnd(buffer);
 }
 
@@ -1019,7 +1019,7 @@ impl Register {
     let asm = AssemblerX64();
     asm.nop();
     let buffer = asm.finalizeTesting();
-    assertAsmCode(buffer, 0x90Y);
+    assertAsm(buffer, 0x90Y);
     assertAsmEnd(buffer);
 }
 
@@ -1028,8 +1028,8 @@ impl Register {
     asm.cdq();
     asm.cqo();
     let buffer = asm.finalizeTesting();
-    assertAsmCode(buffer, 0x99Y);
-    assertAsmCode(buffer, 0x48Y, 0x99Y);
+    assertAsm(buffer, 0x99Y);
+    assertAsm(buffer, 0x48Y, 0x99Y);
     assertAsmEnd(buffer);
 }
 
@@ -1040,9 +1040,9 @@ impl Register {
     asm.orlrr(R15, RAX);
     let buffer = asm.finalizeTesting();
 
-    assertAsmCode(buffer, 0x44Y, 0x09Y, 0xF8Y);
-    assertAsmCode(buffer, 0x09Y, 0xc8Y);
-    assertAsmCode(buffer, 0x41Y, 0x09Y, 0xC7Y);
+    assertAsm(buffer, 0x44Y, 0x09Y, 0xF8Y);
+    assertAsm(buffer, 0x09Y, 0xc8Y);
+    assertAsm(buffer, 0x41Y, 0x09Y, 0xC7Y);
     assertAsmEnd(buffer);
 }
 
@@ -1053,9 +1053,9 @@ impl Register {
     asm.orqrr(R15, RAX);
     let buffer = asm.finalizeTesting();
 
-    assertAsmCode(buffer, 0x4CY, 0x09Y, 0xF8Y);
-    assertAsmCode(buffer, 0x48Y, 0x09Y, 0xC8Y);
-    assertAsmCode(buffer, 0x49Y, 0x09Y, 0xC7Y);
+    assertAsm(buffer, 0x4CY, 0x09Y, 0xF8Y);
+    assertAsm(buffer, 0x48Y, 0x09Y, 0xC8Y);
+    assertAsm(buffer, 0x49Y, 0x09Y, 0xC7Y);
     assertAsmEnd(buffer);
 }
 
@@ -1066,9 +1066,9 @@ impl Register {
     asm.andlrr(R15, RAX);
     let buffer = asm.finalizeTesting();
 
-    assertAsmCode(buffer, 0x44Y, 0x21Y, 0xF8Y);
-    assertAsmCode(buffer, 0x21Y, 0xC8Y);
-    assertAsmCode(buffer, 0x41Y, 0x21Y, 0xC7Y);
+    assertAsm(buffer, 0x44Y, 0x21Y, 0xF8Y);
+    assertAsm(buffer, 0x21Y, 0xC8Y);
+    assertAsm(buffer, 0x41Y, 0x21Y, 0xC7Y);
     assertAsmEnd(buffer);
 }
 
@@ -1079,9 +1079,9 @@ impl Register {
     asm.andqrr(R15, RAX);
     let buffer = asm.finalizeTesting();
 
-    assertAsmCode(buffer, 0x4CY, 0x21Y, 0xF8Y);
-    assertAsmCode(buffer, 0x48Y, 0x21Y, 0xC8Y);
-    assertAsmCode(buffer, 0x49Y, 0x21Y, 0xC7Y);
+    assertAsm(buffer, 0x4CY, 0x21Y, 0xF8Y);
+    assertAsm(buffer, 0x48Y, 0x21Y, 0xC8Y);
+    assertAsm(buffer, 0x49Y, 0x21Y, 0xC7Y);
     assertAsmEnd(buffer);
 }
 
@@ -1092,9 +1092,9 @@ impl Register {
     asm.xorlrr(R15, RAX);
     let buffer = asm.finalizeTesting();
 
-    assertAsmCode(buffer, 0x44Y, 0x31Y, 0xF8Y);
-    assertAsmCode(buffer, 0x31Y, 0xC8Y);
-    assertAsmCode(buffer, 0x41Y, 0x31Y, 0xC7Y);
+    assertAsm(buffer, 0x44Y, 0x31Y, 0xF8Y);
+    assertAsm(buffer, 0x31Y, 0xC8Y);
+    assertAsm(buffer, 0x41Y, 0x31Y, 0xC7Y);
     assertAsmEnd(buffer);
 }
 
@@ -1105,9 +1105,9 @@ impl Register {
     asm.xorqrr(R15, RAX);
     let buffer = asm.finalizeTesting();
 
-    assertAsmCode(buffer, 0x4CY, 0x31Y, 0xF8Y);
-    assertAsmCode(buffer, 0x48Y, 0x31Y, 0xC8Y);
-    assertAsmCode(buffer, 0x49Y, 0x31Y, 0xC7Y);
+    assertAsm(buffer, 0x4CY, 0x31Y, 0xF8Y);
+    assertAsm(buffer, 0x48Y, 0x31Y, 0xC8Y);
+    assertAsm(buffer, 0x49Y, 0x31Y, 0xC7Y);
     assertAsmEnd(buffer);
 }
 
@@ -1118,9 +1118,9 @@ impl Register {
     asm.cmplrr(RAX, RBX);
     let buffer = asm.finalizeTesting();
 
-    assertAsmCode(buffer, 0x44Y, 0x39Y, 0xF8Y);
-    assertAsmCode(buffer, 0x41Y, 0x39Y, 0xDFY);
-    assertAsmCode(buffer, 0x39Y, 0xD8Y);
+    assertAsm(buffer, 0x44Y, 0x39Y, 0xF8Y);
+    assertAsm(buffer, 0x41Y, 0x39Y, 0xDFY);
+    assertAsm(buffer, 0x39Y, 0xD8Y);
     assertAsmEnd(buffer);
 }
 
@@ -1131,9 +1131,9 @@ impl Register {
     asm.cmpqrr(RAX, RBX);
     let buffer = asm.finalizeTesting();
 
-    assertAsmCode(buffer, 0x4CY, 0x39Y, 0xF8Y);
-    assertAsmCode(buffer, 0x49Y, 0x39Y, 0xDFY);
-    assertAsmCode(buffer, 0x48Y, 0x39Y, 0xD8Y);
+    assertAsm(buffer, 0x4CY, 0x39Y, 0xF8Y);
+    assertAsm(buffer, 0x49Y, 0x39Y, 0xDFY);
+    assertAsm(buffer, 0x48Y, 0x39Y, 0xD8Y);
     assertAsmEnd(buffer);
 }
 
@@ -1143,8 +1143,8 @@ impl Register {
     asm.imullrr(RCX, R15);
     let buffer = asm.finalizeTesting();
 
-    assertAsmCode(buffer, 0x0FY, 0xAFY, 0xC3Y);
-    assertAsmCode(buffer, 0x41Y, 0x0FY, 0xAFY, 0xCFY);
+    assertAsm(buffer, 0x0FY, 0xAFY, 0xC3Y);
+    assertAsm(buffer, 0x41Y, 0x0FY, 0xAFY, 0xCFY);
     assertAsmEnd(buffer);
 }
 
@@ -1154,8 +1154,8 @@ impl Register {
     asm.imulqrr(RCX, R15);
     let buffer = asm.finalizeTesting();
 
-    assertAsmCode(buffer, 0x48Y, 0x0FY, 0xAFY, 0xC3Y);
-    assertAsmCode(buffer, 0x49Y, 0x0FY, 0xAFY, 0xCFY);
+    assertAsm(buffer, 0x48Y, 0x0FY, 0xAFY, 0xC3Y);
+    assertAsm(buffer, 0x49Y, 0x0FY, 0xAFY, 0xCFY);
     assertAsmEnd(buffer);
 }
 
@@ -1165,8 +1165,8 @@ impl Register {
     asm.idivlr(R15);
     let buffer = asm.finalizeTesting();
 
-    assertAsmCode(buffer, 0xF7Y, 0xF8Y);
-    assertAsmCode(buffer, 0x41Y, 0xF7Y, 0xFFY);
+    assertAsm(buffer, 0xF7Y, 0xF8Y);
+    assertAsm(buffer, 0x41Y, 0xF7Y, 0xFFY);
     assertAsmEnd(buffer);
 }
 
@@ -1176,8 +1176,8 @@ impl Register {
     asm.idivqr(R15);
     let buffer = asm.finalizeTesting();
 
-    assertAsmCode(buffer, 0x48Y, 0xF7Y, 0xF8Y);
-    assertAsmCode(buffer, 0x49Y, 0xF7Y, 0xFFY);
+    assertAsm(buffer, 0x48Y, 0xF7Y, 0xF8Y);
+    assertAsm(buffer, 0x49Y, 0xF7Y, 0xFFY);
     assertAsmEnd(buffer);
 }
 
@@ -1191,12 +1191,12 @@ impl Register {
     asm.setccr(Condition::Less, RDI);
     let buffer = asm.finalizeTesting();
 
-    assertAsmCode(buffer, 0x0FY, 0x94Y, 0xC0Y);
-    assertAsmCode(buffer, 0x41Y, 0x0FY, 0x95Y, 0xC7Y);
-    assertAsmCode(buffer, 0x0FY, 0x9DY, 0xC1Y);
-    assertAsmCode(buffer, 0x0FY, 0x9FY, 0xC2Y);
-    assertAsmCode(buffer, 0x40Y, 0x0FY, 0x9EY, 0xC6Y);
-    assertAsmCode(buffer, 0x40Y, 0x0FY, 0x9CY, 0xC7Y);
+    assertAsm(buffer, 0x0FY, 0x94Y, 0xC0Y);
+    assertAsm(buffer, 0x41Y, 0x0FY, 0x95Y, 0xC7Y);
+    assertAsm(buffer, 0x0FY, 0x9DY, 0xC1Y);
+    assertAsm(buffer, 0x0FY, 0x9FY, 0xC2Y);
+    assertAsm(buffer, 0x40Y, 0x0FY, 0x9EY, 0xC6Y);
+    assertAsm(buffer, 0x40Y, 0x0FY, 0x9CY, 0xC7Y);
     assertAsmEnd(buffer);
 }
 
@@ -1206,8 +1206,8 @@ impl Register {
     asm.callr(R15);
     let buffer = asm.finalizeTesting();
 
-    assertAsmCode(buffer, 0xFFY, 0xD0Y);
-    assertAsmCode(buffer, 0x41Y, 0xFFY, 0xD7Y);
+    assertAsm(buffer, 0xFFY, 0xD0Y);
+    assertAsm(buffer, 0x41Y, 0xFFY, 0xD7Y);
     assertAsmEnd(buffer);
 }
 
@@ -1217,8 +1217,8 @@ impl Register {
     asm.cmovl(Condition::NotEqual, RAX, R13);
     let buffer = asm.finalizeTesting();
 
-    assertAsmCode(buffer, 0x44Y, 0x0FY, 0x44Y, 0xF8Y);
-    assertAsmCode(buffer, 0x41Y, 0x0FY, 0x45Y, 0xC5Y);
+    assertAsm(buffer, 0x44Y, 0x0FY, 0x44Y, 0xF8Y);
+    assertAsm(buffer, 0x41Y, 0x0FY, 0x45Y, 0xC5Y);
     assertAsmEnd(buffer);
 }
 
@@ -1229,9 +1229,9 @@ impl Register {
     asm.cmovq(Condition::NotEqual, RAX, R13);
     let buffer = asm.finalizeTesting();
 
-    assertAsmCode(buffer, 0x48Y, 0x0FY, 0x4FY, 0xC1Y);
-    assertAsmCode(buffer, 0x4CY, 0x0FY, 0x44Y, 0xF8Y);
-    assertAsmCode(buffer, 0x49Y, 0x0FY, 0x45Y, 0xC5Y);
+    assertAsm(buffer, 0x48Y, 0x0FY, 0x4FY, 0xC1Y);
+    assertAsm(buffer, 0x4CY, 0x0FY, 0x44Y, 0xF8Y);
+    assertAsm(buffer, 0x49Y, 0x0FY, 0x45Y, 0xC5Y);
     assertAsmEnd(buffer);
 }
 
@@ -1241,8 +1241,8 @@ impl Register {
     asm.movlri(R14, Immediate(3L));
     let buffer = asm.finalizeTesting();
 
-    assertAsmCode(buffer, 0xB8Y, 2Y, 0Y, 0Y, 0Y);
-    assertAsmCode(buffer, 0x41Y, 0xBEY, 3Y, 0Y, 0Y, 0Y);
+    assertAsm(buffer, 0xB8Y, 2Y, 0Y, 0Y, 0Y);
+    assertAsm(buffer, 0x41Y, 0xBEY, 3Y, 0Y, 0Y, 0Y);
     assertAsmEnd(buffer);
 }
 
@@ -1252,8 +1252,8 @@ impl Register {
     asm.movqri(R15, Immediate(-1L));
     let buffer = asm.finalizeTesting();
 
-    assertAsmCode(buffer, 0x48Y, 0xC7Y, 0xC0Y, 1Y, 0Y, 0Y, 0Y);
-    assertAsmCode(buffer, 0x49Y, 0xC7Y, 0xC7Y, 0xffY, 0xffY, 0xffY, 0xffY);
+    assertAsm(buffer, 0x48Y, 0xC7Y, 0xC0Y, 1Y, 0Y, 0Y, 0Y);
+    assertAsm(buffer, 0x49Y, 0xC7Y, 0xC7Y, 0xffY, 0xffY, 0xffY, 0xffY);
     assertAsmEnd(buffer);
 }
 
@@ -1262,12 +1262,12 @@ impl Register {
     asm.testlrr(RAX, RAX);
     asm.testlrr(RSI, RAX);
     asm.testlrr(R15, RAX);
-    let buffer = asm.finalize();
+    let buffer = asm.finalizeTesting();
 
-    assertAsm(buffer, 0L, 0x85Y, 0xC0Y);
-    assertAsm(buffer, 2L, 0x85Y, 0xC6Y);
-    assertAsm(buffer, 4L, 0x41Y, 0x85Y, 0xC7Y);
-    assert(buffer.size() == 7L);
+    assertAsm(buffer, 0x85Y, 0xC0Y);
+    assertAsm(buffer, 0x85Y, 0xC6Y);
+    assertAsm(buffer, 0x41Y, 0x85Y, 0xC7Y);
+    assertAsmEnd(buffer);
 }
 
 @test fun testTestqrr(_x: Testing) {
@@ -1275,12 +1275,12 @@ impl Register {
     asm.testqrr(RAX, RAX);
     asm.testqrr(RSI, RAX);
     asm.testqrr(R15, RAX);
-    let buffer = asm.finalize();
+    let buffer = asm.finalizeTesting();
 
-    assertAsm(buffer, 0L, 0x48Y, 0x85Y, 0xC0Y);
-    assertAsm(buffer, 3L, 0x48Y, 0x85Y, 0xC6Y);
-    assertAsm(buffer, 6L, 0x49Y, 0x85Y, 0xC7Y);
-    assert(buffer.size() == 9L);
+    assertAsm(buffer, 0x48Y, 0x85Y, 0xC0Y);
+    assertAsm(buffer, 0x48Y, 0x85Y, 0xC6Y);
+    assertAsm(buffer, 0x49Y, 0x85Y, 0xC7Y);
+    assertAsmEnd(buffer);
 }
 
 @test fun testAsmMovqra(_x: Testing) {
@@ -1300,24 +1300,24 @@ impl Register {
     asm.movqra(RAX, Address::offset(RBP, 0));
     asm.movqra(RAX, Address::offset(RBP, 1));
 
-    let buffer = asm.finalize();
+    let buffer = asm.finalizeTesting();
 
-    assertAsm(buffer, 0L, 0x48Y, 0x8bY, 0x04Y, 0x24Y);
-    assertAsm(buffer, 4L, 0x48Y, 0x8bY, 0x44Y, 0x24Y, 1Y);
+    assertAsm(buffer, 0x48Y, 0x8bY, 0x04Y, 0x24Y);
+    assertAsm(buffer, 0x48Y, 0x8bY, 0x44Y, 0x24Y, 1Y);
 
-    assertAsm(buffer, 9L, 0x4cY, 0x8bY, 0x3cY, 0x24Y);
-    assertAsm(buffer, 13L, 0x4cY, 0x8bY, 0x7cY, 0x24Y, 1Y);
+    assertAsm(buffer, 0x4cY, 0x8bY, 0x3cY, 0x24Y);
+    assertAsm(buffer, 0x4cY, 0x8bY, 0x7cY, 0x24Y, 1Y);
 
-    assertAsm(buffer, 18L, 0x4cY, 0x8bY, 0x7cY, 0x24Y, 0x7fY);
-    assertAsm(buffer, 23L, 0x4cY, 0x8bY, 0x7cY, 0x24Y, 0x80Y);
+    assertAsm(buffer, 0x4cY, 0x8bY, 0x7cY, 0x24Y, 0x7fY);
+    assertAsm(buffer, 0x4cY, 0x8bY, 0x7cY, 0x24Y, 0x80Y);
 
-    assertAsm(buffer, 28L, 0x4cY, 0x8bY, 0xbcY, 0x24Y, 0x80Y, 0Y, 0Y, 0Y);
-    assertAsm(buffer, 36L, 0x4cY, 0x8bY, 0xbcY, 0x24Y, 0x7fY, 0xffY, 0xffY, 0xffY);
+    assertAsm(buffer, 0x4cY, 0x8bY, 0xbcY, 0x24Y, 0x80Y, 0Y, 0Y, 0Y);
+    assertAsm(buffer, 0x4cY, 0x8bY, 0xbcY, 0x24Y, 0x7fY, 0xffY, 0xffY, 0xffY);
 
-    assertAsm(buffer, 44L, 0x48Y, 0x8bY, 0x45Y, 0Y);
-    assertAsm(buffer, 48L, 0x48Y, 0x8bY, 0x45Y, 1Y);
+    assertAsm(buffer, 0x48Y, 0x8bY, 0x45Y, 0Y);
+    assertAsm(buffer, 0x48Y, 0x8bY, 0x45Y, 1Y);
 
-    assert(buffer.size() == 52L);
+    assertAsmEnd(buffer);
 }
 
 @test fun testAsmMovqar(_x: Testing) {
@@ -1325,10 +1325,11 @@ impl Register {
     asm.movqar(Address::offset(RBP, 0), RAX);
     asm.movqar(Address::array(RAX, RBP, ScaleFactor::Four, 1), RAX);
 
-    let buffer = asm.finalize();
+    let buffer = asm.finalizeTesting();
 
-    assertAsm(buffer, 0L, 0x48Y, 0x89Y, 0x45Y, 0Y);
-    assertAsm(buffer, 4L, 0x48Y, 0x89Y, 0x44Y, 0xa8Y, 1Y);
+    assertAsm(buffer, 0x48Y, 0x89Y, 0x45Y, 0Y);
+    assertAsm(buffer, 0x48Y, 0x89Y, 0x44Y, 0xa8Y, 1Y);
+    assertAsmEnd(buffer);
 }
 
 @test fun testAsmMovlra(_x: Testing) {
@@ -1336,11 +1337,11 @@ impl Register {
     asm.movlra(RAX, Address::offset(RBP, 0));
     asm.movlra(RAX, Address::rip(0));
 
-    let buffer = asm.finalize();
+    let buffer = asm.finalizeTesting();
 
-    assertAsm(buffer, 0L, 0x8bY, 0x45Y, 0Y);
-    assertAsm(buffer, 3L, 0x8bY, 0x05Y, 0Y, 0Y, 0Y, 0Y);
-    assert(buffer.size() == 9L);
+    assertAsm(buffer, 0x8bY, 0x45Y, 0Y);
+    assertAsm(buffer, 0x8bY, 0x05Y, 0Y, 0Y, 0Y, 0Y);
+    assertAsmEnd(buffer);
 }
 
 @test fun testAsmMovlar(_x: Testing) {
@@ -1351,14 +1352,14 @@ impl Register {
     asm.movlar(Address::array(R8, R9, ScaleFactor::Four, 0), R15);
     asm.movlar(Address::array(RAX, RBP, ScaleFactor::Four, 1), RAX);
 
-    let buffer = asm.finalize();
+    let buffer = asm.finalizeTesting();
 
-    assertAsm(buffer, 0L, 0x89Y, 0x45Y, 0Y);
-    assertAsm(buffer, 3L, 0x44Y, 0x89Y, 0x7dY, 0Y);
-    assertAsm(buffer, 7L, 0x45Y, 0x89Y, 0x38Y);
-    assertAsm(buffer, 10L, 0x47Y, 0x89Y, 0x3cY, 0x88Y);
-    assertAsm(buffer, 14L, 0x89Y, 0x44Y, 0xa8Y, 1Y);
-    assert(buffer.size() == 18L);
+    assertAsm(buffer, 0x89Y, 0x45Y, 0Y);
+    assertAsm(buffer, 0x44Y, 0x89Y, 0x7dY, 0Y);
+    assertAsm(buffer, 0x45Y, 0x89Y, 0x38Y);
+    assertAsm(buffer, 0x47Y, 0x89Y, 0x3cY, 0x88Y);
+    assertAsm(buffer, 0x89Y, 0x44Y, 0xa8Y, 1Y);
+    assertAsmEnd(buffer);
 }
 
 @test fun testAsmLea(_x: Testing) {
@@ -1368,13 +1369,13 @@ impl Register {
     asm.lea(RAX, Address::offset(R8, 0));
     asm.lea(R8, Address::offset(RAX, 0));
 
-    let buffer = asm.finalize();
+    let buffer = asm.finalizeTesting();
 
-    assertAsm(buffer, 0L, 0x48Y, 0x8dY, 0x00Y);
-    assertAsm(buffer, 3L, 0x48Y, 0x8dY, 0x40Y, 1Y);
-    assertAsm(buffer, 7L, 0x49Y, 0x8dY, 0x00Y);
-    assertAsm(buffer, 10L, 0x4cY, 0x8dY, 0x00Y);
-    assert(buffer.size() == 13L);
+    assertAsm(buffer, 0x48Y, 0x8dY, 0x00Y);
+    assertAsm(buffer, 0x48Y, 0x8dY, 0x40Y, 1Y);
+    assertAsm(buffer, 0x49Y, 0x8dY, 0x00Y);
+    assertAsm(buffer, 0x4cY, 0x8dY, 0x00Y);
+    assertAsmEnd(buffer);
 }
 
 @test fun testAsmMovbar(_x: Testing) {
@@ -1383,12 +1384,12 @@ impl Register {
     asm.movbar(Address::offset(RSP, 0), RSI);
     asm.movbar(Address::offset(RSP, 0), R8);
 
-    let buffer = asm.finalize();
+    let buffer = asm.finalizeTesting();
 
-    assertAsm(buffer, 0L, 0x88Y, 0x04Y, 0x24Y);
-    assertAsm(buffer, 3L, 0x40Y, 0x88Y, 0x34Y, 0x24Y);
-    assertAsm(buffer, 7L, 0x44Y, 0x88Y, 0x04Y, 0x24Y);
-    assert(buffer.size() == 11L);
+    assertAsm(buffer, 0x88Y, 0x04Y, 0x24Y);
+    assertAsm(buffer, 0x40Y, 0x88Y, 0x34Y, 0x24Y);
+    assertAsm(buffer, 0x44Y, 0x88Y, 0x04Y, 0x24Y);
+    assertAsmEnd(buffer);
 }
 
 @test fun testAsmMovbai(_x: Testing) {
@@ -1399,14 +1400,14 @@ impl Register {
     asm.movbai(Address::offset(RAX, 0), Immediate(-128L));
     asm.movbai(Address::offset(RAX, 0), Immediate(128L));
 
-    let buffer = asm.finalize();
+    let buffer = asm.finalizeTesting();
 
-    assertAsm(buffer, 0L, 0xc6Y, 0x00Y, 1Y);
-    assertAsm(buffer, 3L, 0xc6Y, 0x00Y, 0x7fY);
-    assertAsm(buffer, 6L, 0xc6Y, 0x00Y, 0xffY);
-    assertAsm(buffer, 9L, 0xc6Y, 0x00Y, 0x80Y);
-    assertAsm(buffer, 12L, 0xc6Y, 0x00Y, 0x80Y);
-    assert(buffer.size() == 15L);
+    assertAsm(buffer, 0xc6Y, 0x00Y, 1Y);
+    assertAsm(buffer, 0xc6Y, 0x00Y, 0x7fY);
+    assertAsm(buffer, 0xc6Y, 0x00Y, 0xffY);
+    assertAsm(buffer, 0xc6Y, 0x00Y, 0x80Y);
+    assertAsm(buffer, 0xc6Y, 0x00Y, 0x80Y);
+    assertAsmEnd(buffer);
 }
 
 @test fun testAsmMovqai(_x: Testing) {
@@ -1416,13 +1417,13 @@ impl Register {
     asm.movqai(Address::offset(RDI, 0), Immediate(Int32::maxValue().toInt64()));
     asm.movqai(Address::offset(R15, 0), Immediate(Int32::minValue().toInt64()));
 
-    let buffer = asm.finalize();
+    let buffer = asm.finalizeTesting();
 
-    assertAsm(buffer, 0L, 0x48Y, 0xc7Y, 0x00Y, 1Y, 0Y, 0Y, 0Y);
-    assertAsm(buffer, 7L, 0x49Y, 0xc7Y, 0x00Y, 0xffY, 0xffY, 0xffY, 0x7fY);
-    assertAsm(buffer, 14L, 0x48Y, 0xc7Y, 0x07Y, 0xffY, 0xffY, 0xffY, 0x7fY);
-    assertAsm(buffer, 21L, 0x49Y, 0xc7Y, 0x07Y, 0Y, 0Y, 0Y, 0x80Y);
-    assert(buffer.size() == 28L);
+    assertAsm(buffer, 0x48Y, 0xc7Y, 0x00Y, 1Y, 0Y, 0Y, 0Y);
+    assertAsm(buffer, 0x49Y, 0xc7Y, 0x00Y, 0xffY, 0xffY, 0xffY, 0x7fY);
+    assertAsm(buffer, 0x48Y, 0xc7Y, 0x07Y, 0xffY, 0xffY, 0xffY, 0x7fY);
+    assertAsm(buffer, 0x49Y, 0xc7Y, 0x07Y, 0Y, 0Y, 0Y, 0x80Y);
+    assertAsmEnd(buffer);
 }
 
 @test fun testAsmMovlai(_x: Testing) {
@@ -1432,13 +1433,13 @@ impl Register {
     asm.movlai(Address::offset(RDI, 0), Immediate(Int32::maxValue().toInt64()));
     asm.movlai(Address::offset(R15, 0), Immediate(Int32::minValue().toInt64()));
 
-    let buffer = asm.finalize();
+    let buffer = asm.finalizeTesting();
 
-    assertAsm(buffer, 0L, 0xc7Y, 0x00Y, 1Y, 0Y, 0Y, 0Y);
-    assertAsm(buffer, 6L, 0x41Y, 0xc7Y, 0x00Y, 0xffY, 0xffY, 0xffY, 0xffY);
-    assertAsm(buffer, 13L, 0xc7Y, 0x07Y, 0xffY, 0xffY, 0xffY, 0x7fY);
-    assertAsm(buffer, 19L, 0x41Y, 0xc7Y, 0x07Y, 0Y, 0Y, 0Y, 0x80Y);
-    assert(buffer.size() == 26L);
+    assertAsm(buffer, 0xc7Y, 0x00Y, 1Y, 0Y, 0Y, 0Y);
+    assertAsm(buffer, 0x41Y, 0xc7Y, 0x00Y, 0xffY, 0xffY, 0xffY, 0xffY);
+    assertAsm(buffer, 0xc7Y, 0x07Y, 0xffY, 0xffY, 0xffY, 0x7fY);
+    assertAsm(buffer, 0x41Y, 0xc7Y, 0x07Y, 0Y, 0Y, 0Y, 0x80Y);
+    assertAsmEnd(buffer);
 }
 
 @test fun testAsmTestlri(_x: Testing) {
@@ -1456,21 +1457,21 @@ impl Register {
     asm.testlri(RAX, Immediate(256L));
     asm.testlri(RDI, Immediate(256L));
 
-    let buffer = asm.finalize();
+    let buffer = asm.finalizeTesting();
 
-    assertAsm(buffer, 0L, 0xa8Y, 1Y);
-    assertAsm(buffer, 2L, 0xf6Y, 0xc1Y, 255Y);
-    assertAsm(buffer, 5L, 0xf6Y, 0xc2Y, 1Y);
-    assertAsm(buffer, 8L, 0xf6Y, 0xc3Y, 1Y);
+    assertAsm(buffer, 0xa8Y, 1Y);
+    assertAsm(buffer, 0xf6Y, 0xc1Y, 255Y);
+    assertAsm(buffer, 0xf6Y, 0xc2Y, 1Y);
+    assertAsm(buffer, 0xf6Y, 0xc3Y, 1Y);
 
-    assertAsm(buffer, 11L, 0x40Y, 0xf6Y, 0xc6Y, 1Y);
-    assertAsm(buffer, 15L, 0x40Y, 0xf6Y, 0xc7Y, 1Y);
-    assertAsm(buffer, 19L, 0x41Y, 0xf6Y, 0xc0Y, 1Y);
-    assertAsm(buffer, 23L, 0x41Y, 0xf6Y, 0xc7Y, 1Y);
+    assertAsm(buffer, 0x40Y, 0xf6Y, 0xc6Y, 1Y);
+    assertAsm(buffer, 0x40Y, 0xf6Y, 0xc7Y, 1Y);
+    assertAsm(buffer, 0x41Y, 0xf6Y, 0xc0Y, 1Y);
+    assertAsm(buffer, 0x41Y, 0xf6Y, 0xc7Y, 1Y);
 
-    assertAsm(buffer, 27L, 0xa9Y, 0Y, 1Y, 0Y, 0Y);
-    assertAsm(buffer, 32L, 0xf7Y, 0xc7Y, 0Y, 1Y, 0Y, 0Y);
-    assert(buffer.size() == 38L);
+    assertAsm(buffer, 0xa9Y, 0Y, 1Y, 0Y, 0Y);
+    assertAsm(buffer, 0xf7Y, 0xc7Y, 0Y, 1Y, 0Y, 0Y);
+    assertAsmEnd(buffer);
 }
 
 @test fun testAsmTestlar(_x: Testing) {
@@ -1484,17 +1485,17 @@ impl Register {
 
     asm.testlar(Address::offset(RAX, 0), R15);
 
-    let buffer = asm.finalize();
+    let buffer = asm.finalizeTesting();
 
-    assertAsm(buffer, 0L, 0x85Y, 0x47Y, 1Y);
-    assertAsm(buffer, 3L, 0x85Y, 0x07Y);
+    assertAsm(buffer, 0x85Y, 0x47Y, 1Y);
+    assertAsm(buffer, 0x85Y, 0x07Y);
 
-    assertAsm(buffer, 5L, 0x41Y, 0x85Y, 0x00Y);
-    assertAsm(buffer, 8L, 0x41Y, 0x85Y, 0x40Y, 1Y);
-    assertAsm(buffer, 12L, 0x45Y, 0x85Y, 0x38Y);
+    assertAsm(buffer, 0x41Y, 0x85Y, 0x00Y);
+    assertAsm(buffer, 0x41Y, 0x85Y, 0x40Y, 1Y);
+    assertAsm(buffer, 0x45Y, 0x85Y, 0x38Y);
 
-    assertAsm(buffer, 15L, 0x44Y, 0x85Y, 0x38Y);
-    assert(buffer.size() == 18L);
+    assertAsm(buffer, 0x44Y, 0x85Y, 0x38Y);
+    assertAsmEnd(buffer);
 }
 
 @test fun testAsmTestlai(_x: Testing) {
@@ -1504,13 +1505,13 @@ impl Register {
 
     asm.testlai(Address::offset(R8, 0), Immediate(1L));
 
-    let buffer = asm.finalize();
+    let buffer = asm.finalizeTesting();
 
-    assertAsm(buffer, 0L, 0xf7Y, 0x00Y, 1Y, 0Y, 0Y, 0Y);
-    assertAsm(buffer, 6L, 0xf7Y, 0x40Y, 1Y, 1Y, 0Y, 0Y, 0Y);
+    assertAsm(buffer, 0xf7Y, 0x00Y, 1Y, 0Y, 0Y, 0Y);
+    assertAsm(buffer, 0xf7Y, 0x40Y, 1Y, 1Y, 0Y, 0Y, 0Y);
 
-    assertAsm(buffer, 13L, 0x41Y, 0xf7Y, 0x00Y, 1Y, 0Y, 0Y, 0Y);
-    assert(buffer.size() == 20L);
+    assertAsm(buffer, 0x41Y, 0xf7Y, 0x00Y, 1Y, 0Y, 0Y, 0Y);
+    assertAsmEnd(buffer);
 }
 
 @test fun testAsmTestqai(_x: Testing) {
@@ -1520,13 +1521,13 @@ impl Register {
 
     asm.testqai(Address::offset(R8, 0), Immediate(1L));
 
-    let buffer = asm.finalize();
+    let buffer = asm.finalizeTesting();
 
-    assertAsm(buffer, 0L, 0x48Y, 0xf7Y, 0x00Y, 1Y, 0Y, 0Y, 0Y);
-    assertAsm(buffer, 7L, 0x48Y, 0xf7Y, 0x40Y, 1Y, 1Y, 0Y, 0Y, 0Y);
+    assertAsm(buffer, 0x48Y, 0xf7Y, 0x00Y, 1Y, 0Y, 0Y, 0Y);
+    assertAsm(buffer, 0x48Y, 0xf7Y, 0x40Y, 1Y, 1Y, 0Y, 0Y, 0Y);
 
-    assertAsm(buffer, 15L, 0x49Y, 0xf7Y, 0x00Y, 1Y, 0Y, 0Y, 0Y);
-    assert(buffer.size() == 22L);
+    assertAsm(buffer, 0x49Y, 0xf7Y, 0x00Y, 1Y, 0Y, 0Y, 0Y);
+    assertAsmEnd(buffer);
 }
 
 @test fun testAsmTestqar(_x: Testing) {
@@ -1534,11 +1535,11 @@ impl Register {
     asm.testqar(Address::offset(RDI, 1), RAX);
     asm.testqar(Address::offset(R8, 0), R15);
 
-    let buffer = asm.finalize();
+    let buffer = asm.finalizeTesting();
 
-    assertAsm(buffer, 0L, 0x48Y, 0x85Y, 0x47Y, 1Y);
-    assertAsm(buffer, 4L, 0x4DY, 0x85Y, 0x38Y);
-    assert(buffer.size() == 7L);
+    assertAsm(buffer, 0x48Y, 0x85Y, 0x47Y, 1Y);
+    assertAsm(buffer, 0x4DY, 0x85Y, 0x38Y);
+    assertAsmEnd(buffer);
 }
 
 @test fun testAsmMovzxbrr(_x: Testing) {
@@ -1550,15 +1551,15 @@ impl Register {
     asm.movzxbrr(R15, RBX);
     asm.movzxbrr(RCX, RSI);
 
-    let buffer = asm.finalize();
+    let buffer = asm.finalizeTesting();
 
-    assertAsm(buffer, 0L, 0x0fY, 0xb6Y, 0xc0Y);
-    assertAsm(buffer, 3L, 0x40Y, 0x0fY, 0xb6Y, 0xc7Y);
-    assertAsm(buffer, 7L, 0x0fY, 0xb6Y, 0xf8Y);
-    assertAsm(buffer, 10L, 0x41Y, 0x0fY, 0xb6Y, 0xc7Y);
-    assertAsm(buffer, 14L, 0x44Y, 0x0fY, 0xb6Y, 0xfbY);
-    assertAsm(buffer, 18L, 0x40Y, 0x0fY, 0xb6Y, 0xceY);
-    assert(buffer.size() == 22L);
+    assertAsm(buffer, 0x0fY, 0xb6Y, 0xc0Y);
+    assertAsm(buffer, 0x40Y, 0x0fY, 0xb6Y, 0xc7Y);
+    assertAsm(buffer, 0x0fY, 0xb6Y, 0xf8Y);
+    assertAsm(buffer, 0x41Y, 0x0fY, 0xb6Y, 0xc7Y);
+    assertAsm(buffer, 0x44Y, 0x0fY, 0xb6Y, 0xfbY);
+    assertAsm(buffer, 0x40Y, 0x0fY, 0xb6Y, 0xceY);
+    assertAsmEnd(buffer);
 }
 
 @test fun testAsmMovzxbra(_x: Testing) {
@@ -1567,10 +1568,10 @@ impl Register {
     asm.movzxbra(R8, Address::offset(RAX, 0));
     asm.movzxbra(RAX, Address::offset(R8, 0));
 
-    let buffer = asm.finalize();
+    let buffer = asm.finalizeTesting();
 
-    assertAsm(buffer, 0L, 0x0fY, 0xb6Y, 0x00Y);
-    assertAsm(buffer, 3L, 0x44Y, 0x0fY, 0xb6Y, 0x00Y);
-    assertAsm(buffer, 7L, 0x41Y, 0x0fY, 0xb6Y, 0x00Y);
-    assert(buffer.size() == 11L);
+    assertAsm(buffer, 0x0fY, 0xb6Y, 0x00Y);
+    assertAsm(buffer, 0x44Y, 0x0fY, 0xb6Y, 0x00Y);
+    assertAsm(buffer, 0x41Y, 0x0fY, 0xb6Y, 0x00Y);
+    assertAsmEnd(buffer);
 }
