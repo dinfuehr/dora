@@ -272,6 +272,45 @@ class AssemblerX64: Assembler {
         self.emitModRmReg(rhs, lhs);
     }
 
+    fun testlri(lhs: Register, imm: Immediate) {
+        assert(imm.isInt32());
+
+        if imm.isUInt8() {
+            if lhs == RAX {
+                self.emitByte(0xa8Y);
+            } else if lhs.value < 4 {
+                self.emitByte(0xf6Y);
+                self.emitModRmOpcode(0b000, lhs);
+            } else {
+                self.emitRex(false, false, false, lhs.needsRexBit());
+                self.emitByte(0xf6Y);
+                self.emitModRmOpcode(0b000, lhs);
+            }
+            self.emitByte(imm.toUInt8());
+        } else if lhs == RAX {
+            self.emitByte(0xa9Y);
+            self.emitInt32(imm.toInt32());
+        } else {
+            self.emitByte(0xf7Y);
+            self.emitModRmOpcode(0b000, lhs);
+            self.emitInt32(imm.toInt32());
+        }
+    }
+
+    fun testlar(lhs: Address, rhs: Register) {
+        self.emitRex32ModRmAddressOptional(rhs, lhs);
+        self.emitByte(0x85Y);
+        self.emitAddress(rhs.lowBits(), lhs);
+    }
+
+    fun testlai(lhs: Address, rhs: Immediate) {
+        assert(rhs.isInt32());
+        self.emitRex32AddressOptional(lhs);
+        self.emitByte(0xf7Y);
+        self.emitAddress(0b000, lhs);
+        self.emitInt32(rhs.toInt32());
+    }
+
     fun testqrr(lhs: Register, rhs: Register) {
         self.emitRex64ModRm(rhs, lhs);
         self.emitByte(0x85Y);
@@ -1343,4 +1382,76 @@ impl Register {
     assertAsm(buffer, 13L, 0xc7Y, 0x07Y, 0xffY, 0xffY, 0xffY, 0x7fY);
     assertAsm(buffer, 19L, 0x41Y, 0xc7Y, 0x07Y, 0Y, 0Y, 0Y, 0x80Y);
     assert(buffer.size() == 26L);
+}
+
+@test fun testAsmTestlri(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.testlri(RAX, Immediate(1L));
+    asm.testlri(RCX, Immediate(255L));
+    asm.testlri(RDX, Immediate(1L));
+    asm.testlri(RBX, Immediate(1L));
+
+    asm.testlri(RSI, Immediate(1L));
+    asm.testlri(RDI, Immediate(1L));
+    asm.testlri(R8, Immediate(1L));
+    asm.testlri(R15, Immediate(1L));
+
+    asm.testlri(RAX, Immediate(256L));
+    asm.testlri(RDI, Immediate(256L));
+
+    let buffer = asm.finalize();
+
+    assertAsm(buffer, 0L, 0xa8Y, 1Y);
+    assertAsm(buffer, 2L, 0xf6Y, 0xc1Y, 255Y);
+    assertAsm(buffer, 5L, 0xf6Y, 0xc2Y, 1Y);
+    assertAsm(buffer, 8L, 0xf6Y, 0xc3Y, 1Y);
+
+    assertAsm(buffer, 11L, 0x40Y, 0xf6Y, 0xc6Y, 1Y);
+    assertAsm(buffer, 15L, 0x40Y, 0xf6Y, 0xc7Y, 1Y);
+    assertAsm(buffer, 19L, 0x41Y, 0xf6Y, 0xc0Y, 1Y);
+    assertAsm(buffer, 23L, 0x41Y, 0xf6Y, 0xc7Y, 1Y);
+
+    assertAsm(buffer, 27L, 0xa9Y, 0Y, 1Y, 0Y, 0Y);
+    assertAsm(buffer, 32L, 0xf7Y, 0xc7Y, 0Y, 1Y, 0Y, 0Y);
+    assert(buffer.size() == 38L);
+}
+
+@test fun testAsmTestlar(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.testlar(Address::offset(RDI, 1), RAX);
+    asm.testlar(Address::offset(RDI, 0), RAX);
+
+    asm.testlar(Address::offset(R8, 0), RAX);
+    asm.testlar(Address::offset(R8, 1), RAX);
+    asm.testlar(Address::offset(R8, 0), R15);
+
+    asm.testlar(Address::offset(RAX, 0), R15);
+
+    let buffer = asm.finalize();
+
+    assertAsm(buffer, 0L, 0x85Y, 0x47Y, 1Y);
+    assertAsm(buffer, 3L, 0x85Y, 0x07Y);
+
+    assertAsm(buffer, 5L, 0x41Y, 0x85Y, 0x00Y);
+    assertAsm(buffer, 8L, 0x41Y, 0x85Y, 0x40Y, 1Y);
+    assertAsm(buffer, 12L, 0x45Y, 0x85Y, 0x38Y);
+
+    assertAsm(buffer, 15L, 0x44Y, 0x85Y, 0x38Y);
+    assert(buffer.size() == 18L);
+}
+
+@test fun testAsmTestlai(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.testlai(Address::offset(RAX, 0), Immediate(1L));
+    asm.testlai(Address::offset(RAX, 1), Immediate(1L));
+
+    asm.testlai(Address::offset(R8, 0), Immediate(1L));
+
+    let buffer = asm.finalize();
+
+    assertAsm(buffer, 0L, 0xf7Y, 0x00Y, 1Y, 0Y, 0Y, 0Y);
+    assertAsm(buffer, 6L, 0xf7Y, 0x40Y, 1Y, 1Y, 0Y, 0Y, 0Y);
+
+    assertAsm(buffer, 13L, 0x41Y, 0xf7Y, 0x00Y, 1Y, 0Y, 0Y, 0Y);
+    assert(buffer.size() == 20L);
 }
