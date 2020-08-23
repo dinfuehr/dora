@@ -16,6 +16,34 @@ let R13: Register = Register(13);
 let R14: Register = Register(14);
 let R15: Register = Register(15);
 
+let XMM0: XmmRegister = XmmRegister(0);
+let XMM1: XmmRegister = XmmRegister(1);
+let XMM2: XmmRegister = XmmRegister(2);
+let XMM3: XmmRegister = XmmRegister(3);
+let XMM4: XmmRegister = XmmRegister(4);
+let XMM5: XmmRegister = XmmRegister(5);
+let XMM6: XmmRegister = XmmRegister(6);
+let XMM7: XmmRegister = XmmRegister(7);
+
+let XMM8: XmmRegister = XmmRegister(8);
+let XMM9: XmmRegister = XmmRegister(9);
+let XMM10: XmmRegister = XmmRegister(10);
+let XMM11: XmmRegister = XmmRegister(11);
+let XMM12: XmmRegister = XmmRegister(12);
+let XMM13: XmmRegister = XmmRegister(13);
+let XMM14: XmmRegister = XmmRegister(14);
+let XMM15: XmmRegister = XmmRegister(15);
+
+class XmmRegister(let value: Int32) {
+    fun lowBits() -> Int32 {
+        self.value & 0b111
+    }
+
+    fun needsRexBit() -> Bool {
+        self.value > 7
+    }
+}
+
 class AssemblerX64: Assembler {
     let buffer: AssemblerBuffer = AssemblerBuffer();
 
@@ -210,6 +238,20 @@ class AssemblerX64: Assembler {
         self.emitModRmReg(src, dest);
     }
 
+    fun movzxbrr(dest: Register, src: Register) {
+        self.emitRex32ModRmByteOptional(dest, src);
+        self.emitByte(0x0fY);
+        self.emitByte(0xb6Y);
+        self.emitModRmReg(dest, src);
+    }
+
+    fun movzxbra(dest: Register, src: Address) {
+        self.emitRex32ModRmAddressOptional(dest, src);
+        self.emitByte(0x0fY);
+        self.emitByte(0xb6Y);
+        self.emitAddress(dest.lowBits(), src);
+    }
+
     fun nop() {
         self.emitByte(0x90Y);
     }
@@ -377,6 +419,12 @@ class AssemblerX64: Assembler {
 
     fun emitRex32ModRmOptional(modrm_reg: Register, modrm_rm: Register) {
         if modrm_reg.needsRexBit() || modrm_rm.needsRexBit() {
+            self.emitRex(false, modrm_reg.needsRexBit(), false, modrm_rm.needsRexBit());
+        }
+    }
+
+    fun emitRex32ModRmByteOptional(modrm_reg: Register, modrm_rm: Register) {
+        if modrm_reg.needsRexBit() || modrm_rm.needsRexBit() || modrm_rm.value > 3 {
             self.emitRex(false, modrm_reg.needsRexBit(), false, modrm_rm.needsRexBit());
         }
     }
@@ -1496,4 +1544,38 @@ impl Register {
     assertAsm(buffer, 0L, 0x48Y, 0x85Y, 0x47Y, 1Y);
     assertAsm(buffer, 4L, 0x4DY, 0x85Y, 0x38Y);
     assert(buffer.size() == 7L);
+}
+
+@test fun testAsmMovzxbrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.movzxbrr(RAX, RAX);
+    asm.movzxbrr(RAX, RDI);
+    asm.movzxbrr(RDI, RAX);
+    asm.movzxbrr(RAX, R15);
+    asm.movzxbrr(R15, RBX);
+    asm.movzxbrr(RCX, RSI);
+
+    let buffer = asm.finalize();
+
+    assertAsm(buffer, 0L, 0x0fY, 0xb6Y, 0xc0Y);
+    assertAsm(buffer, 3L, 0x40Y, 0x0fY, 0xb6Y, 0xc7Y);
+    assertAsm(buffer, 7L, 0x0fY, 0xb6Y, 0xf8Y);
+    assertAsm(buffer, 10L, 0x41Y, 0x0fY, 0xb6Y, 0xc7Y);
+    assertAsm(buffer, 14L, 0x44Y, 0x0fY, 0xb6Y, 0xfbY);
+    assertAsm(buffer, 18L, 0x40Y, 0x0fY, 0xb6Y, 0xceY);
+    assert(buffer.size() == 22L);
+}
+
+@test fun testAsmMovzxbra(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.movzxbra(RAX, Address::offset(RAX, 0));
+    asm.movzxbra(R8, Address::offset(RAX, 0));
+    asm.movzxbra(RAX, Address::offset(R8, 0));
+
+    let buffer = asm.finalize();
+
+    assertAsm(buffer, 0L, 0x0fY, 0xb6Y, 0x00Y);
+    assertAsm(buffer, 3L, 0x44Y, 0x0fY, 0xb6Y, 0x00Y);
+    assertAsm(buffer, 7L, 0x41Y, 0x0fY, 0xb6Y, 0x00Y);
+    assert(buffer.size() == 11L);
 }
