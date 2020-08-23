@@ -266,6 +266,12 @@ class AssemblerX64: Assembler {
         self.emitModRmReg(dest, src);
     }
 
+    fun movsxlqrr(dest: Register, src: Register) {
+        self.emitRex64ModRm(dest, src);
+        self.emitByte(0x63Y);
+        self.emitModRmReg(dest, src);
+    }
+
     fun movzxbrr(dest: Register, src: Register) {
         self.emitRex32ModRmByteOptional(dest, src);
         self.emitByte(0x0fY);
@@ -1681,5 +1687,17 @@ impl Register {
     assertAsm(buffer, 0x4cY, 0x0fY, 0xbeY, 0x00Y);
     assertAsm(buffer, 0x48Y, 0x0fY, 0xbeY, 0x20Y);
     assertAsm(buffer, 0x48Y, 0x0fY, 0xbeY, 0x38Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmMovsxlqrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.movsxlqrr(R15, RAX);
+    asm.movsxlqrr(RAX, R15);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x4cY, 0x63Y, 0xf8Y);
+    assertAsm(buffer, 0x49Y, 0x63Y, 0xc7Y);
     assertAsmEnd(buffer);
 }
