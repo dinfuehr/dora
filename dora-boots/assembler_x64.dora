@@ -254,6 +254,14 @@ class AssemblerX64: Assembler {
         self.emitAddress(dest.lowBits(), src);
     }
 
+    fun movsdar(dest: Address, src: XmmRegister) {
+        self.emitByte(0xf2Y);
+        self.emitRexSseAddressOptional(src, dest);
+        self.emitByte(0x0fY);
+        self.emitByte(0x11Y);
+        self.emitAddress(src.lowBits(), dest);
+    }
+
     fun movssar(dest: Address, src: XmmRegister) {
         self.emitByte(0xf3Y);
         self.emitRexSseAddressOptional(src, dest);
@@ -1844,5 +1852,17 @@ impl Register {
 
     assertAsm(buffer, 0xf2Y, 0x44Y, 0x0fY, 0x10Y, 0x08Y);
     assertAsm(buffer, 0xf2Y, 0x44Y, 0x0fY, 0x10Y, 0x38Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmMovsdar(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.movsdar(Address::offset(RAX, 0), XMM0);
+    asm.movsdar(Address::offset(RAX, 0), XMM8);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xf2Y, 0x0fY, 0x11Y, 0x00Y);
+    assertAsm(buffer, 0xf2Y, 0x44Y, 0x0fY, 0x11Y, 0x00Y);
     assertAsmEnd(buffer);
 }
