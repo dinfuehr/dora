@@ -238,6 +238,30 @@ class AssemblerX64: Assembler {
         self.emitModRmReg(src, dest);
     }
 
+    fun movsdrr(dest: XmmRegister, src: XmmRegister) {
+        self.emitByte(0xf2Y);
+        self.emitRexSseModRmOptional(dest, src);
+        self.emitByte(0x0fY);
+        self.emitByte(0x10Y);
+        self.emitModRmSseRegisters(dest, src);
+    }
+
+    fun movsdra(dest: XmmRegister, src: Address) {
+        self.emitByte(0xf2Y);
+        self.emitRexSseAddressOptional(dest, src);
+        self.emitByte(0x0fY);
+        self.emitByte(0x10Y);
+        self.emitAddress(dest.lowBits(), src);
+    }
+
+    fun movssar(dest: Address, src: XmmRegister) {
+        self.emitByte(0xf3Y);
+        self.emitRexSseAddressOptional(src, dest);
+        self.emitByte(0x0fY);
+        self.emitByte(0x11Y);
+        self.emitAddress(src.lowBits(), dest);
+    }
+
     fun movssrr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xf3Y);
         self.emitRexSseModRmOptional(dest, src);
@@ -1770,5 +1794,55 @@ impl Register {
 
     assertAsm(buffer, 0xf3Y, 0x44Y, 0x0fY, 0x10Y, 0x08Y);
     assertAsm(buffer, 0xf3Y, 0x44Y, 0x0fY, 0x10Y, 0x38Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmMovssar(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.movssar(Address::offset(RAX, 0), XMM0);
+    asm.movssar(Address::offset(RAX, 0), XMM8);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xf3Y, 0x0fY, 0x11Y, 0x00Y);
+    assertAsm(buffer, 0xf3Y, 0x44Y, 0x0fY, 0x11Y, 0x00Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmMovsdrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.movsdrr(XMM0, XMM1);
+    asm.movsdrr(XMM8, XMM1);
+    asm.movsdrr(XMM0, XMM9);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xf2Y, 0x0fY, 0x10Y, 0xc1Y);
+    assertAsm(buffer, 0xf2Y, 0x44Y, 0x0fY, 0x10Y, 0xc1Y);
+    assertAsm(buffer, 0xf2Y, 0x41Y, 0x0fY, 0x10Y, 0xc1Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmMovsdra(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.movsdra(XMM0, Address::offset(RAX, 0));
+    asm.movsdra(XMM8, Address::offset(RAX, 0));
+
+    asm.movsdra(XMM0, Address::offset(R8, 0));
+    asm.movsdra(XMM8, Address::offset(R15, 0));
+
+    asm.movsdra(XMM9, Address::offset(RAX, 0));
+    asm.movsdra(XMM15, Address::offset(RAX, 0));
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xf2Y, 0x0fY, 0x10Y, 0x00Y);
+    assertAsm(buffer, 0xf2Y, 0x44Y, 0x0fY, 0x10Y, 0x00Y);
+
+    assertAsm(buffer, 0xf2Y, 0x41Y, 0x0fY, 0x10Y, 0x00Y);
+    assertAsm(buffer, 0xf2Y, 0x45Y, 0x0fY, 0x10Y, 0x07Y);
+
+    assertAsm(buffer, 0xf2Y, 0x44Y, 0x0fY, 0x10Y, 0x08Y);
+    assertAsm(buffer, 0xf2Y, 0x44Y, 0x0fY, 0x10Y, 0x38Y);
     assertAsmEnd(buffer);
 }
