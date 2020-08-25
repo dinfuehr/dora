@@ -238,6 +238,22 @@ class AssemblerX64: Assembler {
         self.emitModRmReg(src, dest);
     }
 
+    fun movssrr(dest: XmmRegister, src: XmmRegister) {
+        self.emitByte(0xf3Y);
+        self.emitRexSseModRmOptional(dest, src);
+        self.emitByte(0x0fY);
+        self.emitByte(0x10Y);
+        self.emitModRmSseRegisters(dest, src);
+    }
+
+    fun movssra(dest: XmmRegister, src: Address) {
+        self.emitByte(0xf3Y);
+        self.emitRexSseAddressOptional(dest, src);
+        self.emitByte(0x0fY);
+        self.emitByte(0x10Y);
+        self.emitAddress(dest.lowBits(), src);
+    }
+
     fun movsxblra(dest: Register, src: Address) {
         self.emitRex32ModRmAddressOptional(dest, src);
         self.emitByte(0x0fY);
@@ -502,6 +518,19 @@ class AssemblerX64: Assembler {
         self.emitRex(true, false, false, false);
     }
 
+    fun emitRexSseModRmOptional(reg: XmmRegister, rm: XmmRegister) {
+        if reg.needsRexBit() || rm.needsRexBit() {
+            self.emitRex(false, reg.needsRexBit(), false, rm.needsRexBit());
+        }
+    }
+
+    fun emitRexSseAddressOptional(reg: XmmRegister, address: Address) {
+        if reg.needsRexBit() || address.rex != 0Y {
+            let value = 0x40 | address.rex.toInt32() | if reg.needsRexBit() { 0x04 } else { 0 };
+            self.emitByte(value.toUInt8());
+        }
+    }
+
     fun emitRex(w: Bool, r: Bool, x: Bool, b: Bool) {
         // w - 64-bit width
         // r - extension of modrm-reg field
@@ -530,6 +559,10 @@ class AssemblerX64: Assembler {
 
     fun emitModRmOpcode(opcode: Int32, rm: Register) {
         self.emitModRm(0b11, opcode, rm.lowBits());
+    }
+
+    fun emitModRmSseRegisters(reg: XmmRegister, rm: XmmRegister) {
+        self.emitModRm(0b11, reg.lowBits(), rm.lowBits());
     }
 
     fun emitModRm(mode: Int32, reg: Int32, rm: Int32) {
@@ -1699,5 +1732,43 @@ impl Register {
 
     assertAsm(buffer, 0x4cY, 0x63Y, 0xf8Y);
     assertAsm(buffer, 0x49Y, 0x63Y, 0xc7Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmMovssrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.movssrr(XMM0, XMM1);
+    asm.movssrr(XMM8, XMM1);
+    asm.movssrr(XMM0, XMM9);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xf3Y, 0x0fY, 0x10Y, 0xc1Y);
+    assertAsm(buffer, 0xf3Y, 0x44Y, 0x0fY, 0x10Y, 0xc1Y);
+    assertAsm(buffer, 0xf3Y, 0x41Y, 0x0fY, 0x10Y, 0xc1Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmMovssra(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.movssra(XMM0, Address::offset(RAX, 0));
+    asm.movssra(XMM8, Address::offset(RAX, 0));
+
+    asm.movssra(XMM0, Address::offset(R8, 0));
+    asm.movssra(XMM8, Address::offset(R15, 0));
+
+    asm.movssra(XMM9, Address::offset(RAX, 0));
+    asm.movssra(XMM15, Address::offset(RAX, 0));
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xf3Y, 0x0fY, 0x10Y, 0x00Y);
+    assertAsm(buffer, 0xf3Y, 0x44Y, 0x0fY, 0x10Y, 0x00Y);
+
+    assertAsm(buffer, 0xf3Y, 0x41Y, 0x0fY, 0x10Y, 0x00Y);
+    assertAsm(buffer, 0xf3Y, 0x45Y, 0x0fY, 0x10Y, 0x07Y);
+
+    assertAsm(buffer, 0xf3Y, 0x44Y, 0x0fY, 0x10Y, 0x08Y);
+    assertAsm(buffer, 0xf3Y, 0x44Y, 0x0fY, 0x10Y, 0x38Y);
     assertAsmEnd(buffer);
 }
