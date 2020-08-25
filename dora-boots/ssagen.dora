@@ -94,7 +94,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
 
             incomplete as Inst
         } else if block.predecessors.size() == 1L {
-            self.readVariable(register, block.predecessors.first().unwrap())
+            self.readVariable(register, block.predecessors.first().unwrap().from)
         } else {
             let phi = PhiInst();
             block.appendPhi(phi);
@@ -109,7 +109,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     fun addPhiOperands(register: BytecodeRegister, phi: PhiInst) -> Inst {
         let it = phi.block.unwrap().predecessors.makeIterator();
         while it.hasNext() {
-            let pred = it.next();
+            let pred = it.next().from;
             let inst = self.readVariable(register, pred);
             phi.addInput(inst);
         }
@@ -196,7 +196,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         let it = block.successors.makeIterator();
 
         while it.hasNext() {
-            let succ = it.next();
+            let succ = it.next().to;
             self.trySealBlock(succ);
         }
 
@@ -217,7 +217,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         let it = block.predecessors.makeIterator();
 
         while it.hasNext() {
-            let pred = it.next();
+            let pred = it.next().from;
             if !self.filledBlocks.contains(pred.id.toInt64()) {
                 return;
             }
