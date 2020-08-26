@@ -86,13 +86,17 @@ impl Terminator {
             return true;
         }
 
-        self.decrease_workers();
+        if self.decrease_workers() {
+            // reached 0, no need to wait
+            return true;
+        }
+
         thread::sleep(Duration::from_micros(1));
         self.zero_or_increase_workers()
     }
 
     fn decrease_workers(&self) -> bool {
-        self.nworkers.fetch_sub(1, Ordering::SeqCst) == 1
+        self.nworkers.fetch_sub(1, Ordering::Relaxed) == 1
     }
 
     fn zero_or_increase_workers(&self) -> bool {
@@ -105,9 +109,10 @@ impl Terminator {
 
             let prev_nworkers =
                 self.nworkers
-                    .compare_and_swap(nworkers, nworkers + 1, Ordering::SeqCst);
+                    .compare_and_swap(nworkers, nworkers + 1, Ordering::Relaxed);
 
             if nworkers == prev_nworkers {
+                // Value was successfully increased again, workers didn't terminate in time. There is still work left.
                 return false;
             }
 
