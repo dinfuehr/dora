@@ -47,7 +47,7 @@ pub use self::strct::{
 };
 pub use self::traits::{TraitData, TraitId};
 pub use self::tuple::{ensure_tuple, TupleId, Tuples};
-pub use self::vip::{KnownClasses, KnownElements, KnownFunctions, KnownModules};
+pub use self::vip::KnownElements;
 
 pub mod class;
 mod cnst;
@@ -165,19 +165,11 @@ impl<'ast> VM<'ast> {
                 array_class: empty_class_id,
                 array_module: empty_module_id,
 
-                cls: KnownClasses {
-                    string_buffer: empty_class_id,
-                },
-
-                mods: KnownModules {
-                    string_buffer: empty_module_id,
-                },
-
-                fct: KnownFunctions {
-                    string_buffer_empty: empty_fct_id,
-                    string_buffer_append: empty_fct_id,
-                    string_buffer_to_string: empty_fct_id,
-                },
+                string_buffer_class: empty_class_id,
+                string_buffer_module: empty_module_id,
+                string_buffer_empty: empty_fct_id,
+                string_buffer_append: empty_fct_id,
+                string_buffer_to_string: empty_fct_id,
 
                 testing_class: empty_class_id,
                 stacktrace_class: empty_class_id,

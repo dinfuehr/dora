@@ -29,8 +29,8 @@ pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {
     vm.vips.string_class = internal_class(vm, "String", None);
     vm.vips.string_module = internal_module(vm, "String", None);
 
-    vm.vips.cls.string_buffer = internal_class(vm, "StringBuffer", None);
-    vm.vips.mods.string_buffer = internal_module(vm, "StringBuffer", None);
+    vm.vips.string_buffer_class = internal_class(vm, "StringBuffer", None);
+    vm.vips.string_buffer_module = internal_module(vm, "StringBuffer", None);
 
     let cls = vm.classes.idx(vm.vips.string_class);
     let mut cls = cls.write();
@@ -56,10 +56,10 @@ pub fn internal_classes<'ast>(vm: &mut VM<'ast>) {
 }
 
 pub fn known_methods<'ast>(vm: &mut VM<'ast>) {
-    vm.vips.fct.string_buffer_empty = find_module_method(vm, vm.vips.mods.string_buffer, "empty");
-    vm.vips.fct.string_buffer_append = find_class_method(vm, vm.vips.cls.string_buffer, "append");
-    vm.vips.fct.string_buffer_to_string =
-        find_class_method(vm, vm.vips.cls.string_buffer, "toString");
+    vm.vips.string_buffer_empty = find_module_method(vm, vm.vips.string_buffer_module, "empty");
+    vm.vips.string_buffer_append = find_class_method(vm, vm.vips.string_buffer_class, "append");
+    vm.vips.string_buffer_to_string =
+        find_class_method(vm, vm.vips.string_buffer_class, "toString");
 }
 
 fn internal_free_classes<'ast>(vm: &mut VM<'ast>) {

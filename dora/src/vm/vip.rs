@@ -21,9 +21,11 @@ pub struct KnownElements {
     pub array_class: ClassId,
     pub array_module: ModuleId,
 
-    pub cls: KnownClasses,
-    pub mods: KnownModules,
-    pub fct: KnownFunctions,
+    pub string_buffer_class: ClassId,
+    pub string_buffer_module: ModuleId,
+    pub string_buffer_empty: FctId,
+    pub string_buffer_append: FctId,
+    pub string_buffer_to_string: FctId,
 
     pub testing_class: ClassId,
     pub stacktrace_class: ClassId,
@@ -44,23 +46,6 @@ pub struct KnownElements {
 
     pub free_object_class_def: ClassDefId,
     pub free_array_class_def: ClassDefId,
-}
-
-#[derive(Debug)]
-pub struct KnownClasses {
-    pub string_buffer: ClassId,
-}
-
-#[derive(Debug)]
-pub struct KnownModules {
-    pub string_buffer: ModuleId,
-}
-
-#[derive(Debug)]
-pub struct KnownFunctions {
-    pub string_buffer_empty: FctId,
-    pub string_buffer_append: FctId,
-    pub string_buffer_to_string: FctId,
 }
 
 impl KnownElements {
