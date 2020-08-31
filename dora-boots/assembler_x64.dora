@@ -63,6 +63,22 @@ class AssemblerX64: Assembler {
         self.emitModRmReg(src, dest);
     }
 
+    fun addssrr(dest: XmmRegister, src: XmmRegister) {
+        self.emitByte(0xf3Y);
+        self.emitRexSseModRmOptional(dest, src);
+        self.emitByte(0x0FY);
+        self.emitByte(0x58Y);
+        self.emitModRmSseRegisters(dest, src);
+    }
+
+    fun addsdrr(dest: XmmRegister, src: XmmRegister) {
+        self.emitByte(0xf2Y);
+        self.emitRexSseModRmOptional(dest, src);
+        self.emitByte(0x0FY);
+        self.emitByte(0x58Y);
+        self.emitModRmSseRegisters(dest, src);
+    }
+
     fun andlrr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x21Y);
@@ -116,6 +132,38 @@ class AssemblerX64: Assembler {
         self.emitByte(0x99Y);
     }
 
+    fun cvtsd2ssrr(dest: XmmRegister, src: XmmRegister) {
+        self.emitByte(0xF2Y);
+        self.emitRexSseModRmOptional(dest, src);
+        self.emitByte(0x0FY);
+        self.emitByte(0x5aY);
+        self.emitModRmSseRegisters(dest, src);
+    }
+
+    fun cvtss2sdrr(dest: XmmRegister, src: XmmRegister) {
+        self.emitByte(0xF3Y);
+        self.emitRexSseModRmOptional(dest, src);
+        self.emitByte(0x0FY);
+        self.emitByte(0x5aY);
+        self.emitModRmSseRegisters(dest, src);
+    }
+
+    fun divssrr(dest: XmmRegister, src: XmmRegister) {
+        self.emitByte(0xf3Y);
+        self.emitRexSseModRmOptional(dest, src);
+        self.emitByte(0x0FY);
+        self.emitByte(0x5eY);
+        self.emitModRmSseRegisters(dest, src);
+    }
+
+    fun divsdrr(dest: XmmRegister, src: XmmRegister) {
+        self.emitByte(0xf2Y);
+        self.emitRexSseModRmOptional(dest, src);
+        self.emitByte(0x0FY);
+        self.emitByte(0x5eY);
+        self.emitModRmSseRegisters(dest, src);
+    }
+
     fun idivlr(src: Register) {
         self.emitRex32RmFieldOptional(src);
         self.emitByte(0xF7Y);
@@ -152,6 +200,22 @@ class AssemblerX64: Assembler {
         self.emitAddress(dest.lowBits(), src);
     }
 
+    fun lzcntlrr(dest: Register, src: Register) {
+        self.emitByte(0xf3Y);
+        self.emitRex32ModRmOptional(dest, src);
+        self.emitByte(0x0fY);
+        self.emitByte(0xbdY);
+        self.emitModRmReg(dest, src);
+    }
+
+    fun lzcntqrr(dest: Register, src: Register) {
+        self.emitByte(0xf3Y);
+        self.emitRex64ModRm(dest, src);
+        self.emitByte(0x0fY);
+        self.emitByte(0xbdY);
+        self.emitModRmReg(dest, src);
+    }
+
     fun movbai(dest: Address, src: Immediate) {
         assert(src.isInt8() || src.isUInt8());
         self.emitRex32AddressOptional(dest);
@@ -164,6 +228,22 @@ class AssemblerX64: Assembler {
         self.emitRex32ModRmAddressByteOptional(src, dest);
         self.emitByte(0x88Y);
         self.emitAddress(src.lowBits(), dest);
+    }
+
+    fun movdrx(dest: Register, src: XmmRegister) {
+        self.emitByte(0x66Y);
+        self.emitRexOptional(false, src.needsRexBit(), false, dest.needsRexBit());
+        self.emitByte(0x0FY);
+        self.emitByte(0x7EY);
+        self.emitModRm(0b11, src.lowBits(), dest.lowBits());
+    }
+
+    fun movdxr(dest: XmmRegister, src: Register) {
+        self.emitByte(0x66Y);
+        self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
+        self.emitByte(0x0FY);
+        self.emitByte(0x6EY);
+        self.emitModRm(0b11, dest.lowBits(), src.lowBits());
     }
 
     fun movlai(dest: Address, imm: Immediate) {
@@ -236,6 +316,22 @@ class AssemblerX64: Assembler {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x89Y);
         self.emitModRmReg(src, dest);
+    }
+
+    fun movqrx(dest: Register, src: XmmRegister) {
+        self.emitByte(0x66Y);
+        self.emitRexOptional(true, src.needsRexBit(), false, dest.needsRexBit());
+        self.emitByte(0x0FY);
+        self.emitByte(0x7EY);
+        self.emitModRm(0b11, src.lowBits(), dest.lowBits());
+    }
+
+    fun movqxr(dest: XmmRegister, src: Register) {
+        self.emitByte(0x66Y);
+        self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
+        self.emitByte(0x0FY);
+        self.emitByte(0x6EY);
+        self.emitModRm(0b11, dest.lowBits(), src.lowBits());
     }
 
     fun movsdrr(dest: XmmRegister, src: XmmRegister) {
@@ -334,6 +430,22 @@ class AssemblerX64: Assembler {
         self.emitAddress(dest.lowBits(), src);
     }
 
+    fun mulssrr(dest: XmmRegister, src: XmmRegister) {
+        self.emitByte(0xf3Y);
+        self.emitRexSseModRmOptional(dest, src);
+        self.emitByte(0x0FY);
+        self.emitByte(0x59Y);
+        self.emitModRmSseRegisters(dest, src);
+    }
+
+    fun mulsdrr(dest: XmmRegister, src: XmmRegister) {
+        self.emitByte(0xf2Y);
+        self.emitRexSseModRmOptional(dest, src);
+        self.emitByte(0x0FY);
+        self.emitByte(0x59Y);
+        self.emitModRmSseRegisters(dest, src);
+    }
+
     fun nop() {
         self.emitByte(0x90Y);
     }
@@ -351,13 +463,37 @@ class AssemblerX64: Assembler {
     }
 
     fun pushqr(reg: Register) {
-        self.emitRexOptional(reg);
+        self.emitRex32RmFieldOptional(reg);
         self.emitByte((0x50 + reg.lowBits()).toUInt8());
     }
 
+    fun popcntlrr(dest: Register, src: Register) {
+        self.emitByte(0xf3Y);
+        self.emitRex32ModRmOptional(dest, src);
+        self.emitByte(0x0FY);
+        self.emitByte(0xB8Y);
+        self.emitModRmReg(dest, src);
+    }
+
+    fun popcntqrr(dest: Register, src: Register) {
+        self.emitByte(0xf3Y);
+        self.emitRex64ModRm(dest, src);
+        self.emitByte(0x0FY);
+        self.emitByte(0xB8Y);
+        self.emitModRmReg(dest, src);
+    }
+
     fun popqr(reg: Register) {
-        self.emitRexOptional(reg);
+        self.emitRex32RmFieldOptional(reg);
         self.emitByte((0x58 + reg.lowBits()).toUInt8());
+    }
+
+    fun pxorrr(dest: XmmRegister, src: XmmRegister) {
+        self.emitByte(0x66Y);
+        self.emitRexSseModRmOptional(dest, src);
+        self.emitByte(0x0fY);
+        self.emitByte(0xefY);
+        self.emitModRmSseRegisters(dest, src);
     }
 
     fun retq() {
@@ -374,6 +510,22 @@ class AssemblerX64: Assembler {
         self.emitModRmOpcode(0, dest);
     }
 
+    fun sqrtssrr(dest: XmmRegister, src: XmmRegister) {
+        self.emitByte(0xf3Y);
+        self.emitRexSseModRmOptional(dest, src);
+        self.emitByte(0x0FY);
+        self.emitByte(0x51Y);
+        self.emitModRmSseRegisters(dest, src);
+    }
+
+    fun sqrtsdrr(dest: XmmRegister, src: XmmRegister) {
+        self.emitByte(0xf2Y);
+        self.emitRexSseModRmOptional(dest, src);
+        self.emitByte(0x0FY);
+        self.emitByte(0x51Y);
+        self.emitModRmSseRegisters(dest, src);
+    }
+
     fun sublrr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x29Y);
@@ -388,6 +540,22 @@ class AssemblerX64: Assembler {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x29Y);
         self.emitModRmReg(src, dest);
+    }
+
+    fun subssrr(dest: XmmRegister, src: XmmRegister) {
+        self.emitByte(0xf3Y);
+        self.emitRexSseModRmOptional(dest, src);
+        self.emitByte(0x0FY);
+        self.emitByte(0x5cY);
+        self.emitModRmSseRegisters(dest, src);
+    }
+
+    fun subsdrr(dest: XmmRegister, src: XmmRegister) {
+        self.emitByte(0xf2Y);
+        self.emitRexSseModRmOptional(dest, src);
+        self.emitByte(0x0FY);
+        self.emitByte(0x5cY);
+        self.emitModRmSseRegisters(dest, src);
     }
 
     fun testlrr(lhs: Register, rhs: Register) {
@@ -455,6 +623,37 @@ class AssemblerX64: Assembler {
         self.emitAddress(rhs.lowBits(), lhs);
     }
 
+    fun tzcntlrr(dest: Register, src: Register) {
+        self.emitByte(0xf3Y);
+        self.emitRex32ModRmOptional(dest, src);
+        self.emitByte(0x0fY);
+        self.emitByte(0xbcY);
+        self.emitModRmReg(dest, src);
+    }
+
+    fun tzcntqrr(dest: Register, src: Register) {
+        self.emitByte(0xf3Y);
+        self.emitRex64ModRm(dest, src);
+        self.emitByte(0x0fY);
+        self.emitByte(0xbcY);
+        self.emitModRmReg(dest, src);
+    }
+
+    fun ucomissrr(dest: XmmRegister, src: XmmRegister) {
+        self.emitRexSseModRmOptional(dest, src);
+        self.emitByte(0x0FY);
+        self.emitByte(0x2eY);
+        self.emitModRmSseRegisters(dest, src);
+    }
+
+    fun ucomisdrr(dest: XmmRegister, src: XmmRegister) {
+        self.emitByte(0x66Y);
+        self.emitRexSseModRmOptional(dest, src);
+        self.emitByte(0x0FY);
+        self.emitByte(0x2eY);
+        self.emitModRmSseRegisters(dest, src);
+    }
+
     fun xorlrr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x31Y);
@@ -485,7 +684,7 @@ class AssemblerX64: Assembler {
         }
     }
 
-    fun emitRexOptional(reg: Register) {
+    fun emitRex32RmFieldOptional(reg: Register) {
         if reg.needsRexBit() {
             self.emitRex(false, false, false, true);
         }
@@ -508,12 +707,6 @@ class AssemblerX64: Assembler {
     fun emitRex32ModRmByteOptional(modrm_reg: Register, modrm_rm: Register) {
         if modrm_reg.needsRexBit() || modrm_rm.needsRexBit() || modrm_rm.value > 3 {
             self.emitRex(false, modrm_reg.needsRexBit(), false, modrm_rm.needsRexBit());
-        }
-    }
-
-    fun emitRex32RmFieldOptional(reg: Register) {
-        if reg.needsRexBit() {
-            self.emitRex(false, false, false, reg.needsRexBit());
         }
     }
 
@@ -560,6 +753,12 @@ class AssemblerX64: Assembler {
         if reg.needsRexBit() || address.rex != 0Y {
             let value = 0x40 | address.rex.toInt32() | if reg.needsRexBit() { 0x04 } else { 0 };
             self.emitByte(value.toUInt8());
+        }
+    }
+
+    fun emitRexOptional(w: Bool, r: Bool, x: Bool, b: Bool) {
+        if w || r || x || b {
+            self.emitRex(w, r, x, b);
         }
     }
 
@@ -1864,5 +2063,391 @@ impl Register {
 
     assertAsm(buffer, 0xf2Y, 0x0fY, 0x11Y, 0x00Y);
     assertAsm(buffer, 0xf2Y, 0x44Y, 0x0fY, 0x11Y, 0x00Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmAddssrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.addssrr(XMM0, XMM1);
+    asm.addssrr(XMM3, XMM15);
+    asm.addssrr(XMM8, XMM4);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xf3Y, 0x0fY, 0x58Y, 0xc1Y);
+    assertAsm(buffer, 0xf3Y, 0x41Y, 0x0fY, 0x58Y, 0xdfY);
+    assertAsm(buffer, 0xf3Y, 0x44Y, 0x0fY, 0x58Y, 0xc4Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmAddsdrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.addsdrr(XMM0, XMM1);
+    asm.addsdrr(XMM3, XMM15);
+    asm.addsdrr(XMM8, XMM4);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xf2Y, 0x0fY, 0x58Y, 0xc1Y);
+    assertAsm(buffer, 0xf2Y, 0x41Y, 0x0fY, 0x58Y, 0xdfY);
+    assertAsm(buffer, 0xf2Y, 0x44Y, 0x0fY, 0x58Y, 0xc4Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmSubssrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.subssrr(XMM0, XMM1);
+    asm.subssrr(XMM3, XMM15);
+    asm.subssrr(XMM8, XMM4);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xf3Y, 0x0fY, 0x5cY, 0xc1Y);
+    assertAsm(buffer, 0xf3Y, 0x41Y, 0x0fY, 0x5cY, 0xdfY);
+    assertAsm(buffer, 0xf3Y, 0x44Y, 0x0fY, 0x5cY, 0xc4Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmSubsdrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.subsdrr(XMM0, XMM1);
+    asm.subsdrr(XMM3, XMM15);
+    asm.subsdrr(XMM8, XMM4);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xf2Y, 0x0fY, 0x5cY, 0xc1Y);
+    assertAsm(buffer, 0xf2Y, 0x41Y, 0x0fY, 0x5cY, 0xdfY);
+    assertAsm(buffer, 0xf2Y, 0x44Y, 0x0fY, 0x5cY, 0xc4Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmMulssrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.mulssrr(XMM0, XMM1);
+    asm.mulssrr(XMM3, XMM15);
+    asm.mulssrr(XMM8, XMM4);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xf3Y, 0x0fY, 0x59Y, 0xc1Y);
+    assertAsm(buffer, 0xf3Y, 0x41Y, 0x0fY, 0x59Y, 0xdfY);
+    assertAsm(buffer, 0xf3Y, 0x44Y, 0x0fY, 0x59Y, 0xc4Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmMulsdrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.mulsdrr(XMM0, XMM1);
+    asm.mulsdrr(XMM3, XMM15);
+    asm.mulsdrr(XMM8, XMM4);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xf2Y, 0x0fY, 0x59Y, 0xc1Y);
+    assertAsm(buffer, 0xf2Y, 0x41Y, 0x0fY, 0x59Y, 0xdfY);
+    assertAsm(buffer, 0xf2Y, 0x44Y, 0x0fY, 0x59Y, 0xc4Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmDivssrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.divssrr(XMM0, XMM1);
+    asm.divssrr(XMM3, XMM15);
+    asm.divssrr(XMM8, XMM4);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xf3Y, 0x0fY, 0x5eY, 0xc1Y);
+    assertAsm(buffer, 0xf3Y, 0x41Y, 0x0fY, 0x5eY, 0xdfY);
+    assertAsm(buffer, 0xf3Y, 0x44Y, 0x0fY, 0x5eY, 0xc4Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmDivsdrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.divsdrr(XMM0, XMM1);
+    asm.divsdrr(XMM3, XMM15);
+    asm.divsdrr(XMM8, XMM4);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xf2Y, 0x0fY, 0x5eY, 0xc1Y);
+    assertAsm(buffer, 0xf2Y, 0x41Y, 0x0fY, 0x5eY, 0xdfY);
+    assertAsm(buffer, 0xf2Y, 0x44Y, 0x0fY, 0x5eY, 0xc4Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmUcomissrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.ucomissrr(XMM1, XMM0);
+    asm.ucomissrr(XMM15, XMM3);
+    asm.ucomissrr(XMM4, XMM8);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x0fY, 0x2eY, 0xc8Y);
+    assertAsm(buffer, 0x44Y, 0x0fY, 0x2eY, 0xfbY);
+    assertAsm(buffer, 0x41Y, 0x0fY, 0x2eY, 0xe0Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmUcomisdrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.ucomisdrr(XMM1, XMM0);
+    asm.ucomisdrr(XMM15, XMM3);
+    asm.ucomisdrr(XMM4, XMM8);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x66Y, 0x0fY, 0x2eY, 0xc8Y);
+    assertAsm(buffer, 0x66Y, 0x44Y, 0x0fY, 0x2eY, 0xfbY);
+    assertAsm(buffer, 0x66Y, 0x41Y, 0x0fY, 0x2eY, 0xe0Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmPxorrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.pxorrr(XMM1, XMM0);
+    asm.pxorrr(XMM15, XMM3);
+    asm.pxorrr(XMM4, XMM8);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x66Y, 0x0fY, 0xefY, 0xc8Y);
+    assertAsm(buffer, 0x66Y, 0x44Y, 0x0fY, 0xefY, 0xfbY);
+    assertAsm(buffer, 0x66Y, 0x41Y, 0x0fY, 0xefY, 0xe0Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmSqrtssrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.sqrtssrr(XMM1, XMM0);
+    asm.sqrtssrr(XMM15, XMM3);
+    asm.sqrtssrr(XMM4, XMM8);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xf3Y, 0x0fY, 0x51Y, 0xc8Y);
+    assertAsm(buffer, 0xf3Y, 0x44Y, 0x0fY, 0x51Y, 0xfbY);
+    assertAsm(buffer, 0xf3Y, 0x41Y, 0x0fY, 0x51Y, 0xe0Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmSqrtsdrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.sqrtsdrr(XMM1, XMM0);
+    asm.sqrtsdrr(XMM15, XMM3);
+    asm.sqrtsdrr(XMM4, XMM8);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xf2Y, 0x0fY, 0x51Y, 0xc8Y);
+    assertAsm(buffer, 0xf2Y, 0x44Y, 0x0fY, 0x51Y, 0xfbY);
+    assertAsm(buffer, 0xf2Y, 0x41Y, 0x0fY, 0x51Y, 0xe0Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmTzcntlrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.tzcntlrr(RDI, RAX);
+    asm.tzcntlrr(RAX, RDI);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xF3Y, 0x0FY, 0xBCY, 0xF8Y);
+    assertAsm(buffer, 0xF3Y, 0x0FY, 0xBCY, 0xC7Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmTzcntqrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.tzcntqrr(RDI, RAX);
+    asm.tzcntqrr(RAX, RDI);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xF3Y, 0x48Y, 0x0FY, 0xBCY, 0xF8Y);
+    assertAsm(buffer, 0xF3Y, 0x48Y, 0x0FY, 0xBCY, 0xC7Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmLzcntlrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.lzcntlrr(RDI, RAX);
+    asm.lzcntlrr(RAX, RDI);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xF3Y, 0x0FY, 0xBDY, 0xF8Y);
+    assertAsm(buffer, 0xF3Y, 0x0FY, 0xBDY, 0xC7Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmLzcntqrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.lzcntqrr(RDI, RAX);
+    asm.lzcntqrr(RAX, RDI);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xF3Y, 0x48Y, 0x0FY, 0xBDY, 0xF8Y);
+    assertAsm(buffer, 0xF3Y, 0x48Y, 0x0FY, 0xBDY, 0xC7Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmPopcntlrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.popcntlrr(RDI, RAX);
+    asm.popcntlrr(RAX, RDI);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xF3Y, 0x0FY, 0xB8Y, 0xF8Y);
+    assertAsm(buffer, 0xF3Y, 0x0FY, 0xB8Y, 0xC7Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmPopcntqrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.popcntqrr(RDI, RAX);
+    asm.popcntqrr(RAX, RDI);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xF3Y, 0x48Y, 0x0FY, 0xB8Y, 0xF8Y);
+    assertAsm(buffer, 0xF3Y, 0x48Y, 0x0FY, 0xB8Y, 0xC7Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmCvtss2sdrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.cvtss2sdrr(XMM0, XMM1);
+    asm.cvtss2sdrr(XMM3, XMM15);
+    asm.cvtss2sdrr(XMM8, XMM4);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xf3Y, 0x0fY, 0x5aY, 0xc1Y);
+    assertAsm(buffer, 0xf3Y, 0x41Y, 0x0fY, 0x5aY, 0xdfY);
+    assertAsm(buffer, 0xf3Y, 0x44Y, 0x0fY, 0x5aY, 0xc4Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmCvtsd2ssrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.cvtsd2ssrr(XMM0, XMM1);
+    asm.cvtsd2ssrr(XMM3, XMM15);
+    asm.cvtsd2ssrr(XMM8, XMM4);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xf2Y, 0x0fY, 0x5aY, 0xc1Y);
+    assertAsm(buffer, 0xf2Y, 0x41Y, 0x0fY, 0x5aY, 0xdfY);
+    assertAsm(buffer, 0xf2Y, 0x44Y, 0x0fY, 0x5aY, 0xc4Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmMovdrx(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.movdrx(RDI, XMM0);
+    asm.movdrx(R8, XMM0);
+    asm.movdrx(R8, XMM7);
+    asm.movdrx(R8, XMM8);
+    asm.movdrx(R8, XMM15);
+    asm.movdrx(R15, XMM0);
+    asm.movdrx(R15, XMM7);
+    asm.movdrx(R15, XMM8);
+    asm.movdrx(R15, XMM15);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x66Y, 0x0FY, 0x7EY, 0xC7Y);
+    assertAsm(buffer, 0x66Y, 0x41Y, 0x0FY, 0x7EY, 0xC0Y);
+    assertAsm(buffer, 0x66Y, 0x41Y, 0x0FY, 0x7EY, 0xF8Y);
+    assertAsm(buffer, 0x66Y, 0x45Y, 0x0FY, 0x7EY, 0xC0Y);
+    assertAsm(buffer, 0x66Y, 0x45Y, 0x0FY, 0x7EY, 0xF8Y);
+    assertAsm(buffer, 0x66Y, 0x41Y, 0x0FY, 0x7EY, 0xC7Y);
+    assertAsm(buffer, 0x66Y, 0x41Y, 0x0FY, 0x7EY, 0xFFY);
+    assertAsm(buffer, 0x66Y, 0x45Y, 0x0FY, 0x7EY, 0xC7Y);
+    assertAsm(buffer, 0x66Y, 0x45Y, 0x0FY, 0x7EY, 0xFFY);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmMovdxr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.movdxr(XMM0, RAX);
+    asm.movdxr(XMM0, R8);
+    asm.movdxr(XMM7, R8);
+    asm.movdxr(XMM8, R8);
+    asm.movdxr(XMM15, R8);
+    asm.movdxr(XMM0, R15);
+    asm.movdxr(XMM7, R15);
+    asm.movdxr(XMM8, R15);
+    asm.movdxr(XMM15, R15);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x66Y, 0x0FY, 0x6EY, 0xC0Y);
+    assertAsm(buffer, 0x66Y, 0x41Y, 0x0FY, 0x6EY, 0xC0Y);
+    assertAsm(buffer, 0x66Y, 0x41Y, 0x0FY, 0x6EY, 0xF8Y);
+    assertAsm(buffer, 0x66Y, 0x45Y, 0x0FY, 0x6EY, 0xC0Y);
+    assertAsm(buffer, 0x66Y, 0x45Y, 0x0FY, 0x6EY, 0xF8Y);
+    assertAsm(buffer, 0x66Y, 0x41Y, 0x0FY, 0x6EY, 0xC7Y);
+    assertAsm(buffer, 0x66Y, 0x41Y, 0x0FY, 0x6EY, 0xFFY);
+    assertAsm(buffer, 0x66Y, 0x45Y, 0x0FY, 0x6EY, 0xC7Y);
+    assertAsm(buffer, 0x66Y, 0x45Y, 0x0FY, 0x6EY, 0xFFY);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmMovqrx(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.movqrx(RDI, XMM0);
+    asm.movqrx(R8, XMM0);
+    asm.movqrx(R8, XMM7);
+    asm.movqrx(R8, XMM8);
+    asm.movqrx(R8, XMM15);
+    asm.movqrx(R15, XMM0);
+    asm.movqrx(R15, XMM7);
+    asm.movqrx(R15, XMM8);
+    asm.movqrx(R15, XMM15);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x66Y, 0x48Y, 0x0FY, 0x7EY, 0xC7Y);
+    assertAsm(buffer, 0x66Y, 0x49Y, 0x0FY, 0x7EY, 0xC0Y);
+    assertAsm(buffer, 0x66Y, 0x49Y, 0x0FY, 0x7EY, 0xF8Y);
+    assertAsm(buffer, 0x66Y, 0x4DY, 0x0FY, 0x7EY, 0xC0Y);
+    assertAsm(buffer, 0x66Y, 0x4DY, 0x0FY, 0x7EY, 0xF8Y);
+    assertAsm(buffer, 0x66Y, 0x49Y, 0x0FY, 0x7EY, 0xC7Y);
+    assertAsm(buffer, 0x66Y, 0x49Y, 0x0FY, 0x7EY, 0xFFY);
+    assertAsm(buffer, 0x66Y, 0x4DY, 0x0FY, 0x7EY, 0xC7Y);
+    assertAsm(buffer, 0x66Y, 0x4DY, 0x0FY, 0x7EY, 0xFFY);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmMovqxr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.movqxr(XMM0, RAX);
+    asm.movqxr(XMM0, R8);
+    asm.movqxr(XMM7, R8);
+    asm.movqxr(XMM8, R8);
+    asm.movqxr(XMM15, R8);
+    asm.movqxr(XMM0, R15);
+    asm.movqxr(XMM7, R15);
+    asm.movqxr(XMM8, R15);
+    asm.movqxr(XMM15, R15);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x66Y, 0x48Y, 0x0FY, 0x6EY, 0xC0Y);
+    assertAsm(buffer, 0x66Y, 0x49Y, 0x0FY, 0x6EY, 0xC0Y);
+    assertAsm(buffer, 0x66Y, 0x49Y, 0x0FY, 0x6EY, 0xF8Y);
+    assertAsm(buffer, 0x66Y, 0x4DY, 0x0FY, 0x6EY, 0xC0Y);
+    assertAsm(buffer, 0x66Y, 0x4DY, 0x0FY, 0x6EY, 0xF8Y);
+    assertAsm(buffer, 0x66Y, 0x49Y, 0x0FY, 0x6EY, 0xC7Y);
+    assertAsm(buffer, 0x66Y, 0x49Y, 0x0FY, 0x6EY, 0xFFY);
+    assertAsm(buffer, 0x66Y, 0x4DY, 0x0FY, 0x6EY, 0xC7Y);
+    assertAsm(buffer, 0x66Y, 0x4DY, 0x0FY, 0x6EY, 0xFFY);
     assertAsmEnd(buffer);
 }
