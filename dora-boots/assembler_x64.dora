@@ -660,6 +660,28 @@ class AssemblerX64: Assembler {
         self.emitModRmReg(src, dest);
     }
 
+    fun xorpdra(dest: XmmRegister, src: Address) {
+        self.emitByte(0x66Y);
+        self.emitRexSseAddressOptional(dest, src);
+        self.emitByte(0x0fY);
+        self.emitByte(0x57Y);
+        self.emitAddress(dest.lowBits(), src);
+    }
+
+    fun xorpsra(dest: XmmRegister, src: Address) {
+        self.emitRexSseAddressOptional(dest, src);
+        self.emitByte(0x0fY);
+        self.emitByte(0x57Y);
+        self.emitAddress(dest.lowBits(), src);
+    }
+
+    fun xorpsrr(dest: XmmRegister, src: XmmRegister) {
+        self.emitRexSseModRmOptional(dest, src);
+        self.emitByte(0x0fY);
+        self.emitByte(0x57Y);
+        self.emitModRmSseRegisters(dest, src);
+    }
+
     fun xorqrr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x31Y);
@@ -2449,5 +2471,41 @@ impl Register {
     assertAsm(buffer, 0x66Y, 0x49Y, 0x0FY, 0x6EY, 0xFFY);
     assertAsm(buffer, 0x66Y, 0x4DY, 0x0FY, 0x6EY, 0xC7Y);
     assertAsm(buffer, 0x66Y, 0x4DY, 0x0FY, 0x6EY, 0xFFY);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmXorpsra(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.xorpsra(XMM0, Address::offset(RBP, -8));
+    asm.xorpsra(XMM8, Address::offset(R8, 0));
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x0FY, 0x57Y, 0x45Y, 0xF8Y);
+    assertAsm(buffer, 0x45Y, 0x0FY, 0x57Y, 0x00Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmXorpsrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.xorpsrr(XMM0, XMM1);
+    asm.xorpsrr(XMM7, XMM8);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x0fY, 0x57Y, 0xc1Y);
+    assertAsm(buffer, 0x41Y, 0x0fY, 0x57Y, 0xf8Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmXorpdra(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.xorpdra(XMM0, Address::offset(RBP, -8));
+    asm.xorpdra(XMM8, Address::offset(R8, 0));
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x66Y, 0x0FY, 0x57Y, 0x45Y, 0xF8Y);
+    assertAsm(buffer, 0x66Y, 0x45Y, 0x0FY, 0x57Y, 0x00Y);
     assertAsmEnd(buffer);
 }
