@@ -1504,7 +1504,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmIdivlrr(_x: Testing) {
+@test fun testAsmIdivlr(_x: Testing) {
     let asm = AssemblerX64();
     asm.idivlr(RAX);
     asm.idivlr(R15);
@@ -1515,7 +1515,7 @@ impl Register {
     assertAsmEnd(buffer);
 }
 
-@test fun testAsmIdivqrr(_x: Testing) {
+@test fun testAsmIdivqr(_x: Testing) {
     let asm = AssemblerX64();
     asm.idivqr(RAX);
     asm.idivqr(R15);
