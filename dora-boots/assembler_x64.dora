@@ -115,6 +115,12 @@ class AssemblerX64: Assembler {
         self.emitModRmReg(dest, src);
     }
 
+    fun cmpbar(lhs: Address, rhs: Register) {
+        self.emitRex32ModRmAddressByteOptional(rhs, lhs);
+        self.emitByte(0x38Y);
+        self.emitAddress(rhs.lowBits(), lhs);
+    }
+
     fun cmplrr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x39Y);
@@ -658,6 +664,25 @@ class AssemblerX64: Assembler {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x31Y);
         self.emitModRmReg(src, dest);
+    }
+
+    fun xorlri(lhs: Register, rhs: Immediate) {
+        assert(rhs.isInt32());
+
+        if rhs.isInt8() {
+            self.emitRex32RmFieldOptional(lhs);
+            self.emitByte(0x83Y);
+            self.emitModRmOpcode(0b110, lhs);
+            self.emitByte(rhs.toUInt8());
+        } else if lhs == RAX {
+            self.emitByte(0x35Y);
+            self.emitInt32(rhs.toInt32());
+        } else {
+            self.emitRex32RmFieldOptional(lhs);
+            self.emitByte(0x81Y);
+            self.emitModRmOpcode(0b110, lhs);
+            self.emitInt32(rhs.toInt32());
+        }
     }
 
     fun xorpdra(dest: XmmRegister, src: Address) {
@@ -2507,5 +2532,47 @@ impl Register {
 
     assertAsm(buffer, 0x66Y, 0x0FY, 0x57Y, 0x45Y, 0xF8Y);
     assertAsm(buffer, 0x66Y, 0x45Y, 0x0FY, 0x57Y, 0x00Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmXorlri(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.xorlri(RAX, Immediate(1L));
+    asm.xorlri(R8, Immediate(127L));
+    asm.xorlri(R15, Immediate(-128L));
+
+    asm.xorlri(RAX, Immediate(128L));
+    asm.xorlri(R8, Immediate(-129L));
+    asm.xorlri(R15, Immediate(128L));
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x83Y, 0xf0Y, 1Y);
+    assertAsm(buffer, 0x41Y, 0x83Y, 0xf0Y, 0x7fY);
+    assertAsm(buffer, 0x41Y, 0x83Y, 0xf7Y, 0x80Y);
+
+    assertAsm(buffer, 0x35Y, 0x80Y, 0Y, 0Y, 0Y);
+    assertAsm(buffer, 0x41Y, 0x81Y, 0xf0Y, 0x7fY, 0xffY, 0xffY, 0xffY);
+    assertAsm(buffer, 0x41Y, 0x81Y, 0xf7Y, 0x80Y, 0Y, 0Y, 0Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmCmpbar(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.cmpbar(Address::offset(RAX, 0), RAX);
+    asm.cmpbar(Address::offset(RAX, 0), RBX);
+    asm.cmpbar(Address::offset(RAX, 0), RSP);
+    asm.cmpbar(Address::offset(RAX, 0), RDI);
+    asm.cmpbar(Address::offset(RAX, 0), R8);
+    asm.cmpbar(Address::offset(R8, 0), RAX);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x38Y, 0x00Y);
+    assertAsm(buffer, 0x38Y, 0x18Y);
+    assertAsm(buffer, 0x40Y, 0x38Y, 0x20Y);
+    assertAsm(buffer, 0x40Y, 0x38Y, 0x38Y);
+    assertAsm(buffer, 0x44Y, 0x38Y, 0x00Y);
+    assertAsm(buffer, 0x41Y, 0x38Y, 0x00Y);
     assertAsmEnd(buffer);
 }
