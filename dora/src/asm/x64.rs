@@ -509,22 +509,7 @@ impl Assembler {
     }
 
     pub fn xorl_ri(&mut self, lhs: Register, rhs: Immediate) {
-        assert!(rhs.is_int32());
-
-        if rhs.is_int8() {
-            self.emit_rex32_rm_optional(lhs);
-            self.emit_u8(0x83);
-            self.emit_modrm_opcode(0b110, lhs);
-            self.emit_u8(rhs.int8() as u8);
-        } else if lhs == RAX {
-            self.emit_u8(0x35);
-            self.emit_u32(rhs.int32() as u32);
-        } else {
-            self.emit_rex32_rm_optional(lhs);
-            self.emit_u8(0x81);
-            self.emit_modrm_opcode(0b110, lhs);
-            self.emit_u32(rhs.int32() as u32);
-        }
+        self.emit_alu32_imm(lhs, rhs, 0b110, 0x35, false);
     }
 
     pub fn xorq_rr(&mut self, dest: Register, src: Register) {
