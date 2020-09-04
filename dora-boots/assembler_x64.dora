@@ -248,6 +248,38 @@ class AssemblerX64: Assembler {
         self.emitModRmSseRegisters(dest, src);
     }
 
+    fun cvttsd2sidrr(dest: Register, src: XmmRegister) {
+        self.emitByte(0xF2Y);
+        self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
+        self.emitByte(0x0FY);
+        self.emitByte(0x2CY);
+        self.emitModRm(0b11, dest.lowBits(), src.lowBits());
+    }
+
+    fun cvttsd2siqrr(dest: Register, src: XmmRegister) {
+        self.emitByte(0xF2Y);
+        self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
+        self.emitByte(0x0FY);
+        self.emitByte(0x2CY);
+        self.emitModRm(0b11, dest.lowBits(), src.lowBits());
+    }
+
+    fun cvttss2sidrr(dest: Register, src: XmmRegister) {
+        self.emitByte(0xF3Y);
+        self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
+        self.emitByte(0x0FY);
+        self.emitByte(0x2CY);
+        self.emitModRm(0b11, dest.lowBits(), src.lowBits());
+    }
+
+    fun cvttss2siqrr(dest: Register, src: XmmRegister) {
+        self.emitByte(0xF3Y);
+        self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
+        self.emitByte(0x0FY);
+        self.emitByte(0x2CY);
+        self.emitModRm(0b11, dest.lowBits(), src.lowBits());
+    }
+
     fun divssrr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xf3Y);
         self.emitRexSseModRmOptional(dest, src);
@@ -3247,5 +3279,61 @@ impl Register {
     assertAsm(buffer, 0xf2Y, 0x48Y, 0x0fY, 0x2aY, 0xc1Y);
     assertAsm(buffer, 0xf2Y, 0x49Y, 0x0fY, 0x2aY, 0xdfY);
     assertAsm(buffer, 0xf2Y, 0x4CY, 0x0fY, 0x2aY, 0xc4Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmCvttss2sidrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.cvttss2sidrr(RCX, XMM0);
+    asm.cvttss2sidrr(R15, XMM3);
+    asm.cvttss2sidrr(RSP, XMM8);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xf3Y, 0x0fY, 0x2cY, 0xc8Y);
+    assertAsm(buffer, 0xf3Y, 0x44Y, 0x0fY, 0x2cY, 0xfbY);
+    assertAsm(buffer, 0xf3Y, 0x41Y, 0x0fY, 0x2cY, 0xe0Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmCvttss2siqrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.cvttss2siqrr(RCX, XMM0);
+    asm.cvttss2siqrr(R15, XMM3);
+    asm.cvttss2siqrr(RSP, XMM8);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xf3Y, 0x48Y, 0x0fY, 0x2cY, 0xc8Y);
+    assertAsm(buffer, 0xf3Y, 0x4CY, 0x0fY, 0x2cY, 0xfbY);
+    assertAsm(buffer, 0xf3Y, 0x49Y, 0x0fY, 0x2cY, 0xe0Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmCvttsd2sidrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.cvttsd2sidrr(RCX, XMM0);
+    asm.cvttsd2sidrr(R15, XMM3);
+    asm.cvttsd2sidrr(RSP, XMM8);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xf2Y, 0x0fY, 0x2cY, 0xc8Y);
+    assertAsm(buffer, 0xf2Y, 0x44Y, 0x0fY, 0x2cY, 0xfbY);
+    assertAsm(buffer, 0xf2Y, 0x41Y, 0x0fY, 0x2cY, 0xe0Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmCvttsd2siqrr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.cvttsd2siqrr(RCX, XMM0);
+    asm.cvttsd2siqrr(R15, XMM3);
+    asm.cvttsd2siqrr(RSP, XMM8);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xf2Y, 0x48Y, 0x0fY, 0x2cY, 0xc8Y);
+    assertAsm(buffer, 0xf2Y, 0x4CY, 0x0fY, 0x2cY, 0xfbY);
+    assertAsm(buffer, 0xf2Y, 0x49Y, 0x0fY, 0x2cY, 0xe0Y);
     assertAsmEnd(buffer);
 }
