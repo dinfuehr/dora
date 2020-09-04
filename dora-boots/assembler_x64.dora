@@ -344,6 +344,48 @@ class AssemblerX64: Assembler {
         self.emitByte(0xCCY);
     }
 
+    fun jcc(condition: Condition, dest: Label) {
+        if dest.isBound() {
+            // backwards jump
+            // rip = end of current instruction = pc + 2
+            let distance = dest.offset - (self.size() + 2L);
+            assert(distance <= -2L);
+
+            if distance >= -128L {
+                self.emitByte((0x70 + condition.toInt32()).toUInt8());
+                self.emitByte(distance.toUInt8());
+            } else {
+                let distance = dest.offset - (self.size() + 6L);
+                assert(distance.toInt32().toInt64() == distance);
+                self.emitByte(0x0FY);
+                self.emitByte((0x80 + condition.toInt32()).toUInt8());
+                self.emitInt32(distance.toInt32());
+            }
+        } else {
+            // forward jump - conservatively assume far jump
+            self.emitByte(0x0FY);
+            self.emitByte((0x80 + condition.toInt32()).toUInt8());
+            self.emitJump(dest, JumpDistance::Far);
+            self.emitInt32(0);
+        }
+    }
+
+    fun jccNear(condition: Condition, dest: Label) {
+        if dest.isBound() {
+            // backwards jump
+            // rip = end of current instruction = pc + 2
+            let distance = dest.offset - (self.size() + 2L);
+            assert(-128L <= distance && distance <= -2L);
+            self.emitByte((0x70 + condition.toInt32()).toUInt8());
+            self.emitByte(distance.toUInt8());
+        } else {
+            // forward jump
+            self.emitByte((0x70 + condition.toInt32()).toUInt8());
+            self.emitJump(dest, JumpDistance::Near);
+            self.emitByte(0Y);
+        }
+    }
+
     fun jmpr(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xffY);
@@ -3506,6 +3548,82 @@ impl Register {
     let buffer = asm.finalizeTesting();
 
     assertAsm(buffer, 0xEBY, 0xFEY);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmJccNearBackward(_x: Testing) {
+    let asm = AssemblerX64();
+    let lbl = asm.createAndBindLabel();
+    asm.jccNear(Condition::Overflow, lbl);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x70Y, 0xFEY);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmJccNearForward(_x: Testing) {
+    let asm = AssemblerX64();
+    let lbl = asm.createLabel();
+    asm.jccNear(Condition::Overflow, lbl);
+    asm.bindLabel(lbl);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x70Y, 0x00Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmJccBackwardNear(_x: Testing) {
+    let asm = AssemblerX64();
+    let lbl = asm.createAndBindLabel();
+    asm.jcc(Condition::Overflow, lbl);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x70Y, 0xFEY);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmJccBackwardStillNear(_x: Testing) {
+    let asm = AssemblerX64();
+    let lbl = asm.createAndBindLabel();
+    for x in range(0, 126) {
+        asm.nop();
+    }
+    asm.jcc(Condition::Overflow, lbl);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsmNop(buffer, 126L);
+    assertAsm(buffer, 0x70Y, 0x80Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmJccBackwardAlreadyFar(_x: Testing) {
+    let asm = AssemblerX64();
+    let lbl = asm.createAndBindLabel();
+    for x in range(0, 127) {
+        asm.nop();
+    }
+    asm.jcc(Condition::Overflow, lbl);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsmNop(buffer, 127L);
+    assertAsm(buffer, 0x0FY, 0x80Y, 0x7BY, 0xFFY, 0xFFY, 0xFFY);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmJccForward(_x: Testing) {
+    let asm = AssemblerX64();
+    let lbl = asm.createLabel();
+    asm.jcc(Condition::Overflow, lbl);
+    asm.bindLabel(lbl);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x0FY, 0x80Y, 0Y, 0Y, 0Y, 0Y);
     assertAsmEnd(buffer);
 }
 
