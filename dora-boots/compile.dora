@@ -102,7 +102,7 @@ class ByteReader(let array: Array[UInt8]) {
     }
 
     fun readUInt8() -> UInt8 {
-        let value = self.array.get(self.idx);
+        let value = self.array(self.idx);
         self.idx = self.idx + 1L;
         value
     }

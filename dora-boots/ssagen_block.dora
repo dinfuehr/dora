@@ -19,7 +19,7 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVis
     }
 
     fun blockAt(offset: Int32) -> Option[Block] {
-        self.blocks.get(offset)
+        self.blocks(offset)
     }
 
     fun nextBlockAt(offset: Int32) -> Option[Block] {
@@ -40,7 +40,7 @@ class BlockBuilder(let graph: Graph, let bc: BytecodeFunction): EmptyBytecodeVis
     @override fun visitInstruction(offset: Int32) {
         self.offset = offset;
 
-        let result = self.blocks.get(offset);
+        let result = self.blocks(offset);
 
         if result.isSome() {
             let nextBlock = result.unwrap();
@@ -123,7 +123,7 @@ class SsagenCreateBlocks(let graph: Graph, let bc: BytecodeFunction, let blocks:
     }
 
     fun ensureBlockAt(offset: Int32) {
-        let result = self.blocks.get(offset);
+        let result = self.blocks(offset);
         if result.isSome() { return; }
 
         let block = Block();

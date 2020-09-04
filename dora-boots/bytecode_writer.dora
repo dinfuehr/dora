@@ -652,23 +652,20 @@ class BytecodeWriter {
     }
 
     fun resolveJumps() {
-        var i = 0L;
-
-        while i < self.unresolvedJumps.size() {
-            let jump = self.unresolvedJumps.get(i);
+        for jump in self.unresolvedJumps {
             assert(jump.label.isBound());
 
             assert(jump.label.offset() > jump.inst);
             let offset = jump.label.offset() - jump.inst;
 
-            let opcode = self.code.get(jump.inst.toInt64()).toInt32();
+            let opcode = self.code(jump.inst.toInt64()).toInt32();
 
             if opcode == BC_WIDE {
                 // wide is guaranteed to not use constant pool
                 self.patchInt32(jump.target, offset);
             } else if isWide(offset) {
                 // Need to update const pool entry
-                let idx = self.code.get(jump.target.toInt64());
+                let idx = self.code(jump.target.toInt64());
                 self.constPool.set(idx.toInt64(), ConstPoolInt32(offset));
             } else {
                 // Offset fits into byte, replace instruction with jump+immediate
@@ -686,9 +683,9 @@ class BytecodeWriter {
                 self.code.set(jump.inst.toInt64(), opcode.toUInt8());
                 self.code.set(jump.target.toInt64(), offset.toUInt8());
             }
-
-            i = i + 1L;
         }
+
+        self.unresolvedJumps.clear();
     }
 
     fun emitFctVoid(inst: Int32, fct: FctId, start: BytecodeRegister, count: Int32) {

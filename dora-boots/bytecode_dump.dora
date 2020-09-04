@@ -3,15 +3,14 @@ fun bytecodeDump(bc: BytecodeFunction) {
     readBytecode(bc.code, dumper);
 
     var i = 0L;
-    while i < bc.const_pool.size() {
-        let entry = bc.const_pool.get(i);
+
+    for entry in bc.const_pool {
         println("@${i} = ${entry.toString()}");
         i = i + 1L;
     }
 
     i = 0L;
-    while i < bc.registers.size() {
-        let ty = bc.registers.get(i);
+    for ty in bc.registers {
         println("r${i} = ${ty}");
         i = i + 1L;
     }

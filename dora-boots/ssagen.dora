@@ -53,7 +53,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         var i = 0;
         let entryBlock = self.graph.getEntryBlock();
         while i < self.bc.arguments {
-            let ty = Type::fromBytecodeType(self.bc.registers.get(i.toInt64()));
+            let ty = Type::fromBytecodeType(self.bc.registers(i.toInt64()));
             let argInst = ArgInst(i, ty);
             entryBlock.appendInst(argInst);
             self.writeVariable(BytecodeRegister(i), entryBlock, argInst);
@@ -62,12 +62,12 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     }
 
     fun writeVariable(register: BytecodeRegister, block: Block, value: Inst) {
-        self.currentDef.get(register.value.toInt64()).insert(block, value);
+        self.currentDef(register.value.toInt64()).insert(block, value);
     }
 
     fun readVariable(register: BytecodeRegister, block: Block) -> Inst {
-        if self.currentDef.get(register.value.toInt64()).contains(block) {
-            self.currentDef.get(register.value.toInt64()).get(block).unwrap()
+        if self.currentDef(register.value.toInt64()).contains(block) {
+            self.currentDef(register.value.toInt64())(block).unwrap()
         } else {
             self.readVariableRecursive(register, block)
         }
@@ -85,7 +85,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
             block.appendPhi(incomplete);
 
             if self.incompletePhis.contains(block) {
-                self.incompletePhis.get(block).unwrap().insert(register, incomplete);
+                self.incompletePhis(block).unwrap().insert(register, incomplete);
             } else {
                 let map = HashMap[BytecodeRegister, PhiInst]();
                 map.insert(register, incomplete);
@@ -221,7 +221,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
         assert(!self.sealedBlocks.contains(block.id.toInt64()));
         self.sealedBlocks.insert(block.id.toInt64());
 
-        let map = self.incompletePhis.get(block);
+        let map = self.incompletePhis(block);
         if map.isNone() { return; }
 
         for variableAndPhi in map.unwrap() {
@@ -599,7 +599,7 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     }
 
     @override fun visitRet(opnd: BytecodeRegister) {
-        let ty = self.bc.registers.get(opnd.value.toInt64());
+        let ty = self.bc.registers(opnd.value.toInt64());
         let ty = Type::fromBytecodeType(ty);
         self.emitRet(opnd, ty);
     }

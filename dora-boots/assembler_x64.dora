@@ -1188,12 +1188,12 @@ class AssemblerX64: Assembler {
     fun emitAddress(reg_or_opcode: Int32, address: Address) {
         assert(reg_or_opcode < 8);
 
-        self.emitByte((reg_or_opcode << 3 | address.bytes.get(0L).toInt32()).toUInt8());
+        self.emitByte((reg_or_opcode << 3 | address.bytes(0L).toInt32()).toUInt8());
 
         var i = 1L;
 
         while i < address.length {
-            self.emitByte(address.bytes.get(i));
+            self.emitByte(address.bytes(i));
             i = i + 1L;
         }
     }
@@ -3629,7 +3629,7 @@ fun assertAsmNop(code: MachineCode, length: Int64) {
 
     var idx = 0L;
     while idx < length {
-        assert(0x90Y == code.bytes.get(code.start + idx));
+        assert(0x90Y == code.bytes(code.start + idx));
         idx = idx + 1L;
     }
 

@@ -110,7 +110,7 @@ fun assertAsm(code: MachineCode, bytes: UInt8...) {
 
     while idx < bytes.size() {
         let exp = bytes(idx);
-        let got = code.bytes.get(code.start + idx);
+        let got = code.bytes(code.start + idx);
 
         if exp != got {
             println("expected ${exp.toStringHex()} at index ${code.start + idx} but got ${got.toStringHex()}");
@@ -131,7 +131,7 @@ fun assertAsm(code: MachineCode, bytes: UInt8...) {
 
             while i < bytes.size() {
                 if i > 0L { print(", "); }
-                let value = code.bytes.get(code.start + i);
+                let value = code.bytes(code.start + i);
                 print("${value.toStringHex()}");
                 i = i + 1L;
             }

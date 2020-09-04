@@ -24,7 +24,7 @@ fun findBackEdges(graph: Graph) {
             visited.insert(block.id.toInt64());
         } else {
             successorsVisited(block.id.toInt64()) = successorIndex + 1L;
-            let successorEdge = block.successors.get(successorIndex);
+            let successorEdge = block.successors(successorIndex);
             let successor = successorEdge.to;
 
             if visiting.contains(successor.id.toInt64()) {
@@ -71,7 +71,7 @@ fun computePostOrder(graph: Graph) {
             postOrder.push(block);
         } else {
             successorsVisited(block.id.toInt64()) = successorIndex + 1L;
-            let successor = block.successors.get(successorIndex).to;
+            let successor = block.successors(successorIndex).to;
 
             if visited.contains(successor.id.toInt64()) {
                 // block either already visited or back edge
@@ -111,7 +111,7 @@ fun computeDominators(graph: Graph) {
             visited.insert(block.id.toInt64());
         } else {
             successorsVisited(block.id.toInt64()) = successorIndex + 1L;
-            let successor = block.successors.get(successorIndex).to;
+            let successor = block.successors(successorIndex).to;
 
             if visiting.contains(successor.id.toInt64()) {
                 // ignore back-edges

@@ -17,7 +17,7 @@ class Graph {
     }
 
     fun getBlockWithId(id: Int32) -> Block {
-        self.blocks.get(id.toInt64())
+        self.blocks(id.toInt64())
     }
 
     fun setEntryBlock(block: Block) {
@@ -58,8 +58,7 @@ class Graph {
         self.postOrder = postOrder;
 
         var idx = 0L;
-        while idx < self.postOrder.size() {
-            let block = self.postOrder.get(idx);
+        for block in self.postOrder {
             block.postOrderIdx = idx.toInt32();
             idx = idx + 1L;
         }
@@ -92,7 +91,7 @@ class PostOrderIterator(let postOrder: Vec[Block]) {
     }
 
     fun next() -> Block {
-        let block = self.postOrder.get(self.idx);
+        let block = self.postOrder(self.idx);
         self.idx = self.idx + 1L;
         block
     }
@@ -106,7 +105,7 @@ class ReversePostOrderIterator(let postOrder: Vec[Block]) {
     }
 
     fun next() -> Block {
-        let block = self.postOrder.get(self.idx);
+        let block = self.postOrder(self.idx);
         self.idx = self.idx - 1L;
         block
     }
@@ -340,7 +339,7 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
         var idx = 0L;
 
         while idx < inputs {
-            let input = self.inputs.get(idx);
+            let input = self.inputs(idx);
             input.value.addUse(input);
             idx = idx + 1L;
         }
@@ -351,7 +350,7 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
         var idx = 0L;
 
         while idx < inputs {
-            let input = self.inputs.get(idx);
+            let input = self.inputs(idx);
             input.value.removeUse(input);
             idx = idx + 1L;
         }
@@ -371,7 +370,7 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
     }
 
     fun replaceInput(replacement: Inst, idx: Int32) {
-        let input = self.inputs.get(idx.toInt64());
+        let input = self.inputs(idx.toInt64());
 
         if input.value === replacement {
             return;
