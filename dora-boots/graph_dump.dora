@@ -23,14 +23,11 @@ class GraphDumper(let graph: Graph) {
             self.buffer.append(" pred = [");
             var first: Bool = true;
 
-            let it = block.predecessors.makeIterator();
-            while it.hasNext() {
-                let pred = it.next().from;
-
+            for pred in block.predecessors {
                 if first {
-                    self.buffer.append("${pred.id}");
+                    self.buffer.append("${pred.from.id}");
                 } else {
-                    self.buffer.append(", ${pred.id}");
+                    self.buffer.append(", ${pred.from.id}");
                 }
 
                 first = false;
@@ -43,14 +40,11 @@ class GraphDumper(let graph: Graph) {
             self.buffer.append(" succ = [");
             var first: Bool = true;
 
-            let it = block.successors.makeIterator();
-            while it.hasNext() {
-                let succ = it.next().to;
-
+            for succ in block.successors {
                 if first {
-                    self.buffer.append("${succ.id}");
+                    self.buffer.append("${succ.to.id}");
                 } else {
-                    self.buffer.append(", ${succ.id}");
+                    self.buffer.append(", ${succ.to.id}");
                 }
 
                 first = false;
@@ -78,12 +72,9 @@ class GraphDumper(let graph: Graph) {
         self.buffer.append("  ${inst.id}: ${inst.dumpName()}");
 
         if !inst.inputs.isEmpty() {
-            let it = inst.inputs.makeIterator();
             var first = true;
 
-            while it.hasNext() {
-                let inp = it.next();
-
+            for inp in inst.inputs {
                 if first {
                     self.buffer.append(" ${inp.value.id}");
                 } else {

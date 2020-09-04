@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::error::msg::SemError;
 use crate::semck;
-use crate::semck::typeparamck;
+use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::sym::{SymLevel, TermSym, TypeSym};
 use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{
@@ -398,7 +398,8 @@ impl<'x, 'ast> Visitor<'ast> for ClsSuperDefinitionCheck<'x, 'ast> {
             let cls = self.vm.classes.idx(self.cls_id.unwrap());
             let cls = cls.read();
             let super_class = cls.parent_class.expect("parent_class missing");
-            typeparamck::check_type(self.vm, self.file_id.into(), parent_class.pos, super_class);
+            let error = ErrorReporting::Yes(self.file_id.into(), parent_class.pos);
+            typeparamck::check_type(self.vm, error, super_class);
         }
 
         self.cls_id = None;

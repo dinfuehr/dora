@@ -1254,10 +1254,7 @@ class AssemblerX64: Assembler {
     }
 
     fun resolveJumps() {
-        let it = self.jumps.makeIterator();
-
-        while it.hasNext() {
-            let element = it.next();
+        for element in self.jumps {
             let pc = element.0;
             let lbl = element.1;
             let distance = element.2;

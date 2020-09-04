@@ -246,7 +246,7 @@ impl IdentType {
 
 #[derive(Debug, Clone)]
 pub struct ForTypeInfo {
-    pub make_iterator: FctId,
+    pub make_iterator: Option<FctId>,
     pub next: FctId,
     pub has_next: FctId,
     pub iterator_type: BuiltinType,

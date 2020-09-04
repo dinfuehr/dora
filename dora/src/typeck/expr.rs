@@ -5,7 +5,7 @@ use std::{f32, f64};
 
 use crate::error::msg::SemError;
 use crate::semck::specialize::replace_type_param;
-use crate::semck::typeparamck;
+use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::semck::{always_returns, expr_always_returns};
 use crate::sym::TypeSym::SymClass;
 use crate::ty::{BuiltinType, TypeList, TypeParamId};
@@ -137,6 +137,36 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
         }
 
+        if let Some((for_type_info, ret_type)) = self.type_supports_iterator_protocol(object_type) {
+            // set variable type to return type of next
+            let var_id = *self.src.map_vars.get(s.id).unwrap();
+            self.src.vars[var_id].ty = ret_type;
+
+            // store fct ids for code generation
+            self.src.map_fors.insert(s.id, for_type_info);
+
+            self.visit_stmt(&s.block);
+            return;
+        }
+
+        if let Some((make_iterator, iterator_type)) = self.type_supports_make_iterator(object_type)
+        {
+            if let Some((mut for_type_info, ret_type)) =
+                self.type_supports_iterator_protocol(iterator_type)
+            {
+                // set variable type to return type of next
+                let var_id = *self.src.map_vars.get(s.id).unwrap();
+                self.src.vars[var_id].ty = ret_type;
+
+                // store fct ids for code generation
+                for_type_info.make_iterator = Some(make_iterator);
+                self.src.map_fors.insert(s.id, for_type_info);
+
+                self.visit_stmt(&s.block);
+                return;
+            }
+        }
+
         let name = self.vm.interner.intern("makeIterator");
 
         let mut lookup = MethodLookup::new(self.vm, self.file)
@@ -194,7 +224,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.src.map_fors.insert(
                     s.id,
                     ForTypeInfo {
-                        make_iterator: make_iterator_id,
+                        make_iterator: Some(make_iterator_id),
                         has_next: impl_has_next_id,
                         next: impl_next_id,
                         iterator_type: make_iterator_ret,
@@ -216,6 +246,70 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
 
         self.visit_stmt(&s.block);
+    }
+
+    fn type_supports_make_iterator(
+        &mut self,
+        object_type: BuiltinType,
+    ) -> Option<(FctId, BuiltinType)> {
+        let make_iterator_name = self.vm.interner.intern("makeIterator");
+
+        let mut lookup = MethodLookup::new(self.vm, self.file)
+            .no_error_reporting()
+            .method(object_type)
+            .name(make_iterator_name)
+            .args(&[]);
+
+        if lookup.find() {
+            let make_iterator_id = lookup.found_fct_id().unwrap();
+            let make_iterator_ret = lookup.found_ret().unwrap();
+
+            Some((make_iterator_id, make_iterator_ret))
+        } else {
+            None
+        }
+    }
+
+    fn type_supports_iterator_protocol(
+        &mut self,
+        object_type: BuiltinType,
+    ) -> Option<(ForTypeInfo, BuiltinType)> {
+        let has_next_name = self.vm.interner.intern("hasNext");
+
+        let mut has_next = MethodLookup::new(self.vm, self.file)
+            .no_error_reporting()
+            .method(object_type)
+            .name(has_next_name)
+            .args(&[]);
+
+        if !has_next.find() {
+            return None;
+        }
+        if !has_next.found_ret().unwrap().is_bool() {
+            return None;
+        }
+
+        let next_name = self.vm.interner.intern("next");
+
+        let mut next = MethodLookup::new(self.vm, self.file)
+            .no_error_reporting()
+            .method(object_type)
+            .name(next_name)
+            .args(&[]);
+
+        if !next.find() {
+            return None;
+        }
+
+        Some((
+            ForTypeInfo {
+                make_iterator: None,
+                has_next: has_next.found_fct_id().expect("fct_id missing"),
+                next: next.found_fct_id().expect("fct_id missing"),
+                iterator_type: object_type,
+            },
+            next.found_ret().unwrap(),
+        ))
     }
 
     fn check_stmt_while(&mut self, s: &'ast StmtWhileType) {
@@ -1996,7 +2090,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             return ty;
         }
 
-        if !typeparamck::check_type(self.vm, self.file, e.data_type.pos(), check_type) {
+        let error = ErrorReporting::Yes(self.file, e.data_type.pos());
+
+        if !typeparamck::check_type(self.vm, error, check_type) {
             let ty = if e.is {
                 BuiltinType::Bool
             } else {

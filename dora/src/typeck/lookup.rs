@@ -1,6 +1,6 @@
 use crate::error::msg::SemError;
 use crate::semck::specialize::replace_type_param;
-use crate::semck::typeparamck;
+use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::ty::{BuiltinType, TypeList};
 use crate::typeck::expr::args_compatible;
 use crate::vm::{
@@ -32,6 +32,7 @@ pub struct MethodLookup<'a, 'ast: 'a> {
     fct_tps: Option<&'a TypeList>,
     ret: Option<BuiltinType>,
     pos: Option<Position>,
+    report_errors: bool,
 
     found_fct_id: Option<FctId>,
     found_class_type: Option<BuiltinType>,
@@ -52,6 +53,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             fct_tps: None,
             ret: None,
             pos: None,
+            report_errors: true,
 
             found_fct_id: None,
             found_class_type: None,
@@ -86,6 +88,11 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             panic!("neither object nor trait object: {:?}", obj);
         };
 
+        self
+    }
+
+    pub fn no_error_reporting(mut self) -> MethodLookup<'a, 'ast> {
+        self.report_errors = false;
         self
     }
 
@@ -168,7 +175,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
         let fct_id = if let Some(fct_id) = fct_id {
             fct_id
-        } else {
+        } else if self.report_errors {
             let name = match kind {
                 LookupKind::Ctor(cls_id) => {
                     let cls = self.vm.classes.idx(cls_id);
@@ -222,6 +229,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                 .lock()
                 .report(self.file, self.pos.expect("pos not set"), msg);
             return false;
+        } else {
+            return false;
         };
 
         let fct = self.vm.fcts.idx(fct_id);
@@ -272,6 +281,10 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             &fct_tps,
             None,
         ) {
+            if !self.report_errors {
+                return false;
+            }
+
             let fct_name = self.vm.interner.str(fct.name).to_string();
             let fct_params = fct
                 .params_without_self()
@@ -399,13 +412,13 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
     }
 
     fn check_tps(&self, specified_tps: &[TypeParam], tps: &TypeList) -> bool {
-        typeparamck::check_params(
-            self.vm,
-            self.file,
-            self.pos.expect("no pos"),
-            specified_tps,
-            tps,
-        )
+        let error = if self.report_errors {
+            ErrorReporting::Yes(self.file, self.pos.expect("no pos"))
+        } else {
+            ErrorReporting::No
+        };
+
+        typeparamck::check_params(self.vm, error, specified_tps, tps)
     }
 
     pub fn found_fct_id(&self) -> Option<FctId> {

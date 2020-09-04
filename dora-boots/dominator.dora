@@ -135,9 +135,7 @@ fun computeDominators(graph: Graph) {
             let loopHeaderBlock = block;
             let loopHeader = loopHeaderBlock.getLoopHeader().unwrap();
 
-            let it = loopHeader.backEdges.makeIterator();
-            while it.hasNext() {
-                let block = it.next();
+            for block in loopHeader.backEdges {
                 assert(loopHeaderBlock.dominates(block));
             }
         }

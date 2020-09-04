@@ -2121,6 +2121,41 @@ fn for_with_array() {
 }
 
 #[test]
+fn for_with_vec() {
+    ok("fun f(x: Vec[Int32]) -> Int32 {
+        var result = 0;
+        for i in x.makeIterator() {
+            result = result + i;
+        }
+        result
+    }");
+
+    ok("fun f(x: Vec[Int32]) -> Int32 {
+        var result = 0;
+        for i in x {
+            result = result + i;
+        }
+        result
+    }");
+
+    ok("fun f(x: Vec[Float32]) -> Float32 {
+        var result = 0.0F;
+        for i in x.makeReverseIterator() {
+            result = result + i;
+        }
+        result
+    }");
+
+    ok("fun f(x: Vec[Float32]) -> Float32 {
+        var result = 0.0F;
+        for i in x {
+            result = result + i;
+        }
+        result
+    }");
+}
+
+#[test]
 fn check_no_type_params_with_generic_type() {
     err(
         "class Bar[T] fun f() -> Bar { nil }",

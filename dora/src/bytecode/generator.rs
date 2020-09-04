@@ -213,13 +213,30 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let object_reg = self.visit_expr(&stmt.expr, DataDest::Alloc);
         self.gen.emit_push_register(object_reg);
 
-        // Emit: <iterator> = <obj>.makeIterator();
-        let iterator_reg = self.alloc_var(BytecodeType::Ptr);
-        self.gen.emit_invoke_direct(
-            iterator_reg,
-            FctDef::fct_id(self.vm, for_type_info.make_iterator),
-            stmt.expr.pos(),
-        );
+        let iterator_reg = if let Some(make_iterator) = for_type_info.make_iterator {
+            let object_type = self.ty(stmt.expr.id());
+            let object_type_params = object_type.type_params(self.vm);
+
+            // Emit: <iterator> = <obj>.makeIterator();
+            let iterator_reg = self.alloc_var(BytecodeType::Ptr);
+            self.gen.emit_invoke_direct(
+                iterator_reg,
+                FctDef::fct_id_types(
+                    self.vm,
+                    make_iterator,
+                    object_type_params,
+                    TypeList::empty(),
+                ),
+                stmt.expr.pos(),
+            );
+            iterator_reg
+        } else {
+            // Object is already the iterator - just use it
+            object_reg
+        };
+
+        let iterator_type = self.specialize_type(for_type_info.iterator_type);
+        let iterator_type_params = iterator_type.type_params(self.vm);
 
         self.gen.emit_push_register(iterator_reg);
 
@@ -230,7 +247,12 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let cond_reg = self.alloc_temp(BytecodeType::Bool);
         self.gen.emit_invoke_direct(
             cond_reg,
-            FctDef::fct_id(self.vm, for_type_info.has_next),
+            FctDef::fct_id_types(
+                self.vm,
+                for_type_info.has_next,
+                iterator_type_params.clone(),
+                TypeList::empty(),
+            ),
             stmt.expr.pos(),
         );
         self.gen.emit_jump_if_false(cond_reg, lbl_end);
@@ -249,7 +271,12 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.emit_invoke_direct(
             var_ty,
             var_reg,
-            FctDef::fct_id(self.vm, for_type_info.next),
+            FctDef::fct_id_types(
+                self.vm,
+                for_type_info.next,
+                iterator_type_params,
+                TypeList::empty(),
+            ),
             stmt.expr.pos(),
         );
 

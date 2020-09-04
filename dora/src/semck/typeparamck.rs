@@ -6,7 +6,12 @@ use crate::error::msg::SemError;
 use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{FileId, TraitId, TypeParam, VM};
 
-pub fn check_type(vm: &VM, file: FileId, pos: Position, object_type: BuiltinType) -> bool {
+pub enum ErrorReporting {
+    Yes(FileId, Position),
+    No,
+}
+
+pub fn check_type(vm: &VM, error: ErrorReporting, object_type: BuiltinType) -> bool {
     let tp_defs = {
         let cls_id = object_type.cls_id(vm).expect("no class");
         let cls = vm.classes.idx(cls_id);
@@ -16,8 +21,7 @@ pub fn check_type(vm: &VM, file: FileId, pos: Position, object_type: BuiltinType
 
     let checker = TypeParamCheck {
         vm,
-        file,
-        pos,
+        error,
         tp_defs: &tp_defs,
     };
 
@@ -28,15 +32,13 @@ pub fn check_type(vm: &VM, file: FileId, pos: Position, object_type: BuiltinType
 
 pub fn check_params(
     vm: &VM,
-    file: FileId,
-    pos: Position,
+    error: ErrorReporting,
     tp_defs: &[TypeParam],
     params: &TypeList,
 ) -> bool {
     let checker = TypeParamCheck {
         vm,
-        file,
-        pos,
+        error: error,
         tp_defs,
     };
 
@@ -45,16 +47,17 @@ pub fn check_params(
 
 struct TypeParamCheck<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
-    file: FileId,
-    pos: Position,
+    error: ErrorReporting,
     tp_defs: &'a [TypeParam],
 }
 
 impl<'a, 'ast> TypeParamCheck<'a, 'ast> {
     fn check(&self, tps: &TypeList) -> bool {
         if self.tp_defs.len() != tps.len() {
-            let msg = SemError::WrongNumberTypeParams(self.tp_defs.len(), tps.len());
-            self.vm.diag.lock().report(self.file, self.pos, msg);
+            if let ErrorReporting::Yes(file_id, pos) = self.error {
+                let msg = SemError::WrongNumberTypeParams(self.tp_defs.len(), tps.len());
+                self.vm.diag.lock().report(file_id, pos, msg);
+            }
             return false;
         }
 
@@ -94,7 +97,9 @@ impl<'a, 'ast> TypeParamCheck<'a, 'ast> {
 
         for &trait_bound in &tp.trait_bounds {
             if !ty.implements_trait(self.vm, trait_bound) {
-                self.fail_trait_bound(trait_bound, ty);
+                if let ErrorReporting::Yes(file_id, pos) = self.error {
+                    self.fail_trait_bound(file_id, pos, trait_bound, ty);
+                }
                 succeeded = false;
             }
         }
@@ -113,18 +118,20 @@ impl<'a, 'ast> TypeParamCheck<'a, 'ast> {
 
         for &trait_bound in &tp.trait_bounds {
             if !traits_set.contains(&trait_bound) {
-                self.fail_trait_bound(trait_bound, arg_ty);
+                if let ErrorReporting::Yes(file_id, pos) = self.error {
+                    self.fail_trait_bound(file_id, pos, trait_bound, arg_ty);
+                }
                 succeeded = false;
             }
         }
         succeeded
     }
 
-    fn fail_trait_bound(&self, trait_id: TraitId, ty: BuiltinType) {
+    fn fail_trait_bound(&self, file_id: FileId, pos: Position, trait_id: TraitId, ty: BuiltinType) {
         let bound = self.vm.traits[trait_id].read();
         let name = ty.name(self.vm);
         let trait_name = self.vm.interner.str(bound.name).to_string();
         let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
-        self.vm.diag.lock().report(self.file, self.pos, msg);
+        self.vm.diag.lock().report(file_id, pos, msg);
     }
 }
