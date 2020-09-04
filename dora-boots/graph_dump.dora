@@ -52,11 +52,11 @@ class GraphDumper(let graph: Graph) {
 
         self.buffer.appendNewline();
 
-        for inst in PhiInstIterator(block) {
+        for inst in block.phisIterator() {
             self.dumpInst(inst);
         }
 
-        for inst in InstIterator(block) {
+        for inst in block.instructionsIterator() {
             self.dumpInst(inst);
         }
     }

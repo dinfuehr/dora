@@ -220,6 +220,18 @@ class Block() {
     fun isExitBlock() -> Bool {
         self.graph.unwrap().getExitBlock() === self
     }
+
+    fun instructionsIterator() -> InstIterator {
+        InstIterator(self)
+    }
+
+    fun reversedInstructionsIterator() -> BackwardInstIterator {
+        BackwardInstIterator(self)
+    }
+
+    fun phisIterator() -> PhiInstIterator {
+        PhiInstIterator(self)
+    }
 }
 
 impl Hash for Block {
