@@ -47,6 +47,18 @@ class XmmRegister(let value: Int32) {
 class AssemblerX64: Assembler {
     let buffer: AssemblerBuffer = AssemblerBuffer();
 
+    fun createLabel() -> Label {
+        self.buffer.createLabel()
+    }
+
+    fun bindLabel(lbl: Label) {
+        self.buffer.bindLabel(lbl);
+    }
+
+    fun createAndBindLabel() -> Label {
+        self.buffer.createAndBindLabel()
+    }
+
     fun addlrr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x01Y);

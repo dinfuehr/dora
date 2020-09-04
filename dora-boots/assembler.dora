@@ -28,6 +28,34 @@ class AssemblerBuffer {
     fun toArray() -> Array[UInt8] {
         self.buffer.toArray()
     }
+
+    fun createLabel() -> Label {
+        Label()
+    }
+
+    fun bindLabel(lbl: Label) {
+        lbl.bindTo(self.size());
+    }
+
+    fun createAndBindLabel() -> Label {
+        let lbl = self.createLabel();
+        self.bindLabel(lbl);
+
+        lbl
+    }
+}
+
+class Label {
+    var offset: Int64 = -1L;
+
+    fun bindTo(pos: Int64) {
+        assert(pos >= 0L && self.offset < 0L);
+        self.offset = pos;
+    }
+
+    fun isBound() -> Bool {
+        self.offset >= 0L
+    }
 }
 
 @test fun testAssemblerBufferEmitByte(_x: Testing) {
