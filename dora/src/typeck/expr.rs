@@ -997,6 +997,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             .map(|arg| self.check_expr(arg, BuiltinType::Any))
             .collect();
 
+        // Workaround to use .get() method on Arrays when used as field: (self.field)(idx)
+        if e.callee.is_paren() {
+            if expr_type.is_error() {
+                self.src.set_ty(e.id, expr_type);
+                return expr_type;
+            }
+
+            return self.check_expr_call_expr(e, expr_type, &arg_types);
+        }
+
         match ident_type {
             Some(IdentType::Fct(fct_id)) => {
                 self.check_expr_call_ident(e, fct_id, TypeList::empty(), &arg_types)

@@ -1,0 +1,14 @@
+class Foo {
+    let array: Array[Int32] = Array[Int32](1, 2, 3);
+}
+
+fun main() {
+    let foo = Foo();
+    assert((foo.array)(0L) == 1);
+    assert((foo.array)(1L) == 2);
+    assert((foo.array)(2L) == 3);
+    foo.array(0L) = 100;
+    assert((foo.array)(0L) == 100);
+    assert((foo.array)(1L) == 2);
+    assert((foo.array)(2L) == 3);
+}
