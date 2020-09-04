@@ -1,0 +1,28 @@
+fun verifyGraph(graph: Graph) {
+    GraphVerifier(graph).run()
+}
+
+class GraphVerifier(let graph: Graph) {
+    var currentBlock: Block = graph.getEntryBlock();
+
+    fun run() {
+        for block in self.graph.insertionOrderIterator() {
+            self.verifyBlock(block);
+        }
+    }
+
+    fun verifyBlock(block: Block) {
+        self.currentBlock = block;
+
+        // block needs to belong to current graph
+        assert(block.graph.unwrap() === self.graph);
+
+        for inst in block.instructionsIterator() {
+            self.verifyInst(inst);
+        }
+    }
+
+    fun verifyInst(inst: Inst) {
+        // TODO
+    }
+}

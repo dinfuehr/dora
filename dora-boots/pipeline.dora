@@ -1,0 +1,22 @@
+class CompilationJob(let compilation_info: CompilationInfo) {
+    var graph: Option[Graph] = Option::none[Graph]();
+
+    fun run() {
+        self.createGraph();
+        self.optimizeGraph();
+        self.assembleCode();
+    }
+
+    fun createGraph() {
+        let graph = createGraph(self.compilation_info.bc);
+        self.graph = Option::some[Graph](graph);
+    }
+
+    fun optimizeGraph() {
+        // TODO
+    }
+
+    fun assembleCode() {
+        // TODO
+    }
+}
