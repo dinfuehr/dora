@@ -167,83 +167,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
         }
 
-        let name = self.vm.interner.intern("makeIterator");
+        let name = object_type.name(self.vm);
+        let msg = SemError::TypeNotUsableInForIn(name);
+        self.vm.diag.lock().report(self.file, s.expr.pos(), msg);
 
-        let mut lookup = MethodLookup::new(self.vm, self.file)
-            .method(object_type)
-            .pos(s.pos)
-            .name(name)
-            .args(&[]);
-
-        if lookup.find() {
-            let make_iterator_id = lookup.found_fct_id().unwrap();
-            let make_iterator_ret = lookup.found_ret().unwrap();
-            let iterator_trait_id = self.vm.vips.iterator();
-
-            if make_iterator_ret.implements_trait(self.vm, iterator_trait_id) {
-                // find fct next() & hasNext() in iterator-trait
-                let has_next_name = self.vm.interner.intern("hasNext");
-                let next_name = self.vm.interner.intern("next");
-                let trai = self.vm.traits[iterator_trait_id].read();
-                let next_id = trai
-                    .find_method_with_replace(self.vm, false, next_name, None, &[])
-                    .expect("next() not found");
-                let has_next_id = trai
-                    .find_method_with_replace(self.vm, false, has_next_name, None, &[])
-                    .expect("hasNext() not found");
-
-                // find impl for ret that implements Iterator
-                let cls_id = make_iterator_ret.cls_id(self.vm).unwrap();
-                let cls = self.vm.classes.idx(cls_id);
-                let cls = cls.read();
-                let impl_id = cls
-                    .find_impl_for_trait(self.vm, iterator_trait_id)
-                    .expect("impl not found for Iterator");
-
-                // find method in impl that implements next()
-                let ximpl = self.vm.impls[impl_id].read();
-                let impl_next_id = ximpl
-                    .find_implements(self.vm, next_id)
-                    .expect("next() impl not found");
-
-                // find method in impl that implements hasNext();
-                let impl_has_next_id = ximpl
-                    .find_implements(self.vm, has_next_id)
-                    .expect("hasNext() impl not found");
-
-                // get return type of next() in impl
-                let fct = self.vm.fcts.idx(impl_next_id);
-                let fct = fct.read();
-                let ret = fct.return_type;
-
-                // set variable type to return type of next
-                let var_id = *self.src.map_vars.get(s.id).unwrap();
-                self.src.vars[var_id].ty = ret;
-
-                // store fct ids for `for-in` loop
-                self.src.map_fors.insert(
-                    s.id,
-                    ForTypeInfo {
-                        make_iterator: Some(make_iterator_id),
-                        has_next: impl_has_next_id,
-                        next: impl_next_id,
-                        iterator_type: make_iterator_ret,
-                    },
-                );
-            } else {
-                let ret = make_iterator_ret.name(self.vm);
-                let msg = SemError::MakeIteratorReturnType(ret);
-                self.vm.diag.lock().report(self.file, s.expr.pos(), msg);
-
-                // set invalid error type
-                let var_id = *self.src.map_vars.get(s.id).unwrap();
-                self.src.vars[var_id].ty = BuiltinType::Error;
-            }
-        } else {
-            // set invalid error type
-            let var_id = *self.src.map_vars.get(s.id).unwrap();
-            self.src.vars[var_id].ty = BuiltinType::Error;
-        }
+        // set invalid error type
+        let var_id = *self.src.map_vars.get(s.id).unwrap();
+        self.src.vars[var_id].ty = BuiltinType::Error;
 
         self.visit_stmt(&s.block);
     }

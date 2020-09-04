@@ -1295,8 +1295,8 @@ fn test_generic_argument_with_trait_bound() {
 fn test_for_supports_make_iterator() {
     err(
         "fun f() { for i in 1 {} }",
-        pos(1, 11),
-        SemError::UnknownMethod("Int32".into(), "makeIterator".into(), Vec::new()),
+        pos(1, 20),
+        SemError::TypeNotUsableInForIn("Int32".into()),
     );
 
     err(
@@ -1304,7 +1304,7 @@ fn test_for_supports_make_iterator() {
             class Foo() { fun makeIterator() -> Bool { return true; } }
             fun f() { for i in Foo() {} }",
         pos(3, 35),
-        SemError::MakeIteratorReturnType("Bool".into()),
+        SemError::TypeNotUsableInForIn("Foo".into()),
     );
 
     ok(
@@ -1935,8 +1935,8 @@ fn test_type_without_make_iterator() {
             }
         }
     ",
-        pos(4, 13),
-        SemError::UnknownMethod("Foo".into(), "makeIterator".into(), vec![]),
+        pos(4, 22),
+        SemError::TypeNotUsableInForIn("Foo".into()),
     );
 }
 
@@ -1954,7 +1954,7 @@ fn test_type_make_iterator_not_implementing_iterator() {
         }
     ",
         pos(6, 22),
-        SemError::MakeIteratorReturnType("Int32".into()),
+        SemError::TypeNotUsableInForIn("Foo".into()),
     );
 }
 
