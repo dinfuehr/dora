@@ -1,0 +1,25 @@
+fun main() {
+    assert(mysum1(Vec[Int32]()) == 0);
+    assert(mysum1(Vec[Int32](1)) == 1);
+    assert(mysum1(Vec[Int32](1, 2, 3, 4, 5)) == 15);
+
+    assert(mysum2(Vec[Float32]()) == 0.0F);
+    assert(mysum2(Vec[Float32](1.0F)) == 1.0F);
+    assert(mysum2(Vec[Float32](1.0F, 2.0F, 3.0F, 4.0F, 5.0F)) == 15.0F);
+}
+
+fun mysum1(x: Vec[Int32]) -> Int32 {
+    var entries = 0;
+    for val in x {
+        entries = entries + val;
+    }
+    entries
+}
+
+fun mysum2(x: Vec[Float32]) -> Float32 {
+    var entries = 0.0F;
+    for val in x {
+        entries = entries + val;
+    }
+    entries
+}
