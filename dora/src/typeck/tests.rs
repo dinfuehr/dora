@@ -572,6 +572,14 @@ fn type_array_assign() {
 }
 
 #[test]
+fn type_array_field() {
+    ok("
+        class Foo(let x: Array[Int32])
+        fun f(a: Foo) -> Int32 { return a.x(1L); }
+    ");
+}
+
+#[test]
 fn let_without_initialization() {
     err(
         "fun f() { let x: Int32; }",

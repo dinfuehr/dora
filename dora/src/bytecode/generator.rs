@@ -645,7 +645,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
     fn visit_expr_call(&mut self, expr: &ExprCallType, dest: DataDest) -> Register {
         if let Some(info) = self.get_intrinsic(expr.id) {
-            return self.emit_intrinsic_call(expr, info, dest);
+            return self.visit_expr_call_intrinsic(expr, info, dest);
         }
 
         let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
@@ -1466,15 +1466,18 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         dest
     }
 
-    fn emit_intrinsic_call(
+    fn visit_expr_call_intrinsic(
         &mut self,
         expr: &ExprCallType,
         info: IntrinsicInfo,
         dest: DataDest,
     ) -> Register {
         let intrinsic = info.intrinsic;
+        let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
 
-        if let Some(object) = expr.object() {
+        if call_type.is_method() {
+            let object = expr.object().unwrap();
+
             match expr.args.len() {
                 0 => self.emit_intrinsic_un(object, info, expr.pos, dest),
                 1 => self.emit_intrinsic_bin(object, &expr.args[0], info, None, expr.pos, dest),

@@ -205,7 +205,7 @@ pub fn find_field_in_class(
     vm: &VM,
     mut class: BuiltinType,
     name: Name,
-) -> Option<(BuiltinType, FieldId)> {
+) -> Option<(BuiltinType, FieldId, BuiltinType)> {
     loop {
         let cls_id = class.cls_id(vm).expect("no class");
         let cls = vm.classes.idx(cls_id);
@@ -213,7 +213,17 @@ pub fn find_field_in_class(
 
         for field in &cls.fields {
             if field.name == name {
-                return Some((class, field.id));
+                return Some((
+                    class,
+                    field.id,
+                    replace_type_param(
+                        vm,
+                        field.ty,
+                        &class.type_params(vm),
+                        &TypeList::empty(),
+                        None,
+                    ),
+                ));
             }
         }
 

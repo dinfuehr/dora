@@ -680,7 +680,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let rhs_type = self.check_expr(&e.rhs, BuiltinType::Any);
 
         if object_type.cls_id(self.vm).is_some() {
-            if let Some((cls_ty, field_id)) = find_field_in_class(self.vm, object_type, name) {
+            if let Some((cls_ty, field_id, _)) = find_field_in_class(self.vm, object_type, name) {
                 let ident_type = IdentType::Field(cls_ty, field_id);
                 self.src
                     .map_idents
@@ -1371,8 +1371,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
 
         let mut lookup = MethodLookup::new(self.vm, self.file)
+            .no_error_reporting()
             .method(object_type)
-            .pos(e.pos)
             .name(method_name)
             .fct_type_params(&type_params)
             .args(arg_types);
@@ -1398,11 +1398,57 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.src.set_ty(e.id, return_type);
 
             return_type
+        } else if !object_type.is_nil() && lookup.found_fct_id().is_none() {
+            // No method with this name found, so this might actually be a field
+            self.check_expr_call_field(e, object_type, method_name, type_params, arg_types)
         } else {
+            // Lookup the method again, but this time with error reporting
+            let mut lookup = MethodLookup::new(self.vm, self.file)
+                .method(object_type)
+                .name(method_name)
+                .fct_type_params(&type_params)
+                .pos(e.pos)
+                .args(arg_types);
+
+            assert!(!lookup.find());
+
             self.src.set_ty(e.id, BuiltinType::Error);
 
             BuiltinType::Error
         }
+    }
+
+    fn check_expr_call_field(
+        &mut self,
+        e: &'ast ExprCallType,
+        object_type: BuiltinType,
+        method_name: Name,
+        type_params: TypeList,
+        arg_types: &[BuiltinType],
+    ) -> BuiltinType {
+        if let Some((actual_type, field_id, field_type)) =
+            find_field_in_class(self.vm, object_type, method_name)
+        {
+            self.src.set_ty(e.callee.id(), field_type);
+            self.src
+                .map_idents
+                .insert_or_replace(e.callee.id(), IdentType::Field(actual_type, field_id));
+
+            return self.check_expr_call_expr(e, field_type, arg_types);
+        }
+
+        // No field with that name as well, so report method
+        let mut lookup = MethodLookup::new(self.vm, self.file)
+            .method(object_type)
+            .name(method_name)
+            .fct_type_params(&type_params)
+            .pos(e.pos)
+            .args(arg_types);
+        assert!(!lookup.find());
+
+        self.src.set_ty(e.id, BuiltinType::Error);
+
+        BuiltinType::Error
     }
 
     fn check_expr_call_ctor(
@@ -1841,7 +1887,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
 
         if object_type.cls_id(self.vm).is_some() {
-            if let Some((cls_ty, field_id)) = find_field_in_class(self.vm, object_type, name) {
+            if let Some((cls_ty, field_id, _)) = find_field_in_class(self.vm, object_type, name) {
                 let ident_type = IdentType::Field(cls_ty, field_id);
                 self.src.map_idents.insert_or_replace(e.id, ident_type);
 

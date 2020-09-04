@@ -1,0 +1,8 @@
+class Foo {
+    let array: Array[Int32] = Array[Int32](1, 2, 3);
+}
+
+fun main() {
+    let foo = Foo();
+    assert(foo.array(0L) == 1);
+}

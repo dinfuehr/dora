@@ -1,0 +1,8 @@
+class Foo {
+    let vec: Vec[Int32] = Vec[Int32](1, 2, 3);
+}
+
+fun main() {
+    let foo = Foo();
+    assert(foo.vec(0L) == 1);
+}
