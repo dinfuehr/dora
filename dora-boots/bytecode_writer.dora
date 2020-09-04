@@ -666,7 +666,7 @@ class BytecodeWriter {
             } else if isWide(offset) {
                 // Need to update const pool entry
                 let idx = self.code(jump.target.toInt64());
-                self.constPool.set(idx.toInt64(), ConstPoolInt32(offset));
+                self.constPool(idx.toInt64()) = ConstPoolInt32(offset);
             } else {
                 // Offset fits into byte, replace instruction with jump+immediate
                 let opcode = if opcode == BC_JUMP_CONST {
@@ -680,8 +680,8 @@ class BytecodeWriter {
                     -1
                 };
 
-                self.code.set(jump.inst.toInt64(), opcode.toUInt8());
-                self.code.set(jump.target.toInt64(), offset.toUInt8());
+                self.code(jump.inst.toInt64()) = opcode.toUInt8();
+                self.code(jump.target.toInt64()) = offset.toUInt8();
             }
         }
 
@@ -869,10 +869,10 @@ class BytecodeWriter {
     fun patchInt32(idx: Int32, val: Int32) {
         assert(val >= 0);
         let idx = idx.toInt64();
-        self.code.set(idx, (val & 0xFFI).toUInt8());
-        self.code.set(idx + 1L, ((val >>> 8) & 0xFFI).toUInt8());
-        self.code.set(idx + 2L, ((val >>> 16) & 0xFFI).toUInt8());
-        self.code.set(idx + 3L, ((val >>> 24) & 0xFFI).toUInt8());
+        self.code(idx) = (val & 0xFFI).toUInt8();
+        self.code(idx + 1L) = ((val >>> 8) & 0xFFI).toUInt8();
+        self.code(idx + 2L) = ((val >>> 16) & 0xFFI).toUInt8();
+        self.code(idx + 3L) = ((val >>> 24) & 0xFFI).toUInt8();
     }
 }
 

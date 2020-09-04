@@ -1443,7 +1443,7 @@ class Address {
             self.rex = (self.rex.toInt32() | 0x41).toUInt8();
         }
 
-        self.bytes.set(0L, (mode << 6 | reg.lowBits()).toUInt8());
+        self.bytes(0L) = (mode << 6 | reg.lowBits()).toUInt8();
         self.length = self.length + 1L;
     }
 
@@ -1458,22 +1458,22 @@ class Address {
             self.rex = (self.rex.toInt32() | 0x42).toUInt8();
         }
 
-        self.bytes.set(1L, (scale.value() << 6 | index.lowBits() << 3 | base.lowBits()).toUInt8());
+        self.bytes(1L) = (scale.value() << 6 | index.lowBits() << 3 | base.lowBits()).toUInt8();
         self.length = self.length + 1L;
     }
 
     fun set_disp8(imm: Int32) {
         assert(self.length == 1L || self.length == 2L);
-        self.bytes.set(self.length, imm.toUInt8());
+        self.bytes(self.length) = imm.toUInt8();
         self.length = self.length + 1L;
     }
 
     fun set_disp32(imm: Int32) {
         assert(self.length == 1L || self.length == 2L);
-        self.bytes.set(self.length, imm.toUInt8());
-        self.bytes.set(self.length + 1L, (imm >> 8).toUInt8());
-        self.bytes.set(self.length + 2L, (imm >> 16).toUInt8());
-        self.bytes.set(self.length + 3L, (imm >> 24).toUInt8());
+        self.bytes(self.length) = imm.toUInt8();
+        self.bytes(self.length + 1L) = (imm >> 8).toUInt8();
+        self.bytes(self.length + 2L) = (imm >> 16).toUInt8();
+        self.bytes(self.length + 3L) = (imm >> 24).toUInt8();
         self.length = self.length + 4L;
     }
 }

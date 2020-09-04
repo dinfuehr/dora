@@ -18,14 +18,14 @@ class AssemblerBuffer {
     }
 
     fun patchUInt8(offset: Int64, value: UInt8) {
-        self.buffer.set(offset, value);
+        self.buffer(offset) = value;
     }
 
     fun patchInt32(offset: Int64, value: Int32) {
-        self.buffer.set(offset, (value & 0xFFI).toUInt8());
-        self.buffer.set(offset + 1L, ((value >>> 8) & 0xFFI).toUInt8());
-        self.buffer.set(offset + 2L, ((value >>> 16) & 0xFFI).toUInt8());
-        self.buffer.set(offset + 3L, ((value >>> 24) & 0xFFI).toUInt8());
+        self.buffer(offset) = (value & 0xFFI).toUInt8();
+        self.buffer(offset + 1L) = ((value >>> 8) & 0xFFI).toUInt8();
+        self.buffer(offset + 2L) = ((value >>> 16) & 0xFFI).toUInt8();
+        self.buffer(offset + 3L) = ((value >>> 24) & 0xFFI).toUInt8();
     }
 
     fun size() -> Int64 {
