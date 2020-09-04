@@ -198,6 +198,11 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fun visitNewObject(dest: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
     @open fun visitNewArray(dest: BytecodeRegister, cls: ClassDefId, length: BytecodeRegister) { unimplemented(); }
     
+    @open fun visitNilCheck(arr: BytecodeRegister) { unimplemented(); }
+
+    @open fun visitArrayLength(dest: BytecodeRegister, arr: BytecodeRegister) { unimplemented(); }
+    @open fun visitArrayBoundCheck(arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
+
     @open fun visitLoadArrayBool(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
     @open fun visitLoadArrayUInt8(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
     @open fun visitLoadArrayChar(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
@@ -413,6 +418,11 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
 
     @override fun visitNewObject(dest: BytecodeRegister, cls: ClassDefId) {}
     @override fun visitNewArray(dest: BytecodeRegister, cls: ClassDefId, length: BytecodeRegister) {}
+
+    @override fun visitNilCheck(arr: BytecodeRegister) {}
+
+    @override fun visitArrayLength(dest: BytecodeRegister, arr: BytecodeRegister) {}
+    @override fun visitArrayBoundCheck(arr: BytecodeRegister, idx: BytecodeRegister) {}
 
     @override fun visitLoadArrayBool(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {}
     @override fun visitLoadArrayUInt8(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {}
@@ -1278,6 +1288,18 @@ class BytecodeReader(let data: Array[UInt8], let visitor: BytecodeVisitor) {
             let cls = self.readClassDefId(wide);
             let length = self.readRegister(wide);
             self.visitor.visitNewArray(dest, cls, length);
+
+        } else if opcode == BC_NIL_CHECK {
+            let obj = self.readRegister(wide);
+            self.visitor.visitNilCheck(obj);
+        } else if opcode == BC_ARRAY_BOUND_CHECK {
+            let arr = self.readRegister(wide);
+            let idx = self.readRegister(wide);
+            self.visitor.visitArrayBoundCheck(arr, idx);
+        } else if opcode == BC_ARRAY_LENGTH {
+            let dest = self.readRegister(wide);
+            let arr = self.readRegister(wide);
+            self.visitor.visitArrayLength(dest, arr);
 
         } else if opcode == BC_LOAD_ARRAY_BOOL {
             let dest = self.readRegister(wide);
