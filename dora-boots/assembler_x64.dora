@@ -636,6 +636,34 @@ class AssemblerX64: Assembler {
         self.emitModRmOpcode(0, dest);
     }
 
+    fun shllr(reg: Register) {
+        self.emitRex32RmFieldOptional(reg);
+        self.emitByte(0xD3Y);
+        self.emitModRmOpcode(0b100, reg);
+    }
+
+    fun shllri(lhs: Register, rhs: Immediate) {
+        assert(rhs.isInt8());
+        self.emitRex32RmFieldOptional(lhs);
+        self.emitByte(0xC1Y);
+        self.emitModRmOpcode(0b100, lhs);
+        self.emitByte(rhs.toUInt8());
+    }
+
+    fun shlqr(reg: Register) {
+        self.emitRex64RmField(reg);
+        self.emitByte(0xD3Y);
+        self.emitModRmOpcode(0b100, reg);
+    }
+
+    fun shlqri(lhs: Register, rhs: Immediate) {
+        assert(rhs.isInt8());
+        self.emitRex64RmField(lhs);
+        self.emitByte(0xC1Y);
+        self.emitModRmOpcode(0b100, lhs);
+        self.emitByte(rhs.toUInt8());
+    }
+
     fun shrlr(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xD3Y);
@@ -3011,5 +3039,53 @@ impl Register {
 
     assertAsm(buffer, 0x48Y, 0xd3Y, 0xf8Y);
     assertAsm(buffer, 0x49Y, 0xd3Y, 0xf8Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmShllri(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.shllri(RAX, Immediate(2L));
+    asm.shllri(R8, Immediate(2L));
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xc1Y, 0xe0Y, 2Y);
+    assertAsm(buffer, 0x41Y, 0xc1Y, 0xe0Y, 2Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmShllr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.shllr(RAX);
+    asm.shllr(R8);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xd3Y, 0xe0Y);
+    assertAsm(buffer, 0x41Y, 0xd3Y, 0xe0Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmShlqri(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.shlqri(RAX, Immediate(2L));
+    asm.shlqri(R8, Immediate(2L));
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x48Y, 0xc1Y, 0xe0Y, 2Y);
+    assertAsm(buffer, 0x49Y, 0xc1Y, 0xe0Y, 2Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmShlqr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.shlqr(RAX);
+    asm.shlqr(R8);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x48Y, 0xd3Y, 0xe0Y);
+    assertAsm(buffer, 0x49Y, 0xd3Y, 0xe0Y);
     assertAsmEnd(buffer);
 }
