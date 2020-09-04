@@ -598,6 +598,30 @@ class AssemblerX64: Assembler {
         self.emitByte(0xC3Y);
     }
 
+    fun rollr(reg: Register) {
+        self.emitRex32RmFieldOptional(reg);
+        self.emitByte(0xD3Y);
+        self.emitModRmOpcode(0b000, reg);
+    }
+
+    fun rolqr(reg: Register) {
+        self.emitRex64RmField(reg);
+        self.emitByte(0xD3Y);
+        self.emitModRmOpcode(0b000, reg);
+    }
+
+    fun rorlr(reg: Register) {
+        self.emitRex32RmFieldOptional(reg);
+        self.emitByte(0xD3Y);
+        self.emitModRmOpcode(0b001, reg);
+    }
+
+    fun rorqr(reg: Register) {
+        self.emitRex64RmField(reg);
+        self.emitByte(0xD3Y);
+        self.emitModRmOpcode(0b001, reg);
+    }
+
     fun sarlr(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xD3Y);
@@ -3087,5 +3111,53 @@ impl Register {
 
     assertAsm(buffer, 0x48Y, 0xd3Y, 0xe0Y);
     assertAsm(buffer, 0x49Y, 0xd3Y, 0xe0Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmRollr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.rollr(RAX);
+    asm.rollr(R8);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xd3Y, 0xc0Y);
+    assertAsm(buffer, 0x41Y, 0xd3Y, 0xc0Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmRolqr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.rolqr(RAX);
+    asm.rolqr(R8);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x48Y, 0xd3Y, 0xc0Y);
+    assertAsm(buffer, 0x49Y, 0xd3Y, 0xc0Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmRorlr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.rorlr(RAX);
+    asm.rorlr(R8);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xd3Y, 0xc8Y);
+    assertAsm(buffer, 0x41Y, 0xd3Y, 0xc8Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmRorqr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.rorqr(RAX);
+    asm.rorqr(R8);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x48Y, 0xd3Y, 0xc8Y);
+    assertAsm(buffer, 0x49Y, 0xd3Y, 0xc8Y);
     assertAsmEnd(buffer);
 }
