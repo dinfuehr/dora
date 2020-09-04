@@ -232,6 +232,14 @@ class Block() {
     fun phisIterator() -> PhiInstIterator {
         PhiInstIterator(self)
     }
+
+    fun firstInst() -> Inst {
+        self.instructions.firstInst()
+    }
+
+    fun lastInst() -> Inst {
+        self.instructions.lastInst()
+    }
 }
 
 impl Hash for Block {
@@ -476,6 +484,13 @@ class PhiInst: Inst {
     @override fun dumpName() -> String { "Phi" }
 }
 
+class BoundsCheck(let index: Inst, let length: Inst): Inst {
+    self.addInput(index);
+    self.addInput(length);
+
+    @override fun dumpName() -> String { "BoundsCheck" }
+}
+
 class ArrayGet(let array: Inst, let index: Inst): Inst {
     self.addInput(array);
     self.addInput(index);
@@ -610,12 +625,12 @@ class InstLinkedList {
         self.first.isNone()
     }
 
-    fun firstInst() -> Option[Inst] {
-        self.first
+    fun firstInst() -> Inst {
+        self.first.unwrap()
     }
 
-    fun lastInst() -> Option[Inst] {
-        self.last
+    fun lastInst() -> Inst {
+        self.last.unwrap()
     }
 
     fun appendInst(inst: Inst) {
