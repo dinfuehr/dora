@@ -128,6 +128,11 @@ class Vec[T](values: T...) {
     }
   }
 
+  fun clear() {
+    self.len = 0L;
+    self.array = Array::empty[T]();
+  }
+
   fun makeIterator() -> VecIter[T] {
     VecIter[T](self)
   }

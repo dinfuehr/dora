@@ -44,8 +44,14 @@ class XmmRegister(let value: Int32) {
     }
 }
 
+enum JumpDistance {
+    Near,
+    Far,
+}
+
 class AssemblerX64: Assembler {
     let buffer: AssemblerBuffer = AssemblerBuffer();
+    let jumps: Vec[(Int64, Label, JumpDistance)] = Vec[(Int64, Label, JumpDistance)]();
 
     fun createLabel() -> Label {
         self.buffer.createLabel()
@@ -342,6 +348,46 @@ class AssemblerX64: Assembler {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xffY);
         self.emitModRmOpcode(0b100, reg);
+    }
+
+    fun jmp(dest: Label) {
+        if dest.isBound() {
+            // backwards jump
+            // rip = end of current instruction = pc + 2
+            let distance = dest.offset - (self.size() + 2L);
+            assert(distance <= -2L);
+
+            if distance >= -128L {
+                self.emitByte(0xEBY);
+                self.emitByte(distance.toUInt8());
+            } else {
+                let distance = dest.offset - (self.size() + 5L);
+                assert(distance.toInt32().toInt64() == distance);
+                self.emitByte(0xE9Y);
+                self.emitInt32(distance.toInt32());
+            }
+        } else {
+            // forward jump - conservatively assume far jump
+            self.emitByte(0xE9Y);
+            self.emitJump(dest, JumpDistance::Far);
+            self.emitInt32(0);
+        }
+    }
+
+    fun jmpNear(dest: Label) {
+        if dest.isBound() {
+            // backwards jump
+            // rip = end of current instruction = pc + 2
+            let distance = dest.offset - (self.size() + 2L);
+            assert(-128L <= distance && distance <= -2L);
+            self.emitByte(0xEBY);
+            self.emitByte(distance.toUInt8());
+        } else {
+            // forward jump
+            self.emitByte(0xEBY);
+            self.emitJump(dest, JumpDistance::Near);
+            self.emitByte(0Y);
+        }
     }
 
     fun lea(dest: Register, src: Address) {
@@ -1146,12 +1192,49 @@ class AssemblerX64: Assembler {
         self.buffer.emitInt64(value);
     }
 
+    fun emitJump(lbl: Label, kind: JumpDistance) {
+        let pc = self.buffer.size();
+        self.jumps.push((pc, lbl, kind));
+    }
+
+    fun size() -> Int64 {
+        self.buffer.size()
+    }
+
     fun finalize() -> Array[UInt8] {
+        self.resolveJumps();
         self.buffer.toArray()
     }
 
     fun finalizeTesting() -> MachineCode {
+        self.resolveJumps();
         MachineCode(self.buffer.toArray())
+    }
+
+    fun resolveJumps() {
+        let it = self.jumps.makeIterator();
+
+        while it.hasNext() {
+            let element = it.next();
+            let pc = element.0;
+            let lbl = element.1;
+            let distance = element.2;
+
+            assert(lbl.isBound());
+
+            if distance == JumpDistance::Near {
+                let distance = lbl.offset - (pc + 1L);
+                assert(-128L <= distance && distance <= 127L);
+                self.buffer.patchUInt8(pc, distance.toUInt8());
+            } else {
+                assert(distance == JumpDistance::Far);
+                let distance = lbl.offset - (pc + 4L);
+                assert(distance.toInt32().toInt64() == distance);
+                self.buffer.patchInt32(pc, distance.toInt32());
+            }
+        }
+
+        self.jumps.clear();
     }
 }
 
@@ -3348,4 +3431,92 @@ impl Register {
     assertAsm(buffer, 0xf2Y, 0x4CY, 0x0fY, 0x2cY, 0xfbY);
     assertAsm(buffer, 0xf2Y, 0x49Y, 0x0fY, 0x2cY, 0xe0Y);
     assertAsmEnd(buffer);
+}
+
+@test fun testAsmJmpBackwardNear(_x: Testing) {
+    let asm = AssemblerX64();
+    let lbl = asm.createAndBindLabel();
+    asm.jmp(lbl);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xEBY, 0xFEY);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmJmpBackwardStillNear(_x: Testing) {
+    let asm = AssemblerX64();
+    let lbl = asm.createAndBindLabel();
+    for x in range(0, 126) {
+        asm.nop();
+    }
+    asm.jmp(lbl);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsmNop(buffer, 126L);
+    assertAsm(buffer, 0xEBY, 0x80Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmJmpBackwardAlreadyFar(_x: Testing) {
+    let asm = AssemblerX64();
+    let lbl = asm.createAndBindLabel();
+    for x in range(0, 127) {
+        asm.nop();
+    }
+    asm.jmp(lbl);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsmNop(buffer, 127L);
+    assertAsm(buffer, 0xE9Y, 0x7CY, 0xFFY, 0xFFY, 0xFFY);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmJmpForward(_x: Testing) {
+    let asm = AssemblerX64();
+    let lbl = asm.createLabel();
+    asm.jmp(lbl);
+    asm.bindLabel(lbl);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xE9Y, 0Y, 0Y, 0Y, 0Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmJmpNearForward(_x: Testing) {
+    let asm = AssemblerX64();
+    let lbl = asm.createLabel();
+    asm.jmpNear(lbl);
+    asm.bindLabel(lbl);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xEBY, 0Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmJmpNearBackward(_x: Testing) {
+    let asm = AssemblerX64();
+    let lbl = asm.createAndBindLabel();
+    asm.jmpNear(lbl);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xEBY, 0xFEY);
+    assertAsmEnd(buffer);
+}
+
+fun assertAsmNop(code: MachineCode, length: Int64) {
+    assert(length > 0L);
+
+    var idx = 0L;
+    while idx < length {
+        assert(0x90Y == code.bytes.get(code.start + idx));
+        idx = idx + 1L;
+    }
+
+    code.start = code.start + length;
 }
