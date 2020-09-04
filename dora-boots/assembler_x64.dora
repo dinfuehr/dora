@@ -85,6 +85,10 @@ class AssemblerX64: Assembler {
         self.emitModRmReg(src, dest);
     }
 
+    fun andqri(lhs: Register, imm: Immediate) {
+        self.emitAlu64Imm(lhs, imm, 0b100, 0x25Y);
+    }
+
     fun andqrr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x21Y);
@@ -151,7 +155,7 @@ class AssemblerX64: Assembler {
     }
 
     fun cmplri(lhs: Register, imm: Immediate) {
-        self.emitAlu32Imm(lhs, imm, 0b111, 0x3dY, false);
+        self.emitAlu32Imm(lhs, imm, 0b111, 0x3dY);
     }
 
     fun cmpqai(lhs: Address, imm: Immediate) {
@@ -256,6 +260,12 @@ class AssemblerX64: Assembler {
 
     fun int3() {
         self.emitByte(0xCCY);
+    }
+
+    fun jmpr(reg: Register) {
+        self.emitRex32RmFieldOptional(reg);
+        self.emitByte(0xffY);
+        self.emitModRmOpcode(0b100, reg);
     }
 
     fun lea(dest: Register, src: Address) {
@@ -510,8 +520,32 @@ class AssemblerX64: Assembler {
         self.emitModRmSseRegisters(dest, src);
     }
 
+    fun neglr(reg: Register) {
+        self.emitRex32RmFieldOptional(reg);
+        self.emitByte(0xF7Y);
+        self.emitModRmOpcode(0b011, reg);
+    }
+
+    fun negqr(reg: Register) {
+        self.emitRex64RmField(reg);
+        self.emitByte(0xF7Y);
+        self.emitModRmOpcode(0b011, reg);
+    }
+
     fun nop() {
         self.emitByte(0x90Y);
+    }
+
+    fun notlr(reg: Register) {
+        self.emitRex32RmFieldOptional(reg);
+        self.emitByte(0xF7Y);
+        self.emitModRmOpcode(0b010, reg);
+    }
+
+    fun notqr(reg: Register) {
+        self.emitRex64RmField(reg);
+        self.emitByte(0xF7Y);
+        self.emitModRmOpcode(0b010, reg);
     }
 
     fun orlrr(dest: Register, src: Register) {
@@ -725,7 +759,7 @@ class AssemblerX64: Assembler {
     }
 
     fun xorlri(lhs: Register, rhs: Immediate) {
-        self.emitAlu32Imm(lhs, rhs, 0b110, 0x35Y, false);
+        self.emitAlu32Imm(lhs, rhs, 0b110, 0x35Y);
     }
 
     fun xorpdra(dest: XmmRegister, src: Address) {
@@ -774,11 +808,11 @@ class AssemblerX64: Assembler {
         }
     }
 
-    fun emitAlu32Imm(reg: Register, imm: Immediate, modrm_reg: Int32, rax_opcode: UInt8, force32: Bool) {
+    fun emitAlu32Imm(reg: Register, imm: Immediate, modrm_reg: Int32, rax_opcode: UInt8) {
         assert(imm.isInt32());
         self.emitRex32RmFieldOptional(reg);
 
-        if imm.isInt8() && !force32 {
+        if imm.isInt8() {
             self.emitByte(0x83Y);
             self.emitModRmOpcode(modrm_reg, reg);
             self.emitByte(imm.toUInt8());
@@ -2745,5 +2779,85 @@ impl Register {
     assertAsm(buffer, 0x48Y, 0x83Y, 0xf8Y, 0x7fY);
     assertAsm(buffer, 0x49Y, 0x83Y, 0xffY, 0x80Y);
     assertAsm(buffer, 0x49Y, 0x83Y, 0xf9Y, 0Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmNotlr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.notlr(RAX);
+    asm.notlr(R15);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xf7Y, 0xd0Y);
+    assertAsm(buffer, 0x41Y, 0xf7Y, 0xd7Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmNotqr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.notqr(RAX);
+    asm.notqr(R15);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x48Y, 0xf7Y, 0xd0Y);
+    assertAsm(buffer, 0x49Y, 0xf7Y, 0xd7Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmNeglr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.neglr(RAX);
+    asm.neglr(R15);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xf7Y, 0xd8Y);
+    assertAsm(buffer, 0x41Y, 0xf7Y, 0xdfY);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmNegqr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.negqr(RAX);
+    asm.negqr(R15);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x48Y, 0xf7Y, 0xd8Y);
+    assertAsm(buffer, 0x49Y, 0xf7Y, 0xdfY);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmAndqri(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.andqri(RAX, Immediate(-8L));
+    asm.andqri(RAX, Immediate(128L));
+    asm.andqri(R9, Immediate(-8L));
+    asm.andqri(R9, Immediate(128L));
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0x48Y, 0x83Y, 0xe0Y, 0xf8Y);
+    assertAsm(buffer, 0x48Y, 0x25Y, 0x80Y, 0Y, 0Y, 0Y);
+    assertAsm(buffer, 0x49Y, 0x83Y, 0xe1Y, 0xf8Y);
+    assertAsm(buffer, 0x49Y, 0x81Y, 0xe1Y, 0x80Y, 0Y, 0Y, 0Y);
+    assertAsmEnd(buffer);
+}
+
+@test fun testAsmJmpr(_x: Testing) {
+    let asm = AssemblerX64();
+    asm.jmpr(RAX);
+    asm.jmpr(RDI);
+    asm.jmpr(R8);
+    asm.jmpr(R15);
+
+    let buffer = asm.finalizeTesting();
+
+    assertAsm(buffer, 0xffY, 0xE0Y);
+    assertAsm(buffer, 0xffY, 0xE7Y);
+    assertAsm(buffer, 0x41Y, 0xffY, 0xE0Y);
+    assertAsm(buffer, 0x41Y, 0xffY, 0xE7Y);
     assertAsmEnd(buffer);
 }

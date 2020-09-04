@@ -292,11 +292,11 @@ impl Assembler {
     }
 
     pub fn addl_ri(&mut self, dest: Register, imm: Immediate) {
-        self.emit_alu32_imm(dest, imm, 0b000, 0x05, false);
+        self.emit_alu32_imm(dest, imm, 0b000, 0x05);
     }
 
     pub fn addq_ri(&mut self, dest: Register, imm: Immediate) {
-        self.emit_alu64_imm(dest, imm, 0b000, 0x05, false);
+        self.emit_alu64_imm(dest, imm, 0b000, 0x05);
     }
 
     pub fn addl_rr(&mut self, dest: Register, src: Register) {
@@ -328,11 +328,11 @@ impl Assembler {
     }
 
     pub fn subq_ri(&mut self, dest: Register, imm: Immediate) {
-        self.emit_alu64_imm(dest, imm, 0b101, 0x2D, false);
+        self.emit_alu64_imm(dest, imm, 0b101, 0x2D);
     }
 
     pub fn subq_ri32(&mut self, dest: Register, imm: Immediate) {
-        self.emit_alu64_imm(dest, imm, 0b101, 0x2D, true);
+        self.emit_alu64_imm(dest, imm, 0b101, 0x2D);
     }
 
     pub fn subl_rr(&mut self, dest: Register, src: Register) {
@@ -370,7 +370,7 @@ impl Assembler {
     }
 
     pub fn andq_ri(&mut self, dest: Register, imm: Immediate) {
-        self.emit_alu64_imm(dest, imm, 0b100, 0x25, false);
+        self.emit_alu64_imm(dest, imm, 0b100, 0x25);
     }
 
     pub fn cmpb_ar(&mut self, lhs: Address, rhs: Register) {
@@ -444,11 +444,11 @@ impl Assembler {
     }
 
     pub fn cmpq_ri(&mut self, reg: Register, imm: Immediate) {
-        self.emit_alu64_imm(reg, imm, 0b111, 0x3d, false);
+        self.emit_alu64_imm(reg, imm, 0b111, 0x3d);
     }
 
     pub fn cmpl_ri(&mut self, reg: Register, imm: Immediate) {
-        self.emit_alu32_imm(reg, imm, 0b111, 0x3d, false);
+        self.emit_alu32_imm(reg, imm, 0b111, 0x3d);
     }
 
     pub fn ucomiss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
@@ -509,7 +509,7 @@ impl Assembler {
     }
 
     pub fn xorl_ri(&mut self, lhs: Register, rhs: Immediate) {
-        self.emit_alu32_imm(lhs, rhs, 0b110, 0x35, false);
+        self.emit_alu32_imm(lhs, rhs, 0b110, 0x35);
     }
 
     pub fn xorq_rr(&mut self, dest: Register, src: Register) {
@@ -1099,18 +1099,11 @@ impl Assembler {
         }
     }
 
-    fn emit_alu64_imm(
-        &mut self,
-        reg: Register,
-        imm: Immediate,
-        modrm_reg: u8,
-        rax_opcode: u8,
-        force32: bool,
-    ) {
+    fn emit_alu64_imm(&mut self, reg: Register, imm: Immediate, modrm_reg: u8, rax_opcode: u8) {
         assert!(imm.is_int32());
         self.emit_rex64_rm(reg);
 
-        if imm.is_int8() && !force32 {
+        if imm.is_int8() {
             self.emit_u8(0x83);
             self.emit_modrm_opcode(modrm_reg, reg);
             self.emit_u8(imm.int8() as u8);
@@ -1124,18 +1117,11 @@ impl Assembler {
         }
     }
 
-    fn emit_alu32_imm(
-        &mut self,
-        reg: Register,
-        imm: Immediate,
-        modrm_reg: u8,
-        rax_opcode: u8,
-        force32: bool,
-    ) {
+    fn emit_alu32_imm(&mut self, reg: Register, imm: Immediate, modrm_reg: u8, rax_opcode: u8) {
         assert!(imm.is_int32());
         self.emit_rex32_rm_optional(reg);
 
-        if imm.is_int8() && !force32 {
+        if imm.is_int8() {
             self.emit_u8(0x83);
             self.emit_modrm_opcode(modrm_reg, reg);
             self.emit_u8(imm.int8() as u8);
