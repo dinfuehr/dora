@@ -39,9 +39,7 @@ fun findBackEdges(graph: Graph) {
         }
     }
 
-    let it = graph.insertionOrderIterator();
-    while it.hasNext() {
-        let block = it.next();
+    for block in graph.insertionOrderIterator() {
         // assume for now that all blocks are reachable
         assert(visited.contains(block.id.toInt64()));
     }
@@ -127,10 +125,7 @@ fun computeDominators(graph: Graph) {
     }
 
     // assert that we have a reducible graph
-    let it = graph.insertionOrderIterator();
-    while it.hasNext() {
-        let block = it.next();
-
+    for block in graph.insertionOrderIterator() {
         if block.isLoopHeader() {
             let loopHeaderBlock = block;
             let loopHeader = loopHeaderBlock.getLoopHeader().unwrap();
@@ -141,10 +136,7 @@ fun computeDominators(graph: Graph) {
         }
     }
 
-    let it = graph.reversePostOrderIterator();
-    while it.hasNext() {
-        let block = it.next();
-
+    for block in graph.reversePostOrderIterator() {
         if block.isEntryBlock() {
             continue;
         }

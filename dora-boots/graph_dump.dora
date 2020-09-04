@@ -6,10 +6,7 @@ class GraphDumper(let graph: Graph) {
     let buffer: StringBuffer = StringBuffer();
 
     fun dump() -> String {
-        let iter = self.graph.insertionOrderIterator();
-
-        while iter.hasNext() {
-            let block = iter.next();
+        for block in self.graph.insertionOrderIterator() {
             self.dumpBlock(block);
         }
 
@@ -55,15 +52,11 @@ class GraphDumper(let graph: Graph) {
 
         self.buffer.appendNewline();
 
-        let iter = PhiInstIterator(block);
-        while iter.hasNext() {
-            let inst = iter.next();
+        for inst in PhiInstIterator(block) {
             self.dumpInst(inst);
         }
 
-        let iter = InstIterator(block);
-        while iter.hasNext() {
-            let inst = iter.next();
+        for inst in InstIterator(block) {
             self.dumpInst(inst);
         }
     }
