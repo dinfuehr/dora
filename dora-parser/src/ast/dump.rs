@@ -490,6 +490,7 @@ impl<'a> AstDumper<'a> {
             ExprBlock(ref expr) => self.dump_expr_block(expr),
             ExprIf(ref expr) => self.dump_expr_if(expr),
             ExprTuple(ref expr) => self.dump_expr_tuple(expr),
+            ExprParen(ref expr) => self.dump_expr_paren(expr),
         }
     }
 
@@ -660,6 +661,13 @@ impl<'a> AstDumper<'a> {
             for arg in &expr.args {
                 d.dump_expr(arg);
             }
+        });
+    }
+
+    fn dump_expr_paren(&mut self, expr: &ExprParenType) {
+        dump!(self, "paren @ {} {}", expr.pos, expr.id);
+        self.indent(|d| {
+            d.dump_expr(&expr.expr);
         });
     }
 

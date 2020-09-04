@@ -356,6 +356,10 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
             }
         }
 
+        ExprParen(ref value) => {
+            v.visit_expr(&value.expr);
+        }
+
         ExprSuper(_) => {}
         ExprSelf(_) => {}
         ExprLitChar(_) => {}

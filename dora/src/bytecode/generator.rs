@@ -357,6 +357,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             ExprConv(ref conv) => self.visit_expr_conv(conv, dest),
             ExprNil(ref nil) => self.visit_expr_nil(nil, dest),
             ExprTuple(ref tuple) => self.visit_expr_tuple(tuple, dest),
+            ExprParen(ref paren) => self.visit_expr(&paren.expr, dest),
             ExprLambda(_) => unimplemented!(),
         }
     }

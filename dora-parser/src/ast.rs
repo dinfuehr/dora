@@ -1099,6 +1099,7 @@ pub enum Expr {
     ExprBlock(ExprBlockType),
     ExprIf(ExprIfType),
     ExprTuple(ExprTupleType),
+    ExprParen(ExprParenType),
 }
 
 impl Expr {
@@ -1292,6 +1293,16 @@ impl Expr {
         })
     }
 
+    pub fn create_paren(id: NodeId, pos: Position, span: Span, expr: Box<Expr>) -> Expr {
+        Expr::ExprParen(ExprParenType {
+            id,
+            pos,
+            span,
+
+            expr,
+        })
+    }
+
     pub fn create_call(
         id: NodeId,
         pos: Position,
@@ -1422,6 +1433,20 @@ impl Expr {
     pub fn is_bin(&self) -> bool {
         match *self {
             Expr::ExprBin(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_paren(&self) -> Option<&ExprParenType> {
+        match *self {
+            Expr::ExprParen(ref val) => Some(val),
+            _ => None,
+        }
+    }
+
+    pub fn is_paren(&self) -> bool {
+        match *self {
+            Expr::ExprParen(_) => true,
             _ => false,
         }
     }
@@ -1731,6 +1756,7 @@ impl Expr {
             Expr::ExprBlock(ref val) => val.pos,
             Expr::ExprIf(ref val) => val.pos,
             Expr::ExprTuple(ref val) => val.pos,
+            Expr::ExprParen(ref val) => val.pos,
         }
     }
 
@@ -1758,6 +1784,7 @@ impl Expr {
             Expr::ExprBlock(ref val) => val.span,
             Expr::ExprIf(ref val) => val.span,
             Expr::ExprTuple(ref val) => val.span,
+            Expr::ExprParen(ref val) => val.span,
         }
     }
 
@@ -1785,6 +1812,7 @@ impl Expr {
             Expr::ExprBlock(ref val) => val.id,
             Expr::ExprIf(ref val) => val.id,
             Expr::ExprTuple(ref val) => val.id,
+            Expr::ExprParen(ref val) => val.id,
         }
     }
 }
@@ -1988,6 +2016,15 @@ impl ExprCallType {
     pub fn object_or_callee(&self) -> &Expr {
         self.object().unwrap_or(&self.callee)
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct ExprParenType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub span: Span,
+
+    pub expr: Box<Expr>,
 }
 
 #[derive(Clone, Debug)]

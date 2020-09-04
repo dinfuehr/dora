@@ -1664,8 +1664,14 @@ impl<'a> Parser<'a> {
             )))
         } else {
             self.expect_token(TokenKind::RParen)?;
+            let span = self.span_from(start);
 
-            Ok(expr)
+            Ok(Box::new(Expr::create_paren(
+                self.generate_id(),
+                pos,
+                span,
+                expr,
+            )))
         }
     }
 
@@ -2260,7 +2266,7 @@ mod tests {
         let neg1 = expr.to_un().unwrap();
         assert_eq!(UnOp::Neg, neg1.op);
 
-        let neg2 = neg1.opnd.to_un().unwrap();
+        let neg2 = neg1.opnd.to_paren().unwrap().expr.to_un().unwrap();
         assert_eq!(UnOp::Neg, neg2.op);
 
         assert!(neg2.opnd.is_lit_int());
@@ -2293,7 +2299,7 @@ mod tests {
         let add1 = expr.to_un().unwrap();
         assert_eq!(UnOp::Plus, add1.op);
 
-        let add2 = add1.opnd.to_un().unwrap();
+        let add2 = add1.opnd.to_paren().unwrap().expr.to_un().unwrap();
         assert_eq!(UnOp::Plus, add2.op);
         assert!(add2.opnd.is_lit_int());
     }
@@ -2372,7 +2378,7 @@ mod tests {
         let add = expr.to_bin().unwrap();
         assert_eq!(1, add.lhs.to_lit_int().unwrap().value);
 
-        let rhs = add.rhs.to_bin().unwrap();
+        let rhs = add.rhs.to_paren().unwrap().expr.to_bin().unwrap();
         assert_eq!(2, rhs.lhs.to_lit_int().unwrap().value);
         assert_eq!(3, rhs.rhs.to_lit_int().unwrap().value);
     }
@@ -3687,7 +3693,7 @@ mod tests {
         assert_eq!(expr.to_tuple().unwrap().values.len(), 1);
 
         let (expr, _) = parse_expr("(1)");
-        assert!(expr.is_lit_int());
+        assert!(expr.is_paren());
 
         let (expr, _) = parse_expr("(1,2,3)");
         assert_eq!(expr.to_tuple().unwrap().values.len(), 3);

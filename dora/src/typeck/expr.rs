@@ -304,6 +304,17 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         ty
     }
 
+    fn check_expr_paren(
+        &mut self,
+        paren: &'ast ExprParenType,
+        _expected_ty: BuiltinType,
+    ) -> BuiltinType {
+        let ty = self.check_expr(&paren.expr, BuiltinType::Any);
+        self.src.set_ty(paren.id, ty);
+
+        ty
+    }
+
     fn check_expr_if(&mut self, expr: &'ast ExprIfType, _expected_ty: BuiltinType) -> BuiltinType {
         let expr_type = self.check_expr(&expr.cond, BuiltinType::Any);
 
@@ -2147,6 +2158,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             ExprBlock(ref expr) => self.check_expr_block(expr, expected_ty),
             ExprIf(ref expr) => self.check_expr_if(expr, expected_ty),
             ExprTuple(ref expr) => self.check_expr_tuple(expr, expected_ty),
+            ExprParen(ref expr) => self.check_expr_paren(expr, expected_ty),
         }
     }
 }
