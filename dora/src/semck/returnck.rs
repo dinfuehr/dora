@@ -62,7 +62,7 @@ pub fn returns_value(s: &Stmt) -> Result<(), Position> {
         StmtWhile(ref stmt) => Err(stmt.pos),
         StmtBreak(ref stmt) => Err(stmt.pos),
         StmtContinue(ref stmt) => Err(stmt.pos),
-        StmtVar(ref stmt) => Err(stmt.pos),
+        StmtLet(ref stmt) => Err(stmt.pos),
         StmtExpr(ref stmt) => expr_returns_value(&stmt.expr),
     }
 }

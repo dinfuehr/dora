@@ -1116,7 +1116,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_var(&mut self) -> StmtResult {
+    fn parse_let(&mut self) -> StmtResult {
         let start = self.token.span.start();
         let reassignable = if self.token.is(TokenKind::Let) {
             false
@@ -1134,7 +1134,7 @@ impl<'a> Parser<'a> {
         self.expect_semicolon()?;
         let span = self.span_from(start);
 
-        Ok(Box::new(Stmt::create_var(
+        Ok(Box::new(Stmt::create_let(
             self.generate_id(),
             pos,
             span,
@@ -1219,7 +1219,7 @@ impl<'a> Parser<'a> {
 
     fn parse_statement_or_expression(&mut self) -> StmtOrExprResult {
         match self.token.kind {
-            TokenKind::Let | TokenKind::Var => Ok(StmtOrExpr::Stmt(self.parse_var()?)),
+            TokenKind::Let | TokenKind::Var => Ok(StmtOrExpr::Stmt(self.parse_let()?)),
             TokenKind::While => Ok(StmtOrExpr::Stmt(self.parse_while()?)),
             TokenKind::Break => Ok(StmtOrExpr::Stmt(self.parse_break()?)),
             TokenKind::Continue => Ok(StmtOrExpr::Stmt(self.parse_continue()?)),
@@ -2656,7 +2656,7 @@ mod tests {
     #[test]
     fn parse_let_without_type() {
         let stmt = parse_stmt("let a = 1;");
-        let var = stmt.to_var().unwrap();
+        let var = stmt.to_let().unwrap();
 
         assert_eq!(false, var.reassignable);
         assert!(var.data_type.is_none());
@@ -2666,7 +2666,7 @@ mod tests {
     #[test]
     fn parse_var_without_type() {
         let stmt = parse_stmt("var a = 1;");
-        let var = stmt.to_var().unwrap();
+        let var = stmt.to_let().unwrap();
 
         assert_eq!(true, var.reassignable);
         assert!(var.data_type.is_none());
@@ -2676,7 +2676,7 @@ mod tests {
     #[test]
     fn parse_let_with_type() {
         let stmt = parse_stmt("let x : int = 1;");
-        let var = stmt.to_var().unwrap();
+        let var = stmt.to_let().unwrap();
 
         assert_eq!(false, var.reassignable);
         assert!(var.data_type.is_some());
@@ -2686,7 +2686,7 @@ mod tests {
     #[test]
     fn parse_var_with_type() {
         let stmt = parse_stmt("var x : int = 1;");
-        let var = stmt.to_var().unwrap();
+        let var = stmt.to_let().unwrap();
 
         assert_eq!(true, var.reassignable);
         assert!(var.data_type.is_some());
@@ -2696,7 +2696,7 @@ mod tests {
     #[test]
     fn parse_let_with_type_but_without_assignment() {
         let stmt = parse_stmt("let x : int;");
-        let var = stmt.to_var().unwrap();
+        let var = stmt.to_let().unwrap();
 
         assert_eq!(false, var.reassignable);
         assert!(var.data_type.is_some());
@@ -2706,7 +2706,7 @@ mod tests {
     #[test]
     fn parse_var_with_type_but_without_assignment() {
         let stmt = parse_stmt("var x : int;");
-        let var = stmt.to_var().unwrap();
+        let var = stmt.to_let().unwrap();
 
         assert_eq!(true, var.reassignable);
         assert!(var.data_type.is_some());
@@ -2716,7 +2716,7 @@ mod tests {
     #[test]
     fn parse_let_without_type_and_assignment() {
         let stmt = parse_stmt("let x;");
-        let var = stmt.to_var().unwrap();
+        let var = stmt.to_let().unwrap();
 
         assert_eq!(false, var.reassignable);
         assert!(var.data_type.is_none());
@@ -2726,7 +2726,7 @@ mod tests {
     #[test]
     fn parse_var_without_type_and_assignment() {
         let stmt = parse_stmt("var x;");
-        let var = stmt.to_var().unwrap();
+        let var = stmt.to_let().unwrap();
 
         assert_eq!(true, var.reassignable);
         assert!(var.data_type.is_none());

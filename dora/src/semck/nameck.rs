@@ -149,7 +149,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         var_id
     }
 
-    fn check_stmt_var(&mut self, var: &'ast StmtVarType) {
+    fn check_stmt_let(&mut self, var: &'ast StmtLetType) {
         let var_ctxt = Var {
             id: VarId(0),
             name: var.name,
@@ -320,7 +320,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         match *s {
-            StmtVar(ref stmt) => self.check_stmt_var(stmt),
+            StmtLet(ref stmt) => self.check_stmt_let(stmt),
             StmtFor(ref stmt) => self.check_stmt_for(stmt),
 
             // no need to handle rest of statements

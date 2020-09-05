@@ -61,7 +61,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    pub fn check_stmt_var(&mut self, s: &'ast StmtVarType) {
+    pub fn check_stmt_var(&mut self, s: &'ast StmtLetType) {
         let var = *self.src.map_vars.get(s.id).unwrap();
 
         let defined_type = if let Some(ref data_type) = s.data_type {
@@ -2252,7 +2252,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         match *s {
-            StmtVar(ref stmt) => self.check_stmt_var(stmt),
+            StmtLet(ref stmt) => self.check_stmt_var(stmt),
             StmtWhile(ref stmt) => self.check_stmt_while(stmt),
             StmtFor(ref stmt) => self.check_stmt_for(stmt),
             StmtReturn(ref stmt) => self.check_stmt_return(stmt),

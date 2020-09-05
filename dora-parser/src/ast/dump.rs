@@ -371,13 +371,13 @@ impl<'a> AstDumper<'a> {
             StmtBreak(ref stmt) => self.dump_stmt_break(stmt),
             StmtContinue(ref stmt) => self.dump_stmt_continue(stmt),
             StmtExpr(ref expr) => self.dump_stmt_expr(expr),
-            StmtVar(ref stmt) => self.dump_stmt_var(stmt),
+            StmtLet(ref stmt) => self.dump_stmt_var(stmt),
             StmtWhile(ref stmt) => self.dump_stmt_while(stmt),
             StmtFor(ref stmt) => self.dump_stmt_for(stmt),
         }
     }
 
-    fn dump_stmt_var(&mut self, stmt: &StmtVarType) {
+    fn dump_stmt_var(&mut self, stmt: &StmtLetType) {
         dump!(
             self,
             "let {} @ {} {}",

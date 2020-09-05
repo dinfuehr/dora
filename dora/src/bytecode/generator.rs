@@ -139,7 +139,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             StmtBreak(ref stmt) => self.visit_stmt_break(stmt),
             StmtContinue(ref stmt) => self.visit_stmt_continue(stmt),
             StmtExpr(ref expr) => self.visit_stmt_expr(expr),
-            StmtVar(ref stmt) => self.visit_stmt_var(stmt),
+            StmtLet(ref stmt) => self.visit_stmt_var(stmt),
             StmtWhile(ref stmt) => self.visit_stmt_while(stmt),
             StmtFor(ref stmt) => self.visit_stmt_for(stmt),
         }
@@ -292,7 +292,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.free_if_temp(object_reg);
     }
 
-    fn visit_stmt_var(&mut self, stmt: &StmtVarType) {
+    fn visit_stmt_var(&mut self, stmt: &StmtLetType) {
         let var_id = *self.src.map_vars.get(stmt.id).unwrap();
         let ty = self.var_ty(var_id);
 
