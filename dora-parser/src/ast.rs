@@ -694,7 +694,7 @@ impl Stmt {
         id: NodeId,
         pos: Position,
         span: Span,
-        name: Name,
+        pattern: Box<LetPattern>,
         reassignable: bool,
         data_type: Option<Type>,
         expr: Option<Box<Expr>>,
@@ -704,8 +704,7 @@ impl Stmt {
             pos,
             span,
 
-            name,
-            pattern: None,
+            pattern,
             reassignable,
             data_type,
             expr,
@@ -917,8 +916,7 @@ pub struct StmtLetType {
     pub pos: Position,
     pub span: Span,
 
-    pub name: Name,
-    pub pattern: Option<Box<LetPattern>>,
+    pub pattern: Box<LetPattern>,
     pub reassignable: bool,
 
     pub data_type: Option<Type>,
@@ -929,6 +927,15 @@ pub struct StmtLetType {
 pub enum LetPattern {
     Ident(LetIdentType),
     Tuple(LetTupleType),
+}
+
+impl LetPattern {
+    pub fn to_name(&self) -> Option<Name> {
+        match self {
+            LetPattern::Ident(ref ident) => Some(ident.name),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]

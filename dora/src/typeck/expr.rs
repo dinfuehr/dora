@@ -83,7 +83,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         };
 
         if !defined_type.is_error() && !defined_type.is_defined_type(self.vm) {
-            let tyname = self.vm.interner.str(s.name).to_string();
+            let tyname = self
+                .vm
+                .interner
+                .str(s.pattern.to_name().unwrap())
+                .to_string();
             self.vm
                 .diag
                 .lock()
@@ -101,7 +105,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 && !defined_type.is_error()
                 && !defined_type.allows(self.vm, expr_type)
             {
-                let name = self.vm.interner.str(s.name).to_string();
+                let name = self
+                    .vm
+                    .interner
+                    .str(s.pattern.to_name().unwrap())
+                    .to_string();
                 let defined_type = defined_type.name(self.vm);
                 let expr_type = expr_type.name(self.vm);
                 let msg = SemError::AssignType(name, defined_type, expr_type);

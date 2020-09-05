@@ -1127,7 +1127,7 @@ impl<'a> Parser<'a> {
         };
 
         let pos = self.advance_token()?.position;
-        let ident = self.expect_identifier()?;
+        let pattern = self.parse_let_pattern()?;
         let data_type = self.parse_var_type()?;
         let expr = self.parse_var_assignment()?;
 
@@ -1138,11 +1138,28 @@ impl<'a> Parser<'a> {
             self.generate_id(),
             pos,
             span,
-            ident,
+            pattern,
             reassignable,
             data_type,
             expr,
         )))
+    }
+
+    fn parse_let_pattern(&mut self) -> Result<Box<LetPattern>, ParseErrorAndPos> {
+        if self.token.is(TokenKind::LParen) {
+            unimplemented!();
+        } else {
+            let pos = self.token.position;
+            let span = self.token.span;
+            let name = self.expect_identifier()?;
+
+            Ok(Box::new(LetPattern::Ident(LetIdentType {
+                id: self.generate_id(),
+                pos,
+                span,
+                name,
+            })))
+        }
     }
 
     fn parse_var_type(&mut self) -> Result<Option<Type>, ParseErrorAndPos> {

@@ -152,7 +152,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     fn check_stmt_let(&mut self, var: &'ast StmtLetType) {
         let var_ctxt = Var {
             id: VarId(0),
-            name: var.name,
+            name: var.pattern.to_name().unwrap(),
             reassignable: var.reassignable,
             ty: BuiltinType::Unit,
             node_id: var.id,
