@@ -591,6 +591,38 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockBuilder: Block
     @override fun visitInvokeStatic(dest: BytecodeRegister, fct: FctId) { unimplemented(); }
 
     @override fun visitNewObject(dest: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
+    @override fun visitNewArray(dest: BytecodeRegister, cls: ClassDefId, length: BytecodeRegister) { unimplemented(); }
+
+    @override fun visitNilCheck(obj: BytecodeRegister) { unimplemented(); }
+
+    @override fun visitArrayLength(dest: BytecodeRegister, arr: BytecodeRegister) { unimplemented(); }
+    @override fun visitArrayBoundCheck(arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
+
+    @override fun visitLoadArrayBool(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { self.emitLoadArray(dest, arr, idx, Type::bool()); }
+    @override fun visitLoadArrayUInt8(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { self.emitLoadArray(dest, arr, idx, Type::uint8()); }
+    @override fun visitLoadArrayChar(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { self.emitLoadArray(dest, arr, idx, Type::char()); }
+    @override fun visitLoadArrayInt32(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { self.emitLoadArray(dest, arr, idx, Type::int32()); }
+    @override fun visitLoadArrayInt64(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { self.emitLoadArray(dest, arr, idx, Type::int64()); }
+    @override fun visitLoadArrayFloat32(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { self.emitLoadArray(dest, arr, idx, Type::float32()); }
+    @override fun visitLoadArrayFloat64(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { self.emitLoadArray(dest, arr, idx, Type::float64()); }
+    @override fun visitLoadArrayPtr(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { self.emitLoadArray(dest, arr, idx, Type::ptr()); }
+
+    fun emitLoadArray(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister, ty: Type) {
+        unimplemented();
+    }
+
+    @override fun visitStoreArrayBool(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { self.emitStoreArray(src, arr, idx, Type::bool()); }
+    @override fun visitStoreArrayUInt8(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { self.emitStoreArray(src, arr, idx, Type::uint8()); }
+    @override fun visitStoreArrayChar(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { self.emitStoreArray(src, arr, idx, Type::char()); }
+    @override fun visitStoreArrayInt32(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { self.emitStoreArray(src, arr, idx, Type::int32()); }
+    @override fun visitStoreArrayInt64(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { self.emitStoreArray(src, arr, idx, Type::int64()); }
+    @override fun visitStoreArrayFloat32(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { self.emitStoreArray(src, arr, idx, Type::float32()); }
+    @override fun visitStoreArrayFloat64(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { self.emitStoreArray(src, arr, idx, Type::float64()); }
+    @override fun visitStoreArrayPtr(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) { self.emitStoreArray(src, arr, idx, Type::ptr()); }
+
+    fun emitStoreArray(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister, ty: Type) {
+        unimplemented();
+    }
 
     @override fun visitRetVoid() {
         let inst = ReturnVoidInst();

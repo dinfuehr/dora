@@ -198,7 +198,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @open fun visitNewObject(dest: BytecodeRegister, cls: ClassDefId) { unimplemented(); }
     @open fun visitNewArray(dest: BytecodeRegister, cls: ClassDefId, length: BytecodeRegister) { unimplemented(); }
     
-    @open fun visitNilCheck(arr: BytecodeRegister) { unimplemented(); }
+    @open fun visitNilCheck(obj: BytecodeRegister) { unimplemented(); }
 
     @open fun visitArrayLength(dest: BytecodeRegister, arr: BytecodeRegister) { unimplemented(); }
     @open fun visitArrayBoundCheck(arr: BytecodeRegister, idx: BytecodeRegister) { unimplemented(); }
@@ -419,7 +419,7 @@ fun readBytecode(code: Array[UInt8], visitor: BytecodeVisitor) {
     @override fun visitNewObject(dest: BytecodeRegister, cls: ClassDefId) {}
     @override fun visitNewArray(dest: BytecodeRegister, cls: ClassDefId, length: BytecodeRegister) {}
 
-    @override fun visitNilCheck(arr: BytecodeRegister) {}
+    @override fun visitNilCheck(obj: BytecodeRegister) {}
 
     @override fun visitArrayLength(dest: BytecodeRegister, arr: BytecodeRegister) {}
     @override fun visitArrayBoundCheck(arr: BytecodeRegister, idx: BytecodeRegister) {}
