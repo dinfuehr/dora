@@ -64,6 +64,11 @@ class Graph {
         }
     }
 
+    fun rebuildDominatorTree() {
+        // TODO: clear data of dominance and loop analysis
+        self.buildDominatorTree();
+    }
+
     fun buildDominatorTree() {
         findBackEdges(self);
         computePostOrder(self);
@@ -225,7 +230,7 @@ class Block() {
         InstIterator(self)
     }
 
-    fun reversedInstructionsIterator() -> BackwardInstIterator {
+    fun reverseInstructionsIterator() -> BackwardInstIterator {
         BackwardInstIterator(self)
     }
 
@@ -239,6 +244,14 @@ class Block() {
 
     fun lastInst() -> Inst {
         self.instructions.lastInst()
+    }
+
+    fun removeInst(inst: Inst) {
+        unimplemented();
+    }
+
+    fun removePhi(inst: PhiInst) {
+        unimplemented();
     }
 }
 
@@ -412,6 +425,10 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
         }
 
         data.toArray()
+    }
+
+    fun isDeadAndRemovable() -> Bool {
+        false
     }
 
     @open @abstract fun dumpName() -> String;

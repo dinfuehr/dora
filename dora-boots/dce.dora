@@ -1,4 +1,41 @@
-fun find_reachable_blocks(graph: Graph) -> BitSet {
+fun deadCodeElimination(graph: Graph) {
+    DeadCodeElimination(graph).run()
+}
+
+class DeadCodeElimination(let graph: Graph) {
+    fun run() {
+        self.removeDeadBlocks();
+        self.removeDeadInstructions();
+    }
+
+    fun removeDeadBlocks() {
+        let liveBlocks = findReachableBlocks(self.graph);
+        var changed = false;
+
+        for block in self.graph.postOrderIterator() {
+            if !liveBlocks.contains(block.id.toInt64()) {
+                // TODO: remove block
+                changed = true;
+            }
+        }
+
+        if changed {
+            self.graph.rebuildDominatorTree();
+        }
+    }
+
+    fun removeDeadInstructions() {
+        for block in self.graph.postOrderIterator() {
+            for inst in block.reverseInstructionsIterator() {
+                if inst.isDeadAndRemovable() {
+                    block.removeInst(inst);
+                }
+            }
+        }
+    }
+}
+
+fun findReachableBlocks(graph: Graph) -> BitSet {
     let worklist = Vec[Block]();
     let blocks = graph.numberBlocks();
     let visited = BitSet(blocks.toInt64());
