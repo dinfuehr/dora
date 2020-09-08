@@ -149,21 +149,39 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         var_id
     }
 
-    fn check_stmt_let(&mut self, var: &'ast StmtLetType) {
-        let var_ctxt = Var {
-            id: VarId(0),
-            name: var.pattern.to_name().unwrap(),
-            reassignable: var.reassignable,
-            ty: BuiltinType::Unit,
-            node_id: var.id,
-        };
-
-        if let Some(ref expr) = var.expr {
+    fn check_stmt_let(&mut self, let_decl: &'ast StmtLetType) {
+        if let Some(ref expr) = let_decl.expr {
             self.visit_expr(expr);
         }
 
-        let var_id = self.add_var(var_ctxt, var.pos);
-        self.src.map_vars.insert(var.id, var_id)
+        self.check_stmt_let_pattern(let_decl, &let_decl.pattern);
+    }
+
+    fn check_stmt_let_pattern(&mut self, let_decl: &'ast StmtLetType, pattern: &LetPattern) {
+        match pattern {
+            LetPattern::Ident(ref ident) => {
+                let var_ctxt = Var {
+                    id: VarId(0),
+                    name: ident.name,
+                    reassignable: let_decl.reassignable || ident.mutable,
+                    ty: BuiltinType::Unit,
+                    node_id: ident.id,
+                };
+
+                let var_id = self.add_var(var_ctxt, ident.pos);
+                self.src.map_vars.insert(ident.id, var_id)
+            }
+
+            LetPattern::Underscore(_) => {
+                // no variable to declare
+            }
+
+            LetPattern::Tuple(ref tuple) => {
+                for sub in &tuple.parts {
+                    self.check_stmt_let_pattern(let_decl, sub);
+                }
+            }
+        }
     }
 
     fn check_stmt_for(&mut self, fl: &'ast StmtForType) {

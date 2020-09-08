@@ -348,6 +348,24 @@ fn type_variable() {
 }
 
 #[test]
+fn type_let() {
+    ok("fun f(value: (Int32, Int32)) -> Int32 { let (a, b) = value; a+b }");
+    err(
+        "fun f() { let (a, b) = true; }",
+        pos(1, 15),
+        SemError::ExpectedTuple("Bool".into()),
+    );
+
+    err(
+        "fun f() { let (a, b) = (true,); }",
+        pos(1, 15),
+        SemError::ExpectedTupleWithLength("(Bool)".into(), 1, 2),
+    );
+
+    ok("fun f(value: (Int32, (Int32, Int32))) -> Int32 { let (a, (b, c)) = value; a+b+c }");
+}
+
+#[test]
 fn type_assign_lvalue() {
     err("fun f() { 1 = 3; }", pos(1, 13), SemError::LvalueExpected);
 }

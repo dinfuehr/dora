@@ -95,6 +95,8 @@ pub enum SemError {
     ExpectedIdentifier(String),
     ExpectedStringable(String),
     ExpectedSomeIdentifier,
+    ExpectedTuple(String),
+    ExpectedTupleWithLength(String, usize, usize),
     MisplacedElse,
     IoError,
     ExpectedClassElement(String),
@@ -352,6 +354,11 @@ impl SemError {
                 format!("identifier expected but got {}.", tok)
             }
             SemError::ExpectedSomeIdentifier => "identifier expected".into(),
+            SemError::ExpectedTuple(ref ty) => format!("tuple expected but got type {}.", ty),
+            SemError::ExpectedTupleWithLength(ref ty, ty_length, pattern_length) => format!(
+                "tuple {} has {} elements but pattern has {}.",
+                ty, ty_length, pattern_length
+            ),
             SemError::ExpectedTopLevelElement(ref token) => {
                 format!("expected function or class but got {}.", token)
             }

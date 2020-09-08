@@ -139,7 +139,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             StmtBreak(ref stmt) => self.visit_stmt_break(stmt),
             StmtContinue(ref stmt) => self.visit_stmt_continue(stmt),
             StmtExpr(ref expr) => self.visit_stmt_expr(expr),
-            StmtLet(ref stmt) => self.visit_stmt_var(stmt),
+            StmtLet(ref stmt) => self.visit_stmt_let(stmt),
             StmtWhile(ref stmt) => self.visit_stmt_while(stmt),
             StmtFor(ref stmt) => self.visit_stmt_for(stmt),
         }
@@ -292,8 +292,24 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.free_if_temp(object_reg);
     }
 
-    fn visit_stmt_var(&mut self, stmt: &StmtLetType) {
-        let var_id = *self.src.map_vars.get(stmt.id).unwrap();
+    fn visit_stmt_let(&mut self, stmt: &StmtLetType) {
+        match &*stmt.pattern {
+            LetPattern::Ident(ref ident) => {
+                self.visit_stmt_let_ident(stmt, ident);
+            }
+
+            LetPattern::Underscore(_) => {
+                self.visit_stmt_let_underscore(stmt);
+            }
+
+            LetPattern::Tuple(ref tuple) => {
+                self.visit_stmt_let_pattern(stmt, tuple);
+            }
+        }
+    }
+
+    fn visit_stmt_let_ident(&mut self, stmt: &StmtLetType, ident: &LetIdentType) {
+        let var_id = *self.src.map_vars.get(ident.id).unwrap();
         let ty = self.var_ty(var_id);
 
         let dest = if ty.is_unit() {
@@ -309,6 +325,88 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
         if let Some(ref expr) = stmt.expr {
             self.visit_expr(expr, dest);
+        } else if ty.reference_type() {
+            self.gen.emit_const_nil(dest.reg());
+        }
+    }
+
+    fn visit_stmt_let_underscore(&mut self, stmt: &StmtLetType) {
+        if let Some(ref expr) = stmt.expr {
+            self.visit_expr(expr, DataDest::Effect);
+        }
+    }
+
+    fn visit_stmt_let_pattern(&mut self, stmt: &StmtLetType, pattern: &LetTupleType) {
+        if let Some(ref expr) = stmt.expr {
+            let tuple_reg = self.visit_expr(expr, DataDest::Alloc);
+            let tuple_ty = self.ty(expr.id());
+
+            self.visit_stmt_let_tuple_assign(pattern, tuple_reg, tuple_ty);
+        } else {
+            self.visit_stmt_let_tuple_init(pattern);
+        }
+    }
+
+    fn visit_stmt_let_tuple_init(&mut self, tuple: &LetTupleType) {
+        for part in &tuple.parts {
+            match &**part {
+                LetPattern::Ident(ref ident) => {
+                    let var_id = *self.src.map_vars.get(ident.id).unwrap();
+                    let ty = self.var_ty(var_id).into();
+                    let var_reg = self.alloc_var(ty);
+                    self.var_registers.insert(var_id, var_reg);
+
+                    if ty.is_ptr() {
+                        self.gen.emit_const_nil(var_reg);
+                    }
+                }
+
+                LetPattern::Underscore(_) => {
+                    // nothing to do
+                }
+
+                LetPattern::Tuple(ref tuple) => {
+                    self.visit_stmt_let_tuple_init(tuple);
+                }
+            }
+        }
+    }
+
+    fn visit_stmt_let_tuple_assign(
+        &mut self,
+        tuple: &LetTupleType,
+        tuple_reg: Register,
+        tuple_ty: BuiltinType,
+    ) {
+        let tuple_id = tuple_ty.tuple_id().expect("type should be tuple");
+
+        for (idx, part) in tuple.parts.iter().enumerate() {
+            match &**part {
+                LetPattern::Ident(ref ident) => {
+                    let var_id = *self.src.map_vars.get(ident.id).unwrap();
+                    let ty = self.var_ty(var_id).into();
+                    let var_reg = self.alloc_var(ty);
+                    self.var_registers.insert(var_id, var_reg);
+
+                    self.gen
+                        .emit_load_tuple_element(var_reg, tuple_reg, tuple_id, idx as u32);
+                }
+
+                LetPattern::Underscore(_) => {
+                    // nothing to do
+                }
+
+                LetPattern::Tuple(ref tuple) => {
+                    let (ty, _) = self.vm.tuples.lock().get_at(tuple_id, idx);
+                    let temp_reg = self.alloc_temp(ty.into());
+                    self.gen
+                        .emit_load_tuple_element(temp_reg, tuple_reg, tuple_id, idx as u32);
+
+                    self.visit_stmt_let_tuple_assign(tuple, temp_reg, ty);
+
+                    self.free_temp(temp_reg);
+                }
+            }
         }
     }
 

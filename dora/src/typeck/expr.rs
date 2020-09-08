@@ -61,9 +61,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    pub fn check_stmt_var(&mut self, s: &'ast StmtLetType) {
-        let var = *self.src.map_vars.get(s.id).unwrap();
-
+    pub fn check_stmt_let(&mut self, s: &'ast StmtLetType) {
         let defined_type = if let Some(ref data_type) = s.data_type {
             self.src.ty(data_type.id())
         } else {
@@ -98,7 +96,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         // update type of variable, necessary when variable is only initialized with
         // an expression
-        self.src.vars[var].ty = defined_type;
+        self.check_stmt_let_pattern(&s.pattern, defined_type);
 
         if s.expr.is_some() {
             if !expr_type.is_error()
@@ -122,6 +120,49 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 .diag
                 .lock()
                 .report(self.file, s.pos, SemError::LetMissingInitialization);
+        }
+    }
+
+    fn check_stmt_let_pattern(&mut self, pattern: &LetPattern, ty: BuiltinType) {
+        match pattern {
+            LetPattern::Ident(ref ident) => {
+                let var = *self.src.map_vars.get(ident.id).unwrap();
+                self.src.vars[var].ty = ty;
+            }
+
+            LetPattern::Underscore(_) => {
+                // nothing to do
+            }
+
+            LetPattern::Tuple(ref tuple) => {
+                if !ty.is_tuple() {
+                    let ty_name = ty.name(self.vm);
+                    self.vm.diag.lock().report(
+                        self.file,
+                        tuple.pos,
+                        SemError::ExpectedTuple(ty_name),
+                    );
+                    return;
+                }
+
+                let tuple_id = ty.tuple_id().expect("type should be tuple");
+                let parts = self.vm.tuples.lock().get(tuple_id).len();
+
+                if parts != tuple.parts.len() {
+                    let ty_name = ty.name(self.vm);
+                    self.vm.diag.lock().report(
+                        self.file,
+                        tuple.pos,
+                        SemError::ExpectedTupleWithLength(ty_name, parts, tuple.parts.len()),
+                    );
+                    return;
+                }
+
+                for (idx, part) in tuple.parts.iter().enumerate() {
+                    let (ty, _) = self.vm.tuples.lock().get_at(tuple_id, idx);
+                    self.check_stmt_let_pattern(part, ty);
+                }
+            }
         }
     }
 
@@ -2260,7 +2301,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         match *s {
-            StmtLet(ref stmt) => self.check_stmt_var(stmt),
+            StmtLet(ref stmt) => self.check_stmt_let(stmt),
             StmtWhile(ref stmt) => self.check_stmt_while(stmt),
             StmtFor(ref stmt) => self.check_stmt_for(stmt),
             StmtReturn(ref stmt) => self.check_stmt_return(stmt),

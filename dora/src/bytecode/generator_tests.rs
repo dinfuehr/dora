@@ -246,6 +246,23 @@ fn gen_stmt_var_init() {
 }
 
 #[test]
+fn gen_stmt_let_tuple() {
+    gen(
+        "fun f(value: (Int32, Int32)) -> Int32 { let (x, y) = value; x+y }",
+        |vm, code| {
+            let tuple_id = ensure_tuple(vm, vec![BuiltinType::Int32, BuiltinType::Int32]);
+            let expected = vec![
+                LoadTupleElement(r(1), r(0), tuple_id, 0),
+                LoadTupleElement(r(2), r(0), tuple_id, 1),
+                AddInt32(r(3), r(1), r(2)),
+                Ret(r(3)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
 fn gen_stmt_while() {
     let result = code("fun f() { while true { 0; } }");
     let code = vec![ConstTrue(r(0)), JumpIfFalse(r(0), 3), JumpLoop(0), RetVoid];
@@ -3259,14 +3276,6 @@ pub enum Bytecode {
 
     RetVoid,
     Ret(Register),
-    RetBool(Register),
-    RetUInt8(Register),
-    RetChar(Register),
-    RetInt32(Register),
-    RetInt64(Register),
-    RetFloat32(Register),
-    RetFloat64(Register),
-    RetPtr(Register),
 }
 
 fn build(bc: &BytecodeFunction) -> Vec<Bytecode> {
