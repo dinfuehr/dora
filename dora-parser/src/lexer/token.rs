@@ -28,6 +28,7 @@ pub enum TokenKind {
     // "small" shapes
     Fun,
     Let,
+    Mut,
     Var,
     Const,
 
@@ -138,6 +139,7 @@ impl TokenKind {
             // "small" shapes
             TokenKind::Fun => "fun",
             TokenKind::Let => "let",
+            TokenKind::Mut => "mut",
             TokenKind::Var => "var",
             TokenKind::Const => "const",
 

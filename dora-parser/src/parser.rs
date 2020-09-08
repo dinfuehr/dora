@@ -1147,16 +1147,49 @@ impl<'a> Parser<'a> {
 
     fn parse_let_pattern(&mut self) -> Result<Box<LetPattern>, ParseErrorAndPos> {
         if self.token.is(TokenKind::LParen) {
-            unimplemented!();
-        } else {
+            let pos = self.token.position;
+            let start = self.token.span.start();
+            self.advance_token()?;
+
+            let parts = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
+                p.parse_let_pattern()
+            })?;
+
+            let span = self.span_from(start);
+
+            Ok(Box::new(LetPattern::Tuple(LetTupleType {
+                id: self.generate_id(),
+                pos,
+                span,
+                parts,
+            })))
+        } else if self.token.is(TokenKind::Underscore) {
             let pos = self.token.position;
             let span = self.token.span;
+            self.advance_token()?;
+
+            Ok(Box::new(LetPattern::Underscore(LetUnderscoreType {
+                id: self.generate_id(),
+                pos,
+                span,
+            })))
+        } else {
+            let start = self.token.span.start();
+            let mutable = if self.token.is(TokenKind::Mut) {
+                self.advance_token()?;
+                true
+            } else {
+                false
+            };
+            let pos = self.token.position;
             let name = self.expect_identifier()?;
+            let span = self.span_from(start);
 
             Ok(Box::new(LetPattern::Ident(LetIdentType {
                 id: self.generate_id(),
                 pos,
                 span,
+                mutable,
                 name,
             })))
         }
@@ -2698,6 +2731,44 @@ mod tests {
         assert_eq!(false, var.reassignable);
         assert!(var.data_type.is_some());
         assert!(var.expr.as_ref().unwrap().is_lit_int());
+    }
+
+    #[test]
+    fn parse_let_underscore() {
+        let stmt = parse_stmt("let _ = 1;");
+        let let_decl = stmt.to_let().unwrap();
+
+        assert!(let_decl.pattern.is_underscore());
+    }
+
+    #[test]
+    fn parse_let_tuple() {
+        let stmt = parse_stmt("let (mut a, b, (c, d)) = 1;");
+        let let_decl = stmt.to_let().unwrap();
+
+        assert!(let_decl.pattern.is_tuple());
+        let tuple = let_decl.pattern.to_tuple().unwrap();
+        let first = tuple.parts.first().unwrap();
+        assert!(first.is_ident());
+        assert!(first.to_ident().unwrap().mutable);
+        assert!(tuple.parts.last().unwrap().is_tuple());
+    }
+
+    #[test]
+    fn parse_let_ident() {
+        let stmt = parse_stmt("let x = 1;");
+        let let_decl = stmt.to_let().unwrap();
+
+        assert!(let_decl.pattern.is_ident());
+    }
+
+    #[test]
+    fn parse_let_ident_mut() {
+        let stmt = parse_stmt("let mut x = 1;");
+        let let_decl = stmt.to_let().unwrap();
+
+        assert!(let_decl.pattern.is_ident());
+        assert!(let_decl.pattern.to_ident().unwrap().mutable);
     }
 
     #[test]

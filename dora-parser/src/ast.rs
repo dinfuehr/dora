@@ -927,15 +927,58 @@ pub struct StmtLetType {
 pub enum LetPattern {
     Ident(LetIdentType),
     Tuple(LetTupleType),
+    Underscore(LetUnderscoreType),
 }
 
 impl LetPattern {
+    pub fn is_ident(&self) -> bool {
+        match self {
+            LetPattern::Ident(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_tuple(&self) -> bool {
+        match self {
+            LetPattern::Tuple(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_underscore(&self) -> bool {
+        match self {
+            LetPattern::Underscore(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn to_name(&self) -> Option<Name> {
         match self {
             LetPattern::Ident(ref ident) => Some(ident.name),
             _ => None,
         }
     }
+
+    pub fn to_ident(&self) -> Option<&LetIdentType> {
+        match self {
+            LetPattern::Ident(ref ident) => Some(ident),
+            _ => None,
+        }
+    }
+
+    pub fn to_tuple(&self) -> Option<&LetTupleType> {
+        match self {
+            LetPattern::Tuple(ref tuple) => Some(tuple),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct LetUnderscoreType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug)]
@@ -943,6 +986,7 @@ pub struct LetIdentType {
     pub id: NodeId,
     pub pos: Position,
     pub span: Span,
+    pub mutable: bool,
     pub name: Name,
 }
 

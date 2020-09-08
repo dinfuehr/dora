@@ -570,6 +570,7 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     // "small" shapes
     keywords.insert("fun", TokenKind::Fun);
     keywords.insert("let", TokenKind::Let);
+    keywords.insert("mut", TokenKind::Mut);
     keywords.insert("var", TokenKind::Var);
     keywords.insert("const", TokenKind::Const);
 
@@ -1043,11 +1044,12 @@ mod tests {
         assert_tok(&mut reader, TokenKind::Trait, 1, 24);
         assert_tok(&mut reader, TokenKind::Const, 1, 30);
 
-        let mut reader = Lexer::from_str("for in impl Self");
+        let mut reader = Lexer::from_str("for in impl Self mut");
         assert_tok(&mut reader, TokenKind::For, 1, 1);
         assert_tok(&mut reader, TokenKind::In, 1, 5);
         assert_tok(&mut reader, TokenKind::Impl, 1, 8);
         assert_tok(&mut reader, TokenKind::CapitalThis, 1, 13);
+        assert_tok(&mut reader, TokenKind::Mut, 1, 18);
     }
 
     #[test]
