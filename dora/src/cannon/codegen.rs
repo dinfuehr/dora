@@ -314,7 +314,6 @@ where
     }
 
     fn emit_epilog(&mut self) {
-        self.asm.emit_comment("epilog".into());
         self.asm.epilog();
     }
 
@@ -1081,11 +1080,11 @@ where
         let (_ty, offset) = self.vm.tuples.lock().get_at(tuple_id, idx as usize);
         let src_offset = self.register_offset(src);
 
-        if let Some(_tuple_id) = dest_type.tuple_id() {
+        if let Some(dest_tuple_id) = dest_type.tuple_id() {
             let dest_offset = self.register_offset(dest);
 
             self.copy_tuple(
-                tuple_id,
+                dest_tuple_id,
                 RegOrOffset::Offset(dest_offset),
                 RegOrOffset::Offset(src_offset + offset),
             );
@@ -2380,15 +2379,23 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
 
     fn visit_add_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.asm
+            .emit_comment(format!("AddInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_add_int(dest, lhs, rhs);
     }
     fn visit_add_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.asm
+            .emit_comment(format!("AddInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_add_int(dest, lhs, rhs);
     }
     fn visit_add_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.asm
+            .emit_comment(format!("AddFloat32 {}, {}, {}", dest, lhs, rhs));
         self.emit_add_float(dest, lhs, rhs);
     }
     fn visit_add_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.asm
+            .emit_comment(format!("AddFloat64 {}, {}, {}", dest, lhs, rhs));
         self.emit_add_float(dest, lhs, rhs);
     }
 
@@ -2604,30 +2611,50 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
 
     fn visit_mov_bool(&mut self, dest: Register, src: Register) {
+        self.asm.emit_comment(format!("MovBool {}, {}", dest, src));
         self.emit_mov_generic(dest, src);
     }
     fn visit_mov_uint8(&mut self, dest: Register, src: Register) {
+        self.asm.emit_comment(format!("MovUInt8 {}, {}", dest, src));
         self.emit_mov_generic(dest, src);
     }
     fn visit_mov_char(&mut self, dest: Register, src: Register) {
+        self.asm.emit_comment(format!("MovChar {}, {}", dest, src));
         self.emit_mov_generic(dest, src);
     }
     fn visit_mov_int32(&mut self, dest: Register, src: Register) {
+        self.asm.emit_comment(format!("MovInt32 {}, {}", dest, src));
         self.emit_mov_generic(dest, src);
     }
     fn visit_mov_int64(&mut self, dest: Register, src: Register) {
+        self.asm.emit_comment(format!("MovInt64 {}, {}", dest, src));
         self.emit_mov_generic(dest, src);
     }
     fn visit_mov_float32(&mut self, dest: Register, src: Register) {
+        self.asm
+            .emit_comment(format!("MovFloat32 {}, {}", dest, src));
         self.emit_mov_generic(dest, src);
     }
     fn visit_mov_float64(&mut self, dest: Register, src: Register) {
+        self.asm
+            .emit_comment(format!("MovFloat64 {}, {}", dest, src));
         self.emit_mov_generic(dest, src);
     }
     fn visit_mov_ptr(&mut self, dest: Register, src: Register) {
+        self.asm.emit_comment(format!("MovPtr {}, {}", dest, src));
         self.emit_mov_generic(dest, src);
     }
     fn visit_mov_tuple(&mut self, dest: Register, src: Register, tuple_id: TupleId) {
+        let tuple_ty = BuiltinType::Tuple(tuple_id);
+        let tuple_ty_name = tuple_ty.name(self.vm);
+        self.asm.emit_comment(format!(
+            "MovTuple {}, {}, Tuple({})={}",
+            dest,
+            src,
+            tuple_id.to_usize(),
+            tuple_ty_name,
+        ));
+
         self.emit_mov_tuple(dest, src, tuple_id);
     }
 
@@ -2638,6 +2665,16 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         tuple_id: TupleId,
         idx: u32,
     ) {
+        let tuple_ty = BuiltinType::Tuple(tuple_id);
+        let tuple_ty_name = tuple_ty.name(self.vm);
+        self.asm.emit_comment(format!(
+            "LoadTupleElement {}, {}, Tuple({})={}.{}",
+            dest,
+            src,
+            tuple_id.to_usize(),
+            tuple_ty_name,
+            idx
+        ));
         self.emit_load_tuple_element(dest, src, tuple_id, idx);
     }
 
@@ -3025,9 +3062,11 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
 
     fn visit_ret_void(&mut self) {
+        self.asm.emit_comment(format!("RetVoid"));
         self.emit_epilog();
     }
     fn visit_ret(&mut self, opnd: Register) {
+        self.asm.emit_comment(format!("Ret {}", opnd));
         self.emit_return_generic(opnd);
     }
 }

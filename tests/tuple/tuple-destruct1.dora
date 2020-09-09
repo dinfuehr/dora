@@ -1,0 +1,25 @@
+fun main() {
+    assert(myadd1((1, 4)) == 5);
+    assert(myadd1((3, 1)) == 4);
+
+    assert(myadd2((3, (1, 9))) == 13);
+    assert(myadd3((3, (100, 9))) == 12);
+}
+
+fun myadd1(x: (Int32, Int32)) -> Int32 {
+    let (a, b) = x;
+
+    a + b
+}
+
+fun myadd2(x: (Int32, (Int32, Int32))) -> Int32 {
+    let (a, (b, c)) = x;
+
+    a + b + c
+}
+
+fun myadd3(x: (Int32, (Int32, Int32))) -> Int32 {
+    let (a, (_, b)) = x;
+
+    a + b
+}
