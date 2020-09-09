@@ -359,7 +359,7 @@ impl Comments {
 
     pub fn insert(&mut self, offset: u32, comment: String) {
         if let Some(last) = self.entries.last_mut() {
-            debug_assert!(offset > last.0);
+            debug_assert!(offset >= last.0);
         }
 
         self.entries.push((offset, comment));

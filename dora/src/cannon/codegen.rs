@@ -2352,213 +2352,298 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
 
     fn visit_sub_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("SubInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_sub_int(dest, lhs, rhs);
     }
     fn visit_sub_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("SubInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_sub_int(dest, lhs, rhs);
     }
     fn visit_sub_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("SubFloat32 {}, {}, {}", dest, lhs, rhs));
         self.emit_sub_float(dest, lhs, rhs);
     }
     fn visit_sub_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("SubFloat64 {}, {}, {}", dest, lhs, rhs));
         self.emit_sub_float(dest, lhs, rhs);
     }
 
     fn visit_neg_int32(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("NegInt32 {}, {}", dest, src));
         self.emit_neg_int(dest, src);
     }
     fn visit_neg_int64(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("NegInt64 {}, {}", dest, src));
         self.emit_neg_int(dest, src);
     }
     fn visit_neg_float32(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("NegFloat32 {}, {}", dest, src));
         self.emit_neg_float(dest, src);
     }
     fn visit_neg_float64(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("NegFloat64 {}, {}", dest, src));
         self.emit_neg_float(dest, src);
     }
 
     fn visit_mul_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("MulInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_mul_int(dest, lhs, rhs);
     }
     fn visit_mul_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("MulInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_mul_int(dest, lhs, rhs);
     }
     fn visit_mul_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("MulFloat32 {}, {}, {}", dest, lhs, rhs));
         self.emit_mul_float(dest, lhs, rhs);
     }
     fn visit_mul_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("MulFloat64 {}, {}, {}", dest, lhs, rhs));
         self.emit_mul_float(dest, lhs, rhs);
     }
 
     fn visit_div_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("DivInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_div_int(dest, lhs, rhs);
     }
     fn visit_div_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("DivInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_div_int(dest, lhs, rhs);
     }
     fn visit_div_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("DivFloat32 {}, {}, {}", dest, lhs, rhs));
         self.emit_div_float(dest, lhs, rhs);
     }
     fn visit_div_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("DivFloat64 {}, {}, {}", dest, lhs, rhs));
         self.emit_div_float(dest, lhs, rhs);
     }
 
     fn visit_mod_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("ModInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_mod_int(dest, lhs, rhs);
     }
     fn visit_mod_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("ModInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_mod_int(dest, lhs, rhs);
     }
 
     fn visit_and_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("AndInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_and_int(dest, lhs, rhs);
     }
     fn visit_and_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("AndInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_and_int(dest, lhs, rhs);
     }
 
     fn visit_or_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("OrInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_or_int(dest, lhs, rhs)
     }
     fn visit_or_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("OrInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_or_int(dest, lhs, rhs)
     }
 
     fn visit_xor_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("XorInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_xor_int(dest, lhs, rhs);
     }
     fn visit_xor_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("XorInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_xor_int(dest, lhs, rhs);
     }
 
     fn visit_not_bool(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("NotBool {}, {}", dest, src));
         self.emit_not_bool(dest, src);
     }
     fn visit_not_int32(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("NotInt32 {}, {}", dest, src));
         self.emit_not_int(dest, src);
     }
     fn visit_not_int64(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("NotInt64 {}, {}", dest, src));
         self.emit_not_int(dest, src);
     }
 
     fn visit_shl_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("ShlInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_shl_int(dest, lhs, rhs);
     }
     fn visit_shr_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("ShrInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_shr_int(dest, lhs, rhs);
     }
     fn visit_sar_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("SarInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_sar_int(dest, lhs, rhs);
     }
 
     fn visit_shl_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("ShlInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_shl_int(dest, lhs, rhs);
     }
     fn visit_shr_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("ShrInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_shr_int(dest, lhs, rhs);
     }
     fn visit_sar_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("SarInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_sar_int(dest, lhs, rhs);
     }
 
     fn visit_rol_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("RolInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_rol_int(dest, lhs, rhs);
     }
     fn visit_ror_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("RorInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_ror_int(dest, lhs, rhs);
     }
 
     fn visit_rol_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("RolInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_rol_int(dest, lhs, rhs);
     }
     fn visit_ror_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("RorInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_ror_int(dest, lhs, rhs);
     }
 
     fn visit_reinterpret_float32_as_int32(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("ReinterpretFloat32AsInt32 {}, {}", dest, src));
         self.emit_reinterpret(dest, src);
     }
     fn visit_reinterpret_int32_as_float32(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("ReinterpretInt32AsFloat32 {}, {}", dest, src));
         self.emit_reinterpret(dest, src);
     }
     fn visit_reinterpret_float64_as_int64(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("ReinterpretFloat64AsInt64 {}, {}", dest, src));
         self.emit_reinterpret(dest, src);
     }
     fn visit_reinterpret_int64_as_float64(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("ReinterpretInt64AsFloat64 {}, {}", dest, src));
         self.emit_reinterpret(dest, src);
     }
 
     fn visit_extend_byte_to_char(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("ExtendByteToChar {}, {}", dest, src));
         self.emit_extend_byte(dest, src, MachineMode::Int32);
     }
     fn visit_extend_byte_to_int32(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("ExtendByteToInt32 {}, {}", dest, src));
         self.emit_extend_byte(dest, src, MachineMode::Int32);
     }
     fn visit_extend_byte_to_int64(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("ExtendByteToInt64 {}, {}", dest, src));
         self.emit_extend_byte(dest, src, MachineMode::Int64);
     }
     fn visit_extend_int32_to_int64(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("ExtendInt32ToInt64 {}, {}", dest, src));
         self.emit_int_to_int64(dest, src);
     }
     fn visit_extend_char_to_int64(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("ExtendCharToInt64 {}, {}", dest, src));
         self.emit_shrink(dest, MachineMode::Int64, src, MachineMode::Int32);
     }
     fn visit_cast_char_to_int32(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("CastCharToInt32 {}, {}", dest, src));
         self.emit_shrink(dest, MachineMode::Int32, src, MachineMode::Int32);
     }
     fn visit_cast_int32_to_uint8(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("CastInt32ToUInt8 {}, {}", dest, src));
         self.emit_shrink(dest, MachineMode::Int8, src, MachineMode::Int32);
     }
     fn visit_cast_int32_to_char(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("CastInt32ToChar {}, {}", dest, src));
         self.emit_shrink(dest, MachineMode::Int32, src, MachineMode::Int32);
     }
     fn visit_cast_int64_to_uint8(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("CastInt64ToUInt8 {}, {}", dest, src));
         self.emit_shrink(dest, MachineMode::Int8, src, MachineMode::Int64);
     }
     fn visit_cast_int64_to_char(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("CastInt64ToChar {}, {}", dest, src));
         self.emit_shrink(dest, MachineMode::Int32, src, MachineMode::Int64);
     }
     fn visit_cast_int64_to_int32(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("CastInt64ToInt32 {}, {}", dest, src));
         self.emit_int64_to_int(dest, src);
     }
 
     fn visit_convert_int32_to_float32(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("ConvertInt32ToFloat32 {}, {}", dest, src));
         self.emit_int_to_float(dest, src);
     }
     fn visit_convert_int32_to_float64(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("ConvertInt32ToFloat64 {}, {}", dest, src));
         self.emit_int_to_float(dest, src);
     }
     fn visit_convert_int64_to_float32(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("ConvertInt64ToFloat32 {}, {}", dest, src));
         self.emit_int_to_float(dest, src);
     }
     fn visit_convert_int64_to_float64(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("ConvertInt64ToFloat64 {}, {}", dest, src));
         self.emit_int_to_float(dest, src);
     }
 
     fn visit_truncate_float32_to_int32(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("TruncateFloat32ToInt32 {}, {}", dest, src));
         self.emit_float_to_int(dest, src);
     }
     fn visit_truncate_float32_to_int64(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("TruncateFloat32ToInt64 {}, {}", dest, src));
         self.emit_float_to_int(dest, src);
     }
     fn visit_truncate_float64_to_int32(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("TruncateFloat64ToInt32 {}, {}", dest, src));
         self.emit_float_to_int(dest, src);
     }
     fn visit_truncate_float64_to_int64(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("TruncateFloat64ToInt64 {}, {}", dest, src));
         self.emit_float_to_int(dest, src);
     }
 
     fn visit_promote_float32_to_float64(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("PromoteFloat32ToFloat64 {}, {}", dest, src));
         self.emit_promote_float(dest, src);
     }
     fn visit_demote_float64_to_float32(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("DemoteFloat64ToFloat32 {}, {}", dest, src));
         self.emit_demote_float64(dest, src);
     }
 
     fn visit_instance_of(&mut self, dest: Register, src: Register, cls_id: ClassDefId) {
+        comment!(self, {
+            let cls = self.vm.class_defs.idx(cls_id);
+            let cls = cls.read();
+            let cname = cls.name(self.vm);
+            format!(
+                "InstanceOf {}, {}, ClassDefId({}) # {}",
+                dest,
+                src,
+                cls_id.to_usize(),
+                cname
+            )
+        });
         self.emit_instanceof(dest, src, cls_id, true);
     }
     fn visit_checked_cast(&mut self, src: Register, cls_id: ClassDefId) {
+        comment!(self, {
+            let cls = self.vm.class_defs.idx(cls_id);
+            let cls = cls.read();
+            let cname = cls.name(self.vm);
+            format!(
+                "CheckedCast {}, ClassDefId({}) # {}",
+                src,
+                cls_id.to_usize(),
+                cname
+            )
+        });
         self.emit_instanceof(Register::invalid(), src, cls_id, false);
     }
 
@@ -2697,34 +2782,44 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
 
     fn visit_push_register(&mut self, src: Register) {
+        comment!(self, format!("PushRegister {}", src));
         self.argument_stack.push(src);
     }
 
     fn visit_const_nil(&mut self, dest: Register) {
+        comment!(self, format!("ConstNil {}", dest));
         self.emit_const_nil(dest);
     }
     fn visit_const_true(&mut self, dest: Register) {
+        comment!(self, format!("ConstTrue {}", dest));
         self.emit_const_bool(dest, true);
     }
     fn visit_const_false(&mut self, dest: Register) {
+        comment!(self, format!("ConstFalse {}", dest));
         self.emit_const_bool(dest, false);
     }
     fn visit_const_zero_uint8(&mut self, dest: Register) {
+        comment!(self, format!("ConstZeroUInt8 {}", dest));
         self.emit_const_int(dest, 0);
     }
     fn visit_const_zero_char(&mut self, dest: Register) {
+        comment!(self, format!("ConstZeroChar {}", dest));
         self.emit_const_int(dest, 0);
     }
     fn visit_const_zero_int32(&mut self, dest: Register) {
+        comment!(self, format!("ConstZeroInt32 {}", dest));
         self.emit_const_int(dest, 0);
     }
     fn visit_const_zero_int64(&mut self, dest: Register) {
+        comment!(self, format!("ConstZeroInt64 {}", dest));
         self.emit_const_int(dest, 0);
     }
     fn visit_const_zero_float32(&mut self, dest: Register) {
+        comment!(self, format!("ConstZeroFloat32 {}", dest));
         self.emit_const_float(dest, 0_f64);
     }
     fn visit_const_zero_float64(&mut self, dest: Register) {
+        comment!(self, format!("ConstZeroFloat64 {}", dest));
         self.emit_const_float(dest, 0_f64);
     }
     fn visit_const_char(&mut self, dest: Register, idx: ConstPoolIdx) {
@@ -2733,10 +2828,15 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
             .const_pool(idx)
             .to_char()
             .expect("unexpected const pool entry");
+        comment!(
+            self,
+            format!("ConstChar {}, {} # {}", dest, idx.to_usize(), value)
+        );
         self.emit_const_int(dest, value as i64);
     }
 
     fn visit_const_uint8(&mut self, dest: Register, value: u8) {
+        comment!(self, format!("ConstUInt8 {}, {}", dest, value));
         self.emit_const_int(dest, value as i64);
     }
     fn visit_const_int32(&mut self, dest: Register, idx: ConstPoolIdx) {
@@ -2745,6 +2845,15 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
             .const_pool(idx)
             .to_int32()
             .expect("unexpected const pool entry");
+        comment!(
+            self,
+            format!(
+                "ConstInt32 {}, ConstPoolId({}) # {}",
+                dest,
+                idx.to_usize(),
+                value
+            )
+        );
         self.emit_const_int(dest, value as i64);
     }
     fn visit_const_int64(&mut self, dest: Register, idx: ConstPoolIdx) {
@@ -2753,6 +2862,15 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
             .const_pool(idx)
             .to_int64()
             .expect("unexpected const pool entry");
+        comment!(
+            self,
+            format!(
+                "ConstInt64 {}, ConstPoolId({}) # {}",
+                dest,
+                idx.to_usize(),
+                value
+            )
+        );
         self.emit_const_int(dest, value);
     }
     fn visit_const_float32(&mut self, dest: Register, idx: ConstPoolIdx) {
@@ -2761,6 +2879,15 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
             .const_pool(idx)
             .to_float32()
             .expect("unexpected const pool entry");
+        comment!(
+            self,
+            format!(
+                "ConstFloat32 {}, ConstPoolId({}) # {}",
+                dest,
+                idx.to_usize(),
+                value
+            )
+        );
         self.emit_const_float(dest, value as f64);
     }
     fn visit_const_float64(&mut self, dest: Register, idx: ConstPoolIdx) {
@@ -2769,6 +2896,15 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
             .const_pool(idx)
             .to_float64()
             .expect("unexpected const pool entry");
+        comment!(
+            self,
+            format!(
+                "ConstFloat64 {}, ConstPoolId({}) # {}",
+                dest,
+                idx.to_usize(),
+                value
+            )
+        );
         self.emit_const_float(dest, value);
     }
     fn visit_const_string(&mut self, dest: Register, idx: ConstPoolIdx) {
@@ -2777,145 +2913,197 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
             .const_pool(idx)
             .to_string()
             .expect("unexpected const pool entry");
+        comment!(
+            self,
+            format!(
+                "ConstString {}, ConstPoolId({}) # {}",
+                dest,
+                idx.to_usize(),
+                value
+            )
+        );
         self.emit_const_string(dest, value);
     }
 
     fn visit_test_eq_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestEqPtr {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
     }
     fn visit_test_ne_ptr(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestNePtr {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::NotEqual);
     }
 
     fn visit_test_eq_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestEqBool {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
     }
     fn visit_test_ne_bool(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestNeBool {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::NotEqual);
     }
 
     fn visit_test_eq_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestEqUInt8 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
     }
     fn visit_test_ne_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestNeUInt8 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::NotEqual);
     }
     fn visit_test_gt_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestGtUInt8 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::Greater);
     }
     fn visit_test_ge_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestGeUInt8 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::GreaterEq);
     }
     fn visit_test_lt_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestLtUInt8 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::Less);
     }
     fn visit_test_le_uint8(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestLeUInt8 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::LessEq);
     }
 
     fn visit_test_eq_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestEqChar {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
     }
     fn visit_test_ne_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestNeChar {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::NotEqual);
     }
     fn visit_test_gt_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestGtChar {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::Greater);
     }
     fn visit_test_ge_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestGeChar {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::GreaterEq);
     }
     fn visit_test_lt_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestLtChar {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::Less);
     }
     fn visit_test_le_char(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestLeChar {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::LessEq);
     }
 
     fn visit_test_eq_enum(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestEqEnum {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
     }
     fn visit_test_ne_enum(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestNeEnum {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::NotEqual);
     }
 
     fn visit_test_eq_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestEqInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
     }
     fn visit_test_ne_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestNeInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::NotEqual);
     }
     fn visit_test_gt_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestGtInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::Greater);
     }
     fn visit_test_ge_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestGeInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::GreaterEq);
     }
     fn visit_test_lt_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestLtInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::Less);
     }
     fn visit_test_le_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestLeInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::LessEq);
     }
 
     fn visit_test_eq_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestEqInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::Equal);
     }
     fn visit_test_ne_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestNeInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::NotEqual);
     }
     fn visit_test_gt_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestGtInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::Greater);
     }
     fn visit_test_ge_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestGeInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::GreaterEq);
     }
     fn visit_test_lt_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestLtInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::Less);
     }
     fn visit_test_le_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestLeInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_generic(dest, lhs, rhs, CondCode::LessEq);
     }
 
     fn visit_test_eq_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestEqFloat32 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_float(dest, lhs, rhs, CondCode::Equal);
     }
     fn visit_test_ne_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestNeFloat32 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_float(dest, lhs, rhs, CondCode::NotEqual);
     }
     fn visit_test_gt_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestGtFloat32 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_float(dest, lhs, rhs, CondCode::Greater);
     }
     fn visit_test_ge_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestGeFloat32 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_float(dest, lhs, rhs, CondCode::GreaterEq);
     }
     fn visit_test_lt_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestLtFloat32 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_float(dest, lhs, rhs, CondCode::Less);
     }
     fn visit_test_le_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestLeFloat32 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_float(dest, lhs, rhs, CondCode::LessEq);
     }
 
     fn visit_test_eq_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestEqFloat64 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_float(dest, lhs, rhs, CondCode::Equal);
     }
     fn visit_test_ne_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestNeFloat64 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_float(dest, lhs, rhs, CondCode::NotEqual);
     }
     fn visit_test_gt_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestGtFloat64 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_float(dest, lhs, rhs, CondCode::Greater);
     }
     fn visit_test_ge_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestGeFloat64 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_float(dest, lhs, rhs, CondCode::GreaterEq);
     }
     fn visit_test_lt_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestLtFloat64 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_float(dest, lhs, rhs, CondCode::Less);
     }
     fn visit_test_le_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("TestLeFloat64 {}, {}, {}", dest, lhs, rhs));
         self.emit_test_float(dest, lhs, rhs, CondCode::LessEq);
     }
 
     fn visit_assert(&mut self, value: Register) {
+        comment!(self, format!("Assert {}", value));
         assert_eq!(self.bytecode.register_type(value), BytecodeType::Bool);
         let position = self.bytecode.offset_position(self.current_offset.to_u32());
         self.emit_load_register(value, REG_RESULT.into());
@@ -2925,6 +3113,15 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
 
     fn visit_jump_if_false(&mut self, opnd: Register, offset: u32) {
         let target = BytecodeOffset(self.current_offset.to_u32() + offset);
+        comment!(
+            self,
+            format!(
+                "JumpIfFalse {}, {} # target {}",
+                opnd,
+                offset,
+                target.to_usize()
+            )
+        );
         self.emit_jump_if(opnd, target, false);
     }
     fn visit_jump_if_false_const(&mut self, opnd: Register, idx: ConstPoolIdx) {
@@ -2933,10 +3130,29 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
             .const_pool(idx)
             .to_int32()
             .expect("int expected");
-        self.visit_jump_if_false(opnd, offset as u32);
+        let target = BytecodeOffset((self.current_offset.to_u32() as i32 + offset) as u32);
+        comment!(
+            self,
+            format!(
+                "JumpIfFalseConst {}, ConstPoolId({}) # target {}",
+                opnd,
+                offset,
+                target.to_usize()
+            )
+        );
+        self.emit_jump_if(opnd, target, false);
     }
     fn visit_jump_if_true(&mut self, opnd: Register, offset: u32) {
         let target = BytecodeOffset(self.current_offset.to_u32() + offset);
+        comment!(
+            self,
+            format!(
+                "JumpIfTrue {}, {} # target {}",
+                opnd,
+                offset,
+                target.to_usize()
+            )
+        );
         self.emit_jump_if(opnd, target, true);
     }
     fn visit_jump_if_true_const(&mut self, opnd: Register, idx: ConstPoolIdx) {
@@ -2945,15 +3161,33 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
             .const_pool(idx)
             .to_int32()
             .expect("int expected");
-        self.visit_jump_if_true(opnd, offset as u32);
+        let target = BytecodeOffset((self.current_offset.to_u32() as i32 + offset) as u32);
+        comment!(
+            self,
+            format!(
+                "JumpIfTrueConst {}, ConstPoolId({}) # target {}",
+                opnd,
+                offset,
+                target.to_usize()
+            )
+        );
+        self.emit_jump_if(opnd, target, true);
     }
     fn visit_jump_loop(&mut self, offset: u32) {
         let target = BytecodeOffset(self.current_offset.to_u32() - offset);
+        comment!(
+            self,
+            format!("JumpLoop {} # target {}", offset, target.to_usize())
+        );
         self.emit_stack_guard();
         self.emit_jump(target);
     }
     fn visit_jump(&mut self, offset: u32) {
         let target = BytecodeOffset(self.current_offset.to_u32() + offset);
+        comment!(
+            self,
+            format!("Jump {} # target {}", offset, target.to_usize())
+        );
         self.emit_jump(target);
     }
     fn visit_jump_const(&mut self, idx: ConstPoolIdx) {
@@ -2962,104 +3196,171 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
             .const_pool(idx)
             .to_int32()
             .expect("int expected");
+        comment!(self, {
+            let target = BytecodeOffset((self.current_offset.to_u32() as i32 + offset) as u32);
+            format!(
+                "JumpConst ConstPoolId({}) # target {}",
+                idx.to_usize(),
+                target.to_usize()
+            )
+        });
         self.visit_jump(offset as u32);
     }
 
     fn visit_invoke_direct_void(&mut self, fctdef: FctDefId) {
+        comment!(self, format!("InvokeDirectVoid {}", fctdef.to_usize()));
         self.emit_invoke_direct(None, fctdef)
     }
     fn visit_invoke_direct(&mut self, dest: Register, fctdef: FctDefId) {
+        comment!(self, format!("InvokeDirect {}", fctdef.to_usize()));
         self.emit_invoke_direct(Some(dest), fctdef);
     }
 
     fn visit_invoke_virtual_void(&mut self, fctdef: FctDefId) {
+        comment!(self, format!("InvokeVirtualVoid {}", fctdef.to_usize()));
         self.emit_invoke_virtual(None, fctdef);
     }
     fn visit_invoke_virtual(&mut self, dest: Register, fctdef: FctDefId) {
+        comment!(self, format!("InvokeVirtual {}", fctdef.to_usize()));
         self.emit_invoke_virtual(Some(dest), fctdef);
     }
 
     fn visit_invoke_static_void(&mut self, fctdef: FctDefId) {
+        comment!(self, format!("InvokeStaticVoid {}", fctdef.to_usize()));
         self.emit_invoke_static(None, fctdef)
     }
     fn visit_invoke_static(&mut self, dest: Register, fctdef: FctDefId) {
+        comment!(self, format!("InvokeStatic {}", fctdef.to_usize()));
         self.emit_invoke_static(Some(dest), fctdef);
     }
 
-    fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {
-        self.emit_new_object(dest, cls)
+    fn visit_new_object(&mut self, dest: Register, cls_id: ClassDefId) {
+        comment!(self, {
+            let cls = self.vm.class_defs.idx(cls_id);
+            let cls = cls.read();
+            let cname = cls.name(self.vm);
+            format!(
+                "NewObject {}, ClassDefId({}) # {}",
+                dest,
+                cls_id.to_usize(),
+                cname
+            )
+        });
+        self.emit_new_object(dest, cls_id)
     }
-    fn visit_new_array(&mut self, dest: Register, cls: ClassDefId, length: Register) {
-        self.emit_new_array(dest, cls, length);
+    fn visit_new_array(&mut self, dest: Register, cls_id: ClassDefId, length: Register) {
+        comment!(self, {
+            let cls = self.vm.class_defs.idx(cls_id);
+            let cls = cls.read();
+            let cname = cls.name(self.vm);
+            format!(
+                "NewArray {}, ClassDefId({}), {} # {}",
+                dest,
+                cls_id.to_usize(),
+                length,
+                cname
+            )
+        });
+        self.emit_new_array(dest, cls_id, length);
     }
     fn visit_new_tuple(&mut self, dest: Register, tuple_id: TupleId) {
+        comment!(self, {
+            let tuple_name = BuiltinType::Tuple(tuple_id).name(self.vm);
+            format!(
+                "NewTuple {}, TupleId({}) # {}",
+                dest,
+                tuple_id.to_usize(),
+                tuple_name
+            )
+        });
         self.emit_new_tuple(dest, tuple_id);
     }
 
     fn visit_nil_check(&mut self, obj: Register) {
+        comment!(self, format!("NilCheck {}", obj));
         self.emit_nil_check(obj);
     }
 
     fn visit_array_length(&mut self, dest: Register, arr: Register) {
+        comment!(self, format!("ArrayLength {}, {}", dest, arr));
         self.emit_array_length(dest, arr);
     }
     fn visit_array_bound_check(&mut self, arr: Register, idx: Register) {
+        comment!(self, format!("ArrayBoundCheck {}, {}", arr, idx));
         self.emit_array_bound_check(arr, idx);
     }
 
     fn visit_load_array_bool(&mut self, dest: Register, arr: Register, idx: Register) {
+        comment!(self, format!("LoadArrayBool {}, {}, {}", dest, arr, idx));
         self.emit_load_array(dest, arr, idx);
     }
     fn visit_load_array_uint8(&mut self, dest: Register, arr: Register, idx: Register) {
+        comment!(self, format!("LoadArrayUInt8 {}, {}, {}", dest, arr, idx));
         self.emit_load_array(dest, arr, idx);
     }
     fn visit_load_array_char(&mut self, dest: Register, arr: Register, idx: Register) {
+        comment!(self, format!("LoadArrayChar {}, {}, {}", dest, arr, idx));
         self.emit_load_array(dest, arr, idx);
     }
     fn visit_load_array_int32(&mut self, dest: Register, arr: Register, idx: Register) {
+        comment!(self, format!("LoadArrayInt32 {}, {}, {}", dest, arr, idx));
         self.emit_load_array(dest, arr, idx);
     }
     fn visit_load_array_int64(&mut self, dest: Register, arr: Register, idx: Register) {
+        comment!(self, format!("LoadArrayInt64 {}, {}, {}", dest, arr, idx));
         self.emit_load_array(dest, arr, idx);
     }
     fn visit_load_array_float32(&mut self, dest: Register, arr: Register, idx: Register) {
+        comment!(self, format!("LoadArrayFloat32 {}, {}, {}", dest, arr, idx));
         self.emit_load_array(dest, arr, idx);
     }
     fn visit_load_array_float64(&mut self, dest: Register, arr: Register, idx: Register) {
+        comment!(self, format!("LoadArrayFloat64 {}, {}, {}", dest, arr, idx));
         self.emit_load_array(dest, arr, idx);
     }
     fn visit_load_array_ptr(&mut self, dest: Register, arr: Register, idx: Register) {
+        comment!(self, format!("LoadArrayPtr {}, {}, {}", dest, arr, idx));
         self.emit_load_array(dest, arr, idx);
     }
     fn visit_load_array_tuple(&mut self, dest: Register, arr: Register, idx: Register) {
+        comment!(self, format!("LoadArrayTuple {}, {}, {}", dest, arr, idx));
         self.emit_load_array(dest, arr, idx);
     }
 
     fn visit_store_array_bool(&mut self, src: Register, arr: Register, idx: Register) {
+        comment!(self, format!("StoreArrayBool {}, {}, {}", src, arr, idx));
         self.emit_store_array(src, arr, idx);
     }
     fn visit_store_array_uint8(&mut self, src: Register, arr: Register, idx: Register) {
+        comment!(self, format!("StoreArrayBool {}, {}, {}", src, arr, idx));
         self.emit_store_array(src, arr, idx);
     }
     fn visit_store_array_char(&mut self, src: Register, arr: Register, idx: Register) {
+        comment!(self, format!("StoreArrayChar {}, {}, {}", src, arr, idx));
         self.emit_store_array(src, arr, idx);
     }
     fn visit_store_array_int32(&mut self, src: Register, arr: Register, idx: Register) {
+        comment!(self, format!("StoreArrayInt32 {}, {}, {}", src, arr, idx));
         self.emit_store_array(src, arr, idx);
     }
     fn visit_store_array_int64(&mut self, src: Register, arr: Register, idx: Register) {
+        comment!(self, format!("StoreArrayInt64 {}, {}, {}", src, arr, idx));
         self.emit_store_array(src, arr, idx);
     }
     fn visit_store_array_float32(&mut self, src: Register, arr: Register, idx: Register) {
+        comment!(self, format!("StoreArrayFloat32 {}, {}, {}", src, arr, idx));
         self.emit_store_array(src, arr, idx);
     }
     fn visit_store_array_float64(&mut self, src: Register, arr: Register, idx: Register) {
+        comment!(self, format!("StoreArrayFloat64 {}, {}, {}", src, arr, idx));
         self.emit_store_array(src, arr, idx);
     }
     fn visit_store_array_ptr(&mut self, src: Register, arr: Register, idx: Register) {
+        comment!(self, format!("StoreArrayPtr {}, {}, {}", src, arr, idx));
         self.emit_store_array(src, arr, idx);
     }
     fn visit_store_array_tuple(&mut self, src: Register, arr: Register, idx: Register) {
+        comment!(self, format!("StoreArrayTuple {}, {}, {}", src, arr, idx));
         self.emit_store_array(src, arr, idx);
     }
 
