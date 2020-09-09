@@ -5,7 +5,9 @@ use crate::bytecode::{
     self, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeVisitor, ConstPoolIdx, Register,
 };
 use crate::compiler::asm::BaselineAssembler;
-use crate::compiler::codegen::{ensure_native_stub, should_emit_debug, AllocationSize, AnyReg};
+use crate::compiler::codegen::{
+    ensure_native_stub, should_emit_asm, should_emit_debug, AllocationSize, AnyReg,
+};
 use crate::compiler::fct::{Code, GcPoint, JitDescriptor};
 use crate::compiler::native_stub::{NativeFct, NativeFctDescriptor};
 use crate::cpu::{
@@ -25,6 +27,17 @@ use crate::vm::{
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
+macro_rules! comment {
+    (
+        $cannon:expr,
+        $out:expr
+    ) => {{
+        if $cannon.should_emit_asm {
+            $cannon.asm.emit_comment($out);
+        }
+    }};
+}
+
 struct ForwardJump {
     label: Label,
     offset: BytecodeOffset,
@@ -37,6 +50,8 @@ pub struct CannonCodeGen<'a, 'ast: 'a> {
     asm: BaselineAssembler<'a, 'ast>,
     src: &'a FctSrc,
     bytecode: &'a BytecodeFunction,
+
+    should_emit_asm: bool,
 
     lbl_break: Option<Label>,
     lbl_continue: Option<Label>,
@@ -106,6 +121,7 @@ where
             asm,
             src,
             bytecode,
+            should_emit_asm: should_emit_asm(vm, fct),
             lbl_break,
             lbl_continue,
             active_finallys,
@@ -171,7 +187,7 @@ where
             return;
         }
 
-        self.asm.emit_comment("clear registers".into());
+        comment!(self, "clear registers".into());
 
         // TODO: provide method in MacroAssembler for zeroing memory
         for word_offset in (start..end).step_by(mem::ptr_width_usize()) {
@@ -1167,20 +1183,6 @@ where
         let field = &cls.fields[field_id.idx()];
 
         assert_eq!(self.bytecode.register_type(dest), field.ty.into());
-
-        {
-            let cname = cls.name(self.vm);
-
-            let cls_id = cls.cls_id.expect("no corresponding class");
-            let class = self.vm.classes.idx(cls_id);
-            let class = class.read();
-            let field = &class.fields[field_id.idx()];
-            let fname = self.vm.interner.str(field.name);
-
-            self.asm
-                .emit_comment(format!("load field {}.{}", cname, fname));
-        }
-
         assert!(self.bytecode.register_type(obj).is_ptr());
 
         let obj_reg = REG_TMP1;
@@ -1222,19 +1224,6 @@ where
         let field = &cls.fields[field_id.idx()];
 
         assert_eq!(self.bytecode.register_type(src), field.ty.into());
-
-        {
-            let cname = cls.name(self.vm);
-
-            let cls_id = cls.cls_id.expect("no corresponding class");
-            let class = self.vm.classes.idx(cls_id);
-            let class = class.read();
-            let field = &class.fields[field_id.idx()];
-            let fname = self.vm.interner.str(field.name);
-
-            self.asm
-                .emit_comment(format!("store field {}.{}", cname, fname));
-        }
 
         let bytecode_type = self.bytecode.register_type(src);
 
@@ -1281,9 +1270,6 @@ where
 
         assert_eq!(self.bytecode.register_type(dest), glob.ty.into());
 
-        let name = self.vm.interner.str(glob.name);
-        self.asm.emit_comment(format!("load global {}", name));
-
         if glob.needs_initialization() {
             let fid = glob.initializer.unwrap();
             let ptr = self.ptr_for_fct_id(fid, TypeList::empty(), TypeList::empty());
@@ -1323,8 +1309,6 @@ where
         let disp = self.asm.add_addr(glob.address_value.to_ptr());
         let pos = self.asm.pos() as i32;
 
-        let name = self.vm.interner.str(glob.name);
-        self.asm.emit_comment(format!("store global {}", name));
         self.asm.load_constpool(REG_TMP1, disp + pos);
 
         let bytecode_type = self.bytecode.register_type(src);
@@ -1410,9 +1394,6 @@ where
         let handle = Str::from_buffer_in_perm(self.vm, lit_value.as_bytes());
         let disp = self.asm.add_addr(handle.raw() as *const u8);
         let pos = self.asm.pos() as i32;
-
-        self.asm
-            .emit_comment(format!("load string '{}'", lit_value));
 
         self.asm.load_constpool(REG_RESULT, disp + pos);
 
@@ -1535,12 +1516,6 @@ where
         let cls = self.vm.class_defs.idx(class_def_id);
         let cls = cls.read();
 
-        {
-            let name = cls.name(self.vm);
-            self.asm
-                .emit_comment(format!("allocate object of class {}", name));
-        }
-
         let alloc_size = match cls.size {
             InstanceSize::Fixed(size) => AllocationSize::Fixed(size as usize),
             _ => unreachable!(
@@ -1562,9 +1537,6 @@ where
         let disp = self.asm.add_addr(cptr);
         let pos = self.asm.pos() as i32;
 
-        let name = cls.name(self.vm);
-        self.asm
-            .emit_comment(format!("store vtable ptr for class {} in object", name));
         self.asm.load_constpool(REG_TMP1.into(), disp + pos);
         self.asm
             .store_mem(MachineMode::Ptr, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
@@ -1592,12 +1564,6 @@ where
 
         let cls = self.vm.class_defs.idx(class_def_id);
         let cls = cls.read();
-
-        {
-            let name = cls.name(self.vm);
-            self.asm
-                .emit_comment(format!("allocate array of type {}", name));
-        }
 
         self.emit_load_register(length, REG_TMP1.into());
 
@@ -1637,9 +1603,6 @@ where
         let disp = self.asm.add_addr(cptr);
         let pos = self.asm.pos() as i32;
 
-        let name = cls.name(self.vm);
-        self.asm
-            .emit_comment(format!("store vtable ptr for class {} in object", name));
         self.asm.load_constpool(REG_TMP1.into(), disp + pos);
         self.asm
             .store_mem(MachineMode::Ptr, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
@@ -1942,8 +1905,6 @@ where
 
         let argsize = self.emit_invoke_arguments(result_register, arguments);
 
-        let name = fct.full_name(self.vm);
-        self.asm.emit_comment(format!("call virtual {}", name));
         let vtable_index = fct.vtable_index.unwrap();
         let gcpoint = self.create_gcpoint();
 
@@ -2012,8 +1973,6 @@ where
 
         let argsize = self.emit_invoke_arguments(result_register, arguments);
 
-        let name = fct.full_name(self.vm);
-        self.asm.emit_comment(format!("call direct {}", name));
         let ptr = self.ptr_for_fct_id(fct_id, cls_type_params.clone(), fct_type_params.clone());
         let gcpoint = self.create_gcpoint();
 
@@ -2073,9 +2032,6 @@ where
             };
 
             let argsize = self.emit_invoke_arguments(result_register, arguments);
-
-            let name = fct.full_name(self.vm);
-            self.asm.emit_comment(format!("call static {}", name));
 
             let ptr = self.ptr_for_fct_id(fct_id, cls_type_params.clone(), fct_type_params.clone());
             let gcpoint = self.create_gcpoint();
@@ -2379,23 +2335,19 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
 
     fn visit_add_int32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.asm
-            .emit_comment(format!("AddInt32 {}, {}, {}", dest, lhs, rhs));
+        comment!(self, format!("AddInt32 {}, {}, {}", dest, lhs, rhs));
         self.emit_add_int(dest, lhs, rhs);
     }
     fn visit_add_int64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.asm
-            .emit_comment(format!("AddInt64 {}, {}, {}", dest, lhs, rhs));
+        comment!(self, format!("AddInt64 {}, {}, {}", dest, lhs, rhs));
         self.emit_add_int(dest, lhs, rhs);
     }
     fn visit_add_float32(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.asm
-            .emit_comment(format!("AddFloat32 {}, {}, {}", dest, lhs, rhs));
+        comment!(self, format!("AddFloat32 {}, {}, {}", dest, lhs, rhs));
         self.emit_add_float(dest, lhs, rhs);
     }
     fn visit_add_float64(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.asm
-            .emit_comment(format!("AddFloat64 {}, {}, {}", dest, lhs, rhs));
+        comment!(self, format!("AddFloat64 {}, {}, {}", dest, lhs, rhs));
         self.emit_add_float(dest, lhs, rhs);
     }
 
@@ -2611,49 +2563,49 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
 
     fn visit_mov_bool(&mut self, dest: Register, src: Register) {
-        self.asm.emit_comment(format!("MovBool {}, {}", dest, src));
+        comment!(self, format!("MovBool {}, {}", dest, src));
         self.emit_mov_generic(dest, src);
     }
     fn visit_mov_uint8(&mut self, dest: Register, src: Register) {
-        self.asm.emit_comment(format!("MovUInt8 {}, {}", dest, src));
+        comment!(self, format!("MovUInt8 {}, {}", dest, src));
         self.emit_mov_generic(dest, src);
     }
     fn visit_mov_char(&mut self, dest: Register, src: Register) {
-        self.asm.emit_comment(format!("MovChar {}, {}", dest, src));
+        comment!(self, format!("MovChar {}, {}", dest, src));
         self.emit_mov_generic(dest, src);
     }
     fn visit_mov_int32(&mut self, dest: Register, src: Register) {
-        self.asm.emit_comment(format!("MovInt32 {}, {}", dest, src));
+        comment!(self, format!("MovInt32 {}, {}", dest, src));
         self.emit_mov_generic(dest, src);
     }
     fn visit_mov_int64(&mut self, dest: Register, src: Register) {
-        self.asm.emit_comment(format!("MovInt64 {}, {}", dest, src));
+        comment!(self, format!("MovInt64 {}, {}", dest, src));
         self.emit_mov_generic(dest, src);
     }
     fn visit_mov_float32(&mut self, dest: Register, src: Register) {
-        self.asm
-            .emit_comment(format!("MovFloat32 {}, {}", dest, src));
+        comment!(self, format!("MovFloat32 {}, {}", dest, src));
         self.emit_mov_generic(dest, src);
     }
     fn visit_mov_float64(&mut self, dest: Register, src: Register) {
-        self.asm
-            .emit_comment(format!("MovFloat64 {}, {}", dest, src));
+        comment!(self, format!("MovFloat64 {}, {}", dest, src));
         self.emit_mov_generic(dest, src);
     }
     fn visit_mov_ptr(&mut self, dest: Register, src: Register) {
-        self.asm.emit_comment(format!("MovPtr {}, {}", dest, src));
+        comment!(self, format!("MovPtr {}, {}", dest, src));
         self.emit_mov_generic(dest, src);
     }
     fn visit_mov_tuple(&mut self, dest: Register, src: Register, tuple_id: TupleId) {
-        let tuple_ty = BuiltinType::Tuple(tuple_id);
-        let tuple_ty_name = tuple_ty.name(self.vm);
-        self.asm.emit_comment(format!(
-            "MovTuple {}, {}, Tuple({})={}",
-            dest,
-            src,
-            tuple_id.to_usize(),
-            tuple_ty_name,
-        ));
+        comment!(self, {
+            let tuple_ty = BuiltinType::Tuple(tuple_id);
+            let tuple_ty_name = tuple_ty.name(self.vm);
+            format!(
+                "MovTuple {}, {}, Tuple({})={}",
+                dest,
+                src,
+                tuple_id.to_usize(),
+                tuple_ty_name,
+            )
+        });
 
         self.emit_mov_tuple(dest, src, tuple_id);
     }
@@ -2665,33 +2617,83 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         tuple_id: TupleId,
         idx: u32,
     ) {
-        let tuple_ty = BuiltinType::Tuple(tuple_id);
-        let tuple_ty_name = tuple_ty.name(self.vm);
-        self.asm.emit_comment(format!(
-            "LoadTupleElement {}, {}, Tuple({})={}.{}",
-            dest,
-            src,
-            tuple_id.to_usize(),
-            tuple_ty_name,
-            idx
-        ));
+        comment!(self, {
+            let tuple_ty = BuiltinType::Tuple(tuple_id);
+            let tuple_ty_name = tuple_ty.name(self.vm);
+            format!(
+                "LoadTupleElement {}, {}, Tuple({})={}.{}",
+                dest,
+                src,
+                tuple_id.to_usize(),
+                tuple_ty_name,
+                idx
+            )
+        });
         self.emit_load_tuple_element(dest, src, tuple_id, idx);
     }
 
     fn visit_load_field(&mut self, dest: Register, obj: Register, cls: ClassDefId, field: FieldId) {
+        comment!(self, {
+            let cls = self.vm.class_defs.idx(cls);
+            let cls = cls.read();
+            let cname = cls.name(self.vm);
+
+            let cls_id = cls.cls_id.expect("no corresponding class");
+            let cls = self.vm.classes.idx(cls_id);
+            let cls = cls.read();
+            let field = &cls.fields[field.idx()];
+            let fname = self.vm.interner.str(field.name);
+
+            format!("LoadField {}, {}, {}.{}", dest, obj, cname, fname)
+        });
         self.emit_load_field(dest, obj, cls, field);
     }
 
     fn visit_store_field(&mut self, src: Register, obj: Register, cls: ClassDefId, field: FieldId) {
+        comment!(self, {
+            let cls = self.vm.class_defs.idx(cls);
+            let cls = cls.read();
+            let cname = cls.name(self.vm);
+
+            let cls_id = cls.cls_id.expect("no corresponding class");
+            let cls = self.vm.classes.idx(cls_id);
+            let cls = cls.read();
+            let field = &cls.fields[field.idx()];
+            let fname = self.vm.interner.str(field.name);
+
+            format!("StoreField {}, {}, {}.{}", src, obj, cname, fname)
+        });
         self.emit_store_field(src, obj, cls, field);
     }
 
-    fn visit_load_global(&mut self, dest: Register, glob: GlobalId) {
-        self.emit_load_global(dest, glob);
+    fn visit_load_global(&mut self, dest: Register, glob_id: GlobalId) {
+        comment!(self, {
+            let glob = self.vm.globals.idx(glob_id);
+            let glob = glob.read();
+            let name = self.vm.interner.str(glob.name);
+            format!(
+                "LoadGlobal {}, Global({}) # ({})",
+                dest,
+                glob_id.to_usize(),
+                name
+            )
+        });
+        self.emit_load_global(dest, glob_id);
     }
 
-    fn visit_store_global(&mut self, src: Register, glob: GlobalId) {
-        self.emit_store_global(src, glob);
+    fn visit_store_global(&mut self, src: Register, glob_id: GlobalId) {
+        comment!(self, {
+            let glob = self.vm.globals.idx(glob_id);
+            let glob = glob.read();
+            let name = self.vm.interner.str(glob.name);
+            format!(
+                "StoreGlobal {}, Global({}) # ({})",
+                src,
+                glob_id.to_usize(),
+                name
+            )
+        });
+        self.emit_store_global(src, glob_id);
     }
 
     fn visit_push_register(&mut self, src: Register) {
@@ -3062,11 +3064,11 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
     }
 
     fn visit_ret_void(&mut self) {
-        self.asm.emit_comment(format!("RetVoid"));
+        comment!(self, format!("RetVoid"));
         self.emit_epilog();
     }
     fn visit_ret(&mut self, opnd: Register) {
-        self.asm.emit_comment(format!("Ret {}", opnd));
+        comment!(self, format!("Ret {}", opnd));
         self.emit_return_generic(opnd);
     }
 }
