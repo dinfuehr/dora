@@ -3332,7 +3332,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_store_array(src, arr, idx);
     }
     fn visit_store_array_uint8(&mut self, src: Register, arr: Register, idx: Register) {
-        comment!(self, format!("StoreArrayBool {}, {}, {}", src, arr, idx));
+        comment!(self, format!("StoreArrayUInt8 {}, {}, {}", src, arr, idx));
         self.emit_store_array(src, arr, idx);
     }
     fn visit_store_array_char(&mut self, src: Register, arr: Register, idx: Register) {
