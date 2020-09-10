@@ -1255,10 +1255,7 @@ class AssemblerX64: Assembler {
 
     fun resolveJumps() {
         for element in self.jumps {
-            let pc = element.0;
-            let lbl = element.1;
-            let distance = element.2;
-
+            let (pc, lbl, distance) = element;
             assert(lbl.isBound());
 
             if distance == JumpDistance::Near {
