@@ -303,6 +303,55 @@ fn gen_stmt_let_tuple() {
 }
 
 #[test]
+fn gen_stmt_let_unit() {
+    let result = code("fun f(value: ()) { let () = value; }");
+    let expected = vec![RetVoid];
+    assert_eq!(expected, result);
+
+    let result = code("fun f() { let x = (); }");
+    let expected = vec![RetVoid];
+    assert_eq!(expected, result);
+
+    gen(
+        "fun f(value: (Int32, (Int32, ()))) -> Int32 { let (x, (y, z)) = value; x+y }",
+        |vm, code| {
+            let nested_tuple_id = ensure_tuple(vm, vec![BuiltinType::Int32, BuiltinType::Unit]);
+            let tuple_id = ensure_tuple(
+                vm,
+                vec![BuiltinType::Int32, BuiltinType::Tuple(nested_tuple_id)],
+            );
+            let expected = vec![
+                LoadTupleElement(r(1), r(0), tuple_id, 0),
+                LoadTupleElement(r(2), r(0), tuple_id, 1),
+                LoadTupleElement(r(3), r(2), nested_tuple_id, 0),
+                AddInt32(r(4), r(1), r(3)),
+                Ret(r(4)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+
+    gen(
+        "fun f(value: (Int32, (Int32, ()))) -> Int32 { let (x, (y, ())) = value; x+y }",
+        |vm, code| {
+            let nested_tuple_id = ensure_tuple(vm, vec![BuiltinType::Int32, BuiltinType::Unit]);
+            let tuple_id = ensure_tuple(
+                vm,
+                vec![BuiltinType::Int32, BuiltinType::Tuple(nested_tuple_id)],
+            );
+            let expected = vec![
+                LoadTupleElement(r(1), r(0), tuple_id, 0),
+                LoadTupleElement(r(2), r(0), tuple_id, 1),
+                LoadTupleElement(r(3), r(2), nested_tuple_id, 0),
+                AddInt32(r(4), r(1), r(3)),
+                Ret(r(4)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
 fn gen_stmt_while() {
     let result = code("fun f() { while true { 0; } }");
     let code = vec![ConstTrue(r(0)), JumpIfFalse(r(0), 3), JumpLoop(0), RetVoid];
