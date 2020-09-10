@@ -162,6 +162,20 @@ impl<'a, 'ast> BytecodeDumper<'a, 'ast> {
         writeln!(self.w, " {} # target {}", offset, bc_target).expect("write! failed");
     }
 
+    fn emit_jump_const(&mut self, name: &str, idx: ConstPoolIdx) {
+        self.emit_start(name);
+        let offset = self.bc.const_pool(idx).to_int32().expect("int expected");
+        let bc_target = self.pos.to_u32() as i32 + offset;
+        writeln!(
+            self.w,
+            " ConstPoolId({}) # offset {}, target {}",
+            idx.to_usize(),
+            offset,
+            bc_target
+        )
+        .expect("write! failed");
+    }
+
     fn emit_field(
         &mut self,
         name: &str,
@@ -757,7 +771,7 @@ impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
         self.emit_jump("Jump", offset as i32);
     }
     fn visit_jump_const(&mut self, idx: ConstPoolIdx) {
-        self.emit_idx("JumpConst", idx);
+        self.emit_jump_const("JumpConst", idx);
     }
 
     fn visit_invoke_direct_void(&mut self, fctdef: FctDefId) {
