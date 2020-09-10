@@ -2717,38 +2717,66 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
         self.emit_load_tuple_element(dest, src, tuple_id, idx);
     }
 
-    fn visit_load_field(&mut self, dest: Register, obj: Register, cls: ClassDefId, field: FieldId) {
+    fn visit_load_field(
+        &mut self,
+        dest: Register,
+        obj: Register,
+        cls_id: ClassDefId,
+        field_id: FieldId,
+    ) {
         comment!(self, {
-            let cls = self.vm.class_defs.idx(cls);
+            let cls = self.vm.class_defs.idx(cls_id);
             let cls = cls.read();
             let cname = cls.name(self.vm);
 
-            let cls_id = cls.cls_id.expect("no corresponding class");
-            let cls = self.vm.classes.idx(cls_id);
+            let cls_src_id = cls.cls_id.expect("no corresponding class");
+            let cls = self.vm.classes.idx(cls_src_id);
             let cls = cls.read();
-            let field = &cls.fields[field.idx()];
+            let field = &cls.fields[field_id.idx()];
             let fname = self.vm.interner.str(field.name);
 
-            format!("LoadField {}, {}, {}.{}", dest, obj, cname, fname)
+            format!(
+                "LoadField {}, {}, ClassDefId({}).FieldId({}) # {}.{}",
+                dest,
+                obj,
+                cls_id.to_usize(),
+                field_id.to_usize(),
+                cname,
+                fname
+            )
         });
-        self.emit_load_field(dest, obj, cls, field);
+        self.emit_load_field(dest, obj, cls_id, field_id);
     }
 
-    fn visit_store_field(&mut self, src: Register, obj: Register, cls: ClassDefId, field: FieldId) {
+    fn visit_store_field(
+        &mut self,
+        src: Register,
+        obj: Register,
+        cls_id: ClassDefId,
+        field_id: FieldId,
+    ) {
         comment!(self, {
-            let cls = self.vm.class_defs.idx(cls);
+            let cls = self.vm.class_defs.idx(cls_id);
             let cls = cls.read();
             let cname = cls.name(self.vm);
 
-            let cls_id = cls.cls_id.expect("no corresponding class");
-            let cls = self.vm.classes.idx(cls_id);
+            let cls_src_id = cls.cls_id.expect("no corresponding class");
+            let cls = self.vm.classes.idx(cls_src_id);
             let cls = cls.read();
-            let field = &cls.fields[field.idx()];
+            let field = &cls.fields[field_id.idx()];
             let fname = self.vm.interner.str(field.name);
 
-            format!("StoreField {}, {}, {}.{}", src, obj, cname, fname)
+            format!(
+                "StoreField {}, {}, ClassDefId({}).FieldId({}) # {}.{}",
+                src,
+                obj,
+                cls_id.to_usize(),
+                field_id.to_usize(),
+                cname,
+                fname
+            )
         });
-        self.emit_store_field(src, obj, cls, field);
+        self.emit_store_field(src, obj, cls_id, field_id);
     }
 
     fn visit_load_global(&mut self, dest: Register, glob_id: GlobalId) {
@@ -2757,7 +2785,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
             let glob = glob.read();
             let name = self.vm.interner.str(glob.name);
             format!(
-                "LoadGlobal {}, Global({}) # ({})",
+                "LoadGlobal {}, GlobalId({}) # {}",
                 dest,
                 glob_id.to_usize(),
                 name
@@ -2772,7 +2800,7 @@ impl<'a, 'ast: 'a> BytecodeVisitor for CannonCodeGen<'a, 'ast> {
             let glob = glob.read();
             let name = self.vm.interner.str(glob.name);
             format!(
-                "StoreGlobal {}, Global({}) # ({})",
+                "StoreGlobal {}, GlobalId({}) # {}",
                 src,
                 glob_id.to_usize(),
                 name

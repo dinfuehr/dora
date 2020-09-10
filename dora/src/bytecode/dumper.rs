@@ -3,14 +3,16 @@ use std::io;
 use crate::bytecode::{
     read, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, Register,
 };
-use crate::vm::{ClassDefId, FctDefId, FieldId, GlobalId, TupleId};
+use crate::ty::BuiltinType;
+use crate::vm::{ClassDefId, FctDefId, FieldId, GlobalId, TupleId, VM};
 
-pub fn dump(bc: &BytecodeFunction) {
+pub fn dump<'ast>(vm: &VM<'ast>, bc: &BytecodeFunction) {
     let mut stdout = io::stdout();
     let mut visitor = BytecodeDumper {
         bc,
         pos: BytecodeOffset(0),
         w: &mut stdout,
+        vm,
     };
     read(bc.code(), &mut visitor);
     print!("Registers:");
@@ -41,13 +43,14 @@ pub fn dump(bc: &BytecodeFunction) {
     println!();
 }
 
-struct BytecodeDumper<'a> {
+struct BytecodeDumper<'a, 'ast: 'a> {
     bc: &'a BytecodeFunction,
     pos: BytecodeOffset,
     w: &'a mut dyn io::Write,
+    vm: &'a VM<'ast>,
 }
 
-impl<'a> BytecodeDumper<'a> {
+impl<'a, 'ast> BytecodeDumper<'a, 'ast> {
     fn emit_inst(&mut self, name: &str) {
         self.emit_start(name);
         writeln!(self.w, "").expect("write! failed");
@@ -83,7 +86,18 @@ impl<'a> BytecodeDumper<'a> {
 
     fn emit_reg2_cls(&mut self, name: &str, r1: Register, r2: Register, cls_id: ClassDefId) {
         self.emit_start(name);
-        writeln!(self.w, " {}, {}, {}", r1, r2, cls_id.to_usize()).expect("write! failed");
+        let cls = self.vm.class_defs.idx(cls_id);
+        let cls = cls.read();
+        let cname = cls.name(self.vm);
+        writeln!(
+            self.w,
+            " {}, {}, ClassDefId({}) # {}",
+            r1,
+            r2,
+            cls_id.to_usize(),
+            cname,
+        )
+        .expect("write! failed");
     }
 
     fn emit_reg1(&mut self, name: &str, r1: Register) {
@@ -93,7 +107,17 @@ impl<'a> BytecodeDumper<'a> {
 
     fn emit_reg1_cls(&mut self, name: &str, r1: Register, cls_id: ClassDefId) {
         self.emit_start(name);
-        writeln!(self.w, " {}, {}", r1, cls_id.to_usize()).expect("write! failed");
+        let cls = self.vm.class_defs.idx(cls_id);
+        let cls = cls.read();
+        let cname = cls.name(self.vm);
+        writeln!(
+            self.w,
+            " {}, ClassDefId({}) # {}",
+            r1,
+            cls_id.to_usize(),
+            cname
+        )
+        .expect("write! failed");
     }
 
     fn emit_reg1_idx(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
@@ -111,10 +135,31 @@ impl<'a> BytecodeDumper<'a> {
         writeln!(self.w, " {}, 0x{:x}/{}", r1, value, value).expect("write! failed");
     }
 
+    fn emit_cond_jump(&mut self, name: &str, opnd: Register, offset: i32) {
+        self.emit_start(name);
+        let bc_target = self.pos.to_u32() as i32 + offset;
+        writeln!(self.w, " {}, {} # target {}", opnd, offset, bc_target).expect("write! failed");
+    }
+
+    fn emit_cond_jump_const(&mut self, name: &str, opnd: Register, idx: ConstPoolIdx) {
+        self.emit_start(name);
+        let offset = self.bc.const_pool(idx).to_int32().expect("int expected");
+        let bc_target = self.pos.to_u32() as i32 + offset;
+        writeln!(
+            self.w,
+            " {}, ConstPooldId({}) # offset {}, target {}",
+            opnd,
+            idx.to_usize(),
+            offset,
+            bc_target
+        )
+        .expect("write! failed");
+    }
+
     fn emit_jump(&mut self, name: &str, offset: i32) {
         self.emit_start(name);
         let bc_target = self.pos.to_u32() as i32 + offset;
-        writeln!(self.w, " #{}", bc_target).expect("write! failed");
+        writeln!(self.w, " {} # target {}", offset, bc_target).expect("write! failed");
     }
 
     fn emit_field(
@@ -126,20 +171,35 @@ impl<'a> BytecodeDumper<'a> {
         fid: FieldId,
     ) {
         self.emit_start(name);
+        let cls = self.vm.class_defs.idx(cid);
+        let cls = cls.read();
+        let cname = cls.name(self.vm);
+
+        let cls_id = cls.cls_id.expect("no corresponding class");
+        let cls = self.vm.classes.idx(cls_id);
+        let cls = cls.read();
+        let field = &cls.fields[fid.idx()];
+        let fname = self.vm.interner.str(field.name);
         writeln!(
             self.w,
-            " {}, {}, {}:{}",
+            " {}, {}, ClassDefId({}.FieldId({}) # {}.{}",
             r1,
             r2,
             cid.to_usize(),
-            fid.to_usize()
+            fid.to_usize(),
+            cname,
+            fname,
         )
         .expect("write! failed");
     }
 
     fn emit_global(&mut self, name: &str, r1: Register, gid: GlobalId) {
         self.emit_start(name);
-        writeln!(self.w, " {}, {}", r1, gid.to_usize()).expect("write! failed");
+        let glob = self.vm.globals.idx(gid);
+        let glob = glob.read();
+        let name = self.vm.interner.str(glob.name);
+        writeln!(self.w, " {}, GlobalId({}) # {}", r1, gid.to_usize(), name)
+            .expect("write! failed");
     }
 
     fn emit_fct_void(&mut self, name: &str, fid: FctDefId) {
@@ -152,19 +212,48 @@ impl<'a> BytecodeDumper<'a> {
         writeln!(self.w, " {}, {}", r1, fid.to_usize()).expect("write! failed");
     }
 
-    fn emit_new(&mut self, name: &str, r1: Register, cls: ClassDefId) {
+    fn emit_new(&mut self, name: &str, r1: Register, cls_id: ClassDefId) {
         self.emit_start(name);
-        writeln!(self.w, " {}, {}", r1, cls.to_usize()).expect("write! failed");
+        let cls = self.vm.class_defs.idx(cls_id);
+        let cls = cls.read();
+        let cname = cls.name(self.vm);
+        writeln!(
+            self.w,
+            " {}, ClassDefId({}) # {}",
+            r1,
+            cls_id.to_usize(),
+            cname
+        )
+        .expect("write! failed");
     }
 
-    fn emit_new_array(&mut self, name: &str, r1: Register, cls: ClassDefId, length: Register) {
+    fn emit_new_array(&mut self, name: &str, r1: Register, cls_id: ClassDefId, length: Register) {
         self.emit_start(name);
-        writeln!(self.w, " {}, {}, {}", r1, cls.to_usize(), length).expect("write! failed");
+        let cls = self.vm.class_defs.idx(cls_id);
+        let cls = cls.read();
+        let cname = cls.name(self.vm);
+        writeln!(
+            self.w,
+            " {}, ClassDefId({}), {} # {}",
+            r1,
+            cls_id.to_usize(),
+            length,
+            cname,
+        )
+        .expect("write! failed");
     }
 
     fn emit_new_tuple(&mut self, name: &str, r1: Register, tuple_id: TupleId) {
         self.emit_start(name);
-        writeln!(self.w, " {}, {}", r1, tuple_id.to_usize()).expect("write! failed");
+        let tuple_name = BuiltinType::Tuple(tuple_id).name(self.vm);
+        writeln!(
+            self.w,
+            " {}, TupleId({}) # {}",
+            r1,
+            tuple_id.to_usize(),
+            tuple_name
+        )
+        .expect("write! failed");
     }
 
     fn emit_start(&mut self, name: &str) {
@@ -172,7 +261,7 @@ impl<'a> BytecodeDumper<'a> {
     }
 }
 
-impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
+impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
     fn visit_instruction(&mut self, offset: BytecodeOffset) {
         self.pos = offset;
     }
@@ -647,16 +736,16 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     }
 
     fn visit_jump_if_false(&mut self, opnd: Register, offset: u32) {
-        self.emit_reg1_u32("JumpIfFalse", opnd, offset);
+        self.emit_cond_jump("JumpIfFalse", opnd, offset as i32);
     }
     fn visit_jump_if_false_const(&mut self, opnd: Register, idx: ConstPoolIdx) {
-        self.emit_reg1_idx("JumpIfFalseConst", opnd, idx);
+        self.emit_cond_jump_const("JumpIfFalseConst", opnd, idx);
     }
     fn visit_jump_if_true(&mut self, opnd: Register, offset: u32) {
-        self.emit_reg1_u32("JumpIfTrue", opnd, offset);
+        self.emit_cond_jump("JumpIfTrue", opnd, offset as i32);
     }
     fn visit_jump_if_true_const(&mut self, opnd: Register, idx: ConstPoolIdx) {
-        self.emit_reg1_idx("JumpIfTrueConst", opnd, idx);
+        self.emit_cond_jump_const("JumpIfTrueConst", opnd, idx);
     }
     fn visit_jump_loop(&mut self, offset: u32) {
         self.emit_jump("JumpLoop", -(offset as i32));

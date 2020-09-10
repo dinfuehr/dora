@@ -19,7 +19,7 @@ pub(super) fn compile<'a, 'ast: 'a>(
     let bytecode_fct = bytecode::generate(vm, fct, src, cls_type_params, fct_type_params);
 
     if should_emit_bytecode(vm, fct) {
-        bytecode::dump(&bytecode_fct);
+        bytecode::dump(vm, &bytecode_fct);
     }
 
     CannonCodeGen::new(
