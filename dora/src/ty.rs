@@ -137,6 +137,14 @@ impl BuiltinType {
         }
     }
 
+    pub fn is_tuple_or_unit(&self) -> bool {
+        match self {
+            &BuiltinType::Tuple(_) => true,
+            &BuiltinType::Unit => true,
+            _ => false,
+        }
+    }
+
     pub fn cls_id(&self, vm: &VM) -> Option<ClassId> {
         match *self {
             BuiltinType::Class(cls_id, _) => Some(cls_id),

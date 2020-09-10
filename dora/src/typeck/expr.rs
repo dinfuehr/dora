@@ -135,13 +135,25 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             LetPattern::Tuple(ref tuple) => {
-                if !ty.is_tuple() {
+                if !ty.is_tuple_or_unit() {
                     let ty_name = ty.name(self.vm);
                     self.vm.diag.lock().report(
                         self.file,
                         tuple.pos,
-                        SemError::ExpectedTuple(ty_name),
+                        SemError::LetPatternExpectedTuple(ty_name),
                     );
+                    return;
+                }
+
+                if ty.is_unit() {
+                    // () doesn't have any subparts
+                    if tuple.parts.len() != 0 {
+                        self.vm.diag.lock().report(
+                            self.file,
+                            tuple.pos,
+                            SemError::LetPatternShouldBeUnit,
+                        );
+                    }
                     return;
                 }
 
@@ -153,7 +165,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     self.vm.diag.lock().report(
                         self.file,
                         tuple.pos,
-                        SemError::ExpectedTupleWithLength(ty_name, parts, tuple.parts.len()),
+                        SemError::LetPatternExpectedTupleWithLength(
+                            ty_name,
+                            parts,
+                            tuple.parts.len(),
+                        ),
                     );
                     return;
                 }

@@ -353,13 +353,30 @@ fn type_let() {
     err(
         "fun f() { let (a, b) = true; }",
         pos(1, 15),
-        SemError::ExpectedTuple("Bool".into()),
+        SemError::LetPatternExpectedTuple("Bool".into()),
+    );
+
+    ok("fun f(value: ()) { let () = value; }");
+    err(
+        "fun f() { let () = true; }",
+        pos(1, 15),
+        SemError::LetPatternExpectedTuple("Bool".into()),
+    );
+    err(
+        "fun f() { let (a, b) = (); }",
+        pos(1, 15),
+        SemError::LetPatternShouldBeUnit,
     );
 
     err(
         "fun f() { let (a, b) = (true,); }",
         pos(1, 15),
-        SemError::ExpectedTupleWithLength("(Bool)".into(), 1, 2),
+        SemError::LetPatternExpectedTupleWithLength("(Bool)".into(), 1, 2),
+    );
+    err(
+        "fun f() { let () = (true,); }",
+        pos(1, 15),
+        SemError::LetPatternExpectedTupleWithLength("(Bool)".into(), 1, 0),
     );
 
     ok("fun f(value: (Int32, (Int32, Int32))) -> Int32 { let (a, (b, c)) = value; a+b+c }");
