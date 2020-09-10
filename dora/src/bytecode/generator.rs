@@ -160,7 +160,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let index_reg = self.alloc_var(BytecodeType::Int64);
         let length_reg = self.alloc_var(BytecodeType::Int64);
 
-        let for_var_id = *self.src.map_vars.get(stmt.id).unwrap();
+        let ident_id = stmt.pattern.to_ident().expect("name expected").id;
+        let for_var_id = *self.src.map_vars.get(ident_id).unwrap();
         let var_ty = self.var_ty(for_var_id);
         let var_ty: BytecodeType = var_ty.into();
         let var_reg = self.alloc_var(var_ty);
@@ -259,7 +260,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.free_temp(cond_reg);
 
         // Emit: <var> = <iterator>.next()
-        let var_id = *self.src.map_vars.get(stmt.id).unwrap();
+        let ident = stmt.pattern.to_ident().expect("name expected");
+        let var_id = *self.src.map_vars.get(ident.id).unwrap();
         let var_ty = self.var_ty(var_id);
 
         let ty: BytecodeType = var_ty.into();

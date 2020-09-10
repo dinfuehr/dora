@@ -154,16 +154,16 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             self.visit_expr(expr);
         }
 
-        self.check_stmt_let_pattern(let_decl, &let_decl.pattern);
+        self.check_stmt_let_pattern(&let_decl.pattern, let_decl.reassignable);
     }
 
-    fn check_stmt_let_pattern(&mut self, let_decl: &'ast StmtLetType, pattern: &LetPattern) {
+    fn check_stmt_let_pattern(&mut self, pattern: &LetPattern, reassignable: bool) {
         match pattern {
             LetPattern::Ident(ref ident) => {
                 let var_ctxt = Var {
                     id: VarId(0),
                     name: ident.name,
-                    reassignable: let_decl.reassignable || ident.mutable,
+                    reassignable: reassignable || ident.mutable,
                     ty: BuiltinType::Unit,
                     node_id: ident.id,
                 };
@@ -178,7 +178,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
             LetPattern::Tuple(ref tuple) => {
                 for sub in &tuple.parts {
-                    self.check_stmt_let_pattern(let_decl, sub);
+                    self.check_stmt_let_pattern(sub, reassignable);
                 }
             }
         }
@@ -189,16 +189,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
         self.vm.sym.lock().push_level();
 
-        let var_ctxt = Var {
-            id: VarId(0),
-            name: fl.name,
-            reassignable: false,
-            ty: BuiltinType::Unit,
-            node_id: fl.id,
-        };
-
-        let var_id = self.add_var(var_ctxt, fl.pos);
-        self.src.map_vars.insert(fl.id, var_id);
+        self.check_stmt_let_pattern(&fl.pattern, false);
 
         self.visit_stmt(&fl.block);
         self.vm.sym.lock().pop_level();

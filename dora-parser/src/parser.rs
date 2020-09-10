@@ -1334,7 +1334,7 @@ impl<'a> Parser<'a> {
     fn parse_for(&mut self) -> StmtResult {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::For)?.position;
-        let name = self.expect_identifier()?;
+        let pattern = self.parse_let_pattern()?;
         self.expect_token(TokenKind::In)?;
         let expr = self.parse_expression_no_struct_lit()?;
         let block = self.parse_block_stmt()?;
@@ -1344,7 +1344,7 @@ impl<'a> Parser<'a> {
             self.generate_id(),
             pos,
             span,
-            name,
+            pattern,
             expr,
             block,
         )))

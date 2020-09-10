@@ -715,7 +715,7 @@ impl Stmt {
         id: NodeId,
         pos: Position,
         span: Span,
-        name: Name,
+        pattern: Box<LetPattern>,
         expr: Box<Expr>,
         block: Box<Stmt>,
     ) -> Stmt {
@@ -724,7 +724,7 @@ impl Stmt {
             pos,
             span,
 
-            name,
+            pattern,
             expr,
             block,
         })
@@ -1004,7 +1004,7 @@ pub struct StmtForType {
     pub pos: Position,
     pub span: Span,
 
-    pub name: Name,
+    pub pattern: Box<LetPattern>,
     pub expr: Box<Expr>,
     pub block: Box<Stmt>,
 }

@@ -182,35 +182,36 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_stmt_for(&mut self, s: &'ast StmtForType) {
-        let object_type = self.check_expr(&s.expr, BuiltinType::Any);
+    fn check_stmt_for(&mut self, stmt: &'ast StmtForType) {
+        let object_type = self.check_expr(&stmt.expr, BuiltinType::Any);
 
         if object_type.is_error() {
-            let var_id = *self.src.map_vars.get(s.id).unwrap();
+            let var_id = *self.src.map_vars.get(stmt.id).unwrap();
             self.src.vars[var_id].ty = BuiltinType::Error;
-            self.visit_stmt(&s.block);
+            self.visit_stmt(&stmt.block);
             return;
         }
 
         if let Some(cls_id) = object_type.cls_id(self.vm) {
             if cls_id == self.vm.vips.array_class {
-                let var_id = *self.src.map_vars.get(s.id).unwrap();
                 let type_list = object_type.type_params(self.vm);
-                self.src.vars[var_id].ty = type_list[0];
-                self.visit_stmt(&s.block);
+                let var_ty = type_list[0];
+
+                self.check_stmt_let_pattern(&stmt.pattern, var_ty);
+
+                self.visit_stmt(&stmt.block);
                 return;
             }
         }
 
         if let Some((for_type_info, ret_type)) = self.type_supports_iterator_protocol(object_type) {
             // set variable type to return type of next
-            let var_id = *self.src.map_vars.get(s.id).unwrap();
-            self.src.vars[var_id].ty = ret_type;
+            self.check_stmt_let_pattern(&stmt.pattern, ret_type);
 
             // store fct ids for code generation
-            self.src.map_fors.insert(s.id, for_type_info);
+            self.src.map_fors.insert(stmt.id, for_type_info);
 
-            self.visit_stmt(&s.block);
+            self.visit_stmt(&stmt.block);
             return;
         }
 
@@ -220,27 +221,27 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.type_supports_iterator_protocol(iterator_type)
             {
                 // set variable type to return type of next
-                let var_id = *self.src.map_vars.get(s.id).unwrap();
-                self.src.vars[var_id].ty = ret_type;
+                self.check_stmt_let_pattern(&stmt.pattern, ret_type);
 
                 // store fct ids for code generation
                 for_type_info.make_iterator = Some(make_iterator);
-                self.src.map_fors.insert(s.id, for_type_info);
+                self.src.map_fors.insert(stmt.id, for_type_info);
 
-                self.visit_stmt(&s.block);
+                self.visit_stmt(&stmt.block);
                 return;
             }
         }
 
         let name = object_type.name(self.vm);
         let msg = SemError::TypeNotUsableInForIn(name);
-        self.vm.diag.lock().report(self.file, s.expr.pos(), msg);
+        self.vm.diag.lock().report(self.file, stmt.expr.pos(), msg);
 
         // set invalid error type
-        let var_id = *self.src.map_vars.get(s.id).unwrap();
+        let ident = stmt.pattern.to_ident().expect("ident");
+        let var_id = *self.src.map_vars.get(ident.id).unwrap();
         self.src.vars[var_id].ty = BuiltinType::Error;
 
-        self.visit_stmt(&s.block);
+        self.visit_stmt(&stmt.block);
     }
 
     fn type_supports_make_iterator(
