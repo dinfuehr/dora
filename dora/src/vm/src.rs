@@ -250,6 +250,7 @@ pub struct ForTypeInfo {
     pub next: FctId,
     pub has_next: FctId,
     pub iterator_type: BuiltinType,
+    pub next_type: BuiltinType,
 }
 
 #[derive(Debug, Clone)]

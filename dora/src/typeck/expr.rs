@@ -297,14 +297,17 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             return None;
         }
 
+        let next_type = next.found_ret().unwrap();
+
         Some((
             ForTypeInfo {
                 make_iterator: None,
                 has_next: has_next.found_fct_id().expect("fct_id missing"),
                 next: next.found_fct_id().expect("fct_id missing"),
                 iterator_type: object_type,
+                next_type,
             },
-            next.found_ret().unwrap(),
+            next_type,
         ))
     }
 

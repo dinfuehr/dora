@@ -160,12 +160,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         let index_reg = self.alloc_var(BytecodeType::Int64);
         let length_reg = self.alloc_var(BytecodeType::Int64);
 
-        let ident_id = stmt.pattern.to_ident().expect("name expected").id;
-        let for_var_id = *self.src.map_vars.get(ident_id).unwrap();
-        let var_ty = self.var_ty(for_var_id);
-        let var_ty: BytecodeType = var_ty.into();
-        let var_reg = self.alloc_var(var_ty);
-        self.var_registers.insert(for_var_id, var_reg);
+        self.visit_stmt_for_pattern_setup(&stmt.pattern);
 
         // evaluate and store array
         self.visit_expr(&stmt.expr, DataDest::Reg(array_reg));
@@ -187,7 +182,8 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.free_temp(tmp_reg);
 
         // load current array element
-        self.emit_load_array(var_ty, var_reg, array_reg, index_reg, stmt.expr.pos());
+        let ty = self.ty(stmt.expr.id());
+        self.visit_stmt_for_pattern_assign_array(&stmt.pattern, array_reg, index_reg, ty);
 
         self.loops.push(LoopLabels::new(lbl_cond, lbl_end));
         self.visit_stmt(&stmt.block);
@@ -204,6 +200,136 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.gen.bind_label(lbl_end);
 
         self.pop_scope();
+    }
+
+    fn visit_stmt_for_pattern_setup(&mut self, pattern: &LetPattern) {
+        match pattern {
+            LetPattern::Ident(ref ident) => {
+                let for_var_id = *self.src.map_vars.get(ident.id).unwrap();
+                let var_ty = self.var_ty(for_var_id);
+
+                if !var_ty.is_unit() {
+                    let var_ty: BytecodeType = var_ty.into();
+                    let var_reg = self.alloc_var(var_ty);
+                    self.var_registers.insert(for_var_id, var_reg);
+                }
+            }
+            LetPattern::Underscore(_) => {
+                // nothing to do
+            }
+            LetPattern::Tuple(ref tuple) => {
+                for part in &tuple.parts {
+                    self.visit_stmt_for_pattern_setup(part);
+                }
+            }
+        }
+    }
+
+    fn visit_stmt_for_pattern_assign_array(
+        &mut self,
+        pattern: &LetPattern,
+        array_reg: Register,
+        index_reg: Register,
+        ty: BuiltinType,
+    ) {
+        match pattern {
+            LetPattern::Ident(ref ident) => {
+                let var_id = *self.src.map_vars.get(ident.id).unwrap();
+                let var_ty = self.var_ty(var_id);
+
+                if !var_ty.is_unit() {
+                    let var_ty: BytecodeType = var_ty.into();
+                    let var_reg = self.var_reg(var_id);
+                    self.emit_load_array(var_ty, var_reg, array_reg, index_reg, ident.pos);
+                }
+            }
+
+            LetPattern::Underscore(_) => {
+                // nothing to do
+            }
+
+            LetPattern::Tuple(ref tuple) => {
+                if tuple.parts.len() > 0 {
+                    let bytecode_ty: BytecodeType = ty.into();
+                    let tuple_reg = self.alloc_temp(bytecode_ty);
+                    self.emit_load_array(bytecode_ty, tuple_reg, array_reg, index_reg, tuple.pos);
+                    self.destruct_tuple_pattern(tuple, tuple_reg, ty);
+                    self.free_temp(tuple_reg);
+                }
+            }
+        }
+    }
+
+    fn visit_stmt_for_pattern_assign_iterator(
+        &mut self,
+        pattern: &LetPattern,
+        next_reg: Register,
+        next_ty: BuiltinType,
+    ) {
+        match pattern {
+            LetPattern::Ident(ref ident) => {
+                let var_id = *self.src.map_vars.get(ident.id).unwrap();
+                let var_ty = self.var_ty(var_id);
+
+                if !var_ty.is_unit() {
+                    let var_ty: BytecodeType = var_ty.into();
+                    let var_reg = self.var_reg(var_id);
+                    self.emit_mov(var_ty.into(), var_reg, next_reg)
+                }
+            }
+
+            LetPattern::Underscore(_) => {
+                // nothing to do
+            }
+
+            LetPattern::Tuple(ref tuple) => {
+                assert!(tuple.parts.len() > 0);
+                self.destruct_tuple_pattern(tuple, next_reg, next_ty);
+            }
+        }
+    }
+
+    fn destruct_tuple_pattern(
+        &mut self,
+        tuple: &LetTupleType,
+        tuple_reg: Register,
+        tuple_ty: BuiltinType,
+    ) {
+        let tuple_id = tuple_ty.tuple_id().expect("type should be tuple");
+
+        for (idx, part) in tuple.parts.iter().enumerate() {
+            match &**part {
+                LetPattern::Ident(ref ident) => {
+                    let var_id = *self.src.map_vars.get(ident.id).unwrap();
+                    let ty = self.var_ty(var_id);
+
+                    if !ty.is_unit() {
+                        let bytecode_ty: BytecodeType = ty.into();
+                        let var_reg = self.alloc_var(bytecode_ty);
+                        self.var_registers.insert(var_id, var_reg);
+
+                        self.gen
+                            .emit_load_tuple_element(var_reg, tuple_reg, tuple_id, idx as u32);
+                    }
+                }
+
+                LetPattern::Underscore(_) => {
+                    // nothing to do
+                }
+
+                LetPattern::Tuple(ref tuple) => {
+                    let (ty, _) = self.vm.tuples.lock().get_at(tuple_id, idx);
+
+                    if !ty.is_unit() {
+                        let temp_reg = self.alloc_temp(ty.into());
+                        self.gen
+                            .emit_load_tuple_element(temp_reg, tuple_reg, tuple_id, idx as u32);
+                        self.destruct_tuple_pattern(tuple, temp_reg, ty);
+                        self.free_temp(temp_reg);
+                    }
+                }
+            }
+        }
     }
 
     fn visit_stmt_for_iterator(&mut self, stmt: &StmtForType) {
@@ -260,27 +386,39 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.free_temp(cond_reg);
 
         // Emit: <var> = <iterator>.next()
-        let ident = stmt.pattern.to_ident().expect("name expected");
-        let var_id = *self.src.map_vars.get(ident.id).unwrap();
-        let var_ty = self.var_ty(var_id);
+        let next_ty = self.specialize_type(for_type_info.next_type);
 
-        let ty: BytecodeType = var_ty.into();
-        let var_reg = self.alloc_var(ty);
-        self.var_registers.insert(var_id, var_reg);
+        if next_ty.is_unit() {
+            self.gen.emit_push_register(iterator_reg);
+            self.gen.emit_invoke_direct_void(
+                FctDef::fct_id_types(
+                    self.vm,
+                    for_type_info.next,
+                    iterator_type_params,
+                    TypeList::empty(),
+                ),
+                stmt.expr.pos(),
+            );
+        } else {
+            let next_bytecode_ty: BytecodeType = next_ty.into();
+            let next_reg = self.alloc_var(next_bytecode_ty);
 
-        self.gen.emit_push_register(iterator_reg);
+            self.gen.emit_push_register(iterator_reg);
+            self.emit_invoke_direct(
+                next_ty,
+                next_reg,
+                FctDef::fct_id_types(
+                    self.vm,
+                    for_type_info.next,
+                    iterator_type_params,
+                    TypeList::empty(),
+                ),
+                stmt.expr.pos(),
+            );
 
-        self.emit_invoke_direct(
-            var_ty,
-            var_reg,
-            FctDef::fct_id_types(
-                self.vm,
-                for_type_info.next,
-                iterator_type_params,
-                TypeList::empty(),
-            ),
-            stmt.expr.pos(),
-        );
+            self.visit_stmt_for_pattern_setup(&stmt.pattern);
+            self.visit_stmt_for_pattern_assign_iterator(&stmt.pattern, next_reg, next_ty);
+        }
 
         self.loops.push(LoopLabels::new(lbl_cond, lbl_end));
         self.visit_stmt(&stmt.block);
@@ -346,7 +484,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                 self.visit_expr(expr, DataDest::Effect);
             } else {
                 let tuple_reg = self.visit_expr(expr, DataDest::Alloc);
-                self.visit_stmt_let_tuple_assign(pattern, tuple_reg, ty);
+                self.destruct_tuple_pattern(pattern, tuple_reg, ty);
             }
         } else {
             self.visit_stmt_let_tuple_init(pattern);
@@ -373,51 +511,6 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
 
                 LetPattern::Tuple(ref tuple) => {
                     self.visit_stmt_let_tuple_init(tuple);
-                }
-            }
-        }
-    }
-
-    fn visit_stmt_let_tuple_assign(
-        &mut self,
-        tuple: &LetTupleType,
-        tuple_reg: Register,
-        tuple_ty: BuiltinType,
-    ) {
-        let tuple_id = tuple_ty.tuple_id().expect("type should be tuple");
-
-        for (idx, part) in tuple.parts.iter().enumerate() {
-            match &**part {
-                LetPattern::Ident(ref ident) => {
-                    let var_id = *self.src.map_vars.get(ident.id).unwrap();
-                    let ty = self.var_ty(var_id);
-
-                    if !ty.is_unit() {
-                        let bytecode_ty: BytecodeType = ty.into();
-                        let var_reg = self.alloc_var(bytecode_ty);
-                        self.var_registers.insert(var_id, var_reg);
-
-                        self.gen
-                            .emit_load_tuple_element(var_reg, tuple_reg, tuple_id, idx as u32);
-                    }
-                }
-
-                LetPattern::Underscore(_) => {
-                    // nothing to do
-                }
-
-                LetPattern::Tuple(ref tuple) => {
-                    let (ty, _) = self.vm.tuples.lock().get_at(tuple_id, idx);
-
-                    if !ty.is_unit() {
-                        let temp_reg = self.alloc_temp(ty.into());
-                        self.gen
-                            .emit_load_tuple_element(temp_reg, tuple_reg, tuple_id, idx as u32);
-
-                        self.visit_stmt_let_tuple_assign(tuple, temp_reg, ty);
-
-                        self.free_temp(temp_reg);
-                    }
                 }
             }
         }
