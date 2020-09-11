@@ -240,10 +240,6 @@ where
         for (idx, &param_ty) in params.iter().enumerate() {
             let param_ty = self.specialize_type(param_ty);
 
-            if param_ty.is_unit() {
-                continue;
-            }
-
             let dest = Register(idx);
 
             let param_ty = if idx == params.len() - 1 && self.fct.variadic_arguments {
@@ -253,6 +249,10 @@ where
                 assert_eq!(self.bytecode.register_type(dest), param_ty.into());
                 param_ty
             };
+
+            if param_ty.is_unit() {
+                continue;
+            }
 
             if let Some(tuple_id) = param_ty.tuple_id() {
                 let dest_offset = self.register_offset(dest);

@@ -1092,19 +1092,27 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         self.gen
             .emit_new_array(array_reg, cls_def_id, length_reg, expr.pos);
 
-        let bytecode_ty: BytecodeType = element_ty.into();
-        let index_reg = self.alloc_temp(BytecodeType::Int64);
+        if element_ty.is_unit() {
+            // Evaluate rest arguments
+            for arg in expr.args.iter().skip(non_variadic_arguments) {
+                self.visit_expr(arg, DataDest::Effect);
+            }
+        } else {
+            let bytecode_ty: BytecodeType = element_ty.into();
+            let index_reg = self.alloc_temp(BytecodeType::Int64);
 
-        // Evaluate rest arguments and store them in array
-        for (idx, arg) in expr.args.iter().skip(non_variadic_arguments).enumerate() {
-            let arg_reg = self.visit_expr(arg, DataDest::Alloc);
-            self.gen.emit_const_int64(index_reg, idx as i64);
-            self.emit_store_array(bytecode_ty, array_reg, index_reg, arg_reg, expr.pos);
-            self.free_if_temp(arg_reg);
+            // Evaluate rest arguments and store them in array
+            for (idx, arg) in expr.args.iter().skip(non_variadic_arguments).enumerate() {
+                let arg_reg = self.visit_expr(arg, DataDest::Alloc);
+                self.gen.emit_const_int64(index_reg, idx as i64);
+                self.emit_store_array(bytecode_ty, array_reg, index_reg, arg_reg, expr.pos);
+                self.free_if_temp(arg_reg);
+            }
+
+            self.free_if_temp(index_reg);
         }
 
         self.free_if_temp(length_reg);
-        self.free_if_temp(index_reg);
 
         array_reg
     }

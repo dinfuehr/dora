@@ -1,0 +1,9 @@
+//= ignore
+
+fun main() {
+    let data = Vec[()]();
+    assert(data.size() == 0L);
+
+    let data = Vec[()]((), (), ());
+    assert(data.size() == 3L);
+}

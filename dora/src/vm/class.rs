@@ -428,7 +428,7 @@ impl ClassDef {
                 return name.to_string();
             };
 
-            format!("{}<{}>", name, params)
+            format!("{}[{}]", name, params)
         } else {
             "<Unknown>".into()
         }

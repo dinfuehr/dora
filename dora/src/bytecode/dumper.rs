@@ -218,12 +218,12 @@ impl<'a, 'ast> BytecodeDumper<'a, 'ast> {
 
     fn emit_fct_void(&mut self, name: &str, fid: FctDefId) {
         self.emit_start(name);
-        writeln!(self.w, " {}", fid.to_usize()).expect("write! failed");
+        writeln!(self.w, " FctDefId({})", fid.to_usize()).expect("write! failed");
     }
 
     fn emit_fct(&mut self, name: &str, r1: Register, fid: FctDefId) {
         self.emit_start(name);
-        writeln!(self.w, " {}, {}", r1, fid.to_usize()).expect("write! failed");
+        writeln!(self.w, " {}, FctDefId({})", r1, fid.to_usize()).expect("write! failed");
     }
 
     fn emit_new(&mut self, name: &str, r1: Register, cls_id: ClassDefId) {

@@ -1,0 +1,7 @@
+fun main() {
+    var sum = 0L;
+    for x in Vec[()]((), (), (), ()) {
+        sum = sum + 1L;
+    }
+    assert(sum == 4L);
+}

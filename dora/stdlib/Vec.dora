@@ -7,7 +7,7 @@ class Vec[T](values: T...) {
       fatalError("index out of bounds for vector");
     }
 
-    return self.array.get(idx);
+    return self.array(idx);
   }
 
   fun set(idx: Int64, val: T) {
@@ -61,7 +61,7 @@ class Vec[T](values: T...) {
     }
 
     let newlength = self.len - 1L;
-    let temp = self.array.get(newlength);
+    let temp = self.array(newlength);
 
     // set popped element to nil so that GC can collect object
     // not necessary for primitive types
@@ -116,7 +116,7 @@ class Vec[T](values: T...) {
     if self.len == 0L {
       Option::none[T]()
     } else {
-      Option::some[T](self.array.get(0L))
+      Option::some[T](self.array(0L))
     }
   }
 
@@ -124,7 +124,7 @@ class Vec[T](values: T...) {
     if self.len == 0L {
       Option::none[T]()
     } else {
-      Option::some[T](self.array.get(self.len - 1L))
+      Option::some[T](self.array(self.len - 1L))
     }
   }
 
@@ -140,6 +140,24 @@ class Vec[T](values: T...) {
   fun makeReverseIterator() -> ReverseVecIter[T] {
     ReverseVecIter[T](self)
   }
+
+  fun enumerate() -> VecEnumerator[T] {
+    VecEnumerator[T](self)
+  }
+}
+
+class VecEnumerator[T](let data: Vec[T]) {
+  var idx: Int64 = 0L;
+
+  fun hasNext() -> Bool {
+    self.idx < self.data.size()
+  }
+
+  fun next() -> (Int64, T) {
+    let current_idx = self.idx;
+    self.idx = self.idx + 1L;
+    (current_idx, self.data(current_idx))
+  }
 }
 
 class VecIter[T](let data: Vec[T]) {
@@ -150,7 +168,7 @@ class VecIter[T](let data: Vec[T]) {
   }
 
   fun next() -> T {
-    let result = self.data.get(self.idx);
+    let result = self.data(self.idx);
     self.idx = self.idx + 1L;
     result
   }
@@ -164,7 +182,7 @@ class ReverseVecIter[T](let data: Vec[T]) {
   }
 
   fun next() -> T {
-    let result = self.data.get(self.idx);
+    let result = self.data(self.idx);
     self.idx = self.idx - 1L;
     result
   }
@@ -174,7 +192,7 @@ fun removeItem[T: Equals](vec: Vec[T], elem: T) {
   var i = 0L;
 
   while i < vec.size() {
-    if vec.get(i).equals(elem) {
+    if vec(i).equals(elem) {
       vec.removeAt(i);
     } else {
       i = i + 1L;
