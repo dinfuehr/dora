@@ -104,12 +104,9 @@ class MachineCode(let bytes: Array[UInt8]) {
 }
 
 fun assertAsm(code: MachineCode, bytes: UInt8...) {
-    var idx = 0L;
-
     assert(code.start + bytes.size() <= code.bytes.size());
 
-    while idx < bytes.size() {
-        let exp = bytes(idx);
+    for (idx, exp) in bytes.enumerate() {
         let got = code.bytes(code.start + idx);
 
         if exp != got {
@@ -139,7 +136,6 @@ fun assertAsm(code: MachineCode, bytes: UInt8...) {
         }
 
         assert(exp == got);
-        idx = idx + 1L;
     }
 
     code.start = code.start + bytes.size();

@@ -57,10 +57,8 @@ class Graph {
     fun setPostOrder(postOrder: Vec[Block]) {
         self.postOrder = postOrder;
 
-        var idx = 0L;
-        for block in self.postOrder {
+        for (idx, block) in self.postOrder.enumerate() {
             block.postOrderIdx = idx.toInt32();
-            idx = idx + 1L;
         }
     }
 
@@ -368,24 +366,14 @@ class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
     }
 
     fun registerUses() {
-        let inputs = self.inputs.size();
-        var idx = 0L;
-
-        while idx < inputs {
-            let input = self.inputs(idx);
+        for input in self.inputs {
             input.value.addUse(input);
-            idx = idx + 1L;
         }
     }
 
     fun removeAsUser() {
-        let inputs = self.inputs.size();
-        var idx = 0L;
-
-        while idx < inputs {
-            let input = self.inputs(idx);
+        for input in self.inputs {
             input.value.removeUse(input);
-            idx = idx + 1L;
         }
     }
 

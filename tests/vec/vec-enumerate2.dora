@@ -30,3 +30,15 @@ fun iterateWithForIn() {
 
     }
 }
+
+fun iterateWithForInPattern() {
+    for (idx, value) in Vec[String]("a", "b", "c").enumerate() {
+        if idx == 0L { assert(value == "a"); }
+        else if idx == 1L { assert(value == "b"); }
+        else if idx == 2L { assert(value == "c"); }
+        else {
+            unreachable();
+        }
+
+    }
+}
