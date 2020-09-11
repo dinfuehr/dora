@@ -1,0 +1,15 @@
+//= ignore
+
+fun main() {
+    let it = Array[String]("a", "b", "c").enumerate();
+    assert(it.hasNext());
+    let (idx, value) = it.next();
+    assert(idx == 0L && value == "a");
+    assert(it.hasNext());
+    let (idx, value) = it.next();
+    assert(idx == 1L && value == "b");
+    assert(it.hasNext());
+    let (idx, value) = it.next();
+    assert(idx == 2L && value == "c");
+    assert(!it.hasNext());
+}

@@ -6,6 +6,23 @@
 
   fun isEmpty() -> Bool = self.size() == 0L;
 
+  fun enumerate() -> ArrayEnumerator[T] {
+    ArrayEnumerator[T](self)
+  }
+}
+
+class ArrayEnumerator[T](let array: Array[T]) {
+  var idx: Int64 = 0L;
+
+  fun hasNext() -> Bool {
+    self.idx < self.array.size()
+  }
+
+  fun next() -> (Int64, T) {
+    let current_idx = self.idx;
+    self.idx = self.idx + 1L;
+    (current_idx, self.array(current_idx))
+  }
 }
 
 // The next two functions should be instance functions, but we cannot properly encode the fact that they put additional
