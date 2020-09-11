@@ -226,7 +226,7 @@ impl<'a, 'ast> BytecodeDumper<'a, 'ast> {
         writeln!(self.w, " {}, FctDefId({})", r1, fid.to_usize()).expect("write! failed");
     }
 
-    fn emit_new(&mut self, name: &str, r1: Register, cls_id: ClassDefId) {
+    fn emit_new_object(&mut self, name: &str, r1: Register, cls_id: ClassDefId) {
         self.emit_start(name);
         let cls = self.vm.class_defs.idx(cls_id);
         let cls = cls.read();
@@ -796,7 +796,7 @@ impl<'a, 'ast> BytecodeVisitor for BytecodeDumper<'a, 'ast> {
     }
 
     fn visit_new_object(&mut self, dest: Register, cls: ClassDefId) {
-        self.emit_new("NewObject", dest, cls);
+        self.emit_new_object("NewObject", dest, cls);
     }
     fn visit_new_array(&mut self, dest: Register, cls: ClassDefId, length: Register) {
         self.emit_new_array("NewArray", dest, cls, length);
