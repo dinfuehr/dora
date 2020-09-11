@@ -245,14 +245,12 @@ where
             let param_ty = if idx == params.len() - 1 && self.fct.variadic_arguments {
                 assert_eq!(self.bytecode.register_type(dest), BytecodeType::Ptr);
                 BuiltinType::Ptr
+            } else if param_ty.is_unit() {
+                continue;
             } else {
                 assert_eq!(self.bytecode.register_type(dest), param_ty.into());
                 param_ty
             };
-
-            if param_ty.is_unit() {
-                continue;
-            }
 
             if let Some(tuple_id) = param_ty.tuple_id() {
                 let dest_offset = self.register_offset(dest);
