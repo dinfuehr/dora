@@ -1,4 +1,9 @@
 fun main() {
+    iterateManually();
+    iterateWithForIn();
+}
+
+fun iterateManually() {
     let it = Array[String]("a", "b", "c").enumerate();
     assert(it.hasNext());
     let (idx, value) = it.next();
@@ -10,4 +15,18 @@ fun main() {
     let (idx, value) = it.next();
     assert(idx == 2L && value == "c");
     assert(!it.hasNext());
+}
+
+fun iterateWithForIn() {
+    for idx_and_value in Array[String]("a", "b", "c").enumerate() {
+        let (idx, value) = idx_and_value;
+
+        if idx == 0L { assert(value == "a"); }
+        else if idx == 1L { assert(value == "b"); }
+        else if idx == 2L { assert(value == "c"); }
+        else {
+            unreachable();
+        }
+
+    }
 }
