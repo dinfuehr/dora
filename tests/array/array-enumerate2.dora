@@ -1,5 +1,3 @@
-//= ignore
-
 fun main() {
     let it = Array[String]("a", "b", "c").enumerate();
     assert(it.hasNext());

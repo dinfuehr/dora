@@ -130,7 +130,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
         }
 
         self.pop_scope();
-        self.gen.generate()
+        self.gen.generate(self.vm)
     }
 
     fn visit_stmt(&mut self, stmt: &Stmt) {
@@ -485,6 +485,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
             } else {
                 let tuple_reg = self.visit_expr(expr, DataDest::Alloc);
                 self.destruct_tuple_pattern(pattern, tuple_reg, ty);
+                self.free_if_temp(tuple_reg);
             }
         } else {
             self.visit_stmt_let_tuple_init(pattern);

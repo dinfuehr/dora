@@ -2,9 +2,9 @@ use std::collections::{HashMap, HashSet};
 
 use dora_parser::lexer::position::Position;
 
-use crate::bytecode::{BytecodeFunction, BytecodeType, BytecodeWriter, Label, Register};
+use crate::bytecode::{dump, BytecodeFunction, BytecodeType, BytecodeWriter, Label, Register};
 use crate::driver::cmd::Args;
-use crate::vm::{ClassDefId, FctDefId, FieldId, GlobalId, TupleId};
+use crate::vm::{ClassDefId, FctDefId, FieldId, GlobalId, TupleId, VM};
 
 pub struct BytecodeBuilder {
     writer: BytecodeWriter,
@@ -1057,12 +1057,21 @@ impl BytecodeBuilder {
         self.writer.emit_load_array_tuple(dest, array, index);
     }
 
-    pub fn generate(self) -> BytecodeFunction {
+    pub fn generate(self, vm: &VM) -> BytecodeFunction {
         for reg in &self.registers.used {
             println!("used reg {}", reg);
         }
-        assert!(!self.registers.used());
-        self.writer.generate_with_registers(self.registers.all())
+
+        let used = self.registers.used();
+
+        let bc = self.writer.generate_with_registers(self.registers.all());
+
+        if used {
+            dump(vm, &bc);
+            panic!("all registers should be freed.");
+        }
+
+        bc
     }
 
     pub fn push_scope(&mut self) {
