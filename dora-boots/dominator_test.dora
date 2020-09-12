@@ -1,27 +1,23 @@
 fun assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     let graph = createGraph(fct);
     graph.buildDominatorTree();
-    var idomsIdx = 0;
-    var idx = 1; // Block with id 0 is entry block
 
     assert(graph.getEntryBlock().getDominator().isNone());
 
-    while idomsIdx.toInt64() < idoms.size() {
-        let dominatorId = idoms(idomsIdx.toInt64());
-        let block = graph.getBlockWithId(idx);
+    for (idx, expectedDominatorId) in idoms.enumerate() {
+        // Add 1 here, since block 0 is entry block and idoms doesn't contain that block.
+        let block = graph.getBlockWithId(idx.toInt32() + 1);
 
         let dominator = block.getDominator();
 
         if dominator.isNone() {
-            println("block ${idx}: missing dominator, expected ${dominatorId}");
-        } else if dominator.unwrap().id != dominatorId {
-            println("block ${idx}: idom is ${dominator.unwrap().id}, expected ${dominatorId}");
+            println("block ${idx}: missing dominator, expected ${expectedDominatorId}");
+        } else if dominator.unwrap().id != expectedDominatorId {
+            println("block ${idx}: idom is ${dominator.unwrap().id}, expected ${expectedDominatorId}");
             println(dumpGraph(graph));
         }
 
-        assert(dominator.unwrap().id == dominatorId);
-        idx = idx + 1;
-        idomsIdx = idomsIdx + 1;
+        assert(dominator.unwrap().id == expectedDominatorId);
     }
 }
 
