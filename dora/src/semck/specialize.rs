@@ -134,18 +134,61 @@ fn create_specialized_enum(vm: &VM, xenum: &EnumData, type_params: TypeList) -> 
         enum_defs.push(Arc::new(RwLock::new(EnumDef {
             id,
             enum_id: xenum.id,
-            type_params,
+            type_params: type_params.clone(),
             layout: EnumLayout::Int,
         })));
 
         id
     };
 
+    let layout = if enum_is_simple_integer(xenum) {
+        EnumLayout::Int
+    } else if enum_is_ptr(vm, xenum, &type_params) {
+        EnumLayout::Ptr
+    } else {
+        EnumLayout::Tagged
+    };
+
     let enum_def = vm.enum_defs.idx(id);
     let mut enum_def = enum_def.write();
-    enum_def.layout = EnumLayout::Int;
+    enum_def.layout = layout;
 
     id
+}
+
+fn enum_is_simple_integer(xenum: &EnumData) -> bool {
+    for variant in &xenum.variants {
+        if !variant.types.is_empty() {
+            return false;
+        }
+    }
+
+    true
+}
+
+fn enum_is_ptr(vm: &VM, xenum: &EnumData, type_params: &TypeList) -> bool {
+    if xenum.variants.len() != 2 {
+        return false;
+    }
+
+    let variant1 = xenum.variants.first().unwrap();
+    let variant2 = xenum.variants.first().unwrap();
+
+    let (none_variant, some_variant) = if variant1.types.is_empty() {
+        (variant1, variant2)
+    } else {
+        (variant2, variant1)
+    };
+
+    none_variant.types.len() == 0
+        && some_variant.types.len() == 1
+        && specialize_type(
+            vm,
+            *some_variant.types.first().unwrap(),
+            type_params,
+            &TypeList::empty(),
+        )
+        .reference_type()
 }
 
 pub fn specialize_class_id(vm: &VM, cls_id: ClassId) -> ClassDefId {
