@@ -9,7 +9,7 @@ use crate::bytecode::{BytecodeBuilder, BytecodeFunction, BytecodeType, Label, Re
 use crate::semck::specialize::{specialize_class_ty, specialize_type};
 use crate::semck::{expr_always_returns, expr_block_always_returns};
 use crate::size::InstanceSize;
-use crate::ty::{BuiltinType, TypeList, TypeParamId};
+use crate::ty::{BuiltinType, TypeList};
 use crate::vm::{
     CallType, ConstId, Fct, FctDef, FctDefId, FctId, FctKind, FctSrc, GlobalId, IdentType,
     Intrinsic, TraitId, TupleId, VarId, VM,
@@ -939,12 +939,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     fct_id
                 }
             }
-            CallType::TraitStatic(tp_id, trait_id, trait_fct_id) => {
-                let list_id = match tp_id {
-                    TypeParamId::Fct(list_id) => list_id,
-                    TypeParamId::Class(_) => unimplemented!(),
-                };
-
+            CallType::TraitStatic(list_id, trait_id, trait_fct_id) => {
                 let ty = self.fct_type_params[list_id.to_usize()];
                 let cls_id = ty.cls_id(self.vm).expect("no cls_id for type");
 

@@ -19,7 +19,7 @@ use crate::stdlib;
 use crate::sym::TermSym::SymFct;
 use crate::sym::{SymTable, TermSym};
 use crate::threads::{Threads, STACK_SIZE, THREAD};
-use crate::ty::{BuiltinType, LambdaTypes, TypeList, TypeLists, TypeParamId};
+use crate::ty::{BuiltinType, LambdaTypes, TypeList, TypeLists};
 use crate::utils::GrowableVec;
 use crate::vm::module::{Module, ModuleDef, ModuleId};
 

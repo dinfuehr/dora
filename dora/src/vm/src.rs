@@ -7,11 +7,9 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 
 use crate::compiler::fct::JitFctId;
-use crate::ty::{BuiltinType, TypeList};
+use crate::ty::{BuiltinType, TypeList, TypeListId};
 use crate::vm::module::ModuleId;
-use crate::vm::{
-    ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, Intrinsic, StructId, TraitId, TypeParamId,
-};
+use crate::vm::{ClassId, ConstId, EnumId, FctId, FieldId, GlobalId, Intrinsic, StructId, TraitId};
 
 #[derive(Debug)]
 pub struct FctSrc {
@@ -276,7 +274,7 @@ pub enum CallType {
     Trait(TraitId, FctId),
 
     // Invoke static trait method on type param, e.g. T::method()
-    TraitStatic(TypeParamId, TraitId, FctId),
+    TraitStatic(TypeListId, TraitId, FctId),
 
     // Used for *internal* functions (those are not exposed to Dora as Fct)
     Intrinsic(Intrinsic),

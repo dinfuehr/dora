@@ -888,12 +888,6 @@ pub struct LambdaType {
     ret: BuiltinType,
 }
 
-#[derive(Debug, Copy, Clone)]
-pub enum TypeParamId {
-    Fct(TypeListId),
-    Class(TypeListId),
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

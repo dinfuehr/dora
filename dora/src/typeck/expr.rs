@@ -8,7 +8,7 @@ use crate::semck::specialize::replace_type_param;
 use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::semck::{always_returns, expr_always_returns};
 use crate::sym::TypeSym::SymClass;
-use crate::ty::{BuiltinType, TypeList, TypeParamId};
+use crate::ty::{BuiltinType, TypeList};
 use crate::typeck::lookup::MethodLookup;
 use crate::vm::{
     self, ensure_tuple, find_field_in_class, find_methods_in_class, CallType, ClassId, ConvInfo,
@@ -1312,7 +1312,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.vm.diag.lock().report(self.file, e.pos, msg);
         }
 
-        let call_type = CallType::TraitStatic(TypeParamId::Fct(tp_id), trait_id, fct_id);
+        let call_type = CallType::TraitStatic(tp_id, trait_id, fct_id);
         self.src.map_calls.insert(e.id, Arc::new(call_type));
 
         let return_type = replace_type_param(
