@@ -10,7 +10,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::bytecode::BytecodeType;
 use crate::gc::Address;
-use crate::ty::BuiltinType;
+use crate::ty::{BuiltinType, TypeListId};
 use crate::utils::GrowableVec;
 use crate::vm::module::ModuleId;
 use crate::vm::{ClassId, ExtensionId, FctSrc, FileId, ImplId, TraitId, TypeParam, VM};
@@ -72,6 +72,10 @@ pub struct Fct<'ast> {
 }
 
 impl<'ast> Fct<'ast> {
+    pub fn type_param(&self, id: TypeListId) -> &TypeParam {
+        &self.type_params[id.idx()]
+    }
+
     pub fn is_virtual(&self) -> bool {
         (self.has_open || self.has_override) && !self.has_final
     }

@@ -8,7 +8,7 @@ use std::sync::Arc;
 use crate::semck::specialize::replace_type_param;
 use crate::size::InstanceSize;
 use crate::sym::SymLevel;
-use crate::ty::{BuiltinType, TypeList};
+use crate::ty::{BuiltinType, TypeList, TypeListId};
 use crate::utils::GrowableVec;
 use crate::vm::VM;
 use crate::vm::{ExtensionId, FctId, Field, FieldDef, FieldId, FileId, ImplId, TraitId};
@@ -81,6 +81,10 @@ pub struct Class {
 impl Class {
     pub fn is_generic(&self) -> bool {
         self.type_params.len() > 0
+    }
+
+    pub fn type_param(&self, id: TypeListId) -> &TypeParam {
+        &self.type_params[id.idx()]
     }
 
     pub fn field_by_name(&self, name: Name) -> FieldId {

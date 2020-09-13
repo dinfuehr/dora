@@ -69,13 +69,13 @@ impl<'a, 'ast> TypeParamCheck<'a, 'ast> {
                     BuiltinType::ClassTypeParam(cls_id, tpid) => {
                         let cls = self.vm.classes.idx(cls_id);
                         let cls = cls.read();
-                        self.tp_against_definition(tp, &cls.type_params[tpid.idx()], ty)
+                        self.tp_against_definition(tp, cls.type_param(tpid), ty)
                     }
 
                     BuiltinType::FctTypeParam(fct_id, tpid) => {
                         let fct = self.vm.fcts.idx(fct_id);
                         let fct = fct.read();
-                        self.tp_against_definition(tp, &fct.type_params[tpid.idx()], ty)
+                        self.tp_against_definition(tp, fct.type_param(tpid), ty)
                     }
 
                     _ => unreachable!(),

@@ -1246,13 +1246,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let (type_param, tp_id) = match tp {
             BuiltinType::FctTypeParam(fct_id, tp_id) => {
                 assert_eq!(self.fct.id, fct_id);
-                (self.fct.type_params[tp_id.idx()].clone(), tp_id)
+                (self.fct.type_param(tp_id).clone(), tp_id)
             }
 
             BuiltinType::ClassTypeParam(cls_id, tp_id) => {
                 let cls = self.vm.classes.idx(cls_id);
                 let cls = cls.read();
-                (cls.type_params[tp_id.idx()].clone(), tp_id)
+                (cls.type_param(tp_id).clone(), tp_id)
             }
 
             _ => unreachable!(),
@@ -1566,14 +1566,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     ) -> BuiltinType {
         match object_type {
             BuiltinType::FctTypeParam(_, tpid) => {
-                let tp = &self.fct.type_params[tpid.idx()];
+                let tp = self.fct.type_param(tpid);
                 self.check_expr_call_generic_type_param(e, object_type, tp, name, arg_types)
             }
 
             BuiltinType::ClassTypeParam(cls_id, tpid) => {
                 let cls = self.vm.classes.idx(cls_id);
                 let cls = cls.read();
-                let tp = &cls.type_params[tpid.idx()];
+                let tp = cls.type_param(tpid);
                 self.check_expr_call_generic_type_param(e, object_type, tp, name, arg_types)
             }
 
@@ -2249,7 +2249,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let implements_stringable = match part_expr {
                     BuiltinType::FctTypeParam(fct_id, tp_id) => {
                         assert_eq!(self.fct.id, fct_id);
-                        self.fct.type_params[tp_id.idx()]
+                        self.fct
+                            .type_param(tp_id)
                             .trait_bounds
                             .contains(&stringable_trait)
                     }
@@ -2257,7 +2258,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     BuiltinType::ClassTypeParam(cls_id, tp_id) => {
                         let cls = self.vm.classes.idx(cls_id);
                         let cls = cls.read();
-                        cls.type_params[tp_id.idx()]
+                        cls.type_param(tp_id)
                             .trait_bounds
                             .contains(&stringable_trait)
                     }
