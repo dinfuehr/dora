@@ -135,8 +135,6 @@ fn create_specialized_enum(vm: &VM, xenum: &EnumData, type_params: TypeList) -> 
             id,
             enum_id: xenum.id,
             type_params,
-            size: 0,
-            align: 0,
             layout: EnumLayout::Int,
         })));
 
@@ -145,8 +143,6 @@ fn create_specialized_enum(vm: &VM, xenum: &EnumData, type_params: TypeList) -> 
 
     let enum_def = vm.enum_defs.idx(id);
     let mut enum_def = enum_def.write();
-    enum_def.size = 4;
-    enum_def.align = 4;
     enum_def.layout = EnumLayout::Int;
 
     id

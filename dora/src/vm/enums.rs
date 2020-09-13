@@ -68,8 +68,6 @@ pub struct EnumDef {
     pub id: EnumDefId,
     pub enum_id: EnumId,
     pub type_params: TypeList,
-    pub size: i32,
-    pub align: i32,
     pub layout: EnumLayout,
 }
 

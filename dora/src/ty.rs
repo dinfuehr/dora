@@ -6,7 +6,7 @@ use crate::mem;
 use crate::semck;
 use crate::vm::module::ModuleId;
 use crate::vm::VM;
-use crate::vm::{ClassId, EnumId, FctId, StructId, TraitId, TupleId};
+use crate::vm::{ClassId, EnumId, EnumLayout, FctId, StructId, TraitId, TupleId};
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum BuiltinType {
@@ -464,7 +464,17 @@ impl BuiltinType {
             BuiltinType::Int64 => 8,
             BuiltinType::Float32 => 4,
             BuiltinType::Float64 => 8,
-            BuiltinType::Enum(_, _) => 4,
+            BuiltinType::Enum(eid, list_id) => {
+                let params = vm.lists.lock().get(list_id);
+                let enum_def_id = semck::specialize::specialize_enum_id_params(vm, eid, params);
+                let xenum = vm.enum_defs.idx(enum_def_id);
+                let xenum = xenum.read();
+
+                match xenum.layout {
+                    EnumLayout::Int => BuiltinType::Int32.size(vm),
+                    EnumLayout::Ptr | EnumLayout::Tagged => BuiltinType::Ptr.size(vm),
+                }
+            }
             BuiltinType::Nil => panic!("no size for nil."),
             BuiltinType::This => panic!("no size for Self."),
             BuiltinType::Any => panic!("no size for Any."),
@@ -502,7 +512,17 @@ impl BuiltinType {
             BuiltinType::Nil => panic!("no alignment for nil."),
             BuiltinType::This => panic!("no alignment for Self."),
             BuiltinType::Any => panic!("no alignment for Any."),
-            BuiltinType::Enum(_, _) => 4,
+            BuiltinType::Enum(eid, list_id) => {
+                let params = vm.lists.lock().get(list_id);
+                let enum_def_id = semck::specialize::specialize_enum_id_params(vm, eid, params);
+                let xenum = vm.enum_defs.idx(enum_def_id);
+                let xenum = xenum.read();
+
+                match xenum.layout {
+                    EnumLayout::Int => BuiltinType::Int32.align(vm),
+                    EnumLayout::Ptr | EnumLayout::Tagged => BuiltinType::Ptr.align(vm),
+                }
+            }
             BuiltinType::Class(_, _)
             | BuiltinType::Module(_)
             | BuiltinType::Lambda(_)
