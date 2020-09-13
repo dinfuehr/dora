@@ -2435,13 +2435,13 @@ fn arg_allows(
                 return true;
             }
 
-            if global_cls_id != Some(cls_id) || tpid.idx() >= cls_tps.len() {
+            if global_cls_id != Some(cls_id) || tpid.to_usize() >= cls_tps.len() {
                 return false;
             }
 
             arg_allows(
                 vm,
-                cls_tps[tpid.idx()],
+                cls_tps[tpid.to_usize()],
                 arg,
                 global_cls_id,
                 global_fct_id,
@@ -2455,13 +2455,13 @@ fn arg_allows(
                 return true;
             }
 
-            if global_fct_id != Some(fct_id) || tpid.idx() >= fct_tps.len() {
+            if global_fct_id != Some(fct_id) || tpid.to_usize() >= fct_tps.len() {
                 return false;
             }
 
             arg_allows(
                 vm,
-                fct_tps[tpid.idx()],
+                fct_tps[tpid.to_usize()],
                 arg,
                 global_cls_id,
                 global_fct_id,

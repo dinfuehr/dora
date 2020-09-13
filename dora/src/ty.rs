@@ -693,7 +693,7 @@ impl MachineMode {
 pub struct TypeListId(u32);
 
 impl TypeListId {
-    pub fn idx(self) -> usize {
+    pub fn to_usize(self) -> usize {
         self.0 as usize
     }
 }
@@ -702,6 +702,22 @@ impl From<usize> for TypeListId {
     fn from(data: usize) -> TypeListId {
         assert!(data < u32::max_value() as usize);
         TypeListId(data as u32)
+    }
+}
+
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct CombinedTypeListId(u32);
+
+impl CombinedTypeListId {
+    pub fn to_usize(self) -> usize {
+        self.0 as usize
+    }
+}
+
+impl From<usize> for CombinedTypeListId {
+    fn from(data: usize) -> CombinedTypeListId {
+        assert!(data < u32::max_value() as usize);
+        CombinedTypeListId(data as u32)
     }
 }
 
@@ -811,7 +827,7 @@ impl TypeLists {
     }
 
     pub fn get(&self, id: TypeListId) -> TypeList {
-        self.values[id.idx()].clone()
+        self.values[id.to_usize()].clone()
     }
 }
 

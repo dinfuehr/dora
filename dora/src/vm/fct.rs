@@ -73,7 +73,7 @@ pub struct Fct<'ast> {
 
 impl<'ast> Fct<'ast> {
     pub fn type_param(&self, id: TypeListId) -> &TypeParam {
-        &self.type_params[id.idx()]
+        &self.type_params[id.to_usize()]
     }
 
     pub fn is_virtual(&self) -> bool {

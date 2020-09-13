@@ -945,7 +945,7 @@ impl<'a, 'ast> AstBytecodeGen<'a, 'ast> {
                     TypeParamId::Class(_) => unimplemented!(),
                 };
 
-                let ty = self.fct_type_params[list_id.idx()];
+                let ty = self.fct_type_params[list_id.to_usize()];
                 let cls_id = ty.cls_id(self.vm).expect("no cls_id for type");
 
                 let cls = self.vm.classes.idx(cls_id);
