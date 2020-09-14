@@ -2303,9 +2303,9 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
     }
 }
 
-pub fn args_compatible(
-    vm: &VM,
-    callee: &Fct,
+pub fn args_compatible<'ast>(
+    vm: &VM<'ast>,
+    callee: &Fct<'ast>,
     args: &[BuiltinType],
     cls_tps: &TypeList,
     fct_tps: &TypeList,

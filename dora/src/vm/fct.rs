@@ -144,10 +144,26 @@ impl<'ast> Fct<'ast> {
                 let cls = cls.read();
                 let name = cls.name;
                 repr.push_str(&vm.interner.str(name));
-                if self.is_static {
+
+                if cls.type_params.len() > 0 {
+                    repr.push('[');
+
+                    repr.push_str(
+                        &cls.type_params
+                            .iter()
+                            .map(|n| vm.interner.str(n.name).to_string())
+                            .collect::<Vec<_>>()
+                            .join(", "),
+                    );
+                    repr.push(']');
+                }
+
+                if self.is_constructor {
+                    // do nothing
+                } else if self.is_static {
                     repr.push_str("::");
                 } else {
-                    repr.push_str(".");
+                    repr.push_str("#");
                 }
             }
 
@@ -157,14 +173,16 @@ impl<'ast> Fct<'ast> {
                 if self.is_static {
                     repr.push_str("::");
                 } else {
-                    repr.push_str(".");
+                    repr.push_str("#");
                 }
             }
 
             _ => {}
         }
 
-        repr.push_str(&vm.interner.str(self.name));
+        if !self.is_constructor {
+            repr.push_str(&vm.interner.str(self.name));
+        }
 
         if self.type_params.len() > 0 {
             repr.push('[');
