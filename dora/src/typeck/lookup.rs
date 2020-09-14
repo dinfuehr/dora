@@ -273,16 +273,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             return false;
         }
 
-        if !args_compatible(
-            self.vm,
-            &*fct,
-            args,
-            cls_id,
-            Some(fct_id),
-            &cls_tps,
-            &fct_tps,
-            None,
-        ) {
+        if !args_compatible(self.vm, &*fct, args, &cls_tps, &fct_tps, None) {
             if !self.report_errors {
                 return false;
             }

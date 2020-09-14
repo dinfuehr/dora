@@ -1281,8 +1281,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.vm,
             &*fct,
             arg_types,
-            None,
-            Some(fct_id),
             &TypeList::empty(),
             &TypeList::empty(),
             Some(tp),
@@ -1715,8 +1713,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.vm,
                 &*ctor,
                 &arg_types,
-                Some(cls_id),
-                None,
                 &parent_class_type_params,
                 &TypeList::empty(),
                 None,
@@ -2309,35 +2305,49 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
 
 pub fn args_compatible(
     vm: &VM,
-    fct: &Fct,
-    expr: &[BuiltinType],
-    cls_id: Option<ClassId>,
-    fct_id: Option<FctId>,
+    callee: &Fct,
+    args: &[BuiltinType],
     cls_tps: &TypeList,
     fct_tps: &TypeList,
     self_ty: Option<BuiltinType>,
 ) -> bool {
-    let def = fct.params_without_self();
+    let def_args = callee.params_without_self();
 
-    let right_number_of_arguments = if fct.variadic_arguments {
-        def.len() - 1 <= expr.len()
+    let cls_id = match callee.parent {
+        FctParent::Class(cls_id) => Some(cls_id),
+        FctParent::Impl(impl_id) => {
+            let ximpl = vm.impls[impl_id].read();
+            Some(ximpl.cls_id(vm))
+        }
+        _ => None,
+    };
+
+    let right_number_of_arguments = if callee.variadic_arguments {
+        def_args.len() - 1 <= args.len()
     } else {
-        def.len() == expr.len()
+        def_args.len() == args.len()
     };
 
     if !right_number_of_arguments {
         return false;
     }
 
-    let (def, rest_ty): (&[BuiltinType], Option<BuiltinType>) = if fct.variadic_arguments {
-        (&def[0..def.len() - 1], def.last().cloned())
+    let (def, rest_ty): (&[BuiltinType], Option<BuiltinType>) = if callee.variadic_arguments {
+        (&def_args[0..def_args.len() - 1], def_args.last().cloned())
     } else {
-        (&def, None)
+        (&def_args, None)
     };
 
     for (ind, &arg) in def.iter().enumerate() {
         if !arg_allows(
-            vm, arg, expr[ind], cls_id, fct_id, cls_tps, fct_tps, self_ty,
+            vm,
+            arg,
+            args[ind],
+            cls_id,
+            Some(callee.id),
+            cls_tps,
+            fct_tps,
+            self_ty,
         ) {
             return false;
         }
@@ -2346,9 +2356,16 @@ pub fn args_compatible(
     if let Some(rest_ty) = rest_ty {
         let ind = def.len();
 
-        for &expr_ty in &expr[ind..] {
+        for &expr_ty in &args[ind..] {
             if !arg_allows(
-                vm, rest_ty, expr_ty, cls_id, fct_id, cls_tps, fct_tps, self_ty,
+                vm,
+                rest_ty,
+                expr_ty,
+                cls_id,
+                Some(callee.id),
+                cls_tps,
+                fct_tps,
+                self_ty,
             ) {
                 return false;
             }
@@ -2657,16 +2674,7 @@ pub fn lookup_method<'ast>(
 
             let cls_type_params = object_type.type_params(vm);
 
-            if args_compatible(
-                vm,
-                &*method,
-                args,
-                Some(cls_id),
-                Some(method.id),
-                &cls_type_params,
-                fct_tps,
-                None,
-            ) {
+            if args_compatible(vm, &*method, args, &cls_type_params, fct_tps, None) {
                 let cmp_type =
                     replace_type_param(vm, method.return_type, &cls_type_params, fct_tps, None);
 
