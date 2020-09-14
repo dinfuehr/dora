@@ -2313,15 +2313,6 @@ pub fn args_compatible<'ast>(
 ) -> bool {
     let def_args = callee.params_without_self();
 
-    let cls_id = match callee.parent {
-        FctParent::Class(cls_id) => Some(cls_id),
-        FctParent::Impl(impl_id) => {
-            let ximpl = vm.impls[impl_id].read();
-            Some(ximpl.cls_id(vm))
-        }
-        _ => None,
-    };
-
     let right_number_of_arguments = if callee.variadic_arguments {
         def_args.len() - 1 <= args.len()
     } else {
@@ -2339,7 +2330,7 @@ pub fn args_compatible<'ast>(
     };
 
     for (ind, &arg) in def.iter().enumerate() {
-        if !arg_allows(vm, arg, args[ind], cls_id, cls_tps, fct_tps, self_ty) {
+        if !arg_allows(vm, arg, args[ind], cls_tps, fct_tps, self_ty) {
             return false;
         }
     }
@@ -2348,7 +2339,7 @@ pub fn args_compatible<'ast>(
         let ind = def.len();
 
         for &expr_ty in &args[ind..] {
-            if !arg_allows(vm, rest_ty, expr_ty, cls_id, cls_tps, fct_tps, self_ty) {
+            if !arg_allows(vm, rest_ty, expr_ty, cls_tps, fct_tps, self_ty) {
                 return false;
             }
         }
@@ -2361,7 +2352,6 @@ fn arg_allows(
     vm: &VM,
     def: BuiltinType,
     arg: BuiltinType,
-    global_cls_id: Option<ClassId>,
     cls_tps: &TypeList,
     fct_tps: &TypeList,
     self_ty: Option<BuiltinType>,
@@ -2383,7 +2373,7 @@ fn arg_allows(
         BuiltinType::This => {
             let real = self_ty.expect("no Self type expected.");
 
-            arg_allows(vm, real, arg, global_cls_id, cls_tps, fct_tps, self_ty)
+            arg_allows(vm, real, arg, cls_tps, fct_tps, self_ty)
         }
         BuiltinType::Trait(_) => panic!("trait should not occur in fct definition."),
 
@@ -2395,7 +2385,6 @@ fn arg_allows(
                     vm,
                     cls_tps[tpid.to_usize()],
                     arg,
-                    global_cls_id,
                     &TypeList::empty(),
                     &TypeList::empty(),
                     None,
@@ -2410,7 +2399,6 @@ fn arg_allows(
                     vm,
                     fct_tps[tpid.to_usize()],
                     arg,
-                    global_cls_id,
                     &TypeList::empty(),
                     &TypeList::empty(),
                     None,
@@ -2449,7 +2437,7 @@ fn arg_allows(
             }
 
             for (tp, op) in params.iter().zip(other_params.iter()) {
-                if !arg_allows(vm, tp, op, global_cls_id, cls_tps, fct_tps, self_ty) {
+                if !arg_allows(vm, tp, op, cls_tps, fct_tps, self_ty) {
                     return false;
                 }
             }
@@ -2476,7 +2464,7 @@ fn arg_allows(
                     let ty = subtypes[idx];
                     let other_ty = other_subtypes[idx];
 
-                    if !arg_allows(vm, ty, other_ty, global_cls_id, cls_tps, fct_tps, self_ty) {
+                    if !arg_allows(vm, ty, other_ty, cls_tps, fct_tps, self_ty) {
                         return false;
                     }
                 }
