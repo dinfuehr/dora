@@ -250,7 +250,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     ) -> Option<(FctId, BuiltinType)> {
         let make_iterator_name = self.vm.interner.intern("makeIterator");
 
-        let mut lookup = MethodLookup::new(self.vm, self.file)
+        let mut lookup = MethodLookup::new(self.vm, self.fct)
             .no_error_reporting()
             .method(object_type)
             .name(make_iterator_name)
@@ -272,7 +272,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     ) -> Option<(ForTypeInfo, BuiltinType)> {
         let has_next_name = self.vm.interner.intern("hasNext");
 
-        let mut has_next = MethodLookup::new(self.vm, self.file)
+        let mut has_next = MethodLookup::new(self.vm, self.fct)
             .no_error_reporting()
             .method(object_type)
             .name(has_next_name)
@@ -287,7 +287,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         let next_name = self.vm.interner.intern("next");
 
-        let mut next = MethodLookup::new(self.vm, self.file)
+        let mut next = MethodLookup::new(self.vm, self.fct)
             .no_error_reporting()
             .method(object_type)
             .name(next_name)
@@ -1243,20 +1243,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     ) -> BuiltinType {
         let mut fcts = Vec::new();
 
-        let (type_param, tp_id) = match tp {
-            BuiltinType::FctTypeParam(fct_id, tp_id) => {
-                assert_eq!(self.fct.id, fct_id);
-                (self.fct.type_param(tp_id).clone(), tp_id)
-            }
-
-            BuiltinType::ClassTypeParam(cls_id, tp_id) => {
-                let cls = self.vm.classes.idx(cls_id);
-                let cls = cls.read();
-                (cls.type_param(tp_id).clone(), tp_id)
-            }
-
-            _ => unreachable!(),
-        };
+        let (type_param, tp_id) = self
+            .fct
+            .type_param_ty(self.vm, tp, |tp, tp_id| (tp.clone(), tp_id));
 
         for &trait_id in &type_param.trait_bounds {
             let xtrait = self.vm.traits[trait_id].read();
@@ -1361,7 +1350,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         type_params: TypeList,
         arg_types: &[BuiltinType],
     ) -> BuiltinType {
-        let mut lookup = MethodLookup::new(self.vm, self.file)
+        let mut lookup = MethodLookup::new(self.vm, self.fct)
             .pos(e.pos)
             .callee(fct_id)
             .args(&arg_types)
@@ -1393,7 +1382,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let cls_type_params = object_type.type_params(self.vm);
         assert_eq!(cls_type_params.len(), 0);
 
-        let mut lookup = MethodLookup::new(self.vm, self.file)
+        let mut lookup = MethodLookup::new(self.vm, self.fct)
             .pos(e.pos)
             .static_method(cls_id)
             .name(method_name)
@@ -1439,7 +1428,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             return BuiltinType::Error;
         }
 
-        let mut lookup = MethodLookup::new(self.vm, self.file)
+        let mut lookup = MethodLookup::new(self.vm, self.fct)
             .no_error_reporting()
             .method(object_type)
             .name(method_name)
@@ -1472,7 +1461,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.check_expr_call_field(e, object_type, method_name, type_params, arg_types)
         } else {
             // Lookup the method again, but this time with error reporting
-            let mut lookup = MethodLookup::new(self.vm, self.file)
+            let mut lookup = MethodLookup::new(self.vm, self.fct)
                 .method(object_type)
                 .name(method_name)
                 .fct_type_params(&type_params)
@@ -1507,7 +1496,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
 
         // No field with that name as well, so report method
-        let mut lookup = MethodLookup::new(self.vm, self.file)
+        let mut lookup = MethodLookup::new(self.vm, self.fct)
             .method(object_type)
             .name(method_name)
             .fct_type_params(&type_params)
@@ -1527,7 +1516,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         type_params: TypeList,
         arg_types: &[BuiltinType],
     ) -> BuiltinType {
-        let mut lookup = MethodLookup::new(self.vm, self.file)
+        let mut lookup = MethodLookup::new(self.vm, self.fct)
             .pos(e.pos)
             .ctor(cls_id)
             .args(arg_types)
@@ -1564,21 +1553,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         name: Name,
         arg_types: &[BuiltinType],
     ) -> BuiltinType {
-        match object_type {
-            BuiltinType::FctTypeParam(_, tpid) => {
-                let tp = self.fct.type_param(tpid);
-                self.check_expr_call_generic_type_param(e, object_type, tp, name, arg_types)
-            }
-
-            BuiltinType::ClassTypeParam(cls_id, tpid) => {
-                let cls = self.vm.classes.idx(cls_id);
-                let cls = cls.read();
-                let tp = cls.type_param(tpid);
-                self.check_expr_call_generic_type_param(e, object_type, tp, name, arg_types)
-            }
-
-            _ => unreachable!(),
-        }
+        self.fct.type_param_ty(self.vm, object_type, |tp, _| {
+            self.check_expr_call_generic_type_param(e, object_type, tp, name, arg_types)
+        })
     }
 
     fn check_expr_call_generic_type_param(
@@ -1670,7 +1647,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         match self.vm.sym.lock().get_type(class) {
             Some(SymClass(cls_id)) => {
-                let mut lookup = MethodLookup::new(self.vm, self.file)
+                let mut lookup = MethodLookup::new(self.vm, self.fct)
                     .pos(e.pos)
                     .static_method(cls_id)
                     .name(method_name)
@@ -2137,7 +2114,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         let error = ErrorReporting::Yes(self.file, e.data_type.pos());
 
-        if !typeparamck::check_type(self.vm, error, check_type) {
+        if !typeparamck::check_in_fct(self.vm, self.fct, error, check_type) {
             let ty = if e.is {
                 BuiltinType::Bool
             } else {
@@ -2246,24 +2223,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             if idx % 2 != 0 {
                 let part_expr = self.check_expr(part, BuiltinType::Any);
 
-                let implements_stringable = match part_expr {
-                    BuiltinType::FctTypeParam(fct_id, tp_id) => {
-                        assert_eq!(self.fct.id, fct_id);
-                        self.fct
-                            .type_param(tp_id)
-                            .trait_bounds
-                            .contains(&stringable_trait)
-                    }
-
-                    BuiltinType::ClassTypeParam(cls_id, tp_id) => {
-                        let cls = self.vm.classes.idx(cls_id);
-                        let cls = cls.read();
-                        cls.type_param(tp_id)
-                            .trait_bounds
-                            .contains(&stringable_trait)
-                    }
-
-                    _ => part_expr.implements_trait(self.vm, stringable_trait),
+                let implements_stringable = if part_expr.is_type_param() {
+                    self.fct.type_param_ty(self.vm, part_expr, |tp, _| {
+                        tp.trait_bounds.contains(&stringable_trait)
+                    })
+                } else {
+                    part_expr.implements_trait(self.vm, stringable_trait)
                 };
 
                 if implements_stringable || part_expr.is_error() {

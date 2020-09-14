@@ -533,7 +533,7 @@ fn type_nil_for_ctor() {
     err(
         "class Foo(let a: Int32) fun test() { Foo(nil); }",
         pos(1, 41),
-        SemError::UnknownCtor("Foo".into(), vec!["nil".into()]),
+        SemError::ParamTypesIncompatible("Foo".into(), vec!["Int32".into()], vec!["nil".into()]),
     );
 }
 
@@ -1374,7 +1374,7 @@ fn test_ctor_with_type_param() {
             class Bar[T](a: T)
             ",
         pos(4, 27),
-        SemError::UnknownCtor("Bar".into(), vec!["Int32".into()]),
+        SemError::ParamTypesIncompatible("Bar".into(), vec!["T".into()], vec!["Int32".into()]),
     );
 }
 
@@ -1474,7 +1474,7 @@ fn test_new_call_class_wrong_params() {
     err(
         "class X fun f() { X(1); }",
         pos(1, 20),
-        SemError::UnknownCtor("X".into(), vec!["Int32".into()]),
+        SemError::ParamTypesIncompatible("X".into(), Vec::new(), vec!["Int32".into()]),
     );
 }
 
@@ -2011,7 +2011,7 @@ fn test_incompatible_branches() {
         }
     ",
         pos(4, 37),
-        SemError::UnknownCtor("Foo".into(), vec!["Int32".into()]),
+        SemError::ParamTypesIncompatible("Foo".into(), Vec::new(), vec!["Int32".into()]),
     );
 }
 

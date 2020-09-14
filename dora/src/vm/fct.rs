@@ -76,6 +76,25 @@ impl<'ast> Fct<'ast> {
         &self.type_params[id.to_usize()]
     }
 
+    pub fn type_param_ty<F: FnOnce(&TypeParam, TypeListId) -> R, R>(
+        &self,
+        vm: &VM,
+        ty: BuiltinType,
+        callback: F,
+    ) -> R {
+        match ty {
+            BuiltinType::FctTypeParam(_, id) => callback(self.type_param(id), id),
+
+            BuiltinType::ClassTypeParam(cls_id, id) => {
+                let cls = vm.classes.idx(cls_id);
+                let cls = cls.read();
+                callback(cls.type_param(id), id)
+            }
+
+            _ => unreachable!(),
+        }
+    }
+
     pub fn is_virtual(&self) -> bool {
         (self.has_open || self.has_override) && !self.has_final
     }
@@ -91,6 +110,13 @@ impl<'ast> Fct<'ast> {
         match self.parent {
             FctParent::Trait(_) => true,
             _ => false,
+        }
+    }
+
+    pub fn parent_cls_id(&self) -> Option<ClassId> {
+        match self.parent {
+            FctParent::Class(cls_id) => Some(cls_id),
+            _ => None,
         }
     }
 

@@ -397,9 +397,8 @@ impl<'x, 'ast> Visitor<'ast> for ClsSuperDefinitionCheck<'x, 'ast> {
         if let Some(ref parent_class) = c.parent_class {
             let cls = self.vm.classes.idx(self.cls_id.unwrap());
             let cls = cls.read();
-            let super_class = cls.parent_class.expect("parent_class missing");
             let error = ErrorReporting::Yes(self.file_id.into(), parent_class.pos);
-            typeparamck::check_type(self.vm, error, super_class);
+            typeparamck::check_super(self.vm, &*cls, error);
         }
 
         self.cls_id = None;

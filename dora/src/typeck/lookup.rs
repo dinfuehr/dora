@@ -4,7 +4,7 @@ use crate::semck::typeparamck::{self, ErrorReporting};
 use crate::ty::{BuiltinType, TypeList};
 use crate::typeck::expr::args_compatible;
 use crate::vm::{
-    find_methods_in_class, find_methods_in_enum, ClassId, FctId, FctParent, FileId, TraitId,
+    find_methods_in_class, find_methods_in_enum, ClassId, Fct, FctId, FctParent, FileId, TraitId,
     TypeParam, VM,
 };
 
@@ -24,6 +24,7 @@ enum LookupKind {
 
 pub struct MethodLookup<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
+    caller: &'a Fct<'ast>,
     file: FileId,
     kind: Option<LookupKind>,
     name: Option<Name>,
@@ -42,10 +43,11 @@ pub struct MethodLookup<'a, 'ast: 'a> {
 }
 
 impl<'a, 'ast> MethodLookup<'a, 'ast> {
-    pub fn new(vm: &'a VM<'ast>, file: FileId) -> MethodLookup<'a, 'ast> {
+    pub fn new(vm: &'a VM<'ast>, caller: &'a Fct<'ast>) -> MethodLookup<'a, 'ast> {
         MethodLookup {
             vm,
-            file,
+            caller,
+            file: caller.file,
             kind: None,
             name: None,
             args: None,
@@ -324,28 +326,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         let cls = self.vm.classes.idx(cls_id);
         let cls = cls.read();
 
-        let type_params = self.cls_tps.as_ref().unwrap();
-        let args = self.args.unwrap();
-
-        if let Some(ctor_id) = cls.constructor {
-            let ctor = self.vm.fcts.idx(ctor_id);
-            let ctor = ctor.read();
-
-            if args_compatible(
-                self.vm,
-                &*ctor,
-                &args,
-                Some(cls_id),
-                None,
-                type_params,
-                &TypeList::empty(),
-                None,
-            ) {
-                return Some(ctor_id);
-            }
-        }
-
-        None
+        cls.constructor
     }
 
     fn find_method(
@@ -418,7 +399,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             ErrorReporting::No
         };
 
-        typeparamck::check_params(self.vm, error, specified_tps, tps)
+        typeparamck::check_params(self.vm, self.caller, error, specified_tps, tps)
     }
 
     pub fn found_fct_id(&self) -> Option<FctId> {

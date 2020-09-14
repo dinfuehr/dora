@@ -4,14 +4,19 @@ use std::collections::hash_set::HashSet;
 
 use crate::error::msg::SemError;
 use crate::ty::{BuiltinType, TypeList};
-use crate::vm::{FileId, TraitId, TypeParam, VM};
+use crate::vm::{Class, ClassId, Fct, FileId, TraitId, TypeParam, VM};
 
 pub enum ErrorReporting {
     Yes(FileId, Position),
     No,
 }
 
-pub fn check_type(vm: &VM, error: ErrorReporting, object_type: BuiltinType) -> bool {
+pub fn check_in_fct<'a, 'ast: 'a>(
+    vm: &VM<'ast>,
+    fct: &Fct<'ast>,
+    error: ErrorReporting,
+    object_type: BuiltinType,
+) -> bool {
     let tp_defs = {
         let cls_id = object_type.cls_id(vm).expect("no class");
         let cls = vm.classes.idx(cls_id);
@@ -21,6 +26,8 @@ pub fn check_type(vm: &VM, error: ErrorReporting, object_type: BuiltinType) -> b
 
     let checker = TypeParamCheck {
         vm,
+        fct: Some(fct),
+        cls_id: fct.parent_cls_id(),
         error,
         tp_defs: &tp_defs,
     };
@@ -30,15 +37,41 @@ pub fn check_type(vm: &VM, error: ErrorReporting, object_type: BuiltinType) -> b
     checker.check(&params)
 }
 
-pub fn check_params(
-    vm: &VM,
+pub fn check_super<'a, 'ast: 'a>(vm: &VM<'ast>, cls: &Class, error: ErrorReporting) -> bool {
+    let object_type = cls.parent_class.expect("parent_class missing");
+
+    let tp_defs = {
+        let cls_id = object_type.cls_id(vm).expect("no class");
+        let cls = vm.classes.idx(cls_id);
+        let cls = cls.read();
+        cls.type_params.to_vec()
+    };
+
+    let checker = TypeParamCheck {
+        vm,
+        fct: None,
+        cls_id: Some(cls.id),
+        error,
+        tp_defs: &tp_defs,
+    };
+
+    let params = object_type.type_params(vm);
+
+    checker.check(&params)
+}
+
+pub fn check_params<'a, 'ast: 'a>(
+    vm: &'a VM<'ast>,
+    fct: &'a Fct<'ast>,
     error: ErrorReporting,
-    tp_defs: &[TypeParam],
-    params: &TypeList,
+    tp_defs: &'a [TypeParam],
+    params: &'a TypeList,
 ) -> bool {
     let checker = TypeParamCheck {
         vm,
-        error: error,
+        fct: Some(fct),
+        cls_id: fct.parent_cls_id(),
+        error,
         tp_defs,
     };
 
@@ -47,6 +80,8 @@ pub fn check_params(
 
 struct TypeParamCheck<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
+    fct: Option<&'a Fct<'ast>>,
+    cls_id: Option<ClassId>,
     error: ErrorReporting,
     tp_defs: &'a [TypeParam],
 }
@@ -67,12 +102,14 @@ impl<'a, 'ast> TypeParamCheck<'a, 'ast> {
             if ty.is_type_param() {
                 let ok = match ty {
                     BuiltinType::ClassTypeParam(cls_id, tpid) => {
+                        assert!(cls_id == self.cls_id.expect("missing cls_id"));
                         let cls = self.vm.classes.idx(cls_id);
                         let cls = cls.read();
                         self.tp_against_definition(tp, cls.type_param(tpid), ty)
                     }
 
                     BuiltinType::FctTypeParam(fct_id, tpid) => {
+                        assert!(fct_id == self.fct.expect("missing id").id);
                         let fct = self.vm.fcts.idx(fct_id);
                         let fct = fct.read();
                         self.tp_against_definition(tp, fct.type_param(tpid), ty)
