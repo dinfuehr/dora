@@ -425,7 +425,7 @@ impl ClassDef {
             let params = if self.type_params.len() > 0 {
                 self.type_params
                     .iter()
-                    .map(|p| p.name(vm))
+                    .map(|p| p.name_cls(vm, &*cls))
                     .collect::<Vec<_>>()
                     .join(", ")
             } else {

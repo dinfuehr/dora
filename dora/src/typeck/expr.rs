@@ -108,8 +108,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     .interner
                     .str(s.pattern.to_name().unwrap())
                     .to_string();
-                let defined_type = defined_type.name(self.vm);
-                let expr_type = expr_type.name(self.vm);
+                let defined_type = defined_type.name_fct(self.vm, self.fct);
+                let expr_type = expr_type.name_fct(self.vm, self.fct);
                 let msg = SemError::AssignType(name, defined_type, expr_type);
                 self.vm.diag.lock().report(self.file, s.pos, msg);
             }
@@ -136,7 +136,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             LetPattern::Tuple(ref tuple) => {
                 if !ty.is_tuple_or_unit() {
-                    let ty_name = ty.name(self.vm);
+                    let ty_name = ty.name_fct(self.vm, self.fct);
                     self.vm.diag.lock().report(
                         self.file,
                         tuple.pos,
@@ -161,7 +161,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let parts = self.vm.tuples.lock().get(tuple_id).len();
 
                 if parts != tuple.parts.len() {
-                    let ty_name = ty.name(self.vm);
+                    let ty_name = ty.name_fct(self.vm, self.fct);
                     self.vm.diag.lock().report(
                         self.file,
                         tuple.pos,
@@ -232,7 +232,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
         }
 
-        let name = object_type.name(self.vm);
+        let name = object_type.name_fct(self.vm, self.fct);
         let msg = SemError::TypeNotUsableInForIn(name);
         self.vm.diag.lock().report(self.file, stmt.expr.pos(), msg);
 
@@ -315,7 +315,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let expr_type = self.check_expr(&s.cond, BuiltinType::Any);
 
         if !expr_type.is_error() && !expr_type.is_bool() {
-            let expr_type = expr_type.name(self.vm);
+            let expr_type = expr_type.name_fct(self.vm, self.fct);
             let msg = SemError::WhileCondType(expr_type);
             self.vm.diag.lock().report(self.file, s.pos, msg);
         }
@@ -338,12 +338,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         if !expr_type.is_error() && !fct_type.allows(self.vm, expr_type) {
             let msg = if expr_type.is_nil() {
-                let fct_type = fct_type.name(self.vm);
+                let fct_type = fct_type.name_fct(self.vm, self.fct);
 
                 SemError::IncompatibleWithNil(fct_type)
             } else {
-                let fct_type = fct_type.name(self.vm);
-                let expr_type = expr_type.name(self.vm);
+                let fct_type = fct_type.name_fct(self.vm, self.fct);
+                let expr_type = expr_type.name_fct(self.vm, self.fct);
 
                 SemError::ReturnType(fct_type, expr_type)
             };
@@ -412,7 +412,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let expr_type = self.check_expr(&expr.cond, BuiltinType::Any);
 
         if !expr_type.is_bool() && !expr_type.is_error() {
-            let expr_type = expr_type.name(self.vm);
+            let expr_type = expr_type.name_fct(self.vm, self.fct);
             let msg = SemError::IfCondType(expr_type);
             self.vm.diag.lock().report(self.file, expr.pos, msg);
         }
@@ -431,8 +431,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             } else if else_type.is_error() {
                 then_type
             } else if !then_type.allows(self.vm, else_type) {
-                let then_type_name = then_type.name(self.vm);
-                let else_type_name = else_type.name(self.vm);
+                let then_type_name = then_type.name_fct(self.vm, self.fct);
+                let else_type_name = else_type.name_fct(self.vm, self.fct);
                 let msg = SemError::IfBranchTypesIncompatible(then_type_name, else_type_name);
                 self.vm.diag.lock().report(self.file, expr.pos, msg);
                 then_type
@@ -690,8 +690,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         if !lhs_type.is_error() && !rhs_type.is_error() && !lhs_type.allows(self.vm, rhs_type) {
             let ident = e.lhs.to_ident().unwrap();
             let name = self.vm.interner.str(ident.name).to_string();
-            let lhs_type = lhs_type.name(self.vm);
-            let rhs_type = rhs_type.name(self.vm);
+            let lhs_type = lhs_type.name_fct(self.vm, self.fct);
+            let rhs_type = rhs_type.name_fct(self.vm, self.fct);
 
             self.src.set_ty(e.id, BuiltinType::Unit);
 
@@ -782,9 +782,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 if !fty.allows(self.vm, rhs_type) && !rhs_type.is_error() {
                     let name = self.vm.interner.str(name).to_string();
 
-                    let object_type = object_type.name(self.vm);
-                    let lhs_type = fty.name(self.vm);
-                    let rhs_type = rhs_type.name(self.vm);
+                    let object_type = object_type.name_fct(self.vm, self.fct);
+                    let lhs_type = fty.name_fct(self.vm, self.fct);
+                    let rhs_type = rhs_type.name_fct(self.vm, self.fct);
 
                     let msg = SemError::AssignField(name, object_type, lhs_type, rhs_type);
                     self.vm.diag.lock().report(self.file, e.pos, msg);
@@ -797,7 +797,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         // field not found, report error
         let field_name = self.vm.interner.str(name).to_string();
-        let expr_name = object_type.name(self.vm);
+        let expr_name = object_type.name_fct(self.vm, self.fct);
         let msg = SemError::UnknownField(field_name, expr_name);
         self.vm.diag.lock().report(self.file, field_expr.pos, msg);
 
@@ -824,11 +824,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         );
 
         if result.is_none() {
-            let type_name = object_type.name(self.vm);
+            let type_name = object_type.name_fct(self.vm, self.fct);
             let name = self.vm.interner.str(name).to_string();
             let param_names = args
                 .iter()
-                .map(|a| a.name(self.vm))
+                .map(|a| a.name_fct(self.vm, self.fct))
                 .collect::<Vec<String>>();
             let msg = if is_static {
                 SemError::UnknownStaticMethod(type_name, name, param_names)
@@ -886,7 +886,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 return return_type;
             }
 
-            let ty = ty.name(self.vm);
+            let ty = ty.name_fct(self.vm, self.fct);
             let msg = SemError::UnOpType(op.as_str().into(), ty);
 
             self.vm.diag.lock().report(self.file, e.pos, msg);
@@ -975,8 +975,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             return_type
         } else {
-            let lhs_type = lhs_type.name(self.vm);
-            let rhs_type = rhs_type.name(self.vm);
+            let lhs_type = lhs_type.name_fct(self.vm, self.fct);
+            let rhs_type = rhs_type.name_fct(self.vm, self.fct);
             let msg = SemError::BinOpType(op.as_str().into(), lhs_type, rhs_type);
 
             self.vm.diag.lock().report(self.file, e.pos, msg);
@@ -999,8 +999,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 if !(lhs_type.is_nil() || lhs_type.allows(self.vm, rhs_type))
                     && !(rhs_type.is_nil() || rhs_type.allows(self.vm, lhs_type))
                 {
-                    let lhs_type = lhs_type.name(self.vm);
-                    let rhs_type = rhs_type.name(self.vm);
+                    let lhs_type = lhs_type.name_fct(self.vm, self.fct);
+                    let rhs_type = rhs_type.name_fct(self.vm, self.fct);
                     self.vm.diag.lock().report(
                         self.file,
                         e.pos,
@@ -1050,8 +1050,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             self.src.set_ty(e.id, BuiltinType::Bool);
         } else {
-            let lhs_type = lhs_type.name(self.vm);
-            let rhs_type = rhs_type.name(self.vm);
+            let lhs_type = lhs_type.name_fct(self.vm, self.fct);
+            let rhs_type = rhs_type.name_fct(self.vm, self.fct);
             let msg = SemError::BinOpType("equals".into(), lhs_type, rhs_type);
 
             self.vm.diag.lock().report(self.file, e.pos, msg);
@@ -1070,8 +1070,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     ) {
         if !expected_type.allows(self.vm, lhs_type) || !expected_type.allows(self.vm, rhs_type) {
             let op = op.as_str().into();
-            let lhs_type = lhs_type.name(self.vm);
-            let rhs_type = rhs_type.name(self.vm);
+            let lhs_type = lhs_type.name_fct(self.vm, self.fct);
+            let rhs_type = rhs_type.name_fct(self.vm, self.fct);
             let msg = SemError::BinOpType(op, lhs_type, rhs_type);
 
             self.vm.diag.lock().report(self.file, e.pos, msg);
@@ -1194,11 +1194,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let variant_types = variant
                 .types
                 .iter()
-                .map(|a| a.name(self.vm))
+                .map(|a| a.name_fct(self.vm, self.fct))
                 .collect::<Vec<_>>();
             let arg_types = arg_types
                 .iter()
-                .map(|a| a.name(self.vm))
+                .map(|a| a.name_fct(self.vm, self.fct))
                 .collect::<Vec<_>>();
             let msg =
                 SemError::EnumArgsIncompatible(enum_name, variant_name, variant_types, arg_types);
@@ -1291,11 +1291,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let fct_params = fct
                 .params_without_self()
                 .iter()
-                .map(|a| a.name(self.vm))
+                .map(|a| a.name_fct(self.vm, self.fct))
                 .collect::<Vec<_>>();
             let arg_types = arg_types
                 .iter()
-                .map(|a| a.name(self.vm))
+                .map(|a| a.name_fct(self.vm, self.fct))
                 .collect::<Vec<_>>();
             let msg = SemError::ParamTypesIncompatible(fct_name, fct_params, arg_types);
             self.vm.diag.lock().report(self.file, e.pos, msg);
@@ -1589,11 +1589,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             return_type
         } else {
-            let type_name = object_type.name(self.vm);
+            let type_name = object_type.name_fct(self.vm, self.fct);
             let name = self.vm.interner.str(name).to_string();
             let param_names = args
                 .iter()
-                .map(|a| a.name(self.vm))
+                .map(|a| a.name_fct(self.vm, self.fct))
                 .collect::<Vec<String>>();
             let msg = if found_fcts.len() == 0 {
                 SemError::UnknownMethodForTypeParam(type_name, name, param_names)
@@ -1731,7 +1731,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
 
         let name = self.vm.interner.str(cls.name).to_string();
-        let arg_types = arg_types.iter().map(|t| t.name(self.vm)).collect();
+        let arg_types = arg_types
+            .iter()
+            .map(|t| t.name_fct(self.vm, self.fct))
+            .collect();
         let msg = SemError::UnknownCtor(name, arg_types);
         self.vm.diag.lock().report(self.file, e.pos, msg);
 
@@ -1801,7 +1804,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         let variant_types = variant
                             .types
                             .iter()
-                            .map(|a| a.name(self.vm))
+                            .map(|a| a.name_fct(self.vm, self.fct))
                             .collect::<Vec<_>>();
                         let arg_types = Vec::new();
                         let msg = SemError::EnumArgsIncompatible(
@@ -1961,7 +1964,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         // field not found, report error
         if !object_type.is_error() {
             let field_name = self.vm.interner.str(name).to_string();
-            let expr_name = object_type.name(self.vm);
+            let expr_name = object_type.name_fct(self.vm, self.fct);
             let msg = SemError::UnknownField(field_name, expr_name);
             self.vm.diag.lock().report(self.file, e.pos, msg);
         }
@@ -1996,7 +1999,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let tuple = self.vm.tuples.lock().get(tuple_id);
 
         if index >= tuple.len() as u64 {
-            let msg = SemError::IllegalTupleIndex(index, object_type.name(self.vm));
+            let msg = SemError::IllegalTupleIndex(index, object_type.name_fct(self.vm, self.fct));
             self.vm.diag.lock().report(self.file, e.pos, msg);
 
             self.src.set_ty(e.id, BuiltinType::Error);
@@ -2098,7 +2101,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let check_type = self.src.ty(e.data_type.id());
 
         if !check_type.is_cls() {
-            let name = check_type.name(self.vm);
+            let name = check_type.name_fct(self.vm, self.fct);
             self.vm
                 .diag
                 .lock()
@@ -2134,8 +2137,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         } else if check_type.subclass_from(self.vm, object_type) {
             // normal check
         } else {
-            let object_type = object_type.name(self.vm);
-            let check_type = check_type.name(self.vm);
+            let object_type = object_type.name_fct(self.vm, self.fct);
+            let check_type = check_type.name_fct(self.vm, self.fct);
             let msg = SemError::TypesIncompatible(object_type, check_type);
             self.vm.diag.lock().report(self.file, e.pos, msg);
         }
@@ -2235,7 +2238,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     continue;
                 }
 
-                let ty = part_expr.name(self.vm);
+                let ty = part_expr.name_fct(self.vm, self.fct);
                 self.vm
                     .diag
                     .lock()
@@ -2421,7 +2424,7 @@ fn arg_allows(
             }
 
             if global_fct_id != Some(fct_id) || tpid.to_usize() >= fct_tps.len() {
-                return false;
+                panic!("should not happen");
             }
 
             arg_allows(

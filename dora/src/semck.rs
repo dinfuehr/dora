@@ -334,7 +334,7 @@ fn read_type_class<'ast>(
         for &trait_bound in &tp.trait_bounds {
             if !cls.implements_trait(vm, trait_bound) {
                 let bound = vm.traits[trait_bound].read();
-                let name = ty.name(vm);
+                let name = ty.name_cls(vm, &*cls);
                 let trait_name = vm.interner.str(bound.name).to_string();
                 let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
                 vm.diag.lock().report(file, basic.pos, msg);

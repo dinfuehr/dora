@@ -57,7 +57,7 @@ pub fn disassemble<'ast>(
         let mut ty_names = Vec::new();
 
         for ty in cls_type_params.iter() {
-            ty_names.push(ty.name(vm));
+            ty_names.push(ty.name_fct(vm, fct));
         }
 
         format!(" CLS[{}]", ty_names.join(", "))
@@ -69,7 +69,7 @@ pub fn disassemble<'ast>(
         let mut ty_names = Vec::new();
 
         for ty in fct_type_params.iter() {
-            ty_names.push(ty.name(vm));
+            ty_names.push(ty.name_fct(vm, fct));
         }
 
         format!(" FCT[{}]", ty_names.join(", "))
@@ -87,7 +87,13 @@ pub fn disassemble<'ast>(
     if let Some(fct_src) = fct_src {
         for var in &fct_src.vars {
             let name = vm.interner.str(var.name);
-            writeln!(&mut w, "  var `{}`: type {}", name, var.ty.name(vm)).unwrap();
+            writeln!(
+                &mut w,
+                "  var `{}`: type {}",
+                name,
+                var.ty.name_fct(vm, fct)
+            )
+            .unwrap();
         }
 
         if fct_src.vars.len() > 0 {

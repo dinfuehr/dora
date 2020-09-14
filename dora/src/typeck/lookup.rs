@@ -190,14 +190,14 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             let name = self.vm.interner.str(name).to_string();
             let param_names = args
                 .iter()
-                .map(|a| a.name(self.vm))
+                .map(|a| a.name_fct(self.vm, self.caller))
                 .collect::<Vec<String>>();
 
             let msg = match kind {
                 LookupKind::Fct => SemError::Unimplemented,
                 LookupKind::Callee(_) => unreachable!(),
                 LookupKind::Method(obj) => {
-                    let type_name = obj.name(self.vm);
+                    let type_name = obj.name_fct(self.vm, self.caller);
 
                     if self.found_multiple_functions {
                         SemError::MultipleCandidatesForMethod(type_name, name, param_names)
@@ -214,7 +214,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                 }
 
                 LookupKind::Static(cls_id) => {
-                    let type_name = self.vm.cls(cls_id).name(self.vm);
+                    let type_name = self.vm.cls(cls_id).name_fct(self.vm, self.caller);
                     SemError::UnknownStaticMethod(type_name, name, param_names)
                 }
 
@@ -291,9 +291,12 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             let fct_params = fct
                 .params_without_self()
                 .iter()
-                .map(|a| a.name(self.vm))
+                .map(|a| a.name_fct(self.vm, self.caller))
                 .collect::<Vec<_>>();
-            let call_types = args.iter().map(|a| a.name(self.vm)).collect::<Vec<_>>();
+            let call_types = args
+                .iter()
+                .map(|a| a.name_fct(self.vm, self.caller))
+                .collect::<Vec<_>>();
             let msg = SemError::ParamTypesIncompatible(fct_name, fct_params, call_types);
             self.vm
                 .diag

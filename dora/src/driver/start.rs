@@ -195,7 +195,7 @@ fn is_test_fct<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) -> bool {
     fct.is_test
 }
 
-fn test_filter_matches(vm: &VM, fct: &Fct) -> bool {
+fn test_filter_matches<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) -> bool {
     if vm.args.flag_test_filter.is_none() {
         return true;
     }

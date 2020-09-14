@@ -165,8 +165,15 @@ impl<'a, 'ast> TypeParamCheck<'a, 'ast> {
     }
 
     fn fail_trait_bound(&self, file_id: FileId, pos: Position, trait_id: TraitId, ty: BuiltinType) {
+        println!("ty = {:?}", ty);
         let bound = self.vm.traits[trait_id].read();
-        let name = ty.name(self.vm);
+        let name = if let Some(fct) = self.fct {
+            ty.name_fct(self.vm, fct)
+        } else {
+            let cls = self.vm.classes.idx(self.cls_id.expect("cls_id missing"));
+            let cls = cls.read();
+            ty.name_cls(self.vm, &*cls)
+        };
         let trait_name = self.vm.interner.str(bound.name).to_string();
         let msg = SemError::TraitBoundNotSatisfied(name, trait_name);
         self.vm.diag.lock().report(file_id, pos, msg);

@@ -126,7 +126,7 @@ pub enum Next {
     Return,
 }
 
-pub fn should_emit_debug(vm: &VM, fct: &Fct) -> bool {
+pub fn should_emit_debug<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) -> bool {
     if let Some(ref dbg_names) = vm.args.flag_emit_debug {
         fct_pattern_match(vm, fct, dbg_names)
     } else {
@@ -134,7 +134,7 @@ pub fn should_emit_debug(vm: &VM, fct: &Fct) -> bool {
     }
 }
 
-pub fn should_emit_asm(vm: &VM, fct: &Fct) -> bool {
+pub fn should_emit_asm<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) -> bool {
     if !disassembler::supported() {
         return false;
     }
@@ -146,7 +146,7 @@ pub fn should_emit_asm(vm: &VM, fct: &Fct) -> bool {
     }
 }
 
-pub fn should_emit_bytecode(vm: &VM, fct: &Fct) -> bool {
+pub fn should_emit_bytecode<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) -> bool {
     if let Some(ref dbg_names) = vm.args.flag_emit_bytecode {
         fct_pattern_match(vm, fct, dbg_names)
     } else {
@@ -154,7 +154,7 @@ pub fn should_emit_bytecode(vm: &VM, fct: &Fct) -> bool {
     }
 }
 
-pub fn fct_pattern_match(vm: &VM, fct: &Fct, pattern: &str) -> bool {
+pub fn fct_pattern_match<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>, pattern: &str) -> bool {
     if pattern == "all" {
         return true;
     }

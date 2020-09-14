@@ -42,8 +42,8 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
                     };
 
                 if !return_type_valid {
-                    let impl_return_type = method.return_type.name(vm);
-                    let trait_return_type = trait_method.return_type.name(vm);
+                    let impl_return_type = method.return_type.name_fct(vm, &*method);
+                    let trait_return_type = trait_method.return_type.name_fct(vm, &*trait_method);
 
                     let msg = SemError::ReturnTypeMismatch(impl_return_type, trait_return_type);
                     vm.diag.lock().report(ximpl.file, method.pos, msg);
@@ -52,7 +52,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
                 let args = method
                     .params_without_self()
                     .iter()
-                    .map(|a| a.name(vm))
+                    .map(|a| a.name_fct(vm, &*method))
                     .collect::<Vec<String>>();
                 let mtd_name = vm.interner.str(method.name).to_string();
                 let trait_name = vm.interner.str(xtrait.name).to_string();
@@ -74,7 +74,7 @@ pub fn check<'ast>(vm: &mut VM<'ast>) {
             let args = method
                 .params_without_self()
                 .iter()
-                .map(|a| a.name(vm))
+                .map(|a| a.name_fct(vm, &*method))
                 .collect::<Vec<String>>();
             let mtd_name = vm.interner.str(method.name).to_string();
             let trait_name = vm.interner.str(xtrait.name).to_string();

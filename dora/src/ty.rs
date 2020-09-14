@@ -6,7 +6,7 @@ use crate::mem;
 use crate::semck;
 use crate::vm::module::ModuleId;
 use crate::vm::VM;
-use crate::vm::{ClassId, EnumId, EnumLayout, FctId, StructId, TraitId, TupleId};
+use crate::vm::{Class, ClassId, EnumId, EnumLayout, Fct, FctId, StructId, TraitId, TupleId};
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum BuiltinType {
@@ -258,122 +258,33 @@ impl BuiltinType {
     }
 
     pub fn name(&self, vm: &VM) -> String {
-        match *self {
-            BuiltinType::Error => "<error>".into(),
-            BuiltinType::Any => "Any".into(),
-            BuiltinType::Unit => "()".into(),
-            BuiltinType::UInt8 => "UInt8".into(),
-            BuiltinType::Char => "Char".into(),
-            BuiltinType::Int32 => "Int32".into(),
-            BuiltinType::Int64 => "Int64".into(),
-            BuiltinType::Float32 => "Float32".into(),
-            BuiltinType::Float64 => "Float64".into(),
-            BuiltinType::Bool => "Bool".into(),
-            BuiltinType::Nil => "nil".into(),
-            BuiltinType::Ptr => panic!("type Ptr only for internal use."),
-            BuiltinType::This => "Self".into(),
-            BuiltinType::Class(id, list_id) => {
-                let params = vm.lists.lock().get(list_id);
-                let cls = vm.classes.idx(id);
-                let cls = cls.read();
-                let base = vm.interner.str(cls.name);
+        let writer = BuiltinTypePrinter {
+            vm,
+            use_fct: None,
+            use_class: None,
+        };
 
-                if params.len() == 0 {
-                    base.to_string()
-                } else {
-                    let params = params
-                        .iter()
-                        .map(|ty| ty.name(vm))
-                        .collect::<Vec<_>>()
-                        .join(", ");
+        writer.name(*self)
+    }
 
-                    format!("{}[{}]", base, params)
-                }
-            }
-            BuiltinType::Struct(sid, list_id) => {
-                let struc = vm.structs.idx(sid);
-                let struc = struc.lock();
-                let name = struc.name;
-                let name = vm.interner.str(name).to_string();
+    pub fn name_fct<'ast>(&self, vm: &VM<'ast>, fct: &Fct<'ast>) -> String {
+        let writer = BuiltinTypePrinter {
+            vm,
+            use_fct: Some(fct),
+            use_class: None,
+        };
 
-                let params = vm.lists.lock().get(list_id);
+        writer.name(*self)
+    }
 
-                if params.len() == 0 {
-                    name
-                } else {
-                    let params = params
-                        .iter()
-                        .map(|ty| ty.name(vm))
-                        .collect::<Vec<_>>()
-                        .join(", ");
+    pub fn name_cls(&self, vm: &VM, cls: &Class) -> String {
+        let writer = BuiltinTypePrinter {
+            vm,
+            use_fct: None,
+            use_class: Some(cls),
+        };
 
-                    format!("{}[{}]", name, params)
-                }
-            }
-            BuiltinType::Trait(tid) => {
-                let xtrait = vm.traits[tid].read();
-                vm.interner.str(xtrait.name).to_string()
-            }
-            BuiltinType::Enum(id, list_id) => {
-                let xenum = vm.enums[id].read();
-                let name = vm.interner.str(xenum.name).to_string();
-
-                let params = vm.lists.lock().get(list_id);
-
-                if params.len() == 0 {
-                    name
-                } else {
-                    let params = params
-                        .iter()
-                        .map(|ty| ty.name(vm))
-                        .collect::<Vec<_>>()
-                        .join(", ");
-
-                    format!("{}[{}]", name, params)
-                }
-            }
-            BuiltinType::Module(id) => {
-                let module = vm.modules.idx(id);
-                let module = module.read();
-                vm.interner.str(module.name).to_string()
-            }
-            BuiltinType::ClassTypeParam(cid, id) => {
-                let cls = vm.classes.idx(cid);
-                let cls = cls.read();
-                vm.interner.str(cls.type_param(id).name).to_string()
-            }
-
-            BuiltinType::FctTypeParam(fid, id) => {
-                let fct = vm.fcts.idx(fid);
-                let fct = fct.read();
-                vm.interner.str(fct.type_param(id).name).to_string()
-            }
-
-            BuiltinType::Lambda(id) => {
-                let lambda = vm.lambda_types.lock().get(id);
-                let params = lambda
-                    .params
-                    .iter()
-                    .map(|ty| ty.name(vm))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                let ret = lambda.ret.name(vm);
-
-                format!("({}) -> {}", params, ret)
-            }
-
-            BuiltinType::Tuple(tuple_id) => {
-                let types = vm.tuples.lock().get(tuple_id);
-
-                let types = types
-                    .iter()
-                    .map(|ty| ty.name(vm))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-
-                format!("({})", types)
-            }
-        }
+        writer.name(*self)
     }
 
     pub fn allows(&self, vm: &VM, other: BuiltinType) -> bool {
@@ -879,6 +790,141 @@ impl LambdaTypes {
 
     pub fn get(&self, id: LambdaId) -> Arc<LambdaType> {
         self.values[id.0].clone()
+    }
+}
+
+struct BuiltinTypePrinter<'a, 'ast: 'a> {
+    vm: &'a VM<'ast>,
+    use_fct: Option<&'a Fct<'ast>>,
+    use_class: Option<&'a Class>,
+}
+
+impl<'a, 'ast> BuiltinTypePrinter<'a, 'ast> {
+    pub fn name(&self, ty: BuiltinType) -> String {
+        match ty {
+            BuiltinType::Error => "<error>".into(),
+            BuiltinType::Any => "Any".into(),
+            BuiltinType::Unit => "()".into(),
+            BuiltinType::UInt8 => "UInt8".into(),
+            BuiltinType::Char => "Char".into(),
+            BuiltinType::Int32 => "Int32".into(),
+            BuiltinType::Int64 => "Int64".into(),
+            BuiltinType::Float32 => "Float32".into(),
+            BuiltinType::Float64 => "Float64".into(),
+            BuiltinType::Bool => "Bool".into(),
+            BuiltinType::Nil => "nil".into(),
+            BuiltinType::Ptr => panic!("type Ptr only for internal use."),
+            BuiltinType::This => "Self".into(),
+            BuiltinType::Class(id, list_id) => {
+                let params = self.vm.lists.lock().get(list_id);
+                let cls = self.vm.classes.idx(id);
+                let cls = cls.read();
+                let base = self.vm.interner.str(cls.name);
+
+                if params.len() == 0 {
+                    base.to_string()
+                } else {
+                    let params = params
+                        .iter()
+                        .map(|ty| self.name(ty))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+
+                    format!("{}[{}]", base, params)
+                }
+            }
+            BuiltinType::Struct(sid, list_id) => {
+                let struc = self.vm.structs.idx(sid);
+                let struc = struc.lock();
+                let name = struc.name;
+                let name = self.vm.interner.str(name).to_string();
+
+                let params = self.vm.lists.lock().get(list_id);
+
+                if params.len() == 0 {
+                    name
+                } else {
+                    let params = params
+                        .iter()
+                        .map(|ty| self.name(ty))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+
+                    format!("{}[{}]", name, params)
+                }
+            }
+            BuiltinType::Trait(tid) => {
+                let xtrait = self.vm.traits[tid].read();
+                self.vm.interner.str(xtrait.name).to_string()
+            }
+            BuiltinType::Enum(id, list_id) => {
+                let xenum = self.vm.enums[id].read();
+                let name = self.vm.interner.str(xenum.name).to_string();
+
+                let params = self.vm.lists.lock().get(list_id);
+
+                if params.len() == 0 {
+                    name
+                } else {
+                    let params = params
+                        .iter()
+                        .map(|ty| self.name(ty))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+
+                    format!("{}[{}]", name, params)
+                }
+            }
+            BuiltinType::Module(id) => {
+                let module = self.vm.modules.idx(id);
+                let module = module.read();
+                self.vm.interner.str(module.name).to_string()
+            }
+            BuiltinType::ClassTypeParam(_, id) => {
+                if let Some(fct) = self.use_fct {
+                    let cls_id = fct.parent_cls_id().expect("not a method");
+                    let cls = self.vm.classes.idx(cls_id);
+                    let cls = cls.read();
+                    self.vm.interner.str(cls.type_param(id).name).to_string()
+                } else if let Some(cls) = self.use_class {
+                    self.vm.interner.str(cls.type_param(id).name).to_string()
+                } else {
+                    unreachable!()
+                }
+            }
+            BuiltinType::FctTypeParam(_, id) => {
+                if let Some(fct) = self.use_fct {
+                    self.vm.interner.str(fct.type_param(id).name).to_string()
+                } else {
+                    unreachable!()
+                }
+            }
+
+            BuiltinType::Lambda(id) => {
+                let lambda = self.vm.lambda_types.lock().get(id);
+                let params = lambda
+                    .params
+                    .iter()
+                    .map(|&ty| self.name(ty))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                let ret = self.name(lambda.ret);
+
+                format!("({}) -> {}", params, ret)
+            }
+
+            BuiltinType::Tuple(tuple_id) => {
+                let types = self.vm.tuples.lock().get(tuple_id);
+
+                let types = types
+                    .iter()
+                    .map(|&ty| self.name(ty))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+
+                format!("({})", types)
+            }
+        }
     }
 }
 

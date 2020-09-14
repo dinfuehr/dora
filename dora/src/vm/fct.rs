@@ -134,7 +134,7 @@ impl<'ast> Fct<'ast> {
         }
     }
 
-    pub fn full_name(&self, vm: &VM) -> String {
+    pub fn full_name(&self, vm: &VM<'ast>) -> String {
         let mut repr = String::new();
 
         match self.parent {
@@ -186,7 +186,7 @@ impl<'ast> Fct<'ast> {
                 repr.push_str(", ");
             }
 
-            let name = ty.name(vm);
+            let name = ty.name_fct(vm, self);
             repr.push_str(&name);
         }
 
@@ -195,7 +195,7 @@ impl<'ast> Fct<'ast> {
         if self.return_type != BuiltinType::Unit {
             repr.push_str(" -> ");
 
-            let name = self.return_type.name(vm);
+            let name = self.return_type.name_fct(vm, self);
             repr.push_str(&name);
         }
 
