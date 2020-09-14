@@ -32,7 +32,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                 let mut type_param_id = 0;
 
                 for param in &cls.type_params {
-                    let sym = TypeSym::SymClassTypeParam(cls.id, type_param_id.into());
+                    let sym = TypeSym::SymClassTypeParam(type_param_id.into());
                     vm.sym.lock().insert_type(param.name, sym);
                     type_param_id += 1;
                 }

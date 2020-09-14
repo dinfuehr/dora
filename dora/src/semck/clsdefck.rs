@@ -77,7 +77,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
                     self.vm.diag.lock().report(cls.file, type_param.pos, msg);
                 }
 
-                params.push(BuiltinType::ClassTypeParam(cls.id, type_param_id.into()));
+                params.push(BuiltinType::ClassTypeParam(type_param_id.into()));
 
                 for bound in &type_param.bounds {
                     let ty = semck::read_type(self.vm, cls.file, bound);
@@ -101,7 +101,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
                     }
                 }
 
-                let sym = TypeSym::SymClassTypeParam(cls.id, type_param_id.into());
+                let sym = TypeSym::SymClassTypeParam(type_param_id.into());
                 self.vm.sym.lock().insert_type(type_param.name, sym);
                 type_param_id += 1;
             }

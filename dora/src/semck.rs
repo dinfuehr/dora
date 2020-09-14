@@ -270,13 +270,13 @@ fn read_type_basic<'ast>(
             Some(BuiltinType::Enum(enum_id, list_id))
         }
 
-        SymClassTypeParam(cls_id, type_param_id) => {
+        SymClassTypeParam(type_param_id) => {
             if basic.params.len() > 0 {
                 let msg = SemError::NoTypeParamsExpected;
                 vm.diag.lock().report(file, basic.pos, msg);
             }
 
-            Some(BuiltinType::ClassTypeParam(cls_id, type_param_id))
+            Some(BuiltinType::ClassTypeParam(type_param_id))
         }
 
         SymFctTypeParam(type_param_id) => {

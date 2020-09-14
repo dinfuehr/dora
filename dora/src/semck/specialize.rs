@@ -430,7 +430,7 @@ pub fn replace_type_param(
     self_ty: Option<BuiltinType>,
 ) -> BuiltinType {
     match ty {
-        BuiltinType::ClassTypeParam(_, tpid) => cls_tp[tpid.to_usize()],
+        BuiltinType::ClassTypeParam(tpid) => cls_tp[tpid.to_usize()],
         BuiltinType::FctTypeParam(tpid) => fct_tp[tpid.to_usize()],
 
         BuiltinType::Class(cls_id, list_id) => {

@@ -63,7 +63,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                 self.vm
                     .sym
                     .lock()
-                    .insert_type(tp.name, SymClassTypeParam(cls_id, tpid.into()));
+                    .insert_type(tp.name, SymClassTypeParam(tpid.into()));
             }
         }
 
@@ -235,8 +235,8 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                     .insert(ident.id, IdentType::TypeParam(ty))
             }
 
-            (None, Some(SymClassTypeParam(cls_id, id))) => {
-                let ty = BuiltinType::ClassTypeParam(cls_id, id);
+            (None, Some(SymClassTypeParam(id))) => {
+                let ty = BuiltinType::ClassTypeParam(id);
                 self.src
                     .map_idents
                     .insert(ident.id, IdentType::TypeParam(ty))

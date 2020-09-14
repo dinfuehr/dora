@@ -2387,39 +2387,35 @@ fn arg_allows(
         }
         BuiltinType::Trait(_) => panic!("trait should not occur in fct definition."),
 
-        BuiltinType::ClassTypeParam(cls_id, tpid) => {
-            if def == arg {
-                return true;
+        BuiltinType::ClassTypeParam(tpid) => {
+            if cls_tps.len() == 0 {
+                def == arg
+            } else {
+                arg_allows(
+                    vm,
+                    cls_tps[tpid.to_usize()],
+                    arg,
+                    global_cls_id,
+                    &TypeList::empty(),
+                    &TypeList::empty(),
+                    None,
+                )
             }
-
-            if global_cls_id != Some(cls_id) || tpid.to_usize() >= cls_tps.len() {
-                return false;
-            }
-
-            arg_allows(
-                vm,
-                cls_tps[tpid.to_usize()],
-                arg,
-                global_cls_id,
-                &TypeList::empty(),
-                &TypeList::empty(),
-                None,
-            )
         }
         BuiltinType::FctTypeParam(tpid) => {
-            if def == arg {
-                return true;
+            if fct_tps.len() == 0 {
+                def == arg
+            } else {
+                arg_allows(
+                    vm,
+                    fct_tps[tpid.to_usize()],
+                    arg,
+                    global_cls_id,
+                    &TypeList::empty(),
+                    &TypeList::empty(),
+                    None,
+                )
             }
-
-            arg_allows(
-                vm,
-                fct_tps[tpid.to_usize()],
-                arg,
-                global_cls_id,
-                &TypeList::empty(),
-                &TypeList::empty(),
-                None,
-            )
         }
 
         BuiltinType::Class(cls_id, list_id) => {

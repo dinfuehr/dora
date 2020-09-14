@@ -101,7 +101,7 @@ impl<'a, 'ast> TypeParamCheck<'a, 'ast> {
         for (tp, ty) in self.tp_defs.iter().zip(tps.iter()) {
             if ty.is_type_param() {
                 let ok = match ty {
-                    BuiltinType::ClassTypeParam(_, tpid) => {
+                    BuiltinType::ClassTypeParam(tpid) => {
                         let cls_id = if let Some(use_fct) = self.use_fct {
                             use_fct.parent_cls_id().expect("no method")
                         } else {
