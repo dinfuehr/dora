@@ -72,7 +72,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                 self.vm
                     .sym
                     .lock()
-                    .insert_type(tp.name, SymFctTypeParam(self.fct.id, tpid.into()));
+                    .insert_type(tp.name, SymFctTypeParam(tpid.into()));
             }
         }
 
@@ -228,8 +228,8 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                 self.src.map_idents.insert(ident.id, IdentType::Class(id));
             }
 
-            (None, Some(SymFctTypeParam(fct_id, id))) => {
-                let ty = BuiltinType::FctTypeParam(fct_id, id);
+            (None, Some(SymFctTypeParam(id))) => {
+                let ty = BuiltinType::FctTypeParam(id);
                 self.src
                     .map_idents
                     .insert(ident.id, IdentType::TypeParam(ty))

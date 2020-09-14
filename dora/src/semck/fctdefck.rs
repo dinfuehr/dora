@@ -107,7 +107,7 @@ pub fn check<'a, 'ast>(vm: &VM<'ast>) {
                         }
                     }
 
-                    let sym = TypeSym::SymFctTypeParam(fct.id, type_param_id.into());
+                    let sym = TypeSym::SymFctTypeParam(type_param_id.into());
                     vm.sym.lock().insert_type(type_param.name, sym);
                     type_param_id += 1;
                 }

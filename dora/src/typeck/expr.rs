@@ -2418,13 +2418,9 @@ fn arg_allows(
                 None,
             )
         }
-        BuiltinType::FctTypeParam(fct_id, tpid) => {
+        BuiltinType::FctTypeParam(tpid) => {
             if def == arg {
                 return true;
-            }
-
-            if global_fct_id != Some(fct_id) || tpid.to_usize() >= fct_tps.len() {
-                panic!("should not happen");
             }
 
             arg_allows(

@@ -431,7 +431,7 @@ pub fn replace_type_param(
 ) -> BuiltinType {
     match ty {
         BuiltinType::ClassTypeParam(_, tpid) => cls_tp[tpid.to_usize()],
-        BuiltinType::FctTypeParam(_, tpid) => fct_tp[tpid.to_usize()],
+        BuiltinType::FctTypeParam(tpid) => fct_tp[tpid.to_usize()],
 
         BuiltinType::Class(cls_id, list_id) => {
             let params = vm.lists.lock().get(list_id);

@@ -148,7 +148,7 @@ pub enum TypeSym {
     SymStruct(StructId),
     SymTrait(TraitId),
     SymClassTypeParam(ClassId, TypeListId),
-    SymFctTypeParam(FctId, TypeListId),
+    SymFctTypeParam(TypeListId),
     SymEnum(EnumId),
 }
 
@@ -212,7 +212,7 @@ impl TypeSym {
     pub fn is_type_param(&self) -> bool {
         match *self {
             SymClassTypeParam(_, _) => true,
-            SymFctTypeParam(_, _) => true,
+            SymFctTypeParam(_) => true,
             _ => false,
         }
     }

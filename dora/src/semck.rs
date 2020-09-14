@@ -279,13 +279,13 @@ fn read_type_basic<'ast>(
             Some(BuiltinType::ClassTypeParam(cls_id, type_param_id))
         }
 
-        SymFctTypeParam(fct_id, type_param_id) => {
+        SymFctTypeParam(type_param_id) => {
             if basic.params.len() > 0 {
                 let msg = SemError::NoTypeParamsExpected;
                 vm.diag.lock().report(file, basic.pos, msg);
             }
 
-            Some(BuiltinType::FctTypeParam(fct_id, type_param_id))
+            Some(BuiltinType::FctTypeParam(type_param_id))
         }
     }
 }

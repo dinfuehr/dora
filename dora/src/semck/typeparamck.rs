@@ -112,7 +112,7 @@ impl<'a, 'ast> TypeParamCheck<'a, 'ast> {
                         self.tp_against_definition(tp, cls.type_param(tpid), ty)
                     }
 
-                    BuiltinType::FctTypeParam(_, tpid) => {
+                    BuiltinType::FctTypeParam(tpid) => {
                         let fct = self.use_fct.expect("function missing");
                         self.tp_against_definition(tp, fct.type_param(tpid), ty)
                     }

@@ -6,7 +6,7 @@ use crate::mem;
 use crate::semck;
 use crate::vm::module::ModuleId;
 use crate::vm::VM;
-use crate::vm::{Class, ClassId, EnumId, EnumLayout, Fct, FctId, StructId, TraitId, TupleId};
+use crate::vm::{Class, ClassId, EnumId, EnumLayout, Fct, StructId, TraitId, TupleId};
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum BuiltinType {
@@ -55,7 +55,7 @@ pub enum BuiltinType {
     Module(ModuleId),
 
     // some type variable
-    FctTypeParam(FctId, TypeListId),
+    FctTypeParam(TypeListId),
     ClassTypeParam(ClassId, TypeListId),
 
     // some lambda
@@ -125,7 +125,7 @@ impl BuiltinType {
     pub fn is_type_param(&self) -> bool {
         match self {
             &BuiltinType::ClassTypeParam(_, _) => true,
-            &BuiltinType::FctTypeParam(_, _) => true,
+            &BuiltinType::FctTypeParam(_) => true,
             _ => false,
         }
     }
@@ -208,7 +208,7 @@ impl BuiltinType {
     pub fn contains_type_param(&self, vm: &VM) -> bool {
         match self {
             &BuiltinType::ClassTypeParam(_, _) => true,
-            &BuiltinType::FctTypeParam(_, _) => true,
+            &BuiltinType::FctTypeParam(_) => true,
 
             &BuiltinType::Class(_, list_id) => {
                 let params = vm.lists.lock().get(list_id);
@@ -345,7 +345,7 @@ impl BuiltinType {
             BuiltinType::Enum(_, _) => *self == other,
 
             BuiltinType::ClassTypeParam(_, _) => *self == other,
-            BuiltinType::FctTypeParam(_, _) => *self == other,
+            BuiltinType::FctTypeParam(_) => *self == other,
 
             BuiltinType::Lambda(_) => {
                 // for now expect the exact same params and return types
@@ -402,7 +402,7 @@ impl BuiltinType {
                 struc.size
             }
             BuiltinType::Trait(_) => mem::ptr_width(),
-            BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_, _) => {
+            BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_) => {
                 panic!("no size for type variable.")
             }
             BuiltinType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).size(),
@@ -447,7 +447,7 @@ impl BuiltinType {
                 struc.align
             }
             BuiltinType::Trait(_) => mem::ptr_width(),
-            BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_, _) => {
+            BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_) => {
                 panic!("no alignment for type variable.")
             }
             BuiltinType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).align(),
@@ -475,7 +475,7 @@ impl BuiltinType {
             | BuiltinType::Ptr => MachineMode::Ptr,
             BuiltinType::Struct(_, _) => panic!("no machine mode for struct."),
             BuiltinType::Trait(_) => MachineMode::Ptr,
-            BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_, _) => {
+            BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_) => {
                 panic!("no machine mode for type variable.")
             }
             BuiltinType::Tuple(_) => unimplemented!(),
@@ -502,7 +502,7 @@ impl BuiltinType {
             | BuiltinType::Trait(_)
             | BuiltinType::Lambda(_)
             | BuiltinType::ClassTypeParam(_, _)
-            | BuiltinType::FctTypeParam(_, _) => true,
+            | BuiltinType::FctTypeParam(_) => true,
             BuiltinType::Class(_, list_id) | BuiltinType::Struct(_, list_id) => {
                 let params = vm.lists.lock().get(list_id);
 
@@ -557,7 +557,7 @@ impl BuiltinType {
             }
             BuiltinType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).is_concrete_type(),
             BuiltinType::Lambda(_) | BuiltinType::Struct(_, _) => unimplemented!(),
-            BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_, _) => false,
+            BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_) => false,
         }
     }
 }
@@ -892,7 +892,7 @@ impl<'a, 'ast> BuiltinTypePrinter<'a, 'ast> {
                     unreachable!()
                 }
             }
-            BuiltinType::FctTypeParam(_, id) => {
+            BuiltinType::FctTypeParam(id) => {
                 if let Some(fct) = self.use_fct {
                     self.vm.interner.str(fct.type_param(id).name).to_string()
                 } else {

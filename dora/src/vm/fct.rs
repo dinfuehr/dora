@@ -83,7 +83,7 @@ impl<'ast> Fct<'ast> {
         callback: F,
     ) -> R {
         match ty {
-            BuiltinType::FctTypeParam(_, id) => callback(self.type_param(id), id),
+            BuiltinType::FctTypeParam(id) => callback(self.type_param(id), id),
 
             BuiltinType::ClassTypeParam(_, id) => {
                 let cls_id = self.parent_cls_id().expect("not a method");
