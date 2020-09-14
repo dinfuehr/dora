@@ -85,7 +85,8 @@ impl<'ast> Fct<'ast> {
         match ty {
             BuiltinType::FctTypeParam(_, id) => callback(self.type_param(id), id),
 
-            BuiltinType::ClassTypeParam(cls_id, id) => {
+            BuiltinType::ClassTypeParam(_, id) => {
+                let cls_id = self.parent_cls_id().expect("not a method");
                 let cls = vm.classes.idx(cls_id);
                 let cls = cls.read();
                 callback(cls.type_param(id), id)

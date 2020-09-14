@@ -26,8 +26,8 @@ pub fn check_in_fct<'a, 'ast: 'a>(
 
     let checker = TypeParamCheck {
         vm,
-        fct: Some(fct),
-        cls_id: fct.parent_cls_id(),
+        use_fct: Some(fct),
+        use_cls_id: fct.parent_cls_id(),
         error,
         tp_defs: &tp_defs,
     };
@@ -49,8 +49,8 @@ pub fn check_super<'a, 'ast: 'a>(vm: &VM<'ast>, cls: &Class, error: ErrorReporti
 
     let checker = TypeParamCheck {
         vm,
-        fct: None,
-        cls_id: Some(cls.id),
+        use_fct: None,
+        use_cls_id: Some(cls.id),
         error,
         tp_defs: &tp_defs,
     };
@@ -69,8 +69,8 @@ pub fn check_params<'a, 'ast: 'a>(
 ) -> bool {
     let checker = TypeParamCheck {
         vm,
-        fct: Some(fct),
-        cls_id: fct.parent_cls_id(),
+        use_fct: Some(fct),
+        use_cls_id: fct.parent_cls_id(),
         error,
         tp_defs,
     };
@@ -80,8 +80,8 @@ pub fn check_params<'a, 'ast: 'a>(
 
 struct TypeParamCheck<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
-    fct: Option<&'a Fct<'ast>>,
-    cls_id: Option<ClassId>,
+    use_fct: Option<&'a Fct<'ast>>,
+    use_cls_id: Option<ClassId>,
     error: ErrorReporting,
     tp_defs: &'a [TypeParam],
 }
@@ -101,17 +101,19 @@ impl<'a, 'ast> TypeParamCheck<'a, 'ast> {
         for (tp, ty) in self.tp_defs.iter().zip(tps.iter()) {
             if ty.is_type_param() {
                 let ok = match ty {
-                    BuiltinType::ClassTypeParam(cls_id, tpid) => {
-                        assert!(cls_id == self.cls_id.expect("missing cls_id"));
+                    BuiltinType::ClassTypeParam(_, tpid) => {
+                        let cls_id = if let Some(use_fct) = self.use_fct {
+                            use_fct.parent_cls_id().expect("no method")
+                        } else {
+                            self.use_cls_id.expect("no cls_id given")
+                        };
                         let cls = self.vm.classes.idx(cls_id);
                         let cls = cls.read();
                         self.tp_against_definition(tp, cls.type_param(tpid), ty)
                     }
 
-                    BuiltinType::FctTypeParam(fct_id, tpid) => {
-                        assert!(fct_id == self.fct.expect("missing id").id);
-                        let fct = self.vm.fcts.idx(fct_id);
-                        let fct = fct.read();
+                    BuiltinType::FctTypeParam(_, tpid) => {
+                        let fct = self.use_fct.expect("function missing");
                         self.tp_against_definition(tp, fct.type_param(tpid), ty)
                     }
 
@@ -165,12 +167,14 @@ impl<'a, 'ast> TypeParamCheck<'a, 'ast> {
     }
 
     fn fail_trait_bound(&self, file_id: FileId, pos: Position, trait_id: TraitId, ty: BuiltinType) {
-        println!("ty = {:?}", ty);
         let bound = self.vm.traits[trait_id].read();
-        let name = if let Some(fct) = self.fct {
+        let name = if let Some(fct) = self.use_fct {
             ty.name_fct(self.vm, fct)
         } else {
-            let cls = self.vm.classes.idx(self.cls_id.expect("cls_id missing"));
+            let cls = self
+                .vm
+                .classes
+                .idx(self.use_cls_id.expect("cls_id missing"));
             let cls = cls.read();
             ty.name_cls(self.vm, &*cls)
         };
