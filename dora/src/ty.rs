@@ -880,21 +880,13 @@ impl<'a, 'ast> BuiltinTypePrinter<'a, 'ast> {
                 let module = module.read();
                 self.vm.interner.str(module.name).to_string()
             }
-            BuiltinType::ClassTypeParam(id) => {
+            BuiltinType::ClassTypeParam(_) | BuiltinType::FctTypeParam(_) => {
                 if let Some(fct) = self.use_fct {
-                    let cls_id = fct.parent_cls_id().expect("not a method");
-                    let cls = self.vm.classes.idx(cls_id);
-                    let cls = cls.read();
-                    self.vm.interner.str(cls.type_param(id).name).to_string()
+                    fct.type_param_ty(self.vm, ty, |tp, _| {
+                        self.vm.interner.str(tp.name).to_string()
+                    })
                 } else if let Some(cls) = self.use_class {
-                    self.vm.interner.str(cls.type_param(id).name).to_string()
-                } else {
-                    unreachable!()
-                }
-            }
-            BuiltinType::FctTypeParam(id) => {
-                if let Some(fct) = self.use_fct {
-                    self.vm.interner.str(fct.type_param(id).name).to_string()
+                    self.vm.interner.str(cls.type_param_ty(ty).name).to_string()
                 } else {
                     unreachable!()
                 }

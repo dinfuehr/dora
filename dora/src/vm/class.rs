@@ -87,6 +87,15 @@ impl Class {
         &self.type_params[id.to_usize()]
     }
 
+    pub fn type_param_ty(&self, ty: BuiltinType) -> &TypeParam {
+        let id = match ty {
+            BuiltinType::ClassTypeParam(id) => id,
+            _ => unimplemented!(),
+        };
+
+        &self.type_params[id.to_usize()]
+    }
+
     pub fn field_by_name(&self, name: Name) -> FieldId {
         for field in &self.fields {
             if field.name == name {

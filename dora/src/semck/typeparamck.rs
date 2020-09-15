@@ -98,32 +98,23 @@ impl<'a, 'ast> TypeParamCheck<'a, 'ast> {
 
         let mut succeeded = true;
 
-        for (tp, ty) in self.tp_defs.iter().zip(tps.iter()) {
+        for (tp_def, ty) in self.tp_defs.iter().zip(tps.iter()) {
             if ty.is_type_param() {
-                let ok = match ty {
-                    BuiltinType::ClassTypeParam(tpid) => {
-                        let cls_id = if let Some(use_fct) = self.use_fct {
-                            use_fct.parent_cls_id().expect("no method")
-                        } else {
-                            self.use_cls_id.expect("no cls_id given")
-                        };
-                        let cls = self.vm.classes.idx(cls_id);
-                        let cls = cls.read();
-                        self.tp_against_definition(tp, cls.type_param(tpid), ty)
-                    }
-
-                    BuiltinType::FctTypeParam(tpid) => {
-                        let fct = self.use_fct.expect("function missing");
-                        self.tp_against_definition(tp, fct.type_param(tpid), ty)
-                    }
-
-                    _ => unreachable!(),
+                let ok = if let Some(use_fct) = self.use_fct {
+                    use_fct.type_param_ty(self.vm, ty, |tp_arg, _| {
+                        self.tp_against_definition(tp_def, tp_arg, ty)
+                    })
+                } else {
+                    let cls_id = self.use_cls_id.expect("no cls_id given");
+                    let cls = self.vm.classes.idx(cls_id);
+                    let cls = cls.read();
+                    self.tp_against_definition(tp_def, cls.type_param_ty(ty), ty)
                 };
 
                 if !ok {
                     succeeded = false;
                 }
-            } else if !self.type_against_definition(tp, ty) {
+            } else if !self.type_against_definition(tp_def, ty) {
                 succeeded = false;
             }
         }
