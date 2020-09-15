@@ -80,6 +80,7 @@ pub struct CannonCodeGen<'a, 'ast: 'a> {
 
     cls_type_params: &'a TypeList,
     fct_type_params: &'a TypeList,
+    type_params: &'a TypeList,
 
     offset_to_address: HashMap<BytecodeOffset, usize>,
 
@@ -113,6 +114,7 @@ where
         active_upper: Option<usize>,
         cls_type_params: &'a TypeList,
         fct_type_params: &'a TypeList,
+        type_params: &'a TypeList,
     ) -> CannonCodeGen<'a, 'ast> {
         CannonCodeGen {
             vm,
@@ -130,6 +132,7 @@ where
             lbl_return,
             cls_type_params,
             fct_type_params,
+            type_params,
             offset_to_address: HashMap::new(),
             forward_jumps: Vec::new(),
             current_offset: BytecodeOffset(0),
@@ -1270,7 +1273,7 @@ where
 
         if glob.needs_initialization() {
             let fid = glob.initializer.unwrap();
-            let ptr = self.ptr_for_fct_id(fid, TypeList::empty(), TypeList::empty());
+            let ptr = self.ptr_for_fct_id(fid, TypeList::empty());
             let gcpoint = self.create_gcpoint();
             self.asm.ensure_global(&*glob, fid, ptr, glob.pos, gcpoint);
         }
@@ -1960,6 +1963,7 @@ where
 
         let cls_type_params = fct_def.cls_type_params.clone();
         let fct_type_params = fct_def.fct_type_params.clone();
+        let type_params = cls_type_params.append(&fct_type_params);
 
         let fct_return_type =
             specialize_type(self.vm, fct.return_type, &cls_type_params, &fct_type_params);
@@ -1971,7 +1975,7 @@ where
 
         let argsize = self.emit_invoke_arguments(result_register, arguments);
 
-        let ptr = self.ptr_for_fct_id(fct_id, cls_type_params.clone(), fct_type_params.clone());
+        let ptr = self.ptr_for_fct_id(fct_id, type_params);
         let gcpoint = self.create_gcpoint();
 
         let (reg, ty) = match bytecode_type {
@@ -2009,6 +2013,7 @@ where
 
         let cls_type_params = fct_def.cls_type_params.clone();
         let fct_type_params = fct_def.fct_type_params.clone();
+        let type_params = cls_type_params.append(&fct_type_params);
 
         let fct_return_type =
             specialize_type(self.vm, fct.return_type, &cls_type_params, &fct_type_params);
@@ -2031,7 +2036,7 @@ where
 
             let argsize = self.emit_invoke_arguments(result_register, arguments);
 
-            let ptr = self.ptr_for_fct_id(fct_id, cls_type_params.clone(), fct_type_params.clone());
+            let ptr = self.ptr_for_fct_id(fct_id, type_params);
             let gcpoint = self.create_gcpoint();
             let position = self.bytecode.offset_position(self.current_offset.to_u32());
 
@@ -2278,15 +2283,10 @@ where
         mem::align_i32(argsize, STACK_FRAME_ALIGNMENT as i32)
     }
 
-    fn ptr_for_fct_id(
-        &mut self,
-        fid: FctId,
-        cls_type_params: TypeList,
-        fct_type_params: TypeList,
-    ) -> Address {
+    fn ptr_for_fct_id(&mut self, fid: FctId, type_params: TypeList) -> Address {
         if self.fct.id == fid {
             // we want to recursively invoke the function we are compiling right now
-            ensure_jit_or_stub_ptr(self.src, self.vm, cls_type_params, fct_type_params)
+            ensure_jit_or_stub_ptr(self.src, self.vm, type_params)
         } else {
             let fct = self.vm.fcts.idx(fid);
             let fct = fct.read();
@@ -2296,10 +2296,11 @@ where
                     let src = fct.src();
                     let src = src.read();
 
-                    ensure_jit_or_stub_ptr(&src, self.vm, cls_type_params, fct_type_params)
+                    ensure_jit_or_stub_ptr(&src, self.vm, type_params)
                 }
 
                 FctKind::Native(ptr) => {
+                    assert!(type_params.is_empty());
                     let internal_fct = NativeFct {
                         ptr,
                         args: fct.params_with_self(),
@@ -3416,16 +3417,10 @@ fn result_reg_mode(mode: MachineMode) -> AnyReg {
     }
 }
 
-fn ensure_jit_or_stub_ptr<'ast>(
-    src: &FctSrc,
-    vm: &VM,
-    cls_type_params: TypeList,
-    fct_type_params: TypeList,
-) -> Address {
+fn ensure_jit_or_stub_ptr<'ast>(src: &FctSrc, vm: &VM, type_params: TypeList) -> Address {
     let specials = src.specializations.read();
-    let key = (cls_type_params, fct_type_params);
 
-    if let Some(&jit_fct_id) = specials.get(&key) {
+    if let Some(&jit_fct_id) = specials.get(&type_params) {
         let jit_fct = vm.jit_fcts.idx(jit_fct_id);
         return jit_fct.instruction_start();
     }

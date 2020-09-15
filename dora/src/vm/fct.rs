@@ -92,6 +92,24 @@ impl<'ast> Fct<'ast> {
                 callback(cls.type_param(id), id)
             }
 
+            BuiltinType::TypeParam(id) => {
+                let id = if let Some(cls_id) = self.parent_cls_id() {
+                    let cls = vm.classes.idx(cls_id);
+                    let cls = cls.read();
+                    let len = cls.type_params.len();
+
+                    if id.to_usize() < len {
+                        return callback(cls.type_param(id), id);
+                    }
+
+                    (id.to_usize() - len).into()
+                } else {
+                    id
+                };
+
+                callback(self.type_param(id), id)
+            }
+
             _ => unreachable!(),
         }
     }
@@ -618,6 +636,7 @@ pub struct FctDef {
     pub fct_id: FctId,
     pub cls_type_params: TypeList,
     pub fct_type_params: TypeList,
+    pub type_params: TypeList,
 }
 
 impl FctDef {
@@ -669,11 +688,14 @@ impl FctDef {
             return id;
         }
 
+        let combined_type_params = cls_type_params.append(&fct_type_params);
+
         let fct_def_id = vm.add_fct_def(FctDef {
             id: FctDefId(0),
             fct_id: fct.id,
             cls_type_params: cls_type_params.clone(),
             fct_type_params: fct_type_params.clone(),
+            type_params: combined_type_params,
         });
 
         let old = specializations.insert(

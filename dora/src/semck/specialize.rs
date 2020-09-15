@@ -22,6 +22,10 @@ pub fn specialize_type(
     replace_type_param(vm, ty, cls_type_params, fct_type_params, None)
 }
 
+pub fn specialize_type2(vm: &VM, ty: BuiltinType, type_params: &TypeList) -> BuiltinType {
+    replace_type_param2(vm, ty, type_params, None)
+}
+
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum SpecializeFor {
     Fct,
@@ -466,6 +470,59 @@ pub fn replace_type_param(
             let new_subtypes = subtypes
                 .iter()
                 .map(|&t| replace_type_param(vm, t, cls_tp, fct_tp, self_ty))
+                .collect::<Vec<_>>();
+
+            let tuple_id = ensure_tuple(vm, new_subtypes);
+            BuiltinType::Tuple(tuple_id)
+        }
+
+        _ => ty,
+    }
+}
+
+pub fn replace_type_param2(
+    vm: &VM,
+    ty: BuiltinType,
+    type_params: &TypeList,
+    self_ty: Option<BuiltinType>,
+) -> BuiltinType {
+    match ty {
+        BuiltinType::ClassTypeParam(_) | BuiltinType::FctTypeParam(_) => unimplemented!(),
+        BuiltinType::TypeParam(tpid) => type_params[tpid.to_usize()],
+
+        BuiltinType::Class(cls_id, list_id) => {
+            let params = vm.lists.lock().get(list_id);
+
+            let params = TypeList::with(
+                params
+                    .iter()
+                    .map(|p| replace_type_param2(vm, p, type_params, self_ty))
+                    .collect::<Vec<_>>(),
+            );
+
+            let list_id = vm.lists.lock().insert(params);
+            BuiltinType::Class(cls_id, list_id)
+        }
+
+        BuiltinType::This => self_ty.expect("no type for Self given"),
+
+        BuiltinType::Lambda(_) => unimplemented!(),
+
+        BuiltinType::Tuple(tuple_id) => {
+            let subtypes = {
+                let tuples = vm.tuples.lock();
+                let tuple = tuples.get_tuple(tuple_id);
+
+                if tuple.is_concrete_type() {
+                    return ty;
+                }
+
+                tuple.args()
+            };
+
+            let new_subtypes = subtypes
+                .iter()
+                .map(|&t| replace_type_param2(vm, t, type_params, self_ty))
                 .collect::<Vec<_>>();
 
             let tuple_id = ensure_tuple(vm, new_subtypes);

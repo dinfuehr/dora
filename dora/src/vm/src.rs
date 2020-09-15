@@ -23,7 +23,7 @@ pub struct FctSrc {
 
     pub always_returns: bool, // true if function is always exited via return statement
     // false if function execution could reach the closing } of this function
-    pub specializations: RwLock<HashMap<(TypeList, TypeList), JitFctId>>,
+    pub specializations: RwLock<HashMap<TypeList, JitFctId>>,
     pub vars: Vec<Var>, // variables in functions
 }
 

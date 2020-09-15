@@ -2405,6 +2405,7 @@ fn arg_allows(
                 )
             }
         }
+        BuiltinType::TypeParam(_) => unimplemented!(),
 
         BuiltinType::Class(cls_id, list_id) => {
             if def == arg || arg.is_nil() {

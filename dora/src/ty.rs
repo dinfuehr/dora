@@ -57,6 +57,7 @@ pub enum BuiltinType {
     // some type variable
     FctTypeParam(TypeListId),
     ClassTypeParam(TypeListId),
+    TypeParam(TypeListId),
 
     // some lambda
     Lambda(LambdaId),
@@ -346,6 +347,7 @@ impl BuiltinType {
 
             BuiltinType::ClassTypeParam(_) => *self == other,
             BuiltinType::FctTypeParam(_) => *self == other,
+            BuiltinType::TypeParam(_) => *self == other,
 
             BuiltinType::Lambda(_) => {
                 // for now expect the exact same params and return types
@@ -402,9 +404,9 @@ impl BuiltinType {
                 struc.size
             }
             BuiltinType::Trait(_) => mem::ptr_width(),
-            BuiltinType::ClassTypeParam(_) | BuiltinType::FctTypeParam(_) => {
-                panic!("no size for type variable.")
-            }
+            BuiltinType::ClassTypeParam(_)
+            | BuiltinType::FctTypeParam(_)
+            | BuiltinType::TypeParam(_) => panic!("no size for type variable."),
             BuiltinType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).size(),
         }
     }
@@ -447,9 +449,9 @@ impl BuiltinType {
                 struc.align
             }
             BuiltinType::Trait(_) => mem::ptr_width(),
-            BuiltinType::ClassTypeParam(_) | BuiltinType::FctTypeParam(_) => {
-                panic!("no alignment for type variable.")
-            }
+            BuiltinType::ClassTypeParam(_)
+            | BuiltinType::FctTypeParam(_)
+            | BuiltinType::TypeParam(_) => panic!("no alignment for type variable."),
             BuiltinType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).align(),
         }
     }
@@ -475,9 +477,9 @@ impl BuiltinType {
             | BuiltinType::Ptr => MachineMode::Ptr,
             BuiltinType::Struct(_, _) => panic!("no machine mode for struct."),
             BuiltinType::Trait(_) => MachineMode::Ptr,
-            BuiltinType::ClassTypeParam(_) | BuiltinType::FctTypeParam(_) => {
-                panic!("no machine mode for type variable.")
-            }
+            BuiltinType::ClassTypeParam(_)
+            | BuiltinType::FctTypeParam(_)
+            | BuiltinType::TypeParam(_) => panic!("no machine mode for type variable."),
             BuiltinType::Tuple(_) => unimplemented!(),
         }
     }
@@ -502,7 +504,8 @@ impl BuiltinType {
             | BuiltinType::Trait(_)
             | BuiltinType::Lambda(_)
             | BuiltinType::ClassTypeParam(_)
-            | BuiltinType::FctTypeParam(_) => true,
+            | BuiltinType::FctTypeParam(_)
+            | BuiltinType::TypeParam(_) => true,
             BuiltinType::Class(_, list_id) | BuiltinType::Struct(_, list_id) => {
                 let params = vm.lists.lock().get(list_id);
 
@@ -558,6 +561,7 @@ impl BuiltinType {
             BuiltinType::Tuple(tuple_id) => vm.tuples.lock().get_tuple(tuple_id).is_concrete_type(),
             BuiltinType::Lambda(_) | BuiltinType::Struct(_, _) => unimplemented!(),
             BuiltinType::ClassTypeParam(_) | BuiltinType::FctTypeParam(_) => false,
+            BuiltinType::TypeParam(_) => false,
         }
     }
 }
@@ -906,7 +910,9 @@ impl<'a, 'ast> BuiltinTypePrinter<'a, 'ast> {
                 let module = module.read();
                 self.vm.interner.str(module.name).to_string()
             }
-            BuiltinType::ClassTypeParam(_) | BuiltinType::FctTypeParam(_) => {
+            BuiltinType::ClassTypeParam(_)
+            | BuiltinType::FctTypeParam(_)
+            | BuiltinType::TypeParam(_) => {
                 if let Some(fct) = self.use_fct {
                     fct.type_param_ty(self.vm, ty, |tp, _| {
                         self.vm.interner.str(tp.name).to_string()

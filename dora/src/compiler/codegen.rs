@@ -42,12 +42,12 @@ pub fn generate_fct<'ast>(
     debug_assert!(fct_type_params
         .iter()
         .all(|ty| !ty.contains_type_param(vm),));
+    let type_params = cls_type_params.append(fct_type_params);
 
     {
         let specials = src.specializations.read();
-        let key = (cls_type_params.clone(), fct_type_params.clone());
 
-        if let Some(&jit_fct_id) = specials.get(&key) {
+        if let Some(&jit_fct_id) = specials.get(&type_params) {
             let jit_fct = vm.jit_fcts.idx(jit_fct_id);
             return jit_fct.instruction_start();
         }
@@ -62,7 +62,14 @@ pub fn generate_fct<'ast>(
     };
 
     let code = match bc {
-        CompilerName::Cannon => cannon::compile(vm, &fct, src, cls_type_params, fct_type_params),
+        CompilerName::Cannon => cannon::compile(
+            vm,
+            &fct,
+            src,
+            cls_type_params,
+            fct_type_params,
+            &type_params,
+        ),
         CompilerName::Boots => boots::compile(vm, &fct, src, cls_type_params, fct_type_params),
     };
 
@@ -99,8 +106,7 @@ pub fn generate_fct<'ast>(
 
     {
         let mut specials = src.specializations.write();
-        let key = (cls_type_params.clone(), fct_type_params.clone());
-        specials.insert(key, jit_fct_id);
+        specials.insert(type_params, jit_fct_id);
     }
 
     {

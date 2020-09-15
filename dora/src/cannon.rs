@@ -15,6 +15,7 @@ pub(super) fn compile<'a, 'ast: 'a>(
     src: &'a FctSrc,
     cls_type_params: &TypeList,
     fct_type_params: &TypeList,
+    type_params: &TypeList,
 ) -> Code {
     let bytecode_fct = bytecode::generate(vm, fct, src, cls_type_params, fct_type_params);
 
@@ -37,6 +38,7 @@ pub(super) fn compile<'a, 'ast: 'a>(
         None,
         cls_type_params,
         fct_type_params,
+        type_params,
     )
     .generate()
 }
