@@ -655,6 +655,32 @@ impl TypeList {
         }
     }
 
+    pub fn append(&self, other: &TypeList) -> TypeList {
+        if self.is_empty() {
+            return other.clone();
+        }
+
+        if other.is_empty() {
+            return self.clone();
+        }
+
+        let mut params = self.types().to_vec();
+        params.extend_from_slice(other.types());
+
+        TypeList::List(Arc::new(params))
+    }
+
+    pub fn types(&self) -> &[BuiltinType] {
+        match self {
+            TypeList::Empty => &[],
+            TypeList::List(ref params) => (**params).as_slice(),
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn len(&self) -> usize {
         match self {
             &TypeList::Empty => 0,
@@ -955,5 +981,19 @@ mod tests {
     #[should_panic]
     fn mode_for_unit() {
         assert_eq!(MachineMode::Ptr, BuiltinType::Unit.mode());
+    }
+
+    #[test]
+    fn append_type_lists() {
+        let e1 = TypeList::empty();
+        let e2 = TypeList::single(BuiltinType::Int32);
+        assert_eq!(e1.append(&e2).types(), &[BuiltinType::Int32]);
+
+        let e1 = TypeList::single(BuiltinType::Float32);
+        let e2 = TypeList::single(BuiltinType::Int32);
+        assert_eq!(
+            e1.append(&e2).types(),
+            &[BuiltinType::Float32, BuiltinType::Int32]
+        );
     }
 }
