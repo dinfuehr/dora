@@ -480,12 +480,14 @@ where
         ptr: *const u8,
         cls_tps: TypeList,
         fct_tps: TypeList,
+        type_params: TypeList,
         pos: Position,
         gcpoint: GcPoint,
         ty: BuiltinType,
         dest: AnyReg,
     ) {
-        self.masm.direct_call(fct_id, ptr, cls_tps, fct_tps);
+        self.masm
+            .direct_call(fct_id, ptr, cls_tps, fct_tps, type_params);
         self.call_epilog(pos, ty, dest, gcpoint);
     }
 
@@ -796,6 +798,7 @@ where
         self.direct_call(
             fct_id,
             ptr.to_ptr(),
+            TypeList::empty(),
             TypeList::empty(),
             TypeList::empty(),
             pos,

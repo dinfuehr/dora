@@ -1975,7 +1975,7 @@ where
 
         let argsize = self.emit_invoke_arguments(result_register, arguments);
 
-        let ptr = self.ptr_for_fct_id(fct_id, type_params);
+        let ptr = self.ptr_for_fct_id(fct_id, type_params.clone());
         let gcpoint = self.create_gcpoint();
 
         let (reg, ty) = match bytecode_type {
@@ -1986,8 +1986,9 @@ where
         self.asm.direct_call(
             fct_id,
             ptr.to_ptr(),
-            cls_type_params,
-            fct_type_params,
+            cls_type_params.clone(),
+            fct_type_params.clone(),
+            type_params,
             position,
             gcpoint,
             ty,
@@ -2036,7 +2037,7 @@ where
 
             let argsize = self.emit_invoke_arguments(result_register, arguments);
 
-            let ptr = self.ptr_for_fct_id(fct_id, type_params);
+            let ptr = self.ptr_for_fct_id(fct_id, type_params.clone());
             let gcpoint = self.create_gcpoint();
             let position = self.bytecode.offset_position(self.current_offset.to_u32());
 
@@ -2050,6 +2051,7 @@ where
                 ptr.to_ptr(),
                 cls_type_params,
                 fct_type_params,
+                type_params,
                 position,
                 gcpoint,
                 ty,

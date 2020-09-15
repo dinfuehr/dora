@@ -18,8 +18,7 @@ pub fn supported() -> bool {
 pub fn disassemble<'ast>(
     vm: &VM<'ast>,
     fct: &Fct<'ast>,
-    cls_type_params: &TypeList,
-    fct_type_params: &TypeList,
+    type_params: &TypeList,
     code: &Code,
     fct_src: Option<&FctSrc>,
     asm_syntax: AsmSyntax,
@@ -53,34 +52,22 @@ pub fn disassemble<'ast>(
 
     let name = fct.full_name(vm);
 
-    let cls_type_params: String = if cls_type_params.len() > 0 {
+    let type_params = if !type_params.is_empty() {
         let mut ty_names = Vec::new();
 
-        for ty in cls_type_params.iter() {
+        for ty in type_params.iter() {
             ty_names.push(ty.name_fct(vm, fct));
         }
 
-        format!(" CLS[{}]", ty_names.join(", "))
-    } else {
-        "".into()
-    };
-
-    let fct_type_params: String = if fct_type_params.len() > 0 {
-        let mut ty_names = Vec::new();
-
-        for ty in fct_type_params.iter() {
-            ty_names.push(ty.name_fct(vm, fct));
-        }
-
-        format!(" FCT[{}]", ty_names.join(", "))
+        format!(" [{}]", ty_names.join(", "))
     } else {
         "".into()
     };
 
     writeln!(
         &mut w,
-        "fun {}{}{} {:#x} {:#x}",
-        &name, cls_type_params, fct_type_params, start_addr, end_addr
+        "fun {}{} {:#x} {:#x}",
+        &name, type_params, start_addr, end_addr
     )
     .unwrap();
 

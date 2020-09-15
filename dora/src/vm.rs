@@ -265,7 +265,7 @@ impl<'ast> VM<'ast> {
 
         THREAD.with(|thread| {
             thread.borrow().use_dtn(&mut dtn, || {
-                compiler::generate(self, fct_id, &type_params, &type_params)
+                compiler::generate(self, fct_id, &type_params, &type_params, &type_params)
             })
         })
     }
@@ -379,7 +379,7 @@ impl<'ast> VM<'ast> {
             let fct_def = fct
                 .specializations
                 .read()
-                .get(&(TypeList::Empty, TypeList::Empty))
+                .get(&TypeList::empty())
                 .and_then(|fct_def_id| Some(*fct_def_id));
 
             fct_def
@@ -412,7 +412,7 @@ impl<'ast> VM<'ast> {
             let fct = fct.read();
             let map = fct.specializations.read();
             let fct_def = map
-                .get(&(TypeList::Empty, type_params))
+                .get(&type_params)
                 .and_then(|fct_def_id| Some(*fct_def_id));
 
             fct_def
@@ -492,7 +492,7 @@ impl<'ast> VM<'ast> {
         let fct_def = fct
             .specializations
             .read()
-            .get(&(TypeList::Empty, TypeList::Empty))
+            .get(&TypeList::empty())
             .and_then(|fct_def_id| Some(*fct_def_id));
 
         fct_def
@@ -521,7 +521,7 @@ impl<'ast> VM<'ast> {
         let fct_def = fct
             .specializations
             .read()
-            .get(&(TypeList::Empty, TypeList::Empty))
+            .get(&TypeList::empty())
             .and_then(|fct_def_id| Some(*fct_def_id))
             .expect("no ctor definition found");
 
@@ -545,7 +545,7 @@ impl<'ast> VM<'ast> {
         let fct_def = fct
             .specializations
             .read()
-            .get(&(cls_type_params, TypeList::empty()))
+            .get(&cls_type_params)
             .and_then(|fct_def_id| Some(*fct_def_id))
             .expect("no ctor definition found");
 

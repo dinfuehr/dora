@@ -323,7 +323,7 @@ pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
 
             THREAD.with(|thread| {
                 thread.borrow().use_dtn(&mut dtn, || {
-                    compiler::generate(vm, main, &type_params, &type_params)
+                    compiler::generate(vm, main, &type_params, &type_params, &type_params)
                 })
             })
         };

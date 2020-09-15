@@ -20,13 +20,21 @@ pub fn generate<'ast>(
     id: FctId,
     cls_type_params: &TypeList,
     fct_type_params: &TypeList,
+    type_params: &TypeList,
 ) -> Address {
     let fct = vm.fcts.idx(id);
     let fct = fct.read();
     let src = fct.src();
     let src = src.write();
 
-    generate_fct(vm, &fct, &src, cls_type_params, fct_type_params)
+    generate_fct(
+        vm,
+        &fct,
+        &src,
+        cls_type_params,
+        fct_type_params,
+        type_params,
+    )
 }
 
 pub fn generate_fct<'ast>(
@@ -35,6 +43,7 @@ pub fn generate_fct<'ast>(
     src: &FctSrc,
     cls_type_params: &TypeList,
     fct_type_params: &TypeList,
+    type_params: &TypeList,
 ) -> Address {
     debug_assert!(cls_type_params
         .iter()
@@ -42,6 +51,7 @@ pub fn generate_fct<'ast>(
     debug_assert!(fct_type_params
         .iter()
         .all(|ty| !ty.contains_type_param(vm),));
+    debug_assert_eq!(&cls_type_params.append(&fct_type_params), type_params);
     let type_params = cls_type_params.append(fct_type_params);
 
     {
@@ -81,8 +91,7 @@ pub fn generate_fct<'ast>(
         disassembler::disassemble(
             vm,
             &*fct,
-            cls_type_params,
-            fct_type_params,
+            &type_params,
             &code,
             Some(&src),
             vm.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att),
@@ -257,7 +266,6 @@ pub fn ensure_native_stub(vm: &VM, fct_id: Option<FctId>, internal_fct: NativeFc
                 disassembler::disassemble(
                     vm,
                     &*fct,
-                    &TypeList::empty(),
                     &TypeList::empty(),
                     jit_fct.to_code().expect("still uncompiled"),
                     None,

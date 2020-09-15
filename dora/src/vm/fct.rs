@@ -68,7 +68,7 @@ pub struct Fct<'ast> {
     pub type_params: Vec<TypeParam>,
     pub kind: FctKind,
 
-    pub specializations: RwLock<HashMap<(TypeList, TypeList), FctDefId>>,
+    pub specializations: RwLock<HashMap<TypeList, FctDefId>>,
 }
 
 impl<'ast> Fct<'ast> {
@@ -641,7 +641,13 @@ pub struct FctDef {
 
 impl FctDef {
     pub fn fct(vm: &VM, fct: &Fct) -> FctDefId {
-        FctDef::with(vm, fct, TypeList::empty(), TypeList::empty())
+        FctDef::with(
+            vm,
+            fct,
+            TypeList::empty(),
+            TypeList::empty(),
+            TypeList::empty(),
+        )
     }
 
     pub fn fct_types(
@@ -649,8 +655,9 @@ impl FctDef {
         fct: &Fct,
         cls_type_params: TypeList,
         fct_type_params: TypeList,
+        type_params: TypeList,
     ) -> FctDefId {
-        FctDef::with(vm, fct, cls_type_params, fct_type_params)
+        FctDef::with(vm, fct, cls_type_params, fct_type_params, type_params)
     }
 
     pub fn fct_id(vm: &VM, fct_id: FctId) -> FctDefId {
@@ -665,11 +672,12 @@ impl FctDef {
         fct_id: FctId,
         cls_type_params: TypeList,
         fct_type_params: TypeList,
+        type_params: TypeList,
     ) -> FctDefId {
         let fct = vm.fcts.idx(fct_id);
         let fct = fct.read();
 
-        FctDef::fct_types(vm, &*fct, cls_type_params, fct_type_params)
+        FctDef::fct_types(vm, &*fct, cls_type_params, fct_type_params, type_params)
     }
 
     pub fn with(
@@ -677,12 +685,13 @@ impl FctDef {
         fct: &Fct,
         cls_type_params: TypeList,
         fct_type_params: TypeList,
+        type_params: TypeList,
     ) -> FctDefId {
         debug_assert!(cls_type_params.iter().all(|ty| ty.is_concrete_type(vm)));
         debug_assert!(fct_type_params.iter().all(|ty| ty.is_concrete_type(vm)));
+        debug_assert_eq!(cls_type_params.append(&fct_type_params), type_params);
 
         let mut specializations = fct.specializations.write();
-        let type_params = (cls_type_params.clone(), fct_type_params.clone());
 
         if let Some(&id) = specializations.get(&type_params) {
             return id;
@@ -698,10 +707,7 @@ impl FctDef {
             type_params: combined_type_params,
         });
 
-        let old = specializations.insert(
-            (cls_type_params.clone(), fct_type_params.clone()),
-            fct_def_id,
-        );
+        let old = specializations.insert(type_params, fct_def_id);
         assert!(old.is_none());
 
         fct_def_id

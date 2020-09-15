@@ -3035,6 +3035,7 @@ fn gen_vec_load() {
                 fct_id,
                 TypeList::single(BuiltinType::Int32),
                 TypeList::empty(),
+                TypeList::single(BuiltinType::Int32),
             );
             let expected = vec![
                 PushRegister(r(0)),
@@ -3058,6 +3059,7 @@ fn gen_vec_store() {
                 fct_id,
                 TypeList::single(BuiltinType::Int32),
                 TypeList::empty(),
+                TypeList::single(BuiltinType::Int32),
             );
             let expected = vec![
                 PushRegister(r(0)),

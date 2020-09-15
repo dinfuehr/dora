@@ -220,8 +220,8 @@ fn compile_request(ra: usize, receiver1: Address, receiver2: Address) -> Address
     };
 
     match lazy_compilation_site {
-        LazyCompilationSite::Compile(fct_id, disp, ref cls_tps, ref fct_tps) => {
-            patch_fct_call(vm, ra, fct_id, cls_tps, fct_tps, disp)
+        LazyCompilationSite::Compile(fct_id, disp, ref cls_tps, ref fct_tps, ref type_params) => {
+            patch_fct_call(vm, ra, fct_id, cls_tps, fct_tps, type_params, disp)
         }
 
         LazyCompilationSite::VirtCompile(
@@ -229,6 +229,7 @@ fn compile_request(ra: usize, receiver1: Address, receiver2: Address) -> Address
             vtable_index,
             ref cls_tps,
             ref fct_tps,
+            ref type_params,
         ) => patch_vtable_call(
             vm,
             receiver_is_first,
@@ -237,6 +238,7 @@ fn compile_request(ra: usize, receiver1: Address, receiver2: Address) -> Address
             vtable_index,
             cls_tps,
             fct_tps,
+            type_params,
         ),
     }
 }
@@ -249,6 +251,7 @@ fn patch_vtable_call(
     vtable_index: u32,
     cls_tps: &TypeList,
     fct_tps: &TypeList,
+    type_params: &TypeList,
 ) -> Address {
     let receiver = if receiver_is_first {
         receiver1
@@ -263,7 +266,7 @@ fn patch_vtable_call(
     let cls = cls.read();
 
     let fct_id = cls.virtual_fcts[vtable_index as usize];
-    let fct_ptr = compiler::generate(vm, fct_id, cls_tps, fct_tps);
+    let fct_ptr = compiler::generate(vm, fct_id, cls_tps, fct_tps, &type_params);
 
     let methodtable = vtable.table_mut();
     methodtable[vtable_index as usize] = fct_ptr.to_usize();
@@ -277,9 +280,10 @@ fn patch_fct_call(
     fct_id: FctId,
     cls_tps: &TypeList,
     fct_tps: &TypeList,
+    type_params: &TypeList,
     disp: i32,
 ) -> Address {
-    let fct_ptr = compiler::generate(vm, fct_id, cls_tps, fct_tps);
+    let fct_ptr = compiler::generate(vm, fct_id, cls_tps, fct_tps, &type_params);
     let fct_addr: *mut usize = (ra as isize - disp as isize) as *mut _;
 
     // update function pointer in data segment
