@@ -52,7 +52,6 @@ pub fn generate_fct<'ast>(
         .iter()
         .all(|ty| !ty.contains_type_param(vm),));
     debug_assert_eq!(&cls_type_params.append(&fct_type_params), type_params);
-    let type_params = cls_type_params.append(fct_type_params);
 
     {
         let specials = src.specializations.read();
@@ -80,7 +79,9 @@ pub fn generate_fct<'ast>(
             fct_type_params,
             &type_params,
         ),
-        CompilerName::Boots => boots::compile(vm, &fct, src, cls_type_params, fct_type_params),
+        CompilerName::Boots => {
+            boots::compile(vm, &fct, src, cls_type_params, fct_type_params, type_params)
+        }
     };
 
     if vm.args.flag_enable_perf {
@@ -115,7 +116,7 @@ pub fn generate_fct<'ast>(
 
     {
         let mut specials = src.specializations.write();
-        specials.insert(type_params, jit_fct_id);
+        specials.insert(type_params.clone(), jit_fct_id);
     }
 
     {

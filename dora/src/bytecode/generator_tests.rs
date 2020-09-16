@@ -14,7 +14,7 @@ fn code(code: &'static str) -> Vec<Bytecode> {
     test::parse(code, |vm| {
         let fct_id = vm.fct_by_name("f").expect("no function `f`.");
         let tp = TypeList::empty();
-        let fct = bytecode::generate_fct(vm, fct_id, &tp, &tp);
+        let fct = bytecode::generate_fct(vm, fct_id, &tp, &tp, &tp);
         build(&fct)
     })
 }
@@ -23,7 +23,7 @@ fn position(code: &'static str) -> Vec<(u32, Position)> {
     test::parse(code, |vm| {
         let fct_id = vm.fct_by_name("f").expect("no function `f`.");
         let tp = TypeList::empty();
-        let fct = bytecode::generate_fct(vm, fct_id, &tp, &tp);
+        let fct = bytecode::generate_fct(vm, fct_id, &tp, &tp, &tp);
         fct.positions().to_vec()
     })
 }
@@ -38,7 +38,7 @@ fn code_method_with_class_name(code: &'static str, class_name: &'static str) -> 
             .cls_method_by_name(class_name, "f", false)
             .unwrap_or_else(|| panic!("no function `f` in Class `{}`.", class_name));
         let tp = TypeList::empty();
-        let fct = bytecode::generate_fct(vm, fct_id, &tp, &tp);
+        let fct = bytecode::generate_fct(vm, fct_id, &tp, &tp, &tp);
         build(&fct)
     })
 }
@@ -50,7 +50,7 @@ where
     test::parse(code, |vm| {
         let fct_id = vm.fct_by_name("f").expect("no function `f`.");
         let tp = TypeList::empty();
-        let fct = bytecode::generate_fct(vm, fct_id, &tp, &tp);
+        let fct = bytecode::generate_fct(vm, fct_id, &tp, &tp, &tp);
         let code = build(&fct);
 
         testfct(vm, code);
@@ -64,7 +64,7 @@ where
     test::parse(code, |vm| {
         let fct_id = vm.fct_by_name("f").expect("no function `f`.");
         let tp = TypeList::empty();
-        let fct = bytecode::generate_fct(vm, fct_id, &tp, &tp);
+        let fct = bytecode::generate_fct(vm, fct_id, &tp, &tp, &tp);
         let code = build(&fct);
 
         testfct(vm, code, fct);

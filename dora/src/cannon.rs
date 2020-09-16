@@ -17,7 +17,8 @@ pub(super) fn compile<'a, 'ast: 'a>(
     fct_type_params: &TypeList,
     type_params: &TypeList,
 ) -> Code {
-    let bytecode_fct = bytecode::generate(vm, fct, src, cls_type_params, fct_type_params);
+    let bytecode_fct =
+        bytecode::generate(vm, fct, src, cls_type_params, fct_type_params, type_params);
 
     if should_emit_bytecode(vm, fct) {
         bytecode::dump(vm, &bytecode_fct);

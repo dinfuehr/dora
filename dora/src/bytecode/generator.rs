@@ -31,13 +31,21 @@ pub fn generate_fct<'ast>(
     id: FctId,
     cls_type_params: &TypeList,
     fct_type_params: &TypeList,
+    type_params: &TypeList,
 ) -> BytecodeFunction {
     let fct = vm.fcts.idx(id);
     let fct = fct.read();
     let src = fct.src();
     let mut src = src.write();
 
-    generate(vm, &fct, &mut src, cls_type_params, fct_type_params)
+    generate(
+        vm,
+        &fct,
+        &mut src,
+        cls_type_params,
+        fct_type_params,
+        type_params,
+    )
 }
 
 pub fn generate<'ast>(
@@ -46,6 +54,7 @@ pub fn generate<'ast>(
     src: &FctSrc,
     cls_type_params: &TypeList,
     fct_type_params: &TypeList,
+    type_params: &TypeList,
 ) -> BytecodeFunction {
     let ast_bytecode_generator = AstBytecodeGen {
         vm,
@@ -55,6 +64,7 @@ pub fn generate<'ast>(
 
         cls_type_params,
         fct_type_params,
+        type_params,
 
         gen: BytecodeBuilder::new(&vm.args),
         loops: Vec::new(),
@@ -71,6 +81,7 @@ struct AstBytecodeGen<'a, 'ast: 'a> {
 
     cls_type_params: &'a TypeList,
     fct_type_params: &'a TypeList,
+    type_params: &'a TypeList,
 
     gen: BytecodeBuilder,
     loops: Vec<LoopLabels>,
